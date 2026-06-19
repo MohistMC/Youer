@@ -18,33 +18,37 @@ public class HelpTopicAmendment {
 
     /**
      * Gets the amended full text
+     *
      * @return the full text
      */
     public String getFullText() {
-        return fullText;
+        return this.fullText;
     }
 
     /**
      * Gets the amended short text
+     *
      * @return the short text
      */
     public String getShortText() {
-        return shortText;
+        return this.shortText;
     }
 
     /**
      * Gets the name of the topic being amended
+     *
      * @return the topic name
      */
     public String getTopicName() {
-        return topicName;
+        return this.topicName;
     }
 
     /**
      * Gets the amended permission
+     *
      * @return the permission
      */
     public String getPermission() {
-        return permission;
+        return this.permission;
     }
 }

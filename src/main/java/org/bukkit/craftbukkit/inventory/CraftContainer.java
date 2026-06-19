@@ -18,7 +18,6 @@ import net.minecraft.world.inventory.GrindstoneMenu;
 import net.minecraft.world.inventory.HopperMenu;
 import net.minecraft.world.inventory.LecternMenu;
 import net.minecraft.world.inventory.LoomMenu;
-import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.inventory.MerchantMenu;
 import net.minecraft.world.inventory.ShulkerBoxMenu;
 import net.minecraft.world.inventory.SimpleContainerData;
@@ -29,6 +28,7 @@ import org.bukkit.entity.HumanEntity;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
+import org.bukkit.inventory.MenuType;
 
 public class CraftContainer extends AbstractContainerMenu {
 
@@ -37,20 +37,20 @@ public class CraftContainer extends AbstractContainerMenu {
     private AbstractContainerMenu delegate;
 
     public CraftContainer(InventoryView view, Player player, int id) {
-        super(getNotchInventoryType(view.getTopInventory()), id);
+        super(CraftContainer.getNotchInventoryType(view.getTopInventory()), id);
         this.view = view;
         // TODO: Do we need to check that it really is a CraftInventory?
         Container top = ((CraftInventory) view.getTopInventory()).getInventory();
         net.minecraft.world.entity.player.Inventory bottom = (net.minecraft.world.entity.player.Inventory) ((CraftInventory) view.getBottomInventory()).getInventory();
-        cachedType = view.getType();
-        setupSlots(top, bottom, player);
+        this.cachedType = view.getType();
+        this.setupSlots(top, bottom, player);
     }
 
     public CraftContainer(final Inventory inventory, final Player player, int id) {
         this(new CraftAbstractInventoryView() {
 
-            private final String originalTitle = (inventory instanceof CraftInventoryCustom) ? ((CraftInventoryCustom.MinecraftInventory) ((CraftInventory) inventory).getInventory()).getTitle() : inventory.getType().getDefaultTitle();
-            private String title;
+            private final String originalTitle = inventory instanceof CraftInventoryCustom ? ((CraftInventoryCustom) inventory).getTitle() : inventory.getType().getDefaultTitle(); // Paper
+            private String title = this.originalTitle;
 
             @Override
             public Inventory getTopInventory() {
@@ -59,7 +59,7 @@ public class CraftContainer extends AbstractContainerMenu {
 
             @Override
             public Inventory getBottomInventory() {
-                return getPlayer().getInventory();
+                return this.getPlayer().getInventory();
             }
 
             @Override
@@ -68,25 +68,25 @@ public class CraftContainer extends AbstractContainerMenu {
             }
 
             @Override
-            public void setPlayer(HumanEntity player) {
-            }
-
-            @Override
             public InventoryType getType() {
                 return inventory.getType();
             }
 
+            // Paper start
+            @Override
+            public net.kyori.adventure.text.Component title() {
+                return inventory instanceof CraftInventoryCustom custom ? custom.title() : inventory.getType().defaultTitle(); // Paper
+            }
+            // Paper end
+
             @Override
             public String getTitle() {
-                if (title == null) {
-                    this.title = originalTitle;
-                }
-                return title;
+                return this.title;
             }
 
             @Override
             public String getOriginalTitle() {
-                return originalTitle;
+                return this.originalTitle;
             }
 
             @Override
@@ -95,134 +95,141 @@ public class CraftContainer extends AbstractContainerMenu {
                 this.title = title;
             }
 
+            @Override
+            public MenuType getMenuType() {
+                return CraftMenuType.minecraftToBukkit(getNotchInventoryType(inventory));
+            }
+
         }, player, id);
     }
 
     @Override
     public InventoryView getBukkitView() {
-        return view;
+        return this.view;
     }
 
-    public static MenuType getNotchInventoryType(Inventory inventory) {
+    public static net.minecraft.world.inventory.MenuType getNotchInventoryType(Inventory inventory) {
         final InventoryType type = inventory.getType();
         switch (type) {
-            case PLAYER:
             case CHEST:
             case ENDER_CHEST:
             case BARREL:
                 switch (inventory.getSize()) {
                     case 9:
-                        return MenuType.GENERIC_9x1;
+                        return net.minecraft.world.inventory.MenuType.GENERIC_9x1;
                     case 18:
-                        return MenuType.GENERIC_9x2;
+                        return net.minecraft.world.inventory.MenuType.GENERIC_9x2;
                     case 27:
-                        return MenuType.GENERIC_9x3;
+                        return net.minecraft.world.inventory.MenuType.GENERIC_9x3;
                     case 36:
-                    case 41: // PLAYER
-                        return MenuType.GENERIC_9x4;
+                        return net.minecraft.world.inventory.MenuType.GENERIC_9x4;
                     case 45:
-                        return MenuType.GENERIC_9x5;
+                        return net.minecraft.world.inventory.MenuType.GENERIC_9x5;
                     case 54:
-                        return MenuType.GENERIC_9x6;
+                        return net.minecraft.world.inventory.MenuType.GENERIC_9x6;
                     default:
                         throw new IllegalArgumentException("Unsupported custom inventory size " + inventory.getSize());
                 }
             default:
-                final org.bukkit.inventory.MenuType menu = type.getMenuType();
+                final MenuType menu = type.getMenuType();
                 if (menu == null) {
-                    return MenuType.GENERIC_9x3;
+                    return net.minecraft.world.inventory.MenuType.GENERIC_9x3;
                 } else {
                     return ((CraftMenuType<?, ?>) menu).getHandle();
                 }
         }
     }
 
-    private void setupSlots(Container top, net.minecraft.world.entity.player.Inventory bottom, Player player) {
+    private void setupSlots(Container top, net.minecraft.world.entity.player.Inventory bottom, Player entityhuman) {
         int windowId = -1;
-        switch (cachedType) {
+        switch (this.cachedType) {
             case CREATIVE:
                 break; // TODO: This should be an error?
             case PLAYER:
             case CHEST:
             case ENDER_CHEST:
             case BARREL:
-                delegate = new ChestMenu(MenuType.GENERIC_9x3, windowId, bottom, top, top.getContainerSize() / 9);
+                this.delegate = new ChestMenu(net.minecraft.world.inventory.MenuType.GENERIC_9x3, windowId, bottom, top, top.getContainerSize() / 9);
                 break;
             case DISPENSER:
             case DROPPER:
-                delegate = new DispenserMenu(windowId, bottom, top);
+                this.delegate = new DispenserMenu(windowId, bottom, top);
                 break;
             case FURNACE:
-                delegate = new FurnaceMenu(windowId, bottom, top, new SimpleContainerData(4));
+                this.delegate = new FurnaceMenu(windowId, bottom, top, new SimpleContainerData(4));
                 break;
             case CRAFTING: // TODO: This should be an error?
             case WORKBENCH:
-                setupWorkbench(top, bottom); // SPIGOT-3812 - manually set up slots so we can use the delegated inventory and not the automatically created one
+                this.setupWorkbench(top, bottom); // SPIGOT-3812 - manually set up slots so we can use the delegated inventory and not the automatically created one
                 break;
             case ENCHANTING:
-                delegate = new EnchantmentMenu(windowId, bottom);
+                this.delegate = new EnchantmentMenu(windowId, bottom);
                 break;
             case BREWING:
-                delegate = new BrewingStandMenu(windowId, bottom, top, new SimpleContainerData(2));
+                this.delegate = new BrewingStandMenu(windowId, bottom, top, new io.papermc.paper.inventory.BrewingSimpleContainerData()); // Paper - Add recipeBrewTime
                 break;
             case HOPPER:
-                delegate = new HopperMenu(windowId, bottom, top);
+                this.delegate = new HopperMenu(windowId, bottom, top);
                 break;
             case ANVIL:
-                setupAnvil(top, bottom); // SPIGOT-6783 - manually set up slots so we can use the delegated inventory and not the automatically created one
+                this.setupAnvil(top, bottom); // SPIGOT-6783 - manually set up slots so we can use the delegated inventory and not the automatically created one
                 break;
             case BEACON:
-                delegate = new BeaconMenu(windowId, bottom);
+                this.delegate = new BeaconMenu(windowId, bottom);
                 break;
             case SHULKER_BOX:
-                delegate = new ShulkerBoxMenu(windowId, bottom, top);
+                this.delegate = new ShulkerBoxMenu(windowId, bottom, top);
                 break;
             case BLAST_FURNACE:
-                delegate = new BlastFurnaceMenu(windowId, bottom, top, new SimpleContainerData(4));
+                this.delegate = new BlastFurnaceMenu(windowId, bottom, top, new SimpleContainerData(4));
                 break;
             case LECTERN:
-                delegate = new LecternMenu(windowId, top, new SimpleContainerData(1), bottom);
+                this.delegate = new LecternMenu(windowId, top, new SimpleContainerData(1), bottom);
                 break;
             case SMOKER:
-                delegate = new SmokerMenu(windowId, bottom, top, new SimpleContainerData(4));
+                this.delegate = new SmokerMenu(windowId, bottom, top, new SimpleContainerData(4));
                 break;
             case LOOM:
-                delegate = new LoomMenu(windowId, bottom);
+                this.delegate = new LoomMenu(windowId, bottom);
                 break;
             case CARTOGRAPHY:
-                delegate = new CartographyTableMenu(windowId, bottom);
+                this.delegate = new CartographyTableMenu(windowId, bottom);
                 break;
             case GRINDSTONE:
-                delegate = new GrindstoneMenu(windowId, bottom);
+                this.delegate = new GrindstoneMenu(windowId, bottom);
                 break;
             case STONECUTTER:
-                setupStoneCutter(top, bottom); // SPIGOT-7757 - manual setup required for individual slots
+                this.setupStoneCutter(top, bottom); // SPIGOT-7757 - manual setup required for individual slots
                 break;
             case MERCHANT:
-                delegate = new MerchantMenu(windowId, bottom);
+                this.delegate = new MerchantMenu(windowId, bottom);
                 break;
             case SMITHING:
             case SMITHING_NEW:
-                setupSmithing(top, bottom); // SPIGOT-6783 - manually set up slots so we can use the delegated inventory and not the automatically created one
+                this.setupSmithing(top, bottom); // SPIGOT-6783 - manually set up slots so we can use the delegated inventory and not the automatically created one
                 break;
             case CRAFTER:
-                delegate = new CrafterMenu(windowId, bottom);
+                this.delegate = new CrafterMenu(windowId, bottom);
                 break;
         }
 
-        if (delegate != null) {
-            this.lastSlots = delegate.lastSlots;
-            this.slots = delegate.slots;
-            this.remoteSlots = delegate.remoteSlots;
+        if (this.delegate != null) {
+            this.lastSlots = this.delegate.lastSlots;
+            this.slots = this.delegate.slots;
+            this.remoteSlots = this.delegate.remoteSlots;
+            // Paper start - copy data slots for InventoryView#set/getProperty
+            this.dataSlots = this.delegate.dataSlots;
+            this.remoteDataSlots = this.delegate.remoteDataSlots;
+            // Paper end
         }
 
         // SPIGOT-4598 - we should still delegate the shift click handler
-        switch (cachedType) {
+        switch (this.cachedType) {
             case WORKBENCH:
-                delegate = new CraftingMenu(windowId, bottom);
+                this.delegate = new CraftingMenu(windowId, bottom);
                 break;
             case ANVIL:
-                delegate = new AnvilMenu(windowId, bottom);
+                this.delegate = new AnvilMenu(windowId, bottom);
                 break;
         }
     }
@@ -316,17 +323,17 @@ public class CraftContainer extends AbstractContainerMenu {
     }
 
     @Override
-    public ItemStack quickMoveStack(Player player, int i) {
-        return (delegate != null) ? delegate.quickMoveStack(player, i) : ItemStack.EMPTY;
+    public ItemStack quickMoveStack(Player player, int slot) {
+        return (this.delegate != null) ? this.delegate.quickMoveStack(player, slot) : ItemStack.EMPTY;
     }
 
     @Override
-    public boolean stillValid(Player entity) {
+    public boolean stillValid(Player player) {
         return true;
     }
 
     @Override
-    public MenuType<?> getType() {
-        return getNotchInventoryType(view.getTopInventory());
+    public net.minecraft.world.inventory.MenuType<?> getType() {
+        return CraftContainer.getNotchInventoryType(this.view.getTopInventory());
     }
 }

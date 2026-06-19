@@ -16,11 +16,11 @@ public class CraftFluidTag extends CraftTag<net.minecraft.world.level.material.F
 
     @Override
     public boolean isTagged(Fluid fluid) {
-        return CraftFluid.bukkitToMinecraft(fluid).is(tag);
+        return CraftFluid.bukkitToMinecraft(fluid).is(this.tag);
     }
 
     @Override
     public Set<Fluid> getValues() {
-        return getHandle().stream().map(Holder::value).map(CraftFluid::minecraftToBukkit).collect(Collectors.toUnmodifiableSet());
+        return this.getHandle().stream().map(Holder::value).map(CraftFluid::minecraftToBukkit).collect(Collectors.toUnmodifiableSet());
     }
 }

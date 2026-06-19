@@ -6,10 +6,8 @@ import net.minecraft.server.players.NameAndId;
 import net.minecraft.server.players.UserBanList;
 import net.minecraft.server.players.UserBanListEntry;
 import org.bukkit.BanEntry;
-import org.bukkit.craftbukkit.profile.CraftPlayerProfile;
-import org.bukkit.profile.PlayerProfile;
 
-public final class CraftProfileBanEntry implements BanEntry<PlayerProfile> {
+public final class CraftProfileBanEntry implements BanEntry<com.destroystokyo.paper.profile.PlayerProfile> { // Paper
     private static final Date minorDate = Date.from(Instant.parse("1899-12-31T04:00:00Z"));
     private final UserBanList list;
     private final NameAndId profile;
@@ -33,8 +31,8 @@ public final class CraftProfileBanEntry implements BanEntry<PlayerProfile> {
     }
 
     @Override
-    public PlayerProfile getBanTarget() {
-        return new CraftPlayerProfile(this.profile);
+    public com.destroystokyo.paper.profile.PlayerProfile getBanTarget() { // Paper
+        return new com.destroystokyo.paper.profile.CraftPlayerProfile(this.profile); // Paper
     }
 
     @Override
@@ -64,7 +62,7 @@ public final class CraftProfileBanEntry implements BanEntry<PlayerProfile> {
 
     @Override
     public void setExpiration(Date expiration) {
-        if (expiration != null && expiration.getTime() == minorDate.getTime()) {
+        if (expiration != null && expiration.getTime() == CraftProfileBanEntry.minorDate.getTime()) {
             expiration = null; // Forces "forever"
         }
 

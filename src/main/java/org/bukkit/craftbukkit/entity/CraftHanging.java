@@ -8,41 +8,42 @@ import org.bukkit.craftbukkit.block.CraftBlock;
 import org.bukkit.entity.Hanging;
 
 public class CraftHanging extends CraftBlockAttachedEntity implements Hanging {
+
     public CraftHanging(CraftServer server, HangingEntity entity) {
         super(server, entity);
     }
 
     @Override
     public BlockFace getAttachedFace() {
-        return getFacing().getOppositeFace();
+        return this.getFacing().getOppositeFace();
     }
 
     @Override
     public void setFacingDirection(BlockFace face) {
-        setFacingDirection(face, false);
+        this.setFacingDirection(face, false);
     }
 
     @Override
     public boolean setFacingDirection(BlockFace face, boolean force) {
-        HangingEntity hanging = getHandle();
+        HangingEntity hanging = this.getHandle();
         Direction dir = hanging.getDirection();
         switch (face) {
             case SOUTH:
-                getHandle().setDirection(Direction.SOUTH);
+                this.getHandle().setDirection(Direction.SOUTH);
                 break;
             case WEST:
-                getHandle().setDirection(Direction.WEST);
+                this.getHandle().setDirection(Direction.WEST);
                 break;
             case NORTH:
-                getHandle().setDirection(Direction.NORTH);
+                this.getHandle().setDirection(Direction.NORTH);
                 break;
             case EAST:
-                getHandle().setDirection(Direction.EAST);
+                this.getHandle().setDirection(Direction.EAST);
                 break;
             default:
                 throw new IllegalArgumentException(String.format("%s is not a valid facing direction", face));
         }
-        if (!force && !getHandle().generation && !hanging.survives()) {
+        if (!force && !this.getHandle().generation && !hanging.survives()) {
             // Revert since it doesn't fit
             hanging.setDirection(dir);
             return false;
@@ -59,11 +60,6 @@ public class CraftHanging extends CraftBlockAttachedEntity implements Hanging {
 
     @Override
     public HangingEntity getHandle() {
-        return (HangingEntity) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftHanging";
+        return (HangingEntity) this.entity;
     }
 }

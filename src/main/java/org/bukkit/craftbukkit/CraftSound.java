@@ -1,25 +1,21 @@
 package org.bukkit.craftbukkit;
 
-import com.google.common.base.Preconditions;
+import io.papermc.paper.util.OldEnumHolderable;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.sounds.SoundEvent;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.Sound;
-import org.bukkit.craftbukkit.registry.CraftOldEnumRegistryItem;
-import org.jetbrains.annotations.NotNull;
 
-public class CraftSound extends CraftOldEnumRegistryItem<Sound, SoundEvent> implements Sound {
+public class CraftSound extends OldEnumHolderable<Sound, SoundEvent> implements Sound {
 
     private static int count = 0;
 
     public static Sound minecraftToBukkit(SoundEvent minecraft) {
-        return CraftRegistry.minecraftToBukkit(minecraft, Registries.SOUND_EVENT, Registry.SOUNDS);
+        return CraftRegistry.minecraftToBukkit(minecraft, Registries.SOUND_EVENT);
     }
 
     public static Sound minecraftHolderToBukkit(Holder<SoundEvent> minecraft) {
-        return minecraftToBukkit(minecraft.value());
+        return CraftRegistry.minecraftHolderToBukkit(minecraft, Registries.SOUND_EVENT);
     }
 
     public static SoundEvent bukkitToMinecraft(Sound bukkit) {
@@ -27,25 +23,10 @@ public class CraftSound extends CraftOldEnumRegistryItem<Sound, SoundEvent> impl
     }
 
     public static Holder<SoundEvent> bukkitToMinecraftHolder(Sound bukkit) {
-        Preconditions.checkArgument(bukkit != null);
-
-        net.minecraft.core.Registry<SoundEvent> registry = CraftRegistry.getMinecraftRegistry(Registries.SOUND_EVENT);
-
-        if (registry.wrapAsHolder(bukkitToMinecraft(bukkit)) instanceof Holder.Reference<SoundEvent> holder) {
-            return holder;
-        }
-
-        throw new IllegalArgumentException("No Reference holder found for " + bukkit
-                + ", this can happen if a plugin creates its own sound effect with out properly registering it.");
+        return CraftRegistry.bukkitToMinecraftHolder(bukkit);
     }
 
-    public CraftSound(NamespacedKey key, Holder<SoundEvent> handle) {
-        super(key, handle, count++);
-    }
-
-    @NotNull
-    @Override
-    public NamespacedKey getKey() {
-        return getKeyOrThrow();
+    public CraftSound(Holder<SoundEvent> soundEffect) {
+        super(soundEffect, count++);
     }
 }

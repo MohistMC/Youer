@@ -19,13 +19,13 @@ import org.jetbrains.annotations.NotNull;
 public class CraftNBTTagConfigSerializer {
 
     private static final Pattern ARRAY = Pattern.compile("^\\[.*]");
-    private static final Pattern INTEGER = Pattern.compile("[-+]?(?:0|[1-9][0-9]*)?i", Pattern.CASE_INSENSITIVE);
+    private static final Pattern INTEGER = Pattern.compile("[-+]?(?:0|[1-9][0-9]*)i", Pattern.CASE_INSENSITIVE); // Paper - fix regex
     private static final Pattern DOUBLE = Pattern.compile("[-+]?(?:[0-9]+[.]?|[0-9]*[.][0-9]+)(?:e[-+]?[0-9]+)?d", Pattern.CASE_INSENSITIVE);
     private static final TagParser<Tag> MOJANGSON_PARSER = TagParser.create(NbtOps.INSTANCE);
 
-    public static String serialize(@NotNull final Tag base) {
+    public static String serialize(@NotNull final Tag tag) {
         final SnbtPrinterTagVisitor snbtVisitor = new SnbtPrinterTagVisitor();
-        return snbtVisitor.visit(base);
+        return snbtVisitor.visit(tag);
     }
 
     public static Tag deserialize(final Object object) {
@@ -37,7 +37,7 @@ public class CraftNBTTagConfigSerializer {
                 throw new RuntimeException("Failed to deserialise nbt", e);
             }
         } else { // Legacy logic is passed to the internal legacy deserialization that attempts to read the old format that *unsuccessfully* attempted to read/write nbt to a full yml tree.
-            return internalLegacyDeserialization(object);
+            return CraftNBTTagConfigSerializer.internalLegacyDeserialization(object);
         }
     }
 
@@ -45,7 +45,7 @@ public class CraftNBTTagConfigSerializer {
         if (object instanceof Map) {
             CompoundTag compound = new CompoundTag();
             for (Map.Entry<String, Object> entry : ((Map<String, Object>) object).entrySet()) {
-                compound.put(entry.getKey(), internalLegacyDeserialization(entry.getValue()));
+                compound.put(entry.getKey(), CraftNBTTagConfigSerializer.internalLegacyDeserialization(entry.getValue()));
             }
 
             return compound;
@@ -57,43 +57,40 @@ public class CraftNBTTagConfigSerializer {
 
             ListTag tagList = new ListTag();
             for (Object tag : list) {
-                tagList.add(internalLegacyDeserialization(tag));
+                tagList.add(CraftNBTTagConfigSerializer.internalLegacyDeserialization(tag));
             }
 
             return tagList;
-        } else if (object instanceof String) {
-            String string = (String) object;
-
-            if (ARRAY.matcher(string).matches()) {
+        } else if (object instanceof final String string) {
+            if (CraftNBTTagConfigSerializer.ARRAY.matcher(string).matches()) {
                 try {
                     return MOJANGSON_PARSER.parseAsArgument(new StringReader(string));
                 } catch (CommandSyntaxException e) {
                     throw new RuntimeException("Could not deserialize found list ", e);
                 }
-            } else if (INTEGER.matcher(string).matches()) { //Read integers on our own
+            } else if (CraftNBTTagConfigSerializer.INTEGER.matcher(string).matches()) { //Read integers on our own
                 return IntTag.valueOf(Integer.parseInt(string.substring(0, string.length() - 1)));
-            } else if (DOUBLE.matcher(string).matches()) {
+            } else if (CraftNBTTagConfigSerializer.DOUBLE.matcher(string).matches()) {
                 return DoubleTag.valueOf(Double.parseDouble(string.substring(0, string.length() - 1)));
             } else {
-                Tag nbtBase;
                 try {
-                    nbtBase = MOJANGSON_PARSER.parseAsArgument(new StringReader(string));
-                } catch (CommandSyntaxException e) {
-                    throw new RuntimeException("Could not deserialize found value ", e);
-                }
+                    Tag tag = CraftNBTTagConfigSerializer.MOJANGSON_PARSER.parseAsArgument(new StringReader(string));
 
-                if (nbtBase instanceof IntTag) { // If this returns an integer, it did not use our method from above
-                    return StringTag.valueOf(String.valueOf(((IntTag) nbtBase).intValue())); // It then is a string that was falsely read as an int
-                } else if (nbtBase instanceof DoubleTag) {
-                    return StringTag.valueOf(String.valueOf(((DoubleTag) nbtBase).doubleValue())); // Doubles add "d" at the end
-                } else if (nbtBase instanceof StringTag) {
-                    return StringTag.valueOf(string);
-                } else {
-                    return nbtBase;
+                    if (tag instanceof IntTag) { // If this returns an integer, it did not use our method from above
+                        return StringTag.valueOf(tag.toString()); // It then is a string that was falsely read as an int
+                    } else if (tag instanceof DoubleTag) {
+                        return StringTag.valueOf(String.valueOf(((DoubleTag) tag).doubleValue())); // Doubles add "d" at the end
+                    } else if (tag instanceof StringTag) {
+                        return StringTag.valueOf(string); // Return the whole string
+                    } else {
+                        return tag;
+                    }
+                } catch (final CommandSyntaxException commandSyntaxException) {
+                    throw new RuntimeException("Could not deserialize found primitive ", commandSyntaxException);
                 }
             }
         }
 
-        throw new RuntimeException("Could not deserialize NBTBase");
+        throw new RuntimeException("Could not deserialize Tag");
     }
 }

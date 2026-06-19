@@ -9,7 +9,6 @@ public class CraftInventoryShelf extends CraftInventory implements ShelfInventor
 
     public CraftInventoryShelf(ShelfBlockEntity inventory) {
         super(inventory);
-
     }
 
     @Override
@@ -25,6 +24,6 @@ public class CraftInventoryShelf extends CraftInventory implements ShelfInventor
 
     @Override
     public Shelf getHolder() {
-        return (Shelf) inventory.getOwner();
+        return (Shelf) this.inventory.getOwner();
     }
 }

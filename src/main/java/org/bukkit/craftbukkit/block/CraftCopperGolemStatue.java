@@ -6,9 +6,8 @@ import org.bukkit.World;
 import org.bukkit.block.CopperGolemStatue;
 
 public class CraftCopperGolemStatue extends CraftBlockEntityState<CopperGolemStatueBlockEntity> implements CopperGolemStatue {
-
-    public CraftCopperGolemStatue(World world, CopperGolemStatueBlockEntity tileEntity) {
-        super(world, tileEntity);
+    public CraftCopperGolemStatue(World world, CopperGolemStatueBlockEntity blockEntity) {
+        super(world, blockEntity);
     }
 
     protected CraftCopperGolemStatue(CraftCopperGolemStatue state, Location location) {
@@ -16,12 +15,12 @@ public class CraftCopperGolemStatue extends CraftBlockEntityState<CopperGolemSta
     }
 
     @Override
-    public CraftCopperGolemStatue copy() {
+    public CraftBlockEntityState<CopperGolemStatueBlockEntity> copy() {
         return new CraftCopperGolemStatue(this, null);
     }
 
     @Override
-    public CraftCopperGolemStatue copy(Location location) {
+    public CraftBlockEntityState<CopperGolemStatueBlockEntity> copy(Location location) {
         return new CraftCopperGolemStatue(this, location);
     }
 }

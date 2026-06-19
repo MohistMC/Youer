@@ -4,7 +4,7 @@ import com.google.common.base.Preconditions;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Axolotl;
 
-public class CraftAxolotl extends CraftAnimals implements Axolotl {
+public class CraftAxolotl extends CraftAnimals implements Axolotl, io.papermc.paper.entity.PaperBucketable { // Paper - Bucketable API
 
     public CraftAxolotl(CraftServer server, net.minecraft.world.entity.animal.axolotl.Axolotl entity) {
         super(server, entity);
@@ -12,33 +12,28 @@ public class CraftAxolotl extends CraftAnimals implements Axolotl {
 
     @Override
     public net.minecraft.world.entity.animal.axolotl.Axolotl getHandle() {
-        return (net.minecraft.world.entity.animal.axolotl.Axolotl) super.getHandle();
-    }
-
-    @Override
-    public String toString() {
-        return "CraftAxolotl";
+        return (net.minecraft.world.entity.animal.axolotl.Axolotl) this.entity;
     }
 
     @Override
     public boolean isPlayingDead() {
-        return getHandle().isPlayingDead();
+        return this.getHandle().isPlayingDead();
     }
 
     @Override
     public void setPlayingDead(boolean playingDead) {
-        getHandle().setPlayingDead(playingDead);
+        this.getHandle().setPlayingDead(playingDead);
     }
 
     @Override
     public Variant getVariant() {
-        return Variant.values()[getHandle().getVariant().ordinal()];
+        return Variant.values()[this.getHandle().getVariant().ordinal()];
     }
 
     @Override
     public void setVariant(Variant variant) {
-        Preconditions.checkArgument(variant != null, "variant");
+        Preconditions.checkArgument(variant != null, "variant cannot be null");
 
-        getHandle().setVariant(net.minecraft.world.entity.animal.axolotl.Axolotl.Variant.byId(variant.ordinal()));
+        this.getHandle().setVariant(net.minecraft.world.entity.animal.axolotl.Axolotl.Variant.byId(variant.ordinal()));
     }
 }

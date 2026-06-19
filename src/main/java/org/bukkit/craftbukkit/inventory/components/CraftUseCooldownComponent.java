@@ -1,9 +1,7 @@
 package org.bukkit.craftbukkit.inventory.components;
 
-import com.google.common.base.Preconditions;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.component.UseCooldown;
@@ -12,6 +10,8 @@ import org.bukkit.configuration.serialization.SerializableAs;
 import org.bukkit.craftbukkit.inventory.SerializableMeta;
 import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 import org.bukkit.inventory.meta.components.UseCooldownComponent;
+
+import static io.papermc.paper.util.BoundChecker.requirePositive;
 
 @SerializableAs("UseCooldown")
 public final class CraftUseCooldownComponent implements UseCooldownComponent {
@@ -36,44 +36,42 @@ public final class CraftUseCooldownComponent implements UseCooldownComponent {
     @Override
     public Map<String, Object> serialize() {
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("seconds", getCooldownSeconds());
-        if (getCooldownGroup() != null) {
-            result.put("cooldown-group", getCooldownGroup().toString());
+        result.put("seconds", this.getCooldownSeconds());
+        if (this.getCooldownGroup() != null) {
+            result.put("cooldown-group", this.getCooldownGroup().toString());
         }
 
         return result;
     }
 
     public UseCooldown getHandle() {
-        return handle;
+        return this.handle;
     }
 
     @Override
     public float getCooldownSeconds() {
-        return handle.seconds();
+        return this.handle.seconds();
     }
 
     @Override
     public void setCooldownSeconds(float cooldown) {
-        Preconditions.checkArgument(cooldown > 0, "cooldown must be greater than 0");
-
-        handle = new UseCooldown(cooldown, handle.cooldownGroup());
+        this.handle = new UseCooldown(requirePositive(cooldown, "cooldown"), this.handle.cooldownGroup());
     }
 
     @Override
     public NamespacedKey getCooldownGroup() {
-        return handle.cooldownGroup().map(CraftNamespacedKey::fromMinecraft).orElse(null);
+        return this.handle.cooldownGroup().map(CraftNamespacedKey::fromMinecraft).orElse(null);
     }
 
     @Override
     public void setCooldownGroup(NamespacedKey song) {
-        handle = new UseCooldown(handle.seconds(), Optional.ofNullable(song).map(CraftNamespacedKey::toMinecraft));
+        this.handle = new UseCooldown(this.handle.seconds(), Optional.ofNullable(song).map(CraftNamespacedKey::toMinecraft));
     }
 
     @Override
     public int hashCode() {
         int hash = 7;
-        hash = 73 * hash + Objects.hashCode(this.handle);
+        hash = 73 * hash + this.handle.hashCode();
         return hash;
     }
 
@@ -82,18 +80,15 @@ public final class CraftUseCooldownComponent implements UseCooldownComponent {
         if (this == obj) {
             return true;
         }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
+        if (obj == null || this.getClass() != obj.getClass()) {
             return false;
         }
         final CraftUseCooldownComponent other = (CraftUseCooldownComponent) obj;
-        return Objects.equals(this.handle, other.handle);
+        return this.handle.equals(other.handle);
     }
 
     @Override
     public String toString() {
-        return "CraftUseCooldownComponent{" + "handle=" + handle + '}';
+        return "CraftUseCooldownComponent{component=" + this.handle + '}';
     }
 }

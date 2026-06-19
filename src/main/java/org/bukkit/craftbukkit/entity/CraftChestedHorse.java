@@ -12,18 +12,18 @@ public abstract class CraftChestedHorse extends CraftAbstractHorse implements Ch
 
     @Override
     public AbstractChestedHorse getHandle() {
-        return (AbstractChestedHorse) super.getHandle();
+        return (AbstractChestedHorse) this.entity;
     }
 
     @Override
     public boolean isCarryingChest() {
-        return getHandle().hasChest();
+        return this.getHandle().hasChest();
     }
 
     @Override
     public void setCarryingChest(boolean chest) {
-        if (chest == isCarryingChest()) return;
-        getHandle().setChest(chest);
-        getHandle().createInventory();
+        if (chest == this.isCarryingChest()) return;
+        this.getHandle().setChest(chest);
+        this.getHandle().createInventory();
     }
 }

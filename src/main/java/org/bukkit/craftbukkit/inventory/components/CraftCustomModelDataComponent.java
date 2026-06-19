@@ -1,12 +1,9 @@
 package org.bukkit.craftbukkit.inventory.components;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 import net.minecraft.world.item.component.CustomModelData;
 import org.bukkit.Color;
 import org.bukkit.configuration.serialization.SerializableAs;
@@ -27,7 +24,7 @@ public final class CraftCustomModelDataComponent implements CustomModelDataCompo
     }
 
     public CraftCustomModelDataComponent(Map<String, Object> map) {
-        handle = new CustomModelData(
+        this.handle = new CustomModelData(
                 SerializableMeta.getList(Float.class, map, "floats"),
                 SerializableMeta.getList(Boolean.class, map, "flags"),
                 SerializableMeta.getList(String.class, map, "strings"),
@@ -39,56 +36,63 @@ public final class CraftCustomModelDataComponent implements CustomModelDataCompo
     public Map<String, Object> serialize() {
         Map<String, Object> result = new LinkedHashMap<>();
 
-        result.put("floats", getFloats());
-        result.put("flags", getFlags());
-        result.put("strings", getStrings());
-        result.put("colors", getColors());
+        result.put("floats", this.getFloats());
+        result.put("flags", this.getFlags());
+        result.put("strings", this.getStrings());
+        result.put("colors", this.getColors());
 
         return result;
     }
 
     public CustomModelData getHandle() {
-        return handle;
+        return this.handle;
     }
 
     @Override
     public List<Float> getFloats() {
-        return Collections.unmodifiableList(handle.floats());
+        return Collections.unmodifiableList(this.handle.floats());
     }
 
     @Override
     public void setFloats(List<Float> floats) {
-        handle = new CustomModelData(new ArrayList<>(floats), handle.flags(), handle.strings(), handle.colors());
+        this.handle = new CustomModelData(List.copyOf(floats), this.handle.flags(), this.handle.strings(), this.handle.colors());
     }
 
     @Override
     public List<Boolean> getFlags() {
-        return Collections.unmodifiableList(handle.flags());
+        return Collections.unmodifiableList(this.handle.flags());
     }
 
     @Override
     public void setFlags(List<Boolean> flags) {
-        handle = new CustomModelData(handle.floats(), new ArrayList<>(flags), handle.strings(), handle.colors());
+        this.handle = new CustomModelData(this.handle.floats(), List.copyOf(flags), this.handle.strings(), this.handle.colors());
     }
 
     @Override
     public List<String> getStrings() {
-        return Collections.unmodifiableList(handle.strings());
+        return Collections.unmodifiableList(this.handle.strings());
     }
 
     @Override
     public void setStrings(List<String> strings) {
-        handle = new CustomModelData(handle.floats(), handle.flags(), new ArrayList<>(strings), handle.colors());
+        this.handle = new CustomModelData(this.handle.floats(), this.handle.flags(), List.copyOf(strings), this.handle.colors());
     }
 
     @Override
     public List<Color> getColors() {
-        return getHandle().colors().stream().map(Color::fromRGB).toList();
+        return this.getHandle().colors().stream().map(color -> Color.fromRGB(color & 0x00FFFFFF)).toList(); // skip alpha channel
     }
 
     @Override
     public void setColors(List<Color> colors) {
-        handle = new CustomModelData(handle.floats(), handle.flags(), handle.strings(), colors.stream().map(Color::asRGB).collect(Collectors.toList()));
+        this.handle = new CustomModelData(this.handle.floats(), this.handle.flags(), this.handle.strings(), colors.stream().map(Color::asRGB).toList());
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 19 * hash + this.handle.hashCode();
+        return hash;
     }
 
     @Override
@@ -96,25 +100,15 @@ public final class CraftCustomModelDataComponent implements CustomModelDataCompo
         if (this == obj) {
             return true;
         }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
+        if (obj == null || this.getClass() != obj.getClass()) {
             return false;
         }
         final CraftCustomModelDataComponent other = (CraftCustomModelDataComponent) obj;
-        return Objects.equals(this.handle, other.handle);
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 7;
-        hash = 19 * hash + Objects.hashCode(this.handle);
-        return hash;
+        return this.handle.equals(other.handle);
     }
 
     @Override
     public String toString() {
-        return "CraftCustomModelDataComponent{" + "handle=" + handle + '}';
+        return "CraftCustomModelDataComponent{component=" + this.handle + '}';
     }
 }

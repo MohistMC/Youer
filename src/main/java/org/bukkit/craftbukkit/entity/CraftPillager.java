@@ -5,7 +5,7 @@ import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.entity.Pillager;
 import org.bukkit.inventory.Inventory;
 
-public class CraftPillager extends CraftIllager implements Pillager {
+public class CraftPillager extends CraftIllager implements Pillager, com.destroystokyo.paper.entity.CraftRangedEntity<net.minecraft.world.entity.monster.illager.Pillager> { // Paper
 
     public CraftPillager(CraftServer server, net.minecraft.world.entity.monster.illager.Pillager entity) {
         super(server, entity);
@@ -13,16 +13,11 @@ public class CraftPillager extends CraftIllager implements Pillager {
 
     @Override
     public net.minecraft.world.entity.monster.illager.Pillager getHandle() {
-        return (net.minecraft.world.entity.monster.illager.Pillager) super.getHandle();
-    }
-
-    @Override
-    public String toString() {
-        return "CraftPillager";
+        return (net.minecraft.world.entity.monster.illager.Pillager) this.entity;
     }
 
     @Override
     public Inventory getInventory() {
-        return new CraftInventory(getHandle().inventory);
+        return new CraftInventory(this.getHandle().getInventory());
     }
 }

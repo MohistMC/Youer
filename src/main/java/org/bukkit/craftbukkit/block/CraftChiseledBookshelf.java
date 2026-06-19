@@ -14,8 +14,8 @@ import org.bukkit.util.Vector;
 
 public class CraftChiseledBookshelf extends CraftBlockEntityState<ChiseledBookShelfBlockEntity> implements ChiseledBookshelf {
 
-    public CraftChiseledBookshelf(World world, ChiseledBookShelfBlockEntity tileEntity) {
-        super(world, tileEntity);
+    public CraftChiseledBookshelf(World world, ChiseledBookShelfBlockEntity blockEntity) {
+        super(world, blockEntity);
     }
 
     protected CraftChiseledBookshelf(CraftChiseledBookshelf state, Location location) {
@@ -24,12 +24,12 @@ public class CraftChiseledBookshelf extends CraftBlockEntityState<ChiseledBookSh
 
     @Override
     public int getLastInteractedSlot() {
-        return getSnapshot().getLastInteractedSlot();
+        return this.getSnapshot().getLastInteractedSlot();
     }
 
     @Override
     public void setLastInteractedSlot(int lastInteractedSlot) {
-        getSnapshot().lastInteractedSlot = lastInteractedSlot;
+        this.getSnapshot().lastInteractedSlot = lastInteractedSlot;
     }
 
     @Override
@@ -43,7 +43,7 @@ public class CraftChiseledBookshelf extends CraftBlockEntityState<ChiseledBookSh
             return this.getSnapshotInventory();
         }
 
-        return new CraftInventoryChiseledBookshelf(this.getTileEntity());
+        return new CraftInventoryChiseledBookshelf(this.getBlockEntity());
     }
 
     @Override
@@ -70,14 +70,15 @@ public class CraftChiseledBookshelf extends CraftBlockEntityState<ChiseledBookSh
             return -1;
         }
 
-        return getHitSlot(faceVector);
+        return CraftChiseledBookshelf.getHitSlot(faceVector);
     }
 
     private static int getHitSlot(Vec2 vec2) {
-        int i = SelectableSlotContainer.getSection(1.0F - vec2.y, 2); // rows
-        int j = SelectableSlotContainer.getSection(vec2.x, 3); // columns
-
-        return j + i * 3;
+        final int rows = 2;
+        final int columns = 3;
+        final int row = SelectableSlotContainer.getSection(1.0F - vec2.y, rows);
+        final int column = SelectableSlotContainer.getSection(vec2.x, columns);
+        return column + row * columns;
     }
 
     @Override

@@ -4,7 +4,7 @@ import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Bogged;
 import org.bukkit.entity.Skeleton;
 
-public class CraftBogged extends CraftAbstractSkeleton implements Bogged {
+public class CraftBogged extends CraftAbstractSkeleton implements Bogged, io.papermc.paper.entity.PaperShearable { // Paper - Shear API
 
     public CraftBogged(CraftServer server, net.minecraft.world.entity.monster.skeleton.Bogged entity) {
         super(server, entity);
@@ -12,12 +12,7 @@ public class CraftBogged extends CraftAbstractSkeleton implements Bogged {
 
     @Override
     public net.minecraft.world.entity.monster.skeleton.Bogged getHandle() {
-        return (net.minecraft.world.entity.monster.skeleton.Bogged) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftBogged";
+        return (net.minecraft.world.entity.monster.skeleton.Bogged) this.entity;
     }
 
     @Override
@@ -27,11 +22,11 @@ public class CraftBogged extends CraftAbstractSkeleton implements Bogged {
 
     @Override
     public boolean isSheared() {
-        return getHandle().isSheared();
+        return this.getHandle().isSheared();
     }
 
     @Override
     public void setSheared(boolean flag) {
-        getHandle().setSheared(flag);
+        this.getHandle().setSheared(flag);
     }
 }

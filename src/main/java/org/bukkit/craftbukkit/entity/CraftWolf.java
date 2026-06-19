@@ -1,117 +1,122 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import io.papermc.paper.registry.HolderableBase;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.world.entity.animal.wolf.WolfSoundVariant;
 import net.minecraft.world.entity.animal.wolf.WolfVariant;
 import org.bukkit.DyeColor;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.craftbukkit.CraftRegistry;
 import org.bukkit.craftbukkit.CraftServer;
-import org.bukkit.craftbukkit.registry.CraftRegistryItem;
 import org.bukkit.entity.Wolf;
 
 public class CraftWolf extends CraftTameableAnimal implements Wolf {
+
     public CraftWolf(CraftServer server, net.minecraft.world.entity.animal.wolf.Wolf wolf) {
         super(server, wolf);
     }
 
     @Override
+    public net.minecraft.world.entity.animal.wolf.Wolf getHandle() {
+        return (net.minecraft.world.entity.animal.wolf.Wolf) this.entity;
+    }
+
+    @Override
     public boolean isAngry() {
-        return getHandle().isAngry();
+        return this.getHandle().isAngry();
     }
 
     @Override
     public void setAngry(boolean angry) {
         if (angry) {
-            getHandle().startPersistentAngerTimer();
+            this.getHandle().startPersistentAngerTimer();
         } else {
-            getHandle().stopBeingAngry();
+            this.getHandle().stopBeingAngry();
         }
-    }
-
-    @Override
-    public net.minecraft.world.entity.animal.wolf.Wolf getHandle() {
-        return (net.minecraft.world.entity.animal.wolf.Wolf) entity;
     }
 
     @Override
     public DyeColor getCollarColor() {
-        return DyeColor.getByWoolData((byte) getHandle().getCollarColor().getId());
+        return DyeColor.getByWoolData((byte) this.getHandle().getCollarColor().getId());
     }
 
     @Override
     public void setCollarColor(DyeColor color) {
-        getHandle().setCollarColor(net.minecraft.world.item.DyeColor.byId(color.getWoolData()));
+        this.getHandle().setCollarColor(net.minecraft.world.item.DyeColor.byId(color.getWoolData()));
     }
 
     @Override
     public boolean isWet() {
-        return getHandle().isWet;
+        return this.getHandle().isWet;
     }
 
     @Override
     public float getTailAngle() {
-        return getHandle().getTailAngle();
+        return this.getHandle().getTailAngle();
     }
 
     @Override
     public boolean isInterested() {
-        return getHandle().isInterested();
+        return this.getHandle().isInterested();
     }
 
     @Override
-    public void setInterested(boolean flag) {
-        getHandle().setIsInterested(flag);
+    public void setInterested(boolean interested) {
+        this.getHandle().setIsInterested(interested);
     }
 
     @Override
     public Variant getVariant() {
-        return CraftVariant.minecraftHolderToBukkit(getHandle().getVariant());
+        return CraftVariant.minecraftHolderToBukkit(this.getHandle().getVariant());
     }
 
     @Override
     public void setVariant(Variant variant) {
-        Preconditions.checkArgument(variant != null, "variant");
+        Preconditions.checkArgument(variant != null, "variant cannot be null");
 
-        getHandle().setVariant(CraftVariant.bukkitToMinecraftHolder(variant));
+        this.getHandle().setVariant(CraftVariant.bukkitToMinecraftHolder(variant));
     }
 
-    public static class CraftVariant extends CraftRegistryItem<WolfVariant> implements Variant {
+    @Override
+    public SoundVariant getSoundVariant() {
+        return CraftSoundVariant.minecraftHolderToBukkit(this.getHandle().getSoundVariant());
+    }
 
-        public static Variant minecraftToBukkit(WolfVariant minecraft) {
-            return CraftRegistry.minecraftToBukkit(minecraft, Registries.WOLF_VARIANT, Registry.WOLF_VARIANT);
-        }
+    @Override
+    public void setSoundVariant(SoundVariant soundVariant) {
+        Preconditions.checkArgument(soundVariant != null, "soundVariant cannot be null");
+
+        this.getHandle().setSoundVariant(CraftSoundVariant.bukkitToMinecraftHolder(soundVariant));
+    }
+
+    public static class CraftVariant extends HolderableBase<WolfVariant> implements Variant {
 
         public static Variant minecraftHolderToBukkit(Holder<WolfVariant> minecraft) {
-            return minecraftToBukkit(minecraft.value());
-        }
-
-        public static WolfVariant bukkitToMinecraft(Variant bukkit) {
-            return CraftRegistry.bukkitToMinecraft(bukkit);
+            return CraftRegistry.minecraftHolderToBukkit(minecraft, Registries.WOLF_VARIANT);
         }
 
         public static Holder<WolfVariant> bukkitToMinecraftHolder(Variant bukkit) {
-            Preconditions.checkArgument(bukkit != null);
-
-            net.minecraft.core.Registry<WolfVariant> registry = CraftRegistry.getMinecraftRegistry(Registries.WOLF_VARIANT);
-
-            if (registry.wrapAsHolder(bukkitToMinecraft(bukkit)) instanceof Holder.Reference<WolfVariant> holder) {
-                return holder;
-            }
-
-            throw new IllegalArgumentException("No Reference holder found for " + bukkit
-                    + ", this can happen if a plugin creates its own wolf variant with out properly registering it.");
+            return CraftRegistry.bukkitToMinecraftHolder(bukkit);
         }
 
-        public CraftVariant(NamespacedKey key, Holder<WolfVariant> handle) {
-            super(key, handle);
+        public CraftVariant(final Holder<WolfVariant> holder) {
+            super(holder);
+        }
+    }
+
+    public static class CraftSoundVariant extends HolderableBase<WolfSoundVariant> implements SoundVariant {
+
+        public static SoundVariant minecraftHolderToBukkit(Holder<WolfSoundVariant> minecraft) {
+            return CraftRegistry.minecraftHolderToBukkit(minecraft, Registries.WOLF_SOUND_VARIANT);
         }
 
-        @Override
-        public NamespacedKey getKey() {
-            return getKeyOrThrow();
+        public static Holder<WolfSoundVariant> bukkitToMinecraftHolder(SoundVariant bukkit) {
+            return CraftRegistry.bukkitToMinecraftHolder(bukkit);
+        }
+
+        public CraftSoundVariant(final Holder<WolfSoundVariant> holder) {
+            super(holder);
         }
     }
 }

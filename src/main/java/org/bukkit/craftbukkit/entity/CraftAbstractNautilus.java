@@ -1,23 +1,29 @@
 package org.bukkit.craftbukkit.entity;
 
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.animal.nautilus.AbstractNautilus;
+import org.bukkit.craftbukkit.CraftInventoryArmoredSaddledMount;
 import org.bukkit.craftbukkit.CraftServer;
-import org.bukkit.craftbukkit.inventory.CraftInventory;
-import org.bukkit.entity.AbstractNautilus;
-import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ArmoredSaddledMountInventory;
+import org.jspecify.annotations.NullMarked;
 
-public abstract class CraftAbstractNautilus extends CraftTameableAnimal implements AbstractNautilus {
-
-    public CraftAbstractNautilus(CraftServer server, net.minecraft.world.entity.animal.nautilus.AbstractNautilus entity) {
+@NullMarked
+public class CraftAbstractNautilus extends CraftTameableAnimal implements org.bukkit.entity.AbstractNautilus {
+    public CraftAbstractNautilus(final CraftServer server, final AbstractNautilus entity) {
         super(server, entity);
     }
 
     @Override
-    public net.minecraft.world.entity.animal.nautilus.AbstractNautilus getHandle() {
-        return (net.minecraft.world.entity.animal.nautilus.AbstractNautilus) super.getHandle();
+    public AbstractNautilus getHandle() {
+        return (AbstractNautilus) this.entity;
     }
 
     @Override
-    public Inventory getInventory() {
-        return new CraftInventory(getHandle().inventory);
+    public ArmoredSaddledMountInventory getInventory() {
+        return new CraftInventoryArmoredSaddledMount(
+            this.getHandle().inventory,
+            this.getHandle().createEquipmentSlotContainer(EquipmentSlot.BODY),
+            this.getHandle().createEquipmentSlotContainer(EquipmentSlot.SADDLE)
+        );
     }
 }

@@ -15,28 +15,28 @@ public class CraftFurnaceView extends CraftInventoryView<AbstractFurnaceMenu, Fu
 
     @Override
     public float getCookTime() {
-        return container.getBurnProgress();
+        return this.container.getBurnProgress();
     }
 
     @Override
     public float getBurnTime() {
-        return container.getLitProgress();
+        return this.container.getLitProgress();
     }
 
     @Override
     public boolean isBurning() {
-        return container.isLit();
+        return this.container.isLit();
     }
 
     @Override
     public void setCookTime(final int cookProgress, final int cookDuration) {
-        container.setData(AbstractFurnaceBlockEntity.DATA_COOKING_PROGRESS, cookProgress);
-        container.setData(AbstractFurnaceBlockEntity.DATA_COOKING_TOTAL_TIME, cookDuration);
+        this.container.setData(AbstractFurnaceBlockEntity.DATA_COOKING_PROGRESS, cookProgress);
+        this.container.setData(AbstractFurnaceBlockEntity.DATA_COOKING_TOTAL_TIME, cookDuration);
     }
 
     @Override
     public void setBurnTime(final int burnProgress, final int burnDuration) {
-        container.setData(AbstractFurnaceBlockEntity.DATA_LIT_TIME, burnProgress);
-        container.setData(AbstractFurnaceBlockEntity.DATA_LIT_DURATION, burnDuration);
+        this.container.setData(AbstractFurnaceBlockEntity.DATA_LIT_TIME, burnProgress);
+        this.container.setData(AbstractFurnaceBlockEntity.DATA_LIT_DURATION, burnDuration);
     }
 }

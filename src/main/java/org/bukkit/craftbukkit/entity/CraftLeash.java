@@ -7,15 +7,21 @@ import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.LeashHitch;
 
 public class CraftLeash extends CraftBlockAttachedEntity implements LeashHitch {
+
     public CraftLeash(CraftServer server, LeashFenceKnotEntity entity) {
         super(server, entity);
+    }
+
+    @Override
+    public LeashFenceKnotEntity getHandle() {
+        return (LeashFenceKnotEntity) this.entity;
     }
 
     @Override
     public boolean setFacingDirection(BlockFace face, boolean force) {
         Preconditions.checkArgument(face == BlockFace.SELF, "%s is not a valid facing direction", face);
 
-        return force || getHandle().generation || getHandle().survives();
+        return force || this.getHandle().generation || this.getHandle().survives();
     }
 
     @Override
@@ -33,15 +39,5 @@ public class CraftLeash extends CraftBlockAttachedEntity implements LeashHitch {
     @Override
     public void setFacingDirection(BlockFace face) {
         // Leash hitch has no facing direction
-    }
-
-    @Override
-    public LeashFenceKnotEntity getHandle() {
-        return (LeashFenceKnotEntity) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftLeash";
     }
 }

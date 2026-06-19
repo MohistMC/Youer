@@ -1,55 +1,54 @@
 package org.bukkit.craftbukkit;
 
-import java.util.Objects;
 import org.bukkit.Input;
 
 public class CraftInput implements Input {
 
-    private final net.minecraft.world.entity.player.Input handle;
+    private final net.minecraft.world.entity.player.Input input;
 
-    public CraftInput(net.minecraft.world.entity.player.Input handle) {
-        this.handle = handle;
+    public CraftInput(net.minecraft.world.entity.player.Input input) {
+        this.input = input;
     }
 
     @Override
     public boolean isForward() {
-        return handle.forward();
+        return this.input.forward();
     }
 
     @Override
     public boolean isBackward() {
-        return handle.backward();
+        return this.input.backward();
     }
 
     @Override
     public boolean isLeft() {
-        return handle.left();
+        return this.input.left();
     }
 
     @Override
     public boolean isRight() {
-        return handle.right();
+        return this.input.right();
     }
 
     @Override
     public boolean isJump() {
-        return handle.jump();
+        return this.input.jump();
     }
 
     @Override
     public boolean isSneak() {
-        return handle.shift();
+        return this.input.shift();
     }
 
     @Override
     public boolean isSprint() {
-        return handle.sprint();
+        return this.input.sprint();
     }
 
     @Override
     public int hashCode() {
         int hash = 7;
-        hash = 89 * hash + Objects.hashCode(this.handle);
+        hash = 89 * hash + this.input.hashCode();
         return hash;
     }
 
@@ -58,18 +57,16 @@ public class CraftInput implements Input {
         if (this == obj) {
             return true;
         }
-        if (obj == null) {
+        if (obj == null || this.getClass() != obj.getClass()) {
             return false;
         }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
+
         final CraftInput other = (CraftInput) obj;
-        return Objects.equals(this.handle, other.handle);
+        return this.input.equals(other.input);
     }
 
     @Override
     public String toString() {
-        return "CraftInput{" + handle + '}';
+        return "CraftInput{" + this.input + '}';
     }
 }

@@ -1,55 +1,53 @@
 package org.bukkit.craftbukkit;
 
-import com.google.common.base.Preconditions;
+import io.papermc.paper.adventure.PaperAdventure;
+import io.papermc.paper.registry.HolderableBase;
+import net.kyori.adventure.text.Component;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.contents.TranslatableContents;
 import org.bukkit.JukeboxSong;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
-import org.bukkit.craftbukkit.registry.CraftRegistryItem;
-import org.jetbrains.annotations.NotNull;
+import org.bukkit.Sound;
+import org.jspecify.annotations.NullMarked;
 
-public class CraftJukeboxSong extends CraftRegistryItem<net.minecraft.world.item.JukeboxSong> implements JukeboxSong {
-
-    public static JukeboxSong minecraftToBukkit(net.minecraft.world.item.JukeboxSong minecraft) {
-        return CraftRegistry.minecraftToBukkit(minecraft, Registries.JUKEBOX_SONG, Registry.JUKEBOX_SONG);
-    }
+@NullMarked
+public class CraftJukeboxSong extends HolderableBase<net.minecraft.world.item.JukeboxSong> implements JukeboxSong {
 
     public static JukeboxSong minecraftHolderToBukkit(Holder<net.minecraft.world.item.JukeboxSong> minecraft) {
-        return minecraftToBukkit(minecraft.value());
-    }
-
-    public static net.minecraft.world.item.JukeboxSong bukkitToMinecraft(JukeboxSong bukkit) {
-        return CraftRegistry.bukkitToMinecraft(bukkit);
+        return CraftRegistry.minecraftHolderToBukkit(minecraft, Registries.JUKEBOX_SONG);
     }
 
     public static Holder<net.minecraft.world.item.JukeboxSong> bukkitToMinecraftHolder(JukeboxSong bukkit) {
-        Preconditions.checkArgument(bukkit != null);
-
-        net.minecraft.core.Registry<net.minecraft.world.item.JukeboxSong> registry = CraftRegistry.getMinecraftRegistry(Registries.JUKEBOX_SONG);
-
-        if (registry.wrapAsHolder(bukkitToMinecraft(bukkit)) instanceof Holder.Reference<net.minecraft.world.item.JukeboxSong> holder) {
-            return holder;
-        }
-
-        throw new IllegalArgumentException("No Reference holder found for " + bukkit
-                + ", this can happen if a plugin creates its own trim pattern without properly registering it.");
+        return CraftRegistry.bukkitToMinecraftHolder(bukkit);
     }
 
-    public CraftJukeboxSong(NamespacedKey key, Holder<net.minecraft.world.item.JukeboxSong> handle) {
-        super(key, handle);
+    public CraftJukeboxSong(final Holder<net.minecraft.world.item.JukeboxSong> holder) {
+        super(holder);
     }
 
-    @Override
-    @NotNull
-    public NamespacedKey getKey() {
-        return getKeyOrThrow();
-    }
-
-    @NotNull
     @Override
     public String getTranslationKey() {
-        return ((TranslatableContents) getHandle().description().getContents()).getKey();
+        if (!(this.getHandle().description().getContents() instanceof TranslatableContents)) throw new UnsupportedOperationException("Description isn't translatable!"); // Paper
+        return ((TranslatableContents) this.getHandle().description().getContents()).getKey();
+    }
+
+    @Override
+    public Sound getSound() {
+        return CraftSound.minecraftHolderToBukkit(this.getHandle().soundEvent());
+    }
+
+    @Override
+    public Component getDescription() {
+        return PaperAdventure.asAdventure(this.getHandle().description());
+    }
+
+    @Override
+    public float getLengthInSeconds() {
+        return this.getHandle().lengthInSeconds();
+    }
+
+    @Override
+    public int getComparatorOutput() {
+        return this.getHandle().comparatorOutput();
     }
 }

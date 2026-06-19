@@ -18,32 +18,30 @@ import org.bukkit.inventory.meta.BundleMeta;
 public class CraftMetaBundle extends CraftMetaItem implements BundleMeta {
 
     static final ItemMetaKeyType<BundleContents> ITEMS = new ItemMetaKeyType<>(DataComponents.BUNDLE_CONTENTS, "items");
-    //
+
     private List<ItemStack> items;
 
     CraftMetaBundle(CraftMetaItem meta) {
         super(meta);
 
-        if (!(meta instanceof CraftMetaBundle)) {
+        if (!(meta instanceof final CraftMetaBundle bundleMeta)) {
             return;
         }
 
-        CraftMetaBundle bundle = (CraftMetaBundle) meta;
-
-        if (bundle.hasItems()) {
-            this.items = new ArrayList<>(bundle.items);
+        if (bundleMeta.hasItems()) {
+            this.items = new ArrayList<>(bundleMeta.items);
         }
     }
 
-    CraftMetaBundle(DataComponentPatch tag) {
-        super(tag);
+    CraftMetaBundle(DataComponentPatch patch, java.util.Set<net.minecraft.core.component.DataComponentType<?>> extraHandledComponents) {
+        super(patch, extraHandledComponents);
 
-        getOrEmpty(tag, ITEMS).ifPresent((bundle) -> {
-            bundle.items().forEach((item) -> {
-                ItemStack itemStack = CraftItemStack.asCraftMirror(item);
+        getOrEmpty(patch, CraftMetaBundle.ITEMS).ifPresent((bundleContents) -> {
+            bundleContents.items().forEach((item) -> {
+                ItemStack itemStack = CraftItemStack.asCraftMirror(item.create());
 
-                if (!itemStack.getType().isAir()) { // SPIGOT-7174 - Avoid adding air
-                    addItem(itemStack);
+                if (!itemStack.isEmpty()) { // SPIGOT-7174 - Avoid adding air
+                    this.addItem(itemStack);
                 }
             });
         });
@@ -52,11 +50,11 @@ public class CraftMetaBundle extends CraftMetaItem implements BundleMeta {
     CraftMetaBundle(Map<String, Object> map) {
         super(map);
 
-        Iterable<?> items = SerializableMeta.getObject(Iterable.class, map, ITEMS.BUKKIT, true);
+        Iterable<?> items = SerializableMeta.getObject(Iterable.class, map, CraftMetaBundle.ITEMS.BUKKIT, true);
         if (items != null) {
             for (Object stack : items) {
-                if (stack instanceof ItemStack itemStack && !itemStack.getType().isAir()) { // SPIGOT-7174 - Avoid adding air
-                    addItem(itemStack);
+                if (stack instanceof ItemStack itemStack && !itemStack.isEmpty()) { // SPIGOT-7174 - Avoid adding air
+                    this.addItem(itemStack);
                 }
             }
         }
@@ -66,34 +64,34 @@ public class CraftMetaBundle extends CraftMetaItem implements BundleMeta {
     void applyToItem(CraftMetaItem.Applicator tag) {
         super.applyToItem(tag);
 
-        if (hasItems()) {
+        if (this.hasItems()) {
             List<ItemStackTemplate> list = new ArrayList<>();
 
-            for (ItemStack item : items) {
-                list.add(CraftItemStack.asNMSTemplate(item));
+            for (ItemStack item : this.items) {
+                list.add(CraftItemStack.asTemplate(item));
             }
 
-            tag.put(ITEMS, new BundleContents(list));
+            tag.put(CraftMetaBundle.ITEMS, new BundleContents(list));
         }
     }
 
     @Override
     boolean isEmpty() {
-        return super.isEmpty() && isBundleEmpty();
+        return super.isEmpty() && this.isBundleEmpty();
     }
 
     boolean isBundleEmpty() {
-        return !(hasItems());
+        return !(this.hasItems());
     }
 
     @Override
     public boolean hasItems() {
-        return items != null && !items.isEmpty();
+        return this.items != null && !this.items.isEmpty();
     }
 
     @Override
     public List<ItemStack> getItems() {
-        return (items == null) ? ImmutableList.of() : ImmutableList.copyOf(items);
+        return (this.items == null) ? ImmutableList.of() : ImmutableList.copyOf(this.items);
     }
 
     @Override
@@ -105,19 +103,19 @@ public class CraftMetaBundle extends CraftMetaItem implements BundleMeta {
         }
 
         for (ItemStack i : items) {
-            addItem(i);
+            this.addItem(i);
         }
     }
 
     @Override
     public void addItem(ItemStack item) {
-        Preconditions.checkArgument(item != null && !item.getType().isAir(), "item is null or air");
+        Preconditions.checkArgument(item != null && !item.isEmpty(), "item is null or empty");
 
-        if (items == null) {
-            items = new ArrayList<>();
+        if (this.items == null) {
+            this.items = new ArrayList<>();
         }
 
-        items.add(item);
+        this.items.add(item);
     }
 
     @Override
@@ -125,17 +123,15 @@ public class CraftMetaBundle extends CraftMetaItem implements BundleMeta {
         if (!super.equalsCommon(meta)) {
             return false;
         }
-        if (meta instanceof CraftMetaBundle) {
-            CraftMetaBundle that = (CraftMetaBundle) meta;
-
-            return (hasItems() ? that.hasItems() && this.items.equals(that.items) : !that.hasItems());
+        if (meta instanceof final CraftMetaBundle other) {
+            return (this.hasItems() ? other.hasItems() && this.items.equals(other.items) : !other.hasItems());
         }
         return true;
     }
 
     @Override
     boolean notUncommon(CraftMetaItem meta) {
-        return super.notUncommon(meta) && (meta instanceof CraftMetaBundle || isBundleEmpty());
+        return super.notUncommon(meta) && (meta instanceof CraftMetaBundle || this.isBundleEmpty());
     }
 
     @Override
@@ -143,8 +139,8 @@ public class CraftMetaBundle extends CraftMetaItem implements BundleMeta {
         final int original;
         int hash = original = super.applyHash();
 
-        if (hasItems()) {
-            hash = 61 * hash + items.hashCode();
+        if (this.hasItems()) {
+            hash = 61 * hash + this.items.hashCode();
         }
 
         return original != hash ? CraftMetaBundle.class.hashCode() ^ hash : hash;
@@ -159,8 +155,8 @@ public class CraftMetaBundle extends CraftMetaItem implements BundleMeta {
     ImmutableMap.Builder<String, Object> serialize(ImmutableMap.Builder<String, Object> builder) {
         super.serialize(builder);
 
-        if (hasItems()) {
-            builder.put(ITEMS.BUKKIT, items);
+        if (this.hasItems()) {
+            builder.put(CraftMetaBundle.ITEMS.BUKKIT, this.items);
         }
 
         return builder;

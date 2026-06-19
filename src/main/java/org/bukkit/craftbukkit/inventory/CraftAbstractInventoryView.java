@@ -14,12 +14,12 @@ import org.jetbrains.annotations.Nullable;
 public abstract class CraftAbstractInventoryView implements InventoryView {
 
     @Override
-    public void setItem(final int slot, @Nullable final ItemStack item) {
-        Inventory inventory = getInventory(slot);
+    public void setItem(final int slot, final @Nullable ItemStack item) {
+        Inventory inventory = this.getInventory(slot);
         if (inventory != null) {
-            inventory.setItem(convertSlot(slot), item);
+            inventory.setItem(this.convertSlot(slot), item);
         } else if (item != null) {
-            Player handle = ((CraftHumanEntity) getPlayer()).getHandle();
+            Player handle = ((CraftHumanEntity) this.getPlayer()).getHandle();
             Containers.dropItemStack(handle.level(), handle.getX(), handle.getY(), handle.getZ(), CraftItemStack.asNMSCopy(item));
         }
     }
@@ -27,19 +27,19 @@ public abstract class CraftAbstractInventoryView implements InventoryView {
     @Nullable
     @Override
     public ItemStack getItem(final int slot) {
-        Inventory inventory = getInventory(slot);
-        return (inventory == null) ? null : inventory.getItem(convertSlot(slot));
+        Inventory inventory = this.getInventory(slot);
+        return (inventory == null) ? null : inventory.getItem(this.convertSlot(slot));
     }
 
     @Override
     public void setCursor(@Nullable final ItemStack item) {
-        getPlayer().setItemOnCursor(item);
+        this.getPlayer().setItemOnCursor(item);
     }
 
     @Nullable
     @Override
     public ItemStack getCursor() {
-        return getPlayer().getItemOnCursor();
+        return this.getPlayer().getItemOnCursor();
     }
 
     @Nullable
@@ -51,18 +51,21 @@ public abstract class CraftAbstractInventoryView implements InventoryView {
             return null;
         }
         Preconditions.checkArgument(rawSlot >= 0, "Negative, non outside slot %s", rawSlot);
-        Preconditions.checkArgument(rawSlot < countSlots(), "Slot %s greater than inventory slot count", rawSlot);
+        Preconditions.checkArgument(rawSlot < this.countSlots(), "Slot %s greater than inventory slot count", rawSlot);
+        return this.mapValidSlotToInventory(rawSlot);
+    }
 
-        if (rawSlot < getTopInventory().getSize()) {
-            return getTopInventory();
+    public Inventory mapValidSlotToInventory(final int rawSlot) {
+        if (rawSlot < this.getTopInventory().getSize()) {
+            return this.getTopInventory();
         } else {
-            return getBottomInventory();
+            return this.getBottomInventory();
         }
     }
 
     @Override
     public int convertSlot(final int rawSlot) {
-        int numInTop = getTopInventory().getSize();
+        int numInTop = this.getTopInventory().getSize();
         // Index from the top inventory as having slots from [0,size]
         if (rawSlot < numInTop) {
             return rawSlot;
@@ -73,7 +76,7 @@ public abstract class CraftAbstractInventoryView implements InventoryView {
 
         // Player crafting slots are indexed differently. The matrix is caught by the first return.
         // Creative mode is the same, except that you can't see the crafting slots (but the IDs are still used)
-        if (getType() == InventoryType.CRAFTING || getType() == InventoryType.CREATIVE) {
+        if (this.getType() == InventoryType.CRAFTING || this.getType() == InventoryType.CREATIVE) {
             /*
              * Raw Slots:
              *
@@ -164,7 +167,6 @@ public abstract class CraftAbstractInventoryView implements InventoryView {
                     type = InventoryType.SlotType.CRAFTING;
                     break;
                 case ANVIL:
-                case SMITHING:
                 case CARTOGRAPHY:
                 case GRINDSTONE:
                 case MERCHANT:
@@ -182,6 +184,7 @@ public abstract class CraftAbstractInventoryView implements InventoryView {
                     }
                     break;
                 case LOOM:
+                case SMITHING: // Paper - properly remove experimental smithing inventory
                 case SMITHING_NEW:
                     if (slot == 3) {
                         type = InventoryType.SlotType.RESULT;
@@ -201,6 +204,12 @@ public abstract class CraftAbstractInventoryView implements InventoryView {
                 } else if (slot > 35) {
                     type = InventoryType.SlotType.QUICKBAR;
                 }
+            } else if (this.getType() == InventoryType.CRAFTER) {
+                if (slot == 45) {
+                    type = InventoryType.SlotType.RESULT;
+                } else if (slot > 35) {
+                    type = InventoryType.SlotType.QUICKBAR;
+                }
             } else if (slot >= (this.countSlots() - (9 + 4 + 1))) { // Quickbar, Armor, Offhand
                 type = InventoryType.SlotType.QUICKBAR;
             }
@@ -209,17 +218,22 @@ public abstract class CraftAbstractInventoryView implements InventoryView {
     }
 
     @Override
+    public void open() {
+        getPlayer().openInventory(this);
+    }
+
+    @Override
     public void close() {
-        getPlayer().closeInventory();
+        this.getPlayer().closeInventory();
     }
 
     @Override
     public int countSlots() {
-        return getTopInventory().getSize() + getBottomInventory().getSize();
+        return this.getTopInventory().getSize() + this.getBottomInventory().getSize();
     }
 
     @Override
     public boolean setProperty(@NotNull final Property prop, final int value) {
-        return getPlayer().setWindowProperty(prop, value);
+        return this.getPlayer().setWindowProperty(prop, value);
     }
 }

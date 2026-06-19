@@ -19,24 +19,23 @@ public class CraftMetaMusicInstrument extends CraftMetaItem implements MusicInst
     CraftMetaMusicInstrument(CraftMetaItem meta) {
         super(meta);
 
-        if (meta instanceof CraftMetaMusicInstrument) {
-            CraftMetaMusicInstrument craftMetaMusicInstrument = (CraftMetaMusicInstrument) meta;
-            this.instrument = craftMetaMusicInstrument.instrument;
+        if (meta instanceof final CraftMetaMusicInstrument musicInstrumentMeta) {
+            this.instrument = musicInstrumentMeta.instrument;
         }
     }
 
-    CraftMetaMusicInstrument(DataComponentPatch tag) {
-        super(tag);
+    CraftMetaMusicInstrument(DataComponentPatch patch, java.util.Set<net.minecraft.core.component.DataComponentType<?>> extraHandledComponents) { // Paper
+        super(patch, extraHandledComponents); // Paper
 
-        getOrEmpty(tag, GOAT_HORN_INSTRUMENT).ifPresent((instrument) -> {
-            this.instrument = CraftMusicInstrument.minecraftHolderToBukkit(instrument.instrument());
+        getOrEmpty(patch, CraftMetaMusicInstrument.GOAT_HORN_INSTRUMENT).ifPresent((instrumentComponent) -> {
+            this.instrument = CraftMusicInstrument.minecraftHolderToBukkit(instrumentComponent.instrument());
         });
     }
 
     CraftMetaMusicInstrument(Map<String, Object> map) {
         super(map);
 
-        String instrumentString = SerializableMeta.getString(map, GOAT_HORN_INSTRUMENT.BUKKIT, true);
+        Object instrumentString = SerializableMeta.getObject(Object.class, map, CraftMetaMusicInstrument.GOAT_HORN_INSTRUMENT.BUKKIT, true); // Paper - switch to Holder
         if (instrumentString != null) {
             this.instrument = CraftMusicInstrument.stringToBukkit(instrumentString);
         }
@@ -46,8 +45,8 @@ public class CraftMetaMusicInstrument extends CraftMetaItem implements MusicInst
     void applyToItem(CraftMetaItem.Applicator tag) {
         super.applyToItem(tag);
 
-        if (instrument != null) {
-            tag.put(GOAT_HORN_INSTRUMENT, new InstrumentComponent(CraftMusicInstrument.bukkitToMinecraftHolder(instrument)));
+        if (this.instrument != null) {
+            tag.put(CraftMetaMusicInstrument.GOAT_HORN_INSTRUMENT, new InstrumentComponent(CraftMusicInstrument.bukkitToMinecraftHolder(this.instrument)));
         }
     }
 
@@ -56,37 +55,36 @@ public class CraftMetaMusicInstrument extends CraftMetaItem implements MusicInst
         if (!super.equalsCommon(meta)) {
             return false;
         }
-        if (meta instanceof CraftMetaMusicInstrument) {
-            CraftMetaMusicInstrument that = (CraftMetaMusicInstrument) meta;
-            return this.instrument == that.instrument;
+        if (meta instanceof final CraftMetaMusicInstrument other) {
+            return this.instrument == other.instrument;
         }
         return true;
     }
 
     @Override
     boolean notUncommon(CraftMetaItem meta) {
-        return super.notUncommon(meta) && (meta instanceof CraftMetaMusicInstrument || isInstrumentEmpty());
+        return super.notUncommon(meta) && (meta instanceof CraftMetaMusicInstrument || this.isInstrumentEmpty());
     }
 
     @Override
     boolean isEmpty() {
-        return super.isEmpty() && isInstrumentEmpty();
+        return super.isEmpty() && this.isInstrumentEmpty();
     }
 
     boolean isInstrumentEmpty() {
-        return instrument == null;
+        return this.instrument == null;
     }
 
     @Override
     int applyHash() {
-        final int orginal;
-        int hash = orginal = super.applyHash();
+        final int original;
+        int hash = original = super.applyHash();
 
-        if (hasInstrument()) {
-            hash = 61 * hash + instrument.hashCode();
+        if (this.hasInstrument()) {
+            hash = 61 * hash + this.instrument.hashCode();
         }
 
-        return orginal != hash ? CraftMetaMusicInstrument.class.hashCode() ^ hash : hash;
+        return original != hash ? CraftMetaMusicInstrument.class.hashCode() ^ hash : hash;
     }
 
     @Override
@@ -100,8 +98,8 @@ public class CraftMetaMusicInstrument extends CraftMetaItem implements MusicInst
     ImmutableMap.Builder<String, Object> serialize(ImmutableMap.Builder<String, Object> builder) {
         super.serialize(builder);
 
-        if (hasInstrument()) {
-            builder.put(GOAT_HORN_INSTRUMENT.BUKKIT, CraftMusicInstrument.bukkitToString(instrument));
+        if (this.hasInstrument()) {
+            builder.put(CraftMetaMusicInstrument.GOAT_HORN_INSTRUMENT.BUKKIT, CraftMusicInstrument.bukkitToString(this.instrument));
         }
 
         return builder;
@@ -109,11 +107,11 @@ public class CraftMetaMusicInstrument extends CraftMetaItem implements MusicInst
 
     @Override
     public MusicInstrument getInstrument() {
-        return instrument;
+        return this.instrument;
     }
 
     public boolean hasInstrument() {
-        return instrument != null;
+        return this.instrument != null;
     }
 
     @Override

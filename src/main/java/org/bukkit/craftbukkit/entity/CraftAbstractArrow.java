@@ -1,20 +1,30 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
-import net.minecraft.core.BlockPos;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.Iterables;
+import java.util.List;
+import net.minecraft.world.entity.Entity;
 import net.minecraft.world.item.Items;
+import net.minecraft.world.level.BlockCollisions;
+import net.minecraft.world.phys.AABB;
 import org.bukkit.block.Block;
 import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.block.CraftBlock;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.entity.AbstractArrow;
-import org.bukkit.entity.Entity;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.projectiles.ProjectileSource;
+import org.jetbrains.annotations.NotNull;
 
-public class CraftAbstractArrow extends CraftProjectile implements AbstractArrow {
+public abstract class CraftAbstractArrow extends AbstractProjectile implements AbstractArrow {
 
     public CraftAbstractArrow(CraftServer server, net.minecraft.world.entity.projectile.arrow.AbstractArrow entity) {
         super(server, entity);
+    }
+
+    @Override
+    public net.minecraft.world.entity.projectile.arrow.AbstractArrow getHandle() {
+        return (net.minecraft.world.entity.projectile.arrow.AbstractArrow) this.entity;
     }
 
     @Override
@@ -27,77 +37,81 @@ public class CraftAbstractArrow extends CraftProjectile implements AbstractArrow
     }
 
     @Override
+    public ItemStack getItem() {
+        return this.getItemStack();
+    }
+
+    @Override
+    public void setItem(@NotNull ItemStack item) {
+        this.setItemStack(item);
+    }
+
+    @Override
     public double getDamage() {
-        return getHandle().baseDamage;
+        return this.getHandle().baseDamage;
     }
 
     @Override
     public void setDamage(double damage) {
         Preconditions.checkArgument(damage >= 0, "Damage value (%s) must be positive", damage);
-        getHandle().setBaseDamage(damage);
+        this.getHandle().setBaseDamage(damage);
     }
 
     @Override
     public int getPierceLevel() {
-        return getHandle().getPierceLevel();
+        return this.getHandle().getPierceLevel();
     }
 
     @Override
     public void setPierceLevel(int pierceLevel) {
         Preconditions.checkArgument(0 <= pierceLevel && pierceLevel <= Byte.MAX_VALUE, "Pierce level (%s) out of range, expected 0 < level < 127", pierceLevel);
 
-        getHandle().setPierceLevel((byte) pierceLevel);
+        this.getHandle().setPierceLevel((byte) pierceLevel);
     }
 
     @Override
     public boolean isCritical() {
-        return getHandle().isCritArrow();
+        return this.getHandle().isCritArrow();
     }
 
     @Override
     public void setCritical(boolean critical) {
-        getHandle().setCritArrow(critical);
+        this.getHandle().setCritArrow(critical);
     }
 
     @Override
-    public ProjectileSource getShooter() {
-        return getHandle().projectileSource;
-    }
-
-    @Override
-    public void setShooter(ProjectileSource shooter) {
-        if (shooter instanceof Entity) {
-            getHandle().setOwner(((CraftEntity) shooter).getHandle());
-        } else {
-            getHandle().setOwner(null);
-        }
-        getHandle().projectileSource = shooter;
+    public boolean isOnGround() {
+        return this.getHandle().isInGround();
     }
 
     @Override
     public boolean isInBlock() {
-        return getHandle().isInGround();
+        return this.getHandle().isInGround();
     }
 
     @Override
     public Block getAttachedBlock() {
-        if (!isInBlock()) {
-            return null;
+        return Iterables.getFirst(getAttachedBlocks(), null);
+    }
+
+    @Override
+    public List<Block> getAttachedBlocks() {
+        if (!this.isInBlock()) {
+            return ImmutableList.of();
         }
 
-        BlockPos pos = getHandle().blockPosition();
-        return getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
+        return ImmutableList.copyOf(new BlockCollisions<>(this.getHandle().level(), (Entity) null, new AABB(this.getHandle().position(), this.getHandle().position()).inflate(0.06), false, (mutableBlockPos, voxelShape) -> CraftBlock.at(this.getHandle().level(), mutableBlockPos)));
     }
 
     @Override
     public PickupStatus getPickupStatus() {
-        return PickupStatus.values()[getHandle().pickup.ordinal()];
+        return PickupStatus.values()[this.getHandle().pickup.ordinal()];
     }
 
     @Override
     public void setPickupStatus(PickupStatus status) {
         Preconditions.checkArgument(status != null, "PickupStatus cannot be null");
-        getHandle().pickup = net.minecraft.world.entity.projectile.arrow.AbstractArrow.Pickup.byOrdinal(status.ordinal());
+        this.getHandle().pickup = net.minecraft.world.entity.projectile.arrow.AbstractArrow.Pickup.byOrdinal(status.ordinal());
     }
 
     @Override
@@ -105,12 +119,12 @@ public class CraftAbstractArrow extends CraftProjectile implements AbstractArrow
         super.setTicksLived(value);
 
         // Second field for EntityArrow
-        getHandle().life = value;
+        this.getHandle().life = value;
     }
 
     @Override
     public boolean isShotFromCrossbow() {
-        net.minecraft.world.item.ItemStack firedFromWeapon = getHandle().getWeaponItem();
+        net.minecraft.world.item.ItemStack firedFromWeapon = this.getHandle().getWeaponItem();
 
         return firedFromWeapon != null && firedFromWeapon.is(Items.CROSSBOW);
     }
@@ -120,36 +134,66 @@ public class CraftAbstractArrow extends CraftProjectile implements AbstractArrow
     }
 
     @Override
-    public ItemStack getItem() {
-        return CraftItemStack.asBukkitCopy(getHandle().pickupItemStack);
-    }
-
-    @Override
-    public void setItem(ItemStack item) {
-        Preconditions.checkArgument(item != null, "ItemStack cannot be null");
-
-        getHandle().pickupItemStack = CraftItemStack.asNMSCopy(item);
-    }
-
-    @Override
     public ItemStack getWeapon() {
-        return CraftItemStack.asBukkitCopy(getHandle().getWeaponItem());
+        if (this.getHandle().getWeaponItem() == null) return null; // Paper - fix NPE
+        return CraftItemStack.asBukkitCopy(this.getHandle().getWeaponItem());
     }
 
     @Override
     public void setWeapon(ItemStack item) {
         Preconditions.checkArgument(item != null, "ItemStack cannot be null");
 
-        getHandle().firedFromWeapon = CraftItemStack.asNMSCopy(item);
+        this.getHandle().firedFromWeapon = CraftItemStack.asNMSCopy(item);
+    }
+
+    // Paper start
+    @Override
+    public CraftItemStack getItemStack() {
+        return CraftItemStack.asCraftMirror(this.getHandle().getPickupItem());
     }
 
     @Override
-    public net.minecraft.world.entity.projectile.arrow.AbstractArrow getHandle() {
-        return (net.minecraft.world.entity.projectile.arrow.AbstractArrow) entity;
+    public void setItemStack(final ItemStack stack) {
+        Preconditions.checkArgument(stack != null, "ItemStack cannot be null");
+        this.getHandle().setPickupItemStack(CraftItemStack.asNMSCopy(stack));
     }
 
     @Override
-    public String toString() {
-        return "CraftArrow";
+    public void setLifetimeTicks(int ticks) {
+        this.getHandle().life = ticks;
     }
+
+    @Override
+    public int getLifetimeTicks() {
+        return this.getHandle().life;
+    }
+
+    @Override
+    public org.bukkit.Sound getHitSound() {
+        return org.bukkit.craftbukkit.CraftSound.minecraftToBukkit(this.getHandle().getHitGroundSoundEvent());
+    }
+
+    @Override
+    public void setHitSound(org.bukkit.Sound sound) {
+        this.getHandle().setSoundEvent(org.bukkit.craftbukkit.CraftSound.bukkitToMinecraft(sound));
+    }
+
+    // Override to ensure the entity data flag is set; otherwise, the isNoPhysics() method always returns false
+    @Override
+    public void setNoPhysics(final boolean noPhysics) {
+        this.getHandle().setNoPhysics(noPhysics);
+    }
+    // Paper end
+
+    // Paper start - Fix PickupStatus getting reset - Copy of CraftProjectile#setShooter, calling setOwner(Entity,boolean)
+    @Override
+    public void setShooter(org.bukkit.projectiles.ProjectileSource shooter, boolean resetPickupStatus) {
+        if (shooter instanceof CraftEntity craftEntity) {
+            this.getHandle().setOwner(craftEntity.getHandle(), resetPickupStatus);
+        } else {
+            this.getHandle().setOwner(null, resetPickupStatus);
+        }
+        this.getHandle().projectileSource = shooter;
+    }
+    // Paper end - Fix PickupStatus getting reset
 }

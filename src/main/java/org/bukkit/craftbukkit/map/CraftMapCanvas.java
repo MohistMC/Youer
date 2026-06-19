@@ -3,6 +3,7 @@ package org.bukkit.craftbukkit.map;
 import com.google.common.base.Preconditions;
 import java.awt.Color;
 import java.awt.Image;
+import java.awt.image.BufferedImage;
 import java.util.Arrays;
 import org.bukkit.map.MapCanvas;
 import org.bukkit.map.MapCursorCollection;
@@ -19,17 +20,17 @@ public class CraftMapCanvas implements MapCanvas {
 
     protected CraftMapCanvas(CraftMapView mapView) {
         this.mapView = mapView;
-        Arrays.fill(buffer, (byte) -1);
+        Arrays.fill(this.buffer, (byte) -1);
     }
 
     @Override
     public CraftMapView getMapView() {
-        return mapView;
+        return this.mapView;
     }
 
     @Override
     public MapCursorCollection getCursors() {
-        return cursors;
+        return this.cursors;
     }
 
     @Override
@@ -39,12 +40,12 @@ public class CraftMapCanvas implements MapCanvas {
 
     @Override
     public void setPixelColor(int x, int y, Color color) {
-        setPixel(x, y, (color == null) ? -1 : MapPalette.matchColor(color));
+        this.setPixel(x, y, (color == null) ? -1 : MapPalette.matchColor(color));
     }
 
     @Override
     public Color getPixelColor(int x, int y) {
-        byte pixel = getPixel(x, y);
+        byte pixel = this.getPixel(x, y);
         if (pixel == -1) {
             return null;
         }
@@ -54,16 +55,16 @@ public class CraftMapCanvas implements MapCanvas {
 
     @Override
     public Color getBasePixelColor(int x, int y) {
-        return MapPalette.getColor(getBasePixel(x, y));
+        return MapPalette.getColor(this.getBasePixel(x, y));
     }
 
     @Override
     public void setPixel(int x, int y, byte color) {
         if (x < 0 || y < 0 || x >= 128 || y >= 128)
             return;
-        if (buffer[y * 128 + x] != color) {
-            buffer[y * 128 + x] = color;
-            mapView.worldMap.setColorsDirty(x, y);
+        if (this.buffer[y * 128 + x] != color) {
+            this.buffer[y * 128 + x] = color;
+            this.mapView.worldMap.setColorsDirty(x, y, false); // Paper - Fix unnecessary map data saves
         }
     }
 
@@ -71,14 +72,14 @@ public class CraftMapCanvas implements MapCanvas {
     public byte getPixel(int x, int y) {
         if (x < 0 || y < 0 || x >= 128 || y >= 128)
             return 0;
-        return buffer[y * 128 + x];
+        return this.buffer[y * 128 + x];
     }
 
     @Override
     public byte getBasePixel(int x, int y) {
         if (x < 0 || y < 0 || x >= 128 || y >= 128)
             return 0;
-        return base[y * 128 + x];
+        return this.base[y * 128 + x];
     }
 
     protected void setBase(byte[] base) {
@@ -86,17 +87,63 @@ public class CraftMapCanvas implements MapCanvas {
     }
 
     protected byte[] getBuffer() {
-        return buffer;
+        return this.buffer;
     }
 
     @Override
     public void drawImage(int x, int y, Image image) {
-        byte[] bytes = MapPalette.imageToBytes(image);
-        for (int x2 = 0; x2 < image.getWidth(null); ++x2) {
-            for (int y2 = 0; y2 < image.getHeight(null); ++y2) {
-                setPixel(x + x2, y + y2, bytes[y2 * image.getWidth(null) + x2]);
+        // Paper start - Reduce work done by limiting size of image and using System.arraycopy
+        final int imageWidth = image.getWidth(null);
+        final int imageHeight = image.getHeight(null);
+
+        // The source x value *may* be negative, meaning we'd need to "offset" the source image before drawing it.
+        final int sourceX = Math.max(-x, 0);
+        final int sourceY = Math.max(-y, 0);
+        final int destX = Math.max(x, 0);
+        final int destY = Math.max(y, 0);
+
+        // The effective width/height to draw on the canvas.
+        final int effectiveWidth = Math.min(imageWidth - sourceX, 128 - destX);
+        final int effectiveHeight = Math.min(imageHeight - sourceY, 128 - destY);
+
+        if (effectiveWidth <= 0 || effectiveHeight <= 0)
+            return;
+
+        // Create a subimage if the image is larger than the max allowed size
+        BufferedImage temp;
+        if (imageWidth >= effectiveWidth && image instanceof BufferedImage bImage) {
+            // If the image is larger than the max allowed size, get a subimage, otherwise use the image as is
+            if (imageWidth > effectiveWidth || imageHeight > effectiveHeight) {
+                temp = bImage.getSubimage(sourceX, sourceY, effectiveWidth, effectiveHeight);
+            } else {
+                temp = bImage;
+            }
+        } else {
+            temp = new BufferedImage(effectiveWidth, effectiveHeight, BufferedImage.TYPE_INT_ARGB);
+            java.awt.Graphics2D graphics = temp.createGraphics();
+            graphics.drawImage(image, 0, 0, null);
+            graphics.dispose();
+        }
+
+        byte[] bytes = MapPalette.imageToBytes(temp);
+
+        // Since we now control the size of the image, we can safely use System.arraycopy
+        // If x is 0, we can just copy the entire image as width is 128 and height is <=(128-y)
+        if (x == 0 && effectiveWidth == 128) { // This only works great if the width is 128, otherwise an empty area appears
+            System.arraycopy(bytes, 0, this.buffer, destY * effectiveWidth, effectiveWidth * effectiveHeight);
+        } else {
+            for (int yToCopy = 0; yToCopy < effectiveHeight; ++yToCopy) {
+                final int src = yToCopy * effectiveWidth;
+                final int dest = (destY + yToCopy) * 128 + destX;
+
+                System.arraycopy(bytes, src, this.buffer, dest, effectiveWidth);
             }
         }
+
+        // Mark all colors within the image as dirty
+        this.mapView.worldMap.setColorsDirty(destX, destY, false);
+        this.mapView.worldMap.setColorsDirty(destX + effectiveWidth - 1, destY + effectiveHeight - 1, false);
+        // Paper end
     }
 
     @Override
@@ -111,14 +158,14 @@ public class CraftMapCanvas implements MapCanvas {
                 x = xStart;
                 y += font.getHeight() + 1;
                 continue;
-            } else if (ch == '\u00A7') {
+            } else if (ch == '§') {
                 int j = text.indexOf(';', i);
                 Preconditions.checkArgument(j >= 0, "text (%s) unterminated color string", text);
                 try {
                     color = Byte.parseByte(text.substring(i + 1, j));
                     i = j;
                     continue;
-                } catch (NumberFormatException ex) {
+                } catch (NumberFormatException ignored) {
                 }
             }
 
@@ -126,7 +173,7 @@ public class CraftMapCanvas implements MapCanvas {
             for (int r = 0; r < font.getHeight(); ++r) {
                 for (int c = 0; c < sprite.getWidth(); ++c) {
                     if (sprite.get(r, c)) {
-                        setPixel(x + c, y + r, color);
+                        this.setPixel(x + c, y + r, color);
                     }
                 }
             }

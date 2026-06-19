@@ -2,6 +2,7 @@ package org.bukkit.craftbukkit.command;
 
 import java.util.Set;
 import java.util.UUID;
+import net.kyori.adventure.pointer.PointersSupplier;
 import org.bukkit.Bukkit;
 import org.bukkit.Server;
 import org.bukkit.command.CommandSender;
@@ -12,7 +13,12 @@ import org.bukkit.permissions.PermissionAttachmentInfo;
 import org.bukkit.plugin.Plugin;
 
 public abstract class ServerCommandSender implements CommandSender {
-    private final PermissibleBase perm;
+    private static final PointersSupplier<ServerCommandSender> POINTERS_SUPPLIER = PointersSupplier.<ServerCommandSender>builder()
+        .resolving(net.kyori.adventure.identity.Identity.DISPLAY_NAME, ServerCommandSender::name)
+        .resolving(net.kyori.adventure.permission.PermissionChecker.POINTER, serverCommandSender -> serverCommandSender::permissionValue)
+        .build();
+
+    public final PermissibleBase perm;
 
     protected ServerCommandSender() {
         this.perm = new PermissibleBase(this);
@@ -24,7 +30,7 @@ public abstract class ServerCommandSender implements CommandSender {
 
     @Override
     public boolean isPermissionSet(String name) {
-        return perm.isPermissionSet(name);
+        return this.perm.isPermissionSet(name);
     }
 
     @Override
@@ -34,7 +40,7 @@ public abstract class ServerCommandSender implements CommandSender {
 
     @Override
     public boolean hasPermission(String name) {
-        return perm.hasPermission(name);
+        return this.perm.hasPermission(name);
     }
 
     @Override
@@ -44,37 +50,37 @@ public abstract class ServerCommandSender implements CommandSender {
 
     @Override
     public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value) {
-        return perm.addAttachment(plugin, name, value);
+        return this.perm.addAttachment(plugin, name, value);
     }
 
     @Override
     public PermissionAttachment addAttachment(Plugin plugin) {
-        return perm.addAttachment(plugin);
+        return this.perm.addAttachment(plugin);
     }
 
     @Override
     public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value, int ticks) {
-        return perm.addAttachment(plugin, name, value, ticks);
+        return this.perm.addAttachment(plugin, name, value, ticks);
     }
 
     @Override
     public PermissionAttachment addAttachment(Plugin plugin, int ticks) {
-        return perm.addAttachment(plugin, ticks);
+        return this.perm.addAttachment(plugin, ticks);
     }
 
     @Override
     public void removeAttachment(PermissionAttachment attachment) {
-        perm.removeAttachment(attachment);
+        this.perm.removeAttachment(attachment);
     }
 
     @Override
     public void recalculatePermissions() {
-        perm.recalculatePermissions();
+        this.perm.recalculatePermissions();
     }
 
     @Override
     public Set<PermissionAttachmentInfo> getEffectivePermissions() {
-        return perm.getEffectivePermissions();
+        return this.perm.getEffectivePermissions();
     }
 
     public boolean isPlayer() {
@@ -96,38 +102,35 @@ public abstract class ServerCommandSender implements CommandSender {
         this.sendMessage(messages); // ServerCommandSenders have no use for senders
     }
 
-    // Spigot start
-    private final org.bukkit.command.CommandSender.Spigot spigot = new org.bukkit.command.CommandSender.Spigot()
-    {
+    private final org.bukkit.command.CommandSender.Spigot spigot = new org.bukkit.command.CommandSender.Spigot() {
         @Override
-        public void sendMessage(net.md_5.bungee.api.chat.BaseComponent component)
-        {
+        public void sendMessage(net.md_5.bungee.api.chat.BaseComponent component) {
             ServerCommandSender.this.sendMessage(net.md_5.bungee.api.chat.TextComponent.toLegacyText(component));
         }
 
         @Override
-        public void sendMessage(net.md_5.bungee.api.chat.BaseComponent... components)
-        {
+        public void sendMessage(net.md_5.bungee.api.chat.BaseComponent... components) {
             ServerCommandSender.this.sendMessage(net.md_5.bungee.api.chat.TextComponent.toLegacyText(components));
         }
 
         @Override
-        public void sendMessage(UUID sender, net.md_5.bungee.api.chat.BaseComponent... components)
-        {
+        public void sendMessage(UUID sender, net.md_5.bungee.api.chat.BaseComponent... components) {
             this.sendMessage(components);
         }
 
         @Override
-        public void sendMessage(UUID sender, net.md_5.bungee.api.chat.BaseComponent component)
-        {
+        public void sendMessage(UUID sender, net.md_5.bungee.api.chat.BaseComponent component) {
             this.sendMessage(component);
         }
     };
 
     @Override
-    public org.bukkit.command.CommandSender.Spigot spigot()
-    {
-        return spigot;
+    public org.bukkit.command.CommandSender.Spigot spigot() {
+        return this.spigot;
     }
-    // Spigot end
+
+    @Override
+    public net.kyori.adventure.pointer.Pointers pointers() {
+        return POINTERS_SUPPLIER.view(this);
+    }
 }

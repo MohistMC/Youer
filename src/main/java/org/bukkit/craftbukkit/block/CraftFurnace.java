@@ -16,8 +16,8 @@ import org.bukkit.inventory.Recipe;
 
 public abstract class CraftFurnace<T extends AbstractFurnaceBlockEntity> extends CraftContainer<T> implements Furnace {
 
-    public CraftFurnace(World world, T tileEntity) {
-        super(world, tileEntity);
+    public CraftFurnace(World world, T blockEntity) {
+        super(world, blockEntity);
     }
 
     protected CraftFurnace(CraftFurnace<T> state, Location location) {
@@ -35,7 +35,7 @@ public abstract class CraftFurnace<T extends AbstractFurnaceBlockEntity> extends
             return this.getSnapshotInventory();
         }
 
-        return new CraftInventoryFurnace(this.getTileEntity());
+        return new CraftInventoryFurnace(this.getBlockEntity());
     }
 
     @Override
@@ -46,8 +46,8 @@ public abstract class CraftFurnace<T extends AbstractFurnaceBlockEntity> extends
     @Override
     public void setBurnTime(short burnTime) {
         this.getSnapshot().litTimeRemaining = burnTime;
-        // SPIGOT-844: Allow lighting and relighting using this API
-        this.data = this.data.setValue(AbstractFurnaceBlock.LIT, burnTime > 0);
+        this.block = this.block.trySetValue(AbstractFurnaceBlock.LIT, burnTime > 0);
+        // only try, block data might have changed to something different that would not allow this property
     }
 
     @Override
@@ -88,4 +88,52 @@ public abstract class CraftFurnace<T extends AbstractFurnaceBlockEntity> extends
 
     @Override
     public abstract CraftFurnace<T> copy(Location location);
+
+    // Paper start - cook speed multiplier API
+    @Override
+    public double getCookSpeedMultiplier() {
+        return this.getSnapshot().cookSpeedMultiplier;
+    }
+
+    @Override
+    public void setCookSpeedMultiplier(double multiplier) {
+        com.google.common.base.Preconditions.checkArgument(multiplier >= 0, "Furnace speed multiplier cannot be negative");
+        com.google.common.base.Preconditions.checkArgument(multiplier <= 200, "Furnace speed multiplier cannot more than 200");
+        T snapshot = this.getSnapshot();
+        snapshot.cookSpeedMultiplier = multiplier;
+        snapshot.cookingTotalTime = AbstractFurnaceBlockEntity.getTotalCookTime(this.isPlaced() ? this.world.getHandle() : null, snapshot, snapshot.recipeType, snapshot.cookSpeedMultiplier); // Update the snapshot's current total cook time to scale with the newly set multiplier
+    }
+
+    @Override
+    public int getRecipeUsedCount(org.bukkit.NamespacedKey furnaceRecipe) {
+        return this.getSnapshot().recipesUsed.getInt(CraftNamespacedKey.toResourceKey(net.minecraft.core.registries.Registries.RECIPE, furnaceRecipe));
+    }
+
+    @Override
+    public boolean hasRecipeUsedCount(org.bukkit.NamespacedKey furnaceRecipe) {
+        return this.getSnapshot().recipesUsed.containsKey(CraftNamespacedKey.toResourceKey(net.minecraft.core.registries.Registries.RECIPE, furnaceRecipe));
+    }
+
+    @Override
+    public void setRecipeUsedCount(org.bukkit.inventory.CookingRecipe<?> furnaceRecipe, int count) {
+        final var location = CraftNamespacedKey.toResourceKey(net.minecraft.core.registries.Registries.RECIPE, furnaceRecipe.getKey());
+        java.util.Optional<net.minecraft.world.item.crafting.RecipeHolder<?>> nmsRecipe = (this.isPlaced() ? this.world.getHandle().recipeAccess() : net.minecraft.server.MinecraftServer.getServer().getRecipeManager()).byKey(location);
+        com.google.common.base.Preconditions.checkArgument(nmsRecipe.isPresent() && nmsRecipe.get().value() instanceof net.minecraft.world.item.crafting.AbstractCookingRecipe, furnaceRecipe.getKey() + " is not recognized as a valid and registered furnace recipe");
+        if (count > 0) {
+            this.getSnapshot().recipesUsed.put(location, count);
+        } else {
+            this.getSnapshot().recipesUsed.removeInt(location);
+        }
+    }
+
+    @Override
+    public void setRecipesUsed(java.util.Map<org.bukkit.inventory.CookingRecipe<?>, Integer> recipesUsed) {
+        this.getSnapshot().recipesUsed.clear();
+        recipesUsed.forEach((recipe, integer) -> {
+            if (integer != null) {
+                this.setRecipeUsedCount(recipe, integer);
+            }
+        });
+    }
+    // Paper end
 }

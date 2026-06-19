@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.inventory.view.builder;
 
+import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.MenuProvider;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -15,6 +16,7 @@ public class CraftDoubleChestInventoryViewBuilder<V extends InventoryView> exten
 
     public CraftDoubleChestInventoryViewBuilder(final MenuType<?> handle) {
         super(handle);
+        super.defaultTitle = Component.translatable("container.chestDouble");
     }
 
     @Override
@@ -23,16 +25,19 @@ public class CraftDoubleChestInventoryViewBuilder<V extends InventoryView> exten
             return handle.create(player.nextContainerCounter(), player.getInventory());
         }
 
-        ChestBlock chest = (ChestBlock) Blocks.CHEST;
-        final DoubleBlockCombiner.NeighborCombineResult<? extends ChestBlockEntity> neighborcombineresult = chest.combine(super.world.getBlockState(super.position), super.world, super.position, false);
-        if (neighborcombineresult instanceof DoubleBlockCombiner.NeighborCombineResult.Single<? extends ChestBlockEntity>) {
+        final ChestBlock chest = (ChestBlock) Blocks.CHEST;
+        final DoubleBlockCombiner.NeighborCombineResult<? extends ChestBlockEntity> result = chest.combine(
+            super.world.getBlockState(super.position), super.world, super.position, false
+        );
+        if (result instanceof DoubleBlockCombiner.NeighborCombineResult.Single<? extends ChestBlockEntity>) {
             return handle.create(player.nextContainerCounter(), player.getInventory());
         }
 
-        final MenuProvider combined = neighborcombineresult.apply(ChestBlock.MENU_PROVIDER_COMBINER).orElse(null);
+        final MenuProvider combined = result.apply(ChestBlock.MENU_PROVIDER_COMBINER).orElse(null);
         if (combined == null) {
             return handle.create(player.nextContainerCounter(), player.getInventory());
         }
+
         return combined.createMenu(player.nextContainerCounter(), player.getInventory(), player);
     }
 

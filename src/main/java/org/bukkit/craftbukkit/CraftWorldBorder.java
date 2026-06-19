@@ -1,7 +1,6 @@
 package org.bukkit.craftbukkit;
 
 import com.google.common.base.Preconditions;
-import java.util.concurrent.TimeUnit;
 import net.minecraft.core.BlockPos;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -24,12 +23,12 @@ public class CraftWorldBorder implements WorldBorder {
 
     @Override
     public World getWorld() {
-        return world;
+        return this.world;
     }
 
     @Override
     public void reset() {
-        this.getHandle().applyInitialSettings(world.getGameTime(), true);
+        this.getHandle().applySettings(net.minecraft.world.level.border.WorldBorder.Settings.DEFAULT);
     }
 
     @Override
@@ -39,22 +38,18 @@ public class CraftWorldBorder implements WorldBorder {
 
     @Override
     public void setSize(double newSize) {
-        this.setSize(newSize, 0L);
+        Preconditions.checkArgument(newSize >= 1.0 && newSize <= this.getMaxSize(), "newSize must be between 1.0 and %s", this.getMaxSize());
+        this.handle.setSize(newSize);
     }
 
     @Override
-    public void setSize(double newSize, long time) {
-        setSize(Math.min(getMaxSize(), Math.max(1.0D, newSize)), TimeUnit.SECONDS, Math.min(9223372036854775L, Math.max(0L, time)));
-    }
+    public void changeSize(double newSize, long ticks) {
+        Preconditions.checkArgument(ticks >= 0 && ticks <= Integer.MAX_VALUE, "ticks must be between 0-%s", Integer.MAX_VALUE);
+        Preconditions.checkArgument(newSize >= 1.0 && newSize <= this.getMaxSize(), "newSize must be between 1.0 and %s", this.getMaxSize());
 
-    @Override
-    public void setSize(double newSize, TimeUnit unit, long time) {
-        Preconditions.checkArgument(unit != null, "TimeUnit cannot be null.");
-        Preconditions.checkArgument(time >= 0, "time cannot be lower than 0");
-        Preconditions.checkArgument(newSize >= 1.0D && newSize <= this.getMaxSize(), "newSize must be between 1.0D and %s", this.getMaxSize());
-
-        if (time > 0L) {
-            this.handle.lerpSizeBetween(this.handle.getSize(), newSize, unit.toMillis(time), world.getGameTime());
+        if (ticks > 0L) {
+            final long startTime = (this.getWorld() != null) ? this.getWorld().getGameTime() : 0; // Virtual Borders don't have a World
+            this.handle.lerpSizeBetween(this.handle.getSize(), newSize, ticks, startTime);
         } else {
             this.handle.setSize(newSize);
         }
@@ -102,13 +97,15 @@ public class CraftWorldBorder implements WorldBorder {
     }
 
     @Override
-    public int getWarningTime() {
+    public int getWarningTimeTicks() {
         return this.handle.getWarningTime();
     }
 
     @Override
-    public void setWarningTime(int time) {
-        this.handle.setWarningTime(time);
+    public void setWarningTimeTicks(final int ticks) {
+        Preconditions.checkArgument(ticks >= 0, "ticks cannot be lower than 0");
+
+        this.handle.setWarningTime(ticks);
     }
 
     @Override
@@ -125,7 +122,7 @@ public class CraftWorldBorder implements WorldBorder {
     public boolean isInside(Location location) {
         Preconditions.checkArgument(location != null, "location cannot be null");
 
-        return (world == null || location.getWorld().equals(this.world)) && this.handle.isWithinBounds(BlockPos.containing(location.getX(), location.getY(), location.getZ()));
+        return (this.world == null || location.getWorld().equals(this.world)) && this.handle.isWithinBounds(BlockPos.containing(location.getX(), location.getY(), location.getZ()));
     }
 
     @Override
@@ -139,10 +136,10 @@ public class CraftWorldBorder implements WorldBorder {
     }
 
     public net.minecraft.world.level.border.WorldBorder getHandle() {
-        return handle;
+        return this.handle;
     }
 
     public boolean isVirtual() {
-        return world == null;
+        return this.world == null;
     }
 }

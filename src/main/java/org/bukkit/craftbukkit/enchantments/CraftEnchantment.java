@@ -1,41 +1,31 @@
 package org.bukkit.craftbukkit.enchantments;
 
 import com.google.common.base.Preconditions;
+import io.papermc.paper.registry.RegistryKey;
+import io.papermc.paper.util.Holderable;
 import java.util.Locale;
+import net.minecraft.util.Util;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.tags.EnchantmentTags;
-import net.minecraft.util.Util;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.craftbukkit.CraftRegistry;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.legacy.FieldRename;
 import org.bukkit.craftbukkit.util.ApiVersion;
-import org.bukkit.craftbukkit.util.Handleable;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.enchantments.EnchantmentTarget;
 import org.bukkit.enchantments.EnchantmentWrapper;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-public class CraftEnchantment extends Enchantment implements Handleable<net.minecraft.world.item.enchantment.Enchantment> {
-
-    public static Enchantment minecraftToBukkit(net.minecraft.world.item.enchantment.Enchantment minecraft) {
-        return CraftRegistry.minecraftToBukkit(minecraft, Registries.ENCHANTMENT, Registry.ENCHANTMENT);
-    }
+public class CraftEnchantment extends Enchantment implements Holderable<net.minecraft.world.item.enchantment.Enchantment> {
 
     public static Enchantment minecraftHolderToBukkit(Holder<net.minecraft.world.item.enchantment.Enchantment> minecraft) {
-        return minecraftToBukkit(minecraft.value());
-    }
-
-    public static net.minecraft.world.item.enchantment.Enchantment bukkitToMinecraft(Enchantment bukkit) {
-        return CraftRegistry.bukkitToMinecraft(bukkit);
+        return CraftRegistry.minecraftHolderToBukkit(minecraft, Registries.ENCHANTMENT);
     }
 
     public static Holder<net.minecraft.world.item.enchantment.Enchantment> bukkitToMinecraftHolder(Enchantment bukkit) {
-        return CraftRegistry.bukkitToMinecraftHolder(bukkit, Registries.ENCHANTMENT);
+        return CraftRegistry.bukkitToMinecraftHolder(bukkit);
     }
 
     public static String bukkitToString(Enchantment bukkit) {
@@ -54,35 +44,33 @@ public class CraftEnchantment extends Enchantment implements Handleable<net.mine
         NamespacedKey key = NamespacedKey.fromString(string);
 
         // Now also convert from when keys where saved
-        return CraftRegistry.get(Registry.ENCHANTMENT, key, ApiVersion.CURRENT);
+        return CraftRegistry.get(RegistryKey.ENCHANTMENT, key, ApiVersion.CURRENT);
     }
 
-    private final NamespacedKey key;
     private final Holder<net.minecraft.world.item.enchantment.Enchantment> handle;
 
-    public CraftEnchantment(NamespacedKey key, net.minecraft.world.item.enchantment.Enchantment handle) {
-        this.key = key;
-        this.handle = CraftRegistry.getMinecraftRegistry(Registries.ENCHANTMENT).wrapAsHolder(handle);
+    public CraftEnchantment(Holder<net.minecraft.world.item.enchantment.Enchantment> holder) {
+        this.handle = holder;
     }
 
     @Override
-    public net.minecraft.world.item.enchantment.Enchantment getHandle() {
-        return handle.value();
+    public Holder<net.minecraft.world.item.enchantment.Enchantment> getHolder() {
+        return this.handle;
     }
 
     @Override
     public NamespacedKey getKey() {
-        return getKeyOrThrow();
+        return Holderable.super.getKey();
     }
 
     @Override
     public int getMaxLevel() {
-        return getHandle().getMaxLevel();
+        return this.getHandle().getMaxLevel();
     }
 
     @Override
     public int getStartLevel() {
-        return getHandle().getMinLevel();
+        return this.getHandle().getMinLevel();
     }
 
     @Override
@@ -92,26 +80,26 @@ public class CraftEnchantment extends Enchantment implements Handleable<net.mine
 
     @Override
     public boolean isTreasure() {
-        return !handle.is(EnchantmentTags.IN_ENCHANTING_TABLE);
+        return this.handle.is(EnchantmentTags.TREASURE); // Paper - use treasure tag
     }
 
     @Override
     public boolean isCursed() {
-        return handle.is(EnchantmentTags.CURSE);
+        return this.handle.is(EnchantmentTags.CURSE);
     }
 
     @Override
     public boolean canEnchantItem(ItemStack item) {
-        return getHandle().canEnchant(CraftItemStack.asNMSCopy(item));
+        return this.getHandle().canEnchant(CraftItemStack.asNMSCopy(item));
     }
 
     @Override
     public String getName() {
         // PAIL: migration paths
-        if (!getKey().getNamespace().equals(NamespacedKey.MINECRAFT)) {
-            return getKey().toString();
+        if (!this.getKey().getNamespace().equals(NamespacedKey.MINECRAFT)) {
+            return this.getKey().toString();
         }
-        String keyName = getKey().getKey().toUpperCase(Locale.ROOT);
+        String keyName = this.getKey().getKey().toUpperCase(Locale.ROOT);
         return switch (keyName) {
             case "PROTECTION" -> "PROTECTION_ENVIRONMENTAL";
             case "FIRE_PROTECTION" -> "PROTECTION_FIRE";
@@ -145,52 +133,116 @@ public class CraftEnchantment extends Enchantment implements Handleable<net.mine
             return false;
         }
         CraftEnchantment ench = (CraftEnchantment) other;
-        return !net.minecraft.world.item.enchantment.Enchantment.areCompatible(handle, ench.handle);
+        return !net.minecraft.world.item.enchantment.Enchantment.areCompatible(this.handle, ench.handle);
+    }
+
+    @Override
+    public net.kyori.adventure.text.Component displayName(int level) {
+        return io.papermc.paper.adventure.PaperAdventure.asAdventure(net.minecraft.world.item.enchantment.Enchantment.getFullname(this.handle, level));
+    }
+
+    @Override
+    public String translationKey() {
+        if (!(this.getHandle().description().getContents() instanceof final net.minecraft.network.chat.contents.TranslatableContents translatableContents)) {
+            throw new UnsupportedOperationException("Description isn't translatable!"); // Paper
+        }
+        return translatableContents.getKey();
+    }
+
+    @Override
+    public boolean isTradeable() {
+        return this.handle.is(EnchantmentTags.TRADEABLE);
+    }
+
+    @Override
+    public boolean isDiscoverable() {
+        return this.handle.is(EnchantmentTags.IN_ENCHANTING_TABLE)
+            || this.handle.is(EnchantmentTags.ON_RANDOM_LOOT)
+            || this.handle.is(EnchantmentTags.ON_MOB_SPAWN_EQUIPMENT)
+            || this.handle.is(EnchantmentTags.TRADEABLE)
+            || this.handle.is(EnchantmentTags.ON_TRADED_EQUIPMENT);
+    }
+
+    @Override
+    public int getMinModifiedCost(int level) {
+        return this.getHandle().definition().minCost().calculate(level);
+    }
+
+    @Override
+    public int getMaxModifiedCost(int level) {
+        return this.getHandle().definition().maxCost().calculate(level);
+    }
+
+    @Override
+    public int getAnvilCost() {
+        return this.getHandle().definition().anvilCost();
+    }
+
+    @Override
+    public io.papermc.paper.enchantments.EnchantmentRarity getRarity() {
+        throw new UnsupportedOperationException("Enchantments don't have a rarity anymore in 1.20.5+.");
+    }
+
+    @Override
+    public float getDamageIncrease(int level, org.bukkit.entity.EntityCategory entityCategory) {
+        throw new UnsupportedOperationException("Enchantments are based on complex effect maps since 1.21, cannot compute a simple damage increase");
+    }
+
+    @Override
+    public float getDamageIncrease(int level, org.bukkit.entity.EntityType entityType) {
+        throw new UnsupportedOperationException("Enchantments are based on complex effect maps since 1.21, cannot compute a simple damage increase");
+    }
+
+    @Override
+    public java.util.Set<org.bukkit.inventory.EquipmentSlotGroup> getActiveSlotGroups() {
+        return this.getHandle().definition().slots().stream()
+            .map(org.bukkit.craftbukkit.CraftEquipmentSlot::getSlotGroup)
+            .collect(java.util.stream.Collectors.toSet());
+    }
+
+    @Override
+    public net.kyori.adventure.text.Component description() {
+        return io.papermc.paper.adventure.PaperAdventure.asAdventure(this.handle.value().description());
+    }
+
+    @Override
+    public io.papermc.paper.registry.set.RegistryKeySet<org.bukkit.inventory.ItemType> getSupportedItems() {
+        return io.papermc.paper.registry.set.PaperRegistrySets.convertToApi(io.papermc.paper.registry.RegistryKey.ITEM, this.handle.value().getSupportedItems());
+    }
+
+    @Override
+    public io.papermc.paper.registry.set.RegistryKeySet<org.bukkit.inventory.ItemType> getPrimaryItems() {
+        final java.util.Optional<net.minecraft.core.HolderSet<net.minecraft.world.item.Item>> primaryItems = this.handle.value().definition().primaryItems();
+        return primaryItems.map(holders -> io.papermc.paper.registry.set.PaperRegistrySets.convertToApi(io.papermc.paper.registry.RegistryKey.ITEM, holders)).orElse(null);
+    }
+
+    @Override
+    public int getWeight() {
+        return this.handle.value().getWeight();
+    }
+
+    @Override
+    public io.papermc.paper.registry.set.RegistryKeySet<org.bukkit.enchantments.Enchantment> getExclusiveWith() {
+        return io.papermc.paper.registry.set.PaperRegistrySets.convertToApi(io.papermc.paper.registry.RegistryKey.ENCHANTMENT, this.handle.value().exclusiveSet());
     }
 
     @Override
     public String getTranslationKey() {
-        return Util.makeDescriptionId("enchantment", handle.unwrapKey().get().identifier());
+        return Util.makeDescriptionId("enchantment", this.handle.unwrapKey().get().identifier());
     }
 
     @Override
     public boolean equals(Object other) {
-        if (this == other) {
-            return true;
-        }
-
-        if (!(other instanceof CraftEnchantment)) {
-            return false;
-        }
-
-        return getKey().equals(((Enchantment) other).getKey());
+        return Holderable.super.implEquals(other);
     }
 
     @Override
     public int hashCode() {
-        return getKey().hashCode();
+        return Holderable.super.implHashCode();
     }
 
     @Override
     public String toString() {
-        return "CraftEnchantment[" + getKey() + "]";
-    }
-
-    @NotNull
-    @Override
-    public NamespacedKey getKeyOrThrow() {
-        Preconditions.checkState(isRegistered(), "Cannot get key of this registry item, because it is not registered. Use #isRegistered() before calling this method.");
-        return this.key;
-    }
-
-    @Nullable
-    @Override
-    public NamespacedKey getKeyOrNull() {
-        return this.key;
-    }
-
-    @Override
-    public boolean isRegistered() {
-        return this.key != null;
+        return Holderable.super.implToString();
     }
 }

@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.animal.equine.Markings;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.inventory.CraftInventoryHorse;
@@ -15,7 +16,7 @@ public class CraftHorse extends CraftAbstractHorse implements Horse {
 
     @Override
     public net.minecraft.world.entity.animal.equine.Horse getHandle() {
-        return (net.minecraft.world.entity.animal.equine.Horse) super.getHandle();
+        return (net.minecraft.world.entity.animal.equine.Horse) this.entity;
     }
 
     @Override
@@ -25,24 +26,24 @@ public class CraftHorse extends CraftAbstractHorse implements Horse {
 
     @Override
     public Color getColor() {
-        return Color.values()[getHandle().getVariant().getId()];
+        return Color.values()[this.getHandle().getVariant().getId()];
     }
 
     @Override
     public void setColor(Color color) {
         Preconditions.checkArgument(color != null, "Color cannot be null");
-        getHandle().setVariantAndMarkings(net.minecraft.world.entity.animal.equine.Variant.byId(color.ordinal()), getHandle().getMarkings());
+        this.getHandle().setVariantAndMarkings(net.minecraft.world.entity.animal.equine.Variant.byId(color.ordinal()), this.getHandle().getMarkings());
     }
 
     @Override
     public Style getStyle() {
-        return Style.values()[getHandle().getMarkings().getId()];
+        return Style.values()[this.getHandle().getMarkings().getId()];
     }
 
     @Override
     public void setStyle(Style style) {
         Preconditions.checkArgument(style != null, "Style cannot be null");
-        getHandle().setVariantAndMarkings(getHandle().getVariant(), Markings.byId(style.ordinal()));
+        this.getHandle().setVariantAndMarkings(this.getHandle().getVariant(), Markings.byId(style.ordinal()));
     }
 
     @Override
@@ -57,11 +58,9 @@ public class CraftHorse extends CraftAbstractHorse implements Horse {
 
     @Override
     public HorseInventory getInventory() {
-        return new CraftInventoryHorse(getHandle().inventory, getHandle().equipment);
-    }
-
-    @Override
-    public String toString() {
-        return "CraftHorse{variant=" + getVariant() + ", owner=" + getOwner() + '}';
+        return new CraftInventoryHorse(this.getHandle().inventory,
+            this.getHandle().createEquipmentSlotContainer(EquipmentSlot.BODY),
+            this.getHandle().createEquipmentSlotContainer(EquipmentSlot.SADDLE)
+        );
     }
 }

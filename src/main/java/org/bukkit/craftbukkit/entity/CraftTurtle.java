@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.util.CraftLocation;
 import org.bukkit.entity.Turtle;
 
 public class CraftTurtle extends CraftAnimals implements Turtle {
@@ -11,21 +12,36 @@ public class CraftTurtle extends CraftAnimals implements Turtle {
 
     @Override
     public net.minecraft.world.entity.animal.turtle.Turtle getHandle() {
-        return (net.minecraft.world.entity.animal.turtle.Turtle) super.getHandle();
-    }
-
-    @Override
-    public String toString() {
-        return "CraftTurtle";
+        return (net.minecraft.world.entity.animal.turtle.Turtle) this.entity;
     }
 
     @Override
     public boolean hasEgg() {
-        return getHandle().hasEgg();
+        return this.getHandle().hasEgg();
     }
 
     @Override
     public boolean isLayingEgg() {
-        return getHandle().isLayingEgg();
+        return this.getHandle().isLayingEgg();
+    }
+
+    @Override
+    public org.bukkit.Location getHome() {
+        return CraftLocation.toBukkit(this.getHandle().getHomePos(), this.getHandle().level());
+    }
+
+    @Override
+    public void setHome(org.bukkit.Location location) {
+        this.getHandle().setHomePos(CraftLocation.toBlockPos(location));
+    }
+
+    @Override
+    public boolean isGoingHome() {
+        return this.getHandle().goingHome;
+    }
+
+    @Override
+    public void setHasEgg(boolean hasEgg) {
+        this.getHandle().setHasEgg(hasEgg);
     }
 }

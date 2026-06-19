@@ -16,11 +16,11 @@ public class CraftDamageTag extends CraftTag<net.minecraft.world.damagesource.Da
 
     @Override
     public boolean isTagged(DamageType type) {
-        return CraftDamageType.bukkitToMinecraftHolder(type).is(tag);
+        return CraftDamageType.bukkitToMinecraftHolder(type).is(this.tag);
     }
 
     @Override
     public Set<DamageType> getValues() {
-        return getHandle().stream().map(Holder::value).map(CraftDamageType::minecraftToBukkit).collect(Collectors.toUnmodifiableSet());
+        return this.getHandle().stream().map(CraftDamageType::minecraftHolderToBukkit).collect(Collectors.toUnmodifiableSet());
     }
 }

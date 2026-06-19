@@ -1,16 +1,17 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import io.papermc.paper.registry.HolderableBase;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.world.entity.animal.chicken.ChickenSoundVariant;
 import net.minecraft.world.entity.animal.chicken.ChickenVariant;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.craftbukkit.CraftRegistry;
 import org.bukkit.craftbukkit.CraftServer;
-import org.bukkit.craftbukkit.registry.CraftRegistryItem;
 import org.bukkit.entity.Chicken;
+import org.jspecify.annotations.NullMarked;
 
+@NullMarked
 public class CraftChicken extends CraftAnimals implements Chicken {
 
     public CraftChicken(CraftServer server, net.minecraft.world.entity.animal.chicken.Chicken entity) {
@@ -19,51 +20,80 @@ public class CraftChicken extends CraftAnimals implements Chicken {
 
     @Override
     public net.minecraft.world.entity.animal.chicken.Chicken getHandle() {
-        return (net.minecraft.world.entity.animal.chicken.Chicken) entity;
+        return (net.minecraft.world.entity.animal.chicken.Chicken) this.entity;
     }
 
     @Override
-    public String toString() {
-        return "CraftChicken";
+    public Variant getVariant() {
+        return CraftVariant.minecraftHolderToBukkit(this.getHandle().getVariant());
     }
 
     @Override
-    public Chicken.Variant getVariant() {
-        return CraftChicken.CraftVariant.minecraftHolderToBukkit(getHandle().getVariant());
+    public void setVariant(Variant variant) {
+        Preconditions.checkArgument(variant != null, "variant cannot be null");
+
+        this.getHandle().setVariant(CraftVariant.bukkitToMinecraftHolder(variant));
     }
 
     @Override
-    public void setVariant(Chicken.Variant variant) {
-        Preconditions.checkArgument(variant != null, "variant");
-
-        getHandle().setVariant(CraftChicken.CraftVariant.bukkitToMinecraftHolder(variant));
+    public SoundVariant getSoundVariant() {
+        return CraftSoundVariant.minecraftHolderToBukkit(this.getHandle().getSoundVariant());
     }
 
-    public static class CraftVariant extends CraftRegistryItem<ChickenVariant> implements Chicken.Variant {
+    @Override
+    public void setSoundVariant(final SoundVariant variant) {
+        Preconditions.checkArgument(variant != null, "variant cannot be null");
 
-        public static Chicken.Variant minecraftToBukkit(ChickenVariant minecraft) {
-            return CraftRegistry.minecraftToBukkit(minecraft, Registries.CHICKEN_VARIANT, Registry.CHICKEN_VARIANT);
+        this.getHandle().setSoundVariant(CraftSoundVariant.bukkitToMinecraftHolder(variant));
+    }
+
+    public static class CraftVariant extends HolderableBase<ChickenVariant> implements Variant {
+
+        public static Variant minecraftHolderToBukkit(Holder<ChickenVariant> minecraft) {
+            return CraftRegistry.minecraftHolderToBukkit(minecraft, Registries.CHICKEN_VARIANT);
         }
 
-        public static Chicken.Variant minecraftHolderToBukkit(Holder<ChickenVariant> minecraft) {
-            return minecraftToBukkit(minecraft.value());
+        public static Holder<ChickenVariant> bukkitToMinecraftHolder(Variant bukkit) {
+            return CraftRegistry.bukkitToMinecraftHolder(bukkit);
         }
 
-        public static ChickenVariant bukkitToMinecraft(Chicken.Variant bukkit) {
-            return CraftRegistry.bukkitToMinecraft(bukkit);
+        public CraftVariant(Holder<ChickenVariant> holder) {
+            super(holder);
+        }
+    }
+
+    public static class CraftSoundVariant extends HolderableBase<ChickenSoundVariant> implements SoundVariant {
+
+        public static SoundVariant minecraftHolderToBukkit(Holder<ChickenSoundVariant> minecraft) {
+            return CraftRegistry.minecraftHolderToBukkit(minecraft, Registries.CHICKEN_SOUND_VARIANT);
         }
 
-        public static Holder<ChickenVariant> bukkitToMinecraftHolder(Chicken.Variant bukkit) {
-            return CraftRegistry.bukkitToMinecraftHolder(bukkit, Registries.CHICKEN_VARIANT);
+        public static Holder<ChickenSoundVariant> bukkitToMinecraftHolder(SoundVariant bukkit) {
+            return CraftRegistry.bukkitToMinecraftHolder(bukkit);
         }
 
-        public CraftVariant(NamespacedKey key, Holder<ChickenVariant> handle) {
-            super(key, handle);
+        public CraftSoundVariant(final Holder<ChickenSoundVariant> holder) {
+            super(holder);
         }
+    }
 
-        @Override
-        public NamespacedKey getKey() {
-            return getKeyOrThrow();
-        }
+    @Override
+    public boolean isChickenJockey() {
+        return this.getHandle().isChickenJockey();
+    }
+
+    @Override
+    public void setIsChickenJockey(boolean isChickenJockey) {
+        this.getHandle().setChickenJockey(isChickenJockey);
+    }
+
+    @Override
+    public int getEggLayTime() {
+        return this.getHandle().eggTime;
+    }
+
+    @Override
+    public void setEggLayTime(int eggLayTime) {
+        this.getHandle().eggTime = eggLayTime;
     }
 }

@@ -21,14 +21,14 @@ public class CraftStonecutterView extends CraftInventoryView<StonecutterMenu, St
 
     @Override
     public int getSelectedRecipeIndex() {
-        return container.getSelectedRecipeIndex();
+        return this.container.getSelectedRecipeIndex();
     }
 
     @NotNull
     @Override
     public List<StonecuttingRecipe> getRecipes() {
         final List<StonecuttingRecipe> recipes = new ArrayList<>();
-        for (final SelectableRecipe.SingleInputEntry<StonecutterRecipe> recipe : container.getVisibleRecipes().entries()) {
+        for (final SelectableRecipe.SingleInputEntry<StonecutterRecipe> recipe : this.container.getVisibleRecipes().entries()) {
             recipe.recipe().recipe().map(RecipeHolder::toBukkitRecipe).ifPresent((bukkit) -> recipes.add((StonecuttingRecipe) bukkit));
         }
         return recipes;
@@ -36,6 +36,6 @@ public class CraftStonecutterView extends CraftInventoryView<StonecutterMenu, St
 
     @Override
     public int getRecipeAmount() {
-        return container.getNumberOfVisibleRecipes();
+        return this.container.getNumberOfVisibleRecipes();
     }
 }

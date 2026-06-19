@@ -20,15 +20,15 @@ public class CraftPalette implements Palette {
 
     @Override
     public List<BlockState> getBlocks() {
-        List<BlockState> blocks = new ArrayList<>();
-        for (StructureTemplate.StructureBlockInfo blockInfo : palette.blocks()) {
-            blocks.add(CraftBlockStates.getBlockState(registry, blockInfo.pos(), blockInfo.state(), blockInfo.nbt()));
+        List<BlockState> blocks = new ArrayList<>(this.palette.blocks().size());
+        for (StructureTemplate.StructureBlockInfo blockInfo : this.palette.blocks()) {
+            blocks.add(CraftBlockStates.getBlockState(this.registry, blockInfo.pos(), blockInfo.state(), blockInfo.nbt()));
         }
         return blocks;
     }
 
     @Override
     public int getBlockCount() {
-        return palette.blocks().size();
+        return this.palette.blocks().size();
     }
 }

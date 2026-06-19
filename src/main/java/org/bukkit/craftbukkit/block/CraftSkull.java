@@ -1,11 +1,17 @@
 package org.bukkit.craftbukkit.block;
 
+import com.destroystokyo.paper.profile.SharedPlayerProfile;
 import com.google.common.base.Preconditions;
 import com.mojang.authlib.GameProfile;
+import com.mojang.datafixers.util.Either;
+import io.papermc.paper.adventure.PaperAdventure;
+import io.papermc.paper.datacomponent.item.PaperResolvableProfile;
+import net.kyori.adventure.text.Component;
+import net.minecraft.util.Util;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.players.NameAndId;
-import net.minecraft.util.Util;
+import net.minecraft.world.entity.player.PlayerSkin;
 import net.minecraft.world.item.component.ResolvableProfile;
 import net.minecraft.world.level.block.entity.SkullBlockEntity;
 import org.bukkit.Bukkit;
@@ -24,14 +30,15 @@ import org.bukkit.craftbukkit.profile.CraftPlayerProfile;
 import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 import org.bukkit.profile.PlayerProfile;
 import org.jetbrains.annotations.Nullable;
+import java.util.Objects;
 
 public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implements Skull {
 
     private static final int MAX_OWNER_LENGTH = 16;
     private ResolvableProfile profile;
 
-    public CraftSkull(World world, SkullBlockEntity tileEntity) {
-        super(world, tileEntity);
+    public CraftSkull(World world, SkullBlockEntity blockEntity) {
+        super(world, blockEntity);
     }
 
     protected CraftSkull(CraftSkull state, Location location) {
@@ -39,49 +46,70 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
     }
 
     @Override
-    public void load(SkullBlockEntity skull) {
-        super.load(skull);
+    public void load(SkullBlockEntity blockEntity) {
+        super.load(blockEntity);
 
-        ResolvableProfile owner = skull.getOwnerProfile();
+        ResolvableProfile owner = blockEntity.getOwnerProfile();
         if (owner != null) {
-            profile = owner;
+            this.profile = owner;
         }
+    }
+
+    @Override
+    public io.papermc.paper.datacomponent.item.ResolvableProfile getProfile() {
+        if (this.profile == null) {
+            return null;
+        }
+        return new PaperResolvableProfile(this.profile);
+    }
+
+    @Override
+    public void setProfile(final io.papermc.paper.datacomponent.item.ResolvableProfile profile) {
+        if (profile == null) {
+            this.profile = null;
+            return;
+        }
+        this.profile = ((PaperResolvableProfile) profile).getHandle();
     }
 
     @Override
     public boolean hasOwner() {
-        return profile != null;
+        return this.profile != null;
     }
 
     @Override
     public String getOwner() {
-        return hasOwner() ? profile.name().orElse(null) : null;
+        return this.hasOwner() ? this.profile.name().orElse(null) : null;
     }
 
     @Override
     public boolean setOwner(String name) {
-        if (name == null || name.length() > MAX_OWNER_LENGTH) {
+        if (name == null || name.length() > CraftSkull.MAX_OWNER_LENGTH) {
             return false;
         }
 
-        NameAndId profile = MinecraftServer.getServer().services().nameToIdCache().get(name).orElse(null);
+        GameProfile profile = MinecraftServer.getServer().services().paper().filledProfileCache().getIfCached(name);
+        if (profile == null) {
+            profile = MinecraftServer.getServer().services().nameToIdCache().get(name).map(NameAndId::toUncompletedGameProfile).orElse(null);
+        }
         if (profile == null) {
             return false;
         }
 
-        this.profile = ResolvableProfile.createResolved(new GameProfile(profile.id(), profile.name()));
+        this.profile = ResolvableProfile.createResolved(profile);
         return true;
     }
 
     @Override
     public OfflinePlayer getOwningPlayer() {
-        if (hasOwner()) {
-            if (!profile.partialProfile().id().equals(Util.NIL_UUID)) {
-                return Bukkit.getOfflinePlayer(profile.partialProfile().id());
+        if (this.hasOwner()) {
+            final GameProfile gameProfile = this.profile.partialProfile(); // The partial profile is always guaranteed to have a non-null uuid and name.
+            if (!gameProfile.id().equals(Util.NIL_UUID)) {
+                return Bukkit.getOfflinePlayer(gameProfile.id());
             }
 
-            if (profile.name().filter(s -> !s.isEmpty()).isPresent()) {
-                return Bukkit.getOfflinePlayer(profile.name().get());
+            if (!gameProfile.name().isEmpty()) {
+                return Bukkit.getOfflinePlayer(gameProfile.name());
             }
         }
 
@@ -95,31 +123,47 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
         if (player instanceof CraftPlayer craftPlayer) {
             this.profile = ResolvableProfile.createResolved(craftPlayer.getProfile());
         } else {
-            this.profile = ResolvableProfile.createResolved(new GameProfile(player.getUniqueId(), (player.getName() == null) ? "" : player.getName()));
+            this.profile = ResolvableProfile.createUnresolved(player.getUniqueId());
         }
     }
 
+    // Paper start
     @Override
+    public void setPlayerProfile(com.destroystokyo.paper.profile.PlayerProfile profile) {
+        Preconditions.checkNotNull(profile, "profile");
+        this.profile = com.destroystokyo.paper.profile.CraftPlayerProfile.asResolvableProfileCopy(profile);
+    }
+
+    @javax.annotation.Nullable
+    @Override
+    public com.destroystokyo.paper.profile.PlayerProfile getPlayerProfile() {
+        return profile != null ? new com.destroystokyo.paper.profile.CraftPlayerProfile(profile) : null;
+    }
+    // Paper end
+
+    @Override
+    @Deprecated // Paper
     public PlayerProfile getOwnerProfile() {
-        if (!hasOwner()) {
+        if (!this.hasOwner()) {
             return null;
         }
 
-        return new CraftPlayerProfile(profile);
+        return new CraftPlayerProfile(this.profile);
     }
 
     @Override
+    @Deprecated // Paper
     public void setOwnerProfile(PlayerProfile profile) {
         if (profile == null) {
             this.profile = null;
         } else {
-            this.profile = ((CraftPlayerProfile) profile).buildResolvableProfile();
+            this.profile = ((SharedPlayerProfile) profile).buildResolvableProfile(); // Paper
         }
     }
 
     @Override
     public NamespacedKey getNoteBlockSound() {
-        Identifier key = getSnapshot().getNoteBlockSound();
+        Identifier key = this.getSnapshot().getNoteBlockSound();
         return (key != null) ? CraftNamespacedKey.fromMinecraft(key) : null;
     }
 
@@ -134,24 +178,24 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
 
     @Override
     public BlockFace getRotation() {
-        BlockData blockData = getBlockData();
+        BlockData blockData = this.getBlockData();
         return (blockData instanceof Rotatable rotatable) ? rotatable.getRotation() : ((Directional) blockData).getFacing();
     }
 
     @Override
     public void setRotation(BlockFace rotation) {
-        BlockData blockData = getBlockData();
+        BlockData blockData = this.getBlockData();
         if (blockData instanceof Rotatable) {
             ((Rotatable) blockData).setRotation(rotation);
         } else {
             ((Directional) blockData).setFacing(rotation);
         }
-        setBlockData(blockData);
+        this.setBlockData(blockData);
     }
 
     @Override
     public SkullType getSkullType() {
-        switch (getType()) {
+        switch (this.getType()) {
             case SKELETON_SKULL:
             case SKELETON_WALL_SKULL:
                 return SkullType.SKELETON;
@@ -174,7 +218,7 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
             case DRAGON_WALL_HEAD:
                 return SkullType.DRAGON;
             default:
-                throw new IllegalArgumentException("Unknown SkullType for " + getType());
+                throw new IllegalArgumentException("Unknown SkullType for " + this.getType());
         }
     }
 
@@ -184,11 +228,11 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
     }
 
     @Override
-    protected void applyTo(SkullBlockEntity skull) {
-        super.applyTo(skull);
+    public void applyTo(SkullBlockEntity blockEntity) {
+        super.applyTo(blockEntity);
 
-        if (getSkullType() == SkullType.PLAYER) {
-            skull.owner = hasOwner() ? profile : null;
+        if (this.getSkullType() == SkullType.PLAYER) {
+            blockEntity.owner = (this.hasOwner() ? this.profile : null);
         }
     }
 
@@ -200,5 +244,17 @@ public class CraftSkull extends CraftBlockEntityState<SkullBlockEntity> implemen
     @Override
     public CraftSkull copy(Location location) {
         return new CraftSkull(this, location);
+    }
+
+    @Override
+    public @Nullable Component customName() {
+        SkullBlockEntity snapshot = getSnapshot();
+        return snapshot.customName == null ? null : PaperAdventure.asAdventure(snapshot.customName);
+    }
+
+    @Override
+    public void customName(@Nullable Component customName) {
+        SkullBlockEntity snapshot = getSnapshot();
+        snapshot.customName = customName == null ? null : PaperAdventure.asVanilla(customName);
     }
 }

@@ -3,6 +3,7 @@ package org.bukkit.craftbukkit.inventory.view.builder;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.minecraft.world.inventory.MenuType;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.view.builder.InventoryViewBuilder;
 
@@ -10,6 +11,7 @@ public class CraftStandardInventoryViewBuilder<V extends InventoryView> extends 
 
     public CraftStandardInventoryViewBuilder(final MenuType<?> handle) {
         super(handle);
+        super.defaultTitle = ChestBlockEntity.DEFAULT_NAME;
     }
 
     @Override

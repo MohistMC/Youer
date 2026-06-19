@@ -14,23 +14,18 @@ public class CraftBlockDisplay extends CraftDisplay implements BlockDisplay {
 
     @Override
     public net.minecraft.world.entity.Display.BlockDisplay getHandle() {
-        return (net.minecraft.world.entity.Display.BlockDisplay) super.getHandle();
-    }
-
-    @Override
-    public String toString() {
-        return "CraftBlockDisplay";
+        return (net.minecraft.world.entity.Display.BlockDisplay) this.entity;
     }
 
     @Override
     public BlockData getBlock() {
-        return CraftBlockData.fromData(getHandle().getBlockState());
+        return this.getHandle().getBlockState().asBlockData();
     }
 
     @Override
     public void setBlock(BlockData block) {
         Preconditions.checkArgument(block != null, "Block cannot be null");
 
-        getHandle().setBlockState(((CraftBlockData) block).getState());
+        this.getHandle().setBlockState(((CraftBlockData) block).getState());
     }
 }

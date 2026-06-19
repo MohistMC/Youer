@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.entity;
 
+import net.minecraft.world.entity.animal.sheep.Sheep;
 import net.minecraft.world.entity.monster.illager.SpellcasterIllager;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Evoker;
@@ -12,21 +13,27 @@ public class CraftEvoker extends CraftSpellcaster implements Evoker {
 
     @Override
     public net.minecraft.world.entity.monster.illager.Evoker getHandle() {
-        return (net.minecraft.world.entity.monster.illager.Evoker) super.getHandle();
-    }
-
-    @Override
-    public String toString() {
-        return "CraftEvoker";
+        return (net.minecraft.world.entity.monster.illager.Evoker) this.entity;
     }
 
     @Override
     public Evoker.Spell getCurrentSpell() {
-        return Evoker.Spell.values()[getHandle().getCurrentSpell().ordinal()];
+        return Evoker.Spell.values()[this.getHandle().getCurrentSpell().ordinal()];
     }
 
     @Override
     public void setCurrentSpell(Evoker.Spell spell) {
-        getHandle().setIsCastingSpell(spell == null ? SpellcasterIllager.IllagerSpell.NONE : SpellcasterIllager.IllagerSpell.byId(spell.ordinal()));
+        this.getHandle().setIsCastingSpell(spell == null ? SpellcasterIllager.IllagerSpell.NONE : SpellcasterIllager.IllagerSpell.byId(spell.ordinal()));
+    }
+
+    @Override
+    public org.bukkit.entity.Sheep getWololoTarget() {
+        Sheep sheep = this.getHandle().getWololoTarget();
+        return sheep == null ? null : (org.bukkit.entity.Sheep) sheep.getBukkitEntity();
+    }
+
+    @Override
+    public void setWololoTarget(org.bukkit.entity.Sheep sheep) {
+        this.getHandle().setWololoTarget(sheep == null ? null : ((org.bukkit.craftbukkit.entity.CraftSheep) sheep).getHandle());
     }
 }

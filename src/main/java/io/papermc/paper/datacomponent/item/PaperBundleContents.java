@@ -1,0 +1,50 @@
+package io.papermc.paper.datacomponent.item;
+
+import com.google.common.base.Preconditions;
+import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+import java.util.List;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
+import org.bukkit.craftbukkit.util.Handleable;
+import org.bukkit.inventory.ItemStack;
+
+public record PaperBundleContents(
+    net.minecraft.world.item.component.BundleContents impl
+) implements BundleContents, Handleable<net.minecraft.world.item.component.BundleContents> {
+
+    @Override
+    public net.minecraft.world.item.component.BundleContents getHandle() {
+        return this.impl;
+    }
+
+    @Override
+    public List<ItemStack> contents() {
+        return this.impl.itemCopyStream().map(CraftItemStack::asBukkitCopy).toList();
+    }
+
+    static final class BuilderImpl implements BundleContents.Builder {
+
+        private final List<net.minecraft.world.item.ItemStackTemplate> items = new ObjectArrayList<>();
+
+        @Override
+        public BundleContents.Builder add(final ItemStack item) {
+            Preconditions.checkArgument(item != null, "item cannot be null");
+            Preconditions.checkArgument(!item.isEmpty(), "item cannot be empty");
+            this.items.add(CraftItemStack.asTemplate(item));
+            return this;
+        }
+
+        @Override
+        public BundleContents.Builder addAll(final List<ItemStack> items) {
+            items.forEach(this::add);
+            return this;
+        }
+
+        @Override
+        public BundleContents build() {
+            if (this.items.isEmpty()) {
+                return new PaperBundleContents(net.minecraft.world.item.component.BundleContents.EMPTY);
+            }
+            return new PaperBundleContents(new net.minecraft.world.item.component.BundleContents(new ObjectArrayList<>(this.items)));
+        }
+    }
+}

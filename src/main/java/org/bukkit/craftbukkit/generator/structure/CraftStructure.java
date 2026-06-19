@@ -1,68 +1,64 @@
 package org.bukkit.craftbukkit.generator.structure;
 
-import com.google.common.base.Preconditions;
-import com.google.common.base.Suppliers;
-import java.util.function.Supplier;
+import io.papermc.paper.util.Holderable;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.craftbukkit.CraftRegistry;
-import org.bukkit.craftbukkit.util.Handleable;
 import org.bukkit.generator.structure.Structure;
 import org.bukkit.generator.structure.StructureType;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-public class CraftStructure extends Structure implements Handleable<net.minecraft.world.level.levelgen.structure.Structure> {
+public class CraftStructure extends Structure implements Holderable<net.minecraft.world.level.levelgen.structure.Structure> {
 
     public static Structure minecraftToBukkit(net.minecraft.world.level.levelgen.structure.Structure minecraft) {
-        return CraftRegistry.minecraftToBukkit(minecraft, Registries.STRUCTURE, Registry.STRUCTURE);
+        return CraftRegistry.minecraftToBukkit(minecraft, Registries.STRUCTURE);
     }
 
     public static net.minecraft.world.level.levelgen.structure.Structure bukkitToMinecraft(Structure bukkit) {
         return CraftRegistry.bukkitToMinecraft(bukkit);
     }
 
-    private final NamespacedKey key;
-    private final net.minecraft.world.level.levelgen.structure.Structure structure;
-    private final Supplier<StructureType> structureType;
+    public static Structure minecraftHolderToBukkit(Holder<net.minecraft.world.level.levelgen.structure.Structure> minecraft) {
+        return CraftRegistry.minecraftHolderToBukkit(minecraft, Registries.STRUCTURE);
+    }
 
-    public CraftStructure(NamespacedKey key, net.minecraft.world.level.levelgen.structure.Structure structure) {
-        this.key = key;
-        this.structure = structure;
-        this.structureType = Suppliers.memoize(() -> CraftStructureType.minecraftToBukkit(structure.type()));
+    public static Holder<net.minecraft.world.level.levelgen.structure.Structure> bukkitToMinecraftHolder(Structure bukkit) {
+        return CraftRegistry.bukkitToMinecraftHolder(bukkit);
+    }
+
+    private final Holder<net.minecraft.world.level.levelgen.structure.Structure> holder;
+
+    public CraftStructure(Holder<net.minecraft.world.level.levelgen.structure.Structure> holder) {
+        this.holder = holder;
     }
 
     @Override
-    public net.minecraft.world.level.levelgen.structure.Structure getHandle() {
-        return structure;
+    public Holder<net.minecraft.world.level.levelgen.structure.Structure> getHolder() {
+        return this.holder;
     }
 
     @Override
     public StructureType getStructureType() {
-        return structureType.get();
+        return CraftStructureType.minecraftToBukkit(this.getHandle().type());
     }
 
     @Override
     public NamespacedKey getKey() {
-        return getKeyOrThrow();
-    }
-
-    @NotNull
-    @Override
-    public NamespacedKey getKeyOrThrow() {
-        Preconditions.checkState(isRegistered(), "Cannot get key of this registry item, because it is not registered. Use #isRegistered() before calling this method.");
-        return this.key;
-    }
-
-    @Nullable
-    @Override
-    public NamespacedKey getKeyOrNull() {
-        return this.key;
+        return Holderable.super.getKey();
     }
 
     @Override
-    public boolean isRegistered() {
-        return this.key != null;
+    public int hashCode() {
+        return Holderable.super.implHashCode();
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+        return Holderable.super.implEquals(obj);
+    }
+
+    @Override
+    public String toString() {
+        return Holderable.super.implToString();
     }
 }

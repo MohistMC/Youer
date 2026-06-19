@@ -11,11 +11,6 @@ public class CraftAmbient extends CraftMob implements Ambient {
 
     @Override
     public AmbientCreature getHandle() {
-        return (AmbientCreature) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftAmbient";
+        return (AmbientCreature) this.entity;
     }
 }

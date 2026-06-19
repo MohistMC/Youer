@@ -18,12 +18,7 @@ public class CraftSniffer extends CraftAnimals implements Sniffer {
 
     @Override
     public net.minecraft.world.entity.animal.sniffer.Sniffer getHandle() {
-        return (net.minecraft.world.entity.animal.sniffer.Sniffer) super.getHandle();
-    }
-
-    @Override
-    public String toString() {
-        return "CraftSniffer";
+        return (net.minecraft.world.entity.animal.sniffer.Sniffer) this.entity;
     }
 
     @Override
@@ -34,22 +29,21 @@ public class CraftSniffer extends CraftAnimals implements Sniffer {
     @Override
     public void removeExploredLocation(Location location) {
         Preconditions.checkArgument(location != null, "location cannot be null");
-        if (location.getWorld() != getWorld()) {
-            return;
-        }
 
-        BlockPos blockPosition = CraftLocation.toBlockPosition(location);
-        this.getHandle().getBrain().setMemory(MemoryModuleType.SNIFFER_EXPLORED_POSITIONS, this.getHandle().getExploredPositions().filter(blockPositionExplored -> !blockPositionExplored.equals(blockPosition)).collect(Collectors.toList()));
+        BlockPos pos = CraftLocation.toBlockPos(location);
+        net.minecraft.world.level.Level level = location.getWorld() != null ? ((org.bukkit.craftbukkit.CraftWorld) location.getWorld()).getHandle() : this.getHandle().level();
+        net.minecraft.core.GlobalPos globalPos = net.minecraft.core.GlobalPos.of(level.dimension(), pos);
+        this.getHandle().getBrain().setMemory(MemoryModuleType.SNIFFER_EXPLORED_POSITIONS, this.getHandle().getExploredPositions().filter(blockPositionExplored -> !blockPositionExplored.equals(globalPos)).collect(Collectors.toList()));
     }
 
     @Override
     public void addExploredLocation(Location location) {
         Preconditions.checkArgument(location != null, "location cannot be null");
-        if (location.getWorld() != getWorld()) {
+        if (location.getWorld() != this.getWorld()) {
             return;
         }
 
-        this.getHandle().storeExploredPosition(CraftLocation.toBlockPosition(location));
+        this.getHandle().storeExploredPosition(CraftLocation.toBlockPos(location));
     }
 
     @Override

@@ -2,31 +2,42 @@ package org.bukkit.craftbukkit.block.data;
 
 import com.google.common.base.Function;
 import com.google.common.base.Preconditions;
+import com.google.common.collect.ImmutableSet;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import net.minecraft.commands.arguments.blocks.BlockStateParser;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.util.StringRepresentable;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.Attributes;
+import net.minecraft.world.item.enchantment.EnchantmentHelper;
 import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Rotation;
-import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateHolder;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
-import net.minecraft.world.level.block.state.properties.IntegerProperty;
 import net.minecraft.world.level.block.state.properties.Property;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import org.apache.commons.lang3.mutable.MutableDouble;
 import org.bukkit.Color;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.SoundGroup;
 import org.bukkit.block.BlockFace;
-import org.bukkit.block.BlockState;
 import org.bukkit.block.BlockSupport;
 import org.bukkit.block.BlockType;
 import org.bukkit.block.PistonMoveReaction;
@@ -39,157 +50,143 @@ import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.block.CraftBlock;
 import org.bukkit.craftbukkit.block.CraftBlockStates;
 import org.bukkit.craftbukkit.block.CraftBlockSupport;
-import org.bukkit.craftbukkit.block.CraftBlockType;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.inventory.CraftItemType;
 import org.bukkit.craftbukkit.util.CraftLocation;
+import org.bukkit.craftbukkit.util.CraftVoxelShape;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Unmodifiable;
+import org.jspecify.annotations.Nullable;
 
 public class CraftBlockData implements BlockData {
 
-    private net.minecraft.world.level.block.state.BlockState state;
-    private Map<Property<?>, Comparable<?>> parsedStates;
+    private BlockState state;
+    private List<Property.Value<?>> parsedStates;
 
-    protected CraftBlockData() {
-        throw new AssertionError("Template Constructor");
-    }
-
-    protected CraftBlockData(net.minecraft.world.level.block.state.BlockState state) {
+    protected CraftBlockData(BlockState state) {
         this.state = state;
     }
 
     @Override
     public Material getMaterial() {
-        return CraftBlockType.minecraftToBukkit(state.getBlock());
+        return this.state.getBukkitMaterial();
     }
 
-    public net.minecraft.world.level.block.state.BlockState getState() {
-        return state;
-    }
-
-    /**
-     * Get a given BlockStateEnum's value as its Bukkit counterpart.
-     *
-     * @param nms the NMS state to convert
-     * @param <B> the Bukkit type
-     * @param <N> the NMS type
-     * @return the matching Bukkit type
-     */
-    protected <N extends Enum<N> & StringRepresentable, B extends Enum<B>> B get(CraftBlockStateEnum<N, B> nms) {
-        return nms.toBukkit(state.getValue(nms.nms()));
-    }
-
-    /**
-     * Convert all values from the given BlockStateEnum to their appropriate
-     * Bukkit counterpart.
-     *
-     * @param nms the NMS state to get values from
-     * @param <B> the Bukkit type
-     * @param <N> the NMS type
-     * @return an immutable Set of values in their appropriate Bukkit type
-     */
-    @SuppressWarnings("unchecked")
-    protected <N extends Enum<N> & StringRepresentable, B extends Enum<B>> Set<B> getValues(CraftBlockStateEnum<N, B> nms) {
-        return nms.getValues();
-    }
-
-    /**
-     * Set a given {@link BlockStateEnum} with the matching enum from Bukkit.
-     *
-     * @param nms the NMS BlockStateEnum to set
-     * @param bukkit the matching Bukkit Enum
-     * @param <B> the Bukkit type
-     * @param <N> the NMS type
-     */
-    protected <N extends Enum<N> & StringRepresentable, B extends Enum<B>> void set(CraftBlockStateEnum<N, B> nms, B bukkit) {
-        this.parsedStates = null;
-        this.state = this.state.setValue(nms.nms(), nms.toNMS(bukkit));
+    public BlockState getState() {
+        return this.state;
     }
 
     @Override
     public BlockData merge(BlockData data) {
         CraftBlockData craft = (CraftBlockData) data;
-        Preconditions.checkArgument(craft.parsedStates != null, "Data not created via string parsing");
-        Preconditions.checkArgument(this.state.getBlock() == craft.state.getBlock(), "States have different types (got %s, expected %s)", data, this);
+        Preconditions.checkArgument(craft.parsedStates != null, "Block data not created via string parsing");
+        Preconditions.checkArgument(this.state.getBlock() == craft.state.getBlock(), "States have different types (got %s, expected %s)", craft.state.getBlock(), this.state.getBlock());
 
         CraftBlockData clone = (CraftBlockData) this.clone();
         clone.parsedStates = null;
 
-        for (Property parsed : craft.parsedStates.keySet()) {
-            clone.state = clone.state.setValue(parsed, craft.state.getValue(parsed));
+        for (Property.Value<?> parsed : craft.parsedStates) {
+            clone.state = setValue(clone.state, parsed);
         }
 
         return clone;
     }
 
+    private static <T extends Comparable<T>> BlockState setValue(final BlockState state, final Property.Value<T> propertyValue) {
+        return state.setValue(propertyValue.property(), propertyValue.value());
+    }
+
+    private <T extends Comparable<T>> BlockState copyProperty(BlockState source, BlockState target, Property<T> property) {
+        return target.setValue(property, source.getValue(property));
+    }
+
     @Override
     public boolean matches(BlockData data) {
-        if (data == null) {
+        if (!(data instanceof final CraftBlockData craft)) {
             return false;
         }
-        if (!(data instanceof CraftBlockData)) {
-            return false;
-        }
-
-        CraftBlockData craft = (CraftBlockData) data;
         if (this.state.getBlock() != craft.state.getBlock()) {
             return false;
         }
 
         // Fastpath an exact match
-        boolean exactMatch = this.equals(data);
-
-        // If that failed, do a merge and check
-        if (!exactMatch && craft.parsedStates != null) {
-            return this.merge(data).equals(this);
+        if (this.equals(data)) {
+            return true;
         }
 
-        return exactMatch;
+        // If that failed, do a merge and check
+        if (craft.parsedStates != null) {
+            return this.merge(data).equals(this);
+        }
+        return false;
     }
 
-    /**
-     * Get the current value of a given state.
-     *
-     * @param ibs the state to check
-     * @param <T> the type
-     * @return the current value of the given state
-     */
-    protected <T extends Comparable<T>> T get(Property<T> ibs) {
-        // Straight integer or boolean getter
-        return this.state.getValue(ibs);
+    private static final ClassValue<Enum<?>[]> ENUM_VALUES = new ClassValue<>() {
+        @Override
+        protected Enum<?>[] computeValue(final Class<?> klass) {
+            return (Enum<?>[]) klass.getEnumConstants();
+        }
+    };
+
+    public static <B extends Enum<B>> B fromVanilla(Enum<?> internal, Class<B> bukkit) {
+        final Object rawValue;
+        if (internal instanceof Direction direction) {
+            rawValue = CraftBlock.notchToBlockFace(direction);
+        } else {
+            rawValue = ENUM_VALUES.get(bukkit)[internal.ordinal()];
+        }
+        return bukkit.cast(rawValue);
     }
 
-    /**
-     * Set the specified state's value.
-     *
-     * @param ibs the state to set
-     * @param v the new value
-     * @param <T> the state's type
-     * @param <V> the value's type. Must match the state's type.
-     */
-    public <T extends Comparable<T>, V extends T> void set(Property<T> ibs, V v) {
-        // Straight integer or boolean setter
+    public static <M extends Enum<M> & StringRepresentable> M toVanilla(Enum<?> bukkit, Class<M> internalClass) {
+        final Object rawValue;
+        if (bukkit instanceof BlockFace face) {
+            rawValue = CraftBlock.blockFaceToNotch(face);
+        } else {
+            rawValue = ENUM_VALUES.get(internalClass)[bukkit.ordinal()];
+        }
+        return internalClass.cast(rawValue);
+    }
+
+    protected <A extends Enum<A>> A get(EnumProperty<?> property, Class<A> bukkitClass) {
+        return fromVanilla(this.state.getValue(property), bukkitClass);
+    }
+
+    protected <M extends Enum<M> & StringRepresentable, A extends Enum<A>> @Unmodifiable Set<A> getValues(EnumProperty<M> property, Class<A> bukkitClass) {
+        List<M> values = property.getPossibleValues();
+        ImmutableSet.Builder<A> result = ImmutableSet.builderWithExpectedSize(values.size());
+
+        for (M e : values) {
+            result.add(fromVanilla(e, bukkitClass));
+        }
+
+        return result.build();
+    }
+
+    protected <A extends Enum<A>, M extends Enum<M> & StringRepresentable> void set(EnumProperty<M> property, A bukkit) {
         this.parsedStates = null;
-        this.state = this.state.setValue(ibs, v);
+        this.state = this.state.setValue(property, toVanilla(bukkit, property.getValueClass()));
+    }
+
+    // Straight integer or boolean getter
+    protected <T extends Comparable<T>> T get(Property<T> property) {
+        return this.state.getValue(property);
+    }
+
+    // Straight integer or boolean setter
+    public <T extends Comparable<T>, V extends T> void set(Property<T> property, V value) {
+        this.parsedStates = null;
+        this.state = this.state.setValue(property, value);
     }
 
     @Override
     public String getAsString() {
-        StringBuilder stateString = new StringBuilder(BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString());
-
-        if (!state.isSingletonState()) {
-            stateString.append('[');
-            stateString.append(state.getValues().map(Property.Value::toString).collect(Collectors.joining(",")));
-            stateString.append(']');
-        }
-
-        return stateString.toString();
+        return this.toString(this.state.getValues(), this.state.isSingletonState());
     }
 
     @Override
     public String getAsString(boolean hideUnspecified) {
-        return (hideUnspecified && parsedStates != null) ? toString(parsedStates) : getAsString();
+        return (hideUnspecified && this.parsedStates != null) ? this.toString(this.parsedStates.stream(), this.parsedStates.isEmpty()) : this.getAsString();
     }
 
     @Override
@@ -203,147 +200,52 @@ public class CraftBlockData implements BlockData {
 
     @Override
     public String toString() {
-        return "CraftBlockData{" + getAsString() + "}";
+        return "CraftBlockData{" + this.getAsString() + "}";
     }
 
-    // Mimicked from BlockDataAbstract#toString()
-    public String toString(Map<Property<?>, Comparable<?>> states) {
-        StringBuilder stateString = new StringBuilder(BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString());
-
-        if (!states.isEmpty()) {
+    // Mimicked from StateHolder#toString() prefixed by just the key instead of Block{key}
+    public String toString(Stream<Property.Value<?>> states, boolean singleton) {
+        StringBuilder stateString = new StringBuilder(BuiltInRegistries.BLOCK.getKey(this.state.getBlock()).toString());
+        if (!singleton) {
             stateString.append('[');
-            stateString.append(states.entrySet().stream().map((state) -> new Property.Value(state.getKey(), state.getValue()).toString()).collect(Collectors.joining(",")));
+            stateString.append(states.map(Property.Value::toString).collect(Collectors.joining(",")));
             stateString.append(']');
         }
-
         return stateString.toString();
     }
 
     public Map<String, String> toStates(boolean hideUnspecified) {
-        return (hideUnspecified && parsedStates != null) ? toStates(parsedStates) : toStates(state.getValues());
-    }
-
-    private static Map<String, String> toStates(Map<Property<?>, Comparable<?>> states) {
-        Map<String, String> compound = new HashMap<>();
-
-        for (Map.Entry<Property<?>, Comparable<?>> entry : states.entrySet()) {
-            Property property = (Property) entry.getKey();
-
-            compound.put(property.getName(), property.getName(entry.getValue()));
+        Map<String, String> serializedStates = new HashMap<>();
+        if (hideUnspecified && this.parsedStates != null) {
+            this.parsedStates.forEach(state -> serializedStates.put(state.property().getName(), state.valueName()));
+        } else {
+            this.state.getValues().forEach(state -> serializedStates.put(state.property().getName(), state.valueName()));
         }
-
-        return compound;
+        return serializedStates;
     }
 
-    private static Map<String, String> toStates(Stream<Property.Value<?>> states) {
-        Map<String, String> compound = new HashMap<>();
-
-        states.forEach((entry) -> {
-            Property property = (Property) entry.property();
-
-            compound.put(property.getName(), property.getName(entry.value()));
-        });
-
-        return compound;
-    }
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof CraftBlockData && state.equals(((CraftBlockData) obj).state);
+        return obj instanceof CraftBlockData && this.state.equals(((CraftBlockData) obj).state);
     }
 
     @Override
     public int hashCode() {
-        return state.hashCode();
+        return this.state.hashCode();
     }
 
-    protected static BooleanProperty getBoolean(String name) {
-        throw new AssertionError("Template Method");
-    }
+    public static final BlockFace[] ROTATION_CYCLE = {
+        BlockFace.SOUTH, BlockFace.SOUTH_SOUTH_WEST, BlockFace.SOUTH_WEST, BlockFace.WEST_SOUTH_WEST,
+        BlockFace.WEST, BlockFace.WEST_NORTH_WEST, BlockFace.NORTH_WEST, BlockFace.NORTH_NORTH_WEST,
+        BlockFace.NORTH, BlockFace.NORTH_NORTH_EAST, BlockFace.NORTH_EAST, BlockFace.EAST_NORTH_EAST,
+        BlockFace.EAST, BlockFace.EAST_SOUTH_EAST, BlockFace.SOUTH_EAST, BlockFace.SOUTH_SOUTH_EAST
+    };
 
-    protected static BooleanProperty getBoolean(String name, boolean optional) {
-        throw new AssertionError("Template Method");
-    }
-
-    protected static <B extends Enum<B>> CraftBlockStateEnum<?, B> getEnum(String name, Class<? extends Enum<B>> bukkit) {
-        throw new AssertionError("Template Method");
-    }
-
-    protected static IntegerProperty getInteger(String name) {
-        throw new AssertionError("Template Method");
-    }
-
-    protected static BooleanProperty getBoolean(Class<? extends Block> block, String name) {
-        return (BooleanProperty) getState(block, name, false);
-    }
-
-    protected static BooleanProperty getBoolean(Class<? extends Block> block, String name, boolean optional) {
-        return (BooleanProperty) getState(block, name, optional);
-    }
-
-    protected static <B extends Enum<B>> CraftBlockStateEnum<?, B> getEnum(Class<? extends Block> block, String name, Class<B> bukkit) {
-        return new CraftBlockStateEnum<>((EnumProperty<?>) getState(block, name, false), bukkit);
-    }
-
-    protected static IntegerProperty getInteger(Class<? extends Block> block, String name) {
-        return (IntegerProperty) getState(block, name, false);
-    }
-
-    /**
-     * Get a specified {@link IBlockState} from a given block's class with a
-     * given name
-     *
-     * @param block the class to retrieve the state from
-     * @param name the name of the state to retrieve
-     * @param optional if the state can be null
-     * @return the specified state or null
-     * @throws IllegalStateException if the state is null and {@code optional}
-     * is false.
-     */
-    private static Property<?> getState(Class<? extends Block> block, String name, boolean optional) {
-        Property<?> state = null;
-
-        for (Block instance : BuiltInRegistries.BLOCK) {
-            if (instance.getClass() == block) {
-                if (state == null) {
-                    state = instance.getStateDefinition().getProperty(name);
-                } else {
-                    Property<?> newState = instance.getStateDefinition().getProperty(name);
-
-                    Preconditions.checkState(state == newState, "State mistmatch %s,%s", state, newState);
-                }
-            }
-        }
-
-        Preconditions.checkState(optional || state != null, "Null state for %s,%s", block, name);
-
-        return state;
-    }
-
-    /**
-     * Get the minimum value allowed by the BlockStateInteger.
-     *
-     * @param state the state to check
-     * @return the minimum value allowed
-     */
-    protected static int getMin(IntegerProperty state) {
-        return state.min;
-    }
-
-    /**
-     * Get the maximum value allowed by the BlockStateInteger.
-     *
-     * @param state the state to check
-     * @return the maximum value allowed
-     */
-    protected static int getMax(IntegerProperty state) {
-        return state.max;
-    }
-
-    //
-    private static final Map<Class<? extends Block>, Function<net.minecraft.world.level.block.state.BlockState, CraftBlockData>> MAP = new HashMap<>();
+    private static final Map<Class<? extends Block>, Function<BlockState, CraftBlockData>> INSTANCE_CREATOR = new HashMap<>();
 
     static {
         //<editor-fold desc="CraftBlockData Registration" defaultstate="collapsed">
+        // Start generate - CraftBlockData#INSTANCE_CREATOR
         register(net.minecraft.world.level.block.AmethystClusterBlock.class, org.bukkit.craftbukkit.block.impl.CraftAmethystCluster::new);
         register(net.minecraft.world.level.block.AnvilBlock.class, org.bukkit.craftbukkit.block.impl.CraftAnvil::new);
         register(net.minecraft.world.level.block.AttachedStemBlock.class, org.bukkit.craftbukkit.block.impl.CraftAttachedStem::new);
@@ -382,7 +284,7 @@ public class CraftBlockData implements BlockData {
         register(net.minecraft.world.level.block.ChorusFlowerBlock.class, org.bukkit.craftbukkit.block.impl.CraftChorusFlower::new);
         register(net.minecraft.world.level.block.ChorusPlantBlock.class, org.bukkit.craftbukkit.block.impl.CraftChorusPlant::new);
         register(net.minecraft.world.level.block.CocoaBlock.class, org.bukkit.craftbukkit.block.impl.CraftCocoa::new);
-        register(net.minecraft.world.level.block.CommandBlock.class, org.bukkit.craftbukkit.block.impl.CraftCommand::new);
+        register(net.minecraft.world.level.block.CommandBlock.class, org.bukkit.craftbukkit.block.impl.CraftCommandBlock::new);
         register(net.minecraft.world.level.block.ComparatorBlock.class, org.bukkit.craftbukkit.block.impl.CraftComparator::new);
         register(net.minecraft.world.level.block.ComposterBlock.class, org.bukkit.craftbukkit.block.impl.CraftComposter::new);
         register(net.minecraft.world.level.block.ConduitBlock.class, org.bukkit.craftbukkit.block.impl.CraftConduit::new);
@@ -446,7 +348,7 @@ public class CraftBlockData implements BlockData {
         register(net.minecraft.world.level.block.MyceliumBlock.class, org.bukkit.craftbukkit.block.impl.CraftMycelium::new);
         register(net.minecraft.world.level.block.NetherPortalBlock.class, org.bukkit.craftbukkit.block.impl.CraftNetherPortal::new);
         register(net.minecraft.world.level.block.NetherWartBlock.class, org.bukkit.craftbukkit.block.impl.CraftNetherWart::new);
-        register(net.minecraft.world.level.block.NoteBlock.class, org.bukkit.craftbukkit.block.impl.CraftNote::new);
+        register(net.minecraft.world.level.block.NoteBlock.class, org.bukkit.craftbukkit.block.impl.CraftNoteBlock::new);
         register(net.minecraft.world.level.block.ObserverBlock.class, org.bukkit.craftbukkit.block.impl.CraftObserver::new);
         register(net.minecraft.world.level.block.PiglinWallSkullBlock.class, org.bukkit.craftbukkit.block.impl.CraftPiglinWallSkull::new);
         register(net.minecraft.world.level.block.PitcherCropBlock.class, org.bukkit.craftbukkit.block.impl.CraftPitcherCrop::new);
@@ -487,14 +389,14 @@ public class CraftBlockData implements BlockData {
         register(net.minecraft.world.level.block.StandingSignBlock.class, org.bukkit.craftbukkit.block.impl.CraftStandingSign::new);
         register(net.minecraft.world.level.block.StemBlock.class, org.bukkit.craftbukkit.block.impl.CraftStem::new);
         register(net.minecraft.world.level.block.StonecutterBlock.class, org.bukkit.craftbukkit.block.impl.CraftStonecutter::new);
-        register(net.minecraft.world.level.block.StructureBlock.class, org.bukkit.craftbukkit.block.impl.CraftStructure::new);
+        register(net.minecraft.world.level.block.StructureBlock.class, org.bukkit.craftbukkit.block.impl.CraftStructureBlock::new);
         register(net.minecraft.world.level.block.SugarCaneBlock.class, org.bukkit.craftbukkit.block.impl.CraftSugarCane::new);
         register(net.minecraft.world.level.block.SulfurSpikeBlock.class, org.bukkit.craftbukkit.block.impl.CraftSulfurSpike::new);
         register(net.minecraft.world.level.block.SweetBerryBushBlock.class, org.bukkit.craftbukkit.block.impl.CraftSweetBerryBush::new);
         register(net.minecraft.world.level.block.TallFlowerBlock.class, org.bukkit.craftbukkit.block.impl.CraftTallFlower::new);
         register(net.minecraft.world.level.block.TallSeagrassBlock.class, org.bukkit.craftbukkit.block.impl.CraftTallSeagrass::new);
         register(net.minecraft.world.level.block.TargetBlock.class, org.bukkit.craftbukkit.block.impl.CraftTarget::new);
-        register(net.minecraft.world.level.block.TestBlock.class, org.bukkit.craftbukkit.block.impl.CraftTest::new);
+        register(net.minecraft.world.level.block.TestBlock.class, org.bukkit.craftbukkit.block.impl.CraftTestBlock::new);
         register(net.minecraft.world.level.block.TintedParticleLeavesBlock.class, org.bukkit.craftbukkit.block.impl.CraftTintedParticleLeaves::new);
         register(net.minecraft.world.level.block.TntBlock.class, org.bukkit.craftbukkit.block.impl.CraftTnt::new);
         register(net.minecraft.world.level.block.TorchflowerCropBlock.class, org.bukkit.craftbukkit.block.impl.CraftTorchflowerCrop::new);
@@ -534,83 +436,108 @@ public class CraftBlockData implements BlockData {
         register(net.minecraft.world.level.block.piston.MovingPistonBlock.class, org.bukkit.craftbukkit.block.impl.CraftMovingPiston::new);
         register(net.minecraft.world.level.block.piston.PistonBaseBlock.class, org.bukkit.craftbukkit.block.impl.CraftPistonBase::new);
         register(net.minecraft.world.level.block.piston.PistonHeadBlock.class, org.bukkit.craftbukkit.block.impl.CraftPistonHead::new);
+        // End generate - CraftBlockData#INSTANCE_CREATOR
         //</editor-fold>
     }
 
-    private static void register(Class<? extends Block> nms, Function<net.minecraft.world.level.block.state.BlockState, CraftBlockData> bukkit) {
-        Preconditions.checkState(MAP.put(nms, bukkit) == null, "Duplicate mapping %s->%s", nms, bukkit);
+    private static void register(Class<? extends Block> blockClass, Function<BlockState, CraftBlockData> newInstance) {
+        Preconditions.checkState(INSTANCE_CREATOR.put(blockClass, newInstance) == null, "Duplicate mapping %s->%s", blockClass, newInstance);
     }
 
-    public static CraftBlockData newData(BlockType blockType, String data) {
-        net.minecraft.world.level.block.state.BlockState blockData;
-        Block block = blockType == null ? null : ((CraftBlockType<?>) blockType).getHandle();
-        Map<Property<?>, Comparable<?>> parsed = null;
+    private static final Map<String, CraftBlockData> ENCODER_CACHE = new ConcurrentHashMap<>();
 
-        // Data provided, use it
-        if (data != null) {
-            try {
-                // Material provided, force that material in
-                if (block != null) {
-                    data = BuiltInRegistries.BLOCK.getKey(block) + data;
-                }
+    static {
+        // cache all the default states at startup, will not cache ones with the custom states inside of the
+        // brackets in a different order, though
+        reloadCache();
+    }
 
-                StringReader reader = new StringReader(data);
-                BlockStateParser.BlockResult blockresultrg = BlockStateParser.parseForBlock(CraftRegistry.getMinecraftRegistry(Registries.BLOCK), reader, false);
-                Preconditions.checkArgument(!reader.canRead(), "Spurious trailing data: " + data);
+    public static void reloadCache() {
+        ENCODER_CACHE.clear();
+        Block.BLOCK_STATE_REGISTRY.forEach(state -> {
+            CraftBlockData data = state.asBlockData();
+            ENCODER_CACHE.put(data.getAsString(), data);
+        });
+    }
 
-                blockData = blockresultrg.blockState();
-                parsed = blockresultrg.properties();
-            } catch (CommandSyntaxException ex) {
-                throw new IllegalArgumentException("Could not parse data: " + data, ex);
-            }
-        } else {
-            blockData = block.defaultBlockState();
+    public static CraftBlockData fromString(@Nullable BlockType blockType, @Nullable String data) {
+        StringBuilder serializedData = new StringBuilder();
+        if (blockType != null) {
+            serializedData.append(blockType.key().asString());
         }
 
-        CraftBlockData craft = fromData(blockData);
-        craft.parsedStates = parsed;
-        return craft;
+        if (data != null) {
+            serializedData.append(data);
+        }
+
+        CraftBlockData cached = ENCODER_CACHE.computeIfAbsent(serializedData.toString(), CraftBlockData::parseData);
+        return (CraftBlockData) cached.clone();
     }
 
-    public static CraftBlockData fromData(net.minecraft.world.level.block.state.BlockState data) {
-        return MAP.getOrDefault(data.getBlock().getClass(), CraftBlockData::new).apply(data);
+    private static CraftBlockData parseData(String serializedData) {
+        final BlockStateParser.BlockResult result;
+        try {
+            StringReader reader = new StringReader(serializedData);
+            result = BlockStateParser.parseForBlock(CraftRegistry.getMinecraftRegistry(Registries.BLOCK), reader, false);
+            if (reader.canRead()) {
+                throw new IllegalArgumentException("Spurious trailing data: " + reader.getRemaining());
+            }
+        } catch (CommandSyntaxException ex) {
+            throw new IllegalArgumentException("Could not parse data: " + serializedData, ex);
+        }
+
+        CraftBlockData data = result.blockState().asBlockData();
+        List<Property.Value<?>> parsed = new ArrayList<>(result.properties().size());
+        result.properties().forEach((property, value) -> {
+            parsed.add(StateHolder.createValue(property, value));
+        });
+
+        data.parsedStates = parsed;
+        return data;
+    }
+
+    static {
+        // Initialize cached data for all BlockState instances after registration
+        Block.BLOCK_STATE_REGISTRY.forEach(BlockState::asBlockData);
+    }
+
+    public static CraftBlockData createData(BlockState state) {
+        return INSTANCE_CREATOR.getOrDefault(state.getBlock().getClass(), CraftBlockData::new).apply(state);
     }
 
     @Override
     public SoundGroup getSoundGroup() {
-        return CraftSoundGroup.getSoundGroup(state.getSoundType());
+        return CraftSoundGroup.getSoundGroup(this.state.getSoundType());
     }
 
     @Override
     public int getLightEmission() {
-        return state.getLightEmission();
+        return this.state.getLightEmission();
     }
 
     @Override
     public boolean isOccluding() {
-        return state.canOcclude();
+        return this.state.canOcclude();
     }
 
     @Override
     public boolean requiresCorrectToolForDrops() {
-        return state.requiresCorrectToolForDrops();
+        return this.state.requiresCorrectToolForDrops();
     }
 
     @Override
     public boolean isPreferredTool(ItemStack tool) {
         Preconditions.checkArgument(tool != null, "tool must not be null");
-
-        net.minecraft.world.item.ItemStack nms = CraftItemStack.asNMSCopy(tool);
-        return isPreferredTool(state, nms);
+        return isPreferredTool(this.state, CraftItemStack.asNMSCopy(tool));
     }
 
-    public static boolean isPreferredTool(net.minecraft.world.level.block.state.BlockState blockstate, net.minecraft.world.item.ItemStack nmsItem) {
-        return !blockstate.requiresCorrectToolForDrops() || nmsItem.isCorrectToolForDrops(blockstate);
+    public static boolean isPreferredTool(BlockState state, net.minecraft.world.item.ItemStack item) {
+        return !state.requiresCorrectToolForDrops() || item.isCorrectToolForDrops(state);
     }
 
     @Override
     public PistonMoveReaction getPistonMoveReaction() {
-        return PistonMoveReaction.getById(state.getPistonPushReaction().ordinal());
+        return PistonMoveReaction.getById(this.state.getPistonPushReaction().ordinal());
     }
 
     @Override
@@ -618,7 +545,7 @@ public class CraftBlockData implements BlockData {
         Preconditions.checkArgument(block != null, "block must not be null");
 
         CraftBlock craftBlock = (CraftBlock) block;
-        return state.canSurvive(craftBlock.getCraftWorld().getHandle(), craftBlock.getPosition());
+        return this.state.canSurvive(craftBlock.getCraftWorld().getHandle(), craftBlock.getPosition());
     }
 
     @Override
@@ -628,8 +555,8 @@ public class CraftBlockData implements BlockData {
         CraftWorld world = (CraftWorld) location.getWorld();
         Preconditions.checkArgument(world != null, "location must not have a null world");
 
-        BlockPos position = CraftLocation.toBlockPosition(location);
-        return state.canSurvive(world.getHandle(), position);
+        BlockPos position = CraftLocation.toBlockPos(location);
+        return this.state.canSurvive(world.getHandle(), position);
     }
 
     @Override
@@ -637,49 +564,95 @@ public class CraftBlockData implements BlockData {
         Preconditions.checkArgument(face != null, "face must not be null");
         Preconditions.checkArgument(support != null, "support must not be null");
 
-        return state.isFaceSturdy(EmptyBlockGetter.INSTANCE, BlockPos.ZERO, CraftBlock.blockFaceToNotch(face), CraftBlockSupport.toNMS(support));
+        return this.state.isFaceSturdy(EmptyBlockGetter.INSTANCE, BlockPos.ZERO, CraftBlock.blockFaceToNotch(face), CraftBlockSupport.toMinecraft(support));
+    }
+
+    @Override
+    public org.bukkit.util.VoxelShape getCollisionShape(Location location) {
+        Preconditions.checkArgument(location != null, "location must not be null");
+
+        CraftWorld world = (CraftWorld) location.getWorld();
+        Preconditions.checkArgument(world != null, "location must not have a null world");
+
+        BlockPos position = CraftLocation.toBlockPos(location);
+        VoxelShape shape = this.state.getCollisionShape(world.getHandle(), position);
+        return new CraftVoxelShape(shape);
     }
 
     @Override
     public Color getMapColor() {
-        return Color.fromRGB(state.getMapColor(null, null).col);
+        return Color.fromRGB(this.state.getMapColor(null, null).col);
     }
 
     @Override
     public Material getPlacementMaterial() {
-        return CraftItemType.minecraftToBukkit(state.getBlock().asItem());
+        return CraftItemType.minecraftToBukkit(this.state.getBlock().asItem());
     }
 
     @Override
     public void rotate(StructureRotation rotation) {
-        this.state = state.rotate(Rotation.valueOf(rotation.name()));
+        this.state = this.state.rotate(Rotation.valueOf(rotation.name()));
     }
 
     @Override
     public void mirror(Mirror mirror) {
-        this.state = state.mirror(net.minecraft.world.level.block.Mirror.valueOf(mirror.name()));
+        this.state = this.state.mirror(net.minecraft.world.level.block.Mirror.valueOf(mirror.name()));
     }
 
     @Override
     public void copyTo(BlockData blockData) {
         CraftBlockData other = (CraftBlockData) blockData;
-        net.minecraft.world.level.block.state.BlockState nms = other.state;
-        for (Property<?> property : state.getBlock().getStateDefinition().getProperties()) {
-            if (nms.hasProperty(property)) {
-                nms = copyProperty(state, nms, property);
+        BlockState otherState = other.state;
+        for (Property<?> property : this.state.getBlock().getStateDefinition().getProperties()) {
+            if (otherState.hasProperty(property)) {
+                otherState = this.copyProperty(this.state, otherState, property);
             }
         }
 
-        other.state = nms;
+        other.state = otherState;
     }
 
-    private <T extends Comparable<T>> net.minecraft.world.level.block.state.BlockState copyProperty(net.minecraft.world.level.block.state.BlockState source, net.minecraft.world.level.block.state.BlockState target, Property<T> property) {
-        return target.setValue(property, source.getValue(property));
-    }
-
-    @NotNull
     @Override
-    public BlockState createBlockState() {
+    public org.bukkit.block.BlockState createBlockState() {
         return CraftBlockStates.getBlockState(this.state, null);
+    }
+
+    @Override
+    public float getDestroySpeed(final ItemStack item, final boolean considerEnchants) {
+        net.minecraft.world.item.ItemStack itemStack = CraftItemStack.unwrap(item);
+        float speed = itemStack.getDestroySpeed(this.state);
+        if (speed > 1.0F && considerEnchants) {
+            final Holder<Attribute> attribute = Attributes.MINING_EFFICIENCY;
+            // Logic sourced from AttributeInstance#calculateValue
+            final double initialBaseValue = attribute.value().getDefaultValue();
+            final MutableDouble modifiedBaseValue = new MutableDouble(initialBaseValue);
+            final MutableDouble baseValMul = new MutableDouble(1);
+            final MutableDouble totalValMul = new MutableDouble(1);
+
+            EnchantmentHelper.forEachModifier(
+                itemStack, EquipmentSlot.MAINHAND, (_, attributeModifier) -> {
+                    switch (attributeModifier.operation()) {
+                        case ADD_VALUE -> modifiedBaseValue.add(attributeModifier.amount());
+                        case ADD_MULTIPLIED_BASE -> baseValMul.add(attributeModifier.amount());
+                        case ADD_MULTIPLIED_TOTAL -> totalValMul.setValue(totalValMul.doubleValue() * (1.0 + attributeModifier.amount()));
+                    }
+                }
+            );
+
+            final double actualModifier = modifiedBaseValue.doubleValue() * baseValMul.doubleValue() * totalValMul.doubleValue();
+
+            speed += (float) attribute.value().sanitizeValue(actualModifier);
+        }
+        return speed;
+    }
+
+    @Override
+    public boolean isRandomlyTicked() {
+        return this.state.isRandomlyTicking();
+    }
+
+    @Override
+    public boolean isReplaceable() {
+        return this.state.canBeReplaced();
     }
 }

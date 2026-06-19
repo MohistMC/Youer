@@ -16,11 +16,11 @@ public class CraftEntityTag extends CraftTag<net.minecraft.world.entity.EntityTy
 
     @Override
     public boolean isTagged(EntityType entity) {
-        return CraftEntityType.bukkitToMinecraft(entity).builtInRegistryHolder().is(tag);
+        return CraftEntityType.bukkitToMinecraft(entity).builtInRegistryHolder().is(this.tag);
     }
 
     @Override
     public Set<EntityType> getValues() {
-        return getHandle().stream().map(Holder::value).map(CraftEntityType::minecraftToBukkit).collect(Collectors.toUnmodifiableSet());
+        return this.getHandle().stream().map(Holder::value).map(CraftEntityType::minecraftToBukkit).collect(Collectors.toUnmodifiableSet());
     }
 }

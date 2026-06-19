@@ -11,34 +11,28 @@ public class CraftPigZombie extends CraftZombie implements PigZombie {
     }
 
     @Override
+    public ZombifiedPiglin getHandle() {
+        return (ZombifiedPiglin) this.entity;
+    }
+
+    @Override
     public int getAnger() {
-        int remainingAnger = (int) (getHandle().getPersistentAngerEndTime() - getWorld().getGameTime());
-        return (remainingAnger > 0) ? remainingAnger : 0;
+        return (int) Math.max(this.getHandle().getPersistentAngerEndTime() - this.getHandle().level().getGameTime(), 0);
     }
 
     @Override
     public void setAnger(int level) {
-        getHandle().setTimeToRemainAngry(level);
+        this.getHandle().setTimeToRemainAngry(level);
     }
 
     @Override
     public void setAngry(boolean angry) {
-        setAnger(angry ? 400 : 0);
+        this.setAnger(angry ? 400 : 0);
     }
 
     @Override
     public boolean isAngry() {
-        return getAnger() > 0;
-    }
-
-    @Override
-    public ZombifiedPiglin getHandle() {
-        return (ZombifiedPiglin) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftPigZombie";
+        return this.getAnger() > 0;
     }
 
     @Override

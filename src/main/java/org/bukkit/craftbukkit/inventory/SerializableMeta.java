@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Optional;
 import org.bukkit.block.Banner;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.SerializableAs;
@@ -68,11 +69,11 @@ public final class SerializableMeta implements ConfigurationSerializable {
     public static ItemMeta deserialize(Map<String, Object> map) throws Throwable {
         Preconditions.checkArgument(map != null, "Cannot deserialize null map");
 
-        String type = getString(map, TYPE_FIELD, false);
-        Constructor<? extends CraftMetaItem> constructor = constructorMap.get(type);
+        String type = SerializableMeta.getString(map, SerializableMeta.TYPE_FIELD, false);
+        Constructor<? extends CraftMetaItem> constructor = SerializableMeta.constructorMap.get(type);
 
         if (constructor == null) {
-            throw new IllegalArgumentException(type + " is not a valid " + TYPE_FIELD);
+            throw new IllegalArgumentException(type + " is not a valid " + SerializableMeta.TYPE_FIELD);
         }
 
         try {
@@ -98,16 +99,16 @@ public final class SerializableMeta implements ConfigurationSerializable {
     }
 
     public static String getString(Map<?, ?> map, Object field, boolean nullable) {
-        return getObject(String.class, map, field, nullable);
+        return SerializableMeta.getObject(String.class, map, field, nullable);
     }
 
     public static boolean getBoolean(Map<?, ?> map, Object field) {
-        Boolean value = getObject(Boolean.class, map, field, true);
+        Boolean value = SerializableMeta.getObject(Boolean.class, map, field, true);
         return value != null && value;
     }
 
     public static int getInteger(Map<?, ?> map, Object field) {
-        Integer value = getObject(Integer.class, map, field, true);
+        Integer value = SerializableMeta.getObject(Integer.class, map, field, true);
         return value != null ? value : 0;
     }
 
@@ -137,6 +138,10 @@ public final class SerializableMeta implements ConfigurationSerializable {
             return null;
         }
         throw new IllegalArgumentException(field + "(" + object + ") is not a valid " + clazz);
+    }
+
+    public static <T> java.util.Optional<T> getObjectOptionally(Class<T> clazz, Map<?, ?> map, Object field, boolean nullable) {
+        return Optional.ofNullable(getObject(clazz, map, field, nullable));
     }
 
     public static <T> List<T> getList(Class<T> clazz, Map<?, ?> map, Object field) {

@@ -11,11 +11,6 @@ public class CraftMagmaCube extends CraftAbstractCubeMob implements MagmaCube, C
 
     @Override
     public net.minecraft.world.entity.monster.cubemob.MagmaCube getHandle() {
-        return (net.minecraft.world.entity.monster.cubemob.MagmaCube) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftMagmaCube";
+        return (net.minecraft.world.entity.monster.cubemob.MagmaCube) this.entity;
     }
 }

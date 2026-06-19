@@ -15,8 +15,13 @@ public class CraftStrider extends CraftAnimals implements Strider {
     }
 
     @Override
+    public net.minecraft.world.entity.monster.Strider getHandle() {
+        return (net.minecraft.world.entity.monster.Strider) this.entity;
+    }
+
+    @Override
     public boolean isShivering() {
-        return getHandle().isSuffocating();
+        return this.getHandle().isSuffocating();
     }
 
     @Override
@@ -26,39 +31,39 @@ public class CraftStrider extends CraftAnimals implements Strider {
 
     @Override
     public boolean hasSaddle() {
-        return getHandle().isSaddled();
+        return this.getHandle().isSaddled();
     }
 
     @Override
     public void setSaddle(boolean saddled) {
-        getHandle().setItemSlot(EquipmentSlot.SADDLE, (saddled) ? new ItemStack(Items.SADDLE) : ItemStack.EMPTY);
+        this.getHandle().setItemSlot(EquipmentSlot.SADDLE, saddled ? new ItemStack(Items.SADDLE) : ItemStack.EMPTY);
     }
 
     @Override
     public int getBoostTicks() {
-        return getHandle().steering.boosting ? getHandle().steering.boostTimeTotal() : 0;
+        return this.getHandle().steering.boosting ? this.getHandle().steering.boostTimeTotal() : 0;
     }
 
     @Override
     public void setBoostTicks(int ticks) {
         Preconditions.checkArgument(ticks >= 0, "ticks must be >= 0");
 
-        getHandle().steering.setBoostTicks(ticks);
+        this.getHandle().steering.boost(ticks);
     }
 
     @Override
     public int getCurrentBoostTicks() {
-        return getHandle().steering.boosting ? getHandle().steering.boostTime : 0;
+        return this.getHandle().steering.boosting ? this.getHandle().steering.boostTime : 0;
     }
 
     @Override
     public void setCurrentBoostTicks(int ticks) {
-        if (!getHandle().steering.boosting) {
+        if (!this.getHandle().steering.boosting) {
             return;
         }
 
-        int max = getHandle().steering.boostTimeTotal();
-        Preconditions.checkArgument(ticks >= 0 && ticks <= max, "boost ticks must not exceed 0 or %d (inclusive)", max);
+        int max = this.getHandle().steering.boostTimeTotal();
+        Preconditions.checkArgument(ticks >= 0 && ticks <= max, "boost ticks must not exceed 0 or %s (inclusive)", max);
 
         this.getHandle().steering.boostTime = ticks;
     }
@@ -66,15 +71,5 @@ public class CraftStrider extends CraftAnimals implements Strider {
     @Override
     public Material getSteerMaterial() {
         return Material.WARPED_FUNGUS_ON_A_STICK;
-    }
-
-    @Override
-    public net.minecraft.world.entity.monster.Strider getHandle() {
-        return (net.minecraft.world.entity.monster.Strider) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftStrider";
     }
 }

@@ -6,72 +6,61 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import java.util.function.Function;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
 import org.bukkit.Location;
 import org.bukkit.Raid;
-import org.bukkit.Raid.RaidStatus;
+import org.bukkit.boss.BossBar;
+import org.bukkit.craftbukkit.boss.CraftBossBar;
 import org.bukkit.craftbukkit.util.CraftLocation;
 import org.bukkit.entity.Raider;
+import org.bukkit.persistence.PersistentDataContainer;
 
 public final class CraftRaid implements Raid {
 
     private final net.minecraft.world.entity.raid.Raid handle;
-    private final Level world;
+    private final Level level;
 
     public CraftRaid(net.minecraft.world.entity.raid.Raid handle, Level level) {
         this.handle = handle;
-        this.world = level;
-    }
-
-    @Override
-    public void stopRaid(boolean removeSpawnedRaiders) {
-        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(handle, world, org.bukkit.event.raid.RaidStopEvent.Reason.PLUGIN);
-        handle.stop();
-
-        if (removeSpawnedRaiders) {
-            for (Raider raider : getRaiders()) {
-                raider.remove();
-            }
-        }
+        this.level = level;
     }
 
     @Override
     public boolean isStarted() {
-        return handle.isStarted();
+        return this.handle.isStarted();
     }
 
     @Override
     public long getActiveTicks() {
-        return handle.ticksActive;
+        return this.handle.ticksActive;
     }
 
     @Override
     public int getBadOmenLevel() {
-        return handle.raidOmenLevel;
+        return this.handle.getRaidOmenLevel();
     }
 
     @Override
     public void setBadOmenLevel(int badOmenLevel) {
-        int max = handle.getMaxRaidOmenLevel();
+        int max = this.handle.getMaxRaidOmenLevel();
         Preconditions.checkArgument(0 <= badOmenLevel && badOmenLevel <= max, "Bad Omen level must be between 0 and %s", max);
-        handle.raidOmenLevel = badOmenLevel;
+        this.handle.setRaidOmenLevel(badOmenLevel);
     }
 
     @Override
     public Location getLocation() {
-        BlockPos pos = handle.getCenter();
-        return CraftLocation.toBukkit(pos, world.getWorld());
+        BlockPos pos = this.handle.getCenter();
+        return CraftLocation.toBukkit(pos, this.level);
     }
 
     @Override
     public RaidStatus getStatus() {
-        if (handle.isStopped()) {
+        if (this.handle.isStopped()) {
             return RaidStatus.STOPPED;
-        } else if (handle.isVictory()) {
+        } else if (this.handle.isVictory()) {
             return RaidStatus.VICTORY;
-        } else if (handle.isLoss()) {
+        } else if (this.handle.isLoss()) {
             return RaidStatus.LOSS;
         } else {
             return RaidStatus.ONGOING;
@@ -80,46 +69,71 @@ public final class CraftRaid implements Raid {
 
     @Override
     public int getSpawnedGroups() {
-        return handle.getGroupsSpawned();
+        return this.handle.getGroupsSpawned();
     }
 
     @Override
     public int getTotalGroups() {
-        return handle.numGroups + (handle.raidOmenLevel > 1 ? 1 : 0);
+        return this.handle.numGroups + (this.handle.getRaidOmenLevel() > 1 ? 1 : 0);
     }
 
     @Override
     public int getTotalWaves() {
-        return handle.numGroups;
+        return this.handle.numGroups;
     }
 
     @Override
     public void setTotalWaves(int waves) {
         Preconditions.checkArgument(waves > 0, "Total waves must be greater than 0");
-        handle.numGroups = waves;
+        Preconditions.checkArgument(waves <= 7, "Total waves must not be greater than 7");
+        Preconditions.checkArgument(waves >= this.getSpawnedGroups(), "Total waves must be greater than or equal to the current spawned groups (%s)", this.getSpawnedGroups());
+        this.handle.numGroups = waves;
     }
 
     @Override
     public float getTotalHealth() {
-        return handle.getHealthOfLivingRaiders();
+        return this.handle.getHealthOfLivingRaiders();
     }
 
     @Override
     public Set<UUID> getHeroes() {
-        return Collections.unmodifiableSet(handle.heroesOfTheVillage);
+        return Collections.unmodifiableSet(this.handle.heroesOfTheVillage);
     }
 
     @Override
     public List<Raider> getRaiders() {
-        return handle.getRaiders().stream().map(new Function<net.minecraft.world.entity.raid.Raider, Raider>() {
-            @Override
-            public Raider apply(net.minecraft.world.entity.raid.Raider entityRaider) {
-                return (Raider) entityRaider.getBukkitEntity();
-            }
-        }).collect(ImmutableList.toImmutableList());
+        return this.handle.getRaiders().stream().map(entityRaider -> (Raider) entityRaider.getBukkitEntity()).collect(ImmutableList.toImmutableList());
     }
 
     public net.minecraft.world.entity.raid.Raid getHandle() {
-        return handle;
+        return this.handle;
+    }
+
+    @Override
+    public int getId() {
+        return this.handle.idOrNegativeOne;
+    }
+
+    @Override
+    public BossBar getBossBar() {
+        return new CraftBossBar(this.handle.raidEvent);
+    }
+
+    @Override
+    public PersistentDataContainer getPersistentDataContainer() {
+        return this.handle.persistentDataContainer;
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || this.getClass() != o.getClass()) return false;
+        final CraftRaid craftRaid = (CraftRaid) o;
+        return this.handle.equals(craftRaid.handle);
+    }
+
+    @Override
+    public int hashCode() {
+        return this.handle.hashCode();
     }
 }

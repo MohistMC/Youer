@@ -11,21 +11,16 @@ public class CraftVindicator extends CraftIllager implements Vindicator {
 
     @Override
     public net.minecraft.world.entity.monster.illager.Vindicator getHandle() {
-        return (net.minecraft.world.entity.monster.illager.Vindicator) super.getHandle();
-    }
-
-    @Override
-    public String toString() {
-        return "CraftVindicator";
+        return (net.minecraft.world.entity.monster.illager.Vindicator) this.entity;
     }
 
     @Override
     public boolean isJohnny() {
-        return getHandle().isJohnny;
+        return this.getHandle().isJohnny;
     }
 
     @Override
     public void setJohnny(boolean johnny) {
-        getHandle().isJohnny = johnny;
+        this.getHandle().isJohnny = johnny;
     }
 }

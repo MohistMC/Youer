@@ -1,84 +1,81 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import net.minecraft.util.Mth;
 import net.minecraft.world.entity.vehicle.minecart.MinecartTNT;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.minecart.ExplosiveMinecart;
 
-public final class CraftMinecartTNT extends CraftMinecart implements ExplosiveMinecart {
+public class CraftMinecartTNT extends CraftMinecart implements ExplosiveMinecart {
+
     public CraftMinecartTNT(CraftServer server, MinecartTNT entity) {
         super(server, entity);
     }
 
     @Override
+    public MinecartTNT getHandle() {
+        return (MinecartTNT) this.entity;
+    }
+
+    @Override
     public float getYield() {
-        return getHandle().explosionPowerBase;
+        return this.getHandle().explosionPowerBase;
     }
 
     @Override
     public boolean isIncendiary() {
-        return getHandle().isIncendiary;
+        return this.getHandle().isIncendiary;
     }
 
     @Override
     public void setIsIncendiary(boolean isIncendiary) {
-        getHandle().isIncendiary = isIncendiary;
+        this.getHandle().isIncendiary = isIncendiary;
     }
 
     @Override
     public void setYield(float yield) {
-        getHandle().explosionPowerBase = yield;
+        this.getHandle().explosionPowerBase = yield;
     }
 
     @Override
     public float getExplosionSpeedFactor() {
-        return getHandle().explosionSpeedFactor;
+        return this.getHandle().explosionSpeedFactor;
     }
 
     @Override
     public void setExplosionSpeedFactor(float factor) {
-        getHandle().explosionSpeedFactor = factor;
+        this.getHandle().explosionSpeedFactor = factor;
     }
 
     @Override
     public void setFuseTicks(int ticks) {
-        getHandle().fuse = ticks;
+        this.getHandle().fuse = ticks;
     }
 
     @Override
     public int getFuseTicks() {
-        return getHandle().getFuse();
+        return this.getHandle().getFuse();
     }
 
     @Override
     public void ignite() {
-        getHandle().primeFuse(null);
+        this.getHandle().primeFuse(null);
     }
 
     @Override
     public boolean isIgnited() {
-        return getHandle().isPrimed();
+        return this.getHandle().isPrimed();
     }
 
     @Override
     public void explode() {
-        getHandle().explode(null, getHandle().getDeltaMovement().horizontalDistanceSqr());
+        this.getHandle().explode(null, this.getHandle().getDeltaMovement().horizontalDistanceSqr());
     }
 
     @Override
     public void explode(double power) {
-        Preconditions.checkArgument(0 <= power && power <= 5, "Power must be in range [0, 5] (got %s)", power);
+        Preconditions.checkArgument(0 <= power && power <= Mth.square(5), "Power must be in range [0, 25] (got %s)", power);
 
-        getHandle().explode(null, power);
-    }
-
-    @Override
-    public MinecartTNT getHandle() {
-        return (MinecartTNT) super.getHandle();
-    }
-
-    @Override
-    public String toString() {
-        return "CraftMinecartTNT";
+        this.getHandle().explode(null, power);
     }
 }

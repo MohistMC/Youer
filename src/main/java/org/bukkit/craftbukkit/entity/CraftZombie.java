@@ -14,27 +14,22 @@ public class CraftZombie extends CraftMonster implements Zombie {
 
     @Override
     public net.minecraft.world.entity.monster.zombie.Zombie getHandle() {
-        return (net.minecraft.world.entity.monster.zombie.Zombie) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftZombie";
+        return (net.minecraft.world.entity.monster.zombie.Zombie) this.entity;
     }
 
     @Override
     public boolean isBaby() {
-        return getHandle().isBaby();
+        return this.getHandle().isBaby();
     }
 
     @Override
-    public void setBaby(boolean flag) {
-        getHandle().setBaby(flag);
+    public void setBaby(boolean baby) {
+        CraftAgeable.setBaby(this.getHandle(), baby);
     }
 
     @Override
     public boolean isVillager() {
-        return getHandle() instanceof ZombieVillager;
+        return this.getHandle() instanceof ZombieVillager;
     }
 
     @Override
@@ -54,38 +49,72 @@ public class CraftZombie extends CraftMonster implements Zombie {
 
     @Override
     public boolean isConverting() {
-        return getHandle().isUnderWaterConverting();
+        return this.getHandle().isUnderWaterConverting();
     }
 
     @Override
     public int getConversionTime() {
-        Preconditions.checkState(isConverting(), "Entity not converting");
+        Preconditions.checkState(this.isConverting(), "Entity not converting");
 
-        return getHandle().conversionTime;
+        return this.getHandle().conversionTime;
     }
 
     @Override
     public void setConversionTime(int time) {
         if (time < 0) {
-            getHandle().conversionTime = -1;
-            getHandle().getEntityData().set(net.minecraft.world.entity.monster.zombie.Zombie.DATA_DROWNED_CONVERSION_ID, false);
+            this.getHandle().stopDrowning();
         } else {
-            getHandle().startUnderWaterConversion(time);
+            this.getHandle().startUnderWaterConversion(time);
         }
     }
 
     @Override
     public int getAge() {
-        return getHandle().isBaby() ? -1 : 0;
+        return this.getHandle().isBaby() ? -1 : 0;
     }
 
     @Override
-    public void setAge(int i) {
-        getHandle().setBaby(i < 0);
+    public void setAge(int age) {
+        this.getHandle().setBaby(age < 0);
     }
 
     @Override
-    public void setAgeLock(boolean b) {
+    public void setAgeLock(boolean lock) {
+    }
+
+    @Override
+    public boolean isDrowning() {
+        return this.getHandle().isUnderWaterConverting();
+    }
+
+    @Override
+    public void startDrowning(int time) {
+        this.getHandle().startUnderWaterConversion(time);
+    }
+
+    @Override
+    public void stopDrowning() {
+        this.getHandle().stopDrowning();
+    }
+
+    @Override
+    public boolean shouldBurnInDay() {
+        return this.getHandle().isSunSensitive();
+    }
+
+    @Override
+    public boolean isArmsRaised() {
+        return this.getHandle().isAggressive();
+    }
+
+    @Override
+    public void setArmsRaised(final boolean raised) {
+        this.getHandle().setAggressive(raised);
+    }
+
+    @Override
+    public void setShouldBurnInDay(boolean shouldBurnInDay) {
+        this.getHandle().setShouldBurnInDay(shouldBurnInDay);
     }
 
     @Override
@@ -95,17 +124,17 @@ public class CraftZombie extends CraftMonster implements Zombie {
 
     @Override
     public void setBaby() {
-        getHandle().setBaby(true);
+        CraftAgeable.setBaby(this.getHandle(), true);
     }
 
     @Override
     public void setAdult() {
-        getHandle().setBaby(false);
+        CraftAgeable.setBaby(this.getHandle(), false);
     }
 
     @Override
     public boolean isAdult() {
-        return !getHandle().isBaby();
+        return !this.getHandle().isBaby();
     }
 
     @Override
@@ -114,16 +143,16 @@ public class CraftZombie extends CraftMonster implements Zombie {
     }
 
     @Override
-    public void setBreed(boolean b) {
+    public void setBreed(boolean breed) {
     }
 
     @Override
     public boolean canBreakDoors() {
-        return getHandle().canBreakDoors();
+        return this.getHandle().canBreakDoors();
     }
 
     @Override
     public void setCanBreakDoors(boolean flag) {
-        getHandle().setCanBreakDoors(flag);
+        this.getHandle().setCanBreakDoors(flag);
     }
 }

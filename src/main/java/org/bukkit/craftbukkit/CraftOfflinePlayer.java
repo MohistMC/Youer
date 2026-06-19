@@ -1,26 +1,20 @@
 package org.bukkit.craftbukkit;
 
-import com.mojang.serialization.Codec;
 import java.io.File;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Date;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 import net.minecraft.core.GlobalPos;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.server.players.NameAndId;
 import net.minecraft.server.players.UserWhiteListEntry;
 import net.minecraft.stats.ServerStatsCounter;
-import net.minecraft.util.ProblemReporter;
-import net.minecraft.world.level.storage.LevelData;
 import net.minecraft.world.level.storage.PlayerDataStorage;
-import net.minecraft.world.level.storage.TagValueInput;
-import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.phys.Vec2;
 import net.minecraft.world.phys.Vec3;
 import org.bukkit.BanEntry;
@@ -31,52 +25,52 @@ import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.Server;
 import org.bukkit.Statistic;
+import org.bukkit.World;
 import org.bukkit.ban.ProfileBanList;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.bukkit.configuration.serialization.SerializableAs;
-import org.bukkit.craftbukkit.entity.memory.CraftMemoryMapper;
-import org.bukkit.craftbukkit.profile.CraftPlayerProfile;
 import org.bukkit.craftbukkit.util.CraftLocation;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.bukkit.metadata.MetadataValue;
-import org.bukkit.plugin.Plugin;
-import org.bukkit.profile.PlayerProfile;
 
 @SerializableAs("Player")
 public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializable {
-    private final NameAndId profile;
+    private final NameAndId nameAndId;
     private final CraftServer server;
     private final PlayerDataStorage storage;
 
-    protected CraftOfflinePlayer(CraftServer server, NameAndId profile) {
+    protected CraftOfflinePlayer(CraftServer server, NameAndId nameAndId) {
         this.server = server;
-        this.profile = profile;
-        this.storage = server.console.playerDataStorage;
-
+        this.nameAndId = nameAndId;
+        this.storage = server.console.getPlayerList().playerIo;
     }
 
     @Override
     public boolean isOnline() {
-        return getPlayer() != null;
+        return this.getPlayer() != null;
+    }
+
+    @Override
+    public boolean isConnected() {
+        return false;
     }
 
     @Override
     public String getName() {
-        Player player = getPlayer();
+        Player player = this.getPlayer();
         if (player != null) {
             return player.getName();
         }
 
         // This might not match lastKnownName but if not it should be more correct
-        if (!profile.name().isEmpty()) {
-            return profile.name();
+        if (!this.nameAndId.name().isEmpty()) {
+            return this.nameAndId.name();
         }
 
-        ValueInput data = getBukkitData();
+        CompoundTag data = this.getBukkitData();
 
         if (data != null) {
-            return data.getStringOr("lastKnownName", null);
+            return data.getString("lastKnownName").orElse(null);
         }
 
         return null;
@@ -84,75 +78,75 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public UUID getUniqueId() {
-        return profile.id();
+        return this.nameAndId.id();
     }
 
     @Override
-    public PlayerProfile getPlayerProfile() {
-        return new CraftPlayerProfile(profile);
+    public com.destroystokyo.paper.profile.PlayerProfile getPlayerProfile() { // Paper
+        return com.destroystokyo.paper.profile.CraftPlayerProfile.asBukkitCopy(this.nameAndId.toUncompletedGameProfile()); // Paper
     }
 
     public Server getServer() {
-        return server;
+        return this.server;
     }
 
     @Override
     public boolean isOp() {
-        return server.getHandle().isOp(profile);
+        return this.server.getHandle().isOp(this.nameAndId);
     }
 
     @Override
     public void setOp(boolean value) {
-        if (value == isOp()) {
+        if (value == this.isOp()) {
             return;
         }
 
         if (value) {
-            server.getHandle().op(profile);
+            this.server.getHandle().op(this.nameAndId);
         } else {
-            server.getHandle().deop(profile);
+            this.server.getHandle().deop(this.nameAndId);
         }
     }
 
     @Override
     public boolean isBanned() {
-        return ((ProfileBanList) server.getBanList(BanList.Type.PROFILE)).isBanned(getPlayerProfile());
+        return ((ProfileBanList) this.server.getBanList(BanList.Type.PROFILE)).isBanned(this.getPlayerProfile());
     }
 
     @Override
-    public BanEntry<PlayerProfile> ban(String reason, Date expires, String source) {
-        return ((ProfileBanList) server.getBanList(BanList.Type.PROFILE)).addBan(getPlayerProfile(), reason, expires, source);
+    public BanEntry<com.destroystokyo.paper.profile.PlayerProfile> ban(String reason, Date expires, String source) { // Paper - fix ban list API
+        return ((ProfileBanList) this.server.getBanList(BanList.Type.PROFILE)).addBan(this.getPlayerProfile(), reason, expires, source);
     }
 
     @Override
-    public BanEntry<PlayerProfile> ban(String reason, Instant expires, String source) {
-        return ((ProfileBanList) server.getBanList(BanList.Type.PROFILE)).addBan(getPlayerProfile(), reason, expires, source);
+    public BanEntry<com.destroystokyo.paper.profile.PlayerProfile> ban(String reason, Instant expires, String source) { // Paper - fix ban list API
+        return ((ProfileBanList) this.server.getBanList(BanList.Type.PROFILE)).addBan(this.getPlayerProfile(), reason, expires, source);
     }
 
     @Override
-    public BanEntry<PlayerProfile> ban(String reason, Duration duration, String source) {
-        return ((ProfileBanList) server.getBanList(BanList.Type.PROFILE)).addBan(getPlayerProfile(), reason, duration, source);
+    public BanEntry<com.destroystokyo.paper.profile.PlayerProfile> ban(String reason, Duration duration, String source) { // Paper - fix ban list API
+        return ((ProfileBanList) this.server.getBanList(BanList.Type.PROFILE)).addBan(this.getPlayerProfile(), reason, duration, source);
     }
 
     public void setBanned(boolean value) {
         if (value) {
-            ((ProfileBanList) server.getBanList(BanList.Type.PROFILE)).addBan(getPlayerProfile(), null, (Date) null, null);
+            ((ProfileBanList) this.server.getBanList(BanList.Type.PROFILE)).addBan(this.getPlayerProfile(), null, (Date) null, null);
         } else {
-            ((ProfileBanList) server.getBanList(BanList.Type.PROFILE)).pardon(getPlayerProfile());
+            ((ProfileBanList) this.server.getBanList(BanList.Type.PROFILE)).pardon(this.getPlayerProfile());
         }
     }
 
     @Override
     public boolean isWhitelisted() {
-        return server.getHandle().getWhiteList().isWhiteListed(profile);
+        return this.server.getHandle().getWhiteList().isWhiteListed(this.nameAndId);
     }
 
     @Override
     public void setWhitelisted(boolean value) {
         if (value) {
-            server.getHandle().getWhiteList().add(new UserWhiteListEntry(profile));
+            this.server.getHandle().getWhiteList().add(new UserWhiteListEntry(this.nameAndId));
         } else {
-            server.getHandle().getWhiteList().remove(profile);
+            this.server.getHandle().getWhiteList().remove(this.nameAndId);
         }
     }
 
@@ -160,7 +154,7 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
     public Map<String, Object> serialize() {
         Map<String, Object> result = new LinkedHashMap<>();
 
-        result.put("UUID", profile.id().toString());
+        result.put("UUID", this.nameAndId.id().toString());
 
         return result;
     }
@@ -176,21 +170,17 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[UUID=" + profile.id() + "]";
+        return this.getClass().getSimpleName() + "[UUID=" + this.nameAndId.id() + "]";
     }
 
     @Override
     public Player getPlayer() {
-        return server.getPlayer(getUniqueId());
+        return this.server.getPlayer(this.getUniqueId());
     }
 
     @Override
     public boolean equals(Object obj) {
         if (!(obj instanceof OfflinePlayer other)) {
-            return false;
-        }
-
-        if ((this.getUniqueId() == null) || (other.getUniqueId() == null)) {
             return false;
         }
 
@@ -200,45 +190,42 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
     @Override
     public int hashCode() {
         int hash = 5;
-        hash = 97 * hash + (this.getUniqueId() != null ? this.getUniqueId().hashCode() : 0);
+
+        hash = 97 * hash + this.getUniqueId().hashCode();
         return hash;
     }
 
-    private ValueInput getData() {
-        return storage.load(profile).map((compoundtag) -> {
-            return TagValueInput.create(ProblemReporter.DISCARDING, server.console.registryAccess(), compoundtag);
-        }).orElse(null);
+    private CompoundTag getData() {
+        // This method does not use the problem reporter
+        return this.storage.load(this.nameAndId).orElse(null);
     }
 
-    private ValueInput getBukkitData() {
-        ValueInput result = getData();
+    private CompoundTag getBukkitData() {
+        CompoundTag result = this.getData();
 
         if (result != null) {
-            result = result.childOrEmpty("bukkit");
+            result = result.getCompound("bukkit").orElse(null);
         }
 
         return result;
     }
 
     private File getDataFile() {
-        return new File(storage.getPlayerDir(), getUniqueId() + ".dat");
+        return new File(this.storage.getPlayerDir(), this.getUniqueId() + ".dat");
     }
 
     @Override
     public long getFirstPlayed() {
-        Player player = getPlayer();
+        Player player = this.getPlayer();
         if (player != null) return player.getFirstPlayed();
 
-        ValueInput data = getBukkitData();
+        CompoundTag data = this.getBukkitData();
 
         if (data != null) {
-            Optional<Long> firstPlayed = data.getLong("firstPlayed");
-            if (firstPlayed.isPresent()) {
-                return firstPlayed.get();
-            } else {
-                File file = getDataFile();
+            return data.getLong("firstPlayed").orElseGet(() -> {
+                File file = this.getDataFile();
                 return file.lastModified();
-            }
+            });
         } else {
             return 0;
         }
@@ -246,19 +233,16 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public long getLastPlayed() {
-        Player player = getPlayer();
+        Player player = this.getPlayer();
         if (player != null) return player.getLastPlayed();
 
-        ValueInput data = getBukkitData();
+        CompoundTag data = this.getBukkitData();
 
         if (data != null) {
-            Optional<Long> lastPlayed = data.getLong("lastPlayed");
-            if (lastPlayed.isPresent()) {
-                return lastPlayed.get();
-            } else {
-                File file = getDataFile();
+            return data.getLong("lastPlayed").orElseGet(() -> {
+                File file = this.getDataFile();
                 return file.lastModified();
-            }
+            });
         } else {
             return 0;
         }
@@ -266,93 +250,150 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public boolean hasPlayedBefore() {
-        return getData() != null;
+        return this.getData() != null;
+    }
+
+    @Override
+    public long getLastLogin() {
+        Player player = this.getPlayer();
+        if (player != null) return player.getLastLogin();
+
+        CompoundTag data = this.getPaperData();
+
+        if (data != null) {
+            return data.getLong("LastLogin").orElseGet(() -> {
+                // if the player file cannot provide accurate data, this is probably the closest we can approximate
+                File file = getDataFile();
+                return file.lastModified();
+            });
+        } else {
+            return 0;
+        }
+    }
+
+    @Override
+    public long getLastSeen() {
+        Player player = this.getPlayer();
+        if (player != null) return player.getLastSeen();
+
+        CompoundTag data = this.getPaperData();
+
+        if (data != null) {
+            return data.getLong("LastSeen").orElseGet(() -> {
+                // if the player file cannot provide accurate data, this is probably the closest we can approximate
+                File file = getDataFile();
+                return file.lastModified();
+            });
+        } else {
+            return 0;
+        }
+    }
+
+    private CompoundTag getPaperData() {
+        CompoundTag result = this.getData();
+
+        if (result != null) {
+            result = result.getCompound("Paper").orElse(null);
+        }
+
+        return result;
+    }
+
+    private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
+    private io.papermc.paper.persistence.@org.checkerframework.checker.nullness.qual.MonotonicNonNull PersistentDataContainerView persistentDataContainerView;
+
+    @Override
+    public io.papermc.paper.persistence.PersistentDataContainerView getPersistentDataContainer() {
+        if (this.persistentDataContainerView == null) {
+            this.persistentDataContainerView = new io.papermc.paper.persistence.PaperPersistentDataContainerView(DATA_TYPE_REGISTRY) {
+
+                private CompoundTag getPersistentTag() {
+                    return net.minecraft.Optionull.map(CraftOfflinePlayer.this.getData(), data -> data.getCompound("BukkitValues").orElse(null));
+                }
+
+                @Override
+                public CompoundTag toTagCompound() {
+                    return java.util.Objects.requireNonNullElseGet(this.getPersistentTag(), CompoundTag::new);
+                }
+
+                @Override
+                public net.minecraft.nbt.Tag getTag(String key) {
+                    return net.minecraft.Optionull.map(this.getPersistentTag(), tag -> tag.get(key));
+                }
+
+                @Override
+                public int getSize() {
+                    return this.getPersistentTag().size();
+                }
+            };
+        }
+        return this.persistentDataContainerView;
     }
 
     @Override
     public Location getLastDeathLocation() {
-        ValueInput data = getData();
+        CompoundTag data = this.getData();
         if (data == null) {
             return null;
         }
 
-        return data.read("LastDeathLocation", GlobalPos.CODEC).map(CraftMemoryMapper::fromNms).orElse(null);
+        return data.read("LastDeathLocation", GlobalPos.CODEC).map(CraftLocation::fromGlobalPos).orElse(null);
     }
 
     @Override
     public Location getLocation() {
-        ValueInput data = getData();
+        CompoundTag data = this.getData();
         if (data == null) {
             return null;
         }
-        Vec3 position = data.read("Pos", Vec3.CODEC).orElse(null);
-        Vec2 rotation = data.read("Rotation", Vec2.CODEC).orElse(null);
-        if (position != null && rotation != null) {
-            UUID uuid = new UUID(data.getLongOr("WorldUUIDMost", 0), data.getLongOr("WorldUUIDLeast", 0));
 
-            return CraftLocation.toBukkit(position, server.getWorld(uuid), rotation.x, rotation.y);
+        Vec3 pos = data.read("Pos", Vec3.CODEC).orElse(null);
+        Vec2 rot = data.read("Rotation", Vec2.CODEC).orElse(null);
+        if (pos != null && rot != null) {
+            Long msb = data.getLong("WorldUUIDMost").orElse(null);
+            Long lsb = data.getLong("WorldUUIDLeast").orElse(null);
+            World world = msb != null && lsb != null ? this.server.getWorld(new UUID(msb, lsb)) : null;
+
+            return new Location(
+                world,
+                pos.x(), pos.y(), pos.z(),
+                rot.x, rot.y
+            );
         }
 
         return null;
     }
 
     @Override
-    public Location getBedSpawnLocation() {
-        return getRespawnLocation();
-    }
-
-    @Override
-    public Location getRespawnLocation() {
-        ValueInput data = getData();
+    public Location getRespawnLocation(final boolean loadLocationAndValidate) {
+        final CompoundTag data = this.getData();
         if (data == null) return null;
 
-        ServerPlayer.RespawnConfig respawnConfig = data.read("respawn", ServerPlayer.RespawnConfig.CODEC).orElse(null);
-        if (respawnConfig != null) {
-            LevelData.RespawnData respawn = respawnConfig.respawnData();
-            ServerLevel world = server.getServer().getLevel(respawn.dimension());
-            if (world == null) {
-                world = server.getServer().overworld();
-            }
+        final ServerPlayer.RespawnConfig respawnConfig = data.read("respawn", ServerPlayer.RespawnConfig.CODEC).orElse(null);
+        if (respawnConfig == null) return null;
 
-            return CraftLocation.toBukkit(respawn.pos(), world.getWorld(), respawn.yaw(), respawn.pitch());
+        final ServerLevel level = this.server.console.getLevel(respawnConfig.respawnData().dimension());
+        if (level == null) return null;
+
+        if (!loadLocationAndValidate) {
+            return CraftLocation.toBukkit(respawnConfig.respawnData().pos(), level, respawnConfig.respawnData().yaw(), respawnConfig.respawnData().pitch());
         }
 
-        if (data.read("SpawnX", Codec.INT).isPresent() && data.read("SpawnY", Codec.INT).isPresent() && data.read("SpawnZ", Codec.INT).isPresent()) {
-            String spawnWorld = data.getStringOr("SpawnWorld", "");
-            if (spawnWorld.equals("")) {
-                spawnWorld = server.getWorlds().get(0).getName();
-            }
-            return new Location(server.getWorld(spawnWorld), data.getIntOr("SpawnX", 0), data.getIntOr("SpawnY", 0), data.getIntOr("SpawnZ", 0));
-        }
-        return null;
-    }
-
-    public void setMetadata(String metadataKey, MetadataValue metadataValue) {
-        server.getPlayerMetadata().setMetadata(this, metadataKey, metadataValue);
-    }
-
-    public List<MetadataValue> getMetadata(String metadataKey) {
-        return server.getPlayerMetadata().getMetadata(this, metadataKey);
-    }
-
-    public boolean hasMetadata(String metadataKey) {
-        return server.getPlayerMetadata().hasMetadata(this, metadataKey);
-    }
-
-    public void removeMetadata(String metadataKey, Plugin plugin) {
-        server.getPlayerMetadata().removeMetadata(this, metadataKey, plugin);
+        return ServerPlayer.findRespawnAndUseSpawnBlock(level, respawnConfig, false)
+            .map(resolvedPos -> CraftLocation.toBukkit(resolvedPos.position(), level, resolvedPos.yaw(), resolvedPos.pitch()))
+            .orElse(null);
     }
 
     private ServerStatsCounter getStatisticManager() {
-        return server.getHandle().getPlayerStats(profile);
+        return this.server.getHandle().getPlayerStats(this.nameAndId.toUncompletedGameProfile());
     }
 
     @Override
     public void incrementStatistic(Statistic statistic) {
-        if (isOnline()) {
-            getPlayer().incrementStatistic(statistic);
+        if (this.isOnline()) {
+            this.getPlayer().incrementStatistic(statistic);
         } else {
-            ServerStatsCounter manager = getStatisticManager();
+            ServerStatsCounter manager = this.getStatisticManager();
             CraftStatistic.incrementStatistic(manager, statistic, null);
             manager.save();
         }
@@ -360,10 +401,10 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public void decrementStatistic(Statistic statistic) {
-        if (isOnline()) {
-            getPlayer().decrementStatistic(statistic);
+        if (this.isOnline()) {
+            this.getPlayer().decrementStatistic(statistic);
         } else {
-            ServerStatsCounter manager = getStatisticManager();
+            ServerStatsCounter manager = this.getStatisticManager();
             CraftStatistic.decrementStatistic(manager, statistic, null);
             manager.save();
         }
@@ -371,19 +412,19 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public int getStatistic(Statistic statistic) {
-        if (isOnline()) {
-            return getPlayer().getStatistic(statistic);
+        if (this.isOnline()) {
+            return this.getPlayer().getStatistic(statistic);
         } else {
-            return CraftStatistic.getStatistic(getStatisticManager(), statistic);
+            return CraftStatistic.getStatistic(this.getStatisticManager(), statistic);
         }
     }
 
     @Override
     public void incrementStatistic(Statistic statistic, int amount) {
-        if (isOnline()) {
-            getPlayer().incrementStatistic(statistic, amount);
+        if (this.isOnline()) {
+            this.getPlayer().incrementStatistic(statistic, amount);
         } else {
-            ServerStatsCounter manager = getStatisticManager();
+            ServerStatsCounter manager = this.getStatisticManager();
             CraftStatistic.incrementStatistic(manager, statistic, amount, null);
             manager.save();
         }
@@ -391,10 +432,10 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public void decrementStatistic(Statistic statistic, int amount) {
-        if (isOnline()) {
-            getPlayer().decrementStatistic(statistic, amount);
+        if (this.isOnline()) {
+            this.getPlayer().decrementStatistic(statistic, amount);
         } else {
-            ServerStatsCounter manager = getStatisticManager();
+            ServerStatsCounter manager = this.getStatisticManager();
             CraftStatistic.decrementStatistic(manager, statistic, amount, null);
             manager.save();
         }
@@ -402,10 +443,10 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public void setStatistic(Statistic statistic, int newValue) {
-        if (isOnline()) {
-            getPlayer().setStatistic(statistic, newValue);
+        if (this.isOnline()) {
+            this.getPlayer().setStatistic(statistic, newValue);
         } else {
-            ServerStatsCounter manager = getStatisticManager();
+            ServerStatsCounter manager = this.getStatisticManager();
             CraftStatistic.setStatistic(manager, statistic, newValue, null);
             manager.save();
         }
@@ -413,10 +454,10 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public void incrementStatistic(Statistic statistic, Material material) {
-        if (isOnline()) {
-            getPlayer().incrementStatistic(statistic, material);
+        if (this.isOnline()) {
+            this.getPlayer().incrementStatistic(statistic, material);
         } else {
-            ServerStatsCounter manager = getStatisticManager();
+            ServerStatsCounter manager = this.getStatisticManager();
             CraftStatistic.incrementStatistic(manager, statistic, material, null);
             manager.save();
         }
@@ -424,10 +465,10 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public void decrementStatistic(Statistic statistic, Material material) {
-        if (isOnline()) {
-            getPlayer().decrementStatistic(statistic, material);
+        if (this.isOnline()) {
+            this.getPlayer().decrementStatistic(statistic, material);
         } else {
-            ServerStatsCounter manager = getStatisticManager();
+            ServerStatsCounter manager = this.getStatisticManager();
             CraftStatistic.decrementStatistic(manager, statistic, material, null);
             manager.save();
         }
@@ -435,19 +476,19 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public int getStatistic(Statistic statistic, Material material) {
-        if (isOnline()) {
-            return getPlayer().getStatistic(statistic, material);
+        if (this.isOnline()) {
+            return this.getPlayer().getStatistic(statistic, material);
         } else {
-            return CraftStatistic.getStatistic(getStatisticManager(), statistic, material);
+            return CraftStatistic.getStatistic(this.getStatisticManager(), statistic, material);
         }
     }
 
     @Override
     public void incrementStatistic(Statistic statistic, Material material, int amount) {
-        if (isOnline()) {
-            getPlayer().incrementStatistic(statistic, material, amount);
+        if (this.isOnline()) {
+            this.getPlayer().incrementStatistic(statistic, material, amount);
         } else {
-            ServerStatsCounter manager = getStatisticManager();
+            ServerStatsCounter manager = this.getStatisticManager();
             CraftStatistic.incrementStatistic(manager, statistic, material, amount, null);
             manager.save();
         }
@@ -455,10 +496,10 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public void decrementStatistic(Statistic statistic, Material material, int amount) {
-        if (isOnline()) {
-            getPlayer().decrementStatistic(statistic, material, amount);
+        if (this.isOnline()) {
+            this.getPlayer().decrementStatistic(statistic, material, amount);
         } else {
-            ServerStatsCounter manager = getStatisticManager();
+            ServerStatsCounter manager = this.getStatisticManager();
             CraftStatistic.decrementStatistic(manager, statistic, material, amount, null);
             manager.save();
         }
@@ -466,10 +507,10 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public void setStatistic(Statistic statistic, Material material, int newValue) {
-        if (isOnline()) {
-            getPlayer().setStatistic(statistic, material, newValue);
+        if (this.isOnline()) {
+            this.getPlayer().setStatistic(statistic, material, newValue);
         } else {
-            ServerStatsCounter manager = getStatisticManager();
+            ServerStatsCounter manager = this.getStatisticManager();
             CraftStatistic.setStatistic(manager, statistic, material, newValue, null);
             manager.save();
         }
@@ -477,10 +518,10 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public void incrementStatistic(Statistic statistic, EntityType entityType) {
-        if (isOnline()) {
-            getPlayer().incrementStatistic(statistic, entityType);
+        if (this.isOnline()) {
+            this.getPlayer().incrementStatistic(statistic, entityType);
         } else {
-            ServerStatsCounter manager = getStatisticManager();
+            ServerStatsCounter manager = this.getStatisticManager();
             CraftStatistic.incrementStatistic(manager, statistic, entityType, null);
             manager.save();
         }
@@ -488,10 +529,10 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public void decrementStatistic(Statistic statistic, EntityType entityType) {
-        if (isOnline()) {
-            getPlayer().decrementStatistic(statistic, entityType);
+        if (this.isOnline()) {
+            this.getPlayer().decrementStatistic(statistic, entityType);
         } else {
-            ServerStatsCounter manager = getStatisticManager();
+            ServerStatsCounter manager = this.getStatisticManager();
             CraftStatistic.decrementStatistic(manager, statistic, entityType, null);
             manager.save();
         }
@@ -499,19 +540,19 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public int getStatistic(Statistic statistic, EntityType entityType) {
-        if (isOnline()) {
-            return getPlayer().getStatistic(statistic, entityType);
+        if (this.isOnline()) {
+            return this.getPlayer().getStatistic(statistic, entityType);
         } else {
-            return CraftStatistic.getStatistic(getStatisticManager(), statistic, entityType);
+            return CraftStatistic.getStatistic(this.getStatisticManager(), statistic, entityType);
         }
     }
 
     @Override
     public void incrementStatistic(Statistic statistic, EntityType entityType, int amount) {
-        if (isOnline()) {
-            getPlayer().incrementStatistic(statistic, entityType, amount);
+        if (this.isOnline()) {
+            this.getPlayer().incrementStatistic(statistic, entityType, amount);
         } else {
-            ServerStatsCounter manager = getStatisticManager();
+            ServerStatsCounter manager = this.getStatisticManager();
             CraftStatistic.incrementStatistic(manager, statistic, entityType, amount, null);
             manager.save();
         }
@@ -519,10 +560,10 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public void decrementStatistic(Statistic statistic, EntityType entityType, int amount) {
-        if (isOnline()) {
-            getPlayer().decrementStatistic(statistic, entityType, amount);
+        if (this.isOnline()) {
+            this.getPlayer().decrementStatistic(statistic, entityType, amount);
         } else {
-            ServerStatsCounter manager = getStatisticManager();
+            ServerStatsCounter manager = this.getStatisticManager();
             CraftStatistic.decrementStatistic(manager, statistic, entityType, amount, null);
             manager.save();
         }
@@ -530,10 +571,10 @@ public class CraftOfflinePlayer implements OfflinePlayer, ConfigurationSerializa
 
     @Override
     public void setStatistic(Statistic statistic, EntityType entityType, int newValue) {
-        if (isOnline()) {
-            getPlayer().setStatistic(statistic, entityType, newValue);
+        if (this.isOnline()) {
+            this.getPlayer().setStatistic(statistic, entityType, newValue);
         } else {
-            ServerStatsCounter manager = getStatisticManager();
+            ServerStatsCounter manager = this.getStatisticManager();
             CraftStatistic.setStatistic(manager, statistic, entityType, newValue, null);
             manager.save();
         }

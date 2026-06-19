@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import net.minecraft.Optionull;
 import net.minecraft.world.entity.projectile.EyeOfEnder;
 import net.minecraft.world.item.Items;
 import org.bukkit.Location;
@@ -17,52 +18,54 @@ public class CraftEnderSignal extends CraftEntity implements EnderSignal {
 
     @Override
     public EyeOfEnder getHandle() {
-        return (EyeOfEnder) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftEnderSignal";
+        return (EyeOfEnder) this.entity;
     }
 
     @Override
     public Location getTargetLocation() {
-        return CraftLocation.toBukkit(getHandle().target, getWorld(), getHandle().getYRot(), getHandle().getXRot());
+        return Optionull.map(this.getHandle().target, target -> CraftLocation.toBukkit(target, this.getWorld(), this.getHandle().getYRot(), this.getHandle().getXRot()));
     }
 
     @Override
     public void setTargetLocation(Location location) {
-        Preconditions.checkArgument(getWorld().equals(location.getWorld()), "Cannot target EnderSignal across worlds");
-        getHandle().signalTo(CraftLocation.toVec3D(location));
+        // Paper start - Change EnderEye target without changing other things
+        this.setTargetLocation(location, true);
+    }
+
+    @Override
+    public void setTargetLocation(Location location, boolean update) {
+        // Paper end - Change EnderEye target without changing other things
+        Preconditions.checkArgument(this.getWorld().equals(location.getWorld()), "Cannot target EnderSignal across worlds");
+        this.getHandle().signalTo(CraftLocation.toVec3(location), update); // Paper - Change EnderEye target without changing other things
     }
 
     @Override
     public boolean getDropItem() {
-        return getHandle().surviveAfterDeath;
+        return this.getHandle().surviveAfterDeath;
     }
 
     @Override
     public void setDropItem(boolean shouldDropItem) {
-        getHandle().surviveAfterDeath = shouldDropItem;
+        this.getHandle().surviveAfterDeath = shouldDropItem;
     }
 
     @Override
     public ItemStack getItem() {
-        return CraftItemStack.asBukkitCopy(getHandle().getItem());
+        return CraftItemStack.asBukkitCopy(this.getHandle().getItem());
     }
 
     @Override
     public void setItem(ItemStack item) {
-        getHandle().setItem(item != null ? CraftItemStack.asNMSCopy(item) : Items.ENDER_EYE.getDefaultInstance());
+        this.getHandle().setItem(item != null ? CraftItemStack.asNMSCopy(item) : Items.ENDER_EYE.getDefaultInstance());
     }
 
     @Override
     public int getDespawnTimer() {
-        return getHandle().life;
+        return this.getHandle().life;
     }
 
     @Override
     public void setDespawnTimer(int time) {
-        getHandle().life = time;
+        this.getHandle().life = time;
     }
 }

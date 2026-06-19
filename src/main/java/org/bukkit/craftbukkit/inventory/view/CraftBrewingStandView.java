@@ -16,23 +16,34 @@ public class CraftBrewingStandView extends CraftInventoryView<BrewingStandMenu, 
 
     @Override
     public int getFuelLevel() {
-        return container.getFuel();
+        return this.container.getFuel();
     }
 
     @Override
     public int getBrewingTicks() {
-        return container.getBrewingTicks();
+        return this.container.getBrewingTicks();
     }
 
     @Override
     public void setFuelLevel(final int fuelLevel) {
         Preconditions.checkArgument(fuelLevel > 0, "The given fuel level must be greater than 0");
-        container.setData(BrewingStandBlockEntity.DATA_FUEL_USES, fuelLevel);
+        this.container.setData(BrewingStandBlockEntity.DATA_FUEL_USES, fuelLevel);
     }
 
     @Override
     public void setBrewingTicks(final int brewingTicks) {
         Preconditions.checkArgument(brewingTicks > 0, "The given brewing ticks must be greater than 0");
-        container.setData(BrewingStandBlockEntity.DATA_BREW_TIME, brewingTicks);
+        this.container.setData(BrewingStandBlockEntity.DATA_BREW_TIME, brewingTicks);
+    }
+
+    @Override
+    public void setRecipeBrewTime(int recipeBrewTime) {
+        com.google.common.base.Preconditions.checkArgument(recipeBrewTime > 0, "recipeBrewTime must be positive");
+        this.container.brewingStandData.set(2, recipeBrewTime);
+    }
+
+    @Override
+    public int getRecipeBrewTime() {
+        return this.container.brewingStandData.get(2);
     }
 }

@@ -11,8 +11,8 @@ public class CraftSkeletonHorse extends CraftAbstractHorse implements SkeletonHo
     }
 
     @Override
-    public String toString() {
-        return "CraftSkeletonHorse";
+    public net.minecraft.world.entity.animal.equine.SkeletonHorse getHandle() {
+        return (net.minecraft.world.entity.animal.equine.SkeletonHorse) this.entity;
     }
 
     @Override
@@ -21,27 +21,22 @@ public class CraftSkeletonHorse extends CraftAbstractHorse implements SkeletonHo
     }
 
     @Override
-    public net.minecraft.world.entity.animal.equine.SkeletonHorse getHandle() {
-        return (net.minecraft.world.entity.animal.equine.SkeletonHorse) entity;
-    }
-
-    @Override
     public boolean isTrapped() {
-        return getHandle().isTrap();
+        return this.getHandle().isTrap();
     }
 
     @Override
     public void setTrapped(boolean trapped) {
-        getHandle().setTrap(trapped);
+        this.getHandle().setTrap(trapped);
     }
 
     @Override
     public int getTrapTime() {
-        return getHandle().trapTime;
+        return this.getHandle().trapTime;
     }
 
     @Override
     public void setTrapTime(int trapTime) {
-        getHandle().trapTime = trapTime;
+        this.getHandle().trapTime = trapTime;
     }
 }

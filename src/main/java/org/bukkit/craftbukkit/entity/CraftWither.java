@@ -9,31 +9,23 @@ import org.bukkit.craftbukkit.boss.CraftBossBar;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Wither;
 
-public class CraftWither extends CraftMonster implements Wither {
+public class CraftWither extends CraftMonster implements Wither, com.destroystokyo.paper.entity.CraftRangedEntity<WitherBoss> { // Paper
 
-    private BossBar bossBar;
+    private final BossBar bossBar;
 
     public CraftWither(CraftServer server, WitherBoss entity) {
         super(server, entity);
-
-        if (entity.bossEvent != null) {
-            this.bossBar = new CraftBossBar(entity.bossEvent);
-        }
+        this.bossBar = new CraftBossBar(entity.bossEvent);
     }
 
     @Override
     public WitherBoss getHandle() {
-        return (WitherBoss) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftWither";
+        return (WitherBoss) this.entity;
     }
 
     @Override
     public BossBar getBossBar() {
-        return bossBar;
+        return this.bossBar;
     }
 
     @Override
@@ -41,30 +33,60 @@ public class CraftWither extends CraftMonster implements Wither {
         Preconditions.checkArgument(head != null, "head cannot be null");
 
         int entityId = (livingEntity != null) ? livingEntity.getEntityId() : 0;
-        getHandle().setAlternativeTarget(head.ordinal(), entityId);
+        this.getHandle().setAlternativeTarget(head.ordinal(), entityId);
     }
 
     @Override
     public LivingEntity getTarget(Head head) {
         Preconditions.checkArgument(head != null, "head cannot be null");
 
-        int entityId = getHandle().getAlternativeTarget(head.ordinal());
+        int entityId = this.getHandle().getAlternativeTarget(head.ordinal());
         if (entityId == 0) {
             return null;
         }
-        Entity target = getHandle().level().getEntity(entityId);
+        Entity target = this.getHandle().level().getEntity(entityId);
         return (target != null) ? (LivingEntity) target.getBukkitEntity() : null;
     }
 
     @Override
     public int getInvulnerabilityTicks() {
-        return getHandle().getInvulnerableTicks();
+        return this.getHandle().getInvulnerableTicks();
     }
 
     @Override
     public void setInvulnerabilityTicks(int ticks) {
         Preconditions.checkArgument(ticks >= 0, "ticks must be >=0");
 
+        this.getHandle().setInvulnerableTicks(ticks);
+    }
+
+    @Override
+    public boolean isCharged() {
+        return getHandle().isPowered();
+    }
+
+    @Override
+    public int getInvulnerableTicks() {
+        return getHandle().getInvulnerableTicks();
+    }
+
+    @Override
+    public void setInvulnerableTicks(int ticks) {
         getHandle().setInvulnerableTicks(ticks);
+    }
+
+    @Override
+    public boolean canTravelThroughPortals() {
+        return getHandle().canUsePortal(false);
+    }
+
+    @Override
+    public void setCanTravelThroughPortals(boolean value) {
+        getHandle().setCanTravelThroughPortals(value);
+    }
+
+    @Override
+    public void enterInvulnerabilityPhase() {
+        this.getHandle().makeInvulnerable();
     }
 }

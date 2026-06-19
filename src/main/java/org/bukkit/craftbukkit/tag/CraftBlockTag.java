@@ -23,11 +23,11 @@ public class CraftBlockTag extends CraftTag<Block, Material> {
             return false;
         }
 
-        return block.builtInRegistryHolder().is(tag);
+        return block.builtInRegistryHolder().is(this.tag);
     }
 
     @Override
     public Set<Material> getValues() {
-        return getHandle().stream().map((block) -> CraftBlockType.minecraftToBukkit(block.value())).collect(Collectors.toUnmodifiableSet());
+        return this.getHandle().stream().map((block) -> CraftBlockType.minecraftToBukkit(block.value())).collect(Collectors.toUnmodifiableSet());
     }
 }

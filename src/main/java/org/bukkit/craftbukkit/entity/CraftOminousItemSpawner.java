@@ -13,31 +13,26 @@ public class CraftOminousItemSpawner extends CraftEntity implements OminousItemS
 
     @Override
     public net.minecraft.world.entity.OminousItemSpawner getHandle() {
-        return (net.minecraft.world.entity.OminousItemSpawner) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftOminousItemSpawner";
+        return (net.minecraft.world.entity.OminousItemSpawner) this.entity;
     }
 
     @Override
     public ItemStack getItem() {
-        return CraftItemStack.asBukkitCopy(getHandle().getItem());
+        return CraftItemStack.asBukkitCopy(this.getHandle().getItem());
     }
 
     @Override
     public void setItem(ItemStack item) {
-        getHandle().setItem(CraftItemStack.asNMSCopy(item));
+        this.getHandle().setItem(CraftItemStack.asNMSCopy(item));
     }
 
     @Override
     public long getSpawnItemAfterTicks() {
-        return getHandle().spawnItemAfterTicks;
+        return this.getHandle().spawnItemAfterTicks;
     }
 
     @Override
     public void setSpawnItemAfterTicks(long ticks) {
-        getHandle().spawnItemAfterTicks = ticks;
+        this.getHandle().spawnItemAfterTicks = ticks;
     }
 }

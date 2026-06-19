@@ -17,44 +17,39 @@ import org.bukkit.inventory.ItemStack;
 
 public class CraftInventoryView<T extends AbstractContainerMenu, I extends Inventory> extends CraftAbstractInventoryView {
     protected final T container;
-    private CraftHumanEntity player;
+    private final CraftHumanEntity player;
     private final I viewing;
     private final String originalTitle;
     private String title;
 
-    public CraftInventoryView(HumanEntity player, I viewing, T abstractcontainermenu) {
+    public CraftInventoryView(HumanEntity player, I viewing, T container) {
         // TODO: Should we make sure it really IS a CraftHumanEntity first? And a CraftInventory?
         this.player = (CraftHumanEntity) player;
         this.viewing = viewing;
-        this.container = abstractcontainermenu;
-        this.originalTitle = CraftChatMessage.fromComponent(abstractcontainermenu.getTitle());
-        this.title = originalTitle;
+        this.container = container;
+        this.originalTitle = CraftChatMessage.fromComponent(container.getTitle());
+        this.title = this.originalTitle;
     }
 
     @Override
     public I getTopInventory() {
-        return viewing;
+        return this.viewing;
     }
 
     @Override
     public Inventory getBottomInventory() {
-        return player.getInventory();
+        return this.player.getInventory();
     }
 
     @Override
     public HumanEntity getPlayer() {
-        return player;
-    }
-
-    @Override
-    public void setPlayer(HumanEntity player) {
-        this.player = (CraftHumanEntity) player;
+        return this.player;
     }
 
     @Override
     public InventoryType getType() {
-        InventoryType type = viewing.getType();
-        if (type == InventoryType.CRAFTING && player.getGameMode() == GameMode.CREATIVE) {
+        InventoryType type = this.viewing.getType();
+        if (type == InventoryType.CRAFTING && this.player.getGameMode() == GameMode.CREATIVE) {
             return InventoryType.CREATIVE;
         }
         return type;
@@ -64,9 +59,9 @@ public class CraftInventoryView<T extends AbstractContainerMenu, I extends Inven
     public void setItem(int slot, ItemStack item) {
         net.minecraft.world.item.ItemStack stack = CraftItemStack.asNMSCopy(item);
         if (slot >= 0) {
-            container.getSlot(slot).set(stack);
+            this.container.getSlot(slot).set(stack);
         } else {
-            player.getHandle().drop(stack, false);
+            this.player.getHandle().drop(stack, false);
         }
     }
 
@@ -75,31 +70,42 @@ public class CraftInventoryView<T extends AbstractContainerMenu, I extends Inven
         if (slot < 0) {
             return null;
         }
-        return CraftItemStack.asCraftMirror(container.getSlot(slot).getItem());
+        return CraftItemStack.asCraftMirror(this.container.getSlot(slot).getItem());
+    }
+
+    @Override
+    public net.kyori.adventure.text.Component title() {
+        return io.papermc.paper.adventure.PaperAdventure.asAdventure(this.container.getTitle());
     }
 
     @Override
     public String getTitle() {
-        return title;
+        return this.title;
     }
 
     @Override
     public String getOriginalTitle() {
-        return originalTitle;
+        return this.originalTitle;
     }
 
     @Override
     public void setTitle(String title) {
-        sendInventoryTitleChange(this, title);
+        CraftInventoryView.sendInventoryTitleChange(this, title);
         this.title = title;
     }
 
+    @Override
+    public org.bukkit.inventory.MenuType getMenuType() {
+        MenuType<?> menuType = container.menuType;
+        return menuType != null ? CraftMenuType.minecraftToBukkit(menuType) : null;
+    }
+
     public boolean isInTop(int rawSlot) {
-        return rawSlot < viewing.getSize();
+        return rawSlot < this.viewing.getSize();
     }
 
     public AbstractContainerMenu getHandle() {
-        return container;
+        return this.container;
     }
 
     public static void sendInventoryTitleChange(InventoryView view, String title) {
@@ -108,10 +114,10 @@ public class CraftInventoryView<T extends AbstractContainerMenu, I extends Inven
         Preconditions.checkArgument(view.getPlayer() instanceof Player, "NPCs are not currently supported for this function");
         Preconditions.checkArgument(view.getTopInventory().getType().isCreatable(), "Only creatable inventories can have their title changed");
 
-        final ServerPlayer entityPlayer = (ServerPlayer) ((CraftHumanEntity) view.getPlayer()).getHandle();
-        final int containerId = entityPlayer.containerMenu.containerId;
+        final ServerPlayer player = (ServerPlayer) ((CraftHumanEntity) view.getPlayer()).getHandle();
+        final int containerId = player.containerMenu.containerId;
         final MenuType<?> windowType = CraftContainer.getNotchInventoryType(view.getTopInventory());
-        entityPlayer.connection.send(new ClientboundOpenScreenPacket(containerId, windowType, CraftChatMessage.fromString(title)[0]));
-        ((Player) view.getPlayer()).updateInventory();
+        player.connection.send(new ClientboundOpenScreenPacket(containerId, windowType, CraftChatMessage.fromString(title)[0]));
+        player.containerMenu.sendAllDataToRemote();
     }
 }

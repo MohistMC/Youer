@@ -3,6 +3,7 @@ package org.bukkit.craftbukkit.inventory;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.papermc.paper.registry.RegistryKey;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -19,30 +20,32 @@ import org.bukkit.inventory.meta.BannerMeta;
 @DelegateDeserialization(SerializableMeta.class)
 public class CraftMetaBanner extends CraftMetaItem implements BannerMeta {
 
+    @Deprecated
+    public static final int ARBITRARY_LIMIT = 20;
+
     static final ItemMetaKeyType<BannerPatternLayers> PATTERNS = new ItemMetaKeyType<>(DataComponents.BANNER_PATTERNS, "patterns");
 
-    private List<Pattern> patterns = new ArrayList<Pattern>();
+    private List<Pattern> patterns = new ArrayList<>();
 
     CraftMetaBanner(CraftMetaItem meta) {
         super(meta);
 
-        if (!(meta instanceof CraftMetaBanner)) {
+        if (!(meta instanceof final CraftMetaBanner bannerMeta)) {
             return;
         }
 
-        CraftMetaBanner banner = (CraftMetaBanner) meta;
-        patterns = new ArrayList<Pattern>(banner.patterns);
+        this.patterns = new ArrayList<>(bannerMeta.patterns);
     }
 
-    CraftMetaBanner(DataComponentPatch tag) {
-        super(tag);
+    CraftMetaBanner(DataComponentPatch patch, final java.util.Set<net.minecraft.core.component.DataComponentType<?>> extraHandledComponents) {
+        super(patch, extraHandledComponents);
 
-        getOrEmpty(tag, PATTERNS).ifPresent((entityTag) -> {
-            List<BannerPatternLayers.Layer> patterns = entityTag.layers();
-            for (int i = 0; i < Math.min(patterns.size(), 20); i++) {
+        getOrEmpty(patch, CraftMetaBanner.PATTERNS).ifPresent((bannerPattern) -> {
+            List<BannerPatternLayers.Layer> patterns = bannerPattern.layers();
+            for (int i = 0; i < Math.min(patterns.size(), ARBITRARY_LIMIT); i++) {
                 BannerPatternLayers.Layer p = patterns.get(i);
                 DyeColor color = DyeColor.getByWoolData((byte) p.color().getId());
-                PatternType pattern = CraftPatternType.minecraftHolderToBukkit(p.pattern());
+                PatternType pattern = org.bukkit.craftbukkit.CraftRegistry.unwrapAndConvertHolder(RegistryKey.BANNER_PATTERN, p.pattern()).orElse(null); // Paper - fix upstream not handling inlined banner pattern
 
                 if (color != null && pattern != null) {
                     this.patterns.add(new Pattern(color, pattern));
@@ -54,14 +57,14 @@ public class CraftMetaBanner extends CraftMetaItem implements BannerMeta {
     CraftMetaBanner(Map<String, Object> map) {
         super(map);
 
-        Iterable<?> rawPatternList = SerializableMeta.getObject(Iterable.class, map, PATTERNS.BUKKIT, true);
+        Iterable<?> rawPatternList = SerializableMeta.getObject(Iterable.class, map, CraftMetaBanner.PATTERNS.BUKKIT, true);
         if (rawPatternList == null) {
             return;
         }
 
         for (Object obj : rawPatternList) {
             Preconditions.checkArgument(obj instanceof Pattern, "Object (%s) in pattern list is not valid", obj.getClass());
-            addPattern((Pattern) obj);
+            this.addPattern((Pattern) obj);
         }
     }
 
@@ -69,56 +72,57 @@ public class CraftMetaBanner extends CraftMetaItem implements BannerMeta {
     void applyToItem(CraftMetaItem.Applicator tag) {
         super.applyToItem(tag);
 
+        if (this.patterns.isEmpty()) return;
         List<BannerPatternLayers.Layer> newPatterns = new ArrayList<>();
 
-        for (Pattern p : patterns) {
+        for (Pattern p : this.patterns) {
             newPatterns.add(new BannerPatternLayers.Layer(CraftPatternType.bukkitToMinecraftHolder(p.getPattern()), net.minecraft.world.item.DyeColor.byId(p.getColor().getWoolData())));
         }
 
-        tag.put(PATTERNS, new BannerPatternLayers(newPatterns));
+        tag.put(CraftMetaBanner.PATTERNS, new BannerPatternLayers(newPatterns));
     }
 
     @Override
     public List<Pattern> getPatterns() {
-        return new ArrayList<Pattern>(patterns);
+        return new ArrayList<>(this.patterns);
     }
 
     @Override
     public void setPatterns(List<Pattern> patterns) {
-        this.patterns = new ArrayList<Pattern>(patterns);
+        this.patterns = new ArrayList<>(patterns);
     }
 
     @Override
     public void addPattern(Pattern pattern) {
-        patterns.add(pattern);
+        this.patterns.add(pattern);
     }
 
     @Override
     public Pattern getPattern(int i) {
-        return patterns.get(i);
+        return this.patterns.get(i);
     }
 
     @Override
     public Pattern removePattern(int i) {
-        return patterns.remove(i);
+        return this.patterns.remove(i);
     }
 
     @Override
     public void setPattern(int i, Pattern pattern) {
-        patterns.set(i, pattern);
+        this.patterns.set(i, pattern);
     }
 
     @Override
     public int numberOfPatterns() {
-        return patterns.size();
+        return this.patterns.size();
     }
 
     @Override
     ImmutableMap.Builder<String, Object> serialize(ImmutableMap.Builder<String, Object> builder) {
         super.serialize(builder);
 
-        if (!patterns.isEmpty()) {
-            builder.put(PATTERNS.BUKKIT, ImmutableList.copyOf(patterns));
+        if (!this.patterns.isEmpty()) {
+            builder.put(CraftMetaBanner.PATTERNS.BUKKIT, ImmutableList.copyOf(this.patterns));
         }
 
         return builder;
@@ -128,8 +132,8 @@ public class CraftMetaBanner extends CraftMetaItem implements BannerMeta {
     int applyHash() {
         final int original;
         int hash = original = super.applyHash();
-        if (!patterns.isEmpty()) {
-            hash = 31 * hash + patterns.hashCode();
+        if (!this.patterns.isEmpty()) {
+            hash = 31 * hash + this.patterns.hashCode();
         }
         return original != hash ? CraftMetaBanner.class.hashCode() ^ hash : hash;
     }
@@ -139,28 +143,26 @@ public class CraftMetaBanner extends CraftMetaItem implements BannerMeta {
         if (!super.equalsCommon(meta)) {
             return false;
         }
-        if (meta instanceof CraftMetaBanner) {
-            CraftMetaBanner that = (CraftMetaBanner) meta;
-
-            return patterns.equals(that.patterns);
+        if (meta instanceof final CraftMetaBanner other) {
+            return this.patterns.equals(other.patterns);
         }
         return true;
     }
 
     @Override
     boolean notUncommon(CraftMetaItem meta) {
-        return super.notUncommon(meta) && (meta instanceof CraftMetaBanner || patterns.isEmpty());
+        return super.notUncommon(meta) && (meta instanceof CraftMetaBanner || this.patterns.isEmpty());
     }
 
     @Override
     boolean isEmpty() {
-        return super.isEmpty() && patterns.isEmpty();
+        return super.isEmpty() && this.patterns.isEmpty();
     }
 
     @Override
     public CraftMetaBanner clone() {
         CraftMetaBanner meta = (CraftMetaBanner) super.clone();
-        meta.patterns = new ArrayList<>(patterns);
+        meta.patterns = new ArrayList<>(this.patterns);
         return meta;
     }
 }

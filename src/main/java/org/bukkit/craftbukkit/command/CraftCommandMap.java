@@ -8,10 +8,10 @@ import org.bukkit.command.SimpleCommandMap;
 public class CraftCommandMap extends SimpleCommandMap {
 
     public CraftCommandMap(Server server) {
-        super(server);
+        super(server, io.papermc.paper.command.brigadier.bukkit.BukkitBrigForwardingMap.INSTANCE);
     }
 
     public Map<String, Command> getKnownCommands() {
-        return knownCommands;
+        return this.knownCommands;
     }
 }

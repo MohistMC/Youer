@@ -1,13 +1,14 @@
 package org.bukkit.craftbukkit.inventory.components;
 
-import com.google.common.base.Preconditions;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 import net.minecraft.world.food.FoodProperties;
 import org.bukkit.configuration.serialization.SerializableAs;
 import org.bukkit.craftbukkit.inventory.SerializableMeta;
 import org.bukkit.inventory.meta.components.FoodComponent;
+import org.checkerframework.checker.index.qual.NonNegative;
+
+import static io.papermc.paper.util.BoundChecker.requireNonNegative;
 
 @SerializableAs("Food")
 public final class CraftFoodComponent implements FoodComponent {
@@ -33,52 +34,51 @@ public final class CraftFoodComponent implements FoodComponent {
     @Override
     public Map<String, Object> serialize() {
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("nutrition", getNutrition());
-        result.put("saturation", getSaturation());
-        result.put("can-always-eat", canAlwaysEat());
+        result.put("nutrition", this.getNutrition());
+        result.put("saturation", this.getSaturation());
+        result.put("can-always-eat", this.canAlwaysEat());
 
         return result;
     }
 
     public FoodProperties getHandle() {
-        return handle;
+        return this.handle;
     }
 
     @Override
     public int getNutrition() {
-        return handle.nutrition();
+        return this.handle.nutrition();
     }
 
     @Override
-    public void setNutrition(int nutrition) {
-        Preconditions.checkArgument(nutrition >= 0, "Nutrition cannot be negative");
-        handle = new FoodProperties(nutrition, handle.saturation(), handle.canAlwaysEat());
+    public void setNutrition(@NonNegative int nutrition) {
+        this.handle = new FoodProperties(requireNonNegative(nutrition, "nutrition"), this.handle.saturation(), this.handle.canAlwaysEat());
     }
 
     @Override
     public float getSaturation() {
-        return handle.saturation();
+        return this.handle.saturation();
     }
 
     @Override
     public void setSaturation(float saturation) {
-        handle = new FoodProperties(handle.nutrition(), saturation, handle.canAlwaysEat());
+        this.handle = new FoodProperties(this.handle.nutrition(), saturation, this.handle.canAlwaysEat());
     }
 
     @Override
     public boolean canAlwaysEat() {
-        return handle.canAlwaysEat();
+        return this.handle.canAlwaysEat();
     }
 
     @Override
     public void setCanAlwaysEat(boolean canAlwaysEat) {
-        handle = new FoodProperties(handle.nutrition(), handle.saturation(), canAlwaysEat);
+        this.handle = new FoodProperties(this.handle.nutrition(), this.handle.saturation(), canAlwaysEat);
     }
 
     @Override
     public int hashCode() {
         int hash = 7;
-        hash = 73 * hash + Objects.hashCode(this.handle);
+        hash = 73 * hash + this.handle.hashCode();
         return hash;
     }
 
@@ -87,18 +87,15 @@ public final class CraftFoodComponent implements FoodComponent {
         if (this == obj) {
             return true;
         }
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
+        if (obj == null || this.getClass() != obj.getClass()) {
             return false;
         }
         final CraftFoodComponent other = (CraftFoodComponent) obj;
-        return Objects.equals(this.handle, other.handle);
+        return this.handle.equals(other.handle);
     }
 
     @Override
     public String toString() {
-        return "CraftFoodComponent{" + "handle=" + handle + '}';
+        return "CraftFoodComponent{component=" + this.handle + '}';
     }
 }

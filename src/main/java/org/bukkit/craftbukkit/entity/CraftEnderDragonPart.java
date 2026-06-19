@@ -17,62 +17,62 @@ public class CraftEnderDragonPart extends CraftComplexPart implements EnderDrago
     }
 
     @Override
-    public net.minecraft.world.entity.boss.enderdragon.EnderDragonPart getHandle() {
-        return (net.minecraft.world.entity.boss.enderdragon.EnderDragonPart) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftEnderDragonPart";
-    }
-
-    @Override
     public void damage(double amount, DamageSource damageSource) {
-        getParent().damage(amount, damageSource);
+        this.getParent().damage(amount, damageSource);
     }
 
     @Override
     public void damage(double amount) {
-        getParent().damage(amount);
+        this.getParent().damage(amount);
     }
 
     @Override
     public void damage(double amount, Entity source) {
-        getParent().damage(amount, source);
+        this.getParent().damage(amount, source);
+    }
+
+    @Override
+    public void kill(DamageSource damageSource) {
+        this.getParent().kill(damageSource);
     }
 
     @Override
     public double getHealth() {
-        return getParent().getHealth();
+        return this.getParent().getHealth();
     }
 
     @Override
     public void setHealth(double health) {
-        getParent().setHealth(health);
+        this.getParent().setHealth(health);
+    }
+
+    @Override
+    public void heal(final double amount, final org.bukkit.event.entity.EntityRegainHealthEvent.RegainReason reason) {
+        this.getParent().heal(amount, reason);
     }
 
     @Override
     public double getAbsorptionAmount() {
-        return getParent().getAbsorptionAmount();
+        return this.getParent().getAbsorptionAmount();
     }
 
     @Override
     public void setAbsorptionAmount(double amount) {
-        getParent().setAbsorptionAmount(amount);
+        this.getParent().setAbsorptionAmount(amount);
     }
 
     @Override
     public double getMaxHealth() {
-        return getParent().getMaxHealth();
+        return this.getParent().getMaxHealth();
     }
 
     @Override
     public void setMaxHealth(double health) {
-        getParent().setMaxHealth(health);
+        this.getParent().setMaxHealth(health);
     }
 
     @Override
     public void resetMaxHealth() {
-        getParent().resetMaxHealth();
+        this.getParent().resetMaxHealth();
     }
 }

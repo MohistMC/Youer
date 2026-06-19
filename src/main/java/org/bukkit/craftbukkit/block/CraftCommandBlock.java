@@ -6,10 +6,10 @@ import org.bukkit.World;
 import org.bukkit.block.CommandBlock;
 import org.bukkit.craftbukkit.util.CraftChatMessage;
 
-public class CraftCommandBlock extends CraftBlockEntityState<CommandBlockEntity> implements CommandBlock {
+public class CraftCommandBlock extends CraftBlockEntityState<CommandBlockEntity> implements CommandBlock, io.papermc.paper.commands.PaperCommandBlockHolder {
 
-    public CraftCommandBlock(World world, CommandBlockEntity tileEntity) {
-        super(world, tileEntity);
+    public CraftCommandBlock(World world, CommandBlockEntity blockEntity) {
+        super(world, blockEntity);
     }
 
     protected CraftCommandBlock(CraftCommandBlock state, Location location) {
@@ -18,22 +18,22 @@ public class CraftCommandBlock extends CraftBlockEntityState<CommandBlockEntity>
 
     @Override
     public String getCommand() {
-        return getSnapshot().getCommandBlock().getCommand();
+        return this.getSnapshot().getCommandBlock().getCommand();
     }
 
     @Override
     public void setCommand(String command) {
-        getSnapshot().getCommandBlock().setCommand(command != null ? command : "");
+        this.getSnapshot().getCommandBlock().setCommand(command != null ? command : "");
     }
 
     @Override
     public String getName() {
-        return CraftChatMessage.fromComponent(getSnapshot().getCommandBlock().getName());
+        return CraftChatMessage.fromComponent(this.getSnapshot().getCommandBlock().getName());
     }
 
     @Override
     public void setName(String name) {
-        getSnapshot().getCommandBlock().setCustomName(CraftChatMessage.fromStringOrNull(name != null ? name : "@"));
+        this.getSnapshot().getCommandBlock().setCustomName(CraftChatMessage.fromStringOrNull(name));
     }
 
     @Override
@@ -44,5 +44,20 @@ public class CraftCommandBlock extends CraftBlockEntityState<CommandBlockEntity>
     @Override
     public CraftCommandBlock copy(Location location) {
         return new CraftCommandBlock(this, location);
+    }
+
+    @Override
+    public net.kyori.adventure.text.Component name() {
+        return io.papermc.paper.adventure.PaperAdventure.asAdventure(this.getSnapshot().getCommandBlock().getName());
+    }
+
+    @Override
+    public void name(net.kyori.adventure.text.Component name) {
+        this.getSnapshot().getCommandBlock().setCustomName(io.papermc.paper.adventure.PaperAdventure.asVanilla(name));
+    }
+
+    @Override
+    public net.minecraft.world.level.BaseCommandBlock getCommandBlockHandle() {
+        return this.getSnapshot().getCommandBlock();
     }
 }

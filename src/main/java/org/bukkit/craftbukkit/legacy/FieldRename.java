@@ -1,19 +1,15 @@
 package org.bukkit.craftbukkit.legacy;
 
 import java.util.function.BiFunction;
-import org.bukkit.GameRule;
-import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
-import org.bukkit.Registry;
+import org.bukkit.Sound;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.block.Biome;
 import org.bukkit.block.banner.PatternType;
-import org.bukkit.craftbukkit.CraftRegistry;
 import org.bukkit.craftbukkit.legacy.fieldrename.FieldRenameData;
 import org.bukkit.craftbukkit.legacy.reroute.DoNotReroute;
 import org.bukkit.craftbukkit.legacy.reroute.InjectPluginVersion;
-import org.bukkit.craftbukkit.legacy.reroute.RequireCompatibility;
 import org.bukkit.craftbukkit.legacy.reroute.RerouteMethodName;
 import org.bukkit.craftbukkit.legacy.reroute.RerouteStatic;
 import org.bukkit.craftbukkit.util.ApiVersion;
@@ -36,28 +32,41 @@ public class FieldRename {
         }
 
         return switch (owner) {
-            case "org/bukkit/block/banner/PatternType" -> convertPatternTypeName(apiVersion, from);
-            case "org/bukkit/enchantments/Enchantment" -> convertEnchantmentName(apiVersion, from);
-            case "org/bukkit/block/Biome" -> convertBiomeName(apiVersion, from);
-            case "org/bukkit/entity/EntityType" -> convertEntityTypeName(apiVersion, from);
-            case "org/bukkit/potion/PotionEffectType" -> convertPotionEffectTypeName(apiVersion, from);
-            case "org/bukkit/potion/PotionType" -> convertPotionTypeName(apiVersion, from);
-            case "org/bukkit/MusicInstrument" -> convertMusicInstrumentName(apiVersion, from);
-            case "org/bukkit/Particle" -> convertParticleName(apiVersion, from);
-            case "org/bukkit/loot/LootTables" -> convertLootTablesName(apiVersion, from);
-            case "org/bukkit/attribute/Attribute" -> convertAttributeName(apiVersion, from).replace('.', '_');
-            case "org/bukkit/map/MapCursor$Type" -> convertMapCursorTypeName(apiVersion, from);
-            case "org/bukkit/inventory/ItemFlag" -> convertItemFlagName(apiVersion, from);
-            case "org/bukkit/inventory/BlockType" -> convertBlockTypeName(apiVersion, from);
-            case "org/bukkit/inventory/ItemType" -> convertItemTypeName(apiVersion, from);
+            case "org/bukkit/scoreboard/DisplaySlot" -> FieldRename.convertDisplaySlot(from); // Paper - DisplaySlot
+            case "org/bukkit/block/banner/PatternType" -> FieldRename.convertPatternTypeName(apiVersion, from);
+            case "org/bukkit/enchantments/Enchantment" -> FieldRename.convertEnchantmentName(apiVersion, from);
+            case "org/bukkit/block/Biome" -> FieldRename.convertBiomeName(apiVersion, from);
+            case "org/bukkit/entity/EntityType" -> FieldRename.convertEntityTypeName(apiVersion, from);
+            case "org/bukkit/potion/PotionEffectType" -> FieldRename.convertPotionEffectTypeName(apiVersion, from);
+            case "org/bukkit/potion/PotionType" -> FieldRename.convertPotionTypeName(apiVersion, from);
+            case "org/bukkit/MusicInstrument" -> FieldRename.convertMusicInstrumentName(apiVersion, from);
+            case "org/bukkit/Particle" -> FieldRename.convertParticleName(apiVersion, from);
+            case "org/bukkit/loot/LootTables" -> FieldRename.convertLootTablesName(apiVersion, from);
+            case "org/bukkit/attribute/Attribute" -> FieldRename.convertAttributeName(apiVersion, from).replace('.', '_');
+            case "org/bukkit/map/MapCursor$Type" -> FieldRename.convertMapCursorTypeName(apiVersion, from);
+            case "org/bukkit/inventory/ItemFlag" -> FieldRename.convertItemFlagName(apiVersion, from);
+            case "org/bukkit/Sound" -> FieldRename.convertSoundName(apiVersion, from);
+            case "org/bukkit/inventory/ItemType" -> FieldRename.convertItemTypeName(apiVersion, from);
+            case "org/bukkit/block/BlockType" -> FieldRename.convertBlockTypeName(apiVersion, from);
             default -> from;
         };
     }
 
-    @RequireCompatibility("allow-old-keys-in-registry")
-    public static <T extends Keyed> T get(Registry<T> registry, NamespacedKey namespacedKey) {
-        // We don't have version-specific changes, so just use current, and don't inject a version
-        return CraftRegistry.get(registry, namespacedKey, ApiVersion.CURRENT);
+    // Paper start - absolutely not, having this as an expectation for plugin developers opens a huge
+    // can of worms in the future, especially if mojang comes back and reuses some old key
+    //@RequireCompatibility("allow-old-keys-in-registry")
+    //public static <T extends Keyed> T get(Registry<T> registry, NamespacedKey namespacedKey) {
+    //    // We don't have version-specific changes, so just use current, and don't inject a version
+    //    return CraftRegistry.get(registry, namespacedKey, ApiVersion.CURRENT);
+    //}
+    // Paper end
+
+    @DoNotReroute
+    public static String convertDisplaySlot(final String from) {
+        if (from.startsWith("SIDEBAR_") && !from.startsWith("SIDEBAR_TEAM_")) {
+            return from.replace("SIDEBAR_", "SIDEBAR_TEAM_");
+        }
+        return from;
     }
 
     // PatternType
@@ -76,13 +85,13 @@ public class FieldRename {
 
     @DoNotReroute
     public static String convertPatternTypeName(ApiVersion version, String from) {
-        return PATTERN_TYPE_DATA.getReplacement(version, from);
+        return FieldRename.PATTERN_TYPE_DATA.getReplacement(version, from);
     }
 
     @RerouteMethodName("valueOf")
     @RerouteStatic("org/bukkit/block/banner/PatternType")
     public static PatternType valueOf_PatternType(String value, @InjectPluginVersion ApiVersion version) {
-        return PatternType.valueOf(convertPatternTypeName(version, value));
+        return PatternType.valueOf(FieldRename.convertPatternTypeName(version, value));
     }
 
     // Enchantment
@@ -115,14 +124,14 @@ public class FieldRename {
 
     @DoNotReroute
     public static String convertEnchantmentName(ApiVersion version, String from) {
-        return ENCHANTMENT_DATA.getReplacement(version, from);
+        return FieldRename.ENCHANTMENT_DATA.getReplacement(version, from);
     }
 
     @RerouteMethodName("getByName")
     @RerouteStatic("org/bukkit/enchantments/Enchantment")
     public static Enchantment getByName_Enchantment(String name) {
         // We don't have version-specific changes, so just use current, and don't inject a version
-        return Enchantment.getByName(convertEnchantmentName(ApiVersion.CURRENT, name));
+        return Enchantment.getByName(FieldRename.convertEnchantmentName(ApiVersion.CURRENT, name));
     }
 
     // Biome
@@ -147,14 +156,14 @@ public class FieldRename {
 
     @DoNotReroute
     public static String convertBiomeName(ApiVersion version, String from) {
-        return BIOME_DATA.getReplacement(version, from);
+        return FieldRename.BIOME_DATA.getReplacement(version, from);
     }
 
     @RerouteMethodName("valueOf")
     @RerouteStatic("org/bukkit/block/Biome")
     public static Biome valueOf_Biome(String name) {
         // We don't have version-specific changes, so just use current, and don't inject a version
-        return Biome.valueOf(convertBiomeName(ApiVersion.CURRENT, name));
+        return Biome.valueOf(FieldRename.convertBiomeName(ApiVersion.CURRENT, name));
     }
 
     // EntityType
@@ -200,21 +209,21 @@ public class FieldRename {
 
     @DoNotReroute
     public static String convertEntityTypeName(ApiVersion version, String from) {
-        return ENTITY_TYPE_DATA.getReplacement(version, from);
+        return FieldRename.ENTITY_TYPE_DATA.getReplacement(version, from);
     }
 
     @RerouteMethodName("valueOf")
     @RerouteStatic("org/bukkit/entity/EntityType")
     public static EntityType valueOf_EntityType(String name) {
         // We don't have version-specific changes, so just use current, and don't inject a version
-        return EntityType.valueOf(convertEntityTypeName(ApiVersion.CURRENT, name));
+        return EntityType.valueOf(FieldRename.convertEntityTypeName(ApiVersion.CURRENT, name));
     }
 
     @RerouteMethodName("fromName")
     @RerouteStatic("org/bukkit/entity/EntityType")
     public static EntityType fromName_EntityType(String name) {
         // We don't have version-specific changes, so just use current, and don't inject a version
-        return EntityType.fromName(convertEntityTypeName(ApiVersion.CURRENT, name));
+        return EntityType.fromName(FieldRename.convertEntityTypeName(ApiVersion.CURRENT, name));
     }
 
     // PotionEffectType
@@ -233,14 +242,14 @@ public class FieldRename {
 
     @DoNotReroute
     public static String convertPotionEffectTypeName(ApiVersion version, String from) {
-        return POTION_EFFECT_TYPE_DATA.getReplacement(version, from);
+        return FieldRename.POTION_EFFECT_TYPE_DATA.getReplacement(version, from);
     }
 
     @RerouteMethodName("getByName")
     @RerouteStatic("org/bukkit/potion/PotionEffectType")
     public static PotionEffectType getByName_PotionEffectType(String name) {
         // We don't have version-specific changes, so just use current, and don't inject a version
-        return PotionEffectType.getByName(convertPotionEffectTypeName(ApiVersion.CURRENT, name));
+        return PotionEffectType.getByName(FieldRename.convertPotionEffectTypeName(ApiVersion.CURRENT, name));
     }
 
     // PotionType
@@ -255,14 +264,14 @@ public class FieldRename {
 
     @DoNotReroute
     public static String convertPotionTypeName(ApiVersion version, String from) {
-        return POTION_TYPE_DATA.getReplacement(version, from);
+        return FieldRename.POTION_TYPE_DATA.getReplacement(version, from);
     }
 
     @RerouteMethodName("valueOf")
     @RerouteStatic("org/bukkit/potion/PotionType")
     public static PotionType valueOf_PotionType(String name) {
         // We don't have version-specific changes, so just use current, and don't inject a version
-        return PotionType.valueOf(convertPotionTypeName(ApiVersion.CURRENT, name));
+        return PotionType.valueOf(FieldRename.convertPotionTypeName(ApiVersion.CURRENT, name));
     }
 
     // MusicInstrument
@@ -271,6 +280,7 @@ public class FieldRename {
             .change("PONDER", "PONDER_GOAT_HORN")
             .change("SING", "SING_GOAT_HORN")
             .change("SEEK", "SEEK_GOAT_HORN")
+            .change("FEEL", "FEEL_GOAT_HORN")
             .change("ADMIRE", "ADMIRE_GOAT_HORN")
             .change("CALL", "CALL_GOAT_HORN")
             .change("YEARN", "YEARN_GOAT_HORN")
@@ -279,7 +289,7 @@ public class FieldRename {
 
     @DoNotReroute
     public static String convertMusicInstrumentName(ApiVersion version, String from) {
-        return MUSIC_INSTRUMENT_DATA.getReplacement(version, from);
+        return FieldRename.MUSIC_INSTRUMENT_DATA.getReplacement(version, from);
     }
 
     // Particle
@@ -325,14 +335,14 @@ public class FieldRename {
 
     @DoNotReroute
     public static String convertParticleName(ApiVersion version, String from) {
-        return PARTICLE_DATA.getReplacement(version, from);
+        return FieldRename.PARTICLE_DATA.getReplacement(version, from);
     }
 
     @RerouteMethodName("valueOf")
     @RerouteStatic("org/bukkit/Particle")
     public static Particle valueOf_Particle(String name) {
         // We don't have version-specific changes, so just use current, and don't inject a version
-        return Particle.valueOf(convertParticleName(ApiVersion.CURRENT, name));
+        return Particle.valueOf(FieldRename.convertParticleName(ApiVersion.CURRENT, name));
     }
 
     // LootTables
@@ -343,14 +353,14 @@ public class FieldRename {
 
     @DoNotReroute
     public static String convertLootTablesName(ApiVersion version, String from) {
-        return LOOT_TABLES_DATA.getReplacement(version, from);
+        return FieldRename.LOOT_TABLES_DATA.getReplacement(version, from);
     }
 
     @RerouteMethodName("valueOf")
     @RerouteStatic("org/bukkit/loot/LootTables")
     public static LootTables valueOf_LootTables(String name) {
         // We don't have version-specific changes, so just use current, and don't inject a version
-        return LootTables.valueOf(convertLootTablesName(ApiVersion.CURRENT, name));
+        return LootTables.valueOf(FieldRename.convertLootTablesName(ApiVersion.CURRENT, name));
     }
 
     // Attribute
@@ -396,14 +406,14 @@ public class FieldRename {
 
     @DoNotReroute
     public static String convertAttributeName(ApiVersion version, String from) {
-        return ATTRIBUTE_DATA.getReplacement(version, from);
+        return FieldRename.ATTRIBUTE_DATA.getReplacement(version, from);
     }
 
     @RerouteMethodName("valueOf")
     @RerouteStatic("org/bukkit/attribute/Attribute")
     public static Attribute valueOf_Attribute(String name) {
         // We don't have version-specific changes, so just use current, and don't inject a version
-        return Attribute.valueOf(convertAttributeName(ApiVersion.CURRENT, name).replace('.', '_'));
+        return Attribute.valueOf(FieldRename.convertAttributeName(ApiVersion.CURRENT, name).replace('.', '_'));
     }
 
     // MapCursor Type
@@ -428,167 +438,68 @@ public class FieldRename {
 
     @DoNotReroute
     public static String convertMapCursorTypeName(ApiVersion version, String from) {
-        return MAP_CURSOR_TYPE_DATA.getReplacement(version, from);
+        return FieldRename.MAP_CURSOR_TYPE_DATA.getReplacement(version, from);
     }
 
     @RerouteMethodName("valueOf")
     @RerouteStatic("org/bukkit/map/MapCursor$Type")
     public static MapCursor.Type valueOf_MapCursorType(String name, @InjectPluginVersion ApiVersion version) {
-        return MapCursor.Type.valueOf(convertMapCursorTypeName(version, name));
+        return MapCursor.Type.valueOf(FieldRename.convertMapCursorTypeName(version, name));
     }
 
     // ItemFlag
     private static final FieldRenameData ITEM_FLAG_DATA = FieldRenameData.Builder.newBuilder()
             .forAllVersions()
             .change("HIDE_POTION_EFFECTS", "HIDE_ADDITIONAL_TOOLTIP")
+            .change("HIDE_ITEM_SPECIFICS", "HIDE_ADDITIONAL_TOOLTIP")
             .build();
 
     @DoNotReroute
     public static String convertItemFlagName(ApiVersion version, String from) {
-        return ITEM_FLAG_DATA.getReplacement(version, from);
+        return FieldRename.ITEM_FLAG_DATA.getReplacement(version, from);
     }
 
     @RerouteMethodName("valueOf")
     @RerouteStatic("org/bukkit/inventory/ItemFlag")
     public static ItemFlag valueOf_ItemFlag(String name) {
         // We don't have version-specific changes, so just use current, and don't inject a version
-        return ItemFlag.valueOf(convertItemFlagName(ApiVersion.CURRENT, name));
+        return ItemFlag.valueOf(FieldRename.convertItemFlagName(ApiVersion.CURRENT, name));
     }
 
-    // BlockType
-    private static final FieldRenameData BLOCK_TYPE_DATA = FieldRenameData.Builder.newBuilder()
-            .forAllVersions()
-            .withKeyRename()
-            .change("CHAIN", "IRON_CHAIN")
-            .build();
-
-    public static final BiFunction<NamespacedKey, ApiVersion, NamespacedKey> BLOCK_TYPE_RENAME = BLOCK_TYPE_DATA::getReplacement;
+    // Sound
+    private static final FieldRenameData SOUND_DATA = FieldRenameData.Builder.newBuilder()
+        .forAllVersions()
+        .change("ENTITY_LEASH_KNOT_PLACE", "ITEM_LEAD_TIED")
+        .change("ENTITY_LEASH_KNOT_BREAK", "ITEM_LEAD_BREAK")
+        .build();
 
     @DoNotReroute
-    public static String convertBlockTypeName(ApiVersion version, String from) {
-        return BLOCK_TYPE_DATA.getReplacement(version, from);
+    public static String convertSoundName(ApiVersion version, String from) {
+        return FieldRename.SOUND_DATA.getReplacement(version, from);
+    }
+
+    @RerouteMethodName("valueOf")
+    @RerouteStatic("org/bukkit/Sound")
+    public static Sound valueOf_Sound(String name) {
+        return Sound.valueOf(FieldRename.convertSoundName(ApiVersion.CURRENT, name));
     }
 
     // ItemType
     private static final FieldRenameData ITEM_TYPE_DATA = FieldRenameData.Builder.newBuilder()
-            .forAllVersions()
-            .withKeyRename()
-            .change("CHAIN", "IRON_CHAIN")
-            .build();
-
-    public static final BiFunction<NamespacedKey, ApiVersion, NamespacedKey> ITEM_TYPE_RENAME = ITEM_TYPE_DATA::getReplacement;
+        .forAllVersions()
+        .change("CHAIN", "IRON_CHAIN")
+        .build();
 
     @DoNotReroute
     public static String convertItemTypeName(ApiVersion version, String from) {
-        return ITEM_TYPE_DATA.getReplacement(version, from);
+        return FieldRename.ITEM_TYPE_DATA.getReplacement(version, from);
     }
 
-    // Gamerule
-    private static final FieldRenameData GAME_RULE_DATA = FieldRenameData.Builder.newBuilder()
-            .forAllVersions()
-            .withKeyRename()
-            // 1.21.9 fields and rule names
-            .change("ENABLE_COMMAND_BLOCKS", "COMMAND_BLOCKS_WORK")
-            .change("enableCommandBlocks", "command_blocks_work")
-            // 1.21.10 fields to 1.21.11 fields
-            .change("ANNOUNCE_ADVANCEMENTS", "SHOW_ADVANCEMENT_MESSAGES")
-            .change("DISABLE_PLAYER_MOVEMENT_CHECK", "PLAYER_MOVEMENT_CHECK")
-            .change("DISABLE_ELYTRA_MOVEMENT_CHECK", "ELYTRA_MOVEMENT_CHECK")
-            .change("DO_DAYLIGHT_CYCLE", "ADVANCE_TIME")
-            .change("DO_ENTITY_DROPS", "ENTITY_DROPS")
-            .change("DO_LIMITED_CRAFTING", "LIMITED_CRAFTING")
-            .change("DO_MOB_LOOT", "MOB_DROPS")
-            .change("DO_MOB_SPAWNING", "SPAWN_MOBS")
-            .change("DO_TILE_DROPS", "BLOCK_DROPS")
-            .change("DO_WEATHER_CYCLE", "ADVANCE_WEATHER")
-            .change("NATURAL_REGENERATION", "NATURAL_HEALTH_REGENERATION")
-            .change("DISABLE_RAIDS", "RAIDS")
-            .change("DO_INSOMNIA", "SPAWN_PHANTOMS")
-            .change("DO_IMMEDIATE_RESPAWN", "IMMEDIATE_RESPAWN")
-            .change("DO_PATROL_SPAWNING", "SPAWN_PATROLS")
-            .change("DO_TRADER_SPAWNING", "SPAWN_WANDERING_TRADERS")
-            .change("DO_WARDEN_SPAWNING", "SPAWN_WARDENS")
-            .change("DO_VINES_SPREAD", "SPREAD_VINES")
-            .change("COMMAND_BLOCKS_ENABLED", "COMMAND_BLOCKS_WORK")
-            .change("SPAWNER_BLOCKS_ENABLED", "SPAWNER_BLOCKS_WORK")
-            .change("SPAWN_RADIUS", "RESPAWN_RADIUS")
-            .change("MAX_COMMAND_CHAIN_LENGTH", "MAX_COMMAND_SEQUENCE_LENGTH")
-            .change("MAX_COMMAND_FORK_COUNT", "MAX_COMMAND_FORKS")
-            .change("COMMAND_MODIFICATION_BLOCK_LIMIT", "MAX_BLOCK_MODIFICATIONS")
-            .change("SNOW_ACCUMULATION_HEIGHT", "MAX_SNOW_ACCUMULATION_HEIGHT")
-            .change("MINECART_MAX_SPEED", "MAX_MINECART_SPEED")
-            // 1.21.10 rule names to 1.21.11 rule names
-            .change("announceAdvancements", "show_advancement_messages")
-            .change("commandBlockOutput", "command_block_output")
-            .change("disablePlayerMovementCheck", "player_movement_check")
-            .change("disableElytraMovementCheck", "elytra_movement_check")
-            .change("doDaylightCycle", "advance_time")
-            .change("doEntityDrops", "entity_drops")
-            .change("doLimitedCrafting", "limited_crafting")
-            .change("doMobLoot", "mob_drops")
-            .change("projectilesCanBreakBlocks", "projectiles_can_break_blocks")
-            .change("doMobSpawning", "spawn_mobs")
-            .change("doTileDrops", "block_drops")
-            .change("doWeatherCycle", "advance_weather")
-            .change("keepInventory", "keep_inventory")
-            .change("logAdminCommands", "log_admin_commands")
-            .change("mobGriefing", "mob_griefing")
-            .change("naturalRegeneration", "natural_health_regeneration")
-            .change("reducedDebugInfo", "reduced_debug_info")
-            .change("sendCommandFeedback", "send_command_feedback")
-            .change("showDeathMessages", "show_death_messages")
-            .change("spectatorsGenerateChunks", "spectators_generate_chunks")
-            .change("disableRaids", "raids")
-            .change("doInsomnia", "spawn_phantoms")
-            .change("doImmediateRespawn", "immediate_respawn")
-            .change("drowningDamage", "drowning_damage")
-            .change("fallDamage", "fall_damage")
-            .change("fireDamage", "fire_damage")
-            .change("freezeDamage", "freeze_damage")
-            .change("doPatrolSpawning", "spawn_patrols")
-            .change("doTraderSpawning", "spawn_wandering_traders")
-            .change("doWardenSpawning", "spawn_wardens")
-            .change("forgiveDeadPlayers", "forgive_dead_players")
-            .change("universalAnger", "universal_anger")
-            .change("blockExplosionDropDecay", "block_explosion_drop_decay")
-            .change("mobExplosionDropDecay", "mob_explosion_drop_decay")
-            .change("tntExplosionDropDecay", "tnt_explosion_drop_decay")
-            .change("waterSourceConversion", "water_source_conversion")
-            .change("lavaSourceConversion", "lava_source_conversion")
-            .change("globalSoundEvents", "global_sound_events")
-            .change("doVinesSpread", "spread_vines")
-            .change("enderPearlsVanishOnDeath", "ender_pearls_vanish_on_death")
-            .change("tntExplodes", "tnt_explodes")
-            .change("locatorBar", "locator_bar")
-            .change("allowEnteringNetherUsingPortals", "allow_entering_nether_using_portals")
-            .change("spawnMonsters", "spawn_monsters")
-            .change("commandBlocksEnabled", "command_blocks_work")
-            .change("spawnerBlocksEnabled", "spawner_blocks_work")
-            .change("randomTickSpeed", "random_tick_speed")
-            .change("spawnRadius", "respawn_radius")
-            .change("maxEntityCramming", "max_entity_cramming")
-            .change("maxCommandChainLength", "max_command_sequence_length")
-            .change("maxCommandForkCount", "max_command_forks")
-            .change("commandModificationBlockLimit", "max_block_modifications")
-            .change("playersSleepingPercentage", "players_sleeping_percentage")
-            .change("snowAccumulationHeight", "max_snow_accumulation_height")
-            .change("playersNetherPortalDefaultDelay", "players_nether_portal_default_delay")
-            .change("playersNetherPortalCreativeDelay", "players_nether_portal_creative_delay")
-            .change("minecartMaxSpeed", "max_minecart_speed")
-            .change("fire_spread_radius_around_player", "fire_spread_radius_around_player")
-            .build();
-
-    public static final BiFunction<NamespacedKey, ApiVersion, NamespacedKey> GAME_RULE_RENAME = GAME_RULE_DATA::getReplacement;
+    // BlockType
+    private static final FieldRenameData BLOCK_TYPE_DATA = ITEM_TYPE_DATA;
 
     @DoNotReroute
-    public static String convertGameRuleName(ApiVersion version, String from) {
-        return GAME_RULE_DATA.getReplacement(version, from);
-    }
-
-    @RerouteMethodName("getByName")
-    @RerouteStatic("org/bukkit/GameRule")
-    public static GameRule<?> getByName_GameRule(String name) {
-        // We don't have version-specific changes, so just use current, and don't inject a version
-        return GameRule.getByName(convertGameRuleName(ApiVersion.CURRENT, name));
+    public static String convertBlockTypeName(ApiVersion version, String from) {
+        return FieldRename.BLOCK_TYPE_DATA.getReplacement(version, from);
     }
 }

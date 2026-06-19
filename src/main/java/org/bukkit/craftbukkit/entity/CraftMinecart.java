@@ -1,9 +1,10 @@
 package org.bukkit.craftbukkit.entity;
 
-import java.util.Optional;
+import com.google.common.base.Preconditions;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
 import net.minecraft.world.level.block.state.BlockState;
+import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.block.data.CraftBlockData;
@@ -11,120 +12,118 @@ import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 import org.bukkit.entity.Minecart;
 import org.bukkit.material.MaterialData;
 import org.bukkit.util.Vector;
+import java.util.Optional;
 
 public abstract class CraftMinecart extends CraftVehicle implements Minecart {
+
     public CraftMinecart(CraftServer server, AbstractMinecart entity) {
         super(server, entity);
     }
 
     @Override
+    public AbstractMinecart getHandle() {
+        return (AbstractMinecart) this.entity;
+    }
+
+    @Override
     public void setDamage(double damage) {
-        getHandle().setDamage((float) damage);
+        this.getHandle().setDamage((float) damage);
     }
 
     @Override
     public double getDamage() {
-        return getHandle().getDamage();
+        return this.getHandle().getDamage();
     }
 
     @Override
     public double getMaxSpeed() {
-        return getHandle().getBehavior().getMaxSpeed((ServerLevel) getHandle().level());
+        return this.getHandle().getBehavior().getMaxSpeed((ServerLevel) this.getHandle().level());
     }
 
     @Override
     public void setMaxSpeed(double speed) {
-        if (speed >= 0D) {
-            getHandle().maxSpeed = speed;
+        if (speed >= 0) {
+            this.getHandle().maxSpeed = speed;
         }
     }
 
     @Override
     public boolean isSlowWhenEmpty() {
-        return getHandle().slowWhenEmpty;
+        return this.getHandle().slowWhenEmpty;
     }
 
     @Override
     public void setSlowWhenEmpty(boolean slow) {
-        getHandle().slowWhenEmpty = slow;
+        this.getHandle().slowWhenEmpty = slow;
     }
 
     @Override
     public Vector getFlyingVelocityMod() {
-        return getHandle().getFlyingVelocityMod();
+        return this.getHandle().getFlyingVelocityMod();
     }
 
     @Override
     public void setFlyingVelocityMod(Vector flying) {
-        getHandle().setFlyingVelocityMod(flying);
+        this.getHandle().setFlyingVelocityMod(flying);
     }
 
     @Override
     public Vector getDerailedVelocityMod() {
-        return getHandle().getDerailedVelocityMod();
+        return this.getHandle().getDerailedVelocityMod();
     }
 
     @Override
     public void setDerailedVelocityMod(Vector derailed) {
-        getHandle().setDerailedVelocityMod(derailed);
+        this.getHandle().setDerailedVelocityMod(derailed);
     }
 
+    // Paper start
     @Override
-    public AbstractMinecart getHandle() {
-        return (AbstractMinecart) entity;
+    public Material getMinecartMaterial() {
+        return CraftMagicNumbers.getMaterial(this.getHandle().getDropItem());
     }
+    // Paper end
 
     @Override
     public void setDisplayBlock(MaterialData material) {
-        if (material != null) {
-            BlockState block = CraftMagicNumbers.getBlock(material);
-            this.getHandle().setCustomDisplayBlockState(Optional.of(block));
-        } else {
-            // Set block to air (default) and set the flag to not have a display block.
-            this.getHandle().setCustomDisplayBlockState(Optional.empty());
-        }
+        this.getHandle().setCustomDisplayBlockState(Optional.ofNullable(material).map(CraftMagicNumbers::getBlock));
     }
 
     @Override
     public void setDisplayBlockData(BlockData blockData) {
-        if (blockData != null) {
-            BlockState block = ((CraftBlockData) blockData).getState();
-            this.getHandle().setCustomDisplayBlockState(Optional.of(block));
-        } else {
-            // Set block to air (default) and set the flag to not have a display block.
-            this.getHandle().setCustomDisplayBlockState(Optional.empty());
-        }
+        this.getHandle().setCustomDisplayBlockState(Optional.ofNullable(blockData).map(data -> ((CraftBlockData) data).getState()));
     }
 
     @Override
     public MaterialData getDisplayBlock() {
-        BlockState blockData = getHandle().getDisplayBlockState();
-        return CraftMagicNumbers.getMaterial(blockData);
+        BlockState state = this.getHandle().getDisplayBlockState();
+        return CraftMagicNumbers.getMaterial(state);
     }
 
     @Override
     public BlockData getDisplayBlockData() {
-        BlockState blockData = getHandle().getDisplayBlockState();
-        return CraftBlockData.fromData(blockData);
+        return this.getHandle().getDisplayBlockState().asBlockData();
     }
 
     @Override
     public void setDisplayBlockOffset(int offset) {
-        getHandle().setDisplayOffset(offset);
+        this.getHandle().setDisplayOffset(offset);
     }
 
     @Override
     public int getDisplayBlockOffset() {
-        return getHandle().getDisplayOffset();
+        return this.getHandle().getDisplayOffset();
+    }
+
+    @org.jetbrains.annotations.NotNull
+    @Override
+    public net.kyori.adventure.util.TriState getFrictionState() {
+        return this.getHandle().frictionState;
     }
 
     @Override
-    public double getPoweredRailAccelerationMultiplier() {
-        return getHandle().powRailAccelMult;
-    }
-
-    @Override
-    public void setPoweredRailAccelerationMultiplier(double multiplier) {
-        getHandle().powRailAccelMult = multiplier;
+    public void setFrictionState(@org.jetbrains.annotations.NotNull net.kyori.adventure.util.TriState state) {
+        Preconditions.checkArgument(state != null, "state may not be null");
+        this.getHandle().frictionState = state;
     }
 }

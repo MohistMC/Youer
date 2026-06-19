@@ -13,8 +13,8 @@ public abstract class CraftTag<N, B extends Keyed> implements Tag<B> {
 
     protected final Registry<N> registry;
     protected final TagKey<N> tag;
-    //
-    private HolderSet.Named<N> handle;
+
+    private final HolderSet.Named<N> handle;
 
     public CraftTag(Registry<N> registry, TagKey<N> tag) {
         this.registry = registry;
@@ -23,12 +23,12 @@ public abstract class CraftTag<N, B extends Keyed> implements Tag<B> {
     }
 
     public HolderSet.Named<N> getHandle() {
-        return handle;
+        return this.handle;
     }
 
     @Override
     public NamespacedKey getKey() {
-        return CraftNamespacedKey.fromMinecraft(tag.location());
+        return CraftNamespacedKey.fromMinecraft(this.tag.location());
     }
 
     @Override

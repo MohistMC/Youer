@@ -10,11 +10,6 @@ public class CraftBlaze extends CraftMonster implements Blaze {
 
     @Override
     public net.minecraft.world.entity.monster.Blaze getHandle() {
-        return (net.minecraft.world.entity.monster.Blaze) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftBlaze";
+        return (net.minecraft.world.entity.monster.Blaze) this.entity;
     }
 }

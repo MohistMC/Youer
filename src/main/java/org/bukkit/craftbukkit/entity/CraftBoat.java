@@ -1,24 +1,26 @@
 package org.bukkit.craftbukkit.entity;
 
-import com.google.common.base.Preconditions;
-import java.util.stream.Collectors;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
 import org.bukkit.TreeSpecies;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Boat;
-import org.bukkit.entity.Entity;
 
-public abstract class CraftBoat extends CraftVehicle implements Boat {
+public abstract class CraftBoat extends CraftVehicle implements Boat, io.papermc.paper.entity.PaperLeashable { // Paper - Leashable API
 
     public CraftBoat(CraftServer server, AbstractBoat entity) {
         super(server, entity);
     }
 
     @Override
+    public AbstractBoat getHandle() {
+        return (AbstractBoat) this.entity;
+    }
+
+    @Override
     public TreeSpecies getWoodType() {
-        return getTreeSpecies(getHandle().getType());
+        return CraftBoat.getTreeSpecies(this.getHandle().getType());
     }
 
     @Override
@@ -28,7 +30,7 @@ public abstract class CraftBoat extends CraftVehicle implements Boat {
 
     @Override
     public Type getBoatType() {
-        return boatTypeFromNms(getHandle().getType());
+        return CraftBoat.boatTypeFromNms(this.getHandle().getType());
     }
 
     @Override
@@ -38,99 +40,66 @@ public abstract class CraftBoat extends CraftVehicle implements Boat {
 
     @Override
     public double getMaxSpeed() {
-        return getHandle().maxSpeed;
+        return this.getHandle().maxSpeed;
     }
 
     @Override
     public void setMaxSpeed(double speed) {
-        if (speed >= 0D) {
-            getHandle().maxSpeed = speed;
+        if (speed >= 0) {
+            this.getHandle().maxSpeed = speed;
         }
     }
 
     @Override
     public double getOccupiedDeceleration() {
-        return getHandle().occupiedDeceleration;
+        return this.getHandle().occupiedDeceleration;
     }
 
     @Override
     public void setOccupiedDeceleration(double speed) {
-        if (speed >= 0D) {
-            getHandle().occupiedDeceleration = speed;
+        if (speed >= 0) {
+            this.getHandle().occupiedDeceleration = speed;
         }
     }
 
     @Override
     public double getUnoccupiedDeceleration() {
-        return getHandle().unoccupiedDeceleration;
+        return this.getHandle().unoccupiedDeceleration;
     }
 
     @Override
     public void setUnoccupiedDeceleration(double speed) {
-        getHandle().unoccupiedDeceleration = speed;
+        this.getHandle().unoccupiedDeceleration = speed;
     }
 
     @Override
     public boolean getWorkOnLand() {
-        return getHandle().landBoats;
+        return this.getHandle().landBoats;
     }
 
     @Override
     public void setWorkOnLand(boolean workOnLand) {
-        getHandle().landBoats = workOnLand;
+        this.getHandle().landBoats = workOnLand;
+    }
+
+    @Override
+    public org.bukkit.Material getBoatMaterial() {
+        return org.bukkit.craftbukkit.util.CraftMagicNumbers.getMaterial(this.getHandle().getDropItem());
     }
 
     @Override
     public Status getStatus() {
-        return boatStatusFromNms(getHandle().status);
-    }
+        final net.minecraft.world.entity.vehicle.boat.AbstractBoat handle = this.getHandle();
+        AbstractBoat.Status status = this.getHandle().status;
+        if (status == null) {
+            if (!handle.valid) {
+                return Status.NOT_IN_WORLD;
+            }
 
-    @Override
-    public boolean isLeashed() {
-        return getHandle().getLeashHolder() != null;
-    }
-
-    @Override
-    public Entity getLeashHolder() throws IllegalStateException {
-        Preconditions.checkState(isLeashed(), "Entity not leashed");
-        return getHandle().getLeashHolder().getBukkitEntity();
-    }
-
-    private boolean unleash() {
-        if (!isLeashed()) {
-            return false;
+            // Don't actually set the status because it would skew the old status check in the next tick
+            status = handle.getStatus();
         }
-        getHandle().removeLeash();
-        return true;
-    }
-
-    @Override
-    public boolean setLeashHolder(Entity holder) {
-        if (getHandle().generation) {
-            return false;
-        }
-
-        if (holder == null) {
-            return unleash();
-        }
-
-        if (holder.isDead()) {
-            return false;
-        }
-
-        unleash();
-        getHandle().setLeashedTo(((CraftEntity) holder).getHandle(), true);
-        return true;
-    }
-
-    @Override
-    public AbstractBoat getHandle() {
-        return (AbstractBoat) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftBoat{boatType=" + getBoatType() + ",status=" + getStatus() + ",passengers=" + getPassengers().stream().map(Entity::toString).collect(Collectors.joining("-", "{", "}")) + "}";
+        return CraftBoat.boatStatusFromNms(status);
     }
 
     public static Boat.Type boatTypeFromNms(EntityType<?> boatType) {
@@ -173,7 +142,7 @@ public abstract class CraftBoat extends CraftVehicle implements Boat {
         throw new EnumConstantNotPresentException(Type.class, boatType.toString());
     }
 
-    public static Status boatStatusFromNms(AbstractBoat.Status enumStatus) {
+    public static Status boatStatusFromNms(net.minecraft.world.entity.vehicle.boat.AbstractBoat.Status enumStatus) { // Paper - remap fixes
         return switch (enumStatus) {
             default -> throw new EnumConstantNotPresentException(Status.class, enumStatus.name());
             case IN_AIR -> Status.IN_AIR;

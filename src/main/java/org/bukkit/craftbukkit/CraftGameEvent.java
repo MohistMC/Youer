@@ -1,81 +1,59 @@
 package org.bukkit.craftbukkit;
 
-import com.google.common.base.Preconditions;
+import io.papermc.paper.util.Holderable;
+import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import org.bukkit.GameEvent;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
-import org.bukkit.craftbukkit.util.Handleable;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-public class CraftGameEvent extends GameEvent implements Handleable<net.minecraft.world.level.gameevent.GameEvent> {
+public class CraftGameEvent extends GameEvent implements Holderable<net.minecraft.world.level.gameevent.GameEvent> {
 
-    public static GameEvent minecraftToBukkit(net.minecraft.world.level.gameevent.GameEvent minecraft) {
-        return CraftRegistry.minecraftToBukkit(minecraft, Registries.GAME_EVENT, Registry.GAME_EVENT);
+    public static GameEvent minecraftHolderToBukkit(Holder<net.minecraft.world.level.gameevent.GameEvent> minecraft) {
+        return CraftRegistry.minecraftHolderToBukkit(minecraft, Registries.GAME_EVENT);
     }
 
-    public static net.minecraft.world.level.gameevent.GameEvent bukkitToMinecraft(GameEvent bukkit) {
-        return CraftRegistry.bukkitToMinecraft(bukkit);
+    public static Holder<net.minecraft.world.level.gameevent.GameEvent> bukkitToMinecraftHolder(GameEvent bukkit) {
+        return CraftRegistry.bukkitToMinecraftHolder(bukkit);
     }
 
-    private final NamespacedKey key;
-    private final net.minecraft.world.level.gameevent.GameEvent handle;
+    private final Holder<net.minecraft.world.level.gameevent.GameEvent> holder;
 
-    public CraftGameEvent(NamespacedKey key, net.minecraft.world.level.gameevent.GameEvent handle) {
-        this.key = key;
-        this.handle = handle;
+    public CraftGameEvent(final Holder<net.minecraft.world.level.gameevent.GameEvent> holder) {
+        this.holder = holder;
     }
 
     @Override
-    public net.minecraft.world.level.gameevent.GameEvent getHandle() {
-        return handle;
+    public Holder<net.minecraft.world.level.gameevent.GameEvent> getHolder() {
+        return this.holder;
     }
 
-    @NotNull
+    @Override
+    public int getRange() {
+        return this.getHandle().notificationRadius();
+    }
+
+    @Override
+    public int getVibrationLevel() {
+        return net.minecraft.world.level.gameevent.vibrations.VibrationSystem.getGameEventFrequency(this.getHolder().unwrapKey().orElseThrow());
+    }
+
     @Override
     public NamespacedKey getKey() {
-        return getKeyOrThrow();
+        return Holderable.super.getKey();
     }
 
     @Override
     public boolean equals(Object other) {
-        if (this == other) {
-            return true;
-        }
-
-        if (!(other instanceof CraftGameEvent)) {
-            return false;
-        }
-
-        return getKey().equals(((GameEvent) other).getKey());
+        return Holderable.super.implEquals(other);
     }
 
     @Override
     public int hashCode() {
-        return getKey().hashCode();
+        return Holderable.super.implHashCode();
     }
 
     @Override
     public String toString() {
-        return "CraftGameEvent{key=" + key + "}";
-    }
-
-    @NotNull
-    @Override
-    public NamespacedKey getKeyOrThrow() {
-        Preconditions.checkState(isRegistered(), "Cannot get key of this registry item, because it is not registered. Use #isRegistered() before calling this method.");
-        return this.key;
-    }
-
-    @Nullable
-    @Override
-    public NamespacedKey getKeyOrNull() {
-        return this.key;
-    }
-
-    @Override
-    public boolean isRegistered() {
-        return this.key != null;
+        return Holderable.super.implToString();
     }
 }

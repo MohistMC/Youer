@@ -16,8 +16,8 @@ import org.bukkit.entity.Bee;
 
 public class CraftBeehive extends CraftBlockEntityState<BeehiveBlockEntity> implements Beehive {
 
-    public CraftBeehive(World world, BeehiveBlockEntity tileEntity) {
-        super(world, tileEntity);
+    public CraftBeehive(World world, BeehiveBlockEntity blockEntity) {
+        super(world, blockEntity);
     }
 
     protected CraftBeehive(CraftBeehive state, Location location) {
@@ -26,51 +26,51 @@ public class CraftBeehive extends CraftBlockEntityState<BeehiveBlockEntity> impl
 
     @Override
     public Location getFlower() {
-        BlockPos flower = getSnapshot().savedFlowerPos;
-        return (flower == null) ? null : CraftLocation.toBukkit(flower, getWorld());
+        BlockPos flower = this.getSnapshot().savedFlowerPos;
+        return (flower == null) ? null : CraftLocation.toBukkit(flower, this.getWorld());
     }
 
     @Override
     public void setFlower(Location location) {
         Preconditions.checkArgument(location == null || this.getWorld().equals(location.getWorld()), "Flower must be in same world");
-        getSnapshot().savedFlowerPos = (location == null) ? null : CraftLocation.toBlockPosition(location);
+        this.getSnapshot().savedFlowerPos = (location == null) ? null : CraftLocation.toBlockPos(location);
     }
 
     @Override
     public boolean isFull() {
-        return getSnapshot().isFull();
+        return this.getSnapshot().isFull();
     }
 
     @Override
     public boolean isSedated() {
-        return isPlaced() && getTileEntity().isSedated();
+        return this.isPlaced() && this.getBlockEntity().isSedated();
     }
 
     @Override
     public int getEntityCount() {
-        return getSnapshot().getOccupantCount();
+        return this.getSnapshot().getOccupantCount();
     }
 
     @Override
     public int getMaxEntities() {
-        return getSnapshot().maxBees;
+        return this.getSnapshot().maxBees;
     }
 
     @Override
     public void setMaxEntities(int max) {
         Preconditions.checkArgument(max > 0, "Max bees must be more than 0");
 
-        getSnapshot().maxBees = max;
+        this.getSnapshot().maxBees = max;
     }
 
     @Override
     public List<Bee> releaseEntities() {
-        ensureNoWorldGeneration();
+        this.ensureNoWorldGeneration();
 
         List<Bee> bees = new ArrayList<>();
 
-        if (isPlaced()) {
-            BeehiveBlockEntity beehive = ((BeehiveBlockEntity) this.getTileEntityFromWorld());
+        if (this.isPlaced()) {
+            BeehiveBlockEntity beehive = ((BeehiveBlockEntity) this.getBlockEntityFromWorld());
             for (Entity bee : beehive.releaseBees(this.getHandle(), BeeReleaseStatus.BEE_RELEASED, true)) {
                 bees.add((Bee) bee.getBukkitEntity());
             }
@@ -83,7 +83,7 @@ public class CraftBeehive extends CraftBlockEntityState<BeehiveBlockEntity> impl
     public void addEntity(Bee entity) {
         Preconditions.checkArgument(entity != null, "Entity must not be null");
 
-        getSnapshot().addOccupant(((CraftBee) entity).getHandle());
+        this.getSnapshot().addOccupant(((CraftBee) entity).getHandle());
     }
 
     @Override
@@ -95,4 +95,11 @@ public class CraftBeehive extends CraftBlockEntityState<BeehiveBlockEntity> impl
     public CraftBeehive copy(Location location) {
         return new CraftBeehive(this, location);
     }
+
+    // Paper start - Add EntityBlockStorage clearEntities
+    @Override
+    public void clearEntities() {
+        getSnapshot().clearBees();
+    }
+    // Paper end
 }

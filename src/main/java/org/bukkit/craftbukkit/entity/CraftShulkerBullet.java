@@ -2,50 +2,66 @@ package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
 import org.bukkit.craftbukkit.CraftServer;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.ShulkerBullet;
-import org.bukkit.projectiles.ProjectileSource;
 
-public class CraftShulkerBullet extends CraftProjectile implements ShulkerBullet {
+public class CraftShulkerBullet extends AbstractProjectile implements ShulkerBullet {
 
     public CraftShulkerBullet(CraftServer server, net.minecraft.world.entity.projectile.ShulkerBullet entity) {
         super(server, entity);
     }
 
     @Override
-    public ProjectileSource getShooter() {
-        return getHandle().projectileSource;
-    }
-
-    @Override
-    public void setShooter(ProjectileSource shooter) {
-        if (shooter instanceof Entity) {
-            getHandle().setOwner(((CraftEntity) shooter).getHandle());
-        } else {
-            getHandle().setOwner(null);
-        }
-        getHandle().projectileSource = shooter;
+    public net.minecraft.world.entity.projectile.ShulkerBullet getHandle() {
+        return (net.minecraft.world.entity.projectile.ShulkerBullet) this.entity;
     }
 
     @Override
     public org.bukkit.entity.Entity getTarget() {
-        return getHandle().getTarget() != null ? getHandle().getTarget().getBukkitEntity() : null;
+        return this.getHandle().getTarget() != null ? this.getHandle().getTarget().getBukkitEntity() : null;
     }
 
     @Override
     public void setTarget(org.bukkit.entity.Entity target) {
-        Preconditions.checkState(!getHandle().generation, "Cannot set target during world generation");
+        Preconditions.checkState(!this.getHandle().generation, "Cannot set target during world generation");
 
-        getHandle().setTarget(target == null ? null : ((CraftEntity) target).getHandle());
+        this.getHandle().setTarget(target == null ? null : ((CraftEntity) target).getHandle());
     }
 
     @Override
-    public String toString() {
-        return "CraftShulkerBullet";
+    public org.bukkit.util.Vector getTargetDelta() {
+        net.minecraft.world.entity.projectile.ShulkerBullet bullet = this.getHandle();
+        return new org.bukkit.util.Vector(bullet.targetDeltaX, bullet.targetDeltaY, bullet.targetDeltaZ);
     }
 
     @Override
-    public net.minecraft.world.entity.projectile.ShulkerBullet getHandle() {
-        return (net.minecraft.world.entity.projectile.ShulkerBullet) entity;
+    public void setTargetDelta(org.bukkit.util.Vector vector) {
+        net.minecraft.world.entity.projectile.ShulkerBullet bullet = this.getHandle();
+        bullet.targetDeltaX = vector.getX();
+        bullet.targetDeltaY = vector.getY();
+        bullet.targetDeltaZ = vector.getZ();
+    }
+
+    @Override
+    public org.bukkit.block.BlockFace getCurrentMovementDirection() {
+        net.minecraft.core.Direction dir = this.getHandle().currentMoveDirection;
+        if (dir == null) {
+            return null; // random dir
+        }
+        return org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(dir);
+    }
+
+    @Override
+    public void setCurrentMovementDirection(org.bukkit.block.BlockFace movementDirection) {
+        this.getHandle().currentMoveDirection = org.bukkit.craftbukkit.block.CraftBlock.blockFaceToNotch(movementDirection);
+    }
+
+    @Override
+    public int getFlightSteps() {
+        return this.getHandle().flightSteps;
+    }
+
+    @Override
+    public void setFlightSteps(int steps) {
+        this.getHandle().flightSteps = steps;
     }
 }

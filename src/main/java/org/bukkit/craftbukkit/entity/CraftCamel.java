@@ -13,12 +13,7 @@ public class CraftCamel extends CraftAbstractHorse implements Camel {
 
     @Override
     public net.minecraft.world.entity.animal.camel.Camel getHandle() {
-        return (net.minecraft.world.entity.animal.camel.Camel) super.getHandle();
-    }
-
-    @Override
-    public String toString() {
-        return "CraftCamel";
+        return (net.minecraft.world.entity.animal.camel.Camel) this.entity;
     }
 
     @Override
@@ -28,25 +23,25 @@ public class CraftCamel extends CraftAbstractHorse implements Camel {
 
     @Override
     public boolean isDashing() {
-        return getHandle().isDashing();
+        return this.getHandle().isDashing();
     }
 
     @Override
     public void setDashing(boolean dashing) {
-        getHandle().setDashing(dashing);
+        this.getHandle().setDashing(dashing);
     }
 
     @Override
     public boolean isSitting() {
-        return getHandle().getPose() == Pose.SITTING;
+        return this.getHandle().getPose() == Pose.SITTING;
     }
 
     @Override
     public void setSitting(boolean sitting) {
         if (sitting) {
-            getHandle().sitDown();
+            this.getHandle().sitDown();
         } else {
-            getHandle().standUp();
+            this.getHandle().standUp();
         }
     }
 }

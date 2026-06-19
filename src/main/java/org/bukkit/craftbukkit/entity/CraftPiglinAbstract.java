@@ -12,58 +12,63 @@ public class CraftPiglinAbstract extends CraftMonster implements PiglinAbstract 
     }
 
     @Override
+    public AbstractPiglin getHandle() {
+        return (AbstractPiglin) this.entity;
+    }
+
+    @Override
     public boolean isImmuneToZombification() {
-        return getHandle().isImmuneToZombification();
+        return this.getHandle().isImmuneToZombification();
     }
 
     @Override
     public void setImmuneToZombification(boolean flag) {
-        getHandle().setImmuneToZombification(flag);
+        this.getHandle().setImmuneToZombification(flag);
     }
 
     @Override
     public int getConversionTime() {
-        Preconditions.checkState(isConverting(), "Entity not converting");
-        return getHandle().timeInOverworld;
+        Preconditions.checkState(this.isConverting(), "Entity not converting");
+        return this.getHandle().timeInOverworld;
     }
 
     @Override
     public void setConversionTime(int time) {
         if (time < 0) {
-            getHandle().timeInOverworld = -1;
-            getHandle().setImmuneToZombification(false);
+            this.getHandle().setTimeInOverworld(-1);
+            this.getHandle().setImmuneToZombification(false);
         } else {
-            getHandle().timeInOverworld = time;
+            this.getHandle().setTimeInOverworld(time);
         }
     }
 
     @Override
     public boolean isConverting() {
-        return getHandle().isConverting();
+        return this.getHandle().isConverting();
     }
 
     @Override
     public boolean isBaby() {
-        return getHandle().isBaby();
+        return this.getHandle().isBaby();
     }
 
     @Override
-    public void setBaby(boolean flag) {
-        getHandle().setBaby(flag);
+    public void setBaby(boolean baby) {
+        CraftAgeable.setBaby(this.getHandle(), baby);
     }
 
     @Override
     public int getAge() {
-        return getHandle().isBaby() ? -1 : 0;
+        return this.getHandle().isBaby() ? -1 : 0;
     }
 
     @Override
-    public void setAge(int i) {
-        getHandle().setBaby(i < 0);
+    public void setAge(int age) {
+        this.getHandle().setBaby(age < 0);
     }
 
     @Override
-    public void setAgeLock(boolean b) {
+    public void setAgeLock(boolean lock) {
     }
 
     @Override
@@ -73,17 +78,17 @@ public class CraftPiglinAbstract extends CraftMonster implements PiglinAbstract 
 
     @Override
     public void setBaby() {
-        getHandle().setBaby(true);
+        CraftAgeable.setBaby(this.getHandle(), true);
     }
 
     @Override
     public void setAdult() {
-        getHandle().setBaby(false);
+        CraftAgeable.setBaby(this.getHandle(), false);
     }
 
     @Override
     public boolean isAdult() {
-        return !getHandle().isBaby();
+        return !this.getHandle().isBaby();
     }
 
     @Override
@@ -92,11 +97,6 @@ public class CraftPiglinAbstract extends CraftMonster implements PiglinAbstract 
     }
 
     @Override
-    public void setBreed(boolean b) {
-    }
-
-    @Override
-    public AbstractPiglin getHandle() {
-        return (AbstractPiglin) super.getHandle();
+    public void setBreed(boolean breed) {
     }
 }

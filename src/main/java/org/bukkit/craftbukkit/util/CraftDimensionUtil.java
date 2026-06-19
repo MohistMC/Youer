@@ -4,13 +4,13 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.dimension.LevelStem;
 
-public class CraftDimensionUtil {
+public final class CraftDimensionUtil {
 
     private CraftDimensionUtil() {
     }
 
-    public static ResourceKey<Level> getMainDimensionKey(Level level) {
-        ResourceKey<LevelStem> typeKey = level.getTypeKey();
+    public static ResourceKey<Level> getMainDimensionKey(Level world) {
+        ResourceKey<LevelStem> typeKey = world.getTypeKey();
         if (typeKey == LevelStem.OVERWORLD) {
             return Level.OVERWORLD;
         } else if (typeKey == LevelStem.NETHER) {
@@ -19,6 +19,6 @@ public class CraftDimensionUtil {
             return Level.END;
         }
 
-        return level.dimension();
+        return world.dimension();
     }
 }

@@ -14,21 +14,21 @@ public class CraftSizedFireball extends CraftFireball implements SizedFireball {
     }
 
     @Override
+    public Fireball getHandle() {
+        return (Fireball) this.entity;
+    }
+
+    @Override
     public ItemStack getDisplayItem() {
-        if (getHandle().getItem().isEmpty()) {
+        if (this.getHandle().getItem().isEmpty()) {
             return new ItemStack(Material.FIRE_CHARGE);
         } else {
-            return CraftItemStack.asBukkitCopy(getHandle().getItem());
+            return CraftItemStack.asBukkitCopy(this.getHandle().getItem());
         }
     }
 
     @Override
     public void setDisplayItem(ItemStack item) {
-        getHandle().setItem(CraftItemStack.asNMSCopy(item));
-    }
-
-    @Override
-    public Fireball getHandle() {
-        return (Fireball) entity;
+        this.getHandle().setItem(CraftItemStack.asNMSCopy(item));
     }
 }

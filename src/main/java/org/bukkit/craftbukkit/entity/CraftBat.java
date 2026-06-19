@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import org.bukkit.craftbukkit.CraftServer;
+import org.bukkit.craftbukkit.util.CraftLocation;
 import org.bukkit.entity.Bat;
 
 public class CraftBat extends CraftAmbient implements Bat {
@@ -10,21 +11,36 @@ public class CraftBat extends CraftAmbient implements Bat {
 
     @Override
     public net.minecraft.world.entity.ambient.Bat getHandle() {
-        return (net.minecraft.world.entity.ambient.Bat) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftBat";
+        return (net.minecraft.world.entity.ambient.Bat) this.entity;
     }
 
     @Override
     public boolean isAwake() {
-        return !getHandle().isResting();
+        return !this.getHandle().isResting();
     }
 
     @Override
     public void setAwake(boolean state) {
-        getHandle().setResting(!state);
+        this.getHandle().setResting(!state);
+    }
+
+    @Override
+    public org.bukkit.Location getTargetLocation() {
+        net.minecraft.core.BlockPos pos = this.getHandle().targetPosition;
+        if (pos == null) {
+            return null;
+        }
+
+        return CraftLocation.toBukkit(pos, this.getHandle().level());
+    }
+
+    @Override
+    public void setTargetLocation(org.bukkit.Location location) {
+        net.minecraft.core.BlockPos pos = null;
+        if (location != null) {
+            pos = CraftLocation.toBlockPos(location);
+        }
+
+        this.getHandle().targetPosition = pos;
     }
 }

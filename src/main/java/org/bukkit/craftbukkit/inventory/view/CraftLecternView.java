@@ -16,12 +16,12 @@ public class CraftLecternView extends CraftInventoryView<LecternMenu, LecternInv
 
     @Override
     public int getPage() {
-        return container.getPage();
+        return this.container.getPage();
     }
 
     @Override
     public void setPage(final int page) {
         Preconditions.checkArgument(page >= 0, "The minimum page is 0");
-        container.setData(LecternBlockEntity.DATA_PAGE, page);
+        this.container.setData(LecternBlockEntity.DATA_PAGE, page);
     }
 }

@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.inventory.view.builder;
 
 import com.google.common.base.Preconditions;
+import net.kyori.adventure.text.Component;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.inventory.MenuType;
 import net.minecraft.world.level.Level;
@@ -9,19 +10,19 @@ import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.craftbukkit.util.CraftLocation;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.view.builder.LocationInventoryViewBuilder;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 public abstract class CraftAbstractLocationInventoryViewBuilder<V extends InventoryView> extends CraftAbstractInventoryViewBuilder<V> implements LocationInventoryViewBuilder<V> {
 
-    protected Level world;
-    protected BlockPos position;
+    protected @Nullable Level world;
+    protected @Nullable BlockPos position;
 
     public CraftAbstractLocationInventoryViewBuilder(final MenuType<?> handle) {
         super(handle);
     }
 
     @Override
-    public LocationInventoryViewBuilder<V> title(@NotNull final String title) {
+    public LocationInventoryViewBuilder<V> title(final @Nullable Component title) {
         return (LocationInventoryViewBuilder<V>) super.title(title);
     }
 
@@ -41,7 +42,7 @@ public abstract class CraftAbstractLocationInventoryViewBuilder<V extends Invent
         Preconditions.checkArgument(location != null, "The provided location must not be null");
         Preconditions.checkArgument(location.getWorld() != null, "The provided location must be associated with a world");
         this.world = ((CraftWorld) location.getWorld()).getHandle();
-        this.position = CraftLocation.toBlockPosition(location);
+        this.position = CraftLocation.toBlockPos(location);
         return this;
     }
 }

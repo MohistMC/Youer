@@ -3,7 +3,6 @@ package org.bukkit.craftbukkit.entity;
 import com.google.common.base.Preconditions;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Panda;
-import org.bukkit.entity.Panda.Gene;
 
 public class CraftPanda extends CraftAnimals implements Panda {
 
@@ -13,92 +12,119 @@ public class CraftPanda extends CraftAnimals implements Panda {
 
     @Override
     public net.minecraft.world.entity.animal.panda.Panda getHandle() {
-        return (net.minecraft.world.entity.animal.panda.Panda) super.getHandle();
-    }
-
-    @Override
-    public String toString() {
-        return "CraftPanda";
+        return (net.minecraft.world.entity.animal.panda.Panda) this.entity;
     }
 
     @Override
     public Gene getMainGene() {
-        return fromNms(getHandle().getMainGene());
+        return CraftPanda.fromNms(this.getHandle().getMainGene());
     }
 
     @Override
     public void setMainGene(Gene gene) {
-        getHandle().setMainGene(toNms(gene));
+        this.getHandle().setMainGene(CraftPanda.toNms(gene));
     }
 
     @Override
     public Gene getHiddenGene() {
-        return fromNms(getHandle().getHiddenGene());
+        return CraftPanda.fromNms(this.getHandle().getHiddenGene());
     }
 
     @Override
     public void setHiddenGene(Gene gene) {
-        getHandle().setHiddenGene(toNms(gene));
+        this.getHandle().setHiddenGene(CraftPanda.toNms(gene));
+    }
+
+    // Paper start - Panda API
+    @Override
+    public void setSneezeTicks(int ticks) {
+        this.getHandle().setSneezeCounter(ticks);
     }
 
     @Override
+    public int getSneezeTicks() {
+        return this.getHandle().getSneezeCounter();
+    }
+
+    @Override
+    public void setEatingTicks(int ticks) {
+        this.getHandle().setEatCounter(ticks);
+    }
+
+    @Override
+    public int getEatingTicks() {
+        return this.getHandle().getEatCounter();
+    }
+
+    @Override
+    public void setUnhappyTicks(int ticks) {
+        this.getHandle().setUnhappyCounter(ticks);
+    }
+
+    @Override
+    public Gene getCombinedGene() {
+        return CraftPanda.fromNms(this.getHandle().getVariant());
+    }
+    // Paper end - Panda API
+
+    @Override
     public boolean isRolling() {
-        return getHandle().isRolling();
+        return this.getHandle().isRolling();
     }
 
     @Override
     public void setRolling(boolean flag) {
-        getHandle().roll(flag);
+        this.getHandle().roll(flag);
     }
 
     @Override
     public boolean isSneezing() {
-        return getHandle().isSneezing();
+        return this.getHandle().isSneezing();
     }
 
     @Override
     public void setSneezing(boolean flag) {
-        getHandle().sneeze(flag);
+        this.getHandle().sneeze(flag);
     }
 
     @Override
     public boolean isSitting() {
-        return getHandle().isSitting();
+        return this.getHandle().isSitting();
     }
 
     @Override
     public void setSitting(boolean flag) {
-        getHandle().sit(flag);
+        this.getHandle().sit(flag);
     }
 
     @Override
     public boolean isOnBack() {
-        return getHandle().isOnBack();
+        return this.getHandle().isOnBack();
     }
 
     @Override
     public void setOnBack(boolean flag) {
-        getHandle().setOnBack(flag);
+        this.getHandle().setOnBack(flag);
     }
 
     @Override
     public boolean isEating() {
-        return getHandle().isEating();
+        return this.getHandle().isEating();
     }
 
     @Override
     public void setEating(boolean flag) {
-        getHandle().eat(flag);
+        this.getHandle().eat(flag);
     }
 
     @Override
     public boolean isScared() {
-        return getHandle().isScared();
+        return this.getHandle().isScared();
     }
 
     @Override
     public int getUnhappyTicks() {
-        return getHandle().getUnhappyCounter();
+        return this.getHandle().getUnhappyCounter();
     }
 
     public static Gene fromNms(net.minecraft.world.entity.animal.panda.Panda.Gene gene) {

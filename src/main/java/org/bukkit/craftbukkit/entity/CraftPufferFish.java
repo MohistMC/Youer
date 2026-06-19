@@ -12,21 +12,16 @@ public class CraftPufferFish extends CraftFish implements PufferFish {
 
     @Override
     public Pufferfish getHandle() {
-        return (Pufferfish) super.getHandle();
+        return (Pufferfish) this.entity;
     }
 
     @Override
     public int getPuffState() {
-        return getHandle().getPuffState();
+        return this.getHandle().getPuffState();
     }
 
     @Override
     public void setPuffState(int state) {
-        getHandle().setPuffState(state);
-    }
-
-    @Override
-    public String toString() {
-        return "CraftPufferFish";
+        this.getHandle().setPuffState(state);
     }
 }

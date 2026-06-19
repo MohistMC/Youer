@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.util;
 
+import io.papermc.paper.log.LoggerShutdown;
 import net.minecraft.server.MinecraftServer;
 
 public class ServerShutdownThread extends Thread {
@@ -12,13 +13,24 @@ public class ServerShutdownThread extends Thread {
     @Override
     public void run() {
         try {
-            org.spigotmc.AsyncCatcher.enabled = false; // Spigot
-            server.close();
-        } finally {
-            try {
-                server.terminal.close();
-            } catch (Exception e) {
+            // Paper start - try to shutdown on main
+            server.safeShutdown(false, false);
+            for (int i = 1000; i > 0 && !server.hasStopped(); i -= 100) {
+                Thread.sleep(100);
             }
+            if (server.hasStopped()) {
+                while (!server.hasFullyShutdown) Thread.sleep(1000);
+                return;
+            }
+            // Looks stalled, close async
+            server.forceTicks = true;
+            this.server.close();
+            while (!server.hasFullyShutdown) Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+            // Paper end
+        } finally {
+            LoggerShutdown.shutdownLogging();
         }
     }
 }

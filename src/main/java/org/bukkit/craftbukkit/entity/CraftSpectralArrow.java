@@ -11,21 +11,16 @@ public class CraftSpectralArrow extends CraftAbstractArrow implements SpectralAr
 
     @Override
     public net.minecraft.world.entity.projectile.arrow.SpectralArrow getHandle() {
-        return (net.minecraft.world.entity.projectile.arrow.SpectralArrow) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftSpectralArrow";
+        return (net.minecraft.world.entity.projectile.arrow.SpectralArrow) this.entity;
     }
 
     @Override
     public int getGlowingTicks() {
-        return getHandle().duration;
+        return this.getHandle().duration;
     }
 
     @Override
     public void setGlowingTicks(int duration) {
-        getHandle().duration = duration;
+        this.getHandle().duration = duration;
     }
 }

@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.entity;
 
 import net.minecraft.world.entity.AgeableMob;
+import net.minecraft.world.entity.Mob;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Ageable;
 
@@ -10,66 +11,62 @@ public class CraftAgeable extends CraftCreature implements Ageable {
     }
 
     @Override
+    public AgeableMob getHandle() {
+        return (AgeableMob) this.entity;
+    }
+
+    @Override
     public int getAge() {
-        return getHandle().getAge();
+        return this.getHandle().getAge();
     }
 
     @Override
     public void setAge(int age) {
-        getHandle().setAge(age);
+        this.getHandle().setAge(age);
     }
 
     @Override
     public void setAgeLock(boolean lock) {
-        getHandle().setAgeLocked(lock);
+        this.getHandle().setAgeLocked(lock);
     }
 
     @Override
     public boolean getAgeLock() {
-        return getHandle().isAgeLocked();
+        return this.getHandle().isAgeLocked();
     }
 
     @Override
     public void setBaby() {
-        if (isAdult()) {
-            setAge(-24000);
-        }
+        setBaby(this.getHandle(), true);
     }
 
     @Override
     public void setAdult() {
-        if (!isAdult()) {
-            setAge(0);
+        setBaby(this.getHandle(), false);
+    }
+
+    public static void setBaby(Mob mob, boolean baby) {
+        if (baby != mob.isBaby()) {
+            mob.setBaby(baby);
         }
     }
 
     @Override
     public boolean isAdult() {
-        return getAge() >= 0;
+        return !this.getHandle().isBaby();
     }
-
 
     @Override
     public boolean canBreed() {
-        return getAge() == 0;
+        return this.getAge() == 0;
     }
 
     @Override
     public void setBreed(boolean breed) {
         if (breed) {
-            setAge(0);
-        } else if (isAdult()) {
-            setAge(6000);
+            this.setAge(0);
+        } else if (this.isAdult()) {
+            this.setAge(6000);
         }
-    }
-
-    @Override
-    public AgeableMob getHandle() {
-        return (AgeableMob) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftAgeable";
     }
 }

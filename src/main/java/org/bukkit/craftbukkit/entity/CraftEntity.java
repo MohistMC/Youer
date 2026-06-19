@@ -5,25 +5,35 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.mohistmc.youer.bukkit.entity.CraftFakePlayer;
-import com.mohistmc.youer.neoforge.EntityClassLookup;
+import com.mojang.logging.LogUtils;
+import io.papermc.paper.datacomponent.DataComponentType;
+import io.papermc.paper.entity.LookAnchor;
+import io.papermc.paper.entity.TeleportFlag;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import net.kyori.adventure.pointer.PointersSupplier;
+import net.kyori.adventure.util.TriState;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.level.ChunkLevel;
 import net.minecraft.server.level.ChunkMap;
+import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.level.TicketType;
 import net.minecraft.server.network.ServerPlayerConnection;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityProcessor;
 import net.minecraft.world.entity.EntitySpawnReason;
 import net.minecraft.world.entity.EntitySpawnRequest;
-import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
+import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.level.storage.TagValueOutput;
@@ -31,7 +41,6 @@ import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
-import net.neoforged.neoforge.common.util.FakePlayer;
 import org.bukkit.EntityEffect;
 import org.bukkit.Location;
 import org.bukkit.Server;
@@ -54,9 +63,11 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Pose;
 import org.bukkit.entity.SpawnCategory;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityRemoveEvent;
 import org.bukkit.event.player.PlayerTeleportEvent.TeleportCause;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.metadata.MetadataValue;
 import org.bukkit.permissions.PermissibleBase;
 import org.bukkit.permissions.Permission;
@@ -67,16 +78,36 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.NumberConversions;
 import org.bukkit.util.Vector;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.slf4j.Logger;
 
 public abstract class CraftEntity implements org.bukkit.entity.Entity {
+
+    private static final Logger LOGGER = LogUtils.getLogger();
+
     private static PermissibleBase perm;
     private static final CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new CraftPersistentDataTypeRegistry();
+    static final PointersSupplier<org.bukkit.entity.Entity> POINTERS_SUPPLIER = PointersSupplier.<org.bukkit.entity.Entity>builder()
+        .resolving(net.kyori.adventure.identity.Identity.DISPLAY_NAME, org.bukkit.entity.Entity::name)
+        .resolving(net.kyori.adventure.identity.Identity.UUID, org.bukkit.entity.Entity::getUniqueId)
+        .resolving(net.kyori.adventure.permission.PermissionChecker.POINTER, entity1 -> entity1::permissionValue)
+        .build();
 
     protected final CraftServer server;
     protected Entity entity;
     private final EntityType entityType;
     private EntityDamageEvent lastDamageEvent;
-    private final CraftPersistentDataContainer persistentDataContainer = new CraftPersistentDataContainer(DATA_TYPE_REGISTRY);
+    private final CraftPersistentDataContainer persistentDataContainer = new CraftPersistentDataContainer(CraftEntity.DATA_TYPE_REGISTRY);
+    // Paper start - Folia shedulers
+    public final io.papermc.paper.threadedregions.EntityScheduler taskScheduler = new io.papermc.paper.threadedregions.EntityScheduler(this);
+    private final io.papermc.paper.threadedregions.scheduler.FoliaEntityScheduler apiScheduler = new io.papermc.paper.threadedregions.scheduler.FoliaEntityScheduler(this);
+
+    @Override
+    public final io.papermc.paper.threadedregions.scheduler.EntityScheduler getScheduler() {
+        return this.apiScheduler;
+    };
+    // Paper end - Folia schedulers
 
     public CraftEntity(final CraftServer server, final Entity entity) {
         this.server = server;
@@ -88,13 +119,8 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         Preconditions.checkArgument(entity != null, "Unknown entity");
 
         // Special case human, since bukkit use Player interface for ...
-        if (entity instanceof net.minecraft.world.entity.player.Player) {
-            if (entity instanceof ServerPlayer) {
-                if (entity instanceof FakePlayer) {
-                    return new CraftFakePlayer(server, (FakePlayer) entity);
-                }
-                return new CraftPlayer(server, (ServerPlayer) entity);
-            } else { return new CraftHumanEntity(server, (net.minecraft.world.entity.player.Player) entity); }
+        if (entity instanceof net.minecraft.world.entity.player.Player && !(entity instanceof ServerPlayer)) {
+            return new CraftHumanEntity(server, (net.minecraft.world.entity.player.Player) entity);
         }
 
         // Special case complex part, since there is no extra entity type for them
@@ -112,23 +138,55 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
             return (CraftEntity) entityTypeData.convertFunction().apply(server, entity);
         }
 
-        return EntityClassLookup.getEntity(server, entity);
+        throw new AssertionError("Unknown entity " + (entity == null ? null : entity.getClass()));
+    }
+
+    public Entity getHandle() {
+        return this.entity;
+    }
+
+    public Entity getHandleRaw() {
+        return this.entity;
+    }
+
+    public void setHandle(final Entity entity) {
+        this.entity = entity;
+    }
+
+    @Override
+    public String toString() {
+        return this.getClass().getSimpleName() + "{uuid=" + this.getUniqueId() + '}';
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) return true;
+        if (obj == null || getClass() != obj.getClass()) return false;
+
+        final CraftEntity other = (CraftEntity) obj;
+        return this.entity == other.entity; // There should never be duplicate entities with differing references
+    }
+
+    @Override
+    public int hashCode() {
+        // The UUID and thus hash code should never change (unlike the entity id)
+        return this.getUniqueId().hashCode();
     }
 
     @Override
     public Location getLocation() {
-        return CraftLocation.toBukkit(entity.position(), getWorld(), entity.getBukkitYaw(), entity.getXRot());
+        return CraftLocation.toBukkit(this.entity.position(), this.getWorld(), this.entity.getBukkitYaw(), this.entity.getXRot());
     }
 
     @Override
     public Location getLocation(Location loc) {
         if (loc != null) {
-            loc.setWorld(getWorld());
-            loc.setX(entity.getX());
-            loc.setY(entity.getY());
-            loc.setZ(entity.getZ());
-            loc.setYaw(entity.getBukkitYaw());
-            loc.setPitch(entity.getXRot());
+            loc.setWorld(this.getWorld());
+            loc.setX(this.entity.getX());
+            loc.setY(this.entity.getY());
+            loc.setZ(this.entity.getZ());
+            loc.setYaw(this.entity.getBukkitYaw());
+            loc.setPitch(this.entity.getXRot());
         }
 
         return loc;
@@ -136,49 +194,74 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public Vector getVelocity() {
-        return CraftVector.toBukkit(entity.getDeltaMovement());
+        return CraftVector.toBukkit(this.entity.getDeltaMovement());
     }
 
     @Override
     public void setVelocity(Vector velocity) {
         Preconditions.checkArgument(velocity != null, "velocity");
         velocity.checkFinite();
-        entity.setDeltaMovement(CraftVector.toNMS(velocity));
-        entity.hurtMarked = true;
+        // Paper start - Warn server owners when plugins try to set super high velocities
+        if (!(this instanceof org.bukkit.entity.Projectile || this instanceof org.bukkit.entity.Minecart) && isUnsafeVelocity(velocity)) {
+            CraftServer.excessiveVelEx = new Exception("Excessive velocity set detected: tried to set velocity of entity " + entity.getScoreboardName() + " id #" + getEntityId() + " to (" + velocity.getX() + "," + velocity.getY() + "," + velocity.getZ() + ").");
+        }
+        // Paper end
+        this.entity.setDeltaMovement(CraftVector.toVec3(velocity));
+        this.entity.hurtMarked = true;
+    }
+
+    /**
+     * Checks if the given velocity is not necessarily safe in all situations.
+     * This function returning true does not mean the velocity is dangerous or to be avoided, only that it may be
+     * a detriment to performance on the server.
+     *
+     * It is not to be used as a hard rule of any sort.
+     * Paper only uses it to warn server owners in watchdog crashes.
+     *
+     * @param vel incoming velocity to check
+     * @return if the velocity has the potential to be a performance detriment
+     */
+    private static boolean isUnsafeVelocity(Vector vel) {
+        final double x = vel.getX();
+        final double y = vel.getY();
+        final double z = vel.getZ();
+
+        if (x > 4 || x < -4 || y > 4 || y < -4 || z > 4 || z < -4) {
+            return true;
+        }
+
+        return false;
     }
 
     @Override
     public double getHeight() {
-        return getHandle().getBbHeight();
+        return this.getHandle().getBbHeight();
     }
 
     @Override
     public double getWidth() {
-        return getHandle().getBbWidth();
+        return this.getHandle().getBbWidth();
     }
 
     @Override
     public BoundingBox getBoundingBox() {
-        AABB bb = getHandle().getBoundingBox();
+        AABB bb = this.getHandle().getBoundingBox();
         return new BoundingBox(bb.minX, bb.minY, bb.minZ, bb.maxX, bb.maxY, bb.maxZ);
     }
 
     @Override
     public boolean isOnGround() {
-        if (entity instanceof AbstractArrow) {
-            return ((AbstractArrow) entity).isInGround();
-        }
-        return entity.onGround();
+        return this.entity.onGround();
     }
 
     @Override
     public boolean isInWater() {
-        return entity.isInWater();
+        return this.entity.isInWater();
     }
 
     @Override
     public World getWorld() {
-        return entity.level().getWorld();
+        return this.entity.level().getWorld();
     }
 
     @Override
@@ -189,172 +272,232 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         yaw = Location.normalizeYaw(yaw);
         pitch = Location.normalizePitch(pitch);
 
-        entity.setYRot(yaw);
-        entity.setXRot(pitch);
-        entity.yRotO = yaw;
-        entity.xRotO = pitch;
-        entity.setYHeadRot(yaw);
+        this.getHandle().forceSetRotation(yaw, false, pitch, false);
     }
 
     @Override
     public boolean teleport(Location location) {
-        return teleport(location, TeleportCause.PLUGIN);
+        return this.teleport(location, TeleportCause.PLUGIN);
     }
 
     @Override
     public boolean teleport(Location location, TeleportCause cause) {
+        return teleport(location, cause, new TeleportFlag[0]);
+    }
+
+    @Override
+    public boolean teleport(Location location, TeleportCause cause, TeleportFlag... flags) {
         Preconditions.checkArgument(location != null, "location cannot be null");
+        Preconditions.checkArgument(location.getWorld() != null, "Target world cannot be null");
+        Preconditions.checkState(!this.entity.generation, "Cannot teleport entity to an other world during world generation");
         location.checkFinite();
 
-        if (entity.isVehicle() || entity.isRemoved()) {
+        return this.teleport0(location, cause, flags);
+    }
+
+    protected boolean teleport0(Location location, TeleportCause cause, TeleportFlag... flags) {
+        Entity entity = this.getHandle();
+        if (!entity.isAlive() || !entity.valid) {
             return false;
         }
 
-        // If this entity is riding another entity, we must dismount before teleporting.
-        entity.stopRiding();
-
-        // Let the server handle cross world teleports
-        if (location.getWorld() != null && !location.getWorld().equals(getWorld())) {
-            // Prevent teleportation to an other world during world generation
-            Preconditions.checkState(!entity.generation, "Cannot teleport entity to an other world during world generation");
-            entity.teleport(new TeleportTransition(((CraftWorld) location.getWorld()).getHandle(), CraftLocation.toVec3D(location), Vec3.ZERO, location.getPitch(), location.getYaw(), Set.of(), TeleportTransition.DO_NOTHING, TeleportCause.PLUGIN));
-            return true;
+        final Set<net.minecraft.world.entity.Relative> relativeFlags = EnumSet.noneOf(net.minecraft.world.entity.Relative.class);
+        for (final TeleportFlag flag : flags) {
+            if (flag instanceof TeleportFlag.Relative relativeFlag) {
+                relativeFlags.add(deltaRelativeToNMS(relativeFlag));
+            }
         }
 
-        // entity.setLocation() throws no event, and so cannot be cancelled
-        entity.absSnapTo(location.getX(), location.getY(), location.getZ(), location.getYaw(), location.getPitch());
-        // SPIGOT-619: Force sync head rotation also
-        entity.setYHeadRot(location.getYaw());
+        return this.entity.teleport(new TeleportTransition(
+            ((CraftWorld) location.getWorld()).getHandle(),
+            CraftLocation.toVec3(location),
+            Vec3.ZERO,
+            location.getYaw(),
+            location.getPitch(),
+            relativeFlags,
+            TeleportTransition.DO_NOTHING,
+            cause
+        )) != null;
+    }
 
-        return true;
+    public static net.minecraft.world.entity.Relative deltaRelativeToNMS(TeleportFlag.Relative apiFlag) {
+        return switch (apiFlag) {
+            case VELOCITY_X -> net.minecraft.world.entity.Relative.DELTA_X;
+            case VELOCITY_Y -> net.minecraft.world.entity.Relative.DELTA_Y;
+            case VELOCITY_Z -> net.minecraft.world.entity.Relative.DELTA_Z;
+            case VELOCITY_ROTATION -> net.minecraft.world.entity.Relative.ROTATE_DELTA;
+        };
+    }
+
+    public static TeleportFlag.@Nullable Relative deltaRelativeToAPI(net.minecraft.world.entity.Relative nmsFlag) {
+        return switch (nmsFlag) {
+            case DELTA_X -> TeleportFlag.Relative.VELOCITY_X;
+            case DELTA_Y -> TeleportFlag.Relative.VELOCITY_Y;
+            case DELTA_Z -> TeleportFlag.Relative.VELOCITY_Z;
+            case ROTATE_DELTA -> TeleportFlag.Relative.VELOCITY_ROTATION;
+            case X, Y, Z, Y_ROT, X_ROT -> null;
+        };
     }
 
     @Override
     public boolean teleport(org.bukkit.entity.Entity destination) {
-        return teleport(destination.getLocation());
+        return this.teleport(destination.getLocation());
     }
 
     @Override
     public boolean teleport(org.bukkit.entity.Entity destination, TeleportCause cause) {
-        return teleport(destination.getLocation(), cause);
+        return this.teleport(destination.getLocation(), cause);
+    }
+
+    @Override
+    public void lookAt(double x, double y, double z, LookAnchor entityAnchor) {
+        this.getHandle().lookAt(toNmsAnchor(entityAnchor), new net.minecraft.world.phys.Vec3(x, y, z));
+    }
+
+    public static net.minecraft.commands.arguments.EntityAnchorArgument.Anchor toNmsAnchor(LookAnchor nmsAnchor) {
+        return switch (nmsAnchor) {
+            case EYES -> net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.EYES;
+            case FEET -> net.minecraft.commands.arguments.EntityAnchorArgument.Anchor.FEET;
+        };
+    }
+
+    public static LookAnchor toApiAnchor(net.minecraft.commands.arguments.EntityAnchorArgument.Anchor playerAnchor) {
+        return switch (playerAnchor) {
+            case EYES -> LookAnchor.EYES;
+            case FEET -> LookAnchor.FEET;
+        };
     }
 
     @Override
     public List<org.bukkit.entity.Entity> getNearbyEntities(double x, double y, double z) {
-        Preconditions.checkState(!entity.generation, "Cannot get nearby entities during world generation");
+        Preconditions.checkState(!this.entity.generation, "Cannot get nearby entities during world generation");
         org.spigotmc.AsyncCatcher.catchOp("getNearbyEntities"); // Spigot
 
-        List<Entity> notchEntityList = entity.level().getEntities(entity, entity.getBoundingBox().inflate(x, y, z), Predicates.alwaysTrue());
-        List<org.bukkit.entity.Entity> bukkitEntityList = new java.util.ArrayList<org.bukkit.entity.Entity>(notchEntityList.size());
+        List<Entity> entities = this.getHandle().level().getEntities(this.entity, this.entity.getBoundingBox().inflate(x, y, z), Predicates.alwaysTrue());
+        List<org.bukkit.entity.Entity> result = new java.util.ArrayList<>(entities.size());
 
-        for (Entity e : notchEntityList) {
-            bukkitEntityList.add(e.getBukkitEntity());
+        for (Entity entity : entities) {
+            result.add(entity.getBukkitEntity());
         }
-        return bukkitEntityList;
+        return result;
     }
 
     @Override
     public int getEntityId() {
-        return entity.getId();
+        return this.getHandle().getId();
     }
 
     @Override
     public int getFireTicks() {
-        return entity.getRemainingFireTicks();
+        return this.getHandle().getRemainingFireTicks();
     }
 
     @Override
     public int getMaxFireTicks() {
-        return entity.getFireImmuneTicks();
+        return this.getHandle().getFireImmuneTicks();
     }
 
     @Override
     public void setFireTicks(int ticks) {
-        entity.setRemainingFireTicks(ticks);
+        this.getHandle().setRemainingFireTicks(ticks);
     }
 
     @Override
+    @Deprecated
     public void setVisualFire(boolean fire) {
-        getHandle().hasVisualFire = fire;
+        setVisualFire(fire ? TriState.TRUE : TriState.NOT_SET);
+    }
+
+    @Override
+    public void setVisualFire(final TriState fire) {
+        Preconditions.checkArgument(fire != null, "TriState cannot be null");
+        this.getHandle().visualFire = fire;
     }
 
     @Override
     public boolean isVisualFire() {
-        return getHandle().hasVisualFire;
+        return getVisualFire().toBooleanOrElse(false);
+    }
+
+    @Override
+    public TriState getVisualFire() {
+        return this.getHandle().visualFire;
     }
 
     @Override
     public int getFreezeTicks() {
-        return getHandle().getTicksFrozen();
+        return this.getHandle().getTicksFrozen();
     }
 
     @Override
     public int getMaxFreezeTicks() {
-        return getHandle().getTicksRequiredToFreeze();
+        return this.getHandle().getTicksRequiredToFreeze();
     }
 
     @Override
     public void setFreezeTicks(int ticks) {
         Preconditions.checkArgument(0 <= ticks, "Ticks (%s) cannot be less than 0", ticks);
 
-        getHandle().setTicksFrozen(ticks);
+        this.getHandle().setTicksFrozen(ticks);
     }
 
     @Override
     public boolean isFrozen() {
-        return getHandle().isFullyFrozen();
+        return this.getHandle().isFullyFrozen();
+    }
+
+    @Override
+    public boolean isFreezeTickingLocked() {
+        return this.entity.freezeLocked;
+    }
+
+    @Override
+    public void lockFreezeTicks(boolean locked) {
+        this.entity.freezeLocked = locked;
     }
 
     @Override
     public void remove() {
-        entity.pluginRemoved = true;
-        entity.discard(getHandle().generation ? null : EntityRemoveEvent.Cause.PLUGIN);
+        this.entity.pluginRemoved = true;
+        this.entity.discard(this.getHandle().generation ? null : EntityRemoveEvent.Cause.PLUGIN);
     }
 
     @Override
     public boolean isDead() {
-        return !entity.isAlive();
+        return !this.entity.isAlive();
     }
 
     @Override
     public boolean isValid() {
-        return entity.isAlive() && entity.valid && entity.isChunkLoaded() && isInWorld();
+        return this.entity.isAlive() && this.entity.valid;
     }
 
     @Override
     public Server getServer() {
-        return server;
+        return this.server;
     }
 
     @Override
     public boolean isPersistent() {
-        return entity.persist;
+        return this.entity.persist;
     }
 
     @Override
     public void setPersistent(boolean persistent) {
-        entity.persist = persistent;
-    }
-
-    public Vector getMomentum() {
-        return getVelocity();
-    }
-
-    public void setMomentum(Vector value) {
-        setVelocity(value);
+        this.entity.persist = persistent;
     }
 
     @Override
     public org.bukkit.entity.Entity getPassenger() {
-        return isEmpty() ? null : getHandle().passengers.get(0).getBukkitEntity();
+        return this.isEmpty() ? null : this.getHandle().getPassengers().getFirst().getBukkitEntity();
     }
 
     @Override
     public boolean setPassenger(org.bukkit.entity.Entity passenger) {
         Preconditions.checkArgument(!this.equals(passenger), "Entity cannot ride itself.");
         if (passenger instanceof CraftEntity) {
-            eject();
-            return ((CraftEntity) passenger).getHandle().startRiding(getHandle());
+            this.eject();
+            return ((CraftEntity) passenger).getHandle().startRiding(this.getHandle());
         } else {
             return false;
         }
@@ -362,7 +505,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public List<org.bukkit.entity.Entity> getPassengers() {
-        return Lists.newArrayList(Lists.transform(getHandle().passengers, (Function<Entity, org.bukkit.entity.Entity>) input -> input.getBukkitEntity()));
+        return Lists.newArrayList(Lists.transform(this.getHandle().getPassengers(), (Function<Entity, org.bukkit.entity.Entity>) Entity::getBukkitEntity));
     }
 
     @Override
@@ -370,7 +513,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         Preconditions.checkArgument(passenger != null, "Entity passenger cannot be null");
         Preconditions.checkArgument(!this.equals(passenger), "Entity cannot ride itself.");
 
-        return ((CraftEntity) passenger).getHandle().startRiding(getHandle(), true, true);
+        return ((CraftEntity) passenger).getHandle().startRiding(this.getHandle(), true, true);
     }
 
     @Override
@@ -383,159 +526,149 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public boolean isEmpty() {
-        return !getHandle().isVehicle();
+        return !this.getHandle().isVehicle();
     }
 
     @Override
     public boolean eject() {
-        if (isEmpty()) {
+        if (this.isEmpty()) {
             return false;
         }
 
-        getHandle().ejectPassengers();
+        this.getHandle().ejectPassengers();
         return true;
     }
 
     @Override
+    public ItemStack getPickItemStack() {
+        net.minecraft.world.item.ItemStack stack = this.getHandle().getPickResult();
+        return stack == null ? ItemStack.empty() : stack.asBukkitCopy();
+    }
+
+    @Override
     public float getFallDistance() {
-        return (float) getHandle().fallDistance;
+        return (float) this.getHandle().fallDistance;
     }
 
     @Override
     public void setFallDistance(float distance) {
-        getHandle().fallDistance = distance;
+        this.getHandle().fallDistance = distance;
     }
 
     @Override
     public void setLastDamageCause(EntityDamageEvent event) {
-        lastDamageEvent = event;
+        this.lastDamageEvent = event;
     }
 
     @Override
     public EntityDamageEvent getLastDamageCause() {
-        return lastDamageEvent;
+        return this.lastDamageEvent;
     }
 
     @Override
     public UUID getUniqueId() {
-        return getHandle().getUUID();
+        return this.entity.getUUID();
     }
 
     @Override
     public int getTicksLived() {
-        return getHandle().tickCount;
+        return this.getHandle().totalEntityAge;
     }
 
     @Override
     public void setTicksLived(int value) {
         Preconditions.checkArgument(value > 0, "Age value (%s) must be greater than 0", value);
-        getHandle().tickCount = value;
-    }
-
-    public Entity getHandle() {
-        return entity;
+        this.getHandle().tickCount = value;
+        this.getHandle().totalEntityAge = value;
     }
 
     @Override
     public final EntityType getType() {
-        return entityType;
+        return this.entityType;
     }
 
     @Override
-    public void playEffect(EntityEffect type) {
-        Preconditions.checkArgument(type != null, "Type cannot be null");
-        Preconditions.checkState(!entity.generation, "Cannot play effect during world generation");
+    public void playEffect(EntityEffect effect) {
+        Preconditions.checkArgument(effect != null, "Entity effect cannot be null");
+        Preconditions.checkState(!this.entity.generation, "Cannot play effect during world generation");
+        Preconditions.checkArgument(effect.isApplicableTo(this), "Entity effect cannot apply to this entity");
 
-        if (type.getApplicable().isInstance(this)) {
-            this.getHandle().level().broadcastEntityEvent(getHandle(), type.getData());
-        }
+        this.getHandle().level().broadcastEntityEvent(this.getHandle(), effect.getData());
     }
 
     @Override
     public Sound getSwimSound() {
-        return CraftSound.minecraftToBukkit(getHandle().getSwimSound0());
+        return CraftSound.minecraftToBukkit(this.getHandle().getSwimSound());
     }
 
     @Override
     public Sound getSwimSplashSound() {
-        return CraftSound.minecraftToBukkit(getHandle().getSwimSplashSound0());
+        return CraftSound.minecraftToBukkit(this.getHandle().getSwimSplashSound());
     }
 
     @Override
     public Sound getSwimHighSpeedSplashSound() {
-        return CraftSound.minecraftToBukkit(getHandle().getSwimHighSpeedSplashSound0());
-    }
-
-    public void setHandle(final Entity entity) {
-        this.entity = entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftEntity{" + "id=" + getEntityId() + '}';
-    }
-
-    @Override
-    public boolean equals(Object obj) {
-        if (obj == null) {
-            return false;
-        }
-        if (getClass() != obj.getClass()) {
-            return false;
-        }
-        final CraftEntity other = (CraftEntity) obj;
-        return (this.getEntityId() == other.getEntityId());
-    }
-
-    @Override
-    public int hashCode() {
-        int hash = 7;
-        hash = 29 * hash + this.getEntityId();
-        return hash;
+        return CraftSound.minecraftToBukkit(this.getHandle().getSwimHighSpeedSplashSound());
     }
 
     @Override
     public void setMetadata(String metadataKey, MetadataValue newMetadataValue) {
-        server.getEntityMetadata().setMetadata(this, metadataKey, newMetadataValue);
+        this.server.getEntityMetadata().setMetadata(this, metadataKey, newMetadataValue);
     }
 
     @Override
     public List<MetadataValue> getMetadata(String metadataKey) {
-        return server.getEntityMetadata().getMetadata(this, metadataKey);
+        return this.server.getEntityMetadata().getMetadata(this, metadataKey);
     }
 
     @Override
     public boolean hasMetadata(String metadataKey) {
-        return server.getEntityMetadata().hasMetadata(this, metadataKey);
+        return this.server.getEntityMetadata().hasMetadata(this, metadataKey);
     }
 
     @Override
     public void removeMetadata(String metadataKey, Plugin owningPlugin) {
-        server.getEntityMetadata().removeMetadata(this, metadataKey, owningPlugin);
+        this.server.getEntityMetadata().removeMetadata(this, metadataKey, owningPlugin);
     }
 
     @Override
     public boolean isInsideVehicle() {
-        return getHandle().isPassenger();
+        return this.getHandle().isPassenger();
     }
 
     @Override
     public boolean leaveVehicle() {
-        if (!isInsideVehicle()) {
+        if (!this.isInsideVehicle()) {
             return false;
         }
 
-        getHandle().stopRiding();
+        this.getHandle().stopRiding();
         return true;
     }
 
     @Override
     public org.bukkit.entity.Entity getVehicle() {
-        if (!isInsideVehicle()) {
+        if (!this.isInsideVehicle()) {
             return null;
         }
 
-        return getHandle().getVehicle().getBukkitEntity();
+        return this.getHandle().getVehicle().getBukkitEntity();
+    }
+
+    @Override
+    public net.kyori.adventure.text.Component customName() {
+        final Component name = this.getHandle().getCustomName();
+        return name != null ? io.papermc.paper.adventure.PaperAdventure.asAdventure(name) : null;
+    }
+
+    @Override
+    public void customName(final net.kyori.adventure.text.Component customName) {
+        this.getHandle().setCustomName(customName != null ? io.papermc.paper.adventure.PaperAdventure.asVanilla(customName) : null);
+    }
+
+    @Override
+    public net.kyori.adventure.pointer.Pointers pointers() {
+        return POINTERS_SUPPLIER.view(this);
     }
 
     @Override
@@ -545,12 +678,12 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
             name = name.substring(0, 256);
         }
 
-        getHandle().setCustomName(CraftChatMessage.fromStringOrNull(name));
+        this.getHandle().setCustomName(CraftChatMessage.fromStringOrNull(name));
     }
 
     @Override
     public String getCustomName() {
-        Component name = getHandle().getCustomName();
+        Component name = this.getHandle().getCustomName();
 
         if (name == null) {
             return null;
@@ -561,45 +694,45 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public void setCustomNameVisible(boolean flag) {
-        getHandle().setCustomNameVisible(flag);
+        this.getHandle().setCustomNameVisible(flag);
     }
 
     @Override
     public boolean isCustomNameVisible() {
-        return getHandle().isCustomNameVisible();
+        return this.getHandle().isCustomNameVisible();
     }
 
     @Override
     public void setVisibleByDefault(boolean visible) {
-        if (getHandle().visibleByDefault != visible) {
+        if (this.getHandle().visibleByDefault != visible) {
             if (visible) {
                 // Making visible by default, reset and show to all players
-                for (Player player : server.getOnlinePlayers()) {
+                for (Player player : this.server.getOnlinePlayers()) {
                     ((CraftPlayer) player).resetAndShowEntity(this);
                 }
             } else {
                 // Hiding by default, reset and hide from all players
-                for (Player player : server.getOnlinePlayers()) {
+                for (Player player : this.server.getOnlinePlayers()) {
                     ((CraftPlayer) player).resetAndHideEntity(this);
                 }
             }
 
-            getHandle().visibleByDefault = visible;
+            this.getHandle().visibleByDefault = visible;
         }
     }
 
     @Override
     public boolean isVisibleByDefault() {
-        return getHandle().visibleByDefault;
+        return this.getHandle().visibleByDefault;
     }
 
     @Override
     public Set<Player> getTrackedBy() {
-        Preconditions.checkState(!entity.generation, "Cannot get tracking players during world generation");
+        Preconditions.checkState(!this.entity.generation, "Cannot get tracking players during world generation");
         ImmutableSet.Builder<Player> players = ImmutableSet.builder();
 
-        ServerLevel world = ((CraftWorld) getWorld()).getHandle();
-        ChunkMap.TrackedEntity entityTracker = world.getChunkSource().chunkMap.entityMap.get(getEntityId());
+        ServerLevel world = ((CraftWorld) this.getWorld()).getHandle();
+        ChunkMap.TrackedEntity entityTracker = world.getChunkSource().chunkMap.entityMap.get(this.getEntityId());
 
         if (entityTracker != null) {
             for (ServerPlayerConnection connection : entityTracker.seenBy) {
@@ -608,6 +741,18 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         }
 
         return players.build();
+    }
+
+    @Override
+    public boolean isTrackedBy(final Player player) {
+        Preconditions.checkState(!this.entity.generation, "Cannot check tracking players during world generation");
+        Preconditions.checkArgument(player != null, "Player cannot be null");
+
+        ServerLevel world = ((CraftWorld) this.getWorld()).getHandle();
+        ChunkMap.TrackedEntity entityTracker = world.getChunkSource().chunkMap.entityMap.get(this.getEntityId());
+        if (entityTracker == null) return false;
+
+        return entityTracker.seenBy.contains(((CraftPlayer) player).getHandle().connection);
     }
 
     @Override
@@ -632,12 +777,22 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public String getName() {
-        return CraftChatMessage.fromComponent(getHandle().getName());
+        return CraftChatMessage.fromComponent(this.getHandle().getName());
+    }
+
+    @Override
+    public net.kyori.adventure.text.@org.jetbrains.annotations.NotNull Component name() {
+        return io.papermc.paper.adventure.PaperAdventure.asAdventure(this.getHandle().getName());
+    }
+
+    @Override
+    public net.kyori.adventure.text.@org.jetbrains.annotations.NotNull Component teamDisplayName() {
+        return io.papermc.paper.adventure.PaperAdventure.asAdventure(this.getHandle().getDisplayName());
     }
 
     @Override
     public boolean isPermissionSet(String name) {
-        return getPermissibleBase().isPermissionSet(name);
+        return CraftEntity.getPermissibleBase().isPermissionSet(name);
     }
 
     @Override
@@ -647,163 +802,198 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public boolean hasPermission(String name) {
-        return getPermissibleBase().hasPermission(name);
+        return CraftEntity.getPermissibleBase().hasPermission(name);
     }
 
     @Override
     public boolean hasPermission(Permission perm) {
-        return getPermissibleBase().hasPermission(perm);
+        return CraftEntity.getPermissibleBase().hasPermission(perm);
     }
 
     @Override
     public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value) {
-        return getPermissibleBase().addAttachment(plugin, name, value);
+        return CraftEntity.getPermissibleBase().addAttachment(plugin, name, value);
     }
 
     @Override
     public PermissionAttachment addAttachment(Plugin plugin) {
-        return getPermissibleBase().addAttachment(plugin);
+        return CraftEntity.getPermissibleBase().addAttachment(plugin);
     }
 
     @Override
     public PermissionAttachment addAttachment(Plugin plugin, String name, boolean value, int ticks) {
-        return getPermissibleBase().addAttachment(plugin, name, value, ticks);
+        return CraftEntity.getPermissibleBase().addAttachment(plugin, name, value, ticks);
     }
 
     @Override
     public PermissionAttachment addAttachment(Plugin plugin, int ticks) {
-        return getPermissibleBase().addAttachment(plugin, ticks);
+        return CraftEntity.getPermissibleBase().addAttachment(plugin, ticks);
     }
 
     @Override
     public void removeAttachment(PermissionAttachment attachment) {
-        getPermissibleBase().removeAttachment(attachment);
+        CraftEntity.getPermissibleBase().removeAttachment(attachment);
     }
 
     @Override
     public void recalculatePermissions() {
-        getPermissibleBase().recalculatePermissions();
+        CraftEntity.getPermissibleBase().recalculatePermissions();
     }
 
     @Override
     public Set<PermissionAttachmentInfo> getEffectivePermissions() {
-        return getPermissibleBase().getEffectivePermissions();
+        return CraftEntity.getPermissibleBase().getEffectivePermissions();
     }
 
     @Override
     public boolean isOp() {
-        return getPermissibleBase().isOp();
+        return CraftEntity.getPermissibleBase().isOp();
     }
 
     @Override
     public void setOp(boolean value) {
-        getPermissibleBase().setOp(value);
+        CraftEntity.getPermissibleBase().setOp(value);
     }
 
     @Override
     public void setGlowing(boolean flag) {
-        getHandle().setGlowingTag(flag);
+        this.getHandle().setGlowingTag(flag);
     }
 
     @Override
     public boolean isGlowing() {
-        return getHandle().isCurrentlyGlowing();
+        return this.getHandle().isCurrentlyGlowing();
     }
 
     @Override
     public void setInvulnerable(boolean flag) {
-        getHandle().setInvulnerable(flag);
+        this.getHandle().setInvulnerable(flag);
     }
 
     @Override
     public boolean isInvulnerable() {
-        return getHandle().isInvulnerableToBase(getHandle().damageSources().generic());
+        return this.getHandle().isInvulnerableToBase(this.getHandle().damageSources().generic());
     }
 
     @Override
     public boolean isSilent() {
-        return getHandle().isSilent();
+        return this.getHandle().isSilent();
     }
 
     @Override
     public void setSilent(boolean flag) {
-        getHandle().setSilent(flag);
+        this.getHandle().setSilent(flag);
     }
 
     @Override
     public boolean hasGravity() {
-        return !getHandle().isNoGravity();
+        return !this.getHandle().isNoGravity();
     }
 
     @Override
     public void setGravity(boolean gravity) {
-        getHandle().setNoGravity(!gravity);
+        this.getHandle().setNoGravity(!gravity);
     }
 
     @Override
     public int getPortalCooldown() {
-        return getHandle().portalCooldown;
+        return this.getHandle().getPortalCooldown();
     }
 
     @Override
     public void setPortalCooldown(int cooldown) {
-        getHandle().portalCooldown = cooldown;
+        this.getHandle().setPortalCooldown(cooldown);
     }
 
     @Override
     public Set<String> getScoreboardTags() {
-        return getHandle().entityTags();
+        return this.getHandle().entityTags();
     }
 
     @Override
     public boolean addScoreboardTag(String tag) {
-        return getHandle().addTag(tag);
+        return this.getHandle().addTag(tag);
     }
 
     @Override
     public boolean removeScoreboardTag(String tag) {
-        return getHandle().removeTag(tag);
+        return this.getHandle().removeTag(tag);
     }
 
     @Override
     public PistonMoveReaction getPistonMoveReaction() {
-        return PistonMoveReaction.getById(getHandle().getPistonPushReaction().ordinal());
+        return PistonMoveReaction.getById(this.getHandle().getPistonPushReaction().ordinal());
     }
 
     @Override
     public BlockFace getFacing() {
         // Use this method over getDirection because it handles boats and minecarts.
-        return CraftBlock.notchToBlockFace(getHandle().getMotionDirection());
+        return CraftBlock.notchToBlockFace(this.getHandle().getMotionDirection());
     }
 
     @Override
     public CraftPersistentDataContainer getPersistentDataContainer() {
-        return persistentDataContainer;
+        return this.persistentDataContainer;
     }
 
     @Override
     public Pose getPose() {
-        return Pose.values()[getHandle().getPose().ordinal()];
+        return Pose.values()[this.getHandle().getPose().ordinal()];
+    }
+
+    @Override
+    public void setSneaking(boolean sneak) {
+        this.getHandle().setShiftKeyDown(sneak);
+    }
+
+    @Override
+    public boolean isSneaking() {
+        return this.getHandle().isShiftKeyDown();
+    }
+
+    @Override
+    public void setPose(Pose pose, boolean fixed) {
+        Preconditions.checkArgument(pose != null, "pose cannot be null");
+        this.setPose0(net.minecraft.world.entity.Pose.values()[pose.ordinal()], fixed);
+    }
+
+    public void setPose0(net.minecraft.world.entity.Pose pose, boolean fixed) {
+        final Entity handle = this.getHandle();
+        handle.fixedPose = false;
+        handle.setPose(pose);
+        handle.fixedPose = fixed;
+    }
+
+    @Override
+    public boolean hasFixedPose() {
+        return this.getHandle().fixedPose;
     }
 
     @Override
     public SpawnCategory getSpawnCategory() {
-        return CraftSpawnCategory.toBukkit(getHandle().getType().getCategory());
+        return CraftSpawnCategory.toBukkit(this.getHandle().getType().getCategory());
     }
 
     @Override
     public boolean isInWorld() {
-        return getHandle().inWorld;
+        return this.getHandle().inWorld;
     }
 
     @Override
     public String getAsString() {
-        TagValueOutput tag = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, getHandle().registryAccess());
-        if (!getHandle().saveAsPassenger(tag, false)) {
-            return null;
-        }
+        try (final ProblemReporter.ScopedCollector problemReporter = new ProblemReporter.ScopedCollector(
+            () -> "Entity#toString", LOGGER
+        )) {
+            final TagValueOutput output = TagValueOutput.createWithContext(
+                problemReporter,
+                this.getHandle().registryAccess()
+            );
+            if (!this.getHandle().saveAsPassenger(output, false, true, true)) {
+                return null;
+            }
 
-        return tag.buildResult().toString();
+            return output.buildResult().toString();
+        }
     }
 
     @Override
@@ -813,7 +1003,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
 
     @Override
     public org.bukkit.entity.Entity copy() {
-        Entity copy = copy(getHandle().level());
+        Entity copy = this.copy(this.getHandle().level());
         Preconditions.checkArgument(copy != null, "Error creating new entity.");
 
         return copy.getBukkitEntity();
@@ -823,7 +1013,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
     public org.bukkit.entity.Entity copy(Location location) {
         Preconditions.checkArgument(location.getWorld() != null, "Location has no world");
 
-        Entity copy = copy(((CraftWorld) location.getWorld()).getHandle());
+        Entity copy = this.copy(((CraftWorld) location.getWorld()).getHandle());
         Preconditions.checkArgument(copy != null, "Error creating new entity.");
 
         copy.setPos(location.getX(), location.getY(), location.getZ());
@@ -831,65 +1021,78 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
     }
 
     private Entity copy(net.minecraft.world.level.Level level) {
-        TagValueOutput compoundTag = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, getHandle().registryAccess());
-        getHandle().saveAsPassenger(compoundTag, false);
+        try (final ProblemReporter.ScopedCollector problemReporter = new ProblemReporter.ScopedCollector(
+            () -> "Entity#copy", LOGGER
+        )) {
+            final TagValueOutput output = TagValueOutput.createWithContext(problemReporter, level.registryAccess());
+            this.getHandle().saveAsPassenger(output, false, true, true);
 
-        return net.minecraft.world.entity.EntityType.loadEntityRecursive(compoundTag.buildResult(), level, new EntitySpawnRequest(EntitySpawnReason.LOAD, false), EntityProcessor.NOP);
+            return net.minecraft.world.entity.EntityType.loadEntityRecursive(output.buildResult(), level, new EntitySpawnRequest(EntitySpawnReason.LOAD, false), EntityProcessor.NOP);
+        }
     }
 
     public void storeBukkitValues(ValueOutput output) {
         if (!this.persistentDataContainer.isEmpty()) {
-            this.persistentDataContainer.store(output.child("BukkitValues"));
+            output.store("BukkitValues", CompoundTag.CODEC, this.persistentDataContainer.toTagCompound());
         }
     }
 
     public void readBukkitValues(ValueInput input) {
-        input.child("BukkitValues").ifPresent((base) -> this.persistentDataContainer.putAll(base));
+        input.read("BukkitValues", CompoundTag.CODEC).ifPresent(this.persistentDataContainer::putAll);
     }
 
     protected CompoundTag save() {
-        TagValueOutput nbttagcompound = TagValueOutput.createWithContext(ProblemReporter.DISCARDING, getHandle().registryAccess());
+        try (final ProblemReporter.ScopedCollector problemReporter = new ProblemReporter.ScopedCollector(
+            () -> "Entity#save", LOGGER
+        )) {
+            final TagValueOutput tagValueOutput = TagValueOutput.createWithContext(
+                problemReporter,
+                this.getHandle().registryAccess()
+            );
 
-        nbttagcompound.putString("id", getHandle().getEncodeId());
-        getHandle().saveWithoutId(nbttagcompound);
+            tagValueOutput.putString(Entity.TAG_ID, this.getHandle().getEncodeId(true));
+            this.getHandle().saveWithoutId(tagValueOutput);
 
-        return nbttagcompound.buildResult();
+            return tagValueOutput.buildResult();
+        }
     }
 
     // re-sends the spawn entity packet to updated values which cannot be updated otherwise
     protected void update() {
-        if (!getHandle().isAlive()) {
+        if (!this.getHandle().isAlive()) {
             return;
         }
 
-        ServerLevel world = ((CraftWorld) getWorld()).getHandle();
-        ChunkMap.TrackedEntity entityTracker = world.getChunkSource().chunkMap.entityMap.get(getEntityId());
+        ServerLevel world = ((CraftWorld) this.getWorld()).getHandle();
+        ChunkMap.TrackedEntity entityTracker = world.getChunkSource().chunkMap.entityMap.get(this.getEntityId());
 
         if (entityTracker == null) {
             return;
         }
 
-        entityTracker.sendToTrackingPlayers(getHandle().getAddEntityPacket(entityTracker.serverEntity));
+        for (final ServerPlayerConnection connection : entityTracker.seenBy) {
+            this.getHandle().resendPossiblyDesyncedEntityData(connection.getPlayer());
+        }
     }
 
     public void update(ServerPlayer player) {
-        if (!getHandle().isAlive()) {
+        if (!this.getHandle().isAlive()) {
             return;
         }
 
-        ServerLevel world = ((CraftWorld) getWorld()).getHandle();
-        ChunkMap.TrackedEntity entityTracker = world.getChunkSource().chunkMap.entityMap.get(getEntityId());
+        ServerLevel world = ((CraftWorld) this.getWorld()).getHandle();
+        ChunkMap.TrackedEntity entityTracker = world.getChunkSource().chunkMap.entityMap.get(this.getEntityId());
 
         if (entityTracker == null) {
             return;
         }
 
-        player.connection.send(getHandle().getAddEntityPacket(entityTracker.serverEntity));
+        player.connection.send(this.getHandle().getAddEntityPacket(entityTracker.serverEntity));
     }
 
     private static PermissibleBase getPermissibleBase() {
-        if (perm == null) {
-            perm = new PermissibleBase(new ServerOperator() {
+        if (CraftEntity.perm == null) {
+            CraftEntity.perm = new PermissibleBase(new ServerOperator() {
 
                 @Override
                 public boolean isOp() {
@@ -902,37 +1105,228 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
                 }
             });
         }
-        return perm;
+        return CraftEntity.perm;
     }
 
-    // Spigot start
-    private final org.bukkit.entity.Entity.Spigot spigot = new org.bukkit.entity.Entity.Spigot()
-    {
+    // Paper start - more teleport API / async chunk API
+    @Override
+    public CompletableFuture<Boolean> teleportAsync(final Location location, final TeleportCause cause, final TeleportFlag... teleportFlags) {
+        Preconditions.checkArgument(location != null, "location cannot be null");
+        Preconditions.checkArgument(location.getWorld() != null, "Target world cannot be null");
+        Preconditions.checkState(!this.entity.generation, "Cannot teleport entity to an other world during world generation");
+        location.checkFinite();
+        Location locationClone = location.clone(); // clone so we don't need to worry about mutations after this call.
+
+        ServerLevel world = ((CraftWorld)locationClone.getWorld()).getHandle();
+        CompletableFuture<Boolean> ret = new CompletableFuture<>();
+
+        world.loadChunksForMoveAsync(this.getHandle().getBoundingBoxAt(locationClone.getX(), locationClone.getY(), locationClone.getZ()),
+            this instanceof CraftPlayer ? ca.spottedleaf.concurrentutil.util.Priority.HIGHER : ca.spottedleaf.concurrentutil.util.Priority.NORMAL, (chunks) -> {
+                MinecraftServer.getServer().scheduleOnMain(() -> {
+                    final ServerChunkCache chunkCache = world.getChunkSource();
+                    for (final net.minecraft.world.level.chunk.ChunkAccess chunk : chunks) {
+                        chunkCache.addTicketAtLevel(TicketType.POST_TELEPORT, chunk.getPos(), ChunkLevel.FULL_CHUNK_LEVEL);
+                    }
+                    try {
+                        ret.complete(CraftEntity.this.teleport0(locationClone, cause, teleportFlags) ? Boolean.TRUE : Boolean.FALSE);
+                    } catch (Throwable throwable) {
+                        MinecraftServer.LOGGER.error("Failed to teleport entity {}", CraftEntity.this, throwable);
+                        ret.completeExceptionally(throwable);
+                    }
+                });
+            });
+
+        return ret;
+    }
+    // Paper end - more teleport API / async chunk API
+
+    private final org.bukkit.entity.Entity.Spigot spigot = new org.bukkit.entity.Entity.Spigot() {
 
         @Override
-        public void sendMessage(net.md_5.bungee.api.chat.BaseComponent component)
-        {
+        public void sendMessage(net.md_5.bungee.api.chat.BaseComponent component) {
         }
 
         @Override
-        public void sendMessage(net.md_5.bungee.api.chat.BaseComponent... components)
-        {
+        public void sendMessage(net.md_5.bungee.api.chat.BaseComponent... components) {
         }
 
         @Override
-        public void sendMessage(UUID sender, BaseComponent... components)
-        {
+        public void sendMessage(UUID sender, BaseComponent... components) {
         }
 
         @Override
-        public void sendMessage(UUID sender, BaseComponent component)
-        {
+        public void sendMessage(UUID sender, BaseComponent component) {
         }
     };
 
-    public org.bukkit.entity.Entity.Spigot spigot()
-    {
-        return spigot;
+    public org.bukkit.entity.Entity.Spigot spigot() {
+        return this.spigot;
     }
-    // Spigot end
+
+    @Override
+    public Location getOrigin() {
+        if (this.getHandle().origin == null) {
+            return null;
+        }
+
+        World world = this.getWorld();
+        if (this.getHandle().originWorld != null) {
+            world = org.bukkit.Bukkit.getWorld(this.getHandle().originWorld);
+        }
+
+        return CraftVector.toBukkit(this.getHandle().origin).toLocation(world);
+    }
+
+    @Override
+    public boolean fromMobSpawner() {
+        return this.getHandle().spawnedViaMobSpawner;
+    }
+
+    @Override
+    public org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason getEntitySpawnReason() {
+        return this.getHandle().spawnReason;
+    }
+
+    @Override
+    public boolean isUnderWater() {
+        return this.getHandle().isUnderWater();
+    }
+
+    @Override
+    public boolean isInRain() {
+        return this.getHandle().isInRain();
+    }
+
+    @Override
+    public boolean isInLava() {
+        return this.getHandle().isInLava();
+    }
+
+    @Override
+    public boolean isTicking() {
+        return this.getHandle().isTicking();
+    }
+
+    @Override
+    public Set<org.bukkit.entity.Player> getTrackedPlayers() {
+        ServerLevel world = (net.minecraft.server.level.ServerLevel)this.entity.level();
+        ChunkMap.TrackedEntity tracker = world == null ? null : world.getChunkSource().chunkMap.entityMap.get(this.entity.getId());
+        if (tracker == null) {
+            return java.util.Collections.emptySet();
+        }
+
+        Set<org.bukkit.entity.Player> set = new java.util.HashSet<>(tracker.seenBy.size());
+        for (net.minecraft.server.network.ServerPlayerConnection connection : tracker.seenBy) {
+            set.add(connection.getPlayer().getBukkitEntity().getPlayer());
+        }
+        return set;
+    }
+
+    @Override
+    public boolean spawnAt(Location location, CreatureSpawnEvent.SpawnReason reason) {
+        Preconditions.checkNotNull(location, "location cannot be null");
+        Preconditions.checkNotNull(reason, "reason cannot be null");
+        this.entity.setLevel(((CraftWorld) location.getWorld()).getHandle());
+        this.entity.setPos(location.getX(), location.getY(), location.getZ());
+        this.entity.setRot(location.getYaw(), location.getPitch());
+        final boolean spawned = !this.entity.valid && this.entity.level().addFreshEntity(this.entity, reason);
+        if (!spawned) return false; // Do not attempt to spawn rest if root was not spawned in
+        // Like net.minecraft.world.level.ServerLevelAccessor.addFreshEntityWithPassengers(net.minecraft.world.entity.Entity, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason)
+        this.entity.getIndirectPassengers().forEach(e -> e.level().addFreshEntity(e, reason));
+        return true;
+    }
+
+    @Override
+    public boolean isInPowderedSnow() {
+        return this.getHandle().isInPowderSnow || this.getHandle().wasInPowderSnow; // depending on the location in the entity "tick" either could be needed.
+    }
+
+    @Override
+    public double getX() {
+        return this.entity.getX();
+    }
+
+    @Override
+    public double getY() {
+        return this.entity.getY();
+    }
+
+    @Override
+    public double getZ() {
+        return this.entity.getZ();
+    }
+
+    @Override
+    public float getPitch() {
+        return this.entity.getXRot();
+    }
+
+    @Override
+    public float getYaw() {
+        return this.entity.getBukkitYaw();
+    }
+
+    @Override
+    public boolean isInvisible() {
+        return this.getHandle().isInvisible();
+    }
+
+    @Override
+    public void setInvisible(boolean invisible) {
+        this.getHandle().persistentInvisibility = invisible;
+        this.getHandle().setSharedFlag(Entity.FLAG_INVISIBLE, invisible);
+    }
+
+    @Override
+    public void setNoPhysics(boolean noPhysics) {
+        this.getHandle().noPhysics = noPhysics;
+    }
+
+    @Override
+    public boolean hasNoPhysics() {
+        return this.getHandle().noPhysics;
+    }
+
+    @Override
+    public boolean collidesAt(@org.jetbrains.annotations.NotNull Location location) {
+        net.minecraft.world.phys.AABB box = this.getHandle().getBoundingBoxAt(location.getX(), location.getY(), location.getZ());
+
+        return !this.getHandle().level().noCollision(this.getHandle(), box);
+    }
+
+    @Override
+    public boolean wouldCollideUsing(@org.jetbrains.annotations.NotNull BoundingBox boundingBox) {
+        net.minecraft.world.phys.AABB box = new AABB(boundingBox.getMinX(), boundingBox.getMinY(), boundingBox.getMinZ(), boundingBox.getMaxX(), boundingBox.getMaxY(), boundingBox.getMaxZ());
+
+        return !this.getHandle().level().noCollision(this.getHandle(), box);
+    }
+
+    @Override
+    public String getScoreboardEntryName() {
+        return this.getHandle().getScoreboardName();
+    }
+
+    @Override
+    public void broadcastHurtAnimation(java.util.Collection<Player> players) {
+        //noinspection SuspiciousMethodCalls
+        Preconditions.checkArgument(!players.contains(this), "Cannot broadcast hurt animation to self without a yaw");
+        for (final org.bukkit.entity.Player player : players) {
+            ((CraftPlayer) player).sendHurtAnimation(0, this);
+        }
+    }
+    @Override
+    public <T> @Nullable T getData(@NotNull final DataComponentType.Valued<T> type) {
+        return this.entity.get(io.papermc.paper.datacomponent.PaperDataComponentType.bukkitToMinecraft(type));
+    }
+
+    @Override
+    public <T> @Nullable T getDataOrDefault(@NotNull final DataComponentType.Valued<? extends T> type, @Nullable final T fallback) {
+        return this.entity.getOrDefault(io.papermc.paper.datacomponent.PaperDataComponentType.bukkitToMinecraft(type), fallback);
+    }
+
+    @Override
+    public boolean hasData(final @NotNull DataComponentType type) {
+        return this.entity.get(io.papermc.paper.datacomponent.PaperDataComponentType.bukkitToMinecraft(type)) != null;
+    }
+
 }

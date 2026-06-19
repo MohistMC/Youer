@@ -8,8 +8,8 @@ import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.RenderType;
 
 public final class CraftCriteria implements Criteria {
-    static final Map<String, CraftCriteria> DEFAULTS;
-    static final CraftCriteria DUMMY;
+    private static final Map<String, CraftCriteria> DEFAULTS;
+    private static final CraftCriteria DUMMY;
 
     static {
         ImmutableMap.Builder<String, CraftCriteria> defaults = ImmutableMap.builder();
@@ -22,43 +22,47 @@ public final class CraftCriteria implements Criteria {
         }
 
         DEFAULTS = defaults.build();
-        DUMMY = DEFAULTS.get("dummy");
+        DUMMY = DEFAULTS.get(ObjectiveCriteria.DUMMY.getName());
     }
 
     final ObjectiveCriteria criteria;
-    final String bukkitName;
+    final String name;
 
-    private CraftCriteria(String bukkitName) {
-        this.bukkitName = bukkitName;
-        this.criteria = DUMMY.criteria;
+    private CraftCriteria(String name) {
+        this.name = name;
+        this.criteria = CraftCriteria.DUMMY.criteria;
     }
 
     private CraftCriteria(ObjectiveCriteria criteria) {
         this.criteria = criteria;
-        this.bukkitName = criteria.getName();
+        this.name = criteria.getName();
     }
 
     @Override
     public String getName() {
-        return bukkitName;
+        return this.name;
     }
 
     @Override
     public boolean isReadOnly() {
-        return criteria.isReadOnly();
+        return this.criteria.isReadOnly();
     }
 
     @Override
     public RenderType getDefaultRenderType() {
-        return RenderType.values()[criteria.getDefaultRenderType().ordinal()];
+        return RenderType.values()[this.criteria.getDefaultRenderType().ordinal()];
     }
 
-    static CraftCriteria getFromNMS(Objective objective) {
-        return DEFAULTS.get(objective.getCriteria().getName());
+    public static CraftCriteria getFromNMS(ObjectiveCriteria criteria) {
+        return java.util.Objects.requireNonNullElseGet(CraftCriteria.DEFAULTS.get(criteria.getName()), () -> new CraftCriteria(criteria));
+    }
+
+    public static CraftCriteria getFromNMS(Objective objective) {
+        return getFromNMS(objective.getCriteria());
     }
 
     public static CraftCriteria getFromBukkit(String name) {
-        CraftCriteria criteria = DEFAULTS.get(name);
+        CraftCriteria criteria = CraftCriteria.DEFAULTS.get(name);
         if (criteria != null) {
             return criteria;
         }
@@ -67,15 +71,16 @@ public final class CraftCriteria implements Criteria {
     }
 
     @Override
-    public boolean equals(Object that) {
-        if (!(that instanceof CraftCriteria)) {
+    public boolean equals(Object obj) {
+        if (!(obj instanceof final CraftCriteria craftCriteria)) {
             return false;
         }
-        return ((CraftCriteria) that).bukkitName.equals(this.bukkitName);
+
+        return craftCriteria.name.equals(this.name);
     }
 
     @Override
     public int hashCode() {
-        return this.bukkitName.hashCode() ^ CraftCriteria.class.hashCode();
+        return this.name.hashCode() ^ CraftCriteria.class.hashCode();
     }
 }

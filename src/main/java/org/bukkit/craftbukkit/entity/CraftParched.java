@@ -1,23 +1,17 @@
 package org.bukkit.craftbukkit.entity;
 
+import net.minecraft.world.entity.monster.skeleton.Parched;
 import org.bukkit.craftbukkit.CraftServer;
-import org.bukkit.entity.Parched;
 import org.bukkit.entity.Skeleton;
 
-public class CraftParched extends CraftAbstractSkeleton implements Parched {
-
-    public CraftParched(CraftServer server, net.minecraft.world.entity.monster.skeleton.Parched entity) {
+public class CraftParched extends CraftAbstractSkeleton implements org.bukkit.entity.Parched {
+    public CraftParched(final CraftServer server, final Parched entity) {
         super(server, entity);
     }
 
     @Override
-    public net.minecraft.world.entity.monster.skeleton.Parched getHandle() {
-        return (net.minecraft.world.entity.monster.skeleton.Parched) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftParched";
+    public Parched getHandle() {
+        return (Parched) this.entity;
     }
 
     @Override

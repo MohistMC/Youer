@@ -10,8 +10,8 @@ import org.bukkit.inventory.Inventory;
 
 public class CraftCrafter extends CraftLootable<CrafterBlockEntity> implements Crafter {
 
-    public CraftCrafter(World world, CrafterBlockEntity tileEntity) {
-        super(world, tileEntity);
+    public CraftCrafter(World world, CrafterBlockEntity blockEntity) {
+        super(world, blockEntity);
     }
 
     protected CraftCrafter(CraftCrafter state, Location location) {
@@ -29,7 +29,7 @@ public class CraftCrafter extends CraftLootable<CrafterBlockEntity> implements C
             return this.getSnapshotInventory();
         }
 
-        return new CraftInventory(this.getTileEntity());
+        return new CraftInventory(this.getBlockEntity());
     }
 
     @Override
@@ -44,35 +44,35 @@ public class CraftCrafter extends CraftLootable<CrafterBlockEntity> implements C
 
     @Override
     public int getCraftingTicks() {
-        return getSnapshot().craftingTicksRemaining;
+        return this.getSnapshot().craftingTicksRemaining;
     }
 
     @Override
     public void setCraftingTicks(int ticks) {
-      getSnapshot().setCraftingTicksRemaining(ticks);
+      this.getSnapshot().setCraftingTicksRemaining(ticks);
     }
 
     @Override
     public boolean isSlotDisabled(int slot) {
         Preconditions.checkArgument(slot >= 0 && slot < 9, "Invalid slot index %s for Crafter", slot);
 
-        return getSnapshot().isSlotDisabled(slot);
+        return this.getSnapshot().isSlotDisabled(slot);
     }
 
     @Override
     public void setSlotDisabled(int slot, boolean disabled) {
         Preconditions.checkArgument(slot >= 0 && slot < 9, "Invalid slot index %s for Crafter", slot);
 
-        getSnapshot().setSlotState(slot, disabled);
+        this.getSnapshot().setSlotState(slot, !disabled);
     }
 
     @Override
     public boolean isTriggered() {
-        return getSnapshot().isTriggered();
+        return this.getSnapshot().isTriggered();
     }
 
     @Override
     public void setTriggered(boolean triggered) {
-        getSnapshot().setTriggered(triggered);
+        this.getSnapshot().setTriggered(triggered);
     }
 }

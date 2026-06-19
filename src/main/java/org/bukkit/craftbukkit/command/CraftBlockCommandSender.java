@@ -28,50 +28,60 @@ public class CraftBlockCommandSender extends ServerCommandSender implements Bloc
             throw new UnsupportedOperationException("Cannot change operator status of a block");
         }
     });
-    private final CommandSourceStack block;
-    private final BlockEntity tile;
+    private final CommandSourceStack sourceStack;
+    private final BlockEntity blockEntity;
 
-    public CraftBlockCommandSender(CommandSourceStack commandBlockListenerAbstract, BlockEntity tile) {
-        super(SHARED_PERM);
-        this.block = commandBlockListenerAbstract;
-        this.tile = tile;
+    public CraftBlockCommandSender(CommandSourceStack sourceStack, BlockEntity blockEntity) {
+        super(CraftBlockCommandSender.SHARED_PERM);
+        this.sourceStack = sourceStack;
+        this.blockEntity = blockEntity;
     }
 
     @Override
     public Block getBlock() {
-        return CraftBlock.at(tile.getLevel(), tile.getBlockPos());
+        return CraftBlock.at(this.blockEntity.getLevel(), this.blockEntity.getBlockPos());
     }
 
     @Override
     public void sendMessage(String message) {
         for (Component component : CraftChatMessage.fromString(message)) {
-            block.source.sendSystemMessage(component);
+            this.sourceStack.source.sendSystemMessage(component);
         }
     }
 
     @Override
     public void sendMessage(String... messages) {
         for (String message : messages) {
-            sendMessage(message);
+            this.sendMessage(message);
         }
     }
 
     @Override
     public String getName() {
-        return block.getTextName();
+        return this.sourceStack.getTextName();
+    }
+
+    @Override
+    public void sendMessage(final net.kyori.adventure.text.Component message) {
+        this.sourceStack.source.sendSystemMessage(io.papermc.paper.adventure.PaperAdventure.asVanilla(message));
+    }
+
+    @Override
+    public net.kyori.adventure.text.Component name() {
+        return io.papermc.paper.adventure.PaperAdventure.asAdventure(this.sourceStack.getDisplayName());
     }
 
     @Override
     public boolean isOp() {
-        return SHARED_PERM.isOp();
+        return CraftBlockCommandSender.SHARED_PERM.isOp();
     }
 
     @Override
     public void setOp(boolean value) {
-        SHARED_PERM.setOp(value);
+        CraftBlockCommandSender.SHARED_PERM.setOp(value);
     }
 
-    public CommandSourceStack getWrapper() {
-        return block;
+    public CommandSourceStack getSourceStack() {
+        return this.sourceStack;
     }
 }

@@ -5,12 +5,13 @@ import com.google.common.collect.ImmutableList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 import net.minecraft.network.protocol.game.ClientboundBossEventPacket;
 import net.minecraft.server.level.ServerBossEvent;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Mth;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.BossEvent;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarFlag;
@@ -26,11 +27,11 @@ public class CraftBossBar implements BossBar {
     private Map<BarFlag, FlagContainer> flags;
 
     public CraftBossBar(String title, BarColor color, BarStyle style, BarFlag... flags) {
-        handle = new ServerBossEvent(
-                UUID.randomUUID(),
-                CraftChatMessage.fromString(title, true)[0],
-                convertColor(color),
-                convertStyle(style)
+        this.handle = new ServerBossEvent(
+            Mth.createInsecureUUID(RandomSource.create()),
+            CraftChatMessage.fromString(title, true)[0],
+            this.convertColor(color),
+            this.convertStyle(style)
         );
 
         this.initialize();
@@ -43,96 +44,82 @@ public class CraftBossBar implements BossBar {
         this.setStyle(style);
     }
 
-    public CraftBossBar(ServerBossEvent bossBattleServer) {
-        this.handle = bossBattleServer;
+    public CraftBossBar(ServerBossEvent bossEvent) {
+        this.handle = bossEvent;
         this.initialize();
     }
 
     private void initialize() {
         this.flags = new HashMap<>();
-        this.flags.put(BarFlag.DARKEN_SKY, new FlagContainer(handle::shouldDarkenScreen, handle::setDarkenScreen));
-        this.flags.put(BarFlag.PLAY_BOSS_MUSIC, new FlagContainer(handle::shouldPlayBossMusic, handle::setPlayBossMusic));
-        this.flags.put(BarFlag.CREATE_FOG, new FlagContainer(handle::shouldCreateWorldFog, handle::setCreateWorldFog));
+        this.flags.put(BarFlag.DARKEN_SKY, new FlagContainer(this.handle::shouldDarkenScreen, this.handle::setDarkenScreen));
+        this.flags.put(BarFlag.PLAY_BOSS_MUSIC, new FlagContainer(this.handle::shouldPlayBossMusic, this.handle::setPlayBossMusic));
+        this.flags.put(BarFlag.CREATE_FOG, new FlagContainer(this.handle::shouldCreateWorldFog, this.handle::setCreateWorldFog));
     }
 
     private BarColor convertColor(BossEvent.BossBarColor color) {
-        BarColor bukkitColor = BarColor.valueOf(color.name());
-        return (bukkitColor == null) ? BarColor.WHITE : bukkitColor;
+        return BarColor.valueOf(color.name());
     }
 
     private BossEvent.BossBarColor convertColor(BarColor color) {
-        BossEvent.BossBarColor nmsColor = BossEvent.BossBarColor.valueOf(color.name());
-        return (nmsColor == null) ? BossEvent.BossBarColor.WHITE : nmsColor;
+        return BossEvent.BossBarColor.valueOf(color.name());
     }
 
     private BossEvent.BossBarOverlay convertStyle(BarStyle style) {
-        switch (style) {
-            default:
-            case SOLID:
-                return BossEvent.BossBarOverlay.PROGRESS;
-            case SEGMENTED_6:
-                return BossEvent.BossBarOverlay.NOTCHED_6;
-            case SEGMENTED_10:
-                return BossEvent.BossBarOverlay.NOTCHED_10;
-            case SEGMENTED_12:
-                return BossEvent.BossBarOverlay.NOTCHED_12;
-            case SEGMENTED_20:
-                return BossEvent.BossBarOverlay.NOTCHED_20;
-        }
+        return switch (style) {
+            case SOLID -> BossEvent.BossBarOverlay.PROGRESS;
+            case SEGMENTED_6 -> BossEvent.BossBarOverlay.NOTCHED_6;
+            case SEGMENTED_10 -> BossEvent.BossBarOverlay.NOTCHED_10;
+            case SEGMENTED_12 -> BossEvent.BossBarOverlay.NOTCHED_12;
+            case SEGMENTED_20 -> BossEvent.BossBarOverlay.NOTCHED_20;
+        };
     }
 
     private BarStyle convertStyle(BossEvent.BossBarOverlay style) {
-        switch (style) {
-            default:
-            case PROGRESS:
-                return BarStyle.SOLID;
-            case NOTCHED_6:
-                return BarStyle.SEGMENTED_6;
-            case NOTCHED_10:
-                return BarStyle.SEGMENTED_10;
-            case NOTCHED_12:
-                return BarStyle.SEGMENTED_12;
-            case NOTCHED_20:
-                return BarStyle.SEGMENTED_20;
-        }
+        return switch (style) {
+            case PROGRESS -> BarStyle.SOLID;
+            case NOTCHED_6 -> BarStyle.SEGMENTED_6;
+            case NOTCHED_10 -> BarStyle.SEGMENTED_10;
+            case NOTCHED_12 -> BarStyle.SEGMENTED_12;
+            case NOTCHED_20 -> BarStyle.SEGMENTED_20;
+        };
     }
 
     @Override
     public String getTitle() {
-        return CraftChatMessage.fromComponent(handle.name);
+        return CraftChatMessage.fromComponent(this.handle.name);
     }
 
     @Override
     public void setTitle(String title) {
-        handle.name = CraftChatMessage.fromString(title, true)[0];
-        handle.broadcast(ClientboundBossEventPacket::createUpdateNamePacket);
+        this.handle.name = CraftChatMessage.fromString(title, true)[0];
+        this.handle.broadcast(ClientboundBossEventPacket::createUpdateNamePacket);
     }
 
     @Override
     public BarColor getColor() {
-        return convertColor(handle.color);
+        return this.convertColor(this.handle.color);
     }
 
     @Override
     public void setColor(BarColor color) {
-        handle.color = convertColor(color);
-        handle.broadcast(ClientboundBossEventPacket::createUpdateStylePacket);
+        this.handle.color = this.convertColor(color);
+        this.handle.broadcast(ClientboundBossEventPacket::createUpdateStylePacket);
     }
 
     @Override
     public BarStyle getStyle() {
-        return convertStyle(handle.overlay);
+        return this.convertStyle(this.handle.overlay);
     }
 
     @Override
     public void setStyle(BarStyle style) {
-        handle.overlay = convertStyle(style);
-        handle.broadcast(ClientboundBossEventPacket::createUpdateStylePacket);
+        this.handle.overlay = this.convertStyle(style);
+        this.handle.broadcast(ClientboundBossEventPacket::createUpdateStylePacket);
     }
 
     @Override
     public void addFlag(BarFlag flag) {
-        FlagContainer flagContainer = flags.get(flag);
+        FlagContainer flagContainer = this.flags.get(flag);
         if (flagContainer != null) {
             flagContainer.set.accept(true);
         }
@@ -140,7 +127,7 @@ public class CraftBossBar implements BossBar {
 
     @Override
     public void removeFlag(BarFlag flag) {
-        FlagContainer flagContainer = flags.get(flag);
+        FlagContainer flagContainer = this.flags.get(flag);
         if (flagContainer != null) {
             flagContainer.set.accept(false);
         }
@@ -148,7 +135,7 @@ public class CraftBossBar implements BossBar {
 
     @Override
     public boolean hasFlag(BarFlag flag) {
-        FlagContainer flagContainer = flags.get(flag);
+        FlagContainer flagContainer = this.flags.get(flag);
         if (flagContainer != null) {
             return flagContainer.get.get();
         }
@@ -158,12 +145,12 @@ public class CraftBossBar implements BossBar {
     @Override
     public void setProgress(double progress) {
         Preconditions.checkArgument(progress >= 0.0 && progress <= 1.0, "Progress must be between 0.0 and 1.0 (%s)", progress);
-        handle.setProgress((float) progress);
+        this.handle.setProgress((float) progress);
     }
 
     @Override
     public double getProgress() {
-        return handle.getProgress();
+        return this.handle.getProgress();
     }
 
     @Override
@@ -171,20 +158,20 @@ public class CraftBossBar implements BossBar {
         Preconditions.checkArgument(player != null, "player == null");
         Preconditions.checkArgument(((CraftPlayer) player).getHandle().connection != null, "player is not fully connected (wait for PlayerJoinEvent)");
 
-        handle.addPlayer(((CraftPlayer) player).getHandle());
+        this.handle.addPlayer(((CraftPlayer) player).getHandle());
     }
 
     @Override
     public void removePlayer(Player player) {
         Preconditions.checkArgument(player != null, "player == null");
 
-        handle.removePlayer(((CraftPlayer) player).getHandle());
+        this.handle.removePlayer(((CraftPlayer) player).getHandle());
     }
 
     @Override
     public List<Player> getPlayers() {
         ImmutableList.Builder<Player> players = ImmutableList.builder();
-        for (ServerPlayer p : handle.getPlayers()) {
+        for (ServerPlayer p : this.handle.getPlayers()) {
             players.add(p.getBukkitEntity());
         }
         return players.build();
@@ -192,35 +179,35 @@ public class CraftBossBar implements BossBar {
 
     @Override
     public void setVisible(boolean visible) {
-        handle.setVisible(visible);
+        this.handle.setVisible(visible);
     }
 
     @Override
     public boolean isVisible() {
-        return handle.visible;
+        return this.handle.isVisible();
     }
 
     @Override
     public void show() {
-        handle.setVisible(true);
+        this.handle.setVisible(true);
     }
 
     @Override
     public void hide() {
-        handle.setVisible(false);
+        this.handle.setVisible(false);
     }
 
     @Override
     public void removeAll() {
-        for (Player player : getPlayers()) {
-            removePlayer(player);
+        for (Player player : this.getPlayers()) {
+            this.removePlayer(player);
         }
     }
 
     private final class FlagContainer {
 
-        private Supplier<Boolean> get;
-        private Consumer<Boolean> set;
+        private final Supplier<Boolean> get;
+        private final Consumer<Boolean> set;
 
         private FlagContainer(Supplier<Boolean> get, Consumer<Boolean> set) {
             this.get = get;
@@ -229,6 +216,6 @@ public class CraftBossBar implements BossBar {
     }
 
     public ServerBossEvent getHandle() {
-        return handle;
+        return this.handle;
     }
 }

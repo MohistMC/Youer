@@ -1,21 +1,17 @@
 package org.bukkit.craftbukkit.entity;
 
+import net.minecraft.world.entity.animal.nautilus.Nautilus;
 import org.bukkit.craftbukkit.CraftServer;
-import org.bukkit.entity.Nautilus;
+import org.jspecify.annotations.NullMarked;
 
-public class CraftNautilus extends CraftAbstractNautilus implements Nautilus {
-
-    public CraftNautilus(CraftServer server, net.minecraft.world.entity.animal.nautilus.Nautilus entity) {
+@NullMarked
+public class CraftNautilus extends CraftAbstractNautilus implements org.bukkit.entity.Nautilus {
+    public CraftNautilus(final CraftServer server, final Nautilus entity) {
         super(server, entity);
     }
 
     @Override
-    public net.minecraft.world.entity.animal.nautilus.Nautilus getHandle() {
-        return (net.minecraft.world.entity.animal.nautilus.Nautilus) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftNautilus";
+    public Nautilus getHandle() {
+        return (Nautilus) this.entity;
     }
 }

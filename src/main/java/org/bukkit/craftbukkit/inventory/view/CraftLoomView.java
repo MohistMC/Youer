@@ -20,7 +20,7 @@ public class CraftLoomView extends CraftInventoryView<LoomMenu, LoomInventory> i
 
     @Override
     public List<PatternType> getSelectablePatterns() {
-        final List<Holder<BannerPattern>> selectablePatterns = container.getSelectablePatterns();
+        final List<Holder<BannerPattern>> selectablePatterns = this.container.getSelectablePatterns();
         final List<PatternType> patternTypes = new ArrayList<>(selectablePatterns.size());
         for (final Holder<BannerPattern> selectablePattern : selectablePatterns) {
             patternTypes.add(CraftPatternType.minecraftHolderToBukkit(selectablePattern));
@@ -30,6 +30,6 @@ public class CraftLoomView extends CraftInventoryView<LoomMenu, LoomInventory> i
 
     @Override
     public int getSelectedPatternIndex() {
-        return container.getSelectedBannerPatternIndex();
+        return this.container.getSelectedBannerPatternIndex();
     }
 }

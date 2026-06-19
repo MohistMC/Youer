@@ -5,30 +5,47 @@ import net.minecraft.world.entity.vehicle.minecart.MinecartFurnace;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.minecart.PoweredMinecart;
 
-@SuppressWarnings("deprecation")
 public class CraftMinecartFurnace extends CraftMinecart implements PoweredMinecart {
+
     public CraftMinecartFurnace(CraftServer server, MinecartFurnace entity) {
         super(server, entity);
     }
 
     @Override
     public MinecartFurnace getHandle() {
-        return (MinecartFurnace) entity;
+        return (MinecartFurnace) this.entity;
     }
 
     @Override
     public int getFuel() {
-        return getHandle().fuel;
+        return this.getHandle().fuel;
     }
 
     @Override
     public void setFuel(int fuel) {
         Preconditions.checkArgument(fuel >= 0, "ticks cannot be negative");
-        getHandle().fuel = fuel;
+        this.getHandle().fuel = fuel;
     }
 
     @Override
-    public String toString() {
-        return "CraftMinecartFurnace";
+    public double getPushX() {
+        return this.getHandle().push.x;
+    }
+
+    @Override
+    public double getPushZ() {
+        return this.getHandle().push.z;
+    }
+
+    @Override
+    public void setPushX(double xPush) {
+        final net.minecraft.world.phys.Vec3 push = this.getHandle().push;
+        this.getHandle().push = new net.minecraft.world.phys.Vec3(xPush, push.y, push.z);
+    }
+
+    @Override
+    public void setPushZ(double zPush) {
+        final net.minecraft.world.phys.Vec3 push = this.getHandle().push;
+        this.getHandle().push = new net.minecraft.world.phys.Vec3(push.x, push.y, zPush);
     }
 }

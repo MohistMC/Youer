@@ -5,16 +5,16 @@ public class TickLimiter {
     private final int maxTime;
     private long startTime;
 
-    public TickLimiter(int maxtime) {
-        this.maxTime = maxtime;
+    public TickLimiter(int maxTime) {
+        this.maxTime = maxTime;
     }
 
     public void initTick() {
-        startTime = System.currentTimeMillis();
+        this.startTime = System.currentTimeMillis();
     }
 
     public boolean shouldContinue() {
-        long remaining = System.currentTimeMillis() - startTime;
-        return remaining < maxTime;
+        long remaining = System.currentTimeMillis() - this.startTime;
+        return remaining < this.maxTime;
     }
 }

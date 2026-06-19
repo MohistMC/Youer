@@ -11,53 +11,48 @@ public class CraftHoglin extends CraftAnimals implements Hoglin, CraftEnemy {
     }
 
     @Override
+    public net.minecraft.world.entity.monster.hoglin.Hoglin getHandle() {
+        return (net.minecraft.world.entity.monster.hoglin.Hoglin) this.entity;
+    }
+
+    @Override
     public boolean isImmuneToZombification() {
-        return getHandle().isImmuneToZombification();
+        return this.getHandle().isImmuneToZombification();
     }
 
     @Override
     public void setImmuneToZombification(boolean flag) {
-        getHandle().setImmuneToZombification(flag);
+        this.getHandle().setImmuneToZombification(flag);
     }
 
     @Override
     public boolean isAbleToBeHunted() {
-        return getHandle().cannotBeHunted;
+        return this.getHandle().cannotBeHunted;
     }
 
     @Override
     public void setIsAbleToBeHunted(boolean flag) {
-        getHandle().cannotBeHunted = flag;
+        this.getHandle().cannotBeHunted = flag;
     }
 
     @Override
     public int getConversionTime() {
-        Preconditions.checkState(isConverting(), "Entity not converting");
-        return getHandle().timeInOverworld;
+        Preconditions.checkState(this.isConverting(), "Entity not converting");
+        return this.getHandle().timeInOverworld;
     }
 
     @Override
     public void setConversionTime(int time) {
         if (time < 0) {
-            getHandle().timeInOverworld = -1;
-            getHandle().setImmuneToZombification(false);
+            this.getHandle().setTimeInOverworld(-1);
+            this.getHandle().setImmuneToZombification(false);
         } else {
-            getHandle().timeInOverworld = time;
+            this.getHandle().setTimeInOverworld(time);
         }
     }
 
     @Override
     public boolean isConverting() {
-        return getHandle().isConverting();
-    }
-
-    @Override
-    public net.minecraft.world.entity.monster.hoglin.Hoglin getHandle() {
-        return (net.minecraft.world.entity.monster.hoglin.Hoglin) entity;
-    }
-
-    @Override
-    public String toString() {
-        return "CraftHoglin";
+        return this.getHandle().isConverting();
     }
 }

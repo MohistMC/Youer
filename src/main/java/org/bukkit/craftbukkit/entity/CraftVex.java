@@ -1,11 +1,15 @@
 package org.bukkit.craftbukkit.entity;
 
 import com.google.common.base.Preconditions;
+import net.minecraft.Optionull;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.entity.EntityReference;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.util.CraftLocation;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Vex;
+import org.jetbrains.annotations.Nullable;
 
 public class CraftVex extends CraftMonster implements Vex {
 
@@ -15,55 +19,70 @@ public class CraftVex extends CraftMonster implements Vex {
 
     @Override
     public net.minecraft.world.entity.monster.Vex getHandle() {
-        return (net.minecraft.world.entity.monster.Vex) super.getHandle();
+        return (net.minecraft.world.entity.monster.Vex) this.entity;
     }
 
     @Override
-    public String toString() {
-        return "CraftVex";
+    public @Nullable LivingEntity getOwner() {
+        return Optionull.map(this.getHandle().getOwner(), net.minecraft.world.entity.LivingEntity::getBukkitLivingEntity);
+    }
+
+    @Override
+    public void setOwner(final @Nullable LivingEntity owner) {
+        this.getHandle().owner = owner == null ? null : EntityReference.of(((CraftLivingEntity) owner).getHandle());
+    }
+
+    @Override
+    public boolean hasLimitedLifetime() {
+        return this.getHandle().hasLimitedLife;
+    }
+
+    @Override
+    public void setLimitedLifetime(boolean hasLimitedLifetime) {
+        this.getHandle().hasLimitedLife = hasLimitedLifetime;
+    }
+
+    @Override
+    public int getLimitedLifetimeTicks() {
+        return this.getHandle().limitedLifeTicks;
+    }
+
+    @Override
+    public void setLimitedLifetimeTicks(int ticks) {
+        this.getHandle().limitedLifeTicks = ticks;
     }
 
     @Override
     public boolean isCharging() {
-        return getHandle().isCharging();
+        return this.getHandle().isCharging();
     }
 
     @Override
     public void setCharging(boolean charging) {
-        getHandle().setIsCharging(charging);
+        this.getHandle().setIsCharging(charging);
     }
 
     @Override
     public Location getBound() {
-        BlockPos blockPosition = getHandle().getBoundOrigin();
-        return (blockPosition == null) ? null : CraftLocation.toBukkit(blockPosition, getWorld());
+        BlockPos pos = this.getHandle().getBoundOrigin();
+        return (pos == null) ? null : CraftLocation.toBukkit(pos, this.getWorld());
     }
 
     @Override
     public void setBound(Location location) {
         if (location == null) {
-            getHandle().setBoundOrigin(null);
+            this.getHandle().setBoundOrigin(null);
         } else {
-            Preconditions.checkArgument(getWorld().equals(location.getWorld()), "The bound world cannot be different to the entity's world.");
-            getHandle().setBoundOrigin(CraftLocation.toBlockPosition(location));
+            Preconditions.checkArgument(this.getWorld().equals(location.getWorld()), "The bound world cannot be different to the entity's world.");
+            this.getHandle().setBoundOrigin(CraftLocation.toBlockPos(location));
         }
-    }
-
-    @Override
-    public int getLifeTicks() {
-        return getHandle().limitedLifeTicks;
     }
 
     @Override
     public void setLifeTicks(int lifeTicks) {
-        getHandle().setLimitedLife(lifeTicks);
+        this.getHandle().setLimitedLife(lifeTicks);
         if (lifeTicks < 0) {
-            getHandle().hasLimitedLife = false;
+            this.getHandle().hasLimitedLife = false;
         }
-    }
-
-    @Override
-    public boolean hasLimitedLife() {
-        return getHandle().hasLimitedLife;
     }
 }

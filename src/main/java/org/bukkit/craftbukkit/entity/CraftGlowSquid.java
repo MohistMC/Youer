@@ -12,22 +12,17 @@ public class CraftGlowSquid extends CraftSquid implements GlowSquid {
 
     @Override
     public net.minecraft.world.entity.animal.squid.GlowSquid getHandle() {
-        return (net.minecraft.world.entity.animal.squid.GlowSquid) super.getHandle();
-    }
-
-    @Override
-    public String toString() {
-        return "CraftGlowSquid";
+        return (net.minecraft.world.entity.animal.squid.GlowSquid) this.entity;
     }
 
     @Override
     public int getDarkTicksRemaining() {
-        return getHandle().getDarkTicksRemaining();
+        return this.getHandle().getDarkTicksRemaining();
     }
 
     @Override
     public void setDarkTicksRemaining(int darkTicksRemaining) {
         Preconditions.checkArgument(darkTicksRemaining >= 0, "darkTicksRemaining must be >= 0");
-        getHandle().setDarkTicks(darkTicksRemaining);
+        this.getHandle().setDarkTicks(darkTicksRemaining);
     }
 }
