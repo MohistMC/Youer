@@ -1,0 +1,15 @@
+--- a/net/minecraft/network/protocol/game/ClientboundSetPlayerTeamPacket.java
++++ b/net/minecraft/network/protocol/game/ClientboundSetPlayerTeamPacket.java
+@@ -56,6 +_,12 @@
+         );
+     }
+ 
++    // Paper start - Multiple Entries with Scoreboards
++    public static ClientboundSetPlayerTeamPacket createMultiplePlayerPacket(PlayerTeam team, Collection<String> players, ClientboundSetPlayerTeamPacket.Action action) {
++        return new ClientboundSetPlayerTeamPacket(team.getName(), action == ClientboundSetPlayerTeamPacket.Action.ADD ? METHOD_JOIN : METHOD_LEAVE, Optional.empty(), players);
++    }
++    // Paper end - Multiple Entries with Scoreboards
++
+     private ClientboundSetPlayerTeamPacket(RegistryFriendlyByteBuf input) {
+         this.name = input.readUtf();
+         this.method = input.readByte();

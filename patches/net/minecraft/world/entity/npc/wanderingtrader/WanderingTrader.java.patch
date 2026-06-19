@@ -8,7 +8,7 @@
  import net.minecraft.core.BlockPos;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.sounds.SoundEvent;
-@@ -45,6 +_,7 @@
+@@ -45,12 +_,17 @@
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.Vec3;
@@ -16,14 +16,16 @@
  import org.jspecify.annotations.Nullable;
  
  public class WanderingTrader extends AbstractVillager implements Consumable.OverrideConsumeSound {
-@@ -54,6 +_,7 @@
+     private static final int DEFAULT_DESPAWN_DELAY = 0;
+     private @Nullable BlockPos wanderTarget;
+     private int despawnDelay = 0;
++    // Paper start - Add more WanderingTrader API
++    public boolean canDrinkPotion = true;
++    public boolean canDrinkMilk = true;
++    // Paper end - Add more WanderingTrader API
  
      public WanderingTrader(EntityType<? extends WanderingTrader> type, Level level) {
          super(type, level);
-+        this.setDespawnDelay(48000); // CraftBukkit - set default from MobSpawnerTrader
-     }
- 
-     @Override
 @@ -210,6 +_,7 @@
  
      private void maybeDespawn() {
@@ -32,12 +34,13 @@
              this.discard();
          }
      }
-@@ -218,7 +_,7 @@
+@@ -218,7 +_,8 @@
          this.wanderTarget = pos;
      }
  
 -    public @Nullable BlockPos getWanderTarget() {
-+    private @Nullable BlockPos getWanderTarget() {
++    @Nullable
++    public BlockPos getWanderTarget() {
          return this.wanderTarget;
      }
  

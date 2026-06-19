@@ -640,27 +640,17 @@
      }
  
      @Override
-@@ -2038,10 +_,53 @@
+@@ -2038,10 +_,48 @@
          return this.damageSources().playerAttack(this);
      }
  
--    public record BedSleepingProblem(@Nullable Component message) {
--        public static final Player.BedSleepingProblem TOO_FAR_AWAY = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.too_far_away"));
--        public static final Player.BedSleepingProblem OBSTRUCTED = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.obstructed"));
--        public static final Player.BedSleepingProblem OTHER_PROBLEM = new Player.BedSleepingProblem(null);
--        public static final Player.BedSleepingProblem NOT_SAFE = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.not_safe"));
 +
-+    // CraftBukkit start
-+    public record BedSleepingProblem(@Nullable Component message, PlayerBedEnterEvent.BedEnterResult bukkit) {
-+        public BedSleepingProblem(@Nullable Component message) {
-+            this(message, PlayerBedEnterEvent.BedEnterResult.OTHER_PROBLEM);
-+        }
-+
-+        public static final Player.BedSleepingProblem TOO_FAR_AWAY = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.too_far_away"), PlayerBedEnterEvent.BedEnterResult.TOO_FAR_AWAY);
-+        public static final Player.BedSleepingProblem OBSTRUCTED = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.obstructed"), PlayerBedEnterEvent.BedEnterResult.OTHER_PROBLEM);
-+        public static final Player.BedSleepingProblem OTHER_PROBLEM = new Player.BedSleepingProblem((Component) null, PlayerBedEnterEvent.BedEnterResult.OTHER_PROBLEM);
-+        public static final Player.BedSleepingProblem NOT_SAFE = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.not_safe"), PlayerBedEnterEvent.BedEnterResult.NOT_SAFE);
-+        // CraftBukkit end
+     public record BedSleepingProblem(@Nullable Component message) {
+         public static final Player.BedSleepingProblem TOO_FAR_AWAY = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.too_far_away"));
+         public static final Player.BedSleepingProblem OBSTRUCTED = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.obstructed"));
+         public static final Player.BedSleepingProblem OTHER_PROBLEM = new Player.BedSleepingProblem(null);
+         public static final Player.BedSleepingProblem NOT_SAFE = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.not_safe"));
++        public static final Player.BedSleepingProblem EXPLOSION = new Player.BedSleepingProblem(null); // Paper - Added to properly handle explosions in bed events
 +    }
 +
 +    // Neo: Getters for the Player's name prefixes and suffixes

@@ -1,0 +1,18 @@
+--- a/net/minecraft/world/level/chunk/storage/RegionStorageInfo.java
++++ b/net/minecraft/world/level/chunk/storage/RegionStorageInfo.java
+@@ -3,8 +_,13 @@
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.world.level.Level;
+ 
+-public record RegionStorageInfo(String level, ResourceKey<Level> dimension, String type) {
+-    public RegionStorageInfo withTypeSuffix(String suffix) {
++// Paper start - crazy hack to indicate what type the region file is
++public record RegionStorageInfo(String level, ResourceKey<Level> dimension, String type, net.minecraft.util.datafix.DataFixTypes[] dfuType) {
++    public RegionStorageInfo(String level, ResourceKey<Level> dimension, String type) {
++        this(level, dimension, type, new net.minecraft.util.datafix.DataFixTypes[1]);
++    }
++    // Paper end - crazy hack to indicate what type the region file is
++    public RegionStorageInfo withTypeSuffix(final String suffix) {
+         return new RegionStorageInfo(this.level, this.dimension, this.type + suffix);
+     }
+ }

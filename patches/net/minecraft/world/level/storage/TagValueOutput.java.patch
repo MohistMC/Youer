@@ -1,16 +1,40 @@
 --- a/net/minecraft/world/level/storage/TagValueOutput.java
 +++ b/net/minecraft/world/level/storage/TagValueOutput.java
-@@ -70,6 +_,13 @@
+@@ -24,6 +_,23 @@
+         this.output = output;
      }
  
-     @Override
-+    public void store(CompoundTag tag) {
-+        for (var entry : tag.entrySet()) {
-+            output.put(entry.getKey(), entry.getValue());
++    // Paper start - utility methods
++    public static TagValueOutput createWrappingGlobal(
++            final ProblemReporter problemReporter,
++            final CompoundTag output
++    ) {
++        return new TagValueOutput(problemReporter, NbtOps.INSTANCE, output);
++    }
++
++    public static TagValueOutput createWrappingWithContext(
++            final ProblemReporter problemReporter,
++            final HolderLookup.Provider lookup,
++            final CompoundTag output
++    ) {
++        return new TagValueOutput(problemReporter, lookup.createSerializationContext(NbtOps.INSTANCE), output);
++    }
++    // Paper end - utility methods
++
+     public static TagValueOutput createWithContext(ProblemReporter problemReporter, HolderLookup.Provider provider) {
+         return new TagValueOutput(problemReporter, provider.createSerializationContext(NbtOps.INSTANCE), new CompoundTag());
+     }
+@@ -66,6 +_,13 @@
+                 break;
+             default:
+                 throw new MatchException(null, null);
 +        }
 +    }
 +
 +    @Override
-     public void putBoolean(String name, boolean value) {
-         this.output.putBoolean(name, value);
++    public void store(CompoundTag tag) {
++        for (var entry : tag.entrySet()) {
++            output.put(entry.getKey(), entry.getValue());
+         }
      }
+ 

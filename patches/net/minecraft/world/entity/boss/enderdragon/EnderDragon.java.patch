@@ -22,11 +22,14 @@
  public class EnderDragon extends Mob implements Enemy {
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final EntityDataAccessor<Integer> DATA_PHASE = SynchedEntityData.defineId(EnderDragon.class, EntityDataSerializers.INT);
-@@ -87,6 +_,7 @@
+@@ -87,6 +_,10 @@
      private final Node[] nodes = new Node[24];
      private final int[] nodeAdjacency = new int[24];
      private final BinaryHeap openSet = new BinaryHeap();
-+    private final Explosion explosionSource; // CraftBukkit - reusable source for CraftTNTPrimed.getSource()
++    // Paper start
++    private final net.minecraft.world.level.Explosion explosionSource; // Paper - reusable source for CraftTNTPrimed.getSource()
++    private @Nullable BlockPos podium;
++    // Paper end
  
      public EnderDragon(EntityType<? extends EnderDragon> type, Level level) {
          super(EntityTypes.ENDER_DRAGON, level);
@@ -38,6 +41,26 @@
      }
  
      public void setDragonFight(EnderDragonFight fight) {
+@@ -120,6 +_,19 @@
+         return Mob.createMobAttributes().add(Attributes.MAX_HEALTH, 200.0).add(Attributes.CAMERA_DISTANCE, 16.0);
+     }
+ 
++    // Paper start - Allow changing the EnderDragon podium
++    public BlockPos getPodium() {
++        if (this.podium == null) {
++            return EndPodiumFeature.getLocation(this.getFightOrigin());
++        }
++        return this.podium;
++    }
++
++    public void setPodium(@Nullable BlockPos blockPos) {
++        this.podium = blockPos;
++    }
++    // Paper end - Allow changing the EnderDragon podium
++
+     @Override
+     public boolean isFlapping() {
+         float flap = Mth.cos(this.flapTime * (float) (Math.PI * 2));
 @@ -150,8 +_,19 @@
          entityData.define(DATA_PHASE, EnderDragonPhase.HOVERING.getId());
      }
@@ -108,7 +131,7 @@
                          } else {
                              hitWall = true;
                          }
-@@ -446,6 +_,49 @@
+@@ -446,6 +_,59 @@
              }
          }
  
@@ -129,28 +152,38 @@
 +                this.level().removeBlock(new BlockPos(block.getX(), block.getY(), block.getZ()), false);
 +            }
 +        } else {
-+            for (org.bukkit.block.Block block : event.blockList()) {
-+                org.bukkit.Material blockId = block.getType();
-+                if (blockId.isAir()) {
++            for (org.bukkit.block.Block b : event.blockList()) {
++                org.bukkit.Material blockType = b.getType();
++                if (blockType.isAir()) {
 +                    continue;
 +                }
 +
-+                CraftBlock craftBlock = ((CraftBlock) block);
-+                BlockPos blockpos = craftBlock.getPosition();
++                org.bukkit.craftbukkit.block.CraftBlock craftBlock = ((org.bukkit.craftbukkit.block.CraftBlock) b);
++                BlockPos pos = craftBlock.getPosition();
++                net.minecraft.world.level.block.state.BlockState state = craftBlock.getBlockState();
++                net.minecraft.world.level.block.Block block = state.getBlock();
 +
-+                Block nmsBlock = craftBlock.getNMS().getBlock();
-+                if (nmsBlock.dropFromExplosion(explosionSource)) {
-+                    BlockEntity blockentity = craftBlock.getNMS().hasBlockEntity() ? this.level().getBlockEntity(blockpos) : null;
-+                    LootParams.Builder loottableinfo_builder = (new LootParams.Builder((ServerLevel) this.level())).withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(blockpos)).withParameter(LootContextParams.TOOL, ItemStack.EMPTY).withParameter(LootContextParams.EXPLOSION_RADIUS, 1.0F / event.getYield()).withOptionalParameter(LootContextParams.BLOCK_ENTITY, blockentity);
++                if (block.dropFromExplosion(this.explosionSource)) {
++                    net.minecraft.world.level.block.entity.BlockEntity blockEntity = state.hasBlockEntity() ? this.level().getBlockEntity(pos) : null;
++                    net.minecraft.world.level.storage.loot.LootParams.Builder builder = new net.minecraft.world.level.storage.loot.LootParams.Builder((ServerLevel) this.level())
++                            .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.ORIGIN, Vec3.atCenterOf(pos))
++                            .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.TOOL, net.minecraft.world.item.ItemStack.EMPTY)
++                            .withParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.EXPLOSION_RADIUS, 1.0F / event.getYield())
++                            .withOptionalParameter(net.minecraft.world.level.storage.loot.parameters.LootContextParams.BLOCK_ENTITY, blockEntity);
 +
-+                    craftBlock.getNMS().getDrops(loottableinfo_builder).forEach((itemstack) -> {
-+                        Block.popResource(this.level(), blockpos, itemstack);
++                    state.getDrops(builder).forEach((item) -> {
++                        net.minecraft.world.level.block.Block.popResource(this.level(), pos, item);
 +                    });
-+                    craftBlock.getNMS().spawnAfterBreak((ServerLevel) this.level(), blockpos, ItemStack.EMPTY, false);
++                    state.spawnAfterBreak((ServerLevel) this.level(), pos, net.minecraft.world.item.ItemStack.EMPTY, false);
 +                }
-+                nmsBlock.wasExploded((ServerLevel) this.level(), blockpos, explosionSource);
++                // Paper start - TNTPrimeEvent
++                org.bukkit.block.Block tntBlock = org.bukkit.craftbukkit.block.CraftBlock.at(this.level(), pos);
++                if (!new com.destroystokyo.paper.event.block.TNTPrimeEvent(tntBlock, com.destroystokyo.paper.event.block.TNTPrimeEvent.PrimeReason.EXPLOSION, explosionSource.getIndirectSourceEntity().getBukkitEntity()).callEvent())
++                    continue;
++                // Paper end - TNTPrimeEvent
++                block.wasExploded((ServerLevel) this.level(), pos, this.explosionSource);
 +
-+                this.level().removeBlock(blockpos, false);
++                this.level().removeBlock(pos, false);
 +            }
 +        }
 +        // CraftBukkit end

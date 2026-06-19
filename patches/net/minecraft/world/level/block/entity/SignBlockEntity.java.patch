@@ -23,6 +23,24 @@
  public class SignBlockEntity extends BlockEntity {
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final int MAX_TEXT_LINE_WIDTH = 90;
+@@ -58,10 +_,15 @@
+     }
+ 
+     public boolean isFacingFrontText(Player player) {
++        // Paper start - More Sign Block API
++        return this.isFacingFrontText(player.getX(), player.getZ());
++    }
++    public boolean isFacingFrontText(final double x, final double z) {
++        // Paper end - More Sign Block API
+         if (this.getBlockState().getBlock() instanceof SignBlock sign) {
+             Vec3 signPositionOffset = sign.getSignHitboxCenterPosition(this.getBlockState());
+-            double xd = player.getX() - (this.getBlockPos().getX() + signPositionOffset.x);
+-            double zd = player.getZ() - (this.getBlockPos().getZ() + signPositionOffset.z);
++            double xd = x - (this.getBlockPos().getX() + signPositionOffset.x); // Paper - More Sign Block API
++            double zd = z - (this.getBlockPos().getZ() + signPositionOffset.z); // Paper - More Sign Block API
+             float signYRot = sign.getYRotationDegrees(this.getBlockState());
+             float playerYRot = (float)(Mth.atan2(zd, xd) * 180.0F / (float)Math.PI) - 90.0F;
+             return Mth.degreesDifferenceAbs(signYRot, playerYRot) <= 90.0F;
 @@ -129,11 +_,12 @@
  
      public void updateSignText(Player player, boolean frontText, List<FilteredText> lines) {

@@ -51,15 +51,13 @@
  import net.minecraft.util.Util;
  import net.minecraft.util.debug.DebugSubscriptions;
  import net.minecraft.util.debugchart.RemoteDebugSampleType;
-@@ -69,6 +_,17 @@
+@@ -69,6 +_,15 @@
  import net.minecraft.world.level.gamerules.GameRules;
  import net.minecraft.world.level.storage.LevelData;
  import net.minecraft.world.level.storage.LevelStorageSource;
-+import org.apache.logging.log4j.Level;
 +import org.apache.logging.log4j.LogManager;
 +import org.apache.logging.log4j.io.IoBuilder;
 +import org.bukkit.command.CommandSender;
-+import org.bukkit.craftbukkit.util.TerminalConsoleWriterThread;
 +import org.bukkit.event.server.RemoteServerCommandEvent;
 +import org.bukkit.event.server.ServerCommandEvent;
 +import org.jline.reader.EndOfFileException;
@@ -69,9 +67,12 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -78,7 +_,7 @@
+@@ -76,9 +_,9 @@
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private static final int CONVERSION_RETRY_DELAY_MS = 5000;
      private static final int CONVERSION_RETRIES = 2;
-     private final List<ConsoleInput> consoleInput = Collections.synchronizedList(Lists.newArrayList());
+-    private final List<ConsoleInput> consoleInput = Collections.synchronizedList(Lists.newArrayList());
++    private final java.util.Queue<ConsoleInput> serverCommandQueue = new java.util.concurrent.ConcurrentLinkedQueue<>(); // Paper - Perf: use a proper queue
      private @Nullable QueryThreadGs4 queryThreadGs4;
 -    private final RconConsoleSource rconConsoleSource;
 +    // private final RconConsoleSource rconConsoleSource; // CraftBukkit - remove field
@@ -117,64 +118,25 @@
          } catch (IOException e) {
              throw new IllegalArgumentException("Failed to read Code of Conduct folder", e);
          }
-@@ -164,21 +_,72 @@
- 
-     @Override
-     protected boolean initServer() throws IOException {
-+        // CraftBukkit start
-+        LineReader reader = LineReaderBuilder.builder()
-+                .terminal(terminal)
-+                .option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
-+                .completer(new org.bukkit.craftbukkit.command.ConsoleCommandCompleter())
-+                .build();
-+        // CraftBukkit end
+@@ -167,18 +_,29 @@
          Thread consoleThread = new Thread("Server console handler") {
              @Override
              public void run() {
 -                BufferedReader reader = new BufferedReader(new InputStreamReader(System.in, StandardCharsets.UTF_8));
+-
+-                String line;
+-                try {
+-                    while (!DedicatedServer.this.isStopped() && DedicatedServer.this.isRunning() && (line = reader.readLine()) != null) {
+-                        DedicatedServer.this.handleConsoleInput(line, DedicatedServer.this.createCommandSourceStack());
+-                    }
+-                } catch (IOException e) {
+-                    DedicatedServer.LOGGER.error("Exception handling console input", e);
 +                // CraftBukkit start
 +                if (!org.bukkit.craftbukkit.Main.useConsole) {
 +                    return;
-+                }
-+
-+                // MC-33041, SPIGOT-5538: if System.in is not valid due to javaw, then return
-+                try {
-+                    System.in.available();
-+                } catch (IOException ex) {
-+                    return;
-+                }
-+                // CraftBukkit end
-+                if (net.neoforged.neoforge.server.console.TerminalHandler.handleCommands(DedicatedServer.this)) return;
- 
-                 String line;
-                 try {
--                    while (!DedicatedServer.this.isStopped() && DedicatedServer.this.isRunning() && (line = reader.readLine()) != null) {
--                        DedicatedServer.this.handleConsoleInput(line, DedicatedServer.this.createCommandSourceStack());
-+                    while (!DedicatedServer.this.isStopped() && DedicatedServer.this.isRunning()) {
-+                        try {
-+                            if (org.bukkit.craftbukkit.Main.useJline) {
-+                                line = reader.readLine(">", null);
-+                            } else {
-+                                line = reader.readLine();
-+                            }
-+
-+                            if (!line.trim().isEmpty()) { // Trim to filter lines which are just spaces
-+                                DedicatedServer.this.handleConsoleInput(line, DedicatedServer.this.createCommandSourceStack());
-+                            }
-+                        } catch (EndOfFileException | UserInterruptException eof) {
-+                            // SPIGOT-5220: Throttle if EOF (ctrl^d) or stdin is /dev/null
-+                            try {
-+                                Thread.sleep(50L);
-+                            } catch (InterruptedException ex) {
-+                                Thread.currentThread().interrupt();
-+                            }
-+                        }
-                     }
--                } catch (IOException e) {
--                    DedicatedServer.LOGGER.error("Exception handling console input", e);
-+                } catch (Throwable var4) {
-+                    DedicatedServer.LOGGER.error("Exception handling console input", (Throwable) var4);
                  }
++                if (net.neoforged.neoforge.server.console.TerminalHandler.handleCommands(DedicatedServer.this)) return;
++                new com.destroystokyo.paper.console.PaperConsole(DedicatedServer.this).start();
              }
          };
 +
@@ -271,7 +233,7 @@
              Thread watchdog = new Thread(new ServerWatchdog(this), "Server Watchdog");
              watchdog.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandlerWithName(LOGGER));
              watchdog.setDaemon(true);
-@@ -274,6 +_,13 @@
+@@ -274,8 +_,21 @@
  
          this.saveEverything(false, true, true);
          this.notificationManager().serverStarted();
@@ -284,7 +246,15 @@
 +        net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerStarting(this);
          return true;
      }
++
++    // Paper start
++    public java.io.File getPluginsFolder() {
++        return (java.io.File) this.options.valueOf("plugins");
++    }
++    // Paper end
  
+     @Override
+     public boolean isEnforceWhitelist() {
 @@ -410,6 +_,11 @@
              this.queryThreadGs4.stop();
          }
@@ -305,26 +275,57 @@
      }
  
      @Override
-@@ -431,8 +_,17 @@
- 
-     public void handleConsoleInputs() {
-         while (!this.consoleInput.isEmpty()) {
--            ConsoleInput input = this.consoleInput.remove(0);
--            this.getCommands().performPrefixedCommand(input.source, input.msg);
-+            ConsoleInput consoleinput = (ConsoleInput) this.consoleInput.remove(0);
-+
-+            // CraftBukkit start - ServerCommand for preprocessing
-+            ServerCommandEvent event = new ServerCommandEvent(console, consoleinput.msg);
-+            server.getPluginManager().callEvent(event);
-+            if (event.isCancelled()) continue;
-+            consoleinput = new ConsoleInput(event.getCommand(), consoleinput.source);
-+
-+            // this.getCommands().performPrefixedCommand(servercommand.source, servercommand.msg); // Called in dispatchServerCommand
-+            server.dispatchServerCommand(console, consoleinput);
-+            // CraftBukkit end
-         }
+@@ -425,13 +_,47 @@
+         this.handleConsoleInputs();
      }
  
++    private static final java.util.concurrent.atomic.AtomicInteger ASYNC_DEBUG_CHUNKS_COUNT = new java.util.concurrent.atomic.AtomicInteger(); // Paper - rewrite chunk system
++
+     public void handleConsoleInput(String msg, CommandSourceStack source) {
+-        this.consoleInput.add(new ConsoleInput(msg, source));
++        // Paper start - rewrite chunk system
++        if (msg.equalsIgnoreCase("paper debug chunks --async")) {
++            LOGGER.info("Scheduling async debug chunks");
++            Runnable run = () -> {
++                LOGGER.info("Async debug chunks executing");
++                ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler.dumpAllChunkLoadInfo(this, false);
++                org.bukkit.command.CommandSender sender = MinecraftServer.getServer().console;
++                java.io.File file = ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler.getChunkDebugFile();
++                sender.sendMessage(net.kyori.adventure.text.Component.text("Writing chunk information dump to " + file, net.kyori.adventure.text.format.NamedTextColor.GREEN));
++                try {
++                    ca.spottedleaf.moonrise.common.util.JsonUtil.writeJson(ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler.debugAllWorlds(this), file);
++                    sender.sendMessage(net.kyori.adventure.text.Component.text("Successfully written chunk information!", net.kyori.adventure.text.format.NamedTextColor.GREEN));
++                } catch (Throwable thr) {
++                    MinecraftServer.LOGGER.warn("Failed to dump chunk information to file " + file.toString(), thr);
++                    sender.sendMessage(net.kyori.adventure.text.Component.text("Failed to dump chunk information, see console", net.kyori.adventure.text.format.NamedTextColor.RED));
++                }
++            };
++            Thread t = new Thread(run);
++            t.setName("Async debug thread #" + ASYNC_DEBUG_CHUNKS_COUNT.getAndIncrement());
++            t.setDaemon(true);
++            t.start();
++            return;
++        }
++        // Paper end - rewrite chunk system
++        this.serverCommandQueue.add(new ConsoleInput(msg, source)); // Paper - Perf: use proper queue
+     }
+ 
+     public void handleConsoleInputs() {
+-        while (!this.consoleInput.isEmpty()) {
+-            ConsoleInput input = this.consoleInput.remove(0);
++        // Paper start - Perf: use proper queue
++        ConsoleInput input;
++        while ((input = this.serverCommandQueue.poll()) != null) {
++            // Paper end - Perf: use proper queue
++            // CraftBukkit start - ServerCommand for preprocessing
++            org.bukkit.event.server.ServerCommandEvent event = new org.bukkit.event.server.ServerCommandEvent(this.console, input.msg);
++            this.server.getPluginManager().callEvent(event);
++            if (event.isCancelled()) continue;
++            input = new ConsoleInput(event.getCommand(), input.source);
++            // CraftBukkit end
+             this.getCommands().performPrefixedCommand(input.source, input.msg);
+         }
+     }
 @@ -591,7 +_,7 @@
  
      @Override
@@ -334,7 +335,7 @@
      }
  
      @Override
-@@ -707,20 +_,63 @@
+@@ -707,20 +_,64 @@
  
      @Override
      public String getPluginNames() {
@@ -374,17 +375,18 @@
 +        throw new UnsupportedOperationException("Not supported - remote source required.");
 +    }
 +
-+    public String runCommand(RconConsoleSource rconConsoleSource, String s) {
++    public String runCommand(RconConsoleSource rconConsoleSource, String command) {
++        if (command.isBlank()) return ""; // Paper - Do not process empty rcon commands
++
 +        rconConsoleSource.prepareForCommand();
 +        this.executeBlocking(() -> {
 +            CommandSourceStack wrapper = rconConsoleSource.createCommandSourceStack();
-+            RemoteServerCommandEvent event = new RemoteServerCommandEvent(rconConsoleSource.getBukkitSender(wrapper), s);
++            RemoteServerCommandEvent event = new RemoteServerCommandEvent(rconConsoleSource.getBukkitSender(wrapper), command);
 +            server.getPluginManager().callEvent(event);
 +            if (event.isCancelled()) {
 +                return;
 +            }
-+            ConsoleInput serverCommand = new ConsoleInput(event.getCommand(), wrapper);
-+            server.dispatchServerCommand(event.getSender(), serverCommand);
++            this.getCommands().performPrefixedCommand(wrapper, event.getCommand());
 +        });
 +        return rconConsoleSource.getCommandResponse();
 +        // CraftBukkit end

@@ -9,6 +9,30 @@
                      }
  
                      this.gameEvent(GameEvent.DRINK);
+@@ -179,6 +_,23 @@
+         super.aiStep();
+     }
+ 
++    // Paper start - moved to its own method
++    public void setDrinkingPotion(ItemStack potion) {
++        potion = org.bukkit.craftbukkit.event.CraftEventFactory.handleWitchReadyPotionEvent(this, potion);
++        this.setItemSlot(EquipmentSlot.MAINHAND, potion);
++        this.usingTime = this.getMainHandItem().getUseDuration(this);
++        this.setUsingItem(true);
++        if (!this.isSilent()) {
++            this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.WITCH_DRINK, this.getSoundSource(), 1.0F, 0.8F + this.random.nextFloat() * 0.4F);
++        }
++
++        AttributeInstance speed = this.getAttribute(Attributes.MOVEMENT_SPEED);
++
++        speed.removeModifier(Witch.SPEED_MODIFIER_DRINKING_ID);
++        speed.addTransientModifier(Witch.SPEED_MODIFIER_DRINKING);
++    }
++    // Paper end
++
+     @Override
+     public SoundEvent getCelebrateSound() {
+         return SoundEvents.WITCH_CELEBRATE;
 @@ -205,13 +_,14 @@
      }
  

@@ -1,49 +1,27 @@
 --- a/net/minecraft/world/level/storage/PrimaryLevelData.java
 +++ b/net/minecraft/world/level/storage/PrimaryLevelData.java
-@@ -11,17 +_,24 @@
- import java.util.stream.Collectors;
- import net.minecraft.CrashReportCategory;
- import net.minecraft.SharedConstants;
-+import net.minecraft.core.Registry;
- import net.minecraft.core.UUIDUtil;
- import net.minecraft.nbt.CompoundTag;
- import net.minecraft.nbt.ListTag;
- import net.minecraft.nbt.NbtUtils;
- import net.minecraft.nbt.StringTag;
-+import net.minecraft.nbt.Tag;
-+import net.minecraft.network.protocol.game.ClientboundChangeDifficultyPacket;
-+import net.minecraft.server.level.ServerLevel;
-+import net.minecraft.server.level.ServerPlayer;
- import net.minecraft.util.Util;
- import net.minecraft.world.Difficulty;
- import net.minecraft.world.level.GameType;
+@@ -22,6 +_,7 @@
  import net.minecraft.world.level.LevelHeightAccessor;
  import net.minecraft.world.level.LevelSettings;
  import net.minecraft.world.level.WorldDataConfiguration;
-+import net.minecraft.world.level.dimension.LevelStem;
 +import org.bukkit.Bukkit;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -42,6 +_,21 @@
+@@ -35,6 +_,8 @@
+     private final PrimaryLevelData.SpecialWorldProperty specialWorldProperty;
+     private final Lifecycle worldGenSettingsLifecycle;
+     private LevelData.RespawnData respawnData;
++    public static final String PAPER_RESPAWN_DIMENSION = "paperSpawnDimension"; // Paper
++    public net.minecraft.resources.ResourceKey<net.minecraft.world.level.Level> respawnDimension = net.minecraft.world.level.Level.OVERWORLD; // Paper
+     private long gameTime;
+     private final @Nullable UUID singlePlayerUUID;
+     private final int version;
+@@ -42,6 +_,7 @@
      private final Set<String> knownServerBrands;
      private boolean wasModded;
      private final Set<String> removedFeatureFlags;
 +    private boolean confirmedExperimentalWarning = false;
-+    // CraftBukkit start - Add world and pdc
-+    public Registry<LevelStem> customDimensions;
-+    private ServerLevel world;
-+    protected Tag pdc;
-+
-+    public void setWorld(ServerLevel world) {
-+        if (this.world != null) {
-+            return;
-+        }
-+        this.world = world;
-+        world.getWorld().readBukkitValues(pdc);
-+        pdc = null;
-+    }
-+    // CraftBukkit end
  
      private PrimaryLevelData(
          @Nullable UUID singlePlayerUUID,
@@ -56,7 +34,7 @@
              input.get("singleplayer_uuid").flatMap(UUIDUtil.CODEC::parse).result().orElse(null),
              input.get("WasModded").asBoolean(false),
              input.get("spawn").read(LevelData.RespawnData.CODEC).result().orElse(LevelData.RespawnData.DEFAULT),
-@@ -98,11 +_,16 @@
+@@ -98,11 +_,21 @@
              levelVersion.levelDataVersion(),
              input.get("initialized").asBoolean(true),
              input.get("ServerBrands").asStream().flatMap(b -> b.asString().result().stream()).collect(Collectors.toCollection(Sets::newLinkedHashSet)),
@@ -71,16 +49,28 @@
 +        // Neo:
 +        result.setDayTimeFraction(input.get("neoDayTimeFraction").asFloat(0f));
 +        result.setDayTimePerTick(input.get("neoDayTimePerTick").asFloat(-1f));
++        // Paper start
++        result.respawnDimension = input.get(PAPER_RESPAWN_DIMENSION)
++                .read(net.minecraft.world.level.Level.RESOURCE_KEY_CODEC)
++                .result()
++                .orElse(result.respawnData.dimension());
 +        return result;
      }
  
      @Override
-@@ -139,6 +_,13 @@
+@@ -127,6 +_,7 @@
+         NbtUtils.addCurrentDataVersion(tag);
+         tag.putInt("GameType", this.settings.gameType().getId());
+         tag.store("spawn", LevelData.RespawnData.CODEC, this.respawnData);
++        tag.store(PAPER_RESPAWN_DIMENSION, net.minecraft.world.level.Level.RESOURCE_KEY_CODEC, this.respawnDimension); // Paper
+         tag.putLong("Time", this.gameTime);
+         writeLastPlayed(tag);
+         tag.putString("LevelName", this.settings.levelName());
+@@ -139,6 +_,12 @@
          }
  
          tag.store(WorldDataConfiguration.MAP_CODEC, this.settings.dataConfiguration());
 +        tag.putString("Bukkit.Version", Bukkit.getName() + "/" + Bukkit.getVersion() + "/" + Bukkit.getBukkitVersion()); // CraftBukkit
-+        world.getWorld().storeBukkitValues(tag); // CraftBukkit - add pdc
 +        // Neo:
 +        tag.putString("forgeLifecycle", net.neoforged.neoforge.common.CommonHooks.encodeLifecycle(this.settings.getLifecycle()));
 +        tag.putBoolean("confirmedExperimentalSettings", this.confirmedExperimentalWarning);
@@ -89,19 +79,6 @@
      }
  
      public static void writeLastPlayed(CompoundTag tag) {
-@@ -251,6 +_,12 @@
-     @Override
-     public void setDifficulty(Difficulty difficulty) {
-         this.settings = this.settings.withDifficulty(difficulty);
-+        // CraftBukkit start
-+        ClientboundChangeDifficultyPacket packet = new ClientboundChangeDifficultyPacket(this.getDifficulty(), this.isDifficultyLocked());
-+        for (ServerPlayer player : (java.util.List<ServerPlayer>) (java.util.List) world.players()) {
-+            player.connection.send(packet);
-+        }
-+        // CraftBukkit end
-     }
- 
-     @Override
 @@ -325,10 +_,66 @@
          return this.settings.copy();
      }

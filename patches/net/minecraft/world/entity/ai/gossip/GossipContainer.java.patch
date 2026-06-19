@@ -1,13 +1,12 @@
 --- a/net/minecraft/world/entity/ai/gossip/GossipContainer.java
 +++ b/net/minecraft/world/entity/ai/gossip/GossipContainer.java
-@@ -24,6 +_,10 @@
+@@ -24,6 +_,9 @@
  import net.minecraft.util.ExtraCodecs;
  import net.minecraft.util.RandomSource;
  import net.minecraft.util.VisibleForDebug;
 +import net.minecraft.world.entity.npc.villager.Villager;
 +import org.bukkit.craftbukkit.entity.CraftVillager;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
-+import org.bukkit.event.entity.VillagerReputationChangeEvent;
  
  public class GossipContainer {
      public static final Codec<GossipContainer> CODEC = GossipContainer.GossipEntry.CODEC
@@ -26,86 +25,97 @@
      public GossipContainer() {
      }
  
-@@ -106,8 +_,16 @@
+@@ -65,6 +_,20 @@
+         return this.gossips.entrySet().stream().flatMap(e -> e.getValue().unpack(e.getKey()));
      }
  
-     public int getReputation(UUID entity, Predicate<GossipType> types) {
-+        // CraftBukkit start - add getReputation overload with additional parameter
-+        return getReputation(entity, types, true);
-+    }
-+
-+    public int getReputation(UUID entity, Predicate<GossipType> types, boolean weighted) {
-+        // CraftBukkit end
-         GossipContainer.EntityGossips entry = this.gossips.get(entity);
--        return entry != null ? entry.weightedValue(types) : 0;
-+        // CraftBukkit start - handle weighted parameter
-+        return entry != null ? (weighted ? entry.weightedValue(types) : entry.unweightedValue(types)) : 0;
-+        // CraftBukkit end
-     }
- 
-     public long getCountForType(GossipType type, DoublePredicate valueTest) {
-@@ -115,14 +_,46 @@
-     }
- 
-     public void add(UUID target, GossipType type, int amountToAdd) {
-+        // CraftBukkit start - add change reason parameter
-+        add(target, type, amountToAdd, org.bukkit.entity.Villager.ReputationEvent.UNSPECIFIED);
-+    }
-+
-+    public void add(UUID target, GossipType type, int amountToAdd, org.bukkit.entity.Villager.ReputationEvent changeReason) {
-+        // CraftBukkit end
-         GossipContainer.EntityGossips entityGossips = this.getOrCreate(target);
-+        int oldValue = entityGossips.entries.getInt(type); // CraftBukkit - store old value
-         entityGossips.entries.mergeInt(type, amountToAdd, (o, n) -> this.mergeValuesForAddition(type, o, n));
--        entityGossips.makeSureValueIsntTooLowOrTooHigh(type);
-+        // CraftBukkit start - fire reputation change event
-+        int newValue = entityGossips.entries.getInt(type);
-+        newValue = Math.max(0, Math.min(newValue, type.max));
-+        entityGossips.entries.replace(type, oldValue); // restore old value until the event completed processing
-+        VillagerReputationChangeEvent event = CraftEventFactory.callVillagerReputationChangeEvent(villager, target, changeReason, CraftVillager.CraftReputationType.minecraftToBukkit(type), oldValue, newValue, type.max);
-+        if (!event.isCancelled()) {
-+            entityGossips.entries.replace(type, event.getNewValue());
-+            entityGossips.makeSureValueIsntTooLowOrTooHigh(type);
++    // Paper start - Perf: Remove streams from hot code
++    private List<GossipContainer.GossipEntry> decompress() {
++        final List<GossipContainer.GossipEntry> entries = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>();
++        for (final Map.Entry<UUID, GossipContainer.EntityGossips> gossips : this.gossips.entrySet()) {
++            for (final GossipContainer.GossipEntry entry : gossips.getValue().decompress(gossips.getKey())) {
++                if (entry.weightedValue() != 0) {
++                    entries.add(entry);
++                }
++            }
 +        }
-+        // CraftBukkit end
-         if (entityGossips.isEmpty()) {
-             this.gossips.remove(target);
-         }
-     }
++        return entries;
++    }
++    // Paper end - Perf: Remove streams from hot code
++
+     private Collection<GossipContainer.GossipEntry> selectGossipsForTransfer(RandomSource random, int maxCount) {
+         List<GossipContainer.GossipEntry> entries = this.unpack().toList();
+         if (entries.isEmpty()) {
+@@ -176,8 +_,25 @@
+         private final Object2IntMap<GossipType> entries = new Object2IntOpenHashMap<>();
  
-+    // CraftBukkit start
-+    public void set(UUID target, GossipType type, int amount, org.bukkit.entity.Villager.ReputationEvent changeReason) {
-+        int addAmount = amount - getReputation(target, Predicate.isEqual(type), false);
-+        if (addAmount == 0) {
-+            return;
-+        }
-+        this.add(target, type, addAmount, changeReason);
-+    }
-+    // CraftBukkit end
-+
-+    // CraftBukkit start - add change reason parameter
-+    public void remove(UUID target, GossipType type, int amountToRemove, org.bukkit.entity.Villager.ReputationEvent changeReason) {
-+        this.add(target, type, -amountToRemove, changeReason);
-+    }
-+    // CraftBukkit end
-+
-     public void remove(UUID target, GossipType type, int amountToRemove) {
-         this.add(target, type, -amountToRemove);
-     }
-@@ -178,6 +_,16 @@
          public int weightedValue(Predicate<GossipType> types) {
-             return this.entries.object2IntEntrySet().stream().filter(e -> types.test(e.getKey())).mapToInt(e -> e.getIntValue() * e.getKey().weight).sum();
-         }
-+
-+        // CraftBukkit start
-+        public int unweightedValue(Predicate<GossipType> predicate) {
-+            return this.entries.object2IntEntrySet().stream().filter((entry) -> {
-+                return predicate.test((GossipType) entry.getKey());
-+            }).mapToInt((entry) -> {
-+                return entry.getIntValue();
-+            }).sum();
+-            return this.entries.object2IntEntrySet().stream().filter(e -> types.test(e.getKey())).mapToInt(e -> e.getIntValue() * e.getKey().weight).sum();
+-        }
++            // Paper start - Perf: Remove streams from hot code
++            int weight = 0;
++            for (Object2IntMap.Entry<GossipType> entry : this.entries.object2IntEntrySet()) {
++                if (types.test(entry.getKey())) {
++                    weight += entry.getIntValue() * entry.getKey().weight;
++                }
++            }
++            return weight;
 +        }
-+        // CraftBukkit end
++
++        public List<GossipContainer.GossipEntry> decompress(final UUID target) {
++            List<GossipContainer.GossipEntry> entries = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>();
++            for (Object2IntMap.Entry<GossipType> entry : this.entries.object2IntEntrySet()) {
++                entries.add(new GossipContainer.GossipEntry(target, entry.getKey(), entry.getIntValue()));
++            }
++            return entries;
++            // Paper end - Perf: Remove streams from hot code
++        }
++
  
          public Stream<GossipContainer.GossipEntry> unpack(UUID target) {
              return this.entries.object2IntEntrySet().stream().map(e -> new GossipContainer.GossipEntry(target, e.getKey(), e.getIntValue()));
+@@ -215,6 +_,44 @@
+         public void remove(GossipType type) {
+             this.entries.removeInt(type);
+         }
++
++        // Paper start - Add villager reputation API
++        private static final GossipType[] TYPES = GossipType.values();
++
++        public com.destroystokyo.paper.entity.villager.Reputation asReputation() {
++            Map<com.destroystokyo.paper.entity.villager.ReputationType, Integer> map = new java.util.EnumMap<>(com.destroystokyo.paper.entity.villager.ReputationType.class);
++            for (Object2IntMap.Entry<GossipType> type : this.entries.object2IntEntrySet()) {
++                map.put(toApi(type.getKey()), type.getIntValue());
++            }
++
++            return new com.destroystokyo.paper.entity.villager.Reputation(map);
++        }
++
++        public void assignFromReputation(com.destroystokyo.paper.entity.villager.Reputation rep) {
++            for (GossipType type : TYPES) {
++                com.destroystokyo.paper.entity.villager.ReputationType api = toApi(type);
++
++                if (rep.hasReputationSet(api)) {
++                    int reputation = rep.getReputation(api);
++                    if (reputation == 0) {
++                        this.entries.removeInt(type);
++                    } else {
++                        this.entries.put(type, reputation);
++                    }
++                }
++            }
++        }
++
++        private static com.destroystokyo.paper.entity.villager.ReputationType toApi(GossipType type) {
++            return switch (type) {
++                case MAJOR_NEGATIVE -> com.destroystokyo.paper.entity.villager.ReputationType.MAJOR_NEGATIVE;
++                case MINOR_NEGATIVE -> com.destroystokyo.paper.entity.villager.ReputationType.MINOR_NEGATIVE;
++                case MINOR_POSITIVE -> com.destroystokyo.paper.entity.villager.ReputationType.MINOR_POSITIVE;
++                case MAJOR_POSITIVE -> com.destroystokyo.paper.entity.villager.ReputationType.MAJOR_POSITIVE;
++                case TRADING -> com.destroystokyo.paper.entity.villager.ReputationType.TRADING;
++            };
++        }
++        // Paper end - Add villager reputation API
+     }
+ 
+     private record GossipEntry(UUID target, GossipType type, int value) {

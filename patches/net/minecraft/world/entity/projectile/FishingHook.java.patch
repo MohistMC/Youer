@@ -111,7 +111,7 @@
                  this.playSound(SoundEvents.FISHING_BOBBER_SPLASH, 0.25F, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
                  double y = this.getY() + 0.5;
                  serverLevel.sendParticles(
-@@ -378,12 +_,16 @@
+@@ -378,14 +_,25 @@
              }
  
              if (this.timeUntilLured <= 0) {
@@ -131,8 +131,29 @@
 +            // CraftBukkit end
          }
      }
++
++    // Paper start - more projectile api - extract time until lured reset logic
++    public void resetTimeUntilLured() {
++        this.timeUntilLured = Mth.nextInt(this.random, this.minWaitTime, this.maxWaitTime);
++        this.timeUntilLured -= (this.applyLure) ? (this.lureSpeed >= this.maxWaitTime ? this.timeUntilLured - 1 : this.lureSpeed ) : 0; // Paper - Fix Lure infinite loop
++    }
++    // Paper end - more projectile api - extract time until lured reset logic
  
-@@ -448,7 +_,16 @@
+     public boolean calculateOpenWater(BlockPos blockPos) {
+         FishingHook.OpenWaterType previousLayer = FishingHook.OpenWaterType.INVALID;
+@@ -444,11 +_,27 @@
+     protected void readAdditionalSaveData(ValueInput input) {
+     }
+ 
+-    public int retrieve(ItemStack rod) {
++    // Paper start - Add hand parameter to PlayerFishEvent
++    @Deprecated @io.papermc.paper.annotation.DoNotUse
++    public int retrieve(final ItemStack rod) {
++        return this.retrieve(rod, net.minecraft.world.InteractionHand.MAIN_HAND);
++    }
++
++    public int retrieve(final ItemStack rod, final net.minecraft.world.InteractionHand hand) {
++        // Paper end - Add hand parameter to PlayerFishEvent
          Player owner = this.getPlayerOwner();
          if (!this.level().isClientSide() && owner != null && !this.shouldStopFishing(owner)) {
              int dmg = 0;

@@ -47,25 +47,29 @@
                  this.ignite();
                  if (!itemStack.isDamageableItem()) {
                      itemStack.shrink(1);
-@@ -231,11 +_,21 @@
+@@ -231,11 +_,22 @@
      public void explodeCreeper() {
          if (this.level() instanceof ServerLevel level) {
              float explosionMultiplier = this.isPowered() ? 2.0F : 1.0F;
+-            this.dead = true;
+-            level.explode(this, this.getX(), this.getY(), this.getZ(), this.explosionRadius * explosionMultiplier, Level.ExplosionInteraction.MOB);
+-            this.spawnLingeringCloud();
+-            this.triggerOnDeathMobEffects(level, Entity.RemovalReason.KILLED);
+-            this.discard();
 +
 +            // CraftBukkit start
 +            ExplosionPrimeEvent event = CraftEventFactory.callExplosionPrimeEvent(this, this.explosionRadius * explosionMultiplier, false);
 +            if (!event.isCancelled()) {
-+            // CraftBukkit end
-             this.dead = true;
--            level.explode(this, this.getX(), this.getY(), this.getZ(), this.explosionRadius * explosionMultiplier, Level.ExplosionInteraction.MOB);
-+            level.explode(this, net.minecraft.world.level.Explosion.getDefaultDamageSource(this.level(), this).customCausingEntityDamager(this.entityIgniter), null, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.MOB); // CraftBukkit
-             this.spawnLingeringCloud();
-             this.triggerOnDeathMobEffects(level, Entity.RemovalReason.KILLED);
--            this.discard();
-+            this.discard(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
-+            // CraftBukkit start
++                // CraftBukkit end
++                this.dead = true;
++                level.explode(this, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.MOB); // CraftBukkit // Paper - fix DamageSource API (revert to vanilla, no, just no, don't change this)
++                this.spawnLingeringCloud();
++                this.triggerOnDeathMobEffects(level, Entity.RemovalReason.KILLED);
++                this.discard(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
++                // CraftBukkit start
 +            } else {
-+                swell = 0;
++                this.swell = 0;
++                this.entityData.set(DATA_IS_IGNITED, false); // Paper
 +            }
 +            // CraftBukkit end
          }
@@ -79,12 +83,27 @@
              cloud.setRadius(2.5F);
              cloud.setRadiusOnUse(-0.5F);
              cloud.setWaitTime(10);
-@@ -254,7 +_,7 @@
+@@ -254,9 +_,20 @@
                  cloud.addEffect(new MobEffectInstance(mobEffect));
              }
  
 -            this.level().addFreshEntity(cloud);
+-        }
+-    }
 +            this.level().addFreshEntity(cloud, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.EXPLOSION); // CraftBukkit
-         }
-     }
++        }
++    }
++
++    // Paper start - Call CreeperIgniteEvent
++    public void setIgnited(boolean ignited) {
++        if (isIgnited() != ignited) {
++            com.destroystokyo.paper.event.entity.CreeperIgniteEvent event = new com.destroystokyo.paper.event.entity.CreeperIgniteEvent((org.bukkit.entity.Creeper) getBukkitEntity(), ignited);
++            if (event.callEvent()) {
++                this.entityData.set(DATA_IS_IGNITED, event.isIgnited());
++            }
++        }
++    }
++    // Paper end - Call CreeperIgniteEvent
  
+     public boolean isIgnited() {
+         return this.entityData.get(DATA_IS_IGNITED);

@@ -45,7 +45,7 @@
  import net.minecraft.world.level.entity.EntityTypeTest;
  import net.minecraft.world.level.entity.LevelEntityGetter;
  import net.minecraft.world.level.gameevent.GameEvent;
-@@ -88,11 +_,20 @@
+@@ -88,11 +_,21 @@
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.scores.Scoreboard;
  import org.apache.commons.lang3.mutable.MutableBoolean;
@@ -54,6 +54,7 @@
 +import org.bukkit.craftbukkit.CraftServer;
 +import org.bukkit.craftbukkit.CraftWorld;
 +import org.bukkit.craftbukkit.block.CapturedBlockState;
++import org.bukkit.craftbukkit.block.CraftBlockState;
 +import org.bukkit.craftbukkit.block.data.CraftBlockData;
 +import org.bukkit.craftbukkit.util.CraftSpawnCategory;
 +import org.bukkit.entity.SpawnCategory;
@@ -67,7 +68,7 @@
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, Identifier.withDefaultNamespace("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, Identifier.withDefaultNamespace("the_nether"));
-@@ -133,6 +_,40 @@
+@@ -133,6 +_,67 @@
      private final DamageSources damageSources;
      private final PalettedContainerFactory palettedContainerFactory;
      private long subTickCount;
@@ -77,34 +78,61 @@
 +    private final java.util.ArrayList<BlockEntity> freshBlockEntities = new java.util.ArrayList<>();
 +    private final java.util.ArrayList<BlockEntity> pendingFreshBlockEntities = new java.util.ArrayList<>();
 +
-+    // CraftBukkit start Added the following
++    // CraftBukkit start
++    public final io.papermc.paper.antixray.ChunkPacketBlockController chunkPacketBlockController; // Paper - Anti-Xray
 +    private final CraftWorld world;
-+    public org.bukkit.generator.ChunkGenerator generator;
++    public org.bukkit.generator.@Nullable ChunkGenerator generator;
 +
-+    public boolean preventPoiUpdated = false; // CraftBukkit - SPIGOT-5710
 +    public boolean captureBlockStates = false;
 +    public boolean captureTreeGeneration = false;
-+    public Map<BlockPos, CapturedBlockState> capturedBlockStates = new java.util.LinkedHashMap<>();
-+    public Map<BlockPos, BlockEntity> capturedTileEntities = new HashMap<>();
-+    public List<ItemEntity> captureDrops;
++    public Map<BlockPos, org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates = new java.util.LinkedHashMap<>(); // Paper
++    public Map<BlockPos, BlockEntity> capturedBlockEntities = new java.util.LinkedHashMap<>(); // Paper - Retain block place order when capturing blockstates
++    @Nullable
++    public List<net.minecraft.world.entity.item.ItemEntity> captureDrops;
 +    public final it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<SpawnCategory> ticksPerSpawnCategory = new it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap<>();
++    // Paper start - EAR 2
++    public int wakeupInactiveRemainingAnimals;
++    public int wakeupInactiveRemainingFlying;
++    public int wakeupInactiveRemainingMonsters;
++    public int wakeupInactiveRemainingVillagers;
++    // Paper end - EAR 2
 +    public boolean populating;
 +    public final org.spigotmc.SpigotWorldConfig spigotConfig; // Spigot
++    // Paper start - add paper world config
++    private final io.papermc.paper.configuration.WorldConfiguration paperConfig;
++    public io.papermc.paper.configuration.WorldConfiguration paperConfig() {
++        return this.paperConfig;
++    }
++    // Paper end - add paper world config
 +
-+    public static BlockPos lastPhysicsProblem; // Spigot
-+    private org.spigotmc.TickLimiter entityLimiter;
-+    private org.spigotmc.TickLimiter tileLimiter;
-+    private int tileTickPosition;
++    public static @Nullable BlockPos lastPhysicsProblem; // Spigot
++    public final Map<ServerExplosion.CacheKey, Float> explosionDensityCache = new java.util.HashMap<>(); // Paper - Optimize explosions
++    public java.util.ArrayDeque<net.minecraft.world.level.block.RedstoneTorchBlock.Toggle> redstoneUpdateInfos; // Paper - Faster redstone torch rapid clock removal; Move from Map in BlockRedstoneTorch to here
 +
 +    public CraftWorld getWorld() {
 +        return this.world;
 +    }
 +
 +    public CraftServer getCraftServer() {
-+        return (CraftServer) Bukkit.getServer();
++        return (CraftServer) org.bukkit.Bukkit.getServer();
 +    }
++    // Paper start - Use getChunkIfLoadedImmediately
++    @Override
++    public boolean hasChunk(int chunkX, int chunkZ) {
++        return this.getChunkIfLoaded(chunkX, chunkZ) != null;
++    }
++    // Paper end - Use getChunkIfLoadedImmediately
++    // Paper start - per world ticks per spawn
++    private int getTicksPerSpawn(SpawnCategory spawnCategory) {
++        final int perWorld = this.paperConfig().entities.spawning.ticksPerSpawn.getInt(org.bukkit.craftbukkit.util.CraftSpawnCategory.toNMS(spawnCategory));
++        if (perWorld >= 0) {
++            return perWorld;
++        }
++        return this.getCraftServer().getTicksPerSpawns(spawnCategory);
++    }
++    // Paper end
 +
-+    public abstract ResourceKey<LevelStem> getTypeKey();
++    public abstract ResourceKey<net.minecraft.world.level.dimension.LevelStem> getTypeKey();
  
      protected Level(
          WritableLevelData levelData,
@@ -130,6 +158,96 @@
          this.levelData = levelData;
          this.dimensionTypeRegistration = dimensionTypeRegistration;
          this.dimension = dimension;
+@@ -171,6 +_,13 @@
+         return null;
+     }
+ 
++    // Paper start
++    public net.minecraft.world.phys.BlockHitResult.Type clipDirect(Vec3 start, Vec3 end, net.minecraft.world.phys.shapes.CollisionContext context) {
++        // To be patched over
++        return this.clip(new ClipContext(start, end, ClipContext.Block.COLLIDER, ClipContext.Fluid.NONE, context)).getType();
++    }
++    // Paper end
++
+     public boolean isInWorldBounds(BlockPos pos) {
+         return this.isInsideBuildHeight(pos) && isInWorldBoundsHorizontal(pos);
+     }
+@@ -202,8 +_,73 @@
+     }
+ 
+     public LevelChunk getChunk(int chunkX, int chunkZ) {
+-        return (LevelChunk)this.getChunk(chunkX, chunkZ, ChunkStatus.FULL);
+-    }
++        // Paper start - Perf: make sure loaded chunks get the inlined variant of this function
++        net.minecraft.server.level.ServerChunkCache cps = ((ServerLevel)this).getChunkSource();
++        LevelChunk ifLoaded = cps.getChunkAtIfLoadedImmediately(chunkX, chunkZ);
++        if (ifLoaded != null) {
++            return ifLoaded;
++        }
++        return (LevelChunk) cps.getChunk(chunkX, chunkZ, ChunkStatus.FULL, true); // Paper - avoid a method jump
++        // Paper end - Perf: make sure loaded chunks get the inlined variant of this function
++    }
++
++    // Paper start - if loaded
++    @Nullable
++    @Override
++    public final ChunkAccess getChunkIfLoadedImmediately(int x, int z) {
++        return ((ServerLevel)this).getChunkSource().getChunkAtIfLoadedImmediately(x, z);
++    }
++
++    @Override
++    @Nullable
++    public final BlockState getBlockStateIfLoaded(BlockPos pos) {
++        // CraftBukkit start - tree generation
++        if (this.captureTreeGeneration) {
++            CraftBlockState previous = this.capturedBlockStates.get(pos);
++            if (previous != null) {
++                return previous.getHandle();
++            }
++        }
++        // CraftBukkit end
++        if (this.isOutsideBuildHeight(pos)) {
++            return Blocks.VOID_AIR.defaultBlockState();
++        } else {
++            ChunkAccess chunk = this.getChunkIfLoadedImmediately(pos.getX() >> 4, pos.getZ() >> 4);
++
++            return chunk == null ? null : chunk.getBlockState(pos);
++        }
++    }
++
++    @Override
++    @Nullable
++    public final FluidState getFluidIfLoaded(BlockPos pos) {
++        ChunkAccess chunk = this.getChunkIfLoadedImmediately(pos.getX() >> 4, pos.getZ() >> 4);
++
++        return chunk == null ? null : chunk.getFluidState(pos);
++    }
++
++    @Override
++    public final boolean hasChunkAt(BlockPos pos) {
++        return this.getChunkIfLoaded(pos.getX() >> 4, pos.getZ() >> 4) != null; // Paper - Perf: Optimize LevelReader.hasChunkAt(BlockPos)Z
++    }
++
++    public final boolean isLoadedAndInBounds(BlockPos pos) { // Paper - final for inline
++        return this.getWorldBorder().isWithinBounds(pos) && this.getChunkIfLoadedImmediately(pos.getX() >> 4, pos.getZ() >> 4) != null;
++    }
++
++    public @Nullable LevelChunk getChunkIfLoaded(int x, int z) { // Overridden in ServerLevel for ABI compat which has final
++        return ((ServerLevel) this).getChunkSource().getChunkAtIfLoadedImmediately(x, z);
++    }
++
++    public final @Nullable LevelChunk getChunkIfLoaded(BlockPos pos) {
++        return ((ServerLevel) this).getChunkSource().getChunkAtIfLoadedImmediately(pos.getX() >> 4, pos.getZ() >> 4);
++    }
++
++    //  reduces need to do isLoaded before getType
++    public final @Nullable BlockState getBlockStateIfLoadedAndInBounds(BlockPos pos) {
++        return this.getWorldBorder().isWithinBounds(pos) ? this.getBlockStateIfLoaded(pos) : null;
++    }
++    // Paper end
+ 
+     @Override
+     public @Nullable ChunkAccess getChunk(int chunkX, int chunkZ, ChunkStatus status, boolean loadOrGenerate) {
 @@ -220,8 +_,37 @@
          return this.setBlock(pos, blockState, updateFlags, 512);
      }

@@ -1,0 +1,25 @@
+--- a/net/minecraft/client/multiplayer/ClientHandshakePacketListenerImpl.java
++++ b/net/minecraft/client/multiplayer/ClientHandshakePacketListenerImpl.java
+@@ -48,6 +_,7 @@
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.server.ServerLinks;
+ import net.minecraft.util.Crypt;
++import net.minecraft.util.CryptException;
+ import net.minecraft.util.Util;
+ import net.minecraft.world.flag.FeatureFlags;
+ import net.neoforged.api.distmarker.Dist;
+@@ -150,7 +_,13 @@
+ 
+     private void setEncryption(ServerboundKeyPacket setKeyPacket, Cipher decryptCipher, Cipher encryptCipher) {
+         this.switchState(ClientHandshakePacketListenerImpl.State.ENCRYPTING);
+-        this.connection.send(setKeyPacket, PacketSendListener.thenRun(() -> this.connection.setEncryptionKey(decryptCipher, encryptCipher)));
++        this.connection.send(setKeyPacket, PacketSendListener.thenRun(() -> {
++            try {
++                this.connection.setEncryptionKey(null);
++            } catch (CryptException e) {
++                throw new RuntimeException(e);
++            }
++        }));
+     }
+ 
+     private @Nullable Component authenticateServer(String digest) {

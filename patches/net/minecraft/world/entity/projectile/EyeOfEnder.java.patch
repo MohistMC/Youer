@@ -11,6 +11,32 @@
  public class EyeOfEnder extends Entity implements ItemSupplier {
      private static final float MIN_CAMERA_DISTANCE_SQUARED = 12.25F;
      private static final float TOO_FAR_SIGNAL_HEIGHT = 8.0F;
+@@ -72,6 +_,12 @@
+     }
+ 
+     public void signalTo(Vec3 target) {
++        // Paper start - Change EyeOfEnder target without changing other things
++        this.signalTo(target, true);
++    }
++
++    public void signalTo(final Vec3 target, final boolean update) {
++        // Paper end - Change EyeOfEnder target without changing other things
+         Vec3 delta = target.subtract(this.position());
+         double horizontalDistance = delta.horizontalDistance();
+         if (horizontalDistance > 12.0) {
+@@ -80,8 +_,10 @@
+             this.target = target;
+         }
+ 
+-        this.life = 0;
+-        this.surviveAfterDeath = this.random.nextInt(5) > 0;
++        if (update) { // Paper - Change EyeOfEnder target without changing other things
++            this.life = 0;
++            this.surviveAfterDeath = this.random.nextInt(5) > 0;
++        } // Paper - Change EyeOfEnder target without changing other things
+     }
+ 
+     @Override
 @@ -102,7 +_,7 @@
              this.life++;
              if (this.life > 80 && !this.level().isClientSide()) {

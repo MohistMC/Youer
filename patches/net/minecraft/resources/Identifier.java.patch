@@ -1,15 +1,36 @@
 --- a/net/minecraft/resources/Identifier.java
 +++ b/net/minecraft/resources/Identifier.java
-@@ -140,6 +_,12 @@
-         return 31 * this.namespace.hashCode() + this.path.hashCode();
-     }
+@@ -23,12 +_,20 @@
+     public static final String DEFAULT_NAMESPACE = "minecraft";
+     public static final String REALMS_NAMESPACE = "realms";
+     public static final String ALLOWED_NAMESPACE_CHARACTERS = "[a-z0-9_.-]";
++    public static final String PAPER_NAMESPACE = "paper"; // Paper
+     private final String namespace;
+     private final String path;
  
+     private Identifier(String namespace, String path) {
+         assert isValidNamespace(namespace);
+         assert isValidPath(path);
++        // Paper start - Validate Identifier
++        // Check for the max network string length (capped at Short.MAX_VALUE) as well as the max bytes of a StringTag (length written as an unsigned short)
++        final int length = namespace.length() + path.length() + 1;
++        if (length > Short.MAX_VALUE || io.netty.buffer.ByteBufUtil.utf8MaxBytes(length) > 2 * Short.MAX_VALUE + 1) {
++            throw new IdentifierException("Identifier too long: " + length);
++        }
++        // Paper end - Validate Identifier
+         this.namespace = namespace;
+         this.path = path;
+     }
+@@ -138,6 +_,12 @@
+     @Override
+     public int hashCode() {
+         return 31 * this.namespace.hashCode() + this.path.hashCode();
++    }
++
 +    // Normal compare sorts by path first, this compares namespace first.
 +    public int compareNamespaced(Identifier o) {
 +        int ret = this.namespace.compareTo(o.namespace);
 +        return ret != 0 ? ret : this.path.compareTo(o.path);
-+    }
-+
+     }
+ 
      public int compareTo(Identifier o) {
-         int result = this.path.compareTo(o.path);
-         if (result == 0) {

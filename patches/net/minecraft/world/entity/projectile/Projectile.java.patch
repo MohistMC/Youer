@@ -11,15 +11,172 @@
      protected Projectile(EntityType<? extends Projectile> type, Level level) {
          super(type, level);
      }
-@@ -211,7 +_,7 @@
- 
-     public static <T extends Projectile> T spawnProjectile(T projectile, ServerLevel serverLevel, ItemStack itemStack, Consumer<T> shootFunction) {
-         shootFunction.accept(projectile);
--        serverLevel.addFreshEntity(projectile);
-+        if (serverLevel.addFreshEntity(projectile)) // CraftBukkit
-         projectile.applyOnProjectileSpawned(serverLevel, itemStack);
-         return projectile;
+@@ -173,48 +_,126 @@
      }
+ 
+     public static <T extends Projectile> T spawnProjectileFromRotation(
+-        Projectile.ProjectileFactory<T> creator, ServerLevel serverLevel, ItemStack itemStack, LivingEntity source, float yOffset, float pow, float uncertainty
+-    ) {
+-        return spawnProjectile(
+-            creator.create(serverLevel, source, itemStack),
+-            serverLevel,
+-            itemStack,
+-            projectile -> projectile.shootFromRotation(source, source.getXRot(), source.getYRot(), yOffset, pow, uncertainty)
+-        );
+-    }
+-
+-    public static <T extends Projectile> T spawnProjectileUsingShoot(
+-        Projectile.ProjectileFactory<T> creator,
+-        ServerLevel serverLevel,
+-        ItemStack itemStack,
+-        LivingEntity source,
+-        double targetX,
+-        double targetY,
+-        double targetZ,
+-        float pow,
+-        float uncertainty
+-    ) {
+-        return spawnProjectile(
+-            creator.create(serverLevel, source, itemStack), serverLevel, itemStack, projectile -> projectile.shoot(targetX, targetY, targetZ, pow, uncertainty)
+-        );
+-    }
+-
+-    public static <T extends Projectile> T spawnProjectileUsingShoot(
+-        T projectile, ServerLevel serverLevel, ItemStack itemStack, double targetX, double targetY, double targetZ, float pow, float uncertainty
+-    ) {
+-        return spawnProjectile(projectile, serverLevel, itemStack, i -> projectile.shoot(targetX, targetY, targetZ, pow, uncertainty));
+-    }
+-
+-    public static <T extends Projectile> T spawnProjectile(T projectile, ServerLevel serverLevel, ItemStack itemStack) {
++            final Projectile.ProjectileFactory<T> creator,
++            final ServerLevel serverLevel,
++            final ItemStack itemStack,
++            final LivingEntity source,
++            final float yOffset,
++            final float pow,
++            final float uncertainty
++    ) {
++        // Paper start - PlayerLaunchProjectileEvent
++        return spawnProjectileFromRotationDelayed(creator, serverLevel, itemStack, source, yOffset, pow, uncertainty).spawn();
++    }
++    public static <T extends Projectile> Delayed<T> spawnProjectileFromRotationDelayed(
++            final Projectile.ProjectileFactory<T> creator,
++            final ServerLevel serverLevel,
++            final ItemStack itemStack,
++            final LivingEntity source,
++            final float yOffset,
++            final float pow,
++            final float uncertainty
++    ) {
++        return spawnProjectileDelayed(
++                // Paper end - PlayerLaunchProjectileEvent
++                creator.create(serverLevel, source, itemStack),
++                serverLevel,
++                itemStack,
++                projectile -> projectile.shootFromRotation(source, source.getXRot(), source.getYRot(), yOffset, pow, uncertainty)
++        );
++    }
++
++    public static <T extends Projectile> T spawnProjectileUsingShoot(
++            final Projectile.ProjectileFactory<T> creator,
++            final ServerLevel serverLevel,
++            final ItemStack itemStack,
++            final LivingEntity source,
++            final double targetX,
++            final double targetY,
++            final double targetZ,
++            final float pow,
++            final float uncertainty
++    ) {
++        return spawnProjectile(
++                creator.create(serverLevel, source, itemStack), serverLevel, itemStack, projectile -> projectile.shoot(targetX, targetY, targetZ, pow, uncertainty)
++        );
++    }
++
++    public static <T extends Projectile> T spawnProjectileUsingShoot(
++            final T projectile,
++            final ServerLevel serverLevel,
++            final ItemStack itemStack,
++            final double targetX,
++            final double targetY,
++            final double targetZ,
++            final float pow,
++            final float uncertainty
++    ) {
++        // Paper start - fixes and addition to spawn reason API
++        return spawnProjectileUsingShootDelayed(projectile, serverLevel, itemStack, targetX, targetY, targetZ, pow, uncertainty).spawn();
++    }
++
++    public static <T extends Projectile> Delayed<T> spawnProjectileUsingShootDelayed(
++            final T projectile,
++            final ServerLevel serverLevel,
++            final ItemStack itemStack,
++            final double targetX,
++            final double targetY,
++            final double targetZ,
++            final float pow,
++            final float uncertainty
++    ) {
++        return spawnProjectileDelayed(projectile, serverLevel, itemStack, i -> projectile.shoot(targetX, targetY, targetZ, pow, uncertainty));
++        // Paper end - fixes and addition to spawn reason API
++    }
++
++    public static <T extends Projectile> T spawnProjectile(final T projectile, final ServerLevel serverLevel, final ItemStack itemStack) {
+         return spawnProjectile(projectile, serverLevel, itemStack, ignored -> {});
+     }
+ 
+-    public static <T extends Projectile> T spawnProjectile(T projectile, ServerLevel serverLevel, ItemStack itemStack, Consumer<T> shootFunction) {
+-        shootFunction.accept(projectile);
+-        serverLevel.addFreshEntity(projectile);
+-        projectile.applyOnProjectileSpawned(serverLevel, itemStack);
+-        return projectile;
+-    }
++    public static <T extends Projectile> T spawnProjectile(
++            final T projectile, final ServerLevel serverLevel, final ItemStack itemStack, final Consumer<T> shootFunction
++    ) {
++        // Paper start - delayed projectile spawning
++        return spawnProjectileDelayed(projectile, serverLevel, itemStack, shootFunction).spawn();
++    }
++
++    public static <T extends Projectile> Delayed<T> spawnProjectileDelayed(T projectile, ServerLevel serverLevel, ItemStack itemStack, Consumer<T> adapter) {
++        // Paper end - delayed projectile spawning
++        adapter.accept(projectile);
++        return new Delayed<>(projectile, serverLevel, itemStack); // Paper - delayed projectile spawning
++    }
++
++    // Paper start - delayed projectile spawning
++    public record Delayed<T extends Projectile>(
++            T projectile,
++            ServerLevel world,
++            ItemStack projectileStack
++    ) {
++        // Taken from net.minecraft.world.entity.projectile.Projectile.spawnProjectile(T, net.minecraft.server.level.ServerLevel, net.minecraft.world.item.ItemStack, java.util.function.Consumer<T>)
++        public boolean attemptSpawn() {
++            if (!this.world.addFreshEntity(this.projectile)) return false;
++            this.projectile.applyOnProjectileSpawned(this.world, this.projectileStack);
++            return true;
++        }
++
++        public T spawn() {
++            this.attemptSpawn();
++            return this.projectile();
++        }
++
++        public boolean attemptSpawn(final org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason reason) {
++            if (!this.world.addFreshEntity(this.projectile, reason)) return false;
++            this.projectile.applyOnProjectileSpawned(this.world, this.projectileStack);
++            return true;
++        }
++
++        public T spawn(final org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason reason) {
++            this.attemptSpawn(reason);
++            return this.projectile();
++        }
++    }
++    // Paper end - delayed projectile spawning
+ 
+     public void applyOnProjectileSpawned(ServerLevel serverLevel, ItemStack pickupItemStack) {
+         EnchantmentHelper.onProjectileSpawned(serverLevel, pickupItemStack, this, item -> {});
 @@ -226,6 +_,17 @@
          }
      }

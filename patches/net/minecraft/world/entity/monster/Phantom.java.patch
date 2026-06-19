@@ -8,6 +8,54 @@
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.particles.ParticleTypes;
  import net.minecraft.network.syncher.EntityDataAccessor;
+@@ -48,6 +_,10 @@
+     private Vec3 moveTargetPoint = Vec3.ZERO;
+     public @Nullable BlockPos anchorPoint;
+     private Phantom.AttackPhase attackPhase = Phantom.AttackPhase.CIRCLE;
++    // Paper start
++    public java.util.@Nullable UUID spawningEntity;
++    public boolean shouldBurnInDay = true;
++    // Paper end
+ 
+     public Phantom(EntityType<? extends Phantom> type, Level level) {
+         super(type, level);
+@@ -135,6 +_,13 @@
+         }
+     }
+ 
++    // Paper start
++    @Override
++    public boolean isSunBurnTick() {
++        return this.shouldBurnInDay && super.isSunBurnTick();
++    }
++    // Paper end
++
+     @Override
+     protected void checkFallDamage(double ya, boolean onGround, BlockState onState, BlockPos pos) {
+     }
+@@ -163,13 +_,22 @@
+         super.readAdditionalSaveData(input);
+         this.anchorPoint = input.read("anchor_pos", BlockPos.CODEC).orElse(null);
+         this.setPhantomSize(input.getIntOr("size", 0));
++        // Paper start
++        this.spawningEntity = input.read("Paper.SpawningEntity", net.minecraft.core.UUIDUtil.CODEC).orElse(null);
++        this.shouldBurnInDay = input.getBooleanOr("Paper.ShouldBurnInDay", true);
++        // Paper end
+     }
++
+ 
+     @Override
+     protected void addAdditionalSaveData(ValueOutput output) {
+         super.addAdditionalSaveData(output);
+         output.storeNullable("anchor_pos", BlockPos.CODEC, this.anchorPoint);
+         output.putInt("size", this.getPhantomSize());
++        // Paper start
++        output.storeNullable("Paper.SpawningEntity", net.minecraft.core.UUIDUtil.CODEC, this.spawningEntity);
++        output.putBoolean("Paper.ShouldBurnInDay", this.shouldBurnInDay);
++        // Paper end
+     }
+ 
+     @Override
 @@ -232,7 +_,7 @@
  
                  for (Player player : players) {

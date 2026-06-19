@@ -124,6 +124,21 @@
              }
          }
      }
+@@ -628,7 +_,14 @@
+ 
+     @Override
+     public void setOwner(@Nullable Entity owner) {
++        // Paper start - Fix PickupStatus getting reset
++        this.setOwner(owner, true);
++    }
++
++    public void setOwner(final @Nullable Entity owner, final boolean resetPickup) {
++        // Paper end - Fix PickupStatus getting reset
+         super.setOwner(owner);
++        if (!resetPickup) return; // Paper - Fix PickupStatus getting reset
+ 
+         this.pickup = switch (owner) {
+             case Player ignored when this.pickup == AbstractArrow.Pickup.DISALLOWED -> AbstractArrow.Pickup.ALLOWED;
 @@ -640,9 +_,24 @@
      @Override
      public void playerTouch(Player player) {

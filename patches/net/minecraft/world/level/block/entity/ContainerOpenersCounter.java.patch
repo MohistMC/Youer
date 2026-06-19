@@ -1,31 +1,28 @@
 --- a/net/minecraft/world/level/block/entity/ContainerOpenersCounter.java
 +++ b/net/minecraft/world/level/block/entity/ContainerOpenersCounter.java
-@@ -16,6 +_,7 @@
+@@ -16,7 +_,20 @@
      private static final int CHECK_TICK_DELAY = 5;
      private int openCount;
      private double maxInteractionRange;
-+    public boolean opened; // CraftBukkit
- 
-     protected abstract void onOpen(final Level level, final BlockPos pos, final BlockState blockState);
- 
-@@ -23,10 +_,36 @@
- 
-     protected abstract void openerCountChanged(final Level level, final BlockPos pos, final BlockState blockState, int previous, int current);
- 
+-
 +    // CraftBukkit start
-+    public void onAPIOpen(Level level, BlockPos blockpos, BlockState blockstate) {
-+        onOpen(level, blockpos, blockstate);
++    public boolean opened;
++    public void onOpenAPI(Level level, BlockPos pos, BlockState blockState) {
++        this.onOpen(level, pos, blockState);
 +    }
 +
-+    public void onAPIClose(Level level, BlockPos blockpos, BlockState blockstate) {
-+        onClose(level, blockpos, blockstate);
++    public void onCloseAPI(Level level, BlockPos pos, BlockState blockState) {
++        this.onClose(level, pos, blockState);
 +    }
 +
-+    public void openerAPICountChanged(Level level, BlockPos blockpos, BlockState blockstate, int i, int j) {
-+        openerCountChanged(level, blockpos, blockstate, i, j);
++    public void openerCountChangedAPI(Level level, BlockPos pos, BlockState blockState, int previous, int current) {
++        this.openerCountChanged(level, pos, blockState, previous, current);
 +    }
 +    // CraftBukkit end
-+
+     protected abstract void onOpen(final Level level, final BlockPos pos, final BlockState blockState);
+ 
+     protected abstract void onClose(final Level level, final BlockPos pos, final BlockState blockState);
+@@ -26,7 +_,19 @@
      public abstract boolean isOwnContainer(final Player player);
  
      public void incrementOpeners(LivingEntity entity, Level level, BlockPos pos, BlockState blockState, double maxInteractionRange) {

@@ -12,14 +12,14 @@
  import org.jspecify.annotations.Nullable;
  
  public class Zombie extends Monster {
-@@ -98,6 +_,7 @@
-     private final BreakDoorGoal breakDoorGoal = new BreakDoorGoal(this, DOOR_BREAKING_PREDICATE);
+@@ -99,6 +_,7 @@
      private boolean canBreakDoors = false;
      private int inWaterTime = 0;
-+    private int lastTick = MinecraftServer.currentTick; // CraftBukkit - add field
      public int conversionTime;
++    private boolean shouldBurnInDay = true; // Paper - Add more Zombie API
  
      public Zombie(EntityType<? extends Zombie> type, Level level) {
+         super(type, level);
 @@ -123,7 +_,7 @@
          this.goalSelector.addGoal(7, new WaterAvoidingRandomStrollGoal(this, 1.0));
          this.targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers(ZombifiedPiglin.class));
@@ -41,13 +41,17 @@
                  if (this.conversionTime < 0) {
                      this.doUnderWaterConversion(serverLevel);
                  }
-@@ -230,14 +_,17 @@
-         }
- 
+@@ -232,12 +_,21 @@
          super.tick();
-+        this.lastTick = MinecraftServer.currentTick; // CraftBukkit
      }
  
++    // Paper start - Add more Zombie API
++    public void stopDrowning() {
++        this.conversionTime = -1;
++        this.getEntityData().set(DATA_DROWNED_CONVERSION_ID, false);
++    }
++    // Paper end - Add more Zombie API
++
      public void startUnderWaterConversion(int time) {
 +        this.lastTick = MinecraftServer.currentTick; // CraftBukkit
          this.conversionTime = time;
@@ -100,7 +104,7 @@
                  if (!this.isSilent()) {
                      level.levelEvent(null, 1026, this.blockPosition(), 0);
                  }
-@@ -276,6 +_,25 @@
+@@ -276,9 +_,34 @@
          return zombieVillager != null;
      }
  
@@ -124,8 +128,19 @@
 +    }
 +
      public boolean isSunSensitive() {
-         return true;
-     }
+-        return true;
+-    }
++        return this.shouldBurnInDay; // Paper - Add more Zombie API
++    }
++
++    // Paper start - Add more Zombie API
++    public void setShouldBurnInDay(boolean shouldBurnInDay) {
++        this.shouldBurnInDay = shouldBurnInDay;
++    }
++    // Paper end - Add more Zombie API
+ 
+     @Override
+     public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
 @@ -342,7 +_,14 @@
          if (result) {
              float difficulty = level.getCurrentDifficultyAt(this.blockPosition()).getEffectiveDifficulty();

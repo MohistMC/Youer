@@ -27,6 +27,14 @@
  import org.jspecify.annotations.Nullable;
  
  public class WitherBoss extends Monster implements RangedAttackMob {
+@@ -72,6 +_,7 @@
+     private final int[] nextHeadUpdate = new int[2];
+     private final int[] idleHeadUpdates = new int[2];
+     private int destroyBlocksTick;
++    private boolean canPortal = false; // Paper
+     public final ServerBossEvent bossEvent = Util.make(
+         new ServerBossEvent(Mth.createInsecureUUID(this.random), this.getDisplayName(), BossEvent.BossBarColor.PURPLE, BossEvent.BossBarOverlay.PROGRESS),
+         e -> e.setDarkenScreen(true)
 @@ -263,15 +_,39 @@
              int newCount = this.getInvulnerableTicks() - 1;
              this.bossEvent.setProgress(1.0F - newCount / 220.0F);
@@ -134,3 +142,20 @@
          } else {
              this.noActionTime = 0;
          }
+@@ -551,8 +_,14 @@
+ 
+     @Override
+     public boolean canUsePortal(boolean ignorePassenger) {
+-        return false;
+-    }
++        return this.canPortal; // Paper
++    }
++
++    // Paper start
++    public void setCanTravelThroughPortals(boolean canPortal) {
++        this.canPortal = canPortal;
++    }
++    // Paper end
+ 
+     @Override
+     public boolean canBeAffected(MobEffectInstance newEffect) {

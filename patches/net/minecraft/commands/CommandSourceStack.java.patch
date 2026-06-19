@@ -18,69 +18,89 @@
  import net.minecraft.sounds.SoundEvent;
  import net.minecraft.util.Mth;
  import net.minecraft.util.TaskChainer;
-@@ -67,6 +_,10 @@
+@@ -50,7 +_,7 @@
+ 
+ import net.neoforged.neoforge.common.extensions.ICommandSourceStackExtension;
+ 
+-public class CommandSourceStack implements SharedSuggestionProvider, ExecutionCommandSource<CommandSourceStack>, ICommandSourceStackExtension {
++public class CommandSourceStack implements SharedSuggestionProvider, ExecutionCommandSource<CommandSourceStack>, ICommandSourceStackExtension, io.papermc.paper.command.brigadier.PaperCommandSourceStack { // Paper - Brigadier API
+     public static final SimpleCommandExceptionType ERROR_NOT_PLAYER = new SimpleCommandExceptionType(Component.translatable("permissions.requires.player"));
+     public static final SimpleCommandExceptionType ERROR_NOT_ENTITY = new SimpleCommandExceptionType(Component.translatable("permissions.requires.entity"));
+     public final CommandSource source;
+@@ -67,6 +_,7 @@
      private final Vec2 rotation;
      private final CommandSigningContext signingContext;
      private final TaskChainer chatMessageChainer;
-+    // CraftBukkit start
-+    private final PermissionSet bukkitPermissions;
-+    public volatile CommandNode currentCommand;
-+    // CraftBukkit end
++    public boolean bypassSelectorPermissions = false; // Paper - add bypass for selector permissions
  
      public CommandSourceStack(
          CommandSource source,
-@@ -127,7 +_,40 @@
-         this.rotation = rotation;
-         this.signingContext = signingContext;
-         this.chatMessageChainer = chatMessageChainer;
--    }
-+        // CraftBukkit start
-+        this.bukkitPermissions = new DelegatePermissionSet(permissions);
-+    }
-+
-+    private class DelegatePermissionSet implements PermissionSet {
-+
-+        private final PermissionSet handle;
-+
-+        public DelegatePermissionSet(PermissionSet handle) {
-+            this.handle = handle;
-+        }
-+
-+        @Override
-+        public boolean hasPermission(Permission permission) {
-+            boolean hasPermission = handle.hasPermission(permission);
-+
-+            CommandNode currentCommand = CommandSourceStack.this.currentCommand;
-+            if (currentCommand != null) {
-+                return hasPermission(hasPermission, org.bukkit.craftbukkit.command.VanillaCommandWrapper.getPermission(currentCommand));
-+            }
-+
-+            if (permission.equals(Permissions.COMMANDS_ENTITY_SELECTORS)) {
-+                return hasPermission(hasPermission, "minecraft.command.selector");
-+            }
-+
-+            return hasPermission;
-+        }
-+
-+        public boolean hasPermission(boolean hasPermission, String bukkitPermission) {
-+            // World is null when loading functions
-+            return ((getLevel() == null || !getLevel().getCraftServer().ignoreVanillaPermissions) && hasPermission) || getBukkitSender().hasPermission(bukkitPermission);
-+        }
-+    }
-+    // CraftBukkit end
- 
-     public CommandSourceStack withSource(CommandSource source) {
-         return this.source == source
-@@ -377,7 +_,7 @@
- 
-     @Override
-     public PermissionSet permissions() {
--        return this.permissions;
-+        return this.bukkitPermissions; // CraftBukkit
+@@ -192,6 +_,30 @@
+             );
      }
  
++    // Paper start - Expose 'with' functions from the CommandSourceStack
++    @Override
++    public CommandSourceStack withLocation(org.bukkit.Location location) {
++        return this.getLocation().equals(location)
++                ? this
++                : new CommandSourceStack(
++                this.source,
++                new Vec3(location.x(), location.y(), location.z()),
++                new Vec2(location.getPitch(), location.getYaw()),
++                ((org.bukkit.craftbukkit.CraftWorld) location.getWorld()).getHandle(),
++                this.permissions,
++                this.textName,
++                this.displayName,
++                this.server,
++                this.entity,
++                this.silent,
++                this.resultCallback,
++                this.anchor,
++                this.signingContext,
++                this.chatMessageChainer
++        );
++    }
++    // Paper end - Expose 'with' functions from the CommandSourceStack
++
+     public CommandSourceStack withRotation(Vec2 rotation) {
+         return this.rotation.equals(rotation)
+             ? this
+@@ -380,6 +_,33 @@
+         return this.permissions;
+     }
+ 
++    // Paper start - Fix permission levels for command blocks
++    private boolean forceRespectPermissionLevel() {
++        return this.source == CommandSource.NULL || (this.source instanceof final net.minecraft.world.level.BaseCommandBlock commandBlock && commandBlock.getLevel().paperConfig().commandBlocks.forceFollowPermLevel);
++    }
++    // Paper end - Fix permission levels for command blocks
++
++    // CraftBukkit start
++    public boolean hasPermission(net.minecraft.server.permissions.Permission permission, String bukkitPermission) {
++        // Paper start - Fix permission levels for command blocks
++        final java.util.function.BooleanSupplier hasBukkitPerm = () -> this.source == CommandSource.NULL /*treat NULL as having all bukkit perms*/ || this.getBukkitSender().hasPermission(bukkitPermission); // lazily check bukkit perms to the benefit of custom permission setups
++        // if the server is null, we must check the vanilla perm level system
++        // if ignoreVanillaPermissions is true, we can skip vanilla perms and just run the bukkit perm check
++        //noinspection ConstantValue
++        if (this.getServer() == null || !this.getServer().server.ignoreVanillaPermissions) { // server & level are null for command function loading
++            final boolean hasPermLevel = this.permissions.hasPermission(permission);
++            if (this.forceRespectPermissionLevel()) { // NULL CommandSource and command blocks (if setting is enabled) should always pass the vanilla perm check
++                return hasPermLevel && hasBukkitPerm.getAsBoolean();
++            } else { // otherwise check vanilla perm first then bukkit perm, matching upstream behavior
++                return hasPermLevel || hasBukkitPerm.getAsBoolean();
++            }
++        }
++        return hasBukkitPerm.getAsBoolean();
++        // Paper end - Fix permission levels for command blocks
++    }
++    // CraftBukkit end
++
++
      public Vec3 getPosition() {
-@@ -483,13 +_,13 @@
+         return this.worldPosition;
+     }
+@@ -483,18 +_,23 @@
          GameRules gameRules = this.level.getGameRules();
          if (gameRules.get(GameRules.SEND_COMMAND_FEEDBACK)) {
              for (ServerPlayer player : this.server.getPlayerList().getPlayers()) {
@@ -96,14 +116,30 @@
              this.server.sendSystemMessage(broadcast);
          }
      }
-@@ -582,4 +_,10 @@
+ 
+     public void sendFailure(Component message) {
++        // Paper start - Add UnknownCommandEvent
++        this.sendFailure(message, true);
++    }
++    public void sendFailure(final Component message, final boolean withStyle) {
++        // Paper end - Add UnknownCommandEvent
+         if (this.source.acceptsFailure() && !this.silent) {
+             this.source.sendSystemMessage(Component.empty().append(message).withStyle(ChatFormatting.RED));
+         }
+@@ -582,4 +_,16 @@
      public boolean isSilent() {
          return this.silent;
      }
 +
++    // Paper start
++    @Override
++    public CommandSourceStack getHandle() {
++        return this;
++    }
++    // Paper end
 +    // CraftBukkit start
 +    public org.bukkit.command.CommandSender getBukkitSender() {
-+        return source.getBukkitSender(this);
++        return this.source.getBukkitSender(this);
 +    }
 +    // CraftBukkit end
  }

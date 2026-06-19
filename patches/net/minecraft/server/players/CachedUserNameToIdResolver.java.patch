@@ -1,5 +1,16 @@
 --- a/net/minecraft/server/players/CachedUserNameToIdResolver.java
 +++ b/net/minecraft/server/players/CachedUserNameToIdResolver.java
+@@ -46,6 +_,10 @@
+     private final Gson gson = new GsonBuilder().create();
+     private final File file;
+     private final AtomicLong operationCount = new AtomicLong();
++    // Paper start - Fix GameProfileCache concurrency
++    protected final java.util.concurrent.locks.ReentrantLock stateLock = new java.util.concurrent.locks.ReentrantLock();
++    protected final java.util.concurrent.locks.ReentrantLock lookupLock = new java.util.concurrent.locks.ReentrantLock();
++    // Paper end - Fix GameProfileCache concurrency
+ 
+     public CachedUserNameToIdResolver(GameProfileRepository profileRepository, File file) {
+         this.profileRepository = profileRepository;
 @@ -90,7 +_,7 @@
          Date expirationDate = c.getTime();
          CachedUserNameToIdResolver.GameProfileInfo profileInfo = new CachedUserNameToIdResolver.GameProfileInfo(profile, expirationDate);
@@ -9,6 +20,27 @@
          return profileInfo;
      }
  
+@@ -98,6 +_,20 @@
+         return this.operationCount.incrementAndGet();
+     }
+ 
++    // Paper start
++    @Override
++    public @org.jspecify.annotations.Nullable NameAndId getIfCached(final String name) {
++        try { this.stateLock.lock(); // Paper - Fix GameProfileCache concurrency
++            CachedUserNameToIdResolver.GameProfileInfo entry = this.profilesByName.get(name.toLowerCase(Locale.ROOT));
++            if (entry == null) {
++                return null;
++            }
++            entry.setLastAccess(this.getNextOperation());
++            return entry.nameAndId();
++        } finally { this.stateLock.unlock(); } // Paper - Fix GameProfileCache concurrency
++    }
++    // Paper end
++
+     @Override
+     public Optional<NameAndId> get(String name) {
+         String userName = name.toLowerCase(Locale.ROOT);
 @@ -124,7 +_,7 @@
              }
          }
@@ -30,12 +62,64 @@
          } catch (IOException | JsonParseException e) {
              LOGGER.warn("Failed to load profile cache {}", this.file, e);
          }
-@@ -169,7 +_,7 @@
+@@ -167,23 +_,51 @@
+ 
+     @Override
      public void save() {
++        // Paper start - Perf: Async GameProfileCache saving
++        this.save(false);
++    }
++
++    @Override
++    public void save(final boolean asyncSave) {
++        // Paper end - Perf: Async GameProfileCache saving
          JsonArray entryList = new JsonArray();
          DateFormat dateFormat = createDateFormat();
 -        this.getTopMRUProfiles(1000).forEach(entry -> entryList.add(writeGameProfile(entry, dateFormat)));
-+        this.getTopMRUProfiles(org.spigotmc.SpigotConfig.userCacheCap).forEach(entry -> entryList.add(writeGameProfile(entry, dateFormat)));
++        this.listTopMRUProfiles(org.spigotmc.SpigotConfig.userCacheCap).forEach(entry -> entryList.add(writeGameProfile(entry, dateFormat))); // Spigot // Paper - Fix GameProfileCache concurrency
          String toSave = this.gson.toJson(entryList);
  
-         try (Writer writer = Files.newWriter(this.file, StandardCharsets.UTF_8)) {
+-        try (Writer writer = Files.newWriter(this.file, StandardCharsets.UTF_8)) {
+-            writer.write(toSave);
+-        } catch (IOException var9) {
++        Runnable save = () -> { // Paper - Perf: Async GameProfileCache saving
++            try (Writer writer = Files.newWriter(this.file, StandardCharsets.UTF_8)) {
++                writer.write(toSave);
++            } catch (IOException var9) {
++            }
++            // Paper start - Perf: Async GameProfileCache saving
++        };
++        if (asyncSave) {
++            io.papermc.paper.util.MCUtil.scheduleAsyncTask(save);
++        } else {
++            save.run();
+         }
++        // Paper end - Perf: Async GameProfileCache saving
+     }
+ 
+     private Stream<CachedUserNameToIdResolver.GameProfileInfo> getTopMRUProfiles(int limit) {
+-        return ImmutableList.copyOf(this.profilesByUUID.values())
+-            .stream()
+-            .sorted(Comparator.comparing(CachedUserNameToIdResolver.GameProfileInfo::lastAccess).reversed())
+-            .limit(limit);
+-    }
++        // Paper start - Fix GameProfileCache concurrency
++        return this.listTopMRUProfiles(limit).stream();
++    }
++
++    private List<CachedUserNameToIdResolver.GameProfileInfo> listTopMRUProfiles(final int limit) {
++        try {
++            this.stateLock.lock();
++            return this.profilesByUUID.values()
++                    .stream()
++                    .sorted(Comparator.comparing(CachedUserNameToIdResolver.GameProfileInfo::lastAccess).reversed())
++                    .limit(limit)
++                    .toList();
++        } finally {
++            this.stateLock.unlock();
++        }
++    }
++    // Paper end - Fix GameProfileCache concurrency
+ 
+     private static JsonElement writeGameProfile(CachedUserNameToIdResolver.GameProfileInfo src, DateFormat dateFormat) {
+         JsonObject object = new JsonObject();

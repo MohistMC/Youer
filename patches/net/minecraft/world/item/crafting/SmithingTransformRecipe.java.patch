@@ -11,19 +11,44 @@
  
  public class SmithingTransformRecipe extends SimpleSmithingRecipe {
      public static final MapCodec<SmithingTransformRecipe> MAP_CODEC = RecordCodecBuilder.mapCodec(
-@@ -94,4 +_,15 @@
+@@ -42,11 +_,26 @@
+     private final Ingredient base;
+     private final Optional<Ingredient> addition;
+     private final ItemStackTemplate result;
++    private final boolean copyDataComponents; // Paper - Option to prevent data components copy
+ 
+     public SmithingTransformRecipe(
+         Recipe.CommonInfo commonInfo, Optional<Ingredient> template, Ingredient base, Optional<Ingredient> addition, ItemStackTemplate result
+     ) {
++        // Paper start - Option to prevent data components copy
++        this(commonInfo, template, base, addition, result, true);
++    }
++
++    public SmithingTransformRecipe(
++            final Recipe.CommonInfo commonInfo,
++            final Optional<Ingredient> template,
++            final Ingredient base,
++            final Optional<Ingredient> addition,
++            final ItemStackTemplate result,
++            final boolean copyDataComponents
++    ) {
+         super(commonInfo);
++        this.copyDataComponents = copyDataComponents;
++        // Paper end - Option to prevent data components copy
+         this.template = template;
+         this.base = base;
+         this.addition = addition;
+@@ -94,4 +_,13 @@
              )
          );
      }
 +
 +    // CraftBukkit start
 +    @Override
-+    public org.bukkit.inventory.Recipe toBukkitRecipe(NamespacedKey id) {
-+        org.bukkit.inventory.ItemStack result = CraftItemStack.asCraftMirror(this.result);
++    public org.bukkit.inventory.Recipe toBukkitRecipe(org.bukkit.NamespacedKey id) {
++        org.bukkit.craftbukkit.inventory.CraftItemStack result = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(this.result.create());
 +
-+        CraftSmithingTransformRecipe recipe = new CraftSmithingTransformRecipe(id, result, CraftRecipe.toBukkit(this.template), CraftRecipe.toBukkit(this.base), CraftRecipe.toBukkit(this.addition));
-+
-+        return recipe;
++        return new org.bukkit.craftbukkit.inventory.CraftSmithingTransformRecipe(id, result, org.bukkit.craftbukkit.inventory.CraftRecipe.toChoice(this.template), org.bukkit.craftbukkit.inventory.CraftRecipe.toChoice(this.base), org.bukkit.craftbukkit.inventory.CraftRecipe.toChoice(this.addition), this.copyDataComponents);
 +    }
 +    // CraftBukkit end
  }

@@ -1,0 +1,26 @@
+--- a/net/minecraft/world/level/LevelReader.java
++++ b/net/minecraft/world/level/LevelReader.java
+@@ -25,8 +_,22 @@
+ 
+ import net.neoforged.neoforge.common.extensions.ILevelReaderExtension;
+ 
+-public interface LevelReader extends BlockAndLightGetter, CollisionGetter, SignalGetter, BiomeManager.NoiseBiomeSource, ILevelReaderExtension {
++public interface LevelReader extends BlockAndLightGetter, CollisionGetter, SignalGetter, BiomeManager.NoiseBiomeSource, ILevelReaderExtension, ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevelReader { // Paper - rewrite chunk system
++    // Paper start - rewrite chunk system
++    @Override
++    public default ChunkAccess moonrise$syncLoadNonFull(final int chunkX, final int chunkZ, final ChunkStatus status) {
++        if (status == null || status.isOrAfter(ChunkStatus.FULL)) {
++            throw new IllegalArgumentException("Status: " + status.toString());
++        }
++        return ((LevelReader)this).getChunk(chunkX, chunkZ, status, true);
++    }
++    // Paper end - rewrite chunk system
++
+     @Nullable ChunkAccess getChunk(final int chunkX, final int chunkZ, final ChunkStatus targetStatus, final boolean loadOrGenerate);
++
++    @Nullable ChunkAccess getChunkIfLoadedImmediately(int x, int z); // Paper - ifLoaded api (we need this since current impl blocks if the chunk is loading)
++    default @Nullable ChunkAccess getChunkIfLoadedImmediately(BlockPos pos) { return this.getChunkIfLoadedImmediately(pos.getX() >> 4, pos.getZ() >> 4); }
++
+ 
+     @Deprecated
+     boolean hasChunk(int chunkX, int chunkZ);

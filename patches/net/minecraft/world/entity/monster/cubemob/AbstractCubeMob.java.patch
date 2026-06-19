@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/monster/cubemob/AbstractCubeMob.java
 +++ b/net/minecraft/world/entity/monster/cubemob/AbstractCubeMob.java
+@@ -49,6 +_,7 @@
+     public float squish;
+     public float oSquish;
+     private boolean wasOnGround = false;
++    private boolean canWander = true; // Paper - Slime pathfinder events
+ 
+     protected AbstractCubeMob(EntityType<? extends AbstractCubeMob> type, Level level) {
+         super(type, level);
 @@ -125,6 +_,7 @@
              float size = this.getDimensions(this.getPose()).width() * 2.0F;
              float radius = size / 2.0F;
@@ -34,7 +42,23 @@
              }
          }
  
-@@ -264,6 +_,15 @@
+@@ -259,11 +_,31 @@
+         return this.getType().getDimensions().scale(this.getSize());
+     }
+ 
++    // Paper start - Slime pathfinder events
++    public boolean canWander() {
++        return this.canWander;
++    }
++
++    public void setWander(boolean canWander) {
++        this.canWander = canWander;
++    }
++    // Paper end - Slime pathfinder events
++
++
+     @Override
+     public void jumpFromGround() {
          Vec3 movement = this.getDeltaMovement();
          this.setDeltaMovement(movement.x, this.getJumpPower(), movement.z);
          this.needsSync = true;

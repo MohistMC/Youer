@@ -66,7 +66,29 @@
              this.updatePlayerWaypoint(player);
              this.setDirty();
              return true;
-@@ -130,7 +_,7 @@
+@@ -127,14 +_,44 @@
+         }
+     }
+ 
++    // Paper start - Multiple Entries with Scoreboards
++    public boolean addPlayersToTeam(java.util.Collection<String> players, PlayerTeam team) {
++        boolean anyAdded = false;
++        for (String playerName : players) {
++            if (super.addPlayerToTeam(playerName, team)) {
++                anyAdded = true;
++            }
++        }
++
++        if (anyAdded) {
++            this.broadcastAll(ClientboundSetPlayerTeamPacket.createMultiplePlayerPacket(team, players, ClientboundSetPlayerTeamPacket.Action.ADD));
++            this.setDirty();
++            return true;
++        } else {
++            return false;
++        }
++    }
++    // Paper end - Multiple Entries with Scoreboards
++
      @Override
      public void removePlayerFromTeam(String player, PlayerTeam team) {
          super.removePlayerFromTeam(player, team);
@@ -75,6 +97,21 @@
          this.updatePlayerWaypoint(player);
          this.setDirty();
      }
+ 
++    // Paper start - Multiple Entries with Scoreboards
++    public void removePlayersFromTeam(java.util.Collection<String> players, PlayerTeam team) {
++        for (String playerName : players) {
++            super.removePlayerFromTeam(playerName, team);
++        }
++
++        this.broadcastAll(ClientboundSetPlayerTeamPacket.createMultiplePlayerPacket(team, players, ClientboundSetPlayerTeamPacket.Action.REMOVE));
++        this.setDirty();
++    }
++    // Paper end - Multiple Entries with Scoreboards
++
+     @Override
+     public void onObjectiveAdded(Objective objective) {
+         super.onObjectiveAdded(objective);
 @@ -145,7 +_,7 @@
      public void onObjectiveChanged(Objective objective) {
          super.onObjectiveChanged(objective);

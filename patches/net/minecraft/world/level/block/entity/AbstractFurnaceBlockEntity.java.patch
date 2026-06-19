@@ -56,11 +56,12 @@
                  case 2:
                      return AbstractFurnaceBlockEntity.this.cookingTimer;
                  case 3:
-@@ -103,23 +_,55 @@
+@@ -103,23 +_,56 @@
      };
      public final Reference2IntOpenHashMap<ResourceKey<Recipe<?>>> recipesUsed = new Reference2IntOpenHashMap<>();
      private final RecipeManager.CachedCheck<SingleRecipeInput, ? extends AbstractCookingRecipe> quickCheck;
-+    private final RecipeType<? extends AbstractCookingRecipe> recipeType;
++    public final RecipeType<? extends AbstractCookingRecipe> recipeType; // Paper - cook speed multiplier API
++    public double cookSpeedMultiplier = 1.0; // Paper - cook speed multiplier API
  
      protected AbstractFurnaceBlockEntity(
          BlockEntityType<?> type, BlockPos worldPosition, BlockState blockState, RecipeType<? extends AbstractCookingRecipe> recipeType
@@ -189,7 +190,7 @@
              items.set(1, remainder != null ? remainder.create() : ItemStack.EMPTY);
          }
      }
-@@ -218,37 +_,65 @@
+@@ -218,41 +_,74 @@
          ItemStack resultItemStack = items.get(2);
          if (resultItemStack.isEmpty()) {
              return true;
@@ -259,11 +260,23 @@
 +        return itemStack.getBurnTime(this.recipeType, fuelValues);
      }
  
-     public static int getTotalCookTime(ServerLevel level, AbstractFurnaceBlockEntity entity) {
-+        if (level == null) return 200; // CraftBukkit - SPIGOT-4302
+-    public static int getTotalCookTime(ServerLevel level, AbstractFurnaceBlockEntity entity) {
++    public static int getTotalCookTime(final @Nullable ServerLevel level, final AbstractFurnaceBlockEntity entity, final RecipeType<? extends AbstractCookingRecipe> recipeType, final double cookSpeedMultiplier) { // Paper - cook speed multiplier API
          SingleRecipeInput input = new SingleRecipeInput(entity.getItem(0));
-         return entity.quickCheck.getRecipeFor(input, level).map(recipeHolder -> recipeHolder.value().cookingTime()).orElse(200);
+-        return entity.quickCheck.getRecipeFor(input, level).map(recipeHolder -> recipeHolder.value().cookingTime()).orElse(200);
++        // Paper start - cook speed multiplier API
++        /* Scale the recipe's cooking time to the current cookSpeedMultiplier */
++        int cookTime = level != null
++                ? entity.quickCheck.getRecipeFor(input, level).map(recipeHolder -> recipeHolder.value().cookingTime()).orElse(BURN_TIME_STANDARD)
++                /* passing a null level here is safe. world is only used for map extending recipes which won't happen here */
++                : (net.minecraft.server.MinecraftServer.getServer().getRecipeManager().getRecipeFor(recipeType, input, level).map(recipeHolder -> recipeHolder.value().cookingTime()).orElse(BURN_TIME_STANDARD));
++        return (int) Math.ceil (cookTime / cookSpeedMultiplier);
++        // Paper end - cook speed multiplier API
      }
+-
+     @Override
+     public int[] getSlotsForFace(Direction direction) {
+         if (direction == Direction.DOWN) {
 @@ -289,17 +_,57 @@
  
      @Override

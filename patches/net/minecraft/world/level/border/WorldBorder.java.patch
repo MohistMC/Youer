@@ -8,6 +8,36 @@
  import net.minecraft.core.BlockPos;
  import net.minecraft.resources.Identifier;
  import net.minecraft.util.Mth;
+@@ -36,6 +_,8 @@
+     private double centerZ;
+     private int absoluteMaxSize = 29999984;
+     private WorldBorder.BorderExtent extent = new WorldBorder.StaticBorderExtent(5.999997E7F);
++    public net.minecraft.server.level.@org.jspecify.annotations.Nullable ServerLevel world; // CraftBukkit
++    private int lastTick = -1; // Paper - Prevent ticking virtual world borders multiple times per server tick
+ 
+     public WorldBorder() {
+         this(WorldBorder.Settings.DEFAULT);
+@@ -57,6 +_,20 @@
+         return this.isWithinBounds(pos.getMinBlockX(), pos.getMinBlockZ()) && this.isWithinBounds(pos.getMaxBlockX(), pos.getMaxBlockZ());
+     }
+ 
++    // Paper start - Bound treasure maps to world border
++    private final BlockPos.MutableBlockPos mutPos = new BlockPos.MutableBlockPos();
++
++    public boolean isBlockInBounds(int x, int z) {
++        this.mutPos.set(x, 64, z);
++        return this.isWithinBounds(this.mutPos);
++    }
++
++    public boolean isChunkInBounds(int chunkX, int chunkZ) {
++        this.mutPos.set(((chunkX << 4) + 15), 64, (chunkZ << 4) + 15);
++        return this.isWithinBounds(this.mutPos);
++    }
++    // Paper end - Bound treasure maps to world border
++
+     public boolean isWithinBounds(AABB aabb) {
+         return this.isWithinBounds(aabb.minX, aabb.minZ, aabb.maxX - 1.0E-5F, aabb.maxZ - 1.0E-5F);
+     }
 @@ -193,7 +_,9 @@
      }
  

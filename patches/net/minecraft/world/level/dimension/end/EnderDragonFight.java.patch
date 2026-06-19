@@ -8,6 +8,34 @@
  import java.util.function.Predicate;
  import net.minecraft.advancements.triggers.CriteriaTriggers;
  import net.minecraft.core.BlockPos;
+@@ -423,14 +_,26 @@
+         this.setDirty();
+     }
+ 
+-    private void spawnNewGateway() {
++    // Paper start - More DragonBattle API
++    public List<EndCrystal> getSpikeCrystals() {
++        final List<EndCrystal> crystals = new ArrayList<>();
++        for (final EndSpikeFeature.EndSpike spike : EndSpikeFeature.getSpikesForLevel(this.level)) {
++            crystals.addAll(this.level.getEntitiesOfClass(EndCrystal.class, spike.getTopBoundingBox()));
++        }
++        return crystals;
++    }
++    // Paper end - More DragonBattle API
++
++    public boolean spawnNewGateway() { // Paper - More DragonBattle API
+         if (!this.gateways.isEmpty()) {
+             int gateway = this.gateways.remove(this.gateways.size() - 1);
+             int x = Mth.floor(96.0 * Math.cos(2.0 * (-Math.PI + (Math.PI / 20) * gateway)));
+             int z = Mth.floor(96.0 * Math.sin(2.0 * (-Math.PI + (Math.PI / 20) * gateway)));
+             this.spawnNewGateway(new BlockPos(x, 75, z));
+             this.setDirty();
++            return true; // Paper - More DragonBattle API
+         }
++        return false; // Paper - More DragonBattle API
+     }
+ 
+     public void spawnNewGateway(BlockPos pos) {
 @@ -515,6 +_,10 @@
          return this.hasPreviouslyKilledDragon;
      }

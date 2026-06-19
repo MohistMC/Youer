@@ -88,6 +88,15 @@
          Entity murderer = source.getEntity();
          if (murderer != null) {
              this.tellWitnessesThatIWasMurdered(murderer);
+@@ -701,7 +_,7 @@
+         return VillagerData.canLevelUp(currentLevel) && this.villagerXp >= VillagerData.getMaxXpPerLevel(currentLevel);
+     }
+ 
+-    private void increaseMerchantCareer(ServerLevel level) {
++    public void increaseMerchantCareer(ServerLevel level) {
+         this.setVillagerData(this.getVillagerData().withLevel(this.getVillagerData().level() + 1));
+         this.updateTrades(level);
+     }
 @@ -761,13 +_,14 @@
  
      @Override
@@ -117,6 +126,33 @@
              && this.getInventory().canAddItem(itemStack);
      }
  
+@@ -806,16 +_,24 @@
+     }
+ 
+     @Override
+-    protected void updateTrades(ServerLevel level) {
++    public void updateTrades(ServerLevel level) {
++        // Paper start - More vanilla friendly methods to update trades
++        this.updateTrades(level, -1);
++    }
++
++    public boolean updateTrades(final ServerLevel level, int amount) {
++        // Paper end - More vanilla friendly methods to update trades
+         VillagerData data = this.getVillagerData();
+         VillagerProfession profession = data.profession().value();
+         ResourceKey<TradeSet> trades = profession.getTrades(data.level());
+         if (trades != null) {
+-            this.addOffersFromTradeSet(level, this.getOffers(), trades);
++            this.addOffersFromTradeSet(level, this.getOffers(), trades, amount); // Paper - More vanilla friendly methods to update trades
+             if (SharedConstants.DEBUG_UNLOCK_ALL_TRADES && data.level() < 5) {
+                 this.increaseMerchantCareer(level);
+             }
++            return true; // Paper - More vanilla friendly methods to update trades
+         }
++        return false; // Paper - More vanilla friendly methods to update trades
+     }
+ 
+     public void gossip(ServerLevel level, Villager target, long timestamp) {
 @@ -832,7 +_,7 @@
          long timestamp = this.level().getGameTime();
          if (this.lastGossipDecayTime == 0L) {

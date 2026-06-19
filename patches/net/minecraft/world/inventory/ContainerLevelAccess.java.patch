@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/inventory/ContainerLevelAccess.java
 +++ b/net/minecraft/world/inventory/ContainerLevelAccess.java
-@@ -7,6 +_,21 @@
+@@ -7,15 +_,55 @@
  import net.minecraft.world.level.Level;
  
  public interface ContainerLevelAccess {
@@ -22,7 +22,15 @@
      ContainerLevelAccess NULL = new ContainerLevelAccess() {
          @Override
          public <T> Optional<T> evaluate(BiFunction<Level, BlockPos, T> action) {
-@@ -16,6 +_,19 @@
+             return Optional.empty();
+         }
++        // Paper start - fix menus with empty level accesses
++        @Override
++        public org.bukkit.Location getLocation() {
++            return null;
++        }
++        // Paper end - fix menus with empty level accesses
+     };
  
      static ContainerLevelAccess create(Level level, BlockPos pos) {
          return new ContainerLevelAccess() {
@@ -38,7 +46,31 @@
 +                return pos;
 +            }
 +            // CraftBukkit end
++            // Paper start - Add missing InventoryHolders
++            @Override
++            public boolean isBlock() {
++                return true;
++            }
++            // Paper end - Add missing InventoryHolders
 +
              @Override
              public <T> Optional<T> evaluate(BiFunction<Level, BlockPos, T> action) {
                  return Optional.of(action.apply(level, pos));
+@@ -35,4 +_,17 @@
+             return Optional.empty();
+         });
+     }
++
++    // Paper start - Add missing InventoryHolders
++    default boolean isBlock() {
++        return false;
++    }
++
++    default org.bukkit.inventory.@org.jspecify.annotations.Nullable BlockInventoryHolder createBlockHolder(AbstractContainerMenu menu) {
++        if (!this.isBlock()) {
++            return null;
++        }
++        return new org.bukkit.craftbukkit.inventory.CraftBlockInventoryHolder(this, menu.getBukkitView().getTopInventory());
++    }
++    // Paper end - Add missing InventoryHolders
+ }

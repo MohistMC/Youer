@@ -153,14 +153,16 @@
      }
  
      public boolean isBroken() {
-@@ -445,13 +_,37 @@
+@@ -445,13 +_,39 @@
      }
  
      public void hurtAndBreak(int amount, ServerLevel level, @Nullable ServerPlayer player, Consumer<Item> onBreak) {
-+        this.hurtAndBreak(amount, level, (LivingEntity) player, onBreak);
++        // Paper start - add force boolean overload
++        this.hurtAndBreak(amount, level, player, onBreak, false);
 +    }
 +
-+    public void hurtAndBreak(int amount, ServerLevel level, @Nullable LivingEntity player, Consumer<Item> onBreak) {
++    public void hurtAndBreak(int amount, ServerLevel level, @Nullable LivingEntity player, Consumer<Item> onBreak, final boolean force) { // Paper - Add EntityDamageItemEvent
++        // Paper end
 +        amount = getItem().damageItem(this, amount, player, onBreak);
          int newAmount = this.processDurabilityChange(amount, level, player);
 +        // CraftBukkit start
@@ -216,12 +218,19 @@
              this.shrink(1);
              onBreak.accept(item);
          }
-@@ -493,7 +_,7 @@
+@@ -491,9 +_,14 @@
+     }
+ 
      public void hurtAndBreak(int amount, LivingEntity owner, EquipmentSlot slot) {
++        // Paper start - add param to skip infinite mats check
++        this.hurtAndBreak(amount, owner, slot, false);
++    }
++    public void hurtAndBreak(final int amount, final LivingEntity owner, final EquipmentSlot slot, final boolean force) {
++        // Paper end - add param to skip infinite mats check
          if (owner.level() instanceof ServerLevel serverLevel) {
              this.hurtAndBreak(
 -                amount, serverLevel, owner instanceof ServerPlayer player ? player : null, brokenItem -> owner.onEquippedItemBroken(brokenItem, slot)
-+                amount, serverLevel, owner, brokenItem -> owner.onEquippedItemBroken(brokenItem, slot)
++                    amount, serverLevel, owner, brokenItem -> {if (slot != null) owner.onEquippedItemBroken(brokenItem, slot); }, force // Paper - Add EntityDamageItemEvent & itemstack damage API - do not process entity related callbacks when damaging from API
              );
          }
      }
@@ -356,7 +365,7 @@
      private void addAttributeTooltips(Consumer<Component> consumer, TooltipDisplay display, @Nullable Player player) {
          if (display.shows(DataComponents.ATTRIBUTE_MODIFIERS)) {
              for (EquipmentSlotGroup slot : EquipmentSlotGroup.values()) {
-@@ -991,22 +_,53 @@
+@@ -991,22 +_,59 @@
          return !this.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).isEmpty();
      }
  
@@ -402,8 +411,14 @@
  
 +    // CraftBukkit start
 +    @Deprecated
-+    public void setItem(Holder<Item> item) {
-+        this.item = item;
++    public void setItem(Item item) {
++        this.bukkitStack = null;
++        this.item = item.builtInRegistryHolder();
++        // Paper start - change base component prototype
++        final DataComponentPatch patch = this.getComponentsPatch();
++        this.components = new PatchedDataComponentMap(this.item.components());
++        this.applyComponents(patch);
++        // Paper end - change base component prototype
 +    }
 +    // CraftBukkit end
 +

@@ -65,24 +65,30 @@
              LOGGER.warn("Block entity {} found in a wrong chunk, expected position from chunk {}", entityTag, base);
              x = base.getBlockX(SectionPos.sectionRelative(x));
              z = base.getBlockZ(SectionPos.sectionRelative(z));
-@@ -95,6 +_,13 @@
+@@ -95,6 +_,14 @@
      }
  
      protected void loadAdditional(ValueInput input) {
-+        this.persistentDataContainer = new CraftPersistentDataContainer(DATA_TYPE_REGISTRY);
++        // Paper start - read persistent data container
++        this.persistentDataContainer.clear(); // Paper - clear instead of init
 +
-+        input.child("PublicBukkitValues").ifPresent((persistentDataTag) -> {
-+            this.persistentDataContainer.putAll(persistentDataTag);
-+        });
++        input.read("PublicBukkitValues", CompoundTag.CODEC)
++                .ifPresent(this.persistentDataContainer::putAll);
++        // Paper end - read persistent data container
 +        input.read("NeoForgeData", CompoundTag.CODEC).ifPresent(neoData -> this.customPersistentData = neoData);
 +        input.child(ATTACHMENTS_NBT_KEY).ifPresent(attachments -> this.deserializeAttachments(attachments));
      }
  
      public final void loadWithComponents(ValueInput input) {
-@@ -107,6 +_,11 @@
+@@ -107,6 +_,16 @@
      }
  
      protected void saveAdditional(ValueOutput output) {
++        // CraftBukkit start - store container
++        if (!this.persistentDataContainer.isEmpty()) {
++            output.store("PublicBukkitValues", CompoundTag.CODEC, this.persistentDataContainer.toTagCompound());
++        }
++        // CraftBukkit end
 +        if (this.customPersistentData != null) output.store("NeoForgeData", CompoundTag.CODEC, this.customPersistentData.copy());
 +        HolderLookup.Provider registries = this.level != null ? this.level.registryAccess() : net.minecraft.core.RegistryAccess.EMPTY;
 +        var attachments = output.child(ATTACHMENTS_NBT_KEY);
@@ -91,18 +97,6 @@
      }
  
      public final CompoundTag saveWithFullMetadata(HolderLookup.Provider registries) {
-@@ -138,6 +_,11 @@
-     public void saveWithoutMetadata(ValueOutput output) {
-         this.saveAdditional(output);
-         output.store("components", DataComponentMap.CODEC, this.components);
-+        // CraftBukkit start - store container
-+        if (this.persistentDataContainer != null && !this.persistentDataContainer.isEmpty()) {
-+            this.persistentDataContainer.store(output.child("PublicBukkitValues"));
-+        }
-+        // CraftBukkit end
-     }
- 
-     public final CompoundTag saveCustomOnly(HolderLookup.Provider registries) {
 @@ -226,10 +_,14 @@
  
      public void setRemoved() {
@@ -210,17 +204,29 @@
      protected void collectImplicitComponents(DataComponentMap.Builder components) {
      }
  
-@@ -341,4 +_,13 @@
+@@ -341,4 +_,25 @@
              return this.blockEntity.getNameForReporting() + "@" + this.blockEntity.getBlockPos();
          }
      }
 +
 +    // CraftBukkit start - add method
-+    public InventoryHolder getOwner() {
-+        if (level == null) return null;
-+        org.bukkit.block.BlockState state = level.getWorld().getBlockAt(worldPosition.getX(), worldPosition.getY(), worldPosition.getZ()).getState();
-+        if (state instanceof InventoryHolder) return (InventoryHolder) state;
-+        return null;
++    public org.bukkit.inventory.@Nullable InventoryHolder getOwner() {
++        return getOwner(true);
++    }
++
++    public org.bukkit.inventory.@Nullable InventoryHolder getOwner(boolean useSnapshot) {
++        if (this.level == null) return null;
++        org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(this.level, this.worldPosition);
++        org.bukkit.block.BlockState state = block.getState(useSnapshot); // Paper
++        return state instanceof final org.bukkit.inventory.InventoryHolder inventoryHolder ? inventoryHolder : null;
 +    }
 +    // CraftBukkit end
++
++    // Paper start - Sanitize sent data
++    public CompoundTag sanitizeSentNbt(CompoundTag tag) {
++        tag.remove("PublicBukkitValues");
++
++        return tag;
++    }
++    // Paper end - Sanitize sent data
  }

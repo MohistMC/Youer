@@ -16,10 +16,48 @@
      private final Thread runningThread;
      private boolean closed;
  
-@@ -33,6 +_,19 @@
-         this.packetsToBeHandled.add(new PacketProcessor.ListenerAndPacket<>(listener, packet));
+@@ -21,6 +_,22 @@
+         this.runningThread = runningThread;
      }
  
++    // Paper start - improve tick loop
++    public final boolean executeSinglePacket() {
++        if (this.closed) {
++            return false;
++        }
++
++        final net.neoforged.neoforge.network.handling.QueuedPacket task = this.packetsToBeHandled.poll();
++        if (task == null) {
++            return false;
++        }
++
++        task.handle();
++        return true;
++    }
++    // Paper end - improve tick loop
++
+     public boolean isSameThread() {
+         return Thread.currentThread() == this.runningThread;
+     }
+@@ -30,7 +_,31 @@
+             throw new RejectedExecutionException("Server already shutting down");
+         }
+ 
+-        this.packetsToBeHandled.add(new PacketProcessor.ListenerAndPacket<>(listener, packet));
++        // Paper start - improve tick loop
++        // wake up main thread inbetween ticks to process packets
++        final boolean isEmpty = this.packetsToBeHandled.isEmpty();
++        final ListenerAndPacket<T> toAdd = new PacketProcessor.ListenerAndPacket<>(listener, packet);
++        this.packetsToBeHandled.add(toAdd);
++        if (isEmpty || this.packetsToBeHandled.peek() == toAdd) {
++            // only unpark if we are the first packet OR are at the head of the queue
++            // we unpark if we are at the head in case the main thread emptied the queue
++            // immediately before we added but after checking isEmpty
++            java.util.concurrent.locks.LockSupport.unpark(this.runningThread);
++        }
++        // Paper end - improve tick loop
++    }
++
 +    /**
 +     * Neo: Enqueue a main thread task from a custom payload packet handler.
 +     * Use via {@link net.neoforged.neoforge.network.handling.IPayloadContext#enqueueWork}
@@ -31,16 +69,64 @@
 +        } else {
 +            this.packetsToBeHandled.add(new net.neoforged.neoforge.network.handling.QueuedPacket.CustomPayload(task));
 +        }
+     }
+ 
+     public void processQueuedPackets() {
+@@ -46,21 +_,47 @@
+         this.closed = true;
+     }
+ 
++    // Paper start - detailed watchdog information
++    public static final java.util.concurrent.ConcurrentLinkedDeque<PacketListener> packetProcessing = new java.util.concurrent.ConcurrentLinkedDeque<>();
++    static final java.util.concurrent.atomic.AtomicLong totalMainThreadPacketsProcessed = new java.util.concurrent.atomic.AtomicLong();
++
++    public static long getTotalProcessedPackets() {
++        return totalMainThreadPacketsProcessed.get();
 +    }
 +
-     public void processQueuedPackets() {
-         if (!this.closed) {
-             while (!this.packetsToBeHandled.isEmpty()) {
-@@ -48,6 +_,7 @@
- 
++    public static java.util.List<PacketListener> getCurrentPacketProcessors() {
++        java.util.List<PacketListener> listeners = new java.util.ArrayList<>(4);
++        for (PacketListener listener : packetProcessing) {
++            listeners.add(listener);
++        }
++
++        return listeners;
++    }
++    // Paper end - detailed watchdog information
++
      private record ListenerAndPacket<T extends PacketListener>(T listener, Packet<T> packet) implements QueuedPacket {
          public void handle() {
-+            if (this.listener instanceof ServerCommonPacketListenerImpl serverCommonPacketListener && serverCommonPacketListener.processedDisconnect) return; // CraftBukkit - Don't handle sync packets for kicked players
-             if (this.listener.shouldHandleMessage(this.packet)) {
-                 try {
-                     this.packet.handle(this.listener);
+-            if (this.listener.shouldHandleMessage(this.packet)) {
+-                try {
+-                    this.packet.handle(this.listener);
+-                } catch (Exception e) {
+-                    if (e instanceof ReportedException re && re.getCause() instanceof OutOfMemoryError) {
+-                        throw PacketUtils.makeReportedException(e, this.packet, this.listener);
++            packetProcessing.push(this.listener); // Paper - detailed watchdog information
++            try { // Paper - detailed watchdog information
++                if (this.listener.shouldHandleMessage(this.packet)) {
++                    try {
++                        this.packet.handle(this.listener);
++                    } catch (Exception e) {
++                        if (e instanceof ReportedException re && re.getCause() instanceof OutOfMemoryError) {
++                            throw PacketUtils.makeReportedException(e, this.packet, this.listener);
++                        }
++
++                        this.listener.onPacketError(this.packet, e);
+                     }
+-
+-                    this.listener.onPacketError(this.packet, e);
++                } else {
++                    PacketProcessor.LOGGER.debug("Ignoring packet due to disconnection: {}", this.packet);
+                 }
+-            } else {
+-                PacketProcessor.LOGGER.debug("Ignoring packet due to disconnection: {}", this.packet);
++                // Paper start - detailed watchdog information
++            } finally {
++                totalMainThreadPacketsProcessed.getAndIncrement();
++                packetProcessing.pop();
+             }
++            // Paper end - detailed watchdog information
+         }
+     }
+ }

@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/monster/zombie/ZombieVillager.java
 +++ b/net/minecraft/world/entity/monster/zombie/ZombieVillager.java
+@@ -29,6 +_,7 @@
+ import net.minecraft.world.entity.EntityAttachment;
+ import net.minecraft.world.entity.EntityAttachments;
+ import net.minecraft.world.entity.EntityDimensions;
++import net.minecraft.world.entity.EntityEvent;
+ import net.minecraft.world.entity.EntitySpawnReason;
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.entity.EntityTypes;
 @@ -58,6 +_,12 @@
  import net.minecraft.world.level.storage.ValueOutput;
  import org.jspecify.annotations.Nullable;
@@ -41,19 +49,30 @@
      }
  
      @Override
-@@ -197,8 +_,10 @@
+@@ -194,12 +_,20 @@
+     }
+ 
+     public void startConverting(@Nullable UUID player, int time) {
++        // Paper start - missing entity behaviour api - converting without entity event
++        this.startConverting(player, time, true);
++    }
++
++    public void startConverting(@Nullable UUID player, int time, boolean broadcastEntityEvent) {
++        // Paper end - missing entity behaviour api - converting without entity event
          this.conversionStarter = player;
          this.villagerConversionTime = time;
          this.getEntityData().set(DATA_CONVERTING_ID, true);
 -        this.removeEffect(MobEffects.WEAKNESS);
 -        this.addEffect(new MobEffectInstance(MobEffects.STRENGTH, time, Math.min(this.level().getDifficulty().getId() - 1, 0)));
+-        this.level().broadcastEntityEvent(this, (byte)16);
 +        // CraftBukkit start
 +        this.removeEffect(MobEffects.WEAKNESS, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONVERSION);
 +        this.addEffect(new MobEffectInstance(MobEffects.STRENGTH, time, Math.min(this.level().getDifficulty().getId() - 1, 0)), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.CONVERSION);
 +        // CraftBukkit end
-         this.level().broadcastEntityEvent(this, (byte)16);
++        if (broadcastEntityEvent) this.level().broadcastEntityEvent(this, EntityEvent.ZOMBIE_CONVERTING); // Paper - missing entity behaviour api - converting without entity event
      }
  
+     @Override
 @@ -229,10 +_,12 @@
      }
  

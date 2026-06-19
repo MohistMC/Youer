@@ -8,7 +8,7 @@
  
      @Override
      public MapCodec<? extends DispenserBlock> codec() {
-@@ -97,6 +_,7 @@
+@@ -97,11 +_,18 @@
                  ItemStack itemStack = blockEntity.getItem(slot);
                  DispenseItemBehavior behavior = this.getDispenseMethod(level, itemStack);
                  if (behavior != DispenseItemBehavior.NOOP) {
@@ -16,3 +16,14 @@
                      blockEntity.setItem(slot, behavior.dispense(source, itemStack));
                  }
              }
+         }
+     }
++
++    // Paper start - Fix NPE with equippable and items without behavior
++    public static DispenseItemBehavior getDispenseBehavior(BlockSource pointer, ItemStack stack) {
++        return ((DispenserBlock) pointer.state().getBlock()).getDispenseMethod(pointer.level(), stack);
++    }
++    // Paper end - Fix NPE with equippable and items without behavior
+ 
+     protected DispenseItemBehavior getDispenseMethod(Level level, ItemStack itemStack) {
+         if (!itemStack.isItemEnabled(level.enabledFeatures())) {

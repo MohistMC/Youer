@@ -1,0 +1,25 @@
+--- a/net/minecraft/server/players/ProfileResolver.java
++++ b/net/minecraft/server/players/ProfileResolver.java
+@@ -25,14 +_,20 @@
+         private final LoadingCache<String, Optional<GameProfile>> profileCacheByName;
+         private final LoadingCache<UUID, Optional<GameProfile>> profileCacheById;
+ 
+-        public Cached(MinecraftSessionService sessionService, UserNameToIdResolver nameToIdCache) {
++        public Cached(MinecraftSessionService sessionService, UserNameToIdResolver nameToIdCache, final io.papermc.paper.profile.PaperFilledProfileCache paperCache) { // Paper - add paperCache
+             this.profileCacheById = CacheBuilder.newBuilder()
+                 .expireAfterAccess(Duration.ofMinutes(10L))
+                 .maximumSize(256L)
+                 .build(new CacheLoader<UUID, Optional<GameProfile>>() {
+                     public Optional<GameProfile> load(UUID profileId) {
+                         ProfileResult result = sessionService.fetchProfile(profileId, true);
+-                        return Optional.ofNullable(result).map(ProfileResult::profile);
++                        // Paper start - update paper cache
++                        return Optional.ofNullable(result).map(ProfileResult::profile)
++                                .map(profile -> {
++                                    paperCache.add(profile);
++                                    return profile;
++                                });
++                        // Paper end - update paper cache
+                     }
+                 });
+             this.profileCacheByName = CacheBuilder.newBuilder()

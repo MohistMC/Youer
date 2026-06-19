@@ -1,17 +1,27 @@
 --- a/net/minecraft/server/network/CommonListenerCookie.java
 +++ b/net/minecraft/server/network/CommonListenerCookie.java
-@@ -3,7 +_,15 @@
- import com.mojang.authlib.GameProfile;
- import net.minecraft.server.level.ClientInformation;
+@@ -1,9 +_,24 @@
+ package net.minecraft.server.network;
  
+ import com.mojang.authlib.GameProfile;
++import java.util.Objects;
+ import net.minecraft.server.level.ClientInformation;
+-
 -public record CommonListenerCookie(GameProfile gameProfile, int latency, ClientInformation clientInformation, boolean transferred) {
-+public record CommonListenerCookie(GameProfile gameProfile, int latency, ClientInformation clientInformation, boolean transferred, net.neoforged.neoforge.network.connection.ConnectionType connectionType) {
++import net.neoforged.neoforge.network.connection.ConnectionType;
++
++public record CommonListenerCookie(GameProfile gameProfile, int latency, ClientInformation clientInformation, boolean transferred, ConnectionType connectionType, @org.jspecify.annotations.Nullable String brandName, java.util.Set<String> channels, io.papermc.paper.util.KeepAlive keepAlive) { // Paper // Paper
++
++    public CommonListenerCookie(GameProfile gameProfile, int latency, ClientInformation clientInformation, boolean transferred, ConnectionType connectionType) {
++        this(gameProfile, latency, clientInformation, transferred, connectionType, null, new java.util.HashSet<>(), new io.papermc.paper.util.KeepAlive());
++    }
++
 +    /**
-+     * @deprecated Use {@link #CommonListenerCookie(GameProfile, int, ClientInformation, boolean, net.neoforged.neoforge.network.connection.ConnectionType)} instead, to indicate whether the connection is modded.
++     * @deprecated Use {@link #CommonListenerCookie(GameProfile, int, ClientInformation, boolean, ConnectionType)} instead, to indicate whether the connection is modded.
 +     */
 +    @Deprecated
 +    public CommonListenerCookie(GameProfile gameProfile, int latency, ClientInformation clientInformation, boolean transferred) {
-+        this(gameProfile, latency, clientInformation, transferred, net.neoforged.neoforge.network.connection.ConnectionType.OTHER);
++        this(gameProfile, latency, clientInformation, transferred, ConnectionType.OTHER, null, new java.util.HashSet<>(), new io.papermc.paper.util.KeepAlive());
 +    }
 +
      public static CommonListenerCookie createInitial(GameProfile gameProfile, boolean transferred) {

@@ -20,13 +20,54 @@
      private volatile @Nullable PacketListener disconnectListener;
      private volatile @Nullable PacketListener packetListener;
      private @Nullable DisconnectionDetails disconnectionDetails;
-@@ -81,6 +_,9 @@
+@@ -81,6 +_,50 @@
      private volatile @Nullable DisconnectionDetails delayedDisconnect;
      private @Nullable BandwidthDebugMonitor bandwidthDebugMonitor;
      private @Nullable UUID intendedProfileId;
 +    @Nullable
 +    private ProtocolInfo<?> inboundProtocol;
 +    public String hostname = ""; // CraftBukkit - add field
++    public boolean handleConnectionDisconnectOnNextTick = false; // Paper - Force kill connection ticking
++    // Paper start - NetworkClient implementation
++    public int protocolVersion;
++    public java.net.InetSocketAddress virtualHost;
++    private static boolean enableExplicitFlush = Boolean.getBoolean("paper.explicit-flush"); // Paper - Disable explicit connection flushing
++    // Paper end
++    // Paper start - add utility methods
++    public final net.minecraft.server.level.ServerPlayer getPlayer() {
++        if (this.packetListener instanceof net.minecraft.server.network.ServerGamePacketListenerImpl impl) {
++            return impl.player;
++        } else if (this.packetListener instanceof net.minecraft.server.network.ServerCommonPacketListenerImpl impl) {
++            return null;
++        }
++        return null;
++    }
++    // Paper end - add utility methods
++    // Paper start - packet limiter
++    protected final Object PACKET_LIMIT_LOCK = new Object();
++    protected final io.papermc.paper.util.@Nullable IntervalledCounter allPacketCounts = io.papermc.paper.configuration.GlobalConfiguration.get().packetLimiter.allPackets.isEnabled() ? new io.papermc.paper.util.IntervalledCounter(
++            (long)(io.papermc.paper.configuration.GlobalConfiguration.get().packetLimiter.allPackets.interval() * 1.0e9)
++    ) : null;
++    protected final java.util.Map<Class<? extends net.minecraft.network.protocol.Packet<?>>, io.papermc.paper.util.IntervalledCounter> packetSpecificLimits = new java.util.HashMap<>();
++
++    private boolean stopReadingPackets;
++    private void killForPacketSpam() {
++        this.sendPacket(new ClientboundDisconnectPacket(io.papermc.paper.adventure.PaperAdventure.asVanilla(io.papermc.paper.configuration.GlobalConfiguration.get().packetLimiter.kickMessage)), PacketSendListener.thenRun(() -> {
++            this.disconnect(io.papermc.paper.adventure.PaperAdventure.asVanilla(io.papermc.paper.configuration.GlobalConfiguration.get().packetLimiter.kickMessage));
++        }), true);
++        this.setReadOnly();
++        this.stopReadingPackets = true;
++    }
++    // Paper end - packet limiter
++    @Nullable public SocketAddress haProxyAddress; // Paper - Add API to get player's proxy address
++    public java.util.@Nullable Optional<net.minecraft.network.chat.Component> legacySavedLoginEventResultOverride; // Paper - playerloginevent
++    public boolean handledLegacyLoginEvent; // Paper - playerloginevent
++    public net.minecraft.server.level.@Nullable ServerPlayer savedPlayerForLegacyEvents; // Paper - playerloginevent & PlayerSpawnLocationEvent
++    public org.bukkit.event.player.PlayerResourcePackStatusEvent.@Nullable Status resourcePackStatus; // Paper
++    // Paper start - Optimize network
++    public boolean isPending = true;
++    public boolean queueImmunity;
++    // Paper end - Optimize network
  
      public Connection(PacketFlow receiving) {
          this.receiving = receiving;
@@ -120,6 +161,49 @@
          return new Bootstrap().group(eventLoopGroupHolder.eventLoopGroup()).handler(new ChannelInitializer<Channel>() {
              @Override
              protected void initChannel(Channel channel) {
+@@ -511,10 +_,24 @@
+         return connection;
+     }
+ 
+-    public void setEncryptionKey(Cipher decryptCipher, Cipher encryptCipher) {
+-        this.channel.pipeline().addBefore("splitter", "decrypt", new CipherDecoder(decryptCipher));
+-        this.channel.pipeline().addBefore("prepender", "encrypt", new CipherEncoder(encryptCipher));
++    // Paper start - Use Velocity cipher
++    private boolean encrypted;
++
++    public void setEncryptionKey(final javax.crypto.SecretKey key) throws net.minecraft.util.CryptException {
++        if (!this.encrypted) {
++            try {
++                final com.velocitypowered.natives.encryption.VelocityCipher decryptionCipher = com.velocitypowered.natives.util.Natives.cipher.get().forDecryption(key);
++                final com.velocitypowered.natives.encryption.VelocityCipher encryptionCipher = com.velocitypowered.natives.util.Natives.cipher.get().forEncryption(key);
++
++                this.encrypted = true;
++                this.channel.pipeline().addBefore(HandlerNames.SPLITTER, HandlerNames.DECRYPT, new CipherDecoder(decryptionCipher));
++                this.channel.pipeline().addBefore(HandlerNames.PREPENDER, HandlerNames.ENCRYPT, new CipherEncoder(encryptionCipher));
++            } catch (final java.security.GeneralSecurityException e) {
++                throw new net.minecraft.util.CryptException(e);
++            }
++        }
+     }
++    // Paper end - Use Velocity cipher
+ 
+     public boolean isConnected() {
+         return this.channel != null && this.channel.isOpen();
+@@ -538,6 +_,14 @@
+         }
+     }
+ 
++    // Paper start - add proper async disconnect
++    public void enableAutoRead() {
++        if (this.channel != null) {
++            this.channel.config().setAutoRead(true);
++        }
++    }
++    // Paper end - add proper async disconnect
++
+     public void setupCompression(int threshold, boolean validateDecompressed) {
+         if (threshold >= 0) {
+             if (this.channel.pipeline().get("decompress") instanceof CompressionDecoder compressionDecoder) {
 @@ -576,6 +_,7 @@
                      );
                      disconnectListener.onDisconnect(details);

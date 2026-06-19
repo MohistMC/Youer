@@ -94,9 +94,10 @@ public class CraftDragonBattle implements DragonBattle {
                 return !((CraftWorld) crystal.getWorld()).getHandle().equals(this.handle.level);
             });
 
-            return this.handle.respawnDragon(
+            this.handle.respawnDragon(
                 Lists.transform(filteredCrystals, crystal -> ((CraftEnderCrystal) crystal).getHandle())
             );
+            return this.handle.respawnDragonBoolean();
         }
         return false;
     }

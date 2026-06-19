@@ -95,37 +95,30 @@
          return result;
      }
  
-@@ -141,10 +_,18 @@
-         Validatable.validate(context, "functions", this.functions);
+@@ -142,9 +_,22 @@
      }
  
-+    public AtomicBoolean fill$plugin = new AtomicBoolean(false);
      public void fill(Container container, LootParams params, long optionalRandomSeed) {
-         LootContext context = new LootContext.Builder(params).withOptionalRandomSeed(optionalRandomSeed).create(this.randomSequence);
+-        LootContext context = new LootContext.Builder(params).withOptionalRandomSeed(optionalRandomSeed).create(this.randomSequence);
++        // CraftBukkit start
++        this.fill(container, params, optionalRandomSeed == 0L ? null : RandomSource.create(optionalRandomSeed), false);
++    }
++
++    public void fill(Container container, LootParams params, RandomSource randomSource, boolean plugin) {
++        // CraftBukkit end
++        LootContext context = new LootContext.Builder(params).withOptionalRandomSource(randomSource).create(this.randomSequence);
          ObjectArrayList<ItemStack> itemStacks = this.getRandomItems(context);
          RandomSource random = context.getRandom();
 +        // CraftBukkit start
-+        LootGenerateEvent event = CraftEventFactory.callLootGenerateEvent(container, this, context, itemStacks, fill$plugin.getAndSet(false));
++        org.bukkit.event.world.LootGenerateEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callLootGenerateEvent(container, this, context, itemStacks, plugin);
 +        if (event.isCancelled()) {
 +            return;
 +        }
-+        itemStacks = event.getLoot().stream().map(CraftItemStack::asNMSCopy).collect(ObjectArrayList.toList());
++        itemStacks = event.getLoot().stream().map(org.bukkit.craftbukkit.inventory.CraftItemStack::asNMSCopy).collect(ObjectArrayList.toList());
 +        // CraftBukkit end
          List<Integer> availableSlots = this.getAvailableSlots(container, random);
          this.shuffleAndSplitItems(itemStacks, availableSlots.size(), random);
  
-@@ -162,6 +_,11 @@
-         }
-     }
- 
-+    public void fillInventory(Container container, LootParams params, long optionalRandomSeed, boolean plugin) {
-+        fill$plugin.set(plugin);
-+        fill(container, params, optionalRandomSeed);
-+    }
-+
-     private void shuffleAndSplitItems(ObjectArrayList<ItemStack> result, int availableSlots, RandomSource random) {
-         List<ItemStack> splittableItems = Lists.newArrayList();
-         Iterator<ItemStack> iterator = result.iterator();
 @@ -214,11 +_,68 @@
          return new LootTable.Builder();
      }

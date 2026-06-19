@@ -24,20 +24,24 @@
  
  public class ServerClockManager extends SavedData implements ClockManager {
      public static final SavedDataType<ServerClockManager> TYPE = new SavedDataType<>(
-@@ -29,19 +_,19 @@
-         DataFixTypes.SAVED_DATA_WORLD_CLOCKS
+@@ -30,6 +_,7 @@
      );
      private final PackedClockStates packedClockStates;
--    private MinecraftServer server;
-+    private ServerLevel server; // CraftBukkit - per world
+     private MinecraftServer server;
++    private @org.jspecify.annotations.Nullable ServerLevel level; // Paper - per-world time
      private final Map<Holder<WorldClock>, ServerClockManager.ClockInstance> clocks = new HashMap<>();
  
      private ServerClockManager(PackedClockStates packedClockStates) {
-         this.packedClockStates = packedClockStates;
+@@ -37,11 +_,17 @@
      }
  
--    public void init(MinecraftServer server) {
-+    public void init(ServerLevel server) { // CraftBukkit - per world
+     public void init(MinecraftServer server) {
++        // Paper start - per-world time
++        this.init(server, null);
++    }
++    public void init(final MinecraftServer server, @org.jspecify.annotations.Nullable final ServerLevel level) {
++        this.level = level;
++        // Paper end - per-world time
          this.server = server;
          server.registryAccess()
              .lookupOrThrow(Registries.WORLD_CLOCK)
@@ -68,7 +72,7 @@
 +        if (this.server == null) {
 +            return; // Neo: Our JUnit ephemeral testserver has no overworld and getGlobalGameRules() would crash
 +        }
-+        boolean advanceTime = this.server.getGameRules().get(GameRules.ADVANCE_TIME);
++        boolean advanceTime = this.advanceTime(); // Paper - per-world time
 +        // Neo: Custom ticking logic to move the advance time check to be per clock rather than global
 +        this.clocks.values().forEach(clock -> clock.tick(advanceTime));
          if (advanceTime) {
@@ -76,50 +80,24 @@
              this.setDirty();
          }
      }
-@@ -78,13 +_,25 @@
-     }
- 
-     public void setTotalTicks(Holder<WorldClock> clock, long totalTicks) {
-+        // CraftBukkit start
-+        this.setTotalTicks(clock, totalTicks, null);
-+    }
-+
-+    public void setTotalTicks(Holder<WorldClock> clock, long totalTicks, TimeSkipEvent.SkipReason reason) {
-+        // CraftBukkit end
-         this.modifyClock(clock, instance -> {
-             instance.totalTicks = totalTicks;
-             instance.partialTick = 0.0F;
--        });
-+        }, reason); // CraftBukkit
-     }
- 
-     public boolean moveToTimeMarker(Holder<WorldClock> clock, ResourceKey<ClockTimeMarker> timeMarkerId) {
-+        // CraftBukkit start
-+        return this.moveToTimeMarker(clock, timeMarkerId, null);
-+    }
-+
-+    public boolean moveToTimeMarker(Holder<WorldClock> clock, ResourceKey<ClockTimeMarker> timeMarkerId, TimeSkipEvent.SkipReason reason) {
-+        // CraftBukkit end
-         MutableBoolean set = new MutableBoolean();
-         this.modifyClock(clock, instance -> {
-             ClockTimeMarker timeMarker = instance.timeMarkers.get(timeMarkerId);
-@@ -93,32 +_,76 @@
-                 instance.partialTick = 0.0F;
-                 set.setTrue();
-             }
--        });
-+        }, reason); // CraftBukkit
+@@ -97,6 +_,15 @@
          return set.booleanValue();
      }
  
++    // Paper start - time skip event
++    public java.util.OptionalLong getTotalTicksToTimeMarker(final Holder<WorldClock> clock, final ResourceKey<ClockTimeMarker> timeMarkerId) {
++        final ServerClockManager.ClockInstance instance = this.getInstance(clock);
++        final ClockTimeMarker timeMarker = instance.timeMarkers.get(timeMarkerId);
++
++        return timeMarker != null ? java.util.OptionalLong.of(timeMarker.resolveTimeToMoveTo(instance.totalTicks)) : java.util.OptionalLong.empty();
++    }
++    // Paper end - time skip event
++
      public void addTicks(Holder<WorldClock> clock, int ticks) {
--        this.modifyClock(clock, instance -> instance.totalTicks = Math.max(instance.totalTicks + ticks, 0L));
-+        this.modifyClock(clock, instance -> instance.totalTicks = Math.max(instance.totalTicks + ticks, 0L), TimeSkipEvent.SkipReason.COMMAND); // CraftBukkit - always COMMAND
+         this.modifyClock(clock, instance -> instance.totalTicks = Math.max(instance.totalTicks + ticks, 0L));
      }
- 
-     public void setPaused(Holder<WorldClock> clock, boolean paused) {
--        this.modifyClock(clock, instance -> instance.paused = paused);
-+        this.modifyClock(clock, instance -> instance.paused = paused, TimeSkipEvent.SkipReason.COMMAND); // CraftBukkit - always COMMAND
+@@ -105,6 +_,21 @@
+         this.modifyClock(clock, instance -> instance.paused = paused);
      }
  
 +    /**
@@ -138,50 +116,28 @@
 +     */
 +    @Override
      public void setRate(Holder<WorldClock> clock, float rate) {
--        this.modifyClock(clock, instance -> instance.rate = rate);
--    }
--
--    private void modifyClock(Holder<WorldClock> clock, Consumer<? super ServerClockManager.ClockInstance> action) {
--        ServerClockManager.ClockInstance instance = this.getInstance(clock);
--        action.accept(instance);
+         this.modifyClock(clock, instance -> instance.rate = rate);
+     }
+@@ -112,13 +_,26 @@
+     private void modifyClock(Holder<WorldClock> clock, Consumer<? super ServerClockManager.ClockInstance> action) {
+         ServerClockManager.ClockInstance instance = this.getInstance(clock);
+         action.accept(instance);
 -        Map<Holder<WorldClock>, ClockNetworkState> updates = Map.of(clock, instance.packNetworkState(this.server));
 -        this.server.getPlayerList().broadcastAll(new ClientboundSetTimePacket(this.getGameTime(), updates));
-+        this.modifyClock(clock, instance -> instance.rate = rate, TimeSkipEvent.SkipReason.COMMAND); // CraftBukkit - always COMMAND
-+    }
-+
-+    private void modifyClock(Holder<WorldClock> clock, Consumer<? super ServerClockManager.ClockInstance> action, TimeSkipEvent.SkipReason reason) { // CraftBukkit
-+        ServerClockManager.ClockInstance serverclockmanager_clockinstance = this.getInstance(clock);
-+
-+        long ticksBefore = serverclockmanager_clockinstance.totalTicks; // CraftBukkit
-+        action.accept(serverclockmanager_clockinstance);
-+        // CraftBukkit start
-+        long tickDelta = serverclockmanager_clockinstance.totalTicks - ticksBefore;
-+        if (tickDelta != 0 && reason != null && isDefaultClock(this.server, clock)) {
-+            TimeSkipEvent event = new TimeSkipEvent(this.server.getWorld(), reason, tickDelta);
-+            Bukkit.getPluginManager().callEvent(event);
-+            if (!event.isCancelled()) {
-+                serverclockmanager_clockinstance.totalTicks = ticksBefore + event.getSkipAmount();
-+            }
-+        }
-+
-+        this.server.players().forEach((player) -> sendUpdate(clock, serverclockmanager_clockinstance, player));
-+    }
-+
-+    private void sendUpdate(Holder<WorldClock> clock, ServerClockManager.ClockInstance serverclockmanager_clockinstance, ServerPlayer player) {
-+        Map<Holder<WorldClock>, ClockNetworkState> map = Map.of(clock, serverclockmanager_clockinstance.packNetworkState(clock, player));
-+
-+        player.connection.send(new ClientboundSetTimePacket(this.getGameTime(), map));
-+        // CraftBukkit end
++        // Paper start - per-world time
++        this.broadcastUpdates(clock, instance);
          this.setDirty();
  
 -        for (ServerLevel level : this.server.getAllLevels()) {
 -            level.environmentAttributes().invalidateTickCache();
-+        // CraftBukkit start - per-world
-+        {
-+            this.server.environmentAttributes().invalidateTickCache();
-+            // CraftBukkit end
++        if (this.level != null) {
++            this.level.environmentAttributes().invalidateTickCache();
++        } else {
++            for (ServerLevel level : this.server.getAllLevels()) {
++                level.environmentAttributes().invalidateTickCache();
++            }
          }
-+
++        // Paper end - per-world time
 +    }
 +
 +    /**
@@ -193,31 +149,63 @@
      }
  
      @Override
-@@ -126,12 +_,21 @@
+@@ -126,13 +_,53 @@
          return this.getInstance(definition).totalTicks;
      }
  
--    public ClientboundSetTimePacket createFullSyncPacket() {
--        return new ClientboundSetTimePacket(this.getGameTime(), Util.mapValues(this.clocks, clock -> clock.packNetworkState(this.server)));
 +    @Override
 +    public float getPartialTick(Holder<WorldClock> definition) {
 +        return this.getInstance(definition).partialTick;
 +    }
 +
-+    // CraftBukkit start - per-player
-+    public ClientboundSetTimePacket createFullSyncPacket(ServerPlayer player) {
-+        return new ClientboundSetTimePacket(this.getGameTime(), Maps.transformEntries(this.clocks, (clock, serverclockmanager_clockinstance) -> {
-+            return serverclockmanager_clockinstance.packNetworkState(clock, player);
-+            // CraftBukkit end
-+        }));
+     public ClientboundSetTimePacket createFullSyncPacket() {
+-        return new ClientboundSetTimePacket(this.getGameTime(), Util.mapValues(this.clocks, clock -> clock.packNetworkState(this.server)));
++        // Paper start - per-player time
++        return this.createFullSyncPacket(null);
      }
  
++    public ClientboundSetTimePacket createFullSyncPacket(final net.minecraft.server.level.ServerPlayer player) {
++        final Map<Holder<WorldClock>, ClockNetworkState> updates = new HashMap<>(this.clocks.size());
++        this.clocks.forEach((clock, instance) -> updates.put(clock, this.packNetworkState(clock, instance, player)));
++        return new ClientboundSetTimePacket(this.getGameTime(), updates);
++        // Paper end - per-player time
++    }
      private long getGameTime() {
 -        return this.server.overworld().getGameTime();
-+        return this.server.getGameTime(); // CraftBukkit - per-world
-     }
+-    }
++        return this.level != null ? this.level.getGameTime() : this.server.overworld().getGameTime(); // Paper - per-world time
++    }
++
++    // Paper start - per-world time; per-player time
++    private void broadcastUpdates(final Holder<WorldClock> clock, final ServerClockManager.ClockInstance instance) {
++        for (final net.minecraft.server.level.ServerPlayer player : this.level != null ? this.level.players() : this.server.getPlayerList().getPlayers()) {
++            final var packet = new net.minecraft.network.protocol.game.ClientboundSetTimePacket(
++                    this.getGameTime(),
++                    java.util.Map.of(clock, this.packNetworkState(clock, instance, player))
++            );
++            player.connection.send(packet);
++        }
++    }
++
++    private ClockNetworkState packNetworkState(
++            final Holder<WorldClock> clock,
++            final ServerClockManager.ClockInstance instance,
++            final net.minecraft.server.level.ServerPlayer player
++    ) {
++        if (player != null && player.level().dimensionType().defaultClock().filter(clock::equals).isPresent()) {
++            final boolean paused = !player.relativeTime || instance.paused || !this.advanceTime();
++            return new ClockNetworkState(player.getPlayerTime(), instance.partialTick, paused ? 0.0F : instance.rate);
++        }
++        return instance.packNetworkState(this.advanceTime());
++    }
++
++    private boolean advanceTime() {
++        return this.level != null ? this.level.getGameRules().get(GameRules.ADVANCE_TIME) : this.server.getGlobalGameRules().get(GameRules.ADVANCE_TIME);
++    }
++    // Paper end - per-world time; per-player time
  
      public boolean isAtTimeMarker(Holder<WorldClock> clock, ResourceKey<ClockTimeMarker> timeMarkerId) {
+         ServerClockManager.ClockInstance clockInstance = this.getInstance(clock);
 @@ -150,6 +_,17 @@
          private float partialTick;
          private float rate = 1.0F;
@@ -254,22 +242,15 @@
                  this.partialTick = this.partialTick + this.rate;
                  int fullTicks = Mth.floor(this.partialTick);
                  this.partialTick -= fullTicks;
-@@ -171,10 +_,26 @@
+@@ -171,10 +_,21 @@
              return new ClockState(this.totalTicks, this.partialTick, this.rate, this.paused);
          }
  
 -        public ClockNetworkState packNetworkState(MinecraftServer server) {
 -            boolean advanceTime = server.getGlobalGameRules().get(GameRules.ADVANCE_TIME);
--            boolean paused = this.paused || !advanceTime;
--            return new ClockNetworkState(this.totalTicks, this.partialTick, paused ? 0.0F : this.rate);
-+        // CraftBukkit start - per-player and per-world
-+        public ClockNetworkState packNetworkState(Holder<WorldClock> clock, ServerPlayer player) {
-+            boolean advanceTime = player.level().getGameRules().get(GameRules.ADVANCE_TIME);
-+            // Neo: Use the corrected pause value
-+            boolean paused = !this.ticking(advanceTime);
-+
-+            return new ClockNetworkState((isDefaultClock(player.level(), clock)) ? player.getPlayerTime(this.totalTicks) : this.totalTicks, this.partialTick, paused ? 0.0F : this.rate);
-+            // CraftBukkit end
++        public ClockNetworkState packNetworkState(final boolean advanceTime) { // Paper - per-world time
+             boolean paused = this.paused || !advanceTime;
+             return new ClockNetworkState(this.totalTicks, this.partialTick, paused ? 0.0F : this.rate);
 +        }
 +
 +        private boolean ticking(boolean advanceTime) {

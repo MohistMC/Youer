@@ -16,6 +16,71 @@
  import org.jspecify.annotations.Nullable;
  
  public class ExperienceOrb extends Entity {
+@@ -43,13 +_,58 @@
+     public int count = 1;
+     private @Nullable Player followingPlayer;
+     private final InterpolationHandler interpolation = new InterpolationHandler(this);
+-
+-    public ExperienceOrb(Level level, double x, double y, double z, int value) {
+-        this(level, new Vec3(x, y, z), Vec3.ZERO, value);
+-    }
+-
+-    public ExperienceOrb(Level level, Vec3 pos, Vec3 roughly, int value) {
++    // Paper start
++    public java.util.@Nullable UUID sourceEntityId;
++    public java.util.@Nullable UUID triggerEntityId;
++    public org.bukkit.entity.ExperienceOrb.SpawnReason spawnReason = org.bukkit.entity.ExperienceOrb.SpawnReason.UNKNOWN;
++
++    private void loadPaperNBT(ValueInput input) {
++        input.read("Paper.ExpData", net.minecraft.nbt.CompoundTag.CODEC).ifPresent(expData -> {
++            this.sourceEntityId = expData.read("source", net.minecraft.core.UUIDUtil.CODEC).orElse(null);
++            this.triggerEntityId = expData.read("trigger", net.minecraft.core.UUIDUtil.CODEC).orElse(null);
++            expData.getString("reason").ifPresent(reason -> {
++                try {
++                    this.spawnReason = org.bukkit.entity.ExperienceOrb.SpawnReason.valueOf(reason);
++                } catch (Exception e) {
++                    this.level().getCraftServer().getLogger().warning("Invalid spawnReason set for experience orb: " + e.getMessage() + " - " + reason);
++                }
++            });
++        });
++    }
++    private void savePaperNBT(ValueOutput output) {
++        net.minecraft.nbt.CompoundTag expData = new net.minecraft.nbt.CompoundTag();
++        expData.storeNullable("source", net.minecraft.core.UUIDUtil.CODEC, this.sourceEntityId);
++        expData.storeNullable("trigger", net.minecraft.core.UUIDUtil.CODEC, this.triggerEntityId);
++        if (this.spawnReason != org.bukkit.entity.ExperienceOrb.SpawnReason.UNKNOWN) {
++            expData.putString("reason", this.spawnReason.name());
++        }
++        output.store("Paper.ExpData", net.minecraft.nbt.CompoundTag.CODEC, expData);
++    }
++    // Paper end
++
++    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - overload ctor
++    public ExperienceOrb(final Level level, final double x, final double y, final double z, final int value) {
++        // Paper start - add reasons for orbs
++        this(level, x, y, z, value, null, null, null);
++    }
++    public ExperienceOrb(final Level level, final double x, final double y, final double z, final int value, org.bukkit.entity.ExperienceOrb.@Nullable SpawnReason reason, final @Nullable Entity triggerId, final @Nullable Entity sourceId) {
++        this(level, new Vec3(x, y, z), Vec3.ZERO, value, reason, triggerId, sourceId);
++        // Paper end - add reasons for orbs
++    }
++
++    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - overload ctor
++    public ExperienceOrb(final Level level, final Vec3 pos, final Vec3 roughly, final int value) {
++        // Paper start - add reasons for orbs
++        this(level, pos, roughly, value, null, null, null);
++    }
++    public ExperienceOrb(final Level level, final Vec3 pos, final Vec3 roughly, final int value, org.bukkit.entity.ExperienceOrb.@Nullable SpawnReason reason, final @Nullable Entity triggerId, final @Nullable Entity sourceId) {
++        // Paper end - add reasons for orbs
+         this(EntityTypes.EXPERIENCE_ORB, level);
++        // Paper start - add reasons for orbs
++        this.sourceEntityId = sourceId != null ? sourceId.getUUID() : null;
++        this.triggerEntityId = triggerId != null ? triggerId.getUUID() : null;
++        this.spawnReason = reason != null ? reason : org.bukkit.entity.ExperienceOrb.SpawnReason.UNKNOWN;
++        // Paper end - add reasons for orbs
+         this.setPos(pos);
+         if (!level.isClientSide()) {
+             this.setYRot(this.random.nextFloat() * 360.0F);
 @@ -136,7 +_,8 @@
              this.applyEffectsFromBlocks();
              float friction = this.getAirDrag();
@@ -99,7 +164,7 @@
                  int remaining = this.repairPlayerItems(serverPlayer, this.getValue());
                  if (remaining > 0) {
 -                    player.giveExperiencePoints(remaining);
-+                    player.giveExperiencePoints(CraftEventFactory.callPlayerExpChangeEvent(serverPlayer, remaining).getAmount()); // CraftBukkit - this.value -> event.getAmount()
++                    player.giveExperiencePoints(org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerExpChangeEvent(player, this, remaining).getAmount()); // CraftBukkit - remaining -> event.getAmount() // Paper - supply experience orb
                  }
  
                  this.count--;
@@ -109,7 +174,7 @@
                  }
              }
          }
-@@ -301,12 +_,20 @@
+@@ -301,12 +_,23 @@
          Optional<EnchantedItemInUse> selected = EnchantmentHelper.getRandomItemWith(EnchantmentEffectComponents.REPAIR_WITH_XP, player, ItemStack::isDamaged);
          if (selected.isPresent()) {
              ItemStack itemStack = selected.get().itemStack();
@@ -117,7 +182,10 @@
 +            int toRepairFromXpAmount = EnchantmentHelper.modifyDurabilityToRepairFromXp(player.level(), itemStack, (int) (amount * itemStack.getXpRepairRatio()));
              int repair = Math.min(toRepairFromXpAmount, itemStack.getDamageValue());
 +            // CraftBukkit start
-+            org.bukkit.event.player.PlayerItemMendEvent event = CraftEventFactory.callPlayerItemMendEvent(player, this, itemStack, selected.get().inSlot(), repair);
++            // Paper start - mending event
++            final int consumedExperience = repair > 0 ? repair * amount / toRepairFromXpAmount : 0;
++            org.bukkit.event.player.PlayerItemMendEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerItemMendEvent(player, this, itemStack, selected.get().inSlot(), repair, consumedExperience);
++            // Paper end - mending event
 +            repair = event.getRepairAmount();
 +            if (event.isCancelled()) {
 +                return amount;

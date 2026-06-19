@@ -91,6 +91,38 @@
      public abstract static class BlockStateBase extends StateHolder<Block, BlockState> implements TypedInstance<Block> {
          private static final Direction[] DIRECTIONS = Direction.values();
          private static final VoxelShape[] EMPTY_OCCLUSION_SHAPES = Util.make(new VoxelShape[DIRECTIONS.length], s -> Arrays.fill(s, Shapes.empty()));
+@@ -465,6 +_,16 @@
+             this.replaceable = properties.replaceable;
+         }
+ 
++        // Paper start - Perf: impl cached craft block data, lazy load to fix issue with loading at the wrong time
++        private org.bukkit.craftbukkit.block.data.@Nullable CraftBlockData cachedBlockData;
++
++        public org.bukkit.craftbukkit.block.data.CraftBlockData asBlockData() {
++            if (this.cachedBlockData == null) this.cachedBlockData = org.bukkit.craftbukkit.block.data.CraftBlockData.createData(this.asState());
++            return (org.bukkit.craftbukkit.block.data.CraftBlockData) this.cachedBlockData.clone();
++        }
++        // Paper end - Perf: impl cached craft block data, lazy load to fix issue with loading at the wrong time
++
++
+         private boolean calculateSolid() {
+             if (this.owner.properties.forceSolidOn) {
+                 return true;
+@@ -487,12 +_,14 @@
+             return bounds.getSize() >= 0.7291666666666666 ? true : bounds.getYsize() >= 1.0;
+         }
+ 
++        protected boolean shapeExceedsCube = true; // Paper - moved from actual method to here
+         public void initCache() {
+             this.fluidState = this.owner.getFluidState(this.asState());
+             this.isRandomlyTicking = this.owner.isRandomlyTicking(this.asState());
+             if (!this.getBlock().hasDynamicShape()) {
+                 this.cache = new BlockBehaviour.BlockStateBase.Cache(this.asState());
+             }
++            this.shapeExceedsCube = this.cache == null || this.cache.largeCollisionShape; // Paper - moved from actual method to here
+ 
+             this.legacySolid = this.calculateSolid();
+             this.occlusionShape = this.canOcclude ? this.owner.getOcclusionShape(this.asState()) : Shapes.empty();
 @@ -505,7 +_,12 @@
                  this.occlusionShapesByFace = new VoxelShape[DIRECTIONS.length];
  
@@ -105,7 +137,15 @@
                  }
              }
  
-@@ -561,14 +_,18 @@
+@@ -554,21 +_,25 @@
+         }
+ 
+         public boolean hasLargeCollisionShape() {
+-            return this.cache == null || this.cache.largeCollisionShape;
++            return this.shapeExceedsCube; // Paper - moved into shape cache init
+         }
+ 
+         public boolean useShapeForLightOcclusion() {
              return this.useShapeForLightOcclusion;
          }
  

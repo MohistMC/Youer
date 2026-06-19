@@ -31,20 +31,6 @@ import org.bukkit.craftbukkit.inventory.CraftInventoryView;
 
 public class PlayerEventDispatcher {
 
-    @SubscribeEvent
-    public void onContainerClose(PlayerContainerEvent.Close event) {
-        // Youer start - Custom Container compatible with mods
-        AbstractContainerMenu abstractcontainermenu = event.getContainer();
-        abstractcontainermenu.containerOwner = event.getEntity();
-        if (abstractcontainermenu.getBukkitView() == null) {
-            org.bukkit.inventory.Inventory inventory = new CraftInventory(new YouerModsInventory(abstractcontainermenu, event.getEntity()));
-            inventory.getType().setMods(true);
-            abstractcontainermenu.bukkitView = new CraftInventoryView<>(event.getEntity().getBukkitEntity(), inventory, abstractcontainermenu);
-        }
-        // Youer end
-        CraftEventFactory.handleInventoryCloseEvent(event.getEntity()); // CraftBukkit
-    }
-
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void onEnterSleepEvent(CanPlayerSleepEvent event) {
         var serverPlayer = event.getEntity();

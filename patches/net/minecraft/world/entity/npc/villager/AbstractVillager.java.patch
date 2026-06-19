@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/npc/villager/AbstractVillager.java
 +++ b/net/minecraft/world/entity/npc/villager/AbstractVillager.java
-@@ -49,15 +_,26 @@
+@@ -49,6 +_,10 @@
  import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
  import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
  import net.minecraft.world.phys.Vec3;
@@ -11,15 +11,7 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
- public abstract class AbstractVillager extends AgeableMob implements Npc, Merchant, InventoryCarrier {
-+
-+    // CraftBukkit start
-+    @Override
-+    public CraftMerchant getCraftMerchant() {
-+        return (org.bukkit.craftbukkit.entity.CraftAbstractVillager) getBukkitEntity();
-+    }
-+    // CraftBukkit end
-     private static final Logger LOGGER = LogUtils.getLogger();
+@@ -57,7 +_,7 @@
      private static final EntityDataAccessor<Integer> DATA_UNHAPPY_COUNTER = SynchedEntityData.defineId(AbstractVillager.class, EntityDataSerializers.INT);
      private @Nullable Player tradingPlayer;
      protected @Nullable MerchantOffers offers;
@@ -28,7 +20,51 @@
  
      public AbstractVillager(EntityType<? extends AbstractVillager> type, Level level) {
          super(type, level);
-@@ -139,6 +_,7 @@
+@@ -109,6 +_,20 @@
+         return this.tradingPlayer != null;
+     }
+ 
++    // CraftBukkit start
++    @Override
++    public CraftMerchant getCraftMerchant() {
++        return (org.bukkit.craftbukkit.entity.CraftAbstractVillager) getBukkitEntity();
++    }
++    // CraftBukkit end
++
++    // Paper start - Villager#resetOffers
++    public void resetOffers() {
++        this.offers = new MerchantOffers();
++        this.updateTrades((ServerLevel) this.level());
++    }
++    // Paper end - Villager#resetOffers
++
+     @Override
+     public MerchantOffers getOffers() {
+         if (this.level() instanceof ServerLevel serverLevel) {
+@@ -131,14 +_,28 @@
+     public void overrideXp(int xp) {
+     }
+ 
++    // Paper start - Add PlayerTradeEvent and PlayerPurchaseEvent
++    @Override
++    public void processTrade(MerchantOffer offer, io.papermc.paper.event.player.@Nullable PlayerPurchaseEvent event) { // The MerchantRecipe passed in here is the one set by the PlayerPurchaseEvent
++        if (event == null || event.willIncreaseTradeUses()) {
++            offer.increaseUses();
++        }
++        if (event == null || event.isRewardingExp()) {
++            this.rewardTradeXp(offer);
++        }
++        this.notifyTrade(offer);
++    }
++    // Paper end - Add PlayerTradeEvent and PlayerPurchaseEvent
++
+     @Override
+     public void notifyTrade(MerchantOffer offer) {
+-        offer.increaseUses();
++        // offer.increaseUses(); // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
+         this.ambientSoundTime = -this.getAmbientSoundInterval();
+-        this.rewardTradeXp(offer);
++        // this.rewardTradeXp(offer); // Paper - Add PlayerTradeEvent and PlayerPurchaseEvent
          if (this.tradingPlayer instanceof ServerPlayer) {
              CriteriaTriggers.TRADE.trigger((ServerPlayer)this.tradingPlayer, this, offer.getResult());
          }
@@ -36,9 +72,24 @@
      }
  
      protected abstract void rewardTradeXp(final MerchantOffer offer);
-@@ -245,15 +_,15 @@
+@@ -230,6 +_,11 @@
+     protected abstract void updateTrades(ServerLevel level);
+ 
+     protected void addOffersFromTradeSet(ServerLevel level, MerchantOffers offers, ResourceKey<TradeSet> resourceKey) {
++        // Paper start - More vanilla friendly methods to update trades
++        addOffersFromTradeSet(level, offers, resourceKey, -1);
++    }
++    protected void addOffersFromTradeSet(final ServerLevel level, final MerchantOffers offers, final ResourceKey<TradeSet> resourceKey, int offerCount) {
++        // Paper end - More vanilla friendly methods to update trades
+         Optional<TradeSet> tradeSetOpt = this.registryAccess().lookupOrThrow(Registries.TRADE_SET).getOptional(resourceKey);
+         if (tradeSetOpt.isEmpty()) {
+             LOGGER.debug("Missing expected trade set {}", resourceKey);
+@@ -243,17 +_,17 @@
+                         .create(LootContextParamSets.VILLAGER_TRADE)
+                 )
                  .create(tradeSet.randomSequence());
-             int numberOfOffers = tradeSet.calculateNumberOfTrades(lootContext);
+-            int numberOfOffers = tradeSet.calculateNumberOfTrades(lootContext);
++            int numberOfOffers = offerCount != -1 ? offerCount : tradeSet.calculateNumberOfTrades(lootContext); // Paper - More vanilla friendly methods to update trades
              if (tradeSet.allowDuplicates()) {
 -                addOffersFromItemListings(lootContext, offers, tradeSet.getTrades(), numberOfOffers);
 +                addOffersFromItemListings(lootContext, offers, tradeSet.getTrades(), numberOfOffers, this);

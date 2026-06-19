@@ -91,17 +91,17 @@
 +
 +    // CraftBukkit start
 +    public int expToDrop;
-+    public ArrayList<org.bukkit.inventory.ItemStack> drops = new ArrayList<org.bukkit.inventory.ItemStack>();
++    public @Nullable List<DefaultDrop> deathDropItems = null;
 +    public final org.bukkit.craftbukkit.attribute.CraftAttributeMap craftAttributes;
 +    public boolean collides = true;
-+    public Set<UUID> collidableExemptions = new HashSet<>();
++    public Set<UUID> collidableExemptions = new java.util.HashSet<>();
 +    public boolean bukkitPickUpLoot;
-+    public int invulnerableDuration = 20;
++    public org.bukkit.craftbukkit.entity.CraftLivingEntity getBukkitLivingEntity() { return (org.bukkit.craftbukkit.entity.CraftLivingEntity) super.getBukkitEntity(); } // Paper
++    public boolean silentDeath = true; // Paper - mark entity as dying silently for cancellable death event
++    public net.kyori.adventure.util.TriState frictionState = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
++    public int invulnerableDuration = LivingEntity.INVULNERABLE_DURATION; // Paper - configurable invulnerable duration
++    // CraftBukkit end
 +
-+    @Override
-+    public float getBukkitYaw() {
-+        return getYHeadRot();
-+    }
 +    // CraftBukkit end
 +    public EntityDamageEvent bukkitEntityDamageEvent;
  
@@ -836,8 +836,12 @@
                  player.awardStat(Stats.ITEM_USED.get(protectionItem.getItem()));
                  CriteriaTriggers.USED_TOTEM.trigger(player, protectionItem);
                  protectionItem.causeUseVibration(this, GameEvent.ITEM_INTERACT_FINISH);
-@@ -1452,6 +_,8 @@
+@@ -1450,8 +_,12 @@
+         }
+     }
  
++    public List<Runnable> postDeathEventTasks = new java.util.ArrayList<>(); // Paper - after death event and death (no revive as converted entity in killedEntity)
++
      public void die(DamageSource source) {
          if (!this.isRemoved() && !this.dead) {
 +            // Neo: Fire the LivingDeathEvent after validating that the entity isn't already dead, but before trying to kill it.
@@ -1425,6 +1429,67 @@
          if (!this.level().isClientSide()) {
              boolean wasUsingItem = this.isUsingItem();
              this.recentKineticEnemies = null;
+@@ -3627,6 +_,60 @@
+         return null;
+     }
+ 
++    // CraftBukkit start
++    @Override
++    public float getBukkitYaw() {
++        return this.getYHeadRot();
++    }
++    // CraftBukkit end
++
++    // Paper start
++    public HitResult getRayTrace(int maxDistance, ClipContext.Fluid fluidCollisionOption) {
++        if (maxDistance < 1 || maxDistance > 120) {
++            throw new IllegalArgumentException("maxDistance must be between 1-120");
++        }
++
++        Vec3 start = new Vec3(getX(), getY() + getEyeHeight(), getZ());
++        org.bukkit.util.Vector dir = getBukkitEntity().getLocation().getDirection().multiply(maxDistance);
++        Vec3 end = new Vec3(start.x + dir.getX(), start.y + dir.getY(), start.z + dir.getZ());
++        ClipContext raytrace = new ClipContext(start, end, ClipContext.Block.OUTLINE, fluidCollisionOption, this);
++
++        return this.level().clip(raytrace);
++    }
++
++    public net.minecraft.world.phys.@Nullable EntityHitResult getTargetEntity(int maxDistance) {
++        if (maxDistance < 1 || maxDistance > 120) {
++            throw new IllegalArgumentException("maxDistance must be between 1-120");
++        }
++
++        Vec3 start = this.getEyePosition(1.0F);
++        Vec3 direction = this.getLookAngle();
++        Vec3 end = start.add(direction.x * maxDistance, direction.y * maxDistance, direction.z * maxDistance);
++
++        List<Entity> entityList = this.level().getEntities(this, getBoundingBox().expandTowards(direction.x * maxDistance, direction.y * maxDistance, direction.z * maxDistance).inflate(1.0), EntitySelector.NO_SPECTATORS.and(Entity::isPickable));
++
++        double distance = 0.0;
++        net.minecraft.world.phys.EntityHitResult result = null;
++
++        for (Entity entity : entityList) {
++            final double inflationAmount = entity.getPickRadius();
++            AABB aabb = entity.getBoundingBox().inflate(inflationAmount, inflationAmount, inflationAmount);
++            Optional<Vec3> rayTraceResult = aabb.clip(start, end);
++
++            if (rayTraceResult.isPresent()) {
++                Vec3 rayTrace = rayTraceResult.get();
++                double distanceTo = start.distanceToSqr(rayTrace);
++                if (distanceTo < distance || distance == 0.0) {
++                    result = new net.minecraft.world.phys.EntityHitResult(entity, rayTrace);
++                    distance = distanceTo;
++                }
++            }
++        }
++
++        return result;
++    }
++    // Paper end
++
+     public boolean isSuppressingSlidingDownLadder() {
+         return this.isShiftKeyDown();
+     }
 @@ -3645,6 +_,11 @@
      }
  

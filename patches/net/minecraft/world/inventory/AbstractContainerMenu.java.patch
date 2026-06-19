@@ -125,10 +125,34 @@
      protected AbstractContainerMenu(@Nullable MenuType<?> menuType, int containerId) {
          this.menuType = menuType;
          this.containerId = containerId;
-@@ -177,6 +_,16 @@
+@@ -177,6 +_,40 @@
          }
      }
  
++    // Paper start
++    public void forceHeldSlot(final net.minecraft.world.InteractionHand hand) {
++        this.sendAllDataToRemote();
++    }
++
++    public void forceHeldSlotAndArmor(final net.minecraft.world.InteractionHand hand) {
++        this.sendAllDataToRemote();
++    }
++
++    public void forceSlot(final Container container, final int slot) {
++        final int slotsIndex = this.findSlot(container, slot).orElse(-1);
++        if (slotsIndex == -1) {
++            return;
++        }
++
++        final ItemStack item = this.slots.get(slotsIndex).getItem();
++        this.remoteSlots.get(slotsIndex).force(item);
++
++        if (this.synchronizer != null) {
++            this.synchronizer.sendSlotChange(this, slotsIndex, item.copy());
++        }
++    }
++    // Paper end
++
 +    // CraftBukkit start
 +    public void broadcastCarriedItem() {
 +        ItemStack itemstack = this.getCarried().copy();

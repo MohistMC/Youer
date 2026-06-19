@@ -9,6 +9,34 @@
      private final Path backupDir;
      private final DataFixer fixerUpper;
      private final DirectoryValidator worldDirValidator;
+@@ -145,13 +_,14 @@
+         WorldDataConfiguration dataConfiguration,
+         Registry<LevelStem> datapackDimensions,
+         HolderLookup.Provider registryAccess
++        , final ResourceKey<Level> dimension // Paper - pass dimension
+     ) {
+         if (DataFixers.getFileFixer().requiresFileFixing(NbtUtils.getDataVersion(levelDataTag))) {
+             throw new IllegalStateException("Cannot get level data without file fixing first");
+         }
+ 
+         Dynamic<?> dataTag = RegistryOps.injectRegistryContext(levelDataTag, registryAccess);
+-        WorldGenSettings worldGenSettings = readExistingSavedData(worldAccess, registryAccess, WorldGenSettings.TYPE)
++        WorldGenSettings worldGenSettings = readExistingSavedData(worldAccess, dimension, registryAccess, WorldGenSettings.TYPE)
+             .mapOrElse(
+                 Function.identity(),
+                 error -> {
+@@ -170,9 +_,9 @@
+     }
+ 
+     public static <T extends SavedData> DataResult<T> readExistingSavedData(
+-        LevelStorageSource.LevelStorageAccess access, HolderLookup.Provider registryAccess, SavedDataType<T> savedDataType
++        LevelStorageSource.LevelStorageAccess access, final ResourceKey<Level> dimension, HolderLookup.Provider registryAccess, SavedDataType<T> savedDataType
+     ) {
+-        Path dataLocation = savedDataType.id().withSuffix(".dat").resolveAgainst(access.getLevelPath(LevelResource.DATA));
++        Path dataLocation = savedDataType.id().withSuffix(".dat").resolveAgainst(access.getDimensionPath(dimension).resolve(LevelResource.DATA.id())); // Paper - use dimension scoped data (we 'demote' some data from global and add our own dimension scoped data)
+ 
+         CompoundTag fileContents;
+         try {
 @@ -395,13 +_,28 @@
          if (!validationResults.isEmpty()) {
              throw new ContentValidationException(levelPath, validationResults);
