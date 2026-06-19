@@ -3,7 +3,7 @@ package org.bukkit.inventory.meta;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Represents meta for an Ominous Bottle.
+ * Represents an ominous bottle with an amplifier of the bad omen effect.
  */
 public interface OminousBottleMeta extends ItemMeta {
 

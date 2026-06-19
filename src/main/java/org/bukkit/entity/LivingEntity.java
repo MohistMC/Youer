@@ -4,6 +4,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import io.papermc.paper.world.damagesource.CombatTracker;
+import io.papermc.paper.world.damagesource.FallLocationType;
+import net.kyori.adventure.key.Key;
 import org.bukkit.Color;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
@@ -23,13 +26,15 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.Team;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
+import org.checkerframework.checker.index.qual.NonNegative;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents a living entity, such as a monster or player
  */
-public interface LivingEntity extends Attributable, Damageable, Leashable, ProjectileSource {
+public interface LivingEntity extends Attributable, Damageable, ProjectileSource, io.papermc.paper.entity.Frictional { // Paper
 
     /**
      * Gets the height of the living entity's eyes above its Location.
@@ -87,6 +92,169 @@ public interface LivingEntity extends Attributable, Damageable, Leashable, Proje
     @NotNull
     public Block getTargetBlock(@Nullable Set<Material> transparent, int maxDistance);
 
+    // Paper start
+    /**
+     * Gets the block that the living entity has targeted, ignoring fluids
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @return block that the living entity has targeted,
+     *     or null if no block is within maxDistance
+     * @deprecated use {@link #getTargetBlockExact(int)}
+     */
+    @Deprecated(forRemoval = true, since = "1.19.3")
+    @Nullable
+    public default Block getTargetBlock(int maxDistance) {
+        return getTargetBlock(maxDistance, com.destroystokyo.paper.block.TargetBlockInfo.FluidMode.NEVER);
+    }
+
+    /**
+     * Gets the block that the living entity has targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @param fluidMode whether to check fluids or not
+     * @return block that the living entity has targeted,
+     *     or null if no block is within maxDistance
+     * @deprecated use {@link #getTargetBlockExact(int, FluidCollisionMode)}
+     */
+    @Deprecated(forRemoval = true, since = "1.19.3")
+    @Nullable
+    public Block getTargetBlock(int maxDistance, @NotNull com.destroystokyo.paper.block.TargetBlockInfo.FluidMode fluidMode);
+
+    /**
+     * Gets the blockface of that block that the living entity has targeted, ignoring fluids
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @return blockface of the block that the living entity has targeted,
+     *     or null if no block is targeted
+     */
+    @Nullable
+    public default org.bukkit.block.BlockFace getTargetBlockFace(int maxDistance) {
+        return getTargetBlockFace(maxDistance, org.bukkit.FluidCollisionMode.NEVER);
+    }
+
+    /**
+     * Gets the blockface of that block that the living entity has targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @param fluidMode whether to check fluids or not
+     * @return blockface of the block that the living entity has targeted,
+     *     or null if no block is targeted
+     * @deprecated use {@link #getTargetBlockFace(int, FluidCollisionMode)}
+     */
+    @Deprecated(forRemoval = true, since = "1.19.3")
+    @Nullable
+    public org.bukkit.block.BlockFace getTargetBlockFace(int maxDistance, @NotNull com.destroystokyo.paper.block.TargetBlockInfo.FluidMode fluidMode);
+
+    /**
+     * Gets the blockface of that block that the living entity has targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @param fluidMode whether to check fluids or not
+     * @return blockface of the block that the living entity has targeted,
+     *     or null if no block is targeted
+     */
+    @Nullable
+    public org.bukkit.block.BlockFace getTargetBlockFace(int maxDistance, @NotNull FluidCollisionMode fluidMode);
+
+    /**
+     * Gets information about the block the living entity has targeted, ignoring fluids
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @return TargetBlockInfo about the block the living entity has targeted,
+     *     or null if no block is targeted
+     * @deprecated use {@link #rayTraceBlocks(double)}
+     */
+    @Deprecated(forRemoval = true, since = "1.19.3")
+    @Nullable
+    public default com.destroystokyo.paper.block.TargetBlockInfo getTargetBlockInfo(int maxDistance) {
+        return getTargetBlockInfo(maxDistance, com.destroystokyo.paper.block.TargetBlockInfo.FluidMode.NEVER);
+    }
+
+    /**
+     * Gets information about the block the living entity has targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @param fluidMode whether to check fluids or not
+     * @return TargetBlockInfo about the block the living entity has targeted,
+     *     or null if no block is targeted
+     * @deprecated use {@link #rayTraceBlocks(double, FluidCollisionMode)}
+     */
+    @Deprecated(forRemoval = true, since = "1.19.3")
+    @Nullable
+    public com.destroystokyo.paper.block.TargetBlockInfo getTargetBlockInfo(int maxDistance, @NotNull com.destroystokyo.paper.block.TargetBlockInfo.FluidMode fluidMode);
+
+    /**
+     * Gets information about the entity being targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @return entity being targeted, or null if no entity is targeted
+     */
+    @Nullable
+    public default Entity getTargetEntity(int maxDistance) {
+        return getTargetEntity(maxDistance, false);
+    }
+
+    /**
+     * Gets information about the entity being targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @param ignoreBlocks true to scan through blocks
+     * @return entity being targeted, or null if no entity is targeted
+     */
+    @Nullable
+    public Entity getTargetEntity(int maxDistance, boolean ignoreBlocks);
+
+    /**
+     * Gets information about the entity being targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @return TargetEntityInfo about the entity being targeted,
+     *     or null if no entity is targeted
+     * @deprecated use {@link #rayTraceEntities(int)}
+     */
+    @Deprecated(forRemoval = true, since = "1.19.3")
+    @Nullable
+    public default com.destroystokyo.paper.entity.TargetEntityInfo getTargetEntityInfo(int maxDistance) {
+        return getTargetEntityInfo(maxDistance, false);
+    }
+
+    /**
+     * Gets information about the entity being targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @return RayTraceResult about the entity being targeted,
+     *     or null if no entity is targeted
+     */
+    @Nullable
+    default RayTraceResult rayTraceEntities(int maxDistance) {
+        return this.rayTraceEntities(maxDistance, false);
+    }
+
+    /**
+     * Gets information about the entity being targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @param ignoreBlocks true to scan through blocks
+     * @return TargetEntityInfo about the entity being targeted,
+     *     or null if no entity is targeted
+     * @deprecated use {@link #rayTraceEntities(int, boolean)}
+     */
+    @Deprecated(forRemoval = true, since = "1.19.3")
+    @Nullable
+    public com.destroystokyo.paper.entity.TargetEntityInfo getTargetEntityInfo(int maxDistance, boolean ignoreBlocks);
+
+    /**
+     * Gets information about the entity being targeted
+     *
+     * @param maxDistance this is the maximum distance to scan
+     * @param ignoreBlocks true to scan through blocks
+     * @return RayTraceResult about the entity being targeted,
+     *     or null if no entity is targeted
+     */
+    @Nullable
+    RayTraceResult rayTraceEntities(int maxDistance, boolean ignoreBlocks);
+    // Paper end
+
     /**
      * Gets the last two blocks along the living entity's line of sight.
      * <p>
@@ -117,7 +285,9 @@ public interface LivingEntity extends Attributable, Damageable, Leashable, Proje
      * @see #getTargetBlockExact(int, org.bukkit.FluidCollisionMode)
      */
     @Nullable
-    public Block getTargetBlockExact(int maxDistance);
+    default Block getTargetBlockExact(int maxDistance) {
+        return this.getTargetBlockExact(maxDistance, FluidCollisionMode.NEVER);
+    }
 
     /**
      * Gets the block that the living entity has targeted.
@@ -150,7 +320,9 @@ public interface LivingEntity extends Attributable, Damageable, Leashable, Proje
      * @see #rayTraceBlocks(double, FluidCollisionMode)
      */
     @Nullable
-    public RayTraceResult rayTraceBlocks(double maxDistance);
+    default RayTraceResult rayTraceBlocks(double maxDistance) {
+        return this.rayTraceBlocks(maxDistance, FluidCollisionMode.NEVER);
+    }
 
     /**
      * Performs a ray trace that provides information on the targeted block.
@@ -204,15 +376,19 @@ public interface LivingEntity extends Attributable, Damageable, Leashable, Proje
      *
      * @return the item being used by the player, or null if they are not using
      * an item
+     * @deprecated Use {@link #getActiveItem()}
      */
     @Nullable
+    @Deprecated(forRemoval = true, since = "1.20.4") // Paper
     public ItemStack getItemInUse();
 
     /**
      * Gets the number of ticks remaining for the current item's usage.
      *
      * @return The number of ticks remaining
+     * @deprecated use {@link #getActiveItemRemainingTime()}
      */
+    @Deprecated(forRemoval = true, since = "1.20.4") // Paper
     public int getItemInUseTicks();
 
     /**
@@ -221,7 +397,9 @@ public interface LivingEntity extends Attributable, Damageable, Leashable, Proje
      * or throwing a trident.
      *
      * @param ticks The number of ticks remaining
+     * @deprecated use {@link #setActiveItemRemainingTime(int)}
      */
+    @Deprecated(forRemoval = true, since = "1.20.4") // Paper
     public void setItemInUseTicks(int ticks);
 
     /**
@@ -229,28 +407,120 @@ public interface LivingEntity extends Attributable, Damageable, Leashable, Proje
      *
      * @return ticks until arrow leaves
      */
-    public int getArrowCooldown();
+    public @NonNegative int getArrowCooldown();
 
     /**
      * Sets the time in ticks until the next arrow leaves the entity's body.
+     * <p>
+     * A value of 0 will cause the server to re-calculate the time on the next tick.
      *
      * @param ticks time until arrow leaves
      */
-    public void setArrowCooldown(int ticks);
+    public void setArrowCooldown(@NonNegative int ticks);
 
     /**
      * Gets the amount of arrows in an entity's body.
      *
      * @return amount of arrows in body
      */
-    public int getArrowsInBody();
+    public @NonNegative int getArrowsInBody();
+
+    /**
+     * Set the amount of arrows in the entity's body.
+     * <p>
+     * Does not fire the {@link org.bukkit.event.entity.ArrowBodyCountChangeEvent}.
+     *
+     * @param count amount of arrows in entity's body
+     */
+    default void setArrowsInBody(final @NonNegative int count) {
+        this.setArrowsInBody(count, false);
+    }
 
     /**
      * Set the amount of arrows in the entity's body.
      *
      * @param count amount of arrows in entity's body
+     * @param fireEvent whether to fire the {@link org.bukkit.event.entity.ArrowBodyCountChangeEvent} event
      */
-    public void setArrowsInBody(int count);
+    void setArrowsInBody(@NonNegative int count, boolean fireEvent); // Paper
+
+    /**
+     * Sets the amount of ticks before the next arrow gets removed from the entities body.
+     * <p>
+     * A value of 0 will cause the server to re-calculate the amount of ticks on the next tick.
+     *
+     * @param ticks Amount of ticks
+     * @deprecated use {@link #setArrowCooldown(int)}
+     */
+    @Deprecated(since = "1.21.10")
+    default void setNextArrowRemoval(@NonNegative int ticks) {
+        this.setArrowCooldown(ticks);
+    }
+
+    /**
+     * Gets the amount of ticks before the next arrow gets removed from the entities body.
+     *
+     * @return ticks Amount of ticks
+     * @deprecated use {@link #getArrowCooldown()}
+     */
+    @Deprecated(since = "1.21.10")
+    default @NonNegative int getNextArrowRemoval() {
+        return this.getArrowCooldown();
+    }
+
+    /**
+     * Gets the time in ticks until the next bee stinger leaves the entity's body.
+     *
+     * @return ticks until bee stinger leaves
+     */
+    public @NonNegative int getBeeStingerCooldown();
+
+    /**
+     * Sets the time in ticks until the next stinger leaves the entity's body.
+     * <p>
+     * A value of 0 will cause the server to re-calculate the time on the next tick.
+     *
+     * @param ticks time until bee stinger leaves
+     */
+    public void setBeeStingerCooldown(@NonNegative int ticks);
+
+    /**
+     * Gets the amount of bee stingers in an entity's body.
+     *
+     * @return amount of bee stingers in body
+     */
+    public @NonNegative int getBeeStingersInBody();
+
+    /**
+     * Set the amount of bee stingers in the entity's body.
+     *
+     * @param count amount of bee stingers in entity's body
+     */
+    public void setBeeStingersInBody(@NonNegative int count);
+
+    /**
+     * Sets the amount of ticks before the next bee stinger gets removed from the entities body.
+     * <p>
+     * A value of 0 will cause the server to re-calculate the amount of ticks on the next tick.
+     *
+     * @param ticks Amount of ticks
+     * @deprecated use {@link #setBeeStingerCooldown(int)}
+     */
+    @Deprecated(since = "1.21.10")
+    default void setNextBeeStingerRemoval(@NonNegative int ticks) {
+        this.setBeeStingerCooldown(ticks);
+    }
+
+    /**
+     * Gets the amount of ticks before the next bee stinger gets removed from the entities body.
+     *
+     * @return ticks Amount of ticks
+     * @deprecated use {@link #getBeeStingerCooldown()}
+     */
+    @Deprecated(since = "1.21.10")
+    default @NonNegative int getNextBeeStingerRemoval() {
+        return this.getBeeStingerCooldown();
+    }
 
     /**
      * Returns the living entity's current maximum no damage ticks.
@@ -335,19 +605,30 @@ public interface LivingEntity extends Attributable, Damageable, Leashable, Proje
     @Nullable
     public Player getKiller();
 
+    // Paper start
     /**
-     * Adds the given {@link PotionEffect} to the living entity.
+     * Sets the player identified as the killer of the living entity.
      *
-     * @param effect PotionEffect to be added
-     * @return whether the effect could be added
+     * @param killer player
      */
-    public boolean addPotionEffect(@NotNull PotionEffect effect);
+    public void setKiller(@Nullable Player killer);
+    // Paper end
 
     /**
      * Adds the given {@link PotionEffect} to the living entity.
      * <p>
-     * Only one potion effect can be present for a given {@link
-     * PotionEffectType}.
+     * Note: {@link PotionEffect#getHiddenPotionEffect()} is ignored when
+     * adding the effect to the entity.
+     *
+     * @param effect PotionEffect to be added
+     * @return whether the effect could be added
+     */
+    boolean addPotionEffect(@NotNull PotionEffect effect);
+
+    /**
+     * Adds the given {@link PotionEffect} to the living entity.
+     * <p>
+     * Only one potion effect can be present for a given {@link PotionEffectType}.
      *
      * @param effect PotionEffect to be added
      * @param force whether conflicting effects should be removed
@@ -356,11 +637,16 @@ public interface LivingEntity extends Attributable, Damageable, Leashable, Proje
      * now supported.
      */
     @Deprecated(since = "1.15.2")
-    public boolean addPotionEffect(@NotNull PotionEffect effect, boolean force);
+    default boolean addPotionEffect(@NotNull PotionEffect effect, boolean force) {
+        return this.addPotionEffect(effect);
+    }
 
     /**
      * Attempts to add all of the given {@link PotionEffect} to the living
      * entity.
+     * <p>
+     * Note: {@link PotionEffect#getHiddenPotionEffect()} is ignored when
+     * adding the effect to the entity.
      *
      * @param effects the effects to add
      * @return whether all of the effects could be added
@@ -404,6 +690,13 @@ public interface LivingEntity extends Attributable, Damageable, Leashable, Proje
     public Collection<PotionEffect> getActivePotionEffects();
 
     /**
+     * Removes all active potion effects for this entity.
+     *
+     * @return true if any were removed
+     */
+    boolean clearActivePotionEffects();
+
+    /**
      * Checks whether the living entity has block line of sight to another.
      * <p>
      * This uses the same algorithm that hostile mobs use to find the closest
@@ -413,6 +706,17 @@ public interface LivingEntity extends Attributable, Damageable, Leashable, Proje
      * @return true if there is a line of sight, false if not
      */
     public boolean hasLineOfSight(@NotNull Entity other);
+
+    /**
+     * Checks whether the living entity has block line of sight to the given block.
+     * <p>
+     * This uses the same algorithm that hostile mobs use to find the closest
+     * player.
+     *
+     * @param location the location to determine line of sight to
+     * @return true if there is a line of sight, false if not
+     */
+    public boolean hasLineOfSight(@NotNull Location location);
 
     /**
      * Returns if the living entity despawns when away from players or not.
@@ -454,6 +758,34 @@ public interface LivingEntity extends Attributable, Damageable, Leashable, Proje
     public boolean getCanPickupItems();
 
     /**
+     * Returns whether the entity is currently leashed.
+     *
+     * @return whether the entity is leashed
+     */
+    public boolean isLeashed();
+
+    /**
+     * Gets the entity that is currently leading this entity.
+     *
+     * @return the entity holding the leash
+     * @throws IllegalStateException if not currently leashed
+     */
+    @NotNull
+    public Entity getLeashHolder() throws IllegalStateException;
+
+    /**
+     * Sets the leash on this entity to be held by the supplied entity.
+     * <p>
+     * This method has no effect on players.
+     * Non-living entities excluding leashes will not persist as leash
+     * holders.
+     *
+     * @param holder the entity to leash this entity to, or null to unleash
+     * @return whether the operation was successful
+     */
+    public boolean setLeashHolder(@Nullable Entity holder);
+
+    /**
      * Checks to see if an entity is gliding, such as using an Elytra.
      * @return True if this entity is gliding.
      */
@@ -480,7 +812,9 @@ public interface LivingEntity extends Attributable, Damageable, Leashable, Proje
      * This may have unexpected results if the entity is not in water.
      *
      * @param swimming True if the entity is swimming.
+     * @deprecated This does nothing and is immediately reverted by the server, in the next tick <!-- Paper - future note: should wait a mojang input client/server side -->
      */
+    @Deprecated // Paper
     public void setSwimming(boolean swimming);
 
     /**
@@ -643,7 +977,7 @@ public interface LivingEntity extends Attributable, Damageable, Leashable, Proje
      *
      * @param memoryKey memory to access
      * @param <T> the type of the return value
-     * @return a instance of the memory section value or null if not present
+     * @return an instance of the memory section value or null if not present
      */
     @Nullable
     <T> T getMemory(@NotNull MemoryKey<T> memoryKey);
@@ -745,50 +1079,463 @@ public interface LivingEntity extends Attributable, Damageable, Leashable, Proje
      * @deprecated entity groupings are now managed by tags, not categories
      */
     @NotNull
-    @Deprecated(since = "1.20.5")
+    @Deprecated(since = "1.20.5", forRemoval = true) @org.jetbrains.annotations.Contract("-> fail") // Paper
     public EntityCategory getCategory();
 
     /**
-     * Sets whether the entity is invisible or not.
+     * Get the number of arrows stuck in this entity
      *
-     * @param invisible If the entity is invisible
+     * @return Number of arrows stuck
+     * @deprecated use {@link #getArrowsInBody()}
      */
-    public void setInvisible(boolean invisible);
+    @Deprecated
+    default @NonNegative int getArrowsStuck() {
+        return this.getArrowsInBody();
+    }
 
     /**
-     * Gets whether the entity is invisible or not.
+     * Set the number of arrows stuck in this entity
      *
-     * @return Whether the entity is invisible
+     * @param arrows Number of arrows to stick in this entity
+     * @deprecated use {@link #setArrowsInBody(int, boolean)}. <b>This method previously fired {@link org.bukkit.event.entity.ArrowBodyCountChangeEvent} so if
+     * you want to retain exact functionality, pass {@code true} for {@code fireEvent}.</b>
      */
-    public boolean isInvisible();
+    @Deprecated
+    default void setArrowsStuck(@NonNegative int arrows) {
+        this.setArrowsInBody(arrows, true);
+    }
 
     /**
-     * Gets the waypoint color of this entity or null if default/not set.
+     * Get the delay (in ticks) before blocking is effective for this entity
      *
-     * @return waypoint color
+     * @return Delay in ticks
+     * @deprecated no longer applicable, check the blocks_attacks component on the shield
      */
-    @Nullable
-    public Color getWaypointColor();
+    @Deprecated(since = "1.21.9")
+    default int getShieldBlockingDelay() {
+        return 5;
+    }
 
     /**
-     * Sets the waypoint color of this entity, null to reset to default.
+     * Set the delay (in ticks) before blocking is effective for this entity
      *
-     * @param color new color
+     * @param delay Delay in ticks
+     * @deprecated no longer applicable, use the blocks_attacks component on the shield
      */
-    public void setWaypointColor(@Nullable Color color);
+    @Deprecated(since = "1.21.9")
+    default void setShieldBlockingDelay(int delay) {
+    }
 
     /**
-     * Gets the waypoint style of this entity.
+     * Retrieves the sideways movement direction of the entity.
+     * <p>
+     * The returned value ranges from -1 to 1, where:
+     * <ul>
+     *     <li>Positive 1 represents movement to the left.</li>
+     *     <li>Negative 1 represents movement to the right.</li>
+     * </ul>
      *
-     * @return waypoint style
+     * Please note that for entities of type {@link Player}, this value will only return whole numbers depending
+     * on what keys are held, see {@link Player#getCurrentInput()}.
+     * <p>
+     * This method specifically provides information about the entity's sideways movement, whereas {@link #getVelocity()} returns
+     * a vector representing the entity's overall current momentum.
+     *
+     * @return Sideways movement direction, ranging from -1 (right) to 1 (left).
+     */
+    float getSidewaysMovement();
+
+    /**
+     * Retrieves the upwards movement direction of the entity.
+     * <p>
+     * The returned value ranges from -1 to 1, where:
+     * <ul>
+     *     <li>Positive 1 represents upward movement.</li>
+     *     <li>Negative 1 represents downward movement.</li>
+     * </ul>
+     *
+     * Please note that for entities of type {@link Player}, this value is never updated.
+     * <p>
+     * This method specifically provides information about the entity's vertical movement,
+     * whereas {@link #getVelocity()} returns a vector representing the entity's overall
+     * current momentum.
+     *
+     * @return Upwards movement direction, ranging from -1 (downward) to 1 (upward).
+     */
+    float getUpwardsMovement();
+
+    /**
+     * Retrieves the forwards movement direction of the entity.
+     * <p>
+     * The returned value ranges from -1 to 1, where:
+     * <ul>
+     *     <li>Positive 1 represents movement forwards.</li>
+     *     <li>Negative 1 represents movement backwards.</li>
+     * </ul>
+     *
+     * Please note that for entities of type {@link Player}, this value will only return whole numbers depending
+     * on what keys are held, see {@link Player#getCurrentInput()}.
+     * <p>
+     * This method specifically provides information about the entity's forward and backward movement,
+     * whereas {@link #getVelocity()} returns a vector representing the entity's overall current momentum.
+     *
+     * @return Forwards movement direction, ranging from -1 (backward) to 1 (forward).
+     */
+    float getForwardsMovement();
+
+    // Paper start - active item API
+    /**
+     * Starts using the item in the specified hand, making it the
+     * currently active item. When, for example, called on a skeleton,
+     * this will cause it to start drawing its bow.
+     * <p>
+     * Only HAND or OFF_HAND may be used for the hand parameter.
+     * <p>
+     * When used on a player, the client will stop using the item
+     * if right click is held down.
+     * <p>
+     * This method does not make any guarantees about the effect of this method
+     * as such depends on the entity and its state.
+     *
+     * @param hand the hand that contains the item to be used
+     */
+    @org.jetbrains.annotations.ApiStatus.Experimental
+    void startUsingItem(@NotNull org.bukkit.inventory.EquipmentSlot hand);
+
+    /**
+     * Finishes using the currently active item. When, for example, a
+     * skeleton is drawing its bow, this will cause it to release and
+     * fire the arrow.
+     * <p>
+     * This method does not make any guarantees about the effect of this method
+     * as such depends on the entity and its state.
+     */
+    @org.jetbrains.annotations.ApiStatus.Experimental
+    void completeUsingActiveItem();
+
+    /**
+     * Gets the item being actively "used" or consumed.
+     *
+     * @return the item
+     */
+    org.bukkit.inventory.@NotNull ItemStack getActiveItem();
+
+    /**
+     * Interrupts any ongoing active "usage" or consumption or an item.
+     */
+    void clearActiveItem();
+
+    /**
+     * Gets the remaining number of ticks for {@link #getActiveItem()}'s usage.
+     *
+     * @return remaining ticks to use {@link #getActiveItem()}
+     */
+    int getActiveItemRemainingTime();
+
+    /**
+     * Sets the number of ticks that remain for {@link #getActiveItem()}'s
+     * usage.
+     * <p>
+     * Valid values are between 0 and the max item use duration for
+     * the specific item type.
+     *
+     * @param ticks time in ticks remaining
+     */
+    void setActiveItemRemainingTime(@org.jetbrains.annotations.Range(from = 0, to = Integer.MAX_VALUE) int ticks);
+
+    /**
+     * Gets if the entity is using an item (eating, drinking, etc).
+     *
+     * @return true if using an item
+     */
+    boolean hasActiveItem();
+
+    /**
+     * Get how long the {@link #getActiveItem()} has been in use for.
+     *
+     * @return time used in ticks
+     */
+    int getActiveItemUsedTime();
+
+    /**
+     * Get the hand using the active item. Will be either
+     * {@link org.bukkit.inventory.EquipmentSlot#HAND} or
+     * {@link org.bukkit.inventory.EquipmentSlot#OFF_HAND}.
+     *
+     * @return the hand being used
+     */
+    org.bukkit.inventory.@NotNull EquipmentSlot getActiveItemHand();
+
+    /**
+     * Gets remaining time a player needs to keep hands raised with an item to finish using it.
+     *
+     * @return remaining ticks to use the item
+     * @see #getActiveItemRemainingTime()
+     */
+    @org.jetbrains.annotations.ApiStatus.Obsolete(since = "1.20.4")
+    default int getItemUseRemainingTime() {
+        return this.getActiveItemRemainingTime();
+    }
+
+    /**
+     * Get how long the entity's hands have been raised (Charging Bow attack, using a potion, etc)
+     *
+     * @return Get how long the players hands have been raised (Charging Bow attack, using a potion, etc)
+     * @see #getActiveItemUsedTime()
+     */
+    @org.jetbrains.annotations.ApiStatus.Obsolete(since = "1.20.4")
+    default int getHandRaisedTime() {
+        return this.getActiveItemUsedTime();
+    }
+
+    /**
+     * Whether this entity is using or charging an attack (Bow pulled back, drinking potion, eating food)
+     *
+     * @return whether this entity is using or charging an attack (Bow pulled back, drinking potion, eating food)
+     * @see #hasActiveItem()
+     */
+    @org.jetbrains.annotations.ApiStatus.Obsolete(since = "1.20.4")
+    default boolean isHandRaised() {
+        return this.hasActiveItem();
+    }
+
+    /**
+     * Gets the hand raised by this living entity. Will be either
+     * {@link org.bukkit.inventory.EquipmentSlot#HAND} or
+     * {@link org.bukkit.inventory.EquipmentSlot#OFF_HAND}.
+     *
+     * @return the hand raised
+     * @see #getActiveItemHand()
      */
     @NotNull
-    public NamespacedKey getWaypointStyle();
+    @org.jetbrains.annotations.ApiStatus.Obsolete(since = "1.20.4")
+    default org.bukkit.inventory.EquipmentSlot getHandRaised() {
+        return this.getActiveItemHand();
+    }
+    // Paper end - active item API
+
+    // Paper start - entity jump API
+    /**
+     * Get entity jump state.
+     * <p>
+     * Jump state will be true when the entity has been marked to jump.
+     *
+     * @return entity jump state.
+     */
+    boolean isJumping();
 
     /**
-     * Sets the waypoint style of this entity.
+     * Set entity jump state
+     * <p>
+     * Setting to true will mark the entity to jump.
+     * <p>
+     * Setting to false will unmark the entity to jump but will not stop a jump already in-progress.
      *
-     * @param key new style key or null for default
+     * @param jumping entity jump state
      */
-    public void setWaypointStyle(@Nullable NamespacedKey key);
+    void setJumping(boolean jumping);
+    // Paper end - entity jump API
+
+    // Paper start - pickup animation API
+    /**
+     * Plays pickup item animation towards this entity.
+     * <p>
+     * <b>This will remove the item on the client.</b>
+     * <p>
+     * Quantity is inferred to be that of the {@link Item}.
+     *
+     * @param item item to pickup
+     */
+    default void playPickupItemAnimation(@NotNull Item item) {
+        playPickupItemAnimation(item, item.getItemStack().getAmount());
+    }
+
+    /**
+     * Plays pickup item animation towards this entity.
+     * <p>
+     * <b>This will remove the item on the client.</b>
+     *
+     * @param item item to pickup
+     * @param quantity quantity of item
+     */
+    void playPickupItemAnimation(@NotNull Item item, int quantity);
+    // Paper end - pickup animation API
+
+    // Paper start - hurt direction API
+    /**
+     * Gets player hurt direction
+     *
+     * @return hurt direction
+     */
+    float getHurtDirection();
+
+    /**
+     * Sets player hurt direction
+     *
+     * @param hurtDirection hurt direction
+     * @deprecated use {@link Player#setHurtDirection(float)}
+     */
+    @Deprecated
+    void setHurtDirection(float hurtDirection);
+    // Paper end - hurt direction API
+
+    // Paper start - swing hand API
+    /**
+     * Makes this entity swing their hand.
+     *
+     * <p>This method does nothing if this entity does not
+     * have an animation for swinging their hand.
+     *
+     * @param hand hand to be swung, either {@link org.bukkit.inventory.EquipmentSlot#HAND} or {@link org.bukkit.inventory.EquipmentSlot#OFF_HAND}
+     * @throws IllegalArgumentException if invalid hand is passed
+     */
+    default void swingHand(@NotNull org.bukkit.inventory.EquipmentSlot hand) {
+        com.google.common.base.Preconditions.checkArgument(hand != null && hand.isHand(), String.format("Expected a valid hand, got \"%s\" instead!", hand));
+        if (hand == org.bukkit.inventory.EquipmentSlot.HAND) {
+            this.swingMainHand();
+        } else {
+            this.swingOffHand();
+        }
+    }
+    // Paper end - swing hand API
+
+    // Paper start - knockback API
+    /**
+     * Knocks back this entity from a specific direction with a specified strength. Mechanics such
+     * as knockback resistance will be factored in.
+     *
+     * The direction specified in this method will be the direction of the source of the knockback,
+     * so the entity will be pushed in the opposite direction.
+     * @param strength The strength of the knockback. Must be greater than 0.
+     * @param directionX The relative x position of the knockback source direction
+     * @param directionZ The relative z position of the knockback source direction
+     */
+    void knockback(double strength, double directionX, double directionZ);
+    // Paper end - knockback API
+
+    // Paper start - ItemStack damage API
+    /**
+     * Notifies all clients tracking this entity that the item in
+     * the slot of this entity broke.
+     * <p>
+     * NOTE: this does not mutate any entity state
+     *
+     * @param slot the slot
+     */
+    void broadcastSlotBreak(org.bukkit.inventory.@NotNull EquipmentSlot slot);
+
+    /**
+     * Notifies specified players that the item in the slot
+     * of this entity broke.
+     * <p>
+     * NOTE: this does not mutate any entity state
+     *
+     * @param slot the slot
+     * @param players the players to notify
+     */
+    void broadcastSlotBreak(org.bukkit.inventory.@NotNull EquipmentSlot slot, @NotNull Collection<Player> players);
+
+    /**
+     * Damages the itemstack in this slot by the specified amount.
+     * <p>
+     * This runs all logic associated with damaging an itemstack like
+     * gamemode and enchantment checks, events, stat changes, and advancement
+     * triggers.
+     *
+     * @param stack the itemstack to damage
+     * @param amount the amount of damage to do
+     * @return the damaged itemstack, or an empty stack if it broke. There are no
+     * guarantees the returned itemstack is the same instance
+     */
+    @NotNull ItemStack damageItemStack(@NotNull ItemStack stack, int amount);
+
+    /**
+     * Damages the itemstack in this slot by the specified amount.
+     * <p>
+     * This runs all logic associated with damaging an itemstack like
+     * gamemode and enchantment checks, events, stat changes, advancement
+     * triggers, and notifying clients to play break animations.
+     *
+     * @param slot the slot of the stack to damage
+     * @param amount the amount of damage to do
+     */
+    void damageItemStack(org.bukkit.inventory.@NotNull EquipmentSlot slot, int amount);
+    // Paper end - ItemStack damage API
+
+    // Paper start - body yaw API
+    /**
+     * Gets entity body yaw
+     *
+     * @return entity body yaw
+     * @see Location#getYaw()
+     */
+    float getBodyYaw();
+
+    /**
+     * Sets entity body yaw
+     *
+     * @param bodyYaw new entity body yaw
+     * @see Location#setYaw(float)
+     */
+    void setBodyYaw(float bodyYaw);
+    // Paper end - body yaw API
+
+    // Paper start - Expose canUseSlot
+    /**
+     * Checks whether this entity can use the equipment slot.
+     * <br>For example, not all entities may have {@link org.bukkit.inventory.EquipmentSlot#BODY}.
+     *
+     * @param slot equipment slot
+     * @return whether this entity can use the equipment slot
+     */
+    boolean canUseEquipmentSlot(org.bukkit.inventory.@NotNull EquipmentSlot slot);
+    // Paper end - Expose canUseSlot
+
+    /**
+     * Gets the entity's combat tracker
+     *
+     * @return the entity's combat tracker
+     */
+    @ApiStatus.Experimental
+    @NotNull CombatTracker getCombatTracker();
+
+    /**
+     * Sets the visual style of the waypoint icon using the specified {@link Key}.
+     * <p>
+     * Minecraft has the keys "minecraft:bowtie" and "minecraft:default" built in.
+     *
+     * @param key the key representing the style, or {@code null} to use the default style
+     * @see <a href="https://minecraft.wiki/w/Waypoint_style">https://minecraft.wiki/w/Waypoint_style</a>
+     */
+    void setWaypointStyle(@Nullable Key key);
+
+    /**
+     * Sets the color of the waypoint icon.
+     *
+     * @param color the new color to apply to the waypoint icon, or {@code null} to use the default color.
+     *              While the color may contain alpha values, the client does not receive them.
+     * @see <a href="https://minecraft.wiki/w/Locator_Bar#Usage">https://minecraft.wiki/w/Locator_Bar#Usage</a>
+     */
+    void setWaypointColor(@Nullable Color color);
+
+    /**
+     * Gets the current visual style of the waypoint icon.
+     *
+     * @return the {@link Key} representing the icon's style
+     * @see #setWaypointStyle(Key)
+     * @see <a href="https://minecraft.wiki/w/Waypoint_style">https://minecraft.wiki/w/Waypoint_style</a>
+     */
+    @NotNull
+    Key getWaypointStyle();
+
+    /**
+     * Gets the current color of the waypoint icon, if any.
+     *
+     * @return the icon's color, or {@code null} if the default color is used.
+     *         While the color may contain alpha values, the client does not receive them.
+     * @see #setWaypointColor(Color)
+     * @see <a href="https://minecraft.wiki/w/Locator_Bar#Usage">https://minecraft.wiki/w/Locator_Bar#Usage</a>
+     */
+    @Nullable
+    Color getWaypointColor();
 }

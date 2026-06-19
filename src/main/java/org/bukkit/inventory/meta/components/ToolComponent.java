@@ -49,20 +49,6 @@ public interface ToolComponent extends ConfigurationSerializable {
     void setDamagePerBlock(int damage);
 
     /**
-     * Get whether this tool can destroy blocks in creative.
-     *
-     * @return whether can destroy
-     */
-    boolean canDestroyBlocksInCreative();
-
-    /**
-     * Set whether this tool can destroy blocks in creative.
-     *
-     * @param destroy whether can destroy
-     */
-    void setCanDestroyBlocksInCreative(boolean destroy);
-
-    /**
      * Get the list of {@link ToolRule ToolRules} that apply to this tool.
      *
      * @return all tool rules. The mutability of the returned list cannot be

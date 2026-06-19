@@ -2,6 +2,7 @@ package org.bukkit.inventory;
 
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.event.inventory.InventoryType;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -123,9 +124,9 @@ public interface InventoryView {
          * Gets the id of this view.
          *
          * @return the id of this view
-         * @deprecated Magic value
+         * @apiNote Internal Use Only
          */
-        @Deprecated(since = "1.6.2")
+        @org.jetbrains.annotations.ApiStatus.Internal // Paper
         public int getId() {
             return id;
         }
@@ -153,15 +154,6 @@ public interface InventoryView {
      */
     @NotNull
     public HumanEntity getPlayer();
-
-    /**
-     * Youer Add
-     * Get the player viewing.
-     *
-     * @return the player
-     */
-    @NotNull
-    public void setPlayer(HumanEntity player);
 
     /**
      * Determine the type of inventory involved in the transaction. This
@@ -204,10 +196,10 @@ public interface InventoryView {
     /**
      * Get the item on the cursor of one of the viewing players.
      *
-     * @return The item on the player's cursor, or null if they aren't holding
-     *     one.
+     * @return The item on the player's cursor, or an empty stack
+     * if they aren't holding one.
      */
-    @Nullable
+    @NotNull // Paper - fix nullability
     public ItemStack getCursor();
 
     /**
@@ -252,6 +244,11 @@ public interface InventoryView {
     public InventoryType.SlotType getSlotType(int slot);
 
     /**
+     * Opens the inventory view.
+     */
+    void open();
+
+    /**
      * Closes the inventory view.
      */
     public void close();
@@ -278,11 +275,25 @@ public interface InventoryView {
      */
     public boolean setProperty(@NotNull Property prop, int value);
 
+    // Paper start
     /**
      * Get the title of this inventory window.
      *
      * @return The title.
      */
+    @NotNull
+    default net.kyori.adventure.text.Component title() {
+        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(this.getTitle());
+    }
+    // Paper end
+
+    /**
+     * Get the title of this inventory window.
+     *
+     * @return The title.
+     * @deprecated in favour of {@link #title()}
+     */
+    @Deprecated // Paper
     @NotNull
     public String getTitle();
 
@@ -291,8 +302,10 @@ public interface InventoryView {
      * made using {@link #setTitle(String)}.
      *
      * @return the original title
+     * @deprecated changing the title is not supported
      */
     @NotNull
+    @Deprecated(since = "1.21.1") // Paper
     public String getOriginalTitle();
 
     /**
@@ -304,6 +317,21 @@ public interface InventoryView {
      * exception.
      *
      * @param title The new title.
+     * @deprecated changing the title is not supported. This method has
+     * poorly defined and broken behaviors. It should not be used.
      */
+    @Deprecated(since = "1.21.1") // Paper
     public void setTitle(@NotNull String title);
+
+    /**
+     * Gets the menu type of the inventory view if applicable.
+     * <p>
+     * Some inventory types do not support a menu type. In such cases, this method
+     * returns null. This typically applies to inventories belonging to entities
+     * like players or animals (e.g., a horse).
+     *
+     * @return the menu type of the inventory view or null if not applicable
+     */
+    @ApiStatus.Experimental
+    @Nullable MenuType getMenuType();
 }

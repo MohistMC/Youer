@@ -11,7 +11,7 @@ public interface Vex extends Monster {
     /**
      * Gets the charging state of this entity.
      *
-     * When this entity is charging it will having a glowing red texture.
+     * When this entity is charging it will have a glowing red texture.
      *
      * @return charging state
      */
@@ -20,7 +20,7 @@ public interface Vex extends Monster {
     /**
      * Sets the charging state of this entity.
      *
-     * When this entity is charging it will having a glowing red texture.
+     * When this entity is charging it will have a glowing red texture.
      *
      * @param charging new state
      */
@@ -57,20 +57,102 @@ public interface Vex extends Monster {
      * Gets the remaining lifespan of this entity.
      *
      * @return life in ticks
+     * @deprecated use {@link #getLimitedLifetimeTicks()}
      */
-    int getLifeTicks();
+    @Deprecated
+    default int getLifeTicks() {
+        return this.getLimitedLifetimeTicks();
+    }
 
     /**
      * Sets the remaining lifespan of this entity.
      *
      * @param lifeTicks life in ticks, or negative for unlimited lifepan
+     * @deprecated This API duplicates existing API which uses the more
+     * preferable name due to mirroring internals better
      */
+    @Deprecated
     void setLifeTicks(int lifeTicks);
 
     /**
      * Gets if the entity has a limited life.
      *
      * @return true if the entity has limited life
+     * @deprecated use {@link #hasLimitedLifetime()}
      */
-    boolean hasLimitedLife();
+    @Deprecated
+    default boolean hasLimitedLife() {
+        return this.hasLimitedLifetime();
+    }
+    // Paper start
+
+    /**
+     * Gets the Mob that summoned this vex
+     *
+     * @return mob that summoned this vex
+     * @deprecated use {@link #getOwner()}
+     */
+    @Deprecated(forRemoval = true, since = "26.2")
+    default @Nullable Mob getSummoner() {
+        return this.getOwner() instanceof Mob mob ? mob : null;
+    }
+
+    /**
+     * Sets the summoner of this vex
+     *
+     * @param summoner new summoner
+     * @deprecated use {@link #setOwner(LivingEntity)}
+     */
+    @Deprecated(forRemoval = true, since = "26.2")
+    default void setSummoner(final @Nullable Mob summoner) {
+        this.setOwner(summoner);
+    }
+
+    /**
+     * Gets the owner of this vex which is
+     * often its summoner.
+     *
+     * @return new owner
+     */
+    @Nullable LivingEntity getOwner();
+
+    /**
+     * Sets the owner of this vex.
+     *
+     * @param owner new owner
+     */
+    void setOwner(@Nullable LivingEntity owner);
+
+    /**
+     * Gets if this vex should start to take damage
+     * once {@link Vex#getLimitedLifetimeTicks()} is less than or equal to 0.
+     *
+     * @return will take damage
+     */
+    boolean hasLimitedLifetime();
+
+    /**
+     * Sets if this vex should start to take damage
+     * once {@link Vex#getLimitedLifetimeTicks()} is less than or equal to 0.
+     *
+     * @param hasLimitedLifetime should take damage
+     */
+    void setLimitedLifetime(boolean hasLimitedLifetime);
+
+    /**
+     * Gets the number of ticks remaining until the vex will start
+     * to take damage.
+     *
+     * @return ticks until the vex will start to take damage
+     */
+    int getLimitedLifetimeTicks();
+
+    /**
+     * Sets the number of ticks remaining until the vex takes damage.
+     * This number is ticked down only if {@link Vex#hasLimitedLifetime()} is true.
+     *
+     * @param ticks ticks remaining
+     */
+    void setLimitedLifetimeTicks(int ticks);
+    // Paper end
 }

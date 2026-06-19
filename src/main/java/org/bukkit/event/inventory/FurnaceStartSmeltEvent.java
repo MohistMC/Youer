@@ -5,20 +5,31 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.block.InventoryBlockStartEvent;
 import org.bukkit.inventory.CookingRecipe;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Called when a Furnace starts smelting.
+ * Called when any of the furnace-like blocks start smelting.
+ * <p>
+ * Furnace-like blocks are {@link org.bukkit.block.Furnace},
+ * {@link org.bukkit.block.Smoker}, and {@link org.bukkit.block.BlastFurnace}.
  */
 public class FurnaceStartSmeltEvent extends InventoryBlockStartEvent {
-    private static final HandlerList handlers = new HandlerList();
+
     private final CookingRecipe<?> recipe;
     private int totalCookTime;
 
+    @ApiStatus.Internal
+    @Deprecated(forRemoval = true)
     public FurnaceStartSmeltEvent(@NotNull final Block furnace, @NotNull ItemStack source, @NotNull final CookingRecipe<?> recipe) {
+        this(furnace, source, recipe, recipe.getCookingTime());
+    }
+
+    @ApiStatus.Internal
+    public FurnaceStartSmeltEvent(final @NotNull Block furnace, final @NotNull ItemStack source, final @NotNull CookingRecipe<?> recipe, final int cookingTime) {
         super(furnace, source);
         this.recipe = recipe;
-        this.totalCookTime = recipe.getCookingTime();
+        this.totalCookTime = cookingTime;
     }
 
     /**
@@ -28,7 +39,7 @@ public class FurnaceStartSmeltEvent extends InventoryBlockStartEvent {
      */
     @NotNull
     public CookingRecipe<?> getRecipe() {
-        return recipe;
+        return this.recipe;
     }
 
     /**
@@ -37,7 +48,7 @@ public class FurnaceStartSmeltEvent extends InventoryBlockStartEvent {
      * @return the total cook time
      */
     public int getTotalCookTime() {
-        return totalCookTime;
+        return this.totalCookTime;
     }
 
     /**
@@ -47,16 +58,5 @@ public class FurnaceStartSmeltEvent extends InventoryBlockStartEvent {
      */
     public void setTotalCookTime(int cookTime) {
         this.totalCookTime = cookTime;
-    }
-
-    @NotNull
-    @Override
-    public HandlerList getHandlers() {
-        return handlers;
-    }
-
-    @NotNull
-    public static HandlerList getHandlerList() {
-        return handlers;
     }
 }

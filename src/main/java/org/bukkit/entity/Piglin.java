@@ -8,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Represents a Piglin.
  */
-public interface Piglin extends PiglinAbstract, InventoryHolder {
+public interface Piglin extends PiglinAbstract, InventoryHolder, com.destroystokyo.paper.entity.RangedEntity { // Paper
 
     /**
      * Get whether the piglin is able to hunt hoglins.
@@ -68,7 +68,7 @@ public interface Piglin extends PiglinAbstract, InventoryHolder {
     public boolean removeMaterialOfInterest(@NotNull Material material);
 
     /**
-     * Returns a immutable set of materials the piglins will pickup.
+     * Returns an immutable set of materials the piglins will pickup.
      * <br>
      * <strong>Note:</strong> This set will not include the items that are set
      * by default. To interact with those items see
@@ -80,7 +80,7 @@ public interface Piglin extends PiglinAbstract, InventoryHolder {
     public Set<Material> getInterestList();
 
     /**
-     * Returns a immutable set of materials the piglins will barter with.
+     * Returns an immutable set of materials the piglins will barter with.
      *
      * <strong>Note:</strong> This set will not include the items that are set
      * by default. To interact with those items see
@@ -90,4 +90,45 @@ public interface Piglin extends PiglinAbstract, InventoryHolder {
      */
     @NotNull
     public Set<Material> getBarterList();
+
+    /**
+     * Causes the piglin to appear as if they are charging
+     * a crossbow.
+     * <p>
+     * This works with any item currently held in the piglin's hand.
+     *
+     * @param chargingCrossbow is charging
+     */
+    void setChargingCrossbow(boolean chargingCrossbow);
+
+    /**
+     * Gets if the piglin is currently charging the
+     * item in their hand.
+     *
+     * @return is charging
+     */
+    boolean isChargingCrossbow();
+
+    /**
+     * Sets whether the Piglin is dancing or not
+     *
+     * @param dancing is dancing
+     */
+    void setDancing(boolean dancing);
+
+    /**
+     * Causes the piglin to dance for a
+     * specified amount of time
+     *
+     * @param duration duration of the dance in ticks
+     */
+    void setDancing(long duration);
+
+    /**
+     * Gets if the piglin is currently dancing
+     *
+     * @return is dancing
+     */
+    boolean isDancing();
+
 }

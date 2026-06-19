@@ -5,11 +5,16 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.Entity;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.MaterialData;
 import org.bukkit.metadata.Metadatable;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
+import java.util.Collection;
 
 /**
  * Represents a captured state of a block, which will not change
@@ -35,8 +40,10 @@ public interface BlockState extends Metadatable {
      * Gets the metadata for this block state.
      *
      * @return block specific metadata
+     * @deprecated use {@link #getBlockData()}
      */
     @NotNull
+    @Deprecated(forRemoval = true, since = "1.13")
     MaterialData getData();
 
     /**
@@ -148,7 +155,9 @@ public interface BlockState extends Metadatable {
      * Sets the metadata for this block state.
      *
      * @param data New block specific metadata
+     * @deprecated use {@link #setBlockData(BlockData)}
      */
+    @Deprecated(forRemoval = true, since = "1.13")
     void setData(@NotNull MaterialData data);
 
     /**
@@ -218,15 +227,15 @@ public interface BlockState extends Metadatable {
      * @return The data as a raw byte.
      * @deprecated Magic value
      */
-    @Deprecated(since = "1.6.2")
-    public byte getRawData();
+    @Deprecated(since = "1.6.2", forRemoval = true)
+    byte getRawData();
 
     /**
      * @param data The new data value for the block.
      * @deprecated Magic value
      */
-    @Deprecated(since = "1.6.2")
-    public void setRawData(byte data);
+    @Deprecated(since = "1.6.2", forRemoval = true)
+    void setRawData(byte data);
 
     /**
      * Returns whether this state is placed in the world.
@@ -238,4 +247,56 @@ public interface BlockState extends Metadatable {
      *         or 'virtual' (e.g. on an itemstack)
      */
     boolean isPlaced();
+
+    /**
+     * Checks if this block state is collidable.
+     *
+     * @return true if collidable
+     */
+    boolean isCollidable();
+
+    /**
+     * Returns an immutable list of items which would drop by destroying this block state.
+     *
+     * @return an immutable list of dropped items for the block state
+     * @throws IllegalStateException if this block state is not placed
+     */
+    @NotNull
+    default @Unmodifiable Collection<ItemStack> getDrops() {
+        return this.getDrops(null);
+    }
+
+    /**
+     * Returns an immutable list of items which would drop by destroying this block state
+     * with a specific tool
+     *
+     * @param tool The tool or item in hand used for digging
+     * @return an immutable list of dropped items for the block state
+     * @throws IllegalStateException if this block state is not placed
+     */
+    @NotNull
+    default @Unmodifiable Collection<ItemStack> getDrops(@Nullable ItemStack tool) {
+        return this.getDrops(tool, null);
+    }
+
+    /**
+     * Returns an immutable list of items which would drop by the entity destroying this
+     * block state with a specific tool
+     *
+     * @param tool The tool or item in hand used for digging
+     * @param entity the entity destroying the block
+     * @return an immutable list of dropped items for the block state
+     * @throws IllegalStateException if this block state is not placed
+     */
+    @NotNull
+    @Unmodifiable
+    Collection<ItemStack> getDrops(@Nullable ItemStack tool, @Nullable Entity entity);
+
+    /**
+     * Checks if the block state can suffocate.
+     *
+     * @return {@code true} if the block state can suffocate
+     * @throws IllegalStateException if this block state is not placed
+     */
+    boolean isSuffocating();
 }

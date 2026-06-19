@@ -1,19 +1,42 @@
 package org.bukkit.event.entity;
 
 import org.bukkit.entity.Entity;
+import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Called immediately prior to an entity being unleashed.
+ * <p>
+ * Cancelling this event when either:
+ * <ul>
+ *     <li>the leashed entity dies,</li>
+ *     <li>the entity changes dimension, or</li>
+ *     <li>the client has disconnected the leash</li>
+ * </ul>
+ * will have no effect.
  */
-public class EntityUnleashEvent extends EntityEvent {
-    private static final HandlerList handlers = new HandlerList();
-    private final UnleashReason reason;
+public class EntityUnleashEvent extends EntityEvent implements Cancellable {
 
+    private static final HandlerList HANDLER_LIST = new HandlerList();
+
+    private final UnleashReason reason;
+    private boolean dropLeash;
+
+    private boolean cancelled;
+
+    @ApiStatus.Internal
+    @Deprecated(forRemoval = true)
     public EntityUnleashEvent(@NotNull Entity entity, @NotNull UnleashReason reason) {
+        this(entity, reason, false);
+    }
+
+    @ApiStatus.Internal
+    public EntityUnleashEvent(@NotNull Entity entity, @NotNull UnleashReason reason, boolean dropLeash) {
         super(entity);
         this.reason = reason;
+        this.dropLeash = dropLeash;
     }
 
     /**
@@ -23,18 +46,46 @@ public class EntityUnleashEvent extends EntityEvent {
      */
     @NotNull
     public UnleashReason getReason() {
-        return reason;
+        return this.reason;
+    }
+
+    /**
+     * Returns whether a leash item will be dropped.
+     *
+     * @return Whether the leash item will be dropped
+     */
+    public boolean isDropLeash() {
+        return this.dropLeash;
+    }
+
+    /**
+     * Sets whether a leash item should be dropped.
+     *
+     * @param dropLeash Whether the leash item should be dropped
+     */
+    public void setDropLeash(boolean dropLeash) {
+        this.dropLeash = dropLeash;
+    }
+
+    @Override
+    public boolean isCancelled() {
+        return this.cancelled;
+    }
+
+    @Override
+    public void setCancelled(boolean cancel) {
+        this.cancelled = cancel;
     }
 
     @NotNull
     @Override
     public HandlerList getHandlers() {
-        return handlers;
+        return HANDLER_LIST;
     }
 
     @NotNull
     public static HandlerList getHandlerList() {
-        return handlers;
+        return HANDLER_LIST;
     }
 
     public enum UnleashReason {
@@ -52,13 +103,9 @@ public class EntityUnleashEvent extends EntityEvent {
          */
         DISTANCE,
         /**
-         * The leash has been sheared
+         * When the leashed entity is removed from the game
          */
-        SHEAR,
-        /**
-         * A firework has been used
-         */
-        FIREWORK,
+        LEASHED_GONE,
         UNKNOWN;
     }
 }

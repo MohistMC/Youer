@@ -1,8 +1,7 @@
 package org.bukkit.entity;
 
 /**
- * Represents a Happy Ghast.
+ * Represents a happy ghast.
  */
-public interface HappyGhast extends Animals, Vehicle {
-
+public interface HappyGhast extends Vehicle, Animals {
 }

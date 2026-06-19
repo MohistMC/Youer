@@ -1,9 +1,13 @@
 
 package org.bukkit.command;
 
+import net.kyori.adventure.audience.ForwardingAudience;
+import net.kyori.adventure.chat.ChatType;
+import net.kyori.adventure.chat.SignedMessage;
+import net.kyori.adventure.text.Component;
 import org.jetbrains.annotations.NotNull;
 
-public interface ProxiedCommandSender extends CommandSender {
+public interface ProxiedCommandSender extends CommandSender, net.kyori.adventure.audience.ForwardingAudience.Single { // Paper
 
     /**
      * Returns the CommandSender which triggered this proxied command
@@ -21,4 +25,26 @@ public interface ProxiedCommandSender extends CommandSender {
     @NotNull
     CommandSender getCallee();
 
+    // Paper start
+    @Override
+    default void sendMessage(final @NotNull Component message, final ChatType.@NotNull Bound boundChatType) {
+        ForwardingAudience.Single.super.sendMessage(message, boundChatType);
+    }
+
+    @Override
+    default void sendMessage(final @NotNull Component message) {
+        ForwardingAudience.Single.super.sendMessage(message);
+    }
+
+    @Override
+    default void sendMessage(final @NotNull SignedMessage signedMessage, final ChatType.@NotNull Bound boundChatType) {
+        ForwardingAudience.Single.super.sendMessage(signedMessage, boundChatType);
+    }
+
+    @NotNull
+    @Override
+    default net.kyori.adventure.audience.Audience audience() {
+        return this.getCaller();
+    }
+    // Paper end
 }

@@ -42,6 +42,14 @@ public interface Skeleton extends AbstractSkeleton {
     void setConversionTime(int time);
 
     /**
+     * Gets the time the skeleton
+     * has been inside powdered snow.
+     *
+     * @return time in ticks
+     */
+    int inPowderedSnowTime();
+
+    /**
      * A legacy enum that defines the different variances of skeleton-like
      * entities on the server.
      *
@@ -70,7 +78,6 @@ public interface Skeleton extends AbstractSkeleton {
         /**
          * Parched skeleton.
          */
-        PARCHED,
-        MODS;
+        PARCHED;
     }
 }

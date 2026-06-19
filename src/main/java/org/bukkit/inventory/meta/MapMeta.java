@@ -16,13 +16,7 @@ public interface MapMeta extends ItemMeta {
      *
      * @return true if this has a map ID number.
      * @see #hasMapView()
-     * @deprecated These methods are poor API: They rely on the caller to pass
-     * in an only an integer property, and have poorly defined implementation
-     * behavior if that integer is not a valid map (the current implementation
-     * for example will generate a new map with a different ID). The xxxMapView
-     * family of methods should be used instead.
      */
-    @Deprecated(since = "1.13.2")
     boolean hasMapId();
 
     /**
@@ -34,13 +28,7 @@ public interface MapMeta extends ItemMeta {
      *
      * @return the map ID that is set
      * @see #getMapView()
-     * @deprecated These methods are poor API: They rely on the caller to pass
-     * in an only an integer property, and have poorly defined implementation
-     * behavior if that integer is not a valid map (the current implementation
-     * for example will generate a new map with a different ID). The xxxMapView
-     * family of methods should be used instead.
      */
-    @Deprecated(since = "1.13.2")
     int getMapId();
 
     /**

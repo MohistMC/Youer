@@ -1,12 +1,11 @@
 package org.bukkit.event.block;
 
-import java.util.ArrayList;
-import java.util.List;
 import org.bukkit.block.Block;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.CraftingRecipe;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -14,22 +13,18 @@ import org.jetbrains.annotations.NotNull;
  */
 public class CrafterCraftEvent extends BlockEvent implements Cancellable {
 
-    private static final HandlerList handlers = new HandlerList();
+    private static final HandlerList HANDLER_LIST = new HandlerList();
+
     private final CraftingRecipe recipe;
     private ItemStack result;
-    private List<ItemStack> remainingItems;
+
     private boolean cancelled;
 
-    @Deprecated(since = "1.21.4")
-    public CrafterCraftEvent(@NotNull Block theBlock, @NotNull CraftingRecipe recipe, @NotNull ItemStack result) {
-        this(theBlock, recipe, result, new ArrayList<>());
-    }
-
-    public CrafterCraftEvent(@NotNull Block theBlock, @NotNull CraftingRecipe recipe, @NotNull ItemStack result, @NotNull List<ItemStack> remainingItems) {
-        super(theBlock);
+    @ApiStatus.Internal
+    public CrafterCraftEvent(@NotNull Block crafter, @NotNull CraftingRecipe recipe, @NotNull ItemStack result) {
+        super(crafter);
         this.result = result;
         this.recipe = recipe;
-        this.remainingItems = remainingItems;
     }
 
     /**
@@ -39,7 +34,7 @@ public class CrafterCraftEvent extends BlockEvent implements Cancellable {
      */
     @NotNull
     public ItemStack getResult() {
-        return result.clone();
+        return this.result.clone();
     }
 
     /**
@@ -52,28 +47,18 @@ public class CrafterCraftEvent extends BlockEvent implements Cancellable {
     }
 
     /**
-     * Gets the items that will remain after the recipe has been crafted.
-     *
-     * @return a list of the remaining items
-     */
-    @NotNull
-    public List<ItemStack> getRemainingItems() {
-        return remainingItems;
-    }
-
-    /**
      * Gets the recipe that was used to craft this item.
      *
      * @return the recipe that was used to craft this item
      */
     @NotNull
     public CraftingRecipe getRecipe() {
-        return recipe;
+        return this.recipe;
     }
 
     @Override
     public boolean isCancelled() {
-        return cancelled;
+        return this.cancelled;
     }
 
     @Override
@@ -84,11 +69,11 @@ public class CrafterCraftEvent extends BlockEvent implements Cancellable {
     @NotNull
     @Override
     public HandlerList getHandlers() {
-        return handlers;
+        return HANDLER_LIST;
     }
 
     @NotNull
     public static HandlerList getHandlerList() {
-        return handlers;
+        return HANDLER_LIST;
     }
 }

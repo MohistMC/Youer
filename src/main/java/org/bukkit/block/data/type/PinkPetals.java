@@ -1,8 +1,11 @@
 package org.bukkit.block.data.type;
 
 /**
- * @deprecated use parent class {@link FlowerBed}
+ * 'flower_amount' represents the number of petals.
+ *
+ * @deprecated incorrect name as multiple types of flower collection blocks exist now. Use {@link FlowerBed}
  */
-@Deprecated(since = "1.21.5")
+@Deprecated(forRemoval = true, since = "1.21.5")
 public interface PinkPetals extends FlowerBed {
+
 }

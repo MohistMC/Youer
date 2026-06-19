@@ -3,14 +3,14 @@ package org.bukkit.potion;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import com.google.common.collect.Lists;
 import java.util.Locale;
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.key.KeyPattern;
 import org.bukkit.Color;
 import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.Translatable;
-import org.bukkit.registry.RegistryAware;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -18,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Represents a type of potion and its effect on an entity.
  */
-public abstract class PotionEffectType implements Keyed, Translatable, RegistryAware {
+public abstract class PotionEffectType implements Keyed, Translatable, net.kyori.adventure.translation.Translatable, io.papermc.paper.world.flag.FeatureDependant { // Paper - implement Translatable & feature flag API
     private static final BiMap<Integer, PotionEffectType> ID_MAP = HashBiMap.create();
 
     /**
@@ -169,7 +169,7 @@ public abstract class PotionEffectType implements Keyed, Translatable, RegistryA
     public static final PotionEffectType CONDUIT_POWER = getPotionEffectType(29, "conduit_power");
 
     /**
-     * Increses underwater movement speed.<br>
+     * Increases underwater movement speed.<br>
      * Squee'ek uh'k kk'kkkk squeek eee'eek.
      */
     public static final PotionEffectType DOLPHINS_GRACE = getPotionEffectType(30, "dolphins_grace");
@@ -222,13 +222,13 @@ public abstract class PotionEffectType implements Keyed, Translatable, RegistryA
     public static final PotionEffectType INFESTED = getPotionEffectType(39, "infested");
 
     /**
-     * Allows breathing underwater.
+     * Prevent the oxygen bar from depleting underwater.
      */
     public static final PotionEffectType BREATH_OF_THE_NAUTILUS = getPotionEffectType(40, "breath_of_the_nautilus");
 
     @NotNull
-    private static PotionEffectType getPotionEffectType(int typeId, @NotNull String key) {
-        PotionEffectType potionEffectType = Registry.EFFECT.getOrThrow(NamespacedKey.minecraft(key));
+    private static PotionEffectType getPotionEffectType(int typeId, @NotNull @KeyPattern.Value String key) {
+        PotionEffectType potionEffectType = Registry.MOB_EFFECT.getOrThrow(Key.key(Key.MINECRAFT_NAMESPACE, key));
 
         if (typeId > 0) {
             ID_MAP.put(typeId, potionEffectType);
@@ -243,7 +243,6 @@ public abstract class PotionEffectType implements Keyed, Translatable, RegistryA
      * @param duration time in ticks
      * @param amplifier the effect's amplifier
      * @return a resulting potion effect
-     * @see PotionBrewer#createEffect(PotionEffectType, int, int)
      */
     @NotNull
     public abstract PotionEffect createEffect(int duration, int amplifier);
@@ -272,33 +271,21 @@ public abstract class PotionEffectType implements Keyed, Translatable, RegistryA
     public abstract Color getColor();
 
     /**
-     * {@inheritDoc}
-     *
-     * @see #getKeyOrThrow()
-     * @see #isRegistered()
-     * @deprecated A key might not always be present, use {@link #getKeyOrThrow()} instead.
-     */
-    @NotNull
-    @Override
-    @Deprecated(since = "1.21.4")
-    public abstract NamespacedKey getKey();
-
-    /**
      * Returns the duration modifier applied to effects of this type.
      *
      * @return duration modifier
      * @deprecated unused, always 1.0
      */
-    @Deprecated(since = "1.14")
+    @Deprecated(since = "1.14", forRemoval = true)
     public abstract double getDurationModifier();
 
     /**
      * Returns the unique ID of this type.
      *
      * @return Unique ID
-     * @deprecated Magic value
+     * @deprecated use {@link #key()}
      */
-    @Deprecated(since = "1.6.2")
+    @Deprecated(since = "1.6.2", forRemoval = true) // Paper
     public abstract int getId();
 
     /**
@@ -326,7 +313,7 @@ public abstract class PotionEffectType implements Keyed, Translatable, RegistryA
             return null;
         }
 
-        return Registry.EFFECT.get(key);
+        return Registry.MOB_EFFECT.get(key);
     }
 
     /**
@@ -334,9 +321,9 @@ public abstract class PotionEffectType implements Keyed, Translatable, RegistryA
      *
      * @param id Unique ID to fetch
      * @return Resulting type, or null if not found.
-     * @deprecated Magic value
+     * @apiNote Internal Use Only
      */
-    @Deprecated(since = "1.6.2")
+    @org.jetbrains.annotations.ApiStatus.Internal // Paper
     @Nullable
     public static PotionEffectType getById(int id) {
         PotionEffectType type = ID_MAP.get(id);
@@ -345,7 +332,7 @@ public abstract class PotionEffectType implements Keyed, Translatable, RegistryA
             return type;
         }
 
-        for (PotionEffectType other : Registry.EFFECT) {
+        for (PotionEffectType other : Registry.MOB_EFFECT) {
             if (other.getId() == id) {
                 ID_MAP.put(id, other);
                 return other;
@@ -366,16 +353,73 @@ public abstract class PotionEffectType implements Keyed, Translatable, RegistryA
     @Deprecated(since = "1.20.3")
     public static PotionEffectType getByName(@NotNull String name) {
         Preconditions.checkArgument(name != null, "name cannot be null");
-        return Registry.EFFECT.get(NamespacedKey.fromString(name.toLowerCase(Locale.ROOT)));
+        final NamespacedKey key = NamespacedKey.fromString(name.toLowerCase(Locale.ROOT));
+        if (key == null) {
+            return null;
+        }
+        return Registry.MOB_EFFECT.get(key);
     }
 
     /**
      * @return an array of all known PotionEffectTypes.
-     * @deprecated use {@link Registry#iterator()}.
+     * @deprecated use {@link Registry#stream()}.
      */
     @NotNull
     @Deprecated(since = "1.20.3")
     public static PotionEffectType[] values() {
-        return Lists.newArrayList(Registry.EFFECT).toArray(new PotionEffectType[0]);
+        return Registry.MOB_EFFECT.stream().toArray(PotionEffectType[]::new);
     }
+
+    // Paper start
+    /**
+     * Gets the effect attributes in an immutable map.
+     *
+     * @return the attribute map
+     */
+    public abstract @NotNull java.util.Map<org.bukkit.attribute.Attribute, org.bukkit.attribute.AttributeModifier> getEffectAttributes();
+
+    /**
+     * Gets the true modifier amount based on the effect amplifier.
+     *
+     * @param attribute the attribute
+     * @param effectAmplifier the effect amplifier (0 indexed)
+     * @return the modifier amount
+     * @throws IllegalArgumentException if the supplied attribute is not present in the map from {@link #getEffectAttributes()}
+     */
+    public abstract double getAttributeModifierAmount(@NotNull org.bukkit.attribute.Attribute attribute, int effectAmplifier);
+
+    /**
+     * Gets the category of this effect
+     *
+     * @return the category
+     */
+    public abstract @NotNull PotionEffectType.Category getEffectCategory();
+
+    /**
+     * Category of {@link PotionEffectType}s
+     */
+    public enum Category {
+
+        BENEFICIAL(net.kyori.adventure.text.format.NamedTextColor.BLUE),
+        HARMFUL(net.kyori.adventure.text.format.NamedTextColor.RED),
+        NEUTRAL(net.kyori.adventure.text.format.NamedTextColor.BLUE);
+
+        private final net.kyori.adventure.text.format.TextColor color;
+
+        Category(net.kyori.adventure.text.format.TextColor color) {
+            this.color = color;
+        }
+
+        /**
+         * Gets the text color used when displaying potions
+         * of this category.
+         *
+         * @return the text color
+         */
+        @NotNull
+        public net.kyori.adventure.text.format.TextColor getColor() {
+            return color;
+        }
+    }
+    // Paper end
 }

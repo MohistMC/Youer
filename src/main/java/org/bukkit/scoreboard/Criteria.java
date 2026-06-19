@@ -1,6 +1,7 @@
 package org.bukkit.scoreboard;
 
 import com.google.common.base.Preconditions;
+import io.papermc.paper.InternalAPIBridge;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Statistic;
@@ -335,7 +336,7 @@ public interface Criteria {
     @NotNull
     public static Criteria statistic(@NotNull Statistic statistic) {
         Preconditions.checkArgument(statistic != null, "statistic must not be null");
-        return Bukkit.getScoreboardCriteria("minecraft.custom:minecraft." + statistic.getKey().getKey());
+        return Bukkit.getScoreboardCriteria(InternalAPIBridge.get().getStatisticCriteriaKey(statistic)); // Paper
     }
 
     /**

@@ -13,15 +13,15 @@ public interface ZombieVillager extends Zombie {
      * Sets the villager profession of this zombie.
      */
     @Override
-    void setVillagerProfession(@Nullable Villager.Profession profession);
+    void setVillagerProfession(@NotNull Villager.Profession profession); // Paper
 
     /**
      * Returns the villager profession of this zombie.
      *
-     * @return the profession or null
+     * @return the profession
      */
     @Override
-    @Nullable
+    @NotNull // Paper
     Villager.Profession getVillagerProfession();
 
     /**
@@ -90,4 +90,22 @@ public interface ZombieVillager extends Zombie {
      * @param conversionPlayer the player
      */
     void setConversionPlayer(@Nullable OfflinePlayer conversionPlayer);
+
+    // Paper start - missing entity behaviour api - converting without entity event
+    /**
+     * Sets the amount of ticks until this entity will be converted to a
+     * Villager as a result of being cured.
+     * <p>
+     * When this reaches 0, the entity will be converted. A value of less than 0
+     * will stop the current conversion process without converting the current
+     * entity.
+     *
+     * @param time new conversion time
+     * @param broadcastEntityEvent whether this conversion time mutation should broadcast the
+     *                             org.bukkit.{@link org.bukkit.EntityEffect#ZOMBIE_TRANSFORM} entity event to the
+     *                             world. If false, no entity event is published, preventing for example the
+     *                             org.bukkit.{@link org.bukkit.Sound#ENTITY_ZOMBIE_VILLAGER_CURE} from playing.
+     */
+    void setConversionTime(int time, boolean broadcastEntityEvent);
+    // Paper end - missing entity behaviour api - converting without entity event
 }

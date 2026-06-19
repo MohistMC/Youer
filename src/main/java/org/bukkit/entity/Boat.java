@@ -7,7 +7,7 @@ import org.jetbrains.annotations.NotNull;
 /**
  * Represents a boat entity.
  */
-public interface Boat extends Leashable, Vehicle {
+public interface Boat extends Vehicle, io.papermc.paper.entity.Leashable { // Paper - Leashable API
 
     /**
      * Gets the wood type of the boat.
@@ -15,7 +15,7 @@ public interface Boat extends Leashable, Vehicle {
      * @return the wood type
      * @deprecated deprecated in favor of {@link #getBoatType()}
      */
-    @Deprecated(since = "1.19")
+    @Deprecated(since = "1.19", forRemoval = true)
     @NotNull
     TreeSpecies getWoodType();
 
@@ -25,7 +25,7 @@ public interface Boat extends Leashable, Vehicle {
      * @param species the new wood type
      * @deprecated deprecated in favor of {@link #setBoatType(Type)}
      */
-    @Deprecated(since = "1.19")
+    @Deprecated(since = "1.19", forRemoval = true)
     void setWoodType(@NotNull TreeSpecies species);
 
     /**
@@ -175,10 +175,23 @@ public interface Boat extends Leashable, Vehicle {
      */
     public enum Status {
 
+        NOT_IN_WORLD,
+        // Start generate - BoatStatus
         IN_WATER,
         UNDER_WATER,
         UNDER_FLOWING_WATER,
         ON_LAND,
         IN_AIR;
+        // End generate - BoatStatus
     }
+
+    // Paper start
+    /**
+     * Gets the {@link Material} that represents this Boat type.
+     *
+     * @return the boat material.
+     */
+    @NotNull
+    public Material getBoatMaterial();
+    // Paper end
 }

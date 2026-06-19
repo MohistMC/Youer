@@ -1,55 +1,79 @@
 package org.bukkit.entity;
 
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.key.KeyPattern;
 import org.bukkit.Keyed;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
-import org.bukkit.registry.RegistryAware;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NullMarked;
 
 /**
  * Represents a Pig.
  */
+@NullMarked
 public interface Pig extends Steerable, Vehicle {
 
     /**
-     * Get the variant of this pig.
+     * Gets the variant of this pig.
      *
-     * @return pig variant
+     * @return the pig variant
      */
-    @NotNull
     Variant getVariant();
 
     /**
-     * Set the variant of this pig.
+     * Sets the variant of this pig.
      *
-     * @param variant pig variant
+     * @param variant the pig variant
      */
-    void setVariant(@NotNull Variant variant);
+    void setVariant(Variant variant);
+
+    /**
+     * Get the sound variant of this pig.
+     *
+     * @return pig sound variant
+     */
+    SoundVariant getSoundVariant();
+
+    /**
+     * Set the sound variant of this pig.
+     *
+     * @param variant pig sound variant
+     */
+    void setSoundVariant(SoundVariant variant);
 
     /**
      * Represents the variant of a pig.
      */
-    interface Variant extends Keyed, RegistryAware {
+    interface Variant extends Keyed {
 
-        Variant TEMPERATE = getType("temperate");
-        Variant WARM = getType("warm");
-        Variant COLD = getType("cold");
+        // Start generate - PigVariant
+        Variant COLD = getVariant("cold");
 
-        /**
-         * {@inheritDoc}
-         *
-         * @see #getKeyOrThrow()
-         * @see #isRegistered()
-         * @deprecated A key might not always be present, use {@link #getKeyOrThrow()} instead.
-         */
-        @NotNull
-        @Override
-        @Deprecated(since = "1.21.5")
-        NamespacedKey getKey();
+        Variant TEMPERATE = getVariant("temperate");
 
-        @NotNull
-        private static Variant getType(@NotNull String key) {
-            return Registry.PIG_VARIANT.getOrThrow(NamespacedKey.minecraft(key));
+        Variant WARM = getVariant("warm");
+        // End generate - PigVariant
+
+        private static Variant getVariant(@KeyPattern.Value final String key) {
+            return RegistryAccess.registryAccess().getRegistry(RegistryKey.PIG_VARIANT).getOrThrow(Key.key(Key.MINECRAFT_NAMESPACE, key));
+        }
+    }
+
+    /**
+     * Represents the sound variant of a pig.
+     */
+    interface SoundVariant extends Keyed {
+
+        // Start generate - PigSoundVariant
+        SoundVariant BIG = getSoundVariant("big");
+
+        SoundVariant CLASSIC = getSoundVariant("classic");
+
+        SoundVariant MINI = getSoundVariant("mini");
+        // End generate - PigSoundVariant
+
+        private static SoundVariant getSoundVariant(@KeyPattern.Value final String key) {
+            return RegistryAccess.registryAccess().getRegistry(RegistryKey.PIG_SOUND_VARIANT).getOrThrow(Key.key(Key.MINECRAFT_NAMESPACE, key));
         }
     }
 }

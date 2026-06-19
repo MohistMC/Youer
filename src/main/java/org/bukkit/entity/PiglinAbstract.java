@@ -31,14 +31,17 @@ public interface PiglinAbstract extends Monster, Ageable {
     public int getConversionTime();
 
     /**
-     * Sets the amount of ticks until this entity will be converted to a
-     * Zombified Piglin.
+     * Sets the conversion counter value. The counter is incremented
+     * every tick the method {@link #isConverting()} returns true. Setting
+     * this value will not start the conversion if the {@link PiglinAbstract} is
+     * not in a valid environment ({@link org.bukkit.World#isPiglinSafe})
+     * to convert, is immune to zombification ({@link #isImmuneToZombification()})
+     * or has no AI ({@link #hasAI}).
      *
-     * When this reaches 0, the entity will be converted. A value of less than 0
-     * will stop the current conversion process without converting the current
-     * entity.
+     * When this reaches 300, the entity will be converted. To stop the
+     * conversion use {@link #setImmuneToZombification(boolean)}.
      *
-     * @param time new conversion time
+     * @param time new conversion counter
      */
     public void setConversionTime(int time);
 
@@ -61,9 +64,9 @@ public interface PiglinAbstract extends Monster, Ageable {
     /**
      * Sets whether the piglin is a baby
      *
-     * @param flag Whether the piglin is a baby
+     * @param baby Whether the piglin is a baby
      * @deprecated see {@link Ageable#setBaby()} and {@link Ageable#setAdult()}
      */
     @Deprecated(since = "1.16.2")
-    public void setBaby(boolean flag);
+    public void setBaby(boolean baby);
 }

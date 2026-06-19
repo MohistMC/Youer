@@ -57,6 +57,7 @@ public class MerchantRecipe implements Recipe {
     private int demand;
     private int villagerExperience;
     private float priceMultiplier;
+    private boolean ignoreDiscounts; // Paper
 
     public MerchantRecipe(@NotNull ItemStack result, int maxUses) {
         this(result, 0, maxUses, false);
@@ -71,6 +72,16 @@ public class MerchantRecipe implements Recipe {
     }
 
     public MerchantRecipe(@NotNull ItemStack result, int uses, int maxUses, boolean experienceReward, int villagerExperience, float priceMultiplier, int demand, int specialPrice) {
+        // Paper start - add ignoreDiscounts param
+        this(result, uses, maxUses, experienceReward, villagerExperience, priceMultiplier, demand, specialPrice, false);
+    }
+    public MerchantRecipe(@NotNull ItemStack result, int uses, int maxUses, boolean experienceReward, int villagerExperience, float priceMultiplier, boolean ignoreDiscounts) {
+        this(result, uses, maxUses, experienceReward, villagerExperience, priceMultiplier, 0, 0, ignoreDiscounts);
+    }
+    public MerchantRecipe(@NotNull ItemStack result, int uses, int maxUses, boolean experienceReward, int villagerExperience, float priceMultiplier, int demand, int specialPrice, boolean ignoreDiscounts) {
+        Preconditions.checkArgument(!result.isEmpty(), "Recipe cannot have an empty result."); // Paper
+        this.ignoreDiscounts = ignoreDiscounts;
+        // Paper end
         this.result = result;
         this.uses = uses;
         this.maxUses = maxUses;
@@ -81,14 +92,22 @@ public class MerchantRecipe implements Recipe {
         this.specialPrice = specialPrice;
     }
 
+    // Paper start - add copy ctor
+    public MerchantRecipe(@NotNull MerchantRecipe recipe) {
+        this(recipe.result.clone(), recipe.uses, recipe.maxUses, recipe.experienceReward, recipe.villagerExperience, recipe.priceMultiplier, recipe.demand, recipe.specialPrice, recipe.ignoreDiscounts);
+        this.setIngredients(recipe.ingredients);
+    }
+    // Paper end
+
     @NotNull
     @Override
     public ItemStack getResult() {
-        return result;
+        return result.clone(); // Paper
     }
 
     public void addIngredient(@NotNull ItemStack item) {
         Preconditions.checkState(ingredients.size() < 2, "MerchantRecipe can only have maximum 2 ingredients");
+        Preconditions.checkArgument(!item.isEmpty(), "Recipe cannot have an empty itemstack ingredient."); // Paper
         ingredients.add(item.clone());
     }
 
@@ -100,6 +119,7 @@ public class MerchantRecipe implements Recipe {
         Preconditions.checkState(ingredients.size() <= 2, "MerchantRecipe can only have maximum 2 ingredients");
         this.ingredients = new ArrayList<ItemStack>();
         for (ItemStack item : ingredients) {
+            Preconditions.checkArgument(!item.isEmpty(), "Recipe cannot have an empty itemstack ingredient."); // Paper
             this.ingredients.add(item.clone());
         }
     }
@@ -283,4 +303,20 @@ public class MerchantRecipe implements Recipe {
     public void setPriceMultiplier(float priceMultiplier) {
         this.priceMultiplier = priceMultiplier;
     }
+
+    // Paper start
+    /**
+     * @return Whether all discounts on this trade should be ignored.
+     */
+    public boolean shouldIgnoreDiscounts() {
+        return ignoreDiscounts;
+    }
+
+    /**
+     * @param ignoreDiscounts Whether all discounts on this trade should be ignored.
+     */
+    public void setIgnoreDiscounts(boolean ignoreDiscounts) {
+        this.ignoreDiscounts = ignoreDiscounts;
+    }
+    // Paper end
 }

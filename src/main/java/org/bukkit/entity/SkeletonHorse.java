@@ -43,4 +43,20 @@ public interface SkeletonHorse extends AbstractHorse {
      * @param trapTime new trap time
      */
     void setTrapTime(int trapTime);
+
+    /**
+     * @deprecated use {@link #isTrapped()}
+     */
+    @Deprecated
+    default boolean isTrap() {
+        return this.isTrapped();
+    }
+
+    /**
+     * @deprecated use {@link #setTrapped(boolean)}
+     */
+    @Deprecated
+    default void setTrap(boolean trap) {
+        this.setTrapped(trap);
+    }
 }

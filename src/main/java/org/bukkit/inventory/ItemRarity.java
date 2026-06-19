@@ -1,34 +1,33 @@
 package org.bukkit.inventory;
 
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextColor;
+
 /**
- * A item's rarity determines the default color of its name. This enum is
+ * An item's rarity determines the default color of its name. This enum is
  * ordered from least rare to most rare.
  */
 public enum ItemRarity {
 
-    /**
-     * White item name.
-     */
-    COMMON,
-    /**
-     * Yellow item name.
-     */
-    UNCOMMON,
-    /**
-     * Aqua item name.
-     */
-    RARE,
-    /**
-     * Light purple item name.
-     */
-    EPIC;
+    // Start generate - ItemRarity
+    COMMON(NamedTextColor.WHITE),
+    UNCOMMON(NamedTextColor.YELLOW),
+    RARE(NamedTextColor.AQUA),
+    EPIC(NamedTextColor.LIGHT_PURPLE);
+    // End generate - ItemRarity
 
-    public static ItemRarity byName(String name) {
-        for (ItemRarity rarity : values()) {
-            if (rarity.name().equalsIgnoreCase(name)) {
-                return rarity;
-            }
-        }
-        return COMMON;
+    private final net.kyori.adventure.text.format.NamedTextColor color;
+
+    ItemRarity(final net.kyori.adventure.text.format.NamedTextColor color) {
+        this.color = color;
+    }
+
+    /**
+     * Gets the color formatting associated with this rarity.
+     *
+     * @return the color
+     */
+    public @org.jetbrains.annotations.NotNull TextColor color() {
+        return this.color;
     }
 }

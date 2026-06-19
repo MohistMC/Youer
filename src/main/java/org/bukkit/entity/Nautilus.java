@@ -1,7 +1,7 @@
 package org.bukkit.entity;
 
-/**
- * Represents a regular Nautilus.
- */
+import org.jspecify.annotations.NullMarked;
+
+@NullMarked
 public interface Nautilus extends AbstractNautilus {
 }

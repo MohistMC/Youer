@@ -1,7 +1,6 @@
 package org.bukkit.inventory;
 
 import org.bukkit.Color;
-import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Server;
 import org.bukkit.World;
@@ -11,7 +10,6 @@ import org.bukkit.entity.EntityType;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.SkullMeta;
-import org.bukkit.map.MapCursor;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -31,7 +29,7 @@ public interface ItemFactory {
      * @return a new ItemMeta that could be applied to an item stack of the
      *     specified material
      */
-    @Nullable
+    @org.bukkit.UndefinedNullability // Paper
     ItemMeta getItemMeta(@NotNull final Material material);
 
     /**
@@ -172,8 +170,11 @@ public interface ItemFactory {
      * @param level the level to use, which is the level in the enchantment table
      * @param allowTreasures allows treasure enchants, e.g. mending, if true.
      * @return a new ItemStack containing the result of the Enchantment
+     * @deprecated use {@link #enchantWithLevels(ItemStack, int, boolean, java.util.Random)}. This method's implementation is poorly
+     * designed and was originally broken.
      */
     @NotNull
+    @Deprecated(since = "1.19.3") // Paper
     ItemStack enchantItem(@NotNull final Entity entity, @NotNull final ItemStack item, final int level, final boolean allowTreasures);
 
     /**
@@ -186,8 +187,11 @@ public interface ItemFactory {
      * @param level the level to use, which is the level in the enchantment table
      * @param allowTreasures allow the treasure enchants, e.g. mending, if true.
      * @return a new ItemStack containing the result of the Enchantment
+     * @deprecated use {@link #enchantWithLevels(ItemStack, int, boolean, java.util.Random)}. This method's implementation is poorly
+     * designed and was originally broken.
      */
     @NotNull
+    @Deprecated(since = "1.19.3") // Paper
     ItemStack enchantItem(@NotNull final World world, @NotNull final ItemStack item, final int level, final boolean allowTreasures);
 
     /**
@@ -199,18 +203,157 @@ public interface ItemFactory {
      * @param level the level to use, which is the level in the enchantment table
      * @param allowTreasures allow treasure enchantments, e.g. mending, if true.
      * @return a new ItemStack containing the result of the Enchantment
+     * @deprecated use {@link #enchantWithLevels(ItemStack, int, boolean, java.util.Random)}. This method's implementation is poorly
+     * designed and was originally broken.
      */
     @NotNull
+    @Deprecated(since = "1.19.3") // Paper
     ItemStack enchantItem(@NotNull final ItemStack item, final int level, final boolean allowTreasures);
 
     /**
-     * Create a new explorer map targeting the given structure location.
+     * Creates a hover event for the given item.
      *
-     * @param world the world the map will belong to
-     * @param structureLocation the location of the structure
-     * @param mapIcon the icon displayed for the given structure
-     * @return the newly created item stack
+     * @param item The item
+     * @return A hover event
+     * @throws IllegalArgumentException if the {@link ItemStack#getAmount()} is not between 1 and 99
      */
     @NotNull
-    public ItemStack createExplorerMap(@NotNull World world, @NotNull Location structureLocation, @NotNull MapCursor.Type mapIcon);
+    net.kyori.adventure.text.event.HoverEvent<net.kyori.adventure.text.event.HoverEvent.ShowItem> asHoverEvent(final @NotNull ItemStack item, final @NotNull java.util.function.UnaryOperator<net.kyori.adventure.text.event.HoverEvent.ShowItem> op);
+
+    /**
+     * Get the formatted display name of the {@link ItemStack}.
+     *
+     * @apiNote this component include a {@link net.kyori.adventure.text.event.HoverEvent item hover event}.
+     * When used in chat, make sure to follow the ItemStack rules regarding amount, type, and other properties.
+     * @param itemStack the {@link ItemStack}
+     * @return display name of the {@link ItemStack}
+     */
+    @NotNull
+    net.kyori.adventure.text.Component displayName(@NotNull ItemStack itemStack);
+
+    // Paper start - add getI18NDisplayName
+    /**
+     * Gets the Display name as seen in the Client.
+     * Currently, the server only supports the English language. To override this,
+     * You must replace the language file embedded in the server jar.
+     *
+     * @param item Item to return Display name of
+     * @return Display name of Item
+     * @deprecated {@link ItemStack} implements {@link net.kyori.adventure.translation.Translatable}; use that and
+     * {@link net.kyori.adventure.text.Component#translatable(net.kyori.adventure.translation.Translatable)} instead.
+     */
+    @Nullable
+    @Deprecated(since = "1.18.1", forRemoval = true)
+    String getI18NDisplayName(@Nullable ItemStack item);
+    // Paper end - add getI18NDisplayName
+
+    // Paper start - ensure server conversions API
+    /**
+     * Minecraft's updates are converting simple item stacks into more complex NBT oriented Item Stacks.
+     *
+     * Use this method to ensure any desired data conversions are processed.
+     * The input itemstack will not be the same as the returned itemstack.
+     *
+     * @param item The item to process conversions on
+     * @return A potentially Data-Converted-ItemStack
+     */
+    @NotNull
+    ItemStack ensureServerConversions(@NotNull ItemStack item);
+    // Paper end - ensure server conversions API
+
+    // Paper start - bungee hover events
+    /**
+     * Creates a {@link net.md_5.bungee.api.chat.hover.content.Content} of that ItemStack for displaying.
+     *
+     * @param itemStack the itemstack
+     * @return the {@link net.md_5.bungee.api.chat.hover.content.Content} of that ItemStack
+     * @deprecated use {@link ItemStack#asHoverEvent()}
+     */
+    @NotNull
+    @Deprecated // Paper
+    net.md_5.bungee.api.chat.hover.content.Content hoverContentOf(@NotNull ItemStack itemStack);
+
+    /**
+     * Creates a {@link net.md_5.bungee.api.chat.hover.content.Content} of that {@link org.bukkit.entity.Entity} for displaying.
+     * Uses the display name of the entity, if present.
+     *
+     * @param entity Entity to create the HoverEvent for
+     * @return the {@link net.md_5.bungee.api.chat.hover.content.Content} of that {@link org.bukkit.entity.Entity}
+     * @deprecated use {@link org.bukkit.entity.Entity#asHoverEvent()}
+     */
+    @NotNull
+    @Deprecated
+    net.md_5.bungee.api.chat.hover.content.Content hoverContentOf(@NotNull org.bukkit.entity.Entity entity);
+
+    /**
+     * Creates a {@link net.md_5.bungee.api.chat.hover.content.Content} of that {@link org.bukkit.entity.Entity} for displaying.
+     *
+     * @param entity Entity to create the HoverEvent for
+     * @param customName a custom name that should be displayed, if not passed entity name will be displayed
+     * @return the {@link net.md_5.bungee.api.chat.hover.content.Content} of that {@link org.bukkit.entity.Entity}
+     * @deprecated use {@link org.bukkit.entity.Entity#asHoverEvent(java.util.function.UnaryOperator)}
+     */
+    @NotNull
+    @Deprecated
+    net.md_5.bungee.api.chat.hover.content.Content hoverContentOf(@NotNull org.bukkit.entity.Entity entity, @Nullable String customName);
+
+    /**
+     * Creates a {@link net.md_5.bungee.api.chat.hover.content.Content} of that {@link org.bukkit.entity.Entity} for displaying.
+     *
+     * @param entity Entity to create the HoverEvent for
+     * @param customName a custom name that should be displayed, if not passed entity name will be displayed
+     * @return the {@link net.md_5.bungee.api.chat.hover.content.Content} of that {@link org.bukkit.entity.Entity}
+     * @deprecated use {@link org.bukkit.entity.Entity#asHoverEvent(java.util.function.UnaryOperator)}
+     */
+    @NotNull
+    @Deprecated
+    net.md_5.bungee.api.chat.hover.content.Content hoverContentOf(@NotNull org.bukkit.entity.Entity entity, @Nullable net.md_5.bungee.api.chat.BaseComponent customName);
+
+    /**
+     * Creates a {@link net.md_5.bungee.api.chat.hover.content.Content} of that {@link org.bukkit.entity.Entity} for displaying.
+     *
+     * @param entity Entity to create the HoverEvent for
+     * @param customName a custom name that should be displayed, if not passed entity name will be displayed
+     * @return the {@link net.md_5.bungee.api.chat.hover.content.Content} of that {@link org.bukkit.entity.Entity}
+     * @deprecated use {@link org.bukkit.entity.Entity#asHoverEvent(java.util.function.UnaryOperator)}
+     */
+    @NotNull
+    @Deprecated
+    net.md_5.bungee.api.chat.hover.content.Content hoverContentOf(@NotNull org.bukkit.entity.Entity entity, @NotNull net.md_5.bungee.api.chat.BaseComponent[] customName);
+    // Paper end - bungee hover events
+
+    // Paper start - enchantWithLevels API
+    /**
+     * Randomly enchants a copy of the provided {@link ItemStack} using the given experience levels.
+     *
+     * <p>If the provided ItemStack is already enchanted, the existing enchants will be removed before enchanting.</p>
+     *
+     * <p>Enchantment tables use levels in the range {@code [1, 30]}.</p>
+     *
+     * @param itemStack ItemStack to enchant
+     * @param levels levels to use for enchanting
+     * @param allowTreasure whether to allow enchantments where {@link org.bukkit.enchantments.Enchantment#isTreasure()} returns true
+     * @param random {@link java.util.Random} instance to use for enchanting
+     * @return enchanted copy of the provided ItemStack
+     * @throws IllegalArgumentException on bad arguments
+     */
+    @NotNull ItemStack enchantWithLevels(@NotNull ItemStack itemStack, int levels, boolean allowTreasure, @NotNull java.util.Random random);
+    // Paper end - enchantWithLevels API
+    // Paper start - enchantWithLevels with tag specification
+    /**
+     * Randomly enchants a copy of the provided {@link ItemStack} using the given experience levels.
+     *
+     * <p>If the provided ItemStack is already enchanted, the existing enchants will be removed before enchanting.</p>
+     *
+     * <p>Enchantment tables use levels in the range {@code [1, 30]}.</p>
+     *
+     * @param itemStack ItemStack to enchant
+     * @param levels levels to use for enchanting
+     * @param keySet registry key set defining the set of possible enchantments, e.g. {@link io.papermc.paper.registry.keys.tags.EnchantmentTagKeys#IN_ENCHANTING_TABLE}.
+     * @param random {@link java.util.Random} instance to use for enchanting
+     * @return enchanted copy of the provided ItemStack
+     * @throws IllegalArgumentException on bad arguments
+     */
+    @NotNull ItemStack enchantWithLevels(@NotNull ItemStack itemStack, int levels, @NotNull io.papermc.paper.registry.set.RegistryKeySet<@NotNull Enchantment> keySet, @NotNull java.util.Random random);
+    // Paper end - enchantWithLevels with tag specification
 }

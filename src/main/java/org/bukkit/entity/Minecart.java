@@ -1,6 +1,7 @@
 package org.bukkit.entity;
 
-import org.bukkit.GameRule;
+import org.bukkit.GameRules;
+import org.bukkit.Material;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.material.MaterialData;
 import org.bukkit.util.Vector;
@@ -10,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Represents a minecart entity.
  */
-public interface Minecart extends Vehicle {
+public interface Minecart extends Vehicle, io.papermc.paper.entity.Frictional { // Paper
 
     /**
      * Sets a minecart's damage.
@@ -36,7 +37,7 @@ public interface Minecart extends Vehicle {
 
     /**
      * Sets the maximum speed of a minecart. Must be nonnegative. Default is
-     * 0.4D or {@link GameRule#MAX_MINECART_SPEED}.
+     * 0.4D or {@link GameRules#MAX_MINECART_SPEED}.
      *
      * @param speed The max speed
      */
@@ -102,7 +103,9 @@ public interface Minecart extends Vehicle {
      * Passing a null value will set the minecart to have no display block.
      *
      * @param material the material to set as display block.
+     * @deprecated use {@link #setDisplayBlockData(BlockData)}
      */
+    @Deprecated(forRemoval = true, since = "1.13")
     public void setDisplayBlock(@Nullable MaterialData material);
 
     /**
@@ -110,8 +113,10 @@ public interface Minecart extends Vehicle {
      * This function will return the type AIR if none is set.
      *
      * @return the block displayed by this minecart.
+     * @deprecated use {@link #getDisplayBlockData()}
      */
     @NotNull
+    @Deprecated(forRemoval = true, since = "1.13")
     public MaterialData getDisplayBlock();
 
     /**
@@ -145,19 +150,13 @@ public interface Minecart extends Vehicle {
      */
     public int getDisplayBlockOffset();
 
+    // Paper start
     /**
-     * Sets the multiplier of the minecart's acceleration while on powered
-     * rails.
+     * Gets the {@link Material} that represents this Minecart type.
      *
-     * @param multiplier a value of 1.0 is the default acceleration
+     * @return the minecart material.
      */
-    public void setPoweredRailAccelerationMultiplier(double multiplier);
-
-    /**
-     * Gets the multiplier of the minecart's acceleration while on powered
-     * rails.
-     *
-     * @return acceleration multiplier
-     */
-    public double getPoweredRailAccelerationMultiplier();
+    @NotNull
+    public Material getMinecartMaterial();
+    // Paper end
 }

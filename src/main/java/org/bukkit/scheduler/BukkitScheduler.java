@@ -138,7 +138,7 @@ public interface BukkitScheduler {
      * @param <T> The callable's return type
      * @param plugin Plugin that owns the task
      * @param task Task to be executed
-     * @return Future Future object related to the task
+     * @return Future object related to the task
      */
     @NotNull
     public <T> Future<T> callSyncMethod(@NotNull Plugin plugin, @NotNull Callable<T> task);
@@ -457,4 +457,15 @@ public interface BukkitScheduler {
     @Deprecated(since = "1.7.10")
     @NotNull
     public BukkitTask runTaskTimerAsynchronously(@NotNull Plugin plugin, @NotNull BukkitRunnable task, long delay, long period) throws IllegalArgumentException;
+
+    // Paper start - add getMainThreadExecutor
+    /**
+     * Returns an executor that will run tasks on the next server tick.
+     *
+     * @param plugin the reference to the plugin scheduling tasks
+     * @return an executor associated with the given plugin
+     */
+    @NotNull
+    public java.util.concurrent.Executor getMainThreadExecutor(@NotNull Plugin plugin);
+    // Paper end
 }

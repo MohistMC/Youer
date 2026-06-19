@@ -10,19 +10,34 @@ import org.jetbrains.annotations.Nullable;
  */
 public interface Enderman extends Monster {
 
+    // Paper start
+    /**
+     * Try to teleport the enderman to a random nearby location.
+     *
+     * May conditionally fail if the random location was not valid
+     * @return If the enderman teleported successfully or not
+     */
+
+    public boolean teleportRandomly();
+    // Paper end
+
     /**
      * Gets the id and data of the block that the Enderman is carrying.
      *
      * @return MaterialData containing the id and data of the block
+     * @deprecated use {@link #getCarriedBlock()}
      */
     @NotNull
+    @Deprecated(forRemoval = true, since = "1.13")
     public MaterialData getCarriedMaterial();
 
     /**
      * Sets the id and data of the block that the Enderman is carrying.
      *
      * @param material data to set the carried block to
+     * @deprecated use {@link #setCarriedBlock(BlockData)}
      */
+    @Deprecated(forRemoval = true, since = "1.13")
     public void setCarriedMaterial(@NotNull MaterialData material);
 
     /**
@@ -71,4 +86,36 @@ public interface Enderman extends Monster {
      * @return true if the teleport succeeded.
      */
     public boolean teleportTowards(@NotNull Entity entity);
+
+    // Paper start
+    /**
+     * Returns whether the enderman is screaming/angry.
+     *
+     * @return whether the enderman is screaming
+     */
+    boolean isScreaming();
+
+    /**
+     * Sets whether the enderman is screaming/angry.
+     *
+     * @param screaming whether the enderman is screaming
+     */
+    void setScreaming(boolean screaming);
+
+    /**
+     * Returns whether the enderman has been stared at.
+     * If set to true, players will hear an ambient sound.
+     *
+     * @return whether the enderman has been stared at
+     */
+    boolean hasBeenStaredAt();
+
+    /**
+     * Sets whether the enderman has been stared at.
+     * If set to true, players will hear an ambient sound.
+     *
+     * @param hasBeenStaredAt whether the enderman has been stared at
+     */
+    void setHasBeenStaredAt(boolean hasBeenStaredAt);
+    // Paper end
 }

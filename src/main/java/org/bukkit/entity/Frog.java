@@ -1,12 +1,14 @@
 package org.bukkit.entity;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import java.util.Locale;
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.key.KeyPattern;
 import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
-import org.bukkit.registry.RegistryAware;
 import org.bukkit.util.OldEnum;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -49,37 +51,20 @@ public interface Frog extends Animals {
     /**
      * Represents the variant of a frog - ie its color.
      */
-    interface Variant extends OldEnum<Variant>, Keyed, RegistryAware {
+    interface Variant extends OldEnum<Variant>, Keyed {
 
-        /**
-         * Temperate (brown-orange) frog.
-         */
-        Variant TEMPERATE = getVariant("temperate");
-        /**
-         * Warm (gray) frog.
-         */
-        Variant WARM = getVariant("warm");
-        /**
-         * Cold (green) frog.
-         */
+        // Start generate - FrogVariant
         Variant COLD = getVariant("cold");
 
-        @NotNull
-        private static Variant getVariant(@NotNull String key) {
-            return Registry.FROG_VARIANT.getOrThrow(NamespacedKey.minecraft(key));
-        }
+        Variant TEMPERATE = getVariant("temperate");
 
-        /**
-         * {@inheritDoc}
-         *
-         * @see #getKeyOrThrow()
-         * @see #isRegistered()
-         * @deprecated A key might not always be present, use {@link #getKeyOrThrow()} instead.
-         */
+        Variant WARM = getVariant("warm");
+        // End generate - FrogVariant
+
         @NotNull
-        @Override
-        @Deprecated(since = "1.21.4")
-        NamespacedKey getKey();
+        private static Variant getVariant(@NotNull @KeyPattern.Value String key) {
+            return RegistryAccess.registryAccess().getRegistry(RegistryKey.FROG_VARIANT).getOrThrow(Key.key(Key.MINECRAFT_NAMESPACE, key));
+        }
 
         /**
          * @param name of the frog variant.
@@ -87,21 +72,22 @@ public interface Frog extends Animals {
          * @deprecated only for backwards compatibility, use {@link Registry#get(NamespacedKey)} instead.
          */
         @NotNull
-        @Deprecated(since = "1.21")
+        @Deprecated(since = "1.21", forRemoval = true) @org.jetbrains.annotations.ApiStatus.ScheduledForRemoval(inVersion = "1.22") // Paper - will be removed via asm-utils
         static Variant valueOf(@NotNull String name) {
-            Variant variant = Registry.FROG_VARIANT.get(NamespacedKey.fromString(name.toLowerCase(Locale.ROOT)));
+            final NamespacedKey key = NamespacedKey.fromString(name.toLowerCase(Locale.ROOT));
+            Variant variant = key == null ? null : RegistryAccess.registryAccess().getRegistry(RegistryKey.FROG_VARIANT).get(key);
             Preconditions.checkArgument(variant != null, "No frog variant found with the name %s", name);
             return variant;
         }
 
         /**
          * @return an array of all known frog variants.
-         * @deprecated use {@link Registry#iterator()}.
+         * @deprecated use {@link Registry#stream()}.
          */
         @NotNull
-        @Deprecated(since = "1.21")
+        @Deprecated(since = "1.21", forRemoval = true) @org.jetbrains.annotations.ApiStatus.ScheduledForRemoval(inVersion = "1.22") // Paper - will be removed via asm-utils
         static Variant[] values() {
-            return Lists.newArrayList(Registry.FROG_VARIANT).toArray(new Variant[0]);
+            return RegistryAccess.registryAccess().getRegistry(RegistryKey.FROG_VARIANT).stream().toArray(Variant[]::new);
         }
     }
 }

@@ -39,7 +39,6 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.plugin.PluginLoader;
 import org.bukkit.plugin.RegisteredListener;
 import org.bukkit.plugin.SimplePluginManager;
-import org.bukkit.plugin.TimedRegisteredListener;
 import org.bukkit.plugin.UnknownDependencyException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -48,6 +47,7 @@ import org.yaml.snakeyaml.error.YAMLException;
 /**
  * Represents a Java plugin loader, allowing plugins in the form of .jar
  */
+@Deprecated(forRemoval = true) // Paper - The PluginLoader system will not function in the near future. This implementation will be moved.
 public final class JavaPluginLoader implements PluginLoader {
     final Server server;
     private final Pattern[] fileFilters = new Pattern[]{Pattern.compile("\\.jar$")};
@@ -77,6 +77,7 @@ public final class JavaPluginLoader implements PluginLoader {
     @Override
     @NotNull
     public Plugin loadPlugin(@NotNull final File file) throws InvalidPluginException {
+        if (true) throw new UnsupportedOperationException(); // Paper
         Preconditions.checkArgument(file != null, "File cannot be null");
 
         if (!file.exists()) {
@@ -90,7 +91,7 @@ public final class JavaPluginLoader implements PluginLoader {
             throw new InvalidPluginException(ex);
         }
 
-        final File parentFile = file.getParentFile();
+        final File parentFile = this.server.getPluginsFolder(); // Paper
         final File dataFolder = new File(parentFile, description.getName());
         @SuppressWarnings("deprecation")
         final File oldDataFolder = new File(parentFile, description.getRawName());
@@ -140,7 +141,7 @@ public final class JavaPluginLoader implements PluginLoader {
 
         final PluginClassLoader loader;
         try {
-            loader = new PluginClassLoader(this, getClass().getClassLoader(), description, dataFolder, file, (libraryLoader != null) ? libraryLoader.createLoader(description) : null);
+            loader = new PluginClassLoader(getClass().getClassLoader(), description, dataFolder, file, (libraryLoader != null) ? libraryLoader.createLoader(description) : null, null, null); // Paper
         } catch (InvalidPluginException ex) {
             throw ex;
         } catch (Throwable ex) {
@@ -229,12 +230,12 @@ public final class JavaPluginLoader implements PluginLoader {
         Preconditions.checkArgument(plugin != null, "Plugin can not be null");
         Preconditions.checkArgument(listener != null, "Listener can not be null");
 
-        Map<Class<? extends Event>, Set<RegisteredListener>> ret = new HashMap<Class<? extends Event>, Set<RegisteredListener>>();
+        Map<Class<? extends Event>, Set<RegisteredListener>> ret = new HashMap<>();
         Set<Method> methods;
         try {
             Method[] publicMethods = listener.getClass().getMethods();
             Method[] privateMethods = listener.getClass().getDeclaredMethods();
-            methods = new HashSet<Method>(publicMethods.length + privateMethods.length, 1.0f);
+            methods = new HashSet<>(publicMethods.length + privateMethods.length, 1.0f);
             for (Method method : publicMethods) {
                 methods.add(method);
             }
@@ -263,7 +264,7 @@ public final class JavaPluginLoader implements PluginLoader {
             method.setAccessible(true);
             Set<RegisteredListener> eventSet = ret.get(eventClass);
             if (eventSet == null) {
-                eventSet = new HashSet<RegisteredListener>();
+                eventSet = new HashSet<>();
                 ret.put(eventClass, eventSet);
             }
 
@@ -289,9 +290,9 @@ public final class JavaPluginLoader implements PluginLoader {
                 }
             }
 
-            EventExecutor executor = new EventExecutor() {
+            EventExecutor executor = new co.aikar.timings.TimedEventExecutor(new EventExecutor() { // Paper
                 @Override
-                public void execute(@NotNull Listener listener, @NotNull Event event) throws EventException {
+                public void execute(@NotNull Listener listener, @NotNull Event event) throws EventException { // Paper
                     try {
                         if (!eventClass.isAssignableFrom(event.getClass())) {
                             return;
@@ -303,7 +304,7 @@ public final class JavaPluginLoader implements PluginLoader {
                         throw new EventException(t);
                     }
                 }
-            };
+            }, plugin, method, eventClass); // Paper
             eventSet.add(new RegisteredListener(listener, executor, eh.priority(), plugin, eh.ignoreCancelled()));
         }
         return ret;
@@ -368,8 +369,7 @@ public final class JavaPluginLoader implements PluginLoader {
 
                 try {
                     loader.close();
-                } catch (IOException ex) {
-                    //
+                } catch (IOException ignored) {
                 }
             }
         }

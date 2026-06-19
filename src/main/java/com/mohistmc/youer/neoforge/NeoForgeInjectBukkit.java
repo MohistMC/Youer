@@ -104,7 +104,7 @@ public class NeoForgeInjectBukkit {
                 if (material != null) {
                     CraftMagicNumbers.ITEM_MATERIAL.put(item, material);
                     CraftMagicNumbers.MATERIAL_ITEM.put(material, item);
-                    debug("Save-ITEM: {} - {}", material.name(), material.getKeyOrNull());
+                    debug("Save-ITEM: {} - {}", material.name(), material.getKey());
                 }
             }
         }
@@ -130,7 +130,7 @@ public class NeoForgeInjectBukkit {
                 if (material != null) {
                     CraftMagicNumbers.BLOCK_MATERIAL.put(block, material);
                     CraftMagicNumbers.MATERIAL_BLOCK.put(material, block);
-                    debug("Save-BLOCK:{} - {}", material.name(), material.getKeyOrNull());
+                    debug("Save-BLOCK:{} - {}", material.name(), material.getKey());
                 }
             }
         }
@@ -285,7 +285,6 @@ public class NeoForgeInjectBukkit {
                 SpawnCategory spawnCategory = MohistDynamEnum.addEnum(SpawnCategory.class, name);
                 spawnCategoryMap.put(category, spawnCategory);
                 CategoryspawnMap.put(spawnCategory, category);
-                spawnCategory.isMods = true;
                 debug("Registered forge MobCategory as SpawnCategory(Bukkit) {}", spawnCategory);
             }
         }

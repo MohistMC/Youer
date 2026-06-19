@@ -8,7 +8,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Represents a dropped item.
  */
-public interface Item extends Entity {
+public interface Item extends Entity, io.papermc.paper.entity.Frictional { // Paper
 
     /**
      * Gets the item stack associated with this item drop.
@@ -89,4 +89,68 @@ public interface Item extends Entity {
      */
     @Nullable
     public UUID getThrower();
+
+    // Paper start
+    /**
+     * Gets if non-player entities can pick this Item up
+     *
+     * @return True if non-player entities can pickup
+     */
+     public boolean canMobPickup();
+
+    /**
+     * Sets if non-player entities can pick this Item up
+     *
+     * @param canMobPickup True to allow non-player entity pickup
+     */
+    public void setCanMobPickup(boolean canMobPickup);
+
+    /**
+     * Gets whether the player can pickup the item or not
+     *
+     * @return True if a player can pickup the item
+     */
+    public boolean canPlayerPickup();
+
+    /**
+     * Sets whether the item can be picked up or not. Modifies the pickup delay value to do so.
+     *
+     * @param canPlayerPickup True if the player can pickup the item
+     */
+    public void setCanPlayerPickup(boolean canPlayerPickup);
+
+    /**
+     * Gets whether the item will age and despawn from being on the ground too long
+     *
+     * @return True if the item will age
+     */
+    public boolean willAge();
+
+    /**
+     * Sets whether the item will age or not. If the item is not ageing, it will not despawn
+     * by being on the ground for too long.
+     *
+     * @param willAge True if the item should age
+     */
+    public void setWillAge(boolean willAge);
+
+    /**
+     * Gets the health of item stack.
+     * <p>
+     * Currently the default max health is 5.
+     *
+     * @return the health
+     */
+    public int getHealth();
+
+    /**
+     * Sets the health of the item stack. If the value is non-positive
+     * the itemstack's normal "on destroy" functionality will be run.
+     * <p>
+     * Currently, the default max health is 5.
+     *
+     * @param health the health, a non-positive value will destroy the entity
+     */
+    public void setHealth(int health);
+    // Paper end
 }

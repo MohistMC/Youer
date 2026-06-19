@@ -1,55 +1,105 @@
 package org.bukkit.entity;
 
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.key.KeyPattern;
 import org.bukkit.Keyed;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
-import org.bukkit.registry.RegistryAware;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NullMarked;
 
 /**
  * Represents a Chicken.
  */
+@NullMarked
 public interface Chicken extends Animals {
 
     /**
-     * Get the variant of this chicken.
+     * Gets the variant of this chicken.
      *
-     * @return chicken variant
+     * @return the chicken variant
      */
-    @NotNull
     Variant getVariant();
 
     /**
-     * Set the variant of this chicken.
+     * Sets the variant of this chicken.
      *
-     * @param variant chicken variant
+     * @param variant the chicken variant
      */
-    void setVariant(@NotNull Variant variant);
+    void setVariant(Variant variant);
+
+    /**
+     * Get the sound variant of this chicken.
+     *
+     * @return chicken sound variant
+     */
+    SoundVariant getSoundVariant();
+
+    /**
+     * Set the sound variant of this chicken.
+     *
+     * @param variant chicken sound variant
+     */
+    void setSoundVariant(SoundVariant variant);
+
+    /**
+     * Gets if this chicken was spawned as a chicken jockey.
+     *
+     * @return is chicken jockey
+     */
+    boolean isChickenJockey();
+
+    /**
+     * Sets if this chicken was spawned as a chicken jockey.
+     *
+     * @param isChickenJockey is chicken jockey
+     */
+    void setIsChickenJockey(boolean isChickenJockey);
+
+    /**
+     * Gets the number of ticks till this chicken lays an egg.
+     *
+     * @return ticks till the chicken lays an egg
+     */
+    int getEggLayTime();
+
+    /**
+     * Sets the number of ticks till this chicken lays an egg.
+     *
+     * @param eggLayTime ticks till the chicken lays an egg
+     */
+    void setEggLayTime(int eggLayTime);
 
     /**
      * Represents the variant of a chicken.
      */
-    interface Variant extends Keyed, RegistryAware {
+    interface Variant extends Keyed {
 
-        Variant TEMPERATE = getType("temperate");
-        Variant WARM = getType("warm");
-        Variant COLD = getType("cold");
+        // Start generate - ChickenVariant
+        Variant COLD = getVariant("cold");
 
-        /**
-         * {@inheritDoc}
-         *
-         * @see #getKeyOrThrow()
-         * @see #isRegistered()
-         * @deprecated A key might not always be present, use {@link #getKeyOrThrow()} instead.
-         */
-        @NotNull
-        @Override
-        @Deprecated(since = "1.21.5")
-        NamespacedKey getKey();
+        Variant TEMPERATE = getVariant("temperate");
 
-        @NotNull
-        private static Variant getType(@NotNull String key) {
-            return Registry.CHICKEN_VARIANT.getOrThrow(NamespacedKey.minecraft(key));
+        Variant WARM = getVariant("warm");
+        // End generate - ChickenVariant
+
+        private static Variant getVariant(@KeyPattern.Value final String key) {
+            return RegistryAccess.registryAccess().getRegistry(RegistryKey.CHICKEN_VARIANT).getOrThrow(Key.key(Key.MINECRAFT_NAMESPACE, key));
+        }
+    }
+
+    /**
+     * Represents the sound variant of a chicken.
+     */
+    interface SoundVariant extends Keyed {
+
+        // Start generate - ChickenSoundVariant
+        SoundVariant CLASSIC = getSoundVariant("classic");
+
+        SoundVariant PICKY = getSoundVariant("picky");
+        // End generate - ChickenSoundVariant
+
+        private static SoundVariant getSoundVariant(@KeyPattern.Value final String key) {
+            return RegistryAccess.registryAccess().getRegistry(RegistryKey.CHICKEN_SOUND_VARIANT).getOrThrow(Key.key(Key.MINECRAFT_NAMESPACE, key));
         }
     }
 }

@@ -12,8 +12,6 @@ public interface Sniffer extends Animals {
 
     /**
      * Gets the locations explored by the sniffer.
-     * <br>
-     * <b>Note:</b> the returned locations use sniffer's current world.
      *
      * @return a collection of locations
      */
@@ -22,9 +20,6 @@ public interface Sniffer extends Animals {
 
     /**
      * Remove a location of the explored locations.
-     * <br>
-     * <b>Note:</b> the location must be in the sniffer's current world for this
-     * method to have any effect.
      *
      * @param location the location to remove
      * @see #getExploredLocations()
@@ -79,6 +74,7 @@ public interface Sniffer extends Animals {
      * Represents the current state of the Sniffer.
      */
     public enum State {
+        // Start generate - SnifferState
         IDLING,
         FEELING_HAPPY,
         SCENTING,
@@ -86,5 +82,6 @@ public interface Sniffer extends Animals {
         SEARCHING,
         DIGGING,
         RISING;
+        // End generate - SnifferState
     }
 }

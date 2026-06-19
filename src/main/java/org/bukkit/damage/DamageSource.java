@@ -1,6 +1,6 @@
 package org.bukkit.damage;
 
-import org.bukkit.Bukkit;
+import io.papermc.paper.InternalAPIBridge;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.jetbrains.annotations.NotNull;
@@ -49,6 +49,8 @@ public interface DamageSource {
      * be present if an entity did not cause the damage.
      *
      * @return the location, or null if none
+     * @apiNote the world of the location might be null for positioned-only damage source
+     * not caused by any entity
      */
     @Nullable
     public Location getDamageLocation();
@@ -64,6 +66,8 @@ public interface DamageSource {
      * returned.
      *
      * @return the source of the location or null.
+     * @apiNote the world of the location might be null for positioned-only damage source
+     * not caused by any entity
      */
     @Nullable
     public Location getSourceLocation();
@@ -100,9 +104,8 @@ public interface DamageSource {
      * @return a {@link DamageSource.Builder}
      */
     @NotNull
-    @SuppressWarnings("deprecation")
     public static Builder builder(@NotNull DamageType damageType) {
-        return Bukkit.getUnsafe().createDamageSourceBuilder(damageType);
+        return InternalAPIBridge.get().createDamageSourceBuilder(damageType);
     }
 
     /**

@@ -1,20 +1,22 @@
 package org.bukkit.entity;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.Lists;
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import java.util.Locale;
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.key.KeyPattern;
 import org.bukkit.DyeColor;
 import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
-import org.bukkit.registry.RegistryAware;
 import org.bukkit.util.OldEnum;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Meow.
  */
-public interface Cat extends Tameable, Sittable {
+public interface Cat extends Tameable, Sittable, io.papermc.paper.entity.CollarColorable { // Paper - CollarColorable
 
     /**
      * Gets the current type of this cat.
@@ -32,11 +34,27 @@ public interface Cat extends Tameable, Sittable {
     public void setCatType(@NotNull Type type);
 
     /**
+     * Get the sound variant of this cat.
+     *
+     * @return cat sound variant
+     */
+    @NotNull
+    SoundVariant getSoundVariant();
+
+    /**
+     * Set the sound variant of this cat.
+     *
+     * @param variant cat sound variant
+     */
+    void setSoundVariant(@NotNull SoundVariant variant);
+
+    /**
      * Get the collar color of this cat
      *
      * @return the color of the collar
      */
     @NotNull
+    @Override // Paper
     public DyeColor getCollarColor();
 
     /**
@@ -44,41 +62,42 @@ public interface Cat extends Tameable, Sittable {
      *
      * @param color the color to apply
      */
+    @Override // Paper
     public void setCollarColor(@NotNull DyeColor color);
 
     /**
      * Represents the various different cat types there are.
      */
-    interface Type extends OldEnum<Type>, Keyed, RegistryAware {
+    interface Type extends OldEnum<Type>, Keyed {
 
-        Type TABBY = getType("tabby");
-        Type BLACK = getType("black");
-        Type RED = getType("red");
-        Type SIAMESE = getType("siamese");
-        Type BRITISH_SHORTHAIR = getType("british_shorthair");
-        Type CALICO = getType("calico");
-        Type PERSIAN = getType("persian");
-        Type RAGDOLL = getType("ragdoll");
-        Type WHITE = getType("white");
-        Type JELLIE = getType("jellie");
+        // Start generate - CatType
         Type ALL_BLACK = getType("all_black");
 
-        @NotNull
-        private static Type getType(@NotNull String key) {
-            return Registry.CAT_VARIANT.getOrThrow(NamespacedKey.minecraft(key));
-        }
+        Type BLACK = getType("black");
 
-        /**
-         * {@inheritDoc}
-         *
-         * @see #getKeyOrThrow()
-         * @see #isRegistered()
-         * @deprecated A key might not always be present, use {@link #getKeyOrThrow()} instead.
-         */
+        Type BRITISH_SHORTHAIR = getType("british_shorthair");
+
+        Type CALICO = getType("calico");
+
+        Type JELLIE = getType("jellie");
+
+        Type PERSIAN = getType("persian");
+
+        Type RAGDOLL = getType("ragdoll");
+
+        Type RED = getType("red");
+
+        Type SIAMESE = getType("siamese");
+
+        Type TABBY = getType("tabby");
+
+        Type WHITE = getType("white");
+        // End generate - CatType
+
         @NotNull
-        @Override
-        @Deprecated(since = "1.21.4")
-        NamespacedKey getKey();
+        private static Type getType(@NotNull @KeyPattern.Value final String key) {
+            return RegistryAccess.registryAccess().getRegistry(RegistryKey.CAT_VARIANT).getOrThrow(Key.key(Key.MINECRAFT_NAMESPACE, key));
+        }
 
         /**
          * @param name of the cat type.
@@ -86,21 +105,69 @@ public interface Cat extends Tameable, Sittable {
          * @deprecated only for backwards compatibility, use {@link Registry#get(NamespacedKey)} instead.
          */
         @NotNull
-        @Deprecated(since = "1.21")
+        @Deprecated(since = "1.21", forRemoval = true) @org.jetbrains.annotations.ApiStatus.ScheduledForRemoval(inVersion = "1.22") // Paper - will be removed via asm-utils
         static Type valueOf(@NotNull String name) {
-            Type type = Registry.CAT_VARIANT.get(NamespacedKey.fromString(name.toLowerCase(Locale.ROOT)));
+            final NamespacedKey key = NamespacedKey.fromString(name.toLowerCase(Locale.ROOT));
+            Type type = key == null ? null : RegistryAccess.registryAccess().getRegistry(RegistryKey.CAT_VARIANT).get(key);
             Preconditions.checkArgument(type != null, "No cat type found with the name %s", name);
             return type;
         }
 
         /**
          * @return an array of all known cat types.
-         * @deprecated use {@link Registry#iterator()}.
+         * @deprecated use {@link Registry#stream()}.
          */
         @NotNull
-        @Deprecated(since = "1.21")
+        @Deprecated(since = "1.21", forRemoval = true) @org.jetbrains.annotations.ApiStatus.ScheduledForRemoval(inVersion = "1.22") // Paper - will be removed via asm-utils
         static Type[] values() {
-            return Lists.newArrayList(Registry.CAT_VARIANT).toArray(new Type[0]);
+            return RegistryAccess.registryAccess().getRegistry(RegistryKey.CAT_VARIANT).stream().toArray(Type[]::new);
         }
     }
+
+    /**
+     * Represents the sound variant of a cat.
+     */
+    interface SoundVariant extends Keyed {
+
+        // Start generate - CatSoundVariant
+        SoundVariant CLASSIC = getSoundVariant("classic");
+
+        SoundVariant ROYAL = getSoundVariant("royal");
+        // End generate - CatSoundVariant
+
+        @NotNull
+        private static SoundVariant getSoundVariant(@KeyPattern.Value final @NotNull String key) {
+            return RegistryAccess.registryAccess().getRegistry(RegistryKey.CAT_SOUND_VARIANT).getOrThrow(Key.key(Key.MINECRAFT_NAMESPACE, key));
+        }
+    }
+
+    /**
+     * Sets if the cat is lying down.
+     * This is visual and does not affect the behaviour of the cat.
+     *
+     * @param lyingDown whether the cat should lie down
+     */
+    public void setLyingDown(boolean lyingDown);
+
+    /**
+     * Gets if the cat is lying down.
+     *
+     * @return whether the cat is lying down
+     */
+    public boolean isLyingDown();
+
+    /**
+     * Sets if the cat has its head up.
+     * This is visual and does not affect the behaviour of the cat.
+     *
+     * @param headUp head is up
+     */
+    public void setHeadUp(boolean headUp);
+
+    /**
+     * Gets if the cat has its head up.
+     *
+     * @return head is up
+     */
+    public boolean isHeadUp();
 }

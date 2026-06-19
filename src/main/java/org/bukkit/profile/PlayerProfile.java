@@ -4,7 +4,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import org.bukkit.Server;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
-import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,21 +16,24 @@ import org.jetbrains.annotations.Nullable;
  * <p>
  * New profiles can be created via
  * {@link Server#createPlayerProfile(UUID, String)}.
+ * @deprecated see {@link com.destroystokyo.paper.profile.PlayerProfile}
  */
+@Deprecated(since = "1.18.1") // Paper
 public interface PlayerProfile extends Cloneable, ConfigurationSerializable {
 
     /**
      * Gets the player's unique id.
      *
-     * @return the player's unique id, or <code>null</code> if not available
+     * @return the player's unique id, or {@code null} if not available
      */
     @Nullable
+    @Deprecated(since = "1.18.1") // Paper
     UUID getUniqueId();
 
     /**
      * Gets the player name.
      *
-     * @return the player name, or <code>null</code> if not available
+     * @return the player name, or {@code null} if not available
      */
     @Nullable
     String getName();
@@ -39,7 +41,7 @@ public interface PlayerProfile extends Cloneable, ConfigurationSerializable {
     /**
      * Gets the {@link PlayerTextures} of this profile.
      *
-     * @return the textures, not <code>null</code>
+     * @return the textures
      */
     @NotNull
     PlayerTextures getTextures();
@@ -47,28 +49,10 @@ public interface PlayerProfile extends Cloneable, ConfigurationSerializable {
     /**
      * Copies the given textures.
      *
-     * @param textures the textures to copy, or <code>null</code> to clear the
+     * @param textures the textures to copy, or {@code null} to clear the
      * textures
      */
     void setTextures(@Nullable PlayerTextures textures);
-
-    /**
-     * Gets the {@link PlayerSkinPatch} of this profile.
-     *
-     * @return the skin patch, not <code>null</code>
-     */
-    @NotNull
-    @ApiStatus.Experimental
-    PlayerSkinPatch getSkinPatch();
-
-    /**
-     * Copies the given patch.
-     *
-     * @param patch the patch to copy, or <code>null</code> to clear the
-     * patch
-     */
-    @ApiStatus.Experimental
-    void setSkinPatch(@Nullable PlayerSkinPatch patch);
 
     /**
      * Checks whether this profile is complete.
@@ -76,7 +60,7 @@ public interface PlayerProfile extends Cloneable, ConfigurationSerializable {
      * A profile is currently considered complete if it has a name, a unique id,
      * and textures.
      *
-     * @return <code>true</code> if this profile is complete
+     * @return {@code true} if this profile is complete
      */
     boolean isComplete();
 
@@ -112,7 +96,7 @@ public interface PlayerProfile extends Cloneable, ConfigurationSerializable {
      * PlayerProfile once it is available
      */
     @NotNull
-    CompletableFuture<PlayerProfile> update();
+    CompletableFuture<? extends PlayerProfile> update(); // Paper
 
     @NotNull
     PlayerProfile clone();

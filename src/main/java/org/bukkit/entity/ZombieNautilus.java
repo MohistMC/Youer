@@ -1,55 +1,42 @@
 package org.bukkit.entity;
 
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
+import net.kyori.adventure.key.Key;
+import net.kyori.adventure.key.KeyPattern;
 import org.bukkit.Keyed;
-import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
-import org.bukkit.registry.RegistryAware;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NullMarked;
 
-/**
- * Represents a Zombie Nautilus.
- */
+@NullMarked
 public interface ZombieNautilus extends AbstractNautilus {
 
     /**
-     * Get the variant of this zombie nautilus.
+     * Gets the variant of this zombie nautilus.
      *
-     * @return zombie nautilus variant
+     * @return the variant
      */
-    @NotNull
     Variant getVariant();
 
     /**
-     * Set the variant of this zombie nautilus.
+     * Sets the variant of this zombie nautilus.
      *
-     * @param variant zombie nautilus variant
+     * @param variant the variant
      */
-    void setVariant(@NotNull Variant variant);
+    void setVariant(Variant variant);
 
     /**
-     * Represents the variant of a zombie nautilus.
+     * Represents the variant of a Zombie Nautilus.
      */
-    interface Variant extends Keyed, RegistryAware {
+    interface Variant extends Keyed {
 
-        Variant TEMPERATE = getType("temperate");
-        Variant WARM = getType("warm");
+        // Start generate - ZombieNautilusVariant
+        Variant TEMPERATE = getVariant("temperate");
 
-        /**
-         * {@inheritDoc}
-         *
-         * @see #getKeyOrThrow()
-         * @see #isRegistered()
-         * @deprecated A key might not always be present, use
-         * {@link #getKeyOrThrow()} instead.
-         */
-        @NotNull
-        @Override
-        @Deprecated(since = "1.21.5")
-        NamespacedKey getKey();
+        Variant WARM = getVariant("warm");
+        // End generate - ZombieNautilusVariant
 
-        @NotNull
-        private static Variant getType(@NotNull String key) {
-            return Registry.ZOMBIE_NAUTILUS_VARIANT.getOrThrow(NamespacedKey.minecraft(key));
+        private static Variant getVariant(@KeyPattern.Value String key) {
+            return RegistryAccess.registryAccess().getRegistry(RegistryKey.ZOMBIE_NAUTILUS_VARIANT).getOrThrow(Key.key(Key.MINECRAFT_NAMESPACE, key));
         }
     }
 }

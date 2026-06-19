@@ -1,16 +1,18 @@
 package org.bukkit.command.defaults;
 
-import com.google.common.base.Charsets;
+import com.destroystokyo.paper.util.VersionFetcher;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
 import com.google.common.io.Resources;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonSyntaxException;
+import io.papermc.paper.InternalAPIBridge;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -18,6 +20,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.locks.ReentrantLock;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.event.ClickEvent;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
@@ -26,7 +33,17 @@ import org.bukkit.plugin.PluginDescriptionFile;
 import org.bukkit.util.StringUtil;
 import org.jetbrains.annotations.NotNull;
 
+@Deprecated(forRemoval = true)
 public class VersionCommand extends BukkitCommand {
+    private VersionFetcher versionFetcher; // Paper - version command 2.0
+    private VersionFetcher getVersionFetcher() { // lazy load because unsafe isn't available at command registration
+        if (versionFetcher == null) {
+            versionFetcher = InternalAPIBridge.get().getVersionFetcher();
+        }
+
+        return versionFetcher;
+    }
+
     public VersionCommand(@NotNull String name) {
         super(name);
 
@@ -41,7 +58,8 @@ public class VersionCommand extends BukkitCommand {
         if (!testPermission(sender)) return true;
 
         if (args.length == 0) {
-            sender.sendMessage("This server is running " + Bukkit.getName() + " version " + Bukkit.getVersion() + " (Implementing API version " + Bukkit.getBukkitVersion() + ")");
+            //sender.sendMessage("This server is running " + Bukkit.getName() + " version " + Bukkit.getVersion() + " (Implementing API version " + Bukkit.getBukkitVersion() + ")"); // Paper - moved to setVersionMessage
+            sendVersion(sender);
         } else {
             StringBuilder name = new StringBuilder();
 
@@ -79,8 +97,17 @@ public class VersionCommand extends BukkitCommand {
 
     private void describeToSender(@NotNull Plugin plugin, @NotNull CommandSender sender) {
         PluginDescriptionFile desc = plugin.getDescription();
-        sender.sendMessage(ChatColor.GREEN + desc.getName() + ChatColor.WHITE + " version " + ChatColor.GREEN + desc.getVersion());
-
+        // Paper start - version command 2.0
+        sender.sendMessage(
+            Component.text()
+                .append(Component.text(desc.getName(), NamedTextColor.GREEN))
+                .append(Component.text(" version "))
+                .append(Component.text(desc.getVersion(), NamedTextColor.GREEN)
+                    .hoverEvent(Component.text("Click to copy to clipboard", NamedTextColor.WHITE))
+                    .clickEvent(ClickEvent.copyToClipboard(desc.getVersion()))
+                )
+        );
+        // Paper end - version command 2.0
         if (desc.getDescription() != null) {
             sender.sendMessage(desc.getDescription());
         }
@@ -146,14 +173,14 @@ public class VersionCommand extends BukkitCommand {
 
     private final ReentrantLock versionLock = new ReentrantLock();
     private boolean hasVersion = false;
-    private String versionMessage = null;
+    private Component versionMessage = null; // Paper
     private final Set<CommandSender> versionWaiters = new HashSet<CommandSender>();
     private boolean versionTaskStarted = false;
     private long lastCheck = 0;
 
     private void sendVersion(@NotNull CommandSender sender) {
         if (hasVersion) {
-            if (System.currentTimeMillis() - lastCheck > 21600000) {
+            if (System.currentTimeMillis() - lastCheck > getVersionFetcher().getCacheTime()) { // Paper - use version supplier
                 lastCheck = System.currentTimeMillis();
                 hasVersion = false;
             } else {
@@ -168,7 +195,7 @@ public class VersionCommand extends BukkitCommand {
                 return;
             }
             versionWaiters.add(sender);
-            sender.sendMessage("Checking version, please wait...");
+            sender.sendMessage(Component.text("Checking version, please wait...", NamedTextColor.WHITE, TextDecoration.ITALIC)); // Paper
             if (!versionTaskStarted) {
                 versionTaskStarted = true;
                 new Thread(new Runnable() {
@@ -186,6 +213,13 @@ public class VersionCommand extends BukkitCommand {
 
     private void obtainVersion() {
         String version = Bukkit.getVersion();
+        // Paper start
+        if (version.startsWith("null")) { // running from ide?
+            setVersionMessage(Component.text("Unknown version, custom build?", NamedTextColor.YELLOW));
+            return;
+        }
+        setVersionMessage(getVersionFetcher().getVersionMessage(version));
+        /*
         if (version == null) version = "Custom";
         String[] parts = version.substring(0, version.indexOf(' ')).split("-");
         if (parts.length == 4) {
@@ -215,11 +249,24 @@ public class VersionCommand extends BukkitCommand {
         } else {
             setVersionMessage("Unknown version, custom build?");
         }
+         */
+        // Paper end
     }
 
-    private void setVersionMessage(@NotNull String msg) {
+    // Paper start
+    private void setVersionMessage(final @NotNull Component msg) {
         lastCheck = System.currentTimeMillis();
-        versionMessage = msg;
+        final Component message = Component.textOfChildren(
+            Component.text(Bukkit.getVersionMessage(), NamedTextColor.WHITE),
+            Component.newline(),
+            msg
+        );
+        this.versionMessage = Component.text()
+            .append(message)
+            .hoverEvent(Component.text("Click to copy to clipboard", NamedTextColor.WHITE))
+            .clickEvent(ClickEvent.copyToClipboard(PlainTextComponentSerializer.plainText().serialize(message)))
+            .build();
+        // Paper end
         versionLock.lock();
         try {
             hasVersion = true;
@@ -236,8 +283,8 @@ public class VersionCommand extends BukkitCommand {
     private static int getDistance(@NotNull String repo, @NotNull String hash) {
         try {
             BufferedReader reader = Resources.asCharSource(
-                    new URL("https://hub.spigotmc.org/stash/rest/api/1.0/projects/SPIGOT/repos/" + repo + "/commits?since=" + URLEncoder.encode(hash, "UTF-8") + "&withCounts=true"),
-                    Charsets.UTF_8
+                    new URL("https://hub.spigotmc.org/stash/rest/api/1.0/projects/SPIGOT/repos/" + repo + "/commits?since=" + URLEncoder.encode(hash, StandardCharsets.UTF_8) + "&withCounts=true"),
+                    StandardCharsets.UTF_8
             ).openBufferedStream();
             try {
                 JsonObject obj = new Gson().fromJson(reader, JsonObject.class);

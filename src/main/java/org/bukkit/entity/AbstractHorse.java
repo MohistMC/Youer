@@ -20,7 +20,7 @@ public interface AbstractHorse extends Vehicle, InventoryHolder, Tameable {
      * @return a {@link Horse.Variant} representing the horse's variant
      * @deprecated different variants are different classes
      */
-    @Deprecated(since = "1.11")
+    @Deprecated(since = "1.11", forRemoval = true)
     @NotNull
     public Horse.Variant getVariant();
 
@@ -28,7 +28,7 @@ public interface AbstractHorse extends Vehicle, InventoryHolder, Tameable {
      * @param variant variant
      * @deprecated you are required to spawn a different entity
      */
-    @Deprecated(since = "1.11")
+    @Deprecated(since = "1.11", forRemoval = true)
     @Contract("_ -> fail")
     public void setVariant(Horse.Variant variant);
 
@@ -106,17 +106,71 @@ public interface AbstractHorse extends Vehicle, InventoryHolder, Tameable {
      * Gets whether the horse is currently grazing hay.
      *
      * @return true if eating hay
+     * @deprecated use {@link #isEatingGrass()}, this name is incorrect
      */
+    @Deprecated(forRemoval = true)
     boolean isEatingHaystack();
 
     /**
      * Sets whether the horse is grazing hay.
      *
      * @param eatingHaystack new hay grazing status
+     * @deprecated use {@link #setEatingGrass(boolean)}, this name is incorrect
      */
+    @Deprecated(forRemoval = true)
     void setEatingHaystack(boolean eatingHaystack);
 
     @NotNull
     @Override
     public AbstractHorseInventory getInventory();
+
+    // Paper start - Horse API
+    /**
+     * Gets if a horse is in their eating grass animation.
+     *
+     * @return eating grass animation is active
+     */
+    public boolean isEatingGrass();
+
+    /**
+     * Sets if a horse is in their eating grass animation.
+     *
+     * <p>When true, the horse will lower its neck.</p>
+     *
+     * @param eating eating grass animation is active
+     */
+    public void setEatingGrass(boolean eating);
+
+    /**
+     * Gets if a horse is in their rearing animation.
+     *
+     * @return rearing animation is active
+     */
+    public boolean isRearing();
+
+    /**
+     * Sets if a horse is in their rearing animation.
+     *
+     * <p>When true, the horse will stand on its hind legs.</p>
+     *
+     * @param rearing rearing animation is active
+     */
+    public void setRearing(boolean rearing);
+
+    /**
+     * Gets if a horse is in their eating animation.
+     *
+     * @return eating animation is active
+     */
+    public boolean isEating();
+
+    /**
+     * Sets if a horse is in their eating animation.
+     *
+     * <p>When true, the horse will bob its head.</p>
+     *
+     * @param eating eating animation is active
+     */
+    public void setEating(boolean eating);
+    // Paper end - Horse API
 }

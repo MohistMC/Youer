@@ -8,6 +8,7 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.Unmodifiable;
 
 /**
  * Represents a potion or item that can have custom effects.
@@ -20,7 +21,7 @@ public interface PotionMeta extends ItemMeta {
      * @param data PotionData to set the base potion state to
      * @deprecated Upgraded / extended potions are now their own {@link PotionType} use {@link #setBasePotionType} instead.
      */
-    @Deprecated(since = "1.20.6")
+    @Deprecated(since = "1.20.6", forRemoval = true)
     void setBasePotionData(@Nullable PotionData data);
 
     /**
@@ -30,7 +31,7 @@ public interface PotionMeta extends ItemMeta {
      * @deprecated Upgraded / extended potions are now their own {@link PotionType} use {@link #getBasePotionType()} instead.
      */
     @Nullable
-    @Deprecated(since = "1.20.6")
+    @Deprecated(since = "1.20.6", forRemoval = true)
     PotionData getBasePotionData();
 
     /**
@@ -73,6 +74,16 @@ public interface PotionMeta extends ItemMeta {
      */
     @NotNull
     List<PotionEffect> getCustomEffects();
+
+    /**
+     * All effects that this potion meta holds.
+     * <p>
+     * This is a combination of the base potion type and any custom effects.
+     *
+     * @return an unmodifiable list of all effects.
+     */
+    @NotNull
+    @Unmodifiable List<PotionEffect> getAllEffects();
 
     /**
      * Adds a custom potion effect to this potion.
@@ -147,54 +158,76 @@ public interface PotionMeta extends ItemMeta {
     void setColor(@Nullable Color color);
 
     /**
+     * Computes the effective colour of this potion meta.
+     * <p>
+     * This blends all custom effects, or uses a default fallback color.
+     *
+     * @return the effective potion color
+     */
+    @NotNull
+    Color computeEffectiveColor();
+
+    /**
      * Checks for existence of a custom potion name translation suffix.
      *
+     * @deprecated conflicting name, use {@link #hasCustomPotionName()}
      * @return true if this has a custom potion name
      */
-    boolean hasCustomName();
+    @Deprecated(forRemoval = true, since = "1.21.4")
+    default boolean hasCustomName() {
+        return this.hasCustomPotionName();
+    }
 
     /**
      * Gets the potion name translation suffix that is set.
      * <p>
-     * Plugins should check that hasCustomName() returns <code>true</code>
+     * Plugins should check that {@link #hasCustomPotionName()} returns {@code true}
+     * before calling this method.
+     *
+     * @deprecated conflicting name, use {@link #getCustomPotionName()}
+     * @return the potion name that is set
+     */
+    @Deprecated(forRemoval = true, since = "1.21.4")
+    @Nullable
+    default String getCustomName() {
+        return this.getCustomPotionName();
+    }
+
+    /**
+     * Sets the potion name translation suffix.
+     *
+     * @deprecated conflicting name, use {@link #setCustomPotionName(String)}
+     * @param name the name to set
+     */
+    @Deprecated(forRemoval = true, since = "1.21.4")
+    default void setCustomName(@Nullable String name) {
+        this.setCustomPotionName(name);
+    }
+
+    /**
+     * Checks for existence of a custom potion name translation suffix.
+     *
+     * @return true if this has a custom potion name
+     */
+    boolean hasCustomPotionName();
+
+    /**
+     * Gets the potion name translation suffix that is set.
+     * <p>
+     * Plugins should check that {@link #hasCustomPotionName()} returns {@code true}
      * before calling this method.
      *
      * @return the potion name that is set
      */
     @Nullable
-    String getCustomName();
+    String getCustomPotionName();
 
     /**
      * Sets the potion name translation suffix.
      *
      * @param name the name to set
      */
-    void setCustomName(@Nullable String name);
-
-    /**
-     * Checks for existence of a potion duration scale.
-     *
-     * @return true if this has a potion duration scale.
-     */
-    boolean hasDurationScale();
-
-    /**
-     * Gets the potion duration scale that is set.
-     * <p>
-     * Plugins should check that hasDurationScale() returns <code>true</code>
-     * before calling this method.
-     *
-     * @return the scale factor applied to all potion effect durations
-     */
-    @Nullable
-    float getDurationScale();
-
-    /**
-     * Gets the potion duration scale.
-     *
-     * @param scale the scale factor applied to all potion effect durations
-     */
-    void setDurationScale(@Nullable Float scale);
+    void setCustomPotionName(@Nullable String name);
 
     @Override
     PotionMeta clone();

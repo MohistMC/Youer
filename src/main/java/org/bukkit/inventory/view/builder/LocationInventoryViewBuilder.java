@@ -1,9 +1,10 @@
 package org.bukkit.inventory.view.builder;
 
+import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.inventory.InventoryView;
 import org.jetbrains.annotations.ApiStatus;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 /**
  * An InventoryViewBuilder that can be bound by location within the world
@@ -13,13 +14,11 @@ import org.jetbrains.annotations.NotNull;
 @ApiStatus.Experimental
 public interface LocationInventoryViewBuilder<V extends InventoryView> extends InventoryViewBuilder<V> {
 
-    @NotNull
     @Override
     LocationInventoryViewBuilder<V> copy();
 
-    @NotNull
     @Override
-    LocationInventoryViewBuilder<V> title(@NotNull final String title);
+    LocationInventoryViewBuilder<V> title(final @Nullable Component title);
 
     /**
      * Determines whether or not the server should check if the player can reach
@@ -36,7 +35,6 @@ public interface LocationInventoryViewBuilder<V extends InventoryView> extends I
      * @param checkReachable whether or not to check if the view is "reachable"
      * @return this builder
      */
-    @NotNull
     LocationInventoryViewBuilder<V> checkReachable(final boolean checkReachable);
 
     /**
@@ -47,12 +45,11 @@ public interface LocationInventoryViewBuilder<V extends InventoryView> extends I
      * building this view it may come with the costs associated with chunk
      * loading.
      * <p>
-     * Providing a location of a tile entity with a non matching menu comes with
+     * Providing a location of a block entity with a non matching menu comes with
      * extra costs associated with ensuring that the correct view is created.
      *
      * @param location the location to bind to this view
      * @return this builder
      */
-    @NotNull
-    LocationInventoryViewBuilder<V> location(@NotNull final Location location);
+    LocationInventoryViewBuilder<V> location(final Location location);
 }

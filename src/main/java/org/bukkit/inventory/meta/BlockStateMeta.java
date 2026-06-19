@@ -14,6 +14,13 @@ public interface BlockStateMeta extends ItemMeta {
      */
     boolean hasBlockState();
 
+    // Paper start - add method to clear block state
+    /**
+     * Clears the block state currently attached to this item.
+     */
+    void clearBlockState();
+    // Paper end - add method to clear block state
+
     /**
      * Returns the currently attached block state for this
      * item or creates a new one if one doesn't exist.
@@ -32,6 +39,11 @@ public interface BlockStateMeta extends ItemMeta {
      * @param blockState the block state to attach to the block.
      * @throws IllegalArgumentException if the blockState is null
      *         or invalid for this item.
+     *
+     * @apiNote As of 1.20.5 the block state carries a copy of the item's data deviations.
+     * As such, setting the block state via this method will reset secondary deviations of the item meta.
+     * This can manifest in the addition to an existing lore failing or a change of a previously added display name.
+     * It is hence recommended to first mutate the block state, set it back, and then mutate the item meta.
      */
     void setBlockState(@NotNull BlockState blockState);
 }

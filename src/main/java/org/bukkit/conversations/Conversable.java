@@ -7,7 +7,13 @@ import org.jetbrains.annotations.Nullable;
 /**
  * The Conversable interface is used to indicate objects that can have
  * conversations.
+ *
+ * @deprecated The conversation API has been deprecated for removal. This system does not support component based messages
+ * and has been slowly losing functionality over the years as Minecraft has changed that this API can not adapt to.
+ * It is recommended you instead manually listen to the {@link io.papermc.paper.event.player.AsyncChatEvent}
+ * or alternatively using {@link io.papermc.paper.dialog.Dialog} to get user input.
  */
+@Deprecated(forRemoval = true)
 public interface Conversable {
 
     /**
@@ -55,6 +61,7 @@ public interface Conversable {
      *
      * @param message Message to be displayed
      */
+    @org.jetbrains.annotations.ApiStatus.Obsolete // Paper
     public void sendRawMessage(@NotNull String message);
 
     /**
@@ -62,6 +69,8 @@ public interface Conversable {
      *
      * @param message Message to be displayed
      * @param sender The sender of this message
+     * @deprecated sender UUID is ignored
      */
+    @Deprecated // Paper
     public void sendRawMessage(@Nullable UUID sender, @NotNull String message);
 }

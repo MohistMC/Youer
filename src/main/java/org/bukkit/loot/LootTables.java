@@ -155,6 +155,13 @@ public enum LootTables implements Keyed {
     ZOMBIE_HORSE("entities/zombie_horse"),
     ZOMBIE_VILLAGER("entities/zombie_villager"),
     ZOMBIFIED_PIGLIN("entities/zombified_piglin"),
+    // Charged creeper
+    CHARGED_CREEPER("charged_creeper/root"),
+    CHARGED_CREEPER_PIGLIN("charged_creeper/piglin"),
+    CHARGED_CREEPER_CREEPER("charged_creeper/creeper"),
+    CHARGED_CREEPER_SKELETON("charged_creeper/skeleton"),
+    CHARGED_CREEPER_WITHER_SKELETON("charged_creeper/wither_skeleton"),
+    CHARGED_CREEPER_ZOMBIE("charged_creeper/zombie"),
     // Gameplay
     ARMORER_GIFT("gameplay/hero_of_the_village/armorer_gift"),
     BUTCHER_GIFT("gameplay/hero_of_the_village/butcher_gift"),
@@ -177,14 +184,10 @@ public enum LootTables implements Keyed {
     UNEMPLOYED_GIFT("gameplay/hero_of_the_village/unemployed_gift"),
     BABY_VILLAGER_GIFT("gameplay/hero_of_the_village/baby_gift"),
     SNIFFER_DIGGING("gameplay/sniffer_digging"),
+    TURTLE_GROW("gameplay/turtle_grow"),
     PANDA_SNEEZE("gameplay/panda_sneeze"),
     CHICKEN_LAY("gameplay/chicken_lay"),
     ARMADILLO_SHED("gameplay/armadillo_shed"),
-    TURTLE_GROW("gameplay/turtle_grow"),
-    HARVEST_CAVE_VINE("harvest/cave_vine"),
-    HARVEST_SWEET_BERRY_BUSH("harvest/sweet_berry_bush"),
-    HARVEST_BEEHIVE("harvest/beehive"),
-    CARVE_PUMPKIN("carve/pumpkin"),
     PIGLIN_BARTERING("gameplay/piglin_bartering"),
     // Spawners
     TRIAL_CHAMBER_KEY("spawners/trial_chamber/key"),
@@ -192,8 +195,6 @@ public enum LootTables implements Keyed {
     OMINOUS_TRIAL_CHAMBER_KEY("spawners/ominous/trial_chamber/key"),
     OMINOUS_TRIAL_CHAMBER_CONSUMABLES("spawners/ominous/trial_chamber/consumables"),
     TRIAL_CHAMBER_ITEMS_TO_DROP_WHEN_OMINOUS("spawners/trial_chamber/items_to_drop_when_ominous"),
-    // Brush
-    BRUSH_ARMADILLO("brush/armadillo"),
     // Shearing
     SHEARING_BOGGED("shearing/bogged"),
     SHEARING_MOOSHROOM("shearing/mooshroom"),
@@ -217,13 +218,14 @@ public enum LootTables implements Keyed {
     SHEARING_SHEEP_RED("shearing/sheep/red"),
     SHEARING_SHEEP_WHITE("shearing/sheep/white"),
     SHEARING_SHEEP_YELLOW("shearing/sheep/yellow"),
-    // Charged creeper
-    CHARGED_CREEPER_ROOT("charged_creeper/root"),
-    CHARGED_CREEPER_PIGLIN("charged_creeper/piglin"),
-    CHARGED_CREEPER_CREEPER("charged_creeper/creeper"),
-    CHARGED_CREEPER_SKELETON("charged_creeper/skeleton"),
-    CHARGED_CREEPER_WITHER_SKELETON("charged_creeper/wither_skeleton"),
-    CHARGED_CREEPER_ZOMBIE("charged_creeper/zombie"),
+    // Carving
+    CARVE_PUMPKIN("carve/pumpkin"),
+    // Harvest
+    HARVEST_CAVE_VINE("harvest/cave_vine"),
+    HARVEST_SWEET_BERRY_BUSH("harvest/sweet_berry_bush"),
+    HARVEST_BEEHIVE("harvest/beehive"),
+    // brush
+    BRUSH_ARMADILLO("brush/armadillo"),
     // Archaeology
     DESERT_WELL_ARCHAEOLOGY("archaeology/desert_well"),
     DESERT_PYRAMID_ARCHAEOLOGY("archaeology/desert_pyramid"),

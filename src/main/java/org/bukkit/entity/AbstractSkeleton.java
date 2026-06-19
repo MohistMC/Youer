@@ -13,7 +13,7 @@ import org.jetbrains.annotations.NotNull;
  * of this type, instanceOf checks against the specific subtypes listed prior
  * are recommended.
  */
-public interface AbstractSkeleton extends Monster {
+public interface AbstractSkeleton extends Monster, com.destroystokyo.paper.entity.RangedEntity { // Paper
 
     /**
      * Gets the current type of this skeleton.
@@ -21,7 +21,7 @@ public interface AbstractSkeleton extends Monster {
      * @return Current type
      * @deprecated should check what class instance this is.
      */
-    @Deprecated(since = "1.17")
+    @Deprecated(since = "1.17", forRemoval = true)
     @NotNull
     public Skeleton.SkeletonType getSkeletonType();
 
@@ -29,7 +29,27 @@ public interface AbstractSkeleton extends Monster {
      * @param type type
      * @deprecated Must spawn a new subtype variant
      */
-    @Deprecated(since = "1.17")
+    @Deprecated(since = "1.17", forRemoval = true)
     @Contract("_ -> fail")
     public void setSkeletonType(Skeleton.SkeletonType type);
+
+    // Paper start
+    /**
+     * Check if this skeleton will burn in the sunlight. This
+     * does not take into account an entity's natural fire
+     * immunity.
+     *
+     * @return True if skeleton will burn in sunlight
+     */
+    boolean shouldBurnInDay();
+
+    /**
+     * Set if this skeleton should burn in the sunlight. This
+     * will not override an entity's natural fire
+     * immunity.
+     *
+     * @param shouldBurnInDay True to burn in sunlight
+     */
+    void setShouldBurnInDay(boolean shouldBurnInDay);
+    // Paper end
 }

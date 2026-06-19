@@ -1,12 +1,17 @@
 package org.bukkit.inventory.meta;
 
 import com.google.common.collect.Multimap;
+import io.papermc.paper.datacomponent.DataComponentType;
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.ItemAdventurePredicate;
+import io.papermc.paper.registry.keys.tags.DamageTypeTagKeys;
+import io.papermc.paper.registry.set.RegistryKeySet;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import net.kyori.adventure.text.Component;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Sound;
 import org.bukkit.Tag;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeModifier;
@@ -18,23 +23,14 @@ import org.bukkit.inventory.ItemFactory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemRarity;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.components.AttackRangeComponent;
-import org.bukkit.inventory.meta.components.BlocksAttacksComponent;
 import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 import org.bukkit.inventory.meta.components.EquippableComponent;
 import org.bukkit.inventory.meta.components.FoodComponent;
 import org.bukkit.inventory.meta.components.JukeboxPlayableComponent;
-import org.bukkit.inventory.meta.components.KineticWeaponComponent;
-import org.bukkit.inventory.meta.components.PiercingWeaponComponent;
-import org.bukkit.inventory.meta.components.SwingAnimationComponent;
 import org.bukkit.inventory.meta.components.ToolComponent;
 import org.bukkit.inventory.meta.components.UseCooldownComponent;
-import org.bukkit.inventory.meta.components.UseEffectsComponent;
-import org.bukkit.inventory.meta.components.WeaponComponent;
-import org.bukkit.inventory.meta.components.consumable.ConsumableComponent;
 import org.bukkit.inventory.meta.tags.CustomItemTagContainer;
 import org.bukkit.persistence.PersistentDataHolder;
-import org.bukkit.tag.DamageTypeTags;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -47,12 +43,65 @@ import org.jetbrains.annotations.Nullable;
  */
 public interface ItemMeta extends Cloneable, ConfigurationSerializable, PersistentDataHolder {
 
+    // Paper start
+    /**
+     * Checks for existence of a custom name.
+     *
+     * @return true if this has a custom name
+     */
+    boolean hasCustomName();
+
+    /**
+     * Gets the custom name.
+     *
+     * <p>Plugins should check that {@link #hasCustomName()} returns {@code true} before calling this method.</p>
+     *
+     * @return the custom name
+     */
+    net.kyori.adventure.text.@Nullable Component customName();
+
+    /**
+     * Sets the custom name.
+     *
+     * @param customName the custom name to set
+     */
+    void customName(final net.kyori.adventure.text.@Nullable Component customName);
+
     /**
      * Checks for existence of a display name.
      *
+     * @apiNote This method is obsolete, use {@link #hasCustomName()} instead.
      * @return true if this has a display name
      */
-    boolean hasDisplayName();
+    @ApiStatus.Obsolete(since = "1.21.4")
+    default boolean hasDisplayName() {
+        return this.hasCustomName();
+    }
+
+    /**
+     * Gets the display name.
+     *
+     * <p>Plugins should check that {@link #hasDisplayName()} returns <code>true</code> before calling this method.</p>
+     *
+     * @apiNote This method is obsolete, use {@link #customName()} instead.
+     * @return the display name
+     */
+    @ApiStatus.Obsolete(since = "1.21.4")
+    default net.kyori.adventure.text.@Nullable Component displayName() {
+        return this.customName();
+    }
+
+    /**
+     * Sets the display name.
+     *
+     * @param displayName the display name to set
+     * @apiNote This method is obsolete, use {@link #customName(Component)} instead.
+     */
+    @ApiStatus.Obsolete(since = "1.21.4")
+    default void displayName(final net.kyori.adventure.text.@Nullable Component displayName) {
+        this.customName(displayName);
+    }
+    // Paper end
 
     /**
      * Gets the display name that is set.
@@ -61,17 +110,45 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      * before calling this method.
      *
      * @return the display name that is set
+     * @deprecated in favour of {@link #displayName()}
      */
+    @Deprecated // Paper
     @NotNull
     String getDisplayName();
 
+    // Paper start
+    /**
+     * Gets the display name that is set.
+     * <p>
+     * Plugins should check that hasDisplayName() returns <code>true</code>
+     * before calling this method.
+     *
+     * @return the display name that is set
+     * @deprecated use {@link #displayName()}
+     */
+    @NotNull
+    @Deprecated
+    net.md_5.bungee.api.chat.BaseComponent[] getDisplayNameComponent();
+    // Paper end
     /**
      * Sets the display name.
      *
      * @param name the name to set
+     * @deprecated in favour of {@link #displayName(net.kyori.adventure.text.Component)}
      */
+    @Deprecated // Paper
     void setDisplayName(@Nullable String name);
 
+    // Paper start
+    /**
+     * Sets the display name.
+     *
+     * @param component the name component to set
+     * @deprecated use {@link #displayName(Component)}
+     */
+    @Deprecated
+    void setDisplayNameComponent(@Nullable net.md_5.bungee.api.chat.BaseComponent[] component);
+    // Paper end
     /**
      * Checks for existence of an item name.
      * <br>
@@ -82,6 +159,32 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      */
     boolean hasItemName();
 
+    // Paper start
+    /**
+     * Gets the item name component that is set.
+     * <br>
+     * Item name differs from display name in that it is cannot be edited by an
+     * anvil, is not styled with italics, and does not show labels.
+     * <p>
+     * Plugins should check that {@link #hasItemName()} returns <code>true</code> before
+     * calling this method.
+     *
+     * @return the item name that is set
+     * @see #hasItemName()
+     */
+    @org.jetbrains.annotations.NotNull
+    Component itemName();
+
+    /**
+     * Sets the item name.
+     * <br>
+     * Item name differs from display name in that it is cannot be edited by an
+     * anvil, is not styled with italics, and does not show labels.
+     *
+     * @param name the name to set, null to remove it
+     */
+    void itemName(@Nullable final Component name);
+    // Paper end
     /**
      * Gets the item name that is set.
      * <br>
@@ -92,7 +195,9 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      * calling this method.
      *
      * @return the item name that is set
+     * @deprecated in favour of {@link #itemName()}
      */
+    @Deprecated // Paper
     @NotNull
     String getItemName();
 
@@ -103,14 +208,16 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      * anvil, is not styled with italics, and does not show labels.
      *
      * @param name the name to set
+     * @deprecated in favour of {@link #itemName(Component)}
      */
+    @Deprecated // Paper
     void setItemName(@Nullable String name);
 
     /**
      * Checks for existence of a localized name.
      *
+     * @deprecated Use {@link ItemMeta#displayName()} and check if it is instanceof a {@link net.kyori.adventure.text.TranslatableComponent}.
      * @return true if this has a localized name
-     * @deprecated meta no longer exists
      */
     @Deprecated(since = "1.20.5", forRemoval = true)
     boolean hasLocalizedName();
@@ -121,8 +228,8 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      * Plugins should check that hasLocalizedName() returns <code>true</code>
      * before calling this method.
      *
+     * @deprecated Use {@link ItemMeta#displayName()} and cast it to a {@link net.kyori.adventure.text.TranslatableComponent}. No longer used by the client.
      * @return the localized name that is set
-     * @deprecated meta no longer exists
      */
     @NotNull
     @Deprecated(since = "1.20.5", forRemoval = true)
@@ -131,8 +238,8 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
     /**
      * Sets the localized name.
      *
+     * @deprecated Use {@link ItemMeta#displayName(Component)} with a {@link net.kyori.adventure.text.TranslatableComponent}. No longer used by the client.
      * @param name the name to set
-     * @deprecated meta no longer exists
      */
     @Deprecated(since = "1.20.5", forRemoval = true)
     void setLocalizedName(@Nullable String name);
@@ -144,6 +251,24 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      */
     boolean hasLore();
 
+    // Paper start
+    /**
+     * Gets the lore.
+     *
+     * <p>Plugins should check that {@link #hasLore()} returns <code>true</code> before calling this method.</p>
+     *
+     * @return the lore
+     */
+    @Nullable List<net.kyori.adventure.text.Component> lore();
+
+    /**
+     * Sets the lore.
+     *
+     * @param lore the lore to set
+     */
+    void lore(final @Nullable List<? extends net.kyori.adventure.text.Component> lore);
+    // Paper end
+
     /**
      * Gets the lore that is set.
      * <p>
@@ -151,17 +276,44 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      * calling this method.
      *
      * @return a list of lore that is set
+     * @deprecated in favour of {@link #lore()}
      */
+    @Deprecated // Paper
     @Nullable
     List<String> getLore();
+
+    /**
+     * Gets the lore that is set.
+     * <p>
+     * Plugins should check if hasLore() returns <code>true</code> before
+     * calling this method.
+     *
+     * @return a list of lore that is set
+     * @deprecated use {@link #lore()}
+     */
+    @Nullable
+    @Deprecated
+    List<net.md_5.bungee.api.chat.BaseComponent[]> getLoreComponents();
 
     /**
      * Sets the lore for this item.
      * Removes lore when given null.
      *
      * @param lore the lore that will be set
+     * @deprecated in favour of {@link #lore(List)}
      */
+    @Deprecated // Paper
     void setLore(@Nullable List<String> lore);
+
+    /**
+     * Sets the lore for this item.
+     * Removes lore when given null.
+     *
+     * @param lore the lore that will be set
+     * @deprecated use {@link #lore(List)}
+     */
+    @Deprecated
+    void setLoreComponents(@Nullable List<net.md_5.bungee.api.chat.BaseComponent[]> lore);
 
     /**
      * Checks for existence of custom model data.
@@ -250,14 +402,14 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
     /**
      * Gets the enchantable component. Higher values allow higher enchantments.
      *
-     * @return max_stack_size
+     * @return the enchantable value
      */
     int getEnchantable();
 
     /**
      * Sets the enchantable. Higher values allow higher enchantments.
      *
-     * @param enchantable enchantable value
+     * @param enchantable enchantable value, must be positive
      */
     void setEnchantable(@Nullable Integer enchantable);
 
@@ -271,18 +423,18 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
     /**
      * Checks for existence of the specified enchantment.
      *
-     * @param ench enchantment to check
+     * @param enchant enchantment to check
      * @return true if this enchantment exists for this meta
      */
-    boolean hasEnchant(@NotNull Enchantment ench);
+    boolean hasEnchant(@NotNull Enchantment enchant);
 
     /**
      * Checks for the level of the specified enchantment.
      *
-     * @param ench enchantment to check
+     * @param enchant enchantment to check
      * @return The level that the specified enchantment has, or 0 if none
      */
-    int getEnchantLevel(@NotNull Enchantment ench);
+    int getEnchantLevel(@NotNull Enchantment enchant);
 
     /**
      * Returns a copy the enchantments in this ItemMeta. <br>
@@ -296,23 +448,23 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
     /**
      * Adds the specified enchantment to this item meta.
      *
-     * @param ench Enchantment to add
+     * @param enchant Enchantment to add
      * @param level Level for the enchantment
      * @param ignoreLevelRestriction this indicates the enchantment should be
      *     applied, ignoring the level limit
      * @return true if the item meta changed as a result of this call, false
      *     otherwise
      */
-    boolean addEnchant(@NotNull Enchantment ench, int level, boolean ignoreLevelRestriction);
+    boolean addEnchant(@NotNull Enchantment enchant, int level, boolean ignoreLevelRestriction);
 
     /**
      * Removes the specified enchantment from this item meta.
      *
-     * @param ench Enchantment to remove
+     * @param enchant Enchantment to remove
      * @return true if the item meta changed as a result of this call, false
      *     otherwise
      */
-    boolean removeEnchant(@NotNull Enchantment ench);
+    boolean removeEnchant(@NotNull Enchantment enchant);
 
     /**
      * Removes all enchantments from this item meta.
@@ -323,10 +475,10 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      * Checks if the specified enchantment conflicts with any enchantments in
      * this ItemMeta.
      *
-     * @param ench enchantment to test
+     * @param enchant enchantment to test
      * @return true if the enchantment conflicts, false otherwise
      */
-    boolean hasConflictingEnchant(@NotNull Enchantment ench);
+    boolean hasConflictingEnchant(@NotNull Enchantment enchant);
 
     /**
      * Set itemflags which should be ignored when rendering a ItemStack in the Client. This Method does silently ignore double set itemFlags.
@@ -399,7 +551,7 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
     /**
      * Gets if this item has a custom item model.
      *
-     * @return if a item_model is set
+     * @return if an item_model is set
      */
     boolean hasItemModel();
 
@@ -483,8 +635,7 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      * or lava.
      *
      * @return fire_resistant
-     * @deprecated use {@link #getDamageResistant()} and
-     * {@link DamageTypeTags#IS_FIRE}
+     * @deprecated use {@link #getDamageResistantTypes()} and check if it matches any {@link DamageTypeTagKeys#IS_FIRE fire damage type}
      */
     @Deprecated(since = "1.21.2")
     boolean isFireResistant();
@@ -494,8 +645,7 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      * or lava.
      *
      * @param fireResistant fire_resistant
-     * @deprecated use {@link #setDamageResistant(org.bukkit.Tag)} and
-     * {@link DamageTypeTags#IS_FIRE}
+     * @deprecated use {@link #setDamageResistantTypes(RegistryKeySet)} with {@link DamageTypeTagKeys#IS_FIRE}
      */
     @Deprecated(since = "1.21.2")
     void setFireResistant(boolean fireResistant);
@@ -511,84 +661,38 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      * Gets the type of damage this item will be resistant to when in entity
      * form.
      *
-     * Plugins should check {@link #hasDamageResistant()} before calling this
-     * method.
-     *
-     * @return damage type
-     * @deprecated use {@link #getDamageResistances()}
+     * @return damage type tag
+     * @deprecated use {@link #getDamageResistantTypes()}
      */
     @Nullable
     @Deprecated(since = "26.1")
     Tag<DamageType> getDamageResistant();
 
     /**
-     * Gets the types of damage this item will be resistant to when in entity
-     * form.
-     *
-     * Plugins should check {@link #hasDamageResistant()} before calling this
-     * method.
-     *
-     * @return damage type
-     */
-    @Nullable
-    Collection<DamageType> getDamageResistances();
-
-    /**
      * Sets the type of damage this item will be resistant to when in entity
      * form.
      *
      * @param tag the tag, or null to clear
+     * @deprecated use {@link #setDamageResistantTypes(RegistryKeySet)}
      */
+    @Deprecated(since = "26.1")
     void setDamageResistant(@Nullable Tag<DamageType> tag);
+
+    /**
+     * Gets the type of damage this item will be resistant to when in entity
+     * form.
+     *
+     * @return the registry key set holding the respective damage types.
+     */
+    @Nullable RegistryKeySet<DamageType> getDamageResistantTypes();
 
     /**
      * Sets the type of damage this item will be resistant to when in entity
      * form.
      *
-     * @param damages the tag, or null to clear
+     * @param types the registry key set, or null to clear
      */
-    void setDamageResistant(@Nullable Collection<DamageType> damages);
-
-    /**
-     * Gets if this item delivers a certain type of damage.
-     *
-     * @return true if a resistance is set
-     */
-    boolean hasDamageType();
-
-    /**
-     * Gets the type of damage this item will deliver.
-     *
-     * Plugins should check {@link #hasDamageType()} before calling this method.
-     *
-     * @return damage type
-     */
-    @Nullable
-    DamageType getDamageType();
-
-    /**
-     * Gets the type of damage this item will deliver.
-     *
-     * Plugins should check {@link #hasDamageType()} before calling this method.
-     *
-     * @return damage type
-     */
-    @Nullable
-    NamespacedKey getDamageTypeKey();
-
-    /**
-     * Sets the type of damage this item will deliver.
-     *
-     * @param type the type, or null to clear
-     */
-    void setDamageType(@Nullable DamageType type);
-
-    /**
-     * Sets the type of damage this item will deliver.
-     *
-     * @param type the type, or null to clear
-     */
-    void setDamageTypeKey(@Nullable NamespacedKey type);
+    void setDamageResistantTypes(@Nullable RegistryKeySet<DamageType> types);
 
     /**
      * Gets if the max_stack_size is set.
@@ -612,29 +716,6 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      * @param max max_stack_size, between 1 and 99 (inclusive)
      */
     void setMaxStackSize(@Nullable Integer max);
-
-    /**
-     * Gets if the additional_trade_cost is set.
-     *
-     * @return if a additional_trade_cost is set.
-     */
-    boolean hasAdditionalTradeCost();
-
-    /**
-     * Gets the additional_trade_cost. This is the additional cost for villager
-     * trades.
-     *
-     * @return max_stack_size
-     */
-    int getAdditionalTradeCost();
-
-    /**
-     * Sets the additional_trade_cost. This is the additional cost for villager
-     * trades.
-     *
-     * @param cost additional_trade_cost
-     */
-    void setAdditionalTradeCost(@Nullable Integer cost);
 
     /**
      * Gets if the rarity is set.
@@ -669,11 +750,6 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
 
     /**
      * Gets the item which this item will convert to when used.
-     * <p>
-     * The returned component is a snapshot of its current state and does not
-     * reflect a live view of what is on an item. After changing any value on
-     * this component, it must be set with {@link #setUseRemainder(ItemStack)}
-     * to apply the changes.
      *
      * @return remainder
      */
@@ -716,146 +792,6 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
     void setUseCooldown(@Nullable UseCooldownComponent cooldown);
 
     /**
-     * Checks if the use effects is set.
-     *
-     * @return if a use effects is set
-     */
-    boolean hasUseEffects();
-
-    /**
-     * Gets the use effects set on this item, or creates an empty effects
-     * instance.
-     * <p>
-     * The returned component is a snapshot of its current state and does not
-     * reflect a live view of what is on an item. After changing any value on
-     * this component, it must be set with
-     * {@link #setUseEffects(UseEffectsComponent)} to apply the changes.
-     *
-     * @return use effects
-     */
-    @NotNull
-    UseEffectsComponent getUseEffects();
-
-    /**
-     * Sets the item use effects.
-     *
-     * @param effects new effects
-     */
-    void setUseEffects(@Nullable UseEffectsComponent effects);
-
-    /**
-     * Checks if a swing animation is set.
-     *
-     * @return if a swing animation is set
-     */
-    boolean hasSwingAnimation();
-
-    /**
-     * Gets the swing animation set on this item, or creates an empty animation
-     * instance.
-     * <p>
-     * The returned component is a snapshot of its current state and does not
-     * reflect a live view of what is on an item. After changing any value on
-     * this component, it must be set with
-     * {@link #setSwingAnimation(SwingAnimationComponent)} to apply the changes.
-     *
-     * @return swing animation
-     */
-    @NotNull
-    SwingAnimationComponent getSwingAnimation();
-
-    /**
-     * Sets the item swing animation.
-     *
-     * @param component new animation component
-     */
-    void setSwingAnimation(@Nullable SwingAnimationComponent component);
-
-    /**
-     * Checks if a attack range component is set.
-     *
-     * @return if a attack range component is set
-     */
-    boolean hasAttackRange();
-
-    /**
-     * Gets the attack range component set on this item, or creates an empty
-     * instance.
-     * <p>
-     * The returned component is a snapshot of its current state and does not
-     * reflect a live view of what is on an item. After changing any value on
-     * this component, it must be set with
-     * {@link #setAttackRange(AttackRangeComponent)} to apply the changes.
-     *
-     * @return attack range component
-     */
-    @NotNull
-    AttackRangeComponent getAttackRange();
-
-    /**
-     * Sets the attack range component.
-     *
-     * @param component new attack range component
-     */
-    void setAttackRange(@Nullable AttackRangeComponent component);
-
-    /**
-     * Checks if a piercing weapon component is set.
-     *
-     * @return if a piercing weapon component is set
-     */
-    boolean hasPiercingWeapon();
-
-    /**
-     * Gets the piercing weapon component set on this item, or creates an empty
-     * instance.
-     * <p>
-     * The returned component is a snapshot of its current state and does not
-     * reflect a live view of what is on an item. After changing any value on
-     * this component, it must be set with
-     * {@link #setPiercingWeapon(PiercingWeaponComponent)} to apply the changes.
-     *
-     * @return piercing weapon component
-     */
-    @NotNull
-    PiercingWeaponComponent getPiercingWeapon();
-
-    /**
-     * Sets the piercing weapon component.
-     *
-     * @param component new piercing weapon component
-     */
-    void setPiercingWeapon(@Nullable PiercingWeaponComponent component);
-
-    /**
-     * Checks if a kinetic weapon component is set.
-     *
-     * @return if a kinetic weapon component is set
-     */
-    boolean hasKineticWeapon();
-
-    /**
-     * Gets the kinetic weapon component set on this item, or creates an empty
-     * instance.
-     * <p>
-     * The returned component is a snapshot of its current state and does not
-     * reflect a live view of what is on an item. After changing any value on
-     * this component, it must be set with
-     * {@link #setKineticWeapon(KineticWeaponComponent)} to apply the changes.
-     *
-     * @return kinetic weapon component
-     */
-    @NotNull
-    KineticWeaponComponent getKineticWeapon();
-
-    /**
-     * Sets the kinetic weapon component.
-     *
-     * @param component new kinetic weapon component
-     */
-    void setKineticWeapon(@Nullable KineticWeaponComponent component);
-
-    /**
      * Checks if the food is set.
      *
      * @return if a food is set
@@ -881,33 +817,6 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      * @param food new food
      */
     void setFood(@Nullable FoodComponent food);
-
-    /**
-     * Checks if the consumable is set.
-     *
-     * @return if a consumable is set
-     */
-    boolean hasConsumable();
-
-    /**
-     * Gets the consumable set on this item, or creates an empty consumable instance.
-     * <p>
-     * The returned component is a snapshot of its current state and does not
-     * reflect a live view of what is on an item. After changing any value on
-     * this component, it must be set with {@link #setConsumable(ConsumableComponent)} to
-     * apply the changes.
-     *
-     * @return food
-     */
-    @NotNull
-    ConsumableComponent getConsumable();
-
-    /**
-     * Sets the item consumable.
-     *
-     * @param consumable new consumable
-     */
-    void setConsumable(@Nullable ConsumableComponent consumable);
 
     /**
      * Checks if the tool is set.
@@ -937,64 +846,9 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
     void setTool(@Nullable ToolComponent tool);
 
     /**
-     * Checks if the weapon is set.
-     *
-     * @return if a weapon is set
-     */
-    boolean hasWeapon();
-
-    /**
-     * Gets the weapon set on this item, or creates an empty weapon instance.
-     * <p>
-     * The returned component is a snapshot of its current state and does not
-     * reflect a live view of what is on an item. After changing any value on
-     * this component, it must be set with {@link #setWeapon(WeaponComponent)} to
-     * apply the changes.
-     *
-     * @return weapon
-     */
-    @NotNull
-    WeaponComponent getWeapon();
-
-    /**
-     * Sets the item weapon.
-     *
-     * @param weapon new weapon
-     */
-    void setWeapon(@Nullable WeaponComponent weapon);
-
-    /**
-     * Checks if the {@link BlocksAttacksComponent} is set.
-     *
-     * @return if a {@link BlocksAttacksComponent} is set
-     */
-    boolean hasBlocksAttacks();
-
-    /**
-     * Gets the {@link BlocksAttacksComponent} set on this item, or creates an
-     * empty {@link BlocksAttacksComponent} instance.
-     * <p>
-     * The returned component is a snapshot of its current state and does not
-     * reflect a live view of what is on an item. After changing any value on
-     * this component, it must be set with
-     * {@link #setBlocksAttacks(BlocksAttacksComponent)} to apply the changes.
-     *
-     * @return component
-     */
-    @NotNull
-    BlocksAttacksComponent getBlocksAttacks();
-
-    /**
-     * Sets the item {@link BlocksAttacksComponent}.
-     *
-     * @param blocksAttacks new component
-     */
-    void setBlocksAttacks(@Nullable BlocksAttacksComponent blocksAttacks);
-
-    /**
      * Checks if the equippable is set.
      *
-     * @return if a equippable is set
+     * @return if an equippable is set
      */
     boolean hasEquippable();
 
@@ -1032,67 +886,20 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      * The returned component is a snapshot of its current state and does not
      * reflect a live view of what is on an item. After changing any value on
      * this component, it must be set with
-     * {@link #setJukeboxPlayable(org.bukkit.inventory.meta.components.JukeboxComponent)}
+     * {@link #setJukeboxPlayable(org.bukkit.inventory.meta.components.JukeboxPlayableComponent)}
      * to apply the changes.
      *
      * @return component
      */
-    @Nullable
+    @NotNull // Paper
     JukeboxPlayableComponent getJukeboxPlayable();
 
     /**
-     * Sets the item tool.
+     * Sets the jukebox playable component.
      *
      * @param jukeboxPlayable new component
      */
     void setJukeboxPlayable(@Nullable JukeboxPlayableComponent jukeboxPlayable);
-
-    /**
-     * Gets if the break sound is set.
-     *
-     * @return if break sound is set
-     */
-    boolean hasBreakSound();
-
-    /**
-     * Gets the sound to play when the item is broken.
-     *
-     * Plugins should check {@link #hasBreakSound()} before calling this method.
-     *
-     * @return the sound
-     */
-    @Nullable
-    Sound getBreakSound();
-
-    /**
-     * Sets the sound to play when the item is broken.
-     *
-     * @param sound sound
-     */
-    void setBreakSound(@Nullable Sound sound);
-
-    /**
-     * Checks to see if this item has a minimum attack charge.
-     *
-     * @return true if this has a minimum attack charge
-     */
-    boolean hasMinimumAttackCharge();
-
-    /**
-     * Gets the minimum attack charge.
-     *
-     * Plugins should check {@link #hasMinimumAttackCharge()} before calling this method.
-     *
-     * @return the minimum attack charge
-     */
-    float getMinimumAttackCharge();
-
-    /**
-     * Sets the minimum attack charge.
-     *
-     * @param minimumAttackCharge minimum attack charge
-     */
-    void setMinimumAttackCharge(@Nullable Float minimumAttackCharge);
 
     /**
      * Checks for the existence of any AttributeModifiers.
@@ -1115,7 +922,7 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
     /**
      * Return an immutable copy of all {@link Attribute}s and their
      * {@link AttributeModifier}s for a given {@link EquipmentSlot}.<br>
-     * Any {@link AttributeModifier} that does have have a given
+     * Any {@link AttributeModifier} that does have a given
      * {@link EquipmentSlot} will be returned. This is because
      * AttributeModifiers without a slot are active in any slot.<br>
      * If there are no attributes set for the given slot, an empty map
@@ -1161,8 +968,9 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
 
     /**
      * Set all {@link Attribute}s and their {@link AttributeModifier}s.
-     * To clear all currently set Attributes and AttributeModifiers use
-     * null or an empty Multimap.
+     * To clear all custom attribute modifiers, use {@code null}. To set
+     * no modifiers (which will override the default modifiers), use an
+     * empty map.
      * If not null nor empty, this will filter all entries that are not-null
      * and add them to the ItemStack.
      *
@@ -1177,7 +985,7 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      * This will return false if nothing was removed.
      *
      * @param attribute attribute to remove
-     * @return  true if all modifiers were removed from a given
+     * @return true if all modifiers were removed from a given
      *                  Attribute. Returns false if no attributes were
      *                  removed.
      * @throws NullPointerException if Attribute is null
@@ -1247,9 +1055,9 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
      * assert itemStack.isSimilar(recreatedItemStack); // Should be true*
      * </pre>
      * <p>
-     * *Components not represented or explicitly overridden by this ItemMeta instance
-     * will not be included in the resulting string and therefore may result in ItemStacks
-     * that do not match <em>exactly</em>. For example, if {@link #setDisplayName(String)}
+     * *Components not represented or explicitly overridden by this ItemMeta instance and
+     * transient components will not be included in the resulting string and therefore may
+     * result in ItemStacks that do not match <em>exactly</em>. For example, if {@link #setDisplayName(String)}
      * is not set, then the custom name component will not be included. Or if this ItemMeta
      * is a PotionMeta, it will not include any components related to lodestone compasses,
      * banners, or books, etc., only components modifiable by a PotionMeta instance.
@@ -1290,7 +1098,108 @@ public interface ItemMeta extends Cloneable, ConfigurationSerializable, Persiste
     @ApiStatus.Internal
     void setVersion(int version);
 
-    @SuppressWarnings("javadoc")
     @NotNull
     ItemMeta clone();
+
+    /**
+     * Gets set of materials what given item can destroy in {@link org.bukkit.GameMode#ADVENTURE}
+     *
+     * @return Set of materials
+     * @deprecated this API part has been replaced by the {@link ItemAdventurePredicate} API.
+     * Please use {@link ItemStack#getData(DataComponentType.Valued)} with {@link DataComponentTypes#CAN_BREAK} instead of this.
+     */
+    @Deprecated(forRemoval = true, since = "1.14")
+    Set<org.bukkit.Material> getCanDestroy();
+
+    /**
+     * Sets set of materials what given item can destroy in {@link org.bukkit.GameMode#ADVENTURE}
+     *
+     * @param canDestroy Set of materials
+     * @deprecated this API part has been replaced by the {@link ItemAdventurePredicate} API.
+     * Please use {@link ItemStack#setData(DataComponentType.Valued, Object)} with {@link DataComponentTypes#CAN_BREAK} instead of this.
+     */
+    @Deprecated(forRemoval = true, since = "1.14")
+    void setCanDestroy(Set<org.bukkit.Material> canDestroy);
+
+    /**
+     * Gets set of materials where given item can be placed on in {@link org.bukkit.GameMode#ADVENTURE}
+     *
+     * @return Set of materials
+     * @deprecated this API part has been replaced by the {@link ItemAdventurePredicate} API.
+     * Please use {@link ItemStack#getData(DataComponentType.Valued)} with {@link DataComponentTypes#CAN_PLACE_ON} instead of this.
+     */
+    @Deprecated(forRemoval = true, since = "1.14")
+    Set<org.bukkit.Material> getCanPlaceOn();
+
+    /**
+     * Sets set of materials where given item can be placed on in {@link org.bukkit.GameMode#ADVENTURE}
+     *
+     * @param canPlaceOn Set of materials
+     * @deprecated this API part has been replaced by the {@link ItemAdventurePredicate} API.
+     * Please use {@link ItemStack#setData(DataComponentType.Valued, Object)} with {@link DataComponentTypes#CAN_PLACE_ON} instead of this.
+     */
+    @Deprecated(forRemoval = true, since = "1.14")
+    void setCanPlaceOn(Set<org.bukkit.Material> canPlaceOn);
+
+    /**
+     * Gets the collection of namespaced keys that the item can destroy in {@link org.bukkit.GameMode#ADVENTURE}
+     *
+     * @return Set of {@link com.destroystokyo.paper.Namespaced}
+     * @deprecated this API part has been replaced by the {@link ItemAdventurePredicate} API.
+     * Please use {@link ItemStack#getData(DataComponentType.Valued)} with {@link DataComponentTypes#CAN_BREAK} instead of this.
+     */
+    @Deprecated(forRemoval = true, since = "1.20.6")
+    @NotNull
+    Set<com.destroystokyo.paper.Namespaced> getDestroyableKeys();
+
+    /**
+     * Sets the collection of namespaced keys that the item can destroy in {@link org.bukkit.GameMode#ADVENTURE}
+     *
+     * @param canDestroy Collection of {@link com.destroystokyo.paper.Namespaced}
+     * @deprecated this API part has been replaced by the {@link ItemAdventurePredicate} API.
+     * Please use {@link ItemStack#setData(DataComponentType.Valued, Object)} with {@link DataComponentTypes#CAN_BREAK} instead of this.
+     */
+    @Deprecated(forRemoval = true, since = "1.20.6")
+    void setDestroyableKeys(@NotNull Collection<com.destroystokyo.paper.Namespaced> canDestroy);
+
+    /**
+     * Gets the collection of namespaced keys that the item can be placed on in {@link org.bukkit.GameMode#ADVENTURE}
+     *
+     * @return Set of {@link com.destroystokyo.paper.Namespaced}
+     * @deprecated this API part has been replaced by the {@link ItemAdventurePredicate} API.
+     * Please use {@link ItemStack#getData(DataComponentType.Valued)} with {@link DataComponentTypes#CAN_PLACE_ON} instead of this.
+     */
+    @NotNull
+    @Deprecated(forRemoval = true, since = "1.20.6")
+    Set<com.destroystokyo.paper.Namespaced> getPlaceableKeys();
+
+    /**
+     * Sets the set of namespaced keys that the item can be placed on in {@link org.bukkit.GameMode#ADVENTURE}
+     *
+     * @param canPlaceOn Collection of {@link com.destroystokyo.paper.Namespaced}
+     * @deprecated this API part has been replaced by the {@link ItemAdventurePredicate} API.
+     * Please use {@link ItemStack#setData(DataComponentType.Valued, Object)} with {@link DataComponentTypes#CAN_PLACE_ON} instead of this.
+     */
+    @Deprecated(forRemoval = true, since = "1.20.6")
+    void setPlaceableKeys(@NotNull Collection<com.destroystokyo.paper.Namespaced> canPlaceOn);
+
+    /**
+     * Checks for the existence of any keys that the item can be placed on
+     *
+     * @return true if this item has placeable keys
+     * @deprecated this API part has been replaced by the {@link ItemAdventurePredicate} API.
+     * Please use {@link ItemStack#hasData(DataComponentType)} with {@link DataComponentTypes#CAN_PLACE_ON} instead of this.
+     */
+    @Deprecated(forRemoval = true, since = "1.20.6")
+    boolean hasPlaceableKeys();
+
+    /**
+     * Checks for the existence of any keys that the item can destroy
+     *
+     * @return true if this item has destroyable keys
+     * @deprecated this API part has been replaced by the {@link ItemAdventurePredicate} API.
+     * Please use {@link ItemStack#hasData(DataComponentType)} with {@link DataComponentTypes#CAN_BREAK} instead of this.
+     */
+    @Deprecated(forRemoval = true, since = "1.20.6")
+    boolean hasDestroyableKeys();
 }

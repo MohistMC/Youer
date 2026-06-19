@@ -1,55 +1,97 @@
 package org.bukkit.event.server;
 
 import java.util.Set;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 /**
  * Event triggered for server broadcast messages such as from
- * {@link org.bukkit.Server#broadcast(String, String)}.
- *
- * <b>This event behaves similarly to {@link AsyncPlayerChatEvent} in that it
+ * {@link org.bukkit.Server#broadcast(Component)}.
+ * <p>
+ * This event behaves similarly to {@link io.papermc.paper.event.player.AsyncChatEvent} in that it
  * should be async if fired from an async thread. Please see that event for
- * further information.</b>
+ * further information.
  */
 public class BroadcastMessageEvent extends ServerEvent implements Cancellable {
 
-    private static final HandlerList handlers = new HandlerList();
-    private String message;
-    private final Set<CommandSender> recipients;
-    private boolean cancelled = false;
+    private static final HandlerList HANDLER_LIST = new HandlerList();
 
-    @Deprecated(since = "1.14")
+    private final Set<CommandSender> recipients;
+    private Component message;
+
+    private boolean cancelled;
+
+    @ApiStatus.Internal
+    @Deprecated(since = "1.14", forRemoval = true)
     public BroadcastMessageEvent(@NotNull String message, @NotNull Set<CommandSender> recipients) {
         this(false, message, recipients);
     }
 
+    @ApiStatus.Internal
+    @Deprecated(forRemoval = true)
     public BroadcastMessageEvent(boolean isAsync, @NotNull String message, @NotNull Set<CommandSender> recipients) {
+        super(isAsync);
+        this.message = LegacyComponentSerializer.legacySection().deserialize(message);
+        this.recipients = recipients;
+    }
+
+    @ApiStatus.Internal
+    @Deprecated(forRemoval = true)
+    public BroadcastMessageEvent(@NotNull Component message, @NotNull Set<CommandSender> recipients) {
+        this(false, message, recipients);
+    }
+
+    @ApiStatus.Internal
+    public BroadcastMessageEvent(boolean isAsync, @NotNull Component message, @NotNull Set<CommandSender> recipients) {
         super(isAsync);
         this.message = message;
         this.recipients = recipients;
     }
 
     /**
-     * Get the message to broadcast.
+     * Get the broadcast message.
      *
      * @return Message to broadcast
      */
+    public @NotNull Component message() {
+        return this.message;
+    }
+
+    /**
+     * Set the broadcast message.
+     *
+     * @param message New message to broadcast
+     */
+    public void message(@NotNull Component message) {
+        this.message = message;
+    }
+
+    /**
+     * Get the message to broadcast.
+     *
+     * @return Message to broadcast
+     * @deprecated in favour of {@link #message()}
+     */
     @NotNull
+    @Deprecated
     public String getMessage() {
-        return message;
+        return LegacyComponentSerializer.legacySection().serialize(this.message);
     }
 
     /**
      * Set the message to broadcast.
      *
      * @param message New message to broadcast
+     * @deprecated in favour of {@link #message(Component)}
      */
+    @Deprecated // Paper
     public void setMessage(@NotNull String message) {
-        this.message = message;
+        this.message = LegacyComponentSerializer.legacySection().deserialize(message);
     }
 
     /**
@@ -67,12 +109,12 @@ public class BroadcastMessageEvent extends ServerEvent implements Cancellable {
      */
     @NotNull
     public Set<CommandSender> getRecipients() {
-        return recipients;
+        return this.recipients;
     }
 
     @Override
     public boolean isCancelled() {
-        return cancelled;
+        return this.cancelled;
     }
 
     @Override
@@ -83,11 +125,11 @@ public class BroadcastMessageEvent extends ServerEvent implements Cancellable {
     @NotNull
     @Override
     public HandlerList getHandlers() {
-        return handlers;
+        return HANDLER_LIST;
     }
 
     @NotNull
     public static HandlerList getHandlerList() {
-        return handlers;
+        return HANDLER_LIST;
     }
 }

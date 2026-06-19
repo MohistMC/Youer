@@ -303,6 +303,8 @@ public class NeoDevPlugin implements Plugin<Project> {
             task.exclude("com/**");
             task.exclude("org/**"); // Youer
             task.exclude("mcp/**");
+            task.exclude("io/papermc/**");
+            task.exclude("co/aikar/**");
             task.from(binaryPatchOutputs, spec -> {
                 spec.into("net/neoforged/neoforge/common/");
                 spec.rename(s -> "patches.lzma");

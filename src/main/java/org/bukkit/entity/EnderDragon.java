@@ -30,7 +30,7 @@ public interface EnderDragon extends ComplexLivingEntity, Boss, Mob, Enemy {
          */
         FLY_TO_PORTAL,
         /**
-         * The dragon will land on on the portal. If the dragon is not near
+         * The dragon will land on the portal. If the dragon is not near
          * the portal, it will fly to it before mounting.
          */
         LAND_ON_PORTAL,
@@ -108,4 +108,22 @@ public interface EnderDragon extends ComplexLivingEntity, Boss, Mob, Enemy {
      * @return this dragon's death animation ticks
      */
     int getDeathAnimationTicks();
+
+    // Paper start
+
+    /**
+     * Get the podium location used by the ender dragon.
+     *
+     * @return the podium location of the dragon
+     */
+    @NotNull
+    org.bukkit.Location getPodium();
+
+    /**
+     * Sets the location of the podium for the ender dragon.
+     *
+     * @param location the location of the podium or null to use the default podium location (exit portal of the end)
+     */
+    void setPodium(@Nullable org.bukkit.Location location);
+    // Paper end
 }

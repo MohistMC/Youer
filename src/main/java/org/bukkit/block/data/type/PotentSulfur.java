@@ -1,11 +1,12 @@
 package org.bukkit.block.data.type;
 
 import org.bukkit.block.data.BlockData;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NullMarked;
 
 /**
- * 'potent_sulfur_state' indicates the current state of the block.
+ * 'potent_sulfur_state' represents the environmental state of the block and whether it can form a geyser.
  */
+@NullMarked
 public interface PotentSulfur extends BlockData {
 
     /**
@@ -13,7 +14,6 @@ public interface PotentSulfur extends BlockData {
      *
      * @return the 'potent_sulfur_state' value
      */
-    @NotNull
     State getPotentSulfurState();
 
     /**
@@ -21,13 +21,16 @@ public interface PotentSulfur extends BlockData {
      *
      * @param state the new 'potent_sulfur_state' value
      */
-    void setPotentSulfurState(@NotNull State state);
+    void setPotentSulfurState(State state);
 
-    public enum State {
-
+    /**
+     * The environmental state of the potent sulfur.
+     */
+    enum State {
         DRY,
         WET,
         DORMANT,
-        ERUPTING;
+        ERUPTING,
+        CONTINUOUS;
     }
 }

@@ -89,7 +89,60 @@ public interface Fox extends Animals, Sittable {
      * Represents the various different fox types there are.
      */
     public enum Type {
+        // Start generate - FoxType
         RED,
         SNOW;
+        // End generate - FoxType
     }
+
+    // Paper start - Add more fox behavior API
+    /**
+     * Sets if the fox is interested.
+     *
+     * @param interested is interested
+     */
+    public void setInterested(boolean interested);
+
+    /**
+     * Gets if the fox is interested.
+     *
+     * @return fox is interested
+     */
+    public boolean isInterested();
+
+    /**
+     * Sets if the fox is leaping.
+     *
+     * @param leaping is leaping
+     */
+    public void setLeaping(boolean leaping);
+
+    /**
+     * Gets if the fox is leaping.
+     *
+     * @return fox is leaping
+     */
+    public boolean isLeaping();
+
+    /**
+     * Sets if the fox is defending.
+     *
+     * @param defending is defending
+     */
+    public void setDefending(boolean defending);
+
+    /**
+     * Gets if the fox is defending.
+     *
+     * @return fox is defending
+     */
+    public boolean isDefending();
+
+    /**
+     * Sets if the fox face planted.
+     *
+     * @param faceplanted face planted
+     */
+    public void setFaceplanted(boolean faceplanted);
+    // Paper end - Add more fox behavior API
 }

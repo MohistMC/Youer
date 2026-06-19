@@ -5,6 +5,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.Serializable;
 import java.net.InetAddress;
+import java.nio.file.Path;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
@@ -14,6 +15,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
+import io.papermc.paper.configuration.ServerConfiguration;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
 import org.bukkit.Warning.WarningState;
 import org.bukkit.advancement.Advancement;
 import org.bukkit.block.data.BlockData;
@@ -46,7 +51,6 @@ import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.loot.LootTable;
 import org.bukkit.map.MapView;
-import org.bukkit.packs.DataPackManager;
 import org.bukkit.packs.ResourcePack;
 import org.bukkit.permissions.Permissible;
 import org.bukkit.plugin.PluginManager;
@@ -59,6 +63,7 @@ import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.structure.StructureManager;
 import org.bukkit.util.CachedServerIcon;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -66,13 +71,25 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Represents a server implementation.
  */
-public interface Server extends PluginMessageRecipient {
+public interface Server extends PluginMessageRecipient, net.kyori.adventure.audience.ForwardingAudience { // Paper
+
+    /**
+     * Returns the de facto plugins directory, generally used for storing plugin jars to be loaded,
+     * as well as their {@link org.bukkit.plugin.Plugin#getDataFolder() data folders}.
+     *
+     * <p>Plugins should use {@link org.bukkit.plugin.Plugin#getDataFolder()} rather than traversing this
+     * directory manually when determining the location in which to store their data and configuration files.</p>
+     *
+     * @return plugins directory
+     */
+    @NotNull
+    File getPluginsFolder();
 
     /**
      * Used for all administrative messages, such as an operator using a
      * command.
      * <p>
-     * For use in {@link #broadcast(java.lang.String, java.lang.String)}.
+     * For use in {@link #broadcast(net.kyori.adventure.text.Component, java.lang.String)}.
      */
     public static final String BROADCAST_CHANNEL_ADMINISTRATIVE = "bukkit.broadcast.admin";
 
@@ -80,7 +97,7 @@ public interface Server extends PluginMessageRecipient {
      * Used for all announcement messages, such as informing users that a
      * player has joined.
      * <p>
-     * For use in {@link #broadcast(java.lang.String, java.lang.String)}.
+     * For use in {@link #broadcast(net.kyori.adventure.text.Component, java.lang.String)}.
      */
     public static final String BROADCAST_CHANNEL_USERS = "bukkit.broadcast.user";
 
@@ -108,6 +125,16 @@ public interface Server extends PluginMessageRecipient {
     @NotNull
     public String getBukkitVersion();
 
+    // Paper start - expose game version
+    /**
+     * Gets the version of game this server implements
+     *
+     * @return version of game
+     */
+    @NotNull
+    String getMinecraftVersion();
+    // Paper end
+
     /**
      * Gets a view of all currently logged in players. This {@linkplain
      * Collections#unmodifiableCollection(Collection) view} is a reused
@@ -125,8 +152,8 @@ public interface Server extends PluginMessageRecipient {
      * uses. Normal and immediate iterator use without consequences that
      * affect the collection are fully supported. The effects following
      * (non-exhaustive) {@link Entity#teleport(Location) teleportation},
-     * {@link Player#setHealth(double) death}, and {@link Player#kickPlayer(
-     * String) kicking} are undefined. Any use of this collection from
+     * {@link Player#setHealth(double) death}, and {@link Player#kick(
+     * Component) kicking} are undefined. Any use of this collection from
      * asynchronous threads is unsafe.
      * <p>
      * For safe consequential iteration or mimicking the old array behavior,
@@ -186,7 +213,7 @@ public interface Server extends PluginMessageRecipient {
     /**
      * Get world type (level-type setting) for default world.
      *
-     * @return the value of level-type (e.g. DEFAULT, FLAT, DEFAULT_1_1)
+     * @return the value of level-type (e.g. minecraft:normal, minecraft:flat, minecraft:large_biomes, minecraft:amplified)
      */
     @NotNull
     public String getWorldType();
@@ -214,8 +241,10 @@ public interface Server extends PluginMessageRecipient {
 
     /**
      * Gets whether this server allows the Nether or not.
+     * Separate from the portal game rule.
      *
      * @return whether this server allows the Nether or not
+     * @see GameRules#ALLOW_ENTERING_NETHER_USING_PORTALS
      */
     public boolean getAllowNether();
 
@@ -243,29 +272,12 @@ public interface Server extends PluginMessageRecipient {
     public List<String> getInitialDisabledPacks();
 
     /**
-     * Get the DataPack Manager.
-     *
-     * @return the manager
-     */
-    @NotNull
-    public DataPackManager getDataPackManager();
-
-    /**
      * Get the ServerTick Manager.
      *
      * @return the manager
      */
     @NotNull
     public ServerTickManager getServerTickManager();
-
-    /**
-     * Gets the code of conducts enabled on the server. The returned map is a
-     * map of string language codes (eg, en_us) to codes of conducts.
-     *
-     * @return the codes of conduct or empty if none
-     */
-    @NotNull
-    public Map<String, String> getCodeOfConducts();
 
     /**
      * Gets the resource pack configured to be sent to clients by the server.
@@ -365,8 +377,70 @@ public interface Server extends PluginMessageRecipient {
      *
      * @param message the message
      * @return the number of players
+     * @deprecated use {@link #broadcast(net.kyori.adventure.text.Component)}
      */
-    public int broadcastMessage(@NotNull String message);
+    @Deprecated // Paper
+    default int broadcastMessage(@NotNull String message) {
+        return this.broadcast(message, BROADCAST_CHANNEL_USERS);
+    }
+
+    // Paper start
+    /**
+     * Sends the component to all online players.
+     *
+     * @param component the component to send
+     * @deprecated use {@code sendMessage} methods that accept {@link net.kyori.adventure.text.Component}
+     */
+    @Deprecated
+    public default void broadcast(@NotNull net.md_5.bungee.api.chat.BaseComponent component) {
+        spigot().broadcast(component);
+    }
+
+    /**
+     * Sends an array of components as a single message to all online players.
+     *
+     * @param components the components to send
+     * @deprecated use {@code sendMessage} methods that accept {@link net.kyori.adventure.text.Component}
+     */
+    @Deprecated
+    public default void broadcast(@NotNull net.md_5.bungee.api.chat.BaseComponent... components) {
+        spigot().broadcast(components);
+    }
+    // Paper end
+
+    /**
+     * Sends a message with the MiniMessage format to the server.
+     * <p>
+     * See <a href="https://docs.advntr.dev/minimessage/">MiniMessage docs</a>
+     * for more information on the format.
+     *
+     * @param message MiniMessage content
+     */
+    default void sendRichMessage(final @NotNull String message) {
+        this.sendMessage(MiniMessage.miniMessage().deserialize(message, this));
+    }
+
+    /**
+     * Sends a message with the MiniMessage format to the server.
+     * <p>
+     * See <a href="https://docs.advntr.dev/minimessage/">MiniMessage docs</a> and <a href="https://docs.advntr.dev/minimessage/dynamic-replacements">MiniMessage Placeholders docs</a>
+     * for more information on the format.
+     *
+     * @param message MiniMessage content
+     * @param resolvers resolvers to use
+     */
+    default void sendRichMessage(final @NotNull String message, final @NotNull TagResolver... resolvers) {
+        this.sendMessage(MiniMessage.miniMessage().deserialize(message, this, resolvers));
+    }
+
+    /**
+     * Sends a plain message to the server.
+     *
+     * @param message plain message
+     */
+    default void sendPlainMessage(final @NotNull String message) {
+        this.sendMessage(Component.text(message));
+    }
 
     /**
      * Gets the name of the update folder. The update folder is used to safely
@@ -416,7 +490,9 @@ public interface Server extends PluginMessageRecipient {
      * @deprecated Deprecated in favor of {@link #getTicksPerSpawns(SpawnCategory)}
      */
     @Deprecated(since = "1.18.1")
-    public int getTicksPerAnimalSpawns();
+    default int getTicksPerAnimalSpawns() {
+        return this.getTicksPerSpawns(SpawnCategory.ANIMAL);
+    }
 
     /**
      * Gets the default ticks per monster spawns value.
@@ -439,7 +515,9 @@ public interface Server extends PluginMessageRecipient {
      * @deprecated Deprecated in favor of {@link #getTicksPerSpawns(SpawnCategory)}
      */
     @Deprecated(since = "1.18.1")
-    public int getTicksPerMonsterSpawns();
+    default int getTicksPerMonsterSpawns() {
+        return this.getTicksPerSpawns(SpawnCategory.MONSTER);
+    }
 
     /**
      * Gets the default ticks per water mob spawns value.
@@ -461,7 +539,9 @@ public interface Server extends PluginMessageRecipient {
      * @deprecated Deprecated in favor of {@link #getTicksPerSpawns(SpawnCategory)}
      */
     @Deprecated(since = "1.18.1")
-    public int getTicksPerWaterSpawns();
+    default int getTicksPerWaterSpawns() {
+        return this.getTicksPerSpawns(SpawnCategory.WATER_ANIMAL);
+    }
 
     /**
      * Gets the default ticks per water ambient mob spawns value.
@@ -483,7 +563,9 @@ public interface Server extends PluginMessageRecipient {
      * @deprecated Deprecated in favor of {@link #getTicksPerSpawns(SpawnCategory)}
      */
     @Deprecated(since = "1.18.1")
-    public int getTicksPerWaterAmbientSpawns();
+    default int getTicksPerWaterAmbientSpawns() {
+        return this.getTicksPerSpawns(SpawnCategory.WATER_AMBIENT);
+    }
 
     /**
      * Gets the default ticks per water underground creature spawns value.
@@ -505,7 +587,9 @@ public interface Server extends PluginMessageRecipient {
      * @deprecated Deprecated in favor of {@link #getTicksPerSpawns(SpawnCategory)}
      */
     @Deprecated(since = "1.18.1")
-    public int getTicksPerWaterUndergroundCreatureSpawns();
+    default int getTicksPerWaterUndergroundCreatureSpawns() {
+        return this.getTicksPerSpawns(SpawnCategory.WATER_UNDERGROUND_CREATURE);
+    }
 
     /**
      * Gets the default ticks per ambient mob spawns value.
@@ -527,7 +611,9 @@ public interface Server extends PluginMessageRecipient {
      * @deprecated Deprecated in favor of {@link #getTicksPerSpawns(SpawnCategory)}
      */
     @Deprecated(since = "1.18.1")
-    public int getTicksPerAmbientSpawns();
+    default int getTicksPerAmbientSpawns() {
+        return this.getTicksPerSpawns(SpawnCategory.AMBIENT);
+    }
 
     /**
      * Gets the default ticks per {@link SpawnCategory} spawns value.
@@ -542,13 +628,10 @@ public interface Server extends PluginMessageRecipient {
      * </ul>
      * <p>
      * <b>Note:</b> If set to 0, {@link SpawnCategory} mobs spawning will be disabled.
-     * <p>
-     * Minecraft default: 1.
-     * <br>
-     * <b>Note: </b> the {@link SpawnCategory#MISC} are not consider.
      *
      * @param spawnCategory the category of spawn
      * @return the default ticks per {@link SpawnCategory} mobs spawn value
+     * @throws IllegalArgumentException if the category is {@link SpawnCategory#MISC}
      */
     public int getTicksPerSpawns(@NotNull SpawnCategory spawnCategory);
 
@@ -597,6 +680,18 @@ public interface Server extends PluginMessageRecipient {
     @Nullable
     public Player getPlayer(@NotNull UUID id);
 
+    // Paper start
+    /**
+     * Gets the unique ID of the player currently known as the specified player name
+     * In Offline Mode, will return an Offline UUID
+     *
+     * @param playerName the player name to look up the unique ID for
+     * @return A UUID, or null if that player name is not registered with Minecraft and the server is in online mode
+     */
+    @Nullable
+    public UUID getPlayerUniqueId(@NotNull String playerName);
+    // Paper end
+
     /**
      * Gets the plugin manager for interfacing with plugins.
      *
@@ -629,13 +724,14 @@ public interface Server extends PluginMessageRecipient {
     @NotNull
     public List<World> getWorlds();
 
+    // Paper start
     /**
-     * Gets a list of all world name on this server.
+     * Gets whether the worlds are being ticked right now.
      *
-     * @return a set of worlds
+     * @return true if the worlds are being ticked, false otherwise.
      */
-    @NotNull
-    public Set<String> getWorldsByName();
+    public boolean isTickingWorlds();
+    // Paper end
 
     /**
      * Creates or loads a world with the given name using the specified
@@ -643,37 +739,69 @@ public interface Server extends PluginMessageRecipient {
      * <p>
      * If the world is already loaded, it will just return the equivalent of
      * getWorld(creator.name()).
+     * <p>
+     * Do note that un/loading worlds mid-tick may have potential side effects, we strongly recommend
+     * ensuring that you're not un/loading worlds midtick by checking {@link Bukkit#isTickingWorlds()}
      *
      * @param creator the options to use when creating the world
      * @return newly created or loaded world
+     * @throws IllegalStateException when {@link #isTickingWorlds() isTickingWorlds} is true
      */
     @Nullable
     public World createWorld(@NotNull WorldCreator creator);
 
     /**
      * Unloads a world with the given name.
+     * <p>
+     * Do note that un/loading worlds mid-tick may have potential side effects, we strongly recommend
+     * ensuring that you're not un/loading worlds midtick by checking {@link Bukkit#isTickingWorlds()}
      *
      * @param name Name of the world to unload
      * @param save whether to save the chunks before unloading
      * @return true if successful, false otherwise
+     * @throws IllegalStateException when {@link #isTickingWorlds() isTickingWorlds} is true
      */
     public boolean unloadWorld(@NotNull String name, boolean save);
 
     /**
      * Unloads the given world.
+     * <p>
+     * Do note that un/loading worlds mid-tick may have potential side effects, we strongly recommend
+     * ensuring that you're not un/loading worlds midtick by checking {@link Bukkit#isTickingWorlds()}
      *
      * @param world the world to unload
      * @param save whether to save the chunks before unloading
      * @return true if successful, false otherwise
+     * @throws IllegalStateException when {@link #isTickingWorlds() isTickingWorlds} is true
      */
     public boolean unloadWorld(@NotNull World world, boolean save);
 
     /**
-     * Gets the world with the given name.
+     * Gets the world that players respawn in.
      *
-     * @param name the name of the world to retrieve
-     * @return a world with the given name, or null if none exists
+     * @return the world that players respawn in
+     * @see World#getSpawnLocation()
      */
+    public @NotNull World getRespawnWorld();
+
+    /**
+     * Sets the world that players respawn in.
+     *
+     * @param world the world that players should respawn in
+     * @see World#setSpawnLocation(Location)
+     */
+    public void setRespawnWorld(@NotNull World world);
+
+    /**
+     * Gets the world with the given legacy Bukkit name.
+     *
+     * <p>This method is considered obsolete and is a candidate for future deprecation.
+     * Prefer using {@link #getWorld(NamespacedKey)}.</p>
+     *
+     * @param name the legacy Bukkit name of the world to retrieve
+     * @return a world with the given legacy Bukkit name, or null if none exists
+     */
+    @ApiStatus.Obsolete
     @Nullable
     public World getWorld(@NotNull String name);
 
@@ -686,11 +814,34 @@ public interface Server extends PluginMessageRecipient {
     @Nullable
     public World getWorld(@NotNull UUID uid);
 
+    // Paper start
+    /**
+     * Gets the world from the given NamespacedKey
+     *
+     * @param worldKey the NamespacedKey of the world to retrieve
+     * @return a world with the given NamespacedKey, or null if none exists
+     */
+    @Nullable
+    default World getWorld(@NotNull NamespacedKey worldKey) {
+        return getWorld((net.kyori.adventure.key.Key) worldKey);
+    }
+
+    /**
+     * Gets the world from the given Key
+     *
+     * @param worldKey the Key of the world to retrieve
+     * @return a world with the given Key, or null if none exists
+     */
+    @Nullable
+    World getWorld(@NotNull net.kyori.adventure.key.Key worldKey);
+    // Paper end
+
     /**
      * Create a new virtual {@link WorldBorder}.
      * <p>
      * Note that world borders created by the server will not respect any world
-     * scaling effects (i.e. coordinates are not divided by 8 in the nether).
+     * scaling effects (i.e. coordinates are not divided by 8 in the nether)
+     * and will not deal damage to players outside their bounds.
      *
      * @return the created world border instance
      *
@@ -704,11 +855,9 @@ public interface Server extends PluginMessageRecipient {
      *
      * @param id the id of the map to get
      * @return a map view if it exists, or null otherwise
-     * @deprecated Magic value
      */
-    @Deprecated(since = "1.6.2")
     @Nullable
-    public MapView getMap(int id);
+    MapView getMap(int id);
 
     /**
      * Create a new map with an automatically assigned ID.
@@ -733,16 +882,17 @@ public interface Server extends PluginMessageRecipient {
      *
      * @see World#locateNearestStructure(org.bukkit.Location,
      *      org.bukkit.StructureType, int, boolean)
+     * @deprecated use {@link #createExplorerMap(World, Location, org.bukkit.generator.structure.StructureType, org.bukkit.map.MapCursor.Type)}
      */
+    @Deprecated // Paper
     @NotNull
-    public ItemStack createExplorerMap(@NotNull World world, @NotNull Location location, @NotNull StructureType structureType);
+    default ItemStack createExplorerMap(@NotNull World world, @NotNull Location location, @NotNull StructureType structureType) {
+        return this.createExplorerMap(world, location, structureType, 100, true);
+    }
 
     /**
      * Create a new explorer map targeting the closest nearby structure of a
      * given {@link StructureType}.
-     * <br>
-     * This method uses implementation default values for radius and
-     * findUnexplored (usually 100, true).
      *
      * @param world the world the map will belong to
      * @param location the origin location to find the nearest structure
@@ -754,9 +904,50 @@ public interface Server extends PluginMessageRecipient {
      *
      * @see World#locateNearestStructure(org.bukkit.Location,
      *      org.bukkit.StructureType, int, boolean)
+     * @deprecated use {@link #createExplorerMap(World, Location, org.bukkit.generator.structure.StructureType, org.bukkit.map.MapCursor.Type, int, boolean)}
      */
+    @Deprecated // Paper
     @NotNull
     public ItemStack createExplorerMap(@NotNull World world, @NotNull Location location, @NotNull StructureType structureType, int radius, boolean findUnexplored);
+    // Paper start
+    /**
+     * Create a new explorer map targeting the closest nearby structure of a
+     * given {@link org.bukkit.generator.structure.StructureType}.
+     * <br>
+     * This method uses implementation default values for radius and
+     * findUnexplored (usually 100, true).
+     *
+     * @param world the world the map will belong to
+     * @param location the origin location to find the nearest structure
+     * @param structureType the type of structure to find
+     * @param mapIcon the map icon to use on the map
+     * @return a newly created item stack or null if it can't find a location
+     *
+     * @see World#locateNearestStructure(org.bukkit.Location,
+     *      org.bukkit.generator.structure.StructureType, int, boolean)
+     */
+    default @Nullable ItemStack createExplorerMap(@NotNull World world, @NotNull Location location, @NotNull org.bukkit.generator.structure.StructureType structureType, @NotNull org.bukkit.map.MapCursor.Type mapIcon) {
+        return this.createExplorerMap(world, location, structureType, mapIcon, 100, true);
+    }
+
+    /**
+     * Create a new explorer map targeting the closest nearby structure of a
+     * given {@link org.bukkit.generator.structure.StructureType}.
+     *
+     * @param world the world the map will belong to
+     * @param location the origin location to find the nearest structure
+     * @param structureType the type of structure to find
+     * @param mapIcon the map icon to use on the map
+     * @param radius radius to search, see World#locateNearestStructure for more
+     *               information
+     * @param findUnexplored whether to find unexplored structures
+     * @return the newly created item stack or null if it can't find a location
+     *
+     * @see World#locateNearestStructure(org.bukkit.Location,
+     *      org.bukkit.generator.structure.StructureType, int, boolean)
+     */
+    @Nullable ItemStack createExplorerMap(@NotNull World world, @NotNull Location location, @NotNull org.bukkit.generator.structure.StructureType structureType, @NotNull org.bukkit.map.MapCursor.Type mapIcon, int radius, boolean findUnexplored);
+    // Paper end
 
     /**
      * Reloads the server, refreshing settings and plugin information.
@@ -769,12 +960,34 @@ public interface Server extends PluginMessageRecipient {
      */
     public void reloadData();
 
+    // Paper start - update reloadable data
+    /**
+     * Updates all advancement, tag, and recipe data to all connected clients.
+     * Useful for updating clients to new advancements/recipes/tags.
+     * @see #updateRecipes()
+     */
+    void updateResources();
+
+    /**
+     * Updates recipe data and the recipe book to each player. Useful for
+     * updating clients to new recipes.
+     * @see #updateResources()
+     */
+    void updateRecipes();
+    // Paper end - update reloadable data
+
     /**
      * Returns the primary logger associated with this server instance.
      *
      * @return Logger associated with this server
+     * @see org.bukkit.plugin.Plugin#getSLF4JLogger()
+     * @apiNote This logger is for the Minecraft server software, not for specific plugins. You should
+     * use a logger for a specific plugin, either via {@link org.bukkit.plugin.Plugin#getSLF4JLogger()}
+     * or {@link org.bukkit.plugin.Plugin#getLogger()} or create a specific logger for a class via slf4j.
+     * That way, log messages contain contextual information about the source of the message.
      */
     @NotNull
+    @org.jetbrains.annotations.ApiStatus.Internal // Paper - internalize Bukkit#getLogger
     public Logger getLogger();
 
     /**
@@ -805,13 +1018,32 @@ public interface Server extends PluginMessageRecipient {
 
     /**
      * Adds a recipe to the crafting manager.
+     * Recipes added with this method won't be sent to the client automatically.
+     * <p>
+     * Players still have to discover recipes via {@link Player#discoverRecipe(NamespacedKey)}
+     * before seeing them in their recipe book.
      *
      * @param recipe the recipe to add
-     * @return true if the recipe was added, false if it wasn't for some
-     *     reason
+     * @return true if the recipe was added, false if it wasn't for some reason
+     * @see #addRecipe(Recipe, boolean)
      */
     @Contract("null -> false")
-    public boolean addRecipe(@Nullable Recipe recipe);
+    default boolean addRecipe(@Nullable Recipe recipe) {
+        return this.addRecipe(recipe, false);
+    }
+
+    // Paper start - method to send recipes immediately
+    /**
+     * Adds a recipe to the crafting manager.
+     *
+     * @apiNote resendRecipes is ignored for now for stability reasons, recipes will always be updated
+     * @param recipe the recipe to add
+     * @param resendRecipes true to update the client with the full set of recipes
+     * @return true if the recipe was added, false if it wasn't for some reason
+     */
+    @Contract("null, _ -> false")
+    boolean addRecipe(@Nullable Recipe recipe, boolean resendRecipes);
+    // Paper end - method to send recipes immediately
 
     /**
      * Get a list of all recipes for a given item. The stack size is ignored
@@ -853,7 +1085,7 @@ public interface Server extends PluginMessageRecipient {
      * @return the {@link Recipe} resulting from the given crafting matrix.
      */
     @Nullable
-    public Recipe getCraftingRecipe(@NotNull ItemStack[] craftingMatrix, @NotNull World world);
+    public Recipe getCraftingRecipe(@NotNull ItemStack @NotNull [] craftingMatrix, @NotNull World world);
 
     /**
      * Get the crafted item using the list of {@link ItemStack} provided.
@@ -881,7 +1113,9 @@ public interface Server extends PluginMessageRecipient {
      * an ItemStack of {@link Material#AIR} is returned.
      */
     @NotNull
-    public ItemStack craftItem(@NotNull ItemStack[] craftingMatrix, @NotNull World world, @NotNull Player player);
+    default ItemStack craftItem(@NotNull ItemStack @NotNull [] craftingMatrix, @NotNull World world, @NotNull Player player) {
+        return this.craftItemResult(craftingMatrix, world, player).getResult();
+    }
 
     /**
      * Get the crafted item using the list of {@link ItemStack} provided.
@@ -902,7 +1136,9 @@ public interface Server extends PluginMessageRecipient {
      * an ItemStack of {@link Material#AIR} is returned.
      */
     @NotNull
-    public ItemStack craftItem(@NotNull ItemStack[] craftingMatrix, @NotNull World world);
+    default ItemStack craftItem(@NotNull ItemStack @NotNull [] craftingMatrix, @NotNull World world) {
+        return this.craftItemResult(craftingMatrix, world).getResult();
+    }
 
     /**
      * Get the crafted item using the list of {@link ItemStack} provided.
@@ -929,7 +1165,7 @@ public interface Server extends PluginMessageRecipient {
      * @return resulting {@link ItemCraftResult} containing the resulting item, matrix and any overflow items.
      */
     @NotNull
-    public ItemCraftResult craftItemResult(@NotNull ItemStack[] craftingMatrix, @NotNull World world, @NotNull Player player);
+    public ItemCraftResult craftItemResult(@NotNull ItemStack @NotNull [] craftingMatrix, @NotNull World world, @NotNull Player player);
 
     /**
      * Get the crafted item using the list of {@link ItemStack} provided.
@@ -949,7 +1185,7 @@ public interface Server extends PluginMessageRecipient {
      * @return resulting {@link ItemCraftResult} containing the resulting item, matrix and any overflow items.
      */
     @NotNull
-    public ItemCraftResult craftItemResult(@NotNull ItemStack[] craftingMatrix, @NotNull World world);
+    public ItemCraftResult craftItemResult(@NotNull ItemStack @NotNull [] craftingMatrix, @NotNull World world);
 
     /**
      * Get an iterator through the list of crafting recipes.
@@ -979,7 +1215,25 @@ public interface Server extends PluginMessageRecipient {
      * @param key NamespacedKey of recipe to remove.
      * @return True if recipe was removed
      */
-    public boolean removeRecipe(@NotNull NamespacedKey key);
+    default boolean removeRecipe(@NotNull NamespacedKey key) {
+        return this.removeRecipe(key, false);
+    }
+
+    // Paper start - method to resend recipes
+    /**
+     * Remove a recipe from the server.
+     * <p>
+     * <b>Note that removing a recipe may cause permanent loss of data
+     * associated with that recipe (eg whether it has been discovered by
+     * players).</b>
+     *
+     * @param key NamespacedKey of recipe to remove.
+     * @param resendRecipes true to update all clients on the new recipe list.
+     *                      Will only update if a recipe was actually removed
+     * @return True if recipe was removed
+     */
+    boolean removeRecipe(@NotNull NamespacedKey key, boolean resendRecipes);
+    // Paper end - method to resend recipes
 
     /**
      * Gets a list of command aliases defined in the server properties.
@@ -1010,8 +1264,10 @@ public interface Server extends PluginMessageRecipient {
      * @return true if the server should send a preview, false otherwise
      * @deprecated chat previews have been removed
      */
-    @Deprecated(since = "1.19.3")
-    public boolean shouldSendChatPreviews();
+    @Deprecated(since = "1.19.3", forRemoval = true)
+    default boolean shouldSendChatPreviews() {
+        return false;
+    }
 
     /**
      * Gets whether the server only allow players with Mojang-signed public key
@@ -1044,6 +1300,13 @@ public interface Server extends PluginMessageRecipient {
     public boolean getOnlineMode();
 
     /**
+     * Retrieves the server configuration.
+     *
+     * @return the instance of ServerConfiguration containing the server's configuration details
+     */
+    @NotNull ServerConfiguration getServerConfig();
+
+    /**
      * Gets whether this server allows flying or not.
      *
      * @return true if the server allows flight, false otherwise
@@ -1070,8 +1333,38 @@ public interface Server extends PluginMessageRecipient {
      * @param permission the required permission {@link Permissible
      *     permissibles} must have to receive the broadcast
      * @return number of message recipients
+     * @deprecated in favour of {@link #broadcast(net.kyori.adventure.text.Component, String)}
      */
-    public int broadcast(@NotNull String message, @NotNull String permission);
+    @Deprecated // Paper
+    default int broadcast(@NotNull String message, @NotNull String permission) {
+        return this.broadcast(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message), permission);
+    }
+
+    // Paper start
+    /**
+     * Broadcast a message to all players.
+     * <p>
+     * This is the same as calling {@link #broadcast(net.kyori.adventure.text.Component,
+     * java.lang.String)} with the {@link #BROADCAST_CHANNEL_USERS} permission.
+     *
+     * @param message the message
+     * @return the number of players
+     */
+    default int broadcast(net.kyori.adventure.text.@NotNull Component message) {
+        return this.broadcast(message, BROADCAST_CHANNEL_USERS);
+    }
+
+    /**
+     * Broadcasts the specified message to every user with the given
+     * permission name.
+     *
+     * @param message message to broadcast
+     * @param permission the required permission {@link Permissible
+     *     permissibles} must have to receive the broadcast
+     * @return number of message recipients
+     */
+    int broadcast(net.kyori.adventure.text.@NotNull Component message, @NotNull String permission);
+    // Paper end
 
     /**
      * Gets the player by the given name, regardless if they are offline or
@@ -1086,12 +1379,28 @@ public interface Server extends PluginMessageRecipient {
      * @param name the name the player to retrieve
      * @return an offline player
      * @see #getOfflinePlayer(java.util.UUID)
-     * @deprecated Persistent storage of users should be by UUID as names are no longer
-     *             unique past a single session.
      */
-    @Deprecated(since = "1.7.5")
     @NotNull
     public OfflinePlayer getOfflinePlayer(@NotNull String name);
+
+    // Paper start
+    /**
+     * Gets the player by the given name, regardless if they are offline or
+     * online.
+     * <p>
+     * This will not make a web request to get the UUID for the given name,
+     * thus this method will not block. However this method will return
+     * {@code null} if the player is not cached.
+     * </p>
+     *
+     * @param name the name of the player to retrieve
+     * @return an offline player if cached, {@code null} otherwise
+     * @see #getOfflinePlayer(String)
+     * @see #getOfflinePlayer(java.util.UUID)
+     */
+    @Nullable
+    public OfflinePlayer getOfflinePlayerIfCached(@NotNull String name);
+    // Paper end
 
     /**
      * Gets the player by the given UUID, regardless if they are offline or
@@ -1114,8 +1423,10 @@ public interface Server extends PluginMessageRecipient {
      * @return the new PlayerProfile
      * @throws IllegalArgumentException if both the unique id is
      * <code>null</code> and the name is <code>null</code> or blank
+     * @deprecated use {@link #createProfile(UUID, String)}
      */
     @NotNull
+    @Deprecated(since = "1.18.1") // Paper
     PlayerProfile createPlayerProfile(@Nullable UUID uniqueId, @Nullable String name);
 
     /**
@@ -1124,8 +1435,10 @@ public interface Server extends PluginMessageRecipient {
      * @param uniqueId the unique id
      * @return the new PlayerProfile
      * @throws IllegalArgumentException if the unique id is <code>null</code>
+     * @deprecated use {@link #createProfile(UUID)}
      */
     @NotNull
+    @Deprecated(since = "1.18.1") // Paper
     PlayerProfile createPlayerProfile(@NotNull UUID uniqueId);
 
     /**
@@ -1135,8 +1448,10 @@ public interface Server extends PluginMessageRecipient {
      * @return the new PlayerProfile
      * @throws IllegalArgumentException if the name is <code>null</code> or
      * blank
+     * @deprecated use {@link #createProfile(String)}
      */
     @NotNull
+    @Deprecated(since = "1.18.1") // Paper
     PlayerProfile createPlayerProfile(@NotNull String name);
 
     /**
@@ -1196,9 +1511,24 @@ public interface Server extends PluginMessageRecipient {
      * @param <T> The ban target
      *
      * @return a ban list of the specified type
+     * @deprecated use {@link #getBanList(io.papermc.paper.ban.BanListType)} to enforce the correct return value at compile time.
      */
+    @Deprecated // Paper - add BanListType (which has a generic)
     @NotNull
     public <T extends BanList<?>> T getBanList(@NotNull BanList.Type type);
+
+    // Paper start - add BanListType (which has a generic)
+    /**
+     * Gets a ban list for the supplied type.
+     *
+     * @param type the type of list to fetch, cannot be null
+     * @param <B> The ban target
+     *
+     * @return a ban list of the specified type
+     */
+    @NotNull
+    <B extends BanList<E>, E> B getBanList(@NotNull io.papermc.paper.ban.BanListType<B> type);
+    // Paper end - add BanListType (which has a generic)
 
     /**
      * Gets a set containing all player operators.
@@ -1214,14 +1544,21 @@ public interface Server extends PluginMessageRecipient {
      * @return the default game mode
      */
     @NotNull
-    public GameMode getDefaultGameMode();
+    GameMode getDefaultGameMode();
 
     /**
      * Sets the default {@link GameMode} for new players.
      *
      * @param mode the new game mode
      */
-    public void setDefaultGameMode(@NotNull GameMode mode);
+    void setDefaultGameMode(@NotNull GameMode mode);
+
+    /**
+     * Gets whether the default gamemode is being enforced.
+     *
+     * @return {@code true} if the default gamemode is being forced, {@code false} otherwise
+     */
+    boolean forcesDefaultGameMode();
 
     /**
      * Gets a {@link ConsoleCommandSender} that may be used as an input source
@@ -1233,20 +1570,47 @@ public interface Server extends PluginMessageRecipient {
     public ConsoleCommandSender getConsoleSender();
 
     /**
-     * Gets the folder that contains all of the various {@link World}s.
+     * Creates a special {@link CommandSender} which redirects command feedback (in the form of chat messages) to the
+     * specified listener. The returned sender will have the same effective permissions as {@link #getConsoleSender()}.
      *
-     * @return folder that contains all worlds
+     * @param feedback feedback listener
+     * @return a command sender
      */
+    @NotNull
+    public CommandSender createCommandSender(final @NotNull java.util.function.Consumer<? super net.kyori.adventure.text.Component> feedback);
+
+    /**
+     * Gets the folder that contains {@link #getLevelDirectory()}.
+     *
+     * <p>This is usually the server's current working directory
+     * but can be overridden using command line flags (i.e. {@code --universe} or {@code --world-container}).</p>
+     *
+     * @return folder that contains the level directory
+     */
+    @ApiStatus.Obsolete
     @NotNull
     public File getWorldContainer();
 
     /**
+     * Gets the level directory.
+     *
+     * <p>This is the {@code ./world} directory in a fresh default server. Contains player data, dimensions, datapacks,
+     * and other world data.</p>
+     *
+     * @return the level directory
+     */
+    @ApiStatus.Experimental
+    @NotNull
+    Path getLevelDirectory();
+
+    /**
      * Gets every player that has ever played on this server.
+     * <p>
+     * <b>This method can be expensive as it loads all the player data files from the disk.</b>
      *
      * @return an array containing all previous players
      */
-    @NotNull
-    public OfflinePlayer[] getOfflinePlayers();
+    public @NotNull OfflinePlayer @NotNull [] getOfflinePlayers();
 
     /**
      * Gets the {@link Messenger} responsible for this server.
@@ -1288,6 +1652,7 @@ public interface Server extends PluginMessageRecipient {
     @NotNull
     Inventory createInventory(@Nullable InventoryHolder owner, @NotNull InventoryType type);
 
+    // Paper start
     /**
      * Creates an empty inventory with the specified type and title. If the type
      * is {@link InventoryType#CHEST}, the new inventory has a size of 27;
@@ -1313,6 +1678,36 @@ public interface Server extends PluginMessageRecipient {
      * @see InventoryType#isCreatable()
      */
     @NotNull
+    Inventory createInventory(@Nullable InventoryHolder owner, @NotNull InventoryType type, net.kyori.adventure.text.@NotNull Component title);
+    // Paper end
+
+    /**
+     * Creates an empty inventory with the specified type and title. If the type
+     * is {@link InventoryType#CHEST}, the new inventory has a size of 27;
+     * otherwise the new inventory has the normal size for its type.<br>
+     * It should be noted that some inventory types do not support titles and
+     * may not render with said titles on the Minecraft client.
+     * <br>
+     * {@link InventoryType#WORKBENCH} will not process crafting recipes if
+     * created with this method. Use
+     * {@link MenuType#CRAFTING} instead.
+     * <br>
+     * {@link InventoryType#ENCHANTING} will not process {@link ItemStack}s
+     * for possible enchanting results. Use
+     * {@link MenuType#ENCHANTMENT} instead.
+     *
+     * @param owner The holder of the inventory; can be null if there's no holder.
+     * @param type The type of inventory to create.
+     * @param title The title of the inventory, to be displayed when it is viewed.
+     * @return The new inventory.
+     * @throws IllegalArgumentException if the {@link InventoryType} cannot be
+     * viewed.
+     * @deprecated in favour of {@link #createInventory(InventoryHolder, InventoryType, net.kyori.adventure.text.Component)}
+     *
+     * @see InventoryType#isCreatable()
+     */
+    @Deprecated // Paper
+    @NotNull
     Inventory createInventory(@Nullable InventoryHolder owner, @NotNull InventoryType type, @NotNull String title);
 
     /**
@@ -1327,6 +1722,7 @@ public interface Server extends PluginMessageRecipient {
     @NotNull
     Inventory createInventory(@Nullable InventoryHolder owner, int size) throws IllegalArgumentException;
 
+    // Paper start
     /**
      * Creates an empty inventory of type {@link InventoryType#CHEST} with the
      * specified size and title.
@@ -1339,8 +1735,26 @@ public interface Server extends PluginMessageRecipient {
      * @throws IllegalArgumentException if the size is not a multiple of 9
      */
     @NotNull
+    Inventory createInventory(@Nullable InventoryHolder owner, int size, net.kyori.adventure.text.@NotNull Component title) throws IllegalArgumentException;
+    // Paper end
+
+    /**
+     * Creates an empty inventory of type {@link InventoryType#CHEST} with the
+     * specified size and title.
+     *
+     * @param owner the holder of the inventory, or null to indicate no holder
+     * @param size a multiple of 9 as the size of inventory to create
+     * @param title the title of the inventory, displayed when inventory is
+     *     viewed
+     * @return a new inventory
+     * @throws IllegalArgumentException if the size is not a multiple of 9
+     * @deprecated in favour of {@link #createInventory(InventoryHolder, int, net.kyori.adventure.text.Component)}
+     */
+    @Deprecated // Paper
+    @NotNull
     Inventory createInventory(@Nullable InventoryHolder owner, int size, @NotNull String title) throws IllegalArgumentException;
 
+    // Paper start
     /**
      * Creates an empty merchant.
      *
@@ -1351,16 +1765,20 @@ public interface Server extends PluginMessageRecipient {
      * {@link MenuType#MERCHANT} and {@link MenuType.Typed#builder()}.
      */
     @Deprecated(since = "1.21.4")
-    @NotNull
-    Merchant createMerchant(@Nullable String title);
-
+    @NotNull Merchant createMerchant(net.kyori.adventure.text.@Nullable Component title);
+    // Paper start
     /**
      * Creates an empty merchant.
      *
+     * @param title the title of the corresponding merchant inventory, displayed
+     * when the merchant inventory is viewed
      * @return a new merchant
+     * @deprecated in favour of {@link #createMerchant(net.kyori.adventure.text.Component)}, The title parameter is
+     * no-longer needed when used with {@link MenuType#MERCHANT} and {@link MenuType.Typed#builder()}.
      */
     @NotNull
-    Merchant createMerchant();
+    @Deprecated // Paper
+    Merchant createMerchant(@Nullable String title);
 
     /**
      * Gets the amount of consecutive neighbor updates before skipping
@@ -1372,6 +1790,14 @@ public interface Server extends PluginMessageRecipient {
     int getMaxChainedNeighborUpdates();
 
     /**
+     * Creates an empty merchant.
+     *
+     * @return a new merchant
+     */
+    @NotNull
+    Merchant createMerchant();
+
+    /**
      * Gets user-specified limit for number of monsters that can spawn in a
      * chunk.
      *
@@ -1379,7 +1805,9 @@ public interface Server extends PluginMessageRecipient {
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
     @Deprecated(since = "1.18.1")
-    int getMonsterSpawnLimit();
+    default int getMonsterSpawnLimit() {
+        return this.getSpawnLimit(SpawnCategory.MONSTER);
+    }
 
     /**
      * Gets user-specified limit for number of animals that can spawn in a
@@ -1389,7 +1817,9 @@ public interface Server extends PluginMessageRecipient {
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
     @Deprecated(since = "1.18.1")
-    int getAnimalSpawnLimit();
+    default int getAnimalSpawnLimit() {
+        return this.getSpawnLimit(SpawnCategory.ANIMAL);
+    }
 
     /**
      * Gets user-specified limit for number of water animals that can spawn in
@@ -1399,7 +1829,9 @@ public interface Server extends PluginMessageRecipient {
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
     @Deprecated(since = "1.18.1")
-    int getWaterAnimalSpawnLimit();
+    default int getWaterAnimalSpawnLimit() {
+        return this.getSpawnLimit(SpawnCategory.WATER_ANIMAL);
+    }
 
     /**
      * Gets user-specified limit for number of water ambient mobs that can spawn
@@ -1409,7 +1841,9 @@ public interface Server extends PluginMessageRecipient {
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
     @Deprecated(since = "1.18.1")
-    int getWaterAmbientSpawnLimit();
+    default int getWaterAmbientSpawnLimit() {
+        return this.getSpawnLimit(SpawnCategory.WATER_AMBIENT);
+    }
 
     /**
      * Get user-specified limit for number of water creature underground that can spawn
@@ -1418,7 +1852,9 @@ public interface Server extends PluginMessageRecipient {
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
     @Deprecated(since = "1.18.1")
-    int getWaterUndergroundCreatureSpawnLimit();
+    default int getWaterUndergroundCreatureSpawnLimit() {
+        return this.getSpawnLimit(SpawnCategory.WATER_UNDERGROUND_CREATURE);
+    }
 
     /**
      * Gets user-specified limit for number of ambient mobs that can spawn in
@@ -1428,7 +1864,9 @@ public interface Server extends PluginMessageRecipient {
      * @deprecated Deprecated in favor of {@link #getSpawnLimit(SpawnCategory)}
      */
     @Deprecated(since = "1.18.1")
-    int getAmbientSpawnLimit();
+    default int getAmbientSpawnLimit() {
+        return this.getSpawnLimit(SpawnCategory.AMBIENT);
+    }
 
     /**
      * Gets user-specified limit for number of {@link SpawnCategory} mobs that can spawn in
@@ -1455,19 +1893,46 @@ public interface Server extends PluginMessageRecipient {
      */
     boolean isPrimaryThread();
 
+    // Paper start
     /**
      * Gets the message that is displayed on the server list.
      *
-     * @return the servers MOTD
+     * @return the server's MOTD
      */
-    @NotNull
-    String getMotd();
+    net.kyori.adventure.text.@NotNull Component motd();
 
     /**
      * Set the message that is displayed on the server list.
      *
      * @param motd The message to be displayed
      */
+    void motd(final net.kyori.adventure.text.@NotNull Component motd);
+
+    /**
+     * Gets the default message that is displayed when the server is stopped.
+     *
+     * @return the shutdown message
+     */
+    net.kyori.adventure.text.@Nullable Component shutdownMessage();
+    // Paper end
+
+    /**
+     * Gets the message that is displayed on the server list.
+     *
+     * @return the servers MOTD
+     * @deprecated in favour of {@link #motd()}
+     */
+    @NotNull
+    @Deprecated // Paper
+    String getMotd();
+
+    /**
+     * Set the message that is displayed on the server list.
+     *
+     * @param motd The message to be displayed
+     * @deprecated in favour of {@link #motd(net.kyori.adventure.text.Component)}
+     */
+    @Deprecated // Paper
     void setMotd(@NotNull String motd);
 
     /**
@@ -1476,14 +1941,17 @@ public interface Server extends PluginMessageRecipient {
      * @return the server's links
      */
     @NotNull
+    @ApiStatus.Experimental
     ServerLinks getServerLinks();
 
     /**
      * Gets the default message that is displayed when the server is stopped.
      *
      * @return the shutdown message
+     * @deprecated in favour of {@link #shutdownMessage()}
      */
     @Nullable
+    @Deprecated // Paper
     String getShutdownMessage();
 
     /**
@@ -1519,7 +1987,7 @@ public interface Server extends PluginMessageRecipient {
      *
      * @return the scoreboard manager or null if no worlds are loaded.
      */
-    @Nullable
+    @NotNull // Paper
     ScoreboardManager getScoreboardManager();
 
     /**
@@ -1604,7 +2072,7 @@ public interface Server extends PluginMessageRecipient {
      * Sets the pause when empty threshold seconds. To save resources, the
      * pause most functions after this time if there are no players online.
      * <p>
-     * A value of less than 0 will disable the setting
+     * A value of less than 1 will disable the setting
      *
      * @param seconds the pause threshold in seconds
      */
@@ -1713,6 +2181,38 @@ public interface Server extends PluginMessageRecipient {
     @Nullable
     Entity getEntity(@NotNull UUID uuid);
 
+    // Paper start
+    /**
+     * Gets the current server TPS
+     *
+     * @return current server TPS (1m, 5m, 15m in Paper-Server)
+     */
+    public double @NotNull [] getTPS();
+
+    /**
+     * Get a sample of the servers last tick times (in nanos)
+     *
+     * @return A sample of the servers last tick times (in nanos)
+     */
+    long @NotNull [] getTickTimes();
+
+    /**
+     * Get the average tick time (in millis)
+     *
+     * @return Average tick time (in millis)
+     */
+    double getAverageTickTime();
+    // Paper end
+
+    // Paper start
+    /**
+     * Gets the active {@link org.bukkit.command.CommandMap}
+     *
+     * @return the active command map
+     */
+    @NotNull
+    org.bukkit.command.CommandMap getCommandMap();
+
     /**
      * Get the advancement specified by this key.
      *
@@ -1802,7 +2302,7 @@ public interface Server extends PluginMessageRecipient {
     <T extends Keyed> Tag<T> getTag(@NotNull String registry, @NotNull NamespacedKey tag, @NotNull Class<T> clazz);
 
     /**
-     * Gets a all tags which have been defined within the server.
+     * Gets all tags which have been defined within the server.
      * <br>
      * Server implementations are allowed to handle only the registries
      * indicated in {@link Tag}.
@@ -1868,8 +2368,11 @@ public interface Server extends PluginMessageRecipient {
      * @param tClass of the registry to get
      * @param <T> type of the registry
      * @return the corresponding registry or null if not present
+     * @deprecated use {@link io.papermc.paper.registry.RegistryAccess#getRegistry(io.papermc.paper.registry.RegistryKey)}
+     * with keys from {@link io.papermc.paper.registry.RegistryKey}
      */
     @Nullable
+    @Deprecated(since = "1.20.6") // Paper
     <T extends Keyed> Registry<T> getRegistry(@NotNull Class<T> tClass);
 
     /**
@@ -1883,23 +2386,67 @@ public interface Server extends PluginMessageRecipient {
     // Spigot start
     public class Spigot {
 
+        /**
+         * @deprecated Server config options may be renamed or removed without notice. Prefer using existing API
+         *  wherever possible, rather than directly reading from a server config.
+         *
+         * @see #getServerConfig()
+         * @return The server's spigot config.
+         */
+        @Deprecated(since = "1.21.4", forRemoval = true)
         @NotNull
         public org.bukkit.configuration.file.YamlConfiguration getConfig() {
             throw new UnsupportedOperationException("Not supported yet.");
         }
 
         /**
-         * Restart the server. If the server administrator has not configured restarting, the server will stop.
+         * @deprecated Server config options may be renamed or removed without notice. Prefer using existing API
+         *  wherever possible, rather than directly reading from a server config.
+         *
+         * @see #getServerConfig()
+         * @return The server's bukkit config.
          */
-        public void restart() {
+        // Paper start
+        @Deprecated(since = "1.21.4", forRemoval = true)
+        @NotNull
+        public org.bukkit.configuration.file.YamlConfiguration getBukkitConfig() {
             throw new UnsupportedOperationException("Not supported yet.");
         }
+
+        /**
+         * @deprecated Server config options may be renamed or removed without notice. Prefer using existing API
+         *  wherever possible, rather than directly reading from a server config.
+         *
+         * @see #getServerConfig()
+         * @return The server's spigot config.
+         */
+        @Deprecated(since = "1.21.4", forRemoval = true)
+        @NotNull
+        public org.bukkit.configuration.file.YamlConfiguration getSpigotConfig() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        /**
+         * @deprecated Server config options may be renamed or removed without notice. Prefer using existing API
+         *  wherever possible, rather than directly reading from a server config.
+         *
+         * @see #getServerConfig()
+         * @return The server's paper config.
+         */
+        @Deprecated(since = "1.21.4", forRemoval = true)
+        @NotNull
+        public org.bukkit.configuration.file.YamlConfiguration getPaperConfig() {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+        // Paper end
 
         /**
          * Sends the component to the player
          *
          * @param component the components to send
+         * @deprecated use {@link #broadcast(net.kyori.adventure.text.Component)}
          */
+        @Deprecated // Paper
         public void broadcast(@NotNull net.md_5.bungee.api.chat.BaseComponent component) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
@@ -1908,21 +2455,325 @@ public interface Server extends PluginMessageRecipient {
          * Sends an array of components as a single message to the player
          *
          * @param components the components to send
+         * @deprecated use {@link #broadcast(net.kyori.adventure.text.Component)}
          */
+        @Deprecated // Paper
         public void broadcast(@NotNull net.md_5.bungee.api.chat.BaseComponent... components) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        /**
+         * Restart the server. If the server administrator has not configured restarting, the server will stop.
+         *
+         * @deprecated Use {@link Server#restart()} instead.
+         */
+        @Deprecated(since = "1.21.4", forRemoval = true)
+        public void restart() {
             throw new UnsupportedOperationException("Not supported yet.");
         }
     }
 
+    /**
+     * @deprecated All methods on this class have been deprecated, see the individual methods for replacements.
+     */
+    @Deprecated(since = "1.21.4", forRemoval = true)
     @NotNull
     Spigot spigot();
     // Spigot end
 
     /**
-     * Gets the active {@link org.bukkit.command.CommandMap}
+     * Restarts the server. If the server administrator has not configured restarting, the server will stop.
+     */
+    void restart();
+
+    void reloadPermissions(); // Paper
+
+    boolean reloadCommandAliases(); // Paper
+
+    // Paper start - allow preventing player name suggestions by default
+    /**
+     * Checks if player names should be suggested when a command returns {@code null} as
+     * their tab completion result.
      *
-     * @return the active command map
+     * @return true if player names should be suggested
+     */
+    boolean suggestPlayerNamesWhenNullTabCompletions();
+
+    /**
+     * Gets the default no permission message used on the server
+     *
+     * @return the default message
+     * @deprecated use {@link #permissionMessage()}
      */
     @NotNull
-    org.bukkit.command.CommandMap getCommandMap();
+    @Deprecated
+    String getPermissionMessage();
+
+    /**
+     * Gets the default no permission message used on the server
+     *
+     * @return the default message
+     */
+    @NotNull net.kyori.adventure.text.Component permissionMessage();
+
+    /**
+     * Creates a PlayerProfile for the specified uuid, with name as null.
+     *
+     * If a player with the passed uuid exists on the server at the time of creation, the returned player profile will
+     * be populated with the properties of said player (including their uuid and name).
+     *
+     * @param uuid UUID to create profile for
+     * @return A PlayerProfile object
+     */
+    @NotNull
+    com.destroystokyo.paper.profile.PlayerProfile createProfile(@NotNull UUID uuid);
+
+    /**
+     * Creates a PlayerProfile for the specified name, with UUID as null.
+     *
+     * If a player with the passed name exists on the server at the time of creation, the returned player profile will
+     * be populated with the properties of said player (including their uuid and name).
+     * <p>
+     * E.g. if the player 'jeb_' is currently playing on the server, calling {@code createProfile("JEB_")} will
+     * yield a profile with the name 'jeb_', their uuid and their textures.
+     * To bypass this pre-population on a case-insensitive name match, see {@link #createProfileExact(UUID, String)}.
+     * <p>
+     *
+     * @param name Name to create profile for
+     * @return A PlayerProfile object
+     * @throws IllegalArgumentException if the name is longer than 16 characters
+     * @throws IllegalArgumentException if the name contains invalid characters
+     */
+    @NotNull
+    com.destroystokyo.paper.profile.PlayerProfile createProfile(@NotNull String name);
+
+    /**
+     * Creates a PlayerProfile for the specified name/uuid
+     *
+     * Both UUID and Name can not be null at same time. One must be supplied.
+     * If a player with the passed uuid or name exists on the server at the time of creation, the returned player
+     * profile will be populated with the properties of said player (including their uuid and name).
+     * <p>
+     * E.g. if the player 'jeb_' is currently playing on the server, calling {@code createProfile(null, "JEB_")} will
+     * yield a profile with the name 'jeb_', their uuid and their textures.
+     * To bypass this pre-population on a case-insensitive name match, see {@link #createProfileExact(UUID, String)}.
+     * <p>
+     *
+     * The name comparison will compare the {@link String#toLowerCase()} version of both the passed name parameter and
+     * a players name to honour the case-insensitive nature of a mojang profile lookup.
+     *
+     * @param uuid UUID to create profile for
+     * @param name Name to create profile for
+     * @return A PlayerProfile object
+     * @throws IllegalArgumentException if the name is longer than 16 characters
+     * @throws IllegalArgumentException if the name contains invalid characters
+     */
+    @NotNull
+    com.destroystokyo.paper.profile.PlayerProfile createProfile(@Nullable UUID uuid, @Nullable String name);
+
+    /**
+     * Creates an exact PlayerProfile for the specified name/uuid
+     *
+     * Both UUID and Name can not be null at same time. One must be supplied.
+     * If a player with the passed uuid or name exists on the server at the time of creation, the returned player
+     * profile will be populated with the properties of said player.
+     * <p>
+     * Compared to {@link #createProfile(UUID, String)}, this method will never mutate the passed uuid or name.
+     * If a player with either the same uuid or a matching name (case-insensitive) is found on the server, their
+     * properties, such as textures, will be pre-populated in the profile, however the passed uuid and name stay intact.
+     *
+     * @param uuid UUID to create profile for
+     * @param name Name to create profile for
+     * @return A PlayerProfile object
+     * @throws IllegalArgumentException if the name is longer than 16 characters
+     * @throws IllegalArgumentException if the name contains invalid characters
+     */
+    @NotNull
+    com.destroystokyo.paper.profile.PlayerProfile createProfileExact(@Nullable UUID uuid, @Nullable String name);
+
+    /**
+     * Get the current internal server tick
+     *
+     * @return Current tick
+     */
+    int getCurrentTick();
+
+    /**
+     * Checks if the server is in the process of being shutdown.
+     *
+     * @return true if server is in the process of being shutdown
+     */
+    boolean isStopping();
+
+    /**
+     * Returns the {@link com.destroystokyo.paper.entity.ai.MobGoals} manager
+     *
+     * @return the mob goals manager
+     */
+    @NotNull
+    com.destroystokyo.paper.entity.ai.MobGoals getMobGoals();
+
+    /**
+     * @return the datapack manager
+     */
+    @NotNull
+    io.papermc.paper.datapack.DatapackManager getDatapackManager();
+
+    /**
+     * Gets the potion brewer.
+     *
+     * @return the potion brewer
+     */
+    @NotNull org.bukkit.potion.PotionBrewer getPotionBrewer();
+    // Paper end
+
+    // Paper start - Folia region threading API
+    /**
+     * Returns the Folia region task scheduler. The region task scheduler can be used to schedule
+     * tasks by location to be executed on the region which owns the location.
+     * <p>
+     * <b>Note</b>: It is entirely inappropriate to use the region scheduler to schedule tasks for entities.
+     * If you wish to schedule tasks to perform actions on entities, you should be using {@link Entity#getScheduler()}
+     * as the entity scheduler will "follow" an entity if it is teleported, whereas the region task scheduler
+     * will not.
+     * </p>
+     * <p><b>If you do not need/want to make your plugin run on Folia, use {@link #getScheduler()} instead.</b></p>
+     * @return the region task scheduler
+     */
+    @NotNull io.papermc.paper.threadedregions.scheduler.RegionScheduler getRegionScheduler();
+
+    /**
+     * Returns the Folia async task scheduler. The async task scheduler can be used to schedule tasks
+     * that execute asynchronously from the server tick process.
+     * @return the async task scheduler
+     */
+    @NotNull io.papermc.paper.threadedregions.scheduler.AsyncScheduler getAsyncScheduler();
+
+    /**
+     * Returns the Folia global region task scheduler. The global task scheduler can be used to schedule
+     * tasks to execute on the global region.
+     * <p>
+     * The global region is responsible for maintaining world day time, world game time, weather cycle,
+     * sleep night skipping, executing commands for console, and other misc. tasks that do not belong to any specific region.
+     * </p>
+     * <p><b>If you do not need/want to make your plugin run on Folia, use {@link #getScheduler()} instead.</b></p>
+     * @return the global region scheduler
+     */
+    @NotNull io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler getGlobalRegionScheduler();
+
+    /**
+     * Returns whether the current thread is ticking a region and that the region being ticked
+     * owns the chunk at the specified world and block position.
+     * @param world Specified world.
+     * @param position Specified block position.
+     */
+    boolean isOwnedByCurrentRegion(@NotNull World world, @NotNull io.papermc.paper.math.Position position);
+
+    /**
+     * Returns whether the current thread is ticking a region and that the region being ticked
+     * owns the chunks centered at the specified block position within the specified square radius.
+     * Specifically, this function checks that every chunk with position x in [centerX - radius, centerX + radius] and
+     * position z in [centerZ - radius, centerZ + radius] is owned by the current ticking region.
+     * @param world Specified world.
+     * @param position Specified block position.
+     * @param squareRadiusChunks Specified square radius. Must be >= 0. Note that this parameter is <i>not</i> a <i>squared</i>
+     *                           radius, but rather a <i>Chebyshev Distance</i>.
+     */
+    boolean isOwnedByCurrentRegion(@NotNull World world, @NotNull io.papermc.paper.math.Position position, int squareRadiusChunks);
+
+    /**
+     * Returns whether the current thread is ticking a region and that the region being ticked
+     * owns the chunk at the specified world and block position as included in the specified location.
+     * @param location Specified location, must have a non-null world.
+     */
+    boolean isOwnedByCurrentRegion(@NotNull Location location);
+
+    /**
+     * Returns whether the current thread is ticking a region and that the region being ticked
+     * owns the chunks centered at the specified world and block position as included in the specified location
+     * within the specified square radius.
+     * Specifically, this function checks that every chunk with position x in [centerX - radius, centerX + radius] and
+     * position z in [centerZ - radius, centerZ + radius] is owned by the current ticking region.
+     * @param location Specified location, must have a non-null world.
+     * @param squareRadiusChunks Specified square radius. Must be >= 0. Note that this parameter is <i>not</i> a <i>squared</i>
+     *                           radius, but rather a <i>Chebyshev Distance</i>.
+     */
+    boolean isOwnedByCurrentRegion(@NotNull Location location, int squareRadiusChunks);
+
+    /**
+     * Returns whether the current thread is ticking a region and that the region being ticked
+     * owns the chunk at the specified block position.
+     * @param block Specified block position.
+     */
+    default boolean isOwnedByCurrentRegion(@NotNull org.bukkit.block.Block block) {
+        return isOwnedByCurrentRegion(block.getLocation());
+    }
+
+    /**
+     * Returns whether the current thread is ticking a region and that the region being ticked
+     * owns the chunk at the specified world and chunk position.
+     * @param world Specified world.
+     * @param chunkX Specified x-coordinate of the chunk position.
+     * @param chunkZ Specified z-coordinate of the chunk position.
+     */
+    boolean isOwnedByCurrentRegion(@NotNull World world, int chunkX, int chunkZ);
+
+    /**
+     * Returns whether the current thread is ticking a region and that the region being ticked
+     * owns the chunks centered at the specified world and chunk position within the specified
+     * square radius.
+     * Specifically, this function checks that every chunk with position x in [centerX - radius, centerX + radius] and
+     * position z in [centerZ - radius, centerZ + radius] is owned by the current ticking region.
+     * @param world Specified world.
+     * @param chunkX Specified x-coordinate of the chunk position.
+     * @param chunkZ Specified z-coordinate of the chunk position.
+     * @param squareRadiusChunks Specified square radius. Must be >= 0. Note that this parameter is <i>not</i> a <i>squared</i>
+     *                           radius, but rather a <i>Chebyshev Distance</i>.
+     */
+    boolean isOwnedByCurrentRegion(@NotNull World world, int chunkX, int chunkZ, int squareRadiusChunks);
+
+    /**
+     * Returns whether the current thread is ticking a region and that the region being ticked
+     * owns the chunks in the rectangle specified by the min and max parameters.
+     * Specifically, this function checks that every chunk with position x in [minChunkX, maxChunkX] and
+     * position z in [minChunkZ, maxChunkZ] is owned by the current ticking region.
+     * @param world Specified world.
+     * @param minChunkX Specified x-coordinate of the minimum chunk position.
+     * @param minChunkZ Specified z-coordinate of the minimum chunk position.
+     * @param maxChunkX Specified x-coordinate of the maximum chunk position.
+     * @param maxChunkZ Specified z-coordinate of the maximum chunk position.
+     */
+    boolean isOwnedByCurrentRegion(@NotNull World world, int minChunkX, int minChunkZ, int maxChunkX, int maxChunkZ);
+
+    /**
+     * Returns whether the current thread is ticking a region and that the region being ticked
+     * owns the specified entity. Note that this function is the only appropriate method of checking
+     * for ownership of an entity, as retrieving the entity's location is undefined unless the entity is owned
+     * by the current region.
+     * @param entity Specified entity.
+     */
+    boolean isOwnedByCurrentRegion(@NotNull Entity entity);
+
+    /**
+     * Returns whether the current thread is ticking the global region.
+     * @see io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler
+     */
+    public boolean isGlobalTickThread();
+    // Paper end - Folia region threading API
+
+    // Paper start - API to check if the server is sleeping
+    /**
+     * Returns whether the server is sleeping/paused.
+     */
+    boolean isPaused();
+
+    /**
+     * Allows or disallows the server to sleep/pause.
+     * If any plugin disallows pausing, the server will never pause.
+     *
+     * @param plugin The {@link org.bukkit.plugin.Plugin} that's allowing or disallowing pausing.
+     * @param value Whether to allow sleeping of the server (defaults to true).
+     */
+    void allowPausing(@NotNull org.bukkit.plugin.Plugin plugin, boolean value);
+    // Paper end - API to check if the server is sleeping
 }

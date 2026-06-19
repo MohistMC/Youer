@@ -2,12 +2,14 @@ package org.bukkit;
 
 import java.net.URI;
 import java.util.List;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents a collections of links which may be sent to a client.
  */
+@ApiStatus.Experimental
 public interface ServerLinks {
 
     /**
@@ -48,13 +50,27 @@ public interface ServerLinks {
     @NotNull
     ServerLink addLink(@NotNull Type type, @NotNull URI url);
 
+    // Paper start - Adventure
+    /**
+     * Adds the given link to the list of links.
+     *
+     * @param displayName link name / display text Component
+     * @param url link url
+     * @return the added link
+     */
+    @NotNull
+    ServerLink addLink(@NotNull net.kyori.adventure.text.Component displayName, @NotNull URI url);
+    // Paper end - Adventure
+
     /**
      * Adds the given link to the list of links.
      *
      * @param displayName link name / display text
      * @param url link url
      * @return the added link
+     * @deprecated in favour of {@link ServerLinks#addLink(net.kyori.adventure.text.Component, URI)}
      */
+    @Deprecated // Paper - Adventure
     @NotNull
     ServerLink addLink(@NotNull String displayName, @NotNull URI url);
 
@@ -87,11 +103,23 @@ public interface ServerLinks {
         @Nullable
         Type getType();
 
+        // Paper start - Adventure
+        /**
+         * Gets the display name/text Component of this link.
+         *
+         * @return display name Component
+         */
+        @NotNull
+        net.kyori.adventure.text.Component displayName();
+        // Paper end - Adventure
+
         /**
          * Gets the display name/text of this link.
          *
          * @return display name
+         * @deprecated in favour of {@link ServerLink#displayName()}
          */
+        @Deprecated // Paper - Adventure
         @NotNull
         String getDisplayName();
 

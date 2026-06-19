@@ -7,7 +7,7 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Represents the various difficulty levels that are available.
  */
-public enum Difficulty {
+public enum Difficulty implements net.kyori.adventure.translation.Translatable { // Paper - Adventure translations
     /**
      * Players regain health over time, hostile mobs don't spawn, the hunger
      * bar does not deplete.
@@ -44,22 +44,28 @@ public enum Difficulty {
      * Gets the difficulty value associated with this Difficulty.
      *
      * @return An integer value of this difficulty
-     * @deprecated Magic value
+     * @apiNote Internal Use Only
      */
-    @Deprecated(since = "1.6.2")
+    @org.jetbrains.annotations.ApiStatus.Internal // Paper
     public int getValue() {
         return value;
     }
 
+    // Paper start
+    @Override
+    public @org.jetbrains.annotations.NotNull String translationKey() {
+        return "options.difficulty." + this.name().toLowerCase(java.util.Locale.ENGLISH);
+    }
+    // Paper end
     /**
      * Gets the Difficulty represented by the specified value
      *
      * @param value Value to check
      * @return Associative {@link Difficulty} with the given value, or null if
      *     it doesn't exist
-     * @deprecated Magic value
+     * @apiNote Internal Use Only
      */
-    @Deprecated(since = "1.6.2")
+    @org.jetbrains.annotations.ApiStatus.Internal // Paper
     @Nullable
     public static Difficulty getByValue(final int value) {
         return BY_ID.get(value);

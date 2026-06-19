@@ -1,14 +1,11 @@
 package org.bukkit.inventory.meta.components;
 
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
-import org.bukkit.inventory.meta.components.consumable.ConsumableComponent;
+import org.checkerframework.checker.index.qual.NonNegative;
 import org.jetbrains.annotations.ApiStatus;
 
 /**
- * Represents a component which can handle food stats in any item.
- * <br>
- * <b>Note:</b> Items with food stats has no effect unless the item can be
- * consumed, see {@link ConsumableComponent}.
+ * Represents a component which can turn any item into food.
  */
 @ApiStatus.Experimental
 public interface FoodComponent extends ConfigurationSerializable {
@@ -18,14 +15,14 @@ public interface FoodComponent extends ConfigurationSerializable {
      *
      * @return nutrition value
      */
-    int getNutrition();
+    @NonNegative int getNutrition();
 
     /**
      * Sets the food restored by this item when eaten.
      *
      * @param nutrition new nutrition value, must be non-negative
      */
-    void setNutrition(int nutrition);
+    void setNutrition(@NonNegative int nutrition);
 
     /**
      * Gets the saturation restored by this item when eaten.

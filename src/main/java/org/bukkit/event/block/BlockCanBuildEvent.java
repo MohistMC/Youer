@@ -5,6 +5,7 @@ import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,50 +21,45 @@ import org.jetbrains.annotations.Nullable;
  * </ul>
  */
 public class BlockCanBuildEvent extends BlockEvent {
-    private static final HandlerList handlers = new HandlerList();
+
+    private static final HandlerList HANDLER_LIST = new HandlerList();
+
+    private final Player player;
+    private final org.bukkit.inventory.EquipmentSlot hand;
+    protected BlockData blockData;
     protected boolean buildable;
 
-    protected BlockData blockData;
-    private final Player player;
-
-    @Deprecated(since = "1.13.2")
+    @Deprecated(since = "1.13.2", forRemoval = true)
+    @ApiStatus.Internal
     public BlockCanBuildEvent(@NotNull final Block block, @NotNull final BlockData type, final boolean canBuild) {
-        this(block, null, type, canBuild);
+        this(block, null, type, canBuild, org.bukkit.inventory.EquipmentSlot.HAND); // Paper - expose hand
     }
 
-    /**
-     * @param block the block involved in this event
-     * @param player the player placing the block
-     * @param type the id of the block to place
-     * @param canBuild whether we can build
-     */
+    @Deprecated(forRemoval = true)
+    @ApiStatus.Internal
     public BlockCanBuildEvent(@NotNull final Block block, @Nullable final Player player, @NotNull final BlockData type, final boolean canBuild) {
+        this(block, player, type, canBuild, org.bukkit.inventory.EquipmentSlot.HAND); // Paper start - expose hand
+    }
+
+    @ApiStatus.Internal
+    public BlockCanBuildEvent(@NotNull final Block block, @Nullable final Player player, @NotNull final BlockData type, final boolean canBuild, @NotNull final org.bukkit.inventory.EquipmentSlot hand) { // Paper end - expose hand
         super(block);
         this.player = player;
         this.buildable = canBuild;
         this.blockData = type;
+        this.hand = hand;
     }
 
     /**
-     * Gets whether or not the block can be built here.
-     * <p>
-     * By default, returns Minecraft's answer on whether the block can be
-     * built here or not.
+     * Gets the player who placed the block involved in this event.
+     * <br>
+     * May be {@code null} for legacy calls of the event.
      *
-     * @return boolean whether or not the block can be built
+     * @return The Player who placed the block involved in this event
      */
-    public boolean isBuildable() {
-        return buildable;
-    }
-
-    /**
-     * Sets whether the block can be built here or not.
-     *
-     * @param cancel true if you want to allow the block to be built here
-     *     despite Minecraft's default behaviour
-     */
-    public void setBuildable(boolean cancel) {
-        this.buildable = cancel;
+    @Nullable
+    public Player getPlayer() {
+        return this.player;
     }
 
     /**
@@ -73,7 +69,7 @@ public class BlockCanBuildEvent extends BlockEvent {
      */
     @NotNull
     public Material getMaterial() {
-        return blockData.getMaterial();
+        return this.blockData.getMaterial();
     }
 
     /**
@@ -83,29 +79,49 @@ public class BlockCanBuildEvent extends BlockEvent {
      */
     @NotNull
     public BlockData getBlockData() {
-        return blockData;
+        return this.blockData.clone();
     }
 
     /**
-     * Gets the player who placed the block involved in this event.
-     * <br>
-     * May be null for legacy calls of the event.
+     * Gets the hand the player will use to place the block
      *
-     * @return The Player who placed the block involved in this event
+     * @return the EquipmentSlot representing the players hand.
      */
-    @Nullable
-    public Player getPlayer() {
-        return player;
+    @NotNull
+    public org.bukkit.inventory.EquipmentSlot getHand() {
+        return this.hand;
+    }
+
+    /**
+     * Gets whether the block can be built here.
+     * <p>
+     * By default, returns Minecraft's answer on whether the block can be
+     * built here or not.
+     *
+     * @return boolean whether the block can be built
+     */
+    public boolean isBuildable() {
+        return this.buildable;
+    }
+
+    /**
+     * Sets whether the block can be built here or not.
+     *
+     * @param cancel {@code true} if you want to allow the block to be built here
+     *     despite Minecraft's default behaviour
+     */
+    public void setBuildable(boolean cancel) {
+        this.buildable = cancel;
     }
 
     @NotNull
     @Override
     public HandlerList getHandlers() {
-        return handlers;
+        return HANDLER_LIST;
     }
 
     @NotNull
     public static HandlerList getHandlerList() {
-        return handlers;
+        return HANDLER_LIST;
     }
 }

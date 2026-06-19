@@ -1,48 +1,34 @@
 package org.bukkit.block.data.type;
 
+import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.Directional;
 import org.bukkit.block.data.Waterlogged;
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.NullMarked;
 
 /**
- * 'copper_golem_pose' represents the golem state pose.
+ * 'copper_golem_pose' indicates the pose the statue stands.
  */
-public interface CopperGolemStatue extends Directional, Waterlogged {
+@NullMarked
+public interface CopperGolemStatue extends BlockData, Directional, Waterlogged {
 
     /**
      * Gets the value of the 'copper_golem_pose' property.
      *
      * @return the 'copper_golem_pose' value
      */
-    @NotNull
-    CopperGolemPose getCopperGolemPose();
+    Pose getCopperGolemPose();
 
     /**
      * Sets the value of the 'copper_golem_pose' property.
      *
-     * @param copperGolemPose the new 'copper_golem_pose' value
+     * @param pose the new 'copper_golem_pose' value
      */
-    void setCopperGolemPose(@NotNull CopperGolemPose copperGolemPose);
+    void setCopperGolemPose(Pose pose);
 
-    /**
-     * Represents the pose of the statute.
-     */
-    public enum CopperGolemPose {
-        /**
-         * Standing pose.
-         */
+    enum Pose {
         STANDING,
-        /**
-         * Sitting pose.
-         */
         SITTING,
-        /**
-         * Running pose.
-         */
         RUNNING,
-        /**
-         * Star pose.
-         */
-        STAR;
+        STAR
     }
 }

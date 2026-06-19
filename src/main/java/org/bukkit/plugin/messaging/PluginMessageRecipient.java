@@ -27,11 +27,12 @@ public interface PluginMessageRecipient {
      * @throws ChannelNotRegisteredException Thrown if the channel is not
      *     registered for this plugin.
      */
-    public void sendPluginMessage(@NotNull Plugin source, @NotNull String channel, @NotNull byte[] message);
+    public void sendPluginMessage(@NotNull Plugin source, @NotNull String channel, byte @NotNull [] message);
 
     /**
      * Gets a set containing all the Plugin Channels that this client is
-     * listening on.
+     * listening on. Does not contain the BungeeCord channel due to its
+     * special status.
      *
      * @return Set containing all the channels that this client may accept.
      */

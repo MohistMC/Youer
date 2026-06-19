@@ -17,7 +17,7 @@ public interface Arrow extends AbstractArrow {
      * @param data PotionData to set the base potion state to
      * @deprecated Upgraded / extended potions are now their own {@link PotionType} use {@link #setBasePotionType} instead.
      */
-    @Deprecated(since = "1.20.6")
+    @Deprecated(since = "1.20.6", forRemoval = true)
     void setBasePotionData(@Nullable PotionData data);
 
     /**
@@ -27,7 +27,7 @@ public interface Arrow extends AbstractArrow {
      * @deprecated Upgraded / extended potions are now their own {@link PotionType} use {@link #getBasePotionType()} instead.
      */
     @Nullable
-    @Deprecated(since = "1.20.6")
+    @Deprecated(since = "1.20.6", forRemoval = true)
     PotionData getBasePotionData();
 
     /**
@@ -93,7 +93,7 @@ public interface Arrow extends AbstractArrow {
      * Removes a custom potion effect from this arrow.
      *
      * @param type the potion effect type to remove
-     * @return true if the an effect was removed as a result of this call
+     * @return true if the effect was removed as a result of this call
      * @throws IllegalArgumentException if this operation would leave the Arrow
      * in a state with no Custom Effects and PotionType.UNCRAFTABLE
      */

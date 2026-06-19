@@ -1,25 +1,37 @@
 package org.bukkit.command;
 
+import java.util.Objects;
 import java.util.UUID;
+import net.kyori.adventure.chat.ChatType;
+import net.kyori.adventure.chat.SignedMessage;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Server;
 import org.bukkit.permissions.Permissible;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-public interface CommandSender extends Permissible {
+public interface CommandSender extends net.kyori.adventure.audience.Audience, Permissible { // Paper
 
     /**
      * Sends this sender a message
      *
      * @param message Message to be displayed
+     * @see #sendMessage(net.kyori.adventure.text.Component)
+     * @see #sendPlainMessage(String)
+     * @see #sendRichMessage(String)
      */
+    @org.jetbrains.annotations.ApiStatus.Obsolete // Paper
     public void sendMessage(@NotNull String message);
 
     /**
      * Sends this sender multiple messages
      *
      * @param messages An array of messages to be displayed
+     * @see #sendMessage(net.kyori.adventure.text.Component)
+     * @see #sendPlainMessage(String)
+     * @see #sendRichMessage(String)
      */
+    @org.jetbrains.annotations.ApiStatus.Obsolete // Paper
     public void sendMessage(@NotNull String... messages);
 
     /**
@@ -27,7 +39,10 @@ public interface CommandSender extends Permissible {
      *
      * @param message Message to be displayed
      * @param sender The sender of this message
+     * @see #sendMessage(net.kyori.adventure.text.Component)
+     * @deprecated sender UUID is ignored
      */
+    @Deprecated // Paper
     public void sendMessage(@Nullable UUID sender, @NotNull String message);
 
     /**
@@ -35,7 +50,10 @@ public interface CommandSender extends Permissible {
      *
      * @param messages An array of messages to be displayed
      * @param sender The sender of this message
+     * @see #sendMessage(net.kyori.adventure.text.Component)
+     * @deprecated sender UUID is ignored
      */
+    @Deprecated // Paper
     public void sendMessage(@Nullable UUID sender, @NotNull String... messages);
 
     /**
@@ -61,7 +79,9 @@ public interface CommandSender extends Permissible {
          * Sends this sender a chat component.
          *
          * @param component the components to send
+         * @deprecated use {@code sendMessage} methods that accept {@link net.kyori.adventure.text.Component}
          */
+        @Deprecated // Paper
         public void sendMessage(@NotNull net.md_5.bungee.api.chat.BaseComponent component) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
@@ -70,7 +90,9 @@ public interface CommandSender extends Permissible {
          * Sends an array of components as a single message to the sender.
          *
          * @param components the components to send
+         * @deprecated use {@code sendMessage} methods that accept {@link net.kyori.adventure.text.Component}
          */
+        @Deprecated // Paper
         public void sendMessage(@NotNull net.md_5.bungee.api.chat.BaseComponent... components) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
@@ -80,7 +102,9 @@ public interface CommandSender extends Permissible {
          *
          * @param component the components to send
          * @param sender the sender of the message
+         * @deprecated use {@code sendMessage} methods that accept {@link net.kyori.adventure.text.Component}
          */
+        @Deprecated // Paper
         public void sendMessage(@Nullable UUID sender, @NotNull net.md_5.bungee.api.chat.BaseComponent component) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
@@ -90,7 +114,9 @@ public interface CommandSender extends Permissible {
          *
          * @param components the components to send
          * @param sender the sender of the message
+         * @deprecated use {@code sendMessage} methods that accept {@link net.kyori.adventure.text.Component}
          */
+        @Deprecated // Paper
         public void sendMessage(@Nullable UUID sender, @NotNull net.md_5.bungee.api.chat.BaseComponent... components) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
@@ -99,4 +125,90 @@ public interface CommandSender extends Permissible {
     @NotNull
     Spigot spigot();
     // Spigot end
+
+    // Paper start
+    /**
+     * Gets the name of this command sender
+     *
+     * @return Name of the sender
+     */
+    public net.kyori.adventure.text.@NotNull Component name();
+
+    @Override
+    default void sendMessage(final net.kyori.adventure.text.@NotNull Component message) {
+        this.sendMessage(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(message));
+    }
+
+    @Override
+    default void sendMessage(final @NotNull Component message, final ChatType.@NotNull Bound boundChatType) {
+        this.sendMessage(message);
+    }
+
+    @Override
+    default void sendMessage(final @NotNull SignedMessage signedMessage, final ChatType.@NotNull Bound boundChatType) {
+        this.sendMessage(Objects.requireNonNullElseGet(signedMessage.unsignedContent(), () -> Component.text(signedMessage.message())));
+    }
+
+    /**
+     * Sends a message with the MiniMessage format to the command sender.
+     * <p>
+     * See <a href="https://docs.advntr.dev/minimessage/">MiniMessage docs</a>
+     * for more information on the format.
+     *
+     * @param message MiniMessage content
+     */
+    default void sendRichMessage(final @NotNull String message) {
+        this.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(message, this));
+    }
+
+    /**
+     * Sends a message with the MiniMessage format to the command sender.
+     * <p>
+     * See <a href="https://docs.advntr.dev/minimessage/">MiniMessage docs</a> and <a href="https://docs.advntr.dev/minimessage/dynamic-replacements">MiniMessage Placeholders docs</a>
+     * for more information on the format.
+     *
+     * @param message MiniMessage content
+     * @param resolvers resolvers to use
+     */
+    default void sendRichMessage(final @NotNull String message, final net.kyori.adventure.text.minimessage.tag.resolver.@NotNull TagResolver... resolvers) {
+        this.sendMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(message, this, resolvers));
+    }
+
+    /**
+     * Sends a plain message to the command sender.
+     *
+     * @param message plain message
+     */
+    default void sendPlainMessage(final @NotNull String message) {
+        this.sendMessage(net.kyori.adventure.text.Component.text(message));
+    }
+
+    /**
+     * Sends the component to the sender
+     *
+     * <p>If this sender does not support sending full components then
+     * the component will be sent as legacy text.</p>
+     *
+     * @param component the component to send
+     * @deprecated use {@link #sendMessage(Component)} instead
+     */
+    @Deprecated
+    default void sendMessage(@NotNull net.md_5.bungee.api.chat.BaseComponent component) {
+        this.sendMessage(component.toLegacyText());
+    }
+
+    /**
+     * Sends an array of components as a single message to the sender
+     *
+     * <p>If this sender does not support sending full components then
+     * the components will be sent as legacy text.</p>
+     *
+     * @param components the components to send
+     * @deprecated use {@link #sendMessage(Component)} instead
+     */
+    @Deprecated
+    default void sendMessage(@NotNull net.md_5.bungee.api.chat.BaseComponent... components) {
+        this.sendMessage(new net.md_5.bungee.api.chat.TextComponent(components).toLegacyText());
+    }
+    // Paper end
 }

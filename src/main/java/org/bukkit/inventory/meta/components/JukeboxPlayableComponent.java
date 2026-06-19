@@ -4,6 +4,7 @@ import org.bukkit.JukeboxSong;
 import org.bukkit.NamespacedKey;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import org.jetbrains.annotations.ApiStatus;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -26,7 +27,7 @@ public interface JukeboxPlayableComponent extends ConfigurationSerializable {
      *
      * @return the song key
      */
-    @Nullable
+    @NotNull
     NamespacedKey getSongKey();
 
     /**
@@ -42,4 +43,26 @@ public interface JukeboxPlayableComponent extends ConfigurationSerializable {
      * @param song the song key
      */
     void setSongKey(@NotNull NamespacedKey song);
+
+    /**
+     * Gets if the song will show in the item tooltip.
+     *
+     * @return if the song will show in the tooltip
+     * @deprecated no longer available on the component directly
+     */
+    @Deprecated(since = "1.21.5", forRemoval = true)
+    @Contract("-> true") // todo add new item flag for compat? or just tell people to use the new data component api
+    default boolean isShowInTooltip() {
+        return true;
+    }
+
+    /**
+     * Sets if the song will show in the item tooltip.
+     *
+     * @param show true if the song will show in the tooltip
+     * @deprecated no longer available on the component directly
+     */
+    @Deprecated(since = "1.21.5", forRemoval = true)
+    default void setShowInTooltip(boolean show) {
+    }
 }

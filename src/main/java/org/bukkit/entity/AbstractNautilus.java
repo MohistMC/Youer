@@ -1,9 +1,12 @@
 package org.bukkit.entity;
 
+import org.bukkit.inventory.ArmoredSaddledMountInventory;
 import org.bukkit.inventory.InventoryHolder;
+import org.jspecify.annotations.NullMarked;
 
-/**
- * Represents a type of Nautilus.
- */
-public interface AbstractNautilus extends InventoryHolder, Tameable {
+@NullMarked
+public interface AbstractNautilus extends Tameable, InventoryHolder, Vehicle {
+
+    @Override
+    ArmoredSaddledMountInventory getInventory();
 }

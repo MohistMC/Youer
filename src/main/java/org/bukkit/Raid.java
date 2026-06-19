@@ -3,13 +3,16 @@ package org.bukkit;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Raider;
-import org.jetbrains.annotations.NotNull;
+import org.bukkit.persistence.PersistentDataHolder;
+import org.jspecify.annotations.NullMarked;
 
 /**
  * Represents a raid event.
  */
-public interface Raid {
+@NullMarked
+public interface Raid extends PersistentDataHolder {
 
     /**
      * Get whether this raid started.
@@ -17,13 +20,6 @@ public interface Raid {
      * @return whether raid is started
      */
     boolean isStarted();
-
-    /**
-     * Stops this raid.
-     *
-     * @param removeSpawnedRaiders whether to remove spawned raiders
-     */
-    void stopRaid(boolean removeSpawnedRaiders);
 
     /**
      * Gets the amount of ticks this raid has existed.
@@ -55,7 +51,6 @@ public interface Raid {
      *
      * @return location
      */
-    @NotNull
     Location getLocation();
 
     /**
@@ -66,7 +61,6 @@ public interface Raid {
      *
      * @return Raids status
      */
-    @NotNull
     RaidStatus getStatus();
 
     /**
@@ -94,16 +88,14 @@ public interface Raid {
     int getTotalWaves();
 
     /**
-     * Sets the total number of waves in this raid.
-     * <br>
-     * <b>Note:</b> There is an automatic raid timeout that will cancel the raid entirely.
-     * At the time of writing, it is 48,000 ticks or 40 minutes. Please keep that in
-     * mind when changing the total number of waves, as your raid may be cut short without reward.
+     * Sets the number of waves in this raid.
      *
-     * @param waves new number of waves
-     * @throws IllegalArgumentException if total waves are less than 1
+     * @param totalWaves number of waves
+     * @throws IllegalArgumentException if totalWaves is negative or zero
+     * @throws IllegalArgumentException if totalWaves is larger than 7, which is the most waves a vanilla raid can have.
+     * @throws IllegalArgumentException if the totalWaves is less than {@link #getSpawnedGroups()}
      */
-    void setTotalWaves(int waves);
+    void setTotalWaves(int totalWaves);
 
     /**
      * Gets the sum of all raider's health.
@@ -117,7 +109,6 @@ public interface Raid {
      *
      * @return a set of unique ids
      */
-    @NotNull
     Set<UUID> getHeroes();
 
     /**
@@ -125,13 +116,29 @@ public interface Raid {
      *
      * @return a list of current raiders
      */
-    @NotNull
     List<Raider> getRaiders();
+
+    /**
+     * Gets the id of this raid.
+     *
+     * @return the raid id
+     * @deprecated Raid identifiers are magic internal values and may or may not be present.
+     * -1 is returned for raids without an assigned id.
+     */
+    @Deprecated(forRemoval = true, since = "1.21.5")
+    int getId();
+
+    /**
+     * Get the boss bar to be displayed for this raid.
+     *
+     * @return the boss bar
+     */
+    BossBar getBossBar();
 
     /**
      * Represents the status of a {@link Raid}.
      */
-    public enum RaidStatus {
+    enum RaidStatus {
 
         /**
          * The raid is in progress.

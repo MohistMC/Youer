@@ -1,18 +1,13 @@
 package org.bukkit;
 
-import com.google.common.collect.Multimap;
+import io.papermc.paper.entity.EntitySerializationFlag;
+import io.papermc.paper.registry.RegistryKey;
+import java.util.Map;
+import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.advancement.Advancement;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeModifier;
-import org.bukkit.block.Biome;
 import org.bukkit.block.data.BlockData;
-import org.bukkit.damage.DamageEffect;
-import org.bukkit.damage.DamageSource;
-import org.bukkit.damage.DamageType;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.Villager;
-import org.bukkit.inventory.CreativeCategory;
-import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.entity.Entity;
+import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.material.MaterialData;
 import org.bukkit.plugin.InvalidPluginException;
@@ -47,7 +42,7 @@ public interface UnsafeValues {
 
     int getDataVersion();
 
-    ItemStack modifyItemStack(ItemStack stack, String arguments);
+    ItemStack modifyItemStack(ItemStack item, String components);
 
     void checkSupported(PluginDescriptionFile pdf) throws InvalidPluginException;
 
@@ -84,28 +79,6 @@ public interface UnsafeValues {
      */
     boolean removeAdvancement(NamespacedKey key);
 
-    @Deprecated(since = "1.21", forRemoval = true)
-    Multimap<Attribute, AttributeModifier> getDefaultAttributeModifiers(Material material, EquipmentSlot slot);
-
-    @Deprecated(since = "1.21", forRemoval = true)
-    CreativeCategory getCreativeCategory(Material material);
-
-    @Deprecated(since = "1.21", forRemoval = true)
-    String getBlockTranslationKey(Material material);
-
-    @Deprecated(since = "1.21", forRemoval = true)
-    String getItemTranslationKey(Material material);
-
-    String getTranslationKey(EntityType entityType);
-
-    String getTranslationKey(ItemStack itemStack);
-
-    @Deprecated(since = "1.21.3", forRemoval = true)
-    String getTranslationKey(Attribute attribute);
-
-    @Nullable
-    FeatureFlag getFeatureFlag(@NotNull NamespacedKey key);
-
     /**
      * Do not use, method will get removed, and the plugin won't run
      *
@@ -117,31 +90,156 @@ public interface UnsafeValues {
     PotionType.InternalPotionData getInternalPotionData(NamespacedKey key);
 
     @ApiStatus.Internal
-    @Nullable
-    DamageEffect getDamageEffect(@NotNull String key);
+    String get(Class<?> elementClass, String value);
+
+    @ApiStatus.Internal
+    @Nullable <B extends Keyed> B get(RegistryKey<B> registry, NamespacedKey key);
+
+    // Paper start
+    @Deprecated(forRemoval = true)
+    boolean isSupportedApiVersion(String apiVersion);
+
+    @Deprecated(forRemoval = true)
+    static boolean isLegacyPlugin(org.bukkit.plugin.Plugin plugin) {
+        return !Bukkit.getUnsafe().isSupportedApiVersion(plugin.getDescription().getAPIVersion());
+    }
+    // Paper end
+
+    // Paper start
+    /**
+     * Serializes this itemstack to json format.
+     * It is safe for data migrations as it will use the built-in data converter instead of bukkit's
+     * dangerous serialization system.
+     * <p>
+     * The emitted json object's format will inherently change across versions and hence should not be used for
+     * non-development purposes like plugin configurations or end-user input.
+     *
+     * @return json object representing this item.
+     * @see #deserializeItemFromJson(com.google.gson.JsonObject)
+     * @throws IllegalArgumentException if the passed itemstack is {@link ItemStack#empty()}.
+     */
+    @NotNull
+    com.google.gson.JsonObject serializeItemAsJson(@NotNull ItemStack itemStack);
 
     /**
-     * Create a new {@link DamageSource.Builder}.
+     * Creates an itemstack from a json object.
+     * <p>
+     * This method expects a json object in the format emitted by {@link #serializeItemAsJson(ItemStack)}.
+     * <p>
+     * The emitted json object's format will inherently change across versions and hence should not be used for
+     * non-development purposes like plugin configurations or end-user input.
      *
-     * @param damageType the {@link DamageType} to use
-     * @return a {@link DamageSource.Builder}
+     * @param data object representing an item in Json format
+     * @return the deserialize item stack, migrated to the latest data version if needed.
+     * @throws IllegalArgumentException if the json object is not a valid item
+     * @see #serializeItemAsJson(ItemStack)
      */
-    @ApiStatus.Internal
-    @NotNull
-    DamageSource.Builder createDamageSourceBuilder(@NotNull DamageType damageType);
+    @NotNull ItemStack deserializeItemFromJson(@NotNull com.google.gson.JsonObject data) throws IllegalArgumentException;
 
-    @ApiStatus.Internal
-    String get(Class<?> aClass, String value);
+    /**
+     * Serializes the provided entity.
+     *
+     * @param entity entity
+     * @return serialized entity data
+     * @see #serializeEntity(Entity, EntitySerializationFlag...)
+     * @see #deserializeEntity(byte[], World, boolean, boolean)
+     * @throws IllegalArgumentException if couldn't serialize the entity
+     * @since 1.17.1
+     */
+    default byte @NotNull [] serializeEntity(@NotNull Entity entity) {
+        return serializeEntity(entity, new EntitySerializationFlag[0]);
+    }
 
-    @ApiStatus.Internal
-    <B extends Keyed> B get(Registry<B> registry, NamespacedKey key);
+    /**
+     * Serializes the provided entity.
+     *
+     * @param entity entity
+     * @param serializationFlags serialization flags
+     * @return serialized entity data
+     * @throws IllegalArgumentException if couldn't serialize the entity
+     * @see #deserializeEntity(byte[], World, boolean, boolean)
+     * @since 1.21.4
+     */
+    byte @NotNull [] serializeEntity(@NotNull Entity entity, @NotNull EntitySerializationFlag... serializationFlags);
 
-    @ApiStatus.Internal
-    Biome getCustomBiome();
+    /**
+     * Deserializes the entity from data.
+     * <br>The entity's {@link java.util.UUID} as well as passengers will not be preserved.
+     *
+     * @param data serialized entity data
+     * @param world world
+     * @return deserialized entity
+     * @throws IllegalArgumentException if invalid serialized entity data provided
+     * @see #deserializeEntity(byte[], World, boolean, boolean)
+     * @see #serializeEntity(Entity, EntitySerializationFlag...)
+     * @see Entity#spawnAt(Location, CreatureSpawnEvent.SpawnReason)
+     * @since 1.17.1
+     */
+    default @NotNull Entity deserializeEntity(byte @NotNull [] data, @NotNull World world) {
+        return deserializeEntity(data, world, false);
+    }
 
-    @ApiStatus.Internal
-    Villager.ReputationType createReputationType(String key);
+    /**
+     * Deserializes the entity from data.
+     * <br>The entity's passengers will not be preserved.
+     *
+     * @param data serialized entity data
+     * @param world world
+     * @param preserveUUID whether to preserve the entity's uuid
+     * @return deserialized entity
+     * @throws IllegalArgumentException if invalid serialized entity data provided
+     * @see #deserializeEntity(byte[], World, boolean, boolean)
+     * @see #serializeEntity(Entity, EntitySerializationFlag...)
+     * @see Entity#spawnAt(Location, CreatureSpawnEvent.SpawnReason)
+     * @since 1.17.1
+     */
+    default @NotNull Entity deserializeEntity(byte @NotNull [] data, @NotNull World world, boolean preserveUUID) {
+        return deserializeEntity(data, world, preserveUUID, false);
+    }
 
-    @ApiStatus.Internal
-    Villager.ReputationEvent createReputationEvent(String key);
+    /**
+     * Deserializes the entity from data.
+     *
+     * @param data serialized entity data
+     * @param world world
+     * @param preserveUUID whether to preserve uuids of the entity and its passengers
+     * @param preservePassengers whether to preserve passengers
+     * @return deserialized entity
+     * @throws IllegalArgumentException if invalid serialized entity data provided
+     * @see #serializeEntity(Entity, EntitySerializationFlag...)
+     * @see Entity#spawnAt(Location, CreatureSpawnEvent.SpawnReason)
+     * @since 1.21.4
+     */
+    @NotNull Entity deserializeEntity(byte @NotNull [] data, @NotNull World world, boolean preserveUUID, boolean preservePassengers);
+
+    /**
+     * Creates and returns the next EntityId available.
+     * <p>
+     * Use this when sending custom packets, so that there are no collisions on the client or server.
+     */
+    int nextEntityId(final World world);
+
+    /**
+     * Just don't use it.
+     */
+    @org.jetbrains.annotations.NotNull String getMainLevelName();
+
+    /**
+     * Returns the server's protocol version.
+     *
+     * @return the server's protocol version
+     */
+    int getProtocolVersion();
+    // Paper end
+
+    @NotNull ItemStack deserializeStack(@NotNull Map<String, Object> args);
+
+    /**
+     * Deserializes a {@link HoverEvent.ShowItem} hover event value into an {@code ItemStack}.
+     *
+     * @param itemHover the hover to deserialize
+     * @return the deserialized {@code ItemStack}
+     */
+    @NotNull ItemStack deserializeItemHover(HoverEvent.@NotNull ShowItem itemHover);
+
 }

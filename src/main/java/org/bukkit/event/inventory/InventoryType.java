@@ -2,6 +2,7 @@ package org.bukkit.event.inventory;
 
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.MenuType;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -61,10 +62,12 @@ public enum InventoryType {
     BREWING(5, "Brewing", MenuType.BREWING_STAND),
     /**
      * A player's inventory, with 9 QUICKBAR slots, 27 CONTAINER slots, 4 ARMOR
-     * slots and 1 offhand slot. The ARMOR and offhand slots may not be visible
-     * to the player, though.
+     * slots, 1 offhand slot, 1 body slot and 1 saddle slot.
+     * <p>
+     * The ARMOR and offhand slots are conditionally visible to the player,
+     * while body and saddle slot are never visible.
      */
-    PLAYER(41, "Player", MenuType.GENERIC_9X4),
+    PLAYER(43, "Player", MenuType.GENERIC_9X4),
     /**
      * The creative mode inventory, with only 9 QUICKBAR slots and nothing
      * else. (The actual creative interface with the items is client-side and
@@ -141,13 +144,19 @@ public enum InventoryType {
      */
     CHISELED_BOOKSHELF(6, "Chiseled Bookshelf", null, false),
     /**
+     * Pseudo shelf inventory, with 3 slots of undefined type.
+     */
+    SHELF(3, "Shelf", null, false),
+    /**
      * Pseudo jukebox inventory with 1 slot of undefined type.
      */
     JUKEBOX(1, "Jukebox", null, false),
+    // Paper start - add missing type
     /**
-     * Pseudo decorated pot inventory with 1 slot of undefined type.
+     * Pseudo decorated pot with 1 slot of undefined type.
      */
     DECORATED_POT(1, "Decorated Pot", null, false),
+    // Paper end - add missing type
     /**
      * A crafter inventory, with 9 CRAFTING slots.
      */
@@ -157,7 +166,7 @@ public enum InventoryType {
      *
      * @deprecated use {@link #SMITHING}
      */
-    @Deprecated(since = "1.20.1")
+    @Deprecated(since = "1.20.1", forRemoval = true) // Paper
     SMITHING_NEW(4, "Upgrade Gear", MenuType.SMITHING),
     ;
 
@@ -165,8 +174,18 @@ public enum InventoryType {
     private final String title;
     private final MenuType menuType;
     private final boolean isCreatable;
-    private boolean isMods;
+    // Paper start
+    private final net.kyori.adventure.text.Component defaultTitleComponent;
 
+    /**
+     * Gets the inventory's default title.
+     *
+     * @return the inventory's default title
+     */
+    public net.kyori.adventure.text.@NotNull Component defaultTitle() {
+        return defaultTitleComponent;
+    }
+    // Paper end
     private InventoryType(int defaultSize, /*@NotNull*/ String defaultTitle, @Nullable MenuType type) {
         this(defaultSize, defaultTitle, type, true);
     }
@@ -176,7 +195,7 @@ public enum InventoryType {
         title = defaultTitle;
         this.menuType = type;
         this.isCreatable = isCreatable;
-        isMods = false;
+        this.defaultTitleComponent = net.kyori.adventure.text.Component.text(defaultTitle); // Paper - Adventure
     }
 
     public int getDefaultSize() {
@@ -184,6 +203,7 @@ public enum InventoryType {
     }
 
     @NotNull
+    @Deprecated // Paper
     public String getDefaultTitle() {
         return title;
     }
@@ -218,14 +238,6 @@ public enum InventoryType {
      */
     public boolean isCreatable() {
         return isCreatable;
-    }
-
-    public boolean isMods() {
-        return isMods;
-    }
-
-    public void setMods(boolean isMods) {
-        this.isMods = isMods;
     }
 
     public enum SlotType {

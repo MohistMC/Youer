@@ -1,5 +1,7 @@
 package org.bukkit.entity;
 
+import org.bukkit.inventory.EquipmentSlot;
+import io.papermc.paper.event.entity.FishHookStateChangeEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -208,7 +210,7 @@ public interface FishHook extends Projectile {
      * @return chance the bite chance
      * @deprecated has no effect in newer Minecraft versions
      */
-    @Deprecated(since = "1.9.2")
+    @Deprecated(since = "1.9.2", forRemoval = true)
     public double getBiteChance();
 
     /**
@@ -222,7 +224,7 @@ public interface FishHook extends Projectile {
      *     and 1
      * @deprecated has no effect in newer Minecraft versions
      */
-    @Deprecated(since = "1.9.2")
+    @Deprecated(since = "1.9.2", forRemoval = true)
     public void setBiteChance(double chance) throws IllegalArgumentException;
 
     /**
@@ -305,6 +307,7 @@ public interface FishHook extends Projectile {
 
     /**
      * Represents a state in which a fishing hook may be.
+     * State transitions can be listened for using {@link FishHookStateChangeEvent}
      */
     public enum HookState {
 
@@ -322,4 +325,62 @@ public interface FishHook extends Projectile {
          */
         BOBBING;
     }
+
+    /**
+     * Get the number of ticks the hook needs to wait for a fish to bite.
+     *
+     * @return Number of ticks
+     */
+    int getWaitTime();
+
+    /**
+     * Sets the number of ticks the hook needs to wait for a fish to bite.
+     *
+     * @param ticks Number of ticks
+     */
+    void setWaitTime(int ticks);
+
+    /**
+     * Get the number of ticks the fish has to swim until biting the hook.
+     * The {@link #getWaitTime()} has to be zero or below for the fish to start the time until bite timer.
+     *
+     * @return number of ticks.
+     *         A value of one indicates that the fish bites the very next time the fish hook is ticked
+     *         while a value of zero represents a fish that has already bitten the hook.
+     * @see #getWaitTime()
+     */
+    @org.jetbrains.annotations.Range(from = 0, to = Integer.MAX_VALUE)
+    int getTimeUntilBite();
+
+    /**
+     * Sets the number of ticks the fish has to swim until biting the hook.
+     *
+     * @param ticks number of ticks.
+     *              One is the minimum that can be passed to this method and instructs the fish to bite the very next tick.
+     * @throws IllegalArgumentException if the passed tick value is less than one.
+     */
+    void setTimeUntilBite(@org.jetbrains.annotations.Range(from = 1, to = Integer.MAX_VALUE) int ticks) throws IllegalArgumentException;
+
+    /**
+     * Completely resets this fishing hook's fishing state, re-randomizing the time needed until a fish is lured and
+     * bites the hook.
+     * <p>
+     * This method takes all properties of the fishing hook into account when resetting said values, such as a lure
+     * enchantment.
+     */
+    void resetFishingState();
+
+    /**
+     * Retrieve this fishhook back to the casting player.
+     * <p>
+     * This method will trigger and respect API events, which may be subject to cancellation.
+     * Plugins listening to {@link org.bukkit.event.player.PlayerFishEvent} might for example cancel this action.
+     *
+     * @param slot Slot holding the fishing rod (must be HAND/OFF_HAND)
+     * @return The amount of damage which would be applied to the itemstack
+     * @throws IllegalStateException if the fish hook does not have a player casting it.
+     * @throws IllegalStateException if the player casting it is not holding a
+     *                               {@link org.bukkit.inventory.ItemType#FISHING_ROD} in the specified equipment slot.
+     */
+    int retrieve(@NotNull EquipmentSlot slot);
 }

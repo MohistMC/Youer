@@ -1,14 +1,22 @@
 package org.bukkit;
 
 import com.google.common.base.Preconditions;
+import io.papermc.paper.math.FinePosition;
+import io.papermc.paper.math.Rotation;
 import java.lang.ref.Reference;
 import java.lang.ref.WeakReference;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.Predicate;
 import org.bukkit.block.Block;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.util.NumberConversions;
 import org.bukkit.util.Vector;
+import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,7 +28,7 @@ import org.jetbrains.annotations.Nullable;
  * magnitude than 360 are valid, but may be normalized to any other equivalent
  * representation by the implementation.
  */
-public class Location implements Cloneable, ConfigurationSerializable {
+public class Location implements Cloneable, ConfigurationSerializable, io.papermc.paper.math.FinePosition {
     private Reference<World> world;
     private double x;
     private double y;
@@ -36,7 +44,7 @@ public class Location implements Cloneable, ConfigurationSerializable {
      * @param y The y-coordinate of this new location
      * @param z The z-coordinate of this new location
      */
-    public Location(@Nullable final World world, final double x, final double y, final double z) {
+    public Location(@UndefinedNullability final World world, final double x, final double y, final double z) {
         this(world, x, y, z, 0, 0);
     }
 
@@ -50,7 +58,7 @@ public class Location implements Cloneable, ConfigurationSerializable {
      * @param yaw The absolute rotation on the x-plane, in degrees
      * @param pitch The absolute rotation on the y-plane, in degrees
      */
-    public Location(@Nullable final World world, final double x, final double y, final double z, final float yaw, final float pitch) {
+    public Location(@UndefinedNullability final World world, final double x, final double y, final double z, final float yaw, final float pitch) {
         if (world != null) {
             this.world = new WeakReference<>(world);
         }
@@ -92,7 +100,7 @@ public class Location implements Cloneable, ConfigurationSerializable {
      * @throws IllegalArgumentException when world is unloaded
      * @see #isWorldLoaded()
      */
-    @Nullable
+    @UndefinedNullability
     public World getWorld() {
         if (this.world == null) {
             return null;
@@ -389,6 +397,46 @@ public class Location implements Cloneable, ConfigurationSerializable {
     }
 
     /**
+     * Adds rotation in the form of yaw and patch to this location. Not world-aware.
+     *
+     * @param yaw   yaw, measured in degrees.
+     * @param pitch pitch, measured in degrees.
+     * @return the same location
+     * @see Vector
+     */
+    @NotNull
+    @Contract(value = "_,_ -> this", mutates = "this")
+    public Location addRotation(final float yaw, final float pitch) {
+        this.yaw += yaw;
+        this.pitch += pitch;
+        return this;
+    }
+
+    /**
+     * Adds rotation to this location. Not world-aware.
+     *
+     * @param rotation the rotation to add.
+     * @return the same location
+     * @see Vector
+     */
+    @NotNull
+    @Contract(value = "_ -> this", mutates = "this")
+    public Location addRotation(@NotNull Rotation rotation) {
+        return addRotation(rotation.yaw(), rotation.pitch());
+    }
+
+    /**
+     * Retrieves the rotation of this location.
+     *
+     * @return a new {@code Rotation} object
+     */
+    @NotNull
+    @Contract(value = " -> new", pure = true)
+    public Rotation getRotation() {
+        return Rotation.rotation(yaw, pitch);
+    }
+
+    /**
      * Subtracts the location by another.
      *
      * @param vec The other location
@@ -439,6 +487,35 @@ public class Location implements Cloneable, ConfigurationSerializable {
         this.y -= y;
         this.z -= z;
         return this;
+    }
+
+    /**
+     * Subtracts rotation in the form of yaw and patch from this location.
+     *
+     * @param yaw   yaw, measured in degrees.
+     * @param pitch pitch, measured in degrees.
+     * @return the same location
+     * @see Vector
+     */
+    @NotNull
+    @Contract(value = "_,_ -> this", mutates = "this")
+    public Location subtractRotation(final float yaw, final float pitch) {
+        this.yaw -= yaw;
+        this.pitch -= pitch;
+        return this;
+    }
+
+    /**
+     * Subtracts rotation from this location.
+     *
+     * @param rotation the rotation to subtract.
+     * @return the same location
+     * @see Vector
+     */
+    @NotNull
+    @Contract(value = "_ -> this", mutates = "this")
+    public Location subtractRotation(@NotNull Rotation rotation) {
+        return subtractRotation(rotation.yaw(), rotation.pitch());
     }
 
     /**
@@ -497,7 +574,7 @@ public class Location implements Cloneable, ConfigurationSerializable {
         } else if (o.getWorld() == null || getWorld() == null) {
             throw new IllegalArgumentException("Cannot measure distance to a null world");
         } else if (o.getWorld() != getWorld()) {
-            throw new IllegalArgumentException("Cannot measure distance between " + getWorld().getName() + " and " + o.getWorld().getName());
+            throw new IllegalArgumentException("Cannot measure distance between " + getWorld().key().asString() + " and " + o.getWorld().key().asString());
         }
 
         return NumberConversions.square(x - o.x) + NumberConversions.square(y - o.y) + NumberConversions.square(z - o.z);
@@ -531,6 +608,480 @@ public class Location implements Cloneable, ConfigurationSerializable {
         y = 0;
         z = 0;
         return this;
+    }
+
+    public boolean isChunkLoaded() {
+        return this.getWorld().isChunkLoaded(locToBlock(x) >> 4, locToBlock(z) >> 4);
+    }
+
+    /**
+     * Checks if a {@link Chunk} has been generated at this location.
+     *
+     * @return true if a chunk has been generated at this location
+     */
+    public boolean isGenerated() {
+        World world = this.getWorld();
+        Preconditions.checkNotNull(world, "Location has no world!");
+        return world.isChunkGenerated(locToBlock(x) >> 4, locToBlock(z) >> 4);
+    }
+
+    /**
+     * Sets the position of this Location and returns itself
+     * <p>
+     * This mutates this object, clone first.
+     *
+     * @param x X coordinate
+     * @param y Y coordinate
+     * @param z Z coordinate
+     * @return self (not cloned)
+     */
+    @NotNull
+    public Location set(double x, double y, double z) {
+        this.x = x;
+        this.y = y;
+        this.z = z;
+        return this;
+    }
+
+    /**
+     * Sets the rotation of this location and returns itself.
+     * <p>
+     * This mutates this object, clone first.
+     *
+     * @param yaw   yaw, measured in degrees.
+     * @param pitch pitch, measured in degrees.
+     * @return self (not cloned)
+     */
+    @NotNull
+    @Contract(value = "_,_ -> this", mutates = "this")
+    public Location setRotation(final float yaw, final float pitch) {
+        this.yaw = yaw;
+        this.pitch = pitch;
+        return this;
+    }
+
+    /**
+     * Sets the rotation of this location and returns itself.
+     * <p>
+     * This mutates this object, clone first.
+     *
+     * @param rotation the new rotation.
+     * @return self (not cloned)
+     */
+    @NotNull
+    @Contract(value = "_ -> this", mutates = "this")
+    public Location setRotation(@NotNull Rotation rotation) {
+        return setRotation(rotation.yaw(), rotation.pitch());
+    }
+
+    /**
+     * Takes the x/y/z from base and adds the specified x/y/z to it and returns self
+     * <p>
+     * This mutates this object, clone first.
+     *
+     * @param base The base coordinate to modify
+     * @param x X coordinate to add to base
+     * @param y Y coordinate to add to base
+     * @param z Z coordinate to add to base
+     * @return self (not cloned)
+     */
+    @NotNull
+    public Location add(@NotNull Location base, double x, double y, double z) {
+        return this.set(base.x + x, base.y + y, base.z + z);
+    }
+
+    /**
+     * Takes the x/y/z from base and subtracts the specified x/y/z to it and returns self
+     * <p>
+     * This mutates this object, clone first.
+     *
+     * @param base The base coordinate to modify
+     * @param x X coordinate to subtract from base
+     * @param y Y coordinate to subtract from base
+     * @param z Z coordinate to subtract from base
+     * @return self (not cloned)
+     */
+    @NotNull
+    public Location subtract(@NotNull Location base, double x, double y, double z) {
+        return this.set(base.x - x, base.y - y, base.z - z);
+    }
+
+    /**
+     * @return A new location where X/Y/Z are on the Block location (integer value of X/Y/Z)
+     */
+    @NotNull
+    public Location toBlockLocation() {
+        Location blockLoc = clone();
+        blockLoc.setX(getBlockX());
+        blockLoc.setY(getBlockY());
+        blockLoc.setZ(getBlockZ());
+        return blockLoc;
+    }
+
+    /**
+     * @return The block key for this location's block location.
+     * @see Block#getBlockKey(int, int, int)
+     * @deprecated only encodes y block ranges from -512 to 511 and represents an already changed implementation detail
+     */
+    @Deprecated(since = "1.18.1")
+    public long toBlockKey() {
+        return Block.getBlockKey(getBlockX(), getBlockY(), getBlockZ());
+    }
+
+    /**
+     * @return A new location where X/Y/Z are the center of the block
+     */
+    @NotNull
+    public Location toCenterLocation() {
+        Location centerLoc = clone();
+        centerLoc.setX(getBlockX() + 0.5);
+        centerLoc.setY(getBlockY() + 0.5);
+        centerLoc.setZ(getBlockZ() + 0.5);
+        return centerLoc;
+    }
+
+    /**
+     * Returns a copy of this location except with y = getWorld().getHighestBlockYAt(this.getBlockX(), this.getBlockZ())
+     * @return A copy of this location except with y = getWorld().getHighestBlockYAt(this.getBlockX(), this.getBlockZ())
+     * @throws NullPointerException if {@link #getWorld()} is {@code null}
+     */
+    @NotNull
+    public Location toHighestLocation() {
+        return this.toHighestLocation(HeightMap.WORLD_SURFACE);
+    }
+
+    /**
+     * Returns a copy of this location except with y = getWorld().getHighestBlockYAt(this.getBlockX(), this.getBlockZ(), heightMap)
+     * @param heightMap The heightmap to use for finding the highest y location.
+     * @return A copy of this location except with y = getWorld().getHighestBlockYAt(this.getBlockX(), this.getBlockZ(), heightMap)
+     */
+    @NotNull
+    public Location toHighestLocation(@NotNull final HeightMap heightMap) {
+        final Location ret = this.clone();
+        ret.setY(this.getWorld().getHighestBlockYAt(this, heightMap));
+        return ret;
+    }
+
+    /**
+     * Creates explosion at this location with given power
+     * <p>
+     * Will break blocks and ignite blocks on fire.
+     *
+     * @param power The power of explosion, where 4F is TNT
+     * @return false if explosion was canceled, otherwise true
+     */
+    public boolean createExplosion(float power) {
+        return this.getWorld().createExplosion(this, power);
+    }
+
+    /**
+     * Creates explosion at this location with given power and optionally
+     * setting blocks on fire.
+     * <p>
+     * Will break blocks.
+     *
+     * @param power The power of explosion, where 4F is TNT
+     * @param setFire Whether to set blocks on fire
+     * @return false if explosion was canceled, otherwise true
+     */
+    public boolean createExplosion(float power, boolean setFire) {
+        return this.getWorld().createExplosion(this, power, setFire);
+    }
+
+    /**
+     * Creates explosion at this location with given power and optionally
+     * setting blocks on fire.
+     *
+     * @param power The power of explosion, where 4F is TNT
+     * @param setFire Whether to set blocks on fire
+     * @param breakBlocks Whether to have blocks be destroyed
+     * @return false if explosion was canceled, otherwise true
+     */
+    public boolean createExplosion(float power, boolean setFire, boolean breakBlocks) {
+        return this.getWorld().createExplosion(this, power, setFire, breakBlocks);
+    }
+
+    /**
+     * Creates explosion at this location with given power, with the specified entity as the source.
+     * <p>
+     * Will break blocks and ignite blocks on fire.
+     *
+     * @param source The source entity of the explosion
+     * @param power The power of explosion, where 4F is TNT
+     * @return false if explosion was canceled, otherwise true
+     */
+    public boolean createExplosion(@Nullable Entity source, float power) {
+        return this.getWorld().createExplosion(source, this, power, true, true);
+    }
+
+    /**
+     * Creates explosion at this location with given power and optionally
+     * setting blocks on fire, with the specified entity as the source.
+     * <p>
+     * Will break blocks.
+     *
+     * @param source The source entity of the explosion
+     * @param power The power of explosion, where 4F is TNT
+     * @param setFire Whether to set blocks on fire
+     * @return false if explosion was canceled, otherwise true
+     */
+    public boolean createExplosion(@Nullable Entity source, float power, boolean setFire) {
+        return this.getWorld().createExplosion(source, this, power, setFire, true);
+    }
+
+    /**
+     * Creates explosion at this location with given power and optionally
+     * setting blocks on fire, with the specified entity as the source.
+     *
+     * @param source The source entity of the explosion
+     * @param power The power of explosion, where 4F is TNT
+     * @param setFire Whether to set blocks on fire
+     * @param breakBlocks Whether to have blocks be destroyed
+     * @return false if explosion was canceled, otherwise true
+     */
+    public boolean createExplosion(@Nullable Entity source, float power, boolean setFire, boolean breakBlocks) {
+        return this.getWorld().createExplosion(source, this, power, setFire, breakBlocks);
+    }
+
+    /**
+     * Returns a list of entities within a bounding box centered around a Location.
+     * <p>
+     * Some implementations may impose artificial restrictions on the size of the search bounding box.
+     *
+     * @param x 1/2 the size of the box along the x-axis
+     * @param y 1/2 the size of the box along the y-axis
+     * @param z 1/2 the size of the box along the z-axis
+     * @return the collection of entities near location. This will always be a non-null collection.
+     */
+    public @NotNull Collection<Entity> getNearbyEntities(final double x, final double y, final double z) {
+        final World world = this.getWorld();
+        if (world == null) {
+            throw new IllegalArgumentException("Location has no world");
+        }
+        return world.getNearbyEntities(this, x, y, z);
+    }
+
+    /**
+     * Gets nearby players within the specified radius (bounding box)
+     *
+     * @param radius X Radius
+     * @return the collection of entities near location. This will always be a non-null collection.
+     */
+    public @NotNull Collection<LivingEntity> getNearbyLivingEntities(final double radius) {
+        return this.getNearbyEntitiesByType(LivingEntity.class, radius, radius, radius);
+    }
+
+    /**
+     * Gets nearby players within the specified radius (bounding box)
+     *
+     * @param xzRadius X/Z Radius
+     * @param yRadius Y Radius
+     * @return the collection of living entities near location. This will always be a non-null collection.
+     */
+    public @NotNull Collection<LivingEntity> getNearbyLivingEntities(final double xzRadius, final double yRadius) {
+        return this.getNearbyEntitiesByType(LivingEntity.class, xzRadius, yRadius, xzRadius);
+    }
+
+    /**
+     * Gets nearby players within the specified radius (bounding box)
+     *
+     * @param xRadius X Radius
+     * @param yRadius Y Radius
+     * @param zRadius Z radius
+     * @return the collection of living entities near location. This will always be a non-null collection.
+     */
+    public @NotNull Collection<LivingEntity> getNearbyLivingEntities(final double xRadius, final double yRadius, final double zRadius) {
+        return this.getNearbyEntitiesByType(LivingEntity.class, xRadius, yRadius, zRadius);
+    }
+
+    /**
+     * Gets nearby players within the specified radius (bounding box)
+     *
+     * @param radius Radius
+     * @param predicate a predicate used to filter results
+     * @return the collection of living entities near location. This will always be a non-null collection.
+     */
+    public @NotNull Collection<LivingEntity> getNearbyLivingEntities(final double radius, final @Nullable Predicate<? super LivingEntity> predicate) {
+        return this.getNearbyEntitiesByType(LivingEntity.class, radius, radius, radius, predicate);
+    }
+
+    /**
+     * Gets nearby players within the specified radius (bounding box)
+     *
+     * @param xzRadius X/Z Radius
+     * @param yRadius Y Radius
+     * @param predicate a predicate used to filter results
+     * @return the collection of living entities near location. This will always be a non-null collection.
+     */
+    public @NotNull Collection<LivingEntity> getNearbyLivingEntities(final double xzRadius, final double yRadius, final @Nullable Predicate<? super LivingEntity> predicate) {
+        return this.getNearbyEntitiesByType(LivingEntity.class, xzRadius, yRadius, xzRadius, predicate);
+    }
+
+    /**
+     * Gets nearby players within the specified radius (bounding box)
+     *
+     * @param xRadius X Radius
+     * @param yRadius Y Radius
+     * @param zRadius Z radius
+     * @param predicate a predicate used to filter results
+     * @return the collection of living entities near location. This will always be a non-null collection.
+     */
+    public @NotNull Collection<LivingEntity> getNearbyLivingEntities(final double xRadius, final double yRadius, final double zRadius, final @Nullable Predicate<? super LivingEntity> predicate) {
+        return this.getNearbyEntitiesByType(LivingEntity.class, xRadius, yRadius, zRadius, predicate);
+    }
+
+    /**
+     * Gets nearby players within the specified radius (bounding box)
+     *
+     * @param radius X/Y/Z Radius
+     * @return the collection of players near location. This will always be a non-null collection.
+     */
+    public @NotNull Collection<Player> getNearbyPlayers(final double radius) {
+        return this.getNearbyEntitiesByType(Player.class, radius, radius, radius);
+    }
+
+    /**
+     * Gets nearby players within the specified radius (bounding box)
+     *
+     * @param xzRadius X/Z Radius
+     * @param yRadius Y Radius
+     * @return the collection of players near location. This will always be a non-null collection.
+     */
+    public @NotNull Collection<Player> getNearbyPlayers(final double xzRadius, final double yRadius) {
+        return this.getNearbyEntitiesByType(Player.class, xzRadius, yRadius, xzRadius);
+    }
+
+    /**
+     * Gets nearby players within the specified radius (bounding box)
+     *
+     * @param xRadius X Radius
+     * @param yRadius Y Radius
+     * @param zRadius Z Radius
+     * @return the collection of players near location. This will always be a non-null collection.
+     */
+    public @NotNull Collection<Player> getNearbyPlayers(final double xRadius, final double yRadius, final double zRadius) {
+        return this.getNearbyEntitiesByType(Player.class, xRadius, yRadius, zRadius);
+    }
+
+    /**
+     * Gets nearby players within the specified radius (bounding box)
+     *
+     * @param radius X/Y/Z Radius
+     * @param predicate a predicate used to filter results
+     * @return the collection of players near location. This will always be a non-null collection.
+     */
+    public @NotNull Collection<Player> getNearbyPlayers(final double radius, final @Nullable Predicate<? super Player> predicate) {
+        return this.getNearbyEntitiesByType(Player.class, radius, radius, radius, predicate);
+    }
+
+    /**
+     * Gets nearby players within the specified radius (bounding box)
+     *
+     * @param xzRadius X/Z Radius
+     * @param yRadius Y Radius
+     * @param predicate a predicate used to filter results
+     * @return the collection of players near location. This will always be a non-null collection.
+     */
+    public @NotNull Collection<Player> getNearbyPlayers(final double xzRadius, final double yRadius, final @Nullable Predicate<? super Player> predicate) {
+        return this.getNearbyEntitiesByType(Player.class, xzRadius, yRadius, xzRadius, predicate);
+    }
+
+    /**
+     * Gets nearby players within the specified radius (bounding box)
+     *
+     * @param xRadius X Radius
+     * @param yRadius Y Radius
+     * @param zRadius Z Radius
+     * @param predicate a predicate used to filter results
+     * @return the collection of players near location. This will always be a non-null collection.
+     */
+    public @NotNull Collection<Player> getNearbyPlayers(final double xRadius, final double yRadius, final double zRadius, final @Nullable Predicate<? super Player> predicate) {
+        return this.getNearbyEntitiesByType(Player.class, xRadius, yRadius, zRadius, predicate);
+    }
+
+    /**
+     * Gets all nearby entities of the specified type, within the specified radius (bounding box)
+     *
+     * @param clazz Type to filter by
+     * @param radius X/Y/Z radius to search within
+     * @param <T> the entity type
+     * @return the collection of entities of type clazz near location. This will always be a non-null collection.
+     */
+    public @NotNull <T extends Entity> Collection<T> getNearbyEntitiesByType(final @Nullable Class<? extends T> clazz, final double radius) {
+        return this.getNearbyEntitiesByType(clazz, radius, radius, radius, null);
+    }
+
+    /**
+     * Gets all nearby entities of the specified type, within the specified radius, with x and x radius matching (bounding box)
+     *
+     * @param clazz Type to filter by
+     * @param xzRadius X/Z radius to search within
+     * @param yRadius Y radius to search within
+     * @param <T> the entity type
+     * @return the collection of entities near location. This will always be a non-null collection.
+     */
+    public @NotNull <T extends Entity> Collection<T> getNearbyEntitiesByType(final @Nullable Class<? extends T> clazz, final double xzRadius, final double yRadius) {
+        return this.getNearbyEntitiesByType(clazz, xzRadius, yRadius, xzRadius, null);
+    }
+
+    /**
+     * Gets all nearby entities of the specified type, within the specified radius (bounding box)
+     *
+     * @param clazz Type to filter by
+     * @param xRadius X Radius
+     * @param yRadius Y Radius
+     * @param zRadius Z Radius
+     * @param <T> the entity type
+     * @return the collection of entities near location. This will always be a non-null collection.
+     */
+    public @NotNull <T extends Entity> Collection<T> getNearbyEntitiesByType(final @Nullable Class<? extends T> clazz, final double xRadius, final double yRadius, final double zRadius) {
+        return this.getNearbyEntitiesByType(clazz, xRadius, yRadius, zRadius, null);
+    }
+
+    /**
+     * Gets all nearby entities of the specified type, within the specified radius (bounding box)
+     *
+     * @param clazz Type to filter by
+     * @param radius X/Y/Z radius to search within
+     * @param predicate a predicate used to filter results
+     * @param <T> the entity type
+     * @return the collection of entities near location. This will always be a non-null collection.
+     */
+    public @NotNull <T extends Entity> Collection<T> getNearbyEntitiesByType(final @Nullable Class<? extends T> clazz, final double radius, final @Nullable Predicate<? super T> predicate) {
+        return this.getNearbyEntitiesByType(clazz, radius, radius, radius, predicate);
+    }
+
+    /**
+     * Gets all nearby entities of the specified type, within the specified radius, with x and x radius matching (bounding box)
+     *
+     * @param clazz Type to filter by
+     * @param xzRadius X/Z radius to search within
+     * @param yRadius Y radius to search within
+     * @param predicate a predicate used to filter results
+     * @param <T> the entity type
+     * @return the collection of entities near location. This will always be a non-null collection.
+     */
+    public @NotNull <T extends Entity> Collection<T> getNearbyEntitiesByType(final @Nullable Class<? extends T> clazz, final double xzRadius, final double yRadius, final @Nullable Predicate<? super T> predicate) {
+        return this.getNearbyEntitiesByType(clazz, xzRadius, yRadius, xzRadius, predicate);
+    }
+
+    /**
+     * Gets all nearby entities of the specified type, within the specified radius (bounding box)
+     *
+     * @param clazz Type to filter by
+     * @param xRadius X Radius
+     * @param yRadius Y Radius
+     * @param zRadius Z Radius
+     * @param predicate a predicate used to filter results
+     * @param <T> the entity type
+     * @return the collection of entities near location. This will always be a non-null collection.
+     */
+    public @NotNull <T extends Entity> Collection<T> getNearbyEntitiesByType(final @Nullable Class<? extends T> clazz, final double xRadius, final double yRadius, final double zRadius, final @Nullable Predicate<? super T> predicate) {
+        final World world = this.getWorld();
+        if (world == null) {
+            throw new IllegalArgumentException("Location has no world");
+        }
+        return world.getNearbyEntitiesByType(clazz, this, xRadius, yRadius, zRadius, predicate);
     }
 
     @Override
@@ -635,10 +1186,11 @@ public class Location implements Cloneable, ConfigurationSerializable {
     @Utility
     @NotNull
     public Map<String, Object> serialize() {
-        Map<String, Object> data = new HashMap<String, Object>();
+        Map<String, Object> data = new HashMap<>();
 
-        if (this.world != null) {
-            data.put("world", getWorld().getName());
+        World world = this.getWorld();
+        if (world != null) {
+            data.put("world_key", world.key().asString());
         }
 
         data.put("x", this.x);
@@ -662,11 +1214,19 @@ public class Location implements Cloneable, ConfigurationSerializable {
     @NotNull
     public static Location deserialize(@NotNull Map<String, Object> args) {
         World world = null;
+        boolean requiresWorld = false;
         if (args.containsKey("world")) {
             world = Bukkit.getWorld((String) args.get("world"));
-            if (world == null) {
-                throw new IllegalArgumentException("unknown world");
-            }
+            requiresWorld = true;
+        }
+        if (args.containsKey("world_key")) {
+            NamespacedKey key = NamespacedKey.fromString((String) args.get("world_key"));
+            world = key == null ? null : Bukkit.getWorld(key);
+            requiresWorld = true;
+        }
+
+        if (requiresWorld && world == null) {
+            throw new IllegalArgumentException("unknown world");
         }
 
         return new Location(world, NumberConversions.toDouble(args.get("x")), NumberConversions.toDouble(args.get("y")), NumberConversions.toDouble(args.get("z")), NumberConversions.toFloat(args.get("yaw")), NumberConversions.toFloat(args.get("pitch")));
@@ -705,5 +1265,30 @@ public class Location implements Cloneable, ConfigurationSerializable {
             pitch = -90.0f;
         }
         return pitch;
+    }
+
+    @Override
+    public double x() {
+        return this.getX();
+    }
+
+    @Override
+    public double y() {
+        return this.getY();
+    }
+
+    @Override
+    public double z() {
+        return this.getZ();
+    }
+
+    @Override
+    public boolean isFinite() {
+        return FinePosition.super.isFinite() && Float.isFinite(this.getYaw()) && Float.isFinite(this.getPitch());
+    }
+
+    @Override
+    public @NotNull Location toLocation(@NotNull World world) {
+        return new Location(world, this.x(), this.y(), this.z(), this.getYaw(), this.getPitch());
     }
 }
