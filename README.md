@@ -30,7 +30,7 @@
 ## 📊 Progress Status
 
 ✅ **Core Integration**
-- [x] NeoForge ([cb31353a1](https://github.com/neoforged/NeoForge/commit/cb31353a1))
+- [x] NeoForge ([acb08366c](https://github.com/neoforged/NeoForge/commit/acb08366c))
 - [x] Bukkit API ([10827ca5](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/bukkit/commits/10827ca5))
 - [x] CraftBukkit ([04aec8d21](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/craftbukkit/commits/04aec8d21))
 - [ ] Spigot ([8db49a2b](https://hub.spigotmc.org/stash/projects/SPIGOT/repos/spigot/commits/8db49a2b))
