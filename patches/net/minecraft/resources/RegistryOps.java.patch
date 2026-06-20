@@ -12,12 +12,10 @@
      public <U> RegistryOps<U> withParent(DynamicOps<U> parent) {
          return (RegistryOps<U>)(parent == this.delegate ? this : new RegistryOps<>(parent, this.lookupProvider));
      }
-@@ -74,6 +_,20 @@
-                     : DataResult.error(() -> "Not a registry ops")
-             )
+@@ -76,6 +_,20 @@
              .forGetter(e -> null);
-+    }
-+
+     }
+ 
 +    public static <E> com.mojang.serialization.MapCodec<HolderLookup.RegistryLookup<E>> retrieveRegistryLookup(ResourceKey<? extends Registry<? extends E>> resourceKey) {
 +        return ExtraCodecs.retrieveContext(ops -> {
 +            if (!(ops instanceof RegistryOps<?> registryOps))
@@ -30,6 +28,30 @@
 +                return DataResult.success(registryLookup, registryInfo.elementsLifecycle());
 +            }).orElseGet(() -> DataResult.error(() -> "Unknown registry: " + resourceKey));
 +        });
++    }
++
+     public static <E, O> RecordCodecBuilder<O, Holder.Reference<E>> retrieveElement(ResourceKey<E> key) {
+         ResourceKey<? extends Registry<E>> registryKey = ResourceKey.createRegistryKey(key.registry());
+         return ExtraCodecs.retrieveContext(
+@@ -116,6 +_,13 @@
+         public int hashCode() {
+             return this.lookupProvider.hashCode();
+         }
++
++        // Paper start - add method to get the value for pre-filling builders in the reg mod API
++        @Override
++        public HolderLookup.Provider lookupForValueCopyViaBuilders() {
++            return this.lookupProvider;
++        }
++        // Paper end - add method to get the value for pre-filling builders in the reg mod API
      }
  
-     public static <E, O> RecordCodecBuilder<O, Holder.Reference<E>> retrieveElement(ResourceKey<E> key) {
+     public record RegistryInfo<T>(HolderOwner<T> owner, HolderGetter<T> getter, Lifecycle elementsLifecycle) {
+@@ -126,5 +_,7 @@
+ 
+     public interface RegistryInfoLookup {
+         <T> Optional<RegistryOps.RegistryInfo<T>> lookup(ResourceKey<? extends Registry<? extends T>> registryKey);
++
++        HolderLookup.Provider lookupForValueCopyViaBuilders(); // Paper - add method to get the value for pre-filling builders in the reg mod API
+     }
+ }

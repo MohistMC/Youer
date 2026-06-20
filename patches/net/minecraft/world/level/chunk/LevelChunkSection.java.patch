@@ -16,7 +16,7 @@
  
      private LevelChunkSection(LevelChunkSection source) {
          this.nonEmptyBlockCount = source.nonEmptyBlockCount;
-@@ -27,7 +_,7 @@
+@@ -27,14 +_,20 @@
          this.biomes = source.biomes.copy();
      }
  
@@ -25,6 +25,20 @@
          this.states = states;
          this.biomes = biomes;
          this.recalcBlockCounts();
+     }
+ 
++    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - Anti-Xray
+     public LevelChunkSection(PalettedContainerFactory containerFactory) {
+-        this.states = containerFactory.createForBlockStates();
++        // Paper start - Anti-Xray - Add parameters
++        this(containerFactory, null, null, 0);
++    }
++    public LevelChunkSection(final PalettedContainerFactory containerFactory, final net.minecraft.world.level.Level level, final net.minecraft.world.level.ChunkPos chunkPos, final int chunkSectionY) {
++        this.states = containerFactory.createForBlockStates(level, chunkPos, chunkSectionY);
++        // Paper end - Anti-Xray - Add parameters
+         this.biomes = containerFactory.createForBiomes();
+     }
+ 
 @@ -66,7 +_,7 @@
              previous = this.states.getAndSetUnchecked(sectionX, sectionY, sectionZ, state);
          }

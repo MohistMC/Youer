@@ -52,12 +52,14 @@ public class WorldsGUI {
                 infoLore.add(I18n.as("worldmanage.gui.lore2") + w.getWorldBorder().getSize());
                 infoLore.add(I18n.as("worldmanage.gui.lore3") + worldtype);
                 infoLore.add(I18n.as("worldmanage.gui.lore4") + difficulty);
+                /*
                 if (w.isMods()) {
                     infoLore.add("§bModid §8>> §7" + w.getModid());
                 }
                 if (w.isBukkit()) {
                     infoLore.add("§bPluginWorld §8>> §7" + w.isBukkit());
                 }
+                 */
                 if (config.get("worlds." + w.getName() + ".void") != null) {
                     infoLore.add("§bVoid §8>> §7" + config.getBoolean("worlds." + w.getName() + ".void"));
                 }
@@ -104,12 +106,6 @@ public class WorldsGUI {
     }
 
     public static Material getMaterial(World w) {
-        if (w.isFlat()) {
-            return Material.GREEN_CARPET;
-        }
-        if (w.isVoid()) {
-            return Material.BARRIER;
-        }
         return getMaterial(w.getEnvironment());
     }
 

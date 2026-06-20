@@ -102,11 +102,6 @@ public class ConfigByWorlds {
         if (config.get("worlds." + world.getName() + ".youer") == null) {
             config.set("worlds." + world.getName() + ".youer", false);
         }
-        if (world.isMods()) {
-            ConfigByWorlds.addWorld(world.getName(), false);
-            config.set("worlds." + world.getName() + ".ismods", world.isMods());
-            config.set("worlds." + world.getName() + ".modName", world.getModid());
-        }
         init();
 
     }
@@ -180,14 +175,11 @@ public class ConfigByWorlds {
                         }
                         wc.seed(seed);
                         wc.environment(World.Environment.valueOf(environment));
-                        wc.keepSpawnInMemory(keepspawninmemory);
                         wc.createWorld();
                     }
                 }
                 World world = Bukkit.getWorld(w);
                 if (world != null) {
-                    world.setVoid(isVoid);
-                    world.setFlat(isFlat);
                     if (config.get("worlds." + w + ".worldborder") != null) {
                         world.getWorldBorder().setSize(config.getDouble("worlds." + w + ".worldborder"));
                     }

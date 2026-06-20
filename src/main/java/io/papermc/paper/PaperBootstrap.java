@@ -18,7 +18,7 @@ public final class PaperBootstrap {
 
         getStartupVersionMessages().forEach(LOGGER::info);
 
-        Main.main(options);
+        // Main.main(options);
     }
 
     private static List<String> getStartupVersionMessages() {

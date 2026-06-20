@@ -28,6 +28,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
+import org.bukkit.generator.WorldInfo;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -330,7 +331,7 @@ public class WorldsCommands extends Command {
         }
 
         if (args.length >= 2 && (args[0].equalsIgnoreCase("tp") || args[0].equalsIgnoreCase("delete")) || args[0].equalsIgnoreCase("unload")) {
-            list.addAll(Bukkit.getWorldsByName());
+            Bukkit.getWorlds().stream().map(WorldInfo::getName).forEach(list::add);
         }
 
         return list;

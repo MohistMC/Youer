@@ -1,0 +1,33 @@
+--- a/net/minecraft/world/entity/ai/goal/GoalSelector.java
++++ b/net/minecraft/world/entity/ai/goal/GoalSelector.java
+@@ -24,6 +_,7 @@
+     private final Map<Goal.Flag, WrappedGoal> lockedFlags = new EnumMap<>(Goal.Flag.class);
+     private final Set<WrappedGoal> availableGoals = new ObjectLinkedOpenHashSet<>();
+     private final EnumSet<Goal.Flag> disabledFlags = EnumSet.noneOf(Goal.Flag.class);
++    private int curRate; // Paper - EAR 2
+ 
+     public void addGoal(int prio, Goal goal) {
+         this.availableGoals.add(new WrappedGoal(prio, goal));
+@@ -38,6 +_,22 @@
+ 
+         this.availableGoals.removeIf(goal -> predicate.test(goal.getGoal()));
+     }
++
++    // Paper start - EAR 2
++    public boolean inactiveTick() {
++        this.curRate++;
++        return this.curRate % 3 == 0; // TODO newGoalRate was already unused in 1.20.4, check if this is correct
++    }
++
++    public boolean hasTasks() {
++        for (final WrappedGoal task : this.availableGoals) {
++            if (task.isRunning()) {
++                return true;
++            }
++        }
++        return false;
++    }
++    // Paper end - EAR 2
+ 
+     public void removeGoal(Goal toRemove) {
+         this.removeAllGoals(goal -> goal == toRemove);

@@ -25,7 +25,7 @@ public class YouerModsChestHorse extends CraftChestedHorse {
 
     @Override
     public @NotNull Horse.Variant getVariant() {
-        return Horse.Variant.MODS;
+        return Horse.Variant.HORSE;
     }
 
     @Override

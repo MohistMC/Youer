@@ -1,13 +1,25 @@
 --- a/net/minecraft/core/registries/BuiltInRegistries.java
 +++ b/net/minecraft/core/registries/BuiltInRegistries.java
-@@ -440,6 +_,10 @@
-         ((MappedRegistry)registry).bindAllTagsToEmpty();
-     }
+@@ -365,6 +_,11 @@
+     public static final Registry<MapCodec<? extends SlotSource>> SLOT_SOURCE_TYPE = registerSimple(Registries.SLOT_SOURCE_TYPE, SlotSources::bootstrap);
+     public static final Registry<Consumer<GameTestHelper>> TEST_FUNCTION = registerSimple(Registries.TEST_FUNCTION, BuiltinTestFunctions::bootstrap);
+     public static final Registry<? extends Registry<?>> REGISTRY = WRITABLE_REGISTRY;
++    // Paper start - add built-in registry conversions
++    public static final io.papermc.paper.registry.data.util.Conversions STATIC_ACCESS_CONVERSIONS = new io.papermc.paper.registry.data.util.Conversions(
++            new net.minecraft.resources.RegistryOps.HolderLookupAdapter(net.minecraft.server.RegistryLayer.STATIC_ACCESS)
++    );
++    // Paper end - add built-in registry conversions
  
-+    public static java.util.Set<Identifier> getVanillaRegistrationOrder() {
-+        return java.util.Collections.unmodifiableSet(LOADERS.keySet());
+     private static <T> Registry<T> registerSimple(ResourceKey<? extends Registry<T>> name, BuiltInRegistries.RegistryBootstrap<T> loader) {
+         return internalRegister(name, new MappedRegistry<>(name, Lifecycle.stable(), false), loader);
+@@ -438,6 +_,10 @@
+ 
+     private static void bindBootstrappedTagsToEmpty(Registry<?> registry) {
+         ((MappedRegistry)registry).bindAllTagsToEmpty();
 +    }
 +
++    public static java.util.Set<Identifier> getVanillaRegistrationOrder() {
++        return java.util.Collections.unmodifiableSet(LOADERS.keySet());
+     }
+ 
      @FunctionalInterface
-     private interface RegistryBootstrap<T> {
-         Object run(Registry<T> registry);

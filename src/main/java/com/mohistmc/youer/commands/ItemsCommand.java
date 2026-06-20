@@ -242,7 +242,7 @@ public class ItemsCommand extends Command {
                     sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items rarity <rarity>"));
                     return false;
                 }
-                ItemAPI.rarity(player.getInventory().getItemInMainHand(), ItemRarity.byName(args[1]));
+                ItemAPI.rarity(player.getInventory().getItemInMainHand(), ItemRarity.valueOf(args[1]));
                 sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.completeRarity"));
                 return true;
             }

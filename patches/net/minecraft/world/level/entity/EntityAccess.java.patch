@@ -8,16 +8,18 @@
  
  public interface EntityAccess extends UniquelyIdentifyable {
      int getId();
-@@ -19,6 +_,12 @@
+@@ -18,7 +_,13 @@
+ 
      Stream<? extends EntityAccess> getPassengersAndSelf();
  
-     void setRemoved(Entity.RemovalReason removalReason);
-+
+-    void setRemoved(Entity.RemovalReason removalReason);
 +    // CraftBukkit start - add Bukkit remove cause
-+    default void setRemovedCB(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
-+        this.setRemoved(entity_removalreason);
++    default void setRemoved(Entity.RemovalReason removalReason) {
++        this.setRemoved(removalReason, null);
 +    }
-+    // CraftBukkit end
++
++    void setRemoved(Entity.RemovalReason removalReason, org.bukkit.event.entity.EntityRemoveEvent.@org.jspecify.annotations.Nullable Cause eventCause);
++    // CraftBukkit end - add Bukkit remove cause
  
      boolean shouldBeSaved();
  

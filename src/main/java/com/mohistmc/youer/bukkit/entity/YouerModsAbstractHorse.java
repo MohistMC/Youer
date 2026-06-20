@@ -20,7 +20,7 @@ public class YouerModsAbstractHorse extends CraftAbstractHorse {
 
     @Override
     public @NotNull Horse.Variant getVariant() {
-        return Horse.Variant.MODS;
+        return Horse.Variant.HORSE;
     }
 
     @Override

@@ -41,6 +41,14 @@
  import net.minecraft.server.notifications.NotificationService;
  import net.minecraft.server.permissions.LevelBasedPermissionSet;
  import net.minecraft.sounds.SoundEvents;
+@@ -79,6 +_,7 @@
+ import net.minecraft.util.FileUtil;
+ import net.minecraft.world.effect.MobEffectInstance;
+ import net.minecraft.world.entity.Entity;
++import net.minecraft.world.entity.EntityEvent;
+ import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
 @@ -98,6 +_,19 @@
  import net.minecraft.world.scores.Objective;
  import net.minecraft.world.scores.PlayerTeam;
@@ -508,7 +516,7 @@
          return player;
      }
  
-+    public ServerPlayer respawn(ServerPlayer serverPlayer, boolean keepAllPlayerData, Entity.RemovalReason removalReason, PlayerRespawnEvent.RespawnReason reason, Location location) {
++    public ServerPlayer respawn(ServerPlayer serverPlayer, boolean keepAllPlayerData, Entity.RemovalReason removalReason, PlayerRespawnEvent.RespawnReason reason) {
 +        // TeleportTransition teleporttransition = serverplayer.findRespawnPositionAndUseSpawnBlock(!keepAllPlayerData, TeleportTransition.DO_NOTHING); // CraftBukkit
 +
 +        serverPlayer.stopRiding(); // CraftBukkit
@@ -641,7 +649,20 @@
      public void sendActivePlayerEffects(ServerPlayer player) {
          this.sendActiveEffects(player, player.connection);
      }
-@@ -473,7 +_,18 @@
+@@ -467,13 +_,30 @@
+     }
+ 
+     public void sendPlayerPermissionLevel(ServerPlayer player) {
++        // Paper start - avoid recalculating permissions if possible
++        this.sendPlayerPermissionLevel(player, true);
++    }
++
++    public void sendPlayerPermissionLevel(final ServerPlayer player, final boolean recalculatePermissions) {
++        // Paper end - avoid recalculating permissions if possible
+         LevelBasedPermissionSet permissions = this.server.getProfilePermissions(player.nameAndId());
+-        this.sendPlayerPermissionLevel(player, permissions);
++        this.sendPlayerPermissionLevel(player, permissions, recalculatePermissions); // Paper - avoid recalculating permissions if possible
+     }
  
      public void tick() {
          if (++this.sendAllPlayerInfoIn > 600) {
@@ -702,14 +723,42 @@
          if (this.ops.remove(nameAndId)) {
              ServerPlayer player = this.getPlayer(nameAndId.id());
              if (player != null) {
-@@ -574,9 +_,45 @@
+@@ -562,20 +_,64 @@
+         }
+     }
+ 
+-    private void sendPlayerPermissionLevel(ServerPlayer player, LevelBasedPermissionSet permissions) {
++    public void sendPlayerPermissionLevel(ServerPlayer player, LevelBasedPermissionSet permissions) {
++        // Paper start - Add sendOpLevel API
++        this.sendPlayerPermissionLevel(player, permissions, true);
++    }
++
++    public void sendPlayerPermissionLevel(final ServerPlayer player, final LevelBasedPermissionSet permissions, final boolean recalculatePermissions) {
++        // Paper end - Add sendOpLevel API
+         if (player.connection != null) {
+             byte eventId = switch (permissions.level()) {
+-                case ALL -> 24;
+-                case MODERATORS -> 25;
+-                case GAMEMASTERS -> 26;
+-                case ADMINS -> 27;
+-                case OWNERS -> 28;
++                case ALL -> EntityEvent.PERMISSION_LEVEL_ALL;
++                case MODERATORS -> EntityEvent.PERMISSION_LEVEL_MODERATORS;
++                case GAMEMASTERS -> EntityEvent.PERMISSION_LEVEL_GAMEMASTERS;
++                case ADMINS -> EntityEvent.PERMISSION_LEVEL_ADMINS;
++                case OWNERS -> EntityEvent.PERMISSION_LEVEL_OWNERS;
+             };
              player.connection.send(new ClientboundEntityEventPacket(player, eventId));
          }
  
-+        player.getBukkitEntity().recalculatePermissions(); // CraftBukkit
-         this.server.getCommands().sendCommands(player);
-     }
- 
+-        this.server.getCommands().sendCommands(player);
+-    }
++        if (recalculatePermissions) { // Paper - Add sendOpLevel API
++            player.getBukkitEntity().recalculatePermissions(); // CraftBukkit
++            this.server.getCommands().sendCommands(player);
++        } // Paper - Add sendOpLevel API
++    }
++
 +    // Paper start - whitelist verify event / login event
 +    public LoginResult canBypassFullServerLogin(final NameAndId nameAndId, final LoginResult currentResult) {
 +        final boolean shouldKick = this.players.size() >= this.getMaxPlayers() && !this.canBypassPlayerLimit(nameAndId);
@@ -744,10 +793,9 @@
 +        return net.minecraft.server.players.PlayerList.LoginResult.ALLOW;
 +    }
 +    // Paper end
-+
+ 
      public boolean isWhiteListed(NameAndId nameAndId) {
          return !this.isUsingWhitelist() || this.ops.contains(nameAndId) || this.whitelist.contains(nameAndId);
-     }
 @@ -590,21 +_,19 @@
      }
  
@@ -846,6 +894,49 @@
      }
  
      public void broadcastSystemMessage(Component message, boolean overlay) {
+@@ -728,20 +_,39 @@
+     }
+ 
+     public void broadcastChatMessage(PlayerChatMessage message, ServerPlayer sender, ChatType.Bound chatType) {
+-        this.broadcastChatMessage(message, sender::shouldFilterMessageTo, sender, chatType);
++        // Paper start
++        this.broadcastChatMessage(message, sender, chatType, null);
++    }
++    public void broadcastChatMessage(final PlayerChatMessage message, final ServerPlayer sender, final ChatType.Bound chatType, final @Nullable Function<net.kyori.adventure.audience.Audience, Component> unsignedFunction) {
++        // Paper end
++        this.broadcastChatMessage(message, sender::shouldFilterMessageTo, sender, chatType, unsignedFunction); // Paper
+     }
+ 
+     private void broadcastChatMessage(
+-        PlayerChatMessage message, Predicate<ServerPlayer> isFiltered, @Nullable ServerPlayer senderPlayer, ChatType.Bound chatType
++            final PlayerChatMessage message, final Predicate<ServerPlayer> isFiltered, final @Nullable ServerPlayer senderPlayer, final ChatType.Bound chatType
+     ) {
++        // Paper start
++        this.broadcastChatMessage(message, isFiltered, senderPlayer, chatType, null);
++    }
++    public void broadcastChatMessage(final PlayerChatMessage message, final Predicate<ServerPlayer> isFiltered, final @Nullable ServerPlayer senderPlayer, final ChatType.Bound chatType, final @Nullable Function<net.kyori.adventure.audience.Audience, Component> unsignedFunction) {
++        // Paper end
+         boolean trusted = this.verifyChatTrusted(message);
+         this.server.logChatMessage(message.decoratedContent(), chatType, trusted ? null : "Not Secure");
+         OutgoingChatMessage tracked = OutgoingChatMessage.create(message);
+         boolean wasFullyFiltered = false;
+ 
++        Packet<?> disguised = senderPlayer != null && unsignedFunction == null ? new net.minecraft.network.protocol.game.ClientboundDisguisedChatPacket(tracked.content(), chatType) : null; // Paper - don't send player chat packets from vanished players
+         for (ServerPlayer player : this.players) {
+             boolean filtered = isFiltered.test(player);
+-            player.sendChatMessage(tracked, filtered, chatType);
++            // Paper start - don't send player chat packets from vanished players
++            if (senderPlayer != null && !player.getBukkitEntity().canSee(senderPlayer.getBukkitEntity())) {
++                player.connection.send(unsignedFunction != null
++                        ? new net.minecraft.network.protocol.game.ClientboundDisguisedChatPacket(unsignedFunction.apply(player.getBukkitEntity()), chatType)
++                        : disguised);
++                continue;
++            }
++            player.sendChatMessage(tracked, filtered, chatType, unsignedFunction == null ? null : unsignedFunction.apply(player.getBukkitEntity()));
++            // Paper end
+             wasFullyFiltered |= filtered && message.isFullyFiltered();
+         }
+ 
 @@ -754,12 +_,47 @@
          return message.hasSignature() && !message.hasExpiredServer(Instant.now());
      }

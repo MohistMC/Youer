@@ -29,22 +29,48 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -56,7 +_,13 @@
+@@ -52,11 +_,29 @@
+         this.level = player.level();
+     }
+ 
++    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper
+     public boolean changeGameModeForPlayer(GameType gameModeForPlayer) {
++        // Paper start - Expand PlayerGameModeChangeEvent
++        org.bukkit.event.player.PlayerGameModeChangeEvent event = this.changeGameModeForPlayer(gameModeForPlayer, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.UNKNOWN, null);
++        return event != null && !event.isCancelled();
++    }
++
++    public org.bukkit.event.player.@Nullable PlayerGameModeChangeEvent changeGameModeForPlayer(final GameType gameModeForPlayer, final org.bukkit.event.player.PlayerGameModeChangeEvent.Cause playerGameModeChangeCause, final net.kyori.adventure.text.@Nullable Component cancelMessage) {
++        // Paper end - Expand PlayerGameModeChangeEvent
          if (gameModeForPlayer == this.gameModeForPlayer) {
-             return false;
-         }
+-            return false;
+-        }
 -
++            return null; // Paper - Expand PlayerGameModeChangeEvent
++        }
 +        // CraftBukkit start
-+        PlayerGameModeChangeEvent event = new PlayerGameModeChangeEvent(player.getBukkitEntity(), org.bukkit.GameMode.getByValue(gameModeForPlayer.getId()));
-+        org.bukkit.Bukkit.getPluginManager().callEvent(event);
-+        if (event.isCancelled()) {
-+            return false;
++        org.bukkit.event.player.PlayerGameModeChangeEvent event = new org.bukkit.event.player.PlayerGameModeChangeEvent(
++                this.player.getBukkitEntity(),
++                org.bukkit.GameMode.getByValue(gameModeForPlayer.getId()),
++                playerGameModeChangeCause,
++                cancelMessage
++        );
++        if (!event.callEvent()) {
++            return event; // Paper - Expand PlayerGameModeChangeEvent
 +        }
 +        // CraftBukkit end
          Abilities abilities = this.player.getAbilities();
          this.setGameModeForPlayer(gameModeForPlayer, this.gameModeForPlayer);
          if (abilities.flying && gameModeForPlayer != GameType.SPECTATOR && this.isInRangeOfGround()) {
-@@ -80,7 +_,10 @@
+@@ -73,14 +_,17 @@
+             this.player.resetCurrentImpulseContext();
+         }
+ 
+-        return true;
++        return event; // Paper - Expand PlayerGameModeChangeEvent
+     }
+ 
+     protected void setGameModeForPlayer(GameType gameModeForPlayer, @Nullable GameType previousGameModeForPlayer) {
          this.previousGameModeForPlayer = previousGameModeForPlayer;
          this.gameModeForPlayer = gameModeForPlayer;
          Abilities abilities = this.player.getAbilities();

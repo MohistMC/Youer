@@ -8,7 +8,16 @@
  import java.util.function.BooleanSupplier;
  import java.util.function.Consumer;
  import java.util.function.Supplier;
-@@ -65,7 +_,7 @@
+@@ -56,7 +_,7 @@
+ 
+ import net.neoforged.neoforge.common.extensions.IServerChunkCacheExtension;
+ 
+-public class ServerChunkCache extends ChunkSource implements IServerChunkCacheExtension {
++public class ServerChunkCache extends ChunkSource implements IServerChunkCacheExtension, ca.spottedleaf.moonrise.patches.chunk_system.world.ChunkSystemServerChunkCache { // Paper - rewrite chunk system
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private final DistanceManager distanceManager;
+     public final ServerLevel level;
+@@ -65,9 +_,10 @@
      public final ServerChunkCache.MainThreadExecutor mainThreadProcessor;
      public final ChunkMap chunkMap;
      private final SavedDataStorage savedDataStorage;
@@ -16,7 +25,123 @@
 +    public final TicketStorage ticketStorage;
      private long lastInhabitedUpdate;
      public boolean spawnEnemies = true;
++    public boolean spawnFriendlies = true; // Paper - add back spawnFriendlies field
      private static final int CACHE_SIZE = 4;
+     private final long[] lastChunkPos = new long[4];
+     private final @Nullable ChunkStatus[] lastChunkStatus = new ChunkStatus[4];
+@@ -76,6 +_,112 @@
+     private final Set<ChunkHolder> chunkHoldersToBroadcast = new ReferenceOpenHashSet<>();
+     @VisibleForDebug
+     private NaturalSpawner.@Nullable SpawnState lastSpawnState;
++    // Paper start
++    public final ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2ReferenceHashTable<net.minecraft.world.level.chunk.LevelChunk> fullChunks = new ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2ReferenceHashTable<>();
++    public int getFullChunksCount() {
++        return this.fullChunks.size();
++    }
++    long chunkFutureAwaitCounter;
++    // Paper end
++// Paper start - rewrite chunk system
++
++    @Override
++    public final void moonrise$setFullChunk(final int chunkX, final int chunkZ, final LevelChunk chunk) {
++        final long key = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ);
++        if (chunk == null) {
++            this.fullChunks.remove(key);
++        } else {
++            this.fullChunks.put(key, chunk);
++        }
++    }
++
++    @Override
++    public final LevelChunk moonrise$getFullChunkIfLoaded(final int chunkX, final int chunkZ) {
++        return this.fullChunks.get(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ));
++    }
++
++    private ChunkAccess syncLoad(final int chunkX, final int chunkZ, final ChunkStatus toStatus) {
++        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler chunkTaskScheduler = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler();
++        final CompletableFuture<ChunkAccess> completable = new CompletableFuture<>();
++        chunkTaskScheduler.scheduleChunkLoad(
++                chunkX, chunkZ, toStatus, true, ca.spottedleaf.concurrentutil.util.Priority.BLOCKING,
++                completable::complete
++        );
++
++        if (!completable.isDone() && chunkTaskScheduler.hasShutdown()) {
++            throw new IllegalStateException(
++                    "Chunk system has shut down, cannot process chunk requests in world '" + ca.spottedleaf.moonrise.common.util.WorldUtil.getWorldName(this.level) + "' at "
++                            + "(" + chunkX + "," + chunkZ + ") status: " + toStatus
++            );
++        }
++
++        if (ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(this.level, chunkX, chunkZ)) {
++            ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler.pushChunkWait(this.level, chunkX, chunkZ);
++            this.mainThreadProcessor.managedBlock(completable::isDone);
++            ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler.popChunkWait();
++        }
++
++        final ChunkAccess ret = completable.join();
++        if (ret == null) {
++            throw new IllegalStateException("Chunk not loaded when requested");
++        }
++
++        return ret;
++    }
++
++    private ChunkAccess getChunkFallback(final int chunkX, final int chunkZ, final ChunkStatus toStatus,
++                                         final boolean load) {
++        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler chunkTaskScheduler = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler();
++        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkHolderManager chunkHolderManager = chunkTaskScheduler.chunkHolderManager;
++
++        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder currentChunk = chunkHolderManager.getChunkHolder(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ));
++
++        final ChunkAccess ifPresent = currentChunk == null ? null : currentChunk.getChunkIfPresent(toStatus);
++
++        if (ifPresent != null && (toStatus != ChunkStatus.FULL || currentChunk.isFullChunkReady())) {
++            return ifPresent;
++        }
++
++        final ca.spottedleaf.moonrise.common.PlatformHooks platformHooks = ca.spottedleaf.moonrise.common.PlatformHooks.get();
++
++        if (platformHooks.hasCurrentlyLoadingChunk() && currentChunk != null) {
++            final ChunkAccess loading = platformHooks.getCurrentlyLoadingChunk(currentChunk.vanillaChunkHolder);
++            if (loading != null && ca.spottedleaf.moonrise.common.util.TickThread.isTickThread()) {
++                return loading;
++            }
++        }
++
++        return load ? this.syncLoad(chunkX, chunkZ, toStatus) : null;
++    }
++    // Paper end - rewrite chunk system
++    // Paper start - chunk tick iteration optimisations
++    private final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom shuffleRandom = new ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom(0L);
++    private void iterateTickingChunksFaster() {
++        final ServerLevel world = this.level;
++        final int randomTickSpeed = world.getGameRules().get(GameRules.RANDOM_TICK_SPEED);
++
++        // TODO check on update: impl of forEachBlockTickingChunk will only iterate ENTITY ticking chunks!
++        // TODO check on update: consumer just runs tickChunk
++        final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.level.chunk.LevelChunk> entityTickingChunks = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)world).moonrise$getEntityTickingChunks();
++
++        // note: we can use the backing array here because:
++        // 1. we do not care about new additions
++        // 2. _removes_ are impossible at this stage in the tick
++        final LevelChunk[] raw = entityTickingChunks.getRawDataUnchecked();
++        final int size = entityTickingChunks.size();
++
++        java.util.Objects.checkFromToIndex(0, size, raw.length);
++        for (int i = 0; i < size; ++i) {
++            world.tickChunk(raw[i], randomTickSpeed);
++
++            // call mid-tick tasks for chunk system
++            if ((i & 7) == 0) {
++                ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.level.getServer()).moonrise$executeMidTickTasks();
++                continue;
++            }
++        }
++    }
++    // Paper end - chunk tick iteration optimisations
+ 
+     public ServerChunkCache(
+         ServerLevel level,
 @@ -89,6 +_,7 @@
          boolean syncWrites,
          ChunkStatusUpdateListener chunkStatusListener,
@@ -164,6 +289,32 @@
          } else {
              spawningCategories = List.of();
          }
+@@ -551,13 +_,25 @@
+         this.chunkMap.setServerViewDistance(newDistance);
+     }
+ 
++    // Paper start - rewrite chunk system
++    public void setSendViewDistance(int viewDistance) {
++        ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getPlayerChunkLoader().setSendDistance(viewDistance);
++    }
++    // Paper end - rewrite chunk system
++
+     public void setSimulationDistance(int simulationDistance) {
+         this.distanceManager.updateSimulationDistance(simulationDistance);
+     }
+ 
+     @Override
+     public void setSpawnSettings(boolean spawnEnemies) {
++        // CraftBukkit start
++        this.setSpawnSettings(spawnEnemies, this.spawnFriendlies);
++    }
++    public void setSpawnSettings(boolean spawnEnemies, final boolean spawnFriendlies) {
+         this.spawnEnemies = spawnEnemies;
++        this.spawnFriendlies = spawnFriendlies;
++        // CraftBukkit end
+     }
+ 
+     public String getChunkDebugData(ChunkPos pos) {
 @@ -623,13 +_,20 @@
          }
  

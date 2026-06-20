@@ -1,9 +1,35 @@
 --- a/net/minecraft/world/level/chunk/storage/SectionStorage.java
 +++ b/net/minecraft/world/level/chunk/storage/SectionStorage.java
-@@ -299,6 +_,19 @@
-         this.simpleRegionStorage.close();
+@@ -52,7 +_,7 @@
+     private final Function<Runnable, R> factory;
+     private final RegistryAccess registryAccess;
+     private final ChunkIOErrorReporter errorReporter;
+-    protected final LevelHeightAccessor levelHeightAccessor;
++    public final LevelHeightAccessor levelHeightAccessor;
+     private final LongSet loadedChunks = new LongOpenHashSet();
+     private final Long2ObjectMap<CompletableFuture<Optional<SectionStorage.PackedChunk<P>>>> pendingLoads = new Long2ObjectOpenHashMap<>();
+     private final Object loadLock = new Object();
+@@ -117,11 +_,12 @@
+         return !this.dirtyChunks.isEmpty();
      }
  
+-    protected @Nullable Optional<R> get(long sectionPos) {
++    @Nullable
++    public Optional<R> get(long sectionPos) {
+         return this.storage.get(sectionPos);
+     }
+ 
+-    protected Optional<R> getOrLoad(long sectionPos) {
++    public Optional<R> getOrLoad(long sectionPos) {
+         if (this.outsideStoredRange(sectionPos)) {
+             return Optional.empty();
+         } else {
+@@ -297,6 +_,19 @@
+     @Override
+     public void close() throws IOException {
+         this.simpleRegionStorage.close();
++    }
++
 +    /**
 +     * Neo: Removes the data for the given chunk position.
 +     * See PR #937
@@ -15,8 +41,6 @@
 +            }
 +            this.loadedChunks.remove(chunkPos.pack());
 +        }
-+    }
-+
+     }
+ 
      private record PackedChunk<T>(Int2ObjectMap<T> sectionsByY, boolean versionChanged) {
-         public static <T> SectionStorage.PackedChunk<T> parse(
-             Codec<T> codec, DynamicOps<Tag> ops, Tag tag, SimpleRegionStorage simpleRegionStorage, LevelHeightAccessor levelHeightAccessor

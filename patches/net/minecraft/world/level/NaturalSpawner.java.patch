@@ -65,6 +65,23 @@
              if ((spawnEnemies || mobCategory.isFriendly()) && (spawnPersistent || !mobCategory.isPersistent()) && state.canSpawnForCategoryGlobal(mobCategory)) {
                  spawningCategories.add(mobCategory);
              }
+@@ -123,6 +_,16 @@
+         profiler.pop();
+     }
+ 
++    // Paper start - Add mobcaps commands
++    public static int globalLimitForCategory(final ServerLevel level, final MobCategory category, final int spawnableChunkCount) {
++        final int categoryLimit = level.getWorld().getSpawnLimitUnsafe(org.bukkit.craftbukkit.util.CraftSpawnCategory.toBukkit(category));
++        if (categoryLimit < 1) {
++            return categoryLimit;
++        }
++        return categoryLimit * spawnableChunkCount / NaturalSpawner.MAGIC_NUMBER;
++    }
++    // Paper end - Add mobcaps commands
++
+     public static void spawnCategoryForChunk(
+         MobCategory mobCategory, ServerLevel level, LevelChunk chunk, NaturalSpawner.SpawnPredicate extraTest, NaturalSpawner.AfterSpawnCallback spawnCallback
+     ) {
 @@ -196,11 +_,14 @@
                                      groupData = mob.finalizeSpawn(
                                          level, level.getCurrentDifficultyAt(mob.blockPosition()), EntitySpawnReason.NATURAL, groupData

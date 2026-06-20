@@ -1,5 +1,35 @@
 --- a/net/minecraft/world/entity/monster/skeleton/AbstractSkeleton.java
 +++ b/net/minecraft/world/entity/monster/skeleton/AbstractSkeleton.java
+@@ -66,6 +_,7 @@
+             AbstractSkeleton.this.setAggressive(true);
+         }
+     };
++    private boolean shouldBurnInDay = true; // Paper - shouldBurnInDay API
+ 
+     protected AbstractSkeleton(EntityType<? extends AbstractSkeleton> type, Level level) {
+         super(type, level);
+@@ -90,6 +_,21 @@
+         return Monster.createMonsterAttributes().add(Attributes.MOVEMENT_SPEED, 0.25);
+     }
+ 
++    // Paper start - shouldBurnInDay API
++    public boolean shouldBurnInDay() {
++        return this.shouldBurnInDay;
++    }
++
++    public void setShouldBurnInDay(boolean shouldBurnInDay) {
++        this.shouldBurnInDay = shouldBurnInDay;
++    }
++
++    @Override
++    public boolean isSunBurnTick() {
++        return this.shouldBurnInDay && super.isSunBurnTick();
++    }
++    // Paper end - shouldBurnInDay API
++
+     @Override
+     protected void playStepSound(BlockPos pos, BlockState blockState) {
+         this.playSound(this.getStepSound(), 0.15F, 1.0F);
 @@ -133,8 +_,8 @@
          if (this.level() != null && !this.level().isClientSide()) {
              this.goalSelector.removeGoal(this.meleeGoal);

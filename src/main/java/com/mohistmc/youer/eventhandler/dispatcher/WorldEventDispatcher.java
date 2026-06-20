@@ -35,11 +35,4 @@ public class WorldEventDispatcher {
             Bukkit.getPluginManager().callEvent(new WorldLoadEvent(craftWorld));
         }
     }
-
-    @SubscribeEvent
-    public void onWorldUnload(LevelEvent.Unload event) {
-        if (event.getLevel() instanceof ServerLevel serverLevel) {
-            ((CraftServer) Bukkit.getServer()).removeWorld(serverLevel);
-        }
-    }
 }

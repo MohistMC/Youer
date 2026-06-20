@@ -1,0 +1,98 @@
+--- a/net/minecraft/world/entity/ai/goal/Goal.java
++++ b/net/minecraft/world/entity/ai/goal/Goal.java
+@@ -7,7 +_,15 @@
+ import net.minecraft.world.level.Level;
+ 
+ public abstract class Goal {
+-    private final EnumSet<Goal.Flag> flags = EnumSet.noneOf(Goal.Flag.class);
++    private final ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<net.minecraft.world.entity.ai.goal.Goal.Flag> goalTypes = new ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<>(Goal.Flag.class); // Paper - remove streams from GoalSelector
++
++    // Paper start - remove streams from GoalSelector; make sure types are not empty
++    protected Goal() {
++        if (this.goalTypes.size() == 0) {
++            this.goalTypes.addUnchecked(Flag.UNKNOWN_BEHAVIOR);
++        }
++    }
++    // Paper end - remove streams from GoalSelector
+ 
+     public abstract boolean canUse();
+ 
+@@ -32,9 +_,14 @@
+     public void tick() {
+     }
+ 
+-    public void setFlags(EnumSet<Goal.Flag> requiredControlFlags) {
+-        this.flags.clear();
+-        this.flags.addAll(requiredControlFlags);
++    public void setFlags(final EnumSet<Goal.Flag> requiredControlFlags) {
++        // Paper start - remove streams from GoalSelector
++        this.goalTypes.clear();
++        this.goalTypes.addAllUnchecked(requiredControlFlags);
++        if (this.goalTypes.size() == 0) {
++            this.goalTypes.addUnchecked(Flag.UNKNOWN_BEHAVIOR);
++        }
++        // Paper end - remove streams from GoalSelector
+     }
+ 
+     @Override
+@@ -42,27 +_,52 @@
+         return this.getClass().getSimpleName();
+     }
+ 
+-    public EnumSet<Goal.Flag> getFlags() {
+-        return this.flags;
+-    }
+-
+-    protected int adjustedTickDelay(int ticks) {
++    // Paper start - remove streams from GoalSelector
++    public ca.spottedleaf.moonrise.common.set.OptimizedSmallEnumSet<Goal.Flag> getFlags() {
++        return this.goalTypes;
++        // Paper end - remove streams from GoalSelector
++    }
++
++
++    // Paper start - Mob Goal API
++    public boolean hasFlag(final Goal.Flag flag) {
++        return this.goalTypes.hasElement(flag); // Paper - remove streams from GoalSelector
++    }
++
++    public void addFlag(final Goal.Flag flag) {
++        this.goalTypes.addUnchecked(flag); // Paper - remove streams from GoalSelector
++    }
++    // Paper end - Mob Goal API
++
++    protected int adjustedTickDelay(final int ticks) {
+         return this.requiresUpdateEveryTick() ? ticks : reducedTickDelay(ticks);
+     }
+ 
+-    protected static int reducedTickDelay(int ticks) {
++    protected static int reducedTickDelay(final int ticks) {
+         return Mth.positiveCeilDiv(ticks, 2);
+     }
+ 
+-    protected static ServerLevel getServerLevel(Entity entity) {
++    protected static ServerLevel getServerLevel(final Entity entity) {
+         return (ServerLevel)entity.level();
+     }
+ 
+-    protected static ServerLevel getServerLevel(Level level) {
++    protected static ServerLevel getServerLevel(final Level level) {
+         return (ServerLevel)level;
+     }
+ 
++    // Paper start - Mob goal api
++    private com.destroystokyo.paper.entity.ai.PaperGoal<?> paperGoal;
++    public <T extends org.bukkit.entity.Mob> com.destroystokyo.paper.entity.ai.Goal<T> asPaperGoal() {
++        if (this.paperGoal == null) {
++            this.paperGoal = new com.destroystokyo.paper.entity.ai.PaperGoal<>(this);
++        }
++        //noinspection unchecked
++        return (com.destroystokyo.paper.entity.ai.Goal<T>) this.paperGoal;
++    }
++    // Paper end - Mob goal api
++
+     public enum Flag {
++        UNKNOWN_BEHAVIOR, // Paper - add UNKNOWN_BEHAVIOR
+         MOVE,
+         LOOK,
+         JUMP,

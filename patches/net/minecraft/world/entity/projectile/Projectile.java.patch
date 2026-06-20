@@ -182,7 +182,7 @@
      }
  
 +    // CraftBukkit start - call projectile hit event
-+    protected ProjectileDeflection preHitTargetOrDeflectSelf(HitResult hitresult) {
++    public ProjectileDeflection preHitTargetOrDeflectSelf(HitResult hitresult) {
 +        org.bukkit.event.entity.ProjectileHitEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callProjectileHitEvent(this, hitresult);
 +        this.hitCancelled = event != null && event.isCancelled();
 +        if (hitresult.getType() == HitResult.Type.BLOCK || !this.hitCancelled) {
@@ -195,7 +195,7 @@
      protected ProjectileDeflection hitTargetOrDeflectSelf(HitResult hitResult) {
          if (hitResult.getType() == HitResult.Type.ENTITY) {
              EntityHitResult entityHitResult = (EntityHitResult)hitResult;
-@@ -293,6 +_,11 @@
+@@ -293,16 +_,36 @@
      }
  
      protected void onHitBlock(BlockHitResult hitResult) {
@@ -207,6 +207,31 @@
          BlockState state = this.level().getBlockState(hitResult.getBlockPos());
          state.onProjectileHit(this.level(), state, hitResult, this);
      }
+ 
++    // Paper start
++    public boolean canHitEntityPublic(final Entity target) {
++        return this.canHitEntity(target);
++    }
++    // Paper end
++
+     protected boolean canHitEntity(Entity entity) {
+         if (!entity.canBeHitByProjectile()) {
+             return false;
+         }
+ 
+         Entity owner = this.getOwner();
++        // Paper start - Cancel hit for vanished entities
++        if (owner instanceof net.minecraft.server.level.ServerPlayer) {
++            org.bukkit.entity.Entity collided = entity.getBukkitEntity();
++            org.bukkit.entity.Player shooter = (org.bukkit.entity.Player) owner.getBukkitEntity();
++            if (!shooter.canSee(collided)) {
++                return false;
++            }
++        }
++        // Paper end - Cancel hit for vanished entities
+         return owner == null || this.leftOwner || !owner.isPassengerOfSameVehicle(entity);
+     }
+ 
 @@ -343,7 +_,7 @@
      @Override
      public boolean mayInteract(ServerLevel level, BlockPos pos) {

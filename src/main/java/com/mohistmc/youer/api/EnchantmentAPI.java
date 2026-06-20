@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import net.minecraft.core.Holder;
 import net.minecraft.world.item.enchantment.Enchantment;
 import org.bukkit.craftbukkit.enchantments.CraftEnchantment;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -23,10 +24,10 @@ public class EnchantmentAPI {
         return has(CraftItemStack.asBukkitCopy(itemStack));
     }
 
-    public static List<Enchantment> getNMS(org.bukkit.inventory.ItemStack itemStack) {
+    public static List<Holder<Enchantment>> getNMS(org.bukkit.inventory.ItemStack itemStack) {
         if (has(itemStack)) {
             Map<org.bukkit.enchantments.Enchantment, Integer> map = itemStack.getEnchantments();
-            return map.keySet().stream().map(CraftEnchantment::bukkitToMinecraft).collect(Collectors.toList());
+            return map.keySet().stream().map(CraftEnchantment::bukkitToMinecraftHolder).collect(Collectors.toList());
         }
         return Collections.emptyList();
     }

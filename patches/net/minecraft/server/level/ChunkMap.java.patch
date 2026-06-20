@@ -8,10 +8,13 @@
  import net.minecraft.world.level.entity.ChunkStatusUpdateListener;
  import net.minecraft.world.level.gamerules.GameRules;
  import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
-@@ -152,6 +_,27 @@
+@@ -150,7 +_,28 @@
+     private final Queue<Runnable> unloadQueue = Queues.newConcurrentLinkedQueue();
+     private final AtomicInteger activeChunkWrites = new AtomicInteger();
      public int serverViewDistance;
-     private final WorldGenContext worldGenContext;
- 
+-    private final WorldGenContext worldGenContext;
++    public final WorldGenContext worldGenContext;
++
 +    // CraftBukkit start - recursion-safe executor for Chunk loadCallback() and unloadCallback()
 +    public final CallbackExecutor callbackExecutor = new CallbackExecutor();
 +    public static final class CallbackExecutor implements java.util.concurrent.Executor, Runnable {
@@ -32,10 +35,9 @@
 +        }
 +    };
 +    // CraftBukkit end
-+
+ 
      public ChunkMap(
          ServerLevel level,
-         LevelStorageSource.LevelStorageAccess levelStorage,
 @@ -179,7 +_,13 @@
          this.level = level;
          RegistryAccess registryAccess = level.registryAccess();
@@ -51,6 +53,54 @@
              this.randomState = RandomState.create(noiseGenerator.generatorSettings().value(), registryAccess.lookupOrThrow(Registries.NOISE), levelSeed);
          } else {
              this.randomState = RandomState.create(NoiseGeneratorSettings.dummy(), registryAccess.lookupOrThrow(Registries.NOISE), levelSeed);
+@@ -212,6 +_,47 @@
+         this.chunksToEagerlySave.add(chunkPos.pack());
+     }
+ 
++    // Paper start - Optional per player mob spawns
++    public void updatePlayerMobTypeMap(final Entity entity) {
++        if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns) {
++            return;
++        }
++
++        final int index = entity.getType().getCategory().ordinal();
++        final ca.spottedleaf.moonrise.common.list.ReferenceList<ServerPlayer> inRange =
++                this.level.moonrise$getNearbyPlayers().getPlayers(entity.chunkPosition(), ca.spottedleaf.moonrise.common.misc.NearbyPlayers.NearbyMapType.TICK_VIEW_DISTANCE);
++        if (inRange == null) {
++            return;
++        }
++
++        final ServerPlayer[] backingSet = inRange.getRawDataUnchecked();
++        for (int i = 0, len = inRange.size(); i < len; i++) {
++            ++(backingSet[i].mobCounts[index]);
++        }
++    }
++
++    // Paper start - per player mob count backoff
++    public void updateFailurePlayerMobTypeMap(int chunkX, int chunkZ, net.minecraft.world.entity.MobCategory mobCategory) {
++        if (!this.level.paperConfig().entities.spawning.perPlayerMobSpawns) {
++            return;
++        }
++        int idx = mobCategory.ordinal();
++        final ca.spottedleaf.moonrise.common.list.ReferenceList<ServerPlayer> inRange =
++                this.level.moonrise$getNearbyPlayers().getPlayersByChunk(chunkX, chunkZ, ca.spottedleaf.moonrise.common.misc.NearbyPlayers.NearbyMapType.TICK_VIEW_DISTANCE);
++        if (inRange == null) {
++            return;
++        }
++        final ServerPlayer[] backingSet = inRange.getRawDataUnchecked();
++        for (int i = 0, len = inRange.size(); i < len; i++) {
++            ++(backingSet[i].mobBackoffCounts[idx]);
++        }
++    }
++    // Paper end - per player mob count backoff
++    public int getMobCountNear(final ServerPlayer player, final net.minecraft.world.entity.MobCategory mobCategory) {
++        return player.mobCounts[mobCategory.ordinal()] + player.mobBackoffCounts[mobCategory.ordinal()]; // Paper - per player mob count backoff
++    }
++    // Paper end - Optional per player mob spawns
++
+     protected ChunkGenerator generator() {
+         return this.worldGenContext.generator();
+     }
 @@ -390,6 +_,7 @@
              this.modified = true;
          }
@@ -98,15 +148,6 @@
              CompletableFuture<CompoundTag> encodedData = CompletableFuture.supplyAsync(data::write, Util.backgroundExecutor());
              this.write(pos, encodedData::join).handle((ignored, throwable) -> {
                  if (throwable != null) {
-@@ -802,7 +_,7 @@
-         return this.markPosition(pos, chunkType) == 1;
-     }
- 
--    public void setServerViewDistance(int newViewDistance) {
-+    protected void setServerViewDistance(int newViewDistance) {
-         int actualNewDistance = Mth.clamp(newViewDistance, 2, 32);
-         if (actualNewDistance != this.serverViewDistance) {
-             this.serverViewDistance = actualNewDistance;
 @@ -827,9 +_,11 @@
  
      private static void markChunkPendingToSend(ServerPlayer player, LevelChunk chunk) {

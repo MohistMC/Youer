@@ -1,10 +1,11 @@
 --- a/net/minecraft/world/item/alchemy/PotionBrewing.java
 +++ b/net/minecraft/world/item/alchemy/PotionBrewing.java
-@@ -19,15 +_,37 @@
+@@ -19,15 +_,38 @@
      private final List<Ingredient> containers;
      private final List<PotionBrewing.Mix<Potion>> potionMixes;
      private final List<PotionBrewing.Mix<Item>> containerMixes;
 +    private final net.neoforged.neoforge.common.brewing.BrewingRecipeRegistry registry;
++    private final it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap<org.bukkit.NamespacedKey, io.papermc.paper.potion.PaperPotionMix> customMixes = new it.unimi.dsi.fastutil.objects.Object2ObjectLinkedOpenHashMap<>(); // Paper - Custom Potion Mixes
  
      private PotionBrewing(List<Ingredient> containers, List<PotionBrewing.Mix<Potion>> potionMixes, List<PotionBrewing.Mix<Item>> containerMixes) {
 +        this(containers, potionMixes, containerMixes, List.of());
@@ -76,7 +77,55 @@
          return builder.build();
      }
  
-@@ -194,6 +_,7 @@
+@@ -190,10 +_,55 @@
+         builder.addMix(Potions.SLOW_FALLING, Items.REDSTONE, Potions.LONG_SLOW_FALLING);
+     }
+ 
++    // Paper start - Custom Potion Mixes
++    public boolean isCustomIngredient(ItemStack stack) {
++        for (io.papermc.paper.potion.PaperPotionMix mix : this.customMixes.values()) {
++            if (mix.ingredient().test(stack)) {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    public boolean isCustomInput(ItemStack stack) {
++        for (io.papermc.paper.potion.PaperPotionMix mix : this.customMixes.values()) {
++            if (mix.input().test(stack)) {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    private boolean hasCustomMix(ItemStack input, ItemStack ingredient) {
++        for (io.papermc.paper.potion.PaperPotionMix mix : this.customMixes.values()) {
++            if (mix.input().test(input) && mix.ingredient().test(ingredient)) {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    public void addPotionMix(io.papermc.paper.potion.PotionMix mix) {
++        if (this.customMixes.containsKey(mix.getKey())) {
++            throw new IllegalArgumentException("Duplicate recipe ignored with ID " + mix.getKey());
++        }
++        this.customMixes.putAndMoveToFirst(mix.getKey(), new io.papermc.paper.potion.PaperPotionMix(mix));
++    }
++
++    public boolean removePotionMix(org.bukkit.NamespacedKey key) {
++        return this.customMixes.remove(key) != null;
++    }
++
++    public PotionBrewing reload(FeatureFlagSet flags) {
++        return bootstrap(flags);
++    }
++    // Paper end - Custom Potion Mixes
++
+     public static class Builder {
          private final List<Ingredient> containers = new ArrayList<>();
          private final List<PotionBrewing.Mix<Potion>> potionMixes = new ArrayList<>();
          private final List<PotionBrewing.Mix<Item>> containerMixes = new ArrayList<>();

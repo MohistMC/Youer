@@ -31,7 +31,7 @@ public class BanListener {
                 if (openInventory.getBanType() == BanType.ITEM) {
                     List<String> old = BanConfig.ITEM.getItem();
                     for (org.bukkit.inventory.ItemStack itemStack : event.getInventory().getContents()) {
-                        if (itemStack != null && !itemStack.getType().isAirSafe()) {
+                        if (itemStack != null && !itemStack.getType().isAir()) {
                             ListUtils.isDuplicate(old, itemStack.getType().getKey().toString());
                         }
                     }
@@ -39,7 +39,7 @@ public class BanListener {
                 } else if (openInventory.getBanType() == BanType.ENTITY) {
                     List<String> old = BanConfig.ENTITY.getEntity();
                     for (org.bukkit.inventory.ItemStack itemStack : event.getInventory().getContents()) {
-                        if (itemStack != null && !itemStack.getType().isAirSafe()) {
+                        if (itemStack != null && !itemStack.getType().isAir()) {
                             ItemStack nmsItem = ItemAPI.toNMSItem(itemStack);
                             if (nmsItem.getItem() instanceof SpawnEggItem spawnEggItem) {
                                 EntityType<?> entitytype = spawnEggItem.getType(nmsItem);
@@ -52,7 +52,7 @@ public class BanListener {
                 } else if (openInventory.getBanType() == BanType.ENCHANTMENT) {
                     List<String> old = BanConfig.ENCHANTMENT.getEnchantment();
                     for (org.bukkit.inventory.ItemStack itemStack : event.getInventory().getContents()) {
-                        if (itemStack != null && !itemStack.getType().isAirSafe()) {
+                        if (itemStack != null && !itemStack.getType().isAir()) {
                             if (EnchantmentAPI.has(itemStack)) {
                                 for (Enchantment e : EnchantmentAPI.get(itemStack)) {
                                     ListUtils.isDuplicate(old, e.getKey().toString());
@@ -64,7 +64,7 @@ public class BanListener {
                 } else if (openInventory.getBanType() == BanType.ITEM_MOSHOU) {
                     List<String> old = BanConfig.MOSHOU.getMoShouList();
                     for (org.bukkit.inventory.ItemStack itemStack : event.getInventory().getContents()) {
-                        if (itemStack != null && !itemStack.getType().isAirSafe()) {
+                        if (itemStack != null && !itemStack.getType().isAir()) {
                             for (Player p : Bukkit.getOnlinePlayers()) {
                                 p.getInventory().remove(itemStack);
                             }
@@ -76,7 +76,7 @@ public class BanListener {
                 if (openInventory.getBanType() == BanType.BLOCK) {
                     List<String> old = BanConfig.BLOCK.getBlock();
                     for (org.bukkit.inventory.ItemStack itemStack : event.getInventory().getContents()) {
-                        if (itemStack != null && !itemStack.getType().isAirSafe()) {
+                        if (itemStack != null && !itemStack.getType().isAir()) {
                             ListUtils.isDuplicate(old, itemStack.getType().getKey().toString());
                         }
                     }

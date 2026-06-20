@@ -22,7 +22,7 @@ public class MohistBlockSnapshot extends CraftBlock {
     }
 
     @Override
-    public BlockState getNMS() {
+    public BlockState getBlockState() {
         return blockState;
     }
 }

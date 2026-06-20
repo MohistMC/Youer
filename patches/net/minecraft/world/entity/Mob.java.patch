@@ -32,7 +32,7 @@
  import org.jspecify.annotations.Nullable;
  
  public abstract class Mob extends LivingEntity implements Targeting, EquipmentUser, Leashable {
-@@ -144,6 +_,13 @@
+@@ -144,6 +_,14 @@
      private Leashable.@Nullable LeashData leashData;
      private BlockPos homePosition = BlockPos.ZERO;
      private int homeRadius = -1;
@@ -43,24 +43,22 @@
 +    protected boolean preventConversionSpawns = false;
 +
 +    public boolean aware = true; // CraftBukkit
++    public net.kyori.adventure.util.TriState despawnInPeacefulOverride = net.kyori.adventure.util.TriState.NOT_SET; // Paper - allow changing despawnInPeaceful
  
      protected Mob(EntityType<? extends Mob> type, Level level) {
          super(type, level);
-@@ -248,9 +_,35 @@
+@@ -248,8 +_,26 @@
          return this.asValidTarget(this.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse(null));
      }
  
 +    private EntityTargetEvent.TargetReason reason = EntityTargetEvent.TargetReason.UNKNOWN;
-+    private boolean fireCBEvent = true;
 +    public AtomicBoolean canSetTarget = new AtomicBoolean(true);
-+    public void setTargetReason(EntityTargetEvent.TargetReason reason, boolean fireCBEvent) {
++    public void setTargetReason(EntityTargetEvent.TargetReason reason) {
 +        this.reason = reason;
-+        this.fireCBEvent = fireCBEvent;
 +    }
 +
      public void setTarget(@Nullable LivingEntity target) {
 -        this.target = this.asValidTarget(target);
--    }
 +        target = this.asValidTarget(target);
 +        net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent changeTargetEvent = net.neoforged.neoforge.common.CommonHooks.onLivingChangeTarget(this, target, net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent.LivingTargetType.MOB_TARGET);
 +        if(!changeTargetEvent.isCanceled()) {
@@ -68,22 +66,15 @@
 +        }
 +    }
 +
-+    public boolean setTargetCB(LivingEntity p_21544_, org.bukkit.event.entity.EntityTargetEvent.TargetReason reason, boolean fireEvent) {
++    public boolean setTarget(LivingEntity p_21544_, org.bukkit.event.entity.EntityTargetEvent.TargetReason reason) {
 +        if (getTarget() == p_21544_) return false;
-+        setTargetReason(reason, fireEvent);
++        setTargetReason(reason);
 +        setTarget(p_21544_);
 +        return canSetTarget.getAndSet(true);
 +        // CraftBukkit end
-+    }
-+
-+    // CraftBukkit start - add overload for NeutralMob interface
-+    public boolean setTarget(@Nullable LivingEntity target, org.bukkit.event.entity.EntityTargetEvent.TargetReason reason, boolean fireEvent) {
-+        return setTargetCB(target, reason, fireEvent);
-+    }
-+    // CraftBukkit end
+     }
  
      @Override
-     public boolean canAttack(LivingEntity target) {
 @@ -345,6 +_,12 @@
          if (!this.level().isClientSide() && this.tickCount % 5 == 0) {
              this.updateControlFlags();
@@ -166,7 +157,7 @@
              Vec3i pickupReach = this.getPickupReach();
  
              for (ItemEntity entity : this.level()
-@@ -520,49 +_,63 @@
+@@ -520,49 +_,61 @@
  
      protected void pickUpItem(ServerLevel level, ItemEntity entity) {
          ItemStack itemStack = entity.getItem();
@@ -232,9 +223,7 @@
 +                // CraftBukkit end
 +                double dropChance = this.dropChances.byEquipment(slot);
 +                if (!current.isEmpty() && Math.max(this.random.nextFloat() - 0.1F, 0.0F) < dropChance) {
-+                    this.forceDrops = true; // CraftBukkit
 +                    this.spawnAtLocation(level, current);
-+                    this.forceDrops = false; // CraftBukkit
 +                }
 +
 +                ItemStack toEquip = slot.limit(itemStack);
@@ -272,8 +261,16 @@
          return attributeModifiers.compute(attribute, baseValue, slot);
      }
  
-@@ -685,8 +_,9 @@
+@@ -683,10 +_,17 @@
+         return this.isPassenger() || this.isLeashed();
+     }
  
++    // Paper start - allow changing despawnInPeaceful
++    public final boolean shouldDespawnInPeaceful() {
++        return this.despawnInPeacefulOverride.toBooleanOrElse(!this.getType().isTypeAllowedInPeaceful());
++    }
++    // Paper end - allow changing despawnInPeaceful
++
      @Override
      public void checkDespawn() {
 +        if (net.neoforged.neoforge.event.EventHooks.checkMobDespawn(this)) return;

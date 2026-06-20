@@ -73,7 +73,7 @@ public class InventoryOwner {
         if (state instanceof InventoryHolder) {
             return (InventoryHolder) state;
         } else if (state instanceof CraftBlockEntityState<? extends BlockEntity> blockEntityState) {
-            BlockEntity te = blockEntityState.getTileEntity();
+            BlockEntity te = blockEntityState.getBlockEntity();
             if (te instanceof Container container) {
                 return new CraftCustomInventory(container);
             }

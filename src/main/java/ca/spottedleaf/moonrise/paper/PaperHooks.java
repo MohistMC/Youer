@@ -102,12 +102,12 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
 
     @Override
     public void addToGetEntities(final Level world, final Entity entity, final AABB boundingBox, final Predicate<? super Entity> predicate, final List<Entity> into) {
-        final Collection<EnderDragonPart> parts = world.dragonParts();
+        final Collection<net.neoforged.neoforge.entity.PartEntity<?>> parts = ((ServerLevel)world).dragonParts();
         if (parts.isEmpty()) {
             return;
         }
 
-        for (final EnderDragonPart part : parts) {
+        for (final net.neoforged.neoforge.entity.PartEntity<?> part : parts) {
             if (part != entity && part.getBoundingBox().intersects(boundingBox) && (predicate == null || predicate.test(part))) {
                 into.add(part);
             }
@@ -121,11 +121,11 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
             return;
         }
 
-        final Collection<EnderDragonPart> parts = world.dragonParts();
+        final Collection<net.neoforged.neoforge.entity.PartEntity<?>> parts = ((ServerLevel)world).dragonParts();
         if (parts.isEmpty()) {
             return;
         }
-        for (final EnderDragonPart part : parts) {
+        for (final net.neoforged.neoforge.entity.PartEntity<?> part : parts) {
             if (!part.getBoundingBox().intersects(boundingBox)) {
                 continue;
             }

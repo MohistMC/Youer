@@ -1479,9 +1479,20 @@
      }
  
      public boolean isReady() {
-@@ -1515,9 +_,9 @@
+@@ -1513,11 +_,20 @@
+         return this.functionManager;
+     }
  
++    // Paper start - Add ServerResourcesReloadedEvent
++    @Deprecated @io.papermc.paper.annotation.DoNotUse
      public CompletableFuture<Void> reloadResources(Collection<String> packsToEnable) {
++        return this.reloadResources(packsToEnable, io.papermc.paper.event.server.ServerResourcesReloadedEvent.Cause.PLUGIN);
++    }
++
++    public CompletableFuture<Void> reloadResources(
++            Collection<String> packsToEnable, final io.papermc.paper.event.server.ServerResourcesReloadedEvent.Cause cause
++    ) {
++        // Paper end - Add ServerResourcesReloadedEvent
          CompletableFuture<Void> result = CompletableFuture.<ImmutableList>supplyAsync(
 -                () -> packsToEnable.stream()
 -                    .map(this.packRepository::getPack)
@@ -1723,12 +1734,8 @@
      }
  
      @Deprecated
-@@ -2140,15 +_,17 @@
-     }
- 
-     public SavedDataStorage getDataStorage() {
--        return this.savedDataStorage;
-+        return this.overworld().getWorldContainerDataStorage(); // CraftBukkit
+@@ -2143,12 +_,14 @@
+         return this.savedDataStorage;
      }
  
 +    @Deprecated(forRemoval = true) @io.papermc.paper.annotation.DoNotUse

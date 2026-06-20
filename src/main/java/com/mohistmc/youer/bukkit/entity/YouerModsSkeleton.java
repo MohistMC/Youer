@@ -12,7 +12,7 @@ public class YouerModsSkeleton extends CraftAbstractSkeleton {
     }
 
     public @NotNull Skeleton.SkeletonType getSkeletonType() {
-        return Skeleton.SkeletonType.MODS;
+        return Skeleton.SkeletonType.NORMAL;
     }
 
     @Override

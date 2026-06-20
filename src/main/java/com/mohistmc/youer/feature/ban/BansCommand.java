@@ -141,7 +141,7 @@ public class BansCommand extends Command {
                         }
 
                         ItemStack itemStack = player.getInventory().getItemInMainHand();
-                        if (itemStack.getType().isAirSafe()) {
+                        if (itemStack.getType().isAir()) {
                             sender.sendMessage(ChatColor.RED + "Please hold the item in hand.");
                             return false;
                         }
@@ -173,7 +173,7 @@ public class BansCommand extends Command {
                         List<String> old = BanConfig.ITEM.getItem();
                         for (String s : BanConfig.ITEM.getItem()) {
                             Material material = Material.matchMaterial(s);
-                            if (material != null && !material.isAirSafe()) {
+                            if (material != null && !material.isAir()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
                                         .setDisplayName(s)
                                         .addLore("§e" + I18n.as("banscmd.show.lore"))
@@ -198,7 +198,7 @@ public class BansCommand extends Command {
                         List<String> old = BanConfig.MOSHOU.getMoShouList();
                         for (String s : BanConfig.MOSHOU.getMoShouList()) {
                             Material material = Material.matchMaterial(s);
-                            if (material != null && !material.isAirSafe()) {
+                            if (material != null && !material.isAir()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
                                         .setDisplayName(s)
                                         .addLore("§e" + I18n.as("banscmd.show.lore"))
@@ -291,7 +291,7 @@ public class BansCommand extends Command {
                         List<String> old = BanConfig.BLOCK.getBlock();
                         for (String s : BanConfig.BLOCK.getBlock()) {
                             Material material = Material.matchMaterial(s);
-                            if (material != null && !material.isAirSafe()) {
+                            if (material != null && !material.isAir()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
                                         .setDisplayName(s)
                                         .addLore("§e" + I18n.as("banscmd.show.lore"))
@@ -315,7 +315,7 @@ public class BansCommand extends Command {
                         DemoGUI wh = new DemoGUI("§2Show bans nbt");
                         for (String s : BanConfig.NBT.getAllNbtKeys()) {
                             Material material = Material.matchMaterial(s);
-                            if (material != null && !material.isAirSafe()) {
+                            if (material != null && !material.isAir()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
                                         .setDisplayName(s)
                                         .addLore("§eClick here to view the NBT list")
@@ -352,7 +352,7 @@ public class BansCommand extends Command {
                             return false;
                         }
                         ItemStack itemStack = player.getInventory().getItemInMainHand();
-                        if (itemStack.getType().isAirSafe()) {
+                        if (itemStack.getType().isAir()) {
                             sender.sendMessage(ChatColor.RED + "Please hold an item in your hand.");
                             return false;
                         }

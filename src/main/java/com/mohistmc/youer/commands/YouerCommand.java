@@ -34,6 +34,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.generator.WorldInfo;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -73,7 +74,7 @@ public class YouerCommand extends Command {
             } else if (args.length == 2 && (args[0].equalsIgnoreCase("heal") || args[0].equalsIgnoreCase("showp"))) {
                 return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
             } else if (args.length == 2 && args[0].equalsIgnoreCase("cleardropitem")) {
-                return Bukkit.getWorldsByName().stream().toList();
+                return Bukkit.getWorlds().stream().map(WorldInfo::getName).toList();
             }
         }
 
@@ -115,10 +116,8 @@ public class YouerCommand extends Command {
             case "reload" -> {
                 MinecraftServer console = MinecraftServer.getServer();
                 YouerConfig.init((File) console.options.valueOf("youer-settings"));
-                ((CraftServer) Bukkit.getServer()).initConfig();
-                ((CraftServer) Bukkit.getServer()).loadCustomPermissions();
                 for (ServerLevel world : console.getAllLevels()) {
-                    //world.spigotConfig.init(); // TODO
+                    world.spigotConfig.init(); // TODO
                 }
 
                 console.server.reloadCount++;

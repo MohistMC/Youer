@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/BaseFireBlock.java
 +++ b/net/minecraft/world/level/block/BaseFireBlock.java
-@@ -144,7 +_,14 @@
+@@ -144,30 +_,38 @@
              }
  
              if (entity.getRemainingFireTicks() >= 0) {
@@ -16,15 +16,19 @@
              }
          }
      }
-@@ -154,6 +_,7 @@
+ 
+     @Override
+-    protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
++    protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston, net.minecraft.world.item.context.UseOnContext context) { // CraftBukkit - context
          if (!oldState.is(state.getBlock())) {
              if (inPortalDimension(level)) {
                  Optional<PortalShape> optionalShape = PortalShape.findEmptyPortalShape(level, pos, Direction.Axis.X);
 +                optionalShape = net.neoforged.neoforge.event.EventHooks.onTrySpawnPortal(level, pos, optionalShape);
                  if (optionalShape.isPresent()) {
-                     optionalShape.get().createPortalBlocks(level);
+-                    optionalShape.get().createPortalBlocks(level);
++                    optionalShape.get().createPortalBlocks(level, (context == null) ? null : context.getPlayer()); // CraftBukkit - player
                      return;
-@@ -161,7 +_,7 @@
+                 }
              }
  
              if (!state.canSurvive(level, pos)) {
@@ -33,6 +37,13 @@
              }
          }
      }
+ 
+     private static boolean inPortalDimension(Level level) {
+-        return level.dimension() == Level.OVERWORLD || level.dimension() == Level.NETHER;
++        return level.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.OVERWORLD || level.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.NETHER; // CraftBukkit - getTypeKey()
+     }
+ 
+     @Override
 @@ -183,6 +_,14 @@
          return super.playerWillDestroy(level, pos, state, player);
      }

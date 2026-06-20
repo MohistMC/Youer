@@ -6,11 +6,11 @@
      Holder<Biome> defaultBiome,
 -    Codec<PalettedContainerRO<Holder<Biome>>> biomeContainerCodec
 +    Codec<PalettedContainerRO<Holder<Biome>>> biomeContainerCodec,
-+    Codec<PalettedContainer<Holder<Biome>>> biomeContainerCodecRW
++    Codec<PalettedContainer<Holder<Biome>>> biomeContainerRWCodec // Paper
  ) {
      public static PalettedContainerFactory create(RegistryAccess registries) {
          Strategy<BlockState> blockStateStrategy = Strategy.createForBlockStates(Block.BLOCK_STATE_REGISTRY);
-@@ -31,7 +_,8 @@
+@@ -31,15 +_,28 @@
              PalettedContainer.codecRW(BlockState.CODEC, blockStateStrategy, defaultBlockState),
              biomeStrategy,
              defaultBiome,
@@ -20,3 +20,25 @@
          );
      }
  
+     public PalettedContainer<BlockState> createForBlockStates() {
+-        return new PalettedContainer<>(this.defaultBlockState, this.blockStatesStrategy);
++        // Paper start - Anti-Xray
++        return new PalettedContainer<>(this.defaultBlockState, this.blockStatesStrategy, null);
++    }
++
++    public PalettedContainer<BlockState> createForBlockStates(net.minecraft.world.level.@org.jspecify.annotations.Nullable Level level, net.minecraft.world.level.ChunkPos chunkPos, int chunkSectionY) {
++        net.minecraft.world.level.block.state.BlockState[] states = null;
++        if (level != null
++                // This check is needed because of a circular reference in ChunkPacketBlockControllerAntiXray when creating an empty chunk section
++                && level.chunkPacketBlockController != null) {
++            states = level.chunkPacketBlockController.getPresetBlockStates(level, chunkPos, chunkSectionY);
++        }
++        return new PalettedContainer<>(this.defaultBlockState, this.blockStatesStrategy, states);
+     }
+ 
+     public PalettedContainer<Holder<Biome>> createForBiomes() {
+-        return new PalettedContainer<>(this.defaultBiome, this.biomeStrategy);
++        return new PalettedContainer<>(this.defaultBiome, this.biomeStrategy, null);
++        // Paper end - Anti-Xray
+     }
+ }

@@ -1,5 +1,18 @@
 --- a/net/minecraft/commands/arguments/MessageArgument.java
 +++ b/net/minecraft/commands/arguments/MessageArgument.java
+@@ -41,6 +_,12 @@
+ 
+     public static void resolveChatMessage(CommandContext<CommandSourceStack> context, String name, Consumer<PlayerChatMessage> task) throws CommandSyntaxException {
+         MessageArgument.Message message = context.getArgument(name, MessageArgument.Message.class);
++        // Paper start - brig message argument support
++        resolveChatMessage(message, context, name, task);
++    }
++
++    public static void resolveChatMessage(final MessageArgument.Message message, final CommandContext<CommandSourceStack> context, final String name, final Consumer<PlayerChatMessage> task) throws CommandSyntaxException {
++        // Paper end - brig message argument support
+         CommandSourceStack sender = context.getSource();
+         Component formatted = message.resolveComponent(sender);
+         CommandSigningContext signingContext = sender.getSigningContext();
 @@ -90,7 +_,7 @@
  
      public record Message(String text, MessageArgument.Part[] parts) {

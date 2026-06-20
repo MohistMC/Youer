@@ -92,36 +92,73 @@
      implements Nameable,
      EntityAccess,
      ScoreHolder,
-@@ -167,6 +_,33 @@
+@@ -166,7 +_,69 @@
+     ItemOwner,
      SlotProvider,
      DebugValueSource,
-     TypedInstance<EntityType<?>>, IEntityExtension {
+-    TypedInstance<EntityType<?>>, IEntityExtension {
++    TypedInstance<EntityType<?>>, IEntityExtension, ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity, ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity { // Paper - rewrite chunk system // Paper - optimise entity tracker
 +
 +    // CraftBukkit start
 +    private static final int CURRENT_LEVEL = 2;
-+    static boolean isLevelAtLeast(ValueInput tag, int level) {
-+        int updateLevel = tag.getIntOr("Bukkit.updateLevel", -1);
-+        return updateLevel != -1 && tag.getIntOr("Bukkit.updateLevel", -1) >= level;
++    static boolean isLevelAtLeast(ValueInput input, int level) {
++        return input.getIntOr("Bukkit.updateLevel", CURRENT_LEVEL) >= level;
 +    }
 +
-+    private CraftEntity bukkitEntity;
-+
-+    public CraftEntity getBukkitEntity() {
-+        if (bukkitEntity == null) {
-+            bukkitEntity = CraftEntity.getEntity(level.getCraftServer(), this);
++    // Paper start - Share random for entities to make them more random
++    public static RandomSource SHARED_RANDOM = new RandomRandomSource();
++    // Paper start - replace random
++    private static final class RandomRandomSource extends ca.spottedleaf.moonrise.common.util.ThreadUnsafeRandom {
++        public RandomRandomSource() {
++            this(net.minecraft.world.level.levelgen.RandomSupport.generateUniqueSeed());
 +        }
-+        return bukkitEntity;
++
++        public RandomRandomSource(long seed) {
++            super(seed);
++        }
++
++        // Paper end - replace random
++        private boolean locked = false;
++
++        @Override
++        public synchronized void setSeed(long seed) {
++            if (locked) {
++                LOGGER.error("Ignoring setSeed on Entity.SHARED_RANDOM", new Throwable());
++            } else {
++                super.setSeed(seed);
++                locked = true;
++            }
++        }
++
++        // Paper - replace random
++    }
++    // Paper end - Share random for entities to make them more random
++    public org.bukkit.event.entity.CreatureSpawnEvent.@Nullable SpawnReason spawnReason; // Paper - Entity#getEntitySpawnReason
++
++    public void spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.@Nullable SpawnReason spawnReason){
++        this.spawnReason = spawnReason;
 +    }
 +
-+    public void setBukkitEntity(CraftEntity bukkitEntity) {
-+        this.bukkitEntity = bukkitEntity;
-+    }
 +
-+    // CraftBukkit - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
-+    public int getDefaultMaxAirSupply() {
-+        return TOTAL_AIR_SUPPLY;
++    private volatile org.bukkit.craftbukkit.entity.@Nullable CraftEntity bukkitEntity; // Paper - Folia schedulers - volatile
++
++    public org.bukkit.craftbukkit.entity.CraftEntity getBukkitEntity() {
++        if (this.bukkitEntity == null) {
++            // Paper start - Folia schedulers
++            synchronized (this) {
++                if (this.bukkitEntity == null) {
++                    return this.bukkitEntity = org.bukkit.craftbukkit.entity.CraftEntity.getEntity(this.level.getCraftServer(), this);
++                }
++            }
++            // Paper end - Folia schedulers
++        }
++        return this.bukkitEntity;
 +    }
-+    // CraftBukkit end
++    // Paper start
++    public org.bukkit.craftbukkit.entity.@Nullable CraftEntity getBukkitEntityRaw() {
++        return this.bukkitEntity;
++    }
++    // Paper end
 +
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final String TAG_ID = "id";
@@ -144,50 +181,202 @@
      public double xo;
      public double yo;
      public double zo;
-@@ -302,6 +_,46 @@
+@@ -302,6 +_,198 @@
      private final LongSet visitedBlocks = new LongOpenHashSet();
      private final InsideBlockEffectApplier.StepBasedCollector insideEffectCollector = new InsideBlockEffectApplier.StepBasedCollector();
      private CustomData customData = CustomData.EMPTY;
 +    // CraftBukkit start
-+    public boolean forceDrops;
 +    public boolean persist = true;
 +    public boolean visibleByDefault = true;
 +    public boolean valid;
 +    public boolean inWorld = false;
 +    public boolean generation;
-+    public int maxAirTicks = getDefaultMaxAirSupply(); // CraftBukkit - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
-+    public org.bukkit.projectiles.ProjectileSource projectileSource; // For projectiles only
++    public int maxAirTicks = this.getDefaultMaxAirSupply(); // CraftBukkit - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
++    public org.bukkit.projectiles.@Nullable ProjectileSource projectileSource; // For projectiles only // Paper - Refresh ProjectileSource for projectiles
 +    public boolean lastDamageCancelled; // SPIGOT-5339, SPIGOT-6252, SPIGOT-6777: Keep track if the event was canceled
 +    public boolean persistentInvisibility = false;
-+    public BlockPos lastLavaContact;
++    public @Nullable BlockPos lastLavaContact;
 +    // Marks an entity, that it was removed by a plugin via Entity#remove
 +    // Main use case currently is for SPIGOT-7487, preventing dropping of leash when leash is removed
 +    public boolean pluginRemoved = false;
-+    // Spigot start
++    protected int numCollisions = 0; // Paper - Cap entity collisions
++    public boolean fromNetherPortal; // Paper - Add option to nerf pigmen from nether portals
++    public boolean spawnedViaMobSpawner; // Paper - Yes this name is similar to above, upstream took the better one
++    // Paper start
++    public @Nullable Vec3 origin;
++    public @Nullable UUID originWorld;
++    // Paper end
++    public boolean freezeLocked = false; // Paper - Freeze Tick Lock API
++    public boolean fixedPose = false; // Paper - Expand Pose API
++    private final int despawnTime; // Paper - entity despawn time limit
++    public int totalEntityAge; // Paper - age-like counter for all entities
 +    public final io.papermc.paper.entity.activation.ActivationType activationType = io.papermc.paper.entity.activation.ActivationType.activationTypeFor(this); // Paper - EAR 2/tracking ranges
 +    // Paper start - EAR 2
 +    public final boolean defaultActivationState;
 +    public long activatedTick = Integer.MIN_VALUE;
-+    public void inactiveTick() { }
-+    // Spigot end
++    public boolean isTemporarilyActive;
++    public long activatedImmunityTick = Integer.MIN_VALUE;
 +
-+    public CreatureSpawnEvent.@Nullable SpawnReason spawnReason;  // Youer - Entity#getEntitySpawnReason
-+    public EntityRemoveEvent.@Nullable Cause removeReason;  // Youer - EntityRemoveEvent
-+    public void spawnReason(CreatureSpawnEvent.@Nullable SpawnReason spawnReason) {
-+        this.spawnReason = spawnReason;
++    public void inactiveTick() {
 +    }
-+    public void removeReason(EntityRemoveEvent.@Nullable Cause removeReason) {
-+        this.removeReason = removeReason;
-+    }
-+
-+    public float getBukkitYaw() {
-+        return this.yRot;
-+    }
-+
-+    public boolean isChunkLoaded() {
-+        return level.hasChunk((int) Math.floor(this.getX()) >> 4, (int) Math.floor(this.getZ()) >> 4);
-+    }
++    // Paper end - EAR 2
 +    // CraftBukkit end
++
++    // Paper start
++    public final AABB getBoundingBoxAt(double x, double y, double z) {
++        return this.dimensions.makeBoundingBox(x, y, z);
++    }
++    // Paper end
++    // Paper start - rewrite chunk system
++    private final boolean isHardColliding = this.moonrise$isHardCollidingUncached();
++    private net.minecraft.server.level.FullChunkStatus chunkStatus;
++    private ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkData chunkData;
++    private int sectionX = Integer.MIN_VALUE;
++    private int sectionY = Integer.MIN_VALUE;
++    private int sectionZ = Integer.MIN_VALUE;
++    private boolean updatingSectionStatus;
++
++    @Override
++    public final boolean moonrise$isHardColliding() {
++        return this.isHardColliding;
++    }
++
++    @Override
++    public final net.minecraft.server.level.FullChunkStatus moonrise$getChunkStatus() {
++        return this.chunkStatus;
++    }
++
++    @Override
++    public final void moonrise$setChunkStatus(final net.minecraft.server.level.FullChunkStatus status) {
++        this.chunkStatus = status;
++    }
++
++    @Override
++    public final ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkData moonrise$getChunkData() {
++        return this.chunkData;
++    }
++
++    @Override
++    public final void moonrise$setChunkData(final ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkData chunkData) {
++        this.chunkData = chunkData;
++    }
++
++    @Override
++    public final int moonrise$getSectionX() {
++        return this.sectionX;
++    }
++
++    @Override
++    public final void moonrise$setSectionX(final int x) {
++        this.sectionX = x;
++    }
++
++    @Override
++    public final int moonrise$getSectionY() {
++        return this.sectionY;
++    }
++
++    @Override
++    public final void moonrise$setSectionY(final int y) {
++        this.sectionY = y;
++    }
++
++    @Override
++    public final int moonrise$getSectionZ() {
++        return this.sectionZ;
++    }
++
++    @Override
++    public final void moonrise$setSectionZ(final int z) {
++        this.sectionZ = z;
++    }
++
++    @Override
++    public final boolean moonrise$isUpdatingSectionStatus() {
++        return this.updatingSectionStatus;
++    }
++
++    @Override
++    public final void moonrise$setUpdatingSectionStatus(final boolean to) {
++        this.updatingSectionStatus = to;
++    }
++
++    @Override
++    public final boolean moonrise$hasAnyPlayerPassengers() {
++        if (this.passengers.isEmpty()) {
++            return false;
++        }
++        return this.getIndirectPassengersStream().anyMatch((entity) -> entity instanceof Player);
++    }
++    // Paper end - rewrite chunk system
++    // Paper start - optimise collisions
++    private static float[] calculateStepHeights(final AABB box, final List<VoxelShape> voxels, final List<AABB> aabbs, final float stepHeight,
++                                                final float collidedY) {
++        final FloatArraySet ret = new FloatArraySet();
++
++        for (int i = 0, len = voxels.size(); i < len; ++i) {
++            final VoxelShape shape = voxels.get(i);
++
++            final double[] yCoords = ((ca.spottedleaf.moonrise.patches.collisions.shape.CollisionVoxelShape)shape).moonrise$rootCoordinatesY();
++            final double yOffset = ((ca.spottedleaf.moonrise.patches.collisions.shape.CollisionVoxelShape)shape).moonrise$offsetY();
++
++            for (final double yUnoffset : yCoords) {
++                final double y = yUnoffset + yOffset;
++
++                final float step = (float)(y - box.minY);
++
++                if (step > stepHeight) {
++                    break;
++                }
++
++                if (step < 0.0f || !(step != collidedY)) {
++                    continue;
++                }
++
++                ret.add(step);
++            }
++        }
++
++        for (int i = 0, len = aabbs.size(); i < len; ++i) {
++            final AABB shape = aabbs.get(i);
++
++            final float step1 = (float)(shape.minY - box.minY);
++            final float step2 = (float)(shape.maxY - box.minY);
++
++            if (!(step1 < 0.0f) && step1 != collidedY && !(step1 > stepHeight)) {
++                ret.add(step1);
++            }
++
++            if (!(step2 < 0.0f) && step2 != collidedY && !(step2 > stepHeight)) {
++                ret.add(step2);
++            }
++        }
++
++        final float[] steps = ret.toFloatArray();
++        FloatArrays.unstableSort(steps);
++        return steps;
++    }
++    // Paper end - optimise collisions
++    // Paper start - optimise entity tracker
++    private net.minecraft.server.level.ChunkMap.TrackedEntity trackedEntity;
++
++    @Override
++    public final net.minecraft.server.level.ChunkMap.TrackedEntity moonrise$getTrackedEntity() {
++        return this.trackedEntity;
++    }
++
++    @Override
++    public final void moonrise$setTrackedEntity(final net.minecraft.server.level.ChunkMap.TrackedEntity trackedEntity) {
++        this.trackedEntity = trackedEntity;
++    }
++
++    private static void collectIndirectPassengers(final List<Entity> into, final List<Entity> from) {
++        for (final Entity passenger : from) {
++            into.add(passenger);
++            collectIndirectPassengers(into, ((Entity)(Object)passenger).passengers);
++        }
++    }
++    // Paper end - optimise entity tracker
  
      public Entity(EntityType<?> type, Level level) {
          this.type = type;
@@ -1490,28 +1679,61 @@
      }
  
      public void checkDespawn() {
-@@ -3912,6 +_,7 @@
+@@ -3911,7 +_,15 @@
+     }
  
      @Override
-     public final void setRemoved(Entity.RemovalReason reason) {
-+        CraftEventFactory.callEntityRemoveEvent(this, removeReason);
+-    public final void setRemoved(Entity.RemovalReason reason) {
++    public final void setRemoved(Entity.RemovalReason reason, org.bukkit.event.entity.EntityRemoveEvent.@Nullable Cause cause) { // CraftBukkit - add Bukkit remove cause
++        // Paper start - rewrite chunk system
++        if (!((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)this.level).moonrise$getEntityLookup().canRemoveEntity((Entity)(Object)this)) {
++            LOGGER.warn("Entity " + this + " is currently prevented from being removed from the world since it is processing section status updates", new Throwable());
++            return;
++        }
++        // Paper end - rewrite chunk system
++        org.bukkit.craftbukkit.event.CraftEventFactory.callEntityRemoveEvent(this, cause); // CraftBukkit
++        final boolean alreadyRemoved = this.removalReason != null; // Paper - Folia schedulers
          if (this.removalReason == null) {
              this.removalReason = reason;
          }
-@@ -3923,6 +_,13 @@
-         this.getPassengers().forEach(Entity::stopRiding);
+@@ -3920,15 +_,36 @@
+             this.stopRiding();
+         }
+ 
+-        this.getPassengers().forEach(Entity::stopRiding);
++        if (this.removalReason != Entity.RemovalReason.UNLOADED_TO_CHUNK) { this.getPassengers().forEach(Entity::stopRiding); } // Paper - rewrite chunk system
          this.levelCallback.onRemove(reason);
          this.onRemoval(reason);
-+        removeReason = null;
-+    }
-+
-+    @Override
-+    public final void setRemovedCB(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
-+        this.removeReason = cause;
-+        this.setRemoved(entity_removalreason);
++        // Paper start - Folia schedulers
++        if (!(this instanceof ServerPlayer) && reason != RemovalReason.CHANGED_DIMENSION && !alreadyRemoved) {
++            // Players need to be special cased, because they are regularly removed from the world
++            this.retireScheduler();
++        }
++        // Paper end - Folia schedulers
      }
  
      public void unsetRemoved() {
+         this.removalReason = null;
+     }
+ 
++    // Paper start - Folia schedulers
++    /**
++     * Invoked only when the entity is truly removed from the server, never to be added to any world.
++     */
++    public final void retireScheduler() {
++        // we need to force create the bukkit entity so that the scheduler can be retired...
++        this.getBukkitEntity().taskScheduler.retire();
++    }
++    // Paper end - Folia schedulers
++    // Paper start - optimise Folia entity scheduler
++    public final void registerScheduler() {
++        this.getBukkitEntity().taskScheduler.registerTo(net.minecraft.server.MinecraftServer.getServer().entitySchedulerTickList);
++    }
++    // Paper end - optimise Folia entity scheduler
++
+     @Override
+     public void setLevelCallback(EntityInLevelCallback levelCallback) {
+         this.levelCallback = levelCallback;
 @@ -3950,6 +_,90 @@
  
      public boolean mayInteract(ServerLevel level, BlockPos pos) {

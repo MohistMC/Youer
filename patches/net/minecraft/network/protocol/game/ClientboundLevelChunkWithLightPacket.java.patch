@@ -1,0 +1,37 @@
+--- a/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java
++++ b/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java
+@@ -18,10 +_,33 @@
+     private final int z;
+     private final ClientboundLevelChunkPacketData chunkData;
+     private final ClientboundLightUpdatePacketData lightData;
+-
++    // Paper start - Async-Anti-Xray - Ready flag for the connection, add chunk packet info
++    private volatile boolean ready;
++    @Override
++    public boolean isReady() {
++        return this.ready;
++    }
++
++    public void setReady(final boolean ready) {
++        this.ready = ready;
++    }
++    // Paper end - Async-Anti-Xray - Ready flag for the connection, add chunk packet info
++
++    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - Anti-Xray
+     public ClientboundLevelChunkWithLightPacket(
+         LevelChunk levelChunk, LevelLightEngine lightEngine, @Nullable BitSet skyChangedLightSectionFilter, @Nullable BitSet blockChangedLightSectionFilter
+     ) {
++        // Paper start - Anti-Xray
++        this(levelChunk, lightEngine, skyChangedLightSectionFilter, blockChangedLightSectionFilter, true);
++    }
++    public ClientboundLevelChunkWithLightPacket(
++            final LevelChunk levelChunk,
++            final LevelLightEngine lightEngine,
++            final @Nullable BitSet skyChangedLightSectionFilter,
++            final @Nullable BitSet blockChangedLightSectionFilter,
++            final boolean modifyBlocks
++    ) {
++        // Paper end - Anti-Xray
+         ChunkPos chunkPos = levelChunk.getPos();
+         this.x = chunkPos.x();
+         this.z = chunkPos.z();
