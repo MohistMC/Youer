@@ -16,25 +16,20 @@
  public class CrafterBlock extends BaseEntityBlock {
      public static final MapCodec<CrafterBlock> CODEC = simpleCodec(CrafterBlock::new);
      public static final BooleanProperty CRAFTING = BlockStateProperties.CRAFTING;
-@@ -157,10 +_,17 @@
+@@ -157,6 +_,13 @@
                  } else {
                      blockEntity.setCraftingTicksRemaining(6);
                      level.setBlock(pos, state.setValue(CRAFTING, true), 2);
 +                    // CraftBukkit start
-+                    CrafterCraftEvent event = CraftEventFactory.callCrafterCraftEvent(pos, level, blockEntity, results, pickedRecipe.value().getRemainingItems(var11), pickedRecipe);
++                    org.bukkit.event.block.CrafterCraftEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callCrafterCraftEvent(pos, level, results, pickedRecipe);
 +                    if (event.isCancelled()) {
 +                        return;
 +                    }
-+                    results = CraftItemStack.asNMSCopy(event.getResult());
++                    results = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getResult());
 +                    // CraftBukkit end
                      results.onCraftedBySystem(level);
                      this.dispenseItem(level, pos, blockEntity, results, state, pickedRecipe);
  
--                    for (ItemStack remainingItem : pickedRecipe.value().getRemainingItems(var11)) {
-+                    for (ItemStack remainingItem : event.getRemainingItems().stream().map(CraftItemStack::asNMSCopy).toList()) { // CraftBukkit
-                         if (!remainingItem.isEmpty()) {
-                             this.dispenseItem(level, pos, blockEntity, remainingItem, state, pickedRecipe);
-                         }
 @@ -183,10 +_,29 @@
  
      private void dispenseItem(ServerLevel level, BlockPos pos, CrafterBlockEntity blockEntity, ItemStack results, BlockState blockState, RecipeHolder<?> recipe) {

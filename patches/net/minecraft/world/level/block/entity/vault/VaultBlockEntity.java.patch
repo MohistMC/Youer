@@ -14,17 +14,15 @@
  public class VaultBlockEntity extends BlockEntity {
      public final VaultServerData serverData = new VaultServerData();
      private final VaultSharedData sharedData = new VaultSharedData();
-@@ -268,6 +_,14 @@
+@@ -268,6 +_,12 @@
                      if (!itemsToEject.isEmpty()) {
                          player.awardStat(Stats.ITEM_USED.get(stackToInsert.getItem()));
                          stackToInsert.consume(config.keyItem().getCount(), player);
 +                        // CraftBukkit start
-+                        BlockDispenseLootEvent vaultDispenseLootEvent = CraftEventFactory.callBlockDispenseLootEvent(serverLevel, pos, player, itemsToEject);
-+                        if (vaultDispenseLootEvent.isCancelled()) {
-+                            return;
-+                        }
-+
-+                        itemsToEject = vaultDispenseLootEvent.getDispensedLoot().stream().map(CraftItemStack::asNMSCopy).toList();
++                        LootTable sourceLootTable = serverLevel.getServer().reloadableRegistries().getLootTable(config.lootTable());
++                        org.bukkit.event.block.BlockDispenseLootEvent vaultDispenseLootEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockDispenseLootEvent(serverLevel, pos, player, itemsToEject, sourceLootTable);
++                        if (vaultDispenseLootEvent.isCancelled()) return;
++                        itemsToEject = vaultDispenseLootEvent.getDispensedLoot().stream().map(org.bukkit.craftbukkit.inventory.CraftItemStack::asNMSCopy).toList();
 +                        // CraftBukkit end
                          unlock(serverLevel, blockState, pos, config, serverData, sharedData, itemsToEject);
                          serverData.addToRewardedPlayers(player);

@@ -11,21 +11,25 @@
  import org.jspecify.annotations.Nullable;
  
  public class EnderMan extends Monster implements NeutralMob {
-@@ -121,7 +_,17 @@
+@@ -119,9 +_,20 @@
+             .add(Attributes.STEP_HEIGHT, 1.0);
+     }
  
-     @Override
-     public void setTarget(@Nullable LivingEntity target) {
--        super.setTarget(target);
-+        // CraftBukkit start - fire event
-+        setTarget(target, EntityTargetEvent.TargetReason.UNKNOWN, true);
++    // Paper start - EndermanEscapeEvent
++    private boolean tryEscape(com.destroystokyo.paper.event.entity.EndermanEscapeEvent.Reason reason) {
++        return new com.destroystokyo.paper.event.entity.EndermanEscapeEvent((org.bukkit.craftbukkit.entity.CraftEnderman) this.getBukkitEntity(), reason).callEvent();
 +    }
++    // Paper end - EndermanEscapeEvent
 +
-+    @Override
-+    public boolean setTarget(LivingEntity target, EntityTargetEvent.TargetReason reason, boolean fireEvent) {
-+        if (!super.setTarget(target, reason, fireEvent)) {
+     @Override
+-    public void setTarget(@Nullable LivingEntity target) {
+-        super.setTarget(target);
++    // CraftBukkit start - fire event
++    public boolean setTarget(@Nullable LivingEntity target, org.bukkit.event.entity.EntityTargetEvent.@Nullable TargetReason reason) {
++        if (!super.setTarget(target, reason)) {
 +            return false;
 +        }
-+        target = getTarget();
++        target = this.getTarget();
 +        // CraftBukkit end
          AttributeInstance movementSpeed = this.getAttribute(Attributes.MOVEMENT_SPEED);
          if (target == null) {

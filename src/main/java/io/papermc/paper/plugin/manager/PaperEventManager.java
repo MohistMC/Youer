@@ -1,6 +1,5 @@
 package io.papermc.paper.plugin.manager;
 
-import co.aikar.timings.TimedEventExecutor;
 import com.destroystokyo.paper.event.server.ServerExceptionEvent;
 import com.destroystokyo.paper.exception.ServerEventException;
 import com.google.common.collect.Sets;
@@ -95,7 +94,6 @@ class PaperEventManager {
             throw new IllegalPluginAccessException("Plugin attempted to register " + event + " while not enabled");
         }
 
-        executor = new TimedEventExecutor(executor, plugin, null, event);
         this.getEventListeners(event).register(new RegisteredListener(listener, executor, priority, plugin, ignoreCancelled));
     }
 
@@ -182,7 +180,7 @@ class PaperEventManager {
                 }
             }
 
-            EventExecutor executor = new TimedEventExecutor(EventExecutor.create(method, eventClass), plugin, method, eventClass);
+            EventExecutor executor = EventExecutor.create(method, eventClass);
             eventSet.add(new RegisteredListener(listener, executor, eh.priority(), plugin, eh.ignoreCancelled()));
         }
         return ret;

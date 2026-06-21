@@ -17,28 +17,27 @@
  import org.jspecify.annotations.Nullable;
  
  public interface NeighborUpdater {
-@@ -58,7 +_,27 @@
+@@ -57,8 +_,26 @@
+     }
  
      static void executeUpdate(Level level, BlockState state, BlockPos pos, Block changedBlock, @Nullable Orientation orientation, boolean movedByPiston) {
++        // Paper start - Add source block to BlockPhysicsEvent
++        executeUpdate(level, state, pos, changedBlock, orientation, movedByPiston, pos);
++    }
++
++    static void executeUpdate(Level level, BlockState state, BlockPos pos, Block changedBlock, @Nullable Orientation orientation, boolean movedByPiston, BlockPos sourcePos) {
++        // Paper end - Add source block to BlockPhysicsEvent
          try {
 +            // CraftBukkit start
-+            // BUKKIT-4923: Ignore Block Physics in Chunk population.
-+            if (level.populating) {
++            org.bukkit.event.block.BlockPhysicsEvent event = new org.bukkit.event.block.BlockPhysicsEvent(org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), state.asBlockData(), org.bukkit.craftbukkit.block.CraftBlock.at(level, sourcePos)); // Paper - Add source block to BlockPhysicsEvent
++            level.getCraftServer().getPluginManager().callEvent(event);
++
++            if (event.isCancelled()) {
 +                return;
-+            }
-+
-+            CraftWorld cworld = ((ServerLevel) level).getWorld();
-+            if (cworld != null) {
-+                BlockPhysicsEvent event = new BlockPhysicsEvent(CraftBlock.at(level, pos), CraftBlockData.fromData(state));
-+                ((ServerLevel) level).getCraftServer().getPluginManager().callEvent(event);
-+
-+                if (event.isCancelled()) {
-+                    return;
-+                }
 +            }
 +            // CraftBukkit end
              state.handleNeighborChanged(level, pos, changedBlock, orientation, movedByPiston);
-+            // Spigot Start
++            // Spigot start
 +        } catch (StackOverflowError ex) {
 +            level.lastPhysicsProblem = new BlockPos(pos);
 +            // Spigot End

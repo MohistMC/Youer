@@ -1,12 +1,11 @@
 --- a/net/minecraft/world/level/block/ComposterBlock.java
 +++ b/net/minecraft/world/level/block/ComposterBlock.java
-@@ -41,12 +_,19 @@
+@@ -41,12 +_,18 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
  
 +// CraftBukkit start
 +import org.bukkit.craftbukkit.inventory.CraftBlockInventoryHolder;
-+import org.bukkit.craftbukkit.util.DummyGeneratorAccess;
 +// CraftBukkit end
 +
  public class ComposterBlock extends Block implements WorldlyContainerHolder {
@@ -45,7 +44,7 @@
              if (fillLevel < 7 && !level.isClientSide()) {
                  BlockState newState = addItem(player, state, level, pos, itemStack);
                  level.levelEvent(1500, pos, state != newState ? 1 : 0);
-@@ -276,8 +_,15 @@
+@@ -276,8 +_,20 @@
  
      public static BlockState insertItem(Entity sourceEntity, BlockState state, ServerLevel level, ItemStack itemStack, BlockPos pos) {
          int fillLevel = state.getValue(LEVEL);
@@ -54,11 +53,16 @@
 +        if (fillLevel < 7 && getValue(itemStack) > 0) {
 +            // CraftBukkit start
 +            double rand = level.getRandom().nextDouble();
-+            BlockState newState = addItem(sourceEntity, state, DummyGeneratorAccess.INSTANCE, pos, itemStack, rand);
-+            if (state == newState || !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(sourceEntity, pos, newState)) {
++            BlockState newState = null; // Paper
++            if (false && (state == newState || !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(sourceEntity, pos, newState))) { // Paper - move event call into addItem
 +                return state;
 +            }
-+            newState = addItem(sourceEntity, state, level, pos, itemStack, rand);
++            newState = ComposterBlock.addItem(sourceEntity, state, level, pos, itemStack, rand);
++            // Paper start - handle cancelled events
++            if (newState == null) {
++                return state;
++            }
++            // Paper end
 +            // CraftBukkit end
              itemStack.shrink(1);
              return newState;
@@ -68,9 +72,9 @@
  
      public static BlockState extractProduce(Entity sourceEntity, BlockState state, Level level, BlockPos pos) {
 +        // CraftBukkit start
-+        if (sourceEntity != null && !(sourceEntity instanceof Player)) {
-+            BlockState newState = empty(sourceEntity, state, DummyGeneratorAccess.INSTANCE, pos);
-+            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(sourceEntity, pos, newState)) {
++        if (!(sourceEntity instanceof Player)) {
++            BlockState emptyState = ComposterBlock.empty(sourceEntity, state, org.bukkit.craftbukkit.util.DummyLevelAccessor.INSTANCE, pos);
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(sourceEntity, pos, emptyState)) {
 +                return state;
 +            }
 +        }

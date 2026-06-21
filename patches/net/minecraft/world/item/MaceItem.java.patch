@@ -8,19 +8,12 @@
  import org.jspecify.annotations.Nullable;
  
  public class MaceItem extends Item {
-@@ -123,7 +_,14 @@
+@@ -123,7 +_,7 @@
              double knockbackPower = getKnockbackPower(attacker, nearby, direction);
              Vec3 knockbackVector = direction.normalize().scale(knockbackPower);
              if (knockbackPower > 0.0) {
 -                nearby.push(knockbackVector.x, 0.7F, knockbackVector.z);
-+                // CraftBukkit start - EntityKnockbackEvent
-+                Vec3 vec3Push = new Vec3(knockbackVector.x, 0.7F, knockbackVector.z);
-+                Vec3 result = attacker.getDeltaMovement().add(vec3Push);
-+                org.bukkit.event.entity.EntityKnockbackEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityKnockbackEvent((org.bukkit.craftbukkit.entity.CraftLivingEntity) nearby.getBukkitEntity(), attacker, org.bukkit.event.entity.EntityKnockbackEvent.KnockbackCause.ENTITY_ATTACK, knockbackPower, result, vec3Push.x, vec3Push.y, vec3Push.z);
-+                if (!event.isCancelled()) {
-+                    nearby.push(CraftVector.toNMS(event.getFinalKnockback()));
-+                }
-+                // CraftBukkit end
++                nearby.push(knockbackVector.x, 0.7F, knockbackVector.z, attacker); // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
                  if (nearby instanceof ServerPlayer otherPlayer) {
                      otherPlayer.connection.send(new ClientboundSetEntityMotionPacket(otherPlayer));
                  }

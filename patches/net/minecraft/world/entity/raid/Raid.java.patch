@@ -63,7 +63,7 @@
                  boolean oldActive = this.active;
                  this.active = level.hasChunkAt(this.center);
                  if (level.getDifficulty() == Difficulty.PEACEFUL) {
-+                    org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(this, level, org.bukkit.event.raid.RaidStopEvent.Reason.PEACE); // CraftBukkit
++                    org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(level, this, org.bukkit.event.raid.RaidStopEvent.Reason.PEACE); // CraftBukkit
                      this.stop();
                      return;
                  }
@@ -71,16 +71,16 @@
                  if (!level.isVillage(this.center)) {
                      if (this.groupsSpawned > 0) {
                          this.status = Raid.RaidStatus.LOSS;
-+                        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidFinishEvent(this, level, new java.util.ArrayList<>()); // CraftBukkit
++                        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidFinishEvent(level, this, new java.util.ArrayList<>()); // CraftBukkit
                      } else {
-+                        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(this, level, org.bukkit.event.raid.RaidStopEvent.Reason.NOT_IN_VILLAGE); // CraftBukkit
++                        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(level, this, org.bukkit.event.raid.RaidStopEvent.Reason.NOT_IN_VILLAGE); // CraftBukkit
                          this.stop();
                      }
                  }
  
                  this.ticksActive++;
                  if (this.ticksActive >= 48000L) {
-+                    org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(this, level, org.bukkit.event.raid.RaidStopEvent.Reason.TIMEOUT); // CraftBukkit
++                    org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(level, this, org.bukkit.event.raid.RaidStopEvent.Reason.TIMEOUT); // CraftBukkit
                      this.stop();
                      return;
                  }
@@ -88,7 +88,7 @@
                      }
  
                      if (attempt > 5) {
-+                        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(this, level, org.bukkit.event.raid.RaidStopEvent.Reason.UNSPAWNABLE);  // CraftBukkit
++                        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(level, this, org.bukkit.event.raid.RaidStopEvent.Reason.UNSPAWNABLE); // CraftBukkit
                          this.stop();
                          break;
                      }
@@ -108,7 +108,7 @@
                                  }
                              }
                          }
-+                        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidFinishEvent(this, level, winners); // CraftBukkit
++                        org.bukkit.craftbukkit.event.CraftEventFactory.callRaidFinishEvent(level, this, winners); // CraftBukkit
                      }
                  }
  
@@ -116,7 +116,7 @@
              } else if (this.isOver()) {
                  this.celebrationTicks++;
                  if (this.celebrationTicks >= 600) {
-+                    org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(this, level, org.bukkit.event.raid.RaidStopEvent.Reason.FINISHED); // CraftBukkit
++                    org.bukkit.craftbukkit.event.CraftEventFactory.callRaidStopEvent(level, this, org.bukkit.event.raid.RaidStopEvent.Reason.FINISHED); // CraftBukkit
                      this.stop();
                      return;
                  }

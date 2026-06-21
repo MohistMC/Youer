@@ -394,7 +394,7 @@
          SynchedEntityData.Builder entityDataBuilder = new SynchedEntityData.Builder(this);
          entityDataBuilder.define(DATA_SHARED_FLAGS_ID, (byte)0);
          entityDataBuilder.define(DATA_AIR_SUPPLY_ID, this.getMaxAirSupply());
-@@ -323,7 +_,10 @@
+@@ -323,7 +_,11 @@
          this.defineSynchedData(entityDataBuilder);
          this.entityData = entityDataBuilder.build();
          this.setPos(0.0, 0.0, 0.0);
@@ -402,34 +402,45 @@
 +        this.dimensions = sizeEvent.getNewSize();
          this.eyeHeight = this.dimensions.eyeHeight();
 +        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.EntityEvent.EntityConstructing(this));
++        this.despawnTime = level == null || type == EntityTypes.PLAYER ? -1 : level.paperConfig().entities.spawning.despawnTime.getOrDefault(type, io.papermc.paper.configuration.type.number.IntOr.Disabled.DISABLED).or(-1); // Paper - entity despawn time limit
      }
  
      public boolean isColliding(BlockPos pos, BlockState state) {
-@@ -405,20 +_,72 @@
+@@ -336,6 +_,12 @@
+         return team != null && team.getColor().isPresent() ? team.getColor().get().rgb() : 16777215;
+     }
+ 
++    // CraftBukkit start - SPIGOT-6907: re-implement LivingEntity#setMaximumAir()
++    public int getDefaultMaxAirSupply() {
++        return Entity.TOTAL_AIR_SUPPLY;
++    }
++    // CraftBukkit end
++
+     public boolean isSpectator() {
+         return false;
+     }
+@@ -405,12 +_,18 @@
      }
  
      public void kill(ServerLevel level) {
-+        this.removeReason(EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
-         this.remove(Entity.RemovalReason.KILLED);
+-        this.remove(Entity.RemovalReason.KILLED);
++        this.remove(Entity.RemovalReason.KILLED, org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
          this.gameEvent(GameEvent.ENTITY_DIE);
      }
  
      public final void discard() {
-+        this.removeReason(null); // CraftBukkit - add Bukkit remove cause
-         this.remove(Entity.RemovalReason.DISCARDED);
+-        this.remove(Entity.RemovalReason.DISCARDED);
++        // CraftBukkit start - add Bukkit remove cause
++        this.discard(null);
++    }
++
++    public final void discard(org.bukkit.event.entity.EntityRemoveEvent.@Nullable Cause cause) {
++        this.remove(Entity.RemovalReason.DISCARDED, cause);
++        // CraftBukkit end
      }
  
-+    public final void discard(EntityRemoveEvent.Cause cause) {
-+        this.removeCB(Entity.RemovalReason.DISCARDED, cause);
-+    }
-+
-+    public void removeCB(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
-+        this.setRemovedCB(entity_removalreason, cause);
-+    }
-+
      protected abstract void defineSynchedData(SynchedEntityData.Builder entityData);
- 
-     public SynchedEntityData getEntityData() {
+@@ -419,6 +_,48 @@
          return this.entityData;
      }
  
@@ -478,18 +489,21 @@
      @Override
      public boolean equals(Object obj) {
          return obj instanceof Entity entity ? entity.getId() == this.getId() : false;
-@@ -433,6 +_,11 @@
-         this.setRemoved(reason);
+@@ -430,7 +_,13 @@
      }
  
-+    public void remove(Entity.RemovalReason entity_removalreason, EntityRemoveEvent.Cause cause) {
-+        this.setRemovedCB(entity_removalreason, cause);
-+        // CraftBukkit end
+     public void remove(Entity.RemovalReason reason) {
+-        this.setRemoved(reason);
++        // CraftBukkit start - add Bukkit remove cause
++        this.remove(reason, null);
 +    }
 +
-     public void onClientRemoval() {
++    public void remove(final Entity.RemovalReason reason, org.bukkit.event.entity.EntityRemoveEvent.@Nullable Cause eventCause) {
++        this.setRemoved(reason, eventCause);
++        // CraftBukkit end
      }
  
+     public void onClientRemoval() {
 @@ -440,6 +_,12 @@
      }
  
@@ -537,14 +551,23 @@
          this.setYRot(yRot % 360.0F);
          this.setXRot(xRot % 360.0F);
      }
-@@ -510,6 +_,15 @@
+@@ -507,9 +_,24 @@
+     }
+ 
+     public void tick() {
++        // Paper start - entity despawn time limit
++        if (this.despawnTime >= 0 && this.totalEntityAge >= this.despawnTime) {
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN);
++            return;
++        }
++        // Paper end - entity despawn time limit
          this.baseTick();
      }
  
 +    // CraftBukkit start
 +    public void postTick() {
 +        // No clean way to break out of ticking once the entity has been copied to a new world, so instead we move the portalling later in the tick cycle
-+        if (!(this instanceof ServerPlayer)) {
++        if (!(this instanceof ServerPlayer) && this.isAlive()) { // Paper - don't attempt to teleport dead entities
 +            this.handlePortal();
 +        }
 +    }
@@ -575,9 +598,16 @@
          }
  
          this.checkBelowWorld();
-@@ -609,14 +_,29 @@
+@@ -608,15 +_,36 @@
+     }
  
      public void lavaIgnite() {
++        // Paper start - track lava contact
++        this.lavaIgnite(this.lastLavaContact); // fallback for minecarts if defined
++    }
++
++    public void lavaIgnite(@Nullable BlockPos pos) {
++        // Paper end - track lava contact
          if (!this.fireImmune()) {
 -            this.igniteForSeconds(15.0F);
 +            // CraftBukkit start - Fallen in lava TODO: this event spams!
@@ -790,6 +820,32 @@
      }
  
      public void snapTo(Vec3 pos) {
+@@ -1900,8 +_,24 @@
+     }
+ 
+     public void push(double xa, double ya, double za) {
++        // Paper start - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
++        this.push(xa, ya, za, null);
++    }
++
++    public void push(double xa, double ya, double za, @Nullable Entity pushingEntity) {
++        // Paper end - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
+         if (Double.isFinite(xa) && Double.isFinite(ya) && Double.isFinite(za)) {
+-            this.setDeltaMovement(this.getDeltaMovement().add(xa, ya, za));
++            // Paper start - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
++            org.bukkit.util.Vector delta = new org.bukkit.util.Vector(xa, ya, za);
++            if (pushingEntity != null) {
++                io.papermc.paper.event.entity.EntityPushedByEntityAttackEvent event = new io.papermc.paper.event.entity.EntityPushedByEntityAttackEvent(this.getBukkitEntity(), io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.PUSH, pushingEntity.getBukkitEntity(), delta);
++                if (!event.callEvent()) {
++                    return;
++                }
++                delta = event.getKnockback();
++            }
++            this.setDeltaMovement(this.getDeltaMovement().add(delta.getX(), delta.getY(), delta.getZ()));
++            // Paper end - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
+             this.needsSync = true;
+         }
+     }
 @@ -2015,6 +_,12 @@
          return false;
      }

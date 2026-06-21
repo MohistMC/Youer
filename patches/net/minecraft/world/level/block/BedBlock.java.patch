@@ -94,29 +94,23 @@
          }
      }
  
-@@ -126,6 +_,27 @@
+@@ -126,6 +_,21 @@
          villagers.get(0).stopSleeping();
          return true;
      }
 +
-+    // CraftBukkit start
++    // CraftBukkit start - Copied from the above method
 +    private InteractionResult explodeBed(BlockState state, Level level, BlockPos pos) {
-+        {
-+            {
-+                org.bukkit.block.BlockState blockState = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos).getState(); // CraftBukkit - capture BlockState before remove block
-+                level.removeBlock(pos, false);
-+                BlockPos blockpos1 = pos.relative(((Direction) state.getValue(BedBlock.FACING)).getOpposite());
-+
-+                if (level.getBlockState(blockpos1).getBlock() == this) {
-+                    level.removeBlock(blockpos1, false);
-+                }
-+
-+                Vec3 vec3 = Vec3.atCenterOf(pos);
-+
-+                level.explode((Entity) null, level.damageSources().badRespawnPointExplosion(vec3, blockState), (ExplosionDamageCalculator) null, vec3, 5.0F, true, Level.ExplosionInteraction.BLOCK); // CraftBukkit - add state
-+                return InteractionResult.SUCCESS;
-+            }
++        org.bukkit.block.BlockState blockState = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos).getState(); // CraftBukkit - capture BlockState before remove block
++        level.removeBlock(pos, false);
++        BlockPos blockPos = pos.relative(state.getValue(FACING).getOpposite());
++        if (level.getBlockState(blockPos).is(this)) {
++            level.removeBlock(blockPos, false);
 +        }
++
++        Vec3 boomPos = Vec3.atCenterOf(pos);
++        level.explode(null, level.damageSources().badRespawnPointExplosion(boomPos).causingBlockSnapshot(blockState), null, boomPos, 5.0F, true, Level.ExplosionInteraction.BLOCK); // CraftBukkit - add state
++        return InteractionResult.SUCCESS_SERVER;
 +    }
 +    // CraftBukkit end
  

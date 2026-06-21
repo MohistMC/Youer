@@ -8,12 +8,14 @@
  import org.slf4j.Logger;
  
  public class ServerRecipeBook extends RecipeBook {
-@@ -63,7 +_,7 @@
- 
+@@ -64,6 +_,10 @@
          for (RecipeHolder<?> recipe : recipes) {
              ResourceKey<Recipe<?>> id = recipe.id();
--            if (!this.known.contains(id) && !recipe.value().isSpecial()) {
-+            if (!this.known.contains(id) && !recipe.value().isSpecial() && CraftEventFactory.handlePlayerRecipeListUpdateEvent(player, id.identifier())) { // CraftBukkit
+             if (!this.known.contains(id) && !recipe.value().isSpecial()) {
++                // Paper start - PlayerRecipeDiscoverEvent event
++                final org.bukkit.event.player.PlayerRecipeDiscoverEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerRecipeListUpdateEvent(player, recipe);
++                if (event.isCancelled()) continue;
++                // Paper end - PlayerRecipeDiscoverEvent event
                  this.add(id);
                  this.addHighlight(id);
                  this.displayResolver

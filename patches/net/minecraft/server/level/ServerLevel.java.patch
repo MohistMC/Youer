@@ -1487,13 +1487,36 @@
      }
  
      @Override
-@@ -1805,14 +_,14 @@
+@@ -1805,14 +_,36 @@
      }
  
      public GameRules getGameRules() {
 -        return this.server.getGameRules();
+-    }
 +        return this.gameRules; // CraftBukkit
-     }
++    }
++
++    // Paper start - respect global sound events gamerule
++    public List<net.minecraft.server.level.ServerPlayer> getPlayersForGlobalSoundGamerule() {
++        return this.getGameRules().get(GameRules.GLOBAL_SOUND_EVENTS) ? this.getServer().getPlayerList().getPlayers() : this.players();
++    }
++
++    public double getGlobalSoundRangeSquared(java.util.function.Function<org.spigotmc.SpigotWorldConfig, Integer> rangeFunction) {
++        final double range = rangeFunction.apply(this.spigotConfig);
++        return range <= 0 ? 64.0 * 64.0 : range * range; // 64 is taken from default in ServerLevel#levelEvent
++    }
++    // Paper end - respect global sound events gamerule
++    // Paper start - notify observers even if grow failed
++    @Deprecated
++    public void checkCapturedTreeStateForObserverNotify(final BlockPos pos, final org.bukkit.craftbukkit.block.CraftBlockState craftBlockState) {
++        // notify observers if the block state is the same and the Y level equals the original y level (for mega trees)
++        // blocks at the same Y level with the same state can be assumed to be saplings which trigger observers regardless of if the
++        // tree grew or not
++        if (craftBlockState.getPosition().getY() == pos.getY() && this.getBlockState(craftBlockState.getPosition()) == craftBlockState.getHandle()) {
++            this.notifyAndUpdatePhysics(craftBlockState.getPosition(), null, craftBlockState.getHandle(), craftBlockState.getHandle(), craftBlockState.getHandle(), craftBlockState.getFlags(), 512);
++        }
++    }
++    // Paper end - notify observers even if grow failed
  
      @Override
      public CrashReportCategory fillReportDetails(CrashReport report) {

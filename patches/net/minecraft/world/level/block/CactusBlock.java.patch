@@ -21,11 +21,11 @@
                  double chanceToGrowFlower = height >= 3 ? 0.25 : 0.1;
                  if (random.nextDouble() <= chanceToGrowFlower) {
 -                    level.setBlockAndUpdate(above, Blocks.CACTUS_FLOWER.defaultBlockState());
-+                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, above, Blocks.CACTUS_FLOWER.defaultBlockState()); // CraftBukkit
++                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, above, Blocks.CACTUS_FLOWER.defaultBlockState(), Block.UPDATE_ALL); // Paper - block grow event
                  }
              } else if (age == 15 && height < 3) {
 -                level.setBlockAndUpdate(above, this.defaultBlockState());
-+                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, above, this.defaultBlockState()); // CraftBukkit
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, above, this.defaultBlockState(), Block.UPDATE_ALL)) return; // Paper - block grow event
                  BlockState aboveBlock = state.setValue(AGE, 0);
                  level.setBlock(pos, aboveBlock, 260);
                  level.neighborChanged(aboveBlock, above, this, null, false);
@@ -50,7 +50,7 @@
      @Override
      protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
 -        entity.hurt(level.damageSources().cactus(), 1.0F);
-+        entity.hurt(level.damageSources().cactus().directBlock(level, pos), 1.0F); // CraftBukkit
++        entity.hurt(level.damageSources().cactus().eventBlockDamager(level, pos), 1.0F); // CraftBukkit
      }
  
      @Override

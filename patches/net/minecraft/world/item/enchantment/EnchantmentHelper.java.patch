@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/enchantment/EnchantmentHelper.java
 +++ b/net/minecraft/world/item/enchantment/EnchantmentHelper.java
-@@ -47,7 +_,19 @@
+@@ -47,14 +_,32 @@
  import org.jspecify.annotations.Nullable;
  
  public class EnchantmentHelper {
@@ -20,6 +20,20 @@
          ItemEnchantments enchantments = piece.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);
          return enchantments.getLevel(enchantment);
      }
+ 
+     public static ItemEnchantments updateEnchantments(ItemStack itemStack, Consumer<ItemEnchantments.Mutable> consumer) {
++        // Paper start - allowing updating enchantments on items without component
++        return updateEnchantments(itemStack, consumer, false);
++    }
++
++    public static ItemEnchantments updateEnchantments(final ItemStack itemStack, final Consumer<ItemEnchantments.Mutable> consumer, final boolean createComponentIfMissing) {
++        // Paper end - allowing updating enchantments on items without component
+         DataComponentType<ItemEnchantments> componentType = getComponentType(itemStack);
+-        ItemEnchantments oldEnchantments = itemStack.get(componentType);
++        ItemEnchantments oldEnchantments = createComponentIfMissing ? itemStack.getOrDefault(componentType, ItemEnchantments.EMPTY) : itemStack.get(componentType); // Paper - allowing updating enchantments on items without component
+         if (oldEnchantments == null) {
+             return ItemEnchantments.EMPTY;
+         }
 @@ -127,6 +_,12 @@
      public static void runIterationOnItem(ItemStack piece, EnchantmentHelper.EnchantmentVisitor method) {
          ItemEnchantments enchantments = piece.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY);

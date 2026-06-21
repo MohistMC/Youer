@@ -1,12 +1,11 @@
 --- a/net/minecraft/world/level/block/NetherPortalBlock.java
 +++ b/net/minecraft/world/level/block/NetherPortalBlock.java
-@@ -44,6 +_,14 @@
+@@ -44,6 +_,13 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
 +// CraftBukkit start
 +import org.bukkit.craftbukkit.CraftWorld;
-+import org.bukkit.craftbukkit.event.CraftPortalEvent;
 +import org.bukkit.craftbukkit.util.CraftLocation;
 +import org.bukkit.event.entity.EntityPortalEnterEvent;
 +import org.bukkit.event.player.PlayerTeleportEvent;
@@ -35,38 +34,52 @@
              entity.setAsInsidePortal(this, pos);
          }
      }
-@@ -131,14 +_,24 @@
+@@ -130,19 +_,42 @@
+     public @Nullable TeleportTransition getPortalDestination(ServerLevel currentLevel, Entity entity, BlockPos portalEntryPos) {
          ResourceKey<Level> newDimension = currentLevel.dimension() == Level.NETHER ? Level.OVERWORLD : Level.NETHER;
          ServerLevel newLevel = currentLevel.getServer().getLevel(newDimension);
++        // Paper start - Add EntityPortalReadyEvent
++        io.papermc.paper.event.entity.EntityPortalReadyEvent portalReadyEvent = new io.papermc.paper.event.entity.EntityPortalReadyEvent(entity.getBukkitEntity(), newLevel == null ? null : newLevel.getWorld(), org.bukkit.PortalType.NETHER);
++        if (!portalReadyEvent.callEvent()) {
++            entity.portalProcess = null;
++            return null;
++        }
++        newLevel = portalReadyEvent.getTargetWorld() == null ? null : ((org.bukkit.craftbukkit.CraftWorld) portalReadyEvent.getTargetWorld()).getHandle();
++        // Paper end - Add EntityPortalReadyEvent
          if (newLevel == null) {
 -            return null;
 +            return new TeleportTransition(PlayerTeleportEvent.TeleportCause.NETHER_PORTAL); // CraftBukkit
-+        } else {
-+            boolean toNether = newLevel.dimension() == Level.NETHER;
-+            WorldBorder newWorldBorder = newLevel.getWorldBorder();
-+            double teleportationScale = DimensionType.getTeleportationScale(currentLevel.dimensionType(), newLevel.dimensionType());
-+            BlockPos approximateExitPos = newWorldBorder.clampToBounds(entity.getX() * teleportationScale, entity.getY(), entity.getZ() * teleportationScale);
-+            // CraftBukkit start
-+            CraftPortalEvent event = entity.callPortalEvent(entity, CraftLocation.toBukkit(approximateExitPos, newLevel.getWorld()), PlayerTeleportEvent.TeleportCause.NETHER_PORTAL, toNether ? 16 : 128, 16);
-+            if (event == null) {
-+                return null;
-+            }
-+            newLevel = ((CraftWorld) event.getTo().getWorld()).getHandle();
-+            newWorldBorder = newLevel.getWorldBorder();
-+            approximateExitPos = newWorldBorder.clampToBounds(event.getTo().getX(), event.getTo().getY(), event.getTo().getZ());
-+            toNether = newLevel.dimension() == Level.NETHER;
-+            // CraftBukkit end
-+            return this.getExitPortal(newLevel, entity, portalEntryPos, approximateExitPos, toNether, newWorldBorder);
          }
--
--        boolean toNether = newLevel.dimension() == Level.NETHER;
--        WorldBorder newWorldBorder = newLevel.getWorldBorder();
--        double teleportationScale = DimensionType.getTeleportationScale(currentLevel.dimensionType(), newLevel.dimensionType());
--        BlockPos approximateExitPos = newWorldBorder.clampToBounds(entity.getX() * teleportationScale, entity.getY(), entity.getZ() * teleportationScale);
+ 
+         boolean toNether = newLevel.dimension() == Level.NETHER;
+         WorldBorder newWorldBorder = newLevel.getWorldBorder();
+         double teleportationScale = DimensionType.getTeleportationScale(currentLevel.dimensionType(), newLevel.dimensionType());
+         BlockPos approximateExitPos = newWorldBorder.clampToBounds(entity.getX() * teleportationScale, entity.getY(), entity.getZ() * teleportationScale);
 -        return this.getExitPortal(newLevel, entity, portalEntryPos, approximateExitPos, toNether, newWorldBorder);
++        // Paper start - Configurable portal search radius
++        int portalSearchRadius = newLevel.paperConfig().environment.portalSearchRadius;
++        if (entity.level().paperConfig().environment.portalSearchVanillaDimensionScaling && toNether) {
++            portalSearchRadius = (int) (portalSearchRadius / newLevel.dimensionType().coordinateScale());
++        }
++        // Paper end - Configurable portal search radius
++        // CraftBukkit start
++        org.bukkit.craftbukkit.event.PortalEventResult result = org.bukkit.craftbukkit.event.CraftEventFactory.handlePortalEvents(entity, org.bukkit.craftbukkit.util.CraftLocation.toBukkit(approximateExitPos, newLevel), org.bukkit.PortalType.NETHER, portalSearchRadius, newLevel.paperConfig().environment.portalCreateRadius); // Paper - use custom portal search radius
++        if (result == null) {
++            return null;
++        }
++        newLevel = ((org.bukkit.craftbukkit.CraftWorld) result.to().getWorld()).getHandle();
++        newWorldBorder = newLevel.getWorldBorder();
++        approximateExitPos = newWorldBorder.clampToBounds(result.to().getX(), result.to().getY(), result.to().getZ());
++        return this.getExitPortal(newLevel, entity, portalEntryPos, approximateExitPos, toNether, newWorldBorder, result);
++        // CraftBukkit end
      }
  
      private @Nullable TeleportTransition getExitPortal(
+-        ServerLevel newLevel, Entity entity, BlockPos portalEntryPos, BlockPos approximateExitPos, boolean toNether, WorldBorder worldBorder
++        ServerLevel newLevel, Entity entity, BlockPos portalEntryPos, BlockPos approximateExitPos, boolean toNether, WorldBorder worldBorder, org.bukkit.craftbukkit.event.PortalEventResult result // CraftBukkit
+     ) {
+         Optional<BlockPos> exitPortalPos = newLevel.getPortalForcer().findClosestPortalPosition(approximateExitPos, toNether, worldBorder);
+         BlockUtil.FoundRectangle exitPortal;
 @@ -224,7 +_,7 @@
          );
          Vec3 collisionFreePos = PortalShape.findCollisionFreePosition(targetPos, newLevel, entity, dimensions);

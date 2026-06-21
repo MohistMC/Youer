@@ -16,16 +16,17 @@
  import net.minecraft.world.Difficulty;
  import net.minecraft.world.DifficultyInstance;
  import net.minecraft.world.damagesource.DamageSource;
-@@ -401,6 +_,19 @@
+@@ -401,6 +_,20 @@
                      && this.level().noCollision(this, new AABB(target).deflate(1.0E-6))) {
                      Direction attachmentDirection = this.findAttachableSurface(target);
                      if (attachmentDirection != null) {
 +                        // CraftBukkit start
 +                        org.bukkit.event.entity.EntityTeleportEvent teleportEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTeleportEvent(this, target.getX(), target.getY(), target.getZ());
-+                        if (teleportEvent.isCancelled()) {
++                        if (teleportEvent.isCancelled() || teleportEvent.getTo() == null) { // Paper
 +                            return false;
++                        } else {
++                            target = org.bukkit.craftbukkit.util.CraftLocation.toBlockPos(teleportEvent.getTo());
 +                        }
-+                        target = org.bukkit.craftbukkit.util.CraftLocation.toBlockPosition(teleportEvent.getTo());
 +                        // CraftBukkit end
 +                        net.neoforged.neoforge.event.entity.EntityTeleportEvent.EnderEntity event = net.neoforged.neoforge.event.EventHooks.onEnderTeleport(this, target.getX(), target.getY(), target.getZ());
 +                        if (event.isCanceled()) attachmentDirection = null;

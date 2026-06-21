@@ -8,7 +8,7 @@
  
  public class CauldronBlock extends AbstractCauldronBlock {
      public static final MapCodec<CauldronBlock> CODEC = simpleCodec(CauldronBlock::new);
-@@ -58,15 +_,14 @@
+@@ -58,16 +_,25 @@
  
      @Override
      protected void receiveStalactiteDrip(BlockState state, Level level, BlockPos pos, Fluid fluid) {
@@ -16,14 +16,25 @@
          if (fluid == Fluids.WATER) {
              BlockState newState = Blocks.WATER_CAULDRON.defaultBlockState();
 -            level.setBlockAndUpdate(pos, newState);
--            level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(newState));
-+            LayeredCauldronBlock.changeLevel(state, level, pos, newState, null, CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL); // CraftBukkit
-             level.levelEvent(1047, pos, 0);
++            // Paper start - Call CauldronLevelChangeEvent; don't send level event or game event if cancelled
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleCauldronLevelChangeEvent(level, pos, newState, null, org.bukkit.event.block.CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL)) { // CraftBukkit
++                return;
++            }
++            // Paper end - Call CauldronLevelChangeEvent
+             level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(newState));
+-            level.levelEvent(1047, pos, 0);
++            level.levelEvent(LevelEvent.SOUND_DRIP_WATER_INTO_CAULDRON, pos, 0);
          } else if (fluid == Fluids.LAVA) {
              BlockState newState = Blocks.LAVA_CAULDRON.defaultBlockState();
 -            level.setBlockAndUpdate(pos, newState);
--            level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(newState));
-+            LayeredCauldronBlock.changeLevel(state, level, pos, newState, null, CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL); // CraftBukkit
-             level.levelEvent(1046, pos, 0);
++            // Paper start - Call CauldronLevelChangeEvent; don't send level event or game event if cancelled
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleCauldronLevelChangeEvent(level, pos, newState, null, org.bukkit.event.block.CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL)) { // CraftBukkit
++                return;
++            }
++            // Paper end - Call CauldronLevelChangeEvent
+             level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(newState));
+-            level.levelEvent(1046, pos, 0);
++            level.levelEvent(LevelEvent.SOUND_DRIP_LAVA_INTO_CAULDRON, pos, 0);
          }
      }
+ }

@@ -1,23 +1,13 @@
 --- a/net/minecraft/server/network/config/PrepareSpawnTask.java
 +++ b/net/minecraft/server/network/config/PrepareSpawnTask.java
-@@ -1,6 +_,7 @@
- package net.minecraft.server.network.config;
- 
- import com.mojang.logging.LogUtils;
-+import java.util.Objects;
- import java.util.Optional;
- import java.util.concurrent.CompletableFuture;
- import java.util.function.Consumer;
-@@ -24,6 +_,9 @@
- import net.minecraft.world.level.storage.ValueInput;
- import net.minecraft.world.phys.Vec2;
- import net.minecraft.world.phys.Vec3;
-+import org.bukkit.Location;
-+import org.bukkit.craftbukkit.CraftWorld;
-+import org.bukkit.entity.Player;
- import org.jspecify.annotations.Nullable;
- import org.slf4j.Logger;
- 
+@@ -16,7 +_,6 @@
+ import net.minecraft.server.level.progress.LevelLoadListener;
+ import net.minecraft.server.network.CommonListenerCookie;
+ import net.minecraft.server.network.ConfigurationTask;
+-import net.minecraft.server.players.NameAndId;
+ import net.minecraft.util.ProblemReporter;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.storage.LevelData;
 @@ -32,11 +_,11 @@
      public static final ConfigurationTask.Type TYPE = new ConfigurationTask.Type("prepare_spawn");
      public static final int PREPARE_CHUNK_RADIUS = 3;
@@ -41,24 +31,21 @@
  
              try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(player.problemPath(), PrepareSpawnTask.LOGGER)) {
                  Optional<ValueInput> input = PrepareSpawnTask.this.server
-@@ -180,7 +_,20 @@
+@@ -180,6 +_,17 @@
                      .loadPlayerData(PrepareSpawnTask.this.nameAndId)
                      .map(tag -> TagValueInput.create(reporter, PrepareSpawnTask.this.server.registryAccess(), tag));
                  input.ifPresent(player::load);
 +                net.neoforged.neoforge.event.EventHooks.firePlayerLoadingEvent(player, PrepareSpawnTask.this.server.getPlayerList(), player.getStringUUID());
++                // CraftBukkit start - Better rename detection
++                if (input.isPresent()) {
++                    player.lastKnownName = input.flatMap(t -> t.child("bukkit")).flatMap(t -> t.getString("lastKnownName")).orElse(null);
++                }
++                // CraftBukkit end - Better rename detection
++                // Paper start - Entity#getEntitySpawnReason
++                if (input.isEmpty()) {
++                    player.spawnReason = org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT; // set Player SpawnReason to DEFAULT on first login
++                }
++                // Paper end - Entity#getEntitySpawnReason
                  player.snapTo(this.spawnPosition, this.spawnAngle.x, this.spawnAngle.y);
-+                // Spigot start - spawn location event
-+                Player spawnPlayer = player.getBukkitEntity();
-+                org.spigotmc.event.player.PlayerSpawnLocationEvent ev = new org.spigotmc.event.player.PlayerSpawnLocationEvent(spawnPlayer, spawnPlayer.getLocation());
-+                spawnPlayer.getServer().getPluginManager().callEvent(ev);
-+
-+                Location loc = ev.getSpawnLocation();
-+                ServerLevel spawnWorld = ((CraftWorld) loc.getWorld()).getHandle();
-+
-+                player.spawnIn(spawnWorld, true);
-+                player.gameMode.setLevel((ServerLevel) player.level());
-+                player.absSnapTo(loc.getX(), loc.getY(), loc.getZ(), loc.getYaw(), loc.getPitch());
-+                // Spigot end
                  PrepareSpawnTask.this.server.getPlayerList().placeNewPlayer(connection, player, cookie);
                  input.ifPresent(tag -> {
-                     player.loadAndSpawnEnderPearls(tag);

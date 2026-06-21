@@ -175,7 +175,7 @@
                      EnchantmentHelper.onHitBlock(
                          this.level,
                          this.player.getMainHandItem(),
-@@ -192,10 +_,31 @@
+@@ -192,10 +_,28 @@
                          blockState,
                          item -> this.player.onEquippedItemBroken(item, EquipmentSlot.MAINHAND)
                      );
@@ -184,18 +184,15 @@
                      progress = blockState.getDestroyProgress(this.player, this.player.level(), pos);
                  }
  
-+                if (bukkit_event.useItemInHand() == Event.Result.DENY) {
-+                    // If we 'insta destroyed' then the client needs to be informed.
-+                    if (progress > 1.0f) {
-+                        this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
-+                    }
++                // CraftBukkit start
++                // Note that we don't need to resync blocks, block acks will handle it properly for everything but block entities already
++                if (bukkit_event.useItemInHand() == org.bukkit.event.Event.Result.DENY) {
 +                    return;
 +                }
-+                org.bukkit.event.block.BlockDamageEvent blockEvent = CraftEventFactory.callBlockDamageEvent(this.player, pos, this.player.getInventory().getSelectedItem(), progress >= 1.0f);
++
++                org.bukkit.event.block.BlockDamageEvent blockEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockDamageEvent(this.player, pos, direction, this.player.getInventory().getSelectedItem(), progress >= 1.0f); // Paper - Add BlockFace to BlockDamageEvent
 +
 +                if (blockEvent.isCancelled()) {
-+                    // Let the client know the block still exists
-+                    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
 +                    return;
 +                }
 +

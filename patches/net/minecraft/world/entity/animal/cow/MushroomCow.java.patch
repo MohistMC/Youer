@@ -8,19 +8,21 @@
  import org.jspecify.annotations.Nullable;
  
  public class MushroomCow extends AbstractCow implements Shearable {
-@@ -124,6 +_,12 @@
+@@ -124,7 +_,13 @@
              return InteractionResult.SUCCESS;
          } else if (itemStack.is(Items.SHEARS) && this.readyForShearing()) {
              if (this.level() instanceof ServerLevel level) {
-+
-+                // CraftBukkit start
-+                if (!CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemStack, hand)) {
-+                    return InteractionResult.PASS;
-+                }
-+                // CraftBukkit end
-                 this.shear(level, SoundSource.PLAYERS, itemStack);
+-                this.shear(level, SoundSource.PLAYERS, itemStack);
++                // Paper start - call PlayerShearEntityEvent
++                java.util.List<ItemStack> drops = this.generateDefaultDrops(level, itemStack);
++                org.bukkit.event.player.PlayerShearEntityEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemStack, hand, drops);
++                if (event.isCancelled()) return InteractionResult.PASS;
++                drops = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getDrops());
++                this.shear(level, SoundSource.PLAYERS, itemStack, drops);
++                // Paper end - call PlayerShearEntityEvent
                  this.gameEvent(GameEvent.SHEAR, player);
                  itemStack.hurtAndBreak(1, player, hand.asEquipmentSlot());
+             }
 @@ -179,11 +_,19 @@
      @Override
      public void shear(ServerLevel level, SoundSource soundSource, ItemStack tool) {

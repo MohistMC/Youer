@@ -8,7 +8,13 @@
  import java.util.function.BiConsumer;
  import java.util.function.Predicate;
  import net.minecraft.SharedConstants;
-@@ -35,7 +_,9 @@
+@@ -30,26 +_,42 @@
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
+-public class TicketStorage extends SavedData {
++public class TicketStorage extends SavedData implements ca.spottedleaf.moonrise.patches.chunk_system.ticket.ChunkSystemTicketStorage { // Paper - rewrite chunk system
+     private static final int INITIAL_TICKET_LIST_CAPACITY = 4;
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final Codec<Pair<ChunkPos, Ticket>> TICKET_ENTRY = Codec.mapPair(ChunkPos.CODEC.fieldOf("chunk_pos"), Ticket.CODEC).codec();
      public static final Codec<TicketStorage> CODEC = RecordCodecBuilder.create(
@@ -19,74 +25,385 @@
      );
      public static final SavedDataType<TicketStorage> TYPE = new SavedDataType<>(
          Identifier.withDefaultNamespace("chunk_tickets"), TicketStorage::new, CODEC, DataFixTypes.SAVED_DATA_FORCED_CHUNKS
-@@ -50,6 +_,7 @@
-         this.tickets = tickets;
+     );
+-    public final Long2ObjectOpenHashMap<List<Ticket>> tickets;
++    // Paper - rewrite chunk system
+     private final Long2ObjectOpenHashMap<List<Ticket>> deactivatedTickets;
+-    private LongSet chunksWithForcedTickets = new LongOpenHashSet();
++    // Paper - rewrite chunk system
+     private TicketStorage.@Nullable ChunkUpdated loadingChunkUpdatedListener;
+     private TicketStorage.@Nullable ChunkUpdated simulationChunkUpdatedListener;
+ 
++    // Paper start - rewrite chunk system
++    private ChunkMap chunkMap;
++
++    @Override
++    public final ChunkMap moonrise$getChunkMap() {
++        return this.chunkMap;
++    }
++
++    @Override
++    public final void moonrise$setChunkMap(final ChunkMap chunkMap) {
++        this.chunkMap = chunkMap;
++    }
++    // Paper end - rewrite chunk system
++
+     private TicketStorage(Long2ObjectOpenHashMap<List<Ticket>> tickets, Long2ObjectOpenHashMap<List<Ticket>> deactivatedTickets) {
+-        this.tickets = tickets;
++        // Paper - rewrite chunk system
          this.deactivatedTickets = deactivatedTickets;
-         this.updateForcedChunks();
-+        this.updateForcedNaturalSpawning();
+-        this.updateForcedChunks();
++        // Paper - rewrite chunk system
      }
  
      public TicketStorage() {
-@@ -173,13 +_,14 @@
-         if (ticket.getType().equals(TicketType.FORCED)) {
-             this.chunksWithForcedTickets.add(key);
-         }
-+        if (ticket.getType().forceNaturalSpawning()) chunksWithForceNaturalSpawning.add(key);
+@@ -78,8 +_,32 @@
+         return tickets;
+     }
+ 
++    // Paper start - rewrite chunk system
++    private void redirectRegularTickets(final BiConsumer<ChunkPos, Ticket> consumer, final Long2ObjectOpenHashMap<List<Ticket>> ticketsParam) {
++        if (ticketsParam != null) {
++            throw new IllegalStateException("Bad injection point");
++        }
++
++        final Long2ObjectOpenHashMap<java.util.Collection<net.minecraft.server.level.Ticket>> tickets = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.chunkMap.level)
++                .moonrise$getChunkTaskScheduler().chunkHolderManager.getTicketsCopy();
++
++        for (final Iterator<it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry<java.util.Collection<net.minecraft.server.level.Ticket>>> iterator = tickets.long2ObjectEntrySet().fastIterator(); iterator.hasNext();) {
++            final it.unimi.dsi.fastutil.longs.Long2ObjectMap.Entry<java.util.Collection<net.minecraft.server.level.Ticket>> entry = iterator.next();
++
++            final long pos = entry.getLongKey();
++            final java.util.Collection<net.minecraft.server.level.Ticket> chunkTickets = entry.getValue();
++
++            final ChunkPos chunkPos = ChunkPos.unpack(pos);
++
++            for (final Ticket ticket : chunkTickets) {
++                consumer.accept(chunkPos, ticket);
++            }
++        }
++    }
++    // Paper end - rewrite chunk system
++
+     private void forEachTicket(BiConsumer<ChunkPos, Ticket> output) {
+-        forEachTicket(output, this.tickets);
++        this.redirectRegularTickets(output, null); // Paper - rewrite chunk system
+         forEachTicket(output, this.deactivatedTickets);
+     }
+ 
+@@ -104,35 +_,34 @@
+     }
+ 
+     public void setLoadingChunkUpdatedListener(TicketStorage.@Nullable ChunkUpdated loadingChunkUpdatedListener) {
+-        this.loadingChunkUpdatedListener = loadingChunkUpdatedListener;
++        // Paper - rewrite chunk system
+     }
+ 
+     public void setSimulationChunkUpdatedListener(TicketStorage.@Nullable ChunkUpdated simulationChunkUpdatedListener) {
+-        this.simulationChunkUpdatedListener = simulationChunkUpdatedListener;
++        // Paper - rewrite chunk system
+     }
+ 
+     public boolean hasTickets() {
+-        return !this.tickets.isEmpty();
++        return ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.chunkMap.level).moonrise$getChunkTaskScheduler().chunkHolderManager.hasTickets(); // Paper - rewrite chunk system
+     }
+ 
+     public boolean shouldKeepDimensionActive() {
+-        for (List<Ticket> group : this.tickets.values()) {
+-            for (Ticket ticket : group) {
+-                if (ticket.getType().shouldKeepDimensionActive()) {
+-                    return true;
+-                }
+-            }
+-        }
+-
+-        return false;
++        // Paper start - rewrite chunk system
++        final ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2LongHashTable ticketCounters = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.chunkMap.level).moonrise$getChunkTaskScheduler().chunkHolderManager
++                .getTicketCounters(ca.spottedleaf.moonrise.patches.chunk_system.ticket.ChunkSystemTicketType.COUNTER_TYPE_KEEP_DIMENSION_ACTIVE);
++        return ticketCounters != null && !ticketCounters.isEmpty();
++        // Paper end - rewrite chunk system
+     }
+ 
+     public List<Ticket> getTickets(long key) {
+-        return this.tickets.getOrDefault(key, List.of());
++        // Paper start - rewrite chunk system
++        return ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.chunkMap.level).moonrise$getChunkTaskScheduler().chunkHolderManager
++                .getTicketsAt(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkX(key), ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkZ(key));
++        // Paper end - rewrite chunk system
+     }
+ 
+     private List<Ticket> getOrCreateTickets(long key) {
+-        return this.tickets.computeIfAbsent(key, k -> new ObjectArrayList<>(4));
++        throw new UnsupportedOperationException(); // Paper - rewrite chunk system
+     }
+ 
+     public void addTicketWithRadius(TicketType type, ChunkPos chunkPos, int radius) {
+@@ -145,41 +_,18 @@
+     }
+ 
+     public boolean addTicket(long key, Ticket ticket) {
+-        List<Ticket> tickets = this.getOrCreateTickets(key);
+-
+-        for (Ticket t : tickets) {
+-            if (isTicketSameTypeAndLevel(ticket, t)) {
+-                t.resetTicksLeft();
+-                this.setDirty();
+-                return false;
+-            }
+-        }
+-
+-        int oldSimulationTicketLevel = getTicketLevelAt(tickets, true);
+-        int oldLoadingTicketLevel = getTicketLevelAt(tickets, false);
+-        tickets.add(ticket);
+-        if (SharedConstants.DEBUG_VERBOSE_SERVER_EVENTS) {
+-            LOGGER.debug("ATI {} {}", ChunkPos.unpack(key), ticket);
+-        }
+-
+-        if (ticket.getType().doesSimulate() && ticket.getTicketLevel() < oldSimulationTicketLevel && this.simulationChunkUpdatedListener != null) {
+-            this.simulationChunkUpdatedListener.update(key, ticket.getTicketLevel(), true);
+-        }
+-
+-        if (ticket.getType().doesLoad() && ticket.getTicketLevel() < oldLoadingTicketLevel && this.loadingChunkUpdatedListener != null) {
+-            this.loadingChunkUpdatedListener.update(key, ticket.getTicketLevel(), true);
+-        }
+-
+-        if (ticket.getType().equals(TicketType.FORCED)) {
+-            this.chunksWithForcedTickets.add(key);
+-        }
++        // Paper start - rewrite chunk system
++        final boolean ret = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.chunkMap.level).moonrise$getChunkTaskScheduler().chunkHolderManager
++                .addTicketAtLevel(ticket.getType(), key, ticket.getTicketLevel(), ((ca.spottedleaf.moonrise.patches.chunk_system.ticket.ChunkSystemTicket<?>)ticket).moonrise$getIdentifier());
  
          this.setDirty();
-         return true;
+-        return true;
++
++        return ret;
++        // Paper end - rewrite chunk system
      }
  
      private static boolean isTicketSameTypeAndLevel(Ticket ticket, Ticket t) {
 -        return t.getType() == ticket.getType() && t.getTicketLevel() == ticket.getTicketLevel();
-+        return t.getType() == ticket.getType() && t.getTicketLevel() == ticket.getTicketLevel() && Objects.equals(ticket.key, t.key); // CraftBukkit
++        return t.getType() == ticket.getType() && t.getTicketLevel() == ticket.getTicketLevel() && java.util.Objects.equals(t.getIdentifier(), ticket.getIdentifier()); // Paper - add identifier
      }
  
      public int getTicketLevelAt(long key, boolean simulation) {
-@@ -261,6 +_,7 @@
-         if (ticket.getType().equals(TicketType.FORCED)) {
-             this.updateForcedChunks();
-         }
-+        if (ticket.getType().forceNaturalSpawning()) this.updateForcedNaturalSpawning();
+@@ -221,53 +_,20 @@
+     }
  
-         this.setDirty();
-         return true;
-@@ -303,11 +_,14 @@
+     public boolean removeTicket(long key, Ticket ticket) {
+-        List<Ticket> tickets = this.tickets.get(key);
+-        if (tickets == null) {
+-            return false;
+-        }
+-
+-        boolean found = false;
+-        Iterator<Ticket> iterator = tickets.iterator();
+-
+-        while (iterator.hasNext()) {
+-            Ticket t = iterator.next();
+-            if (isTicketSameTypeAndLevel(ticket, t)) {
+-                iterator.remove();
+-                if (SharedConstants.DEBUG_VERBOSE_SERVER_EVENTS) {
+-                    LOGGER.debug("RTI {} {}", ChunkPos.unpack(key), t);
+-                }
+-
+-                found = true;
+-                break;
+-            }
+-        }
+-
+-        if (!found) {
+-            return false;
+-        }
+-
+-        if (tickets.isEmpty()) {
+-            this.tickets.remove(key);
+-        }
+-
+-        if (ticket.getType().doesSimulate() && this.simulationChunkUpdatedListener != null) {
+-            this.simulationChunkUpdatedListener.update(key, getTicketLevelAt(tickets, true), false);
+-        }
+-
+-        if (ticket.getType().doesLoad() && this.loadingChunkUpdatedListener != null) {
+-            this.loadingChunkUpdatedListener.update(key, getTicketLevelAt(tickets, false), false);
+-        }
+-
+-        if (ticket.getType().equals(TicketType.FORCED)) {
+-            this.updateForcedChunks();
+-        }
+-
+-        this.setDirty();
+-        return true;
++        // Paper start - rewrite chunk system
++        final boolean ret = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.chunkMap.level).moonrise$getChunkTaskScheduler().chunkHolderManager
++                .removeTicketAtLevel(ticket.getType(), key, ticket.getTicketLevel(), ((ca.spottedleaf.moonrise.patches.chunk_system.ticket.ChunkSystemTicket<?>)ticket).moonrise$getIdentifier());
++
++        if (ret) {
++            this.setDirty();
++        }
++
++        return ret;
++        // Paper end - rewrite chunk system
+     }
+ 
+     private void updateForcedChunks() {
+-        this.chunksWithForcedTickets = this.getAllChunksWithTicketThat(t -> t.getType().equals(TicketType.FORCED));
++        throw new UnsupportedOperationException(); // Paper - rewrite chunk system
+     }
+ 
+     public String getTicketDebugString(long key, boolean simulation) {
+@@ -302,82 +_,15 @@
+     }
  
      public void deactivateTicketsOnClosing() {
-         this.removeTicketIf((ticket, chunkPos) -> ticket.getType() != TicketType.UNKNOWN, this.deactivatedTickets);
-+        blockForcedChunks.deactivateTicketsOnClosing();
-+        entityForcedChunks.deactivateTicketsOnClosing();
+-        this.removeTicketIf((ticket, chunkPos) -> ticket.getType() != TicketType.UNKNOWN, this.deactivatedTickets);
++        // Paper - rewrite chunk system
      }
  
      public void removeTicketIf(TicketStorage.TicketPredicate predicate, @Nullable Long2ObjectOpenHashMap<List<Ticket>> removedTickets) {
-         ObjectIterator<Entry<List<Ticket>>> ticketsPerChunkIterator = this.tickets.long2ObjectEntrySet().fastIterator();
-         boolean removedForced = false;
-+        boolean updateNaturalSpawning = false;
- 
-         while (ticketsPerChunkIterator.hasNext()) {
-             Entry<List<Ticket>> entry = ticketsPerChunkIterator.next();
-@@ -336,6 +_,7 @@
-                     if (ticket.getType().equals(TicketType.FORCED)) {
-                         removedForced = true;
-                     }
-+                    if (ticket.getType().forceNaturalSpawning()) updateNaturalSpawning = true;
-                 }
-             }
- 
-@@ -358,6 +_,7 @@
-         if (removedForced) {
-             this.updateForcedChunks();
-         }
-+        if (updateNaturalSpawning) this.updateForcedNaturalSpawning();
+-        ObjectIterator<Entry<List<Ticket>>> ticketsPerChunkIterator = this.tickets.long2ObjectEntrySet().fastIterator();
+-        boolean removedForced = false;
+-
+-        while (ticketsPerChunkIterator.hasNext()) {
+-            Entry<List<Ticket>> entry = ticketsPerChunkIterator.next();
+-            Iterator<Ticket> chunkTicketsIterator = entry.getValue().iterator();
+-            long chunkPos = entry.getLongKey();
+-            boolean removedSimulation = false;
+-            boolean removedLoading = false;
+-
+-            while (chunkTicketsIterator.hasNext()) {
+-                Ticket ticket = chunkTicketsIterator.next();
+-                if (predicate.test(ticket, chunkPos)) {
+-                    if (removedTickets != null) {
+-                        List<Ticket> tickets = removedTickets.computeIfAbsent(chunkPos, k -> new ObjectArrayList<>(entry.getValue().size()));
+-                        tickets.add(ticket);
+-                    }
+-
+-                    chunkTicketsIterator.remove();
+-                    if (ticket.getType().doesLoad()) {
+-                        removedLoading = true;
+-                    }
+-
+-                    if (ticket.getType().doesSimulate()) {
+-                        removedSimulation = true;
+-                    }
+-
+-                    if (ticket.getType().equals(TicketType.FORCED)) {
+-                        removedForced = true;
+-                    }
+-                }
+-            }
+-
+-            if (removedLoading || removedSimulation) {
+-                if (removedLoading && this.loadingChunkUpdatedListener != null) {
+-                    this.loadingChunkUpdatedListener.update(chunkPos, getTicketLevelAt(entry.getValue(), false), false);
+-                }
+-
+-                if (removedSimulation && this.simulationChunkUpdatedListener != null) {
+-                    this.simulationChunkUpdatedListener.update(chunkPos, getTicketLevelAt(entry.getValue(), true), false);
+-                }
+-
+-                this.setDirty();
+-                if (entry.getValue().isEmpty()) {
+-                    ticketsPerChunkIterator.remove();
+-                }
+-            }
+-        }
+-
+-        if (removedForced) {
+-            this.updateForcedChunks();
+-        }
++        throw new UnsupportedOperationException(); // Paper - rewrite chunk system
      }
  
      public void replaceTicketLevelOfType(int newLevel, TicketType ticketType) {
-@@ -411,5 +_,26 @@
+-        List<Pair<Ticket, Long>> affectedTickets = new ArrayList<>();
+-
+-        for (Entry<List<Ticket>> entry : this.tickets.long2ObjectEntrySet()) {
+-            for (Ticket ticket : entry.getValue()) {
+-                if (ticket.getType() == ticketType) {
+-                    affectedTickets.add(Pair.of(ticket, entry.getLongKey()));
+-                }
+-            }
+-        }
+-
+-        for (Pair<Ticket, Long> pair : affectedTickets) {
+-            Long key = pair.getSecond();
+-            Ticket ticket = pair.getFirst();
+-            this.removeTicket(key, ticket);
+-            TicketType type = ticket.getType();
+-            this.addTicket(key, new Ticket(type, newLevel));
+-        }
++        throw new UnsupportedOperationException(); // Paper - rewrite chunk system
+     }
+ 
+     public boolean updateChunkForced(ChunkPos chunkPos, boolean forced) {
+@@ -386,22 +_,29 @@
+     }
+ 
+     public LongSet getForceLoadedChunks() {
+-        return this.chunksWithForcedTickets;
++        // Paper start - rewrite chunk system
++        final ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2LongHashTable forced = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.chunkMap.level).moonrise$getChunkTaskScheduler()
++                .chunkHolderManager.getTicketCounters(ca.spottedleaf.moonrise.patches.chunk_system.ticket.ChunkSystemTicketType.COUNTER_TYPE_FORCED);
++
++        if (forced == null) {
++            return new it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet();
++        }
++
++        // note: important to presize correctly using size/loadfactor to avoid awful write performance
++        //       think: iteration over our map has the same hash strategy, and if ret is not sized
++        //       correctly then every (ret.table.length) may collide. During resize, open hashed tables
++        //       (like LongLinkedOpenHashSet) must reinsert - leading to O(n^2) to copy IF we do not initially
++        //       size correctly
++        final it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet ret = new it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet(forced.size(), forced.getLoadFactor());
++        for (final java.util.PrimitiveIterator.OfLong iterator = forced.keyIterator(); iterator.hasNext();) {
++            ret.add(iterator.nextLong());
++        }
++        return ret;
++        // Paper end - rewrite chunk system
+     }
+ 
+     private LongSet getAllChunksWithTicketThat(Predicate<Ticket> ticketCheck) {
+-        LongOpenHashSet chunks = new LongOpenHashSet();
+-
+-        for (Entry<List<Ticket>> entry : Long2ObjectMaps.fastIterable(this.tickets)) {
+-            for (Ticket ticket : entry.getValue()) {
+-                if (ticketCheck.test(ticket)) {
+-                    chunks.add(entry.getLongKey());
+-                    break;
+-                }
+-            }
+-        }
+-
+-        return chunks;
++        throw new UnsupportedOperationException(); // Paper - rewrite chunk system
+     }
+ 
+     @FunctionalInterface
+@@ -411,5 +_,42 @@
  
      public interface TicketPredicate {
          boolean test(Ticket ticket, long chunkPos);
 +    }
++
++    // Paper start
++    public boolean addPluginRegionTicket(final ChunkPos pos, final org.bukkit.plugin.Plugin value) {
++        // Keep inline with force loading
++        return addTicket(pos.pack(), new Ticket(TicketType.PLUGIN_TICKET, ChunkMap.FORCED_TICKET_LEVEL, value));
++    }
++
++    public boolean removePluginRegionTicket(final ChunkPos pos, final org.bukkit.plugin.Plugin value) {
++        // Keep inline with force loading
++        return removeTicket(pos.pack(), new Ticket(TicketType.PLUGIN_TICKET, ChunkMap.FORCED_TICKET_LEVEL, value));
++    }
++
++    public void removeAllPluginRegionTickets(TicketType ticketType, int ticketLevel, org.bukkit.plugin.Plugin ticketIdentifier) {
++        this.chunkMap.level.moonrise$getChunkTaskScheduler().chunkHolderManager.removeAllTicketsFor(ticketType, ticketLevel, ticketIdentifier); // Paper - rewrite chunk system
++    }
++    // Paper end
 +
 +    // Neo: Keep track of forced loaded chunks caused by entities or blocks.
 +    private final net.neoforged.neoforge.common.world.chunk.ForcedChunkManager.TicketTracker<net.minecraft.core.BlockPos> blockForcedChunks = new net.neoforged.neoforge.common.world.chunk.ForcedChunkManager.TicketTracker<>(this, net.neoforged.neoforge.common.NeoForgeMod.BLOCK_TICKET, net.neoforged.neoforge.common.NeoForgeMod.BLOCK_WITH_NATURAL_SPAWNING_TICKET);

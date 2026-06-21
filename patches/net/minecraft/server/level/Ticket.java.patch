@@ -9,7 +9,7 @@
      public static final MapCodec<Ticket> CODEC = RecordCodecBuilder.mapCodec(
          i -> i.group(
                  BuiltInRegistries.TICKET_TYPE.byNameCodec().fieldOf("type").forGetter(Ticket::getType),
-@@ -19,6 +_,56 @@
+@@ -19,12 +_,73 @@
      private final TicketType type;
      private final int ticketLevel;
      private long ticksLeft;
@@ -65,4 +65,42 @@
 +    // Paper end - rewrite chunk system
  
      public Ticket(TicketType type, int ticketLevel) {
-         this(type, ticketLevel, type.timeout());
+-        this(type, ticketLevel, type.timeout());
++        // Paper start - add identifier
++        this(type, ticketLevel, null);
++    }
++    public Ticket(TicketType type, int ticketLevel, Object identifier) {
++        this(type, ticketLevel, type.timeout(), identifier);
++        // Paper end - add identifier
+     }
+ 
+-    private Ticket(TicketType type, int ticketLevel, long ticksLeft) {
++    public Ticket(TicketType type, int ticketLevel, long ticksLeft) { // Paper - rewrite chunk system - public
++        // Paper start - add identifier
++        this(type, ticketLevel, ticksLeft, null);
++    }
++    private Ticket(TicketType type, int ticketLevel, long ticksLeft, Object identifier) {
++        this.identifier = (T)identifier; // Paper - rewrite chunk system
++        // Paper end - add identifier
+         this.type = type;
+         this.ticketLevel = ticketLevel;
+         this.ticksLeft = ticksLeft;
+@@ -32,17 +_,7 @@
+ 
+     @Override
+     public String toString() {
+-        return this.type.hasTimeout()
+-            ? "Ticket["
+-                + Util.getRegisteredName(BuiltInRegistries.TICKET_TYPE, this.type)
+-                + " "
+-                + this.ticketLevel
+-                + "] with "
+-                + this.ticksLeft
+-                + " ticks left ( out of"
+-                + this.type.timeout()
+-                + ")"
+-            : "Ticket[" + Util.getRegisteredName(BuiltInRegistries.TICKET_TYPE, this.type) + " " + this.ticketLevel + "] with no timeout";
++        return "Ticket[" + this.type + " " + this.ticketLevel + " (" + this.identifier + ")] to die in " + this.ticksLeft; // Paper - rewrite chunk system
+     }
+ 
+     public TicketType getType() {

@@ -19,11 +19,11 @@
 +
 +    // CraftBukkit start
 +    @Override
-+    public org.bukkit.inventory.ShapedRecipe toBukkitRecipe(NamespacedKey id) {
-+        CraftItemStack result = CraftItemStack.asCraftMirror(this.result);
-+        CraftShapedRecipe recipe = new CraftShapedRecipe(id, result, this);
++    public org.bukkit.inventory.ShapedRecipe toBukkitRecipe(org.bukkit.NamespacedKey id) {
++        org.bukkit.craftbukkit.inventory.CraftItemStack result = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(this.result.create());
++        org.bukkit.craftbukkit.inventory.CraftShapedRecipe recipe = new org.bukkit.craftbukkit.inventory.CraftShapedRecipe(id, result, this);
 +        recipe.setGroup(this.group());
-+        recipe.setCategory(CraftRecipe.getCategory(this.category()));
++        recipe.setCategory(org.bukkit.craftbukkit.inventory.CraftRecipe.getCategory(this.category()));
 +
 +        switch (this.pattern.height()) {
 +            case 1:
@@ -42,34 +42,34 @@
 +            case 2:
 +                switch (this.pattern.width()) {
 +                    case 1:
-+                        recipe.shape("a","b");
++                        recipe.shape("a", "b");
 +                        break;
 +                    case 2:
-+                        recipe.shape("ab","cd");
++                        recipe.shape("ab", "cd");
 +                        break;
 +                    case 3:
-+                        recipe.shape("abc","def");
++                        recipe.shape("abc", "def");
 +                        break;
 +                }
 +                break;
 +            case 3:
 +                switch (this.pattern.width()) {
 +                    case 1:
-+                        recipe.shape("a","b","c");
++                        recipe.shape("a", "b", "c");
 +                        break;
 +                    case 2:
-+                        recipe.shape("ab","cd","ef");
++                        recipe.shape("ab", "cd", "ef");
 +                        break;
 +                    case 3:
-+                        recipe.shape("abc","def","ghi");
++                        recipe.shape("abc", "def", "ghi");
 +                        break;
 +                }
 +                break;
 +        }
 +        char c = 'a';
-+        for (Optional<Ingredient> list : this.pattern.ingredients()) {
-+            RecipeChoice choice = CraftRecipe.toBukkit(list);
-+            if (choice != null) {
++        for (Optional<Ingredient> ingredient : this.pattern.ingredients()) {
++            org.bukkit.inventory.RecipeChoice choice = org.bukkit.craftbukkit.inventory.CraftRecipe.toChoice(ingredient);
++            if (choice != org.bukkit.inventory.RecipeChoice.empty()) { // Paper
 +                recipe.setIngredient(c, choice);
 +            }
 +

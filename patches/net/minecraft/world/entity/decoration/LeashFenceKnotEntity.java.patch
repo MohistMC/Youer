@@ -15,103 +15,43 @@
  import org.jspecify.annotations.Nullable;
  
  public class LeashFenceKnotEntity extends BlockAttachedEntity {
-@@ -75,47 +_,68 @@
-     public InteractionResult interact(Player player, InteractionHand hand, Vec3 location) {
+@@ -76,8 +_,7 @@
          if (this.level().isClientSide()) {
              return InteractionResult.SUCCESS;
--        }
+         }
 -
 -        if (player.getItemInHand(hand).is(Items.SHEARS)) {
--            InteractionResult result = super.interact(player, hand, location);
--            if (result instanceof InteractionResult.Success success && success.wasItemInteraction()) {
--                return result;
--            }
--        }
--
--        boolean attachedMob = false;
--
--        for (Leashable leashable : Leashable.leashableLeashedTo(player)) {
--            if (leashable.canHaveALeashAttachedTo(this)) {
--                leashable.setLeashedTo(this, true);
--                attachedMob = true;
--            }
--        }
--
--        boolean anyDropped = false;
--        if (!attachedMob && !player.isSecondaryUseActive()) {
--            for (Leashable mob : Leashable.leashableLeashedTo(this)) {
--                if (mob.canHaveALeashAttachedTo(player)) {
--                    mob.setLeashedTo(player, true);
--                    anyDropped = true;
--                }
--            }
--        }
--
--        if (!attachedMob && !anyDropped) {
--            return super.interact(player, hand, location);
--        }
--
--        this.gameEvent(GameEvent.BLOCK_ATTACH, player);
--        this.playSound(SoundEvents.LEAD_TIED);
--        return InteractionResult.SUCCESS;
-+        } else {
-+            if (player.getItemInHand(hand).canPerformAction(net.neoforged.neoforge.common.ItemAbilities.SHEARS_HARVEST)) {
-+                InteractionResult result = super.interact(player, hand, location);
-+                if (result instanceof InteractionResult.Success success && success.wasItemInteraction()) {
-+                    return result;
-+                }
-+            }
-+
-+            boolean attachedMob = false;
-+
-+            for (Leashable leashable : Leashable.leashableLeashedTo(player)) {
-+                if (leashable.canHaveALeashAttachedTo(this)) {
-+                    // CraftBukkit start
-+                    if (leashable instanceof Entity leashed) {
-+                        if (CraftEventFactory.callPlayerLeashEntityEvent(leashed, this, player, hand).isCancelled()) {
-+                            ((ServerPlayer) player).connection.send(new ClientboundSetEntityLinkPacket(leashed, leashable.getLeashHolder()));
-+                            attachedMob = true; // Also set true when the event is cancelled otherwise it tries to unleash the entities
-+                            continue;
-+                        }
-+                    }
-+                    // CraftBukkit end
-+                    leashable.setLeashedTo(this, true);
-+                    attachedMob = true;
-+                }
-+            }
-+
-+            boolean anyDropped = false;
-+            if (!attachedMob && !player.isSecondaryUseActive()) {
-+                for (Leashable leashable1 : Leashable.leashableLeashedTo(this)) {
-+                    if (leashable1.canHaveALeashAttachedTo(player)) {
-+                        // CraftBukkit start
-+                        if (leashable1 instanceof Entity leashed) {
-+                            if (CraftEventFactory.callPlayerUnleashEntityEvent(leashed, player, hand).isCancelled()) {
-+                                continue;
-+                            }
-+                            if (CraftEventFactory.callPlayerLeashEntityEvent(leashed, this, player, hand).isCancelled()) {
-+                                ((ServerPlayer) player).connection.send(new ClientboundSetEntityLinkPacket(leashed, leashable1.getLeashHolder()));
-+                                anyDropped = true; // Also set true when the event is cancelled otherwise it tries to unleash the entities
-+                                continue;
-+                            }
-+                        }
-+                        // CraftBukkit end
-+                        leashable1.setLeashedTo(player, true);
-+                        anyDropped = true;
-+                    }
-+                }
-+            }
-+
-+            if (!attachedMob && !anyDropped) {
-+                return super.interact(player, hand, location);
-+            } else {
-+                this.gameEvent(GameEvent.BLOCK_ATTACH, player);
-+                this.playSound(SoundEvents.LEAD_TIED);
-+                return InteractionResult.SUCCESS;
-+            }
-+        }
-     }
++        if (player.getItemInHand(hand).canPerformAction(net.neoforged.neoforge.common.ItemAbilities.SHEARS_HARVEST)) {
+             InteractionResult result = super.interact(player, hand, location);
+             if (result instanceof InteractionResult.Success success && success.wasItemInteraction()) {
+                 return result;
+@@ -87,7 +_,7 @@
+         boolean attachedMob = false;
  
+         for (Leashable leashable : Leashable.leashableLeashedTo(player)) {
+-            if (leashable.canHaveALeashAttachedTo(this)) {
++            if (leashable.canHaveALeashAttachedTo(this) && org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerLeashEntityEvent(leashable, this, player, hand)) { // Paper - leash event
+                 leashable.setLeashedTo(this, true);
+                 attachedMob = true;
+             }
+@@ -96,7 +_,7 @@
+         boolean anyDropped = false;
+         if (!attachedMob && !player.isSecondaryUseActive()) {
+             for (Leashable mob : Leashable.leashableLeashedTo(this)) {
+-                if (mob.canHaveALeashAttachedTo(player)) {
++                if (mob.canHaveALeashAttachedTo(player) && org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerLeashEntityEvent(mob, player, player, hand)) { // Paper - leash event
+                     mob.setLeashedTo(player, true);
+                     anyDropped = true;
+                 }
+@@ -106,7 +_,6 @@
+         if (!attachedMob && !anyDropped) {
+             return super.interact(player, hand, location);
+         }
+-
+         this.gameEvent(GameEvent.BLOCK_ATTACH, player);
+         this.playSound(SoundEvents.LEAD_TIED);
+         return InteractionResult.SUCCESS;
+@@ -115,7 +_,7 @@
      @Override
      public void notifyLeasheeRemoved(Leashable entity) {
          if (Leashable.leashableLeashedTo(this).isEmpty()) {

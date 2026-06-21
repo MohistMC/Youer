@@ -13,6 +13,33 @@
          CommandSourceStack sender = context.getSource();
          Component formatted = message.resolveComponent(sender);
          CommandSigningContext signingContext = sender.getSigningContext();
+@@ -55,17 +_,21 @@
+     private static void resolveSignedMessage(Consumer<PlayerChatMessage> task, CommandSourceStack sender, PlayerChatMessage signedArgument) {
+         MinecraftServer server = sender.getServer();
+         CompletableFuture<FilteredText> filteredFuture = filterPlainText(sender, signedArgument);
+-        Component decorated = server.getChatDecorator().decorate(sender.getPlayer(), signedArgument.decoratedContent());
+-        sender.getChatMessageChainer().append(filteredFuture, filtered -> {
+-            PlayerChatMessage filteredMessage = signedArgument.withUnsignedContent(decorated).filter(filtered.mask());
++        // Paper start - support asynchronous chat decoration
++        CompletableFuture<Component> decoratedFuture = server.getChatDecorator().decorate(sender.getPlayer(), sender, signedArgument.decoratedContent());
++        sender.getChatMessageChainer().append(CompletableFuture.allOf(filteredFuture, decoratedFuture), filtered -> {
++            PlayerChatMessage filteredMessage = signedArgument.withUnsignedContent(decoratedFuture.join()).filter(filteredFuture.join().mask());
++            // Paper end - support asynchronous chat decoration
+             task.accept(filteredMessage);
+         });
+     }
+ 
+     private static void resolveDisguisedMessage(Consumer<PlayerChatMessage> task, CommandSourceStack sender, PlayerChatMessage argument) {
+         ChatDecorator decorator = sender.getServer().getChatDecorator();
+-        Component decorated = decorator.decorate(sender.getPlayer(), argument.decoratedContent());
+-        task.accept(argument.withUnsignedContent(decorated));
++        // Paper start - support asynchronous chat decoration
++        CompletableFuture<Component> decoratedFuture = decorator.decorate(sender.getPlayer(), sender, argument.decoratedContent());
++        sender.getChatMessageChainer().append(decoratedFuture, result -> task.accept(argument.withUnsignedContent(result)));
++        // Paper end - support asynchronous chat decoration
+     }
+ 
+     private static CompletableFuture<FilteredText> filterPlainText(CommandSourceStack sender, PlayerChatMessage message) {
 @@ -90,7 +_,7 @@
  
      public record Message(String text, MessageArgument.Part[] parts) {

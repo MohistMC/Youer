@@ -16,17 +16,18 @@
  import org.jspecify.annotations.Nullable;
  
  public class StandingAndWallBlockItem extends BlockItem {
-@@ -41,7 +_,19 @@
+@@ -41,7 +_,20 @@
              }
          }
  
 -        return stateForPlacement != null && level.isUnobstructed(stateForPlacement, pos, CollisionContext.empty()) ? stateForPlacement : null;
++        // return stateForPlacement != null && level.isUnobstructed(stateForPlacement, pos, CollisionContext.empty()) ? stateForPlacement : null;
 +        // CraftBukkit start
 +        if (stateForPlacement != null) {
 +            boolean defaultReturn = level.isUnobstructed(stateForPlacement, pos, CollisionContext.empty());
-+            org.bukkit.entity.Player player = (context.getPlayer() instanceof ServerPlayer) ? (org.bukkit.entity.Player) context.getPlayer().getBukkitEntity() : null;
++            org.bukkit.entity.Player player = (context.getPlayer() instanceof net.minecraft.server.level.ServerPlayer serverPlayer) ? serverPlayer.getBukkitEntity() : null;
 +
-+            BlockCanBuildEvent event = new BlockCanBuildEvent(CraftBlock.at(context.getLevel(), pos), player, CraftBlockData.fromData(stateForPlacement), defaultReturn);
++            org.bukkit.event.block.BlockCanBuildEvent event = new org.bukkit.event.block.BlockCanBuildEvent(org.bukkit.craftbukkit.block.CraftBlock.at(context.getLevel(), pos), player, stateForPlacement.asBlockData(), defaultReturn, org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(context.getHand())); // Paper - Expose hand in BlockCanBuildEvent
 +            context.getLevel().getCraftServer().getPluginManager().callEvent(event);
 +
 +            return (event.isBuildable()) ? stateForPlacement : null;

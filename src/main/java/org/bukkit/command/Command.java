@@ -32,16 +32,6 @@ public abstract class Command {
     protected String usageMessage;
     private String permission;
     private net.kyori.adventure.text.Component permissionMessage; // Paper
-    /**
-     * @deprecated Timings will be removed in the future
-     */
-    @Deprecated(forRemoval = true)
-    public co.aikar.timings.Timing timings; // Paper
-    /**
-     * @deprecated Timings will be removed in the future
-     */
-    @Deprecated(forRemoval = true)
-    @NotNull public String getTimingName() {return getName();} // Paper
 
     protected Command(@NotNull String name) {
         this(name, "", "/" + name, new ArrayList<String>());
