@@ -1,0 +1,28 @@
+--- a/net/minecraft/world/entity/ai/behavior/InteractWithDoor.java
++++ b/net/minecraft/world/entity/ai/behavior/InteractWithDoor.java
+@@ -56,6 +_,12 @@
+                             if (fromState.is(BlockTags.MOB_INTERACTABLE_DOORS, s -> s.getBlock() instanceof DoorBlock)) {
+                                 DoorBlock fromBlock = (DoorBlock)fromState.getBlock();
+                                 if (!fromBlock.isOpen(fromState)) {
++                                    // CraftBukkit start - entities opening doors
++                                    org.bukkit.event.entity.EntityInteractEvent event = new org.bukkit.event.entity.EntityInteractEvent(body.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(body.level(), fromPos));
++                                    if (!event.callEvent()) {
++                                        return false;
++                                    }
++                                    // CraftBukkit end - entities opening doors
+                                     fromBlock.setOpen(body, level, fromState, fromPos, true);
+                                 }
+ 
+@@ -67,6 +_,12 @@
+                             if (toState.is(BlockTags.MOB_INTERACTABLE_DOORS, s -> s.getBlock() instanceof DoorBlock)) {
+                                 DoorBlock door = (DoorBlock)toState.getBlock();
+                                 if (!door.isOpen(toState)) {
++                                    // CraftBukkit start - entities opening doors
++                                    org.bukkit.event.entity.EntityInteractEvent event = new org.bukkit.event.entity.EntityInteractEvent(body.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(body.level(), toPos));
++                                    if (!event.callEvent()) {
++                                        return false;
++                                    }
++                                    // CraftBukkit end - entities opening doors
+                                     door.setOpen(body, level, toState, toPos, true);
+                                     doors = rememberDoorToClose(doorsMemory, doors, level, toPos);
+                                 }

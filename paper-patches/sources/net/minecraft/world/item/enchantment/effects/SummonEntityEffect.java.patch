@@ -1,0 +1,22 @@
+--- a/net/minecraft/world/item/enchantment/effects/SummonEntityEffect.java
++++ b/net/minecraft/world/item/enchantment/effects/SummonEntityEffect.java
+@@ -34,11 +_,18 @@
+         if (Level.isInSpawnableBounds(blockPos)) {
+             Optional<Holder<EntityType<?>>> entityType = this.entityTypes().getRandomElement(serverLevel.getRandom());
+             if (!entityType.isEmpty()) {
+-                Entity spawned = entityType.get().value().spawn(serverLevel, blockPos, EntitySpawnReason.TRIGGERED);
++                Entity spawned = entityType.get().value().create(serverLevel, null, blockPos, EntitySpawnReason.TRIGGERED, false, false); // CraftBukkit
+                 if (spawned != null) {
+                     if (spawned instanceof LightningBolt lightningBolt && item.owner() instanceof ServerPlayer player) {
+                         lightningBolt.setCause(player);
+                     }
++                    // CraftBukkit start
++                    if (spawned instanceof LightningBolt) {
++                        serverLevel.strikeLightning(spawned, (item.itemStack().is(net.minecraft.world.item.Items.TRIDENT)) ? org.bukkit.event.weather.LightningStrikeEvent.Cause.TRIDENT : org.bukkit.event.weather.LightningStrikeEvent.Cause.ENCHANTMENT);
++                    } else {
++                        serverLevel.addFreshEntityWithPassengers(spawned, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.ENCHANTMENT);
++                    }
++                    // CraftBukkit end
+ 
+                     if (this.joinTeam && entity.getTeam() != null) {
+                         serverLevel.getScoreboard().addPlayerToTeam(spawned.getScoreboardName(), entity.getTeam());

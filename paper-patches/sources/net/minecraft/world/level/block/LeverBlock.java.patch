@@ -1,0 +1,28 @@
+--- a/net/minecraft/world/level/block/LeverBlock.java
++++ b/net/minecraft/world/level/block/LeverBlock.java
+@@ -70,6 +_,12 @@
+                 makeParticle(stateAfter, level, pos, 1.0F);
+             }
+         } else {
++            // Paper start - Call BlockRedstoneEvent
++            boolean wasPowered = stateBefore.getValue(POWERED);
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBinaryRedstoneChange(level, pos, !wasPowered)) {
++                return InteractionResult.SUCCESS;
++            }
++            // Paper end - Call BlockRedstoneEvent
+             this.pull(stateBefore, level, pos, null);
+         }
+ 
+@@ -81,7 +_,12 @@
+         final BlockState state, final ServerLevel level, final BlockPos pos, final Explosion explosion, final BiConsumer<ItemStack, BlockPos> onHit
+     ) {
+         if (explosion.canTriggerBlocks()) {
++            // Paper start - Call BlockRedstoneEvent
++            boolean wasPowered = state.getValue(POWERED);
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBinaryRedstoneChange(level, pos, !wasPowered)) {
++            // Paper end - Call BlockRedstoneEvent
+             this.pull(state, level, pos, null);
++            } // Paper - Call BlockRedstoneEvent
+         }
+ 
+         super.onExplosionHit(state, level, pos, explosion, onHit);

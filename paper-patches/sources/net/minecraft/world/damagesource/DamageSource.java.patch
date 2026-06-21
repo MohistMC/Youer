@@ -1,0 +1,93 @@
+--- a/net/minecraft/world/damagesource/DamageSource.java
++++ b/net/minecraft/world/damagesource/DamageSource.java
+@@ -17,6 +_,90 @@
+     private final @Nullable Entity causingEntity;
+     private final @Nullable Entity directEntity;
+     private final @Nullable Vec3 damageSourcePosition;
++    // CraftBukkit start
++    private org.bukkit.event.entity.EntityDamageEvent.@Nullable DamageCause knownCause; // When the damage event cause is known by the context of the call rather than the damage source data
++    @Nullable
++    private Entity eventEntityDamager = null; // Relevant entity set when the game doesn't normally set a causingEntity/directEntity
++    private org.bukkit.block.@Nullable Block eventBlockDamager; // Relevant block set. damageSourcePosition is only used for bad respawn point explosion or custom damage
++    private org.bukkit.block.@Nullable BlockState fromBlockSnapshot; // Captured block snapshot when the eventBlockDamager is not relevant (e.g. for bad respawn point explosions the block is already removed)
++    private boolean critical; // Supports arrows and sweeping damage
++
++    public DamageSource knownCause(final org.bukkit.event.entity.EntityDamageEvent.DamageCause cause) {
++        final DamageSource damageSource = this.copy();
++        damageSource.knownCause = cause;
++        return damageSource;
++    }
++
++    public org.bukkit.event.entity.EntityDamageEvent.@Nullable DamageCause knownCause() {
++        return this.knownCause;
++    }
++
++    @Nullable
++    public Entity eventEntityDamager() {
++        return this.eventEntityDamager;
++    }
++
++    public DamageSource eventEntityDamager(final Entity entity) {
++        if (this.directEntity == entity) { // no changes needed but useful for data driven damage
++            return this;
++        }
++
++        if (this.directEntity != null) {
++            throw new IllegalStateException("Cannot set an event damager when another direct entity is already set (report a bug to Paper)");
++        }
++        final DamageSource damageSource = this.copy();
++        damageSource.eventEntityDamager = entity;
++        return damageSource;
++    }
++
++    public org.bukkit.block.@Nullable Block eventBlockDamager() {
++        return this.eventBlockDamager;
++    }
++
++    public DamageSource eventBlockDamager(final net.minecraft.world.level.LevelAccessor level, final net.minecraft.core.@Nullable BlockPos pos) {
++        if (pos == null) {
++            return this;
++        }
++
++        final DamageSource damageSource = this.copy();
++        damageSource.eventBlockDamager = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++        return damageSource;
++    }
++
++    public org.bukkit.block.@Nullable BlockState causingBlockSnapshot() {
++        return this.fromBlockSnapshot;
++    }
++
++    public DamageSource causingBlockSnapshot(final org.bukkit.block.BlockState blockState) {
++        if (this.eventBlockDamager != null) {
++            throw new IllegalStateException("Cannot set a block snapshot when an event block damager is already set (report a bug to Paper)");
++        }
++        final DamageSource damageSource = this.copy();
++        damageSource.fromBlockSnapshot = blockState;
++        return damageSource;
++    }
++
++    public boolean isCritical() {
++        return this.critical;
++    }
++
++    public DamageSource critical() {
++        final DamageSource damageSource = this.copy();
++        damageSource.critical = true;
++        return damageSource;
++    }
++
++    // Cloning the instance lets us return unique instances of DamageSource without affecting constants defined in DamageSources
++    private DamageSource copy() {
++        final DamageSource damageSource = new DamageSource(this.type, this.directEntity, this.causingEntity, this.damageSourcePosition);
++        damageSource.knownCause = this.knownCause;
++        damageSource.eventEntityDamager = this.eventEntityDamager;
++        damageSource.eventBlockDamager = this.eventBlockDamager;
++        damageSource.fromBlockSnapshot = this.fromBlockSnapshot;
++        damageSource.critical = this.critical;
++        return damageSource;
++    }
++    // CraftBukkit end
+ 
+     @Override
+     public String toString() {

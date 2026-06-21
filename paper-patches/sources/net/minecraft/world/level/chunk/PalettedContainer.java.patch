@@ -1,0 +1,74 @@
+--- a/net/minecraft/world/level/chunk/PalettedContainer.java
++++ b/net/minecraft/world/level/chunk/PalettedContainer.java
+@@ -26,14 +_,14 @@
+     private static final int MIN_PALETTE_BITS = 0;
+     private volatile PalettedContainer.Data<T> data;
+     private final Strategy<T> strategy;
+-    private final ThreadingDetector threadingDetector = new ThreadingDetector("PalettedContainer");
++    //private final ThreadingDetector threadingDetector = new ThreadingDetector("PalettedContainer"); // Paper - unused
+ 
+     public void acquire() {
+-        this.threadingDetector.checkAndLock();
++        // this.threadingDetector.checkAndLock(); // Paper - disable this - use proper synchronization
+     }
+ 
+     public void release() {
+-        this.threadingDetector.checkAndUnlock();
++        // this.threadingDetector.checkAndUnlock(); // Paper - disable this - use proper synchronization
+     }
+ 
+     public static <T> Codec<PalettedContainer<T>> codecRW(final Codec<T> elementCodec, final Strategy<T> strategy, final T defaultValue) {
+@@ -94,7 +_,7 @@
+     }
+ 
+     @Override
+-    public int onResize(final int bits, final T lastAddedValue) {
++    public synchronized int onResize(final int bits, final T lastAddedValue) { // Paper - synchronize
+         PalettedContainer.Data<T> oldData = this.data;
+         PalettedContainer.Data<T> newData = this.createOrReuseData(oldData, bits);
+         newData.copyFrom(oldData.palette, oldData.storage);
+@@ -102,7 +_,7 @@
+         return newData.palette.idFor(lastAddedValue, PaletteResize.noResizeExpected());
+     }
+ 
+-    public T getAndSet(final int x, final int y, final int z, final T value) {
++    public synchronized T getAndSet(final int x, final int y, final int z, final T value) { // Paper - synchronize
+         this.acquire();
+ 
+         try {
+@@ -122,7 +_,7 @@
+         return this.data.palette.valueFor(oldId);
+     }
+ 
+-    public void set(final int x, final int y, final int z, final T value) {
++    public synchronized void set(final int x, final int y, final int z, final T value) { // Paper - synchronize
+         this.acquire();
+ 
+         try {
+@@ -155,7 +_,7 @@
+         allExistingEntries.forEach(state -> consumer.accept(palette.valueFor(state)));
+     }
+ 
+-    public void read(final FriendlyByteBuf buffer) {
++    public synchronized void read(final FriendlyByteBuf buffer) { // Paper - synchronize
+         this.acquire();
+ 
+         try {
+@@ -170,7 +_,7 @@
+     }
+ 
+     @Override
+-    public void write(final FriendlyByteBuf buffer) {
++    public synchronized void write(final FriendlyByteBuf buffer) { // Paper - synchronize
+         this.acquire();
+ 
+         try {
+@@ -224,7 +_,7 @@
+     }
+ 
+     @Override
+-    public PalettedContainerRO.PackedData<T> pack(final Strategy<T> strategy) {
++    public synchronized PalettedContainerRO.PackedData<T> pack(final Strategy<T> strategy) { // Paper - synchronize
+         this.acquire();
+ 
+         try {

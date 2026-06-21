@@ -1,0 +1,77 @@
+--- a/net/minecraft/world/level/block/BaseFireBlock.java
++++ b/net/minecraft/world/level/block/BaseFireBlock.java
+@@ -136,12 +_,13 @@
+         final InsideBlockEffectApplier effectApplier,
+         final boolean isPrecise
+     ) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(level, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
+         effectApplier.apply(InsideBlockEffectType.CLEAR_FREEZE);
+         effectApplier.apply(InsideBlockEffectType.FIRE_IGNITE);
+         effectApplier.runAfter(InsideBlockEffectType.FIRE_IGNITE, e -> e.hurt(e.level().damageSources().inFire(), this.fireDamage));
+     }
+ 
+-    public static void fireIgnite(final Entity entity) {
++    public static void fireIgnite(final Entity entity, BlockPos pos) { // Paper - track position inside effect was triggered on
+         if (!entity.fireImmune()) {
+             if (entity.getRemainingFireTicks() < 0) {
+                 entity.setRemainingFireTicks(entity.getRemainingFireTicks() + 1);
+@@ -151,30 +_,41 @@
+             }
+ 
+             if (entity.getRemainingFireTicks() >= 0) {
+-                entity.igniteForSeconds(8.0F);
++                // CraftBukkit start
++                org.bukkit.event.entity.EntityCombustEvent event = new org.bukkit.event.entity.EntityCombustByBlockEvent(org.bukkit.craftbukkit.block.CraftBlock.at(entity.level(), pos), entity.getBukkitEntity(), 8.0F);
++                entity.level().getCraftServer().getPluginManager().callEvent(event);
++
++                if (!event.isCancelled()) {
++                    entity.igniteForSeconds(event.getDuration(), false);
++                    // Paper start - fix EntityCombustEvent cancellation
++                } else {
++                    entity.setRemainingFireTicks(entity.getRemainingFireTicks() - 1);
++                    // Paper end - fix EntityCombustEvent cancellation
++                }
++                // CraftBukkit end
+             }
+         }
+     }
+ 
+     @Override
+-    protected void onPlace(final BlockState state, final Level level, final BlockPos pos, final BlockState oldState, final boolean movedByPiston) {
++    protected void onPlace(final BlockState state, final Level level, final BlockPos pos, final BlockState oldState, final boolean movedByPiston, net.minecraft.world.item.context.UseOnContext context) { // CraftBukkit - context
+         if (!oldState.is(state.getBlock())) {
+             if (inPortalDimension(level)) {
+                 Optional<PortalShape> optionalShape = PortalShape.findEmptyPortalShape(level, pos, Direction.Axis.X);
+                 if (optionalShape.isPresent()) {
+-                    optionalShape.get().createPortalBlocks(level);
++                    optionalShape.get().createPortalBlocks(level, (context == null) ? null : context.getPlayer()); // CraftBukkit - player
+                     return;
+                 }
+             }
+ 
+             if (!state.canSurvive(level, pos)) {
+-                level.removeBlock(pos, false);
++                this.fireExtinguished(level, pos); // CraftBukkit - fuel block broke
+             }
+         }
+     }
+ 
+     private static boolean inPortalDimension(final Level level) {
+-        return level.dimension() == Level.OVERWORLD || level.dimension() == Level.NETHER;
++        return level.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.OVERWORLD || level.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.NETHER; // CraftBukkit - getTypeKey()
+     }
+ 
+     @Override
+@@ -219,4 +_,12 @@
+             : Direction.Plane.HORIZONTAL.getRandomAxis(level.getRandom());
+         return PortalShape.findEmptyPortalShape(level, pos, preferredAxis).isPresent();
+     }
++
++    // CraftBukkit start
++    protected void fireExtinguished(net.minecraft.world.level.LevelAccessor world, BlockPos position) {
++        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, position, Blocks.AIR.defaultBlockState()).isCancelled()) {
++            world.removeBlock(position, false);
++        }
++    }
++    // CraftBukkit end
+ }

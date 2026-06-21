@@ -1,0 +1,19 @@
+--- a/net/minecraft/world/entity/ConversionType.java
++++ b/net/minecraft/world/entity/ConversionType.java
+@@ -24,7 +_,7 @@
+ 
+                 for (Entity passenger : to.getPassengers()) {
+                     passenger.stopRiding();
+-                    passenger.remove(Entity.RemovalReason.DISCARDED);
++                    passenger.remove(Entity.RemovalReason.DISCARDED, org.bukkit.event.entity.EntityRemoveEvent.Cause.TRANSFORMATION); // CraftBukkit - add Bukkit remove cause
+                 }
+ 
+                 rootPassenger.startRiding(to);
+@@ -73,6 +_,7 @@
+             if (leashHolder != null) {
+                 from.dropLeash();
+             }
++            to.aware = from.aware; // Paper - Fix nerfed slime when splitting
+ 
+             ConversionType.convertCommon(from, to, params);
+         }

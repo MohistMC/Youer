@@ -1,0 +1,24 @@
+--- a/net/minecraft/world/entity/animal/armadillo/Armadillo.java
++++ b/net/minecraft/world/entity/animal/armadillo/Armadillo.java
+@@ -293,8 +_,11 @@
+     }
+ 
+     @Override
+-    protected void actuallyHurt(final ServerLevel level, final DamageSource source, final float dmg) {
+-        super.actuallyHurt(level, source, dmg);
++    // CraftBukkit start - void -> boolean
++    public boolean actuallyHurt(final ServerLevel level, final DamageSource source, final float dmg, org.bukkit.event.entity.EntityDamageEvent event) {
++        boolean damageResult = super.actuallyHurt(level, source, dmg, event);
++        if (!damageResult) return false;
++        // CraftBukkit end
+         if (!this.isNoAi() && !this.isDeadOrDying()) {
+             if (source.getEntity() instanceof LivingEntity) {
+                 this.getBrain().setMemoryWithExpiry(MemoryModuleType.DANGER_DETECTED_RECENTLY, true, 80L);
+@@ -305,6 +_,7 @@
+                 this.rollOut();
+             }
+         }
++        return true; // CraftBukkit
+     }
+ 
+     @Override

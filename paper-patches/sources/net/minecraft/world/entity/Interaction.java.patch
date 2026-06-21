@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/entity/Interaction.java
++++ b/net/minecraft/world/entity/Interaction.java
+@@ -99,9 +_,16 @@
+     @Override
+     public boolean skipAttackInteraction(final Entity source) {
+         if (source instanceof Player player) {
++            // CraftBukkit start
++            DamageSource damageSource = player.damageSources().generic().eventEntityDamager(source);
++            org.bukkit.event.entity.EntityDamageEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callNonLivingEntityDamageEvent(this, damageSource, 1.0F, false);
++            if (event.isCancelled()) {
++                return true;
++            }
++            // CraftBukkit end
+             this.attack = new Interaction.PlayerAction(player.getUUID(), this.level().getGameTime());
+             if (player instanceof ServerPlayer serverPlayer) {
+-                CriteriaTriggers.PLAYER_HURT_ENTITY.trigger(serverPlayer, this, player.damageSources().generic(), 1.0F, 1.0F, false);
++                CriteriaTriggers.PLAYER_HURT_ENTITY.trigger(serverPlayer, this, damageSource, 1.0F, (float) event.getFinalDamage(), false); // CraftBukkit
+             }
+ 
+             return !this.getResponse();

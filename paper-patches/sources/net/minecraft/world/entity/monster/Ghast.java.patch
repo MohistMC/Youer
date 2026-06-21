@@ -1,0 +1,23 @@
+--- a/net/minecraft/world/entity/monster/Ghast.java
++++ b/net/minecraft/world/entity/monster/Ghast.java
+@@ -74,6 +_,12 @@
+         return this.explosionPower;
+     }
+ 
++    // Paper start
++    public void setExplosionPower(int explosionPower) {
++        this.explosionPower = explosionPower;
++    }
++    // Paper end
++
+     private static boolean isReflectedFireball(final DamageSource source) {
+         return source.getDirectEntity() instanceof LargeFireball && source.getEntity() instanceof Player;
+     }
+@@ -375,6 +_,7 @@
+                         }
+ 
+                         LargeFireball entity = new LargeFireball(level, this.ghast, direction.normalize(), this.ghast.getExplosionPower());
++                        entity.bukkitYield = entity.explosionPower = this.ghast.getExplosionPower(); // CraftBukkit - set bukkitYield when setting explosionPower
+                         entity.setPos(this.ghast.getX() + viewVector.x * 4.0, this.ghast.getY(0.5) + 0.5, entity.getZ() + viewVector.z * 4.0);
+                         level.addFreshEntity(entity);
+                         this.chargeTime = -40;

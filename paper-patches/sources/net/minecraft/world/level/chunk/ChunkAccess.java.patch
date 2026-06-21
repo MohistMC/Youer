@@ -1,0 +1,82 @@
+--- a/net/minecraft/world/level/chunk/ChunkAccess.java
++++ b/net/minecraft/world/level/chunk/ChunkAccess.java
+@@ -64,7 +_,7 @@
+     protected final @Nullable ShortList[] postProcessing;
+     private volatile boolean unsaved;
+     private volatile boolean isLightCorrect;
+-    protected final ChunkPos chunkPos;
++    protected final ChunkPos chunkPos; public final long coordinateKey; public final int locX; public final int locZ; // Paper - cache coordinate key
+     private long inhabitedTime;
+     @Deprecated
+     private @Nullable BiomeGenerationSettings carverBiomeSettings;
+@@ -79,6 +_,10 @@
+     public final Map<BlockPos, BlockEntity> blockEntities = new Object2ObjectOpenHashMap<>();
+     protected final LevelHeightAccessor levelHeightAccessor;
+     protected final LevelChunkSection[] sections;
++    // CraftBukkit start - SPIGOT-6814: move to ChunkAccess to account for 1.17 to 1.18 chunk upgrading.
++    private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
++    public org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer persistentDataContainer = new org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer(ChunkAccess.DATA_TYPE_REGISTRY);
++    // CraftBukkit end
+ 
+     public ChunkAccess(
+         final ChunkPos chunkPos,
+@@ -89,7 +_,8 @@
+         final LevelChunkSection @Nullable [] sections,
+         final @Nullable BlendingData blendingData
+     ) {
+-        this.chunkPos = chunkPos;
++        this.locX = chunkPos.x(); this.locZ = chunkPos.z(); // Paper - reduce need for field lookups
++        this.chunkPos = chunkPos; this.coordinateKey = ChunkPos.pack(this.locX, this.locZ); // Paper - cache long key
+         this.upgradeData = upgradeData;
+         this.levelHeightAccessor = levelHeightAccessor;
+         this.sections = new LevelChunkSection[levelHeightAccessor.getSectionsCount()];
+@@ -120,6 +_,8 @@
+         return GameEventListenerRegistry.NOOP;
+     }
+ 
++    public abstract BlockState getBlockState(final int x, final int y, final int z); // Paper
++
+     public @Nullable BlockState setBlockState(final BlockPos pos, final BlockState state) {
+         return this.setBlockState(pos, state, Block.UPDATE_ALL);
+     }
+@@ -266,6 +_,7 @@
+     public boolean tryMarkSaved() {
+         if (this.unsaved) {
+             this.unsaved = false;
++            this.persistentDataContainer.dirty(false); // CraftBukkit - SPIGOT-6814: chunk was saved, pdc is no longer dirty
+             return true;
+         } else {
+             return false;
+@@ -273,7 +_,7 @@
+     }
+ 
+     public boolean isUnsaved() {
+-        return this.unsaved;
++        return this.unsaved || this.persistentDataContainer.dirty(); // CraftBukkit - SPIGOT-6814: chunk is unsaved if pdc was mutated
+     }
+ 
+     public abstract ChunkStatus getPersistedStatus();
+@@ -444,6 +_,23 @@
+             throw new ReportedException(report);
+         }
+     }
++
++    // CraftBukkit start
++    public void setNoiseBiome(int quartX, int quartY, int quartZ, Holder<Biome> biome) {
++        try {
++            int quartMinY = QuartPos.fromBlock(this.getMinY());
++            int quartMaxY = quartMinY + QuartPos.fromBlock(this.getHeight()) - 1;
++            int clampedQuartY = Mth.clamp(quartY, quartMinY, quartMaxY);
++            int sectionIndex = this.getSectionIndex(QuartPos.toBlock(clampedQuartY));
++            this.sections[sectionIndex].setNoiseBiome(quartX & 3, clampedQuartY & 3, quartZ & 3, biome);
++        } catch (Throwable throwable) {
++            CrashReport report = CrashReport.forThrowable(throwable, "Setting biome");
++            CrashReportCategory category = report.addCategory("Biome being set");
++            category.setDetail("Location", () -> CrashReportCategory.formatLocation(this, quartX, quartY, quartZ));
++            throw new ReportedException(report);
++        }
++    }
++    // CraftBukkit end
+ 
+     public void fillBiomesFromNoise(final BiomeResolver biomeResolver, final Climate.Sampler sampler) {
+         ChunkPos pos = this.getPos();

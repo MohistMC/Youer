@@ -1,0 +1,31 @@
+--- a/net/minecraft/world/inventory/CrafterMenu.java
++++ b/net/minecraft/world/inventory/CrafterMenu.java
+@@ -19,6 +_,20 @@
+     private final ContainerData containerData;
+     private final Player player;
+     private final CraftingContainer container;
++    // CraftBukkit start
++    private org.bukkit.craftbukkit.inventory.view.@org.jspecify.annotations.Nullable CraftCrafterView view = null;
++
++    @Override
++    public org.bukkit.craftbukkit.inventory.view.CraftCrafterView getBukkitView() {
++        if (this.view != null) {
++            return this.view;
++        }
++
++        org.bukkit.craftbukkit.inventory.CraftInventoryCrafter inventory = new org.bukkit.craftbukkit.inventory.CraftInventoryCrafter(this.container, this.resultContainer);
++        this.view = new org.bukkit.craftbukkit.inventory.view.CraftCrafterView(this.player.getBukkitEntity(), inventory, this);
++        return this.view;
++    }
++    // CraftBukkit end
+ 
+     public CrafterMenu(final int containerId, final Inventory inventory) {
+         super(MenuType.CRAFTER_3x3, containerId);
+@@ -100,6 +_,7 @@
+ 
+     @Override
+     public boolean stillValid(final Player player) {
++        if (!this.checkReachable) return true; // CraftBukkit
+         return this.container.stillValid(player);
+     }
+ 

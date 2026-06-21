@@ -1,0 +1,46 @@
+--- a/net/minecraft/world/entity/NeutralMob.java
++++ b/net/minecraft/world/entity/NeutralMob.java
+@@ -51,7 +_,11 @@
+ 
+         if (level instanceof ServerLevel) {
+             this.setPersistentAngerTarget(EntityReference.read(input, "angry_at"));
+-            this.setTarget(EntityReference.getLivingEntity(this.getPersistentAngerTarget(), level));
++            // Paper - Prevent entity loading causing async lookups; Moved diff to separate method
++            // If this entity already survived its first tick, e.g. is loaded and ticked in sync, actively
++            // tick the initial persistent anger.
++            // If not, let the first tick on the baseTick call the method later down the line.
++            if (this instanceof Entity entity && !entity.firstTick) this.tickInitialPersistentAnger(level);
+         }
+     }
+ 
+@@ -136,7 +_,7 @@
+     default void stopBeingAngry() {
+         this.setLastHurtByMob(null);
+         this.setPersistentAngerTarget(null);
+-        this.setTarget(null);
++        this.setTarget(null, org.bukkit.event.entity.EntityTargetEvent.TargetReason.FORGOT_TARGET); // CraftBukkit
+         this.setPersistentAngerEndTime(-1L);
+     }
+ 
+@@ -146,9 +_,21 @@
+ 
+     void setTarget(final @Nullable LivingEntity target);
+ 
++    boolean setTarget(@Nullable LivingEntity target, org.bukkit.event.entity.EntityTargetEvent.@Nullable TargetReason reason); // CraftBukkit
++
+     boolean canAttack(final LivingEntity target);
+ 
+     @Nullable LivingEntity getTarget();
+ 
+     @Nullable LivingEntity getTargetUnchecked();
++
++    // Paper start - Prevent entity loading causing async lookups
++    // Update last hurt when ticking
++    default void tickInitialPersistentAnger(Level level) {
++        LivingEntity target = EntityReference.getLivingEntity(this.getPersistentAngerTarget(), level);
++        if (target != null) {
++            this.setTarget(target, null);
++        }
++    }
++    // Paper end - Prevent entity loading causing async lookups
+ }

@@ -1,0 +1,11 @@
+--- a/net/minecraft/world/item/component/UseRemainder.java
++++ b/net/minecraft/world/item/component/UseRemainder.java
+@@ -9,7 +_,7 @@
+ public record UseRemainder(ItemStackTemplate convertInto) {
+     public static final Codec<UseRemainder> CODEC = ItemStackTemplate.CODEC.xmap(UseRemainder::new, UseRemainder::convertInto);
+     public static final StreamCodec<RegistryFriendlyByteBuf, UseRemainder> STREAM_CODEC = StreamCodec.composite(
+-        ItemStackTemplate.STREAM_CODEC, UseRemainder::convertInto, UseRemainder::new
++        ItemStackTemplate.STREAM_CODEC.apply(net.minecraft.network.codec.ByteBufCodecs::increaseDepth), UseRemainder::convertInto, UseRemainder::new // Paper - Track codec depth
+     );
+ 
+     public ItemStack convertIntoRemainder(

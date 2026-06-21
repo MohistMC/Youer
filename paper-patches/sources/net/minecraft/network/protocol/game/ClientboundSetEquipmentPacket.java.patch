@@ -1,0 +1,32 @@
+--- a/net/minecraft/network/protocol/game/ClientboundSetEquipmentPacket.java
++++ b/net/minecraft/network/protocol/game/ClientboundSetEquipmentPacket.java
+@@ -19,6 +_,13 @@
+     private final List<Pair<EquipmentSlot, ItemStack>> slots;
+ 
+     public ClientboundSetEquipmentPacket(final int entity, final List<Pair<EquipmentSlot, ItemStack>> slots) {
++    // Paper start - data sanitization
++        this(entity, slots, false);
++    }
++    private boolean sanitize;
++    public ClientboundSetEquipmentPacket(int entity, List<Pair<EquipmentSlot, ItemStack>> slots, boolean sanitize) {
++        this.sanitize = sanitize;
++    // Paper end - data sanitization
+         this.entity = entity;
+         this.slots = slots;
+     }
+@@ -40,6 +_,7 @@
+         output.writeVarInt(this.entity);
+         int size = this.slots.size();
+ 
++        try (final io.papermc.paper.util.sanitizer.ItemObfuscationSession ignored = io.papermc.paper.util.sanitizer.ItemObfuscationSession.start(this.sanitize ? io.papermc.paper.configuration.GlobalConfiguration.get().anticheat.obfuscation.items.binding.level : io.papermc.paper.util.sanitizer.ItemObfuscationSession.ObfuscationLevel.NONE)) { // Paper - data sanitization
+         for (int i = 0; i < size; i++) {
+             Pair<EquipmentSlot, ItemStack> e = this.slots.get(i);
+             EquipmentSlot slotType = e.getFirst();
+@@ -48,6 +_,7 @@
+             output.writeByte(shouldContinue ? slotId | -128 : slotId);
+             ItemStack.OPTIONAL_STREAM_CODEC.encode(output, e.getSecond());
+         }
++        } // Paper - data sanitization
+     }
+ 
+     @Override

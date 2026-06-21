@@ -1,0 +1,66 @@
+--- a/net/minecraft/world/level/chunk/status/ChunkStatusTasks.java
++++ b/net/minecraft/world/level/chunk/status/ChunkStatusTasks.java
+@@ -41,7 +_,7 @@
+         final WorldGenContext context, final ChunkStep step, final StaticCache2D<GenerationChunkHolder> chunks, final ChunkAccess chunk
+     ) {
+         ServerLevel level = context.level();
+-        if (level.getServer().getWorldGenSettings().options().generateStructures()) {
++        if (level.worldGenSettings.options().generateStructures()) { // CraftBukkit
+             context.generator()
+                 .createStructures(
+                     level.registryAccess(),
+@@ -210,7 +_,51 @@
+ 
+     public static void postLoadProtoChunk(final ServerLevel level, final ValueInput.ValueInputList entities) {
+         if (!entities.isEmpty()) {
+-            level.addWorldGenChunkEntities(EntityType.loadEntitiesRecursive(entities, level, EntitySpawnReason.LOAD));
+-        }
+-    }
++            // Paper start - duplicate uuid resolving
++            level.addWorldGenChunkEntities(EntityType.loadEntitiesRecursive(entities, level, EntitySpawnReason.LOAD).filter((entity) -> {
++                return !checkDupeUUID(level, entity);
++            }));
++            // Paper end - duplicate uuid resolving
++        }
++    }
++
++    // Paper start - duplicate uuid resolving
++    // rets true if to prevent the entity from being added
++    public static boolean checkDupeUUID(ServerLevel level, net.minecraft.world.entity.Entity entity) {
++        io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DuplicateUUID.DuplicateUUIDMode mode = level.paperConfig().entities.spawning.duplicateUuid.mode;
++        if (mode != io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DuplicateUUID.DuplicateUUIDMode.WARN
++            && mode != io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DuplicateUUID.DuplicateUUIDMode.DELETE
++            && mode != io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DuplicateUUID.DuplicateUUIDMode.SAFE_REGEN) {
++            return false;
++        }
++        net.minecraft.world.entity.Entity other = level.getEntity(entity.getUUID());
++
++        if (other == null || other == entity) {
++            return false;
++        }
++
++        if (mode == io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DuplicateUUID.DuplicateUUIDMode.SAFE_REGEN && other != null && !other.isRemoved()
++            && java.util.Objects.equals(other.getEncodeId(), entity.getEncodeId())
++            && entity.getBukkitEntity().getLocation().distance(other.getBukkitEntity().getLocation()) < level.paperConfig().entities.spawning.duplicateUuid.safeRegenDeleteRange
++        ) {
++            entity.discard(null);
++            return true;
++        }
++        if (!other.isRemoved()) {
++            switch (mode) {
++                case SAFE_REGEN: {
++                    entity.setUUID(java.util.UUID.randomUUID());
++                    break;
++                }
++                case DELETE: {
++                    entity.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
++                    return true;
++                }
++                default:
++                    break;
++            }
++        }
++        return false;
++    }
++    // Paper end - duplicate uuid resolving
+ }

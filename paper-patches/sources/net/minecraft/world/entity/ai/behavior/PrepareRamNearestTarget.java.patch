@@ -1,0 +1,19 @@
+--- a/net/minecraft/world/entity/ai/behavior/PrepareRamNearestTarget.java
++++ b/net/minecraft/world/entity/ai/behavior/PrepareRamNearestTarget.java
+@@ -74,6 +_,16 @@
+         Brain<?> brain = body.getBrain();
+         brain.getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES)
+             .flatMap(livingEntities -> livingEntities.findClosest(entity -> this.ramTargeting.test(level, body, entity)))
++            // CraftBukkit start
++            .map((livingEntity) -> {
++                org.bukkit.event.entity.EntityTargetEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTargetLivingEvent(body, livingEntity, (livingEntity instanceof net.minecraft.server.level.ServerPlayer) ? org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_PLAYER : org.bukkit.event.entity.EntityTargetEvent.TargetReason.CLOSEST_ENTITY);
++                if (event.isCancelled() || event.getTarget() == null) {
++                    return null;
++                }
++                livingEntity = ((org.bukkit.craftbukkit.entity.CraftLivingEntity) event.getTarget()).getHandle();
++                return livingEntity;
++            })
++            // CraftBukkit end
+             .ifPresent(livingEntity -> this.chooseRamPosition(body, livingEntity));
+     }
+ 

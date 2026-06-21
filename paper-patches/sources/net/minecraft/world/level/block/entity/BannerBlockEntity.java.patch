@@ -1,0 +1,62 @@
+--- a/net/minecraft/world/level/block/entity/BannerBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/BannerBlockEntity.java
+@@ -48,7 +_,7 @@
+     @Override
+     protected void saveAdditional(final ValueOutput output) {
+         super.saveAdditional(output);
+-        if (!this.patterns.equals(BannerPatternLayers.EMPTY)) {
++        if (!this.patterns.equals(BannerPatternLayers.EMPTY) || serialisingForNetwork.get()) { // Paper - always send patterns to client
+             output.store("patterns", BannerPatternLayers.CODEC, this.patterns);
+         }
+ 
+@@ -59,7 +_,7 @@
+     protected void loadAdditional(final ValueInput input) {
+         super.loadAdditional(input);
+         this.name = parseCustomNameSafe(input, "CustomName");
+-        this.patterns = input.read("patterns", BannerPatternLayers.CODEC).orElse(BannerPatternLayers.EMPTY);
++        this.setPatterns(input.read("patterns", BannerPatternLayers.CODEC).orElse(BannerPatternLayers.EMPTY)); // CraftBukkit - apply limits
+     }
+ 
+     @Override
+@@ -67,9 +_,18 @@
+         return ClientboundBlockEntityDataPacket.create(this);
+     }
+ 
++    // Paper start - always send patterns to client
++    ThreadLocal<Boolean> serialisingForNetwork = ThreadLocal.withInitial(() -> Boolean.FALSE);
+     @Override
+     public CompoundTag getUpdateTag(final HolderLookup.Provider registries) {
++        final Boolean wasSerialisingForNetwork = serialisingForNetwork.get();
++        try {
++            serialisingForNetwork.set(Boolean.TRUE);
+         return this.saveWithoutMetadata(registries);
++        } finally {
++            serialisingForNetwork.set(wasSerialisingForNetwork);
++        }
++        // Paper end - always send patterns to client
+     }
+ 
+     public BannerPatternLayers getPatterns() {
+@@ -89,7 +_,7 @@
+     @Override
+     protected void applyImplicitComponents(final DataComponentGetter components) {
+         super.applyImplicitComponents(components);
+-        this.patterns = components.getOrDefault(DataComponents.BANNER_PATTERNS, BannerPatternLayers.EMPTY);
++        this.setPatterns(components.getOrDefault(DataComponents.BANNER_PATTERNS, BannerPatternLayers.EMPTY)); // CraftBukkit - apply limits
+         this.name = components.get(DataComponents.CUSTOM_NAME);
+     }
+ 
+@@ -105,4 +_,13 @@
+         output.discard("patterns");
+         output.discard("CustomName");
+     }
++
++    // CraftBukkit start
++    public void setPatterns(BannerPatternLayers bannerPatternLayers) {
++        if (bannerPatternLayers.layers().size() > 20) {
++            bannerPatternLayers = new BannerPatternLayers(java.util.List.copyOf(bannerPatternLayers.layers().subList(0, 20)));
++        }
++        this.patterns = bannerPatternLayers;
++    }
++    // CraftBukkit end
+ }

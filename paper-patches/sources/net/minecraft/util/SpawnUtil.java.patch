@@ -1,0 +1,70 @@
+--- a/net/minecraft/util/SpawnUtil.java
++++ b/net/minecraft/util/SpawnUtil.java
+@@ -16,6 +_,7 @@
+ import net.minecraft.world.level.block.state.BlockState;
+ 
+ public class SpawnUtil {
++
+     public static <T extends Mob> Optional<T> trySpawnMob(
+         final EntityType<T> entityType,
+         final EntitySpawnReason spawnReason,
+@@ -27,6 +_,24 @@
+         final SpawnUtil.Strategy strategy,
+         final boolean checkCollisions
+     ) {
++        // CraftBukkit start
++        return trySpawnMob(entityType, spawnReason, level, start, spawnAttempts, spawnRangeXZ, spawnRangeY, strategy, checkCollisions, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT, null); // Paper - pre creature spawn event
++    }
++
++    public static <T extends Mob> Optional<T> trySpawnMob(
++        final EntityType<T> entityType,
++        final EntitySpawnReason spawnReason,
++        final ServerLevel level,
++        final BlockPos start,
++        final int spawnAttempts,
++        final int spawnRangeXZ,
++        final int spawnRangeY,
++        final SpawnUtil.Strategy strategy,
++        final boolean checkCollisions,
++        final org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason reason,
++        final @org.jspecify.annotations.Nullable Runnable onAbort // Paper - pre creature spawn event
++    ) {
++        // CraftBukkit end
+         BlockPos.MutableBlockPos searchPos = start.mutable();
+         RandomSource random = level.getRandom();
+ 
+@@ -37,15 +_,32 @@
+             if (level.getWorldBorder().isWithinBounds(searchPos)
+                 && moveToPossibleSpawnPosition(level, spawnRangeY, searchPos, strategy)
+                 && (!checkCollisions || level.noCollision(entityType.getSpawnAABB(searchPos.getX() + 0.5, searchPos.getY(), searchPos.getZ() + 0.5)))) {
++                // Paper start - PreCreatureSpawnEvent
++                final com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent event = new com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent(
++                    org.bukkit.craftbukkit.util.CraftLocation.toBukkit(start, level),
++                    org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(entityType),
++                    reason
++                );
++                if (!event.callEvent()) {
++                    if (event.shouldAbortSpawn()) {
++                        if (onAbort != null) {
++                            onAbort.run();
++                        }
++                        return Optional.empty();
++                    }
++                    break;
++                }
++                // Paper end - PreCreatureSpawnEvent
+                 T mob = (T)entityType.create(level, null, searchPos, spawnReason, false, false);
+                 if (mob != null) {
+                     if (mob.checkSpawnRules(level, spawnReason) && mob.checkSpawnObstruction(level)) {
+-                        level.addFreshEntityWithPassengers(mob);
++                        level.addFreshEntityWithPassengers(mob, reason); // CraftBukkit
++                        if (mob.isRemoved()) return Optional.empty(); // CraftBukkit
+                         mob.playAmbientSound();
+                         return Optional.of(mob);
+                     }
+ 
+-                    mob.discard();
++                    mob.discard(null); // CraftBukkit - add Bukkit remove cause
+                 }
+             }
+         }
