@@ -5,6 +5,7 @@ import com.mohistmc.launcher.youer.util.I18n;
 import com.mohistmc.launcher.youer.util.JarLoader;
 import com.mohistmc.launcher.youer.util.JarModifier;
 import com.mohistmc.tools.FileUtils;
+import com.mohistmc.tools.OSUtil;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -64,10 +65,12 @@ public class AutoDeleteMods {
         put("com.wfphantom.stfudisconnect.STFUDisconnect", DeletionReason.DUPLICATE_FEATURE);
     }};
 
+    private static final String END = OSUtil.getOS().isWindows() ? ";" : ":";
+    private static final String ZSTD = "libraries/com/github/luben/zstd-jni/1.5.7-8/zstd-jni-1.5.7-8.jar" + END;
     private static final Map<String, String> LIB_BLACKLIST = new HashMap<>() {{
-        put("cn.tohsaka.factory.zstdmc.Zstdmc", "libraries/com/github/luben/zstd-jni/1.5.7-8/zstd-jni-1.5.7-8.jar;");
-        put("cn.tohsaka.factory.zstdnet.Zstdnet", "libraries/com/github/luben/zstd-jni/1.5.7-8/zstd-jni-1.5.7-8.jar;");
-        put("cn.ussshenzhou.notenoughbandwidth.NotEnoughBandwidthLegacy", "libraries/com/github/luben/zstd-jni/1.5.7-8/zstd-jni-1.5.7-8.jar;");
+        put("cn.tohsaka.factory.zstdmc.Zstdmc", ZSTD);
+        put("cn.tohsaka.factory.zstdnet.Zstdnet", ZSTD);
+        put("cn.ussshenzhou.notenoughbandwidth.NotEnoughBandwidthLegacy", ZSTD);
     }};
 
     /**
