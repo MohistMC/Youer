@@ -31,7 +31,6 @@ import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.WorldInfo;
@@ -127,7 +126,7 @@ public class YouerCommand extends Command {
             case "version" -> {
                 sender.sendMessage("Youer: " + Youer.versionInfo.youer());
                 sender.sendMessage("NeoForge: " + Youer.versionInfo.neoforge());
-                sender.sendMessage("Paper: " + Youer.versionInfo.bukkit());
+                sender.sendMessage("Paper: " + Youer.versionInfo.paper());
                 return true;
             }
             case "packetstats" -> {

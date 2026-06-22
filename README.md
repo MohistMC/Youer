@@ -31,7 +31,7 @@
 
 ✅ **Core Integration**
 - [x] NeoForge ([acb08366c](https://github.com/neoforged/NeoForge/commit/acb08366c))
-- [ ] Paper ([27f926e7e](https://github.com/PaperMC/Paper/commit/27f926e7e))
+- [ ] Paper ([250ea42064](https://github.com/PaperMC/Paper/commit/250ea42064))
   - [ ] api
   - [ ] server
     - [ ] chunk_system
