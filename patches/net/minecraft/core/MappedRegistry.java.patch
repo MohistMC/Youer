@@ -72,7 +72,7 @@
          if (this.byLocation.containsKey(key.identifier())) {
              throw (IllegalStateException)Util.pauseInIde(new IllegalStateException("Adding duplicate key '" + key + "' to registry"));
          }
-@@ -107,16 +_,19 @@
+@@ -107,16 +_,20 @@
              holder.bindKey(key);
          } else {
              holder = this.byKey.computeIfAbsent(key, k -> Holder.Reference.createStandAlone(this, (ResourceKey<T>)k));
@@ -90,6 +90,7 @@
          this.registryLifecycle = this.registryLifecycle.add(registrationInfo.lifecycle());
 +        this.addCallbacks.forEach(addCallback -> addCallback.onAdd(this, newId, key, value));
 +        this.temporaryUnfrozenMap.put(key.identifier(), value); // Paper - support pre-filling in registry mod API
++        this.injectFluidRegister(key, value); // Paper - fluid method optimisations
          return holder;
      }
  

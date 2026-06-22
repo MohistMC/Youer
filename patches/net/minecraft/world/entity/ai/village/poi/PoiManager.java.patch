@@ -1,11 +1,388 @@
 --- a/net/minecraft/world/entity/ai/village/poi/PoiManager.java
 +++ b/net/minecraft/world/entity/ai/village/poi/PoiManager.java
-@@ -206,7 +_,7 @@
+@@ -40,12 +_,137 @@
+ import net.minecraft.world.level.chunk.storage.SimpleRegionStorage;
+ import org.jspecify.annotations.Nullable;
+ 
+-public class PoiManager extends SectionStorage<PoiSection, PoiSection.Packed> {
++public class PoiManager extends SectionStorage<PoiSection, PoiSection.Packed> implements ca.spottedleaf.moonrise.patches.chunk_system.level.poi.ChunkSystemPoiManager { // Paper - rewrite chunk system
+     public static final int MAX_VILLAGE_DISTANCE = 6;
+     public static final int VILLAGE_SECTION_SIZE = 1;
+     private final PoiManager.DistanceTracker distanceTracker;
+     private final LongSet loadedChunks = new LongOpenHashSet();
+ 
++    // Paper start - rewrite chunk system
++    private final net.minecraft.server.level.ServerLevel world;
++
++    // the vanilla tracker needs to be replaced because it does not support level removes, and we need level removes
++    // to support poi unloading
++    private final ca.spottedleaf.moonrise.common.misc.Delayed26WayDistancePropagator3D villageDistanceTracker = new ca.spottedleaf.moonrise.common.misc.Delayed26WayDistancePropagator3D();
++
++    private static final int POI_DATA_SOURCE = 7;
++
++    private static int convertBetweenLevels(final int level) {
++        return POI_DATA_SOURCE - level;
++    }
++
++    private void updateDistanceTracking(long section) {
++        if (this.isVillageCenter(section)) {
++            this.villageDistanceTracker.setSource(section, POI_DATA_SOURCE);
++        } else {
++            this.villageDistanceTracker.removeSource(section);
++        }
++    }
++
++    @Override
++    public Optional<PoiSection> get(final long pos) {
++        final int chunkX = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkSectionX(pos);
++        final int chunkY = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkSectionY(pos);
++        final int chunkZ = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkSectionZ(pos);
++
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.world, chunkX, chunkZ, "Accessing poi chunk off-main");
++
++        final ca.spottedleaf.moonrise.patches.chunk_system.level.poi.PoiChunk ret = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.world).moonrise$getChunkTaskScheduler().chunkHolderManager.getPoiChunkIfLoaded(chunkX, chunkZ, true);
++
++        return ret == null ? Optional.empty() : ret.getSectionForVanilla(chunkY);
++    }
++
++    @Override
++    public Optional<PoiSection> getOrLoad(final long pos) {
++        final int chunkX = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkSectionX(pos);
++        final int chunkY = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkSectionY(pos);
++        final int chunkZ = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkSectionZ(pos);
++
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.world, chunkX, chunkZ, "Accessing poi chunk off-main");
++
++        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkHolderManager manager = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.world).moonrise$getChunkTaskScheduler().chunkHolderManager;
++
++        if (chunkY >= ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection(this.world) && chunkY <= ca.spottedleaf.moonrise.common.util.WorldUtil.getMaxSection(this.world)) {
++            final ca.spottedleaf.moonrise.patches.chunk_system.level.poi.PoiChunk ret = manager.getPoiChunkIfLoaded(chunkX, chunkZ, true);
++            if (ret != null) {
++                return ret.getSectionForVanilla(chunkY);
++            } else {
++                return manager.loadPoiChunk(chunkX, chunkZ).getSectionForVanilla(chunkY);
++            }
++        }
++        // retain vanilla behavior: do not load section if out of bounds!
++        return Optional.empty();
++    }
++
++    @Override
++    protected PoiSection getOrCreate(final long pos) {
++        final int chunkX = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkSectionX(pos);
++        final int chunkY = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkSectionY(pos);
++        final int chunkZ = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkSectionZ(pos);
++
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.world, chunkX, chunkZ, "Accessing poi chunk off-main");
++
++        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkHolderManager manager = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.world).moonrise$getChunkTaskScheduler().chunkHolderManager;
++
++        final ca.spottedleaf.moonrise.patches.chunk_system.level.poi.PoiChunk ret = manager.getPoiChunkIfLoaded(chunkX, chunkZ, true);
++        if (ret != null) {
++            return ret.getOrCreateSection(chunkY);
++        } else {
++            return manager.loadPoiChunk(chunkX, chunkZ).getOrCreateSection(chunkY);
++        }
++    }
++
++    @Override
++    public final net.minecraft.server.level.ServerLevel moonrise$getWorld() {
++        return this.world;
++    }
++
++    @Override
++    public final void moonrise$onUnload(final long coordinate) { // Paper - rewrite chunk system
++        final int chunkX = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkX(coordinate);
++        final int chunkZ = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkZ(coordinate);
++
++        final int minY = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection(this.world);
++        final int maxY = ca.spottedleaf.moonrise.common.util.WorldUtil.getMaxSection(this.world);
++
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.world, chunkX, chunkZ, "Unloading poi chunk off-main");
++        for (int sectionY = minY; sectionY <= maxY; ++sectionY) {
++            final long sectionPos = SectionPos.asLong(chunkX, sectionY, chunkZ);
++            this.updateDistanceTracking(sectionPos);
++        }
++    }
++
++    @Override
++    public final void moonrise$loadInPoiChunk(final ca.spottedleaf.moonrise.patches.chunk_system.level.poi.PoiChunk poiChunk) {
++        final int chunkX = poiChunk.chunkX;
++        final int chunkZ = poiChunk.chunkZ;
++
++        final int minY = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection(this.world);
++        final int maxY = ca.spottedleaf.moonrise.common.util.WorldUtil.getMaxSection(this.world);
++
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.world, chunkX, chunkZ, "Loading poi chunk off-main");
++        for (int sectionY = minY; sectionY <= maxY; ++sectionY) {
++            final PoiSection section = poiChunk.getSection(sectionY);
++            if (section != null && !((ca.spottedleaf.moonrise.patches.chunk_system.level.poi.ChunkSystemPoiSection)section).moonrise$isEmpty()) {
++                this.onSectionLoad(SectionPos.asLong(chunkX, sectionY, chunkZ));
++            }
++        }
++    }
++
++    @Override
++    public final void moonrise$checkConsistency(final net.minecraft.world.level.chunk.ChunkAccess chunk) {
++        final int chunkX = chunk.getPos().x();
++        final int chunkZ = chunk.getPos().z();
++
++        final int minY = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection(chunk);
++        final int maxY = ca.spottedleaf.moonrise.common.util.WorldUtil.getMaxSection(chunk);
++        final LevelChunkSection[] sections = chunk.getSections();
++        for (int section = minY; section <= maxY; ++section) {
++            this.checkConsistencyWithBlocks(SectionPos.of(chunkX, section, chunkZ), sections[section - minY]);
++        }
++    }
++    // Paper end - rewrite chunk system
++
+     public PoiManager(
+         RegionStorageInfo info,
+         Path folder,
+@@ -66,6 +_,7 @@
+             levelHeightAccessor
+         );
+         this.distanceTracker = new PoiManager.DistanceTracker();
++        this.world = (net.minecraft.server.level.ServerLevel)levelHeightAccessor; // Paper - rewrite chunk system
+     }
+ 
+     public @Nullable PoiRecord add(BlockPos pos, Holder<PoiType> type) {
+@@ -85,16 +_,27 @@
+     }
+ 
+     public Stream<PoiRecord> getInSquare(Predicate<Holder<PoiType>> predicate, BlockPos center, int radius, PoiManager.Occupancy occupancy) {
+-        int chunkRadius = Math.floorDiv(radius, 16) + 1;
+-        return ChunkPos.rangeClosed(ChunkPos.containing(center), chunkRadius).flatMap(pos -> this.getInChunk(predicate, pos, occupancy)).filter(record -> {
+-            BlockPos pos = record.getPos();
+-            return Math.abs(pos.getX() - center.getX()) <= radius && Math.abs(pos.getZ() - center.getZ()) <= radius;
+-        });
++        // Paper start - optimise POI lookup
++        final List<PoiRecord> ret = new java.util.ArrayList<>();
++
++        ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.findAnyPoiRecords(
++                (PoiManager)(Object)this, predicate, (Predicate<BlockPos>)null, center, radius, Double.MAX_VALUE, occupancy, ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.LOAD_FOR_SEARCHING, Integer.MAX_VALUE, ret
++        );
++
++        return ret.stream();
++        // Paper end - optimise POI lookup
+     }
+ 
+     public Stream<PoiRecord> getInRange(Predicate<Holder<PoiType>> predicate, BlockPos center, int radius, PoiManager.Occupancy occupancy) {
+-        int radiusSqr = radius * radius;
+-        return this.getInSquare(predicate, center, radius, occupancy).filter(r -> r.getPos().distSqr(center) <= radiusSqr);
++        // Paper start - optimise POI lookup
++        final List<PoiRecord> ret = new java.util.ArrayList<>();
++
++        ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.findAnyPoiRecords(
++                (PoiManager)(Object)this, predicate, (Predicate<BlockPos>)null, center, radius, (double)((long)radius * (long)radius), occupancy, ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.LOAD_FOR_SEARCHING, Integer.MAX_VALUE, ret
++        );
++
++        return ret.stream();
++        // Paper end - optimise POI lookup
+     }
+ 
+     @VisibleForDebug
+@@ -109,65 +_,125 @@
+     public Stream<BlockPos> findAll(
+         Predicate<Holder<PoiType>> predicate, Predicate<BlockPos> filter, BlockPos center, int radius, PoiManager.Occupancy occupancy
+     ) {
+-        return this.getInRange(predicate, center, radius, occupancy).map(PoiRecord::getPos).filter(filter);
++        // Paper start - optimise POI lookup
++        final List<PoiRecord> ret = new java.util.ArrayList<>();
++
++        ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.findAnyPoiRecords(
++                (PoiManager)(Object)this, predicate, filter, center, radius, (double)((long)radius * (long)radius), occupancy, ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.LOAD_FOR_SEARCHING, Integer.MAX_VALUE, ret
++        );
++
++        return ret.stream().map(PoiRecord::getPos);
++        // Paper end - optimise POI lookup
+     }
+ 
+     public Stream<Pair<Holder<PoiType>, BlockPos>> findAllWithType(
+         Predicate<Holder<PoiType>> predicate, Predicate<BlockPos> filter, BlockPos center, int radius, PoiManager.Occupancy occupancy
+     ) {
+-        return this.getInRange(predicate, center, radius, occupancy).filter(p -> filter.test(p.getPos())).map(p -> Pair.of(p.getPoiType(), p.getPos()));
++        // Paper start - optimise POI lookup
++        final List<PoiRecord> ret = new java.util.ArrayList<>();
++
++        ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.findAnyPoiRecords(
++                (PoiManager)(Object)this, predicate, filter, center, radius, (double)((long)radius * (long)radius), occupancy, ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.LOAD_FOR_SEARCHING, Integer.MAX_VALUE, ret
++        );
++
++        return ret.stream().map((final PoiRecord record) -> {
++            return Pair.of(record.getPoiType(), record.getPos());
++        });
++        // Paper end - optimise POI lookup
+     }
+ 
+     public Stream<Pair<Holder<PoiType>, BlockPos>> findAllClosestFirstWithType(
+         Predicate<Holder<PoiType>> predicate, Predicate<BlockPos> filter, BlockPos center, int radius, PoiManager.Occupancy occupancy
+     ) {
+-        return this.findAllWithType(predicate, filter, center, radius, occupancy).sorted(Comparator.comparingDouble(p -> p.getSecond().distSqr(center)));
++        // Paper start - optimise POI lookup
++        final List<PoiRecord> ret = new java.util.ArrayList<>();
++
++        ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.findAnyPoiRecords(
++                (PoiManager)(Object)this, predicate, filter, center, radius, (double)((long)radius * (long)radius), occupancy, ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.LOAD_FOR_SEARCHING, Integer.MAX_VALUE, ret
++        );
++
++        ret.sort((final PoiRecord record1, final PoiRecord record2) -> {
++            return ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.compareDistances(center, record1.getPos(), record2.getPos());
++        });
++
++        return ret.stream().map((final PoiRecord record) -> {
++            return Pair.of(record.getPoiType(), record.getPos());
++        });
++        // Paper end - optimise POI lookup
+     }
+ 
+     public Optional<BlockPos> find(
+         Predicate<Holder<PoiType>> predicate, Predicate<BlockPos> filter, BlockPos center, int radius, PoiManager.Occupancy occupancy
+     ) {
+-        return this.findAll(predicate, filter, center, radius, occupancy).findFirst();
++        // Paper start - optimise POI lookup
++        return Optional.ofNullable(ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.findAnyPoiPosition((PoiManager)(Object)this, predicate, filter, center, radius, occupancy, ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.LOAD_FOR_SEARCHING));
++        // Paper end - optimise POI lookup
+     }
+ 
+     public Optional<BlockPos> findClosest(Predicate<Holder<PoiType>> predicate, BlockPos center, int radius, PoiManager.Occupancy occupancy) {
+-        return this.getInRange(predicate, center, radius, occupancy).map(PoiRecord::getPos).min(Comparator.comparingDouble(pos -> pos.distSqr(center)));
++        // Paper start - optimise POI lookup
++        final PoiRecord closest = ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.findNearestPoiRecord(
++                (PoiManager)(Object)this, predicate, null, center, radius, (double)((long)radius * (long)radius), occupancy, ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.LOAD_FOR_SEARCHING
++        );
++        return closest == null ? Optional.empty() : Optional.of(closest.getPos());
++        // Paper end - optimise POI lookup
+     }
+ 
+     public Optional<Pair<Holder<PoiType>, BlockPos>> findClosestWithType(
+         Predicate<Holder<PoiType>> predicate, BlockPos center, int radius, PoiManager.Occupancy occupancy
+     ) {
+-        return this.getInRange(predicate, center, radius, occupancy)
+-            .min(Comparator.comparingDouble(r -> r.getPos().distSqr(center)))
+-            .map(p -> Pair.of(p.getPoiType(), p.getPos()));
++        // Paper start - optimise POI lookup
++        final PoiRecord closest = ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.findNearestPoiRecord(
++                (PoiManager)(Object)this, predicate, null, center, radius, (double)((long)radius * (long)radius), occupancy, ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.LOAD_FOR_SEARCHING
++        );
++        return closest == null ? Optional.empty() : Optional.of(Pair.of(closest.getPoiType(), closest.getPos()));
++        // Paper end - optimise POI lookup
+     }
+ 
+     public Optional<BlockPos> findClosest(
+         Predicate<Holder<PoiType>> predicate, Predicate<BlockPos> filter, BlockPos center, int radius, PoiManager.Occupancy occupancy
+     ) {
+-        return this.getInRange(predicate, center, radius, occupancy)
+-            .map(PoiRecord::getPos)
+-            .filter(filter)
+-            .min(Comparator.comparingDouble(pos -> pos.distSqr(center)));
++        // Paper start - optimise POI lookup
++        final PoiRecord closest = ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.findNearestPoiRecord(
++                (PoiManager)(Object)this, predicate, filter, center, radius, (double)((long)radius * (long)radius), occupancy, ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.LOAD_FOR_SEARCHING
++        );
++        return closest == null ? Optional.empty() : Optional.of(closest.getPos());
++        // Paper end - optimise POI lookup
+     }
+-
+     public Optional<BlockPos> take(Predicate<Holder<PoiType>> predicate, BiPredicate<Holder<PoiType>, BlockPos> filter, BlockPos center, int radius) {
+-        return this.getInRange(predicate, center, radius, PoiManager.Occupancy.HAS_SPACE)
+-            .filter(poi -> filter.test(poi.getPoiType(), poi.getPos()))
+-            .findFirst()
+-            .map(r -> {
+-                r.acquireTicket();
+-                return r.getPos();
+-            });
++        // Paper start - optimise POI lookup
++        final PoiRecord record = ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.findAnyPoiRecord(
++                (PoiManager)(Object)this, predicate, filter, center, radius, (double)((long)radius * (long)radius), PoiManager.Occupancy.HAS_SPACE, ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.LOAD_FOR_SEARCHING
++        );
++
++        if (record == null) {
++            return Optional.empty();
++        }
++
++        record.acquireTicket();
++        return Optional.of(record.getPos());
++        // Paper end - optimise POI lookup
+     }
+ 
+     public Optional<BlockPos> getRandom(
+         Predicate<Holder<PoiType>> predicate, Predicate<BlockPos> filter, PoiManager.Occupancy occupancy, BlockPos center, int radius, RandomSource random
+     ) {
+-        List<PoiRecord> collect = Util.toShuffledList(this.getInRange(predicate, center, radius, occupancy), random);
+-        return collect.stream().filter(poi -> filter.test(poi.getPos())).findFirst().map(PoiRecord::getPos);
++        // Paper start - optimise POI lookup
++        final List<PoiRecord> list = new java.util.ArrayList<>();
++        ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.findAnyPoiRecords(
++                (PoiManager)(Object)this, predicate, filter, center, radius, (double)((long)radius * (long)radius), occupancy, ca.spottedleaf.moonrise.patches.poi_lookup.PoiAccess.LOAD_FOR_SEARCHING, Integer.MAX_VALUE, list
++        );
++
++        // the old method shuffled the list and then tried to find the first element in it that
++        // matched positionPredicate, however we moved positionPredicate into the poi search. This means we can avoid a
++        // shuffle entirely, and just pick a random element from list
++        if (list.isEmpty()) {
++            return Optional.empty();
++        }
++
++        return Optional.ofNullable(list.get(random.nextInt(list.size())).getPos());
++        // Paper end - optimise POI lookup
+     }
+-
+     public boolean release(BlockPos pos) {
+         return this.getOrLoad(SectionPos.asLong(pos))
+             .map(section -> section.release(pos))
+@@ -188,8 +_,10 @@
+     }
+ 
+     public int sectionsToVillage(SectionPos sectionPos) {
+-        this.distanceTracker.runAllUpdates();
+-        return this.distanceTracker.getLevel(sectionPos.asLong());
++        // Paper start - rewrite chunk system
++        this.villageDistanceTracker.propagateUpdates();
++        return convertBetweenLevels(this.villageDistanceTracker.getLevel(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkSectionKey(sectionPos)));
++        // Paper end - rewrite chunk system
+     }
+ 
+     private boolean isVillageCenter(long sectionPos) {
+@@ -201,19 +_,26 @@
+ 
+     @Override
+     public void tick(BooleanSupplier haveTime) {
+-        super.tick(haveTime);
+-        this.distanceTracker.runAllUpdates();
++        this.villageDistanceTracker.propagateUpdates(); // Paper - rewrite chunk system
      }
  
      @Override
 -    protected void setDirty(long sectionPos) {
+-        super.setDirty(sectionPos);
+-        this.distanceTracker.update(sectionPos, this.distanceTracker.getLevelFromSource(sectionPos), false);
 +    public void setDirty(long sectionPos) {
-         super.setDirty(sectionPos);
-         this.distanceTracker.update(sectionPos, this.distanceTracker.getLevelFromSource(sectionPos), false);
++        // Paper start - rewrite chunk system
++        final int chunkX = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkSectionX(sectionPos);
++        final int chunkZ = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkSectionZ(sectionPos);
++        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkHolderManager manager = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.world).moonrise$getChunkTaskScheduler().chunkHolderManager;
++        final ca.spottedleaf.moonrise.patches.chunk_system.level.poi.PoiChunk chunk = manager.getPoiChunkIfLoaded(chunkX, chunkZ, false);
++        if (chunk != null) {
++            chunk.setDirty(true);
++        }
++        this.updateDistanceTracking(sectionPos);
++        // Paper end - rewrite chunk system
      }
+ 
+     @Override
+     protected void onSectionLoad(long sectionPos) {
+-        this.distanceTracker.update(sectionPos, this.distanceTracker.getLevelFromSource(sectionPos), false);
++        this.updateDistanceTracking(sectionPos); // Paper - rewrite chunk system
+     }
+ 
+     public void checkConsistencyWithBlocks(SectionPos sectionPos, LevelChunkSection blockSection) {
+@@ -252,7 +_,7 @@
+             .map(pos -> Pair.of(pos, this.getOrLoad(pos.asLong())))
+             .filter(poiSection -> !poiSection.getSecond().map(PoiSection::isValid).orElse(false))
+             .map(p -> p.getFirst().chunk())
+-            .filter(pos -> this.loadedChunks.add(pos.pack()))
++            // Paper - rewrite chunk system
+             .forEach(pos -> reader.getChunk(pos.x(), pos.z(), ChunkStatus.EMPTY));
+     }
+ 

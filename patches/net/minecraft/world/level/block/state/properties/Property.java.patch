@@ -1,0 +1,95 @@
+--- a/net/minecraft/world/level/block/state/properties/Property.java
++++ b/net/minecraft/world/level/block/state/properties/Property.java
+@@ -10,29 +_,58 @@
+ import net.minecraft.world.level.block.state.StateHolder;
+ import org.jspecify.annotations.Nullable;
+ 
+-public abstract class Property<T extends Comparable<T>> {
++public abstract class Property<T extends Comparable<T>> implements ca.spottedleaf.moonrise.patches.blockstate_propertyaccess.PropertyAccess<T> { // Paper - optimise blockstate property access
+     private final Class<T> clazz;
+     private final String name;
+     private @Nullable Integer hashCode;
+     private final Codec<T> codec = Codec.STRING
+-        .comapFlatMap(
+-            namex -> this.getValue(namex)
+-                .map(DataResult::success)
+-                .orElseGet(() -> DataResult.error(() -> "Unable to read property: " + this + " with value: " + namex)),
+-            this::getName
+-        );
++            .comapFlatMap(
++                    namex -> this.getValue(namex)
++                            .map(DataResult::success)
++                            .orElseGet(() -> DataResult.error(() -> "Unable to read property: " + this + " with value: " + namex)),
++                    this::getName
++            );
+     private final Codec<Property.Value<T>> valueCodec = this.codec.xmap(this::value, Property.Value::value);
+ 
+-    protected Property(String name, Class<T> clazz) {
++    // Paper start - optimise blockstate property access
++    private static final java.util.concurrent.atomic.AtomicInteger ID_GENERATOR = new java.util.concurrent.atomic.AtomicInteger();
++    private final int id;
++    private T[] byId;
++
++    @Override
++    public final int moonrise$getId() {
++        return this.id;
++    }
++
++    @Override
++    public final T moonrise$getById(final int id) {
++        final T[] byId = this.byId;
++        return id < 0 || id >= byId.length ? null : this.byId[id];
++    }
++
++    @Override
++    public final void moonrise$setById(final T[] byId) {
++        if (this.byId != null) {
++            throw new IllegalStateException();
++        }
++        this.byId = byId;
++    }
++
++    @Override
++    public abstract int moonrise$getIdFor(final T value);
++    // Paper end - optimise blockstate property access
++
++    protected Property(final String name, final Class<T> clazz) {
+         this.clazz = clazz;
+         this.name = name;
++        this.id = ID_GENERATOR.getAndIncrement(); // Paper - optimise blockstate property access
+     }
+ 
+-    public Property.Value<T> value(T value) {
++    public Property.Value<T> value(final T value) {
+         return new Property.Value<>(this, value);
+     }
+ 
+-    public Property.Value<T> value(StateHolder<?, ?> stateHolder) {
++    public Property.Value<T> value(final StateHolder<?, ?> stateHolder) {
+         return new Property.Value<>(this, stateHolder.getValue(this));
+     }
+ 
+@@ -70,12 +_,8 @@
+     }
+ 
+     @Override
+-    public boolean equals(Object o) {
+-        if (this == o) {
+-            return true;
+-        } else {
+-            return !(o instanceof Property<?> that) ? false : this.clazz.equals(that.clazz) && this.name.equals(that.name);
+-        }
++    public boolean equals(final Object o) {
++        return this == o; // Paper - Perf: Optimize hashCode/equals
+     }
+ 
+     @Override
+@@ -91,7 +_,7 @@
+         return 31 * this.clazz.hashCode() + this.name.hashCode();
+     }
+ 
+-    public <U, S extends StateHolder<?, S>> DataResult<S> parseValue(DynamicOps<U> ops, S state, U value) {
++    public <U, S extends StateHolder<?, S>> DataResult<S> parseValue(final DynamicOps<U> ops, final S state, final U value) {
+         DataResult<T> parsed = this.codec.parse(ops, value);
+         return parsed.<S>map(v -> state.setValue(this, v)).setPartial(state);
+     }

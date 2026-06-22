@@ -1,0 +1,59 @@
+--- a/net/minecraft/world/level/block/state/properties/BooleanProperty.java
++++ b/net/minecraft/world/level/block/state/properties/BooleanProperty.java
+@@ -3,13 +_,23 @@
+ import java.util.List;
+ import java.util.Optional;
+ 
+-public final class BooleanProperty extends Property<Boolean> {
++public final class BooleanProperty extends Property<Boolean> implements ca.spottedleaf.moonrise.patches.blockstate_propertyaccess.PropertyAccess<Boolean> { // Paper - optimise blockstate property access
+     private static final List<Boolean> VALUES = List.of(true, false);
+     private static final int TRUE_INDEX = 0;
+     private static final int FALSE_INDEX = 1;
+ 
+-    private BooleanProperty(String name) {
++    // Paper start - optimise blockstate property access
++    private static final Boolean[] BY_ID = new Boolean[]{ Boolean.FALSE, Boolean.TRUE };
++
++    @Override
++    public final int moonrise$getIdFor(final Boolean value) {
++        return value.booleanValue() ? 1 : 0;
++    }
++    // Paper end - optimise blockstate property access
++
++    private BooleanProperty(final String name) {
+         super(name, Boolean.class);
++        this.moonrise$setById(BY_ID); // Paper - optimise blockstate property access
+     }
+ 
+     @Override
+@@ -17,12 +_,12 @@
+         return VALUES;
+     }
+ 
+-    public static BooleanProperty create(String name) {
++    public static BooleanProperty create(final String name) {
+         return new BooleanProperty(name);
+     }
+ 
+     @Override
+-    public Optional<Boolean> getValue(String name) {
++    public Optional<Boolean> getValue(final String name) {
+         return switch (name) {
+             case "true" -> Optional.of(true);
+             case "false" -> Optional.of(false);
+@@ -30,11 +_,13 @@
+         };
+     }
+ 
+-    public String getName(Boolean value) {
++    @Override
++    public String getName(final Boolean value) {
+         return value.toString();
+     }
+ 
+-    public int getInternalIndex(Boolean value) {
++    @Override
++    public int getInternalIndex(final Boolean value) {
+         return value ? 0 : 1;
+     }
+ }

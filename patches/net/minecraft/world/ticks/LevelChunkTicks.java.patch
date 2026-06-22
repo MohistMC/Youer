@@ -1,0 +1,85 @@
+--- a/net/minecraft/world/ticks/LevelChunkTicks.java
++++ b/net/minecraft/world/ticks/LevelChunkTicks.java
+@@ -14,13 +_,38 @@
+ import net.minecraft.core.BlockPos;
+ import org.jspecify.annotations.Nullable;
+ 
+-public class LevelChunkTicks<T> implements TickContainerAccess<T>, SerializableTickContainer<T> {
++public class LevelChunkTicks<T> implements TickContainerAccess<T>, SerializableTickContainer<T>, ca.spottedleaf.moonrise.patches.chunk_system.ticks.ChunkSystemLevelChunkTicks { // Paper - rewrite chunk system
+     private static final Comparator<ScheduledTick<?>> SUB_TICK_ORDERING = Comparator.comparingLong(ScheduledTick::subTickOrder);
+     private final Queue<ScheduledTick<T>> tickQueue = new PriorityQueue<>(ScheduledTick.DRAIN_ORDER);
+     private @Nullable List<SavedTick<T>> pendingTicks;
+     private final Set<ScheduledTick<?>> ticksPerPosition = new ObjectOpenCustomHashSet<>(ScheduledTick.UNIQUE_TICK_HASH);
+     private @Nullable BiConsumer<LevelChunkTicks<T>, ScheduledTick<T>> onTickAdded;
+ 
++    // Paper start - rewrite chunk system
++    /*
++     * Since ticks are saved using relative delays, we need to consider the entire tick list dirty when there are scheduled ticks
++     * and the last saved tick is not equal to the current tick
++     */
++    /*
++     * In general, it would be nice to be able to "re-pack" ticks once the chunk becomes non-ticking again, but that is a
++     * bit out of scope for the chunk system
++     */
++
++    private boolean dirty;
++    private long lastSaved = Long.MIN_VALUE;
++
++    @Override
++    public final boolean moonrise$isDirty(final long tick) {
++        return this.dirty || (!this.tickQueue.isEmpty() && tick != this.lastSaved);
++    }
++
++    @Override
++    public final void moonrise$clearDirty() {
++        this.dirty = false;
++    }
++    // Paper end - rewrite chunk system
++
++
+     public LevelChunkTicks() {
+     }
+ 
+@@ -43,7 +_,7 @@
+     public @Nullable ScheduledTick<T> poll() {
+         ScheduledTick<T> result = this.tickQueue.poll();
+         if (result != null) {
+-            this.ticksPerPosition.remove(result);
++            this.ticksPerPosition.remove(result); this.dirty = true; // Paper - rewrite chunk system
+         }
+ 
+         return result;
+@@ -52,7 +_,7 @@
+     @Override
+     public void schedule(ScheduledTick<T> tick) {
+         if (this.ticksPerPosition.add(tick)) {
+-            this.scheduleUnchecked(tick);
++            this.scheduleUnchecked(tick); this.dirty = true; // Paper - rewrite chunk system
+         }
+     }
+ 
+@@ -74,7 +_,7 @@
+         while (iterator.hasNext()) {
+             ScheduledTick<T> tick = iterator.next();
+             if (test.test(tick)) {
+-                iterator.remove();
++                iterator.remove(); this.dirty = true; // Paper - rewrite chunk system
+                 this.ticksPerPosition.remove(tick);
+             }
+         }
+@@ -91,6 +_,7 @@
+ 
+     @Override
+     public List<SavedTick<T>> pack(long currentTick) {
++        this.lastSaved = currentTick; // Paper - rewrite chunk system
+         List<SavedTick<T>> ticks = new ArrayList<>(this.tickQueue.size());
+         if (this.pendingTicks != null) {
+             ticks.addAll(this.pendingTicks);
+@@ -108,6 +_,7 @@
+ 
+     public void unpack(long currentTick) {
+         if (this.pendingTicks != null) {
++            this.lastSaved = currentTick; // Paper - rewrite chunk system
+             int subTickBase = -this.pendingTicks.size();
+ 
+             for (SavedTick<T> pendingTick : this.pendingTicks) {

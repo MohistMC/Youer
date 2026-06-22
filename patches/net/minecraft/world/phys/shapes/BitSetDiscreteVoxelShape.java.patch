@@ -11,13 +11,157 @@
 -    private int xMax;
 -    private int yMax;
 -    private int zMax;
-+    public final BitSet storage;
-+    public int xMin;
-+    public int yMin;
-+    public int zMin;
-+    public int xMax;
-+    public int yMax;
-+    public int zMax;
++    public final BitSet storage; // Paper - optimise collisions - public
++    public int xMin; // Paper - optimise collisions - public
++    public int yMin; // Paper - optimise collisions - public
++    public int zMin; // Paper - optimise collisions - public
++    public int xMax; // Paper - optimise collisions - public
++    public int yMax; // Paper - optimise collisions - public
++    public int zMax; // Paper - optimise collisions - public
  
      public BitSetDiscreteVoxelShape(int xSize, int ySize, int zSize) {
          super(xSize, ySize, zSize);
+@@ -150,47 +_,109 @@
+         return shape;
+     }
+ 
+-    static void forAllBoxes(DiscreteVoxelShape voxelShape, DiscreteVoxelShape.IntLineConsumer consumer, boolean mergeNeighbors) {
+-        BitSetDiscreteVoxelShape shape = new BitSetDiscreteVoxelShape(voxelShape);
+-
+-        for (int y = 0; y < shape.ySize; y++) {
+-            for (int x = 0; x < shape.xSize; x++) {
+-                int lastStartZ = -1;
+-
+-                for (int z = 0; z <= shape.zSize; z++) {
+-                    if (shape.isFullWide(x, y, z)) {
+-                        if (mergeNeighbors) {
+-                            if (lastStartZ == -1) {
+-                                lastStartZ = z;
+-                            }
+-                        } else {
++    // Paper start - optimise collisions
++    public static void forAllBoxes(final DiscreteVoxelShape shape, final DiscreteVoxelShape.IntLineConsumer consumer, final boolean mergeAdjacent) {
++        // Paper - remove debug
++        // called with the shape of a VoxelShape, so we can expect the cache to exist
++        final ca.spottedleaf.moonrise.patches.collisions.shape.CachedShapeData cache = ((ca.spottedleaf.moonrise.patches.collisions.shape.CollisionDiscreteVoxelShape) shape).moonrise$getOrCreateCachedShapeData();
++
++        final int sizeX = cache.sizeX();
++        final int sizeY = cache.sizeY();
++        final int sizeZ = cache.sizeZ();
++
++        int indexX;
++        int indexY = 0;
++        int indexZ;
++
++        int incY = sizeZ;
++        int incX = sizeZ * sizeY;
++
++        long[] bitset = cache.voxelSet();
++
++        // index = z + y*size_z + x*(size_z*size_y)
++
++        if (!mergeAdjacent) {
++            // due to the odd selection of loop order (which does affect behavior, unfortunately) we can't simply
++            // increment an index in the Z loop, and have to perform this trash (keeping track of 3 counters) to avoid
++            // the multiplication
++            for (int y = 0; y < sizeY; ++y, indexY += incY) {
++                indexX = indexY;
++                for (int x = 0; x < sizeX; ++x, indexX += incX) {
++                    indexZ = indexX;
++                    for (int z = 0; z < sizeZ; ++z, ++indexZ) {
++                        if ((bitset[indexZ >>> 6] & (1L << indexZ)) != 0L) {
+                             consumer.consume(x, y, z, x + 1, y + 1, z + 1);
+                         }
+-                    } else if (lastStartZ != -1) {
+-                        int endX = x;
+-                        int endY = y;
+-                        shape.clearZStrip(lastStartZ, z, x, y);
+-
+-                        while (shape.isZStripFull(lastStartZ, z, endX + 1, y)) {
+-                            shape.clearZStrip(lastStartZ, z, endX + 1, y);
+-                            endX++;
+-                        }
+-
+-                        while (shape.isXZRectangleFull(x, endX + 1, lastStartZ, z, endY + 1)) {
+-                            for (int cx = x; cx <= endX; cx++) {
+-                                shape.clearZStrip(lastStartZ, z, cx, endY + 1);
+-                            }
+-
+-                            endY++;
+-                        }
+-
+-                        consumer.consume(x, y, lastStartZ, endX + 1, endY + 1, z);
+-                        lastStartZ = -1;
++                    }
++                }
++            }
++        } else {
++            // same notes about loop order as the above
++            // this branch is actually important to optimise, as it affects uncached toAabbs() (which affects optimize())
++
++            // only clone when we may write to it
++            bitset = ca.spottedleaf.moonrise.common.util.MixinWorkarounds.clone(bitset);
++
++            for (int y = 0; y < sizeY; ++y, indexY += incY) {
++                indexX = indexY;
++                for (int x = 0; x < sizeX; ++x, indexX += incX) {
++                    for (int zIdx = indexX, endIndex = indexX + sizeZ; zIdx < endIndex; ) {
++                        final int firstSetZ = ca.spottedleaf.moonrise.common.util.FlatBitsetUtil.firstSet(bitset, zIdx, endIndex);
++
++                        if (firstSetZ == -1) {
++                            break;
++                        }
++
++                        int lastSetZ = ca.spottedleaf.moonrise.common.util.FlatBitsetUtil.firstClear(bitset, firstSetZ, endIndex);
++                        if (lastSetZ == -1) {
++                            lastSetZ = endIndex;
++                        }
++
++                        ca.spottedleaf.moonrise.common.util.FlatBitsetUtil.clearRange(bitset, firstSetZ, lastSetZ);
++
++                        // try to merge neighbouring on the X axis
++                        int endX = x + 1; // exclusive
++                        for (int neighbourIdxStart = firstSetZ + incX, neighbourIdxEnd = lastSetZ + incX;
++                             endX < sizeX && ca.spottedleaf.moonrise.common.util.FlatBitsetUtil.isRangeSet(bitset, neighbourIdxStart, neighbourIdxEnd);
++                             neighbourIdxStart += incX, neighbourIdxEnd += incX) {
++
++                            ++endX;
++                            ca.spottedleaf.moonrise.common.util.FlatBitsetUtil.clearRange(bitset, neighbourIdxStart, neighbourIdxEnd);
++                        }
++
++                        // try to merge neighbouring on the Y axis
++
++                        int endY; // exclusive
++                        int firstSetZY, lastSetZY;
++                        y_merge:
++                        for (endY = y + 1, firstSetZY = firstSetZ + incY, lastSetZY = lastSetZ + incY; endY < sizeY;
++                             firstSetZY += incY, lastSetZY += incY) {
++
++                            // test the whole XZ range
++                            for (int testX = x, start = firstSetZY, end = lastSetZY; testX < endX;
++                                 ++testX, start += incX, end += incX) {
++                                if (!ca.spottedleaf.moonrise.common.util.FlatBitsetUtil.isRangeSet(bitset, start, end)) {
++                                    break y_merge;
++                                }
++                            }
++
++                            ++endY;
++
++                            // passed, so we can clear it
++                            for (int testX = x, start = firstSetZY, end = lastSetZY; testX < endX;
++                                 ++testX, start += incX, end += incX) {
++                                ca.spottedleaf.moonrise.common.util.FlatBitsetUtil.clearRange(bitset, start, end);
++                            }
++                        }
++
++                        consumer.consume(x, y, firstSetZ - indexX, endX, endY, lastSetZ - indexX);
++                        zIdx = lastSetZ;
+                     }
+                 }
+             }
+         }
+     }
++    // Paper end - optimise collisions
+ 
+     private boolean isZStripFull(int startZ, int endZ, int x, int y) {
+         return x < this.xSize && y < this.ySize ? this.storage.nextClearBit(this.getIndex(x, y, startZ)) >= this.getIndex(x, y, endZ) : false;

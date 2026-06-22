@@ -8,22 +8,22 @@
  import net.minecraft.core.RegistryAccess;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
-@@ -26,39 +_,70 @@
+@@ -26,38 +_,106 @@
  public abstract class Settings<T extends Settings<T>> {
      private static final Logger LOGGER = LogUtils.getLogger();
      public final Properties properties;
++    private static final boolean skipComments = Boolean.getBoolean("Paper.skipServerPropertiesComments"); // Paper - allow skipping server.properties comments
 +    // CraftBukkit start
-+    private OptionSet options = null;
++    private joptsimple.OptionSet options = null;
  
 -    public Settings(Properties properties) {
-+    public Settings(Properties properties, final OptionSet options) {
++    public Settings(final Properties properties, final joptsimple.OptionSet options) {
          this.properties = properties;
-+
 +        this.options = options;
 +    }
 +
-+    private String getOverride(String name, String value) {
-+        if ((this.options != null) && (this.options.has(name))) {
++    private String getOverride(final String name, final String value) {
++        if (this.options != null && this.options.has(name)) {
 +            return String.valueOf(this.options.valueOf(name));
 +        }
 +
@@ -32,6 +32,7 @@
      }
  
      public static Properties loadFromFile(Path file) {
++        if (!Files.exists(file)) return new Properties(); // CraftBukkit - SPIGOT-7465, MC-264979: Don't load if file doesn't exist
          try {
 -            try (InputStream is = Files.newInputStream(file)) {
 -                CharsetDecoder reportingUtf8Decoder = StandardCharsets.UTF_8
@@ -42,11 +43,6 @@
 -                properties.load(new InputStreamReader(is, reportingUtf8Decoder));
 -                return properties;
 -            } catch (CharacterCodingException e) {
-+            // CraftBukkit start - SPIGOT-7465, MC-264979: Don't load if file doesn't exist
-+            if (!file.toFile().exists()) {
-+                return new Properties();
-+            }
-+            // CraftBukkit end
 +            try {
 +                Properties var13;
 +                try (InputStream is = Files.newInputStream(file)) {
@@ -82,17 +78,57 @@
      }
  
      public void store(Path output) {
-+        // CraftBukkit start - Don't attempt writing to file if it's read only
-+        if (output.toFile().exists() && !output.toFile().canWrite()) {
-+            return;
-+        }
-+        // CraftBukkit end
-         try (Writer os = Files.newBufferedWriter(output, StandardCharsets.UTF_8)) {
--            this.properties.store(os, "Minecraft server properties");
-+            net.neoforged.neoforge.common.util.SortedProperties.store(this.properties, os, "Minecraft server properties");
+-        try (Writer os = Files.newBufferedWriter(output, StandardCharsets.UTF_8)) {
++        try /*(Writer os = Files.newBufferedWriter(output, StandardCharsets.UTF_8))*/ { // Paper
++            // CraftBukkit start - Don't attempt writing to file if it's read only
++            if (output.toFile().exists() && !output.toFile().canWrite()) {
++                Settings.LOGGER.warn("Can not write to file {}, skipping.", output); // Paper - log message file is read-only
++                return;
++            }
++            // CraftBukkit end
++            // Paper start - allow skipping server.properties comments
++            java.io.OutputStream outputstream = Files.newOutputStream(output);
++            java.io.BufferedOutputStream bufferedOutputStream = !skipComments ? new java.io.BufferedOutputStream(outputstream) : new java.io.BufferedOutputStream(outputstream) {
++                private boolean isRightAfterNewline = true; // If last written char was newline
++                private boolean isComment = false; // Are we writing comment currently?
++
++                @Override
++                public void write(byte[] b) throws IOException {
++                    this.write(b, 0, b.length);
++                }
++
++                @Override
++                public void write(byte[] bbuf, int off, int len) throws IOException {
++                    int latest_offset = off; // The latest offset, updated when comment ends
++                    for (int index = off; index < off + len; ++index ) {
++                        byte c = bbuf[index];
++                        boolean isNewline = (c == '\n' || c == '\r');
++                        if (isNewline && this.isComment) {
++                            // Comment has ended
++                            this.isComment = false;
++                            latest_offset = index+1;
++                        }
++                        if (c == '#' && this.isRightAfterNewline) {
++                            this.isComment = true;
++                            if (index != latest_offset) {
++                                // We got some non-comment data earlier
++                                super.write(bbuf, latest_offset, index-latest_offset);
++                            }
++                        }
++                        this.isRightAfterNewline = isNewline; // Store for next iteration
++
++                    }
++                    if (latest_offset < off+len && !this.isComment) {
++                        // We have some unwritten data, that isn't part of a comment
++                        super.write(bbuf, latest_offset, (off + len) - latest_offset);
++                    }
++                }
++            };
++            java.io.BufferedWriter os = new java.io.BufferedWriter(new java.io.OutputStreamWriter(bufferedOutputStream, java.nio.charset.StandardCharsets.UTF_8.newEncoder()));
++            // Paper end - allow skipping server.properties comments
+             this.properties.store(os, "Minecraft server properties");
          } catch (IOException e) {
              LOGGER.error("Failed to store properties to file: {}", output);
-         }
 @@ -87,7 +_,7 @@
      }
  

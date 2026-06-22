@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/packs/repository/PackRepository.java
 +++ b/net/minecraft/server/packs/repository/PackRepository.java
-@@ -15,44 +_,67 @@
+@@ -15,44 +_,73 @@
  import net.minecraft.server.packs.PackResources;
  import net.minecraft.util.Util;
  import net.minecraft.world.flag.FeatureFlagSet;
@@ -43,15 +43,17 @@
  
      private Map<String, Pack> discoverAvailable() {
 -        Map<String, Pack> discovered = Maps.newTreeMap();
--
--        for (RepositorySource source : this.sources) {
--            source.loadPacks(pack -> discovered.put(pack.getId(), pack));
--        }
--
--        return ImmutableMap.copyOf(discovered);
 +        // Neo: sort packs within a source by name, between sources according to source order
 +        Map<String, Pack> discovered = Maps.newLinkedHashMap();
-+
+ 
+         for (RepositorySource source : this.sources) {
+-            source.loadPacks(pack -> discovered.put(pack.getId(), pack));
++            Map<String, Pack> sourceMap = Maps.newTreeMap();
++            source.loadPacks(pack -> pack.streamSelfAndChildren().forEach(p -> sourceMap.put(p.getId(), p)));
++            discovered.putAll(sourceMap);
+         }
+ 
+-        return ImmutableMap.copyOf(discovered);
 +        // Paper start - custom plugin-loaded datapacks
 +        final io.papermc.paper.datapack.PaperDatapackRegistrar registrar = new io.papermc.paper.datapack.PaperDatapackRegistrar(this.validator, discovered);
 +        io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner.INSTANCE.callStaticRegistrarEvent(io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents.DATAPACK_DISCOVERY,

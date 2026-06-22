@@ -18,6 +18,24 @@
      public void validate() {
          this.featuresPerStep.get();
      }
+@@ -117,7 +_,7 @@
+         return CompletableFuture.supplyAsync(() -> {
+             protoChunk.fillBiomesFromNoise(this.biomeSource, randomState.sampler());
+             return protoChunk;
+-        }, Util.backgroundExecutor().forName("init_biomes"));
++        }, Runnable::run); // Paper - rewrite chunk system
+     }
+ 
+     public abstract void applyCarvers(
+@@ -294,7 +_,7 @@
+                     return Pair.of(config.getLocatePos(chunkTarget), structure);
+                 }
+ 
+-                ChunkAccess chunk = level.getChunk(chunkTarget.x(), chunkTarget.z(), ChunkStatus.STRUCTURE_STARTS);
++                ChunkAccess chunk = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevelReader)level).moonrise$syncLoadNonFull(chunkTarget.x(), chunkTarget.z(), ChunkStatus.STRUCTURE_STARTS); // Paper - rewrite chunk system
+                 StructureStart start = structureManager.getStartForStructure(SectionPos.bottomOf(chunk), structure.value(), chunk);
+                 if (start != null && start.isValid() && (!createReference || tryAddReference(structureManager, start))) {
+                     return Pair.of(config.getLocatePos(start.getChunkPos()), structure);
 @@ -416,6 +_,33 @@
              }
          }

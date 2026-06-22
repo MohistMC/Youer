@@ -100,11 +100,12 @@
              serverThread,
              levelStorageSource,
              packRepository,
-@@ -115,7 +_,7 @@
+@@ -115,7 +_,8 @@
              notificationManager
          );
          this.settings = settings;
 -        this.rconConsoleSource = new RconConsoleSource(this);
++        this.setMotd(settings.getProperties().motd.get()); // Paper - set field from initial properties
 +        // this.rconConsoleSource = new RconConsoleSource(this); // CraftBukkit - remove field
          this.serverTextFilter = ServerTextFilter.createFromConfig(settings.getProperties());
          this.jsonRpcServer = jsonRpcServer;
@@ -118,7 +119,7 @@
          } catch (IOException e) {
              throw new IllegalArgumentException("Failed to read Code of Conduct folder", e);
          }
-@@ -167,18 +_,29 @@
+@@ -167,26 +_,47 @@
          Thread consoleThread = new Thread("Server console handler") {
              @Override
              public void run() {
@@ -156,8 +157,27 @@
 +
          consoleThread.setDaemon(true);
          consoleThread.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER));
-         consoleThread.start();
-@@ -197,7 +_,13 @@
+-        consoleThread.start();
++        // consoleThread.start(); // Paper - Enhance console tab completions for brigadier commands; moved down
+         LOGGER.info("Starting minecraft server version {}", SharedConstants.getCurrentVersion().name());
+         if (Runtime.getRuntime().maxMemory() / 1024L / 1024L < 512L) {
+             LOGGER.warn("To start the server with more ram, launch it as \"java -Xmx1024M -Xms1024M -jar minecraft_server.jar\"");
+         }
+ 
++        // Paper start - detect running as root
++        if (io.papermc.paper.util.ServerEnvironment.userIsRootOrAdmin()) {
++            LOGGER.warn("****************************");
++            LOGGER.warn("YOU ARE RUNNING THIS SERVER AS AN ADMINISTRATIVE OR ROOT USER. THIS IS NOT ADVISED.");
++            LOGGER.warn("YOU ARE OPENING YOURSELF UP TO POTENTIAL RISKS WHEN DOING THIS.");
++            LOGGER.warn("FOR MORE INFORMATION, SEE https://madelinemiller.dev/blog/root-minecraft-server/");
++            LOGGER.warn("****************************");
++        }
++        // Paper end - detect running as root
++
+         LOGGER.info("Loading properties");
+         DedicatedServerProperties properties = this.settings.getProperties();
+         if (this.isSingleplayer()) {
+@@ -197,57 +_,121 @@
              this.setLocalIp(properties.serverIp);
          }
  
@@ -167,12 +187,67 @@
 +        org.spigotmc.SpigotConfig.init((java.io.File) options.valueOf("spigot-settings"));
 +        org.spigotmc.SpigotConfig.registerCommands();
 +        // Spigot end
++        // Paper start - initialize global and world-defaults configuration
++        this.paperConfigurations.initializeGlobalConfiguration(this.registryAccess());
++        this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
++        // Paper end - initialize global and world-defaults configuration
++        // Paper start - fix converting txt to json file; convert old users earlier after PlayerList creation but before file load/save
++        if (this.convertOldUsers()) {
++            this.services().nameToIdCache().save(false); // Paper
++        }
++        this.getPlayerList().loadAndSaveFiles(); // Must be after convertNames
++        // Paper end - fix converting txt to json file
++        org.spigotmc.WatchdogThread.doStart(org.spigotmc.SpigotConfig.timeoutTime, org.spigotmc.SpigotConfig.restartOnCrash); // Paper - start watchdog thread
++        consoleThread.start(); // Paper - Enhance console tab completions for brigadier commands; start console thread after MinecraftServer.console & PaperConfig are initialized
++        io.papermc.paper.command.PaperCommands.registerCommands(this); // Paper - setup /paper command
++        com.destroystokyo.paper.Metrics.PaperMetrics.startMetrics(); // Paper - start metrics
++        com.destroystokyo.paper.VersionHistoryManager.INSTANCE.getClass(); // Paper - load version history now
 +
 +        // this.worldData.setGameType(properties.gameMode.get()); // CraftBukkit - moved to world loading
          LOGGER.info("Default game type: {}", properties.gameMode.get());
-         InetAddress localAddress = null;
-         if (!this.getLocalIp().isEmpty()) {
-@@ -220,12 +_,24 @@
+-        InetAddress localAddress = null;
+-        if (!this.getLocalIp().isEmpty()) {
+-            localAddress = InetAddress.getByName(this.getLocalIp());
+-        }
++        // Paper start - Unix domain socket support
++        java.net.SocketAddress bindAddress;
++        if (this.getLocalIp().startsWith("unix:")) {
++            if (!io.netty.channel.epoll.Epoll.isAvailable()) {
++                LOGGER.error("**** INVALID CONFIGURATION!");
++                LOGGER.error("You are trying to use a Unix domain socket but you're not on a supported OS.");
++                return false;
++            } else if (!io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled && !org.spigotmc.SpigotConfig.bungee) {
++                LOGGER.error("**** INVALID CONFIGURATION!");
++                LOGGER.error("Unix domain sockets require IPs to be forwarded from a proxy.");
++                return false;
++            }
++            bindAddress = new io.netty.channel.unix.DomainSocketAddress(this.getLocalIp().substring("unix:".length()));
++        } else {
++            InetAddress localAddress = null;
++            if (!this.getLocalIp().isEmpty()) {
++                localAddress = InetAddress.getByName(this.getLocalIp());
++            }
+ 
+-        if (this.getPort() < 0) {
+-            this.setPort(properties.serverPort);
++            if (this.getPort() < 0) {
++                this.setPort(properties.serverPort);
++            }
++            bindAddress = new java.net.InetSocketAddress(localAddress, this.getPort());
+         }
++        // Paper end - Unix domain socket support
+ 
+         this.initializeKeyPair();
+         LOGGER.info("Starting Minecraft server on {}:{}", this.getLocalIp().isEmpty() ? "*" : this.getLocalIp(), this.getPort());
+ 
+         try {
+-            this.getConnection().startTcpServerListener(localAddress, this.getPort());
++            this.getConnection().startTcpServerListener(bindAddress); // Paper - Unix domain socket support
+         } catch (IOException e) {
+             LOGGER.warn("**** FAILED TO BIND TO PORT!");
+             LOGGER.warn("The exception was: {}", e.toString());
+             LOGGER.warn("Perhaps a server is already running on that port?");
++            if (true) throw new IllegalStateException("Failed to bind to port", e); // Paper - Propagate failed to bind to port error
              return false;
          }
  
@@ -183,6 +258,11 @@
 +        server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.STARTUP);
 +        // CraftBukkit end
 +
++        // Paper start - Add Velocity IP Forwarding Support
++        boolean usingProxy = org.spigotmc.SpigotConfig.bungee || io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled;
++        String proxyFlavor = (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled) ? "Velocity" : "BungeeCord";
++        String proxyLink = (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled) ? "https://docs.papermc.io/velocity/security" : "http://www.spigotmc.org/wiki/firewall-guide/";
++        // Paper end - Add Velocity IP Forwarding Support
          if (!this.usesAuthentication()) {
              LOGGER.warn("**** SERVER IS RUNNING IN OFFLINE/INSECURE MODE!");
              LOGGER.warn("The server will make no attempt to authenticate usernames. Beware.");
@@ -190,17 +270,26 @@
 -                "While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose."
 -            );
 +            // Spigot start
-+            if (org.spigotmc.SpigotConfig.bungee) {
-+                DedicatedServer.LOGGER.warn("Whilst this makes it possible to use BungeeCord, unless access to your server is properly restricted, it also opens up the ability for hackers to connect with any username they choose.");
-+                DedicatedServer.LOGGER.warn("Please see http://www.spigotmc.org/wiki/firewall-guide/ for further information.");
++            // Paper start - Add Velocity IP Forwarding Support
++            if (usingProxy) {
++                LOGGER.warn("Whilst this makes it possible to use {}, unless access to your server is properly restricted, it also opens up the ability for hackers to connect with any username they choose.", proxyFlavor);
++                LOGGER.warn("Please see {} for further information.", proxyLink);
++                // Paper end - Add Velocity IP Forwarding Support
 +            } else {
-+                DedicatedServer.LOGGER.warn("While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.");
++                LOGGER.warn("While this makes the game possible to play without internet access, it also opens up the ability for hackers to connect with any username they choose.");
 +            }
 +            // Spigot end
              LOGGER.warn("To change this, set \"online-mode\" to \"true\" in the server.properties file.");
          }
  
-@@ -236,18 +_,19 @@
++        // CraftBukkit start
++        /*
+         if (this.convertOldUsers()) {
+             this.services.nameToIdCache().save();
+         }
++        */
++        // CraftBukkit end
+ 
          if (!OldUsersConverter.areOldUserlistsRemoved()) {
              return false;
          }
@@ -216,7 +305,9 @@
 +        net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerAboutToStart(this);
          long elapsed = Util.getNanos() - levelNanoTime;
          String time = String.format(Locale.ROOT, "%.3fs", elapsed / 1.0E9);
-         LOGGER.info("Done ({})! For help, type \"help\"", time);
+-        LOGGER.info("Done ({})! For help, type \"help\"", time);
++        LOGGER.info("Done preparing level \"{}\" ({})", this.getLevelIdName(), time); // Paper - Improve startup message, add total time
++        this.initPostWorld(); // Paper - don't include plugins in world preparation time
 +        this.nextTickTimeNanos = Util.getNanos(); // Neo: Update server time to prevent watchdog/spamming during long load.
          if (properties.announcePlayerAchievements != null) {
 -            this.getGameRules().set(GameRules.SHOW_ADVANCEMENT_MESSAGES, properties.announcePlayerAchievements, this);
@@ -255,6 +346,14 @@
  
      @Override
      public boolean isEnforceWhitelist() {
+@@ -294,6 +_,7 @@
+ 
+     @Override
+     public void setUsingWhitelist(boolean usingWhitelist) {
++        new com.destroystokyo.paper.event.server.WhitelistToggleEvent(usingWhitelist).callEvent(); // Paper - WhitelistToggleEvent
+         this.settings.update(p -> p.whiteList.update(this.registryAccess(), usingWhitelist));
+     }
+ 
 @@ -345,7 +_,7 @@
  
      @Override
@@ -264,23 +363,31 @@
      }
  
      public int viewDistance() {
-@@ -410,6 +_,11 @@
-             this.queryThreadGs4.stop();
+@@ -403,11 +_,16 @@
          }
  
+         if (this.rconThread != null) {
+-            this.rconThread.stop();
++            this.rconThread.stopNonBlocking(); // Paper - don't wait for remote connections
+         }
+ 
+         if (this.queryThreadGs4 != null) {
+-            this.queryThreadGs4.stop();
++            // this.remoteStatusListener.stop(); // Paper - don't wait for remote connections
++        }
++
 +        if (this.dediLanPinger != null) {
 +            this.dediLanPinger.interrupt();
 +            this.dediLanPinger = null;
-+        }
-+
+         }
+ 
          if (this.jsonRpcServer != null) {
-             try {
-                 this.jsonRpcServer.stop(true);
-@@ -417,6 +_,7 @@
+@@ -417,6 +_,8 @@
                  LOGGER.error("Interrupted while stopping the management server", e);
              }
          }
-+        Runtime.getRuntime().halt(0); // CraftBukkit
++        this.hasFullyShutdown = true; // Paper - Improved watchdog support
++        System.exit(this.abnormalExit ? 70 : 0); // CraftBukkit // Paper - Improved watchdog support
      }
  
      @Override
@@ -335,29 +442,51 @@
              this.getCommands().performPrefixedCommand(input.source, input.msg);
          }
      }
-@@ -591,7 +_,7 @@
+@@ -591,12 +_,15 @@
  
      @Override
      public String getMotd() {
 -        return this.settings.getProperties().motd.get();
-+        return ColorAPI.string(this.settings.getProperties().motd.get());
++        return super.getMotd(); // Paper
      }
  
      @Override
-@@ -707,20 +_,64 @@
+     public void setMotd(String motd) {
+-        this.settings.update(p -> p.motd.update(this.registryAccess(), motd));
++        // Paper start
++        super.setMotd(motd);
++        this.settings.update(p -> p.motd.update(this.registryAccess(), this.getMotd()));
++        // Paper end
+     }
+ 
+     @Override
+@@ -622,7 +_,11 @@
+     @Override
+     public boolean enforceSecureProfile() {
+         DedicatedServerProperties properties = this.getProperties();
+-        return properties.enforceSecureProfile && properties.onlineMode && this.services.canValidateProfileKeys();
++        // Paper start - Add setting for proxy online mode status
++        return properties.enforceSecureProfile
++                && io.papermc.paper.configuration.GlobalConfiguration.get().proxies.isProxyOnlineMode()
++                && this.services.canValidateProfileKeys();
++        // Paper end - Add setting for proxy online mode status
+     }
+ 
+     @Override
+@@ -707,21 +_,65 @@
  
      @Override
      public String getPluginNames() {
 -        return "";
 +        // CraftBukkit start - Whole method
 +        StringBuilder result = new StringBuilder();
-+        org.bukkit.plugin.Plugin[] plugins = server.getPluginManager().getPlugins();
++        org.bukkit.plugin.Plugin[] plugins = this.server.getPluginManager().getPlugins();
 +
-+        result.append(server.getName());
++        result.append(this.server.getName());
 +        result.append(" on Bukkit ");
-+        result.append(server.getBukkitVersion());
++        result.append(this.server.getBukkitVersion());
 +
-+        if (plugins.length > 0 && server.getQueryPlugins()) {
++        if (plugins.length > 0 && this.server.getQueryPlugins()) {
 +            result.append(": ");
 +
 +            for (int i = 0; i < plugins.length; i++) {
@@ -406,13 +535,15 @@
          this.notificationManager().serverShuttingDown();
 +        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.GameShuttingDownEvent());
          super.stopServer();
+-        Util.shutdownExecutors();
 +        if (this.dediLanPinger != null) {
 +            this.dediLanPinger.interrupt();
 +            this.dediLanPinger = null;
 +        }
-         Util.shutdownExecutors();
++        //Util.shutdownExecutors(); // Paper - Improved watchdog support; moved into super
      }
  
+     @Override
 @@ -849,4 +_,15 @@
      public Map<String, String> getCodeOfConducts() {
          return this.codeOfConductTexts;

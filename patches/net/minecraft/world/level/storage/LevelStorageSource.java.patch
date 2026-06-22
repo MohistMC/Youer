@@ -21,7 +21,7 @@
  
          Dynamic<?> dataTag = RegistryOps.injectRegistryContext(levelDataTag, registryAccess);
 -        WorldGenSettings worldGenSettings = readExistingSavedData(worldAccess, registryAccess, WorldGenSettings.TYPE)
-+        WorldGenSettings worldGenSettings = readExistingSavedData(worldAccess, dimension, registryAccess, WorldGenSettings.TYPE)
++        WorldGenSettings worldGenSettings = readExistingSavedData(worldAccess, dimension, registryAccess, WorldGenSettings.TYPE) // Paper - pass dimension
              .mapOrElse(
                  Function.identity(),
                  error -> {
@@ -37,85 +37,15 @@
  
          CompoundTag fileContents;
          try {
-@@ -395,13 +_,28 @@
+@@ -391,7 +_,7 @@
+ 
+     public LevelStorageSource.LevelStorageAccess validateAndCreateAccess(String levelId) throws IOException, ContentValidationException {
+         Path levelPath = this.getLevelPath(levelId);
+-        List<ForbiddenSymlinkInfo> validationResults = this.worldDirValidator.validateDirectory(levelPath, true);
++        List<ForbiddenSymlinkInfo> validationResults = Boolean.getBoolean("paper.disableWorldSymlinkValidation") ? List.of() : this.worldDirValidator.validateDirectory(levelPath, true); // Paper - add skipping of symlinks scan
          if (!validationResults.isEmpty()) {
              throw new ContentValidationException(levelPath, validationResults);
          } else {
--            return new LevelStorageSource.LevelStorageAccess(levelId, levelPath);
--        }
--    }
--
--    public LevelStorageSource.LevelStorageAccess createAccess(String levelId) throws IOException {
--        Path levelPath = this.getLevelPath(levelId);
--        return new LevelStorageSource.LevelStorageAccess(levelId, levelPath);
-+            return new LevelStorageSource.LevelStorageAccess(levelId, levelPath, LevelStem.OVERWORLD); // CraftBukkit
-+        }
-+    }
-+
-+    public LevelStorageSource.LevelStorageAccess validateAndCreateAccess(String levelId, ResourceKey<LevelStem> dimensionType) throws IOException, ContentValidationException { // CraftBukkit
-+        Path levelPath = this.getLevelPath(levelId);
-+        List<ForbiddenSymlinkInfo> validationResults = this.worldDirValidator.validateDirectory(levelPath, true);
-+        if (!validationResults.isEmpty()) {
-+            throw new ContentValidationException(levelPath, validationResults);
-+        } else {
-+            return new LevelStorageSource.LevelStorageAccess(levelId, levelPath, dimensionType); // CraftBukkit
-+        }
-+    }
-+
-+    public LevelStorageSource.LevelStorageAccess createAccess(String levelId) throws IOException { // CraftBukkit
-+        Path levelPath = this.getLevelPath(levelId);
-+        return new LevelStorageSource.LevelStorageAccess(levelId, levelPath, LevelStem.OVERWORLD); // CraftBukkit
-+    }
-+
-+    public LevelStorageSource.LevelStorageAccess createAccess(String levelId, ResourceKey<LevelStem> dimensionType) throws IOException { // CraftBukkit
-+        Path levelPath = this.getLevelPath(levelId);
-+        return new LevelStorageSource.LevelStorageAccess(levelId, levelPath, dimensionType); // CraftBukkit
-     }
- 
-     public DirectoryValidator getWorldDirValidator() {
-@@ -453,13 +_,31 @@
-         }
-     }
- 
-+    // CraftBukkit start
-+    public static Path getPre261StorageFolder(Path path, ResourceKey<LevelStem> dimensionType) {
-+        if (dimensionType == LevelStem.OVERWORLD) {
-+            return path;
-+        } else if (dimensionType == LevelStem.NETHER) {
-+            return path.resolve("DIM-1");
-+        } else if (dimensionType == LevelStem.END) {
-+            return path.resolve("DIM1");
-+        } else {
-+            return path.resolve("dimensions").resolve(dimensionType.identifier().getNamespace()).resolve(dimensionType.identifier().getPath());
-+        }
-+    }
-+    // CraftBukkit end
-+
-     public class LevelStorageAccess implements AutoCloseable {
-         private DirectoryLock lock;
-         public final LevelStorageSource.LevelDirectory levelDirectory;
-         private final String levelId;
-         private final Map<LevelResource, Path> resources = Maps.newHashMap();
-+        // CraftBukkit start
-+        public final ResourceKey<LevelStem> dimensionType;
- 
--        private LevelStorageAccess(String levelId, Path path) throws IOException {
-+        private LevelStorageAccess(String levelId, Path path, ResourceKey<LevelStem> dimensionType) throws IOException {
-+            this.dimensionType = dimensionType;
-+            // CraftBukkit end
-             this.levelId = levelId;
-             this.levelDirectory = new LevelStorageSource.LevelDirectory(path);
-             this.createLock();
-@@ -516,7 +_,8 @@
-         }
- 
-         public Path getDimensionPath(ResourceKey<Level> name) {
--            return DimensionType.getStorageFolder(name, this.levelDirectory.path());
-+            if (this.dimensionType != null) name = net.minecraft.core.registries.Registries.levelStemToLevel(this.dimensionType);
-+            return DimensionType.getStorageFolder(name, this.levelDirectory.path()); // CraftBukkit
-         }
- 
-         private void checkLock() {
 @@ -525,6 +_,19 @@
              }
          }

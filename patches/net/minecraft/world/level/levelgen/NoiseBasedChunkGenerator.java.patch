@@ -9,3 +9,21 @@
      private final Supplier<Aquifer.FluidPicker> globalFluidPicker;
  
      public NoiseBasedChunkGenerator(BiomeSource biomeSource, Holder<NoiseGeneratorSettings> settings) {
+@@ -84,7 +_,7 @@
+         return CompletableFuture.supplyAsync(() -> {
+             this.doCreateBiomes(blender, randomState, structureManager, protoChunk);
+             return protoChunk;
+-        }, Util.backgroundExecutor().forName("init_biomes"));
++        }, Runnable::run); // Paper - rewrite chunk system
+     }
+ 
+     private void doCreateBiomes(Blender blender, RandomState randomState, StructureManager structureManager, ChunkAccess protoChunk) {
+@@ -369,7 +_,7 @@
+                     section.release();
+                 }
+             }
+-        }, Util.backgroundExecutor().forName("wgen_fill_noise"));
++        }, Runnable::run); // Paper - rewrite chunk system
+     }
+ 
+     private ChunkAccess doFill(

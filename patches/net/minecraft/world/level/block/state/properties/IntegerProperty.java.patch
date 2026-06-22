@@ -1,0 +1,94 @@
+--- a/net/minecraft/world/level/block/state/properties/IntegerProperty.java
++++ b/net/minecraft/world/level/block/state/properties/IntegerProperty.java
+@@ -5,12 +_,34 @@
+ import java.util.Optional;
+ import java.util.stream.IntStream;
+ 
+-public final class IntegerProperty extends Property<Integer> {
++public final class IntegerProperty extends Property<Integer> implements ca.spottedleaf.moonrise.patches.blockstate_propertyaccess.PropertyAccess<Integer> { // Paper - optimise blockstate property access
+     private final IntImmutableList values;
+     public final int min;
+     public final int max;
+ 
+-    private IntegerProperty(String name, int min, int max) {
++    // Paper start - optimise blockstate property access
++    @Override
++    public final int moonrise$getIdFor(final Integer value) {
++        final int val = value.intValue();
++        final int ret = val - this.min;
++
++        return ret | ((this.max - ret) >> 31);
++    }
++
++    private void init() {
++        final int min = this.min;
++        final int max = this.max;
++
++        final Integer[] byId = new Integer[max - min + 1];
++        for (int i = min; i <= max; ++i) {
++            byId[i - min] = Integer.valueOf(i);
++        }
++
++        this.moonrise$setById(byId);
++    }
++    // Paper end - optimise blockstate property access
++
++    private IntegerProperty(final String name, final int min, final int max) {
+         super(name, Integer.class);
+         if (min < 0) {
+             throw new IllegalArgumentException("Min value of " + name + " must be 0 or greater");
+@@ -23,6 +_,7 @@
+         this.min = min;
+         this.max = max;
+         this.values = IntImmutableList.toList(IntStream.range(min, max + 1));
++        this.init(); // Paper - optimise blockstate property access
+     }
+ 
+     @Override
+@@ -30,13 +_,8 @@
+         return this.values;
+     }
+ 
+-    @Override
+-    public boolean equals(Object o) {
+-        if (this == o) {
+-            return true;
+-        } else {
+-            return o instanceof IntegerProperty that && super.equals(o) ? this.values.equals(that.values) : false;
+-        }
++    public boolean equals_unused(final Object o) { // Paper - Perf: Optimize hashCode/equals
++        return this == o || o instanceof IntegerProperty that && super.equals(o) && this.values.equals(that.values);
+     }
+ 
+     @Override
+@@ -44,12 +_,12 @@
+         return 31 * super.generateHashCode() + this.values.hashCode();
+     }
+ 
+-    public static IntegerProperty create(String name, int min, int max) {
++    public static IntegerProperty create(final String name, final int min, final int max) {
+         return new IntegerProperty(name, min, max);
+     }
+ 
+     @Override
+-    public Optional<Integer> getValue(String name) {
++    public Optional<Integer> getValue(final String name) {
+         try {
+             int value = Integer.parseInt(name);
+             return value >= this.min && value <= this.max ? Optional.of(value) : Optional.empty();
+@@ -58,11 +_,13 @@
+         }
+     }
+ 
+-    public String getName(Integer value) {
++    @Override
++    public String getName(final Integer value) {
+         return value.toString();
+     }
+ 
+-    public int getInternalIndex(Integer value) {
++    @Override
++    public int getInternalIndex(final Integer value) {
+         return value <= this.max ? value - this.min : -1;
+     }
+ }

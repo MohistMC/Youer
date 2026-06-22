@@ -494,8 +494,8 @@
          ServerLevel playerLevel = player.level();
          LevelData levelData = playerLevel.getLevelData();
          player.connection.send(new ClientboundRespawnPacket(player.createCommonSpawnInfo(playerLevel), dataToKeep));
-+        player.connection.send(new ClientboundSetChunkCacheRadiusPacket(playerLevel.spigotConfig.viewDistance)); // Spigot
-+        player.connection.send(new ClientboundSetSimulationDistancePacket(playerLevel.spigotConfig.simulationDistance)); // Spigot
++        //player.connection.send(new ClientboundSetChunkCacheRadiusPacket(playerLevel.spigotConfig.viewDistance)); // Spigot
++        //player.connection.send(new ClientboundSetSimulationDistancePacket(playerLevel.spigotConfig.simulationDistance)); // Spigot
          player.connection.teleport(player.getX(), player.getY(), player.getZ(), player.getYRot(), player.getXRot());
          player.connection.send(new ClientboundSetDefaultSpawnPositionPacket(level.getRespawnData()));
          player.connection.send(new ClientboundChangeDifficultyPacket(levelData.getDifficulty(), levelData.isDifficultyLocked()));
@@ -1002,7 +1002,7 @@
      }
  
      private Path locateStatsFile(GameProfile gameProfile) {
-@@ -794,6 +_,8 @@
+@@ -794,13 +_,15 @@
              this.advancements.put(uuid, result);
          }
  
@@ -1011,6 +1011,23 @@
          result.setPlayer(player);
          return result;
      }
+ 
+     public void setViewDistance(int viewDistance) {
+         this.viewDistance = viewDistance;
+-        this.broadcastAll(new ClientboundSetChunkCacheRadiusPacket(viewDistance));
++        //this.broadcastAll(new ClientboundSetChunkCacheRadiusPacket(viewDistance)); // Paper - rewrite chunk system
+ 
+         for (ServerLevel level : this.server.getAllLevels()) {
+             level.getChunkSource().setViewDistance(viewDistance);
+@@ -809,7 +_,7 @@
+ 
+     public void setSimulationDistance(int simulationDistance) {
+         this.simulationDistance = simulationDistance;
+-        this.broadcastAll(new ClientboundSetSimulationDistancePacket(simulationDistance));
++        //this.broadcastAll(new ClientboundSetSimulationDistancePacket(simulationDistance)); // Paper - rewrite chunk system
+ 
+         for (ServerLevel level : this.server.getAllLevels()) {
+             level.getChunkSource().setSimulationDistance(simulationDistance);
 @@ -817,7 +_,7 @@
      }
  

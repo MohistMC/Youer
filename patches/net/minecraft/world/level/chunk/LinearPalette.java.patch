@@ -1,0 +1,21 @@
+--- a/net/minecraft/world/level/chunk/LinearPalette.java
++++ b/net/minecraft/world/level/chunk/LinearPalette.java
+@@ -7,10 +_,17 @@
+ import net.minecraft.network.VarInt;
+ import org.apache.commons.lang3.Validate;
+ 
+-public class LinearPalette<T> implements Palette<T> {
++public class LinearPalette<T> implements Palette<T>, ca.spottedleaf.moonrise.patches.fast_palette.FastPalette<T> { // Paper - optimise palette reads
+     private final T[] values;
+     private final int bits;
+     private int size;
++
++    // Paper start - optimise palette reads
++    @Override
++    public final T[] moonrise$getRawPalette(final ca.spottedleaf.moonrise.patches.fast_palette.FastPaletteData<T> container) {
++        return this.values;
++    }
++    // Paper end - optimise palette reads
+ 
+     private LinearPalette(int bits, List<T> paletteEntries) {
+         this.values = (T[])(new Object[1 << bits]);

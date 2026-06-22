@@ -80,17 +80,96 @@
      protected ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state, boolean includeData) {
          return new ItemStack(this.asItem());
      }
-@@ -406,6 +_,10 @@
+@@ -406,7 +_,11 @@
          return this.properties.destroyTime;
      }
  
+-    public abstract static class BlockStateBase extends StateHolder<Block, BlockState> implements TypedInstance<Block> {
 +    protected boolean isAir(BlockState state) {
 +        return ((BlockStateBase)state).isAir;
 +    }
 +
-     public abstract static class BlockStateBase extends StateHolder<Block, BlockState> implements TypedInstance<Block> {
++    public abstract static class BlockStateBase extends StateHolder<Block, BlockState> implements TypedInstance<Block>, ca.spottedleaf.moonrise.patches.starlight.blockstate.StarlightAbstractBlockState, ca.spottedleaf.moonrise.patches.collisions.block.CollisionBlockState { // Paper - rewrite chunk system // Paper - optimise collisions
          private static final Direction[] DIRECTIONS = Direction.values();
          private static final VoxelShape[] EMPTY_OCCLUSION_SHAPES = Util.make(new VoxelShape[DIRECTIONS.length], s -> Arrays.fill(s, Shapes.empty()));
+         private static final VoxelShape[] FULL_BLOCK_OCCLUSION_SHAPES = Util.make(new VoxelShape[DIRECTIONS.length], s -> Arrays.fill(s, Shapes.block()));
+@@ -441,6 +_,76 @@
+         private boolean propagatesSkylightDown;
+         private int lightDampening;
+ 
++        // Paper start - rewrite chunk system
++        private boolean isConditionallyFullOpaque;
++
++        @Override
++        public final boolean starlight$isConditionallyFullOpaque() {
++            return this.isConditionallyFullOpaque;
++        }
++        // Paper end - rewrite chunk system
++        // Paper start - optimise collisions
++        private static final int RANDOM_OFFSET = 704237939;
++        private static final Direction[] DIRECTIONS_CACHED = Direction.values();
++        private static final java.util.concurrent.atomic.AtomicInteger ID_GENERATOR = new java.util.concurrent.atomic.AtomicInteger();
++        private final int id1 = it.unimi.dsi.fastutil.HashCommon.murmurHash3(it.unimi.dsi.fastutil.HashCommon.murmurHash3(ID_GENERATOR.getAndIncrement() + RANDOM_OFFSET) + RANDOM_OFFSET);
++        private final int id2 = it.unimi.dsi.fastutil.HashCommon.murmurHash3(it.unimi.dsi.fastutil.HashCommon.murmurHash3(ID_GENERATOR.getAndIncrement() + RANDOM_OFFSET) + RANDOM_OFFSET);
++        private boolean occludesFullBlock;
++        private boolean emptyCollisionShape;
++        private boolean emptyConstantCollisionShape;
++        private VoxelShape constantCollisionShape;
++
++        private static void initCaches(final VoxelShape shape, final boolean neighbours) {
++            ((ca.spottedleaf.moonrise.patches.collisions.shape.CollisionVoxelShape)shape).moonrise$isFullBlock();
++            ((ca.spottedleaf.moonrise.patches.collisions.shape.CollisionVoxelShape)shape).moonrise$occludesFullBlock();
++            shape.toAabbs();
++            if (!shape.isEmpty()) {
++                shape.bounds();
++            }
++            if (neighbours) {
++                for (final Direction direction : DIRECTIONS_CACHED) {
++                    initCaches(((ca.spottedleaf.moonrise.patches.collisions.shape.CollisionVoxelShape)shape).moonrise$getFaceShapeClamped(direction), false);
++                    initCaches(shape.getFaceShape(direction), false);
++                }
++            }
++        }
++
++        @Override
++        public final boolean moonrise$hasCache() {
++            return this.cache != null;
++        }
++
++        @Override
++        public final boolean moonrise$occludesFullBlock() {
++            return this.occludesFullBlock;
++        }
++
++        @Override
++        public final boolean moonrise$emptyCollisionShape() {
++            return this.emptyCollisionShape;
++        }
++
++        @Override
++        public final boolean moonrise$emptyContextCollisionShape() {
++            return this.emptyConstantCollisionShape;
++        }
++
++        @Override
++        public final int moonrise$uniqueId1() {
++            return this.id1;
++        }
++
++        @Override
++        public final int moonrise$uniqueId2() {
++            return this.id2;
++        }
++
++        @Override
++        public final VoxelShape moonrise$getConstantContextCollisionShape() {
++            return this.constantCollisionShape;
++        }
++        // Paper end - optimise collisions
++
+         protected BlockStateBase(Block owner, Property<?>[] propertyKeys, Comparable<?>[] propertyValues) {
+             super(owner, propertyKeys, propertyValues);
+             BlockBehaviour.Properties properties = owner.properties;
 @@ -465,6 +_,16 @@
              this.replaceable = properties.replaceable;
          }

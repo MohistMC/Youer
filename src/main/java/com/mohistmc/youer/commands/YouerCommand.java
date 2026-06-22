@@ -127,9 +127,7 @@ public class YouerCommand extends Command {
             case "version" -> {
                 sender.sendMessage("Youer: " + Youer.versionInfo.youer());
                 sender.sendMessage("NeoForge: " + Youer.versionInfo.neoforge());
-                sender.sendMessage("Bukkit: " + Youer.versionInfo.bukkit());
-                sender.sendMessage("CraftBukkit: " + Youer.versionInfo.craftbukkit());
-                sender.sendMessage("Spigot: " + Youer.versionInfo.spigot());
+                sender.sendMessage("Paper: " + Youer.versionInfo.bukkit());
                 return true;
             }
             case "packetstats" -> {

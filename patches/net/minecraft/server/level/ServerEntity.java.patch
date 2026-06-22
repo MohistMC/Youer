@@ -14,15 +14,36 @@
          this.level = level;
          this.synchronizer = synchronizer;
          this.entity = entity;
-@@ -90,19 +_,20 @@
+@@ -85,24 +_,42 @@
+         this.trackedDataValues = entity.getEntityData().getNonDefaultValues();
+     }
+ 
++    // Paper start - fix desync when a player is added to the tracker
++    private boolean forceStateResync;
++    public void onPlayerAdd() {
++        this.forceStateResync = true;
++    }
++    // Paper end - fix desync when a player is added to the tracker
++
+     public void sendChanges() {
++        // Paper start - optimise collisions
++        if (((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)this.entity).moonrise$isHardColliding()) {
++            this.teleportDelay = 9999;
++        }
++        // Paper end - optimise collisions
+         this.entity.updateDataBeforeSync();
          List<Entity> passengers = this.entity.getPassengers();
          if (!passengers.equals(this.lastPassengers)) {
              this.synchronizer
--                .sendToTrackingPlayersFiltered(
-+                .sendToTrackingPlayersFilteredAndSelf(
+                 .sendToTrackingPlayersFiltered(
                      new ClientboundSetPassengersPacket(this.entity), player -> passengers.contains(player) == this.lastPassengers.contains(player)
 -                );
-+                ); // CraftBukkit
++            );
++            // Paper start - Allow riding players
++            if (this.entity instanceof ServerPlayer player) {
++                player.connection.send(new ClientboundSetPassengersPacket(this.entity));
++            }
++            // Paper end - Allow riding players
              this.lastPassengers = passengers;
          }
  
@@ -141,11 +162,3 @@
                  this.synchronizer.sendToTrackingPlayersAndSelf(new ClientboundUpdateAttributesPacket(this.entity.getId(), attributes));
              }
  
-@@ -360,5 +_,7 @@
-         void sendToTrackingPlayersAndSelf(Packet<? super ClientGamePacketListener> packet);
- 
-         void sendToTrackingPlayersFiltered(Packet<? super ClientGamePacketListener> packet, Predicate<ServerPlayer> predicate);
-+
-+        void sendToTrackingPlayersFilteredAndSelf(Packet<? super ClientGamePacketListener> packet, Predicate<ServerPlayer> predicate); // CraftBukkit
-     }
- }

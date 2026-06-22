@@ -303,13 +303,18 @@
              }
          }
  
-@@ -514,6 +_,57 @@
+@@ -514,6 +_,92 @@
          }
      }
  
 +    // CraftBukkit start
 +    public void loadCallback() {
++        if (this.loadedTicketLevel) { LOGGER.error("Double calling chunk load!", new Throwable()); } // Paper
++        // Paper start
++        this.loadedTicketLevel = true;
++        // Paper end
 +        org.bukkit.Server server = this.level.getCraftServer();
++        // Paper - rewrite chunk system
 +        if (server != null) {
 +            /*
 +             * If it's a new world, the first few chunks are generated inside
@@ -318,14 +323,15 @@
 +             */
 +            org.bukkit.Chunk bukkitChunk = new org.bukkit.craftbukkit.CraftChunk(this);
 +            server.getPluginManager().callEvent(new org.bukkit.event.world.ChunkLoadEvent(bukkitChunk, this.needsDecoration));
++            org.bukkit.craftbukkit.event.CraftEventFactory.callEntitiesLoadEvent(this.level, this.chunkPos, ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler().chunkHolderManager.getChunkHolder(this.locX, this.locZ).getEntityChunk().getAllEntities()); // Paper - rewrite chunk system
 +
 +            if (this.needsDecoration) {
 +                this.needsDecoration = false;
 +                java.util.Random random = new java.util.Random();
-+                random.setSeed(level.getSeed());
++                random.setSeed(this.level.getSeed());
 +                long xRand = random.nextLong() / 2L * 2L + 1L;
 +                long zRand = random.nextLong() / 2L * 2L + 1L;
-+                random.setSeed((long) this.chunkPos.x() * xRand + (long) this.chunkPos.z() * zRand ^ level.getSeed());
++                random.setSeed((long)this.chunkPos.x() * xRand + (long)this.chunkPos.z() * zRand ^ this.level.getSeed());
 +
 +                org.bukkit.World world = this.level.getWorld();
 +                if (world != null) {
@@ -344,18 +350,47 @@
 +    }
 +
 +    public void unloadCallback() {
++        if (!this.loadedTicketLevel) { LOGGER.error("Double calling chunk unload!", new Throwable()); } // Paper
 +        org.bukkit.Server server = this.level.getCraftServer();
++        org.bukkit.craftbukkit.event.CraftEventFactory.callEntitiesUnloadEvent(this.level, this.chunkPos, ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler().chunkHolderManager.getChunkHolder(this.locX, this.locZ).getEntityChunk().getAllEntities()); // Paper - rewrite chunk system
 +        org.bukkit.Chunk bukkitChunk = new org.bukkit.craftbukkit.CraftChunk(this);
-+        org.bukkit.event.world.ChunkUnloadEvent unloadEvent = new org.bukkit.event.world.ChunkUnloadEvent(bukkitChunk, this.isUnsaved());
++        org.bukkit.event.world.ChunkUnloadEvent unloadEvent = new org.bukkit.event.world.ChunkUnloadEvent(bukkitChunk, true); // Paper - rewrite chunk system - force save to true so that mustNotSave is correctly set below
 +        server.getPluginManager().callEvent(unloadEvent);
 +        // note: saving can be prevented, but not forced if no saving is actually required
 +        this.mustNotSave = !unloadEvent.isSaveChunk();
++        // Paper - rewrite chunk system
++        // Paper start
++        this.loadedTicketLevel = false;
++        // Paper end
 +    }
 +
 +    @Override
 +    public boolean isUnsaved() {
-+        return super.isUnsaved() && !this.mustNotSave;
++        // Paper start - rewrite chunk system
++        final long gameTime = this.level.getGameTime();
++        if (((ca.spottedleaf.moonrise.patches.chunk_system.ticks.ChunkSystemLevelChunkTicks)this.blockTicks).moonrise$isDirty(gameTime)
++                || ((ca.spottedleaf.moonrise.patches.chunk_system.ticks.ChunkSystemLevelChunkTicks)this.fluidTicks).moonrise$isDirty(gameTime)) {
++            return true;
++        }
++
++        return super.isUnsaved();
++        // Paper end - rewrite chunk system
 +    }
++
++    // Paper start - rewrite chunk system
++    @Override
++    public boolean tryMarkSaved() {
++        if (!this.isUnsaved()) {
++            return false;
++        }
++        ((ca.spottedleaf.moonrise.patches.chunk_system.ticks.ChunkSystemLevelChunkTicks)this.blockTicks).moonrise$clearDirty();
++        ((ca.spottedleaf.moonrise.patches.chunk_system.ticks.ChunkSystemLevelChunkTicks)this.fluidTicks).moonrise$clearDirty();
++
++        super.tryMarkSaved();
++
++        return true;
++    }
++    // Paper end - rewrite chunk system
 +    // CraftBukkit end
 +
      public boolean isEmpty() {
@@ -370,6 +405,14 @@
                  }
              });
          }
+@@ -592,6 +_,7 @@
+ 
+         this.pendingBlockEntities.clear();
+         this.upgradeData.upgrade(this);
++        this.postProcessingDone = true; // Paper - rewrite chunk system
+     }
+ 
+     private @Nullable BlockEntity promotePendingBlockEntity(BlockPos pos, CompoundTag tag) {
 @@ -673,6 +_,7 @@
      }
  

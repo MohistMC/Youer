@@ -190,21 +190,12 @@ public final class SparksFly {
 
         @Override
         public boolean execute(final CommandSender sender, final String commandLabel, final String[] args) {
-            final SparksFly spark = ((CraftServer) sender.getServer()).spark;
-            if (spark.enabled) {
-                spark.executeCommand(sender, args);
-            } else {
-                sender.sendMessage(Component.text("The spark profiler is currently disabled.", TextColor.color(SPARK_YELLOW)));
-            }
+            sender.sendMessage(Component.text("The spark profiler is currently disabled.", TextColor.color(SPARK_YELLOW)));
             return true;
         }
 
         @Override
         public List<String> tabComplete(final CommandSender sender, final String alias, final String[] args) throws IllegalArgumentException {
-            final SparksFly spark = ((CraftServer) sender.getServer()).spark;
-            if (spark.enabled) {
-                return spark.tabComplete(sender, args);
-            }
             return List.of();
         }
     }

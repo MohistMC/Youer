@@ -1,0 +1,41 @@
+--- a/net/minecraft/world/level/block/state/StateDefinition.java
++++ b/net/minecraft/world/level/block/state/StateDefinition.java
+@@ -62,10 +_,19 @@
+         return codec;
+     }
+ 
++    // Paper start - optimise blockstate property access
++    private static <O, S extends StateHolder<O, S>> ImmutableList<S> initStateTables(final ImmutableList<S> states) {
++        if (!states.isEmpty()) {
++            ((ca.spottedleaf.moonrise.patches.blockstate_propertyaccess.PropertyAccessStateHolder<O, S>)(StateHolder<O, S>)states.get(0)).moonrise$init(states);
++        }
++        return states;
++    }
++    // Paper end - optimise blockstate property access
++
+     private static <O, S extends StateHolder<O, S>> ImmutableList<S> createSingletonState(O owner, StateDefinition.Factory<O, S> factory) {
+         S singletonState = (S)factory.create(owner, EMPTY_KEYS, EMPTY_VALUES);
+         singletonState.initializeNeighbors((S[][])emptyNeighbors());
+-        return ImmutableList.of(singletonState);
++        return initStateTables(ImmutableList.of(singletonState));  // Paper - optimise blockstate property access
+     }
+ 
+     private static <O, S extends StateHolder<O, S>> ImmutableList<S> createSinglePropertyStates(
+@@ -93,7 +_,7 @@
+             blockState.initializeNeighbors(neighbours);
+         }
+ 
+-        return states.build();
++        return initStateTables(states.build());  // Paper - optimise blockstate property access
+     }
+ 
+     private static <O, S extends StateHolder<O, S>> ImmutableList<S> createMultiPropertyStates(
+@@ -119,7 +_,7 @@
+ 
+         StateDefinition.StateCollection<S> stateCollection = new StateDefinition.StateCollection<>(statesByValues, new HashMap<>());
+         statesByValues.forEach((valuesx, state) -> state.initializeNeighbors(stateCollection.fillNeighborsForState(propertyKeys, valuesx)));
+-        return states.build();
++        return initStateTables(states.build());  // Paper - optimise blockstate property access
+     }
+ 
+     private static <S extends StateHolder<?, ?>> S[][] emptyNeighbors() {

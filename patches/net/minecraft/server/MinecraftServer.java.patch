@@ -151,6 +151,15 @@
      private MetricsRecorder metricsRecorder = InactiveMetricsRecorder.INSTANCE;
      private Consumer<ProfileResults> onMetricsRecordingStopped = results -> this.stopRecordingMetrics();
      private Consumer<Path> onMetricsRecordingFinished = ignored -> {};
+@@ -226,7 +_,7 @@
+     private MinecraftServer.@Nullable TimeProfiler debugCommandProfiler;
+     private boolean debugCommandProfilerDelayStart;
+     private ServerConnectionListener connection;
+-    private final LevelLoadListener levelLoadListener;
++    // Paper - per world load listener - moved LevelLoadListener to ServerLevel
+     private @Nullable ServerStatus status;
+     private ServerStatus.@Nullable Favicon statusIcon;
+     private final RandomSource random = RandomSource.create();
 @@ -237,13 +_,14 @@
      private Map<ResourceKey<Level>, ServerLevel> levels = Maps.newLinkedHashMap();
      private PlayerList playerList;
@@ -181,7 +190,7 @@
      private final DiscontinuousFrame tickFrame;
      private final PacketProcessor packetProcessor;
 -    private final TimerQueue<MinecraftServer> scheduledEvents;
-+    // private final TimerQueue<MinecraftServer> scheduledEvents; // CraftBukkit - per world
++    // Paper - per-level scheduledEvents
      private final ServerClockManager clockManager;
  
 +    // CraftBukkit start
@@ -386,7 +395,7 @@
      public static <S extends MinecraftServer> S spin(Function<Thread, S> factory) {
          AtomicReference<S> serverReference = new AtomicReference<>();
 -        Thread thread = new Thread(() -> serverReference.get().runServer(), "Server thread");
-+        Thread thread = new Thread(net.neoforged.fml.util.thread.SidedThreadGroups.SERVER, () -> serverReference.get().runServer(), "Server thread");
++        Thread thread = new ca.spottedleaf.moonrise.common.util.TickThread(net.neoforged.fml.util.thread.SidedThreadGroups.SERVER, () -> serverReference.get().runServer(), "Server thread");
          thread.setUncaughtExceptionHandler((t, e) -> LOGGER.error("Uncaught exception in server thread", e));
          if (Runtime.getRuntime().availableProcessors() > 4) {
              thread.setPriority(8);
@@ -424,15 +433,16 @@
 -        this.connection = new ServerConnectionListener(this);
 +        // this.connection = new ServerConnection(this); // Spigot
          this.tickRateManager = new ServerTickRateManager(this);
-         this.levelLoadListener = levelLoadListener;
+-        this.levelLoadListener = levelLoadListener;
++        // Paper - per-level load listener - move LevelLoadListener to ServerLevel
          this.storageSource = storageSource;
          this.playerDataStorage = storageSource.createPlayerStorage();
          this.randomSequences = this.savedDataStorage.computeIfAbsent(RandomSequences.TYPE);
 -        this.weatherData = this.getDataStorage().computeIfAbsent(WeatherData.TYPE);
 -        this.gameRules = new GameRules(this.worldData.enabledFeatures(), this.savedDataStorage.computeIfAbsent(GameRuleMap.TYPE));
 -        gameRules.ifPresent(g -> this.gameRules.setAll(g, null));
-+        //this.weatherData = this.getDataStorage().computeIfAbsent(WeatherData.TYPE);
-+        //this.gameRules = new GameRules(this.worldData.enabledFeatures(), this.savedDataStorage.computeIfAbsent(GameRuleMap.TYPE));
++        // Paper - per-level WeatherData
++        // Paper - per-level GameRules
          this.fixerUpper = fixerUpper;
          this.functionManager = new ServerFunctionManager(this, this.resources.managers.getFunctionLibrary());
          HolderGetter<Block> blockLookup = this.registries.compositeAccess().lookupOrThrow(Registries.BLOCK).filterFeatures(this.worldData.enabledFeatures());
@@ -484,7 +494,7 @@
          if (profiledDuration != null) {
              profiledDuration.finish(true);
          }
-@@ -415,33 +_,151 @@
+@@ -415,33 +_,149 @@
          }
      }
  
@@ -504,8 +514,6 @@
 +        }
 +        // Paper end - Configurable player collision; Handle collideRule team for player collision toggle
 +        this.server.enablePlugins(org.bukkit.plugin.PluginLoadOrder.POSTWORLD);
-+        this.server.spark.registerCommandBeforePlugins(this.server); // Paper - spark
-+        this.server.spark.enableAfterPlugins(this.server); // Paper - spark
 +        io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setValid(); // Paper - reset invalid state for event fire below
 +        io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner.INSTANCE.callReloadableRegistrarEvent(io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents.COMMANDS, io.papermc.paper.command.brigadier.PaperCommands.INSTANCE, org.bukkit.plugin.Plugin.class, io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.INITIAL); // Paper - call commands event for regular plugins
 +        this.server.getCommandMap().registerServerAliases(); // Paper - relocate initial CommandMap#registerServerAliases() call
@@ -774,7 +782,12 @@
          boolean result = false;
  
          for (ServerLevel level : this.getAllLevels()) {
-@@ -598,6 +_,24 @@
+@@ -594,10 +_,28 @@
+                 LOGGER.info("Saving chunks for level '{}'/{}", level, level.dimension().identifier());
+             }
+ 
+-            level.save(null, flush, SharedConstants.DEBUG_DONT_SAVE_WORLD || level.noSave && !force);
++            level.save(null, flush, SharedConstants.DEBUG_DONT_SAVE_WORLD || level.noSave && !force, close); // Paper - add close param
              result = true;
          }
  
@@ -819,7 +832,7 @@
  
      public boolean saveEverything(boolean silent, boolean flush, boolean force) {
          try {
-@@ -635,19 +_,49 @@
+@@ -635,19 +_,48 @@
          this.stopServer();
      }
  
@@ -854,7 +867,6 @@
 +        Commands.COMMAND_SENDING_POOL.shutdownNow(); // Paper - Perf: Async command map building; Shutdown and don't bother finishing
 +        // CraftBukkit start
 +        if (this.server != null) {
-+            this.server.spark.disable(); // Paper - spark
 +            this.server.disablePlugins();
 +            this.server.waitForAsyncTasksShutdown(); // Paper - Wait for Async Tasks during shutdown
 +        }
@@ -949,7 +961,7 @@
          this.running = false;
          if (wait) {
              try {
-@@ -715,37 +_,213 @@
+@@ -715,37 +_,212 @@
          }
      }
  
@@ -1097,7 +1109,6 @@
              this.status = this.buildServerStatus();
 +            resetStatusCache(status);
 +
-+            this.server.spark.enableBeforePlugins(); // Paper - spark
 +            // Spigot start
 +            // Paper start
 +            LOGGER.info("Running delayed init tasks");
@@ -1316,7 +1327,7 @@
      }
  
      public void doRunTask(TickTask task) {
-@@ -956,40 +_,89 @@
+@@ -956,10 +_,12 @@
      }
  
      protected void tickServer(BooleanSupplier haveTime) {
@@ -1330,12 +1341,7 @@
                  this.emptyTicks++;
              } else {
                  this.emptyTicks = 0;
-             }
- 
-             if (this.emptyTicks >= emptyTickThreshold) {
-+                this.server.spark.tickStart(); // Paper - spark
-                 if (this.emptyTicks == emptyTickThreshold) {
-                     LOGGER.info("Server empty for {} seconds, pausing", this.pauseWhenEmptySeconds());
+@@ -971,25 +_,66 @@
                      this.autoSave();
                  }
  
@@ -1350,14 +1356,11 @@
 +                    level.getChunkSource().tick(() -> true, false);
 +                }
 +                // Paper end - avoid issues with certain tasks not processing during sleep
-+                this.server.spark.executeMainThreadTasks(); // Paper - spark
                  this.tickConnection();
-+                this.server.spark.tickEnd(((double)(System.nanoTime() - this.currentTickStart) / 1000000D)); // Paper - spark
                  return;
              }
          }
  
-+        this.server.spark.tickStart(); // Paper - spark
 +        new com.destroystokyo.paper.event.server.ServerTickStartEvent(this.tickCount+1).callEvent(); // Paper - Server Tick Events
          this.tickCount++;
 +        net.neoforged.neoforge.event.EventHooks.fireServerTickPre(haveTime, this);
@@ -1400,13 +1403,11 @@
 +        // Paper end - Incremental chunk and player saving
  
          ProfilerFiller profiler = Profiler.get();
-+        this.server.spark.executeMainThreadTasks(); // Paper - spark
 +        // Paper start - Server Tick Events
 +        long endTime = System.nanoTime();
 +        long remaining = this.nextTickTimeNanos - endTime;
 +        new com.destroystokyo.paper.event.server.ServerTickEndEvent(this.tickCount, ((double)(endTime - this.currentTickStart) / 1000000D), remaining).callEvent();
 +        // Paper end - Server Tick Events
-+        this.server.spark.tickEnd(((double)(endTime - this.currentTickStart) / 1000000D)); // Paper - spark
          profiler.push("tallying");
          long tickTime = Util.getNanos() - nano;
          int tickIndex = this.tickCount % 100;

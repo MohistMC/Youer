@@ -1,6 +1,19 @@
 --- a/net/minecraft/world/level/chunk/storage/SectionStorage.java
 +++ b/net/minecraft/world/level/chunk/storage/SectionStorage.java
-@@ -52,7 +_,7 @@
+@@ -40,10 +_,10 @@
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
+-public class SectionStorage<R, P> implements AutoCloseable {
++public class SectionStorage<R, P> implements AutoCloseable, ca.spottedleaf.moonrise.patches.chunk_system.level.storage.ChunkSystemSectionStorage { // Paper - rewrite chunk system
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private static final String SECTIONS_TAG = "Sections";
+-    private final SimpleRegionStorage simpleRegionStorage;
++    // Paper - rewrite chunk system
+     private final Long2ObjectMap<Optional<R>> storage = new Long2ObjectOpenHashMap<>();
+     private final LongLinkedOpenHashSet dirtyChunks = new LongLinkedOpenHashSet();
+     private final Codec<P> codec;
+@@ -52,10 +_,21 @@
      private final Function<Runnable, R> factory;
      private final RegistryAccess registryAccess;
      private final ChunkIOErrorReporter errorReporter;
@@ -9,6 +22,37 @@
      private final LongSet loadedChunks = new LongOpenHashSet();
      private final Long2ObjectMap<CompletableFuture<Optional<SectionStorage.PackedChunk<P>>>> pendingLoads = new Long2ObjectOpenHashMap<>();
      private final Object loadLock = new Object();
++    // Paper start - rewrite chunk system
++    private final RegionFileStorage regionStorage;
++
++    @Override
++    public final RegionFileStorage moonrise$getRegionStorage() {
++        return this.regionStorage;
++    }
++
++    @Override
++    public void moonrise$close() throws IOException {}
++    // Paper end - rewrite chunk system
+ 
+     public SectionStorage(
+         SimpleRegionStorage simpleRegionStorage,
+@@ -67,7 +_,7 @@
+         ChunkIOErrorReporter errorReporter,
+         LevelHeightAccessor levelHeightAccessor
+     ) {
+-        this.simpleRegionStorage = simpleRegionStorage;
++        // Paper - rewrite chunk system
+         this.codec = codec;
+         this.packer = packer;
+         this.unpacker = unpacker;
+@@ -75,6 +_,7 @@
+         this.registryAccess = registryAccess;
+         this.errorReporter = errorReporter;
+         this.levelHeightAccessor = levelHeightAccessor;
++        this.regionStorage = ((ca.spottedleaf.moonrise.patches.chunk_system.storage.ChunkSystemSimpleRegionStorage)simpleRegionStorage).moonrise$getRegionStorage(); // Paper - rewrite chunk system
+     }
+ 
+     protected void tick(BooleanSupplier haveTime) {
 @@ -117,11 +_,12 @@
          return !this.dirtyChunks.isEmpty();
      }
@@ -24,10 +68,79 @@
          if (this.outsideStoredRange(sectionPos)) {
              return Optional.empty();
          } else {
-@@ -297,6 +_,19 @@
+@@ -187,63 +_,15 @@
+     }
+ 
+     private CompletableFuture<Optional<SectionStorage.PackedChunk<P>>> tryRead(ChunkPos chunkPos) {
+-        RegistryOps<Tag> registryOps = this.registryAccess.createSerializationContext(NbtOps.INSTANCE);
+-        return this.simpleRegionStorage
+-            .read(chunkPos)
+-            .thenApplyAsync(
+-                result -> result.map(tag -> SectionStorage.PackedChunk.parse(this.codec, registryOps, tag, this.simpleRegionStorage, this.levelHeightAccessor)),
+-                Util.backgroundExecutor().forName("parseSection")
+-            )
+-            .exceptionally(throwable -> {
+-                if (throwable instanceof CompletionException) {
+-                    throwable = throwable.getCause();
+-                }
+-
+-                if (throwable instanceof IOException e) {
+-                    LOGGER.error("Error reading chunk {} data from disk", chunkPos, e);
+-                    this.errorReporter.reportChunkLoadFailure(e, this.simpleRegionStorage.storageInfo(), chunkPos);
+-                    return Optional.empty();
+-                } else {
+-                    throw new CompletionException(throwable);
+-                }
+-            });
++        throw new IllegalStateException("Only chunk system can write state, offending class:" + this.getClass().getName()); // Paper - rewrite chunk system
+     }
+ 
+     private void unpackChunk(ChunkPos pos, SectionStorage.@Nullable PackedChunk<P> packedChunk) {
+-        if (packedChunk == null) {
+-            for (int sectionY = this.levelHeightAccessor.getMinSectionY(); sectionY <= this.levelHeightAccessor.getMaxSectionY(); sectionY++) {
+-                this.storage.put(getKey(pos, sectionY), Optional.empty());
+-            }
+-        } else {
+-            boolean versionChanged = packedChunk.versionChanged();
+-
+-            for (int sectionY = this.levelHeightAccessor.getMinSectionY(); sectionY <= this.levelHeightAccessor.getMaxSectionY(); sectionY++) {
+-                long key = getKey(pos, sectionY);
+-                Optional<R> section = Optional.ofNullable(packedChunk.sectionsByY.get(sectionY))
+-                    .map(packed -> this.unpacker.apply((P)packed, () -> this.setDirty(key)));
+-                this.storage.put(key, section);
+-                section.ifPresent(s -> {
+-                    this.onSectionLoad(key);
+-                    if (versionChanged) {
+-                        this.setDirty(key);
+-                    }
+-                });
+-            }
+-        }
++        throw new IllegalStateException("Only chunk system can load in state, offending class:" + this.getClass().getName()); // Paper - rewrite chunk system
+     }
+ 
+     private void writeChunk(ChunkPos chunkPos) {
+-        RegistryOps<Tag> registryOps = this.registryAccess.createSerializationContext(NbtOps.INSTANCE);
+-        Dynamic<Tag> tag = this.writeChunk(chunkPos, registryOps);
+-        Tag value = tag.getValue();
+-        if (value instanceof CompoundTag compoundTag) {
+-            this.simpleRegionStorage.write(chunkPos, compoundTag).exceptionally(throwable -> {
+-                this.errorReporter.reportChunkSaveFailure(throwable, this.simpleRegionStorage.storageInfo(), chunkPos);
+-                return null;
+-            });
+-        } else {
+-            LOGGER.error("Expected compound tag, got {}", value);
+-        }
++        throw new IllegalStateException("Only chunk system can write state, offending class:" + this.getClass().getName()); // Paper - rewrite chunk system
+     }
+ 
+     private <T> Dynamic<T> writeChunk(ChunkPos chunkPos, DynamicOps<T> ops) {
+@@ -296,7 +_,20 @@
+ 
      @Override
      public void close() throws IOException {
-         this.simpleRegionStorage.close();
+-        this.simpleRegionStorage.close();
++        this.moonrise$close(); // Paper - rewrite chunk system
 +    }
 +
 +    /**

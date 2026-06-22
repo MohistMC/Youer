@@ -1,0 +1,26 @@
+--- a/net/minecraft/world/level/gameevent/DynamicGameEventListener.java
++++ b/net/minecraft/world/level/gameevent/DynamicGameEventListener.java
+@@ -26,6 +_,14 @@
+ 
+     public void remove(ServerLevel level) {
+         ifChunkExists(level, this.lastSection, dispatcher -> dispatcher.unregister(this.listener));
++        // Paper start - rewrite chunk system
++        // We need to unset the last section when removed, otherwise if the same instance is re-added at the same position it
++        // will assume there was no change and fail to re-register.
++        // In vanilla, chunks rarely unload and re-load quickly enough to trigger this issue. However, our chunk system has a
++        // quirk where fast chunk reload cycles will often occur on player login (see PR #22).
++        // So we fix this vanilla oversight as our changes cause it to manifest in bugs much more often (see issue #87).
++        this.lastSection = null;
++        // Paper end - rewrite chunk system
+     }
+ 
+     public void move(ServerLevel level) {
+@@ -40,7 +_,7 @@
+ 
+     private static void ifChunkExists(LevelReader level, @Nullable SectionPos sectionPos, Consumer<GameEventListenerRegistry> action) {
+         if (sectionPos != null) {
+-            ChunkAccess chunk = level.getChunk(sectionPos.x(), sectionPos.z(), ChunkStatus.FULL, false);
++            ChunkAccess chunk = level.getChunkIfLoadedImmediately(sectionPos.getX(), sectionPos.getZ()); // Paper - Perf: can cause sync loads while completing a chunk, resulting in deadlock
+             if (chunk != null) {
+                 action.accept(chunk.getListenerRegistry(sectionPos.y()));
+             }

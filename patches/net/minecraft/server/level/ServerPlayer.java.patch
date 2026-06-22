@@ -207,7 +207,7 @@
  
      public ServerPlayer(MinecraftServer server, ServerLevel level, GameProfile gameProfile, ClientInformation clientInformation) {
          super(level, gameProfile);
-@@ -378,6 +_,22 @@
+@@ -378,12 +_,28 @@
          this.advancements = server.getPlayerList().getPlayerAdvancements(this);
          this.updateOptions(clientInformation);
          this.object = null;
@@ -230,6 +230,13 @@
      }
  
      @Override
+     public BlockPos adjustSpawnLocation(ServerLevel level, BlockPos spawnSuggestion) {
+         CompletableFuture<Vec3> future = PlayerSpawnFinder.findSpawn(level, spawnSuggestion);
+-        this.server.managedBlock(future::isDone);
++        level.getChunkSource().mainThreadProcessor.managedBlock(future::isDone); // Paper - rewrite chunk system
+         return BlockPos.containing(future.join());
+     }
+ 
 @@ -396,11 +_,21 @@
          this.seenCredits = input.getBooleanOr("seenCredits", false);
          input.read("recipeBook", ServerRecipeBook.Packed.CODEC)

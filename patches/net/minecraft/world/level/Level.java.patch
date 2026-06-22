@@ -72,6 +72,15 @@
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, Identifier.withDefaultNamespace("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, Identifier.withDefaultNamespace("the_nether"));
+@@ -121,7 +_,7 @@
+     public float rainLevel;
+     public float oThunderLevel;
+     public float thunderLevel;
+-    protected final RandomSource random = RandomSource.create();
++    protected final RandomSource random = new ca.spottedleaf.moonrise.common.util.ThreadUnsafeRandom(net.minecraft.world.level.levelgen.RandomSupport.generateUniqueSeed()); // Paper - replace random
+     @Deprecated
+     private final RandomSource soundSeedGenerator = RandomSource.createThreadSafe();
+     private final Holder<DimensionType> dimensionTypeRegistration;
 @@ -133,6 +_,690 @@
      private final DamageSources damageSources;
      private final PalettedContainerFactory palettedContainerFactory;
@@ -1153,7 +1162,7 @@
          if (!this.isInValidBounds(pos)) {
              return Blocks.VOID_AIR.defaultBlockState();
          }
-@@ -464,8 +_,30 @@
+@@ -464,6 +_,14 @@
          (this.tickingBlockEntities ? this.pendingBlockEntityTickers : this.blockEntityTickers).add(ticker);
      }
  
@@ -1166,29 +1175,40 @@
 +    }
 +
      public void tickBlockEntities() {
-+        if (!this.pendingFreshBlockEntities.isEmpty()) {
-+            this.freshBlockEntities.addAll(this.pendingFreshBlockEntities);
-+            this.pendingFreshBlockEntities.clear();
-+        }
          this.tickingBlockEntities = true;
-+        if (!this.freshBlockEntities.isEmpty()) {
-+            this.freshBlockEntities.forEach(blockEntity -> {
-+                // Only call onLoad() on BEs which have been fully added to the level, prevents crashes with BEs that
-+                // were discarded due to incompatibility with the BlockState at their position
-+                if (!blockEntity.isRemoved() && blockEntity.hasLevel()) {
-+                    blockEntity.onLoad();
-+                }
-+            });
-+            this.freshBlockEntities.clear();
-+        }
          if (!this.pendingBlockEntityTickers.isEmpty()) {
-             this.blockEntityTickers.addAll(this.pendingBlockEntityTickers);
+@@ -471,31 +_,62 @@
              this.pendingBlockEntityTickers.clear();
-@@ -484,16 +_,24 @@
          }
  
+-        Iterator<TickingBlockEntity> iterator = this.blockEntityTickers.iterator();
++        // Paper - Fix MC-117075 use removeAll - remove iterator in favour of indexed for loop, ensuring compile error if something uses iter incorrectly
+         boolean tickBlockEntities = this.tickRateManager().runsNormally();
+ 
+-        while (iterator.hasNext()) {
+-            TickingBlockEntity ticker = iterator.next();
++        int tickedEntities = 0; // Paper - rewrite chunk system
++        // Paper start - Fix MC-117075 use removeAll
++        final it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<@Nullable TickingBlockEntity> toRemove = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>();
++        toRemove.add(null);
++        for (int tickerIndex = 0; tickerIndex < this.blockEntityTickers.size(); tickerIndex++) {
++            final TickingBlockEntity ticker = this.blockEntityTickers.get(tickerIndex);
++            // Paper end - Fix MC-117075 use removeAll
+             if (ticker.isRemoved()) {
+-                iterator.remove();
++                toRemove.add(ticker); // Paper - Fix MC-117075 use removeAll
+             } else if (tickBlockEntities && this.shouldTickBlocksAt(ticker.getPos())) {
+                 ticker.tick();
++                // Paper start - rewrite chunk system
++                if ((++tickedEntities & 7) == 0) {
++                    ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)(Level)(Object)this).moonrise$midTickTasks();
++                }
++                // Paper end - rewrite chunk system
+             }
+         }
+ 
++        this.blockEntityTickers.removeAll(toRemove); // Paper - Fix MC-117075 use removeAll
          this.tickingBlockEntities = false;
-+        spigotConfig.currentPrimedTnt = 0; // Spigot
      }
  
      public <T extends Entity> void guardEntityTick(Consumer<T> tick, T entity) {
@@ -1196,20 +1216,41 @@
 +            net.neoforged.neoforge.server.timings.TimeTracker.ENTITY_UPDATE.trackStart(entity);
              tick.accept(entity);
          } catch (Throwable t) {
-             CrashReport report = CrashReport.forThrowable(t, "Ticking entity");
-             CrashReportCategory category = report.addCategory("Entity being ticked");
-             entity.fillCrashReportCategory(category);
-+            if (net.neoforged.neoforge.common.config.NeoForgeServerConfig.INSTANCE.removeErroringEntities.get()) {
-+                com.mojang.logging.LogUtils.getLogger().error("{}", report.getFriendlyReport(net.minecraft.ReportType.CRASH));
-+                entity.discard();
-+            } else
-             throw new ReportedException(report);
-+        } finally {
-+            net.neoforged.neoforge.server.timings.TimeTracker.ENTITY_UPDATE.trackEnd(entity);
-         }
-     }
+-            CrashReport report = CrashReport.forThrowable(t, "Ticking entity");
+-            CrashReportCategory category = report.addCategory("Entity being ticked");
+-            entity.fillCrashReportCategory(category);
+-            throw new ReportedException(report);
+-        }
+-    }
++            // Paper start - Prevent block entity and entity crashes
++            final String msg = String.format("Entity threw exception at %s:%s,%s,%s", io.papermc.paper.util.MCUtil.getLevelName(entity.level()), entity.getX(), entity.getY(), entity.getZ());
++            MinecraftServer.LOGGER.error(msg, t);
++            getCraftServer().getPluginManager().callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerInternalException(msg, t))); // Paper - ServerExceptionEvent
++            entity.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
++            // Paper end - Prevent block entity and entity crashes
++        }
++        this.moonrise$midTickTasks(); // Paper - rewrite chunk system
++    }
++
++    // Paper start - Option to prevent armor stands from doing entity lookups
++    @Override
++    public boolean noCollision(@Nullable Entity entity, AABB box) {
++        if (entity instanceof net.minecraft.world.entity.decoration.ArmorStand && !entity.level().paperConfig().entities.armorStands.doCollisionEntityLookups)
++            return false;
++        // Paper start - optimise collisions
++        final int flags = entity == null ? (ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_BORDER | ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_ONLY) : ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.COLLISION_FLAG_CHECK_ONLY;
++        if (ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.getCollisionsForBlocksOrWorldBorder((Level)(Object)this, entity, box, null, null, flags, null)) {
++            return false;
++        }
++
++        return !ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.getEntityHardCollisions((Level)(Object)this, entity, box, null, flags, null);
++        // Paper end - optimise collisions
++    }
++    // Paper end - Option to prevent armor stands from doing entity lookups
  
-@@ -619,6 +_,12 @@
+     public boolean shouldTickDeath(Entity entity) {
+         return true;
+@@ -619,10 +_,16 @@
  
      @Override
      public @Nullable BlockEntity getBlockEntity(BlockPos pos) {
@@ -1222,6 +1263,11 @@
          if (!this.isInValidBounds(pos)) {
              return null;
          } else {
+-            return !this.isClientSide() && Thread.currentThread() != this.thread
++            return !this.isClientSide() && !ca.spottedleaf.moonrise.common.util.TickThread.isTickThread() // Paper - rewrite chunk system
+                 ? null
+                 : this.getChunkAt(pos).getBlockEntity(pos, LevelChunk.EntityCreationType.IMMEDIATE);
+         }
 @@ -631,6 +_,12 @@
      public void setBlockEntity(BlockEntity blockEntity) {
          BlockPos pos = blockEntity.getBlockPos();

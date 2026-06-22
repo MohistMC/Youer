@@ -1,0 +1,49 @@
+--- a/net/minecraft/world/level/chunk/SingleValuePalette.java
++++ b/net/minecraft/world/level/chunk/SingleValuePalette.java
+@@ -8,9 +_,21 @@
+ import org.apache.commons.lang3.Validate;
+ import org.jspecify.annotations.Nullable;
+ 
+-public class SingleValuePalette<T> implements Palette<T> {
++public class SingleValuePalette<T> implements Palette<T>, ca.spottedleaf.moonrise.patches.fast_palette.FastPalette<T> { // Paper - optimise palette reads
+     private @Nullable T value;
+ 
++    // Paper start - optimise palette reads
++    private T[] rawPalette;
++
++    @Override
++    public final T[] moonrise$getRawPalette(final ca.spottedleaf.moonrise.patches.fast_palette.FastPaletteData<T> container) {
++        if (this.rawPalette != null) {
++            return this.rawPalette;
++        }
++        return this.rawPalette = (T[])new Object[] { this.value };
++    }
++    // Paper end - optimise palette reads
++
+     public SingleValuePalette(List<T> paletteEntries) {
+         if (!paletteEntries.isEmpty()) {
+             Validate.isTrue(paletteEntries.size() <= 1, "Can't initialize SingleValuePalette with %d values.", paletteEntries.size());
+@@ -29,6 +_,11 @@
+         }
+ 
+         this.value = value;
++        // Paper start - optimise palette reads
++        if (this.rawPalette != null) {
++            this.rawPalette[0] = value;
++        }
++        // Paper end - optimise palette reads
+         return 0;
+     }
+ 
+@@ -53,6 +_,11 @@
+     @Override
+     public void read(FriendlyByteBuf buffer, IdMap<T> globalMap) {
+         this.value = globalMap.byIdOrThrow(buffer.readVarInt());
++        // Paper start - optimise palette reads
++        if (this.rawPalette != null) {
++            this.rawPalette[0] = this.value;
++        }
++        // Paper end - optimise palette reads
+     }
+ 
+     @Override

@@ -1,0 +1,67 @@
+--- a/net/minecraft/world/level/chunk/EmptyLevelChunk.java
++++ b/net/minecraft/world/level/chunk/EmptyLevelChunk.java
+@@ -14,7 +_,7 @@
+ import net.minecraft.world.level.material.Fluids;
+ import org.jspecify.annotations.Nullable;
+ 
+-public class EmptyLevelChunk extends LevelChunk {
++public class EmptyLevelChunk extends LevelChunk implements ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk { // Paper - rewrite chunk system
+     private final Holder<Biome> biome;
+ 
+     public EmptyLevelChunk(Level level, ChunkPos pos, Holder<Biome> biome) {
+@@ -22,10 +_,51 @@
+         this.biome = biome;
+     }
+ 
+-    @Override
+-    public BlockState getBlockState(BlockPos pos) {
+-        return Blocks.VOID_AIR.defaultBlockState();
+-    }
++    // Paper start - rewrite chunk system
++    @Override
++    public ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] starlight$getBlockNibbles() {
++        return ca.spottedleaf.moonrise.patches.starlight.light.StarLightEngine.getFilledEmptyLight(this.getLevel());
++    }
++
++    @Override
++    public void starlight$setBlockNibbles(final ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] nibbles) {}
++
++    @Override
++    public ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] starlight$getSkyNibbles() {
++        return ca.spottedleaf.moonrise.patches.starlight.light.StarLightEngine.getFilledEmptyLight(this.getLevel());
++    }
++
++    @Override
++    public void starlight$setSkyNibbles(final ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] nibbles) {}
++
++    @Override
++    public boolean[] starlight$getSkyEmptinessMap() {
++        return null;
++    }
++
++    @Override
++    public void starlight$setSkyEmptinessMap(final boolean[] emptinessMap) {}
++
++    @Override
++    public boolean[] starlight$getBlockEmptinessMap() {
++        return null;
++    }
++
++    @Override
++    public void starlight$setBlockEmptinessMap(final boolean[] emptinessMap) {}
++    // Paper end - rewrite chunk system
++
++    @Override
++    public BlockState getBlockState(final BlockPos pos) {
++        return Blocks.VOID_AIR.defaultBlockState();
++    }
++
++    // Paper start
++    @Override
++    public BlockState getBlockState(final int x, final int y, final int z) {
++        return Blocks.VOID_AIR.defaultBlockState();
++    }
++    // Paper end
+ 
+     @Override
+     public @Nullable BlockState setBlockState(BlockPos pos, BlockState state, @Block.UpdateFlags int flags) {

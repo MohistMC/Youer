@@ -12,3 +12,15 @@
          if (receiver.isSpectator()) {
              return false;
          } else if (!source.isSpectator() && !source.hasIndirectPassenger(receiver)) {
+@@ -33,7 +_,10 @@
+     }
+ 
+     static boolean isChunkVisible(ChunkPos chunkPos, ServerPlayer receiver) {
+-        return receiver.getChunkTrackingView().isInViewDistance(chunkPos.x(), chunkPos.z());
++        // Paper start - rewrite chunk system
++        final ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.PlayerChunkLoaderData playerChunkLoader = ((ca.spottedleaf.moonrise.patches.chunk_system.player.ChunkSystemServerPlayer)receiver).moonrise$getChunkLoader();
++        return playerChunkLoader != null && playerChunkLoader.getSentChunksRaw().contains(ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkPos));
++        // Paper end - rewrite chunk system
+     }
+ 
+     static boolean isReallyFar(LivingEntity source, ServerPlayer receiver) {

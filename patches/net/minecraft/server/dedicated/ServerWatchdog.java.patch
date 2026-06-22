@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/dedicated/ServerWatchdog.java
 +++ b/net/minecraft/server/dedicated/ServerWatchdog.java
-@@ -48,7 +_,13 @@
+@@ -48,10 +_,16 @@
                      String.format(Locale.ROOT, "%.2f", this.server.tickRateManager().millisecondsPerTick() / (float)TimeUtil.MILLISECONDS_PER_SECOND)
                  );
                  LOGGER.error(LogUtils.FATAL_MARKER, "Considering it to be crashed, server will forcibly shutdown.");
@@ -14,7 +14,11 @@
 +                CrashReport report = createWatchdogCrashReport("Watching Server", this.server.getRunningThread().threadId(), message);
                  this.server.fillSystemReport(report.getSystemReport());
                  CrashReportCategory serverStats = report.addCategory("Performance stats");
-                 serverStats.setDetail("Random tick rate", () -> this.server.getGameRules().getAsString(GameRules.RANDOM_TICK_SPEED));
+-                serverStats.setDetail("Random tick rate", () -> this.server.getGameRules().getAsString(GameRules.RANDOM_TICK_SPEED));
++                serverStats.setDetail("Overworld random tick rate", () -> this.server.overworld().getGameRules().getAsString(GameRules.RANDOM_TICK_SPEED)); // Paper - per-level GameRules
+                 serverStats.setDetail(
+                     "Level stats",
+                     () -> Streams.stream(this.server.getAllLevels())
 @@ -77,10 +_,14 @@
      }
  

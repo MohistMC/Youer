@@ -8,7 +8,7 @@
  import net.minecraft.world.level.levelgen.RandomState;
  import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
  import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
-@@ -43,7 +_,7 @@
+@@ -43,21 +_,25 @@
      private final ChunkScanAccess storageAccess;
      private final RegistryAccess registryAccess;
      private final StructureTemplateManager structureTemplateManager;
@@ -17,7 +17,20 @@
      private final ChunkGenerator chunkGenerator;
      private final RandomState randomState;
      private final LevelHeightAccessor heightAccessor;
-@@ -57,7 +_,7 @@
+     private final BiomeSource biomeSource;
+     private final long seed;
+     private final DataFixer fixerUpper;
+-    private final Long2ObjectMap<Object2IntMap<Structure>> loadedChunks = new Long2ObjectOpenHashMap<>();
+-    private final Map<Structure, Long2BooleanMap> featureChecks = new HashMap<>();
+-
++    // Paper start - rewrite chunk system
++    // make sure to purge entries from the maps to prevent memory leaks
++    private static final int CHUNK_TOTAL_LIMIT = 50 * (2 * 100 + 1) * (2 * 100 + 1); // cache 50 structure lookups
++    private static final int PER_FEATURE_CHECK_LIMIT = 50 * (2 * 100 + 1) * (2 * 100 + 1); // cache 50 structure lookups
++    private final ca.spottedleaf.moonrise.common.map.SynchronisedLong2ObjectMap<it.unimi.dsi.fastutil.objects.Object2IntMap<Structure>> loadedChunksSafe = new ca.spottedleaf.moonrise.common.map.SynchronisedLong2ObjectMap<>(CHUNK_TOTAL_LIMIT);
++    private final java.util.concurrent.ConcurrentHashMap<Structure, ca.spottedleaf.moonrise.common.map.SynchronisedLong2BooleanMap> featureChecksSafe = new java.util.concurrent.ConcurrentHashMap<>();
++    // Paper end - rewrite chunk system
+     public StructureCheck(
          ChunkScanAccess storageAccess,
          RegistryAccess registryAccess,
          StructureTemplateManager structureTemplateManager,
@@ -26,3 +39,57 @@
          ChunkGenerator chunkGenerator,
          RandomState randomState,
          LevelHeightAccessor heightAccessor,
+@@ -79,7 +_,7 @@
+ 
+     public StructureCheckResult checkStart(ChunkPos pos, Structure structure, StructurePlacement placement, boolean requireUnreferenced) {
+         long posKey = pos.pack();
+-        Object2IntMap<Structure> cachedResult = this.loadedChunks.get(posKey);
++        Object2IntMap<Structure> cachedResult = this.loadedChunksSafe.get(posKey); // Paper - rewrite chunk system
+         if (cachedResult != null) {
+             return this.checkStructureInfo(cachedResult, structure, requireUnreferenced);
+         }
+@@ -93,9 +_,11 @@
+             return StructureCheckResult.START_NOT_PRESENT;
+         }
+ 
+-        boolean isFeatureChunk = this.featureChecks
+-            .computeIfAbsent(structure, k -> new Long2BooleanOpenHashMap())
+-            .computeIfAbsent(posKey, k -> this.canCreateStructure(pos, structure));
++        // Paper start - rewrite chunk system
++        boolean isFeatureChunk = this.featureChecksSafe
++                .computeIfAbsent(structure, k -> new ca.spottedleaf.moonrise.common.map.SynchronisedLong2BooleanMap(PER_FEATURE_CHECK_LIMIT))
++                .getOrCompute(posKey, k -> this.canCreateStructure(pos, structure));
++        // Paper end - rewrite chunk system
+         return !isFeatureChunk ? StructureCheckResult.START_NOT_PRESENT : StructureCheckResult.CHUNK_LOAD_NEEDED;
+     }
+ 
+@@ -208,15 +_,25 @@
+     }
+ 
+     private void storeFullResults(long posKey, Object2IntMap<Structure> starts) {
+-        this.loadedChunks.put(posKey, deduplicateEmptyMap(starts));
+-        this.featureChecks.values().forEach(m -> m.remove(posKey));
++        // Paper start - rewrite chunk system
++        this.loadedChunksSafe.put(posKey, deduplicateEmptyMap(starts));
++        // once we insert into loadedChunks, we don't really need to be very careful about removing everything
++        // from this map, as everything that checks this map uses loadedChunks first
++        // so, one way or another it's a race condition that doesn't matter
++        for (ca.spottedleaf.moonrise.common.map.SynchronisedLong2BooleanMap value : this.featureChecksSafe.values()) {
++            value.remove(posKey);
++        }
++        // Paper end - rewrite chunk system
+     }
+ 
+     public void incrementReference(ChunkPos chunkPos, Structure structure) {
+-        this.loadedChunks.compute(chunkPos.pack(), (key, counts) -> {
+-            if (counts == null || counts.isEmpty()) {
++        this.loadedChunksSafe.compute(chunkPos.pack(), (key, counts) -> { // Paper start - rewrite chunk system
++            if (counts == null) {
+                 counts = new Object2IntOpenHashMap<>();
++            } else {
++                counts = counts instanceof Object2IntOpenHashMap<Structure> fastClone ? fastClone.clone() : new Object2IntOpenHashMap<>(counts);
+             }
++            // Paper end - rewrite chunk system
+ 
+             counts.computeInt(structure, (k, value) -> value == null ? 1 : value + 1);
+             return counts;

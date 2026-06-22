@@ -126,7 +126,7 @@
      private final GameEventDispatcher gameEventDispatcher;
      public boolean noSave;
      private final SleepStatus sleepStatus;
-@@ -216,30 +_,471 @@
+@@ -216,44 +_,474 @@
      private boolean handlingTick;
      private final List<CustomSpawner> customSpawners;
      private @Nullable EnderDragonFight dragonFight;
@@ -610,11 +610,17 @@
 +        // CraftBukkit end
          boolean syncWrites = server.forceSynchronousWrites();
          DataFixer fixerUpper = server.getFixerUpper();
-         EntityPersistentStorage<Entity> entityStorage = new EntityStorage(
-@@ -253,7 +_,7 @@
-             this,
-             server
-         );
+-        EntityPersistentStorage<Entity> entityStorage = new EntityStorage(
+-            new SimpleRegionStorage(
+-                new RegionStorageInfo(levelStorage.getLevelId(), dimension, "entities"),
+-                levelStorage.getDimensionPath(dimension).resolve("entities"),
+-                fixerUpper,
+-                syncWrites,
+-                DataFixTypes.ENTITY_CHUNK
+-            ),
+-            this,
+-            server
+-        );
 -        this.entityManager = new PersistentEntitySectionManager<>(Entity.class, new ServerLevel.EntityCallbacks(), entityStorage);
 +        // Paper - rewrite chunk system
          this.chunkSource = new ServerChunkCache(
@@ -668,10 +674,6 @@
          this.environmentAttributes = EnvironmentAttributeSystem.builder().addDefaultLayers(this).build();
          this.updateSkyBrightness();
 +
-+        net.neoforged.neoforge.attachment.LevelAttachmentsSavedData.init(this);
-+        // Neo: Move the initialization of customSpawners to the end of costructor
-+        // Providing a fully initialized ServerLevel instance for the ServerLevelEvent.CustomSpawners
-+        this.customSpawners = net.neoforged.neoforge.event.EventHooks.getCustomSpawners(this, customSpawners);
 +        // Paper start - rewrite chunk system
 +        this.moonrise$setEntityLookup(new ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup((ServerLevel)(Object)this, ((ServerLevel)(Object)this).new EntityCallbacks()));
 +        this.chunkTaskScheduler = new ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler((ServerLevel)(Object)this);
@@ -687,6 +689,10 @@
 +        this.chunkDataController = new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.ChunkDataController((ServerLevel)(Object)this, this.chunkTaskScheduler);
 +        // Paper end - rewrite chunk system
 +        this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
++        // net.neoforged.neoforge.attachment.LevelAttachmentsSavedData.init(this); Youer TODO
++        // Neo: Move the initialization of customSpawners to the end of costructor
++        // Providing a fully initialized ServerLevel instance for the ServerLevelEvent.CustomSpawners
++        this.customSpawners = net.neoforged.neoforge.event.EventHooks.getCustomSpawners(this, customSpawners);
      }
  
      @Override
@@ -721,6 +727,16 @@
          if (isActive) {
              this.resetEmptyTime();
          }
+@@ -430,8 +_,7 @@
+                                 profiler.push("checkDespawn");
+                                 entity.checkDespawn();
+                                 profiler.pop();
+-                                if (entity instanceof ServerPlayer
+-                                    || this.chunkSource.chunkMap.getDistanceManager().inEntityTickingRange(entity.chunkPosition().pack())) {
++                                if (true) { // Paper - rewrite chunk system
+                                     Entity vehicle = entity.getVehicle();
+                                     if (vehicle != null) {
+                                         if (!vehicle.isRemoved() && vehicle.hasPassenger(entity)) {
 @@ -442,7 +_,9 @@
                                      }
  
@@ -753,6 +769,122 @@
      }
  
      protected void tickTime() {
+@@ -479,7 +_,7 @@
+             long time = this.levelData.getGameTime() + 1L;
+             this.serverLevelData.setGameTime(time);
+             Profiler.get().push("scheduledFunctions");
+-            this.server.getScheduledEvents().tick(this.server, time);
++            this.scheduledEvents.tick(this.server, time); // Paper - per-level scheduledEvents
+             Profiler.get().pop();
+         }
+     }
+@@ -495,46 +_,77 @@
+         this.players.stream().filter(LivingEntity::isSleeping).collect(Collectors.toList()).forEach(player -> player.stopSleepInBed(false, false));
+     }
+ 
++    // Paper start - optimise random ticking
++    private final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = new ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom(net.minecraft.world.level.levelgen.RandomSupport.generateUniqueSeed());
++
++    private void optimiseRandomTick(final LevelChunk chunk, final int tickSpeed) {
++        final LevelChunkSection[] sections = chunk.getSections();
++        final int minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection((ServerLevel)(Object)this);
++        final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = this.simpleRandom;
++        final boolean doubleTickFluids = !ca.spottedleaf.moonrise.common.PlatformHooks.get().configFixMC224294();
++
++        final ChunkPos cpos = chunk.getPos();
++        final int offsetX = cpos.x() << 4;
++        final int offsetZ = cpos.z() << 4;
++
++        for (int sectionIndex = 0, sectionsLen = sections.length; sectionIndex < sectionsLen; sectionIndex++) {
++            final int offsetY = (sectionIndex + minSection) << 4;
++            final LevelChunkSection section = sections[sectionIndex];
++            final net.minecraft.world.level.chunk.PalettedContainer<net.minecraft.world.level.block.state.BlockState> states = section.getStates();
++            if (!section.isRandomlyTickingBlocks()) {
++                continue;
++            }
++
++            final ca.spottedleaf.moonrise.common.list.ShortList tickList = ((ca.spottedleaf.moonrise.patches.block_counting.BlockCountingChunkSection)section).moonrise$getTickingBlockList();
++
++            for (int i = 0; i < tickSpeed; ++i) {
++                final int tickingBlocks = tickList.size();
++                final int index = simpleRandom.nextInt() & ((16 * 16 * 16) - 1);
++
++                if (index >= tickingBlocks) {
++                    // most of the time we fall here
++                    continue;
++                }
++
++                final int location = (int)tickList.getRaw(index) & 0xFFFF;
++                final BlockState state = states.get(location);
++
++                // do not use a mutable pos, as some random tick implementations store the input without calling immutable()!
++                final BlockPos pos = new BlockPos((location & 15) | offsetX, ((location >>> (4 + 4)) & 15) | offsetY, ((location >>> 4) & 15) | offsetZ);
++
++                state.randomTick((ServerLevel)(Object)this, pos, simpleRandom);
++                if (doubleTickFluids) {
++                    final FluidState fluidState = state.getFluidState();
++                    if (fluidState.isRandomlyTicking()) {
++                        fluidState.randomTick((ServerLevel)(Object)this, pos, simpleRandom);
++                    }
++                }
++            }
++        }
++
++        return;
++    }
++    // Paper end - optimise random ticking
++
+     public void tickChunk(LevelChunk chunk, int tickSpeed) {
++        final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = this.simpleRandom; // Paper - optimise random ticking
+         ChunkPos chunkPos = chunk.getPos();
+         int minX = chunkPos.getMinBlockX();
+         int minZ = chunkPos.getMinBlockZ();
+         ProfilerFiller profiler = Profiler.get();
+         profiler.push("iceandsnow");
+ 
+-        for (int i = 0; i < tickSpeed; i++) {
+-            if (this.random.nextInt(48) == 0) {
+-                this.tickPrecipitation(this.getBlockRandomPos(minX, 0, minZ, 15));
++        if (!this.paperConfig().environment.disableIceAndSnow) { // Paper - Option to disable ice and snow
++            for (int i = 0; i < tickSpeed; i++) {
++                if (simpleRandom.nextInt(48) == 0) { // Paper - optimise random ticking
++                    this.tickPrecipitation(this.getBlockRandomPos(minX, 0, minZ, 15));
++                }
+             }
+-        }
++        } // Paper - Option to disable ice and snow
+ 
+         profiler.popPush("tickBlocks");
+         if (tickSpeed > 0) {
+-            LevelChunkSection[] sections = chunk.getSections();
+-
+-            for (int sectionIndex = 0; sectionIndex < sections.length; sectionIndex++) {
+-                LevelChunkSection section = sections[sectionIndex];
+-                if (section.isRandomlyTicking()) {
+-                    int sectionY = chunk.getSectionYFromSectionIndex(sectionIndex);
+-                    int minYInSection = SectionPos.sectionToBlockCoord(sectionY);
+-
+-                    for (int i = 0; i < tickSpeed; i++) {
+-                        BlockPos pos = this.getBlockRandomPos(minX, minYInSection, minZ, 15);
+-                        profiler.push("randomTick");
+-                        BlockState blockState = section.getBlockState(pos.getX() - minX, pos.getY() - minYInSection, pos.getZ() - minZ);
+-                        if (blockState.isRandomlyTicking()) {
+-                            blockState.randomTick(this, pos, this.random);
+-                        }
+-
+-                        FluidState fluidState = blockState.getFluidState();
+-                        if (fluidState.isRandomlyTicking()) {
+-                            fluidState.randomTick(this, pos, this.random);
+-                        }
+-
+-                        profiler.pop();
+-                    }
+-                }
+-            }
++            this.optimiseRandomTick(chunk, tickSpeed); // Paper - optimise random ticking
+         }
+ 
+         profiler.pop();
 @@ -547,7 +_,7 @@
          int minZ = chunkPos.getMinBlockZ();
          ProfilerFiller profiler = Profiler.get();
@@ -770,18 +902,12 @@
                          this.addFreshEntity(horse);
                      }
                  }
-@@ -568,7 +_,14 @@
+@@ -568,7 +_,7 @@
                  if (bolt != null) {
                      bolt.snapTo(Vec3.atBottomCenterOf(pos));
                      bolt.setVisualOnly(isTrap);
-+                    // Youer start - fix mixin
-+                    LightningStrikeEvent lightning = CraftEventFactory.callLightningStrikeEvent((org.bukkit.entity.LightningStrike) bolt.getBukkitEntity(), org.bukkit.event.weather.LightningStrikeEvent.Cause.WEATHER);
-+
-+                    if (lightning.isCancelled()) {
-+                        return;
-+                    }
-                     this.addFreshEntity(bolt);
-+                    // Youer end
+-                    this.addFreshEntity(bolt);
++                    this.strikeLightning(bolt, org.bukkit.event.weather.LightningStrikeEvent.Cause.WEATHER); // CraftBukkit
                  }
              }
          }
@@ -897,28 +1023,116 @@
      }
  
      public void resetEmptyTime() {
-@@ -829,7 +_,12 @@
-         entity.tickCount++;
-         profiler.push(entity.typeHolder()::getRegisteredName);
-         profiler.incrementCounter("tickNonPassenger");
--        entity.tick();
-+        // Neo: Permit cancellation of Entity#tick via EntityTickEvent.Pre
-+        if (!net.neoforged.neoforge.event.EventHooks.fireEntityTickPre(entity).isCanceled()) {
-+            entity.tick();
-+            entity.postTick(); // CraftBukkit
-+            net.neoforged.neoforge.event.EventHooks.fireEntityTickPost(entity);
+@@ -814,6 +_,11 @@
+         if (fluidState.is(type)) {
+             fluidState.tick(this, pos, blockState);
+         }
++        // Paper start - rewrite chunk system
++        if ((++this.tickedBlocksOrFluids & 7L) != 0L) {
++            ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.server).moonrise$executeMidTickTasks();
 +        }
-         profiler.pop();
++        // Paper end - rewrite chunk system
+     }
  
-         for (Entity passenger : entity.getPassengers()) {
-@@ -847,6 +_,7 @@
+     private void tickBlock(BlockPos pos, Block type) {
+@@ -821,36 +_,84 @@
+         if (state.is(type)) {
+             state.tick(this, pos, this.random);
+         }
+-    }
++        // Paper start - rewrite chunk system
++        if ((++this.tickedBlocksOrFluids & 7L) != 0L) {
++            ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.server).moonrise$executeMidTickTasks();
++        }
++        // Paper end - rewrite chunk system
++    }
++
++    // Paper start - log detailed entity tick information
++    // TODO replace with varhandle
++    static final java.util.concurrent.atomic.AtomicReference<Entity> currentlyTickingEntity = new java.util.concurrent.atomic.AtomicReference<>();
++
++    public static List<Entity> getCurrentlyTickingEntities() {
++        Entity ticking = currentlyTickingEntity.get();
++        List<Entity> ret = java.util.Arrays.asList(ticking == null ? new Entity[0] : new Entity[] { ticking });
++
++        return ret;
++    }
++    // Paper end - log detailed entity tick information
+ 
+     public void tickNonPassenger(Entity entity) {
+-        entity.setOldPosAndRot();
+-        ProfilerFiller profiler = Profiler.get();
+-        entity.tickCount++;
+-        profiler.push(entity.typeHolder()::getRegisteredName);
+-        profiler.incrementCounter("tickNonPassenger");
+-        entity.tick();
+-        profiler.pop();
++        // Paper start - log detailed entity tick information
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread("Cannot tick an entity off-main");
++        try {
++            if (currentlyTickingEntity.get() == null) {
++                currentlyTickingEntity.lazySet(entity);
++            }
++            // Paper end - log detailed entity tick information
++            entity.setOldPosAndRot();
++            ProfilerFiller profiler = Profiler.get();
++            entity.tickCount++;
++            entity.totalEntityAge++; // Paper - age-like counter for all entities
++            profiler.push(entity.typeHolder()::getRegisteredName);
++            profiler.incrementCounter("tickNonPassenger");
++            final boolean isActive = io.papermc.paper.entity.activation.ActivationRange.checkIfActive(entity); // Paper - EAR 2
++            // Neo: Permit cancellation of Entity#tick via EntityTickEvent.Pre
++            if (isActive && !net.neoforged.neoforge.event.EventHooks.fireEntityTickPre(entity).isCanceled()) {
++                entity.tick();
++                entity.postTick(); // CraftBukkit
++                net.neoforged.neoforge.event.EventHooks.fireEntityTickPost(entity);
++            } else {entity.inactiveTick();} // Paper - EAR 2
++            profiler.pop();
+ 
+-        for (Entity passenger : entity.getPassengers()) {
+-            this.tickPassenger(entity, passenger);
++            for (Entity passenger : entity.getPassengers()) {
++                this.tickPassenger(entity, passenger, isActive); // Paper - EAR 2
++            }// Paper start - log detailed entity tick information
++        } finally {
++            if (currentlyTickingEntity.get() == entity) {
++                currentlyTickingEntity.lazySet(null);
++            }
+         }
++        // Paper end - log detailed entity tick information
+     }
+ 
+-    private void tickPassenger(Entity vehicle, Entity entity) {
++    private void tickPassenger(Entity vehicle, Entity entity, final boolean isActive) { // Paper - EAR 2
+         if (entity.isRemoved() || entity.getVehicle() != vehicle) {
+             entity.stopRiding();
+         } else if (entity instanceof Player || this.entityTickList.contains(entity)) {
+             entity.setOldPosAndRot();
+             entity.tickCount++;
++            entity.totalEntityAge++; // Paper - age-like counter for all entities
+             ProfilerFiller profiler = Profiler.get();
              profiler.push(entity.typeHolder()::getRegisteredName);
              profiler.incrementCounter("tickPassenger");
-             entity.rideTick();
-+            entity.postTick(); // CraftBukkit
+-            entity.rideTick();
++            // Paper start - EAR 2
++            if (isActive) {
++                entity.rideTick();
++                entity.postTick(); // CraftBukkit
++            } else {
++                entity.setDeltaMovement(Vec3.ZERO);
++                entity.inactiveTick();
++                // copied from inside of if (isPassenger()) of passengerTick, but that ifPassenger is unnecessary
++                vehicle.positionRider(entity);
++            }
++            // Paper end - EAR 2
              profiler.pop();
  
              for (Entity passenger : entity.getPassengers()) {
+-                this.tickPassenger(entity, passenger);
++                this.tickPassenger(entity, passenger, isActive); // Paper - EAR 2
+             }
+         }
+     }
 @@ -874,9 +_,25 @@
          return !(entity instanceof Player player && (this.server.isUnderSpawnProtection(this, pos, player) || !this.getWorldBorder().isWithinBounds(pos)));
      }
@@ -1365,25 +1579,40 @@
          return this.dragonParts.values();
      }
  
-@@ -1445,10 +_,21 @@
+@@ -1445,10 +_,36 @@
  
      @Override
      public @Nullable MapItemSavedData getMapData(MapId id) {
 -        return this.getServer().getDataStorage().get(MapItemSavedData.type(id));
-+        // CraftBukkit start
-+        MapItemSavedData mapitemsaveddata = (MapItemSavedData) this.getServer().getDataStorage().get(MapItemSavedData.type(id));
-+        if (mapitemsaveddata != null) {
-+            mapitemsaveddata.id = id;
++        // Paper start - Call missing map initialize event and set id
++        final SavedDataStorage storage = this.getServer().getDataStorage();
++
++        final Optional<net.minecraft.world.level.saveddata.SavedData> cacheEntry = storage.cache.get(MapItemSavedData.type(id));
++        if (cacheEntry == null) { // Cache did not contain, try to load and may init
++            final MapItemSavedData mapData = storage.get(MapItemSavedData.type(id)); // get populates the cache
++            if (mapData != null) { // map was read, init it and return
++                mapData.id = id;
++                new org.bukkit.event.server.MapInitializeEvent(mapData.mapView).callEvent();
++                return mapData;
++            }
++
++            return null; // Map does not exist, reading failed.
 +        }
-+        return mapitemsaveddata;
-+        // CraftBukkit end
++        // Cache entry exists, update it with the id ref and return.
++        if (cacheEntry.orElse(null) instanceof final MapItemSavedData mapItemSavedData) {
++            mapItemSavedData.id = id;
++            return mapItemSavedData;
++        }
++
++        return null;
++        // Paper end - Call missing map initialize event and set id
      }
  
      public void setMapData(MapId id, MapItemSavedData data) {
 +        // CraftBukkit start
 +        data.id = id;
-+        MapInitializeEvent event = new MapInitializeEvent(data.mapView);
-+        Bukkit.getServer().getPluginManager().callEvent(event);
++        org.bukkit.event.server.MapInitializeEvent event = new org.bukkit.event.server.MapInitializeEvent(data.mapView);
++        event.callEvent();
 +        // CraftBukkit end
          this.getServer().getDataStorage().set(MapItemSavedData.type(id), data);
      }
@@ -1425,7 +1654,14 @@
              output.write(String.format(Locale.ROOT, "block_entity_tickers: %d\n", this.blockEntityTickers.size()));
              output.write(String.format(Locale.ROOT, "block_ticks: %d\n", this.getBlockTicks().count()));
              output.write(String.format(Locale.ROOT, "fluid_ticks: %d\n", this.getFluidTicks().count()));
-@@ -1575,7 +_,7 @@
+@@ -1569,13 +_,13 @@
+         Path chunks = rootDir.resolve("chunks.csv");
+ 
+         try (Writer output = Files.newBufferedWriter(chunks)) {
+-            chunkMap.dumpChunks(output);
++            //chunkMap.dumpChunks(output); // Paper - rewrite chunk system
+         }
+ 
          Path entityChunks = rootDir.resolve("entity_chunks.csv");
  
          try (Writer output = Files.newBufferedWriter(entityChunks)) {

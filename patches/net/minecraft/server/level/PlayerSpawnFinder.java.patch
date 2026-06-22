@@ -9,3 +9,27 @@
              return CompletableFuture.completedFuture(fixupSpawnHeight(level, spawnSuggestion));
          }
  
+@@ -115,10 +_,10 @@
+         if (!this.finishedFuture.isDone()) {
+             int chunkX = SectionPos.blockToSectionCoord(candidateX);
+             int chunkZ = SectionPos.blockToSectionCoord(candidateZ);
+-            this.level
+-                .getChunkSource()
+-                .addTicketAndLoadWithRadius(TicketType.SPAWN_SEARCH, new ChunkPos(chunkX, chunkZ), 0)
+-                .whenCompleteAsync((ignored, throwable) -> {
++            ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level) // Paper - rewrite chunk system
++                    .moonrise$getChunkTaskScheduler().chunkHolderManager // Paper - rewrite chunk system
++                    .addTicketAndLoadWithRadius(TicketType.SPAWN_SEARCH, new ChunkPos(chunkX, chunkZ), 0, net.minecraft.world.level.chunk.status.ChunkStatus.FULL, ca.spottedleaf.concurrentutil.util.Priority.HIGH) // Paper - rewrite chunk system
++                    .whenCompleteAsync((ignored, throwable) -> {
+                     if (throwable == null) {
+                         try {
+                             Optional<Vec3> spawnPos = candidateChecker.get();
+@@ -141,7 +_,7 @@
+                         details.setDetail("Progress", () -> candidateIndex + " out of " + this.candidateCount);
+                         this.finishedFuture.completeExceptionally(new ReportedException(report));
+                     }
+-                }, this.level.getServer());
++                    }, this.level.getChunkSource().mainThreadProcessor); // Paper - rewrite chunk system
+         }
+     }
+ 

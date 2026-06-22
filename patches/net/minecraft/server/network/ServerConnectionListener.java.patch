@@ -1,5 +1,13 @@
 --- a/net/minecraft/server/network/ServerConnectionListener.java
 +++ b/net/minecraft/server/network/ServerConnectionListener.java
+@@ -30,6 +_,7 @@
+ import net.minecraft.ReportedException;
+ import net.minecraft.SharedConstants;
+ import net.minecraft.network.Connection;
++import net.minecraft.network.HandlerNames;
+ import net.minecraft.network.PacketSendListener;
+ import net.minecraft.network.RateKickingConnection;
+ import net.minecraft.network.chat.Component;
 @@ -41,6 +_,7 @@
  
  public class ServerConnectionListener {
@@ -8,15 +16,46 @@
      private final MinecraftServer server;
      public volatile boolean running;
      private volatile @Nullable UUID sessionId;
-@@ -53,6 +_,8 @@
+@@ -52,9 +_,39 @@
+         this.running = true;
      }
  
++    // Paper start - prevent blocking on adding a new connection while the server is ticking
++    private final java.util.Queue<Connection> pending = new java.util.concurrent.ConcurrentLinkedQueue<>();
++    private static final boolean disableFlushConsolidation = Boolean.getBoolean("Paper.disableFlushConsolidate"); // Paper - Optimize network
++
++    private final void addPending() {
++        Connection connection;
++        while ((connection = this.pending.poll()) != null) {
++            this.connections.add(connection);
++            connection.isPending = false; // Paper - Optimize network
++        }
++    }
++    // Paper end - prevent blocking on adding a new connection while the server is ticking
++
      public void startTcpServerListener(@Nullable InetAddress address, int port) throws IOException {
++        // Paper start - Unix domain socket support
 +        if (address == null) address = new java.net.InetSocketAddress(port).getAddress();
 +        net.neoforged.neoforge.network.DualStackUtils.checkIPv6(address);
++        this.startTcpServerListener(new java.net.InetSocketAddress(address, port));
++    }
++
++    public void startTcpServerListener(SocketAddress address) throws IOException {
++        // Paper end - Unix domain socket support
          synchronized (this.channels) {
              EventLoopGroupHolder eventLoopGroupHolder = EventLoopGroupHolder.remote(this.server.useNativeTransport());
++            // Paper start - Warn people with console access that HAProxy is in use.
++            if (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.proxyProtocol) {
++                LOGGER.warn("Using HAProxy, please ensure the server port is adequately firewalled.");
++            }
++            // Paper end - Warn people with console access that HAProxy is in use.
++            // Paper start - Use Velocity cipher
++            ServerConnectionListener.LOGGER.info("Paper: Using " + com.velocitypowered.natives.util.Natives.compress.getLoadedVariant() + " compression from Velocity.");
++            ServerConnectionListener.LOGGER.info("Paper: Using " + com.velocitypowered.natives.util.Natives.cipher.getLoadedVariant() + " cipher from Velocity.");
++            // Paper end - Use Velocity cipher
              this.channels
+                 .add(
+                     new ServerBootstrap()
 @@ -68,7 +_,7 @@
                                      } catch (ChannelException var5) {
                                      }
@@ -26,13 +65,53 @@
                                      if (ServerConnectionListener.this.server.repliesToStatus()) {
                                          pipeline.addLast("legacy_query", new LegacyQueryHandler(ServerConnectionListener.this.getServer()));
                                      }
+@@ -78,7 +_,37 @@
+                                     Connection connection = rateLimitPacketsPerSecond > 0
+                                         ? new RateKickingConnection(rateLimitPacketsPerSecond)
+                                         : new Connection(PacketFlow.SERVERBOUND);
+-                                    ServerConnectionListener.this.connections.add(connection);
++                                    // Paper start - Add support for Proxy Protocol
++                                    if (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.proxyProtocol) {
++                                        channel.pipeline().addAfter(HandlerNames.TIMEOUT, "haproxy-decoder", new io.netty.handler.codec.haproxy.HAProxyMessageDecoder());
++                                        channel.pipeline().addAfter("haproxy-decoder", "haproxy-handler", new ChannelInboundHandlerAdapter() {
++                                            @Override
++                                            public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
++                                                if (msg instanceof io.netty.handler.codec.haproxy.HAProxyMessage message) {
++                                                    if (message.command() == io.netty.handler.codec.haproxy.HAProxyCommand.PROXY) {
++                                                        String realAddress = message.sourceAddress();
++                                                        int realPort = message.sourcePort();
++
++                                                        SocketAddress socketAddr = new java.net.InetSocketAddress(realAddress, realPort);
++
++                                                        Connection connection = (Connection) channel.pipeline().get(HandlerNames.PACKET_HANDLER);
++                                                        connection.address = socketAddr;
++                                                        // Paper start - Add API to get player's proxy address
++                                                        final String proxyAddress = message.destinationAddress();
++                                                        final int proxyPort = message.destinationPort();
++
++                                                        connection.haProxyAddress = new java.net.InetSocketAddress(proxyAddress, proxyPort);
++                                                        // Paper end - Add API to get player's proxy address
++                                                    }
++                                                } else {
++                                                    super.channelRead(ctx, msg);
++                                                }
++                                            }
++                                        });
++                                    }
++                                    // Paper end - Add support for proxy protocol
++                                    // ServerConnectionListener.this.connections.add(connection); // Paper - prevent blocking on adding a new connection while the server is ticking
++                                    ServerConnectionListener.this.pending.add(connection); // Paper - prevent blocking on adding a new connection while the server is ticking
+                                     connection.configurePacketHandler(pipeline);
+                                     connection.setListenerForServerboundHandshake(
+                                         new ServerHandshakePacketListenerImpl(ServerConnectionListener.this.server, connection)
 @@ -86,14 +_,25 @@
                                  }
                              }
                          )
 -                        .group(eventLoopGroupHolder.eventLoopGroup())
+-                        .localAddress(address, port)
 +                        .group(eventLoopGroupHolder.serverEventLoopGroup())
-                         .localAddress(address, port)
++                        .localAddress(address) // Paper - Unix domain socket support
 +                        .option(ChannelOption.AUTO_READ, false) // CraftBukkit
                          .bind()
                          .syncUninterruptibly()

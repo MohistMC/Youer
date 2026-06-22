@@ -38,6 +38,28 @@
      }
  
      public boolean hasPrecipitation() {
+@@ -123,20 +_,7 @@
+ 
+     @Deprecated
+     public float getTemperature(BlockPos pos, int seaLevel) {
+-        long key = pos.asLong();
+-        Long2FloatLinkedOpenHashMap cache = this.temperatureCache.get();
+-        float cached = cache.get(key);
+-        if (!Float.isNaN(cached)) {
+-            return cached;
+-        }
+-
+-        float temp = this.getHeightAdjustedTemperature(pos, seaLevel);
+-        if (cache.size() == 1024) {
+-            cache.removeFirstFloat();
+-        }
+-
+-        cache.put(key, temp);
+-        return temp;
++        return this.getHeightAdjustedTemperature(pos, seaLevel); // Paper - optimise random ticking
+     }
+ 
+     public boolean shouldFreeze(LevelReader level, BlockPos pos) {
 @@ -197,7 +_,7 @@
      }
  
