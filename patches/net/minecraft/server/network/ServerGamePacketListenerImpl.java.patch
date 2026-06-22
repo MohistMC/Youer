@@ -896,7 +896,7 @@
 +        this.teleport(dest.getX(), dest.getY(), dest.getZ(), dest.getYaw(), dest.getPitch());
 +    }
 +
-+    private void internalTeleport(double d0, double d1, double d2, float f, float f1) {
++    public void internalTeleport(double d0, double d1, double d2, float f, float f1) {
 +        this.teleport(d0, d1, d2, f, f1);
 +    }
 +
@@ -1180,7 +1180,7 @@
 -                CompletableFuture<FilteredText> filteredFuture = this.filterTextPacket(signedMessage.signedContent());
 -                Component decorated = this.server.getChatDecorator().decorate(this.player, signedMessage.decoratedContent());
 +                CompletableFuture<FilteredText> filteredFuture = this.filterTextPacket(signedMessage.signedContent()).thenApplyAsync(Function.identity(), this.server.chatExecutor); // CraftBukkit - async chat
-+                Component decorated = net.neoforged.neoforge.common.CommonHooks.getServerChatSubmittedDecorator().decorate(this.player, signedMessage.decoratedContent());
++                Component decorated = net.neoforged.neoforge.common.CommonHooks.getServerChatSubmittedDecorator().decorate(this.player, signedMessage.decoratedContent()).join(); // Paper - Adventure
                  this.chatMessageChain.append(filteredFuture, filtered -> {
 +                    if (decorated == null) return; // Forge: ServerChatEvent was canceled if this is null.
                      PlayerChatMessage filteredMessage = signedMessage.withUnsignedContent(decorated).filter(filtered.mask());
@@ -1667,7 +1667,7 @@
                      this.player.wonGame = false;
 -                    this.player = this.server.getPlayerList().respawn(this.player, true, Entity.RemovalReason.CHANGED_DIMENSION);
 +                    // this.player = this.server.getPlayerList().respawn(this.player, true, Entity.RemovalReason.CHANGED_DIMENSION); // CraftBukkit
-+                    this.player = this.server.getPlayerList().respawn(this.player, true, Entity.RemovalReason.CHANGED_DIMENSION, PlayerRespawnEvent.RespawnReason.END_PORTAL, null); // CraftBukkit
++                    this.player = this.server.getPlayerList().respawn(this.player, true, Entity.RemovalReason.CHANGED_DIMENSION, PlayerRespawnEvent.RespawnReason.END_PORTAL); // CraftBukkit
                      this.resetPosition();
                      this.restartClientLoadTimerAfterRespawn();
                      CriteriaTriggers.CHANGED_DIMENSION.trigger(this.player, Level.END, Level.OVERWORLD);
@@ -1677,7 +1677,7 @@
  
 -                    this.player = this.server.getPlayerList().respawn(this.player, false, Entity.RemovalReason.KILLED);
 +                    // this.player = this.server.getPlayerList().respawn(this.player, false, Entity.RemovalReason.KILLED); // CraftBukkit
-+                    this.player = this.server.getPlayerList().respawn(this.player, false, Entity.RemovalReason.KILLED, PlayerRespawnEvent.RespawnReason.DEATH, null); // CraftBukkit
++                    this.player = this.server.getPlayerList().respawn(this.player, false, Entity.RemovalReason.KILLED, PlayerRespawnEvent.RespawnReason.DEATH); // CraftBukkit
                      this.resetPosition();
                      this.restartClientLoadTimerAfterRespawn();
                      if (this.server.isHardcore()) {
@@ -2145,6 +2145,15 @@
          if (this.player.isModelPartShown(PlayerModelPart.HAT) != wasHatShown) {
              this.server.getPlayerList().broadcastAll(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_HAT, this.player));
          }
+@@ -2098,7 +_,7 @@
+                 packet.difficulty().getDisplayName()
+             );
+         } else {
+-            this.server.setDifficulty(packet.difficulty(), false);
++            // this.server.setDifficulty(packet.difficulty(), false); // Paper - per level difficulty; don't allow clients to change this
+         }
+     }
+ 
 @@ -2156,11 +_,13 @@
              throw new IllegalStateException("Client acknowledged config, but none was requested");
          }

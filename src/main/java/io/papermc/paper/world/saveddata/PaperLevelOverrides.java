@@ -150,6 +150,26 @@ public final class PaperLevelOverrides extends SavedData implements ServerLevelD
     }
 
     @Override
+    public float getDayTimeFraction() {
+        return 0;
+    }
+
+    @Override
+    public float getDayTimePerTick() {
+        return 0;
+    }
+
+    @Override
+    public void setDayTimeFraction(float dayTimeFraction) {
+
+    }
+
+    @Override
+    public void setDayTimePerTick(float dayTimePerTick) {
+
+    }
+
+    @Override
     public void setSpawn(final LevelData.RespawnData respawnData) {
         this.setRespawn(RespawnData.fromVanilla(respawnData));
     }

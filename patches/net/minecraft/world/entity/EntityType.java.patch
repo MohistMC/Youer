@@ -184,8 +184,29 @@
          return this != EntityTypes.PLAYER
              && this != EntityTypes.LLAMA_SPIT
              && this != EntityTypes.WITHER
-@@ -447,9 +_,12 @@
+@@ -442,14 +_,32 @@
+         return this.builtInRegistryHolder;
      }
+ 
+-    public boolean isAllowedInPeaceful() {
++    // Paper start
++    public final boolean isTypeAllowedInPeaceful() {
+         return this.allowedInPeaceful;
+     }
++    public final boolean isAllowedInPeaceful(@Nullable CompoundTag tag) {
++        if (tag == null || tag.isEmpty()) {
++            return this.isTypeAllowedInPeaceful();
++        }
++        final var input = TagValueInput.create(net.minecraft.util.ProblemReporter.DISCARDING, MinecraftServer.getServer().registryAccess(), tag);
++        final var override = Mob.readDespawnInPeacefulOverride(input);
++        return !override.toBooleanOrElse(!this.isTypeAllowedInPeaceful());
++    }
++    // Audit all vanilla uses of this method to ensure per-entity override API applies where possible
++    @io.papermc.paper.annotation.DoNotUse
++    public final boolean isAllowedInPeaceful() {
++        return this.isTypeAllowedInPeaceful();
++        // Paper end
++    }
  
      public boolean onlyOpCanSetNbt() {
 +        if (onlyOpCanSetNbt) return true;

@@ -156,14 +156,15 @@
      public boolean canBreatheUnderwater() {
          return this.is(EntityTypeTags.CAN_BREATHE_UNDER_WATER);
      }
-@@ -574,6 +_,7 @@
+@@ -574,7 +_,7 @@
          this.deathTime++;
          if (this.deathTime >= 20 && !this.level().isClientSide() && !this.isRemoved()) {
              this.level().broadcastEntityEvent(this, (byte)60);
-+            this.removeReason(EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
-             this.remove(Entity.RemovalReason.KILLED);
+-            this.remove(Entity.RemovalReason.KILLED);
++            this.remove(Entity.RemovalReason.KILLED, EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
          }
      }
+ 
 @@ -688,10 +_,16 @@
      }
  
@@ -210,16 +211,17 @@
          this.activeEffects.clear();
      }
  
-@@ -779,21 +_,54 @@
+@@ -778,22 +_,54 @@
+         }
      }
  
-     public @Nullable ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand) {
-+        // CraftBukkit start - SPIGOT-2942: Add boolean to call event
-+        return drop(itemStack, randomly, thrownFromHand, true);
+-    public @Nullable ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand) {
++    // Paper start - Extend dropItem API
++    public final @Nullable ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand) {
++        return this.drop(itemStack, randomly, thrownFromHand, true, null);
 +    }
-+
-+    public @Nullable ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand, boolean callEvent) {
-+        // CraftBukkit end
++    public @Nullable ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand, final boolean callEvent, final java.util.function.@Nullable Consumer<org.bukkit.entity.Item> entityOperation) {
++        // Paper end - Extend dropItem API
          if (itemStack.isEmpty()) {
              return null;
 -        }
@@ -294,37 +296,18 @@
          input.getString("Team").ifPresent(teamName -> {
              Scoreboard scoreboard = this.level().getScoreboard();
              PlayerTeam team = scoreboard.getPlayerTeam(teamName);
-@@ -847,23 +_,65 @@
+@@ -847,23 +_,42 @@
          this.updateDirtyEffects();
      }
  
-+    // CraftBukkit start
-+    private boolean isTickingEffects = false;
-+    private List<ProcessableEffect> effectsToProcess = Lists.newArrayList();
-+
-+    private static class ProcessableEffect {
-+
-+        private Holder<MobEffect> type;
-+        private MobEffectInstance effect;
-+        private final EntityPotionEffectEvent.Cause cause;
-+
-+        private ProcessableEffect(MobEffectInstance effect, EntityPotionEffectEvent.Cause cause) {
-+            this.effect = effect;
-+            this.cause = cause;
-+        }
-+
-+        private ProcessableEffect(Holder<MobEffect> type, EntityPotionEffectEvent.Cause cause) {
-+            this.type = type;
-+            this.cause = cause;
-+        }
-+    }
-+    // CraftBukkit end
++    private boolean tickingEffects = false; // CraftBukkit
++    private final java.util.Queue<Runnable> deferredEffectUpdates = new java.util.concurrent.ConcurrentLinkedQueue<>(); // CraftBukkit
 +
      protected void tickEffects() {
          if (this.level() instanceof ServerLevel serverLevel) {
              Iterator<Holder<MobEffect>> iterator = this.activeEffects.keySet().iterator();
  
-+            isTickingEffects = true; // CraftBukkit
++            this.tickingEffects = true; // CraftBukkit
              try {
                  while (iterator.hasNext()) {
                      Holder<MobEffect> mobEffect = iterator.next();
@@ -347,15 +330,11 @@
              } catch (ConcurrentModificationException var6) {
              }
 +            // CraftBukkit start
-+            isTickingEffects = false;
-+            for (ProcessableEffect e : effectsToProcess) {
-+                if (e.effect != null) {
-+                    addEffect(e.effect, e.cause);
-+                } else {
-+                    removeEffect(e.type, e.cause);
-+                }
++            this.tickingEffects = false;
++            Runnable task;
++            while ((task = this.deferredEffectUpdates.poll()) != null) {
++                task.run();
 +            }
-+            effectsToProcess.clear();
 +            // CraftBukkit end
          } else {
              for (MobEffectInstance effect : this.activeEffects.values()) {
@@ -420,30 +399,36 @@
      }
  
      public Collection<MobEffectInstance> getActiveEffects() {
-@@ -1010,30 +_,79 @@
+@@ -1010,30 +_,88 @@
      }
  
      public final boolean addEffect(MobEffectInstance newEffect) {
 -        return this.addEffect(newEffect, null);
+-    }
+-
+-    public boolean addEffect(MobEffectInstance newEffect, @Nullable Entity source) {
+-        if (!this.canBeAffected(newEffect)) {
 +        return this.addEffect(newEffect, (Entity) null);
 +    }
 +
 +    // CraftBukkit start
-+    public boolean addEffect(MobEffectInstance pEffectInstance, EntityPotionEffectEvent.Cause cause) {
-+        return addEffect(pEffectInstance, (Entity) null, cause);
++    public boolean addEffect(final MobEffectInstance newEffect, final EntityPotionEffectEvent.Cause cause) {
++        return this.addEffect(newEffect, (Entity)null, cause);
 +    }
 +
-+    // Youer start
-+    private final AtomicReference<EntityPotionEffectEvent.Cause> addEffect$Cause = new AtomicReference<>(EntityPotionEffectEvent.Cause.UNKNOWN);
++    public boolean addEffect(final MobEffectInstance newEffect, final @Nullable Entity source) {
++        return this.addEffect(newEffect, source, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.UNKNOWN);
++    }
 +
-+    public void addEffectCause(EntityPotionEffectEvent.Cause cause) {
-+        this.addEffect$Cause.set(cause);
-     }
- 
-     public boolean addEffect(MobEffectInstance newEffect, @Nullable Entity source) {
--        if (!this.canBeAffected(newEffect)) {
-+        if (isTickingEffects) {
-+            effectsToProcess.add(new ProcessableEffect(newEffect, addEffect$Cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN)));
++    public boolean addEffect(final MobEffectInstance newEffect, final @Nullable Entity source, final EntityPotionEffectEvent.Cause cause) {
++        // Paper start - Don't fire sync event during generation
++        return this.addEffect(newEffect, source, cause, true);
++    }
++
++    public boolean addEffect(final MobEffectInstance newEffect, final @Nullable Entity source, final EntityPotionEffectEvent.Cause cause, final boolean fireEvent) {
++        // Paper end - Don't fire sync event during generation
++        if (this.tickingEffects) {
++            this.deferredEffectUpdates.offer(() -> this.addEffect(newEffect, source, cause, fireEvent));
 +            return true;
 +        }
 +        // CraftBukkit end
@@ -465,24 +450,26 @@
 -
 -        newEffect.onEffectStarted(this);
 -        return changed;
--    }
--
 +        } else {
 +            MobEffectInstance effect = this.activeEffects.get(newEffect.getEffect());
 +            boolean changed = false;
 +
-+            // CraftBukkit start
++            // Paper start
 +            boolean override = false;
++            boolean addAsHiddenEffect = false;
 +            if (effect != null) {
 +                override = new MobEffectInstance(effect).update(newEffect);
++                addAsHiddenEffect = effect.getAmplifier() > newEffect.getAmplifier() && effect.isShorterDurationThan(newEffect);
 +            }
 +
-+            EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, effect, newEffect, addEffect$Cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN), override);
-+            override = event.isOverride();
-+            if (event.isCancelled()) {
-+                return false;
++            if (fireEvent) {
++                EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, effect, newEffect, source, cause, null, override);
++                override = event.isOverride();
++                if (event.isCancelled()) {
++                    return false;
++                }
 +            }
-+            // CraftBukkit end
++            // Paper end
 +
 +            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.living.MobEffectEvent.Added(this, effect, newEffect, source));
 +            if (effect == null) {
@@ -496,19 +483,21 @@
 +                this.onEffectUpdated(effect, true, source);
 +                // CraftBukkit end
 +                changed = true;
++                // Paper start - Properly update hidden effects
++            } else if (addAsHiddenEffect) {
++                if (effect.hiddenEffect == null) {
++                    effect.hiddenEffect = new MobEffectInstance(newEffect);
++                } else {
++                    effect.hiddenEffect.update(newEffect);
++                }
++                // Paper end - Properly update hidden effects
 +            }
 +
 +            newEffect.onEffectStarted(this);
 +            return changed;
 +        }
-+    }
-+
-+    public boolean addEffect(MobEffectInstance mobeffect, @javax.annotation.Nullable Entity entity, EntityPotionEffectEvent.Cause cause) {
-+        addEffect$Cause.set(cause);
-+        return addEffect(mobeffect, entity);
-+    }
-+    // Youer end
-+
+     }
+ 
 +    /**
 +     * Neo: Override-Only. Call via {@link net.neoforged.neoforge.common.CommonHooks#canMobEffectBeApplied(LivingEntity, MobEffectInstance, Entity)}
 +     *
@@ -537,8 +526,8 @@
 +    }
 +
 +    public final @Nullable MobEffectInstance removeEffectNoUpdate(Holder<MobEffect> effect, EntityPotionEffectEvent.Cause cause) {
-+        if (isTickingEffects) {
-+            effectsToProcess.add(new ProcessableEffect(effect, cause));
++        if (this.tickingEffects) {
++            this.deferredEffectUpdates.offer(() -> this.removeEffectNoUpdate(effect, cause));
 +            return null;
 +        }
 +
@@ -609,7 +598,7 @@
  
      public float getHealth() {
 +        // CraftBukkit start - Use unscaled health
-+        if (this instanceof ServerPlayer serverPlayer && serverPlayer.initialized) {
++        if (this instanceof ServerPlayer serverPlayer) {
 +            return (float) serverPlayer.getBukkitEntity().getHealth();
 +        }
 +        // CraftBukkit end
@@ -630,7 +619,7 @@
 +            System.err.println("[NAN-HEALTH] " + getScoreboardName() + " had NaN health set");
 +        } } // Paper end - Check for NaN
 +        // CraftBukkit start - Handle scaled health
-+        if (this instanceof ServerPlayer serverPlayer && serverPlayer.initialized) {
++        if (this instanceof ServerPlayer serverPlayer) {
 +            CraftPlayer player = serverPlayer.getBukkitEntity();
 +            double realHealth = Mth.clamp(health, 0.0F, player.getMaxHealth());
 +            player.setRealHealth(realHealth);
@@ -858,7 +847,7 @@
              }
  
              this.handleKillingBlow();
-@@ -1491,17 +_,25 @@
+@@ -1491,17 +_,24 @@
          if (this.level() instanceof ServerLevel serverLevel) {
              boolean var6 = false;
              if (killer instanceof WitherBoss) {
@@ -879,33 +868,24 @@
                      ItemEntity itemEntity = new ItemEntity(this.level(), this.getX(), this.getY(), this.getZ(), new ItemStack(Items.WITHER_ROSE));
 +                    // CraftBukkit start
 +                    org.bukkit.event.entity.EntityDropItemEvent event = new org.bukkit.event.entity.EntityDropItemEvent(this.getBukkitEntity(), (org.bukkit.entity.Item) itemEntity.getBukkitEntity());
-+                    CraftEventFactory.callEvent(event);
-+                    if (event.isCancelled()) {
++                    if (!event.callEvent()) {
 +                        return;
 +                    }
 +                    // CraftBukkit end
                      this.level().addFreshEntity(itemEntity);
                  }
              }
-@@ -1509,26 +_,46 @@
+@@ -1509,6 +_,7 @@
      }
  
      protected void dropAllDeathLoot(ServerLevel level, DamageSource source) {
 +        this.captureDrops(new java.util.ArrayList<>());
          boolean playerKilled = this.lastHurtByPlayerMemoryTime > 0;
-+
-+        this.dropEquipment(level); // CraftBukkit - from below
          if (this.shouldDropLoot(level)) {
              this.dropFromLootTable(level, source, playerKilled);
-             this.dropCustomDeathLoot(level, source, playerKilled);
-         }
-+        // CraftBukkit start - Call death event
-+        CraftEventFactory.callEntityDeathEvent(this, source, this.drops);
-+        this.drops = new ArrayList<>();
-+        // CraftBukkit end
+@@ -1517,18 +_,31 @@
  
--        this.dropEquipment(level);
-+        // this.dropEquipment(level); // CraftBukkit - moved up
+         this.dropEquipment(level);
          this.dropExperience(level, source.getEntity());
 +
 +        Collection<ItemEntity> drops = captureDrops(null);

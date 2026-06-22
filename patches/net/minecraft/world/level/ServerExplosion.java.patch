@@ -345,24 +345,49 @@
 +                        knockback = net.neoforged.neoforge.event.EventHooks.getExplosionKnockback(this.level, this, entity, knockback, blocks);
 +                        // CraftBukkit start - Call EntityKnockbackEvent
 +                        if (entity instanceof LivingEntity) {
-+                            Vec3 result = entity.getDeltaMovement().add(knockback);
-+                            org.bukkit.event.entity.EntityKnockbackEvent event = CraftEventFactory.callEntityKnockbackEvent((org.bukkit.craftbukkit.entity.CraftLivingEntity) entity.getBukkitEntity(), source, org.bukkit.event.entity.EntityKnockbackEvent.KnockbackCause.EXPLOSION, knockbackPower, knockback, result.x, result.y, result.z);
-+
-+                            knockback = (event.isCancelled()) ? Vec3.ZERO : new Vec3(event.getFinalKnockback().getX(), event.getFinalKnockback().getY(), event.getFinalKnockback().getZ()).subtract(entity.getDeltaMovement());
++                            // Paper start - knockback events
++                            io.papermc.paper.event.entity.EntityKnockbackEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityKnockbackEvent((org.bukkit.craftbukkit.entity.CraftLivingEntity) entity.getBukkitEntity(), this.source, this.damageSource.getEntity() != null ? this.damageSource.getEntity() : this.source, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.EXPLOSION, knockbackPower, knockback);
++                            knockback = event.isCancelled() ? Vec3.ZERO : org.bukkit.craftbukkit.util.CraftVector.toVec3(event.getKnockback());
++                            // Paper end - knockback events
 +                        }
 +                        // CraftBukkit end
                          entity.push(knockback);
                          if (entity.is(EntityTypeTags.REDIRECTABLE_PROJECTILE) && entity instanceof Projectile projectile) {
                              projectile.setOwner(this.damageSource.getEntity());
-@@ -214,8 +_,29 @@
+@@ -214,8 +_,55 @@
      private void interactWithBlocks(List<BlockPos> targetBlocks) {
          List<ServerExplosion.StackCollector> stacks = new ArrayList<>();
          Util.shuffle(targetBlocks, this.level.random);
 +        // CraftBukkit start
-+        List<org.bukkit.block.Block> bukkitBlocks = CraftEventFactory.handleExplodeEvent(this, targetBlocks);
++        org.bukkit.Location location = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(this.center, this.level);
++        List<org.bukkit.block.Block> blockList = new ObjectArrayList<>();
++        for (int i1 = targetBlocks.size() - 1; i1 >= 0; i1--) {
++            org.bukkit.block.Block bblock = org.bukkit.craftbukkit.block.CraftBlock.at(this.level, targetBlocks.get(i1));
++            if (!bblock.getType().isAir()) {
++                blockList.add(bblock);
++            }
++        }
++
++        List<org.bukkit.block.Block> bukkitBlocks;
++
++        if (this.source != null) {
++            org.bukkit.event.entity.EntityExplodeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityExplodeEvent(this.source, blockList, this.yield, this.getBlockInteraction());
++            this.wasCanceled = event.isCancelled();
++            bukkitBlocks = event.blockList();
++            this.yield = event.getYield();
++        } else {
++            org.bukkit.block.Block block = location.getBlock();
++            org.bukkit.block.BlockState blockState = (this.damageSource.causingBlockSnapshot() != null) ? this.damageSource.causingBlockSnapshot() : block.getState();
++            org.bukkit.event.block.BlockExplodeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockExplodeEvent(block, blockState, blockList, this.yield, this.getBlockInteraction());
++            this.wasCanceled = event.isCancelled();
++            bukkitBlocks = event.blockList();
++            this.yield = event.getYield();
++        }
 +
 +        targetBlocks.clear();
-+        targetBlocks.addAll(bukkitBlocks.stream().map(bblock -> new BlockPos(bblock.getX(), bblock.getY(), bblock.getZ())).toList());
++        for (org.bukkit.block.Block bblock : bukkitBlocks) {
++            targetBlocks.add(((org.bukkit.craftbukkit.block.CraftBlock) bblock).getPosition());
++        }
 +
 +        if (this.wasCanceled) {
 +            return;
@@ -371,12 +396,13 @@
  
          for (BlockPos pos : targetBlocks) {
 +            // CraftBukkit start - TNTPrimeEvent
-+            BlockState blockstate = this.level.getBlockState(pos);
-+            Block block = blockstate.getBlock();
-+            if (block instanceof net.minecraft.world.level.block.TntBlock) {
-+                BlockPos sourceBlock = source == null ? BlockPos.containing(this.center) : null;
-+                if (!CraftEventFactory.callTNTPrimeEvent(this.level, pos, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.EXPLOSION, source, sourceBlock)) {
-+                    this.level.sendBlockUpdated(pos, Blocks.AIR.defaultBlockState(), blockstate, 3); // Update the block on the client
++            BlockState state = this.level.getBlockState(pos);
++            Block block = state.getBlock();
++            if (level.getGameRules().get(GameRules.TNT_EXPLODES) && block instanceof net.minecraft.world.level.block.TntBlock) {
++                Entity sourceEntity = this.source == null ? null : this.source;
++                BlockPos sourceBlock = sourceEntity == null ? BlockPos.containing(this.center) : null;
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callTNTPrimeEvent(this.level, pos, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.EXPLOSION, sourceEntity, sourceBlock)) {
++                    this.level.sendBlockUpdated(pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), state, Block.UPDATE_ALL); // Update the block on the client
 +                    continue;
 +                }
 +            }
@@ -384,7 +410,7 @@
              this.level.getBlockState(pos).onExplosionHit(this.level, pos, this, (stackx, position) -> addOrAppendStack(stacks, stackx, position));
          }
  
-@@ -227,21 +_,38 @@
+@@ -227,12 +_,24 @@
      private void createFire(List<BlockPos> targetBlocks) {
          for (BlockPos pos : targetBlocks) {
              if (this.level.random.nextInt(3) == 0 && this.level.getBlockState(pos).isAir() && this.level.getBlockState(pos.below()).isSolidRender()) {
@@ -399,40 +425,31 @@
      }
  
      public int explode() {
-+        // CraftBukkit start
-+        if (this.radius < 0.1F) {
-+            return 0;
-+        }
-+        // CraftBukkit end
++        // Paper start - collision optimisations
++        this.blockCache = new it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap<>();
++        this.chunkPosCache = new long[CHUNK_CACHE_WIDTH * CHUNK_CACHE_WIDTH];
++        java.util.Arrays.fill(this.chunkPosCache, ChunkPos.INVALID_CHUNK_POS);
++        this.chunkCache = new net.minecraft.world.level.chunk.LevelChunk[CHUNK_CACHE_WIDTH * CHUNK_CACHE_WIDTH];
++        this.directMappedBlockCache = new ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache[BLOCK_EXPLOSION_CACHE_WIDTH * BLOCK_EXPLOSION_CACHE_WIDTH * BLOCK_EXPLOSION_CACHE_WIDTH];
++        this.mutablePos = new BlockPos.MutableBlockPos();
++        // Paper end - collision optimisations
          this.level.gameEvent(this.source, GameEvent.EXPLODE, this.center);
          List<BlockPos> toBlow = this.calculateExplodedPositions();
--        this.hurtEntities();
-+        this.hurtEntities(toBlow);
-         if (this.interactsWithBlocks()) {
-             ProfilerFiller profiler = Profiler.get();
-             profiler.push("explosion_blocks");
-             this.interactWithBlocks(toBlow);
-             profiler.pop();
-+            // CraftBukkit start - handle KEEP effect
-+        } else {
-+            Util.shuffle(toBlow, this.level.random); // CraftBukkit - Copy from calculateExplodedPositions
-+            List<org.bukkit.block.Block> bukkitBlocks = CraftEventFactory.handleExplodeEvent(this, toBlow);
-+
-+            toBlow.clear();
-+            toBlow.addAll(bukkitBlocks.stream().map(bblock -> new BlockPos(bblock.getX(), bblock.getY(), bblock.getZ())).toList());
-         }
-+        // CraftBukkit end
- 
-         if (this.fire) {
+         this.hurtEntities();
+@@ -247,6 +_,13 @@
              this.createFire(toBlow);
-@@ -251,6 +_,7 @@
+         }
+ 
++        // Paper start - collision optimisations
++        this.blockCache = null;
++        this.chunkPosCache = null;
++        this.chunkCache = null;
++        this.directMappedBlockCache = null;
++        this.mutablePos = null;
++        // Paper end - collision optimisations
+         return toBlow.size();
      }
  
-     private static void addOrAppendStack(List<ServerExplosion.StackCollector> stacks, ItemStack stack, BlockPos pos) {
-+        if (stack.isEmpty()) return; // CraftBukkit - SPIGOT-5425
-         for (ServerExplosion.StackCollector stackCollector : stacks) {
-             stackCollector.tryMerge(stack);
-             if (stack.isEmpty()) {
 @@ -328,4 +_,85 @@
              }
          }

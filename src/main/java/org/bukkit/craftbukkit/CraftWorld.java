@@ -929,7 +929,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public double getHumidity(int x, int y, int z) {
-        return this.world.getNoiseBiome(QuartPos.fromBlock(x), QuartPos.fromBlock(y), QuartPos.fromBlock(z)).value().climateSettings.downfall();
+        return this.world.getNoiseBiome(QuartPos.fromBlock(x), QuartPos.fromBlock(y), QuartPos.fromBlock(z)).value().getModifiedClimateSettings().downfall();
     }
 
     @Override

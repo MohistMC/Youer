@@ -23,27 +23,56 @@
      }
  
      default Stream<BlockState> getBlockStates(AABB box) {
-@@ -82,6 +_,23 @@
-             return BlockHitResult.miss(context.getTo(), Direction.getApproximateNearest(delta.x, delta.y, delta.z), BlockPos.containing(context.getTo()));
-         });
+@@ -65,18 +_,41 @@
      }
-+
-+    // CraftBukkit start - moved block handling into separate method for use by Block#rayTrace
-+    default BlockHitResult clip(ClipContext clipcontext1, BlockPos blockpos) {
-+        BlockState blockstate = this.getBlockState(blockpos);
-+        FluidState fluidstate = this.getFluidState(blockpos);
-+        Vec3 vec3 = clipcontext1.getFrom();
-+        Vec3 vec31 = clipcontext1.getTo();
-+        VoxelShape voxelshape = clipcontext1.getBlockShape(blockstate, this, blockpos);
-+        BlockHitResult blockhitresult = this.clipWithInteractionOverride(vec3, vec31, blockpos, voxelshape, blockstate);
-+        VoxelShape voxelshape1 = clipcontext1.getFluidShape(fluidstate, this, blockpos);
-+        BlockHitResult blockhitresult1 = voxelshape1.clip(vec3, vec31, blockpos);
-+        double d0 = blockhitresult == null ? Double.MAX_VALUE : clipcontext1.getFrom().distanceToSqr(blockhitresult.getLocation());
-+        double d1 = blockhitresult1 == null ? Double.MAX_VALUE : clipcontext1.getFrom().distanceToSqr(blockhitresult1.getLocation());
-+
-+        return d0 <= d1 ? blockhitresult : blockhitresult1;
-+    }
-+    // CraftBukkit end
  
-     default @Nullable BlockHitResult clipWithInteractionOverride(Vec3 from, Vec3 to, BlockPos pos, VoxelShape blockShape, BlockState blockState) {
-         BlockHitResult result = blockShape.clip(from, to, pos);
+     default BlockHitResult clip(ClipContext c) {
++        // Paper start - Add predicate for blocks when raytracing
++        return clip(c, (java.util.function.Predicate<org.bukkit.block.Block>) null);
++    }
++
++    default BlockHitResult clip(ClipContext c, BlockPos pos) {
++        return clip(c, pos, null);
++    }
++
++    default BlockHitResult clip(ClipContext c, BlockPos pos, java.util.function.@Nullable Predicate<? super org.bukkit.block.Block> canCollide) {
++        // Prevent raytrace from loading chunks
++        ClipContext context = c;
++        BlockState blockState = this.getBlockStateIfLoaded(pos);
++        if (blockState == null) {
++            // copied the last function parameter (listed below)
++            Vec3 delta = context.getFrom().subtract(context.getTo());
++            return BlockHitResult.miss(context.getTo(), Direction.getApproximateNearest(delta.x, delta.y, delta.z), BlockPos.containing(c.getTo()));
++        }
++        // Paper end - Prevent raytrace from loading chunks
++        if (blockState.isAir() || (canCollide != null && this instanceof LevelAccessor levelAccessor && !canCollide.test(org.bukkit.craftbukkit.block.CraftBlock.at(levelAccessor, pos)))) return null; // Paper - Perf: optimise air cases & check canCollide predicate
++        FluidState fluidState = blockState.getFluidState(); // Paper - Perf: don't need to go to world state again
++        Vec3 from = context.getFrom();
++        Vec3 to = context.getTo();
++        VoxelShape blockShape = context.getBlockShape(blockState, this, pos);
++        BlockHitResult blockResult = this.clipWithInteractionOverride(from, to, pos, blockShape, blockState);
++        VoxelShape fluidShape = context.getFluidShape(fluidState, this, pos);
++        BlockHitResult liquidResult = fluidShape.clip(from, to, pos);
++        double blockDistanceSquared = blockResult == null ? Double.MAX_VALUE : context.getFrom().distanceToSqr(blockResult.getLocation());
++        double liquidDistanceSquared = liquidResult == null ? Double.MAX_VALUE : context.getFrom().distanceToSqr(liquidResult.getLocation());
++        return blockDistanceSquared <= liquidDistanceSquared ? blockResult : liquidResult;
++    }
++
++    default BlockHitResult clip(ClipContext c, java.util.function.@Nullable Predicate<? super org.bukkit.block.Block> canCollide) {
++        // Paper end - Add predicate for blocks when raytracing
+         return traverseBlocks(c.getFrom(), c.getTo(), c, (context, pos) -> {
+-            BlockState blockState = this.getBlockState(pos);
+-            FluidState fluidState = this.getFluidState(pos);
+-            Vec3 from = context.getFrom();
+-            Vec3 to = context.getTo();
+-            VoxelShape blockShape = context.getBlockShape(blockState, this, pos);
+-            BlockHitResult blockResult = this.clipWithInteractionOverride(from, to, pos, blockShape, blockState);
+-            VoxelShape fluidShape = context.getFluidShape(fluidState, this, pos);
+-            BlockHitResult liquidResult = fluidShape.clip(from, to, pos);
+-            double blockDistanceSquared = blockResult == null ? Double.MAX_VALUE : context.getFrom().distanceToSqr(blockResult.getLocation());
+-            double liquidDistanceSquared = liquidResult == null ? Double.MAX_VALUE : context.getFrom().distanceToSqr(liquidResult.getLocation());
+-            return blockDistanceSquared <= liquidDistanceSquared ? blockResult : liquidResult;
++            return this.clip(context, pos, canCollide); // CraftBukkit - moved into separate method // Paper - Add predicate for blocks when raytracing
+         }, context -> {
+             Vec3 delta = context.getFrom().subtract(context.getTo());
+             return BlockHitResult.miss(context.getTo(), Direction.getApproximateNearest(delta.x, delta.y, delta.z), BlockPos.containing(context.getTo()));

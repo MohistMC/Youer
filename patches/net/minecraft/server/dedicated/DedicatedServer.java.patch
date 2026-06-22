@@ -200,7 +200,7 @@
              LOGGER.warn("To change this, set \"online-mode\" to \"true\" in the server.properties file.");
          }
  
-@@ -236,18 +_,20 @@
+@@ -236,18 +_,19 @@
          if (!OldUsersConverter.areOldUserlistsRemoved()) {
              return false;
          }
@@ -211,8 +211,8 @@
          long levelNanoTime = Util.getNanos();
          this.services.nameToIdCache().resolveOfflineUsers(!this.usesAuthentication());
          LOGGER.info("Preparing level \"{}\"", this.getLevelIdName());
-+        youer$loadLevel();
-         this.loadLevel();
+-        this.loadLevel();
++        this.loadLevel(this.storageSource.getLevelId()); // CraftBukkit
 +        net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerAboutToStart(this);
          long elapsed = Util.getNanos() - levelNanoTime;
          String time = String.format(Locale.ROOT, "%.3fs", elapsed / 1.0E9);
@@ -255,6 +255,15 @@
  
      @Override
      public boolean isEnforceWhitelist() {
+@@ -345,7 +_,7 @@
+ 
+     @Override
+     protected void forceDifficulty() {
+-        this.setDifficulty(this.getProperties().difficulty.get(), true);
++        // this.setDifficulty(this.getProperties().difficulty.get(), true); // Paper - per level difficulty; Don't overwrite level.dat's difficulty, keep current
+     }
+ 
+     public int viewDistance() {
 @@ -410,6 +_,11 @@
              this.queryThreadGs4.stop();
          }

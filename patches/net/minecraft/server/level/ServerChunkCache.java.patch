@@ -159,7 +159,7 @@
          this.ticketStorage = this.savedDataStorage.computeIfAbsent(TicketStorage.TYPE);
          this.chunkMap = new ChunkMap(
              level,
-@@ -124,6 +_,16 @@
+@@ -124,6 +_,57 @@
          this.clearCache();
      }
  
@@ -172,6 +172,47 @@
 +        return chunk.getFullChunkNow() != null;
 +    }
 +    // CraftBukkit end
++    // Paper - rewrite chunk system
++
++    @Nullable
++    public ChunkAccess getChunkAtImmediately(int x, int z) {
++        ChunkHolder holder = this.chunkMap.getVisibleChunkIfPresent(ChunkPos.pack(x, z));
++        if (holder == null) {
++            return null;
++        }
++
++        return holder.getLatestChunk();
++    }
++
++    public void addTicketAtLevel(TicketType ticketType, ChunkPos chunkPos, int ticketLevel) {
++        this.ticketStorage.addTicket(new Ticket(ticketType, ticketLevel), chunkPos);
++    }
++
++    public void removeTicketAtLevel(TicketType ticketType, ChunkPos chunkPos, int ticketLevel) {
++        this.ticketStorage.removeTicket(new Ticket(ticketType, ticketLevel), chunkPos);
++    }
++
++    // "real" get chunk if loaded
++    // Note: Partially copied from the getChunkAt method below
++    @Nullable
++    public LevelChunk getChunkAtIfCachedImmediately(int x, int z) {
++        long key = ChunkPos.pack(x, z);
++
++        // Note: Bypass cache since we need to check ticket level, and to make this MT-Safe
++
++        ChunkHolder playerChunk = this.getVisibleChunkIfPresent(key);
++        if (playerChunk == null) {
++            return null;
++        }
++
++        return playerChunk.getFullChunkNowUnchecked();
++    }
++
++    @Nullable
++    public LevelChunk getChunkAtIfLoadedImmediately(int x, int z) {
++        return this.fullChunks.get(ChunkPos.pack(x, z));
++    }
++    // Paper end
 +
      public ThreadedLevelLightEngine getLightEngine() {
          return this.lightEngine;

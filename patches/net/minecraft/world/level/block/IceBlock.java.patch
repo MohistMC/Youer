@@ -1,14 +1,29 @@
 --- a/net/minecraft/world/level/block/IceBlock.java
 +++ b/net/minecraft/world/level/block/IceBlock.java
-@@ -56,6 +_,11 @@
+@@ -35,6 +_,11 @@
+     @Override
+     public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith) {
+         super.playerDestroy(level, player, pos, state, blockEntity, destroyedWith);
++        // Paper start - Improve Block#breakNaturally API
++        this.afterDestroy(level, pos, destroyedWith);
++    }
++    public void afterDestroy(Level level, BlockPos pos, ItemStack destroyedWith) {
++        // Paper end - Improve Block#breakNaturally API
+         if (!EnchantmentHelper.hasTag(destroyedWith, EnchantmentTags.PREVENTS_ICE_MELTING)) {
+             if (level.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, pos)) {
+                 level.removeBlock(pos, false);
+@@ -56,7 +_,13 @@
      }
  
      protected void melt(BlockState state, Level level, BlockPos pos) {
-+        // CraftBukkit start
-+        if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(level, pos, level.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, pos) ? Blocks.AIR.defaultBlockState() : meltsInto()).isCancelled()) {
+-        if (level.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, pos)) {
++        // Paper start - call BlockFadeEvent
++        final boolean waterEvaporates = level.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, pos);
++        if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(level, pos, waterEvaporates ? Blocks.AIR.defaultBlockState() : Blocks.WATER.defaultBlockState()).isCancelled()) {
 +            return;
 +        }
-+        // CraftBukkit end
-         if (level.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, pos)) {
++        if (waterEvaporates) {
++            // Paper end - call BlockFadeEvent
              level.removeBlock(pos, false);
          } else {
+             level.setBlockAndUpdate(pos, meltsInto());

@@ -1314,11 +1314,29 @@
          );
      }
  
-@@ -1087,12 +_,17 @@
+@@ -1084,15 +_,35 @@
+         return new ServerStatus.Players(maxPlayers, players.size(), sample);
+     }
+ 
++    public final io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList entitySchedulerTickList = new io.papermc.paper.threadedregions.EntityScheduler.EntitySchedulerTickList(); // Paper - optimise Folia entity scheduler
++
      protected void tickChildren(BooleanSupplier haveTime) {
          ProfilerFiller profiler = Profiler.get();
          this.getPlayerList().getPlayers().forEach(playerx -> playerx.connection.suspendFlushing());
 +        this.server.getScheduler().mainThreadHeartbeat(); // CraftBukkit
++        // Paper start - optimise Folia entity scheduler
++        ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler)org.bukkit.Bukkit.getGlobalRegionScheduler()).tick();
++        for (io.papermc.paper.threadedregions.EntityScheduler scheduler : this.entitySchedulerTickList.getAllSchedulers()) {
++            if (scheduler.isRetired()) {
++                continue;
++            }
++
++            scheduler.executeTick();
++        }
++        // Paper end - optimise Folia entity scheduler
++        // Paper end - Folia scheduler API
++        io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.ADVENTURE_CLICK_MANAGER.handleQueue(this.tickCount); // Paper
++        io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.DIALOG_CLICK_MANAGER.handleQueue(this.tickCount); // Paper
          profiler.push("commandFunctions");
          this.getFunctions().tick();
          profiler.pop();
@@ -1448,6 +1466,29 @@
          systemReport.setDetail("Suppressed Exceptions", this.suppressedExceptions::dump);
          if (this.serverId != null) {
              systemReport.setDetail("Server Id", () -> this.serverId);
+@@ -1289,11 +_,17 @@
+         }
+     }
+ 
+-    public void setDifficulty(Difficulty difficulty, boolean ignoreLock) {
+-        if (ignoreLock || !this.worldData.isDifficultyLocked()) {
+-            this.worldData.setDifficulty(this.worldData.isHardcore() ? Difficulty.HARD : difficulty);
+-            this.updateMobSpawningFlags();
+-            this.getPlayerList().getPlayers().forEach(this::sendDifficultyUpdate);
++    // Paper start - per level difficulty, WorldDifficultyChangeEvent
++    public void setDifficulty(final ServerLevel level, final Difficulty difficulty, final @Nullable CommandSourceStack source, final boolean ignoreLock) {
++        io.papermc.paper.world.saveddata.PaperLevelOverrides worldData = level.serverLevelData;
++        if (ignoreLock || !worldData.isDifficultyLocked()) {
++            new io.papermc.paper.event.world.WorldDifficultyChangeEvent(
++                    level.getWorld(), source, org.bukkit.craftbukkit.util.CraftDifficulty.toBukkit(difficulty)
++            ).callEvent();
++            worldData.setDifficulty(worldData.isHardcore() ? Difficulty.HARD : difficulty);
++            level.setSpawnSettings(level.isSpawningMonsters());
++            level.players().forEach(this::sendDifficultyUpdate);
++            // Paper end - per level difficulty
+         }
+     }
+ 
 @@ -1369,10 +_,20 @@
  
      @Override

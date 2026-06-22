@@ -1,33 +1,115 @@
 --- a/net/minecraft/server/network/config/PrepareSpawnTask.java
 +++ b/net/minecraft/server/network/config/PrepareSpawnTask.java
-@@ -16,7 +_,6 @@
- import net.minecraft.server.level.progress.LevelLoadListener;
- import net.minecraft.server.network.CommonListenerCookie;
- import net.minecraft.server.network.ConfigurationTask;
--import net.minecraft.server.players.NameAndId;
- import net.minecraft.util.ProblemReporter;
- import net.minecraft.world.level.ChunkPos;
- import net.minecraft.world.level.storage.LevelData;
-@@ -32,11 +_,11 @@
-     public static final ConfigurationTask.Type TYPE = new ConfigurationTask.Type("prepare_spawn");
-     public static final int PREPARE_CHUNK_RADIUS = 3;
-     private final MinecraftServer server;
--    private final NameAndId nameAndId;
-+    private final ServerPlayer nameAndId;
+@@ -36,10 +_,18 @@
      private final LevelLoadListener loadListener;
      private PrepareSpawnTask.@Nullable State state;
  
 -    public PrepareSpawnTask(MinecraftServer server, NameAndId nameAndId) {
-+    public PrepareSpawnTask(MinecraftServer server, ServerPlayer nameAndId) {
++    // Paper start - passthrough profile and packet listener
++    private final com.mojang.authlib.GameProfile profile;
++    private final net.minecraft.server.network.ServerConfigurationPacketListenerImpl listener;
++    private boolean newPlayer;
++
++    public PrepareSpawnTask(MinecraftServer server, final com.mojang.authlib.GameProfile profile, final net.minecraft.server.network.ServerConfigurationPacketListenerImpl listener) {
++        this.profile = profile;
++        this.listener = listener;
++        // Paper end - passthrough profile and packet listener
          this.server = server;
-         this.nameAndId = nameAndId;
-         this.loadListener = server.getLevelLoadListener();
-@@ -172,7 +_,7 @@
+-        this.nameAndId = nameAndId;
+-        this.loadListener = server.getLevelLoadListener();
++        this.nameAndId = new net.minecraft.server.players.NameAndId(profile); // Paper - passthrough profile and packet listener - create from profile
++        this.loadListener = LevelLoadListener.noop(); // Paper - per level load listener - this is already a no-op on dedicated server, but we moved it to Level
+     }
+ 
+     @Override
+@@ -110,10 +_,11 @@
+     }
+ 
+     private final class Preparing implements PrepareSpawnTask.State {
+-        private final ServerLevel spawnLevel;
+-        private final CompletableFuture<Vec3> spawnPosition;
+-        private final Vec2 spawnAngle;
++        private ServerLevel spawnLevel; // Paper - remove final
++        private CompletableFuture<Vec3> spawnPosition; // Paper - remove final
++        private Vec2 spawnAngle; // Paper - remove final
+         private @Nullable CompletableFuture<?> chunkLoadFuture;
++        private @Nullable CompletableFuture<org.bukkit.Location> eventFuture; // Paper
+         private final ChunkLoadCounter chunkLoadCounter = new ChunkLoadCounter();
+ 
+         private Preparing(ServerLevel spawnLevel, CompletableFuture<Vec3> spawnPosition, Vec2 spawnAngle) {
+@@ -133,6 +_,54 @@
+ 
+             Vec3 spawnPosition = this.spawnPosition.join();
+             if (this.chunkLoadFuture == null) {
++                // Paper start - PlayerSpawnLocationEvent
++                if (this.eventFuture == null && org.spigotmc.event.player.PlayerSpawnLocationEvent.getHandlerList().getRegisteredListeners().length != 0) {
++                    ServerPlayer player;
++                    if (PrepareSpawnTask.this.listener.connection.savedPlayerForLegacyEvents != null) {
++                        player = PrepareSpawnTask.this.listener.connection.savedPlayerForLegacyEvents;
++                    } else {
++                        player = new ServerPlayer(
++                                PrepareSpawnTask.this.server,
++                                PrepareSpawnTask.this.server.overworld(),
++                                PrepareSpawnTask.this.profile,
++                                net.minecraft.server.level.ClientInformation.createDefault()
++                        );
++                        PrepareSpawnTask.this.listener.connection.savedPlayerForLegacyEvents = player;
++                    }
++                    org.spigotmc.event.player.PlayerSpawnLocationEvent ev = new org.spigotmc.event.player.PlayerSpawnLocationEvent(
++                            player.getBukkitEntity(),
++                            org.bukkit.craftbukkit.util.CraftLocation.toBukkit(spawnPosition, this.spawnLevel, this.spawnAngle.x, this.spawnAngle.y)
++                    );
++                    ev.callEvent();
++                    spawnPosition = io.papermc.paper.util.MCUtil.toVec3(ev.getSpawnLocation());
++                    if (ev.getSpawnLocation().getWorld() != null) this.spawnLevel = ((org.bukkit.craftbukkit.CraftWorld) ev.getSpawnLocation().getWorld()).getHandle();
++                    this.spawnPosition = CompletableFuture.completedFuture(spawnPosition);
++                    this.spawnAngle = new Vec2(ev.getSpawnLocation().getYaw(), ev.getSpawnLocation().getPitch());
++                }
++
++                if (this.eventFuture == null && io.papermc.paper.event.player.AsyncPlayerSpawnLocationEvent.getHandlerList().getRegisteredListeners().length != 0) {
++                    final Vec3 spawnPositionFinal = spawnPosition;
++                    this.eventFuture = CompletableFuture.supplyAsync(() -> {
++                        io.papermc.paper.event.player.AsyncPlayerSpawnLocationEvent ev = new io.papermc.paper.event.player.AsyncPlayerSpawnLocationEvent(
++                                PrepareSpawnTask.this.listener.paperConnection,
++                                org.bukkit.craftbukkit.util.CraftLocation.toBukkit(spawnPositionFinal, this.spawnLevel, this.spawnAngle.x, this.spawnAngle.y),
++                                PrepareSpawnTask.this.newPlayer
++                        );
++                        ev.callEvent();
++                        return ev.getSpawnLocation();
++                    }, io.papermc.paper.connection.PaperConfigurationTask.CONFIGURATION_POOL);
++                }
++                if (this.eventFuture != null) {
++                    if (!this.eventFuture.isDone()) {
++                        return null;
++                    }
++                    org.bukkit.Location location = this.eventFuture.join();
++                    spawnPosition = io.papermc.paper.util.MCUtil.toVec3(location);
++                    this.spawnLevel = ((org.bukkit.craftbukkit.CraftWorld) location.getWorld()).getHandle();
++                    this.spawnPosition = CompletableFuture.completedFuture(spawnPosition);
++                    this.spawnAngle = new Vec2(location.getYaw(), location.getPitch());
++                }
++                // Paper end - PlayerSpawnLocationEvent
+                 ChunkPos spawnChunk = ChunkPos.containing(BlockPos.containing(spawnPosition));
+                 this.chunkLoadCounter
+                     .track(
+@@ -172,7 +_,19 @@
          public ServerPlayer spawn(Connection connection, CommonListenerCookie cookie) {
              ChunkPos spawnChunk = ChunkPos.containing(BlockPos.containing(this.spawnPosition));
              this.spawnLevel.waitForEntities(spawnChunk, 3);
 -            ServerPlayer player = new ServerPlayer(PrepareSpawnTask.this.server, this.spawnLevel, cookie.gameProfile(), cookie.clientInformation());
-+            ServerPlayer player = nameAndId; // CraftBukkit
++            // Paper start - configuration api - possibly use legacy saved server player instance
++            ServerPlayer player;
++            if (connection.savedPlayerForLegacyEvents != null) {
++                player = connection.savedPlayerForLegacyEvents;
++                connection.savedPlayerForLegacyEvents = null;
++                // Update the existing instance
++                player.gameProfile = cookie.gameProfile();
++                player.updateOptionsNoEvents(cookie.clientInformation());
++                player.setServerLevel(this.spawnLevel);
++            } else {
++                player = new ServerPlayer(PrepareSpawnTask.this.server, this.spawnLevel, cookie.gameProfile(), cookie.clientInformation());
++            }
++            // Paper end - configuration api - possibly use legacy saved server player instance
  
              try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(player.problemPath(), PrepareSpawnTask.LOGGER)) {
                  Optional<ValueInput> input = PrepareSpawnTask.this.server

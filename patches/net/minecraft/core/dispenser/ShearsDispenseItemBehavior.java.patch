@@ -44,11 +44,12 @@
              if (this.isSuccess()) {
                  dispensed.hurtAndBreak(1, level, null, item -> {});
              }
-@@ -47,14 +_,22 @@
+@@ -47,14 +_,16 @@
          return false;
      }
  
 -    private static boolean tryShearEntity(ServerLevel level, BlockPos pos, ItemStack tool) {
++    // Youer TODO - paper patches
 +    private static boolean tryShearEntity(ServerLevel level, BlockPos pos, ItemStack tool, org.bukkit.block.Block bukkitBlock, CraftItemStack craftItem) { // CraftBukkit - add args
          for (Entity entity : level.getEntitiesOfClass(Entity.class, new AABB(pos), EntitySelector.NO_SPECTATORS)) {
              if (entity.shearOffAllLeashConnections(null)) {
@@ -58,15 +59,8 @@
 -            if (entity.isAlive() && entity instanceof Shearable shearable && shearable.readyForShearing()) {
 -                shearable.shear(level, SoundSource.BLOCKS, tool);
 +            if (entity instanceof net.neoforged.neoforge.common.IShearable shearable && shearable.isShearable(null, tool, level, pos)) {
-+                // CraftBukkit start
-+                // Paper start - Add drops to shear events
-+                org.bukkit.event.block.BlockShearEntityEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockShearEntityEvent(entity, bukkitBlock, craftItem, shearable.generateDefaultDrops(level, tool));
-+                if (event.isCancelled()) {
-+                    // Paper end - Add drops to shear events
-+                    continue;
-+                }
-+                // CraftBukkit end
-+                shearable.shear(level, SoundSource.BLOCKS, tool, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getDrops())); // Paper - Add drops to shear events
++                shearable.onSheared(null, tool, level, pos)
++                        .forEach(drop -> shearable.spawnShearedDrop(level, pos, drop));
                  level.gameEvent(null, GameEvent.SHEAR, pos);
                  return true;
              }

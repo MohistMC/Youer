@@ -135,6 +135,24 @@
              Vec3 delta = new Vec3(
                  this.followingPlayer.getX() - this.getX(),
                  this.followingPlayer.getY() + this.followingPlayer.getEyeHeight() / 2.0 - this.getY(),
+@@ -196,11 +_,16 @@
+     }
+ 
+     public static void awardWithDirection(ServerLevel level, Vec3 pos, Vec3 roughDirection, int amount) {
++        // Paper start - add reason to orbs
++        awardWithDirection(level, pos, roughDirection, amount, null, null, null);
++    }
++    public static void awardWithDirection(final ServerLevel level, final Vec3 pos, final Vec3 roughDirection, int amount, org.bukkit.entity.ExperienceOrb.@Nullable SpawnReason reason, final @Nullable Entity triggerId, final @Nullable Entity sourceId) {
++        // Paper end - add reason to orbs
+         while (amount > 0) {
+             int newCount = getExperienceValue(amount);
+             amount -= newCount;
+             if (!tryMergeToExisting(level, pos, newCount)) {
+-                level.addFreshEntity(new ExperienceOrb(level, pos, roughDirection, newCount));
++                level.addFreshEntity(new ExperienceOrb(level, pos, roughDirection, newCount, reason, triggerId, sourceId)); // Paper - add reason to orbs
+             }
+         }
+     }
 @@ -230,7 +_,7 @@
      private void merge(ExperienceOrb orb) {
          this.count = this.count + orb.count;

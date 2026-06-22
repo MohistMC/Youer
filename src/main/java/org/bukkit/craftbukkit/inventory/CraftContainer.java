@@ -29,6 +29,7 @@ import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.MenuType;
+import org.jetbrains.annotations.NotNull;
 
 public class CraftContainer extends AbstractContainerMenu {
 
@@ -50,7 +51,7 @@ public class CraftContainer extends AbstractContainerMenu {
         this(new CraftAbstractInventoryView() {
 
             private final String originalTitle = inventory instanceof CraftInventoryCustom ? ((CraftInventoryCustom) inventory).getTitle() : inventory.getType().getDefaultTitle(); // Paper
-            private String title = this.originalTitle;
+            private String title;
 
             @Override
             public Inventory getTopInventory() {
@@ -81,7 +82,10 @@ public class CraftContainer extends AbstractContainerMenu {
 
             @Override
             public String getTitle() {
-                return this.title;
+                if (title == null) {
+                    this.title = originalTitle;
+                }
+                return title;
             }
 
             @Override

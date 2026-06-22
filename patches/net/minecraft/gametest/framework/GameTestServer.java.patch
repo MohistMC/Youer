@@ -27,12 +27,24 @@
              Proxy.NO_PROXY,
              DataFixers.getDataFixer(),
              NO_SERVICES,
-@@ -176,10 +_,12 @@
+@@ -174,12 +_,22 @@
+ 
+     @Override
      protected boolean initServer() {
-         this.setPlayerList(new PlayerList(this, this.registries(), this.playerDataStorage, new EmptyNotificationService()) {});
+-        this.setPlayerList(new PlayerList(this, this.registries(), this.playerDataStorage, new EmptyNotificationService()) {});
++        // Paper start
++        this.setPlayerList(new PlayerList(this, this.registries(), this.playerDataStorage, new EmptyNotificationService()) {
++            @Override
++            public void loadAndSaveFiles() {
++                throw new UnsupportedOperationException("Should not be called in a GameTestServer");
++            }
++        });
++        this.initPostWorld();
          Gizmos.withCollector(GizmoCollector.NOOP);
+-        this.loadLevel();
 +        net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerAboutToStart(this);
-         this.loadLevel();
++        this.loadLevel("blah");
++        // Paper end
          ServerLevel level = this.overworld();
          this.testBatches = this.evaluateTestsToRun(level);
          LOGGER.info("Started game test server");

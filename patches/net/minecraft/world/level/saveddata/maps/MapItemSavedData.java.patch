@@ -115,6 +115,20 @@
          if (colors.array().length == 16384) {
              this.colors = colors.array();
          }
+@@ -350,7 +_,12 @@
+     }
+ 
+     public void setColorsDirty(int x, int y) {
+-        this.setDirty();
++        // Paper start - Fix unnecessary map data saves
++        this.setColorsDirty(x, y, true);
++    }
++    public void setColorsDirty(final int x, final int y, final boolean markFileDirty) {
++        if (markFileDirty) this.setDirty();
++        // Paper end - Fix unnecessary map data saves
+ 
+         for (MapItemSavedData.HoldingPlayer holdingPlayer : this.carriedBy) {
+             holdingPlayer.markColorsDirty(x, y);
 @@ -493,7 +_,7 @@
              this.player = player;
          }

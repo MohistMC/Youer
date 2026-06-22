@@ -190,7 +190,7 @@
              items.set(1, remainder != null ? remainder.create() : ItemStack.EMPTY);
          }
      }
-@@ -218,41 +_,74 @@
+@@ -218,41 +_,78 @@
          ItemStack resultItemStack = items.get(2);
          if (resultItemStack.isEmpty()) {
              return true;
@@ -257,10 +257,16 @@
  
      protected int getBurnDuration(FuelValues fuelValues, ItemStack itemStack) {
 -        return fuelValues.burnDuration(itemStack);
-+        return itemStack.getBurnTime(this.recipeType, fuelValues);
-     }
- 
+-    }
+-
 -    public static int getTotalCookTime(ServerLevel level, AbstractFurnaceBlockEntity entity) {
++        return itemStack.getBurnTime(this.recipeType, fuelValues);
++    }
++
++    private static int getTotalCookTime(ServerLevel level, AbstractFurnaceBlockEntity entity) {
++        return getTotalCookTime(level, entity, entity.recipeType, entity.cookSpeedMultiplier);
++    }
++
 +    public static int getTotalCookTime(final @Nullable ServerLevel level, final AbstractFurnaceBlockEntity entity, final RecipeType<? extends AbstractCookingRecipe> recipeType, final double cookSpeedMultiplier) { // Paper - cook speed multiplier API
          SingleRecipeInput input = new SingleRecipeInput(entity.getItem(0));
 -        return entity.quickCheck.getRecipeFor(input, level).map(recipeHolder -> recipeHolder.value().cookingTime()).orElse(200);
@@ -356,7 +362,7 @@
          player.awardRecipes(recipesToAward);
  
          for (RecipeHolder<?> recipe : recipesToAward) {
-@@ -343,24 +_,40 @@
+@@ -343,26 +_,51 @@
      }
  
      public List<RecipeHolder<?>> getRecipesToAwardAndPopExperience(ServerLevel level, Vec3 position) {
@@ -379,23 +385,35 @@
      }
  
 -    private static void createExperience(ServerLevel level, Vec3 position, int amount, float value) {
-+    private static void createExperience(ServerLevel level, Vec3 position, int amount, float value, BlockPos blockpos, Player player, ItemStack itemstack, int itemAmount) { // CraftBukkit
++    private static void createExperience(ServerLevel level, Vec3 position, int amount, float value, BlockPos blockPos, final ServerPlayer player, final ItemStack itemStack, final int removeCount) {
          int xpReward = Mth.floor(amount * value);
          float xpFraction = Mth.frac(amount * value);
          if (xpFraction != 0.0F && level.getRandom().nextFloat() < xpFraction) {
              xpReward++;
          }
-+
+ 
+-        ExperienceOrb.award(level, position, xpReward);
 +        // CraftBukkit start - fire FurnaceExtractEvent / BlockExpEvent
-+        BlockExpEvent event;
-+        if (itemAmount != 0) {
-+            event = new FurnaceExtractEvent((org.bukkit.entity.Player) player.getBukkitEntity(), CraftBlock.at(level, blockpos), CraftItemType.minecraftToBukkit(itemstack.getItem()), itemAmount, xpReward);
++        org.bukkit.event.block.BlockExpEvent event;
++        if (removeCount != 0) {
++            event = new org.bukkit.event.inventory.FurnaceExtractEvent(
++                    player.getBukkitEntity(),
++                    org.bukkit.craftbukkit.block.CraftBlock.at(level, blockPos),
++                    itemStack.asBukkitCopy(),
++                    removeCount,
++                    xpReward
++            );
 +        } else {
-+            event = new BlockExpEvent(CraftBlock.at(level, blockpos), xpReward);
++            event = new org.bukkit.event.block.BlockExpEvent(
++                    org.bukkit.craftbukkit.block.CraftBlock.at(level, blockPos),
++                    xpReward
++            );
 +        }
-+        level.getCraftServer().getPluginManager().callEvent(event);
++        event.callEvent();
 +        xpReward = event.getExpToDrop();
 +        // CraftBukkit end
- 
-         ExperienceOrb.award(level, position, xpReward);
++
++        ExperienceOrb.awardWithDirection(level, position, net.minecraft.world.phys.Vec3.ZERO, xpReward, org.bukkit.entity.ExperienceOrb.SpawnReason.FURNACE, player, null); // Paper
      }
+ 
+     @Override

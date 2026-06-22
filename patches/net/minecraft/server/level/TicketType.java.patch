@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/TicketType.java
 +++ b/net/minecraft/server/level/TicketType.java
-@@ -7,54 +_,142 @@
+@@ -7,54 +_,154 @@
  import net.minecraft.core.Registry;
  import net.minecraft.core.registries.BuiltInRegistries;
  
@@ -115,11 +115,19 @@
 +    // Paper start - rewrite chunk system - convert to class
 +    private long timeout; // Paper - rewrite chunk system - remove final
 +    private final int flags;
++    private final boolean forceNaturalSpawning;
 +
 +    public TicketType(long timeout, int flags) {
 +        this.timeout = timeout;
 +        this.flags = flags;
++        this.forceNaturalSpawning = false;
 +    } // long timeout, int flags
++
++    public TicketType(long timeout, int flags, boolean forceNaturalSpawning) {
++        this.timeout = timeout;
++        this.flags = flags;
++        this.forceNaturalSpawning = forceNaturalSpawning;
++    }
 +
 +    public int flags() {
 +        return this.flags;
@@ -158,6 +166,10 @@
      public boolean hasTimeout() {
 -        return this.timeout != 0L;
 +        return this.timeout() != NO_TIMEOUT; // Paper - chunk-gc config
++    }
++
++    public boolean forceNaturalSpawning() {
++        return this.forceNaturalSpawning;
      }
  
      @Retention(RetentionPolicy.CLASS)

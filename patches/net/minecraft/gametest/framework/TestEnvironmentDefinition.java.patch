@@ -1,5 +1,20 @@
 --- a/net/minecraft/gametest/framework/TestEnvironmentDefinition.java
 +++ b/net/minecraft/gametest/framework/TestEnvironmentDefinition.java
+@@ -177,12 +_,12 @@
+ 
+         public Difficulty setup(ServerLevel level) {
+             Difficulty oldDifficulty = level.getDifficulty();
+-            level.getServer().setDifficulty(this.difficulty, true);
++            level.getServer().setDifficulty(level, this.difficulty, null, true); // Paper
+             return oldDifficulty;
+         }
+ 
+         public void teardown(ServerLevel level, Difficulty saveData) {
+-            level.getServer().setDifficulty(saveData, true);
++            level.getServer().setDifficulty(level, saveData, null, true); // Paper
+         }
+ 
+         @Override
 @@ -201,7 +_,7 @@
              GameRuleMap originalState = GameRuleMap.of();
              GameRules gameRules = level.getGameRules();
@@ -18,3 +33,12 @@
          }
  
          @Override
+@@ -298,7 +_,7 @@
+             }
+ 
+             public void apply(ServerLevel level) {
+-                level.getServer().setWeatherParameters(this.clearTime, this.rainTime, this.raining, this.thundering);
++                level.getServer().setWeatherParameters(level, this.clearTime, this.rainTime, this.raining, this.thundering); // Paper - per-level WeatherData
+             }
+ 
+             @Override

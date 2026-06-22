@@ -8,6 +8,15 @@
  import java.util.Map.Entry;
  import java.util.function.Consumer;
  import java.util.function.Supplier;
+@@ -65,7 +_,7 @@
+ 
+ import net.neoforged.neoforge.attachment.IAttachmentHolder;
+ 
+-public class LevelChunk extends ChunkAccess implements DebugValueSource, IAttachmentHolder {
++public class LevelChunk extends ChunkAccess implements DebugValueSource, IAttachmentHolder, ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkSystemLevelChunk, ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk, ca.spottedleaf.moonrise.patches.getblock.GetBlockChunk { // Paper - rewrite chunk system // Paper - get block chunk optimisation
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private static final TickingBlockEntity NULL_TICKER = new TickingBlockEntity() {
+         @Override
 @@ -89,7 +_,7 @@
      };
      private final Map<BlockPos, LevelChunk.RebindableTickingBlockEntityWrapper> tickersInLevel = Maps.newHashMap();
@@ -17,6 +26,55 @@
      private @Nullable Supplier<FullChunkStatus> fullStatus;
      private LevelChunk.@Nullable PostLoadProcessor postLoad;
      private final Int2ObjectMap<GameEventListenerRegistry> gameEventListenerRegistrySections;
+@@ -97,6 +_,48 @@
+     private final LevelChunkTicks<Fluid> fluidTicks;
+     private LevelChunk.UnsavedListener unsavedListener = chunkPos -> {};
+ 
++    // CraftBukkit start
++    public boolean mustNotSave;
++    public boolean needsDecoration;
++    // CraftBukkit end
++
++    // Paper start
++    boolean loadedTicketLevel;
++    // Paper end
++    // Paper start - rewrite chunk system
++    private boolean postProcessingDone;
++    private ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder chunkAndHolder;
++
++    @Override
++    public final boolean moonrise$isPostProcessingDone() {
++        return this.postProcessingDone;
++    }
++
++    @Override
++    public final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder moonrise$getChunkHolder() {
++        return this.chunkAndHolder;
++    }
++
++    @Override
++    public final void moonrise$setChunkHolder(final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder holder) {
++        this.chunkAndHolder = holder;
++    }
++    // Paper end - rewrite chunk system
++    // Paper start - get block chunk optimisation
++    private static final BlockState AIR_BLOCKSTATE = Blocks.AIR.defaultBlockState();
++    private static final FluidState AIR_FLUIDSTATE = Fluids.EMPTY.defaultFluidState();
++    private static final BlockState VOID_AIR_BLOCKSTATE = Blocks.VOID_AIR.defaultBlockState();
++    private final int minSection;
++    private final int maxSection;
++    private final boolean debug;
++    private final BlockState defaultBlockState;
++
++    @Override
++    public final BlockState moonrise$getBlock(final int x, final int y, final int z) {
++        return this.getBlockStateFinal(x, y, z);
++    }
++    // Paper end - get block chunk optimisation
++
+     public LevelChunk(Level level, ChunkPos pos) {
+         this(level, pos, UpgradeData.EMPTY, new LevelChunkTicks<>(), new LevelChunkTicks<>(), 0L, null, null, null);
+     }
 @@ -113,7 +_,7 @@
          @Nullable BlendingData blendingData
      ) {
@@ -26,19 +84,22 @@
          this.gameEventListenerRegistrySections = new Int2ObjectOpenHashMap<>();
  
          for (Heightmap.Types type : Heightmap.Types.values()) {
-@@ -127,6 +_,11 @@
+@@ -125,6 +_,14 @@
+         this.postLoad = postLoad;
+         this.blockTicks = blockTicks;
          this.fluidTicks = fluidTicks;
++        // Paper start - get block chunk optimisation
++        this.minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection(level);
++        this.maxSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMaxSection(level);
++
++        final boolean empty = ((Object)this instanceof EmptyLevelChunk);
++        this.debug = !empty && this.level.isDebug();
++        this.defaultBlockState = empty ? VOID_AIR_BLOCKSTATE : AIR_BLOCKSTATE;
++        // Paper end - get block chunk optimisation
      }
  
-+    // CraftBukkit start
-+    public boolean mustNotSave;
-+    public boolean needsDecoration;
-+    // CraftBukkit end
-+
      public LevelChunk(ServerLevel level, ProtoChunk protoChunk, LevelChunk.@Nullable PostLoadProcessor postLoad) {
-         this(
-             level,
-@@ -156,6 +_,7 @@
+@@ -156,15 +_,26 @@
          this.setAllStarts(protoChunk.getAllStarts());
          this.setAllReferences(protoChunk.getAllReferences());
  
@@ -46,18 +107,121 @@
          for (Entry<Heightmap.Types, Heightmap> entry : protoChunk.getHeightmaps()) {
              if (ChunkStatus.FULL.heightmapsAfter().contains(entry.getKey())) {
                  this.setHeightmap(entry.getKey(), entry.getValue().getRawData());
-@@ -165,6 +_,10 @@
-         this.skyLightSources = protoChunk.skyLightSources;
+             }
+         }
+ 
+-        this.skyLightSources = protoChunk.skyLightSources;
++        // Paper - rewrite chunk system
          this.setLightCorrect(protoChunk.isLightCorrect());
          this.markUnsaved();
 +        this.needsDecoration = true; // CraftBukkit
 +        // CraftBukkit start
 +        this.persistentDataContainer = protoChunk.persistentDataContainer; // SPIGOT-6814: copy PDC to account for 1.17 to 1.18 chunk upgrading.
 +        // CraftBukkit end
++        // Paper start - rewrite chunk system
++        this.starlight$setBlockNibbles(((ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk)protoChunk).starlight$getBlockNibbles());
++        this.starlight$setSkyNibbles(((ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk)protoChunk).starlight$getSkyNibbles());
++        this.starlight$setSkyEmptinessMap(((ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk)protoChunk).starlight$getSkyEmptinessMap());
++        this.starlight$setBlockEmptinessMap(((ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk)protoChunk).starlight$getBlockEmptinessMap());
++        // Paper end - rewrite chunk system
      }
  
      public void setUnsavedListener(LevelChunk.UnsavedListener unsavedListener) {
-@@ -294,7 +_,7 @@
+@@ -174,6 +_,13 @@
+         }
+     }
+ 
++    // Paper start
++    @Override
++    public long getInhabitedTime() {
++        return this.level.paperConfig().chunks.fixedChunkInhabitedTime < 0 ? super.getInhabitedTime() : this.level.paperConfig().chunks.fixedChunkInhabitedTime;
++    }
++    // Paper end
++
+     @Override
+     public void markUnsaved() {
+         boolean wasUnsaved = this.isUnsaved();
+@@ -206,8 +_,28 @@
+             : super.getListenerRegistry(section);
+     }
+ 
++    // Paper start - Perf: Reduce instructions and provide final method
++    @Override
++    public BlockState getBlockState(final int x, final int y, final int z) {
++        return this.getBlockStateFinal(x, y, z);
++    }
++
++    public BlockState getBlockStateFinal(final int x, final int y, final int z) {
++        // Copied and modified from below
++        final int sectionIndex = this.getSectionIndex(y);
++        if (sectionIndex < 0 || sectionIndex >= this.sections.length
++                || this.sections[sectionIndex].nonEmptyBlockCount == 0) {
++            return Blocks.AIR.defaultBlockState();
++        }
++        return this.sections[sectionIndex].getStates().get((y & 15) << 8 | (z & 15) << 4 | x & 15);
++    }
++
+     @Override
+     public BlockState getBlockState(BlockPos pos) {
++        if (true) {
++            return this.getBlockStateFinal(pos.getX(), pos.getY(), pos.getZ());
++        }
++        // Paper end - Perf: Reduce instructions and provide final method
+         int x = pos.getX();
+         int y = pos.getY();
+         int z = pos.getZ();
+@@ -242,28 +_,42 @@
+         }
+     }
+ 
++    // Paper start - If loaded util
++    @Override
++    public final FluidState getFluidIfLoaded(BlockPos pos) {
++        return this.getFluidState(pos);
++    }
++
++    @Override
++    public final BlockState getBlockStateIfLoaded(BlockPos pos) {
++        return this.getBlockState(pos);
++    }
++    // Paper end
++
+     @Override
+     public FluidState getFluidState(BlockPos pos) {
+         return this.getFluidState(pos.getX(), pos.getY(), pos.getZ());
+     }
+ 
+     public FluidState getFluidState(int x, int y, int z) {
+-        try {
+-            int sectionIndex = this.getSectionIndex(y);
+-            if (sectionIndex >= 0 && sectionIndex < this.sections.length) {
+-                LevelChunkSection currentSection = this.sections[sectionIndex];
+-                if (!currentSection.hasOnlyAir()) {
+-                    return currentSection.getFluidState(x & 15, y & 15, z & 15);
+-                }
++        // try { // Paper start - Perf: Optimise Chunk#getFluid
++        int sectionIndex = this.getSectionIndex(y);
++        if (sectionIndex >= 0 && sectionIndex < this.sections.length) {
++            LevelChunkSection currentSection = this.sections[sectionIndex];
++            if (!currentSection.hasOnlyAir()) {
++                return currentSection.getStates().get((y & 15) << 8 | (z & 15) << 4 | x & 15).getFluidState(); // Paper - Perf: Optimise Chunk#getFluid
+             }
++        }
+ 
+-            return Fluids.EMPTY.defaultFluidState();
++        return Fluids.EMPTY.defaultFluidState();
++        /* // Paper - Perf: Optimise Chunk#getFluid
+         } catch (Throwable t) {
+             CrashReport report = CrashReport.forThrowable(t, "Getting fluid state");
+             CrashReportCategory category = report.addCategory("Block being got");
+             category.setDetail("Location", () -> CrashReportCategory.formatLocation(this, x, y, z));
+             throw new ReportedException(report);
+         }
++        */ // Paper - Perf: Optimise Chunk#getFluid
+     }
+ 
+     @Override
+@@ -294,10 +_,10 @@
              this.level.getChunkSource().onSectionEmptinessChanged(this.chunkPos.x(), SectionPos.blockToSectionCoord(y), this.chunkPos.z(), isEmpty);
          }
  
@@ -65,7 +229,11 @@
 +        if (LightEngine.hasDifferentLightProperties(this, pos, oldState, state)) {
              ProfilerFiller profiler = Profiler.get();
              profiler.push("updateSkyLightSources");
-             this.skyLightSources.update(this, localX, y, localZ);
+-            this.skyLightSources.update(this, localX, y, localZ);
++            // Paper - rewrite chunk system
+             profiler.popPush("queueCheckLight");
+             this.level.getChunkSource().getLightEngine().checkBlock(pos);
+             profiler.pop();
 @@ -325,7 +_,7 @@
              return null;
          }

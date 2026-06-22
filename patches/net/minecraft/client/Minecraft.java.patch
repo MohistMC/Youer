@@ -8,6 +8,24 @@
      private final ItemModelResolver itemModelResolver;
      private final MapRenderer mapRenderer;
      public final ParticleEngine particleEngine;
+@@ -375,7 +_,7 @@
+     private boolean surfaceIsInvalid = true;
+     private @Nullable BackendCreationException backendCreationException;
+ 
+-    public Minecraft(GameConfig gameConfig) {
++    public Minecraft(GameConfig gameConfig) throws Exception {
+         super("Client", true);
+         instance = this;
+         this.clientStartTimeMs = System.currentTimeMillis();
+@@ -397,7 +_,7 @@
+         YggdrasilAuthenticationService authenticationService = this.offlineDeveloperMode
+             ? YggdrasilAuthenticationService.createOffline(this.proxy)
+             : new YggdrasilAuthenticationService(this.proxy);
+-        this.services = Services.create(authenticationService, this.gameDirectory);
++        this.services = Services.create(authenticationService, this.gameDirectory, null, null);
+         this.user = gameConfig.user.user;
+         this.profileFuture = this.offlineDeveloperMode
+             ? CompletableFuture.completedFuture(null)
 @@ -412,7 +_,6 @@
              }
          }, Util.nonCriticalIoPool());

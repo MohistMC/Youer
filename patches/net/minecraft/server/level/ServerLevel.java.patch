@@ -812,6 +812,30 @@
                  }
              }
  
+@@ -621,7 +_,14 @@
+         return nearbyLightningRod.map(blockPos -> blockPos.above(1));
+     }
+ 
+-    protected BlockPos findLightningTargetAround(BlockPos pos) {
++    public BlockPos findLightningTargetAround(BlockPos pos) {
++        // Paper start - Add methods to find targets for lightning strikes
++        return this.findLightningTargetAround(pos, false);
++    }
++
++    @org.jetbrains.annotations.Contract("_, false -> !null")
++    public @Nullable BlockPos findLightningTargetAround(final BlockPos pos, boolean returnNullWhenNoTarget) {
++        // Paper end - Add methods to find targets for lightning strikes
+         BlockPos center = this.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, pos);
+         Optional<BlockPos> lightningRodTarget = this.findLightningRod(center);
+         if (lightningRodTarget.isPresent()) {
+@@ -634,6 +_,7 @@
+             return entities.get(this.random.nextInt(entities.size())).blockPosition();
+         }
+ 
++        if (returnNullWhenNoTarget) return null; // Paper - Add methods to find targets for lightning strikes
+         if (center.getY() == this.getMinY() - 1) {
+             center = center.above(2);
+         }
 @@ -700,6 +_,12 @@
      }
  
@@ -1010,7 +1034,7 @@
          Entity existing = this.getEntity(player.getUUID());
          if (existing != null) {
              LOGGER.warn("Force-added player with duplicate UUID {}", player.getUUID());
-@@ -988,44 +_,111 @@
+@@ -988,44 +_,110 @@
              this.removePlayerImmediately((ServerPlayer)existing, Entity.RemovalReason.DISCARDED);
          }
  
@@ -1086,10 +1110,11 @@
      }
  
      public void removePlayerImmediately(ServerPlayer player, Entity.RemovalReason reason) {
-+        player.removeReason(null); // CraftBukkit - add Bukkit remove cause
-         player.remove(reason);
-     }
- 
+-        player.remove(reason);
+-    }
++        player.remove(reason, null); // CraftBukkit - add Bukkit remove cause
++    }
++
 +    // CraftBukkit start
 +    public boolean strikeLightning(Entity entitylightning) {
 +        return this.strikeLightning(entitylightning, LightningStrikeEvent.Cause.UNKNOWN);
@@ -1105,7 +1130,7 @@
 +        return this.addFreshEntity(entitylightning);
 +    }
 +    // CraftBukkit end
-+
+ 
      @Override
      public void destroyBlockProgress(int id, BlockPos blockPos, int progress) {
 +        // CraftBukkit start
@@ -1204,7 +1229,7 @@
          this.neighborUpdater.updateNeighborsAtExceptFromFacing(pos, blockObject, skipDirection, orientation);
      }
  
-@@ -1203,18 +_,33 @@
+@@ -1203,18 +_,65 @@
          WeightedList<ExplosionParticleInfo> blockParticles,
          Holder<SoundEvent> explosionSound
      ) {
@@ -1212,7 +1237,39 @@
 +        this.explode0(source, damageSource, damageCalculator, x, y, z, r, fire, interactionType, smallExplosionParticles, largeExplosionParticles, blockParticles, explosionSound);
 +    }
 +
-+    public ServerExplosion explode0(@Nullable Entity source, @Nullable DamageSource damageSource, @Nullable ExplosionDamageCalculator damageCalculator, double x, double y, double z, float r, boolean fire, Level.ExplosionInteraction interactionType, ParticleOptions smallExplosionParticles, ParticleOptions largeExplosionParticles, WeightedList<ExplosionParticleInfo> blockParticles, Holder<SoundEvent> explosionSound) {
++    public ServerExplosion explode0(
++            final @Nullable Entity source,
++            final @Nullable DamageSource damageSource,
++            final @Nullable ExplosionDamageCalculator damageCalculator,
++            final double x,
++            final double y,
++            final double z,
++            final float r,
++            final boolean fire,
++            final Level.ExplosionInteraction interactionType,
++            final ParticleOptions smallExplosionParticles,
++            final ParticleOptions largeExplosionParticles,
++            final WeightedList<ExplosionParticleInfo> blockParticles,
++            final Holder<SoundEvent> explosionSound
++    ) {
++        return this.explode0(source, damageSource, damageCalculator, x, y, z, r, fire, interactionType, smallExplosionParticles, largeExplosionParticles, blockParticles, explosionSound, null);
++    }
++    public ServerExplosion explode0(
++            final @Nullable Entity source,
++            final @Nullable DamageSource damageSource,
++            final @Nullable ExplosionDamageCalculator damageCalculator,
++            final double x,
++            final double y,
++            final double z,
++            final float r,
++            final boolean fire,
++            final Level.ExplosionInteraction interactionType,
++            final ParticleOptions smallExplosionParticles,
++            final ParticleOptions largeExplosionParticles,
++            final WeightedList<ExplosionParticleInfo> blockParticles,
++            final Holder<SoundEvent> explosionSound,
++            java.util.function.@Nullable Consumer<ServerExplosion> configurator
++    ) {
 +        // CraftBukkit end
          Explosion.BlockInteraction blockInteraction = switch (interactionType) {
              case NONE -> Explosion.BlockInteraction.KEEP;
@@ -1247,31 +1304,58 @@
      }
  
      private Explosion.BlockInteraction getDestroyType(GameRule<Boolean> gameRule) {
-@@ -1293,6 +_,24 @@
-         return this.sendParticles(particle, false, false, x, y, z, count, xDist, yDist, zDist, speed);
-     }
- 
-+    // CraftBukkit start - visibility api support
-+    public <T extends ParticleOptions> int sendParticlesSource(ServerPlayer sender, T particle, boolean overrideLimiter, boolean alwaysShow, double x, double y, double z, int count, double xDist, double yDist, double zDist, double speed) {
-+        // CraftBukkit end
-+        ClientboundLevelParticlesPacket clientboundlevelparticlespacket = new ClientboundLevelParticlesPacket(particle, overrideLimiter, alwaysShow, x, y, z, (float) xDist, (float) yDist, (float) zDist, (float) speed, count);
-+        int j = 0;
-+
-+        for (int k = 0; k < this.players.size(); ++k) {
-+            ServerPlayer serverplayer = (ServerPlayer) this.players.get(k);
-+            if (sender != null && !serverplayer.getBukkitEntity().canSee(sender.getBukkitEntity())) continue; // CraftBukkit
-+
-+            if (this.sendParticles(serverplayer, overrideLimiter, x, y, z, clientboundlevelparticlespacket)) {
-+                ++j;
-+            }
-+        }
-+
-+        return j;
+@@ -1306,13 +_,49 @@
+         double zDist,
+         double speed
+     ) {
++        // Paper start - visibility api support
++        return this.sendParticlesSource(null, particle, overrideLimiter, alwaysShow, x, y, z, count, xDist, yDist, zDist, speed);
 +    }
-+
-     public <T extends ParticleOptions> int sendParticles(
-         T particle,
-         boolean overrideLimiter,
++    public <T extends ParticleOptions> int sendParticlesSource(
++            @Nullable Entity sender,
++            T options,
++            boolean overrideLimiter,
++            boolean alwaysShow,
++            double x,
++            double y,
++            double z,
++            int count,
++            double xDist,
++            double yDist,
++            double zDist,
++            double speed
++    ) {
++        return sendParticlesSource(this.players, sender, options, overrideLimiter, alwaysShow, x, y, z, count, xDist, yDist, zDist, speed);
++    }
++    public <T extends ParticleOptions> int sendParticlesSource(
++            List<ServerPlayer> receivers,
++            @Nullable Entity sender,
++            T particle,
++            boolean overrideLimiter,
++            boolean alwaysShow,
++            double x,
++            double y,
++            double z,
++            int count,
++            double xDist,
++            double yDist,
++            double zDist,
++            double speed
++    ) {
++        // Paper end - visibility api support
+         ClientboundLevelParticlesPacket packet = new ClientboundLevelParticlesPacket(
+             particle, overrideLimiter, alwaysShow, x, y, z, (float)xDist, (float)yDist, (float)zDist, (float)speed, count
+         );
+         int result = 0;
+ 
+-        for (int i = 0; i < this.players.size(); i++) {
+-            ServerPlayer player = this.players.get(i);
++        for (int i = 0; i < receivers.size(); i++) { // Paper - particle API
++            ServerPlayer player = receivers.get(i); // Paper - particle API
++            if (sender != null && !player.getBukkitEntity().canSee(sender.getBukkitEntity())) continue; // CraftBukkit
+             if (this.sendParticles(player, overrideLimiter, x, y, z, packet)) {
+                 result++;
+             }
 @@ -1391,7 +_,7 @@
      }
  

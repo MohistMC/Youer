@@ -17,6 +17,28 @@
      public static final @Block.UpdateFlags int UPDATE_NONE = 260;
      public static final @Block.UpdateFlags int UPDATE_ALL = 3;
      public static final @Block.UpdateFlags int UPDATE_ALL_IMMEDIATE = 11;
+@@ -109,6 +_,21 @@
+     public static final int UPDATE_LIMIT = 512;
+     protected final StateDefinition<Block, BlockState> stateDefinition;
+     private BlockState defaultBlockState;
++    // Paper start - Protect Bedrock and End Portal/Frames from being destroyed
++    public final boolean isDestroyable() {
++        return io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowPermanentBlockBreakExploits ||
++                this != Blocks.BARRIER &&
++                        this != Blocks.BEDROCK &&
++                        this != Blocks.END_PORTAL_FRAME &&
++                        this != Blocks.END_PORTAL &&
++                        this != Blocks.END_GATEWAY &&
++                        this != Blocks.COMMAND_BLOCK &&
++                        this != Blocks.REPEATING_COMMAND_BLOCK &&
++                        this != Blocks.CHAIN_COMMAND_BLOCK &&
++                        this != Blocks.STRUCTURE_BLOCK &&
++                        this != Blocks.JIGSAW;
++    }
++    // Paper end - Protect Bedrock and End Portal/Frames from being destroyed
+     private @Nullable Item item;
+     private static final int CACHE_SIZE = 256;
+     private static final ThreadLocal<Object2ByteLinkedOpenHashMap<Block.ShapePairKey>> OCCLUSION_CACHE = ThreadLocal.withInitial(() -> {
 @@ -236,7 +_,7 @@
          this.createBlockStateDefinition(builder);
          this.stateDefinition = builder.create(Block::defaultBlockState, BlockState::new);
@@ -53,7 +75,7 @@
          if (occluder == Shapes.empty()) {
              return true;
          }
-@@ -371,22 +_,28 @@
+@@ -371,22 +_,34 @@
  
      public static void dropResources(BlockState state, Level level, BlockPos pos) {
          if (level instanceof ServerLevel serverLevel) {
@@ -75,7 +97,14 @@
          }
      }
  
-     public static void dropResources(BlockState state, Level level, BlockPos pos, @Nullable BlockEntity blockEntity, @Nullable Entity breaker, ItemStack tool) {
+-    public static void dropResources(BlockState state, Level level, BlockPos pos, @Nullable BlockEntity blockEntity, @Nullable Entity breaker, ItemStack tool) {
++    // Paper start - Properly handle xp dropping
++    public static void dropResources(final BlockState state, final Level level, final BlockPos pos, final @Nullable BlockEntity blockEntity, final @Nullable Entity breaker, final ItemStack tool) {
++        dropResources(state, level, pos, blockEntity, breaker, tool, true);
++    }
++    // Paper end - Properly handle xp dropping
++
++    public static void dropResources(BlockState state, Level level, BlockPos pos, @Nullable BlockEntity blockEntity, @Nullable Entity breaker, ItemStack tool, final boolean dropExperience) { // Paper - Properly handle xp dropping
          if (level instanceof ServerLevel serverLevel) {
 +            beginCapturingDrops();
              getDrops(state, serverLevel, pos, blockEntity, breaker, tool).forEach(stack -> popResource(level, pos, stack));

@@ -1,5 +1,32 @@
 --- a/net/minecraft/client/gui/screens/worldselection/WorldOpenFlows.java
 +++ b/net/minecraft/client/gui/screens/worldselection/WorldOpenFlows.java
+@@ -172,7 +_,7 @@
+             context -> {
+                 Registry<LevelStem> datapackDimensions = context.datapackDimensions().lookupOrThrow(Registries.LEVEL_STEM);
+                 LevelDataAndDimensions data = LevelStorageSource.getLevelDataAndDimensions(
+-                    worldAccess, levelDataTag, context.dataConfiguration(), datapackDimensions, context.datapackWorldgen()
++                    worldAccess, levelDataTag, context.dataConfiguration(), datapackDimensions, context.datapackWorldgen(), null
+                 );
+                 return new WorldLoader.DataLoadOutput<>(data.worldDataAndGenSettings(), data.dimensions().dimensionsRegistryAccess());
+             },
+@@ -199,7 +_,7 @@
+             context -> {
+                 Registry<LevelStem> noDatapackDimensions = new MappedRegistry<>(Registries.LEVEL_STEM, Lifecycle.stable()).freeze();
+                 LevelDataAndDimensions existingData = LevelStorageSource.getLevelDataAndDimensions(
+-                    levelSourceAccess, levelDataTag, context.dataConfiguration(), noDatapackDimensions, context.datapackWorldgen()
++                    levelSourceAccess, levelDataTag, context.dataConfiguration(), noDatapackDimensions, context.datapackWorldgen(), null
+                 );
+                 return new WorldLoader.DataLoadOutput<>(
+                     new Data(
+@@ -213,7 +_,7 @@
+             (resources, managers, registries, loadedData) -> {
+                 resources.close();
+                 DataResult<GameRuleMap> existingGameRules = LevelStorageSource.readExistingSavedData(
+-                    levelSourceAccess, registries.compositeAccess(), GameRuleMap.TYPE
++                    levelSourceAccess, null, registries.compositeAccess(), GameRuleMap.TYPE
+                 );
+                 existingGameRules.ifError(e -> LOGGER.error("Failed to parse existing game rules: {}", e.message()));
+                 InitialWorldCreationOptions initialWorldCreationOptions = new InitialWorldCreationOptions(
 @@ -254,7 +_,9 @@
              backupWarning = Component.translatable("selectWorld.backupWarning.customized");
          } else {

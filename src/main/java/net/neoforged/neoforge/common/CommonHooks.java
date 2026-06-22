@@ -38,6 +38,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
@@ -468,12 +469,12 @@ public class CommonHooks {
     }
 
     public static ChatDecorator getServerChatSubmittedDecorator() {
-        return (sender, message) -> {
+        return (sender, message) -> CompletableFuture.supplyAsync(() -> {
             if (sender == null)
                 return message; // Vanilla should never get here with the patches we use, but let's be safe with dumb mods
 
             return onServerChatSubmittedEvent(sender, getRawText(message), message);
-        };
+        });
     }
 
     static final Pattern URL_PATTERN = Pattern.compile(

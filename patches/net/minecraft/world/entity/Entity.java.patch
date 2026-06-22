@@ -181,6 +181,14 @@
      public double xo;
      public double yo;
      public double zo;
+@@ -295,6 +_,7 @@
+     public boolean hasVisualFire;
+     private Vec3 lastKnownSpeed = Vec3.ZERO;
+     private @Nullable Vec3 lastKnownPosition;
++    public net.kyori.adventure.util.TriState visualFire = net.kyori.adventure.util.TriState.NOT_SET; // Paper - improve visual fire API
+     private @Nullable BlockState inBlockState = null;
+     public static final int MAX_MOVEMENTS_HANDELED_PER_TICK = 100;
+     private final ArrayDeque<Entity.Movement> movementThisTick = new ArrayDeque<>(100);
 @@ -302,6 +_,198 @@
      private final LongSet visitedBlocks = new LongOpenHashSet();
      private final InsideBlockEffectApplier.StepBasedCollector insideEffectCollector = new InsideBlockEffectApplier.StepBasedCollector();
@@ -660,14 +668,15 @@
          this.igniteForTicks(Mth.floor(numberOfSeconds * 20.0F));
      }
  
-@@ -655,6 +_,7 @@
+@@ -655,7 +_,7 @@
      }
  
      protected void onBelowWorld() {
-+        this.removeReason(EntityRemoveEvent.Cause.OUT_OF_WORLD); // CraftBukkit - add Bukkit remove cause
-         this.discard();
+-        this.discard();
++        this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.OUT_OF_WORLD); // CraftBukkit - add Bukkit remove cause
      }
  
+     public boolean isFree(double xa, double ya, double za) {
 @@ -785,8 +_,30 @@
                  profiler.pop();
              } else {
@@ -765,6 +774,24 @@
      private void checkInsideBlocks(List<Entity.Movement> movements, InsideBlockEffectApplier.StepBasedCollector effectCollector) {
          if (this.isAffectedByBlocks()) {
              LongSet visitedBlocks = this.visitedBlocks;
+@@ -1336,7 +_,7 @@
+                         if (insideBlock) {
+                             try {
+                                 boolean isPrecise = movedFar || deflatedBoundingBoxAtTarget.intersects(blockIntersection);
+-                                effectCollector.advanceStep(iteration);
++                                effectCollector.advanceStep(iteration, blockIntersection); // Paper - track position inside effect was triggered on
+                                 state.entityInside(this.level(), blockIntersection, this, effectCollector, isPrecise);
+                                 this.onInsideBlock(state);
+                             } catch (Throwable t) {
+@@ -1350,7 +_,7 @@
+                         }
+ 
+                         if (insideFluid) {
+-                            effectCollector.advanceStep(iteration);
++                            effectCollector.advanceStep(iteration, blockIntersection); // Paper - track position inside effect was triggered on
+                             state.getFluidState().entityInside(this.level(), blockIntersection, this, effectCollector);
+                         }
+ 
 @@ -1435,20 +_,20 @@
          return !aboveState.is(BlockTags.INSIDE_STEP_SOUND_BLOCKS) && !aboveState.is(BlockTags.COMBINATION_STEP_SOUND_BLOCKS) ? affectingPos : abovePos;
      }
@@ -936,7 +963,7 @@
              output.putInt("PortalCooldown", this.portalCooldown);
 -            output.store("UUID", UUIDUtil.CODEC, this.getUUID());
 +            // CraftBukkit start - selectively save uuid and world
-+            if (saveWithoutId$includeAll.get()) {
++            if (includeAll) {
 +                output.store("UUID", UUIDUtil.CODEC, this.getUUID());
 +                // PAIL: Check above UUID reads 1.8 properly, ie: UUIDMost / UUIDLeast
 +                output.putLong("WorldUUIDLeast", ((ServerLevel) this.level).getWorld().getUID().getLeastSignificantBits());
@@ -971,18 +998,18 @@
 +            if (attachments.isEmpty()) output.discard(ATTACHMENTS_NBT_KEY);
 +            output.storeNullable("NeoForgeData", net.minecraft.nbt.CompoundTag.CODEC, persistentData);
 +
-+            this.addAdditionalSaveData(output, saveWithoutId$includeAll.get()); // CraftBukkit - pass on includeAll
++            this.addAdditionalSaveData(output, includeAll); // CraftBukkit - pass on includeAll
              if (this.isVehicle()) {
                  ValueOutput.ValueOutputList passengersList = output.childrenList("Passengers");
  
                  for (Entity passenger : this.getPassengers()) {
                      ValueOutput passengerOutput = passengersList.addChild();
 -                    if (!passenger.saveAsPassenger(passengerOutput)) {
-+                    if (!passenger.saveAsPassenger(passengerOutput, saveWithoutId$includeAll.get())) {
++                    if (!passenger.saveAsPassenger(passengerOutput, includeAll, includeNonSaveable, forceSerialization)) { // CraftBukkit - pass on includeAll // Paper - Raw entity serialization API
                          passengersList.discardLast();
                      }
                  }
-@@ -2124,8 +_,15 @@
+@@ -2124,8 +_,14 @@
                      output.discard("Passengers");
                  }
              }
@@ -994,7 +1021,6 @@
 +                this.bukkitEntity.storeBukkitValues(output);
 +            }
 +            // CraftBukkit end
-+            saveWithoutId$includeAll.set(true);
 +        } catch (Throwable var7) {
 +            CrashReport report = CrashReport.forThrowable(var7, "Saving entity NBT");
              CrashReportCategory category = report.addCategory("Entity being saved");
@@ -1060,6 +1086,21 @@
          } catch (Throwable t) {
              CrashReport report = CrashReport.forThrowable(t, "Loading entity NBT");
              CrashReportCategory category = report.addCategory("Entity being loaded");
+@@ -2195,7 +_,13 @@
+     }
+ 
+     public final @Nullable String getEncodeId() {
+-        if (!this.getType().canSerialize()) {
++        // Paper start - Raw entity serialization API
++        return this.getEncodeId(false);
++    }
++
++    public final @Nullable String getEncodeId(final boolean includeNonSaveable) {
++        if (!includeNonSaveable && !this.getType().canSerialize()) {
++            // Paper end - Raw entity serialization API
+             return null;
+         }
+ 
 @@ -2203,6 +_,12 @@
          return typeId.identifier().toString();
      }
@@ -1600,17 +1641,26 @@
      }
  
      protected void teleportSpectators(TeleportTransition transition, ServerLevel oldLevel) {
-@@ -3175,8 +_,10 @@
+@@ -3175,9 +_,17 @@
      }
  
      protected void removeAfterChangingDimensions() {
-+        this.removeReason(null);
-         this.setRemoved(Entity.RemovalReason.CHANGED_DIMENSION);
+-        this.setRemoved(Entity.RemovalReason.CHANGED_DIMENSION);
++        this.setRemoved(Entity.RemovalReason.CHANGED_DIMENSION, null); // CraftBukkit - add Bukkit remove cause
          if (this instanceof Leashable leashable) {
-+            this.level().getCraftServer().getPluginManager().callEvent(new EntityUnleashEvent(this.getBukkitEntity(), EntityUnleashEvent.UnleashReason.UNKNOWN)); // CraftBukkit
-             leashable.removeLeash();
+-            leashable.removeLeash();
++            // Paper start - Expand EntityUnleashEvent
++            final org.bukkit.event.entity.EntityUnleashEvent event = new org.bukkit.event.entity.EntityUnleashEvent(this.getBukkitEntity(), org.bukkit.event.entity.EntityUnleashEvent.UnleashReason.UNKNOWN, false); // CraftBukkit
++            event.callEvent();
++            if (!event.isDropLeash()) {
++                leashable.removeLeash();
++            } else {
++                leashable.dropLeash();
++            }
++            // Paper end - Expand EntityUnleashEvent
          }
  
+         if (this instanceof WaypointTransmitter waypoint && this.level instanceof ServerLevel serverLevel) {
 @@ -3194,7 +_,7 @@
      }
  
@@ -1735,6 +1785,19 @@
      }
  
      public void checkDespawn() {
+@@ -3861,6 +_,12 @@
+         return this.getTicksFrozen() > 0;
+     }
+ 
++    // CraftBukkit start
++    public float getBukkitYaw() {
++        return this.yRot;
++    }
++    // CraftBukkit end
++
+     public float getYRot() {
+         return this.yRot;
+     }
 @@ -3911,7 +_,15 @@
      }
  
@@ -1790,12 +1853,10 @@
      @Override
      public void setLevelCallback(EntityInLevelCallback levelCallback) {
          this.levelCallback = levelCallback;
-@@ -3950,6 +_,90 @@
- 
-     public boolean mayInteract(ServerLevel level, BlockPos pos) {
+@@ -3952,6 +_,90 @@
          return true;
-+    }
-+
+     }
+ 
 +    /**
 +     * Neo: Short-lived holder of dropped item entities. Used mainly for Neo hooks and event logic.
 +     * <p>
@@ -1878,6 +1939,19 @@
 +    @Nullable
 +    public final <T> T getCapability(net.neoforged.neoforge.capabilities.EntityCapability<T, @org.jspecify.annotations.Nullable Void> capability) {
 +        return capability.getCapability(this, null);
-     }
- 
++    }
++
      public boolean isFlyingVehicle() {
+         return false;
+     }
+@@ -4151,4 +_,10 @@
+             return this.save;
+         }
+     }
++
++    // Paper start
++    public boolean isTicking() {
++        return ((ServerLevel) this.level()).isPositionEntityTicking(this.blockPosition());
++    }
++    // Paper end
+ }

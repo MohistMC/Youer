@@ -57,21 +57,29 @@
          this.listeners.add(listener);
      }
  
-@@ -283,7 +_,13 @@
+@@ -299,6 +_,22 @@
+         }
      }
  
-     public void applyInitialSettings(long gameTime) {
--        if (!this.initialized) {
-+        // CraftBukkit start
-+        this.applyInitialSettings(gameTime, false);
++    // Paper start - add back applySettings
++    public void applySettings(WorldBorder.Settings settings) {
++        this.setCenter(settings.centerX(), settings.centerZ());
++        this.setDamagePerBlock(settings.damagePerBlock());
++        this.setSafeZone(settings.safeZone());
++        this.setWarningBlocks(settings.warningBlocks());
++        this.setWarningTime(settings.warningTime());
++        if (settings.lerpTime() > 0L) {
++            final long gameTime = (this.world != null) ? this.world.getGameTime() : 0; // Virtual Borders don't have a World
++            this.lerpSizeBetween(settings.size(), settings.lerpTarget(), settings.lerpTime(), gameTime);
++        } else {
++            this.setSize(settings.size());
++        }
 +    }
++    // Paper end - add back applySettings
 +
-+    public void applyInitialSettings(long gameTime, boolean force) {
-+        if (!this.initialized || force) {
-+            // CraftBukkit end
-             this.setCenter(this.settings.centerX(), this.settings.centerZ());
-             this.setDamagePerBlock(this.settings.damagePerBlock());
-             this.setSafeZone(this.settings.safeZone());
+     private interface BorderExtent {
+         double getMinX(final float deltaPartialTick);
+ 
 @@ -338,6 +_,8 @@
          private double previousSize;
  

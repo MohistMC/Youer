@@ -175,27 +175,3 @@
                      nearbyVillagers.forEach(GolemSensor::golemDetected);
                  }
              }
-@@ -871,15 +_,18 @@
- 
-     @Override
-     public void onReputationEventFrom(ReputationEventType type, Entity source) {
-+        org.bukkit.entity.Villager.ReputationEvent bukkitReputationEvent = org.bukkit.craftbukkit.entity.CraftVillager.CraftReputationEvent.minecraftToBukkit(type); // CraftBukkit - convert event to bukkit
-         if (type == ReputationEventType.ZOMBIE_VILLAGER_CURED) {
--            this.gossips.add(source.getUUID(), GossipType.MAJOR_POSITIVE, 20);
--            this.gossips.add(source.getUUID(), GossipType.MINOR_POSITIVE, 25);
-+            // CraftBukkit start - add change reason parameter
-+            this.gossips.add(source.getUUID(), GossipType.MAJOR_POSITIVE, 20, bukkitReputationEvent);
-+            this.gossips.add(source.getUUID(), GossipType.MINOR_POSITIVE, 25, bukkitReputationEvent);
-+            // CraftBukkit end
-         } else if (type == ReputationEventType.TRADE) {
--            this.gossips.add(source.getUUID(), GossipType.TRADING, 2);
-+            this.gossips.add(source.getUUID(), GossipType.TRADING, 2, bukkitReputationEvent); // CraftBukkit - add change reason parameter
-         } else if (type == ReputationEventType.VILLAGER_HURT) {
--            this.gossips.add(source.getUUID(), GossipType.MINOR_NEGATIVE, 25);
-+            this.gossips.add(source.getUUID(), GossipType.MINOR_NEGATIVE, 25, bukkitReputationEvent); // CraftBukkit - add change reason parameter
-         } else if (type == ReputationEventType.VILLAGER_KILLED) {
--            this.gossips.add(source.getUUID(), GossipType.MAJOR_NEGATIVE, 25);
-+            this.gossips.add(source.getUUID(), GossipType.MAJOR_NEGATIVE, 25, bukkitReputationEvent); // CraftBukkit - add change reason parameter
-         }
-     }
- 

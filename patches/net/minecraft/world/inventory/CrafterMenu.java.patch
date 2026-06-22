@@ -1,18 +1,8 @@
 --- a/net/minecraft/world/inventory/CrafterMenu.java
 +++ b/net/minecraft/world/inventory/CrafterMenu.java
-@@ -1,5 +_,6 @@
- package net.minecraft.world.inventory;
- 
-+import java.util.Optional;
- import net.minecraft.server.level.ServerLevel;
- import net.minecraft.server.level.ServerPlayer;
- import net.minecraft.world.Container;
-@@ -7,9 +_,34 @@
- import net.minecraft.world.entity.player.Player;
+@@ -8,8 +_,31 @@
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.item.crafting.CraftingInput;
-+import net.minecraft.world.item.crafting.CraftingRecipe;
-+import net.minecraft.world.item.crafting.RecipeHolder;
  import net.minecraft.world.level.block.CrafterBlock;
 +import org.bukkit.craftbukkit.inventory.CraftInventoryCrafter;
 +import org.bukkit.craftbukkit.inventory.view.CraftCrafterView;
@@ -42,7 +32,7 @@
      protected static final int SLOT_COUNT = 9;
      private static final int INV_SLOT_START = 9;
      private static final int INV_SLOT_END = 36;
-@@ -100,14 +_,20 @@
+@@ -100,6 +_,7 @@
  
      @Override
      public boolean stillValid(Player player) {
@@ -50,17 +40,3 @@
          return this.container.stillValid(player);
      }
  
-     private void refreshRecipeResult() {
-+        if (!this.opened) return; // CraftBukkit - SPIGOT-8005: don't refresh until opened
-         if (this.player instanceof ServerPlayer serverPlayer) {
-             ServerLevel level = serverPlayer.level();
-             CraftingInput craftInput = this.container.asCraftInput();
--            ItemStack result = CrafterBlock.getPotentialResults(level, craftInput).map(recipe -> recipe.value().assemble(craftInput)).orElse(ItemStack.EMPTY);
-+            // CraftBukkit start
-+            Optional<RecipeHolder<CraftingRecipe>> recipeBukkit = CrafterBlock.getPotentialResults(level, craftInput);
-+            ItemStack result = recipeBukkit.map(recipe -> recipe.value().assemble(craftInput)).orElse(ItemStack.EMPTY);
-+            result = org.bukkit.craftbukkit.event.CraftEventFactory.callPreCraftEvent(this.container, this.resultContainer, result, this.getBukkitView(), recipeBukkit);
-+            // CraftBukkit end
-             this.resultContainer.setItem(0, result);
-         }
-     }

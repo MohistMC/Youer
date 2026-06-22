@@ -232,7 +232,7 @@ public class PaperPluginManagerImpl implements PluginManager, DependencyContext 
 
     @Override
     public boolean useTimings() {
-        return co.aikar.timings.Timings.isTimingsEnabled();
+        return false;
     }
 
     @Override

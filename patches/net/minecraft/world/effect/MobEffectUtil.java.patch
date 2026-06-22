@@ -28,14 +28,13 @@
      public static List<ServerPlayer> addEffectToPlayersAround(
          ServerLevel level, @Nullable Entity source, Vec3 position, double radius, MobEffectInstance effectInstance, int displayEffectLimit
      ) {
-@@ -62,7 +_,15 @@
+@@ -62,7 +_,14 @@
                          || input.getEffect(effect).endsWithin(displayEffectLimit - 1)
                  )
          );
 -        players.forEach(player -> player.addEffect(new MobEffectInstance(effectInstance), source));
 +        players.forEach(player -> {
-+            player.addEffectCause(addEffectToPlayersAround$cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN));
-+            player.addEffect(new MobEffectInstance(effectInstance), source);
++            player.addEffect(new MobEffectInstance(effectInstance), source, addEffectToPlayersAround$cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN));
 +        });
          return players;
 +    }

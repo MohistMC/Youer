@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/Ticket.java
 +++ b/net/minecraft/server/level/Ticket.java
-@@ -7,7 +_,7 @@
+@@ -7,24 +_,85 @@
  import net.minecraft.util.ExtraCodecs;
  import net.minecraft.util.Util;
  
@@ -9,7 +9,12 @@
      public static final MapCodec<Ticket> CODEC = RecordCodecBuilder.mapCodec(
          i -> i.group(
                  BuiltInRegistries.TICKET_TYPE.byNameCodec().fieldOf("type").forGetter(Ticket::getType),
-@@ -19,12 +_,73 @@
+                 ExtraCodecs.NON_NEGATIVE_INT.fieldOf("level").forGetter(Ticket::getTicketLevel),
+                 Codec.LONG.optionalFieldOf("ticks_left", 0L).forGetter(t -> t.ticksLeft)
+             )
+-            .apply(i, Ticket::new)
++            .apply(i, (type, level, ticks) -> new Ticket(type, level.intValue(), ticks.longValue())) // Paper - add identifier
+     );
      private final TicketType type;
      private final int ticketLevel;
      private long ticksLeft;

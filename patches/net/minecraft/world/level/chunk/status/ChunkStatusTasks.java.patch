@@ -9,7 +9,15 @@
              context.generator()
                  .createStructures(
                      level.registryAccess(),
-@@ -195,11 +_,22 @@
+@@ -188,25 +_,80 @@
+             } else {
+                 levelChunk = new LevelChunk(level, protoChunk, lc -> {
+                     try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(chunk.problemPath(), LOGGER)) {
+-                        postLoadProtoChunk(level, TagValueInput.create(reporter, level.registryAccess(), protoChunk.getEntities()));
++                        postLoadProtoChunk(level, TagValueInput.create(reporter, level.registryAccess(), protoChunk.getEntities()), protoChunk.getPos()); // Paper - rewrite chunk system
+                     }
+                 });
+                 holder.replaceProtoChunk(new ImposterProtoChunk(levelChunk, false));
              }
  
              levelChunk.setFullStatus(holder::getFullStatus);
@@ -32,3 +40,58 @@
              return levelChunk;
          }, context.mainThreadExecutor());
      }
+ 
+-    public static void postLoadProtoChunk(ServerLevel level, ValueInput.ValueInputList entities) {
++    public static void postLoadProtoChunk(ServerLevel level, ValueInput.ValueInputList entities, final ChunkPos pos) { // Paper - rewrite chunk system - add ChunkPos param
+         if (!entities.isEmpty()) {
+-            level.addWorldGenChunkEntities(EntityType.loadEntitiesRecursive(entities, level, EntitySpawnReason.LOAD));
+-        }
+-    }
++            // Paper start - duplicate uuid resolving
++            level.addWorldGenChunkEntities(EntityType.loadEntitiesRecursive(entities, level, EntitySpawnReason.LOAD).filter((entity) -> {
++                return !checkDupeUUID(level, entity);
++            }), pos); // Paper - rewrite chunk system
++            // Paper end - duplicate uuid resolving
++        }
++    }
++
++    // Paper start - duplicate uuid resolving
++    // rets true if to prevent the entity from being added
++    public static boolean checkDupeUUID(ServerLevel level, net.minecraft.world.entity.Entity entity) {
++        io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DuplicateUUID.DuplicateUUIDMode mode = level.paperConfig().entities.spawning.duplicateUuid.mode;
++        if (mode != io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DuplicateUUID.DuplicateUUIDMode.WARN
++                && mode != io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DuplicateUUID.DuplicateUUIDMode.DELETE
++                && mode != io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DuplicateUUID.DuplicateUUIDMode.SAFE_REGEN) {
++            return false;
++        }
++        net.minecraft.world.entity.Entity other = level.getEntity(entity.getUUID());
++
++        if (other == null || other == entity) {
++            return false;
++        }
++
++        if (mode == io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DuplicateUUID.DuplicateUUIDMode.SAFE_REGEN && other != null && !other.isRemoved()
++                && java.util.Objects.equals(other.getEncodeId(), entity.getEncodeId())
++                && entity.getBukkitEntity().getLocation().distance(other.getBukkitEntity().getLocation()) < level.paperConfig().entities.spawning.duplicateUuid.safeRegenDeleteRange
++        ) {
++            entity.discard(null);
++            return true;
++        }
++        if (!other.isRemoved()) {
++            switch (mode) {
++                case SAFE_REGEN: {
++                    entity.setUUID(java.util.UUID.randomUUID());
++                    break;
++                }
++                case DELETE: {
++                    entity.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
++                    return true;
++                }
++                default:
++                    break;
++            }
++        }
++        return false;
++    }
++    // Paper end - duplicate uuid resolving
+ }

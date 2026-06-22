@@ -1,9 +1,19 @@
 --- a/net/minecraft/world/level/block/AbstractCauldronBlock.java
 +++ b/net/minecraft/world/level/block/AbstractCauldronBlock.java
-@@ -99,4 +_,22 @@
+@@ -57,7 +_,7 @@
+         ItemStack itemStack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult
+     ) {
+         CauldronInteraction behavior = this.interactions.get(itemStack);
+-        return behavior.interact(state, level, pos, player, hand, itemStack);
++        return behavior.interact(state, level, pos, player, hand, itemStack, hitResult.getDirection()); // Paper - pass hit direction
+     }
+ 
+     @Override
+@@ -98,5 +_,23 @@
+     }
  
      protected void receiveStalactiteDrip(BlockState state, Level level, BlockPos pos, Fluid fluid) {
-     }
++    }
 +
 +    @Override
 +    public void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
@@ -21,5 +31,5 @@
 +        if (net.neoforged.neoforge.fluids.CauldronFluidContent.getForBlock(level.getBlockState(pos).getBlock()) == null) {
 +            level.invalidateCapabilities(pos);
 +        }
-+    }
+     }
  }

@@ -52,6 +52,7 @@ import net.minecraft.resources.RegistryOps;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.tags.ItemTags;
 import net.minecraft.tags.TagKey;
+import net.minecraft.util.PlaceholderLookupProvider;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.EntityTypes;
 import net.minecraft.world.entity.monster.piglin.PiglinAi;
@@ -325,6 +326,13 @@ public class NeoForgeAdvancementProvider extends AdvancementProvider {
                                         }
                                     }, lookup.registryLifecycle()));
                         }
+
+                        // Paper start add method to get the value for pre-filling builders in the reg mod API
+                        @Override
+                        public HolderLookup.Provider lookupForValueCopyViaBuilders() {
+                            throw new UnsupportedOperationException("Not implemented");
+                        }
+                        // Paper end - add method to get the value for pre-filling builders in the reg mod API
                     });
                 }
             };
