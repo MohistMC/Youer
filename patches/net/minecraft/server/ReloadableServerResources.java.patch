@@ -12,8 +12,12 @@
  
      private ReloadableServerResources(
          LayeredRegistryAccess<RegistryLayer> fullLayers,
-@@ -47,6 +_,10 @@
+@@ -45,8 +_,14 @@
+         this.newComponents = newComponents;
+         this.recipes = new RecipeManager(loadingContext);
          this.commands = new Commands(commandSelection, CommandBuildContext.simple(loadingContext, enabledFeatures));
++        io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setDispatcher(this.commands, CommandBuildContext.simple(loadingContext, enabledFeatures)); // Paper - Brigadier Command API
++        io.papermc.paper.command.PaperCommands.registerCommands(); // Paper
          this.advancements = new ServerAdvancementManager(loadingContext);
          this.functionLibrary = new ServerFunctionLibrary(functionCompilationPermissions, this.commands.getDispatcher());
 +        // Neo: Store registries and create context object
@@ -56,7 +60,7 @@
      public static CompletableFuture<ReloadableServerResources> loadResources(
          ResourceManager resourceManager,
          LayeredRegistryAccess<RegistryLayer> contextLayers,
-@@ -99,15 +_,35 @@
+@@ -99,15 +_,44 @@
                                  functionCompilationPermissions,
                                  (List<DataComponentInitializers.PendingComponents<?>>)pendingComponents
                              );
@@ -70,6 +74,15 @@
 +                                    carl.injectContext(result.context, result.loadingContext);
 +                                }
 +                            }
++
++                            // Paper start - call commands event for bootstraps
++                            //noinspection ConstantValue
++                            io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner.INSTANCE.callReloadableRegistrarEvent(
++                                    io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents.COMMANDS,
++                                    io.papermc.paper.command.brigadier.PaperCommands.INSTANCE,
++                                    io.papermc.paper.plugin.bootstrap.BootstrapContext.class,
++                                    MinecraftServer.getServer() == null ? io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.INITIAL : io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.RELOAD);
++                            // Paper end - call commands event
 +
                              return SimpleReloadInstance.create(
                                      resourceManager,

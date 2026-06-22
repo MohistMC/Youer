@@ -12,6 +12,57 @@
  
      private static <T> Registry<T> registerSimple(ResourceKey<? extends Registry<T>> name, BuiltInRegistries.RegistryBootstrap<T> loader) {
          return internalRegister(name, new MappedRegistry<>(name, Lifecycle.stable(), false), loader);
+@@ -390,6 +_,7 @@
+         ResourceKey<? extends Registry<T>> name, R registry, BuiltInRegistries.RegistryBootstrap<T> loader
+     ) {
+         Bootstrap.checkBootstrapCalled(() -> "registry " + name.identifier());
++        io.papermc.paper.registry.PaperRegistryAccess.instance().registerRegistry(registry); // Paper - initialize API registry
+         Identifier key = name.identifier();
+         LOADERS.put(key, () -> loader.run(registry));
+         WRITABLE_REGISTRY.register((ResourceKey)name, registry, RegistrationInfo.BUILT_IN);
+@@ -397,16 +_,34 @@
+     }
+ 
+     public static void bootStrap() {
++        // Paper start
++        bootStrap(() -> {});
++    }
++    public static void bootStrap(Runnable runnable) {
++        // Paper end
++        REGISTRY.freeze(); // Paper - freeze main registry early
+         createContents();
++        runnable.run(); // Paper
+         freeze();
+         validate(REGISTRY);
+     }
+ 
+     private static void createContents() {
++        // Paper start - class-load org.bukkit.Registry
++        // we have to class-load Registry here to create all the CraftRegistry instances
++        // that will be created when Registry is class-loaded before RegistryAccess#getRegistry
++        // would try to create them in lockReferenceHolder
++        try {
++            Class.forName(org.bukkit.Registry.class.getName());
++        } catch (final ClassNotFoundException ex) {
++            throw new RuntimeException(ex);
++        }
++        // Paper end - class-load org.bukkit.Registry
+         LOADERS.forEach((key, value) -> {
+             if (value.get() == null) {
+                 LOGGER.error("Unable to bootstrap registry '{}'", key);
+             }
++            io.papermc.paper.registry.PaperRegistryAccess.instance().lockReferenceHolders(ResourceKey.createRegistryKey(key)); // Paper - lock reference holder creation
+         });
+     }
+ 
+@@ -415,6 +_,7 @@
+ 
+         for (Registry<?> registry : REGISTRY) {
+             bindBootstrappedTagsToEmpty(registry);
++            io.papermc.paper.registry.PaperRegistryListenerManager.INSTANCE.runFreezeListeners(registry.key(), STATIC_ACCESS_CONVERSIONS); // Paper
+             registry.freeze();
+         }
+     }
 @@ -438,6 +_,10 @@
  
      private static void bindBootstrappedTagsToEmpty(Registry<?> registry) {

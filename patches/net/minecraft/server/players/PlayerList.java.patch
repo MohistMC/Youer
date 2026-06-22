@@ -809,6 +809,35 @@
              if (player != except && player.level().dimension() == dimension) {
                  double xd = x - player.getX();
                  double yd = y - player.getY();
+@@ -617,9 +_,25 @@
+     }
+ 
+     public void saveAll() {
+-        for (int i = 0; i < this.players.size(); i++) {
+-            this.save(this.players.get(i));
+-        }
++        // Paper start - Incremental chunk and player saving
++        this.saveAll(-1);
++    }
++    public void saveAll(final int interval) {
++        // Paper end - Incremental chunk and player saving
++        io.papermc.paper.util.MCUtil.ensureMain("Save Players" , () -> { // Paper - Ensure main
++            // Paper start - Incremental chunk and player saving
++            int numSaved = 0;
++            final long now = MinecraftServer.currentTick;
++            for (final ServerPlayer player : this.players) {
++                if (interval == -1 || now - player.lastSave >= interval) {
++                    this.save(player);
++                    if (interval != -1 && ++numSaved >= io.papermc.paper.configuration.GlobalConfiguration.get().playerAutoSave.maxPerTick()) {
++                        break;
++                    }
++                }
++            }
++            // Paper end - Incremental chunk and player saving
++            return null; }); // Paper - ensure main
+     }
+ 
+     public UserWhiteList getWhiteList() {
 @@ -644,22 +_,32 @@
      public void sendLevelInfo(ServerPlayer player, ServerLevel level) {
          WorldBorder worldBorder = level.getWorldBorder();

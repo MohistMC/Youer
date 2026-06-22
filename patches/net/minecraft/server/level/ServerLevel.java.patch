@@ -1388,12 +1388,25 @@
          this.getServer().getDataStorage().set(MapItemSavedData.type(id), data);
      }
  
-@@ -1458,12 +_,12 @@
+@@ -1458,12 +_,25 @@
  
      @Override
      public void setRespawnData(LevelData.RespawnData respawnData) {
 -        this.getServer().setRespawnData(respawnData);
-+        this.getServer().setRespawnData(respawnData, this); // CraftBukkit
++        // Paper start
++        if (!this.serverLevelData.getRespawnData().positionEquals(respawnData)) {
++            org.bukkit.Location previousLocation = this.getWorld().getSpawnLocation();
++            this.serverLevelData.setSpawn(respawnData);
++            this.server.getPlayerList().broadcastAll(new net.minecraft.network.protocol.game.ClientboundSetDefaultSpawnPositionPacket(respawnData), this.dimension());
++            this.server.updateEffectiveRespawnData();
++            new org.bukkit.event.world.SpawnChangeEvent(this.getWorld(), previousLocation).callEvent();
++        }
++        final net.minecraft.world.level.storage.PrimaryLevelData overworldData = (net.minecraft.world.level.storage.PrimaryLevelData) this.server.getWorldData();
++        if (overworldData.respawnDimension != this.dimension()) {
++            overworldData.respawnDimension = this.dimension();
++            this.server.updateEffectiveRespawnData();
++        }
++        // Paper end
      }
  
      @Override
@@ -1670,7 +1683,7 @@
              ServerLevel.this.getChunkSource().removeEntity(entity);
              if (entity instanceof ServerPlayer player) {
                  ServerLevel.this.players.remove(player);
-@@ -1928,25 +_,69 @@
+@@ -1928,25 +_,89 @@
                  if (ServerLevel.this.isUpdatingNavigations) {
                      String message = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
@@ -1708,6 +1721,26 @@
              entity.updateDynamicGameEventListener(DynamicGameEventListener::move);
          }
 +    }
++
++    // Paper start - check global player list where appropriate
++    @Override
++    @Nullable
++    public Player getGlobalPlayerByUUID(java.util.UUID uuid) {
++        return this.server.getPlayerList().getPlayer(uuid);
++    }
++    // Paper end - check global player list where appropriate
++
++    // Paper start - lag compensation
++    private long lagCompensationTick = MinecraftServer.SERVER_INIT;
++
++    public long getLagCompensationTick() {
++        return this.lagCompensationTick;
++    }
++
++    public void updateLagCompensationTick() {
++        this.lagCompensationTick = (System.nanoTime() - MinecraftServer.SERVER_INIT) / (java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(50L));
++    }
++    // Paper end - lag compensation
 +
 +    @Override
 +    public final void syncData(net.neoforged.neoforge.attachment.AttachmentType<?> type) {

@@ -1,40 +1,97 @@
 --- a/net/minecraft/server/packs/repository/PackRepository.java
 +++ b/net/minecraft/server/packs/repository/PackRepository.java
-@@ -23,7 +_,7 @@
+@@ -15,44 +_,67 @@
+ import net.minecraft.server.packs.PackResources;
+ import net.minecraft.util.Util;
+ import net.minecraft.world.flag.FeatureFlagSet;
++import net.minecraft.world.level.validation.DirectoryValidator;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class PackRepository {
+     private final Set<RepositorySource> sources;
+     private Map<String, Pack> available = ImmutableMap.of();
      private List<Pack> selected = ImmutableList.of();
++    private final net.minecraft.world.level.validation.DirectoryValidator validator; // Paper - add validator
  
      public PackRepository(RepositorySource... sources) {
--        this.sources = ImmutableSet.copyOf(sources);
-+        this.sources = new java.util.LinkedHashSet<>(List.of(sources)); //Neo: This needs to be a mutable set, so that we can add to it later on.
++        this.validator = new DirectoryValidator(path -> true);
+         this.sources = ImmutableSet.copyOf(sources);
      }
  
++    // Paper start - add validator
++    public PackRepository(final net.minecraft.world.level.validation.DirectoryValidator validator, final RepositorySource... sources) {
++        this.validator = validator;
++        // Paper end - add validator
++        this.sources = new java.util.LinkedHashSet<>(List.of(sources)); //Neo: This needs to be a mutable set, so that we can add to it later on.
++    }
++
      public static String displayPackList(Collection<Pack> packs) {
-@@ -37,10 +_,13 @@
+         return packs.stream().map(pack -> pack.getId() + (pack.getCompatibility().isCompatible() ? "" : " (incompatible)")).collect(Collectors.joining(", "));
+     }
+ 
+     public void reload() {
++        // Paper start - add pendingReload flag to determine required pack loading
++        this.reload(false);
++    }
++    public void reload(final boolean pendingReload) {
++        // Paper end - add pendingReload flag to determine required pack loading
+         List<String> currentlySelectedNames = this.selected.stream().map(Pack::getId).collect(ImmutableList.toImmutableList());
+         this.available = this.discoverAvailable();
+-        this.selected = this.rebuildSelected(currentlySelectedNames);
++        this.selected = this.rebuildSelected(currentlySelectedNames, pendingReload); // Paper - add pendingReload flag to determine required pack loading
      }
  
      private Map<String, Pack> discoverAvailable() {
 -        Map<String, Pack> discovered = Maps.newTreeMap();
+-
+-        for (RepositorySource source : this.sources) {
+-            source.loadPacks(pack -> discovered.put(pack.getId(), pack));
+-        }
+-
+-        return ImmutableMap.copyOf(discovered);
 +        // Neo: sort packs within a source by name, between sources according to source order
 +        Map<String, Pack> discovered = Maps.newLinkedHashMap();
- 
-         for (RepositorySource source : this.sources) {
--            source.loadPacks(pack -> discovered.put(pack.getId(), pack));
-+            Map<String, Pack> sourceMap = Maps.newTreeMap();
-+            source.loadPacks(pack -> pack.streamSelfAndChildren().forEach(p -> sourceMap.put(p.getId(), p)));
-+            discovered.putAll(sourceMap);
-         }
- 
-         return ImmutableMap.copyOf(discovered);
-@@ -80,11 +_,12 @@
++
++        // Paper start - custom plugin-loaded datapacks
++        final io.papermc.paper.datapack.PaperDatapackRegistrar registrar = new io.papermc.paper.datapack.PaperDatapackRegistrar(this.validator, discovered);
++        io.papermc.paper.plugin.lifecycle.event.LifecycleEventRunner.INSTANCE.callStaticRegistrarEvent(io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents.DATAPACK_DISCOVERY,
++                registrar,
++                io.papermc.paper.plugin.bootstrap.BootstrapContext.class
++        );
++        return ImmutableMap.copyOf(registrar.discoveredPacks);
++        // Paper end - custom plugin-loaded datapacks
      }
  
-     public List<Pack> rebuildSelected(Collection<String> selectedNames) {
+     public boolean isAbleToClearAnyPack() {
+-        List<Pack> newSelected = this.rebuildSelected(List.of());
++        List<Pack> newSelected = this.rebuildSelected(List.of(), false); // Paper - add pendingReload flag to determine required pack loading
+         return !this.selected.equals(newSelected);
+     }
+ 
+-    public void setSelected(Collection<String> packs) {
+-        this.selected = this.rebuildSelected(packs);
++    public void setSelected(final Collection<String> packs) {
++        this.selected = this.rebuildSelected(packs, true); // Paper - add pendingReload flag to determine required pack loading
++    }
++
++    public void setSelected(final Collection<String> packs, final boolean pendingReload) { // Paper - add pendingReload flag to determine required pack loading
++        this.selected = this.rebuildSelected(packs, pendingReload); // Paper - add pendingReload flag to determine required pack loading
+     }
+ 
+     public boolean addPack(String packId) {
+@@ -79,12 +_,13 @@
+         }
+     }
+ 
+-    public List<Pack> rebuildSelected(Collection<String> selectedNames) {
 -        List<Pack> selectedAndPresent = this.getAvailablePacks(selectedNames).collect(Util.toMutableList());
++    public List<Pack> rebuildSelected(Collection<String> selectedNames, final boolean pendingReload) { // Paper - add pendingReload flag to determine required pack loading
 +        List<Pack> selectedAndPresent = net.neoforged.neoforge.resource.ResourcePackLoader.expandAndRemoveRootChildren(this.getAvailablePacks(selectedNames), this.available.values());
  
          for (Pack pack : this.available.values()) {
-             if (pack.isRequired() && !selectedAndPresent.contains(pack)) {
+-            if (pack.isRequired() && !selectedAndPresent.contains(pack)) {
 -                pack.getDefaultPosition().insert(selectedAndPresent, pack, Pack::selectionConfig, false);
++            if (pack.isRequired() && !selectedAndPresent.contains(pack) && pendingReload) { // Paper - add pendingReload flag to determine required pack loading
 +                int i = pack.getDefaultPosition().insert(selectedAndPresent, pack, Pack::selectionConfig, false);
 +                selectedAndPresent.addAll(i + 1, pack.getChildren());
              }

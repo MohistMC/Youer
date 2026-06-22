@@ -1,9 +1,28 @@
 --- a/net/minecraft/nbt/NbtAccounter.java
 +++ b/net/minecraft/nbt/NbtAccounter.java
-@@ -66,6 +_,36 @@
-         this.depth--;
+@@ -50,6 +_,16 @@
+         this.usage += size;
      }
  
++    // Paper start - Track codec depth
++    public void pushDepth(final int depth) {
++        if (this.depth + depth >= this.maxDepth) {
++            throw new NbtAccounterException("Tried to read NBT tag with too high complexity, depth > " + this.maxDepth);
++        } else {
++            this.depth += depth;
++        }
++    }
++    // Paper end - Track codec depth
++
+     public void pushDepth() {
+         if (this.depth >= this.maxDepth) {
+             throw new NbtAccounterException("Tried to read NBT tag with too high complexity, depth > " + this.maxDepth);
+@@ -64,6 +_,36 @@
+         }
+ 
+         this.depth--;
++    }
++
 +    /*
 +     * UTF8 is not a simple encoding system, each character can be either
 +     * 1, 2, or 3 bytes. Depending on where it's numerical value falls.
@@ -32,8 +51,6 @@
 +        accountBytes(utflen);
 +
 +        return data;
-+    }
-+
+     }
+ 
      @VisibleForTesting
-     public long getUsage() {
-         return this.usage;

@@ -31,7 +31,7 @@
      private final BlockEntityType<?> type;
      protected @Nullable Level level;
      protected final BlockPos worldPosition;
-@@ -50,6 +_,15 @@
+@@ -50,11 +_,22 @@
      private BlockState blockState;
      private DataComponentMap components = DataComponentMap.EMPTY;
  
@@ -39,14 +39,21 @@
 +    private CompoundTag customPersistentData;
 +    @Nullable
 +    private Set<net.neoforged.neoforge.attachment.AttachmentType<?>> attachmentTypesToSync;
++    static boolean ignoreBlockEntityUpdates; // Paper - Perf: Optimize Hoppers
 +    // CraftBukkit start - data containers
-+    private static final CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new CraftPersistentDataTypeRegistry();
-+    public CraftPersistentDataContainer persistentDataContainer;
++    private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
++    public final org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer persistentDataContainer;
 +    // CraftBukkit end
 +
      public BlockEntity(BlockEntityType<?> type, BlockPos worldPosition, BlockState blockState) {
          this.type = type;
          this.worldPosition = worldPosition.immutable();
+         this.validateBlockState(blockState);
+         this.blockState = blockState;
++        this.persistentDataContainer = new org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer(DATA_TYPE_REGISTRY); // Paper - always init
+     }
+ 
+     private void validateBlockState(BlockState blockState) {
 @@ -64,7 +_,7 @@
      }
  

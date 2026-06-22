@@ -100,7 +100,7 @@
      public Vec3 getPosition() {
          return this.worldPosition;
      }
-@@ -483,18 +_,23 @@
+@@ -483,20 +_,25 @@
          GameRules gameRules = this.level.getGameRules();
          if (gameRules.get(GameRules.SEND_COMMAND_FEEDBACK)) {
              for (ServerPlayer player : this.server.getPlayerList().getPlayers()) {
@@ -112,7 +112,7 @@
          }
  
 -        if (this.source != this.server && gameRules.get(GameRules.LOG_ADMIN_COMMANDS)) {
-+        if (this.source != this.server && gameRules.get(GameRules.LOG_ADMIN_COMMANDS) && !org.spigotmc.SpigotConfig.silentCommandBlocks) { // Spigot
++        if (this.source != this.server && gameRules.get(GameRules.LOG_ADMIN_COMMANDS) && (!org.spigotmc.SpigotConfig.silentCommandBlocks || !(this.source instanceof net.minecraft.world.level.BaseCommandBlock.CloseableCommandBlockSource))) { // Spigot // Paper - Fix spigot config silentCommandBlocks filtering player commands
              this.server.sendSystemMessage(broadcast);
          }
      }
@@ -124,8 +124,20 @@
 +    public void sendFailure(final Component message, final boolean withStyle) {
 +        // Paper end - Add UnknownCommandEvent
          if (this.source.acceptsFailure() && !this.silent) {
-             this.source.sendSystemMessage(Component.empty().append(message).withStyle(ChatFormatting.RED));
+-            this.source.sendSystemMessage(Component.empty().append(message).withStyle(ChatFormatting.RED));
++            this.source.sendSystemMessage(withStyle ? Component.empty().append(message).withStyle(ChatFormatting.RED) : message); // Paper - Add UnknownCommandEvent
          }
+     }
+ 
+@@ -507,7 +_,7 @@
+ 
+     @Override
+     public Collection<String> getOnlinePlayerNames() {
+-        return Lists.newArrayList(this.server.getPlayerNames());
++        return this.entity instanceof ServerPlayer sourcePlayer && !sourcePlayer.getBukkitEntity().hasPermission("paper.bypass-visibility.tab-completion") ? this.getServer().getPlayerList().getPlayers().stream().filter(serverPlayer -> sourcePlayer.getBukkitEntity().canSee(serverPlayer.getBukkitEntity())).map(serverPlayer -> serverPlayer.getGameProfile().name()).toList() : Lists.newArrayList(this.server.getPlayerNames()); // Paper - Make CommandSourceStack respect hidden players
+     }
+ 
+     @Override
 @@ -582,4 +_,16 @@
      public boolean isSilent() {
          return this.silent;

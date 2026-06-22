@@ -1,34 +1,14 @@
 --- a/net/minecraft/commands/Commands.java
 +++ b/net/minecraft/commands/Commands.java
-@@ -1,5 +_,8 @@
+@@ -1,5 +_,7 @@
  package net.minecraft.commands;
  
-+import com.google.common.base.Joiner;
 +import com.mohistmc.youer.commands.UnBanIpCommand;
 +import com.mohistmc.youer.commands.UnbanCommand;
  import com.mojang.brigadier.CommandDispatcher;
  import com.mojang.brigadier.ParseResults;
  import com.mojang.brigadier.StringReader;
-@@ -15,8 +_,12 @@
- import com.mojang.brigadier.tree.CommandNode;
- import com.mojang.brigadier.tree.RootCommandNode;
- import com.mojang.logging.LogUtils;
-+import java.util.Collection;
- import java.util.HashMap;
-+import java.util.IdentityHashMap;
-+import java.util.LinkedHashSet;
- import java.util.Map;
-+import java.util.Objects;
- import java.util.Optional;
- import java.util.Set;
- import java.util.function.Consumer;
-@@ -153,10 +_,13 @@
- import net.minecraft.world.level.gamerules.GameRules;
- import net.minecraft.world.phys.Vec2;
- import net.minecraft.world.phys.Vec3;
-+import org.bukkit.event.player.PlayerCommandSendEvent;
-+import org.bukkit.event.server.ServerCommandEvent;
- import org.jspecify.annotations.Nullable;
+@@ -157,6 +_,7 @@
  import org.slf4j.Logger;
  
  public class Commands {
@@ -36,11 +16,23 @@
      public static final String COMMAND_PREFIX = "/";
      private static final ThreadLocal<@Nullable ExecutionContext<CommandSourceStack>> CURRENT_EXECUTION_CONTEXT = new ThreadLocal<>();
      private static final Logger LOGGER = LogUtils.getLogger();
-@@ -188,6 +_,7 @@
+@@ -181,6 +_,7 @@
+ 
+         @Override
+         public boolean isRestricted(CommandNode<CommandSourceStack> node) {
++            if (node.getRequirement() instanceof RestrictedMarker) return true; // Paper - restricted api
+             Predicate<CommandSourceStack> requirement = node.getRequirement();
+             return !requirement.test(this.noPermissionSource);
+         }
+@@ -188,6 +_,11 @@
      private final CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
  
      public Commands(Commands.CommandSelection commandSelection, CommandBuildContext context) {
-+        this(); // CraftBukkit
++        // Paper start - Brigadier API - modern minecraft overloads that do not use redirects but are copies instead
++        this(commandSelection, context, false);
++    }
++    public Commands(final Commands.CommandSelection commandSelection, final CommandBuildContext context, final boolean modern) {
++        // Paper end - Brigadier API - modern minecraft overloads that do not use redirects but are copies instead
          AdvancementCommands.register(this.dispatcher);
          AttributeCommand.register(this.dispatcher, context);
          ExecuteCommand.register(this.dispatcher, context);
@@ -53,29 +45,52 @@
              PerfCommand.register(this.dispatcher);
              SaveAllCommand.register(this.dispatcher);
              SaveOffCommand.register(this.dispatcher);
-@@ -299,7 +_,13 @@
+@@ -299,7 +_,44 @@
              PublishCommand.register(this.dispatcher);
              UnpublishCommand.register(this.dispatcher);
          }
 -
 +        net.neoforged.neoforge.event.EventHooks.onCommandRegister(this.dispatcher, commandSelection, context);
 +
-+        //this.dispatcher.setConsumer(ExecutionCommandSource.resultConsumer());
-+    }
++        // Paper start - Vanilla command permission fixes
++        for (final CommandNode<CommandSourceStack> node : this.dispatcher.getRoot().getChildren()) {
++            if (node.getRequirement() == com.mojang.brigadier.builder.ArgumentBuilder.<CommandSourceStack>defaultRequirement()) {
++                node.requirement = stack -> stack.source == CommandSource.NULL || stack.getBukkitSender().hasPermission(org.bukkit.craftbukkit.command.VanillaCommandWrapper.getPermission(node));
++            } else if (node.getRequirement() instanceof PermissionProviderCheck<CommandSourceStack> check) {
++                check.vanillaNode().set(node);
++            }
++        }
++        // Paper end - Vanilla command permission fixes
++        // Paper start - Brigadier Command API
++        // Create legacy minecraft namespace commands
++        for (final CommandNode<CommandSourceStack> node : new java.util.ArrayList<>(this.dispatcher.getRoot().getChildren())) {
++            if (modern) {
++                // Modern behaviour that simply creates a full copy of the commands node.
++                // Avoids plenty of issues around registering redirects *to* these nodes from the API
++                this.dispatcher.getRoot().addChild(
++                        io.papermc.paper.command.brigadier.PaperBrigadier.copyLiteral(
++                                "minecraft:" + node.getName(),
++                                (com.mojang.brigadier.tree.LiteralCommandNode<CommandSourceStack>) node
++                        )
++                );
++                continue;
++            }
 +
-+    public Commands() {
-+        // CraftBukkkit end
++            // Legacy behaviour of creating a flattened redirecting node.
++            // Used by CommandArgumentUpgrader
++            CommandNode<CommandSourceStack> flattenedAliasTarget = node;
++            while (flattenedAliasTarget.getRedirect() != null) flattenedAliasTarget = flattenedAliasTarget.getRedirect();
++
++            this.dispatcher.register(
++                    com.mojang.brigadier.builder.LiteralArgumentBuilder.<CommandSourceStack>literal("minecraft:" + node.getName())
++                            .executes(flattenedAliasTarget.getCommand())
++                            .requires(flattenedAliasTarget.getRequirement())
++                            .redirect(flattenedAliasTarget));
++        }
++        // Paper end - Brigadier Command API
          this.dispatcher.setConsumer(ExecutionCommandSource.resultConsumer());
      }
  
-@@ -312,6 +_,7 @@
-     public void performPrefixedCommand(CommandSourceStack sender, String command) {
-         command = trimOptionalPrefix(command);
-         this.performCommand(this.dispatcher.parse(command, sender), command);
-+        // CraftBukkit end
-     }
- 
-     public static String trimOptionalPrefix(String command) {
 @@ -319,7 +_,24 @@
      }
  
@@ -101,7 +116,55 @@
          Profiler.get().push(() -> "/" + commandString);
          ContextChain<CommandSourceStack> commandChain = finishParsing(command, commandString, sender);
  
-@@ -411,17 +_,113 @@
+@@ -332,10 +_,12 @@
+                     )
+                 );
+             }
+-        } catch (Exception e) {
++            // Paper start
++        } catch (Throwable e) { // always gracefully handle it, no matter how bad:tm:
++            if (throwCommandError) throw e; // rethrow directly if requested
+             MutableComponent hover = Component.literal(e.getMessage() == null ? e.getClass().getName() : e.getMessage());
+-            if (LOGGER.isDebugEnabled()) {
+-                LOGGER.error("Command exception: /{}", commandString, e);
++            LOGGER.error("Command exception: /{}", commandString, e); // Paper - always show execution exception in console log
++            if (sender.getServer().isDebugging() || LOGGER.isDebugEnabled()) { // Paper - Debugging
+                 StackTraceElement[] stackTrace = e.getStackTrace();
+ 
+                 for (int i = 0; i < Math.min(stackTrace.length, 3); i++) {
+@@ -366,7 +_,11 @@
+             return ContextChain.tryFlatten(command.getContext().build(commandString))
+                 .orElseThrow(() -> CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownCommand().createWithContext(command.getReader()));
+         } catch (CommandSyntaxException e) {
+-            sender.sendFailure(ComponentUtils.fromMessage(e.getRawMessage()));
++            // Paper start - Add UnknownCommandEvent
++            final net.kyori.adventure.text.TextComponent.Builder builder = net.kyori.adventure.text.Component.text();
++            // sender.sendFailure(ComponentUtils.fromMessage(var7.getRawMessage()));
++            builder.color(net.kyori.adventure.text.format.NamedTextColor.RED).append(io.papermc.paper.command.brigadier.MessageComponentSerializer.message().deserialize(e.getRawMessage()));
++            // Paper end - Add UnknownCommandEvent
+             if (e.getInput() != null && e.getCursor() >= 0) {
+                 int cursor = Math.min(e.getInput().length(), e.getCursor());
+                 MutableComponent context = Component.empty()
+@@ -383,7 +_,17 @@
+                 }
+ 
+                 context.append(Component.translatable("command.context.here").withStyle(ChatFormatting.RED, ChatFormatting.ITALIC));
+-                sender.sendFailure(context);
++                // Paper start - Add UnknownCommandEvent
++                // sender.sendFailure(context);
++                builder
++                        .append(net.kyori.adventure.text.Component.newline())
++                        .append(io.papermc.paper.adventure.PaperAdventure.asAdventure(context));
++            }
++            org.bukkit.event.command.UnknownCommandEvent event = new org.bukkit.event.command.UnknownCommandEvent(sender, commandString, org.spigotmc.SpigotConfig.unknownCommandMessage.isEmpty() ? null : builder.build());
++            org.bukkit.Bukkit.getServer().getPluginManager().callEvent(event);
++            if (event.message() != null) {
++                sender.sendFailure(io.papermc.paper.adventure.PaperAdventure.asVanilla(event.message()), false);
++                // Paper end - Add UnknownCommandEvent
+             }
+ 
+             return null;
+@@ -411,17 +_,116 @@
      }
  
      public void sendCommands(ServerPlayer player) {
@@ -136,7 +199,10 @@
          RootCommandNode<CommandSourceStack> root = new RootCommandNode<>();
          playerCommands.put(this.dispatcher.getRoot(), root);
 -        fillUsableCommands(this.dispatcher.getRoot(), root, player.createCommandSourceStack(), playerCommands);
++        // Youer TODO
 +        fillUsableCommands(dispatcherRootChildren, root, player.createCommandSourceStack(), playerCommands); // Paper - Perf: Async command map building; pass copy of children
++        // Neo: Use our own command node merging method to handle redirect nodes properly, see issue Forge-7551
++        net.neoforged.neoforge.server.command.CommandHelper.mergeCommandNode(this.dispatcher.getRoot(), root, playerCommands, player.createCommandSourceStack(), ctx -> 0, suggest -> SuggestionProviders.cast((com.mojang.brigadier.suggestion.SuggestionProvider<SharedSuggestionProvider>) (com.mojang.brigadier.suggestion.SuggestionProvider<?>) suggest));
 +
 +        java.util.Collection<String> bukkit = new java.util.LinkedHashSet<>();
 +        for (CommandNode node : root.getChildren()) {

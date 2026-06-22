@@ -30,9 +30,10 @@
 +    public static Services create(YggdrasilAuthenticationService serviceAccess, File nameCacheDir, final File userCacheFile, final joptsimple.OptionSet options) throws Exception { // Paper - add options to load paper config files; add userCacheFile parameter
          MinecraftSessionService sessionService = serviceAccess.createMinecraftSessionService();
          GameProfileRepository profileRepository = serviceAccess.createProfileRepository();
-         UserNameToIdResolver profileCache = new CachedUserNameToIdResolver(profileRepository, new File(nameCacheDir, "usercache.json"));
+-        UserNameToIdResolver profileCache = new CachedUserNameToIdResolver(profileRepository, new File(nameCacheDir, "usercache.json"));
 -        ProfileResolver profileResolver = new ProfileResolver.Cached(sessionService, profileCache);
 -        return new Services(sessionService, serviceAccess.getServicesKeySet(), profileRepository, profileCache, profileResolver);
++        UserNameToIdResolver profileCache = new CachedUserNameToIdResolver(profileRepository, userCacheFile);
 +        // Paper start - load paper config files from cli options
 +        final java.nio.file.Path legacyConfigPath = ((File) options.valueOf("paper-settings")).toPath();
 +        final java.nio.file.Path configDirPath = ((File) options.valueOf("paper-settings-directory")).toPath();

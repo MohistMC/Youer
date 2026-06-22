@@ -9,3 +9,25 @@
          public static final LevelData.RespawnData DEFAULT = new LevelData.RespawnData(GlobalPos.of(Level.OVERWORLD, BlockPos.ZERO), 0.0F, 0.0F);
          public static final MapCodec<LevelData.RespawnData> MAP_CODEC = RecordCodecBuilder.mapCodec(
              i -> i.group(
+@@ -62,5 +_,21 @@
+         public BlockPos pos() {
+             return this.globalPos.pos();
+         }
++
++        // Paper start
++        /**
++         * Equals without checking dimension.
++         *
++         * @param other other object
++         * @return true if position and rotation are equal
++         */
++        public boolean positionEquals(Object other) {
++            if (other == this) return true;
++            if (!(other instanceof LevelData.RespawnData otherRespawn)) return false;
++            return this.pos().equals(otherRespawn.pos())
++                    && this.yaw == otherRespawn.yaw
++                    && this.pitch == otherRespawn.pitch;
++        }
++        // Paper end
+     }
+ }

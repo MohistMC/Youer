@@ -1,6 +1,6 @@
 --- a/net/minecraft/resources/RegistryLoadTask.java
 +++ b/net/minecraft/resources/RegistryLoadTask.java
-@@ -27,16 +_,22 @@
+@@ -27,18 +_,25 @@
  import net.minecraft.util.StrictJsonParser;
  
  public abstract class RegistryLoadTask<T> {
@@ -10,7 +10,7 @@
      private final Object registryWriteLock = new Object();
      protected final RegistryDataLoader.RegistryData<T> data;
 -    private final WritableRegistry<T> registry;
-+    public final WritableRegistry<T> registry;
++    final WritableRegistry<T> registry; // Paper - package-private
      protected final ConcurrentHolderGetter<T> concurrentRegistrationGetter;
      protected final Map<ResourceKey<?>, Exception> loadingErrors;
      private volatile boolean elementsRegistered;
@@ -24,12 +24,22 @@
 +        this.registry = (WritableRegistry<T>) registryBuilder.disableRegistrationCheck().create();
          this.loadingErrors = loadingErrors;
          this.concurrentRegistrationGetter = new ConcurrentHolderGetter<>(this.registryWriteLock, this.registry.createRegistrationLookup());
++        io.papermc.paper.registry.PaperRegistryAccess.instance().registerRegistry(this.registry); // Paper - initialize API registry
      }
-@@ -64,7 +_,13 @@
+ 
+     protected ResourceKey<? extends Registry<T>> registryKey() {
+@@ -59,12 +_,18 @@
+         return new RegistryOps.RegistryInfo<>(this.registry, this.concurrentRegistrationGetter, this.registry.registryLifecycle());
+     }
+ 
+-    protected void registerElements(Stream<RegistryLoadTask.PendingRegistration<T>> elements) {
++    protected void registerElements(final Stream<RegistryLoadTask.PendingRegistration<T>> elements, final io.papermc.paper.registry.data.util.Conversions conversions) { // Paper - pass conversions
+         synchronized (this.registryWriteLock) {
              elements.forEach(
                  element -> element.value
-                     .ifLeft(value -> this.registry.register(element.key, (T)value, element.registrationInfo))
+-                    .ifLeft(value -> this.registry.register(element.key, (T)value, element.registrationInfo))
 -                    .ifRight(error -> this.loadingErrors.put(element.key, error))
++                    .ifLeft(value -> io.papermc.paper.registry.PaperRegistryListenerManager.INSTANCE.registerWithListeners(this.registry, element.key, (T)value, element.registrationInfo, conversions)) // Paper - register with listeners
 +                    .ifRight(error -> {
 +                        if (error == SKIPPED_ELEMENT_MARKER) {
 +                            LOGGER.debug("Skipping loading registry entry {} as its conditions were not met", element.key);

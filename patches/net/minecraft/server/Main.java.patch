@@ -1,9 +1,8 @@
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
-@@ -1,5 +_,7 @@
+@@ -1,5 +_,6 @@
  package net.minecraft.server;
  
-+import com.google.common.base.Charsets;
 +import com.mohistmc.youer.Youer;
  import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
  import com.mojang.datafixers.DataFixer;
@@ -33,22 +32,25 @@
  import net.minecraft.server.packs.repository.PackRepository;
  import net.minecraft.server.packs.repository.ServerPacksSource;
  import net.minecraft.util.Mth;
-@@ -56,9 +_,11 @@
+@@ -56,21 +_,25 @@
  import net.minecraft.world.level.levelgen.presets.WorldPresets;
  import net.minecraft.world.level.storage.LevelDataAndDimensions;
  import net.minecraft.world.level.storage.LevelStorageSource;
 +import net.minecraft.world.level.storage.LevelResource;
  import net.minecraft.world.level.storage.LevelSummary;
  import net.minecraft.world.level.storage.PrimaryLevelData;
- import net.minecraft.world.level.storage.WorldData;
-+import org.bukkit.configuration.file.YamlConfiguration;
+-import net.minecraft.world.level.storage.WorldData;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -67,10 +_,11 @@
++import static java.util.Arrays.asList;
++
+ public class Main {
+     private static final Logger LOGGER = LogUtils.getLogger();
  
      @SuppressForbidden(reason = "System.out needed before bootstrap")
      public static void main(String[] args) {
++        io.papermc.paper.log.LogManagerShutdownThread.hook(); // Paper - Improved watchdog support
 +        Youer.initI18n(); // Youer
          SharedConstants.tryDetectVersion();
          OptionParser parser = new OptionParser();
@@ -58,7 +60,7 @@
          OptionSpec<Void> demo = parser.accepts("demo");
          OptionSpec<Void> bonusChest = parser.accepts("bonusChest");
          OptionSpec<Void> forceUpgrade = parser.accepts("forceUpgrade");
-@@ -86,12 +_,61 @@
+@@ -86,12 +_,91 @@
          OptionSpec<Path> pidFile = parser.accepts("pidFile").withRequiredArg().withValuesConvertedBy(new PathConverter());
          OptionSpec<String> nonOptions = parser.nonOptions();
  
@@ -96,6 +98,36 @@
 +                .describedAs("Yml file");
 +        // Spigot End
 +
++        parser.acceptsAll(asList("paper-dir", "paper-settings-directory"), "Directory for Paper settings")
++                .withRequiredArg()
++                .ofType(File.class)
++                .defaultsTo(new File(io.papermc.paper.configuration.PaperConfigurations.CONFIG_DIR))
++                .describedAs("Config directory");
++
++        parser.acceptsAll(asList("paper", "paper-settings"), "File for Paper settings")
++                .withRequiredArg()
++                .ofType(File.class)
++                .defaultsTo(new File("paper.yml"))
++                .describedAs("Yml file");
++
++        parser.acceptsAll(asList("add-plugin", "add-extra-plugin-jar"), "Specify paths to extra plugin jars to be loaded in addition to those in the plugins folder. This argument can be specified multiple times, once for each extra plugin jar path.")
++                .withRequiredArg()
++                .ofType(File.class)
++                .defaultsTo(new File[] {})
++                .describedAs("Jar file");
++
++        parser.acceptsAll(asList("add-plugin-dir", "add-extra-plugin-dir"), "Specify paths to extra plugin directories to be loaded in addition to the plugins folder. This argument can be specified multiple times, once for each extra plugin dir path.")
++                .withRequiredArg()
++                .ofType(File.class)
++                .defaultsTo(new File[] {})
++                .describedAs("Plugin directory");
++
++        parser.accepts("server-name", "Name of the server")
++                .withRequiredArg()
++                .ofType(String.class)
++                .defaultsTo("Unknown Server")
++                .describedAs("Name");
++
 +        // Youer Start
 +        parser.acceptsAll(Arrays.asList("Y", "youer-settings"), "File for youer settings")
 +                .withRequiredArg()
@@ -121,7 +153,12 @@
  
              Path pidFilePath = options.valueOf(pidFile);
              if (pidFilePath != null) {
-@@ -107,28 +_,82 @@
+@@ -103,32 +_,93 @@
+                 JvmProfiler.INSTANCE.start(Environment.SERVER);
+             }
+ 
++            io.papermc.paper.plugin.PluginInitializerManager.load(options); // Paper
+             Bootstrap.bootStrap();
              Bootstrap.validate();
              Util.startTimerHackThread();
              Path settingsFile = Paths.get("server.properties");
@@ -129,6 +166,12 @@
 +            if (!options.has(initSettings)) net.neoforged.neoforge.server.loading.ServerModLoader.load(false); // Load mods before we load almost anything else anymore. Single spot now. Only loads if they haven't passed the initserver param
 +            DedicatedServerSettings settings = new DedicatedServerSettings(options);// CraftBukkit - CLI argument support
              settings.forceSave();
++            // Paper start
++            if (options.has("forceUpgrade") || options.has("recreateRegionFiles")) {
++                LOGGER.error("World upgrade and region file recreation are not yet implemented in Paper 26.1.");
++                return;
++            }
++            // Paper end
              RegionFileVersion.configure(settings.getProperties().regionFileComression);
 -            Path eulaFile = Paths.get("eula.txt");
 -            Eula eula = new Eula(eulaFile);
@@ -211,7 +254,15 @@
              Dynamic<?> levelDataTag;
              if (access.hasWorldData()) {
                  Dynamic<?> levelDataUnfixed;
-@@ -161,6 +_,26 @@
+@@ -154,6 +_,7 @@
+             } else {
+                 levelDataTag = null;
+             }
++            io.papermc.paper.world.migration.WorldFolderMigration.didInitialLoad = true; // Paper
+ 
+             boolean safeModeEnabled = options.has(safeMode);
+             if (safeModeEnabled) {
+@@ -161,6 +_,25 @@
              }
  
              PackRepository packRepository = ServerPacksSource.createPackRepository(access);
@@ -232,9 +283,8 @@
 +            } catch (java.io.IOException ex) {
 +                throw new RuntimeException("Could not initialize Bukkit datapack", ex);
 +            }
-+            // CraftBukkit end
-+
 +            AtomicReference<WorldLoader.DataLoadContext> worldLoader = new AtomicReference<>();
++            // CraftBukkit end
  
              WorldStem worldStem;
              try {
@@ -276,7 +326,7 @@
              RegistryAccess.Frozen registryHolder = worldStem.registries().compositeAccess();
              WorldData data = worldStem.worldDataAndGenSettings().data();
              boolean recreateRegionFilesValue = options.has(recreateRegionFiles);
-@@ -203,9 +_,11 @@
+@@ -203,9 +_,12 @@
              }
  
              access.saveDataTag(data);
@@ -284,11 +334,12 @@
              final DedicatedServer dedicatedServer = MinecraftServer.spin(
                  thread -> {
                      DedicatedServer server = new DedicatedServer(
-+                        options, worldLoader.get(),
++                        options,
++                        worldLoader.get(),
                          thread,
                          access,
                          packRepository,
-@@ -229,14 +_,17 @@
+@@ -229,20 +_,23 @@
                      return server;
                  }
              );
@@ -306,6 +357,13 @@
          } catch (Throwable t) {
              LOGGER.error(LogUtils.FATAL_MARKER, "Failed to start the minecraft server", t);
          }
+     }
+ 
+-    private static WorldLoader.DataLoadOutput<LevelDataAndDimensions.WorldDataAndGenSettings> createNewWorldData(
++    public static WorldLoader.DataLoadOutput<LevelDataAndDimensions.WorldDataAndGenSettings> createNewWorldData(
+         DedicatedServerSettings settings, WorldLoader.DataLoadContext context, Registry<LevelStem> datapackDimensions, boolean demoMode, boolean bonusChest
+     ) {
+         LevelSettings createLevelSettings;
 @@ -265,6 +_,9 @@
              dimensions = properties.createDimensions(context.datapackWorldgen());
          }
@@ -316,12 +374,21 @@
          WorldDimensions.Complete finalDimensions = dimensions.bake(datapackDimensions);
          Lifecycle lifecycle = finalDimensions.lifecycle().add(context.datapackWorldgen().allRegistriesLifecycle());
          PrimaryLevelData primaryLevelData = new PrimaryLevelData(createLevelSettings, finalDimensions.specialWorldProperty(), lifecycle);
-@@ -309,7 +_,7 @@
+@@ -309,7 +_,8 @@
          RegistryAccess registryAccess,
          boolean recreateRegionFiles
      ) {
 -        LOGGER.info("Forcing world upgrade!");
++        /*
 +        LOGGER.info("Forcing world upgrade! {}", storageSource.getLevelId()); // CraftBukkit
  
          try (WorldUpgrader upgrader = new WorldUpgrader(storageSource, fixerUpper, registryAccess, eraseCache, recreateRegionFiles)) {
              Component lastStatus = null;
+@@ -336,6 +_,6 @@
+                     }
+                 }
+             }
+-        }
++        }*/
+     }
+ }

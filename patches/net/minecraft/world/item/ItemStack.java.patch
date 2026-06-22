@@ -236,6 +236,26 @@
              );
          }
      }
+@@ -578,11 +_,17 @@
+     }
+ 
+     public ItemStack copy() {
+-        if (this.isEmpty()) {
++        // Paper start - Perf: Optimize Hoppers
++        return this.copy(false);
++    }
++
++    public ItemStack copy(final boolean originalItem) {
++        if (!originalItem && this.isEmpty()) {
++            // Paper end - Perf: Optimize Hoppers
+             return EMPTY;
+         }
+ 
+-        ItemStack copy = new ItemStack(this.typeHolder(), this.count, this.components.copy());
++        ItemStack copy = new ItemStack(originalItem ? this.item : this.typeHolder(), this.count, this.components.copy()); // Paper - Perf: Optimize Hoppers
+         copy.setPopTime(this.getPopTime());
+         return copy;
+     }
 @@ -617,6 +_,16 @@
          }
      }

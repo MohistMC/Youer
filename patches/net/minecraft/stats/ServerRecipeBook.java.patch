@@ -8,7 +8,7 @@
  import org.slf4j.Logger;
  
  public class ServerRecipeBook extends RecipeBook {
-@@ -64,6 +_,10 @@
+@@ -64,17 +_,21 @@
          for (RecipeHolder<?> recipe : recipes) {
              ResourceKey<Recipe<?>> id = recipe.id();
              if (!this.known.contains(id) && !recipe.value().isSpecial()) {
@@ -19,7 +19,11 @@
                  this.add(id);
                  this.addHighlight(id);
                  this.displayResolver
-@@ -74,7 +_,7 @@
+                     .displaysForRecipe(
+-                        id, display -> recipesToAdd.add(new ClientboundRecipeBookAddPacket.Entry(display, recipe.value().showNotification(), true))
++                        id, display -> recipesToAdd.add(new ClientboundRecipeBookAddPacket.Entry(display, event.shouldShowNotification(), true)) // Paper - set notification from the event
+                     );
+                 CriteriaTriggers.RECIPE_UNLOCKED.trigger(player, recipe);
              }
          }
  

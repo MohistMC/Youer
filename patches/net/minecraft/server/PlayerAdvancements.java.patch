@@ -1,5 +1,14 @@
 --- a/net/minecraft/server/PlayerAdvancements.java
 +++ b/net/minecraft/server/PlayerAdvancements.java
+@@ -47,7 +_,7 @@
+ 
+ public class PlayerAdvancements {
+     private static final Logger LOGGER = LogUtils.getLogger();
+-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
++    private static final Gson GSON = new GsonBuilder().create(); // Paper - Remove pretty printing from advancements
+     private final PlayerList playerList;
+     private final Path playerSavePath;
+     private AdvancementTree tree;
 @@ -125,6 +_,7 @@
      }
  
@@ -16,7 +25,7 @@
                  LOGGER.warn("Ignored advancement '{}' in progress file {} - it doesn't exist anymore?", id, this.playerSavePath);
              } else {
                  this.startProgress(advancement, progress);
-@@ -162,6 +_,8 @@
+@@ -162,19 +_,40 @@
      }
  
      public boolean award(AdvancementHolder holder, String criterion) {
@@ -25,17 +34,35 @@
          boolean result = false;
          AdvancementProgress progress = this.getOrStartProgress(holder);
          boolean wasDone = progress.isDone();
-@@ -169,12 +_,15 @@
+         if (progress.grantProgress(criterion)) {
++            // Paper start - Add PlayerAdvancementCriterionGrantEvent
++            if (!new com.destroystokyo.paper.event.player.PlayerAdvancementCriterionGrantEvent(this.player.getBukkitEntity(), holder.toBukkit(), criterion).callEvent()) {
++                progress.revokeProgress(criterion);
++                return false;
++            }
++            // Paper end - Add PlayerAdvancementCriterionGrantEvent
              this.unregisterListeners(holder);
              this.progressChanged.add(holder);
              result = true;
 +            net.neoforged.neoforge.event.EventHooks.onAdvancementProgressedEvent(this.player, holder, progress, criterion, net.neoforged.neoforge.event.entity.player.AdvancementEvent.AdvancementProgressEvent.ProgressType.GRANT);
              if (!wasDone && progress.isDone()) {
-+                this.player.level().getCraftServer().getPluginManager().callEvent(new org.bukkit.event.player.PlayerAdvancementDoneEvent(this.player.getBukkitEntity(), holder.toBukkit())); // CraftBukkit
++                // Paper start - Add Adventure message to PlayerAdvancementDoneEvent
++                final net.kyori.adventure.text.Component message = holder.value().display().flatMap(info -> {
++                    return java.util.Optional.ofNullable(
++                            info.shouldAnnounceChat() ? io.papermc.paper.adventure.PaperAdventure.asAdventure(info.getType().createAnnouncement(holder, this.player)) : null
++                    );
++                }).orElse(null);
++                final org.bukkit.event.player.PlayerAdvancementDoneEvent event = new org.bukkit.event.player.PlayerAdvancementDoneEvent(this.player.getBukkitEntity(), holder.toBukkit(), message);
++                this.player.level().getCraftServer().getPluginManager().callEvent(event); // CraftBukkit
++                // Paper end
                  holder.value().rewards().grant(this.player);
                  holder.value().display().ifPresent(display -> {
-                     if (display.shouldAnnounceChat() && this.player.level().getGameRules().get(GameRules.SHOW_ADVANCEMENT_MESSAGES)) {
-                         this.playerList.broadcastSystemMessage(display.getType().createAnnouncement(holder, this.player), false);
+-                    if (display.shouldAnnounceChat() && this.player.level().getGameRules().get(GameRules.SHOW_ADVANCEMENT_MESSAGES)) {
+-                        this.playerList.broadcastSystemMessage(display.getType().createAnnouncement(holder, this.player), false);
++                    // Paper start - Add Adventure message to PlayerAdvancementDoneEvent
++                    if (event.message() != null && this.player.level().getGameRules().get(GameRules.SHOW_ADVANCEMENT_MESSAGES)) {
++                        this.playerList.broadcastSystemMessage(io.papermc.paper.adventure.PaperAdventure.asVanilla(event.message()), false);
++                        // Paper end
                      }
 +                    net.neoforged.neoforge.event.EventHooks.onAdvancementEarnedEvent(this.player, holder);
                  });
@@ -49,3 +76,12 @@
          }
  
          if (wasDone && !progress.isDone()) {
+@@ -236,7 +_,7 @@
+     public void flushDirty(ServerPlayer player, boolean showAdvancements) {
+         if (this.isFirstPacket || !this.rootsToUpdate.isEmpty() || !this.progressChanged.isEmpty()) {
+             Map<Identifier, AdvancementProgress> progress = new HashMap<>();
+-            Set<AdvancementHolder> added = new HashSet<>();
++            Set<AdvancementHolder> added = new java.util.TreeSet<>(java.util.Comparator.comparing(adv -> adv.id().toString())); // Paper - Changed from HashSet to TreeSet ordered alphabetically.
+             Set<Identifier> removed = new HashSet<>();
+ 
+             for (AdvancementNode root : this.rootsToUpdate) {
