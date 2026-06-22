@@ -1143,6 +1143,7 @@
 +        this.captureDrops(new ArrayList<>());
          boolean flag = this.lastHurtByPlayerTime > 0;
 -        if (this.shouldDropLoot() && p_348524_.getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {
++        this.dropEquipment(); // CraftBukkit - from below
 +        if (this.shouldDropLoot() && this.level().getGameRules().getBoolean(GameRules.RULE_DOMOBLOOT)) {
              this.dropFromLootTable(p_21192_, flag);
 +            // Paper start
@@ -1154,9 +1155,8 @@
 +            this.clearEquipmentSlots = prev; // Paper
          }
  
-         this.dropEquipment();
+-        this.dropEquipment();
 -        this.dropExperience(p_21192_.getEntity());
-+
 +        Collection<ItemEntity> drops = captureDrops(null);
 +        EmeraldClose.init(this, drops); // Mohist
 +        deathEvent = CraftEventFactory.callEntityDeathEvent(this, p_21192_, drops, new Runnable() {
@@ -1172,8 +1172,9 @@
 +        if (!(this instanceof ServerPlayer)) {
 +            drops = ItemEntityTools.convertDrops(deathEvent, this);
 +        }
-+        if (!CommonHooks.onLivingDrops(this, p_21192_, drops, lastHurtByPlayerTime > 0))
++        if (!CommonHooks.onLivingDrops(this, p_21192_, drops, lastHurtByPlayerTime > 0)) {
 +            drops.forEach(e -> level().addFreshEntity(e));
++        }
 +        if (this instanceof ServerPlayer) {
 +            if (shouldDropExperience.getAndSet(true)) {
 +                this.dropExperience(p_21192_.getEntity());
