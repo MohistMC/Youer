@@ -12,7 +12,7 @@ import org.spongepowered.configurate.serialize.ScalarSerializer;
 
 public interface IntOr {
 
-    Logger LOGGER = LogUtils.getClassLogger();
+    Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
 
     default int or(final int fallback) {
         return this.value().orElse(fallback);

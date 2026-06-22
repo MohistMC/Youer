@@ -21,7 +21,7 @@ import java.util.Set;
 
 class LoadOrderTree {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
 
     private final Map<String, PluginProvider<?>> providerMap;
     private final MutableGraph<String> graph;

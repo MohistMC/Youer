@@ -12,7 +12,7 @@ public class FileArrayProviderSource implements ProviderSource<File[], List<Path
 
     public static final FileArrayProviderSource INSTANCE = new FileArrayProviderSource();
     private static final FileProviderSource FILE_PROVIDER_SOURCE = new FileProviderSource("File '%s'"::formatted);
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
 
     @Override
     public List<Path> prepareContext(File[] context) {

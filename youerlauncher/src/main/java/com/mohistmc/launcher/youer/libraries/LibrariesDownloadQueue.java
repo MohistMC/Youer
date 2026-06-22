@@ -128,6 +128,6 @@ public class LibrariesDownloadQueue {
     }
 
     public void debug(String log) {
-        if (debug) System.out.println(log + "\n");
+        if (debug) System.out.println(log);
     }
 }

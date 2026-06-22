@@ -29,7 +29,7 @@ public class MapSerializer implements TypeSerializer.Annotated<Map<?, ?>> {
 
     public static final TypeToken<Map<?, ?>> TYPE = new TypeToken<Map<?, ?>>() {};
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
 
     private final boolean clearInvalids;
     private final TypeSerializer<Map<?, ?>> fallback;

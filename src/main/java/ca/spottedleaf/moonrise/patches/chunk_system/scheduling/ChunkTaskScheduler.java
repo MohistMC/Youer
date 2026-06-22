@@ -64,7 +64,7 @@ import java.util.function.Consumer;
 
 public final class ChunkTaskScheduler {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
 
     public static final TicketType CHUNK_LOAD = ChunkSystemTicketType.create("chunk_system:chunk_load", Long::compareTo);
     private static final AtomicLong CHUNK_LOAD_IDS = new AtomicLong();

@@ -19,7 +19,7 @@ public class DirectoryProviderSource implements ProviderSource<Path, List<Path>>
     public static final DirectoryProviderSource INSTANCE = new DirectoryProviderSource(true);
     public static final DirectoryProviderSource INSTANCE_NO_CREATE = new DirectoryProviderSource(false);
     private static final FileProviderSource FILE_PROVIDER_SOURCE = new FileProviderSource("Directory '%s'"::formatted);
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
 
     private final boolean createDirectory;
 

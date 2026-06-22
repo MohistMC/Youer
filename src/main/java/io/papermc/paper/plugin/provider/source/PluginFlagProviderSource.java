@@ -15,7 +15,7 @@ public class PluginFlagProviderSource implements ProviderSource<List<Path>, List
 
     public static final PluginFlagProviderSource INSTANCE = new PluginFlagProviderSource();
     private static final FileProviderSource FILE_PROVIDER_SOURCE = new FileProviderSource("File '%s' specified through 'add-plugin' argument"::formatted);
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
 
     @Override
     public List<Path> prepareContext(List<Path> context) {

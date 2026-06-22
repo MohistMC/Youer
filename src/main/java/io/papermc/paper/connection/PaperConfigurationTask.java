@@ -12,7 +12,7 @@ import net.minecraft.server.network.ServerConfigurationPacketListenerImpl;
 import org.slf4j.Logger;
 
 public class PaperConfigurationTask implements ConfigurationTask {
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
 
     public static final ExecutorService CONFIGURATION_POOL = Executors.newThreadPerTaskExecutor(
         Thread.ofVirtual().name("Configuration Thread #", 0).uncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER)).factory()

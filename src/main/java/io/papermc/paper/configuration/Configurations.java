@@ -33,7 +33,7 @@ import org.spongepowered.configurate.yaml.YamlConfigurationLoader;
 
 public abstract class Configurations<G, W> {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
     public static final Identifier WORLD_DEFAULTS_KEY = Identifier.fromNamespaceAndPath("configurations", "__world_defaults__");
     protected final Path globalFolder;
     protected final Class<G> globalConfigClass;

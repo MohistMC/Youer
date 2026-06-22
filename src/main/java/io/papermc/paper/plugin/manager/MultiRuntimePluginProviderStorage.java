@@ -16,7 +16,7 @@ import java.util.List;
 
 public class MultiRuntimePluginProviderStorage extends ServerPluginProviderStorage {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
     private final List<JavaPlugin> provided = new ArrayList<>();
 
     private final MetaDependencyTree dependencyTree;

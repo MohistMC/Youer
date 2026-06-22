@@ -12,7 +12,7 @@ import java.util.function.Consumer;
 
 public final class MoonriseCommon {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
 
     public static final long WORKER_QUEUE_HOLD_TIME = (long)(20.0e6); // 20ms
     public static final BalancedPrioritisedThreadPool WORKER_POOL = new BalancedPrioritisedThreadPool(

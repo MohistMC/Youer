@@ -19,7 +19,7 @@ import static io.leangen.geantyref.GenericTypeReflector.erase;
  */
 public class EnumValueSerializer extends ScalarSerializer.Annotated<Enum<?>> {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
 
     public EnumValueSerializer() {
         super(new TypeToken<Enum<?>>() {});

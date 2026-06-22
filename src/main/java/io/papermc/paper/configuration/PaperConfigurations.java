@@ -90,7 +90,7 @@ import static io.leangen.geantyref.GenericTypeReflector.erase;
 @SuppressWarnings("Convert2Diamond")
 public class PaperConfigurations extends Configurations<GlobalConfiguration, WorldConfiguration> {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
     static final String GLOBAL_CONFIG_FILE_NAME = "paper-global.yml";
     static final String WORLD_DEFAULTS_CONFIG_FILE_NAME = "paper-world-defaults.yml";
     static final String WORLD_CONFIG_FILE_NAME = "paper-world.yml";

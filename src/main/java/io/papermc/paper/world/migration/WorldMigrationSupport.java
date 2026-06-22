@@ -26,7 +26,7 @@ import org.slf4j.Logger;
 
 @NullMarked
 final class WorldMigrationSupport {
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
     static final List<String> DIMENSION_DIRECTORIES = List.of("region", "entities", "poi");
     static final String PAPER_WORLD_CONFIG = "paper-world.yml";
     static final String LEGACY_UID_FILE_NAME = "uid.dat";

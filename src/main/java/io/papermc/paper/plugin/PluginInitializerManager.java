@@ -23,7 +23,7 @@ import java.nio.file.Path;
 
 public class PluginInitializerManager {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
     private static PluginInitializerManager impl;
     private final Path pluginDirectory;
     private final Path updateDirectory;

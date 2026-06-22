@@ -63,7 +63,7 @@ import java.util.function.Predicate;
 
 public final class ChunkHolderManager {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
 
     public static final int FULL_LOADED_TICKET_LEVEL    = ChunkLevel.FULL_CHUNK_LEVEL;
     public static final int BLOCK_TICKING_TICKET_LEVEL  = ChunkLevel.BLOCK_TICKING_LEVEL;

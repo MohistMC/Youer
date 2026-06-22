@@ -21,7 +21,7 @@ import java.util.Map;
 @SuppressWarnings("UnstableApiUsage")
 public class ModernPluginLoadingStrategy<T> implements ProviderLoadingStrategy<T> {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
     private final ProviderConfiguration<T> configuration;
 
     public ModernPluginLoadingStrategy(ProviderConfiguration<T> onLoad) {
