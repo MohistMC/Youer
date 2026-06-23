@@ -10,13 +10,17 @@
  ) {
      public static PalettedContainerFactory create(RegistryAccess registries) {
          Strategy<BlockState> blockStateStrategy = Strategy.createForBlockStates(Block.BLOCK_STATE_REGISTRY);
-@@ -31,15 +_,28 @@
-             PalettedContainer.codecRW(BlockState.CODEC, blockStateStrategy, defaultBlockState),
+@@ -28,18 +_,31 @@
+         return new PalettedContainerFactory(
+             blockStateStrategy,
+             defaultBlockState,
+-            PalettedContainer.codecRW(BlockState.CODEC, blockStateStrategy, defaultBlockState),
++            PalettedContainer.codecRW(BlockState.CODEC, blockStateStrategy, defaultBlockState, null), // Paper - Anti-Xray
              biomeStrategy,
              defaultBiome,
 -            PalettedContainer.codecRO(biomes.holderByNameCodec(), biomeStrategy, defaultBiome)
 +            PalettedContainer.codecRO(biomes.holderByNameCodec(), biomeStrategy, defaultBiome),
-+            PalettedContainer.codecRW(biomes.holderByNameCodec(), biomeStrategy, defaultBiome)
++            PalettedContainer.codecRW(biomes.holderByNameCodec(), biomeStrategy, defaultBiome, null) // Paper - Anti-Xray
          );
      }
  

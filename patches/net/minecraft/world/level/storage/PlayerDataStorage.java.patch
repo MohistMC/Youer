@@ -22,73 +22,49 @@
          try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(player.problemPath(), LOGGER)) {
              TagValueOutput output = TagValueOutput.createWithContext(reporter, player.registryAccess());
              player.saveWithoutId(output);
-@@ -41,6 +_,7 @@
+@@ -41,8 +_,9 @@
              Path realFile = playerDirPath.resolve(player.getStringUUID() + ".dat");
              Path oldFile = playerDirPath.resolve(player.getStringUUID() + ".dat_old");
              Util.safeReplaceFile(realFile, tmpFile, oldFile);
 +            net.neoforged.neoforge.event.EventHooks.firePlayerSavingEvent(player, playerDir, player.getStringUUID());
          } catch (Exception ignored) {
-             LOGGER.warn("Failed to save player data for {}", player.getPlainTextName());
+-            LOGGER.warn("Failed to save player data for {}", player.getPlainTextName());
++            LOGGER.warn("Failed to save player data for {}", player.getPlainTextName(), ignored); // Paper - Print exception
          }
-@@ -61,11 +_,31 @@
+     }
+ 
+@@ -61,11 +_,28 @@
      }
  
      private Optional<CompoundTag> load(NameAndId nameAndId, String suffix) {
 -        File realFile = new File(this.playerDir, nameAndId.id() + suffix);
 +        File file = this.playerDir;
 +        File realFile = new File(file, nameAndId.id() + suffix);
-+        // Spigot Start
++        // Spigot start
 +        boolean usingWrongFile = false;
-+        if ( !realFile.exists() )
-+        {
-+            realFile = new File( file, NameAndId.createOffline( nameAndId.name() ).id().toString() + suffix );
-+            if ( realFile.exists() )
-+            {
++        if (org.bukkit.Bukkit.getOnlineMode() && !realFile.exists()) { // Paper - Check online mode first
++            realFile = new File(this.playerDir, net.minecraft.core.UUIDUtil.createOfflinePlayerUUID(nameAndId.name()) + suffix);
++            if (realFile.exists()) {
 +                usingWrongFile = true;
-+                org.bukkit.Bukkit.getServer().getLogger().warning( "Using offline mode UUID file for player " + nameAndId.name() + " as it is the only copy we can find." );
++                LOGGER.warn("Using offline mode UUID file for player {} as it is the only copy we can find.", nameAndId.name());
 +            }
 +        }
-+        // Spigot End
++        // Spigot end
          if (realFile.exists() && realFile.isFile()) {
              try {
 -                return Optional.of(NbtIo.readCompressed(realFile.toPath(), NbtAccounter.unlimitedHeap()));
 -            } catch (Exception ignored) {
-+                // Spigot Start
++                // Spigot start
 +                Optional<CompoundTag> optional = Optional.of(NbtIo.readCompressed(realFile.toPath(), NbtAccounter.unlimitedHeap()));
-+                if ( usingWrongFile )
-+                {
-+                    realFile.renameTo( new File( realFile.getPath() + ".offline-read" ) );
++                if (usingWrongFile) {
++                    realFile.renameTo(new File(realFile.getPath() + ".offline-read"));
 +                }
 +                return optional;
-+                // Spigot End
++                // Spigot end
 +            } catch (Exception var5) {
                  LOGGER.warn("Failed to load player data for {}", nameAndId.name());
              }
          }
-@@ -73,6 +_,23 @@
-         return Optional.empty();
-     }
- 
-+    // CraftBukkit start
-+    public Optional<CompoundTag> load(Player player) {
-+        return load(player.nameAndId()).map((compoundtag) -> {
-+            if (player instanceof ServerPlayer) {
-+                CraftPlayer craftPlayer = (CraftPlayer) player.getBukkitEntity();
-+                // Only update first played if it is older than the one we have
-+                long modified = new File(this.playerDir, player.getStringUUID() + ".dat").lastModified();
-+                if (modified < craftPlayer.getFirstPlayed()) {
-+                    craftPlayer.setFirstPlayed(modified);
-+                }
-+            }
-+
-+            return compoundtag;
-+        });
-+    }
-+    // CraftBukkit end
-+
-     public Optional<CompoundTag> load(NameAndId nameAndId) {
-         Optional<CompoundTag> optTag = this.load(nameAndId, ".dat");
-         if (optTag.isEmpty()) {
 @@ -83,5 +_,9 @@
              int version = NbtUtils.getDataVersion(tag);
              return DataFixTypes.PLAYER.updateToCurrentVersion(this.fixerUpper, tag, version);

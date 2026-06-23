@@ -20,7 +20,7 @@
  ) {
      private static final Codec<List<SavedTick<Block>>> BLOCK_TICKS_CODEC = SavedTick.codec(BuiltInRegistries.BLOCK.byNameCodec()).listOf();
      private static final Codec<List<SavedTick<Fluid>>> FLUID_TICKS_CODEC = SavedTick.codec(BuiltInRegistries.FLUID.byNameCodec()).listOf();
-@@ -107,11 +_,76 @@
+@@ -107,11 +_,77 @@
      public static final String BLOCK_LIGHT_TAG = "BlockLight";
      public static final String SKY_LIGHT_TAG = "SkyLight";
  
@@ -82,6 +82,7 @@
 +    }
 +
      public static SerializableChunkData parse(LevelHeightAccessor levelHeight, PalettedContainerFactory containerFactory, CompoundTag chunkData) {
++        net.minecraft.server.level.ServerLevel serverLevel = (net.minecraft.server.level.ServerLevel) levelHeight; // Paper - Anti-Xray This is is seemingly only called from ChunkMap, where, we have a server level. We'll fight this later if needed.
          if (chunkData.getString("Status").isEmpty()) {
              return null;
          }
@@ -111,31 +112,53 @@
          ListTag sectionTags = chunkData.getListOrEmpty("sections");
          List<SerializableChunkData.SectionData> sectionData = new ArrayList<>(sectionTags.size());
 -        Codec<PalettedContainerRO<Holder<Biome>>> biomesCodec = containerFactory.biomeContainerCodec();
-+            Codec<PalettedContainer<Holder<Biome>>> biomesCodec = containerFactory.biomeContainerRWCodec(); // CraftBukkit - read/write
++        Codec<PalettedContainer<Holder<Biome>>> biomesCodec = containerFactory.biomeContainerRWCodec(); // CraftBukkit - read/write
          Codec<PalettedContainer<BlockState>> blockStatesCodec = containerFactory.blockStatesContainerCodec();
  
          for (int i = 0; i < sectionTags.size(); i++) {
-@@ -168,7 +_,7 @@
+@@ -161,14 +_,16 @@
+                 int y = sectionTag.getByteOr("Y", (byte)0);
+                 LevelChunkSection section;
+                 if (y >= levelHeight.getMinSectionY() && y <= levelHeight.getMaxSectionY()) {
++                    final BlockState[] presetBlockStates = serverLevel.chunkPacketBlockController.getPresetBlockStates(serverLevel, chunkPos, y); // Paper - Anti-Xray - Add preset block states
++                    final Codec<PalettedContainer<BlockState>> antiXrayBlockStateCodec = presetBlockStates == null ? blockStatesCodec : PalettedContainer.codecRW(BlockState.CODEC, containerFactory.blockStatesStrategy(), net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), presetBlockStates); // Paper - Anti-Xray
+                     PalettedContainer<BlockState> blocks = sectionTag.getCompound("block_states")
+                         .map(
+-                            container -> blockStatesCodec.parse(NbtOps.INSTANCE, container)
++                            container -> antiXrayBlockStateCodec.parse(NbtOps.INSTANCE, container) // Paper - Anti-Xray
+                                 .promotePartial(msg -> logErrors(chunkPos, y, msg))
                                  .getOrThrow(SerializableChunkData.ChunkReadException::new)
                          )
                          .orElseGet(containerFactory::createForBlockStates);
 -                    PalettedContainerRO<Holder<Biome>> biomes = sectionTag.getCompound("biomes")
-+                        PalettedContainer<Holder<Biome>> biomes = sectionTag.getCompound("biomes")
++                    PalettedContainer<Holder<Biome>> biomes = sectionTag.getCompound("biomes") // CraftBukkit - read/write
                          .map(
                              container -> biomesCodec.parse(NbtOps.INSTANCE, container)
                                  .promotePartial(msg -> logErrors(chunkPos, y, msg))
-@@ -186,6 +_,11 @@
+@@ -182,9 +_,22 @@
+ 
+                 DataLayer blockLight = sectionTag.getByteArray("BlockLight").map(DataLayer::new).orElse(null);
+                 DataLayer skyLight = sectionTag.getByteArray("SkyLight").map(DataLayer::new).orElse(null);
+-                sectionData.add(new SerializableChunkData.SectionData(y, section, blockLight, skyLight));
++                // Paper start - starlight
++                SerializableChunkData.SectionData serializableChunkData = new SerializableChunkData.SectionData(y, section, blockLight, skyLight);
++                if (sectionTag.contains(ca.spottedleaf.moonrise.patches.starlight.util.SaveUtil.BLOCKLIGHT_STATE_TAG)) {
++                    ((ca.spottedleaf.moonrise.patches.starlight.storage.StarlightSectionData)(Object)serializableChunkData).starlight$setBlockLightState(sectionTag.getIntOr(ca.spottedleaf.moonrise.patches.starlight.util.SaveUtil.BLOCKLIGHT_STATE_TAG, 0));
++                }
++
++                if (sectionTag.contains(ca.spottedleaf.moonrise.patches.starlight.util.SaveUtil.SKYLIGHT_STATE_TAG)) {
++                    ((ca.spottedleaf.moonrise.patches.starlight.storage.StarlightSectionData)(Object)serializableChunkData).starlight$setSkyLightState(sectionTag.getIntOr(ca.spottedleaf.moonrise.patches.starlight.util.SaveUtil.SKYLIGHT_STATE_TAG, 0));
++                }
++                sectionData.add(serializableChunkData);
++                // Paper end - starlight
              }
          }
- 
++
 +        CompoundTag attachmentData = chunkData.getCompound(net.neoforged.neoforge.attachment.AttachmentHolder.ATTACHMENTS_NBT_KEY).orElse(null);
 +        ListTag auxLightData = chunkData.getList(net.neoforged.neoforge.common.world.LevelChunkAuxiliaryLightManager.LIGHT_NBT_KEY).orElse(null);
-+            // CraftBukkit - ChunkBukkitValues
-+            Tag persistentDataContainer = chunkData.get("ChunkBukkitValues");
-+
+ 
          return new SerializableChunkData(
              containerFactory,
-             chunkPos,
 @@ -204,9 +_,65 @@
              sectionData,
              entities,
@@ -144,7 +167,7 @@
 +            structureData,
 +            attachmentData,
 +            auxLightData,
-+            persistentDataContainer
++            chunkData.get("ChunkBukkitValues")
          );
      }
 +
@@ -240,19 +263,13 @@
              long[] heightmap = this.heightmaps.get(type);
              if (heightmap != null) {
                  chunk.setHeightmap(type, heightmap);
-@@ -304,6 +_,16 @@
+@@ -304,6 +_,10 @@
              }
          }
  
 +        if (this.attachmentData != null) {
 +            chunk.readAttachmentsFromNBT(level.registryAccess(), this.attachmentData);
 +        }
-+
-+        // CraftBukkit start - load chunk persistent data from nbt - SPIGOT-6814: Already load PDC here to account for 1.17 to 1.18 chunk upgrading.
-+        if (persistentDataContainer instanceof CompoundTag persistentCompoundTag) {
-+            chunk.persistentDataContainer.putAll(persistentCompoundTag);
-+        }
-+        // CraftBukkit end
 +
          if (chunkType == ChunkType.LEVELCHUNK) {
              return new ImposterProtoChunk((LevelChunk)chunk, false);

@@ -37,6 +37,14 @@
  import net.minecraft.world.entity.player.Player;
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.item.alchemy.PotionBrewing;
+@@ -61,6 +_,7 @@
+ import net.minecraft.world.level.block.BaseFireBlock;
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.LevelEvent;
+ import net.minecraft.world.level.block.entity.BlockEntity;
+ import net.minecraft.world.level.block.entity.FuelValues;
+ import net.minecraft.world.level.block.entity.TickingBlockEntity;
 @@ -71,6 +_,7 @@
  import net.minecraft.world.level.chunk.PalettedContainerFactory;
  import net.minecraft.world.level.chunk.status.ChunkStatus;
@@ -1123,6 +1131,41 @@
  
      public void updatePOIOnBlockStateChange(BlockPos pos, BlockState oldState, BlockState newState) {
      }
+@@ -286,13 +_,31 @@
+         }
+ 
+         FluidState fluidState = this.getFluidState(pos);
+-        if (!(blockState.getBlock() instanceof BaseFireBlock)) {
+-            this.levelEvent(2001, pos, Block.getId(blockState));
++        // Paper start - BlockDestroyEvent; while the above removeBlock method looks very similar
++        // they are NOT used with same intent and the above should not fire this event. The above method is more of a BlockSetToAirEvent,
++        // it doesn't imply destruction of a block that plays a sound effect / drops an item.
++        boolean playEffect = true;
++        BlockState effectType = blockState;
++        int xp = blockState.getBlock().getExpDrop(blockState, (ServerLevel) this, pos, ItemStack.EMPTY, true);
++        if (com.destroystokyo.paper.event.block.BlockDestroyEvent.getHandlerList().getRegisteredListeners().length > 0) {
++            com.destroystokyo.paper.event.block.BlockDestroyEvent event = new com.destroystokyo.paper.event.block.BlockDestroyEvent(org.bukkit.craftbukkit.block.CraftBlock.at(this, pos), fluidState.createLegacyBlock().asBlockData(), effectType.asBlockData(), xp, dropResources);
++            if (!event.callEvent()) {
++                return false;
++            }
++            effectType = ((CraftBlockData) event.getEffectBlock()).getState();
++            playEffect = event.playEffect();
++            dropResources = event.willDrop();
++            xp = event.getExpToDrop();
++        }
++        // Paper end - BlockDestroyEvent
++        if (playEffect && !(blockState.getBlock() instanceof BaseFireBlock)) { // Paper - BlockDestroyEvent
++            this.levelEvent(LevelEvent.PARTICLES_DESTROY_BLOCK, pos, Block.getId(effectType)); // Paper - BlockDestroyEvent
+         }
+ 
+         if (dropResources) {
+             BlockEntity blockEntity = blockState.hasBlockEntity() ? this.getBlockEntity(pos) : null;
+-            Block.dropResources(blockState, this, pos, blockEntity, breaker, ItemStack.EMPTY);
++            Block.dropResources(blockState, this, pos, blockEntity, breaker, ItemStack.EMPTY, false); // Paper - Properly handle xp dropping
++            blockState.getBlock().popExperience((ServerLevel) this, pos, xp, breaker); // Paper - Properly handle xp dropping; custom amount
+         }
+ 
+         boolean destroyed = this.setBlock(pos, fluidState.createLegacyBlock(), 3, updateLimit);
 @@ -306,7 +_,15 @@
      public void addDestroyBlockEffect(BlockPos pos, BlockState blockState) {
      }
@@ -1147,7 +1190,7 @@
      }
  
      public void updateNeighborsAtExceptFromFacing(BlockPos pos, Block blockObject, Direction skipDirection, @Nullable Orientation orientation) {
-@@ -357,6 +_,14 @@
+@@ -357,11 +_,19 @@
  
      @Override
      public BlockState getBlockState(BlockPos pos) {
@@ -1162,7 +1205,17 @@
          if (!this.isInValidBounds(pos)) {
              return Blocks.VOID_AIR.defaultBlockState();
          }
-@@ -464,6 +_,14 @@
+ 
+-        LevelChunk chunk = this.getChunk(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()));
++        ChunkAccess chunk = this.getChunk(pos.getX() >> 4, pos.getZ() >> 4, ChunkStatus.FULL, true); // Paper - manually inline to reduce hops and avoid unnecessary null check to reduce total byte code size, this should never return null and if it does we will see it the next line but the real stack trace will matter in the chunk engine
+         return chunk.getBlockState(pos);
+     }
+ 
+@@ -461,9 +_,18 @@
+     }
+ 
+     public void addBlockEntityTicker(TickingBlockEntity ticker) {
++        if (!this.paperConfig().unsupportedSettings.ticking.blockEntities) return; // Paper - option to disable ticking
          (this.tickingBlockEntities ? this.pendingBlockEntityTickers : this.blockEntityTickers).add(ticker);
      }
  

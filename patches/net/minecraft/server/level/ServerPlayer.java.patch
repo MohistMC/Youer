@@ -108,6 +108,20 @@
      private @Nullable Vec3 startingToFallPosition;
      private @Nullable Vec3 enteredNetherPosition;
      private @Nullable Vec3 enteredLavaOnVehiclePosition;
+@@ -301,6 +_,13 @@
+             }
+         }
+ 
++        // Paper start - Sync offhand slot in menus
++        @Override
++        public void sendOffHandSlotChange() {
++            this.sendSlotChange(ServerPlayer.this.inventoryMenu, net.minecraft.world.inventory.InventoryMenu.SHIELD_SLOT, ServerPlayer.this.inventoryMenu.getSlot(net.minecraft.world.inventory.InventoryMenu.SHIELD_SLOT).getItem().copy());
++        }
++        // Paper end - Sync offhand slot in menus
++
+         @Override
+         public void sendSlotChange(AbstractContainerMenu container, int slotIndex, ItemStack itemStack) {
+             ServerPlayer.this.connection.send(new ClientboundContainerSetSlotPacket(container.containerId, container.incrementStateId(), slotIndex, itemStack));
 @@ -317,6 +_,10 @@
          }
  
@@ -119,7 +133,40 @@
              ServerPlayer.this.connection.send(new ClientboundContainerSetDataPacket(container.containerId, id, value));
          }
  
-@@ -362,10 +_,87 @@
+@@ -336,6 +_,32 @@
+             }
+         }
+ 
++        // Paper start - Add PlayerInventorySlotChangeEvent
++        @Override
++        public void slotChanged(AbstractContainerMenu containerToSend, int dataSlotIndex, ItemStack oldStack, ItemStack stack) {
++            // See slotChanged above
++            Slot slot = containerToSend.getSlot(dataSlotIndex);
++            if (!(slot instanceof ResultSlot)) {
++                if (slot.container == ServerPlayer.this.getInventory()) {
++                    if (io.papermc.paper.event.player.PlayerInventorySlotChangeEvent.getHandlerList().getRegisteredListeners().length == 0) {
++                        CriteriaTriggers.INVENTORY_CHANGED.trigger(ServerPlayer.this, ServerPlayer.this.getInventory(), stack);
++                        return;
++                    }
++                    io.papermc.paper.event.player.PlayerInventorySlotChangeEvent event = new io.papermc.paper.event.player.PlayerInventorySlotChangeEvent(
++                            ServerPlayer.this.getBukkitEntity(),
++                            dataSlotIndex,
++                            org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(oldStack),
++                            org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(stack)
++                    );
++                    event.callEvent();
++                    if (event.shouldTriggerAdvancements()) {
++                        CriteriaTriggers.INVENTORY_CHANGED.trigger(ServerPlayer.this, ServerPlayer.this.getInventory(), stack);
++                    }
++                }
++            }
++        }
++        // Paper end - Add PlayerInventorySlotChangeEvent
++
+         @Override
+         public void dataChanged(AbstractContainerMenu container, int id, int value) {
+         }
+@@ -362,10 +_,86 @@
          public void sendSystemMessage(Component message) {
              ServerPlayer.this.sendSystemMessage(message);
          }
@@ -203,15 +250,16 @@
 +        return this.viewDistanceHolder;
 +    }
 +    // Paper end - rewrite chunk system
-+
  
      public ServerPlayer(MinecraftServer server, ServerLevel level, GameProfile gameProfile, ClientInformation clientInformation) {
          super(level, gameProfile);
-@@ -378,12 +_,28 @@
+@@ -376,14 +_,29 @@
+         this.recipeBook = new ServerRecipeBook((id, output) -> server.getRecipeManager().listDisplaysForRecipe(id, output));
+         this.stats = server.getPlayerList().getPlayerStats(this);
          this.advancements = server.getPlayerList().getPlayerAdvancements(this);
-         this.updateOptions(clientInformation);
+-        this.updateOptions(clientInformation);
++        this.updateOptionsNoEvents(clientInformation); // Paper - don't call options events on login
          this.object = null;
-+
 +        // CraftBukkit start
 +        this.displayName = this.getScoreboardName();
 +        this.adventure$displayName = net.kyori.adventure.text.Component.text(this.getScoreboardName()); // Paper
@@ -237,7 +285,7 @@
          return BlockPos.containing(future.join());
      }
  
-@@ -396,11 +_,21 @@
+@@ -396,6 +_,7 @@
          this.seenCredits = input.getBooleanOr("seenCredits", false);
          input.read("recipeBook", ServerRecipeBook.Packed.CODEC)
              .ifPresent(p -> this.recipeBook.loadUntrusted(p, id -> this.server.getRecipeManager().byKey(id).isPresent()));
@@ -245,46 +293,57 @@
          if (this.isSleeping()) {
              this.stopSleeping();
          }
- 
+@@ -403,12 +_,26 @@
          this.respawnConfig = input.read("respawn", ServerPlayer.RespawnConfig.CODEC).orElse(null);
-+        // CraftBukkit start
-+        String spawnWorld = input.getStringOr("SpawnWorld", "");
-+        CraftWorld oldWorld = (CraftWorld) Bukkit.getWorld(spawnWorld);
-+        if (oldWorld != null) {
-+            ServerPlayer.RespawnConfig respawnConfig = this.respawnConfig;
-+            LevelData.RespawnData respawnData = respawnConfig.respawnData();
-+            this.respawnConfig = new RespawnConfig(LevelData.RespawnData.of(oldWorld.getHandle().dimension(), respawnData.pos(), respawnData.yaw(), respawnData.pitch()), respawnConfig.forced());
-+        }
-+        // CraftBukkit end
          this.spawnExtraParticlesOnFall = input.getBooleanOr("spawn_extra_particles_on_fall", false);
          this.raidOmenPosition = input.read("raid_omen_position", BlockPos.CODEC).orElse(null);
-         this.gameMode
-@@ -421,6 +_,7 @@
-         output.store("recipeBook", ServerRecipeBook.Packed.CODEC, this.recipeBook.pack());
-         output.putString("Dimension", this.level().dimension().identifier().toString());
-         output.storeNullable("respawn", ServerPlayer.RespawnConfig.CODEC, this.respawnConfig);
+-        this.gameMode
+-            .setGameModeForPlayer(this.calculateGameModeForNewPlayer(readPlayerMode(input, "playerGameType")), readPlayerMode(input, "previousPlayerGameType"));
++        this.loadGameTypes(input); // Paper - Expand PlayerGameModeChangeEvent
+         this.setShoulderEntityLeft(input.read("ShoulderEntityLeft", CompoundTag.CODEC).orElseGet(CompoundTag::new));
+         this.setShoulderEntityRight(input.read("ShoulderEntityRight", CompoundTag.CODEC).orElseGet(CompoundTag::new));
+     }
+ 
++    // Paper start - Expand PlayerGameModeChangeEvent
++    private void loadGameTypes(ValueInput input) {
++        if (this.server.getForcedGameType() != null && this.server.getForcedGameType() != readPlayerMode(input, "playerGameType")) {
++            if (new org.bukkit.event.player.PlayerGameModeChangeEvent(this.getBukkitEntity(), org.bukkit.GameMode.getByValue(this.server.getDefaultGameType().getId()), org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.DEFAULT_GAMEMODE, null).callEvent()) {
++                this.gameMode.setGameModeForPlayer(this.server.getForcedGameType(), GameType.DEFAULT_MODE);
++            } else {
++                this.gameMode.setGameModeForPlayer(readPlayerMode(input, "playerGameType"), readPlayerMode(input, "previousPlayerGameType"));
++            }
++            return;
++        }
++        this.gameMode
++                .setGameModeForPlayer(this.calculateGameModeForNewPlayer(readPlayerMode(input, "playerGameType")), readPlayerMode(input, "previousPlayerGameType"));
++    }
++    // Paper end - Expand PlayerGameModeChangeEvent
++
+     @Override
+     protected void addAdditionalSaveData(ValueOutput output) {
+         super.addAdditionalSaveData(output);
+@@ -431,12 +_,24 @@
+         if (!this.getShoulderEntityRight().isEmpty()) {
+             output.store("ShoulderEntityRight", CompoundTag.CODEC, this.getShoulderEntityRight());
+         }
 +        this.getBukkitEntity().setExtraData(output); // CraftBukkit
-         output.putBoolean("spawn_extra_particles_on_fall", this.spawnExtraParticlesOnFall);
-         output.storeNullable("raid_omen_position", BlockPos.CODEC, this.raidOmenPosition);
-         this.saveEnderPearls(output);
-@@ -436,7 +_,20 @@
+     }
+ 
      private void saveParentVehicle(ValueOutput playerOutput) {
          Entity rootVehicle = this.getRootVehicle();
          Entity vehicle = this.getVehicle();
 -        if (vehicle != null && rootVehicle != this && rootVehicle.hasExactlyOnePlayerPassenger()) {
-+
 +        // CraftBukkit start - handle non-persistent vehicles
 +        boolean persistVehicle = true;
 +        if (vehicle != null) {
-+            for (Entity v = vehicle; v != null; v = v.getVehicle()) {
-+                if (!v.persist) {
++            for (Entity topVehicle = vehicle; topVehicle != null; topVehicle = topVehicle.getVehicle()) {
++                if (!topVehicle.persist) {
 +                    persistVehicle = false;
 +                    break;
 +                }
 +            }
 +        }
-+
-+        if (persistVehicle && vehicle != null && rootVehicle != this && rootVehicle.hasExactlyOnePlayerPassenger()) {
++        if (persistVehicle && vehicle != null && rootVehicle != this && rootVehicle.hasExactlyOnePlayerPassenger() && !rootVehicle.isRemoved()) { // Paper - Ensure valid vehicle status
 +            // CraftBukkit end
              ValueOutput vehicleWrapper = playerOutput.child("RootVehicle");
              vehicleWrapper.store("Attach", UUIDUtil.CODEC, vehicle.getUUID());
@@ -302,6 +361,14 @@
                      }
                  }
              }
+@@ -480,6 +_,7 @@
+             ValueOutput.ValueOutputList pearlsOutput = playerOutput.childrenList("ender_pearls");
+ 
+             for (ThrownEnderpearl enderPearl : this.enderPearls) {
++                if (enderPearl.level().paperConfig().misc.legacyEnderPearlBehavior) continue; // Paper - Allow using old ender pearl behavior
+                 if (enderPearl.isRemoved()) {
+                     LOGGER.warn("Trying to save removed ender pearl, skipping");
+                 } else {
 @@ -514,6 +_,20 @@
          }
      }
@@ -343,6 +410,41 @@
          this.connection.tickClientLoadTimeout();
          this.gameMode.tick();
          this.wardenSpawnTracker.tick();
+@@ -585,9 +_,18 @@
+             this.invulnerableTime--;
+         }
+ 
+-        this.containerMenu.broadcastChanges();
+-        if (!this.containerMenu.stillValid(this)) {
+-            this.closeContainer();
++        // Paper start - Configurable container update tick rate
++        if (--this.containerUpdateDelay <= 0) {
++            this.containerMenu.broadcastChanges();
++            // Broadcast equipment and crafting slots when the player is in a container, fixes MC-297508
++            if (this.containerMenu != this.inventoryMenu) {
++                this.inventoryMenu.broadcastNonContainerSlotChanges();
++            }
++            this.containerUpdateDelay = this.level().paperConfig().tickRates.containerUpdate;
++        }
++        // Paper end - Configurable container update tick rate
++        if (this.containerMenu != this.inventoryMenu && (this.isImmobile() || !this.containerMenu.stillValid(this))) { // Paper - Prevent opening inventories when frozen
++            this.closeContainer(org.bukkit.event.inventory.InventoryCloseEvent.Reason.CANT_USE); // Paper - Inventory close reason
+             this.containerMenu = this.inventoryMenu;
+         }
+ 
+@@ -646,10 +_,10 @@
+ 
+     public void doTick() {
+         try {
+-            if (!this.isSpectator() || !this.touchingUnloadedChunk()) {
++            if (this.valid && (!this.isSpectator() || !this.touchingUnloadedChunk())) { // Paper - don't tick dead players that are not in the world currently (pending respawn)
+                 super.tick();
+                 if (!this.containerMenu.stillValid(this)) {
+-                    this.closeContainer();
++                    this.closeContainer(org.bukkit.event.inventory.InventoryCloseEvent.Reason.CANT_USE); // Paper - Inventory close reason
+                     this.containerMenu = this.inventoryMenu;
+                 }
+ 
 @@ -665,7 +_,26 @@
                  }
  
@@ -441,6 +543,16 @@
                  }
  
                  float saturation = this.foodData.getSaturationLevel();
+@@ -767,7 +_,8 @@
+         this.playShoulderEntityAmbientSound(this.getShoulderEntityLeft());
+         this.playShoulderEntityAmbientSound(this.getShoulderEntityRight());
+         if (this.fallDistance > 0.5 || this.isInWater() || this.getAbilities().flying || this.isSleeping() || this.isInPowderSnow) {
+-            this.removeEntitiesOnShoulder();
++            if (!this.level().paperConfig().entities.behavior.parrotsAreUnaffectedByPlayerMovement) // Paper - Add option to make parrots stay
++                this.removeEntitiesOnShoulder();
+         }
+     }
+ 
 @@ -811,32 +_,61 @@
      @Override
      public void removeEntitiesOnShoulder() {
@@ -518,14 +630,83 @@
      }
  
      @Override
-@@ -882,16 +_,67 @@
+@@ -879,28 +_,111 @@
+         this.level().getScoreboard().forAllObjectives(criteria, this, score -> score.set(value));
+     }
+ 
++    // Paper start - PlayerDeathEvent#getItemsToKeep
++    private static boolean shouldKeepDeathEventItem(
++            final org.bukkit.event.entity.PlayerDeathEvent event,
++            final ItemStack item
++    ) {
++        final List<org.bukkit.inventory.ItemStack> itemsToKeep = event.getItemsToKeep();
++        if (EnchantmentHelper.has(item, net.minecraft.world.item.enchantment.EnchantmentEffectComponents.PREVENT_EQUIPMENT_DROP) || itemsToKeep.isEmpty() || item.isEmpty()) {
++            return false;
++        }
++
++        final org.bukkit.inventory.ItemStack bukkitStack = item.getBukkitStack();
++        final java.util.Iterator<org.bukkit.inventory.ItemStack> iterator = itemsToKeep.iterator();
++        while (iterator.hasNext()) {
++            final org.bukkit.inventory.ItemStack itemStack = iterator.next();
++            if (bukkitStack.equals(itemStack)) {
++                iterator.remove();
++                return true;
++            }
++        }
++
++        return false;
++    }
++    // Paper end - PlayerDeathEvent#getItemsToKeep
++    // Paper start - Expand PlayerDeathEvent API
++    private void sendClientboundPlayerCombatKillPacket(boolean displayMessage, Component deathMessage) {
++        if (displayMessage && deathMessage != CommonComponents.EMPTY) {
++            // Paper - moved from below die(DamageSource) method
++            this.connection
++                    .send(
++                            new ClientboundPlayerCombatKillPacket(this.getId(), deathMessage),
++                            PacketSendListener.exceptionallySend(
++                                    () -> {
++                                        int truncatedMessageSize = 256;
++                                        String truncatedDeathMessage = deathMessage.getString(256);
++                                        Component explanation = Component.translatable(
++                                                "death.attack.message_too_long", Component.literal(truncatedDeathMessage).withStyle(ChatFormatting.YELLOW)
++                                        );
++                                        Component fakeDeathMessage = Component.translatable("death.attack.even_more_magic", this.getDisplayName())
++                                                .withStyle(style -> style.withHoverEvent(new HoverEvent.ShowText(explanation)));
++                                        return new ClientboundPlayerCombatKillPacket(this.getId(), fakeDeathMessage);
++                                    }
++                            )
++                    );
++        } else {
++            this.connection.send(new ClientboundPlayerCombatKillPacket(this.getId(), CommonComponents.EMPTY));
++        }
++    }
++    // Paper end - Expand PlayerDeathEvent API
++
      @Override
      public void die(DamageSource source) {
-         this.gameEvent(GameEvent.ENTITY_DIE);
+-        this.gameEvent(GameEvent.ENTITY_DIE);
++        // this.gameEvent(GameEvent.ENTITY_DIE); // Paper - move below event cancellation check
 +        if (net.neoforged.neoforge.common.CommonHooks.onLivingDeath(this, source)) return;
          boolean showDeathMessage = this.level().getGameRules().get(GameRules.SHOW_DEATH_MESSAGES);
 -        if (showDeathMessage) {
 -            Component deathMessage = this.getCombatTracker().getDeathMessage();
+-            this.connection
+-                .send(
+-                    new ClientboundPlayerCombatKillPacket(this.getId(), deathMessage),
+-                    PacketSendListener.exceptionallySend(
+-                        () -> {
+-                            int truncatedMessageSize = 256;
+-                            String truncatedDeathMessage = deathMessage.getString(256);
+-                            Component explanation = Component.translatable(
+-                                "death.attack.message_too_long", Component.literal(truncatedDeathMessage).withStyle(ChatFormatting.YELLOW)
+-                            );
+-                            Component fakeDeathMessage = Component.translatable("death.attack.even_more_magic", this.getDisplayName())
+-                                .withStyle(style -> style.withHoverEvent(new HoverEvent.ShowText(explanation)));
+-                            return new ClientboundPlayerCombatKillPacket(this.getId(), fakeDeathMessage);
+-                        }
+-                    )
+-                );
 +        // CraftBukkit start - fire PlayerDeathEvent
 +        if (this.isRemoved()) {
 +            return;
@@ -551,8 +732,7 @@
 +
 +        Component defaultMessage = this.getCombatTracker().getDeathMessage();
 +
-+        String deathmessage = defaultMessage.getString();
-+        keepLevel = keepInventory; // SPIGOT-2222: pre-set keepLevel
++        this.keepLevel = keepInventory; // SPIGOT-2222: pre-set keepLevel
 +        org.bukkit.event.entity.PlayerDeathEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerDeathEvent(this, source, loot, io.papermc.paper.adventure.PaperAdventure.asAdventure(defaultMessage), showDeathMessage, keepInventory); // Paper - Adventure; Expand PlayerDeathEvent API
 +        // Paper start - cancellable death event
 +        if (event.isCancelled()) {
@@ -564,83 +744,132 @@
 +        }
 +        this.gameEvent(GameEvent.ENTITY_DIE); // moved from the top of this method
 +        // Paper end
++
 +        // SPIGOT-943 - only call if they have an inventory open
 +        if (this.containerMenu != this.inventoryMenu) {
-+            this.closeContainer();
++            this.closeContainer(org.bukkit.event.inventory.InventoryCloseEvent.Reason.DEATH); // Paper - Inventory close reason
 +        }
 +
-+        String deathMessage = event.getDeathMessage();
++        net.kyori.adventure.text.Component apiDeathMessage = event.deathMessage() != null ? event.deathMessage() : net.kyori.adventure.text.Component.empty(); // Paper - Adventure
++        Component deathScreenMessage = io.papermc.paper.adventure.PaperAdventure.asVanilla(event.deathScreenMessageOverride() != null ? event.deathScreenMessageOverride() : apiDeathMessage); // Paper - Expand PlayerDeathEvent API
 +
-+        if (deathMessage != null && deathMessage.length() > 0 && showDeathMessage) { // TODO: allow plugins to override?
-+            Component component;
-+            if (deathMessage.equals(deathmessage)) {
-+                component = this.getCombatTracker().getDeathMessage();
-+            } else {
-+                component = org.bukkit.craftbukkit.util.CraftChatMessage.fromStringOrNull(deathMessage);
-+            }
-             this.connection
-                 .send(
--                    new ClientboundPlayerCombatKillPacket(this.getId(), deathMessage),
-+                    new ClientboundPlayerCombatKillPacket(this.getId(), component),
-                     PacketSendListener.exceptionallySend(
-                         () -> {
-                             int truncatedMessageSize = 256;
--                            String truncatedDeathMessage = deathMessage.getString(256);
-+                            String truncatedDeathMessage = component.getString(256);
-                             Component explanation = Component.translatable(
-                                 "death.attack.message_too_long", Component.literal(truncatedDeathMessage).withStyle(ChatFormatting.YELLOW)
-                             );
-@@ -903,26 +_,33 @@
-                 );
++        if (apiDeathMessage != null && apiDeathMessage != net.kyori.adventure.text.Component.empty() && event.getShowDeathMessages()) { // Paper - Adventure; Expand PlayerDeathEvent API
++            Component deathMessage = io.papermc.paper.adventure.PaperAdventure.asVanilla(apiDeathMessage); // Paper - Adventure
++
++            // Paper - moved up to sendClientboundPlayerCombatKillPacket()
++            this.sendClientboundPlayerCombatKillPacket(event.getShowDeathMessages(), deathScreenMessage); // Paper - Expand PlayerDeathEvent
              Team team = this.getTeam();
              if (team == null || team.getDeathMessageVisibility() == Team.Visibility.ALWAYS) {
--                this.server.getPlayerList().broadcastSystemMessage(deathMessage, false);
-+                this.server.getPlayerList().broadcastSystemMessage(component, false);
-             } else if (team.getDeathMessageVisibility() == Team.Visibility.HIDE_FOR_OTHER_TEAMS) {
--                this.server.getPlayerList().broadcastSystemToTeam(this, deathMessage);
-+                this.server.getPlayerList().broadcastSystemToTeam(this, component);
-             } else if (team.getDeathMessageVisibility() == Team.Visibility.HIDE_FOR_OWN_TEAM) {
--                this.server.getPlayerList().broadcastSystemToAllExceptTeam(this, deathMessage);
-+                this.server.getPlayerList().broadcastSystemToAllExceptTeam(this, component);
+                 this.server.getPlayerList().broadcastSystemMessage(deathMessage, false);
+@@ -910,7 +_,7 @@
+                 this.server.getPlayerList().broadcastSystemToAllExceptTeam(this, deathMessage);
              }
          } else {
-             this.connection.send(new ClientboundPlayerCombatKillPacket(this.getId(), CommonComponents.EMPTY));
+-            this.connection.send(new ClientboundPlayerCombatKillPacket(this.getId(), CommonComponents.EMPTY));
++            this.sendClientboundPlayerCombatKillPacket(event.getShowDeathMessages(), deathScreenMessage); // Paper - Expand PlayerDeathEvent
          }
-+        // CraftBukkit end
  
          this.removeEntitiesOnShoulder();
-         if (this.level().getGameRules().get(GameRules.FORGIVE_DEAD_PLAYERS)) {
+@@ -918,11 +_,35 @@
              this.tellNeutralMobsThatIDied();
          }
--
+ 
 -        if (!this.isSpectator()) {
 -            this.dropAllDeathLoot(this.level(), source);
 +        // SPIGOT-5478 must be called manually now
-+        this.dropExperience(this.level(), source.getEntity());
++        if (event.shouldDropExperience()) this.dropExperience(this.level(), source.getEntity()); // Paper - tie to event
 +        // we clean the player's inventory after the EntityDeathEvent is called so plugins can get the exact state of the inventory.
 +        if (!event.getKeepInventory()) {
-+            this.getInventory().clearContent();
++            // Paper start - PlayerDeathEvent#getItemsToKeep
++            for (int i = 0; i < this.getInventory().getNonEquipmentItems().size(); i++) {
++                if (!shouldKeepDeathEventItem(event, this.getInventory().getNonEquipmentItems().get(i))) {
++                    this.getInventory().getNonEquipmentItems().set(i, net.minecraft.world.item.ItemStack.EMPTY);
++                }
++            }
++            for (final EquipmentSlot value : EquipmentSlot.VALUES) {
++                if (this.getInventory().equipment.has(value) && !shouldKeepDeathEventItem(event, this.getInventory().equipment.get(value))) {
++                    this.getInventory().equipment.set(value, net.minecraft.world.item.ItemStack.EMPTY);
++                }
++            }
++
++            // remainder of items left in toKeep - plugin added stuff on death that wasn't in the initial loot?
++            if (!event.getItemsToKeep().isEmpty()) {
++                for (org.bukkit.inventory.ItemStack itemStack : event.getItemsToKeep()) {
++                    event.getEntity().getInventory().addItem(itemStack);
++                }
++            }
++            // Paper end - PlayerDeathEvent#getItemsToKeep
          }
  
 -        this.level().getScoreboard().forAllObjectives(ObjectiveCriteria.DEATH_COUNT, this, ScoreAccess::increment);
 +        this.setCamera(this); // Remove spectated target
 +        // CraftBukkit end
 +
-+        // CraftBukkit - Get our scores instead
 +        this.level().getCraftServer().getScoreboardManager().forAllObjectives(ObjectiveCriteria.DEATH_COUNT, this, ScoreAccess::increment);
          LivingEntity killer = this.getKillCredit();
          if (killer != null) {
              this.awardStat(Stats.ENTITY_KILLED_BY.get(killer.getType()));
-@@ -955,7 +_,8 @@
-     public void awardKillScore(Entity victim, DamageSource killingBlow) {
+@@ -956,10 +_,10 @@
          if (victim != this) {
              super.awardKillScore(victim, killingBlow);
--            Scoreboard scoreboard = this.level().getScoreboard();
-+            // CraftBukkit - Get our scores instead
-+            CraftScoreboardManager scoreboard = this.level().getCraftServer().getScoreboardManager();
-             scoreboard.forAllObjectives(ObjectiveCriteria.KILL_COUNT_ALL, this, ScoreAccess::increment);
+             Scoreboard scoreboard = this.level().getScoreboard();
+-            scoreboard.forAllObjectives(ObjectiveCriteria.KILL_COUNT_ALL, this, ScoreAccess::increment);
++            this.level().getCraftServer().getScoreboardManager().forAllObjectives(ObjectiveCriteria.KILL_COUNT_ALL, this, ScoreAccess::increment); // CraftBukkit - Get our scores instead
              if (victim instanceof Player) {
                  this.awardStat(Stats.PLAYER_KILLS);
+-                scoreboard.forAllObjectives(ObjectiveCriteria.KILL_COUNT_PLAYERS, this, ScoreAccess::increment);
++                this.level().getCraftServer().getScoreboardManager().forAllObjectives(ObjectiveCriteria.KILL_COUNT_PLAYERS, this, ScoreAccess::increment); // CraftBukkit - Get our scores instead
+             } else {
+                 this.awardStat(Stats.MOB_KILLS);
+             }
+@@ -972,11 +_,11 @@
+ 
+     private void handleTeamKill(ScoreHolder source, ScoreHolder target, Map<TeamColor, ObjectiveCriteria> criteriaByTeam) {
+         Scoreboard scoreboard = this.level().getScoreboard();
+-        PlayerTeam ownTeam = scoreboard.getPlayersTeam(target.getScoreboardName());
++        PlayerTeam ownTeam = this.getBukkitEntity().getScoreboard().getHandle().getPlayersTeam(target.getScoreboardName()); // CraftBukkit
+         if (ownTeam != null && ownTeam.getColor().isPresent()) {
+             ObjectiveCriteria criteria = criteriaByTeam.get(ownTeam.getColor().get());
+             if (criteria != null) {
+-                scoreboard.forAllObjectives(criteria, source, ScoreAccess::increment);
++                this.level().getCraftServer().getScoreboardManager().forAllObjectives(criteria, source, ScoreAccess::increment); // CraftBukkit - Get our scores instead
+             }
+         }
+     }
+@@ -985,16 +_,23 @@
+     public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+         if (this.isInvulnerableTo(level, source)) {
+             return false;
+-        } else {
+-            Entity entity = source.getEntity();
+-            if (entity instanceof Player player && !this.canHarmPlayer(player)) {
+-                return false;
+-            } else {
+-                return entity instanceof AbstractArrow arrow && arrow.getOwner() instanceof Player player && !this.canHarmPlayer(player)
+-                    ? false
+-                    : super.hurtServer(level, source, damage);
+-            }
+-        }
++        }
++
++        Entity entity = source.getEntity();
++        if (!( // Paper - split the if statement. If below statement is false, hurtServer would not have been evaluated. Return false.
++                !(entity instanceof Player player && !this.canHarmPlayer(player))
++                        && !(entity instanceof AbstractArrow arrow && arrow.getOwner() instanceof Player owner && !this.canHarmPlayer(owner))
++        )) return false; // Paper - split the if statement. If below statement is false, hurtServer would not have been evaluated. Return false.
++        // Paper start - cancellable death events
++        this.queueHealthUpdatePacket = true;
++        boolean damaged = super.hurtServer(level, source, damage);
++        this.queueHealthUpdatePacket = false;
++        if (this.queuedHealthUpdatePacket != null) {
++            this.connection.send(this.queuedHealthUpdatePacket);
++            this.queuedHealthUpdatePacket = null;
++        }
++        return damaged;
++        // Paper end - cancellable death events
+     }
+ 
+     @Override
 @@ -1006,22 +_,99 @@
          return this.level().isPvpAllowed();
      }
@@ -790,186 +1019,137 @@
          }
      }
  
-@@ -1090,62 +_,113 @@
+@@ -1090,7 +_,11 @@
          }
      }
  
 +    @Override
      public @Nullable ServerPlayer teleport(TeleportTransition transition) {
 +        if (this.isSleeping()) return null; // CraftBukkit - SPIGOT-3154
-+        if (!net.neoforged.neoforge.common.CommonHooks.onTravelToDimension(this, transition.newLevel().dimension())) return null;
++        if (!net.neoforged.neoforge.common.CommonHooks.onTravelToDimension(this, transition.newLevel().dimension()))
++            return null;
          if (this.isRemoved()) {
              return null;
--        }
--
--        if (transition.missingRespawnBlock()) {
--            this.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.NO_RESPAWN_BLOCK_AVAILABLE, 0.0F));
--        }
--
--        ServerLevel newLevel = transition.newLevel();
--        ServerLevel oldLevel = this.level();
--        ResourceKey<Level> lastDimension = oldLevel.dimension();
--        if (!transition.asPassenger()) {
--            this.removeVehicle();
--        }
--
--        if (newLevel.dimension() == lastDimension) {
--            this.connection.teleport(PositionMoveRotation.of(transition), transition.relatives());
-+        } else {
-+            if (transition.missingRespawnBlock()) {
-+                this.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.NO_RESPAWN_BLOCK_AVAILABLE, 0.0F));
-+            }
-+
-+            ServerLevel newLevel = transition.newLevel();
-+            ServerLevel oldLevel = this.level();
-+            ResourceKey<Level> lastDimension = oldLevel.dimension();
-+            // CraftBukkit start
-+            ResourceKey<net.minecraft.world.level.dimension.LevelStem> oldLevelTypeKey = oldLevel.getTypeKey();
-+
-+            org.bukkit.Location enter = this.getBukkitEntity().getLocation();
-+            PositionMoveRotation absolutePosition = PositionMoveRotation.calculateAbsolute(PositionMoveRotation.of(this), PositionMoveRotation.of(transition), transition.relatives());
-+            org.bukkit.Location exit = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(absolutePosition.position(), newLevel, absolutePosition.yRot(), absolutePosition.xRot());
-+            final org.bukkit.event.player.PlayerTeleportEvent tpEvent;
-+            // Paper start - gateway-specific teleport event
-+            if (this.portalProcess != null && this.portalProcess.isSamePortal(((net.minecraft.world.level.block.EndGatewayBlock) net.minecraft.world.level.block.Blocks.END_GATEWAY)) && this.level().getBlockEntity(this.portalProcess.getEntryPosition()) instanceof net.minecraft.world.level.block.entity.TheEndGatewayBlockEntity theEndGatewayBlockEntity) {
-+                tpEvent = new com.destroystokyo.paper.event.player.PlayerTeleportEndGatewayEvent(this.getBukkitEntity(), enter, exit.clone(), new org.bukkit.craftbukkit.block.CraftEndGateway(this.level().getWorld(), theEndGatewayBlockEntity));
-+            } else {
-+                tpEvent = new org.bukkit.event.player.PlayerTeleportEvent(this.getBukkitEntity(), enter, exit.clone(), transition.cause());
-+            }
-+            // Paper end - gateway-specific teleport event
-+            org.bukkit.Bukkit.getServer().getPluginManager().callEvent(tpEvent);
-+            org.bukkit.Location newExit = tpEvent.getTo();
-+            if (tpEvent.isCancelled()) {
-+                return null;
-+            }
-+            if (!newExit.equals(exit)) {
-+                newLevel = ((org.bukkit.craftbukkit.CraftWorld) newExit.getWorld()).getHandle();
-+                transition = new TeleportTransition(
-+                        newLevel,
-+                        org.bukkit.craftbukkit.util.CraftLocation.toVec3(newExit),
-+                        Vec3.ZERO,
-+                        newExit.getYaw(),
-+                        newExit.getPitch(),
-+                        transition.missingRespawnBlock(),
-+                        transition.asPassenger(),
-+                        Set.of(),
-+                        transition.postTeleportTransition(),
-+                        transition.cause());
-+            }
-+            // CraftBukkit end
-+            if (!transition.asPassenger()) {
-+                this.removeVehicle();
-+            }
-+
-+            if (newLevel.dimension() == lastDimension) {
-+                this.connection.internalTeleport(PositionMoveRotation.of(transition), transition.relatives()); // CraftBukkit
-+                this.connection.resetPosition();
-+                transition.postTeleportTransition().onTransition(this);
-+                return this;
-+            }
-+
-+            this.isChangingDimension = true;
-+            LevelData levelData = newLevel.getLevelData();
-+            this.connection.send(new ClientboundRespawnPacket(this.createCommonSpawnInfo(newLevel), (byte) 3));
-+            this.connection.send(new ClientboundChangeDifficultyPacket(levelData.getDifficulty(), levelData.isDifficultyLocked()));
-+            PlayerList playerList = this.server.getPlayerList();
-+            playerList.sendPlayerPermissionLevel(this);
-+            this.portalProcess = null; // SPIGOT-7785: there is no need to carry this over as it contains the old world/location and we might run into trouble if there is a portal in the same spot in both worlds
-+            oldLevel.removePlayerImmediately(this, Entity.RemovalReason.CHANGED_DIMENSION);
-+            this.revive();
-+            ProfilerFiller profiler = Profiler.get();
-+            profiler.push("moving");
-+            if (oldLevelTypeKey == net.minecraft.world.level.dimension.LevelStem.OVERWORLD && newLevel.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.NETHER) { // CraftBukkit - empty to fall through to null to event
-+                this.enteredNetherPosition = this.position();
-+            }
-+
-+            profiler.pop();
-+            profiler.push("placing");
-+            this.setServerLevel(newLevel);
-+            this.connection.internalTeleport(PositionMoveRotation.of(transition), transition.relatives()); // CraftBukkit - use internal teleport without event
-             this.connection.resetPosition();
-+            newLevel.addDuringTeleport(this);
-+            profiler.pop();
-+            this.triggerDimensionChangeTriggers(oldLevel);
-+            this.stopUsingItem();
-+            this.connection.send(new ClientboundPlayerAbilitiesPacket(this.getAbilities()));
-+            playerList.sendLevelInfo(this, newLevel);
-+            playerList.sendAllPlayerInfo(this);
-+            playerList.sendActivePlayerEffects(this);
-+            // TODO 1.21: Play custom teleport sound
-             transition.postTeleportTransition().onTransition(this);
-+            this.lastSentExp = -1;
-+            this.lastSentHealth = -1.0F;
-+            this.lastSentFood = -1;
-+            // CraftBukkit start
-+            org.bukkit.event.player.PlayerChangedWorldEvent changeEvent = new org.bukkit.event.player.PlayerChangedWorldEvent(this.getBukkitEntity(), oldLevel.getWorld());
-+            this.level().getCraftServer().getPluginManager().callEvent(changeEvent);
-+            // CraftBukkit end
-+            // Paper start - Reset shield blocking on dimension change
-+            if (this.isBlocking()) {
-+                this.stopUsingItem();
-+            }
-+            // Paper end - Reset shield blocking on dimension change
-+            this.teleportSpectators(transition, oldLevel);
-+            // Neo: On the client all attachments are lost on dimension change and need to be re-sent
-+            net.neoforged.neoforge.attachment.AttachmentSync.syncInitialPlayerAttachments(this);
-+            net.neoforged.neoforge.event.EventHooks.firePlayerChangedDimensionEvent(this, lastDimension, transition.newLevel().dimension());
-             return this;
          }
--
--        this.isChangingDimension = true;
--        LevelData levelData = newLevel.getLevelData();
+@@ -1102,12 +_,46 @@
+         ServerLevel newLevel = transition.newLevel();
+         ServerLevel oldLevel = this.level();
+         ResourceKey<Level> lastDimension = oldLevel.dimension();
++        // CraftBukkit start
++        ResourceKey<net.minecraft.world.level.dimension.LevelStem> oldLevelTypeKey = oldLevel.getTypeKey();
++
++        org.bukkit.Location enter = this.getBukkitEntity().getLocation();
++        PositionMoveRotation absolutePosition = PositionMoveRotation.calculateAbsolute(PositionMoveRotation.of(this), PositionMoveRotation.of(transition), transition.relatives());
++        org.bukkit.Location exit = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(absolutePosition.position(), newLevel, absolutePosition.yRot(), absolutePosition.xRot());
++        final org.bukkit.event.player.PlayerTeleportEvent tpEvent;
++        // Paper start - gateway-specific teleport event
++        if (this.portalProcess != null && this.portalProcess.isSamePortal(((net.minecraft.world.level.block.EndGatewayBlock) net.minecraft.world.level.block.Blocks.END_GATEWAY)) && this.level().getBlockEntity(this.portalProcess.getEntryPosition()) instanceof net.minecraft.world.level.block.entity.TheEndGatewayBlockEntity theEndGatewayBlockEntity) {
++            tpEvent = new com.destroystokyo.paper.event.player.PlayerTeleportEndGatewayEvent(this.getBukkitEntity(), enter, exit.clone(), new org.bukkit.craftbukkit.block.CraftEndGateway(this.level().getWorld(), theEndGatewayBlockEntity));
++        } else {
++            tpEvent = new org.bukkit.event.player.PlayerTeleportEvent(this.getBukkitEntity(), enter, exit.clone(), transition.cause());
++        }
++        // Paper end - gateway-specific teleport event
++        org.bukkit.Bukkit.getServer().getPluginManager().callEvent(tpEvent);
++        org.bukkit.Location newExit = tpEvent.getTo();
++        if (tpEvent.isCancelled()) {
++            return null;
++        }
++        if (!newExit.equals(exit)) {
++            newLevel = ((org.bukkit.craftbukkit.CraftWorld) newExit.getWorld()).getHandle();
++            transition = new TeleportTransition(
++                    newLevel,
++                    org.bukkit.craftbukkit.util.CraftLocation.toVec3(newExit),
++                    Vec3.ZERO,
++                    newExit.getYaw(),
++                    newExit.getPitch(),
++                    transition.missingRespawnBlock(),
++                    transition.asPassenger(),
++                    Set.of(),
++                    transition.postTeleportTransition(),
++                    transition.cause());
++        }
++        // CraftBukkit end
+         if (!transition.asPassenger()) {
+             this.removeVehicle();
+         }
+ 
+         if (newLevel.dimension() == lastDimension) {
+-            this.connection.teleport(PositionMoveRotation.of(transition), transition.relatives());
++            this.connection.internalTeleport(PositionMoveRotation.of(transition), transition.relatives()); // CraftBukkit
+             this.connection.resetPosition();
+             transition.postTeleportTransition().onTransition(this);
+             return this;
+@@ -1115,22 +_,23 @@
+ 
+         this.isChangingDimension = true;
+         LevelData levelData = newLevel.getLevelData();
 -        this.connection.send(new ClientboundRespawnPacket(this.createCommonSpawnInfo(newLevel), (byte)3));
--        this.connection.send(new ClientboundChangeDifficultyPacket(levelData.getDifficulty(), levelData.isDifficultyLocked()));
--        PlayerList playerList = this.server.getPlayerList();
--        playerList.sendPlayerPermissionLevel(this);
--        oldLevel.removePlayerImmediately(this, Entity.RemovalReason.CHANGED_DIMENSION);
++        this.connection.send(new ClientboundRespawnPacket(this.createCommonSpawnInfo(newLevel), (byte) 3));
+         this.connection.send(new ClientboundChangeDifficultyPacket(levelData.getDifficulty(), levelData.isDifficultyLocked()));
+         PlayerList playerList = this.server.getPlayerList();
+         playerList.sendPlayerPermissionLevel(this);
++        this.portalProcess = null; // SPIGOT-7785: there is no need to carry this over as it contains the old world/location and we might run into trouble if there is a portal in the same spot in both worlds
+         oldLevel.removePlayerImmediately(this, Entity.RemovalReason.CHANGED_DIMENSION);
 -        this.unsetRemoved();
--        ProfilerFiller profiler = Profiler.get();
--        profiler.push("moving");
++        this.revive();
+         ProfilerFiller profiler = Profiler.get();
+         profiler.push("moving");
 -        if (lastDimension == Level.OVERWORLD && newLevel.dimension() == Level.NETHER) {
--            this.enteredNetherPosition = this.position();
--        }
--
--        profiler.pop();
--        profiler.push("placing");
--        this.setServerLevel(newLevel);
++        if (oldLevelTypeKey == net.minecraft.world.level.dimension.LevelStem.OVERWORLD && newLevel.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.NETHER) { // CraftBukkit - empty to fall through to null to event
+             this.enteredNetherPosition = this.position();
+         }
+ 
+         profiler.pop();
+         profiler.push("placing");
+         this.setServerLevel(newLevel);
 -        this.connection.teleport(PositionMoveRotation.of(transition), transition.relatives());
--        this.connection.resetPosition();
--        newLevel.addDuringTeleport(this);
--        profiler.pop();
--        this.triggerDimensionChangeTriggers(oldLevel);
--        this.stopUsingItem();
--        this.connection.send(new ClientboundPlayerAbilitiesPacket(this.getAbilities()));
--        playerList.sendLevelInfo(this, newLevel);
--        playerList.sendAllPlayerInfo(this);
--        playerList.sendActivePlayerEffects(this);
--        transition.postTeleportTransition().onTransition(this);
--        this.lastSentExp = -1;
--        this.lastSentHealth = -1.0F;
--        this.lastSentFood = -1;
--        this.teleportSpectators(transition, oldLevel);
--        return this;
++        this.connection.internalTeleport(PositionMoveRotation.of(transition), transition.relatives()); // CraftBukkit - use internal teleport without event
+         this.connection.resetPosition();
+         newLevel.addDuringTeleport(this);
+         profiler.pop();
+@@ -1140,11 +_,24 @@
+         playerList.sendLevelInfo(this, newLevel);
+         playerList.sendAllPlayerInfo(this);
+         playerList.sendActivePlayerEffects(this);
++        // TODO 1.21: Play custom teleport sound
+         transition.postTeleportTransition().onTransition(this);
+         this.lastSentExp = -1;
+         this.lastSentHealth = -1.0F;
+         this.lastSentFood = -1;
++        // CraftBukkit start
++        org.bukkit.event.player.PlayerChangedWorldEvent changeEvent = new org.bukkit.event.player.PlayerChangedWorldEvent(this.getBukkitEntity(), oldLevel.getWorld());
++        this.level().getCraftServer().getPluginManager().callEvent(changeEvent);
++        // CraftBukkit end
++        // Paper start - Reset shield blocking on dimension change
++        if (this.isBlocking()) {
++            this.stopUsingItem();
++        }
++        // Paper end - Reset shield blocking on dimension change
+         this.teleportSpectators(transition, oldLevel);
++        // Neo: On the client all attachments are lost on dimension change and need to be re-sent
++        net.neoforged.neoforge.attachment.AttachmentSync.syncInitialPlayerAttachments(this);
++        net.neoforged.neoforge.event.EventHooks.firePlayerChangedDimensionEvent(this, lastDimension, transition.newLevel().dimension());
+         return this;
      }
  
-     @Override
-@@ -1155,14 +_,23 @@
-     }
- 
+@@ -1157,23 +_,33 @@
      public void triggerDimensionChangeTriggers(ServerLevel oldLevel) {
--        ResourceKey<Level> oldKey = oldLevel.dimension();
--        ResourceKey<Level> newKey = this.level().dimension();
+         ResourceKey<Level> oldKey = oldLevel.dimension();
+         ResourceKey<Level> newKey = this.level().dimension();
 -        CriteriaTriggers.CHANGED_DIMENSION.trigger(this, oldKey, newKey);
 -        if (oldKey == Level.NETHER && newKey == Level.OVERWORLD && this.enteredNetherPosition != null) {
-+        ResourceKey<Level> resourcekey = oldLevel.dimension();
-+        ResourceKey<Level> resourcekey1 = this.level().dimension();
 +        // CraftBukkit start
-+        ResourceKey<Level> maindimensionkey = CraftDimensionUtil.getMainDimensionKey(oldLevel);
-+        ResourceKey<Level> maindimensionkey1 = CraftDimensionUtil.getMainDimensionKey(this.level());
-+
++        ResourceKey<Level> maindimensionkey = org.bukkit.craftbukkit.util.CraftDimensionUtil.getMainDimensionKey(oldLevel);
++        ResourceKey<Level> maindimensionkey1 = org.bukkit.craftbukkit.util.CraftDimensionUtil.getMainDimensionKey(this.level());
++        // Paper start - Add option for strict advancement dimension checks
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().misc.strictAdvancementDimensionCheck) {
++            maindimensionkey = oldKey;
++            maindimensionkey1 = newKey;
++        }
++        // Paper end - Add option for strict advancement dimension checks
 +        CriteriaTriggers.CHANGED_DIMENSION.trigger(this, maindimensionkey, maindimensionkey1);
-+        if (maindimensionkey != resourcekey || maindimensionkey1 != resourcekey1) {
-+            CriteriaTriggers.CHANGED_DIMENSION.trigger(this, resourcekey, resourcekey1);
++        if (maindimensionkey != oldKey || maindimensionkey1 != newKey) {
++            CriteriaTriggers.CHANGED_DIMENSION.trigger(this, oldKey, newKey);
 +        }
 +
 +        if (maindimensionkey == Level.NETHER && maindimensionkey1 == Level.OVERWORLD && this.enteredNetherPosition != null) {
@@ -982,34 +1162,147 @@
              this.enteredNetherPosition = null;
          }
      }
-@@ -1184,8 +_,19 @@
  
      @Override
-     public Either<Player.BedSleepingProblem, Unit> startSleepInBed(BlockPos pos) {
-+        // Neo: Encapsulate the vanilla check logic to supply to the CanPlayerSleepEvent
-+        var vanillaResult = ((java.util.function.Supplier<Either<BedSleepingProblem, Unit>>) () -> {
-+        // Guard against modded beds that may not have the FACING property.
-+        // We just return success (Unit) here. Modders will need to implement conditions in the CanPlayerSleepEvent
-+        if (!this.level().getBlockState(pos).hasProperty(HorizontalDirectionalBlock.FACING)) {
-+            return Either.right(Unit.INSTANCE);
-+        }
-+
-+        // Start vanilla code
-         Direction direction = this.level().getBlockState(pos).getValue(HorizontalDirectionalBlock.FACING);
--        if (!this.isSleeping() && this.isAlive()) {
-+        if (this.isSleeping() || !this.isAlive()) {
-+            return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
-+        } else {
+     public boolean broadcastToPlayer(ServerPlayer player) {
+-        if (player.isSpectator()) {
+-            return this.getCamera() == this;
+-        } else {
+-            return this.isSpectator() ? false : super.broadcastToPlayer(player);
+-        }
++        return player.isSpectator() ? this.getCamera() == this : !this.isSpectator() && super.broadcastToPlayer(player);
+     }
+ 
+     @Override
+@@ -1182,9 +_,10 @@
+         this.containerMenu.broadcastChanges();
+     }
+ 
+-    @Override
+-    public Either<Player.BedSleepingProblem, Unit> startSleepInBed(BlockPos pos) {
+-        Direction direction = this.level().getBlockState(pos).getValue(HorizontalDirectionalBlock.FACING);
++    // CraftBukkit start - moved bed result checks from below into separate method
++    private Either<Player.BedSleepingProblem, Unit> getBedResult(final BlockPos pos, final Direction direction) {
++        BedRule bedRule = this.level().environmentAttributes().getValue(EnvironmentAttributes.BED_RULE, pos);
++        if (bedRule.explodes()) return Either.left(Player.BedSleepingProblem.EXPLOSION);
+         if (!this.isSleeping() && this.isAlive()) {
              BedRule rule = this.level().environmentAttributes().getValue(EnvironmentAttributes.BED_RULE, pos);
              boolean canSleep = rule.canSleep(this.level());
-             boolean canSetSpawn = rule.canSetSpawn(this.level());
-@@ -1226,6 +_,19 @@
-                 }
-             }
+@@ -1203,29 +_,104 @@
  
-+            // End vanilla code
+             if (canSetSpawn) {
+                 this.setRespawnPosition(
+-                    new ServerPlayer.RespawnConfig(LevelData.RespawnData.of(this.level().dimension(), pos, this.getYRot(), this.getXRot()), false), true
+-                );
+-            }
+-
+-            if (!canSleep) {
+-                return Either.left(rule.asProblem());
+-            }
+-
+-            if (!this.isCreative()) {
+-                double hRange = 8.0;
+-                double vRange = 5.0;
+-                Vec3 bedCenter = Vec3.atBottomCenterOf(pos);
+-                List<Monster> monsters = this.level()
+-                    .getEntitiesOfClass(
+-                        Monster.class,
+-                        new AABB(bedCenter.x() - 8.0, bedCenter.y() - 5.0, bedCenter.z() - 8.0, bedCenter.x() + 8.0, bedCenter.y() + 5.0, bedCenter.z() + 8.0),
+-                        monster -> monster.isPreventingPlayerRest(this.level(), this)
+-                    );
+-                if (!monsters.isEmpty()) {
+-                    return Either.left(Player.BedSleepingProblem.NOT_SAFE);
+-                }
+-            }
+-
++                        new ServerPlayer.RespawnConfig(LevelData.RespawnData.of(this.level().dimension(), pos, this.getYRot(), this.getXRot()), false), true, com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.BED // Paper - Add PlayerSetSpawnEvent
++                );
++            }
++
++            if (!canSleep) {
++                return Either.left(rule.asProblem());
++            }
++
++            if (!this.isCreative()) {
++                double hRange = 8.0;
++                double vRange = 5.0;
++                Vec3 bedCenter = Vec3.atBottomCenterOf(pos);
++                List<Monster> monsters = this.level()
++                        .getEntitiesOfClass(
++                                Monster.class,
++                                new AABB(bedCenter.x() - 8.0, bedCenter.y() - 5.0, bedCenter.z() - 8.0, bedCenter.x() + 8.0, bedCenter.y() + 5.0, bedCenter.z() + 8.0),
++                                monster -> monster.isPreventingPlayerRest(this.level(), this)
++                        );
++                if (!monsters.isEmpty()) {
++                    return Either.left(Player.BedSleepingProblem.NOT_SAFE);
++                }
++            }
++
++            // CraftBukkit start
++            return Either.right(Unit.INSTANCE);
++        } else {
++            return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
 +        }
-+        return Either.right(Unit.INSTANCE);
++    }
++
++    @Override
++    public Either<Player.BedSleepingProblem, Unit> startSleepInBed(BlockPos pos) {
++        // Neo: Encapsulate the vanilla check logic to supply to the CanPlayerSleepEvent
++        var vanillaResult = ((java.util.function.Supplier<Either<BedSleepingProblem, Unit>>) () -> {
++            // Guard against modded beds that may not have the FACING property.
++            // We just return success (Unit) here. Modders will need to implement conditions in the CanPlayerSleepEvent
++            if (!this.level().getBlockState(pos).hasProperty(HorizontalDirectionalBlock.FACING)) {
++                return Either.right(Unit.INSTANCE);
++            }
++
++            // Start vanilla code
++            Direction direction = this.level().getBlockState(pos).getValue(HorizontalDirectionalBlock.FACING);
++            if (this.isSleeping() || !this.isAlive()) {
++                return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
++            }
++            BedRule rule = this.level().environmentAttributes().getValue(EnvironmentAttributes.BED_RULE, pos);
++            boolean canSleep = rule.canSleep(this.level());
++            boolean canSetSpawn = rule.canSetSpawn(this.level());
++            if (!canSetSpawn && !canSleep) {
++                return Either.left(rule.asProblem());
++            }
++
++            if (!this.bedInRange(pos, direction)) {
++                return Either.left(Player.BedSleepingProblem.TOO_FAR_AWAY);
++            }
++
++            if (this.bedBlocked(pos, direction)) {
++                return Either.left(Player.BedSleepingProblem.OBSTRUCTED);
++            }
++
++            if (canSetSpawn) {
++                this.setRespawnPosition(
++                        new ServerPlayer.RespawnConfig(LevelData.RespawnData.of(this.level().dimension(), pos, this.getYRot(), this.getXRot()), false), true
++                );
++            }
++
++            if (!canSleep) {
++                return Either.left(rule.asProblem());
++            }
++
++            if (!this.isCreative()) {
++                double hRange = 8.0;
++                double vRange = 5.0;
++                Vec3 bedCenter = Vec3.atBottomCenterOf(pos);
++                List<Monster> monsters = this.level()
++                        .getEntitiesOfClass(
++                                Monster.class,
++                                new AABB(bedCenter.x() - 8.0, bedCenter.y() - 5.0, bedCenter.z() - 8.0, bedCenter.x() + 8.0, bedCenter.y() + 5.0, bedCenter.z() + 8.0),
++                                monster -> monster.isPreventingPlayerRest(this.level(), this)
++                        );
++                if (!monsters.isEmpty()) {
++                    return Either.left(Player.BedSleepingProblem.NOT_SAFE);
++                }
++            }
++
++            // End vanilla code
++
++            return Either.right(Unit.INSTANCE);
 +        }).get();
 +
 +        // Neo: Fire the event, and return the error if one exists
@@ -1040,25 +1333,15 @@
          return this.isReachableBedBlock(pos) || this.isReachableBedBlock(pos.relative(direction.getOpposite()));
      }
  
-@@ -1265,13 +_,31 @@
+@@ -1265,19 +_,30 @@
  
      @Override
      public void stopSleepInBed(boolean forcefulWakeUp, boolean updateLevelList) {
 +        if (!this.isSleeping()) return; // CraftBukkit - Can't leave bed if not in one!
 +        // CraftBukkit start - fire PlayerBedLeaveEvent
-+        CraftPlayer player = this.getBukkitEntity();
-+        BlockPos bedPosition = this.getSleepingPos().orElse(null);
-+
-+        org.bukkit.block.Block bed;
-+        if (bedPosition != null) {
-+            bed = this.level().getWorld().getBlockAt(bedPosition.getX(), bedPosition.getY(), bedPosition.getZ());
-+        } else {
-+            bed = this.level().getWorld().getBlockAt(player.getLocation());
-+        }
-+
-+        PlayerBedLeaveEvent event = new PlayerBedLeaveEvent(player, bed, true);
-+        this.level().getCraftServer().getPluginManager().callEvent(event);
-+        if (event.isCancelled()) {
++        org.bukkit.block.Block bed = org.bukkit.craftbukkit.block.CraftBlock.at(this.level(), this.getSleepingPos().orElse(this.blockPosition()));
++        org.bukkit.event.player.PlayerBedLeaveEvent event = new org.bukkit.event.player.PlayerBedLeaveEvent(this.getBukkitEntity(), bed, true);
++        if (!event.callEvent()) {
 +            return;
 +        }
 +        // CraftBukkit end
@@ -1073,6 +1356,16 @@
          }
      }
  
+     @Override
+     public boolean isInvulnerableTo(ServerLevel level, DamageSource source) {
+-        return super.isInvulnerableTo(level, source) || this.isChangingDimension() && !source.is(DamageTypes.ENDER_PEARL) || !this.connection.hasClientLoaded();
++        // Paper start - disable player cramming
++        return (super.isInvulnerableTo(level, source) || this.isChangingDimension() && !source.is(DamageTypes.ENDER_PEARL) || !this.connection.hasClientLoaded())
++                || (!this.level().paperConfig().collisions.allowPlayerCrammingDamage && source.is(DamageTypes.CRAMMING));
++        // Paper end - disable player cramming
+     }
+ 
+     @Override
 @@ -1326,33 +_,89 @@
          this.connection.send(new ClientboundShowDialogPacket(dialog));
      }
@@ -1294,6 +1587,62 @@
      }
  
      @Override
+@@ -1541,9 +_,9 @@
+         super.jumpFromGround();
+         this.awardStat(Stats.JUMP);
+         if (this.isSprinting()) {
+-            this.causeFoodExhaustion(0.2F);
++            this.causeFoodExhaustion(this.level().spigotConfig.jumpSprintExhaustion, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.JUMP_SPRINT); // CraftBukkit - EntityExhaustionEvent // Spigot - Change to use configurable value
+         } else {
+-            this.causeFoodExhaustion(0.05F);
++            this.causeFoodExhaustion(this.level().spigotConfig.jumpWalkExhaustion, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.JUMP); // CraftBukkit - EntityExhaustionEvent // Spigot - Change to use configurable value
+         }
+     }
+ 
+@@ -1558,6 +_,13 @@
+     public void disconnect() {
+         this.disconnected = true;
+         this.ejectPassengers();
++
++        // Paper start - Workaround vehicle not tracking the passenger disconnection dismount
++        if (this.isPassenger() && this.getVehicle() instanceof ServerPlayer) {
++            this.stopRiding();
++        }
++        // Paper end - Workaround vehicle not tracking the passenger disconnection dismount
++
+         if (this.isSleeping()) {
+             this.stopSleepInBed(true, false);
+         }
+@@ -1569,6 +_,7 @@
+ 
+     public void resetSentInfo() {
+         this.lastSentHealth = -1.0E8F;
++        this.lastSentExp = -1; // CraftBukkit - Added to reset
+     }
+ 
+     @Override
+@@ -1598,18 +_,18 @@
+         this.onUpdateAbilities();
+         this.getAttributes().assignBaseValues(oldPlayer.getAttributes());
+         if (restoreAll) {
+-            this.getAttributes().assignPermanentModifiers(oldPlayer.getAttributes());
++            // this.getAttributes().assignPermanentModifiers(oldPlayer.getAttributes()); // CraftBukkit
+             this.setHealth(oldPlayer.getHealth());
+             this.foodData = oldPlayer.foodData;
+ 
+             for (MobEffectInstance effect : oldPlayer.getActiveEffects()) {
+-                this.addEffect(new MobEffectInstance(effect));
++                // this.addEffect(new MobEffectInstance(effect)); // CraftBukkit
+             }
+ 
+             this.transferInventoryXpAndScore(oldPlayer);
+             this.portalProcess = oldPlayer.portalProcess;
+         } else {
+-            this.setHealth(this.getMaxHealth());
++            // this.setHealth(this.getMaxHealth()); // CraftBukkit
+             if (this.level().getGameRules().get(GameRules.KEEP_INVENTORY) || oldPlayer.isSpectator()) {
+                 this.transferInventoryXpAndScore(oldPlayer);
+             }
 @@ -1621,7 +_,7 @@
          this.lastSentExp = -1;
          this.lastSentHealth = -1.0F;
@@ -1319,6 +1668,31 @@
      }
  
      private void transferInventoryXpAndScore(Player oldPlayer) {
+@@ -1675,9 +_,23 @@
+         CriteriaTriggers.EFFECTS_CHANGED.trigger(this, null);
+     }
+ 
++    // Paper start - use dismount cause
++    @Override
++    public void dismountTo(double x, double y, double z) {
++        this.teleportTo(x, y, z, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.DISMOUNT);
++    }
++    // Paper end - use dismount cause
++
++
+     @Override
+     public void teleportTo(double x, double y, double z) {
+-        this.connection.teleport(new PositionMoveRotation(new Vec3(x, y, z), Vec3.ZERO, 0.0F, 0.0F), Relative.union(Relative.DELTA, Relative.ROTATION));
++        // Paper start - pass cause
++        this.teleportTo(x, y, z, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN);
++    }
++
++    public void teleportTo(final double x, final double y, final double z, final org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
++        this.connection.teleport(new PositionMoveRotation(new Vec3(x, y, z), Vec3.ZERO, 0.0F, 0.0F), Relative.union(Relative.DELTA, Relative.ROTATION), cause);
++        // Paper end - pass cause
+     }
+ 
+     @Override
 @@ -1686,7 +_,7 @@
      }
  
@@ -1424,25 +1798,34 @@
          this.language = information.language();
          this.requestedViewDistance = information.viewDistance();
          this.chatVisibility = information.chatVisibility();
-@@ -1917,9 +_,16 @@
+@@ -1917,9 +_,25 @@
      public void setCamera(@Nullable Entity newCamera) {
          Entity oldCamera = this.getCamera();
          this.camera = newCamera == null ? this : newCamera;
 +        while (this.camera instanceof net.neoforged.neoforge.entity.PartEntity<?> partEntity) this.camera = partEntity.getParent(); // Neo: fix MC-46486
          if (oldCamera != this.camera) {
-             if (this.camera.level() instanceof ServerLevel level) {
--                this.teleportTo(level, this.camera.getX(), this.camera.getY(), this.camera.getZ(), Set.of(), this.getYRot(), this.getXRot(), false);
-+                // CraftBukkit start
-+                boolean result = this.teleportTo(level, this.camera.getX(), this.camera.getY(), this.camera.getZ(), Set.of(), this.getYRot(), this.getXRot(), false, PlayerTeleportEvent.TeleportCause.SPECTATE);
-+                if (!result) {
-+                    this.camera = oldCamera;
++            // Paper start - Add PlayerStartSpectatingEntityEvent and PlayerStopSpectatingEntity
++            if (this.camera == this) {
++                com.destroystokyo.paper.event.player.PlayerStopSpectatingEntityEvent spectateEvent = new com.destroystokyo.paper.event.player.PlayerStopSpectatingEntityEvent(this.getBukkitEntity(), oldCamera.getBukkitEntity());
++                if (!spectateEvent.callEvent()) {
++                    this.camera = oldCamera; // rollback camera entity again
 +                    return;
 +                }
-+                // CraftBukkit end
++            } else {
++                com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent spectateEvent = new com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent(this.getBukkitEntity(), oldCamera.getBukkitEntity(), newCamera.getBukkitEntity());
++                if (!spectateEvent.callEvent()) {
++                    this.camera = oldCamera; // rollback camera entity again
++                    return;
++                }
++            }
++            // Paper end - Add PlayerStartSpectatingEntityEvent and PlayerStopSpectatingEntity
+             if (this.camera.level() instanceof ServerLevel level) {
+-                this.teleportTo(level, this.camera.getX(), this.camera.getY(), this.camera.getZ(), Set.of(), this.getYRot(), this.getXRot(), false);
++                this.teleportTo(level, this.camera.getX(), this.camera.getY(), this.camera.getZ(), Set.of(), this.getYRot(), this.getXRot(), false, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.SPECTATE); // CraftBukkit
              }
  
              if (newCamera != null) {
-@@ -1943,11 +_,23 @@
+@@ -1943,11 +_,19 @@
      }
  
      public @Nullable Component getTabListDisplayName() {
@@ -1456,10 +1839,6 @@
 +            this.hasTabListName = true;
 +        }
 +        return this.tabListDisplayName;
-+    }
-+
-+    public void setTabListDisplayName(Component tabListDisplayName) {
-+        this.tabListDisplayName = tabListDisplayName;
      }
  
      public int getTabListOrder() {
@@ -1659,6 +2038,18 @@
      }
  
      @Override
+@@ -2135,9 +_,9 @@
+     }
+ 
+     @Override
+-    public void removeVehicle() {
++    public void removeVehicle(final boolean suppressCancellation) { // Paper - Force entity dismount during teleportation
+         Entity oldVehicle = this.getVehicle();
+-        super.removeVehicle();
++        super.removeVehicle(suppressCancellation); // Paper - Force entity dismount during teleportation
+         if (oldVehicle instanceof LivingEntity livingEntity) {
+             for (MobEffectInstance effect : livingEntity.getActiveEffects()) {
+                 this.connection.send(new ClientboundRemoveMobEffectPacket(oldVehicle.getId(), effect.getEffect()));
 @@ -2289,9 +_,11 @@
          }
      }

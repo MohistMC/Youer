@@ -123,7 +123,7 @@
          }
      }
  
-@@ -416,19 +_,26 @@
+@@ -416,19 +_,32 @@
      }
  
      private static void popResource(Level level, Supplier<ItemEntity> entityFactory, ItemStack itemStack) {
@@ -144,8 +144,15 @@
  
      public void popExperience(ServerLevel level, BlockPos pos, int amount) {
 -        if (level.getGameRules().get(GameRules.BLOCK_DROPS)) {
+-            ExperienceOrb.award(level, Vec3.atCenterOf(pos), amount);
++        // Paper start - add entity parameter
++        this.popExperience(level, pos, amount, null);
++    }
++
++    public void popExperience(ServerLevel level, BlockPos pos, int amount, net.minecraft.world.entity.@Nullable Entity entity) {
++        // Paper end - add entity parameter
 +        if (level.getGameRules().get(GameRules.BLOCK_DROPS) && !level.restoringBlockSnapshots) {
-             ExperienceOrb.award(level, Vec3.atCenterOf(pos), amount);
++            ExperienceOrb.awardWithDirection(level, Vec3.atCenterOf(pos), net.minecraft.world.phys.Vec3.ZERO, amount, org.bukkit.entity.ExperienceOrb.SpawnReason.BLOCK_BREAK, entity, null); // Paper
          }
      }
  

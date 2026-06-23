@@ -39,8 +39,24 @@
          ChunkGenerator chunkGenerator,
          RandomState randomState,
          LevelHeightAccessor heightAccessor,
-@@ -79,7 +_,7 @@
+@@ -77,9 +_,23 @@
+         this.fixerUpper = fixerUpper;
+     }
  
++    // Paper start - add missing structure salt configs
++    @Nullable
++    private Integer getSaltOverride(Structure type) {
++        if (this.heightAccessor instanceof net.minecraft.server.level.ServerLevel serverLevel) {
++            if (type instanceof net.minecraft.world.level.levelgen.structure.structures.MineshaftStructure) {
++                return serverLevel.spigotConfig.mineshaftSeed;
++            } else if (type instanceof net.minecraft.world.level.levelgen.structure.structures.BuriedTreasureStructure) {
++                return serverLevel.spigotConfig.buriedTreasureSeed;
++            }
++        }
++        return null;
++    }
++    // Paper end - add missing structure seed configs
++
      public StructureCheckResult checkStart(ChunkPos pos, Structure structure, StructurePlacement placement, boolean requireUnreferenced) {
          long posKey = pos.pack();
 -        Object2IntMap<Structure> cachedResult = this.loadedChunks.get(posKey);
@@ -48,7 +64,12 @@
          if (cachedResult != null) {
              return this.checkStructureInfo(cachedResult, structure, requireUnreferenced);
          }
-@@ -93,9 +_,11 @@
+@@ -89,13 +_,15 @@
+             return storageCheckResult;
+         }
+ 
+-        if (!placement.applyAdditionalChunkRestrictions(pos.x(), pos.z(), this.seed)) {
++        if (!placement.applyAdditionalChunkRestrictions(pos.x(), pos.z(), this.seed, this.getSaltOverride(structure))) { // Paper - add missing structure seed configs
              return StructureCheckResult.START_NOT_PRESENT;
          }
  

@@ -1,12 +1,5 @@
 --- a/net/minecraft/world/level/chunk/LevelChunkSection.java
 +++ b/net/minecraft/world/level/chunk/LevelChunkSection.java
-@@ -1,5 +_,6 @@
- package net.minecraft.world.level.chunk;
- 
-+import java.util.Objects;
- import java.util.function.Predicate;
- import net.minecraft.core.Holder;
- import net.minecraft.network.FriendlyByteBuf;
 @@ -9,14 +_,38 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.material.FluidState;
@@ -15,7 +8,7 @@
 +public class LevelChunkSection implements ca.spottedleaf.moonrise.patches.block_counting.BlockCountingChunkSection { // Paper - block counting
      public static final int BIOME_CONTAINER_BITS = 2;
 -    private short nonEmptyBlockCount;
-+    public short nonEmptyBlockCount;
++    short nonEmptyBlockCount; // Paper - package private
      private short fluidCount;
      private short tickingBlockCount;
      private short tickingFluidCount;
@@ -254,6 +247,24 @@
      }
  
      public void readBiomes(FriendlyByteBuf buffer) {
+@@ -176,10 +_,15 @@
+     }
+ 
+     public void write(FriendlyByteBuf buffer) {
++        // Paper start - Anti-Xray - Add parameters
++        this.write(buffer, null, 0);
++    }
++    public void write(final FriendlyByteBuf buffer, final io.papermc.paper.antixray.ChunkPacketInfo<BlockState> chunkPacketInfo, final int chunkSectionIndex) {
++        // Paper end - Anti-Xray - Add parameters
+         buffer.writeShort(this.nonEmptyBlockCount);
+         buffer.writeShort(this.fluidCount);
+-        this.states.write(buffer);
+-        this.biomes.write(buffer);
++        this.states.write(buffer, chunkPacketInfo, chunkSectionIndex); // Paper - Anti-Xray
++        this.biomes.write(buffer, null, chunkSectionIndex); // Paper - Anti-Xray
+     }
+ 
+     public int getSerializedSize() {
 @@ -193,6 +_,12 @@
      public Holder<Biome> getNoiseBiome(int quartX, int quartY, int quartZ) {
          return this.biomes.get(quartX, quartY, quartZ);

@@ -1,29 +1,5 @@
 --- a/net/minecraft/world/clock/ServerClockManager.java
 +++ b/net/minecraft/world/clock/ServerClockManager.java
-@@ -1,5 +_,6 @@
- package net.minecraft.world.clock;
- 
-+import com.google.common.collect.Maps;
- import it.unimi.dsi.fastutil.objects.Reference2ObjectOpenHashMap;
- import java.util.HashMap;
- import java.util.Map;
-@@ -13,6 +_,7 @@
- import net.minecraft.resources.ResourceKey;
- import net.minecraft.server.MinecraftServer;
- import net.minecraft.server.level.ServerLevel;
-+import net.minecraft.server.level.ServerPlayer;
- import net.minecraft.util.Mth;
- import net.minecraft.util.Util;
- import net.minecraft.util.datafix.DataFixTypes;
-@@ -20,6 +_,8 @@
- import net.minecraft.world.level.saveddata.SavedData;
- import net.minecraft.world.level.saveddata.SavedDataType;
- import org.apache.commons.lang3.mutable.MutableBoolean;
-+import org.bukkit.Bukkit;
-+import org.bukkit.event.world.TimeSkipEvent;
- 
- public class ServerClockManager extends SavedData implements ClockManager {
-     public static final SavedDataType<ServerClockManager> TYPE = new SavedDataType<>(
 @@ -30,6 +_,7 @@
      );
      private final PackedClockStates packedClockStates;
@@ -51,19 +27,6 @@
          server.registryAccess()
              .lookupOrThrow(Registries.TIMELINE)
              .listElements()
-@@ -52,6 +_,12 @@
-         });
-     }
- 
-+    // CraftBukkit start
-+    private static boolean isDefaultClock(ServerLevel level, Holder<WorldClock> clock) {
-+        return level.dimensionType().defaultClock().map((dimensionDefault) -> clock.is(dimensionDefault)).orElse(false);
-+    }
-+    // CraftBukkit end
-+
-     private void registerTimeMarker(ResourceKey<ClockTimeMarker> timeMarkerId, ClockTimeMarker timeMarker) {
-         this.getInstance(timeMarker.clock()).timeMarkers.put(timeMarkerId, timeMarker);
-     }
 @@ -61,9 +_,13 @@
      }
  

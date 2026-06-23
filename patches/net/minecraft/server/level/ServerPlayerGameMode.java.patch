@@ -89,16 +89,37 @@
      }
  
      private boolean isInRangeOfGround() {
-@@ -105,7 +_,7 @@
+@@ -105,10 +_,11 @@
      }
  
      public void tick() {
 -        this.gameTicks++;
-+        this.gameTicks = net.minecraft.server.MinecraftServer.currentTick; // CraftBukkit
++        // this.gameTicks = net.minecraft.server.MinecraftServer.currentTick; // CraftBukkit
++        this.gameTicks = (int) this.level.getLagCompensationTick(); // Paper - lag compensate eating
          if (this.hasDelayedDestroy) {
-             BlockState blockState = this.level.getBlockState(this.delayedDestroyPos);
+-            BlockState blockState = this.level.getBlockState(this.delayedDestroyPos);
+-            if (blockState.isAir()) {
++            BlockState blockState = this.level.getBlockStateIfLoaded(this.delayedDestroyPos); // Paper - Don't allow digging into unloaded chunks
++            if (blockState == null || blockState.isAir()) { // Paper - Don't allow digging into unloaded chunks
+                 this.hasDelayedDestroy = false;
+             } else {
+                 float destroyProgress = this.incrementDestroyProgress(blockState, this.delayedDestroyPos, this.delayedTickStart);
+@@ -118,7 +_,13 @@
+                 }
+             }
+         } else if (this.isDestroyingBlock) {
+-            BlockState blockState = this.level.getBlockState(this.destroyPos);
++            // Paper start - Don't allow digging into unloaded chunks; don't want to do same logic as above, return instead
++            BlockState blockState = this.level.getBlockStateIfLoaded(this.destroyPos);
++            if (blockState == null) {
++                this.isDestroyingBlock = false;
++                return;
++            }
++            // Paper end - Don't allow digging into unloaded chunks
              if (blockState.isAir()) {
-@@ -148,6 +_,10 @@
+                 this.level.destroyBlockProgress(this.player.getId(), this.destroyPos, -1);
+                 this.lastSentState = -1;
+@@ -148,7 +_,12 @@
      }
  
      public void handleBlockBreakAction(BlockPos pos, ServerboundPlayerActionPacket.Action action, Direction direction, int maxY, int sequence) {
@@ -107,41 +128,29 @@
 +            return;
 +        }
          if (!this.player.isWithinBlockInteractionRange(pos, 1.0)) {
++            if (true) return; // Paper - Don't allow digging into unloaded chunks; Don't notify if unreasonably far away
              this.debugLogging(pos, false, sequence, "too far");
          } else if (pos.getY() > maxY) {
-@@ -162,16 +_,50 @@
+             this.player.connection.send(new ClientboundBlockUpdatePacket(pos, this.level.getBlockState(pos)));
+@@ -162,16 +_,35 @@
                  }
  
                  if (!this.level.mayInteract(this.player, pos)) {
 +                    // CraftBukkit start - fire PlayerInteractEvent
-+                    CraftEventFactory.callPlayerInteractEvent(this.player, Action.LEFT_CLICK_BLOCK, pos, direction, this.player.getInventory().getSelectedItem(), InteractionHand.MAIN_HAND);
++                    org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent(this.player, org.bukkit.event.block.Action.LEFT_CLICK_BLOCK, pos, direction, this.player.getInventory().getSelectedItem(), InteractionHand.MAIN_HAND);
                      this.player.connection.send(new ClientboundBlockUpdatePacket(pos, this.level.getBlockState(pos)));
                      this.debugLogging(pos, false, sequence, "may not interact");
 -                    return;
 -                }
-+                    // SPIGOT-8042: Need to ACK above changes first
-+                    this.player.connection.send(new ClientboundBlockChangedAckPacket(sequence));
-+                    // Update any tile entity data for this block
-+                    BlockEntity blockentity = level.getBlockEntity(pos);
-+                    if (blockentity != null) {
-+                        this.player.connection.send(blockentity.getUpdatePacket());
-+                    }
++                    this.capturedBlockEntity = true; // Paper - Send block entities after destroy prediction
 +                    // CraftBukkit end
 +                    return;
 +                }
 +
 +                // CraftBukkit start
-+                PlayerInteractEvent bukkit_event = CraftEventFactory.callPlayerInteractEvent(this.player, Action.LEFT_CLICK_BLOCK, pos, direction, this.player.getInventory().getSelectedItem(), InteractionHand.MAIN_HAND);
++                org.bukkit.event.player.PlayerInteractEvent bukkit_event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent(this.player, org.bukkit.event.block.Action.LEFT_CLICK_BLOCK, pos, direction, this.player.getInventory().getSelectedItem(), InteractionHand.MAIN_HAND);
 +                if (bukkit_event.isCancelled()) {
-+                    // Let the client know the block still exists
-+                    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
-+                    // SPIGOT-8042: Need to ACK above changes first
-+                    this.player.connection.send(new ClientboundBlockChangedAckPacket(sequence));
-+                    // Update any tile entity data for this block
-+                    BlockEntity blockentity = this.level.getBlockEntity(pos);
-+                    if (blockentity != null) {
-+                        this.player.connection.send(blockentity.getUpdatePacket());
-+                    }
++                    this.capturedBlockEntity = true; // Paper - Send block entities after destroy prediction
 +                    return;
 +                }
 +                // CraftBukkit end
@@ -154,7 +163,6 @@
 +                // Spigot start - handle debug stick left click for non-creative
 +                if (this.player.getMainHandItem().is(net.minecraft.world.item.Items.DEBUG_STICK)
 +                        && ((net.minecraft.world.item.DebugStickItem) net.minecraft.world.item.Items.DEBUG_STICK).handleInteraction(this.player, this.level.getBlockState(pos), this.level, pos, false, this.player.getMainHandItem())) {
-+                    this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
 +                    return;
 +                }
 +                // Spigot end
@@ -162,24 +170,12 @@
                  if (this.player.blockActionRestricted(this.level, pos, this.gameModeForPlayer)) {
                      this.player.connection.send(new ClientboundBlockUpdatePacket(pos, this.level.getBlockState(pos)));
                      this.debugLogging(pos, false, sequence, "block action restricted");
-@@ -181,7 +_,19 @@
+@@ -181,7 +_,7 @@
                  this.destroyProgressStart = this.gameTicks;
                  float progress = 1.0F;
                  BlockState blockState = this.level.getBlockState(pos);
 -                if (!blockState.isAir()) {
-+                // CraftBukkit start - Swings at air do *NOT* exist.
-+                if (bukkit_event.useInteractedBlock() == Event.Result.DENY) {
-+                    // If we denied a door from opening, we need to send a correcting update to the client, as it already opened the door.
-+                    BlockState data = this.level.getBlockState(pos);
-+                    if (data.getBlock() instanceof DoorBlock) {
-+                        // For some reason *BOTH* the bottom/top part have to be marked updated.
-+                        boolean bottom = data.getValue(DoorBlock.HALF) == DoubleBlockHalf.LOWER;
-+                        this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
-+                        this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, bottom ? pos.above() : pos.below()));
-+                    } else if (data.getBlock() instanceof TrapDoorBlock) {
-+                        this.player.connection.send(new ClientboundBlockUpdatePacket(this.level, pos));
-+                    }
-+                } else if (!blockState.isAir()) {
++                if (bukkit_event.useInteractedBlock() != org.bukkit.event.Event.Result.DENY && !blockState.isAir()) { // Paper
                      EnchantmentHelper.onHitBlock(
                          this.level,
                          this.player.getMainHandItem(),
@@ -212,23 +208,36 @@
                  if (!blockState.isAir() && progress >= 1.0F) {
                      this.destroyAndAck(pos, sequence, "insta mine");
                  } else {
-@@ -237,13 +_,15 @@
+@@ -236,16 +_,25 @@
+                 this.debugLogging(pos, true, sequence, "stopped destroying");
              } else if (action == ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK) {
                  this.isDestroyingBlock = false;
-                 if (!Objects.equals(this.destroyPos, pos)) {
+-                if (!Objects.equals(this.destroyPos, pos)) {
 -                    LOGGER.warn("Mismatch in destroy block pos: {} {}", this.destroyPos, pos);
-+                    LOGGER.debug("Mismatch in destroy block pos: {} {}", this.destroyPos, pos);
-                     this.level.destroyBlockProgress(this.player.getId(), this.destroyPos, -1);
-                     this.debugLogging(pos, true, sequence, "aborted mismatched destroying");
+-                    this.level.destroyBlockProgress(this.player.getId(), this.destroyPos, -1);
+-                    this.debugLogging(pos, true, sequence, "aborted mismatched destroying");
++                // Paper start - Don't allow digging into unloaded chunks
++                if (!Objects.equals(this.destroyPos, pos) && !BlockPos.ZERO.equals(this.destroyPos)) { // Paper
++                    ServerPlayerGameMode.LOGGER.debug("Mismatch in destroy block pos: {} {}", this.destroyPos, pos); // CraftBukkit - SPIGOT-5457 sent by client when interact event cancelled
++                    BlockState destroyState = this.level.getBlockStateIfLoaded(this.destroyPos); // Don't load unloaded chunks for stale records here
++                    if (destroyState != null) {
++                        this.level.destroyBlockProgress(this.player.getId(), this.destroyPos, -1);
++                        this.debugLogging(pos, true, sequence, "aborted mismatched destroying");
++                    }
++                    this.destroyPos = BlockPos.ZERO;
++                    // Paper end - Don't allow digging into unloaded chunks
                  }
  
                  this.level.destroyBlockProgress(this.player.getId(), pos, -1);
                  this.debugLogging(pos, true, sequence, "aborted destroying");
 +
-+                CraftEventFactory.callBlockDamageAbortEvent(this.player, pos, this.player.getInventory().getSelectedItem()); // CraftBukkit
++                org.bukkit.craftbukkit.event.CraftEventFactory.callBlockDamageAbortEvent(this.player, pos, this.player.getInventory().getSelectedItem()); // CraftBukkit
              }
          }
++        this.level.chunkPacketBlockController.onPlayerLeftClickBlock(this.level, pos, action, direction, maxY, sequence); // Paper - Anti-Xray
      }
+ 
+     public void destroyAndAck(BlockPos pos, int sequence, String exitId) {
 @@ -258,8 +_,10 @@
      }
  
@@ -295,7 +304,7 @@
      }
  
      public InteractionResult useItem(ServerPlayer player, Level level, ItemStack itemStack, InteractionHand hand) {
-@@ -308,6 +_,9 @@
+@@ -308,8 +_,12 @@
              return InteractionResult.PASS;
          }
  
@@ -304,8 +313,25 @@
 +
          int oldCount = itemStack.getCount();
          int oldDamage = itemStack.getDamageValue();
++        final ItemStack stackBeforeUse = itemStack.copy(); // Paper - Store stack before use for interact prediction check
          InteractionResult result = itemStack.use(level, player, hand);
-@@ -344,6 +_,13 @@
+         ItemStack resultStack;
+         if (result instanceof InteractionResult.Success success) {
+@@ -338,12 +_,26 @@
+         }
+ 
+         if (!player.isUsingItem()) {
+-            player.inventoryMenu.sendAllDataToRemote();
++            // Paper start - Optimize sendAllDataToRemote calls
++            // This is a weird one where the Vanilla behavior is from an ancient version, but also isn't calling startUsingItem on certain instant-use items
++            // TODO Check up on this proper, possibly remove all and move into more specific places
++            if (io.papermc.paper.util.MCUtil.clientPredictsInteraction(player, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState(), stackBeforeUse)) {
++                player.inventoryMenu.forceHeldSlot(hand);
++            }
++            player.inventoryMenu.broadcastChanges();
++            // Paper end - Optimize sendAllDataToRemote calls
+         }
+ 
          return result;
      }
  

@@ -243,10 +243,17 @@
              state.onPlace(this.level, pos, oldState, movedByPiston);
          }
  
-@@ -369,6 +_,10 @@
+@@ -368,7 +_,16 @@
+     }
  
      public @Nullable BlockEntity getBlockEntity(BlockPos pos, LevelChunk.EntityCreationType creationType) {
-         BlockEntity blockEntity = this.blockEntities.get(pos);
+-        BlockEntity blockEntity = this.blockEntities.get(pos);
++        // CraftBukkit start
++        BlockEntity blockEntity = this.level.capturedBlockEntities.get(pos);
++        if (blockEntity == null) {
++            blockEntity = this.blockEntities.get(pos);
++        }
++        // CraftBukkit end
 +        if (blockEntity != null && blockEntity.isRemoved()) {
 +            blockEntities.remove(pos);
 +            blockEntity = null;
@@ -272,6 +279,21 @@
          }
      }
  
+@@ -425,7 +_,13 @@
+         BlockPos pos = blockEntity.getBlockPos();
+         BlockState blockState = this.getBlockState(pos);
+         if (!blockState.hasBlockEntity()) {
+-            LOGGER.warn("Trying to set block entity {} at position {}, but state {} does not allow it", blockEntity, pos, blockState);
++            // Paper start - ServerExceptionEvent
++            com.destroystokyo.paper.exception.ServerInternalException e = new com.destroystokyo.paper.exception.ServerInternalException(
++                    "Trying to set block entity %s at position %s, but state %s does not allow it".formatted(blockEntity, pos, blockState)
++            );
++            e.printStackTrace();
++            com.destroystokyo.paper.exception.ServerInternalException.reportInternalException(e);
++            // Paper end - ServerExceptionEvent
+         } else {
+             BlockState cachedBlockState = blockEntity.getBlockState();
+             if (blockState != cachedBlockState) {
 @@ -446,6 +_,7 @@
              BlockEntity previousEntry = this.blockEntities.put(pos.immutable(), blockEntity);
              if (previousEntry != null && previousEntry != blockEntity) {
@@ -295,6 +317,18 @@
          }
  
          CompoundTag result = this.pendingBlockEntities.get(blockPos);
+@@ -472,6 +_,11 @@
+     public void removeBlockEntity(BlockPos pos) {
+         if (this.isInLevel()) {
+             BlockEntity removeThis = this.blockEntities.remove(pos);
++            // CraftBukkit start - SPIGOT-5561: Also remove from pending map
++            if (!this.pendingBlockEntities.isEmpty()) {
++                this.pendingBlockEntities.remove(pos);
++            }
++            // CraftBukkit end
+             if (removeThis != null) {
+                 if (this.level instanceof ServerLevel serverLevel) {
+                     this.removeGameEventListener(removeThis, serverLevel);
 @@ -479,6 +_,7 @@
                  }
  
@@ -449,7 +483,7 @@
      private class BoundTickingBlockEntity<T extends BlockEntity> implements TickingBlockEntity {
          private final T blockEntity;
          private final BlockEntityTicker<T> ticker;
-@@ -742,6 +_,7 @@
+@@ -742,28 +_,38 @@
                  if (LevelChunk.this.isTicking(pos)) {
                      try {
                          ProfilerFiller profiler = Profiler.get();
@@ -457,16 +491,45 @@
                          profiler.push(this::getType);
                          BlockState blockState = LevelChunk.this.getBlockState(pos);
                          if (this.blockEntity.getType().isValid(blockState)) {
-@@ -763,7 +_,14 @@
-                         CrashReport report = CrashReport.forThrowable(t, "Ticking block entity");
-                         CrashReportCategory category = report.addCategory("Block entity being ticked");
-                         this.blockEntity.fillCrashReportCategory(category);
-+                        if (net.neoforged.neoforge.common.config.NeoForgeServerConfig.INSTANCE.removeErroringBlockEntities.get()) {
-+                            LOGGER.error("{}", report.getFriendlyReport(net.minecraft.ReportType.CRASH));
-+                            blockEntity.setRemoved();
-+                            LevelChunk.this.removeBlockEntity(blockEntity.getBlockPos());
-+                        } else
-                         throw new ReportedException(report);
+                             this.ticker.tick(LevelChunk.this.level, this.blockEntity.getBlockPos(), blockState, this.blockEntity);
+                             this.loggedInvalidBlockState = false;
+-                        } else if (!this.loggedInvalidBlockState) {
+-                            this.loggedInvalidBlockState = true;
+-                            LevelChunk.LOGGER
+-                                .warn(
+-                                    "Block entity {} @ {} state {} invalid for ticking:",
+-                                    LogUtils.defer(this::getType),
+-                                    LogUtils.defer(this::getPos),
+-                                    blockState
+-                                );
++                            // Paper start - Remove the Block Entity if it's invalid
++                        } else {
++                            LevelChunk.this.removeBlockEntity(this.getPos());
++                            if (!this.loggedInvalidBlockState) {
++                                // Paper end - Remove the Block Entity if it's invalid
++                                this.loggedInvalidBlockState = true;
++                                LevelChunk.LOGGER
++                                        .warn(
++                                                "Block entity {} @ {} state {} invalid for ticking:",
++                                                LogUtils.defer(this::getType),
++                                                LogUtils.defer(this::getPos),
++                                                blockState
++                                        );
++                            } // Paper - Remove the Block Entity if it's invalid
+                         }
+ 
+                         profiler.pop();
+                     } catch (Throwable t) {
+-                        CrashReport report = CrashReport.forThrowable(t, "Ticking block entity");
+-                        CrashReportCategory category = report.addCategory("Block entity being ticked");
+-                        this.blockEntity.fillCrashReportCategory(category);
+-                        throw new ReportedException(report);
++                        // Paper start - Prevent block entity and entity crashes
++                        final String msg = String.format("BlockEntity threw exception at %s:%s,%s,%s", io.papermc.paper.util.MCUtil.getLevelName(LevelChunk.this.getLevel()), this.getPos().getX(), this.getPos().getY(), this.getPos().getZ());
++                        LevelChunk.LOGGER.error(msg, t);
++                        LevelChunk.this.level.getCraftServer().getPluginManager().callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerInternalException(msg, t))); // Paper - ServerExceptionEvent
++                        LevelChunk.this.removeBlockEntity(this.getPos());
++                        // Paper end - Prevent block entity and entity crashes
 +                    } finally {
 +                        net.neoforged.neoforge.server.timings.TimeTracker.BLOCK_ENTITY_UPDATE.trackEnd(blockEntity);
                      }

@@ -17,7 +17,7 @@
      private long inhabitedTime;
      @Deprecated
      private @Nullable BiomeGenerationSettings carverBiomeSettings;
-@@ -74,14 +_,68 @@
+@@ -74,13 +_,68 @@
      protected final UpgradeData upgradeData;
      protected final @Nullable BlendingData blendingData;
      public final Map<Heightmap.Types, Heightmap> heightmaps = Maps.newEnumMap(Heightmap.Types.class);
@@ -29,7 +29,6 @@
      public final Map<BlockPos, BlockEntity> blockEntities = new Object2ObjectOpenHashMap<>();
      protected final LevelHeightAccessor levelHeightAccessor;
      protected final LevelChunkSection[] sections;
--
 +    // CraftBukkit start - SPIGOT-6814: move to ChunkAccess to account for 1.17 to 1.18 chunk upgrading.
 +    private static final org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new org.bukkit.craftbukkit.persistence.CraftPersistentDataTypeRegistry();
 +    public org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer persistentDataContainer = new org.bukkit.craftbukkit.persistence.DirtyCraftPersistentDataContainer(ChunkAccess.DATA_TYPE_REGISTRY);
@@ -85,9 +84,9 @@
 +    private final int minSection;
 +    private final int maxSection;
 +    // Paper end - get block chunk optimisation
+ 
      public ChunkAccess(
          ChunkPos chunkPos,
-         UpgradeData upgradeData,
 @@ -91,14 +_,15 @@
          LevelChunkSection @Nullable [] sections,
          @Nullable BlendingData blendingData
