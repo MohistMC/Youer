@@ -32,7 +32,7 @@
          return itemstack;
      }
  
-@@ -22,11 +_,61 @@
+@@ -22,7 +_,11 @@
          Direction direction = p_302420_.state().getValue(DispenserBlock.FACING);
          Position position = DispenserBlock.getDispensePosition(p_302420_);
          ItemStack itemstack = p_123386_.split(1);
@@ -45,10 +45,15 @@
          return p_123386_;
      }
  
-     public static void spawnItem(Level p_123379_, ItemStack p_123380_, int p_123381_, Direction p_123382_, Position p_123383_) {
-+        // CraftBukkit start
-+        ItemEntity entityitem = DefaultDispenseItemBehavior.prepareItem(p_123379_, p_123380_, p_123381_, p_123382_, p_123383_);
-+        p_123379_.addFreshEntity(entityitem);
+@@ -39,11 +_,71 @@
+         ItemEntity itementity = new ItemEntity(p_123379_, d0, d1, d2, p_123380_);
+         double d3 = p_123379_.random.nextDouble() * 0.1 + 0.2;
+         itementity.setDeltaMovement(
++                p_123379_.random.triangle((double)p_123382_.getStepX() * d3, 0.0172275 * (double)p_123381_),
++                p_123379_.random.triangle(0.2, 0.0172275 * (double)p_123381_),
++                p_123379_.random.triangle((double)p_123382_.getStepZ() * d3, 0.0172275 * (double)p_123381_)
++        );
++        p_123379_.addFreshEntity(itementity);
 +    }
 +
 +    // CraftBukkit - void -> boolean return, IPosition -> ISourceBlock last argument, dropper
@@ -92,10 +97,19 @@
 +
 +    private static ItemEntity prepareItem(Level p_123379_, ItemStack p_123380_, int p_123381_, Direction p_123382_, Position p_123383_) {
 +        // CraftBukkit end
-         double d0 = p_123383_.x();
-         double d1 = p_123383_.y();
-         double d2 = p_123383_.z();
-@@ -43,7 +_,7 @@
++        double d0 = p_123383_.x();
++        double d1 = p_123383_.y();
++        double d2 = p_123383_.z();
++        if (p_123382_.getAxis() == Direction.Axis.Y) {
++            d1 -= 0.125;
++        } else {
++            d1 -= 0.15625;
++        }
++
++        ItemEntity itementity = new ItemEntity(p_123379_, d0, d1, d2, p_123380_);
++        double d3 = p_123379_.random.nextDouble() * 0.1 + 0.2;
++        itementity.setDeltaMovement(
+             p_123379_.random.triangle((double)p_123382_.getStepX() * d3, 0.0172275 * (double)p_123381_),
              p_123379_.random.triangle(0.2, 0.0172275 * (double)p_123381_),
              p_123379_.random.triangle((double)p_123382_.getStepZ() * d3, 0.0172275 * (double)p_123381_)
          );

@@ -317,7 +317,7 @@
          super.dropEquipment();
          if (!this.level().getGameRules().getBoolean(GameRules.RULE_KEEPINVENTORY)) {
              this.destroyVanishingCursedItems();
-@@ -678,17 +_,24 @@
+@@ -678,15 +_,16 @@
      }
  
      @Override
@@ -332,24 +332,25 @@
 +        return net.neoforged.neoforge.common.CommonHooks.onPlayerTossEvent(this, p_36177_, p_36178_);
      }
  
++    public AtomicBoolean drop$callEvent = new AtomicBoolean(true);
      @Nullable
      public ItemEntity drop(ItemStack p_36179_, boolean p_36180_, boolean p_36181_) {
-+        // CraftBukkit start - SPIGOT-2942: Add boolean to call event
-+        return drop(p_36179_, p_36180_, p_36181_, true);
-+    }
-+
-+    @Nullable
-+    public ItemEntity drop(ItemStack p_36179_, boolean p_36180_, boolean p_36181_, boolean callEvent) {
-+        // CraftBukkit end
          if (p_36179_.isEmpty()) {
-             return null;
-         } else {
-@@ -722,11 +_,51 @@
+@@ -716,17 +_,63 @@
+                 float f5 = this.random.nextFloat() * (float) (Math.PI * 2);
+                 float f6 = 0.02F * this.random.nextFloat();
+                 itementity.setDeltaMovement(
+-                    (double)(-f3 * f2 * 0.3F) + Math.cos((double)f5) * (double)f6,
+-                    (double)(-f8 * 0.3F + 0.1F + (this.random.nextFloat() - this.random.nextFloat()) * 0.1F),
+-                    (double)(f4 * f2 * 0.3F) + Math.sin((double)f5) * (double)f6
++                        (double)(-f3 * f2 * 0.3F) + Math.cos((double)f5) * (double)f6,
++                        (double)(-f8 * 0.3F + 0.1F + (this.random.nextFloat() - this.random.nextFloat()) * 0.1F),
++                        (double)(f4 * f2 * 0.3F) + Math.sin((double)f5) * (double)f6
                  );
              }
- 
++
 +            // CraftBukkit start - fire PlayerDropItemEvent
-+            if (!callEvent) { // SPIGOT-2942: Add boolean to call event
++            if (!drop$callEvent.getAndSet(true)) { // SPIGOT-2942: Add boolean to call event
 +                return itementity;
 +            }
 +            org.bukkit.entity.Player player = (org.bukkit.entity.Player) this.getBukkitEntity();
@@ -382,11 +383,17 @@
 +                }
 +            }
 +            // Paper end
-+
+ 
              return itementity;
          }
      }
  
++    @Nullable
++    public ItemEntity drop(ItemStack p_36179_, boolean p_36180_, boolean p_36181_, boolean callEvent) {
++        drop$callEvent.set(callEvent);
++        return drop(p_36179_, p_36180_, p_36181_);
++    }
++
 +    @Deprecated //Use location sensitive version below
      public float getDestroySpeed(BlockState p_36282_) {
 +        return getDigSpeed(p_36282_, null);
