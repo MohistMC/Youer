@@ -141,28 +141,38 @@
                  .localAddress(LocalAddress.ANY)
                  .bind()
                  .syncUninterruptibly();
-@@ -186,6 +_,13 @@
+@@ -186,12 +_,26 @@
  
      public void tick() {
          synchronized (this.connections) {
-+            // Spigot Start
++            // Spigot start
++            this.addPending(); // Paper - prevent blocking on adding a new connection while the server is ticking
 +            // This prevents players from 'gaming' the server, and strategically relogging to increase their position in the tick order
-+            if ( org.spigotmc.SpigotConfig.playerShuffle > 0 && MinecraftServer.currentTick % org.spigotmc.SpigotConfig.playerShuffle == 0 )
-+            {
-+                Collections.shuffle( this.connections );
++            if (org.spigotmc.SpigotConfig.playerShuffle > 0 && MinecraftServer.currentTick % org.spigotmc.SpigotConfig.playerShuffle == 0) {
++                Collections.shuffle(this.connections);
 +            }
-+            // Spigot End
++            // Spigot end
              Iterator<Connection> iterator = this.connections.iterator();
  
              while (iterator.hasNext()) {
-@@ -205,6 +_,10 @@
+                 Connection connection = iterator.next();
+                 if (!connection.isConnecting()) {
+                     if (connection.isConnected()) {
++                        // Paper start - Force kill connection ticking
++                        // also call this multiple times, doesnt matter
++                        // See MC-307764
++                        if (connection.handleConnectionDisconnectOnNextTick) {
++                            continue;
++                        }
++                        // Paper end - Force kill connection ticking
+                         try {
+                             connection.tick();
+                         } catch (Exception e) {
+@@ -205,6 +_,7 @@
                              connection.setReadOnly();
                          }
                      } else {
-+                        // Spigot Start
-+                        // Fix a race condition where a NetworkManager could be unregistered just before connection.
-+                        if (connection.preparing) continue;
-+                        // Spigot End
++                        if (connection.preparing) continue; // Spigot - Fix a race condition where a Connection could be unregistered just before connection
                          iterator.remove();
                          connection.handleDisconnection();
                      }

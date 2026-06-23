@@ -1,6 +1,6 @@
 --- a/net/minecraft/network/RegistryFriendlyByteBuf.java
 +++ b/net/minecraft/network/RegistryFriendlyByteBuf.java
-@@ -6,16 +_,40 @@
+@@ -6,16 +_,50 @@
  
  public class RegistryFriendlyByteBuf extends FriendlyByteBuf {
      private final RegistryAccess registryAccess;
@@ -21,6 +21,16 @@
 +        this.registryAccess = registryAccess;
 +        this.connectionType = connectionType;
 +    }
++
++    // Paper start - Track codec depth
++    public RegistryFriendlyByteBuf(final ByteBuf source, final RegistryFriendlyByteBuf parent) {
++        super(source);
++        this.registryAccess = parent.registryAccess;
++        this.trackCodecDepth = parent.trackCodecDepth;
++        this.codecDepth = parent.codecDepth;
++        this.connectionType = net.neoforged.neoforge.network.connection.ConnectionType.OTHER;
++    }
++    // Paper end - Track codec depth
 +
 +    public net.neoforged.neoforge.network.connection.ConnectionType getConnectionType() {
 +        return this.connectionType;

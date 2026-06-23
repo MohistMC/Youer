@@ -316,6 +316,15 @@
              }
          }
  
+@@ -135,7 +_,7 @@
+     private boolean checkIfClosed(long now) {
+         if (this.closed) {
+             if (now - this.closedListenerTime >= 15000L) {
+-                this.disconnect(TIMEOUT_DISCONNECTION_MESSAGE);
++                this.disconnect(TIMEOUT_DISCONNECTION_MESSAGE, io.papermc.paper.connection.DisconnectionReason.TIMEOUT); // Paper - kick event cause
+             }
+ 
+             return false;
 @@ -157,7 +_,16 @@
          this.send(packet, null);
      }
@@ -456,7 +465,8 @@
 +     */
 +    @Deprecated
      protected CommonListenerCookie createCookie(ClientInformation clientInformation) {
-         return new CommonListenerCookie(this.playerProfile(), this.latency, clientInformation, this.transferred);
+-        return new CommonListenerCookie(this.playerProfile(), this.latency, clientInformation, this.transferred);
++        return new CommonListenerCookie(this.playerProfile(), this.latency, clientInformation, this.transferred, this.playerBrand, this.pluginMessagerChannels, this.keepAlive.copyForListenerHandoff());
 +    }
 +
 +    /**
@@ -467,7 +477,7 @@
 +     * @return The cookie.
 +     */
 +    protected CommonListenerCookie createCookie(ClientInformation clientInformation, net.neoforged.neoforge.network.connection.ConnectionType connectionType) {
-+        return new CommonListenerCookie(this.playerProfile(), this.latency, clientInformation, this.transferred, connectionType);
++        return new CommonListenerCookie(this.playerProfile(), this.latency, clientInformation, this.transferred, connectionType, this.playerBrand, this.pluginMessagerChannels, this.keepAlive.copyForListenerHandoff());
 +    }
 +
 +    @Override

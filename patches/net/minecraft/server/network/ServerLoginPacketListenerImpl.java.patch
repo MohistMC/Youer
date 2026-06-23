@@ -88,21 +88,20 @@
          if (this.state == ServerLoginPacketListenerImpl.State.VERIFYING) {
              this.verifyLoginAndFinishConnectionSetup(Objects.requireNonNull(this.authenticatedProfile));
          }
-@@ -83,15 +_,44 @@
-         if (this.tick++ == 600) {
-             this.disconnect(Component.translatable("multiplayer.disconnect.slow_login"));
+@@ -80,16 +_,40 @@
+             this.finishLoginAndWaitForClient(this.authenticatedProfile);
          }
--    }
-+
+ 
 +        // Paper start - login cookie API
 +        this.tickTimeout();
 +    }
 +    public void tickTimeout() {
 +        // Paper end - login cookie API
-+        if (this.tick++ == 600) {
+         if (this.tick++ == 600) {
+-            this.disconnect(Component.translatable("multiplayer.disconnect.slow_login"));
 +            this.disconnectAsync(Component.translatable("multiplayer.disconnect.slow_login")); // Paper
-+        }
-+    }
+         }
+     }
 +
 +    // CraftBukkit start
 +    @Deprecated
@@ -130,10 +129,7 @@
 +
      public void disconnect(Component component) {
          try {
-+            this.state = State.DISCONNECTED; // CraftBukkit - SPIGOT-8020: prevent repetition
              LOGGER.info("Disconnecting {}: {}", this.getUserName(), component.getString());
-             this.connection.send(new ClientboundLoginDisconnectPacket(component));
-             this.connection.disconnect(component);
 @@ -117,7 +_,14 @@
      @Override
      public void handleHello(ServerboundHelloPacket packet) {
@@ -182,7 +178,7 @@
              }
          }
      }
-@@ -139,21 +_,19 @@
+@@ -139,21 +_,21 @@
  
      private void verifyLoginAndFinishConnectionSetup(GameProfile profile) {
          PlayerList playerList = this.server.getPlayerList();
@@ -190,8 +186,9 @@
 +        Component error = org.bukkit.craftbukkit.event.CraftEventFactory.handleLoginResult(playerList.canPlayerLogin(this.connection.getRemoteAddress(), new NameAndId(profile)), this.paperLoginConnection, this.connection, profile, this.server, true); // Paper
          if (error != null) {
              this.disconnect(error);
--        } else if (this.connection.getIntendedProfileId() != null && !profile.id().equals(this.connection.getIntendedProfileId())) {
+         } else if (this.connection.getIntendedProfileId() != null && !profile.id().equals(this.connection.getIntendedProfileId())) {
 -            this.disconnect(CommonComponents.CONNECT_FAILED);
++            this.disconnectAsync(CommonComponents.CONNECT_FAILED); // Paper
          } else {
              if (this.server.getCompressionThreshold() >= 0 && !this.connection.isMemoryConnection()) {
                  this.connection
@@ -274,7 +271,7 @@
                  }
              }
  
-@@ -227,10 +_,60 @@
+@@ -227,18 +_,123 @@
                      ? inetSocketAddress.getAddress()
                      : null;
              }
@@ -339,7 +336,62 @@
  
      @Override
      public void handleCustomQueryPacket(ServerboundCustomQueryAnswerPacket packet) {
-@@ -239,6 +_,7 @@
++        // Paper start - Add Velocity IP Forwarding Support
++        try {
++            this.handleCustomQueryPacket0(packet);
++        } finally {
++            ServerboundCustomQueryAnswerPacket.QueryAnswerPayload payload = (ServerboundCustomQueryAnswerPacket.QueryAnswerPayload) packet.payload();
++            if (payload != null) {
++                payload.buffer.release();
++            }
++        }
++    }
++    private void handleCustomQueryPacket0(final ServerboundCustomQueryAnswerPacket packet) {
++        if (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled && packet.transactionId() == this.velocityLoginMessageId) {
++            ServerboundCustomQueryAnswerPacket.QueryAnswerPayload payload = (ServerboundCustomQueryAnswerPacket.QueryAnswerPayload)packet.payload();
++            if (payload == null) {
++                this.disconnect("This server requires you to connect with Velocity.");
++                return;
++            }
++
++            net.minecraft.network.FriendlyByteBuf buf = payload.buffer;
++            if (!com.destroystokyo.paper.proxy.VelocityProxy.checkIntegrity(buf)) {
++                this.disconnect("Unable to verify player details");
++                return;
++            }
++
++            int version = buf.readVarInt();
++            if (version > com.destroystokyo.paper.proxy.VelocityProxy.MAX_SUPPORTED_FORWARDING_VERSION) {
++                throw new IllegalStateException("Unsupported forwarding version " + version + ", wanted upto " + com.destroystokyo.paper.proxy.VelocityProxy.MAX_SUPPORTED_FORWARDING_VERSION);
++            }
++
++            java.net.SocketAddress listening = this.connection.getRemoteAddress();
++            int port = 0;
++            if (listening instanceof java.net.InetSocketAddress) {
++                port = ((java.net.InetSocketAddress) listening).getPort();
++            }
++            this.connection.address = new java.net.InetSocketAddress(com.destroystokyo.paper.proxy.VelocityProxy.readAddress(buf), port);
++
++            this.authenticatedProfile = com.destroystokyo.paper.proxy.VelocityProxy.createProfile(buf);
++
++            //TODO Update handling for lazy sessions, might not even have to do anything?
++
++            // Proceed with login
++            authenticatorPool.execute(() -> {
++                try {
++                    final GameProfile gameprofile = this.callPlayerPreLoginEvents(this.authenticatedProfile);
++                    ServerLoginPacketListenerImpl.LOGGER.info("UUID of player {} is {}", gameprofile.name(), gameprofile.id());
++                    ServerLoginPacketListenerImpl.this.startClientVerification(gameprofile);
++                } catch (Exception ex) {
++                    disconnect("Failed to verify username!");
++                    server.server.getLogger().log(java.util.logging.Level.WARNING, "Exception verifying " + this.authenticatedProfile.name(), ex);
++                }
++            });
++            return;
++        }
++        // Paper end - Add Velocity IP Forwarding Support
+         this.disconnect(ServerCommonPacketListenerImpl.DISCONNECT_UNEXPECTED_QUERY);
+     }
  
      @Override
      public void handleLoginAcknowledgement(ServerboundLoginAcknowledgedPacket packet) {
@@ -347,51 +399,35 @@
          Validate.validState(this.state == ServerLoginPacketListenerImpl.State.PROTOCOL_SWITCHING, "Unexpected login acknowledgement packet");
          this.connection.setupOutboundProtocol(ConfigurationProtocols.CLIENTBOUND);
          CommonListenerCookie cookie = CommonListenerCookie.createInitial(Objects.requireNonNull(this.authenticatedProfile), this.transferred);
-@@ -255,10 +_,37 @@
+@@ -255,8 +_,31 @@
  
      @Override
      public void handleCookieResponse(ServerboundCookieResponsePacket packet) {
 +        if (this.paperLoginConnection.handleCookieResponse(packet)) return; // Paper
          this.disconnect(ServerCommonPacketListenerImpl.DISCONNECT_UNEXPECTED_QUERY);
      }
- 
--    public enum State {
++
 +    // Spigot start
 +    protected GameProfile createOfflineProfile(String s) {
 +        java.util.UUID uuid;
-+        if ( connection.spoofedUUID != null )
-+        {
-+            uuid = connection.spoofedUUID;
-+        } else
-+        {
-+            uuid = UUIDUtil.createOfflinePlayerUUID( s );
++        if (this.connection.spoofedUUID != null) {
++            uuid = this.connection.spoofedUUID;
++        } else {
++            uuid = UUIDUtil.createOfflinePlayerUUID(s);
 +        }
 +
-+        com.google.common.collect.LinkedListMultimap<String, com.mojang.authlib.properties.Property> properties = com.google.common.collect.LinkedListMultimap.create();
++        final var props = com.google.common.collect.ImmutableMultimap.<String, com.mojang.authlib.properties.Property>builder();
 +
-+        if (connection.spoofedProfile != null)
-+        {
-+            for ( com.mojang.authlib.properties.Property property : connection.spoofedProfile )
-+            {
-+                if ( !ServerHandshakePacketListenerImpl.PROP_PATTERN.matcher( property.name()).matches() ) continue;
-+                properties.put( property.name(), property );
++        if (this.connection.spoofedProfile != null) {
++            for (com.mojang.authlib.properties.Property property : this.connection.spoofedProfile) {
++                if (!ServerHandshakePacketListenerImpl.PROP_PATTERN.matcher(property.name()).matches()) continue;
++                props.put(property.name(), property);
 +            }
 +        }
 +
-+        return new GameProfile( uuid, s, new com.mojang.authlib.properties.PropertyMap( properties ) );
++        return new GameProfile(uuid, s, new com.mojang.authlib.properties.PropertyMap(props.build()));
 +    }
 +    // Spigot end
-+
-+    public static enum State {
+ 
+     public enum State {
          HELLO,
-         KEY,
-         AUTHENTICATING,
-@@ -266,6 +_,7 @@
-         VERIFYING,
-         WAITING_FOR_DUPE_DISCONNECT,
-         PROTOCOL_SWITCHING,
--        ACCEPTED;
-+        ACCEPTED,
-+        WAITING_FOR_COOKIES, DISCONNECTED; // CraftBukkit
-     }
- }

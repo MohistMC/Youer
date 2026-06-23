@@ -1869,7 +1869,34 @@
      }
  
      public boolean isPvpAllowed() {
-@@ -1907,16 +_,47 @@
+@@ -1879,10 +_,16 @@
+ 
+         public void onTickingEnd(Entity entity) {
+             ServerLevel.this.entityTickList.remove(entity);
++            // Paper start - Reset pearls when they stop being ticked
++            if (ServerLevel.this.paperConfig().fixes.disableUnloadedChunkEnderpearlExploit && ServerLevel.this.paperConfig().misc.legacyEnderPearlBehavior && entity instanceof net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl pearl) {
++                pearl.setOwner(null);
++            }
++            // Paper end - Reset pearls when they stop being ticked
+         }
+ 
+         public void onTrackingStart(Entity entity) {
+-            ServerLevel.this.getChunkSource().addEntity(entity);
++            org.spigotmc.AsyncCatcher.catchOp("entity register"); // Spigot
++            // ServerLevel.this.getChunkSource().addEntity(entity); // Paper - ignore and warn about illegal addEntity calls instead of crashing server; moved down below valid=true
+             if (entity instanceof ServerPlayer player) {
+                 ServerLevel.this.players.add(player);
+                 if (player.isReceivingWaypoints()) {
+@@ -1897,7 +_,7 @@
+             }
+ 
+             if (entity instanceof Mob mob) {
+-                if (ServerLevel.this.isUpdatingNavigations) {
++                if (false && ServerLevel.this.isUpdatingNavigations) { // Paper - Remove unnecessary onTrackingStart during navigation warning
+                     String message = "onTrackingStart called during navigation iteration";
+                     Util.logAndPauseIfInIde(
+                         "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
+@@ -1907,16 +_,58 @@
                  ServerLevel.this.navigatingMobs.add(mob);
              }
  
@@ -1882,45 +1909,60 @@
              }
  
              entity.updateDynamicGameEventListener(DynamicGameEventListener::add);
++            entity.inWorld = true; // CraftBukkit - Mark entity as in world
 +            entity.valid = true; // CraftBukkit
++            ServerLevel.this.getChunkSource().addEntity(entity); // Paper - ignore and warn about illegal addEntity calls instead of crashing server
++            // Paper start - Entity origin API
++            if (entity.origin == null) {
++                entity.origin = entity.position();
++            }
++            // Default to current world if unknown, gross assumption but entities rarely change world
++            if (entity.originWorld == null) {
++                entity.originWorld = ServerLevel.this.getWorld().getUID();
++            }
++            // Paper end - Entity origin API
++            new com.destroystokyo.paper.event.entity.EntityAddToWorldEvent(entity.getBukkitEntity(), ServerLevel.this.getWorld()).callEvent(); // Paper - fire while valid
          }
  
          public void onTrackingEnd(Entity entity) {
-+            // Spigot start
-+            if ( entity instanceof Player )
-+            {
-+                com.google.common.collect.Streams.stream( getServer().getAllLevels() ).map( ServerLevel::getDataStorage ).forEach( (worldData) ->
-+                {
-+                    for (Object o : worldData.cache.values() )
-+                    {
-+                        if ( o instanceof MapItemSavedData )
-+                        {
-+                            MapItemSavedData map = (MapItemSavedData) o;
-+                            map.carriedByPlayers.remove( (Player) entity );
-+                            for ( java.util.Iterator<MapItemSavedData.HoldingPlayer> iter = (java.util.Iterator<MapItemSavedData.HoldingPlayer>) map.carriedBy.iterator(); iter.hasNext(); )
-+                            {
-+                                if ( iter.next().player == entity )
-+                                {
-+                                    iter.remove();
-+                                }
-+                            }
++            org.spigotmc.AsyncCatcher.catchOp("entity unregister"); // Spigot
++            // Spigot start // TODO I don't think this is needed anymore
++            if (entity instanceof Player player) {
++                for (final ServerLevel level : ServerLevel.this.getServer().getAllLevels()) {
++                    for (final Optional<net.minecraft.world.level.saveddata.SavedData> savedData : level.getDataStorage().cache.values()) {
++                        if (savedData.isEmpty() || !(savedData.get() instanceof MapItemSavedData map)) {
++                            continue;
++                        }
++
++                        map.carriedByPlayers.remove(player);
++                        if (map.carriedBy.removeIf(holdingPlayer -> holdingPlayer.player == player)) {
++                            map.decorations.remove(player.getName().getString());
 +                        }
 +                    }
-+                } );
-+            }
-+            // Spigot end
-+            // Spigot Start
-+            if (entity.getBukkitEntity() instanceof org.bukkit.inventory.InventoryHolder && (!(entity instanceof ServerPlayer) || entity.getRemovalReason() != Entity.RemovalReason.KILLED)) { // SPIGOT-6876: closeInventory clears death message
-+                for (org.bukkit.entity.HumanEntity h : Lists.newArrayList(((org.bukkit.inventory.InventoryHolder) entity.getBukkitEntity()).getInventory().getViewers())) {
-+                    h.closeInventory();
 +                }
 +            }
-+            // Spigot End
++            // Spigot end
++            // Spigot start
++            if (entity.getBukkitEntity() instanceof org.bukkit.inventory.InventoryHolder && (!(entity instanceof ServerPlayer) || entity.getRemovalReason() != Entity.RemovalReason.KILLED)) { // SPIGOT-6876: closeInventory clears death message
++                // Paper start - Fix merchant inventory not closing on entity removal
++                if (entity.getBukkitEntity() instanceof org.bukkit.inventory.Merchant merchant && merchant.getTrader() != null) {
++                    merchant.getTrader().closeInventory(org.bukkit.event.inventory.InventoryCloseEvent.Reason.UNLOADED);
++                }
++                // Paper end - Fix merchant inventory not closing on entity removal
++                for (org.bukkit.entity.HumanEntity h : Lists.newArrayList(((org.bukkit.inventory.InventoryHolder) entity.getBukkitEntity()).getInventory().getViewers())) {
++                    h.closeInventory(org.bukkit.event.inventory.InventoryCloseEvent.Reason.UNLOADED); // Paper - Inventory close reason
++                }
++            }
++            // Spigot end
              ServerLevel.this.getChunkSource().removeEntity(entity);
              if (entity instanceof ServerPlayer player) {
                  ServerLevel.this.players.remove(player);
-@@ -1928,25 +_,89 @@
-                 if (ServerLevel.this.isUpdatingNavigations) {
+@@ -1925,28 +_,93 @@
+             }
+ 
+             if (entity instanceof Mob mob) {
+-                if (ServerLevel.this.isUpdatingNavigations) {
++                if (false && ServerLevel.this.isUpdatingNavigations) { // Paper - Remove unnecessary onTrackingStart during navigation warning
                      String message = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
 -                        "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
@@ -1944,13 +1986,14 @@
 +            // CraftBukkit start
 +            entity.valid = false;
 +            if (!(entity instanceof ServerPlayer)) {
-+                for (ServerPlayer player : players) {
++                for (ServerPlayer player : ServerLevel.this.server.getPlayerList().getPlayers()) { // Paper - call onEntityRemove for all online players
 +                    player.getBukkitEntity().onEntityRemove(entity);
 +                }
 +            }
 +            // CraftBukkit end
 +            entity.onRemovedFromLevel();
 +            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.EntityLeaveLevelEvent(entity, ServerLevel.this));
++            new com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent(entity.getBukkitEntity(), ServerLevel.this.getWorld()).callEvent(); // Paper - fire while valid
          }
  
          public void onSectionChange(Entity entity) {

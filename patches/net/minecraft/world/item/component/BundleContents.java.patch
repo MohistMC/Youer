@@ -1,12 +1,36 @@
 --- a/net/minecraft/world/item/component/BundleContents.java
 +++ b/net/minecraft/world/item/component/BundleContents.java
-@@ -77,7 +_,8 @@
+@@ -77,8 +_,16 @@
      }
  
      public static boolean canItemBeInBundle(ItemStack itemToAdd) {
 -        return !itemToAdd.isEmpty() && itemToAdd.getItem().canFitInsideContainerItems();
+-    }
 +        // Neo: stack-aware placeability check
 +        return !itemToAdd.isEmpty() && itemToAdd.canFitInsideContainerItems();
-     }
++    }
++
++    // Paper start - correct bundle inventory action
++    public int getMaxAmountToAdd(final ItemStack stack) {
++        DataResult<Fraction> weight = this.weight();
++        return weight.isError() ? 0 : Mutable.getMaxAmountToAdd(stack, weight.getOrThrow());
++    }
++    // Paper end - correct bundle inventory action
  
      public int getNumberOfItemsToShow() {
+         int numberOfItemStacks = this.size();
+@@ -183,6 +_,14 @@
+             Fraction remainingWeight = Fraction.ONE.subtract(this.weight);
+             return Math.max(remainingWeight.divideBy(itemWeight).intValue(), 0);
+         }
++
++        // Paper start - correct bundle inventory action
++        // Static overload to easily compute this value without the need for an instance of mutable.
++        static int getMaxAmountToAdd(final ItemStack stack, final Fraction weight) {
++            Fraction remainingWeight = Fraction.ONE.subtract(weight);
++            return Math.max(remainingWeight.divideBy(BundleContents.getWeight(stack).getOrThrow()).intValue(), 0);
++        }
++        // Paper end - correct bundle inventory action
+ 
+         public int tryInsert(ItemStack itemsToAdd) {
+             if (!BundleContents.canItemBeInBundle(itemsToAdd)) {

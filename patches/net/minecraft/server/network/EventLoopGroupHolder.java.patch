@@ -1,14 +1,56 @@
 --- a/net/minecraft/server/network/EventLoopGroupHolder.java
 +++ b/net/minecraft/server/network/EventLoopGroupHolder.java
-@@ -52,6 +_,7 @@
+@@ -48,19 +_,40 @@
+             return LocalIoHandler.newFactory();
+         }
+     };
++    // Paper start - Unix domain socket support
++    private static final EventLoopGroupHolder EPOLL_UNIX_DOMAIN = new EventLoopGroupHolder("Unix Domain Socket", io.netty.channel.epoll.EpollDomainSocketChannel.class, io.netty.channel.epoll.EpollServerDomainSocketChannel.class) {
++        @Override
++        protected IoHandlerFactory ioHandlerFactory() {
++            return EpollIoHandler.newFactory();
++        }
++    };
++    // Paper end - Unix domain socket support
+     private final String type;
      private final Class<? extends Channel> channelCls;
      private final Class<? extends ServerChannel> serverChannelCls;
      private volatile @Nullable EventLoopGroup group;
 +    private volatile @Nullable EventLoopGroup serverGroup;
  
++    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - use variant with address param
      public static EventLoopGroupHolder remote(boolean allowNativeTransport) {
++        // Paper start - Unix domain socket support
++        return remote(null, allowNativeTransport);
++    }
++    public static EventLoopGroupHolder remote(final java.net.@Nullable SocketAddress address, final boolean allowNativeTransport) {
++        // Paper end - Unix domain socket support
          if (allowNativeTransport) {
-@@ -85,6 +_,23 @@
+             if (KQueue.isAvailable()) {
+                 return KQUEUE;
+             }
+ 
+             if (Epoll.isAvailable()) {
+-                return EPOLL;
++                // Paper start - Unix domain socket support
++                if (address instanceof io.netty.channel.unix.DomainSocketAddress) {
++                    return EPOLL_UNIX_DOMAIN;
++                } else {
++                    return EPOLL;
++                }
++                // Paper end - Unix domain socket support
+             }
+         }
+ 
+@@ -78,13 +_,30 @@
+     }
+ 
+     private ThreadFactory createThreadFactory() {
+-        return new ThreadFactoryBuilder().setNameFormat("Netty " + this.type + " IO #%d").setDaemon(true).build();
++        return new ThreadFactoryBuilder().setNameFormat("Netty " + this.type + " IO #%d").setDaemon(true).setUncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(net.minecraft.server.MinecraftServer.LOGGER)).build(); // Paper
+     }
+ 
+     protected abstract IoHandlerFactory ioHandlerFactory();
  
      private EventLoopGroup createEventLoopGroup() {
          return new MultiThreadIoEventLoopGroup(this.createThreadFactory(), this.ioHandlerFactory());

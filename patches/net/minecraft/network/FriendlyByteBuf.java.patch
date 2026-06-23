@@ -1,5 +1,41 @@
 --- a/net/minecraft/network/FriendlyByteBuf.java
 +++ b/net/minecraft/network/FriendlyByteBuf.java
+@@ -72,14 +_,20 @@
+ 
+ public class FriendlyByteBuf extends ByteBuf implements IFriendlyByteBufExtension {
+     private final ByteBuf source;
++    public final java.util.@Nullable Locale adventure$locale; // Paper - track player's locale for server-side translations
+     public static final short MAX_STRING_LENGTH = 32767;
+     public static final int MAX_COMPONENT_STRING_LENGTH = 262144;
+     private static final int PUBLIC_KEY_SIZE = 256;
+     private static final int MAX_PUBLIC_KEY_HEADER_SIZE = 256;
+     private static final int MAX_PUBLIC_KEY_LENGTH = 512;
+     private static final Gson GSON = new Gson();
++    // Paper start - Track codec depth
++    public boolean trackCodecDepth;
++    public byte codecDepth;
++    // Paper end - Track codec depth
+ 
+     public FriendlyByteBuf(ByteBuf source) {
++        this.adventure$locale = PacketEncoder.ADVENTURE_LOCALE.get(); // Paper - track player's locale for server-side translations
+         this.source = source;
+     }
+ 
+@@ -108,8 +_,13 @@
+     }
+ 
+     public <T> void writeJsonWithCodec(Codec<T> codec, T value) {
++        // Paper start - Adventure; add max length parameter
++        this.writeJsonWithCodec(codec, value, MAX_STRING_LENGTH);
++    }
++    public <T> void writeJsonWithCodec(Codec<T> codec, T value, int maxLength) {
++        // Paper end - Adventure; add max length parameter
+         DataResult<JsonElement> result = codec.encodeStart(JsonOps.INSTANCE, value);
+-        this.writeUtf(GSON.toJson(result.getOrThrow(error -> new EncoderException("Failed to encode: " + error + " " + value))));
++        this.writeUtf(GSON.toJson(result.getOrThrow(error -> new EncoderException("Failed to encode: " + error + " " + value))), maxLength); // Paper - Adventure; add max length parameter
+     }
+ 
+     public static <T> IntFunction<T> limitValue(IntFunction<T> original, int limit) {
 @@ -124,7 +_,7 @@
  
      public <T, C extends Collection<T>> C readCollection(IntFunction<C> ctor, StreamDecoder<? super FriendlyByteBuf, T> elementDecoder) {

@@ -53,7 +53,7 @@
          for (FormattedText part : this.decomposedParts) {
              Optional<T> result = part.visit(output, currentStyle);
              if (result.isPresent()) {
-@@ -173,12 +_,21 @@
+@@ -173,12 +_,31 @@
          }
  
          return Optional.empty();
@@ -64,6 +64,16 @@
  
      @Override
      public <T> Optional<T> visit(FormattedText.ContentConsumer<T> output) {
++        // Paper start - Count visited parts
++        try {
++            return this.visit(new TranslatableContentConsumer<>(output));
++        } catch (IllegalArgumentException ignored) {
++            return output.accept("...");
++        }
++    }
++
++    private <T> Optional<T> visit(TranslatableContentConsumer<T> output) {
++        // Paper end - Count visited parts
          this.decompose();
  
 +        if (!net.neoforged.neoforge.common.util.InsertingContents.pushTranslation(this)) {
@@ -75,13 +85,36 @@
          for (FormattedText part : this.decomposedParts) {
              Optional<T> result = part.visit(output);
              if (result.isPresent()) {
-@@ -187,6 +_,9 @@
+@@ -187,7 +_,31 @@
          }
  
          return Optional.empty();
+-    }
 +        } finally {
 +            net.neoforged.neoforge.common.util.InsertingContents.popTranslation();
 +        }
-     }
++    }
++
++    // Paper start - Count visited parts
++    private static final class TranslatableContentConsumer<T> implements FormattedText.ContentConsumer<T> {
++        private static final IllegalArgumentException NESTED_TOO_LONG = new IllegalArgumentException("Too long");
++
++        private final FormattedText.ContentConsumer<T> visitor;
++        private int visited;
++
++        private TranslatableContentConsumer(final FormattedText.ContentConsumer<T> visitor) {
++            this.visitor = visitor;
++        }
++
++        @Override
++        public Optional<T> accept(final String asString) {
++            if (this.visited++ > 32) {
++                throw NESTED_TOO_LONG;
++            }
++            return this.visitor.accept(asString);
++        }
++    }
++    // Paper end - Count visited parts
  
      @Override
+     public MutableComponent resolve(ResolutionContext context, int recursionDepth) throws CommandSyntaxException {

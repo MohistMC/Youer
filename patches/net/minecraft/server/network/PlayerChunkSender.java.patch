@@ -1,15 +1,33 @@
 --- a/net/minecraft/server/network/PlayerChunkSender.java
 +++ b/net/minecraft/server/network/PlayerChunkSender.java
-@@ -73,14 +_,17 @@
+@@ -44,6 +_,11 @@
+     public void dropChunk(ServerPlayer player, ChunkPos pos) {
+         if (!this.pendingChunks.remove(pos.pack()) && player.isAlive()) {
+             player.connection.send(new ClientboundForgetLevelChunkPacket(pos));
++            // Paper start - PlayerChunkUnloadEvent
++            if (io.papermc.paper.event.packet.PlayerChunkUnloadEvent.getHandlerList().getRegisteredListeners().length > 0) {
++                new io.papermc.paper.event.packet.PlayerChunkUnloadEvent(player.getBukkitEntity().getWorld().getChunkAt(pos.pack()), player.getBukkitEntity()).callEvent();
++            }
++            // Paper end - PlayerChunkUnloadEvent
+         }
+     }
+ 
+@@ -73,14 +_,23 @@
          }
      }
  
 -    private static void sendChunk(ServerGamePacketListenerImpl connection, ServerLevel level, LevelChunk chunk) {
 -        connection.send(new ClientboundLevelChunkWithLightPacket(chunk, level.getLightEngine(), null, null));
 +    public static void sendChunk(ServerGamePacketListenerImpl connection, ServerLevel level, LevelChunk chunk) {
-+        connection.send(chunk.getAuxLightManager(chunk.getPos()).sendLightDataTo(
-+                new ClientboundLevelChunkWithLightPacket(chunk, level.getLightEngine(), null, null)
-+        ));
++        // Paper start - Anti-Xray
++        final boolean shouldModify = level.chunkPacketBlockController.shouldModify(connection.player, chunk);
++        connection.send(new ClientboundLevelChunkWithLightPacket(chunk, level.getLightEngine(), null, null, shouldModify));
++        // Paper end - Anti-Xray
++        // Paper start - PlayerChunkLoadEvent
++        if (io.papermc.paper.event.packet.PlayerChunkLoadEvent.getHandlerList().getRegisteredListeners().length > 0) {
++            new io.papermc.paper.event.packet.PlayerChunkLoadEvent(new org.bukkit.craftbukkit.CraftChunk(chunk), connection.getPlayer().getBukkitEntity()).callEvent();
++        }
++        // Paper end - PlayerChunkLoadEvent
          ChunkPos pos = chunk.getPos();
          if (SharedConstants.DEBUG_VERBOSE_SERVER_EVENTS) {
              LOGGER.debug("SEN {}", pos);

@@ -8,8 +8,12 @@
  import io.netty.channel.ChannelHandlerContext;
  import io.netty.channel.ChannelInboundHandler;
  import io.netty.channel.ChannelInitializer;
-@@ -68,6 +_,11 @@
-     private final Queue<Consumer<Connection>> pendingActions = Queues.newConcurrentLinkedQueue();
+@@ -65,9 +_,14 @@
+     private static final ProtocolInfo<ServerHandshakePacketListener> INITIAL_PROTOCOL = HandshakeProtocols.SERVERBOUND;
+     private final PacketFlow receiving;
+     private volatile boolean sendLoginDisconnect = true;
+-    private final Queue<Consumer<Connection>> pendingActions = Queues.newConcurrentLinkedQueue();
++    private final Queue<WrappedConsumer> pendingActions = Queues.newConcurrentLinkedQueue(); // Paper - Optimize network
      public Channel channel;
      public SocketAddress address;
 +    // Spigot Start
@@ -71,13 +75,11 @@
  
      public Connection(PacketFlow receiving) {
          this.receiving = receiving;
-@@ -91,14 +_,19 @@
+@@ -91,30 +_,57 @@
          super.channelActive(ctx);
          this.channel = ctx.channel();
          this.address = this.channel.remoteAddress();
-+        // Spigot Start
-+        this.preparing = false;
-+        // Spigot End
++        this.preparing = false; // Spigot
          if (this.delayedDisconnect != null) {
              this.disconnect(this.delayedDisconnect);
          }
@@ -91,7 +93,33 @@
      }
  
      @Override
-@@ -115,6 +_,13 @@
++    // Paper start - Handle large packets disconnecting client
+     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
++        if (cause instanceof io.netty.handler.codec.EncoderException && cause.getCause() instanceof PacketEncoder.PacketTooLargeException packetTooLargeException) {
++            final Packet<?> packet = packetTooLargeException.getPacket();
++            if (packet.packetTooLarge(this)) {
++                ProtocolSwapHandler.handleOutboundTerminalPacket(ctx, packet);
++                return;
++            } else if (packet.isSkippable()) {
++                Connection.LOGGER.debug("Skipping packet due to errors", cause.getCause());
++                ProtocolSwapHandler.handleOutboundTerminalPacket(ctx, packet);
++                return;
++            } else {
++                cause = cause.getCause();
++            }
++        }
++        // Paper end - Handle large packets disconnecting client
+         if (cause instanceof SkipPacketException) {
+             LOGGER.debug("Skipping packet due to errors", cause.getCause());
+         } else {
+             boolean isFirstFault = !this.handlingFault;
+             this.handlingFault = true;
+             if (this.channel.isOpen()) {
++                net.minecraft.server.level.ServerPlayer player = this.getPlayer(); // Paper - Add API for quit reason
+                 if (cause instanceof TimeoutException) {
+                     LOGGER.debug("Timeout", cause);
++                    if (player != null) player.quitReason = org.bukkit.event.player.PlayerQuitEvent.QuitReason.TIMED_OUT; // Paper - Add API for quit reason
+                     this.disconnect(Component.translatable("disconnect.timeout"));
                  } else {
                      Component reason = Component.translatable("disconnect.genericReason", "Internal Exception: " + cause);
                      PacketListener listener = this.packetListener;
@@ -105,6 +133,89 @@
                      DisconnectionDetails details;
                      if (listener != null) {
                          details = listener.createDisconnectionInfo(reason, cause);
+@@ -122,9 +_,11 @@
+                         details = new DisconnectionDetails(reason);
+                     }
+ 
++                    if (player != null) player.quitReason = org.bukkit.event.player.PlayerQuitEvent.QuitReason.ERRONEOUS_STATE; // Paper - Add API for quit reason
+                     if (isFirstFault) {
+                         LOGGER.debug("Failed to sent packet", cause);
+-                        if (this.getSending() == PacketFlow.CLIENTBOUND) {
++                        boolean doesDisconnectExist = this.packetListener.protocol() != ConnectionProtocol.STATUS && this.packetListener.protocol() != ConnectionProtocol.HANDSHAKING; // Paper
++                        if (this.getSending() == PacketFlow.CLIENTBOUND && doesDisconnectExist) { // Paper
+                             Packet<?> packet = this.sendLoginDisconnect
+                                 ? new ClientboundLoginDisconnectPacket(reason)
+                                 : new ClientboundDisconnectPacket(reason);
+@@ -141,6 +_,7 @@
+                 }
+             }
+         }
++        if (net.minecraft.server.MinecraftServer.getServer().isDebugging()) io.papermc.paper.util.TraceUtil.printStackTrace(cause); // Spigot // Paper
+     }
+ 
+     protected void channelRead0(ChannelHandlerContext ctx, Packet<?> packet) {
+@@ -149,11 +_,60 @@
+             if (packetListener == null) {
+                 throw new IllegalStateException("Received a packet before the packet listener was initialized");
+             }
+-
++            // Paper start - packet limiter
++            if (this.stopReadingPackets) {
++                return;
++            }
++            if (this.allPacketCounts != null ||
++                    io.papermc.paper.configuration.GlobalConfiguration.get().packetLimiter.overrides.containsKey(packet.getClass())) {
++                long time = System.nanoTime();
++                synchronized (PACKET_LIMIT_LOCK) {
++                    if (this.allPacketCounts != null) {
++                        this.allPacketCounts.updateAndAdd(1, time);
++                        if (this.allPacketCounts.getRate() >= io.papermc.paper.configuration.GlobalConfiguration.get().packetLimiter.allPackets.maxPacketRate()) {
++                            this.killForPacketSpam();
++                            return;
++                        }
++                    }
++
++                    for (Class<?> check = packet.getClass(); check != Object.class; check = check.getSuperclass()) {
++                        io.papermc.paper.configuration.GlobalConfiguration.PacketLimiter.PacketLimit packetSpecificLimit =
++                                io.papermc.paper.configuration.GlobalConfiguration.get().packetLimiter.overrides.get(check);
++                        if (packetSpecificLimit == null || !packetSpecificLimit.isEnabled()) {
++                            continue;
++                        }
++                        io.papermc.paper.util.IntervalledCounter counter = this.packetSpecificLimits.computeIfAbsent((Class)check, (clazz) -> {
++                            return new io.papermc.paper.util.IntervalledCounter((long)(packetSpecificLimit.interval() * 1.0e9));
++                        });
++                        counter.updateAndAdd(1, time);
++                        if (counter.getRate() >= packetSpecificLimit.maxPacketRate()) {
++                            switch (packetSpecificLimit.action()) {
++                                case DROP:
++                                    return;
++                                case KICK:
++                                    String deobfedPacketName = check.getName();
++
++                                    String playerName;
++                                    if (this.packetListener instanceof net.minecraft.server.network.ServerCommonPacketListenerImpl impl) {
++                                        playerName = impl.getOwner().name();
++                                    } else {
++                                        playerName = this.getLoggableAddress(net.minecraft.server.MinecraftServer.getServer().logIPs());
++                                    }
++
++                                    Connection.LOGGER.warn("{} kicked for packet spamming: {}", playerName, deobfedPacketName.substring(deobfedPacketName.lastIndexOf(".") + 1));
++                                    this.killForPacketSpam();
++                                    return;
++                            }
++                        }
++                    }
++                }
++            }
++            // Paper end - packet limiter
+             if (packetListener.shouldHandleMessage(packet)) {
+                 try {
+                     genericsFtw(packet, packetListener);
+                 } catch (RunningOnDifferentThreadException var5) {
++                } catch (io.papermc.paper.util.ServerStopRejectedExecutionException ignored) { // Paper - do not prematurely disconnect players on stop
+                 } catch (RejectedExecutionException ignored) {
+                     this.disconnect(Component.translatable("multiplayer.disconnect.server_shutdown"));
+                 } catch (ClassCastException exception) {
 @@ -201,6 +_,7 @@
              throw new IllegalStateException("Invalid inbound protocol: " + protocol.id());
          }
@@ -127,6 +238,207 @@
          }
  
          boolean isLoginProtocol = protocol.id() == ConnectionProtocol.LOGIN;
+@@ -279,11 +_,38 @@
+     }
+ 
+     public void send(Packet<?> packet, @Nullable ChannelFutureListener listener, boolean flush) {
+-        if (this.isConnected()) {
+-            this.flushQueue();
++        // Paper start - Optimize network: Handle oversized packets better
++        final boolean connected = this.isConnected();
++        if (!connected && !this.preparing) {
++            return;
++        }
++
++        packet.onPacketDispatch(this.getPlayer());
++        if (connected && (InnerUtil.canSendImmediate(this, packet)
++                || (io.papermc.paper.util.MCUtil.isMainThread() && packet.isReady() && this.pendingActions.isEmpty()
++                && (packet.getExtraPackets() == null || packet.getExtraPackets().isEmpty())))) {
+             this.sendPacket(packet, listener, flush);
+         } else {
+-            this.pendingActions.add(connection -> connection.sendPacket(packet, listener, flush));
++            // Write the packets to the queue, then flush - antixray hooks there already
++            final java.util.List<Packet<?>> extraPackets = InnerUtil.buildExtraPackets(packet);
++            final boolean hasExtraPackets = extraPackets != null && !extraPackets.isEmpty();
++            if (!hasExtraPackets) {
++                this.pendingActions.add(new PacketSendAction(packet, listener, flush));
++            } else {
++                final java.util.List<PacketSendAction> actions = new java.util.ArrayList<>(1 + extraPackets.size());
++                actions.add(new PacketSendAction(packet, null, false)); // Delay the future listener until the end of the extra packets
++
++                for (int i = 0, len = extraPackets.size(); i < len;) {
++                    final Packet<?> extraPacket = extraPackets.get(i);
++                    final boolean end = ++i == len;
++                    actions.add(new PacketSendAction(extraPacket, end ? listener : null, end)); // Append listener to the end
++                }
++
++                this.pendingActions.addAll(actions);
++            }
++
++            this.flushQueue();
++            // Paper end - Optimize network
+         }
+     }
+ 
+@@ -292,7 +_,7 @@
+             this.flushQueue();
+             action.accept(this);
+         } else {
+-            this.pendingActions.add(action);
++            this.pendingActions.add(new WrappedConsumer(action)); // Paper - Optimize network
+         }
+     }
+ 
+@@ -306,21 +_,42 @@
+     }
+ 
+     private void doSendPacket(Packet<?> packet, @Nullable ChannelFutureListener listener, boolean flush) {
+-        if (listener != null) {
+-            ChannelFuture future = flush ? this.channel.writeAndFlush(packet) : this.channel.write(packet);
+-            future.addListener(listener);
+-        } else if (flush) {
+-            this.channel.writeAndFlush(packet, this.channel.voidPromise());
+-        } else {
+-            this.channel.write(packet, this.channel.voidPromise());
+-        }
++        // Paper start - Optimize network
++        final net.minecraft.server.level.ServerPlayer player = this.getPlayer();
++        if (!this.isConnected()) {
++            packet.onPacketDispatchFinish(player, null);
++            return;
++        }
++        try {
++            final ChannelFuture future;
++            // Paper end - Optimize network
++            if (listener != null) {
++                future = flush ? this.channel.writeAndFlush(packet) : this.channel.write(packet); // Paper - Optimize network
++                future.addListener(listener);
++            } else if (flush) {
++                future = this.channel.writeAndFlush(packet, this.channel.voidPromise()); // Paper - Optimize network
++            } else {
++                future = this.channel.write(packet, this.channel.voidPromise()); // Paper - Optimize network
++            }
++
++            // Paper start - Optimize network
++            if (packet.hasFinishListener()) {
++                future.addListener((ChannelFutureListener) f -> packet.onPacketDispatchFinish(player, f));
++            }
++        } catch (final Exception e) {
++            LOGGER.error("NetworkException: {}", player, e);
++            Component reason = Component.translatable("disconnect.genericReason", "Internal Exception: " + e.getMessage());
++            this.send(new ClientboundDisconnectPacket(reason), PacketSendListener.thenRun(() -> this.disconnect(reason)));
++            packet.onPacketDispatchFinish(player, null);
++        }
++        // Paper end - Optimize network
+     }
+ 
+     public void flushChannel() {
+         if (this.isConnected()) {
+             this.flush();
+         } else {
+-            this.pendingActions.add(Connection::flush);
++            this.pendingActions.add(new WrappedConsumer(Connection::flush)); // Paper - Optimize network
+         }
+     }
+ 
+@@ -332,21 +_,82 @@
+         }
+     }
+ 
+-    private void flushQueue() {
+-        if (this.channel != null && this.channel.isOpen()) {
++    // Paper start - Optimize network: Rewrite this to be safer if ran off main thread
++    private boolean flushQueue() {
++        if (!this.isConnected()) {
++            return true;
++        }
++        if (io.papermc.paper.util.MCUtil.isMainThread()) {
++            return this.processQueue();
++        } else if (this.isPending) {
++            // Should only happen during login/status stages
+             synchronized (this.pendingActions) {
+-                Consumer<Connection> pendingAction;
+-                while ((pendingAction = this.pendingActions.poll()) != null) {
+-                    pendingAction.accept(this);
++                return this.processQueue();
++            }
++        }
++        return false;
++    }
++
++    private boolean processQueue() {
++        if (this.pendingActions.isEmpty()) {
++            return true;
++        }
++
++        // If we are on main, we are safe here in that nothing else should be processing queue off main anymore
++        // But if we are not on main due to login/status, the parent is synchronized on packetQueue
++        final java.util.Iterator<WrappedConsumer> iterator = this.pendingActions.iterator();
++        while (iterator.hasNext()) {
++            final WrappedConsumer queued = iterator.next(); // poll -> peek
++
++            // Fix NPE (Spigot bug caused by handleDisconnection())
++            if (queued == null) {
++                return true;
++            }
++
++            if (queued.isConsumed()) {
++                continue;
++            }
++
++            if (queued instanceof PacketSendAction packetSendAction) {
++                final Packet<?> packet = packetSendAction.packet;
++                if (!packet.isReady()) {
++                    return false;
+                 }
+             }
++
++            iterator.remove();
++            if (queued.tryMarkConsumed()) {
++                queued.accept(this);
++            }
+         }
++        return true;
+     }
++    // Paper end - Optimize network
+ 
++    private static final int MAX_PER_TICK = io.papermc.paper.configuration.GlobalConfiguration.get().misc.maxJoinsPerTick; // Paper - Buffer joins to world
++    private static int joinAttemptsThisTick; // Paper - Buffer joins to world
++    private static int currTick; // Paper - Buffer joins to world
+     public void tick() {
+         this.flushQueue();
++        // Paper start - Buffer joins to world
++        if (Connection.currTick != net.minecraft.server.MinecraftServer.currentTick) {
++            Connection.currTick = net.minecraft.server.MinecraftServer.currentTick;
++            Connection.joinAttemptsThisTick = 0;
++        }
++        // Paper end - Buffer joins to world
+         if (this.packetListener instanceof TickablePacketListener tickable) {
+-            tickable.tick();
++            // Paper start - Buffer joins to world
++            if (!(this.packetListener instanceof net.minecraft.server.network.ServerLoginPacketListenerImpl loginPacketListener)
++                    || loginPacketListener.state != net.minecraft.server.network.ServerLoginPacketListenerImpl.State.VERIFYING
++                    || Connection.joinAttemptsThisTick++ < MAX_PER_TICK) {
++                // Paper start - detailed watchdog information
++                net.minecraft.network.PacketProcessor.packetProcessing.push(this.packetListener);
++                try {
++                    tickable.tick();
++                } finally {
++                    net.minecraft.network.PacketProcessor.packetProcessing.pop();
++                } // Paper end - detailed watchdog information
++            } // Paper end - Buffer joins to world
+         }
+ 
+         if (!this.isConnected() && !this.disconnectionHandled) {
+@@ -354,7 +_,7 @@
+         }
+ 
+         if (this.channel != null) {
+-            this.channel.flush();
++            if (enableExplicitFlush) this.channel.eventLoop().execute(() -> this.channel.flush()); // Paper - Disable explicit connection flushing; we don't need to explicit flush here, but allow opt in incase issues are found to a better version
+         }
+ 
+         if (this.tickCount++ % 20 == 0) {
 @@ -381,7 +_,7 @@
          if (this.address == null) {
              return "local";
@@ -136,13 +448,12 @@
          }
      }
  
-@@ -390,12 +_,15 @@
+@@ -390,12 +_,14 @@
      }
  
      public void disconnect(DisconnectionDetails details) {
-+        // Spigot Start
-+        this.preparing = false;
-+        // Spigot End
++        this.preparing = false; // Spigot
++        this.clearPacketQueue(); // Paper - Optimize network
          if (this.channel == null) {
              this.delayedDisconnect = details;
          }
@@ -189,7 +500,7 @@
  
      public boolean isConnected() {
          return this.channel != null && this.channel.isOpen();
-@@ -538,6 +_,14 @@
+@@ -538,44 +_,75 @@
          }
      }
  
@@ -203,20 +514,83 @@
 +
      public void setupCompression(int threshold, boolean validateDecompressed) {
          if (threshold >= 0) {
-             if (this.channel.pipeline().get("decompress") instanceof CompressionDecoder compressionDecoder) {
-@@ -576,6 +_,7 @@
+-            if (this.channel.pipeline().get("decompress") instanceof CompressionDecoder compressionDecoder) {
+-                compressionDecoder.setThreshold(threshold, validateDecompressed);
++            com.velocitypowered.natives.compression.VelocityCompressor compressor = com.velocitypowered.natives.util.Natives.compress.get().create(io.papermc.paper.configuration.GlobalConfiguration.get().misc.compressionLevel.or(-1)); // Paper - Use Velocity cipher
++            if (this.channel.pipeline().get(HandlerNames.DECOMPRESS) instanceof CompressionDecoder compressionDecoder) {
++                compressionDecoder.setThreshold(compressor, threshold, validateDecompressed); // Paper - Use Velocity cipher
+             } else {
+-                this.channel.pipeline().addAfter("splitter", "decompress", new CompressionDecoder(threshold, validateDecompressed));
++                this.channel.pipeline().addAfter(HandlerNames.SPLITTER, HandlerNames.DECOMPRESS, new CompressionDecoder(compressor, threshold, validateDecompressed)); // Paper - Use Velocity cipher
+             }
+ 
+-            if (this.channel.pipeline().get("compress") instanceof CompressionEncoder compressionEncoder) {
++            if (this.channel.pipeline().get(HandlerNames.COMPRESS) instanceof CompressionEncoder compressionEncoder) {
+                 compressionEncoder.setThreshold(threshold);
+             } else {
+-                this.channel.pipeline().addAfter("prepender", "compress", new CompressionEncoder(threshold));
++                this.channel.pipeline().addAfter(HandlerNames.PREPENDER, HandlerNames.COMPRESS, new CompressionEncoder(compressor, threshold)); // Paper - Use Velocity cipher
+             }
++            this.channel.pipeline().fireUserEventTriggered(io.papermc.paper.network.ConnectionEvent.COMPRESSION_THRESHOLD_SET); // Paper - Add Channel initialization listeners
+         } else {
+-            if (this.channel.pipeline().get("decompress") instanceof CompressionDecoder) {
+-                this.channel.pipeline().remove("decompress");
++            if (this.channel.pipeline().get(HandlerNames.DECOMPRESS) instanceof CompressionDecoder) {
++                this.channel.pipeline().remove(HandlerNames.DECOMPRESS);
+             }
+ 
+-            if (this.channel.pipeline().get("compress") instanceof CompressionEncoder) {
+-                this.channel.pipeline().remove("compress");
++            if (this.channel.pipeline().get(HandlerNames.COMPRESS) instanceof CompressionEncoder) {
++                this.channel.pipeline().remove(HandlerNames.COMPRESS);
+             }
++            this.channel.pipeline().fireUserEventTriggered(io.papermc.paper.network.ConnectionEvent.COMPRESSION_DISABLED); // Paper - Add Channel initialization listeners
+         }
+     }
+ 
+     public void handleDisconnection() {
+         if (this.channel != null && !this.channel.isOpen()) {
+             if (this.disconnectionHandled) {
+-                LOGGER.warn("handleDisconnection() called twice");
++                // LOGGER.warn("handleDisconnection() called twice"); // Paper - Don't log useless message
+             } else {
+                 this.disconnectionHandled = true;
+                 PacketListener packetListener = this.getPacketListener();
+                 PacketListener disconnectListener = packetListener != null ? packetListener : this.disconnectListener;
+                 if (disconnectListener != null) {
+                     DisconnectionDetails details = Objects.requireNonNullElseGet(
+-                        this.getDisconnectionDetails(), () -> new DisconnectionDetails(Component.translatable("multiplayer.disconnect.generic"))
++                            this.getDisconnectionDetails(), () -> new DisconnectionDetails(Component.translatable("multiplayer.disconnect.generic"))
                      );
                      disconnectListener.onDisconnect(details);
                  }
-+                this.pendingActions.clear(); // Free up packet queue.
++                this.clearPacketQueue(); // Paper - Optimize network
++                // Paper start - Add PlayerConnectionCloseEvent
++                if (packetListener instanceof net.minecraft.server.network.ServerCommonPacketListenerImpl commonPacketListener) {
++                    /* Player was logged in, either game listener or configuration listener */
++                    final com.mojang.authlib.GameProfile profile = commonPacketListener.getOwner();
++                    new com.destroystokyo.paper.event.player.PlayerConnectionCloseEvent(profile.id(),
++                            profile.name(), ((InetSocketAddress) this.address).getAddress(), false).callEvent();
++                } else if (packetListener instanceof net.minecraft.server.network.ServerLoginPacketListenerImpl loginListener) {
++                    /* Player is login stage */
++                    switch (loginListener.state) {
++                        case VERIFYING:
++                        case WAITING_FOR_DUPE_DISCONNECT:
++                        case PROTOCOL_SWITCHING:
++                        case ACCEPTED:
++                            final com.mojang.authlib.GameProfile profile = loginListener.authenticatedProfile; /* Should be non-null at this stage */
++                            new com.destroystokyo.paper.event.player.PlayerConnectionCloseEvent(profile.id(), profile.name(),
++                                    ((InetSocketAddress) this.address).getAddress(), false).callEvent();
++                    }
++                }
++                // Paper end - Add PlayerConnectionCloseEvent
              }
          }
      }
-@@ -598,5 +_,17 @@
- 
+@@ -599,4 +_,108 @@
      public @Nullable UUID getIntendedProfileId() {
          return this.intendedProfileId;
-+    }
+     }
 +
 +    public Channel channel() {
 +        return this.channel;
@@ -228,5 +602,97 @@
 +
 +    public ProtocolInfo<?> getInboundProtocol() {
 +        return Objects.requireNonNull(this.inboundProtocol, "Inbound protocol not set?");
-     }
++    }
++
++    // Paper start - Optimize network
++    public void clearPacketQueue() {
++        final net.minecraft.server.level.ServerPlayer player = getPlayer();
++        for (final Consumer<Connection> queuedAction : this.pendingActions) {
++            if (queuedAction instanceof PacketSendAction packetSendAction) {
++                final Packet<?> packet = packetSendAction.packet;
++                if (packet.hasFinishListener()) {
++                    packet.onPacketDispatchFinish(player, null);
++                }
++            }
++        }
++        this.pendingActions.clear();
++    }
++
++    private static final class InnerUtil { // Attempt to hide these methods from ProtocolLib, so it doesn't accidently pick them up.
++
++        private static java.util.@Nullable List<Packet<?>> buildExtraPackets(final Packet<?> packet) {
++            final java.util.List<Packet<?>> extra = packet.getExtraPackets();
++            if (extra == null || extra.isEmpty()) {
++                return null;
++            }
++
++            final java.util.List<Packet<?>> ret = new java.util.ArrayList<>(1 + extra.size());
++            buildExtraPackets0(extra, ret);
++            return ret;
++        }
++
++        private static void buildExtraPackets0(final java.util.List<Packet<?>> extraPackets, final java.util.List<Packet<?>> into) {
++            for (final Packet<?> extra : extraPackets) {
++                into.add(extra);
++                final java.util.List<Packet<?>> extraExtra = extra.getExtraPackets();
++                if (extraExtra != null && !extraExtra.isEmpty()) {
++                    buildExtraPackets0(extraExtra, into);
++                }
++            }
++        }
++
++        private static boolean canSendImmediate(final Connection connection, final net.minecraft.network.protocol.Packet<?> packet) {
++            return connection.isPending || connection.packetListener.protocol() != ConnectionProtocol.PLAY ||
++                    packet instanceof net.minecraft.network.protocol.common.ClientboundKeepAlivePacket ||
++                    packet instanceof net.minecraft.network.protocol.game.ClientboundPlayerChatPacket ||
++                    packet instanceof net.minecraft.network.protocol.game.ClientboundSystemChatPacket ||
++                    packet instanceof net.minecraft.network.protocol.game.ClientboundDisguisedChatPacket ||
++                    packet instanceof net.minecraft.network.protocol.game.ClientboundCommandSuggestionsPacket ||
++                    packet instanceof net.minecraft.network.protocol.game.ClientboundSetTitleTextPacket ||
++                    packet instanceof net.minecraft.network.protocol.game.ClientboundSetSubtitleTextPacket ||
++                    packet instanceof net.minecraft.network.protocol.game.ClientboundSetActionBarTextPacket ||
++                    packet instanceof net.minecraft.network.protocol.game.ClientboundSetTitlesAnimationPacket ||
++                    packet instanceof net.minecraft.network.protocol.game.ClientboundClearTitlesPacket ||
++                    packet instanceof net.minecraft.network.protocol.game.ClientboundSoundPacket ||
++                    packet instanceof net.minecraft.network.protocol.game.ClientboundSoundEntityPacket ||
++                    packet instanceof net.minecraft.network.protocol.game.ClientboundStopSoundPacket ||
++                    packet instanceof net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket ||
++                    packet instanceof net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket ||
++                    packet instanceof net.minecraft.network.protocol.game.ClientboundPlayerInfoRemovePacket ||
++                    packet instanceof net.minecraft.network.protocol.game.ClientboundBossEventPacket ||
++                    packet instanceof net.minecraft.network.protocol.ping.ClientboundPongResponsePacket;
++        }
++    }
++
++    private static class WrappedConsumer implements Consumer<Connection> {
++        private final Consumer<Connection> delegate;
++        private final java.util.concurrent.atomic.AtomicBoolean consumed = new java.util.concurrent.atomic.AtomicBoolean(false);
++
++        private WrappedConsumer(final Consumer<Connection> delegate) {
++            this.delegate = delegate;
++        }
++
++        @Override
++        public void accept(final Connection connection) {
++            this.delegate.accept(connection);
++        }
++
++        public boolean tryMarkConsumed() {
++            return consumed.compareAndSet(false, true);
++        }
++
++        public boolean isConsumed() {
++            return consumed.get();
++        }
++    }
++
++    private static final class PacketSendAction extends WrappedConsumer {
++        private final Packet<?> packet;
++
++        private PacketSendAction(final Packet<?> packet, @Nullable final ChannelFutureListener channelFutureListener, final boolean flush) {
++            super(connection -> connection.sendPacket(packet, channelFutureListener, flush));
++            this.packet = packet;
++        }
++    }
++    // Paper end - Optimize network
  }
