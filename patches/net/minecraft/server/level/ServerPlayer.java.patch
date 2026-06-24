@@ -1465,7 +1465,7 @@
 +                        }
 +                        return OptionalInt.empty();
 +                    }
-+                    this.connection.send(new ClientboundOpenScreenPacket(menu.containerId, menu.getType(), provider.getDisplayName()));
++                    this.connection.send(new ClientboundOpenScreenPacket(menu.containerId, menu.getType(), java.util.Objects.requireNonNullElseGet(title, menu::getTitle))); // Paper - Add titleOverride to InventoryOpenEven
 +                }
 +                this.initMenu(menu);
 +                this.containerMenu = menu;
@@ -1711,7 +1711,7 @@
          if (success) {
              this.setYHeadRot(relatives.contains(Relative.Y_ROT) ? this.getYHeadRot() + newYRot : newYRot);
              this.connection.resetFlyingTicks();
-@@ -1733,9 +_,20 @@
+@@ -1733,11 +_,18 @@
      }
  
      public boolean setGameMode(GameType mode) {
@@ -1721,18 +1721,19 @@
 +    }
 +    public org.bukkit.event.player.@Nullable PlayerGameModeChangeEvent setGameMode(GameType mode, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause cause, net.kyori.adventure.text.@Nullable Component message) {
          boolean wasSpectator = this.isSpectator();
+-        if (!this.gameMode.changeGameModeForPlayer(mode)) {
+-            return false;
+-        }
+-
++        mode = net.neoforged.neoforge.common.CommonHooks.onChangeGameType(this, this.gameMode.getGameModeForPlayer(), mode);
++        if (mode == null) return null;
 +        org.bukkit.event.player.PlayerGameModeChangeEvent event = this.gameMode.changeGameModeForPlayer(mode, cause, message);
 +        if (event == null) return null;
 +        if (event.isCancelled()) return event; // need to return the event for the cancel message
 +        // Paper end - Expand PlayerGameModeChangeEvent
-+        mode = net.neoforged.neoforge.common.CommonHooks.onChangeGameType(this, this.gameMode.getGameModeForPlayer(), mode);
-+        if (mode == null) return null;
-         if (!this.gameMode.changeGameModeForPlayer(mode)) {
--            return false;
-+            return null;
-         }
- 
          this.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.CHANGE_GAME_MODE, mode.getId()));
+         if (mode == GameType.SPECTATOR) {
+             this.removeEntitiesOnShoulder();
 @@ -1753,7 +_,7 @@
  
          this.onUpdateAbilities();

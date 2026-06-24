@@ -160,15 +160,28 @@
      public float getExplosionResistance() {
          return this.explosionResistance;
      }
-@@ -445,7 +_,7 @@
- 
-     public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith) {
-         player.awardStat(Stats.BLOCK_MINED.get(this));
--        player.causeFoodExhaustion(0.005F);
-+        player.causeFoodExhaustion(0.005F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.BLOCK_MINED); // CraftBukkit - EntityExhaustionEvent
-         dropResources(state, level, pos, blockEntity, player, destroyedWith);
+@@ -443,10 +_,19 @@
+         return this.defaultBlockState();
      }
  
++    // Paper start - fix drops not preventing stats/food exhaustion
++    @Deprecated @io.papermc.paper.annotation.DoNotUse
+     public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith) {
++        playerDestroy(level, player, pos, state, blockEntity, destroyedWith, true, true);
++    }
++    // Paper end - fix drops not preventing stats/food exhaustion
++
++    public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith, final boolean includeDrops, final boolean dropExp) { // Paper - fix drops not preventing stats/food exhaustion
+         player.awardStat(Stats.BLOCK_MINED.get(this));
+-        player.causeFoodExhaustion(0.005F);
+-        dropResources(state, level, pos, blockEntity, player, destroyedWith);
++        player.causeFoodExhaustion(0.005F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.BLOCK_MINED); // CraftBukkit - EntityExhaustionEvent
++        if (includeDrops) { // Paper - fix drops not preventing stats/food exhaustion
++            dropResources(state, level, pos, blockEntity, player, destroyedWith, dropExp); // Paper - Properly handle xp dropping
++        } // Paper - fix drops not preventing stats/food exhaustion
+     }
+ 
+     public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity by, ItemStack itemStack) {
 @@ -464,6 +_,8 @@
          entity.causeFallDamage(fallDistance, 1.0F, entity.damageSources().fall());
      }
@@ -238,7 +251,7 @@
 +        return 0;
 +    }
 +
-+    public int getExpDrop(BlockState blockstate, ServerLevel serverlevel, BlockPos blockpos, ItemStack itemstack, boolean flag) {
++    public int getExpDrop(final BlockState state, final ServerLevel level, final BlockPos pos, final ItemStack tool, final boolean dropExperience) {
 +        return 0;
 +    }
 +    // CraftBukkit end

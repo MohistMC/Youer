@@ -30,13 +30,10 @@
 ## 📊 Progress Status
 
 ✅ **Core Integration**
-- [x] NeoForge ([acb08366c](https://github.com/neoforged/NeoForge/commit/acb08366c))
+- [x] NeoForge ([4a632391a](https://github.com/neoforged/NeoForge/commit/4a632391a))
 - [ ] Paper ([250ea42064](https://github.com/PaperMC/Paper/commit/250ea42064))
-  - [ ] api
+  - [x] api
   - [ ] server
-    - [ ] chunk_system
-    - [ ] chunk_tick_iteration
-    - [ ] starlight
 - [ ] PurPur ([803bf624](https://github.com/PurpurMC/Purpur/commit/803bf624))
   - [ ] api
   - [ ] server

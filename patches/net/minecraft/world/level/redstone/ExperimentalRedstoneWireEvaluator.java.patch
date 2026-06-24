@@ -9,20 +9,17 @@
  import org.jspecify.annotations.Nullable;
  
  public class ExperimentalRedstoneWireEvaluator extends RedstoneWireEvaluator {
-@@ -40,7 +_,16 @@
+@@ -40,7 +_,13 @@
              int packed = next.getIntValue();
              int newLevel = unpackPower(packed);
              BlockState state = level.getBlockState(pos);
 -            if (state.is(this.wireBlock) && !state.getValue(RedStoneWireBlock.POWER).equals(newLevel)) {
-+            // CraftBukkit start
-+            int oldPower = ignored.getValue(RedStoneWireBlock.POWER);
-+            if (oldPower != newLevel) {
-+                BlockRedstoneEvent event = new BlockRedstoneEvent(CraftBlock.at(level, pos), oldPower, newLevel);
-+                level.getCraftServer().getPluginManager().callEvent(event);
-+
-+                newLevel = event.getNewCurrent();
++            // Paper start - Call BlockRedstoneEvent
++            if (state.is(this.wireBlock) && !state.getValue(RedStoneWireBlock.POWER).equals(newLevel)) {
++                newLevel = org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(level, pos, state.getValue(RedStoneWireBlock.POWER), newLevel).getNewCurrent();
 +            }
-+            if (state.is(this.wireBlock) && oldPower != newLevel) {
++            // Paper end - Call BlockRedstoneEvent
++            if (state.is(this.wireBlock) && !state.getValue(RedStoneWireBlock.POWER).equals(newLevel)) {
 +                // CraftBukkit end
                  int updateFlags = 2;
                  if (!shapeUpdateWiresAroundInitialPosition || !initialWire) {

@@ -54,7 +54,7 @@
      }
  
      private void validateBlockState(BlockState blockState) {
-@@ -64,7 +_,7 @@
+@@ -64,13 +_,14 @@
      }
  
      public boolean isValidBlockState(BlockState blockState) {
@@ -62,16 +62,23 @@
 +        return this.getType().isValid(blockState); // Neo: use getter so correct type is checked for modded subclasses
      }
  
-     public static BlockPos getPosFromTag(ChunkPos base, CompoundTag entityTag) {
-@@ -73,7 +_,7 @@
+-    public static BlockPos getPosFromTag(ChunkPos base, CompoundTag entityTag) {
++    public static BlockPos getPosFromTag(@Nullable ChunkPos base, CompoundTag entityTag) { // Paper - allow reading non-validated pos from tag - nullable
+         int x = entityTag.getIntOr("x", 0);
+         int y = entityTag.getIntOr("y", 0);
          int z = entityTag.getIntOr("z", 0);
++        if (base != null) { // Paper - allow reading non-validated pos from tag - used to parse block entities on items
          int sectionX = SectionPos.blockToSectionCoord(x);
          int sectionZ = SectionPos.blockToSectionCoord(z);
--        if (sectionX != base.x() || sectionZ != base.z()) {
-+        if (base != null && (sectionX != base.x() || sectionZ != base.z())) { // CraftBukkit - allow null
-             LOGGER.warn("Block entity {} found in a wrong chunk, expected position from chunk {}", entityTag, base);
+         if (sectionX != base.x() || sectionZ != base.z()) {
+@@ -78,6 +_,7 @@
              x = base.getBlockX(SectionPos.sectionRelative(x));
              z = base.getBlockZ(SectionPos.sectionRelative(z));
+         }
++        } // Paper - allow reading non-validated pos from tag - used to parse block entities on items
+ 
+         return new BlockPos(x, y, z);
+     }
 @@ -95,6 +_,14 @@
      }
  
@@ -168,43 +175,36 @@
      public Holder<BlockEntityType<?>> typeHolder() {
          return this.type.builtInRegistryHolder();
      }
-@@ -301,6 +_,42 @@
+@@ -301,6 +_,35 @@
          this.components = newPatch.split().added();
      }
  
 +    public final Set<DataComponentType<?>> applyComponentsSet(DataComponentMap prototype, DataComponentPatch patch) {
 +        // CraftBukkit end
-+        final Set<DataComponentType<?>> set = new HashSet();
++        final Set<DataComponentType<?>> implicitComponents = new HashSet();
 +
-+        set.add(DataComponents.BLOCK_ENTITY_DATA);
-+        set.add(DataComponents.BLOCK_STATE);
++        implicitComponents.add(DataComponents.BLOCK_ENTITY_DATA);
++        implicitComponents.add(DataComponents.BLOCK_STATE);
 +        final DataComponentMap datacomponentmap1 = PatchedDataComponentMap.fromPatch(prototype, patch);
 +
 +        this.applyImplicitComponents(new DataComponentGetter() {
-+            {
-+                Objects.requireNonNull(BlockEntity.this);
-+            }
-+
 +            @Override
 +            public <T> @Nullable T get(DataComponentType<? extends T> type) {
-+                set.add(type);
++                implicitComponents.add(type);
 +                return (T) datacomponentmap1.get(type);
 +            }
 +
 +            @Override
 +            public <T> T getOrDefault(DataComponentType<? extends T> type, T defaultValue) {
-+                set.add(type);
++                implicitComponents.add(type);
 +                return (T) datacomponentmap1.getOrDefault(type, defaultValue);
 +            }
 +        });
-+        Objects.requireNonNull(set);
-+        DataComponentPatch datacomponentpatch1 = patch.forget(set::contains);
-+
++        DataComponentPatch datacomponentpatch1 = patch.forget(implicitComponents::contains);
 +        this.components = datacomponentpatch1.split().added();
 +        // CraftBukkit start
-+        set.remove(DataComponents.BLOCK_ENTITY_DATA); // Remove as never actually added by applyImplicitComponents
-+        set.remove(DataComponents.BLOCK_STATE); // Remove as never actually added by applyImplicitComponents
-+        return set;
++        implicitComponents.remove(DataComponents.BLOCK_ENTITY_DATA); // Remove as never actually added by applyImplicitComponents
++        return implicitComponents;
 +        // CraftBukkit end
 +    }
 +

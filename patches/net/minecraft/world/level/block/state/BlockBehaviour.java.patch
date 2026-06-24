@@ -12,21 +12,26 @@
  public abstract class BlockBehaviour implements FeatureElement {
      protected static final Direction[] UPDATE_SHAPE_ORDER = new Direction[]{
          Direction.WEST, Direction.EAST, Direction.NORTH, Direction.SOUTH, Direction.DOWN, Direction.UP
-@@ -165,6 +_,12 @@
-     protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
+@@ -163,32 +_,40 @@
      }
  
+     protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
+-    }
++        org.spigotmc.AsyncCatcher.catchOp("block onPlace"); // Spigot
++    }
++
 +    // CraftBukkit start
-+    protected void onPlace(BlockState blockstate, Level level, BlockPos blockpos, BlockState blockstate1, boolean flag, @Nullable UseOnContext context) {
-+        this.onPlace(blockstate, level, blockpos, blockstate1, flag);
++    protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston, net.minecraft.world.item.context.@Nullable UseOnContext context) {
++        this.onPlace(state, level, pos, oldState, movedByPiston);
 +    }
 +    // CraftBukkit end
-+
+ 
      protected void affectNeighborsAfterRemoval(BlockState state, ServerLevel level, BlockPos pos, boolean movedByPiston) {
      }
  
-@@ -172,23 +_,24 @@
-         if (!state.isAir() && explosion.getBlockInteraction() != Explosion.BlockInteraction.TRIGGER_BLOCK) {
+     protected void onExplosionHit(BlockState state, ServerLevel level, BlockPos pos, Explosion explosion, BiConsumer<ItemStack, BlockPos> onHit) {
+-        if (!state.isAir() && explosion.getBlockInteraction() != Explosion.BlockInteraction.TRIGGER_BLOCK) {
++        if (!state.isAir() && explosion.getBlockInteraction() != Explosion.BlockInteraction.TRIGGER_BLOCK && state.isDestroyable()) { // Paper - Protect Bedrock and End Portal/Frames from being destroyed
              Block block = state.getBlock();
              boolean doDropExperienceHack = explosion.getIndirectSourceEntity() instanceof Player;
 -            if (block.dropFromExplosion(explosion)) {
@@ -55,6 +60,15 @@
          }
      }
  
+@@ -248,7 +_,7 @@
+     }
+ 
+     protected boolean canBeReplaced(BlockState state, BlockPlaceContext context) {
+-        return state.canBeReplaced() && (context.getItemInHand().isEmpty() || !context.getItemInHand().is(this.asItem()));
++        return state.canBeReplaced() && (context.getItemInHand().isEmpty() || !context.getItemInHand().is(this.asItem())) && (state.isDestroyable() || (context.getPlayer() != null && context.getPlayer().getAbilities().instabuild)); // Paper - Protect Bedrock and End Portal/Frames from being destroyed
+     }
+ 
+     protected boolean canBeReplaced(BlockState state, Fluid fluid) {
 @@ -338,8 +_,8 @@
              return 0.0F;
          }
@@ -229,29 +243,38 @@
          public boolean isValidSpawn(BlockGetter level, BlockPos pos, EntityType<?> type) {
              return this.getBlock().properties.isValidSpawn.test(this.asState(), level, pos, type);
          }
-@@ -554,21 +_,25 @@
+@@ -553,22 +_,26 @@
+             return this.occlusionShape;
          }
  
-         public boolean hasLargeCollisionShape() {
+-        public boolean hasLargeCollisionShape() {
 -            return this.cache == null || this.cache.largeCollisionShape;
++        public final boolean hasLargeCollisionShape() { // Paper
 +            return this.shapeExceedsCube; // Paper - moved into shape cache init
          }
  
-         public boolean useShapeForLightOcclusion() {
+-        public boolean useShapeForLightOcclusion() {
++        public final boolean useShapeForLightOcclusion() { // Paper - Perf: Final for inlining
              return this.useShapeForLightOcclusion;
          }
  
+-        public int getLightEmission() {
 +        /** @deprecated Neo: Use {@link net.neoforged.neoforge.common.extensions.IBlockStateExtension#getLightEmission(BlockGetter, BlockPos)} instead */
 +        @Deprecated
-         public int getLightEmission() {
++        public final int getLightEmission() {
              return this.lightEmission;
-         }
- 
-         public boolean isAir() {
+-        }
+-
+-        public boolean isAir() {
 -            return this.isAir;
+-        }
+-
++        } // Paper - Perf: Final for inlining
++
++        public final boolean isAir() { // Paper - Perf: Final for inlining
 +            return this.getBlock().isAir((BlockState)this);
-         }
- 
++        }
++
 +        /** @deprecated Neo: Use {@link net.neoforged.neoforge.common.extensions.IBlockStateExtension#ignitedByLava(BlockGetter, BlockPos, Direction)} instead */
 +        @Deprecated
          public boolean ignitedByLava() {
@@ -270,13 +293,23 @@
          public BlockState rotate(Rotation rotation) {
              return this.getBlock().rotate(this.asState(), rotation);
          }
-@@ -639,6 +_,8 @@
+@@ -639,14 +_,16 @@
          }
  
          public PushReaction getPistonPushReaction() {
+-            return this.pushReaction;
 +            PushReaction reaction = getBlock().getPistonPushReaction(asState());
 +            if (reaction != null) return reaction;
-             return this.pushReaction;
++            return !this.isDestroyable() ? PushReaction.BLOCK : this.pushReaction; // Paper - Protect Bedrock and End Portal/Frames from being destroyed
+         }
+ 
+         public boolean isSolidRender() {
+             return this.solidRender;
+         }
+ 
+-        public boolean canOcclude() {
++        public final boolean canOcclude() { // Paper - Perf: Final for inlining
+             return this.canOcclude;
          }
  
 @@ -733,7 +_,13 @@
@@ -294,6 +327,14 @@
          }
  
          public void affectNeighborsAfterRemoval(ServerLevel level, BlockPos pos, boolean movedByPiston) {
+@@ -758,6 +_,7 @@
+ 
+         public void spawnAfterBreak(ServerLevel level, BlockPos pos, ItemStack tool, boolean dropExperience) {
+             this.getBlock().spawnAfterBreak(this.asState(), level, pos, tool, dropExperience);
++            if (dropExperience) this.getBlock().popExperience(level, pos, this.getBlock().getExpDrop(this.asState(), level, pos, tool, true)); // Paper - Properly handle xp dropping
+         }
+ 
+         public List<ItemStack> getDrops(LootParams.Builder params) {
 @@ -765,6 +_,9 @@
          }
  
@@ -302,6 +343,20 @@
 +            var e = net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.UseItemOnBlockEvent(useOnContext, net.neoforged.neoforge.event.entity.player.UseItemOnBlockEvent.UsePhase.BLOCK));
 +            if (e.isCanceled()) return e.getCancellationResult();
              return this.getBlock().useItemOn(itemStack, this.asState(), level, hitResult.getBlockPos(), player, hand, hitResult);
+         }
+ 
+@@ -840,11 +_,11 @@
+             return this.getBlock() instanceof EntityBlock ? ((EntityBlock)this.getBlock()).getTicker(level, this.asState(), type) : null;
+         }
+ 
+-        public FluidState getFluidState() {
++        public final FluidState getFluidState() { // Paper - Perf: Final for inlining
+             return this.fluidState;
+         }
+ 
+-        public boolean isRandomlyTicking() {
++        public final boolean isRandomlyTicking() { // Paper - Perf: Final for inlining
+             return this.isRandomlyTicking;
          }
  
 @@ -852,6 +_,7 @@

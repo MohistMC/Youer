@@ -16,12 +16,13 @@
  import java.util.Optional;
  import java.util.OptionalInt;
  import java.util.Set;
-@@ -20,6 +_,8 @@
+@@ -20,6 +_,9 @@
  import net.minecraft.core.NonNullList;
  import net.minecraft.core.registries.BuiltInRegistries;
  import net.minecraft.network.HashedStack;
 +import net.minecraft.network.chat.Component;
 +import net.minecraft.network.protocol.game.ClientboundContainerSetSlotPacket;
++import net.minecraft.resources.Identifier;
  import net.minecraft.server.level.ServerPlayer;
  import net.minecraft.util.Mth;
  import net.minecraft.world.Container;
@@ -42,7 +43,7 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -63,6 +_,46 @@
+@@ -63,6 +_,55 @@
      private final List<ContainerListener> containerListeners = Lists.newArrayList();
      private @Nullable ContainerSynchronizer synchronizer;
      private boolean suppressRemoteUpdates;
@@ -73,14 +74,23 @@
 +    public final net.minecraft.network.chat.Component getTitle() {
 +        // Paper start - return chat component with empty text instead of throwing error
 +        if (this.title == null) {
-+            return net.minecraft.network.chat.Component.empty();
++            if (this.menuType != null) {
++                Identifier key = BuiltInRegistries.MENU.getKey(this.menuType);
++                if (key == null) {
++                    this.title = Component.literal(this.toString());
++                } else {
++                    this.title = Component.translatable(key.toString());
++                }
++            } else {
++                this.title = Component.literal(this.toString());
++            }
 +        }
 +        // Paper end - return chat component with empty text instead of throwing error
 +        return this.title;
 +    }
 +
 +    public final void setTitle(net.minecraft.network.chat.Component title) {
-+        com.google.common.base.Preconditions.checkState(this.title == null, "Title already set");
++        // com.google.common.base.Preconditions.checkState(this.title == null, "Title already set");
 +        this.title = title;
 +    }
 +
