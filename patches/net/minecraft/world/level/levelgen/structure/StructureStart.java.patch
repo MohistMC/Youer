@@ -44,16 +44,15 @@
  
              this.structure.afterPlace(level, structureManager, generator, random, chunkBB, chunkPos, this.pieceContainer);
          }
-@@ -97,7 +_,16 @@
+@@ -97,7 +_,15 @@
  
      public CompoundTag createTag(StructurePieceSerializationContext context, ChunkPos chunkPos) {
          CompoundTag tag = new CompoundTag();
 +        // CraftBukkit start - store persistent data in nbt
-+        if (!persistentDataContainer.isEmpty()) {
-+            tag.put("StructureBukkitValues", persistentDataContainer.toTagCompound());
++        if (!this.persistentDataContainer.isEmpty()) {
++            tag.put("StructureBukkitValues", this.persistentDataContainer.toTagCompound());
 +        }
 +        // CraftBukkit end
-+
          if (this.isValid()) {
 +            if (context.registryAccess().lookupOrThrow(Registries.STRUCTURE).getKey(this.getStructure()) == null) { // FORGE: This is just a more friendly error instead of the 'Null String' below
 +                throw new RuntimeException("StructureStart \"" + this.getClass().getName() + "\": \"" + this.getStructure() + "\" unregistered, serializing impossible.");

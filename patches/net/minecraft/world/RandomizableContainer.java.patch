@@ -1,6 +1,37 @@
 --- a/net/minecraft/world/RandomizableContainer.java
 +++ b/net/minecraft/world/RandomizableContainer.java
-@@ -68,16 +_,31 @@
+@@ -26,7 +_,7 @@
+ 
+     void setLootTable(final @Nullable ResourceKey<LootTable> lootTable);
+ 
+-    default void setLootTable(ResourceKey<LootTable> lootTable, long seed) {
++    default void setLootTable(@Nullable ResourceKey<LootTable> lootTable, long seed) { // Paper - add nullable
+         this.setLootTable(lootTable);
+         this.setLootTableSeed(seed);
+     }
+@@ -48,8 +_,9 @@
+     default boolean tryLoadLootTable(ValueInput base) {
+         ResourceKey<LootTable> lootTable = base.read("LootTable", LootTable.KEY_CODEC).orElse(null);
+         this.setLootTable(lootTable);
++        if (this.lootableData() != null && lootTable != null) this.lootableData().loadNbt(base); // Paper - LootTable API
+         this.setLootTableSeed(base.getLongOr("LootTableSeed", 0L));
+-        return lootTable != null;
++        return lootTable != null && this.lootableData() == null; // Paper - only track the loot table if there is chance for replenish
+     }
+ 
+     default boolean trySaveLootTable(ValueOutput base) {
+@@ -59,25 +_,41 @@
+         }
+ 
+         base.store("LootTable", LootTable.KEY_CODEC, lootTable);
++        if (this.lootableData() != null) this.lootableData().saveNbt(base); // Paper - LootTable API
+         long lootTableSeed = this.getLootTableSeed();
+         if (lootTableSeed != 0L) {
+             base.putLong("LootTableSeed", lootTableSeed);
+         }
+ 
+-        return true;
++        return this.lootableData() == null; // Paper - only track the loot table if there is chance for replenish
      }
  
      default void unpackLootTable(@Nullable Player player) {

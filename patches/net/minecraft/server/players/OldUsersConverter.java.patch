@@ -18,7 +18,7 @@
      private static void lookupPlayers(MinecraftServer server, Collection<String> names, ProfileLookupCallback callback) {
          String[] filteredNames = names.stream().filter(s -> !StringUtil.isNullOrEmpty(s)).toArray(String[]::new);
 -        if (server.usesAuthentication()) {
-+        if (server.usesAuthentication() || org.spigotmc.SpigotConfig.bungee) { // Spigot: bungee = online mode, for now.
++        if (server.usesAuthentication() || (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.isProxyOnlineMode())) { // Spigot: bungee = online mode, for now.  // Paper - Add setting for proxy online mode status
              server.services().profileRepository().findProfilesByNames(filteredNames, callback);
          } else {
              for (String name : filteredNames) {
@@ -58,7 +58,7 @@
                  }
              }
  
-@@ -317,6 +_,31 @@
+@@ -317,6 +_,36 @@
                      private void movePlayerFile(File directory, String oldName, String newName) {
                          File oldFileName = new File(worldPlayerDirectory, oldName + ".dat");
                          File newFileName = new File(directory, newName + ".dat");
@@ -69,7 +69,10 @@
 +                        try {
 +                            root = NbtIo.readCompressed(new java.io.FileInputStream(oldFileName), NbtAccounter.unlimitedHeap());
 +                        } catch (Exception exception) {
++                            // Paper start
 +                            exception.printStackTrace();
++                            com.destroystokyo.paper.exception.ServerInternalException.reportInternalException(exception);
++                            // Paper end
 +                        }
 +
 +                        if (root != null) {
@@ -82,11 +85,13 @@
 +                            try {
 +                                NbtIo.writeCompressed(root, new java.io.FileOutputStream(oldFileName));
 +                            } catch (Exception exception) {
++                                // Paper start
 +                                exception.printStackTrace();
++                                com.destroystokyo.paper.exception.ServerInternalException.reportInternalException(exception);
++                                // Paper end
 +                            }
 +                        }
 +                        // CraftBukkit end
-+
                          OldUsersConverter.ensureDirectoryExists(directory);
                          if (!oldFileName.renameTo(newFileName)) {
                              throw new OldUsersConverter.ConversionError("Could not convert file for " + oldName);

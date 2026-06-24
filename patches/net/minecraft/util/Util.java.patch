@@ -37,6 +37,15 @@
  
      public static <K, V> Collector<Entry<? extends K, ? extends V>, ?, Map<K, V>> toMap() {
          return Collectors.toMap(Entry::getKey, Entry::getValue);
+@@ -181,7 +_,7 @@
+     }
+ 
+     public static long getNanos() {
+-        return timeSource.getAsLong();
++        return System.nanoTime(); // Paper
+     }
+ 
+     public static long getEpochMillis() {
 @@ -192,9 +_,10 @@
          return FILENAME_DATE_TIME_FORMATTER.format(ZonedDateTime.now());
      }
@@ -59,15 +68,18 @@
                          if (exception != null) {
                              Util.LOGGER.warn("{} died", this.getName(), exception);
                          } else {
-@@ -219,6 +_,7 @@
+@@ -219,16 +_,30 @@
                          super.onTermination(exception);
                      }
                  };
 +                thread.setPriority(Thread.NORM_PRIORITY + priorityModifier); // Paper - Deprioritize over main
                  thread.setName(threadName);
                  return thread;
-             }, Util::onThreadException, true);
-@@ -228,7 +_,20 @@
+-            }, Util::onThreadException, true);
++            }, Util::onThreadException, true, 0, Integer.MAX_VALUE, 1, null, 365, TimeUnit.DAYS); // Paper - do not expire threads
+         }
+ 
+         return new TracingExecutor(executor);
      }
  
      public static int maxAllowedExecutorThreads() {

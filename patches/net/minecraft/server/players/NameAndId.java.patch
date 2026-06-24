@@ -1,43 +1,5 @@
 --- a/net/minecraft/server/players/NameAndId.java
 +++ b/net/minecraft/server/players/NameAndId.java
-@@ -23,20 +_,30 @@
-     }
- 
-     public static @Nullable NameAndId fromJson(JsonObject object) {
--        if (object.has("uuid") && object.has("name")) {
--            String uuidString = object.get("uuid").getAsString();
-+        // Spigot start
-+        // this whole method has to be reworked to account for the fact Bukkit only accepts UUID bans and gives no way for usernames to be stored!
-+        UUID uuid = null;
-+        String name = null;
-+        if (object.has("uuid")) {
-+            String s = object.get("uuid").getAsString();
- 
--            UUID uuid;
-             try {
--                uuid = UUID.fromString(uuidString);
--            } catch (Throwable ignored) {
--                return null;
-+                uuid = UUID.fromString(s);
-+            } catch (Throwable throwable) {
-             }
- 
--            return new NameAndId(uuid, object.get("name").getAsString());
-+        }
-+        if ( object.has("name"))
-+        {
-+            name = object.get("name").getAsString();
-+        }
-+        if ( uuid != null || name != null )
-+        {
-+            return new NameAndId( uuid, name );
-         } else {
-             return null;
-         }
-+        // Spigot End
-     }
- 
-     public void appendTo(JsonObject output) {
 @@ -48,4 +_,10 @@
          UUID id = UUIDUtil.createOfflinePlayerUUID(name);
          return new NameAndId(id, name);

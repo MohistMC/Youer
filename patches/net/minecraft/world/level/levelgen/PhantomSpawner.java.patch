@@ -1,8 +1,27 @@
 --- a/net/minecraft/world/level/levelgen/PhantomSpawner.java
 +++ b/net/minecraft/world/level/levelgen/PhantomSpawner.java
-@@ -33,13 +_,15 @@
+@@ -25,21 +_,32 @@
+     public void tick(ServerLevel level, boolean spawnEnemies) {
+         if (spawnEnemies) {
+             if (level.getGameRules().get(GameRules.SPAWN_PHANTOMS)) {
++                // Paper start - Ability to control player's insomnia and phantoms
++                if (level.paperConfig().entities.behavior.phantomsSpawnAttemptMaxSeconds <= 0 || level.paperConfig().entities.behavior.playerInsomniaStartTicks < 0) {
++                    return;
++                }
++                // Paper end - Ability to control player's insomnia and phantoms
+                 RandomSource random = level.getRandom();
+                 this.nextTick--;
+                 if (this.nextTick <= 0) {
+-                    this.nextTick = this.nextTick + (60 + random.nextInt(60)) * 20;
++                    // Paper start - Ability to control player's insomnia and phantoms
++                    int spawnAttemptMinSeconds = level.paperConfig().entities.behavior.phantomsSpawnAttemptMinSeconds;
++                    int spawnAttemptMaxSeconds = level.paperConfig().entities.behavior.phantomsSpawnAttemptMaxSeconds;
++                    this.nextTick += (spawnAttemptMinSeconds + random.nextInt(spawnAttemptMaxSeconds - spawnAttemptMinSeconds + 1)) * 20;
++                    // Paper end - Ability to control player's insomnia and phantoms
+                     if (level.getSkyDarken() >= 5 || !level.dimensionType().hasSkyLight()) {
                          for (ServerPlayer player : level.players()) {
-                             if (!player.isSpectator()) {
+-                            if (!player.isSpectator()) {
++                            if (!player.isSpectator() && (!level.paperConfig().entities.behavior.phantomsDoNotSpawnOnCreativePlayers || !player.isCreative())) { // Paper - Add phantom creative and insomniac controls
                                  BlockPos playerPos = player.blockPosition();
 -                                if (!level.dimensionType().hasSkyLight() || playerPos.getY() >= level.getSeaLevel() && level.canSeeSky(playerPos)) {
 +                                var event = net.neoforged.neoforge.event.EventHooks.firePlayerSpawnPhantoms(player, level, playerPos);
@@ -15,11 +34,11 @@
                                          int value = Mth.clamp(stats.getValue(Stats.CUSTOM.get(Stats.TIME_SINCE_REST)), 1, Integer.MAX_VALUE);
                                          int dayLength = 24000;
 -                                        if (random.nextInt(value) >= 72000) {
-+                                        if (isAllow || random.nextInt(value) >= 72000) {
++                                        if (isAllow || random.nextInt(value) >= level.paperConfig().entities.behavior.playerInsomniaStartTicks) { // Paper - Ability to control player's insomnia and phantoms
                                              BlockPos spawnPos = playerPos.above(20 + random.nextInt(15))
                                                  .east(-10 + random.nextInt(21))
                                                  .south(-10 + random.nextInt(21));
-@@ -47,14 +_,14 @@
+@@ -47,14 +_,24 @@
                                              FluidState fluidState = level.getFluidState(spawnPos);
                                              if (NaturalSpawner.isValidEmptySpawnBlock(level, spawnPos, blockState, fluidState, EntityTypes.PHANTOM)) {
                                                  SpawnGroupData groupData = null;
@@ -27,8 +46,18 @@
 +                                                int groupSize = event.getPhantomsToSpawn();
  
                                                  for (int i = 0; i < groupSize; i++) {
++                                                    // Paper start - PhantomPreSpawnEvent
++                                                    com.destroystokyo.paper.event.entity.PhantomPreSpawnEvent paper_event = new com.destroystokyo.paper.event.entity.PhantomPreSpawnEvent(org.bukkit.craftbukkit.util.CraftLocation.toBukkit(spawnPos, level), player.getBukkitEntity(), org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.NATURAL);
++                                                    if (!paper_event.callEvent()) {
++                                                        if (paper_event.shouldAbortSpawn()) {
++                                                            break;
++                                                        }
++                                                        continue;
++                                                    }
++                                                    // Paper end - PhantomPreSpawnEvent
                                                      Phantom phantom = EntityTypes.PHANTOM.create(level, EntitySpawnReason.NATURAL);
                                                      if (phantom != null) {
++                                                        phantom.spawningEntity = player.getUUID(); // Paper - PhantomPreSpawnEvent
                                                          phantom.snapTo(spawnPos, 0.0F, 0.0F);
                                                          groupData = phantom.finalizeSpawn(level, difficulty, EntitySpawnReason.NATURAL, groupData);
 -                                                        level.addFreshEntityWithPassengers(phantom);

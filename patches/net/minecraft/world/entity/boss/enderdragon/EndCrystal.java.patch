@@ -21,19 +21,55 @@
  public class EndCrystal extends Entity {
      private static final EntityDataAccessor<Optional<BlockPos>> DATA_BEAM_TARGET = SynchedEntityData.defineId(
          EndCrystal.class, EntityDataSerializers.OPTIONAL_BLOCK_POS
-@@ -58,7 +_,11 @@
+@@ -27,6 +_,7 @@
+     private static final EntityDataAccessor<Boolean> DATA_SHOW_BOTTOM = SynchedEntityData.defineId(EndCrystal.class, EntityDataSerializers.BOOLEAN);
+     private static final boolean DEFAULT_SHOW_BOTTOM = true;
+     public int time;
++    public boolean generatedByDragonFight = false; // Paper - Fix invulnerable end crystals
+ 
+     public EndCrystal(EntityType<? extends EndCrystal> type, Level level) {
+         super(type, level);
+@@ -58,21 +_,37 @@
          if (this.level() instanceof ServerLevel) {
              BlockPos pos = this.blockPosition();
              if (((ServerLevel)this.level()).getDragonFight() != null && this.level().getBlockState(pos).isAir()) {
 -                this.level().setBlockAndUpdate(pos, BaseFireBlock.getState(this.level(), pos));
-+                // CraftBukkit start
-+                if (!CraftEventFactory.callBlockIgniteEvent(this.level(), pos, this).isCancelled()) {
+-            }
+-        }
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(this.level(), pos, this).isCancelled()) { // Paper
 +                    this.level().setBlockAndUpdate(pos, BaseFireBlock.getState(this.level(), pos));
-+                }
-+                // CraftBukkit end
-             }
-         }
++                } // Paper
++            }
++        }
++
++        // Paper start - Fix invulnerable end crystals
++        if (this.level().paperConfig().unsupportedSettings.fixInvulnerableEndCrystalExploit && this.generatedByDragonFight && this.isInvulnerable()) {
++            if (!java.util.Objects.equals(((ServerLevel) this.level()).uuid, this.originWorld)
++                    || ((ServerLevel) this.level()).getDragonFight() == null
++                    || ((ServerLevel) this.level()).getDragonFight().respawnStage == null
++                    || ((ServerLevel) this.level()).getDragonFight().respawnStage.ordinal() > net.minecraft.world.level.dimension.end.DragonRespawnStage.SUMMONING_DRAGON.ordinal()) {
++                this.setInvulnerable(false);
++                this.setBeamTarget(null);
++            }
++        }
++        // Paper end - Fix invulnerable end crystals
      }
+ 
+     @Override
+     protected void addAdditionalSaveData(ValueOutput output) {
+         output.storeNullable("beam_target", BlockPos.CODEC, this.getBeamTarget());
+         output.putBoolean("ShowBottom", this.showsBottom());
++        output.putBoolean("Paper.GeneratedByDragonFight", this.generatedByDragonFight); // Paper - Fix invulnerable end crystals
+     }
+ 
+     @Override
+     protected void readAdditionalSaveData(ValueInput input) {
+         this.setBeamTarget(input.read("beam_target", BlockPos.CODEC).orElse(null));
+         this.setShowBottom(input.getBooleanOr("ShowBottom", true));
++        this.generatedByDragonFight = input.getBooleanOr("Paper.GeneratedByDragonFight", false); // Paper - Fix invulnerable end crystals
+     }
+ 
+     @Override
 @@ -89,23 +_,36 @@
      public final boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
          if (this.isInvulnerableToBase(source)) {
@@ -67,7 +103,7 @@
 +                    }
 +
 +                    this.remove(Entity.RemovalReason.KILLED, EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
-+                    level.explode(this, damagesource1, (ExplosionDamageCalculator) null, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.BLOCK);
++                    level.explode(this, damagesource1, null, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.BLOCK);
 +                } else {
 +                    this.remove(Entity.RemovalReason.KILLED, EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
 +                }

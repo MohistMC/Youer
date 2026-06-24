@@ -162,16 +162,26 @@
              this.gossips.decay();
              this.lastGossipDecayTime = timestamp;
          }
-@@ -856,9 +_,10 @@
+@@ -847,7 +_,7 @@
+                 .limit(5L)
+                 .toList();
+             if (nearbyVillagersThatWantAGolem.size() >= villagersNeededToAgree) {
+-                if (!SpawnUtil.trySpawnMob(
++                if (!SpawnUtil.trySpawnMob( // Paper - Set Golem Last Seen to stop it from spawning another one - switch to isPresent
+                         EntityTypes.IRON_GOLEM,
+                         EntitySpawnReason.MOB_SUMMONED,
+                         level,
+@@ -856,9 +_,11 @@
                          8,
                          6,
                          SpawnUtil.Strategy.LEGACY_IRON_GOLEM,
 -                        false
 +                        false,
-+                        org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.VILLAGE_DEFENSE
++                        org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.VILLAGE_DEFENSE, // CraftBukkit,
++                        () -> {GolemSensor.golemDetected(this);} // Paper - Set Golem Last Seen to stop it from spawning another one
                      )
 -                    .isEmpty()) {
-+                    .isEmpty()) { // CraftBukkit
++                    .isPresent()) { // Paper - Set Golem Last Seen to stop it from spawning another one - switch to isPresent
                      nearbyVillagers.forEach(GolemSensor::golemDetected);
                  }
              }

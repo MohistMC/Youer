@@ -2049,19 +2049,21 @@
      }
  
      public boolean setAutoSave(boolean enable) {
-@@ -2104,12 +_,12 @@
+@@ -2104,12 +_,14 @@
          return false;
      }
  
 -    public <T> void onGameRuleChanged(GameRule<T> rule, T value) {
 -        this.notificationManager().onGameRuleChanged(rule, value);
-+    public static <T> void onGameRuleChanged(GameRule<T> rule, T value, ServerLevel serverlevel) { // CraftBukkit - per-world
-+        serverlevel.getServer().notificationManager().onGameRuleChanged(rule, value);
++    // Paper start - per-world game rules
++    public <T> void onGameRuleChanged(final ServerLevel serverlevel, final GameRule<T> rule, final T value) {
++        this.notificationManager().onGameRuleChanged(serverlevel, rule, value);
++        // Paper end - per-world game rules
          if (rule == GameRules.REDUCED_DEBUG_INFO) {
              byte event = (byte)((Boolean)value ? 22 : 23);
  
 -            for (ServerPlayer player : this.getPlayerList().getPlayers()) {
-+            for (ServerPlayer player : serverlevel.players()) {
++            for (ServerPlayer player : serverlevel.players()) { // Paper - per-world game rules
                  player.connection.send(new ClientboundEntityEventPacket(player, event));
              }
          } else if (rule == GameRules.LIMITED_CRAFTING || rule == GameRules.IMMEDIATE_RESPAWN) {
@@ -2070,7 +2072,7 @@
                  : ClientboundGameEventPacket.IMMEDIATE_RESPAWN;
              ClientboundGameEventPacket packet = new ClientboundGameEventPacket(eventType, (Boolean)value ? 1.0F : 0.0F);
 -            this.getPlayerList().getPlayers().forEach(playerx -> playerx.connection.send(packet));
-+            serverlevel.players().forEach(playerx -> playerx.connection.send(packet));
++            serverlevel.players().forEach(playerx -> playerx.connection.send(packet)); // Paper - per-world game rules
          } else if (rule == GameRules.LOCATOR_BAR) {
 -            this.getAllLevels().forEach(level -> {
 -                ServerWaypointManager waypointManager = level.getWaypointManager();
@@ -2081,7 +2083,7 @@
 -                }
 -            });
 +            ServerWaypointManager serverwaypointmanager = serverlevel.getWaypointManager();
-+
++            serverwaypointmanager.locatorBarEnabled = (Boolean) value; // Paper - optimize ServerWaypointManager with locator bar disabled
 +            if ((Boolean) value) {
 +                serverlevel.players().forEach(serverwaypointmanager::updatePlayer);
 +            } else {
@@ -2089,10 +2091,10 @@
 +            }
          } else if (rule == GameRules.SPAWN_MONSTERS) {
 -            this.updateMobSpawningFlags();
-+            serverlevel.setSpawnSettings(serverlevel.isSpawningMonsters()); // CraftBukkit - per-world
++            serverlevel.setSpawnSettings(serverlevel.isSpawningMonsters()); // Paper - per-world game rules
          } else if (rule == GameRules.ADVANCE_TIME) {
 -            this.getPlayerList().broadcastAll(this.clockManager().createFullSyncPacket());
-+            serverlevel.players().forEach((player) -> player.connection.send(serverlevel.clockManager().createFullSyncPacket(player))); // CraftBukkit - per-player
++            serverlevel.players().forEach((player) -> player.connection.send(serverlevel.clockManager().createFullSyncPacket(player))); // Paper - per-world time; per-player time
          }
 +
 +        // Neo: Allow mods to react to game rule state changes

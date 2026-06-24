@@ -1,8 +1,10 @@
 --- a/net/minecraft/world/level/levelgen/structure/placement/StructurePlacement.java
 +++ b/net/minecraft/world/level/levelgen/structure/placement/StructurePlacement.java
-@@ -80,13 +_,29 @@
+@@ -79,14 +_,31 @@
+         return this.exclusionZone;
      }
  
++    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - Add missing structure set seed configs
      public boolean isStructureChunk(ChunkGeneratorStructureState state, int sourceX, int sourceZ) {
 +        // Paper start - Add missing structure set seed configs
 +        return this.isStructureChunk(state, sourceX, sourceZ, null);
@@ -33,7 +35,7 @@
      }
  
      public boolean applyInteractionsWithOtherStructures(ChunkGeneratorStructureState state, int sourceX, int sourceZ) {
-@@ -101,25 +_,25 @@
+@@ -101,25 +_,31 @@
  
      public abstract StructurePlacementType<?> type();
  
@@ -47,7 +49,14 @@
 -    private static boolean legacyProbabilityReducerWithDouble(long seed, int salt, int sourceX, int sourceZ, float probability) {
 +    private static boolean legacyProbabilityReducerWithDouble(long seed, int salt, int sourceX, int sourceZ, float probability, final @org.jspecify.annotations.Nullable Integer saltOverride) { // Paper - Add missing structure set seed configs; ignore here
          WorldgenRandom random = new WorldgenRandom(new LegacyRandomSource(0L));
-         random.setLargeFeatureSeed(seed, sourceX, sourceZ);
+-        random.setLargeFeatureSeed(seed, sourceX, sourceZ);
++        if (saltOverride == null) { // Paper - Add missing structure set seed configs
++            random.setLargeFeatureSeed(seed, sourceX, sourceZ);
++            // Paper start - Add missing structure set seed configs
++        } else {
++            random.setLargeFeatureWithSalt(seed, sourceX, sourceZ, saltOverride);
++        }
++        // Paper end - Add missing structure set seed configs
          return random.nextDouble() < probability;
      }
  

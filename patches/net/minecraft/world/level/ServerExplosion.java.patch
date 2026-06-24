@@ -269,23 +269,160 @@
  
      public ServerExplosion(
          ServerLevel level,
-@@ -62,12 +_,13 @@
-     ) {
-         this.level = level;
-         this.source = source;
--        this.radius = radius;
-+        this.radius = (float) Math.max(radius, 0.0); // CraftBukkit - clamp bad values
-         this.center = center;
-         this.fire = fire;
+@@ -68,6 +_,10 @@
          this.blockInteraction = blockInteraction;
          this.damageSource = damageSource == null ? level.damageSources().explosion(this) : damageSource;
          this.damageCalculator = damageCalculator == null ? this.makeDamageCalculator(source) : damageCalculator;
-+        this.yield = this.blockInteraction == Explosion.BlockInteraction.DESTROY_WITH_DECAY ? 1.0F / this.radius : 1.0F; // CraftBukkit
++        // Paper start - add yield
++        this.yield = this.blockInteraction == Explosion.BlockInteraction.DESTROY_WITH_DECAY ? 1.0F / this.radius : 1.0F;
++        this.yield = Double.isFinite(this.yield) ? this.yield : 0; // Paper - Don't allow infinite default yields
++        // Paper end - add yield
      }
  
      private ExplosionDamageCalculator makeDamageCalculator(@Nullable Entity source) {
-@@ -169,7 +_,12 @@
-         return new ObjectArrayList<>(toBlowSet);
+@@ -119,57 +_,110 @@
+     }
+ 
+     private List<BlockPos> calculateExplodedPositions() {
+-        Set<BlockPos> toBlowSet = new HashSet<>();
+-        int size = 16;
+-
+-        for (int xx = 0; xx < 16; xx++) {
+-            for (int yy = 0; yy < 16; yy++) {
+-                for (int zz = 0; zz < 16; zz++) {
+-                    if (xx == 0 || xx == 15 || yy == 0 || yy == 15 || zz == 0 || zz == 15) {
+-                        double xd = xx / 15.0F * 2.0F - 1.0F;
+-                        double yd = yy / 15.0F * 2.0F - 1.0F;
+-                        double zd = zz / 15.0F * 2.0F - 1.0F;
+-                        double d = Math.sqrt(xd * xd + yd * yd + zd * zd);
+-                        xd /= d;
+-                        yd /= d;
+-                        zd /= d;
+-                        float remainingPower = this.radius * (0.7F + this.level.random.nextFloat() * 0.6F);
+-                        double xp = this.center.x;
+-                        double yp = this.center.y;
+-                        double zp = this.center.z;
+-                        float stepSize = 0.3F;
+-
+-                        while (remainingPower > 0.0F) {
+-                            BlockPos pos = BlockPos.containing(xp, yp, zp);
+-                            BlockState block = this.level.getBlockState(pos);
+-                            FluidState fluid = this.level.getFluidState(pos);
+-                            if (!this.level.isInWorldBounds(pos)) {
+-                                break;
+-                            }
+-
+-                            Optional<Float> resistance = this.damageCalculator.getBlockExplosionResistance(this, this.level, pos, block, fluid);
+-                            if (resistance.isPresent()) {
+-                                remainingPower -= (resistance.get() + 0.3F) * 0.3F;
+-                            }
+-
+-                            if (remainingPower > 0.0F && this.damageCalculator.shouldBlockExplode(this, this.level, pos, block, remainingPower)) {
+-                                toBlowSet.add(pos);
+-                            }
+-
+-                            xp += xd * 0.3F;
+-                            yp += yd * 0.3F;
+-                            zp += zd * 0.3F;
+-                            remainingPower -= 0.22500001F;
++        // Paper start - collision optimisations
++        final ObjectArrayList<BlockPos> ret = new ObjectArrayList<>();
++
++        final Vec3 center = this.center;
++
++        final ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache[] blockCache = this.directMappedBlockCache;
++
++        // use initial cache value that is most likely to be used: the source position
++        final ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache initialCache;
++        {
++            final int blockX = Mth.floor(center.x);
++            final int blockY = Mth.floor(center.y);
++            final int blockZ = Mth.floor(center.z);
++
++            final long key = BlockPos.asLong(blockX, blockY, blockZ);
++
++            initialCache = this.getOrCacheExplosionBlock(blockX, blockY, blockZ, key, true);
++        }
++
++        // only ~1/3rd of the loop iterations in vanilla will result in a ray, as it is iterating the perimeter of
++        // a 16x16x16 cube
++        // we can cache the rays and their normals as well, so that we eliminate the excess iterations / checks and
++        // calculations in one go
++        // additional aggressive caching of block retrieval is very significant, as at low power (i.e tnt) most
++        // block retrievals are not unique
++        for (int ray = 0, len = CACHED_RAYS.length; ray < len;) {
++            ca.spottedleaf.moonrise.patches.collisions.ExplosionBlockCache cachedBlock = initialCache;
++
++            double currX = center.x;
++            double currY = center.y;
++            double currZ = center.z;
++
++            final double incX = CACHED_RAYS[ray];
++            final double incY = CACHED_RAYS[ray + 1];
++            final double incZ = CACHED_RAYS[ray + 2];
++
++            ray += 3;
++
++            float power = this.radius * (0.7F + this.level.getRandom().nextFloat() * 0.6F);
++
++            do {
++                final int blockX = Mth.floor(currX);
++                final int blockY = Mth.floor(currY);
++                final int blockZ = Mth.floor(currZ);
++
++                final long key = BlockPos.asLong(blockX, blockY, blockZ);
++
++                if (cachedBlock.key != key) {
++                    final int cacheKey =
++                            (blockX & BLOCK_EXPLOSION_CACHE_MASK) |
++                                    (blockY & BLOCK_EXPLOSION_CACHE_MASK) << (BLOCK_EXPLOSION_CACHE_SHIFT) |
++                                    (blockZ & BLOCK_EXPLOSION_CACHE_MASK) << (BLOCK_EXPLOSION_CACHE_SHIFT + BLOCK_EXPLOSION_CACHE_SHIFT);
++                    cachedBlock = blockCache[cacheKey];
++                    if (cachedBlock == null || cachedBlock.key != key) {
++                        blockCache[cacheKey] = cachedBlock = this.getOrCacheExplosionBlock(blockX, blockY, blockZ, key, true);
++                    }
++                }
++
++                if (cachedBlock.outOfWorld) {
++                    break;
++                }
++                final BlockState iblockdata = cachedBlock.blockState;
++
++                power -= cachedBlock.resistance;
++
++                if (power > 0.0f && cachedBlock.shouldExplode == null) {
++                    // note: we expect shouldBlockExplode to be pure with respect to power, as Vanilla currently is.
++                    // basically, it is unused, which allows us to cache the result
++                    final boolean shouldExplode = iblockdata.isDestroyable() && this.damageCalculator.shouldBlockExplode((Explosion)(Object)this, this.level, cachedBlock.immutablePos, cachedBlock.blockState, power); // Paper - Protect Bedrock and End Portal/Frames from being destroyed
++                    cachedBlock.shouldExplode = shouldExplode ? Boolean.TRUE : Boolean.FALSE;
++                    if (shouldExplode) {
++                        if (this.fire || !cachedBlock.blockState.isAir()) {
++                            ret.add(cachedBlock.immutablePos);
++                            // Paper start - prevent headless pistons from forming
++                            if (!io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowHeadlessPistons && iblockdata.getBlock() == net.minecraft.world.level.block.Blocks.MOVING_PISTON) {
++                                net.minecraft.world.level.block.entity.BlockEntity extension = this.level.getBlockEntity(cachedBlock.immutablePos); // Paper - optimise collisions
++                                if (extension instanceof net.minecraft.world.level.block.piston.PistonMovingBlockEntity blockEntity && blockEntity.isSourcePiston()) {
++                                    net.minecraft.core.Direction direction = iblockdata.getValue(net.minecraft.world.level.block.piston.PistonHeadBlock.FACING);
++                                    ret.add(cachedBlock.immutablePos.relative(direction.getOpposite())); // Paper - optimise collisions
++                                }
++                            }
++
++                            // Paper end - prevent headless pistons from forming
+                         }
+                     }
+                 }
+-            }
++
++                power -= 0.22500001F;
++                currX += incX;
++                currY += incY;
++                currZ += incZ;
++            } while (power > 0.0f);
+         }
+ 
+-        return new ObjectArrayList<>(toBlowSet);
++        return ret;
++        // Paper end - collision optimisations
      }
  
 +    @Deprecated
@@ -302,19 +439,21 @@
              int z1 = Mth.floor(this.center.z + doubleRadius + 1.0);
  
 -            for (Entity entity : this.level.getEntities(this.source, new AABB(x0, y0, z0, x1, y1, z1))) {
-+            List<Entity> list = this.level.getEntities(this.source, new AABB(x0, y0, z0, x1, y1, z1));
++            List<Entity> list = this.level.getEntities(this.excludeSourceFromDamage ? this.source : null, new AABB(x0, y0, z0, x1, y1, z1), entity -> entity.isAlive() && !entity.isSpectator()); // Paper - Fix lag from explosions processing dead entities, Allow explosions to damage source
 +            net.neoforged.neoforge.event.EventHooks.onExplosionDetonate(this.level, this, list, blocks);
 +            for (Entity entity : list) {
                  if (!entity.ignoreExplosion(this)) {
                      double dist = Math.sqrt(entity.distanceToSqr(this.center)) / doubleRadius;
                      if (!(dist > 1.0)) {
-@@ -188,15 +_,44 @@
+@@ -187,20 +_,49 @@
+                         Vec3 direction = entityOrigin.subtract(this.center).normalize();
                          boolean shouldDamageEntity = this.damageCalculator.shouldDamageEntity(this, entity);
                          float knockbackMultiplier = this.damageCalculator.getKnockbackMultiplier(entity);
-                         float exposure = !shouldDamageEntity && knockbackMultiplier == 0.0F ? 0.0F : getSeenPercent(this.center, entity);
-+                        // CraftBukkit start
+-                        float exposure = !shouldDamageEntity && knockbackMultiplier == 0.0F ? 0.0F : getSeenPercent(this.center, entity);
++                        float exposure = !shouldDamageEntity && knockbackMultiplier == 0.0F ? 0.0F : this.getBlockDensity(this.center, entity); // Paper - Optimize explosions
                          if (shouldDamageEntity) {
 -                            entity.hurtServer(this.level, this.damageSource, this.damageCalculator.getEntityDamageAmount(this, entity, exposure));
++                            // CraftBukkit start
 +                            if (entity instanceof EnderDragonPart) {
 +                                continue;
 +                            }
@@ -334,13 +473,14 @@
 +                            if (entity.lastDamageCancelled) {
 +                                continue;
 +                            }
++                            // CraftBukkit end
                          }
-+                        // CraftBukkit end
  
                          double knockbackResistance = entity instanceof LivingEntity livingEntity
                              ? livingEntity.getAttributeValue(Attributes.EXPLOSION_KNOCKBACK_RESISTANCE)
                              : 0.0;
-                         double knockbackPower = (1.0 - dist) * exposure * knockbackMultiplier * (1.0 - knockbackResistance);
+-                        double knockbackPower = (1.0 - dist) * exposure * knockbackMultiplier * (1.0 - knockbackResistance);
++                        double knockbackPower = entity instanceof Player && this.level.paperConfig().environment.disableExplosionKnockback ? 0 : (1.0 - dist) * exposure * knockbackMultiplier * (1.0 - knockbackResistance); // Paper
                          Vec3 knockback = direction.scale(knockbackPower);
 +                        knockback = net.neoforged.neoforge.event.EventHooks.getExplosionKnockback(this.level, this, entity, knockback, blocks);
 +                        // CraftBukkit start - Call EntityKnockbackEvent
@@ -354,6 +494,11 @@
                          entity.push(knockback);
                          if (entity.is(EntityTypeTags.REDIRECTABLE_PROJECTILE) && entity instanceof Projectile projectile) {
                              projectile.setOwner(this.damageSource.getEntity());
+-                        } else if (entity instanceof Player player && !player.isSpectator() && (!player.isCreative() || !player.getAbilities().flying)) {
++                        } else if (entity instanceof Player player && !player.isSpectator() && (!player.isCreative() || !player.getAbilities().flying) && !level.paperConfig().environment.disableExplosionKnockback) { // Paper - Option to disable explosion knockback
+                             this.hitPlayers.put(player, knockback);
+                         }
+ 
 @@ -214,8 +_,55 @@
      private void interactWithBlocks(List<BlockPos> targetBlocks) {
          List<ServerExplosion.StackCollector> stacks = new ArrayList<>();

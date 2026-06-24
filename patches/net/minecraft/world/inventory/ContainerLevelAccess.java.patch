@@ -1,26 +1,6 @@
 --- a/net/minecraft/world/inventory/ContainerLevelAccess.java
 +++ b/net/minecraft/world/inventory/ContainerLevelAccess.java
-@@ -7,15 +_,55 @@
- import net.minecraft.world.level.Level;
- 
- public interface ContainerLevelAccess {
-+
-+    // CraftBukkit start
-+    default Level getWorld() {
-+        throw new UnsupportedOperationException("Not supported yet.");
-+    }
-+
-+    default BlockPos getPosition() {
-+        throw new UnsupportedOperationException("Not supported yet.");
-+    }
-+
-+    default org.bukkit.Location getLocation() {
-+        return new org.bukkit.Location(getWorld().getWorld(), getPosition().getX(), getPosition().getY(), getPosition().getZ());
-+    }
-+    // CraftBukkit end
-+
-     ContainerLevelAccess NULL = new ContainerLevelAccess() {
-         @Override
+@@ -12,10 +_,35 @@
          public <T> Optional<T> evaluate(BiFunction<Level, BlockPos, T> action) {
              return Optional.empty();
          }
@@ -56,11 +36,24 @@
              @Override
              public <T> Optional<T> evaluate(BiFunction<Level, BlockPos, T> action) {
                  return Optional.of(action.apply(level, pos));
-@@ -35,4 +_,17 @@
+@@ -35,4 +_,30 @@
              return Optional.empty();
          });
      }
 +
++    // CraftBukkit start
++    default Level getWorld() {
++        throw new UnsupportedOperationException("Not supported yet.");
++    }
++
++    default BlockPos getPosition() {
++        throw new UnsupportedOperationException("Not supported yet.");
++    }
++
++    default org.bukkit.Location getLocation() {
++        return org.bukkit.craftbukkit.util.CraftLocation.toBukkit(this.getPosition(), this.getWorld());
++    }
++    // CraftBukkit end
 +    // Paper start - Add missing InventoryHolders
 +    default boolean isBlock() {
 +        return false;

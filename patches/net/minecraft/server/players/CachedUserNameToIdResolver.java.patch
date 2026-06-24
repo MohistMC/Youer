@@ -11,6 +11,36 @@
  
      public CachedUserNameToIdResolver(GameProfileRepository profileRepository, File file) {
          this.profileRepository = profileRepository;
+@@ -54,10 +_,12 @@
+     }
+ 
+     private void safeAdd(CachedUserNameToIdResolver.GameProfileInfo profileInfo) {
++        try { this.stateLock.lock(); // Paper - Fix GameProfileCache concurrency
+         NameAndId nameAndId = profileInfo.nameAndId();
+         profileInfo.setLastAccess(this.getNextOperation());
+         this.profilesByName.put(nameAndId.name().toLowerCase(Locale.ROOT), profileInfo);
+         this.profilesByUUID.put(nameAndId.id(), profileInfo);
++        } finally { this.stateLock.unlock(); } // Paper - Fix GameProfileCache concurrency
+     }
+ 
+     private Optional<NameAndId> lookupGameProfile(GameProfileRepository profileRepository, String name) {
+@@ -65,12 +_,14 @@
+             return this.createUnknownProfile(name);
+         }
+ 
+-        Optional<NameAndId> profile = profileRepository.findProfileByName(name).map(NameAndId::new);
++        final boolean shouldLookup = !org.apache.commons.lang3.StringUtils.isBlank(name) // Paper - Don't lookup a profile with a blank name
++                && io.papermc.paper.configuration.GlobalConfiguration.get().proxies.isProxyOnlineMode(); // Paper - Add setting for proxy online mode status
++        Optional<NameAndId> profile = shouldLookup ? profileRepository.findProfileByName(name).map(NameAndId::new) : Optional.empty(); // Paper - Don't lookup a profile with a blank name
+         return profile.isEmpty() ? this.createUnknownProfile(name) : profile;
+     }
+ 
+     private Optional<NameAndId> createUnknownProfile(String name) {
+-        return this.resolveOfflineUsers ? Optional.of(NameAndId.createOffline(name)) : Optional.empty();
++        return this.resolveOfflineUsers && !io.papermc.paper.configuration.GlobalConfiguration.get().proxies.isProxyOnlineMode() ? Optional.of(NameAndId.createOffline(name)) : Optional.empty(); // Paper - Add setting for proxy online mode status
+     }
+ 
+     @Override
 @@ -90,7 +_,7 @@
          Date expirationDate = c.getTime();
          CachedUserNameToIdResolver.GameProfileInfo profileInfo = new CachedUserNameToIdResolver.GameProfileInfo(profile, expirationDate);
@@ -20,7 +50,7 @@
          return profileInfo;
      }
  
-@@ -98,6 +_,20 @@
+@@ -98,9 +_,24 @@
          return this.operationCount.incrementAndGet();
      }
  
@@ -41,15 +71,53 @@
      @Override
      public Optional<NameAndId> get(String name) {
          String userName = name.toLowerCase(Locale.ROOT);
-@@ -124,7 +_,7 @@
++        boolean stateLocked = true; try { this.stateLock.lock(); // Paper - Fix GameProfileCache concurrency
+         CachedUserNameToIdResolver.GameProfileInfo profileInfo = this.profilesByName.get(userName);
+         boolean needsSave = false;
+         if (profileInfo != null && new Date().getTime() >= profileInfo.expirationDate.getTime()) {
+@@ -114,8 +_,13 @@
+         if (profileInfo != null) {
+             profileInfo.setLastAccess(this.getNextOperation());
+             result = Optional.of(profileInfo.nameAndId());
++            stateLocked = false; this.stateLock.unlock(); // Paper - Fix GameProfileCache concurrency
+         } else {
+-            Optional<NameAndId> profile = this.lookupGameProfile(this.profileRepository, userName);
++            Optional<NameAndId> profile;
++            stateLocked = false; this.stateLock.unlock(); // Paper - Fix GameProfileCache concurrency
++            try { this.lookupLock.lock(); // Paper - Fix GameProfileCache concurrency
++                profile = this.lookupGameProfile(this.profileRepository, name); // CraftBukkit - use correct case for offline players
++            } finally { this.lookupLock.unlock(); } // Paper - Fix GameProfileCache concurrency
+             if (profile.isPresent()) {
+                 result = Optional.of(this.addInternal(profile.get()).nameAndId());
+                 needsSave = false;
+@@ -124,15 +_,17 @@
              }
          }
  
 -        if (needsSave) {
+-            this.save();
 +        if (needsSave && !org.spigotmc.SpigotConfig.saveUserCacheOnStopOnly) { // Spigot - skip saving if disabled
-             this.save();
++            this.save(true); // Paper - Perf: Async GameProfileCache saving
          }
  
+         return result;
++        } finally { if (stateLocked) { this.stateLock.unlock(); } } // Paper - Fix GameProfileCache concurrency
+     }
+ 
+     @Override
+     public Optional<NameAndId> get(UUID id) {
++        try { this.stateLock.lock(); // Paper - Fix GameProfileCache concurrency
+         CachedUserNameToIdResolver.GameProfileInfo profileInfo = this.profilesByUUID.get(id);
+         if (profileInfo == null) {
+             return Optional.empty();
+@@ -140,6 +_,7 @@
+ 
+         profileInfo.setLastAccess(this.getNextOperation());
+         return Optional.of(profileInfo.nameAndId());
++        } finally { this.stateLock.unlock(); } // Paper - Fix GameProfileCache concurrency
+     }
+ 
+     private static DateFormat createDateFormat() {
 @@ -158,6 +_,11 @@
              DateFormat dateFormat = createDateFormat();
              entryList.forEach(element -> readGameProfile(element, dateFormat).ifPresent(result::add));

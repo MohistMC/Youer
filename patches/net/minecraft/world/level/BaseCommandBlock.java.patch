@@ -11,33 +11,78 @@
  
      public int getSuccessCount() {
          return this.successCount;
-@@ -129,8 +_,12 @@
+@@ -109,7 +_,13 @@
+                             this.successCount++;
+                         }
+                     });
+-                    level.getServer().getCommands().performPrefixedCommand(commandSourceStack, this.command);
++                    // Paper start - ServerCommandEvent
++                    org.bukkit.event.server.ServerCommandEvent event = new org.bukkit.event.server.ServerCommandEvent(commandSourceStack.getBukkitSender(), net.minecraft.commands.Commands.trimOptionalPrefix(this.command));
++                    if (!event.callEvent()) {
++                        return true;
++                    }
++                    level.getServer().getCommands().performPrefixedCommand(commandSourceStack, event.getCommand());
++                    // Paper end - ServerCommandEvent
+                 }
+             } catch (Throwable t) {
+                 CrashReport report = CrashReport.forThrowable(t, "Executing command block");
+@@ -129,8 +_,8 @@
          return true;
      }
  
 -    private BaseCommandBlock.@Nullable CloseableCommandBlockSource createSource(ServerLevel level) {
 -        return this.trackOutput ? new BaseCommandBlock.CloseableCommandBlockSource(level) : null;
-+    public BaseCommandBlock.@Nullable CloseableCommandBlockSource createSource(ServerLevel level) {
-+        // CraftBukkit start - don't use a null source with no output as we still need the Bukkit sender, just close it immediately to give the same effect
-+        BaseCommandBlock.CloseableCommandBlockSource source = new BaseCommandBlock.CloseableCommandBlockSource(level);
-+        source.closed = !this.trackOutput;
-+        return source;
-+        // CraftBukkit end
++    public BaseCommandBlock.CloseableCommandBlockSource createSource(ServerLevel level) { // Paper - public, remove nullable
++        return new BaseCommandBlock.CloseableCommandBlockSource(level, this.trackOutput); // Paper - add back source when output disabled
      }
  
      public Component getName() {
-@@ -163,7 +_,7 @@
+@@ -163,13 +_,21 @@
  
      public abstract boolean isValid();
  
 -    protected class CloseableCommandBlockSource implements CommandSource, AutoCloseable {
-+    public class CloseableCommandBlockSource implements CommandSource, AutoCloseable {
++    public class CloseableCommandBlockSource implements CommandSource, AutoCloseable { // Paper - public
          private final ServerLevel level;
          private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss", Locale.ROOT);
          private boolean closed;
-@@ -171,6 +_,13 @@
-         protected CloseableCommandBlockSource(ServerLevel level) {
+ 
+-        protected CloseableCommandBlockSource(ServerLevel level) {
++        // Paper start - add back source when output disabled
++        private final boolean trackOutput;
++        public CloseableCommandBlockSource(ServerLevel level, boolean trackOutput) {
              this.level = level;
++            this.trackOutput = trackOutput;
++        }
++        @io.papermc.paper.annotation.DoNotUse @Deprecated
++        public CloseableCommandBlockSource(ServerLevel level) { // Paper - public
++            this(level, true);
++            // Paper end - add back source when output disabled
+         }
+ 
+         @Override
+@@ -179,7 +_,7 @@
+ 
+         @Override
+         public boolean acceptsFailure() {
+-            return !this.closed;
++            return this.trackOutput && !this.closed; // Paper - add back source when output disabled
+         }
+ 
+         @Override
+@@ -189,7 +_,8 @@
+ 
+         @Override
+         public void sendSystemMessage(Component message) {
+-            if (!this.closed) {
++            if (this.trackOutput && !this.closed) { // Paper - add back source when output disabled
++                org.spigotmc.AsyncCatcher.catchOp("sendSystemMessage to a command block"); // Paper - Don't broadcast messages to command blocks
+                 BaseCommandBlock.this.lastOutput = Component.literal("[" + TIME_FORMAT.format(ZonedDateTime.now()) + "] ").append(message);
+                 BaseCommandBlock.this.onUpdated(this.level);
+             }
+@@ -199,5 +_,12 @@
+         public void close() throws Exception {
+             this.closed = true;
          }
 +
 +        // CraftBukkit start
@@ -46,6 +91,5 @@
 +            return BaseCommandBlock.this.getBukkitSender(wrapper);
 +        }
 +        // CraftBukkit end
- 
-         @Override
-         public boolean acceptsSuccess() {
+     }
+ }

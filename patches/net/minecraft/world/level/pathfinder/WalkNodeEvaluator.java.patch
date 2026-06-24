@@ -13,10 +13,17 @@
                          if (pathType == PathType.DAMAGING) {
                              return PathType.DAMAGING_IN_NEIGHBOR;
                          }
-@@ -504,6 +_,8 @@
+@@ -503,7 +_,14 @@
+     }
  
      protected static PathType getPathTypeFromState(BlockGetter level, BlockPos pos) {
-         BlockState blockState = level.getBlockState(pos);
+-        BlockState blockState = level.getBlockState(pos);
++        // Paper start - Do not load chunks during pathfinding
++        BlockState blockState = level.getBlockStateIfLoaded(pos);
++        if (blockState == null) {
++            return PathType.BLOCKED;
++        }
++        // Paper end
 +        PathType type = blockState.getBlockPathType(level, pos, null);
 +        if (type != null) return type;
          Block block = blockState.getBlock();
