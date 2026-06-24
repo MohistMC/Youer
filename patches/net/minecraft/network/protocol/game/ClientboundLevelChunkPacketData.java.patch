@@ -1,5 +1,81 @@
 --- a/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
 +++ b/net/minecraft/network/protocol/game/ClientboundLevelChunkPacketData.java
+@@ -28,21 +_,49 @@
+     private static final StreamCodec<ByteBuf, Map<Heightmap.Types, long[]>> HEIGHTMAPS_STREAM_CODEC = ByteBufCodecs.map(
+         size -> new EnumMap<>(Heightmap.Types.class), Heightmap.Types.STREAM_CODEC, ByteBufCodecs.LONG_ARRAY
+     );
+-    private static final int TWO_MEGABYTES = 2097152;
++    private static final int TWO_MEGABYTES = 2097152; // Paper - diff on change - if this changes, update PacketEncoder
+     private final Map<Heightmap.Types, long[]> heightmaps;
+     private final byte[] buffer;
+     private final List<ClientboundLevelChunkPacketData.BlockEntityInfo> blockEntitiesData;
+-
+-    public ClientboundLevelChunkPacketData(LevelChunk levelChunk) {
++    // Paper start - Handle oversized block entities in chunks
++    private final java.util.List<net.minecraft.network.protocol.Packet<?>> extraPackets = new java.util.ArrayList<>();
++    private static final int BLOCK_ENTITY_LIMIT = Integer.getInteger("Paper.excessiveTELimit", 750);
++
++    public List<net.minecraft.network.protocol.Packet<?>> getExtraPackets() {
++        return this.extraPackets;
++    }
++    // Paper end - Handle oversized block entities in chunks
++
++    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - Anti-Xray - Add chunk packet info
++    public ClientboundLevelChunkPacketData(final LevelChunk levelChunk) {
++        // Paper start - Anti-Xray - Add chunk packet info
++        this(levelChunk, null);
++    }
++    public ClientboundLevelChunkPacketData(final LevelChunk levelChunk, final io.papermc.paper.antixray.ChunkPacketInfo<net.minecraft.world.level.block.state.BlockState> chunkPacketInfo) {
++        // Paper end - Anti-Xray - Add chunk packet info
+         this.heightmaps = levelChunk.getHeightmaps()
+-            .stream()
+-            .filter(entryx -> ((Heightmap.Types)entryx.getKey()).sendToClient())
+-            .collect(Collectors.toMap(Entry::getKey, entryx -> (long[])((Heightmap)entryx.getValue()).getRawData().clone()));
++                .stream()
++                .filter(entryx -> ((Heightmap.Types)entryx.getKey()).sendToClient())
++                .collect(Collectors.toMap(Entry::getKey, entryx -> (long[])((Heightmap)entryx.getValue()).getRawData().clone()));
+         this.buffer = new byte[calculateChunkSize(levelChunk)];
+-        extractChunkData(new FriendlyByteBuf(this.getWriteBuffer()), levelChunk);
++        // Paper start - Anti-Xray - Add chunk packet info
++        if (chunkPacketInfo != null) {
++            chunkPacketInfo.setBuffer(this.buffer);
++        }
++        extractChunkData(new FriendlyByteBuf(this.getWriteBuffer()), levelChunk, chunkPacketInfo);
+         this.blockEntitiesData = Lists.newArrayList();
++        int totalTileEntities = 0; // Paper - Handle oversized block entities in chunks
+ 
+         for (Entry<BlockPos, BlockEntity> entry : levelChunk.getBlockEntities().entrySet()) {
++            // Paper start - Handle oversized block entities in chunks
++            if (++totalTileEntities > BLOCK_ENTITY_LIMIT) {
++                net.minecraft.network.protocol.Packet<ClientGamePacketListener> packet = entry.getValue().getUpdatePacket();
++                if (packet != null) {
++                    this.extraPackets.add(packet);
++                    continue;
++                }
++            }
++            // Paper end - Handle oversized block entities in chunks
+             this.blockEntitiesData.add(ClientboundLevelChunkPacketData.BlockEntityInfo.create(entry.getValue()));
+         }
+     }
+@@ -82,9 +_,17 @@
+         return buffer;
+     }
+ 
++    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - Anti-Xray - Add chunk packet info
+     public static void extractChunkData(FriendlyByteBuf buffer, LevelChunk chunk) {
++        // Paper start - Anti-Xray - Add chunk packet info
++        extractChunkData(buffer, chunk, null);
++    }
++    public static void extractChunkData(FriendlyByteBuf buffer, LevelChunk chunk, final io.papermc.paper.antixray.ChunkPacketInfo<net.minecraft.world.level.block.state.BlockState> chunkPacketInfo) {
++        int chunkSectionIndex = 0;
+         for (LevelChunkSection section : chunk.getSections()) {
+-            section.write(buffer);
++            section.write(buffer, chunkPacketInfo, chunkSectionIndex);
++            chunkSectionIndex++;
++            // Paper end - Anti-Xray - Add chunk packet info
+         }
+ 
+         if (buffer.writerIndex() != buffer.capacity()) {
 @@ -154,6 +_,7 @@
              CompoundTag tag = blockEntity.getUpdateTag(blockEntity.getLevel().registryAccess());
              BlockPos pos = blockEntity.getBlockPos();

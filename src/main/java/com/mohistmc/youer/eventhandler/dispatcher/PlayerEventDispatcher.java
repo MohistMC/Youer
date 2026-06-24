@@ -17,17 +17,11 @@
 
 package com.mohistmc.youer.eventhandler.dispatcher;
 
-import com.mohistmc.youer.bukkit.inventory.YouerModsInventory;
 import com.mojang.datafixers.util.Either;
 import net.minecraft.util.Unit;
-import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.player.CanPlayerSleepEvent;
-import net.neoforged.neoforge.event.entity.player.PlayerContainerEvent;
-import org.bukkit.craftbukkit.event.CraftEventFactory;
-import org.bukkit.craftbukkit.inventory.CraftInventory;
-import org.bukkit.craftbukkit.inventory.CraftInventoryView;
 
 public class PlayerEventDispatcher {
 

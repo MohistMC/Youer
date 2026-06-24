@@ -35,7 +35,6 @@ import org.bukkit.Particle;
 import org.bukkit.Statistic;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.CraftStatistic;
-import org.bukkit.craftbukkit.potion.CraftPotionUtil;
 import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 import org.bukkit.craftbukkit.util.CraftSpawnCategory;
 import org.bukkit.entity.Entity;

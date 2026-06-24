@@ -5,6 +5,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.mohistmc.youer.bukkit.entity.YouerModsFireballEntity;
+import com.mohistmc.youer.neoforge.EntityClassLookup;
 import com.mojang.logging.LogUtils;
 import io.papermc.paper.datacomponent.DataComponentType;
 import io.papermc.paper.entity.LookAnchor;
@@ -35,6 +37,7 @@ import net.minecraft.world.entity.EntitySpawnRequest;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
 import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
+import net.minecraft.world.entity.projectile.hurtingprojectile.Fireball;
 import net.minecraft.world.level.portal.TeleportTransition;
 import net.minecraft.world.level.storage.TagValueOutput;
 import net.minecraft.world.level.storage.ValueInput;
@@ -138,7 +141,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
             return (CraftEntity) entityTypeData.convertFunction().apply(server, entity);
         }
 
-        throw new AssertionError("Unknown entity " + (entity == null ? null : entity.getClass()));
+        return EntityClassLookup.getEntity(server, entity);
     }
 
     public Entity getHandle() {

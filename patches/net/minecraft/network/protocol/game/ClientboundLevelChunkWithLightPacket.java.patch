@@ -1,6 +1,6 @@
 --- a/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java
 +++ b/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java
-@@ -18,10 +_,33 @@
+@@ -18,15 +_,40 @@
      private final int z;
      private final ClientboundLevelChunkPacketData chunkData;
      private final ClientboundLightUpdatePacketData lightData;
@@ -35,3 +35,23 @@
          ChunkPos chunkPos = levelChunk.getPos();
          this.x = chunkPos.x();
          this.z = chunkPos.z();
+-        this.chunkData = new ClientboundLevelChunkPacketData(levelChunk);
++        io.papermc.paper.antixray.ChunkPacketInfo<net.minecraft.world.level.block.state.BlockState> chunkPacketInfo = modifyBlocks ? levelChunk.getLevel().chunkPacketBlockController.getChunkPacketInfo(this, levelChunk) : null; // Paper - Anti-Xray
++        this.chunkData = new ClientboundLevelChunkPacketData(levelChunk, chunkPacketInfo); // Paper - Anti-Xray
+         this.lightData = new ClientboundLightUpdatePacketData(chunkPos, lightEngine, skyChangedLightSectionFilter, blockChangedLightSectionFilter);
++        levelChunk.getLevel().chunkPacketBlockController.modifyBlocks(this, chunkPacketInfo); // Paper - Anti-Xray - Modify blocks
+     }
+ 
+     private ClientboundLevelChunkWithLightPacket(RegistryFriendlyByteBuf input) {
+@@ -67,4 +_,11 @@
+     public ClientboundLightUpdatePacketData getLightData() {
+         return this.lightData;
+     }
++
++    // Paper start - Handle oversized block entities in chunks
++    @Override
++    public java.util.List<Packet<?>> getExtraPackets() {
++        return this.chunkData.getExtraPackets();
++    }
++    // Paper end - Handle oversized block entities in chunks
+ }

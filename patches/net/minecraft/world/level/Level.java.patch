@@ -789,7 +789,7 @@
 +        org.bukkit.generator.@Nullable BiomeProvider biomeProvider, // Paper
 +        org.bukkit.World.Environment environment, // Paper
 +        java.util.function.Function<org.spigotmc.SpigotWorldConfig, // Spigot - create per world config
-+                io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, // Paper - create paper world config
++        io.papermc.paper.configuration.WorldConfiguration> paperWorldConfigCreator, // Paper - create paper world config
 +        java.util.concurrent.Executor executor // Paper - Anti-Xray
      ) {
 +        // Paper start - getblock optimisations - cache world height/sections
@@ -1002,7 +1002,7 @@
          if (!this.isInValidBounds(pos)) {
              return false;
          }
-@@ -232,11 +_,57 @@
+@@ -232,11 +_,58 @@
  
          LevelChunk chunk = this.getChunkAt(pos);
          Block block = blockState.getBlock();
@@ -1030,6 +1030,7 @@
 +        // CraftBukkit end - capture blockstates
 +
          BlockState oldState = chunk.setBlockState(pos, blockState, updateFlags);
++        this.chunkPacketBlockController.onBlockChange(this, pos, blockState, oldState, updateFlags, updateLimit); // Paper - Anti-Xray
          if (oldState == null) {
 +            if (blockSnapshot != null) this.capturedBlockSnapshots.remove(blockSnapshot);
 +            // CraftBukkit start - remove blockstate if failed (or the same)

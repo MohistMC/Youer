@@ -2065,7 +2065,7 @@
          }
  
          private static float calculateLookAtYaw(Vec3 position, BlockPos lookAtBlockPos) {
-@@ -2311,4 +_,137 @@
+@@ -2311,4 +_,135 @@
          );
          public static final ServerPlayer.SavedPosition EMPTY = new ServerPlayer.SavedPosition(Optional.empty(), Optional.empty(), Optional.empty());
      }
@@ -2150,15 +2150,9 @@
 +        return super.toString() + "(" + this.getScoreboardName() + " at " + this.getX() + "," + this.getY() + "," + this.getZ() + ")";
 +    }
 +
-+    // SPIGOT-1903, MC-98153
-+    public void forceSetPositionRotation(double x, double y, double z, float yaw, float pitch) {
-+        this.snapTo(x, y, z, yaw, pitch);
-+        this.connection.resetPosition();
-+    }
-+
 +    @Override
 +    public boolean isImmobile() {
-+        return super.isImmobile() || !getBukkitEntity().isOnline();
++        return super.isImmobile() || (this.connection != null && this.connection.isDisconnected()); // Paper - Fix duplication bugs
 +    }
 +
 +    public void reset() {
@@ -2172,20 +2166,24 @@
 +
 +        this.setHealth(this.getMaxHealth());
 +        this.stopUsingItem(); // CraftBukkit - SPIGOT-6682: Clear active item on reset
++        this.setAirSupply(this.getMaxAirSupply()); // Paper - Reset players airTicks on respawn
 +        this.setRemainingFireTicks(0);
 +        this.fallDistance = 0;
-+        this.foodData = new FoodData();
++        this.foodData = new net.minecraft.world.food.FoodData();
 +        this.experienceLevel = this.newLevel;
 +        this.totalExperience = this.newTotalExp;
 +        this.experienceProgress = 0;
 +        this.deathTime = 0;
++        this.setStingerCount(0);
++        this.removeStingerTime = 0;
 +        this.setArrowCount(0, true); // CraftBukkit - ArrowBodyCountChangeEvent
++        this.removeArrowTime = 0;
 +        this.removeAllEffects(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.DEATH);
 +        this.effectsDirty = true;
 +        this.containerMenu = this.inventoryMenu;
 +        this.lastHurtByPlayer = null;
 +        this.lastHurtByMob = null;
-+        this.combatTracker = new CombatTracker(this);
++        this.combatTracker = new net.minecraft.world.damagesource.CombatTracker(this);
 +        this.lastSentExp = -1;
 +        if (this.keepLevel) { // CraftBukkit - SPIGOT-6687: Only use keepLevel (was pre-set with RULE_KEEPINVENTORY value in PlayerDeathEvent)
 +            this.experienceProgress = exp;
@@ -2198,8 +2196,8 @@
 +    }
 +
 +    @Override
-+    public CraftPlayer getBukkitEntity() {
-+        return (CraftPlayer) super.getBukkitEntity();
++    public org.bukkit.craftbukkit.entity.CraftPlayer getBukkitEntity() {
++        return (org.bukkit.craftbukkit.entity.CraftPlayer) super.getBukkitEntity();
 +    }
 +    // CraftBukkit end
  }

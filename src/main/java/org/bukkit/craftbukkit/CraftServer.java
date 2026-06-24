@@ -7,6 +7,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.common.collect.MapMaker;
+import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.JsonOps;
@@ -416,6 +417,8 @@ public final class CraftServer implements Server {
         if (!Main.useConsole) {
             this.getLogger().info("Console input is disabled due to --noconsole command argument");
         }
+
+        NeoForgeInjectBukkit.init();
 
         this.configuration = YamlConfiguration.loadConfiguration(this.getConfigFile());
         this.configuration.options().copyDefaults(true);

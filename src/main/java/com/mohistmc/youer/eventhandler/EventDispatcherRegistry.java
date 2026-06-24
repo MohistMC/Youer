@@ -18,7 +18,6 @@
 package com.mohistmc.youer.eventhandler;
 
 import com.mohistmc.youer.Youer;
-import com.mohistmc.youer.eventhandler.dispatcher.BlockEventDispatcher;
 import com.mohistmc.youer.eventhandler.dispatcher.EntityEventDispatcher;
 import com.mohistmc.youer.eventhandler.dispatcher.ItemEventDispatcher;
 import com.mohistmc.youer.eventhandler.dispatcher.PlayerEventDispatcher;
@@ -32,7 +31,7 @@ public class EventDispatcherRegistry {
         NeoForge.EVENT_BUS.register(new WorldEventDispatcher());
         NeoForge.EVENT_BUS.register(new ItemEventDispatcher());
         NeoForge.EVENT_BUS.register(new EntityEventDispatcher());
-        NeoForge.EVENT_BUS.register(new BlockEventDispatcher());
+        // NeoForge.EVENT_BUS.register(new BlockEventDispatcher());
         Youer.LOGGER.info("EventDispatcherRegistry initialized");
     }
 }

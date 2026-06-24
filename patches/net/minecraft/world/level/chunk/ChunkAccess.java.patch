@@ -105,7 +105,7 @@
          if (sections != null) {
              if (this.sections.length == sections.length) {
                  System.arraycopy(sections, 0, this.sections, 0, this.sections.length);
-@@ -107,7 +_,17 @@
+@@ -107,13 +_,23 @@
              }
          }
  
@@ -123,7 +123,15 @@
 +        // Paper end - get block chunk optimisation
      }
  
-     private static void replaceMissingSections(PalettedContainerFactory containerFactory, LevelChunkSection[] sections) {
+-    private static void replaceMissingSections(PalettedContainerFactory containerFactory, LevelChunkSection[] sections) {
++    private void replaceMissingSections(PalettedContainerFactory containerFactory, LevelChunkSection[] sections) { // Paper - Anti-Xray - make it a non-static method
+         for (int i = 0; i < sections.length; i++) {
+             if (sections[i] == null) {
+-                sections[i] = new LevelChunkSection(containerFactory);
++                sections[i] = new LevelChunkSection(containerFactory, this.levelHeightAccessor instanceof net.minecraft.world.level.Level ? (net.minecraft.world.level.Level) this.levelHeightAccessor : null, this.chunkPos, this.levelHeightAccessor.getSectionYFromSectionIndex(i)); // Paper - Anti-Xray - Add parameters
+             }
+         }
+     }
 @@ -122,6 +_,8 @@
          return GameEventListenerRegistry.NOOP;
      }
