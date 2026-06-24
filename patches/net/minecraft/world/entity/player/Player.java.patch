@@ -588,9 +588,11 @@
      private boolean isAboveGround(float p_341626_) {
          return this.onGround() || this.fallDistance < p_341626_ && !this.canFallAtLeast(0.0, 0.0, p_341626_ - this.fallDistance);
      }
-@@ -1132,8 +_,17 @@
+@@ -1131,9 +_,19 @@
+             );
      }
  
++    float attack$magic_number = 1.5F;
      public void attack(Entity p_36347_) {
 -        if (p_36347_.isAttackable()) {
 -            if (!p_36347_.skipAttackInteraction(this)) {
@@ -616,13 +618,14 @@
                  if (p_36347_.getType().is(EntityTypeTags.REDIRECTABLE_PROJECTILE)
                      && p_36347_ instanceof Projectile projectile
                      && projectile.deflect(ProjectileDeflection.AIM_DEFLECT, this, this, true)) {
-@@ -1170,19 +_,30 @@
+@@ -1170,19 +_,31 @@
                          && !this.isPassenger()
                          && p_36347_ instanceof LivingEntity
                          && !this.isSprinting();
 +                    // Neo: Fire the critical hit event and override the critical hit status and damage multiplier based on the event.
 +                    // The boolean local above (flag1) is the vanilla critical hit result.
-+                    var critEvent = net.neoforged.neoforge.common.CommonHooks.fireCriticalHit(this, p_36347_, flag1, flag1 ? (float) this.level().purpurConfig.playerCriticalDamageMultiplier : 1.0F);
++                    float magic_number = 1.5F;
++                    var critEvent = net.neoforged.neoforge.common.CommonHooks.fireCriticalHit(this, p_36347_, flag1, flag1 ? (magic_number != attack$magic_number ? magic_number : (float) this.level().purpurConfig.playerCriticalDamageMultiplier) : 1.0F);
 +                    flag1 = critEvent.isCriticalHit();
 +                    flag1 = flag1 && !this.level().paperConfig().entities.behavior.disablePlayerCrits; // Paper - Toggleable player crits
                      if (flag1) {
