@@ -1,6 +1,7 @@
 package org.bukkit.map;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.api.ColorAPI;
 import java.util.Locale;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.key.KeyPattern;
@@ -68,7 +69,7 @@ public final class MapCursor {
         setDirection(direction);
         setRawType(type);
         this.visible = visible;
-        this.caption = caption == null ? null : net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(caption); // Paper
+        this.caption = caption == null ? null : ColorAPI.adventure(caption); // Paper
     }
     // Paper start
     /**
@@ -121,7 +122,7 @@ public final class MapCursor {
         setDirection(direction);
         this.type = type;
         this.visible = visible;
-        this.caption = caption == null ? null : net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(caption); // Paper
+        this.caption = caption == null ? null : ColorAPI.adventure(caption); // Paper
     }
 
     /**
@@ -278,7 +279,7 @@ public final class MapCursor {
      */
     @Deprecated // Paper
     public void setCaption(@Nullable String caption) {
-        this.caption = caption == null ? null : net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(caption); // Paper
+        this.caption = caption == null ? null : ColorAPI.adventure(caption); // Paper
     }
 
     /**

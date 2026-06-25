@@ -1,6 +1,7 @@
 package org.bukkit;
 
 import com.google.common.collect.ImmutableList;
+import com.mohistmc.youer.api.ColorAPI;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.Serializable;
@@ -1337,7 +1338,7 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
      */
     @Deprecated // Paper
     default int broadcast(@NotNull String message, @NotNull String permission) {
-        return this.broadcast(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(message), permission);
+        return this.broadcast(ColorAPI.adventure(message), permission);
     }
 
     // Paper start

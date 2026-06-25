@@ -1,5 +1,6 @@
 package io.papermc.paper.configuration.transformation.global;
 
+import com.mohistmc.youer.api.ColorAPI;
 import com.mojang.logging.LogUtils;
 import io.papermc.paper.configuration.Configuration;
 import java.util.function.Predicate;
@@ -198,7 +199,7 @@ public final class LegacyPaperConfig {
 
     @SuppressWarnings("deprecation") // valid use to convert legacy string to mini-message in legacy migration
     private static String miniMessage(final String input) {
-        return MiniMessage.miniMessage().serialize(LegacyComponentSerializer.legacySection().deserialize(ChatColor.translateAlternateColorCodes('&', input)));
+        return MiniMessage.miniMessage().serialize(ColorAPI.adventure(ChatColor.translateAlternateColorCodes('&', input)));
     }
 
     private static void moveFromRootToMisc(final ConfigurationTransformation.Builder builder, final String key) {

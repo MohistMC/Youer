@@ -1,5 +1,6 @@
 package org.bukkit.inventory;
 
+import com.mohistmc.youer.api.ColorAPI;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.event.inventory.InventoryType;
 import org.jetbrains.annotations.ApiStatus;
@@ -294,7 +295,7 @@ public interface InventoryView {
      */
     @NotNull
     default net.kyori.adventure.text.Component title() {
-        return net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(this.getTitle());
+        return ColorAPI.adventure(this.getTitle());
     }
     // Paper end
 

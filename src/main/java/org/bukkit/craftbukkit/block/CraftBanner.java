@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.block;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.api.ColorAPI;
 import io.papermc.paper.registry.RegistryKey;
 import java.util.ArrayList;
 import java.util.List;
@@ -133,6 +134,6 @@ public class CraftBanner extends CraftBlockEntityState<BannerBlockEntity> implem
 
     @Override
     public void setCustomName(String name) {
-       this.customName(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserializeOrNull(name));
+       this.customName(ColorAPI.adventureOrNull(name));
     }
 }

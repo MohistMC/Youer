@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.block.sign;
 
+import com.mohistmc.youer.api.ColorAPI;
 import java.util.List;
 import net.kyori.adventure.text.Component;
 import net.minecraft.world.level.block.entity.SignText;
@@ -64,7 +65,7 @@ public class CraftSignSide implements SignSide {
     @Override
     public void setLine(int index, @NotNull String line) throws IndexOutOfBoundsException {
         this.loadLines();
-        this.lines.set(index, net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(line));
+        this.lines.set(index, ColorAPI.adventure(line));
     }
 
     @Override

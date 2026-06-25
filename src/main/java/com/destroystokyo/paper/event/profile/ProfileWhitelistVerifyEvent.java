@@ -24,6 +24,7 @@
 package com.destroystokyo.paper.event.profile;
 
 import com.destroystokyo.paper.profile.PlayerProfile;
+import com.mohistmc.youer.api.ColorAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.event.Event;
@@ -74,7 +75,7 @@ public class ProfileWhitelistVerifyEvent extends Event {
      */
     @Deprecated
     public void setKickMessage(final @Nullable String kickMessage) {
-        this.kickMessage(kickMessage == null ? null : LegacyComponentSerializer.legacySection().deserialize(kickMessage));
+        this.kickMessage(kickMessage == null ? null : ColorAPI.adventure(kickMessage));
     }
 
     /**

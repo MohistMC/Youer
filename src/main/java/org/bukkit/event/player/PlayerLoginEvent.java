@@ -1,5 +1,6 @@
 package org.bukkit.event.player;
 
+import com.mohistmc.youer.api.ColorAPI;
 import java.net.InetAddress;
 import io.papermc.paper.event.connection.PlayerConnectionValidateLoginEvent;
 import org.bukkit.Warning;
@@ -54,7 +55,7 @@ public class PlayerLoginEvent extends PlayerEvent {
     public PlayerLoginEvent(@NotNull final Player player, @NotNull String hostname, @NotNull final InetAddress address, @NotNull final Result result, @NotNull final String message, @NotNull final InetAddress realAddress) {
         this(player, hostname, address, realAddress);
         this.result = result;
-        this.message = LegacyComponentSerializer.legacySection().deserialize(message);
+        this.message = ColorAPI.adventure(message);
     }
 
     @ApiStatus.Internal
@@ -157,7 +158,7 @@ public class PlayerLoginEvent extends PlayerEvent {
      */
     @Deprecated
     public void setKickMessage(@NotNull final String message) {
-        this.message = LegacyComponentSerializer.legacySection().deserialize(message);
+        this.message = ColorAPI.adventure(message);
     }
 
     /**
@@ -178,7 +179,7 @@ public class PlayerLoginEvent extends PlayerEvent {
     @Deprecated
     public void disallow(@NotNull final Result result, @NotNull final String message) {
         this.result = result;
-        this.message = LegacyComponentSerializer.legacySection().deserialize(message);
+        this.message = ColorAPI.adventure(message);
     }
 
     /**

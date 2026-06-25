@@ -1,5 +1,6 @@
 package org.bukkit.event.block;
 
+import com.mohistmc.youer.api.ColorAPI;
 import net.kyori.adventure.text.Component;
 import org.bukkit.block.Block;
 import org.bukkit.block.sign.Side;
@@ -53,7 +54,7 @@ public class SignChangeEvent extends BlockEvent implements Cancellable {
         this.player = thePlayer;
         this.adventure$lines = new java.util.ArrayList<>();
         for (String theLine : theLines) {
-            this.adventure$lines.add(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(theLine));
+            this.adventure$lines.add(ColorAPI.adventure(theLine));
         }
         this.side = side;
     }
@@ -141,7 +142,7 @@ public class SignChangeEvent extends BlockEvent implements Cancellable {
      */
     @Deprecated // Paper
     public void setLine(int index, @Nullable String line) throws IndexOutOfBoundsException {
-        this.adventure$lines.set(index, line != null ? net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(line) : null); // Paper
+        this.adventure$lines.set(index, line != null ? ColorAPI.adventure(line) : null); // Paper
     }
 
     /**

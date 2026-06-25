@@ -1,5 +1,6 @@
 package io.papermc.paper.commands;
 
+import com.mohistmc.youer.api.ColorAPI;
 import io.papermc.paper.adventure.PaperAdventure;
 import java.util.function.Consumer;
 import net.kyori.adventure.text.Component;
@@ -30,7 +31,7 @@ public final class FeedbackForwardingSender extends ServerCommandSender {
 
     @Override
     public void sendMessage(final String message) {
-        this.sendMessage(LegacyComponentSerializer.legacySection().deserialize(message));
+        this.sendMessage(ColorAPI.adventure(message));
     }
 
     @Override

@@ -1,6 +1,7 @@
 package org.bukkit.event.server;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.api.ColorAPI;
 import java.net.InetAddress;
 import java.util.Iterator;
 import net.kyori.adventure.text.Component;
@@ -40,7 +41,7 @@ public class ServerListPingEvent extends ServerEvent implements Iterable<Player>
         Preconditions.checkArgument(numPlayers >= 0, "Cannot have negative number of players online", numPlayers);
         this.hostname = hostname;
         this.address = address;
-        this.motd = LegacyComponentSerializer.legacySection().deserialize(motd);
+        this.motd = ColorAPI.adventure(motd);
         this.numPlayers = numPlayers;
         this.maxPlayers = maxPlayers;
     }
@@ -52,7 +53,7 @@ public class ServerListPingEvent extends ServerEvent implements Iterable<Player>
         this.numPlayers = MAGIC_PLAYER_COUNT;
         this.hostname = hostname;
         this.address = address;
-        this.motd = LegacyComponentSerializer.legacySection().deserialize(motd);
+        this.motd = ColorAPI.adventure(motd);
         this.maxPlayers = maxPlayers;
     }
 
@@ -151,7 +152,7 @@ public class ServerListPingEvent extends ServerEvent implements Iterable<Player>
      */
     @Deprecated
     public void setMotd(@NotNull String motd) {
-        this.motd = LegacyComponentSerializer.legacySection().deserialize(motd);
+        this.motd = ColorAPI.adventure(motd);
     }
 
     /**

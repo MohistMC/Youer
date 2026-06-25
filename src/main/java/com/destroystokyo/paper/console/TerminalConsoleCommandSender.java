@@ -1,5 +1,6 @@
 package com.destroystokyo.paper.console;
 
+import com.mohistmc.youer.api.ColorAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -13,7 +14,7 @@ public class TerminalConsoleCommandSender extends CraftConsoleCommandSender {
 
     @Override
     public void sendRawMessage(String message) {
-        final Component msg = LegacyComponentSerializer.legacySection().deserialize(message);
+        final Component msg = ColorAPI.adventure(message);
         this.sendMessage(msg);
     }
 
