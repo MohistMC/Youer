@@ -32,7 +32,7 @@
  import net.minecraft.server.packs.repository.PackRepository;
  import net.minecraft.server.packs.repository.ServerPacksSource;
  import net.minecraft.util.Mth;
-@@ -56,21 +_,25 @@
+@@ -56,21 +_,26 @@
  import net.minecraft.world.level.levelgen.presets.WorldPresets;
  import net.minecraft.world.level.storage.LevelDataAndDimensions;
  import net.minecraft.world.level.storage.LevelStorageSource;
@@ -50,6 +50,7 @@
  
      @SuppressForbidden(reason = "System.out needed before bootstrap")
      public static void main(String[] args) {
++        Youer.initProperty();
 +        io.papermc.paper.log.LogManagerShutdownThread.hook(); // Paper - Improved watchdog support
 +        Youer.initI18n(); // Youer
          SharedConstants.tryDetectVersion();
@@ -60,7 +61,7 @@
          OptionSpec<Void> demo = parser.accepts("demo");
          OptionSpec<Void> bonusChest = parser.accepts("bonusChest");
          OptionSpec<Void> forceUpgrade = parser.accepts("forceUpgrade");
-@@ -86,12 +_,91 @@
+@@ -86,12 +_,101 @@
          OptionSpec<Path> pidFile = parser.accepts("pidFile").withRequiredArg().withValuesConvertedBy(new PathConverter());
          OptionSpec<String> nonOptions = parser.nonOptions();
  
@@ -143,6 +144,16 @@
                  parser.printHelpOn(System.err);
                  return;
              }
++            if (options.has("nojline")) {
++                System.setProperty(net.minecrell.terminalconsole.TerminalConsoleAppender.JLINE_OVERRIDE_PROPERTY, "false");
++                org.bukkit.craftbukkit.Main.useJline = false;
++            }
++
++            if (options.has("noconsole")) {
++                org.bukkit.craftbukkit.Main.useConsole = false;
++                org.bukkit.craftbukkit.Main.useJline = false; // Paper
++                System.setProperty(net.minecrell.terminalconsole.TerminalConsoleAppender.JLINE_OVERRIDE_PROPERTY, "false"); // Paper
++            }
 +            Path eulaFile = Paths.get("eula.txt");
 +            Eula eula = new Eula(eulaFile);
 +

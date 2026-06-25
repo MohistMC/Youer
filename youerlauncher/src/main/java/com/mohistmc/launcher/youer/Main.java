@@ -41,6 +41,7 @@ public class Main {
 
     @SneakyThrows
     static void main(String[] args) {
+        System.setProperty("org.jline.terminal.disableDeprecatedProviderWarning", "true");
         mainArgs.addAll(List.of(args));
         DataParser.parseVersions();
         DataParser.parseLaunchArgs();

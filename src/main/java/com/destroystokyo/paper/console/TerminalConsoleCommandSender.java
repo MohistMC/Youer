@@ -1,9 +1,10 @@
 package com.destroystokyo.paper.console;
 
-import com.mohistmc.youer.api.ColorAPI;
+import com.mohistmc.youer.Youer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 import org.apache.logging.log4j.LogManager;
+import org.bukkit.ChatColor;
 import org.bukkit.craftbukkit.command.CraftConsoleCommandSender;
 import org.jetbrains.annotations.NotNull;
 
@@ -13,8 +14,7 @@ public class TerminalConsoleCommandSender extends CraftConsoleCommandSender {
 
     @Override
     public void sendRawMessage(String message) {
-        final Component msg = ColorAPI.adventure(message);
-        this.sendMessage(msg);
+        Youer.LOGGER.info(ChatColor.stripColor(message));
     }
 
     @Override

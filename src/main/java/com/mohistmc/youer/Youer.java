@@ -36,4 +36,11 @@ public class Youer {
         String mohist_lang = YouerConfig.yml.getString("youer.lang", Locale.getDefault().toString());
         i18n = new i18n(Youer.class.getClassLoader(), mohist_lang);
     }
+
+    public static void initProperty() {
+        System.setProperty("library.jansi.version", "Paper"); // Paper - set meaningless jansi version to prevent git builds from crashing on Windows
+        System.setProperty("jdk.console", "java.base"); // Paper - revert default console provider back to java.base so we can have our own jline
+        System.setProperty("java.util.logging.manager", "io.papermc.paper.log.CustomLogManager");
+        if (System.getProperty("jdk.nio.maxCachedBufferSize") == null) System.setProperty("jdk.nio.maxCachedBufferSize", "262144"); // Paper - cap per-thread NIO cache size; https://www.evanjones.ca/java-bytebuffer-leak.html
+    }
 }
