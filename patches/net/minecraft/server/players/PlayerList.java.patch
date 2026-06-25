@@ -1000,7 +1000,8 @@
 +    public void broadcastChatMessage(final PlayerChatMessage message, final Predicate<ServerPlayer> isFiltered, final @Nullable ServerPlayer senderPlayer, final ChatType.Bound chatType, final @Nullable Function<net.kyori.adventure.audience.Audience, Component> unsignedFunction) {
 +        // Paper end
          boolean trusted = this.verifyChatTrusted(message);
-         this.server.logChatMessage(message.decoratedContent(), chatType, trusted ? null : "Not Secure");
+-        this.server.logChatMessage(message.decoratedContent(), chatType, trusted ? null : "Not Secure");
++        this.server.logChatMessage((unsignedFunction == null ? message.decoratedContent() : unsignedFunction.apply(this.server.console)), chatType, trusted ? null : "Not Secure"); // Paper
          OutgoingChatMessage tracked = OutgoingChatMessage.create(message);
          boolean wasFullyFiltered = false;
  

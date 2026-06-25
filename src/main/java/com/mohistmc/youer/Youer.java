@@ -25,7 +25,7 @@ public class Youer {
     public Youer(IEventBus modEventBus, Dist dist, ModContainer container) {
         Map<String, String> arguments = new HashMap<>();
         arguments.put("youer", version);
-        arguments.put("paper", "26.2-23");
+        arguments.put("paper", "26.2-34");
         arguments.put("neoforge", NeoForgeVersion.getVersion());
         versionInfo = new VersionInfo(arguments);
         EventDispatcherRegistry.init();

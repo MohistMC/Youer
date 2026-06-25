@@ -217,15 +217,15 @@
 +    private final Set<String> pluginsBlockingSleep = new java.util.HashSet<>(); // Paper - API to allow/disallow tick sleeping
 +    public static final long SERVER_INIT = System.nanoTime(); // Paper - Lag compensation
 +    // Paper start - improve tick loop
-+    public final ca.spottedleaf.moonrise.common.time.TickData tickTimes1s  = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(1L));
-+    public final ca.spottedleaf.moonrise.common.time.TickData tickTimes5s  = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(5L));
-+    public final ca.spottedleaf.moonrise.common.time.TickData tickTimes10s = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(10L));
-+    public final ca.spottedleaf.moonrise.common.time.TickData tickTimes15s = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(15L));
-+    public final ca.spottedleaf.moonrise.common.time.TickData tickTimes1m  = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.MINUTES.toNanos(1L));
-+    public final ca.spottedleaf.moonrise.common.time.TickData tickTimes5m  = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.MINUTES.toNanos(5L));
-+    public final ca.spottedleaf.moonrise.common.time.TickData tickTimes15m = new ca.spottedleaf.moonrise.common.time.TickData(java.util.concurrent.TimeUnit.MINUTES.toNanos(15L));
++    public final ca.spottedleaf.common.time.TickData tickTimes1s  = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(1L));
++    public final ca.spottedleaf.common.time.TickData tickTimes5s  = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(5L));
++    public final ca.spottedleaf.common.time.TickData tickTimes10s = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(10L));
++    public final ca.spottedleaf.common.time.TickData tickTimes15s = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.SECONDS.toNanos(15L));
++    public final ca.spottedleaf.common.time.TickData tickTimes1m  = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.MINUTES.toNanos(1L));
++    public final ca.spottedleaf.common.time.TickData tickTimes5m  = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.MINUTES.toNanos(5L));
++    public final ca.spottedleaf.common.time.TickData tickTimes15m = new ca.spottedleaf.common.time.TickData(java.util.concurrent.TimeUnit.MINUTES.toNanos(15L));
 +
-+    private final ca.spottedleaf.moonrise.common.time.Schedule tickSchedule = new ca.spottedleaf.moonrise.common.time.Schedule(0L);
++    private final ca.spottedleaf.common.time.Schedule tickSchedule = new ca.spottedleaf.common.time.Schedule(0L);
 +
 +    private long lastTickStart;
 +    private long currentTickStart;
@@ -248,9 +248,9 @@
 +    private final java.util.concurrent.atomic.AtomicInteger tickTaskTickCount = new java.util.concurrent.atomic.AtomicInteger();
 +    private final Object statsLock = new Object();
 +    private @Nullable double[] tps;
-+    private ca.spottedleaf.moonrise.common.time.TickData.@Nullable MSPTData msptData5s;
++    private ca.spottedleaf.common.time.TickData.@Nullable MSPTData msptData5s;
 +
-+    private void addTickTime(final ca.spottedleaf.moonrise.common.time.TickTime time) {
++    private void addTickTime(final ca.spottedleaf.common.time.TickTime time) {
 +        synchronized (this.statsLock) {
 +            this.tickTimes1s.addDataFrom(time);
 +            this.tickTimes5s.addDataFrom(time);
@@ -268,7 +268,7 @@
 +        this.tps = null;
 +    }
 +
-+    private static double getTPS(final ca.spottedleaf.moonrise.common.time.TickData tickData, final long tickInterval) {
++    private static double getTPS(final ca.spottedleaf.common.time.TickData tickData, final long tickInterval) {
 +        final Double avg = tickData.getTPSAverage(null, tickInterval);
 +        if (avg == null) {
 +            return 1.0E9 / (double)tickInterval;
@@ -288,7 +288,7 @@
 +        }
 +    }
 +
-+    public ca.spottedleaf.moonrise.common.time.TickData.@Nullable MSPTData getMSPTData5s() {
++    public ca.spottedleaf.common.time.TickData.@Nullable MSPTData getMSPTData5s() {
 +        synchronized (this.statsLock) {
 +            if (this.msptData5s == null) {
 +                this.msptData5s = this.tickTimes5s.getMSPTData(null, this.tickRateManager().nanosecondsPerTick());
@@ -953,9 +953,9 @@
  
      public void halt(boolean wait) {
 +        // Paper start - allow passing of the intent to restart
-+        this.safeShutdown(wait, false);
++        this.halt(wait, false);
 +    }
-+    public void safeShutdown(boolean wait, final boolean isRestarting) {
++    public void halt(boolean wait, final boolean isRestarting) {
 +        this.isRestarting = isRestarting;
 +        this.hasLoggedStop = true; // Paper - Debugging
 +        if (this.isDebugging()) io.papermc.paper.util.TraceUtil.dumpTraceForThread("Server stopped"); // Paper - Debugging
@@ -976,7 +976,7 @@
 +            interval = 0L;
 +        }
 +        this.tickSchedule.setNextPeriod(this.nextTickTimeNanos, interval);
-+        this.lastTickStart = ca.spottedleaf.concurrentutil.util.TimeUtil.DEADLINE_NOT_SET;
++        this.lastTickStart = ca.spottedleaf.common.util.TimeUtil.DEADLINE_NOT_SET;
 +        this.scheduledTickStart = this.tickSchedule.getDeadline(interval);
 +    }
 +
@@ -989,7 +989,7 @@
 +
 +        final long now = Util.getNanos();
 +
-+        final ca.spottedleaf.moonrise.common.time.TickTime time = new ca.spottedleaf.moonrise.common.time.TickTime(
++        final ca.spottedleaf.common.time.TickTime time = new ca.spottedleaf.common.time.TickTime(
 +                prevStart,
 +                scheduledStart,
 +                currStart,
@@ -2001,19 +2001,19 @@
      public RegistryAccess.Frozen registryAccess() {
          return this.registries.compositeAccess();
      }
-@@ -2057,28 +_,44 @@
+@@ -2057,28 +_,45 @@
      }
  
      public void logChatMessage(Component message, ChatType.Bound chatType, @Nullable String tag) {
--        String decoratedMessage = chatType.decorate(message).getString();
 +        // Paper start
-+        net.kyori.adventure.text.Component decoratedMessage = io.papermc.paper.adventure.PaperAdventure.asAdventure(chatType.decorate(message));
+         String decoratedMessage = chatType.decorate(message).getString();
++        net.kyori.adventure.text.Component adventureMessage = net.kyori.adventure.text.Component.text(decoratedMessage);
          if (tag != null) {
 -            LOGGER.info("[{}] {}", tag, decoratedMessage);
-+            COMPONENT_LOGGER.info("[{}] {}", tag, decoratedMessage);
++            COMPONENT_LOGGER.info("[{}] {}", tag, adventureMessage);
          } else {
 -            LOGGER.info("{}", decoratedMessage);
-+            COMPONENT_LOGGER.info("{}", decoratedMessage);
++            COMPONENT_LOGGER.info("{}", adventureMessage);
 +            // Paper end
          }
      }

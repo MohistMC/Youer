@@ -31,7 +31,7 @@
 
 ✅ **Core Integration**
 - [x] NeoForge ([4a632391a](https://github.com/neoforged/NeoForge/commit/4a632391a))
-- [ ] Paper ([250ea42064](https://github.com/PaperMC/Paper/commit/250ea42064))
+- [ ] Paper ([296037944d](https://github.com/PaperMC/Paper/commit/296037944d))
   - [x] api
   - [ ] server
 - [ ] PurPur ([803bf624](https://github.com/PurpurMC/Purpur/commit/803bf624))

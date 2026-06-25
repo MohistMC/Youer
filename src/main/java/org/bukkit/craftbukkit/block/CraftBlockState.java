@@ -214,31 +214,15 @@ public class CraftBlockState implements BlockState {
         if (!this.isPlaced()) {
             return true;
         }
-        LevelAccessor access = this.getWorldHandle();
-        CraftBlock block = this.getBlock();
 
+        CraftBlock block = this.getBlock();
         if (block.getType() != this.getType()) {
             if (!force) {
                 return false;
             }
         }
 
-        net.minecraft.world.level.block.state.BlockState newBlock = this.block;
-        block.setBlockState(newBlock, applyPhysics);
-        if (access instanceof net.minecraft.world.level.Level) {
-            this.world.getHandle().sendBlockUpdated(
-                this.position,
-                block.getBlockState(),
-                newBlock,
-                net.minecraft.world.level.block.Block.UPDATE_ALL
-            );
-        }
-
-        // Update levers etc
-        if (false && applyPhysics && this.getData() instanceof Attachable) { // Call does not map to new API
-            this.world.getHandle().updateNeighborsAt(this.position.relative(CraftBlock.blockFaceToNotch(((Attachable) this.getData()).getAttachedFace())), newBlock.getBlock());
-        }
-
+        block.setBlockState(this.block, applyPhysics);
         return true;
     }
 

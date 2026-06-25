@@ -1132,35 +1132,36 @@
          return this;
      }
  
-@@ -1157,23 +_,33 @@
+@@ -1157,23 +_,34 @@
      public void triggerDimensionChangeTriggers(ServerLevel oldLevel) {
          ResourceKey<Level> oldKey = oldLevel.dimension();
          ResourceKey<Level> newKey = this.level().dimension();
 -        CriteriaTriggers.CHANGED_DIMENSION.trigger(this, oldKey, newKey);
 -        if (oldKey == Level.NETHER && newKey == Level.OVERWORLD && this.enteredNetherPosition != null) {
 +        // CraftBukkit start
-+        ResourceKey<Level> maindimensionkey = org.bukkit.craftbukkit.util.CraftDimensionUtil.getMainDimensionKey(oldLevel);
-+        ResourceKey<Level> maindimensionkey1 = org.bukkit.craftbukkit.util.CraftDimensionUtil.getMainDimensionKey(this.level());
++        ResourceKey<Level> oldMainDimensionKey = org.bukkit.craftbukkit.util.CraftDimensionUtil.getMainDimensionKey(oldLevel);
++        ResourceKey<Level> newMainDimensionKey = org.bukkit.craftbukkit.util.CraftDimensionUtil.getMainDimensionKey(this.level());
 +        // Paper start - Add option for strict advancement dimension checks
 +        if (io.papermc.paper.configuration.GlobalConfiguration.get().misc.strictAdvancementDimensionCheck) {
-+            maindimensionkey = oldKey;
-+            maindimensionkey1 = newKey;
++            oldMainDimensionKey = oldKey;
++            newMainDimensionKey = newKey;
 +        }
 +        // Paper end - Add option for strict advancement dimension checks
-+        CriteriaTriggers.CHANGED_DIMENSION.trigger(this, maindimensionkey, maindimensionkey1);
-+        if (maindimensionkey != oldKey || maindimensionkey1 != newKey) {
++        CriteriaTriggers.CHANGED_DIMENSION.trigger(this, oldMainDimensionKey, newMainDimensionKey);
++        if (oldMainDimensionKey != oldKey || newMainDimensionKey != newKey) {
 +            CriteriaTriggers.CHANGED_DIMENSION.trigger(this, oldKey, newKey);
 +        }
 +
-+        if (maindimensionkey == Level.NETHER && maindimensionkey1 == Level.OVERWORLD && this.enteredNetherPosition != null) {
++        if (oldMainDimensionKey == Level.NETHER && newMainDimensionKey == Level.OVERWORLD && this.enteredNetherPosition != null) {
 +            // CraftBukkit end
              CriteriaTriggers.NETHER_TRAVEL.trigger(this, this.enteredNetherPosition);
          }
  
 -        if (newKey != Level.NETHER) {
-+        if (maindimensionkey1 != Level.NETHER) { // CraftBukkit
++        if (newMainDimensionKey != Level.NETHER) { // CraftBukkit
              this.enteredNetherPosition = null;
          }
++        this.gameMode.hasDelayedDestroy = false; // Paper
      }
  
      @Override

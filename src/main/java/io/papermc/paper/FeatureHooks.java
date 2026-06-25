@@ -106,7 +106,7 @@ public final class FeatureHooks {
     private static void dumpEntity(final Entity entity) {
     }
 
-    public static org.bukkit.entity.Entity[] getChunkEntities(Level level, int chunkX, int chunkZ) {
+    public static org.bukkit.entity.Entity[] getChunkEntities(net.minecraft.server.level.ServerLevel level, int chunkX, int chunkZ) {
         return level.getChunkEntities(chunkX, chunkZ); // Paper - rewrite chunk system
     }
 
@@ -194,4 +194,20 @@ public final class FeatureHooks {
         ((ca.spottedleaf.moonrise.patches.chunk_system.player.ChunkSystemServerPlayer)player).moonrise$getViewDistanceHolder().setSendViewDistance(distance); // Paper - rewrite chunk system
     }
 
+    public static void flushAsyncAppenders() {
+        // Paper start - add explicit flush method
+        if (!(org.apache.logging.log4j.LogManager.getContext(false) instanceof org.apache.logging.log4j.core.LoggerContext context)) {
+            return;
+        }
+
+        for (final org.apache.logging.log4j.core.Appender appender : context.getConfiguration().getAppenders().values()) {
+            if (appender instanceof org.apache.logging.log4j.core.appender.AsyncAppender asyncAppender) {
+                final boolean flushed = asyncAppender.flush(100, java.util.concurrent.TimeUnit.MILLISECONDS);
+                if (!flushed) {
+                    net.minecraft.server.MinecraftServer.LOGGER.warn("Failed to flush log messages before plugin unload.");
+                }
+            }
+        }
+        // Paper end - add explicit flush method
+    }
 }

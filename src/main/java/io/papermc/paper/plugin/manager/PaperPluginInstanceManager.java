@@ -3,6 +3,7 @@ package io.papermc.paper.plugin.manager;
 import com.google.common.base.Preconditions;
 import com.google.common.graph.GraphBuilder;
 import com.google.common.graph.MutableGraph;
+import io.papermc.paper.FeatureHooks;
 import io.papermc.paper.plugin.configuration.PluginMeta;
 import io.papermc.paper.plugin.entrypoint.Entrypoint;
 import io.papermc.paper.plugin.entrypoint.dependency.MetaDependencyTree;
@@ -246,7 +247,7 @@ class PaperPluginInstanceManager {
 
             // Flush async appender before unloading, avoids issues when a log message with class context
             // tries to print after it's source has unloaded (i.e., Guice enhanced errors)
-            this.flushAsyncAppenders();
+            FeatureHooks.flushAsyncAppenders();
 
             ClassLoader classLoader = plugin.getClass().getClassLoader();
             if (classLoader instanceof ConfiguredPluginClassLoader configuredPluginClassLoader) {
@@ -334,21 +335,6 @@ class PaperPluginInstanceManager {
     private void handlePluginException(String msg, Throwable ex, Plugin plugin) {
         Bukkit.getServer().getLogger().log(Level.SEVERE, msg, ex);
         this.pluginManager.callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerPluginEnableDisableException(msg, ex, plugin)));
-    }
-
-    private void flushAsyncAppenders() {
-        if (!(LogManager.getContext(false) instanceof LoggerContext context)) {
-            return;
-        }
-
-        for (final Appender appender : context.getConfiguration().getAppenders().values()) {
-            if (appender instanceof AsyncAppender asyncAppender) {
-                final boolean flushed = asyncAppender.flush(100, TimeUnit.MILLISECONDS);
-                if (!flushed) {
-                    this.server.getLogger().log(Level.WARNING, "Failed to flush log messages before plugin unload.");
-                }
-            }
-        }
     }
 
     public boolean isTransitiveDepend(@NotNull PluginMeta plugin, @NotNull PluginMeta depend) {

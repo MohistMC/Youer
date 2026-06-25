@@ -2221,7 +2221,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
 
     private void sendCustomPayload(Identifier id, byte[] message) {
         ClientboundCustomPayloadPacket packet = new ClientboundCustomPayloadPacket(new DiscardedPayload(id, message));
-        this.getHandle().connection.send(packet);
+        //this.getHandle().connection.send(packet);
     }
 
     @Override
