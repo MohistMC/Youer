@@ -20,7 +20,7 @@ public final class PaperConsole extends SimpleTerminalConsole {
     @Override
     protected LineReader buildReader(LineReaderBuilder builder) {
         builder
-                .appName("Paper")
+                .appName("Youer")
                 .variable(LineReader.HISTORY_FILE, java.nio.file.Paths.get(".console_history"))
                 .completer(new ConsoleCommandCompleter(this.server))
                 .option(LineReader.Option.COMPLETE_IN_WORD, true);

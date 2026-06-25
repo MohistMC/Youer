@@ -1,5 +1,6 @@
 package org.bukkit.craftbukkit.command;
 
+import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.api.ColorAPI;
 import java.util.UUID;
 import org.bukkit.ChatColor;
@@ -27,12 +28,12 @@ public class CraftConsoleCommandSender extends ServerCommandSender implements Co
 
     @Override
     public void sendRawMessage(String message) {
-        System.out.println(ChatColor.stripColor(ColorAPI.string(message)));
+        System.out.println(ChatColor.stripColor(message));
     }
 
     @Override
     public void sendRawMessage(UUID sender, String message) {
-      this.sendRawMessage(message); // Console doesn't know of senders
+        this.sendRawMessage(message); // Console doesn't know of senders
     }
 
     @Override

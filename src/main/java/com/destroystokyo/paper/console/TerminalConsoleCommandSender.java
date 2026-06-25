@@ -3,7 +3,6 @@ package com.destroystokyo.paper.console;
 import com.mohistmc.youer.api.ColorAPI;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.apache.logging.log4j.LogManager;
 import org.bukkit.craftbukkit.command.CraftConsoleCommandSender;
 import org.jetbrains.annotations.NotNull;
