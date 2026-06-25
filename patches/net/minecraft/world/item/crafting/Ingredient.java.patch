@@ -8,16 +8,17 @@
  import java.util.Objects;
  import java.util.Optional;
  import java.util.function.Predicate;
-@@ -21,20 +_,43 @@
+@@ -21,20 +_,46 @@
  import net.minecraft.world.item.Items;
  import net.minecraft.world.item.crafting.display.SlotDisplay;
  import net.minecraft.world.level.ItemLike;
 +import org.jspecify.annotations.Nullable;
  
- public final class Ingredient implements Predicate<ItemStack>, StackedContents.IngredientInfo<Holder<Item>> {
+-public final class Ingredient implements Predicate<ItemStack>, StackedContents.IngredientInfo<Holder<Item>> {
 -    public static final StreamCodec<RegistryFriendlyByteBuf, Ingredient> CONTENTS_STREAM_CODEC = ByteBufCodecs.holderSet(Registries.ITEM)
 -        .map(Ingredient::new, i -> i.values);
 -    public static final StreamCodec<RegistryFriendlyByteBuf, Optional<Ingredient>> OPTIONAL_CONTENTS_STREAM_CODEC = ByteBufCodecs.holderSet(Registries.ITEM)
++public final class Ingredient implements Predicate<ItemStack>, StackedContents.IngredientInfo<io.papermc.paper.inventory.recipe.ItemOrExact> { // Paper - Improve exact choice recipe ingredients
 +    public static final StreamCodec<RegistryFriendlyByteBuf, Ingredient> CONTENTS_STREAM_CODEC = net.neoforged.neoforge.common.crafting.IngredientCodecs.streamCodec(ByteBufCodecs.holderSet(Registries.ITEM)
 +        .map(Ingredient::new, i -> i.getValuesForSync()));
 +    public static final StreamCodec<RegistryFriendlyByteBuf, Optional<Ingredient>> OPTIONAL_CONTENTS_STREAM_CODEC = net.neoforged.neoforge.common.crafting.IngredientCodecs.optionalStreamCodec(ByteBufCodecs.holderSet(Registries.ITEM)
@@ -32,24 +33,27 @@
 +    public static final Codec<Ingredient> CODEC = net.neoforged.neoforge.common.crafting.IngredientCodecs.codec(ExtraCodecs.nonEmptyHolderSet(NON_AIR_HOLDER_SET_CODEC).xmap(Ingredient::new, i -> i.values));
      public final HolderSet<Item> values;
 +    private net.neoforged.neoforge.common.crafting.@org.jspecify.annotations.Nullable ICustomIngredient customIngredient = null;
-+    private java.util.@org.jspecify.annotations.Nullable List<Holder<Item>> customIngredientValues;
++    private java.util.@org.jspecify.annotations.Nullable List<Holder<Item>> customIngredientValues; // Paper - Improve exact choice recipe ingredients
 +
 +    // CraftBukkit start
-+    @Nullable
-+    private List<ItemStack> itemStacks;
++    private java.util.@org.jspecify.annotations.Nullable Set<ItemStack> itemStacks; // Paper - Improve exact choice recipe ingredients
 +
 +    public boolean isExact() {
 +        return this.itemStacks != null;
 +    }
 +
-+    public List<ItemStack> itemStacks() {
++    public java.util.@org.jspecify.annotations.Nullable Set<ItemStack> itemStacks() { // Paper - Improve exact choice recipe ingredients
 +        return this.itemStacks;
 +    }
 +
-+    public static Ingredient ofStacks(List<ItemStack> stacks) {
-+        Ingredient recipe = Ingredient.of(stacks.stream().map(ItemStack::getItem));
-+        recipe.itemStacks = stacks;
-+        return recipe;
++    public static Ingredient ofStacks(java.util.List<ItemStack> stacks) {
++        Ingredient ingredient = Ingredient.of(stacks.stream().map(ItemStack::getItem));
++        // Paper start - Improve exact choice recipe ingredients
++        ingredient.itemStacks = net.minecraft.world.item.ItemStackLinkedSet.createTypeAndComponentsSet();
++        ingredient.itemStacks.addAll(stacks);
++        ingredient.itemStacks = java.util.Collections.unmodifiableSet(ingredient.itemStacks);
++        // Paper end - Improve exact choice recipe ingredients
++        return ingredient;
 +    }
 +    // CraftBukkit end
  
@@ -58,7 +62,7 @@
          values.unwrap().ifRight(directValues -> {
              if (directValues.isEmpty()) {
                  throw new UnsupportedOperationException("Ingredients can't be empty");
-@@ -47,35 +_,106 @@
+@@ -47,35 +_,110 @@
          this.values = values;
      }
  
@@ -92,24 +96,30 @@
 +        }
 +        // CraftBukkit start
 +        if (this.isExact()) {
-+            for (ItemStack itemstack1 : this.itemStacks()) {
-+                if (itemstack1.getItem() == input.getItem() && ItemStack.isSameItemSameComponents(input, itemstack1)) {
-+                    return true;
-+                }
-+            }
-+
-+            return false;
++            return this.itemStacks.contains(input); // Paper - Improve exact choice recipe ingredients (hashing FTW!)
 +        }
 +        // CraftBukkit end
          return input.is(this.values);
      }
  
-     public boolean acceptsItem(Holder<Item> item) {
-+        if (this.customIngredient != null) {
-+            return updateCustomIngredientValues().contains(item);
-+        }
-         return this.values.contains(item);
+-    public boolean acceptsItem(Holder<Item> item) {
+-        return this.values.contains(item);
++    // Paper start - Improve exact choice recipe ingredients
++    public boolean acceptsItem(io.papermc.paper.inventory.recipe.ItemOrExact itemOrExact) {
++        return switch (itemOrExact) {
++            // 将 customIngredient 的判断合并到第一个 case，使用 when 守卫条件
++            case io.papermc.paper.inventory.recipe.ItemOrExact.Item(final Holder<Item> item)
++                    when this.customIngredient != null
++                    -> updateCustomIngredientValues().contains(item);
++
++            case io.papermc.paper.inventory.recipe.ItemOrExact.Item(final Holder<Item> item)
++                    -> !this.isExact() && this.values.contains(item);
++
++            case io.papermc.paper.inventory.recipe.ItemOrExact.Exact(final ItemStack exact)
++                    -> this.isExact() && this.itemStacks.contains(exact);
++        };
      }
++// Paper end - Improve exact choice recipe ingredients
  
      @Override
      public boolean equals(Object o) {
@@ -167,13 +177,18 @@
      }
  
      public static Ingredient of(ItemLike itemLike) {
-@@ -95,6 +_,9 @@
+@@ -95,6 +_,14 @@
      }
  
      public SlotDisplay display() {
 +        if (this.customIngredient != null) {
 +            return this.customIngredient.display();
 +        }
++        // Paper start - show exact ingredients in recipe book
++        if (this.isExact()) {
++            return new SlotDisplay.Composite(this.itemStacks().stream().map(ItemStackTemplate::fromNonEmptyStack).<SlotDisplay>map(SlotDisplay.ItemStackSlotDisplay::new).toList());
++        }
++        // Paper end - show exact ingredients in recipe book
          return (SlotDisplay)this.values
              .unwrap()
              .map(SlotDisplay.TagSlotDisplay::new, l -> new SlotDisplay.Composite(l.stream().map(Ingredient::displayForSingleItem).toList()));

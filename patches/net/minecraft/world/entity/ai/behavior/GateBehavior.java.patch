@@ -1,0 +1,87 @@
+--- a/net/minecraft/world/entity/ai/behavior/GateBehavior.java
++++ b/net/minecraft/world/entity/ai/behavior/GateBehavior.java
+@@ -69,7 +_,7 @@
+         if (this.hasRequiredMemories(body)) {
+             this.status = Behavior.Status.RUNNING;
+             this.orderPolicy.apply(this.behaviors);
+-            this.runningPolicy.apply(this.behaviors.stream(), level, body, timestamp);
++            this.runningPolicy.apply(this.behaviors, level, body, timestamp); // Paper - Perf: Remove streams from hot code
+             return true;
+         } else {
+             return false;
+@@ -78,7 +_,13 @@
+ 
+     @Override
+     public final void tickOrStop(ServerLevel level, E body, long timestamp) {
+-        this.behaviors.stream().filter(goal -> goal.getStatus() == Behavior.Status.RUNNING).forEach(goal -> goal.tickOrStop(level, body, timestamp));
++        // Paper start - Perf: Remove streams from hot code
++        for (final BehaviorControl<? super E> behavior : this.behaviors) {
++            if (behavior.getStatus() == Behavior.Status.RUNNING) {
++                behavior.tickOrStop(level, body, timestamp);
++            }
++        }
++        // Paper end - Perf: Remove streams from hot code
+         if (this.behaviors.stream().noneMatch(g -> g.getStatus() == Behavior.Status.RUNNING)) {
+             this.doStop(level, body, timestamp);
+         }
+@@ -87,8 +_,16 @@
+     @Override
+     public final void doStop(ServerLevel level, E body, long timestamp) {
+         this.status = Behavior.Status.STOPPED;
+-        this.behaviors.stream().filter(goal -> goal.getStatus() == Behavior.Status.RUNNING).forEach(goal -> goal.doStop(level, body, timestamp));
+-        this.exitErasedMemories.forEach(body.getBrain()::eraseMemory);
++        // Paper start - Perf: Remove streams from hot code
++        for (final BehaviorControl<? super E> behavior : this.behaviors) {
++            if (behavior.getStatus() == Behavior.Status.RUNNING) {
++                behavior.doStop(level, body, timestamp);
++            }
++        }
++        for (final MemoryModuleType<?> exitErasedMemory : this.exitErasedMemories) {
++            body.getBrain().eraseMemory(exitErasedMemory);
++        }
++        // Paper end - Perf: Remove streams from hot code
+     }
+ 
+     @Override
+@@ -118,20 +_,36 @@
+ 
+     public enum RunningPolicy {
+         RUN_ONE {
++            // Paper start - Perf: Remove streams from hot code
+             @Override
+-            public <E extends LivingEntity> void apply(Stream<BehaviorControl<? super E>> behaviors, ServerLevel level, E body, long timestamp) {
+-                behaviors.filter(goal -> goal.getStatus() == Behavior.Status.STOPPED).filter(goal -> goal.tryStart(level, body, timestamp)).findFirst();
++            public <E extends LivingEntity> void apply(
++                    final ShufflingList<BehaviorControl<? super E>> behaviors, final ServerLevel level, final E body, final long timestamp
++            ) {
++                for (final BehaviorControl<? super E> behavior : behaviors) {
++                    if (behavior.getStatus() == Behavior.Status.STOPPED && behavior.tryStart(level, body, timestamp)) {
++                        break;
++                    }
++                }
++                // Paper end - Perf: Remove streams from hot code
+             }
+         },
+         TRY_ALL {
++            // Paper start - Perf: Remove streams from hot code
+             @Override
+-            public <E extends LivingEntity> void apply(Stream<BehaviorControl<? super E>> behaviors, ServerLevel level, E body, long timestamp) {
+-                behaviors.filter(goal -> goal.getStatus() == Behavior.Status.STOPPED).forEach(goal -> goal.tryStart(level, body, timestamp));
++            public <E extends LivingEntity> void apply(
++                    final ShufflingList<BehaviorControl<? super E>> behaviors, final ServerLevel level, final E body, final long timestamp
++            ) {
++                for (final BehaviorControl<? super E> behavior : behaviors) {
++                    if (behavior.getStatus() == Behavior.Status.STOPPED) {
++                        behavior.tryStart(level, body, timestamp);
++                    }
++                }
++                // Paper end - Perf: Remove streams from hot code
+             }
+         };
+ 
+         public abstract <E extends LivingEntity> void apply(
+-            final Stream<BehaviorControl<? super E>> behaviors, final ServerLevel level, final E body, final long timestamp
++            final ShufflingList<BehaviorControl<? super E>> behaviors, final ServerLevel level, final E body, final long timestamp // Paper - Perf: Remove streams from hot code
+         );
+     }
+ }

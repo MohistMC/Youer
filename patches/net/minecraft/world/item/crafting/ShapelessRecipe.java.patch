@@ -51,8 +51,11 @@
  
      @Override
      public RecipeSerializer<ShapelessRecipe> getSerializer() {
-@@ -58,11 +_,24 @@
+@@ -56,13 +_,32 @@
+     }
+ 
      public boolean matches(CraftingInput input, Level level) {
++        // Paper start - Improve exact choice recipe ingredients & unwrap ternary
          if (input.ingredientCount() != this.ingredients.size()) {
              return false;
 +        } else if (!isSimple) {
@@ -62,9 +65,17 @@
 +                    nonEmptyItems.add(item);
 +            return net.neoforged.neoforge.common.util.RecipeMatcher.findMatches(nonEmptyItems, this.ingredients) != null;
          } else {
-             return input.size() == 1 && this.ingredients.size() == 1
-                 ? this.ingredients.getFirst().test(input.getItem(0))
-                 : input.stackedContents().canCraft(this, null);
+-            return input.size() == 1 && this.ingredients.size() == 1
+-                ? this.ingredients.getFirst().test(input.getItem(0))
+-                : input.stackedContents().canCraft(this, null);
++            if (input.size() == 1 && this.ingredients.size() == 1) {
++                return this.ingredients.getFirst().test(input.getItem(0));
++            }
++            input.stackedContents().initializeExtras(this, input);
++            boolean canCraft = input.stackedContents().canCraft(this, null);
++            input.stackedContents().resetExtras();
++            return canCraft;
++            // Paper end - Improve exact choice recipe ingredients & unwrap ternary
          }
 +    }
 +

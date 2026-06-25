@@ -1,0 +1,27 @@
+--- a/net/minecraft/world/entity/ai/sensing/NearestItemSensor.java
++++ b/net/minecraft/world/entity/ai/sensing/NearestItemSensor.java
+@@ -23,13 +_,17 @@
+ 
+     protected void doTick(ServerLevel level, Mob body) {
+         Brain<?> brain = body.getBrain();
+-        List<ItemEntity> items = level.getEntitiesOfClass(ItemEntity.class, body.getBoundingBox().inflate(32.0, 16.0, 32.0), item -> true);
++        List<ItemEntity> items = level.getEntitiesOfClass(ItemEntity.class, body.getBoundingBox().inflate(32.0, 16.0, 32.0), item -> item.closerThan(body, MAX_DISTANCE_TO_WANTED_ITEM) && body.wantsToPickUp(level, item.getItem())); // Paper - Perf: Move predicate into getEntities
+         items.sort(Comparator.comparingDouble(body::distanceToSqr));
+-        Optional<ItemEntity> nearestVisibleLovedItem = items.stream()
+-            .filter(itemEntity -> body.wantsToPickUp(level, itemEntity.getItem()))
+-            .filter(itemEntity -> itemEntity.closerThan(body, 32.0))
+-            .filter(body::hasLineOfSight)
+-            .findFirst();
+-        brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_WANTED_ITEM, nearestVisibleLovedItem);
++        // Paper start - Perf: remove streams from hot code
++        ItemEntity nearest = null;
++        for (final ItemEntity item : items) {
++            if (body.hasLineOfSight(item)) { // Paper - Perf: Move predicate into getEntities
++                nearest = item;
++                break;
++            }
++        }
++        brain.setMemory(MemoryModuleType.NEAREST_VISIBLE_WANTED_ITEM, Optional.ofNullable(nearest));
++        // Paper end - Perf: remove streams from hot code
+     }
+ }

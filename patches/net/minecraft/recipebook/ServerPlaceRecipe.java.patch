@@ -1,0 +1,52 @@
+--- a/net/minecraft/recipebook/ServerPlaceRecipe.java
++++ b/net/minecraft/recipebook/ServerPlaceRecipe.java
+@@ -42,6 +_,7 @@
+         }
+ 
+         StackedItemContents availableItems = new StackedItemContents();
++        availableItems.initializeExtras(recipe.value(), null); // Paper - Improve exact choice recipe ingredients
+         inventory.fillStackedContents(availableItems);
+         menu.fillCraftSlotsStackedContents(availableItems);
+         return placer.tryPlaceRecipe(recipe, availableItems);
+@@ -100,7 +_,7 @@
+         }
+ 
+         int amountToCraft = this.calculateAmountToCraft(biggestCraftableStack, recipeMatchesPlaced);
+-        List<Holder<Item>> itemsUsedPerIngredient = new ArrayList<>();
++        List<io.papermc.paper.inventory.recipe.ItemOrExact> itemsUsedPerIngredient = new ArrayList<>(); // Paper - Improve exact choice recipe ingredients
+         if (availableItems.canCraft(recipe.value(), amountToCraft, itemsUsedPerIngredient::add)) {
+             int adjustedAmountToCraft = clampToMaxStackSize(amountToCraft, itemsUsedPerIngredient);
+             if (adjustedAmountToCraft != amountToCraft) {
+@@ -119,7 +_,7 @@
+                 (ingredientIndex, gridIndex, gridXPos, gridYPos) -> {
+                     if (ingredientIndex != -1) {
+                         Slot targetGridSlot = this.inputGridSlots.get(gridIndex);
+-                        Holder<Item> itemUsed = itemsUsedPerIngredient.get(ingredientIndex);
++                        io.papermc.paper.inventory.recipe.ItemOrExact itemUsed = itemsUsedPerIngredient.get(ingredientIndex); // Paper - Improve exact choice recipe ingredients
+                         int remainingCount = adjustedAmountToCraft;
+ 
+                         while (remainingCount > 0) {
+@@ -134,9 +_,11 @@
+         }
+     }
+ 
+-    private static int clampToMaxStackSize(int value, List<Holder<Item>> items) {
+-        for (Holder<Item> item : items) {
+-            value = Math.min(value, item.components().getOrDefault(DataComponents.MAX_STACK_SIZE, 1));
++    // Paper start - Improve exact choice recipe ingredients
++    private static int clampToMaxStackSize(int value, final List<io.papermc.paper.inventory.recipe.ItemOrExact> items) {
++        for (io.papermc.paper.inventory.recipe.ItemOrExact item : items) {
++            value = Math.min(value, item.getMaxStackSize());
++            // Paper end - Improve exact choice recipe ingredients
+         }
+ 
+         return value;
+@@ -167,7 +_,7 @@
+         }
+     }
+ 
+-    private int moveItemToGrid(Slot targetSlot, Holder<Item> itemInInventory, int count) {
++    private int moveItemToGrid(Slot targetSlot, io.papermc.paper.inventory.recipe.ItemOrExact itemInInventory, int count) {
+         ItemStack itemInTargetSlot = targetSlot.getItem();
+         int inventorySlotId = this.inventory.findSlotMatchingCraftingIngredient(itemInInventory, itemInTargetSlot);
+         if (inventorySlotId == -1) {

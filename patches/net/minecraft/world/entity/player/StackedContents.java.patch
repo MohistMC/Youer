@@ -1,0 +1,36 @@
+--- a/net/minecraft/world/entity/player/StackedContents.java
++++ b/net/minecraft/world/entity/player/StackedContents.java
+@@ -13,7 +_,7 @@
+ import org.jspecify.annotations.Nullable;
+ 
+ public class StackedContents<T> {
+-    public final Reference2IntOpenHashMap<T> amounts = new Reference2IntOpenHashMap<>();
++    public final it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap<T> amounts = new it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap<>(); // Paper - Improve exact choice recipe ingredients (don't use "reference" map)
+ 
+     private boolean hasAtLeast(T item, int count) {
+         return this.amounts.getInt(item) >= count;
+@@ -49,7 +_,7 @@
+     private List<T> getUniqueAvailableIngredientItems(Iterable<? extends StackedContents.IngredientInfo<T>> ingredients) {
+         List<T> result = new ArrayList<>();
+ 
+-        for (Entry<T> availableItem : Reference2IntMaps.fastIterable(this.amounts)) {
++        for (it.unimi.dsi.fastutil.objects.Object2IntMap.Entry<T> availableItem : it.unimi.dsi.fastutil.objects.Object2IntMaps.fastIterable(this.amounts)) { // Paper - Improve exact choice recipe ingredients (don't use "reference" map)
+             if (availableItem.getIntValue() > 0 && anyIngredientMatches(ingredients, availableItem.getKey())) {
+                 result.add(availableItem.getKey());
+             }
+@@ -71,13 +_,13 @@
+     @VisibleForTesting
+     public int getResultUpperBound(List<? extends StackedContents.IngredientInfo<T>> ingredients) {
+         int min = Integer.MAX_VALUE;
+-        ObjectIterable<Entry<T>> availableItems = Reference2IntMaps.fastIterable(this.amounts);
++        ObjectIterable<it.unimi.dsi.fastutil.objects.Object2IntMap.Entry<T>> availableItems = it.unimi.dsi.fastutil.objects.Object2IntMaps.fastIterable(this.amounts); // Paper - Improve exact choice recipe ingredients (don't use "reference" map)
+ 
+         label31:
+         for (StackedContents.IngredientInfo<T> ingredient : ingredients) {
+             int max = 0;
+ 
+-            for (Entry<T> entry : availableItems) {
++            for (it.unimi.dsi.fastutil.objects.Object2IntMap.Entry<T> entry : availableItems) { // Paper - Improve exact choice recipe ingredients (don't use "reference" map)
+                 int itemCount = entry.getIntValue();
+                 if (itemCount > max) {
+                     if (ingredient.acceptsItem(entry.getKey())) {

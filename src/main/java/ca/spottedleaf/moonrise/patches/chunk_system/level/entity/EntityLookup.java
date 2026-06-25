@@ -424,7 +424,7 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
 
         Entity currentlyMapped = this.entityById.putIfAbsent((long)entity.getId(), entity);
         if (currentlyMapped != null) {
-            LOGGER.warn("Entity id already exists: " + entity.getId() + ", mapped to " + currentlyMapped + ", can't add " + entity);
+            //LOGGER.warn("Entity id already exists: " + entity.getId() + ", mapped to " + currentlyMapped + ", can't add " + entity);
             return false;
         }
 
@@ -432,7 +432,7 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
         if (currentlyMapped != null) {
             // need to remove mapping for id
             this.entityById.remove((long)entity.getId(), entity);
-            LOGGER.warn("Entity uuid already exists: " + entity.getUUID() + ", mapped to " + currentlyMapped + ", can't add " + entity);
+            //LOGGER.warn("Entity uuid already exists: " + entity.getUUID() + ", mapped to " + currentlyMapped + ", can't add " + entity);
             return false;
         }
 

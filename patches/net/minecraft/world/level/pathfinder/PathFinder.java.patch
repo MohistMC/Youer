@@ -1,25 +1,6 @@
-From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
-From: Aikar <aikar@aikar.co>
-Date: Tue, 4 Aug 2020 22:24:15 +0200
-Subject: [PATCH] Optimize Pathfinder - Remove Streams / Optimized collections
-
-I utilized the IDE to convert streams to non streams code, so shouldn't
-be any risk of behavior change. Only did minor optimization of the
-generated code set to remove unnecessary things.
-
-I expect us to just drop this patch on next major update and re-apply
-it with the IDE again and re-apply the collections optimization.
-
-Optimize collection by creating a list instead of a set of the key and value.
-
-This lets us get faster foreach iteration, as well as avoids map lookups on
-the values when needed.
-
-diff --git a/net/minecraft/world/level/pathfinder/PathFinder.java b/net/minecraft/world/level/pathfinder/PathFinder.java
-index 53aa6995d18cae5663d392e606c049e2e9138a99..253074a0a14115cd3d18aaae6fa5822cf32346c9 100644
 --- a/net/minecraft/world/level/pathfinder/PathFinder.java
 +++ b/net/minecraft/world/level/pathfinder/PathFinder.java
-@@ -55,20 +55,24 @@ public class PathFinder {
+@@ -50,18 +_,22 @@
              return null;
          }
  
@@ -36,10 +17,8 @@ index 53aa6995d18cae5663d392e606c049e2e9138a99..253074a0a14115cd3d18aaae6fa5822c
          return path;
      }
  
-     private @Nullable Path findPath(
--        final Node from, final Map<Target, BlockPos> targetMap, final float maxPathLength, final int reachRange, final float maxVisitedNodesMultiplier
-+        final Node from, final List<Map.Entry<Target, BlockPos>> targets, final float maxPathLength, final int reachRange, final float maxVisitedNodesMultiplier // Paper - optimize collection
-     ) {
+-    private @Nullable Path findPath(Node from, Map<Target, BlockPos> targetMap, float maxPathLength, int reachRange, float maxVisitedNodesMultiplier) {
++    private @Nullable Path findPath(Node from, List<Map.Entry<Target, BlockPos>> targets, float maxPathLength, int reachRange, float maxVisitedNodesMultiplier) { // Paper - optimize collection
          ProfilerFiller profiler = Profiler.get();
          profiler.push("find_path");
          profiler.markForCharting(MetricCategory.PATH_FINDING);
@@ -48,7 +27,7 @@ index 53aa6995d18cae5663d392e606c049e2e9138a99..253074a0a14115cd3d18aaae6fa5822c
          from.g = 0.0F;
          from.h = this.getBestH(from, targets);
          from.f = from.h;
-@@ -77,7 +81,7 @@ public class PathFinder {
+@@ -70,7 +_,7 @@
          boolean captureDebug = this.captureDebug.getAsBoolean();
          Set<Node> closedSet = captureDebug ? new HashSet<>() : Set.of();
          int count = 0;
@@ -57,7 +36,7 @@ index 53aa6995d18cae5663d392e606c049e2e9138a99..253074a0a14115cd3d18aaae6fa5822c
          int maxVisitedNodesAdjusted = (int)(this.maxVisitedNodes * maxVisitedNodesMultiplier);
  
          while (!this.openSet.isEmpty()) {
-@@ -88,10 +92,14 @@ public class PathFinder {
+@@ -81,10 +_,14 @@
              Node current = this.openSet.pop();
              current.closed = true;
  
@@ -74,7 +53,7 @@ index 53aa6995d18cae5663d392e606c049e2e9138a99..253074a0a14115cd3d18aaae6fa5822c
                  }
              }
  
-@@ -126,34 +134,41 @@ public class PathFinder {
+@@ -119,34 +_,41 @@
              }
          }
  
@@ -85,45 +64,46 @@ index 53aa6995d18cae5663d392e606c049e2e9138a99..253074a0a14115cd3d18aaae6fa5822c
 -            : targets.stream()
 -                .map(target -> this.reconstructPath(target.getBestNode(), targetMap.get(target), false))
 -                .min(Comparator.comparingDouble(Path::getDistToTarget).thenComparingInt(Path::getNodeCount));
--        profiler.pop();
--        if (optPath.isEmpty()) {
--            return null;
 +        // Paper start - Perf: remove streams and optimize collection
 +        Path best = null;
 +        boolean entryListIsEmpty = reachedTargets.isEmpty();
 +        Comparator<Path> comparator = entryListIsEmpty
-+            ? Comparator.comparingInt(Path::getNodeCount)
-+            : Comparator.comparingDouble(Path::getDistToTarget).thenComparingInt(Path::getNodeCount);
++                ? Comparator.comparingInt(Path::getNodeCount)
++                : Comparator.comparingDouble(Path::getDistToTarget).thenComparingInt(Path::getNodeCount);
 +        for (Map.Entry<Target, BlockPos> entry : entryListIsEmpty ? targets : reachedTargets) {
 +            Path path = this.reconstructPath(entry.getKey().getBestNode(), entry.getValue(), !entryListIsEmpty);
 +            if (best == null || comparator.compare(path, best) < 0) {
 +                best = path;
 +            }
-         }
++        }
+         profiler.pop();
+-        if (optPath.isEmpty()) {
+-            return null;
+-        }
 -
 -        Path path = optPath.get();
 -        if (captureDebug) {
 -            path.setDebug(this.openSet.getHeap(), closedSet.toArray(Node[]::new), targets);
-+        profiler.pop();
+-        }
+-
+-        return path;
 +        if (captureDebug && best != null) {
 +            Set<Target> set = Sets.newHashSet();
 +            for(Map.Entry<Target, BlockPos> entry : targets) {
 +                set.add(entry.getKey());
 +            }
 +            best.setDebug(this.openSet.getHeap(), closedSet.toArray(Node[]::new), set);
-         }
--
--        return path;
++        }
 +        return best;
 +        // Paper end - Perf: remove streams and optimize collection
      }
  
-     protected float distance(final Node from, final Node to) {
+     protected float distance(Node from, Node to) {
          return from.distanceTo(to);
      }
  
--    private float getBestH(final Node from, final Set<Target> targets) {
-+    private float getBestH(final Node from, final List<Map.Entry<Target, BlockPos>> targets) { // Paper - Perf: remove streams and optimize collection; Set<Target> -> List<Map.Entry<Target, BlockPos>>
+-    private float getBestH(Node from, Set<Target> targets) {
++    private float getBestH(Node from, final List<Map.Entry<Target, BlockPos>> targets) { // Paper - Perf: remove streams and optimize collection; Set<Target> -> List<Map.Entry<Target, BlockPos>>
          float bestH = Float.MAX_VALUE;
  
 -        for (Target target : targets) {

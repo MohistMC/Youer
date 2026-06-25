@@ -28,11 +28,10 @@
      }
  
      @Override
-@@ -265,6 +_,56 @@
-     private boolean canSurviveOn(BlockGetter level, BlockPos relativePos, BlockState relativeState) {
+@@ -266,6 +_,56 @@
          return relativeState.isFaceSturdy(level, relativePos, Direction.UP) || relativeState.is(Blocks.HOPPER);
      }
-+
+ 
 +    // Paper start - Optimize redstone (Eigencraft)
 +    // The bulk of the new functionality is found in RedstoneWireTurbo.java
 +    io.papermc.paper.redstone.RedstoneWireTurbo turbo = new io.papermc.paper.redstone.RedstoneWireTurbo(this);
@@ -82,6 +81,65 @@
 +        return state;
 +    }
 +    // Paper end
- 
++
      private void updatePowerStrength(
          Level level, BlockPos pos, BlockState state, @Nullable Orientation orientation, boolean shapeUpdateWiresAroundInitialPosition
+     ) {
+@@ -296,7 +_,13 @@
+     @Override
+     protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
+         if (!oldState.is(state.getBlock()) && !level.isClientSide()) {
+-            this.updatePowerStrength(level, pos, state, null, true);
++            // Paper start - optimize redstone - replace call to updatePowerStrength
++            if (level.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) {
++                level.getWireHandler().onWireAdded(pos, state); // Alternate Current
++            } else {
++                this.updateSurroundingRedstone(level, pos, state, null, true); // Vanilla/Eigencraft
++            }
++            // Paper end - optimize redstone
+ 
+             for (Direction direction : Direction.Plane.VERTICAL) {
+                 level.updateNeighborsAt(pos.relative(direction), this);
+@@ -313,7 +_,13 @@
+                 level.updateNeighborsAt(pos.relative(direction), this);
+             }
+ 
+-            this.updatePowerStrength(level, pos, state, null, false);
++            // Paper start - optimize redstone - replace call to updatePowerStrength
++            if (level.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) {
++                level.getWireHandler().onWireRemoved(pos, state); // Alternate Current
++            } else {
++                this.updateSurroundingRedstone(level, pos, state, null, false); // Vanilla/Eigencraft
++            }
++            // Paper end - optimize redstone
+             this.updateNeighborsOfNeighboringWires(level, pos);
+         }
+     }
+@@ -336,14 +_,20 @@
+     @Override
+     protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, @Nullable Orientation orientation, boolean movedByPiston) {
+         if (!level.isClientSide()) {
+-            if (block != this || !useExperimentalEvaluator(level)) {
+-                if (state.canSurvive(level, pos)) {
+-                    this.updatePowerStrength(level, pos, state, orientation, false);
+-                } else {
+-                    dropResources(state, level, pos);
+-                    level.removeBlock(pos, false);
++            // Paper start - optimize redstone (Alternate Current)
++            // Alternate Current handles breaking of redstone wires in the WireHandler.
++            if (level.paperConfig().misc.redstoneImplementation == io.papermc.paper.configuration.WorldConfiguration.Misc.RedstoneImplementation.ALTERNATE_CURRENT) {
++                level.getWireHandler().onWireUpdated(pos, state, orientation);
++            } else
++                // Paper end - optimize redstone (Alternate Current)
++                if (block != this || !useExperimentalEvaluator(level)) {
++                    if (state.canSurvive(level, pos)) {
++                        this.updateSurroundingRedstone(level, pos, state, orientation, false); // Paper - Optimize redstone (Eigencraft)
++                    } else {
++                        dropResources(state, level, pos);
++                        level.removeBlock(pos, false);
++                    }
+                 }
+-            }
+         }
+     }
+ 

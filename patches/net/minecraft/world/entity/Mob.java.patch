@@ -47,6 +47,27 @@
  
      protected Mob(EntityType<? extends Mob> type, Level level) {
          super(type, level);
+@@ -205,6 +_,20 @@
+         return this.lookControl;
+     }
+ 
++    // Paper start
++    @Override
++    public void inactiveTick() {
++        super.inactiveTick();
++        if (!this.aware) return; // Paper - Do not tick AI for inactive unaware mobs
++        if (this.goalSelector.inactiveTick()) {
++            this.goalSelector.tick();
++        }
++        if (this.targetSelector.inactiveTick()) {
++            this.targetSelector.tick();
++        }
++    }
++    // Paper end
++
+     public MoveControl getMoveControl() {
+         return this.getControlledVehicle() instanceof Mob riding ? riding.getMoveControl() : this.moveControl;
+     }
 @@ -248,8 +_,26 @@
          return this.asValidTarget(this.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse(null));
      }

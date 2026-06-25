@@ -16,6 +16,28 @@
  
      public FireworkRocketEntity(EntityType<? extends FireworkRocketEntity> type, Level level) {
          super(type, level);
+@@ -106,6 +_,21 @@
+         return super.shouldRender(camX, camY, camZ) && !this.isAttachedToEntity();
+     }
+ 
++    // Paper start - EAR 2
++    @Override
++    public void inactiveTick() {
++        this.life++;
++        if (this.life > this.lifetime && this.level() instanceof ServerLevel serverLevel) {
++            // Paper start - Call FireworkExplodeEvent
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callFireworkExplodeEvent(this)) {
++                this.explode(serverLevel);
++            }
++            // Paper end - Call FireworkExplodeEvent
++        }
++        super.inactiveTick();
++    }
++    // Paper end - EAR 2
++
+     @Override
+     public void tick() {
+         super.tick();
 @@ -158,7 +_,7 @@
          }
  

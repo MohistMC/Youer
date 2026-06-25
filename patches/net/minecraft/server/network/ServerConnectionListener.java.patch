@@ -56,11 +56,12 @@
              this.channels
                  .add(
                      new ServerBootstrap()
-@@ -68,7 +_,7 @@
+@@ -68,7 +_,8 @@
                                      } catch (ChannelException var5) {
                                      }
  
 -                                    ChannelPipeline pipeline = channel.pipeline().addLast("timeout", new ReadTimeoutHandler(30));
++                                    if (!disableFlushConsolidation) channel.pipeline().addFirst(new io.netty.handler.flush.FlushConsolidationHandler()); // Paper - Optimize network
 +                                    ChannelPipeline pipeline = channel.pipeline().addLast("timeout", new ReadTimeoutHandler(READ_TIMEOUT));
                                      if (ServerConnectionListener.this.server.repliesToStatus()) {
                                          pipeline.addLast("legacy_query", new LegacyQueryHandler(ServerConnectionListener.this.getServer()));

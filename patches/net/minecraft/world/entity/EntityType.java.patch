@@ -160,6 +160,25 @@
          }
  
          if (postSpawnConfig != null) {
+@@ -383,7 +_,18 @@
+     }
+ 
+     public static Stream<Entity> loadEntitiesRecursive(ValueInput.ValueInputList entities, Level level, EntitySpawnReason reason) {
++        final java.util.Map<EntityType<?>, Integer> loadedEntityCounts = new java.util.HashMap<>(); // Paper - Entity load/save limit per chunk
+         return entities.stream().mapMulti((tag, output) -> loadEntityRecursive(tag, level, reason, entity -> {
++            // Paper start - Entity load/save limit per chunk
++            final EntityType<?> entityType = entity.getType();
++            final int saveLimit = level.paperConfig().chunks.entityPerChunkSaveLimit.getOrDefault(entityType, -1);
++            if (saveLimit > -1) {
++                if (loadedEntityCounts.getOrDefault(entityType, 0) >= saveLimit) {
++                    return null;
++                }
++                loadedEntityCounts.merge(entityType, 1, Integer::sum);
++            }
++            // Paper end - Entity load/save limit per chunk
+             output.accept(entity);
+             return entity;
+         }));
 @@ -408,14 +_,23 @@
      }
  
