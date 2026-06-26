@@ -1,33 +1,23 @@
 --- a/net/minecraft/world/inventory/DispenserMenu.java
 +++ b/net/minecraft/world/inventory/DispenserMenu.java
-@@ -5,6 +_,8 @@
- import net.minecraft.world.entity.player.Inventory;
- import net.minecraft.world.entity.player.Player;
- import net.minecraft.world.item.ItemStack;
-+import org.bukkit.craftbukkit.inventory.CraftInventory;
-+import org.bukkit.craftbukkit.inventory.CraftInventoryView;
- 
- public class DispenserMenu extends AbstractContainerMenu {
-     private static final int SLOT_COUNT = 9;
 @@ -13,6 +_,10 @@
      private static final int USE_ROW_SLOT_START = 36;
      private static final int USE_ROW_SLOT_END = 45;
      public final Container dispenser;
 +    // CraftBukkit start
-+    private CraftInventoryView bukkitEntity = null;
-+    private Inventory player;
++    private org.bukkit.craftbukkit.inventory.@org.jspecify.annotations.Nullable CraftInventoryView view = null;
++    private final Inventory inventory;
 +    // CraftBukkit end
  
      public DispenserMenu(int containerId, Inventory inventory) {
          this(containerId, inventory, new SimpleContainer(9));
-@@ -20,6 +_,10 @@
+@@ -20,6 +_,9 @@
  
      public DispenserMenu(int containerId, Inventory inventory, Container dispenser) {
          super(MenuType.GENERIC_3x3, containerId);
 +        // CraftBukkit start - Save player
-+        this.player = inventory;
++        this.inventory = inventory;
 +        // CraftBukkit end
-+
          checkContainerSize(dispenser, 9);
          this.dispenser = dispenser;
          dispenser.startOpen(inventory.player);
@@ -46,14 +36,14 @@
 +
 +    // CraftBukkit start
 +    @Override
-+    public CraftInventoryView getBukkitView() {
-+        if (bukkitEntity != null) {
-+            return bukkitEntity;
++    public org.bukkit.craftbukkit.inventory.CraftInventoryView getBukkitView() {
++        if (this.view != null) {
++            return this.view;
 +        }
 +
-+        CraftInventory inventory = new CraftInventory(this.dispenser);
-+        bukkitEntity = new CraftInventoryView(this.player.player.getBukkitEntity(), inventory, this);
-+        return bukkitEntity;
++        org.bukkit.craftbukkit.inventory.CraftInventory inventory = new org.bukkit.craftbukkit.inventory.CraftInventory(this.dispenser);
++        this.view = new org.bukkit.craftbukkit.inventory.CraftInventoryView(this.inventory.player.getBukkitEntity(), inventory, this);
++        return this.view;
 +    }
 +    // CraftBukkit end
  }

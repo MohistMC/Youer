@@ -1,33 +1,26 @@
 --- a/net/minecraft/world/inventory/ShulkerBoxMenu.java
 +++ b/net/minecraft/world/inventory/ShulkerBoxMenu.java
-@@ -5,10 +_,32 @@
- import net.minecraft.world.entity.player.Inventory;
- import net.minecraft.world.entity.player.Player;
- import net.minecraft.world.item.ItemStack;
-+import org.bukkit.craftbukkit.inventory.CraftInventory;
-+import org.bukkit.craftbukkit.inventory.CraftInventoryView;
- 
+@@ -9,6 +_,25 @@
  public class ShulkerBoxMenu extends AbstractContainerMenu {
      private static final int CONTAINER_SIZE = 27;
      private final Container container;
 +    // CraftBukkit start
-+    private CraftInventoryView bukkitEntity;
-+    private Inventory player;
++    private org.bukkit.craftbukkit.inventory.@org.jspecify.annotations.Nullable CraftInventoryView view;
++    private final Inventory inventory;
 +
 +    @Override
-+    public CraftInventoryView getBukkitView() {
-+        if (bukkitEntity != null) {
-+            return bukkitEntity;
++    public org.bukkit.craftbukkit.inventory.CraftInventoryView getBukkitView() {
++        if (this.view != null) {
++            return this.view;
 +        }
 +
-+        bukkitEntity = new CraftInventoryView(this.player.player.getBukkitEntity(), new CraftInventory(this.container), this);
-+        return bukkitEntity;
++        this.view = new org.bukkit.craftbukkit.inventory.CraftInventoryView(this.inventory.player.getBukkitEntity(), new org.bukkit.craftbukkit.inventory.CraftInventory(this.container), this);
++        return this.view;
 +    }
 +
 +    @Override
 +    public void startOpen() {
-+        super.startOpen();
-+        container.startOpen(player.player);
++        this.container.startOpen(this.inventory.player);
 +    }
 +    // CraftBukkit end
  
@@ -38,7 +31,7 @@
          checkContainerSize(container, 27);
          this.container = container;
 -        container.startOpen(inventory.player);
-+        this.player = inventory; // CraftBukkit - save player
++        this.inventory = inventory; // CraftBukkit
 +        // container.startOpen(inventory.player); // CraftBukkit - don't startOpen until menu actually opens
          int rows = 3;
          int columns = 9;

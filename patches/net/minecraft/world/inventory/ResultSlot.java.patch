@@ -1,5 +1,17 @@
 --- a/net/minecraft/world/inventory/ResultSlot.java
 +++ b/net/minecraft/world/inventory/ResultSlot.java
+@@ -39,6 +_,11 @@
+     protected void onQuickCraft(ItemStack picked, int count) {
+         this.removeCount += count;
+         this.checkTakeAchievements(picked);
++        // Paper start - add ItemCraftedEvent
++        if (!picked.isEmpty()) {
++            new io.papermc.paper.event.inventory.ItemCraftedEvent((org.bukkit.entity.Player) this.player.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(picked)).callEvent();
++        }
++        // Paper end - add ItemCraftedEvent
+     }
+ 
+     @Override
 @@ -57,6 +_,7 @@
      protected void checkTakeAchievements(ItemStack carried) {
          if (this.removeCount > 0) {
@@ -8,7 +20,26 @@
          }
  
          if (this.container instanceof RecipeCraftingHolder recipeCraftingHolder) {
-@@ -92,7 +_,9 @@
+@@ -79,7 +_,7 @@
+     private NonNullList<ItemStack> getRemainingItems(CraftingInput input, Level level) {
+         return level instanceof ServerLevel serverLevel
+             ? serverLevel.recipeAccess()
+-                .getRecipeFor(RecipeType.CRAFTING, input, serverLevel)
++                .getRecipeFor(RecipeType.CRAFTING, input, serverLevel, this.craftSlots.getCurrentRecipe()) // Paper - Perf: Improve mass crafting; check last recipe used first
+                 .map(recipe -> recipe.value().getRemainingItems(input))
+                 .orElseGet(() -> copyAllInputItems(input))
+             : CraftingRecipe.defaultCraftingReminder(input);
+@@ -87,12 +_,19 @@
+ 
+     @Override
+     public void onTake(Player player, ItemStack carried) {
++        // Paper start - add ItemCraftedEvent
++        if (!carried.isEmpty()) {
++            new io.papermc.paper.event.inventory.ItemCraftedEvent((org.bukkit.entity.Player) player.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(carried)).callEvent();
++        }
++        // Paper end - add ItemCraftedEvent
+         this.checkTakeAchievements(carried);
+         CraftingInput.Positioned positionedRecipe = this.craftSlots.asPositionedCraftInput();
          CraftingInput input = positionedRecipe.input();
          int recipeLeft = positionedRecipe.left();
          int recipeTop = positionedRecipe.top();

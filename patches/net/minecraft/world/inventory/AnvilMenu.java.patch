@@ -1,6 +1,12 @@
 --- a/net/minecraft/world/inventory/AnvilMenu.java
 +++ b/net/minecraft/world/inventory/AnvilMenu.java
-@@ -18,6 +_,7 @@
+@@ -12,12 +_,12 @@
+ import net.minecraft.world.entity.player.Inventory;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.item.ItemStack;
+-import net.minecraft.world.item.Items;
+ import net.minecraft.world.item.enchantment.Enchantment;
+ import net.minecraft.world.item.enchantment.EnchantmentHelper;
  import net.minecraft.world.item.enchantment.ItemEnchantments;
  import net.minecraft.world.level.block.AnvilBlock;
  import net.minecraft.world.level.block.state.BlockState;
@@ -53,6 +59,23 @@
          if (player instanceof ServerPlayer serverPlayer
              && !StringUtil.isBlank(this.itemName)
              && !this.inputSlots.getItem(0).getHoverName().getString().equals(this.itemName)) {
+@@ -101,6 +_,16 @@
+             BlockState state = level.getBlockState(pos);
+             if (!player.hasInfiniteMaterials() && state.is(BlockTags.ANVIL) && player.getRandom().nextFloat() < 0.12F) {
+                 BlockState newBlockState = AnvilBlock.damage(state);
++                // Paper start - AnvilDamageEvent
++                com.destroystokyo.paper.event.block.AnvilDamagedEvent paper_event = new com.destroystokyo.paper.event.block.AnvilDamagedEvent(getBukkitView(), newBlockState != null ? newBlockState.asBlockData() : null);
++                if (!paper_event.callEvent()) {
++                    return;
++                } else if (paper_event.getDamageState() == com.destroystokyo.paper.event.block.AnvilDamagedEvent.DamageState.BROKEN) {
++                    newBlockState = null;
++                } else {
++                    newBlockState = ((org.bukkit.craftbukkit.block.data.CraftBlockData) paper_event.getDamageState().getMaterial().createBlockData()).getState().setValue(AnvilBlock.FACING, state.getValue(AnvilBlock.FACING));
++                }
++                // Paper end - AnvilDamageEvent
+                 if (newBlockState == null) {
+                     level.removeBlock(pos, false);
+                     level.levelEvent(1029, pos, 0);
 @@ -112,10 +_,30 @@
                  level.levelEvent(1030, pos, 0);
              }
@@ -120,6 +143,15 @@
                              compatible = true;
                          }
  
+@@ -196,7 +_,7 @@
+                             isAnyEnchantmentNotCompatible = true;
+                         } else {
+                             isAnyEnchantmentCompatible = true;
+-                            if (level > enchantment.getMaxLevel()) {
++                            if (level > enchantment.getMaxLevel() && !this.bypassEnchantmentLevelRestriction) { // Paper - bypass anvil level restrictions
+                                 level = enchantment.getMaxLevel();
+                             }
+ 
 @@ -214,8 +_,8 @@
                      }
  
@@ -166,6 +198,14 @@
      }
  
      public static int calculateIncreasedRepairCost(int baseCost) {
+@@ -291,6 +_,7 @@
+             }
+ 
+             this.createResult();
++            org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareResultEvent(this, RESULT_SLOT); // Paper - Add PrepareResultEvent
+             return true;
+         } else {
+             return false;
 @@ -305,4 +_,26 @@
      public int getCost() {
          return this.cost.get();

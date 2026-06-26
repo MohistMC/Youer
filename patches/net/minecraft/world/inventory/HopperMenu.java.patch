@@ -1,40 +1,32 @@
 --- a/net/minecraft/world/inventory/HopperMenu.java
 +++ b/net/minecraft/world/inventory/HopperMenu.java
-@@ -5,11 +_,29 @@
- import net.minecraft.world.entity.player.Inventory;
- import net.minecraft.world.entity.player.Player;
- import net.minecraft.world.item.ItemStack;
-+import org.bukkit.craftbukkit.inventory.CraftInventory;
-+import org.bukkit.craftbukkit.inventory.CraftInventoryView;
- 
+@@ -9,6 +_,21 @@
  public class HopperMenu extends AbstractContainerMenu {
      public static final int CONTAINER_SIZE = 5;
      private final Container hopper;
- 
 +    // CraftBukkit start
-+    private CraftInventoryView bukkitEntity = null;
-+    private Inventory player;
++    private org.bukkit.craftbukkit.inventory.@org.jspecify.annotations.Nullable CraftInventoryView view = null;
++    private final Inventory inventory;
 +
 +    @Override
-+    public CraftInventoryView getBukkitView() {
-+        if (bukkitEntity != null) {
-+            return bukkitEntity;
++    public org.bukkit.craftbukkit.inventory.CraftInventoryView getBukkitView() {
++        if (this.view != null) {
++            return this.view;
 +        }
 +
-+        CraftInventory inventory = new CraftInventory(this.hopper);
-+        bukkitEntity = new CraftInventoryView(this.player.player.getBukkitEntity(), inventory, this);
-+        return bukkitEntity;
++        org.bukkit.craftbukkit.inventory.CraftInventory inventory = new org.bukkit.craftbukkit.inventory.CraftInventory(this.hopper);
++        this.view = new org.bukkit.craftbukkit.inventory.CraftInventoryView(this.inventory.player.getBukkitEntity(), inventory, this);
++        return this.view;
 +    }
 +    // CraftBukkit end
-+
+ 
      public HopperMenu(int containerId, Inventory inventory) {
          this(containerId, inventory, new SimpleContainer(5));
-     }
 @@ -17,6 +_,7 @@
      public HopperMenu(int containerId, Inventory inventory, Container hopper) {
          super(MenuType.HOPPER, containerId);
          this.hopper = hopper;
-+        this.player = inventory; // CraftBukkit - save player
++        this.inventory = inventory; // CraftBukkit
          checkContainerSize(hopper, 5);
          hopper.startOpen(inventory.player);
  

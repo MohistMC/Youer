@@ -1,45 +1,54 @@
 --- a/net/minecraft/world/inventory/BrewingStandMenu.java
 +++ b/net/minecraft/world/inventory/BrewingStandMenu.java
-@@ -16,6 +_,8 @@
- import net.minecraft.world.item.alchemy.Potion;
- import net.minecraft.world.item.alchemy.PotionBrewing;
- import net.minecraft.world.item.alchemy.PotionContents;
-+import org.bukkit.craftbukkit.inventory.CraftInventoryBrewer;
-+import org.bukkit.craftbukkit.inventory.view.CraftBrewingStandView;
- 
- public class BrewingStandMenu extends AbstractContainerMenu {
-     private static final Identifier EMPTY_SLOT_FUEL = Identifier.withDefaultNamespace("container/slot/brewing_fuel");
-@@ -34,20 +_,26 @@
+@@ -33,6 +_,10 @@
+     private final Container brewingStand;
      public final ContainerData brewingStandData;
      private final Slot ingredientSlot;
- 
 +    // CraftBukkit start
-+    private CraftBrewingStandView bukkitEntity = null;
-+    private Inventory player;
++    private org.bukkit.craftbukkit.inventory.view.@org.jspecify.annotations.Nullable CraftBrewingStandView view = null;
++    private final Inventory inventory;
 +    // CraftBukkit end
-+
+ 
      public BrewingStandMenu(int containerId, Inventory inventory) {
          this(containerId, inventory, new SimpleContainer(5), new SimpleContainerData(2));
-     }
+@@ -40,22 +_,39 @@
  
      public BrewingStandMenu(int containerId, Inventory inventory, Container brewingStand, ContainerData brewingStandData) {
          super(MenuType.BREWING_STAND, containerId);
-+        player = inventory; // CraftBukkit
++        this.inventory = inventory; // CraftBukkit
          checkContainerSize(brewingStand, 5);
-         checkContainerDataCount(brewingStandData, 2);
+-        checkContainerDataCount(brewingStandData, 2);
++        checkContainerDataCount(brewingStandData, 3); // Paper - Add recipeBrewTime
          this.brewingStand = brewingStand;
          this.brewingStandData = brewingStandData;
          PotionBrewing potionBrewing = inventory.player.level().potionBrewing();
 -        this.addSlot(new BrewingStandMenu.PotionSlot(brewingStand, 0, 56, 51));
 -        this.addSlot(new BrewingStandMenu.PotionSlot(brewingStand, 1, 79, 58));
 -        this.addSlot(new BrewingStandMenu.PotionSlot(brewingStand, 2, 102, 51));
++        // Paper start - custom potion mixes
 +        this.addSlot(new BrewingStandMenu.PotionSlot(potionBrewing, brewingStand, 0, 56, 51));
 +        this.addSlot(new BrewingStandMenu.PotionSlot(potionBrewing, brewingStand, 1, 79, 58));
 +        this.addSlot(new BrewingStandMenu.PotionSlot(potionBrewing, brewingStand, 2, 102, 51));
++        // Paper end - custom potion mixes
          this.ingredientSlot = this.addSlot(new BrewingStandMenu.IngredientsSlot(potionBrewing, brewingStand, 3, 79, 17));
          this.addSlot(new BrewingStandMenu.FuelSlot(brewingStand, 4, 17, 17));
-         this.addDataSlots(brewingStandData);
-@@ -56,6 +_,7 @@
+-        this.addDataSlots(brewingStandData);
++        // Paper start - Add recipeBrewTime
++        this.addDataSlots(new SimpleContainerData(2) {
++            @Override
++            public int get(final int index) {
++                if (index == 0) return 400 * brewingStandData.get(index) / brewingStandData.get(2);
++                return brewingStandData.get(index);
++            }
++
++            @Override
++            public void set(final int index, final int value) {
++                brewingStandData.set(index, value);
++            }
++        });
++        // Paper end - Add recipeBrewTime
+         this.addStandardInventorySlots(inventory, 8, 84);
+     }
  
      @Override
      public boolean stillValid(Player player) {
@@ -106,14 +115,14 @@
 +
 +    // CraftBukkit start
 +    @Override
-+    public CraftBrewingStandView getBukkitView() {
-+        if (bukkitEntity != null) {
-+            return bukkitEntity;
++    public org.bukkit.craftbukkit.inventory.view.CraftBrewingStandView getBukkitView() {
++        if (this.view != null) {
++            return this.view;
 +        }
 +
-+        CraftInventoryBrewer inventory = new CraftInventoryBrewer(this.brewingStand);
-+        bukkitEntity = new CraftBrewingStandView(this.player.player.getBukkitEntity(), inventory, this);
-+        return bukkitEntity;
++        org.bukkit.craftbukkit.inventory.CraftInventoryBrewer inventory = new org.bukkit.craftbukkit.inventory.CraftInventoryBrewer(this.brewingStand);
++        this.view = new org.bukkit.craftbukkit.inventory.view.CraftBrewingStandView(this.inventory.player.getBukkitEntity(), inventory, this);
++        return this.view;
 +    }
 +    // CraftBukkit end
  }

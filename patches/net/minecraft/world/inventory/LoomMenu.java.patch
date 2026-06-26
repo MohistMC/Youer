@@ -1,78 +1,89 @@
 --- a/net/minecraft/world/inventory/LoomMenu.java
 +++ b/net/minecraft/world/inventory/LoomMenu.java
-@@ -2,6 +_,7 @@
- 
- import com.google.common.collect.ImmutableList;
- import java.util.List;
-+import java.util.Objects;
- import net.minecraft.core.Holder;
- import net.minecraft.core.HolderGetter;
- import net.minecraft.core.HolderSet;
-@@ -21,8 +_,27 @@
- import net.minecraft.world.level.block.Blocks;
- import net.minecraft.world.level.block.entity.BannerPattern;
- import net.minecraft.world.level.block.entity.BannerPatternLayers;
-+import org.bukkit.Location;
-+import org.bukkit.craftbukkit.inventory.CraftInventoryLoom;
-+import org.bukkit.craftbukkit.inventory.view.CraftLoomView;
- 
- public class LoomMenu extends AbstractContainerMenu {
-+
+@@ -38,21 +_,23 @@
+     private final Slot patternSlot;
+     private final Slot resultSlot;
+     private long lastSoundTime;
+-    private final Container inputContainer = new SimpleContainer(3) {
+-        @Override
+-        public void setChanged() {
+-            super.setChanged();
+-            LoomMenu.this.slotsChanged(this);
+-            LoomMenu.this.slotUpdateListener.run();
+-        }
+-    };
+-    private final Container outputContainer = new SimpleContainer(1) {
+-        @Override
+-        public void setChanged() {
+-            super.setChanged();
+-            LoomMenu.this.slotUpdateListener.run();
+-        }
+-    };
++    private final Container inputContainer; // Paper - Add missing InventoryHolders - move down
++    private final Container outputContainer; // Paper - Add missing InventoryHolders - move down
 +    // CraftBukkit start
-+    private CraftLoomView bukkitEntity = null;
-+    private org.bukkit.entity.Player player;
++    private org.bukkit.craftbukkit.inventory.view.@org.jspecify.annotations.Nullable CraftLoomView view = null;
++    private final org.bukkit.entity.Player player;
 +
 +    @Override
-+    public CraftLoomView getBukkitView() {
-+        if (bukkitEntity != null) {
-+            return bukkitEntity;
++    public org.bukkit.craftbukkit.inventory.view.CraftLoomView getBukkitView() {
++        if (this.view != null) {
++            return this.view;
 +        }
 +
-+        CraftInventoryLoom inventory = new CraftInventoryLoom(this.inputContainer, this.outputContainer);
-+        bukkitEntity = new CraftLoomView(this.player, inventory, this);
-+        return bukkitEntity;
++        org.bukkit.craftbukkit.inventory.CraftInventoryLoom inventory = new org.bukkit.craftbukkit.inventory.CraftInventoryLoom(this.inputContainer, this.outputContainer);
++        this.view = new org.bukkit.craftbukkit.inventory.view.CraftLoomView(this.player, inventory, this);
++        return this.view;
 +    }
 +    // CraftBukkit end
-     private static final int PATTERN_NOT_SET = -1;
-     private static final int INV_SLOT_START = 4;
-     private static final int INV_SLOT_END = 31;
-@@ -45,6 +_,13 @@
-             LoomMenu.this.slotsChanged(this);
-             LoomMenu.this.slotUpdateListener.run();
-         }
-+
-+        // CraftBukkit start
-+        @Override
-+        public Location getLocation() {
-+            return access.getLocation();
-+        }
-+        // CraftBukkit end
-     };
-     private final Container outputContainer = new SimpleContainer(1) {
-         @Override
-@@ -52,6 +_,13 @@
-             super.setChanged();
-             LoomMenu.this.slotUpdateListener.run();
-         }
-+
-+        // CraftBukkit start
-+        @Override
-+        public Location getLocation() {
-+            return access.getLocation();
-+        }
-+        // CraftBukkit end
-     };
  
      public LoomMenu(int containerId, Inventory inventory) {
+         this(containerId, inventory, ContainerLevelAccess.NULL);
+@@ -61,6 +_,35 @@
+     public LoomMenu(int containerId, Inventory inventory, ContainerLevelAccess access) {
+         super(MenuType.LOOM, containerId);
+         this.access = access;
++        this.inputContainer = new SimpleContainer(this.createBlockHolder(access), 3) { // Paper - Add missing InventoryHolders
++            @Override
++            public void setChanged() {
++                super.setChanged();
++                LoomMenu.this.slotsChanged(this);
++                LoomMenu.this.slotUpdateListener.run();
++            }
++
++            // CraftBukkit start
++            @Override
++            public org.bukkit.Location getLocation() {
++                return access.getLocation();
++            }
++            // CraftBukkit end
++        };
++        this.outputContainer = new SimpleContainer(this.createBlockHolder(access), 1) { // Paper - Add missing InventoryHolders
++            @Override
++            public void setChanged() {
++                super.setChanged();
++                LoomMenu.this.slotUpdateListener.run();
++            }
++
++            // CraftBukkit start
++            @Override
++            public org.bukkit.Location getLocation() {
++                return access.getLocation();
++            }
++            // CraftBukkit end
++        };
+         this.bannerSlot = this.addSlot(new Slot(this.inputContainer, 0, 13, 26) {
+             @Override
+             public boolean mayPlace(ItemStack itemStack) {
 @@ -106,6 +_,7 @@
          this.addStandardInventorySlots(inventory, 8, 84);
          this.addDataSlot(this.selectedBannerPatternIndex);
          this.patternGetter = inventory.player.registryAccess().lookupOrThrow(Registries.BANNER_PATTERN);
-+        player = (org.bukkit.entity.Player) inventory.player.getBukkitEntity(); // CraftBukkit
++        this.player = (org.bukkit.entity.Player) inventory.player.getBukkitEntity(); // CraftBukkit
      }
  
      private static boolean isPatternItem(ItemStack itemStack) {
-@@ -118,6 +_,7 @@
+@@ -118,14 +_,39 @@
  
      @Override
      public boolean stillValid(Player player) {
@@ -80,19 +91,67 @@
          return stillValid(this.access, player, Blocks.LOOM);
      }
  
-@@ -277,7 +_,14 @@
+     @Override
+     public boolean clickMenuButton(Player player, int buttonId) {
+         if (buttonId >= 0 && buttonId < this.selectablePatterns.size()) {
+-            this.selectedBannerPatternIndex.set(buttonId);
+-            this.setupResultSlot(this.selectablePatterns.get(buttonId));
++            // Paper start - Add PlayerLoomPatternSelectEvent
++            int selectablePatternIndex = buttonId;
++            io.papermc.paper.event.player.PlayerLoomPatternSelectEvent event = new io.papermc.paper.event.player.PlayerLoomPatternSelectEvent((org.bukkit.entity.Player) player.getBukkitEntity(), this.getBukkitView().getTopInventory(), org.bukkit.craftbukkit.block.banner.CraftPatternType.minecraftHolderToBukkit(this.selectablePatterns.get(selectablePatternIndex)));
++            if (!event.callEvent()) {
++                player.containerMenu.sendAllDataToRemote();
++                return false;
++            }
++            final Holder<BannerPattern> eventPattern = org.bukkit.craftbukkit.block.banner.CraftPatternType.bukkitToMinecraftHolder(event.getPatternType());
++            Holder<BannerPattern> selectedPattern = null;
++            for (int i = 0; i < this.selectablePatterns.size(); i++) {
++                final Holder<BannerPattern> holder = this.selectablePatterns.get(i);
++                if (eventPattern.equals(holder)) {
++                    selectablePatternIndex = i;
++                    selectedPattern = holder;
++                    break;
++                }
++            }
++            if (selectedPattern == null) {
++                selectedPattern = eventPattern;
++                selectablePatternIndex = -1;
++            }
++
++            player.containerMenu.sendAllDataToRemote();
++            this.selectedBannerPatternIndex.set(selectablePatternIndex);
++            this.setupResultSlot(java.util.Objects.requireNonNull(selectedPattern, "selectedPattern was null, this is unexpected"));
++            // Paper end - Add PlayerLoomPatternSelectEvent
+             return true;
+         } else {
+             return false;
+@@ -187,7 +_,8 @@
+                 this.resultSlot.set(ItemStack.EMPTY);
+             }
+ 
+-            this.broadcastChanges();
++            // this.broadcastChanges(); // Paper - Add PrepareResultEvent; done below
++            org.bukkit.craftbukkit.event.CraftEventFactory.callPrepareResultEvent(this, 3); // Paper - Add PrepareResultEvent
+         } else {
+             this.resultSlot.set(ItemStack.EMPTY);
+             this.selectablePatterns = List.of();
+@@ -275,9 +_,16 @@
+             if (patternColor != null) {
+                 result = bannerStack.copyWithCount(1);
                  result.update(
-                     DataComponents.BANNER_PATTERNS,
-                     BannerPatternLayers.EMPTY,
+-                    DataComponents.BANNER_PATTERNS,
+-                    BannerPatternLayers.EMPTY,
 -                    layers -> new BannerPatternLayers.Builder().addAll(layers).add(pattern, patternColor).build()
-+                    layers -> {
++                        DataComponents.BANNER_PATTERNS,
++                        BannerPatternLayers.EMPTY,
 +                        // CraftBukkit start
-+                        if (layers.layers().size() > 20) {
-+                            layers = new BannerPatternLayers(List.copyOf(layers.layers().subList(0, 20)));
++                        layers -> {
++                            if (layers.layers().size() > 20) {
++                                layers = new BannerPatternLayers(List.copyOf(layers.layers().subList(0, 20)));
++                            }
++                            return new BannerPatternLayers.Builder().addAll(layers).add(pattern, patternColor).build();
 +                        }
 +                        // CraftBukkit end
-+                        return new BannerPatternLayers.Builder().addAll(layers).add(pattern, patternColor).build();
-+                    }
                  );
              }
          }
