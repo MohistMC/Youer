@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.decoration.PaintingVariant;
@@ -12,7 +13,9 @@ public class CraftArt {
 
     public static Art minecraftToBukkit(PaintingVariant minecraft) {
         Preconditions.checkArgument(minecraft != null);
-
+        if (NeoForgeInjectBukkit.MODD_ART.containsKey(minecraft)) {
+            return NeoForgeInjectBukkit.MODD_ART.get(minecraft);
+        }
         net.minecraft.core.Registry<PaintingVariant> registry = CraftRegistry.getMinecraftRegistry(Registries.PAINTING_VARIANT);
         Art bukkit = Registry.ART.get(CraftNamespacedKey.fromMinecraft(registry.getResourceKey(minecraft).orElseThrow().location()));
 

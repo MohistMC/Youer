@@ -26,6 +26,7 @@ import net.minecraft.stats.Stats;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.decoration.PaintingVariant;
 import net.minecraft.world.inventory.RecipeBookType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.alchemy.Potion;
@@ -74,6 +75,7 @@ public class NeoForgeInjectBukkit {
     public static Map<SpawnCategory, MobCategory> CATEGORYSPAWNMAP = new HashMap<>();
     private static final BiMap<ResourceLocation, Statistic> STATISTICS = HashBiMap.create(CraftStatistic.statistics);
     public static final BiMap<SoundEvent, Sound> MODD_SOUNDS = HashBiMap.create();
+    public static final BiMap<PaintingVariant, Art> MODD_ART = HashBiMap.create();
 
     public static void init() {
         addEnumMaterialInItems();
@@ -345,14 +347,15 @@ public class NeoForgeInjectBukkit {
             int width = entry.width();
             int height = entry.height();
             ResourceLocation resourceLocation = registry.getKey(entry);
-            if (isMods(resourceLocation)) {
-                String name = MohistDynamEnum.normalizeName(resourceLocation.toString());
+            String name = MohistDynamEnum.normalizeName(resourceLocation.toString());
+            if (isMods(resourceLocation) || Art.getByName(name) == null) {
                 String lookupName = resourceLocation.getPath().toLowerCase(Locale.ROOT);
                 int id = i - 1;
                 Art art = MohistDynamEnum.addEnum(Art.class, name, List.of(Integer.TYPE, Integer.TYPE, Integer.TYPE), List.of(id, width, height));
                 Art.BY_NAME.put(lookupName, art);
                 Art.BY_ID.put(id, art);
                 art.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
+                MODD_ART.put(entry, art);
                 debug("Registered forge PaintingType as Art {}", art);
                 i++;
             }
