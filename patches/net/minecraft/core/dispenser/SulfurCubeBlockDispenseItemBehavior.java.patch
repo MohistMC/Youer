@@ -1,56 +1,23 @@
 --- a/net/minecraft/core/dispenser/SulfurCubeBlockDispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/SulfurCubeBlockDispenseItemBehavior.java
-@@ -6,21 +_,49 @@
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.level.block.DispenserBlock;
- import net.minecraft.world.phys.AABB;
-+import org.bukkit.craftbukkit.block.CraftBlock;
-+import org.bukkit.craftbukkit.inventory.CraftItemStack;
-+import org.bukkit.event.block.BlockDispenseArmorEvent;
- 
- public class SulfurCubeBlockDispenseItemBehavior extends DefaultDispenseItemBehavior {
-     public static final SulfurCubeBlockDispenseItemBehavior INSTANCE = new SulfurCubeBlockDispenseItemBehavior();
+@@ -12,12 +_,18 @@
  
      @Override
      protected ItemStack execute(BlockSource source, ItemStack dispensed) {
 -        return dispenseBlock(source.level(), source.pos().relative(source.state().getValue(DispenserBlock.FACING)), dispensed)
-+        return dispenseBlock(source.level(), source.pos().relative(source.state().getValue(DispenserBlock.FACING)), dispensed, source)
++        return dispenseBlock(source.level(), source.pos().relative(source.state().getValue(DispenserBlock.FACING)), dispensed, source, this) // Paper - Call BlockDispenseEvent
              ? dispensed
              : super.execute(source, dispensed);
      }
  
 -    public static boolean dispenseBlock(ServerLevel level, BlockPos pos, ItemStack dispensed) {
-+    public static boolean dispenseBlock(ServerLevel level, BlockPos pos, ItemStack dispensed, BlockSource source) {
++    // Paper start - Call BlockDispenseEvent
++    public static boolean dispenseBlock(final ServerLevel level, final BlockPos pos, final ItemStack dispensed, final BlockSource source, final @org.jspecify.annotations.Nullable DispenseItemBehavior currentBehavior) {
++        ItemStack result = org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockDispenseEvent(source, pos, dispensed, currentBehavior);
++        if (result != null) { // todo - snapshot - setItem should probably override the equipped item + possible event in the for loop
++            return false;
++        }
++        // Paper end - Call BlockDispenseEvent
          for (SulfurCube entity : level.getEntitiesOfClass(SulfurCube.class, new AABB(pos))) {
--            if (entity.equipItem(dispensed)) {
--                dispensed.shrink(1);
-+            ItemStack itemstack1 = dispensed.split(1);
-+            org.bukkit.block.Block block = CraftBlock.at(level, source.pos());
-+            CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
-+
-+            BlockDispenseArmorEvent event = new BlockDispenseArmorEvent(block, craftItem.clone(), (org.bukkit.craftbukkit.entity.CraftLivingEntity) entity.getBukkitEntity());
-+            if (!DispenserBlock.eventFired) {
-+                level.getCraftServer().getPluginManager().callEvent(event);
-+            }
-+
-+            if (event.isCancelled()) {
-+                dispensed.grow(1);
-+                return false;
-+            }
-+
-+            if (!event.getItem().equals(craftItem)) {
-+                dispensed.grow(1);
-+                // Chain to handler for new item
-+                ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
-+                DispenseItemBehavior dispenseitembehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
-+                if (dispenseitembehavior != DispenseItemBehavior.NOOP && dispenseitembehavior != EquipmentDispenseItemBehavior.INSTANCE) {
-+                    dispenseitembehavior.dispense(source, eventStack);
-+                    return true;
-+                }
-+            }
-+            if (entity.equipItem(itemstack1)) {
-+                // dispensed.shrink(1); // CraftBukkit - handled above
-+                // CraftBukkit end
-                 return true;
-             }
-         }
+             if (entity.equipItem(dispensed)) {
+                 dispensed.shrink(1);

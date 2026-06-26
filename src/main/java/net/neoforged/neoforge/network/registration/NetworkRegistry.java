@@ -105,7 +105,7 @@ public class NetworkRegistry {
      * Registry of all custom payload handlers. The initial state of this map should reflect the protocols which support custom payloads.
      * TODO: Change key type to a combination of protocol + flow.
      */
-    protected static final Map<ConnectionProtocol, Map<Identifier, PayloadRegistration<?>>> PAYLOAD_REGISTRATIONS = ImmutableMap.of(
+    public static final Map<ConnectionProtocol, Map<Identifier, PayloadRegistration<?>>> PAYLOAD_REGISTRATIONS = ImmutableMap.of(
             ConnectionProtocol.CONFIGURATION, new HashMap<>(),
             ConnectionProtocol.PLAY, new HashMap<>());
     protected static final Map<ConnectionProtocol, Map<Identifier, IPayloadHandler<?>>> SERVERBOUND_HANDLERS = ImmutableMap.of(

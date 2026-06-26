@@ -16,31 +16,78 @@
  import org.jspecify.annotations.Nullable;
  
  public final class MobEffectUtil {
-@@ -48,6 +_,11 @@
-         return !mob.hasEffect(MobEffects.BREATH_OF_THE_NAUTILUS) || mob.hasEffect(MobEffects.WATER_BREATHING) || mob.hasEffect(MobEffects.CONDUIT_POWER);
+@@ -49,20 +_,63 @@
      }
  
-+    private final static AtomicReference<EntityPotionEffectEvent.Cause> addEffectToPlayersAround$cause = new AtomicReference<>(org.bukkit.event.entity.EntityPotionEffectEvent.Cause.UNKNOWN);
-+    public static void addEffectToPlayersAround$cause(org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause) {
-+        addEffectToPlayersAround$cause.set(cause);
+     public static List<ServerPlayer> addEffectToPlayersAround(
+-        ServerLevel level, @Nullable Entity source, Vec3 position, double radius, MobEffectInstance effectInstance, int displayEffectLimit
+-    ) {
++            final ServerLevel level,
++            final @Nullable Entity source,
++            final Vec3 position,
++            final double radius,
++            final MobEffectInstance effectInstance,
++            final int displayEffectLimit
++    ) {
++        // CraftBukkit start
++        return MobEffectUtil.addEffectToPlayersAround(level, source, position, radius, effectInstance, displayEffectLimit, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.UNKNOWN);
 +    }
 +
-     public static List<ServerPlayer> addEffectToPlayersAround(
-         ServerLevel level, @Nullable Entity source, Vec3 position, double radius, MobEffectInstance effectInstance, int displayEffectLimit
-     ) {
-@@ -62,7 +_,14 @@
-                         || input.getEffect(effect).endsWithin(displayEffectLimit - 1)
-                 )
++    public static List<ServerPlayer> addEffectToPlayersAround(
++            final ServerLevel level,
++            final @Nullable Entity source,
++            final Vec3 position,
++            final double radius,
++            final MobEffectInstance effectInstance,
++            final int displayEffectLimit,
++            final org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause
++    ) {
++        // Paper start - Add ElderGuardianAppearanceEvent
++        return addEffectToPlayersAround(level, source, position, radius, effectInstance, displayEffectLimit, cause, null);
++    }
++
++    public static List<ServerPlayer> addEffectToPlayersAround(
++            final ServerLevel level,
++            final @Nullable Entity source,
++            final Vec3 position,
++            final double radius,
++            final MobEffectInstance effectInstance,
++            final int displayEffectLimit,
++            final org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause,
++            final java.util.function.@Nullable Predicate<ServerPlayer> playerPredicate
++    ) {
++        // Paper end - Add ElderGuardianAppearanceEvent
++        // CraftBukkit end
+         Holder<MobEffect> effect = effectInstance.getEffect();
+         List<ServerPlayer> players = level.getPlayers(
+-            input -> input.gameMode.isSurvival()
+-                && (source == null || !source.isAlliedTo(input))
+-                && position.closerThan(input.position(), radius)
+-                && (
+-                    !input.hasEffect(effect)
+-                        || input.getEffect(effect).getAmplifier() < effectInstance.getAmplifier()
+-                        || input.getEffect(effect).endsWithin(displayEffectLimit - 1)
+-                )
++                // Paper start - Add ElderGuardianAppearanceEvent
++                input -> {
++                    final boolean condition = input.gameMode.isSurvival()
++                            && (source == null || !source.isAlliedTo(input))
++                            && position.closerThan(input.position(), radius)
++                            && (
++                            !input.hasEffect(effect)
++                                    || input.getEffect(effect).getAmplifier() < effectInstance.getAmplifier()
++                                    || input.getEffect(effect).endsWithin(displayEffectLimit - 1)
++                    );
++                    if (condition) {
++                        return playerPredicate == null || playerPredicate.test(input); // Only test the player AFTER it is true
++                    } else {
++                        return false;
++                    }
++                }
          );
 -        players.forEach(player -> player.addEffect(new MobEffectInstance(effectInstance), source));
-+        players.forEach(player -> {
-+            player.addEffect(new MobEffectInstance(effectInstance), source, addEffectToPlayersAround$cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN));
-+        });
++        // Paper end - Add ElderGuardianAppearanceEvent
++        players.forEach(player -> player.addEffect(new MobEffectInstance(effectInstance), source, cause)); // CraftBukkit
          return players;
-+    }
-+
-+    public static List<ServerPlayer> addEffectToPlayersAround(ServerLevel level, @Nullable Entity source, Vec3 position, double radius, MobEffectInstance effectInstance, int displayEffectLimit, org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause) {
-+        addEffectToPlayersAround$cause(cause);
-+        return addEffectToPlayersAround(level, source, position, radius, effectInstance, displayEffectLimit);
      }
  }

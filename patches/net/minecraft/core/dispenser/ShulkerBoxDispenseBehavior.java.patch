@@ -1,32 +1,15 @@
 --- a/net/minecraft/core/dispenser/ShulkerBoxDispenseBehavior.java
 +++ b/net/minecraft/core/dispenser/ShulkerBoxDispenseBehavior.java
-@@ -4,9 +_,13 @@
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Direction;
- import net.minecraft.world.item.BlockItem;
-+import net.minecraft.world.item.Item;
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.item.context.DirectionalPlaceContext;
- import net.minecraft.world.level.block.DispenserBlock;
-+import org.bukkit.craftbukkit.block.CraftBlock;
-+import org.bukkit.craftbukkit.inventory.CraftItemStack;
-+import org.bukkit.event.block.BlockDispenseEvent;
- import org.slf4j.Logger;
- 
- public class ShulkerBoxDispenseBehavior extends OptionalDispenseItemBehavior {
-@@ -19,6 +_,30 @@
-             Direction facing = source.state().getValue(DispenserBlock.FACING);
+@@ -20,8 +_,34 @@
              BlockPos relativePos = source.pos().relative(facing);
              Direction clickedFace = source.level().isEmptyBlock(relativePos.below()) ? facing : Direction.UP;
-+
+ 
 +            // CraftBukkit start
-+            org.bukkit.block.Block bukkitBlock = CraftBlock.at(source.level(), source.pos());
-+            CraftItemStack craftItem = CraftItemStack.asCraftMirror(dispensed);
++            org.bukkit.block.Block bukkitBlock = org.bukkit.craftbukkit.block.CraftBlock.at(source.level(), source.pos());
++            org.bukkit.craftbukkit.inventory.CraftItemStack craftItem = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(dispensed.copyWithCount(1));
 +
-+            BlockDispenseEvent event = new BlockDispenseEvent(bukkitBlock, craftItem.clone(), new org.bukkit.util.Vector(relativePos.getX(), relativePos.getY(), relativePos.getZ()));
-+            if (!DispenserBlock.eventFired) {
-+                source.level().getCraftServer().getPluginManager().callEvent(event);
-+            }
++            org.bukkit.event.block.BlockDispenseEvent event = new org.bukkit.event.block.BlockDispenseEvent(bukkitBlock, craftItem.clone(), org.bukkit.craftbukkit.util.CraftVector.toBukkit(relativePos));
++            source.level().getCraftServer().getPluginManager().callEvent(event);
 +
 +            if (event.isCancelled()) {
 +                return dispensed;
@@ -34,14 +17,22 @@
 +
 +            if (!event.getItem().equals(craftItem)) {
 +                // Chain to handler for new item
-+                ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
-+                DispenseItemBehavior dispenseitembehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
-+                if (dispenseitembehavior != DispenseItemBehavior.NOOP && dispenseitembehavior != this) {
-+                    dispenseitembehavior.dispense(source, eventStack);
++                ItemStack eventStack = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItem());
++                DispenseItemBehavior dispenseBehavior = DispenserBlock.getDispenseBehavior(source, eventStack);
++                if (dispenseBehavior != DispenseItemBehavior.NOOP && dispenseBehavior != this) {
++                    dispenseBehavior.dispense(source, eventStack);
 +                    return dispensed;
 +                }
 +            }
 +            // CraftBukkit end
- 
              try {
-                 this.setSuccess(blockItem.place(new DirectionalPlaceContext(source.level(), relativePos, facing, dispensed, clickedFace)).consumesAction());
+-                this.setSuccess(blockItem.place(new DirectionalPlaceContext(source.level(), relativePos, facing, dispensed, clickedFace)).consumesAction());
++                // Paper start - track changed items in the dispense event
++                this.setSuccess(blockItem.place(new DirectionalPlaceContext(source.level(), relativePos, facing, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItem()), clickedFace)).consumesAction());
++                if (this.isSuccess()) {
++                    dispensed.shrink(1); // vanilla shrink is in the place function above, manually handle it here
++                }
++                // Paper end - track changed items in the dispense event
+             } catch (Exception e) {
+                 LOGGER.error("Error trying to place shulker box at {}", relativePos, e);
+             }

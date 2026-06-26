@@ -1,79 +1,45 @@
 --- a/net/minecraft/core/dispenser/SpawnEggItemBehavior.java
 +++ b/net/minecraft/core/dispenser/SpawnEggItemBehavior.java
-@@ -1,13 +_,16 @@
- package net.minecraft.core.dispenser;
- 
- import net.minecraft.core.Direction;
--import net.minecraft.world.entity.Entity;
-+import net.minecraft.server.level.ServerLevel;
- import net.minecraft.world.entity.EntitySpawnReason;
- import net.minecraft.world.entity.EntityType;
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.item.SpawnEggItem;
- import net.minecraft.world.level.block.DispenserBlock;
- import net.minecraft.world.level.gameevent.GameEvent;
-+import org.bukkit.craftbukkit.block.CraftBlock;
-+import org.bukkit.craftbukkit.inventory.CraftItemStack;
-+import org.bukkit.event.block.BlockDispenseEvent;
- 
- public class SpawnEggItemBehavior extends DefaultDispenseItemBehavior {
-     public static final SpawnEggItemBehavior INSTANCE = new SpawnEggItemBehavior();
-@@ -18,22 +_,44 @@
-         EntityType<?> type = SpawnEggItem.getType(dispensed);
-         if (type == null) {
+@@ -20,9 +_,32 @@
              return dispensed;
--        }
--
--        try {
--            Entity spawned = type.spawn(
--                source.level(), dispensed, null, source.pos().relative(direction), EntitySpawnReason.DISPENSER, direction != Direction.UP, false
--            );
--            if (spawned == null) {
-+        } else {
-+            // CraftBukkit start
-+            ServerLevel serverlevel = source.level();
-+            ItemStack itemstack1 = dispensed.split(1);
-+            org.bukkit.block.Block block = CraftBlock.at(serverlevel, source.pos());
-+            CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
-+
-+            BlockDispenseEvent event = new BlockDispenseEvent(block, craftItem.clone(), new org.bukkit.util.Vector(0, 0, 0));
-+            if (!DispenserBlock.eventFired) {
-+                serverlevel.getCraftServer().getPluginManager().callEvent(event);
-+            }
-+
-+            if (event.isCancelled()) {
-+                dispensed.grow(1);
-                 return dispensed;
-             }
--        } catch (Exception e) {
--            LOGGER.error("Error while dispensing spawn egg from dispenser at {}", source.pos(), e);
--            return ItemStack.EMPTY;
-+
-+            if (!event.getItem().equals(craftItem)) {
-+                dispensed.grow(1);
-+                // Chain to handler for new item
-+                ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
-+                DispenseItemBehavior dispenseitembehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
-+                if (dispenseitembehavior != DispenseItemBehavior.NOOP && dispenseitembehavior != this) {
-+                    dispenseitembehavior.dispense(source, eventStack);
-+                    return dispensed;
-+                }
-+            }
-+            try {
-+                type.spawn(source.level(), dispensed, null, source.pos().relative(direction), EntitySpawnReason.DISPENSER, direction != Direction.UP, false);
-+            } catch (Exception var6) {
-+                LOGGER.error("Error while dispensing spawn egg from dispenser at {}", source.pos(), var6);
-+                return ItemStack.EMPTY;
-+            }
-+
-+            // dispensed.shrink(1); // Handled during event processing
-+            // CraftBukkit end
-+            source.level().gameEvent(null, GameEvent.ENTITY_PLACE, source.pos());
-+            return dispensed;
          }
--
+ 
++        // Paper start - block dispense event
++        ItemStack singleDispensed = dispensed.copyWithCount(1);
++        final org.bukkit.craftbukkit.inventory.CraftItemStack eventItemCopy = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(singleDispensed);
++        final org.bukkit.event.block.BlockDispenseEvent event = new org.bukkit.event.block.BlockDispenseEvent(
++                org.bukkit.craftbukkit.block.CraftBlock.at(source.level(), source.pos()),
++                eventItemCopy,
++                new org.bukkit.util.Vector(0, 0, 0)
++        );
++        if (!event.callEvent()) return dispensed;
++
++        final boolean shrink = event.getItem().equals(eventItemCopy);
++        if (!shrink) {
++            final ItemStack eventStack = org.bukkit.craftbukkit.inventory.CraftItemStack.unwrap(event.getItem());
++            final DispenseItemBehavior dispenseBehavior = DispenserBlock.getDispenseBehavior(source, eventStack);
++            if (dispenseBehavior != DispenseItemBehavior.NOOP && dispenseBehavior != this) {
++                dispenseBehavior.dispense(source, eventStack);
++                return dispensed;
++            }
++
++            type = SpawnEggItem.getType(eventStack);
++            singleDispensed = eventStack;
++        }
++        // Paper end - block dispense event
+         try {
+             Entity spawned = type.spawn(
+-                source.level(), dispensed, null, source.pos().relative(direction), EntitySpawnReason.DISPENSER, direction != Direction.UP, false
++                    source.level(), singleDispensed, null, source.pos().relative(direction), EntitySpawnReason.DISPENSER, direction != Direction.UP, false // Paper - block dispense event - update used item stack
+             );
+             if (spawned == null) {
+                 return dispensed;
+@@ -32,7 +_,7 @@
+             return ItemStack.EMPTY;
+         }
+ 
 -        dispensed.shrink(1);
--        source.level().gameEvent(null, GameEvent.ENTITY_PLACE, source.pos());
--        return dispensed;
++        if (shrink) dispensed.shrink(1); // Paper - block dispense event - only shrink if above logic requires it.
+         source.level().gameEvent(null, GameEvent.ENTITY_PLACE, source.pos());
+         return dispensed;
      }
- }

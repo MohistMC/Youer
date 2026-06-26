@@ -36,7 +36,7 @@
      public static final Codec<Holder<LootTable>> CODEC = RegistryFileCodec.create(Registries.LOOT_TABLE, DIRECT_CODEC);
      public static final LootTable EMPTY = new LootTable(LootContextParamSets.EMPTY, Optional.empty(), List.of(), List.of());
      private final ContextKeySet paramSet;
-@@ -52,11 +_,12 @@
+@@ -52,19 +_,21 @@
      private final List<LootPool> pools;
      private final List<LootItemFunction> functions;
      private final BiFunction<ItemStack, LootContext, ItemStack> compositeFunction;
@@ -50,6 +50,16 @@
          this.functions = functions;
          this.compositeFunction = LootItemFunctions.compose(functions);
      }
+ 
+     public static Consumer<ItemStack> createStackSplitter(ServerLevel level, Consumer<ItemStack> output) {
++        boolean skipSplitter = level != null && !level.paperConfig().fixes.splitOverstackedLoot; // Paper - preserve overstacked items
+         return result -> {
+             if (result.isItemEnabled(level.enabledFeatures())) {
+-                if (result.getCount() < result.getMaxStackSize()) {
++                if (skipSplitter || result.getCount() < result.getMaxStackSize()) { // Paper - preserve overstacked items
+                     output.accept(result);
+                 } else {
+                     int count = result.getCount();
 @@ -79,10 +_,12 @@
          };
      }

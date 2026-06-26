@@ -10,7 +10,7 @@
  
  public class BoatDispenseItemBehavior extends DefaultDispenseItemBehavior {
      private final DefaultDispenseItemBehavior defaultDispenseItemBehavior = new DefaultDispenseItemBehavior();
-@@ -29,27 +_,62 @@
+@@ -29,27 +_,59 @@
          double spawnY = center.y() + direction.getStepY() * 1.125F;
          double spawnZ = center.z() + direction.getStepZ() * justOutsideDispenser;
          BlockPos frontPos = source.pos().relative(direction);
@@ -34,27 +34,25 @@
          }
 -
 +        // CraftBukkit start
-+        ItemStack itemstack1 = dispensed.split(1);
-+        org.bukkit.block.Block block = CraftBlock.at(level, source.pos());
-+        CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
++        ItemStack singleItemStack = dispensed.copyWithCount(1);
++        org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(level, source.pos());
++        org.bukkit.craftbukkit.inventory.CraftItemStack craftItem = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(singleItemStack);
 +
-+        BlockDispenseEvent event = new BlockDispenseEvent(block, craftItem.clone(), new org.bukkit.util.Vector(spawnX, spawnY + yOffset, spawnZ));
-+        if (!DispenserBlock.eventFired) {
-+            level.getCraftServer().getPluginManager().callEvent(event);
-+        }
++        org.bukkit.event.block.BlockDispenseEvent event = new org.bukkit.event.block.BlockDispenseEvent(block, craftItem.clone(), new org.bukkit.util.Vector(spawnX, spawnY + yOffset, spawnZ));
++        level.getCraftServer().getPluginManager().callEvent(event);
 +
 +        if (event.isCancelled()) {
-+            dispensed.grow(1);
 +            return dispensed;
 +        }
 +
++        boolean shrink = true;
 +        if (!event.getItem().equals(craftItem)) {
-+            dispensed.grow(1);
++            shrink = false;
 +            // Chain to handler for new item
-+            ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
-+            DispenseItemBehavior dispenseitembehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
-+            if (dispenseitembehavior != DispenseItemBehavior.NOOP && dispenseitembehavior != this) {
-+                dispenseitembehavior.dispense(source, eventStack);
++            ItemStack eventStack = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItem());
++            DispenseItemBehavior dispenseBehavior = DispenserBlock.getDispenseBehavior(source, eventStack);
++            if (dispenseBehavior != DispenseItemBehavior.NOOP && dispenseBehavior != this) {
++                dispenseBehavior.dispense(source, eventStack);
 +                return dispensed;
 +            }
 +        }
@@ -67,8 +65,7 @@
              boat.setYRot(direction.toYRot());
 -            level.addFreshEntity(boat);
 -            dispensed.shrink(1);
-+            if (!level.addFreshEntity(abstractboat)) dispensed.grow(1); // CraftBukkit
-+            // dispensed.shrink(1); // CraftBukkit - handled during event processing
++            if (level.addFreshEntity(boat) && shrink) dispensed.shrink(1); // Paper - if entity add was successful and supposed to shrink
          }
  
          return dispensed;

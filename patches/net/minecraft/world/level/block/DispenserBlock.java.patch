@@ -1,18 +1,20 @@
 --- a/net/minecraft/world/level/block/DispenserBlock.java
 +++ b/net/minecraft/world/level/block/DispenserBlock.java
-@@ -54,6 +_,7 @@
-     private static final DefaultDispenseItemBehavior DEFAULT_BEHAVIOR = new DefaultDispenseItemBehavior();
-     public static final Map<Item, DispenseItemBehavior> DISPENSER_REGISTRY = new IdentityHashMap<>();
-     private static final int TRIGGER_DURATION = 4;
-+    public static boolean eventFired = false; // CraftBukkit
- 
-     @Override
-     public MapCodec<? extends DispenserBlock> codec() {
-@@ -97,11 +_,18 @@
+@@ -91,17 +_,26 @@
+             BlockSource source = new BlockSource(level, pos, state, blockEntity);
+             int slot = blockEntity.getRandomSlot(level.getRandom());
+             if (slot < 0) {
+-                level.levelEvent(1001, pos, 0);
+-                level.gameEvent(GameEvent.BLOCK_ACTIVATE, pos, GameEvent.Context.of(blockEntity.getBlockState()));
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFailedDispenseEvent(level, pos)) { // Paper - Add BlockFailedDispenseEvent
++                    level.levelEvent(LevelEvent.SOUND_DISPENSER_FAIL, pos, 0);
++                    level.gameEvent(GameEvent.BLOCK_ACTIVATE, pos, GameEvent.Context.of(blockEntity.getBlockState()));
++                } // Paper - Add BlockFailedDispenseEvent
+             } else {
                  ItemStack itemStack = blockEntity.getItem(slot);
                  DispenseItemBehavior behavior = this.getDispenseMethod(level, itemStack);
                  if (behavior != DispenseItemBehavior.NOOP) {
-+                    eventFired = false; // CraftBukkit - reset event status
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockPreDispenseEvent(level, pos, itemStack, slot)) return; // Paper - Add BlockPreDispenseEvent
                      blockEntity.setItem(slot, behavior.dispense(source, itemStack));
                  }
              }

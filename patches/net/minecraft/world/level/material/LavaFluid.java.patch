@@ -35,7 +35,16 @@
                      }
                  }
              }
-@@ -124,7 +_,7 @@
+@@ -117,14 +_,15 @@
+ 
+     @Override
+     protected void entityInside(Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier) {
++        BlockPos savedPos = pos.immutable(); // Paper - track lava contact
+         effectApplier.apply(InsideBlockEffectType.CLEAR_FREEZE);
+         effectApplier.apply(InsideBlockEffectType.LAVA_IGNITE);
+-        effectApplier.runAfter(InsideBlockEffectType.LAVA_IGNITE, Entity::lavaHurt);
++        effectApplier.runAfter(InsideBlockEffectType.LAVA_IGNITE, ignitedEntity -> ignitedEntity.lavaHurt(savedPos)); // Paper - track lava contact
+     }
  
      private boolean hasFlammableNeighbours(LevelReader level, BlockPos pos) {
          for (Direction direction : Direction.values()) {
@@ -78,3 +87,12 @@
                  }
  
                  this.fizz(level, pos);
+@@ -224,7 +_,7 @@
+ 
+     @Override
+     protected float getExplosionResistance() {
+-        return 100.0F;
++        return Blocks.LAVA.getExplosionResistance(); // Paper - Get explosion resistance from actual block
+     }
+ 
+     @Override

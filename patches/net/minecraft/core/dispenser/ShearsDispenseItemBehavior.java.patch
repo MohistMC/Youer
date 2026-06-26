@@ -1,6 +1,6 @@
 --- a/net/minecraft/core/dispenser/ShearsDispenseItemBehavior.java
 +++ b/net/minecraft/core/dispenser/ShearsDispenseItemBehavior.java
-@@ -15,14 +_,42 @@
+@@ -15,14 +_,40 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.gameevent.GameEvent;
  import net.minecraft.world.phys.AABB;
@@ -14,24 +14,22 @@
      protected ItemStack execute(BlockSource source, ItemStack dispensed) {
          ServerLevel level = source.level();
 +        // CraftBukkit start
-+        org.bukkit.block.Block bukkitBlock = CraftBlock.at(level, source.pos());
-+        CraftItemStack craftItem = CraftItemStack.asCraftMirror(dispensed);
-+
-+        BlockDispenseEvent event = new BlockDispenseEvent(bukkitBlock, craftItem.clone(), new org.bukkit.util.Vector(0, 0, 0));
-+        if (!DispenserBlock.eventFired) {
-+            level.getCraftServer().getPluginManager().callEvent(event);
-+        }
++        org.bukkit.block.Block bukkitBlock = org.bukkit.craftbukkit.block.CraftBlock.at(level, source.pos());
++        org.bukkit.craftbukkit.inventory.CraftItemStack craftItem = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(dispensed); // Paper - ignore stack size on damageable items
++        org.bukkit.event.block.BlockDispenseEvent event = new org.bukkit.event.block.BlockDispenseEvent(bukkitBlock, craftItem.clone(), new org.bukkit.util.Vector(0, 0, 0));
++        level.getCraftServer().getPluginManager().callEvent(event);
 +
 +        if (event.isCancelled()) {
++            this.setSuccess(false);
 +            return dispensed;
 +        }
 +
 +        if (!event.getItem().equals(craftItem)) {
 +            // Chain to handler for new item
-+            ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
-+            DispenseItemBehavior dispenseitembehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
-+            if (dispenseitembehavior != DispenseItemBehavior.NOOP && dispenseitembehavior != this) {
-+                dispenseitembehavior.dispense(source, eventStack);
++            ItemStack eventStack = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItem());
++            DispenseItemBehavior dispenseBehavior = DispenserBlock.getDispenseBehavior(source, eventStack);
++            if (dispenseBehavior != DispenseItemBehavior.NOOP && dispenseBehavior != this) {
++                dispenseBehavior.dispense(source, eventStack);
 +                return dispensed;
 +            }
 +        }

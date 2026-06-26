@@ -1,25 +1,6 @@
 --- a/net/minecraft/server/commands/TeleportCommand.java
 +++ b/net/minecraft/server/commands/TeleportCommand.java
-@@ -19,6 +_,7 @@
- import net.minecraft.core.BlockPos;
- import net.minecraft.network.chat.Component;
- import net.minecraft.server.level.ServerLevel;
-+import net.minecraft.server.level.ServerPlayer;
- import net.minecraft.util.Mth;
- import net.minecraft.world.entity.Entity;
- import net.minecraft.world.entity.LivingEntity;
-@@ -27,6 +_,10 @@
- import net.minecraft.world.level.Level;
- import net.minecraft.world.phys.Vec2;
- import net.minecraft.world.phys.Vec3;
-+import org.bukkit.Location;
-+import org.bukkit.craftbukkit.CraftWorld;
-+import org.bukkit.event.entity.EntityTeleportEvent;
-+import org.bukkit.event.player.PlayerTeleportEvent;
- import org.jspecify.annotations.Nullable;
- 
- public class TeleportCommand {
-@@ -244,30 +_,61 @@
+@@ -244,30 +_,38 @@
          float xRot,
          @Nullable LookAt lookAt
      ) throws CommandSyntaxException {
@@ -63,30 +44,7 @@
 +            float relativeOrAbsoluteXRot = relatives.contains(Relative.X_ROT) ? xRot - victim.getXRot() : xRot;
 +            float newYRot = Mth.wrapDegrees(relativeOrAbsoluteYRot);
 +            float newXRot = Mth.wrapDegrees(relativeOrAbsoluteXRot);
-+            // CraftBukkit start - Teleport event
-+            boolean result;
-+            if (victim instanceof ServerPlayer player) {
-+                result = player.teleportTo(level, relativeOrAbsoluteX, relativeOrAbsoluteY, relativeOrAbsoluteZ, relatives, newYRot, newXRot, true, PlayerTeleportEvent.TeleportCause.COMMAND);
-+            } else {
-+                Location to = new Location(level.getWorld(), relativeOrAbsoluteX, relativeOrAbsoluteY, relativeOrAbsoluteZ, newYRot, newXRot);
-+                EntityTeleportEvent eventB = new EntityTeleportEvent(victim.getBukkitEntity(), victim.getBukkitEntity().getLocation(), to);
-+                level.getCraftServer().getPluginManager().callEvent(eventB);
-+                if (eventB.isCancelled()) {
-+                    return;
-+                }
-+
-+                relativeOrAbsoluteX = to.getX();
-+                relativeOrAbsoluteY = to.getY();
-+                relativeOrAbsoluteZ = to.getZ();
-+                newYRot = to.getYaw();
-+                newXRot = to.getPitch();
-+                level = ((CraftWorld) to.getWorld()).getHandle();
-+
-+                result = victim.teleportTo(level, relativeOrAbsoluteX, relativeOrAbsoluteY, relativeOrAbsoluteZ, relatives, newYRot, newXRot, true);
-+            }
-+
-+            if (result) {
-+                // CraftBukkit end
++            if (victim.teleportTo(level, relativeOrAbsoluteX, relativeOrAbsoluteY, relativeOrAbsoluteZ, relatives, newYRot, newXRot, true, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.COMMAND)) { // Paper - teleport cause
 +                if (lookAt != null) {
 +                    lookAt.perform(source, victim);
 +                }

@@ -1,5 +1,23 @@
 --- a/net/minecraft/server/commands/ReloadCommand.java
 +++ b/net/minecraft/server/commands/ReloadCommand.java
+@@ -16,7 +_,7 @@
+     private static final Logger LOGGER = LogUtils.getLogger();
+ 
+     public static void reloadPacks(Collection<String> selectedPacks, CommandSourceStack source) {
+-        source.getServer().reloadResources(selectedPacks).exceptionally(throwable -> {
++        source.getServer().reloadResources(selectedPacks, io.papermc.paper.event.server.ServerResourcesReloadedEvent.Cause.COMMAND).exceptionally(throwable -> { // Paper - Add ServerResourcesReloadedEvent
+             LOGGER.warn("Failed to execute reload", throwable);
+             source.sendFailure(Component.translatable("commands.reload.failure"));
+             return null;
+@@ -24,7 +_,7 @@
+     }
+ 
+     private static Collection<String> discoverNewPacks(PackRepository packRepository, WorldData worldData, Collection<String> currentPacks) {
+-        packRepository.reload();
++        packRepository.reload(true); // Paper - will perform a full reload
+         Collection<String> selected = Lists.newArrayList(currentPacks);
+         Collection<String> disabled = worldData.getDataConfiguration().dataPacks().getDisabled();
+ 
 @@ -34,8 +_,19 @@
              }
          }
@@ -9,12 +27,12 @@
      }
 +
 +    // CraftBukkit start
-+    public static void reload(MinecraftServer minecraftserver) {
-+        PackRepository packrepository = minecraftserver.getPackRepository();
-+        WorldData worlddata = minecraftserver.getWorldData();
-+        Collection<String> collection = packrepository.getSelectedIds();
-+        Collection<String> collection1 = discoverNewPacks(packrepository, worlddata, collection);
-+        minecraftserver.reloadResources(collection1);
++    public static void reload(MinecraftServer server) {
++        PackRepository packrepository = server.getPackRepository();
++        WorldData worlddata = server.getWorldData();
++        Collection<String> selectedIds = packrepository.getSelectedIds();
++        Collection<String> collection = discoverNewPacks(packrepository, worlddata, selectedIds);
++        server.reloadResources(collection, io.papermc.paper.event.server.ServerResourcesReloadedEvent.Cause.PLUGIN); // Paper - Add ServerResourcesReloadedEvent
 +    }
 +    // CraftBukkit end
  

@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/portal/PortalForcer.java
 +++ b/net/minecraft/world/level/portal/PortalForcer.java
+@@ -11,6 +_,7 @@
+ import net.minecraft.world.entity.ai.village.poi.PoiManager;
+ import net.minecraft.world.entity.ai.village.poi.PoiRecord;
+ import net.minecraft.world.entity.ai.village.poi.PoiTypes;
++import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.NetherPortalBlock;
+ import net.minecraft.world.level.block.state.BlockState;
 @@ -39,17 +_,63 @@
      }
  
@@ -101,7 +109,7 @@
                              width * direction.getStepZ() + box * clockWise.getStepZ()
                          );
 -                        this.level.setBlockAndUpdate(mutable, blockState);
-+                        blockList.setBlock(mutable, blockState, 3); // CraftBukkit
++                        blockList.setBlock(mutable, blockState, Block.UPDATE_ALL); // CraftBukkit
                      }
                  }
              }
@@ -110,7 +118,7 @@
                  if (width == -1 || width == 2 || height == -1 || height == 3) {
                      mutable.setWithOffset(closestFullPosition, width * direction.getStepX(), height, width * direction.getStepZ());
 -                    this.level.setBlock(mutable, Blocks.OBSIDIAN.defaultBlockState(), 3);
-+                    blockList.setBlock(mutable, Blocks.OBSIDIAN.defaultBlockState(), 3); // CraftBukkit
++                    blockList.setBlock(mutable, Blocks.OBSIDIAN.defaultBlockState(), Block.UPDATE_ALL); // CraftBukkit
                  }
              }
          }
@@ -123,7 +131,7 @@
 -                this.level.setBlock(mutable, portalBlockState, 18);
 +            for (int heightx = 0; heightx < 3; heightx++) {
 +                mutable.setWithOffset(closestFullPosition, width * direction.getStepX(), heightx, width * direction.getStepZ());
-+                blockList.setBlock(mutable, portalBlockState, 18); // CraftBukkit
++                blockList.setBlock(mutable, portalBlockState, Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE); // CraftBukkit
              }
          }
  
@@ -140,3 +148,17 @@
          return Optional.of(new BlockUtil.FoundRectangle(closestFullPosition.immutable(), 2, 3));
      }
  
+@@ -168,6 +_,13 @@
+                 mutable.setWithOffset(
+                     origin, direction.getStepX() * width + clockWise.getStepX() * offset, height, direction.getStepZ() * width + clockWise.getStepZ() * offset
+                 );
++                // Paper start - Protect Bedrock and End Portal/Frames from being destroyed
++                if (!io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowPermanentBlockBreakExploits) {
++                    if (!this.level.getBlockState(mutable).isDestroyable()) {
++                        return false;
++                    }
++                }
++                // Paper end - Protect Bedrock and End Portal/Frames from being destroyed
+                 if (height < 0 && !this.level.getBlockState(mutable).isSolid()) {
+                     return false;
+                 }

@@ -23,28 +23,25 @@
      public float exhaustionLevel;
      private int tickTimer;
 +    // CraftBukkit start
-+    public int saturatedRegenRate = 10;
-+    public int unsaturatedRegenRate = 80;
-+    public int starvationRate = 80;
++    public int saturatedRegenRate = FoodConstants.HEALTH_TICK_COUNT_SATURATED;
++    public int unsaturatedRegenRate = FoodConstants.HEALTH_TICK_COUNT;
++    public int starvationRate = FoodConstants.HEALTH_TICK_COUNT;
 +    // CraftBukkit end
  
      private void add(int food, float saturation) {
          this.foodLevel = Mth.clamp(food + this.foodLevel, 0, 20);
-@@ -29,6 +_,20 @@
+@@ -29,6 +_,17 @@
          this.add(foodProperties.nutrition(), foodProperties.saturation());
      }
  
 +    // CraftBukkit start
-+    public void eat(FoodProperties foodproperties, ItemStack itemstack, ServerPlayer serverplayer) {
-+        int oldFoodLevel = foodLevel;
-+
-+        org.bukkit.event.entity.FoodLevelChangeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callFoodLevelChangeEvent(serverplayer, foodproperties.nutrition() + oldFoodLevel, itemstack);
-+
++    public void eat(FoodProperties foodProperties, net.minecraft.world.item.ItemStack stack, ServerPlayer serverPlayer) {
++        int oldFoodLevel = this.foodLevel;
++        org.bukkit.event.entity.FoodLevelChangeEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callFoodLevelChangeEvent(serverPlayer, foodProperties.nutrition() + oldFoodLevel, stack);
 +        if (!event.isCancelled()) {
-+            this.add(event.getFoodLevel() - oldFoodLevel, foodproperties.saturation());
++            this.add(event.getFoodLevel() - oldFoodLevel, foodProperties.saturation());
 +        }
-+
-+        serverplayer.getBukkitEntity().sendHealthUpdate();
++        serverPlayer.getBukkitEntity().sendHealthUpdate();
 +    }
 +    // CraftBukkit end
 +

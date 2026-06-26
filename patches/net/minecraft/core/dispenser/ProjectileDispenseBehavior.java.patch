@@ -10,7 +10,7 @@
  
  public class ProjectileDispenseBehavior extends DefaultDispenseItemBehavior {
      private final ProjectileItem projectileItem;
-@@ -27,17 +_,39 @@
+@@ -27,17 +_,36 @@
          ServerLevel level = source.level();
          Direction direction = source.state().getValue(DispenserBlock.FACING);
          Position position = this.dispenseConfig.positionFunction().getDispensePosition(source, direction);
@@ -25,38 +25,35 @@
 -            this.dispenseConfig.uncertainty()
 -        );
 -        dispensed.shrink(1);
-+        // CraftBukkit start
-+        ItemStack itemstack1 = dispensed.split(1);
-+        org.bukkit.block.Block block = CraftBlock.at(level, source.pos());
-+        CraftItemStack craftItem = CraftItemStack.asCraftMirror(itemstack1);
++        ItemStack singleItemStack = dispensed.copyWithCount(1); // Paper - shrink below and single item in event
++        org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(level, source.pos());
++        org.bukkit.craftbukkit.inventory.CraftItemStack craftItem = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(singleItemStack);
 +
-+        BlockDispenseEvent event = new BlockDispenseEvent(block, craftItem.clone(), new org.bukkit.util.Vector((double) direction.getStepX(), (double) direction.getStepY(), (double) direction.getStepZ()));
-+        if (!DispenserBlock.eventFired) {
-+            level.getCraftServer().getPluginManager().callEvent(event);
-+        }
++        org.bukkit.event.block.BlockDispenseEvent event = new org.bukkit.event.block.BlockDispenseEvent(block, craftItem.clone(), new org.bukkit.util.Vector(direction.getStepX(), direction.getStepY(), direction.getStepZ()));
++        level.getCraftServer().getPluginManager().callEvent(event);
 +
 +        if (event.isCancelled()) {
-+            dispensed.grow(1);
 +            return dispensed;
 +        }
 +
++        boolean shrink = true;
 +        if (!event.getItem().equals(craftItem)) {
-+            dispensed.grow(1);
++            shrink = false;
 +            // Chain to handler for new item
-+            ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItem());
-+            DispenseItemBehavior dispenseitembehavior = (DispenseItemBehavior) DispenserBlock.DISPENSER_REGISTRY.get(eventStack.getItem());
-+            if (dispenseitembehavior != DispenseItemBehavior.NOOP && dispenseitembehavior != this) {
-+                dispenseitembehavior.dispense(source, eventStack);
++            ItemStack eventStack = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItem());
++            DispenseItemBehavior dispenseBehavior = DispenserBlock.getDispenseBehavior(source, eventStack);
++            if (dispenseBehavior != DispenseItemBehavior.NOOP && dispenseBehavior != this) {
++                dispenseBehavior.dispense(source, eventStack);
 +                return dispensed;
 +            }
 +        }
 +
 +        // SPIGOT-7923: Avoid create projectiles with empty item
-+        if (!itemstack1.isEmpty()) {
-+            Projectile projectile = Projectile.spawnProjectileUsingShoot(this.projectileItem.asProjectile(level, position, itemstack1, direction), level, itemstack1, event.getVelocity().getX(), event.getVelocity().getY(), event.getVelocity().getZ(), this.dispenseConfig.power(), this.dispenseConfig.uncertainty());
++        if (!singleItemStack.isEmpty()) {
++            Projectile projectile = Projectile.spawnProjectileUsingShoot(this.projectileItem.asProjectile(level, position, org.bukkit.craftbukkit.inventory.CraftItemStack.unwrap(event.getItem()), direction), level, singleItemStack, event.getVelocity().getX(), event.getVelocity().getY(), event.getVelocity().getZ(), this.dispenseConfig.power(), this.dispenseConfig.uncertainty()); // Paper - track changed items in the dispense event; unwrap is safe here because all uses of the stack make their own copies
 +            projectile.projectileSource = new org.bukkit.craftbukkit.projectiles.CraftBlockProjectileSource(source.blockEntity());
 +        }
-+        // itemstack.shrink(1); // CraftBukkit - Handled during event processing
++        if (shrink) dispensed.shrink(1);
 +        // CraftBukkit end
          return dispensed;
      }

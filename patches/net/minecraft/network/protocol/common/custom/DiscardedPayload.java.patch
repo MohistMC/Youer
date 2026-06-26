@@ -1,14 +1,25 @@
 --- a/net/minecraft/network/protocol/common/custom/DiscardedPayload.java
 +++ b/net/minecraft/network/protocol/common/custom/DiscardedPayload.java
-@@ -4,13 +_,19 @@
+@@ -4,13 +_,31 @@
  import net.minecraft.network.codec.StreamCodec;
  import net.minecraft.resources.Identifier;
  
 -public record DiscardedPayload(Identifier id) implements CustomPacketPayload {
--    public static <T extends FriendlyByteBuf> StreamCodec<T, DiscardedPayload> codec(Identifier id, int maxPayloadSize) {
++public class DiscardedPayload implements CustomPacketPayload { // Paper - store data
++    private final Identifier id;
++    private byte[] data;
++
++    public DiscardedPayload(Identifier id) {
++        this.id = id;
++    }
++
++    public DiscardedPayload(Identifier id, byte[] data) {
++        this.id = id;
++        this.data = data;
++    }
++
+     public static <T extends FriendlyByteBuf> StreamCodec<T, DiscardedPayload> codec(Identifier id, int maxPayloadSize) {
 -        return CustomPacketPayload.codec((payload, buf) -> {}, buf -> {
-+public record DiscardedPayload(Identifier id, byte[] data) implements CustomPacketPayload { // Paper - store data
-+    public static <T extends FriendlyByteBuf> StreamCodec<T, DiscardedPayload> codec(final Identifier id, final int maxPayloadSize) {
 +        return CustomPacketPayload.codec((payload, buf) -> {
 +            // Paper start
 +            // Always write data
@@ -25,3 +36,17 @@
              } else {
                  throw new IllegalArgumentException("Payload may not be larger than " + maxPayloadSize + " bytes");
              }
+@@ -20,5 +_,13 @@
+     @Override
+     public CustomPacketPayload.Type<DiscardedPayload> type() {
+         return new CustomPacketPayload.Type<>(this.id);
++    }
++
++    public Identifier id() {
++        return id;
++    }
++
++    public byte[] data() {
++        return data;
+     }
+ }

@@ -84,8 +84,31 @@
      }
  
      public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
-@@ -371,22 +_,34 @@
+@@ -369,24 +_,57 @@
+         return state.getDrops(params);
+     }
  
++    // Paper start - Add BlockBreakBlockEvent
++    public static boolean dropResources(final BlockState state, final Level level, final BlockPos pos, final @Nullable BlockEntity blockEntity, final BlockPos source) {
++        if (level instanceof ServerLevel serverLevel) {
++            List<org.bukkit.inventory.ItemStack> items = new java.util.ArrayList<>();
++            for (ItemStack drop : Block.getDrops(state, serverLevel, pos, blockEntity)) {
++                items.add(org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(drop));
++            }
++            Block block = state.getBlock(); // Paper - Properly handle xp dropping
++            io.papermc.paper.event.block.BlockBreakBlockEvent event = new io.papermc.paper.event.block.BlockBreakBlockEvent(org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), org.bukkit.craftbukkit.block.CraftBlock.at(level, source), items);
++            event.setExpToDrop(block.getExpDrop(state, serverLevel, pos, net.minecraft.world.item.ItemStack.EMPTY, true)); // Paper - Properly handle xp dropping
++            event.callEvent();
++            for (org.bukkit.inventory.ItemStack drop : event.getDrops()) {
++                popResource(serverLevel, pos, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(drop));
++            }
++            state.spawnAfterBreak(serverLevel, pos, ItemStack.EMPTY, false); // Paper - Properly handle xp dropping
++            block.popExperience(serverLevel, pos, event.getExpToDrop()); // Paper - Properly handle xp dropping
++        }
++        return true;
++    }
++    // Paper end - Add BlockBreakBlockEvent
++
      public static void dropResources(BlockState state, Level level, BlockPos pos) {
          if (level instanceof ServerLevel serverLevel) {
 +            beginCapturingDrops();

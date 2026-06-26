@@ -1,11 +1,12 @@
 --- a/net/minecraft/server/commands/GameRuleCommand.java
 +++ b/net/minecraft/server/commands/GameRuleCommand.java
-@@ -35,7 +_,7 @@
+@@ -34,8 +_,7 @@
+ 
      private static <T> int setRule(CommandContext<CommandSourceStack> context, GameRule<T> gameRule) {
          CommandSourceStack source = context.getSource();
-         T value = context.getArgument("value", gameRule.valueClass());
+-        T value = context.getArgument("value", gameRule.valueClass());
 -        source.getLevel().getGameRules().set(gameRule, value, context.getSource().getServer());
-+        source.getLevel().getGameRules().set(gameRule, value, context.getSource().getLevel()); // CraftBukkit
++        T value = org.bukkit.craftbukkit.event.CraftEventFactory.handleGameRuleSet(gameRule, context.getArgument("value", gameRule.valueClass()), source.getLevel(), source.getBukkitSender()).value(); // Paper - per-world game rules and event
          source.sendSuccess(() -> Component.translatable("commands.gamerule.set", gameRule.id(), gameRule.serialize(value)), true);
          return gameRule.getCommandResult(value);
      }
