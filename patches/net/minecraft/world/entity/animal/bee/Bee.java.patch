@@ -93,15 +93,38 @@
                  }
              }
  
-@@ -471,7 +_,7 @@
+@@ -471,7 +_,11 @@
          if (this.hivePos == null) {
              return null;
          } else {
 -            return this.isTooFarAway(this.hivePos) ? null : this.level().getBlockEntity(this.hivePos, BlockEntityTypes.BEEHIVE).orElse(null);
-+            return this.isTooFarAway(this.hivePos) ? null : this.level().getBlockEntity(this.hivePos) instanceof BeehiveBlockEntity hive ? hive : null;
++            // Paper start - move over logic to accommodate isTooFarAway with chunk load check
++            return this.isTooFarAway(this.hivePos) || this.level().getChunkIfLoadedImmediately(this.hivePos.getX() >> 4, this.hivePos.getZ() >> 4) == null
++                ? null
++                : this.level().getBlockEntity(this.hivePos) instanceof BeehiveBlockEntity hive ? hive : null;
++            // Paper end
          }
      }
  
+@@ -503,7 +_,8 @@
+         return this.getFlag(2);
+     }
+ 
+-    public void setRolling(boolean rolling) {
++    public void setRolling(boolean rolling) { // Paper - Rolling override
++        rolling = this.rollingOverride.toBooleanOrElse(rolling); // Paper - Rolling override
+         this.setFlag(2, rolling);
+     }
+ 
+@@ -560,7 +_,7 @@
+             if (effect != null) {
+                 this.usePlayerItem(player, hand, heldItem);
+                 if (!this.level().isClientSide()) {
+-                    this.addEffect(effect);
++                    this.addEffect(effect, org.bukkit.event.entity.EntityPotionEffectEvent.Cause.FOOD); // Paper - Add missing effect cause
+                 }
+ 
+                 return InteractionResult.SUCCESS;
 @@ -630,18 +_,34 @@
      public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
          if (this.isInvulnerableTo(level, source)) {
@@ -158,3 +181,12 @@
              }
          }
      }
+@@ -1169,7 +_,7 @@
+                     Bee.this.dropFlower();
+                     this.pollinating = false;
+                     Bee.this.remainingCooldownBeforeLocatingNewFlower = 200;
+-                } else {
++                } else if (Bee.this.savedFlowerPos != null) { // Paper - add null check since API can manipulate this
+                     Vec3 flowerPos = Vec3.atBottomCenterOf(Bee.this.savedFlowerPos).add(0.0, 0.6F, 0.0);
+                     if (flowerPos.distanceTo(Bee.this.position()) > 1.0) {
+                         this.hoverPos = flowerPos;

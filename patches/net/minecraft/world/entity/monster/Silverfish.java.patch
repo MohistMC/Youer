@@ -12,6 +12,15 @@
  import org.jspecify.annotations.Nullable;
  
  public class Silverfish extends Monster {
+@@ -119,7 +_,7 @@
+             return true;
+         }
+ 
+-        Player nearestPlayer = level.getNearestPlayer(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 5.0, true);
++        Player nearestPlayer = level.getNearestPlayerThatAffectsSpawning(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5, 5.0, true); // Paper - Affects Spawning API
+         return nearestPlayer == null;
+     }
+ 
 @@ -143,7 +_,7 @@
              }
  
@@ -37,13 +46,14 @@
                  }
              }
          }
-@@ -212,7 +_,12 @@
+@@ -212,7 +_,13 @@
                              BlockPos testPos = basePos.offset(xOff, yOff, zOff);
                              BlockState blockState = level.getBlockState(testPos);
                              if (blockState.getBlock() instanceof InfestedBlock infestedBlock) {
 -                                if (getServerLevel(level).getGameRules().get(GameRules.MOB_GRIEFING)) {
 +                                // CraftBukkit start
-+                                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.silverfish, testPos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState())) {
++                                BlockState afterState = getServerLevel(level).getGameRules().get(GameRules.MOB_GRIEFING) ? blockState.getFluidState().createLegacyBlock() : infestedBlock.hostStateByInfested(level.getBlockState(testPos)); // Paper - fix wrong block state
++                                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.silverfish, testPos, afterState)) { // Paper - fix wrong block state
 +                                    continue;
 +                                }
 +                                // CraftBukkit end

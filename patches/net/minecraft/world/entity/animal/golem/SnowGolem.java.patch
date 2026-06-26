@@ -13,12 +13,66 @@
                  return;
              }
  
-@@ -136,7 +_,7 @@
+@@ -107,7 +_,7 @@
+                 int zz = Mth.floor(this.getZ() + (i / 2 % 2 * 2 - 1) * 0.25F);
+                 BlockPos snowPos = new BlockPos(xx, yy, zz);
+                 if (this.level().getBlockState(snowPos).isAir() && snow.canSurvive(this.level(), snowPos)) {
+-                    this.level().setBlockAndUpdate(snowPos, snow);
++                    if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(this.level(), snowPos, snow, net.minecraft.world.level.block.Block.UPDATE_ALL, this)) continue; // CraftBukkit
+                     this.level().gameEvent(GameEvent.BLOCK_PLACE, snowPos, GameEvent.Context.of(this, snow));
+                 }
+             }
+@@ -136,9 +_,17 @@
      @Override
      protected InteractionResult mobInteract(Player player, InteractionHand hand) {
          ItemStack itemStack = player.getItemInHand(hand);
 -        if (itemStack.is(Items.SHEARS) && this.readyForShearing()) {
 +        if (false && itemStack.is(Items.SHEARS) && this.readyForShearing()) { // Neo: Shear logic is handled by IShearable
              if (this.level() instanceof ServerLevel level) {
-                 this.shear(level, SoundSource.PLAYERS, itemStack);
+-                this.shear(level, SoundSource.PLAYERS, itemStack);
++                // Paper start - call PlayerShearEntityEvent
++                java.util.List<ItemStack> drops = this.generateDefaultDrops(level, itemStack);
++                org.bukkit.event.player.PlayerShearEntityEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemStack, hand, drops);
++                if (event.isCancelled()) {
++                    return InteractionResult.PASS;
++                }
++                drops = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getDrops());
++                this.shear(level, SoundSource.PLAYERS, itemStack, drops);
++                // Paper end - call PlayerShearEntityEvent
                  this.gameEvent(GameEvent.SHEAR, player);
+                 itemStack.hurtAndBreak(1, player, hand.asEquipmentSlot());
+             }
+@@ -149,11 +_,30 @@
+         }
+     }
+ 
+-    @Override
+-    public void shear(ServerLevel level, SoundSource soundSource, ItemStack tool) {
++    // Paper start - custom shear drops
++    @Override
++    public void shear(final ServerLevel level, final SoundSource soundSource, final ItemStack tool) {
++        this.shear(level, soundSource, tool, this.generateDefaultDrops(level, tool));
++    }
++
++    public java.util.List<ItemStack> generateDefaultDrops(final ServerLevel level, final ItemStack tool) {
++        final java.util.List<ItemStack> drops = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>();
++        this.dropFromShearingLootTable(level, BuiltInLootTables.SHEAR_SNOW_GOLEM, tool, (ignored, stack) -> {
++            drops.add(stack);
++        });
++        return drops;
++    }
++
++    @Override
++    public void shear(final ServerLevel level, final SoundSource soundSource, final ItemStack tool, final java.util.List<ItemStack> drops) {
++        // Paper end - custom shear drops
+         level.playSound(null, this, SoundEvents.SNOW_GOLEM_SHEAR, soundSource, 1.0F, 1.0F);
+         this.setPumpkin(false);
+-        this.dropFromShearingLootTable(level, BuiltInLootTables.SHEAR_SNOW_GOLEM, tool, (l, drop) -> this.spawnAtLocation(l, drop, this.getEyeHeight()));
++        // Paper start - custom shear drops
++        drops.forEach(drop -> {
++            this.spawnAtLocation(level, drop, this.getEyeHeight());
++        });
++        // Paper end - custom shear drops
+     }
+ 
+     @Override

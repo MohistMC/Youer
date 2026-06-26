@@ -106,6 +106,15 @@
              }
          }
  
+@@ -396,7 +_,7 @@
+                 double xd = entity.getX() - xm;
+                 double zd = entity.getZ() - zm;
+                 double dd = Math.max(xd * xd + zd * zd, 0.1);
+-                entity.push(xd / dd * 4.0, 0.2F, zd / dd * 4.0);
++                entity.push(xd / dd * 4.0, 0.2F, zd / dd * 4.0, this); // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
+                 if (!this.phaseManager.getCurrentPhase().isSitting() && livingTarget.getLastHurtByMobTimestamp() < entity.tickCount - 2) {
+                     DamageSource damageSource = this.damageSources().mobAttack(this);
+                     entity.hurtServer(serverLevel, damageSource, 5.0F);
 @@ -429,6 +_,9 @@
          int z1 = Mth.floor(bb.maxZ);
          boolean hitWall = false;
@@ -191,16 +200,31 @@
          if (destroyedBlock) {
              BlockPos randomPos = new BlockPos(
                  x0 + this.random.nextInt(x1 - x0 + 1), y0 + this.random.nextInt(y1 - y0 + 1), z0 + this.random.nextInt(z1 - z0 + 1)
-@@ -511,7 +_,7 @@
+@@ -503,15 +_,20 @@
+     }
+ 
+     @Override
+-    public void knockback(double power, double xd, double zd, DamageSource source, float damage) {
++    public void knockback(final double power, final double xd, final double zd, final DamageSource source, final float damage, final boolean comesFromEffect, @Nullable final Entity attacker, final io.papermc.paper.event.entity.EntityKnockbackEvent.Cause eventCause) { // Paper - knockback events
+         if (!this.phaseManager.getCurrentPhase().isSitting()) {
+-            super.knockback(power, xd, zd, source, damage);
++            super.knockback(power, xd, zd, source, damage, comesFromEffect, attacker, eventCause); // Paper - knockback events
+         }
+     }
  
      @Override
      public void kill(ServerLevel level) {
 -        this.remove(Entity.RemovalReason.KILLED);
++        // Paper start - Fire entity death event
++        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityDeathEvent(level, this, this.damageSources().genericKill())) {
++            return;
++        }
 +        this.remove(Entity.RemovalReason.KILLED, EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
++        // Paper end - Fire entity death event
          this.gameEvent(GameEvent.ENTITY_DIE);
          if (this.dragonFight != null) {
              this.dragonFight.updateDragon(this);
-@@ -533,14 +_,19 @@
+@@ -533,18 +_,41 @@
              this.level().addParticle(ParticleTypes.EXPLOSION_EMITTER, this.getX() + xo, this.getY() + 2.0 + yo, this.getZ() + zo, 0.0, 0.0, 0.0);
          }
  
@@ -218,10 +242,33 @@
 -                ExperienceOrb.award(level, this.position(), Mth.floor(xpCount * 0.08F));
 +            if (this.dragonDeathTime > 150 && this.dragonDeathTime % 5 == 0 && true) {  // CraftBukkit - SPIGOT-2420: Already checked for the game rule when calculating the xp
 +                int award = net.neoforged.neoforge.event.EventHooks.getExperienceDrop(this, net.minecraft.world.entity.EntityReference.get(this.unlimitedLastHurtByPlayer, level, Player.class), Mth.floor((float) xpCount * 0.08F));
-+                ExperienceOrb.award((ServerLevel) this.level(), this.position(), award);
++                ExperienceOrb.awardWithDirection(level, this.position(), Vec3.ZERO, award, org.bukkit.entity.ExperienceOrb.SpawnReason.ENTITY_DEATH, net.minecraft.world.entity.EntityReference.get(this.lastHurtByPlayer, this.level(), Player.class), this); // Paper
              }
  
              if (this.dragonDeathTime == 1 && !this.isSilent()) {
+-                level.globalLevelEvent(1028, this.blockPosition(), 0);
++                // CraftBukkit start - Use relative location for far away sounds
++                // level.globalLevelEvent(LevelEvent.SOUND_DRAGON_DEATH, this.blockPosition(), 0);
++                int viewDistance = level.getCraftServer().getViewDistance() * 16;
++                for (net.minecraft.server.level.ServerPlayer player : level.getPlayersForGlobalSoundGamerule()) { // Paper - respect global sound events gamerule
++                    double deltaX = this.getX() - player.getX();
++                    double deltaZ = this.getZ() - player.getZ();
++                    double distanceSquared = Mth.square(deltaX) + Mth.square(deltaZ);
++                    final double soundRadiusSquared = level.getGlobalSoundRangeSquared(config -> config.dragonDeathSoundRadius); // Paper - respect global sound events gamerule
++                    if (!level.getGameRules().get(GameRules.GLOBAL_SOUND_EVENTS) && distanceSquared > soundRadiusSquared) continue; // Paper - respect global sound events gamerule
++                    if (distanceSquared > Mth.square(viewDistance)) {
++                        double deltaLength = Math.sqrt(distanceSquared);
++                        double relativeX = player.getX() + (deltaX / deltaLength) * viewDistance;
++                        double relativeZ = player.getZ() + (deltaZ / deltaLength) * viewDistance;
++                        player.connection.send(new net.minecraft.network.protocol.game.ClientboundLevelEventPacket(1028, new BlockPos((int) relativeX, (int) this.getY(), (int) relativeZ), 0, true));
++                    } else {
++                        player.connection.send(new net.minecraft.network.protocol.game.ClientboundLevelEventPacket(1028, this.blockPosition(), 0, true));
++                    }
++                }
++                // CraftBukkit end
+             }
+         }
+ 
 @@ -557,19 +_,35 @@
          }
  
@@ -230,7 +277,7 @@
 -                ExperienceOrb.award(level, this.position(), Mth.floor(xpCount * 0.2F));
 +            if (true) { // CraftBukkit - SPIGOT-2420: Already checked for the game rule when calculating the xp
 +                int award = net.neoforged.neoforge.event.EventHooks.getExperienceDrop(this, net.minecraft.world.entity.EntityReference.get(this.unlimitedLastHurtByPlayer, level, Player.class), Mth.floor((float) xpCount * 0.2F));
-+                ExperienceOrb.award((ServerLevel) this.level(), this.position(), award);
++                ExperienceOrb.awardWithDirection(level, this.position(), Vec3.ZERO, award, org.bukkit.entity.ExperienceOrb.SpawnReason.ENTITY_DEATH, net.minecraft.world.entity.EntityReference.get(this.lastHurtByPlayer, this.level(), Player.class), this); // Paper
              }
  
              if (this.dragonFight != null) {
@@ -277,6 +324,21 @@
      }
  
      @Override
+@@ -851,8 +_,12 @@
+         return this.dragonFight;
+     }
+ 
+-    @Override
+-    public boolean addEffect(MobEffectInstance newEffect, @Nullable Entity source) {
++    // Paper start - Only allow plugins to bypass this requirement
++    public boolean addEffect(final MobEffectInstance newEffect, final @Nullable Entity source, final org.bukkit.event.entity.EntityPotionEffectEvent.Cause cause, final boolean fireEvent) {
++        if (cause == org.bukkit.event.entity.EntityPotionEffectEvent.Cause.PLUGIN) {
++            return super.addEffect(newEffect, source, cause, fireEvent);
++        }
++        // Paper end - Only allow plugins to bypass this requirement
+         return false;
+     }
+ 
 @@ -864,6 +_,16 @@
      @Override
      public boolean canUsePortal(boolean ignorePassenger) {

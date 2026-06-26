@@ -19,6 +19,15 @@
  
      protected AbstractHorse(EntityType<? extends AbstractHorse> type, Level level) {
          super(type, level);
+@@ -251,7 +_,7 @@
+     }
+ 
+     @Override
+-    public boolean isPushable() {
++    public boolean isCollidable(boolean ignoreClimbing) { // Paper - Climbing should not bypass cramming gamerule
+         return !this.isVehicle();
+     }
+ 
 @@ -298,7 +_,7 @@
  
      public void createInventory() {
@@ -49,7 +58,22 @@
      }
  
      @Override
-@@ -466,7 +_,7 @@
+@@ -453,7 +_,7 @@
+             temper = 5;
+             if (!this.level().isClientSide() && this.isTamed() && this.getAge() == 0 && !this.isInLove()) {
+                 itemUsed = true;
+-                this.setInLove(player);
++                this.setInLove(player, itemStack.copy()); // Paper - Fix EntityBreedEvent copying
+             }
+         } else if (itemStack.is(Items.GOLDEN_APPLE) || itemStack.is(Items.ENCHANTED_GOLDEN_APPLE)) {
+             heal = 10.0F;
+@@ -461,12 +_,12 @@
+             temper = 10;
+             if (!this.level().isClientSide() && this.isTamed() && this.getAge() == 0 && !this.isInLove()) {
+                 itemUsed = true;
+-                this.setInLove(player);
++                this.setInLove(player, itemStack.copy()); // Paper - Fix EntityBreedEvent copying
+             }
          }
  
          if (this.getHealth() < this.getMaxHealth() && heal > 0.0F) {

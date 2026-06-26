@@ -106,7 +106,15 @@
          List<Holder<VillagerTrade>> potentialOffersList = Lists.newArrayList(potentialOffers);
          int offersFound = 0;
  
-@@ -271,7 +_,7 @@
+@@ -264,14 +_,14 @@
+             if (offer == null) {
+                 potentialOffersList.remove(roll);
+             } else {
+-                merchantOffers.add(offer);
++                tryAcquireTrade(villager, merchantOffers, offer); // Paper
+                 offersFound++;
+             }
+         }
      }
  
      private static void addOffersFromItemListingsWithoutDuplicates(
@@ -115,21 +123,35 @@
      ) {
          List<Holder<VillagerTrade>> leftoverOffers = Lists.newArrayList(potentialOffers);
          int offersFound = 0;
-@@ -280,7 +_,16 @@
+@@ -280,11 +_,30 @@
              Holder<VillagerTrade> villagerTrade = leftoverOffers.remove(lootContext.getRandom().nextInt(leftoverOffers.size()));
              MerchantOffer offer = villagerTrade.value().getOffer(lootContext);
              if (offer != null) {
 -                merchantOffers.add(offer);
-+                // CraftBukkit start
-+                VillagerAcquireTradeEvent event = new VillagerAcquireTradeEvent((org.bukkit.entity.AbstractVillager) villager.getBukkitEntity(), offer.asBukkit());
-+                // Suppress during worldgen
-+                if (villager.valid) {
-+                    Bukkit.getPluginManager().callEvent(event);
-+                }
-+                if (!event.isCancelled()) {
-+                    merchantOffers.add(CraftMerchantRecipe.fromBukkit(event.getRecipe()).toMinecraft());
-+                }
-+                // CraftBukkit end
++                tryAcquireTrade(villager, merchantOffers, offer); // Paper
                  offersFound++;
              }
          }
+     }
++
++    // Paper start
++    private static void tryAcquireTrade(final AbstractVillager villager, final MerchantOffers merchantOffers, MerchantOffer offer) {
++        // CraftBukkit start
++        org.bukkit.event.entity.VillagerAcquireTradeEvent event = new org.bukkit.event.entity.VillagerAcquireTradeEvent((org.bukkit.entity.AbstractVillager) villager.getBukkitEntity(), offer.asBukkit());
++        // Suppress during worldgen
++        if (villager.valid) {
++            event.callEvent();
++        }
++        if (!event.isCancelled()) {
++            // Paper start - Fix crash from invalid ingredient list
++            final org.bukkit.craftbukkit.inventory.CraftMerchantRecipe craftMerchantRecipe = org.bukkit.craftbukkit.inventory.CraftMerchantRecipe.fromBukkit(event.getRecipe());
++            if (craftMerchantRecipe.getIngredients().isEmpty()) return;
++            merchantOffers.add(craftMerchantRecipe.toMinecraft());
++            // Paper end - Fix crash from invalid ingredient list
++        }
++        // CraftBukkit end
++    }
++    // Paper end
+ 
+     @Override
+     public Vec3 getRopeHoldPosition(float partialTickTime) {

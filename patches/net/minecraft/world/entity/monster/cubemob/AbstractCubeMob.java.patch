@@ -8,6 +8,22 @@
  
      protected AbstractCubeMob(EntityType<? extends AbstractCubeMob> type, Level level) {
          super(type, level);
+@@ -101,6 +_,7 @@
+         super.addAdditionalSaveData(output);
+         output.putInt("Size", this.getSize() - 1);
+         output.putBoolean("wasOnGround", this.wasOnGround);
++        output.putBoolean("Paper.canWander", this.canWander); // Paper
+     }
+ 
+     @Override
+@@ -108,6 +_,7 @@
+         this.setSize(input.getIntOr("Size", 0) + 1, false);
+         super.readAdditionalSaveData(input);
+         this.wasOnGround = input.getBooleanOr("wasOnGround", false);
++        this.canWander = input.getBooleanOr("Paper.canWander", true); // Paper
+     }
+ 
+     public boolean isTiny() {
 @@ -125,6 +_,7 @@
              float size = this.getDimensions(this.getPose()).width() * 2.0F;
              float radius = size / 2.0F;
@@ -16,32 +32,71 @@
              for (int i = 0; i < size * 16.0F; i++) {
                  float dir = this.random.nextFloat() * (float) (Math.PI * 2);
                  float d = this.random.nextFloat() * 0.5F + 0.5F;
-@@ -192,15 +_,24 @@
+@@ -183,7 +_,7 @@
+     }
+ 
+     @Override
+-    public void remove(Entity.RemovalReason reason) {
++    public void remove(final Entity.RemovalReason reason, org.bukkit.event.entity.EntityRemoveEvent.@Nullable Cause eventCause) { // CraftBukkit - add Bukkit remove cause
+         int size = this.getSize();
+         if (!this.level().isClientSide() && size > 1 && this.isDeadOrDying()) {
+             float width = this.getDimensions(this.getPose()).width();
+@@ -191,20 +_,51 @@
+             int halfSize = size / 2;
              int count = this.getSplitCount();
              PlayerTeam team = this.getTeam();
- 
++            // CraftBukkit start
++            org.bukkit.event.entity.SlimeSplitEvent event = new org.bukkit.event.entity.SlimeSplitEvent((org.bukkit.entity.AbstractCubeMob) this.getBukkitEntity(), count);
++            if (event.callEvent() && event.getCount() > 0) {
++                count = event.getCount();
++            } else {
++                super.remove(reason, eventCause); // CraftBukkit - add Bukkit remove cause
++                return;
++            }
++
++            java.util.List<LivingEntity> cubeMobs = new java.util.ArrayList<>(count);
++            // CraftBukkit end
++
 +            var children = new java.util.ArrayList<net.minecraft.world.entity.Mob>(); // Neo: Children list for MobSplitEvent.
 +            this.preventConversionSpawns = true;
-+
+ 
              for (int i = 0; i < count; i++) {
                  float xd = (i % 2 - 0.5F) * xzCubeSpawnOffset;
                  float zd = (i / 2 - 0.5F) * xzCubeSpawnOffset;
 -                this.convertTo(
-+                var child = this.convertTo(
++                AbstractCubeMob converted = this.convertTo( // CraftBukkit
                      this.getType(),
                      new ConversionParams(ConversionType.SPLIT_ON_DEATH, false, false, team),
                      EntitySpawnReason.TRIGGERED,
-                     cubeMob -> this.setUpSplitCube(cubeMob, halfSize, xd, zd)
+-                    cubeMob -> this.setUpSplitCube(cubeMob, halfSize, xd, zd)
++                    cubeMob -> { this.setUpSplitCube(cubeMob, halfSize, xd, zd); } // Paper - fix convertTo method not being resolved
++                // CraftBukkit start
++                    , null, null
                  );
-+                if (child != null) children.add(child);
+-            }
++                if (converted != null) {
++                    cubeMobs.add(converted);
++                }
++                // CraftBukkit end
 +            }
 +            this.preventConversionSpawns = false;
 +
-+            if (!net.neoforged.neoforge.event.EventHooks.onMobSplit(this, children).isCanceled()) {
-+                children.forEach(this.level()::addFreshEntity);
-             }
++            // CraftBukkit start
++            if (cubeMobs.isEmpty() || org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTransformEvent(this, cubeMobs, org.bukkit.event.entity.EntityTransformEvent.TransformReason.SPLIT).isCancelled()) { // check for empty converted entities or cancel event
++                super.remove(reason, eventCause); // add Bukkit remove cause
++                return;
++            }
++            for (LivingEntity cubeMob : cubeMobs) {
++                this.level().addFreshEntity(cubeMob, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.SLIME_SPLIT);
++            }
++            // CraftBukkit end
          }
  
+-        super.remove(reason);
++        super.remove(reason, eventCause); // CraftBukkit - add Bukkit remove cause
+     }
+ 
+     protected void setUpSplitCube(AbstractCubeMob cubeMob, int halfSize, float xd, float zd) {
 @@ -259,11 +_,31 @@
          return this.getType().getDimensions().scale(this.getSize());
      }
@@ -96,3 +151,100 @@
  
      protected abstract SoundEvent getSquishSound();
  
+@@ -336,11 +_,16 @@
+         @Override
+         public boolean canUse() {
+             LivingEntity target = this.cubeMob.getTarget();
+-            if (target == null) {
+-                return false;
+-            } else {
+-                return !this.cubeMob.canAttack(target) ? false : this.cubeMob.getMoveControl() instanceof AbstractCubeMob.CubeMobMoveControl;
+-            }
++
++            // Paper start - Slime pathfinder events
++            if (target == null || !target.isAlive()) {
++                return false;
++            }
++            if (!this.cubeMob.canAttack(target)) {
++                return false;
++            }
++            return this.cubeMob.getMoveControl() instanceof AbstractCubeMob.CubeMobMoveControl && this.cubeMob.canWander && new com.destroystokyo.paper.event.entity.SlimeTargetLivingEntityEvent((org.bukkit.entity.AbstractCubeMob) this.cubeMob.getBukkitEntity(), (org.bukkit.entity.LivingEntity) target.getBukkitEntity()).callEvent();
++            // Paper end - Slime pathfinder events
+         }
+ 
+         @Override
+@@ -352,11 +_,16 @@
+         @Override
+         public boolean canContinueToUse() {
+             LivingEntity target = this.cubeMob.getTarget();
+-            if (target == null) {
+-                return false;
+-            } else {
+-                return !this.cubeMob.canAttack(target) ? false : --this.growTiredTimer > 0;
+-            }
++
++            // Paper start - Slime pathfinder events
++            if (target == null || !target.isAlive()) {
++                return false;
++            }
++            if (!this.cubeMob.canAttack(target)) {
++                return false;
++            }
++            return --this.growTiredTimer > 0 && this.cubeMob.canWander && new com.destroystokyo.paper.event.entity.SlimeTargetLivingEntityEvent((org.bukkit.entity.AbstractCubeMob) this.cubeMob.getBukkitEntity(), (org.bukkit.entity.LivingEntity) target.getBukkitEntity()).callEvent();
++            // Paper end - Slime pathfinder events
+         }
+ 
+         @Override
+@@ -375,6 +_,13 @@
+                 cubeMobMoveControl.setDirection(this.cubeMob.getYRot(), this.cubeMob.isDealsDamage());
+             }
+         }
++
++        // Paper start - Slime pathfinder events; clear timer and target when goal resets
++        public void stop() {
++            this.growTiredTimer = 0;
++            this.cubeMob.setTarget(null);
++        }
++        // Paper end - Slime pathfinder events
+     }
+ 
+     private static class CubeMobFloatGoal extends Goal {
+@@ -388,7 +_,7 @@
+ 
+         @Override
+         public boolean canUse() {
+-            return (this.cubeMob.isInWater() || this.cubeMob.isInLava()) && this.cubeMob.getMoveControl() instanceof AbstractCubeMob.CubeMobMoveControl;
++            return (this.cubeMob.isInWater() || this.cubeMob.isInLava()) && this.cubeMob.getMoveControl() instanceof AbstractCubeMob.CubeMobMoveControl && this.cubeMob.canWander && new com.destroystokyo.paper.event.entity.SlimeSwimEvent((org.bukkit.entity.AbstractCubeMob) this.cubeMob.getBukkitEntity()).callEvent(); // Paper - Slime pathfinder events
+         }
+ 
+         @Override
+@@ -418,7 +_,7 @@
+ 
+         @Override
+         public boolean canUse() {
+-            return !this.cubeMob.isPassenger();
++            return !this.cubeMob.isPassenger() && this.cubeMob.canWander && new com.destroystokyo.paper.event.entity.SlimeWanderEvent((org.bukkit.entity.AbstractCubeMob) this.cubeMob.getBukkitEntity()).callEvent(); // Paper - Slime pathfinder events
+         }
+ 
+         @Override
+@@ -494,7 +_,7 @@
+ 
+         @Override
+         public boolean canUse() {
+-            return this.cubeMob.getTarget() == null
++            return this.cubeMob.getTarget() == null && this.cubeMob.canWander // Paper - Slime pathfinder events
+                 && (this.cubeMob.onGround() || this.cubeMob.isInWater() || this.cubeMob.isInLava() || this.cubeMob.hasEffect(MobEffects.LEVITATION))
+                 && this.cubeMob.getMoveControl() instanceof AbstractCubeMob.CubeMobMoveControl;
+         }
+@@ -504,6 +_,11 @@
+             if (--this.nextRandomizeTime <= 0) {
+                 this.nextRandomizeTime = this.adjustedTickDelay(40 + this.cubeMob.getRandom().nextInt(60));
+                 this.chosenDegrees = this.cubeMob.getRandom().nextInt(360);
++                // Paper start - Slime pathfinder events
++                com.destroystokyo.paper.event.entity.SlimeChangeDirectionEvent event = new com.destroystokyo.paper.event.entity.SlimeChangeDirectionEvent((org.bukkit.entity.AbstractCubeMob) this.cubeMob.getBukkitEntity(), this.chosenDegrees);
++                if (!this.cubeMob.canWander || !event.callEvent()) return;
++                this.chosenDegrees = event.getNewYaw();
++                // Paper end - Slime pathfinder events
+             }
+ 
+             if (this.cubeMob.getMoveControl() instanceof AbstractCubeMob.CubeMobMoveControl cubeMobMoveControl) {

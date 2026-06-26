@@ -53,6 +53,19 @@
      }
  
      @VisibleForDebug
+@@ -126,9 +_,10 @@
+     }
+ 
+     @Override
+-    protected void dropCustomDeathLoot(ServerLevel level, DamageSource source, boolean killedByPlayer) {
++    protected void dropCustomDeathLoot(final ServerLevel level, final DamageSource source, final boolean killedByPlayer) {
+         super.dropCustomDeathLoot(level, source, killedByPlayer);
+-        this.inventory.removeAllItems().forEach(itemStack -> this.spawnAtLocation(level, itemStack));
++        this.inventory.getItems().stream().filter(item -> !item.isEmpty()).forEach(itemStack -> this.spawnAtLocation(level, itemStack)); // Paper - delay removal post event - taken from removeAllItems
++        this.postDeathEventTasks.add(this.inventory::clearContent); // Paper - only clear after death event
+     }
+ 
+     protected ItemStack addToInventory(ItemStack itemStack) {
 @@ -321,7 +_,7 @@
          } else if (this.isChargingCrossbow()) {
              return PiglinArmPose.CROSSBOW_CHARGE;
@@ -99,3 +112,12 @@
              if (newItemWanted && !currentItemWanted) {
                  return true;
              } else {
+@@ -394,7 +_,7 @@
+ 
+     @Override
+     protected void pickUpItem(ServerLevel level, ItemEntity entity) {
+-        this.onItemPickup(entity);
++        // this.onItemPickup(entity); // Paper - EntityPickupItemEvent fixes; call in PiglinAi#pickUpItem after EntityPickupItemEvent is fired
+         PiglinAi.pickUpItem(level, this, entity);
+     }
+ 

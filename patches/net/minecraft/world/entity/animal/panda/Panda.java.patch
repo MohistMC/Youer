@@ -16,6 +16,24 @@
  import org.jspecify.annotations.Nullable;
  
  public class Panda extends Animal {
+@@ -134,6 +_,7 @@
+     }
+ 
+     public void sit(boolean value) {
++        if (!new io.papermc.paper.event.entity.EntityToggleSitEvent(this.getBukkitEntity(), value).callEvent()) return; // Paper - Add EntityToggleSitEvent
+         this.setFlag(8, value);
+     }
+ 
+@@ -518,7 +_,9 @@
+ 
+         for (Panda panda : level.getEntitiesOfClass(Panda.class, this.getBoundingBox().inflate(10.0))) {
+             if (!panda.isBaby() && panda.onGround() && !panda.isInWater() && panda.canPerformAction()) {
++                if (new com.destroystokyo.paper.event.entity.EntityJumpEvent(getBukkitLivingEntity()).callEvent()) { // Paper - Entity Jump API
+                 panda.jumpFromGround();
++                } else { this.setJumping(false); } // Paper - Entity Jump API; setJumping(false) stops a potential loop
+             }
+         }
+ 
 @@ -529,13 +_,13 @@
  
      @Override
@@ -32,3 +50,23 @@
          }
      }
  
+@@ -634,8 +_,9 @@
+                 }
+ 
+                 if (!this.level().isClientSide() && this.getAge() == 0 && this.canFallInLove()) {
++                    final ItemStack breedCopy = interactionItemStack.copy(); // Paper - Fix EntityBreedEvent copying
+                     this.usePlayerItem(player, hand, interactionItemStack);
+-                    this.setInLove(player);
++                    this.setInLove(player, breedCopy); // Paper - Fix EntityBreedEvent copying
+                 } else {
+                     if (!(this.level() instanceof ServerLevel level) || this.isSitting() || this.isInWater()) {
+                         return InteractionResult.PASS;
+@@ -867,7 +_,7 @@
+         @Override
+         protected void alertOther(Mob other, LivingEntity hurtByMob) {
+             if (other instanceof Panda && other.isAggressive()) {
+-                other.setTarget(hurtByMob);
++                other.setTarget(hurtByMob, org.bukkit.event.entity.EntityTargetEvent.TargetReason.TARGET_ATTACKED_ENTITY); // CraftBukkit
+             }
+         }
+     }

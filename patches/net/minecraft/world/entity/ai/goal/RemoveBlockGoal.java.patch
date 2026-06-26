@@ -21,8 +21,32 @@
                  level.removeBlock(eatPos, false);
                  if (!level.isClientSide()) {
                      for (int i = 0; i < 20; i++) {
-@@ -139,6 +_,6 @@
-         ChunkAccess chunk = level.getChunk(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()), ChunkStatus.FULL, false);
+@@ -119,14 +_,17 @@
+     }
+ 
+     private @Nullable BlockPos getPosWithBlock(BlockPos pos, BlockGetter level) {
+-        if (level.getBlockState(pos).is(this.blockToRemove)) {
++        net.minecraft.world.level.block.state.BlockState state = level.getBlockStateIfLoaded(pos); // Paper - Prevent AI rules from loading chunks
++        if (state == null) return null; // Paper - Prevent AI rules from loading chunks
++        if (state.is(this.blockToRemove)) { // Paper - Prevent AI rules from loading chunks
+             return pos;
+         }
+ 
+         BlockPos[] neighbours = new BlockPos[]{pos.below(), pos.west(), pos.east(), pos.north(), pos.south(), pos.below().below()};
+ 
+         for (BlockPos neighborPos : neighbours) {
+-            if (level.getBlockState(neighborPos).is(this.blockToRemove)) {
++            net.minecraft.world.level.block.state.BlockState neighborState = level.getBlockStateIfLoaded(neighborPos); // Paper - Prevent AI rules from loading chunks
++            if (neighborState != null && neighborState.is(this.blockToRemove)) { // Paper - Prevent AI rules from loading chunks
+                 return neighborPos;
+             }
+         }
+@@ -136,9 +_,9 @@
+ 
+     @Override
+     protected boolean isValidTarget(LevelReader level, BlockPos pos) {
+-        ChunkAccess chunk = level.getChunk(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()), ChunkStatus.FULL, false);
++        ChunkAccess chunk = level.getChunkIfLoadedImmediately(pos.getX() >> 4, pos.getZ() >> 4); // Paper - Prevent AI rules from loading chunks
          return chunk == null
              ? false
 -            : chunk.getBlockState(pos).is(this.blockToRemove) && chunk.getBlockState(pos.above()).isAir() && chunk.getBlockState(pos.above(2)).isAir();

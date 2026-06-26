@@ -9,18 +9,26 @@
                  boolean destroyedBlock = false;
                  AABB bb = this.getBoundingBox().inflate(0.2);
  
-@@ -153,6 +_,11 @@
+@@ -153,12 +_,19 @@
                      BlockState state = serverLevel.getBlockState(pos);
                      Block block = state.getBlock();
                      if (block instanceof LeavesBlock) {
 +                        // CraftBukkit start
-+                        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this, pos, net.minecraft.world.level.block.Blocks.AIR.defaultBlockState())) {
++                        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this, pos, state.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
 +                            continue;
 +                        }
 +                        // CraftBukkit end
                          destroyedBlock = serverLevel.destroyBlock(pos, true, this) || destroyedBlock;
                      }
                  }
+ 
+                 if (!destroyedBlock && this.onGround()) {
++                    if (new com.destroystokyo.paper.event.entity.EntityJumpEvent(getBukkitLivingEntity()).callEvent()) { // Paper - Entity Jump API
+                     this.jumpFromGround();
++                    } else { this.setJumping(false); } // Paper - Entity Jump API; setJumping(false) stops a potential loop
+                 }
+             }
+ 
 @@ -222,9 +_,9 @@
  
      private void roar() {
@@ -33,3 +41,12 @@
                  if (!(entity instanceof AbstractIllager)) {
                      entity.hurtServer(level, this.damageSources().mobAttack(this), 6.0F);
                  }
+@@ -249,7 +_,7 @@
+         double xd = entity.getX() - this.getX();
+         double zd = entity.getZ() - this.getZ();
+         double dd = Math.max(xd * xd + zd * zd, 0.001);
+-        entity.push(xd / dd * 4.0, 0.2, zd / dd * 4.0);
++        entity.push(xd / dd * 4.0, 0.2, zd / dd * 4.0, this); // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
+     }
+ 
+     @Override

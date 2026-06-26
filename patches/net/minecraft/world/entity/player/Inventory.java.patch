@@ -101,10 +101,18 @@
      public Inventory(Player player, EntityEquipment equipment) {
          this.player = player;
          this.equipment = equipment;
-@@ -98,6 +_,28 @@
-             && slotItemStack.getCount() < this.getMaxStackSize(slotItemStack);
-     }
+@@ -93,10 +_,32 @@
  
+     private boolean hasRemainingSpaceForItem(ItemStack slotItemStack, ItemStack newItemStack) {
+         return !slotItemStack.isEmpty()
+-            && ItemStack.isSameItemSameComponents(slotItemStack, newItemStack)
+             && slotItemStack.isStackable()
+-            && slotItemStack.getCount() < this.getMaxStackSize(slotItemStack);
+-    }
++            && slotItemStack.getCount() < this.getMaxStackSize(slotItemStack)
++            && ItemStack.isSameItemSameComponents(slotItemStack, newItemStack); // Paper - check if itemstack is stackable first
++    }
++
 +    // CraftBukkit start - Watch method above! :D
 +    public int canHold(ItemStack itemstack) {
 +        int remains = itemstack.getCount();
@@ -126,10 +134,9 @@
 +        return itemstack.getCount() - remains;
 +    }
 +    // CraftBukkit end
-+
+ 
      public int getFreeSlot() {
          for (int i = 0; i < this.items.size(); i++) {
-             if (this.items.get(i).isEmpty()) {
 @@ -108,8 +_,10 @@
          return -1;
      }
@@ -143,18 +150,19 @@
          if (!this.items.get(this.selected).isEmpty()) {
              int freeSlot = this.getFreeSlot();
              if (freeSlot != -1) {
-@@ -120,7 +_,10 @@
+@@ -120,8 +_,10 @@
          this.items.set(this.selected, itemStack);
      }
  
 -    public void pickSlot(int slot) {
+-        this.setSelectedSlot(this.getSuitableHotbarSlot());
 +    // Paper start - Add PlayerPickItemEvent
 +    public void pickSlot(final int slot, final int targetSlot) {
 +        this.setSelectedSlot(targetSlot);
 +        // Paper end - Add PlayerPickItemEvent
-         this.setSelectedSlot(this.getSuitableHotbarSlot());
          ItemStack tmp = this.items.get(this.selected);
          this.items.set(this.selected, this.items.get(slot));
+         this.items.set(slot, tmp);
 @@ -145,12 +_,12 @@
          return !item.isDamaged() && !item.isEnchanted() && !item.has(DataComponents.CUSTOM_NAME);
      }

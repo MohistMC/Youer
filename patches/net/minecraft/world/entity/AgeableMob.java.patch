@@ -1,9 +1,22 @@
 --- a/net/minecraft/world/entity/AgeableMob.java
 +++ b/net/minecraft/world/entity/AgeableMob.java
-@@ -190,6 +_,21 @@
+@@ -68,6 +_,11 @@
+     protected InteractionResult mobInteract(Player player, InteractionHand hand) {
+         ItemStack itemInHand = player.getItemInHand(hand);
+         if (canUseGoldenDandelion(itemInHand, this.isBaby(), this.ageLockParticleTimer, this)) {
++            // Paper start - call PlayerToggleEntityAgeLockEvent
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerToggleEntityAgeLockEvent(player, this, itemInHand, hand, !this.isAgeLocked(), AGE_LOCKED)) {
++                return InteractionResult.SUCCESS;
++            }
++            // Paper end - call PlayerToggleEntityAgeLockEvent
+             setAgeLocked(this, this::isAgeLocked, player, itemInHand, mob -> this.setAgeLockedData());
+             return InteractionResult.SUCCESS;
+         } else {
+@@ -189,6 +_,21 @@
+ 
          super.onSyncedDataUpdated(accessor);
      }
- 
++
 +    // Paper start - EAR 2
 +    @Override
 +    public void inactiveTick() {
@@ -18,7 +31,6 @@
 +        }
 +    }
 +    // Paper end - EAR 2
-+
+ 
      @Override
      public void aiStep() {
-         super.aiStep();

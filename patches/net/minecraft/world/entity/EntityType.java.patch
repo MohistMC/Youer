@@ -8,6 +8,14 @@
  import java.util.stream.Stream;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
+@@ -52,6 +_,7 @@
+ import org.slf4j.Logger;
+ 
+ public class EntityType<T extends Entity> implements EntityTypeTest<Entity, T>, FeatureElement {
++    private static final boolean DEBUG_ENTITIES_WITH_INVALID_IDS = Boolean.getBoolean("paper.debugEntitiesWithInvalidIds"); // Paper - Add logging for debugging entity tags with invalid ids
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private final Holder.Reference<EntityType<?>> builtInRegistryHolder = BuiltInRegistries.ENTITY_TYPE.createIntrusiveHolder(this);
+     public static final Codec<EntityType<?>> CODEC = BuiltInRegistries.ENTITY_TYPE.byNameCodec();
 @@ -73,10 +_,19 @@
      private final FeatureFlagSet requiredFeatures;
      private final boolean allowedInPeaceful;
@@ -103,7 +111,20 @@
      }
  
      public static <T extends Entity> PostSpawnProcessor<T> createDefaultStackConfig(Level level, ItemStack itemStack, @Nullable LivingEntity user) {
-@@ -152,20 +_,30 @@
+@@ -148,24 +_,52 @@
+         PostSpawnProcessor<T> initialConfig, Level level, ItemStack itemStack, @Nullable LivingEntity user
+     ) {
+         TypedEntityData<EntityType<?>> entityData = itemStack.get(DataComponents.ENTITY_DATA);
+-        return entityData != null ? initialConfig.andThen(entity -> updateCustomEntityTag(level, user, entity, entityData)) : initialConfig;
++        // CraftBukkit start - SPIGOT-5665
++        return entityData != null ? initialConfig.andThen(entity -> {
++            try {
++                updateCustomEntityTag(level, user, entity, entityData);
++            } catch (Throwable t) {
++                LOGGER.warn("Error loading spawn egg NBT", t);
++            }
++        }) : initialConfig;
++        // CraftBukkit end
      }
  
      public @Nullable T spawn(ServerLevel level, BlockPos spawnPos, EntitySpawnReason spawnReason) {
@@ -132,13 +153,23 @@
 +        return this.spawn(level, postSpawnConfig, spawnPos, spawnReason, tryMoveDown, movedUp, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT);
 +    }
 +
-+    public @Nullable T spawn(ServerLevel level, @Nullable PostSpawnProcessor<T> postSpawnConfig, BlockPos spawnPos, EntitySpawnReason spawnReason, boolean tryMoveDown, boolean movedUp, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason bukkitSpawnReason) {
++    public @Nullable T spawn(ServerLevel level, @Nullable PostSpawnProcessor<T> postSpawnConfig, BlockPos spawnPos, EntitySpawnReason spawnReason, boolean tryMoveDown, boolean movedUp, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason creatureSpawnReason) {
 +        // CraftBukkit end
++        // Paper start - PreCreatureSpawnEvent
++        com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent event = new com.destroystokyo.paper.event.entity.PreCreatureSpawnEvent(
++            org.bukkit.craftbukkit.util.CraftLocation.toBukkit(spawnPos, level),
++            org.bukkit.craftbukkit.entity.CraftEntityType.minecraftToBukkit(this),
++            creatureSpawnReason
++        );
++        if (!event.callEvent()) {
++            return null;
++        }
++        // Paper end - PreCreatureSpawnEvent
          T entity = this.create(level, postSpawnConfig, spawnPos, spawnReason, tryMoveDown, movedUp);
          if (entity != null) {
 -            level.addFreshEntityWithPassengers(entity);
 +            // CraftBukkit start
-+            level.addFreshEntityWithPassengers(entity, bukkitSpawnReason);
++            level.addFreshEntityWithPassengers(entity, creatureSpawnReason);
 +            if (entity.isRemoved()) {
 +                return null; // Don't return an entity when CreatureSpawnEvent is canceled
 +            }
@@ -160,6 +191,67 @@
          }
  
          if (postSpawnConfig != null) {
+@@ -226,6 +_,13 @@
+                 if (level.isClientSide()
+                     || !entity.getType().onlyOpCanSetNbt()
+                     || user instanceof Player player && server.getPlayerList().isOp(player.nameAndId())) {
++                    // Paper start - filter out protected tags
++                    if (user == null || !user.getBukkitEntity().hasPermission("minecraft.nbt.place")) {
++                        for (net.minecraft.commands.arguments.NbtPathArgument.NbtPath tag : level.paperConfig().entities.spawning.filteredEntityTagNbtPaths) {
++                            tag.remove(entityData.getUnsafe());
++                        }
++                    }
++                    // Paper end - filter out protected tags
+                     entityData.loadInto(entity);
+                 }
+             }
+@@ -292,7 +_,14 @@
+     }
+ 
+     public boolean canSpawn(Level level) {
+-        return !this.isEnabled(level.enabledFeatures()) ? false : this.isAllowedInPeaceful() || level.getDifficulty() != Difficulty.PEACEFUL;
++        // Paper start - peaceful override - pass item
++        // We do not mark this method as DoNotUse as it is heavily used in #create, which would require every create call to pass a null component.
++        // Not optimal but better than giant diffs everywhere, especially when the only two places that really have this additional data are spawn egg and summon.
++        return canSpawn(level, null);
++    }
++    public boolean canSpawn(final Level level, @Nullable final CompoundTag tag) {
++        return this.isEnabled(level.enabledFeatures()) && (this.isAllowedInPeaceful(tag) || level.getDifficulty() != Difficulty.PEACEFUL);
++        // Paper end - peaceful override - pass item
+     }
+ 
+     public @Nullable T create(Level level, EntitySpawnReason reason) {
+@@ -304,10 +_,28 @@
+     }
+ 
+     public static Optional<Entity> create(ValueInput input, Level level, EntitySpawnRequest request) {
++        // Paper start - Don't fire sync event during generation
++        return create(input, level, request, false);
++    }
++
++    public static Optional<Entity> create(final ValueInput input, final Level level, final EntitySpawnRequest request, final boolean generation) {
++        // Paper end - Don't fire sync event during generation
+         return Util.ifElse(
+             by(input).map(type -> type.create(level, request)),
+-            entity -> entity.load(input),
+-            () -> LOGGER.warn("Skipping Entity with id {}", input.getStringOr("id", "[invalid]"))
++            // Paper start - Don't fire sync event during generation
++            entity -> {
++                if (generation) entity.generation = true; // Paper - Don't fire sync event during generation
++                entity.load(input);
++            },
++            // Paper end - Don't fire sync event during generation
++            // Paper start - Add logging for debugging entity tags with invalid ids
++            () -> {
++                LOGGER.warn("Skipping Entity with id {}", input.getStringOr("id", "[invalid]"));
++                if ((DEBUG_ENTITIES_WITH_INVALID_IDS || level.getCraftServer().getServer().isDebugging()) && input instanceof TagValueInput tagInput) {
++                    LOGGER.warn("Skipped entity tag: {}", tagInput.input);
++                }
++            }
++            // Paper end - Add logging for debugging entity tags with invalid ids
+         );
+     }
+ 
 @@ -383,7 +_,18 @@
      }
  

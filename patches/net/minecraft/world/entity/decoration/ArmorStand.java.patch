@@ -15,7 +15,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class ArmorStand extends LivingEntity {
-@@ -88,6 +_,12 @@
+@@ -88,9 +_,16 @@
      private boolean invisible = false;
      public long lastHit;
      public int disabledSlots = 0;
@@ -28,6 +28,10 @@
  
      public ArmorStand(EntityType<? extends ArmorStand> type, Level level) {
          super(type, level);
++        if (level != null) this.canTick = level.paperConfig().entities.armorStands.tick; // Paper - Allow ArmorStands not to tick
+     }
+ 
+     public ArmorStand(Level level, double x, double y, double z) {
 @@ -102,6 +_,13 @@
          return createLivingAttributes().add(Attributes.STEP_HEIGHT, 0.0);
      }
@@ -42,16 +46,58 @@
      @Override
      public void refreshDimensions() {
          double oldX = this.getX();
-@@ -176,7 +_,7 @@
+@@ -137,6 +_,14 @@
+         return slot != EquipmentSlot.BODY && slot != EquipmentSlot.SADDLE && !this.isDisabled(slot);
+     }
+ 
++    // Paper start - Allow ArmorStands not to tick; Still update equipment
++    @Override
++    public void setItemSlot(EquipmentSlot slot, ItemStack stack, boolean silent) {
++        super.setItemSlot(slot, stack, silent);
++        this.noTickEquipmentDirty = true;
++    }
++    // Paper end - Allow ArmorStands not to tick; Still update equipment
++
+     @Override
+     protected void addAdditionalSaveData(ValueOutput output) {
+         super.addAdditionalSaveData(output);
+@@ -150,6 +_,7 @@
+         }
+ 
+         output.store("Pose", ArmorStand.ArmorStandPose.CODEC, this.getArmorStandPose());
++        if (this.canTickSetByAPI) output.putBoolean("Paper.CanTickOverride", this.canTick); // Paper - Allow ArmorStands not to tick
+     }
+ 
+     @Override
+@@ -163,10 +_,16 @@
+         this.setMarker(input.getBooleanOr("Marker", false));
+         this.noPhysics = !this.hasPhysics();
+         input.read("Pose", ArmorStand.ArmorStandPose.CODEC).ifPresent(this::setArmorStandPose);
++        // Paper start - Allow ArmorStands not to tick
++        if (input.getInt("Paper.CanTickOverride").isPresent()) { // Check if is set
++            this.canTick = input.getBooleanOr("Paper.CanTickOverride", true);
++            this.canTickSetByAPI = true;
++        }
++        // Paper end - Allow ArmorStands not to tick
+     }
+ 
+     @Override
+-    public boolean isPushable() {
++    public boolean isCollidable(boolean ignoreClimbing) { // Paper - Climbing should not bypass cramming gamerule
+         return false;
+     }
+ 
+@@ -176,7 +_,8 @@
  
      @Override
      protected void pushEntities() {
 -        for (Entity entity : this.level().getEntities(this, this.getBoundingBox(), RIDABLE_MINECARTS)) {
++        if (!this.level().paperConfig().entities.armorStands.doCollisionEntityLookups) return; // Paper - Option to prevent armor stands from doing entity lookups
 +        for (Entity entity : this.level().getEntitiesOfClass(AbstractMinecart.class, this.getBoundingBox(), RIDABLE_MINECARTS)) { // Paper - optimise collisions
              if (this.distanceToSqr(entity) <= 0.2) {
                  entity.push(this);
              }
-@@ -250,57 +_,68 @@
+@@ -250,57 +_,75 @@
          ItemStack itemStack = this.getItemBySlot(slot);
          if (!itemStack.isEmpty() && (this.disabledSlots & 1 << slot.getFilterBit(8)) != 0) {
              return false;
@@ -124,6 +170,12 @@
 -        }
 -
 -        if (source.is(DamageTypeTags.IS_EXPLOSION)) {
+-            this.brokenByAnything(level, source);
+-            this.kill(level);
+-            return false;
+-        }
+-
+-        if (source.is(DamageTypeTags.IGNITES_ARMOR_STANDS)) {
 +        } else if (!level.getGameRules().get(GameRules.MOB_GRIEFING) && source.getEntity() instanceof Mob) {
 +            return false;
 +        } else if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
@@ -142,23 +194,58 @@
 +                return false;
 +            }
 +            // CraftBukkit end
-             this.brokenByAnything(level, source);
--            this.kill(level);
-+            this.kill(level, source); // CraftBukkit
-             return false;
--        }
--
--        if (source.is(DamageTypeTags.IGNITES_ARMOR_STANDS)) {
++            // Paper start - avoid duplicate event call
++            org.bukkit.event.entity.EntityDeathEvent event = this.brokenByAnything(level, source);
++            if (!event.isCancelled()) this.kill(level, source, false); // CraftBukkit
++            // Paper end
++            return false;
 +        } else if (source.is(DamageTypeTags.IGNITES_ARMOR_STANDS)) {
++            // CraftBukkit start
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.handleNonLivingEntityDamageEvent(this, source, damage, true, this.invisible)) {
++                return false;
++            }
++            // CraftBukkit end
              if (this.isOnFire()) {
                  this.causeDamage(level, source, 0.15F);
              } else {
-@@ -334,7 +_,7 @@
-                 } else {
-                     this.brokenByPlayer(level, source);
+@@ -309,9 +_,19 @@
+ 
+             return false;
+         } else if (source.is(DamageTypeTags.BURNS_ARMOR_STANDS) && this.getHealth() > 0.5F) {
++            // CraftBukkit start
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.handleNonLivingEntityDamageEvent(this, source, damage, true, this.invisible)) {
++                return false;
++            }
++            // CraftBukkit end
+             this.causeDamage(level, source, 4.0F);
+             return false;
+         } else {
++            // CraftBukkit start
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.handleNonLivingEntityDamageEvent(this, source, damage, true, this.invisible)) {
++                return false;
++            }
++            // CraftBukkit end
+             boolean allowIncrementalBreaking = source.is(DamageTypeTags.CAN_BREAK_ARMOR_STAND);
+             boolean shouldKill = source.is(DamageTypeTags.ALWAYS_KILLS_ARMOR_STANDS);
+             if (!allowIncrementalBreaking && !shouldKill) {
+@@ -322,7 +_,7 @@
+                 if (source.isCreativePlayer()) {
+                     this.playBrokenSound();
                      this.showBreakingParticles();
 -                    this.kill(level);
-+                    this.discard(EntityRemoveEvent.Cause.DEATH); // CraftBukkit - SPIGOT-4890: remain as this.discard() since above damagesource method will call death event
++                    this.kill(level, source); // CraftBukkit
+                     return true;
+                 }
+ 
+@@ -332,9 +_,9 @@
+                     this.gameEvent(GameEvent.ENTITY_DAMAGE, source.getEntity());
+                     this.lastHit = time;
+                 } else {
+-                    this.brokenByPlayer(level, source);
++                    org.bukkit.event.entity.EntityDeathEvent deathEvent = this.brokenByPlayer(level, source); // Paper
+                     this.showBreakingParticles();
+-                    this.kill(level);
++                    if (!deathEvent.isCancelled()) this.kill(level, source, false); // Paper - we still need to kill to follow vanilla logic (emit the game event etc...)
                  }
  
                  return true;
@@ -216,7 +303,7 @@
      }
  
      private void playBrokenSound() {
-@@ -458,9 +_,29 @@
+@@ -458,9 +_,44 @@
          return this.isSmall();
      }
  
@@ -226,6 +313,21 @@
 +        return true; // MC-157395, SPIGOT-5193 even baby (small) armor stands should drop
 +    }
 +    // CraftBukkit end
++
++    // Paper start - Allow ArmorStands not to tick
++    @Override
++    public void tick() {
++        if (!this.canTick) {
++            if (this.noTickEquipmentDirty) {
++                this.noTickEquipmentDirty = false;
++                this.detectEquipmentUpdates();
++            }
++
++            return;
++        }
++        super.tick();
++    }
++    // Paper end - Allow ArmorStands not to tick
 +
      @Override
      public void kill(ServerLevel level) {
@@ -247,3 +349,17 @@
          this.gameEvent(GameEvent.ENTITY_DIE);
      }
  
+@@ -707,4 +_,13 @@
+                 .apply(i, ArmorStand.ArmorStandPose::new)
+         );
+     }
++
++    // Paper start
++    @Override
++    public void move(net.minecraft.world.entity.MoverType type, Vec3 movement) {
++        if (this.canMove) {
++            super.move(type, movement);
++        }
++    }
++    // Paper end
+ }

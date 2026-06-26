@@ -17,6 +17,29 @@
  
      public MinecartTNT(EntityType<? extends MinecartTNT> type, Level level) {
          super(type, level);
+@@ -49,6 +_,12 @@
+     public void tick() {
+         super.tick();
+         if (this.fuse > 0) {
++            // Paper start - Configurable TNT height nerf
++            if (this.level().paperConfig().fixes.tntEntityHeightNerf.test(v -> this.getY() > v)) {
++                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.OUT_OF_WORLD);
++                return;
++            }
++            // Paper end - Configurable TNT height nerf
+             this.fuse--;
+             this.level().addParticle(ParticleTypes.SMOKE, this.getX(), this.getY() + 0.5, this.getZ(), 0.0, 0.0, 0.0);
+         } else if (this.fuse == 0) {
+@@ -80,8 +_,7 @@
+             this.destroy(level, this.getDropItem());
+         } else {
+             if (this.fuse < 0) {
+-                this.primeFuse(source);
+-                this.fuse = this.random.nextInt(20) + this.random.nextInt(20);
++                this.primeFuse(source, this.random.nextInt(20) + this.random.nextInt(20)); // Paper - call EntityIgniteEvent
+             }
+         }
+     }
 @@ -100,20 +_,18 @@
          if (this.level() instanceof ServerLevel level) {
              if (level.getGameRules().get(GameRules.TNT_EXPLODES)) {
@@ -49,3 +72,27 @@
              }
          }
      }
+@@ -144,9 +_,21 @@
+         }
+     }
+ 
+-    public void primeFuse(@Nullable DamageSource source) {
++    public void primeFuse(final @Nullable DamageSource source) {
++        // Paper start - add fuseTime param
++        this.primeFuse(source, 80);
++    }
++
++    public void primeFuse(final @Nullable DamageSource source, int fuseTime) {
++        // Paper end - add fuseTime param
+         if (!(this.level() instanceof ServerLevel serverLevel && !serverLevel.getGameRules().get(GameRules.TNT_EXPLODES))) {
+-            this.fuse = 80;
++            // Paper start - call EntityIgniteEvent
++            fuseTime = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityIgniteEvent(this, fuseTime);
++            if (fuseTime == net.minecraft.world.entity.item.PrimedTnt.NO_FUSE) {
++                return;
++            }
++            this.fuse = fuseTime;
++            // Paper end - call EntityIgniteEvent
+             if (!this.level().isClientSide()) {
+                 if (source != null && this.ignitionSource == null) {
+                     this.ignitionSource = this.damageSources().explosion(this, source.getEntity());

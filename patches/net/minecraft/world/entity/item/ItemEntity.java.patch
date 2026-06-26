@@ -93,11 +93,16 @@
          } else {
              super.tick();
              if (this.pickupDelay > 0 && this.pickupDelay != 32767) {
-@@ -144,7 +_,8 @@
+@@ -143,8 +_,12 @@
+                 this.applyEffectsFromBlocks();
                  float airDrag = this.getAirDrag();
                  float groundFriction = airDrag;
-                 if (this.onGround()) {
+-                if (this.onGround()) {
 -                    groundFriction *= this.level().getBlockState(this.getBlockPosBelowThatAffectsMyMovement()).getBlock().getFriction();
++                if (this.frictionState == net.kyori.adventure.util.TriState.FALSE) { // Paper - Friction API
++                    groundFriction = 1F;
++                } else if (this.onGround()) {
++                // Paper end - Friction API
 +                    BlockPos groundPos = getBlockPosBelowThatAffectsMyMovement();
 +                    groundFriction *= this.level().getBlockState(groundPos).getFriction(level(), groundPos, this);
                  }
@@ -140,7 +145,7 @@
              }
          }
      }
-@@ -202,8 +_,11 @@
+@@ -202,9 +_,20 @@
  
      private void mergeWithNeighbours() {
          if (this.isMergable()) {
@@ -148,12 +153,29 @@
 +            double radius = this.level().spigotConfig.itemMerge;
              for (ItemEntity entity : this.level()
 -                .getEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate(0.5, 0.0, 0.5), other -> other != this && other.isMergable())) {
-+                .getEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate(radius, radius - 0.5D, radius), other -> other != this && other.isMergable())) {
++                .getEntitiesOfClass(ItemEntity.class, this.getBoundingBox().inflate(radius, this.level().paperConfig().entities.behavior.onlyMergeItemsHorizontally ? 0 : radius - 0.5D, radius), other -> other != this && other.isMergable())) { // Spigot // Paper - configuration to only merge items horizontally
 +                // Spigot end
                  if (entity.isMergable()) {
++                    // Paper start - Fix items merging through walls
++                    if (this.level().paperConfig().fixes.fixItemsMergingThroughWalls) {
++                        if (this.level().clipDirect(this.position(), entity.position(),
++                            net.minecraft.world.phys.shapes.CollisionContext.of(this)) == net.minecraft.world.phys.HitResult.Type.BLOCK) {
++                            continue;
++                        }
++                    }
++                    // Paper end - Fix items merging through walls
                      this.tryToMerge(entity);
                      if (this.isRemoved()) {
-@@ -223,7 +_,7 @@
+                         break;
+@@ -216,14 +_,14 @@
+ 
+     private boolean isMergable() {
+         ItemStack item = this.getItem();
+-        return this.isAlive() && this.pickupDelay != 32767 && this.age != -32768 && this.age < 6000 && item.getCount() < item.getMaxStackSize();
++        return this.isAlive() && this.pickupDelay != 32767 && this.age != -32768 && this.age < this.despawnRate && item.getCount() < item.getMaxStackSize(); // Paper - Alternative item-despawn-rate
+     }
+ 
+     private void tryToMerge(ItemEntity other) {
          ItemStack thisItemStack = this.getItem();
          ItemStack otherItemStack = other.getItem();
          if (Objects.equals(this.target, other.target) && areMergable(thisItemStack, otherItemStack)) {
@@ -226,7 +248,7 @@
      }
  
      @Override
-@@ -308,6 +_,7 @@
+@@ -308,11 +_,17 @@
          output.putShort("Health", (short)this.health);
          output.putShort("Age", (short)this.age);
          output.putShort("PickupDelay", (short)this.pickupDelay);
@@ -234,7 +256,17 @@
          EntityReference.store(this.thrower, output, "Thrower");
          output.storeNullable("Owner", UUIDUtil.CODEC, this.target);
          if (!this.getItem().isEmpty()) {
-@@ -320,11 +_,12 @@
+             output.store("Item", ItemStack.CODEC, this.getItem());
+         }
++        // Paper start - Friction API
++        if (this.frictionState != net.kyori.adventure.util.TriState.NOT_SET) {
++            output.putString("Paper.FrictionState", this.frictionState.toString());
++        }
++        // Paper end - Friction API
+     }
+ 
+     @Override
+@@ -320,11 +_,21 @@
          this.health = input.getShortOr("Health", (short)5);
          this.age = input.getShortOr("Age", (short)0);
          this.pickupDelay = input.getShortOr("PickupDelay", (short)0);
@@ -242,13 +274,22 @@
          this.target = input.read("Owner", UUIDUtil.CODEC).orElse(null);
          this.thrower = EntityReference.read(input, "Thrower");
          this.setItem(input.read("Item", ItemStack.CODEC).orElse(ItemStack.EMPTY));
++        // Paper start - Friction API
++        input.getString("Paper.FrictionState").ifPresent(frictionState -> {
++            try {
++                this.frictionState = net.kyori.adventure.util.TriState.valueOf(frictionState);
++            } catch (Exception ignored) {
++                com.mojang.logging.LogUtils.getLogger().error("Unknown friction state {} for {}", frictionState, this);
++            }
++        });
++        // Paper end - Friction API
          if (this.getItem().isEmpty()) {
 -            this.discard();
 +            this.discard(null); // CraftBukkit - add Bukkit remove cause
          }
      }
  
-@@ -334,10 +_,65 @@
+@@ -334,10 +_,89 @@
              ItemStack itemStack = this.getItem();
              Item item = itemStack.getItem();
              int orgCount = itemStack.getCount();
@@ -257,6 +298,22 @@
 +            // CraftBukkit start - fire PlayerPickupItemEvent
 +            int canHold = player.getInventory().canHold(itemStack);
 +            int remaining = orgCount - canHold;
++            boolean flyAtPlayer = false; // Paper
++
++            // Paper start - PlayerAttemptPickupItemEvent
++            if (this.pickupDelay <= 0) {
++                org.bukkit.event.player.PlayerAttemptPickupItemEvent attemptEvent = new org.bukkit.event.player.PlayerAttemptPickupItemEvent((org.bukkit.entity.Player) player.getBukkitEntity(), (org.bukkit.entity.Item) this.getBukkitEntity(), remaining);
++                this.level().getCraftServer().getPluginManager().callEvent(attemptEvent);
++
++                flyAtPlayer = attemptEvent.getFlyAtPlayer();
++                if (attemptEvent.isCancelled()) {
++                    if (flyAtPlayer) {
++                        player.take(this, orgCount);
++                    }
++
++                    return;
++                }
++            }
 +
 +            if (this.pickupDelay <= 0 && canHold > 0) {
 +                itemStack.setCount(canHold);
@@ -264,8 +321,14 @@
 +                PlayerPickupItemEvent playerEvent = new PlayerPickupItemEvent((org.bukkit.entity.Player) player.getBukkitEntity(), (org.bukkit.entity.Item) this.getBukkitEntity(), remaining);
 +                playerEvent.setCancelled(!playerEvent.getPlayer().getCanPickupItems());
 +                this.level().getCraftServer().getPluginManager().callEvent(playerEvent);
++                flyAtPlayer = playerEvent.getFlyAtPlayer(); // Paper
 +                if (playerEvent.isCancelled()) {
 +                    itemStack.setCount(orgCount); // SPIGOT-5294 - restore count
++                    // Paper start
++                    if (flyAtPlayer) {
++                        player.take(this, orgCount);
++                    }
++                    // Paper end
 +                    return;
 +                }
 +
@@ -293,6 +356,7 @@
 +                this.pickupDelay = -1;
 +            }
 +            // CraftBukkit end
++            // Paper end - PlayerAttemptPickupItemEvent
 +
 +            // Neo: Fire item pickup pre/post and adjust handling logic to adhere to the event result.
 +            var result = net.neoforged.neoforge.event.EventHooks.fireItemPickupPre(this, player).canPickup();
@@ -309,6 +373,7 @@
 +                // Update `orgCount` to reflect the actual pickup amount. Vanilla is wrong here and always reports the whole stack.
 +                orgCount = originalCopy.getCount() - itemStack.getCount();
 +
++                if (flyAtPlayer) // Paper - PlayerPickupItemEvent
                  player.take(this, orgCount);
                  if (itemStack.isEmpty()) {
 -                    this.discard();
@@ -316,7 +381,14 @@
                      itemStack.setCount(orgCount);
                  }
  
-@@ -380,6 +_,15 @@
+@@ -374,12 +_,22 @@
+ 
+     public void setItem(ItemStack itemStack) {
+         this.getEntityData().set(DATA_ITEM, itemStack);
++        this.despawnRate = this.level().paperConfig().entities.spawning.altItemDespawnRate.enabled ? this.level().paperConfig().entities.spawning.altItemDespawnRate.items.getOrDefault(itemStack.getItem(), this.level().spigotConfig.itemDespawnRate) : this.level().spigotConfig.itemDespawnRate; // Paper - Alternative item-despawn-rate
+     }
+ 
+     public void setTarget(@Nullable UUID target) {
          this.target = target;
      }
  
@@ -337,7 +409,7 @@
      public void makeFakeItem() {
          this.setNeverPickUp();
 -        this.age = 5999;
-+        this.age = getItem().getEntityLifespan(this.level()) - 1;
++        this.age = this.despawnRate - 1; // Spigot // Paper - Alternative item-despawn-rate
      }
  
      public static float getSpin(float ageInTicks, float bobOffset) {

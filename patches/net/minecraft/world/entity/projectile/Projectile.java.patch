@@ -1,16 +1,38 @@
 --- a/net/minecraft/world/entity/projectile/Projectile.java
 +++ b/net/minecraft/world/entity/projectile/Projectile.java
-@@ -45,6 +_,10 @@
+@@ -44,6 +_,7 @@
+     private boolean leftOwnerChecked;
      public boolean hasBeenShot = false;
      private @Nullable Entity lastDeflectedBy;
++    protected boolean hitCancelled = false; // CraftBukkit
  
-+    // CraftBukkit start
-+    private boolean hitCancelled = false;
-+    // CraftBukkit end
-+
      protected Projectile(EntityType<? extends Projectile> type, Level level) {
          super(type, level);
+@@ -83,6 +_,9 @@
+     @Override
+     protected void readAdditionalSaveData(ValueInput input) {
+         this.setOwner(EntityReference.read(input, "Owner"));
++        // Paper start - Reset pearls when they stop being ticked; Don't store shooter name for pearls to block enderpearl travel exploit
++        if (this instanceof net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl && this.level().paperConfig().fixes.disableUnloadedChunkEnderpearlExploit && this.level().paperConfig().misc.legacyEnderPearlBehavior) { this.owner = null; }
++        // Paper end - Reset pearls when they stop being ticked; Don't store shooter name for pearls to block enderpearl travel exploit
+         this.leftOwner = input.getBooleanOr("LeftOwner", false);
+         this.hasBeenShot = input.getBooleanOr("HasBeenShot", false);
      }
+@@ -155,7 +_,14 @@
+         float zd = Mth.cos(yRot * (float) (Math.PI / 180.0)) * Mth.cos(xRot * (float) (Math.PI / 180.0));
+         this.shoot(xd, yd, zd, pow, uncertainty);
+         Vec3 sourceMovement = source.getKnownMovement();
++        // Paper start - allow disabling relative velocity
++        if (!sourceMovement.isFinite()) {
++            sourceMovement = Vec3.ZERO;
++        }
++        if (!source.level().paperConfig().misc.disableRelativeProjectileVelocity) {
+         this.setDeltaMovement(this.getDeltaMovement().add(sourceMovement.x, source.onGround() ? 0.0 : sourceMovement.y, sourceMovement.z));
++        }
++        // Paper end - allow disabling relative velocity
+     }
+ 
+     @Override
 @@ -173,48 +_,126 @@
      }
  
@@ -232,6 +254,21 @@
          return owner == null || this.leftOwner || !owner.isPassengerOfSameVehicle(entity);
      }
  
+@@ -314,13 +_,7 @@
+     }
+ 
+     protected static float lerpRotation(float rotO, float rot) {
+-        while (rot - rotO < -180.0F) {
+-            rotO -= 360.0F;
+-        }
+-
+-        while (rot - rotO >= 180.0F) {
+-            rotO += 360.0F;
+-        }
++        rotO += Math.round((rot - rotO) / 360.0F) * 360.0F; // Paper - stop large look changes from crashing the server
+ 
+         return Mth.lerp(0.2F, rotO, rot);
+     }
 @@ -343,7 +_,7 @@
      @Override
      public boolean mayInteract(ServerLevel level, BlockPos pos) {

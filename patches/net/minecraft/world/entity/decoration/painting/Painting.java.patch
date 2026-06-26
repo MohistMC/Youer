@@ -1,10 +1,28 @@
 --- a/net/minecraft/world/entity/decoration/painting/Painting.java
 +++ b/net/minecraft/world/entity/decoration/painting/Painting.java
-@@ -164,7 +_,27 @@
-         return AABB.ofSize(position, xSize, ySize, zSize);
-     }
+@@ -150,21 +_,32 @@
  
+     @Override
+     protected AABB calculateBoundingBox(BlockPos pos, Direction direction) {
+-        float shiftToBlockWall = 0.46875F;
+-        Vec3 attachedToWall = Vec3.atCenterOf(pos).relative(direction, -0.46875);
++        // CraftBukkit start
+         PaintingVariant variant = this.getVariant().value();
+-        double horizontalOffset = this.offsetForPaintingSize(variant.width());
+-        double verticalOffset = this.offsetForPaintingSize(variant.height());
+-        Direction left = direction.getCounterClockWise();
+-        Vec3 position = attachedToWall.relative(left, horizontalOffset).relative(Direction.UP, verticalOffset);
+-        Direction.Axis axis = direction.getAxis();
+-        double xSize = axis == Direction.Axis.X ? 0.0625 : variant.width();
+-        double ySize = variant.height();
+-        double zSize = axis == Direction.Axis.Z ? 0.0625 : variant.width();
+-        return AABB.ofSize(position, xSize, ySize, zSize);
+-    }
+-
 -    private double offsetForPaintingSize(int size) {
++        return Painting.calculateBoundingBoxStatic(pos, direction, variant.width(), variant.height());
++    }
++
 +    public static AABB calculateBoundingBoxStatic(BlockPos pos, Direction direction, int width, int height) {
 +        // CraftBukkit end
 +        float f = 0.46875F;

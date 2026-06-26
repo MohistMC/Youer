@@ -16,6 +16,19 @@
  import net.minecraft.world.Difficulty;
  import net.minecraft.world.DifficultyInstance;
  import net.minecraft.world.damagesource.DamageSource;
+@@ -288,8 +_,10 @@
+     }
+ 
+     @Override
+-    public void stopRiding() {
+-        super.stopRiding();
++    // Paper start - Force entity dismount during teleportation
++    public void stopRiding(boolean suppressCancellation) {
++        super.stopRiding(suppressCancellation);
++        // Paper end - Force entity dismount during teleportation
+         if (this.level().isClientSide()) {
+             this.clientOldAttachPosition = this.blockPosition();
+         }
 @@ -401,6 +_,20 @@
                      && this.level().noCollision(this, new AABB(target).deflate(1.0E-6))) {
                      Direction attachmentDirection = this.findAttachableSurface(target);
@@ -37,11 +50,16 @@
                          this.unRide();
                          this.setAttachFace(attachmentDirection);
                          this.playSound(SoundEvents.SHULKER_TELEPORT, 1.0F, 1.0F);
-@@ -464,7 +_,7 @@
+@@ -464,7 +_,12 @@
                  if (baby != null) {
                      baby.setVariant(this.getVariant());
                      baby.snapTo(oldPosition);
 -                    this.level().addFreshEntity(baby);
++                    // Paper start - Call ShulkerDuplicateEvent
++                    if (!new io.papermc.paper.event.entity.ShulkerDuplicateEvent((org.bukkit.entity.Shulker) baby.getBukkitEntity(), (org.bukkit.entity.Shulker) this.getBukkitEntity()).callEvent()) {
++                        return;
++                    }
++                    // Paper end - Call ShulkerDuplicateEvent
 +                    this.level().addFreshEntity(baby, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BREEDING); // CraftBukkit - the mysteries of life
                  }
              }

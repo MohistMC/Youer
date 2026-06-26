@@ -12,6 +12,18 @@
  import org.jspecify.annotations.Nullable;
  
  public abstract class Raider extends PatrollingMonster {
+@@ -215,6 +_,11 @@
+         if (this.hasActiveRaid()
+             && !hasRaidLeader
+             && ItemStack.matches(itemStack, Raid.getOminousBannerInstance(this.registryAccess().lookupOrThrow(Registries.BANNER_PATTERN)))) {
++            // Paper start - EntityPickupItemEvent fixes
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityPickupItemEvent(this, entity, 0).isCancelled()) {
++                return;
++            }
++            // Paper end - EntityPickupItemEvent fixes
+             EquipmentSlot slot = EquipmentSlot.HEAD;
+             ItemStack current = this.getItemBySlot(slot);
+             double dropChance = this.getDropChances().byEquipment(slot);
 @@ -225,7 +_,7 @@
              this.onItemPickup(entity);
              this.setItemSlot(slot, itemStack);
@@ -39,3 +51,11 @@
                      entity.setAggressive(true);
                  }
  
+@@ -394,6 +_,7 @@
+         }
+ 
+         private boolean cannotPickUpBanner() {
++            if (!getServerLevel(this.mob).getGameRules().get(net.minecraft.world.level.gamerules.GameRules.MOB_GRIEFING)) return true; // Paper - respect game and entity rules for picking up items
+             if (!this.mob.hasActiveRaid()) {
+                 return true;
+             }

@@ -1,18 +1,40 @@
 --- a/net/minecraft/world/entity/monster/illager/Illusioner.java
 +++ b/net/minecraft/world/entity/monster/illager/Illusioner.java
-@@ -174,9 +_,11 @@
+@@ -173,8 +_,9 @@
+     }
  
      @Override
-     public void performRangedAttack(LivingEntity target, float power) {
+-    public void performRangedAttack(LivingEntity target, float power) {
 -        ItemStack bowItem = this.getItemInHand(ProjectileUtil.getWeaponHoldingHand(this, Items.BOW));
-+        ItemStack bowItem = this.getItemInHand(ProjectileUtil.getWeaponHoldingHand(this, item -> item instanceof net.minecraft.world.item.BowItem));
++    public void performRangedAttack(final LivingEntity target, final float power) {
++        net.minecraft.world.InteractionHand hand = ProjectileUtil.getWeaponHoldingHand(this, Items.BOW); // Paper - call EntityShootBowEvent
++        ItemStack bowItem = this.getItemInHand(hand); // Paper - call EntityShootBowEvent
          ItemStack projectile = this.getProjectile(bowItem);
          AbstractArrow arrow = ProjectileUtil.getMobArrow(this, projectile, power, bowItem);
-+        if (bowItem.getItem() instanceof net.minecraft.world.item.BowItem bowItemItem)
-+            arrow = bowItemItem.customArrow(arrow, projectile, bowItem);
          double xd = target.getX() - this.getX();
-         double yd = target.getY(0.3333333333333333) - arrow.getY();
+@@ -182,9 +_,21 @@
          double zd = target.getZ() - this.getZ();
+         double distanceToTarget = Math.sqrt(xd * xd + zd * zd);
+         if (this.level() instanceof ServerLevel serverLevel) {
+-            Projectile.spawnProjectileUsingShoot(
++            Projectile.Delayed<AbstractArrow> delayedEntity = Projectile.spawnProjectileUsingShootDelayed( // Paper - delayed
+                 arrow, serverLevel, projectile, xd, yd + distanceToTarget * 0.2F, zd, 1.6F, 14 - serverLevel.getDifficulty().getId() * 4
+             );
++
++            // Paper start - call EntityShootBowEvent
++            org.bukkit.event.entity.EntityShootBowEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityShootBowEvent(this, bowItem, arrow.getPickupItem(), arrow, hand, power, true);
++            if (event.isCancelled()) {
++                event.getProjectile().remove();
++                return;
++            }
++
++            if (event.getProjectile() == arrow.getBukkitEntity()) {
++                delayedEntity.spawn();
++            }
++            // Paper end - call EntityShootBowEvent
+         }
+ 
+         this.playSound(SoundEvents.SKELETON_SHOOT, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));
 @@ -236,7 +_,7 @@
  
          @Override

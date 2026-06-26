@@ -18,21 +18,20 @@
  
  public class PrepareRamNearestTarget<E extends PathfinderMob> extends Behavior<E> {
      public static final int TIME_OUT_DURATION = 160;
-@@ -72,7 +_,16 @@
+@@ -72,6 +_,16 @@
          Brain<?> brain = body.getBrain();
          brain.getMemory(MemoryModuleType.NEAREST_VISIBLE_LIVING_ENTITIES)
              .flatMap(livingEntities -> livingEntities.findClosest(entity -> this.ramTargeting.test(level, body, entity)))
--            .ifPresent(livingEntity -> this.chooseRamPosition(body, livingEntity));
-+            .ifPresent(livingEntity -> {
-+                // CraftBukkit start
-+                EntityTargetEvent event = CraftEventFactory.callEntityTargetLivingEvent(livingEntity, livingEntity, (livingEntity instanceof ServerPlayer) ? EntityTargetEvent.TargetReason.CLOSEST_PLAYER : EntityTargetEvent.TargetReason.CLOSEST_ENTITY);
++            // CraftBukkit start
++            .map((livingEntity) -> {
++                EntityTargetEvent event = CraftEventFactory.callEntityTargetLivingEvent(body, livingEntity, (livingEntity instanceof ServerPlayer) ? EntityTargetEvent.TargetReason.CLOSEST_PLAYER : EntityTargetEvent.TargetReason.CLOSEST_ENTITY);
 +                if (event.isCancelled() || event.getTarget() == null) {
-+                    return;
++                    return null;
 +                }
 +                livingEntity = ((CraftLivingEntity) event.getTarget()).getHandle();
-+                // CraftBukkit end
-+                this.chooseRamPosition(body, livingEntity);
-+            });
++                return livingEntity;
++            })
++            // CraftBukkit end
+             .ifPresent(livingEntity -> this.chooseRamPosition(body, livingEntity));
      }
  
-     protected void stop(ServerLevel level, E body, long timestamp) {

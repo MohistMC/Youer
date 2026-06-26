@@ -133,6 +133,31 @@
              }
          }
  
+@@ -450,6 +_,7 @@
+         int reputation = this.getPlayerReputation(player);
+         if (reputation != 0) {
+             for (MerchantOffer offer : this.getOffers()) {
++                if (offer.ignoreDiscounts) continue; // Paper - Add ignore discounts API
+                 offer.addToSpecialPriceDiff(-Mth.floor(reputation * offer.getPriceMultiplier()));
+             }
+         }
+@@ -459,6 +_,7 @@
+             int amplifier = effect.getAmplifier();
+ 
+             for (MerchantOffer offer : this.getOffers()) {
++                if (offer.ignoreDiscounts) continue; // Paper - Add ignore discounts API
+                 double modifier = 0.3 + 0.0625 * amplifier;
+                 int costReduction = (int)Math.floor(modifier * offer.getBaseCostA().getCount());
+                 offer.addToSpecialPriceDiff(-Math.max(costReduction, 1));
+@@ -584,7 +_,7 @@
+         }
+ 
+         if (offer.shouldRewardExp()) {
+-            this.level().addFreshEntity(new ExperienceOrb(this.level(), this.getX(), this.getY() + 0.5, this.getZ(), popXp));
++            this.level().addFreshEntity(new ExperienceOrb(this.level(), this.getX(), this.getY() + 0.5, this.getZ(), popXp, org.bukkit.entity.ExperienceOrb.SpawnReason.VILLAGER_TRADE, this.getTradingPlayer(), this)); // Paper
+         }
+     }
+ 
 @@ -602,7 +_,7 @@
  
      @Override
@@ -151,19 +176,27 @@
          this.setVillagerData(this.getVillagerData().withLevel(this.getVillagerData().level() + 1));
          this.updateTrades(level);
      }
-@@ -761,13 +_,14 @@
+@@ -761,13 +_,21 @@
  
      @Override
      public void thunderHit(ServerLevel level, LightningBolt lightningBolt) {
 -        if (level.getDifficulty() != Difficulty.PEACEFUL) {
+-            LOGGER.info("Villager {} was struck by lightning {}.", this, lightningBolt);
 +        if (level.getDifficulty() != Difficulty.PEACEFUL && net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, EntityTypes.WITCH, (timer) -> {})) {
-             LOGGER.info("Villager {} was struck by lightning {}.", this, lightningBolt);
++            // Paper - Add EntityZapEvent; move log down, event can cancel
              Witch witch = this.convertTo(EntityTypes.WITCH, ConversionParams.single(this, false, false), w -> {
++                // Paper start - Add EntityZapEvent
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityZapEvent(this, lightningBolt, w).isCancelled()) {
++                    return false;
++                }
++                if (org.spigotmc.SpigotConfig.logVillagerDeaths) LOGGER.info("Villager {} was struck by lightning {}.", this, lightningBolt); // Move down
++                // Paper end - Add EntityZapEvent
                  w.finalizeSpawn(level, level.getCurrentDifficultyAt(w.blockPosition()), EntitySpawnReason.CONVERSION, null);
 +                net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, w);
                  w.setPersistenceRequired();
                  this.releaseAllPois();
 -            });
++                return true; // Paper - Add EntityZapEvent
 +            }, EntityTransformEvent.TransformReason.LIGHTNING, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.LIGHTNING); // CraftBukkit
              if (witch == null) {
                  super.thunderHit(level, lightningBolt);

@@ -18,7 +18,7 @@
  
              if (!this.level().isClientSide()) {
 -                if (this.random.nextInt(10) == 0) {
-+                if (this.random.nextInt(10) == 0 && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, player)) {
++                if (this.random.nextInt(10) == 0 && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, player) && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTameEvent(this, player).isCancelled()) { // CraftBukkit
                      this.tame(player);
                      this.level().broadcastEntityEvent(this, (byte)7);
                  } else {
@@ -54,12 +54,14 @@
      }
  
      @Override
-@@ -381,7 +_,7 @@
+@@ -380,8 +_,8 @@
+     }
  
      @Override
-     public boolean isPushable() {
+-    public boolean isPushable() {
 -        return true;
-+        return super.isPushable(); // CraftBukkit - collidable API
++    public boolean isCollidable(boolean ignoreClimbing) { // Paper - Climbing should not bypass cramming gamerule
++        return super.isCollidable(ignoreClimbing); // CraftBukkit - collidable API // Paper - Climbing should not bypass cramming gamerule
      }
  
      @Override

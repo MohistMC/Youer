@@ -42,15 +42,62 @@
      }
  
      @Override
-@@ -207,7 +_,7 @@
+@@ -206,8 +_,17 @@
+         this.readPersistentAngerSaveData(this.level(), input);
      }
  
-     private boolean isBeingStaredBy(Player player) {
+-    private boolean isBeingStaredBy(Player player) {
 -        return !LivingEntity.PLAYER_NOT_WEARING_DISGUISE_ITEM.test(player) ? false : this.isLookingAtMe(player, 0.025, true, false, this.getEyeY());
++    private boolean isBeingStaredBy(final Player player) {
++        // Paper start - EndermanAttackPlayerEvent
++        final boolean shouldAttack = this.isBeingStaredBy0(player);
++        final com.destroystokyo.paper.event.entity.EndermanAttackPlayerEvent event = new com.destroystokyo.paper.event.entity.EndermanAttackPlayerEvent((org.bukkit.entity.Enderman) getBukkitEntity(), (org.bukkit.entity.Player) player.getBukkitEntity());
++        event.setCancelled(!shouldAttack);
++        return event.callEvent();
++    }
++
++    boolean isBeingStaredBy0(Player player) {
++        // Paper end - EndermanAttackPlayerEvent
 +        return !LivingEntity.PLAYER_NOT_WEARING_DISGUISE_ITEM_FOR_TARGET.test(player, this) ? false : this.isLookingAtMe(player, 0.025, true, false, this.getEyeY()) && !net.neoforged.neoforge.common.CommonHooks.shouldSuppressEnderManAnger(this, player);
      }
  
      @Override
+@@ -244,7 +_,7 @@
+     protected void customServerAiStep(ServerLevel level) {
+         if (level.isBrightOutside() && this.tickCount >= this.targetChangeTime + 600) {
+             float br = this.getLightLevelDependentMagicValue();
+-            if (br > 0.5F && level.canSeeSky(this.blockPosition()) && this.random.nextFloat() * 30.0F < (br - 0.4F) * 2.0F) {
++            if (br > 0.5F && level.canSeeSky(this.blockPosition()) && this.random.nextFloat() * 30.0F < (br - 0.4F) * 2.0F && this.tryEscape(com.destroystokyo.paper.event.entity.EndermanEscapeEvent.Reason.RUNAWAY)) { // Paper - EndermanEscapeEvent
+                 this.setTarget(null);
+                 this.teleport();
+             }
+@@ -355,21 +_,25 @@
+         }
+ 
+         AbstractThrownPotion thrownPotion = source.getDirectEntity() instanceof AbstractThrownPotion potion ? potion : null;
+-        if (!source.is(DamageTypeTags.IS_PROJECTILE) && thrownPotion == null) {
++        if (!source.is(DamageTypeTags.IS_PROJECTILE) && thrownPotion == null) { // Paper - EndermanEscapeEvent - diff on change - below logic relies on this path covering non-projectile damage.
+             boolean result = super.hurtServer(level, source, damage);
+             if (!(source.getEntity() instanceof LivingEntity) && this.random.nextInt(10) != 0) {
++                if (this.tryEscape(source.is(DamageTypeTags.IS_DROWNING) ? com.destroystokyo.paper.event.entity.EndermanEscapeEvent.Reason.DROWN : com.destroystokyo.paper.event.entity.EndermanEscapeEvent.Reason.CRITICAL_HIT)) { // Paper - EndermanEscapeEvent
+                 this.teleport();
++                } // Paper - EndermanEscapeEvent
+             }
+ 
+             return result;
+         } else {
+             boolean hurtWithCleanWater = thrownPotion != null && this.hurtWithCleanWater(level, source, thrownPotion, damage);
+ 
++            if (this.tryEscape(com.destroystokyo.paper.event.entity.EndermanEscapeEvent.Reason.INDIRECT)) { // Paper - EndermanEscapeEvent
+             for (int i = 0; i < 64; i++) {
+                 if (this.teleport()) {
+                     return true;
+                 }
+             }
++            } // Paper - EndermanEscapeEvent
+ 
+             return hurtWithCleanWater;
+         }
 @@ -393,6 +_,16 @@
          this.entityData.set(DATA_STARED_AT, true);
      }
@@ -77,7 +124,15 @@
                      ? false
                      : this.enderman.getRandom().nextInt(reducedTickDelay(2000)) == 0;
              }
-@@ -461,10 +_,12 @@
+@@ -455,16 +_,19 @@
+             int yt = Mth.floor(this.enderman.getY() + random.nextDouble() * 2.0);
+             int zt = Mth.floor(this.enderman.getZ() - 1.0 + random.nextDouble() * 2.0);
+             BlockPos pos = new BlockPos(xt, yt, zt);
+-            BlockState targetState = level.getBlockState(pos);
++            BlockState targetState = level.getBlockStateIfLoaded(pos); // Paper - Prevent endermen from loading chunks
++            if (targetState == null) return; // Paper - Prevent endermen from loading chunks
+             BlockPos below = pos.below();
+             BlockState belowState = level.getBlockState(below);
              BlockState carried = this.enderman.getCarriedBlock();
              if (carried != null) {
                  carried = Block.updateFromNeighbourShapes(carried, this.enderman.level(), pos);
@@ -102,6 +157,15 @@
                  && belowState.isCollisionShapeFullBlock(level, below)
                  && carried.canSurvive(level, pos)
                  && level.getEntities(this.enderman, AABB.unitCubeFromLowerCorner(Vec3.atLowerCornerOf(pos))).isEmpty();
+@@ -554,7 +_,7 @@
+             } else {
+                 if (this.target != null && !this.enderman.isPassenger()) {
+                     if (this.enderman.isBeingStaredBy((Player)this.target)) {
+-                        if (this.target.distanceToSqr(this.enderman) < 16.0) {
++                        if (this.target.distanceToSqr(this.enderman) < 16.0 && this.enderman.tryEscape(com.destroystokyo.paper.event.entity.EndermanEscapeEvent.Reason.STARE)) { // Paper - EndermanEscapeEvent
+                             this.enderman.teleport();
+                         }
+ 
 @@ -583,7 +_,7 @@
              if (this.enderman.getCarriedBlock() != null) {
                  return false;
@@ -111,7 +175,15 @@
                      ? false
                      : this.enderman.getRandom().nextInt(reducedTickDelay(20)) == 0;
              }
-@@ -603,9 +_,11 @@
+@@ -597,15 +_,18 @@
+             int yt = Mth.floor(this.enderman.getY() + random.nextDouble() * 3.0);
+             int zt = Mth.floor(this.enderman.getZ() - 2.0 + random.nextDouble() * 4.0);
+             BlockPos pos = new BlockPos(xt, yt, zt);
+-            BlockState blockState = level.getBlockState(pos);
++            BlockState blockState = level.getBlockStateIfLoaded(pos); // Paper - Prevent endermen from loading chunks
++            if (blockState == null) return; // Paper - Prevent endermen from loading chunks
+             Vec3 from = new Vec3(this.enderman.getBlockX() + 0.5, yt + 0.5, this.enderman.getBlockZ() + 0.5);
+             Vec3 to = new Vec3(xt + 0.5, yt + 0.5, zt + 0.5);
              BlockHitResult result = level.clip(new ClipContext(from, to, ClipContext.Block.OUTLINE, ClipContext.Fluid.NONE, this.enderman));
              boolean reachable = result.getBlockPos().equals(pos);
              if (blockState.is(BlockTags.ENDERMAN_HOLDABLE) && reachable) {

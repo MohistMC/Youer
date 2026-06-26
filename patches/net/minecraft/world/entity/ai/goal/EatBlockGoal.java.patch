@@ -1,11 +1,14 @@
 --- a/net/minecraft/world/entity/ai/goal/EatBlockGoal.java
 +++ b/net/minecraft/world/entity/ai/goal/EatBlockGoal.java
-@@ -61,7 +_,7 @@
+@@ -60,8 +_,9 @@
+         this.eatAnimationTick = Math.max(0, this.eatAnimationTick - 1);
          if (this.eatAnimationTick == this.adjustedTickDelay(4)) {
              BlockPos pos = this.mob.blockPosition();
-             if (IS_EDIBLE.test(this.level.getBlockState(pos))) {
+-            if (IS_EDIBLE.test(this.level.getBlockState(pos))) {
 -                if (getServerLevel(this.level).getGameRules().get(GameRules.MOB_GRIEFING)) {
-+                if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.mob, pos, Blocks.AIR.defaultBlockState(), !net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(this.level), this.mob))) { // CraftBukkit
++            final BlockState blockState = this.level.getBlockState(pos); // Paper - fix wrong block state
++            if (IS_EDIBLE.test(blockState)) { // Paper - fix wrong block state
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.mob, pos, blockState.getFluidState().createLegacyBlock(), !net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(this.level), this.mob))) { // CraftBukkit // Paper - fix wrong block state
                      this.level.destroyBlock(pos, false);
                  }
  

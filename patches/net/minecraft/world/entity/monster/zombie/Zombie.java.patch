@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/zombie/Zombie.java
 +++ b/net/minecraft/world/entity/monster/zombie/Zombie.java
-@@ -66,6 +_,11 @@
+@@ -66,12 +_,19 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
@@ -12,14 +12,43 @@
  import org.jspecify.annotations.Nullable;
  
  public class Zombie extends Monster {
-@@ -99,6 +_,7 @@
+     private static final Identifier SPEED_MODIFIER_BABY_ID = Identifier.withDefaultNamespace("baby");
+-    private static final AttributeModifier SPEED_MODIFIER_BABY = new AttributeModifier(
+-        SPEED_MODIFIER_BABY_ID, 0.5, AttributeModifier.Operation.ADD_MULTIPLIED_BASE
++    // Paper start  - Make baby speed configurable
++    private final AttributeModifier SPEED_MODIFIER_BABY = new AttributeModifier(
++        SPEED_MODIFIER_BABY_ID, this.level().paperConfig().entities.behavior.babyZombieMovementModifier, AttributeModifier.Operation.ADD_MULTIPLIED_BASE
++    // Paper end
+     );
+     private static final Identifier REINFORCEMENT_CALLER_CHARGE_ID = Identifier.withDefaultNamespace("reinforcement_caller_charge");
+     private static final AttributeModifier ZOMBIE_REINFORCEMENT_CALLEE_CHARGE = new AttributeModifier(
+@@ -95,13 +_,15 @@
+     private static final boolean DEFAULT_BABY = false;
+     private static final boolean DEFAULT_CAN_BREAK_DOORS = false;
+     private static final int DEFAULT_IN_WATER_TIME = 0;
+-    private final BreakDoorGoal breakDoorGoal = new BreakDoorGoal(this, DOOR_BREAKING_PREDICATE);
++    private final BreakDoorGoal breakDoorGoal; // Paper - move down
      private boolean canBreakDoors = false;
      private int inWaterTime = 0;
      public int conversionTime;
 +    private boolean shouldBurnInDay = true; // Paper - Add more Zombie API
  
-     public Zombie(EntityType<? extends Zombie> type, Level level) {
+-    public Zombie(EntityType<? extends Zombie> type, Level level) {
++    public Zombie(final EntityType<? extends Zombie> type, final Level level) {
          super(type, level);
++        this.breakDoorGoal = new BreakDoorGoal(this, com.google.common.base.Predicates.in(level.paperConfig().entities.behavior.doorBreakingDifficulty.getOrDefault(type, level.paperConfig().entities.behavior.doorBreakingDifficulty.get(EntityTypes.ZOMBIE)))); // Paper - Configurable door breaking difficulty
+     }
+ 
+     public Zombie(Level level) {
+@@ -110,7 +_,7 @@
+ 
+     @Override
+     protected void registerGoals() {
+-        this.goalSelector.addGoal(4, new Zombie.ZombieAttackTurtleEggGoal(this, 1.0, 3));
++        if (this.level().paperConfig().entities.behavior.zombiesTargetTurtleEggs) this.goalSelector.addGoal(4, new Zombie.ZombieAttackTurtleEggGoal(this, 1.0, 3)); // Paper - Add zombie targets turtle egg config
+         this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));
+         this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
+         this.addBehaviourGoals();
 @@ -123,7 +_,7 @@
          this.goalSelector.addGoal(7, new WaterAvoidingRandomStrollGoal(this, 1.0));
          this.targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers(ZombifiedPiglin.class));
@@ -29,6 +58,26 @@
          this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, IronGolem.class, true));
          this.targetSelector.addGoal(5, new NearestAttackableTargetGoal<>(this, Turtle.class, 10, true, false, Turtle.BABY_ON_LAND_SELECTOR));
      }
+@@ -176,12 +_,17 @@
+     }
+ 
+     @Override
+-    protected int getBaseExperienceReward(ServerLevel level) {
++    protected int getBaseExperienceReward(final ServerLevel level) {
++        final int previousReward = this.xpReward; // Paper - store previous value to reset after calculating XP reward
+         if (this.isBaby()) {
+             this.xpReward = (int)(this.xpReward * 2.5);
+         }
+ 
+-        return super.getBaseExperienceReward(level);
++        // Paper start - store previous value to reset after calculating XP reward
++        int reward = super.getBaseExperienceReward(level);
++        this.xpReward = previousReward;
++        return reward;
++        // Paper end - store previous value to reset after calculating XP reward
+     }
+ 
+     @Override
 @@ -232,12 +_,20 @@
          super.tick();
      }
@@ -50,7 +99,7 @@
          this.convertToZombieType(level, EntityTypes.DROWNED);
          if (!this.isSilent()) {
              level.levelEvent(null, 1040, this.blockPosition(), 0);
-@@ -245,13 +_,19 @@
+@@ -245,22 +_,33 @@
      }
  
      protected void convertToZombieType(ServerLevel level, EntityType<? extends Zombie> zombieType) {
@@ -75,7 +124,15 @@
      }
  
      @VisibleForTesting
-@@ -260,7 +_,6 @@
+-    public boolean convertVillagerToZombieVillager(ServerLevel level, Villager villager) {
++    public boolean convertVillagerToZombieVillager(final ServerLevel level, final Villager villager) {
++        // CraftBukkit start
++        return convertVillagerToZombieVillager(level, villager, this.blockPosition(), this.isSilent(), org.bukkit.event.entity.EntityTransformEvent.TransformReason.INFECTION, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.INFECTION) != null;
++    }
++
++    public static @Nullable ZombieVillager convertVillagerToZombieVillager(final ServerLevel level, final Villager villager, final net.minecraft.core.BlockPos blockPosition, boolean silent, org.bukkit.event.entity.EntityTransformEvent.TransformReason transformReason, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason creatureSpawnReason) {
++        // CraftBukkit end
+         ZombieVillager zombieVillager = villager.convertTo(
              EntityTypes.ZOMBIE_VILLAGER,
              ConversionParams.single(villager, true, true),
              zombie -> {
@@ -83,37 +140,24 @@
                  zombie.finalizeSpawn(
                      level, level.getCurrentDifficultyAt(zombie.blockPosition()), EntitySpawnReason.CONVERSION, new Zombie.ZombieGroupData(false, true)
                  );
-@@ -268,6 +_,7 @@
+@@ -268,17 +_,24 @@
                  zombie.setGossips(villager.getGossips().copy());
                  zombie.setTradeOffers(villager.getOffers().copy());
                  zombie.setVillagerXp(villager.getVillagerXp());
-+                net.neoforged.neoforge.event.EventHooks.onLivingConvert(villager, zombie);
-                 if (!this.isSilent()) {
-                     level.levelEvent(null, 1026, this.blockPosition(), 0);
+-                if (!this.isSilent()) {
+-                    level.levelEvent(null, 1026, this.blockPosition(), 0);
++                // CraftBukkit start
++                if (!silent) {
++                    level.levelEvent(null, 1026, blockPosition, 0);
                  }
-@@ -276,9 +_,34 @@
-         return zombieVillager != null;
+-            }
+-        );
+-        return zombieVillager != null;
++            }, transformReason, creatureSpawnReason);
++        return zombieVillager;
++        // CraftBukkit end
      }
  
-+    public static ZombieVillager convertVillagerToZombieVillager(ServerLevel level, Villager villager, net.minecraft.core.BlockPos blockPosition, boolean silent, EntityTransformEvent.TransformReason transformReason, CreatureSpawnEvent.SpawnReason spawnReason) {
-+        // CraftBukkit end
-+        ZombieVillager zombievillager = (ZombieVillager) villager.convertTo(EntityTypes.ZOMBIE_VILLAGER, ConversionParams.single(villager, true, true), (zombievillager1) -> {
-+            zombievillager1.finalizeSpawn(level, level.getCurrentDifficultyAt(zombievillager1.blockPosition()), EntitySpawnReason.CONVERSION, new Zombie.ZombieGroupData(false, true));
-+            zombievillager1.setVillagerData(villager.getVillagerData());
-+            zombievillager1.setGossips(villager.getGossips().copy());
-+            zombievillager1.setTradeOffers(villager.getOffers().copy());
-+            zombievillager1.setVillagerXp(villager.getVillagerXp());
-+            // CraftBukkit start
-+            if (!silent) {
-+                level.levelEvent((Entity) null, 1026, blockPosition, 0);
-+            }
-+
-+        }, transformReason, spawnReason);
-+
-+        return zombievillager;
-+        // CraftBukkit end
-+    }
-+
      public boolean isSunSensitive() {
 -        return true;
 -    }
@@ -128,6 +172,23 @@
  
      @Override
      public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+@@ -312,13 +_,13 @@
+                 if (SpawnPlacements.isSpawnPositionOk(type, level, spawnPos)
+                     && SpawnPlacements.checkSpawnRules(type, level, EntitySpawnReason.REINFORCEMENT, spawnPos, level.getRandom())) {
+                     reinforcement.setPos(xt, yt, zt);
+-                    if (!level.hasNearbyAlivePlayer(xt, yt, zt, 7.0)
++                    if (!level.hasNearbyAlivePlayerThatAffectsSpawning(xt, yt, zt, 7.0) // Paper - affects spawning api
+                         && level.isUnobstructed(reinforcement)
+                         && level.noCollision(reinforcement)
+                         && (reinforcement.canSpawnInLiquids() || !level.containsAnyLiquid(reinforcement.getBoundingBox()))) {
+-                        reinforcement.setTarget(target);
++                        reinforcement.setTarget(target, org.bukkit.event.entity.EntityTargetEvent.TargetReason.REINFORCEMENT_TARGET); // CraftBukkit
+                         reinforcement.finalizeSpawn(level, level.getCurrentDifficultyAt(reinforcement.blockPosition()), EntitySpawnReason.REINFORCEMENT, null);
+-                        level.addFreshEntityWithPassengers(reinforcement);
++                        level.addFreshEntityWithPassengers(reinforcement, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.REINFORCEMENTS); // CraftBukkit
+                         AttributeInstance attribute = this.getAttribute(Attributes.SPAWN_REINFORCEMENTS_CHANCE);
+                         AttributeModifier modifier = attribute.getModifier(REINFORCEMENT_CALLER_CHARGE_ID);
+                         double existingAmount = modifier != null ? modifier.amount() : 0.0;
 @@ -342,7 +_,14 @@
          if (result) {
              float difficulty = level.getCurrentDifficultyAt(this.blockPosition()).getEffectiveDifficulty();
@@ -144,12 +205,57 @@
              }
          }
  
-@@ -423,7 +_,7 @@
+@@ -404,6 +_,7 @@
+         output.putBoolean("CanBreakDoors", this.canBreakDoors());
+         output.putInt("InWaterTime", this.isInWater() ? this.inWaterTime : -1);
+         output.putInt("DrownedConversionTime", this.isUnderWaterConverting() ? this.conversionTime : -1);
++        output.putBoolean("Paper.ShouldBurnInDay", this.shouldBurnInDay); // Paper - Add more Zombie API
+     }
+ 
      @Override
-     public boolean killedEntity(ServerLevel level, LivingEntity entity, DamageSource source) {
+@@ -418,13 +_,15 @@
+         } else {
+             this.getEntityData().set(DATA_DROWNED_CONVERSION_ID, false);
+         }
++        this.shouldBurnInDay = input.getBooleanOr("Paper.ShouldBurnInDay", true); // Paper - Add more Zombie API
+     }
+ 
+     @Override
+-    public boolean killedEntity(ServerLevel level, LivingEntity entity, DamageSource source) {
++    public boolean killedEntity(final ServerLevel level, final LivingEntity entity, final DamageSource source) {
          boolean perished = super.killedEntity(level, entity, source);
 -        if ((level.getDifficulty() == Difficulty.NORMAL || level.getDifficulty() == Difficulty.HARD) && entity instanceof Villager villager) {
-+        if ((level.getDifficulty() == Difficulty.NORMAL || level.getDifficulty() == Difficulty.HARD) && entity instanceof Villager villager && net.neoforged.neoforge.event.EventHooks.canLivingConvert(entity, EntityTypes.ZOMBIE_VILLAGER, (timer) -> {})) {
-             if (level.getDifficulty() != Difficulty.HARD && this.random.nextBoolean()) {
+-            if (level.getDifficulty() != Difficulty.HARD && this.random.nextBoolean()) {
++        final double fallbackChance = level.getDifficulty() == Difficulty.HARD ? 100 : level.getDifficulty() == Difficulty.NORMAL ? 50 : 0; // Paper - Configurable chance of villager zombie infection - moved up from belows if
++        if (this.random.nextDouble() * 100 < level.paperConfig().entities.behavior.zombieVillagerInfectionChance.or(fallbackChance) && entity instanceof Villager villager && net.neoforged.neoforge.event.EventHooks.canLivingConvert(entity, EntityTypes.ZOMBIE_VILLAGER, (timer) -> {})) { // Paper - Configurable chance of villager zombie infection
++            if (false && level.getDifficulty() != Difficulty.HARD && this.random.nextBoolean()) { // Paper - Configurable chance of villager zombie infection - moved to "fallbackChance"
                  return perished;
              }
+ 
+@@ -459,7 +_,7 @@
+         groupData = super.finalizeSpawn(level, difficulty, spawnReason, groupData);
+         float difficultyModifier = difficulty.getSpecialMultiplier();
+         if (spawnReason != EntitySpawnReason.CONVERSION) {
+-            this.setCanPickUpLoot(random.nextFloat() < 0.55F * difficultyModifier);
++            this.setCanPickUpLoot(level.getLevel().paperConfig().entities.behavior.mobsCanAlwaysPickUpLoot.zombies || random.nextFloat() < 0.55F * difficultyModifier); // Paper - Add world settings for mobs picking up loot
+         }
+ 
+         if (groupData == null) {
+@@ -486,7 +_,7 @@
+                             chicken.finalizeSpawn(level, difficulty, EntitySpawnReason.JOCKEY, null);
+                             chicken.setChickenJockey(true);
+                             this.startRiding(chicken, false, false);
+-                            level.addFreshEntity(chicken);
++                            level.addFreshEntity(chicken, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.MOUNT); // CraftBukkit
+                         }
+                     }
+                 }
+@@ -512,7 +_,7 @@
+     protected void onOffspringSpawnedFromEgg(Player spawner, Mob offspring) {
+         if (this.level() instanceof ServerLevel serverLevel) {
+             float difficultyModifier = serverLevel.getCurrentDifficultyAt(offspring.blockPosition()).getSpecialMultiplier();
+-            offspring.setCanPickUpLoot(this.random.nextFloat() < 0.55F * difficultyModifier);
++            offspring.setCanPickUpLoot(serverLevel.paperConfig().entities.behavior.mobsCanAlwaysPickUpLoot.zombies || this.random.nextFloat() < 0.55F * difficultyModifier); // Paper - Add world settings for mobs picking up loot
+         }
+     }
+ 

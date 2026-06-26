@@ -11,6 +11,20 @@
  public class DragonSittingFlamingPhase extends AbstractDragonSittingPhase {
      private static final int FLAME_DURATION = 200;
      private static final int SITTING_FLAME_ATTACKS_COUNT = 4;
+@@ -87,7 +_,13 @@
+             this.flame.setCustomParticle(PowerParticleOption.create(ParticleTypes.DRAGON_BREATH, 1.0F));
+             this.flame.setPotionDurationScale(0.25F);
+             this.flame.addEffect(new MobEffectInstance(MobEffects.INSTANT_DAMAGE));
++            if (new com.destroystokyo.paper.event.entity.EnderDragonFlameEvent((org.bukkit.entity.EnderDragon) this.dragon.getBukkitEntity(), (org.bukkit.entity.AreaEffectCloud) this.flame.getBukkitEntity()).callEvent()) { // Paper - EnderDragon Events
+             level.addFreshEntity(this.flame);
++            // Paper start - EnderDragon Events
++            } else {
++                this.end();
++            }
++            // Paper end - EnderDragon Events
+         }
+     }
+ 
 @@ -100,7 +_,7 @@
      @Override
      public void end() {

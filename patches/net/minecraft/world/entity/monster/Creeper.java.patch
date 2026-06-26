@@ -18,6 +18,48 @@
  
      public Creeper(EntityType<? extends Creeper> type, Level level) {
          super(type, level);
+@@ -118,7 +_,7 @@
+         this.maxSwell = input.getShortOr("Fuse", (short)30);
+         this.explosionRadius = input.getByteOr("ExplosionRadius", (byte)3);
+         if (input.getBooleanOr("ignited", false)) {
+-            this.ignite();
++            this.entityData.set(DATA_IS_IGNITED, true); // Paper - set directly to avoid firing event
+         }
+     }
+ 
+@@ -151,10 +_,11 @@
+     }
+ 
+     @Override
+-    public void setTarget(@Nullable LivingEntity target) {
++    public boolean setTarget(final @Nullable LivingEntity target, org.bukkit.event.entity.EntityTargetEvent.@Nullable TargetReason reason) { // CraftBukkit
+         if (!(target instanceof Goat)) {
+-            super.setTarget(target);
++            return super.setTarget(target, reason); // CraftBukkit
+         }
++        return false; // CraftBukkit
+     }
+ 
+     @Override
+@@ -168,15 +_,15 @@
+     }
+ 
+     @Override
+-    public boolean killedEntity(ServerLevel level, LivingEntity entity, DamageSource source) {
++    public boolean killedEntityPreEvent(final ServerLevel level, final LivingEntity entity, final DamageSource source) { // Paper
+         if (this.shouldDropLoot(level) && this.isPowered() && !this.droppedSkulls) {
+             entity.dropFromLootTable(level, source, false, BuiltInLootTables.CHARGED_CREEPER, itemStack -> {
+                 entity.spawnAtLocation(level, itemStack);
+-                this.droppedSkulls = true;
++                entity.postDeathEventTasks.add(() -> this.droppedSkulls = true); // Paper
+             });
+         }
+ 
+-        return super.killedEntity(level, entity, source);
++        return super.killedEntityPreEvent(level, entity, source); // Paper
+     }
+ 
+     @Override
 @@ -203,9 +_,20 @@
      @Override
      public void thunderHit(ServerLevel level, LightningBolt lightningBolt) {
@@ -39,15 +81,18 @@
      @Override
      protected InteractionResult mobInteract(Player player, InteractionHand hand) {
          ItemStack itemStack = player.getItemInHand(hand);
-@@ -214,6 +_,7 @@
+@@ -214,8 +_,9 @@
              this.level()
                  .playSound(player, this.getX(), this.getY(), this.getZ(), soundEvent, this.getSoundSource(), 1.0F, this.random.nextFloat() * 0.4F + 0.8F);
              if (!this.level().isClientSide()) {
 +                this.entityIgniter = player; // CraftBukkit
                  this.ignite();
-                 if (!itemStack.isDamageableItem()) {
+-                if (!itemStack.isDamageableItem()) {
++                if (itemStack.getMaxDamage() == 0) { // CraftBukkit - fix MC-264285: unbreakable flint and steels are completely consumed when igniting a creeper
                      itemStack.shrink(1);
-@@ -231,11 +_,22 @@
+                 } else {
+                     itemStack.hurtAndBreak(1, player, hand.asEquipmentSlot());
+@@ -231,18 +_,30 @@
      public void explodeCreeper() {
          if (this.level() instanceof ServerLevel level) {
              float explosionMultiplier = this.isPowered() ? 2.0F : 1.0F;
@@ -75,15 +120,16 @@
          }
      }
  
-@@ -243,6 +_,7 @@
+     private void spawnLingeringCloud() {
          Collection<MobEffectInstance> activeEffects = this.getActiveEffects();
-         if (!activeEffects.isEmpty()) {
+-        if (!activeEffects.isEmpty()) {
++        if (!activeEffects.isEmpty() && !this.level().paperConfig().entities.behavior.disableCreeperLingeringEffect) { // Paper - Option to disable creeper lingering effect
              AreaEffectCloud cloud = new AreaEffectCloud(this.level(), this.getX(), this.getY(), this.getZ());
 +            cloud.setOwner(this); // CraftBukkit
              cloud.setRadius(2.5F);
              cloud.setRadiusOnUse(-0.5F);
              cloud.setWaitTime(10);
-@@ -254,9 +_,20 @@
+@@ -254,15 +_,26 @@
                  cloud.addEffect(new MobEffectInstance(mobEffect));
              }
  
@@ -107,3 +153,10 @@
  
      public boolean isIgnited() {
          return this.entityData.get(DATA_IS_IGNITED);
+     }
+ 
+     public void ignite() {
+-        this.entityData.set(DATA_IS_IGNITED, true);
++        setIgnited(true); // Paper - Call CreeperIgniteEvent
+     }
+ }

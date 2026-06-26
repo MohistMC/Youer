@@ -9,3 +9,15 @@
  import org.jspecify.annotations.Nullable;
  
  public class TransportItemsBetweenContainers extends Behavior<PathfinderMob> {
+@@ -324,7 +_,10 @@
+ 
+         boolean isValidTarget = this.isWantedBlock(body, transportItemTarget.state)
+             && !this.isPositionAlreadyVisited(visitedPositions, unreachablePositions, transportItemTarget, level)
+-            && !this.isContainerLocked(transportItemTarget);
++            // Paper start - ItemTransportingEntityValidateTargetEvent
++            && !this.isContainerLocked(transportItemTarget)
++            && org.bukkit.craftbukkit.event.CraftEventFactory.callTransporterValidateTarget(body, level, transportItemTarget.pos);
++            // Paper end - ItemTransportingEntityValidateTargetEvent
+         return isValidTarget ? transportItemTarget : null;
+     }
+ 
