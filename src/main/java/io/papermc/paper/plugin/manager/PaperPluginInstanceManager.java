@@ -246,7 +246,7 @@ class PaperPluginInstanceManager {
             }
 
             // Flush async appender before unloading, avoids issues when a log message with class context
-            // tries to print after it's source has unloaded (i.e., Guice enhanced errors)
+            // tries to print after its source has unloaded (i.e., Guice enhanced errors)
             FeatureHooks.flushAsyncAppenders();
 
             ClassLoader classLoader = plugin.getClass().getClassLoader();

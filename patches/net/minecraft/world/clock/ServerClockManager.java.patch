@@ -27,7 +27,7 @@
          server.registryAccess()
              .lookupOrThrow(Registries.TIMELINE)
              .listElements()
-@@ -61,9 +_,13 @@
+@@ -61,9 +_,21 @@
      }
  
      public void tick() {
@@ -37,7 +37,15 @@
 +        }
 +        boolean advanceTime = this.advanceTime(); // Paper - per-world time
 +        // Neo: Custom ticking logic to move the advance time check to be per clock rather than global
-+        this.clocks.values().forEach(clock -> clock.tick(advanceTime));
++        this.clocks.forEach(((worldClockHolder, clockInstance) -> { // Purpur start - Configurable daylight cycle
++            ServerLevel l = level != null ? level : server.overworld();
++            int incrementTicks = 12000 / (l.isBrightOutside() ? l.purpurConfig.daytimeTicks : l.purpurConfig.nighttimeTicks);
++            float rate = clockInstance.rate;
++            clockInstance.rate *= incrementTicks;
++            clockInstance.tick(advanceTime);
++            clockInstance.rate = rate;
++            this.broadcastUpdates(worldClockHolder, clockInstance);
++        })); // Purpur end - Configurable daylight cycle
          if (advanceTime) {
 -            this.clocks.values().forEach(ServerClockManager.ClockInstance::tick);
              this.setDirty();

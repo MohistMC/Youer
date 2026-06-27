@@ -34,6 +34,78 @@
      private int idleAnimationStartTick = 0;
      private final AnimationState idleAnimationState = new AnimationState();
      private final AnimationState interactionGetItemAnimationState = new AnimationState();
+@@ -85,6 +_,7 @@
+     private final AnimationState interactionDropItemAnimationState = new AnimationState();
+     private final AnimationState interactionDropNoItemAnimationState = new AnimationState();
+     public static final EquipmentSlot EQUIPMENT_SLOT_ANTENNA = EquipmentSlot.SADDLE;
++    @Nullable private UUID summoner; // Purpur - Summoner API
+ 
+     public CopperGolem(EntityType<? extends AbstractGolem> type, Level level) {
+         super(type, level);
+@@ -98,6 +_,63 @@
+         this.getBrain().setMemory(MemoryModuleType.TRANSPORT_ITEMS_COOLDOWN_TICKS, this.getRandom().nextInt(60, 100));
+     }
+ 
++    // Purpur start - Summoner API
++    @Nullable
++    public UUID getSummoner() {
++        return summoner;
++    }
++
++    public void setSummoner(@Nullable UUID summoner) {
++        this.summoner = summoner;
++    }
++    // Purpur end - Summoner API
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.copperGolemRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.copperGolemRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.copperGolemControllable;
++    }
++
++    @Override
++    protected void registerGoals() {
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this));
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.copperGolemMaxHealth);
++        this.getAttribute(Attributes.STEP_HEIGHT).setBaseValue(this.level().purpurConfig.copperGolemStepHeight);
++        this.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(this.level().purpurConfig.copperGolemMovementSpeed);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.copperGolemScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.copperGolemTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.copperGolemAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     public static AttributeSupplier.Builder createAttributes() {
+         return Mob.createMobAttributes().add(Attributes.MOVEMENT_SPEED, 0.2F).add(Attributes.STEP_HEIGHT, 1.0).add(Attributes.MAX_HEALTH, 12.0);
+     }
 @@ -216,7 +_,13 @@
          Level level = this.level();
          if (itemStack.is(Items.SHEARS) && this.readyForShearing()) {

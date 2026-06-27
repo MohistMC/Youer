@@ -118,6 +118,25 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         this.entityType = CraftEntityType.minecraftToBukkit(entity.getType());
     }
 
+    // Purpur start - Fire Immunity API
+    @Override
+    public boolean isImmuneToFire() {
+        return getHandle().fireImmune();
+    }
+
+    @Override
+    public void setImmuneToFire(Boolean fireImmune) {
+        getHandle().immuneToFire = fireImmune;
+    }
+    // Purpur end - Fire Immunity API
+
+    // Purpur start - API for any mob to burn daylight
+    @Override
+    public boolean isInDaylight() {
+        return getHandle().isSunBurnTick();
+    }
+    // Purpur end - API for any mob to burn daylight
+
     public static <T extends Entity> CraftEntity getEntity(CraftServer server, T entity) {
         Preconditions.checkArgument(entity != null, "Unknown entity");
 
@@ -1332,4 +1351,26 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         return this.entity.get(io.papermc.paper.datacomponent.PaperDataComponentType.bukkitToMinecraft(type)) != null;
     }
 
+    // Purpur start - Ridables
+    @Override
+    public org.bukkit.entity.Player getRider() {
+        net.minecraft.world.entity.player.Player rider = getHandle().getRider();
+        return rider != null ? (org.bukkit.entity.Player) rider.getBukkitEntity() : null;
+    }
+
+    @Override
+    public boolean hasRider() {
+        return getHandle().getRider() != null;
+    }
+
+    @Override
+    public boolean isRidable() {
+        return getHandle().isRidable();
+    }
+
+    @Override
+    public boolean isRidableInWater() {
+        return !getHandle().dismountsUnderwater();
+    }
+    // Purpur end - Ridables
 }

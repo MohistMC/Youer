@@ -105,4 +105,20 @@ public interface Wither extends Monster, Boss, com.destroystokyo.paper.entity.Ra
      * This is called in vanilla directly after spawning the wither.
      */
     void enterInvulnerabilityPhase();
+
+    // Purpur start
+    /**
+     * Get the player that summoned this wither
+     *
+     * @return UUID of summoner
+     */
+    @org.jetbrains.annotations.Nullable java.util.UUID getSummoner();
+
+    /**
+     * Set the player that summoned this wither
+     *
+     * @param summoner UUID of summoner
+     */
+    void setSummoner(@org.jetbrains.annotations.Nullable java.util.UUID summoner);
+    // Purpur end
 }

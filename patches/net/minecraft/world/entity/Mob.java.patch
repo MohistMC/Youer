@@ -48,7 +48,7 @@
      public GoalSelector targetSelector;
      private @Nullable LivingEntity target;
      private final Sensing sensing;
-@@ -144,6 +_,14 @@
+@@ -144,13 +_,22 @@
      private Leashable.@Nullable LeashData leashData;
      private BlockPos homePosition = BlockPos.ZERO;
      private int homeRadius = -1;
@@ -60,9 +60,19 @@
 +
 +    public boolean aware = true; // CraftBukkit
 +    public net.kyori.adventure.util.TriState despawnInPeacefulOverride = net.kyori.adventure.util.TriState.NOT_SET; // Paper - allow changing despawnInPeaceful
++    public int ticksSinceLastInteraction; // Purpur - Entity lifespan
  
      protected Mob(EntityType<? extends Mob> type, Level level) {
          super(type, level);
+         this.goalSelector = new GoalSelector();
+         this.targetSelector = new GoalSelector();
+-        this.lookControl = new LookControl(this);
+-        this.moveControl = new MoveControl<>(this);
++        this.lookControl = new org.purpurmc.purpur.controller.LookControllerWASD(this); // Purpur - Ridables
++        this.moveControl = new org.purpurmc.purpur.controller.MoveControllerWASD<>(this); // Purpur - Ridables
+         this.jumpControl = new JumpControl(this);
+         this.bodyRotationControl = this.createBodyControl();
+         this.navigation = this.createNavigation(level);
 @@ -205,6 +_,28 @@
          return this.lookControl;
      }
@@ -92,7 +102,7 @@
      public MoveControl getMoveControl() {
          return this.getControlledVehicle() instanceof Mob riding ? riding.getMoveControl() : this.moveControl;
      }
-@@ -248,8 +_,26 @@
+@@ -248,8 +_,27 @@
          return this.asValidTarget(this.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse(null));
      }
  
@@ -108,6 +118,7 @@
 +        net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent changeTargetEvent = net.neoforged.neoforge.common.CommonHooks.onLivingChangeTarget(this, target, net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent.LivingTargetType.MOB_TARGET);
 +        if(!changeTargetEvent.isCanceled()) {
 +             this.target = changeTargetEvent.getNewAboutToBeSetTarget();
++            if (target instanceof net.minecraft.server.level.ServerPlayer) this.ticksSinceLastInteraction = 0; // Purpur - Entity lifespan
 +        }
 +    }
 +
@@ -233,6 +244,27 @@
                      this.pickUpItem(serverLevel, entity);
                  }
              }
+@@ -478,6 +_,12 @@
+         profiler.pop();
+     }
+ 
++    // Purpur start - Check mobGriefing Overrides
++    protected @Nullable Boolean checkEntityPickUpLootOverride() {
++        return null;
++    }
++    // Purpur end - Check mobGriefing Overrides
++
+     protected EquipmentSlot sunProtectionSlot() {
+         return EquipmentSlot.HEAD;
+     }
+@@ -496,6 +_,7 @@
+                     }
+                 }
+             } else {
++                if (getRider() == null || !this.isControllable()) // Purpur - Ridables
+                 this.igniteForSeconds(8.0F);
+             }
+         }
 @@ -520,49 +_,61 @@
  
      protected void pickUpItem(ServerLevel level, ItemEntity entity) {
@@ -522,6 +554,15 @@
          return groupData;
      }
  
+@@ -1176,7 +_,7 @@
+     }
+ 
+     protected InteractionResult mobInteract(Player player, InteractionHand hand) {
+-        return InteractionResult.PASS;
++        return tryRide(player, hand); // Purpur - Ridables
+     }
+ 
+     protected void usePlayerItem(Player player, InteractionHand hand, ItemStack itemStack) {
 @@ -1227,30 +_,69 @@
      public <T extends Mob> @Nullable T convertTo(
          EntityType<T> entityType, ConversionParams params, EntitySpawnReason spawnReason, ConversionParams.AfterConversion<T> afterConversion
@@ -665,11 +706,10 @@
                  );
                  return new DebugGoalInfo(goalInfo);
              }
-@@ -1472,5 +_,40 @@
- 
+@@ -1473,4 +_,93 @@
      public float chargeSpeedModifier() {
          return 1.0F;
-+    }
+     }
 +
 +    /**
 +     * Returns the type of spawn that created this mob, if applicable.
@@ -704,5 +744,59 @@
 +            throw new UnsupportedOperationException("Late invocations of Mob#setSpawnCancelled are not permitted.");
 +        }
 +        this.spawnCancelled = cancel;
-     }
++    }
++
++    // Purpur start - Ridables
++    public double getMaxY() {
++        return level().getHeight();
++    }
++
++    public InteractionResult tryRide(Player player, InteractionHand hand) {
++        return tryRide(player, hand, InteractionResult.PASS);
++    }
++
++    public InteractionResult tryRide(Player player, InteractionHand hand, InteractionResult result) {
++        if (!isRidable()) {
++            return result;
++        }
++        if (hand != InteractionHand.MAIN_HAND) {
++            return InteractionResult.PASS;
++        }
++        if (player.isShiftKeyDown()) {
++            return InteractionResult.PASS;
++        }
++        if (!player.getItemInHand(hand).isEmpty()) {
++            return InteractionResult.PASS;
++        }
++        if (!passengers.isEmpty() || player.isPassenger()) {
++            return InteractionResult.PASS;
++        }
++        if (this instanceof TamableAnimal tamable) {
++            if (tamable.isTame() && !tamable.isOwnedBy(player)) {
++                return InteractionResult.PASS;
++            }
++            if (!tamable.isTame() && !level().purpurConfig.untamedTamablesAreRidable) {
++                return InteractionResult.PASS;
++            }
++        }
++        if (this instanceof AgeableMob ageable) {
++            if (ageable.isBaby() && !level().purpurConfig.babiesAreRidable) {
++                return InteractionResult.PASS;
++            }
++        }
++        if (!player.getBukkitEntity().hasPermission("allow.ride." + net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.getKey(getType()).getPath())) {
++            if (player instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
++                serverPlayer.sendMiniMessage(org.purpurmc.purpur.PurpurConfig.cannotRideMob);
++            }
++            return InteractionResult.PASS;
++        }
++        player.setYRot(this.getYRot());
++        player.setXRot(this.getXRot());
++        if (player.startRiding(this)) {
++            return InteractionResult.SUCCESS;
++        } else {
++            return InteractionResult.PASS;
++        }
++    }
++    // Purpur end - Ridables
  }

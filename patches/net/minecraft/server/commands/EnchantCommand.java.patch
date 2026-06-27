@@ -1,11 +1,22 @@
 --- a/net/minecraft/server/commands/EnchantCommand.java
 +++ b/net/minecraft/server/commands/EnchantCommand.java
-@@ -75,7 +_,7 @@
+@@ -65,7 +_,7 @@
+ 
+     private static int enchant(CommandSourceStack source, Collection<? extends Entity> targets, Holder<Enchantment> enchantmentHolder, int level) throws CommandSyntaxException {
+         Enchantment enchantment = enchantmentHolder.value();
+-        if (level > enchantment.getMaxLevel()) {
++        if (!org.purpurmc.purpur.PurpurConfig.allowUnsafeEnchantCommand && level > enchantment.getMaxLevel()) { // Purpur - Config to allow unsafe enchants
+             throw ERROR_LEVEL_TOO_HIGH.create(level, enchantment.getMaxLevel());
+         }
+ 
+@@ -75,8 +_,8 @@
              if (entity instanceof LivingEntity target) {
                  ItemStack item = target.getMainHandItem();
                  if (!item.isEmpty()) {
 -                    if (enchantment.canEnchant(item)
+-                        && EnchantmentHelper.isEnchantmentCompatible(EnchantmentHelper.getEnchantmentsForCrafting(item).keySet(), enchantmentHolder)) {
 +                    if (item.supportsEnchantment(enchantmentHolder) // Neo: Respect IItemExtension#supportsEnchantment
-                         && EnchantmentHelper.isEnchantmentCompatible(EnchantmentHelper.getEnchantmentsForCrafting(item).keySet(), enchantmentHolder)) {
++                        && EnchantmentHelper.isEnchantmentCompatible(EnchantmentHelper.getEnchantmentsForCrafting(item).keySet(), enchantmentHolder) || (org.purpurmc.purpur.PurpurConfig.allowUnsafeEnchantCommand && !item.hasEnchantment(enchantmentHolder))) { // Purpur - Config to allow unsafe enchants
                          item.enchant(enchantmentHolder, level);
                          success++;
+                     } else if (targets.size() == 1) {

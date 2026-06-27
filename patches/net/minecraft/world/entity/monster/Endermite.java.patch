@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/Endermite.java
 +++ b/net/minecraft/world/entity/monster/Endermite.java
-@@ -26,6 +_,10 @@
+@@ -26,16 +_,70 @@
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  
@@ -11,6 +11,66 @@
  public class Endermite extends Monster {
      private static final int MAX_LIFE = 2400;
      private static final int DEFAULT_LIFE = 0;
+     public int life = 0;
++    private boolean isPlayerSpawned; // Purpur - Add back player spawned endermite API
+ 
+     public Endermite(EntityType<? extends Endermite> type, Level level) {
+         super(type, level);
+         this.xpReward = 3;
+     }
+ 
++    // Purpur start - Add back player spawned endermite API
++    public boolean isPlayerSpawned() {
++        return this.isPlayerSpawned;
++    }
++
++    public void setPlayerSpawned(boolean playerSpawned) {
++        this.isPlayerSpawned = playerSpawned;
++    }
++    // Purpur end - Add back player spawned endermite API
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.endermiteRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.endermiteRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.endermiteControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.endermiteMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.endermiteScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.endermiteTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.endermiteAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(1, new FloatGoal(this));
 @@ -123,7 +_,7 @@
              }
  

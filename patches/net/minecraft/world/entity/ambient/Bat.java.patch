@@ -8,6 +8,94 @@
  import org.jspecify.annotations.Nullable;
  
  public class Bat extends AmbientCreature {
+@@ -41,11 +_,87 @@
+ 
+     public Bat(EntityType<? extends Bat> type, Level level) {
+         super(type, level);
++        this.moveControl = new org.purpurmc.purpur.controller.FlyingWithSpacebarMoveControllerWASD(this, 0.075F); // Purpur - Ridables
+         if (!level.isClientSide()) {
+             this.setResting(true);
+         }
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean shouldSendAttribute(net.minecraft.world.entity.ai.attributes.Attribute attribute) { return attribute != Attributes.FLYING_SPEED.value(); } // Fixes log spam on clients
++
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.batRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.batRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.batControllable;
++    }
++
++    @Override
++    public double getMaxY() {
++        return level().purpurConfig.batMaxY;
++    }
++
++    @Override
++    public void onMount(net.minecraft.world.entity.player.Player rider) {
++        super.onMount(rider);
++        if (isResting()) {
++            setResting(false);
++            level().levelEvent(null, 1025, new BlockPos(this).above(), 0);
++        }
++    }
++
++    @Override
++    public void travel(Vec3 vec3) {
++        super.travel(vec3);
++        if (getRider() != null && this.isControllable() && !onGround) {
++            float speed = (float) getAttributeValue(Attributes.FLYING_SPEED) * 2;
++            setSpeed(speed);
++            Vec3 mot = getDeltaMovement();
++            move(net.minecraft.world.entity.MoverType.SELF, mot.multiply(speed, 0.25, speed));
++            setDeltaMovement(mot.scale(0.9D));
++        }
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.batMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.batScale);
++        this.getAttribute(Attributes.FOLLOW_RANGE).setBaseValue(this.level().purpurConfig.batFollowRange);
++        this.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(this.level().purpurConfig.batKnockbackResistance);
++        this.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(this.level().purpurConfig.batMovementSpeed);
++        this.getAttribute(Attributes.FLYING_SPEED).setBaseValue(this.level().purpurConfig.batFlyingSpeed);
++        this.getAttribute(Attributes.ARMOR).setBaseValue(this.level().purpurConfig.batArmor);
++        this.getAttribute(Attributes.ARMOR_TOUGHNESS).setBaseValue(this.level().purpurConfig.batArmorToughness);
++        this.getAttribute(Attributes.ATTACK_KNOCKBACK).setBaseValue(this.level().purpurConfig.batAttackKnockback);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.batTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.batAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     public boolean isFlapping() {
+         return !this.isResting() && this.tickCount % 10.0F == 0.0F;
 @@ -83,7 +_,7 @@
      }
  
@@ -17,6 +105,29 @@
          return false;
      }
  
+@@ -96,7 +_,7 @@
+     }
+ 
+     public static AttributeSupplier.Builder createAttributes() {
+-        return Mob.createMobAttributes().add(Attributes.MAX_HEALTH, 6.0);
++        return Mob.createMobAttributes().add(Attributes.MAX_HEALTH, 6.0).add(Attributes.FLYING_SPEED, 0.6D); // Purpur - Ridables
+     }
+ 
+     public boolean isResting() {
+@@ -127,6 +_,13 @@
+ 
+     @Override
+     protected void customServerAiStep(ServerLevel level) {
++        // Purpur start - Ridables
++        if (getRider() != null && this.isControllable()) {
++            Vec3 mot = getDeltaMovement();
++            setDeltaMovement(mot.x(), mot.y() + (getVerticalMot() > 0 ? 0.07D : 0.0D), mot.z());
++            return;
++        }
++        // Purpur end - Ridables
+         super.customServerAiStep(level);
+         BlockPos pos = this.blockPosition();
+         BlockPos above = pos.above();
 @@ -137,13 +_,13 @@
                      this.yHeadRot = this.random.nextInt(360);
                  }

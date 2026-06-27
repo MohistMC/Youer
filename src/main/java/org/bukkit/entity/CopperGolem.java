@@ -53,6 +53,22 @@ public interface CopperGolem extends Golem, Shearable {
      */
     void setOxidizing(Oxidizing oxidizing);
 
+    // Purpur start
+    /**
+     * Get the player that summoned this iron golem
+     *
+     * @return UUID of summoner
+     */
+    @org.jetbrains.annotations.Nullable java.util.UUID getSummoner();
+
+    /**
+     * Set the player that summoned this iron golem
+     *
+     * @param summoner UUID of summoner
+     */
+    void setSummoner(@org.jetbrains.annotations.Nullable java.util.UUID summoner);
+    // Purpur end
+
     /**
      * Represents the oxidizing state of a copper golem.
      *

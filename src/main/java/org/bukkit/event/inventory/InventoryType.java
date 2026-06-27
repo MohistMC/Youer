@@ -170,7 +170,7 @@ public enum InventoryType {
     SMITHING_NEW(4, "Upgrade Gear", MenuType.SMITHING),
     ;
 
-    private final int size;
+    private int size; @ApiStatus.Internal public void setDefaultSize(int size) { this.size = size; } // Purpur - remove final and add setter
     private final String title;
     private final MenuType menuType;
     private final boolean isCreatable;

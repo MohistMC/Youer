@@ -61,7 +61,7 @@
          OptionSpec<Void> demo = parser.accepts("demo");
          OptionSpec<Void> bonusChest = parser.accepts("bonusChest");
          OptionSpec<Void> forceUpgrade = parser.accepts("forceUpgrade");
-@@ -86,12 +_,101 @@
+@@ -86,12 +_,109 @@
          OptionSpec<Path> pidFile = parser.accepts("pidFile").withRequiredArg().withValuesConvertedBy(new PathConverter());
          OptionSpec<String> nonOptions = parser.nonOptions();
  
@@ -129,6 +129,14 @@
 +                .defaultsTo("Unknown Server")
 +                .describedAs("Name");
 +
++        // Purpur start - Purpur config files
++        parser.acceptsAll(Arrays.asList("purpur", "purpur-settings"), "File for purpur settings")
++                .withRequiredArg()
++                .ofType(File.class)
++                .defaultsTo(new File("purpur.yml"))
++                .describedAs("Yml file");
++        // Purpur end - Purpur config files
++
 +        // Youer Start
 +        parser.acceptsAll(Arrays.asList("Y", "youer-settings"), "File for youer settings")
 +                .withRequiredArg()
@@ -164,10 +172,17 @@
  
              Path pidFilePath = options.valueOf(pidFile);
              if (pidFilePath != null) {
-@@ -103,30 +_,91 @@
+@@ -103,30 +_,98 @@
                  JvmProfiler.INSTANCE.start(Environment.SERVER);
              }
  
++            // Purpur start - Add toggle for enchant level clamping - load config files early
++            org.bukkit.configuration.file.YamlConfiguration purpurConfiguration = io.papermc.paper.configuration.PaperConfigurations.loadLegacyConfigFile((File) options.valueOf("purpur-settings"));
++            org.purpurmc.purpur.PurpurConfig.clampEnchantLevels = purpurConfiguration.getBoolean("settings.enchantment.clamp-levels", true);
++            org.purpurmc.purpur.PurpurConfig.registerMinecraftDebugCommands = purpurConfiguration.getBoolean("settings.register-minecraft-debug-commands"); // Purpur - register minecraft debug commands
++            org.purpurmc.purpur.PurpurConfig.registerMinecraftDisabledCommands = purpurConfiguration.getBoolean("settings.register-minecraft-disabled-commands"); // Purpur - register disabled minecraft commands
++            // Purpur end - Add toggle for enchant level clamping - load config files early
++
 +            io.papermc.paper.plugin.PluginInitializerManager.load(options); // Paper
              Bootstrap.bootStrap();
              Bootstrap.validate();

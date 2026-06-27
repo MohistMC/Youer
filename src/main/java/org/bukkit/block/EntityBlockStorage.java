@@ -47,6 +47,25 @@ public interface EntityBlockStorage<T extends Entity> extends TileState {
     @NotNull
     List<T> releaseEntities();
 
+    // Purpur start - Stored Bee API
+    /**
+     * Releases a stored entity, and returns the entity in the world.
+     *
+     * @param entity Entity to release
+     * @return The entity which was released, or null if the stored entity is not in the hive
+     */
+    @org.jetbrains.annotations.Nullable
+    T releaseEntity(@NotNull org.purpurmc.purpur.entity.StoredEntity<T> entity);
+
+    /**
+     * Gets all the entities currently stored in the block.
+     *
+     * @return List of all entities which are stored in the block
+     */
+    @NotNull
+    List<org.purpurmc.purpur.entity.StoredEntity<T>> getEntities();
+    // Purpur end - Stored Bee API
+
     /**
      * Add an entity to the block.
      *

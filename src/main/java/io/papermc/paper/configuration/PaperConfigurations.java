@@ -292,6 +292,7 @@ public class PaperConfigurations extends Configurations<GlobalConfiguration, Wor
         for (NodePath path : RemovedConfigurations.REMOVED_GLOBAL_PATHS) {
             builder.addAction(path, TransformAction.remove());
         }
+        org.purpurmc.purpur.configuration.transformation.FarEndTerrainGenerationMigration.apply(builder); // Purpur - Migrate Setting to reintroduce end void rings
         builder.build().apply(node);
 
         final ConfigurationTransformation.VersionedBuilder versionedBuilder = Transformations.versionedBuilder();

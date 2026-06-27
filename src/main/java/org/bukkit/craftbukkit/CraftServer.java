@@ -412,6 +412,20 @@ public final class CraftServer implements Server {
         this.paperPluginManager = new io.papermc.paper.plugin.manager.PaperPluginManagerImpl(this, this.commandMap, pluginManager);
         this.pluginManager.paperPluginManager = this.paperPluginManager;
          // Paper end
+        // Purpur start - Language API
+        org.purpurmc.purpur.language.Language.setLanguage(new org.purpurmc.purpur.language.Language() {
+            private net.minecraft.locale.Language language = net.minecraft.locale.Language.getInstance();
+            @Override
+            public boolean has(@org.jetbrains.annotations.NotNull String key) {
+                return language.has(key);
+            }
+
+            @Override
+            public @org.jetbrains.annotations.NotNull String getOrDefault(@org.jetbrains.annotations.NotNull String key) {
+                return language.getOrDefault(key);
+            }
+        });
+        // Purpur end - Language API
 
         CraftRegistry.setMinecraftRegistry(console.registryAccess());
 
@@ -987,6 +1001,7 @@ public final class CraftServer implements Server {
 
         org.spigotmc.SpigotConfig.init((File) this.console.options.valueOf("spigot-settings")); // Spigot
         this.console.paperConfigurations.reloadConfigs(this.console);
+        org.purpurmc.purpur.PurpurConfig.init((File) console.options.valueOf("purpur-settings")); // Purpur - Purpur config files
         for (ServerLevel world : this.console.getAllLevels()) {
             // world.serverLevelData.setDifficulty(config.difficulty); // Paper - per level difficulty
             world.setSpawnSettings(world.isSpawningMonsters()); // Paper - per level difficulty (from MinecraftServer#setDifficulty(ServerLevel, Difficulty, boolean))
@@ -1002,6 +1017,7 @@ public final class CraftServer implements Server {
                 }
             }
             world.spigotConfig.init(); // Spigot
+            world.purpurConfig.init(); // Purpur - Purpur config files
         }
 
         Plugin[] pluginClone = pluginManager.getPlugins().clone(); // Paper
@@ -1018,6 +1034,7 @@ public final class CraftServer implements Server {
         this.reloadData();
         org.spigotmc.SpigotConfig.registerCommands(); // Spigot
         io.papermc.paper.command.PaperCommands.registerCommands(this.console); // Paper
+        org.purpurmc.purpur.PurpurConfig.registerCommands(); // Purpur - Purpur config files
         this.overrideAllCommandBlockCommands = this.commandsConfiguration.getStringList("command-block-overrides").contains("*");
         this.ignoreVanillaPermissions = this.commandsConfiguration.getBoolean("ignore-vanilla-permissions");
 
@@ -1481,6 +1498,60 @@ public final class CraftServer implements Server {
         // Paper end - API for updating recipes on clients
         return true;
     }
+
+    // Purpur start - Added the ability to add combustible items
+    @Override
+    public void addFuel(org.bukkit.Material material, int burnTime) {
+        Preconditions.checkArgument(burnTime > 0, "BurnTime must be greater than 0");
+
+        net.minecraft.world.item.ItemStack itemStack = net.minecraft.world.item.ItemStack.fromBukkitCopy(new ItemStack(material));
+        MinecraftServer.getServer().fuelValues().values.put(itemStack.getItem(), burnTime);
+    }
+
+    @Override
+    public void removeFuel(org.bukkit.Material material) {
+        net.minecraft.world.item.ItemStack itemStack = net.minecraft.world.item.ItemStack.fromBukkitCopy(new ItemStack(material));
+        MinecraftServer.getServer().fuelValues().values.keySet().removeIf(itemStack::is);
+    }
+    // Purpur end - Added the ability to add combustible items
+
+    // Purpur start - Debug Marker API
+    @Override
+    public void sendBlockHighlight(Location location, int duration) {
+        sendBlockHighlight(location, duration, "", 0x6400FF00);
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, int argb) {
+        sendBlockHighlight(location, duration, "", argb);
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, String text) {
+        sendBlockHighlight(location, duration, text, 0x6400FF00);
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, String text, int argb) {
+        this.worlds.forEach((name, world) -> world.sendBlockHighlight(location, duration, text, argb));
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, org.bukkit.Color color, int transparency) {
+        sendBlockHighlight(location, duration, "", color, transparency);
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, String text, org.bukkit.Color color, int transparency) {
+        if (transparency < 0 || transparency > 255) throw new IllegalArgumentException("transparency is outside of 0-255 range");
+        sendBlockHighlight(location, duration, text, transparency << 24 | color.asRGB());
+    }
+
+    @Override
+    public void clearBlockHighlights() {
+        this.worlds.forEach((name, world) -> world.clearBlockHighlights());
+    }
+    // Purpur end - Debug Marker API
 
     @Override
     public List<Recipe> getRecipesFor(ItemStack result) {
@@ -2727,6 +2798,18 @@ public final class CraftServer implements Server {
             return CraftServer.this.console.paperConfigurations.createLegacyObject(CraftServer.this.console);
         }
 
+        // Purpur start - Purpur config files
+        @Override
+        public YamlConfiguration getPurpurConfig() {
+            return org.purpurmc.purpur.PurpurConfig.config;
+        }
+
+        @Override
+        public java.util.Properties getServerProperties() {
+            return getProperties().properties;
+        }
+        // Purpur end - Purpur config files
+
         @Override
         public void restart() {
             CraftServer.this.restart();
@@ -2962,4 +3045,18 @@ public final class CraftServer implements Server {
     public void allowPausing(final Plugin plugin, final boolean value) {
         this.console.addPluginAllowingSleep(plugin.getName(), value);
     }
+
+    // Purpur start - Bring back server name
+    @Override
+    public String getServerName() {
+        return this.getProperties().serverName;
+    }
+    // Purpur end - Bring back server name
+
+    // Purpur start - Lagging threshold
+    @Override
+    public boolean isLagging() {
+        return getServer().lagging;
+    }
+    // Purpur end - Lagging threshold
 }

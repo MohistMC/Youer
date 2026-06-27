@@ -40,6 +40,12 @@ public interface VersionFetcher {
         return getVersionMessage();
     }
 
+    // Purpur start
+    default int distance() {
+        return 0;
+    }
+    // Purpur end
+
     /**
      * @hidden
      */

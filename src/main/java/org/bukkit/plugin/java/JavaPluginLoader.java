@@ -53,6 +53,7 @@ public final class JavaPluginLoader implements PluginLoader {
     private final Pattern[] fileFilters = new Pattern[]{Pattern.compile("\\.jar$")};
     private final List<PluginClassLoader> loaders = new CopyOnWriteArrayList<PluginClassLoader>();
     private final LibraryLoader libraryLoader;
+    public static boolean SuppressLibraryLoaderLogger = false; // Purpur - Add log suppression for LibraryLoader
 
     /**
      * This class was not meant to be constructed explicitly

@@ -27,22 +27,14 @@
  import java.util.Optional;
  import java.util.function.BooleanSupplier;
  import java.util.stream.Stream;
-@@ -35,9 +_,15 @@
+@@ -35,6 +_,7 @@
  import net.minecraft.server.ServerInterface;
  import net.minecraft.server.ServerLinks;
  import net.minecraft.server.Services;
 +import net.minecraft.server.WorldLoader;
  import net.minecraft.server.WorldStem;
  import net.minecraft.server.gui.MinecraftServerGui;
-+import net.minecraft.server.jsonrpc.JsonRpcNotificationService;
  import net.minecraft.server.jsonrpc.ManagementServer;
-+import net.minecraft.server.jsonrpc.internalapi.MinecraftApi;
-+import net.minecraft.server.jsonrpc.security.AuthenticationHandler;
-+import net.minecraft.server.jsonrpc.security.JsonRpcSslContextProvider;
-+import net.minecraft.server.jsonrpc.security.SecurityConfig;
- import net.minecraft.server.level.ServerLevel;
- import net.minecraft.server.level.ServerPlayer;
- import net.minecraft.server.level.progress.LoggingLevelLoadListener;
 @@ -56,6 +_,7 @@
  import net.minecraft.server.rcon.thread.RconThread;
  import net.minecraft.util.Mth;
@@ -119,7 +111,7 @@
          } catch (IOException e) {
              throw new IllegalArgumentException("Failed to read Code of Conduct folder", e);
          }
-@@ -167,26 +_,47 @@
+@@ -167,26 +_,48 @@
          Thread consoleThread = new Thread("Server console handler") {
              @Override
              public void run() {
@@ -137,6 +129,7 @@
 +                    return;
                  }
 +                if (net.neoforged.neoforge.server.console.TerminalHandler.handleCommands(DedicatedServer.this)) return;
++                if (System.console() != null) // Purpur - GUI Improvements - has no GUI or has console (did not double-click)
 +                new com.destroystokyo.paper.console.PaperConsole(DedicatedServer.this).start();
              }
          };
@@ -177,7 +170,7 @@
          LOGGER.info("Loading properties");
          DedicatedServerProperties properties = this.settings.getProperties();
          if (this.isSingleplayer()) {
-@@ -197,57 +_,121 @@
+@@ -197,57 +_,155 @@
              this.setLocalIp(properties.serverIp);
          }
  
@@ -187,6 +180,15 @@
 +        org.spigotmc.SpigotConfig.init((java.io.File) options.valueOf("spigot-settings"));
 +        org.spigotmc.SpigotConfig.registerCommands();
 +        // Spigot end
++        // Purpur start - Migrate Setting to reintroduce end void rings
++        try {
++            org.purpurmc.purpur.PurpurConfig.init((java.io.File) options.valueOf("purpur-settings"));
++        } catch (Exception e) {
++            DedicatedServer.LOGGER.error("Unable to load server configuration", e);
++            return false;
++        }
++        org.purpurmc.purpur.PurpurConfig.registerCommands();
++        // Purpur end - Migrate Setting to reintroduce end void rings
 +        // Paper start - initialize global and world-defaults configuration
 +        this.paperConfigurations.initializeGlobalConfiguration(this.registryAccess());
 +        this.paperConfigurations.initializeWorldDefaultsConfiguration(this.registryAccess());
@@ -251,6 +253,31 @@
              return false;
          }
  
++        // Purpur start - UPnP Port Forwarding
++        if (org.purpurmc.purpur.PurpurConfig.useUPnP) {
++            LOGGER.info("[UPnP] Attempting to start UPnP port forwarding service...");
++            if (dev.omega24.upnp4j.UPnP4J.isUPnPAvailable()) {
++                if (dev.omega24.upnp4j.UPnP4J.isOpen(this.getPort(), dev.omega24.upnp4j.util.Protocol.TCP)) {
++                    this.upnp = false;
++                    LOGGER.info("[UPnP] Port {} is already open", this.getPort());
++                } else if (dev.omega24.upnp4j.UPnP4J.open(this.getPort(), dev.omega24.upnp4j.util.Protocol.TCP)) {
++                    this.upnp = true;
++                    LOGGER.info("[UPnP] Successfully opened port {}", this.getPort());
++                } else {
++                    this.upnp = false;
++                    LOGGER.info("[UPnP] Failed to open port {}", this.getPort());
++                }
++
++                if (upnp) {
++                    LOGGER.info("[UPnP] {}:{}", dev.omega24.upnp4j.UPnP4J.getExternalIP(), this.getPort());
++                }
++            } else {
++                this.upnp = false;
++                LOGGER.error("[UPnP] Service is unavailable");
++            }
++        }
++        // Purpur end - UPnP Port Forwarding
++
 +        // CraftBukkit start
 +        YouerConfig.init((java.io.File) options.valueOf("youer-settings"));
 +        YouerConfig.registerCommands();
@@ -324,8 +351,13 @@
              Thread watchdog = new Thread(new ServerWatchdog(this), "Server Watchdog");
              watchdog.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandlerWithName(LOGGER));
              watchdog.setDaemon(true);
-@@ -274,8 +_,21 @@
+@@ -272,10 +_,26 @@
+             LOGGER.info("JMX monitoring enabled");
+         }
  
++        org.purpurmc.purpur.task.BossBarTask.startAll(); // Purpur - Implement TPSBar
++        if (org.purpurmc.purpur.PurpurConfig.beeCountPayload) org.purpurmc.purpur.task.BeehiveTask.instance().register(); // Purpur - Give bee counts in beehives to Purpur clients
++
          this.saveEverything(false, true, true);
          this.notificationManager().serverStarted();
 +        if (net.neoforged.neoforge.common.config.NeoForgeServerConfig.INSTANCE.advertiseDedicatedServerToLan.get()) {

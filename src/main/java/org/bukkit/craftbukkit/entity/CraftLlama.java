@@ -86,4 +86,17 @@ public class CraftLlama extends CraftChestedHorse implements Llama, com.destroys
     public Llama getCaravanTail() {
         return this.getHandle().caravanTail == null ? null : (Llama) this.getHandle().caravanTail.getBukkitEntity();
     }
+    // Paper end
+
+    // Purpur start - Llama API
+    @Override
+    public boolean shouldJoinCaravan() {
+        return getHandle().shouldJoinCaravan;
+    }
+
+    @Override
+    public void setShouldJoinCaravan(boolean shouldJoinCaravan) {
+        getHandle().shouldJoinCaravan = shouldJoinCaravan;
+    }
+    // Purpur end - Llama API
 }

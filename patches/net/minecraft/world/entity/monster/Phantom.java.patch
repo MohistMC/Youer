@@ -8,17 +8,108 @@
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.particles.ParticleTypes;
  import net.minecraft.network.syncher.EntityDataAccessor;
-@@ -48,6 +_,10 @@
+@@ -48,13 +_,100 @@
      private Vec3 moveTargetPoint = Vec3.ZERO;
      public @Nullable BlockPos anchorPoint;
      private Phantom.AttackPhase attackPhase = Phantom.AttackPhase.CIRCLE;
++    Vec3 crystalPosition; // Purpur - Phantoms attracted to crystals and crystals shoot phantoms
 +    // Paper start
 +    public java.util.@Nullable UUID spawningEntity;
-+    public boolean shouldBurnInDay = true;
++    //public boolean shouldBurnInDay = true; // Purpur - API for any mob to burn daylight
 +    // Paper end
++    private static final net.minecraft.world.item.crafting.Ingredient TORCH = net.minecraft.world.item.crafting.Ingredient.of(net.minecraft.world.item.Items.TORCH, net.minecraft.world.item.Items.SOUL_TORCH); // Purpur - Phantoms burn in light
  
      public Phantom(EntityType<? extends Phantom> type, Level level) {
          super(type, level);
+         this.xpReward = 5;
+         this.moveControl = new Phantom.PhantomMoveControl<>(this);
+         this.lookControl = new Phantom.PhantomLookControl(this);
+-    }
++        this.setShouldBurnInDay(true); // Purpur - API for any mob to burn daylight
++    }
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.phantomRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.phantomRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.phantomControllable;
++    }
++
++    @Override
++    public double getMaxY() {
++        return level().purpurConfig.phantomMaxY;
++    }
++
++    public static net.minecraft.world.entity.ai.attributes.AttributeSupplier.Builder createAttributes() {
++        return Monster.createMonsterAttributes().add(Attributes.FLYING_SPEED, 3.0D);
++    }
++
++    @Override
++    public boolean onSpacebar() {
++        if (getRider() != null && getRider().getBukkitEntity().hasPermission("allow.special.phantom")) {
++            shoot();
++        }
++        return false;
++    }
++
++    public boolean shoot() {
++        org.bukkit.Location loc = ((org.bukkit.entity.LivingEntity) getBukkitEntity()).getEyeLocation();
++        loc.setPitch(-loc.getPitch());
++        org.bukkit.util.Vector target = loc.getDirection().normalize().multiply(100).add(loc.toVector());
++
++        org.purpurmc.purpur.entity.projectile.PhantomFlames flames = new org.purpurmc.purpur.entity.projectile.PhantomFlames(level(), this);
++        flames.canGrief = level().purpurConfig.phantomAllowGriefing;
++        flames.shoot(target.getX() - getX(), target.getY() - getY(), target.getZ() - getZ(), 1.0F, 5.0F);
++        level().addFreshEntity(flames);
++        return true;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Phantoms attracted to crystals and crystals shoot phantoms
++    @Override
++    protected void dropFromLootTable(ServerLevel world, DamageSource damageSource, boolean causedByPlayer) {
++        boolean dropped = false;
++        if (lastHurtByPlayer == null && damageSource.getEntity() instanceof net.minecraft.world.entity.boss.enderdragon.EndCrystal) {
++            if (random.nextInt(5) < 1) {
++                dropped = spawnAtLocation(world, new net.minecraft.world.item.ItemStack(net.minecraft.world.item.Items.PHANTOM_MEMBRANE)) != null;
++            }
++        }
++        if (!dropped) {
++            super.dropFromLootTable(world, damageSource, causedByPlayer);
++        }
++    }
++
++    public boolean isCirclingCrystal() {
++        return crystalPosition != null;
++    }
++    // Purpur end - Phantoms attracted to crystals and crystals shoot phantoms
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.phantomTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.phantomAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+ 
+     @Override
+     public boolean isFlapping() {
 @@ -135,6 +_,13 @@
          }
      }

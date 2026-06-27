@@ -135,7 +135,7 @@
                      hasAnyClickCommand = true;
                      break;
                  case null:
-@@ -213,11 +_,55 @@
+@@ -213,14 +_,79 @@
          return hasAnyClickCommand;
      }
  
@@ -193,6 +193,30 @@
          );
      }
  
++    // Purpur start - Signs allow color codes
++    public ClientboundBlockEntityDataPacket getTranslatedUpdatePacket(boolean filtered, boolean front) {
++        try (net.minecraft.util.ProblemReporter.ScopedCollector scopedCollector = new net.minecraft.util.ProblemReporter.ScopedCollector(this.problemPath(), LOGGER)) {
++            net.minecraft.world.level.storage.TagValueOutput tagValueOutput = net.minecraft.world.level.storage.TagValueOutput.createWithContext(scopedCollector, this.getLevel().registryAccess());
++            this.saveAdditional(tagValueOutput);
++
++            final Component[] lines = front ? frontText.getMessages(filtered) : backText.getMessages(filtered);
++            final String side = front ? "front_text" : "back_text";
++            net.minecraft.world.level.storage.ValueOutput sideNbt = tagValueOutput.child(side);
++            net.minecraft.world.level.storage.ValueOutput.TypedOutputList<String> messagesNbt = sideNbt.list("messages", com.mojang.serialization.Codec.STRING);
++            for (int i = 0; i < 4; i++) {
++                final net.kyori.adventure.text.Component component = io.papermc.paper.adventure.PaperAdventure.asAdventure(lines[i]);
++                final String line = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacyAmpersand().serialize(component);
++                messagesNbt.add(line);
++            }
++            tagValueOutput.putString("PurpurEditor", "true");
++            return ClientboundBlockEntityDataPacket.create(this, (blockEntity, registryAccess) -> tagValueOutput.buildResult());
++        }
++    }
++    // Purpur end - Signs allow color codes
++
+     public ClientboundBlockEntityDataPacket getUpdatePacket() {
+         return ClientboundBlockEntityDataPacket.create(this);
+     }
 @@ -235,12 +_,17 @@
      }
  

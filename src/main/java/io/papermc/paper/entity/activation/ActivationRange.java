@@ -148,6 +148,8 @@ public final class ActivationRange {
                 continue;
             }
 
+            if (!player.level().purpurConfig.idleTimeoutTickNearbyEntities && player.isAfk()) continue; // Purpur - AFK API
+
             final int worldHeight = world.getHeight();
             ActivationRange.maxBB = player.getBoundingBox().inflate(maxRange, worldHeight, maxRange);
             ActivationType.MISC.boundingBox = player.getBoundingBox().inflate(miscActivationRange, worldHeight, miscActivationRange);
@@ -289,6 +291,7 @@ public final class ActivationRange {
      * @return
      */
     public static boolean checkIfActive(final Entity entity) {
+        if (entity.level().purpurConfig.squidImmuneToEAR && entity instanceof net.minecraft.world.entity.animal.squid.Squid) return true; // Purpur - Squid EAR immunity
         // Never safe to skip fireworks or item gravity
         if (entity instanceof FireworkRocketEntity || (entity instanceof ItemEntity && (entity.tickCount + entity.getId()) % 4 == 0)) { // Needed for item gravity, see ItemEntity tick
             return true;

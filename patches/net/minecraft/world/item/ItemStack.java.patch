@@ -256,13 +256,34 @@
      public boolean isStackable() {
          return this.getMaxStackSize() > 1 && (!this.isDamageableItem() || !this.isDamaged());
      }
-@@ -421,19 +_,19 @@
+@@ -421,19 +_,39 @@
      }
  
      public boolean isDamaged() {
 -        return this.isDamageableItem() && this.getDamageValue() > 0;
+-    }
 +        return this.isDamageableItem() && getItem().isDamaged(this);
-     }
++    }
++
++    // Purpur start - Add option to mend the most damaged equipment first
++    public float getDamagePercent() {
++        if (this.has(DataComponents.UNBREAKABLE)) {
++            return 0.0F;
++        }
++
++        final int maxDamage = this.getOrDefault(DataComponents.MAX_DAMAGE, 0);
++        if (maxDamage == 0) {
++            return 0.0F;
++        }
++
++        final int damage = this.getOrDefault(DataComponents.DAMAGE, 0);
++        if (damage == 0) {
++            return 0.0F;
++        }
++
++        return (float) damage / maxDamage;
++    }
++    // Purpur end - Add option to mend the most damaged equipment first
  
      public int getDamageValue() {
 -        return Mth.clamp(this.getOrDefault(DataComponents.DAMAGE, 0), 0, this.getMaxDamage());
@@ -551,10 +572,16 @@
      private void addAttributeTooltips(Consumer<Component> consumer, TooltipDisplay display, @Nullable Player player) {
          if (display.shows(DataComponents.ATTRIBUTE_MODIFIERS)) {
              for (EquipmentSlotGroup slot : EquipmentSlotGroup.values()) {
-@@ -991,22 +_,59 @@
+@@ -991,22 +_,65 @@
          return !this.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).isEmpty();
      }
  
++    // Purpur start - Config to allow unsafe enchants
++    public boolean hasEnchantment(Holder<Enchantment> enchantment) {
++        return this.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).getLevel(enchantment) > 0;
++    }
++    // Purpur end - Config to allow unsafe enchants
++
 +    /**
 +     * Gets all enchantments from NBT. Use {@link ItemStack#getAllEnchantments} for gameplay logic.
 +     */

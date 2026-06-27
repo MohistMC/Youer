@@ -35,7 +35,7 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -37,23 +_,53 @@
+@@ -37,23 +_,58 @@
      private static final Component TIMEOUT_DISCONNECTION_MESSAGE = Component.translatable("disconnect.timeout");
      static final Component DISCONNECT_UNEXPECTED_QUERY = Component.translatable("multiplayer.disconnect.unexpected_query_response");
      protected final MinecraftServer server;
@@ -46,11 +46,12 @@
 -    private boolean keepAlivePending;
 -    private long keepAliveChallenge;
 +    //private long keepAliveTime; // Paper - improve keepalives
-+    //private boolean keepAlivePending; // Paper - improve keepalives
++    private boolean keepAlivePending; // Paper - improve keepalives // Purpur - Alternative Keepalive Handling
 +    //private long keepAliveChallenge; // Paper - improve keepalives
      private long closedListenerTime;
      private boolean closed = false;
 -    private int latency;
++    private it.unimi.dsi.fastutil.longs.LongList keepAlives = new it.unimi.dsi.fastutil.longs.LongArrayList(); // Purpur - Alternative Keepalive Handling
 +    private volatile int latency; // Paper - improve keepalives - make volatile
 +    private final io.papermc.paper.util.KeepAlive keepAlive; // Paper - improve keepalives
      private volatile boolean suspendFlushingOnServerThread = false;
@@ -65,6 +66,10 @@
 +    public final java.util.Map<java.util.UUID, net.kyori.adventure.resource.ResourcePackCallback> packCallbacks = new java.util.concurrent.ConcurrentHashMap<>(); // Paper - adventure resource pack callbacks
 +    private static final long KEEPALIVE_LIMIT = Long.getLong("paper.playerconnection.keepalive", 30) * 1000; // Paper - provide property to set keepalive limit
 +    protected static final net.minecraft.resources.Identifier MINECRAFT_BRAND = net.minecraft.resources.Identifier.withDefaultNamespace("brand"); // Paper - Brand support
++    // Purpur start - Purpur client support
++    protected static final net.minecraft.resources.Identifier PURPUR_CLIENT = net.minecraft.resources.Identifier.fromNamespaceAndPath("purpur", "client");
++    public boolean purpurClient;
++    // Purpur end - Purpur client support
 +    // Paper start - retain certain values
 +    public @Nullable String playerBrand;
 +    public final java.util.Set<String> pluginMessagerChannels;
@@ -95,7 +100,7 @@
  
      private void close() {
          if (!this.closed) {
-@@ -78,27 +_,150 @@
+@@ -78,27 +_,168 @@
  
      @Override
      public void handleKeepAlive(ServerboundKeepAlivePacket packet) {
@@ -109,6 +114,18 @@
 +        // Paper start - improve keepalives
 +        long now = System.nanoTime();
 +        io.papermc.paper.util.KeepAlive.PendingKeepAlive pending = this.keepAlive.pendingKeepAlives.peek();
++        // Purpur start - Alternative Keepalive Handling
++        if (org.purpurmc.purpur.PurpurConfig.useAlternateKeepAlive) {
++            if (this.keepAlivePending && !keepAlives.isEmpty() && keepAlives.contains(packet.getId())) {
++                int ping = (int) (Util.getMillis() - packet.getId());
++                int updatedLatency = (this.latency * 3 + ping) / 4;
++                this.latency = updatedLatency;
++                this.keepAlivePending = false;
++                keepAlives.clear(); // we got a valid response, lets roll with it and forget the rest
++            }
++            return;
++        } else
++            // Purpur end - Alternative Keepalive Handling
 +        if (pending != null && pending.challengeId() == packet.getId()) {
 +            this.keepAlive.pendingKeepAlives.remove(pending);
 +
@@ -204,6 +221,12 @@
 +                return;
 +            }
 +
++            // Purpur start - Purpur client support
++            if (identifier.equals(PURPUR_CLIENT)) {
++                this.purpurClient = true;
++            }
++            // Purpur end - Purpur client support
++
 +            if (identifier.equals(MINECRAFT_BRAND)) {
 +                this.playerBrand = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.wrappedBuffer(data)).readUtf(256);
 +            }
@@ -254,7 +277,7 @@
      }
  
      @Override
-@@ -108,24 +_,52 @@
+@@ -108,24 +_,69 @@
              LOGGER.info("Disconnecting {} due to resource pack {} rejection", this.playerProfile().name(), packet.id());
              this.disconnect(Component.translatable("multiplayer.requiredTexturePrompt.disconnect"));
          }
@@ -297,6 +320,23 @@
 -                this.keepAliveChallenge = now;
 -                this.send(new ClientboundKeepAlivePacket(this.keepAliveChallenge));
 +        // Paper start - improve keepalives
++        // Purpur start - Alternative Keepalive Handling
++        if (org.purpurmc.purpur.PurpurConfig.useAlternateKeepAlive) {
++            if (this.checkIfClosed(now)) {
++                long currTime = System.nanoTime();
++                if ((currTime - this.keepAlive.lastKeepAliveTx) >= java.util.concurrent.TimeUnit.SECONDS.toNanos(1L)) { // 1 second
++                    this.keepAlive.lastKeepAliveTx = currTime;
++                    if (this.keepAlivePending && keepAlives.size() * 1000L >= KEEPALIVE_LIMIT) {
++                        this.disconnect(TIMEOUT_DISCONNECTION_MESSAGE, io.papermc.paper.connection.DisconnectionReason.TIMEOUT);
++                    } else if (this.checkIfClosed(now)) {
++                        this.keepAlivePending = true;
++                        this.keepAlives.add(now); // currentTime is ID
++                        this.send(new ClientboundKeepAlivePacket(now));
++                    }
++                }
++            }
++        } else
++            // Purpur end - Alternative Keepalive Handling
 +        if (this.checkIfClosed(now)) {
 +            long currTime = System.nanoTime();
 +

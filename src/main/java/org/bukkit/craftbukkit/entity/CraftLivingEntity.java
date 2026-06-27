@@ -496,7 +496,7 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
         net.minecraft.server.level.ServerPlayer nmsKiller = killer == null ? null : ((CraftPlayer) killer).getHandle();
         this.getHandle().setLastHurtByMob(nmsKiller);
         if (nmsKiller != null) {
-            this.getHandle().setLastHurtByPlayer(nmsKiller, 100); // value taken from LivingEntity#resolvePlayerResponsibleForDamage
+            this.getHandle().setLastHurtByPlayer(nmsKiller, this.getHandle().level().purpurConfig.mobLastHurtByPlayerTime); // value taken from LivingEntity#resolvePlayerResponsibleForDamage // Purpur - Config for mob last hurt by player time
         } else {
             this.getHandle().lastHurtByPlayer = null;
             this.getHandle().lastHurtByPlayerMemoryTime = 0;
@@ -1137,4 +1137,16 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
         manager.untrackWaypoint(getHandle());
         manager.trackWaypoint(getHandle());
     }
+
+    // Purpur start - API for any mob to burn daylight
+    @Override
+    public boolean shouldBurnInDay() {
+        return this.getHandle().shouldBurnInDay();
+    }
+
+    @Override
+    public void setShouldBurnInDay(final boolean shouldBurnInDay) {
+        this.getHandle().setShouldBurnInDay(shouldBurnInDay);
+    }
+    // Purpur end - API for any mob to burn daylight
 }

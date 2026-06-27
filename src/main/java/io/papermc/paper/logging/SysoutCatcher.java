@@ -54,9 +54,9 @@ public final class SysoutCatcher {
                 final JavaPlugin plugin = JavaPlugin.getProvidingPlugin(clazz);
 
                 // Instead of just printing the message, send it to the plugin's logger
-                plugin.getLogger().log(this.level, this.prefix + line);
+                plugin.getLogger().log(this.level, /*this.prefix +*/ line); // Purpur - Enhance SysoutCatcher - prefix not needed
 
-                if (SysoutCatcher.SUPPRESS_NAGS) {
+                if (true || SysoutCatcher.SUPPRESS_NAGS) { // Purpur - Enhance SysoutCatcher - nagging is annoying
                     return;
                 }
                 if (SysoutCatcher.NAG_INTERVAL > 0 || SysoutCatcher.NAG_TIMEOUT > 0) {

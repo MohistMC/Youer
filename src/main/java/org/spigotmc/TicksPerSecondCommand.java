@@ -47,7 +47,7 @@ public class TicksPerSecondCommand extends Command {
         }
 
         TextComponent.Builder builder = text();
-        builder.append(text("TPS from last 1m, 5m, 15m: ", NamedTextColor.GOLD));
+        builder.append(text("TPS from last 5s, 1m, 5m, 15m: ", NamedTextColor.GOLD)); // Purpur - Add 5 second tps average in /tps
         builder.append(Component.join(JoinConfiguration.commas(true), tpsAvg));
         sender.sendMessage(builder.asComponent());
         if (args.length > 0 && args[0].equals("mem") && sender.hasPermission("bukkit.command.tpsmemory")) {

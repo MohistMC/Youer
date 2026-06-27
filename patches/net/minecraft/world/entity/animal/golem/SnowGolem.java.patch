@@ -1,5 +1,60 @@
 --- a/net/minecraft/world/entity/animal/golem/SnowGolem.java
 +++ b/net/minecraft/world/entity/animal/golem/SnowGolem.java
+@@ -46,11 +_,54 @@
+     private static final EntityDataAccessor<Byte> DATA_PUMPKIN_ID = SynchedEntityData.defineId(SnowGolem.class, EntityDataSerializers.BYTE);
+     private static final byte PUMPKIN_FLAG = 16;
+     private static final boolean DEFAULT_PUMPKIN = true;
++    private java.util.@Nullable UUID summoner; // Purpur - Summoner API
+ 
+     public SnowGolem(EntityType<? extends SnowGolem> type, Level level) {
+         super(type, level);
+     }
+ 
++    // Purpur start - Summoner API
++    public java.util.@Nullable UUID getSummoner() {
++        return summoner;
++    }
++
++    public void setSummoner(java.util.@Nullable UUID summoner) {
++        this.summoner = summoner;
++    }
++    // Purpur end - Summoner API
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.snowGolemRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.snowGolemRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.snowGolemControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.snowGolemMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.snowGolemScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.snowGolemAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(1, new RangedAttackGoal(this, 1.25, 20, 10.0F));
 @@ -92,10 +_,10 @@
          super.aiStep();
          if (this.level() instanceof ServerLevel serverLevel) {

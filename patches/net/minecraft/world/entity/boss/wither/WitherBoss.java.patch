@@ -35,14 +35,176 @@
  import org.jspecify.annotations.Nullable;
  
  public class WitherBoss extends Monster implements RangedAttackMob {
-@@ -72,6 +_,7 @@
+@@ -72,6 +_,8 @@
      private final int[] nextHeadUpdate = new int[2];
      private final int[] idleHeadUpdates = new int[2];
      private int destroyBlocksTick;
++    private int shootCooldown = 0; // Purpur - Ridables
 +    private boolean canPortal = false; // Paper
      public final ServerBossEvent bossEvent = Util.make(
          new ServerBossEvent(Mth.createInsecureUUID(this.random), this.getDisplayName(), BossEvent.BossBarColor.PURPLE, BossEvent.BossBarOverlay.PROGRESS),
          e -> e.setDarkenScreen(true)
+@@ -79,14 +_,159 @@
+     private static final TargetingConditions.Selector LIVING_ENTITY_SELECTOR = (target, level) -> !target.is(EntityTypeTags.WITHER_FRIENDS)
+         && target.attackable();
+     private static final TargetingConditions TARGETING_CONDITIONS = TargetingConditions.forCombat().range(20.0).selector(LIVING_ENTITY_SELECTOR);
++    private java.util.@Nullable UUID summoner; // Purpur - Summoner API
++    private org.purpurmc.purpur.controller.FlyingWithSpacebarMoveControllerWASD purpurController; // Purpur - Ridables
+ 
+     public WitherBoss(EntityType<? extends WitherBoss> type, Level level) {
+         super(type, level);
+-        this.moveControl = new FlyingMoveControl<>(this, 10, false);
++        // Purpur start - Ridables
++        this.purpurController = new org.purpurmc.purpur.controller.FlyingWithSpacebarMoveControllerWASD<>(this, 0.1F);
++        this.moveControl = new FlyingMoveControl<>(this, 10, false) {
++            @Override
++            public void tick() {
++                if (mob.getRider() != null && mob.isControllable()) {
++                    purpurController.purpurTick(mob.getRider());
++                } else {
++                    super.tick();
++                }
++            }
++        };
++        // Purpur end - Ridables
+         this.setHealth(this.getMaxHealth());
+         this.xpReward = 50;
+     }
+ 
++    // Purpur start - Summoner API
++    public java.util.@Nullable UUID getSummoner() {
++        return summoner;
++    }
++
++    public void setSummoner(java.util.@Nullable UUID summoner) {
++        this.summoner = summoner;
++    }
++    // Purpur end - Summoner API
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.witherRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.witherRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.witherControllable;
++    }
++
++    @Override
++    public double getMaxY() {
++        return level().purpurConfig.witherMaxY;
++    }
++
++    @Override
++    public void travel(Vec3 vec3) {
++        super.travel(vec3);
++        if (getRider() != null && this.isControllable() && !onGround) {
++            float speed = (float) getAttributeValue(Attributes.FLYING_SPEED) * 5F;
++            setSpeed(speed);
++            Vec3 mot = getDeltaMovement();
++            move(net.minecraft.world.entity.MoverType.SELF, mot.multiply(speed, 0.5, speed));
++            setDeltaMovement(mot.scale(0.9D));
++        }
++    }
++
++    @Override
++    public void onMount(Player rider) {
++        super.onMount(rider);
++        this.entityData.set(DATA_TARGETS.get(0), 0);
++        this.entityData.set(DATA_TARGETS.get(1), 0);
++        this.entityData.set(DATA_TARGETS.get(2), 0);
++        getNavigation().stop();
++        shootCooldown = 20;
++    }
++
++    @Override
++    public boolean onClick(net.minecraft.world.InteractionHand hand) {
++        return shoot(getRider(), hand == net.minecraft.world.InteractionHand.MAIN_HAND ? new int[]{1} : new int[]{2});
++    }
++
++    public boolean shoot(@Nullable Player rider, int[] heads) {
++        if (shootCooldown > 0) {
++            return false;
++        }
++
++        shootCooldown = 20;
++        if (rider == null) {
++            return false;
++        }
++
++        org.bukkit.craftbukkit.entity.CraftHumanEntity player = rider.getBukkitEntity();
++        if (!player.hasPermission("allow.special.wither")) {
++            return false;
++        }
++
++        net.minecraft.world.phys.HitResult rayTrace = getRayTrace(120, net.minecraft.world.level.ClipContext.Fluid.NONE);
++        if (rayTrace == null) {
++            return false;
++        }
++
++        Vec3 loc;
++        if (rayTrace.getType() == net.minecraft.world.phys.HitResult.Type.BLOCK) {
++            BlockPos pos = ((net.minecraft.world.phys.BlockHitResult) rayTrace).getBlockPos();
++            loc = new Vec3(pos.getX() + 0.5D, pos.getY() + 0.5D, pos.getZ() + 0.5D);
++        } else if (rayTrace.getType() == net.minecraft.world.phys.HitResult.Type.ENTITY) {
++            Entity target = ((net.minecraft.world.phys.EntityHitResult) rayTrace).getEntity();
++            loc = new Vec3(target.getX(), target.getY() + (target.getEyeHeight() / 2), target.getZ());
++        } else {
++            org.bukkit.block.Block block = player.getTargetBlock(null, 120);
++            loc = new Vec3(block.getX() + 0.5D, block.getY() + 0.5D, block.getZ() + 0.5D);
++        }
++
++        for (int head : heads) {
++            shoot(head, loc.x(), loc.y(), loc.z(), rider);
++        }
++
++        return true; // handled
++    }
++
++    public void shoot(int head, double x, double y, double z, Player rider) {
++        level().levelEvent(null, 1024, blockPosition(), 0);
++        double headX = getHeadX(head);
++        double headY = getHeadY(head);
++        double headZ = getHeadZ(head);
++        Vec3 vec3d = new Vec3(x - headX, y - headY, z - headZ);
++        WitherSkull skull = new WitherSkull(level(), this, vec3d.normalize());
++        skull.setPosRaw(headX, headY, headZ);
++        level().addFreshEntity(skull);
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.witherMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.witherScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.witherTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.witherAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected PathNavigation createNavigation(Level level) {
+         FlyingPathNavigation flyingPathNavigation = new FlyingPathNavigation(this, level);
 @@ -263,15 +_,39 @@
              int newCount = this.getInvulnerableTicks() - 1;
              this.bossEvent.setProgress(1.0F - newCount / 220.0F);

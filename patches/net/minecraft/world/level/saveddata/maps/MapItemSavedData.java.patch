@@ -37,7 +37,7 @@
                  Codec.INT.fieldOf("xCenter").forGetter(m -> m.centerX),
                  Codec.INT.fieldOf("zCenter").forGetter(m -> m.centerZ),
                  Codec.BYTE.optionalFieldOf("scale", (byte)0).forGetter(m -> m.scale),
-@@ -69,6 +_,7 @@
+@@ -69,12 +_,20 @@
      public byte scale;
      public byte[] colors = new byte[16384];
      public boolean locked;
@@ -45,19 +45,19 @@
      public final List<MapItemSavedData.HoldingPlayer> carriedBy = Lists.newArrayList();
      public final Map<Player, MapItemSavedData.HoldingPlayer> carriedByPlayers = Maps.newHashMap();
      private final Map<String, MapBanner> bannerMarkers = Maps.newHashMap();
-@@ -76,6 +_,12 @@
+     public final Map<String, MapDecoration> decorations = Maps.newLinkedHashMap();
      private final Map<String, MapFrame> frameMarkers = Maps.newHashMap();
      private int trackedDecorationCount;
- 
++    public boolean isExplorerMap; // Purpur - Explorer Map API
++
 +    // CraftBukkit start
 +    public final CraftMapView mapView;
 +    public UUID uniqueId = null;
 +    public MapId id;
 +    // CraftBukkit end
-+
+ 
      public static SavedDataType<MapItemSavedData> type(MapId id) {
          return new SavedDataType<>(Identifier.withDefaultNamespace(id.key()), () -> {
-             throw new IllegalStateException("Should never create an empty map saved data");
 @@ -92,7 +_,28 @@
          this.trackingPosition = trackingPosition;
          this.unlimitedTracking = unlimitedTracking;

@@ -149,6 +149,11 @@ public class MobGoalHelper {
     private static final Map<String, String> RENAMES = Util.make(new HashMap<>(), map -> {
         map.put("AbstractSkeleton$1", "AbstractSkeletonMelee");
 
+        // Purpur start - Add option to disable zombie aggressiveness towards villagers
+        map.put("Zombie$1", "ZombieAttackVillager");
+        map.put("Drowned$1", "DrownedAttackVillager");
+        // Purpur end - Add option to disable zombie aggressiveness towards villagers
+
         // remove duplicate
         map.put("TraderLlama$TraderLlamaDefendWanderingTraderGoal", "TraderLlamaDefendWanderingTraderGoal");
         map.put("AbstractIllager$RaiderOpenDoorGoal", "RaiderOpenDoorGoal");

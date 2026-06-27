@@ -11,6 +11,136 @@
  import org.jspecify.annotations.Nullable;
  
  public class Wolf extends TamableAnimal implements NeutralMob {
+@@ -103,6 +_,37 @@
+     private static final EntityDimensions BABY_DIMENSIONS = EntityDimensions.scalable(0.3F, 0.425F)
+         .withEyeHeight(0.34375F)
+         .withAttachments(EntityAttachments.builder().attach(EntityAttachment.PASSENGER, 0.0F, 0.4375F, 0.0F));
++    // Purpur start - Configurable chance for wolves to spawn rabid
++    private boolean isRabid = false;
++    private static final TargetingConditions.Selector RABID_PREDICATE = (entity, ignored) -> entity instanceof net.minecraft.server.level.ServerPlayer || entity instanceof net.minecraft.world.entity.Mob;
++    private final net.minecraft.world.entity.ai.goal.Goal PATHFINDER_VANILLA = new NonTameRandomTargetGoal<>(this, Animal.class, false, PREY_SELECTOR);
++    private final net.minecraft.world.entity.ai.goal.Goal PATHFINDER_RABID = new NonTameRandomTargetGoal<>(this, LivingEntity.class, false, RABID_PREDICATE);
++    private static final class AvoidRabidWolfGoal extends AvoidEntityGoal<Wolf> {
++        private final Wolf wolf;
++
++        public AvoidRabidWolfGoal(Wolf wolf, float distance, double minSpeed, double maxSpeed) {
++            super(wolf, Wolf.class, distance, minSpeed, maxSpeed);
++            this.wolf = wolf;
++        }
++
++        @Override
++        public boolean canUse() {
++            return super.canUse() && !this.wolf.isRabid() && this.toAvoid != null && this.toAvoid.isRabid(); // wolves which are not rabid run away from rabid wolves
++        }
++
++        @Override
++        public void start() {
++            this.wolf.setTarget(null);
++            super.start();
++        }
++
++        @Override
++        public void tick() {
++            this.wolf.setTarget(null);
++            super.tick();
++        }
++    }
++    // Purpur end - Configurable chance for wolves to spawn rabid
+     private static final float START_HEALTH = 8.0F;
+     private static final float TAME_HEALTH = 40.0F;
+     private static final float ARMOR_REPAIR_UNIT = 0.125F;
+@@ -124,6 +_,91 @@
+         this.setPathfindingMalus(PathType.ON_TOP_OF_POWDER_SNOW, -1.0F);
+     }
+ 
++    // Purpur start - Configurable chance for wolves to spawn rabid
++    public boolean isRabid() {
++        return this.isRabid;
++    }
++
++    public void setRabid(boolean isRabid) {
++        this.isRabid = isRabid;
++        updatePathfinders(true);
++    }
++
++    public void updatePathfinders(boolean modifyEffects) {
++        this.targetSelector.removeGoal(PATHFINDER_VANILLA);
++        this.targetSelector.removeGoal(PATHFINDER_RABID);
++        if (this.isRabid) {
++            this.setOwnerReference(null);
++            setTame(false, true);
++            this.targetSelector.addGoal(5, PATHFINDER_RABID);
++            if (modifyEffects) this.addEffect(new net.minecraft.world.effect.MobEffectInstance(net.minecraft.world.effect.MobEffects.NAUSEA, 1200));
++        } else {
++            this.targetSelector.addGoal(5, PATHFINDER_VANILLA);
++            this.stopBeingAngry();
++            if (modifyEffects) this.removeEffect(net.minecraft.world.effect.MobEffects.NAUSEA);
++        }
++    }
++    // Purpur end - Configurable chance for wolves to spawn rabid
++
++    // Purpur start - Configurable default collar color
++    @Override
++    public void tame(Player player) {
++        setCollarColor(level().purpurConfig.wolfDefaultCollarColor);
++        super.tame(player);
++    }
++    // Purpur end - Configurable default collar color
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.wolfRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.wolfRidableInWater;
++    }
++
++    public void onMount(Player rider) {
++        super.onMount(rider);
++        setInSittingPose(false);
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.wolfControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.wolfMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.wolfScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.wolfBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.wolfTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.wolfAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(1, new FloatGoal(this));
 @@ -403,8 +_,9 @@
              return false;
          }

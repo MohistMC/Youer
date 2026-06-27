@@ -659,6 +659,15 @@ public class CraftEventFactory {
         }
         craftServer.getPluginManager().callEvent(event);
 
+        // Purpur start - Ridables
+        if (player != null) {
+            switch (action) {
+                case LEFT_CLICK_BLOCK, LEFT_CLICK_AIR -> player.processClick(InteractionHand.MAIN_HAND);
+                case RIGHT_CLICK_BLOCK, RIGHT_CLICK_AIR -> player.processClick(InteractionHand.OFF_HAND);
+            }
+        }
+        // Purpur end - Ridables
+
         return event;
     }
 
@@ -1159,6 +1168,7 @@ public class CraftEventFactory {
         EntityDamageEvent event;
         if (damager != null) {
             event = new EntityDamageByEntityEvent(damager.getBukkitEntity(), damagee.getBukkitEntity(), cause, bukkitDamageSource, modifiers, modifierFunctions, critical);
+            damager.processClick(InteractionHand.MAIN_HAND); // Purpur - Ridables
         } else {
             event = new EntityDamageEvent(damagee.getBukkitEntity(), cause, bukkitDamageSource, modifiers, modifierFunctions);
         }

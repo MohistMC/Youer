@@ -230,6 +230,12 @@ public class EntityPotionEffectEvent extends EntityEvent implements Cancellable 
          * When all effects are removed due to a bucket of milk.
          */
         MILK,
+        // Purpur start
+        /**
+         * When a player wears full netherite armor
+         */
+        NETHERITE_ARMOR,
+        // Purpur end
         /**
          * When the entity gets the effect from a nautilus.
          */

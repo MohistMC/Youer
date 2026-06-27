@@ -1944,6 +1944,52 @@ public class CraftWorld extends CraftRegionAccessor implements World {
         return (this.getHandle().getDragonFight() == null) ? null : new CraftDragonBattle(this.getHandle().getDragonFight());
     }
 
+    // Purpur start - Add local difficulty api
+    public float getLocalDifficultyAt(Location location) {
+        return getHandle().getCurrentDifficultyAt(org.bukkit.craftbukkit.util.CraftLocation.toBlockPos(location)).getEffectiveDifficulty();
+    }
+    // Purpur end - Add local difficulty api
+
+    // Purpur start - Debug Marker API
+    @Override
+    public void sendBlockHighlight(Location location, int duration) {
+        sendBlockHighlight(location, duration, "", 0x6400FF00);
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, int argb) {
+        sendBlockHighlight(location, duration, "", argb);
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, String text) {
+        sendBlockHighlight(location, duration, text, 0x6400FF00);
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, String text, int argb) {
+        // Purpur - TODO: NOOP until further notice
+        //net.minecraft.network.protocol.game.DebugPackets.sendGameTestAddMarker(getHandle(), org.bukkit.craftbukkit.util.CraftLocation.toBlockPosition(location), text, argb, duration);
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, org.bukkit.Color color, int transparency) {
+        sendBlockHighlight(location, duration, "", color, transparency);
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, String text, org.bukkit.Color color, int transparency) {
+        if (transparency < 0 || transparency > 255) throw new IllegalArgumentException("transparency is outside of 0-255 range");
+        sendBlockHighlight(location, duration, text, transparency << 24 | color.asRGB());
+    }
+
+    @Override
+    public void clearBlockHighlights() {
+        // Purpur - TODO: NOOP until further notice
+        //net.minecraft.network.protocol.game.DebugPackets.sendGameTestClearPacket(getHandle());
+    }
+    // Purpur end - Debug Marker API
+
     @Override
     public Collection<GeneratedStructure> getStructures(int x, int z) {
         return this.getStructures(x, z, struct -> true);

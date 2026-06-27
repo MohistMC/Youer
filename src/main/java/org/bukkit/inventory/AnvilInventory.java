@@ -138,4 +138,42 @@ public interface AnvilInventory extends Inventory {
         setItem(2, result);
     }
     // Paper end
+
+    // Purpur start
+    /**
+     * Gets if the player viewing the anvil inventory can bypass experience cost
+     *
+     * @return whether the player viewing the anvil inventory can bypass the experience cost
+     * @deprecated use {@link AnvilView#canBypassCost()}.
+     */
+    @Deprecated(forRemoval = true, since = "1.21")
+    boolean canBypassCost();
+
+    /**
+     * Set if the player viewing the anvil inventory can bypass the experience cost
+     *
+     * @param bypassCost whether the player viewing the anvil inventory can bypass the experience cost
+     * @deprecated use {@link AnvilView#setBypassCost(boolean)}.
+     */
+    @Deprecated(forRemoval = true, since = "1.21")
+    void setBypassCost(boolean bypassCost);
+
+    /**
+     * Gets if the player viewing the anvil inventory can do unsafe enchants
+     *
+     * @return whether the player viewing the anvil inventory can do unsafe enchants
+     * @deprecated use {@link AnvilView#canDoUnsafeEnchants()}.
+     */
+    @Deprecated(forRemoval = true, since = "1.21")
+    boolean canDoUnsafeEnchants();
+
+    /**
+     * Set if the player viewing the anvil inventory can do unsafe enchants
+     *
+     * @param canDoUnsafeEnchants whether the player viewing the anvil inventory can do unsafe enchants
+     * @deprecated use {@link AnvilView#setDoUnsafeEnchants(boolean)}.
+     */
+    @Deprecated(forRemoval = true, since = "1.21")
+    void setDoUnsafeEnchants(boolean canDoUnsafeEnchants);
+    // Purpur end
 }

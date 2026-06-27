@@ -169,6 +169,30 @@ public enum EnchantmentTarget {
         public boolean includes(@NotNull Material item) {
             return Tag.ITEMS_ENCHANTABLE_VANISHING.isTagged(item);
         }
+        // Purpur start - Add enchantment target for bows and crossbows
+    },
+
+    /**
+     * Allow the Enchantment to be placed on bows and crossbows.
+     */
+    BOW_AND_CROSSBOW {
+        @Override
+        public boolean includes(@NotNull Material item) {
+            return item.equals(Material.BOW) || item.equals(Material.CROSSBOW);
+        }
+        // Purpur end - Add enchantment target for bows and crossbows
+        // Purpur start - Shears can have looting enchantment
+    },
+
+    /**
+     * Allow the Enchantment to be placed on shears.
+     */
+    WEAPON_AND_SHEARS {
+        @Override
+        public boolean includes(@NotNull Material item) {
+            return WEAPON.includes(item) || item.equals(Material.SHEARS);
+        }
+        // Purpur end - Shears can have looting enchantment
     };
 
     /**

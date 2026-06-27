@@ -1538,4 +1538,20 @@ public interface LivingEntity extends Attributable, Damageable, ProjectileSource
      */
     @Nullable
     Color getWaypointColor();
+    
+    // Purpur start - API for any mob to burn daylight
+    /**
+     * If this mob will burn in the sunlight
+     *
+     * @return True if mob will burn in sunlight
+     */
+    boolean shouldBurnInDay();
+
+    /**
+     * Set if this mob should burn in the sunlight
+     *
+     * @param shouldBurnInDay True to burn in sunlight
+     */
+    void setShouldBurnInDay(boolean shouldBurnInDay);
+    // Purpur end - API for any mob to burn daylight
 }

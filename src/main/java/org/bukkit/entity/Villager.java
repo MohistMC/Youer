@@ -405,4 +405,13 @@ public interface Villager extends AbstractVillager {
      * Demand is still updated even if all events are canceled.
      */
     public void restock();
+
+    // Purpur start
+    /**
+     * Check if villager is currently lobotomized
+     *
+     * @return True if lobotomized
+     */
+    boolean isLobotomized();
+    // Purpur end
 }

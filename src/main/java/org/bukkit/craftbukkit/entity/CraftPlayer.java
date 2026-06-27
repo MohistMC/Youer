@@ -8,7 +8,9 @@ import com.google.common.io.BaseEncoding;
 import com.mohistmc.youer.api.ColorAPI;
 import com.mojang.authlib.GameProfile;
 import com.mojang.datafixers.util.Pair;
+import com.mojang.logging.LogUtils;
 import io.papermc.paper.FeatureHooks;
+import io.papermc.paper.adventure.BossBarImplementationImpl;
 import io.papermc.paper.connection.PlayerGameConnection;
 import io.papermc.paper.connection.PluginMessageBridgeImpl;
 import io.papermc.paper.datacomponent.DataComponentTypes;
@@ -583,10 +585,15 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
 
     @Override
     public void setPlayerListName(String name) {
+        // Purpur start - AFK API
+        setPlayerListName(name, false);
+    }
+    public void setPlayerListName(String name, boolean useMM) {
+        // Purpur end - AFK API
         if (name == null) {
             name = this.getName();
         }
-        this.getHandle().listName = name.equals(this.getName()) ? null : CraftChatMessage.fromStringOrNull(name);
+        this.getHandle().listName = name.equals(this.getName()) ? null : useMM ? io.papermc.paper.adventure.PaperAdventure.asVanilla(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(name)) : CraftChatMessage.fromStringOrNull(name); // Purpur - AFK API
         if (this.getHandle().connection == null) return; // Paper - Updates are possible before the player has fully joined
         for (ServerPlayer player : this.server.getHandle().getPlayers()) {
             if (player.getBukkitEntity().canSee(this)) {
@@ -986,6 +993,80 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
             this(new ShortArraySet(), new ArrayList<>());
         }
     }
+
+    // Purpur start - Purpur client support
+    @Override
+    public boolean usesPurpurClient() {
+        return getHandle().connection.purpurClient;
+    }
+    // Purpur end - Purpur client support
+
+    // Purpur start - AFK API
+    @Override
+    public boolean isAfk() {
+        return getHandle().isAfk();
+    }
+
+    @Override
+    public void setAfk(boolean setAfk) {
+        getHandle().setAfk(setAfk);
+    }
+
+    @Override
+    public void resetIdleTimer() {
+        getHandle().resetLastActionTime();
+    }
+    // Purpur end - AFK API
+
+    // Purpur start - Debug Marker API
+    @Override
+    public void sendBlockHighlight(Location location, int duration) {
+        sendBlockHighlight(location, duration, "", 0x6400FF00);
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, int argb) {
+        sendBlockHighlight(location, duration, "", argb);
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, String text) {
+        sendBlockHighlight(location, duration, text, 0x6400FF00);
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, String text, int argb) {
+        if (this.getHandle().connection == null) return;
+        // Purpur - TODO: NOOP until further notice
+        //this.getHandle().connection.send(new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(new net.minecraft.network.protocol.common.custom.GameTestAddMarkerDebugPayload(org.bukkit.craftbukkit.util.CraftLocation.toBlockPosition(location), argb, text, duration)));
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, org.bukkit.Color color, int transparency) {
+        sendBlockHighlight(location, duration, "", color, transparency);
+    }
+
+    @Override
+    public void sendBlockHighlight(Location location, int duration, String text, org.bukkit.Color color, int transparency) {
+        if (transparency < 0 || transparency > 255) throw new IllegalArgumentException("transparency is outside of 0-255 range");
+        sendBlockHighlight(location, duration, text, transparency << 24 | color.asRGB());
+    }
+
+    @Override
+    public void clearBlockHighlights() {
+        if (this.getHandle().connection == null) return;
+        // Purpur - TODO: NOOP until further notice
+        //this.getHandle().connection.send(new net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket(new net.minecraft.network.protocol.common.custom.GameTestClearMarkersDebugPayload()));
+    }
+    // Purpur end - Debug Marker API
+
+    // Purpur start - Death screen API
+    @Override
+    public void sendDeathScreen(net.kyori.adventure.text.Component message) {
+        if (this.getHandle().connection == null) return;
+        this.getHandle().connection.send(new net.minecraft.network.protocol.game.ClientboundPlayerCombatKillPacket(getEntityId(), io.papermc.paper.adventure.PaperAdventure.asVanilla(message)));
+    }
+    // Purpur end - Death screen API
 
     @Override
     public void sendBlockDamage(Location loc, float progress, org.bukkit.entity.Entity source) {
@@ -2491,6 +2572,28 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
         return this.getHandle().getAbilities().getWalkingSpeed() * 2.0F;
     }
 
+    // Purpur start - OfflinePlayer API
+    @Override
+    public boolean teleportOffline(Location destination) {
+        return this.teleport(destination);
+    }
+
+    @Override
+    public boolean teleportOffline(Location destination, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
+        return this.teleport(destination, cause);
+    }
+
+    @Override
+    public java.util.concurrent.CompletableFuture<Boolean> teleportOfflineAsync(Location destination) {
+        return this.teleportAsync(destination);
+    }
+
+    @Override
+    public java.util.concurrent.CompletableFuture<Boolean> teleportOfflineAsync(Location destination, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
+        return this.teleportAsync(destination, cause);
+    }
+    // Purpur end - OfflinePlayer API
+
     private void validateSpeed(float value) {
         Preconditions.checkArgument(value <= 1.0F && value >= -1.0F, "Speed value (%s) need to be between -1 and 1", value);
     }
@@ -2906,6 +3009,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
     // resetTitle implemented above
 
     private @Nullable Set<net.kyori.adventure.bossbar.BossBar> activeBossBars;
+    private Map<net.kyori.adventure.bossbar.BossBar, BossBarImplementationImpl> bossBarImplementation = new HashMap<>(); // Youer TODO
 
     @Override
     public @NonNull Iterable<? extends net.kyori.adventure.bossbar.BossBar> activeBossBars() {
@@ -2917,7 +3021,12 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
 
     @Override
     public void showBossBar(final net.kyori.adventure.bossbar.BossBar bar) {
-        net.kyori.adventure.bossbar.BossBarImplementation.get(bar, io.papermc.paper.adventure.BossBarImplementationImpl.class).playerShow(this);
+        if (bossBarImplementation.containsKey(bar)) {
+            bossBarImplementation.get(bar).playerShow(this);
+        } else {
+            bossBarImplementation.put(bar, new BossBarImplementationImpl(bar));
+            bossBarImplementation.get(bar).playerShow(this);
+        }
         if (this.activeBossBars == null) {
             this.activeBossBars = new HashSet<>();
         }
@@ -2926,7 +3035,9 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
 
     @Override
     public void hideBossBar(final net.kyori.adventure.bossbar.BossBar bar) {
-        net.kyori.adventure.bossbar.BossBarImplementation.get(bar, io.papermc.paper.adventure.BossBarImplementationImpl.class).playerHide(this);
+        if (bossBarImplementation.containsKey(bar)) {
+            bossBarImplementation.get(bar).playerHide(this);
+        }
         if (this.activeBossBars != null) {
             this.activeBossBars.remove(bar);
             if (this.activeBossBars.isEmpty()) {

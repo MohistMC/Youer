@@ -39,7 +39,7 @@
                      } else {
                          bee.setStayOutOfHiveCountdown(400);
                      }
-@@ -138,16 +_,22 @@
+@@ -138,23 +_,57 @@
      }
  
      private List<Entity> releaseAllOccupants(BlockState state, BeehiveBlockEntity.BeeReleaseStatus releaseStatus) {
@@ -49,6 +49,11 @@
 -                occupantEntry -> releaseOccupant(this.level, this.worldPosition, state, occupantEntry.toOccupant(), spawned, releaseStatus, this.savedFlowerPos)
 -            );
 -        if (!spawned.isEmpty()) {
+-            super.setChanged();
+-        }
+-
+-        return spawned;
+-    }
 +        // CraftBukkit start - This allows us to bypass the night/rain/emergency check
 +        return releaseBees(state, releaseStatus, false);
 +    }
@@ -61,18 +66,39 @@
 +            // CraftBukkit end
 +        });
 +        if (!list.isEmpty()) {
-             super.setChanged();
-         }
- 
--        return spawned;
++            super.setChanged();
++        }
++
 +        return list;
-     }
++    }
++
++    // Purpur start - Stored Bee API
++    public List<Entity> releaseBee(BlockState iblockdata, BeehiveBlockEntity.BeeData data, BeehiveBlockEntity.BeeReleaseStatus tileentitybeehive_releasestatus, boolean force) {
++        List<Entity> list = Lists.newArrayList();
++
++        BeehiveBlockEntity.releaseOccupant(this.level, this.worldPosition, iblockdata, data.occupant, list, tileentitybeehive_releasestatus, this.savedFlowerPos, force);
++
++        if (!list.isEmpty()) {
++            stored.remove(data);
++
++            super.setChanged();
++        }
++
++        return list;
++    }
++    // Purpur end - Stored Bee API
  
      @VisibleForDebug
-@@ -155,6 +_,12 @@
+     public int getOccupantCount() {
          return this.stored.size();
      }
  
++    // Purpur start - Stored Bee API
++    public List<BeeData> getStored() {
++        return stored;
++    }
++    // Purpur end - Stored Bee API
++
 +    // Paper start - Add EntityBlockStorage clearEntities
 +    public void clearBees() {
 +        this.stored.clear();
@@ -247,10 +273,14 @@
          List<BeehiveBlockEntity.Occupant> bees = components.getOrDefault(DataComponents.BEES, Bees.EMPTY).bees();
          bees.forEach(this::storeBee);
      }
-@@ -335,15 +_,18 @@
+@@ -333,17 +_,20 @@
+         registration.register(DebugSubscriptions.BEE_HIVES, () -> DebugHiveInfo.pack(this));
+     }
  
-     private static class BeeData {
-         private final BeehiveBlockEntity.Occupant occupant;
+-    private static class BeeData {
+-        private final BeehiveBlockEntity.Occupant occupant;
++    public static class BeeData {
++        public final BeehiveBlockEntity.Occupant occupant;
 +        private int exitTickCounter; // Paper - Fix bees aging inside hives; separate counter for checking if bee should exit to reduce exit attempts
          private int ticksInHive;
  

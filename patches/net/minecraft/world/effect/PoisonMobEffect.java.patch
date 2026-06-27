@@ -1,16 +1,18 @@
 --- a/net/minecraft/world/effect/PoisonMobEffect.java
 +++ b/net/minecraft/world/effect/PoisonMobEffect.java
-@@ -13,7 +_,12 @@
+@@ -12,8 +_,13 @@
+ 
      @Override
      public boolean applyEffectTick(ServerLevel level, LivingEntity mob, int amplification) {
-         if (mob.getHealth() > 1.0F) {
+-        if (mob.getHealth() > 1.0F) {
 -            mob.hurtServer(level, mob.damageSources().magic(), 1.0F);
++        if (mob.getHealth() > mob.level().purpurConfig.entityMinimalHealthPoison) { // Purpur
 +            // Neo: Replace DamageSources#magic() with neoforge:poison to allow differentiating poison damage.
 +            // Fallback to minecraft:magic in client code when connecting to a vanilla server.
 +            // LivingEntity#hurt(DamageSource) will no-op in client code immediately, but the holder is resolved before the no-op.
 +            var dTypeReg = mob.damageSources().damageTypes;
 +            var dType = dTypeReg.get(net.neoforged.neoforge.common.NeoForgeMod.POISON_DAMAGE).orElse(dTypeReg.getOrThrow(net.minecraft.world.damagesource.DamageTypes.MAGIC));
-+            mob.hurtServer(level, new net.minecraft.world.damagesource.DamageSource(dType).knownCause(org.bukkit.event.entity.EntityDamageEvent.DamageCause.POISON), 1.0F); // CraftBukkit
++            mob.hurtServer(level, new net.minecraft.world.damagesource.DamageSource(dType).knownCause(org.bukkit.event.entity.EntityDamageEvent.DamageCause.POISON), mob.level().purpurConfig.entityPoisonDegenerationAmount); // CraftBukkit
          }
  
          return true;

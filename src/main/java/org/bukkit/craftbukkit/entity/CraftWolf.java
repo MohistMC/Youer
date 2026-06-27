@@ -90,6 +90,18 @@ public class CraftWolf extends CraftTameableAnimal implements Wolf {
         this.getHandle().setSoundVariant(CraftSoundVariant.bukkitToMinecraftHolder(soundVariant));
     }
 
+    // Purpur start - Configurable chance for wolves to spawn rabid
+    @Override
+    public boolean isRabid() {
+        return getHandle().isRabid();
+    }
+
+    @Override
+    public void setRabid(boolean isRabid) {
+        getHandle().setRabid(isRabid);
+    }
+    // Purpur end - Configurable chance for wolves to spawn rabid
+
     public static class CraftVariant extends HolderableBase<WolfVariant> implements Variant {
 
         public static Variant minecraftHolderToBukkit(Holder<WolfVariant> minecraft) {

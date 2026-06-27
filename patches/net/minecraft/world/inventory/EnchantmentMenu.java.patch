@@ -38,7 +38,7 @@
  
      public EnchantmentMenu(int containerId, Inventory inventory) {
          this(containerId, inventory, ContainerLevelAccess.NULL);
-@@ -51,6 +_,22 @@
+@@ -51,6 +_,38 @@
  
      public EnchantmentMenu(int containerId, Inventory inventory, ContainerLevelAccess access) {
          super(MenuType.ENCHANTMENT, containerId);
@@ -56,6 +56,22 @@
 +                return access.getLocation();
 +            }
 +            // CraftBukkit end
++
++            // Purpur start - Enchantment Table Persists Lapis
++            @Override
++            public void onClose(org.bukkit.craftbukkit.entity.CraftHumanEntity who) {
++                super.onClose(who);
++
++                if (who.getHandle().level().purpurConfig.enchantmentTableLapisPersists) {
++                    access.execute((level, pos) -> {
++                        net.minecraft.world.level.block.entity.BlockEntity blockEntity = level.getBlockEntity(pos);
++                        if (blockEntity instanceof net.minecraft.world.level.block.entity.EnchantingTableBlockEntity enchantmentTable) {
++                            enchantmentTable.setLapis(this.getItem(1).getCount());
++                        }
++                    });
++                }
++            }
++            // Purpur end - Enchantment Table Persists Lapis
 +        };
 +        // Paper end - Add missing InventoryHolders
          this.access = access;
@@ -70,6 +86,23 @@
              }
  
              @Override
+@@ -69,6 +_,16 @@
+                 return EnchantmentMenu.EMPTY_SLOT_LAPIS_LAZULI;
+             }
+         });
++        // Purpur start - Enchantment Table Persists Lapis
++        access.execute((level, pos) -> {
++            if (level.purpurConfig.enchantmentTableLapisPersists) {
++                net.minecraft.world.level.block.entity.BlockEntity blockEntity = level.getBlockEntity(pos);
++                if (blockEntity instanceof net.minecraft.world.level.block.entity.EnchantingTableBlockEntity enchantmentTable) {
++                    this.getSlot(1).set(new ItemStack(Items.LAPIS_LAZULI, enchantmentTable.getLapis()));
++                }
++            }
++        });
++        // Purpur end - Enchantment Table Persists Lapis
+         this.addStandardInventorySlots(inventory, 8, 84);
+         this.addDataSlot(DataSlot.shared(this.costs, 0));
+         this.addDataSlot(DataSlot.shared(this.costs, 1));
 @@ -80,32 +_,36 @@
          this.addDataSlot(DataSlot.shared(this.levelClue, 0));
          this.addDataSlot(DataSlot.shared(this.levelClue, 1));
@@ -284,7 +317,13 @@
      public int getEnchantmentSeed() {
          return this.enchantmentSeed.get();
      }
-@@ -216,6 +_,7 @@
+@@ -211,11 +_,12 @@
+     @Override
+     public void removed(Player player) {
+         super.removed(player);
+-        this.access.execute((level, pos) -> this.clearContainer(player, this.enchantSlots));
++        this.access.execute((level, pos) -> {if (level.purpurConfig.enchantmentTableLapisPersists) this.getSlot(1).set(ItemStack.EMPTY);this.clearContainer(player, this.enchantSlots);}); // Purpur - Enchantment Table Persists Lapis
+     }
  
      @Override
      public boolean stillValid(Player player) {

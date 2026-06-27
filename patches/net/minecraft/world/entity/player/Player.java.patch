@@ -39,7 +39,7 @@
      public final InventoryMenu inventoryMenu;
      public AbstractContainerMenu containerMenu;
      protected FoodData foodData = new FoodData();
-@@ -173,6 +_,23 @@
+@@ -173,6 +_,47 @@
      private Optional<GlobalPos> lastDeathLocation = Optional.empty();
      public @Nullable FishingHook fishing;
      public float hurtDir;
@@ -49,17 +49,41 @@
 +    private Pose forcedPose = null;
 +    public boolean affectsSpawning = true; // Paper - Affects Spawning API
 +    public net.kyori.adventure.util.TriState flyingFallDamage = net.kyori.adventure.util.TriState.NOT_SET; // Paper - flying fall damage
-+
++    public int burpDelay = 0; // Purpur - Burp delay
++    public boolean canPortalInstant = false; // Purpur - Add portal permission bypass
++    public int sixRowEnderchestSlotCount = -1; // Purpur - Barrels and enderchests 6 rows
 +
 +    // CraftBukkit start
 +    public boolean fauxSleeping;
 +    public int oldLevel = -1;
 +
++    // Purpur start - AFK API
++    public void setAfk(boolean afk) {
++
++    }
++
++    public boolean isAfk() {
++        return false;
++    }
++    // Purpur end - AFK API
 +    @Override
 +    public CraftHumanEntity getBukkitEntity() {
 +        return (CraftHumanEntity) super.getBukkitEntity();
 +    }
 +    // CraftBukkit end
++
++    // Purpur start - Ridables
++    public void resetLastActionTime(){}
++
++    @Override
++    public boolean processClick(InteractionHand hand) {
++        Entity vehicle = getRootVehicle();
++        if (vehicle != null && vehicle.getRider() == this) {
++            return vehicle.onClick(hand);
++        }
++        return false;
++    }
++    // Purpur end - Ridables
  
      public Player(Level level, GameProfile gameProfile) {
          super(EntityTypes.PLAYER, level);

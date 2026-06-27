@@ -181,7 +181,7 @@ public class PaperServerInternalAPIBridge implements InternalAPIBridge {
 
     @Override
     public VersionFetcher getVersionFetcher() {
-        return new PaperVersionFetcher();
+        return new org.purpurmc.purpur.PurpurVersionFetcher(); // Purpur - use old Paper version checker
     }
 
     @Override

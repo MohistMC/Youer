@@ -8,7 +8,7 @@
  import java.util.Objects;
  import java.util.Optional;
  import java.util.function.Predicate;
-@@ -21,20 +_,46 @@
+@@ -21,20 +_,47 @@
  import net.minecraft.world.item.Items;
  import net.minecraft.world.item.crafting.display.SlotDisplay;
  import net.minecraft.world.level.ItemLike;
@@ -37,6 +37,7 @@
 +
 +    // CraftBukkit start
 +    private java.util.@org.jspecify.annotations.Nullable Set<ItemStack> itemStacks; // Paper - Improve exact choice recipe ingredients
++    public Predicate<org.bukkit.inventory.ItemStack> predicate; // Purpur - Add predicate to recipe's ExactChoice ingredient
 +
 +    public boolean isExact() {
 +        return this.itemStacks != null;
@@ -62,7 +63,7 @@
          values.unwrap().ifRight(directValues -> {
              if (directValues.isEmpty()) {
                  throw new UnsupportedOperationException("Ingredients can't be empty");
-@@ -47,35 +_,110 @@
+@@ -47,35 +_,115 @@
          this.values = values;
      }
  
@@ -99,6 +100,11 @@
 +            return this.itemStacks.contains(input); // Paper - Improve exact choice recipe ingredients (hashing FTW!)
 +        }
 +        // CraftBukkit end
++        // Purpur start - Add predicate to recipe's ExactChoice ingredient
++        if (predicate != null) {
++            return predicate.test(input.asBukkitCopy());
++        }
++        // Purpur end - Add predicate to recipe's ExactChoice ingredient
          return input.is(this.values);
      }
  

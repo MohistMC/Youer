@@ -74,7 +74,20 @@
      private final AttributeMap attributes;
      public CombatTracker combatTracker = new CombatTracker(this);
      public final Map<Holder<MobEffect>, MobEffectInstance> activeEffects = Maps.newHashMap();
-@@ -281,14 +_,40 @@
+@@ -248,9 +_,9 @@
+     protected int noActionTime;
+     public float lastHurt;
+     public boolean jumping;
+-    public float xxa;
+-    public float yya;
+-    public float zza;
++    public float xxa; public float getStrafeMot() { return xxa; } public void setStrafeMot(float strafe) { xxa = strafe; } // Purpur - OBFHELPER
++    public float yya; public float getVerticalMot() { return yya; } public void setVerticalMot(float vertical) { yya = vertical; } // Purpur - OBFHELPER
++    public float zza; public float getForwardMot() { return zza; } public void setForwardMot(float forward) { zza = forward; } // Purpur - OBFHELPER
+     protected final InterpolationHandler interpolation = new InterpolationHandler(this);
+     protected double lerpYHeadRot;
+     protected int lerpHeadSteps;
+@@ -281,14 +_,42 @@
      private final EnumMap<EquipmentSlot, Reference2ObjectMap<Enchantment, Set<EnchantmentLocationBasedEffect>>> activeLocationDependentEnchantments = new EnumMap<>(
          EquipmentSlot.class
      );
@@ -101,6 +114,7 @@
 +    public boolean silentDeath = true; // Paper - mark entity as dying silently for cancellable death event
 +    public net.kyori.adventure.util.TriState frictionState = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
 +    public int invulnerableDuration = LivingEntity.INVULNERABLE_DURATION; // Paper - configurable invulnerable duration
++    protected boolean shouldBurnInDay = false; public boolean shouldBurnInDay() { return this.shouldBurnInDay; } public void setShouldBurnInDay(boolean shouldBurnInDay) { this.shouldBurnInDay = shouldBurnInDay; } // Purpur - API for any mob to burn daylight
 +    // CraftBukkit end
 +
 +    // CraftBukkit end
@@ -108,7 +122,9 @@
  
      protected LivingEntity(EntityType<? extends LivingEntity> type, Level level) {
          super(type, level);
-         this.attributes = new AttributeMap(DefaultAttributes.getSupplier(type));
+-        this.attributes = new AttributeMap(DefaultAttributes.getSupplier(type));
++        this.attributes = new AttributeMap(DefaultAttributes.getSupplier(type), this); // Purpur - Ridables
++        this.initAttributes(); // Purpur - Configurable entity base attributes
 +        this.craftAttributes = new CraftAttributeMap(attributes); // CraftBukkit
 +        this.fake$setHealth(true);
          this.setHealth(this.getMaxHealth());
@@ -116,7 +132,16 @@
          this.equipment = this.createEquipment();
          this.blocksBuilding = true;
          this.reapplyPosition();
-@@ -358,12 +_,15 @@
+@@ -307,6 +_,8 @@
+         return new EntityEquipment();
+     }
+ 
++    protected void initAttributes() {}// Purpur - Configurable entity base attributes
++
+     public Brain<? extends LivingEntity> getBrain() {
+         return (Brain<? extends LivingEntity>)this.brain;
+     }
+@@ -358,12 +_,16 @@
              .add(Attributes.AIR_DRAG_MODIFIER)
              .add(Attributes.FRICTION_MODIFIER)
              .add(Attributes.NAME_TAG_DISTANCE)
@@ -124,6 +149,7 @@
 +            .add(net.neoforged.neoforge.common.NeoForgeMod.NAMETAG_DISTANCE)
              .add(Attributes.BELOW_NAME_DISTANCE);
      }
++    public boolean shouldSendAttribute(Attribute attribute) { return true; } // Purpur - Ridables
  
      @Override
      protected void checkFallDamage(double ya, boolean onGround, BlockState onState, BlockPos pos) {
@@ -1537,6 +1563,27 @@
      }
  
      protected float getWaterSlowDown() {
+@@ -2441,6 +_,20 @@
+             this.move(MoverType.SELF, this.getDeltaMovement());
+             this.setDeltaMovement(this.getDeltaMovement().scale(0.5));
+         } else {
++            // Purpur start - Ridables
++            if (this.getRider() != null && this.isControllable()) {
++                float friction = 0.91F;
++                if (this.onGround()) {
++                    friction = this.level().getBlockState(this.getBlockPosBelowThatAffectsMyMovement()).getBlock().getFriction() * 0.91F;
++                }
++
++                float frictionCompensation = 0.16277137F / (friction * friction * friction);
++                this.moveRelative(this.onGround() ? 0.1F * frictionCompensation : 0.02F, input);
++                this.move(MoverType.SELF, this.getDeltaMovement());
++                this.setDeltaMovement(this.getDeltaMovement().scale(friction));
++                return;
++            }
++            // Purpur end - Ridables
+             this.moveRelative(airSpeed, input);
+             this.move(MoverType.SELF, this.getDeltaMovement());
+             this.setDeltaMovement(this.getDeltaMovement().scale(0.91F));
 @@ -2451,7 +_,7 @@
          BlockPos posBelow = this.getBlockPosBelowThatAffectsMyMovement();
          float blockFriction = this.onGround()
@@ -1762,15 +1809,17 @@
                  this.setTicksFrozen(Math.max(0, this.getTicksFrozen() - 2));
              }
  
-@@ -3145,6 +_,20 @@
+@@ -3145,6 +_,37 @@
  
          this.pushEntities();
          profiler.pop();
 +        // Paper start - Add EntityMoveEvent
-+        if (((ServerLevel) this.level()).hasEntityMoveEvent && !(this instanceof Player)) {
-+            if (this.xo != this.getX() || this.yo != this.getY() || this.zo != this.getZ() || this.yRotO != this.getYRot() || this.xRotO != this.getXRot()) {
-+                org.bukkit.Location from = new org.bukkit.Location(this.level().getWorld(), this.xo, this.yo, this.zo, this.yRotO, this.xRotO);
-+                org.bukkit.Location to = new org.bukkit.Location(this.level().getWorld(), this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
++        // Purpur start - Ridables
++        if (this.xo != this.getX() || this.yo != this.getY() || this.zo != this.getZ() || this.yRotO != this.getYRot() || this.xRotO != this.getXRot()) {
++            if (((ServerLevel) this.level()).hasEntityMoveEvent && !(this instanceof Player)) {
++                // Purpur end - Ridables
++                Location from = new Location(this.level().getWorld(), this.xo, this.yo, this.zo, this.yRotO, this.xRotO);
++                Location to = new Location(this.level().getWorld(), this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
 +                io.papermc.paper.event.entity.EntityMoveEvent event = new io.papermc.paper.event.entity.EntityMoveEvent(this.getBukkitLivingEntity(), from, to.clone());
 +                if (!event.callEvent()) {
 +                    this.absSnapTo(from.getX(), from.getY(), from.getZ(), from.getYaw(), from.getPitch());
@@ -1778,6 +1827,21 @@
 +                    this.absSnapTo(event.getTo().getX(), event.getTo().getY(), event.getTo().getZ(), event.getTo().getYaw(), event.getTo().getPitch());
 +                }
 +            }
++            // Purpur start - Ridables
++            if (getRider() != null) {
++                getRider().resetLastActionTime();
++                if (((ServerLevel) level()).hasRidableMoveEvent && this instanceof Mob) {
++                    Location from = new Location(level().getWorld(), xo, yo, zo, this.yRotO, this.xRotO);
++                    Location to = new Location(level().getWorld(), getX(), getY(), getZ(), this.getYRot(), this.getXRot());
++                    org.purpurmc.purpur.event.entity.RidableMoveEvent event = new org.purpurmc.purpur.event.entity.RidableMoveEvent((org.bukkit.entity.Mob) getBukkitLivingEntity(), (org.bukkit.entity.Player) getRider().getBukkitEntity(), from, to.clone());
++                    if (!event.callEvent()) {
++                        this.absSnapTo(from.getX(), from.getY(), from.getZ(), from.getYaw(), from.getPitch());
++                    } else if (!to.equals(event.getTo())) {
++                        this.absSnapTo(event.getTo().getX(), event.getTo().getY(), event.getTo().getZ(), event.getTo().getYaw(), event.getTo().getPitch());
++                    }
++                }
++            }
++            // Purpur end - Ridables
 +        }
 +        // Paper end - Add EntityMoveEvent
          if (this.level() instanceof ServerLevel serverLevel && this.isSensitiveToWater() && this.isInWaterOrRain()) {
@@ -2324,6 +2388,19 @@
          Equippable equippable = itemStack.get(DataComponents.EQUIPPABLE);
          return equippable != null && this.canUseSlot(equippable.slot()) ? equippable.slot() : EquipmentSlot.MAINHAND;
      }
+@@ -3871,6 +_,12 @@
+             : slot == equippable.slot() && this.canUseSlot(equippable.slot()) && equippable.canBeEquippedBy(this.typeHolder());
+     }
+ 
++    // Purpur start - Dispenser curse of binding protection
++    public @Nullable EquipmentSlot getEquipmentSlotForDispenserItem(ItemStack itemstack) {
++        return EnchantmentHelper.getItemEnchantmentLevel(net.minecraft.world.item.enchantment.Enchantments.BINDING_CURSE, itemstack) > 0 ? null : this.getEquipmentSlotForItem(itemstack);
++    }
++    // Purpur end - Dispenser curse of binding protection
++
+     private static SlotAccess createEquipmentSlotAccess(LivingEntity entity, EquipmentSlot equipmentSlot) {
+         return equipmentSlot != EquipmentSlot.HEAD && equipmentSlot != EquipmentSlot.MAINHAND && equipmentSlot != EquipmentSlot.OFFHAND
+             ? SlotAccess.forEquipmentSlot(entity, equipmentSlot, stack -> stack.isEmpty() || entity.getEquipmentSlotForItem(stack) == equipmentSlot)
 @@ -4027,5 +_,51 @@
      }
  

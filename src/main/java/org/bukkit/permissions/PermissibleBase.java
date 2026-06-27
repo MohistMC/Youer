@@ -169,7 +169,7 @@ public class PermissibleBase implements Permissible {
 
         for (Permission perm : defaults) {
             String name = perm.getName().toLowerCase(Locale.ROOT);
-            permissions.put(name, new PermissionAttachmentInfo(parent, name, null, true));
+            permissions.put(name, new PermissionAttachmentInfo(parent, name, null, perm.getDefault().getValue(isOp()))); // Purpur - Fix default permission system
             Bukkit.getServer().getPluginManager().subscribeToPermission(name, parent);
             calculateChildPermissions(perm.getChildren(), false, null);
         }
@@ -197,7 +197,7 @@ public class PermissibleBase implements Permissible {
             String name = entry.getKey();
 
             Permission perm = Bukkit.getServer().getPluginManager().getPermission(name);
-            boolean value = entry.getValue() ^ invert;
+            boolean value = (entry.getValue() == null && perm != null ? perm.getDefault().getValue(isOp()) : entry.getValue()) ^ invert; // Purpur - Fix default permission system
             String lname = name.toLowerCase(Locale.ROOT);
 
             permissions.put(lname, new PermissionAttachmentInfo(parent, lname, attachment, value));

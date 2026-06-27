@@ -294,6 +294,7 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
     @Override
     public void recalculatePermissions() {
         this.perm.recalculatePermissions();
+        getHandle().canPortalInstant = hasPermission("purpur.portal.instant"); // Purpur - Add portal permission bypass
     }
 
     @Override

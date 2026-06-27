@@ -22,7 +22,12 @@ public class CraftConsoleCommandSender extends ServerCommandSender implements Co
 
     @Override
     public void sendMessage(String message) {
-        this.sendRawMessage(message);
+        // Purpur start - Rebrand
+        String[] parts = message.split("\n");
+        for (String part : parts) {
+        this.sendRawMessage(part);
+        }
+        // Purpur end - Rebrand
     }
 
     @Override
@@ -32,7 +37,7 @@ public class CraftConsoleCommandSender extends ServerCommandSender implements Co
 
     @Override
     public void sendRawMessage(UUID sender, String message) {
-        this.sendRawMessage(message); // Console doesn't know of senders
+      this.sendRawMessage(message); // Console doesn't know of senders
     }
 
     @Override
@@ -89,7 +94,7 @@ public class CraftConsoleCommandSender extends ServerCommandSender implements Co
 
     @Override
     public void sendMessage(final net.kyori.adventure.text.Component message) {
-        this.sendRawMessage(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(message));
+        this.sendMessage(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(message)); // Purpur - Rebrand
     }
 
     @Override

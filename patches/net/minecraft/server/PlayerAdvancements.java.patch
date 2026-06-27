@@ -17,15 +17,16 @@
          JsonElement json = this.codec.encodeStart(JsonOps.INSTANCE, this.asData()).getOrThrow();
  
          try {
-@@ -142,6 +_,7 @@
+@@ -142,6 +_,8 @@
          data.forEach((id, progress) -> {
              AdvancementHolder advancement = manager.get(id);
              if (advancement == null) {
 +                if (!id.getNamespace().equals("minecraft")) return; // CraftBukkit
++                if (!org.purpurmc.purpur.PurpurConfig.loggerSuppressIgnoredAdvancementWarnings) // Purpur - Logger settings (suppressing pointless logs)
                  LOGGER.warn("Ignored advancement '{}' in progress file {} - it doesn't exist anymore?", id, this.playerSavePath);
              } else {
                  this.startProgress(advancement, progress);
-@@ -162,19 +_,40 @@
+@@ -162,19 +_,41 @@
      }
  
      public boolean award(AdvancementHolder holder, String criterion) {
@@ -61,6 +62,7 @@
 -                        this.playerList.broadcastSystemMessage(display.getType().createAnnouncement(holder, this.player), false);
 +                    // Paper start - Add Adventure message to PlayerAdvancementDoneEvent
 +                    if (event.message() != null && this.player.level().getGameRules().get(GameRules.SHOW_ADVANCEMENT_MESSAGES)) {
++                        if (org.purpurmc.purpur.PurpurConfig.advancementOnlyBroadcastToAffectedPlayer) this.player.sendMessage(message); else // Purpur - Configurable broadcast settings
 +                        this.playerList.broadcastSystemMessage(io.papermc.paper.adventure.PaperAdventure.asVanilla(event.message()), false);
 +                        // Paper end
                      }

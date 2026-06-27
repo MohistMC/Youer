@@ -292,6 +292,7 @@ public class GlobalConfiguration extends ConfigurationPart {
         }
     }
 
+    @Setting(org.purpurmc.purpur.configuration.transformation.FarEndTerrainGenerationMigration.MISC_KEY) // Purpur - Migrate Setting to reintroduce end void rings
     public Misc misc;
 
     public class Misc extends ConfigurationPart {
@@ -338,6 +339,7 @@ public class GlobalConfiguration extends ConfigurationPart {
         @Comment("Whether the nether dimension is enabled and will be loaded.")
         public boolean enableNether = true;
         @Comment("Keeps Paper's fix for MC-159283 enabled. Disable to use vanilla End ring terrain.")
+        @Setting(org.purpurmc.purpur.configuration.transformation.FarEndTerrainGenerationMigration.FIX_FAR_END_TERRAIN_GENERATION_KEY) // Purpur - Migrate Setting to reintroduce end void rings
         public boolean fixFarEndTerrainGeneration = true;
         @Comment("Fix for MC-301114. This removes the oldest combat entry when it hits the cap, to fix a memory leak on constant entity damage.")
         public IntOr.Disabled maxTrackingCombatEntries = new IntOr.Disabled(OptionalInt.of(10240));

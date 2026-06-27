@@ -105,6 +105,22 @@ public interface Wolf extends Tameable, Sittable, io.papermc.paper.entity.Collar
      */
     void setSoundVariant(@NotNull SoundVariant soundVariant);
 
+    // Purpur start
+    /**
+     * Checks if this wolf is rabid
+     *
+     * @return whether the wolf is rabid
+     */
+    boolean isRabid();
+
+    /**
+     * Sets this wolf to be rabid or not
+     *
+     * @param rabid whether the wolf should be rabid
+     */
+    void setRabid(boolean rabid);
+    // Purpur end
+    
     /**
      * Represents the variant of a wolf.
      */

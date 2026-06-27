@@ -24,4 +24,17 @@ public class CraftSnowman extends CraftGolem implements Snowman, com.destroystok
     public void setDerp(boolean derpMode) {
         this.getHandle().setPumpkin(!derpMode);
     }
+
+    // Purpur start - Summoner API
+    @Override
+    @org.jetbrains.annotations.Nullable
+    public java.util.UUID getSummoner() {
+        return getHandle().getSummoner();
+    }
+
+    @Override
+    public void setSummoner(@org.jetbrains.annotations.Nullable java.util.UUID summoner) {
+        getHandle().setSummoner(summoner);
+    }
+    // Purpur end - Summoner API
 }

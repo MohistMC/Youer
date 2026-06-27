@@ -1,18 +1,109 @@
 --- a/net/minecraft/world/entity/animal/equine/Llama.java
 +++ b/net/minecraft/world/entity/animal/equine/Llama.java
-@@ -75,18 +_,20 @@
+@@ -75,18 +_,110 @@
          .scale(0.5F);
      private boolean didSpit;
      private @Nullable Llama caravanHead;
 -    private @Nullable Llama caravanTail;
 +    @Nullable
 +    public Llama caravanTail;
++    public boolean shouldJoinCaravan = true; // Purpur - Llama API
  
      public Llama(EntityType<? extends Llama> type, Level level) {
          super(type, level);
          this.getNavigation().setRequiredPathLength(40.0F);
+-    }
 +        this.maxDomestication = 30; // Paper - Missing entity API; configure max temper instead of a hardcoded value
-     }
++        // Purpur start - Ridables
++        this.moveControl = new org.purpurmc.purpur.controller.MoveControllerWASD(this) {
++            @Override
++            public void tick() {
++                if (entity.getRider() != null && entity.isControllable() && isSaddled()) {
++                    purpurTick(entity.getRider());
++                } else {
++                    vanillaTick();
++                }
++            }
++        };
++        this.lookControl = new org.purpurmc.purpur.controller.LookControllerWASD(this) {
++            @Override
++            public void tick() {
++                if (entity.getRider() != null && entity.isControllable() && isSaddled()) {
++                    purpurTick(entity.getRider());
++                } else {
++                    vanillaTick();
++                }
++            }
++        };
++        // Purpur end - Ridables
++    }
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.llamaRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.llamaRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.llamaControllable;
++    }
++
++    @Override
++    public boolean isSaddled() {
++        return super.isWearingBodyArmor() || this.isTamed();
++    }
++
++    @Nullable
++    @Override
++    public LivingEntity getControllingPassenger() {
++        Entity firstPassenger = this.getFirstPassenger();
++        return !this.isNoAi() && firstPassenger instanceof net.minecraft.world.entity.Mob mob && firstPassenger.canControlVehicle() ? mob : null;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public float generateMaxHealth(RandomSource random) {
++        return (float) generateMaxHealth(this.level().purpurConfig.llamaMaxHealthMin, this.level().purpurConfig.llamaMaxHealthMax);
++    }
++
++    @Override
++    public double generateJumpStrength(RandomSource random) {
++        return generateJumpStrength(this.level().purpurConfig.llamaJumpStrengthMin, this.level().purpurConfig.llamaJumpStrengthMax);
++    }
++
++    @Override
++    public double generateSpeed(RandomSource random) {
++        return generateSpeed(this.level().purpurConfig.llamaMovementSpeedMin, this.level().purpurConfig.llamaMovementSpeedMax);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.llamaBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.llamaTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.llamaAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
  
      public boolean isTraderLlama() {
          return false;

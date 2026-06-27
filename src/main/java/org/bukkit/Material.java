@@ -3753,6 +3753,42 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
         return this.asItemType().getDefaultDataTypes();
     }
     // Paper end - data component API
+
+    // Purpur start - ItemStack convenience methods
+    public boolean isArmor() {
+        switch (this) {
+            // <editor-fold defaultstate="collapsed" desc="isarmor">
+            case LEATHER_BOOTS:
+            case LEATHER_CHESTPLATE:
+            case LEATHER_HELMET:
+            case LEATHER_LEGGINGS:
+            case CHAINMAIL_BOOTS:
+            case CHAINMAIL_CHESTPLATE:
+            case CHAINMAIL_HELMET:
+            case CHAINMAIL_LEGGINGS:
+            case IRON_BOOTS:
+            case IRON_CHESTPLATE:
+            case IRON_HELMET:
+            case IRON_LEGGINGS:
+            case GOLDEN_BOOTS:
+            case GOLDEN_CHESTPLATE:
+            case GOLDEN_HELMET:
+            case GOLDEN_LEGGINGS:
+            case DIAMOND_BOOTS:
+            case DIAMOND_CHESTPLATE:
+            case DIAMOND_HELMET:
+            case DIAMOND_LEGGINGS:
+            case NETHERITE_BOOTS:
+            case NETHERITE_CHESTPLATE:
+            case NETHERITE_HELMET:
+            case NETHERITE_LEGGINGS:
+            case TURTLE_HELMET:
+                return true;
+            default:
+                return false;
+        }
+    }
+    // Purpur end - ItemStack convenience methods
     public static Material addMaterial(String materialName, int id, boolean isBlock, boolean isItem, Identifier resourceLocation) {
         if (isBlock) {
             Material material = BY_NAME.get(materialName);

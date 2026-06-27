@@ -73,4 +73,26 @@ public class CraftAnvilView extends CraftInventoryView<AnvilMenu, AnvilInventory
             this.setMaximumRepairCost(legacy.getMaximumRepairCost());
         }
     }
+
+    // Purpur start - Anvil API
+    @Override
+    public boolean canBypassCost() {
+        return this.container.bypassCost;
+    }
+
+    @Override
+    public void setBypassCost(boolean bypassCost) {
+        this.container.bypassCost = bypassCost;
+    }
+
+    @Override
+    public boolean canDoUnsafeEnchants() {
+        return this.container.canDoUnsafeEnchants;
+    }
+
+    @Override
+    public void setDoUnsafeEnchants(boolean canDoUnsafeEnchants) {
+        this.container.canDoUnsafeEnchants = canDoUnsafeEnchants;
+    }
+    // Purpur end - Anvil API
 }
