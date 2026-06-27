@@ -13,7 +13,14 @@
  public class DropperBlock extends DispenserBlock {
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final MapCodec<DropperBlock> CODEC = simpleCodec(DropperBlock::new);
-@@ -58,17 +_,45 @@
+@@ -53,22 +_,51 @@
+             BlockSource source = new BlockSource(level, pos, state, blockEntity);
+             int slot = blockEntity.getRandomSlot(level.getRandom());
+             if (slot < 0) {
+-                level.levelEvent(1001, pos, 0);
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFailedDispenseEvent(level, pos)) // Paper - Add BlockFailedDispenseEvent
++                    level.levelEvent(1001, pos, 0);
+             } else {
                  ItemStack itemStack = blockEntity.getItem(slot);
                  if (!itemStack.isEmpty()) {
                      Direction direction = level.getBlockState(pos).getValue(FACING);
@@ -22,6 +29,7 @@
                      ItemStack remaining;
 -                    if (into == null) {
 +                    if (into.isEmpty()) {
++                        if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockPreDispenseEvent(level, pos, itemStack, slot)) return; // Paper - Add BlockPreDispenseEvent
                          remaining = DISPENSE_BEHAVIOUR.dispense(source, itemStack);
                      } else {
 -                        remaining = HopperBlockEntity.addItem(blockEntity, into, itemStack.copyWithCount(1), direction.getOpposite());
@@ -30,22 +38,21 @@
 -                            remaining.shrink(1);
 +                        if (into.container() != null) {
 +                            // CraftBukkit start - Fire event when pushing items into other inventories
-+                            CraftItemStack oitemstack = CraftItemStack.asCraftMirror(itemStack.copyWithCount(1));
-+                    
++                            org.bukkit.craftbukkit.inventory.CraftItemStack oitemstack = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemStack.copyWithCount(1));
++
 +                            org.bukkit.inventory.Inventory destinationInventory;
 +                            // Have to special case large chests as they work oddly
-+                            if (into.container() instanceof CompoundContainer) {
-+                                destinationInventory = new org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest((CompoundContainer) into.container());
++                            if (into.container() instanceof net.minecraft.world.CompoundContainer compoundContainer) {
++                                destinationInventory = new org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest(compoundContainer);
 +                            } else {
 +                                destinationInventory = into.container().getOwner().getInventory();
 +                            }
-+                    
-+                            InventoryMoveItemEvent event = new InventoryMoveItemEvent(blockEntity.getOwner().getInventory(), oitemstack, destinationInventory, true);
-+                            level.getCraftServer().getPluginManager().callEvent(event);
-+                            if (event.isCancelled()) {
++
++                            org.bukkit.event.inventory.InventoryMoveItemEvent event = new org.bukkit.event.inventory.InventoryMoveItemEvent(blockEntity.getOwner().getInventory(), oitemstack, destinationInventory, true);
++                            if (!event.callEvent()) {
 +                                return;
 +                            }
-+                            remaining = HopperBlockEntity.addItem(blockEntity, into.container(), CraftItemStack.asNMSCopy(event.getItem()), direction.getOpposite());
++                            remaining = HopperBlockEntity.addItem(blockEntity, into.container(), org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItem()), direction.getOpposite());
 +                            if (event.getItem().equals(oitemstack) && remaining.isEmpty()) {
 +                                // CraftBukkit end
 +                                remaining = itemStack.copy();

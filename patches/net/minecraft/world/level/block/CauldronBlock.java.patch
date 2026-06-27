@@ -8,6 +8,27 @@
  
  public class CauldronBlock extends AbstractCauldronBlock {
      public static final MapCodec<CauldronBlock> CODEC = simpleCodec(CauldronBlock::new);
+@@ -42,10 +_,18 @@
+     public void handlePrecipitation(BlockState state, Level level, BlockPos pos, Biome.Precipitation precipitation) {
+         if (shouldHandlePrecipitation(level, precipitation)) {
+             if (precipitation == Biome.Precipitation.RAIN) {
+-                level.setBlockAndUpdate(pos, Blocks.WATER_CAULDRON.defaultBlockState());
++                // Paper start - Call CauldronLevelChangeEvent
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleCauldronLevelChangeEvent(level, pos, Blocks.WATER_CAULDRON.defaultBlockState(), null, org.bukkit.event.block.CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL)) { // avoid duplicate game event
++                    return;
++                }
++                // Paper end - Call CauldronLevelChangeEvent
+                 level.gameEvent(null, GameEvent.BLOCK_CHANGE, pos);
+             } else if (precipitation == Biome.Precipitation.SNOW) {
+-                level.setBlockAndUpdate(pos, Blocks.POWDER_SNOW_CAULDRON.defaultBlockState());
++                // Paper start - Call CauldronLevelChangeEvent
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleCauldronLevelChangeEvent(level, pos, Blocks.POWDER_SNOW_CAULDRON.defaultBlockState(), null, org.bukkit.event.block.CauldronLevelChangeEvent.ChangeReason.NATURAL_FILL)) { // avoid duplicate game event
++                    return;
++                }
++                // Paper end - Call CauldronLevelChangeEvent
+                 level.gameEvent(null, GameEvent.BLOCK_CHANGE, pos);
+             }
+         }
 @@ -58,16 +_,25 @@
  
      @Override

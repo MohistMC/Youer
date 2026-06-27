@@ -10,11 +10,17 @@
  
  public class LayeredCauldronBlock extends AbstractCauldronBlock {
      public static final MapCodec<LayeredCauldronBlock> CODEC = RecordCodecBuilder.mapCodec(
-@@ -85,34 +_,52 @@
+@@ -81,38 +_,57 @@
+ 
+     @Override
+     protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(level, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
+         if (level instanceof ServerLevel serverLevel) {
              BlockPos blockPos = pos.immutable();
              effectApplier.runBefore(InsideBlockEffectType.EXTINGUISH, e -> {
-                 if (e.isOnFire() && e.mayInteract(serverLevel, blockPos)) {
+-                if (e.isOnFire() && e.mayInteract(serverLevel, blockPos)) {
 -                    this.handleEntityOnFireInside(state, level, blockPos);
++                if (e.isOnFire() && (e instanceof net.minecraft.world.entity.player.Player || serverLevel.getGameRules().get(net.minecraft.world.level.gamerules.GameRules.MOB_GRIEFING)) && e.mayInteract(serverLevel, blockPos)) { // Paper - Fixes MC-248588
 +                    // Paper start - Call CauldronLevelChangeEvent
 +                    if (this.handleEntityOnFireInside(state, level, blockPos, e)) { // Paper - track entity
 +                        InsideBlockEffectType.EXTINGUISH.effect().affect(e, blockPos); // apply extinguishing if event was not cancelled.

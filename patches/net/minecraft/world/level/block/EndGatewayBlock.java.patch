@@ -8,6 +8,22 @@
  import org.jspecify.annotations.Nullable;
  
  public class EndGatewayBlock extends BaseEntityBlock implements Portal {
+@@ -87,10 +_,15 @@
+ 
+     @Override
+     protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(level, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
+         if (entity.canUsePortal(false)
+             && !level.isClientSide()
+             && level.getBlockEntity(pos) instanceof TheEndGatewayBlockEntity endGatewayBlockEntity
+             && !endGatewayBlockEntity.isCoolingDown()) {
++            // Paper start - call EntityPortalEnterEvent
++            org.bukkit.event.entity.EntityPortalEnterEvent event = new org.bukkit.event.entity.EntityPortalEnterEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.util.CraftLocation.toBukkit(pos, level), org.bukkit.PortalType.END_GATEWAY); // Paper - add portal type
++            if (!event.callEvent()) return;
++            // Paper end - call EntityPortalEnterEvent
+             entity.setAsInsidePortal(this, pos);
+             TheEndGatewayBlockEntity.triggerCooldown(level, pos, state, endGatewayBlockEntity);
+         }
 @@ -104,7 +_,7 @@
                  return null;
              } else {

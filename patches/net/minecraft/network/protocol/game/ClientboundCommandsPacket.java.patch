@@ -1,0 +1,41 @@
+--- a/net/minecraft/network/protocol/game/ClientboundCommandsPacket.java
++++ b/net/minecraft/network/protocol/game/ClientboundCommandsPacket.java
+@@ -6,6 +_,8 @@
+ import com.mojang.brigadier.tree.CommandNode;
+ import com.mojang.brigadier.tree.LiteralCommandNode;
+ import com.mojang.brigadier.tree.RootCommandNode;
++import io.netty.buffer.Unpooled;
++import io.papermc.paper.configuration.GlobalConfiguration;
+ import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+ import it.unimi.dsi.fastutil.ints.IntSet;
+ import it.unimi.dsi.fastutil.ints.IntSets;
+@@ -27,6 +_,7 @@
+ import net.minecraft.network.protocol.PacketType;
+ import net.minecraft.resources.Identifier;
+ import org.jspecify.annotations.Nullable;
++import org.spigotmc.SpigotConfig;
+ 
+ public class ClientboundCommandsPacket implements Packet<ClientGamePacketListener> {
+     public static final StreamCodec<FriendlyByteBuf, ClientboundCommandsPacket> STREAM_CODEC = Packet.codec(
+@@ -221,8 +_,20 @@
+         private static <A extends ArgumentType<?>, T extends ArgumentTypeInfo.Template<A>> void serializeCap(
+             FriendlyByteBuf output, ArgumentTypeInfo<A, T> info, ArgumentTypeInfo.Template<A> argumentType
+         ) {
++            // Youer start
++            Identifier key = BuiltInRegistries.COMMAND_ARGUMENT_TYPE.getKey(info);
++            if ((!GlobalConfiguration.get().proxies.velocity.enabled && !SpigotConfig.bungee) || ((key != null) && (key.getNamespace().equals("minecraft") || key.getNamespace().equals("brigadier")))) {
++                output.writeVarInt(BuiltInRegistries.COMMAND_ARGUMENT_TYPE.getId(info));
++                info.serializeToNetwork((T) argumentType, output);
++                return;
++            }
++            output.writeVarInt(-256);
+             output.writeVarInt(BuiltInRegistries.COMMAND_ARGUMENT_TYPE.getId(info));
+-            info.serializeToNetwork((T)argumentType, output);
++            FriendlyByteBuf payload = new FriendlyByteBuf(Unpooled.buffer());
++            info.serializeToNetwork((T) argumentType, payload);
++            output.writeVarInt(payload.readableBytes());
++            output.writeBytes(payload);
++            // Youer end
+         }
+     }
+ 

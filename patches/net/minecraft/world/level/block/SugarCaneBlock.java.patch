@@ -1,16 +1,22 @@
 --- a/net/minecraft/world/level/block/SugarCaneBlock.java
 +++ b/net/minecraft/world/level/block/SugarCaneBlock.java
-@@ -57,12 +_,15 @@
+@@ -55,14 +_,18 @@
+                 height++;
+             }
  
-             if (height < 3) {
+-            if (height < 3) {
++            if (height < level.paperConfig().maxGrowthHeight.reeds) { // Paper - Configurable cactus/bamboo/reed growth height
++                int modifier = level.spigotConfig.caneModifier; // Spigot - SPIGOT-7159: Better modifier resolution
                  int age = state.getValue(AGE);
-+                if (net.neoforged.neoforge.common.CommonHooks.canCropGrow(level, pos, state, true)) {
-                 if (age == 15) {
+-                if (age == 15) {
 -                    level.setBlockAndUpdate(pos.above(), this.defaultBlockState());
++                if (net.neoforged.neoforge.common.CommonHooks.canCropGrow(level, pos, state, true)) {
++                if (age >= 15 || (modifier != 100 && random.nextFloat() < (modifier / (100.0F * 16)))) { // Spigot - SPIGOT-7159: Better modifier resolution
 +                    org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, pos.above(), this.defaultBlockState(), Block.UPDATE_ALL); // CraftBukkit
 +                    net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(level, pos.above(), this.defaultBlockState());
                      level.setBlock(pos, state.setValue(AGE, 0), 260);
-                 } else {
+-                } else {
++                } else if (modifier == 100 || random.nextFloat() < (modifier / (100.0F * 16))) { // Spigot - SPIGOT-7159: Better modifier resolution
                      level.setBlock(pos, state.setValue(AGE, age + 1), 260);
                  }
 +                }

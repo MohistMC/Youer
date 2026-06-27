@@ -5,7 +5,7 @@
                  && projectile instanceof ThrownTrident
                  && projectile.getDeltaMovement().length() > 0.6) {
 +                // CraftBukkit start
-+                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(projectile, blockPos, Blocks.AIR.defaultBlockState())) {
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(projectile, blockPos, state.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
 +                    return;
 +                }
 +                // CraftBukkit end
@@ -28,7 +28,7 @@
              .setValue(THICKNESS, thickness)
              .setValue(WATERLOGGED, level.getFluidState(pos).is(Fluids.WATER));
 -        level.setBlock(pos, state, 3);
-+        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(level, source, pos, state, 3); // CraftBukkit
++        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(level, source, pos, state, Block.UPDATE_ALL); // CraftBukkit
      }
  
      private void createMergedTips(BlockState tipState, LevelAccessor level, BlockPos tipPos) {

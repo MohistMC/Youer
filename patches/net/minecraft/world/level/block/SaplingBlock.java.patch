@@ -1,36 +1,23 @@
 --- a/net/minecraft/world/level/block/SaplingBlock.java
 +++ b/net/minecraft/world/level/block/SaplingBlock.java
-@@ -16,6 +_,14 @@
- import net.minecraft.world.level.block.state.properties.IntegerProperty;
- import net.minecraft.world.phys.shapes.CollisionContext;
- import net.minecraft.world.phys.shapes.VoxelShape;
-+import org.bukkit.TreeType;
-+
-+// CraftBukkit start
-+import org.bukkit.Location;
-+import org.bukkit.craftbukkit.block.CapturedBlockState;
-+import org.bukkit.craftbukkit.util.CraftLocation;
-+import org.bukkit.event.world.StructureGrowEvent;
-+// CraftBukkit end
- 
- public class SaplingBlock extends VegetationBlock implements BonemealableBlock {
-     public static final MapCodec<SaplingBlock> CODEC = RecordCodecBuilder.mapCodec(
 @@ -24,6 +_,7 @@
      public static final IntegerProperty STAGE = BlockStateProperties.STAGE;
      private static final VoxelShape SHAPE = Block.column(12.0, 0.0, 12.0);
      protected final TreeGrower treeGrower;
-+    public static TreeType treeType; // CraftBukkit
++    public static org.bukkit.@org.jspecify.annotations.Nullable TreeType treeType; // CraftBukkit
  
      @Override
      public MapCodec<? extends SaplingBlock> codec() {
-@@ -43,6 +_,7 @@
+@@ -43,7 +_,8 @@
  
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+-        if (level.getMaxLocalRawBrightness(pos.above()) >= 9 && random.nextInt(7) == 0) {
 +        if (!level.isAreaLoaded(pos, 1)) return; // Forge: prevent loading unloaded chunks when checking neighbor's light
-         if (level.getMaxLocalRawBrightness(pos.above()) >= 9 && random.nextInt(7) == 0) {
++        if (level.getMaxLocalRawBrightness(pos.above()) >= 9 && random.nextFloat() < (level.spigotConfig.saplingModifier / (100.0F * 7))) { // Spigot - SPIGOT-7159: Better modifier resolution
              this.advanceTree(level, pos, state, random);
          }
+     }
 @@ -52,7 +_,40 @@
          if (state.getValue(STAGE) == 0) {
              level.setBlock(pos, state.cycle(STAGE), 260);

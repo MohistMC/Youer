@@ -50,7 +50,7 @@
                  } else if (currentAge < 4) {
                      int numBranchAttempts = random.nextInt(4);
                      if (pillarOnSupportBlock) {
-@@ -108,19 +_,32 @@
+@@ -108,30 +_,43 @@
                          Direction direction = Direction.Plane.HORIZONTAL.getRandomDirection(random);
                          BlockPos target = pos.relative(direction);
                          if (level.isEmptyBlock(target) && level.isEmptyBlock(target.below()) && allNeighborsEmpty(level, target, direction.getOpposite())) {
@@ -87,6 +87,19 @@
              }
          }
      }
+ 
+     private void placeGrownFlower(Level level, BlockPos pos, int age) {
+-        level.setBlock(pos, this.defaultBlockState().setValue(AGE, age), 2);
++        // level.setBlock(pos, this.defaultBlockState().setValue(AGE, age), Block.UPDATE_CLIENTS); // Paper - already done above in the event call
+         level.levelEvent(1033, pos, 0);
+     }
+ 
+     private void placeDeadFlower(Level level, BlockPos pos) {
+-        level.setBlock(pos, this.defaultBlockState().setValue(AGE, 5), 2);
++        // level.setBlock(pos, this.defaultBlockState().setValue(AGE, age), Block.UPDATE_CLIENTS); // Paper - already done above in the event call
+         level.levelEvent(1034, pos, 0);
+     }
+ 
 @@ -166,6 +_,8 @@
      @Override
      protected boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
@@ -101,7 +114,7 @@
          BlockPos pos = blockHit.getBlockPos();
          if (level instanceof ServerLevel serverLevel && projectile.mayInteract(serverLevel, pos) && projectile.mayBreak(serverLevel)) {
 +            // CraftBukkit
-+            if (!CraftEventFactory.callEntityChangeBlockEvent(projectile, pos, Blocks.AIR.defaultBlockState())) {
++            if (!CraftEventFactory.callEntityChangeBlockEvent(projectile, pos, state.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
 +                return;
 +            }
 +            // CraftBukkit end

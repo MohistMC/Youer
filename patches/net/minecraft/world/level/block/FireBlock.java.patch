@@ -58,12 +58,16 @@
                  }
              }
  
-@@ -142,14 +_,14 @@
-         level.scheduleTick(pos, this, getFireTickDelay(level.getRandom()));
+@@ -139,17 +_,17 @@
+ 
+     @Override
+     protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+-        level.scheduleTick(pos, this, getFireTickDelay(level.getRandom()));
++        level.scheduleTick(pos, this, getFireTickDelay(level)); // Paper - Add fire-tick-delay option
          if (level.canSpreadFireAround(pos)) {
              if (!state.canSurvive(level, pos)) {
 -                level.removeBlock(pos, false);
-+                fireExtinguished(level, pos); // CraftBukkit - invalid place location
++                this.fireExtinguished(level, pos); // CraftBukkit - invalid place location
              }
  
              BlockState belowState = level.getBlockState(pos.below());
@@ -114,23 +118,24 @@
                  BlockPos.MutableBlockPos testPos = new BlockPos.MutableBlockPos();
  
                  for (int xx = -1; xx <= 1; xx++) {
-@@ -202,7 +_,14 @@
+@@ -202,7 +_,15 @@
  
                                      if (odds > 0 && random.nextInt(rate) <= odds && (!level.isRaining() || !this.isNearRain(level, testPos))) {
                                          int spreadAge = Math.min(15, age + random.nextInt(5) / 4);
 -                                        level.setBlock(testPos, this.getStateWithAge(level, testPos, spreadAge), 3);
 +                                        // CraftBukkit start - Call to stop spread of fire
-+                                        if (level.getBlockState(testPos).getBlock() != Blocks.FIRE) {
-+                                            if (CraftEventFactory.callBlockIgniteEvent(level, testPos, pos).isCancelled()) {
++                                        if (!level.getBlockState(testPos).is(Blocks.FIRE)) {
++                                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(level, testPos, pos).isCancelled()) {
 +                                                continue;
 +                                            }
-+                                            CraftEventFactory.handleBlockSpreadEvent(level, pos, testPos, this.getStateWithAge(level, testPos, spreadAge), 3);
++
++                                            org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(level, pos, testPos, this.getStateWithAge(level, testPos, spreadAge), UPDATE_ALL); // CraftBukkit
 +                                        }
 +                                        // CraftBukkit end
                                      }
                                  }
                              }
-@@ -221,33 +_,47 @@
+@@ -221,32 +_,46 @@
              || level.isRainingAt(testPos.south());
      }
  
@@ -175,16 +180,16 @@
                  int newAge = Math.min(age + random.nextInt(5) / 4, 15);
                  level.setBlock(pos, this.getStateWithAge(level, pos, newAge), 3);
              } else {
-                 level.removeBlock(pos, false);
-             }
+-                level.removeBlock(pos, false);
+-            }
 -
 -            Block block = oldState.getBlock();
 -            if (block instanceof TntBlock) {
 -                TntBlock.prime(level, pos);
--            }
++                if (!oldState.is(Blocks.TNT)) level.removeBlock(pos, false); // Paper - TNTPrimeEvent; We might be cancelling it below, move the setAir down
+             }
          }
      }
- 
 @@ -258,7 +_,7 @@
  
      private boolean isValidFireLocation(BlockGetter level, BlockPos pos) {
@@ -194,7 +199,7 @@
                  return true;
              }
          }
-@@ -275,13 +_,14 @@
+@@ -275,25 +_,26 @@
  
          for (Direction direction : Direction.values()) {
              BlockState blockState = level.getBlockState(pos.relative(direction));
@@ -210,6 +215,23 @@
      protected boolean canBurn(BlockState state) {
          return this.getIgniteOdds(state) > 0;
      }
+ 
+     @Override
+-    protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
+-        super.onPlace(state, level, pos, oldState, movedByPiston);
+-        level.scheduleTick(pos, this, getFireTickDelay(level.getRandom()));
++    protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston, final net.minecraft.world.item.context.UseOnContext context) {
++        super.onPlace(state, level, pos, oldState, movedByPiston, context);
++        level.scheduleTick(pos, this, getFireTickDelay(level)); // Paper - Add fire-tick-delay option
+     }
+ 
+-    private static int getFireTickDelay(RandomSource random) {
+-        return 30 + random.nextInt(10);
++    private static int getFireTickDelay(Level level) { // Paper - Add fire-tick-delay option
++        return level.paperConfig().environment.fireTickDelay + level.getRandom().nextInt(10); // Paper - Add fire-tick-delay option
+     }
+ 
+     @Override
 @@ -302,8 +_,21 @@
      }
  

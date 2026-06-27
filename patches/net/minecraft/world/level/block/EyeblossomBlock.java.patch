@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/EyeblossomBlock.java
 +++ b/net/minecraft/world/level/block/EyeblossomBlock.java
-@@ -80,21 +_,26 @@
+@@ -80,25 +_,31 @@
          boolean shouldBeOpen = level.environmentAttributes().getValue(EnvironmentAttributes.EYEBLOSSOM_OPEN, pos).toBoolean(this.type.open);
          if (shouldBeOpen == this.type.open) {
              return false;
@@ -41,3 +41,8 @@
      }
  
      @Override
+     protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(level, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
+         if (!level.isClientSide()
+             && level.getDifficulty() != Difficulty.PEACEFUL
+             && entity instanceof Bee bee

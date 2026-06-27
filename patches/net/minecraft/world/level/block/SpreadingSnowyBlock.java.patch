@@ -15,7 +15,7 @@
          if (aboveState.is(Blocks.SNOW) && aboveState.getValue(SnowLayerBlock.LAYERS) == 1) {
              return true;
          }
-@@ -42,8 +_,14 @@
+@@ -42,25 +_,58 @@
      }
  
      private static boolean canPropagate(BlockState state, LevelReader level, BlockPos pos) {
@@ -31,7 +31,8 @@
      }
  
      @Override
-@@ -51,16 +_,42 @@
+     protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
++        if (this instanceof GrassBlock && level.paperConfig().tickRates.grassSpread != 1 && (level.paperConfig().tickRates.grassSpread < 1 || (net.minecraft.server.MinecraftServer.currentTick + pos.hashCode()) % level.paperConfig().tickRates.grassSpread != 0)) { return; } // Paper - Configurable random tick rates for blocks
          Registry<Block> blocks = level.registryAccess().lookupOrThrow(Registries.BLOCK);
          Optional<Block> baseBlock = blocks.getOptional(this.baseBlock);
          if (!baseBlock.isEmpty()) {

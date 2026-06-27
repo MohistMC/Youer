@@ -1,36 +1,30 @@
 --- a/net/minecraft/world/level/block/CarvedPumpkinBlock.java
 +++ b/net/minecraft/world/level/block/CarvedPumpkinBlock.java
-@@ -26,6 +_,7 @@
- import net.minecraft.world.level.block.state.pattern.BlockPatternBuilder;
- import net.minecraft.world.level.block.state.predicate.BlockStatePredicate;
- import net.minecraft.world.level.block.state.properties.EnumProperty;
-+import org.bukkit.event.entity.CreatureSpawnEvent;
- import org.jspecify.annotations.Nullable;
- 
- public class CarvedPumpkinBlock extends HorizontalDirectionalBlock {
-@@ -104,16 +_,22 @@
+@@ -104,11 +_,24 @@
                  .getAge();
      }
  
--    private static void spawnGolemInWorld(Level level, BlockPattern.BlockPatternMatch match, Entity golem, BlockPos spawnPos) {
--        clearPatternBlocks(level, match);
 +    // CraftBukkit start
-+    private static boolean spawnGolemInWorld(Level level, BlockPattern.BlockPatternMatch match, Entity golem, BlockPos spawnPos) {
-+        // clearPatternBlocks(level, match); // CraftBukkit - moved down
+     private static void spawnGolemInWorld(Level level, BlockPattern.BlockPatternMatch match, Entity golem, BlockPos spawnPos) {
+-        clearPatternBlocks(level, match);
++        // clearPatternBlocks(level, patternMatch); // Paper - moved down
          golem.snapTo(spawnPos.getX() + 0.5, spawnPos.getY() + 0.05, spawnPos.getZ() + 0.5, 0.0F, 0.0F);
 -        level.addFreshEntity(golem);
-+        if (!level.addFreshEntity(golem, (golem.getType() == EntityTypes.SNOW_GOLEM) ? CreatureSpawnEvent.SpawnReason.BUILD_SNOWMAN : ((golem.getType() == EntityTypes.IRON_GOLEM) ? CreatureSpawnEvent.SpawnReason.BUILD_IRONGOLEM : CreatureSpawnEvent.SpawnReason.BUILD_COPPERGOLEM))) {
-+            return false;
+-
++        // Paper start
++        org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason spawnReason;
++        if (golem.getType() == net.minecraft.world.entity.EntityTypes.SNOW_GOLEM) {
++            spawnReason = org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BUILD_SNOWMAN;
++        } else if (golem.getType() == net.minecraft.world.entity.EntityTypes.COPPER_GOLEM) {
++            spawnReason = org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BUILD_COPPERGOLEM;
++        } else {
++            spawnReason = org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BUILD_IRONGOLEM;
 +        }
-+        clearPatternBlocks(level, match); // CraftBukkit - from above
-+        // CraftBukkit end
- 
++        if (!level.addFreshEntity(golem, spawnReason)) {
++            return;
++        }
++        // Paper end
++        clearPatternBlocks(level, match); // Paper - from above
          for (ServerPlayer player : level.getEntitiesOfClass(ServerPlayer.class, golem.getBoundingBox().inflate(5.0))) {
              CriteriaTriggers.SUMMONED_ENTITY.trigger(player, golem);
          }
- 
-         updatePatternBlocks(level, match);
-+        return true; // CraftBukkit
-     }
- 
-     public static void clearPatternBlocks(Level level, BlockPattern.BlockPatternMatch match) {

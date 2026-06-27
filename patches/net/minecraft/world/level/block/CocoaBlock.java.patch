@@ -9,7 +9,7 @@
              int age = state.getValue(AGE);
 -            if (age < 2) {
 -                level.setBlock(pos, state.setValue(AGE, age + 1), 2);
-+            if (age < 2 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(level, pos, state, level.getRandom().nextInt(5) == 0)) {
++            if (age < 2 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(level, pos, state, level.getRandom().nextFloat() < (level.spigotConfig.cocoaModifier / (100.0F * 5)))) {
 +                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, pos, state.setValue(AGE, age + 1), 2); // CraftBukkit
 +                net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(level, pos, state);
              }
@@ -29,7 +29,7 @@
      @Override
      public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state) {
 -        level.setBlock(pos, state.setValue(AGE, state.getValue(AGE) + 1), 2);
-+        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, pos, state.setValue(AGE, state.getValue(AGE) + 1), 2); // CraftBukkit
++        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, pos, state.setValue(AGE, state.getValue(AGE) + 1), Block.UPDATE_CLIENTS); // CraftBukkit
      }
  
      @Override

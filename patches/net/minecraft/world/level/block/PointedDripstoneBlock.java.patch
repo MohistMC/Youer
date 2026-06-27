@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/level/block/PointedDripstoneBlock.java
 +++ b/net/minecraft/world/level/block/PointedDripstoneBlock.java
+@@ -63,7 +_,7 @@
+     @Override
+     public void fallOn(Level level, BlockState state, BlockPos pos, Entity entity, double fallDistance) {
+         if (state.getValue(TIP_DIRECTION) == Direction.UP && state.getValue(THICKNESS) == SpeleothemThickness.TIP) {
+-            entity.causeFallDamage(fallDistance + 2.5, 2.0F, level.damageSources().stalagmite());
++            entity.causeFallDamage(fallDistance + 2.5, 2.0F, level.damageSources().stalagmite().eventBlockDamager(level, pos)); // CraftBukkit
+         } else {
+             super.fallOn(level, state, pos, entity, fallDistance);
+         }
 @@ -89,7 +_,7 @@
  
      @VisibleForTesting
@@ -9,7 +18,7 @@
              if (isStalactiteStartPos(state, level, pos)) {
                  Optional<PointedDripstoneBlock.FluidInfo> fluidInfo = getFluidAboveStalactite(level, pos, state);
                  if (!fluidInfo.isEmpty()) {
-@@ -98,14 +_,12 @@
+@@ -98,22 +_,21 @@
                      if (fluid == Fluids.WATER) {
                          transferProbability = 0.17578125F;
                      } else {
@@ -26,6 +35,16 @@
                          BlockPos stalactiteTipPos = findTip(state, level, pos, 11, false);
                          if (stalactiteTipPos != null) {
                              if (fluidInfo.get().sourceState.is(Blocks.MUD) && fluid == Fluids.WATER) {
+                                 BlockState newState = Blocks.CLAY.defaultBlockState();
+-                                level.setBlockAndUpdate(fluidInfo.get().pos, newState);
++                                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(level, fluidInfo.get().pos, newState, Block.UPDATE_ALL)) { // Paper - Call BlockFormEvent
+                                 Block.pushEntitiesUp(fluidInfo.get().sourceState, newState, level, fluidInfo.get().pos);
+                                 level.gameEvent(GameEvent.BLOCK_CHANGE, fluidInfo.get().pos, GameEvent.Context.of(newState));
+                                 level.levelEvent(1504, stalactiteTipPos, 0);
++                                } // Paper - Call BlockFormEvent
+                             } else {
+                                 BlockPos cauldronPos = findFillableCauldronBelowStalactiteTip(level, stalactiteTipPos, fluid);
+                                 if (cauldronPos != null) {
 @@ -190,7 +_,7 @@
      }
  

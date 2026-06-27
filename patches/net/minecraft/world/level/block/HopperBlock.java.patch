@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/level/block/HopperBlock.java
++++ b/net/minecraft/world/level/block/HopperBlock.java
+@@ -105,8 +_,7 @@
+ 
+     @Override
+     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
+-        if (!level.isClientSide() && level.getBlockEntity(pos) instanceof HopperBlockEntity hopper) {
+-            player.openMenu(hopper);
++        if (!level.isClientSide() && level.getBlockEntity(pos) instanceof HopperBlockEntity hopper && player.openMenu(hopper).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
+             player.awardStat(Stats.INSPECT_HOPPER);
+         }
+ 
+@@ -157,6 +_,7 @@
+ 
+     @Override
+     protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(level, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
+         if (level.getBlockEntity(pos) instanceof HopperBlockEntity hopperBlockEntity) {
+             HopperBlockEntity.entityInside(level, pos, state, entity, hopperBlockEntity);
+         }

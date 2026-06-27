@@ -51,7 +51,42 @@
                  : Blocks.AIR)
              .defaultBlockState();
          if (newContents.isAir()) {
-@@ -87,7 +_,7 @@
+@@ -69,6 +_,18 @@
+             return InteractionResult.CONSUME;
+         }
+ 
++        // Paper start - Add PlayerFlowerPotManipulateEvent
++        org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++        org.bukkit.inventory.ItemStack placedStack = org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(itemStack);
++
++        io.papermc.paper.event.player.PlayerFlowerPotManipulateEvent event = new io.papermc.paper.event.player.PlayerFlowerPotManipulateEvent((org.bukkit.entity.Player) player.getBukkitEntity(), block, placedStack, true);
++        if (!event.callEvent()) {
++            // Update client
++            player.containerMenu.forceHeldSlot(hand);
++
++            return InteractionResult.CONSUME;
++        }
++        // Paper end - Add PlayerFlowerPotManipulateEvent
+         level.setBlock(pos, newContents, 3);
+         level.gameEvent(player, GameEvent.BLOCK_CHANGE, pos);
+         player.awardStat(Stats.POT_FLOWER);
+@@ -83,11 +_,23 @@
+         }
+ 
+         ItemStack plant = new ItemStack(this.potted);
++        // Paper start - Add PlayerFlowerPotManipulateEvent
++        org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++        org.bukkit.inventory.ItemStack pottedStack = org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(plant);
++
++        io.papermc.paper.event.player.PlayerFlowerPotManipulateEvent event = new io.papermc.paper.event.player.PlayerFlowerPotManipulateEvent((org.bukkit.entity.Player) player.getBukkitEntity(), block, pottedStack, false);
++        if (!event.callEvent()) {
++            // Update client
++            player.containerMenu.sendAllDataToRemote();
++
++            return InteractionResult.PASS;
++        }
++        // Paper end - Add PlayerFlowerPotManipulateEvent
+         if (!player.addItem(plant)) {
              player.drop(plant, false);
          }
  
@@ -108,21 +143,12 @@
      @Override
      protected boolean isRandomlyTicking(BlockState state) {
          return state.is(Blocks.POTTED_OPEN_EYEBLOSSOM) || state.is(Blocks.POTTED_CLOSED_EYEBLOSSOM);
-@@ -137,10 +_,13 @@
+@@ -137,7 +_,7 @@
              boolean isOpen = this.potted == Blocks.OPEN_EYEBLOSSOM;
              boolean shouldBeOpen = level.environmentAttributes().getValue(EnvironmentAttributes.EYEBLOSSOM_OPEN, pos).toBoolean(isOpen);
              if (isOpen != shouldBeOpen) {
 -                level.setBlock(pos, this.opposite(state), 3);
--                EyeblossomBlock.Type newType = EyeblossomBlock.Type.fromBoolean(isOpen).transform();
--                newType.spawnTransformParticle(level, pos, random);
--                level.playSound(null, pos, newType.longSwitchSound(), SoundSource.BLOCKS, 1.0F, 1.0F);
-+                // CraftBukkit start - BlockFormEvent
-+                if (org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(level, pos, this.opposite(state), 3)) {
-+                    EyeblossomBlock.Type newType = EyeblossomBlock.Type.fromBoolean(isOpen).transform();
-+                    newType.spawnTransformParticle(level, pos, random);
-+                    level.playSound(null, pos, newType.longSwitchSound(), SoundSource.BLOCKS, 1.0F, 1.0F);
-+                }
-+                // CraftBukkit end
-             }
-         }
- 
++                level.setBlock(pos, this.opposite(state), Block.UPDATE_ALL);
+                 EyeblossomBlock.Type newType = EyeblossomBlock.Type.fromBoolean(isOpen).transform();
+                 newType.spawnTransformParticle(level, pos, random);
+                 level.playSound(null, pos, newType.longSwitchSound(), SoundSource.BLOCKS, 1.0F, 1.0F);

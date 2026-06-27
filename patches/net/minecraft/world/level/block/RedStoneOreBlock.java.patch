@@ -1,23 +1,19 @@
 --- a/net/minecraft/world/level/block/RedStoneOreBlock.java
 +++ b/net/minecraft/world/level/block/RedStoneOreBlock.java
-@@ -21,6 +_,11 @@
+@@ -20,6 +_,7 @@
+ import net.minecraft.world.level.block.state.StateDefinition;
  import net.minecraft.world.level.block.state.properties.BooleanProperty;
  import net.minecraft.world.phys.BlockHitResult;
- 
-+// CraftBukkit start
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
-+import org.bukkit.event.entity.EntityInteractEvent;
-+// CraftBukkit end
-+
+ 
  public class RedStoneOreBlock extends Block {
      public static final MapCodec<RedStoneOreBlock> CODEC = simpleCodec(RedStoneOreBlock::new);
-     public static final BooleanProperty LIT = RedstoneTorchBlock.LIT;
-@@ -37,14 +_,27 @@
+@@ -37,14 +_,26 @@
  
      @Override
      protected void attack(BlockState state, Level level, BlockPos pos, Player player) {
 -        interact(state, level, pos);
-+        interact(state, level, pos, player); // CraftBukkit - add entityhuman
++        interact(state, level, pos, player); // CraftBukkit - add player
          super.attack(state, level, pos, player);
      }
  
@@ -26,15 +22,14 @@
          if (!entity.isSteppingCarefully()) {
 -            interact(onState, level, pos);
 +            // CraftBukkit start
-+            if (entity instanceof Player) {
-+                org.bukkit.event.player.PlayerInteractEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent((Player) entity, org.bukkit.event.block.Action.PHYSICAL, pos, null, null, null);
++            if (entity instanceof Player player) {
++                org.bukkit.event.player.PlayerInteractEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent(player, org.bukkit.event.block.Action.PHYSICAL, pos, null, null, null);
 +                if (!event.isCancelled()) {
 +                    interact(level.getBlockState(pos), level, pos, entity); // add entity
 +                }
 +            } else {
-+                EntityInteractEvent event = new EntityInteractEvent(entity.getBukkitEntity(), level.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ()));
-+                level.getCraftServer().getPluginManager().callEvent(event);
-+                if (!event.isCancelled()) {
++                org.bukkit.event.entity.EntityInteractEvent event = new org.bukkit.event.entity.EntityInteractEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(level, pos));
++                if (event.callEvent()) {
 +                    interact(level.getBlockState(pos), level, pos, entity); // add entity
 +                }
 +            }
@@ -47,7 +42,7 @@
              spawnParticles(level, pos);
          } else {
 -            interact(state, level, pos);
-+            interact(state, level, pos, player); // CraftBukkit - add entityhuman
++            interact(state, level, pos, player); // CraftBukkit - add player
          }
  
 -        return itemStack.getItem() instanceof BlockItem && new BlockPlaceContext(player, hand, itemStack, hitResult).canPlace()
@@ -62,7 +57,7 @@
          spawnParticles(level, pos);
          if (!state.getValue(LIT)) {
 +            // CraftBukkit start
-+            if (!CraftEventFactory.callEntityChangeBlockEvent(entity, pos, state.setValue(LIT, true))) {
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(entity, pos, state.setValue(RedStoneOreBlock.LIT, true))) {
 +                return;
 +            }
 +            // CraftBukkit end

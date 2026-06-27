@@ -8,7 +8,7 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.LevelReader;
  import net.minecraft.world.level.ScheduledTickAccess;
-@@ -79,41 +_,51 @@
+@@ -79,43 +_,83 @@
      protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
          if (level.isClientSide()) {
              return InteractionResult.SUCCESS_SERVER;
@@ -47,6 +47,8 @@
 -                }
 -            });
 -            return InteractionResult.SUCCESS_SERVER;
+-        }
+-    }
 +            if (state.getValue(PART) != BedPart.HEAD) {
 +                pos = pos.relative(state.getValue(FACING));
 +                state = level.getBlockState(pos);
@@ -69,6 +71,7 @@
 +                level.explode(null, level.damageSources().badRespawnPointExplosion(boomPos), null, boomPos, 5.0F, true, Level.ExplosionInteraction.BLOCK);
 +                return InteractionResult.SUCCESS_SERVER;
 +            } else if (state.getValue(OCCUPIED)) {
++                if (bedRule.explodes()) return this.explodeBed(state, level, pos); // Paper - check explode first
 +                if (!this.kickVillagerOutOfBed(level, pos)) {
 +                    player.sendOverlayMessage(Component.translatable("block.minecraft.bed.occupied"));
 +                }
@@ -76,28 +79,37 @@
 +                return InteractionResult.SUCCESS_SERVER;
 +            } else {
 +                // CraftBukkit start
-+                BlockState finalBlockState = state;
-+                BlockPos finalPos = pos;
++                final BlockState finalState = state;
++                final BlockPos finalPos = pos;
 +                // CraftBukkit end
 +                player.startSleepInBed(pos).ifLeft(problem -> {
-+                    // CraftBukkit start - handling bed explosion from below here
-+                    if (bedRule.explodes()) {
-+                        BedBlock.this.explodeBed(finalBlockState, level, finalPos);
-+                    } else
-+                    // CraftBukkit end
-+                    if (problem.message() != null) {
++                    // Paper start - PlayerBedFailEnterEvent
++                    if (false && problem.message() != null) { // Moved down
 +                        player.sendOverlayMessage(problem.message());
 +                    }
++                    if (problem != null) {
++                        io.papermc.paper.event.player.PlayerBedFailEnterEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerBedFailEnterEvent(player, finalPos, problem);
++                        if (event.isCancelled()) {
++                            return;
++                        }
++                        // Paper end - PlayerBedFailEnterEvent
++                        // CraftBukkit start - handling bed explosion from below here
++                        if (event.getWillExplode()) { // Paper - PlayerBedFailEnterEvent
++                            this.explodeBed(finalState, level, finalPos);
++                        }
++                        // CraftBukkit end
++                        // Paper start - PlayerBedFailEnterEvent
++                        final net.kyori.adventure.text.Component message = event.getMessage();
++                        if (message != null) {
++                            player.sendOverlayMessage(io.papermc.paper.adventure.PaperAdventure.asVanilla(message));
++                        }
++                    }
++                    // Paper end - PlayerBedFailEnterEvent
 +                });
 +                return InteractionResult.SUCCESS_SERVER;
 +            }
-         }
-     }
- 
-@@ -126,6 +_,21 @@
-         villagers.get(0).stopSleeping();
-         return true;
-     }
++        }
++    }
 +
 +    // CraftBukkit start - Copied from the above method
 +    private InteractionResult explodeBed(BlockState state, Level level, BlockPos pos) {
@@ -114,5 +126,5 @@
 +    }
 +    // CraftBukkit end
  
-     @Override
-     public void fallOn(Level level, BlockState state, BlockPos pos, Entity entity, double fallDistance) {
+     private boolean kickVillagerOutOfBed(Level level, BlockPos pos) {
+         List<Villager> villagers = level.getEntitiesOfClass(Villager.class, new AABB(pos), LivingEntity::isSleeping);

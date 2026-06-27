@@ -1,0 +1,18 @@
+--- a/net/minecraft/world/level/block/EnderChestBlock.java
++++ b/net/minecraft/world/level/block/EnderChestBlock.java
+@@ -85,9 +_,12 @@
+                 return InteractionResult.SUCCESS;
+             }
+ 
+-            if (level instanceof ServerLevel serverLevel) {
+-                container.setActiveChest(enderChest);
+-                player.openMenu(new SimpleMenuProvider((containerId, inventory, p) -> ChestMenu.threeRows(containerId, inventory, container), CONTAINER_TITLE));
++            // Paper start - Fix InventoryOpenEvent cancellation - moved up;
++            container.setActiveChest(enderChest); // Needs to happen before ChestMenu.threeRows as it is required for opening animations
++            if (level instanceof ServerLevel serverLevel && player.openMenu(
++                    new SimpleMenuProvider((containerId, inventory, p) -> ChestMenu.threeRows(containerId, inventory, container), CONTAINER_TITLE)
++            ).isPresent()) {
++                // Paper end - Fix InventoryOpenEvent cancellation - moved up;
+                 player.awardStat(Stats.OPEN_ENDERCHEST);
+                 PiglinAi.angerNearbyPiglins(serverLevel, player, true);
+             }

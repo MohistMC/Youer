@@ -12,64 +12,56 @@
  public class ButtonBlock extends FaceAttachedHorizontalDirectionalBlock {
      public static final MapCodec<ButtonBlock> CODEC = RecordCodecBuilder.mapCodec(
          i -> i.group(
-@@ -88,10 +_,23 @@
-     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
-         if (state.getValue(POWERED)) {
+@@ -90,6 +_,11 @@
              return InteractionResult.CONSUME;
-+        } else {
-+            // CraftBukkit start
-+            boolean powered = state.getValue(POWERED);
-+            org.bukkit.block.Block block = level.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
-+            int old = powered ? 15 : 0;
-+            int current = !powered ? 15 : 0;
-+
-+            BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(block, old, current);
-+            level.getCraftServer().getPluginManager().callEvent(eventRedstone);
-+
-+            if ((eventRedstone.getNewCurrent() > 0) != !powered) {
-+                return InteractionResult.SUCCESS;
-+            }
-+            // CraftBukkit end
-+            this.press(state, level, pos, player);
-+            return InteractionResult.SUCCESS;
          }
--
--        this.press(state, level, pos, player);
--        return InteractionResult.SUCCESS;
+ 
++        // Paper start - Call BlockRedstoneEvent
++        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBinaryRedstoneChange(level, pos, true)) {
++            return InteractionResult.SUCCESS;
++        }
++        // Paper end - Call BlockRedstoneEvent
+         this.press(state, level, pos, player);
+         return InteractionResult.SUCCESS;
      }
+@@ -97,7 +_,9 @@
+     @Override
+     protected void onExplosionHit(BlockState state, ServerLevel level, BlockPos pos, Explosion explosion, BiConsumer<ItemStack, BlockPos> onHit) {
+         if (explosion.canTriggerBlocks() && !state.getValue(POWERED)) {
+-            this.press(state, level, pos, null);
++            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBinaryRedstoneChange(level, pos, true)) { // Paper - Call BlockRedstoneEvent
++                this.press(state, level, pos, null);
++            } // Paper - Call BlockRedstoneEvent
+         }
+ 
+         super.onExplosionHit(state, level, pos, explosion, onHit);
+@@ -150,6 +_,7 @@
  
      @Override
-@@ -161,7 +_,33 @@
+     protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(level, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
+         if (!level.isClientSide() && this.type.canButtonBeActivatedByArrows() && !state.getValue(POWERED)) {
+             this.checkPressed(state, level, pos);
+         }
+@@ -161,7 +_,21 @@
              : null;
          boolean shouldBePressed = firstArrow != null;
          boolean wasPressed = state.getValue(POWERED);
-+
 +        // CraftBukkit start - Call interact event when arrows turn on wooden buttons
 +        if (wasPressed != shouldBePressed && shouldBePressed) {
-+            org.bukkit.block.Block block = level.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
-+            EntityInteractEvent event = new EntityInteractEvent(firstArrow.getBukkitEntity(), block);
-+            level.getCraftServer().getPluginManager().callEvent(event);
-+
-+            if (event.isCancelled()) {
++            org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++            org.bukkit.event.entity.EntityInteractEvent event = new org.bukkit.event.entity.EntityInteractEvent(firstArrow.getBukkitEntity(), block);
++            if (!event.callEvent()) {
 +                return;
 +            }
 +        }
 +        // CraftBukkit end
-+
          if (shouldBePressed != wasPressed) {
-+            // CraftBukkit start
-+            boolean powered = wasPressed;
-+            org.bukkit.block.Block block = level.getWorld().getBlockAt(pos.getX(), pos.getY(), pos.getZ());
-+            int old = powered ? 15 : 0;
-+            int current = !powered ? 15 : 0;
-+
-+            BlockRedstoneEvent eventRedstone = new BlockRedstoneEvent(block, old, current);
-+            level.getCraftServer().getPluginManager().callEvent(eventRedstone);
-+
-+            if ((shouldBePressed && eventRedstone.getNewCurrent() <= 0) || (!shouldBePressed && eventRedstone.getNewCurrent() > 0)) {
++            // Paper start - Call BlockRedstoneEvent
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBinaryRedstoneChange(level, pos, shouldBePressed)) {
 +                return;
 +            }
-+            // CraftBukkit end
++            // Paper end - Call BlockRedstoneEvent
              level.setBlock(pos, state.setValue(POWERED, shouldBePressed), 3);
              this.updateNeighbours(state, level, pos);
              this.playSound(null, level, pos, shouldBePressed);

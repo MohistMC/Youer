@@ -1,120 +1,81 @@
 --- a/net/minecraft/world/level/block/EndPortalBlock.java
 +++ b/net/minecraft/world/level/block/EndPortalBlock.java
-@@ -20,6 +_,7 @@
- import net.minecraft.world.level.block.entity.TheEndPortalBlockEntity;
- import net.minecraft.world.level.block.state.BlockBehaviour;
- import net.minecraft.world.level.block.state.BlockState;
-+import net.minecraft.world.level.dimension.LevelStem;
- import net.minecraft.world.level.levelgen.feature.EndPlatformFeature;
- import net.minecraft.world.level.material.Fluid;
- import net.minecraft.world.level.portal.TeleportTransition;
-@@ -29,6 +_,11 @@
+@@ -28,6 +_,7 @@
+ import net.minecraft.world.phys.shapes.CollisionContext;
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
- 
-+// CraftBukkit start
 +import org.bukkit.event.player.PlayerRespawnEvent;
-+import org.bukkit.event.player.PlayerTeleportEvent;
-+// CraftBukkit end
-+
+ 
  public class EndPortalBlock extends BaseEntityBlock implements Portal {
      public static final MapCodec<EndPortalBlock> CODEC = simpleCodec(EndPortalBlock::new);
-     private static final VoxelShape SHAPE = Block.column(16.0, 6.0, 12.0);
-@@ -60,6 +_,10 @@
+@@ -59,8 +_,14 @@
+ 
      @Override
      protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
++        if (!new io.papermc.paper.event.entity.EntityInsideBlockEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(level, pos)).callEvent()) { return; } // Paper - Add EntityInsideBlockEvent
          if (entity.canUsePortal(false)) {
 +            // CraftBukkit start - Entity in portal
-+            org.bukkit.event.entity.EntityPortalEnterEvent event = new org.bukkit.event.entity.EntityPortalEnterEvent(entity.getBukkitEntity(), new org.bukkit.Location(level.getWorld(), pos.getX(), pos.getY(), pos.getZ()));
-+            level.getCraftServer().getPluginManager().callEvent(event);
++            org.bukkit.event.entity.EntityPortalEnterEvent event = new org.bukkit.event.entity.EntityPortalEnterEvent(entity.getBukkitEntity(), org.bukkit.craftbukkit.util.CraftLocation.toBukkit(pos, level), org.bukkit.PortalType.ENDER); // Paper - add portal type
++            if (!event.callEvent()) return; // Paper - make cancellable
 +            // CraftBukkit end
              if (!level.isClientSide() && level.dimension() == Level.END && entity instanceof ServerPlayer player && !player.seenCredits) {
++                if (level.paperConfig().misc.disableEndCredits) {player.seenCredits = true; return;} // Paper - Option to disable end credits
                  player.showEndCredits();
              } else {
-@@ -70,42 +_,56 @@
+                 entity.setAsInsidePortal(this, pos);
+@@ -70,9 +_,8 @@
  
      @Override
      public @Nullable TeleportTransition getPortalDestination(ServerLevel currentLevel, Entity entity, BlockPos portalEntryPos) {
 -        LevelData.RespawnData respawnData = currentLevel.getRespawnData();
 -        ResourceKey<Level> currentDimension = currentLevel.dimension();
 -        boolean fromEnd = currentDimension == Level.END;
-+        // CraftBukkit start - SPIGOT-8111: send back to main overworld
 +        LevelData.RespawnData respawnData = currentLevel.getServer().findRespawnDimension().getRespawnData();
-+        // SPIGOT-6152: send back to main overworld in custom ends
-+        ResourceKey<LevelStem> resourcekey = currentLevel.getTypeKey();
-+        boolean fromEnd = resourcekey == LevelStem.END;
-+        // CraftBukkit end
++        boolean fromEnd = currentLevel.getTypeKey() == net.minecraft.world.level.dimension.LevelStem.END; // CraftBukkit - SPIGOT-6152: send back to main overworld in custom ends
          ResourceKey<Level> newDimension = fromEnd ? respawnData.dimension() : Level.END;
          BlockPos spawnBlockPos = fromEnd ? respawnData.pos() : ServerLevel.END_SPAWN_POINT;
          ServerLevel newLevel = currentLevel.getServer().getLevel(newDimension);
-         if (newLevel == null) {
--            return null;
--        }
--
--        Vec3 spawnPos = Vec3.atBottomCenterOf(spawnBlockPos);
--        float yRot;
--        float xRot;
--        Set<Relative> relatives;
--        if (!fromEnd) {
--            EndPlatformFeature.createEndPlatform(newLevel, BlockPos.containing(spawnPos).below(), true);
--            yRot = Direction.WEST.toYRot();
--            xRot = 0.0F;
--            relatives = Relative.union(Relative.DELTA, Set.of(Relative.X_ROT));
--            if (entity instanceof ServerPlayer) {
--                spawnPos = spawnPos.subtract(0.0, 1.0, 0.0);
--            }
-+            return new TeleportTransition(PlayerTeleportEvent.TeleportCause.END_PORTAL); // CraftBukkit
-         } else {
--            yRot = respawnData.yaw();
--            xRot = respawnData.pitch();
--            relatives = Relative.union(Relative.DELTA, Relative.ROTATION);
--            if (entity instanceof ServerPlayer serverPlayer) {
--                return serverPlayer.findRespawnPositionAndUseSpawnBlock(false, TeleportTransition.DO_NOTHING);
--            }
--
--            spawnPos = Vec3.atBottomCenterOf(entity.adjustSpawnLocation(newLevel, spawnBlockPos));
-+            Vec3 spawnPos = spawnBlockPos.getBottomCenter();
-+            float yRot;
-+            float xRot;
-+            Set<Relative> relatives;
-+            if (!fromEnd) {
-+                EndPlatformFeature.createEndPlatform(newLevel, BlockPos.containing(spawnPos).below(), true);
-+                yRot = Direction.WEST.toYRot();
-+                xRot = 0.0F;
-+                relatives = Relative.union(Relative.DELTA, Set.of(Relative.X_ROT));
-+                if (entity instanceof ServerPlayer) {
-+                    spawnPos = spawnPos.subtract(0.0, 1.0, 0.0);
-+                }
-+            } else {
-+                yRot = respawnData.yaw();
-+                xRot = respawnData.pitch();
-+                relatives = Relative.union(Relative.DELTA, Relative.ROTATION);
-+                if (entity instanceof ServerPlayer serverPlayer) {
-+                    return serverPlayer.findRespawnPositionAndUseSpawnBlock(false, TeleportTransition.DO_NOTHING, PlayerRespawnEvent.RespawnReason.END_PORTAL); // CraftBukkit
-+                }
-+
-+                spawnPos = Vec3.atBottomCenterOf(entity.adjustSpawnLocation(newLevel, spawnBlockPos));
-+            }
-+
-+            // CraftBukkit start
-+            relatives.removeAll(Relative.ROTATION); // remove relative rotation flags to simplify event mutation
-+            float absoluteYaw = !fromEnd ? yRot : entity.getYRot() + yRot;
-+            float absolutePitch = entity.getXRot() + xRot;
-+            org.bukkit.craftbukkit.event.PortalEventResult result = org.bukkit.craftbukkit.event.CraftEventFactory.handlePortalEvents(entity, org.bukkit.craftbukkit.util.CraftLocation.toBukkit(spawnPos, newLevel, absoluteYaw, absolutePitch), org.bukkit.PortalType.ENDER, 0, 0);
-+            if (result == null) {
-+                return null;
-+            }
-+            org.bukkit.Location to = result.to();
-+
-+            return new TeleportTransition(
-+                    ((org.bukkit.craftbukkit.CraftWorld) to.getWorld()).getHandle(), org.bukkit.craftbukkit.util.CraftLocation.toVec3(to), Vec3.ZERO, to.getYaw(), to.getPitch(), relatives, TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET), org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.END_PORTAL
-+            );
-+            // CraftBukkit end
+@@ -80,12 +_,12 @@
+             return null;
          }
--
--        return new TeleportTransition(
+ 
+-        Vec3 spawnPos = Vec3.atBottomCenterOf(spawnBlockPos);
++        Vec3 spawnPos = spawnBlockPos.getBottomCenter();
+         float yRot;
+         float xRot;
+         Set<Relative> relatives;
+         if (!fromEnd) {
+-            EndPlatformFeature.createEndPlatform(newLevel, BlockPos.containing(spawnPos).below(), true);
++            EndPlatformFeature.createEndPlatform(newLevel, BlockPos.containing(spawnPos).below(), true, entity); // CraftBukkit
+             yRot = Direction.WEST.toYRot();
+             xRot = 0.0F;
+             relatives = Relative.union(Relative.DELTA, Set.of(Relative.X_ROT));
+@@ -97,15 +_,26 @@
+             xRot = respawnData.pitch();
+             relatives = Relative.union(Relative.DELTA, Relative.ROTATION);
+             if (entity instanceof ServerPlayer serverPlayer) {
+-                return serverPlayer.findRespawnPositionAndUseSpawnBlock(false, TeleportTransition.DO_NOTHING);
++                return serverPlayer.findRespawnPositionAndUseSpawnBlock(false, TeleportTransition.DO_NOTHING, PlayerRespawnEvent.RespawnReason.END_PORTAL); // CraftBukkit
+             }
+ 
+             spawnPos = Vec3.atBottomCenterOf(entity.adjustSpawnLocation(newLevel, spawnBlockPos));
+         }
+ 
++        // CraftBukkit start
++        relatives.removeAll(Relative.ROTATION); // remove relative rotation flags to simplify event mutation
++        float absoluteYaw = !fromEnd ? yRot : entity.getYRot() + yRot;
++        float absolutePitch = entity.getXRot() + xRot;
++        org.bukkit.craftbukkit.event.PortalEventResult result = org.bukkit.craftbukkit.event.CraftEventFactory.handlePortalEvents(entity, org.bukkit.craftbukkit.util.CraftLocation.toBukkit(spawnPos, newLevel, absoluteYaw, absolutePitch), org.bukkit.PortalType.ENDER, 0, 0);
++        if (result == null) {
++            return null;
++        }
++        org.bukkit.Location to = result.to();
++
+         return new TeleportTransition(
 -            newLevel, spawnPos, Vec3.ZERO, yRot, xRot, relatives, TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET)
--        );
++            ((org.bukkit.craftbukkit.CraftWorld) to.getWorld()).getHandle(), org.bukkit.craftbukkit.util.CraftLocation.toVec3(to), Vec3.ZERO, to.getYaw(), to.getPitch(), relatives, TeleportTransition.PLAY_PORTAL_SOUND.then(TeleportTransition.PLACE_PORTAL_TICKET), org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.END_PORTAL
+         );
++        // CraftBukkit end
      }
  
      @Override

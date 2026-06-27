@@ -5,10 +5,10 @@
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
          int age = state.getValue(AGE);
 -        if (age < 3 && random.nextInt(10) == 0) {
-+        if (age < 3 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(level, pos, state, random.nextInt(10) == 0)) {
++        if (age < 3 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(level, pos, state, random.nextFloat() < (level.spigotConfig.wartModifier / (100.0F * 10)))) { // Spigot - SPIGOT-7159: Better modifier resolution
              state = state.setValue(AGE, age + 1);
 -            level.setBlock(pos, state, 2);
-+            org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, pos, state, 2); // CraftBukkit
++            org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, pos, state, Block.UPDATE_CLIENTS); // CraftBukkit
 +            net.neoforged.neoforge.common.CommonHooks.fireCropGrowPost(level, pos, state);
          }
      }

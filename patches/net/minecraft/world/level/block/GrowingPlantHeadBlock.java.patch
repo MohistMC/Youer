@@ -1,11 +1,23 @@
 --- a/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
 +++ b/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
-@@ -44,13 +_,20 @@
+@@ -44,13 +_,32 @@
  
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
 -        if (state.getValue(AGE) < 25 && random.nextDouble() < this.growPerTickProbability) {
-+        if (state.getValue(AGE) < 25 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(level, pos.relative(this.growthDirection), state, random.nextDouble() < this.growPerTickProbability)) {
++        // Spigot start
++        int modifier = 100;
++        if (this == Blocks.KELP) {
++            modifier = level.spigotConfig.kelpModifier;
++        } else if (this == Blocks.TWISTING_VINES) {
++            modifier = level.spigotConfig.twistingVinesModifier;
++        } else if (this == Blocks.WEEPING_VINES) {
++            modifier = level.spigotConfig.weepingVinesModifier;
++        } else if (this == Blocks.CAVE_VINES) {
++            modifier = level.spigotConfig.caveVinesModifier;
++        }
++        if (state.getValue(AGE) < 25 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(level, pos.relative(this.growthDirection), state, random.nextDouble() < ((modifier / 100.0) * this.growPerTickProbability))) { // Spigot - SPIGOT-7159: Better modifier resolution
++            // Spigot end
              BlockPos growthPos = pos.relative(this.growthDirection);
              if (this.canGrowInto(level.getBlockState(growthPos))) {
 -                level.setBlockAndUpdate(growthPos, this.getGrowIntoState(state, level.getRandom()));
