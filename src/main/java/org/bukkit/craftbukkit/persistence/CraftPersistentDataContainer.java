@@ -72,7 +72,7 @@ public class CraftPersistentDataContainer extends io.papermc.paper.persistence.P
 
     @Override
     public boolean isEmpty() {
-        return this.customDataTags.isEmpty();
+        return this.customDataTags != null && this.customDataTags.isEmpty();
     }
 
     @NotNull
