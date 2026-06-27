@@ -157,7 +157,7 @@
  
      private static boolean tryMoveItems(Level level, BlockPos pos, BlockState state, HopperBlockEntity entity, BooleanSupplier action) {
          if (level.isClientSide()) {
-@@ -110,11 +_,12 @@
+@@ -110,16 +_,17 @@
  
          if (!entity.isOnCooldown() && state.getValue(HopperBlock.ENABLED)) {
              boolean changed = false;
@@ -172,6 +172,12 @@
                  changed |= action.getAsBoolean();
              }
  
+             if (changed) {
+-                entity.setCooldown(8);
++                entity.setCooldown(level.spigotConfig.hopperTransfer); // Spigot
+                 setChanged(level, pos, state);
+                 return true;
+             }
 @@ -138,35 +_,220 @@
          return true;
      }
@@ -609,6 +615,14 @@
              result = getEntityContainer(level, x, y, z);
          }
  
+@@ -368,6 +_,7 @@
+     }
+ 
+     private static @Nullable Container getBlockContainer(Level level, BlockPos pos, BlockState state) {
++        if (!level.spigotConfig.hopperCanLoadChunks && !level.hasChunkAt(pos)) return null; // Spigot
+         Block block = state.getBlock();
+         if (block instanceof WorldlyContainerHolder worldlyContainerHolder) {
+             return worldlyContainerHolder.getContainer(state, level, pos);
 @@ -383,14 +_,36 @@
      }
  

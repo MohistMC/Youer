@@ -9,7 +9,7 @@
  import net.minecraft.server.level.ServerPlayer;
  import net.minecraft.sounds.SoundEvent;
  import net.minecraft.sounds.SoundEvents;
-@@ -29,12 +_,19 @@
+@@ -29,12 +_,20 @@
  import net.minecraft.world.level.material.Fluids;
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.HitResult;
@@ -23,6 +23,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class BucketItem extends Item implements DispensibleContainerItem {
++    private static @Nullable ItemStack itemLeftInHandAfterPlayerBucketEmptyEvent = null; // Paper - Fix PlayerBucketEmptyEvent result itemstack
      public final Fluid content;
  
 -    public BucketItem(Fluid content, Item.Properties properties) {
@@ -46,13 +47,13 @@
                  if (this.content == Fluids.EMPTY) {
                      BlockState blockState = level.getBlockState(pos);
                      if (blockState.getBlock() instanceof BucketPickup bucketPickupBlock) {
-+                        ItemStack dummyFluid = bucketPickupBlock.pickupBlock(player, org.bukkit.craftbukkit.util.DummyLevelAccessor.INSTANCE, pos, clicked);
++                        // CraftBukkit start
++                        ItemStack dummyFluid = bucketPickupBlock.pickupBlock(player, org.bukkit.craftbukkit.util.DummyLevelAccessor.INSTANCE, pos, blockState);
 +                        if (dummyFluid.isEmpty()) return InteractionResult.FAIL; // Don't fire event if the bucket won't be filled.
-+                        PlayerBucketFillEvent event = CraftEventFactory.callPlayerBucketFillEvent((ServerLevel) level, player, pos, pos, hitResult.getDirection(), itemStack, dummyFluid.getItem(), hand);
++                        org.bukkit.event.player.PlayerBucketFillEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerBucketFillEvent(level, player, pos, pos, hitResult.getDirection(), itemStack, dummyFluid.getItem(), hand);
 +
 +                        if (event.isCancelled()) {
-+                            ((ServerPlayer) player).connection.send(new ClientboundBlockUpdatePacket(level, pos)); // SPIGOT-5163 (see PlayerInteractManager)
-+                            ((ServerPlayer) player).getBukkitEntity().updateInventory(); // SPIGOT-4541
++                            player.containerMenu.sendAllDataToRemote(); // SPIGOT-4541
 +                            return InteractionResult.FAIL;
 +                        }
 +                        // CraftBukkit end
@@ -67,6 +68,20 @@
                              if (!level.isClientSide()) {
                                  CriteriaTriggers.FILLED_BUCKET.trigger((ServerPlayer)player, taken);
                              }
+@@ -97,6 +_,13 @@
+     }
+ 
+     public static ItemStack getEmptySuccessItem(ItemStack itemStack, Player player) {
++        // Paper start - Fix PlayerBucketEmptyEvent result itemstack
++        if (itemLeftInHandAfterPlayerBucketEmptyEvent != null) {
++            ItemStack itemInHand = itemLeftInHandAfterPlayerBucketEmptyEvent;
++            itemLeftInHandAfterPlayerBucketEmptyEvent = null;
++            return itemInHand;
++        }
++        // Paper end - Fix PlayerBucketEmptyEvent result itemstack
+         return !player.hasInfiniteMaterials() ? new ItemStack(Items.BUCKET) : itemStack;
+     }
+ 
 @@ -105,7 +_,20 @@
      }
  
@@ -88,25 +103,23 @@
          if (!(this.content instanceof FlowingFluid flowingFluid)) {
              return false;
          } else {
-@@ -115,9 +_,28 @@
+@@ -115,9 +_,26 @@
              boolean shiftKeyDown = user != null && user.isShiftKeyDown();
              boolean placeLiquid = mayReplace
                  || block instanceof LiquidBlockContainer container && container.canPlaceLiquid(user, level, pos, blockState, this.content);
 +            // TODO: The stack is only used as a parameter in the vaporization check. What if the fluidType is different? And should the rest of the method be made stack-aware as well?
 +            var containedFluidStack = containerItem != null ? FluidUtil.getFirstStackContained(containerItem) : FluidStack.EMPTY;
              boolean canPlaceFluidInsideBlock = blockState.isAir() || placeLiquid && (!shiftKeyDown || hitResult == null);
-+
 +            // CraftBukkit start
-+            if (placeLiquid && user instanceof ServerPlayer serverplayer) {
-+                PlayerBucketEmptyEvent event = CraftEventFactory.callPlayerBucketEmptyEvent(level, serverplayer, pos, emptyContents$clicked, emptyContents$direction, containerItem, emptyContents$interactionhand);
++            if (canPlaceFluidInsideBlock && user instanceof Player player) {
++                org.bukkit.event.player.PlayerBucketEmptyEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerBucketEmptyEvent(level, player, pos, emptyContents$clicked, emptyContents$direction, containerItem, emptyContents$interactionhand);
 +                if (event.isCancelled()) {
-+                    serverplayer.connection.send(new ClientboundBlockUpdatePacket(level, pos)); // SPIGOT-4238: needed when looking through entity
-+                    serverplayer.getBukkitEntity().updateInventory(); // SPIGOT-4541
++                    player.containerMenu.sendAllDataToRemote(); // SPIGOT-4541
 +                    return false;
 +                }
++                itemLeftInHandAfterPlayerBucketEmptyEvent = event.getItemStack() != null ? event.getItemStack().equals(org.bukkit.craftbukkit.inventory.CraftItemStack.asNewCraftStack(net.minecraft.world.item.Items.BUCKET)) ? null : org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItemStack()) : ItemStack.EMPTY; // Paper - Fix PlayerBucketEmptyEvent result itemstack
 +            }
 +            // CraftBukkit end
-+
              if (!canPlaceFluidInsideBlock) {
 -                return hitResult != null && this.emptyContents(user, level, hitResult.getBlockPos().relative(hitResult.getDirection()), null);
 +                return hitResult != null && this.emptyContents(user, level, hitResult.getBlockPos().relative(hitResult.getDirection()), null, containerItem);

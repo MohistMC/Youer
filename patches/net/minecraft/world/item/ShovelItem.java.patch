@@ -1,26 +1,40 @@
 --- a/net/minecraft/world/item/ShovelItem.java
 +++ b/net/minecraft/world/item/ShovelItem.java
-@@ -43,18 +_,15 @@
+@@ -43,22 +_,28 @@
          }
  
          Player player = context.getPlayer();
 -        BlockState newState = FLATTENABLES.get(blockState.getBlock());
 +        BlockState newState = blockState.getToolModifiedState(context, net.neoforged.neoforge.common.ItemAbilities.SHOVEL_FLATTEN, false);
          BlockState updatedState = null;
++        Runnable afterAction = null; // Paper
          if (newState != null && level.getBlockState(pos.above()).isAir()) {
-             level.playSound(player, pos, SoundEvents.SHOVEL_FLATTEN, SoundSource.BLOCKS, 1.0F, 1.0F);
+-            level.playSound(player, pos, SoundEvents.SHOVEL_FLATTEN, SoundSource.BLOCKS, 1.0F, 1.0F);
++            afterAction = () -> level.playSound(player, pos, SoundEvents.SHOVEL_FLATTEN, SoundSource.BLOCKS, 1.0F, 1.0F); // Paper
              updatedState = newState;
 -        } else if (blockState.getBlock() instanceof CampfireBlock && blockState.getValue(CampfireBlock.LIT)) {
 +        } else if ((updatedState = blockState.getToolModifiedState(context, net.neoforged.neoforge.common.ItemAbilities.SHOVEL_DOUSE, false)) != null) {
++            afterAction = () -> { // Paper
              if (!level.isClientSide()) {
                  level.levelEvent(null, 1009, pos, 0);
              }
 -
 -            CampfireBlock.dowse(context.getPlayer(), level, pos, blockState);
 -            updatedState = blockState.setValue(CampfireBlock.LIT, false);
++            }; // Paper
          }
  
          if (updatedState != null) {
+             if (!level.isClientSide()) {
++                // Paper start
++                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(context.getPlayer(), pos, updatedState)) {
++                    return InteractionResult.PASS;
++                }
++                afterAction.run();
++                // Paper end
+                 level.setBlock(pos, updatedState, 11);
+                 level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(player, updatedState));
+                 if (player != null) {
 @@ -70,5 +_,15 @@
          } else {
              return InteractionResult.PASS;

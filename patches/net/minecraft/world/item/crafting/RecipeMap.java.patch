@@ -30,41 +30,37 @@
          this.byType = byType;
          this.byKey = byKey;
      }
-@@ -30,7 +_,54 @@
+@@ -30,7 +_,50 @@
              byKey.put(recipe.id(), recipe);
          }
  
 -        return new RecipeMap(byType.build(), byKey.build());
-+        // CraftBukkit start - mutable, ordered
-+        return new RecipeMap(LinkedHashMultimap.create(byType.build()), Maps.newLinkedHashMap(byKey.build()));
++        // CraftBukkit start - mutable
++        return new RecipeMap(com.google.common.collect.LinkedHashMultimap.create(byType.build()), com.google.common.collect.Maps.newLinkedHashMap(byKey.build()));
 +    }
 +
-+    public void addRecipe(RecipeHolder<?> irecipe) {
-+        Collection<RecipeHolder<?>> map = this.byType.get(irecipe.value().getType());
++    public void addRecipe(RecipeHolder<?> holder) {
++        Collection<RecipeHolder<?>> recipes = this.byType.get(holder.value().getType());
 +
-+        if (byKey.containsKey(irecipe.id())) {
-+            throw new IllegalStateException("Duplicate recipe ignored with ID " + irecipe.id());
++        if (this.byKey.containsKey(holder.id())) {
++            throw new IllegalStateException("Duplicate recipe ignored with ID " + holder.id());
 +        } else {
-+            map.add(irecipe);
-+            byKey.putFirst(irecipe.id(), irecipe); // CraftBukkit - ordered
++            recipes.add(holder);
++            this.byKey.put(holder.id(), holder);
 +        }
-+    }
-+
-+    public boolean removeRecipe(ResourceKey<Recipe<?>> mcKey) {
-+        boolean removed = false;
-+        Iterator<RecipeHolder<?>> iter = byType.values().iterator();
-+        while (iter.hasNext()) {
-+            RecipeHolder<?> recipe = iter.next();
-+            if (recipe.id().equals(mcKey)) {
-+                iter.remove();
-+                removed = true;
-+            }
-+        }
-+        removed |= byKey.remove(mcKey) != null;
-+
-+        return removed;
 +    }
 +    // CraftBukkit end
++
++    // Paper start - replace removeRecipe implementation
++    public boolean removeRecipe(ResourceKey<Recipe<?>> id) {
++        final RecipeHolder<?> remove = this.byKey.remove(id);
++        if (remove == null) {
++            return false;
++        }
++        final Collection<? extends RecipeHolder<?>> recipes = this.byType(remove.value().getType());
++        return recipes.remove(remove);
++    }
++    // Paper end - replace removeRecipe implementation
 +
 +    // Neo: handle ordering according to any recipe priorities
 +    public void order(it.unimi.dsi.fastutil.objects.Object2IntMap<ResourceKey<net.minecraft.world.item.crafting.Recipe<?>>> recipePriorities) {

@@ -13,7 +13,7 @@
  
  public record Consumable(
      float consumeSeconds, ItemUseAnimation animation, Holder<SoundEvent> sound, boolean hasConsumeParticles, List<ConsumeEffect> onConsumeEffects
-@@ -84,13 +_,31 @@
+@@ -84,13 +_,33 @@
  
          stack.getAllOfType(ConsumableListener.class).forEach(component -> component.onConsume(level, user, stack, this));
          if (!level.isClientSide()) {
@@ -36,11 +36,13 @@
      }
 +
 +    // CraftBukkit start
-+    public void cancelUsingItem(net.minecraft.server.level.ServerPlayer serverplayer, ItemStack itemstack) {
-+        itemstack.getAllOfType(ConsumableListener.class).forEach((consumablelistener) -> {
-+            consumablelistener.cancelUsingItem(serverplayer, itemstack);
++    public void cancelUsingItem(ServerPlayer player, ItemStack stack) {
++        final java.util.List<net.minecraft.network.protocol.Packet<? super net.minecraft.network.protocol.game.ClientGamePacketListener>> packets = new it.unimi.dsi.fastutil.objects.ObjectArrayList<>(); // Paper - properly resend entities - collect packets for bundle
++        stack.getAllOfType(ConsumableListener.class).forEach(listener -> {
++            listener.cancelUsingItem(player, stack, packets); // Paper - properly resend entities - collect packets for bundle
 +        });
-+        serverplayer.server.getPlayerList().sendActivePlayerEffects(serverplayer);
++        player.level().getServer().getPlayerList().sendActiveEffects(player, packets::add); // Paper - properly resend entities - collect packets for bundle
++        player.connection.send(new net.minecraft.network.protocol.game.ClientboundBundlePacket(packets));
 +    }
 +    // CraftBukkit end
  

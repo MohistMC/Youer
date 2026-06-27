@@ -20,7 +20,7 @@
  
      public boolean isIngredient(ItemStack ingredient) {
 -        return this.isContainerIngredient(ingredient) || this.isPotionIngredient(ingredient);
-+        return this.registry.isValidIngredient(ingredient) || this.isContainerIngredient(ingredient) || this.isPotionIngredient(ingredient);
++        return this.registry.isValidIngredient(ingredient) || this.isContainerIngredient(ingredient) || this.isPotionIngredient(ingredient) || this.isCustomIngredient(ingredient); // Paper - Custom Potion Mixes
 +    }
 +
 +    /**
@@ -40,15 +40,20 @@
      }
  
      private boolean isContainer(ItemStack input) {
-@@ -71,6 +_,7 @@
+@@ -71,6 +_,12 @@
      }
  
      public boolean hasMix(ItemStack source, ItemStack ingredient) {
 +        if (registry.hasOutput(source, ingredient)) return true;
++        // Paper start - Custom Potion Mixes
++        if (this.hasCustomMix(source, ingredient)) {
++            return true;
++        }
++        // Paper end - Custom Potion Mixes
          return !this.isContainer(source) ? false : this.hasContainerMix(source, ingredient) || this.hasPotionMix(source, ingredient);
      }
  
-@@ -104,6 +_,9 @@
+@@ -104,11 +_,21 @@
              return source;
          }
  
@@ -58,6 +63,18 @@
          Optional<Holder<Potion>> potion = source.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY).potion();
          if (potion.isEmpty()) {
              return source;
+         }
+ 
++        // Paper start - Custom Potion Mixes
++        for (io.papermc.paper.potion.PaperPotionMix mix : this.customMixes.values()) {
++            if (mix.input().test(source) && mix.ingredient().test(ingredient)) {
++                return mix.result().copy();
++            }
++        }
++        // Paper end - Custom Potion Mixes
+         for (PotionBrewing.Mix<Item> mix : this.containerMixes) {
+             if (source.is(mix.from) && mix.ingredient.test(ingredient)) {
+                 return PotionContents.createItemStack(mix.to.value(), potion.get());
 @@ -124,9 +_,18 @@
          return source;
      }

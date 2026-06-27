@@ -13,17 +13,23 @@
                          }
                      }
                  }
-@@ -164,30 +_,54 @@
+@@ -164,30 +_,53 @@
      }
  
      private static void applyEffects(Level level, BlockPos worldPosition, List<BlockPos> effectBlocks) {
--        int activeSize = effectBlocks.size();
--        int effectRange = activeSize / 7 * 16;
 +        // CraftBukkit start
-+        applyEffects(level, worldPosition, getRange(effectBlocks));
++        ConduitBlockEntity.applyEffects(level, worldPosition, ConduitBlockEntity.getRange(effectBlocks));
 +    }
 +
-+    private static void applyEffects(Level level, BlockPos worldPosition, int j) { // j = effect range in blocks
++    public static int getRange(List<BlockPos> effectBlocks) {
++        // CraftBukkit end
+         int activeSize = effectBlocks.size();
+         int effectRange = activeSize / 7 * 16;
++        // CraftBukkit start
++        return effectRange;
++    }
++
++    private static void applyEffects(Level level, BlockPos worldPosition, int j) { // i = effect range in blocks
 +        // CraftBukkit end
          int x = worldPosition.getX();
          int y = worldPosition.getY();
@@ -41,15 +47,6 @@
              }
          }
      }
-+
-+    public static int getRange(List<BlockPos> effectBlocks) {
-+        // CraftBukkit end
-+        int i = effectBlocks.size();
-+        int j = i / 7 * 16;
-+        // CraftBukkit start
-+        return j;
-+    }
-+
  
      private static void updateAndAttackTarget(ServerLevel level, BlockPos worldPosition, BlockState blockState, ConduitBlockEntity entity, boolean isActive) {
 +        // CraftBukkit start - add "damageTarget" boolean

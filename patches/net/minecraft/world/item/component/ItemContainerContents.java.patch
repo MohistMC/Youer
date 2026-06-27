@@ -1,9 +1,20 @@
 --- a/net/minecraft/world/item/component/ItemContainerContents.java
 +++ b/net/minecraft/world/item/component/ItemContainerContents.java
-@@ -172,6 +_,36 @@
-         }
-     }
+@@ -30,6 +_,7 @@
+         .xmap(ItemContainerContents::fromSlots, ItemContainerContents::asSlots);
+     public static final StreamCodec<RegistryFriendlyByteBuf, ItemContainerContents> STREAM_CODEC = ItemStackTemplate.STREAM_CODEC
+         .apply(ByteBufCodecs::optional)
++        .apply(ByteBufCodecs::increaseDepth) // Paper - Track codec depth
+         .<List<Optional<ItemStackTemplate>>>apply(ByteBufCodecs.list(256))
+         .map(ItemContainerContents::new, c -> c.items);
+     public final List<Optional<ItemStackTemplate>> items;
+@@ -169,6 +_,36 @@
  
+         if (itemCount - lineCount > 0) {
+             consumer.accept(Component.translatable("item.container.more_items", itemCount - lineCount).withStyle(ChatFormatting.ITALIC));
++        }
++    }
++
 +    /**
 +     * Neo:
 +     * {@return the number of slots in this container}
@@ -31,9 +42,6 @@
 +    private void validateSlotIndex(int slot) {
 +        if (slot < 0 || slot >= getSlots()) {
 +            throw new UnsupportedOperationException("Slot " + slot + " not in valid range - [0," + getSlots() + ")");
-+        }
-+    }
-+
-     private record Slot(int index, ItemStackTemplate item) {
-         public static final Codec<ItemContainerContents.Slot> CODEC = RecordCodecBuilder.create(
-             i -> i.group(
+         }
+     }
+ 

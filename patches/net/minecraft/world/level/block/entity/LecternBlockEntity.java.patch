@@ -23,11 +23,12 @@
  import org.jspecify.annotations.Nullable;
  
  public class LecternBlockEntity extends BlockEntity implements Clearable, MenuProvider {
-@@ -35,7 +_,56 @@
+@@ -35,7 +_,53 @@
      public static final int NUM_DATA = 1;
      public static final int SLOT_BOOK = 0;
      public static final int NUM_SLOTS = 1;
 -    public final Container bookAccess = new Container() {
++    // CraftBukkit start - add fields and methods
 +    public final Container bookAccess = new LecternInventory();
 +    public class LecternInventory implements Container {
 +
@@ -67,34 +68,29 @@
 +
 +        @Override
 +        public InventoryHolder getOwner() {
-+            return (Lectern) LecternBlockEntity.this.getOwner();
++            return LecternBlockEntity.this.getOwner();
 +        }
 +
 +        public LecternBlockEntity getLectern() {
 +            return LecternBlockEntity.this;
 +        }
 +        // CraftBukkit end
-+        {
-+            Objects.requireNonNull(LecternBlockEntity.this);
-+        }
-+
          @Override
          public int getContainerSize() {
              return 1;
-@@ -78,12 +_,20 @@
-         }
+@@ -79,11 +_,19 @@
  
          @Override
-+        // CraftBukkit start
          public void setItem(int slot, ItemStack itemStack) {
++            // CraftBukkit start
 +            if (slot == 0) {
 +                LecternBlockEntity.this.setBook(itemStack);
 +                if (LecternBlockEntity.this.getLevel() != null) {
 +                    LecternBlock.resetBookState(null, LecternBlockEntity.this.getLevel(), LecternBlockEntity.this.getBlockPos(), LecternBlockEntity.this.getBlockState(), LecternBlockEntity.this.hasBook());
 +                }
 +            }
++            // CraftBukkit end
          }
-+        // CraftBukkit end
  
          @Override
          public int getMaxStackSize() {

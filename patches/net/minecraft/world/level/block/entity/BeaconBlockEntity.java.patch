@@ -23,7 +23,7 @@
 +                true,
 +                true
 +        ))
-+                : null;
++        : null;
 +    }
 +
 +    public org.bukkit.potion.@Nullable PotionEffect getSecondaryEffect() {
@@ -35,7 +35,7 @@
 +                true,
 +                true
 +        ))
-+                : null;
++        : null;
 +    }
 +    // CraftBukkit end
 +    // Paper start - Custom beacon ranges
@@ -72,10 +72,83 @@
                  if (entity.checkingBeamSections.size() <= 1) {
                      lastBeamSection = new BeaconBeamOwner.Section(color);
                      entity.checkingBeamSections.add(lastBeamSection);
-@@ -285,6 +_,62 @@
+@@ -172,10 +_,19 @@
+             }
+ 
+             if (entity.levels > 0 && !entity.beamSections.isEmpty()) {
+-                applyEffects(level, pos, entity.levels, entity.primaryPower, entity.secondaryPower);
++                applyEffects(level, pos, entity.levels, entity.primaryPower, entity.secondaryPower, entity); // Paper - Custom beacon ranges
+                 playSound(level, pos, SoundEvents.BEACON_AMBIENT);
+             }
          }
++        // Paper start - beacon activation/deactivation events
++        if (previousLevels <= 0 && entity.levels > 0) {
++            org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++            new io.papermc.paper.event.block.BeaconActivatedEvent(block).callEvent();
++        } else if (previousLevels > 0 && entity.levels <= 0) {
++            org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++            new io.papermc.paper.event.block.BeaconDeactivatedEvent(block).callEvent();
++        }
++        // Paper end - beacon activation/deactivation events
+ 
+         if (entity.lastCheckY >= lastSetBlock) {
+             entity.lastCheckY = level.getMinY() - 1;
+@@ -226,7 +_,15 @@
+ 
+     @Override
+     public void setRemoved() {
+-        playSound(this.level, this.worldPosition, SoundEvents.BEACON_DEACTIVATE);
++        // Paper start - beacon activation/deactivation events
++        org.bukkit.block.Block block = org.bukkit.craftbukkit.block.CraftBlock.at(level, worldPosition);
++        new io.papermc.paper.event.block.BeaconDeactivatedEvent(block).callEvent();
++        // Paper end - beacon activation/deactivation events
++        // Paper start - fix MC-153086
++        if (this.levels > 0 && !this.beamSections.isEmpty()) {
++            playSound(this.level, this.worldPosition, SoundEvents.BEACON_DEACTIVATE);
++        }
++        // Paper end
+         super.setRemoved();
      }
  
+@@ -260,30 +_,78 @@
+     }
+ 
+     private static void applyEffects(
+-        Level level, BlockPos worldPosition, int levels, @Nullable Holder<MobEffect> primaryPower, @Nullable Holder<MobEffect> secondaryPower
++        Level level, BlockPos worldPosition, int levels, @Nullable Holder<MobEffect> primaryPower, @Nullable Holder<MobEffect> secondaryPower, BeaconBlockEntity entity // Paper - pass beacon block entity
+     ) {
+         if (!level.isClientSide() && primaryPower != null) {
+-            double range = levels * 10 + 10;
+-            int baseAmp = 0;
+-            if (levels >= 4 && Objects.equals(primaryPower, secondaryPower)) {
+-                baseAmp = 1;
+-            }
+-
+-            int durationTicks = (9 + levels * 2) * 20;
+-            AABB bb = new AABB(worldPosition).inflate(range).expandTowards(0.0, level.getHeight(), 0.0);
+-            List<Player> players = level.getEntitiesOfClass(Player.class, bb);
+-
+-            for (Player player : players) {
+-                player.addEffect(new MobEffectInstance(primaryPower, durationTicks, baseAmp, true, true));
+-            }
+-
+-            if (levels >= 4 && !Objects.equals(primaryPower, secondaryPower) && secondaryPower != null) {
+-                for (Player player : players) {
+-                    player.addEffect(new MobEffectInstance(secondaryPower, durationTicks, 0, true, true));
++            double range = computeBeaconRange(levels); // Paper - diff out applyEffects logic components - see below
++            int baseAmp = computeEffectAmplifier(levels, primaryPower, secondaryPower); // Paper - diff out applyEffects logic components - see below
++
++            int durationTicks = computeEffectDuration(levels); // Paper - diff out applyEffects logic components - see below
++            List<Player> players = getHumansInRange(level, worldPosition, levels, entity); // Paper - diff out applyEffects logic components - see below
++
++            applyEffectsAndCallEvent(level, worldPosition, players, new MobEffectInstance(primaryPower, durationTicks, baseAmp, true, true), true); // Paper - BeaconEffectEvent
++
++            if (hasSecondaryEffect(levels, primaryPower, secondaryPower)) { // Paper - diff out applyEffects logic components - see below
++                applyEffectsAndCallEvent(level, worldPosition, players, new MobEffectInstance(secondaryPower, durationTicks, 0, true, true), false); // Paper - BeaconEffectEvent
++            }
++        }
++    }
++
 +    // Paper start - diff out applyEffects logic components
 +    // Generally smarter than spigot trying to split the logic up, as that diff is giant.
 +    private static int computeEffectDuration(final int beaconLevel) {
@@ -107,9 +180,10 @@
 +                if (!net.minecraft.world.entity.EntitySelector.NO_SPECTATORS.test(player)) continue;
 +                if (player.getBoundingBox().intersects(aabb)) {
 +                    list.add(player);
-+                }
-+            }
-+        }
+                 }
+             }
+         }
+-    }
 +        return list;
 +    }
 +
@@ -131,21 +205,43 @@
 +        }
 +    }
 +    // Paper end - BeaconEffectEvent
-+
+ 
      public static void playSound(Level level, BlockPos worldPosition, SoundEvent event) {
          level.playSound(null, worldPosition, event, SoundSource.BLOCKS, 1.0F, 1.0F);
+@@ -310,7 +_,7 @@
      }
-@@ -318,6 +_,7 @@
+ 
+     private static @Nullable Holder<MobEffect> loadEffect(ValueInput input, String field) {
+-        return input.read(field, BuiltInRegistries.MOB_EFFECT.holderByNameCodec()).filter(VALID_EFFECTS::contains).orElse(null);
++        return input.read(field, BuiltInRegistries.MOB_EFFECT.holderByNameCodec()).orElse(null); // CraftBukkit - persist manually set non-default beacon effects (SPIGOT-3598)
+     }
+ 
+     @Override
+@@ -318,8 +_,10 @@
          super.loadAdditional(input);
          this.primaryPower = loadEffect(input, "primary_effect");
          this.secondaryPower = loadEffect(input, "secondary_effect");
-+        this.levels = input.getIntOr("Levels", this.levels); // CraftBukkit - SPIGOT-5053, use where available
++        this.levels = input.getIntOr("Levels", 0); // CraftBukkit - SPIGOT-5053, use where available
          this.name = parseCustomNameSafe(input, "CustomName");
          this.lockKey = LockCode.fromTag(input);
++        this.effectRange = input.getDoubleOr(PAPER_RANGE_TAG, -1); // Paper - Custom beacon ranges
      }
-@@ -345,10 +_,10 @@
+ 
+     @Override
+@@ -330,6 +_,7 @@
+         output.putInt("Levels", this.levels);
+         output.storeNullable("CustomName", ComponentSerialization.CODEC, this.name);
+         this.lockKey.addToTag(output);
++        output.putDouble(PAPER_RANGE_TAG, this.effectRange); // Paper - Custom beacon ranges
+     }
+ 
+     public void setCustomName(@Nullable Component name) {
+@@ -343,12 +_,12 @@
+ 
+     @Override
      public @Nullable AbstractContainerMenu createMenu(int containerId, Inventory inventory, Player player) {
-         if (this.lockKey.canUnlock(player)) {
+-        if (this.lockKey.canUnlock(player)) {
++        if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockLockCheckEvent(this, this.lockKey, this.getDisplayName(), player)) { // Paper - Call BlockLockCheckEvent
              return new BeaconMenu(containerId, inventory, this.dataAccess, ContainerLevelAccess.create(this.level, this.getBlockPos()));
 +        } else {
 +            BaseContainerBlockEntity.sendChestLockedNotifications(this.getBlockPos().getCenter(), player, this.getDisplayName());

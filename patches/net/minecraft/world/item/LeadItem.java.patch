@@ -23,12 +23,20 @@
  
  public class LeadItem extends Item {
      public LeadItem(Item.Properties properties) {
-@@ -34,33 +_,62 @@
+@@ -27,40 +_,58 @@
+         if (state.is(BlockTags.FENCES)) {
+             Player player = context.getPlayer();
+             if (!level.isClientSide() && player != null) {
+-                return bindPlayerMobs(player, level, pos);
++                return bindPlayerMobs(player, level, pos, context.getHand()); // CraftBukkit - Pass hand
+             }
+         }
+ 
          return InteractionResult.PASS;
      }
  
 -    public static InteractionResult bindPlayerMobs(Player player, Level level, BlockPos pos) {
-+    public static InteractionResult bindPlayerMobs(Player player, Level level, BlockPos pos, net.minecraft.world.InteractionHand interactionhand) { // CraftBukkit - Add EnumHand
++    public static InteractionResult bindPlayerMobs(Player player, Level level, BlockPos pos, net.minecraft.world.InteractionHand hand) { // CraftBukkit - Add EnumHand
          List<Leashable> entitiesToLeash = Leashable.leashableInArea(level, Vec3.atCenterOf(pos), l -> l.getLeashHolder() == player);
          if (entitiesToLeash.isEmpty()) {
              return InteractionResult.PASS;
@@ -62,31 +70,20 @@
 +            LeashFenceKnotEntity activeKnot = existingKnot.orElseGet(() -> LeashFenceKnotEntity.createKnot(level, pos));
 +            // CraftBukkit start - fire HangingPlaceEvent
 +            if (existingKnot.isEmpty()) {
-+                org.bukkit.inventory.EquipmentSlot hand = CraftEquipmentSlot.getHand(interactionhand);
-+                HangingPlaceEvent event = new HangingPlaceEvent((org.bukkit.entity.Hanging) activeKnot.getBukkitEntity(), player != null ? (org.bukkit.entity.Player) player.getBukkitEntity() : null, CraftBlock.at(level, pos), org.bukkit.block.BlockFace.SELF, hand);
++                org.bukkit.inventory.EquipmentSlot handSlot = org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(hand);
++                org.bukkit.event.hanging.HangingPlaceEvent event = new org.bukkit.event.hanging.HangingPlaceEvent((org.bukkit.entity.Hanging) activeKnot.getBukkitEntity(), player != null ? (org.bukkit.entity.Player) player.getBukkitEntity() : null, org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), org.bukkit.block.BlockFace.SELF, handSlot);
 +                level.getCraftServer().getPluginManager().callEvent(event);
 +
 +                if (event.isCancelled()) {
-+                    activeKnot.discard(null); // CraftBukkit - add Bukkit remove cause
++                    activeKnot.discard();
 +                    return InteractionResult.PASS;
 +                }
 +            }
 +            // CraftBukkit end
 +            boolean anyLeashed = false;
 +
-+            // CraftBukkit start - handle setLeashedTo at end of loop
-+            for (Iterator iterator = entitiesToLeash.iterator(); iterator.hasNext();) {
-+                Leashable leashable = (Leashable) iterator.next();
-+                // CraftBukkit end
-+                if (leashable.canHaveALeashAttachedTo(activeKnot)) {
-+                    // CraftBukkit start
-+                    if (leashable instanceof Entity leashed) {
-+                        if (org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerLeashEntityEvent(leashed, activeKnot, player, interactionhand).isCancelled()) {
-+                            iterator.remove();
-+                            continue;
-+                        }
-+                    }
-+                    // CraftBukkit end
++            for (Leashable leashable : entitiesToLeash) {
++                if (leashable.canHaveALeashAttachedTo(activeKnot) && org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerLeashEntityEvent(leashable, activeKnot, player, hand)) { // Paper - leash event
 +                    leashable.setLeashedTo(activeKnot, true);
 +                    anyLeashed = true;
 +                }
@@ -98,7 +95,7 @@
 +                return InteractionResult.SUCCESS_SERVER;
 +            } else {
 +                if (existingKnot.isEmpty()) {
-+                    activeKnot.discard(null); // CraftBukkit - remove reason
++                    activeKnot.discard();
 +                }
 +
 +                return InteractionResult.PASS;

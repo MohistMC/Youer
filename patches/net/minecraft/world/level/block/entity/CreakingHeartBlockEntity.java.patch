@@ -13,15 +13,17 @@
  import net.minecraft.world.entity.EntityTypes;
  import net.minecraft.world.entity.monster.creaking.Creaking;
  import net.minecraft.world.entity.player.Player;
-@@ -108,7 +_,7 @@
+@@ -108,8 +_,8 @@
  
                  if (entity.creakingInfo == null) {
                      if (updatedState.getValue(CreakingHeartBlock.STATE) == CreakingHeartState.AWAKE) {
 -                        if (serverLevel.isSpawningMonsters() && serverLevel.getLevelData().getDifficulty() != Difficulty.PEACEFUL) {
+-                            Player player = level.getNearestPlayer(pos.getX(), pos.getY(), pos.getZ(), 32.0, false);
 +                        if (serverLevel.isSpawningMonsters()) {
-                             Player player = level.getNearestPlayer(pos.getX(), pos.getY(), pos.getZ(), 32.0, false);
++                            Player player = level.getNearestPlayerThatAffectsSpawning(pos.getX(), pos.getY(), pos.getZ(), 32.0, false); // Paper - Affects Spawning API
                              if (player != null) {
                                  Creaking creaking = spawnProtector(serverLevel, entity);
+                                 if (creaking != null) {
 @@ -138,12 +_,12 @@
      private static BlockState updateCreakingState(Level level, BlockState state, BlockPos pos, CreakingHeartBlockEntity entity) {
          if (!CreakingHeartBlock.hasRequiredLogs(state, level, pos) && entity.creakingInfo == null) {

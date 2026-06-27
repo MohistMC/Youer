@@ -1,5 +1,13 @@
 --- a/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/net/minecraft/server/level/ServerPlayerGameMode.java
+@@ -1,5 +_,7 @@
+ package net.minecraft.server.level;
+ 
++import com.mohistmc.youer.feature.ban.bans.BanBlock;
++import com.mohistmc.youer.feature.ban.bans.BanItem;
+ import com.mojang.logging.LogUtils;
+ import java.util.List;
+ import java.util.Objects;
 @@ -7,6 +_,7 @@
  import net.minecraft.advancements.triggers.CriteriaTriggers;
  import net.minecraft.core.BlockPos;
@@ -8,10 +16,12 @@
  import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
  import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
  import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
-@@ -22,12 +_,20 @@
+@@ -22,12 +_,22 @@
  import net.minecraft.world.level.GameType;
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.CakeBlock;
 +import net.minecraft.world.level.block.DoorBlock;
  import net.minecraft.world.level.block.GameMasterBlock;
 +import net.minecraft.world.level.block.TrapDoorBlock;
@@ -329,7 +339,7 @@
          InteractionResult result = itemStack.use(level, player, hand);
          ItemStack resultStack;
          if (result instanceof InteractionResult.Success success) {
-@@ -338,12 +_,26 @@
+@@ -338,32 +_,74 @@
          }
  
          if (!player.isUsingItem()) {
@@ -355,18 +365,45 @@
 +    public InteractionHand interactHand;
 +    public ItemStack interactItemStack;
      public InteractionResult useItemOn(ServerPlayer player, Level level, ItemStack itemStack, InteractionHand hand, BlockHitResult hitResult) {
++        if (BanItem.checkMoShou(player, itemStack)) {
++            player.setItemInHand(hand, ItemStack.EMPTY);
++            return InteractionResult.FAIL;
++        }
++        if (BanItem.check(player, itemStack)) return InteractionResult.FAIL;
          BlockPos pos = hitResult.getBlockPos();
          BlockState state = level.getBlockState(pos);
-@@ -351,6 +_,8 @@
++        if (BanBlock.check(state) || BanItem.check(player, state.getBlock().asItem().getDefaultInstance())) {
++            callUseItemOn(state); // Youer
++            return InteractionResult.FAIL;
++        }
++        boolean cancelledBlock = false;
++        boolean cancelledItem = false; // Paper - correctly handle items on cooldown
+         if (!state.getBlock().isEnabled(level.enabledFeatures())) {
              return InteractionResult.FAIL;
          }
  
+-        if (this.gameModeForPlayer == GameType.SPECTATOR) {
 +        net.neoforged.neoforge.event.entity.player.PlayerInteractEvent.RightClickBlock event = net.neoforged.neoforge.common.CommonHooks.onRightClickBlock(player, hand, pos, hitResult);
 +        if (event.isCanceled()) return event.getCancellationResult();
-         if (this.gameModeForPlayer == GameType.SPECTATOR) {
++
++        PlayerInteractEvent bukkitevent = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerInteractEvent(player, org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK, pos, hitResult.getDirection(), itemStack, cancelledBlock, cancelledItem, hand, hitResult.getLocation()); // Paper - correctly handle items on cooldown
++        this.firedInteract = true;
++        this.interactResult = bukkitevent.useItemInHand() == org.bukkit.event.Event.Result.DENY;
++        this.interactPosition = pos.immutable();
++        this.interactHand = hand;
++        this.interactItemStack = itemStack.copy();
++
++        if (bukkitevent.useInteractedBlock() == Event.Result.DENY) {
++            callUseItemOn(state); // Youer
++            return (bukkitevent.useItemInHand() != Event.Result.ALLOW) ? InteractionResult.SUCCESS : InteractionResult.PASS;
++        } else if (this.gameModeForPlayer == GameType.SPECTATOR) {
              MenuProvider menuProvider = state.getMenuProvider(level, pos);
-             if (menuProvider != null) {
-@@ -360,10 +_,15 @@
+-            if (menuProvider != null) {
+-                player.openMenu(menuProvider);
+-                return InteractionResult.CONSUME;
++            if (menuProvider != null && player.openMenu(menuProvider).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
++                return InteractionResult.SUCCESS;
+             } else {
                  return InteractionResult.PASS;
              }
          } else {
@@ -390,8 +427,38 @@
  
 -            if (!itemStack.isEmpty() && !player.getCooldowns().isOnCooldown(itemStack)) {
 -                UseOnContext context = new UseOnContext(player, hand, hitResult);
-+            if (event.getUseItem().isTrue() || (!itemStack.isEmpty() && !player.getCooldowns().isOnCooldown(itemStack))) {
++            if (event.getUseItem().isTrue() || (!itemStack.isEmpty() && !this.interactResult)) { // add !interactResult SPIGOT-764
 +                if (event.getUseItem().isFalse()) return InteractionResult.PASS;
                  InteractionResult success;
                  if (player.hasInfiniteMaterials()) {
                      int count = itemStack.getCount();
+@@ -396,6 +_,11 @@
+ 
+                 return success;
+             } else {
++                // Paper start - Properly cancel usable items; Cancel only if cancelled + if the interact result is different from default response
++                if (this.interactResult && this.interactResult != cancelledItem) {
++                    this.player.resyncUsingItem(this.player);
++                }
++                // Paper end - Properly cancel usable items
+                 return InteractionResult.PASS;
+             }
+         }
+@@ -403,5 +_,17 @@
+ 
+     public void setLevel(ServerLevel newLevel) {
+         this.level = newLevel;
++    }
++
++    public void callUseItemOn(BlockState blockstate) {
++        // Paper start - Don't resync blocks
++        if (blockstate.getBlock() instanceof CakeBlock) {
++            player.getBukkitEntity().sendHealthUpdate(); // SPIGOT-1341 - reset health for cake
++        } else if (blockstate.is(Blocks.JIGSAW) || blockstate.is(Blocks.STRUCTURE_BLOCK) || blockstate.getBlock() instanceof net.minecraft.world.level.block.CommandBlock) {
++            player.connection.send(new net.minecraft.network.protocol.game.ClientboundContainerClosePacket(this.player.containerMenu.containerId));
++        }
++        // Paper end - extend Player Interact cancellation
++        player.getBukkitEntity().updateInventory(); // SPIGOT-2867
++        this.player.resyncUsingItem(this.player); // Paper - Properly cancel usable items
+     }
+ }

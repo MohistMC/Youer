@@ -1,5 +1,22 @@
 --- a/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BaseContainerBlockEntity.java
+@@ -66,10 +_,15 @@
+     protected abstract Component getDefaultName();
+ 
+     public boolean canOpen(Player player) {
+-        return this.lockKey.canUnlock(player);
++        return org.bukkit.craftbukkit.event.CraftEventFactory.callBlockLockCheckEvent(this, this.lockKey, this.getDisplayName(), player); // Paper - Call BlockLockCheckEvent
+     }
+ 
+     public static void sendChestLockedNotifications(Vec3 pos, Player player, Component displayName) {
++        // Paper start - BlockLockCheckEvent
++        if (org.bukkit.craftbukkit.event.CraftEventFactory.sendChestLockedNotifications(pos)) {
++            return;
++        }
++        // Paper end - BlockLockCheckEvent
+         Level level = player.level();
+         player.sendOverlayMessage(Component.translatable("container.isLocked", displayName));
+         if (!level.isClientSide()) {
 @@ -118,9 +_,17 @@
  
      @Override
@@ -28,7 +45,7 @@
 +    @Override
 +    public org.bukkit.Location getLocation() {
 +        if (level == null) return null;
-+        return new org.bukkit.Location(level.getWorld(), worldPosition.getX(), worldPosition.getY(), worldPosition.getZ());
++        return org.bukkit.craftbukkit.util.CraftLocation.toBukkit(this.worldPosition, this.level);
 +    }
 +    // CraftBukkit end
  }

@@ -22,6 +22,21 @@
      public static final Supplier<BiMap<Block, Block>> WAX_OFF_BY_BLOCK = Suppliers.memoize(() -> WAXABLES.get().inverse());
      public static final ImmutableMap<Block, Pair<RecipeCategory, String>> WAXED_RECIPES;
  
+@@ -69,6 +_,14 @@
+         return getWaxed(oldState).map(waxedState -> {
+             Player player = context.getPlayer();
+             ItemStack itemInHand = context.getItemInHand();
++            // Paper start - EntityChangeBlockEvent
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(player, pos, waxedState)) {
++                if (!player.isCreative()) {
++                    player.containerMenu.forceHeldSlot(context.getHand());
++                }
++                return InteractionResult.PASS;
++            }
++            // Paper end
+             if (player instanceof ServerPlayer serverPlayer) {
+                 CriteriaTriggers.ITEM_USED_ON_BLOCK.trigger(serverPlayer, pos, itemInHand);
+             }
 @@ -88,7 +_,7 @@
      }
  

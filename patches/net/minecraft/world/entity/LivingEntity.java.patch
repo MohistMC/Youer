@@ -2169,7 +2169,7 @@
      public boolean isSuppressingSlidingDownLadder() {
          return this.isShiftKeyDown();
      }
-@@ -3645,6 +_,11 @@
+@@ -3645,6 +_,16 @@
      }
  
      public boolean randomTeleport(double xx, double yy, double zz, boolean showParticles) {
@@ -2178,6 +2178,11 @@
 +
 +    // Neo: Add overload with the consumed item causing the random teleport
 +    public boolean randomTeleport(double xx, double yy, double zz, boolean showParticles, ItemStack consumedStack) {
++        return randomTeleport(xx, yy, zz, showParticles, consumedStack, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN).orElse(false);
++    }
++
++    public Optional<Boolean> randomTeleport(double xx, double yy, double zz, boolean showParticles, ItemStack consumedStack, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
++        // CraftBukkit end
          double xo = this.getX();
          double yo = this.getY();
          double zo = this.getZ();
@@ -2190,10 +2195,13 @@
          if (level.hasChunkAt(pos)) {
              boolean landed = false;
  
-@@ -3667,14 +_,30 @@
+@@ -3667,16 +_,53 @@
              }
  
              if (landed) {
+-                this.teleportTo(xx, y, zz);
+-                if (level.noCollision(this) && !level.containsAnyLiquid(this.getBoundingBox())) {
+-                    ok = true;
 +                // Neo: Fire event for either item consumption or EnderMan teleport, to get the actual final position being teleported to
 +                net.neoforged.neoforge.event.entity.EntityTeleportEvent event = null;
 +                if (!consumedStack.isEmpty()) {
@@ -2207,20 +2215,54 @@
 +                    zz = event.getTargetZ();
 +                }
 +                if (event == null || !event.isCanceled()) {
-+                teleported = true;
-                 this.teleportTo(xx, y, zz);
-                 if (level.noCollision(this) && !level.containsAnyLiquid(this.getBoundingBox())) {
-                     ok = true;
++                    teleported = true;
++                    // CraftBukkit start - Teleport event
++                    // first set position, to check if the place to teleport is valid
++                    this.setPos(xx, y, zz);
++                    if (level.noCollision(this) && !level.containsAnyLiquid(this.getBoundingBox())) {
++                        ok = true;
++                    }
++                    // now revert and call event if the teleport place is valid
++                    this.setPos(xo, yo, zo);
++
++                    if (ok) {
++                        if (!(this instanceof ServerPlayer)) {
++                            org.bukkit.event.entity.EntityTeleportEvent teleport = new org.bukkit.event.entity.EntityTeleportEvent(this.getBukkitEntity(), new Location(this.level().getWorld(), xo, yo, zo), new Location(this.level().getWorld(), xx, y, zz));
++                            this.level().getCraftServer().getPluginManager().callEvent(teleport);
++                            if (!teleport.isCancelled() && teleport.getTo() != null) { // Paper
++                                Location to = teleport.getTo();
++                                this.teleportTo(to.getX(), to.getY(), to.getZ());
++                            } else {
++                                return Optional.empty();
++                            }
++                        } else {
++                            // player teleport event is called in the underlining code
++                            if (!((ServerPlayer) this).connection.teleport(xx, y, zz, this.getYRot(), this.getXRot(), cause)) {
++                                return Optional.empty();
++                            }
++                        }
++                    }
++                    // CraftBukkit end
                  }
-+                }
              }
          }
  
          if (!ok) {
-+            if (teleported) // Neo: Teleport back to original only if we teleported away and need to revert
-             this.teleportTo(xo, yo, zo);
-             return false;
+-            this.teleportTo(xo, yo, zo);
+-            return false;
++            return Optional.of(false); // CraftBukkit
          }
+ 
+         if (showParticles) {
+@@ -3687,7 +_,7 @@
+             pathfinderMob.getNavigation().stop();
+         }
+ 
+-        return true;
++        return Optional.of(true); // CraftBukkit
+     }
+ 
+     public boolean isAffectedByPotions() {
 @@ -3755,8 +_,8 @@
          }
  
