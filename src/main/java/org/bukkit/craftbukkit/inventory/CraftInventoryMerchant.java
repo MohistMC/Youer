@@ -32,6 +32,10 @@ public class CraftInventoryMerchant extends CraftInventory implements MerchantIn
 
     @Override
     public Merchant getMerchant() {
-        return this.merchant.getCraftMerchant();
+        try {
+            return this.merchant.getCraftMerchant();
+        }  catch (AbstractMethodError e) {
+            return new CraftMerchantCustom(this.merchant.getClass().getSimpleName());
+        }
     }
 }
