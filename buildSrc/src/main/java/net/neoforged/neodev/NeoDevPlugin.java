@@ -725,8 +725,8 @@ public class NeoDevPlugin implements Plugin<Project> {
                 spec.exclude("org/**");
                 spec.exclude("io/papermc/**");
                 spec.exclude("com/mohistmc/**");
-                spec.exclude("com/destroystokyo/paper/**");
-                spec.exclude("ca/spottedleaf/moonrise/**");
+                spec.exclude("com/destroystokyo/**");
+                spec.exclude("ca/spottedleaf/**");
                 spec.exclude("alternate/current/wire/**");
                 spec.exclude("co/aikar/util/**");
                 spec.exclude("com/mojang/brigadier/**");

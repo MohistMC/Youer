@@ -16,7 +16,6 @@ import java.util.Map.Entry;
 import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.stats.StatType;
@@ -28,7 +27,6 @@ import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.dimension.LevelStem;
-import org.bukkit.Art;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
@@ -71,8 +69,6 @@ public class NeoForgeInjectBukkit {
         addEnumEffectAndPotion();
         addEnumMaterialsInBlocks();
         addEnumEntity();
-        addEnumArt();
-        //addEnumParticle();
         addStatistic();
         loadSpawnCategory();
         addPose();
@@ -293,23 +289,6 @@ public class NeoForgeInjectBukkit {
             if (pose.ordinal() > 14) {
                 org.bukkit.entity.Pose bukkit = MohistDynamEnum.addEnum(org.bukkit.entity.Pose.class, pose.name());
                 debug("Registered forge Pose as Pose(Bukkit) {}", bukkit);
-            }
-        }
-    }
-
-    public static void addEnumArt() {
-        int i = Art.values().length;
-        var registry = ServerAPI.getNMSServer().registryAccess().lookupOrThrow(Registries.PAINTING_VARIANT);
-        for (var entry : registry) {
-            int width = entry.width();
-            int height = entry.height();
-            Identifier resourceLocation = registry.getKey(entry);
-            if (isMods(resourceLocation)) {
-                String name = MohistDynamEnum.normalizeName(resourceLocation.toString());
-                int id = i - 1;
-                Art art = MohistDynamEnum.addEnum(Art.class, name, List.of(Integer.TYPE, Integer.TYPE, Integer.TYPE), List.of(id, width, height));
-                debug("Registered forge PaintingType as Art {}", art);
-                i++;
             }
         }
     }

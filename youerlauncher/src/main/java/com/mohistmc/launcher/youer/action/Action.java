@@ -19,7 +19,6 @@ package com.mohistmc.launcher.youer.action;
 
 import com.mohistmc.launcher.youer.Main;
 import com.mohistmc.launcher.youer.feature.AutoDeleteMods;
-import com.mohistmc.launcher.youer.feature.DefaultLibraries;
 import com.mohistmc.launcher.youer.feature.YouerProxySelector;
 import com.mohistmc.launcher.youer.libraries.Libraries;
 import com.mohistmc.launcher.youer.util.DataParser;
@@ -29,13 +28,12 @@ import com.mohistmc.tools.MojangEulaUtil;
 import com.mohistmc.tools.OSUtil;
 import com.mohistmc.tools.SHA256;
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.net.MalformedURLException;
 import java.net.ProxySelector;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -45,6 +43,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Objects;
 import java.util.Scanner;
 import lombok.SneakyThrows;
 
@@ -65,7 +64,7 @@ public class Action {
 
     @SneakyThrows
     public Action() {
-        init();
+        initInstallerLib();
         this.youerVer = DataParser.getVersion("youer");
         this.neoforgeVer = DataParser.getVersion("neoforge");
         this.mcVer = DataParser.getVersion("minecraft");
@@ -144,7 +143,7 @@ public class Action {
     protected void copyFileFromJar(File file, String pathInJar, boolean clearOld) {
         if (file == BINPATCH) file.delete();
         InputStream is = Main.class.getClassLoader().getResourceAsStream(pathInJar);
-        if (!file.exists() || !SHA256.as(file).equals(SHA256.as(is)) || file.length() <= 1) {
+        if (!file.exists() || !Objects.equals(SHA256.as(file), SHA256.as(is)) || file.length() <= 1) {
             // Clear old version
             if (clearOld) {
                 File parentfile = file.getParentFile();
@@ -174,20 +173,14 @@ public class Action {
         }
     }
 
-    private void init() {
-        try (BufferedReader b = new BufferedReader(new InputStreamReader(DefaultLibraries.class.getClassLoader().getResourceAsStream("installer.txt")))) {
-            for (String line = b.readLine(); line != null; line = b.readLine()) {
-                Libraries libraries = Libraries.from(line);
-                File file = new File(LIBRARIES, libraries.getPath());
-                URL url = file.toURI().toURL();
-                installerTourls.add(url);
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    private void initInstallerLib() throws MalformedURLException {
+        Libraries libraries = Libraries.from("net/neoforged/installertools/installertools/4.0.12/installertools-4.0.12-fatjar.jar|ba3e9d27d9f5145f829ac94124e3d97b80f027949d690b430305734526f143db|813509");
+        File file = new File(LIBRARIES, libraries.getPath());
+        URL url = file.toURI().toURL();
+        installerTourls.add(url);
     }
 
-    public void start() throws IOException {
+    public void start() throws Exception {
         AutoDeleteMods.deleteIncompatibleMods();
 
         List<String> forgeArgs = new ArrayList<>();
@@ -210,14 +203,9 @@ public class Action {
                 MojangEulaUtil.writeInfos(Main.i18n.as("eula.text", "https://account.mojang.com/documents/minecraft_eula") + "\n" + new SimpleDateFormat("yyyy-MM-dd").format(new Date()) + "\neula=true");
             }
         }
-        try {
-            Class<?> serverClass = Class.forName("net.neoforged.fml.startup.Server");
-            java.lang.reflect.Method mainMethod = serverClass.getDeclaredMethod("main", String[].class);
-            mainMethod.invoke(null, (Object) forgeArgs.toArray(String[]::new));
-        } catch (Exception e) {
-            System.err.println("Failed to invoke Server.main via reflection: " + e.getMessage());
-            e.printStackTrace();
-        }
+        Class<?> serverClass = Class.forName("net.neoforged.fml.startup.Server");
+        java.lang.reflect.Method mainMethod = serverClass.getDeclaredMethod("main", String[].class);
+        mainMethod.invoke(null, (Object) forgeArgs.toArray(String[]::new));
         ProxySelector.setDefault(new YouerProxySelector(ProxySelector.getDefault()));
     }
 

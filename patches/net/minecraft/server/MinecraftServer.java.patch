@@ -2039,19 +2039,18 @@
      public RegistryAccess.Frozen registryAccess() {
          return this.registries.compositeAccess();
      }
-@@ -2057,28 +_,44 @@
-     }
+@@ -2058,27 +_,44 @@
  
      public void logChatMessage(Component message, ChatType.Bound chatType, @Nullable String tag) {
--        String decoratedMessage = chatType.decorate(message).getString();
+         String decoratedMessage = chatType.decorate(message).getString();
 +        // Paper start
-+        net.kyori.adventure.text.Component decoratedMessage = io.papermc.paper.adventure.PaperAdventure.asAdventure(chatType.decorate(message));
++        net.kyori.adventure.text.Component adventureMessage = net.kyori.adventure.text.Component.text(decoratedMessage);
          if (tag != null) {
 -            LOGGER.info("[{}] {}", tag, decoratedMessage);
-+            COMPONENT_LOGGER.info("[{}] {}", tag, decoratedMessage);
++            COMPONENT_LOGGER.info("[{}] {}", tag, adventureMessage);
          } else {
 -            LOGGER.info("{}", decoratedMessage);
-+            COMPONENT_LOGGER.info("{}", decoratedMessage);
++            COMPONENT_LOGGER.info("{}", adventureMessage);
 +            // Paper end
          }
      }
