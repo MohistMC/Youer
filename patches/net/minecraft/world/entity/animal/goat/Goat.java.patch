@@ -10,6 +10,41 @@
  import org.jspecify.annotations.Nullable;
  
  public class Goat extends Animal {
+@@ -87,6 +_,20 @@
+     private boolean isLoweringHead;
+     private int lowerHeadTick;
+ 
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.goatBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.goatAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     public Goat(EntityType<? extends Goat> type, Level level) {
+         super(type, level);
+         this.getNavigation().setCanFloat(true);
+@@ -94,6 +_,13 @@
+         this.setPathfindingMalus(PathType.ON_TOP_OF_POWDER_SNOW, -1.0F);
+     }
+ 
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.goatTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
+     public ItemStack createHorn() {
+         RandomSource random = RandomSource.createThreadLocalInstance(this.getUUID().hashCode());
+         TagKey<Instrument> key = this.isScreamingGoat() ? InstrumentTags.SCREAMING_GOAT_HORNS : InstrumentTags.REGULAR_GOAT_HORNS;
 @@ -217,18 +_,25 @@
      public InteractionResult mobInteract(Player player, InteractionHand hand) {
          ItemStack heldItem = player.getItemInHand(hand);

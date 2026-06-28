@@ -1,0 +1,31 @@
+--- a/net/minecraft/world/entity/monster/Blaze.java
++++ b/net/minecraft/world/entity/monster/Blaze.java
+@@ -33,12 +_,27 @@
+ 
+     public Blaze(EntityType<? extends Blaze> blaze, Level level) {
+         super(blaze, level);
+-        this.setPathfindingMalus(PathType.WATER, -1.0F);
++        if (this.isSensitiveToWater()) this.setPathfindingMalus(PathType.WATER, -1.0F);
+         this.setPathfindingMalus(PathType.LAVA, 8.0F);
+         this.setPathfindingMalus(PathType.FIRE_IN_NEIGHBOR, 0.0F);
+         this.setPathfindingMalus(PathType.FIRE, 0.0F);
+         this.xpReward = 10;
+     }
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.blazeMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.blazeScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.blazeAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
+ 
+     @Override
+     protected void registerGoals() {

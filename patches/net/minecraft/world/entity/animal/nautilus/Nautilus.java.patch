@@ -1,5 +1,41 @@
 --- a/net/minecraft/world/entity/animal/nautilus/Nautilus.java
 +++ b/net/minecraft/world/entity/animal/nautilus/Nautilus.java
+@@ -33,10 +_,35 @@
+         var0 -> NautilusAi.getActivities()
+     );
+ 
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.nautilusBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.nautilusAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     public Nautilus(EntityType<? extends Nautilus> type, Level level) {
+         super(type, level);
+     }
+ 
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.nautilusMaxHealth);
++        this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MOVEMENT_SPEED).setBaseValue(this.level().purpurConfig.nautilusMovementSpeed);
++        this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.ATTACK_DAMAGE).setBaseValue(this.level().purpurConfig.nautilusAttackDamage);
++        this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.KNOCKBACK_RESISTANCE).setBaseValue(this.level().purpurConfig.nautilusKnockbackResistance);
++        this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.SCALE).setBaseValue(this.level().purpurConfig.nautilusScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
+     @Override
+     protected Brain<Nautilus> makeBrain(Brain.Packed packedBrain) {
+         return BRAIN_PROVIDER.makeBrain(this, packedBrain);
 @@ -124,8 +_,14 @@
  
      @Override

@@ -13,6 +13,49 @@
      private static final Map<EntityType<?>, SoundEvent> MOB_SOUND_MAP = Util.make(Maps.newHashMap(), map -> {
          map.put(EntityTypes.BLAZE, SoundEvents.PARROT_IMITATE_BLAZE);
          map.put(EntityTypes.BOGGED, SoundEvents.PARROT_IMITATE_BOGGED);
+@@ -133,6 +_,13 @@
+     private boolean partyParrot;
+     private @Nullable BlockPos jukebox;
+ 
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return 6000;
++    }
++    // Purpur end - Make entity breeding times configurable
++
+     public Parrot(EntityType<? extends Parrot> type, Level level) {
+         super(type, level);
+         this.moveControl = new FlyingMoveControl<>(this, 10, false);
+@@ -141,6 +_,28 @@
+         this.setPathfindingMalus(PathType.COCOA, -1.0F);
+     }
+ 
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.parrotTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.parrotMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.parrotScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.parrotAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     public @Nullable SpawnGroupData finalizeSpawn(
+         ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason spawnReason, @Nullable SpawnGroupData groupData
 @@ -162,6 +_,7 @@
      protected void registerGoals() {
          this.goalSelector.addGoal(0, new TamableAnimal.TamableAnimalPanicGoal(1.25));

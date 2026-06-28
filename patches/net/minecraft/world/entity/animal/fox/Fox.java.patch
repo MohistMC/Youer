@@ -11,6 +11,49 @@
  public class Fox extends Animal {
      private static final EntityDataAccessor<Integer> DATA_TYPE_ID = SynchedEntityData.defineId(Fox.class, EntityDataSerializers.INT);
      private static final EntityDataAccessor<Byte> DATA_FLAGS_ID = SynchedEntityData.defineId(Fox.class, EntityDataSerializers.BYTE);
+@@ -149,6 +_,20 @@
+     private static final float MAX_CROUCH_AMOUNT = 5.0F;
+     private int ticksSinceEaten;
+ 
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.foxBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.foxAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     public Fox(EntityType<? extends Fox> type, Level level) {
+         super(type, level);
+         this.lookControl = new Fox.FoxLookControl();
+@@ -159,6 +_,21 @@
+         this.getNavigation().setRequiredPathLength(32.0F);
+     }
+ 
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.foxTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.foxMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.foxScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
+     @Override
+     protected void defineSynchedData(SynchedEntityData.Builder entityData) {
+         super.defineSynchedData(entityData);
 @@ -365,6 +_,11 @@
      }
  
@@ -169,8 +212,8 @@
 +            offspring = (Fox) event.getChild();
 +            if (cancelled) {
 +                //Reset the "inLove" state for the animals
-+                this.animal.setAge(6000);
-+                this.partner.setAge(6000);
++                this.animal.setAge(this.animal.getPurpurBreedTime());
++                this.partner.setAge(this.partner.getPurpurBreedTime());
 +                this.animal.resetLove();
 +                this.partner.resetLove();
 +                return;
@@ -178,7 +221,7 @@
              if (offspring != null) {
                  ServerPlayer animalLoveCause = this.animal.getLoveCause();
                  ServerPlayer partnerLoveCause = this.partner.getLoveCause();
-@@ -882,6 +_,19 @@
+@@ -882,23 +_,34 @@
                      offspring.addTrustedEntity(partnerLoveCause);
                  }
  
@@ -198,8 +241,12 @@
                  if (loveCause != null) {
                      loveCause.awardStat(Stats.ANIMALS_BRED);
                      CriteriaTriggers.BRED_ANIMALS.trigger(loveCause, this.animal, this.partner, offspring);
-@@ -891,14 +_,12 @@
-                 this.partner.setAge(6000);
+                 }
+ 
+-                this.animal.setAge(6000);
+-                this.partner.setAge(6000);
++                this.animal.setAge(this.animal.getPurpurBreedTime());
++                this.partner.setAge(this.partner.getPurpurBreedTime());
                  this.animal.resetLove();
                  this.partner.resetLove();
 -                offspring.setAge(-24000);

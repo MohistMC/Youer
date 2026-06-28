@@ -8,6 +8,46 @@
  import org.jspecify.annotations.Nullable;
  
  public class Sheep extends Animal implements Shearable {
+@@ -66,10 +_,39 @@
+     private int eatAnimationTick;
+     private EatBlockGoal eatBlockGoal;
+ 
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.sheepBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
+     public Sheep(EntityType<? extends Sheep> type, Level level) {
+         super(type, level);
+     }
+ 
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.sheepTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.sheepMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.sheepScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.sheepAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected void registerGoals() {
+         this.eatBlockGoal = new EatBlockGoal(this);
 @@ -145,9 +_,17 @@
      @Override
      public InteractionResult mobInteract(Player player, InteractionHand hand) {

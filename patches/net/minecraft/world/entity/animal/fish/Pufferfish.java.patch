@@ -1,5 +1,33 @@
 --- a/net/minecraft/world/entity/animal/fish/Pufferfish.java
 +++ b/net/minecraft/world/entity/animal/fish/Pufferfish.java
+@@ -48,6 +_,27 @@
+         this.refreshDimensions();
+     }
+ 
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.pufferfishAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.pufferfishTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.pufferfishMaxHealth);
++    }
++    // Purpur end - Configurable entity base attributes
++
+     @Override
+     protected void defineSynchedData(SynchedEntityData.Builder entityData) {
+         super.defineSynchedData(entityData);
 @@ -98,24 +_,36 @@
      public void tick() {
          if (!this.level().isClientSide() && this.isAlive() && this.isEffectiveAi()) {

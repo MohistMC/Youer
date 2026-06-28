@@ -1,5 +1,78 @@
 --- a/net/minecraft/world/entity/animal/feline/Ocelot.java
 +++ b/net/minecraft/world/entity/animal/feline/Ocelot.java
+@@ -67,11 +_,57 @@
+     private Ocelot.@Nullable OcelotAvoidEntityGoal<Player> ocelotAvoidPlayersGoal;
+     private Ocelot.@Nullable OcelotTemptGoal temptGoal;
+ 
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.ocelotBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.ocelotAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     public Ocelot(EntityType<? extends Ocelot> type, Level level) {
+         super(type, level);
+         this.reassessTrustingGoals();
+     }
+ 
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.ocelotTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.ocelotRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.ocelotRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.ocelotControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.ocelotMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.ocelotScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
+     public boolean isTrusting() {
+         return this.entityData.get(DATA_TRUSTING);
+     }
+@@ -103,12 +_,14 @@
+     protected void registerGoals() {
+         this.temptGoal = new Ocelot.OcelotTemptGoal(this, 0.6, i -> i.is(ItemTags.OCELOT_FOOD), true);
+         this.goalSelector.addGoal(1, new FloatGoal(this));
++        this.goalSelector.addGoal(1, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(3, this.temptGoal);
+         this.goalSelector.addGoal(7, new LeapAtTargetGoal(this, 0.3F));
+         this.goalSelector.addGoal(8, new OcelotAttackGoal(this));
+         this.goalSelector.addGoal(9, new BreedGoal(this, 0.8));
+         this.goalSelector.addGoal(10, new WaterAvoidingRandomStrollGoal(this, 0.8, 1.0000001E-5F));
+         this.goalSelector.addGoal(11, new LookAtPlayerGoal(this, Player.class, 10.0F));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Chicken.class, false));
+         this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Turtle.class, 10, false, false, Turtle.BABY_ON_LAND_SELECTOR));
+     }
 @@ -135,7 +_,7 @@
  
      @Override

@@ -11,6 +11,70 @@
  public class SkeletonHorse extends AbstractHorse {
      private final SkeletonTrapGoal skeletonTrapGoal = new SkeletonTrapGoal(this);
      private static final int TRAP_MAX_LIFE = 18000;
+@@ -40,10 +_,55 @@
+     private boolean isTrap = false;
+     public int trapTime = 0;
+ 
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return 6000;
++    }
++    // Purpur end - Make entity breeding times configurable
++
+     public SkeletonHorse(EntityType<? extends SkeletonHorse> type, Level level) {
+         super(type, level);
+     }
+ 
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.skeletonHorseTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.skeletonHorseAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isTamed() {
++        return super.isTamed() || this.level().purpurConfig.skeletonHorseRidable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public float generateMaxHealth(RandomSource random) {
++        return (float) generateMaxHealth(this.level().purpurConfig.skeletonHorseMaxHealthMin, this.level().purpurConfig.skeletonHorseMaxHealthMax);
++    }
++
++    @Override
++    public double generateJumpStrength(RandomSource random) {
++        return generateJumpStrength(this.level().purpurConfig.skeletonHorseJumpStrengthMin, this.level().purpurConfig.skeletonHorseJumpStrengthMax);
++    }
++
++    @Override
++    public double generateSpeed(RandomSource random) {
++        return generateSpeed(this.level().purpurConfig.skeletonHorseMovementSpeedMin, this.level().purpurConfig.skeletonHorseMovementSpeedMax);
++    }
++    // Purpur end - Configurable entity base attributes
++
+     public static AttributeSupplier.Builder createAttributes() {
+         return createBaseHorseAttributes().add(Attributes.MAX_HEALTH, 15.0).add(Attributes.MOVEMENT_SPEED, 0.2F);
+     }
+@@ -63,6 +_,7 @@
+ 
+     @Override
+     protected void addBehaviourGoals() {
++        if (level().purpurConfig.skeletonHorseCanSwim) goalSelector.addGoal(0, new net.minecraft.world.entity.ai.goal.FloatGoal(this)); // Purpur - Ridables
+     }
+ 
+     @Override
 @@ -127,7 +_,7 @@
      public void aiStep() {
          super.aiStep();

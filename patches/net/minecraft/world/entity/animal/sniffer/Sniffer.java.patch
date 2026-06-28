@@ -1,5 +1,45 @@
 --- a/net/minecraft/world/entity/animal/sniffer/Sniffer.java
 +++ b/net/minecraft/world/entity/animal/sniffer/Sniffer.java
+@@ -94,6 +_,39 @@
+         this.setPathfindingMalus(PathType.DAMAGE_CAUTIOUS, -1.0F);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.snifferRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.snifferRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.snifferControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.snifferMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.snifferScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.snifferBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++
+     @Override
+     protected void defineSynchedData(SynchedEntityData.Builder entityData) {
+         super.defineSynchedData(entityData);
 @@ -287,6 +_,13 @@
              BlockPos head = this.getHeadBlock();
              this.dropFromGiftLootTable(level, BuiltInLootTables.SNIFFER_DIGGING, (l, itemStack) -> {

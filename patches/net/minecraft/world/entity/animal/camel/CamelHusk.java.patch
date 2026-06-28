@@ -1,0 +1,40 @@
+--- a/net/minecraft/world/entity/animal/camel/CamelHusk.java
++++ b/net/minecraft/world/entity/animal/camel/CamelHusk.java
+@@ -26,6 +_,37 @@
+         super(type, level);
+     }
+ 
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.camelHuskAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Ridables
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.camelHuskRidableInWater;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public float generateMaxHealth(net.minecraft.util.RandomSource random) {
++        return (float) generateMaxHealth(this.level().purpurConfig.camelHuskMaxHealthMin, this.level().purpurConfig.camelHuskMaxHealthMax);
++    }
++
++    @Override
++    public double generateJumpStrength(net.minecraft.util.RandomSource random) {
++        return generateJumpStrength(this.level().purpurConfig.camelHuskJumpStrengthMin, this.level().purpurConfig.camelHuskJumpStrengthMax);
++    }
++
++    @Override
++    public double generateSpeed(net.minecraft.util.RandomSource random) {
++        return generateSpeed(this.level().purpurConfig.camelHuskMovementSpeedMin, this.level().purpurConfig.camelHuskMovementSpeedMax);
++    }
++    // Purpur end - Configurable entity base attributes
++
+     @Override
+     public boolean removeWhenFarAway(double distSqr) {
+         return true;

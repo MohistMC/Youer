@@ -8,6 +8,46 @@
  import org.jspecify.annotations.Nullable;
  
  public class Pig extends Animal implements ItemSteerable {
+@@ -72,10 +_,39 @@
+         .withAttachments(EntityAttachments.builder().attach(EntityAttachment.PASSENGER, 0.0F, 0.5F, 0.0F));
+     public final ItemBasedSteering steering = new ItemBasedSteering(this.entityData, DATA_BOOST_TIME);
+ 
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.pigBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
+     public Pig(EntityType<? extends Pig> type, Level level) {
+         super(type, level);
+     }
+ 
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.pigTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.pigMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.pigScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.pigAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(0, new FloatGoal(this));
 @@ -166,6 +_,19 @@
      @Override
      public InteractionResult mobInteract(Player player, InteractionHand hand) {

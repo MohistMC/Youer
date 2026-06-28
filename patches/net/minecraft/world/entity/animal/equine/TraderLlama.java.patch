@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/equine/TraderLlama.java
 +++ b/net/minecraft/world/entity/animal/equine/TraderLlama.java
-@@ -22,6 +_,7 @@
+@@ -22,16 +_,77 @@
  import net.minecraft.world.level.ServerLevelAccessor;
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
@@ -8,6 +8,76 @@
  import org.jspecify.annotations.Nullable;
  
  public class TraderLlama extends Llama {
+     private static final int DEFAULT_DESPAWN_DELAY = 47999;
+     private int despawnDelay = 47999;
+ 
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.traderLlamaBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
+     public TraderLlama(EntityType<? extends TraderLlama> type, Level level) {
+         super(type, level);
+     }
+ 
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.traderLlamaTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.traderLlamaAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.traderLlamaRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.traderLlamaRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.traderLlamaControllable;
++    }
++
++    @Override
++    public boolean isSaddled() {
++        return super.isSaddled() || isTamed();
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public float generateMaxHealth(net.minecraft.util.RandomSource random) {
++        return (float) generateMaxHealth(this.level().purpurConfig.traderLlamaMaxHealthMin, this.level().purpurConfig.traderLlamaMaxHealthMax);
++    }
++
++    @Override
++    public double generateJumpStrength(net.minecraft.util.RandomSource random) {
++        return generateJumpStrength(this.level().purpurConfig.traderLlamaJumpStrengthMin, this.level().purpurConfig.traderLlamaJumpStrengthMax);
++    }
++
++    @Override
++    public double generateSpeed(net.minecraft.util.RandomSource random) {
++        return generateSpeed(this.level().purpurConfig.traderLlamaMovementSpeedMin, this.level().purpurConfig.traderLlamaMovementSpeedMax);
++    }
++    // Purpur end - Configurable entity base attributes
++
+     @Override
+     public boolean isTraderLlama() {
+         return true;
 @@ -94,7 +_,7 @@
              this.despawnDelay = this.isLeashedToWanderingTrader() ? ((WanderingTrader)this.getLeashHolder()).getDespawnDelay() - 1 : this.despawnDelay - 1;
              if (this.despawnDelay <= 0) {

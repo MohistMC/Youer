@@ -1,10 +1,39 @@
 --- a/net/minecraft/world/entity/animal/nautilus/ZombieNautilus.java
 +++ b/net/minecraft/world/entity/animal/nautilus/ZombieNautilus.java
-@@ -46,6 +_,7 @@
+@@ -44,9 +_,35 @@
+         ZombieNautilus.class, EntityDataSerializers.ZOMBIE_NAUTILUS_VARIANT
+     );
  
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return 6000;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.zombieNautilusAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
      public ZombieNautilus(EntityType<? extends ZombieNautilus> type, Level level) {
          super(type, level);
+-    }
 +        this.setShouldBurnInDay(true); // Purpur - API for any mob to burn daylight
-     }
++    }
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.zombieNautilusMaxHealth);
++        this.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(this.level().purpurConfig.zombieNautilusMovementSpeed);
++        this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(this.level().purpurConfig.zombieNautilusAttackDamage);
++        this.getAttribute(Attributes.KNOCKBACK_RESISTANCE).setBaseValue(this.level().purpurConfig.zombieNautilusKnockbackResistance);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.zombieNautilusScale);
++    }
++    // Purpur end - Configurable entity base attributes
  
      public static AttributeSupplier.Builder createAttributes() {
+         return AbstractNautilus.createAttributes().add(Attributes.MOVEMENT_SPEED, 1.1F);

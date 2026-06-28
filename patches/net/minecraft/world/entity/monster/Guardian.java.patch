@@ -8,7 +8,33 @@
  
      public Guardian(EntityType<? extends Guardian> type, Level level) {
          super(type, level);
-@@ -71,7 +_,7 @@
+@@ -67,11 +_,33 @@
+         this.clientSideTailAnimationO = this.clientSideTailAnimation;
+     }
+ 
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.guardianTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.guardianMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.guardianScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.guardianAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
      protected void registerGoals() {
          MoveTowardsRestrictionGoal goal = new MoveTowardsRestrictionGoal(this, 1.0);
          this.randomStrollGoal = new RandomStrollGoal(this, 1.0, 80);

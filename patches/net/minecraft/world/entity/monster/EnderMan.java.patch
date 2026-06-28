@@ -11,6 +11,32 @@
  import org.jspecify.annotations.Nullable;
  
  public class EnderMan extends Monster implements NeutralMob {
+@@ -86,8 +_,23 @@
+ 
+     public EnderMan(EntityType<? extends EnderMan> type, Level level) {
+         super(type, level);
+-        this.setPathfindingMalus(PathType.WATER, -1.0F);
+-    }
++        if (this.isSensitiveToWater()) this.setPathfindingMalus(PathType.WATER, -1.0F);
++    }
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.endermanMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.endermanScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.endermanAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
+ 
+     @Override
+     protected void registerGoals() {
 @@ -101,7 +_,7 @@
          this.goalSelector.addGoal(11, new EnderMan.EndermanTakeBlockGoal(this));
          this.targetSelector.addGoal(1, new EnderMan.EndermanLookForPlayerGoal(this, this::isAngryAt));

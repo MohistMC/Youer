@@ -1,0 +1,51 @@
+--- a/net/minecraft/world/entity/animal/fish/AbstractFish.java
++++ b/net/minecraft/world/entity/animal/fish/AbstractFish.java
+@@ -91,6 +_,7 @@
+     @Override
+     protected void registerGoals() {
+         super.registerGoals();
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(0, new PanicGoal(this, 1.25));
+         this.goalSelector.addGoal(2, new AvoidEntityGoal<>(this, Player.class, 8.0F, 1.6, 1.4, EntitySelector.NO_SPECTATORS));
+         this.goalSelector.addGoal(4, new AbstractFish.FishSwimGoal(this));
+@@ -103,7 +_,7 @@
+ 
+     @Override
+     protected void travelInWater(Vec3 input, double baseGravity, boolean isFalling, double oldY) {
+-        this.moveRelative(0.01F, input);
++        this.moveRelative(getRider() != null ? getSpeed() : 0.01F, input); // Purpur - Ridables
+         this.move(MoverType.SELF, this.getDeltaMovement());
+         this.setDeltaMovement(this.getDeltaMovement().scale(0.9));
+         if (this.getTarget() == null) {
+@@ -160,19 +_,27 @@
+     protected void playStepSound(BlockPos pos, BlockState blockState) {
+     }
+ 
+-    private static class FishMoveControl<T extends AbstractFish> extends MoveControl<T> {
++    private static class FishMoveControl<T extends AbstractFish> extends org.purpurmc.purpur.controller.WaterMoveControllerWASD<T> { // Purpur - Ridables
+         public FishMoveControl(T fish) {
+             super(fish);
+         }
+ 
+-        @Override
+-        public void tick() {
++        // Purpur start - Ridables
++        @Override
++        public void purpurTick(Player rider) {
++            super.purpurTick(rider);
++            this.mob.setDeltaMovement(this.mob.getDeltaMovement().add(0.0D, 0.005, 0.0D));
++        }
++        // Purpur end - Ridables
++
++        @Override
++        public void vanillaTick() { // Purpur - Ridables
+             if (this.mob.isEyeInFluid(FluidTags.WATER)) {
+                 this.mob.setDeltaMovement(this.mob.getDeltaMovement().add(0.0, 0.005, 0.0));
+             }
+ 
+             if (this.operation == MoveControl.Operation.MOVE_TO && !this.mob.getNavigation().isDone()) {
+-                float targetSpeed = (float)(this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED));
++                float targetSpeed = (float)(this.getSpeedModifier() * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)); // Purpur - Ridables
+                 this.mob.setSpeed(Mth.lerp(0.125F, this.mob.getSpeed(), targetSpeed));
+                 double xd = this.wantedX - this.mob.getX();
+                 double yd = this.wantedY - this.mob.getY();

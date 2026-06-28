@@ -12,6 +12,37 @@
  import org.jspecify.annotations.Nullable;
  
  public class Silverfish extends Monster {
+@@ -37,6 +_,30 @@
+         super(type, level);
+     }
+ 
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.silverfishTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.silverfishAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.silverfishMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.silverfishScale);
++        this.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(this.level().purpurConfig.silverfishMovementSpeed);
++        this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(this.level().purpurConfig.silverfishAttackDamage);
++    }
++    // Purpur end - Configurable entity base attributes
++
+     @Override
+     protected void registerGoals() {
+         this.friendsGoal = new Silverfish.SilverfishWakeUpFriendsGoal(this);
 @@ -119,7 +_,7 @@
              return true;
          }

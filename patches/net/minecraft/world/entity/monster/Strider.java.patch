@@ -1,5 +1,44 @@
 --- a/net/minecraft/world/entity/monster/Strider.java
 +++ b/net/minecraft/world/entity/monster/Strider.java
+@@ -90,15 +_,37 @@
+     public final ItemBasedSteering steering = new ItemBasedSteering(this.entityData, DATA_BOOST_TIME);
+     private @Nullable TemptGoal temptGoal;
+ 
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.striderBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
+     public Strider(EntityType<? extends Strider> strider, Level level) {
+         super(strider, level);
+         this.blocksBuilding = true;
+-        this.setPathfindingMalus(PathType.WATER, -1.0F);
++        if (this.isSensitiveToWater()) this.setPathfindingMalus(PathType.WATER, -1.0F);
+         this.setPathfindingMalus(PathType.LAVA, 0.0F);
+         this.setPathfindingMalus(PathType.FIRE_IN_NEIGHBOR, 0.0F);
+         this.setPathfindingMalus(PathType.FIRE, 0.0F);
+     }
+ 
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.striderAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.striderMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.striderScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
+     public static boolean checkStriderSpawnRules(
+         EntityType<Strider> ignoredType, LevelAccessor level, EntitySpawnReason ignoredSpawnType, BlockPos pos, RandomSource ignoredRandom
+     ) {
 @@ -306,7 +_,14 @@
                  || stateOn.is(BlockTags.STRIDER_WARM_BLOCKS)
                  || this.getFluidHeight(FluidTags.LAVA) > 0.0;

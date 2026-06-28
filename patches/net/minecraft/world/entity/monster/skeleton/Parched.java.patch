@@ -1,10 +1,26 @@
 --- a/net/minecraft/world/entity/monster/skeleton/Parched.java
 +++ b/net/minecraft/world/entity/monster/skeleton/Parched.java
-@@ -17,6 +_,7 @@
+@@ -17,7 +_,22 @@
  public class Parched extends AbstractSkeleton {
      public Parched(EntityType<? extends AbstractSkeleton> type, Level level) {
          super(type, level);
+-    }
 +        this.setShouldBurnInDay(false); // Purpur - API for any mob to burn daylight
-     }
++    }
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.parchedTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.parchedAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
  
      @Override
+     protected AbstractArrow getArrow(ItemStack projectile, float power, @Nullable ItemStack firingWeapon) {

@@ -16,6 +16,41 @@
  import org.jspecify.annotations.Nullable;
  
  public class Panda extends Animal {
+@@ -104,6 +_,13 @@
+     private float rollAmountO;
+     private Panda.PandaLookAtPlayerGoal lookAtPlayerGoal;
+ 
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.pandaBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
+     public Panda(EntityType<? extends Panda> type, Level level) {
+         super(type, level);
+         this.moveControl = new Panda.PandaMoveControl<>(this);
+@@ -112,6 +_,20 @@
+         }
+     }
+ 
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.pandaTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.pandaAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected boolean canDispenserEquipIntoSlot(EquipmentSlot slot) {
+         return slot == EquipmentSlot.MAINHAND && this.canPickUpLoot();
 @@ -134,6 +_,7 @@
      }
  
@@ -50,6 +85,33 @@
          }
      }
  
+@@ -592,7 +_,10 @@
+ 
+     public void setAttributes() {
+         if (this.isWeak()) {
+-            this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(10.0);
++            // Purpur start - Configurable entity base attributes
++            net.minecraft.world.entity.ai.attributes.AttributeInstance maxHealth = this.getAttribute(Attributes.MAX_HEALTH);
++            maxHealth.setBaseValue(maxHealth.getValue() / 2);
++            // Purpur end - Configurable entity base attributes
+         }
+ 
+         if (this.isLazy()) {
+@@ -600,6 +_,14 @@
+         }
+     }
+ 
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.pandaMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.pandaScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
+     private void tryToSit() {
+         if (!this.isInWater()) {
+             this.setZza(0.0F);
 @@ -634,8 +_,9 @@
                  }
  

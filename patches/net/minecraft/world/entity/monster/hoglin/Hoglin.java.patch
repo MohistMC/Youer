@@ -1,5 +1,38 @@
 --- a/net/minecraft/world/entity/monster/hoglin/Hoglin.java
 +++ b/net/minecraft/world/entity/monster/hoglin/Hoglin.java
+@@ -75,11 +_,32 @@
+         var0 -> HoglinAi.getActivities()
+     );
+ 
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.hoglinBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
+     public Hoglin(EntityType<? extends Hoglin> type, Level level) {
+         super(type, level);
+         this.xpReward = 5;
+     }
+ 
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.hoglinTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.hoglinAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @VisibleForTesting
+     public void setTimeInOverworld(int timeInOverworld) {
+         this.timeInOverworld = timeInOverworld;
 @@ -148,7 +_,7 @@
          HoglinAi.updateActivity(this);
          if (this.isConverting()) {

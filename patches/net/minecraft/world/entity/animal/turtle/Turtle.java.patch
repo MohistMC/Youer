@@ -1,5 +1,48 @@
 --- a/net/minecraft/world/entity/animal/turtle/Turtle.java
 +++ b/net/minecraft/world/entity/animal/turtle/Turtle.java
+@@ -78,6 +_,13 @@
+     private @Nullable BlockPos travelPos;
+     public boolean goingHome;
+ 
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.turtleBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
+     public Turtle(EntityType<? extends Turtle> type, Level level) {
+         super(type, level);
+         this.setPathfindingMalus(PathType.WATER, 0.0F);
+@@ -87,6 +_,28 @@
+         this.moveControl = new Turtle.TurtleMoveControl<>(this);
+     }
+ 
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.turtleTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.turtleMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.turtleScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.turtleAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     public void setHomePos(BlockPos pos) {
+         this.homePos = pos;
+     }
 @@ -279,7 +_,7 @@
  
      @Override
@@ -20,7 +63,15 @@
  
              if (loveCause != null) {
                  loveCause.awardStat(Stats.ANIMALS_BRED);
-@@ -319,7 +_,7 @@
+@@ -313,13 +_,13 @@
+             }
+ 
+             this.turtle.setHasEgg(true);
+-            this.animal.setAge(6000);
+-            this.partner.setAge(6000);
++            this.animal.setAge(this.animal.getPurpurBreedTime());
++            this.partner.setAge(this.partner.getPurpurBreedTime());
+             this.animal.resetLove();
              this.partner.resetLove();
              RandomSource random = this.animal.getRandom();
              if (getServerLevel(this.level).getGameRules().get(GameRules.MOB_DROPS)) {

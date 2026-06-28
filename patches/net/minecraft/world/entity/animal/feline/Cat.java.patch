@@ -1,6 +1,92 @@
 --- a/net/minecraft/world/entity/animal/feline/Cat.java
 +++ b/net/minecraft/world/entity/animal/feline/Cat.java
-@@ -414,6 +_,11 @@
+@@ -96,15 +_,70 @@
+     private float relaxStateOneAmount;
+     private float relaxStateOneAmountO;
+ 
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.catBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.catAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     public Cat(EntityType<? extends Cat> type, Level level) {
+         super(type, level);
+         this.reassessTameGoals();
+     }
+ 
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.catTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.catRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.catRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.catControllable;
++    }
++
++    @Override
++    public void onMount(Player rider) {
++        super.onMount(rider);
++        setInSittingPose(false);
++        setLying(false);
++        setRelaxStateOne(false);
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.catMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.catScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
+     @Override
+     protected void registerGoals() {
+         this.temptGoal = new Cat.CatTemptGoal(this, 0.6, i -> i.is(ItemTags.CAT_FOOD), true);
+         this.goalSelector.addGoal(1, new FloatGoal(this));
++        this.goalSelector.addGoal(1, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(1, new TamableAnimal.TamableAnimalPanicGoal(1.5));
+         this.goalSelector.addGoal(2, new SitWhenOrderedToGoal(this));
+         this.goalSelector.addGoal(3, new Cat.CatRelaxOnOwnerGoal(this));
+@@ -117,6 +_,7 @@
+         this.goalSelector.addGoal(10, new BreedGoal(this, 0.8));
+         this.goalSelector.addGoal(11, new WaterAvoidingRandomStrollGoal(this, 0.8, 1.0000001E-5F));
+         this.goalSelector.addGoal(12, new LookAtPlayerGoal(this, Player.class, 10.0F));
++        this.targetSelector.addGoal(1, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new NonTameRandomTargetGoal<>(this, Rabbit.class, false, null));
+         this.targetSelector.addGoal(1, new NonTameRandomTargetGoal<>(this, Turtle.class, false, Turtle.BABY_ON_LAND_SELECTOR));
+     }
+@@ -408,12 +_,18 @@
+ 
+     @Override
+     public InteractionResult mobInteract(Player player, InteractionHand hand) {
++        if (getRider() != null) return InteractionResult.PASS; // Purpur - Ridables
+         ItemStack itemStack = player.getItemInHand(hand);
+         if (this.isTame()) {
+             if (this.isOwnedBy(player)) {
                  if (itemStack.is(ItemTags.CAT_COLLAR_DYES)) {
                      DyeColor color = itemStack.get(DataComponents.DYE);
                      if (color != null && color != this.getCollarColor()) {

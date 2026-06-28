@@ -1,5 +1,52 @@
 --- a/net/minecraft/world/entity/animal/happyghast/HappyGhast.java
 +++ b/net/minecraft/world/entity/animal/happyghast/HappyGhast.java
+@@ -78,12 +_,46 @@
+     private static final float MAX_SCALE = 1.0F;
+     private static final EntityDimensions BABY_DIMENSIONS = EntityTypes.HAPPY_GHAST.getDimensions().scale(0.2375F).withEyeHeight(0.46875F);
+ 
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return 6000;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.happyGhastAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     public HappyGhast(EntityType<? extends HappyGhast> type, Level level) {
+         super(type, level);
+         this.moveControl = new Ghast.GhastMoveControl<>(this, true, this::isOnStillTimeout);
+         this.lookControl = new HappyGhast.HappyGhastLookControl();
+     }
+ 
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.happyGhastTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.happyGhastMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.happyGhastScale);
++        this.getAttribute(Attributes.TEMPT_RANGE).setBaseValue(this.level().purpurConfig.happyGhastTemptRange);
++        this.getAttribute(Attributes.FLYING_SPEED).setBaseValue(this.level().purpurConfig.happyGhastFlyingSpeed);
++        this.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(this.level().purpurConfig.happyGhastMovementSpeed);
++        this.getAttribute(Attributes.FOLLOW_RANGE).setBaseValue(this.level().purpurConfig.happyGhastFollowRange);
++        this.getAttribute(Attributes.CAMERA_DISTANCE).setBaseValue(this.level().purpurConfig.happyGhastCameraDistance);
++    }
++    // Purpur end - Configurable entity base attributes
++
+     private void setServerStillTimeout(int serverStillTimeout) {
+         if (this.serverStillTimeout <= 0 && serverStillTimeout > 0 && this.level() instanceof ServerLevel serverLevel) {
+             this.syncPacketPositionCodec(this.getX(), this.getY(), this.getZ());
 @@ -308,7 +_,7 @@
      @Override
      protected void addPassenger(Entity passenger) {

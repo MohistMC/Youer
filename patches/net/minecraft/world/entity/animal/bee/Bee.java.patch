@@ -29,11 +29,25 @@
  public class Bee extends Animal implements NeutralMob {
      public static final float FLAP_DEGREES_PER_TICK = 120.32113F;
      public static final int TICKS_PER_FLAP = Mth.ceil(1.4959966F);
-@@ -146,18 +_,82 @@
+@@ -146,18 +_,104 @@
      private Bee.BeeGoToHiveGoal goToHiveGoal;
      private Bee.BeeGoToKnownFlowerGoal goToKnownFlowerGoal;
      private int underWaterTicks;
 +    public net.kyori.adventure.util.TriState rollingOverride = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Rolling override
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.beeBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.beeAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
  
      public Bee(EntityType<? extends Bee> type, Level level) {
          super(type, level);
@@ -111,9 +125,33 @@
 +    }
 +    // Purpur end - Ridables
 +
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.beeMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.beeScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
      @Override
      protected void defineSynchedData(SynchedEntityData.Builder entityData) {
          super.defineSynchedData(entityData);
+@@ -172,6 +_,7 @@
+ 
+     @Override
+     protected void registerGoals() {
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(0, new Bee.BeeAttackGoal(this, 1.4F, true));
+         this.goalSelector.addGoal(1, new Bee.BeeEnterHiveGoal());
+         this.goalSelector.addGoal(2, new BreedGoal(this, 1.0));
+@@ -189,6 +_,7 @@
+         this.goalSelector.addGoal(7, new Bee.BeeGrowCropGoal());
+         this.goalSelector.addGoal(8, new Bee.BeeWanderGoal());
+         this.goalSelector.addGoal(9, new FloatGoal(this));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new Bee.BeeHurtByOtherGoal(this).setAlertOthers());
+         this.targetSelector.addGoal(2, new Bee.BeeBecomeAngryTargetGoal(this));
+         this.targetSelector.addGoal(3, new ResetUniversalAngerTargetGoal<>(this, true));
 @@ -196,9 +_,24 @@
  
      @Override

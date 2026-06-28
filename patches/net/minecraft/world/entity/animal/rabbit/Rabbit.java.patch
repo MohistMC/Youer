@@ -1,14 +1,49 @@
 --- a/net/minecraft/world/entity/animal/rabbit/Rabbit.java
 +++ b/net/minecraft/world/entity/animal/rabbit/Rabbit.java
-@@ -112,7 +_,7 @@
+@@ -108,12 +_,41 @@
+     private int jumpDelayTicks;
+     public int moreCarrotTicks = 0;
+ 
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.rabbitBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
+     public Rabbit(EntityType<? extends Rabbit> type, Level level) {
          super(type, level);
          this.jumpControl = new Rabbit.RabbitJumpControl(this);
          this.moveControl = new Rabbit.RabbitMoveControl<>(this);
 -        this.setSpeedModifier(0.0);
+-    }
 +        // this.setSpeedModifier(0.0); // CraftBukkit
-     }
++    }
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.rabbitTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.rabbitMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.rabbitScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.rabbitAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
  
      @Override
+     public void registerGoals() {
 @@ -417,10 +_,22 @@
          }
  

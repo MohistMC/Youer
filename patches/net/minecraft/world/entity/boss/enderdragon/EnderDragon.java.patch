@@ -33,15 +33,85 @@
  
      public EnderDragon(EntityType<? extends EnderDragon> type, Level level) {
          super(EntityTypes.ENDER_DRAGON, level);
-@@ -102,6 +_,7 @@
+@@ -102,13 +_,44 @@
          this.setHealth(this.getMaxHealth());
          this.noPhysics = true;
          this.phaseManager = new EnderDragonPhaseManager(this);
+-    }
+-
+-    public void setDragonFight(EnderDragonFight fight) {
 +        this.explosionSource = new ServerExplosion(level.getMinecraftWorld(), this, null, null, new Vec3(Double.NaN, Double.NaN, Double.NaN), Float.NaN, true, Explosion.BlockInteraction.DESTROY); // CraftBukkit
++        // Purpur start - Ridables
++        this.moveControl = new org.purpurmc.purpur.controller.FlyingMoveControllerWASD(this) {
++            @Override
++            public void vanillaTick() {
++                // dragon doesn't use the controller. do nothing
++            }
++        };
++        this.lookControl = new org.purpurmc.purpur.controller.LookControllerWASD(this) {
++            @Override
++            public void vanillaTick() {
++                // dragon doesn't use the controller. do nothing
++            }
++
++            @Override
++            public void purpurTick(Player rider) {
++                setYawPitch(rider.getYRot() - 180F, rider.xRotO * 0.5F);
++            }
++        };
++        // Purpur end - Ridables
++    }
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.enderDragonRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.enderDragonRidableInWater;
++    }
++
++    public void setDragonFight(final EnderDragonFight fight) {
+         this.dragonFight = fight;
      }
  
-     public void setDragonFight(EnderDragonFight fight) {
-@@ -120,6 +_,19 @@
+-    public void setFightOrigin(BlockPos fightOrigin) {
++    public void setFightOrigin(final BlockPos fightOrigin) {
+         this.fightOrigin = fightOrigin;
+     }
+ 
+@@ -116,10 +_,48 @@
+         return this.fightOrigin;
+     }
+ 
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.enderDragonControllable;
++    }
++
++    @Override
++    public double getMaxY() {
++        return level().purpurConfig.enderDragonMaxY;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.enderDragonMaxHealth);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.enderDragonTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
+     public static AttributeSupplier.Builder createAttributes() {
          return Mob.createMobAttributes().add(Attributes.MAX_HEALTH, 200.0).add(Attributes.CAMERA_DISTANCE, 16.0);
      }
  
