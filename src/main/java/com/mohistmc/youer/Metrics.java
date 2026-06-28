@@ -43,6 +43,7 @@ import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
+import org.spigotmc.SpigotConfig;
 
 /**
  * bStats collects some data for plugin authors.
@@ -299,7 +300,7 @@ public class Metrics {
                 metrics.addCustomChart(new SingleLineChart("players", () -> Bukkit.getOnlinePlayers().size()));
                 metrics.addCustomChart(new SimplePie("online_mode", () -> Bukkit.getOnlineMode() ? "online" : "offline"));
                 metrics.addCustomChart(new SimplePie("youer_version", () -> Youer.version));
-                metrics.addCustomChart(new SimplePie("bungeecord", () -> String.valueOf(false)));
+                metrics.addCustomChart(new SimplePie("bungeecord", () -> String.valueOf(SpigotConfig.bungee)));
 
                 metrics.addCustomChart(new DrilldownPie("java_version", () -> {
                     Map<String, Map<String, Integer>> map = new HashMap<>();

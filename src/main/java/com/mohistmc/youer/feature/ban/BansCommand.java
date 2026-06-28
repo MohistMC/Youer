@@ -8,6 +8,7 @@ import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.ItemStackFactory;
 import com.mohistmc.youer.feature.ban.bans.BanItem;
 import com.mohistmc.youer.feature.ban.bans.BanRecipe;
+import com.mohistmc.youer.feature.ban.bans.BanWorld;
 import com.mohistmc.youer.feature.ban.utils.BanSaveInventory;
 import com.mohistmc.youer.feature.ban.utils.BanUtils;
 import com.mohistmc.youer.util.I18n;
@@ -34,12 +35,12 @@ import org.jetbrains.annotations.NotNull;
 public class BansCommand extends Command {
 
     private final List<String> params = Arrays.asList("add", "show", "setmessage");
-    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe", "block", "nbt");
+    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe", "block", "nbt", "world");
 
     public BansCommand(String name) {
         super(name);
         this.description = I18n.as("banscmd.description");
-        this.usageMessage = "/bans [add|show|setmessage] [item|item-moshou|entity|enchantment|recipe|block]";
+        this.usageMessage = "/bans [add|show|setmessage] [item|item-moshou|entity|enchantment|recipe|block|world]";
         this.setPermission("youer.command.bans");
     }
 
@@ -51,12 +52,12 @@ public class BansCommand extends Command {
         String check = I18n.as("banscmd.check");
 
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(ChatColor.RED + "You must be a player to perform this command.");
+            sender.sendMessage(ChatColor.RED + I18n.as("banscmd.error.notplayer"));
             return false;
         }
 
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
+            sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
             return false;
         }
         switch (args[0].toLowerCase(Locale.ENGLISH)) {
@@ -68,15 +69,36 @@ public class BansCommand extends Command {
                     }
                     String name = args[2];
                     if (BanConfig.RECIPE.has(name)) {
-                        sender.sendMessage(ChatColor.RED + "This recipe already exists.");
+                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.recipe.exists"));
                         return false;
                     }
                     if (!BanRecipe.CACHE.contains(Identifier.parse(name))) {
-                        sender.sendMessage(ChatColor.RED + "This recipe does not exist.");
+                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.recipe.notexists"));
                         return false;
                     }
                     BanRecipe.addBan(player, name);
                     return true;
+                }
+                if (args.length == 3 && args[1].equals("world")) {
+                    if (!YouerConfig.ban_world_enable) {
+                        sender.sendMessage(ChatColor.RED + check);
+                        return false;
+                    }
+                    String name = args[2];
+                    if (BanConfig.WORLD.has(name)) {
+                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.world.exists"));
+                        return false;
+                    }
+                    if (!BanWorld.CACHE.contains(Identifier.parse(name))) {
+                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.world.notexists"));
+                        return false;
+                    }
+                    BanWorld.addBan(player, name);
+                    return true;
+                }
+                if (args.length < 2) {
+                    sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
+                    return false;
                 }
                 switch (args[1]) {
                     case "item" -> {
@@ -84,7 +106,7 @@ public class BansCommand extends Command {
                             sender.sendMessage(ChatColor.RED + check);
                             return false;
                         }
-                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ITEM, "§4Add bans item");
+                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ITEM, I18n.as("banscmd.gui.add.item"));
                         Inventory inventory = banSaveInventory.getInventory();
                         player.openInventory(inventory);
                         BanListener.openInventory = banSaveInventory;
@@ -95,7 +117,7 @@ public class BansCommand extends Command {
                             sender.sendMessage(ChatColor.RED + check);
                             return false;
                         }
-                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ITEM_MOSHOU, "§4Add bans moshou item");
+                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ITEM_MOSHOU, I18n.as("banscmd.gui.add.item.moshou"));
                         Inventory inventory = banSaveInventory.getInventory();
                         player.openInventory(inventory);
                         BanListener.openInventory = banSaveInventory;
@@ -106,7 +128,7 @@ public class BansCommand extends Command {
                             sender.sendMessage(ChatColor.RED + check);
                             return false;
                         }
-                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ENTITY, "§4Add bans entity");
+                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ENTITY, I18n.as("banscmd.gui.add.entity"));
                         Inventory inventory = banSaveInventory.getInventory();
                         player.openInventory(inventory);
                         BanListener.openInventory = banSaveInventory;
@@ -117,7 +139,7 @@ public class BansCommand extends Command {
                             sender.sendMessage(ChatColor.RED + check);
                             return false;
                         }
-                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ENCHANTMENT, "§4Add bans enchantment");
+                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ENCHANTMENT, I18n.as("banscmd.gui.add.enchantment"));
                         Inventory inventory = banSaveInventory.getInventory();
                         player.openInventory(inventory);
                         BanListener.openInventory = banSaveInventory;
@@ -128,7 +150,35 @@ public class BansCommand extends Command {
                             sender.sendMessage(ChatColor.RED + check);
                             return false;
                         }
-                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.BLOCK, "§4Add bans block");
+
+                        if (args.length >= 3) {
+                            String blockName = args[2];
+                            Material material = Material.matchMaterial(blockName);
+
+                            if (material == null) {
+                                sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.block.invalid").formatted(blockName));
+                                return false;
+                            }
+
+                            if (material.isAir()) {
+                                sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.block.air"));
+                                return false;
+                            }
+
+                            String blockKey = material.getKey().asString();
+                            List<String> old = BanConfig.getListByType(BanType.BLOCK);
+                            if (old.contains(blockKey)) {
+                                sender.sendMessage(ChatColor.YELLOW + I18n.as("banscmd.add.block.exists").formatted(blockKey));
+                                return false;
+                            }
+
+                            old.add(blockKey);
+                            BanUtils.saveToYaml(player, com.mohistmc.youer.feature.ban.ClickType.ADD, old, BanType.BLOCK);
+                            sender.sendMessage(ChatColor.GREEN + I18n.as("banscmd.add.block.success").formatted(blockKey));
+                            return true;
+                        }
+
+                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.BLOCK, I18n.as("banscmd.gui.add.block"));
                         Inventory inventory = banSaveInventory.getInventory();
                         player.openInventory(inventory);
                         BanListener.openInventory = banSaveInventory;
@@ -141,37 +191,37 @@ public class BansCommand extends Command {
                         }
 
                         ItemStack itemStack = player.getInventory().getItemInMainHand();
-                        if (itemStack.getType().isAir()) {
-                            sender.sendMessage(ChatColor.RED + "Please hold the item in hand.");
+                        if (itemStack.isEmpty()) {
+                            sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.nbt.noitem"));
                             return false;
                         }
 
                         if (args.length < 3) {
-                            sender.sendMessage(ChatColor.RED + "Usage: /bans add nbt <nbt>");
+                            sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.nbt.usage"));
                             return false;
                         }
 
                         String nbt = args[2];
-                        BanConfig.NBT.addNbt(itemStack.getType().getKey().toString(), nbt);
-                        sender.sendMessage(ChatColor.GREEN + "Successfully banned items with NBT: " + nbt);
+                        BanConfig.NBT.addNbt(itemStack.getType().key().asString(), nbt);
+                        sender.sendMessage(ChatColor.GREEN + I18n.as("banscmd.add.nbt.success").formatted(nbt));
                         return true;
                     }
                     default -> {
-                        sender.sendMessage(ChatColor.RED + usageMessage);
+                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
                         return false;
                     }
                 }
             }
             case "show" -> {
                 if (args.length != 2) {
-                    sender.sendMessage(ChatColor.RED + usageMessage);
+                    sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
                     return false;
                 }
                 switch (args[1]) {
                     case "item" -> {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.item"));
-                        List<String> old = BanConfig.ITEM.getItem();
-                        for (String s : BanConfig.ITEM.getItem()) {
+                        List<String> old = BanConfig.getListByType(BanType.ITEM);
+                        for (String s : BanConfig.getListByType(BanType.ITEM)) {
                             Material material = Material.matchMaterial(s);
                             if (material != null && !material.isAir()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
@@ -195,8 +245,8 @@ public class BansCommand extends Command {
                     }
                     case "item-moshou" -> {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.item-moshou"));
-                        List<String> old = BanConfig.MOSHOU.getMoShouList();
-                        for (String s : BanConfig.MOSHOU.getMoShouList()) {
+                        List<String> old = BanConfig.getListByType(BanType.ITEM_MOSHOU);
+                        for (String s : BanConfig.getListByType(BanType.ITEM_MOSHOU)) {
                             Material material = Material.matchMaterial(s);
                             if (material != null && !material.isAir()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
@@ -220,8 +270,8 @@ public class BansCommand extends Command {
                     }
                     case "entity" -> {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.entity"));
-                        List<String> old = BanConfig.ENTITY.getEntity();
-                        for (String s : BanConfig.ENTITY.getEntity()) {
+                        List<String> old = BanConfig.getListByType(BanType.ENTITY);
+                        for (String s : BanConfig.getListByType(BanType.ENTITY)) {
                             wh.addItem(new GUIItem(new ItemStackFactory(ItemAPI.getEggMaterial(EntityAPI.getType(s)))
                                     .setDisplayName(s)
                                     .addLore("§e" + I18n.as("banscmd.show.lore"))
@@ -242,8 +292,8 @@ public class BansCommand extends Command {
                     }
                     case "enchantment" -> {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.enchantment"));
-                        List<String> old = BanConfig.ENCHANTMENT.getEnchantment();
-                        for (String s : BanConfig.ENCHANTMENT.getEnchantment()) {
+                        List<String> old = BanConfig.getListByType(BanType.ENCHANTMENT);
+                        for (String s : BanConfig.getListByType(BanType.ENCHANTMENT)) {
                             wh.addItem(new GUIItem(new ItemStackFactory(Material.ENCHANTED_BOOK)
                                     .setDisplayName(s)
                                     .addLore("§e" + I18n.as("banscmd.show.lore"))
@@ -265,12 +315,11 @@ public class BansCommand extends Command {
                     }
                     case "recipe" -> {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.recipe"));
-                        List<String> old = BanConfig.RECIPE.getRecipe();
-                        for (String s : BanConfig.RECIPE.getRecipe()) {
+                        List<String> old = BanConfig.getListByType(BanType.RECIPE);
+                        for (String s : BanConfig.getListByType(BanType.RECIPE)) {
                             wh.addItem(new GUIItem(new ItemStackFactory(Material.KNOWLEDGE_BOOK)
                                     .setDisplayName(s)
                                     .addLore("§e" + I18n.as("banscmd.show.lore"))
-                                    .setEnchantment(ItemAPI.getEnchantmentByKey(s))
                                     .build()) {
                                 @Override
                                 public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
@@ -288,11 +337,12 @@ public class BansCommand extends Command {
                     }
                     case "block" -> {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.block"));
-                        List<String> old = BanConfig.BLOCK.getBlock();
-                        for (String s : BanConfig.BLOCK.getBlock()) {
+                        List<String> old = BanConfig.getListByType(BanType.BLOCK);
+                        for (String s : BanConfig.getListByType(BanType.BLOCK)) {
                             Material material = Material.matchMaterial(s);
                             if (material != null && !material.isAir()) {
-                                wh.addItem(new GUIItem(new ItemStackFactory(material)
+                                Material displayMaterial = material.isItem() ? material : Material.STRUCTURE_VOID;
+                                wh.addItem(new GUIItem(new ItemStackFactory(displayMaterial)
                                         .setDisplayName(s)
                                         .addLore("§e" + I18n.as("banscmd.show.lore"))
                                         .build()) {
@@ -312,13 +362,13 @@ public class BansCommand extends Command {
                         return true;
                     }
                     case "nbt" -> {
-                        DemoGUI wh = new DemoGUI("§2Show bans nbt");
+                        DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.nbt"));
                         for (String s : BanConfig.NBT.getAllNbtKeys()) {
                             Material material = Material.matchMaterial(s);
                             if (material != null && !material.isAir()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
                                         .setDisplayName(s)
-                                        .addLore("§eClick here to view the NBT list")
+                                        .addLore("§e" + I18n.as("banscmd.show.nbt.lore"))
                                         .build()) {
                                     @Override
                                     public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
@@ -334,15 +384,37 @@ public class BansCommand extends Command {
                         wh.openGUI(player);
                         return true;
                     }
+                    case "world" -> {
+                        DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.world"));
+                        List<String> old = BanConfig.getListByType(BanType.WORLD);
+                        for (String s : BanConfig.getListByType(BanType.WORLD)) {
+                            wh.addItem(new GUIItem(new ItemStackFactory(Material.GRASS_BLOCK)
+                                    .setDisplayName(s)
+                                    .addLore("§e" + I18n.as("banscmd.show.lore"))
+                                    .build()) {
+                                @Override
+                                public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
+                                    if (type.isRightClick()) {
+                                        old.remove(s);
+                                        BanUtils.saveToYaml(u, com.mohistmc.youer.feature.ban.ClickType.REMOVE, old, BanType.WORLD);
+                                        wh.removeItem(this);
+                                        wh.openGUI(player);
+                                    }
+                                }
+                            });
+                        }
+                        wh.openGUI(player);
+                        return true;
+                    }
                     default -> {
-                        sender.sendMessage(ChatColor.RED + usageMessage);
+                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
                         return false;
                     }
                 }
             }
             case "setmessage" -> {
                 if (args.length < 2) {
-                    sender.sendMessage(ChatColor.RED + usageMessage);
+                    sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
                     return false;
                 }
                 switch (args[1]) {
@@ -352,8 +424,8 @@ public class BansCommand extends Command {
                             return false;
                         }
                         ItemStack itemStack = player.getInventory().getItemInMainHand();
-                        if (itemStack.getType().isAir()) {
-                            sender.sendMessage(ChatColor.RED + "Please hold an item in your hand.");
+                        if (itemStack.isEmpty()) {
+                            sender.sendMessage(ChatColor.RED + I18n.as("banscmd.setmessage.noitem"));
                             return false;
                         }
                         if (BanItem.check(itemStack) || BanItem.checkMoShou(itemStack)) {
@@ -362,10 +434,10 @@ public class BansCommand extends Command {
                                     .collect(Collectors.joining(" "));
                             BanConfig.BAN_MESSAGE.setBanMessage(itemStack.getType().name(), result);
                         } else {
-                            sender.sendMessage(ChatColor.RED + "This item is not banned.");
+                            sender.sendMessage(ChatColor.RED + I18n.as("banscmd.setmessage.notbanned"));
                             return false;
                         }
-                        sender.sendMessage(ChatColor.GREEN + "Set the message for " + itemStack.getType().name() + ".");
+                        sender.sendMessage(ChatColor.GREEN + I18n.as("banscmd.setmessage.success").formatted(itemStack.getType().name()));
                         return true;
                     }
                     case "entity" -> {
@@ -383,13 +455,13 @@ public class BansCommand extends Command {
                         return true;
                     }
                     default -> {
-                        sender.sendMessage(ChatColor.RED + usageMessage);
+                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
                         return false;
                     }
                 }
             }
             default -> {
-                sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
+                sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
                 return false;
             }
         }
@@ -416,6 +488,21 @@ public class BansCommand extends Command {
             return BanRecipe.CACHE.stream()
                     .map(Identifier::toString)
                     .toList();
+        }
+
+        if (args.length == 3 && args[0].equals("add") && args[1].equals("world") && (sender.isOp() || testPermission(sender))) {
+            return BanWorld.CACHE.stream()
+                    .map(Identifier::toString)
+                    .toList();
+        }
+
+        if (args.length == 3 && args[0].equals("add") && args[1].equals("block") && (sender.isOp() || testPermission(sender))) {
+            return java.util.Arrays.stream(Material.values())
+                    .filter(m -> m.isBlock() && !m.isAir() && !m.isLegacy())
+                    .map(m -> m.getKey().asString())
+                    .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
+                    .limit(50)
+                    .collect(Collectors.toList());
         }
 
         return list;

@@ -811,6 +811,16 @@ public final class Bukkit {
     // Paper end
 
     /**
+     * Gets a list of all world name on this server.
+     *
+     * @return a set of worlds
+     */
+    @NotNull
+    public static Set<String> getWorldsByName() {
+        return server.getWorldsByName();
+    }
+
+    /**
      * Creates or loads a world with the given name using the specified
      * options.
      * <p>

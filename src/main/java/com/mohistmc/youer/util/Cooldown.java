@@ -56,6 +56,6 @@ public class Cooldown {
     }
 
     static {
-        Cooldown.cooldowns = new HashMap<String, Cooldown>();
+        Cooldown.cooldowns = new HashMap<>();
     }
 }

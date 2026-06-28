@@ -3,6 +3,7 @@ package com.mohistmc.youer.feature.ban.bans;
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.ItemAPI;
 import com.mohistmc.youer.feature.ban.BanConfig;
+import com.mohistmc.youer.feature.ban.BanType;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
@@ -91,9 +92,11 @@ public class BanItem {
     }
 
     public static boolean checkMoShou(org.bukkit.inventory.ItemStack itemStack) {
-        if (itemStack.getType().isAir()) return false;
+        if (itemStack.isEmpty()) return false;
         if (!YouerConfig.ban_item_enable) return false;
-        return BanConfig.MOSHOU.getMoShouList().contains(itemStack.getType().getKey().toString());
+        var list = BanConfig.getListByType(BanType.ITEM_MOSHOU);
+        if (list.isEmpty()) return false;
+        return list.contains(itemStack.getType().key().asString());
     }
 
     public static boolean checkMoShou(ItemStack itemStack) {

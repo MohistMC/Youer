@@ -12,20 +12,24 @@ import java.util.Set;
 import net.minecraft.resources.Identifier;
 import org.bukkit.entity.Player;
 
-public class BanRecipe {
+/**
+ * @author Mgazul
+ * @date 2026/2/10 22:32
+ */
+public class BanWorld {
 
     public static Set<Identifier> CACHE = new HashSet<>();
 
     public static void addBan(Player player, String key) {
-        List<String> old = BanConfig.getListByType(BanType.RECIPE);
+        List<String> old = BanConfig.getListByType(BanType.WORLD);
         ListUtils.isDuplicate(old, key);
-        BanUtils.saveToYaml(player, ClickType.ADD, old, BanType.RECIPE);
+        BanUtils.saveToYaml(player, ClickType.ADD, old, BanType.WORLD);
     }
 
     public static boolean checkBan(Identifier resourceLocation) {
-        if (!YouerConfig.yml.getBoolean("bans.recipe", false)) return false;
+        if (!YouerConfig.yml.getBoolean("bans.world", false)) return false;
         CACHE.add(resourceLocation);
-        var list = BanConfig.getListByType(BanType.RECIPE);
+        var list = BanConfig.getListByType(BanType.WORLD);
         if (list.isEmpty()) return false;
         return list.contains(resourceLocation.toString());
     }

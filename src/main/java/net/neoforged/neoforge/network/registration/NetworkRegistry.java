@@ -8,6 +8,9 @@ package net.neoforged.neoforge.network.registration;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.mohistmc.youer.YouerConfig;
+import com.mohistmc.youer.api.ColorAPI;
+import com.mohistmc.youer.api.PlayerAPI;
 import com.mojang.logging.LogUtils;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.ArrayList;
@@ -342,14 +345,29 @@ public class NetworkRegistry {
     public static void initializeNeoForgeConnection(ServerConfigurationPacketListener listener, Map<ConnectionProtocol, Set<ModdedNetworkQueryComponent>> clientChannels) {
         ChannelAttributes.setPayloadSetup(listener.getConnection(), NetworkPayloadSetup.empty());
         ChannelAttributes.setConnectionType(listener.getConnection(), listener.getConnectionType());
-
+        var address = listener.getConnection().address;
         Map<ConnectionProtocol, NegotiationResult> results = new IdentityHashMap<>();
 
         for (ConnectionProtocol protocol : PAYLOAD_REGISTRATIONS.keySet()) {
+            var client =  clientChannels.getOrDefault(protocol, Collections.emptySet()).stream().map(NegotiableNetworkComponent::new).toList();
             NegotiationResult negotiationResult = NetworkComponentNegotiator.negotiate(
                     PAYLOAD_REGISTRATIONS.get(protocol).values().stream().map(NegotiableNetworkComponent::new).toList(),
                     clientChannels.getOrDefault(protocol, Collections.emptySet()).stream().map(NegotiableNetworkComponent::new).toList());
 
+            client.forEach(c -> {
+                var modid = c.id().getNamespace();
+                if (YouerConfig.player_modlist_blacklist_enable && YouerConfig.player_modlist_blacklist.contains(modid)) {
+                    Map<Identifier, Component> failureReasons = new HashMap<>();
+                    var res = YouerConfig.player_modlist_blacklist_use_real_feedback ? c.id() : Identifier.fromNamespaceAndPath("youer", "check");
+                    failureReasons.put(res, ColorAPI.vanilla(YouerConfig.player_modlist_blacklist_failurereasons));
+                    NegotiationResult negotiationResult1 = new NegotiationResult(List.of(), false, failureReasons);
+                    listener.send(new ModdedNetworkSetupFailedPayload(negotiationResult1.failureReasons()));
+                    PlayerAPI.modlist.remove(address);
+                    listener.disconnect(ColorAPI.vanilla(YouerConfig.player_modlist_blacklist_failurereasons));
+                    return;
+                }
+                PlayerAPI.addMod(address, modid);
+            });
             // Negotiation failed. Disconnect the client.
             if (!negotiationResult.success()) {
                 if (!negotiationResult.failureReasons().isEmpty()) {

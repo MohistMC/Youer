@@ -126,7 +126,7 @@ public class ConfigByWorlds {
                 }
                 String environment = "NORMAL";
                 boolean isMods = false;
-                boolean isMohist = false;
+                boolean isYouer = false;
                 String modName = null;
                 boolean keepspawninmemory = true;
                 boolean isVoid = false;
@@ -146,7 +146,7 @@ public class ConfigByWorlds {
                         modName = config.getString("worlds." + w + ".modName");
                     }
                     if (config.get("worlds." + w + ".youer") != null) {
-                        isMohist = config.getBoolean("worlds." + w + ".youer");
+                        isYouer = config.getBoolean("worlds." + w + ".youer");
                     }
                     if (config.get("worlds." + w + ".keepspawninmemory") != null) {
                         keepspawninmemory = config.getBoolean("worlds." + w + ".keepspawninmemory");
@@ -163,7 +163,7 @@ public class ConfigByWorlds {
                         init();
                         canload = false;
                     }
-                    if (!isMohist) {
+                    if (!isYouer) {
                         canload = false;
                     }
                     if (canload) {
@@ -217,7 +217,7 @@ public class ConfigByWorlds {
     public static void getSpawn(String w, Player player) {
         World world = Bukkit.getWorld(w);
         if (f.exists() && world != null) {
-            if (config.getString("worlds." + world.getName()) != null) {
+            if (config.getString("worlds." + world.getName() + ".spawn") != null) {
                 double x = config.getDouble("worlds." + world.getName() + ".spawn.x");
                 double y = config.getDouble("worlds." + world.getName() + ".spawn.y");
                 double z = config.getDouble("worlds." + world.getName() + ".spawn.z");

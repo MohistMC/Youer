@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
+@@ -4,6 +_,7 @@
+ import com.google.common.collect.ImmutableList;
+ import com.google.common.collect.Lists;
+ import com.google.common.math.IntMath;
++import com.mohistmc.youer.feature.ban.bans.BanItem;
+ import com.mojang.authlib.GameProfile;
+ import com.mojang.datafixers.util.Either;
+ import java.util.Collection;
 @@ -43,7 +_,6 @@
  import net.minecraft.tags.DamageTypeTags;
  import net.minecraft.tags.EntityTypeTags;
@@ -827,6 +835,16 @@
      }
  
      public Optional<WardenSpawnTracker> getWardenSpawnTracker() {
+@@ -1595,6 +_,9 @@
+     }
+ 
+     public boolean mayUseItemAt(BlockPos pos, Direction direction, ItemStack itemStack) {
++        if (BanItem.check(this, itemStack)) {
++            return false;
++        }
+         if (this.abilities.mayBuild) {
+             return true;
+         }
 @@ -1606,7 +_,23 @@
  
      @Override

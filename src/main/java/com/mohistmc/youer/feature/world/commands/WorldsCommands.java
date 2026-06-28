@@ -1,6 +1,5 @@
 package com.mohistmc.youer.feature.world.commands;
 
-import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.api.gui.DemoGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.ItemStackFactory;
@@ -28,7 +27,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
-import org.bukkit.generator.WorldInfo;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -120,7 +118,7 @@ public class WorldsCommands extends Command {
             }
             if (args.length == 2 && args[0].equalsIgnoreCase("delete")) {
                 String worldName = args[1];
-                if (!args[1].equalsIgnoreCase(ServerAPI.getMainLevelName())) {
+                if (!args[1].equalsIgnoreCase(Bukkit.getUnsafe().getMainLevelName())) {
                     World w = Bukkit.getWorld(worldName);
                     if (w != null) {
                         for (Player all : w.getPlayers()) {
@@ -176,7 +174,7 @@ public class WorldsCommands extends Command {
                     return false;
                 }
                 for (Player all2 : world.getPlayers()) {
-                    all2.teleport(Bukkit.getWorld(ServerAPI.getMainLevelName()).getSpawnLocation());
+                    ConfigByWorlds.getSpawn(Bukkit.getUnsafe().getMainLevelName(), all2);
                 }
                 Bukkit.unloadWorld(world, true);
                 ConfigByWorlds.removeWorld(worldName);
@@ -331,7 +329,7 @@ public class WorldsCommands extends Command {
         }
 
         if (args.length >= 2 && (args[0].equalsIgnoreCase("tp") || args[0].equalsIgnoreCase("delete")) || args[0].equalsIgnoreCase("unload")) {
-            Bukkit.getWorlds().stream().map(WorldInfo::getName).forEach(list::add);
+            list.addAll(Bukkit.getWorldsByName());
         }
 
         return list;

@@ -4,6 +4,7 @@ import com.mohistmc.mjson.Json;
 import com.mohistmc.tools.Base64Utils;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.feature.ban.BanConfig;
+import com.mohistmc.youer.feature.ban.BanType;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
@@ -15,12 +16,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import net.kyori.adventure.text.Component;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtAccounter;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.SpawnEggItem;
+import net.minecraft.world.item.component.CustomData;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bukkit.Bukkit;
@@ -56,7 +60,13 @@ public class ItemAPI {
     }
 
     public static String getNbtAsString(CompoundTag compoundTag) {
-        return compoundTag == null ? "null" : compoundTag.asString().get();
+        return compoundTag == null ? "null" : compoundTag.toString();
+    }
+
+    public static String getNbtAsString(ItemStack itemStack) {
+        var item = toNMSItem(itemStack);
+        net.minecraft.nbt.CompoundTag nbt = item.getOrDefault(DataComponents.CUSTOM_DATA, CustomData.EMPTY).copyTag();
+        return getNbtAsString(nbt);
     }
 
     /**
@@ -152,7 +162,7 @@ public class ItemAPI {
 
     public static void name(ItemStack itemStack, String name) {
         ItemMeta im = itemStack.getItemMeta();
-        im.setDisplayName(ColorAPI.string(name));
+        im.displayName(ColorAPI.adventure(name));
         itemStack.setItemMeta(im);
     }
 
@@ -164,8 +174,8 @@ public class ItemAPI {
 
     public static void lore(ItemStack itemStack, List<String> lores) {
         ItemMeta im = itemStack.getItemMeta();
-        List<String> lores_ = lores.stream().map(ColorAPI::string).collect(Collectors.toList());
-        im.setLore(lores_);
+        List<Component> lores_ = lores.stream().map(ColorAPI::adventure).collect(Collectors.toList());
+        im.lore(lores_);
         itemStack.setItemMeta(im);
     }
 
@@ -176,8 +186,10 @@ public class ItemAPI {
     }
 
     public static boolean isBan(ItemStack itemStack) {
-        if (itemStack == null || BanConfig.ITEM.getItem().isEmpty()) return false;
-        return BanConfig.ITEM.getItem().contains(itemStack.getType().getKey().toString());
+        if (itemStack == null) return false;
+        var list = BanConfig.getListByType(BanType.ITEM);
+        if (list.isEmpty()) return false;
+        return list.contains(itemStack.getType().getKey().asString());
     }
 
     public static Material getEggMaterial(net.minecraft.world.entity.EntityType<?> entitytype) {
@@ -289,5 +301,12 @@ public class ItemAPI {
             }
         } catch (Exception ignored) {
         }
+    }
+
+    public static NamespacedKey PlacedInfinitely_Key = new NamespacedKey("youer", "placedinfinitely");
+    public static boolean isPlacedInfinitely(net.minecraft.world.item.ItemStack itemStack) {
+        ItemStack bukkit = itemStack.asBukkitCopy();
+        ItemMeta itemMeta = bukkit.getItemMeta();
+        return itemMeta.getPersistentDataContainer().has(PlacedInfinitely_Key);
     }
 }

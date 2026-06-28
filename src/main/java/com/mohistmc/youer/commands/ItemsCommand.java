@@ -55,14 +55,15 @@ public class ItemsCommand extends Command {
         net.minecraft.world.item.ItemStack nmsItem = CraftItemStack.asNMSCopy(itemStack);
 
         PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.type") + " ", itemStack.getType().name());
-        PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.key") + " ", itemStack.getType().getKey().toString());
+        PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.key") + " ", itemStack.getType().getKey().asString());
         PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.name") + " ", nmsItem.getHoverName().getString());
         player.sendMessage(ChatColor.GRAY + I18n.as("items.info.moditem") + " %s".formatted(itemStack.getType().isModItem));
         player.sendMessage(ChatColor.GRAY + I18n.as("items.info.modblock") + " %s".formatted(itemStack.getType().isModBlock));
-        if (itemStack.hasItemMeta() && itemStack.getItemMeta().hasCustomModelData()) {
-            player.sendMessage(ChatColor.GRAY + I18n.as("items.info.custommodeldata") + " %s".formatted(itemStack.getItemMeta().getCustomModelData()));
+        if (itemStack.hasCustomModelData()) {
+            player.sendMessage(ChatColor.GRAY + I18n.as("items.info.custommodeldata") + " %s".formatted(itemStack.getCustomModelData()));
         }
-        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.itemflags") + " %s".formatted(itemStack.getItemMeta().getItemFlags()));
+        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.itemflags") + " %s".formatted(itemStack.getItemFlags()));
+        player.sendMessage(ChatColor.GREEN + I18n.as("items.info.itemnbt") + " %s".formatted(ItemAPI.getNbtAsString(itemStack)));
 
         player.sendMessage(ChatColor.GRAY + I18n.as("items.info.amount") + " %s".formatted(itemStack.getAmount()));
         player.sendMessage(ChatColor.GRAY + I18n.as("items.info.maxstacksize") + " %s".formatted(itemStack.getMaxStackSize()));

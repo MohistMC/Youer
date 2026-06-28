@@ -237,9 +237,9 @@ public class ColorAPI {
         int blue = (int) (startBlue + (endBlue - startBlue) * ratio);
 
         // Ensure color values are within valid range
-        red = Math.max(0, Math.min(255, red));
-        green = Math.max(0, Math.min(255, green));
-        blue = Math.max(0, Math.min(255, blue));
+        red = Math.clamp(red, 0, 255);
+        green = Math.clamp(green, 0, 255);
+        blue = Math.clamp(blue, 0, 255);
 
         return TextColor.color(red, green, blue);
     }

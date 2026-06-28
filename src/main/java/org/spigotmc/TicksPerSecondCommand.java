@@ -65,7 +65,7 @@ public class TicksPerSecondCommand extends Command {
         return true;
     }
 
-    private static Component format(double tps) { // Paper - Made static
+    public static Component format(double tps) { // Paper - Made static
         // Paper start
         TextColor color = ((tps > 18.0) ? NamedTextColor.GREEN : (tps > 16.0) ? NamedTextColor.YELLOW : NamedTextColor.RED);
         String amount = ONE_DECIMAL_PLACES.get().format(tps); // Paper - only print * at 21, we commonly peak to 20.02 as the tick sleep is not accurate enough, stop the noise

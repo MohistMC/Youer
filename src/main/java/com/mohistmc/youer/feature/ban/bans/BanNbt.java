@@ -1,5 +1,6 @@
 package com.mohistmc.youer.feature.ban.bans;
 
+import com.mohistmc.youer.api.ItemAPI;
 import com.mohistmc.youer.feature.ban.BanConfig;
 import org.bukkit.inventory.ItemStack;
 
@@ -10,14 +11,13 @@ import org.bukkit.inventory.ItemStack;
 public class BanNbt {
 
     public static boolean check(ItemStack itemStack) {
-        var key = itemStack.getType().getKey().toString();
+        var key = itemStack.getType().key().asString();
         var yml = BanConfig.NBT.getNbtList(key);
         if (yml.isEmpty()) {
             return false;
         }
-        //var nbt = ItemAPI.getNbtAsString(itemStack.);
+        var nbt = ItemAPI.getNbtAsString(itemStack);
 
-        //return yml.stream().anyMatch(nbt::contains);
-        return false;
+        return yml.stream().anyMatch(nbt::contains);
     }
 }

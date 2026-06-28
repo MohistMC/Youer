@@ -2,9 +2,13 @@ package com.mohistmc.youer.feature.ban;
 
 import com.mohistmc.youer.feature.config.YouerPluginConfig;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import org.bukkit.configuration.InvalidConfigurationException;
 
 public class BanConfig extends YouerPluginConfig {
 
@@ -17,6 +21,10 @@ public class BanConfig extends YouerPluginConfig {
     public static BanConfig RECIPE;
     public static BanConfig BLOCK;
     public static BanConfig NBT;
+    public static BanConfig WORLD;
+
+    private static final Map<BanType, List<String>> globalCache = new HashMap<>();
+    private static final Map<BanType, BanConfig> typeToConfigMap = new HashMap<>();
 
     public BanConfig(File file) {
         super(file);
@@ -31,39 +39,77 @@ public class BanConfig extends YouerPluginConfig {
         RECIPE = new BanConfig(new File(PARENT, "recipe.yml"));
         BLOCK = new BanConfig(new File(PARENT, "block.yml"));
         NBT = new BanConfig(new File(PARENT, "nbt.yml"));
+        WORLD = new BanConfig(new File(PARENT, "world.yml"));
+
+        typeToConfigMap.put(BanType.ITEM_MOSHOU, MOSHOU);
+        typeToConfigMap.put(BanType.ITEM, ITEM);
+        typeToConfigMap.put(BanType.ENTITY, ENTITY);
+        typeToConfigMap.put(BanType.ENCHANTMENT, ENCHANTMENT);
+        typeToConfigMap.put(BanType.RECIPE, RECIPE);
+        typeToConfigMap.put(BanType.BLOCK, BLOCK);
+        typeToConfigMap.put(BanType.WORLD, WORLD);
+
+        refreshCache(BanType.ITEM_MOSHOU);
+        refreshCache(BanType.ITEM);
+        refreshCache(BanType.ENTITY);
+        refreshCache(BanType.ENCHANTMENT);
+        refreshCache(BanType.RECIPE);
+        refreshCache(BanType.BLOCK);
+        refreshCache(BanType.WORLD);
     }
 
-    public List<String> getMoShouList() {
-        return (!has("ITEMS")) ? new ArrayList<>() : MOSHOU.yaml.getStringList("ITEMS");
+    public static List<String> getListByType(BanType type) {
+        return globalCache.getOrDefault(type, new ArrayList<>());
     }
 
-    public List<String> getItem() {
-        return (!has("ITEMS")) ? new ArrayList<>() : ITEM.yaml.getStringList("ITEMS");
+    public List<String> getList(BanType type) {
+        return getListByType(type);
     }
 
-    public List<String> getEntity() {
-        return (!has("ENTITYS")) ? new ArrayList<>() : ENTITY.yaml.getStringList("ENTITYS");
-    }
-
-    public List<String> getEnchantment() {
-        return (!has("ENCHANTMENTS")) ? new ArrayList<>() : ENCHANTMENT.yaml.getStringList("ENCHANTMENTS");
-    }
-
-    public List<String> getRecipe() {
-        return (!has("RECIPES")) ? new ArrayList<>() : RECIPE.yaml.getStringList("RECIPES");
-    }
-
-    public List<String> getBlock() {
-        return (!has("BLOCKS")) ? new ArrayList<>() : BLOCK.yaml.getStringList("BLOCKS");
-    }
-
-    public String getMessage(String name) {
-        return (!has(name)) ? "" : BAN_MESSAGE.yaml.getString(name, "");
-    }
-
-    public void setBanMessage(String key, Object v) {
-        BAN_MESSAGE.yaml.set(key, v);
+    @Override
+    public void put(String key, Object v) {
+        yaml.set(key, v);
         save();
+        refreshCacheByKey(key);
+    }
+
+    public static void refreshCache(BanType type) {
+        BanConfig config = typeToConfigMap.get(type);
+        if (config != null) {
+            try {
+                List<String> list = config.yaml.getStringList(type.key);
+                globalCache.put(type, list != null ? new ArrayList<>(list) : new ArrayList<>());
+            } catch (Exception e) {
+                globalCache.put(type, new ArrayList<>());
+            }
+        }
+    }
+
+    private void refreshCacheByKey(String key) {
+        for (Map.Entry<BanType, BanConfig> entry : typeToConfigMap.entrySet()) {
+            if (entry.getValue() == this && entry.getKey().key.equals(key)) {
+                refreshCache(entry.getKey());
+                break;
+            }
+        }
+    }
+
+    public void reload() throws IOException, InvalidConfigurationException {
+        this.yaml.load(this.config);
+        for (Map.Entry<BanType, BanConfig> entry : typeToConfigMap.entrySet()) {
+            if (entry.getValue() == this) {
+                refreshCache(entry.getKey());
+            }
+        }
+    }
+
+    public void setBanMessage(String key, Object value) {
+        BAN_MESSAGE.yaml.set(key, value);
+        BAN_MESSAGE.save();
+    }
+
+    public String getMessage(String key) {
+        return BAN_MESSAGE.yaml.getString(key, "");
     }
 
     public Set<String> getAllNbtKeys() {
@@ -74,11 +120,11 @@ public class BanConfig extends YouerPluginConfig {
         return (!NBT.has(key)) ? new ArrayList<>() : NBT.yaml.getStringList(key);
     }
 
-    public void addNbt(String key, String v) {
+    public void addNbt(String key, String value) {
         var list = NBT.yaml.getStringList(key);
-        list.add(v);
+        list.add(value);
         NBT.yaml.set(key, list);
-        save();
+        NBT.save();
     }
 
     public void removeNbt(String key, String nbt) {

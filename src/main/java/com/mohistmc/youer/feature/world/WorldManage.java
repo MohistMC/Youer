@@ -1,7 +1,6 @@
 package com.mohistmc.youer.feature.world;
 
 import com.mohistmc.youer.api.PlayerAPI;
-import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.feature.world.utils.ConfigByWorlds;
 import java.io.File;
 import java.util.Objects;
@@ -16,7 +15,13 @@ public class WorldManage {
     public static void onEnable() {
         ConfigByWorlds.init();
         ConfigByWorlds.loadWorlds();
-        ConfigByWorlds.addWorld(ServerAPI.getMainLevelName(), false);
+        ConfigByWorlds.addWorld(Bukkit.getUnsafe().getMainLevelName(), false);
+        if (Bukkit.getAllowNether()) {
+            ConfigByWorlds.addWorld("DIM1", false);
+        }
+        if (Bukkit.getAllowEnd()) {
+            ConfigByWorlds.addWorld("DIM-1", false);
+        }
     }
 
     public static void deleteDir(File path) {

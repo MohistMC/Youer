@@ -335,7 +335,7 @@ public class YouerConfig {
 
     public static int getThreadPriority() {
         int priority = YouerConfig.yml.getInt("threadpriority.server_thread", 5);
-        priority = Math.max(Thread.MIN_PRIORITY, Math.min(Thread.MAX_PRIORITY, priority));
+        priority = Math.clamp(priority, Thread.MIN_PRIORITY, Thread.MAX_PRIORITY);
         return priority;
     }
 

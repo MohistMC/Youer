@@ -1,6 +1,18 @@
 --- a/net/minecraft/world/item/equipment/Equippable.java
 +++ b/net/minecraft/world/item/equipment/Equippable.java
-@@ -130,6 +_,19 @@
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.item.equipment;
+ 
++import com.mohistmc.youer.feature.ban.bans.BanItem;
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import java.util.Optional;
+@@ -126,10 +_,24 @@
+     }
+ 
+     public InteractionResult swapWithEquipmentSlot(ItemStack inHand, Player player) {
++        if (BanItem.check(player, inHand)) return InteractionResult.FAIL;
+         if (player.canUseSlot(this.slot) && this.canBeEquippedBy(player.typeHolder())) {
              ItemStack inEquipmentSlot = player.getItemBySlot(this.slot);
              if ((!EnchantmentHelper.has(inEquipmentSlot, EnchantmentEffectComponents.PREVENT_ARMOR_CHANGE) || player.isCreative())
                  && !ItemStack.isSameItemSameComponents(inHand, inEquipmentSlot)) {

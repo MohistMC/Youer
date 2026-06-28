@@ -1,5 +1,12 @@
 --- a/net/minecraft/world/item/BoneMealItem.java
 +++ b/net/minecraft/world/item/BoneMealItem.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.item;
+ 
++import com.mohistmc.youer.feature.ban.bans.BanItem;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.Holder;
 @@ -37,9 +_,9 @@
          BlockPos pos = context.getClickedPos();
          BlockPos relative = pos.relative(context.getClickedFace());
@@ -21,7 +28,7 @@
                      level.levelEvent(1505, relative, 15);
                  }
  
-@@ -61,8 +_,49 @@
+@@ -61,8 +_,50 @@
          }
      }
  
@@ -65,6 +72,7 @@
 +    }
 +
 +    public static boolean applyBonemeal(ItemStack itemStack, Level level, BlockPos pos, net.minecraft.world.entity.player.@Nullable Player player) {
++        if (BanItem.check(itemStack)) return false;
          BlockState state = level.getBlockState(pos);
 +        var event = net.neoforged.neoforge.event.EventHooks.fireBonemealEvent(player, level, pos, state, itemStack);
 +        if (event.isCanceled()) return event.isSuccessful();

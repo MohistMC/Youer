@@ -4,6 +4,9 @@ import com.mohistmc.tools.NamedThreadFactory;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import net.minecraft.server.MinecraftServer;
+import org.apache.commons.lang3.StringUtils;
+import org.bukkit.Bukkit;
+import org.spigotmc.TicksPerSecondCommand;
 
 public class WatchMohist implements Runnable {
 
@@ -41,7 +44,14 @@ public class WatchMohist implements Runnable {
             WarnTime = curTime;
             Youer.LOGGER.warn(Youer.i18n.as("watchmohist.1"));
 
-            //Youer.LOGGER.warn(Youer.i18n.as("watchmohist.2", String.valueOf(curTime - Time), StringUtils.join(tpsAvg, ", ")));
+            double[] tps = Bukkit.getServer().getTPS();
+            net.kyori.adventure.text.Component[] tpsAvg = new net.kyori.adventure.text.Component[tps.length];
+
+            for (int i = 0; i < tps.length; i++) {
+                tpsAvg[i] = TicksPerSecondCommand.format(tps[i]);
+            }
+
+            Youer.LOGGER.warn(Youer.i18n.as("watchmohist.2", String.valueOf(curTime - Time), StringUtils.join(tpsAvg, ", ")));
             Youer.LOGGER.warn(Youer.i18n.as("watchmohist.3"));
             Youer.LOGGER.warn(Youer.i18n.as("watchmohist.4"));
             for (StackTraceElement stack : MinecraftServer.getServer().serverThread.getStackTrace()) {

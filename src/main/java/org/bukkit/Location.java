@@ -1137,6 +1137,11 @@ public class Location implements Cloneable, ConfigurationSerializable, io.paperm
         return "Location{" + "world=" + world + ",x=" + x + ",y=" + y + ",z=" + z + ",pitch=" + pitch + ",yaw=" + yaw + '}';
     }
 
+    public String asString() {
+        World world = (this.world == null) ? null : this.world.get();
+        return "world=" + world.getName() + ",x=" + x + ",y=" + y + ",z=" + z + ",pitch=" + pitch + ",yaw=" + yaw;
+    }
+
     /**
      * Constructs a new {@link Vector} based on this Location
      *

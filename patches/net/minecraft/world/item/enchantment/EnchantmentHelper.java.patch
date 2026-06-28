@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/item/enchantment/EnchantmentHelper.java
 +++ b/net/minecraft/world/item/enchantment/EnchantmentHelper.java
+@@ -1,6 +_,7 @@
+ package net.minecraft.world.item.enchantment;
+ 
+ import com.google.common.collect.Lists;
++import com.mohistmc.youer.feature.ban.bans.BanEnchantment;
+ import com.mojang.datafixers.util.Pair;
+ import it.unimi.dsi.fastutil.objects.Object2IntMap.Entry;
+ import java.util.ArrayList;
 @@ -47,14 +_,32 @@
  import org.jspecify.annotations.Nullable;
  
@@ -99,6 +107,17 @@
          for (Entry<Holder<Enchantment>> entry : enchantments.entrySet()) {
              Holder<Enchantment> enchantment = entry.getKey();
              if (enchantment.is(tag)) {
+@@ -520,7 +_,9 @@
+         }
+ 
+         for (EnchantmentInstance enchant : enchants) {
+-            itemStack.enchant(enchant.enchantment(), enchant.level());
++            if (!BanEnchantment.check(itemStack)) {
++                itemStack.enchant(enchant.enchantment(), enchant.level());
++            }
+         }
+ 
+         return itemStack;
 @@ -574,7 +_,9 @@
      public static List<EnchantmentInstance> getAvailableEnchantmentResults(int value, ItemStack itemStack, Stream<Holder<Enchantment>> source) {
          List<EnchantmentInstance> results = Lists.newArrayList();

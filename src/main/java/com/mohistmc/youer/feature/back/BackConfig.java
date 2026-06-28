@@ -33,7 +33,7 @@ public class BackConfig extends YouerPluginConfig {
     }
 
     public Location getLocation(Player player) {
-        World world = Bukkit.getWorld(yaml.getString(player.getUniqueId() + ".location.world"));
+        World world = Bukkit.getWorld(yaml.getString(player.getUniqueId() + ".location.world", "NULL"));
         if (world == null) return null;
         double x = yaml.getInt(player.getUniqueId() + ".location.x");
         double y = yaml.getInt(player.getUniqueId() + ".location.y");

@@ -27,15 +27,18 @@
          this.set(type, newData);
          return newData;
      }
-@@ -89,7 +_,7 @@
+@@ -89,9 +_,9 @@
              if (Files.exists(file)) {
                  CompoundTag tag = this.readTagFromDisk(file, type.dataFixType(), SharedConstants.getCurrentVersion().dataVersion().version());
                  RegistryOps<Tag> ops = this.registries.createSerializationContext(NbtOps.INSTANCE);
 -                return type.codec()
 +                return type.codecFactory().create(this.level)
                      .parse(ops, tag.get("data"))
-                     .resultOrPartial(error -> LOGGER.error("Failed to parse saved data for '{}': {}", type, error))
+-                    .resultOrPartial(error -> LOGGER.error("Failed to parse saved data for '{}': {}", type, error))
++                    .resultOrPartial(error -> LOGGER.debug("Failed to parse saved data for '{}': {}", type, error))
                      .orElse(null);
+             }
+         } catch (Exception e) {
 @@ -106,7 +_,7 @@
          data.setDirty();
      }

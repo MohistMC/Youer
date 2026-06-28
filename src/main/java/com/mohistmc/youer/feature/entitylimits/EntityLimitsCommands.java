@@ -63,7 +63,7 @@ public class EntityLimitsCommands extends Command {
         World world = player.getWorld();
         if (args.length == 0) {
             if (EntityLimitsConfig.INSTANCE.hasWorld(world.getName())) {
-                DemoGUI wh = new DemoGUI("实体生成限制");
+                DemoGUI wh = new DemoGUI(I18n.as("entitylimits.gui.title"));
                 Map<EntityType<?>, Integer> collect =
                         StreamSupport.stream(WorldAPI.getServerLevel(player.getWorld()).getAllEntities().spliterator(), false)
                                 .collect(Collectors.toMap(
@@ -110,7 +110,7 @@ public class EntityLimitsCommands extends Command {
                             }
                         }
                     }
-                    String finalTopChunk = "未知";
+                    String finalTopChunk = I18n.as("entitylimits.gui.unknown");
                     if (!topChunk.isEmpty()) {
                         String[] coords = topChunk.split(",");
                         int chunkX = Integer.parseInt(coords[0]);
@@ -120,8 +120,8 @@ public class EntityLimitsCommands extends Command {
                     }
                     int count = collect.getOrDefault(type, 0);
                     wh.addItem(new GUIItem(new ItemStackFactory(ItemAPI.getEggMaterial(type))
-                            .addLore("§7当前限制: §a%d §7(§%s§7)".formatted(s.getEntityLimit(), count >= s.getEntityLimit() ? "c已超过" : "e未达到"))
-                            .addLore("§7最多处坐标: §b%s".formatted(finalTopChunk))
+                            .addLore(I18n.as("entitylimits.gui.limit").formatted(s.getEntityLimit(), count >= s.getEntityLimit() ? I18n.as("entitylimits.gui.exceeded") : I18n.as("entitylimits.gui.notreached")))
+                            .addLore(I18n.as("entitylimits.gui.topchunk").formatted(finalTopChunk))
                             .build()) {
                         @Override
                         public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
@@ -131,21 +131,21 @@ public class EntityLimitsCommands extends Command {
                 wh.openGUI(player);
                 return true;
             } else {
-                player.sendMessage(ChatColor.RED + "当前世界没有生物生成限制~");
+                player.sendMessage(ChatColor.RED + I18n.as("entitylimits.no.limit"));
                 return false;
             }
         }
         if (args[0].equalsIgnoreCase("add") && sender.isOp()) {
             if (args.length < 2) {
-                player.sendMessage(ChatColor.RED + "用法: /entitylimits add <数量>");
+                player.sendMessage(ChatColor.RED + I18n.as("entitylimits.add.usage"));
                 return false;
             }
 
             try {
                 int limit = Integer.parseInt(args[1]);
                 ItemStack itemInHand = player.getInventory().getItemInMainHand();
-                if (itemInHand.getType().isAir()) {
-                    player.sendMessage(ChatColor.RED + "你必须手持一个刷怪蛋来添加实体限制！");
+                if (itemInHand.isEmpty()) {
+                    player.sendMessage(ChatColor.RED + I18n.as("entitylimits.add.noegg"));
                     return false;
                 }
                 net.minecraft.world.item.ItemStack nmsItem = ItemAPI.toNMSItem(itemInHand);
@@ -153,12 +153,12 @@ public class EntityLimitsCommands extends Command {
                     EntityType<?> entitytype = spawnEggItem.getType(nmsItem);
                     String entityName = BuiltInRegistries.ENTITY_TYPE.getKey(entitytype).toString();
                     EntityLimitsConfig.INSTANCE.set(world.getName(), entityName, limit);
-                    player.sendMessage(ChatColor.GREEN + "已为实体 " + entityName + " 在世界 " + world.getName() + " 中设置生成限制为 " + limit);
+                    player.sendMessage(ChatColor.GREEN + I18n.as("entitylimits.add.success").formatted(entityName, world.getName(), limit));
                     return true;
 
                 }
             } catch (NumberFormatException e) {
-                player.sendMessage(ChatColor.RED + "请输入有效的数字！");
+                player.sendMessage(ChatColor.RED + I18n.as("entitylimits.add.invalidnumber"));
             }
         }
         return false;

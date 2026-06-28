@@ -1,5 +1,12 @@
 --- a/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/net/minecraft/world/entity/item/ItemEntity.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.entity.item;
+ 
++import com.mohistmc.youer.feature.ban.bans.BanItem;
+ import java.util.Objects;
+ import java.util.UUID;
+ import net.minecraft.core.BlockPos;
 @@ -36,6 +_,14 @@
  import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
@@ -307,8 +314,11 @@
          }
      }
  
-@@ -334,10 +_,89 @@
+@@ -332,12 +_,92 @@
+     public void playerTouch(Player player) {
+         if (!this.level().isClientSide()) {
              ItemStack itemStack = this.getItem();
++            if (BanItem.checkMoShou(player, itemStack)) return;
              Item item = itemStack.getItem();
              int orgCount = itemStack.getCount();
 -            if (this.pickupDelay == 0 && (this.target == null || this.target.equals(player.getUUID())) && player.getInventory().add(itemStack)) {

@@ -29,7 +29,6 @@ public class WarpsCommands extends Command {
         super(name);
         this.description = "Warps Manager.";
         this.usageMessage = "/warps";
-        this.setPermission("youer.command.warps");
     }
 
     @Override
@@ -42,12 +41,20 @@ public class WarpsCommands extends Command {
             if (args.length == 2) {
                 switch (args[0].toLowerCase(Locale.ENGLISH)) {
                     case "set" -> {
+                        if (!sender.hasPermission("youer.command.warps.set")) {
+                            sender.sendMessage(I18n.as("command.permission.denied"));
+                            return false;
+                        }
                         String name = args[1];
                         WarpsConfig.INSTANCE.put(name, player.getLocation());
                         player.sendMessage(I18n.as("warpscommands.set.success", name));
                         return true;
                     }
                     case "del" -> {
+                        if (!sender.hasPermission("youer.command.warps.del")) {
+                            sender.sendMessage(I18n.as("command.permission.denied"));
+                            return false;
+                        }
                         String name = args[1];
                         if (WarpsConfig.INSTANCE.has(name)) {
                             WarpsConfig.INSTANCE.remove(name);
@@ -59,6 +66,10 @@ public class WarpsCommands extends Command {
                         }
                     }
                     case "tp" -> {
+                        if (!sender.hasPermission("youer.command.warps.tp")) {
+                            sender.sendMessage(I18n.as("command.permission.denied"));
+                            return false;
+                        }
                         String name = args[1];
                         if (WarpsConfig.INSTANCE.has(name)) {
                             player.teleport(WarpsConfig.INSTANCE.get(name));
@@ -71,11 +82,15 @@ public class WarpsCommands extends Command {
                 }
             }
             if (args.length == 1 && args[0].equalsIgnoreCase("gui")) {
+                if (!sender.hasPermission("youer.command.warps.gui")) {
+                    sender.sendMessage(I18n.as("command.permission.denied"));
+                    return false;
+                }
                 DemoGUI wh = new DemoGUI(I18n.as("warpscommands.prefix"));
-                for (String w : WarpsConfig.INSTANCE.yaml.getKeys(false)) {
+                for (String w : WarpsConfig.INSTANCE.getAllWarpNames()) {
                     wh.addItem(new GUIItem(new ItemStackFactory(Material.BAMBOO_SIGN)
                             .setDisplayName(w)
-                            .setLore(List.of(I18n.as("warpscommands.gui.click"), "§f" + WarpsConfig.INSTANCE.get(w).toString()))
+                            .setLore(List.of(I18n.as("warpscommands.gui.click"), "§f" + WarpsConfig.INSTANCE.get(w).asString()))
                             .build()) {
                         @Override
                         public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
@@ -88,6 +103,10 @@ public class WarpsCommands extends Command {
             }
         }
         if (args.length == 3 && args[0].equalsIgnoreCase("tp")) {
+            if (!sender.hasPermission("youer.command.warps.tpothers")) {
+                sender.sendMessage(I18n.as("command.permission.denied"));
+                return false;
+            }
             String playerName = args[1];
             String warpsName = args[2];
             Player player = Bukkit.getPlayer(playerName);
@@ -110,10 +129,31 @@ public class WarpsCommands extends Command {
     @Override
     public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) throws IllegalArgumentException {
         List<String> list = new ArrayList<>();
-        if (args.length == 1 && (sender.isOp() || testPermission(sender))) {
+        if (args.length == 1) {
             for (String param : params) {
-                if (param.toLowerCase().startsWith(args[0].toLowerCase())) {
+                String permissionNode = switch (param) {
+                    case "set" -> "youer.command.warps.set";
+                    case "del" -> "youer.command.warps.del";
+                    case "tp" -> "youer.command.warps.tp";
+                    case "gui" -> "youer.command.warps.gui";
+                    default -> "youer.command.warps";
+                };
+
+                if (sender.hasPermission(permissionNode) && param.toLowerCase().startsWith(args[0].toLowerCase())) {
                     list.add(param);
+                }
+            }
+        }
+        else if (args.length == 2) {
+            String subCommand = args[0].toLowerCase();
+
+            if ((subCommand.equals("del") && sender.hasPermission("youer.command.warps.del")) ||
+                    (subCommand.equals("tp") && sender.hasPermission("youer.command.warps.tp"))) {
+
+                for (String warpName : WarpsConfig.INSTANCE.getAllWarpNames()) {
+                    if (warpName.toLowerCase().startsWith(args[1].toLowerCase())) {
+                        list.add(warpName);
+                    }
                 }
             }
         }

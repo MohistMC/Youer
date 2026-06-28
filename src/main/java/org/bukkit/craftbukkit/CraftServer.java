@@ -920,6 +920,11 @@ public final class CraftServer implements Server {
     }
 
     @Override
+    public Set<String> getWorldsByName() {
+        return new HashSet<>(worlds.keySet());
+    }
+
+    @Override
     public boolean isTickingWorlds() {
         return console.isIteratingOverLevels;
     }

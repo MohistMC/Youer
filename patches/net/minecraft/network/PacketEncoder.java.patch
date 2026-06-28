@@ -1,18 +1,63 @@
 --- a/net/minecraft/network/PacketEncoder.java
 +++ b/net/minecraft/network/PacketEncoder.java
-@@ -17,10 +_,12 @@
+@@ -1,11 +_,13 @@
+ package net.minecraft.network;
+ 
++import com.mohistmc.youer.feature.PacketStatistics;
+ import com.mojang.logging.LogUtils;
+ import io.netty.buffer.ByteBuf;
+ import io.netty.channel.ChannelHandlerContext;
+ import io.netty.handler.codec.MessageToByteEncoder;
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.PacketType;
++import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
+ import net.minecraft.util.profiling.jfr.JvmProfiler;
+ import org.slf4j.Logger;
+ 
+@@ -15,22 +_,36 @@
+ 
+     public PacketEncoder(ProtocolInfo<T> protocolInfo) {
          this.protocolInfo = protocolInfo;
++        PacketStatistics.startStatisticsUpdater(); // Youer
      }
  
 +    static final ThreadLocal<java.util.Locale> ADVENTURE_LOCALE = ThreadLocal.withInitial(() -> null); // Paper - adventure; set player's locale
      protected void encode(ChannelHandlerContext ctx, Packet<T> packet, ByteBuf output) throws Exception {
          PacketType<? extends Packet<? super T>> packetId = packet.type();
- 
+-
++        String protocolId = this.protocolInfo.id().id();
          try {
 +            ADVENTURE_LOCALE.set(ctx.channel().attr(io.papermc.paper.adventure.PaperAdventure.LOCALE_ATTRIBUTE).get()); // Paper - adventure; set player's locale
              this.protocolInfo.codec().encode(output, packet);
              int writtenBytes = output.readableBytes();
++
++            String packetClassName = packet.getClass().getName();
++            int lastDot = packetClassName.lastIndexOf('.');
++            if (lastDot >= 0) {
++                packetClassName = packetClassName.substring(lastDot + 1);
++            }
++            if (packetClassName.endsWith("ClientboundCustomPayloadPacket")) {
++                packetClassName = ((ClientboundCustomPayloadPacket)packet).payload().type().id().toString();
++            }
++
++            PacketStatistics.updatePacketStats(packetClassName, writtenBytes);
++
              if (LOGGER.isDebugEnabled()) {
+                 LOGGER.debug(
+-                    Connection.PACKET_SENT_MARKER,
+-                    "OUT: [{}:{}] {} -> {} bytes",
+-                    this.protocolInfo.id().id(),
+-                    packetId,
+-                    packet.getClass().getName(),
+-                    writtenBytes
++                        Connection.PACKET_SENT_MARKER,
++                        "OUT: [{}:{}] {} -> {} bytes | Total: {} bytes, {} packets",
++                        protocolId, packetId, packet.getClass().getName(), writtenBytes,
++                        PacketStatistics.getTotalBytesSent(),
++                        PacketStatistics.getTotalPacketsSent()
+                 );
+             }
+ 
 @@ -43,7 +_,37 @@
  
              throw t;

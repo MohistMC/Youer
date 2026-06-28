@@ -48,6 +48,9 @@ public class ItemStackFactory {
 
     public ItemStackFactory setDisplayName(String name) {
         ItemMeta im = this.item.getItemMeta();
+        if (im == null) {
+            return this;
+        }
         im.setDisplayName(name);
         this.item.setItemMeta(im);
         return this;
@@ -55,24 +58,29 @@ public class ItemStackFactory {
 
     public ItemStackFactory setEnchantment(Enchantment enchantment) {
         ItemMeta im = this.item.getItemMeta();
-        if (enchantment != null) {
-            im.addEnchant(enchantment, 1, false);
+        if (im == null || enchantment == null) {
+            return this;
         }
+        im.addEnchant(enchantment, 1, false);
         this.item.setItemMeta(im);
         return this;
     }
 
     public ItemStackFactory setEnchantment(Enchantment enchantment, int level) {
         ItemMeta im = this.item.getItemMeta();
-        if (enchantment != null) {
-            im.addEnchant(enchantment, level, false);
+        if (im == null || enchantment == null) {
+            return this;
         }
+        im.addEnchant(enchantment, level, false);
         this.item.setItemMeta(im);
         return this;
     }
 
     public ItemStackFactory setLore(List<String> lores) {
         ItemMeta im = this.item.getItemMeta();
+        if (im == null) {
+            return this;
+        }
         List<String> lores_ = lores.stream().map(this::hook).collect(Collectors.toList());
         im.setLore(lores_);
         this.item.setItemMeta(im);
@@ -81,6 +89,9 @@ public class ItemStackFactory {
 
     public ItemStackFactory addLore(String lore) {
         ItemMeta im = this.item.getItemMeta();
+        if (im == null) {
+            return this;
+        }
         List<String> lores = im.getLore();
         if (lores == null) {
             lores = new ArrayList<>();
@@ -93,6 +104,9 @@ public class ItemStackFactory {
 
     public ItemStackFactory customModelData(int customModelData) {
         ItemMeta im = this.item.getItemMeta();
+        if (im == null) {
+            return this;
+        }
         im.setCustomModelData(customModelData);
         this.item.setItemMeta(im);
         return this;
@@ -122,6 +136,9 @@ public class ItemStackFactory {
 
     public ItemStackFactory addItemFlags(ItemFlag... itemFlags) {
         ItemMeta im = this.item.getItemMeta();
+        if (im == null) {
+            return this;
+        }
         im.addItemFlags(itemFlags);
         this.item.setItemMeta(im);
         return this;
@@ -129,6 +146,9 @@ public class ItemStackFactory {
 
     public ItemStackFactory addItemRarity(ItemRarity rarity) {
         ItemMeta im = this.item.getItemMeta();
+        if (im == null) {
+            return this;
+        }
         im.setRarity(rarity);
         this.item.setItemMeta(im);
         return this;
@@ -137,7 +157,7 @@ public class ItemStackFactory {
     public ItemStackFactory head(String base64) {
         SkullMeta meta = (SkullMeta) this.item.getItemMeta();
         if (player != null) {
-            meta.setDisplayName(player.getName());
+            meta.displayName(player.name());
             ItemAPI.setSkullTexture(meta, base64);
             this.item.setItemMeta(meta);
         }
@@ -148,11 +168,11 @@ public class ItemStackFactory {
     public ItemStack buildHead() {
         if (isSkull() && player != null) {
             SkullMeta meta = (SkullMeta) this.item.getItemMeta();
-            meta.setDisplayName(player.getName());
+            meta.displayName(player.name());
             meta.setOwningPlayer(player);
             this.item.setItemMeta(meta);
         } else {
-            item.setType(Material.PLAYER_HEAD);
+            this.item = item.withType(Material.PLAYER_HEAD);
             SkullMeta meta = (SkullMeta) this.item.getItemMeta();
             this.item.setItemMeta(meta);
         }
