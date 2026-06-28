@@ -1,6 +1,6 @@
 <div align="center">
   <h1 align="center">Youer 26.2</h1>
-  <h3 align="center">Minecraft NeoForge Hybrid server implementing the Paper API</h3>
+  <h3 align="center">Minecraft NeoForge Hybrid server implementing the Paper/Purpur API</h3>
 
   <p align="center">
     <a href="https://github.com/MohistMC/Youer/stargazers">
@@ -23,8 +23,8 @@
 
 ## 🚀 Features
 
-- Hybrid server combining NeoForge mod support with Paper API compatibility
-- Seamless plugin support from Bukkit/Spigot/Paper ecosystem
+- Hybrid server combining NeoForge mod support with Paper/Purpur API compatibility
+- Seamless plugin support from Paper/Purpur ecosystem
 - Optimized performance and stability for modded environments
 
 ## 📊 Progress Status
@@ -33,7 +33,7 @@
 - [x] NeoForge ([4a632391a](https://github.com/neoforged/NeoForge/commit/4a632391a))
 - [x] Paper ([747c984fcb](https://github.com/PaperMC/Paper/commit/747c984fcb))
 - [ ] PurPur ([803bf624](https://github.com/PurpurMC/Purpur/commit/803bf624))
-  - [ ] api
+  - [x] api
   - [ ] server
 
 🔄 **Compatible Progress**
