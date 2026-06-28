@@ -112,7 +112,8 @@
 +            }
 +            // Spigot end
              injectDatafixingContext(chunkTag, dataFixContextTag);
-             chunkTag = this.dataFixType.update(this.fixerUpper, chunkTag, version, targetVersion);
+-            chunkTag = this.dataFixType.update(this.fixerUpper, chunkTag, version, targetVersion);
++            chunkTag = ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(this.getDataConverterType(), chunkTag, version, targetVersion); // Paper - rewrite dataconverter system
 +            // Spigot start
 +            if (stopBelowZero) {
 +                chunkTag.putString("Status", net.minecraft.core.registries.BuiltInRegistries.CHUNK_STATUS.getKey(net.minecraft.world.level.chunk.status.ChunkStatus.SPAWN).toString());
@@ -121,11 +122,26 @@
              removeDatafixingContext(chunkTag);
              NbtUtils.addDataVersion(chunkTag, targetVersion);
              return chunkTag;
-@@ -66,41 +_,59 @@
+@@ -66,41 +_,74 @@
          }
      }
  
 -    public CompoundTag upgradeChunkTag(CompoundTag chunkTag, int defaultVersion) {
++    // Paper start - rewrite data conversion system
++    private ca.spottedleaf.dataconverter.minecraft.datatypes.MCDataType getDataConverterType() {
++        if (this.dataFixType == DataFixTypes.CHUNK) {
++            return ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.CHUNK;
++        } else if (this.dataFixType == DataFixTypes.ENTITY_CHUNK) {
++            return ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.ENTITY_CHUNK;
++        } else if (this.dataFixType == DataFixTypes.POI_CHUNK) {
++            return ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.POI_CHUNK;
++        } else {
++            throw new UnsupportedOperationException("For " + this.dataFixType.name());
++        }
++    }
++    // Paper end - rewrite data conversion system
++
++
 +    public CompoundTag upgradeChunkTag(final CompoundTag chunkTag, final int defaultVersion) {
          return this.upgradeChunkTag(chunkTag, defaultVersion, null, SharedConstants.getCurrentVersion().dataVersion().version());
      }

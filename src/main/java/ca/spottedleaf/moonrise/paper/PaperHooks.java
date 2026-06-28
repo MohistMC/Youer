@@ -1,6 +1,7 @@
 package ca.spottedleaf.moonrise.paper;
 
 import ca.spottedleaf.moonrise.common.PlatformHooks;
+import ca.spottedleaf.moonrise.common.util.CoordinateUtils;
 import ca.spottedleaf.moonrise.paper.util.BaseChunkSystemHooks;
 import com.mojang.datafixers.DSL;
 import com.mojang.datafixers.DataFixer;
@@ -18,9 +19,11 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.EmptyBlockGetter;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.ChunkAccess;
+import net.minecraft.world.level.chunk.ImposterProtoChunk;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.storage.SerializableChunkData;
@@ -28,6 +31,13 @@ import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.phys.AABB;
 import java.util.List;
 import java.util.function.Predicate;
+import net.neoforged.neoforge.common.CommonHooks;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.entity.PartEntity;
+import net.neoforged.neoforge.event.EventHooks;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.level.ChunkDataEvent;
+import net.neoforged.neoforge.event.level.ChunkEvent;
 
 public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHooks {
 
@@ -40,34 +50,34 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
 
     @Override
     public int getLightEmission(final BlockState blockState, final BlockGetter world, final BlockPos pos) {
-        return blockState.getLightEmission();
+        return blockState.getLightEmission(world, pos);
     }
 
     @Override
     public Predicate<BlockState> maybeHasLightEmission() {
         return (final BlockState state) -> {
-            return state.getLightEmission() != 0;
+            return state.hasDynamicLightEmission() || state.getLightEmission(EmptyBlockGetter.INSTANCE, BlockPos.ZERO) != 0;
         };
     }
 
     @Override
     public boolean hasCurrentlyLoadingChunk() {
-        return false;
+        return true;
     }
 
     @Override
     public LevelChunk getCurrentlyLoadingChunk(final GenerationChunkHolder holder) {
-        return null;
+        return holder.currentlyLoading;
     }
 
     @Override
     public void setCurrentlyLoading(final GenerationChunkHolder holder, final LevelChunk levelChunk) {
-
+        holder.currentlyLoading = levelChunk;
     }
 
     @Override
     public void chunkFullStatusComplete(final LevelChunk newChunk, final ProtoChunk original) {
-
+        NeoForge.EVENT_BUS.post(new ChunkEvent.Load(newChunk, !(original instanceof ImposterProtoChunk)));
     }
 
     @Override
@@ -77,37 +87,42 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
 
     @Override
     public void onChunkHolderTicketChange(final ServerLevel world, final ChunkHolder holder, final int oldLevel, final int newLevel) {
+        final ChunkPos pos = holder.getPos();
 
+        EventHooks.fireChunkTicketLevelUpdated(
+                world, CoordinateUtils.getChunkKey(pos.x(), pos.z()),
+                oldLevel, newLevel, holder
+        );
     }
 
     @Override
     public void chunkUnloadFromWorld(final LevelChunk chunk) {
-
+        NeoForge.EVENT_BUS.post(new ChunkEvent.Unload(chunk));
     }
 
     @Override
     public void chunkSyncSave(final ServerLevel world, final ChunkAccess chunk, final SerializableChunkData data) {
-
+        NeoForge.EVENT_BUS.post(new ChunkDataEvent.Save(chunk, world, data));
     }
 
     @Override
     public void onChunkWatch(final ServerLevel world, final LevelChunk chunk, final ServerPlayer player) {
-
+        EventHooks.fireChunkWatch(player, chunk, world);
     }
 
     @Override
     public void onChunkUnWatch(final ServerLevel world, final ChunkPos chunk, final ServerPlayer player) {
-
+        EventHooks.fireChunkUnWatch(player, chunk, world);
     }
 
     @Override
     public void addToGetEntities(final Level world, final Entity entity, final AABB boundingBox, final Predicate<? super Entity> predicate, final List<Entity> into) {
-        final Collection<net.neoforged.neoforge.entity.PartEntity<?>> parts = ((ServerLevel)world).dragonParts();
+        final Collection<? extends PartEntity<?>> parts = world.dragonParts();
         if (parts.isEmpty()) {
             return;
         }
 
-        for (final net.neoforged.neoforge.entity.PartEntity<?> part : parts) {
+        for (final PartEntity<?> part : parts) {
             if (part != entity && part.getBoundingBox().intersects(boundingBox) && (predicate == null || predicate.test(part))) {
                 into.add(part);
             }
@@ -121,11 +136,11 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
             return;
         }
 
-        final Collection<net.neoforged.neoforge.entity.PartEntity<?>> parts = ((ServerLevel)world).dragonParts();
+        final Collection<? extends PartEntity<?>> parts = world.dragonParts();
         if (parts.isEmpty()) {
             return;
         }
-        for (final net.neoforged.neoforge.entity.PartEntity<?> part : parts) {
+        for (final PartEntity<?> part : parts) {
             if (!part.getBoundingBox().intersects(boundingBox)) {
                 continue;
             }
@@ -141,11 +156,14 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
 
     @Override
     public void entityMove(final Entity entity, final long oldSection, final long newSection) {
-
+        CommonHooks.onEntityEnterSection(entity, oldSection, newSection);
     }
 
     @Override
     public boolean screenEntity(final ServerLevel world, final Entity entity, final boolean fromDisk, final boolean event) {
+        if (event && NeoForge.EVENT_BUS.post(new EntityJoinLevelEvent(entity, entity.level(), fromDisk)).isCanceled()) {
+            return false;
+        }
         return true;
     }
 
@@ -230,8 +248,45 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
     @Override
     public CompoundTag convertNBT(final DSL.TypeReference type, final DataFixer dataFixer, final CompoundTag nbt,
                                   final int fromVersion, final int toVersion) {
+        // Paper start - optimise data conversion
+        if (type == net.minecraft.util.datafix.fixes.References.PLAYER) {
+            return ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(
+                    ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.PLAYER, nbt, fromVersion, toVersion
+            );
+        }
+        if (type == net.minecraft.util.datafix.fixes.References.CHUNK) {
+            return ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(
+                    ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.CHUNK, nbt, fromVersion, toVersion
+            );
+        }
+        if (type == net.minecraft.util.datafix.fixes.References.STRUCTURE) {
+            return ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(
+                    ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.STRUCTURE, nbt, fromVersion, toVersion
+            );
+        }
+        if (type == net.minecraft.util.datafix.fixes.References.POI_CHUNK) {
+            return ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(
+                    ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.POI_CHUNK, nbt, fromVersion, toVersion
+            );
+        }
+        if (type == net.minecraft.util.datafix.fixes.References.ENTITY_CHUNK) {
+            return ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(
+                    ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.ENTITY_CHUNK, nbt, fromVersion, toVersion
+            );
+        }
+        if (type == net.minecraft.util.datafix.fixes.References.ITEM_STACK) {
+            return ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(
+                    ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.ITEM_STACK, nbt, fromVersion, toVersion
+            );
+        }
+        if (type == net.minecraft.util.datafix.fixes.References.ENTITY || type == net.minecraft.util.datafix.fixes.References.ENTITY_TREE) {
+            return ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(
+                    ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.ENTITY, nbt, fromVersion, toVersion
+            );
+        }
+        // Paper end - optimise data conversion
         return (CompoundTag)dataFixer.update(
-            type, new Dynamic<>(NbtOps.INSTANCE, nbt), fromVersion, toVersion
+                type, new Dynamic<>(NbtOps.INSTANCE, nbt), fromVersion, toVersion
         ).getValue();
     }
 
@@ -242,7 +297,7 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
 
     @Override
     public void mainChunkLoad(final ChunkAccess chunk, final SerializableChunkData chunkData) {
-
+        NeoForge.EVENT_BUS.post(new ChunkDataEvent.Load(chunk, chunkData));
     }
 
     @Override

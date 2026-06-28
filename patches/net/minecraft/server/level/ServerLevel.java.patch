@@ -235,14 +235,14 @@
 +    // Paper end - optimise getPlayerByUUID
 +    // Paper start - rewrite chunk system
 +    private final ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.ViewDistanceHolder viewDistanceHolder = new ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.ViewDistanceHolder();
-+    private final ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader chunkLoader = new ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader((ServerLevel)(Object)this);
++    private final ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader chunkLoader = new ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader(this);
 +    private final ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.EntityDataController entityDataController;
 +    private final ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.PoiDataController poiDataController;
 +    private final ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.ChunkDataController chunkDataController;
 +    private final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler chunkTaskScheduler;
 +    private long lastMidTickFailure;
 +    private long tickedBlocksOrFluids;
-+    private final ca.spottedleaf.moonrise.common.misc.NearbyPlayers nearbyPlayers = new ca.spottedleaf.moonrise.common.misc.NearbyPlayers((ServerLevel)(Object)this);
++    private final ca.spottedleaf.moonrise.common.misc.NearbyPlayers nearbyPlayers = new ca.spottedleaf.moonrise.common.misc.NearbyPlayers(this);
 +    private static final LevelChunk[] EMPTY_LEVEL_CHUNKS = new LevelChunk[0];
 +    private final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> loadedChunks = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_LEVEL_CHUNKS);
 +    private final ca.spottedleaf.moonrise.common.list.ReferenceList<LevelChunk> tickingChunks = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_LEVEL_CHUNKS);
@@ -483,7 +483,7 @@
 +
 +    @Override
 +    public final void moonrise$addPlayerTickingRequest(final int chunkX, final int chunkZ) {
-+        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)(Object)this, chunkX, chunkZ, "Cannot add ticking request async");
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this, chunkX, chunkZ, "Cannot add ticking request async");
 +
 +        final long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ);
 +
@@ -492,7 +492,7 @@
 +            return;
 +        }
 +
-+        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder chunkHolder = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)(ServerLevel)(Object)this).moonrise$getChunkTaskScheduler()
++        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder chunkHolder = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this).moonrise$getChunkTaskScheduler()
 +                .chunkHolderManager.getChunkHolder(chunkKey);
 +
 +        if (chunkHolder == null || !chunkHolder.isTickingReady()) {
@@ -504,7 +504,7 @@
 +
 +    @Override
 +    public final void moonrise$removePlayerTickingRequest(final int chunkX, final int chunkZ) {
-+        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)(Object)this, chunkX, chunkZ, "Cannot remove ticking request async");
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this, chunkX, chunkZ, "Cannot remove ticking request async");
 +
 +        final long chunkKey = ca.spottedleaf.moonrise.common.util.CoordinateUtils.getChunkKey(chunkX, chunkZ);
 +        final int val = this.playerTickingRequests.addTo(chunkKey, -1);
@@ -518,7 +518,7 @@
 +            return;
 +        }
 +
-+        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder chunkHolder = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)(ServerLevel)(Object)this).moonrise$getChunkTaskScheduler()
++        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder chunkHolder = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this).moonrise$getChunkTaskScheduler()
 +                .chunkHolderManager.getChunkHolder(chunkKey);
 +
 +        if (chunkHolder == null || !chunkHolder.isTickingReady()) {
@@ -697,8 +697,8 @@
 -    }
 +
 +        // Paper start - rewrite chunk system
-+        this.moonrise$setEntityLookup(new ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup((ServerLevel)(Object)this, ((ServerLevel)(Object)this).new EntityCallbacks()));
-+        this.chunkTaskScheduler = new ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler((ServerLevel)(Object)this);
++        this.moonrise$setEntityLookup(new ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup(this, (this).new EntityCallbacks()));
++        this.chunkTaskScheduler = new ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler(this);
 +        this.entityDataController = new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.EntityDataController(
 +                new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.EntityDataController.EntityRegionFileStorage(
 +                        new RegionStorageInfo(levelStorage.getLevelId(), dimension, "entities"),
@@ -707,11 +707,11 @@
 +                ),
 +                this.chunkTaskScheduler
 +        );
-+        this.poiDataController = new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.PoiDataController((ServerLevel)(Object)this, this.chunkTaskScheduler);
-+        this.chunkDataController = new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.ChunkDataController((ServerLevel)(Object)this, this.chunkTaskScheduler);
++        this.poiDataController = new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.PoiDataController(this, this.chunkTaskScheduler);
++        this.chunkDataController = new ca.spottedleaf.moonrise.patches.chunk_system.io.datacontroller.ChunkDataController(this, this.chunkTaskScheduler);
 +        // Paper end - rewrite chunk system
 +        this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
-+        // net.neoforged.neoforge.attachment.LevelAttachmentsSavedData.init(this); Youer TODO
++        net.neoforged.neoforge.attachment.LevelAttachmentsSavedData.init(this);
 +    }
 +
 +    // Paper start
@@ -867,7 +867,7 @@
 +
 +    private void optimiseRandomTick(final LevelChunk chunk, final int tickSpeed) {
 +        final LevelChunkSection[] sections = chunk.getSections();
-+        final int minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection((ServerLevel)(Object)this);
++        final int minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection(this);
 +        final ca.spottedleaf.moonrise.common.util.SimpleThreadUnsafeRandom simpleRandom = this.simpleRandom;
 +        final boolean doubleTickFluids = !ca.spottedleaf.moonrise.common.PlatformHooks.get().configFixMC224294();
 +
@@ -900,11 +900,11 @@
 +                // do not use a mutable pos, as some random tick implementations store the input without calling immutable()!
 +                final BlockPos pos = new BlockPos((location & 15) | offsetX, ((location >>> (4 + 4)) & 15) | offsetY, ((location >>> 4) & 15) | offsetZ);
 +
-+                state.randomTick((ServerLevel)(Object)this, pos, simpleRandom);
++                state.randomTick(this, pos, simpleRandom);
 +                if (doubleTickFluids) {
 +                    final FluidState fluidState = state.getFluidState();
 +                    if (fluidState.isRandomlyTicking()) {
-+                        fluidState.randomTick((ServerLevel)(Object)this, pos, simpleRandom);
++                        fluidState.randomTick(this, pos, simpleRandom);
 +                    }
 +                }
 +            }

@@ -1,5 +1,15 @@
 --- a/net/minecraft/world/level/TicketStorage.java
 +++ b/net/minecraft/world/level/TicketStorage.java
+@@ -1,5 +_,9 @@
+ package net.minecraft.world.level;
+ 
++import ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2LongHashTable;
++import ca.spottedleaf.moonrise.common.util.CoordinateUtils;
++import ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel;
++import ca.spottedleaf.moonrise.patches.chunk_system.ticket.ChunkSystemTicketType;
+ import com.mojang.datafixers.util.Pair;
+ import com.mojang.logging.LogUtils;
+ import com.mojang.serialization.Codec;
 @@ -14,6 +_,7 @@
  import java.util.ArrayList;
  import java.util.Iterator;
@@ -399,7 +409,7 @@
      }
  
      @FunctionalInterface
-@@ -411,5 +_,42 @@
+@@ -411,5 +_,49 @@
  
      public interface TicketPredicate {
          boolean test(Ticket ticket, long chunkPos);
@@ -439,6 +449,13 @@
 +    }
 +
 +    public boolean shouldForceNaturalSpawning(ChunkPos chunkPos) {
-+        return chunksWithForceNaturalSpawning.contains(chunkPos.pack());
++        final ConcurrentChainedLong2LongHashTable counters = ((ChunkSystemServerLevel)this.moonrise$getChunkMap().level).moonrise$getChunkTaskScheduler()
++                .chunkHolderManager.getTicketCounters(ChunkSystemTicketType.COUNTER_TYPER_NATURAL_SPAWNING_FORCED);
++
++        if (counters == null || counters.isEmpty()) {
++            return false;
++        }
++
++        return counters.containsKey(CoordinateUtils.getChunkKey(chunkPos));
      }
  }

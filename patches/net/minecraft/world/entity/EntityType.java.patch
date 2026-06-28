@@ -240,19 +240,12 @@
      public String getDescriptionId() {
          return this.descriptionId;
      }
-@@ -292,7 +_,14 @@
+@@ -292,7 +_,7 @@
      }
  
      public boolean canSpawn(Level level) {
 -        return !this.isEnabled(level.enabledFeatures()) ? false : this.isAllowedInPeaceful() || level.getDifficulty() != Difficulty.PEACEFUL;
-+        // Paper start - peaceful override - pass item
-+        // We do not mark this method as DoNotUse as it is heavily used in #create, which would require every create call to pass a null component.
-+        // Not optimal but better than giant diffs everywhere, especially when the only two places that really have this additional data are spawn egg and summon.
-+        return canSpawn(level, null);
-+    }
-+    public boolean canSpawn(final Level level, @Nullable final CompoundTag tag) {
-+        return this.isEnabled(level.enabledFeatures()) && (this.isAllowedInPeaceful(tag) || level.getDifficulty() != Difficulty.PEACEFUL);
-+        // Paper end - peaceful override - pass item
++        return this.isEnabled(level.enabledFeatures()) && (this.isAllowedInPeaceful() || level.getDifficulty() != Difficulty.PEACEFUL);
      }
  
      public @Nullable T create(Level level, EntitySpawnReason reason) {
@@ -331,29 +324,14 @@
          return this != EntityTypes.PLAYER
              && this != EntityTypes.LLAMA_SPIT
              && this != EntityTypes.WITHER
-@@ -442,14 +_,32 @@
+@@ -442,14 +_,17 @@
          return this.builtInRegistryHolder;
      }
  
 -    public boolean isAllowedInPeaceful() {
-+    // Paper start
-+    public final boolean isTypeAllowedInPeaceful() {
++    public final boolean isAllowedInPeaceful() {
          return this.allowedInPeaceful;
      }
-+    public final boolean isAllowedInPeaceful(@Nullable CompoundTag tag) {
-+        if (tag == null || tag.isEmpty()) {
-+            return this.isTypeAllowedInPeaceful();
-+        }
-+        final var input = TagValueInput.create(net.minecraft.util.ProblemReporter.DISCARDING, MinecraftServer.getServer().registryAccess(), tag);
-+        final var override = Mob.readDespawnInPeacefulOverride(input);
-+        return !override.toBooleanOrElse(!this.isTypeAllowedInPeaceful());
-+    }
-+    // Audit all vanilla uses of this method to ensure per-entity override API applies where possible
-+    @io.papermc.paper.annotation.DoNotUse
-+    public final boolean isAllowedInPeaceful() {
-+        return this.isTypeAllowedInPeaceful();
-+        // Paper end
-+    }
  
      public boolean onlyOpCanSetNbt() {
 +        if (onlyOpCanSetNbt) return true;

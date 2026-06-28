@@ -90,7 +90,7 @@ public class Action {
             System.out.println("[Youer] There is an error with the installation, the neoforge / neoform version is not set.");
             System.exit(0);
         }
-
+        cleanMinecraftJars();
         tasks.add(new ConsoleToolTask(
                 "net.neoforged.installertools.ConsoleTool",
                 "--task", "PROCESS_MINECRAFT_JAR",
@@ -237,6 +237,28 @@ public class Action {
         @Override
         public void execute() throws Exception {
             run(mainClass, args);
+        }
+    }
+
+    public static void cleanMinecraftJars() {
+        String librariesPath = "libraries";
+        File librariesDir = new File(librariesPath);
+
+        if (!librariesDir.exists() || !librariesDir.isDirectory()) {
+            return;
+        }
+
+        File[] files = librariesDir.listFiles();
+        if (files == null) {
+            return;
+        }
+
+        for (File file : files) {
+            if (file.isFile() &&
+                    file.getName().toLowerCase().endsWith(".jar") &&
+                    file.getName().toLowerCase().startsWith("minecraft")) {
+                file.delete();
+            }
         }
     }
 }

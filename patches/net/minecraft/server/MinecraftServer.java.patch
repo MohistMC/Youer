@@ -186,7 +186,7 @@
      private final ServerFunctionManager functionManager;
      private boolean enforceWhitelist;
      private boolean usingWhitelist;
-@@ -291,12 +_,215 @@
+@@ -291,12 +_,216 @@
      private final SuppressedExceptionCollector suppressedExceptions = new SuppressedExceptionCollector();
      private final DiscontinuousFrame tickFrame;
      private final PacketProcessor packetProcessor;
@@ -398,6 +398,7 @@
 +    // Paper end - rewrite chunk system
 +
      public static <S extends MinecraftServer> S spin(Function<Thread, S> factory) {
++        ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.init(); // Paper - rewrite data converter system
          AtomicReference<S> serverReference = new AtomicReference<>();
 -        Thread thread = new Thread(() -> serverReference.get().runServer(), "Server thread");
 +        Thread thread = new ca.spottedleaf.moonrise.common.util.TickThread(net.neoforged.fml.util.thread.SidedThreadGroups.SERVER, () -> serverReference.get().runServer(), "Server thread");
@@ -906,7 +907,7 @@
              this.nextTickTimeNanos = Util.getNanos() + TimeUtil.NANOSECONDS_PER_MILLISECOND;
  
              for (ServerLevel level : this.getAllLevels()) {
-@@ -669,17 +_,14 @@
+@@ -669,17 +_,15 @@
              this.waitUntilNextTick();
          }
  
@@ -924,6 +925,7 @@
 +        // note: make sure we call deactivateTicketsOnClosing
 +        for (final ServerLevel world : this.getAllLevels()) {
 +            world.getChunkSource().deactivateTicketsOnClosing();
++            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.LevelEvent.Unload(world));
          }
 +        // Paper end - rewrite chunk system
 +
@@ -2037,19 +2039,19 @@
      public RegistryAccess.Frozen registryAccess() {
          return this.registries.compositeAccess();
      }
-@@ -2057,28 +_,45 @@
+@@ -2057,28 +_,44 @@
      }
  
      public void logChatMessage(Component message, ChatType.Bound chatType, @Nullable String tag) {
+-        String decoratedMessage = chatType.decorate(message).getString();
 +        // Paper start
-         String decoratedMessage = chatType.decorate(message).getString();
-+        net.kyori.adventure.text.Component adventureMessage = net.kyori.adventure.text.Component.text(decoratedMessage);
++        net.kyori.adventure.text.Component decoratedMessage = io.papermc.paper.adventure.PaperAdventure.asAdventure(chatType.decorate(message));
          if (tag != null) {
 -            LOGGER.info("[{}] {}", tag, decoratedMessage);
-+            COMPONENT_LOGGER.info("[{}] {}", tag, adventureMessage);
++            COMPONENT_LOGGER.info("[{}] {}", tag, decoratedMessage);
          } else {
 -            LOGGER.info("{}", decoratedMessage);
-+            COMPONENT_LOGGER.info("{}", adventureMessage);
++            COMPONENT_LOGGER.info("{}", decoratedMessage);
 +            // Paper end
          }
      }

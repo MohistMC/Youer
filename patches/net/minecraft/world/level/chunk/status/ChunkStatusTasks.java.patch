@@ -9,7 +9,7 @@
              context.generator()
                  .createStructures(
                      level.registryAccess(),
-@@ -188,7 +_,7 @@
+@@ -188,25 +_,80 @@
              } else {
                  levelChunk = new LevelChunk(level, protoChunk, lc -> {
                      try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(chunk.problemPath(), LOGGER)) {
@@ -18,7 +18,30 @@
                      }
                  });
                  holder.replaceProtoChunk(new ImposterProtoChunk(levelChunk, false));
-@@ -204,9 +_,53 @@
+             }
+ 
+             levelChunk.setFullStatus(holder::getFullStatus);
+-            levelChunk.runPostLoad();
++            try {
++                holder.currentlyLoading = levelChunk; // Neo: bypass the future chain when getChunk is called, this prevents deadlocks.
++                levelChunk.runPostLoad();
++            } finally {
++                holder.currentlyLoading = null; // Neo: Stop bypassing the future chain.
++            }
+             levelChunk.setLoaded(true);
+-            levelChunk.registerAllBlockEntitiesAfterLevelLoad();
+-            levelChunk.registerTickContainerInLevel(level);
+-            levelChunk.setUnsavedListener(context.unsavedListener());
++            try {
++                holder.currentlyLoading = levelChunk; // Neo: bypass the future chain when getChunk is called, this prevents deadlocks.
++                levelChunk.registerAllBlockEntitiesAfterLevelLoad();
++                levelChunk.registerTickContainerInLevel(level);
++                levelChunk.setUnsavedListener(context.unsavedListener());
++                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.ChunkEvent.Load(levelChunk, !(protoChunk instanceof ImposterProtoChunk)));
++            } finally {
++                holder.currentlyLoading = null; // Neo: Stop bypassing the future chain.
++            }
+             return levelChunk;
          }, context.mainThreadExecutor());
      }
  

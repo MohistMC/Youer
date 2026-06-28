@@ -483,7 +483,7 @@ public class PurpurConfig {
 
     public static boolean loggerSuppressInitLegacyMaterialError = false;
     public static boolean loggerSuppressIgnoredAdvancementWarnings = false;
-    public static boolean loggerSuppressUnrecognizedRecipeErrors = false;
+    public static boolean loggerSuppressUnrecognizedRecipeErrors = true;
     public static boolean loggerSuppressSetBlockFarChunk = false;
     public static boolean loggerSuppressLibraryLoader = false;
     private static void loggerSettings() {

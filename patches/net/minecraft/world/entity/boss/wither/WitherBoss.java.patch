@@ -335,10 +335,9 @@
  
      @Override
      public void checkDespawn() {
--        if (this.level().getDifficulty() == Difficulty.PEACEFUL && !this.getType().isAllowedInPeaceful()) {
--            this.discard();
 +        if (net.neoforged.neoforge.event.EventHooks.checkMobDespawn(this)) return;
-+        if (this.level().getDifficulty() == Difficulty.PEACEFUL && this.shouldDespawnInPeaceful()) { // Paper - allow changing despawnInPeaceful
+         if (this.level().getDifficulty() == Difficulty.PEACEFUL && !this.getType().isAllowedInPeaceful()) {
+-            this.discard();
 +            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
          } else {
              this.noActionTime = 0;
