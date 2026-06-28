@@ -1,6 +1,13 @@
 --- a/net/minecraft/world/item/MinecartItem.java
 +++ b/net/minecraft/world/item/MinecartItem.java
-@@ -35,7 +_,7 @@
+@@ -30,12 +_,13 @@
+         BlockPos pos = context.getClickedPos();
+         BlockState blockState = level.getBlockState(pos);
+         if (!blockState.is(BlockTags.RAILS)) {
+-            return InteractionResult.FAIL;
++            if (!level.purpurConfig.minecartPlaceAnywhere) return InteractionResult.FAIL; // Purpur - Minecart settings and WASD controls
++            if (blockState.isSolid()) pos = pos.relative(context.getClickedFace());
+         }
  
          ItemStack itemStack = context.getItemInHand();
          RailShape shape = blockState.getBlock() instanceof BaseRailBlock

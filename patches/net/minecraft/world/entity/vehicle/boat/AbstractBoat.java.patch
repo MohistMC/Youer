@@ -75,6 +75,14 @@
          this.applyEffectsFromBlocks();
          this.applyEffectsFromBlocks();
          this.tickBubbleColumn();
+@@ -393,6 +_,7 @@
+             float friction = this.getGroundFriction();
+             if (friction > 0.0F) {
+                 this.landFriction = friction;
++                if (level().purpurConfig.boatEjectPlayersOnLand) ejectPassengers(); // Purpur - Add option for boats to eject players on land
+                 return AbstractBoat.Status.ON_LAND;
+             } else {
+                 return AbstractBoat.Status.IN_AIR;
 @@ -418,7 +_,7 @@
                  for (int z = minZ; z < maxZ; z++) {
                      pos.set(x, y, z);
@@ -153,3 +161,18 @@
                  this.fallDistance -= (float)ya;
              }
          }
+@@ -782,7 +_,13 @@
+ 
+     @Override
+     public final ItemStack getPickResult() {
+-        return new ItemStack(this.dropItem.get());
++        // Purpur start - Apply display names from item forms of entities to entities and vice versa
++        final ItemStack boat = new ItemStack(this.dropItem.get());
++        if (!this.level().purpurConfig.persistentDroppableEntityDisplayNames) {
++            boat.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, null);
++        }
++        return boat;
++        // Purpur end - Apply display names from item forms of entities to entities and vice versa
+     }
+ 
+     @Override

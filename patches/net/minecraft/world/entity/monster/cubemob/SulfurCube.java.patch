@@ -17,6 +17,63 @@
      private static final EntityDataAccessor<Boolean> FROM_BUCKET = SynchedEntityData.defineId(SulfurCube.class, EntityDataSerializers.BOOLEAN);
      private static final boolean DEFAULT_FROM_BUCKET = false;
      private static final float HORIZONTAL_HIT_ANGLE_SCALE = 1.6F;
+@@ -129,6 +_,56 @@
+         this.goalSelector.addGoal(3, new SulfurCube.SulfurCubeSearchForItemsGoal(this));
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.sulfurCubeRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.sulfurCubeRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.sulfurCubeControllable;
++    }
++
++    @Override
++    public float getJumpPower() {
++        return 0.42F * this.getBlockJumpFactor(); // from EntityLiving
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    protected String getMaxHealthEquation() {return "size";}
++
++    @Override
++    protected String getAttackDamageEquation() {return "size";}
++
++    @Override
++    protected java.util.Map<Integer, Double> getMaxHealthCache() {return new java.util.HashMap<>();}
++
++    @Override
++    protected java.util.Map<Integer, Double> getAttackDamageCache() {return new java.util.HashMap<>();}
++    // Purpur start - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.sulfurCubeTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.sulfurCubeAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     public boolean fromBucket() {
+         return this.entityData.get(FROM_BUCKET);
 @@ -142,7 +_,7 @@
          return this.getFuse() >= 0;
      }

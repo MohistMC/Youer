@@ -1,5 +1,57 @@
 --- a/net/minecraft/world/entity/monster/skeleton/Skeleton.java
 +++ b/net/minecraft/world/entity/monster/skeleton/Skeleton.java
+@@ -26,6 +_,51 @@
+         super(type, level);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.skeletonRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.skeletonRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.skeletonControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.skeletonMaxHealth);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.skeletonTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.skeletonAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Check mobGriefing Overrides
++    @Override
++    public Boolean checkEntityPickUpLootOverride() {
++        return this.level().purpurConfig.skeletonCanPickUpLoot;
++    }
++    // Purpur end - Check mobGriefing Overrides
++
+     @Override
+     protected void defineSynchedData(SynchedEntityData.Builder entityData) {
+         super.defineSynchedData(entityData);
 @@ -93,11 +_,18 @@
      }
  
@@ -21,3 +73,68 @@
      }
  
      @Override
+@@ -124,4 +_,64 @@
+     protected SoundEvent getStepSound() {
+         return SoundEvents.SKELETON_STEP;
+     }
++
++    // Purpur start - Skeletons eat wither roses
++    private int witherRosesFed = 0;
++
++    @Override
++    public net.minecraft.world.InteractionResult mobInteract(net.minecraft.world.entity.player.Player player, net.minecraft.world.InteractionHand hand) {
++        net.minecraft.world.item.ItemStack stack = player.getItemInHand(hand);
++
++        if (level().purpurConfig.skeletonFeedWitherRoses > 0 && this.getType() != EntityTypes.WITHER_SKELETON && stack.getItem() == net.minecraft.world.level.block.Blocks.WITHER_ROSE.asItem()) {
++            return this.feedWitherRose(player, stack);
++        }
++
++        return super.mobInteract(player, hand);
++    }
++
++    private net.minecraft.world.InteractionResult feedWitherRose(net.minecraft.world.entity.player.Player player, net.minecraft.world.item.ItemStack stack) {
++        if (++witherRosesFed < level().purpurConfig.skeletonFeedWitherRoses) {
++            if (!player.getAbilities().instabuild) {
++                stack.shrink(1);
++            }
++            return net.minecraft.world.InteractionResult.CONSUME;
++        }
++
++        WitherSkeleton skeleton = EntityTypes.WITHER_SKELETON.create(level(), net.minecraft.world.entity.EntitySpawnReason.CONVERSION);
++        if (skeleton == null) {
++            return net.minecraft.world.InteractionResult.PASS;
++        }
++
++        skeleton.snapTo(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
++        skeleton.setHealth(this.getHealth());
++        skeleton.setAggressive(this.isAggressive());
++        skeleton.copyPosition(this);
++        skeleton.setYBodyRot(this.yBodyRot);
++        skeleton.setYHeadRot(this.getYHeadRot());
++        skeleton.yRotO = this.yRotO;
++        skeleton.xRotO = this.xRotO;
++
++        if (this.hasCustomName()) {
++            skeleton.setCustomName(this.getCustomName());
++        }
++
++        if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTransformEvent(this, skeleton, org.bukkit.event.entity.EntityTransformEvent.TransformReason.INFECTION).isCancelled()) {
++            return net.minecraft.world.InteractionResult.PASS;
++        }
++
++        this.level().addFreshEntity(skeleton);
++        this.remove(RemovalReason.DISCARDED, org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
++        if (!player.getAbilities().instabuild) {
++            stack.shrink(1);
++        }
++
++        for (int i = 0; i < 15; ++i) {
++            ((net.minecraft.server.level.ServerLevel) level()).sendParticlesSource(((net.minecraft.server.level.ServerLevel) level()).players(), null, net.minecraft.core.particles.ParticleTypes.HAPPY_VILLAGER,
++                    false, true,
++                    getX() + random.nextFloat(), getY() + (random.nextFloat() * 2), getZ() + random.nextFloat(), 1,
++                    random.nextGaussian() * 0.05D, random.nextGaussian() * 0.05D, random.nextGaussian() * 0.05D, 0);
++        }
++        return net.minecraft.world.InteractionResult.SUCCESS;
++    }
++    // Purpur end - Skeletons eat wither roses
+ }

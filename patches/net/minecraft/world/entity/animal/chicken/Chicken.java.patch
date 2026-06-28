@@ -1,0 +1,90 @@
+--- a/net/minecraft/world/entity/animal/chicken/Chicken.java
++++ b/net/minecraft/world/entity/animal/chicken/Chicken.java
+@@ -81,16 +_,77 @@
+         this.setPathfindingMalus(PathType.WATER, 0.0F);
+     }
+ 
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.chickenRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.chickenRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.chickenControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.chickenMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.chickenScale);
++        // Purpur start - Chickens can retaliate
++        if (level().purpurConfig.chickenRetaliate) {
++            this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(2.0D);
++        }
++        // Purpur end - Chickens can retaliate
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Make entity breeding times configurable
++    @Override
++    public int getPurpurBreedTime() {
++        return this.level().purpurConfig.chickenBreedingTicks;
++    }
++    // Purpur end - Make entity breeding times configurable
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.chickenTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.chickenAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(0, new FloatGoal(this));
+-        this.goalSelector.addGoal(1, new PanicGoal(this, 1.4));
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
++        //this.goalSelector.addGoal(1, new PanicGoal(this, 1.4)); // Purpur - Chickens can retaliate - moved down
+         this.goalSelector.addGoal(2, new BreedGoal(this, 1.0));
+         this.goalSelector.addGoal(3, new TemptGoal(this, 1.0, i -> i.is(ItemTags.CHICKEN_FOOD), false));
+         this.goalSelector.addGoal(4, new FollowParentGoal(this, 1.1));
+         this.goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, 1.0));
+         this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 6.0F));
+         this.goalSelector.addGoal(7, new RandomLookAroundGoal(this));
++        // Purpur start - Chickens can retaliate
++        if (level().purpurConfig.chickenRetaliate) {
++            this.goalSelector.addGoal(1, new net.minecraft.world.entity.ai.goal.MeleeAttackGoal(this, 1.0D, false));
++            this.targetSelector.addGoal(1, new net.minecraft.world.entity.ai.goal.target.HurtByTargetGoal(this));
++        } else {
++            this.goalSelector.addGoal(1, new PanicGoal(this, 1.4D));
++        }
++        // Purpur end - Chickens can retaliate
+     }
+ 
+     public Holder<ChickenSoundVariant> getSoundVariant() {
+@@ -111,7 +_,7 @@
+     }
+ 
+     public static AttributeSupplier.Builder createAttributes() {
+-        return Animal.createAnimalAttributes().add(Attributes.MAX_HEALTH, 4.0).add(Attributes.MOVEMENT_SPEED, 0.25);
++        return Animal.createAnimalAttributes().add(Attributes.MAX_HEALTH, 4.0).add(Attributes.MOVEMENT_SPEED, 0.25).add(Attributes.ATTACK_DAMAGE, 0.0D); // Purpur - Chickens can retaliate
+     }
+ 
+     @Override

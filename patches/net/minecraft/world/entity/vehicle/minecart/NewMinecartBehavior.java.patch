@@ -45,15 +45,18 @@
              return deltaMovement.length() < 0.03 ? Vec3.ZERO : deltaMovement.scale(0.5);
          } else {
              return deltaMovement;
-@@ -389,7 +_,7 @@
+@@ -389,9 +_,9 @@
      }
  
      private Vec3 calculateBoostTrackSpeed(Vec3 deltaMovement, BlockPos pos, BlockState state) {
 -        if (state.is(Blocks.POWERED_RAIL) && state.getValue(PoweredRailBlock.POWERED)) {
 +        if (state.getBlock() instanceof PoweredRailBlock poweredRail && !poweredRail.isActivatorRail() && state.getValue(PoweredRailBlock.POWERED)) {
              if (deltaMovement.length() > 0.01) {
-                 return deltaMovement.normalize().scale(deltaMovement.length() + 0.06);
+-                return deltaMovement.normalize().scale(deltaMovement.length() + 0.06);
++                return deltaMovement.normalize().scale(deltaMovement.length() + this.level().purpurConfig.poweredRailBoostModifier); // Purpur - Configurable powered rail boost modifier
              }
+ 
+             Vec3 powerDirection = this.minecart.getRedstoneDirection(pos);
 @@ -440,10 +_,11 @@
          }
  

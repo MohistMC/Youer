@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/TridentItem.java
 +++ b/net/minecraft/world/item/TridentItem.java
-@@ -68,57 +_,79 @@
+@@ -68,57 +_,89 @@
              int timeHeld = this.getUseDuration(itemStack, entity) - remainingTime;
              if (timeHeld < 10) {
                  return false;
@@ -111,6 +111,16 @@
 +                            yd *= riptideStrength / dist;
 +                            zd *= riptideStrength / dist;
 +                            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerRiptideEvent(player, itemStack, xd, yd, zd)) return false; // Paper - Add player riptide event
++                            // Purpur start - Implement elytra settings
++                            List<net.minecraft.world.entity.EquipmentSlot> list = net.minecraft.world.entity.EquipmentSlot.VALUES.stream().filter((enumitemslot) -> LivingEntity.canGlideUsing(entity.getItemBySlot(enumitemslot), enumitemslot)).toList();
++                            if (!list.isEmpty()) {
++                                net.minecraft.world.entity.EquipmentSlot enumitemslot = net.minecraft.util.Util.getRandom(list, entity.random);
++                                ItemStack glideItem = entity.getItemBySlot(enumitemslot);
++                                if (glideItem.has(net.minecraft.core.component.DataComponents.GLIDER) && level.purpurConfig.elytraDamagePerTridentBoost > 0) {
++                                    glideItem.hurtAndBreak(level.purpurConfig.elytraDamagePerTridentBoost, entity, enumitemslot);
++                                }
++                            }
++                            // Purpur end - Implement elytra settings
 +                            player.push(xd, yd, zd);
 +                            player.startAutoSpinAttack(20, 8.0F, itemStack);
 +                            if (player.onGround()) {

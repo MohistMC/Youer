@@ -14,41 +14,68 @@
  import org.jspecify.annotations.Nullable;
  
  public class HarvestFarmland extends Behavior<Villager> {
-@@ -46,7 +_,7 @@
+@@ -31,6 +_,7 @@
+     private long nextOkStartTime;
+     private int timeWorkedSoFar;
+     private final List<BlockPos> validFarmlandAroundVillager = Lists.newArrayList();
++    private boolean clericWartFarmer = false; // Purpur - Option for Villager Clerics to farm Nether Wart
+ 
+     public HarvestFarmland() {
+         super(
+@@ -46,14 +_,15 @@
      }
  
      protected boolean checkExtraStartConditions(ServerLevel level, Villager body) {
 -        if (!level.getGameRules().get(GameRules.MOB_GRIEFING)) {
+-            return false;
+-        }
+-
+-        if (!body.getVillagerData().profession().is(VillagerProfession.FARMER)) {
+-            return false;
+-        }
+-
 +        if (!net.neoforged.neoforge.event.EventHooks.canEntityGrief(level, body)) {
-             return false;
-         }
++            return false;
++        }
++
++        if (!body.getVillagerData().profession().is(VillagerProfession.FARMER) && !(level.purpurConfig.villagerClericsFarmWarts && body.getVillagerData().profession().is(VillagerProfession.CLERIC))) { // Purpur - Option for Villager Clerics to farm Nether Wart
++            return false;
++        }
++
++        if (!this.clericWartFarmer && body.getVillagerData().profession().is(VillagerProfession.CLERIC)) this.clericWartFarmer = true; // Purpur - Option for Villager Clerics to farm Nether Wart
+         BlockPos.MutableBlockPos mutPos = body.blockPosition().mutable();
+         this.validFarmlandAroundVillager.clear();
  
-@@ -82,7 +_,7 @@
+@@ -82,7 +_,8 @@
          BlockState state = level.getBlockState(blockPos);
          Block block = state.getBlock();
          Block blockBelow = level.getBlockState(blockPos.below()).getBlock();
 -        return block instanceof CropBlock cropBlock && cropBlock.isMaxAge(state) || state.isAir() && blockBelow instanceof FarmlandBlock;
++        if (this.clericWartFarmer) return block == net.minecraft.world.level.block.Blocks.NETHER_WART && state.getValue(net.minecraft.world.level.block.NetherWartBlock.AGE) == 3 || state.isAir() && block == net.minecraft.world.level.block.Blocks.SOUL_SAND; // Purpur - Option for Villager Clerics to farm Nether Wart
 +        return block instanceof CropBlock && ((CropBlock)block).isMaxAge(state) || state.isAir() && (blockBelow instanceof FarmlandBlock || blockBelow.builtInRegistryHolder().is(net.neoforged.neoforge.common.Tags.Blocks.VILLAGER_FARMLANDS));
      }
  
      protected void start(ServerLevel level, Villager body, long timestamp) {
-@@ -106,10 +_,12 @@
+@@ -105,21 +_,30 @@
+                 BlockState blockState = level.getBlockState(this.aboveFarmlandPos);
                  Block block = blockState.getBlock();
                  Block blockBelow = level.getBlockState(this.aboveFarmlandPos.below()).getBlock();
-                 if (block instanceof CropBlock cropBlock && cropBlock.isMaxAge(blockState)) {
+-                if (block instanceof CropBlock cropBlock && cropBlock.isMaxAge(blockState)) {
++                if (block instanceof CropBlock cropBlock && cropBlock.isMaxAge(blockState) && !this.clericWartFarmer || this.clericWartFarmer && block == net.minecraft.world.level.block.Blocks.NETHER_WART && blockState.getValue(net.minecraft.world.level.block.NetherWartBlock.AGE) == 3) { // Purpur - Option for Villager Clerics to farm Nether Wart
 +                    if (CraftEventFactory.callEntityChangeBlockEvent(body, this.aboveFarmlandPos, blockState.getFluidState().createLegacyBlock())) { // CraftBukkit // Paper - fix wrong block state
                      level.destroyBlock(this.aboveFarmlandPos, true, body);
 +                    } // CraftBukkit
                  }
  
 -                if (blockState.isAir() && blockBelow instanceof FarmlandBlock && body.hasFarmSeeds()) {
-+                if (blockState.isAir() && (blockBelow instanceof FarmlandBlock || blockBelow.builtInRegistryHolder().is(net.neoforged.neoforge.common.Tags.Blocks.VILLAGER_FARMLANDS)) && body.hasFarmSeeds()) {
++                if (blockState.isAir() && blockBelow instanceof FarmlandBlock &&  !this.clericWartFarmer || this.clericWartFarmer && blockBelow == net.minecraft.world.level.block.Blocks.SOUL_SAND && body.hasFarmSeeds()) { // Purpur - Option for Villager Clerics to farm Nether Wart
                      SimpleContainer inventory = body.getInventory();
  
                      for (int i = 0; i < inventory.getContainerSize(); i++) {
-@@ -117,9 +_,16 @@
+                         ItemStack itemStack = inventory.getItem(i);
                          boolean ok = false;
-                         if (!itemStack.isEmpty() && itemStack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS) && itemStack.getItem() instanceof BlockItem blockItem) {
+-                        if (!itemStack.isEmpty() && itemStack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS) && itemStack.getItem() instanceof BlockItem blockItem) {
++                        if (!itemStack.isEmpty() && (itemStack.is(ItemTags.VILLAGER_PLANTABLE_SEEDS) || this.clericWartFarmer && itemStack.getItem() == net.minecraft.world.item.Items.NETHER_WART) && itemStack.getItem() instanceof BlockItem blockItem) { // Purpur - Option for Villager Clerics to farm Nether Wart
                              BlockState place = blockItem.getBlock().defaultBlockState();
 +                            if (CraftEventFactory.callEntityChangeBlockEvent(body, this.aboveFarmlandPos, place)) { // CraftBukkit
                              level.setBlockAndUpdate(this.aboveFarmlandPos, place);
@@ -63,3 +90,12 @@
                          }
  
                          if (ok) {
+@@ -128,7 +_,7 @@
+                                 this.aboveFarmlandPos.getX(),
+                                 this.aboveFarmlandPos.getY(),
+                                 this.aboveFarmlandPos.getZ(),
+-                                SoundEvents.CROP_PLANTED,
++                                this.clericWartFarmer ? SoundEvents.NETHER_WART_PLANTED : SoundEvents.CROP_PLANTED, // Purpur - Option for Villager Clerics to farm Nether Wart
+                                 SoundSource.BLOCKS,
+                                 1.0F,
+                                 1.0F

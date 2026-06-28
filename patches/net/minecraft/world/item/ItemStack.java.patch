@@ -355,7 +355,7 @@
              return 0;
          } else {
              return amount > 0 ? EnchantmentHelper.processDurabilityChange(level, this, amount) : amount;
-@@ -462,13 +_,22 @@
+@@ -462,13 +_,28 @@
      }
  
      private void applyDamage(int newDamage, @Nullable ServerPlayer player, Consumer<Item> onBreak) {
@@ -377,6 +377,12 @@
 +                org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerItemBreakEvent(serverplayer, this);
 +            }
 +            // CraftBukkit end
++            // Purpur start - Implement elytra settings
++            if (this.has(DataComponents.GLIDER)) {
++                setDamageValue(this.getMaxDamage() - 1);
++                return;
++            }
++            // Purpur end - Implement elytra settings
              this.shrink(1);
              onBreak.accept(item);
          }

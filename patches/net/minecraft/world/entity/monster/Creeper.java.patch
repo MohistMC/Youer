@@ -10,14 +10,103 @@
  import org.jspecify.annotations.Nullable;
  
  public class Creeper extends Monster {
-@@ -55,6 +_,7 @@
+@@ -55,11 +_,96 @@
      public int maxSwell = 30;
      public int explosionRadius = 3;
      public boolean droppedSkulls;
-+    public Entity entityIgniter; // CraftBukkit
++    public @Nullable Entity entityIgniter; // CraftBukkit
++    private boolean exploding = false; // Purpur - Config to make Creepers explode on death
++    // Purpur start - Ridables
++    private int spacebarCharge = 0;
++    private int prevSpacebarCharge = 0;
++    private int powerToggleDelay = 0;
++    // Purpur end - Ridables
  
      public Creeper(EntityType<? extends Creeper> type, Level level) {
          super(type, level);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.creeperRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.creeperRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.creeperControllable;
++    }
++
++    @Override
++    protected void customServerAiStep(ServerLevel world) {
++        if (powerToggleDelay > 0) {
++            powerToggleDelay--;
++        }
++        if (getRider() != null && this.isControllable()) {
++            if (getRider().getForwardMot() != 0 || getRider().getStrafeMot() != 0) {
++                spacebarCharge = 0;
++                setIgnited(false);
++                setSwellDir(-1);
++            }
++            if (spacebarCharge == prevSpacebarCharge) {
++                spacebarCharge = 0;
++            }
++            prevSpacebarCharge = spacebarCharge;
++        }
++        super.customServerAiStep(world);
++    }
++
++    @Override
++    public void onMount(Player rider) {
++        super.onMount(rider);
++        setIgnited(false);
++        setSwellDir(-1);
++    }
++
++    @Override
++    public boolean onSpacebar() {
++        if (powerToggleDelay > 0) {
++            return true; // just toggled power, do not jump or ignite
++        }
++        spacebarCharge++;
++        if (spacebarCharge > maxSwell - 2) {
++            spacebarCharge = 0;
++            if (getRider() != null && getRider().getBukkitEntity().hasPermission("allow.powered.creeper")) {
++                powerToggleDelay = 20;
++                setPowered(!isPowered());
++                setIgnited(false);
++                setSwellDir(-1);
++                return true;
++            }
++        }
++        if (!isIgnited()) {
++            if (getRider() != null && getRider().getForwardMot() == 0 && getRider().getStrafeMot() == 0 &&
++                    getRider().getBukkitEntity().hasPermission("allow.special.creeper")) {
++                setIgnited(true);
++                setSwellDir(1);
++                return true;
++            }
++        }
++        return getForwardMot() == 0 && getStrafeMot() == 0; // do not jump if standing still
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.creeperMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.creeperScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(1, new FloatGoal(this));
 @@ -118,7 +_,7 @@
          this.maxSwell = input.getShortOr("Fuse", (short)30);
          this.explosionRadius = input.getByteOr("ExplosionRadius", (byte)3);
@@ -27,7 +116,7 @@
          }
      }
  
-@@ -151,10 +_,11 @@
+@@ -151,11 +_,47 @@
      }
  
      @Override
@@ -35,12 +124,50 @@
 +    public boolean setTarget(final @Nullable LivingEntity target, org.bukkit.event.entity.EntityTargetEvent.@Nullable TargetReason reason) { // CraftBukkit
          if (!(target instanceof Goat)) {
 -            super.setTarget(target);
+-        }
+-    }
 +            return super.setTarget(target, reason); // CraftBukkit
-         }
++        }
 +        return false; // CraftBukkit
-     }
++    }
++
++    // Purpur start - Special mobs naturally spawn
++    @Override
++    public net.minecraft.world.entity.SpawnGroupData finalizeSpawn(net.minecraft.world.level.ServerLevelAccessor world, net.minecraft.world.DifficultyInstance difficulty, net.minecraft.world.entity.EntitySpawnReason spawnReason, net.minecraft.world.entity.@Nullable SpawnGroupData entityData) {
++        double chance = world.getLevel().purpurConfig.creeperChargedChance;
++        if (chance > 0D && random.nextDouble() <= chance) {
++            setPowered(true);
++        }
++        return super.finalizeSpawn(world, difficulty, spawnReason, entityData);
++    }
++    // Purpur end - Special mobs naturally spawn
++
++    // Purpur start - Config to make Creepers explode on death
++    @Override
++    protected void dropAllDeathLoot(final ServerLevel level, final DamageSource source) {
++        if (!this.exploding && this.level().purpurConfig.creeperExplodeWhenKilled && source.getEntity() instanceof net.minecraft.server.level.ServerPlayer) {
++            this.explodeCreeper();
++        }
++        super.dropAllDeathLoot(level, source);
++    }
++    // Purpur end - Config to make Creepers explode on death
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.creeperTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.creeperAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
  
      @Override
+     public SoundEvent getHurtSound(DamageSource source) {
 @@ -168,15 +_,15 @@
      }
  
@@ -92,8 +219,11 @@
                      itemStack.shrink(1);
                  } else {
                      itemStack.hurtAndBreak(1, player, hand.asEquipmentSlot());
-@@ -231,18 +_,30 @@
+@@ -229,20 +_,34 @@
+     }
+ 
      public void explodeCreeper() {
++        this.exploding = true; // Purpur - Config to make Creepers explode on death
          if (this.level() instanceof ServerLevel level) {
              float explosionMultiplier = this.isPowered() ? 2.0F : 1.0F;
 -            this.dead = true;
@@ -101,13 +231,13 @@
 -            this.spawnLingeringCloud();
 -            this.triggerOnDeathMobEffects(level, Entity.RemovalReason.KILLED);
 -            this.discard();
-+
++            float multiplier = level.purpurConfig.creeperHealthRadius ? this.getHealth() / this.getMaxHealth() : 1; // Purpur - Config for health to impact Creeper explosion radius
 +            // CraftBukkit start
-+            ExplosionPrimeEvent event = CraftEventFactory.callExplosionPrimeEvent(this, this.explosionRadius * explosionMultiplier, false);
++            ExplosionPrimeEvent event = CraftEventFactory.callExplosionPrimeEvent(this, (this.explosionRadius * explosionMultiplier) * multiplier, false); // Purpur - Config for health to impact Creeper explosion radius
 +            if (!event.isCancelled()) {
 +                // CraftBukkit end
 +                this.dead = true;
-+                level.explode(this, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), Level.ExplosionInteraction.MOB); // CraftBukkit // Paper - fix DamageSource API (revert to vanilla, no, just no, don't change this)
++                level.explode(this, this.getX(), this.getY(), this.getZ(), event.getRadius(), event.getFire(), level.getGameRules().get(net.minecraft.world.level.gamerules.GameRules.MOB_GRIEFING) && level().purpurConfig.creeperAllowGriefing ? Level.ExplosionInteraction.MOB : Level.ExplosionInteraction.NONE); // CraftBukkit // Paper - fix DamageSource API (revert to vanilla, no, just no, don't change this) // Purpur - Add enderman and creeper griefing controls
 +                this.spawnLingeringCloud();
 +                this.triggerOnDeathMobEffects(level, Entity.RemovalReason.KILLED);
 +                this.discard(EntityRemoveEvent.Cause.EXPLODE); // CraftBukkit - add Bukkit remove cause
@@ -118,6 +248,7 @@
 +            }
 +            // CraftBukkit end
          }
++        this.exploding = false; // Purpur - Config to make Creepers explode on death
      }
  
      private void spawnLingeringCloud() {

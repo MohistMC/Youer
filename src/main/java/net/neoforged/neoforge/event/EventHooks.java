@@ -755,7 +755,7 @@ public class EventHooks {
      */
     public static boolean canEntityGrief(ServerLevel level, @Nullable Entity entity) {
         if (entity == null)
-            return ((entity instanceof net.minecraft.world.entity.projectile.hurtingprojectile.LargeFireball) ? level.getGameRules().get(GameRules.MOB_GRIEFING, level.purpurConfig.fireballsMobGriefingOverride) : level.getGameRules().get(GameRules.MOB_GRIEFING)); // Purpur - Add mobGriefing override to everything affected;
+            return level.getGameRules().get(GameRules.MOB_GRIEFING);
 
         return NeoForge.EVENT_BUS.post(new EntityMobGriefingEvent(level, entity)).canGrief();
     }

@@ -1,26 +1,28 @@
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
-@@ -8,8 +_,10 @@
- import com.mojang.datafixers.util.Either;
- import java.util.Collection;
- import java.util.List;
-+import java.util.Objects;
- import java.util.Optional;
- import java.util.OptionalInt;
-+import java.util.concurrent.atomic.AtomicBoolean;
- import java.util.function.Predicate;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Direction;
-@@ -121,11 +_,18 @@
+@@ -43,7 +_,6 @@
+ import net.minecraft.tags.DamageTypeTags;
+ import net.minecraft.tags.EntityTypeTags;
+ import net.minecraft.tags.FluidTags;
+-import net.minecraft.tags.ItemTags;
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.Unit;
+ import net.minecraft.util.Util;
+@@ -76,7 +_,6 @@
+ import net.minecraft.world.entity.animal.equine.AbstractHorse;
+ import net.minecraft.world.entity.animal.nautilus.AbstractNautilus;
+ import net.minecraft.world.entity.animal.parrot.Parrot;
+-import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
+ import net.minecraft.world.entity.decoration.ArmorStand;
+ import net.minecraft.world.entity.item.ItemEntity;
+ import net.minecraft.world.entity.monster.warden.WardenSpawnTracker;
+@@ -120,12 +_,14 @@
+ import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.scores.PlayerTeam;
- import net.minecraft.world.scores.Team;
+-import net.minecraft.world.scores.Team;
 +import org.bukkit.craftbukkit.entity.CraftHumanEntity;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
-+import org.bukkit.event.entity.EntityDamageEvent;
-+import org.bukkit.event.entity.EntityExhaustionEvent;
 +import org.bukkit.event.entity.EntityRemoveEvent;
-+import org.bukkit.event.player.PlayerBedEnterEvent;
  import org.jspecify.annotations.Nullable;
  
  import net.neoforged.neoforge.common.extensions.IPlayerExtension;
@@ -39,7 +41,7 @@
      public final InventoryMenu inventoryMenu;
      public AbstractContainerMenu containerMenu;
      protected FoodData foodData = new FoodData();
-@@ -173,6 +_,47 @@
+@@ -173,6 +_,46 @@
      private Optional<GlobalPos> lastDeathLocation = Optional.empty();
      public @Nullable FishingHook fishing;
      public float hurtDir;
@@ -59,7 +61,6 @@
 +
 +    // Purpur start - AFK API
 +    public void setAfk(boolean afk) {
-+
 +    }
 +
 +    public boolean isAfk() {
@@ -97,11 +98,16 @@
      }
  
      @Override
-@@ -232,6 +_,7 @@
+@@ -232,6 +_,12 @@
  
      @Override
      public void tick() {
 +        net.neoforged.neoforge.event.EventHooks.firePlayerTickPre(this);
++        // Purpur start - Burp delay
++        if (this.burpDelay > 0 && --this.burpDelay == 0) {
++            this.level().playSound(null, getX(), getY(), getZ(), SoundEvents.PLAYER_BURP, SoundSource.PLAYERS, 1.0F, this.level().getRandom().nextFloat() * 0.1F + 0.9F);
++        }
++        // Purpur end - Burp delay
          this.noPhysics = this.isSpectator();
          if (this.isSpectator() || this.isPassenger()) {
              this.setOnGround(false);
@@ -126,8 +132,21 @@
                  this.stopSleepInBed(false, true);
              }
          } else if (this.sleepCounter > 0) {
-@@ -284,6 +_,7 @@
+@@ -282,8 +_,20 @@
+             this.turtleHelmetTick();
+         }
  
++        // Purpur start - Full netherite armor grants fire resistance
++        if (this.level().purpurConfig.playerNetheriteFireResistanceDuration > 0 && this.level().getGameTime() % 20 == 0) {
++            if (this.getItemBySlot(EquipmentSlot.HEAD).is(Items.NETHERITE_HELMET)
++                    && this.getItemBySlot(EquipmentSlot.CHEST).is(Items.NETHERITE_CHESTPLATE)
++                    && this.getItemBySlot(EquipmentSlot.LEGS).is(Items.NETHERITE_LEGGINGS)
++                    && this.getItemBySlot(EquipmentSlot.FEET).is(Items.NETHERITE_BOOTS)) {
++                this.addEffect(new MobEffectInstance(MobEffects.FIRE_RESISTANCE, this.level().purpurConfig.playerNetheriteFireResistanceDuration, this.level().purpurConfig.playerNetheriteFireResistanceAmplifier, this.level().purpurConfig.playerNetheriteFireResistanceAmbient, this.level().purpurConfig.playerNetheriteFireResistanceShowParticles, this.level().purpurConfig.playerNetheriteFireResistanceShowIcon), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.NETHERITE_ARMOR);
++            }
++        }
++        // Purpur end - Full netherite armor grants fire resistance
++
          this.cooldowns.tick();
          this.updatePlayerPose();
 +        net.neoforged.neoforge.event.EventHooks.firePlayerTickPost(this);
@@ -189,6 +208,15 @@
              super.rideTick();
          }
      }
+@@ -468,7 +_,7 @@
+             List<Entity> orbs = Lists.newArrayList();
+ 
+             for (Entity entity : entities) {
+-                if (entity.is(EntityTypes.EXPERIENCE_ORB)) {
++                if (entity.is(EntityTypes.EXPERIENCE_ORB) && entity.level().purpurConfig.playerExpPickupDelay >= 0) { // Purpur - Configurable player pickup exp delay
+                     orbs.add(entity);
+                 } else if (!entity.isRemoved()) {
+                     this.touch(entity);
 @@ -526,6 +_,7 @@
  
      @Override
@@ -449,7 +477,7 @@
                      boolean criticalAttack = fullStrengthAttack && this.canCriticalAttack(entity);
 +                    // Neo: Fire the critical hit event and override the critical hit status and damage multiplier based on the event.
 +                    // The boolean local above (flag2) is the vanilla critical hit result.
-+                    var critEvent = net.neoforged.neoforge.common.CommonHooks.fireCriticalHit(this, entity, criticalAttack, criticalAttack ? 1.5F : 1.0F);
++                    var critEvent = net.neoforged.neoforge.common.CommonHooks.fireCriticalHit(this, entity, criticalAttack, criticalAttack ? (float) this.level().purpurConfig.playerCriticalDamageMultiplier : 1.0F); // Purpur - Add config change multiplier critical damage value
 +                    criticalAttack = criticalAttack && !this.level().paperConfig().entities.behavior.disablePlayerCrits; // Paper - Toggleable player crits
                      if (criticalAttack) {
 -                        baseDamage *= 1.5F;
@@ -677,6 +705,15 @@
          super.stopSleeping();
          if (this.level() instanceof ServerLevel && updateLevelList) {
              ((ServerLevel)this.level()).updateSleepingPlayerList();
+@@ -1406,7 +_,7 @@
+     }
+ 
+     @Override
+-    protected boolean canGlide() {
++    public boolean canGlide() {
+         return !this.abilities.flying && super.canGlide();
+     }
+ 
 @@ -1430,7 +_,8 @@
  
      @Override
@@ -790,6 +827,45 @@
      }
  
      public Optional<WardenSpawnTracker> getWardenSpawnTracker() {
+@@ -1606,7 +_,23 @@
+ 
+     @Override
+     protected int getBaseExperienceReward(ServerLevel level) {
+-        return !level.getGameRules().get(GameRules.KEEP_INVENTORY) && !this.isSpectator() ? Math.min(this.experienceLevel * 7, 100) : 0;
++        // Purpur start - Add player death exp control options
++        if (!level.getGameRules().get(GameRules.KEEP_INVENTORY) && !this.isSpectator()) {
++            int toDrop;
++            try {
++                toDrop = Math.round(((Number) scriptEngine.eval("let expLevel = " + experienceLevel + "; " +
++                        "let expTotal = " + totalExperience + "; " +
++                        "let exp = " + experienceProgress + "; " +
++                        level().purpurConfig.playerDeathExpDropEquation)).floatValue());
++            } catch (javax.script.ScriptException e) {
++                e.printStackTrace();
++                toDrop = experienceLevel * 7;
++            }
++            return Math.min(toDrop, level().purpurConfig.playerDeathExpDropMax);
++        } else {
++            return 0;
++        }
++        // Purpur end - Add player death exp control options
+     }
+ 
+     @Override
+@@ -1650,6 +_,13 @@
+         return this.inventory.add(itemStack);
+     }
+ 
++    // Purpur start - Player ridable in water option
++    @Override
++    public boolean dismountsUnderwater() {
++        return !level().purpurConfig.playerRidableInWater;
++    }
++    // Purpur end - Player ridable in water option
++
+     public abstract @Nullable GameType gameMode();
+ 
+     @Override
 @@ -1678,7 +_,11 @@
  
      @Override

@@ -15,7 +15,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class ArmorStand extends LivingEntity {
-@@ -88,9 +_,16 @@
+@@ -88,9 +_,18 @@
      private boolean invisible = false;
      public long lastHit;
      public int disabledSlots = 0;
@@ -25,10 +25,12 @@
 +    public boolean canTickSetByAPI = false;
 +    private boolean noTickEquipmentDirty = false;
 +    // Paper end - Allow ArmorStands not to tick
++    public boolean canMovementTick = true; // Purpur - Movement options for armor stands
  
      public ArmorStand(EntityType<? extends ArmorStand> type, Level level) {
          super(type, level);
-+        if (level != null) this.canTick = level.paperConfig().entities.armorStands.tick; // Paper - Allow ArmorStands not to tick
++        if (level != null) this.canMovementTick = level.purpurConfig.armorstandMovement; // Purpur - Movement options for armor stands
++        this.setShowArms(level != null && level.purpurConfig.armorstandPlaceWithArms); // Purpur - Config to show Armor Stand arms on spawn
      }
  
      public ArmorStand(Level level, double x, double y, double z) {
@@ -249,7 +251,7 @@
                  }
  
                  return true;
-@@ -386,31 +_,45 @@
+@@ -386,31 +_,46 @@
          float health = this.getHealth();
          health -= dmg;
          if (health <= 0.5F) {
@@ -268,9 +270,11 @@
 -    private void brokenByPlayer(ServerLevel level, DamageSource source) {
 +    private org.bukkit.event.entity.EntityDeathEvent brokenByPlayer(ServerLevel level, DamageSource source) { // Paper
          ItemStack result = new ItemStack(Items.ARMOR_STAND);
-         result.set(DataComponents.CUSTOM_NAME, this.getCustomName());
+-        result.set(DataComponents.CUSTOM_NAME, this.getCustomName());
 -        Block.popResource(this.level(), this.blockPosition(), result);
 -        this.brokenByAnything(level, source);
++        if (level.purpurConfig.persistentDroppableEntityDisplayNames) // Purpur - Apply display names from item forms of entities to entities and vice versa
++            result.set(DataComponents.CUSTOM_NAME, this.getCustomName());
 +        this.deathDropItems = new java.util.ArrayList<>(); // Paper
 +        this.deathDropItems.add(new DefaultDrop(result, stack -> Block.popResource(this.level(), this.blockPosition(), stack))); // CraftBukkit - add to drops // Paper - Restore vanilla drops behavior
 +        return this.brokenByAnything(level, source); // Paper
@@ -303,7 +307,7 @@
      }
  
      private void playBrokenSound() {
-@@ -458,9 +_,44 @@
+@@ -458,9 +_,45 @@
          return this.isSmall();
      }
  
@@ -317,6 +321,7 @@
 +    // Paper start - Allow ArmorStands not to tick
 +    @Override
 +    public void tick() {
++        maxUpStep = level().purpurConfig.armorstandStepHeight; // Purpur - Add option to set armorstand step height
 +        if (!this.canTick) {
 +            if (this.noTickEquipmentDirty) {
 +                this.noTickEquipmentDirty = false;
@@ -349,7 +354,7 @@
          this.gameEvent(GameEvent.ENTITY_DIE);
      }
  
-@@ -707,4 +_,13 @@
+@@ -707,4 +_,28 @@
                  .apply(i, ArmorStand.ArmorStandPose::new)
          );
      }
@@ -362,4 +367,19 @@
 +        }
 +    }
 +    // Paper end
++
++    // Purpur start - Movement options for armor stands
++    @Override
++    protected boolean updateFluidInteraction() {
++        if (this.level().purpurConfig.armorstandWaterMovement &&
++                (this.level().purpurConfig.armorstandWaterFence || !(level().getBlockState(blockPosition().below()).getBlock() instanceof net.minecraft.world.level.block.FenceBlock)))
++            return super.updateFluidInteraction();
++        return false;
++    }
++
++    @Override
++    public void aiStep() {
++        if (this.canMovementTick && this.canMove) super.aiStep();
++    }
++    // Purpur end - Movement options for armor stands
  }

@@ -127,15 +127,34 @@
      }
  
      protected static void wasHurtBy(ServerLevel level, Piglin body, LivingEntity attacker) {
-@@ -647,7 +_,7 @@
+@@ -646,8 +_,11 @@
+     }
  
      public static boolean isWearingSafeArmor(LivingEntity livingEntity) {
-         for (EquipmentSlot slot : EquipmentSlotGroup.ARMOR) {
+-        for (EquipmentSlot slot : EquipmentSlotGroup.ARMOR) {
 -            if (livingEntity.getItemBySlot(slot).is(ItemTags.PIGLIN_SAFE_ARMOR)) {
-+            if (livingEntity.getItemBySlot(slot).makesPiglinsNeutral(livingEntity)) {
++        for (EquipmentSlot equipmentSlot : EquipmentSlotGroup.ARMOR) {
++            // Purpur start - piglins ignore gold-trimmed armor
++            net.minecraft.world.item.ItemStack itemStack = livingEntity.getItemBySlot(equipmentSlot);
++            if (itemStack.is(ItemTags.PIGLIN_SAFE_ARMOR) || (livingEntity.level().purpurConfig.piglinIgnoresArmorWithGoldTrim && isWearingGoldTrim(itemStack))) {
++                // Purpur end - piglins ignore gold-trimmed armor
                  return true;
              }
          }
+@@ -655,6 +_,13 @@
+         return false;
+     }
+ 
++    // Purpur start - piglins ignore gold-trimmed armor
++    private static boolean isWearingGoldTrim(net.minecraft.world.item.ItemStack itemstack) {
++        net.minecraft.world.item.equipment.trim.ArmorTrim armorTrim = itemstack.getComponents().get(net.minecraft.core.component.DataComponents.TRIM);
++        return armorTrim != null && armorTrim.material().is(net.minecraft.world.item.equipment.trim.TrimMaterials.GOLD);
++    }
++    // Purpur end - piglins ignore gold-trimmed armor
++
+     private static void stopWalking(Piglin body) {
+         body.getBrain().eraseMemory(MemoryModuleType.WALK_TARGET);
+         body.getNavigation().stop();
 @@ -797,7 +_,7 @@
      }
  

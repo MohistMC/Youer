@@ -114,6 +114,22 @@
          this.entityData.set(DATA_STRENGTH_ID, Math.max(1, Math.min(5, strength)));
      }
  
+@@ -104,6 +_,7 @@
+         super.addAdditionalSaveData(output);
+         output.store("Variant", Llama.Variant.LEGACY_CODEC, this.getVariant());
+         output.putInt("Strength", this.getStrength());
++        output.putBoolean("Purpur.ShouldJoinCaravan", shouldJoinCaravan); // Purpur - Llama API
+     }
+ 
+     @Override
+@@ -111,6 +_,7 @@
+         this.setStrength(input.getIntOr("Strength", 0));
+         super.readAdditionalSaveData(input);
+         this.setVariant(input.read("Variant", Llama.Variant.LEGACY_CODEC).orElse(Llama.Variant.DEFAULT));
++        this.shouldJoinCaravan = input.getBooleanOr("Purpur.ShouldJoinCaravan", true); // Purpur - Llama API
+     }
+ 
+     @Override
 @@ -191,12 +_,12 @@
              heal = 10.0F;
              if (this.isTamed() && this.getAge() == 0 && this.canFallInLove()) {
@@ -138,3 +154,19 @@
      }
  
      @Override
+@@ -386,6 +_,7 @@
+ 
+     public void leaveCaravan() {
+         if (this.caravanHead != null) {
++            new org.purpurmc.purpur.event.entity.LlamaLeaveCaravanEvent((org.bukkit.entity.Llama) getBukkitEntity()).callEvent(); // Purpur - Llama API
+             this.caravanHead.caravanTail = null;
+         }
+ 
+@@ -393,6 +_,7 @@
+     }
+ 
+     public void joinCaravan(Llama tail) {
++        if (!this.level().purpurConfig.llamaJoinCaravans || !shouldJoinCaravan || !new org.purpurmc.purpur.event.entity.LlamaJoinCaravanEvent((org.bukkit.entity.Llama) getBukkitEntity(), (org.bukkit.entity.Llama) tail.getBukkitEntity()).callEvent()) return; // Purpur - Llama API // Purpur - Config to disable Llama caravans
+         this.caravanHead = tail;
+         this.caravanHead.caravanTail = this;
+     }

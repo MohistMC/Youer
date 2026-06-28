@@ -1,0 +1,72 @@
+--- a/net/minecraft/world/entity/animal/squid/Squid.java
++++ b/net/minecraft/world/entity/animal/squid/Squid.java
+@@ -54,6 +_,69 @@
+         this.tentacleSpeed = 1.0F / (this.random.nextFloat() + 1.0F) * 0.2F;
+     }
+ 
++    // Purpur start - Stop squids floating on top of water
++    @Override
++    public net.minecraft.world.phys.AABB getAxisForFluidCheck() {
++        // Stops squids from floating just over the water
++        return super.getAxisForFluidCheck().offsetY(level().purpurConfig.squidOffsetWaterCheck);
++    }
++    // Purpur end - Stop squids floating on top of water
++
++    // Purpur start - Flying squids! Oh my!
++    public boolean canFly() {
++        return this.level().purpurConfig.squidsCanFly;
++    }
++
++    @Override
++    public boolean isInWater() {
++        return this.wasTouchingWater || canFly();
++    }
++    // Purpur end - Flying squids! Oh my!
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.squidRidable;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.squidControllable;
++    }
++
++    protected static void rotateVectorAroundY(org.bukkit.util.Vector vector, double degrees) {
++        double rad = Math.toRadians(degrees);
++        double cos = Math.cos(rad);
++        double sine = Math.sin(rad);
++        double x = vector.getX();
++        double z = vector.getZ();
++        vector.setX(cos * x - sine * z);
++        vector.setZ(sine * x + cos * z);
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.squidMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.squidScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.squidTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.squidAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(0, new Squid.SquidRandomMovementGoal(this));

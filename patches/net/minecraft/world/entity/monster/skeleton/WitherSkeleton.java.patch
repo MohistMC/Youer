@@ -1,5 +1,58 @@
 --- a/net/minecraft/world/entity/monster/skeleton/WitherSkeleton.java
 +++ b/net/minecraft/world/entity/monster/skeleton/WitherSkeleton.java
+@@ -34,6 +_,52 @@
+         this.setPathfindingMalus(PathType.LAVA, 8.0F);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.witherSkeletonRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.witherSkeletonRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.witherSkeletonControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.witherSkeletonMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.witherSkeletonScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.witherSkeletonTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.witherSkeletonAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Check mobGriefing Overrides
++    @Override
++    public Boolean checkEntityPickUpLootOverride() {
++        return this.level().purpurConfig.witherSkeletonCanPickUpLoot;
++    }
++    // Purpur end - Check mobGriefing Overrides
++
+     @Override
+     protected void registerGoals() {
+         this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, AbstractPiglin.class, true));
 @@ -93,13 +_,13 @@
      public boolean doHurtTarget(ServerLevel level, Entity target) {
          if (!super.doHurtTarget(level, target)) {

@@ -21,7 +21,7 @@
  public class ZombieVillager extends Zombie implements VillagerDataHolder {
      public static final EntityDataAccessor<Boolean> DATA_CONVERTING_ID = SynchedEntityData.defineId(ZombieVillager.class, EntityDataSerializers.BOOLEAN);
      private static final EntityDataAccessor<VillagerData> DATA_VILLAGER_DATA = SynchedEntityData.defineId(
-@@ -80,6 +_,7 @@
+@@ -80,11 +_,79 @@
      private static final EntityDimensions BABY_DIMENSIONS = EntityDimensions.scalable(0.49F, 0.98F)
          .withEyeHeight(0.67F)
          .withAttachments(EntityAttachments.builder().attach(EntityAttachment.VEHICLE, 0.0F, 0.125F, 0.0F));
@@ -29,7 +29,79 @@
  
      public ZombieVillager(EntityType<? extends ZombieVillager> type, Level level) {
          super(type, level);
-@@ -151,13 +_,18 @@
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.zombieVillagerRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.zombieVillagerRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.zombieVillagerControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.zombieVillagerMaxHealth);
++    }
++
++    @Override
++    protected void randomizeReinforcementsChance() {
++        this.getAttribute(net.minecraft.world.entity.ai.attributes.Attributes.SPAWN_REINFORCEMENTS_CHANCE).setBaseValue(this.random.nextDouble() * this.level().purpurConfig.zombieVillagerSpawnReinforcements);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Configurable jockey options
++    @Override
++    public boolean jockeyOnlyBaby() {
++        return level().purpurConfig.zombieVillagerJockeyOnlyBaby;
++    }
++
++    @Override
++    public double jockeyChance() {
++        return level().purpurConfig.zombieVillagerJockeyChance;
++    }
++
++    @Override
++    public boolean jockeyTryExistingChickens() {
++        return level().purpurConfig.zombieVillagerJockeyTryExistingChickens;
++    }
++    // Purpur end - Configurable jockey options
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.zombieVillagerTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.zombieVillagerAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Check mobGriefing Overrides
++    @Override
++    public Boolean checkEntityPickUpLootOverride() {
++        return this.level().purpurConfig.zombieVillagerCanPickUpLoot;
++    }
++    // Purpur end - Check mobGriefing Overrides
++
+     @Override
+     protected void defineSynchedData(SynchedEntityData.Builder entityData) {
+         super.defineSynchedData(entityData);
+@@ -151,23 +_,28 @@
      public void tick() {
          if (!this.level().isClientSide() && this.isAlive() && this.isConverting()) {
              int amount = this.getConversionProgress();
@@ -49,6 +121,18 @@
      }
  
      @Override
+     public InteractionResult mobInteract(Player player, InteractionHand hand) {
+         ItemStack itemStack = player.getItemInHand(hand);
+         if (itemStack.is(Items.GOLDEN_APPLE)) {
+-            if (this.hasEffect(MobEffects.WEAKNESS)) {
++            if (this.hasEffect(MobEffects.WEAKNESS) && level().purpurConfig.zombieVillagerCureEnabled) { // Purpur - Add option to disable zombie villagers cure
+                 itemStack.consume(1, player);
+                 if (!this.level().isClientSide()) {
+-                    this.startConverting(player.getUUID(), this.random.nextInt(2401) + 3600);
++                    this.startConverting(player.getUUID(), this.random.nextInt(level().purpurConfig.zombieVillagerCuringTimeMax - level().purpurConfig.zombieVillagerCuringTimeMin + 1) + level().purpurConfig.zombieVillagerCuringTimeMin); // Purpur - Customizable Zombie Villager curing times
+                 }
+ 
+                 return InteractionResult.SUCCESS_SERVER;
 @@ -194,12 +_,20 @@
      }
  

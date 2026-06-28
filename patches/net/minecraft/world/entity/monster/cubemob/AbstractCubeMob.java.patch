@@ -1,13 +1,46 @@
 --- a/net/minecraft/world/entity/monster/cubemob/AbstractCubeMob.java
 +++ b/net/minecraft/world/entity/monster/cubemob/AbstractCubeMob.java
-@@ -49,6 +_,7 @@
+@@ -49,6 +_,8 @@
      public float squish;
      public float oSquish;
      private boolean wasOnGround = false;
 +    private boolean canWander = true; // Paper - Slime pathfinder events
++    protected boolean actualJump; // Purpur - Ridables
  
      protected AbstractCubeMob(EntityType<? extends AbstractCubeMob> type, Level level) {
          super(type, level);
+@@ -69,6 +_,31 @@
+ 
+     protected abstract void addTargetingGoals();
+ 
++    // Purpur start - Configurable entity base attributes
++    protected abstract String getMaxHealthEquation();
++
++    protected abstract String getAttackDamageEquation();
++
++    protected abstract java.util.Map<Integer, Double> getMaxHealthCache();
++
++    protected abstract java.util.Map<Integer, Double> getAttackDamageCache();
++
++    protected double getFromCache(java.util.function.Supplier<String> equation, java.util.function.Supplier<java.util.Map<Integer, Double>> cache, java.util.function.Supplier<Double> defaultValue) {
++        int size = getSize();
++        Double value = cache.get().get(size);
++        if (value == null) {
++            try {
++                value = ((Number) scriptEngine.eval("let size = " + size + "; " + equation.get())).doubleValue();
++            } catch (javax.script.ScriptException e) {
++                e.printStackTrace();
++                value = defaultValue.get();
++            }
++            cache.get().put(size, value);
++        }
++        return value;
++    }
++    // Purpur end - Configurable entity base attributes
++
+     @Override
+     protected void defineSynchedData(SynchedEntityData.Builder entityData) {
+         super.defineSynchedData(entityData);
 @@ -101,6 +_,7 @@
          super.addAdditionalSaveData(output);
          output.putInt("Size", this.getSize() - 1);

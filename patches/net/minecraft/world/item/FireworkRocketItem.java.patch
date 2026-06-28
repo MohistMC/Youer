@@ -34,7 +34,7 @@
          }
  
          return InteractionResult.SUCCESS;
-@@ -59,13 +_,24 @@
+@@ -59,13 +_,35 @@
          if (player.isFallFlying()) {
              ItemStack itemStack = player.getItemInHand(hand);
              if (level instanceof ServerLevel serverLevel) {
@@ -48,6 +48,17 @@
 +                    if (player.dropAllLeashConnections(player, hand)) { // Paper - PlayerUnleashEntityEvent
 +                        level.playSound(null, player, SoundEvents.LEAD_BREAK, SoundSource.NEUTRAL, 1.0F, 1.0F);
 +                    }
++                    // Purpur start - Implement elytra settings
++                    if (level.purpurConfig.elytraDamagePerFireworkBoost > 0) {
++                        java.util.List<net.minecraft.world.entity.EquipmentSlot> list = net.minecraft.world.entity.EquipmentSlot.VALUES.stream().filter((enumitemslot) -> net.minecraft.world.entity.LivingEntity.canGlideUsing(player.getItemBySlot(enumitemslot), enumitemslot)).toList();
++                        net.minecraft.world.entity.EquipmentSlot enumitemslot = net.minecraft.util.Util.getRandom(list, player.random);
++
++                        ItemStack glideItem = player.getItemBySlot(enumitemslot);
++                        if (player.canGlide()) {
++                            glideItem.hurtAndBreak(level.purpurConfig.elytraDamagePerFireworkBoost, player, enumitemslot);
++                        }
++                    }
++                    // Purpur end - Implement elytra settings
 +                    if (event.shouldConsume() && !player.hasInfiniteMaterials()) {
 +                        itemStack.shrink(1); // Moved up from below
 +                    } else {

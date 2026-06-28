@@ -1,6 +1,93 @@
 --- a/net/minecraft/world/entity/monster/cubemob/Slime.java
 +++ b/net/minecraft/world/entity/monster/cubemob/Slime.java
-@@ -76,7 +_,11 @@
+@@ -45,6 +_,76 @@
+         this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, IronGolem.class, true));
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.slimeRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.slimeRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.slimeControllable;
++    }
++
++    @Override
++    public float getJumpPower() {
++        float height = super.getJumpPower();
++        return getRider() != null && this.isControllable() && actualJump ? height * 1.5F : height;
++    }
++
++    @Override
++    public boolean onSpacebar() {
++        if (onGround && getRider() != null && this.isControllable()) {
++            actualJump = true;
++            if (getRider().getForwardMot() == 0 || getRider().getStrafeMot() == 0) {
++                jumpFromGround(); // jump() here if not moving
++            }
++        }
++        return true; // do not jump() in wasd controller, let vanilla controller handle
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    protected String getMaxHealthEquation() {
++        return level().purpurConfig.slimeMaxHealth;
++    }
++
++    @Override
++    protected String getAttackDamageEquation() {
++        return level().purpurConfig.slimeAttackDamage;
++    }
++
++    @Override
++    protected java.util.Map<Integer, Double> getMaxHealthCache() {
++        return level().purpurConfig.slimeMaxHealthCache;
++    }
++
++    @Override
++    protected java.util.Map<Integer, Double> getAttackDamageCache() {
++        return level().purpurConfig.slimeAttackDamageCache;
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.slimeTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.slimeAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     public SoundEvent getHurtSound(DamageSource source) {
+         return this.isTiny() ? SoundEvents.SLIME_HURT_SMALL : SoundEvents.SLIME_HURT;
+@@ -71,12 +_,21 @@
+     }
+ 
+     public static boolean checkSlimeSpawnRules(EntityType<Slime> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random) {
++        // Purpur start - Config to disable hostile mob spawn on ice
++        if (net.minecraft.world.entity.monster.Monster.canSpawnInBlueAndPackedIce(level, pos)) {
++            return false;
++        }
++        // Purpur end - Config to disable hostile mob spawn on ice
+         if (level.getDifficulty() != Difficulty.PEACEFUL) {
+             if (EntitySpawnReason.isSpawner(spawnReason)) {
                  return checkMobSpawnRules(type, level, spawnReason, pos, random);
              }
  

@@ -1,0 +1,15 @@
+--- a/net/minecraft/world/entity/ai/behavior/TradeWithVillager.java
++++ b/net/minecraft/world/entity/ai/behavior/TradeWithVillager.java
+@@ -55,6 +_,12 @@
+                 throwHalfStack(body, ImmutableSet.of(Items.WHEAT), target);
+             }
+ 
++            // Purpur start - Option for Villager Clerics to farm Nether Wart
++            if (level.purpurConfig.villagerClericsFarmWarts && level.purpurConfig.villagerClericFarmersThrowWarts && body.getVillagerData().profession().is(VillagerProfession.CLERIC) && body.getInventory().countItem(Items.NETHER_WART) > Items.NETHER_WART.getDefaultMaxStackSize() / 2) {
++                throwHalfStack(body, ImmutableSet.of(Items.NETHER_WART), target);
++            }
++            // Purpur end - Option for Villager Clerics to farm Nether Wart
++
+             if (!this.trades.isEmpty() && body.getInventory().hasAnyOf(this.trades)) {
+                 throwHalfStack(body, this.trades, target);
+             }

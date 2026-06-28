@@ -47,3 +47,16 @@
          return size % 2 == 0 ? 0.5 : 0.0;
      }
  
+@@ -173,7 +_,11 @@
+         if (level.getGameRules().get(GameRules.ENTITY_DROPS)) {
+             this.playSound(SoundEvents.PAINTING_BREAK, 1.0F, 1.0F);
+             if (!(causedBy instanceof Player player && player.hasInfiniteMaterials())) {
+-                this.spawnAtLocation(level, Items.PAINTING);
++                // Purpur start - Apply display names from item forms of entities to entities and vice versa
++                final ItemStack painting = new ItemStack(Items.PAINTING);
++                if (!this.level().purpurConfig.persistentDroppableEntityDisplayNames) painting.set(net.minecraft.core.component.DataComponents.CUSTOM_NAME, null);
++                this.spawnAtLocation(level, painting);
++                // Purpur end - Apply display names from item forms of entities to entities and vice versa
+             }
+         }
+     }

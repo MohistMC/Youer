@@ -21,6 +21,15 @@
      private long lastGossipTime;
      private long lastGossipDecayTime = 0L;
      private int villagerXp = 0;
+@@ -147,7 +_,7 @@
+                 activities.add(
+                     ActivityData.create(
+                         Activity.WORK,
+-                        VillagerGoalPackages.getWorkPackage(profession, 0.5F),
++                        VillagerGoalPackages.getWorkPackage(profession, 0.5F, body.level().purpurConfig.villagerClericsFarmWarts), // Purpur - Option for Villager Clerics to farm Nether Wart
+                         ImmutableSet.of(Pair.of(MemoryModuleType.JOB_SITE, MemoryStatus.VALUE_PRESENT))
+                     )
+                 );
 @@ -180,6 +_,8 @@
          MemoryModuleType.MEETING_POINT,
          (villager, poiType) -> poiType.is(PoiTypes.MEETING)
@@ -133,7 +142,7 @@
 +
 +    // Purpur start - Check mobGriefing Overrides
 +    @Override
-+    protected Boolean checkEntityPickUpLootOverride() {
++    public Boolean checkEntityPickUpLootOverride() {
 +        return this.level().purpurConfig.villagerCanPickUpLoot;
 +    }
 +    // Purpur end - Check mobGriefing Overrides
@@ -141,7 +150,15 @@
      @Override
      public Brain<Villager> getBrain() {
          return (Brain<Villager>) super.getBrain();
-@@ -234,11 +_,35 @@
+@@ -227,18 +_,53 @@
+     }
+ 
+     public static AttributeSupplier.Builder createAttributes() {
+-        return Mob.createMobAttributes().add(Attributes.MOVEMENT_SPEED, 0.5);
++        return Mob.createMobAttributes().add(Attributes.MOVEMENT_SPEED, 0.5).add(Attributes.TEMPT_RANGE, 10.0D); // Purpur - Villagers follow emerald blocks
+     }
+ 
+     public boolean assignProfessionWhenSpawned() {
          return this.assignProfessionWhenSpawned;
      }
  
@@ -169,12 +186,23 @@
 +        // Paper start - EAR 2
 +        this.customServerAiStep(level, false);
 +    }
-+    protected void customServerAiStep(ServerLevel level, final boolean inactive) {
++    protected void customServerAiStep(ServerLevel level, boolean inactive) { // Purpur - Lobotomize stuck villagers
 +        // Paper end - EAR 2
          ProfilerFiller profiler = Profiler.get();
          profiler.push("villagerBrain");
 -        this.getBrain().tick(level, this);
-+        if (!inactive) this.getBrain().tick(level, this); // Paper - EAR 2
++        // Purpur start - Lobotomize stuck villagers
++        if (this.level().purpurConfig.villagerLobotomizeEnabled) {
++            // treat as inactive if lobotomized
++            inactive = inactive || checkLobotomized();
++        } else {
++            this.isLobotomized = false;
++        }
++        if (!inactive && (getRider() == null || !this.isControllable())) { // Purpur - Ridables
++            this.getBrain().tick(level, this); // Paper - EAR 2
++        }
++        else if (this.isLobotomized && shouldRestock(level)) restock();
++        // Purpur end - Lobotomize stuck villagers
          profiler.pop();
          if (this.assignProfessionWhenSpawned) {
              this.assignProfessionWhenSpawned = false;
@@ -213,6 +241,16 @@
              return super.mobInteract(player, hand);
          }
  
+@@ -312,6 +_,9 @@
+                 return InteractionResult.CONSUME;
+             }
+ 
++            if (level().purpurConfig.villagerRidable && itemStack.isEmpty()) return tryRide(player, hand); // Purpur - Ridables
++
++            if (this.level().purpurConfig.villagerAllowTrading) // Purpur - Add config for villager trading
+             this.startTrading(player);
+         }
+ 
 @@ -368,7 +_,13 @@
          this.updateDemand();
  
@@ -242,6 +280,15 @@
 +                // CraftBukkit end
              }
          }
+ 
+@@ -442,7 +_,7 @@
+ 
+     public void updateDemand() {
+         for (MerchantOffer offer : this.getOffers()) {
+-            offer.updateDemand();
++            offer.updateDemand(this.level().purpurConfig.villagerMinimumDemand); // Purpur - Configurable minimum demand for trades
+         }
+     }
  
 @@ -450,6 +_,7 @@
          int reputation = this.getPlayerReputation(player);
@@ -277,6 +324,15 @@
          Entity murderer = source.getEntity();
          if (murderer != null) {
              this.tellWitnessesThatIWasMurdered(murderer);
+@@ -650,7 +_,7 @@
+ 
+     @Override
+     public boolean canBreed() {
+-        return this.foodLevel + this.countFoodPointsInInventory() >= 12 && !this.isSleeping() && this.getAge() == 0;
++        return this.level().purpurConfig.villagerCanBreed && this.foodLevel + this.countFoodPointsInInventory() >= 12 && !this.isSleeping() && this.getAge() == 0; // Purpur - Configurable villager breeding
+     }
+ 
+     private boolean hungry() {
 @@ -701,7 +_,7 @@
          return VillagerData.canLevelUp(currentLevel) && this.villagerXp >= VillagerData.getMaxXpPerLevel(currentLevel);
      }
@@ -323,7 +379,12 @@
              && this.getInventory().canAddItem(itemStack);
      }
  
-@@ -806,16 +_,24 @@
+@@ -802,20 +_,28 @@
+     }
+ 
+     public boolean hasFarmSeeds() {
+-        return this.getInventory().hasAnyMatching(item -> item.is(ItemTags.VILLAGER_PLANTABLE_SEEDS));
++        return this.getInventory().hasAnyMatching(item -> this.level().purpurConfig.villagerClericsFarmWarts && this.getVillagerData().profession().is(VillagerProfession.CLERIC) ? item.is(Items.NETHER_WART) : item.is(ItemTags.VILLAGER_PLANTABLE_SEEDS));
      }
  
      @Override
@@ -350,6 +411,14 @@
      }
  
      public void gossip(ServerLevel level, Villager target, long timestamp) {
+@@ -839,6 +_,7 @@
+     }
+ 
+     public void spawnGolemIfNeeded(ServerLevel level, long timestamp, int villagersNeededToAgree) {
++        if (level.purpurConfig.villagerSpawnIronGolemRadius > 0 && level.getEntitiesOfClass(net.minecraft.world.entity.animal.golem.IronGolem.class, getBoundingBox().inflate(level.purpurConfig.villagerSpawnIronGolemRadius)).size() > level.purpurConfig.villagerSpawnIronGolemLimit) return; // Purpur - Implement configurable search radius for villagers to spawn iron golems
+         if (this.wantsToSpawnGolem(timestamp)) {
+             AABB villagerSearchBox = this.getBoundingBox().inflate(10.0, 10.0, 10.0);
+             List<Villager> nearbyVillagers = level.getEntitiesOfClass(Villager.class, villagerSearchBox);
 @@ -847,7 +_,7 @@
                  .limit(5L)
                  .toList();

@@ -131,6 +131,35 @@
      }
  
      @Override
+@@ -290,7 +_,27 @@
+         }
+ 
+         profiler.pop();
+-    }
++        incrementTicksSinceLastInteraction(); // Purpur - Entity lifespan
++    }
++
++    // Purpur start - Entity lifespan
++    private void incrementTicksSinceLastInteraction() {
++        ++this.ticksSinceLastInteraction;
++        if (getRider() != null) {
++            this.ticksSinceLastInteraction = 0;
++            return;
++        }
++        if (this.level().purpurConfig.entityLifeSpan <= 0) {
++            return; // feature disabled
++        }
++        if (!this.removeWhenFarAway(0) || isPersistenceRequired() || requiresCustomPersistence() || hasCustomName()) {
++            return; // mob persistent
++        }
++        if (this.ticksSinceLastInteraction > this.level().purpurConfig.entityLifeSpan) {
++            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
++        }
++    }
++    // Purpur end - Entity lifespan
+ 
+     @Override
+     protected void playHurtSound(DamageSource source) {
 @@ -345,6 +_,12 @@
          if (!this.level().isClientSide() && this.tickCount % 5 == 0) {
              this.updateControlFlags();
@@ -157,7 +186,7 @@
      @Override
      protected void addAdditionalSaveData(ValueOutput output) {
          super.addAdditionalSaveData(output);
-@@ -388,13 +_,31 @@
+@@ -388,13 +_,32 @@
          if (this.isNoAi()) {
              output.putBoolean("NoAI", this.isNoAi());
          }
@@ -170,6 +199,7 @@
 +        if (this.spawnType != null) {
 +            output.putString("neoforge:spawn_type", this.spawnType.name());
 +        }
++        output.putInt("Purpur.ticksSinceLastInteraction", this.ticksSinceLastInteraction); // Purpur - Entity lifespan
      }
  
      @Override
@@ -196,9 +226,9 @@
          this.lootTableSeed = input.getLongOr("DeathLootTableSeed", 0L);
          this.setNoAi(input.getBooleanOr("NoAI", false));
 -    }
-+        // CraftBukkit start
-+        this.aware = input.getBooleanOr("Bukkit.Aware", true);
-+        // CraftBukkit end
++        this.aware = input.getBooleanOr("Bukkit.Aware", true); // CraftBukkit
++        this.ticksSinceLastInteraction = input.getIntOr("Purpur.ticksSinceLastInteraction", 0); // Purpur- Entity lifespan
++        // Paper start - allow changing despawnInPeaceful
 +        // Paper start - allow changing despawnInPeaceful
 +        this.despawnInPeacefulOverride = readDespawnInPeacefulOverride(input);
 +        // Paper end - allow changing despawnInPeaceful
@@ -225,6 +255,17 @@
      }
  
      @Override
+@@ -454,9 +_,7 @@
+     @Override
+     public void aiStep() {
+         super.aiStep();
+-        if (this.is(EntityTypeTags.BURN_IN_DAYLIGHT)) {
+-            this.burnUndead();
+-        }
++        // Purpur - implemented in LivingEntity - API for any mob to burn daylight
+ 
+         ProfilerFiller profiler = Profiler.get();
+         profiler.push("looting");
 @@ -464,12 +_,17 @@
              && this.canPickUpLoot()
              && this.isAlive()
@@ -244,12 +285,13 @@
                      this.pickUpItem(serverLevel, entity);
                  }
              }
-@@ -478,6 +_,12 @@
+@@ -478,6 +_,13 @@
          profiler.pop();
      }
  
 +    // Purpur start - Check mobGriefing Overrides
-+    protected @Nullable Boolean checkEntityPickUpLootOverride() {
++    @Nullable
++    public Boolean checkEntityPickUpLootOverride() {
 +        return null;
 +    }
 +    // Purpur end - Check mobGriefing Overrides
@@ -257,7 +299,7 @@
      protected EquipmentSlot sunProtectionSlot() {
          return EquipmentSlot.HEAD;
      }
-@@ -496,6 +_,7 @@
+@@ -496,22 +_,14 @@
                      }
                  }
              } else {
@@ -265,6 +307,23 @@
                  this.igniteForSeconds(8.0F);
              }
          }
+     }
+ 
+     public boolean isSunBurnTick() {
+-        if (!this.level().isClientSide() && this.level().environmentAttributes().getValue(EnvironmentAttributes.MONSTERS_BURN, this.position())) {
+-            float br = this.getLightLevelDependentMagicValue();
+-            BlockPos roundedPos = BlockPos.containing(this.getX(), this.getEyeY(), this.getZ());
+-            boolean isInNonBurnableBlock = this.isInWaterOrRain() || this.isInPowderSnow || this.wasInPowderSnow;
+-            if (br > 0.5F && this.random.nextFloat() * 30.0F < (br - 0.4F) * 2.0F && !isInNonBurnableBlock && this.level().canSeeSky(roundedPos)) {
+-                return true;
+-            }
+-        }
+-
+-        return false;
++        return super.isSunBurnTick();// Purpur - implemented in Entity - API for any mob to burn daylight
+     }
+ 
+     protected Vec3i getPickupReach() {
 @@ -520,49 +_,61 @@
  
      protected void pickUpItem(ServerLevel level, ItemEntity entity) {
@@ -546,10 +605,12 @@
      public @Nullable SpawnGroupData finalizeSpawn(
          ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason spawnReason, @Nullable SpawnGroupData groupData
      ) {
-@@ -1090,6 +_,7 @@
+@@ -1089,7 +_,8 @@
+             );
          }
  
-         this.setLeftHanded(random.nextFloat() < 0.05F);
+-        this.setLeftHanded(random.nextFloat() < 0.05F);
++        this.setLeftHanded(random.nextFloat() < level.getLevel().purpurConfig.entityLeftHandedChance); // Purpur - Changeable Mob Left Handed Chance
 +        this.spawnType = spawnReason;
          return groupData;
      }
@@ -671,7 +732,12 @@
          }
  
          return result;
-@@ -1399,14 +_,24 @@
+@@ -1395,18 +_,29 @@
+         }
+ 
+         this.postPiercingAttack();
++        if (target instanceof net.minecraft.server.level.ServerPlayer) this.ticksSinceLastInteraction = 0; // Purpur - Entity lifespan
+         return wasHurt;
      }
  
      @Override

@@ -1,5 +1,82 @@
 --- a/net/minecraft/world/entity/monster/cubemob/MagmaCube.java
 +++ b/net/minecraft/world/entity/monster/cubemob/MagmaCube.java
+@@ -46,6 +_,64 @@
+         this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, IronGolem.class, true));
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.magmaCubeRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.magmaCubeRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.magmaCubeControllable;
++    }
++
++    @Override
++    public float getJumpPower() {
++        return 0.42F * this.getBlockJumpFactor(); // from EntityLiving
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    protected String getMaxHealthEquation() {
++        return level().purpurConfig.magmaCubeMaxHealth;
++    }
++
++    @Override
++    protected String getAttackDamageEquation() {
++        return level().purpurConfig.magmaCubeAttackDamage;
++    }
++
++    @Override
++    protected java.util.Map<Integer, Double> getMaxHealthCache() {
++        return level().purpurConfig.magmaCubeMaxHealthCache;
++    }
++
++    @Override
++    protected java.util.Map<Integer, Double> getAttackDamageCache() {
++        return level().purpurConfig.magmaCubeAttackDamageCache;
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.magmaCubeTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.magmaCubeAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     public static AttributeSupplier.Builder createAttributes() {
+         return Monster.createMonsterAttributes().add(Attributes.MOVEMENT_SPEED, 0.2F);
+     }
+@@ -53,6 +_,11 @@
+     public static boolean checkMagmaCubeSpawnRules(
+         EntityType<MagmaCube> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random
+     ) {
++        // Purpur start - Config to disable hostile mob spawn on ice
++        if (net.minecraft.world.entity.monster.Monster.canSpawnInBlueAndPackedIce(level, pos)) {
++            return false;
++        }
++        // Purpur end - Config to disable hostile mob spawn on ice
+         return level.getDifficulty() != Difficulty.PEACEFUL;
+     }
+ 
 @@ -96,17 +_,28 @@
          float sizeJumpBoostPower = this.getSize() * 0.1F;
          this.setDeltaMovement(movement.x, this.getJumpPower() + sizeJumpBoostPower, movement.z);

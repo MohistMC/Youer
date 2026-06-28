@@ -183,6 +183,37 @@
      public boolean canBreatheUnderwater() {
          return this.is(EntityTypeTags.CAN_BREATHE_UNDER_WATER);
      }
+@@ -430,6 +_,12 @@
+                 if (dist < 0.0) {
+                     double damagePerBlock = level.getWorldBorder().getDamagePerBlock();
+                     if (damagePerBlock > 0.0) {
++                        // Purpur start - Add option to teleport to spawn if outside world border
++                        if (this.level().purpurConfig.teleportIfOutsideBorder && this instanceof ServerPlayer serverPlayer) {
++                            serverPlayer.teleport(org.bukkit.craftbukkit.util.CraftLocation.toBukkit(this.level().getLevelData().getRespawnData().pos(), this.level()));
++                            return;
++                        }
++                        // Purpur end - Add option to teleport to spawn if outside world border
+                         this.hurtServer(level, this.damageSources().outOfBorder(), Math.max(1, Mth.floor(-dist * damagePerBlock)));
+                     }
+                 }
+@@ -445,7 +_,7 @@
+                     if (this.shouldTakeDrowningDamage()) {
+                         this.setAirSupply(0);
+                         level.broadcastEntityEvent(this, (byte)67);
+-                        this.hurtServer(level, this.damageSources().drown(), 2.0F);
++                        this.hurtServer(level, this.damageSources().drown(), (float) this.level().purpurConfig.damageFromDrowning); // Purpur - Drowning Settings
+                     }
+                 } else if (this.getAirSupply() < this.getMaxAirSupply() && MobEffectUtil.shouldEffectsRefillAirsupply(this)) {
+                     this.setAirSupply(this.increaseAirSupply(this.getAirSupply()));
+@@ -505,7 +_,7 @@
+     }
+ 
+     protected boolean shouldTakeDrowningDamage() {
+-        return this.getAirSupply() <= -20;
++        return this.getAirSupply() <= -this.level().purpurConfig.drowningDamageInterval; // Purpur - Drowning Settings
+     }
+ 
+     @Override
 @@ -574,7 +_,7 @@
          this.deathTime++;
          if (this.deathTime >= 20 && !this.level().isClientSide() && !this.isRemoved()) {
@@ -257,6 +288,14 @@
          output.putFloat("Health", this.getHealth());
          output.putShort("HurtTime", (short)this.hurtTime);
          output.putShort("DeathTime", (short)this.deathTime);
+@@ -759,6 +_,7 @@
+         output.putBoolean("FallFlying", this.isFallFlying());
+         this.getSleepingPos().ifPresent(sleepingPos -> output.store("sleeping_pos", BlockPos.CODEC, sleepingPos));
+         output.store("Brain", Brain.Packed.CODEC, this.brain.pack());
++        output.putBoolean("Purpur.ShouldBurnInDay", this.shouldBurnInDay); // Purpur - API for any mob to burn daylight
+         if (this.lastHurtByPlayer != null) {
+             this.lastHurtByPlayer.store(output, "last_hurt_by_player");
+             output.putInt("last_hurt_by_player_memory_time", this.lastHurtByPlayerMemoryTime);
 @@ -778,27 +_,74 @@
          }
      }
@@ -367,7 +406,7 @@
              boolean success = team != null && scoreboard.addPlayerToTeam(this.getStringUUID(), team);
              if (!success) {
                  LOGGER.warn("Unable to add mob to team \"{}\" (that team probably doesn't exist)", teamName);
-@@ -824,11 +_,13 @@
+@@ -824,13 +_,16 @@
          });
          this.setSharedFlag(7, input.getBooleanOr("FallFlying", false));
          input.read("sleeping_pos", BlockPos.CODEC).ifPresentOrElse(sleepingPos -> {
@@ -380,7 +419,10 @@
 +            } // Paper - The sleeping pos will always also set the actual pos, so a desync suggests something is wrong
          }, this::clearSleepingPos);
          input.read("Brain", Brain.Packed.CODEC).ifPresent(packedBrain -> this.brain = this.makeBrain(packedBrain));
++        this.shouldBurnInDay = input.getBooleanOr("Purpur.ShouldBurnInDay", this.shouldBurnInDay); // Purpur - API for any mob to burn daylight
          this.lastHurtByPlayer = EntityReference.read(input, "last_hurt_by_player");
+         this.lastHurtByPlayerMemoryTime = input.getIntOr("last_hurt_by_player_memory_time", 0);
+         this.lastHurtByMob = EntityReference.read(input, "last_hurt_by_mob");
 @@ -847,23 +_,42 @@
          this.updateDirtyEffects();
      }
@@ -436,15 +478,51 @@
              .toList();
          this.entityData.set(DATA_EFFECT_PARTICLES, visibleEffectParticles);
          this.entityData.set(DATA_EFFECT_AMBIENCE_ID, areAllEffectsAmbient(this.activeEffects.values()));
-@@ -944,6 +_,7 @@
-             }
-         }
+@@ -935,15 +_,34 @@
  
+         if (targetingEntity != null) {
+             ItemStack itemStack = this.getItemBySlot(EquipmentSlot.HEAD);
+-            if (targetingEntity.is(EntityTypes.SKELETON) && itemStack.is(Items.SKELETON_SKULL)
+-                || targetingEntity.is(EntityTypes.ZOMBIE) && itemStack.is(Items.ZOMBIE_HEAD)
+-                || targetingEntity.is(EntityTypes.PIGLIN) && itemStack.is(Items.PIGLIN_HEAD)
+-                || targetingEntity.is(EntityTypes.PIGLIN_BRUTE) && itemStack.is(Items.PIGLIN_HEAD)
+-                || targetingEntity.is(EntityTypes.CREEPER) && itemStack.is(Items.CREEPER_HEAD)) {
+-                visibilityPercent *= 0.5;
+-            }
+-        }
+-
++            // Purpur start - Mob head visibility percent
++            if (targetingEntity.is(EntityTypes.SKELETON) && itemStack.is(Items.SKELETON_SKULL)) {
++                visibilityPercent *= targetingEntity.level().purpurConfig.skeletonHeadVisibilityPercent;
++            }
++            else if (targetingEntity.is(EntityTypes.ZOMBIE) && itemStack.is(Items.ZOMBIE_HEAD)) {
++                visibilityPercent *= targetingEntity.level().purpurConfig.zombieHeadVisibilityPercent;
++            }
++            else if ((targetingEntity.is(EntityTypes.PIGLIN) || targetingEntity.is(EntityTypes.PIGLIN_BRUTE)) && itemStack.is(Items.PIGLIN_HEAD)) {
++                visibilityPercent *= targetingEntity.level().purpurConfig.piglinHeadVisibilityPercent;
++            }
++            else if (targetingEntity.is(EntityTypes.CREEPER) && itemStack.is(Items.CREEPER_HEAD)) {
++                visibilityPercent *= targetingEntity.level().purpurConfig.creeperHeadVisibilityPercent;
++            }
++            // Purpur end - Mob head visibility percent
++        }
++
++        // Purpur start - Configurable mob blindness
++        if (targetingEntity instanceof LivingEntity entityliving) {
++            if (entityliving.hasEffect(MobEffects.BLINDNESS)) {
++                int amplifier = entityliving.getEffect(MobEffects.BLINDNESS).getAmplifier();
++                for (int i = 0; i < amplifier; i++) {
++                    amplifier *= this.level().purpurConfig.mobsBlindnessMultiplier;
++                }
++            }
++        }
++        // Purpur end - Configurable mob blindness
++
 +        visibilityPercent = net.neoforged.neoforge.common.CommonHooks.getEntityVisibilityMultiplier(this, targetingEntity, visibilityPercent);
          return visibilityPercent;
      }
  
-@@ -973,19 +_,32 @@
+@@ -973,19 +_,33 @@
          this.entityData.set(DATA_EFFECT_PARTICLES, List.of());
      }
  
@@ -463,6 +541,7 @@
 +        } else {
 +            Map<Holder<MobEffect>, MobEffectInstance> map = new java.util.HashMap<>(this.activeEffects.size());
 +            for (Map.Entry<Holder<MobEffect>, MobEffectInstance> entry : this.activeEffects.entrySet()) {
++                if (removeAllEffects$cause.get() == EntityPotionEffectEvent.Cause.MILK && !this.level().purpurConfig.milkClearsBeneficialEffects && entry.getValue().getEffect().value().isBeneficial()) continue; // Purpur - Milk Keeps Beneficial Effects
 +                EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, entry.getValue(), null, removeAllEffects$cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN), EntityPotionEffectEvent.Action.CLEARED);
 +                if (!event.isCancelled() && !net.neoforged.neoforge.event.EventHooks.onEffectRemoved(this, entry.getValue())) {
 +                    map.put(entry.getKey(), entry.getValue());
@@ -726,7 +805,7 @@
          if (this.isDeadOrDying()) {
              return false;
          }
-@@ -1188,25 +_,47 @@
+@@ -1188,25 +_,63 @@
              return false;
          }
  
@@ -740,7 +819,24 @@
              this.stopSleeping();
          }
  
-         this.noActionTime = 0;
+-        this.noActionTime = 0;
++        // Purpur start - One Punch Man!
++        if (source.getEntity() instanceof net.minecraft.world.entity.player.Player player && source.getEntity().level().purpurConfig.creativeOnePunch && !source.is(DamageTypeTags.IS_PROJECTILE)) {
++            if (player.isCreative()) {
++                org.apache.commons.lang3.mutable.MutableDouble attackDamage = new org.apache.commons.lang3.mutable.MutableDouble();
++                player.getMainHandItem().forEachModifier(EquipmentSlot.MAINHAND, (attributeHolder, attributeModifier) -> {
++                    if (attributeModifier.operation() == AttributeModifier.Operation.ADD_VALUE) {
++                        attackDamage.addAndGet(attributeModifier.amount());
++                    }
++                });
++
++                if (attackDamage.doubleValue() == 0.0D) {
++                    // One punch!
++                    damage = this.getHealth();
++                }
++            }
++        }
++        // Purpur end - One Punch Man!this.noActionTime = 0;
 +        damage = this.damageContainers.peek().getNewDamage(); // Neo: enforce damage container as source of truth for damage amount
          if (damage < 0.0F) {
              damage = 0.0F;
@@ -953,16 +1049,18 @@
      public void playSecondaryHurtSound(DamageSource source) {
          if (source.is(DamageTypes.THORNS)) {
              SoundSource soundSource = this instanceof Player ? SoundSource.PLAYERS : SoundSource.HOSTILE;
-@@ -1365,9 +_,9 @@
+@@ -1364,10 +_,10 @@
+     protected @Nullable Player resolvePlayerResponsibleForDamage(DamageSource source) {
          Entity sourceEntity = source.getEntity();
          if (sourceEntity instanceof Player playerSource) {
-             this.setLastHurtByPlayer(playerSource, 100);
+-            this.setLastHurtByPlayer(playerSource, 100);
 -        } else if (sourceEntity instanceof Wolf wolf && wolf.isTame()) {
 -            if (wolf.getOwnerReference() != null) {
 -                this.setLastHurtByPlayer(wolf.getOwnerReference().getUUID(), 100);
++            this.setLastHurtByPlayer(playerSource, this.level().purpurConfig.mobLastHurtByPlayerTime); // Purpur - Config for mob last hurt by player time
 +        } else if (sourceEntity instanceof TamableAnimal tamableAnimal && tamableAnimal.isTame()) {
 +            if (tamableAnimal.getOwnerReference() != null) {
-+                this.setLastHurtByPlayer(tamableAnimal.getOwnerReference().getUUID(), 100);
++                this.setLastHurtByPlayer(tamableAnimal.getOwnerReference().getUUID(), this.level().purpurConfig.mobLastHurtByPlayerTime); // Purpur - Config for mob last hurt by player time
              } else {
                  this.lastHurtByPlayer = null;
                  this.lastHurtByPlayerMemoryTime = 0;
@@ -992,7 +1090,7 @@
      }
  
      private boolean checkTotemDeathProtection(DamageSource killingDamage) {
-@@ -1393,18 +_,35 @@
+@@ -1393,18 +_,45 @@
          ItemStack protectionItem = null;
          DeathProtection protection = null;
  
@@ -1013,7 +1111,17 @@
 +            }
 +        }
 +
-+        // CraftBukkit start
++        // Purpur start - Totems work in inventory
++        if (level().purpurConfig.totemOfUndyingWorksInInventory && this instanceof ServerPlayer player && (itemStack == null || itemStack.getItem() != Items.TOTEM_OF_UNDYING) && player.getBukkitEntity().hasPermission("purpur.inventory_totem")) {
++            for (ItemStack item : player.getInventory().getNonEquipmentItems()) {
++                if (item.getItem() == Items.TOTEM_OF_UNDYING) {
++                    itemStack = item;
++                    protectionItem = item.copy();
++                    break;
++                }
++            }
++        }
++        // Purpur end - Totems work in inventory
 +        org.bukkit.inventory.EquipmentSlot handSlot = (foundHand != null) ? org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(foundHand) : null;
 +        org.bukkit.event.entity.EntityResurrectEvent event = new org.bukkit.event.entity.EntityResurrectEvent((org.bukkit.entity.LivingEntity) this.getBukkitEntity(), handSlot);
 +        event.setCancelled(protectionItem == null);
@@ -1138,15 +1246,19 @@
                      this.level().addFreshEntity(itemEntity);
                  }
              }
-@@ -1509,6 +_,7 @@
+@@ -1509,27 +_,41 @@
      }
  
      protected void dropAllDeathLoot(ServerLevel level, DamageSource source) {
 +        this.captureDrops(new java.util.ArrayList<>());
          boolean playerKilled = this.lastHurtByPlayerMemoryTime > 0;
          if (this.shouldDropLoot(level)) {
-             this.dropFromLootTable(level, source, playerKilled);
-@@ -1516,20 +_,31 @@
+-            this.dropFromLootTable(level, source, playerKilled);
+-            this.dropCustomDeathLoot(level, source, playerKilled);
++            if (!(source.is(net.minecraft.world.damagesource.DamageTypes.CRAMMING) && level().purpurConfig.disableDropsOnCrammingDeath)) { // Purpur - Disable loot drops on death by cramming
++                this.dropFromLootTable(level, source, playerKilled);
++                this.dropCustomDeathLoot(level, source, playerKilled);
++            }
          }
  
          this.dropEquipment(level);
@@ -1629,6 +1741,14 @@
          this.setSharedFlag(7, true);
          this.setSharedFlag(7, false);
      }
+@@ -2614,6 +_,7 @@
+             float dmg = (float)(diff * 10.0 - 3.0);
+             if (dmg > 0.0F) {
+                 this.playSound(this.getFallDamageSound((int)dmg), 1.0F, 1.0F);
++                if (level().purpurConfig.elytraKineticDamage) // Purpur - Toggle for kinetic damage
+                 this.hurt(this.damageSources().flyIntoWall(), dmg);
+             }
+         }
 @@ -2689,7 +_,7 @@
              double xd = Mth.clamp(delta.x, -0.15F, 0.15F);
              double zd = Mth.clamp(delta.z, -0.15F, 0.15F);
@@ -1809,7 +1929,7 @@
                  this.setTicksFrozen(Math.max(0, this.getTicksFrozen() - 2));
              }
  
-@@ -3145,6 +_,37 @@
+@@ -3145,9 +_,70 @@
  
          this.pushEntities();
          profiler.pop();
@@ -1847,6 +1967,39 @@
          if (this.level() instanceof ServerLevel serverLevel && this.isSensitiveToWater() && this.isInWaterOrRain()) {
              this.hurtServer(serverLevel, this.damageSources().drown(), 1.0F);
          }
++        // Purpur start - copied from Mob - API for any mob to burn daylight
++        if (this.isAlive()) {
++            boolean flag = this.shouldBurnInDay() && this.isSunBurnTick(); // Paper - shouldBurnInDay API // Purpur - use shouldBurnInDay() method to handle Phantoms properly - API for any mob to burn daylight
++            if (flag) {
++                EquipmentSlot equipmentSlot = this.sunProtectionSlot();
++                ItemStack itemBySlot = this.getItemBySlot(equipmentSlot);
++                if (!itemBySlot.isEmpty()) {
++                    if (itemBySlot.isDamageableItem()) {
++                        Item item = itemBySlot.getItem();
++                        itemBySlot.setDamageValue(itemBySlot.getDamageValue() + this.random.nextInt(2));
++                        if (itemBySlot.getDamageValue() >= itemBySlot.getMaxDamage()) {
++                            this.onEquippedItemBroken(item, equipmentSlot);
++                            this.setItemSlot(equipmentSlot, ItemStack.EMPTY);
++                        }
++                    }
++
++                    flag = false;
++                }
++
++                if (flag) {
++                    if (getRider() == null || !this.isControllable()) // Purpur - ignore mobs which are uncontrollable or without rider - API for any mob to burn daylight
++                        this.igniteForSeconds(8.0F);
++                }
++            }
++        }
++    }
++
++    protected EquipmentSlot sunProtectionSlot() {
++        return net.minecraft.world.entity.EquipmentSlot.HEAD;
++        // Purpur end - copied from Mob - API for any mob to burn daylight
+     }
+ 
+     protected void applyInput() {
 @@ -3167,6 +_,7 @@
          this.checkFallDistanceAccumulation();
          if (!this.level().isClientSide()) {
@@ -1855,6 +2008,24 @@
                  this.setSharedFlag(7, false);
                  return;
              }
+@@ -3177,7 +_,16 @@
+                 if (freeFallInterval % 2 == 0) {
+                     List<EquipmentSlot> slotsWithGliders = EquipmentSlot.VALUES.stream().filter(slot -> canGlideUsing(this.getItemBySlot(slot), slot)).toList();
+                     EquipmentSlot slotToDamage = Util.getRandom(slotsWithGliders, this.random);
+-                    this.getItemBySlot(slotToDamage).hurtAndBreak(1, this, slotToDamage);
++                    // Purpur start - Implement elytra settings
++                    int damage = level().purpurConfig.elytraDamagePerSecond;
++                    if (level().purpurConfig.elytraDamageMultiplyBySpeed > 0) {
++                        double speed = getDeltaMovement().lengthSqr();
++                        if (speed > level().purpurConfig.elytraDamageMultiplyBySpeed) {
++                            damage *= (int) speed;
++                        }
++                    }
++                    this.getItemBySlot(slotToDamage).hurtAndBreak(damage, this, slotToDamage);
++                    // Purpur end - Implement elytra settings
+                 }
+ 
+                 this.gameEvent(GameEvent.ELYTRA_GLIDE);
 @@ -3203,10 +_,25 @@
      }
  

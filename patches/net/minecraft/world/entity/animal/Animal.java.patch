@@ -26,10 +26,12 @@
  
      protected Animal(EntityType<? extends Animal> type, Level level) {
          super(type, level);
-@@ -141,8 +_,9 @@
+@@ -140,9 +_,10 @@
+         ItemStack itemStack = player.getItemInHand(hand);
          if (this.isFood(itemStack)) {
              int age = this.getAge();
-             if (player instanceof ServerPlayer serverPlayer && age == 0 && this.canFallInLove()) {
+-            if (player instanceof ServerPlayer serverPlayer && age == 0 && this.canFallInLove()) {
++            if (player instanceof ServerPlayer serverPlayer && age == 0 && this.canFallInLove() && (this.level().purpurConfig.animalBreedingCooldownSeconds <= 0 || !this.level().hasBreedingCooldown(player.getUUID(), this.getClass()))) { // Purpur - Add adjustable breeding cooldown to config
 +                final ItemStack breedCopy = itemStack.copy(); // Paper - Fix EntityBreedEvent copying
                  this.usePlayerItem(player, hand, itemStack);
 -                this.setInLove(serverPlayer);
@@ -66,7 +68,7 @@
  
          this.level().broadcastEntityEvent(this, (byte)18);
      }
-@@ -208,26 +_,58 @@
+@@ -208,26 +_,66 @@
  
      public void spawnChildFromBreeding(ServerLevel level, Animal partner) {
          AgeableMob offspring = this.getBreedOffspring(level, partner);
@@ -82,14 +84,22 @@
 +            return;
 +        }
          if (offspring != null) {
-             offspring.setBaby(true);
-             offspring.snapTo(this.getX(), this.getY(), this.getZ(), 0.0F, 0.0F);
--            this.finalizeSpawnChildFromBreeding(level, partner, offspring);
--            level.addFreshEntityWithPassengers(offspring);
 +            // CraftBukkit start - call EntityBreedEvent
 +            ServerPlayer breeder = Optional.ofNullable(this.getLoveCause()).or(() -> {
 +                return Optional.ofNullable(partner.getLoveCause());
 +            }).orElse(null);
++            // Purpur start - Add adjustable breeding cooldown to config
++            if (breeder != null && level.purpurConfig.animalBreedingCooldownSeconds > 0) {
++                if (level.hasBreedingCooldown(breeder.getUUID(), this.getClass())) {
++                    return;
++                }
++                level.addBreedingCooldown(breeder.getUUID(), this.getClass());
++            }
+             offspring.setBaby(true);
+             offspring.snapTo(this.getX(), this.getY(), this.getZ(), 0.0F, 0.0F);
+-            this.finalizeSpawnChildFromBreeding(level, partner, offspring);
+-            level.addFreshEntityWithPassengers(offspring);
++            // Purpur end - Add adjustable breeding cooldown to config
 +            int experience = this.getRandom().nextInt(7) + 1;
 +            EntityBreedEvent entityBreedEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityBreedEvent(offspring, this, partner, breeder, this.breedItem, experience);
 +            if (entityBreedEvent.isCancelled()) {

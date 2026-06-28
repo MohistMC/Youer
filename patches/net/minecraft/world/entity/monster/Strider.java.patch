@@ -16,3 +16,22 @@
          }
  
          super.tick();
+@@ -399,6 +_,18 @@
+     @Override
+     public InteractionResult mobInteract(Player player, InteractionHand hand) {
+         boolean hasFood = this.isFood(player.getItemInHand(hand));
++        // Purpur start
++        if (level().purpurConfig.striderGiveSaddleBack && player.isSecondaryUseActive() && !hasFood && isSaddled() && !isVehicle()) {
++            this.setItemSlot(EquipmentSlot.SADDLE, ItemStack.EMPTY);
++            if (!player.getAbilities().instabuild) {
++                ItemStack saddle = new ItemStack(Items.SADDLE);
++                if (!player.getInventory().add(saddle)) {
++                    player.drop(saddle, false);
++                }
++            }
++            return InteractionResult.SUCCESS;
++        }
++        // Purpur end
+         if (!hasFood && this.isSaddled() && !this.isVehicle() && !player.isSecondaryUseActive()) {
+             if (!this.level().isClientSide()) {
+                 player.startRiding(this);

@@ -1,5 +1,70 @@
 --- a/net/minecraft/world/entity/monster/illager/Vindicator.java
 +++ b/net/minecraft/world/entity/monster/illager/Vindicator.java
+@@ -57,6 +_,52 @@
+         super(type, level);
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.vindicatorRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.vindicatorRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.vindicatorControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.vindicatorMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.vindicatorScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.vindicatorTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.vindicatorAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Check mobGriefing Overrides
++    @Override
++    public Boolean checkEntityPickUpLootOverride() {
++        return this.level().purpurConfig.vindicatorCanPickUpLoot;
++    }
++    // Purpur end - Check mobGriefing Overrides
++
+     @Override
+     protected void registerGoals() {
+         super.registerGoals();
+@@ -131,6 +_,11 @@
+         RandomSource random = level.getRandom();
+         this.populateDefaultEquipmentSlots(random, difficulty);
+         this.populateDefaultEquipmentEnchantments(level, random, difficulty);
++        // Purpur start - Special mobs naturally spawn
++        if (level().purpurConfig.vindicatorJohnnySpawnChance > 0D && random.nextDouble() <= level().purpurConfig.vindicatorJohnnySpawnChance) {
++            setCustomName(Component.translatable("Johnny"));
++        }
++        // Purpur end - Special mobs naturally spawn
+         return spawnGroupData;
+     }
+ 
 @@ -180,8 +_,8 @@
      }
  

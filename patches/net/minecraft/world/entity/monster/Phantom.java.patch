@@ -110,27 +110,117 @@
  
      @Override
      public boolean isFlapping() {
-@@ -135,6 +_,13 @@
+@@ -68,9 +_,17 @@
+ 
+     @Override
+     protected void registerGoals() {
+-        this.goalSelector.addGoal(1, new Phantom.PhantomAttackStrategyGoal());
+-        this.goalSelector.addGoal(2, new Phantom.PhantomSweepAttackGoal());
+-        this.goalSelector.addGoal(3, new Phantom.PhantomCircleAroundAnchorGoal());
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
++        // Purpur start - Phantoms attracted to crystals and crystals shoot phantoms
++        if (level().purpurConfig.phantomOrbitCrystalRadius > 0) {
++            this.goalSelector.addGoal(1, new Phantom.PhantomFindCrystalGoal(this));
++            this.goalSelector.addGoal(2, new Phantom.PhantomOrbitCrystalGoal(this));
++        }
++        this.goalSelector.addGoal(3, new Phantom.PhantomAttackStrategyGoal());
++        this.goalSelector.addGoal(4, new Phantom.PhantomSweepAttackGoal());
++        this.goalSelector.addGoal(5, new Phantom.PhantomCircleAroundAnchorGoal());
++        // Purpur end - Phantoms attracted to crystals and crystals shoot phantoms
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new Phantom.PhantomAttackPlayerTargetGoal());
+     }
+ 
+@@ -86,7 +_,11 @@
+ 
+     private void updatePhantomSizeInfo() {
+         this.refreshDimensions();
+-        this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(6 + this.getPhantomSize());
++        if (level().purpurConfig.phantomFlamesOnSwoop && attackPhase == AttackPhase.SWOOP) shoot(); // Purpur - Ridables - Phantom flames on swoop
++        // Purpur start - Configurable entity base attributes
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(getFromCache(() -> this.level().purpurConfig.phantomMaxHealth, () -> this.level().purpurConfig.phantomMaxHealthCache, () -> 20.0D));
++        this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(getFromCache(() -> this.level().purpurConfig.phantomAttackDamage, () -> this.level().purpurConfig.phantomAttackDamageCache, () -> (double) (6 + this.getPhantomSize())));
++        // Purpur end - Configurable entity base attributes
+     }
+ 
+     public int getPhantomSize() {
+@@ -106,6 +_,23 @@
+         return this.getId() * 3;
+     }
+ 
++    // Purpur start - Configurable entity base attributes
++    private double getFromCache(java.util.function.Supplier<String> equation, java.util.function.Supplier<java.util.Map<Integer, Double>> cache, java.util.function.Supplier<Double> defaultValue) {
++        int size = getPhantomSize();
++        Double value = cache.get().get(size);
++        if (value == null) {
++            try {
++                value = ((Number) scriptEngine.eval("let size = " + size + "; " + equation.get())).doubleValue();
++            } catch (javax.script.ScriptException e) {
++                e.printStackTrace();
++                value = defaultValue.get();
++            }
++            cache.get().put(size, value);
++        }
++        return value;
++    }
++    // Purpur end - Configurable entity base attributes
++
+     @Override
+     public void tick() {
+         super.tick();
+@@ -135,6 +_,17 @@
          }
      }
  
 +    // Paper start
 +    @Override
 +    public boolean isSunBurnTick() {
-+        return this.shouldBurnInDay && super.isSunBurnTick();
++        // Purpur start - API for any mob to burn daylight
++        boolean burnFromDaylight = this.shouldBurnInDay && super.isSunBurnTick() && this.level().purpurConfig.phantomBurnInDaylight;
++        boolean burnFromLightSource = this.level().purpurConfig.phantomBurnInLight > 0 && this.level().getMaxLocalRawBrightness(blockPosition()) >= this.level().purpurConfig.phantomBurnInLight;
++        return burnFromDaylight || burnFromLightSource;
++        // Purpur end - API for any mob to burn daylight
 +    }
 +    // Paper end
 +
      @Override
      protected void checkFallDamage(double ya, boolean onGround, BlockState onState, BlockPos pos) {
      }
-@@ -163,13 +_,22 @@
+@@ -147,6 +_,15 @@
+     @Override
+     public void travel(Vec3 input) {
+         this.travelFlying(input, 0.2F);
++        // Purpur start - Ridables
++        if (this.getRider() != null && this.isControllable() && !this.onGround) {
++            float speed = (float) this.getAttributeValue(Attributes.FLYING_SPEED);
++            this.setSpeed(speed);
++            Vec3 mot = this.getDeltaMovement();
++            this.move(net.minecraft.world.entity.MoverType.SELF, mot.multiply(speed, speed, speed));
++            this.setDeltaMovement(mot.scale(0.9D));
++        }
++        // Purpur end - Ridables
+     }
+ 
+     @Override
+@@ -154,7 +_,11 @@
+         ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason spawnReason, @Nullable SpawnGroupData groupData
+     ) {
+         this.anchorPoint = this.blockPosition().above(5);
+-        this.setPhantomSize(0);
++        // Purpur start - Configurable phantom size
++        int min = level.getLevel().purpurConfig.phantomMinSize;
++        int max = level.getLevel().purpurConfig.phantomMaxSize;
++        this.setPhantomSize(min == max ? min : level.getRandom().nextInt(max + 1 - min) + min);
++        // Purpur end - Configurable phantom size
+         return super.finalizeSpawn(level, difficulty, spawnReason, groupData);
+     }
+ 
+@@ -163,13 +_,20 @@
          super.readAdditionalSaveData(input);
          this.anchorPoint = input.read("anchor_pos", BlockPos.CODEC).orElse(null);
          this.setPhantomSize(input.getIntOr("size", 0));
 +        // Paper start
 +        this.spawningEntity = input.read("Paper.SpawningEntity", net.minecraft.core.UUIDUtil.CODEC).orElse(null);
-+        this.shouldBurnInDay = input.getBooleanOr("Paper.ShouldBurnInDay", true);
 +        // Paper end
      }
 +
@@ -142,12 +232,17 @@
          output.putInt("size", this.getPhantomSize());
 +        // Paper start
 +        output.storeNullable("Paper.SpawningEntity", net.minecraft.core.UUIDUtil.CODEC, this.spawningEntity);
-+        output.putBoolean("Paper.ShouldBurnInDay", this.shouldBurnInDay);
 +        // Paper end
      }
  
      @Override
-@@ -232,8 +_,10 @@
+@@ -227,13 +_,16 @@
+             this.nextScanTick = reducedTickDelay(60);
+             ServerLevel level = getServerLevel(Phantom.this.level());
+             List<Player> players = level.getNearbyPlayers(this.attackTargeting, Phantom.this, Phantom.this.getBoundingBox().inflate(16.0, 64.0, 16.0));
++            if (level().purpurConfig.phantomIgnorePlayersWithTorch) players.removeIf(human -> TORCH.test(human.getItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND)) || TORCH.test(human.getItemInHand(net.minecraft.world.InteractionHand.OFF_HAND))); // Purpur - Phantoms burn in light
+             if (!players.isEmpty()) {
+                 players.sort(Comparator.<Player, Double>comparing(Entity::getY).reversed());
  
                  for (Player player : players) {
                      if (Phantom.this.canAttack(level, player, TargetingConditions.DEFAULT)) {
@@ -159,3 +254,180 @@
                      }
                  }
              }
+@@ -374,25 +_,160 @@
+         }
+     }
+ 
+-    private static class PhantomLookControl extends LookControl {
++    private static class PhantomLookControl extends org.purpurmc.purpur.controller.LookControllerWASD { // Purpur - Ridables
+         public PhantomLookControl(Mob mob) {
+             super(mob);
+         }
+ 
++        // Purpur start - Ridables
++        public void purpurTick(Player rider) {
++            setYawPitch(rider.getYRot(), -rider.xRotO * 0.75F);
++        }
++        // Purpur end - Ridables
++
++        @Override
++        public void vanillaTick() { // Purpur - Ridables
++        }
++    }
++
++    // Purpur start - Phantoms attracted to crystals and crystals shoot phantoms
++    private class PhantomFindCrystalGoal extends Goal {
++        private final Phantom phantom;
++        private net.minecraft.world.entity.boss.enderdragon.EndCrystal crystal;
++        private Comparator<net.minecraft.world.entity.boss.enderdragon.EndCrystal> comparator;
++
++        PhantomFindCrystalGoal(Phantom phantom) {
++            this.phantom = phantom;
++            this.comparator = Comparator.comparingDouble(phantom::distanceToSqr);
++            this.setFlags(EnumSet.of(Flag.LOOK));
++        }
++
++        @Override
++        public boolean canUse() {
++            double range = maxTargetRange();
++            List<net.minecraft.world.entity.boss.enderdragon.EndCrystal> crystals = level().getEntitiesOfClass(net.minecraft.world.entity.boss.enderdragon.EndCrystal.class, phantom.getBoundingBox().inflate(range));
++            if (crystals.isEmpty()) {
++                return false;
++            }
++            crystals.sort(comparator);
++            crystal = crystals.get(0);
++            if (phantom.distanceToSqr(crystal) > range * range) {
++                crystal = null;
++                return false;
++            }
++            return true;
++        }
++
++        @Override
++        public boolean canContinueToUse() {
++            if (crystal == null || !crystal.isAlive()) {
++                return false;
++            }
++            double range = maxTargetRange();
++            return phantom.distanceToSqr(crystal) <= (range * range) * 2;
++        }
++
++        @Override
++        public void start() {
++            phantom.crystalPosition = new Vec3(crystal.getX(), crystal.getY() + (phantom.random.nextInt(10) + 10), crystal.getZ());
++        }
++
++        @Override
++        public void stop() {
++            crystal = null;
++            phantom.crystalPosition = null;
++            super.stop();
++        }
++
++        private double maxTargetRange() {
++            return phantom.level().purpurConfig.phantomOrbitCrystalRadius;
++        }
++    }
++
++    private class PhantomOrbitCrystalGoal extends Goal {
++        private final Phantom phantom;
++        private float offset;
++        private float radius;
++        private float verticalChange;
++        private float direction;
++
++        PhantomOrbitCrystalGoal(Phantom phantom) {
++            this.phantom = phantom;
++            this.setFlags(EnumSet.of(Flag.MOVE));
++        }
++
++        @Override
++        public boolean canUse() {
++            return phantom.isCirclingCrystal();
++        }
++
++        @Override
++        public void start() {
++            this.radius = 5.0F + phantom.random.nextFloat() * 10.0F;
++            this.verticalChange = -4.0F + phantom.random.nextFloat() * 9.0F;
++            this.direction = phantom.random.nextBoolean() ? 1.0F : -1.0F;
++            updateOffset();
++        }
++
+         @Override
+         public void tick() {
++            if (phantom.random.nextInt(350) == 0) {
++                this.verticalChange = -4.0F + phantom.random.nextFloat() * 9.0F;
++            }
++            if (phantom.random.nextInt(250) == 0) {
++                ++this.radius;
++                if (this.radius > 15.0F) {
++                    this.radius = 5.0F;
++                    this.direction = -this.direction;
++                }
++            }
++            if (phantom.random.nextInt(450) == 0) {
++                this.offset = phantom.random.nextFloat() * 2.0F * 3.1415927F;
++                updateOffset();
++            }
++            if (phantom.moveTargetPoint.distanceToSqr(phantom.getX(), phantom.getY(), phantom.getZ()) < 4.0D) {
++                updateOffset();
++            }
++            if (phantom.moveTargetPoint.y < phantom.getY() && !phantom.level().isEmptyBlock(new BlockPos(phantom).below(1))) {
++                this.verticalChange = Math.max(1.0F, this.verticalChange);
++                updateOffset();
++            }
++            if (phantom.moveTargetPoint.y > phantom.getY() && !phantom.level().isEmptyBlock(new BlockPos(phantom).above(1))) {
++                this.verticalChange = Math.min(-1.0F, this.verticalChange);
++                updateOffset();
++            }
++        }
++
++        private void updateOffset() {
++            this.offset += this.direction * 15.0F * 0.017453292F;
++            phantom.moveTargetPoint = phantom.crystalPosition.add(
++                    this.radius * Mth.cos(this.offset),
++                    -4.0F + this.verticalChange,
++                    this.radius * Mth.sin(this.offset));
+         }
+     }
++    // Purpur end - Phantoms attracted to crystals and crystals shoot phantoms
+ 
+-    private class PhantomMoveControl<T extends Mob> extends MoveControl<T> {
++    private class PhantomMoveControl<T extends Mob> extends org.purpurmc.purpur.controller.FlyingMoveControllerWASD<T> { // Purpur - Ridables
+         private float speed = 0.1F;
+ 
+         public PhantomMoveControl(T mob) {
+             super(mob);
+         }
+ 
++        // Purpur start - Ridables
++        public void purpurTick(Player rider) {
++            if (!Phantom.this.onGround) {
++                // phantom is always in motion when flying
++                // TODO - FIX THIS
++                // rider.setForward(1.0F);
++            }
++            super.purpurTick(rider);
++        }
++        // Purpur end - Ridables
++
+         @Override
+-        public void tick() {
++        public void vanillaTick() { // Purpur - Ridables
+             if (Phantom.this.horizontalCollision) {
+                 Phantom.this.setYRot(Phantom.this.getYRot() + 180.0F);
+                 this.speed = 0.1F;
+@@ -459,6 +_,12 @@
+                 return false;
+             } else if (!target.isAlive()) {
+                 return false;
++                // Purpur start - Phantoms burn in light
++            } else if (level().purpurConfig.phantomBurnInLight > 0 && level().getLightEmission(new BlockPos(Phantom.this)) >= level().purpurConfig.phantomBurnInLight) {
++                return false;
++            } else if (level().purpurConfig.phantomIgnorePlayersWithTorch && (TORCH.test(target.getItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND)) || TORCH.test(target.getItemInHand(net.minecraft.world.InteractionHand.OFF_HAND)))) {
++                return false;
++                // Purpur end - Phantoms burn in light
+             } else if (target instanceof Player player && (target.isSpectator() || player.isCreative())) {
+                 return false;
+             } else {

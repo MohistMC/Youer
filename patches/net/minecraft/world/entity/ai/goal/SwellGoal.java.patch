@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/ai/goal/SwellGoal.java
 +++ b/net/minecraft/world/entity/ai/goal/SwellGoal.java
-@@ -39,7 +_,7 @@
+@@ -39,12 +_,20 @@
      @Override
      public void tick() {
          if (this.target != null && !this.target.isDeadOrDying()) {
@@ -9,3 +9,16 @@
                  this.creeper.setSwellDir(-1);
              } else if (!this.creeper.getSensing().hasLineOfSight(this.target)) {
                  this.creeper.setSwellDir(-1);
+             } else {
+                 this.creeper.setSwellDir(1);
++                // Purpur start - option to allow creeper to encircle target when fusing
++                if (this.creeper.level().purpurConfig.creeperEncircleTarget) {
++                    net.minecraft.world.phys.Vec3 relative = this.creeper.position().subtract(this.target.position());
++                    relative = relative.yRot((float) Math.PI / 3).normalize().multiply(2, 2, 2);
++                    net.minecraft.world.phys.Vec3 destination = this.target.position().add(relative);
++                    this.creeper.getNavigation().moveTo(destination.x, destination.y, destination.z, 1);
++                }
++                // Purpur end - option to allow creeper to encircle target when fusing
+             }
+         } else {
+             this.creeper.setSwellDir(-1);

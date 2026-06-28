@@ -1,0 +1,25 @@
+--- a/net/minecraft/world/entity/ai/sensing/SecondaryPoiSensor.java
++++ b/net/minecraft/world/entity/ai/sensing/SecondaryPoiSensor.java
+@@ -21,6 +_,13 @@
+     }
+ 
+     protected void doTick(ServerLevel level, Villager body) {
++        // Purpur start - Option for Villager Clerics to farm Nether Wart - make sure clerics don't wander to soul sand when the option is off
++        Brain<?> brain = body.getBrain();
++        if (!level.purpurConfig.villagerClericsFarmWarts && body.getVillagerData().profession().is(net.minecraft.world.entity.npc.villager.VillagerProfession.CLERIC)) {
++            brain.eraseMemory(MemoryModuleType.SECONDARY_JOB_SITE);
++            return;
++        }
++        // Purpur end - Option for Villager Clerics to farm Nether Wart
+         ResourceKey<Level> dimensionType = level.dimension();
+         BlockPos center = body.blockPosition();
+         List<GlobalPos> jobSites = Lists.newArrayList();
+@@ -37,7 +_,7 @@
+             }
+         }
+ 
+-        Brain<?> brain = body.getBrain();
++        //Brain<?> brain = body.getBrain(); // Purpur - Option for Villager Clerics to farm Nether Wart - moved up
+         if (!jobSites.isEmpty()) {
+             brain.setMemory(MemoryModuleType.SECONDARY_JOB_SITE, jobSites);
+         } else {

@@ -25,6 +25,76 @@
      private float currentPeekAmountO;
      private float currentPeekAmount;
      private @Nullable BlockPos clientOldAttachPosition;
+@@ -93,12 +_,69 @@
+         this.lookControl = new Shulker.ShulkerLookControl(this);
+     }
+ 
++    // Purpur start - Shulker change color with dye
++    @Override
++    protected net.minecraft.world.InteractionResult mobInteract(Player player, net.minecraft.world.InteractionHand hand) {
++        net.minecraft.world.item.ItemStack itemstack = player.getItemInHand(hand);
++        DyeColor dyeColor = itemstack.get(DataComponents.DYE);
++        if (player.level().purpurConfig.shulkerChangeColorWithDye && dyeColor != null && dyeColor != this.getColor()) {
++            this.setVariant(Optional.of(dyeColor));
++            if (!player.getAbilities().instabuild) {
++                itemstack.shrink(1);
++            }
++            return net.minecraft.world.InteractionResult.SUCCESS;
++        }
++        return super.mobInteract(player, hand);
++    }
++    // Purpur end - Shulker change color with dye
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.shulkerRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.shulkerRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.shulkerControllable;
++    }
++    // Purpur end - Ridables
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.shulkerMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.shulkerScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.shulkerTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Mobs always drop experience
++    @Override
++    protected boolean isAlwaysExperienceDropper() {
++        return this.level().purpurConfig.shulkerAlwaysDropExp;
++    }
++    // Purpur end - Mobs always drop experience
++
+     @Override
+     protected void registerGoals() {
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(1, new LookAtPlayerGoal(this, Player.class, 8.0F, 0.02F, true));
+         this.goalSelector.addGoal(4, new Shulker.ShulkerAttackGoal());
+         this.goalSelector.addGoal(7, new Shulker.ShulkerPeekGoal());
+         this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new HurtByTargetGoal(this, this.getClass()).setAlertOthers());
+         this.targetSelector.addGoal(2, new Shulker.ShulkerNearestAttackGoal(this));
+         this.targetSelector.addGoal(3, new Shulker.ShulkerDefenseAttackGoal(this));
 @@ -288,8 +_,10 @@
      }
  
@@ -59,7 +129,29 @@
                          this.unRide();
                          this.setAttachFace(attachmentDirection);
                          this.playSound(SoundEvents.SHULKER_TELEPORT, 1.0F, 1.0F);
-@@ -464,7 +_,12 @@
+@@ -456,15 +_,30 @@
+     private void hitByShulkerBullet() {
+         Vec3 oldPosition = this.position();
+         AABB oldAabb = this.getBoundingBox();
+-        if (!this.isClosed() && this.teleportSomewhere()) {
+-            int shulkerCount = this.level().getEntities(EntityTypes.SHULKER, oldAabb.inflate(8.0), Entity::isAlive).size();
+-            float failureChance = (shulkerCount - 1) / 5.0F;
+-            if (!(this.level().getRandom().nextFloat() < failureChance)) {
++        // Purpur start - Shulker spawn from bullet options
++        if ((!this.level().purpurConfig.shulkerSpawnFromBulletRequireOpenLid || !this.isClosed()) && this.teleportSomewhere()) {
++            float failureChance = this.level().purpurConfig.shulkerSpawnFromBulletBaseChance;
++            if (!this.level().purpurConfig.shulkerSpawnFromBulletNearbyEquation.isBlank()) {
++                int shulkerCount = this.level().getEntities(EntityTypes.SHULKER, oldAabb.inflate(this.level().purpurConfig.shulkerSpawnFromBulletNearbyRange), Entity::isAlive).size();
++                try {
++                    failureChance -= ((Number) scriptEngine.eval("let nearby = " + shulkerCount + "; " + this.level().purpurConfig.shulkerSpawnFromBulletNearbyEquation)).floatValue();
++                } catch (javax.script.ScriptException e) {
++                    e.printStackTrace();
++                    failureChance -= (shulkerCount - 1) / 5.0F;
++                }
++            }
++            if (this.level().getRandom().nextFloat() <= failureChance) {
+                 Shulker baby = EntityTypes.SHULKER.create(this.level(), EntitySpawnReason.BREEDING);
++                // Purpur end - Shulker spawn from bullet options
                  if (baby != null) {
                      baby.setVariant(this.getVariant());
                      baby.snapTo(oldPosition);
@@ -73,3 +165,12 @@
                  }
              }
          }
+@@ -562,7 +_,7 @@
+     }
+ 
+     public Optional<DyeColor> getVariant() {
+-        return Optional.ofNullable(this.getColor());
++        return Optional.ofNullable(this.level().purpurConfig.shulkerSpawnFromBulletRandomColor ? DyeColor.random(this.level().getRandom()) : this.getColor()); // Purpur - Shulker spawn from bullet options
+     }
+ 
+     public @Nullable DyeColor getColor() {

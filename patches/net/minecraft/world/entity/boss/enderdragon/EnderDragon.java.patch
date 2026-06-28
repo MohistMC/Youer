@@ -224,18 +224,16 @@
          this.gameEvent(GameEvent.ENTITY_DIE);
          if (this.dragonFight != null) {
              this.dragonFight.updateDragon(this);
-@@ -533,18 +_,41 @@
-             this.level().addParticle(ParticleTypes.EXPLOSION_EMITTER, this.getX() + xo, this.getY() + 2.0 + yo, this.getZ() + zo, 0.0, 0.0, 0.0);
+@@ -534,17 +_,38 @@
          }
  
-+        // CraftBukkit start - SPIGOT-2420: Moved up to #getExpReward method
-+        /*
          int xpCount = 500;
-         if (this.dragonFight != null && !this.dragonFight.hasPreviouslyKilledDragon()) {
+-        if (this.dragonFight != null && !this.dragonFight.hasPreviouslyKilledDragon()) {
++        if (this.dragonFight != null && (level().purpurConfig.enderDragonAlwaysDropsFullExp || !this.dragonFight.hasPreviouslyKilledDragon())) { // Purpur - Ender dragon always drop full exp
              xpCount = 12000;
          }
-+        */
-+        int xpCount = expToDrop;
++        xpCount = this.expToDrop; // CraftBukkit - SPIGOT-2420: Moved up to #getExpReward method
++
  
          if (this.level() instanceof ServerLevel level) {
 -            if (this.dragonDeathTime > 150 && this.dragonDeathTime % 5 == 0 && level.getGameRules().get(GameRules.MOB_DROPS)) {
@@ -269,7 +267,7 @@
              }
          }
  
-@@ -557,19 +_,35 @@
+@@ -557,19 +_,39 @@
          }
  
          if (this.dragonDeathTime >= 200 && this.level() instanceof ServerLevel level) {
@@ -292,18 +290,22 @@
  
 +    // CraftBukkit start - SPIGOT-2420: Special case, the ender dragon drops 12000 xp for the first kill and 500 xp for every other kill and this over time.
 +    @Override
-+    public int getExpReward(ServerLevel serverlevel, Entity entity) {
-+        // CraftBukkit - Moved from #tickDeath method
-+        boolean flag = serverlevel.getGameRules().get(GameRules.MOB_DROPS);
-+        short short0 = 500;
-+
-+        if (this.dragonFight != null && !this.dragonFight.hasPreviouslyKilledDragon()) {
-+            short0 = 12000;
++    public int getExpReward(ServerLevel level, Entity entity) {
++        if (!level.getGameRules().get(GameRules.MOB_DROPS)) {
++            return 0;
 +        }
-+
-+        return flag ? short0 : 0;
++        return this.getDefaultExpToDrop();
 +    }
 +    // CraftBukkit end
++
++    // Paper start - init expToDrop for already dying spawned dragon (like in MC-306798)
++    private int getDefaultExpToDrop() {
++        if (this.dragonFight != null && !this.dragonFight.hasPreviouslyKilledDragon()) {
++            return 12000;
++        }
++        return 500;
++    }
++    // Paper end - init expToDrop for already dying spawned dragon
 +
      public int findClosestNode() {
          if (this.nodes[0] == null) {
@@ -324,7 +326,7 @@
      }
  
      @Override
-@@ -851,8 +_,12 @@
+@@ -851,19 +_,34 @@
          return this.dragonFight;
      }
  
@@ -339,7 +341,12 @@
          return false;
      }
  
-@@ -864,6 +_,16 @@
+     @Override
+     protected boolean canRide(Entity vehicle) {
++        if (this.level().purpurConfig.enderDragonCanRideVehicles) return this.boardingCooldown <= 0; // Purpur - Configs for if Wither/Ender Dragon can ride vehicles
+         return false;
+     }
+ 
      @Override
      public boolean canUsePortal(boolean ignorePassenger) {
          return false;

@@ -171,13 +171,13 @@
          }
  
          return true;
-@@ -282,16 +_,17 @@
+@@ -282,31 +_,44 @@
      public void playerTouch(Player player) {
          if (player instanceof ServerPlayer serverPlayer) {
              if (player.takeXpDelay == 0) {
 -                player.takeXpDelay = 2;
 +                if (net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.PlayerXpEvent.PickupXp(player, this)).isCanceled()) return;
-+                player.takeXpDelay = CraftEventFactory.callPlayerXpCooldownEvent(serverPlayer, 2, PlayerExpCooldownChangeEvent.ChangeReason.PICKUP_ORB).getNewCooldown(); // CraftBukkit - entityhuman.takeXpDelay = 2;
++                player.takeXpDelay = CraftEventFactory.callPlayerXpCooldownEvent(serverPlayer, this.level().purpurConfig.playerExpPickupDelay, PlayerExpCooldownChangeEvent.ChangeReason.PICKUP_ORB).getNewCooldown(); // CraftBukkit - entityhuman.takeXpDelay = 2;
                  player.take(this, 1);
                  int remaining = this.repairPlayerItems(serverPlayer, this.getValue());
                  if (remaining > 0) {
@@ -192,8 +192,12 @@
                  }
              }
          }
-@@ -301,12 +_,23 @@
-         Optional<EnchantedItemInUse> selected = EnchantmentHelper.getRandomItemWith(EnchantmentEffectComponents.REPAIR_WITH_XP, player, ItemStack::isDamaged);
+     }
+ 
+     private int repairPlayerItems(ServerPlayer player, int amount) {
+-        Optional<EnchantedItemInUse> selected = EnchantmentHelper.getRandomItemWith(EnchantmentEffectComponents.REPAIR_WITH_XP, player, ItemStack::isDamaged);
++        Optional<EnchantedItemInUse> selected = level().purpurConfig.useBetterMending ? EnchantmentHelper.getMostDamagedItemWith(EnchantmentEffectComponents.REPAIR_WITH_XP, player) :EnchantmentHelper.getRandomItemWith(// Purpur - Add option to mend the most damaged equipment first
++                EnchantmentEffectComponents.REPAIR_WITH_XP, player, ItemStack::isDamaged);
          if (selected.isPresent()) {
              ItemStack itemStack = selected.get().itemStack();
 -            int toRepairFromXpAmount = EnchantmentHelper.modifyDurabilityToRepairFromXp(player.level(), itemStack, amount);

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/ArmorStandItem.java
 +++ b/net/minecraft/world/item/ArmorStandItem.java
-@@ -47,6 +_,12 @@
+@@ -47,6 +_,16 @@
  
                  float yRot = Mth.floor((Mth.wrapDegrees(context.getRotation() - 180.0F) + 22.5F) / 45.0F) * 45.0F;
                  entity.snapTo(entity.getX(), entity.getY(), entity.getZ(), yRot, 0.0F);
@@ -10,6 +10,10 @@
 +                    return InteractionResult.FAIL;
 +                }
 +                // CraftBukkit end
++                // Purpur start - Apply display names from item forms of entities to entities and vice versa
++                if (!serverLevel.purpurConfig.persistentDroppableEntityDisplayNames) entity.setCustomName(null);
++                if (serverLevel.purpurConfig.armorstandSetNameVisible && entity.getCustomName() != null) entity.setCustomNameVisible(true);
++                // Purpur end - Apply display names from item forms of entities to entities and vice versa
                  serverLevel.addFreshEntityWithPassengers(entity);
                  level.playSound(null, entity.getX(), entity.getY(), entity.getZ(), SoundEvents.ARMOR_STAND_PLACE, SoundSource.BLOCKS, 0.75F, 0.8F);
                  entity.gameEvent(GameEvent.ENTITY_PLACE, context.getPlayer());

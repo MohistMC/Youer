@@ -1,9 +1,10 @@
 --- a/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownEnderpearl.java
 +++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownEnderpearl.java
-@@ -104,11 +_,24 @@
+@@ -104,11 +_,25 @@
                  Vec3 teleportPos = this.oldPosition();
                  if (owner instanceof ServerPlayer player) {
                      if (player.connection.isAcceptingMessages()) {
+-                        if (this.random.nextFloat() < 0.05F && level.isSpawningMonsters() && level.getLevelData().getDifficulty() != Difficulty.PEACEFUL) {
 +                        // CraftBukkit start
 +                        // Store pre teleportation position as the teleport has been moved up.
 +                        final double preTeleportX = player.getX(), preTeleportY = player.getY(), preTeleportZ = player.getZ();
@@ -17,11 +18,12 @@
 +                        // CraftBukkit end
 +                        net.neoforged.neoforge.event.entity.EntityTeleportEvent.EnderPearl event = net.neoforged.neoforge.event.EventHooks.onEnderPearlLand(player, this.getX(), this.getY(), this.getZ(), this, 5.0F, hitResult);
 +                        if (!event.isCanceled()) { // Don't indent to lower patch size
-                         if (this.random.nextFloat() < 0.05F && level.isSpawningMonsters() && level.getLevelData().getDifficulty() != Difficulty.PEACEFUL) {
++                        if (this.random.nextFloat() < level.purpurConfig.enderPearlEndermiteChance && level.isSpawningMonsters() && level.getLevelData().getDifficulty() != Difficulty.PEACEFUL) {
                              Endermite endermite = EntityTypes.ENDERMITE.create(level, EntitySpawnReason.TRIGGERED);
                              if (endermite != null) {
 -                                endermite.snapTo(owner.getX(), owner.getY(), owner.getZ(), owner.getYRot(), owner.getXRot());
 -                                level.addFreshEntity(endermite);
++                                endermite.setPlayerSpawned(true); // Purpur - Add back player spawned endermite API
 +                                endermite.snapTo(preTeleportX, preTeleportY, preTeleportZ, preTeleportYRot, preTeleportXRot); // Paper - spawn endermite at pre teleport position as teleport has been moved up
 +                                level.addFreshEntity(endermite, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.ENDER_PEARL); // Paper - add reason
                              }
@@ -47,7 +49,7 @@
                              newOwner.resetFallDistance();
                              newOwner.resetCurrentImpulseContext();
 -                            newOwner.hurtServer(player.level(), this.damageSources().enderPearl(), 5.0F);
-+                            newOwner.hurtServer(player.level(), this.damageSources().enderPearl().eventEntityDamager(this), 5.0F); // CraftBukkit // Paper - fix DamageSource API
++                            newOwner.hurtServer(player.level(), this.damageSources().enderPearl().eventEntityDamager(this), this.level().purpurConfig.enderPearlDamage); // CraftBukkit // Paper - fix DamageSource API
                          }
  
                          this.playSound(level, teleportPos);
