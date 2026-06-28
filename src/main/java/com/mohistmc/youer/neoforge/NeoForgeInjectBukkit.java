@@ -347,17 +347,22 @@ public class NeoForgeInjectBukkit {
             int width = entry.width();
             int height = entry.height();
             ResourceLocation resourceLocation = registry.getKey(entry);
-            String name = MohistDynamEnum.normalizeName(resourceLocation.toString());
-            if (isMods(resourceLocation) || Art.getByName(name) == null) {
-                String lookupName = resourceLocation.getPath().toLowerCase(Locale.ROOT);
-                int id = i - 1;
-                Art art = MohistDynamEnum.addEnum(Art.class, name, List.of(Integer.TYPE, Integer.TYPE, Integer.TYPE), List.of(id, width, height));
-                Art.BY_NAME.put(lookupName, art);
-                Art.BY_ID.put(id, art);
-                art.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
-                MODD_ART.put(entry, art);
-                debug("Registered forge PaintingType as Art {}", art);
-                i++;
+            if (resourceLocation != null) {
+                boolean isMod = isMods(resourceLocation);
+                String name = getMaterialName(resourceLocation, isMod);
+                var bukkitKey = CraftNamespacedKey.fromMinecraft(resourceLocation);
+                if (isMod || !Art.BY_KEY.containsKey(bukkitKey)) {
+                    String lookupName = resourceLocation.getPath().toLowerCase(Locale.ROOT);
+                    int id = i - 1;
+                    Art art = MohistDynamEnum.addEnum(Art.class, name, List.of(Integer.TYPE, Integer.TYPE, Integer.TYPE), List.of(id, width, height));
+                    Art.BY_NAME.put(lookupName, art);
+                    Art.BY_ID.put(id, art);
+                    Art.BY_KEY.put(bukkitKey, art);
+                    art.key = bukkitKey;
+                    MODD_ART.put(entry, art);
+                    debug("Registered forge PaintingType as Art {}", art);
+                    i++;
+                }
             }
         }
     }

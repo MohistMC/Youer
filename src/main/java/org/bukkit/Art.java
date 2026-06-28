@@ -66,6 +66,7 @@ public enum Art implements Keyed {
     public NamespacedKey key;
     public static final HashMap<String, Art> BY_NAME = Maps.newHashMap();
     public static final HashMap<Integer, Art> BY_ID = Maps.newHashMap();
+    public static final HashMap<NamespacedKey, Art> BY_KEY = Maps.newHashMap();
 
     private Art(int id, int width, int height) {
         this.id = id;
@@ -141,6 +142,7 @@ public enum Art implements Keyed {
         for (Art art : values()) {
             BY_ID.put(art.id, art);
             BY_NAME.put(art.toString().toLowerCase(Locale.ROOT), art);
+            BY_KEY.put(art.key, art);
         }
     }
 }
