@@ -68,7 +68,7 @@
 +                }
 +
 +                Vec3 boomPos = pos.getCenter();
-+                level.explode(null, level.damageSources().badRespawnPointExplosion(boomPos), null, boomPos, 5.0F, true, Level.ExplosionInteraction.BLOCK);
++                if (level.purpurConfig.bedExplode) level.explode(null, level.damageSources().badRespawnPointExplosion(boomPos), null, boomPos, 5.0F, true, Level.ExplosionInteraction.BLOCK);
 +                return InteractionResult.SUCCESS_SERVER;
 +            } else if (state.getValue(OCCUPIED)) {
 +                if (bedRule.explodes()) return this.explodeBed(state, level, pos); // Paper - check explode first
@@ -121,10 +121,19 @@
 +        }
 +
 +        Vec3 boomPos = Vec3.atCenterOf(pos);
-+        level.explode(null, level.damageSources().badRespawnPointExplosion(boomPos).causingBlockSnapshot(blockState), null, boomPos, 5.0F, true, Level.ExplosionInteraction.BLOCK); // CraftBukkit - add state
++        if (level.purpurConfig.bedExplode) level.explode(null, level.damageSources().badRespawnPointExplosion(boomPos).causingBlockSnapshot(blockState), null, boomPos, 5.0F, true, Level.ExplosionInteraction.BLOCK); // CraftBukkit - add state
 +        return InteractionResult.SUCCESS_SERVER;
 +    }
 +    // CraftBukkit end
  
      private boolean kickVillagerOutOfBed(Level level, BlockPos pos) {
          List<Villager> villagers = level.getEntitiesOfClass(Villager.class, new AABB(pos), LivingEntity::isSleeping);
+@@ -129,7 +_,7 @@
+ 
+     @Override
+     public void fallOn(Level level, BlockState state, BlockPos pos, Entity entity, double fallDistance) {
+-        super.fallOn(level, state, pos, entity, fallDistance * 0.5);
++        super.fallOn(level, state, pos, entity, fallDistance); // Purpur - Configurable block fall damage modifiers
+     }
+ 
+     @Override

@@ -9,7 +9,7 @@
  public class PoweredRailBlock extends BaseRailBlock {
      public static final MapCodec<PoweredRailBlock> CODEC = simpleCodec(PoweredRailBlock::new);
      public static final EnumProperty<RailShape> SHAPE = BlockStateProperties.RAIL_SHAPE_STRAIGHT;
-@@ -22,8 +_,22 @@
+@@ -22,13 +_,27 @@
          return CODEC;
      }
  
@@ -31,6 +31,12 @@
 +    protected void registerDefaultState() {
          this.registerDefaultState(this.stateDefinition.any().setValue(SHAPE, RailShape.NORTH_SOUTH).setValue(POWERED, false).setValue(WATERLOGGED, false));
      }
+ 
+     protected boolean findPoweredRailSignal(Level level, BlockPos pos, BlockState state, boolean forward, int searchDepth) {
+-        if (searchDepth >= 8) {
++        if (searchDepth >= level.purpurConfig.railActivationRange) { // Purpur - Config for powered rail activation distance
+             return false;
+         }
  
 @@ -36,7 +_,7 @@
          int y = pos.getY();

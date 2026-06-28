@@ -1,6 +1,18 @@
 --- a/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
 +++ b/net/minecraft/world/level/block/GrowingPlantHeadBlock.java
-@@ -44,13 +_,32 @@
+@@ -34,34 +_,53 @@
+ 
+     @Override
+     public BlockState getStateForPlacement(RandomSource random) {
+-        return this.defaultBlockState().setValue(AGE, random.nextInt(25));
++        return this.defaultBlockState().setValue(AGE, getMaxGrowthAge() == 0 ? 0 : random.nextInt(getMaxGrowthAge())); // Purpur - kelp, cave, weeping, and twisting configurable max growth age
+     }
+ 
+     @Override
+     protected boolean isRandomlyTicking(BlockState state) {
+-        return state.getValue(AGE) < 25;
++        return state.getValue(AGE) < getMaxGrowthAge(); // Purpur - kelp, cave, weeping, and twisting configurable max growth age
+     }
  
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
@@ -16,7 +28,7 @@
 +        } else if (this == Blocks.CAVE_VINES) {
 +            modifier = level.spigotConfig.caveVinesModifier;
 +        }
-+        if (state.getValue(AGE) < 25 && net.neoforged.neoforge.common.CommonHooks.canCropGrow(level, pos.relative(this.growthDirection), state, random.nextDouble() < ((modifier / 100.0) * this.growPerTickProbability))) { // Spigot - SPIGOT-7159: Better modifier resolution
++        if (state.getValue(AGE) < getMaxGrowthAge() && net.neoforged.neoforge.common.CommonHooks.canCropGrow(level, pos.relative(this.growthDirection), state, random.nextDouble() < ((modifier / 100.0) * this.growPerTickProbability))) { // Spigot - SPIGOT-7159: Better modifier resolution
 +            // Spigot end
              BlockPos growthPos = pos.relative(this.growthDirection);
              if (this.canGrowInto(level.getBlockState(growthPos))) {
@@ -35,3 +47,41 @@
  
      protected BlockState getGrowIntoState(BlockState growFromState, RandomSource random) {
          return growFromState.cycle(AGE);
+     }
+ 
+     public BlockState getMaxAgeState(BlockState fromState) {
+-        return fromState.setValue(AGE, 25);
++        return fromState.setValue(AGE, getMaxGrowthAge()); // Purpur - kelp, cave, weeping, and twisting configurable max growth age
+     }
+ 
+     public boolean isMaxAge(BlockState state) {
+-        return state.getValue(AGE) == 25;
++        return state.getValue(AGE) >= getMaxGrowthAge(); // Purpur - kelp, cave, weeping, and twisting configurable max growth age
+     }
+ 
+     protected BlockState updateBodyAfterConvertedFromHead(BlockState headState, BlockState bodyState) {
+@@ -120,13 +_,13 @@
+     @Override
+     public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state) {
+         BlockPos forwardPos = pos.relative(this.growthDirection);
+-        int nextAge = Math.min(state.getValue(AGE) + 1, 25);
++        int nextAge = Math.min(state.getValue(AGE) + 1, getMaxGrowthAge()); // Purpur - kelp, cave, weeping, and twisting configurable max growth age
+         int blocksToGrow = this.getBlocksToGrowWhenBonemealed(random);
+ 
+         for (int i = 0; i < blocksToGrow && this.canGrowInto(level.getBlockState(forwardPos)) && !level.isOutsideBuildHeight(forwardPos); i++) {
+             level.setBlockAndUpdate(forwardPos, state.setValue(AGE, nextAge));
+             forwardPos = forwardPos.relative(this.growthDirection);
+-            nextAge = Math.min(nextAge + 1, 25);
++            nextAge = Math.min(nextAge + 1, getMaxGrowthAge()); // Purpur - kelp, cave, weeping, and twisting configurable max growth age
+         }
+     }
+ 
+@@ -138,4 +_,8 @@
+     protected GrowingPlantHeadBlock getHeadBlock() {
+         return this;
+     }
++
++    public  int getMaxGrowthAge(){
++        return 25;
++    } // Purpur - kelp, cave, weeping, and twisting configurable max growth age
+ }

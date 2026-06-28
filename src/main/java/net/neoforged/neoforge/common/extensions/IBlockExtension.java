@@ -488,7 +488,7 @@ public interface IBlockExtension {
      * @return True, to support being part of a nether portal frame, false otherwise.
      */
     default boolean isPortalFrame(BlockState state, BlockGetter level, BlockPos pos) {
-        return state.is(Blocks.OBSIDIAN);
+        return state.is(Blocks.OBSIDIAN) || (org.purpurmc.purpur.PurpurConfig.cryingObsidianValidForPortalFrame && state.is(Blocks.CRYING_OBSIDIAN)); // Purpur - Crying obsidian valid for portal frames
     }
 
     /**

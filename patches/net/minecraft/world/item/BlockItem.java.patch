@@ -123,6 +123,24 @@
      public @Nullable BlockPlaceContext updatePlacementContext(BlockPlaceContext context) {
          return context;
      }
+@@ -107,7 +_,16 @@
+     }
+ 
+     protected boolean updateCustomBlockEntityTag(BlockPos pos, Level level, @Nullable Player player, ItemStack itemStack, BlockState placedState) {
+-        return updateCustomBlockEntityTag(level, player, pos, itemStack);
++        // Purpur start - Persistent BlockEntity Lore and DisplayName
++        boolean handled = updateCustomBlockEntityTag(level, player, pos, itemStack);
++        if (level.purpurConfig.persistentTileEntityLore) {
++            BlockEntity blockEntity1 = level.getBlockEntity(pos);
++            if (blockEntity1 != null) {
++                blockEntity1.setPersistentLore(itemStack.getOrDefault(DataComponents.LORE, net.minecraft.world.item.component.ItemLore.EMPTY));
++            }
++        }
++        return handled;
++        // Purpur end - Persistent BlockEntity Lore and DisplayName
+     }
+ 
+     protected @Nullable BlockState getPlacementState(BlockPlaceContext context) {
 @@ -131,8 +_,20 @@
  
      protected boolean canPlace(BlockPlaceContext context, BlockState stateForPlacement) {
@@ -146,7 +164,7 @@
      }
  
      protected boolean mustSurvive() {
-@@ -146,26 +_,26 @@
+@@ -146,26 +_,27 @@
      public static boolean updateCustomBlockEntityTag(Level level, @Nullable Player player, BlockPos pos, ItemStack itemStack) {
          if (level.isClientSide()) {
              return false;
@@ -169,6 +187,7 @@
 +                    }
 +
 +                    if (!type.onlyOpCanSetNbt() || player != null && (player.canUseGameMasterBlocks() || (player.getAbilities().instabuild && player.getBukkitEntity().hasPermission("minecraft.nbt.place")))) { // Spigot - add permission
++                        if (!(level.purpurConfig.silkTouchEnabled && blockEntity instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity && player.getBukkitEntity().hasPermission("purpur.drop.spawners"))) // Purpur - Silk touch spawners
 +                        return customData.loadInto(blockEntity, level.registryAccess());
 +                    }
 +
@@ -189,3 +208,11 @@
      }
  
      @Override
+@@ -197,6 +_,7 @@
+     public void onDestroyed(ItemEntity entity) {
+         ItemContainerContents container = entity.getItem().set(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
+         if (container != null) {
++            if (entity.level().purpurConfig.shulkerBoxItemDropContentsWhenDestroyed && this.getBlock() instanceof ShulkerBoxBlock) // Purpur - option to disable shulker box items from dropping contents when destroyed
+             ItemUtils.onContainerDestroyed(entity, container.nonEmptyItemCopyStream());
+         }
+     }

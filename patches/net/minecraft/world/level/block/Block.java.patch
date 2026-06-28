@@ -88,7 +88,7 @@
      }
  
      public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
-@@ -369,24 +_,57 @@
+@@ -369,26 +_,78 @@
          return state.getDrops(params);
      }
  
@@ -104,7 +104,7 @@
 +            event.setExpToDrop(block.getExpDrop(state, serverLevel, pos, net.minecraft.world.item.ItemStack.EMPTY, true)); // Paper - Properly handle xp dropping
 +            event.callEvent();
 +            for (org.bukkit.inventory.ItemStack drop : event.getDrops()) {
-+                popResource(serverLevel, pos, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(drop));
++                popResource(serverLevel, pos, applyLoreFromTile(org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(drop), blockEntity)); // Purpur - Persistent BlockEntity Lore and DisplayName
 +            }
 +            state.spawnAfterBreak(serverLevel, pos, ItemStack.EMPTY, false); // Paper - Properly handle xp dropping
 +            block.popExperience(serverLevel, pos, event.getExpToDrop()); // Paper - Properly handle xp dropping
@@ -125,9 +125,10 @@
  
      public static void dropResources(BlockState state, LevelAccessor level, BlockPos pos, @Nullable BlockEntity blockEntity) {
          if (level instanceof ServerLevel serverLevel) {
-+            beginCapturingDrops();
-             getDrops(state, serverLevel, pos, blockEntity).forEach(stack -> popResource(serverLevel, pos, stack));
+-            getDrops(state, serverLevel, pos, blockEntity).forEach(stack -> popResource(serverLevel, pos, stack));
 -            state.spawnAfterBreak(serverLevel, pos, ItemStack.EMPTY, true);
++            beginCapturingDrops();
++            getDrops(state, serverLevel, pos, blockEntity).forEach(stack -> popResource(serverLevel, pos, applyLoreFromTile(stack, blockEntity)));
 +            List<ItemEntity> captured = stopCapturingDrops();
 +            net.neoforged.neoforge.common.CommonHooks.handleBlockDrops(serverLevel, pos, state, blockEntity, captured, null, ItemStack.EMPTY);
          }
@@ -142,14 +143,38 @@
 +
 +    public static void dropResources(BlockState state, Level level, BlockPos pos, @Nullable BlockEntity blockEntity, @Nullable Entity breaker, ItemStack tool, final boolean dropExperience) { // Paper - Properly handle xp dropping
          if (level instanceof ServerLevel serverLevel) {
-+            beginCapturingDrops();
-             getDrops(state, serverLevel, pos, blockEntity, breaker, tool).forEach(stack -> popResource(level, pos, stack));
+-            getDrops(state, serverLevel, pos, blockEntity, breaker, tool).forEach(stack -> popResource(level, pos, stack));
 -            state.spawnAfterBreak(serverLevel, pos, tool, true);
+-        }
+-    }
++            beginCapturingDrops();
++            getDrops(state, serverLevel, pos, blockEntity, breaker, tool).forEach(stack -> popResource(level, pos, applyLoreFromTile(stack, blockEntity)));
 +            List<ItemEntity> captured = stopCapturingDrops();
 +            net.neoforged.neoforge.common.CommonHooks.handleBlockDrops(serverLevel, pos, state, blockEntity, captured, breaker, tool);
-         }
-     }
++        }
++    }
++
++    // Purpur start - Persistent BlockEntity Lore and DisplayName
++    private static ItemStack applyLoreFromTile(ItemStack stack, @Nullable BlockEntity blockEntity) {
++        if (stack.getItem() instanceof BlockItem) {
++            if (blockEntity != null && blockEntity.getLevel() instanceof ServerLevel) {
++                net.minecraft.world.item.component.ItemLore lore = blockEntity.getPersistentLore();
++                net.minecraft.core.component.DataComponentPatch.Builder builder = net.minecraft.core.component.DataComponentPatch.builder();
++                if (blockEntity.getLevel().purpurConfig.persistentTileEntityLore && lore != null) {
++                    builder.set(net.minecraft.core.component.DataComponents.LORE, lore);
++                }
++                if (!blockEntity.getLevel().purpurConfig.persistentTileEntityDisplayName) {
++                    builder.remove(net.minecraft.core.component.DataComponents.CUSTOM_NAME);
++                }
++                stack.applyComponents(builder.build());
++            }
++        }
++        return stack;
++    }
++    // Purpur end - Persistent BlockEntity Lore and DisplayName
  
+     public static void popResource(Level level, BlockPos pos, ItemStack itemStack) {
+         double halfHeight = EntityTypes.ITEM.getHeight() / 2.0;
 @@ -416,19 +_,32 @@
      }
  
@@ -187,7 +212,7 @@
      public float getExplosionResistance() {
          return this.explosionResistance;
      }
-@@ -443,10 +_,19 @@
+@@ -443,14 +_,31 @@
          return this.defaultBlockState();
      }
  
@@ -209,8 +234,25 @@
      }
  
      public void setPlacedBy(Level level, BlockPos pos, BlockState state, @Nullable LivingEntity by, ItemStack itemStack) {
-@@ -464,6 +_,8 @@
-         entity.causeFallDamage(fallDistance, 1.0F, entity.damageSources().fall());
+-    }
++        this.placer = placer; // Purpur - Store placer on Block when placed
++    }
++
++    // Purpur start - Store placer on Block when placed
++    @Nullable protected LivingEntity placer = null;
++    public void forgetPlacer() {
++        this.placer = null;
++    }
++    // Purpur end - Store placer on Block when placed
+ 
+     public boolean isPossibleToRespawnInThis(BlockState state) {
+         return !state.isSolid() && !state.liquid();
+@@ -461,9 +_,11 @@
+     }
+ 
+     public void fallOn(Level level, BlockState state, BlockPos pos, Entity entity, double fallDistance) {
+-        entity.causeFallDamage(fallDistance, 1.0F, entity.damageSources().fall());
++        entity.causeFallDamage(fallDistance * fallDistanceMultiplier, fallDamageMultiplier, entity.damageSources().fall()); // Purpur - Configurable block fall damage modifiers
      }
  
 +    /// @deprecated NeoForge: Use [net.neoforged.neoforge.common.extensions.IBlockStateExtension#getBounceRestitution()]

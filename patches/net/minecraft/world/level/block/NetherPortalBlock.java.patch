@@ -14,7 +14,7 @@
  public class NetherPortalBlock extends Block implements Portal {
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final MapCodec<NetherPortalBlock> CODEC = simpleCodec(NetherPortalBlock::new);
-@@ -67,7 +_,7 @@
+@@ -67,19 +_,23 @@
  
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
@@ -22,8 +22,11 @@
 +        if (level.spigotConfig.enableZombiePigmenPortalSpawns && level.isSpawningMonsters() // Paper
              && level.getLevelData().getDifficulty() != Difficulty.PEACEFUL
              && level.environmentAttributes().getValue(EnvironmentAttributes.NETHER_PORTAL_SPAWNS_PIGLINS, pos)
-             && random.nextInt(2000) < level.getDifficulty().getId()
-@@ -77,9 +_,13 @@
+-            && random.nextInt(2000) < level.getDifficulty().getId()
++            && random.nextInt(level.purpurConfig.piglinPortalSpawnModifier) < level.getDifficulty().getId()
+             && level.anyPlayerCloseEnoughForSpawning(pos)) {
+             while (level.getBlockState(pos).is(this)) {
+                 pos = pos.below();
              }
  
              if (level.getBlockState(pos).isValidSpawn(level, pos, EntityTypes.ZOMBIFIED_PIGLIN)) {
@@ -52,6 +55,15 @@
              entity.setAsInsidePortal(this, pos);
          }
      }
+@@ -118,7 +_,7 @@
+     @Override
+     public int getPortalTransitionTime(ServerLevel level, Entity entity) {
+         return entity instanceof Player player
+-            ? Math.max(
++            ? player.canPortalInstant ? 1 : Math.max( // Purpur - Add portal permission bypass
+                 0,
+                 level.getGameRules()
+                     .get(player.getAbilities().invulnerable ? GameRules.PLAYERS_NETHER_PORTAL_CREATIVE_DELAY : GameRules.PLAYERS_NETHER_PORTAL_DEFAULT_DELAY)
 @@ -128,23 +_,46 @@
  
      @Override

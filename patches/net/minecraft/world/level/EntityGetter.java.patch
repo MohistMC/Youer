@@ -151,7 +151,7 @@
      default @Nullable Player getNearestPlayer(Entity source, double maxDist) {
          return this.getNearestPlayer(source.getX(), source.getY(), source.getZ(), maxDist, false);
      }
-@@ -97,6 +_,25 @@
+@@ -97,9 +_,28 @@
          return this.getNearestPlayer(x, y, z, maxDist, predicate);
      }
  
@@ -176,7 +176,11 @@
 +
      default boolean hasNearbyAlivePlayer(double x, double y, double z, double range) {
          for (Player player : this.players()) {
-             if (EntitySelector.NO_SPECTATORS.test(player) && EntitySelector.LIVING_ENTITY_STILL_ALIVE.test(player)) {
+-            if (EntitySelector.NO_SPECTATORS.test(player) && EntitySelector.LIVING_ENTITY_STILL_ALIVE.test(player)) {
++            if (EntitySelector.NO_SPECTATORS.test(player) && EntitySelector.LIVING_ENTITY_STILL_ALIVE.test(player) && EntitySelector.notAfk.test(player)) { // Purpur - AFK API
+                 double playerDist = player.distanceToSqr(x, y, z);
+                 if (range < 0.0 || playerDist < range * range) {
+                     return true;
 @@ -120,4 +_,11 @@
  
          return null;

@@ -1,10 +1,14 @@
 --- a/net/minecraft/world/level/storage/loot/functions/EnchantedCountIncreaseFunction.java
 +++ b/net/minecraft/world/level/storage/loot/functions/EnchantedCountIncreaseFunction.java
-@@ -72,6 +_,10 @@
+@@ -72,6 +_,14 @@
          Entity killer = context.getOptionalParameter(LootContextParams.ATTACKING_ENTITY);
          if (killer instanceof LivingEntity entity) {
              int level = EnchantmentHelper.getEnchantmentLevel(this.enchantment, entity);
-+
++            // Purpur start - Add an option to fix MC-3304 projectile looting
++            if (org.purpurmc.purpur.PurpurConfig.fixProjectileLootingTransfer && context.getOptionalParameter(LootContextParams.DIRECT_ATTACKING_ENTITY) instanceof net.minecraft.world.entity.projectile.arrow.AbstractArrow arrow) {
++                level = arrow.actualEnchantments.getLevel(this.enchantment);
++            }
++            // Purpur end - Add an option to fix MC-3304 projectile looting
 +            // Neo: Allow mods to modify the enchantment level for loot calculations with relevant context.
 +            level = net.neoforged.neoforge.event.EventHooks.getEntityLootEnchantmentLevel(this.enchantment, level, context);
 +

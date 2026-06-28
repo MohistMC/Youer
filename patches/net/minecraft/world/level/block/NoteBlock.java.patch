@@ -34,16 +34,12 @@
              }
  
              level.setBlock(pos, state.setValue(POWERED, signal), 3);
-@@ -98,6 +_,12 @@
+@@ -97,7 +_,7 @@
+     }
  
      private void playNote(@Nullable Entity source, BlockState state, Level level, BlockPos pos) {
-         if (state.getValue(INSTRUMENT).worksAboveNoteBlock() || level.getBlockState(pos.above()).isAir()) {
-+            // CraftBukkit start
-+            org.bukkit.event.block.NotePlayEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callNotePlayEvent(level, pos, state.getValue(INSTRUMENT), state.getValue(NOTE));
-+            if (event.isCancelled()) {
-+                return;
-+            }
-+            // CraftBukkit end
+-        if (state.getValue(INSTRUMENT).worksAboveNoteBlock() || level.getBlockState(pos.above()).isAir()) {
++        if (level.purpurConfig.noteBlockIgnoreAbove || state.getValue(INSTRUMENT).worksAboveNoteBlock() || level.getBlockState(pos.above()).isAir()) { // Purpur - Config to allow Note Block sounds when blocked
              level.blockEvent(pos, this, 0, 0);
              level.gameEvent(source, GameEvent.NOTE_BLOCK_PLAY, pos);
          }

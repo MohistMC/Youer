@@ -21,11 +21,11 @@
 -        return BlockPos.breadthFirstTraversal(startPos, 6, 65, (pos, consumer) -> {
 +        org.bukkit.craftbukkit.util.BlockStateListPopulator blockList = new org.bukkit.craftbukkit.util.BlockStateListPopulator(level); // CraftBukkit - Use BlockStateListPopulator
 +        BlockState spongeState = level.getBlockState(startPos);
-+        BlockPos.breadthFirstTraversal(startPos, 6, 65, (pos, consumer) -> {
++        BlockPos.breadthFirstTraversal(startPos, level.purpurConfig.spongeAbsorptionRadius, level.purpurConfig.spongeAbsorptionArea, (pos, consumer) -> {
              for (Direction direction : ALL_DIRECTIONS) {
                  consumer.accept(pos.relative(direction));
              }
-@@ -58,28 +_,64 @@
+@@ -58,28 +_,68 @@
              if (pos.equals(startPos)) {
                  return BlockPos.TraversalNodeStatus.ACCEPT;
              } else {
@@ -36,7 +36,7 @@
 +                BlockState blockState = blockList.getBlockState(pos);
 +                FluidState fluidState = blockList.getFluidState(pos);
 +                // CraftBukkit end
-+                if (!spongeState.canBeHydrated(level, startPos, fluidState, pos)) {
++                if (!spongeState.canBeHydrated(level, startPos, fluidState, pos) && (!level.purpurConfig.spongeAbsorbsLava || !fluidState.is(FluidTags.LAVA)) && (!level.purpurConfig.spongeAbsorbsWaterFromMud || !blockState.is(Blocks.MUD))) { // Purpur - Option for sponges to work on lava and mud
                      return BlockPos.TraversalNodeStatus.SKIP;
 -                } else if (state.getBlock() instanceof BucketPickup bucketPickup && !bucketPickup.pickupBlock(null, level, pos, state).isEmpty()) {
 +                } else if (blockState.getBlock() instanceof BucketPickup bucketPickup && !bucketPickup.pickupBlock(null, blockList, pos, blockState).isEmpty()) { // CraftBukkit
@@ -46,6 +46,10 @@
 -                        level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
 +                    if (blockState.getBlock() instanceof LiquidBlock) {
 +                        blockList.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL); // CraftBukkit
++                        // Purpur start - Option for sponges to work on lava and mud
++                    } else if (blockState.is(Blocks.MUD)) {
++                        blockList.setBlock(pos, Blocks.CLAY.defaultBlockState(), Block.UPDATE_ALL);
++                        // Purpur end - Option for sponges to work on lava and mud
                      } else {
 -                        if (!state.is(Blocks.KELP) && !state.is(Blocks.KELP_PLANT) && !state.is(Blocks.SEAGRASS) && !state.is(Blocks.TALL_SEAGRASS)) {
 +                        if (!blockState.is(Blocks.KELP) && !blockState.is(Blocks.KELP_PLANT) && !blockState.is(Blocks.SEAGRASS) && !blockState.is(Blocks.TALL_SEAGRASS)) {

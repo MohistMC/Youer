@@ -8,20 +8,23 @@
          if (isPrecise) {
              BlockState stateAbove = level.getBlockState(pos.above());
              boolean nothingAbove = stateAbove.getCollisionShape(level, pos).isEmpty() && stateAbove.getFluidState().isEmpty();
-@@ -107,9 +_,11 @@
+@@ -107,10 +_,12 @@
      private static BlockState getColumnState(Block bubbleColumn, BlockState belowState, BlockState occupyState) {
          if (belowState.is(bubbleColumn)) {
              return belowState;
 -        } else if (belowState.is(BlockTags.ENABLES_BUBBLE_COLUMN_PUSH_UP)) {
+-            return bubbleColumn.defaultBlockState().setValue(DRAG_DOWN, false);
+-        } else if (belowState.is(BlockTags.ENABLES_BUBBLE_COLUMN_DRAG_DOWN)) {
+-            return bubbleColumn.defaultBlockState().setValue(DRAG_DOWN, true);
 +        }
 +        net.neoforged.neoforge.common.enums.BubbleColumnDirection bubbleColumnDirection = belowState.getBubbleColumnDirection(); // Neo: PR #931
 +        if (bubbleColumnDirection == net.neoforged.neoforge.common.enums.BubbleColumnDirection.UPWARD) {
-             return bubbleColumn.defaultBlockState().setValue(DRAG_DOWN, false);
--        } else if (belowState.is(BlockTags.ENABLES_BUBBLE_COLUMN_DRAG_DOWN)) {
++            return bubbleColumn.defaultBlockState().setValue(DRAG_DOWN, org.purpurmc.purpur.PurpurConfig.soulSandBlockReverseBubbleColumnFlow); // Purpur - Config to reverse bubble column flow
 +        } else if (bubbleColumnDirection == net.neoforged.neoforge.common.enums.BubbleColumnDirection.DOWNWARD) {
-             return bubbleColumn.defaultBlockState().setValue(DRAG_DOWN, true);
++            return bubbleColumn.defaultBlockState().setValue(DRAG_DOWN, !org.purpurmc.purpur.PurpurConfig.magmaBlockReverseBubbleColumnFlow);
          } else {
              return occupyState.is(bubbleColumn) ? Blocks.WATER.defaultBlockState() : occupyState;
+         }
 @@ -179,7 +_,7 @@
      @Override
      protected boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {

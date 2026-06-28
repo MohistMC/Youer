@@ -1,6 +1,16 @@
 --- a/net/minecraft/world/item/BowItem.java
 +++ b/net/minecraft/world/item/BowItem.java
-@@ -31,6 +_,8 @@
+@@ -26,11 +_,18 @@
+     public boolean releaseUsing(ItemStack itemStack, Level level, LivingEntity entity, int remainingTime) {
+         if (entity instanceof Player player) {
+             ItemStack projectile = player.getProjectile(itemStack);
++            //  Purpur start - Infinity bow settings
++            if (level.purpurConfig.infinityWorksWithoutArrows && projectile.isEmpty() && net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(net.minecraft.world.item.enchantment.Enchantments.INFINITY, itemStack) > 0) {
++                projectile = new ItemStack(Items.ARROW);
++            }
++            // Purpur end - Infinity bow settings
+             if (projectile.isEmpty()) {
+                 return false;
              }
  
              int timeHeld = this.getUseDuration(itemStack, entity) - remainingTime;
@@ -14,18 +24,20 @@
              List<ItemStack> firedProjectiles = draw(itemStack, projectile, player);
              if (level instanceof ServerLevel serverLevel && !firedProjectiles.isEmpty()) {
 -                this.shoot(serverLevel, player, player.getUsedItemHand(), itemStack, firedProjectiles, pow * 3.0F, 1.0F, pow == 1.0F, null);
-+                this.shoot(serverLevel, player, player.getUsedItemHand(), itemStack, firedProjectiles, pow * 3.0F, 1.0F, pow == 1.0F, null, pow); // Paper - Pass draw strength
++                this.shoot(serverLevel, player, player.getUsedItemHand(), itemStack, firedProjectiles, pow * 3.0F, (float) serverLevel.purpurConfig.bowProjectileOffset, pow == 1.0F, null, pow); // Paper - Pass draw strength // Purpur - Projectile offset config
              }
  
              level.playSound(
-@@ -89,6 +_,10 @@
+@@ -89,7 +_,11 @@
      public InteractionResult use(Level level, Player player, InteractionHand hand) {
          ItemStack itemStack = player.getItemInHand(hand);
          boolean foundProjectile = !player.getProjectile(itemStack).isEmpty();
+-        if (!player.hasInfiniteMaterials() && !foundProjectile) {
 +
 +        InteractionResult ret = net.neoforged.neoforge.event.EventHooks.onArrowNock(itemStack, level, player, hand, foundProjectile);
 +        if (ret != null) return ret;
 +
-         if (!player.hasInfiniteMaterials() && !foundProjectile) {
++        if (!player.hasInfiniteMaterials() && !foundProjectile && !(level.purpurConfig.infinityWorksWithoutArrows && net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(net.minecraft.world.item.enchantment.Enchantments.INFINITY, itemStack) > 0)) { // Purpur - Infinity bow settings
              return InteractionResult.FAIL;
          }
+ 

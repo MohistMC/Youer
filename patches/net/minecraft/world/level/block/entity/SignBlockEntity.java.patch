@@ -56,23 +56,39 @@
          }
      }
  
-@@ -142,19 +_,41 @@
+@@ -142,19 +_,57 @@
          return this.setText(function.apply(text), isFrontText);
      }
  
 -    private SignText setMessages(Player player, List<FilteredText> lines, SignText text) {
++    // Purpur start - Signs allow color codes
++    private Component translateColors(org.bukkit.entity.Player player, String line, Style style) {
++        if (level.purpurConfig.signAllowColors) {
++            if (player.hasPermission("purpur.sign.color")) line = line.replaceAll("(?i)&([0-9a-fr])", "\u00a7$1");
++            if (player.hasPermission("purpur.sign.style")) line = line.replaceAll("(?i)&([l-or])", "\u00a7$1");
++            if (player.hasPermission("purpur.sign.magic")) line = line.replaceAll("(?i)&([kr])", "\u00a7$1");
++
++            return io.papermc.paper.adventure.PaperAdventure.asVanilla(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(line));
++        } else {
++            return Component.literal(line).setStyle(style);
++        }
++    }
++    // Purpur end - Signs allow color codes
++
 +    private SignText setMessages(Player player, List<FilteredText> lines, SignText text, boolean front) { // CraftBukkit
 +        SignText originalText = text; // CraftBukkit
          for (int i = 0; i < lines.size(); i++) {
              FilteredText line = lines.get(i);
              Style currentTextStyle = text.getMessage(i, player.isTextFilteringEnabled()).getStyle();
++
++            org.bukkit.entity.Player craftPlayer =  (org.bukkit.craftbukkit.entity.CraftPlayer) player.getBukkitEntity(); // Purpur - Signs allow color codes
              if (player.isTextFilteringEnabled()) {
 -                text = text.setMessage(i, Component.literal(line.filteredOrEmpty()).setStyle(currentTextStyle));
 +                text = text.setMessage(i, Component.literal(net.minecraft.util.StringUtil.filterText(line.filteredOrEmpty())).setStyle(currentTextStyle)); // Paper - filter sign text to chat only
              } else {
                  text = text.setMessage(
 -                    i, Component.literal(line.raw()).setStyle(currentTextStyle), Component.literal(line.filteredOrEmpty()).setStyle(currentTextStyle)
-+                    i, Component.literal(line.raw()).setStyle(currentTextStyle), Component.literal(net.minecraft.util.StringUtil.filterText(line.filteredOrEmpty())).setStyle(currentTextStyle) // Paper - filter sign text to chat only
++                    i, translateColors(craftPlayer, net.minecraft.util.StringUtil.filterText(line.raw()), currentTextStyle), translateColors(craftPlayer, net.minecraft.util.StringUtil.filterText(line.filteredOrEmpty()), currentTextStyle) // Paper - filter sign text to chat only // Purpur - Signs allow color codes
                  );
              }
          }

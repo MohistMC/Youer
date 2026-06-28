@@ -1,18 +1,22 @@
 --- a/net/minecraft/world/level/block/FarmlandBlock.java
 +++ b/net/minecraft/world/level/block/FarmlandBlock.java
-@@ -27,6 +_,11 @@
+@@ -8,7 +_,6 @@
+ import net.minecraft.tags.FluidTags;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.entity.Entity;
+-import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.item.context.BlockPlaceContext;
+ import net.minecraft.world.level.BlockGetter;
+@@ -21,7 +_,6 @@
+ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+ import net.minecraft.world.level.block.state.properties.IntegerProperty;
+ import net.minecraft.world.level.gameevent.GameEvent;
+-import net.minecraft.world.level.gamerules.GameRules;
+ import net.minecraft.world.level.pathfinder.PathComputationType;
+ import net.minecraft.world.phys.shapes.CollisionContext;
  import net.minecraft.world.phys.shapes.VoxelShape;
- import org.jspecify.annotations.Nullable;
- 
-+// CraftBukkit start
-+import org.bukkit.event.entity.EntityInteractEvent;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
-+// CraftBukkit end
-+
- public class FarmlandBlock extends Block {
-     public static final MapCodec<FarmlandBlock> CODEC = simpleCodec(FarmlandBlock::new);
-     public static final IntegerProperty MOISTURE = BlockStateProperties.MOISTURE;
-@@ -94,31 +_,56 @@
+@@ -94,31 +_,78 @@
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
          int moisture = state.getValue(MOISTURE);
@@ -52,6 +56,28 @@
 +            if (cancellable.isCancelled()) {
 +                return;
 +            }
++
++            if (level.purpurConfig.farmlandTramplingDisabled) return; // Purpur - Farmland trampling changes
++            if (level.purpurConfig.farmlandTramplingOnlyPlayers && !(entity instanceof Player)) return; // Purpur - Farmland trampling changes
++
++            // Purpur start - Ability to re-add farmland mechanics from Alpha
++            if (level.purpurConfig.farmlandAlpha) {
++                Block block = level.getBlockState(pos.below()).getBlock();
++                if (block instanceof FenceBlock || block instanceof WallBlock) {
++                    return;
++                }
++            }
++            // Purpur end - Ability to re-add farmland mechanics from Alpha
++
++            // Purpur start - Farmland trampling changes
++            if (level.purpurConfig.farmlandTramplingFeatherFalling) {
++                net.minecraft.world.item.ItemStack bootsItem = ((net.minecraft.world.entity.LivingEntity) entity).getItemBySlot(net.minecraft.world.entity.EquipmentSlot.FEET);
++
++                if (bootsItem != net.minecraft.world.item.ItemStack.EMPTY && net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(net.minecraft.world.item.enchantment.Enchantments.FEATHER_FALLING, bootsItem) >= (int) entity.fallDistance) {
++                    return;
++                }
++            }
++            // Purpur end - Farmland trampling changes
 +
 +            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(entity, pos, Blocks.DIRT.defaultBlockState())) {
 +                return;
@@ -103,7 +129,7 @@
          }
  
 -        return false;
-+        return net.neoforged.neoforge.common.FarmlandWaterManager.hasBlockWaterTicket(level, pos);
++        return ((ServerLevel) level).purpurConfig.farmlandGetsMoistFromBelow && net.neoforged.neoforge.common.FarmlandWaterManager.hasBlockWaterTicket(level, pos);
 +        // Paper end - Perf: remove abstract block iteration
      }
  

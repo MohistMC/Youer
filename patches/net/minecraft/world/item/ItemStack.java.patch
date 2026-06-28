@@ -102,7 +102,7 @@
          Player player = context.getPlayer();
          BlockPos pos = context.getClickedPos();
          if (player != null && !player.getAbilities().mayBuild && !this.canPlaceOnBlockInAdventureMode(new BlockInWorld(context.getLevel(), pos, false))) {
-@@ -365,10 +_,138 @@
+@@ -365,10 +_,140 @@
          }
  
          Item usedItem = this.getItem();
@@ -188,6 +188,7 @@
 +                // revert back all captured blocks
 +                for (org.bukkit.craftbukkit.block.CraftBlockState snapshot : capturedBlockStates) {
 +                    snapshot.revertPlace(true); // poi updates needs to be skipped since the poi were never registered as part of the capture
++                    snapshot.getBlock().getBlockState().getBlock().forgetPlacer(); // Purpur - Store placer on Block when placed
 +                }
 +            } else {
 +                // Change the stack to its new contents if it hasn't been tampered with.
@@ -208,6 +209,7 @@
 +                    if (!(block.getBlock() instanceof net.minecraft.world.level.block.BaseEntityBlock)) { // Containers get placed automatically
 +                        block.onPlace(level, newPos, oldBlock, true, context);
 +                    }
++                    block.getBlock().forgetPlacer(); // Purpur - Store placer on Block when placed
 +
 +                    level.notifyAndUpdatePhysics(newPos, null, oldBlock, block, level.getBlockState(newPos), snapshot.getFlags(), net.minecraft.world.level.block.Block.UPDATE_LIMIT); // send null chunk as chunk.k() returns false by this point
 +                }

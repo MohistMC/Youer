@@ -383,7 +383,7 @@ public class EventHooks {
      */
     public static PlayerSpawnPhantomsEvent firePlayerSpawnPhantoms(ServerPlayer player, ServerLevel level, BlockPos pos) {
         Difficulty difficulty = level.getCurrentDifficultyAt(pos).getDifficulty();
-        var event = new PlayerSpawnPhantomsEvent(player, 1 + level.getRandom().nextInt(difficulty.getId() + 1));
+        var event = new PlayerSpawnPhantomsEvent(player, level.purpurConfig.phantomSpawnMinPerAttempt + level.getRandom().nextInt((level.purpurConfig.phantomSpawnMaxPerAttempt < 0 ? difficulty.getId() : level.purpurConfig.phantomSpawnMaxPerAttempt - level.purpurConfig.phantomSpawnMinPerAttempt) + 1));
         NeoForge.EVENT_BUS.post(event);
         return event;
     }

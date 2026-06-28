@@ -74,6 +74,29 @@
      @Override
      public @Nullable ParticleOptions getDripParticle() {
          return ParticleTypes.DRIPPING_LAVA;
+@@ -173,7 +_,7 @@
+ 
+     @Override
+     public int getTickDelay(LevelReader level) {
+-        return isFastLava(level) ? 10 : 30;
++        return level.getWorldBorder().world != null ? (isFastLava(level) ? level.getWorldBorder().world.purpurConfig.lavaSpeedNether : level.getWorldBorder().world.purpurConfig.lavaSpeedNotNether) : (isFastLava(level) ? 10 : 30); // Purpur - Make lava flow speed configurable
+     }
+ 
+     @Override
+@@ -195,6 +_,13 @@
+         level.levelEvent(1501, pos, 0);
+     }
+ 
++    // Purpur start - Implement infinite liquids
++    @Override
++    protected int getRequiredSources(Level level) {
++        return level.purpurConfig.lavaInfiniteRequiredSources;
++    }
++    // Purpur end - Implement infinite liquids
++
+     @Override
+     protected boolean canConvertToSource(ServerLevel level) {
+         return level.getGameRules().get(GameRules.LAVA_SOURCE_CONVERSION);
 @@ -206,7 +_,11 @@
              FluidState fluidState = level.getFluidState(pos);
              if (this.is(FluidTags.LAVA) && fluidState.is(FluidTags.WATER)) {
