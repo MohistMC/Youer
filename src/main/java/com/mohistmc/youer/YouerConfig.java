@@ -135,6 +135,32 @@ public class YouerConfig {
     public static boolean NoRaining;
     public static boolean SkyLight15;
     public static boolean disable_skullblock_skin;
+    // Activation Range
+    public static int animalActivationRange = 32;
+    public static int monsterActivationRange = 32;
+    public static int raiderActivationRange = 64;
+    public static int miscActivationRange = 16;
+    public static int flyingMonsterActivationRange = 32;
+    public static int waterActivationRange = 16;
+    public static int villagerActivationRange = 32;
+    public static int wakeUpInactiveAnimals = 4;
+    public static int wakeUpInactiveAnimalsEvery = 60*20;
+    public static int wakeUpInactiveAnimalsFor = 5*20;
+    public static int wakeUpInactiveMonsters = 8;
+    public static int wakeUpInactiveMonstersEvery = 20*20;
+    public static int wakeUpInactiveMonstersFor = 5*20;
+    public static int wakeUpInactiveVillagers = 4;
+    public static int wakeUpInactiveVillagersEvery = 30*20;
+    public static int wakeUpInactiveVillagersFor = 5*20;
+    public static int wakeUpInactiveFlying = 8;
+    public static int wakeUpInactiveFlyingEvery = 10*20;
+    public static int wakeUpInactiveFlyingFor = 5*20;
+    public static int villagersWorkImmunityAfter = 5*20;
+    public static int villagersWorkImmunityFor = 20;
+    public static boolean villagersActiveForPanic = true;
+    public static boolean tickInactiveVillagers = true;
+    public static boolean ignoreSpectatorActivation = false;
+    public static int simulationDistance = -1;
 
     static int version;
     static Map<String, Command> commands;
@@ -335,6 +361,33 @@ public class YouerConfig {
         NoRaining = getBoolean("event.NoRaining", false);
         SkyLight15 = getBoolean("SkyLight15", false);
         disable_skullblock_skin = getBoolean("disable_skullblock_skin", false);
+
+        animalActivationRange = getInt("entity-activation-range.animals", animalActivationRange);
+        monsterActivationRange = getInt("entity-activation-range.monsters", monsterActivationRange);
+        raiderActivationRange = getInt("entity-activation-range.raiders", raiderActivationRange);
+        miscActivationRange = getInt("entity-activation-range.misc", miscActivationRange);
+        waterActivationRange = getInt("entity-activation-range.water", waterActivationRange);
+        villagerActivationRange = getInt("entity-activation-range.villagers", villagerActivationRange);
+        flyingMonsterActivationRange = getInt("entity-activation-range.flying-monsters", flyingMonsterActivationRange);
+
+        wakeUpInactiveAnimals = getInt("entity-activation-range.wake-up-inactive.animals-max-per-tick", wakeUpInactiveAnimals);
+        wakeUpInactiveAnimalsEvery = getInt("entity-activation-range.wake-up-inactive.animals-every", wakeUpInactiveAnimalsEvery);
+        wakeUpInactiveAnimalsFor = getInt("entity-activation-range.wake-up-inactive.animals-for", wakeUpInactiveAnimalsFor);
+        wakeUpInactiveMonsters = getInt("entity-activation-range.wake-up-inactive.monsters-max-per-tick", wakeUpInactiveMonsters);
+        wakeUpInactiveMonstersEvery = getInt("entity-activation-range.wake-up-inactive.monsters-every", wakeUpInactiveMonstersEvery);
+        wakeUpInactiveMonstersFor = getInt("entity-activation-range.wake-up-inactive.monsters-for", wakeUpInactiveMonstersFor);
+        wakeUpInactiveVillagers = getInt("entity-activation-range.wake-up-inactive.villagers-max-per-tick", wakeUpInactiveVillagers);
+        wakeUpInactiveVillagersEvery = getInt("entity-activation-range.wake-up-inactive.villagers-every", wakeUpInactiveVillagersEvery);
+        wakeUpInactiveVillagersFor = getInt("entity-activation-range.wake-up-inactive.villagers-for", wakeUpInactiveVillagersFor);
+        wakeUpInactiveFlying = getInt("entity-activation-range.wake-up-inactive.flying-monsters-max-per-tick", wakeUpInactiveFlying);
+        wakeUpInactiveFlyingEvery = getInt("entity-activation-range.wake-up-inactive.flying-monsters-every", wakeUpInactiveFlyingEvery);
+        wakeUpInactiveFlyingFor = getInt("entity-activation-range.wake-up-inactive.flying-monsters-for", wakeUpInactiveFlyingFor);
+
+        villagersWorkImmunityAfter = getInt("entity-activation-range.villagers-work-immunity-after", villagersWorkImmunityAfter);
+        villagersWorkImmunityFor = getInt("entity-activation-range.villagers-work-immunity-for", villagersWorkImmunityFor);
+        villagersActiveForPanic = getBoolean("entity-activation-range.villagers-active-for-panic", villagersActiveForPanic);
+        tickInactiveVillagers = getBoolean("entity-activation-range.tick-inactive-villagers", tickInactiveVillagers);
+        ignoreSpectatorActivation = getBoolean("entity-activation-range.ignore-spectators", ignoreSpectatorActivation);
 
         getBoolean("keepinventory.world.inventory", false);
         getBoolean("keepinventory.world.exp", false);

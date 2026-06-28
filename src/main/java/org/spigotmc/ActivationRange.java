@@ -1,8 +1,10 @@
 package org.spigotmc;
 
+import com.mohistmc.youer.YouerConfig;
 import net.minecraft.core.BlockPos;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerChunkCache;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ExperienceOrb;
 import net.minecraft.world.entity.FlyingMob;
@@ -64,27 +66,26 @@ public class ActivationRange
 
     private static int checkInactiveWakeup(Entity entity) {
         Level world = entity.level();
-        SpigotWorldConfig config = world.spigotConfig;
         long inactiveFor = MinecraftServer.currentTick - entity.activatedTick;
         if (entity.activationType == ActivationType.VILLAGER) {
-            if (inactiveFor > config.wakeUpInactiveVillagersEvery && world.wakeupInactiveRemainingVillagers > 0) {
+            if (inactiveFor > YouerConfig.wakeUpInactiveVillagersEvery && world.wakeupInactiveRemainingVillagers > 0) {
                 world.wakeupInactiveRemainingVillagers--;
-                return config.wakeUpInactiveVillagersFor;
+                return YouerConfig.wakeUpInactiveVillagersFor;
             }
         } else if (entity.activationType == ActivationType.ANIMAL) {
-            if (inactiveFor > config.wakeUpInactiveAnimalsEvery && world.wakeupInactiveRemainingAnimals > 0) {
+            if (inactiveFor > YouerConfig.wakeUpInactiveAnimalsEvery && world.wakeupInactiveRemainingAnimals > 0) {
                 world.wakeupInactiveRemainingAnimals--;
-                return config.wakeUpInactiveAnimalsFor;
+                return YouerConfig.wakeUpInactiveAnimalsFor;
             }
         } else if (entity.activationType == ActivationType.FLYING_MONSTER) {
-            if (inactiveFor > config.wakeUpInactiveFlyingEvery && world.wakeupInactiveRemainingFlying > 0) {
+            if (inactiveFor > YouerConfig.wakeUpInactiveFlyingEvery && world.wakeupInactiveRemainingFlying > 0) {
                 world.wakeupInactiveRemainingFlying--;
-                return config.wakeUpInactiveFlyingFor;
+                return YouerConfig.wakeUpInactiveFlyingFor;
             }
         } else if (entity.activationType == ActivationType.MONSTER || entity.activationType == ActivationType.RAIDER) {
-            if (inactiveFor > config.wakeUpInactiveMonstersEvery && world.wakeupInactiveRemainingMonsters > 0) {
+            if (inactiveFor > YouerConfig.wakeUpInactiveMonstersEvery && world.wakeupInactiveRemainingMonsters > 0) {
                 world.wakeupInactiveRemainingMonsters--;
-                return config.wakeUpInactiveMonstersFor;
+                return YouerConfig.wakeUpInactiveMonstersFor;
             }
         }
         return -1;
@@ -129,13 +130,13 @@ public class ActivationRange
      */
     public static boolean initializeEntityActivationState(Entity entity, SpigotWorldConfig config)
     {
-        if ( ( entity.activationType == ActivationType.MISC && config.miscActivationRange <= 0 )
-                || ( entity.activationType == ActivationType.RAIDER && config.raiderActivationRange <= 0 )
-                || ( entity.activationType == ActivationType.ANIMAL && config.animalActivationRange <= 0 )
-                || ( entity.activationType == ActivationType.MONSTER && config.monsterActivationRange <= 0 )
-                || ( entity.activationType == ActivationType.VILLAGER && config.villagerActivationRange <= 0 ) // Paper
-                || ( entity.activationType == ActivationType.WATER && config.waterActivationRange <= 0 ) // Paper
-                || ( entity.activationType == ActivationType.FLYING_MONSTER && config.flyingMonsterActivationRange <= 0 ) // Paper
+        if ( ( entity.activationType == ActivationType.MISC && YouerConfig.miscActivationRange <= 0 )
+                || ( entity.activationType == ActivationType.RAIDER && YouerConfig.raiderActivationRange <= 0 )
+                || ( entity.activationType == ActivationType.ANIMAL && YouerConfig.animalActivationRange <= 0 )
+                || ( entity.activationType == ActivationType.MONSTER && YouerConfig.monsterActivationRange <= 0 )
+                || ( entity.activationType == ActivationType.VILLAGER && YouerConfig.villagerActivationRange <= 0 ) // Paper
+                || ( entity.activationType == ActivationType.WATER && YouerConfig.waterActivationRange <= 0 ) // Paper
+                || ( entity.activationType == ActivationType.FLYING_MONSTER && YouerConfig.flyingMonsterActivationRange <= 0 ) // Paper
                 || entity instanceof EyeOfEnder // Paper
                 || entity instanceof Player
                 || entity instanceof ThrowableProjectile
@@ -167,18 +168,17 @@ public class ActivationRange
     public static void activateEntities(Level world)
     {
         //MinecraftTimings.entityActivationCheckTimer.startTiming(); // Purpur
-        final int miscActivationRange = world.spigotConfig.miscActivationRange;
-        final int raiderActivationRange = world.spigotConfig.raiderActivationRange;
-        final int animalActivationRange = world.spigotConfig.animalActivationRange;
-        final int monsterActivationRange = world.spigotConfig.monsterActivationRange;
-        // Paper start
-        final int waterActivationRange = world.spigotConfig.waterActivationRange;
-        final int flyingActivationRange = world.spigotConfig.flyingMonsterActivationRange;
-        final int villagerActivationRange = world.spigotConfig.villagerActivationRange;
-        world.wakeupInactiveRemainingAnimals = Math.min(world.wakeupInactiveRemainingAnimals + 1, world.spigotConfig.wakeUpInactiveAnimals);
-        world.wakeupInactiveRemainingVillagers = Math.min(world.wakeupInactiveRemainingVillagers + 1, world.spigotConfig.wakeUpInactiveVillagers);
-        world.wakeupInactiveRemainingMonsters = Math.min(world.wakeupInactiveRemainingMonsters + 1, world.spigotConfig.wakeUpInactiveMonsters);
-        world.wakeupInactiveRemainingFlying = Math.min(world.wakeupInactiveRemainingFlying + 1, world.spigotConfig.wakeUpInactiveFlying);
+        final int miscActivationRange = YouerConfig.miscActivationRange;
+        final int raiderActivationRange = YouerConfig.raiderActivationRange;
+        final int animalActivationRange = YouerConfig.animalActivationRange;
+        final int monsterActivationRange = YouerConfig.monsterActivationRange;
+        final int waterActivationRange = YouerConfig.waterActivationRange;
+        final int flyingActivationRange = YouerConfig.flyingMonsterActivationRange;
+        final int villagerActivationRange = YouerConfig.villagerActivationRange;
+        world.wakeupInactiveRemainingAnimals = Math.min(world.wakeupInactiveRemainingAnimals + 1, YouerConfig.wakeUpInactiveAnimals);
+        world.wakeupInactiveRemainingVillagers = Math.min(world.wakeupInactiveRemainingVillagers + 1, YouerConfig.wakeUpInactiveVillagers);
+        world.wakeupInactiveRemainingMonsters = Math.min(world.wakeupInactiveRemainingMonsters + 1, YouerConfig.wakeUpInactiveMonsters);
+        world.wakeupInactiveRemainingFlying = Math.min(world.wakeupInactiveRemainingFlying + 1, YouerConfig.wakeUpInactiveFlying);
         final ServerChunkCache chunkProvider = (ServerChunkCache) world.getChunkSource();
         // Paper end
 
@@ -190,12 +190,13 @@ public class ActivationRange
         maxRange = Math.max( maxRange, waterActivationRange );
         maxRange = Math.max( maxRange, villagerActivationRange );
         // Paper end
-        maxRange = Math.min( ( world.spigotConfig.simulationDistance << 4 ) - 8, maxRange );
+        int simDist = YouerConfig.simulationDistance > 0 ? YouerConfig.simulationDistance : 10;
+        maxRange = Math.min( ( simDist << 4 ) - 8, maxRange );
 
         for ( Player player : world.players() )
         {
             player.activatedTick = MinecraftServer.currentTick;
-            if ( world.spigotConfig.ignoreSpectatorActivation && player.isSpectator() )
+            if ( YouerConfig.ignoreSpectatorActivation && player.isSpectator() )
             {
                 continue;
             }
@@ -261,7 +262,6 @@ public class ActivationRange
     public static int checkEntityImmunities(Entity entity) // Paper - return # of ticks to get immunity
     {
         // Paper start
-        SpigotWorldConfig config = entity.level().spigotConfig;
         int inactiveWakeUpImmunity = checkInactiveWakeup(entity);
         if (inactiveWakeUpImmunity > -1) {
             return inactiveWakeUpImmunity;
@@ -321,7 +321,7 @@ public class ActivationRange
             if ( entity instanceof Villager ) {
                 Brain<Villager> behaviorController = ((Villager) entity).getBrain();
 
-                if (config.villagersActiveForPanic) {
+                if (YouerConfig.villagersActiveForPanic) {
                     for (Activity activity : VILLAGER_PANIC_IMMUNITIES) {
                         if (behaviorController.isActive(activity)) {
                             return 20*5;
@@ -329,9 +329,9 @@ public class ActivationRange
                     }
                 }
 
-                if (config.villagersWorkImmunityAfter > 0 && inactiveFor >= config.villagersWorkImmunityAfter) {
+                if (YouerConfig.villagersWorkImmunityAfter > 0 && inactiveFor >= YouerConfig.villagersWorkImmunityAfter) {
                     if (behaviorController.isActive(Activity.WORK)) {
-                        return config.villagersWorkImmunityFor;
+                        return YouerConfig.villagersWorkImmunityFor;
                     }
                 }
             }
