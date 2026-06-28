@@ -76,6 +76,7 @@ public class AutoDeleteMods {
             new AbstractMap.SimpleEntry<>("cn.tohsaka.factory.zstdmc.Zstdmc", ZSTD),
             new AbstractMap.SimpleEntry<>("cn.tohsaka.factory.zstdnet.Zstdnet", ZSTD),
             new AbstractMap.SimpleEntry<>("cn.ussshenzhou.notenoughbandwidth.NotEnoughBandwidthLegacy", ZSTD),
+            new AbstractMap.SimpleEntry<>("cn.ussshenzhou.notenoughbandwidth.NotEnoughBandwidth", ZSTD),
             new AbstractMap.SimpleEntry<>("com.daqem.grieflogger.neoforge.GriefLoggerNeoForge", MYSQL),
             new AbstractMap.SimpleEntry<>("com.daqem.grieflogger.neoforge.GriefLoggerNeoForge", SQLITE),
             new AbstractMap.SimpleEntry<>("com.daqem.grieflogger.neoforge.GriefLoggerNeoForge", PROTOBUF)
