@@ -10,7 +10,9 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -67,11 +69,17 @@ public class AutoDeleteMods {
 
     private static final String END = OSUtil.getOS().isWindows() ? ";" : ":";
     private static final String ZSTD = "libraries/com/github/luben/zstd-jni/1.5.7-8/zstd-jni-1.5.7-8.jar" + END;
-    private static final Map<String, String> LIB_BLACKLIST = new HashMap<>() {{
-        put("cn.tohsaka.factory.zstdmc.Zstdmc", ZSTD);
-        put("cn.tohsaka.factory.zstdnet.Zstdnet", ZSTD);
-        put("cn.ussshenzhou.notenoughbandwidth.NotEnoughBandwidthLegacy", ZSTD);
-    }};
+    private static final String MYSQL = "libraries/com/mysql/mysql-connector-j/8.4.0/mysql-connector-j-8.4.0.jar" + END;
+    private static final String SQLITE = "libraries/org/xerial/sqlite-jdbc/3.46.0.0/sqlite-jdbc-3.46.0.0.jar" + END;
+    private static final String PROTOBUF = "libraries/com/google/protobuf/protobuf-java/3.25.1/protobuf-java-3.25.1.jar" + END;
+    private static final List<Map.Entry<String, String>> LIB_BLACKLIST = Arrays.asList(
+            new AbstractMap.SimpleEntry<>("cn.tohsaka.factory.zstdmc.Zstdmc", ZSTD),
+            new AbstractMap.SimpleEntry<>("cn.tohsaka.factory.zstdnet.Zstdnet", ZSTD),
+            new AbstractMap.SimpleEntry<>("cn.ussshenzhou.notenoughbandwidth.NotEnoughBandwidthLegacy", ZSTD),
+            new AbstractMap.SimpleEntry<>("com.daqem.grieflogger.neoforge.GriefLoggerNeoForge", MYSQL),
+            new AbstractMap.SimpleEntry<>("com.daqem.grieflogger.neoforge.GriefLoggerNeoForge", SQLITE),
+            new AbstractMap.SimpleEntry<>("com.daqem.grieflogger.neoforge.GriefLoggerNeoForge", PROTOBUF)
+    );
 
     /**
      * Mapping tables for classes to directories
@@ -194,8 +202,12 @@ public class AutoDeleteMods {
         }
     }
 
+    public static List<Map.Entry<String, String>> getAllBlacklistEntries() {
+        return new ArrayList<>(LIB_BLACKLIST);
+    }
+
     public static void syncLibBlacklistToJarLoader() {
-        for (Map.Entry<String, String> entry : LIB_BLACKLIST.entrySet()) {
+        for (Map.Entry<String, String> entry : getAllBlacklistEntries()) {
             String className = entry.getKey();
             String jarName = entry.getValue();
 
