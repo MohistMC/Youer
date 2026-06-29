@@ -1296,20 +1296,21 @@
          if (this.acceptsSystemMessages(p_240545_)) {
              this.connection
                  .send(
-@@ -1529,9 +_,15 @@
+@@ -1528,10 +_,16 @@
+         }
      }
  
++    public @Nullable Component sendChatMessage$unsigned = null;
      public void sendChatMessage(OutgoingChatMessage p_249852_, boolean p_250110_, ChatType.Bound p_252108_) {
 +        // Paper start
-+        this.sendChatMessage(p_249852_, p_250110_, p_252108_, null);
-+    }
-+    public void sendChatMessage(OutgoingChatMessage message, boolean filterMaskEnabled, ChatType.Bound params, @Nullable Component unsigned) {
-+        // Paper end
          if (this.acceptsChatMessages()) {
 -            p_249852_.sendToPlayer(this, p_250110_, p_252108_);
-+            message.sendToPlayer(this, filterMaskEnabled, params, unsigned); // Paper
++            p_249852_.sendToPlayer(this, p_250110_, p_252108_, sendChatMessage$unsigned); // Paper
          }
-+
++    }
++    public void sendChatMessage(OutgoingChatMessage message, boolean filterMaskEnabled, ChatType.Bound params, @Nullable Component unsigned) {
++        sendChatMessage$unsigned = unsigned;
++        sendChatMessage(message, filterMaskEnabled, params);
      }
  
      public String getIpAddress() {

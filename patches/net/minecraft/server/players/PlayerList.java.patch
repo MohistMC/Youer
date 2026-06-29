@@ -1226,7 +1226,7 @@
  
      public void broadcastSystemMessage(Component p_240618_, boolean p_240644_) {
          this.broadcastSystemMessage(p_240618_, p_215639_ -> p_240618_, p_240644_);
-@@ -776,20 +_,39 @@
+@@ -776,20 +_,41 @@
      }
  
      public void broadcastChatMessage(PlayerChatMessage p_243264_, ServerPlayer p_243234_, ChatType.Bound p_243204_) {
@@ -1260,7 +1260,6 @@
  
          for (ServerPlayer serverplayer : this.players) {
              boolean flag2 = p_250784_.test(serverplayer);
--            serverplayer.sendChatMessage(outgoingchatmessage, flag2, p_250276_);
 +            // Paper start - don't send player chat packets from vanished players
 +            if (p_249623_ != null && !(p_249623_ instanceof FakePlayer) && !serverplayer.getBukkitEntity().canSee(p_249623_.getBukkitEntity())) {
 +                serverplayer.connection.send(unsignedFunction != null
@@ -1269,7 +1268,9 @@
 +                continue;
 +            }
 +            // Paper end
-+            serverplayer.sendChatMessage(outgoingchatmessage, flag2, p_250276_, unsignedFunction == null ? null : unsignedFunction.apply(serverplayer.getBukkitEntity())); // Paper
++            serverplayer.sendChatMessage$unsigned = unsignedFunction == null ? null : unsignedFunction.apply(serverplayer.getBukkitEntity()); // Paper
+             serverplayer.sendChatMessage(outgoingchatmessage, flag2, p_250276_);
++            serverplayer.sendChatMessage$unsigned = null; // Youer
              flag1 |= flag2 && p_249952_.isFullyFiltered();
          }
  

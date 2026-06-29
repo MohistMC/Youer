@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/grower/TreeGrower.java
 +++ b/net/minecraft/world/level/block/grower/TreeGrower.java
-@@ -17,9 +_,11 @@
+@@ -17,9 +_,13 @@
  import net.minecraft.world.level.LevelAccessor;
  import net.minecraft.world.level.block.Block;
  import net.minecraft.world.level.block.Blocks;
@@ -9,35 +9,118 @@
  import net.minecraft.world.level.chunk.ChunkGenerator;
  import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 +import org.bukkit.TreeType;
++import org.bukkit.craftbukkit.block.CapturedBlockState;
++import org.bukkit.craftbukkit.util.CraftLocation;
  
  public final class TreeGrower {
      private static final Map<String, TreeGrower> GROWERS = new Object2ObjectArrayMap<>();
-@@ -130,7 +_,11 @@
+@@ -103,6 +_,37 @@
+         GROWERS.put(p_304522_, this);
+     }
+ 
++    public TreeGrower youer(ServerLevel serverLevel) {
++        serverLevel.captureTreeGeneration = true;
++        serverLevel.captureTreeGeneration$Youer = true;
++        return this;
++    }
++
++    public void clearCaptureTreeGeneration(ServerLevel serverLevel, BlockPos blockPos) {
++        if (serverLevel.captureTreeGeneration$Youer) {
++            serverLevel.captureTreeGeneration = false;
++            serverLevel.captureTreeGeneration$Youer = false;
++            java.util.List<org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates = new java.util.ArrayList<>(serverLevel.capturedBlockStates.values());
++            serverLevel.capturedBlockStates.clear();
++            TreeType treeType = SaplingBlock.treeType;
++            SaplingBlock.treeType = null;
++
++            if (!capturedBlockStates.isEmpty()) {
++                org.bukkit.Location location = CraftLocation.toBukkit(blockPos, serverLevel.getWorld());
++                org.bukkit.event.world.StructureGrowEvent event = null;
++                if (treeType != null) {
++                    event = new org.bukkit.event.world.StructureGrowEvent(location, treeType, false, null, (java.util.List<org.bukkit.block.BlockState>) (java.util.List<? extends org.bukkit.block.BlockState>) capturedBlockStates);
++                    org.bukkit.Bukkit.getPluginManager().callEvent(event);
++                }
++                if (event == null || !event.isCancelled()) {
++                    for (org.bukkit.block.BlockState blockstate : capturedBlockStates) {
++                        CapturedBlockState.setBlockState(blockstate);
++                    }
++                }
++            }
++        }
++    }
++
+     @Nullable
+     private ResourceKey<ConfiguredFeature<?, ?>> getConfiguredFeature(RandomSource p_304525_, boolean p_304410_) {
+         if (p_304525_.nextFloat() < this.secondaryChance) {
+@@ -130,7 +_,14 @@
                  .registryOrThrow(Registries.CONFIGURED_FEATURE)
                  .getHolder(resourcekey)
                  .orElse(null);
 +            var event = net.neoforged.neoforge.event.EventHooks.fireBlockGrowFeature(p_304396_, p_304893_, p_304643_, holder);
 +            holder = event.getFeature();
-+            if (event.isCanceled()) return false;
++            if (event.isCanceled()){
++                clearCaptureTreeGeneration(p_304396_, p_304643_);
++                return false;
++            }
              if (holder != null) {
 +                setTreeType(holder); // CraftBukkit
                  for (int i = 0; i >= -1; i--) {
                      for (int j = 0; j >= -1; j--) {
                          if (isTwoByTwoSapling(p_304439_, p_304396_, p_304643_, i, j)) {
-@@ -163,9 +_,13 @@
+@@ -141,6 +_,7 @@
+                             p_304396_.setBlock(p_304643_.offset(i, 0, j + 1), blockstate, 4);
+                             p_304396_.setBlock(p_304643_.offset(i + 1, 0, j + 1), blockstate, 4);
+                             if (configuredfeature.place(p_304396_, p_304672_, p_304893_, p_304643_.offset(i, 0, j))) {
++                                clearCaptureTreeGeneration(p_304396_, p_304643_);
+                                 return true;
+                             }
+ 
+@@ -148,6 +_,7 @@
+                             p_304396_.setBlock(p_304643_.offset(i + 1, 0, j), p_304439_, 4);
+                             p_304396_.setBlock(p_304643_.offset(i, 0, j + 1), p_304439_, 4);
+                             p_304396_.setBlock(p_304643_.offset(i + 1, 0, j + 1), p_304439_, 4);
++                            clearCaptureTreeGeneration(p_304396_, p_304643_);
+                             return false;
+                         }
+                     }
+@@ -157,15 +_,24 @@
+ 
+         ResourceKey<ConfiguredFeature<?, ?>> resourcekey1 = this.getConfiguredFeature(p_304893_, this.hasFlowers(p_304396_, p_304643_));
+         if (resourcekey1 == null) {
++            clearCaptureTreeGeneration(p_304396_, p_304643_);
+             return false;
+         } else {
+             Holder<ConfiguredFeature<?, ?>> holder1 = p_304396_.registryAccess()
                  .registryOrThrow(Registries.CONFIGURED_FEATURE)
                  .getHolder(resourcekey1)
                  .orElse(null);
 +            var event = net.neoforged.neoforge.event.EventHooks.fireBlockGrowFeature(p_304396_, p_304893_, p_304643_, holder1);
 +            holder1 = event.getFeature();
-+            if (event.isCanceled()) return false;
++            if (event.isCanceled()) {
++                clearCaptureTreeGeneration(p_304396_, p_304643_);
++                return false;
++            }
              if (holder1 == null) {
++                clearCaptureTreeGeneration(p_304396_, p_304643_);
                  return false;
              } else {
 +                setTreeType(holder1); // CraftBukkit
                  ConfiguredFeature<?, ?> configuredfeature1 = holder1.value();
                  BlockState blockstate1 = p_304396_.getFluidState(p_304643_).createLegacyBlock();
                  p_304396_.setBlock(p_304643_, blockstate1, 4);
+@@ -173,10 +_,11 @@
+                     if (p_304396_.getBlockState(p_304643_) == blockstate1) {
+                         p_304396_.sendBlockUpdated(p_304643_, p_304439_, blockstate1, 2);
+                     }
+-
++                    clearCaptureTreeGeneration(p_304396_, p_304643_);
+                     return true;
+                 } else {
+                     p_304396_.setBlock(p_304643_, p_304439_, 4);
++                    clearCaptureTreeGeneration(p_304396_, p_304643_);
+                     return false;
+                 }
+             }
 @@ -200,4 +_,55 @@
  
          return false;
