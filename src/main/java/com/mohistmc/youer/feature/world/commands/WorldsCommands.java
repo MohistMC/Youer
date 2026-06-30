@@ -80,7 +80,6 @@ public class WorldsCommands extends Command {
                         wh.addItem(new GUIItem(new ItemStackFactory(WorldsGUI.getMaterial(environment))
                                            .setDisplayName(environment)
                                            .setLore(List.of(
-                                                   I18n.as("worldmanage.environment." + environment.toLowerCase(Locale.ENGLISH)),
                                                    I18n.as("worldmanage.gui.select")
                                            ))
                                            .build()) {

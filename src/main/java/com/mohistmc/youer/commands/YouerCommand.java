@@ -326,7 +326,7 @@ public class YouerCommand extends Command {
             }
             case "windows" -> {
                 int playerAmount = Bukkit.getOnlinePlayers().size();
-                int maxplayerAmount = Bukkit.getOfflinePlayers().length;
+                int maxplayerAmount = Bukkit.getMaxPlayers();
                 boolean onlineMode = Bukkit.getOnlineMode();
                 String bukkitVersion = Bukkit.getVersion();
                 bukkitVersion = bukkitVersion.substring(bukkitVersion.indexOf("MC: ") + 4, bukkitVersion.length() - 1);

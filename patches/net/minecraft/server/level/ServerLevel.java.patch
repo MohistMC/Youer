@@ -1437,7 +1437,7 @@
          Entity existing = this.getEntity(player.getUUID());
          if (existing != null) {
              LOGGER.warn("Force-added player with duplicate UUID {}", player.getUUID());
-@@ -988,45 +_,133 @@
+@@ -988,45 +_,137 @@
              this.removePlayerImmediately((ServerPlayer)existing, Entity.RemovalReason.DISCARDED);
          }
  
@@ -1446,7 +1446,10 @@
 +        player.onAddedToLevel();
      }
  
--    private boolean addEntity(Entity entity) {
+     private boolean addEntity(Entity entity) {
++        return this.addEntity(entity, CreatureSpawnEvent.SpawnReason.CUSTOM);
++    }
++
 +    private boolean addEntity(Entity entity, final org.bukkit.event.entity.CreatureSpawnEvent.@Nullable SpawnReason spawnReason) {
 +        org.spigotmc.AsyncCatcher.catchOp("entity add"); // Spigot
 +        entity.generation = false; // Paper - Don't fire sync event during generation; Reset flag if it was added during a ServerLevel generation process
