@@ -5,7 +5,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
@@ -34,24 +33,24 @@ public class PermissionCommand extends Command {
             return true;
         }
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
+            sender.sendMessage(I18n.as("commands.usage", usageMessage));
             return false;
         }
 
         if (args[0].toLowerCase(Locale.ENGLISH).equals("check")) {
             if (args.length != 3) {
-                sender.sendMessage(ChatColor.RED + "Usage: /permission check <player> <permission>");
+                sender.sendMessage(I18n.as("permissioncmd.usage.check"));
                 return false;
             }
             String permission = args[2];
             Player player = Bukkit.getPlayer(args[1]);
             if (player != null) {
-                sender.sendMessage(player.hasPermission(permission) ? ChatColor.GREEN + "true" : ChatColor.RED + "false");
+                sender.sendMessage(player.hasPermission(permission) ? I18n.as("permissioncmd.true") : I18n.as("permissioncmd.false"));
             } else {
-                sender.sendMessage(ChatColor.RED + I18n.as("youercmd.playermods.playernotOnline", args[1]));
+                sender.sendMessage(I18n.as("youercmd.playermods.playernotOnline", args[1]));
             }
         } else {
-            sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
+            sender.sendMessage(I18n.as("commands.usage", usageMessage));
             return false;
         }
         return false;

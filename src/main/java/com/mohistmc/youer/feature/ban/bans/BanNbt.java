@@ -1,7 +1,7 @@
 package com.mohistmc.youer.feature.ban.bans;
 
-import com.mohistmc.youer.api.ItemAPI;
 import com.mohistmc.youer.feature.ban.BanConfig;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.inventory.ItemStack;
 
 /**
@@ -16,8 +16,9 @@ public class BanNbt {
         if (yml.isEmpty()) {
             return false;
         }
-        var nbt = ItemAPI.getNbtAsString(itemStack);
+        var nms = CraftItemStack.asNMSCopy(itemStack);
+        var componentString = nms.getComponents().toString();
 
-        return yml.stream().anyMatch(nbt::contains);
+        return yml.stream().anyMatch(componentString::contains);
     }
 }

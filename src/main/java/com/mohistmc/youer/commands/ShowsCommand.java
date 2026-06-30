@@ -18,7 +18,6 @@ import java.util.stream.StreamSupport;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.level.block.entity.TickingBlockEntity;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
@@ -68,13 +67,13 @@ public class ShowsCommand extends Command {
         }
 
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
+            sender.sendMessage(I18n.as("commands.usage", usageMessage));
             return false;
         }
 
 
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(ChatColor.RED + I18n.as("error.notplayer"));
+            sender.sendMessage(I18n.as("error.notplayer"));
             return false;
         }
 
@@ -288,7 +287,7 @@ public class ShowsCommand extends Command {
                 return true;
             }
             default -> {
-                sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
+                sender.sendMessage(I18n.as("commands.usage", usageMessage));
                 return false;
             }
         }

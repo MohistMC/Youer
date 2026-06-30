@@ -31,7 +31,6 @@ import java.util.Map;
 import net.minecraft.advancements.AdvancementHolder;
 import net.minecraft.server.MinecraftServer;
 import org.apache.commons.io.FileUtils;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.WorldType;
@@ -77,7 +76,7 @@ public class DumpCommand extends Command {
             return true;
         }
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
+            sender.sendMessage(I18n.as("commands.usage", usageMessage));
             return false;
         }
         if (args.length == 1) {
@@ -100,7 +99,7 @@ public class DumpCommand extends Command {
                 case "channels" -> dumpChannels(sender);
                 case "advancements" -> dumpAdvancements(sender);
                 default -> {
-                    sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
+                    sender.sendMessage(I18n.as("commands.usage", usageMessage));
                     return false;
                 }
             }
@@ -241,7 +240,7 @@ public class DumpCommand extends Command {
     }
 
     private void dumpmsg(CommandSender sender, String path, String type) {
-        sender.sendMessage(ChatColor.GREEN + "Successfully dump " + type + ", output path: " + path);
+        sender.sendMessage(I18n.as("dumpcmd.success", type, path));
     }
 
     private void dump(CommandSender sender, String type, StringBuilder sb) {

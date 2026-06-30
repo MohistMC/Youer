@@ -3789,6 +3789,8 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
         }
     }
     // Purpur end - ItemStack convenience methods
+
+    // Youer start
     public static Material addMaterial(String materialName, int id, boolean isBlock, boolean isItem, Identifier resourceLocation) {
         if (isBlock) {
             Material material = BY_NAME.get(materialName);
@@ -3810,4 +3812,9 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
             return material;
         }
     }
+
+    public ItemStack buildItem() {
+        return new ItemStack(this);
+    }
+    // Youer end
 }

@@ -17,6 +17,7 @@
 
 package com.mohistmc.youer.commands;
 
+import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.api.ItemAPI;
 import com.mohistmc.youer.api.PlayerAPI;
 import com.mohistmc.youer.api.gui.DemoGUI;
@@ -29,16 +30,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
-import net.minecraft.core.component.DataComponentMap;
-import net.minecraft.core.component.DataComponentType;
-import net.minecraft.network.chat.Component;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.ComponentBuilder;
-import net.md_5.bungee.api.chat.HoverEvent;
-import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.api.chat.hover.content.Text;
-import org.bukkit.ChatColor;
-import org.bukkit.Registry;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -63,50 +54,55 @@ public class ItemsCommand extends Command {
         ItemStack itemStack = player.getInventory().getItemInMainHand();
         net.minecraft.world.item.ItemStack nmsItem = CraftItemStack.asNMSCopy(itemStack);
 
-        PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.type") + " ", itemStack.getType().name());
-        PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.key") + " ", itemStack.getType().getKey().asString());
-        PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.name") + " ", nmsItem.getHoverName().getString());
-        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.moditem") + " %s".formatted(itemStack.getType().isModItem));
-        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.modblock") + " %s".formatted(itemStack.getType().isModBlock));
+        PlayerAPI.sendMessageByCopy(player, I18n.as("items.info.type", itemStack.getType().name()), itemStack.getType().name());
+        PlayerAPI.sendMessageByCopy(player, I18n.as("items.info.key", itemStack.getType().getKey().asString()), itemStack.getType().getKey().asString());
+        PlayerAPI.sendMessageByCopy(player, I18n.as("items.info.name", nmsItem.getHoverName().getString()), nmsItem.getHoverName().getString());
+        player.sendMessage(I18n.as("items.info.moditem", itemStack.getType().isModItem));
+        player.sendMessage(I18n.as("items.info.modblock", itemStack.getType().isModBlock));
         if (itemStack.hasCustomModelData()) {
-            player.sendMessage(ChatColor.GRAY + I18n.as("items.info.custommodeldata") + " %s".formatted(itemStack.getCustomModelData()));
+            player.sendMessage(I18n.as("items.info.custommodeldata", itemStack.getCustomModelData()));
         }
-        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.itemflags") + " %s".formatted(itemStack.getItemFlags()));
-        TextComponent componentText = new TextComponent(ChatColor.GREEN + I18n.as("items.info.itemcomponent") + ": §a" + I18n.as("items.info.component_click"));
-        componentText.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(new ComponentBuilder(I18n.as("items.info.component_click")).create())));
-        componentText.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/infos item-component"));
-        player.spigot().sendMessage(componentText);
+        player.sendMessage(I18n.as("items.info.itemflags", itemStack.getItemFlags()));
+        player.sendMessage(
+                ColorAPI.adventure(I18n.as("items.info.itemcomponent", I18n.as("items.info.component_click")))
+                        .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                                ColorAPI.adventure(I18n.as("items.info.component_click"))))
+                        .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/infos item-component"))
+        );
 
-        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.amount") + " %s".formatted(itemStack.getAmount()));
-        player.sendMessage(ChatColor.GRAY + I18n.as("items.info.maxstacksize") + " %s".formatted(itemStack.getMaxStackSize()));
+        player.sendMessage(I18n.as("items.info.amount", itemStack.getAmount()));
+        player.sendMessage(I18n.as("items.info.maxstacksize", itemStack.getMaxStackSize()));
 
         if (itemStack.hasItemMeta()) {
-            player.sendMessage(ChatColor.GRAY + I18n.as("items.info.hasitemmeta") + " %s".formatted(true));
+            player.sendMessage(I18n.as("items.info.hasitemmeta", true));
 
             if (itemStack.getItemMeta().hasDisplayName()) {
-                PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY + I18n.as("items.info.displayname") + " ", itemStack.getItemMeta().getDisplayName());
+                PlayerAPI.sendMessageByCopy(player, I18n.as("items.info.displayname", itemStack.getItemMeta().getDisplayName()), itemStack.getItemMeta().getDisplayName());
             }
 
             if (itemStack.getItemMeta().hasLore()) {
-                player.sendMessage(ChatColor.GRAY + I18n.as("items.info.lore") + ":");
+                player.sendMessage(I18n.as("items.info.lore"));
                 itemStack.getItemMeta().getLore().forEach(lore -> player.sendMessage("  " + lore));
             }
 
             if (itemStack.getItemMeta().hasEnchants()) {
-                player.sendMessage(ChatColor.GRAY + I18n.as("items.info.enchants") + ":");
+                player.sendMessage(I18n.as("items.info.enchants"));
                 itemStack.getItemMeta().getEnchants().forEach((enchant, level) ->
                         player.sendMessage("  " + enchant.getKey().toString() + " - " + level));
             }
         } else {
-            player.sendMessage(ChatColor.GRAY + I18n.as("items.info.hasitemmeta") + " %s".formatted(false));
+            player.sendMessage(I18n.as("items.info.hasitemmeta", false));
         }
 
         if (itemStack.getType().getMaxDurability() > 0) {
-            player.sendMessage(ChatColor.GRAY + I18n.as("items.info.durability") + " %s/%s".formatted(
+            player.sendMessage(I18n.as("items.info.durability",
                     itemStack.getType().getMaxDurability() - itemStack.getDurability(),
                     itemStack.getType().getMaxDurability()));
         }
-        PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY + "Base64 - ", ItemAPI.getBase64byBukkit(itemStack), true);
+        var base64 = ItemAPI.base64(itemStack);
+        if (base64 != null) {
+            PlayerAPI.sendMessageByCopy(player, "#灰色" + "Base64 - " + base64.substring(0, 20) + "......", ItemAPI.base64(itemStack));
+        }
     }
 
     @Override
@@ -204,7 +200,7 @@ public class ItemsCommand extends Command {
                 if (itemStack != null && itemStack.hasItemMeta() && itemStack.getItemMeta().hasLore()) {
                     List<String> loreLines = itemStack.getItemMeta().getLore();
                     if (loreLines != null && line >= 0 && line < loreLines.size()) {
-                        list.add(loreLines.get(line).replace(ChatColor.COLOR_CHAR, '&'));
+                        list.add(loreLines.get(line).replace('§', '&'));
                     }
                 }
             } catch (NumberFormatException ignored) {
@@ -222,12 +218,12 @@ public class ItemsCommand extends Command {
         }
 
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(ChatColor.RED + I18n.as("error.notplayer"));
+            sender.sendMessage(I18n.as("error.notplayer"));
             return false;
         }
 
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", usageMessage));
+            sender.sendMessage(I18n.as("itemscmd.usage", usageMessage));
             return false;
         }
 
@@ -235,58 +231,58 @@ public class ItemsCommand extends Command {
         switch (args[0].toLowerCase(Locale.ENGLISH)) {
             case "name" -> {
                 if (itemStack == null || itemStack.getType().isAir()) {
-                    player.sendMessage(ChatColor.RED + I18n.as("itemscmd.mainhandEmpty"));
+                    player.sendMessage(I18n.as("itemscmd.mainhandEmpty"));
                     return false;
                 }
                 if (args.length != 2) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items name <string>"));
+                    sender.sendMessage(I18n.as("itemscmd.usage", "/items name <string>"));
                     return false;
                 }
                 ItemAPI.name(player.getInventory().getItemInMainHand(), args[1]);
-                sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.completeSet"));
+                sender.sendMessage(I18n.as("itemscmd.completeSet"));
                 return true;
             }
             case "rarity" -> {
                 if (itemStack == null || itemStack.getType().isAir()) {
-                    player.sendMessage(ChatColor.RED + I18n.as("itemscmd.mainhandEmpty"));
+                    player.sendMessage(I18n.as("itemscmd.mainhandEmpty"));
                     return false;
                 }
                 if (args.length != 2) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items rarity <rarity>"));
+                    sender.sendMessage(I18n.as("itemscmd.usage", "/items rarity <rarity>"));
                     return false;
                 }
                 ItemAPI.rarity(player.getInventory().getItemInMainHand(), ItemRarity.valueOf(args[1]));
-                sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.completeRarity"));
+                sender.sendMessage(I18n.as("itemscmd.completeRarity"));
                 return true;
             }
             case "save" -> {
                 if (itemStack == null || itemStack.getType().isAir()) {
-                    player.sendMessage(ChatColor.RED + I18n.as("itemscmd.mainhandEmpty"));
+                    player.sendMessage(I18n.as("itemscmd.mainhandEmpty"));
                     return false;
                 }
                 if (args.length != 2) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items save <name>"));
+                    sender.sendMessage(I18n.as("itemscmd.usage", "/items save <name>"));
                     return false;
                 }
                 ItemsConfig.INSTANCE.put("items." + args[1], itemStack);
-                sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.itemSavedSuccessfully"));
+                sender.sendMessage(I18n.as("itemscmd.itemSavedSuccessfully"));
                 return true;
             }
             case "lore" -> {
                 if (itemStack == null || itemStack.getType().isAir()) {
-                    player.sendMessage(ChatColor.RED + I18n.as("itemscmd.mainhandEmpty"));
+                    player.sendMessage(I18n.as("itemscmd.mainhandEmpty"));
                     return false;
                 }
 
                 if (args.length < 2) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items lore <add|set|remove> [line] [text...]"));
+                    sender.sendMessage(I18n.as("itemscmd.usage", "/items lore <add|set|remove> [line] [text...]"));
                     return false;
                 }
 
                 switch (args[1].toLowerCase()) {
                     case "add" -> {
                         if (args.length < 3) {
-                            sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items lore add [line] <text...>"));
+                            sender.sendMessage(I18n.as("itemscmd.usage", "/items lore add [line] <text...>"));
                             return false;
                         }
 
@@ -301,7 +297,7 @@ public class ItemsCommand extends Command {
                             insertLine = Integer.parseInt(args[2]);
                             // If it's a number, then text starts from the 4th parameter
                             if (args.length < 4) {
-                                sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items lore add [line] <text...>"));
+                                sender.sendMessage(I18n.as("itemscmd.usage", "/items lore add [line] <text...>"));
                                 return false;
                             }
                             loreText = String.join(" ", Arrays.copyOfRange(args, 3, args.length));
@@ -316,7 +312,7 @@ public class ItemsCommand extends Command {
                         if (insertLine >= 0) {
                             // Insert after the specified line
                             if (insertLine > currentLore.size()) {
-                                sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.lineNumberOutOfRange"));
+                                sender.sendMessage(I18n.as("itemscmd.lineNumberOutOfRange"));
                                 return false;
                             }
                             // Insert all lines at the specified position
@@ -329,20 +325,20 @@ public class ItemsCommand extends Command {
                         }
 
                         ItemAPI.lore(itemStack, currentLore);
-                        sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.completeLore"));
+                        sender.sendMessage(I18n.as("itemscmd.completeLore"));
                         return true;
                     }
 
                     case "set" -> {
                         if (args.length < 4) {
-                            sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items lore set <line> <text...>"));
+                            sender.sendMessage(I18n.as("itemscmd.usage", "/items lore set <line> <text...>"));
                             return false;
                         }
 
                         try {
                             int line = Integer.parseInt(args[2]);
                             if (line < 0) {
-                                sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.lineNumberMustBePositive"));
+                                sender.sendMessage(I18n.as("itemscmd.lineNumberMustBePositive"));
                                 return false;
                             }
 
@@ -358,104 +354,104 @@ public class ItemsCommand extends Command {
 
                             currentLore.set(line, loreText);
                             ItemAPI.lore(itemStack, currentLore);
-                            sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.completeLore"));
+                            sender.sendMessage(I18n.as("itemscmd.completeLore"));
                             return true;
                         } catch (NumberFormatException e) {
-                            sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.invalidLineNumber", args[2]));
+                            sender.sendMessage(I18n.as("itemscmd.invalidLineNumber", args[2]));
                             return false;
                         }
                     }
 
                     case "remove" -> {
                         if (args.length != 3) {
-                            sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items lore remove <line>"));
+                            sender.sendMessage(I18n.as("itemscmd.usage", "/items lore remove <line>"));
                             return false;
                         }
 
                         try {
                             int line = Integer.parseInt(args[2]);
                             if (line < 0) {
-                                sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.lineNumberMustBePositive"));
+                                sender.sendMessage(I18n.as("itemscmd.lineNumberMustBePositive"));
                                 return false;
                             }
 
                             if (!itemStack.hasItemMeta() || !itemStack.getItemMeta().hasLore()) {
-                                sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.itemHasNoLore"));
+                                sender.sendMessage(I18n.as("itemscmd.itemHasNoLore"));
                                 return false;
                             }
 
                             List<String> currentLore = new ArrayList<>(itemStack.getItemMeta().getLore());
                             if (line >= currentLore.size()) {
-                                sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.lineNumberOutOfRange"));
+                                sender.sendMessage(I18n.as("itemscmd.lineNumberOutOfRange"));
                                 return false;
                             }
 
                             currentLore.remove(line);
                             ItemAPI.lore(itemStack, currentLore);
-                            sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.completeLore"));
+                            sender.sendMessage(I18n.as("itemscmd.completeLore"));
                             return true;
                         } catch (NumberFormatException e) {
-                            sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.invalidLineNumber", args[2]));
+                            sender.sendMessage(I18n.as("itemscmd.invalidLineNumber", args[2]));
                             return false;
                         }
                     }
 
                     default -> {
-                        sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items lore <add|set|remove> [line] [text...]"));
+                        sender.sendMessage(I18n.as("itemscmd.usage", "/items lore <add|set|remove> [line] [text...]"));
                         return false;
                     }
                 }
             }
             case "modeldata" -> {
                 if (itemStack == null || itemStack.getType().isAir()) {
-                    player.sendMessage(ChatColor.RED + I18n.as("itemscmd.mainhandEmpty"));
+                    player.sendMessage(I18n.as("itemscmd.mainhandEmpty"));
                     return false;
                 }
                 if (args.length != 2) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items modeldata <number>"));
+                    sender.sendMessage(I18n.as("itemscmd.usage", "/items modeldata <number>"));
                     return false;
                 }
                 if (!args[1].matches("[0-9]+")) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items modeldata <number>"));
+                    sender.sendMessage(I18n.as("itemscmd.usage", "/items modeldata <number>"));
                     return false;
                 }
                 ItemAPI.customModelData(itemStack, Integer.parseInt(args[1]));
-                sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.modelDataSetSuccess", args[1]));
+                sender.sendMessage(I18n.as("itemscmd.modelDataSetSuccess", args[1]));
                 return true;
             }
             case "get" -> {
                 if (args.length != 2) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items get <name>"));
+                    sender.sendMessage(I18n.as("itemscmd.usage", "/items get <name>"));
                     return false;
                 }
                 ItemStack itemToGive = ItemsConfig.INSTANCE.get(args[1]);
                 if (itemToGive.getType().isAir()) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.itemNotFound"));
+                    sender.sendMessage(I18n.as("itemscmd.itemNotFound"));
                     return false;
                 }
                 if (player.getInventory().firstEmpty() != -1) {
                     player.getInventory().addItem(itemToGive);
                 } else {
-                    sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.inventoryFull"));
+                    sender.sendMessage(I18n.as("itemscmd.inventoryFull"));
                     return false;
                 }
                 return true;
             }
             case "give" -> {
                 if (args.length < 3 || args.length > 4) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items give <player> <name> [amount]"));
+                    sender.sendMessage(I18n.as("itemscmd.usage", "/items give <player> <name> [amount]"));
                     return false;
                 }
 
                 Player targetPlayer = org.bukkit.Bukkit.getPlayerExact(args[1]);
                 if (targetPlayer == null) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("youercmd.heal.playernotfound", args[1]));
+                    sender.sendMessage(I18n.as("youercmd.heal.playernotfound", args[1]));
                     return false;
                 }
 
                 ItemStack itemToGive = ItemsConfig.INSTANCE.get(args[2]);
                 if (itemToGive.getType().isAir()) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.itemNotFound"));
+                    sender.sendMessage(I18n.as("itemscmd.itemNotFound"));
                     return false;
                 }
 
@@ -464,15 +460,15 @@ public class ItemsCommand extends Command {
                     try {
                         amount = Integer.parseInt(args[3]);
                         if (amount <= 0) {
-                            sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.amountMustBePositive"));
+                            sender.sendMessage(I18n.as("itemscmd.amountMustBePositive"));
                             return false;
                         }
                         if (amount > itemToGive.getMaxStackSize()) {
-                            sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.amountTooLarge", itemToGive.getMaxStackSize()));
+                            sender.sendMessage(I18n.as("itemscmd.amountTooLarge", itemToGive.getMaxStackSize()));
                             return false;
                         }
                     } catch (NumberFormatException e) {
-                        sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.invalidAmount"));
+                        sender.sendMessage(I18n.as("itemscmd.invalidAmount"));
                         return false;
                     }
                 }
@@ -483,19 +479,19 @@ public class ItemsCommand extends Command {
                 if (targetPlayer.getInventory().firstEmpty() != -1) {
                     targetPlayer.getInventory().addItem(itemWithAmount);
                 } else {
-                    targetPlayer.sendMessage(ChatColor.RED + I18n.as("itemscmd.inventoryFull"));
+                    targetPlayer.sendMessage(I18n.as("itemscmd.inventoryFull"));
                     return false;
                 }
-                sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.giveSuccess", amount, args[2], args[1]));
+                sender.sendMessage(I18n.as("itemscmd.giveSuccess", amount, args[2], args[1]));
                 return true;
             }
             case "remove" -> {
                 if (args.length != 2) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items remove <name>"));
+                    sender.sendMessage(I18n.as("itemscmd.usage", "/items remove <name>"));
                     return false;
                 }
                 ItemsConfig.INSTANCE.remove(args[1]);
-                sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.removedItemp1") + args[1] + ChatColor.GREEN + I18n.as("itemscmd.removedItemp2"));
+                sender.sendMessage(I18n.as("itemscmd.removedItemp", args[1]));
                 return true;
             }
             case "list" -> {
@@ -515,19 +511,19 @@ public class ItemsCommand extends Command {
             }
             case "attribute" -> {
                 if (itemStack == null || itemStack.getType().isAir()) {
-                    player.sendMessage(ChatColor.RED + I18n.as("itemscmd.mainhandEmpty"));
+                    player.sendMessage(I18n.as("itemscmd.mainhandEmpty"));
                     return false;
                 }
 
                 if (args.length < 3 || args.length > 4) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items attribute <attribute> <value> [slot]"));
+                    sender.sendMessage(I18n.as("itemscmd.usage", "/items attribute <attribute> <value> [slot]"));
                     return false;
                 }
 
                 String attributeName = args[1].toUpperCase();
                 org.bukkit.attribute.Attribute attribute = getAttributeFromString(attributeName);
                 if (attribute == null) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.invalidAttribute"));
+                    sender.sendMessage(I18n.as("itemscmd.invalidAttribute"));
                     return false;
                 }
 
@@ -535,7 +531,7 @@ public class ItemsCommand extends Command {
                 try {
                     value = Double.parseDouble(args[2]);
                 } catch (NumberFormatException e) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.invalidValue"));
+                    sender.sendMessage(I18n.as("itemscmd.invalidValue"));
                     return false;
                 }
 
@@ -551,44 +547,44 @@ public class ItemsCommand extends Command {
                             slot = org.bukkit.inventory.EquipmentSlot.valueOf(slotInput);
                             slotName = slot.name();
                         } catch (IllegalArgumentException e2) {
-                            sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.invalidSlot"));
+                            sender.sendMessage(I18n.as("itemscmd.invalidSlot"));
                             return false;
                         }
                     }
                 }
 
                 ItemAPI.attribute(itemStack, attribute, value, slot);
-                sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.attributeSuccess", attribute.name(), String.valueOf(value), slotName));
+                sender.sendMessage(I18n.as("itemscmd.attributeSuccess", attribute.name(), String.valueOf(value), slotName));
                 return true;
             }
             case "unattribute" -> {
                 if (itemStack == null || itemStack.getType().isAir()) {
-                    player.sendMessage(ChatColor.RED + I18n.as("itemscmd.mainhandEmpty"));
+                    player.sendMessage(I18n.as("itemscmd.mainhandEmpty"));
                     return false;
                 }
 
                 if (args.length != 2) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items unattribute <attribute>"));
+                    sender.sendMessage(I18n.as("itemscmd.usage", "/items unattribute <attribute>"));
                     return false;
                 }
 
                 String attributeName = args[1].toUpperCase();
                 org.bukkit.attribute.Attribute attribute = getAttributeFromString(attributeName);
                 if (attribute == null) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.invalidAttribute"));
+                    sender.sendMessage(I18n.as("itemscmd.invalidAttribute"));
                     return false;
                 }
 
                 boolean removed = ItemAPI.removeAttribute(itemStack, attribute);
                 if (removed) {
-                    sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.attributeRemoveSuccess", attribute.name()));
+                    sender.sendMessage(I18n.as("itemscmd.attributeRemoveSuccess", attribute.name()));
                 } else {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.attributeNotFound"));
+                    sender.sendMessage(I18n.as("itemscmd.attributeNotFound"));
                 }
                 return true;
             }
             default -> {
-                sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", usageMessage));
+                sender.sendMessage(I18n.as("itemscmd.usage", usageMessage));
                 return false;
             }
         }

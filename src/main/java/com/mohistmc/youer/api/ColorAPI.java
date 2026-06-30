@@ -24,6 +24,8 @@ public class ColorAPI {
 
     private static final Pattern HEX_PATTERN = Pattern.compile("&#([0-9A-Fa-f]{6})");
     private static final Pattern LEGACY_PATTERN = Pattern.compile("&([0-9a-fk-orA-FK-OR])");
+    // Matches #word, #中文, #hex broadly — resolution trims to longest valid name
+    private static final Pattern SHORT_COLOR_PATTERN = Pattern.compile("#([\\w\\u4e00-\\u9fa5]+)");
 
     private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.builder()
         .character('§')
@@ -38,8 +40,9 @@ public class ColorAPI {
         String processed = text;
         processed = processGradients(processed);
         processed = processSolidColors(processed);
-        processed = processHexColors(processed);
-        processed = processLegacyCodes(processed);
+        processed = processHexColors(processed);   // 处理 &#ff0000
+        processed = processLegacyCodes(processed); // 处理 &c
+        processed = processShortColorCodes(processed); // 处理 #ff0000 或 #碧色
         return processed;
     }
 
@@ -388,6 +391,58 @@ public class ColorAPI {
                 .replaceAll("&([0-9a-fk-orA-FK-OR])", "")
                 .replaceAll("§[0-9a-fk-orA-FK-ORx]", "")
                 .replaceAll("§x§[0-9a-fA-F]{6}", "");
+    }
+
+    /**
+     * Try to resolve {@code candidate} as a color name via {@link #resolveColorHex}
+     * or {@link #colorNameToLegacy}. Returns the legacy/hex replacement string, or
+     * null if the name is not a recognised color.
+     */
+    private static String tryResolveColor(String candidate) {
+        if (candidate.matches("[0-9A-Fa-f]{6}")) {
+            return "§x" + convertToHexFormat(candidate);
+        }
+        String hex = resolveColorHex(candidate);
+        if (!hex.equals(candidate)) {
+            return "§x" + convertToHexFormat(hex);
+        }
+        String legacy = colorNameToLegacy(candidate);
+        if (!legacy.isEmpty()) {
+            return legacy;
+        }
+        return null;
+    }
+
+    private static String processShortColorCodes(String text) {
+        if (text == null || text.isEmpty()) {
+            return text;
+        }
+        Matcher matcher = SHORT_COLOR_PATTERN.matcher(text);
+        StringBuffer sb = new StringBuffer();
+        while (matcher.find()) {
+            String rawName = matcher.group(1); // e.g. "鹅黄显示模组列表" (greedy)
+            String replacement = null;
+
+            // Try progressively shorter prefixes to find the longest valid color name
+            for (int len = rawName.length(); len >= 1; len--) {
+                String candidate = rawName.substring(0, len);
+                replacement = tryResolveColor(candidate);
+                if (replacement != null) {
+                    // Append any trailing text that wasn't part of the color name
+                    if (len < rawName.length()) {
+                        replacement += rawName.substring(len);
+                    }
+                    break;
+                }
+            }
+
+            if (replacement == null) {
+                replacement = matcher.group(0); // no valid color found, keep literal
+            }
+            matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
+        }
+        matcher.appendTail(sb);
+        return sb.toString();
     }
 
 }

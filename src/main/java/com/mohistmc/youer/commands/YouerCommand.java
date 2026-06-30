@@ -25,7 +25,6 @@ import java.util.stream.Stream;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -92,22 +91,22 @@ public class YouerCommand extends Command {
         switch (args[0].toLowerCase(Locale.ENGLISH)) {
             case "mods" -> {
                 // Not recommended for use in games, only test output
-                sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.insidemods") + ServerAPI.modlists_Inside.size() + ") -> " + ServerAPI.modlists_Inside);
-                sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.clientOnlymods") + ServerAPI.modlists_Client.size() + ") -> " + ServerAPI.modlists_Client);
-                sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.serverOnlymods") + ServerAPI.modlists_Server.size() + ") -> " + ServerAPI.modlists_Server);
-                sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.allMods") + ServerAPI.modlists_All.size() + ") -> " + ServerAPI.modlists_All);
+                sender.sendMessage(I18n.as("youercmd.insidemods", ServerAPI.modlists_Inside.size(), ServerAPI.modlists_Inside));
+                sender.sendMessage(I18n.as("youercmd.clientOnlymods", ServerAPI.modlists_Client.size(), ServerAPI.modlists_Client));
+                sender.sendMessage(I18n.as("youercmd.serverOnlymods", ServerAPI.modlists_Server.size(), ServerAPI.modlists_Server));
+                sender.sendMessage(I18n.as("youercmd.allMods", ServerAPI.modlists_All.size(), ServerAPI.modlists_All));
             }
             case "playermods" -> {
                 // Not recommended for use in games, only test output
                 if (args.length == 1) {
-                    sender.sendMessage(ChatColor.RED + "Usage: /youer playermods <playername>");
+                    sender.sendMessage(I18n.as("youercmd.usage.playermods"));
                     return false;
                 }
                 Player player = Bukkit.getPlayer(args[1]);
                 if (player != null) {
-                    sender.sendMessage(ChatColor.GREEN + String.valueOf(PlayerAPI.getModSize(player)) + " " + PlayerAPI.getModlist(player).toString());
+                    sender.sendMessage(I18n.as("youercmd.playermods.info", PlayerAPI.getModSize(player), PlayerAPI.getModlist(player).toString()));
                 } else {
-                    sender.sendMessage(ChatColor.RED + I18n.as("youercmd.playermods.playernotOnline", args[1]));
+                    sender.sendMessage(I18n.as("youercmd.playermods.playernotOnline", args[1]));
                 }
             }
             case "reload" -> {
@@ -118,7 +117,7 @@ public class YouerCommand extends Command {
                 }
 
                 console.server.reloadCount++;
-                sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.reload.complete"));
+                sender.sendMessage(I18n.as("youercmd.reload.complete"));
                 return true;
             }
             case "version" -> {
@@ -129,24 +128,24 @@ public class YouerCommand extends Command {
             }
             case "packetstats" -> {
                 if (args.length < 2) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("packetstats.usage"));
+                    sender.sendMessage(I18n.as("packetstats.usage"));
                     return false;
                 }
 
                 switch (args[1].toLowerCase()) {
                     case "start" -> {
                         if (PacketStatistics.isCollecting()) {
-                            sender.sendMessage(ChatColor.YELLOW + I18n.as("packetstats.already.running"));
+                            sender.sendMessage(I18n.as("packetstats.already.running"));
                             return true;
                         }
                         PacketStatistics.startCollecting();
-                        sender.sendMessage(ChatColor.GREEN + I18n.as("packetstats.started"));
-                        sender.sendMessage(ChatColor.GRAY + I18n.as("packetstats.stop.to.view"));
+                        sender.sendMessage(I18n.as("packetstats.started"));
+                        sender.sendMessage(I18n.as("packetstats.stop.to.view"));
                         return true;
                     }
                     case "stop" -> {
                         if (!PacketStatistics.isCollecting()) {
-                            sender.sendMessage(ChatColor.YELLOW + I18n.as("packetstats.not.running"));
+                            sender.sendMessage(I18n.as("packetstats.not.running"));
                             return true;
                         }
 
@@ -156,16 +155,16 @@ public class YouerCommand extends Command {
                         String durationString = TimeUtils.formatDuration(durationSeconds);
 
                         PacketStatistics.stopCollecting();
-                        sender.sendMessage(ChatColor.GOLD + I18n.as("packetstats.report.title"));
-                        sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.total.bytes", StringUtil.formatBytes(PacketStatistics.getTotalBytesSent())));
-                        sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.total.packets", String.valueOf(PacketStatistics.getTotalPacketsSent())));
-                        sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.transfer.rate", StringUtil.formatBytes(PacketStatistics.getBytesPerSecond())));
-                        sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.packets.per.second", String.valueOf(PacketStatistics.getPacketsPerSecond())));
-                        sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.duration", durationString));
+                        sender.sendMessage(I18n.as("packetstats.report.title"));
+                        sender.sendMessage(I18n.as("packetstats.total.bytes", StringUtil.formatBytes(PacketStatistics.getTotalBytesSent())));
+                        sender.sendMessage(I18n.as("packetstats.total.packets", String.valueOf(PacketStatistics.getTotalPacketsSent())));
+                        sender.sendMessage(I18n.as("packetstats.transfer.rate", StringUtil.formatBytes(PacketStatistics.getBytesPerSecond())));
+                        sender.sendMessage(I18n.as("packetstats.packets.per.second", String.valueOf(PacketStatistics.getPacketsPerSecond())));
+                        sender.sendMessage(I18n.as("packetstats.duration", durationString));
 
                         Map<String, Long> bytesByPacketType = PacketStatistics.getBytesByPacketType();
                         if (!bytesByPacketType.isEmpty()) {
-                            sender.sendMessage(ChatColor.GOLD + I18n.as("packetstats.by.type.title", String.valueOf(bytesByPacketType.size())));
+                            sender.sendMessage(I18n.as("packetstats.by.type.title", String.valueOf(bytesByPacketType.size())));
 
                             List<Map.Entry<String, Long>> top10 = bytesByPacketType.entrySet().stream()
                                     .filter(entry -> entry.getValue() > 0 && PacketStatistics.getPacketsByPacketType().getOrDefault(entry.getKey(), 0L) > 0)
@@ -181,51 +180,51 @@ public class YouerCommand extends Command {
                                 long bytesPerSecond = PacketStatistics.getBytesPerSecondByPacketType(packetType);
                                 long packetsPerSecond = PacketStatistics.getPacketsPerSecondByPacketType(packetType);
 
-                                ChatColor rankColor = switch (i) {
-                                    case 0 -> ChatColor.RED;
-                                    case 1 -> ChatColor.GOLD;
-                                    case 2 -> ChatColor.YELLOW;
-                                    default -> ChatColor.WHITE;
+                                String rankColor = switch (i) {
+                                    case 0 -> "#朱砂";
+                                    case 1 -> "#金色";
+                                    case 2 -> "#鹅黄";
+                                    default -> "#white";
                                 };
 
                                 sender.sendMessage(rankColor + String.format("%2d", i + 1) + ". " +
-                                        ChatColor.GREEN + packetType + ChatColor.GRAY + ": " +
-                                        ChatColor.AQUA + StringUtil.formatBytes(bytes) +
-                                        ChatColor.GRAY + " (" + ChatColor.YELLOW + packets + ChatColor.DARK_GRAY + "p" + ChatColor.GRAY + ") " +
-                                        ChatColor.DARK_AQUA + "| " +
-                                        ChatColor.AQUA + StringUtil.formatBytes(bytesPerSecond) + "/s " +
-                                        ChatColor.GRAY + "(" + ChatColor.YELLOW + packetsPerSecond + ChatColor.DARK_GRAY + "p" + ChatColor.GRAY + "/s)");
+                                        "#碧色" + packetType + "#灰色: " +
+                                        "#aqua" + StringUtil.formatBytes(bytes) +
+                                        "#灰色 (" + "#鹅黄" + packets + "#dark_gray" + "p" + "#灰色) " +
+                                        "#dark_aqua" + "| " +
+                                        "#aqua" + StringUtil.formatBytes(bytesPerSecond) + "/s " +
+                                        "#灰色(" + "#鹅黄" + packetsPerSecond + "#dark_gray" + "p" + "#灰色/s)");
                             }
 
                             if (bytesByPacketType.size() > 10) {
-                                sender.sendMessage(ChatColor.GRAY + I18n.as("packetstats.more.types", String.valueOf(bytesByPacketType.size() - 10)));
+                                sender.sendMessage(I18n.as("packetstats.more.types", String.valueOf(bytesByPacketType.size() - 10)));
                             }
 
                             try {
                                 java.nio.file.Path savePath = PacketStatistics.savePacketStatsToJson();
-                                sender.sendMessage(ChatColor.GREEN + I18n.as("packetstats.saved", savePath.toAbsolutePath().toString()));
+                                sender.sendMessage(I18n.as("packetstats.saved", savePath.toAbsolutePath().toString()));
                             } catch (Exception e) {
-                                sender.sendMessage(ChatColor.RED + I18n.as("packetstats.save.failed", e.getMessage()));
+                                sender.sendMessage(I18n.as("packetstats.save.failed", e.getMessage()));
                             }
                         } else {
-                            sender.sendMessage(ChatColor.YELLOW + I18n.as("packetstats.no.data"));
+                            sender.sendMessage(I18n.as("packetstats.no.data"));
                         }
 
                         return true;
                     }
                     case "status" -> {
                         if (PacketStatistics.isCollecting()) {
-                            sender.sendMessage(ChatColor.GREEN + I18n.as("packetstats.status.running"));
-                            sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.status.collected",
-                                    StringUtil.formatBytes(PacketStatistics.getTotalBytesSent()) + ChatColor.AQUA + " / " +
-                                            ChatColor.YELLOW + PacketStatistics.getTotalPacketsSent() + ChatColor.DARK_GRAY + "p"));
+                            sender.sendMessage(I18n.as("packetstats.status.running"));
+                            sender.sendMessage(I18n.as("packetstats.status.collected",
+                                    StringUtil.formatBytes(PacketStatistics.getTotalBytesSent()),
+                                    PacketStatistics.getTotalPacketsSent()));
                         } else {
-                            sender.sendMessage(ChatColor.RED + I18n.as("packetstats.status.not.running"));
+                            sender.sendMessage(I18n.as("packetstats.status.not.running"));
                         }
                         return true;
                     }
                     default -> {
-                        sender.sendMessage(ChatColor.RED + I18n.as("packetstats.usage"));
+                        sender.sendMessage(I18n.as("packetstats.usage"));
                         return false;
                     }
                 }
@@ -237,13 +236,13 @@ public class YouerCommand extends Command {
                     if (sender instanceof Player player) {
                         target = player;
                     } else {
-                        sender.sendMessage(ChatColor.RED + I18n.as("error.notplayer"));
+                        sender.sendMessage(I18n.as("error.notplayer"));
                         return true;
                     }
                 } else {
                     target = Bukkit.getPlayer(args[1]);
                     if (target == null) {
-                        sender.sendMessage(ChatColor.RED + I18n.as("youercmd.heal.playernotfound", args[1]));
+                        sender.sendMessage(I18n.as("youercmd.heal.playernotfound", args[1]));
                         return true;
                     }
                 }
@@ -254,10 +253,10 @@ public class YouerCommand extends Command {
                 target.setFireTicks(0);
 
                 if (sender.equals(target)) {
-                    sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.heal.self"));
+                    sender.sendMessage(I18n.as("youercmd.heal.self"));
                 } else {
-                    sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.heal.other", target.getName()));
-                    target.sendMessage(ChatColor.GREEN + I18n.as("youercmd.heal.byadmin"));
+                    sender.sendMessage(I18n.as("youercmd.heal.other", target.getName()));
+                    target.sendMessage(I18n.as("youercmd.heal.byadmin"));
                 }
 
                 return true;
@@ -274,12 +273,12 @@ public class YouerCommand extends Command {
                             if (p.isFlying()) {
                                 if (speed >= 0.0f && speed < 11.0f) {
                                     p.setFlySpeed(speed / 10.0f);
-                                    p.sendMessage(I18n.as("youercmd.playerflightspeedSet") + speed);
+                                    p.sendMessage(I18n.as("youercmd.playerflightspeedSet", speed));
                                 }
                             } else {
                                 if (speed >= 0.0f && speed < 11.0f) {
                                     p.setWalkSpeed(speed / 10.0f);
-                                    p.sendMessage(I18n.as("youercmd.playerwalkspeedset") + speed);
+                                    p.sendMessage(I18n.as("youercmd.playerwalkspeedset", speed));
                                 }
                             }
                         }
@@ -290,14 +289,14 @@ public class YouerCommand extends Command {
                         }
                     }
                 } else {
-                    sender.sendMessage(ChatColor.RED + I18n.as("error.notplayer"));
+                    sender.sendMessage(I18n.as("error.notplayer"));
                 }
             }
             case "cleardropitem" -> {
                 if (args.length == 2) {
                     World world = Bukkit.getWorld(args[1]);
                     if (world == null) {
-                        sender.sendMessage(ChatColor.RED + " World not found!");
+                        sender.sendMessage(I18n.as("youercmd.world.notfound"));
                         return false;
                     } else {
                         AtomicInteger size = new AtomicInteger(0);
@@ -312,17 +311,17 @@ public class YouerCommand extends Command {
                         return true;
                     }
                 } else {
-                    sender.sendMessage(ChatColor.RED + "Usage: /mohist cleardropitem <worldname>");
+                    sender.sendMessage(I18n.as("youercmd.usage.cleardropitem"));
                     return false;
                 }
             }
             case "memoryfix" -> {
                 if (!OSUtil.getOS().isWindows()) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("youercmd.memoryfix.not.windows"));
+                    sender.sendMessage(I18n.as("youercmd.memoryfix.not.windows"));
                     return true;
                 }
                 String result = MemoryUtils.setProcessWorkingSetSize(50, 100);
-                sender.sendMessage(ChatColor.GREEN + result);
+                sender.sendMessage(I18n.as("youercmd.memoryfix.result", result));
                 return true;
             }
             case "windows" -> {
@@ -336,41 +335,43 @@ public class YouerCommand extends Command {
                 String osArch = System.getProperty("os.arch");
                 String osVersion = System.getProperty("os.version");
 
-                sender.sendMessage(ChatColor.GOLD + I18n.as("youercmd.windows.title"));
+                sender.sendMessage(I18n.as("youercmd.windows.title"));
 
-                sender.sendMessage(I18n.as("youercmd.windows.version") + bukkitVersion);
-                sender.sendMessage(I18n.as("youercmd.windows.players") + playerAmount + "/" + maxplayerAmount);
-                sender.sendMessage(I18n.as("youercmd.windows.onlineMode") + (onlineMode ? I18n.as("youercmd.windows.enabled") : I18n.as("youercmd.windows.disabled")));
-                sender.sendMessage(I18n.as("youercmd.windows.javaVersion") + javaVersion);
-                sender.sendMessage(I18n.as("youercmd.windows.jvmUptime") + getJVMUpTime());
+                sender.sendMessage(I18n.as("youercmd.windows.version", bukkitVersion));
+                sender.sendMessage(I18n.as("youercmd.windows.players", playerAmount, maxplayerAmount));
+                sender.sendMessage(I18n.as("youercmd.windows.onlineMode", onlineMode ? I18n.as("youercmd.windows.enabled") : I18n.as("youercmd.windows.disabled")));
+                sender.sendMessage(I18n.as("youercmd.windows.javaVersion", javaVersion));
+                sender.sendMessage(I18n.as("youercmd.windows.jvmUptime", getJVMUpTime()));
 
-                sender.sendMessage(I18n.as("youercmd.windows.memory") +
-                        StatsUtils.BytesToMegaBytes(StatsUtils.freeMemory()) + "/" +
-                        StatsUtils.BytesToMegaBytes(StatsUtils.totalMemory()) + "/" +
-                        StatsUtils.BytesToMegaBytes(StatsUtils.maxMemory()) + " MB (" +
-                        I18n.as("youercmd.windows.disk.free") + "/" +
-                        I18n.as("youercmd.windows.disk.usable") + "/" +
-                        I18n.as("youercmd.windows.disk.total") + ")");
+                sender.sendMessage(I18n.as("youercmd.windows.memory",
+                        StatsUtils.BytesToMegaBytes(StatsUtils.freeMemory()),
+                        StatsUtils.BytesToMegaBytes(StatsUtils.totalMemory()),
+                        StatsUtils.BytesToMegaBytes(StatsUtils.maxMemory()),
+                        I18n.as("youercmd.windows.disk.free"),
+                        I18n.as("youercmd.windows.disk.usable"),
+                        I18n.as("youercmd.windows.disk.total")));
 
                 try {
-                    sender.sendMessage(I18n.as("youercmd.windows.cpu") +
-                            StatsUtils.LoadAverange() + "% " + I18n.as("youercmd.windows.cpu.loadavg") + ", " +
-                            StatsUtils.getProcessCpuLoad() + "% " + I18n.as("youercmd.windows.cpu.process"));
+                    sender.sendMessage(I18n.as("youercmd.windows.cpu",
+                            StatsUtils.LoadAverange(),
+                            I18n.as("youercmd.windows.cpu.loadavg"),
+                            StatsUtils.getProcessCpuLoad(),
+                            I18n.as("youercmd.windows.cpu.process")));
                 } catch (final Exception ignored) {
-                    sender.sendMessage(I18n.as("youercmd.windows.cpu") + I18n.as("youercmd.windows.cpu.unavailable"));
+                    sender.sendMessage(I18n.as("youercmd.windows.cpu.unavailable_msg"));
                 }
 
-                sender.sendMessage(I18n.as("youercmd.windows.disk") +
-                        StatsUtils.BytesToGigaBytes(StatsUtils.freeDisk()) + "/" +
-                        StatsUtils.BytesToGigaBytes(StatsUtils.usableDisk()) + "/" +
-                        StatsUtils.BytesToGigaBytes(StatsUtils.totalDisk()) + " GB (" +
-                        I18n.as("youercmd.windows.disk.free") + "/" +
-                        I18n.as("youercmd.windows.disk.usable") + "/" +
-                        I18n.as("youercmd.windows.disk.total") + ")");
+                sender.sendMessage(I18n.as("youercmd.windows.disk",
+                        StatsUtils.BytesToGigaBytes(StatsUtils.freeDisk()),
+                        StatsUtils.BytesToGigaBytes(StatsUtils.usableDisk()),
+                        StatsUtils.BytesToGigaBytes(StatsUtils.totalDisk()),
+                        I18n.as("youercmd.windows.disk.free"),
+                        I18n.as("youercmd.windows.disk.usable"),
+                        I18n.as("youercmd.windows.disk.total")));
 
-                sender.sendMessage(I18n.as("youercmd.windows.system") + osName + " " + osVersion + " (" + osArch + ")");
+                sender.sendMessage(I18n.as("youercmd.windows.system", osName, osVersion, osArch));
 
-                sender.sendMessage(ChatColor.GOLD + I18n.as("youercmd.windows.separator"));
+                sender.sendMessage(I18n.as("youercmd.windows.separator"));
             }
 
             case "showp" -> {
@@ -379,20 +380,20 @@ public class YouerCommand extends Command {
                     if (p2 != null) {
                         float getMaxHealth = PlayerAPI.getNMSPlayer(p2).getMaxHealth();
 
-                        sender.sendMessage(ChatColor.GOLD + I18n.as("youercmd.showp.title", p2.getName()));
+                        sender.sendMessage(I18n.as("youercmd.showp.title", p2.getName()));
 
-                        sender.sendMessage(I18n.as("youercmd.showp.displayName") + p2.getDisplayName());
+                        sender.sendMessage(I18n.as("youercmd.showp.displayName", p2.getDisplayName()));
                         if (sender instanceof Player p1) {
                             PlayerAPI.sendMessageByCopy(p1, I18n.as("youercmd.showp.uuid"), String.valueOf(p2.getUniqueId()));
                             PlayerAPI.sendMessageByCopy(p1, I18n.as("youercmd.showp.ip"), p2.getAddress().getAddress().getHostAddress());
                         } else {
-                            sender.sendMessage(I18n.as("youercmd.showp.uuid") + p2.getUniqueId());
-                            sender.sendMessage(I18n.as("youercmd.showp.ip") + p2.getAddress().getAddress().getHostAddress());
+                            sender.sendMessage(I18n.as("youercmd.showp.uuid", p2.getUniqueId()));
+                            sender.sendMessage(I18n.as("youercmd.showp.ip", p2.getAddress().getAddress().getHostAddress()));
                         }
 
-                        sender.sendMessage(I18n.as("youercmd.showp.health") + p2.getHealth() + "/" + getMaxHealth);
-                        sender.sendMessage(I18n.as("youercmd.showp.food") + p2.getFoodLevel());
-                        sender.sendMessage(I18n.as("youercmd.showp.exp") + p2.getLevel());
+                        sender.sendMessage(I18n.as("youercmd.showp.health", p2.getHealth(), getMaxHealth));
+                        sender.sendMessage(I18n.as("youercmd.showp.food", p2.getFoodLevel()));
+                        sender.sendMessage(I18n.as("youercmd.showp.exp", p2.getLevel()));
 
                         org.bukkit.Location loc = p2.getLocation();
                         sender.sendMessage(I18n.as("youercmd.showp.location",
@@ -413,14 +414,14 @@ public class YouerCommand extends Command {
                             }
                         }
 
-                        sender.sendMessage(I18n.as("youercmd.showp.gamemode") + p2.getGameMode());
-                        sender.sendMessage(I18n.as("youercmd.showp.flySpeed") + p2.getFlySpeed());
-                        sender.sendMessage(I18n.as("youercmd.showp.walkSpeed") + p2.getWalkSpeed());
-                        sender.sendMessage(I18n.as("youercmd.showp.allowFlight") + p2.getAllowFlight());
-                        sender.sendMessage(I18n.as("youercmd.showp.isFlying") + p2.isFlying());
-                        sender.sendMessage(I18n.as("youercmd.showp.op") + p2.isOp());
+                        sender.sendMessage(I18n.as("youercmd.showp.gamemode", p2.getGameMode()));
+                        sender.sendMessage(I18n.as("youercmd.showp.flySpeed", p2.getFlySpeed()));
+                        sender.sendMessage(I18n.as("youercmd.showp.walkSpeed", p2.getWalkSpeed()));
+                        sender.sendMessage(I18n.as("youercmd.showp.allowFlight", p2.getAllowFlight()));
+                        sender.sendMessage(I18n.as("youercmd.showp.isFlying", p2.isFlying()));
+                        sender.sendMessage(I18n.as("youercmd.showp.op", p2.isOp()));
                     } else {
-                        sender.sendMessage(ChatColor.RED + I18n.as("youercmd.showp.offline"));
+                        sender.sendMessage(I18n.as("youercmd.showp.offline"));
                     }
                 }
             }
@@ -448,19 +449,19 @@ public class YouerCommand extends Command {
     }
 
     private void showHelp(CommandSender sender) {
-        sender.sendMessage(ChatColor.GOLD + I18n.as("youercmd.help.title"));
-        sender.sendMessage(ChatColor.GREEN + "/youer mods" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.mods"));
-        sender.sendMessage(ChatColor.GREEN + "/youer playermods <player>" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.playermods"));
-        sender.sendMessage(ChatColor.GREEN + "/youer reload" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.reload"));
-        sender.sendMessage(ChatColor.GREEN + "/youer version" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.version"));
-        sender.sendMessage(ChatColor.GREEN + "/youer packetstats <start|stop|status>" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.packetstats"));
-        sender.sendMessage(ChatColor.GREEN + "/youer heal [player]" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.heal"));
-        sender.sendMessage(ChatColor.GREEN + "/youer speed <value>" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.speed"));
-        sender.sendMessage(ChatColor.GREEN + "/youer cleardropitem <world>" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.cleardropitem"));
-        sender.sendMessage(ChatColor.GREEN + "/youer memoryfix" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.memoryfix"));
-        sender.sendMessage(ChatColor.GREEN + "/youer channels_incom" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.channels_incom"));
-        sender.sendMessage(ChatColor.GREEN + "/youer channels_outgo" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.channels_outgo"));
-        sender.sendMessage(ChatColor.GREEN + "/youer printthreadcost" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.printthreadcost"));
-        sender.sendMessage(ChatColor.GREEN + "/youer help" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.help"));
+        sender.sendMessage(I18n.as("youercmd.help.title"));
+        sender.sendMessage(I18n.as("youercmd.help.mods"));
+        sender.sendMessage(I18n.as("youercmd.help.playermods"));
+        sender.sendMessage(I18n.as("youercmd.help.reload"));
+        sender.sendMessage(I18n.as("youercmd.help.version"));
+        sender.sendMessage(I18n.as("youercmd.help.packetstats"));
+        sender.sendMessage(I18n.as("youercmd.help.heal"));
+        sender.sendMessage(I18n.as("youercmd.help.speed"));
+        sender.sendMessage(I18n.as("youercmd.help.cleardropitem"));
+        sender.sendMessage(I18n.as("youercmd.help.memoryfix"));
+        sender.sendMessage(I18n.as("youercmd.help.channels_incom"));
+        sender.sendMessage(I18n.as("youercmd.help.channels_outgo"));
+        sender.sendMessage(I18n.as("youercmd.help.printthreadcost"));
+        sender.sendMessage(I18n.as("youercmd.help.help"));
     }
 }

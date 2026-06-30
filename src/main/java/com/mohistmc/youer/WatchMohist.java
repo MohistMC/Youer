@@ -55,7 +55,7 @@ public class WatchMohist implements Runnable {
             Youer.LOGGER.warn(Youer.i18n.as("watchmohist.3"));
             Youer.LOGGER.warn(Youer.i18n.as("watchmohist.4"));
             for (StackTraceElement stack : MinecraftServer.getServer().serverThread.getStackTrace()) {
-                Youer.LOGGER.warn("{}{}", Youer.i18n.as("watchmohist.5"), stack);
+                Youer.LOGGER.warn("#朱砂  {}", stack);
             }
             Youer.LOGGER.warn(Youer.i18n.as("watchmohist.1"));
         }

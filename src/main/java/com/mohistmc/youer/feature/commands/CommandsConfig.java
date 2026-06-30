@@ -20,10 +20,10 @@ public class CommandsConfig extends YouerPluginConfig {
 
     public boolean enable(String key) {
         if (!yaml.contains(key)) {
-            yaml.set(key, true);
+            yaml.set(key, false);
             save();
-            return true;
+            return false;
         }
-        return yaml.getBoolean(key, true);
+        return yaml.getBoolean(key, false);
     }
 }

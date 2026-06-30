@@ -57,7 +57,7 @@ public class BansCommand extends Command {
         }
 
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
+            sender.sendMessage(I18n.as("banscmd.usage.format", usageMessage));
             return false;
         }
         switch (args[0].toLowerCase(Locale.ENGLISH)) {
@@ -97,7 +97,7 @@ public class BansCommand extends Command {
                     return true;
                 }
                 if (args.length < 2) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
+                    sender.sendMessage(I18n.as("banscmd.usage.format", usageMessage));
                     return false;
                 }
                 switch (args[1]) {
@@ -207,14 +207,14 @@ public class BansCommand extends Command {
                         return true;
                     }
                     default -> {
-                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
+                        sender.sendMessage(I18n.as("banscmd.usage.format", usageMessage));
                         return false;
                     }
                 }
             }
             case "show" -> {
                 if (args.length != 2) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
+                    sender.sendMessage(I18n.as("banscmd.usage.format", usageMessage));
                     return false;
                 }
                 switch (args[1]) {
@@ -407,14 +407,14 @@ public class BansCommand extends Command {
                         return true;
                     }
                     default -> {
-                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
+                        sender.sendMessage(I18n.as("banscmd.usage.format", usageMessage));
                         return false;
                     }
                 }
             }
             case "setmessage" -> {
                 if (args.length < 2) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
+                    sender.sendMessage(I18n.as("banscmd.usage.format", usageMessage));
                     return false;
                 }
                 switch (args[1]) {
@@ -455,13 +455,13 @@ public class BansCommand extends Command {
                         return true;
                     }
                     default -> {
-                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
+                        sender.sendMessage(I18n.as("banscmd.usage.format", usageMessage));
                         return false;
                     }
                 }
             }
             default -> {
-                sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
+                sender.sendMessage(I18n.as("banscmd.usage.format", usageMessage));
                 return false;
             }
         }

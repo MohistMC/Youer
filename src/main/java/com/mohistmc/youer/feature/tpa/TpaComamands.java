@@ -1,11 +1,8 @@
 package com.mohistmc.youer.feature.tpa;
 
+import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.util.I18n;
 import java.util.HashMap;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.HoverEvent;
-import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
@@ -37,15 +34,19 @@ public class TpaComamands extends Command {
                 player.sendMessage(I18n.as("tpacommands.yourself"));
                 return false;
             }
-            TextComponent accept = new TextComponent(I18n.as("tpacommands.click.accept"));
-            accept.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(I18n.as("tpacommands.hover.accept"))));
-            accept.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tpaccept"));
-            TextComponent deny = new TextComponent(I18n.as("tpacommands.click.deny"));
-            deny.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(I18n.as("tpacommands.hover.reject"))));
-            deny.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/tpadeny"));
             a.sendMessage(I18n.as("tpacommands.sent", player.getName()));
-            a.spigot().sendMessage(accept);
-            a.spigot().sendMessage(deny);
+            a.sendMessage(
+                    ColorAPI.adventure(I18n.as("tpacommands.click.accept"))
+                            .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                                    ColorAPI.adventure(I18n.as("tpacommands.hover.accept"))))
+                            .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/tpaccept"))
+            );
+            a.sendMessage(
+                    ColorAPI.adventure(I18n.as("tpacommands.click.deny"))
+                            .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                                    ColorAPI.adventure(I18n.as("tpacommands.hover.reject"))))
+                            .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/tpadeny"))
+            );
             player.sendMessage(I18n.as("tpacommands.successfully"));
             tpa.remove(a);
             tpa.put(a, player);

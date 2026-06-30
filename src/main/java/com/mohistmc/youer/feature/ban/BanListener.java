@@ -3,7 +3,6 @@ package com.mohistmc.youer.feature.ban;
 import com.mohistmc.tools.ListUtils;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.api.EnchantmentAPI;
-import com.mohistmc.youer.api.ItemAPI;
 import com.mohistmc.youer.feature.ban.utils.BanSaveInventory;
 import com.mohistmc.youer.feature.ban.utils.BanUtils;
 import com.mohistmc.youer.util.I18n;
@@ -13,6 +12,7 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.SpawnEggItem;
 import org.bukkit.Bukkit;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
@@ -40,9 +40,9 @@ public class BanListener {
                     List<String> old = BanConfig.getListByType(BanType.ENTITY);
                     for (org.bukkit.inventory.ItemStack itemStack : event.getInventory().getContents()) {
                         if (itemStack != null && !itemStack.isEmpty()) {
-                            ItemStack nmsItem = ItemAPI.toNMSItem(itemStack);
-                            if (nmsItem.getItem() instanceof SpawnEggItem spawnEggItem) {
-                                EntityType<?> entitytype = spawnEggItem.getType(nmsItem);
+                            ItemStack nmsItem = CraftItemStack.asNMSCopy(itemStack);
+                            EntityType<?> entitytype = SpawnEggItem.getType(nmsItem);
+                            if (entitytype != null) {
                                 var key = BuiltInRegistries.ENTITY_TYPE.getKey(entitytype);
                                 ListUtils.isDuplicate(old, key.toString());
                             }

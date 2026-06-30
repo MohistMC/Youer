@@ -23,6 +23,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
@@ -148,7 +149,7 @@ public class EntityLimitsCommands extends Command {
                     player.sendMessage(ChatColor.RED + I18n.as("entitylimits.add.noegg"));
                     return false;
                 }
-                net.minecraft.world.item.ItemStack nmsItem = ItemAPI.toNMSItem(itemInHand);
+                net.minecraft.world.item.ItemStack nmsItem = CraftItemStack.asNMSCopy(itemInHand);
                 if (nmsItem.getItem() instanceof SpawnEggItem spawnEggItem) {
                     EntityType<?> entitytype = spawnEggItem.getType(nmsItem);
                     String entityName = BuiltInRegistries.ENTITY_TYPE.getKey(entitytype).toString();

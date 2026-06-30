@@ -1,5 +1,7 @@
+
 package com.mohistmc.youer.commands;
 
+import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.api.PlayerAPI;
 import com.mohistmc.youer.api.gui.DemoGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
@@ -11,13 +13,7 @@ import java.util.Locale;
 import net.minecraft.core.component.DataComponentMap;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.network.chat.Component;
-import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.ComponentBuilder;
-import net.md_5.bungee.api.chat.HoverEvent;
-import net.md_5.bungee.api.chat.TextComponent;
-import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.command.Command;
@@ -73,20 +69,20 @@ public class InfoCommand extends Command {
         }
 
         if (args.length == 0) {
-            sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
+            sender.sendMessage(I18n.as("commands.usage", usageMessage));
             return false;
         }
 
 
         if (!(sender instanceof Player player)) {
-            sender.sendMessage(ChatColor.RED + I18n.as("error.notplayer"));
+            sender.sendMessage(I18n.as("error.notplayer"));
             return false;
         }
         ItemStack itemStack = player.getInventory().getItemInMainHand();
         switch (args[0].toLowerCase(Locale.ENGLISH)) {
             case "item" -> {
                 if (itemStack == null || itemStack.getType().isAir()) {
-                    player.sendMessage(ChatColor.RED + I18n.as("itemscmd.mainhandEmpty"));
+                    player.sendMessage(I18n.as("itemscmd.mainhandEmpty"));
                     return false;
                 }
                 ItemsCommand.info(player);
@@ -95,48 +91,29 @@ public class InfoCommand extends Command {
             case "block" -> {
                 Block block = player.getTargetBlockExact(5);
                 if (block == null) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("info.block.not_found"));
+                    sender.sendMessage(I18n.as("info.block.not_found"));
                     return false;
                 } else {
-                    PlayerAPI.sendMessageByCopy(player, ChatColor.GREEN + I18n.as("info.block.type") + ChatColor.YELLOW, block.getType().name());
-                    PlayerAPI.sendMessageByCopy(player, ChatColor.GREEN + I18n.as("info.block.key") + ChatColor.YELLOW, block.getType().getKey().asString());
-                    sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.data") + ChatColor.YELLOW + block.getBlockData().getAsString());
-                    sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.pos") + ChatColor.YELLOW + block.getX() + ", " + block.getY() + ", " + block.getZ());
-                    sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.world") + ChatColor.YELLOW + block.getWorld().getName());
-                    sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.light") + ChatColor.YELLOW + block.getLightLevel());
-                    sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.biome") + ChatColor.YELLOW + block.getBiome().name() + "(%s)".formatted(Component.translatable(block.getBiome().translationKey()).getString()));
-                    sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.hardness") + ChatColor.YELLOW + block.getType().getHardness());
-                    sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.resistance") + ChatColor.YELLOW + block.getType().getBlastResistance());
-                    sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.slipperiness") + ChatColor.YELLOW + block.getType().getSlipperiness());
-                    sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.replaceable") + ChatColor.YELLOW + block.isReplaceable());
-                    sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.requires_tool") + ChatColor.YELLOW + block.getBlockData().requiresCorrectToolForDrops());
+                    PlayerAPI.sendMessageByCopy(player, I18n.as("info.block.type", block.getType().name()), block.getType().name());
+                    PlayerAPI.sendMessageByCopy(player, I18n.as("info.block.key", block.getType().getKey().asString()), block.getType().getKey().asString());
+                    sender.sendMessage(I18n.as("info.block.data", block.getBlockData().getAsString()));
+                    sender.sendMessage(I18n.as("info.block.pos", block.getX() + ", " + block.getY() + ", " + block.getZ()));
+                    sender.sendMessage(I18n.as("info.block.world", block.getWorld().getName()));
+                    sender.sendMessage(I18n.as("info.block.light", block.getLightLevel()));
+                    sender.sendMessage(I18n.as("info.block.biome", block.getBiome().name() + "(%s)".formatted(Component.translatable(block.getBiome().translationKey()).getString())));
+                    sender.sendMessage(I18n.as("info.block.hardness", block.getType().getHardness()));
+                    sender.sendMessage(I18n.as("info.block.resistance", block.getType().getBlastResistance()));
+                    sender.sendMessage(I18n.as("info.block.slipperiness", block.getType().getSlipperiness()));
+                    sender.sendMessage(I18n.as("info.block.replaceable", block.isReplaceable()));
+                    sender.sendMessage(I18n.as("info.block.requires_tool", block.getBlockData().requiresCorrectToolForDrops()));
 
-                    if (block.getType().isSolid()) {
-                        sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.solid") + ChatColor.YELLOW + I18n.as("info.yes"));
-                    } else {
-                        sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.solid") + ChatColor.YELLOW + I18n.as("info.no"));
-                    }
-
-                    if (block.getType().isBurnable()) {
-                        sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.burnable") + ChatColor.YELLOW + I18n.as("info.yes"));
-                    } else {
-                        sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.burnable") + ChatColor.YELLOW + I18n.as("info.no"));
-                    }
-
-                    if (block.getType().isInteractable()) {
-                        sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.interactable") + ChatColor.YELLOW + I18n.as("info.yes"));
-                    } else {
-                        sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.interactable") + ChatColor.YELLOW + I18n.as("info.no"));
-                    }
-
-                    if (block.getType().hasGravity()) {
-                        sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.gravity") + ChatColor.YELLOW + I18n.as("info.yes"));
-                    } else {
-                        sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.gravity") + ChatColor.YELLOW + I18n.as("info.no"));
-                    }
+                    sender.sendMessage(I18n.as("info.block.solid", I18n.as(block.getType().isSolid() ? "info.yes" : "info.no")));
+                    sender.sendMessage(I18n.as("info.block.burnable", I18n.as(block.getType().isBurnable() ? "info.yes" : "info.no")));
+                    sender.sendMessage(I18n.as("info.block.interactable", I18n.as(block.getType().isInteractable() ? "info.yes" : "info.no")));
+                    sender.sendMessage(I18n.as("info.block.gravity", I18n.as(block.getType().hasGravity() ? "info.yes" : "info.no")));
 
                     if (block.getState() != null) {
-                        sender.sendMessage(ChatColor.GREEN + I18n.as("info.block.state") + ChatColor.YELLOW + block.getState().getClass().getSimpleName());
+                        sender.sendMessage(I18n.as("info.block.state", block.getState().getClass().getSimpleName()));
                     }
                 }
                 return true;
@@ -144,61 +121,47 @@ public class InfoCommand extends Command {
             case "entity" -> {
                 Entity entity = player.getTargetEntity(5, true);
                 if (entity == null) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("info.entity.not_found"));
+                    sender.sendMessage(I18n.as("info.entity.not_found"));
                     return false;
                 } else {
-                    PlayerAPI.sendMessageByCopy(player, ChatColor.GOLD + I18n.as("info.entity.type") + ChatColor.YELLOW, entity.getType().name());
-                    PlayerAPI.sendMessageByCopy(player, ChatColor.GOLD + I18n.as("info.entity.key") + ChatColor.YELLOW, entity.getType().getKey().asString());
-                    PlayerAPI.sendMessageByCopy(player, ChatColor.GOLD + I18n.as("info.entity.uuid") + ChatColor.YELLOW, entity.getUniqueId().toString());
-                    sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.pos") + ChatColor.YELLOW +
-                            String.format("%.2f, %.2f, %.2f", entity.getLocation().getX(), entity.getLocation().getY(), entity.getLocation().getZ()));
-                    sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.world") + ChatColor.YELLOW + entity.getWorld().getName());
-                    sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.health") + ChatColor.YELLOW +
-                            (entity instanceof org.bukkit.entity.Damageable ? ((org.bukkit.entity.Damageable) entity).getHealth() : "N/A"));
-                    sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.onground") + ChatColor.YELLOW + entity.isOnGround());
-                    sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.burning") + ChatColor.YELLOW + entity.isVisualFire());
-                    sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.ticks") + ChatColor.YELLOW + entity.getTicksLived() + " ticks");
-                    sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.frozen") + ChatColor.YELLOW + entity.isFrozen());
-                    sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.gravity") + ChatColor.YELLOW + entity.hasGravity());
+                    PlayerAPI.sendMessageByCopy(player, I18n.as("info.entity.type", entity.getType().name()), entity.getType().name());
+                    PlayerAPI.sendMessageByCopy(player, I18n.as("info.entity.key", entity.getType().getKey().asString()), entity.getType().getKey().asString());
+                    PlayerAPI.sendMessageByCopy(player, I18n.as("info.entity.uuid", entity.getUniqueId().toString()), entity.getUniqueId().toString());
+                    sender.sendMessage(I18n.as("info.entity.pos", String.format("%.2f, %.2f, %.2f", entity.getLocation().getX(), entity.getLocation().getY(), entity.getLocation().getZ())));
+                    sender.sendMessage(I18n.as("info.entity.world", entity.getWorld().getName()));
+                    sender.sendMessage(I18n.as("info.entity.health", entity instanceof org.bukkit.entity.Damageable ? String.valueOf(((org.bukkit.entity.Damageable) entity).getHealth()) : "N/A"));
+                    sender.sendMessage(I18n.as("info.entity.onground", entity.isOnGround()));
+                    sender.sendMessage(I18n.as("info.entity.burning", entity.isVisualFire()));
+                    sender.sendMessage(I18n.as("info.entity.ticks", entity.getTicksLived() + " ticks"));
+                    sender.sendMessage(I18n.as("info.entity.frozen", entity.isFrozen()));
+                    sender.sendMessage(I18n.as("info.entity.gravity", entity.hasGravity()));
 
                     if (entity.getCustomName() != null) {
-                        sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.custom_name") + ChatColor.YELLOW + entity.getCustomName());
+                        sender.sendMessage(I18n.as("info.entity.custom_name", entity.getCustomName()));
                     }
 
                     if (entity instanceof org.bukkit.entity.LivingEntity livingEntity) {
-                        sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.max_health") + ChatColor.YELLOW + livingEntity.getMaxHealth());
-                        sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.ai") + ChatColor.YELLOW + livingEntity.hasAI());
-                        sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.sleeping") + ChatColor.YELLOW + livingEntity.isSleeping());
+                        sender.sendMessage(I18n.as("info.entity.max_health", livingEntity.getMaxHealth()));
+                        sender.sendMessage(I18n.as("info.entity.ai", livingEntity.hasAI()));
+                        sender.sendMessage(I18n.as("info.entity.sleeping", livingEntity.isSleeping()));
 
                         if (livingEntity instanceof Player targetPlayer) {
-                            sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.player_info"));
-                            sender.sendMessage(ChatColor.GOLD + "  " + I18n.as("info.entity.gamemode") + ChatColor.YELLOW + targetPlayer.getGameMode().name());
-                            sender.sendMessage(ChatColor.GOLD + "  " + I18n.as("info.entity.level") + ChatColor.YELLOW + targetPlayer.getLevel());
-                            sender.sendMessage(ChatColor.GOLD + "  " + I18n.as("info.entity.exp") + ChatColor.YELLOW + targetPlayer.getTotalExperience());
-                            sender.sendMessage(ChatColor.GOLD + "  " + I18n.as("info.entity.food") + ChatColor.YELLOW + targetPlayer.getFoodLevel());
-                            sender.sendMessage(ChatColor.GOLD + "  " + I18n.as("info.entity.saturation") + ChatColor.YELLOW + targetPlayer.getSaturation());
+                            sender.sendMessage(I18n.as("info.entity.player_info"));
+                            sender.sendMessage(I18n.as("info.entity.gamemode", targetPlayer.getGameMode().name()));
+                            sender.sendMessage(I18n.as("info.entity.level", targetPlayer.getLevel()));
+                            sender.sendMessage(I18n.as("info.entity.exp", targetPlayer.getTotalExperience()));
+                            sender.sendMessage(I18n.as("info.entity.food", targetPlayer.getFoodLevel()));
+                            sender.sendMessage(I18n.as("info.entity.saturation", targetPlayer.getSaturation()));
                         }
 
-                        sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.equipment"));
+                        sender.sendMessage(I18n.as("info.entity.equipment"));
                         if (livingEntity.getEquipment() != null) {
-                            sender.sendMessage(ChatColor.GOLD + "  " + I18n.as("info.entity.main_hand") + ChatColor.YELLOW +
-                                    (livingEntity.getEquipment().getItemInMainHand().getType() != Material.AIR ?
-                                            livingEntity.getEquipment().getItemInMainHand().getType().name() : I18n.as("info.entity.empty")));
-                            sender.sendMessage(ChatColor.GOLD + "  " + I18n.as("info.entity.off_hand") + ChatColor.YELLOW +
-                                    (livingEntity.getEquipment().getItemInOffHand().getType() != Material.AIR ?
-                                            livingEntity.getEquipment().getItemInOffHand().getType().name() : I18n.as("info.entity.empty")));
-                            sender.sendMessage(ChatColor.GOLD + "  " + I18n.as("info.entity.helmet") + ChatColor.YELLOW +
-                                    (livingEntity.getEquipment().getHelmet() != null ?
-                                            livingEntity.getEquipment().getHelmet().getType().name() : I18n.as("info.entity.empty")));
-                            sender.sendMessage(ChatColor.GOLD + "  " + I18n.as("info.entity.chestplate") + ChatColor.YELLOW +
-                                    (livingEntity.getEquipment().getChestplate() != null ?
-                                            livingEntity.getEquipment().getChestplate().getType().name() : I18n.as("info.entity.empty")));
-                            sender.sendMessage(ChatColor.GOLD + "  " + I18n.as("info.entity.leggings") + ChatColor.YELLOW +
-                                    (livingEntity.getEquipment().getLeggings() != null ?
-                                            livingEntity.getEquipment().getLeggings().getType().name() : I18n.as("info.entity.empty")));
-                            sender.sendMessage(ChatColor.GOLD + "  " + I18n.as("info.entity.boots") + ChatColor.YELLOW +
-                                    (livingEntity.getEquipment().getBoots() != null ?
-                                            livingEntity.getEquipment().getBoots().getType().name() : I18n.as("info.entity.empty")));
+                            sender.sendMessage(I18n.as("info.entity.main_hand", livingEntity.getEquipment().getItemInMainHand().getType() != Material.AIR ? livingEntity.getEquipment().getItemInMainHand().getType().name() : I18n.as("info.entity.empty")));
+                            sender.sendMessage(I18n.as("info.entity.off_hand", livingEntity.getEquipment().getItemInOffHand().getType() != Material.AIR ? livingEntity.getEquipment().getItemInOffHand().getType().name() : I18n.as("info.entity.empty")));
+                            sender.sendMessage(I18n.as("info.entity.helmet", livingEntity.getEquipment().getHelmet() != null ? livingEntity.getEquipment().getHelmet().getType().name() : I18n.as("info.entity.empty")));
+                            sender.sendMessage(I18n.as("info.entity.chestplate", livingEntity.getEquipment().getChestplate() != null ? livingEntity.getEquipment().getChestplate().getType().name() : I18n.as("info.entity.empty")));
+                            sender.sendMessage(I18n.as("info.entity.leggings", livingEntity.getEquipment().getLeggings() != null ? livingEntity.getEquipment().getLeggings().getType().name() : I18n.as("info.entity.empty")));
+                            sender.sendMessage(I18n.as("info.entity.boots", livingEntity.getEquipment().getBoots() != null ? livingEntity.getEquipment().getBoots().getType().name() : I18n.as("info.entity.empty")));
                         }
                     }
                 }
@@ -206,7 +169,7 @@ public class InfoCommand extends Command {
             }
             case "item-component" -> {
                 if (itemStack == null || itemStack.getType().isAir()) {
-                    player.sendMessage(ChatColor.RED + I18n.as("itemscmd.mainhandEmpty"));
+                    player.sendMessage(I18n.as("itemscmd.mainhandEmpty"));
                     return false;
                 }
                 net.minecraft.world.item.ItemStack nmsItem = CraftItemStack.asNMSCopy(itemStack);
@@ -221,17 +184,19 @@ public class InfoCommand extends Command {
 
                     gui.addItem(new GUIItem(new ItemStackFactory(Material.KNOWLEDGE_BOOK)
                             .setDisplayName("§e" + typeName)
-                            .addLore("§7" + I18n.as("info.item_component.value") + " §f" + valueStr)
+                            .addLore(I18n.as("info.item_component.value", valueStr))
                             .addLore("")
                             .addLore("§a" + I18n.as("itemscmd.copy"))
                             .build()) {
                         @Override
                         public void ClickAction(ClickType type, Player p, ItemStack itemStack) {
                             if (type.isLeftClick() && !type.isShiftClick()) {
-                                TextComponent msg = new TextComponent("§e" + typeName + "§7: §f" + valueStr);
-                                msg.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(new ComponentBuilder("§c" + I18n.as("itemscmd.copy")).create())));
-                                msg.setClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, valueStr));
-                                p.spigot().sendMessage(msg);
+                                p.sendMessage(
+                                        ColorAPI.adventure("§e" + typeName + "§7: §f" + valueStr)
+                                                .clickEvent(net.kyori.adventure.text.event.ClickEvent.copyToClipboard(valueStr))
+                                                .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                                                        ColorAPI.adventure("§c" + I18n.as("itemscmd.copy"))))
+                                );
                             }
                         }
                     });
@@ -242,7 +207,7 @@ public class InfoCommand extends Command {
             }
             case "cmd" -> {
                 if (args.length < 2) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("info.cmd.usage"));
+                    sender.sendMessage(I18n.as("info.cmd.usage"));
                     return false;
                 }
 
@@ -252,7 +217,7 @@ public class InfoCommand extends Command {
                 if (pluginCommand == null) {
                     Command unknownCommand = player.getServer().getCommandMap().getCommand(commandName);
                     if (unknownCommand == null) {
-                        sender.sendMessage(ChatColor.YELLOW + I18n.as("info.cmd.non_plugin_command"));
+                        sender.sendMessage(I18n.as("info.cmd.non_plugin_command"));
                         return false;
                     } else {
                         sendCommandInfo(sender, unknownCommand);
@@ -265,7 +230,7 @@ public class InfoCommand extends Command {
             }
 
             default -> {
-                sender.sendMessage(ChatColor.RED + "Usage: " + usageMessage);
+                sender.sendMessage(I18n.as("commands.usage", usageMessage));
                 return false;
             }
         }
@@ -277,12 +242,12 @@ public class InfoCommand extends Command {
         String commandDescription = pluginCommand.getDescription();
         String aliases = String.join(", ", pluginCommand.getAliases());
 
-        String firstLine = "&6&m----------------&r&6 " + I18n.as("info.cmd.non_plugin_title") + " &6&m----------------";
+        String firstLine = I18n.as("info.cmd.header_format", I18n.as("info.cmd.non_plugin_title"));
         String message = firstLine + "\n" +
-                "&e" + I18n.as("info.cmd.source") + " &f" + commandLabel + "\n" +
-                "&e" + I18n.as("info.cmd.command_description") + " &f" + commandDescription + "\n" +
-                "&e" + I18n.as("info.cmd.permission") + " &f" + (permission != null ? permission : I18n.as("info.cmd.none")) + "\n" +
-                "&e" + I18n.as("info.cmd.aliases") + " &f" + (aliases.isEmpty() ? I18n.as("info.cmd.none") : aliases);
+                I18n.as("info.cmd.source", commandLabel) + "\n" +
+                I18n.as("info.cmd.command_description", commandDescription) + "\n" +
+                I18n.as("info.cmd.permission", permission != null ? permission : I18n.as("info.cmd.none")) + "\n" +
+                I18n.as("info.cmd.aliases", aliases.isEmpty() ? I18n.as("info.cmd.none") : aliases);
 
         sender.sendMessage(message);
     }
@@ -301,15 +266,15 @@ public class InfoCommand extends Command {
             pluginDescription = pluginDescription.substring(0, 40) + " ...";
         }
 
-        String firstLine = "&6&m----------------&r&6 " + I18n.as("info.cmd.plugin_title") + " &6&m----------------";
+        String firstLine = I18n.as("info.cmd.header_format", I18n.as("info.cmd.plugin_title"));
         String message = firstLine + "\n" +
-                "&e" + I18n.as("info.cmd.plugin_name") + " &f" + pluginName + "\n" +
-                "&e" + I18n.as("info.cmd.plugin_version") + " &f" + pluginVersion + "\n" +
-                "&e" + I18n.as("info.cmd.plugin_description") + " &f" + pluginDescription + "\n" +
-                "&e" + I18n.as("info.cmd.plugin_authors") + " &f" + authorsDisplay + "\n" +
-                "&e" + I18n.as("info.cmd.command_description") + " &f" + commandDescription + "\n" +
-                "&e" + I18n.as("info.cmd.permission") + " &f" + (permission != null ? permission : I18n.as("info.cmd.none")) + "\n" +
-                "&e" + I18n.as("info.cmd.aliases") + " &f" + (aliases.isEmpty() ? I18n.as("info.cmd.none") : aliases);
+                I18n.as("info.cmd.plugin_name", pluginName) + "\n" +
+                I18n.as("info.cmd.plugin_version", pluginVersion) + "\n" +
+                I18n.as("info.cmd.plugin_description", pluginDescription) + "\n" +
+                I18n.as("info.cmd.plugin_authors", authorsDisplay) + "\n" +
+                I18n.as("info.cmd.command_description", commandDescription) + "\n" +
+                I18n.as("info.cmd.permission", permission != null ? permission : I18n.as("info.cmd.none")) + "\n" +
+                I18n.as("info.cmd.aliases", aliases.isEmpty() ? I18n.as("info.cmd.none") : aliases);
 
         sender.sendMessage(message);
     }
