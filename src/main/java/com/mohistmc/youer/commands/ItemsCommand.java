@@ -29,7 +29,16 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.component.DataComponentType;
+import net.minecraft.network.chat.Component;
+import net.md_5.bungee.api.chat.ClickEvent;
+import net.md_5.bungee.api.chat.ComponentBuilder;
+import net.md_5.bungee.api.chat.HoverEvent;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.chat.hover.content.Text;
 import org.bukkit.ChatColor;
+import org.bukkit.Registry;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -63,7 +72,10 @@ public class ItemsCommand extends Command {
             player.sendMessage(ChatColor.GRAY + I18n.as("items.info.custommodeldata") + " %s".formatted(itemStack.getCustomModelData()));
         }
         player.sendMessage(ChatColor.GRAY + I18n.as("items.info.itemflags") + " %s".formatted(itemStack.getItemFlags()));
-        player.sendMessage(ChatColor.GREEN + I18n.as("items.info.itemnbt") + " %s".formatted(ItemAPI.getNbtAsString(itemStack)));
+        TextComponent componentText = new TextComponent(ChatColor.GREEN + I18n.as("items.info.itemcomponent") + ": §a" + I18n.as("items.info.component_click"));
+        componentText.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(new ComponentBuilder(I18n.as("items.info.component_click")).create())));
+        componentText.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/infos item-component"));
+        player.spigot().sendMessage(componentText);
 
         player.sendMessage(ChatColor.GRAY + I18n.as("items.info.amount") + " %s".formatted(itemStack.getAmount()));
         player.sendMessage(ChatColor.GRAY + I18n.as("items.info.maxstacksize") + " %s".formatted(itemStack.getMaxStackSize()));
@@ -94,7 +106,7 @@ public class ItemsCommand extends Command {
                     itemStack.getType().getMaxDurability() - itemStack.getDurability(),
                     itemStack.getType().getMaxDurability()));
         }
-        PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY  + "Base64 - ", ItemAPI.getBase64byBukkit(itemStack));
+        PlayerAPI.sendMessageByCopy(player, ChatColor.GRAY + "Base64 - ", ItemAPI.getBase64byBukkit(itemStack), true);
     }
 
     @Override

@@ -70,7 +70,16 @@ public class PlayerAPI {
     }
 
     public static void sendMessageByCopy(Player player, String des, String info) {
-        TextComponent textComponent = new TextComponent(des + info);
+        sendMessageByCopy(player, des, info, false);
+    }
+
+    public static void sendMessageByCopy(Player player, String des, String info, boolean truncate) {
+        TextComponent textComponent;
+        if (truncate && info.length() > 20) {
+            textComponent = new TextComponent(des + info.substring(0, 20) + "......");
+        } else {
+            textComponent = new TextComponent(des + info);
+        }
         textComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(new ComponentBuilder("§c%s".formatted(I18n.as("itemscmd.copy"))).create())));
         textComponent.setClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, info));
         player.spigot().sendMessage(textComponent);
