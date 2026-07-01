@@ -1,5 +1,21 @@
 --- a/net/minecraft/locale/Language.java
 +++ b/net/minecraft/locale/Language.java
+@@ -5,6 +_,7 @@
+ import com.google.gson.JsonElement;
+ import com.google.gson.JsonObject;
+ import com.google.gson.JsonParseException;
++import com.mohistmc.youer.YouerConfig;
+ import com.mojang.logging.LogUtils;
+ import java.io.IOException;
+ import java.io.InputStream;
+@@ -12,6 +_,7 @@
+ import java.nio.charset.StandardCharsets;
+ import java.util.HashMap;
+ import java.util.List;
++import java.util.Locale;
+ import java.util.Map;
+ import java.util.Optional;
+ import java.util.Map.Entry;
 @@ -36,9 +_,11 @@
          DeprecatedTranslationsInfo deprecatedInfo = DeprecatedTranslationsInfo.loadFromDefaultResource();
          Map<String, String> loadedData = new HashMap<>();
@@ -14,7 +30,7 @@
          return new Language() {
              @Override
              public String getOrDefault(String elementId, String defaultValue) {
-@@ -63,21 +_,51 @@
+@@ -63,21 +_,55 @@
                      )
                      .isPresent();
              }
@@ -33,15 +49,21 @@
  
 +    @Deprecated
      private static void parseTranslations(BiConsumer<String, String> output, String path) {
+-        try (InputStream stream = Language.class.getResourceAsStream(path)) {
+-            loadFromJson(stream, output);
 +        parseTranslations(output, (key, value) -> {}, path);
 +    }
 +
 +    private static void parseTranslations(BiConsumer<String, String> output, BiConsumer<String, net.minecraft.network.chat.Component> componentConsumer, String path) {
-         try (InputStream stream = Language.class.getResourceAsStream(path)) {
--            loadFromJson(stream, output);
++        try (InputStream stream = Language.class.getResourceAsStream("/assets/minecraft/lang/%s.json".formatted(YouerConfig.youer_lang().toLowerCase(Locale.ROOT)))) {
 +            loadFromJson(stream, output, componentConsumer);
          } catch (IOException | JsonParseException e) {
-             LOGGER.error("Couldn't read strings from {}", path, e);
+-            LOGGER.error("Couldn't read strings from {}", path, e);
++            try (InputStream stream = Language.class.getResourceAsStream(path)) {
++                loadFromJson(stream, output, componentConsumer);
++            } catch (IOException | JsonParseException e1) {
++                LOGGER.error("Couldn't read strings from {}", path, e1);
++            }
          }
      }
  
