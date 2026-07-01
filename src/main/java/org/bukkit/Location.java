@@ -1138,8 +1138,8 @@ public class Location implements Cloneable, ConfigurationSerializable, io.paperm
     }
 
     public String asString() {
-        World world = (this.world == null) ? null : this.world.get();
-        return "world=" + world.getName() + ",x=" + x + ",y=" + y + ",z=" + z + ",pitch=" + pitch + ",yaw=" + yaw;
+        String worldName = (this.world == null) ? "" : this.world.get().getName();
+        return "world=" + worldName + ",x=" + x + ",y=" + y + ",z=" + z + ",pitch=" + pitch + ",yaw=" + yaw;
     }
 
     /**

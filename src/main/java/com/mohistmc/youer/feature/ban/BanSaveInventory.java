@@ -1,7 +1,8 @@
-package com.mohistmc.youer.feature.ban.utils;
+package com.mohistmc.youer.feature.ban;
 
-import com.mohistmc.youer.feature.ban.BanType;
+import java.util.List;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.jetbrains.annotations.NotNull;
@@ -23,5 +24,9 @@ public class BanSaveInventory implements InventoryHolder {
 
     public BanType getBanType() {
         return banType;
+    }
+
+    public void saveToYaml(HumanEntity player, ClickType clickType, List<String> list, BanType banType) {
+        BanConfig.saveToYaml(player, clickType, list, banType);
     }
 }

@@ -1,9 +1,7 @@
 package com.mohistmc.youer.feature.entitylimits;
 
 import com.mohistmc.youer.api.WorldAPI;
-import com.mohistmc.youer.feature.config.YouerPluginConfig;
-import java.io.File;
-import java.util.ArrayList;
+import com.mohistmc.youer.feature.db.EntityLimitsDatabaseStorage;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -15,58 +13,51 @@ import org.bukkit.World;
 /**
  * @author Mgazul
  * @date 2025/10/2 21:30
+ *
+ * Entity spawn limits backed by database.
  */
-public class EntityLimitsConfig extends YouerPluginConfig {
+public class EntityLimitsConfig {
 
     public static EntityLimitsConfig INSTANCE;
+    private final EntityLimitsDatabaseStorage storage;
 
-    public EntityLimitsConfig(File file) {
-        super(file);
+    public EntityLimitsConfig() {
+        this.storage = new EntityLimitsDatabaseStorage();
     }
 
     public static void init() {
-        INSTANCE = new EntityLimitsConfig(new File("youer-config", "entitylimits.yml"));
+        INSTANCE = new EntityLimitsConfig();
+        INSTANCE.storage.init();
     }
 
     public boolean hasWorld(String worldName) {
-        return yaml.contains(worldName);
+        return storage.hasWorld(worldName);
     }
 
     public List<EntityLimits> getEntityLimits() {
-        List<EntityLimits> entityLimits = new ArrayList<>();
-        for (String worldName : yaml.getKeys(false)) {
-            for (String entityName : yaml.getConfigurationSection(worldName).getKeys(false)) {
-                int entityLimit = yaml.getInt(worldName + "." + entityName, -1);
-                entityLimits.add(new EntityLimits(worldName, entityName, entityLimit));
-            }
-        }
-        return entityLimits;
+        return storage.getAll();
     }
 
     public void remove(String worldName, String entityName) {
-        yaml.set(worldName + "." + entityName, null);
-        save();
+        storage.remove(worldName, entityName);
     }
 
     public void set(String worldName, String entityName, int entityLimit) {
-        yaml.set(worldName + "." + entityName, entityLimit);
-        save();
+        storage.set(worldName, entityName, entityLimit);
     }
 
     public boolean canSpawn(Entity entity) {
         World world = entity.level().getWorld();
-        boolean hasLimit = yaml.contains(world.getName() + "." + entity.getBukkitEntity().getType().name());
-        if (!hasLimit) {
-            return false;
-        }
+        int limit = storage.getLimit(world.getName(), entity.getBukkitEntity().getType().name());
+        if (limit < 0) return false;
+
         Map<EntityType<?>, Integer> collect =
                 StreamSupport.stream(WorldAPI.getServerLevel(world).getAllEntities().spliterator(), false)
                         .collect(Collectors.toMap(
                                 Entity::getType,
-                                entity1 -> 1,
+                                _ -> 1,
                                 Integer::sum
                         ));
-        int limit = yaml.getInt(world.getName() + "." + entity.getBukkitEntity().getType().name(), -1);
         int entitySize = collect.getOrDefault(entity.getType(), 0);
         return entitySize >= limit;
     }

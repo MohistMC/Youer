@@ -1,52 +1,72 @@
 package com.mohistmc.youer.feature.item;
 
-import com.mohistmc.youer.feature.config.YouerPluginConfig;
-import java.io.File;
-import java.util.ArrayList;
+import com.mohistmc.youer.feature.db.ItemDatabaseStorage;
 import java.util.List;
-import org.bukkit.Material;
-import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.inventory.ItemStack;
 
 /**
  * @author Mgazul by MohistMC
  * @date 2023/8/2 18:27:05
+ *
+ * Item configuration storage backed by database (SQLite or MySQL).
+ * Uses {@link ItemDatabaseStorage} for persistence with Zstd compression on SQLite.
  */
-public class ItemsConfig extends YouerPluginConfig {
+public class ItemsConfig {
 
     public static ItemsConfig INSTANCE;
+    private final ItemDatabaseStorage storage;
 
-    public ItemsConfig(File file) {
-        super(file);
+    public ItemsConfig() {
+        this.storage = new ItemDatabaseStorage();
     }
 
     public static void init() {
-        INSTANCE = new ItemsConfig(new File("youer-config", "items.yml"));
+        INSTANCE = new ItemsConfig();
+        INSTANCE.storage.init();
     }
 
+    /**
+     * @return all saved ItemStacks
+     */
     public List<ItemStack> getItems() {
-        List<ItemStack> list = new ArrayList<>();
-        ConfigurationSection configurationSection = yaml.getConfigurationSection("items");
-        if (yaml.get("items") == null || configurationSection == null) return list;
-        for (String s : configurationSection.getKeys(false)) {
-            list.add(yaml.getItemStack("items." + s));
-        }
-        return list;
+        return storage.getAllItems();
     }
 
+    /**
+     * @return all saved item keys (names)
+     */
     public List<String> getItemStrings() {
-        List<String> list = new ArrayList<>();
-        ConfigurationSection configurationSection = yaml.getConfigurationSection("items");
-        if (yaml.get("items") == null || configurationSection == null) return list;
-        list.addAll(configurationSection.getKeys(false));
-        return list;
+        return storage.getAllKeys();
     }
 
-    public ItemStack get(String item_name) {
-        return yaml.getItemStack("items." + item_name, new ItemStack(Material.AIR));
+    /**
+     * Get an ItemStack by name.
+     *
+     * @param itemName the item key
+     * @return the ItemStack, or AIR if not found
+     */
+    public ItemStack get(String itemName) {
+        return storage.get(itemName);
     }
 
-    public void remove(String iten_name) {
-        put("items." + iten_name, null);
+    /**
+     * Remove a saved item by name.
+     */
+    public void remove(String itemName) {
+        storage.remove(itemName);
+    }
+
+    /**
+     * Save an ItemStack with a key.
+     * Supports keys with or without "items." prefix for backward compatibility.
+     *
+     * @param key   the item key (e.g. "items.my_sword" or "my_sword")
+     * @param value the ItemStack to save
+     */
+    public void put(String key, Object value) {
+        String cleanKey = key.startsWith("items.") ? key.substring("items.".length()) : key;
+        if (value instanceof ItemStack itemStack) {
+            storage.put(cleanKey, itemStack);
+        }
     }
 }

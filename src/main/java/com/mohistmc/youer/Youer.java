@@ -3,6 +3,7 @@ package com.mohistmc.youer;
 import com.mohistmc.i18n.i18n;
 import com.mohistmc.youer.eventhandler.EventDispatcherRegistry;
 import com.mohistmc.youer.feature.ban.BanConfig;
+import com.mohistmc.youer.feature.db.DatabaseConfig;
 import com.mohistmc.youer.util.VersionInfo;
 import java.util.HashMap;
 import java.util.Locale;
@@ -29,6 +30,7 @@ public class Youer {
         arguments.put("neoforge", NeoForgeVersion.getVersion());
         versionInfo = new VersionInfo(arguments);
         EventDispatcherRegistry.init();
+        DatabaseConfig.init();
         BanConfig.init();
     }
 

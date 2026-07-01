@@ -11,6 +11,7 @@ import com.mohistmc.youer.feature.back.BackCommands;
 import com.mohistmc.youer.feature.back.BackConfig;
 import com.mohistmc.youer.feature.ban.BanListener;
 import com.mohistmc.youer.feature.commands.CommandsConfig;
+import com.mohistmc.youer.feature.db.DatabaseManager;
 import com.mohistmc.youer.feature.entitylimits.EntityLimitsCommands;
 import com.mohistmc.youer.feature.item.ItemsConfig;
 import com.mohistmc.youer.feature.menu.MenuCommand;
@@ -41,6 +42,7 @@ public class YouerPlugin {
     public static Logger LOGGER = LogManager.getLogger("YouerPlugin");
 
     public static void init() {
+        DatabaseManager.init();
         if (CommandsConfig.INSTANCE.enable("worlds.enable")) {
             WorldManage.onEnable();
         }

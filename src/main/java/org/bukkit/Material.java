@@ -3127,6 +3127,10 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
     public static Material matchMaterial(@NotNull final String name, boolean legacyName) {
         Preconditions.checkArgument(name != null, "Name cannot be null");
 
+        if (!name.startsWith(NamespacedKey.MINECRAFT + ":") && BY_KEY.containsKey(name)) {
+            return BY_KEY.get(name);
+        }
+
         String filtered = name;
         if (filtered.startsWith(NamespacedKey.MINECRAFT + ":")) {
             filtered = filtered.substring((NamespacedKey.MINECRAFT + ":").length());

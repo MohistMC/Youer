@@ -89,7 +89,7 @@ public class WarpsCommands extends Command {
                 DemoGUI wh = new DemoGUI(I18n.as("warpscommands.prefix"));
                 for (String w : WarpsConfig.INSTANCE.getAllWarpNames()) {
                     wh.addItem(new GUIItem(new ItemStackFactory(Material.BAMBOO_SIGN)
-                            .setDisplayName(w)
+                            .setDisplayName("§f" + w)
                             .setLore(List.of(I18n.as("warpscommands.gui.click"), "§f" + WarpsConfig.INSTANCE.get(w).asString()))
                             .build()) {
                         @Override

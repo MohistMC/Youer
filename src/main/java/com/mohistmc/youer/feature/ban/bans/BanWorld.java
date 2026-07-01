@@ -5,7 +5,6 @@ import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.feature.ban.BanConfig;
 import com.mohistmc.youer.feature.ban.BanType;
 import com.mohistmc.youer.feature.ban.ClickType;
-import com.mohistmc.youer.feature.ban.utils.BanUtils;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -23,7 +22,7 @@ public class BanWorld {
     public static void addBan(Player player, String key) {
         List<String> old = BanConfig.getListByType(BanType.WORLD);
         ListUtils.isDuplicate(old, key);
-        BanUtils.saveToYaml(player, ClickType.ADD, old, BanType.WORLD);
+        BanConfig.saveToYaml(player, ClickType.ADD, old, BanType.WORLD);
     }
 
     public static boolean checkBan(Identifier resourceLocation) {

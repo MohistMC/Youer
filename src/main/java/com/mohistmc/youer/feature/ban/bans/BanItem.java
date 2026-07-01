@@ -30,10 +30,6 @@ public class BanItem {
         }
         if (check(itemStack)) {
             player.containerMenu.sendAllDataToRemote();
-            String message = BanConfig.BAN_MESSAGE.getMessage(itemStack.getBukkitStack().getType().name());
-            if (!message.isEmpty()) {
-                player.getBukkitEntity().sendMessage(message);
-            }
             return true;
         }
         return false;
@@ -47,10 +43,6 @@ public class BanItem {
             if (player.getBukkitEntity().hasPermission(moshou_permission + main.asBukkitCopy().getType().name())) {
                 return false;
             }
-            String message = BanConfig.BAN_MESSAGE.getMessage(main.getBukkitStack().getType().name());
-            if (!message.isEmpty()) {
-                player.getBukkitEntity().sendMessage(message);
-            }
             player.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
             return true;
         }
@@ -58,28 +50,13 @@ public class BanItem {
             if (player.getBukkitEntity().hasPermission(moshou_permission + off.asBukkitCopy().getType().name())) {
                 return false;
             }
-            String message = BanConfig.BAN_MESSAGE.getMessage(off.getBukkitStack().getType().name());
-            if (!message.isEmpty()) {
-                player.getBukkitEntity().sendMessage(message);
-            }
             player.setItemInHand(InteractionHand.OFF_HAND, ItemStack.EMPTY);
             return true;
         }
         if (check(main)) {
-            String message = BanConfig.BAN_MESSAGE.getMessage(main.getBukkitStack().getType().name());
-            if (!message.isEmpty()) {
-                player.getBukkitEntity().sendMessage(message);
-            }
             return true;
         }
-        if (check(off)) {
-            String message = BanConfig.BAN_MESSAGE.getMessage(off.getBukkitStack().getType().name());
-            if (!message.isEmpty()) {
-                player.getBukkitEntity().sendMessage(message);
-            }
-            return true;
-        }
-        return false;
+        return check(off);
     }
 
     public static boolean check(ItemStack itemStack) {

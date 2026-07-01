@@ -1,49 +1,51 @@
 package com.mohistmc.youer.feature.back;
 
 import com.mohistmc.youer.feature.commands.CommandsConfig;
-import com.mohistmc.youer.feature.config.YouerPluginConfig;
-import java.io.File;
-import org.bukkit.Bukkit;
+import com.mohistmc.youer.feature.db.BackDatabaseStorage;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 
-public class BackConfig extends YouerPluginConfig {
+/**
+ * @author Mgazul by MohistMC
+ *
+ * Player back-location storage backed by SQLite database.
+ * Always uses SQLite (not configurable) — simple structured data, no Zstd needed.
+ */
+public class BackConfig {
 
     public static BackConfig INSTANCE;
+    private final BackDatabaseStorage storage;
 
-    public BackConfig(File file) {
-        super(file);
+    public BackConfig() {
+        this.storage = new BackDatabaseStorage();
     }
 
     public static void init() {
-        INSTANCE = new BackConfig(new File("youer-config", "back.yml"));
+        INSTANCE = new BackConfig();
+        INSTANCE.storage.init();
     }
 
     public void saveLocation(Player player, Location location, BackType backType) {
         if (!CommandsConfig.INSTANCE.enable("back.enable")) return;
-        yaml.set(player.getUniqueId() + ".location.world", location.getWorld().getName());
-        yaml.set(player.getUniqueId() + ".location.x", location.getX());
-        yaml.set(player.getUniqueId() + ".location.y", location.getY());
-        yaml.set(player.getUniqueId() + ".location.z", location.getZ());
-        yaml.set(player.getUniqueId() + ".location.pitch", location.getPitch());
-        yaml.set(player.getUniqueId() + ".location.yaw", location.getYaw());
-        yaml.set(player.getUniqueId() + ".type", backType.name());
-        save();
+        storage.saveLocation(
+                player.getUniqueId().toString(),
+                location.getWorld().getName(),
+                location.getX(), location.getY(), location.getZ(),
+                location.getPitch(), location.getYaw(),
+                backType.name()
+        );
     }
 
     public Location getLocation(Player player) {
-        World world = Bukkit.getWorld(yaml.getString(player.getUniqueId() + ".location.world", "NULL"));
-        if (world == null) return null;
-        double x = yaml.getInt(player.getUniqueId() + ".location.x");
-        double y = yaml.getInt(player.getUniqueId() + ".location.y");
-        double z = yaml.getInt(player.getUniqueId() + ".location.z");
-        float pitch = (float) yaml.getInt(player.getUniqueId() + ".location.pitch");
-        float yaw = (float) yaml.getInt(player.getUniqueId() + ".location.yaw");
-        return new Location(world, x, y, z, yaw, pitch);
+        return storage.getLocation(player.getUniqueId().toString());
     }
 
     public BackType getBackType(Player player) {
-        return BackType.valueOf(yaml.getString(player.getUniqueId() + ".type"));
+        String type = storage.getBackType(player.getUniqueId().toString());
+        return type != null ? BackType.valueOf(type) : null;
+    }
+
+    public boolean has(String uuid) {
+        return storage.has(uuid);
     }
 }
