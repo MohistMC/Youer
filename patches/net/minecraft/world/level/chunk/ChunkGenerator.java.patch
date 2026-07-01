@@ -1,9 +1,10 @@
 --- a/net/minecraft/world/level/chunk/ChunkGenerator.java
 +++ b/net/minecraft/world/level/chunk/ChunkGenerator.java
-@@ -1,6 +_,5 @@
+@@ -1,6 +_,6 @@
  package net.minecraft.world.level.chunk;
  
 -import com.google.common.base.Suppliers;
++import com.mohistmc.youer.feature.ban.bans.BanStructure;
  import com.mojang.datafixers.util.Pair;
  import com.mojang.serialization.Codec;
  import com.mojang.serialization.MapCodec;
@@ -67,10 +68,16 @@
      }
  
      public Optional<ResourceKey<MapCodec<? extends ChunkGenerator>>> getTypeNameForDataFixer() {
-@@ -132,6 +_,34 @@
+@@ -132,6 +_,40 @@
      public Pair<BlockPos, Holder<Structure>> findNearestMapStructure(
          ServerLevel p_223038_, HolderSet<Structure> p_223039_, BlockPos p_223040_, int p_223041_, boolean p_223042_
      ) {
++        for (Holder<Structure> configuredStructureFeatureHolder : p_223039_) {
++            if (BanStructure.checkBan(BuiltInRegistries.STRUCTURE_TYPE.getKey(configuredStructureFeatureHolder.value().type()))) {
++               return null;
++            }
++        }
++
 +        // Paper start - StructuresLocateEvent
 +        final org.bukkit.World bukkitWorld = p_223038_.getWorld();
 +        final org.bukkit.Location origin = io.papermc.paper.util.MCUtil.toLocation(p_223038_, p_223040_);
@@ -180,10 +187,11 @@
                          if (list.size() == 1) {
                              this.tryGenerateStructure(
                                  list.get(0), p_255934_, p_255835_, randomstate, p_255832_, p_256505_.getLevelSeed(), p_255767_, chunkpos, sectionpos
-@@ -551,6 +_,22 @@
+@@ -551,6 +_,23 @@
              p_223107_, this, this.biomeSource, p_223108_, p_223109_, p_223110_, p_223112_, i, p_223111_, predicate
          );
          if (structurestart.isValid()) {
++            if (BanStructure.checkBan(BuiltInRegistries.STRUCTURE_TYPE.getKey(structure.type()))) return true;
 +            if (AsyncCatcher.catchAsync()) {
 +                // CraftBukkit start
 +                BoundingBox box = structurestart.getBoundingBox();

@@ -22,6 +22,7 @@ public class BanConfig extends YouerPluginConfig {
     public static BanConfig BLOCK;
     public static BanConfig NBT;
     public static BanConfig WORLD;
+    public static BanConfig STRUCTURE;
 
     private static final Map<BanType, List<String>> globalCache = new HashMap<>();
     private static final Map<BanType, BanConfig> typeToConfigMap = new HashMap<>();
@@ -40,6 +41,7 @@ public class BanConfig extends YouerPluginConfig {
         BLOCK = new BanConfig(new File(PARENT, "block.yml"));
         NBT = new BanConfig(new File(PARENT, "nbt.yml"));
         WORLD = new BanConfig(new File(PARENT, "world.yml"));
+        STRUCTURE = new BanConfig(new File(PARENT, "structure.yml"));
 
         typeToConfigMap.put(BanType.ITEM_MOSHOU, MOSHOU);
         typeToConfigMap.put(BanType.ITEM, ITEM);
@@ -48,6 +50,7 @@ public class BanConfig extends YouerPluginConfig {
         typeToConfigMap.put(BanType.RECIPE, RECIPE);
         typeToConfigMap.put(BanType.BLOCK, BLOCK);
         typeToConfigMap.put(BanType.WORLD, WORLD);
+        typeToConfigMap.put(BanType.STRUCTURE, STRUCTURE);
 
         refreshCache(BanType.ITEM_MOSHOU);
         refreshCache(BanType.ITEM);
@@ -56,6 +59,7 @@ public class BanConfig extends YouerPluginConfig {
         refreshCache(BanType.RECIPE);
         refreshCache(BanType.BLOCK);
         refreshCache(BanType.WORLD);
+        refreshCache(BanType.STRUCTURE);
     }
 
     public static List<String> getListByType(BanType type) {

@@ -8,6 +8,7 @@ import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.ItemStackFactory;
 import com.mohistmc.youer.feature.ban.bans.BanItem;
 import com.mohistmc.youer.feature.ban.bans.BanRecipe;
+import com.mohistmc.youer.feature.ban.bans.BanStructure;
 import com.mohistmc.youer.feature.ban.bans.BanWorld;
 import com.mohistmc.youer.feature.ban.utils.BanSaveInventory;
 import com.mohistmc.youer.feature.ban.utils.BanUtils;
@@ -17,6 +18,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -35,12 +37,12 @@ import org.jetbrains.annotations.NotNull;
 public class BansCommand extends Command {
 
     private final List<String> params = Arrays.asList("add", "show", "setmessage");
-    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe", "block", "nbt", "world");
+    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe", "block", "nbt", "world", "structure");
 
     public BansCommand(String name) {
         super(name);
         this.description = I18n.as("banscmd.description");
-        this.usageMessage = "/bans [add|show|setmessage] [item|item-moshou|entity|enchantment|recipe|block|world]";
+        this.usageMessage = "/bans [add|show|setmessage] [item|item-moshou|entity|enchantment|recipe|block|world|structure]";
         this.setPermission("youer.command.bans");
     }
 
@@ -94,6 +96,24 @@ public class BansCommand extends Command {
                         return false;
                     }
                     BanWorld.addBan(player, name);
+                    return true;
+                }
+                if (args.length == 3 && args[1].equals("structure")) {
+                    if (!YouerConfig.ban_structure_enable) {
+                        sender.sendMessage(ChatColor.RED + check);
+                        return false;
+                    }
+                    String name = args[2];
+                    if (BanConfig.STRUCTURE.has(name)) {
+                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.structure.exists"));
+                        return false;
+                    }
+                    List<String> structureList = BuiltInRegistries.STRUCTURE_TYPE.keySet().stream().map(ResourceLocation::toString).toList();
+                    if (!structureList.contains(name)) {
+                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.structure.notexists"));
+                        return false;
+                    }
+                    BanStructure.addBan(player, name);
                     return true;
                 }
                 if (args.length < 2) {
@@ -406,6 +426,28 @@ public class BansCommand extends Command {
                         wh.openGUI(player);
                         return true;
                     }
+                    case "structure" -> {
+                        DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.structure"));
+                        List<String> old = BanConfig.getListByType(BanType.STRUCTURE);
+                        for (String s : BanConfig.getListByType(BanType.STRUCTURE)) {
+                            wh.addItem(new GUIItem(new ItemStackFactory(Material.STONE)
+                                    .setDisplayName(s)
+                                    .addLore("§e" + I18n.as("banscmd.show.lore"))
+                                    .build()) {
+                                @Override
+                                public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
+                                    if (type.isRightClick()) {
+                                        old.remove(s);
+                                        BanUtils.saveToYaml(u, com.mohistmc.youer.feature.ban.ClickType.REMOVE, old, BanType.STRUCTURE);
+                                        wh.removeItem(this);
+                                        wh.openGUI(player);
+                                    }
+                                }
+                            });
+                        }
+                        wh.openGUI(player);
+                        return true;
+                    }
                     default -> {
                         sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
                         return false;
@@ -494,6 +536,9 @@ public class BansCommand extends Command {
             return BanWorld.CACHE.stream()
                     .map(ResourceLocation::toString)
                     .toList();
+        }
+        if (args.length == 3 && args[0].equals("add") && args[1].equals("structure") && (sender.isOp() || testPermission(sender))) {
+            return BuiltInRegistries.STRUCTURE_TYPE.keySet().stream().map(ResourceLocation::toString).toList();
         }
 
         if (args.length == 3 && args[0].equals("add") && args[1].equals("block") && (sender.isOp() || testPermission(sender))) {
