@@ -106,6 +106,26 @@
                  this.setTarget(null);
                  this.teleport();
              }
+@@ -277,11 +_,17 @@
+     private boolean teleport(double x, double y, double z) {
+         BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, y, z);
+ 
+-        while (pos.getY() > this.level().getMinY() && !this.level().getBlockState(pos).blocksMotion()) {
++        // Pufferfish start - single chunk lookup
++        net.minecraft.world.level.chunk.LevelChunk chunk = this.level().getChunkIfLoaded(pos);
++        if (chunk == null) {
++            return false;
++        }
++        while (pos.getY() > this.level().getMinY() && !chunk.getBlockState(pos).blocksMotion()) {
++            // Pufferfish end - single chunk lookup
+             pos.move(Direction.DOWN);
+         }
+ 
+-        BlockState blockState = this.level().getBlockState(pos);
++        BlockState blockState = chunk.getBlockState(pos); // Pufferfish
+         boolean couldStandOn = blockState.blocksMotion();
+         boolean isWet = blockState.getFluidState().is(FluidTags.WATER);
+         if (couldStandOn && !isWet) {
 @@ -352,24 +_,29 @@
      public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
          if (this.isInvulnerableTo(level, source)) {

@@ -1,6 +1,8 @@
 package org.bukkit.map;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.simd.SIMDDetection;
+import com.mohistmc.youer.simd.VectorMapPalette;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -35,7 +37,7 @@ public final class MapPalette {
     }
 
     @NotNull
-    static final Color[] colors = {
+    public static final Color[] colors = {
         // Start generate - MapPalette#colors
         new Color(0x00000000, true),
         new Color(0x00000000, true),
@@ -394,9 +396,15 @@ public final class MapPalette {
         temp.getRGB(0, 0, temp.getWidth(), temp.getHeight(), pixels, 0, temp.getWidth());
 
         byte[] result = new byte[temp.getWidth() * temp.getHeight()];
-        for (int i = 0; i < pixels.length; i++) {
-            result[i] = matchColor(new Color(pixels[i], true));
+        // Pufferfish start - Optimize Map Rendering
+        if (SIMDDetection.isEnabled){
+            VectorMapPalette.matchColorVectorized(pixels, result);
+        } else {
+            for (int i = 0; i < pixels.length; i++) {
+                result[i] = matchColor(new Color(pixels[i], true));
+            }
         }
+        // Pufferfish end - Optimize Map Rendering
         return result;
     }
 

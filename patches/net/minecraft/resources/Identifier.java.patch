@@ -1,6 +1,13 @@
 --- a/net/minecraft/resources/Identifier.java
 +++ b/net/minecraft/resources/Identifier.java
-@@ -23,12 +_,20 @@
+@@ -17,18 +_,26 @@
+ 
+ public final class Identifier implements Comparable<Identifier> {
+     public static final Codec<Identifier> CODEC = Codec.STRING.<Identifier>comapFlatMap(Identifier::read, Identifier::toString).stable();
+-    public static final StreamCodec<ByteBuf, Identifier> STREAM_CODEC = ByteBufCodecs.STRING_UTF8.map(Identifier::parse, Identifier::toString);
++    public static final StreamCodec<ByteBuf, Identifier> STREAM_CODEC = ByteBufCodecs.STRING_UTF8.map(Identifier::parse, rl -> rl.getNamespace().equals("minecraft") ? rl.getPath() : rl.toString());
+     public static final SimpleCommandExceptionType ERROR_INVALID = new SimpleCommandExceptionType(Component.translatable("argument.id.invalid"));
+     public static final char NAMESPACE_SEPARATOR = ':';
      public static final String DEFAULT_NAMESPACE = "minecraft";
      public static final String REALMS_NAMESPACE = "realms";
      public static final String ALLOWED_NAMESPACE_CHARACTERS = "[a-z0-9_.-]";

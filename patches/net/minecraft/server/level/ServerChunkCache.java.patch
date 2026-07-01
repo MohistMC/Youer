@@ -1,5 +1,13 @@
 --- a/net/minecraft/server/level/ServerChunkCache.java
 +++ b/net/minecraft/server/level/ServerChunkCache.java
+@@ -1,6 +_,7 @@
+ package net.minecraft.server.level;
+ 
+ import com.google.common.annotations.VisibleForTesting;
++import com.mohistmc.youer.util.IterableWrapper;
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.logging.LogUtils;
+ import it.unimi.dsi.fastutil.longs.LongSet;
 @@ -15,6 +_,7 @@
  import java.util.concurrent.CompletableFuture;
  import java.util.concurrent.CompletionStage;
@@ -29,10 +37,11 @@
      private static final int CACHE_SIZE = 4;
      private final long[] lastChunkPos = new long[4];
      private final @Nullable ChunkStatus[] lastChunkStatus = new ChunkStatus[4];
-@@ -76,6 +_,112 @@
+@@ -76,7 +_,115 @@
      private final Set<ChunkHolder> chunkHoldersToBroadcast = new ReferenceOpenHashSet<>();
      @VisibleForDebug
      private NaturalSpawner.@Nullable SpawnState lastSpawnState;
+-
 +    // Paper start
 +    public final ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2ReferenceHashTable<net.minecraft.world.level.chunk.LevelChunk> fullChunks = new ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2ReferenceHashTable<>();
 +    public int getFullChunksCount() {
@@ -139,9 +148,12 @@
 +        }
 +    }
 +    // Paper end - chunk tick iteration optimisations
- 
++
++    public boolean pufferfish$firstRunSpawnCounts = true; // Pufferfish
++    public final java.util.concurrent.atomic.AtomicBoolean pufferfish$spawnCountsReady = new java.util.concurrent.atomic.AtomicBoolean(false); // Pufferfish - Optimize count mobs
      public ServerChunkCache(
          ServerLevel level,
+         LevelStorageSource.LevelStorageAccess levelStorage,
 @@ -89,6 +_,7 @@
          boolean syncWrites,
          ChunkStatusUpdateListener chunkStatusListener,
@@ -494,26 +506,12 @@
                  profiler.push("tickingChunks");
                  this.tickChunks(profiler, timeDiff);
                  profiler.pop();
-@@ -356,7 +_,7 @@
-         profiler.push("broadcast");
- 
-         for (ChunkHolder chunkHolder : this.chunkHoldersToBroadcast) {
--            LevelChunk chunk = chunkHolder.getTickingChunk();
-+            LevelChunk chunk = chunkHolder.getChunkToSend(); // Paper - rewrite chunk system
-             if (chunk != null) {
-                 chunkHolder.broadcastChanges(chunk);
-             }
-@@ -369,16 +_,43 @@
-     private void tickChunks(ProfilerFiller profiler, long timeDiff) {
-         profiler.push("naturalSpawnCount");
-         int chunkCount = this.distanceManager.getNaturalSpawnChunkCount();
--        NaturalSpawner.SpawnState spawnCookie = NaturalSpawner.createState(
--            chunkCount, this.level.getAllEntities(), this::getFullChunk, new LocalMobCapCalculator(this.chunkMap)
--        );
-+        // Paper start - Optional per player mob spawns
-+        NaturalSpawner.SpawnState spawnCookie;
-+        if ((this.spawnFriendlies || this.spawnEnemies) && this.level.paperConfig().entities.spawning.perPlayerMobSpawns) { // don't count mobs when animals and monsters are disabled
-+            // re-set mob counts
+@@ -350,13 +_,47 @@
+             this.broadcastChangedChunks(profiler);
+             profiler.pop();
+         }
++        // Pufferfish start - Optimize mob spawning
++        if (true) {
 +            for (ServerPlayer player : this.level.players()) {
 +                // Paper start - per player mob spawning backoff
 +                for (int j = 0; j < ServerPlayer.MOBCATEGORY_TOTAL_ENUMS; j++) {
@@ -527,13 +525,55 @@
 +                }
 +                // Paper end - per player mob spawning backoff
 +            }
-+            spawnCookie = NaturalSpawner.createState(chunkCount, this.level.getAllEntities(), this::getFullChunk, null, true);
-+        } else {
-+            spawnCookie = NaturalSpawner.createState(chunkCount, this.level.getAllEntities(), this::getFullChunk, !this.level.paperConfig().entities.spawning.perPlayerMobSpawns ? new LocalMobCapCalculator(this.chunkMap) : null, false);
++            if (this.pufferfish$firstRunSpawnCounts) {
++                this.pufferfish$firstRunSpawnCounts = false;
++                this.pufferfish$spawnCountsReady.set(true);
++            }
++            if (this.pufferfish$spawnCountsReady.getAndSet(false)) {
++                net.minecraft.server.MinecraftServer.getServer().pufferfish$mobSpawnExecutor.submit(() -> {
++                    int mapped = this.distanceManager.getNaturalSpawnChunkCount();
++                    ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet.Iterator<Entity> objectiterator =
++                            this.level.entityTickList.entities.iterator(ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet.ITERATOR_FLAG_SEE_ADDITIONS);
++                    try {
++                        IterableWrapper<Entity> wrappedIterator = new IterableWrapper<>(objectiterator);
++                        this.lastSpawnState = NaturalSpawner.createState(mapped, wrappedIterator, this::getFullChunk, null, true);
++                    } finally {
++                        objectiterator.finishedIterating();
++                    }
++                    this.pufferfish$spawnCountsReady.set(true);
++                });
++            }
++        } // Pufferfish end - Optimize mob spawning
+     }
+ 
+     private void broadcastChangedChunks(ProfilerFiller profiler) {
+         profiler.push("broadcast");
+ 
+         for (ChunkHolder chunkHolder : this.chunkHoldersToBroadcast) {
+-            LevelChunk chunk = chunkHolder.getTickingChunk();
++            LevelChunk chunk = chunkHolder.getChunkToSend(); // Paper - rewrite chunk system
+             if (chunk != null) {
+                 chunkHolder.broadcastChanges(chunk);
+             }
+@@ -369,16 +_,30 @@
+     private void tickChunks(ProfilerFiller profiler, long timeDiff) {
+         profiler.push("naturalSpawnCount");
+         int chunkCount = this.distanceManager.getNaturalSpawnChunkCount();
+-        NaturalSpawner.SpawnState spawnCookie = NaturalSpawner.createState(
+-            chunkCount, this.level.getAllEntities(), this::getFullChunk, new LocalMobCapCalculator(this.chunkMap)
+-        );
+-        this.lastSpawnState = spawnCookie;
+-        boolean doMobSpawning = this.level.getGameRules().get(GameRules.SPAWN_MOBS);
++        // Paper start - Optional per player mob spawns
++        NaturalSpawner.SpawnState spawnCookie;
++        if ((!this.spawnFriendlies && !this.spawnEnemies) || !this.level.paperConfig().entities.spawning.perPlayerMobSpawns) {
++            // Pufferfish start - async mob spawning
++            this.lastSpawnState = NaturalSpawner.createState(chunkCount, this.level.getAllEntities(), this::getFullChunk, !this.level.paperConfig().entities.spawning.perPlayerMobSpawns ? new LocalMobCapCalculator(this.chunkMap) : null, false);
++            this.pufferfish$spawnCountsReady.set(true);
++            // Pufferfish end - async mob spawning
 +        }
 +        // Paper end - Optional per player mob spawns
-         this.lastSpawnState = spawnCookie;
--        boolean doMobSpawning = this.level.getGameRules().get(GameRules.SPAWN_MOBS);
++        // this.lastSpawnState = spawnCookie; // Pufferfish - this is managed asynchronously
 +        boolean doMobSpawning = this.level.getGameRules().get(GameRules.SPAWN_MOBS) && !this.level.players().isEmpty(); // CraftBukkit
          int tickSpeed = this.level.getGameRules().get(GameRules.RANDOM_TICK_SPEED);
          List<MobCategory> spawningCategories;
@@ -550,11 +590,11 @@
 +            }
 +            // Paper end - PlayerNaturallySpawnCreaturesEvent
 +            boolean spawnPersistent = this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) != 0L && this.level.getGameTime() % this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) == 0L; // CraftBukkit
-+            spawningCategories = NaturalSpawner.getFilteredSpawningCategories(spawnCookie, this.spawnFriendlies, this.spawnEnemies, spawnPersistent, this.level); // CraftBukkit // todo snapshot - method lost its spawnFriendlies parameter as mojang is moving away further. We can do what we did prior and reintroduce or re-evaluate. // re-added it for now but let's still re-evaluate later
++            spawningCategories = NaturalSpawner.getFilteredSpawningCategories(this.lastSpawnState, this.spawnFriendlies, this.spawnEnemies, spawnPersistent, this.level); // CraftBukkit // todo snapshot - method lost its spawnFriendlies parameter as mojang is moving away further. We can do what we did prior and reintroduce or re-evaluate. // re-added it for now but let's still re-evaluate later // Pufferfish - Async mob spawning
          } else {
              spawningCategories = List.of();
          }
-@@ -389,7 +_,10 @@
+@@ -389,18 +_,21 @@
              profiler.popPush("filteringSpawningChunks");
              this.chunkMap.collectSpawningChunks(spawningChunks);
              profiler.popPush("shuffleSpawningChunks");
@@ -566,7 +606,11 @@
              profiler.popPush("tickSpawningChunks");
  
              for (LevelChunk chunk : spawningChunks) {
-@@ -400,7 +_,7 @@
+-                this.tickSpawningChunk(chunk, timeDiff, spawningCategories, spawnCookie);
++                this.tickSpawningChunk(chunk, timeDiff, spawningCategories, this.lastSpawnState); // Pufferfish - Async mob spawning
+             }
+         } finally {
+             spawningChunks.clear();
          }
  
          profiler.popPush("tickTickingChunks");
@@ -586,7 +630,7 @@
  
          if (!spawningCategories.isEmpty()) {
 -            if (this.level.canSpawnEntitiesInChunk(chunkPos)) {
-+            if (this.level.getWorldBorder().isWithinBounds(chunkPos)) { // Paper - rewrite chunk system
++            if (this.level.getWorldBorder().isWithinBounds(chunkPos) && pufferfish$spawnCountsReady.get() && this.chunkMap.anyPlayerCloseEnoughForSpawning(chunkPos, true)) { // Paper - rewrite chunk system // Pufferfish - Async mob spawning
                  NaturalSpawner.spawnForChunk(this.level, chunk, spawnCookie, spawningCategories);
              }
          }

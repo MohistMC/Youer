@@ -1,12 +1,13 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -5,17 +_,24 @@
+@@ -5,17 +_,25 @@
  import com.google.common.collect.Lists;
  import com.google.common.collect.Maps;
  import com.google.common.collect.Sets;
 +import com.mohistmc.youer.api.ColorAPI;
 +import com.mohistmc.youer.feature.YouerPlugin;
 +import com.mohistmc.youer.feature.db.DatabaseManager;
++import com.mohistmc.youer.util.AsyncExecutor;
  import com.mojang.authlib.GameProfile;
  import com.mojang.datafixers.DataFixer;
  import com.mojang.jtracy.DiscontinuousFrame;
@@ -187,7 +188,7 @@
      private final ServerFunctionManager functionManager;
      private boolean enforceWhitelist;
      private boolean usingWhitelist;
-@@ -291,12 +_,216 @@
+@@ -291,12 +_,217 @@
      private final SuppressedExceptionCollector suppressedExceptions = new SuppressedExceptionCollector();
      private final DiscontinuousFrame tickFrame;
      private final PacketProcessor packetProcessor;
@@ -218,6 +219,7 @@
 +    public boolean isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
 +    private final Set<String> pluginsBlockingSleep = new java.util.HashSet<>(); // Paper - API to allow/disallow tick sleeping
 +    public static final long SERVER_INIT = System.nanoTime(); // Paper - Lag compensation
++    public AsyncExecutor pufferfish$mobSpawnExecutor = new AsyncExecutor("Pufferfish Async Mob Spawning Thread"); // Pufferfish - Optimize mob spawning
 +    public boolean lagging = false; // Purpur - Lagging threshold
 +    protected boolean upnp = false; // Purpur - UPnP Port Forwarding
 +    // Paper start - improve tick loop
@@ -2006,7 +2008,7 @@
              gameRules.visitGameRuleTypes(new GameRuleTypeVisitor() {
                  @Override
                  public <T> void visit(GameRule<T> gameRule) {
-@@ -1937,6 +_,23 @@
+@@ -1937,7 +_,25 @@
          }
      }
  
@@ -2028,8 +2030,10 @@
 +    // CraftBukkit end
 +
      private ProfilerFiller createProfiler() {
++        if (true) return net.minecraft.util.profiling.InactiveProfiler.INSTANCE; // Pufferfish - Disable Method Profiler
          if (this.willStartRecordingMetrics) {
              this.metricsRecorder = ActiveMetricsRecorder.createStarted(
+                 new ServerMetricsSamplersProvider(Util.timeSource(), this.isDedicatedServer()),
 @@ -2002,6 +_,10 @@
          return this.worldData;
      }

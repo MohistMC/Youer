@@ -19,7 +19,7 @@ public final class IteratorSafeOrderedReferenceSet<E> {
 
     private final double maxFragFactor;
 
-    private int iteratorCount;
+    private final java.util.concurrent.atomic.AtomicInteger iteratorCount = new java.util.concurrent.atomic.AtomicInteger(); // Pufferfish - Async mob spawning
 
     public IteratorSafeOrderedReferenceSet() {
         this(Object.class);
@@ -99,7 +99,7 @@ public final class IteratorSafeOrderedReferenceSet<E> {
     }
 
     public int createRawIterator() {
-        ++this.iteratorCount;
+        this.iteratorCount.incrementAndGet(); // Pufferfish - Async mob spawning
         if (this.indexMap.isEmpty()) {
             return Integer.MAX_VALUE;
         } else {
@@ -120,7 +120,7 @@ public final class IteratorSafeOrderedReferenceSet<E> {
     }
 
     public void finishRawIterator() {
-        if (--this.iteratorCount == 0) {
+        if (this.iteratorCount.decrementAndGet() == 0) { // Pufferfish - Async mob spawning
             if (this.getFragFactor() >= this.maxFragFactor) {
                 this.defrag();
             }
@@ -137,7 +137,7 @@ public final class IteratorSafeOrderedReferenceSet<E> {
                 throw new IllegalStateException();
             }
             this.listElements[index] = null;
-            if (this.iteratorCount == 0 && this.getFragFactor() >= this.maxFragFactor) {
+            if (this.iteratorCount.get() == 0 && this.getFragFactor() >= this.maxFragFactor) { // Pufferfish - Async mob spawning
                 this.defrag();
             }
             //this.check();
@@ -235,7 +235,7 @@ public final class IteratorSafeOrderedReferenceSet<E> {
     }
 
     public IteratorSafeOrderedReferenceSet.Iterator<E> iterator(final int flags) {
-        ++this.iteratorCount;
+        this.iteratorCount.incrementAndGet(); // Pufferfish - Async mob spawning
         return new BaseIterator<>(this, true, (flags & ITERATOR_FLAG_SEE_ADDITIONS) != 0 ? Integer.MAX_VALUE : this.listSize);
     }
 

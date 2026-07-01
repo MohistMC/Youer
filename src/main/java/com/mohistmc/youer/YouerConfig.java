@@ -12,6 +12,7 @@ import com.mohistmc.youer.commands.YouerCommand;
 import com.mohistmc.youer.feature.YouerPlugin;
 import com.mohistmc.youer.feature.ban.BansCommand;
 import com.mohistmc.youer.feature.entitylimits.EntityLimitsConfig;
+import com.mohistmc.youer.simd.SIMDDetection;
 import com.mohistmc.youer.util.I18n;
 import com.mohistmc.youer.util.YamlUtils;
 import java.io.File;
@@ -143,6 +144,21 @@ public class YouerConfig {
         } catch (IOException | InvalidConfigurationException ex) {
             Bukkit.getLogger().log(Level.SEVERE, "Could not load youer.yml, please correct your syntax errors", ex);
             Throwables.throwIfUnchecked(ex);
+        }
+
+        // Attempt to detect vectorization
+        try {
+            SIMDDetection.isEnabled = SIMDDetection.canEnable();
+        } catch (NoClassDefFoundError | Exception e) {
+            Youer.LOGGER.error(e.getMessage());
+        }
+
+        if (SIMDDetection.isEnabled) {
+            Youer.LOGGER.info("SIMD operations detected as functional. Will replace some operations with faster versions.");
+        } else {
+            Youer.LOGGER.warn("SIMD operations are available for your server, but are not configured!");
+            Youer.LOGGER.warn("To enable additional optimizations, add \"--add-modules=jdk.incubator.vector\" to your startup flags, BEFORE the \"-jar\".");
+            Youer.LOGGER.warn("If you have already added this flag, then SIMD operations are not supported on your JVM or CPU.");
         }
 
         config.options().setHeader(HEADER);

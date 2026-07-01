@@ -351,13 +351,14 @@
              Thread watchdog = new Thread(new ServerWatchdog(this), "Server Watchdog");
              watchdog.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandlerWithName(LOGGER));
              watchdog.setDaemon(true);
-@@ -272,10 +_,26 @@
+@@ -272,10 +_,27 @@
              LOGGER.info("JMX monitoring enabled");
          }
  
 +        org.purpurmc.purpur.task.BossBarTask.startAll(); // Purpur - Implement TPSBar
 +        if (org.purpurmc.purpur.PurpurConfig.beeCountPayload) org.purpurmc.purpur.task.BeehiveTask.instance().register(); // Purpur - Give bee counts in beehives to Purpur clients
 +
++        pufferfish$mobSpawnExecutor.start(); // Pufferfish - Async mob spawning
          this.saveEverything(false, true, true);
          this.notificationManager().serverStarted();
 +        if (net.neoforged.neoforge.common.config.NeoForgeServerConfig.INSTANCE.advertiseDedicatedServerToLan.get()) {
