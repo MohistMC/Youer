@@ -70,7 +70,11 @@ public class PlayerAPI {
     }
 
     public static void sendMessageByCopy(Player player, String des, String info) {
-        TextComponent textComponent = new TextComponent(des + info);
+        String message = des + info;
+        if (des.contains("Base64")) {
+            message = des + info.substring(0, 20) + "......";
+        }
+        TextComponent textComponent = new TextComponent(message);
         textComponent.setHoverEvent(new HoverEvent(HoverEvent.Action.SHOW_TEXT, new Text(new ComponentBuilder("§c%s".formatted(I18n.as("itemscmd.copy"))).create())));
         textComponent.setClickEvent(new ClickEvent(ClickEvent.Action.COPY_TO_CLIPBOARD, info));
         player.spigot().sendMessage(textComponent);
