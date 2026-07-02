@@ -44,7 +44,7 @@ public class TPSBarTask extends BossBarTask {
         }
         tick = 0;
 
-        this.tps = Math.max(Math.min(Bukkit.getTPS()[0], 20.0D), 0.0D);
+        this.tps = Math.clamp(Bukkit.getTPS()[0], 0.0D, 20.0D);
         this.mspt = Bukkit.getAverageTickTime();
 
         super.run();
@@ -52,9 +52,9 @@ public class TPSBarTask extends BossBarTask {
 
     private float getBossBarProgress() {
         if (PurpurConfig.commandTPSBarProgressFillMode == FillMode.MSPT) {
-            return Math.max(Math.min((float) mspt / 50.0F, 1.0F), 0.0F);
+            return Math.clamp((float) mspt / 50.0F, 0.0F, 1.0F);
         } else {
-            return Math.max(Math.min((float) tps / 20.0F, 1.0F), 0.0F);
+            return Math.clamp((float) tps / 20.0F, 0.0F, 1.0F);
         }
     }
 

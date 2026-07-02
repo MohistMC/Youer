@@ -9,6 +9,18 @@
      private final Supplier<Aquifer.FluidPicker> globalFluidPicker;
  
      public NoiseBasedChunkGenerator(BiomeSource biomeSource, Holder<NoiseGeneratorSettings> settings) {
+@@ -74,7 +_,10 @@
+             if (SharedConstants.DEBUG_DISABLE_FLUID_GENERATION) {
+                 return emptyStatus;
+             } else {
+-                return y < Math.min(-54, seaLevel) ? lavaStatus : seaStatus;
++                // C2ME: Optimize world gen math
++                final int min = Math.min(-54, seaLevel);
++                return y < min ? lavaStatus : seaStatus;
++                // C2ME: Optimize world gen math
+             }
+         };
+     }
 @@ -84,7 +_,7 @@
          return CompletableFuture.supplyAsync(() -> {
              this.doCreateBiomes(blender, randomState, structureManager, protoChunk);

@@ -1,4 +1,4 @@
-package com.mohistmc.youer.simd;
+package gg.pufferfish.pufferfish.simd;
 
 import org.jetbrains.annotations.ApiStatus;
 

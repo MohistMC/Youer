@@ -1,4 +1,4 @@
-package com.mohistmc.youer.simd;
+package gg.pufferfish.pufferfish.simd;
 
 import com.mohistmc.youer.Youer;
 import jdk.incubator.vector.FloatVector;

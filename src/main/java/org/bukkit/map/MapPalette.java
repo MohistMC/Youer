@@ -1,8 +1,8 @@
 package org.bukkit.map;
 
 import com.google.common.base.Preconditions;
-import com.mohistmc.youer.simd.SIMDDetection;
-import com.mohistmc.youer.simd.VectorMapPalette;
+import gg.pufferfish.pufferfish.simd.SIMDDetection;
+import gg.pufferfish.pufferfish.simd.VectorMapPalette;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.Image;

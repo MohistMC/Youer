@@ -330,7 +330,13 @@ public final class JavaPluginLoader implements PluginLoader {
             try {
                 jPlugin.setEnabled(true);
             } catch (Throwable ex) {
+                gg.pufferfish.pufferfish.sentry.SentryContext.setPluginContext(plugin); // Pufferfish
                 server.getLogger().log(Level.SEVERE, "Error occurred while enabling " + plugin.getDescription().getFullName() + " (Is it up to date?)", ex);
+                gg.pufferfish.pufferfish.sentry.SentryContext.removePluginContext(); // Pufferfish
+                // Paper start - Disable plugins that fail to load
+                this.server.getPluginManager().disablePlugin(jPlugin);
+                return;
+                // Paper end
             }
 
             // Perhaps abort here, rather than continue going, but as it stands,
@@ -355,7 +361,9 @@ public final class JavaPluginLoader implements PluginLoader {
             try {
                 jPlugin.setEnabled(false);
             } catch (Throwable ex) {
+                gg.pufferfish.pufferfish.sentry.SentryContext.setPluginContext(plugin); // Pufferfish
                 server.getLogger().log(Level.SEVERE, "Error occurred while disabling " + plugin.getDescription().getFullName() + " (Is it up to date?)", ex);
+                gg.pufferfish.pufferfish.sentry.SentryContext.removePluginContext(); // Pufferfish
             }
 
             if (cloader instanceof PluginClassLoader) {

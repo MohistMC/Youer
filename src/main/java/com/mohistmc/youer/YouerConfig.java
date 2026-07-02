@@ -12,7 +12,7 @@ import com.mohistmc.youer.commands.YouerCommand;
 import com.mohistmc.youer.feature.YouerPlugin;
 import com.mohistmc.youer.feature.ban.BansCommand;
 import com.mohistmc.youer.feature.entitylimits.EntityLimitsConfig;
-import com.mohistmc.youer.simd.SIMDDetection;
+import gg.pufferfish.pufferfish.simd.SIMDDetection;
 import com.mohistmc.youer.util.I18n;
 import com.mohistmc.youer.util.YamlUtils;
 import java.io.File;

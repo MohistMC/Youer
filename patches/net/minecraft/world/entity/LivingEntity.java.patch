@@ -206,9 +206,28 @@
                      }
                  } else if (this.getAirSupply() < this.getMaxAirSupply() && MobEffectUtil.shouldEffectsRefillAirsupply(this)) {
                      this.setAirSupply(this.increaseAirSupply(this.getAirSupply()));
-@@ -505,7 +_,7 @@
+@@ -496,6 +_,7 @@
+             }
+         }
+ 
++        lagCompensation(); // DivineMC - Lag Compensation
+         this.tickEffects();
+         this.yHeadRotO = this.yHeadRot;
+         this.yBodyRotO = this.yBodyRot;
+@@ -504,8 +_,18 @@
+         profiler.pop();
      }
  
++    // DivineMC start - Lag Compensation
++    private void lagCompensation() {
++        if (this.level().isClientSide()) return;
++
++        for (int i = 0; i < ((ServerLevel) this.level()).tpsCalculator.applicableMissedTicks(); i++) {
++            tickEffects();
++        }
++    }
++    // DivineMC end - Lag Compensation
++
      protected boolean shouldTakeDrowningDamage() {
 -        return this.getAirSupply() <= -20;
 +        return this.getAirSupply() <= -this.level().purpurConfig.drowningDamageInterval; // Purpur - Drowning Settings

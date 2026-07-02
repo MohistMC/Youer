@@ -597,7 +597,9 @@ public final class SimplePluginManager implements PluginManager {
 
     // Paper start
     private void handlePluginException(String msg, Throwable ex, Plugin plugin) {
+        gg.pufferfish.pufferfish.sentry.SentryContext.setPluginContext(plugin); // Pufferfish
         server.getLogger().log(Level.SEVERE, msg, ex);
+        gg.pufferfish.pufferfish.sentry.SentryContext.removePluginContext(); // Pufferfish
         callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerPluginEnableDisableException(msg, ex, plugin)));
     }
     // Paper end
@@ -667,9 +669,11 @@ public final class SimplePluginManager implements PluginManager {
                             ));
                 }
             } catch (Throwable ex) {
+                gg.pufferfish.pufferfish.sentry.SentryContext.setEventContext(event, registration); // Pufferfish
                 // Paper start - error reporting
                 String msg = "Could not pass event " + event.getEventName() + " to " + registration.getPlugin().getDescription().getFullName();
                 server.getLogger().log(Level.SEVERE, msg, ex);
+                gg.pufferfish.pufferfish.sentry.SentryContext.removeEventContext(); // Pufferfish
                 if (!(event instanceof com.destroystokyo.paper.event.server.ServerExceptionEvent)) { // We don't want to cause an endless event loop
                     callEvent(new com.destroystokyo.paper.event.server.ServerExceptionEvent(new com.destroystokyo.paper.exception.ServerEventException(msg, ex, registration.getPlugin(), registration.getListener(), event)));
                 }

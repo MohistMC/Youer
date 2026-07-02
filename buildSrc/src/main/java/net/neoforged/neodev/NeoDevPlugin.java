@@ -730,6 +730,7 @@ public class NeoDevPlugin implements Plugin<Project> {
                 spec.exclude("alternate/current/wire/**");
                 spec.exclude("co/aikar/util/**");
                 spec.exclude("com/mojang/brigadier/**");
+                spec.exclude("gg/pufferfish/**");
             });
             if (type == BinaryPatchBaseType.CLIENT || type == BinaryPatchBaseType.JOINED) {
                 var clientSourceSet = sourceSets.getByName("client");

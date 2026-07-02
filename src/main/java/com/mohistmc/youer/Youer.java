@@ -4,6 +4,7 @@ import com.mohistmc.i18n.i18n;
 import com.mohistmc.youer.eventhandler.EventDispatcherRegistry;
 import com.mohistmc.youer.feature.ban.BanConfig;
 import com.mohistmc.youer.feature.db.DatabaseConfig;
+import com.mohistmc.youer.util.ExceptionHandler;
 import com.mohistmc.youer.util.VersionInfo;
 import java.util.HashMap;
 import java.util.Locale;
@@ -32,6 +33,9 @@ public class Youer {
         EventDispatcherRegistry.init();
         DatabaseConfig.init();
         BanConfig.init();
+        if (i18n.isCN()) {
+            new ExceptionHandler();
+        }
     }
 
     public static void initI18n() {

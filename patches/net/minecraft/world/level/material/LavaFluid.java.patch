@@ -1,5 +1,12 @@
 --- a/net/minecraft/world/level/material/LavaFluid.java
 +++ b/net/minecraft/world/level/material/LavaFluid.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.level.material;
+ 
++import com.mohistmc.youer.util.tps.TPSUtil;
+ import java.util.Optional;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
 @@ -93,7 +_,14 @@
                      BlockState blockState = level.getBlockState(testPos);
                      if (blockState.isAir()) {
@@ -74,12 +81,26 @@
      @Override
      public @Nullable ParticleOptions getDripParticle() {
          return ParticleTypes.DRIPPING_LAVA;
-@@ -173,7 +_,7 @@
+@@ -171,9 +_,21 @@
+         return state.getHeight(level, pos) >= 0.44444445F && other.is(FluidTags.WATER);
+     }
  
++    // DivineMC start - Lag compensation
++    private int lagCompensation(int original, ServerLevel level) {
++        return TPSUtil.tt20(original, true, level);
++    }
++    // DivineMC end - Lag compensation
++
      @Override
      public int getTickDelay(LevelReader level) {
 -        return isFastLava(level) ? 10 : 30;
-+        return level.getWorldBorder().world != null ? (isFastLava(level) ? level.getWorldBorder().world.purpurConfig.lavaSpeedNether : level.getWorldBorder().world.purpurConfig.lavaSpeedNotNether) : (isFastLava(level) ? 10 : 30); // Purpur - Make lava flow speed configurable
++        // DivineMC start - Lag compensation
++        int original = level.getWorldBorder().world != null ? (isFastLava(level) ? level.getWorldBorder().world.purpurConfig.lavaSpeedNether : level.getWorldBorder().world.purpurConfig.lavaSpeedNotNether) : (isFastLava(level) ? 10 : 30); // Purpur - Make lava flow speed configurable
++        if (level instanceof ServerLevel serverLevel) {
++            return lagCompensation(original, serverLevel);
++        }
++        return original;
++        // DivineMC end - Lag compensation
      }
  
      @Override

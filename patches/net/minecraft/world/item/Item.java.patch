@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/item/Item.java
 +++ b/net/minecraft/world/item/Item.java
+@@ -2,6 +_,7 @@
+ 
+ import com.google.common.annotations.VisibleForTesting;
+ import com.google.common.collect.Maps;
++import com.mohistmc.youer.util.tps.TPSUtil;
+ import com.mojang.logging.LogUtils;
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.DataResult;
 @@ -110,7 +_,7 @@
              : DataResult.success(item)
      );
@@ -72,6 +80,32 @@
      public final @Nullable ItemStackTemplate getCraftingRemainder() {
          return this.craftingRemainingItem;
      }
+@@ -308,10 +_,24 @@
+         }
+     }
+ 
++    // DivineMC start - Lag compensation
++    private int lagCompensation(int original, net.minecraft.server.level.ServerLevel level) {
++        return TPSUtil.tt20(original, true, level);
++    }
++    // DivineMC end - Lag compensation
++
+     public int getUseDuration(ItemStack itemStack, LivingEntity user) {
+         Consumable consumable = itemStack.get(DataComponents.CONSUMABLE);
+         if (consumable != null) {
+-            return consumable.consumeTicks();
++            // DivineMC start - Lag compensation
++            int original = consumable.consumeTicks();
++
++            if (user.level() instanceof net.minecraft.server.level.ServerLevel serverLevel) {
++                return lagCompensation(original, serverLevel);
++            }
++
++            return original;
++            // DivineMC end - Lag compensation
+         } else {
+             return !itemStack.has(DataComponents.BLOCKS_ATTACKS) && !itemStack.has(DataComponents.KINETIC_WEAPON) ? 0 : 72000;
+         }
 @@ -349,13 +_,26 @@
      }
  

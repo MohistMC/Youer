@@ -490,7 +490,25 @@
      private class BoundTickingBlockEntity<T extends BlockEntity> implements TickingBlockEntity {
          private final T blockEntity;
          private final BlockEntityTicker<T> ticker;
-@@ -742,28 +_,38 @@
+@@ -735,6 +_,17 @@
+             this.ticker = ticker;
+         }
+ 
++        // DivineMC start - Lag compensation
++        private <T extends BlockEntity> void lagCompensation(Runnable original) {
++            original.run();
++            if (LevelChunk.this.level.isClientSide()) return;
++
++            for (int i = 0; i < ((ServerLevel) this.blockEntity.getLevel()).tpsCalculator.applicableMissedTicks(); i++) {
++                original.run();
++            }
++        }
++        // DivineMC end - Lag compensation
++
+         @Override
+         public void tick() {
+             if (!this.blockEntity.isRemoved() && this.blockEntity.hasLevel()) {
+@@ -742,28 +_,42 @@
                  if (LevelChunk.this.isTicking(pos)) {
                      try {
                          ProfilerFiller profiler = Profiler.get();
@@ -498,7 +516,12 @@
                          profiler.push(this::getType);
                          BlockState blockState = LevelChunk.this.getBlockState(pos);
                          if (this.blockEntity.getType().isValid(blockState)) {
-                             this.ticker.tick(LevelChunk.this.level, this.blockEntity.getBlockPos(), blockState, this.blockEntity);
+-                            this.ticker.tick(LevelChunk.this.level, this.blockEntity.getBlockPos(), blockState, this.blockEntity);
++                            // DivineMC start - Lag compensation
++                            lagCompensation(() -> {
++                                this.ticker.tick(LevelChunk.this.level, this.blockEntity.getBlockPos(), blockState, this.blockEntity);
++                            });
++                            // DivineMC end - Lag compensation
                              this.loggedInvalidBlockState = false;
 -                        } else if (!this.loggedInvalidBlockState) {
 -                            this.loggedInvalidBlockState = true;

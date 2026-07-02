@@ -1,12 +1,13 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -2,6 +_,10 @@
+@@ -2,6 +_,11 @@
  
  import com.google.common.annotations.VisibleForTesting;
  import com.google.common.collect.Lists;
 +import com.mohistmc.youer.YouerConfig;
 +import com.mohistmc.youer.feature.ban.bans.BanEntity;
 +import com.mohistmc.youer.util.ServerLevelTickExecutorThreadFactory;
++import com.mohistmc.youer.util.tps.TPSCalculator;
 +import com.mojang.authlib.GameProfile;
  import com.mojang.datafixers.DataFixer;
  import com.mojang.datafixers.util.Pair;
@@ -128,7 +129,7 @@
      private final GameEventDispatcher gameEventDispatcher;
      public boolean noSave;
      private final SleepStatus sleepStatus;
-@@ -216,44 +_,502 @@
+@@ -216,44 +_,503 @@
      private boolean handlingTick;
      private final List<CustomSpawner> customSpawners;
      private @Nullable EnderDragonFight dragonFight;
@@ -163,6 +164,7 @@
 +    public final org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer persistentDataContainer = new org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer(DATA_TYPE_REGISTRY);
 +    private final alternate.current.wire.WireHandler wireHandler = new alternate.current.wire.WireHandler(this); // Paper - optimize redstone (Alternate Current)
 +    public boolean hasRidableMoveEvent = false; // Purpur - Ridables
++    public TPSCalculator tpsCalculator = new TPSCalculator(); // DivineMC - Lag Compensation
 +
 +    @Override
 +    public @Nullable LevelChunk getChunkIfLoaded(int x, int z) {
@@ -743,7 +745,7 @@
      }
  
      @Override
-@@ -364,13 +_,31 @@
+@@ -364,18 +_,38 @@
          }
  
          int percentage = this.getGameRules().get(GameRules.PLAYERS_SLEEPING_PERCENTAGE);
@@ -778,6 +780,13 @@
              if (this.getGameRules().get(GameRules.ADVANCE_WEATHER) && this.isRaining()) {
                  this.resetWeatherCycle();
              }
+         }
+ 
++        this.tpsCalculator.doTick(); // DivineMC - Lag compensation
++
+         this.updateSkyBrightness();
+         if (runs) {
+             this.tickTime();
 @@ -385,9 +_,9 @@
          if (!this.isDebug() && runs) {
              long tick = this.getGameTime();

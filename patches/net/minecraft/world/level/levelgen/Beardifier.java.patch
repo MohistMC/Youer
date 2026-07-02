@@ -14,3 +14,20 @@
                          StructureTemplatePool.Projection projection = poolPiece.getElement().getProjection();
                          if (projection == StructureTemplatePool.Projection.RIGID) {
                              rigids.add(new Beardifier.Rigid(poolPiece.getBoundingBox(), terrainAdjustment, poolPiece.getGroundLevelDelta()));
+@@ -166,8 +_,14 @@
+     }
+ 
+     protected static double getBuryContribution(double dx, double dy, double dz) {
+-        double distance = Mth.length(dx, dy, dz);
+-        return Mth.clampedMap(distance, 0.0, 6.0, 1.0, 0.0);
++        // C2ME: Optimize world gen math
++        double length = Math.sqrt(dx * dx + dy * dy + dz * dz);
++        if (length > 6.0) {
++            return 0.0;
++        } else {
++            return 1.0 - length / 6.0;
++        }
++        // C2ME: Optimize world gen math
+     }
+ 
+     protected static double getBeardContribution(int dx, int dy, int dz, int yToGround) {

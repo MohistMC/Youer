@@ -1,5 +1,12 @@
 --- a/net/minecraft/world/level/material/WaterFluid.java
 +++ b/net/minecraft/world/level/material/WaterFluid.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.level.material;
+ 
++import com.mohistmc.youer.util.tps.TPSUtil;
+ import java.util.Optional;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
 @@ -77,6 +_,22 @@
          return level.getGameRules().get(GameRules.WATER_SOURCE_CONVERSION);
      }
@@ -23,6 +30,22 @@
      @Override
      protected void beforeDestroyingBlock(LevelAccessor level, BlockPos pos, BlockState state) {
          BlockEntity blockEntity = state.hasBlockEntity() ? level.getBlockEntity(pos) : null;
+@@ -108,8 +_,15 @@
+         return 1;
+     }
+ 
++    // DivineMC start - Lag compensation
++    private int lagCompensation(ServerLevel level) {
++        return TPSUtil.tt20(5, true, level);
++    }
++    // DivineMC end - Lag compensation
++
+     @Override
+     public int getTickDelay(LevelReader level) {
++        if (level instanceof ServerLevel serverLevel) return lagCompensation(serverLevel); // DivineMC - Lag compensation
+         return 5;
+     }
+ 
 @@ -120,7 +_,7 @@
  
      @Override

@@ -1,0 +1,22 @@
+--- a/net/minecraft/world/entity/PortalProcessor.java
++++ b/net/minecraft/world/entity/PortalProcessor.java
+@@ -24,9 +_,18 @@
+             return false;
+         } else {
+             this.insidePortalThisTick = false;
+-            return allowedToTeleport && this.portalTime++ >= this.portal.getPortalTransitionTime(serverLevel, entity);
++            return allowedToTeleport && lagCompensation(this.portalTime++, serverLevel) >= this.portal.getPortalTransitionTime(serverLevel, entity); // DivineMC - Lag compensation
+         }
+     }
++
++    // DivineMC start - Lag compensation
++    private int lagCompensation(int original, ServerLevel world) {
++        if (world.isClientSide()) return original;
++
++        portalTime = portalTime + world.tpsCalculator.applicableMissedTicks();
++        return portalTime;
++    }
++    // DivineMC end - Lag compensation
+ 
+     public @Nullable TeleportTransition getPortalDestination(ServerLevel serverLevel, Entity entity) {
+         return this.portal.getPortalDestination(serverLevel, entity, this.entryPosition);

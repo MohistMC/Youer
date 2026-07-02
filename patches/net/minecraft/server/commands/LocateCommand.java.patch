@@ -1,6 +1,130 @@
 --- a/net/minecraft/server/commands/LocateCommand.java
 +++ b/net/minecraft/server/commands/LocateCommand.java
-@@ -191,6 +_,6 @@
+@@ -93,47 +_,80 @@
+     }
+ 
+     private static int locateStructure(CommandSourceStack source, ResourceOrTagKeyArgument.Result<Structure> resourceOrTag) throws CommandSyntaxException {
+-        Registry<Structure> registry = source.getLevel().registryAccess().lookupOrThrow(Registries.STRUCTURE);
+-        HolderSet<Structure> target = (HolderSet<Structure>)getHolders(resourceOrTag, registry)
+-            .orElseThrow(() -> ERROR_STRUCTURE_INVALID.create(resourceOrTag.asPrintable()));
+-        BlockPos sourcePos = BlockPos.containing(source.getPosition());
+-        ServerLevel serverLevel = source.getLevel();
+-        Stopwatch stopwatch = Stopwatch.createStarted(Util.TICKER);
+-        Pair<BlockPos, Holder<Structure>> nearest = serverLevel.getChunkSource()
+-            .getGenerator()
+-            .findNearestMapStructure(serverLevel, target, sourcePos, 100, false);
+-        stopwatch.stop();
+-        if (nearest == null) {
+-            throw ERROR_STRUCTURE_NOT_FOUND.create(resourceOrTag.asPrintable());
+-        } else {
+-            return showLocateResult(source, resourceOrTag, sourcePos, nearest, "commands.locate.structure.success", false, stopwatch.elapsed());
+-        }
++        // DivineMC start - Async structure locate
++        io.papermc.paper.util.MCUtil.scheduleAsyncTask(() -> {
++            Registry<Structure> registry = source.getLevel().registryAccess().lookupOrThrow(Registries.STRUCTURE);
++            HolderSet<Structure> target;
++            try {
++                target = getHolders(resourceOrTag, registry)
++                        .orElseThrow(() -> ERROR_STRUCTURE_INVALID.create(resourceOrTag.asPrintable()));
++            } catch (CommandSyntaxException e) {
++                source.sendFailure(Component.literal(e.getMessage()));
++                return;
++            }
++            BlockPos sourcePos = BlockPos.containing(source.getPosition());
++            ServerLevel serverLevel = source.getLevel();
++            Stopwatch stopwatch = Stopwatch.createStarted(Util.TICKER);
++            Pair<BlockPos, Holder<Structure>> nearest = serverLevel.getChunkSource().getGenerator().findNearestMapStructure(serverLevel, target, sourcePos, 100, false);
++            stopwatch.stop();
++            if (nearest == null) {
++                try {
++                    throw ERROR_STRUCTURE_NOT_FOUND.create(resourceOrTag.asPrintable());
++                } catch (CommandSyntaxException e) {
++                    source.sendFailure(Component.literal(e.getMessage()));
++                }
++            } else {
++                showLocateResult(source, resourceOrTag, sourcePos, nearest, "commands.locate.structure.success", false, stopwatch.elapsed());
++            }
++        });
++
++        return 0;
++        // DivineMC end - Async structure locate
+     }
+ 
+     private static int locateBiome(CommandSourceStack source, ResourceOrTagArgument.Result<Biome> elementOrTag) throws CommandSyntaxException {
+-        BlockPos sourcePos = BlockPos.containing(source.getPosition());
+-        Stopwatch stopwatch = Stopwatch.createStarted(Util.TICKER);
+-        Pair<BlockPos, Holder<Biome>> nearest = source.getLevel().findClosestBiome3d(elementOrTag, sourcePos, 6400, 32, 64);
+-        stopwatch.stop();
+-        if (nearest == null) {
+-            throw ERROR_BIOME_NOT_FOUND.create(elementOrTag.asPrintable());
+-        } else {
+-            return showLocateResult(source, elementOrTag, sourcePos, nearest, "commands.locate.biome.success", true, stopwatch.elapsed());
+-        }
++        // DivineMC start - Async biome locate
++        io.papermc.paper.util.MCUtil.scheduleAsyncTask(() -> {
++            BlockPos sourcePos = BlockPos.containing(source.getPosition());
++            Stopwatch stopwatch = Stopwatch.createStarted(Util.TICKER);
++            Pair<BlockPos, Holder<Biome>> nearest = source.getLevel().findClosestBiome3d(elementOrTag, sourcePos, 6400, 32, 64);
++            stopwatch.stop();
++            if (nearest == null) {
++                try {
++                    throw ERROR_BIOME_NOT_FOUND.create(elementOrTag.asPrintable());
++                } catch (CommandSyntaxException e) {
++                    source.sendFailure(Component.literal(e.getMessage()));
++                }
++            } else {
++                showLocateResult(source, elementOrTag, sourcePos, nearest, "commands.locate.biome.success", true, stopwatch.elapsed());
++            }
++        });
++
++        return 0;
++        // DivineMC end - Async biome locate
+     }
+ 
+     private static int locatePoi(CommandSourceStack source, ResourceOrTagArgument.Result<PoiType> resourceOrTag) throws CommandSyntaxException {
+-        BlockPos sourcePos = BlockPos.containing(source.getPosition());
+-        ServerLevel serverLevel = source.getLevel();
+-        Stopwatch stopwatch = Stopwatch.createStarted(Util.TICKER);
+-        Optional<Pair<Holder<PoiType>, BlockPos>> closestWithType = serverLevel.getPoiManager()
+-            .findClosestWithType(resourceOrTag, sourcePos, 256, PoiManager.Occupancy.ANY);
+-        stopwatch.stop();
+-        if (closestWithType.isEmpty()) {
+-            throw ERROR_POI_NOT_FOUND.create(resourceOrTag.asPrintable());
+-        } else {
+-            return showLocateResult(source, resourceOrTag, sourcePos, closestWithType.get().swap(), "commands.locate.poi.success", false, stopwatch.elapsed());
+-        }
++        // DivineMC start - Async poi locate
++        io.papermc.paper.util.MCUtil.scheduleAsyncTask(() -> {
++            BlockPos sourcePos = BlockPos.containing(source.getPosition());
++            ServerLevel serverLevel = source.getLevel();
++            Stopwatch stopwatch = Stopwatch.createStarted(Util.TICKER);
++            Optional<Pair<Holder<PoiType>, BlockPos>> closestWithType = serverLevel.getPoiManager().findClosestWithType(resourceOrTag, sourcePos, POI_SEARCH_RADIUS, PoiManager.Occupancy.ANY);
++            stopwatch.stop();
++            if (closestWithType.isEmpty()) {
++                try {
++                    throw ERROR_POI_NOT_FOUND.create(resourceOrTag.asPrintable());
++                } catch (CommandSyntaxException e) {
++                    source.sendFailure(Component.literal(e.getMessage()));
++                }
++            } else {
++                showLocateResult(source, resourceOrTag, sourcePos, closestWithType.get().swap(), "commands.locate.poi.success", false, stopwatch.elapsed());
++            }
++        });
++
++        return 0;
++        // DivineMC end - Async poi locate
+     }
+ 
+     public static int showLocateResult(
+@@ -184,13 +_,13 @@
+                     .withHoverEvent(new HoverEvent.ShowText(Component.translatable("chat.coordinates.tooltip")))
+             );
+         source.sendSuccess(() -> Component.translatable(successMessageKey, foundName, coordinates, distance), false);
+-        LOGGER.info("Locating element {} took {} ms", foundName, taskDuration.toMillis());
++        LOGGER.info("Locating element {} on Thread:{} took {} ms", foundName, Thread.currentThread().getName(), taskDuration.toMillis()); // DivineMC - Log thread name
+         return distance;
+     }
+ 
      private static float dist(int x1, int z1, int x2, int z2) {
          int dx = x2 - x1;
          int dz = z2 - z1;

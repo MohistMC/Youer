@@ -192,7 +192,7 @@
              }
  
              return null;
-@@ -411,17 +_,118 @@
+@@ -411,17 +_,110 @@
      }
  
      public void sendCommands(ServerPlayer player) {
@@ -211,15 +211,7 @@
 +    }
 +
 +    // Fixed pool, but with discard policy
-+    public static final java.util.concurrent.ExecutorService COMMAND_SENDING_POOL = new java.util.concurrent.ThreadPoolExecutor(
-+            2, 2, 0, java.util.concurrent.TimeUnit.MILLISECONDS,
-+            new java.util.concurrent.LinkedBlockingQueue<>(),
-+            new com.google.common.util.concurrent.ThreadFactoryBuilder()
-+                    .setNameFormat("Paper Async Command Builder Thread Pool - %1$d")
-+                    .setUncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(net.minecraft.server.MinecraftServer.LOGGER))
-+                    .build(),
-+            new java.util.concurrent.ThreadPoolExecutor.DiscardPolicy()
-+    );
++    public static final java.util.concurrent.ExecutorService COMMAND_SENDING_POOL = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor();
 +
 +    private void sendAsync(ServerPlayer player, java.util.Collection<CommandNode<CommandSourceStack>> dispatcherRootChildren) {
 +        // Paper end - Perf: Async command map building

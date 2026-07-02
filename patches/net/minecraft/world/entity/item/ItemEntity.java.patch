@@ -69,7 +69,7 @@
  
      @Override
      public boolean dampensVibrations() {
-@@ -105,10 +_,34 @@
+@@ -105,10 +_,50 @@
          return 0.04;
      }
  
@@ -96,8 +96,24 @@
 +    }
 +    // Paper end - EAR 2
 +
++    // DivineMC start - Lag compensation
++    private void lagCompensation() {
++        if ((this).level().isClientSide()) return;
++
++        if (pickupDelay == 0) return;
++
++        if (pickupDelay - ((ServerLevel) this.level()).tpsCalculator.applicableMissedTicks() <= 0) {
++            pickupDelay = 0;
++            return;
++        }
++
++        pickupDelay = pickupDelay - ((ServerLevel) this.level()).tpsCalculator.applicableMissedTicks();
++    }
++    // DivineMC end - Lag compensation
++
      @Override
      public void tick() {
++        lagCompensation(); // DivineMC - Lag compensation
 +        if (getItem().onEntityItemUpdate(this)) return;
          if (this.getItem().isEmpty()) {
 -            this.discard();
