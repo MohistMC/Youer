@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/entity/EntityTickList.java
 +++ b/net/minecraft/world/level/entity/EntityTickList.java
-@@ -9,51 +_,38 @@
+@@ -9,51 +_,48 @@
  import org.jspecify.annotations.Nullable;
  
  public class EntityTickList {
@@ -8,6 +8,13 @@
 -    private Int2ObjectMap<Entity> passive = new Int2ObjectLinkedOpenHashMap<>();
 -    private @Nullable Int2ObjectMap<Entity> iterated;
 +    public final ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet<net.minecraft.world.entity.Entity> entities = new ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet<>(); // Paper - rewrite chunk system
++    // SparklyPaper start - parallel world ticking
++    // Used to track async entity additions/removals/loops
++    private final net.minecraft.server.level.ServerLevel serverLevel;
++    public EntityTickList(net.minecraft.server.level.ServerLevel serverLevel) {
++        this.serverLevel = serverLevel;
++    }
++    // SparklyPaper end
  
      private void ensureActiveIsNotIterated() {
 -        if (this.iterated == this.active) {
@@ -48,11 +55,13 @@
 +    }
 +
 +    public void add(final Entity entity) {
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(entity, "Asynchronous entity ticklist addition"); // Paper // SparklyPaper - parallel world ticking (additional concurrency issues logs)
 +        this.ensureActiveIsNotIterated();
 +        this.entities.add(entity); // Paper - rewrite chunk system
 +    }
 +
 +    public void remove(final Entity entity) {
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(entity, "Asynchronous entity ticklist removal"); // Paper // SparklyPaper - parallel world ticking (additional concurrency issues logs)
 +        this.ensureActiveIsNotIterated();
 +        this.entities.remove(entity); // Paper - rewrite chunk system
 +    }
@@ -62,6 +71,7 @@
 +    }
 +
 +    public void forEach(final Consumer<Entity> output) {
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(serverLevel, "Asynchronous entity ticklist iteration"); // SparklyPaper - parallel world ticking (additional concurrency issues logs)
 +        // Paper start - rewrite chunk system
 +        // To ensure nothing weird happens with dimension travelling, do not iterate over new entries...
 +        // (by dfl iterator() is configured to not iterate over new entries)

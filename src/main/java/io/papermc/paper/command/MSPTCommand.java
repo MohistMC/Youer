@@ -82,6 +82,46 @@ public final class MSPTCommand extends Command {
                 )
             )
         );
+
+        // SparklyPaper start - track world's MSPT
+        sender.sendMessage(text());
+        sender.sendMessage(text().content("World tick times ").color(GOLD)
+                .append(text().color(YELLOW)
+                        .append(
+                                text("("),
+                                text("avg", GRAY),
+                                text("/"),
+                                text("min", GRAY),
+                                text("/"),
+                                text("max", GRAY),
+                                text(")")
+                        )
+                ).append(
+                        text(" from last 5s"),
+                        text(",", GRAY),
+                        text(" 10s"),
+                        text(",", GRAY),
+                        text(" 1m"),
+                        text(":", YELLOW)
+                )
+        );
+        for (net.minecraft.server.level.ServerLevel serverLevel : server.getAllLevels()) {
+            List<Component> worldTimes = new ArrayList<>();
+            worldTimes.addAll(eval(serverLevel.tickTimes5s.getTimes()));
+            worldTimes.addAll(eval(serverLevel.tickTimes10s.getTimes()));
+            worldTimes.addAll(eval(serverLevel.tickTimes1m.getTimes()));
+
+            sender.sendMessage(text().content("◴ " + serverLevel.getWorld().getName() + ": ").color(GOLD)
+                    .append(text().color(GRAY)
+                            .append(
+                                    worldTimes.get(0), SLASH, worldTimes.get(1), SLASH, worldTimes.get(2), text(", ", YELLOW),
+                                    worldTimes.get(3), SLASH, worldTimes.get(4), SLASH, worldTimes.get(5), text(", ", YELLOW),
+                                    worldTimes.get(6), SLASH, worldTimes.get(7), SLASH, worldTimes.get(8)
+                            )
+                    )
+            );
+        }
+        // SparklyPaper end
         return true;
     }
 
@@ -92,6 +132,23 @@ public final class MSPTCommand extends Command {
         double maxD = reportData == null ? 0.0 : reportData.timePerTickData().segmentAll().greatest() * 1.0E-6D;
         return Arrays.asList(getColor(avgD), getColor(minD), getColor(maxD));
     }
+
+    // SparklyPaper start - track world's MSPT
+    private static List<Component> eval(long[] times) {
+        long min = Integer.MAX_VALUE;
+        long max = 0L;
+        long total = 0L;
+        for (long value : times) {
+            if (value > 0L && value < min) min = value;
+            if (value > max) max = value;
+            total += value;
+        }
+        double avgD = ((double) total / (double) times.length) * 1.0E-6D;
+        double minD = ((double) min) * 1.0E-6D;
+        double maxD = ((double) max) * 1.0E-6D;
+        return Arrays.asList(getColor(avgD), getColor(minD), getColor(maxD));
+    }
+    // SparklyPaper end
 
     private static Component getColor(double avg) {
         return text(ONE_DECIMAL_PLACES.get().format(avg), avg >= 50 ? RED : avg >= 40 ? YELLOW : GREEN);

@@ -1,18 +1,23 @@
 --- a/net/minecraft/server/waypoints/ServerWaypointManager.java
 +++ b/net/minecraft/server/waypoints/ServerWaypointManager.java
-@@ -20,15 +_,25 @@
+@@ -20,15 +_,31 @@
      private final Set<ServerPlayer> players = new HashSet<>();
      private final Table<ServerPlayer, WaypointTransmitter, WaypointTransmitter.Connection> connections = HashBasedTable.create();
  
 +    // Paper start - optimize ServerWaypointManager with locator bar disabled
 +    public boolean locatorBarEnabled; // Avoid a gamerule lookup for each player
-+
-+    public ServerWaypointManager(net.minecraft.server.level.ServerLevel serverLevel) {
-+        this.locatorBarEnabled = serverLevel.getGameRules().get(GameRules.LOCATOR_BAR);
-+    }
 +    // Paper end - optimize ServerWaypointManager with locator bar disabled
 +
++    // SparklyPaper start - parallel world ticking
++    private final net.minecraft.server.level.ServerLevel level;
++    public ServerWaypointManager(net.minecraft.server.level.ServerLevel level) {
++        this.level = level;
++        this.locatorBarEnabled = level.getGameRules().get(GameRules.LOCATOR_BAR);
++    }
++// SparklyPaper end
++
      public void trackWaypoint(WaypointTransmitter waypoint) {
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot track waypoints off-main"); // SparklyPaper - parallel world ticking
          this.waypoints.add(waypoint);
  
 +        if (!this.locatorBarEnabled) return; // Paper - optimize ServerWaypointManager with locator bar disabled
@@ -22,12 +27,23 @@
      }
  
      public void updateWaypoint(WaypointTransmitter waypoint) {
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot update waypoints off-main"); // SparklyPaper - parallel world ticking
 +        if (!this.locatorBarEnabled) return; // Paper - optimize ServerWaypointManager with locator bar disabled
          if (this.waypoints.contains(waypoint)) {
              Map<ServerPlayer, WaypointTransmitter.Connection> playerConnection = Tables.transpose(this.connections).row(waypoint);
              SetView<ServerPlayer> potentialPlayers = Sets.difference(this.players, playerConnection.keySet());
-@@ -52,8 +_,10 @@
+@@ -44,16 +_,20 @@
+     }
+ 
+     public void untrackWaypoint(WaypointTransmitter waypoint) {
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot untrack waypoints off-main"); // SparklyPaper - parallel world ticking
+         this.connections.column(waypoint).forEach((player, connection) -> connection.disconnect());
+         Tables.transpose(this.connections).row(waypoint).clear();
+         this.waypoints.remove(waypoint);
+     }
+ 
      public void addPlayer(ServerPlayer player) {
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot add player to waypoints off-main"); // SparklyPaper - parallel world ticking
          this.players.add(player);
  
 -        for (WaypointTransmitter waypoint : this.waypoints) {
@@ -39,15 +55,30 @@
          }
  
          if (player.isTransmittingWaypoint()) {
-@@ -62,6 +_,7 @@
+@@ -62,6 +_,8 @@
      }
  
      public void updatePlayer(ServerPlayer player) {
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot update player for waypoints off-main"); // SparklyPaper - parallel world ticking
 +        if (!this.locatorBarEnabled) return; // Paper - optimize ServerWaypointManager with locator bar disabled
          Map<WaypointTransmitter, WaypointTransmitter.Connection> waypointConnections = this.connections.row(player);
          SetView<WaypointTransmitter> potentialWaypoints = Sets.difference(this.waypoints, waypointConnections.keySet());
  
-@@ -89,6 +_,7 @@
+@@ -75,6 +_,7 @@
+     }
+ 
+     public void removePlayer(ServerPlayer player) {
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot remove player from waypoints off-main"); // SparklyPaper - parallel world ticking
+         this.connections.row(player).values().removeIf(connection -> {
+             connection.disconnect();
+             return true;
+@@ -84,11 +_,13 @@
+     }
+ 
+     public void breakAllConnections() {
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot break all waypoint connections off-main"); // SparklyPaper - parallel world ticking
+         this.connections.values().forEach(WaypointTransmitter.Connection::disconnect);
+         this.connections.clear();
      }
  
      public void remakeConnections(WaypointTransmitter waypoint) {
@@ -55,7 +86,7 @@
          for (ServerPlayer player : this.players) {
              this.createConnection(player, waypoint);
          }
-@@ -98,8 +_,11 @@
+@@ -98,11 +_,15 @@
          return this.waypoints;
      }
  
@@ -69,3 +100,15 @@
      }
  
      private void createConnection(ServerPlayer player, WaypointTransmitter waypoint) {
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot create waypoint connections off-main"); // SparklyPaper - parallel world ticking
+         if (player != waypoint) {
+             if (isLocatorBarEnabledFor(player)) {
+                 waypoint.makeWaypointConnectionWith(player).ifPresentOrElse(connection -> {
+@@ -119,6 +_,7 @@
+     }
+ 
+     private void updateConnection(ServerPlayer player, WaypointTransmitter waypoint, WaypointTransmitter.Connection connection) {
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, "Cannot update waypoint connection off-main"); // SparklyPaper - parallel world ticking
+         if (player != waypoint) {
+             if (isLocatorBarEnabledFor(player)) {
+                 if (!connection.isBroken()) {

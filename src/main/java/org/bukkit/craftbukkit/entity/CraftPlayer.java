@@ -3476,4 +3476,70 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
         super.knockback(strength, directionX, directionZ);
         this.entity.hurtMarked = true;
     }
+
+    // SparklyPaper start - per-player chunk rate overrides
+    @Override
+    public void setChunkLoadRateOverride(@org.jetbrains.annotations.Nullable Double rate) {
+        this.getHandle().chunkLoadRateOverride = rate;
+    }
+
+    @Override
+    public @org.jetbrains.annotations.Nullable Double getChunkLoadRateOverride() {
+        return this.getHandle().chunkLoadRateOverride;
+    }
+
+    @Override
+    public void setChunkGenRateOverride(@org.jetbrains.annotations.Nullable Double rate) {
+        this.getHandle().chunkGenRateOverride = rate;
+    }
+
+    @Override
+    public @org.jetbrains.annotations.Nullable Double getChunkGenRateOverride() {
+        return this.getHandle().chunkGenRateOverride;
+    }
+
+    @Override
+    public void setChunkSendRateOverride(@org.jetbrains.annotations.Nullable Double rate) {
+        this.getHandle().chunkSendRateOverride = rate;
+    }
+
+    @Override
+    public @org.jetbrains.annotations.Nullable Double getChunkSendRateOverride() {
+        return this.getHandle().chunkSendRateOverride;
+    }
+
+    @Override
+    public void setMaxConcurrentChunkLoadsOverride(@org.jetbrains.annotations.Nullable Long limit) {
+        this.getHandle().maxConcurrentChunkLoadsOverride = limit;
+    }
+
+    @Override
+    public @org.jetbrains.annotations.Nullable Long getMaxConcurrentChunkLoadsOverride() {
+        return this.getHandle().maxConcurrentChunkLoadsOverride;
+    }
+
+    @Override
+    public void setMaxConcurrentChunkGeneratesOverride(@org.jetbrains.annotations.Nullable Long limit) {
+        this.getHandle().maxConcurrentChunkGeneratesOverride = limit;
+    }
+
+    @Override
+    public @org.jetbrains.annotations.Nullable Long getMaxConcurrentChunkGeneratesOverride() {
+        return this.getHandle().maxConcurrentChunkGeneratesOverride;
+    }
+    // SparklyPaper end
+
+    // SparklyPaper start - per-player statistic tracking opt-out
+    @Override
+    public void trackStatistic(org.bukkit.Statistic statistic, boolean tracked) {
+        com.google.common.base.Preconditions.checkNotNull(statistic, "statistic");
+        this.getHandle().getStats().setStatisticTracked(statistic, tracked);
+    }
+
+    @Override
+    public boolean isStatisticTracked(org.bukkit.Statistic statistic) {
+        com.google.common.base.Preconditions.checkNotNull(statistic, "statistic");
+        return this.getHandle().getStats().isStatisticTracked(statistic);
+    }
+    // SparklyPaper end - per-player statistic tracking opt-out
 }

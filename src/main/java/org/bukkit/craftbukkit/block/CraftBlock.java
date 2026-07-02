@@ -78,6 +78,11 @@ public class CraftBlock implements Block {
     }
 
     public net.minecraft.world.level.block.state.BlockState getBlockState() {
+        // SparklyPaper start - parallel world ticking
+        if (level instanceof ServerLevel serverWorld) {
+            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(serverWorld, position, "Cannot modify world asynchronously");
+        }
+        // SparklyPaper end - parallel world ticking
         return this.level.getBlockState(this.position);
     }
 
@@ -149,6 +154,11 @@ public class CraftBlock implements Block {
     }
 
     private void setData(final byte data, @net.minecraft.world.level.block.Block.UpdateFlags int flags) {
+        // SparklyPaper start - parallel world ticking
+        if (level instanceof ServerLevel serverWorld) {
+            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(serverWorld, position, "Cannot modify world asynchronously");
+        }
+        // SparklyPaper end - parallel world ticking
         this.level.setBlock(this.position, CraftMagicNumbers.getBlock(this.getType(), data), flags);
     }
 
@@ -189,6 +199,11 @@ public class CraftBlock implements Block {
     }
 
     public static boolean setBlockState(LevelAccessor level, BlockPos pos, net.minecraft.world.level.block.state.BlockState newState, boolean applyPhysics) {
+        // SparklyPaper start - parallel world ticking
+        if (level instanceof ServerLevel serverWorld) {
+            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(serverWorld, pos, "Cannot modify world asynchronously");
+        }
+        // SparklyPaper end - parallel world ticking
         int updateFlags = net.minecraft.world.level.block.Block.UPDATE_CLIENTS;
         if (applyPhysics) {
             updateFlags |= net.minecraft.world.level.block.Block.UPDATE_NEIGHBORS;
@@ -289,16 +304,31 @@ public class CraftBlock implements Block {
 
     @Override
     public Biome getBiome() {
+        // SparklyPaper start - parallel world ticking
+        if (level instanceof ServerLevel serverWorld) {
+            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(serverWorld, position, "Cannot read world asynchronously");
+        }
+        // SparklyPaper end - parallel world ticking
         return this.getWorld().getBiome(this.getX(), this.getY(), this.getZ());
     }
 
     @Override
     public Biome getComputedBiome() {
+        // SparklyPaper start - parallel world ticking
+        if (level instanceof ServerLevel serverWorld) {
+            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(serverWorld, position, "Cannot read world asynchronously");
+        }
+        // SparklyPaper end - parallel world ticking
         return this.getWorld().getComputedBiome(this.getX(), this.getY(), this.getZ());
     }
 
     @Override
     public void setBiome(Biome bio) {
+        // SparklyPaper start - parallel world ticking
+        if (level instanceof ServerLevel serverWorld) {
+            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(serverWorld, position, "Cannot modify world asynchronously");
+        }
+        // SparklyPaper end - parallel world ticking
         this.getWorld().setBiome(this.getX(), this.getY(), this.getZ(), bio);
     }
 
@@ -319,6 +349,11 @@ public class CraftBlock implements Block {
 
     @Override
     public boolean isBlockIndirectlyPowered() {
+        // SparklyPaper start - parallel world ticking
+        if (level instanceof ServerLevel serverWorld) {
+            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(serverWorld, position, "Cannot read world asynchronously");
+        }
+        // SparklyPaper end - parallel world ticking
         return this.level.getMinecraftWorld().hasNeighborSignal(this.position);
     }
 
@@ -364,6 +399,11 @@ public class CraftBlock implements Block {
 
     @Override
     public int getBlockPower(BlockFace face) {
+        // SparklyPaper start - parallel world ticking
+        if (level instanceof ServerLevel serverWorld) {
+            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(serverWorld, position, "Cannot read world asynchronously");
+        }
+        // SparklyPaper end - parallel world ticking
         Preconditions.checkArgument(face != null, "face cannot be null");
 
         net.minecraft.world.level.Level level = this.level.getMinecraftWorld();
@@ -460,6 +500,11 @@ public class CraftBlock implements Block {
 
     @Override
     public boolean breakNaturally(ItemStack item, boolean triggerEffect, boolean dropExperience, boolean forceEffect) {
+        // SparklyPaper start - parallel world ticking
+        if (level instanceof ServerLevel serverWorld) {
+            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(serverWorld, position, "Cannot modify world asynchronously");
+        }
+        // SparklyPaper end - parallel world ticking
         // Order matters here, need to drop before setting to air so skulls can get their data
         BlockState state = this.getBlockState();
         net.minecraft.world.level.block.Block block = state.getBlock();
@@ -498,6 +543,11 @@ public class CraftBlock implements Block {
 
     @Override
     public boolean applyBoneMeal(BlockFace face) {
+        // SparklyPaper start - parallel world ticking
+        if (level instanceof ServerLevel serverWorld) {
+            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(serverWorld, position, "Cannot modify world asynchronously");
+        }
+        // SparklyPaper end - parallel world ticking
         Direction direction = blockFaceToNotch(face);
         Preconditions.checkArgument(direction != null, face + " is not a valid cartesian face");
 
@@ -518,8 +568,8 @@ public class CraftBlock implements Block {
             capturedBlockStates = new ArrayList<>(world.capturedBlockStates.values());
             world.capturedBlockStates.clear();
 
-            treeType = SaplingBlock.treeType;
-            SaplingBlock.treeType = null;
+            treeType = SaplingBlock.treeTypeRT.get(); // SparklyPaper - parallel world ticking
+            SaplingBlock.treeTypeRT.set(null); // SparklyPaper - parallel world ticking
         }
 
         if (!capturedBlockStates.isEmpty()) {
@@ -557,6 +607,11 @@ public class CraftBlock implements Block {
 
     @Override
     public Collection<ItemStack> getDrops(ItemStack item, Entity entity) {
+        // SparklyPaper start - parallel world ticking
+        if (level instanceof ServerLevel serverWorld) {
+            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(serverWorld, position, "Cannot read world asynchronously");
+        }
+        // SparklyPaper end - parallel world ticking
         BlockState state = this.getBlockState();
         net.minecraft.world.item.ItemStack nms = CraftItemStack.asNMSCopy(item);
 
@@ -607,6 +662,11 @@ public class CraftBlock implements Block {
 
     @Override
     public RayTraceResult rayTrace(Location start, Vector direction, double maxDistance, FluidCollisionMode fluidCollisionMode) {
+        // SparklyPaper start - parallel world ticking
+        if (level instanceof ServerLevel serverWorld) {
+            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(serverWorld, position, "Cannot read world asynchronously");
+        }
+        // SparklyPaper end - parallel world ticking
         Preconditions.checkArgument(start != null, "Location start cannot be null");
         Preconditions.checkArgument(this.getWorld().equals(start.getWorld()), "Location start cannot be a different world");
         start.checkFinite();
@@ -648,6 +708,11 @@ public class CraftBlock implements Block {
 
     @Override
     public boolean canPlace(BlockData data) {
+        // SparklyPaper start - parallel world ticking
+        if (level instanceof ServerLevel serverWorld) {
+            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(serverWorld, position, "Cannot read world asynchronously");
+        }
+        // SparklyPaper end - parallel world ticking
         Preconditions.checkArgument(data != null, "BlockData cannot be null");
 
         BlockState state = ((CraftBlockData) data).getState();
@@ -686,12 +751,22 @@ public class CraftBlock implements Block {
 
     @Override
     public void tick() {
-        final ServerLevel level = this.level.getMinecraftWorld();
-        this.getBlockState().tick(level, this.position, level.getRandom());
+        // SparklyPaper start - parallel world ticking
+        if (level instanceof ServerLevel serverWorld) {
+            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(serverWorld, position, "Cannot modify world asynchronously");
+        }
+        // SparklyPaper end - parallel world ticking
+        final ServerLevel serverLevel = this.level.getMinecraftWorld();
+        this.getBlockState().tick(serverLevel, this.position, serverLevel.getRandom());
     }
 
     @Override
     public void fluidTick() {
+        // SparklyPaper start - parallel world ticking
+        if (this.level instanceof ServerLevel serverWorld) {
+            ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(serverWorld, this.position, "Cannot read world asynchronously");
+        }
+        // SparklyPaper end - parallel world ticking
         this.level.getFluidState(this.position).tick(this.level.getMinecraftWorld(), this.position, this.getBlockState());
     }
 

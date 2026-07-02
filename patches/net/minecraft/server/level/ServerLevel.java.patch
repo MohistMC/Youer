@@ -1,11 +1,12 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -2,6 +_,9 @@
+@@ -2,6 +_,10 @@
  
  import com.google.common.annotations.VisibleForTesting;
  import com.google.common.collect.Lists;
 +import com.mohistmc.youer.YouerConfig;
 +import com.mohistmc.youer.feature.ban.bans.BanEntity;
++import com.mohistmc.youer.util.ServerLevelTickExecutorThreadFactory;
 +import com.mojang.authlib.GameProfile;
  import com.mojang.datafixers.DataFixer;
  import com.mojang.datafixers.util.Pair;
@@ -120,14 +121,14 @@
 -    public final ServerLevelData serverLevelData;
 -    private final EntityTickList entityTickList = new EntityTickList();
 +    public final io.papermc.paper.world.saveddata.PaperLevelOverrides serverLevelData; // Paper - type
-+    public final EntityTickList entityTickList = new EntityTickList();
++    final EntityTickList entityTickList = new EntityTickList(this); // SparklyPaper - parallel world ticking
      private final ServerWaypointManager waypointManager;
      private EnvironmentAttributeSystem environmentAttributes;
 -    public final PersistentEntitySectionManager<Entity> entityManager;
      private final GameEventDispatcher gameEventDispatcher;
      public boolean noSave;
      private final SleepStatus sleepStatus;
-@@ -216,44 +_,495 @@
+@@ -216,44 +_,502 @@
      private boolean handlingTick;
      private final List<CustomSpawner> customSpawners;
      private @Nullable EnderDragonFight dragonFight;
@@ -136,7 +137,9 @@
      private final StructureManager structureManager;
      private final StructureCheck structureCheck;
      private final boolean tickTime;
-     private final LevelDebugSynchronizers debugSynchronizers = new LevelDebugSynchronizers(this);
+-    private final LevelDebugSynchronizers debugSynchronizers = new LevelDebugSynchronizers(this);
++    final LevelDebugSynchronizers debugSynchronizers = new LevelDebugSynchronizers(this);
++    public java.util.concurrent.ExecutorService tickExecutor; // SparklyPaper - parallel world ticking
 +    // NeoForge: If present, this level uses its own seed instead of the server's global seed
 +    private final java.util.OptionalLong seedOverride;
 +    /// {@return the override for the seed, specified in the [LevelStem] this level was constructed from}, if any
@@ -529,6 +532,12 @@
 +        this.playerTickingChunks.remove((LevelChunk)chunkHolder.getCurrentChunk());
 +    }
 +    // Paper end - chunk tick iteration
++
++    // SparklyPaper start - track world's MSPT
++    public final MinecraftServer.TickTimes tickTimes5s = new MinecraftServer.TickTimes(100);
++    public final MinecraftServer.TickTimes tickTimes10s = new MinecraftServer.TickTimes(200);
++    public final MinecraftServer.TickTimes tickTimes1m = new MinecraftServer.TickTimes(1200);
++    // SparklyPaper end
  
      public ServerLevel(
 -        MinecraftServer server,
@@ -687,7 +696,7 @@
              generator,
              this.chunkSource.randomState(),
              this,
-@@ -301,10 +_,34 @@
+@@ -301,10 +_,35 @@
  
          this.sleepStatus = new SleepStatus();
          this.gameEventDispatcher = new GameEventDispatcher(this);
@@ -713,6 +722,7 @@
 +        // Paper end - rewrite chunk system
 +        this.getCraftServer().addWorld(this.getWorld()); // CraftBukkit
 +        net.neoforged.neoforge.attachment.LevelAttachmentsSavedData.init(this);
++        this.tickExecutor = java.util.concurrent.Executors.newSingleThreadExecutor(new ServerLevelTickExecutorThreadFactory(getWorld().getName())); // SparklyPaper - parallel world ticking
 +    }
 +
 +    // Paper start
@@ -1217,7 +1227,7 @@
          }
 +        // Paper start - rewrite chunk system
 +        if ((++this.tickedBlocksOrFluids & 7L) != 0L) {
-+            ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.server).moonrise$executeMidTickTasks();
++            //((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.server).moonrise$executeMidTickTasks();
 +        }
 +        // Paper end - rewrite chunk system
      }
@@ -1230,7 +1240,7 @@
 -    }
 +        // Paper start - rewrite chunk system
 +        if ((++this.tickedBlocksOrFluids & 7L) != 0L) {
-+            ((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.server).moonrise$executeMidTickTasks();
++            //((ca.spottedleaf.moonrise.patches.chunk_system.server.ChunkSystemMinecraftServer)this.server).moonrise$executeMidTickTasks();
 +        }
 +        // Paper end - rewrite chunk system
 +    }
@@ -1430,10 +1440,11 @@
          }
      }
  
-@@ -981,6 +_,7 @@
+@@ -981,6 +_,8 @@
      }
  
      private void addPlayer(ServerPlayer player) {
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this, "Cannot add player off-main"); // SparklyPaper - parallel world ticking (additional concurrency issues logs)
 +        if (net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.EntityJoinLevelEvent(player, this)).isCanceled()) return;
          Entity existing = this.getEntity(player.getUUID());
          if (existing != null) {
@@ -1452,7 +1463,7 @@
 +    }
 +
 +    private boolean addEntity(Entity entity, final org.bukkit.event.entity.CreatureSpawnEvent.@Nullable SpawnReason spawnReason) {
-+        org.spigotmc.AsyncCatcher.catchOp("entity add"); // Spigot
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this, "Cannot add entity off-main"); // SparklyPaper - parallel world ticking (additional concurrency issues logs)
 +        entity.generation = false; // Paper - Don't fire sync event during generation; Reset flag if it was added during a ServerLevel generation process
 +        // Paper start - extra debug info
 +        if (entity.valid) {

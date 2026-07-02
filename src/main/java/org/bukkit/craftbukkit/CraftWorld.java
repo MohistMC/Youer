@@ -459,6 +459,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     private boolean unloadChunk0(int x, int z, boolean save) {
         org.spigotmc.AsyncCatcher.catchOp("chunk unload"); // Spigot
+        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.world, x, z, "Cannot unload chunk asynchronously"); // SparklyPaper - parallel world ticking (additional concurrency issues logs)
         if (!this.isChunkLoaded(x, z)) {
             return true;
         }
@@ -475,6 +476,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public boolean refreshChunk(int x, int z) {
+        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.world, x, z, "Cannot refresh chunk asynchronously"); // SparklyPaper - parallel world ticking (additional concurrency issues logs)
         ChunkHolder playerChunk = this.world.getChunkSource().chunkMap.getVisibleChunkIfPresent(ChunkPos.pack(x, z));
         if (playerChunk == null) return false;
 
@@ -525,6 +527,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public boolean loadChunk(int x, int z, boolean generate) {
+        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.getHandle(), x, z, "May not sync load chunks asynchronously"); // SparklyPaper - parallel world ticking (additional concurrency issues logs)
         org.spigotmc.AsyncCatcher.catchOp("chunk load"); // Spigot
         warnUnsafeChunk("loading a faraway chunk", x, z); // Paper
         ChunkAccess chunk = this.world.getChunkSource().getChunk(x, z, generate || isChunkGenerated(x, z) ? ChunkStatus.FULL : ChunkStatus.EMPTY, true); // Paper
@@ -738,6 +741,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public boolean generateTree(Location loc, TreeType type, BlockChangeDelegate delegate) {
+        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.world, loc.getX(), loc.getZ(), "Cannot generate tree asynchronously"); // SparklyPaper - parallel world ticking (additional concurrency issues logs)
         this.world.captureTreeGeneration = true;
         this.world.captureBlockStates = true;
         List<org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates;
@@ -840,6 +844,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     private boolean createExplosion(double x, double y, double z, float power, boolean setFire, boolean breakBlocks, Entity source, Consumer<net.minecraft.world.level.ServerExplosion> configurator) {
         // Paper end - expand explosion API
+        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.world, x, z, "Cannot create explosion asynchronously"); // SparklyPaper - parallel world ticking (additional concurrency issues logs)
         net.minecraft.world.level.Level.ExplosionInteraction explosionType;
         if (!breakBlocks) {
             explosionType = net.minecraft.world.level.Level.ExplosionInteraction.NONE; // Don't break blocks
@@ -898,6 +903,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public int getHighestBlockYAt(int x, int z, org.bukkit.HeightMap heightMap) {
+        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.world, x >> 4, z >> 4, "Cannot retrieve chunk asynchronously"); // SparklyPaper - parallel world ticking (additional concurrency issues logs)
         warnUnsafeChunk("getting a faraway chunk", x >> 4, z >> 4); // Paper
         // Transient load for this tick
         return this.world.getChunk(x >> 4, z >> 4).getHeight(CraftHeightMap.toNMS(heightMap), x, z);
@@ -913,6 +919,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
     @Override
     public void setBiome(int x, int y, int z, Holder<net.minecraft.world.level.biome.Biome> biome) {
         BlockPos pos = new BlockPos(x, 0, z);
+        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.world, pos, "Cannot retrieve chunk asynchronously"); // SparklyPaper - parallel world ticking (additional concurrency issues logs)
         if (this.world.hasChunkAt(pos)) {
             net.minecraft.world.level.chunk.LevelChunk chunk = this.world.getChunkAt(pos);
 
@@ -1858,6 +1865,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public void sendGameEvent(Entity sourceEntity, org.bukkit.GameEvent gameEvent, Vector position) {
+        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.world, position.getX(), position.getZ(), "Cannot send game event asynchronously"); // SparklyPaper - parallel world ticking (additional concurrency issues logs)
         getHandle().gameEvent(sourceEntity != null ? ((CraftEntity) sourceEntity).getHandle(): null, net.minecraft.core.registries.BuiltInRegistries.GAME_EVENT.get(org.bukkit.craftbukkit.util.CraftNamespacedKey.toMinecraft(gameEvent.getKey())).orElseThrow(), org.bukkit.craftbukkit.util.CraftVector.toBlockPos(position));
     }
     // Paper end

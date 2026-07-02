@@ -89,7 +89,7 @@
      @Deprecated
      private final RandomSource soundSeedGenerator = RandomSource.createThreadSafe();
      private final Holder<DimensionType> dimensionTypeRegistration;
-@@ -133,6 +_,734 @@
+@@ -133,6 +_,735 @@
      private final DamageSources damageSources;
      private final PalettedContainerFactory palettedContainerFactory;
      private long subTickCount;
@@ -127,6 +127,7 @@
 +    // Paper end - add paper world config
 +
 +    public final org.purpurmc.purpur.PurpurWorldConfig purpurConfig; // Purpur - Purpur config files
++    public io.papermc.paper.redstone.RedstoneWireTurbo turbo = new io.papermc.paper.redstone.RedstoneWireTurbo((net.minecraft.world.level.block.RedStoneWireBlock) net.minecraft.world.level.block.Blocks.REDSTONE_WIRE); // SparklyPaper - parallel world ticking (moved to world)
 +    public static @Nullable BlockPos lastPhysicsProblem; // Spigot
 +    public final Map<ServerExplosion.CacheKey, Float> explosionDensityCache = new java.util.HashMap<>(); // Paper - Optimize explosions
 +    public java.util.ArrayDeque<net.minecraft.world.level.block.RedstoneTorchBlock.Toggle> redstoneUpdateInfos; // Paper - Faster redstone torch rapid clock removal; Move from Map in BlockRedstoneTorch to here
@@ -1009,10 +1010,11 @@
  
      @Override
      public @Nullable ChunkAccess getChunk(int chunkX, int chunkZ, ChunkStatus status, boolean loadOrGenerate) {
-@@ -222,6 +_,37 @@
+@@ -222,6 +_,38 @@
  
      @Override
      public boolean setBlock(BlockPos pos, BlockState blockState, @Block.UpdateFlags int updateFlags, int updateLimit) {
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)this, pos, "Updating block asynchronously"); // SparklyPaper - parallel world ticking (additional concurrency issues logs)
 +        if (BanBlock.check(blockState)) {
 +            blockState = Blocks.AIR.defaultBlockState();
 +        }
@@ -1303,7 +1305,7 @@
                  ticker.tick();
 +                // Paper start - rewrite chunk system
 +                if ((++tickedEntities & 7) == 0) {
-+                    ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)(Level)(Object)this).moonrise$midTickTasks();
++                    // ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel)(Level)(Object)this).moonrise$midTickTasks();
 +                }
 +                // Paper end - rewrite chunk system
              }
@@ -1331,7 +1333,7 @@
 +            entity.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DISCARD);
 +            // Paper end - Prevent block entity and entity crashes
 +        }
-+        this.moonrise$midTickTasks(); // Paper - rewrite chunk system
++        // this.moonrise$midTickTasks(); // Paper - rewrite chunk system // SparklyPaper - parallel world ticking (only run mid-tick at the end of each tick / fixes concurrency bugs related to executeMidTickTasks)
 +    }
 +
 +    // Paper start - Option to prevent armor stands from doing entity lookups
@@ -1352,10 +1354,11 @@
  
      public boolean shouldTickDeath(Entity entity) {
          return true;
-@@ -619,10 +_,16 @@
+@@ -619,18 +_,32 @@
  
      @Override
      public @Nullable BlockEntity getBlockEntity(BlockPos pos) {
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThreadOrAsyncThread((ServerLevel) this, "Cannot read world asynchronously"); // SparklyPaper - parallel world ticking
 +        // Paper start - Perf: Optimize capturedTileEntities lookup
 +        net.minecraft.world.level.block.entity.BlockEntity blockEntity;
 +        if (!this.capturedBlockEntities.isEmpty() && (blockEntity = this.capturedBlockEntities.get(pos)) != null) {
@@ -1370,8 +1373,10 @@
                  ? null
                  : this.getChunkAt(pos).getBlockEntity(pos, LevelChunk.EntityCreationType.IMMEDIATE);
          }
-@@ -631,6 +_,12 @@
+     }
+ 
      public void setBlockEntity(BlockEntity blockEntity) {
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel) this, "Cannot modify world asynchronously"); // SparklyPaper - parallel world ticking
          BlockPos pos = blockEntity.getBlockPos();
          if (this.isInValidBounds(pos)) {
 +            // CraftBukkit start
@@ -1391,9 +1396,11 @@
      }
  
      public boolean isLoaded(BlockPos pos) {
-@@ -697,58 +_,118 @@
+@@ -696,59 +_,120 @@
+ 
      @Override
      public List<Entity> getEntities(@Nullable Entity except, AABB bb, Predicate<? super Entity> selector) {
++        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread((ServerLevel)this, bb, "Cannot getEntities asynchronously"); // SparklyPaper - parallel world ticking (additional concurrency issues logs)
          Profiler.get().incrementCounter("getEntities");
 -        List<Entity> output = Lists.newArrayList();
 -        this.getEntities().get(bb, entity -> {
@@ -1607,6 +1614,16 @@
                          this.neighborChanged(state, relativePos, changedBlock, null, false);
                      }
                  }
+@@ -981,8 +_,7 @@
+     public abstract RecipeAccess recipeAccess();
+ 
+     public BlockPos getBlockRandomPos(int xo, int yo, int zo, int yMask) {
+-        this.randValue = this.randValue * 3 + 1013904223;
+-        int val = this.randValue >> 2;
++        int val = this.random.nextInt() >> 2; // SparklyPaper - parallel world ticking
+         return new BlockPos(xo + (val & 15), yo + (val >> 16 & yMask), zo + (val >> 8 & 15));
+     }
+ 
 @@ -995,6 +_,18 @@
          return this.biomeManager;
      }
