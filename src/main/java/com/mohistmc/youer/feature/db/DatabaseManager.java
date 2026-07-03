@@ -86,7 +86,7 @@ public class DatabaseManager {
     }
 
     @NotNull
-    private static synchronized Connection getMysqlConnection() {
+    static synchronized Connection getMysqlConnection() {
         if (mysqlConnection != null) {
             try {
                 if (!mysqlConnection.isClosed() && mysqlConnection.isValid(3)) {

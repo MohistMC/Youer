@@ -10,6 +10,7 @@ import com.mohistmc.youer.api.PlayerAPI;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.feature.PacketStatistics;
 import com.mohistmc.youer.feature.WorldBackup;
+import com.mohistmc.youer.feature.db.DatabaseMigration;
 import com.mohistmc.youer.util.I18n;
 import com.mohistmc.youer.util.MemoryUtils;
 import com.mohistmc.youer.util.TimeUtils;
@@ -41,7 +42,7 @@ public class YouerCommand extends Command {
             "windows", "mods", "playermods", "reload", "version",
             "channels_incom", "channels_outgo", "speed", "printthreadcost",
             "packetstats", "heal", "help", "cleardropitem", "memoryfix", "showp",
-            "backupworld"
+            "backupworld", "migratedb"
     };
 
     private final List<String> params = Arrays.asList(COMMAND_LIST);
@@ -73,6 +74,17 @@ public class YouerCommand extends Command {
                 return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
             } else if (args.length == 2 && args[0].equalsIgnoreCase("cleardropitem")) {
                 return Bukkit.getWorlds().stream().map(WorldInfo::getName).toList();
+            } else if (args.length == 2 && args[0].equalsIgnoreCase("migratedb")) {
+                List<String> mods = new ArrayList<>(DatabaseMigration.getModuleNames());
+                mods.add("all");
+                return mods.stream()
+                        .filter(m -> m.toLowerCase().startsWith(args[1].toLowerCase()))
+                        .sorted()
+                        .toList();
+            } else if (args.length == 3 && args[0].equalsIgnoreCase("migratedb")) {
+                return Stream.of("sqlite", "mysql")
+                        .filter(t -> t.startsWith(args[2].toLowerCase()))
+                        .toList();
             }
         }
 
@@ -433,6 +445,39 @@ public class YouerCommand extends Command {
                 }
                 WorldBackup.backup(sender);
             }
+            case "migratedb" -> {
+                if (!sender.isOp()) {
+                    return true;
+                }
+                if (args.length < 3) {
+                    sender.sendMessage(I18n.as("migratedb.usage"));
+                    return false;
+                }
+                String module = args[1].toLowerCase(Locale.ENGLISH);
+                String target = args[2].toLowerCase(Locale.ENGLISH);
+
+                if (!target.equals("sqlite") && !target.equals("mysql")) {
+                    sender.sendMessage(I18n.as("migratedb.invalid_target"));
+                    return false;
+                }
+
+                new Thread(() -> {
+                    if ("all".equals(module)) {
+                        migrateAll(sender, target);
+                    } else {
+                        sender.sendMessage(I18n.as("migratedb.starting",
+                                DatabaseMigration.getDisplayName(module), target));
+                        DatabaseMigration.MigrationResult result = DatabaseMigration.migrate(module, target);
+                        if (result.success()) {
+                            sender.sendMessage(I18n.as("migratedb.success",
+                                    DatabaseMigration.getDisplayName(module), result.rows()));
+                        } else {
+                            sender.sendMessage(I18n.as("migratedb.fail",
+                                    DatabaseMigration.getDisplayName(module), result.message()));
+                        }
+                    }
+                }, "DB-Migration-" + module).start();
+            }
             default -> {
                 showHelp(sender);
                 return true;
@@ -472,5 +517,31 @@ public class YouerCommand extends Command {
         sender.sendMessage(I18n.as("youercmd.help.printthreadcost"));
         sender.sendMessage(I18n.as("youercmd.help.help"));
         sender.sendMessage(I18n.as("youercmd.help.backupworld"));
+        sender.sendMessage(I18n.as("youercmd.help.migratedb"));
+    }
+
+    private static void migrateAll(CommandSender sender, String target) {
+        int totalSucceeded = 0;
+        int totalRows = 0;
+        int totalCount = 0;
+
+        for (String module : DatabaseMigration.getModuleNames()) {
+            sender.sendMessage(I18n.as("migratedb.starting",
+                    DatabaseMigration.getDisplayName(module), target));
+            DatabaseMigration.MigrationResult result = DatabaseMigration.migrate(module, target);
+            totalCount++;
+            if (result.success()) {
+                totalSucceeded++;
+                totalRows += result.rows();
+                sender.sendMessage(I18n.as("migratedb.success",
+                        DatabaseMigration.getDisplayName(module), result.rows()));
+            } else {
+                sender.sendMessage(I18n.as("migratedb.fail",
+                        DatabaseMigration.getDisplayName(module), result.message()));
+            }
+        }
+
+        sender.sendMessage(I18n.as("migratedb.all.complete",
+                totalSucceeded, totalCount, totalRows));
     }
 }

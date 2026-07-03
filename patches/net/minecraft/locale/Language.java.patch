@@ -52,14 +52,15 @@
      private static void parseTranslations(BiConsumer<String, String> output, String path) {
 -        try (InputStream stream = Language.class.getResourceAsStream(path)) {
 -            loadFromJson(stream, output);
+-        } catch (IOException | JsonParseException e) {
+-            LOGGER.error("Couldn't read strings from {}", path, e);
 +        parseTranslations(output, (key, value) -> {}, path);
 +    }
 +
 +    private static void parseTranslations(BiConsumer<String, String> output, BiConsumer<String, net.minecraft.network.chat.Component> componentConsumer, String path) {
 +        try (InputStream stream = YouerConfig.class.getResourceAsStream("/assets/minecraft/lang/%s.json".formatted(YouerConfig.youer_lang().toLowerCase(Locale.ROOT)))) {
 +            loadFromJson(stream, output, componentConsumer);
-         } catch (IOException | JsonParseException e) {
--            LOGGER.error("Couldn't read strings from {}", path, e);
++        } catch (Exception e) {
 +            try (InputStream stream = Language.class.getResourceAsStream(path)) {
 +                loadFromJson(stream, output, componentConsumer);
 +            } catch (IOException | JsonParseException e1) {

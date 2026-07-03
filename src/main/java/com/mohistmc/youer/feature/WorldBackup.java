@@ -208,7 +208,7 @@ public class WorldBackup {
         int toDelete = files.length - max;
         for (int i = 0; i < toDelete; i++) {
             if (files[i].delete()) {
-                Youer.LOGGER.info(I18n.as("worldbackupcmd.notice.deletedOldBackup"), files[i].getName());
+                Youer.LOGGER.info(I18n.as("worldbackupcmd.notice.deletedOldBackup", files[i].getName()));
             }
         }
     }
