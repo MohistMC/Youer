@@ -2,7 +2,6 @@ package com.mohistmc.youer;
 
 import com.google.common.base.Throwables;
 import com.mohistmc.youer.api.ColorAPI;
-import com.mohistmc.youer.commands.BackupWorldCommand;
 import com.mohistmc.youer.commands.DumpCommand;
 import com.mohistmc.youer.commands.InfoCommand;
 import com.mohistmc.youer.commands.ItemsCommand;
@@ -131,6 +130,10 @@ public class YouerConfig {
     public static boolean fakeplayer_callbukkitevent = false;
     public static String message_require_neoforge;
     public static boolean no_damage_particle;
+    public static boolean backup_world_enable;
+    public static int backup_world_interval;
+    public static int backup_world_max_backups;
+    public static boolean backup_world_use_zstd;
 
     static int version;
     static Map<String, Command> commands;
@@ -167,7 +170,6 @@ public class YouerConfig {
         commands = new HashMap<>();
         commands.put("youer", new YouerCommand("youer"));
         commands.put("dump", new DumpCommand("dump"));
-        commands.put("backupworld", new BackupWorldCommand("backupworld"));
         commands.put("items", new ItemsCommand("items"));
         commands.put("permission", new PermissionCommand("permission"));
         commands.put("bans", new BansCommand("bans"));
@@ -332,6 +334,11 @@ public class YouerConfig {
         custom_disabled_spawner = getBoolean("custom.disabled_spawner", false);
         custom_disabled_sign_commands = getBoolean("custom.disabled_signblock_commands", true);
         no_damage_particle = getBoolean("custom.no_damage_particle", false);
+
+        backup_world_enable = getBoolean("backup_world.enable", false);
+        backup_world_interval = getInt("backup_world.interval", 3600);
+        backup_world_max_backups = getInt("backup_world.max_backups", 5);
+        backup_world_use_zstd = getBoolean("backup_world.use_zstd", false);
 
         player_modlist_blacklist_enable = getBoolean("player_modlist_blacklist.enable", false);
         player_modlist_blacklist_use_real_feedback = getBoolean("player_modlist_blacklist.use_real_feedback", false);

@@ -50,6 +50,7 @@ public class YouerPlugin {
         BackConfig.init();
         WarpsConfig.init();
         EntityClear.start();
+        WorldBackup.start();
         GlobalVariableSystem.register();
     }
 
