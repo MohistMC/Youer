@@ -1,16 +1,20 @@
 --- a/net/minecraft/world/InteractionResult.java
 +++ b/net/minecraft/world/InteractionResult.java
-@@ -30,18 +_,34 @@
+@@ -30,18 +_,38 @@
      record Pass() implements InteractionResult {
      }
  
 -    record Success(InteractionResult.SwingSource swingSource, InteractionResult.ItemContext itemContext) implements InteractionResult {
 +    // Paper start - track more context in interaction result
-+    record PaperSuccessContext(net.minecraft.core.@Nullable BlockPos placedPos) {
-+        static PaperSuccessContext DEFAULT = new PaperSuccessContext(null);
++    record PaperSuccessContext(net.minecraft.core.@Nullable BlockPos placedPos, boolean updatedBlockEntity) {
++        static PaperSuccessContext DEFAULT = new PaperSuccessContext(null, false);
 +
 +        public PaperSuccessContext placedBlockAt(final net.minecraft.core.BlockPos pos) {
-+            return new PaperSuccessContext(pos);
++            return new PaperSuccessContext(pos, this.updatedBlockEntity);
++        }
++
++        public PaperSuccessContext updatedBlockEntity(final boolean updatedBlockEntity) {
++            return new PaperSuccessContext(this.placedPos, updatedBlockEntity);
 +        }
 +    }
 +    record Success(InteractionResult.SwingSource swingSource, InteractionResult.ItemContext itemContext, PaperSuccessContext paperSuccessContext) implements InteractionResult {
