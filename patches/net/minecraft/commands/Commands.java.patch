@@ -264,7 +264,7 @@
              }
  
              return null;
-@@ -359,11 +_,67 @@
+@@ -359,11 +_,59 @@
      }
  
      public void sendCommands(ServerPlayer p_82096_) {
@@ -284,15 +284,7 @@
 +        });
 +    }
 +
-+    public static final java.util.concurrent.ThreadPoolExecutor COMMAND_SENDING_POOL = new java.util.concurrent.ThreadPoolExecutor(
-+            0, 2, 60L, java.util.concurrent.TimeUnit.SECONDS,
-+            new java.util.concurrent.LinkedBlockingQueue<>(),
-+            new com.google.common.util.concurrent.ThreadFactoryBuilder()
-+                    .setNameFormat("Paper Async Command Builder Thread Pool - %1$d")
-+                    .setUncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(net.minecraft.server.MinecraftServer.LOGGER))
-+                    .build(),
-+            new java.util.concurrent.ThreadPoolExecutor.DiscardPolicy()
-+    );
++    public static final java.util.concurrent.ExecutorService COMMAND_SENDING_POOL =java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor();
 +
 +    private void sendAsync(ServerPlayer player) {
 +        // Paper end - Perf: Async command map building
@@ -303,9 +295,9 @@
          map.put(this.dispatcher.getRoot(), rootcommandnode);
 -        this.fillUsableCommands(this.dispatcher.getRoot(), rootcommandnode, p_82096_.createCommandSourceStack(), map);
 -        p_82096_.connection.send(new ClientboundCommandsPacket(rootcommandnode));
-+        // this.fillUsableCommands(this.dispatcher.getRoot(), rootcommandnode, player.createCommandSourceStack(), map);
++        this.fillUsableCommands(this.dispatcher.getRoot(), rootcommandnode, player.createCommandSourceStack(), map);
 +        // FORGE: Use our own command node merging method to handle redirect nodes properly, see issue #7551
-+        net.neoforged.neoforge.server.command.CommandHelper.mergeCommandNode(this.dispatcher.getRoot(), rootcommandnode, map, player.createCommandSourceStack(), ctx -> 0, suggest -> SuggestionProviders.safelySwap((SuggestionProvider<SharedSuggestionProvider>) (SuggestionProvider<?>) suggest));
++        // net.neoforged.neoforge.server.command.CommandHelper.mergeCommandNode(this.dispatcher.getRoot(), rootcommandnode, map, player.createCommandSourceStack(), ctx -> 0, suggest -> SuggestionProviders.safelySwap((SuggestionProvider<SharedSuggestionProvider>) (SuggestionProvider<?>) suggest));
 +        Collection<String> bukkit = new LinkedHashSet<>();
 +        for (CommandNode node : rootcommandnode.getChildren()) {
 +            bukkit.add(node.getName());
@@ -327,7 +319,7 @@
 +        // Remove labels that were removed during the event
 +        for (String orig : bukkit) {
 +            if (!event.getCommands().contains(orig)) {
-+                rootcommandnode.removeCommand(orig); // TODO Youer
++                rootcommandnode.removeCommand(orig);
 +            }
 +        }
 +        // CraftBukkit end
@@ -336,9 +328,13 @@
      }
  
      private void fillUsableCommands(
-@@ -373,6 +_,12 @@
+@@ -372,9 +_,54 @@
+         CommandSourceStack p_82115_,
          Map<CommandNode<CommandSourceStack>, CommandNode<SharedSuggestionProvider>> p_82116_
      ) {
++        p_82116_.keySet().removeIf((node) -> !org.spigotmc.SpigotConfig.sendNamespaced && node.getName().contains( ":" )); // Paper - Remove namedspaced from result nodes to prevent redirect trimming ~ see comment below
++
++        boolean registeredAskServerSuggestionsForTree = false; // Paper - tell clients to ask server for suggestions for EntityArguments
          for (CommandNode<CommandSourceStack> commandnode : p_82113_.getChildren()) {
 +            // Paper start - Brigadier API
 +            if (commandnode.clientNode != null) {
@@ -347,5 +343,57 @@
 +            // Paper end - Brigadier API
 +            if ( !org.spigotmc.SpigotConfig.sendNamespaced && commandnode.getName().contains( ":" ) ) continue; // Spigot
              if (commandnode.canUse(p_82115_)) {
-                 ArgumentBuilder<SharedSuggestionProvider, ?> argumentbuilder = (ArgumentBuilder<SharedSuggestionProvider, ?>)(ArgumentBuilder<?, ?>)commandnode.createBuilder();
+-                ArgumentBuilder<SharedSuggestionProvider, ?> argumentbuilder = (ArgumentBuilder<SharedSuggestionProvider, ?>)(ArgumentBuilder<?, ?>)commandnode.createBuilder();
++                ArgumentBuilder argumentbuilder = commandnode.createBuilder();
++                // Paper start
++                /*
++                Because of how commands can be yeeted right left and center due to bad bukkit practices
++                we need to be able to ensure that ALL commands are registered (even redirects).
++
++                What this will do is IF the redirect seems to be "dead" it will create a builder and essentially populate (flatten)
++                all the children from the dead redirect to the node.
++
++                So, if minecraft:msg redirects to msg but the original msg node has been overriden minecraft:msg will now act as msg and will explicilty inherit its children.
++
++                The only way to fix this is to either:
++                - Send EVERYTHING flattened, don't use redirects
++                - Don't allow command nodes to be deleted
++                - Do this :)
++                 */
++
++                // Is there an invalid command redirect?
++                if (argumentbuilder.getRedirect() != null && (CommandNode) p_82116_.get(argumentbuilder.getRedirect()) == null) {
++                    // Create the argument builder with the same values as the specified node, but with a different literal and populated children
++
++                    CommandNode<CommandSourceStack> redirect = argumentbuilder.getRedirect();
++                    // Diff copied from LiteralCommand#createBuilder
++                    final com.mojang.brigadier.builder.LiteralArgumentBuilder<CommandSourceStack> builder = com.mojang.brigadier.builder.LiteralArgumentBuilder.literal(commandnode.getName());
++                    builder.requires(redirect.getRequirement());
++                    // builder.forward(redirect.getRedirect(), redirect.getRedirectModifier(), redirect.isFork()); We don't want to migrate the forward, since it's invalid.
++                    if (redirect.getCommand() != null) {
++                        builder.executes(redirect.getCommand());
++                    }
++                    // Diff copied from LiteralCommand#createBuilder
++                    for (CommandNode<CommandSourceStack> child : redirect.getChildren()) {
++                        builder.then(child);
++                    }
++
++                    argumentbuilder = builder;
++                }
++                // Paper end
                  argumentbuilder.requires(p_82126_ -> true);
+                 if (argumentbuilder.getCommand() != null) {
+                     argumentbuilder.executes(p_82102_ -> 0);
+@@ -384,6 +_,12 @@
+                     RequiredArgumentBuilder<SharedSuggestionProvider, ?> requiredargumentbuilder = (RequiredArgumentBuilder<SharedSuggestionProvider, ?>)argumentbuilder;
+                     if (requiredargumentbuilder.getSuggestionsProvider() != null) {
+                         requiredargumentbuilder.suggests(SuggestionProviders.safelySwap(requiredargumentbuilder.getSuggestionsProvider()));
++                        // Paper start - tell clients to ask server for suggestions for EntityArguments
++                        registeredAskServerSuggestionsForTree = requiredargumentbuilder.getSuggestionsProvider() == net.minecraft.commands.synchronization.SuggestionProviders.ASK_SERVER;
++                    } else if (io.papermc.paper.configuration.GlobalConfiguration.get().commands.fixTargetSelectorTagCompletion && !registeredAskServerSuggestionsForTree && requiredargumentbuilder.getType() instanceof net.minecraft.commands.arguments.EntityArgument) {
++                        requiredargumentbuilder.suggests(requiredargumentbuilder.getType()::listSuggestions);
++                        registeredAskServerSuggestionsForTree = true; // You can only
++                        // Paper end - tell clients to ask server for suggestions for EntityArguments
+                     }
+                 }
+ 

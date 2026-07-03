@@ -37,12 +37,7 @@ import org.bukkit.plugin.Plugin;
 
 public class CraftAsyncScheduler extends CraftScheduler {
 
-    private final Executor executor = Executors.newThreadPerTaskExecutor(
-            Thread.ofVirtual()
-                    .name("Craft Scheduler Thread - ", 0)
-                    .uncaughtExceptionHandler(new net.minecraft.DefaultUncaughtExceptionHandlerWithName(net.minecraft.server.MinecraftServer.LOGGER))
-                    .factory()
-    );
+    private final Executor executor = Executors.newVirtualThreadPerTaskExecutor();
     private final Executor management = Executors.newSingleThreadExecutor(new ThreadFactoryBuilder()
             .setNameFormat("Craft Async Scheduler Management Thread").build());
     private final List<CraftTask> temp = new ArrayList<>();
