@@ -55,7 +55,7 @@ public class CraftMerchantInventoryViewBuilder<V extends InventoryView> extends 
             this.merchant = this.title == null ? new CraftMerchantCustom().getMerchant() : new CraftMerchantCustom(title).getMerchant();
         }
 
-        container = new MerchantMenu(serverPlayer.nextContainerCounter(), serverPlayer.getInventory(), this.merchant);
+        container = new MerchantMenu(serverPlayer.nextContainerCounter0(), serverPlayer.getInventory(), this.merchant);
 
         container.checkReachable = super.checkReachable;
         setDefaultTitle(this.merchant);

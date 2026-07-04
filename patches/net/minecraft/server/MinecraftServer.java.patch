@@ -1700,7 +1700,7 @@
          profiler.pop();
      }
  
-@@ -1190,6 +_,23 @@
+@@ -1190,6 +_,25 @@
          return this.levels.get(dimension);
      }
  
@@ -1710,6 +1710,7 @@
 +        Map<ResourceKey<Level>, ServerLevel> newLevels = Maps.newLinkedHashMap(oldLevels);
 +        newLevels.put(level.dimension(), level);
 +        this.levels = Collections.unmodifiableMap(newLevels);
++        this.markWorldsDirty();
 +    }
 +
 +    public void removeLevel(ServerLevel level) {
@@ -1718,6 +1719,7 @@
 +        newLevels.remove(level.dimension());
 +        level.tickExecutor.shutdown(); // SparklyPaper - parallel world ticking (We remove it in here instead of ServerLevel.close() because ServerLevel.close() is never called!)
 +        this.levels = Collections.unmodifiableMap(newLevels);
++        this.markWorldsDirty();
 +    }
 +    // CraftBukkit end
 +

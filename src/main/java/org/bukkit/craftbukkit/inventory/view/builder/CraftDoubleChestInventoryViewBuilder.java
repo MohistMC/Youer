@@ -22,7 +22,7 @@ public class CraftDoubleChestInventoryViewBuilder<V extends InventoryView> exten
     @Override
     protected AbstractContainerMenu buildContainer(final ServerPlayer player) {
         if (super.world == null) {
-            return handle.create(player.nextContainerCounter(), player.getInventory());
+            return handle.create(player.nextContainerCounter0(), player.getInventory());
         }
 
         final ChestBlock chest = (ChestBlock) Blocks.CHEST;
@@ -30,15 +30,15 @@ public class CraftDoubleChestInventoryViewBuilder<V extends InventoryView> exten
             super.world.getBlockState(super.position), super.world, super.position, false
         );
         if (result instanceof DoubleBlockCombiner.NeighborCombineResult.Single<? extends ChestBlockEntity>) {
-            return handle.create(player.nextContainerCounter(), player.getInventory());
+            return handle.create(player.nextContainerCounter0(), player.getInventory());
         }
 
         final MenuProvider combined = result.apply(ChestBlock.MENU_PROVIDER_COMBINER).orElse(null);
         if (combined == null) {
-            return handle.create(player.nextContainerCounter(), player.getInventory());
+            return handle.create(player.nextContainerCounter0(), player.getInventory());
         }
 
-        return combined.createMenu(player.nextContainerCounter(), player.getInventory(), player);
+        return combined.createMenu(player.nextContainerCounter0(), player.getInventory(), player);
     }
 
     @Override

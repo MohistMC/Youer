@@ -79,7 +79,7 @@ public class ShowsCommand extends Command {
 
         switch (args[0].toLowerCase(Locale.ENGLISH)) {
             case "sound" -> {
-                DemoGUI wh = new DemoGUI("Sounds");
+                DemoGUI wh = new DemoGUI(I18n.as("shows.sound"));
 
                 Map<String, List<Sound>> soundsByNamespace = new HashMap<>();
                 for (Sound s : Sound.values()) {
@@ -294,10 +294,10 @@ public class ShowsCommand extends Command {
     }
 
     private void openSoundCategoryGUI(Player player, String namespace, List<Sound> sounds) {
-        DemoGUI categoryGUI = new DemoGUI(namespace + " Sounds");
+        DemoGUI categoryGUI = new DemoGUI(I18n.as("shows.sound.category.title", namespace));
 
         categoryGUI.setItem(47, new GUIItem(new ItemStackFactory(Material.ARROW)
-                .setDisplayName("§cBack")
+                .setDisplayName(I18n.as("shows.sound.back"))
                 .build()) {
             @Override
             public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
@@ -311,7 +311,16 @@ public class ShowsCommand extends Command {
                     .build()) {
                 @Override
                 public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
-                    player.playSound(player.getLocation(), s, 1f, 1.0f);
+                    if (type == ClickType.LEFT) {
+                        player.playSound(player.getLocation(), s, 1f, 1.0f);
+                    } else if (type == ClickType.RIGHT) {
+                        u.sendMessage(
+                            com.mohistmc.youer.api.ColorAPI.adventure(I18n.as("shows.sound.copy", s.name()))
+                                .clickEvent(net.kyori.adventure.text.event.ClickEvent.copyToClipboard(s.name()))
+                                .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                                    com.mohistmc.youer.api.ColorAPI.adventure("§7" + I18n.as("itemscmd.copy"))))
+                        );
+                    }
                 }
             });
         }

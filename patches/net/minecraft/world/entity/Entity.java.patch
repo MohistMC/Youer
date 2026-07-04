@@ -266,7 +266,7 @@
 +    }
 +    // Paper end
 +    // Paper start - rewrite chunk system
-+    private final boolean isHardColliding = this.moonrise$isHardCollidingUncached();
++    private final boolean isHardColliding;
 +    private net.minecraft.server.level.FullChunkStatus chunkStatus;
 +    private ca.spottedleaf.moonrise.patches.chunk_system.level.chunk.ChunkData chunkData;
 +    private int sectionX = Integer.MIN_VALUE;
@@ -460,9 +460,11 @@
          SynchedEntityData.Builder entityDataBuilder = new SynchedEntityData.Builder(this);
          entityDataBuilder.define(DATA_SHARED_FLAGS_ID, (byte)0);
          entityDataBuilder.define(DATA_AIR_SUPPLY_ID, this.getMaxAirSupply());
-@@ -323,7 +_,11 @@
+@@ -322,8 +_,13 @@
+         entityDataBuilder.define(DATA_TICKS_FROZEN, 0);
          this.defineSynchedData(entityDataBuilder);
          this.entityData = entityDataBuilder.build();
++        this.isHardColliding = this.moonrise$isHardCollidingUncached(); // Paper - rewrite chunk system
          this.setPos(0.0, 0.0, 0.0);
 +        net.neoforged.neoforge.event.entity.EntityEvent.Size sizeEvent = net.neoforged.neoforge.event.EventHooks.getEntitySizeForge(this, Pose.STANDING, this.dimensions);
 +        this.dimensions = sizeEvent.getNewSize();

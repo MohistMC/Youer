@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/entity/animal/Animal.java
 +++ b/net/minecraft/world/entity/animal/Animal.java
+@@ -1,6 +_,7 @@
+ package net.minecraft.world.entity.animal;
+ 
+ import java.util.Optional;
++import java.util.concurrent.atomic.AtomicInteger;
+ import net.minecraft.advancements.triggers.CriteriaTriggers;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
 @@ -37,6 +_,14 @@
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.AABB;
@@ -68,7 +76,7 @@
  
          this.level().broadcastEntityEvent(this, (byte)18);
      }
-@@ -208,26 +_,66 @@
+@@ -208,27 +_,69 @@
  
      public void spawnChildFromBreeding(ServerLevel level, Animal partner) {
          AgeableMob offspring = this.getBreedOffspring(level, partner);
@@ -97,8 +105,6 @@
 +            }
              offspring.setBaby(true);
              offspring.snapTo(this.getX(), this.getY(), this.getZ(), 0.0F, 0.0F);
--            this.finalizeSpawnChildFromBreeding(level, partner, offspring);
--            level.addFreshEntityWithPassengers(offspring);
 +            // Purpur end - Add adjustable breeding cooldown to config
 +            int experience = this.getRandom().nextInt(7) + 1;
 +            EntityBreedEvent entityBreedEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityBreedEvent(offspring, this, partner, breeder, this.breedItem, experience);
@@ -106,12 +112,15 @@
 +                return;
 +            }
 +            experience = entityBreedEvent.getExperience();
-+            this.finalizeSpawnChildFromBreeding(level, partner, offspring, experience);
++            this.finalizeSpawnChildFromBreeding$counter.set(experience);
+             this.finalizeSpawnChildFromBreeding(level, partner, offspring);
+-            level.addFreshEntityWithPassengers(offspring);
 +            level.addFreshEntityWithPassengers(offspring, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BREEDING);
 +            // CraftBukkit end
          }
      }
  
++    public AtomicInteger finalizeSpawnChildFromBreeding$counter = new AtomicInteger(this.getRandom().nextInt(7) + 1);
      public void finalizeSpawnChildFromBreeding(ServerLevel level, Animal partner, @Nullable AgeableMob offspring) {
 -        Optional.ofNullable(this.getLoveCause()).or(() -> Optional.ofNullable(partner.getLoveCause())).ifPresent(cause -> {
 -            cause.awardStat(Stats.ANIMALS_BRED);
@@ -119,11 +128,6 @@
 -        });
 -        this.setAge(6000);
 -        partner.setAge(6000);
-+        // CraftBukkit start
-+        this.finalizeSpawnChildFromBreeding(level, partner, offspring, this.getRandom().nextInt(7) + 1);
-+    }
-+
-+    public void finalizeSpawnChildFromBreeding(ServerLevel level, Animal partner, @Nullable AgeableMob offspring, int experience) {
 +        // CraftBukkit end
 +        // Paper start - Call EntityBreedEvent
 +        ServerPlayer player = this.getLoveCause();
@@ -140,8 +144,14 @@
          level.broadcastEntityEvent(this, (byte)18);
 -        if (level.getGameRules().get(GameRules.MOB_DROPS)) {
 -            level.addFreshEntity(new ExperienceOrb(level, this.getX(), this.getY(), this.getZ(), this.getRandom().nextInt(7) + 1));
-+        if (experience > 0 && level.getGameRules().get(GameRules.MOB_DROPS)) { // Paper - Call EntityBreedEvent
-+            level.addFreshEntity(new ExperienceOrb(level, this.position(), Vec3.ZERO, experience, org.bukkit.entity.ExperienceOrb.SpawnReason.BREED, player, offspring)); // Paper - Call EntityBreedEvent, add spawn context
++        if (finalizeSpawnChildFromBreeding$counter.get() > 0 && level.getGameRules().get(GameRules.MOB_DROPS)) { // Paper - Call EntityBreedEvent
++            level.addFreshEntity(new ExperienceOrb(level, this.position(), Vec3.ZERO, finalizeSpawnChildFromBreeding$counter.get(), org.bukkit.entity.ExperienceOrb.SpawnReason.BREED, player, offspring)); // Paper - Call EntityBreedEvent, add spawn context
          }
++    }
++
++    public void finalizeSpawnChildFromBreeding(ServerLevel level, Animal partner, @Nullable AgeableMob offspring, int experience) {
++        finalizeSpawnChildFromBreeding$counter.set(experience);
++        finalizeSpawnChildFromBreeding(level, partner, offspring);
      }
  
+     @Override
