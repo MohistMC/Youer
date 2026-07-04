@@ -8,11 +8,20 @@ import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.tags.BlockTags;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.ChestBlock;
+import net.minecraft.world.level.block.DecoratedPotBlock;
+import net.minecraft.world.level.block.SignBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.entity.BlockEntityTypes;
+import net.minecraft.world.level.block.entity.ChestBlockEntity;
+import net.minecraft.world.level.block.entity.DecoratedPotBlockEntity;
+import net.minecraft.world.level.block.entity.HangingSignBlockEntity;
+import net.minecraft.world.level.block.entity.SignBlockEntity;
+import net.minecraft.world.level.block.entity.TrappedChestBlockEntity;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -74,7 +83,37 @@ public final class CraftBlockStates {
         @Override
         public CraftBlockState createBlockState(World world, BlockPos pos, net.minecraft.world.level.block.state.BlockState state, BlockEntity blockEntity) {
             // Paper - revert upstream's revert of the block state changes. Block entities that have already had the block type set to AIR are still valid, upstream decided to ignore them
-            Preconditions.checkState(blockEntity == null, "Unexpected BlockState for %s", CraftBlockType.minecraftToBukkit(state.getBlock()));
+            // Youer start
+            //Preconditions.checkState(blockEntity == null, "Unexpected BlockState for %s", CraftBlockType.minecraftToBukkit(state.getBlock()));
+            net.minecraft.world.level.block.Block block = state.getBlock();
+            if (block.defaultBlockState().is(BlockTags.SIGNS)) {
+                if (blockEntity instanceof SignBlockEntity signEntity) {
+                    return new CraftSign<>(world, signEntity);
+                }
+            } else if (block.defaultBlockState().is(BlockTags.ALL_HANGING_SIGNS)) {
+                if (blockEntity instanceof HangingSignBlockEntity hangingSignEntity) {
+                    return new CraftHangingSign(world, hangingSignEntity);
+                }
+            } else if (block instanceof SignBlock signBlock) {
+                BlockEntity signEntity = signBlock.newBlockEntity(BlockPos.ZERO, block.defaultBlockState());
+                if (signEntity instanceof HangingSignBlockEntity hangingSignBlockEntity) {
+                    return new CraftHangingSign(world, hangingSignBlockEntity);
+                } else if (signEntity instanceof SignBlockEntity signBlockEntity) {
+                    return new CraftSign<>(world, signBlockEntity);
+                }
+            } else if (block instanceof ChestBlock chestBlock) {
+                BlockEntity chestEntity = chestBlock.newBlockEntity(BlockPos.ZERO, block.defaultBlockState());
+                if (chestEntity instanceof TrappedChestBlockEntity trappedChestBlockEntity) {
+                    return new CraftChest(world, trappedChestBlockEntity);
+                } else if (chestEntity instanceof ChestBlockEntity chestBlockEntity) {
+                    return new CraftChest(world, chestBlockEntity);
+                }
+            } else if (block instanceof DecoratedPotBlock) {
+                if (blockEntity instanceof DecoratedPotBlockEntity decoratedPotEntity) {
+                    return new CraftDecoratedPot(world, decoratedPotEntity);
+                }
+            }
+            // Youer end
             return new CraftBlockState(world, pos, state);
         }
     };

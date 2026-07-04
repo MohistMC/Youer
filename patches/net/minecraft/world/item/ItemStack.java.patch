@@ -8,43 +8,20 @@
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Codec;
  import com.mojang.serialization.DataResult;
-@@ -16,6 +_,7 @@
- import java.util.function.BiFunction;
- import java.util.function.Consumer;
- import java.util.function.Predicate;
-+import java.util.function.Supplier;
- import java.util.function.UnaryOperator;
- import net.minecraft.ChatFormatting;
- import net.minecraft.advancements.triggers.CriteriaTriggers;
-@@ -96,6 +_,32 @@
+@@ -44,8 +_,6 @@
+ import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.stats.Stats;
+ import net.minecraft.util.ExtraCodecs;
+-import net.minecraft.util.Mth;
+-import net.minecraft.util.NullOps;
+ import net.minecraft.util.StringUtil;
+ import net.minecraft.util.Unit;
+ import net.minecraft.world.InteractionHand;
+@@ -96,6 +_,8 @@
  import net.minecraft.world.level.gameevent.GameEvent;
  import org.apache.commons.lang3.function.TriConsumer;
  import org.apache.commons.lang3.mutable.MutableBoolean;
-+// CraftBukkit start
-+import java.util.Map;
-+import net.minecraft.core.Direction;
-+import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
-+import net.minecraft.sounds.SoundSource;
-+import net.minecraft.world.level.block.BedBlock;
-+import net.minecraft.world.level.block.Blocks;
-+import net.minecraft.world.level.block.SaplingBlock;
-+import net.minecraft.world.level.block.SignBlock;
-+import net.minecraft.world.level.block.BaseEntityBlock;
-+import net.minecraft.world.level.block.WitherSkullBlock;
-+import net.minecraft.world.level.block.SoundType;
-+import net.minecraft.world.level.block.entity.BlockEntity;
-+import net.minecraft.world.level.block.entity.SignBlockEntity;
-+import net.minecraft.world.level.block.entity.SkullBlockEntity;
-+import org.bukkit.Location;
-+import org.bukkit.TreeType;
-+import org.bukkit.craftbukkit.block.CapturedBlockState;
-+import org.bukkit.craftbukkit.block.CraftBlock;
-+import org.bukkit.craftbukkit.block.CraftBlockState;
-+import org.bukkit.craftbukkit.util.CraftLocation;
-+import org.bukkit.event.block.BlockFertilizeEvent;
 +import org.bukkit.event.player.PlayerItemDamageEvent;
-+import org.bukkit.event.world.StructureGrowEvent;
-+// CraftBukkit end
 +import org.bukkit.craftbukkit.inventory.CraftItemStack;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
@@ -89,7 +66,7 @@
      public ItemStack(ItemLike item, int count) {
          this(item.asItem().builtInRegistryHolder(), count);
      }
-@@ -358,17 +_,171 @@
+@@ -358,14 +_,38 @@
      }
  
      public InteractionResult useOn(UseOnContext context) {
@@ -125,144 +102,10 @@
  
          Item usedItem = this.getItem();
 -        InteractionResult result = usedItem.useOn(context);
-+        // CraftBukkit start - handle all block place event logic here
-+        DataComponentPatch previousPatch = this.components.asPatch();
-+        int previousCount = this.getCount();
-+        ServerLevel level = (ServerLevel) context.getLevel();
-+        boolean isBonemeal = usedItem == Items.BONE_MEAL;
-+
-+        if (!(usedItem instanceof BucketItem)) {
-+            level.captureBlockStates = true;
-+            level.captureTreeGeneration = isBonemeal;
-+        }
-+
-+        List<org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates;
-+        List<net.minecraft.world.level.block.entity.BlockEntity> capturedBlockEntities;
-+        org.bukkit.TreeType treeType;
-+        InteractionResult result;
-+        try {
-+            result = usedItem.useOn(context);
-+        } finally {
-+            level.captureBlockStates = false;
-+            level.captureTreeGeneration = false;
-+
-+            capturedBlockStates = new java.util.ArrayList<>(level.capturedBlockStates.values());
-+            level.capturedBlockStates.clear();
-+
-+            capturedBlockEntities = new java.util.ArrayList<>(level.capturedBlockEntities.values());
-+            level.capturedBlockEntities.clear();
-+
-+            treeType = net.minecraft.world.level.block.SaplingBlock.treeTypeRT.get(); // SparklyPaper - parallel world ticking
-+            net.minecraft.world.level.block.SaplingBlock.treeTypeRT.set(null); // SparklyPaper - parallel world ticking
-+        }
-+
-+        DataComponentPatch newPatch = this.components.asPatch();
-+        int newCount = this.getCount();
-+        this.setCount(previousCount);
-+        this.restorePatch(previousPatch);
-+
-+        if (result.consumesAction() && isBonemeal && !capturedBlockStates.isEmpty()) {
-+            org.bukkit.Location location = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(pos, level);
-+            org.bukkit.event.world.StructureGrowEvent structureEvent = null;
-+            if (treeType != null) {
-+                structureEvent = new org.bukkit.event.world.StructureGrowEvent(location, treeType, true, (org.bukkit.entity.Player) player.getBukkitEntity(), (List<org.bukkit.block.BlockState>) (List<? extends org.bukkit.block.BlockState>) capturedBlockStates);
-+                org.bukkit.Bukkit.getPluginManager().callEvent(structureEvent);
-+            }
-+
-+            org.bukkit.event.block.BlockFertilizeEvent fertilizeEvent = new org.bukkit.event.block.BlockFertilizeEvent(org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), (org.bukkit.entity.Player) player.getBukkitEntity(), (List<org.bukkit.block.BlockState>) (List<? extends org.bukkit.block.BlockState>) capturedBlockStates);
-+            fertilizeEvent.setCancelled(structureEvent != null && structureEvent.isCancelled());
-+            org.bukkit.Bukkit.getPluginManager().callEvent(fertilizeEvent);
-+
-+            if (!fertilizeEvent.isCancelled()) {
-+                // Change the stack to its new contents if it hasn't been tampered with.
-+                if (this.getCount() == previousCount && Objects.equals(this.components.asPatch(), previousPatch)) {
-+                    this.restorePatch(newPatch);
-+                    this.setCount(newCount);
-+                }
-+                for (org.bukkit.craftbukkit.block.CraftBlockState snapshot : capturedBlockStates) {
-+                    // SPIGOT-7572 - Move fix for SPIGOT-7248 to CapturedBlockState, to allow bees in bee nest
-+                    snapshot.place(snapshot.getFlags());
-+                    level.checkCapturedTreeStateForObserverNotify(pos, snapshot); // Paper - notify observers even if grow failed
-+                }
-+                player.awardStat(Stats.ITEM_USED.get(usedItem)); // SPIGOT-7236 - award stat
-+            }
-+            return result;
-+        }
-+
++        InteractionResult result = callback.apply(context);
          if (player != null && result instanceof InteractionResult.Success success && success.wasItemInteraction()) {
--            player.awardStat(Stats.ITEM_USED.get(usedItem));
-+            InteractionHand hand = context.getHand();
-+            org.bukkit.event.block.BlockPlaceEvent placeEvent = null;
-+            if (capturedBlockStates.size() > 1) {
-+                placeEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockMultiPlaceEvent(level, player, hand, (List<org.bukkit.block.BlockState>) (List<? extends org.bukkit.block.BlockState>) capturedBlockStates, pos);
-+            } else if (capturedBlockStates.size() == 1 && usedItem != Items.POWDER_SNOW_BUCKET) { // Paper - Fix cancelled powdered snow bucket placement
-+                placeEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPlaceEvent(level, player, hand, capturedBlockStates.getFirst(), pos);
-+            }
-+
-+            if (placeEvent != null && (placeEvent.isCancelled() || !placeEvent.canBuild())) {
-+                result = InteractionResult.FAIL; // cancel placement
-+                // PAIL: Remove this when MC-99075 fixed
-+                player.containerMenu.forceHeldSlot(hand);
-+                // revert back all captured blocks
-+                for (org.bukkit.craftbukkit.block.CraftBlockState snapshot : capturedBlockStates) {
-+                    snapshot.revertPlace(true); // poi updates needs to be skipped since the poi were never registered as part of the capture
-+                    snapshot.getBlock().getBlockState().getBlock().forgetPlacer(); // Purpur - Store placer on Block when placed
-+                }
-+            } else {
-+                // Change the stack to its new contents if it hasn't been tampered with.
-+                if (this.getCount() == previousCount && Objects.equals(this.components.asPatch(), previousPatch)) {
-+                    this.restorePatch(newPatch);
-+                    this.setCount(newCount);
-+                }
-+
-+                for (net.minecraft.world.level.block.entity.BlockEntity blockEntity : capturedBlockEntities) {
-+                    level.setBlockEntity(blockEntity);
-+                }
-+
-+                for (org.bukkit.craftbukkit.block.CraftBlockState snapshot : capturedBlockStates) {
-+                    net.minecraft.world.level.block.state.BlockState oldBlock = snapshot.getHandle();
-+                    BlockPos newPos = snapshot.getPosition();
-+                    net.minecraft.world.level.block.state.BlockState block = level.getBlockState(newPos);
-+
-+                    if (!(block.getBlock() instanceof net.minecraft.world.level.block.BaseEntityBlock)) { // Containers get placed automatically
-+                        block.onPlace(level, newPos, oldBlock, true, context);
-+                    }
-+                    block.getBlock().forgetPlacer(); // Purpur - Store placer on Block when placed
-+
-+                    level.notifyAndUpdatePhysics(newPos, null, oldBlock, block, level.getBlockState(newPos), snapshot.getFlags(), net.minecraft.world.level.block.Block.UPDATE_LIMIT); // send null chunk as chunk.k() returns false by this point
-+                }
-+
-+                BlockPos placedPos = success.paperSuccessContext().placedPos();
-+                if (usedItem == Items.WITHER_SKELETON_SKULL && placedPos != null) { // Special case skulls to allow wither spawns to be cancelled
-+                    net.minecraft.world.level.block.entity.BlockEntity blockEntity = level.getBlockEntity(placedPos);
-+                    if (blockEntity instanceof net.minecraft.world.level.block.entity.SkullBlockEntity placedSkull) {
-+                        net.minecraft.world.level.block.WitherSkullBlock.checkSpawn(level, placedPos, placedSkull);
-+                    }
-+                }
-+
-+                // SPIGOT-4678
-+                if (usedItem instanceof SignItem && placedPos != null && !success.paperSuccessContext().updatedBlockEntity()) {
-+                    if (level.getBlockEntity(placedPos) instanceof net.minecraft.world.level.block.entity.SignBlockEntity signEntity) {
-+                        if (level.getBlockState(placedPos).getBlock() instanceof net.minecraft.world.level.block.SignBlock sign) {
-+                            sign.openTextEdit(player, signEntity, true, io.papermc.paper.event.player.PlayerOpenSignEvent.Cause.PLACE); // CraftBukkit // Paper - Add PlayerOpenSignEvent
-+                        }
-+                    }
-+                }
-+
-+                // SPIGOT-1288 - play sound stripped from BlockItem
-+                if (usedItem instanceof BlockItem blockItem && placedPos != null) {
-+                    BlockState placedState = level.getBlockState(placedPos);
-+                    net.minecraft.world.level.block.SoundType soundType = placedState.getSoundType();
-+                    level.playSound(player, pos, blockItem.getPlaceSound(placedState), net.minecraft.sounds.SoundSource.BLOCKS, (soundType.getVolume() + 1.0F) / 2.0F, soundType.getPitch() * 0.8F);
-+                }
-+
-+                player.awardStat(Stats.ITEM_USED.get(usedItem));
-+            }
+             player.awardStat(Stats.ITEM_USED.get(usedItem));
          }
-+        // CraftBukkit end
- 
-         return result;
-     }
 @@ -412,6 +_,12 @@
          return result;
      }

@@ -126,6 +126,7 @@ import net.minecraft.world.item.BucketItem;
 import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.PotionItem;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.TippedArrowItem;
@@ -678,9 +679,9 @@ public class CommonHooks {
 
             boolean eventResult = false;
             if (blockSnapshots.size() > 1) {
-                eventResult = EventHooks.onMultiBlockPlace(player, blockSnapshots, side);
+                eventResult = EventHooks.onMultiBlockPlace(player, blockSnapshots, side, context.getHand());
             } else if (blockSnapshots.size() == 1) {
-                eventResult = EventHooks.onBlockPlace(player, blockSnapshots.get(0), side);
+                eventResult = EventHooks.onBlockPlace(player, blockSnapshots.get(0), side, context.getHand());
             }
 
             if (eventResult) {
@@ -690,6 +691,7 @@ public class CommonHooks {
                     level.restoringBlockSnapshots = true;
                     blocksnapshot.restore(blocksnapshot.getFlags() | Block.UPDATE_CLIENTS);
                     level.restoringBlockSnapshots = false;
+                    blocksnapshot.getState().getBlock().forgetPlacer(); // Purpur - Store placer on Block when placed
                 }
                 // inform the client that the item was not consumed
                 if (player instanceof ServerPlayer serverPlayer) {
@@ -706,7 +708,7 @@ public class CommonHooks {
                     BlockState oldBlock = snap.getState();
                     BlockState newBlock = level.getBlockState(snap.getPos());
                     newBlock.onPlace(level, snap.getPos(), oldBlock, false);
-
+                    newBlock.getBlock().forgetPlacer(); // Purpur - Store placer on Block when placed
                     level.markAndNotifyBlock(snap.getPos(), level.getChunkAt(snap.getPos()), oldBlock, newBlock, updateFlag, 512);
                 }
                 if (player != null)
