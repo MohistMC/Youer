@@ -15,6 +15,7 @@ import com.mohistmc.youer.feature.db.DatabaseManager;
 import com.mohistmc.youer.feature.entitylimits.EntityLimitsCommands;
 import com.mohistmc.youer.feature.item.ItemsConfig;
 import com.mohistmc.youer.feature.menu.MenuCommand;
+import com.mohistmc.youer.feature.plugin.PluginHotReloadCommand;
 import com.mohistmc.youer.feature.tpa.TpaComamands;
 import com.mohistmc.youer.feature.tpa.TpacceptCommands;
 import com.mohistmc.youer.feature.tpa.TpadenyCommands;
@@ -94,6 +95,8 @@ public class YouerPlugin {
         if (CommandsConfig.INSTANCE.enable("deepseek.enable")) {
             commands.put("deepseek", new DeepseekCommand("deepseek"));
         }
+        commands.put("plugin", new PluginHotReloadCommand("plugin"));
+
     }
 
     public static void registerListener(Event event) {
