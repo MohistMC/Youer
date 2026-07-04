@@ -1,11 +1,11 @@
 --- a/net/minecraft/world/level/storage/SavedDataStorage.java
 +++ b/net/minecraft/world/level/storage/SavedDataStorage.java
-@@ -46,8 +_,17 @@
+@@ -46,13 +_,27 @@
      private final Path dataFolder;
      private CompletableFuture<?> pendingWriteFuture = CompletableFuture.completedFuture(null);
      private boolean closed;
 +    // Neo: Needed to make level context available to modded saved data
-+    private final net.minecraft.server.level.@org.jspecify.annotations.Nullable ServerLevel level;
++    private net.minecraft.server.level.@org.jspecify.annotations.Nullable ServerLevel level;
  
 +    /** @deprecated Neo: Use the version that has a level */
 +    @Deprecated
@@ -18,6 +18,16 @@
          this.fixerUpper = fixerUpper;
          this.dataFolder = dataFolder;
          this.registries = registries;
+     }
+ 
++    // Youer: Allow setting the level after construction (e.g. after ServerLevel is created)
++    public void setLevel(net.minecraft.server.level.@org.jspecify.annotations.Nullable ServerLevel level) {
++        this.level = level;
++    }
++
+     private Path getDataFile(Identifier id) {
+         Path path = id.withSuffix(".dat").resolveAgainst(this.dataFolder);
+         if (!path.toAbsolutePath().startsWith(this.dataFolder.toAbsolutePath())) {
 @@ -68,7 +_,7 @@
              return data;
          }

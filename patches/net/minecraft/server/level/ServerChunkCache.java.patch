@@ -162,12 +162,14 @@
      ) {
          this.level = level;
          this.mainThreadProcessor = new ServerChunkCache.MainThreadExecutor(level);
-@@ -101,7 +_,7 @@
+@@ -101,7 +_,9 @@
              LOGGER.error("Failed to create dimension data storage directory", e);
          }
  
 -        this.savedDataStorage = new SavedDataStorage(dataFolder, fixerUpper, level.registryAccess());
 +        this.savedDataStorage = savedDataStorage; // Paper - initialize SavedDataStorage earlier
++        // Youer: Make level context available to SavedDataType factories that depend on it
++        savedDataStorage.setLevel(level);
          this.ticketStorage = this.savedDataStorage.computeIfAbsent(TicketStorage.TYPE);
          this.chunkMap = new ChunkMap(
              level,
