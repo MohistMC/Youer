@@ -93,7 +93,7 @@
              this.distanceManager.addTicket(TicketType.UNKNOWN, chunkpos, j, chunkpos);
              if (this.chunkAbsent(chunkholder, j)) {
                  ProfilerFiller profilerfiller = this.level.getProfiler();
-@@ -244,7 +_,7 @@
+@@ -244,14 +_,18 @@
      }
  
      private boolean chunkAbsent(@Nullable ChunkHolder p_8417_, int p_8418_) {
@@ -102,6 +102,19 @@
      }
  
      @Override
+     public boolean hasChunk(int p_8429_, int p_8430_) {
+         ChunkHolder chunkholder = this.getVisibleChunkIfPresent(new ChunkPos(p_8429_, p_8430_).toLong());
+-        int i = ChunkLevel.byStatus(ChunkStatus.FULL);
+-        return !this.chunkAbsent(chunkholder, i);
++        if (chunkholder == null) return false;
++        // Non-blocking check: the chunk is truly loaded at FULL only if the FULL chunk is
++        // available in memory or currently being post-loaded (currentlyLoading).
++        // Ticket-level checks can race and return true for chunks that are not yet at FULL,
++        // causing re-entrant chunk loads that deadlock inside ChunkTaskPriorityQueueSorter.
++        return chunkholder.getChunkIfPresent(ChunkStatus.FULL) != null || chunkholder.currentlyLoading != null;
+     }
+ 
+     @Nullable
 @@ -282,6 +_,12 @@
          }
      }
