@@ -175,6 +175,12 @@ public class DeepSeek {
         }
         List<ChatRequest.Message> history = conversationHistory.computeIfAbsent(playerId, k -> new ArrayList<>());
 
+        // Enforce max history size: remove oldest pair if at limit
+        int maxHistory = Math.max(YouerConfig.deepseek_max_history, 1);
+        while (history.size() >= maxHistory) {
+            history.remove(0);
+        }
+
         // Add user message
         ChatRequest.Message userMsg = new ChatRequest.Message();
         userMsg.setRole("user");

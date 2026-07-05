@@ -11,7 +11,7 @@ import org.bukkit.entity.HumanEntity;
 
 /**
  * @author Mgazul by MohistMC
- *
+ * <p>
  * Ban configuration storage backed by database — 8 independent tables.
  * Each can be independently set to sqlite/mysql via database.yml features.bans.<type>.
  * All list tables have a message column for custom ban messages.

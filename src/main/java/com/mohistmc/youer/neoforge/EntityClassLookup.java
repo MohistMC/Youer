@@ -461,7 +461,7 @@ public class EntityClassLookup {
         registerEntity(PathfinderMob.class, (server, entity) -> new CraftCreature(server, (PathfinderMob) entity));
         registerEntity(Monster.class, (server, entity) -> new CraftMonster(server, (Monster) entity));
         registerEntity(Mob.class, (server, entity) -> new YouerModsMob(server, (Mob) entity));
-        registerEntity(Entity.class, (server, entity) -> new YouerModsEntity(server, (Entity) entity));
+        registerEntity(Entity.class, (server, entity) -> new YouerModsEntity(server, entity));
     }
 
     private static void registerEntity(Class<? extends Entity> clazz, BiFunction<CraftServer, Entity, CraftEntity> factory) {

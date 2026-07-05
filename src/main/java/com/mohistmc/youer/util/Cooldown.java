@@ -1,15 +1,16 @@
 package com.mohistmc.youer.util;
 
-import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * @author Mgazul
  * @date 2025/11/23 01:40
  */
 public class Cooldown {
-    private static Map<String, Cooldown> cooldowns;
+    private static Map<String, Cooldown> cooldowns = new ConcurrentHashMap<>();
     private final int timeInSeconds;
     private final UUID id;
     private final String cooldownName;
@@ -55,7 +56,20 @@ public class Cooldown {
         Cooldown.cooldowns.put(this.id.toString() + this.cooldownName, this);
     }
 
-    static {
-        Cooldown.cooldowns = new HashMap<>();
+    /**
+     * Periodically clean up expired cooldowns to prevent memory leaks.
+     * Call this from a scheduled task (e.g., every 5 minutes).
+     */
+    public static void cleanExpired() {
+        long now = System.currentTimeMillis();
+        Iterator<Map.Entry<String, Cooldown>> it = Cooldown.cooldowns.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry<String, Cooldown> entry = it.next();
+            Cooldown c = entry.getValue();
+            long elapsed = (now - c.start) / 1000;
+            if (elapsed >= c.timeInSeconds) {
+                it.remove();
+            }
+        }
     }
 }

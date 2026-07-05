@@ -31,7 +31,7 @@ public class TPSCalculator {
 
     private void addToHistory(double tps) {
         if (tpsHistory.size() >= historyLimit) {
-            tpsHistory.remove(0);
+            tpsHistory.removeFirst();
         }
 
         tpsHistory.add(tps);

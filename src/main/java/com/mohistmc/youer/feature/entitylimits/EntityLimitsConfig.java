@@ -3,11 +3,8 @@ package com.mohistmc.youer.feature.entitylimits;
 import com.mohistmc.youer.api.WorldAPI;
 import com.mohistmc.youer.feature.db.EntityLimitsDatabaseStorage;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
 import org.bukkit.World;
 
 /**
@@ -51,14 +48,9 @@ public class EntityLimitsConfig {
         int limit = storage.getLimit(world.getName(), entity.getBukkitEntity().getType().name());
         if (limit < 0) return false;
 
-        Map<EntityType<?>, Integer> collect =
-                StreamSupport.stream(WorldAPI.getServerLevel(world).getAllEntities().spliterator(), false)
-                        .collect(Collectors.toMap(
-                                Entity::getType,
-                                _ -> 1,
-                                Integer::sum
-                        ));
-        int entitySize = collect.getOrDefault(entity.getType(), 0);
+        long entitySize = StreamSupport.stream(WorldAPI.getServerLevel(world).getAllEntities().spliterator(), false)
+                .filter(e -> e.getType() == entity.getType())
+                .count();
         return entitySize >= limit;
     }
 }

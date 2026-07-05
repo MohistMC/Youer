@@ -49,7 +49,7 @@ public class AsyncExecutor implements Runnable {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
-                Youer.LOGGER.error("Failed to execute async mob spawning job for thread {}", thread.getName());
+                Youer.LOGGER.error("Failed to execute async mob spawning job for thread {}", thread.getName(), e);
             }
         }
     }

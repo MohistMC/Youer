@@ -6,6 +6,7 @@ import java.lang.management.ThreadMXBean;
 import java.net.BindException;
 import java.sql.SQLException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -20,7 +21,7 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
     private static final int SAMPLE_SIZE = 30;
     private static final long SAMPLE_INTERVAL_MS = 100;
     private static final ThreadInfo[][] SAMPLE_RING = new ThreadInfo[SAMPLE_SIZE][];
-    private static int sampleIndex = 0;
+    private static final AtomicInteger sampleIndex = new AtomicInteger(0);
     private static volatile boolean samplerStarted = false;
 
      private static void ensureSamplerStarted() {
@@ -28,19 +29,20 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
         synchronized (ExceptionHandler.class) {
             if (samplerStarted) return;
             samplerStarted = true;
-            SAMPLE_RING[sampleIndex++ % SAMPLE_SIZE] = ManagementFactory.getThreadMXBean().dumpAllThreads(false, false);
+            SAMPLE_RING[sampleIndex.getAndIncrement() % SAMPLE_SIZE] = ManagementFactory.getThreadMXBean().dumpAllThreads(false, false);
             Thread sampler = new Thread(() -> {
                 ThreadMXBean mx = ManagementFactory.getThreadMXBean();
-                while (true) {
-                    try {
+                try {
+                    for (int i = 0; i < SAMPLE_SIZE; i++) {
                         Thread.sleep(SAMPLE_INTERVAL_MS);
-                        int idx = sampleIndex++ % SAMPLE_SIZE;
+                        int idx = sampleIndex.getAndIncrement() % SAMPLE_SIZE;
                         SAMPLE_RING[idx] = mx.dumpAllThreads(false, false);
-                    } catch (InterruptedException ignored) {
-                        break;
-                    } catch (Exception ignored) {
                     }
+                } catch (InterruptedException ignored) {
+                    Thread.currentThread().interrupt();
+                } catch (Exception ignored) {
                 }
+                samplerStarted = false;
             }, "EH-Sampler");
             sampler.setDaemon(true);
             sampler.setPriority(Thread.MIN_PRIORITY);
@@ -315,7 +317,7 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
     }
 
     private void dumpRecentThreadSamples() {
-        int total = Math.min(sampleIndex, SAMPLE_SIZE);
+        int total = Math.min(sampleIndex.get(), SAMPLE_SIZE);
         if (total == 0) {
             LOGGER.error("  (采样器刚启动，暂无历史数据，稍后重试即可)");
             return;

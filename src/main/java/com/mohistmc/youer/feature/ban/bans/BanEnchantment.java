@@ -35,7 +35,9 @@ public class BanEnchantment {
         if (list.isEmpty()) return false;
         if (EnchantmentAPI.has(itemStack)) {
             for (Enchantment enchantment : EnchantmentAPI.get(itemStack)) {
-                return list.contains(enchantment.getKey().asString());
+                if (list.contains(enchantment.getKey().asString())) {
+                    return true;
+                }
             }
         }
         return false;
@@ -47,7 +49,9 @@ public class BanEnchantment {
         if (list.isEmpty()) return false;
         if (EnchantmentAPI.has(itemStack)) {
             for (Enchantment enchantment : EnchantmentAPI.get(CraftItemStack.asBukkitCopy(itemStack))) {
-                return list.contains(enchantment.getKey().asString());
+                if (list.contains(enchantment.getKey().asString())) {
+                    return true;
+                }
             }
         }
         return false;

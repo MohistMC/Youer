@@ -14,7 +14,7 @@
  import net.minecraft.util.profiling.jfr.JvmProfiler;
  import org.slf4j.Logger;
  
-@@ -15,22 +_,36 @@
+@@ -15,22 +_,38 @@
  
      public PacketEncoder(ProtocolInfo<T> protocolInfo) {
          this.protocolInfo = protocolInfo;
@@ -31,16 +31,18 @@
              this.protocolInfo.codec().encode(output, packet);
              int writtenBytes = output.readableBytes();
 +
-+            String packetClassName = packet.getClass().getName();
-+            int lastDot = packetClassName.lastIndexOf('.');
-+            if (lastDot >= 0) {
-+                packetClassName = packetClassName.substring(lastDot + 1);
-+            }
-+            if (packetClassName.endsWith("ClientboundCustomPayloadPacket")) {
-+                packetClassName = ((ClientboundCustomPayloadPacket)packet).payload().type().id().toString();
-+            }
++            if (PacketStatistics.isCollecting()) {
++                String packetClassName = packet.getClass().getName();
++                int lastDot = packetClassName.lastIndexOf('.');
++                if (lastDot >= 0) {
++                    packetClassName = packetClassName.substring(lastDot + 1);
++                }
++                if (packetClassName.endsWith("ClientboundCustomPayloadPacket")) {
++                    packetClassName = ((ClientboundCustomPayloadPacket) packet).payload().type().id().toString();
++                }
 +
-+            PacketStatistics.updatePacketStats(packetClassName, writtenBytes);
++                PacketStatistics.updatePacketStats(packetClassName, writtenBytes);
++            }
 +
              if (LOGGER.isDebugEnabled()) {
                  LOGGER.debug(

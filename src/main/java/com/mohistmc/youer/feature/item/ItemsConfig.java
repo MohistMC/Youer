@@ -7,7 +7,7 @@ import org.bukkit.inventory.ItemStack;
 /**
  * @author Mgazul by MohistMC
  * @date 2023/8/2 18:27:05
- *
+ * <p>
  * Item configuration storage backed by database (SQLite or MySQL).
  * Uses {@link ItemDatabaseStorage} for persistence with Zstd compression on SQLite.
  */

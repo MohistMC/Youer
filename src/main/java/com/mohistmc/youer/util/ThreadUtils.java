@@ -7,8 +7,9 @@ public class ThreadUtils {
 
     public static void executeOnMainThread(Runnable runnable) {
         MinecraftServer.getServer().processQueue.add(runnable);
-        if (LockSupport.getBlocker(MinecraftServer.getServer().getRunningThread()) == "waiting for tasks") {
-            LockSupport.unpark(MinecraftServer.getServer().getRunningThread());
+        Thread serverThread = MinecraftServer.getServer().getRunningThread();
+        if ("waiting for tasks".equals(LockSupport.getBlocker(serverThread))) {
+            LockSupport.unpark(serverThread);
         }
     }
 }

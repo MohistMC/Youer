@@ -167,8 +167,8 @@ public class WorldBackup {
             // Checksum: sum all bytes with checksum field treated as spaces
             Arrays.fill(header, 148, 156, (byte) ' ');
             int sum = 0;
-            for (int i = 0; i < header.length; i++) {
-                sum += header[i] & 0xFF;
+            for (byte b : header) {
+                sum += b & 0xFF;
             }
             String chksumStr = String.format("%06o", sum);
             System.arraycopy(chksumStr.getBytes(StandardCharsets.US_ASCII), 0, header, 148, 6);

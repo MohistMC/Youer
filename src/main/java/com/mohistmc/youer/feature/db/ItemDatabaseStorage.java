@@ -28,6 +28,7 @@ public class ItemDatabaseStorage {
 
     private static final Logger LOGGER = LogManager.getLogger("Youer-DB");
     private static final String MODULE = "items";
+    private static final long MAX_ITEM_SIZE = 10 * 1024 * 1024; // 10 MB max per item
     private final boolean isMysql;
     private final String tableName;
 
@@ -98,7 +99,12 @@ public class ItemDatabaseStorage {
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     byte[] compressed = rs.getBytes("data");
-                    byte[] raw = Zstd.decompress(compressed, (int) Zstd.decompressedSize(compressed));
+                    long decompressedSize = Zstd.decompressedSize(compressed);
+                    if (decompressedSize > MAX_ITEM_SIZE) {
+                        LOGGER.warn("[Youer-DB] Item '{}' has suspiciously large decompressed size ({} bytes), skipping", key, decompressedSize);
+                        return new ItemStack(Material.AIR);
+                    }
+                    byte[] raw = Zstd.decompress(compressed, (int) decompressedSize);
                     return ItemStack.deserializeBytes(raw);
                 }
             }
@@ -150,7 +156,12 @@ public class ItemDatabaseStorage {
             while (rs.next()) {
                 try {
                     byte[] compressed = rs.getBytes("data");
-                    byte[] raw = Zstd.decompress(compressed, (int) Zstd.decompressedSize(compressed));
+                    long decompressedSize = Zstd.decompressedSize(compressed);
+                    if (decompressedSize > MAX_ITEM_SIZE) {
+                        LOGGER.warn("[Youer-DB] Item '{}' has suspiciously large decompressed size ({} bytes), skipping", rs.getString("name"), decompressedSize);
+                        continue;
+                    }
+                    byte[] raw = Zstd.decompress(compressed, (int) decompressedSize);
                     items.add(ItemStack.deserializeBytes(raw));
                 } catch (Exception e) {
                     LOGGER.warn("[Youer-DB] Failed to deserialize item '{}': {}", rs.getString("name"), e.getMessage());

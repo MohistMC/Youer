@@ -40,7 +40,7 @@ public final class PluginUnloadUtil {
     private static Field lookupNamesField;
     private static Field dependencyTreeField;
     private static final Object REF_LOCK = new Object();
-    private static boolean reflectionReady = false;
+    private static volatile boolean reflectionReady = false;
     private static boolean reflectionAttempted = false;
 
     private static boolean ensureReflection() {

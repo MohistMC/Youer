@@ -109,6 +109,7 @@ public class YouerConfig {
     public static String deepseek_apikey;
     public static String deepseek_model;
     public static int deepseek_max_tokens;
+    public static int deepseek_max_history;
     public static String deepseek_system;
     public static String deepseek_command;
     public static String deepseek_all_command;
@@ -230,12 +231,12 @@ public class YouerConfig {
 
     private static boolean getBoolean(String path, boolean def) {
         config.addDefault(path, def);
-        return config.getBoolean(path, config.getBoolean(path));
+        return config.getBoolean(path, def);
     }
 
     private static int getInt(String path, int def) {
         config.addDefault(path, def);
-        return config.getInt(path, config.getInt(path));
+        return config.getInt(path, def);
     }
 
     private static <T> List<String> getStringList(String path, T def) {
@@ -245,12 +246,12 @@ public class YouerConfig {
 
     private static String getString(String path, String def) {
         config.addDefault(path, def);
-        return config.getString(path, config.getString(path));
+        return config.getString(path, def);
     }
 
     private static double getDouble(String path, double def) {
         config.addDefault(path, def);
-        return config.getDouble(path, config.getDouble(path));
+        return config.getDouble(path, def);
     }
 
     public static String youer_lang() {
@@ -318,6 +319,7 @@ public class YouerConfig {
         deepseek_apikey = getString("deepseek.apikey", "youer");
         deepseek_model = getString("deepseek.model", "deepseek-v4-pro");
         deepseek_max_tokens = getInt("deepseek.max_tokens", 2048);
+        deepseek_max_history = getInt("deepseek.max_history", 20);
         deepseek_system = getString("deepseek.system", "你的名字叫小小墨，年龄18岁，是个可爱的女孩子!");
         deepseek_command = getString("deepseek.command", "ai");
         deepseek_all_command = getString("deepseek.all_command", "ai-all");

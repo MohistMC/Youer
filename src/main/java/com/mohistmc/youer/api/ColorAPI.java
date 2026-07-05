@@ -1,6 +1,7 @@
 package com.mohistmc.youer.api;
 
 import com.mohistmc.tools.ChineseColors;
+import com.mohistmc.youer.feature.GlobalVariableSystem;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Matcher;
@@ -27,6 +28,13 @@ public class ColorAPI {
     // Matches #word, #中文, #hex broadly — resolution trims to longest valid name
     private static final Pattern SHORT_COLOR_PATTERN = Pattern.compile("#([\\w\\u4e00-\\u9fa5]+)");
 
+    // Precompiled patterns for stripColors — single-pass optimized
+    private static final Pattern STRIP_GRADIENT = Pattern.compile("<gradient(?:[:]#?[0-9A-Fa-f]{6}|[:][\\w\\u4e00-\\u9fa5]+)+>(.*?)</gradient>", Pattern.CASE_INSENSITIVE);
+    private static final Pattern STRIP_SOLID = Pattern.compile("<(#?[0-9A-Fa-f]{6}|[a-zA-Z_\\u4e00-\\u9fa5]+)>(.*?)</\\1>", Pattern.CASE_INSENSITIVE);
+    private static final Pattern STRIP_HEX = Pattern.compile("&#([0-9A-Fa-f]{6})");
+    private static final Pattern STRIP_LEGACY = Pattern.compile("&([0-9a-fk-orA-FK-OR])");
+    private static final Pattern STRIP_SECTION = Pattern.compile("§[0-9a-fk-orA-FK-ORx]");
+
     private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.builder()
         .character('§')
         .hexColors()
@@ -43,7 +51,7 @@ public class ColorAPI {
         processed = processHexColors(processed);   // 处理 &#ff0000
         processed = processLegacyCodes(processed); // 处理 &c
         processed = processShortColorCodes(processed); // 处理 #ff0000 或 #碧色
-        return processed;
+        return GlobalVariableSystem.as(null, processed);
     }
 
     /**
@@ -384,13 +392,15 @@ public class ColorAPI {
             return text == null ? "" : text;
         }
 
-        return text
-                .replaceAll("<gradient(?:[:]#?[0-9A-Fa-f]{6}|[:][\\w\\u4e00-\\u9fa5]+)+>(.*?)</gradient>", "$2")
-                .replaceAll("<(#?[0-9A-Fa-f]{6}|[a-zA-Z_\\u4e00-\\u9fa5]+)>(.*?)</\\1>", "$2")
-                .replaceAll("&#([0-9A-Fa-f]{6})", "")
-                .replaceAll("&([0-9a-fk-orA-FK-OR])", "")
-                .replaceAll("§[0-9a-fk-orA-FK-ORx]", "")
-                .replaceAll("§x§[0-9a-fA-F]{6}", "");
+        String result = text;
+        result = STRIP_GRADIENT.matcher(result).replaceAll("$2");
+        result = STRIP_SOLID.matcher(result).replaceAll("$2");
+        result = STRIP_HEX.matcher(result).replaceAll("");
+        result = STRIP_LEGACY.matcher(result).replaceAll("");
+        result = STRIP_SECTION.matcher(result).replaceAll("");
+        // Remove §x§#§#§#§#§#§# format (hex color chain)
+        result = result.replaceAll("§x§[0-9a-fA-F]{6}", "");
+        return result;
     }
 
     /**
@@ -418,7 +428,7 @@ public class ColorAPI {
             return text;
         }
         Matcher matcher = SHORT_COLOR_PATTERN.matcher(text);
-        StringBuffer sb = new StringBuffer();
+        StringBuilder sb = new StringBuilder();
         while (matcher.find()) {
             String rawName = matcher.group(1); // e.g. "鹅黄显示模组列表" (greedy)
             String replacement = null;

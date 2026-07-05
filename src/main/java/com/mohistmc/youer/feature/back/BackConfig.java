@@ -7,7 +7,7 @@ import org.bukkit.entity.Player;
 
 /**
  * @author Mgazul by MohistMC
- *
+ * <p>
  * Player back-location storage backed by SQLite database.
  * Always uses SQLite (not configurable) — simple structured data, no Zstd needed.
  */

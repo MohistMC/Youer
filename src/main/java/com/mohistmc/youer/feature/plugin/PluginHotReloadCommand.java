@@ -150,8 +150,8 @@ public class PluginHotReloadCommand extends Command {
                 }
             } else if ("load".equals(sub)) {
                 String prefix = args[1].toLowerCase();
-                File pluginsFolder = ((CraftServer) Bukkit.getServer()).getPluginsFolder();
-                File[] jars = pluginsFolder.listFiles((FileFilter) f -> f.isFile() && f.getName().toLowerCase().endsWith(".jar"));
+                File pluginsFolder = Bukkit.getServer().getPluginsFolder();
+                File[] jars = pluginsFolder.listFiles(f -> f.isFile() && f.getName().toLowerCase().endsWith(".jar"));
                 if (jars != null) {
                     for (File jar : jars) {
                         if (jar.getName().toLowerCase().startsWith(prefix)) {
