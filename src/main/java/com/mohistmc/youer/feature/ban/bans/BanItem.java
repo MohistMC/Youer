@@ -41,7 +41,7 @@ public class BanItem {
 
     public static boolean check(net.minecraft.world.entity.player.Player player) {
         ItemStack main = player.getMainHandItem();
-        ItemStack off = player.getMainHandItem();
+        ItemStack off = player.getOffhandItem();
         if (player.getBukkitEntity().isOp()) return false;
         if (checkMoShou(main)) {
             if (player.getBukkitEntity().hasPermission(moshou_permission + main.asBukkitCopy().getType().name())) {

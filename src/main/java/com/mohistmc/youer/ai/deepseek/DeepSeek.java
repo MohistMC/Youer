@@ -121,6 +121,12 @@ public class DeepSeek {
         UUID playerId = player.getUniqueId();
         List<ChatRequest.Message> history = conversationHistory.getOrDefault(playerId, new ArrayList<>());
 
+        // Enforce max history size: remove oldest pair if at limit
+        int maxHistory = Math.max(YouerConfig.deepseek_max_history, 1);
+        while (history.size() >= maxHistory) {
+            history.removeFirst();
+        }
+
         // Add history messages
         messages.addAll(history);
 
