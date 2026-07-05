@@ -14,7 +14,7 @@ import com.mohistmc.youer.feature.commands.CommandsConfig;
 import com.mohistmc.youer.feature.entitylimits.EntityLimitsCommands;
 import com.mohistmc.youer.feature.item.ItemsConfig;
 import com.mohistmc.youer.feature.menu.MenuCommand;
-import com.mohistmc.youer.feature.tpa.TpaComamands;
+import com.mohistmc.youer.feature.tpa.TpaCommands;
 import com.mohistmc.youer.feature.tpa.TpacceptCommands;
 import com.mohistmc.youer.feature.tpa.TpadenyCommands;
 import com.mohistmc.youer.feature.warps.WarpsCommands;
@@ -60,7 +60,7 @@ public class YouerPlugin {
             commands.put("warps", new WarpsCommands("warps"));
         }
         if (CommandsConfig.INSTANCE.enable("tpa.enable")) {
-            commands.put("tpa", new TpaComamands("tpa"));
+            commands.put("tpa", new TpaCommands("tpa"));
             commands.put("tpadeny", new TpadenyCommands("tpadeny"));
             commands.put("tpaccept", new TpacceptCommands("tpaccept"));
         }

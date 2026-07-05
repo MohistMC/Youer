@@ -17,11 +17,11 @@ public class TpadenyCommands extends Command {
     @Override
     public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
         if (sender instanceof Player player) {
-            if (TpaComamands.tpa.containsKey(player)) {
-                final Player a = TpaComamands.tpa.get(player);
+            if (TpaCommands.tpa.containsKey(player)) {
+                final Player a = TpaCommands.tpa.get(player);
                 a.sendMessage(I18n.as("tpadenycommands.successfully.you"));
                 player.sendMessage(I18n.as("tpadenycommands.successfully.me"));
-                TpaComamands.tpa.remove(player);
+                TpaCommands.tpa.remove(player);
             } else {
                 sender.sendMessage(I18n.as("tpadenycommands.nokey"));
             }

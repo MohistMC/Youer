@@ -12,11 +12,11 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-public class TpaComamands extends Command {
+public class TpaCommands extends Command {
 
     public static HashMap<Player, Player> tpa = new HashMap<>();
 
-    public TpaComamands(String name) {
+    public TpaCommands(String name) {
         super(name);
         this.usageMessage = "/tpa <player_name>";
         this.setPermission("youer.command.tpa");

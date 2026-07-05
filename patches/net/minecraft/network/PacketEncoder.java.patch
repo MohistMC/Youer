@@ -14,7 +14,7 @@
  import net.minecraft.util.profiling.jfr.JvmProfiler;
  import org.slf4j.Logger;
  
-@@ -15,30 +_,80 @@
+@@ -15,30 +_,82 @@
  
      public PacketEncoder(ProtocolInfo<T> p_320006_) {
          this.protocolInfo = p_320006_;
@@ -31,16 +31,18 @@
              this.protocolInfo.codec().encode(p_130547_, p_130546_);
              int i = p_130547_.readableBytes();
 +
-+            String packetClassName = p_130546_.getClass().getName();
-+            int lastDot = packetClassName.lastIndexOf('.');
-+            if (lastDot >= 0) {
-+                packetClassName = packetClassName.substring(lastDot + 1);
-+            }
-+            if (packetClassName.endsWith("ClientboundCustomPayloadPacket")) {
-+                packetClassName = ((ClientboundCustomPayloadPacket)p_130546_).payload().type().id().toString();
-+            }
++            if (PacketStatistics.isCollecting()) {
++                String packetClassName = p_130546_.getClass().getName();
++                int lastDot = packetClassName.lastIndexOf('.');
++                if (lastDot >= 0) {
++                    packetClassName = packetClassName.substring(lastDot + 1);
++                }
++                if (packetClassName.endsWith("ClientboundCustomPayloadPacket")) {
++                    packetClassName = ((ClientboundCustomPayloadPacket) p_130546_).payload().type().id().toString();
++                }
 +
-+            PacketStatistics.updatePacketStats(packetClassName, i);
++                PacketStatistics.updatePacketStats(packetClassName, i);
++            }
 +
              if (LOGGER.isDebugEnabled()) {
                  LOGGER.debug(

@@ -35,13 +35,10 @@ public class EntityEventDispatcher {
 
         if (entityliving instanceof Mob mob) {
             if (event.isFireCBEvent()) {
-                if (reason == EntityTargetEvent.TargetReason.UNKNOWN && mob.getTarget() != null && entityliving == null) {
+                if (reason == EntityTargetEvent.TargetReason.UNKNOWN && mob.getTarget() != null) {
                     reason = mob.getTarget().isAlive() ? EntityTargetEvent.TargetReason.FORGOT_TARGET : EntityTargetEvent.TargetReason.TARGET_DIED;
                 }
-                CraftLivingEntity ctarget = null;
-                if (entityliving != null) {
-                    ctarget = (CraftLivingEntity) entityliving.getBukkitEntity();
-                }
+                CraftLivingEntity ctarget = (CraftLivingEntity) entityliving.getBukkitEntity();
                 EntityTargetLivingEntityEvent CBevent = new EntityTargetLivingEntityEvent(event.getEntity().getBukkitEntity(), ctarget, reason);
                 Bukkit.getPluginManager().callEvent(CBevent);
                 if (CBevent.isCancelled()) {

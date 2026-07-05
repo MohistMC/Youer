@@ -11,6 +11,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import kong.unirest.core.HttpResponse;
 import kong.unirest.core.Unirest;
 import lombok.Getter;
@@ -24,7 +25,7 @@ public class DeepSeek {
     public static Logger LOGGER = LogManager.getLogger(DeepSeek.class);
     // Store conversation history for each player
     @Getter
-    private static final Map<UUID, List<ChatRequest.Message>> conversationHistory = new HashMap<>();
+    private static final Map<UUID, List<ChatRequest.Message>> conversationHistory = new ConcurrentHashMap<>();
 
     public static boolean init(Player player, String msg) {
         if (YouerConfig.deepseek_enable && player.hasPermission("youer.ai.deepseek")) {
