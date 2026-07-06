@@ -71,7 +71,7 @@
 +    public boolean purpurClient;
 +    // Purpur end - Purpur client support
 +    // Paper start - retain certain values
-+    public @Nullable String playerBrand;
++    public @Nullable String clientBrand;
 +    public final java.util.Set<String> pluginMessagerChannels;
 +    // Paper end - retain certain values
  
@@ -85,7 +85,7 @@
 +        // Neo: Set the connection type based on the cookie from the previous phase.
 +        this.connectionType = cookie.connectionType();
 +        // Paper start
-+        this.playerBrand = cookie.brandName();
++        this.clientBrand = cookie.clientBrand();
 +        this.cserver = server.server;
 +        this.pluginMessagerChannels = cookie.channels();
 +        this.keepAlive = cookie.keepAlive();
@@ -228,7 +228,7 @@
 +            // Purpur end - Purpur client support
 +
 +            if (identifier.equals(MINECRAFT_BRAND)) {
-+                this.playerBrand = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.wrappedBuffer(data)).readUtf(256);
++                this.clientBrand = new net.minecraft.network.FriendlyByteBuf(io.netty.buffer.Unpooled.wrappedBuffer(data)).readUtf(256);
 +            }
 +
 +            this.cserver.getMessenger().dispatchIncomingMessage(paperConnection(), identifier.toString(), data);
@@ -506,7 +506,7 @@
 +    @Deprecated
      protected CommonListenerCookie createCookie(ClientInformation clientInformation) {
 -        return new CommonListenerCookie(this.playerProfile(), this.latency, clientInformation, this.transferred);
-+        return new CommonListenerCookie(this.playerProfile(), this.latency, clientInformation, this.transferred, this.playerBrand, this.pluginMessagerChannels, this.keepAlive.copyForListenerHandoff());
++        return new CommonListenerCookie(this.playerProfile(), this.latency, clientInformation, this.transferred, this.clientBrand, this.pluginMessagerChannels, this.keepAlive.copyForListenerHandoff());
 +    }
 +
 +    /**
@@ -518,7 +518,7 @@
 +     */
 +    protected CommonListenerCookie createCookie(ClientInformation clientInformation, net.neoforged.neoforge.network.connection.ConnectionType connectionType) {
 +        // Paper start - listener handoff should reset pending keepalive expectations
-+        return new CommonListenerCookie(this.playerProfile(), this.latency, clientInformation, this.transferred, connectionType, this.playerBrand, this.pluginMessagerChannels, this.keepAlive.copyForListenerHandoff());
++        return new CommonListenerCookie(this.playerProfile(), this.latency, clientInformation, this.transferred, connectionType, this.clientBrand, this.pluginMessagerChannels, this.keepAlive.copyForListenerHandoff());
 +        // Paper end - listener handoff should reset pending keepalive expectations
 +    }
 +

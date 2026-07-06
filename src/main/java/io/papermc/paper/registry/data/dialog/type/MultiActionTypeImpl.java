@@ -17,7 +17,7 @@ public record MultiActionTypeImpl(
         actions = List.copyOf(actions);
     }
 
-    public static final class BuilderImpl implements MultiActionType.Builder {
+    public static final class BuilderImpl implements Builder {
         private final List<ActionButton> actions;
         private @Nullable ActionButton exitAction = null;
         private int columns = 2;

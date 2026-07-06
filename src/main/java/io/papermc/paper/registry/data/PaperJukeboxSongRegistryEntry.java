@@ -66,20 +66,20 @@ public class PaperJukeboxSongRegistryEntry implements JukeboxSongRegistryEntry {
         return asConfigured(this.comparatorOutput, "comparatorOutput");
     }
 
-    public static final class PaperBuilder extends PaperJukeboxSongRegistryEntry implements JukeboxSongRegistryEntry.Builder, PaperRegistryBuilder<JukeboxSong, org.bukkit.JukeboxSong> {
+    public static final class PaperBuilder extends PaperJukeboxSongRegistryEntry implements Builder, PaperRegistryBuilder<JukeboxSong, org.bukkit.JukeboxSong> {
 
         public PaperBuilder(final Conversions conversions, final @Nullable JukeboxSong internal) {
             super(conversions, internal);
         }
 
         @Override
-        public JukeboxSongRegistryEntry.Builder soundEvent(final TypedKey<Sound> soundEvent) {
+        public Builder soundEvent(final TypedKey<Sound> soundEvent) {
             this.soundEvent = this.conversions.getReferenceHolder(PaperRegistries.toNms(asArgument(soundEvent, "soundEvent")));
             return this;
         }
 
         @Override
-        public JukeboxSongRegistryEntry.Builder soundEvent(final Consumer<RegistryBuilderFactory<Sound, ? extends SoundEventRegistryEntry.Builder>> soundEvent) {
+        public Builder soundEvent(final Consumer<RegistryBuilderFactory<Sound, ? extends SoundEventRegistryEntry.Builder>> soundEvent) {
             this.soundEvent = this.conversions.createHolderFromBuilder(RegistryKey.SOUND_EVENT, asArgument(soundEvent, "soundEvent"));
             return this;
         }
@@ -91,19 +91,19 @@ public class PaperJukeboxSongRegistryEntry implements JukeboxSongRegistryEntry {
         }
 
         @Override
-        public JukeboxSongRegistryEntry.Builder description(final net.kyori.adventure.text.Component description) {
+        public Builder description(final net.kyori.adventure.text.Component description) {
             this.description = this.conversions.asVanilla(asArgument(description, "description"));
             return this;
         }
 
         @Override
-        public JukeboxSongRegistryEntry.Builder lengthInSeconds(final @Positive float lengthInSeconds) {
+        public Builder lengthInSeconds(final @Positive float lengthInSeconds) {
             this.lengthInSeconds = requirePositive(lengthInSeconds, "lengthInSeconds");
             return this;
         }
 
         @Override
-        public JukeboxSongRegistryEntry.Builder comparatorOutput(final @Range(from = Redstone.SIGNAL_MIN, to = Redstone.SIGNAL_MAX) int comparatorOutput) {
+        public Builder comparatorOutput(final @Range(from = Redstone.SIGNAL_MIN, to = Redstone.SIGNAL_MAX) int comparatorOutput) {
             this.comparatorOutput = OptionalInt.of(requireRange(comparatorOutput, "comparatorOutput", Redstone.SIGNAL_MIN, Redstone.SIGNAL_MAX));
             return this;
         }

@@ -3212,12 +3212,13 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
         // Paper end
     };
 
-    // Paper start - brand support
     @Override
     public String getClientBrandName() {
-        return getHandle().connection.playerBrand;
+        if (this.getHandle().connection == null) {
+            return null;
+        }
+        return this.getHandle().connection.clientBrand;
     }
-    // Paper end
 
     // Paper start
     @Override

@@ -83,7 +83,7 @@
          this.fuse = fuse;
      }
  
-@@ -295,13 +_,32 @@
+@@ -295,13 +_,34 @@
  
          if (!this.explosionData.isEmpty()) {
              if (this.fuse == 0) {
@@ -91,12 +91,14 @@
 -                this.dead = true;
 +                // Paper start - Fire events for SulfurCube explosions
 +                Runnable afterEvent = () -> {
-+                    final org.bukkit.event.entity.EntityUnleashEvent unleashEvent = new org.bukkit.event.entity.EntityUnleashEvent(this.getBukkitEntity(), org.bukkit.event.entity.EntityUnleashEvent.UnleashReason.LEASHED_GONE, true);
-+                    unleashEvent.callEvent();
-+                    if (unleashEvent.isDropLeash()) {
-+                        this.dropLeash();
-+                    } else {
-+                        this.removeLeash();
++                    if (this.isLeashed()) {
++                        final org.bukkit.event.entity.EntityUnleashEvent unleashEvent = new org.bukkit.event.entity.EntityUnleashEvent(this.getBukkitEntity(), org.bukkit.event.entity.EntityUnleashEvent.UnleashReason.LEASHED_GONE, true);
++                        unleashEvent.callEvent();
++                        if (unleashEvent.isDropLeash()) {
++                            this.dropLeash();
++                        } else {
++                            this.removeLeash();
++                        }
 +                    }
 +                    this.dead = true;
 +                };

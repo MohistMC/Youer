@@ -112,13 +112,13 @@ public class PaperEnchantmentRegistryEntry implements EnchantmentRegistryEntry {
     @Override
     public EnchantmentCost minimumCost() {
         final Enchantment.Cost cost = asConfigured(this.minimumCost, "minimumCost");
-        return EnchantmentRegistryEntry.EnchantmentCost.of(cost.base(), cost.perLevelAboveFirst());
+        return EnchantmentCost.of(cost.base(), cost.perLevelAboveFirst());
     }
 
     @Override
     public EnchantmentCost maximumCost() {
         final Enchantment.Cost cost = asConfigured(this.maximumCost, "maximumCost");
-        return EnchantmentRegistryEntry.EnchantmentCost.of(cost.base(), cost.perLevelAboveFirst());
+        return EnchantmentCost.of(cost.base(), cost.perLevelAboveFirst());
     }
 
     @Override
@@ -136,7 +136,7 @@ public class PaperEnchantmentRegistryEntry implements EnchantmentRegistryEntry {
         return PaperRegistrySets.convertToApi(RegistryKey.ENCHANTMENT, this.exclusiveWith);
     }
 
-    public static final class PaperBuilder extends PaperEnchantmentRegistryEntry implements EnchantmentRegistryEntry.Builder,
+    public static final class PaperBuilder extends PaperEnchantmentRegistryEntry implements Builder,
         PaperRegistryBuilder<Enchantment, org.bukkit.enchantments.Enchantment> {
 
         public PaperBuilder(final Conversions conversions, final @Nullable Enchantment internal) {

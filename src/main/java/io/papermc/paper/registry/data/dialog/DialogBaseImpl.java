@@ -25,7 +25,7 @@ public record DialogBaseImpl(
         inputs = List.copyOf(inputs);
     }
 
-    public static final class BuilderImpl implements DialogBase.Builder {
+    public static final class BuilderImpl implements Builder {
 
         private final Component title;
         private @Nullable Component externalTitle;

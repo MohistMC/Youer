@@ -65,7 +65,7 @@ public class PaperPaintingVariantRegistryEntry implements PaintingVariantRegistr
         return PaperAdventure.asAdventure(asConfigured(this.assetId, "assetId"));
     }
 
-    public static final class PaperBuilder extends PaperPaintingVariantRegistryEntry implements PaintingVariantRegistryEntry.Builder, PaperRegistryBuilder<PaintingVariant, Art> {
+    public static final class PaperBuilder extends PaperPaintingVariantRegistryEntry implements Builder, PaperRegistryBuilder<PaintingVariant, Art> {
 
         public PaperBuilder(final Conversions conversions, final @Nullable PaintingVariant internal) {
             super(conversions, internal);

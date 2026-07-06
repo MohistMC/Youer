@@ -43,20 +43,20 @@ public class PaperSoundEventRegistryEntry implements SoundEventRegistryEntry {
         return this.fixedRange;
     }
 
-    public static final class PaperBuilder extends PaperSoundEventRegistryEntry implements SoundEventRegistryEntry.Builder, PaperRegistryBuilder<SoundEvent, Sound> {
+    public static final class PaperBuilder extends PaperSoundEventRegistryEntry implements Builder, PaperRegistryBuilder<SoundEvent, Sound> {
 
         public PaperBuilder(final Conversions conversions, final @Nullable SoundEvent soundEvent) {
             super(conversions, soundEvent);
         }
 
         @Override
-        public SoundEventRegistryEntry.Builder location(final Key location) {
+        public Builder location(final Key location) {
             this.location = PaperAdventure.asVanilla(asArgument(location, "location"));
             return this;
         }
 
         @Override
-        public SoundEventRegistryEntry.Builder fixedRange(final @Nullable Float fixedRange) {
+        public Builder fixedRange(final @Nullable Float fixedRange) {
             this.fixedRange = fixedRange;
             return this;
         }

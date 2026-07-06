@@ -62,7 +62,7 @@ public class PaperDamageTypeRegistryEntry implements DamageTypeRegistryEntry {
         return CraftDamageType.deathMessageTypeToBukkit(this.deathMessageType);
     }
 
-    public static final class PaperBuilder extends PaperDamageTypeRegistryEntry implements DamageTypeRegistryEntry.Builder, PaperRegistryBuilder<DamageType, org.bukkit.damage.DamageType> {
+    public static final class PaperBuilder extends PaperDamageTypeRegistryEntry implements Builder, PaperRegistryBuilder<DamageType, org.bukkit.damage.DamageType> {
 
         public PaperBuilder(final Conversions conversions, final @Nullable DamageType internal) {
             super(conversions, internal);
