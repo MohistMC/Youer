@@ -470,7 +470,7 @@ public class BansCommand extends Command {
                             sender.sendMessage(ChatColor.RED + I18n.as("banscmd.setmessage.noitem"));
                             return false;
                         }
-                        if (BanItem.check(itemStack) || BanItem.checkMoShou(itemStack)) {
+                        if (BanItem.check(net.minecraft.world.item.ItemStack.fromBukkitCopy(itemStack)) || BanItem.checkMoShou(itemStack)) {
                             String result = Arrays.stream(args)
                                     .skip(2)
                                     .collect(Collectors.joining(" "));

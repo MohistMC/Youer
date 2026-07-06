@@ -34,6 +34,8 @@ import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.Tag;
 import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 import net.minecraft.network.protocol.game.ClientboundLevelEventPacket;
+import net.minecraft.network.protocol.game.ClientboundSetChunkCacheRadiusPacket;
+import net.minecraft.network.protocol.game.ClientboundSetSimulationDistancePacket;
 import net.minecraft.network.protocol.game.ClientboundSetTimePacket;
 import net.minecraft.network.protocol.game.ClientboundSoundEntityPacket;
 import net.minecraft.network.protocol.game.ClientboundSoundPacket;
@@ -2425,6 +2427,8 @@ public class CraftWorld extends CraftRegionAccessor implements World {
             throw new IllegalArgumentException("View distance " + viewDistance + " is out of range of [2, 32]");
         }
         this.getHandle().chunkSource.chunkMap.setServerViewDistance(viewDistance);
+        net.minecraft.server.MinecraftServer.getServer().getPlayerList()
+                .broadcastAll(new ClientboundSetChunkCacheRadiusPacket(viewDistance));
     }
 
     @Override
@@ -2433,6 +2437,9 @@ public class CraftWorld extends CraftRegionAccessor implements World {
             throw new IllegalArgumentException("Simulation distance " + simulationDistance + " is out of range of [2, 32]");
         }
         this.getHandle().chunkSource.setSimulationDistance(simulationDistance);
+        net.minecraft.server.MinecraftServer.getServer().getPlayerList()
+                .broadcastAll(new ClientboundSetSimulationDistancePacket(simulationDistance));
+
     }
 
     @Override

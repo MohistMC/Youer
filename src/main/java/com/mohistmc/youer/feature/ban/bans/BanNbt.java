@@ -17,7 +17,10 @@ public class BanNbt {
             return false;
         }
         var nbt = ItemAPI.getNbtAsString(itemStack);
-
         return yml.stream().anyMatch(nbt::contains);
+    }
+
+    public static boolean check(net.minecraft.world.item.ItemStack itemStack) {
+        return check(itemStack.getBukkitStack());
     }
 }

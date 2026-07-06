@@ -83,12 +83,8 @@ public class BanItem {
     }
 
     public static boolean check(ItemStack itemStack) {
-        return check(itemStack.getBukkitStack());
-    }
-
-    public static boolean check(org.bukkit.inventory.ItemStack itemStack) {
         if (!YouerConfig.ban_item_enable) return false;
-        return ItemAPI.isBan(itemStack) || BanNbt.check(itemStack);
+        return ItemAPI.isBan(itemStack.getBukkitStack()) || BanNbt.check(itemStack);
     }
 
     public static boolean checkMoShou(org.bukkit.inventory.ItemStack itemStack) {

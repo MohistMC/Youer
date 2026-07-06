@@ -1,10 +1,16 @@
 package com.mohistmc.youer.commands;
 
+import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.api.PlayerAPI;
+import com.mohistmc.youer.api.gui.DemoGUI;
+import com.mohistmc.youer.api.gui.GUIItem;
+import com.mohistmc.youer.api.gui.ItemStackFactory;
 import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import net.minecraft.core.component.DataComponentMap;
+import net.minecraft.core.component.DataComponentType;
 import net.minecraft.network.chat.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -13,8 +19,10 @@ import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
@@ -24,12 +32,12 @@ import org.jetbrains.annotations.NotNull;
  */
 public class InfoCommand extends Command {
 
-    private final List<String> params = List.of("item", "block", "entity", "cmd");
+    private final List<String> params = List.of("item", "block", "entity", "cmd", "item-component");
 
     public InfoCommand(String name) {
         super(name);
         this.description = "Youer infos commands";
-        this.usageMessage = "/infos [item|block|entity|cmd]";
+        this.usageMessage = "/infos [item|block|entity|cmd|item-component]";
         this.setPermission("youer.command.infos");
     }
 
@@ -190,6 +198,44 @@ public class InfoCommand extends Command {
                         }
                     }
                 }
+                return true;
+            }
+            case "item-component" -> {
+                if (itemStack == null || itemStack.getType().isAir()) {
+                    player.sendMessage(I18n.as("itemscmd.mainhandEmpty"));
+                    return false;
+                }
+                net.minecraft.world.item.ItemStack nmsItem = CraftItemStack.asNMSCopy(itemStack);
+                DataComponentMap components = nmsItem.getComponents();
+
+                DemoGUI gui = new DemoGUI(I18n.as("info.item_component.title"));
+
+                for (DataComponentType<?> type : components.keySet()) {
+                    String typeName = type.toString();
+                    Object value = components.get(type);
+                    String valueStr = String.valueOf(value);
+
+                    gui.addItem(new GUIItem(new ItemStackFactory(Material.KNOWLEDGE_BOOK)
+                            .setDisplayName("§e" + typeName)
+                            .addLore(I18n.as("info.item_component.value", valueStr))
+                            .addLore("")
+                            .addLore("§a" + I18n.as("itemscmd.copy"))
+                            .build()) {
+                        @Override
+                        public void ClickAction(ClickType type, Player p, ItemStack itemStack) {
+                            if (type.isLeftClick() && !type.isShiftClick()) {
+                                p.sendMessage(
+                                        ColorAPI.adventure("§e" + typeName + "§7: §f" + valueStr)
+                                                .clickEvent(net.kyori.adventure.text.event.ClickEvent.copyToClipboard(valueStr))
+                                                .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                                                        ColorAPI.adventure("§c" + I18n.as("itemscmd.copy"))))
+                                );
+                            }
+                        }
+                    });
+                }
+
+                gui.openGUI(player);
                 return true;
             }
             case "cmd" -> {
