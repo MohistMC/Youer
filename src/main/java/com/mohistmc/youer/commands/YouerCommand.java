@@ -9,6 +9,7 @@ import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.PlayerAPI;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.feature.PacketStatistics;
+import com.mohistmc.youer.feature.WorldBackup;
 import com.mohistmc.youer.util.I18n;
 import com.mohistmc.youer.util.MemoryUtils;
 import com.mohistmc.youer.util.TimeUtils;
@@ -41,7 +42,8 @@ public class YouerCommand extends Command {
     private static final String[] COMMAND_LIST = {
             "windows", "mods", "playermods", "reload", "version",
             "channels_incom", "channels_outgo", "speed", "printthreadcost",
-            "packetstats", "heal", "help", "cleardropitem", "memoryfix", "showp"
+            "packetstats", "heal", "help", "cleardropitem", "memoryfix", "showp",
+            "backupworld"
     };
 
     private final List<String> params = Arrays.asList(COMMAND_LIST);
@@ -429,6 +431,12 @@ public class YouerCommand extends Command {
                         sender.sendMessage(ChatColor.RED + I18n.as("youercmd.showp.offline"));
                     }
                 }
+            }
+            case "backupworld" -> {
+                if (!sender.isOp()) {
+                    return true;
+                }
+                WorldBackup.backup(sender);
             }
             default -> {
                 showHelp(sender);
