@@ -75,22 +75,23 @@ public class WorldBackup {
         String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
         boolean useZstd = YouerConfig.backup_world_use_zstd;
         String ext = useZstd ? ".tar.zst" : ".zip";
-        File zip = new File("./YouerBackups/world-" + timestamp + ext);
-        zip.getParentFile().mkdirs();
+        File backupDir = new File("./YouerBackups");
+        backupDir.mkdirs();
 
+        File zip = new File(backupDir, "world-" + timestamp + ext);
         backupDirectory(worldPath, zip, useZstd);
+        cleanupOldBackups(backupDir, "world-");
 
         for (World world : Bukkit.getWorlds()) {
             if (world.isBukkit()) {
                 // Bukkit世界的存储目录独立于主世界，需单独备份
                 Path bukkitWorldPath = world.getWorldFolder().toPath();
                 String worldName = world.getName();
-                File bukkitZip = new File("./YouerBackups/" + worldName + "-" + timestamp + ext);
+                File bukkitZip = new File(backupDir, worldName + "-" + timestamp + ext);
                 backupDirectory(bukkitWorldPath, bukkitZip, useZstd);
+                cleanupOldBackups(backupDir, worldName + "-");
             }
         }
-
-        cleanupOldBackups(zip.getParentFile());
     }
 
     private static void backupDirectory(Path sourceDir, File targetFile, boolean useZstd) throws IOException {
@@ -213,11 +214,12 @@ public class WorldBackup {
         }
     }
 
-    private static void cleanupOldBackups(File backupDir) {
+    private static void cleanupOldBackups(File backupDir, String prefix) {
         int max = YouerConfig.backup_world_max_backups;
         if (max <= 0) return;
 
-        File[] files = backupDir.listFiles((e, name) -> name.endsWith(".zip") || name.endsWith(".tar.zst") || name.endsWith(".zst"));
+        File[] files = backupDir.listFiles((e, name) -> name.startsWith(prefix)
+                && (name.endsWith(".zip") || name.endsWith(".tar.zst") || name.endsWith(".zst")));
         if (files == null || files.length <= max) return;
 
         Arrays.sort(files, Comparator.comparingLong(File::lastModified));
