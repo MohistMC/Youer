@@ -166,7 +166,7 @@
          @Override
          public void dataChanged(AbstractContainerMenu container, int id, int value) {
          }
-@@ -362,10 +_,97 @@
+@@ -362,10 +_,89 @@
          public void sendSystemMessage(Component message) {
              ServerPlayer.this.sendSystemMessage(message);
          }
@@ -253,14 +253,6 @@
 +        return this.viewDistanceHolder;
 +    }
 +    // Paper end - rewrite chunk system
-+    // SparklyPaper start - per-player chunk rate overrides
-+    public @Nullable Double chunkLoadRateOverride = null;
-+    public @Nullable Double chunkGenRateOverride = null;
-+    public @Nullable Double chunkSendRateOverride = null;
-+    public @Nullable Long maxConcurrentChunkLoadsOverride = null;
-+    public @Nullable Long maxConcurrentChunkGeneratesOverride = null;
-+    // SparklyPaper end
-+    public boolean hasTickedAtLeastOnceInNewWorld = false; // SparklyPaper - parallel world ticking (fixes bug in DreamResourceReset where the inventory is opened AFTER the player has changed worlds, if you click with the quick tp torch in a chest, because the inventory is opened AFTER the player has teleported)
  
      public ServerPlayer(MinecraftServer server, ServerLevel level, GameProfile gameProfile, ClientInformation clientInformation) {
          super(level, gameProfile);
@@ -415,11 +407,10 @@
      }
  
      public void initInventoryMenu() {
-@@ -578,6 +_,12 @@
+@@ -578,6 +_,11 @@
  
      @Override
      public void tick() {
-+        hasTickedAtLeastOnceInNewWorld = true; // SparklyPaper - parallel world ticking (see: PARALLEL_NOTES.md - Opening an inventory after a world switch)
 +        // CraftBukkit start
 +        if (this.joining) {
 +            this.joining = false;
@@ -1079,11 +1070,10 @@
          if (this.isRemoved()) {
              return null;
          }
-@@ -1101,13 +_,49 @@
+@@ -1101,13 +_,48 @@
  
          ServerLevel newLevel = transition.newLevel();
          ServerLevel oldLevel = this.level();
-+        ca.spottedleaf.moonrise.common.util.TickThread.ensureOnlyTickThread("Cannot change dimension of a player off-main, from world " + oldLevel.getWorld().getName() + " to world " + newLevel.getWorld().getName()); // SparklyPaper - parallel world ticking (additional concurrency issues logs)
 +
          ResourceKey<Level> lastDimension = oldLevel.dimension();
 +        // CraftBukkit start
@@ -1436,7 +1426,7 @@
          this.connection.send(new ClientboundBlockUpdatePacket(this.level(), sign.getBlockPos()));
          this.connection.send(new ClientboundOpenSignEditorPacket(sign.getBlockPos(), isFrontText));
      }
-@@ -1330,29 +_,95 @@
+@@ -1330,29 +_,89 @@
          this.containerCounter = this.containerCounter % 100 + 1;
      }
  
@@ -1536,12 +1526,6 @@
 +                    }
 +                    this.connection.send(new ClientboundOpenScreenPacket(menu.containerId, menu.getType(), java.util.Objects.requireNonNullElseGet(title, menu::getTitle))); // Paper - Add titleOverride to InventoryOpenEven
 +                }
-+                // SparklyPaper start - parallel world ticking (see: PARALLEL_NOTES.md - Opening an inventory after a world switch)
-+                if (!hasTickedAtLeastOnceInNewWorld) {
-+                    MinecraftServer.LOGGER.warn("Ignoring request to open container " + menu + " because we haven't ticked in the current world yet!", new Throwable());
-+                    return OptionalInt.empty();
-+                }
-+                // SparklyPaper end
 +                this.initMenu(menu);
 +                this.containerMenu = menu;
 +                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.PlayerContainerEvent.Open(this, this.containerMenu));

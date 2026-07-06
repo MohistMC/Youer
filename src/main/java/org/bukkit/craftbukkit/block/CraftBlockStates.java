@@ -236,14 +236,14 @@ public final class CraftBlockStates {
         BlockPos pos = craftBlock.getPosition();
         net.minecraft.world.level.block.state.BlockState state = craftBlock.getBlockState();
         BlockEntity blockEntity = craftBlock.getLevel().getBlockEntity(pos);
-        boolean prev = CraftBlockEntityState.DISABLE_SNAPSHOT.get(); // SparklyPaper - parallel world ticking
-        CraftBlockEntityState.DISABLE_SNAPSHOT.set(!useSnapshot); // SparklyPaper - parallel world ticking
+        boolean prev = CraftBlockEntityState.DISABLE_SNAPSHOT;
+        CraftBlockEntityState.DISABLE_SNAPSHOT = !useSnapshot;
         try {
             CraftBlockState blockState = CraftBlockStates.getBlockState(world, pos, state, blockEntity);
             blockState.setWorldHandle(craftBlock.getLevel()); // Inject the block's level accessor
             return blockState;
         } finally {
-            CraftBlockEntityState.DISABLE_SNAPSHOT.set(prev); // SparklyPaper - parallel world ticking
+            CraftBlockEntityState.DISABLE_SNAPSHOT = prev;
         }
     }
 

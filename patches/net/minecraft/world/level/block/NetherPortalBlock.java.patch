@@ -1,19 +1,5 @@
 --- a/net/minecraft/world/level/block/NetherPortalBlock.java
 +++ b/net/minecraft/world/level/block/NetherPortalBlock.java
-@@ -44,6 +_,13 @@
- import org.jspecify.annotations.Nullable;
- import org.slf4j.Logger;
- 
-+// CraftBukkit start
-+import org.bukkit.craftbukkit.CraftWorld;
-+import org.bukkit.craftbukkit.util.CraftLocation;
-+import org.bukkit.event.entity.EntityPortalEnterEvent;
-+import org.bukkit.event.player.PlayerTeleportEvent;
-+// CraftBukkit end
-+
- public class NetherPortalBlock extends Block implements Portal {
-     private static final Logger LOGGER = LogUtils.getLogger();
-     public static final MapCodec<NetherPortalBlock> CODEC = simpleCodec(NetherPortalBlock::new);
 @@ -67,19 +_,23 @@
  
      @Override
@@ -80,8 +66,7 @@
 +        newLevel = portalReadyEvent.getTargetWorld() == null ? null : ((org.bukkit.craftbukkit.CraftWorld) portalReadyEvent.getTargetWorld()).getHandle();
 +        // Paper end - Add EntityPortalReadyEvent
          if (newLevel == null) {
--            return null;
-+            return new TeleportTransition(PlayerTeleportEvent.TeleportCause.NETHER_PORTAL); // CraftBukkit
+             return null;
          }
  
 -        boolean toNether = newLevel.dimension() == Level.NETHER;
@@ -148,7 +133,7 @@
          Vec3 collisionFreePos = PortalShape.findCollisionFreePosition(targetPos, newLevel, entity, dimensions);
          return new TeleportTransition(
 -            newLevel, collisionFreePos, Vec3.ZERO, outputRotation, 0.0F, Relative.union(Relative.DELTA, Relative.ROTATION), postTeleportTransition
-+            newLevel, collisionFreePos, Vec3.ZERO, outputRotation, 0.0F, Relative.union(Relative.DELTA, Relative.ROTATION), postTeleportTransition, PlayerTeleportEvent.TeleportCause.NETHER_PORTAL // CraftBukkit
++            newLevel, collisionFreePos, Vec3.ZERO, outputRotation, 0.0F, Relative.union(Relative.DELTA, Relative.ROTATION), postTeleportTransition, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.NETHER_PORTAL // CraftBukkit
          );
      }
  

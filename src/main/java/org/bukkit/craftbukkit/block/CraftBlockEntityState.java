@@ -33,7 +33,7 @@ public abstract class CraftBlockEntityState<T extends BlockEntity> extends Craft
     private final T blockEntity;
     private final T snapshot;
     public boolean snapshotDisabled; // Paper
-    public static ThreadLocal<Boolean> DISABLE_SNAPSHOT = ThreadLocal.withInitial(() -> Boolean.FALSE); // SparklyPaper - parallel world ticking
+    public static boolean DISABLE_SNAPSHOT = false; // Paper
 
     public CraftBlockEntityState(World world, T blockEntity) {
         super(world, blockEntity.getBlockPos(), blockEntity.getBlockState());
@@ -41,25 +41,25 @@ public abstract class CraftBlockEntityState<T extends BlockEntity> extends Craft
         this.blockEntity = blockEntity;
 
         try { // Paper - Show blockstate location if we failed to read it
-            // Paper start
-            this.snapshotDisabled = DISABLE_SNAPSHOT.get(); // SparklyPaper - parallel world ticking
-            if (DISABLE_SNAPSHOT.get()) { // SparklyPaper - parallel world ticking
-                this.snapshot = this.blockEntity;
-            } else {
-                this.snapshot = this.createSnapshot(blockEntity);
-            }
-            // copy block entity data:
-            if (this.snapshot != null) {
-                this.load(this.snapshot);
-            }
-            // Paper end
-            // Paper start - Show blockstate location if we failed to read it
+        // Paper start
+        this.snapshotDisabled = DISABLE_SNAPSHOT;
+        if (DISABLE_SNAPSHOT) {
+            this.snapshot = this.blockEntity;
+        } else {
+            this.snapshot = this.createSnapshot(blockEntity);
+        }
+        // copy block entity data:
+        if (this.snapshot != null) {
+            this.load(this.snapshot);
+        }
+        // Paper end
+        // Paper start - Show blockstate location if we failed to read it
         } catch (Throwable thr) {
             throw new RuntimeException(
-                    world == null
-                            ? "Failed to read non-placed BlockState"
-                            : "Failed to read BlockState at: world: " + world.key().asString() + " location: (" + this.getX() + ", " + this.getY() + ", " + this.getZ() + ")",
-                    thr
+                world == null
+                    ? "Failed to read non-placed BlockState"
+                    : "Failed to read BlockState at: world: " + world.key().asString() + " location: (" + this.getX() + ", " + this.getY() + ", " + this.getZ() + ")",
+                thr
             );
         }
         // Paper end - Show blockstate location if we failed to read it

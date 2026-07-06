@@ -1,15 +1,5 @@
 --- a/net/minecraft/stats/ServerStatsCounter.java
 +++ b/net/minecraft/stats/ServerStatsCounter.java
-@@ -51,6 +_,9 @@
-         }, map -> map.entrySet().stream().collect(Collectors.groupingBy(entry -> entry.getKey().getType(), Util.toMap())));
-     private final Path file;
-     private final Set<Stat<?>> dirty = Sets.newHashSet();
-+    // SparklyPaper start - per-player statistic tracking opt-out
-+    private final java.util.Set<org.bukkit.Statistic> untrackedStatistics = java.util.concurrent.ConcurrentHashMap.newKeySet();
-+    // SparklyPaper end - per-player statistic tracking opt-out
- 
-     private static <T> Codec<Map<Stat<?>, Integer>> createTypedStatsCodec(StatType<T> type) {
-         Codec<T> valueCodec = type.getRegistry().byNameCodec();
 @@ -65,6 +_,13 @@
  
      public ServerStatsCounter(MinecraftServer server, Path file) {
@@ -46,37 +36,12 @@
          try {
              FileUtil.createDirectoriesSafe(this.file.getParent());
  
-@@ -91,9 +_,33 @@
+@@ -91,6 +_,8 @@
  
      @Override
      public void setValue(Player player, Stat<?> stat, int count) {
 +        if (org.spigotmc.SpigotConfig.disableStatSaving) return; // Spigot
 +        if (stat.getType() == Stats.CUSTOM && stat.getValue() instanceof final net.minecraft.resources.Identifier key && org.spigotmc.SpigotConfig.forcedStats.get(key) != null) return; // Paper - disable saving forced stats
-+        // SparklyPaper start - per-player statistic tracking opt-out
-+        if (!this.untrackedStatistics.isEmpty()) {
-+            final org.bukkit.Statistic bukkitStat = org.bukkit.craftbukkit.CraftStatistic.getBukkitStatistic(stat);
-+            if (bukkitStat != null && this.untrackedStatistics.contains(bukkitStat)) {
-+                return;
-+            }
-+        }
-+        // SparklyPaper end - per-player statistic tracking opt-out
          super.setValue(player, stat, count);
          this.dirty.add(stat);
      }
-+
-+    // SparklyPaper start - per-player statistic tracking opt-out
-+    public void setStatisticTracked(final org.bukkit.Statistic statistic, final boolean tracked) {
-+        if (tracked) {
-+            this.untrackedStatistics.remove(statistic);
-+        } else {
-+            this.untrackedStatistics.add(statistic);
-+        }
-+    }
-+
-+    public boolean isStatisticTracked(final org.bukkit.Statistic statistic) {
-+        return !this.untrackedStatistics.contains(statistic);
-+    }
-+    // SparklyPaper end - per-player statistic tracking opt-out
- 
-     private Set<Stat<?>> getDirty() {
-         Set<Stat<?>> result = Sets.newHashSet(this.dirty);

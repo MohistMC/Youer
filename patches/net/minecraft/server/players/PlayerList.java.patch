@@ -108,14 +108,13 @@
          this.server = server;
          this.registries = registries;
          this.playerIo = playerIo;
-@@ -141,27 +_,25 @@
+@@ -141,27 +_,24 @@
          this.ipBans = new IpBanList(IPBANLIST_FILE, notificationService);
      }
  
 +    public void loadAndSaveFiles() {}; // Paper - fix converting txt to json file; moved from DedicatedPlayerList constructor
 +
      public void placeNewPlayer(Connection connection, ServerPlayer player, CommonListenerCookie cookie) {
-+        ca.spottedleaf.moonrise.common.util.TickThread.ensureOnlyTickThread("Cannot place new player off-main"); // SparklyPaper - parallel world ticking (additional concurrency issues logs)
 +        player.isRealPlayer = true; // Paper
 +        player.loginTime = System.currentTimeMillis(); // Paper - Replace OfflinePlayer#getLastPlayed
          NameAndId gameProfile = player.nameAndId();
@@ -518,7 +517,7 @@
                  dupes.add(player);
              }
          }
-@@ -382,23 +_,33 @@
+@@ -382,23 +_,32 @@
          }
  
          for (ServerPlayer player : dupes) {
@@ -543,7 +542,6 @@
 +
          ServerLevel level = respawnInfo.newLevel();
          ServerPlayer player = new ServerPlayer(this.server, level, serverPlayer.getGameProfile(), serverPlayer.clientInformation());
-+        player.hasTickedAtLeastOnceInNewWorld = false; // SparklyPaper - parallel world ticking (see: PARALLEL_NOTES.md - Opening an inventory after a world switch)
          player.connection = serverPlayer.connection;
          player.restoreFrom(serverPlayer, keepAllPlayerData);
          player.setId(serverPlayer.getId());
@@ -577,12 +575,11 @@
          ServerPlayer.RespawnConfig respawnConfig = player.getRespawnConfig();
          if (!keepAllPlayerData && respawnConfig != null) {
              LevelData.RespawnData respawnData = respawnConfig.respawnData();
-@@ -456,34 +_,197 @@
+@@ -456,34 +_,196 @@
          return player;
      }
  
 +    public ServerPlayer respawn(ServerPlayer serverPlayer, boolean keepAllPlayerData, Entity.RemovalReason removalReason, PlayerRespawnEvent.RespawnReason respawnReason) {
-+        ca.spottedleaf.moonrise.common.util.TickThread.ensureOnlyTickThread("Cannot respawn player off-main, respawning in world " + serverPlayer.level().getWorld().getName()); // SparklyPaper - parallel world ticking (additional concurrency issues logs)
 +        ServerPlayer.RespawnResult result = serverPlayer.findRespawnPositionAndUseSpawnBlock0(!keepAllPlayerData, TeleportTransition.DO_NOTHING, respawnReason);
 +        if (result == null) { // disconnected player during the respawn event
 +            return serverPlayer;

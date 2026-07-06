@@ -43,9 +43,8 @@
 
 ## ⚙️ Technical Stack
 
-| Component    | Source                                                     | Purpose        | Status |
-|--------------|------------------------------------------------------------|----------------|--------|
-| NeoForge     | [GitHub](https://github.com/neoforged/NeoForge.git)        | Mod support    | ✅      |
-| Paper        | [GitHub](https://github.com/PaperMC/Paper.git)             | Plugin support | ✅      |
-| PurPur       | [GitHub](https://github.com/PurpurMC/Purpur.git)           | Plugin support | ✅      |
-| SparklyPaper | [GitHub](https://github.com/SparklyPower/SparklyPaper.git) | Plugin support | ✅      |
+| Component   | Source                                                              | Purpose                      | Status |
+|-------------|---------------------------------------------------------------------|------------------------------|--------|
+| NeoForge    | [GitHub](https://github.com/neoforged/NeoForge.git)                 | Mod support                  | ✅      |
+| Paper       | [GitHub](https://github.com/PaperMC/Paper.git)                      | Plugin support               | ✅      |
+| PurPur      | [GitHub](https://github.com/PurpurMC/Purpur.git)                    | Plugin support               | ✅      |

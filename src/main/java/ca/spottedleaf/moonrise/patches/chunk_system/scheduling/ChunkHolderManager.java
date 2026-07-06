@@ -1129,7 +1129,7 @@ public final class ChunkHolderManager {
         if (changedFullStatus.isEmpty()) {
             return;
         }
-        if (!TickThread.isTickThreadFor(world)) { // SparklyPaper - parallel world ticking
+        if (!TickThread.isTickThread()) {
             // These will be handled on the next ServerChunkCache$MainThreadExecutor#pollTask, as it runs the distance manager update
             // which will invoke processTicketUpdates
             this.offThreadPendingFullLoadUpdate.addAll(changedFullStatus);
@@ -1150,7 +1150,7 @@ public final class ChunkHolderManager {
 
     // note: never call while inside the chunk system, this will absolutely break everything
     public void processUnloads() {
-        TickThread.ensureTickThread(world, "Cannot unload chunks off-main"); // SparklyPaper - parallel world ticking
+        TickThread.ensureTickThread("Cannot unload chunks off-main");
 
         if (BLOCK_TICKET_UPDATES.get() == Boolean.TRUE) {
             throw new IllegalStateException("Cannot unload chunks recursively");
@@ -1419,7 +1419,7 @@ public final class ChunkHolderManager {
         if (BLOCK_TICKET_UPDATES.get() == Boolean.TRUE) {
             throw new IllegalStateException("Cannot update ticket level while unloading chunks or updating entity manager");
         }
-        final boolean isTickThread = TickThread.isTickThreadFor(world);
+        final boolean isTickThread = TickThread.isTickThread();
 
         if (!PlatformHooks.get().allowAsyncTicketUpdates() && isTickThread) {
             TickThread.ensureTickThread("Cannot asynchronously process ticket updates");

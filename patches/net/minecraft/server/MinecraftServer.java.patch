@@ -189,7 +189,7 @@
      private final ServerFunctionManager functionManager;
      private boolean enforceWhitelist;
      private boolean usingWhitelist;
-@@ -291,12 +_,220 @@
+@@ -291,12 +_,219 @@
      private final SuppressedExceptionCollector suppressedExceptions = new SuppressedExceptionCollector();
      private final DiscontinuousFrame tickFrame;
      private final PacketProcessor packetProcessor;
@@ -315,7 +315,6 @@
 +        };
 +    }
 +    // Paper end - improve tick loop
-+    public java.util.concurrent.Semaphore serverLevelTickingSemaphore = null; // SparklyPaper - parallel world ticking
 +
 +    // Paper start - rewrite chunk system
 +    private volatile Throwable chunkSystemCrash;
@@ -1576,7 +1575,7 @@
              profiler.pop();
          }
  
-@@ -1102,24 +_,69 @@
+@@ -1102,13 +_,27 @@
              profiler.pop();
          }
  
@@ -1591,8 +1590,6 @@
  
 -        for (ServerLevel level : this.getAllLevels()) {
 +        this.isIteratingOverLevels = true; // Paper - Throw exception on world create while being ticked
-+        java.util.ArrayDeque<java.util.concurrent.Future<ServerLevel>> tasks = new java.util.ArrayDeque<>();
-+        try {
 +        for (ServerLevel level : this.getWorldArray()) {
 +            long tickStart = Util.getNanos();
 +            level.hasPhysicsEvent = org.bukkit.event.block.BlockPhysicsEvent.getHandlerList().getRegisteredListeners().length > 0; // Paper - BlockPhysicsEvent
@@ -1602,57 +1599,23 @@
 +            net.minecraft.world.level.block.entity.HopperBlockEntity.skipHopperEvents = level.paperConfig().hopper.disableMoveEvent || org.bukkit.event.inventory.InventoryMoveItemEvent.getHandlerList().getRegisteredListeners().length == 0; // Paper - Perf: Optimize Hoppers
              profiler.push(() -> level + " " + level.dimension().identifier());
              profiler.push("tick");
--
--            try {
--                level.tick(haveTime);
--            } catch (Throwable t) {
--                CrashReport report = CrashReport.forThrowable(t, "Exception ticking world");
--                level.fillReportDetails(report);
--                throw new ReportedException(report);
+ 
 +            net.neoforged.neoforge.event.EventHooks.fireLevelTickPre(level, haveTime);
-+
-+            serverLevelTickingSemaphore.acquire();
-+            tasks.add(
-+                    level.tickExecutor.submit(() -> {
-+                        try {
-+                            ca.spottedleaf.moonrise.common.util.TickThread.ServerLevelTickThread currentThread = (ca.spottedleaf.moonrise.common.util.TickThread.ServerLevelTickThread) Thread.currentThread();
-+                            currentThread.currentlyTickingServerLevel = level;
-+
-+                            long i = Util.getNanos(); // SparklyPaper - track world's MSPT
-+                            level.tick(haveTime);
-+                            // SparklyPaper start - track world's MSPT
-+                            long j = Util.getNanos() - i;
-+                            // These are from the "tickServer" function
-+                            level.tickTimes5s.add(this.tickCount, j);
-+                            level.tickTimes10s.add(this.tickCount, j);
-+                            level.tickTimes1m.add(this.tickCount, j);
-+                            // SparklyPaper end
-+                        } catch (Throwable t) {
-+                            CrashReport report = CrashReport.forThrowable(t, "Exception ticking world");
-+                            level.fillReportDetails(report);
-+                            throw new ReportedException(report);
-+                        } finally {
-+                            serverLevelTickingSemaphore.release();
-+                        }
-+                    }, level)
-+            );
+             try {
+                 level.tick(haveTime);
+             } catch (Throwable t) {
+@@ -1116,10 +_,15 @@
+                 level.fillReportDetails(report);
+                 throw new ReportedException(report);
+             }
 +            net.neoforged.neoforge.event.EventHooks.fireLevelTickPost(level, haveTime);
-+
-+            profiler.pop();
-+            profiler.pop();
+ 
+             profiler.pop();
+             profiler.pop();
 +            perWorldTickTimes.computeIfAbsent(level.dimension(), k -> new long[100])[this.tickCount % 100] = Util.getNanos() - tickStart;
 +            level.explosionDensityCache.clear(); // Paper - Optimize explosions
-+        }
-+            while (!tasks.isEmpty()) {
-+                tasks.pop().get();
-             }
--
--            profiler.pop();
--            profiler.pop();
-+        } catch (java.lang.InterruptedException | java.util.concurrent.ExecutionException e) {
-+            throw new RuntimeException(e); // Propagate exception
          }
-+        // SparklyPaper end
++
 +        this.isIteratingOverLevels = false; // Paper - Throw exception on world create while being ticked
  
          profiler.popPush("connection");
@@ -1700,7 +1663,7 @@
          profiler.pop();
      }
  
-@@ -1190,6 +_,25 @@
+@@ -1190,6 +_,24 @@
          return this.levels.get(dimension);
      }
  
@@ -1717,7 +1680,6 @@
 +        Map<ResourceKey<Level>, ServerLevel> oldLevels = this.levels;
 +        Map<ResourceKey<Level>, ServerLevel> newLevels = Maps.newLinkedHashMap(oldLevels);
 +        newLevels.remove(level.dimension());
-+        level.tickExecutor.shutdown(); // SparklyPaper - parallel world ticking (We remove it in here instead of ServerLevel.close() because ServerLevel.close() is never called!)
 +        this.levels = Collections.unmodifiableMap(newLevels);
 +        this.markWorldsDirty();
 +    }

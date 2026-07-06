@@ -1954,7 +1954,7 @@
      protected boolean couldAcceptPassenger() {
          return true;
      }
-@@ -2587,20 +_,24 @@
+@@ -2587,15 +_,18 @@
          return Vec3.directionFromRotation(this.getRotationVector());
      }
  
@@ -1975,12 +1975,6 @@
              }
          }
      }
- 
-     protected void handlePortal() {
-+        if (true) return; // SparklyPaper - parallel world ticking (see issue #9, this is executed in the server level tick for non-player entities)
-         if (this.level() instanceof ServerLevel level) {
-             this.processPortalCooldown();
-             if (this.portalProcess != null) {
 @@ -2611,7 +_,7 @@
                      TeleportTransition teleportTransition = this.portalProcess.getPortalDestination(level, this);
                      if (teleportTransition != null) {
@@ -2260,14 +2254,6 @@
              ServerLevel newLevel = transition.newLevel();
              boolean otherDimension = newLevel.dimension() != serverLevel.dimension();
              if (!transition.asPassenger()) {
-@@ -3067,6 +_,7 @@
-     }
- 
-     private @Nullable Entity teleportCrossDimension(ServerLevel oldLevel, ServerLevel newLevel, TeleportTransition transition) {
-+        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(oldLevel, "Cannot teleport entity to another world off-main, from world " + oldLevel.getWorld().getName() + " to world " + newLevel.getWorld().getName()); // SparklyPaper - parallel world ticking (additional concurrency issues logs)
-         List<Entity> oldPassengers = this.getPassengers();
-         List<Entity> newPassengers = new ArrayList<>(oldPassengers.size());
-         this.ejectPassengers();
 @@ -3086,10 +_,16 @@
              return null;
          }
