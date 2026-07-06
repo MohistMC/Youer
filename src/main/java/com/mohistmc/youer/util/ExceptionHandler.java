@@ -328,7 +328,7 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
         // 合并所有采样中出现的线程，按时间倒序输出
         Set<String> printedThreads = new LinkedHashSet<>();
         for (int i = 0; i < total; i++) {
-            int idx = (sampleIndex - 1 - i) % SAMPLE_SIZE;
+            int idx = (sampleIndex.get() - 1 - i) % SAMPLE_SIZE;
             if (idx < 0) idx += SAMPLE_SIZE;
             ThreadInfo[] sample = SAMPLE_RING[idx];
             if (sample == null) continue;

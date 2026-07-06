@@ -1,5 +1,12 @@
 --- a/net/minecraft/world/item/crafting/Recipe.java
 +++ b/net/minecraft/world/item/crafting/Recipe.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.item.crafting;
+ 
++import com.mohistmc.youer.neoforge.ModSpecialRecipe;
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
 @@ -18,6 +_,7 @@
  public interface Recipe<T extends RecipeInput> {
      Codec<Recipe<?>> CODEC = BuiltInRegistries.RECIPE_SERIALIZER.byNameCodec().dispatch(Recipe::getSerializer, RecipeSerializer::codec);
@@ -8,12 +15,14 @@
      StreamCodec<RegistryFriendlyByteBuf, Recipe<?>> STREAM_CODEC = ByteBufCodecs.registry(Registries.RECIPE_SERIALIZER)
          .dispatch(Recipe::getSerializer, RecipeSerializer::streamCodec);
  
-@@ -44,6 +_,8 @@
+@@ -44,6 +_,10 @@
      }
  
      RecipeBookCategory recipeBookCategory();
 +
-+    org.bukkit.inventory.Recipe toBukkitRecipe(org.bukkit.NamespacedKey id); // CraftBukkit
++    default org.bukkit.inventory.Recipe toBukkitRecipe(org.bukkit.NamespacedKey id){
++        return new ModSpecialRecipe(id, this);
++    }
  
      interface BookInfo<CategoryType> {
          CategoryType category();
