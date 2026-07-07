@@ -1,79 +1,20 @@
 --- a/net/minecraft/client/renderer/chunk/SectionRenderDispatcher.java
 +++ b/net/minecraft/client/renderer/chunk/SectionRenderDispatcher.java
-@@ -311,19 +_,37 @@
-             }
-         }
+@@ -39,8 +_,6 @@
+ import net.neoforged.api.distmarker.OnlyIn;
+ import org.jspecify.annotations.Nullable;
  
-+        /// @deprecated Neo: use [#createCompileTask(RenderSectionRegion, java.util.List)] instead
-+        @Deprecated
-         private SectionRenderDispatcher.RenderSection.SectionTask createCompileTask(RenderSectionRegion region) {
-+            return this.createCompileTask(region, java.util.List.of());
-+        }
-+
-+        private SectionRenderDispatcher.RenderSection.SectionTask createCompileTask(RenderSectionRegion region, java.util.List<net.neoforged.neoforge.client.event.AddSectionGeometryEvent.AdditionalSectionRenderer> additionalRenderers) {
-             this.cancelTasks();
-             boolean isRecompile = this.sectionMesh.get() != CompiledSectionMesh.UNCOMPILED;
-             this.lastCompileTask = new SectionRenderDispatcher.RenderSection.CompileTask(region, isRecompile);
-             return this.lastCompileTask;
-         }
+-import net.neoforged.neoforge.client.IRenderableSection;
+-
+ @OnlyIn(Dist.CLIENT)
+ public class SectionRenderDispatcher {
+     public static final int NEARBY_SECTION_DISTANCE_IN_BLOCKS = 32;
+@@ -203,7 +_,7 @@
+         return this.bufferPool.getFreeBufferCount();
+     }
  
-+        /// @deprecated Neo: use [#compileAsync(RenderSectionRegion, java.util.List)] instead
-+        @Deprecated
-         public void compileAsync(RenderSectionRegion region) {
-+            this.compileAsync(region, java.util.List.of());
-+        }
-+
-+        public void compileAsync(RenderSectionRegion region, java.util.List<net.neoforged.neoforge.client.event.AddSectionGeometryEvent.AdditionalSectionRenderer> additionalRenderers) {
-             SectionRenderDispatcher.RenderSection.SectionTask task = this.createCompileTask(region);
-             SectionRenderDispatcher.this.schedule(task);
-         }
- 
-+        /// @deprecated Neo: use [#compileSync(RenderSectionRegion, java.util.List)] instead
-+        @Deprecated
-         public void compileSync(RenderSectionRegion region) {
-+            this.compileSync(region, java.util.List.of());
-+        }
-+
-+        public void compileSync(RenderSectionRegion region, java.util.List<net.neoforged.neoforge.client.event.AddSectionGeometryEvent.AdditionalSectionRenderer> additionalRenderers) {
-             SectionRenderDispatcher.RenderSection.SectionTask task = this.createCompileTask(region);
-             task.doTask(SectionRenderDispatcher.this.fixedBuffers);
-         }
-@@ -417,12 +_,29 @@
-             return success;
-         }
- 
-+        // Neo: start
-+
-+        @Override
-+        public boolean isEmpty() {
-+            return !getSectionMesh().hasRenderableLayers();
-+        }
-+
-+        // Neo: end
-+
-         private class CompileTask extends SectionRenderDispatcher.RenderSection.SectionTask {
-             private final RenderSectionRegion region;
-+            private final java.util.List<net.neoforged.neoforge.client.event.AddSectionGeometryEvent.AdditionalSectionRenderer> additionalRenderers;
- 
-+            /// @deprecated Neo: use [#CompileTask(RenderSectionRegion, boolean, java.util.List)] instead
-+            @Deprecated
-             public CompileTask(RenderSectionRegion region, boolean isRecompile) {
-+                this(region, isRecompile, java.util.List.of());
-+            }
-+
-+            public CompileTask(RenderSectionRegion region, boolean isRecompile, java.util.List<net.neoforged.neoforge.client.event.AddSectionGeometryEvent.AdditionalSectionRenderer> additionalRenderers) {
-                 super(isRecompile);
-                 this.region = region;
-+                this.additionalRenderers = additionalRenderers;
-             }
- 
-             @Override
-@@ -442,7 +_,7 @@
-                 SectionCompiler.Results results;
-                 try (Zone ignored = Profiler.get().zone("Compile Section")) {
-                     results = SectionRenderDispatcher.this.sectionCompiler
--                        .compile(sectionPos, this.region, RenderSection.this.createVertexSorting(sectionPos, cameraPos), buffers);
-+                        .compile(sectionPos, this.region, RenderSection.this.createVertexSorting(sectionPos, cameraPos), buffers, this.additionalRenderers);
-                 }
- 
-                 TranslucencyPointOfView translucencyPointOfView = TranslucencyPointOfView.of(cameraPos, sectionNode);
+-    public class RenderSection implements RotatingSectionStorage.Value, IRenderableSection {
++    public class RenderSection implements RotatingSectionStorage.Value {
+         public final int index;
+         public final AtomicReference<SectionMesh> sectionMesh = new AtomicReference<>(CompiledSectionMesh.UNCOMPILED);
+         private SectionRenderDispatcher.RenderSection.@Nullable CompileTask lastCompileTask;

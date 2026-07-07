@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/chunk/ImposterProtoChunk.java
 +++ b/net/minecraft/world/level/chunk/ImposterProtoChunk.java
-@@ -29,7 +_,7 @@
+@@ -8,6 +_,7 @@
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.nbt.CompoundTag;
++import net.minecraft.util.Util;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.biome.Biome;
+@@ -28,7 +_,7 @@
  import net.minecraft.world.ticks.TickContainerAccess;
  import org.jspecify.annotations.Nullable;
  
@@ -9,7 +17,7 @@
      private final LevelChunk wrapped;
      private final boolean allowWrites;
  
-@@ -39,6 +_,48 @@
+@@ -38,6 +_,48 @@
          this.allowWrites = allowWrites;
      }
  
@@ -58,7 +66,7 @@
      @Override
      public @Nullable BlockEntity getBlockEntity(BlockPos pos) {
          return this.wrapped.getBlockEntity(pos);
-@@ -49,6 +_,13 @@
+@@ -48,6 +_,13 @@
          return this.wrapped.getBlockState(pos);
      }
  
@@ -72,7 +80,7 @@
      @Override
      public FluidState getFluidState(BlockPos pos) {
          return this.wrapped.getFluidState(pos);
-@@ -211,6 +_,10 @@
+@@ -210,6 +_,10 @@
      }
  
      @Override
@@ -83,7 +91,32 @@
      public TickContainerAccess<Block> getBlockTicks() {
          return this.allowWrites ? this.wrapped.getBlockTicks() : BlackholeTickAccess.emptyContainer();
      }
-@@ -277,5 +_,10 @@
+@@ -229,6 +_,24 @@
+         return this.wrapped.getBlendingData();
+     }
+ 
++    @Override
++    public CarvingMask getCarvingMask() {
++        if (this.allowWrites) {
++            return super.getCarvingMask();
++        } else {
++            throw (UnsupportedOperationException)Util.pauseInIde(new UnsupportedOperationException("Meaningless in this context"));
++        }
++    }
++
++    @Override
++    public CarvingMask getOrCreateCarvingMask() {
++        if (this.allowWrites) {
++            return super.getOrCreateCarvingMask();
++        } else {
++            throw (UnsupportedOperationException)Util.pauseInIde(new UnsupportedOperationException("Meaningless in this context"));
++        }
++    }
++
+     public LevelChunk getWrapped() {
+         return this.wrapped;
+     }
+@@ -258,5 +_,10 @@
      @Override
      public ChunkSkyLightSources getSkyLightSources() {
          return this.wrapped.getSkyLightSources();

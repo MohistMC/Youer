@@ -22,10 +22,11 @@
      );
      private static final Identifier REINFORCEMENT_CALLER_CHARGE_ID = Identifier.withDefaultNamespace("reinforcement_caller_charge");
      private static final AttributeModifier ZOMBIE_REINFORCEMENT_CALLEE_CHARGE = new AttributeModifier(
-@@ -95,22 +_,85 @@
+@@ -95,23 +_,85 @@
      private static final boolean DEFAULT_BABY = false;
      private static final boolean DEFAULT_CAN_BREAK_DOORS = false;
      private static final int DEFAULT_IN_WATER_TIME = 0;
+-    private static final float RANGED_MODE_DISTANCE_SQR = 9.0F;
 -    private final BreakDoorGoal breakDoorGoal = new BreakDoorGoal(this, DOOR_BREAKING_PREDICATE);
 +    private final BreakDoorGoal breakDoorGoal; // Paper - move down
      private boolean canBreakDoors = false;
@@ -111,7 +112,7 @@
          this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));
          this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
          this.addBehaviourGoals();
-@@ -123,7 +_,19 @@
+@@ -124,7 +_,19 @@
          this.goalSelector.addGoal(7, new WaterAvoidingRandomStrollGoal(this, 1.0));
          this.targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers(ZombifiedPiglin.class));
          this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
@@ -132,7 +133,18 @@
          this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, IronGolem.class, true));
          this.targetSelector.addGoal(5, new NearestAttackableTargetGoal<>(this, Turtle.class, 10, true, false, Turtle.BABY_ON_LAND_SELECTOR));
      }
-@@ -176,12 +_,17 @@
+@@ -154,10 +_,6 @@
+         return this.canBreakDoors;
+     }
+ 
+-    protected boolean hasTargetInRangedDistance() {
+-        return this.getTarget() != null && this.distanceToSqr(this.getTarget()) >= 9.0;
+-    }
+-
+     public void setCanBreakDoors(boolean canBreakDoors) {
+         if (this.navigation.canNavigateGround()) {
+             if (this.canBreakDoors != canBreakDoors) {
+@@ -181,12 +_,17 @@
      }
  
      @Override
@@ -152,7 +164,7 @@
      }
  
      @Override
-@@ -232,12 +_,20 @@
+@@ -237,12 +_,20 @@
          super.tick();
      }
  
@@ -173,7 +185,7 @@
          this.convertToZombieType(level, EntityTypes.DROWNED);
          if (!this.isSilent()) {
              level.levelEvent(null, 1040, this.blockPosition(), 0);
-@@ -245,22 +_,33 @@
+@@ -250,22 +_,33 @@
      }
  
      protected void convertToZombieType(ServerLevel level, EntityType<? extends Zombie> zombieType) {
@@ -214,7 +226,7 @@
                  zombie.finalizeSpawn(
                      level, level.getCurrentDifficultyAt(zombie.blockPosition()), EntitySpawnReason.CONVERSION, new Zombie.ZombieGroupData(false, true)
                  );
-@@ -268,17 +_,25 @@
+@@ -273,17 +_,25 @@
                  zombie.setGossips(villager.getGossips().copy());
                  zombie.setTradeOffers(villager.getOffers().copy());
                  zombie.setVillagerXp(villager.getVillagerXp());
@@ -247,7 +259,7 @@
  
      @Override
      public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
-@@ -312,13 +_,13 @@
+@@ -317,13 +_,13 @@
                  if (SpawnPlacements.isSpawnPositionOk(type, level, spawnPos)
                      && SpawnPlacements.checkSpawnRules(type, level, EntitySpawnReason.REINFORCEMENT, spawnPos, level.getRandom())) {
                      reinforcement.setPos(xt, yt, zt);
@@ -264,7 +276,7 @@
                          AttributeInstance attribute = this.getAttribute(Attributes.SPAWN_REINFORCEMENTS_CHANCE);
                          AttributeModifier modifier = attribute.getModifier(REINFORCEMENT_CALLER_CHARGE_ID);
                          double existingAmount = modifier != null ? modifier.amount() : 0.0;
-@@ -342,7 +_,14 @@
+@@ -347,7 +_,14 @@
          if (result) {
              float difficulty = level.getCurrentDifficultyAt(this.blockPosition()).getEffectiveDifficulty();
              if (this.getMainHandItem().isEmpty() && this.isOnFire() && this.random.nextFloat() < difficulty * 0.3F) {
@@ -280,7 +292,7 @@
              }
          }
  
-@@ -421,10 +_,11 @@
+@@ -426,10 +_,11 @@
      }
  
      @Override
@@ -295,7 +307,7 @@
                  return perished;
              }
  
-@@ -459,7 +_,7 @@
+@@ -464,7 +_,7 @@
          groupData = super.finalizeSpawn(level, difficulty, spawnReason, groupData);
          float difficultyModifier = difficulty.getSpecialMultiplier();
          if (spawnReason != EntitySpawnReason.CONVERSION) {
@@ -304,7 +316,7 @@
          }
  
          if (groupData == null) {
-@@ -467,27 +_,27 @@
+@@ -472,27 +_,27 @@
          }
  
          if (groupData instanceof Zombie.ZombieGroupData zombieData) {
@@ -348,7 +360,7 @@
                      }
                  }
              }
-@@ -499,7 +_,7 @@
+@@ -504,7 +_,7 @@
              }
          }
  
@@ -357,7 +369,7 @@
              this.setItemSlot(EquipmentSlot.HEAD, new ItemStack(random.nextFloat() < 0.1F ? Blocks.JACK_O_LANTERN : Blocks.CARVED_PUMPKIN));
              this.setDropChance(EquipmentSlot.HEAD, 0.0F);
          }
-@@ -512,7 +_,7 @@
+@@ -517,7 +_,7 @@
      protected void onOffspringSpawnedFromEgg(Player spawner, Mob offspring) {
          if (this.level() instanceof ServerLevel serverLevel) {
              float difficultyModifier = serverLevel.getCurrentDifficultyAt(offspring.blockPosition()).getSpecialMultiplier();

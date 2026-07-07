@@ -1,24 +1,11 @@
 --- a/net/minecraft/world/level/block/ConcretePowderBlock.java
 +++ b/net/minecraft/world/level/block/ConcretePowderBlock.java
-@@ -16,6 +_,12 @@
- import net.minecraft.world.level.block.state.BlockBehaviour;
- import net.minecraft.world.level.block.state.BlockState;
- 
-+// CraftBukkit start
-+import org.bukkit.craftbukkit.block.CraftBlockState;
-+import org.bukkit.craftbukkit.block.CraftBlockStates;
-+import org.bukkit.event.block.BlockFormEvent;
-+// CraftBukkit end
-+
- public class ConcretePowderBlock extends FallingBlock {
-     public static final MapCodec<ConcretePowderBlock> CODEC = RecordCodecBuilder.mapCodec(
-         i -> i.group(BuiltInRegistries.BLOCK.byNameCodec().fieldOf("concrete").forGetter(b -> b.concrete), propertiesCodec())
-@@ -35,33 +_,54 @@
+@@ -23,33 +_,54 @@
  
      @Override
      public void onLand(Level level, BlockPos pos, BlockState state, BlockState replacedBlock, FallingBlockEntity entity) {
 -        if (shouldSolidify(level, pos, replacedBlock)) {
--            level.setBlock(pos, this.concrete.defaultBlockState(), 3);
+-            level.setBlockAndUpdate(pos, this.concrete.defaultBlockState());
 +        if (shouldSolidify(level, pos, state, replacedBlock.getFluidState())) { // Forge: Use block of falling entity instead of block at replaced position, and check if shouldSolidify with the FluidState of the replaced block
 +            org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(level, pos, this.concrete.defaultBlockState(), 3); // CraftBukkit
          }
@@ -76,7 +63,7 @@
                      touchesLiquid = true;
                      break;
                  }
-@@ -86,9 +_,25 @@
+@@ -74,9 +_,25 @@
          BlockState neighbourState,
          RandomSource random
      ) {

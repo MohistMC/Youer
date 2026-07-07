@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/chunk/ProtoChunk.java
 +++ b/net/minecraft/world/level/chunk/ProtoChunk.java
-@@ -90,15 +_,32 @@
+@@ -45,6 +_,7 @@
+     private volatile @Nullable LevelLightEngine lightEngine;
+     private volatile ChunkStatus status = ChunkStatus.EMPTY;
+     private final List<CompoundTag> entities = Lists.newArrayList();
++    private @Nullable CarvingMask carvingMask;
+     private @Nullable BelowZeroRetrogen belowZeroRetrogen;
+     private final ProtoChunkTicks<Block> blockTicks;
+     private final ProtoChunkTicks<Fluid> fluidTicks;
+@@ -89,15 +_,32 @@
          return new ChunkAccess.PackedTicks(this.blockTicks.pack(currentTick), this.fluidTicks.pack(currentTick));
      }
  
@@ -35,7 +43,7 @@
      }
  
      @Override
-@@ -138,8 +_,8 @@
+@@ -137,8 +_,8 @@
                  this.lightEngine.updateSectionStatus(pos, isEmpty);
              }
  
@@ -46,3 +54,46 @@
                  this.lightEngine.checkBlock(pos);
              }
          }
+@@ -154,8 +_,6 @@
+                 }
+ 
+                 toPrime.add(type);
+-            } else {
+-                heightmap.update(localX, y, localZ, state);
+             }
+         }
+ 
+@@ -163,6 +_,10 @@
+             Heightmap.primeHeightmaps(this, toPrime);
+         }
+ 
++        for (Heightmap.Types type : heightmapsAfter) {
++            this.heightmaps.get(type).update(localX, y, localZ, state);
++        }
++
+         return oldState;
+     }
+ 
+@@ -280,6 +_,22 @@
+     public void removeBlockEntity(BlockPos pos) {
+         this.blockEntities.remove(pos);
+         this.pendingBlockEntities.remove(pos);
++    }
++
++    public @Nullable CarvingMask getCarvingMask() {
++        return this.carvingMask;
++    }
++
++    public CarvingMask getOrCreateCarvingMask() {
++        if (this.carvingMask == null) {
++            this.carvingMask = new CarvingMask(this.getHeight(), this.getMinY());
++        }
++
++        return this.carvingMask;
++    }
++
++    public void setCarvingMask(CarvingMask data) {
++        this.carvingMask = data;
+     }
+ 
+     public void setLightEngine(LevelLightEngine lightEngine) {

@@ -1,13 +1,24 @@
 --- a/net/minecraft/world/level/block/state/BlockBehaviour.java
 +++ b/net/minecraft/world/level/block/state/BlockBehaviour.java
-@@ -1,5 +_,6 @@
+@@ -1,5 +_,9 @@
  package net.minecraft.world.level.block.state;
  
 +import com.mohistmc.youer.util.tps.TPSCalculator;
- import com.mojang.serialization.Codec;
- import com.mojang.serialization.MapCodec;
- import com.mojang.serialization.codecs.RecordCodecBuilder;
-@@ -82,12 +_,17 @@
++import com.mojang.serialization.Codec;
++import com.mojang.serialization.MapCodec;
++import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import java.util.Arrays;
+ import java.util.Collections;
+ import java.util.List;
+@@ -19,7 +_,6 @@
+ import net.minecraft.resources.DependantName;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.server.level.ServerLevel;
+-import net.minecraft.tags.BlockTags;
+ import net.minecraft.tags.FluidTags;
+ import net.minecraft.tags.TagKey;
+ import net.minecraft.util.Mth;
+@@ -80,19 +_,23 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
  
@@ -26,7 +37,37 @@
      protected final boolean isRandomlyTicking;
      protected final SoundType soundType;
      protected final float friction;
-@@ -163,32 +_,40 @@
+     protected final float speedFactor;
+     protected final float jumpFactor;
+     protected final float bounceRestitution;
+-    protected final float fallDistanceReduction;
+     protected final boolean dynamicShape;
+     protected final FeatureFlagSet requiredFeatures;
+     protected final BlockBehaviour.Properties properties;
+@@ -110,7 +_,6 @@
+         this.speedFactor = properties.speedFactor;
+         this.jumpFactor = properties.jumpFactor;
+         this.bounceRestitution = properties.bounceRestitution;
+-        this.fallDistanceReduction = properties.fallDistanceReduction;
+         this.dynamicShape = properties.dynamicShape;
+         this.requiredFeatures = properties.requiredFeatures;
+         this.properties = properties;
+@@ -120,6 +_,14 @@
+         return this.properties;
+     }
+ 
++    public static <B extends Block> RecordCodecBuilder<B, BlockBehaviour.Properties> propertiesCodec() {
++        return BlockBehaviour.Properties.CODEC.fieldOf("properties").forGetter(BlockBehaviour::properties);
++    }
++
++    public static <B extends Block> MapCodec<B> simpleCodec(Function<BlockBehaviour.Properties, B> constructor) {
++        return RecordCodecBuilder.mapCodec(i -> i.group(propertiesCodec()).apply(i, constructor));
++    }
++
+     protected void updateIndirectNeighbourShapes(BlockState state, LevelAccessor level, BlockPos pos, @Block.UpdateFlags int updateFlags, int updateLimit) {
+     }
+ 
+@@ -153,32 +_,40 @@
      }
  
      protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
@@ -68,13 +109,13 @@
                  state.getDrops(params).forEach(stack -> onHit.accept(stack, pos));
              }
  
--            level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+-            level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
 -            block.wasExploded(level, pos, explosion);
 +            state.onBlockExploded(level, pos, explosion);
          }
      }
  
-@@ -248,7 +_,7 @@
+@@ -238,7 +_,7 @@
      }
  
      protected boolean canBeReplaced(BlockState state, BlockPlaceContext context) {
@@ -83,7 +124,7 @@
      }
  
      protected boolean canBeReplaced(BlockState state, Fluid fluid) {
-@@ -332,14 +_,21 @@
+@@ -322,14 +_,21 @@
      protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
      }
  
@@ -108,7 +149,7 @@
      }
  
      protected void spawnAfterBreak(BlockState state, ServerLevel level, BlockPos pos, ItemStack tool, boolean dropExperience) {
-@@ -386,10 +_,13 @@
+@@ -376,10 +_,13 @@
          return this.isRandomlyTicking;
      }
  
@@ -122,7 +163,7 @@
      protected ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state, boolean includeData) {
          return new ItemStack(this.asItem());
      }
-@@ -406,7 +_,11 @@
+@@ -396,7 +_,11 @@
          return this.properties.destroyTime;
      }
  
@@ -135,7 +176,7 @@
          private static final Direction[] DIRECTIONS = Direction.values();
          private static final VoxelShape[] EMPTY_OCCLUSION_SHAPES = Util.make(new VoxelShape[DIRECTIONS.length], s -> Arrays.fill(s, Shapes.empty()));
          private static final VoxelShape[] FULL_BLOCK_OCCLUSION_SHAPES = Util.make(new VoxelShape[DIRECTIONS.length], s -> Arrays.fill(s, Shapes.block()));
-@@ -441,6 +_,76 @@
+@@ -431,6 +_,76 @@
          private boolean propagatesSkylightDown;
          private int lightDampening;
  
@@ -212,7 +253,7 @@
          protected BlockStateBase(Block owner, Property<?>[] propertyKeys, Comparable<?>[] propertyValues) {
              super(owner, propertyKeys, propertyValues);
              BlockBehaviour.Properties properties = owner.properties;
-@@ -465,6 +_,16 @@
+@@ -455,36 +_,46 @@
              this.replaceable = properties.replaceable;
          }
  
@@ -228,9 +269,44 @@
 +
          private boolean calculateSolid() {
              if (this.owner.properties.forceSolidOn) {
-                 return true;
-@@ -487,12 +_,14 @@
-             return bounds.getSize() >= 0.7291666666666666 ? true : bounds.getYsize() >= 1.0;
+-                return SolidDebugger.logAndGet(this.typeHolder(), SolidDebugger.Reason.FORCE_SOLID_ON);
+-            } else if (this.owner.properties.forceSolidOff) {
+-                return SolidDebugger.logAndGet(this.typeHolder(), SolidDebugger.Reason.FORCE_SOLID_OFF);
+-            } else if (this.cache == null) {
+-                return SolidDebugger.logAndGet(this.typeHolder(), SolidDebugger.Reason.NULL_CACHE);
+-            } else {
+-                VoxelShape shape = this.cache.collisionShape;
+-                if (shape.isEmpty()) {
+-                    return SolidDebugger.logAndGet(this.typeHolder(), SolidDebugger.Reason.EMPTY_COLLISION_SHAPE);
+-                } else {
+-                    AABB bounds = shape.bounds();
+-                    if (bounds.getSize() >= 0.7291666666666666) {
+-                        return SolidDebugger.logAndGet(this.typeHolder(), SolidDebugger.Reason.LARGE_ENOUGH_COLLISION_SHAPE);
+-                    } else {
+-                        return bounds.getYsize() >= 1.0
+-                            ? SolidDebugger.logAndGet(this.typeHolder(), SolidDebugger.Reason.HIGH_ENOUGH_COLLISION_SHAPE)
+-                            : SolidDebugger.logAndGet(this.typeHolder(), SolidDebugger.Reason.FALLTHROUGH);
+-                    }
+-                }
+-            }
++                return true;
++            }
++
++            if (this.owner.properties.forceSolidOff) {
++                return false;
++            }
++
++            if (this.cache == null) {
++                return false;
++            }
++
++            VoxelShape shape = this.cache.collisionShape;
++            if (shape.isEmpty()) {
++                return false;
++            }
++
++            AABB bounds = shape.bounds();
++            return bounds.getSize() >= 0.7291666666666666 ? true : bounds.getYsize() >= 1.0;
          }
  
 +        protected boolean shapeExceedsCube = true; // Paper - moved from actual method to here
@@ -244,7 +320,7 @@
  
              this.legacySolid = this.calculateSolid();
              this.occlusionShape = this.canOcclude ? this.owner.getOcclusionShape(this.asState()) : Shapes.empty();
-@@ -505,7 +_,12 @@
+@@ -497,7 +_,12 @@
                  this.occlusionShapesByFace = new VoxelShape[DIRECTIONS.length];
  
                  for (Direction direction : DIRECTIONS) {
@@ -258,7 +334,17 @@
                  }
              }
  
-@@ -533,6 +_,12 @@
+@@ -515,10 +_,22 @@
+         }
+ 
+         @Deprecated
++        public boolean blocksMotion() {
++            Block block = this.getBlock();
++            return block != Blocks.COBWEB && block != Blocks.BAMBOO_SAPLING && this.isSolid();
++        }
++
++        @Deprecated
+         public boolean isSolid() {
              return this.legacySolid;
          }
  
@@ -271,7 +357,7 @@
          public boolean isValidSpawn(BlockGetter level, BlockPos pos, EntityType<?> type) {
              return this.getBlock().properties.isValidSpawn.test(this.asState(), level, pos, type);
          }
-@@ -553,22 +_,26 @@
+@@ -539,22 +_,26 @@
              return this.occlusionShape;
          }
  
@@ -308,7 +394,7 @@
          public boolean ignitedByLava() {
              return this.ignitedByLava;
          }
-@@ -579,9 +_,11 @@
+@@ -565,9 +_,11 @@
          }
  
          public MapColor getMapColor(BlockGetter level, BlockPos pos) {
@@ -321,7 +407,7 @@
          public BlockState rotate(Rotation rotation) {
              return this.getBlock().rotate(this.asState(), rotation);
          }
-@@ -639,14 +_,16 @@
+@@ -625,14 +_,16 @@
          }
  
          public PushReaction getPistonPushReaction() {
@@ -340,7 +426,7 @@
              return this.canOcclude;
          }
  
-@@ -733,7 +_,13 @@
+@@ -719,7 +_,13 @@
          }
  
          public void onPlace(Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
@@ -355,7 +441,7 @@
          }
  
          public void affectNeighborsAfterRemoval(ServerLevel level, BlockPos pos, boolean movedByPiston) {
-@@ -758,6 +_,7 @@
+@@ -744,6 +_,7 @@
  
          public void spawnAfterBreak(ServerLevel level, BlockPos pos, ItemStack tool, boolean dropExperience) {
              this.getBlock().spawnAfterBreak(this.asState(), level, pos, tool, dropExperience);
@@ -363,7 +449,7 @@
          }
  
          public List<ItemStack> getDrops(LootParams.Builder params) {
-@@ -765,6 +_,9 @@
+@@ -751,6 +_,9 @@
          }
  
          public InteractionResult useItemOn(ItemStack itemStack, Level level, Player player, InteractionHand hand, BlockHitResult hitResult) {
@@ -373,7 +459,7 @@
              return this.getBlock().useItemOn(itemStack, this.asState(), level, hitResult.getBlockPos(), player, hand, hitResult);
          }
  
-@@ -840,11 +_,11 @@
+@@ -826,11 +_,11 @@
              return this.getBlock() instanceof EntityBlock ? ((EntityBlock)this.getBlock()).getTicker(level, this.asState(), type) : null;
          }
  
@@ -387,7 +473,7 @@
              return this.isRandomlyTicking;
          }
  
-@@ -852,6 +_,7 @@
+@@ -838,6 +_,7 @@
              return this.getBlock().getSeed(this.asState(), pos);
          }
  
@@ -409,12 +495,43 @@
  
              private Cache(BlockState state) {
                  Block block = state.getBlock();
-@@ -984,7 +_,7 @@
+@@ -951,6 +_,7 @@
+     }
+ 
+     public static class Properties {
++        public static final Codec<BlockBehaviour.Properties> CODEC = MapCodec.unitCodec(() -> of());
+         private Function<BlockState, MapColor> mapColor = state -> MapColor.NONE;
+         private boolean hasCollision = true;
+         private SoundType soundType = SoundType.STONE;
+@@ -983,17 +_,15 @@
          private BlockBehaviour.StateArgumentPredicate<EntityType<?>> isValidSpawn = (state, level, pos, entityType) -> state.isFaceSturdy(
                  level, pos, Direction.UP
              )
 -            && state.getLightEmission() < 14;
 +            && state.getLightEmission(level, pos) < 14;
          private BlockBehaviour.StatePredicate isRedstoneConductor = BlockBehaviour.BlockStateBase::isCollisionShapeFullBlock;
-         private BlockBehaviour.StatePredicate isSuffocating = (state, level, pos) -> state.blocksMotion() && state.isCollisionShapeFullBlock(level, pos);
+-        private BlockBehaviour.StatePredicate isSuffocating = (state, level, pos) -> state.is(BlockTags.CAUSES_SUFFOCATION)
+-            && state.isCollisionShapeFullBlock(level, pos);
++        private BlockBehaviour.StatePredicate isSuffocating = (state, level, pos) -> state.blocksMotion() && state.isCollisionShapeFullBlock(level, pos);
          private BlockBehaviour.StatePredicate isViewBlocking = this.isSuffocating;
+         private BlockBehaviour.PostProcess postProcess = (state, level, pos) -> null;
+         private Predicate<BlockState> emissiveRendering = var0 -> false;
+         private boolean dynamicShape;
+         private FeatureFlagSet requiredFeatures = FeatureFlags.VANILLA_SET;
+         private BlockBehaviour.@Nullable OffsetFunction offsetFunction;
+-        private float fallDistanceReduction;
+ 
+         private Properties() {
+         }
+@@ -1091,11 +_,6 @@
+ 
+         public BlockBehaviour.Properties bounceRestitution(float bounceRestitution) {
+             this.bounceRestitution = bounceRestitution;
+-            return this;
+-        }
+-
+-        public BlockBehaviour.Properties fallDistanceReduction(float fallDistanceReduction) {
+-            this.fallDistanceReduction = fallDistanceReduction;
+             return this;
+         }
+ 

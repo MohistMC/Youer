@@ -1,14 +1,46 @@
 --- a/net/minecraft/world/level/dimension/end/DragonRespawnStage.java
 +++ b/net/minecraft/world/level/dimension/end/DragonRespawnStage.java
-@@ -12,6 +_,7 @@
+@@ -1,8 +_,8 @@
+ package net.minecraft.world.level.dimension.end;
+ 
++import com.google.common.collect.ImmutableList;
+ import com.mojang.serialization.Codec;
+ import java.util.List;
+-import java.util.Optional;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.RandomSource;
+@@ -10,6 +_,9 @@
+ import net.minecraft.world.entity.boss.enderdragon.EndCrystal;
+ import net.minecraft.world.level.Level;
  import net.minecraft.world.level.levelgen.feature.EndSpikeFeature;
- import net.minecraft.world.level.levelgen.feature.Feature;
- import net.minecraft.world.level.levelgen.feature.configurations.EndSpikeConfiguration;
++import net.minecraft.world.level.levelgen.feature.Feature;
++import net.minecraft.world.level.levelgen.feature.configurations.EndSpikeConfiguration;
 +import org.bukkit.event.entity.EntityRemoveEvent;
  
  public enum DragonRespawnStage implements StringRepresentable {
      START("start") {
-@@ -90,7 +_,7 @@
+@@ -62,10 +_,15 @@
+                         }
+ 
+                         level.explode(null, spike.getCenterX() + 0.5F, spike.getHeight(), spike.getCenterZ() + 0.5F, 5.0F, Level.ExplosionInteraction.BLOCK);
+-                        EndSpikeFeature feature = new EndSpikeFeature(List.of(spike), true, Optional.of(new BlockPos(0, 128, 0)));
+-                        feature.place(
+-                            level, level.getChunkSource().getGenerator(), RandomSource.create(), new BlockPos(spike.getCenterX(), 45, spike.getCenterZ())
+-                        );
++                        EndSpikeConfiguration configuration = new EndSpikeConfiguration(true, ImmutableList.of(spike), new BlockPos(0, 128, 0));
++                        Feature.END_SPIKE
++                            .place(
++                                configuration,
++                                level,
++                                level.getChunkSource().getGenerator(),
++                                RandomSource.create(),
++                                new BlockPos(spike.getCenterX(), 45, spike.getCenterZ())
++                            );
+                     }
+                 } else if (startOfBeam) {
+                     fight.setRespawnStage(SUMMONING_DRAGON);
+@@ -83,7 +_,7 @@
                  for (EndCrystal crystal : crystals) {
                      crystal.setBeamTarget(null);
                      level.explode(crystal, crystal.getX(), crystal.getY(), crystal.getZ(), 6.0F, Level.ExplosionInteraction.NONE);

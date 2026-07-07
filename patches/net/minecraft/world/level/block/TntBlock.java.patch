@@ -1,6 +1,24 @@
 --- a/net/minecraft/world/level/block/TntBlock.java
 +++ b/net/minecraft/world/level/block/TntBlock.java
-@@ -30,6 +_,11 @@
+@@ -13,17 +_,14 @@
+ import net.minecraft.world.entity.item.PrimedTnt;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.entity.projectile.Projectile;
+-import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
+ import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.Items;
+ import net.minecraft.world.level.Explosion;
+-import net.minecraft.world.level.GameType;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.state.BlockBehaviour;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.block.state.StateDefinition;
+-import net.minecraft.world.level.block.state.pattern.BlockInWorld;
+ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+ import net.minecraft.world.level.block.state.properties.BooleanProperty;
+ import net.minecraft.world.level.gameevent.GameEvent;
+@@ -32,6 +_,11 @@
  import net.minecraft.world.phys.BlockHitResult;
  import org.jspecify.annotations.Nullable;
  
@@ -10,9 +28,9 @@
 +// CraftBukkit end
 +
  public class TntBlock extends Block {
-     public static final MapCodec<TntBlock> CODEC = simpleCodec(TntBlock::new);
      public static final BooleanProperty UNSTABLE = BlockStateProperties.UNSTABLE;
-@@ -47,7 +_,7 @@
+ 
+@@ -43,7 +_,7 @@
      @Override
      protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
          if (!oldState.is(state.getBlock())) {
@@ -21,7 +39,7 @@
                  level.removeBlock(pos, false);
              }
          }
-@@ -55,15 +_,15 @@
+@@ -51,15 +_,15 @@
  
      @Override
      protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, @Nullable Orientation orientation, boolean movedByPiston) {
@@ -40,28 +58,46 @@
          }
  
          return super.playerWillDestroy(level, pos, state, player);
-@@ -78,10 +_,14 @@
+@@ -74,23 +_,23 @@
          }
      }
  
 +    /** @deprecated Neo: use {@link net.neoforged.neoforge.common.extensions.IBlockStateExtension#onCaughtFire(Level,BlockPos,net.minecraft.core.Direction,LivingEntity)} instead */
 +    @Deprecated
      public static boolean prime(Level level, BlockPos pos) {
-         return prime(level, pos, null);
+-        return prime(level, pos, null, ItemStack.EMPTY);
++        return prime(level, pos, null);
      }
  
+-    public static boolean prime(Level level, BlockPos pos, @Nullable LivingEntity source, ItemStack itemStack) {
+-        if (!(level instanceof ServerLevel serverLevel && serverLevel.getGameRules().get(GameRules.TNT_EXPLODES))) {
+-            return false;
+-        } else if (source instanceof Player player
+-            && player.gameMode() == GameType.ADVENTURE
+-            && !itemStack.canBreakBlockInAdventureMode(new BlockInWorld(level, pos, false))) {
+-            return false;
+-        } else {
 +    /** @deprecated Neo: use {@link net.neoforged.neoforge.common.extensions.IBlockStateExtension#onCaughtFire(Level,BlockPos,net.minecraft.core.Direction,LivingEntity)} instead */
 +    @Deprecated
-     private static boolean prime(Level level, BlockPos pos, @Nullable LivingEntity source) {
-         if (level instanceof ServerLevel serverLevel && serverLevel.getGameRules().get(GameRules.TNT_EXPLODES)) {
++    private static boolean prime(Level level, BlockPos pos, @Nullable LivingEntity source) {
++        if (level instanceof ServerLevel serverLevel && serverLevel.getGameRules().get(GameRules.TNT_EXPLODES)) {
              PrimedTnt tnt = new PrimedTnt(level, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, source);
+             level.addFreshEntity(tnt);
+             level.playSound(null, tnt.getX(), tnt.getY(), tnt.getZ(), SoundEvents.TNT_PRIMED, SoundSource.BLOCKS, 1.0F, 1.0F);
+             level.gameEvent(source, GameEvent.PRIME_FUSE, pos);
+             return true;
++        } else {
++            return false;
+         }
+     }
+ 
 @@ -100,24 +_,29 @@
      ) {
          if (!itemStack.is(Items.FLINT_AND_STEEL) && !itemStack.is(Items.FIRE_CHARGE)) {
              return super.useItemOn(itemStack, state, level, pos, player, hand, hitResult);
 -        }
 -
--        if (prime(level, pos, player)) {
+-        if (prime(level, pos, player, itemStack)) {
 -            level.setBlock(pos, Blocks.AIR.defaultBlockState(), 11);
 -            Item item = itemStack.getItem();
 -            if (itemStack.is(Items.FLINT_AND_STEEL)) {
@@ -103,18 +139,23 @@
      }
  
      @Override
-@@ -127,7 +_,9 @@
+@@ -127,12 +_,9 @@
              Entity owner = projectile.getOwner();
              if (projectile.isOnFire()
                  && projectile.mayInteract(serverLevel, pos)
--                && prime(level, pos, owner instanceof LivingEntity livingEntity ? livingEntity : null)) {
+-                && prime(
+-                    level,
+-                    pos,
+-                    owner instanceof LivingEntity livingEntity ? livingEntity : null,
+-                    projectile instanceof AbstractArrow arr ? arr.getPickupItemStackOrigin() : ItemStack.EMPTY
+-                )) {
 +                && org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(projectile, pos, Blocks.AIR.defaultBlockState())
 +                && CraftEventFactory.callTNTPrimeEvent(level, pos, PrimeCause.PROJECTILE, projectile, null) // CraftBukkit - TNTPrimeEvent
 +                && onCaughtFire(state, level, pos, null, owner instanceof LivingEntity ? (LivingEntity)owner : null)) {
                  level.removeBlock(pos, false);
              }
          }
-@@ -141,5 +_,10 @@
+@@ -146,5 +_,10 @@
      @Override
      protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
          builder.add(UNSTABLE);

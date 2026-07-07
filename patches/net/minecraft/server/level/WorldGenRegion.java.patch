@@ -1,6 +1,15 @@
 --- a/net/minecraft/server/level/WorldGenRegion.java
 +++ b/net/minecraft/server/level/WorldGenRegion.java
-@@ -79,6 +_,36 @@
+@@ -61,7 +_,7 @@
+ 
+ public class WorldGenRegion implements WorldGenLevel {
+     private static final Logger LOGGER = LogUtils.getLogger();
+-    private final StaticCache2D<@Nullable ChunkAccess> cache;
++    private final StaticCache2D<GenerationChunkHolder> cache;
+     private final ChunkAccess center;
+     private final ServerLevel level;
+     private final long seed;
+@@ -79,13 +_,39 @@
      private final int centerChunkZ;
      private final int writeRadius;
  
@@ -36,8 +45,48 @@
 +
      public WorldGenRegion(ServerLevel level, StaticCache2D<GenerationChunkHolder> cache, ChunkStep generatingStep, ChunkAccess center) {
          this.generatingStep = generatingStep;
-         this.cache = cache;
-@@ -153,6 +_,28 @@
+-        this.cache = cache.map((holder, x, z) -> {
+-            int distance = center.getPos().getChessboardDistance(x, z);
+-            ChunkStatus maxAllowedStatus = distance >= generatingStep.directDependencies().size() ? null : generatingStep.directDependencies().get(distance);
+-            return maxAllowedStatus == null ? null : holder.getChunkIfPresentUnchecked(maxAllowedStatus);
+-        });
++        this.cache = cache;
+         this.center = center;
+         this.level = level;
+         this.seed = level.getSeed();
+@@ -123,14 +_,17 @@
+         ChunkStatus maxAllowedStatus = distance >= this.generatingStep.directDependencies().size()
+             ? null
+             : this.generatingStep.directDependencies().get(distance);
+-        ChunkAccess chunk;
++        GenerationChunkHolder chunkHolder;
+         if (maxAllowedStatus != null) {
+-            chunk = this.cache.get(chunkX, chunkZ);
+-            if (chunk != null && targetStatus.isOrBefore(maxAllowedStatus)) {
+-                return chunk;
++            chunkHolder = this.cache.get(chunkX, chunkZ);
++            if (targetStatus.isOrBefore(maxAllowedStatus)) {
++                ChunkAccess chunk = chunkHolder.getChunkIfPresentUnchecked(maxAllowedStatus);
++                if (chunk != null) {
++                    return chunk;
++                }
+             }
+         } else {
+-            chunk = null;
++            chunkHolder = null;
+         }
+ 
+         CrashReport report = CrashReport.forThrowable(
+@@ -140,7 +_,7 @@
+         category.setDetail("Requested chunk", String.format(Locale.ROOT, "%d, %d", chunkX, chunkZ));
+         category.setDetail("Generating status", () -> this.generatingStep.targetStatus().getName());
+         category.setDetail("Requested status", targetStatus::getName);
+-        category.setDetail("Actual status", () -> chunk == null ? "[out of cache bounds]" : chunk.getPersistedStatus().getName());
++        category.setDetail("Actual status", () -> chunkHolder == null ? "[out of cache bounds]" : chunkHolder.getPersistedStatus().getName());
+         category.setDetail("Maximum allowed status", () -> maxAllowedStatus == null ? "null" : maxAllowedStatus.getName());
+         category.setDetail("Dependencies", this.generatingStep.directDependencies()::toString);
+         category.setDetail("Requested distance", distance);
+@@ -154,6 +_,28 @@
          return distance < this.generatingStep.directDependencies().size();
      }
  
@@ -66,7 +115,7 @@
      @Override
      public BlockState getBlockState(BlockPos pos) {
          int chunkX = SectionPos.blockToSectionCoord(pos.getX());
-@@ -268,22 +_,32 @@
+@@ -269,22 +_,32 @@
          return Math.abs(this.centerChunkX - chunkX) <= this.writeRadius && Math.abs(this.centerChunkZ - chunkZ) <= this.writeRadius;
      }
  
@@ -110,7 +159,7 @@
              return false;
          } else if (this.center.isUpgrading()) {
              LevelHeightAccessor levelHeightAccessor = this.center.getHeightAccessorForGeneration();
-@@ -301,7 +_,7 @@
+@@ -302,7 +_,7 @@
  
          ChunkAccess chunk = this.getChunk(pos);
          BlockState oldState = chunk.setBlockState(pos, blockState, updateFlags);
@@ -119,7 +168,7 @@
              this.level.updatePOIOnBlockStateChange(pos, oldState, blockState);
          }
  
-@@ -314,6 +_,17 @@
+@@ -315,6 +_,17 @@
                      chunk.removeBlockEntity(pos);
                  }
              } else {
@@ -137,7 +186,7 @@
                  CompoundTag tag = new CompoundTag();
                  tag.putInt("x", pos.getX());
                  tag.putInt("y", pos.getY());
-@@ -341,6 +_,14 @@
+@@ -342,6 +_,14 @@
  
      @Override
      public boolean addFreshEntity(Entity entity) {
@@ -152,3 +201,12 @@
          int xc = SectionPos.blockToSectionCoord(entity.getBlockX());
          int zc = SectionPos.blockToSectionCoord(entity.getBlockZ());
          this.getChunk(xc, zc).addEntity(entity);
+@@ -350,7 +_,7 @@
+ 
+     @Override
+     public boolean removeBlock(BlockPos pos, boolean movedByPiston) {
+-        return this.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
++        return this.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+     }
+ 
+     @Override

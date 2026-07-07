@@ -1,6 +1,20 @@
 --- a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 +++ b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-@@ -38,7 +_,7 @@
+@@ -1,11 +_,13 @@
+ package net.minecraft.world.level.block.piston;
+ 
++import java.util.Iterator;
+ import java.util.List;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.nbt.CompoundTag;
++import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.util.Mth;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.MoverType;
+@@ -36,7 +_,7 @@
      private static final boolean DEFAULT_EXTENDING = false;
      private static final boolean DEFAULT_SOURCE = false;
      private BlockState movedState = DEFAULT_BLOCK_STATE;
@@ -9,27 +23,121 @@
      private boolean extending = false;
      private boolean isSourcePiston = false;
      private static final ThreadLocal<Direction> NOCLIP = ThreadLocal.withInitial(() -> null);
-@@ -121,7 +_,7 @@
+@@ -119,48 +_,66 @@
              List<Entity> entities = level.getEntities(null, PistonMath.getMovementArea(aabb, movement, deltaProgress).minmax(aabb));
              if (!entities.isEmpty()) {
                  List<AABB> shapeAabbs = shape.toAabbs();
 -                boolean causeBounce = self.movedState.is(Blocks.SLIME_BLOCK);
+-
+-                for (Entity entity : entities) {
+-                    if (entity.getPistonPushReaction() != PushReaction.IGNORE) {
+-                        if (causeBounce && entity.canSimulateMovement()) {
+-                            Vec3 deltaMovement = entity.getDeltaMovement();
+-                            double dx = deltaMovement.x;
+-                            double dy = deltaMovement.y;
+-                            double dz = deltaMovement.z;
+-                            switch (movement.getAxis()) {
+-                                case X:
+-                                    dx = movement.getStepX();
+-                                    break;
+-                                case Y:
+-                                    dy = movement.getStepY();
+-                                    break;
+-                                case Z:
+-                                    dz = movement.getStepZ();
+-                            }
+-
+-                            entity.setDeltaMovement(dx, dy, dz);
 +                boolean causeBounce = self.movedState.isSlimeBlock(); //TODO: is this patch really needed the logic of the original seems sound revisit later
-                 Iterator var12 = entities.iterator();
++                Iterator var12 = entities.iterator();
++
++                while (true) {
++                    Entity entity;
++                    while (true) {
++                        if (!var12.hasNext()) {
++                            return;
+                         }
  
-                 while (true) {
-@@ -154,6 +_,10 @@
+-                        double delta = 0.0;
++                        entity = (Entity)var12.next();
++                        if (entity.getPistonPushReaction() != PushReaction.IGNORE) {
++                            if (!causeBounce) {
++                                break;
++                            }
+ 
+-                        for (AABB shapeAabb : shapeAabbs) {
+-                            AABB movingAABB = PistonMath.getMovementArea(moveByPositionAndProgress(pos, shapeAabb, self), movement, deltaProgress);
+-                            AABB entityAabb = entity.getBoundingBox();
+-                            if (movingAABB.intersects(entityAabb)) {
+-                                delta = Math.max(delta, getMovement(movingAABB, movement, entityAabb));
+-                                if (delta >= deltaProgress) {
+-                                    break;
++                            if (!(entity instanceof ServerPlayer)) {
++                                Vec3 deltaMovement = entity.getDeltaMovement();
++                                double dx = deltaMovement.x;
++                                double dy = deltaMovement.y;
++                                double dz = deltaMovement.z;
++                                switch (movement.getAxis()) {
++                                    case X:
++                                        dx = movement.getStepX();
++                                        break;
++                                    case Y:
++                                        dy = movement.getStepY();
++                                        break;
++                                    case Z:
++                                        dz = movement.getStepZ();
                                  }
- 
-                                 entity.setDeltaMovement(dx, dy, dz);
+-                            }
+-                        }
+-
+-                        if (!(delta <= 0.0)) {
+-                            delta = Math.min(delta, deltaProgress) + 0.01;
+-                            moveEntityByPiston(movement, entity, delta, movement);
+-                            if (!self.extending && self.isSourcePiston) {
+-                                fixEntityWithinPistonBase(pos, entity, movement, deltaProgress);
+-                            }
++
++                                entity.setDeltaMovement(dx, dy, dz);
 +                                // Paper - EAR items stuck in slime pushed by a piston
 +                                entity.activatedTick = Math.max(entity.activatedTick, net.minecraft.server.MinecraftServer.currentTick + 10);
 +                                entity.activatedImmunityTick = Math.max(entity.activatedImmunityTick, net.minecraft.server.MinecraftServer.currentTick + 10);
 +                                // Paper end
-                                 break;
-                             }
++                                break;
++                            }
++                        }
++                    }
++
++                    double delta = 0.0;
++
++                    for (AABB shapeAabb : shapeAabbs) {
++                        AABB movingAABB = PistonMath.getMovementArea(moveByPositionAndProgress(pos, shapeAabb, self), movement, deltaProgress);
++                        AABB entityAabb = entity.getBoundingBox();
++                        if (movingAABB.intersects(entityAabb)) {
++                            delta = Math.max(delta, getMovement(movingAABB, movement, entityAabb));
++                            if (delta >= deltaProgress) {
++                                break;
++                            }
++                        }
++                    }
++
++                    if (!(delta <= 0.0)) {
++                        delta = Math.min(delta, deltaProgress) + 0.01;
++                        moveEntityByPiston(movement, entity, delta, movement);
++                        if (!self.extending && self.isSourcePiston) {
++                            fixEntityWithinPistonBase(pos, entity, movement, deltaProgress);
                          }
-@@ -314,7 +_,7 @@
+                     }
+                 }
+@@ -268,7 +_,7 @@
+                     newState = Block.updateFromNeighbourShapes(this.movedState, this.level, this.worldPosition);
+                 }
+ 
+-                this.level.setBlockAndUpdate(this.worldPosition, newState);
++                this.level.setBlock(this.worldPosition, newState, 3);
+                 this.level
+                     .neighborChanged(
+                         this.worldPosition, newState.getBlock(), ExperimentalRedstoneUtils.initialOrientation(this.level, this.getPushDirection(), null)
+@@ -298,7 +_,7 @@
                  if (level.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
                      BlockState newState = Block.updateFromNeighbourShapes(entity.movedState, level, pos);
                      if (newState.isAir()) {

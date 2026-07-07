@@ -1,7 +1,31 @@
 --- a/net/minecraft/world/level/block/grower/TreeGrower.java
 +++ b/net/minecraft/world/level/block/grower/TreeGrower.java
-@@ -23,6 +_,11 @@
- import net.minecraft.world.level.levelgen.feature.configurations.TreeConfiguration;
+@@ -1,9 +_,7 @@
+ package net.minecraft.world.level.block.grower;
+ 
+-import com.mojang.datafixers.util.Pair;
+ import com.mojang.serialization.Codec;
+ import it.unimi.dsi.fastutil.objects.Object2ObjectArrayMap;
+-import java.util.List;
+ import java.util.Map;
+ import java.util.Optional;
+ import java.util.OptionalInt;
+@@ -15,181 +_,193 @@
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.tags.BlockTags;
+ import net.minecraft.util.RandomSource;
+-import net.minecraft.util.random.Weighted;
+-import net.minecraft.util.random.WeightedList;
++import net.minecraft.world.level.BlockGetter;
+ import net.minecraft.world.level.LevelAccessor;
+ import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+-import net.minecraft.world.level.levelgen.feature.Feature;
+-import net.minecraft.world.level.levelgen.feature.TreeFeature;
++import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
++import net.minecraft.world.level.levelgen.feature.configurations.TreeConfiguration;
  import org.jspecify.annotations.Nullable;
  
 +// CraftBukkit start
@@ -12,41 +36,220 @@
  public final class TreeGrower {
      private static final Map<String, TreeGrower> GROWERS = new Object2ObjectArrayMap<>();
      public static final Codec<TreeGrower> CODEC = Codec.stringResolver(g -> g.name, GROWERS::get);
-@@ -131,7 +_,11 @@
-                 .lookupOrThrow(Registries.CONFIGURED_FEATURE)
-                 .get(megaFeatureKey)
-                 .orElse(null);
+     public static final TreeGrower OAK = new TreeGrower(
+         "oak",
+-        WeightedList.of(new Weighted<>(TreeFeatures.OAK, 9), new Weighted<>(TreeFeatures.FANCY_OAK, 1)),
+-        WeightedList.of(),
+-        WeightedList.of(new Weighted<>(TreeFeatures.OAK_BEES_005, 9), new Weighted<>(TreeFeatures.FANCY_OAK_BEES_005, 1)),
+-        TreeFeatures.OAK
++        0.1F,
++        Optional.empty(),
++        Optional.empty(),
++        Optional.of(TreeFeatures.OAK),
++        Optional.of(TreeFeatures.FANCY_OAK),
++        Optional.of(TreeFeatures.OAK_BEES_005),
++        Optional.of(TreeFeatures.FANCY_OAK_BEES_005)
+     );
+     public static final TreeGrower SPRUCE = new TreeGrower(
+         "spruce",
+-        WeightedList.of(TreeFeatures.SPRUCE),
+-        WeightedList.of(new Weighted<>(TreeFeatures.MEGA_SPRUCE, 1), new Weighted<>(TreeFeatures.MEGA_PINE, 1)),
+-        WeightedList.of(),
+-        TreeFeatures.SPRUCE
++        0.5F,
++        Optional.of(TreeFeatures.MEGA_SPRUCE),
++        Optional.of(TreeFeatures.MEGA_PINE),
++        Optional.of(TreeFeatures.SPRUCE),
++        Optional.empty(),
++        Optional.empty(),
++        Optional.empty()
+     );
+     public static final TreeGrower MANGROVE = new TreeGrower(
+         "mangrove",
+-        WeightedList.of(new Weighted<>(TreeFeatures.MANGROVE, 15), new Weighted<>(TreeFeatures.TALL_MANGROVE, 85)),
+-        WeightedList.of(),
+-        WeightedList.of(),
+-        TreeFeatures.MANGROVE
+-    );
+-    public static final TreeGrower AZALEA = new TreeGrower(
+-        "azalea", WeightedList.of(TreeFeatures.AZALEA_TREE), WeightedList.of(), WeightedList.of(), TreeFeatures.AZALEA_TREE
+-    );
+-    public static final TreeGrower BIRCH = new TreeGrower(
+-        "birch", WeightedList.of(TreeFeatures.BIRCH), WeightedList.of(), WeightedList.of(TreeFeatures.BIRCH_BEES_005), TreeFeatures.BIRCH
+-    );
++        0.85F,
++        Optional.empty(),
++        Optional.empty(),
++        Optional.of(TreeFeatures.MANGROVE),
++        Optional.of(TreeFeatures.TALL_MANGROVE),
++        Optional.empty(),
++        Optional.empty()
++    );
++    public static final TreeGrower AZALEA = new TreeGrower("azalea", Optional.empty(), Optional.of(TreeFeatures.AZALEA_TREE), Optional.empty());
++    public static final TreeGrower BIRCH = new TreeGrower("birch", Optional.empty(), Optional.of(TreeFeatures.BIRCH), Optional.of(TreeFeatures.BIRCH_BEES_005));
+     public static final TreeGrower JUNGLE = new TreeGrower(
+-        "jungle",
+-        WeightedList.of(TreeFeatures.JUNGLE_TREE_NO_VINE),
+-        WeightedList.of(TreeFeatures.MEGA_JUNGLE_TREE),
+-        WeightedList.of(),
+-        TreeFeatures.JUNGLE_TREE_NO_VINE
+-    );
+-    public static final TreeGrower ACACIA = new TreeGrower(
+-        "acacia", WeightedList.of(TreeFeatures.ACACIA), WeightedList.of(), WeightedList.of(), TreeFeatures.ACACIA
+-    );
++        "jungle", Optional.of(TreeFeatures.MEGA_JUNGLE_TREE), Optional.of(TreeFeatures.JUNGLE_TREE_NO_VINE), Optional.empty()
++    );
++    public static final TreeGrower ACACIA = new TreeGrower("acacia", Optional.empty(), Optional.of(TreeFeatures.ACACIA), Optional.empty());
+     public static final TreeGrower CHERRY = new TreeGrower(
+-        "cherry", WeightedList.of(TreeFeatures.CHERRY), WeightedList.of(), WeightedList.of(TreeFeatures.CHERRY_BEES_005), TreeFeatures.CHERRY
+-    );
+-    public static final TreeGrower DARK_OAK = new TreeGrower("dark_oak", WeightedList.of(), WeightedList.of(TreeFeatures.DARK_OAK), WeightedList.of(), null);
+-    public static final TreeGrower PALE_OAK = new TreeGrower(
+-        "pale_oak", WeightedList.of(), WeightedList.of(TreeFeatures.PALE_OAK_BONEMEAL), WeightedList.of(), null
+-    );
+-    public static final TreeGrower POPLAR = new TreeGrower(
+-        "poplar",
+-        WeightedList.of(
+-            new Weighted<>(TreeFeatures.RED_POPLAR, 1), new Weighted<>(TreeFeatures.ORANGE_POPLAR, 1), new Weighted<>(TreeFeatures.YELLOW_POPLAR, 1)
+-        ),
+-        WeightedList.of(),
+-        WeightedList.of(),
+-        TreeFeatures.RED_POPLAR
+-    );
++        "cherry", Optional.empty(), Optional.of(TreeFeatures.CHERRY), Optional.of(TreeFeatures.CHERRY_BEES_005)
++    );
++    public static final TreeGrower DARK_OAK = new TreeGrower("dark_oak", Optional.of(TreeFeatures.DARK_OAK), Optional.empty(), Optional.empty());
++    public static final TreeGrower PALE_OAK = new TreeGrower("pale_oak", Optional.of(TreeFeatures.PALE_OAK_BONEMEAL), Optional.empty(), Optional.empty());
+     private final String name;
+-    private final WeightedList<ResourceKey<Feature>> trees;
+-    private final WeightedList<ResourceKey<Feature>> megaTrees;
+-    private final WeightedList<ResourceKey<Feature>> flowerTrees;
+-    private final @Nullable ResourceKey<Feature> shortestTreeType;
+-
+-    public TreeGrower(
+-        String name,
+-        WeightedList<ResourceKey<Feature>> trees,
+-        WeightedList<ResourceKey<Feature>> megaTrees,
+-        WeightedList<ResourceKey<Feature>> flowerTrees,
+-        @Nullable ResourceKey<Feature> shortestTreeType
++    private final float secondaryChance;
++    private final Optional<ResourceKey<ConfiguredFeature<?, ?>>> megaTree;
++    private final Optional<ResourceKey<ConfiguredFeature<?, ?>>> secondaryMegaTree;
++    private final Optional<ResourceKey<ConfiguredFeature<?, ?>>> tree;
++    private final Optional<ResourceKey<ConfiguredFeature<?, ?>>> secondaryTree;
++    private final Optional<ResourceKey<ConfiguredFeature<?, ?>>> flowers;
++    private final Optional<ResourceKey<ConfiguredFeature<?, ?>>> secondaryFlowers;
++
++    public TreeGrower(
++        String name,
++        Optional<ResourceKey<ConfiguredFeature<?, ?>>> megaTree,
++        Optional<ResourceKey<ConfiguredFeature<?, ?>>> tree,
++        Optional<ResourceKey<ConfiguredFeature<?, ?>>> flowers
++    ) {
++        this(name, 0.0F, megaTree, Optional.empty(), tree, Optional.empty(), flowers, Optional.empty());
++    }
++
++    public TreeGrower(
++        String name,
++        float secondaryChance,
++        Optional<ResourceKey<ConfiguredFeature<?, ?>>> megaTree,
++        Optional<ResourceKey<ConfiguredFeature<?, ?>>> secondaryMegaTree,
++        Optional<ResourceKey<ConfiguredFeature<?, ?>>> tree,
++        Optional<ResourceKey<ConfiguredFeature<?, ?>>> secondaryTree,
++        Optional<ResourceKey<ConfiguredFeature<?, ?>>> flowers,
++        Optional<ResourceKey<ConfiguredFeature<?, ?>>> secondaryFlowers
+     ) {
+         this.name = name;
+-        this.trees = trees;
+-        this.megaTrees = megaTrees;
+-        this.flowerTrees = flowerTrees;
+-        this.shortestTreeType = shortestTreeType;
++        this.secondaryChance = secondaryChance;
++        this.megaTree = megaTree;
++        this.secondaryMegaTree = secondaryMegaTree;
++        this.tree = tree;
++        this.secondaryTree = secondaryTree;
++        this.flowers = flowers;
++        this.secondaryFlowers = secondaryFlowers;
+         GROWERS.put(name, this);
+     }
+ 
+-    private @Nullable ResourceKey<Feature> getConfiguredFeature(RandomSource random, boolean hasFlowers) {
+-        return hasFlowers && !this.flowerTrees.isEmpty() ? this.flowerTrees.getRandom(random).orElse(null) : this.trees.getRandom(random).orElse(null);
++    private @Nullable ResourceKey<ConfiguredFeature<?, ?>> getConfiguredFeature(RandomSource random, boolean hasFlowers) {
++        if (random.nextFloat() < this.secondaryChance) {
++            if (hasFlowers && this.secondaryFlowers.isPresent()) {
++                return this.secondaryFlowers.get();
++            }
++
++            if (this.secondaryTree.isPresent()) {
++                return this.secondaryTree.get();
++            }
++        }
++
++        return hasFlowers && this.flowers.isPresent() ? this.flowers.get() : this.tree.orElse(null);
+     }
+ 
+-    private @Nullable ResourceKey<Feature> getConfiguredMegaFeature(RandomSource random) {
+-        return this.megaTrees.getRandom(random).orElse(null);
++    private @Nullable ResourceKey<ConfiguredFeature<?, ?>> getConfiguredMegaFeature(RandomSource random) {
++        return this.secondaryMegaTree.isPresent() && random.nextFloat() < this.secondaryChance ? this.secondaryMegaTree.get() : this.megaTree.orElse(null);
+     }
+ 
+     public boolean growTree(ServerLevel level, ChunkGenerator generator, BlockPos pos, BlockState state, RandomSource random) {
+-        ResourceKey<Feature> megaFeatureKey = this.getConfiguredMegaFeature(random);
++        ResourceKey<ConfiguredFeature<?, ?>> megaFeatureKey = this.getConfiguredMegaFeature(random);
+         if (megaFeatureKey != null) {
+-            Holder<Feature> featureHolder = level.registryAccess().lookupOrThrow(Registries.FEATURE).get(megaFeatureKey).orElse(null);
++            Holder<ConfiguredFeature<?, ?>> featureHolder = level.registryAccess()
++                .lookupOrThrow(Registries.CONFIGURED_FEATURE)
++                .get(megaFeatureKey)
++                .orElse(null);
 +            var event = net.neoforged.neoforge.event.EventHooks.fireBlockGrowFeature(level, random, pos, featureHolder);
 +            featureHolder = event.getFeature();
 +            if (event.isCanceled()) return false;
              if (featureHolder != null) {
+-                Optional<TreeGrower.TwoByTwoSaplingPos> twoByTwoSaplingPos = findTwoByTwoSaplingPos(level, state, pos);
+-                if (twoByTwoSaplingPos.isPresent()) {
+-                    int dx = twoByTwoSaplingPos.get().offsetX();
+-                    int dz = twoByTwoSaplingPos.get().offsetZ();
+-                    List<Pair<BlockState, BlockPos>> groundLevelSurroundingBlocks = twoByTwoSaplingPos.get().groundLevelSurroundingBlocks();
+-                    Feature feature = featureHolder.value();
+-                    removeSaplings(level, groundLevelSurroundingBlocks);
+-                    if (feature.place(level, generator, random, pos.offset(dx, 0, dz))) {
+-                        return true;
+-                    }
+-
+-                    resetSaplings(level, groundLevelSurroundingBlocks);
 +                setTreeType(featureHolder); // CraftBukkit
-                 for (int dx = 0; dx >= -1; dx--) {
-                     for (int dz = 0; dz >= -1; dz--) {
-                         if (isTwoByTwoSapling(state, level, pos, dx, dz)) {
-@@ -159,25 +_,29 @@
-         ResourceKey<ConfiguredFeature<?, ?>> featureKey = this.getConfiguredFeature(random, this.hasFlowers(level, pos));
-         if (featureKey == null) {
-             return false;
--        }
--
--        Holder<ConfiguredFeature<?, ?>> featureHolder = level.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(featureKey).orElse(null);
--        if (featureHolder == null) {
--            return false;
--        }
--
--        ConfiguredFeature<?, ?> feature = featureHolder.value();
--        BlockState emptyBlock = level.getFluidState(pos).createLegacyBlock();
--        level.setBlock(pos, emptyBlock, 260);
--        if (feature.place(level, generator, random, pos)) {
--            if (level.getBlockState(pos) == emptyBlock) {
--                level.sendBlockUpdated(pos, state, emptyBlock, 2);
--            }
--
--            return true;
-         } else {
--            level.setBlock(pos, state, 260);
--            return false;
++                for (int dx = 0; dx >= -1; dx--) {
++                    for (int dz = 0; dz >= -1; dz--) {
++                        if (isTwoByTwoSapling(state, level, pos, dx, dz)) {
++                            ConfiguredFeature<?, ?> feature = featureHolder.value();
++                            BlockState air = Blocks.AIR.defaultBlockState();
++                            level.setBlock(pos.offset(dx, 0, dz), air, 260);
++                            level.setBlock(pos.offset(dx + 1, 0, dz), air, 260);
++                            level.setBlock(pos.offset(dx, 0, dz + 1), air, 260);
++                            level.setBlock(pos.offset(dx + 1, 0, dz + 1), air, 260);
++                            if (feature.place(level, generator, random, pos.offset(dx, 0, dz))) {
++                                return true;
++                            }
++
++                            level.setBlock(pos.offset(dx, 0, dz), state, 260);
++                            level.setBlock(pos.offset(dx + 1, 0, dz), state, 260);
++                            level.setBlock(pos.offset(dx, 0, dz + 1), state, 260);
++                            level.setBlock(pos.offset(dx + 1, 0, dz + 1), state, 260);
++                            return false;
++                        }
++                    }
++                }
++            }
++        }
++
++        ResourceKey<ConfiguredFeature<?, ?>> featureKey = this.getConfiguredFeature(random, this.hasFlowers(level, pos));
++        if (featureKey == null) {
++            return false;
++        } else {
 +            Holder<ConfiguredFeature<?, ?>> featureHolder = level.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(featureKey).orElse(null);
 +            var event = net.neoforged.neoforge.event.EventHooks.fireBlockGrowFeature(level, random, pos, featureHolder);
 +            featureHolder = event.getFeature();
@@ -66,17 +269,112 @@
 +                    return true;
 +                } else {
 +                    level.setBlock(pos, state, 260);
-+                    return false;
-+                }
-+            }
+                     return false;
+                 }
+             }
          }
+-
+-        ResourceKey<Feature> featureKey = this.getConfiguredFeature(random, this.hasFlowers(level, pos));
+-        if (featureKey == null) {
+-            return false;
+-        }
+-
+-        Holder<Feature> featureHolder = level.registryAccess().lookupOrThrow(Registries.FEATURE).get(featureKey).orElse(null);
+-        if (featureHolder == null) {
+-            return false;
+-        }
+-
+-        Feature feature = featureHolder.value();
+-        removeSapling(level, pos);
+-        if (feature.place(level, generator, random, pos)) {
+-            return true;
+-        }
+-
+-        resetSaplings(level, List.of(Pair.of(state, pos)));
+-        return false;
+-    }
+-
+-    private static List<Pair<BlockState, BlockPos>> getSurroundingBlockStates(ServerLevel level, BlockPos pos, int dx, int dz) {
+-        return List.of(
+-            Pair.of(level.getBlockState(pos.offset(dx, 0, dz)), pos.offset(dx, 0, dz)),
+-            Pair.of(level.getBlockState(pos.offset(dx + 1, 0, dz)), pos.offset(dx + 1, 0, dz)),
+-            Pair.of(level.getBlockState(pos.offset(dx, 0, dz + 1)), pos.offset(dx, 0, dz + 1)),
+-            Pair.of(level.getBlockState(pos.offset(dx + 1, 0, dz + 1)), pos.offset(dx + 1, 0, dz + 1))
+-        );
+-    }
+-
+-    private static void removeSaplings(ServerLevel level, List<Pair<BlockState, BlockPos>> saplingBlocks) {
+-        for (Pair<BlockState, BlockPos> saplingBlock : saplingBlocks) {
+-            BlockPos saplingPosition = saplingBlock.getSecond();
+-            removeSapling(level, saplingPosition);
+-        }
+-    }
+-
+-    private static void removeSapling(ServerLevel level, BlockPos saplingPosition) {
+-        BlockState emptyBlock = level.getFluidState(saplingPosition).createLegacyBlock();
+-        level.setBlock(saplingPosition, emptyBlock, 818);
+-    }
+-
+-    private static void resetSaplings(ServerLevel level, List<Pair<BlockState, BlockPos>> saplingBlocks) {
+-        for (Pair<BlockState, BlockPos> saplingBlock : saplingBlocks) {
+-            level.setBlock(saplingBlock.getSecond(), saplingBlock.getFirst(), 260);
+-        }
+-    }
+-
+-    private static boolean isTwoByTwoSapling(BlockState state, List<Pair<BlockState, BlockPos>> surroundingBlocks) {
++    }
++
++    private static boolean isTwoByTwoSapling(BlockState state, BlockGetter level, BlockPos pos, int ox, int oz) {
+         Block block = state.getBlock();
+-
+-        for (Pair<BlockState, BlockPos> surroundingBlock : surroundingBlocks) {
+-            BlockState surroundingBlockState = surroundingBlock.getFirst();
+-            if (!surroundingBlockState.is(block)) {
+-                return false;
+-            }
+-        }
+-
+-        return true;
++        return level.getBlockState(pos.offset(ox, 0, oz)).is(block)
++            && level.getBlockState(pos.offset(ox + 1, 0, oz)).is(block)
++            && level.getBlockState(pos.offset(ox, 0, oz + 1)).is(block)
++            && level.getBlockState(pos.offset(ox + 1, 0, oz + 1)).is(block);
      }
  
-@@ -210,4 +_,60 @@
-             ? OptionalInt.of(treeConfig.trunkPlacer.getBaseHeight())
+     private boolean hasFlowers(LevelAccessor level, BlockPos pos) {
+@@ -203,36 +_,70 @@
+     }
+ 
+     public OptionalInt getMinimumHeight(ServerLevel level) {
+-        ResourceKey<Feature> featureKey = this.shortestTreeType;
++        ResourceKey<ConfiguredFeature<?, ?>> featureKey = this.tree.orElse(null);
+         if (featureKey == null) {
+             return OptionalInt.empty();
+         }
+ 
+-        Holder<Feature> featureHolder = level.registryAccess().lookupOrThrow(Registries.FEATURE).get(featureKey).orElse(null);
+-        return featureHolder != null && featureHolder.value() instanceof TreeFeature treeFeature
+-            ? OptionalInt.of(treeFeature.trunkPlacer().getBaseHeight())
++        Holder<ConfiguredFeature<?, ?>> featureHolder = level.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(featureKey).orElse(null);
++        return featureHolder != null && featureHolder.value().config() instanceof TreeConfiguration treeConfig
++            ? OptionalInt.of(treeConfig.trunkPlacer.getBaseHeight())
              : OptionalInt.empty();
      }
-+
+ 
+-    public boolean canGrow(ServerLevel level, BlockPos pos, BlockState state) {
+-        ResourceKey<Feature> featureKey = this.getConfiguredFeature(level.getRandom(), this.hasFlowers(level, pos));
+-        ResourceKey<Feature> megaFeatureKey = this.getConfiguredMegaFeature(level.getRandom());
+-        return featureKey == null && megaFeatureKey != null ? findTwoByTwoSaplingPos(level, state, pos).isPresent() : true;
+-    }
+-
+-    private static Optional<TreeGrower.TwoByTwoSaplingPos> findTwoByTwoSaplingPos(ServerLevel level, BlockState state, BlockPos pos) {
+-        for (int dx = 0; dx >= -1; dx--) {
+-            for (int dz = 0; dz >= -1; dz--) {
+-                List<Pair<BlockState, BlockPos>> groundLevelSurroundingBlocks = getSurroundingBlockStates(level, pos, dx, dz);
+-                if (isTwoByTwoSapling(state, groundLevelSurroundingBlocks)) {
+-                    return Optional.of(new TreeGrower.TwoByTwoSaplingPos(dx, dz, groundLevelSurroundingBlocks));
+-                }
+-            }
 +    // CraftBukkit start
 +    private void setTreeType(Holder<ConfiguredFeature<?, ?>> feature) {
 +        org.bukkit.TreeType treeType;
@@ -128,7 +426,13 @@
 +            treeType = org.bukkit.TreeType.PALE_OAK_CREAKING;
 +        } else {
 +            throw new IllegalArgumentException("Unknown tree generator " + feature);
-+        }
+         }
+-
+-        return Optional.empty();
+-    }
+-
+-    private record TwoByTwoSaplingPos(int offsetX, int offsetZ, List<Pair<BlockState, BlockPos>> groundLevelSurroundingBlocks) {
+-    }
 +        net.minecraft.world.level.block.SaplingBlock.treeType = treeType;
 +    }
 +    // CraftBukkit end

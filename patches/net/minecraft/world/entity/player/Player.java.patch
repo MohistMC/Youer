@@ -16,15 +16,18 @@
  import net.minecraft.util.Mth;
  import net.minecraft.util.Unit;
  import net.minecraft.util.Util;
-@@ -76,7 +_,6 @@
+@@ -76,9 +_,9 @@
  import net.minecraft.world.entity.animal.equine.AbstractHorse;
  import net.minecraft.world.entity.animal.nautilus.AbstractNautilus;
  import net.minecraft.world.entity.animal.parrot.Parrot;
 -import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
  import net.minecraft.world.entity.decoration.ArmorStand;
  import net.minecraft.world.entity.item.ItemEntity;
- import net.minecraft.world.entity.monster.warden.WardenSpawnTracker;
-@@ -120,12 +_,14 @@
++import net.minecraft.world.entity.monster.warden.WardenSpawnTracker;
+ import net.minecraft.world.entity.projectile.FishingHook;
+ import net.minecraft.world.entity.projectile.Projectile;
+ import net.minecraft.world.entity.projectile.ProjectileDeflection;
+@@ -119,12 +_,14 @@
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.scores.PlayerTeam;
@@ -40,7 +43,7 @@
      public static final int MAX_HEALTH = 20;
      public static final int SLEEP_DURATION = 100;
      public static final int WAKE_UP_DURATION = 10;
-@@ -151,7 +_,7 @@
+@@ -150,7 +_,7 @@
      private static final int DEFAULT_SCORE = 0;
      public static final float CREATIVE_ENTITY_INTERACTION_RANGE_MODIFIER_VALUE = 2.0F;
      private final Inventory inventory;
@@ -49,7 +52,7 @@
      public final InventoryMenu inventoryMenu;
      public AbstractContainerMenu containerMenu;
      protected FoodData foodData = new FoodData();
-@@ -173,6 +_,46 @@
+@@ -172,6 +_,46 @@
      private Optional<GlobalPos> lastDeathLocation = Optional.empty();
      public @Nullable FishingHook fishing;
      public float hurtDir;
@@ -96,7 +99,7 @@
  
      public Player(Level level, GameProfile gameProfile) {
          super(EntityTypes.PLAYER, level);
-@@ -218,7 +_,8 @@
+@@ -217,7 +_,8 @@
              .add(Attributes.MINING_EFFICIENCY)
              .add(Attributes.SWEEPING_DAMAGE_RATIO)
              .add(Attributes.WAYPOINT_TRANSMIT_RANGE, 6.0E7)
@@ -106,7 +109,7 @@
      }
  
      @Override
-@@ -232,6 +_,12 @@
+@@ -231,6 +_,12 @@
  
      @Override
      public void tick() {
@@ -119,7 +122,7 @@
          this.noPhysics = this.isSpectator();
          if (this.isSpectator() || this.isPassenger()) {
              this.setOnGround(false);
-@@ -243,12 +_,19 @@
+@@ -242,12 +_,19 @@
  
          if (this.isSleeping()) {
              this.sleepCounter++;
@@ -140,7 +143,7 @@
                  this.stopSleepInBed(false, true);
              }
          } else if (this.sleepCounter > 0) {
-@@ -282,8 +_,20 @@
+@@ -281,8 +_,20 @@
              this.turtleHelmetTick();
          }
  
@@ -161,7 +164,7 @@
      }
  
      @Override
-@@ -323,7 +_,7 @@
+@@ -322,7 +_,7 @@
      }
  
      private void turtleHelmetTick() {
@@ -170,7 +173,7 @@
      }
  
      private boolean isEquipped(Item item) {
-@@ -343,6 +_,10 @@
+@@ -342,6 +_,10 @@
      }
  
      protected void updatePlayerPose() {
@@ -181,7 +184,7 @@
          if (this.canPlayerFitWithinBlocksAndEntitiesWhen(Pose.SWIMMING)) {
              Pose desiredPose = this.getDesiredPose();
              Pose actualPose;
-@@ -424,6 +_,18 @@
+@@ -423,6 +_,18 @@
          }
      }
  
@@ -200,7 +203,7 @@
      public void closeContainer() {
          this.containerMenu = this.inventoryMenu;
      }
-@@ -435,7 +_,14 @@
+@@ -434,7 +_,14 @@
      public void rideTick() {
          if (!this.level().isClientSide() && this.wantsToStopRiding() && this.isPassenger()) {
              this.stopRiding();
@@ -216,7 +219,7 @@
              super.rideTick();
          }
      }
-@@ -468,7 +_,7 @@
+@@ -467,7 +_,7 @@
              List<Entity> orbs = Lists.newArrayList();
  
              for (Entity entity : entities) {
@@ -225,7 +228,7 @@
                      orbs.add(entity);
                  } else if (!entity.isRemoved()) {
                      this.touch(entity);
-@@ -526,6 +_,7 @@
+@@ -525,6 +_,7 @@
  
      @Override
      public void die(DamageSource source) {
@@ -233,7 +236,7 @@
          super.die(source);
          this.reapplyPosition();
          if (!this.isSpectator() && this.level() instanceof ServerLevel level) {
-@@ -582,10 +_,18 @@
+@@ -581,10 +_,18 @@
      }
  
      public @Nullable ItemEntity drop(ItemStack itemStack, boolean thrownFromHand) {
@@ -253,7 +256,7 @@
          float speed = this.inventory.getSelectedItem().getDestroySpeed(state);
          if (speed > 1.0F) {
              speed += (float)this.getAttributeValue(Attributes.MINING_EFFICIENCY);
-@@ -614,13 +_,19 @@
+@@ -613,13 +_,19 @@
              speed /= 5.0F;
          }
  
@@ -273,7 +276,7 @@
      @Override
      protected void readAdditionalSaveData(ValueInput input) {
          super.readAdditionalSaveData(input);
-@@ -692,7 +_,8 @@
+@@ -691,7 +_,8 @@
              return false;
          }
  
@@ -283,7 +286,7 @@
          if (source.scalesWithDifficulty()) {
              if (level.getDifficulty() == Difficulty.PEACEFUL) {
                  damage = 0.0F;
-@@ -707,7 +_,14 @@
+@@ -706,7 +_,14 @@
              }
          }
  
@@ -299,7 +302,7 @@
      }
  
      @Override
-@@ -717,7 +_,7 @@
+@@ -716,7 +_,7 @@
          BlocksAttacks blocksAttacks = itemBlockingWith != null ? itemBlockingWith.get(DataComponents.BLOCKS_ATTACKS) : null;
          float secondsToDisableBlocking = attacker.getSecondsToDisableBlocking();
          if (secondsToDisableBlocking > 0.0F && blocksAttacks != null) {
@@ -308,7 +311,7 @@
          }
      }
  
-@@ -727,13 +_,29 @@
+@@ -726,13 +_,29 @@
      }
  
      public boolean canHarmPlayer(Player target) {
@@ -344,7 +347,7 @@
      }
  
      @Override
-@@ -749,16 +_,31 @@
+@@ -748,16 +_,31 @@
      @Override
      protected void actuallyHurt(ServerLevel level, DamageSource source, float dmg) {
          if (!this.isInvulnerableTo(level, source)) {
@@ -382,7 +385,7 @@
              if (dmg != 0.0F) {
                  this.causeFoodExhaustion(source.getFoodExhaustion());
                  this.getCombatTracker().recordDamage(source, dmg);
-@@ -769,6 +_,8 @@
+@@ -768,6 +_,8 @@
  
                  this.gameEvent(GameEvent.ENTITY_DAMAGE);
              }
@@ -391,7 +394,7 @@
          }
      }
  
-@@ -824,6 +_,8 @@
+@@ -823,6 +_,8 @@
  
              return InteractionResult.PASS;
          } else {
@@ -400,7 +403,7 @@
              ItemStack itemStack = this.getItemInHand(hand);
              ItemStack itemStackClone = itemStack.copy();
              InteractionResult interact = entity.interact(this, hand, location);
-@@ -832,6 +_,10 @@
+@@ -831,6 +_,10 @@
                      itemStack.setCount(itemStackClone.getCount());
                  }
  
@@ -411,7 +414,7 @@
                  return interact;
              } else {
                  if (!itemStack.isEmpty() && entity instanceof LivingEntity livingEntity) {
-@@ -843,6 +_,7 @@
+@@ -842,6 +_,7 @@
                      if (interactionResult.consumesAction()) {
                          this.level().gameEvent(GameEvent.ENTITY_INTERACT, entity.position(), GameEvent.Context.of(this));
                          if (itemStack.isEmpty() && !this.hasInfiniteMaterials()) {
@@ -419,7 +422,7 @@
                              this.setItemInHand(hand, ItemStack.EMPTY);
                          }
  
-@@ -856,8 +_,10 @@
+@@ -855,8 +_,10 @@
      }
  
      @Override
@@ -432,7 +435,7 @@
          this.boardingCooldown = 0;
      }
  
-@@ -872,6 +_,7 @@
+@@ -871,6 +_,7 @@
      }
  
      @Override
@@ -440,7 +443,7 @@
      protected Vec3 maybeBackOffFromEdge(Vec3 delta, MoverType moverType) {
          float maxDownStep = this.maxUpStep();
          if (!this.abilities.flying
-@@ -923,6 +_,7 @@
+@@ -922,6 +_,7 @@
          }
      }
  
@@ -448,7 +451,7 @@
      private boolean isAboveGround(float maxDownStep) {
          return this.onGround() || this.fallDistance < maxDownStep && !this.canFallAtLeast(0.0, 0.0, maxDownStep - this.fallDistance);
      }
-@@ -944,15 +_,26 @@
+@@ -943,15 +_,26 @@
      }
  
      public void attack(Entity entity) {
@@ -479,7 +482,7 @@
                  if (baseDamage > 0.0F || magicBoost > 0.0F) {
                      boolean fullStrengthAttack = attackStrengthScale > 0.9F;
                      boolean knockbackAttack;
-@@ -965,12 +_,23 @@
+@@ -964,12 +_,23 @@
  
                      baseDamage += attackingItemStack.getItem().getAttackDamageBonus(entity, baseDamage, damageSource);
                      boolean criticalAttack = fullStrengthAttack && this.canCriticalAttack(entity);
@@ -505,7 +508,7 @@
                      float oldLivingEntityHealth = 0.0F;
                      if (entity instanceof LivingEntity livingTarget) {
                          oldLivingEntityHealth = livingTarget.getHealth();
-@@ -983,7 +_,8 @@
+@@ -982,7 +_,8 @@
                              entity, this.getKnockback(entity, damageSource) + (knockbackAttack ? 0.5F : 0.0F), oldMovement, damageSource, totalDamage, true
                          );
                          if (sweepAttack) {
@@ -515,7 +518,7 @@
                          }
  
                          this.attackVisualEffects(entity, criticalAttack, sweepAttack, fullStrengthAttack, false, magicBoost);
-@@ -998,6 +_,8 @@
+@@ -997,6 +_,8 @@
  
                  this.postPiercingAttack();
              }
@@ -524,7 +527,7 @@
          }
      }
  
-@@ -1013,11 +_,12 @@
+@@ -1012,11 +_,12 @@
          return !entity.isAttackable() ? true : entity.skipAttackInteraction(this);
      }
  
@@ -539,7 +542,7 @@
              return true;
          } else {
              return false;
-@@ -1040,7 +_,8 @@
+@@ -1039,7 +_,8 @@
              double approximateSpeedSq = this.getKnownMovement().horizontalDistanceSqr();
              double maxSpeedForSweepAttack = this.getSpeed() * 2.5;
              if (approximateSpeedSq < Mth.square(maxSpeedForSweepAttack)) {
@@ -549,7 +552,7 @@
              }
          }
  
-@@ -1078,11 +_,12 @@
+@@ -1077,11 +_,12 @@
  
      private void itemAttackInteraction(Entity entity, ItemStack attackingItemStack, DamageSource damageSource, boolean applyToTarget) {
          Entity hurtTarget = entity;
@@ -564,7 +567,7 @@
          if (this.level() instanceof ServerLevel serverLevel) {
              if (hurtTarget instanceof LivingEntity livingTarget) {
                  itemHurtEnemy = attackingItemStack.hurtEnemy(livingTarget, this);
-@@ -1099,6 +_,7 @@
+@@ -1098,6 +_,7 @@
              }
  
              if (attackingItemStack.isEmpty()) {
@@ -572,7 +575,7 @@
                  if (attackingItemStack == this.getMainHandItem()) {
                      this.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
                  } else {
-@@ -1129,13 +_,34 @@
+@@ -1128,13 +_,34 @@
              }
  
              this.setDeltaMovement(this.getDeltaMovement().multiply(0.6, 1.0, 0.6));
@@ -584,10 +587,11 @@
 +            // Paper end - Configurable sprint interruption on attack
          }
  
-         if (entity instanceof ServerPlayer serverPlayer && entity.hurtMarked) {
+-        if (entity instanceof ServerPlayer serverPlayer && entity.syncVelocity) {
 -            serverPlayer.connection.send(new ClientboundSetEntityMotionPacket(entity));
--            entity.hurtMarked = false;
+-            entity.syncVelocity = false;
 -            entity.setDeltaMovement(oldMovement);
++        if (entity instanceof ServerPlayer serverPlayer && entity.hurtMarked) {
 +            // CraftBukkit start - Add Velocity Event
 +            boolean cancelled = false;
 +            org.bukkit.entity.Player player = (org.bukkit.entity.Player) entity.getBukkitEntity();
@@ -611,7 +615,7 @@
          }
      }
  
-@@ -1144,19 +_,29 @@
+@@ -1143,19 +_,29 @@
          return 1.0F;
      }
  
@@ -644,7 +648,7 @@
                          nearby.knockback(
                              0.4F,
                              Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)),
-@@ -1194,7 +_,16 @@
+@@ -1193,7 +_,16 @@
  
      @Override
      public boolean stabAttack(EquipmentSlot slot, Entity target, float baseDamage, boolean dealsDamage, boolean dealsKnockback, boolean dismounts) {
@@ -662,7 +666,7 @@
              return false;
          }
  
-@@ -1206,7 +_,8 @@
+@@ -1205,7 +_,8 @@
              baseDamage *= this.baseDamageScaleFactor();
          }
  
@@ -672,7 +676,16 @@
              return true;
          }
  
-@@ -1237,7 +_,7 @@
+@@ -1223,7 +_,7 @@
+         }
+ 
+         boolean dismounted = false;
+-        if (dismounts && target.isPassenger() && !target.is(EntityTypeTags.CANNOT_BE_DISMOUNTED_BY_ITEM_USAGE)) {
++        if (dismounts && target.isPassenger()) {
+             dismounted = true;
+             target.stopRiding();
+         }
+@@ -1236,7 +_,7 @@
          this.setLastHurtMob(target);
          this.itemAttackInteraction(target, weaponItem, damageSource, wasHurt);
          this.damageStatsAndHearts(target, oldLivingEntityHealth);
@@ -681,7 +694,7 @@
          return true;
      }
  
-@@ -1245,8 +_,9 @@
+@@ -1244,8 +_,9 @@
      }
  
      @Override
@@ -693,7 +706,7 @@
          this.inventoryMenu.removed(this);
          if (this.hasContainerOpen()) {
              this.doCloseContainer();
-@@ -1314,12 +_,19 @@
+@@ -1313,12 +_,19 @@
      }
  
      public Either<Player.BedSleepingProblem, Unit> startSleepInBed(BlockPos pos) {
@@ -713,7 +726,7 @@
          super.stopSleeping();
          if (this.level() instanceof ServerLevel && updateLevelList) {
              ((ServerLevel)this.level()).updateSleepingPlayerList();
-@@ -1406,7 +_,7 @@
+@@ -1405,7 +_,7 @@
      }
  
      @Override
@@ -722,7 +735,7 @@
          return !this.abilities.flying && super.canGlide();
      }
  
-@@ -1430,7 +_,8 @@
+@@ -1429,7 +_,8 @@
  
      @Override
      public boolean causeFallDamage(double fallDistance, float damageModifier, DamageSource damageSource) {
@@ -732,7 +745,16 @@
              return false;
          }
  
-@@ -1451,7 +_,15 @@
+@@ -1441,7 +_,7 @@
+     }
+ 
+     public boolean tryToStartFallFlying() {
+-        if (!this.isFallFlying() && this.canGlide() && !this.isInLiquid()) {
++        if (!this.isFallFlying() && this.canGlide() && !this.isInWater()) {
+             this.startFallFlying();
+             return true;
+         } else {
+@@ -1450,7 +_,15 @@
      }
  
      public void startFallFlying() {
@@ -749,7 +771,7 @@
      }
  
      @Override
-@@ -1465,13 +_,13 @@
+@@ -1464,13 +_,13 @@
      protected void playStepSound(BlockPos onPos, BlockState onState) {
          if (this.isInWater()) {
              this.waterSwimSound();
@@ -765,7 +787,7 @@
                  } else {
                      super.playStepSound(primaryStepSoundPos, primaryStepState);
                  }
-@@ -1502,6 +_,10 @@
+@@ -1501,6 +_,10 @@
      }
  
      public void giveExperiencePoints(int i) {
@@ -776,7 +798,7 @@
          this.increaseScore(i);
          this.experienceProgress = this.experienceProgress + (float)i / this.getXpNeededForNextLevel();
          this.totalExperience = Mth.clamp(this.totalExperience + i, 0, Integer.MAX_VALUE);
-@@ -1529,7 +_,7 @@
+@@ -1528,7 +_,7 @@
      }
  
      public void onEnchantmentPerformed(ItemStack itemStack, int enchantmentCost) {
@@ -785,7 +807,7 @@
          if (this.experienceLevel < 0) {
              this.experienceLevel = 0;
              this.experienceProgress = 0.0F;
-@@ -1540,6 +_,10 @@
+@@ -1539,6 +_,10 @@
      }
  
      public void giveExperienceLevels(int amount) {
@@ -796,7 +818,7 @@
          this.experienceLevel = IntMath.saturatedAdd(this.experienceLevel, amount);
          if (this.experienceLevel < 0) {
              this.experienceLevel = 0;
-@@ -1562,16 +_,36 @@
+@@ -1561,16 +_,40 @@
          }
      }
  
@@ -832,10 +854,14 @@
      protected boolean hasEnoughFoodToDoExhaustiveManoeuvres() {
 -        return this.getFoodData().hasEnoughFood() || this.getAbilities().mayfly;
 +        return this.getFoodData().hasEnoughFood() || this.mayFly();
++    }
++
++    public Optional<WardenSpawnTracker> getWardenSpawnTracker() {
++        return Optional.empty();
      }
  
-     public Optional<WardenSpawnTracker> getWardenSpawnTracker() {
-@@ -1595,6 +_,9 @@
+     public FoodData getFoodData() {
+@@ -1590,6 +_,9 @@
      }
  
      public boolean mayUseItemAt(BlockPos pos, Direction direction, ItemStack itemStack) {
@@ -845,7 +871,7 @@
          if (this.abilities.mayBuild) {
              return true;
          }
-@@ -1606,7 +_,23 @@
+@@ -1601,7 +_,23 @@
  
      @Override
      protected int getBaseExperienceReward(ServerLevel level) {
@@ -870,7 +896,7 @@
      }
  
      @Override
-@@ -1650,6 +_,13 @@
+@@ -1645,6 +_,13 @@
          return this.inventory.add(itemStack);
      }
  
@@ -884,7 +910,7 @@
      public abstract @Nullable GameType gameMode();
  
      @Override
-@@ -1678,7 +_,11 @@
+@@ -1673,7 +_,11 @@
  
      @Override
      public Component getDisplayName() {
@@ -897,7 +923,7 @@
          return this.decorateDisplayNameComponent(result);
      }
  
-@@ -1818,10 +_,39 @@
+@@ -1813,10 +_,39 @@
      }
  
      @Override
@@ -941,7 +967,7 @@
  
      public void resetOnlyAttackStrengthTicker() {
          this.attackStrengthTicker = 0;
-@@ -1854,28 +_,43 @@
+@@ -1849,28 +_,43 @@
          return ImmutableList.of(Pose.STANDING, Pose.CROUCHING, Pose.SWIMMING);
      }
  
@@ -991,7 +1017,7 @@
      }
  
      @Override
-@@ -1915,7 +_,7 @@
+@@ -1910,7 +_,7 @@
      }
  
      public boolean isScoping() {
@@ -1000,7 +1026,7 @@
      }
  
      @Override
-@@ -2038,10 +_,48 @@
+@@ -2033,10 +_,48 @@
          return this.damageSources().playerAttack(this);
      }
  

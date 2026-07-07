@@ -1,7 +1,7 @@
 --- a/net/minecraft/world/level/block/Block.java
 +++ b/net/minecraft/world/level/block/Block.java
-@@ -81,7 +_,7 @@
-     public static final MapCodec<Block> CODEC = simpleCodec(Block::new);
+@@ -79,7 +_,7 @@
+ public class Block extends BlockBehaviour implements ItemLike, IBlockExtension {
      private static final Logger LOGGER = LogUtils.getLogger();
      private final Holder.Reference<Block> builtInRegistryHolder = BuiltInRegistries.BLOCK.createIntrusiveHolder(this);
 -    public static final IdMapper<BlockState> BLOCK_STATE_REGISTRY = new IdMapper<>();
@@ -9,7 +9,7 @@
      private static final LoadingCache<VoxelShape, Boolean> SHAPE_FULL_BLOCK_CACHE = CacheBuilder.newBuilder()
          .maximumSize(512L)
          .weakKeys()
-@@ -100,6 +_,7 @@
+@@ -98,6 +_,7 @@
      public static final int UPDATE_SKIP_SHAPE_UPDATE_ON_WIRE = 128;
      public static final int UPDATE_SKIP_BLOCK_ENTITY_SIDEEFFECTS = 256;
      public static final int UPDATE_SKIP_ON_PLACE = 512;
@@ -17,7 +17,7 @@
      public static final @Block.UpdateFlags int UPDATE_NONE = 260;
      public static final @Block.UpdateFlags int UPDATE_ALL = 3;
      public static final @Block.UpdateFlags int UPDATE_ALL_IMMEDIATE = 11;
-@@ -109,6 +_,25 @@
+@@ -107,6 +_,25 @@
      public static final int UPDATE_LIMIT = 512;
      protected final StateDefinition<Block, BlockState> stateDefinition;
      private BlockState defaultBlockState;
@@ -43,7 +43,7 @@
      private @Nullable Item item;
      private static final int CACHE_SIZE = 256;
      private static final ThreadLocal<Object2ByteLinkedOpenHashMap<Block.ShapePairKey>> OCCLUSION_CACHE = ThreadLocal.withInitial(() -> {
-@@ -236,7 +_,7 @@
+@@ -229,7 +_,7 @@
          this.createBlockStateDefinition(builder);
          this.stateDefinition = builder.create(Block::defaultBlockState, BlockState::new);
          this.registerDefaultState(this.stateDefinition.any());
@@ -52,7 +52,16 @@
              String className = this.getClass().getSimpleName();
              if (!className.endsWith("Block")) {
                  LOGGER.error("Block classes should end with Block and {} doesn't.", className);
-@@ -289,7 +_,15 @@
+@@ -247,7 +_,7 @@
+             || state.is(BlockTags.SHULKER_BOXES);
+     }
+ 
+-    public static boolean dropFromBlockInteractLootTable(
++    protected static boolean dropFromBlockInteractLootTable(
+         ServerLevel level,
+         ResourceKey<LootTable> key,
+         BlockState interactedBlockState,
+@@ -282,7 +_,15 @@
          }
      }
  
@@ -68,7 +77,7 @@
          VoxelShape occluder = neighborState.getFaceOcclusionShape(direction.getOpposite());
          if (occluder == Shapes.block()) {
              return false;
-@@ -299,6 +_,10 @@
+@@ -292,6 +_,10 @@
              return false;
          }
  
@@ -79,7 +88,7 @@
          if (occluder == Shapes.empty()) {
              return true;
          }
-@@ -341,7 +_,7 @@
+@@ -334,7 +_,7 @@
      }
  
      public static boolean isShapeFullBlock(VoxelShape shape) {
@@ -88,7 +97,7 @@
      }
  
      public void animateTick(BlockState state, Level level, BlockPos pos, RandomSource random) {
-@@ -369,26 +_,78 @@
+@@ -362,26 +_,78 @@
          return state.getDrops(params);
      }
  
@@ -175,7 +184,7 @@
  
      public static void popResource(Level level, BlockPos pos, ItemStack itemStack) {
          double halfHeight = EntityTypes.ITEM.getHeight() / 2.0;
-@@ -416,19 +_,32 @@
+@@ -409,19 +_,32 @@
      }
  
      private static void popResource(Level level, Supplier<ItemEntity> entityFactory, ItemStack itemStack) {
@@ -212,7 +221,7 @@
      public float getExplosionResistance() {
          return this.explosionResistance;
      }
-@@ -443,14 +_,31 @@
+@@ -436,14 +_,31 @@
          return this.defaultBlockState();
      }
  
@@ -247,20 +256,34 @@
  
      public boolean isPossibleToRespawnInThis(BlockState state) {
          return !state.isSolid() && !state.liquid();
-@@ -461,9 +_,11 @@
+@@ -454,21 +_,15 @@
      }
  
      public void fallOn(Level level, BlockState state, BlockPos pos, Entity entity, double fallDistance) {
--        entity.causeFallDamage(fallDistance, 1.0F, entity.damageSources().fall());
+-        double reducedFallDistance = fallDistance * (1.0F - this.getFallDistanceReduction());
+-        entity.causeFallDamage(reducedFallDistance, 1.0F, entity.damageSources().fall());
+-    }
+-
+-    public void bounceOn(Level level, BlockState state, BlockPos pos, Entity entity, double fallDistance) {
+-    }
+-
 +        entity.causeFallDamage(fallDistance * fallDistanceMultiplier, fallDamageMultiplier, entity.damageSources().fall()); // Purpur - Configurable block fall damage modifiers
-     }
- 
++    }
++
 +    /// @deprecated NeoForge: Use [net.neoforged.neoforge.common.extensions.IBlockStateExtension#getBounceRestitution()]
 +    @Deprecated
      public float getBounceRestitution() {
          return this.bounceRestitution;
      }
-@@ -497,6 +_,7 @@
+ 
+-    public float getFallDistanceReduction() {
+-        return this.fallDistanceReduction;
+-    }
+-
+     public float getFriction() {
+         return this.friction;
+     }
+@@ -498,6 +_,7 @@
      public void handlePrecipitation(BlockState state, Level level, BlockPos pos, Biome.Precipitation precipitation) {
      }
  
@@ -268,7 +291,25 @@
      public boolean dropFromExplosion(Explosion explosion) {
          return true;
      }
-@@ -579,17 +_,55 @@
+@@ -521,10 +_,16 @@
+         BlockState result = this.defaultBlockState();
+ 
+         for (Property<?> property : source.getBlock().getStateDefinition().getProperties()) {
+-            result = BlockBehaviour.BlockStateBase.copyProperty(source, result, property);
++            if (result.hasProperty(property)) {
++                result = copyProperty(source, result, property);
++            }
+         }
+ 
+         return result;
++    }
++
++    private static <T extends Comparable<T>> BlockState copyProperty(BlockState from, BlockState to, Property<T> property) {
++        return to.setValue(property, from.getValue(property));
+     }
+ 
+     @Override
+@@ -574,17 +_,55 @@
          return state.setValue(property, (T)value);
      }
  

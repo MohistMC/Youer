@@ -1,16 +1,11 @@
 --- a/net/minecraft/world/level/block/FlowerPotBlock.java
 +++ b/net/minecraft/world/level/block/FlowerPotBlock.java
-@@ -35,6 +_,7 @@
-     );
+@@ -29,12 +_,34 @@
+ public class FlowerPotBlock extends Block {
      private static final Map<Block, Block> POTTED_BY_CONTENT = Maps.newHashMap();
      private static final VoxelShape SHAPE = Block.column(6.0, 0.0, 6.0);
 +    /** Neo: Field accesses are redirected to {@link #getPotted()} with a coremod. */
      private final Block potted;
- 
-     @Override
-@@ -42,10 +_,31 @@
-         return CODEC;
-     }
  
 +    @Deprecated // Mods should use the constructor below
      public FlowerPotBlock(Block potted, BlockBehaviour.Properties properties) {
@@ -42,7 +37,7 @@
      }
  
      @Override
-@@ -58,7 +_,7 @@
+@@ -47,7 +_,7 @@
          ItemStack itemStack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult
      ) {
          BlockState newContents = (itemStack.getItem() instanceof BlockItem blockItem
@@ -51,7 +46,7 @@
                  : Blocks.AIR)
              .defaultBlockState();
          if (newContents.isAir()) {
-@@ -69,6 +_,18 @@
+@@ -58,6 +_,18 @@
              return InteractionResult.CONSUME;
          }
  
@@ -67,10 +62,10 @@
 +            return InteractionResult.CONSUME;
 +        }
 +        // Paper end - Add PlayerFlowerPotManipulateEvent
-         level.setBlock(pos, newContents, 3);
+         level.setBlockAndUpdate(pos, newContents);
          level.gameEvent(player, GameEvent.BLOCK_CHANGE, pos);
          player.awardStat(Stats.POT_FLOWER);
-@@ -83,11 +_,23 @@
+@@ -72,11 +_,23 @@
          }
  
          ItemStack plant = new ItemStack(this.potted);
@@ -90,12 +85,12 @@
              player.drop(plant, false);
          }
  
--        level.setBlock(pos, Blocks.FLOWER_POT.defaultBlockState(), 3);
-+        level.setBlock(pos, getEmptyPot().defaultBlockState(), 3);
+-        level.setBlockAndUpdate(pos, Blocks.FLOWER_POT.defaultBlockState());
++        level.setBlockAndUpdate(pos, getEmptyPot().defaultBlockState());
          level.gameEvent(player, GameEvent.BLOCK_CHANGE, pos);
          return InteractionResult.SUCCESS;
      }
-@@ -118,7 +_,7 @@
+@@ -107,12 +_,44 @@
      }
  
      public Block getPotted() {
@@ -104,10 +99,10 @@
      }
  
      @Override
-@@ -126,6 +_,38 @@
+     protected boolean isPathfindable(BlockState state, PathComputationType type) {
          return false;
-     }
- 
++    }
++
 +    // Neo: Maps flower blocks to the filled flower pot equivalent
 +    private final Map<net.minecraft.resources.Identifier, java.util.function.Supplier<? extends Block>> fullPots;
 +
@@ -138,17 +133,6 @@
 +     */
 +    public Map<net.minecraft.resources.Identifier, java.util.function.Supplier<? extends Block>> getFullPotsView() {
 +        return java.util.Collections.unmodifiableMap(fullPots);
-+    }
-+
+     }
+ 
      @Override
-     protected boolean isRandomlyTicking(BlockState state) {
-         return state.is(Blocks.POTTED_OPEN_EYEBLOSSOM) || state.is(Blocks.POTTED_CLOSED_EYEBLOSSOM);
-@@ -137,7 +_,7 @@
-             boolean isOpen = this.potted == Blocks.OPEN_EYEBLOSSOM;
-             boolean shouldBeOpen = level.environmentAttributes().getValue(EnvironmentAttributes.EYEBLOSSOM_OPEN, pos).toBoolean(isOpen);
-             if (isOpen != shouldBeOpen) {
--                level.setBlock(pos, this.opposite(state), 3);
-+                level.setBlock(pos, this.opposite(state), Block.UPDATE_ALL);
-                 EyeblossomBlock.Type newType = EyeblossomBlock.Type.fromBoolean(isOpen).transform();
-                 newType.spawnTransformParticle(level, pos, random);
-                 level.playSound(null, pos, newType.longSwitchSound(), SoundSource.BLOCKS, 1.0F, 1.0F);

@@ -1,12 +1,14 @@
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
-@@ -1,5 +_,6 @@
+@@ -1,6 +_,7 @@
  package net.minecraft.server;
  
+-import com.mojang.authlib.services.MinecraftServicesDiscoveryService;
 +import com.mohistmc.youer.Youer;
- import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
++import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
  import com.mojang.datafixers.DataFixer;
  import com.mojang.logging.LogUtils;
+ import com.mojang.serialization.Dynamic;
 @@ -8,12 +_,16 @@
  import java.awt.GraphicsEnvironment;
  import java.io.File;
@@ -233,7 +235,7 @@
              }
  
 -            File universePath = new File(options.valueOf(universe));
--            Services services = Services.create(new YggdrasilAuthenticationService(Proxy.NO_PROXY), universePath);
+-            Services services = Services.create(MinecraftServicesDiscoveryService.create(Proxy.NO_PROXY), universePath);
 +            // Paper start - Detect headless JRE
 +            String awtException = io.papermc.paper.util.ServerEnvironment.awtDependencyCheck();
 +            if (awtException != null) {
@@ -278,7 +280,12 @@
              LevelStorageSource levelStorageSource = LevelStorageSource.createDefault(universePath.toPath());
              LevelStorageSource.LevelStorageAccess access = levelStorageSource.validateAndCreateAccess(levelName);
              Dynamic<?> levelDataTag;
-@@ -154,6 +_,7 @@
+@@ -150,10 +_,11 @@
+                     return;
+                 }
+ 
+-                levelDataTag = DataFixers.getFileFixer().fix(access, levelDataUnfixed, new UpgradeProgress(notificationManager));
++                levelDataTag = DataFixers.getFileFixer().fix(access, levelDataUnfixed, new UpgradeProgress());
              } else {
                  levelDataTag = null;
              }

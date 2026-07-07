@@ -1,6 +1,40 @@
 --- a/net/minecraft/world/entity/ai/goal/target/OwnerHurtByTargetGoal.java
 +++ b/net/minecraft/world/entity/ai/goal/target/OwnerHurtByTargetGoal.java
-@@ -37,7 +_,7 @@
+@@ -1,8 +_,6 @@
+ package net.minecraft.world.entity.ai.goal.target;
+ 
+ import java.util.EnumSet;
+-import net.minecraft.tags.DamageTypeTags;
+-import net.minecraft.world.damagesource.DamageSource;
+ import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.entity.TamableAnimal;
+ import net.minecraft.world.entity.ai.goal.Goal;
+@@ -25,18 +_,13 @@
+             LivingEntity owner = this.tameAnimal.getOwner();
+             if (owner == null) {
+                 return false;
+-            } else {
+-                DamageSource lastDamageSource = owner.getLastDamageSource(100);
+-                if (lastDamageSource != null && !lastDamageSource.is(DamageTypeTags.NO_WOLF_RETALIATION)) {
+-                    this.ownerLastHurtBy = owner.getLastHurtByMob();
+-                    int ts = owner.getLastHurtByMobTimestamp();
+-                    return ts != this.timestamp
+-                        && this.canAttack(this.ownerLastHurtBy, TargetingConditions.DEFAULT)
+-                        && this.tameAnimal.wantsToAttack(this.ownerLastHurtBy, owner);
+-                } else {
+-                    return false;
+-                }
+             }
++
++            this.ownerLastHurtBy = owner.getLastHurtByMob();
++            int ts = owner.getLastHurtByMobTimestamp();
++            return ts != this.timestamp
++                && this.canAttack(this.ownerLastHurtBy, TargetingConditions.DEFAULT)
++                && this.tameAnimal.wantsToAttack(this.ownerLastHurtBy, owner);
+         } else {
+             return false;
+         }
+@@ -44,7 +_,7 @@
  
      @Override
      public void start() {

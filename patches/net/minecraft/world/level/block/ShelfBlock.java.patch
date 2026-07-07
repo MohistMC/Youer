@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/ShelfBlock.java
 +++ b/net/minecraft/world/level/block/ShelfBlock.java
-@@ -109,6 +_,11 @@
+@@ -102,12 +_,17 @@
          if (!level.isClientSide()) {
              boolean signal = level.hasNeighborSignal(pos);
              if (state.getValue(POWERED) != signal) {
@@ -12,3 +12,10 @@
                  BlockState newState = state.setValue(POWERED, signal);
                  if (!signal) {
                      newState = newState.setValue(SIDE_CHAIN_PART, SideChainPart.UNCONNECTED);
+                 }
+ 
+-                level.setBlockAndUpdate(pos, newState);
++                level.setBlock(pos, newState, 3);
+                 this.playSound(level, pos, signal ? SoundEvents.SHELF_ACTIVATE : SoundEvents.SHELF_DEACTIVATE);
+                 level.gameEvent(signal ? GameEvent.BLOCK_ACTIVATE : GameEvent.BLOCK_DEACTIVATE, pos, GameEvent.Context.of(newState));
+             }

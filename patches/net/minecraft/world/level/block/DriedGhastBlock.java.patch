@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/DriedGhastBlock.java
 +++ b/net/minecraft/world/level/block/DriedGhastBlock.java
-@@ -104,10 +_,20 @@
+@@ -97,10 +_,20 @@
  
      private void tickWaterlogged(BlockState state, ServerLevel level, BlockPos position, RandomSource random) {
          if (!this.isReadyToSpawn(state)) {
@@ -22,7 +22,7 @@
              this.spawnGhastling(level, position, state);
          }
      }
-@@ -121,7 +_,7 @@
+@@ -114,7 +_,7 @@
              float blockRotation = Direction.getYRot(state.getValue(FACING));
              ghastling.setYHeadRot(blockRotation);
              ghastling.snapTo(spawnAt.x(), spawnAt.y(), spawnAt.z(), blockRotation, 0.0F);
@@ -31,3 +31,12 @@
              level.playSound(null, ghastling, SoundEvents.GHASTLING_SPAWN, SoundSource.BLOCKS, 1.0F, 1.0F);
          }
      }
+@@ -174,7 +_,7 @@
+     public boolean placeLiquid(LevelAccessor level, BlockPos pos, BlockState state, FluidState fluidState) {
+         if (!state.getValue(BlockStateProperties.WATERLOGGED) && fluidState.is(Fluids.WATER)) {
+             if (!level.isClientSide()) {
+-                level.setBlockAndUpdate(pos, state.setValue(BlockStateProperties.WATERLOGGED, true));
++                level.setBlock(pos, state.setValue(BlockStateProperties.WATERLOGGED, true), 3);
+                 level.scheduleTick(pos, fluidState.getType(), fluidState.getType().getTickDelay(level));
+                 level.playSound(null, pos, SoundEvents.DRIED_GHAST_PLACE_IN_WATER, SoundSource.BLOCKS, 1.0F, 1.0F);
+             }

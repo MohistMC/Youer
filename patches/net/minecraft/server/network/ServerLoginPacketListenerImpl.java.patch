@@ -7,7 +7,7 @@
 +import com.mohistmc.youer.api.ColorAPI;
  import com.mojang.authlib.GameProfile;
  import com.mojang.authlib.exceptions.AuthenticationUnavailableException;
- import com.mojang.authlib.yggdrasil.ProfileResult;
+ import com.mojang.authlib.services.ProfileResult;
 @@ -8,6 +_,7 @@
  import java.math.BigInteger;
  import java.net.InetAddress;
@@ -16,7 +16,7 @@
  import java.security.PrivateKey;
  import java.util.Objects;
  import java.util.concurrent.atomic.AtomicInteger;
-@@ -18,11 +_,14 @@
+@@ -18,10 +_,14 @@
  import net.minecraft.DefaultUncaughtExceptionHandler;
  import net.minecraft.core.UUIDUtil;
  import net.minecraft.network.Connection;
@@ -24,14 +24,14 @@
  import net.minecraft.network.DisconnectionDetails;
  import net.minecraft.network.PacketSendListener;
  import net.minecraft.network.TickablePacketListener;
- import net.minecraft.network.chat.CommonComponents;
++import net.minecraft.network.chat.CommonComponents;
  import net.minecraft.network.chat.Component;
 +import net.minecraft.network.protocol.Packet;
 +import net.minecraft.network.protocol.PacketUtils;
  import net.minecraft.network.protocol.configuration.ConfigurationProtocols;
  import net.minecraft.network.protocol.cookie.ServerboundCookieResponsePacket;
  import net.minecraft.network.protocol.login.ClientboundHelloPacket;
-@@ -35,6 +_,7 @@
+@@ -34,6 +_,7 @@
  import net.minecraft.network.protocol.login.ServerboundKeyPacket;
  import net.minecraft.network.protocol.login.ServerboundLoginAcknowledgedPacket;
  import net.minecraft.server.MinecraftServer;
@@ -39,7 +39,7 @@
  import net.minecraft.server.notifications.ServerActivityMonitor;
  import net.minecraft.server.players.NameAndId;
  import net.minecraft.server.players.PlayerList;
-@@ -43,23 +_,33 @@
+@@ -42,23 +_,33 @@
  import net.minecraft.util.RandomSource;
  import net.minecraft.util.StringUtil;
  import org.apache.commons.lang3.Validate;
@@ -76,7 +76,7 @@
  
      public ServerLoginPacketListenerImpl(MinecraftServer minecraftserver, Connection connection, boolean transferred) {
          this.server = minecraftserver;
-@@ -67,10 +_,19 @@
+@@ -66,10 +_,19 @@
          this.serverActivityMonitor = this.server.getServerActivityMonitor();
          this.challenge = Ints.toByteArray(RandomSource.create().nextInt());
          this.transferred = transferred;
@@ -96,7 +96,7 @@
          if (this.state == ServerLoginPacketListenerImpl.State.VERIFYING) {
              this.verifyLoginAndFinishConnectionSetup(Objects.requireNonNull(this.authenticatedProfile));
          }
-@@ -80,16 +_,40 @@
+@@ -79,16 +_,40 @@
              this.finishLoginAndWaitForClient(this.authenticatedProfile);
          }
  
@@ -138,7 +138,7 @@
      public void disconnect(Component component) {
          try {
              LOGGER.info("Disconnecting {}: {}", this.getUserName(), component.getString());
-@@ -117,7 +_,14 @@
+@@ -116,7 +_,14 @@
      @Override
      public void handleHello(ServerboundHelloPacket packet) {
          Validate.validState(this.state == ServerLoginPacketListenerImpl.State.HELLO, "Unexpected hello packet");
@@ -154,7 +154,7 @@
          this.requestedUsername = packet.name();
          GameProfile singleplayerProfile = this.server.getSingleplayerProfile();
          if (singleplayerProfile != null && this.requestedUsername.equalsIgnoreCase(singleplayerProfile.name())) {
-@@ -127,7 +_,30 @@
+@@ -126,7 +_,30 @@
                  this.state = ServerLoginPacketListenerImpl.State.KEY;
                  this.connection.send(new ClientboundHelloPacket("", this.server.getKeyPair().getPublic().getEncoded(), this.challenge, true));
              } else {
@@ -186,7 +186,7 @@
              }
          }
      }
-@@ -139,21 +_,21 @@
+@@ -138,19 +_,21 @@
  
      private void verifyLoginAndFinishConnectionSetup(GameProfile profile) {
          PlayerList playerList = this.server.getPlayerList();
@@ -194,8 +194,7 @@
 +        Component error = org.bukkit.craftbukkit.event.CraftEventFactory.handleLoginResult(playerList.canPlayerLogin(this.connection.getRemoteAddress(), new NameAndId(profile)), this.paperLoginConnection, this.connection, profile, this.server, true); // Paper
          if (error != null) {
              this.disconnect(error);
-         } else if (this.connection.getIntendedProfileId() != null && !profile.id().equals(this.connection.getIntendedProfileId())) {
--            this.disconnect(CommonComponents.CONNECT_FAILED);
++        } else if (this.connection.getIntendedProfileId() != null && !profile.id().equals(this.connection.getIntendedProfileId())) {
 +            this.disconnectAsync(CommonComponents.CONNECT_FAILED); // Paper
          } else {
              if (this.server.getCompressionThreshold() >= 0 && !this.connection.isMemoryConnection()) {
@@ -215,7 +214,7 @@
              if (waitForDisconnection) {
                  this.state = ServerLoginPacketListenerImpl.State.WAITING_FOR_DUPE_DISCONNECT;
              } else {
-@@ -165,6 +_,7 @@
+@@ -162,6 +_,7 @@
      private void finishLoginAndWaitForClient(GameProfile gameProfile) {
          this.state = ServerLoginPacketListenerImpl.State.PROTOCOL_SWITCHING;
          this.connection.send(new ClientboundLoginFinishedPacket(gameProfile, this.server.getConnection().getSessionId()));
@@ -223,7 +222,7 @@
      }
  
      @Override
-@@ -181,14 +_,13 @@
+@@ -178,14 +_,13 @@
              SecretKey secretKey = packet.getSecretKey(serverPrivateKey);
              digest = new BigInteger(Crypt.digestData("", this.server.getKeyPair().getPublic(), secretKey)).toString(16);
              this.state = ServerLoginPacketListenerImpl.State.AUTHENTICATING;
@@ -241,7 +240,7 @@
              @Override
              public void run() {
                  String name = Objects.requireNonNull(ServerLoginPacketListenerImpl.this.requestedUsername, "Player name not initialized");
-@@ -200,24 +_,35 @@
+@@ -197,24 +_,35 @@
                          .hasJoinedServer(name, digest, this.getAddress());
                      if (result != null) {
                          GameProfile profile = result.profile();
@@ -280,7 +279,7 @@
                  }
              }
  
-@@ -227,18 +_,123 @@
+@@ -224,18 +_,123 @@
                      ? inetSocketAddress.getAddress()
                      : null;
              }
@@ -408,7 +407,7 @@
          Validate.validState(this.state == ServerLoginPacketListenerImpl.State.PROTOCOL_SWITCHING, "Unexpected login acknowledgement packet");
          this.connection.setupOutboundProtocol(ConfigurationProtocols.CLIENTBOUND);
          CommonListenerCookie cookie = CommonListenerCookie.createInitial(Objects.requireNonNull(this.authenticatedProfile), this.transferred);
-@@ -255,8 +_,31 @@
+@@ -252,8 +_,31 @@
  
      @Override
      public void handleCookieResponse(ServerboundCookieResponsePacket packet) {

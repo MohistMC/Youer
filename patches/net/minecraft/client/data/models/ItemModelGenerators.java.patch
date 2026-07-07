@@ -1,52 +1,295 @@
 --- a/net/minecraft/client/data/models/ItemModelGenerators.java
 +++ b/net/minecraft/client/data/models/ItemModelGenerators.java
-@@ -232,6 +_,49 @@
+@@ -52,7 +_,7 @@
+ 
+ @OnlyIn(Dist.CLIENT)
+ public class ItemModelGenerators {
+-    public static final ItemTintSource BLANK_LAYER = ItemModelUtils.constantTint(-1);
++    private static final ItemTintSource BLANK_LAYER = ItemModelUtils.constantTint(-1);
+     public static final Identifier TRIM_PREFIX_HELMET = prefixForSlotTrim("helmet");
+     public static final Identifier TRIM_PREFIX_CHESTPLATE = prefixForSlotTrim("chestplate");
+     public static final Identifier TRIM_PREFIX_LEGGINGS = prefixForSlotTrim("leggings");
+@@ -70,10 +_,10 @@
+         new ItemModelGenerators.TrimMaterialData(TrimMaterials.Palette.AMETHYST, TrimMaterials.AMETHYST),
+         new ItemModelGenerators.TrimMaterialData(TrimMaterials.Palette.RESIN, TrimMaterials.RESIN)
+     );
+-    public final ItemModelOutput itemModelOutput;
+-    public final BiConsumer<Identifier, ModelInstance> modelOutput;
++    private final ItemModelOutput itemModelOutput;
++    private final BiConsumer<Identifier, ModelInstance> modelOutput;
+ 
+-    public static Identifier prefixForSlotTrim(String slotName) {
++    private static Identifier prefixForSlotTrim(String slotName) {
+         return Identifier.withDefaultNamespace("trims/items/" + slotName + "_trim");
+     }
+ 
+@@ -82,42 +_,42 @@
+         this.modelOutput = modelOutput;
+     }
+ 
+-    public void declareCustomModelItem(Item item) {
++    private void declareCustomModelItem(Item item) {
+         this.itemModelOutput.accept(item, ItemModelUtils.plainModel(ModelLocationUtils.getModelLocation(item)));
+     }
+ 
+-    public Identifier createFlatItemModel(Item item, ModelTemplate template) {
++    private Identifier createFlatItemModel(Item item, ModelTemplate template) {
+         return template.create(ModelLocationUtils.getModelLocation(item), TextureMapping.layer0(item), this.modelOutput);
+     }
+ 
+-    public void generateFlatItem(Item item, ModelTemplate template) {
++    private void generateFlatItem(Item item, ModelTemplate template) {
+         this.itemModelOutput.accept(item, ItemModelUtils.plainModel(this.createFlatItemModel(item, template)));
+     }
+ 
+-    public Identifier createFlatItemModel(Item item, String suffix, ModelTemplate template) {
++    private Identifier createFlatItemModel(Item item, String suffix, ModelTemplate template) {
+         return template.create(
+             ModelLocationUtils.getModelLocation(item, suffix), TextureMapping.layer0(TextureMapping.getItemTexture(item, suffix)), this.modelOutput
+         );
+     }
+ 
+-    public Identifier createFlatItemModel(Item item, Item textureDonor, ModelTemplate template) {
++    private Identifier createFlatItemModel(Item item, Item textureDonor, ModelTemplate template) {
+         return template.create(ModelLocationUtils.getModelLocation(item), TextureMapping.layer0(textureDonor), this.modelOutput);
+     }
+ 
+-    public void generateFlatItem(Item item, Item textureDonor, ModelTemplate template) {
++    private void generateFlatItem(Item item, Item textureDonor, ModelTemplate template) {
+         this.itemModelOutput.accept(item, ItemModelUtils.plainModel(this.createFlatItemModel(item, textureDonor, template)));
+     }
+ 
+-    public void generateItemWithTintedOverlay(Item item, ItemTintSource overlayTint) {
++    private void generateItemWithTintedOverlay(Item item, ItemTintSource overlayTint) {
+         this.generateItemWithTintedOverlay(item, "_overlay", overlayTint);
+     }
+ 
+-    public void generateItemWithTintedOverlay(Item item, String overlaySuffix, ItemTintSource overlayTint) {
++    private void generateItemWithTintedOverlay(Item item, String overlaySuffix, ItemTintSource overlayTint) {
+         Identifier model = this.generateLayeredItem(item, TextureMapping.getItemTexture(item), TextureMapping.getItemTexture(item, overlaySuffix));
+         this.itemModelOutput.accept(item, ItemModelUtils.tintedModel(model, BLANK_LAYER, overlayTint));
+     }
+ 
+-    public void generateItemWithTintedBaseLayer(Item item, int defaultColor) {
++    private void generateItemWithTintedBaseLayer(Item item, int defaultColor) {
+         Material tintedLayer = TextureMapping.getItemTexture(item);
+         Material untintedLayer = TextureMapping.getItemTexture(item, "_overlay");
+         Identifier model = ModelLocationUtils.getModelLocation(item);
+@@ -125,7 +_,7 @@
+         this.itemModelOutput.accept(item, ItemModelUtils.tintedModel(model, new Dye(defaultColor)));
+     }
+ 
+-    public List<RangeSelectItemModel.Entry> createCompassModels(Item compass) {
++    private List<RangeSelectItemModel.Entry> createCompassModels(Item compass) {
+         List<RangeSelectItemModel.Entry> overrides = new ArrayList<>();
+         ItemModel.Unbaked base = ItemModelUtils.plainModel(this.createFlatItemModel(compass, "_16", ModelTemplates.FLAT_ITEM));
+         overrides.add(ItemModelUtils.override(base, 0.0F));
+@@ -142,7 +_,7 @@
+         return overrides;
+     }
+ 
+-    public void generateStandardCompassItem(Item compass) {
++    private void generateStandardCompassItem(Item compass) {
+         List<RangeSelectItemModel.Entry> overrides = this.createCompassModels(compass);
+         this.itemModelOutput
+             .accept(
+@@ -155,14 +_,14 @@
+             );
+     }
+ 
+-    public void generateRecoveryCompassItem(Item compass) {
++    private void generateRecoveryCompassItem(Item compass) {
+         this.itemModelOutput
+             .accept(
+                 compass, ItemModelUtils.rangeSelect(new CompassAngle(true, CompassAngleState.CompassTarget.RECOVERY), 32.0F, this.createCompassModels(compass))
+             );
+     }
+ 
+-    public void generateClockItem(Item clock) {
++    private void generateClockItem(Item clock) {
+         List<RangeSelectItemModel.Entry> overrides = new ArrayList<>();
+         ItemModel.Unbaked base = ItemModelUtils.plainModel(this.createFlatItemModel(clock, "_00", ModelTemplates.FLAT_ITEM));
+         overrides.add(ItemModelUtils.override(base, 0.0F));
+@@ -185,19 +_,19 @@
+             );
+     }
+ 
+-    public Identifier generateLayeredItem(Item target, Material layer0, Material layer1) {
+-        return ModelTemplates.TWO_LAYERED_ITEM.create(target, TextureMapping.layered(layer0, layer1), this.modelOutput);
+-    }
+-
+-    public Identifier generateLayeredItem(Identifier target, Material layer0, Material layer1) {
+-        return ModelTemplates.TWO_LAYERED_ITEM.create(target, TextureMapping.layered(layer0, layer1), this.modelOutput);
+-    }
+-
+-    public void generateLayeredItem(Identifier target, Material layer0, Material layer1, Material layer2) {
++    private Identifier generateLayeredItem(Item target, Material layer0, Material layer1) {
++        return ModelTemplates.TWO_LAYERED_ITEM.create(target, TextureMapping.layered(layer0, layer1), this.modelOutput);
++    }
++
++    private Identifier generateLayeredItem(Identifier target, Material layer0, Material layer1) {
++        return ModelTemplates.TWO_LAYERED_ITEM.create(target, TextureMapping.layered(layer0, layer1), this.modelOutput);
++    }
++
++    private void generateLayeredItem(Identifier target, Material layer0, Material layer1, Material layer2) {
+         ModelTemplates.THREE_LAYERED_ITEM.create(target, TextureMapping.layered(layer0, layer1, layer2), this.modelOutput);
+     }
+ 
+-    public void generateTrimmableArmorSet(
++    private void generateTrimmableArmorSet(
+         Item helmet,
+         Item chestplate,
+         Item leggings,
+@@ -211,7 +_,7 @@
+         this.generateTrimmableItem(boots, TRIM_PREFIX_BOOTS, hasDyedLayer, trimPaletteReplacements);
+     }
+ 
+-    public void generateTrimmableItem(
++    private void generateTrimmableItem(
+         Item armor, Identifier slotTrimPrefix, boolean hasDyedLayer, Map<TrimMaterials.Palette, TrimMaterials.Palette> trimPaletteReplacements
+     ) {
+         Identifier modelLocation = ModelLocationUtils.getModelLocation(armor);
+@@ -247,7 +_,7 @@
          this.itemModelOutput.accept(armor, ItemModelUtils.select(new TrimMaterialProperty(), untrimmedModel, cases));
      }
  
-+    /// Neo: Generate armor item models with dynamic trim support
-+    ///
-+    /// @param armor          The armor item to generate the model for
-+    /// @param slotTrimPrefix The prefix of the trim overlay texture
-+    public void generateDynamicTrimmableItem(Item armor, Identifier slotTrimPrefix) {
-+        this.generateDynamicTrimmableItem(armor, ModelLocationUtils.getModelLocation(armor), slotTrimPrefix, -1);
-+    }
-+
-+    /// Neo: Generate armor item models with dynamic trim support
-+    ///
-+    /// @param armor          The armor item to generate the model for
-+    /// @param slotTrimPrefix The prefix of the trim overlay texture
-+    /// @param color          The default tint color of the item model
-+    public void generateDynamicTrimmableItem(Item armor, Identifier slotTrimPrefix, int color) {
-+        this.generateDynamicTrimmableItem(armor, ModelLocationUtils.getModelLocation(armor), slotTrimPrefix, color);
-+    }
-+
-+    /// Neo: Generate armor item models with dynamic trim support
-+    ///
-+    /// @param armor          The armor item to generate the model for
-+    /// @param baseArmorModel The item model to use as a base
-+    /// @param slotTrimPrefix The prefix of the trim overlay texture
-+    public void generateDynamicTrimmableItem(Item armor, Identifier baseArmorModel, Identifier slotTrimPrefix) {
-+        this.generateDynamicTrimmableItem(armor, baseArmorModel, slotTrimPrefix, -1);
-+    }
-+
-+    /// Neo: Generate armor item models with dynamic trim support
-+    ///
-+    /// @param armor          The armor item to generate the model for
-+    /// @param baseArmorModel The item model to use as a base
-+    /// @param slotTrimPrefix The prefix of the trim overlay texture
-+    /// @param color          The default tint color of the item model
-+    public void generateDynamicTrimmableItem(Item armor, Identifier baseArmorModel, Identifier slotTrimPrefix, int color) {
-+        ItemModel.Unbaked armorModel;
-+        if (color != -1) {
-+            armorModel = ItemModelUtils.tintedModel(baseArmorModel, new Dye(color));
-+        } else {
-+            armorModel = ItemModelUtils.plainModel(baseArmorModel);
-+        }
-+
-+        this.itemModelOutput.accept(armor, new net.neoforged.neoforge.client.model.item.TrimmedArmorModel.Unbaked(armorModel, slotTrimPrefix));
-+    }
-+
-     public void generateBundleModels(Item bundle) {
+-    public void generateBundleModels(Item bundle) {
++    private void generateBundleModels(Item bundle) {
          ItemModel.Unbaked closedModel = ItemModelUtils.plainModel(this.createFlatItemModel(bundle, ModelTemplates.FLAT_ITEM));
          Identifier openBackCover = this.generateBundleCoverModel(bundle, ModelTemplates.BUNDLE_OPEN_BACK_INVENTORY, "_open_back");
+         Identifier openFrontCover = this.generateBundleCoverModel(bundle, ModelTemplates.BUNDLE_OPEN_FRONT_INVENTORY, "_open_front");
+@@ -258,12 +_,12 @@
+         this.itemModelOutput.accept(bundle, ItemModelUtils.select(new DisplayContext(), closedModel, ItemModelUtils.when(ItemDisplayContext.GUI, inGuiModel)));
+     }
+ 
+-    public Identifier generateBundleCoverModel(Item item, ModelTemplate template, String suffix) {
++    private Identifier generateBundleCoverModel(Item item, ModelTemplate template, String suffix) {
+         Material texture = TextureMapping.getItemTexture(item, suffix);
+         return template.create(item, TextureMapping.layer0(texture), this.modelOutput);
+     }
+ 
+-    public void generateBow(Item item) {
++    private void generateBow(Item item) {
+         ItemModel.Unbaked bowModel = ItemModelUtils.plainModel(ModelLocationUtils.getModelLocation(item));
+         ItemModel.Unbaked pulling0 = ItemModelUtils.plainModel(this.createFlatItemModel(item, "_pulling_0", ModelTemplates.BOW));
+         ItemModel.Unbaked pulling1 = ItemModelUtils.plainModel(this.createFlatItemModel(item, "_pulling_1", ModelTemplates.BOW));
+@@ -281,7 +_,7 @@
+             );
+     }
+ 
+-    public void generateCrossbow(Item item) {
++    private void generateCrossbow(Item item) {
+         ItemModel.Unbaked crossbowModel = ItemModelUtils.plainModel(ModelLocationUtils.getModelLocation(item));
+         ItemModel.Unbaked pulling0 = ItemModelUtils.plainModel(this.createFlatItemModel(item, "_pulling_0", ModelTemplates.CROSSBOW));
+         ItemModel.Unbaked pulling1 = ItemModelUtils.plainModel(this.createFlatItemModel(item, "_pulling_1", ModelTemplates.CROSSBOW));
+@@ -306,17 +_,17 @@
+             );
+     }
+ 
+-    public void generateBooleanDispatch(Item item, ConditionalItemModelProperty property, ItemModel.Unbaked modelOnTrue, ItemModel.Unbaked modelOnFalse) {
++    private void generateBooleanDispatch(Item item, ConditionalItemModelProperty property, ItemModel.Unbaked modelOnTrue, ItemModel.Unbaked modelOnFalse) {
+         this.itemModelOutput.accept(item, ItemModelUtils.conditional(property, modelOnTrue, modelOnFalse));
+     }
+ 
+-    public void generateElytra(Item item) {
++    private void generateElytra(Item item) {
+         ItemModel.Unbaked normalElytra = ItemModelUtils.plainModel(this.createFlatItemModel(item, ModelTemplates.FLAT_ITEM));
+         ItemModel.Unbaked brokenElytra = ItemModelUtils.plainModel(this.createFlatItemModel(item, "_broken", ModelTemplates.FLAT_ITEM));
+         this.generateBooleanDispatch(item, new Broken(), brokenElytra, normalElytra);
+     }
+ 
+-    public void generateBrush(Item item) {
++    private void generateBrush(Item item) {
+         ItemModel.Unbaked base = ItemModelUtils.plainModel(ModelLocationUtils.getModelLocation(item));
+         ItemModel.Unbaked brushing0 = ItemModelUtils.plainModel(ModelLocationUtils.getModelLocation(item, "_brushing_0"));
+         ItemModel.Unbaked brushing1 = ItemModelUtils.plainModel(ModelLocationUtils.getModelLocation(item, "_brushing_1"));
+@@ -335,26 +_,26 @@
+             );
+     }
+ 
+-    public void generateFishingRod(Item item) {
++    private void generateFishingRod(Item item) {
+         ItemModel.Unbaked normal = ItemModelUtils.plainModel(this.createFlatItemModel(item, ModelTemplates.FLAT_HANDHELD_ROD_ITEM));
+         ItemModel.Unbaked cast = ItemModelUtils.plainModel(this.createFlatItemModel(item, "_cast", ModelTemplates.FLAT_HANDHELD_ROD_ITEM));
+         this.generateBooleanDispatch(item, new FishingRodCast(), cast, normal);
+     }
+ 
+-    public void generateGoatHorn(Item item) {
++    private void generateGoatHorn(Item item) {
+         ItemModel.Unbaked normal = ItemModelUtils.plainModel(ModelLocationUtils.getModelLocation(item));
+         ItemModel.Unbaked tooting = ItemModelUtils.plainModel(ModelLocationUtils.decorateItemModelLocation("tooting_goat_horn"));
+         this.generateBooleanDispatch(item, ItemModelUtils.isUsingItem(), tooting, normal);
+     }
+ 
+-    public void generateShield(Item item) {
++    private void generateShield(Item item) {
+         ItemModel.Unbaked normal = ItemModelUtils.specialModel(ModelLocationUtils.getModelLocation(item), new ShieldSpecialRenderer.Unbaked());
+         ItemModel.Unbaked blocking = ItemModelUtils.specialModel(ModelLocationUtils.getModelLocation(item, "_blocking"), new ShieldSpecialRenderer.Unbaked());
+         this.itemModelOutput
+             .accept(item, ItemModelUtils.conditional(ShieldSpecialRenderer.DEFAULT_TRANSFORMATION, ItemModelUtils.isUsingItem(), blocking, normal));
+     }
+ 
+-    public static ItemModel.Unbaked createFlatModelDispatch(ItemModel.Unbaked flatModel, ItemModel.Unbaked inHandModel) {
++    private static ItemModel.Unbaked createFlatModelDispatch(ItemModel.Unbaked flatModel, ItemModel.Unbaked inHandModel) {
+         return ItemModelUtils.select(
+             new DisplayContext(),
+             inHandModel,
+@@ -362,13 +_,13 @@
+         );
+     }
+ 
+-    public void generateSpyglass(Item item) {
++    private void generateSpyglass(Item item) {
+         ItemModel.Unbaked flatModel = ItemModelUtils.plainModel(this.createFlatItemModel(item, ModelTemplates.FLAT_ITEM));
+         ItemModel.Unbaked inHandModel = ItemModelUtils.plainModel(ModelLocationUtils.getModelLocation(item, "_in_hand"));
+         this.itemModelOutput.accept(item, createFlatModelDispatch(flatModel, inHandModel));
+     }
+ 
+-    public void generateTrident(Item item) {
++    private void generateTrident(Item item) {
+         ItemModel.Unbaked flatModel = ItemModelUtils.plainModel(this.createFlatItemModel(item, ModelTemplates.FLAT_ITEM));
+         ItemModel.Unbaked inHandNormalModel = ItemModelUtils.specialModel(
+             ModelLocationUtils.getModelLocation(item, "_in_hand"), new TridentSpecialRenderer.Unbaked()
+@@ -382,7 +_,7 @@
+         this.itemModelOutput.accept(item, createFlatModelDispatch(flatModel, inHandModel));
+     }
+ 
+-    public void generateSpear(Item item) {
++    private void generateSpear(Item item) {
+         ItemModel.Unbaked flatModel = ItemModelUtils.plainModel(this.createFlatItemModel(item, ModelTemplates.FLAT_ITEM));
+         ItemModel.Unbaked inHandModel = ItemModelUtils.plainModel(
+             ModelTemplates.SPEAR_IN_HAND.create(item, TextureMapping.layer0(TextureMapping.getItemTexture(item, "_in_hand")), this.modelOutput)
+@@ -390,28 +_,28 @@
+         this.itemModelOutput.accept(item, createFlatModelDispatch(flatModel, inHandModel), new ClientItem.Properties(true, false, 1.95F));
+     }
+ 
+-    public void addPotionTint(Item item, Identifier model) {
++    private void addPotionTint(Item item, Identifier model) {
+         this.itemModelOutput.accept(item, ItemModelUtils.tintedModel(model, new Potion()));
+     }
+ 
+-    public void generatePotion(Item item) {
++    private void generatePotion(Item item) {
+         Identifier model = this.generateLayeredItem(
+             item, new Material(Identifier.withDefaultNamespace("item/potion_overlay")), TextureMapping.getItemTexture(item)
+         );
+         this.addPotionTint(item, model);
+     }
+ 
+-    public void generateTippedArrow(Item item) {
++    private void generateTippedArrow(Item item) {
+         Identifier model = this.generateLayeredItem(item, TextureMapping.getItemTexture(item, "_head"), TextureMapping.getItemTexture(item, "_base"));
+         this.addPotionTint(item, model);
+     }
+ 
+-    public void generateDyedItem(Item item, int defaultColor) {
++    private void generateDyedItem(Item item, int defaultColor) {
+         Identifier model = this.createFlatItemModel(item, ModelTemplates.FLAT_ITEM);
+         this.itemModelOutput.accept(item, ItemModelUtils.tintedModel(model, new Dye(defaultColor)));
+     }
+ 
+-    public void generateTwoLayerDyedItem(Item item) {
++    private void generateTwoLayerDyedItem(Item item) {
+         Material baseLayer = TextureMapping.getItemTexture(item);
+         Material tintedLayer = TextureMapping.getItemTexture(item, "_overlay");
+         Identifier plainModel = ModelTemplates.FLAT_ITEM.create(item, TextureMapping.layer0(baseLayer), this.modelOutput);

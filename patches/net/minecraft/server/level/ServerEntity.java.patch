@@ -1,6 +1,14 @@
 --- a/net/minecraft/server/level/ServerEntity.java
 +++ b/net/minecraft/server/level/ServerEntity.java
-@@ -65,12 +_,14 @@
+@@ -35,7 +_,6 @@
+ import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+ import net.minecraft.world.entity.decoration.ItemFrame;
+-import net.minecraft.world.entity.item.ItemEntity;
+ import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
+ import net.minecraft.world.entity.projectile.hurtingprojectile.AbstractHurtingProjectile;
+ import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
+@@ -66,12 +_,14 @@
      private Vec3 lastSentMovement;
      private int tickCount;
      private int teleportDelay;
@@ -17,7 +25,7 @@
          this.level = level;
          this.synchronizer = synchronizer;
          this.entity = entity;
-@@ -85,24 +_,42 @@
+@@ -86,24 +_,42 @@
          this.trackedDataValues = entity.getEntityData().getNonDefaultValues();
      }
  
@@ -65,7 +73,7 @@
                          data.tickCarriedBy(player, itemStack, frame);
                          Packet<?> packet = data.getUpdatePacket(id, player);
                          if (packet != null) {
-@@ -120,7 +_,7 @@
+@@ -121,7 +_,7 @@
              this.entity.syncPosition = false;
          }
  
@@ -74,7 +82,7 @@
              byte yRotn = Mth.packDegrees(this.entity.getYRot());
              byte xRotn = Mth.packDegrees(this.entity.getXRot());
              boolean shouldSendRotation = Math.abs(yRotn - this.lastSentYRot) >= 1 || Math.abs(xRotn - this.lastSentXRot) >= 1;
-@@ -139,7 +_,13 @@
+@@ -140,7 +_,13 @@
              } else {
                  this.teleportDelay++;
                  Vec3 currentPosition = this.entity.trackingPosition();
@@ -89,16 +97,38 @@
                  Packet<ClientGamePacketListener> packet = null;
                  boolean pos = positionChanged || this.tickCount % 60 == 0;
                  boolean sentPosition = false;
-@@ -148,7 +_,7 @@
+@@ -149,28 +_,11 @@
                  long ya = this.positionCodec.encodeY(currentPosition);
                  long za = this.positionCodec.encodeZ(currentPosition);
                  boolean deltaTooBig = xa < -32768L || xa > 32767L || ya < -32768L || ya > 32767L || za < -32768L || za > 32767L;
--                if (this.entity.getRequiresPrecisePosition()
+-                boolean sendPrecisePosition = this.entity.getRequiresPrecisePosition()
 +                if (this.forceStateResync || this.entity.getRequiresPrecisePosition() // Paper - fix desync when a player is added to the tracker
                      || deltaTooBig
                      || this.teleportDelay > 400
                      || this.wasRiding
-@@ -174,7 +_,8 @@
+-                    || this.wasOnGround != this.entity.onGround();
+-                if (!sendPrecisePosition && pos && this.entity instanceof ItemEntity) {
+-                    if (!this.entity.verticalCollision
+-                        || (xa == 0L || VecDeltaCodec.encodingPrecisionLoss(currentPosition.x) == 0.0)
+-                            && (za == 0L || VecDeltaCodec.encodingPrecisionLoss(currentPosition.z) == 0.0)) {
+-                        if (this.entity.horizontalCollision
+-                            && (
+-                                xa != 0L && VecDeltaCodec.encodingPrecisionLoss(currentPosition.z) != 0.0
+-                                    || za != 0L && VecDeltaCodec.encodingPrecisionLoss(currentPosition.x) != 0.0
+-                            )) {
+-                            sendPrecisePosition = true;
+-                        }
+-                    } else {
+-                        sendPrecisePosition = true;
+-                    }
+-                }
+-
+-                if (sendPrecisePosition) {
++                    || this.wasOnGround != this.entity.onGround()) {
+                     this.wasOnGround = this.entity.onGround();
+                     this.teleportDelay = 0;
+                     packet = ClientboundEntityPositionSyncPacket.of(this.entity);
+@@ -192,7 +_,8 @@
  
                  if (this.entity.needsSync || this.trackDelta || this.entity instanceof LivingEntity livingEntity && livingEntity.isFallFlying()) {
                      Vec3 movement = this.entity.getDeltaMovement();
@@ -108,7 +138,7 @@
                      if (diff > 1.0E-7 || diff > 0.0 && movement.lengthSqr() == 0.0) {
                          this.lastSentMovement = movement;
                          if (this.entity instanceof AbstractHurtingProjectile projectile) {
-@@ -191,6 +_,7 @@
+@@ -209,6 +_,7 @@
                              this.synchronizer.sendToTrackingPlayers(new ClientboundSetEntityMotionPacket(this.entity.getId(), this.lastSentMovement));
                          }
                      }
@@ -116,7 +146,7 @@
                  }
  
                  if (packet != null) {
-@@ -217,10 +_,30 @@
+@@ -235,11 +_,31 @@
              }
  
              this.entity.needsSync = false;
@@ -124,7 +154,9 @@
          }
  
          this.tickCount++;
-         if (this.entity.hurtMarked) {
+-        if (this.entity.syncVelocity) {
+-            this.entity.syncVelocity = false;
++        if (this.entity.hurtMarked) {
 +            // CraftBukkit start - Create PlayerVelocity event
 +            boolean cancelled = false;
 +
@@ -144,10 +176,11 @@
 +                return;
 +            }
 +            // CraftBukkit end
-             this.entity.hurtMarked = false;
++            this.entity.hurtMarked = false;
              this.synchronizer.sendToTrackingPlayersAndSelf(new ClientboundSetEntityMotionPacket(this.entity));
          }
-@@ -260,6 +_,7 @@
+     }
+@@ -278,6 +_,7 @@
      public void removePairing(ServerPlayer player) {
          this.entity.stopSeenByPlayer(player);
          player.connection.send(new ClientboundRemoveEntitiesPacket(this.entity.getId()));
@@ -155,7 +188,7 @@
      }
  
      public void addPairing(ServerPlayer player) {
-@@ -267,22 +_,32 @@
+@@ -285,22 +_,32 @@
          this.sendPairingData(player, packets::add);
          player.connection.send(new ClientboundBundlePacket(packets));
          this.entity.startSeenByPlayer(player);
@@ -190,7 +223,7 @@
              if (!attributes.isEmpty()) {
                  broadcast.accept(new ClientboundUpdateAttributesPacket(this.entity.getId(), attributes));
              }
-@@ -299,8 +_,9 @@
+@@ -317,8 +_,9 @@
              }
  
              if (!slots.isEmpty()) {
@@ -201,7 +234,7 @@
          }
  
          if (!this.entity.getPassengers().isEmpty()) {
-@@ -314,6 +_,8 @@
+@@ -332,6 +_,8 @@
          if (this.entity instanceof Leashable leashable && leashable.isLeashed()) {
              broadcast.accept(new ClientboundSetEntityLinkPacket(this.entity, leashable.getLeashHolder()));
          }
@@ -210,7 +243,7 @@
      }
  
      public Vec3 getPositionBase() {
-@@ -347,6 +_,11 @@
+@@ -365,6 +_,11 @@
          if (this.entity instanceof LivingEntity livingEntity) {
              Set<AttributeInstance> attributes = livingEntity.getAttributes().getAttributesToSync();
              if (!attributes.isEmpty()) {

@@ -106,11 +106,11 @@
                  this.setTarget(null);
                  this.teleport();
              }
-@@ -277,11 +_,17 @@
+@@ -277,12 +_,18 @@
      private boolean teleport(double x, double y, double z) {
          BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos(x, y, z);
  
--        while (pos.getY() > this.level().getMinY() && !this.level().getBlockState(pos).blocksMotion()) {
+-        while (pos.getY() > this.level().getMinY() && !this.level().getBlockState(pos).is(BlockTags.ENTITIES_CAN_TELEPORT_TO)) {
 +        // Pufferfish start - single chunk lookup
 +        net.minecraft.world.level.chunk.LevelChunk chunk = this.level().getChunkIfLoaded(pos);
 +        if (chunk == null) {
@@ -122,10 +122,12 @@
          }
  
 -        BlockState blockState = this.level().getBlockState(pos);
+-        boolean couldStandOn = blockState.is(BlockTags.ENTITIES_CAN_TELEPORT_TO);
 +        BlockState blockState = chunk.getBlockState(pos); // Pufferfish
-         boolean couldStandOn = blockState.blocksMotion();
++        boolean couldStandOn = blockState.blocksMotion();
          boolean isWet = blockState.getFluidState().is(FluidTags.WATER);
          if (couldStandOn && !isWet) {
+             Vec3 oldPos = this.position();
 @@ -352,24 +_,29 @@
      public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
          if (this.isInvulnerableTo(level, source)) {
@@ -205,7 +207,7 @@
              if (carried != null) {
                  carried = Block.updateFromNeighbourShapes(carried, this.enderman.level(), pos);
 -                if (this.canPlaceBlock(level, pos, carried, targetState, belowState, below)) {
--                    level.setBlock(pos, carried, 3);
+-                    level.setBlockAndUpdate(pos, carried);
 -                    level.gameEvent(GameEvent.BLOCK_PLACE, pos, GameEvent.Context.of(this.enderman, carried));
 -                    this.enderman.setCarriedBlock(null);
 +                if (this.canPlaceBlock(level, pos, carried, targetState, belowState, below) && !net.neoforged.neoforge.event.EventHooks.onBlockPlace(enderman, net.neoforged.neoforge.common.util.BlockSnapshot.create(level.dimension(), level, below), net.minecraft.core.Direction.UP)) {

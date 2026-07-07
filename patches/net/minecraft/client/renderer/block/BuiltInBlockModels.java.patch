@@ -1,41 +1,214 @@
 --- a/net/minecraft/client/renderer/block/BuiltInBlockModels.java
 +++ b/net/minecraft/client/renderer/block/BuiltInBlockModels.java
-@@ -115,18 +_,30 @@
+@@ -102,50 +_,50 @@
+         builder.put(BuiltInBlockModels::createFlowerBedModel, Blocks.WILDFLOWERS, Blocks.PINK_PETALS);
      }
  
-     public static BuiltInBlockModels.SpecialModelFactory createMobHead(SkullBlock.Types type) {
-+        return createMobHead((SkullBlock.Type) type);
-+    }
-+
-+    public static BuiltInBlockModels.SpecialModelFactory createMobHead(SkullBlock.Type type) {
+-    public static void createAir(BuiltInBlockModels.Builder builder, Block block) {
++    private static void createAir(BuiltInBlockModels.Builder builder, Block block) {
+         builder.put(new EmptyBlockModel.Unbaked(), block);
+     }
+ 
+-    public static BlockModel.Unbaked special(SpecialModelRenderer.Unbaked<?> model) {
++    private static BlockModel.Unbaked special(SpecialModelRenderer.Unbaked<?> model) {
+         return new SpecialBlockModelWrapper.Unbaked<>(model, Optional.empty());
+     }
+ 
+-    public static BlockModel.Unbaked special(SpecialModelRenderer.Unbaked<?> model, Transformation transformation) {
++    private static BlockModel.Unbaked special(SpecialModelRenderer.Unbaked<?> model, Transformation transformation) {
+         return new SpecialBlockModelWrapper.Unbaked<>(model, Optional.of(transformation));
+     }
+ 
+-    public static BuiltInBlockModels.SpecialModelFactory createMobHead(SkullBlock.Types type) {
++    private static BuiltInBlockModels.SpecialModelFactory createMobHead(SkullBlock.Types type) {
          return specialModelWithPropertyDispatch(
              SkullBlock.ROTATION, rotation -> special(new SkullSpecialRenderer.Unbaked(type), SkullBlockRenderer.TRANSFORMATIONS.freeTransformations(rotation))
          );
      }
  
-     public static BuiltInBlockModels.SpecialModelFactory createMobWallHead(SkullBlock.Types type) {
-+        return createMobWallHead((SkullBlock.Type) type);
-+    }
-+
-+    public static BuiltInBlockModels.SpecialModelFactory createMobWallHead(SkullBlock.Type type) {
+-    public static BuiltInBlockModels.SpecialModelFactory createMobWallHead(SkullBlock.Types type) {
++    private static BuiltInBlockModels.SpecialModelFactory createMobWallHead(SkullBlock.Types type) {
          return specialModelWithPropertyDispatch(
              WallSkullBlock.FACING, facing -> special(new SkullSpecialRenderer.Unbaked(type), SkullBlockRenderer.TRANSFORMATIONS.wallTransformation(facing))
          );
      }
  
-     public static void createMobHeads(BuiltInBlockModels.Builder builder, SkullBlock.Types type, Block ground, Block wall) {
-+        createMobHeads(builder, (SkullBlock.Type) type, ground, wall);
-+    }
-+
-+    public static void createMobHeads(BuiltInBlockModels.Builder builder, SkullBlock.Type type, Block ground, Block wall) {
+-    public static void createMobHeads(BuiltInBlockModels.Builder builder, SkullBlock.Types type, Block ground, Block wall) {
++    private static void createMobHeads(BuiltInBlockModels.Builder builder, SkullBlock.Types type, Block ground, Block wall) {
          builder.put(createMobHead(type), ground);
          builder.put(createMobWallHead(type), wall);
      }
-@@ -267,6 +_,7 @@
-     public static Map<BlockState, BlockModel.Unbaked> createBlockModels(BlockColors blockColors) {
-         BuiltInBlockModels.Builder builder = new BuiltInBlockModels.Builder(blockColors);
-         addDefaults(builder);
-+        net.neoforged.fml.ModLoader.postEvent(new net.neoforged.neoforge.client.event.RegisterBlockModelsEvent(builder));
+ 
+-    public static BuiltInBlockModels.SpecialModelFactory createPlayerHead() {
++    private static BuiltInBlockModels.SpecialModelFactory createPlayerHead() {
+         return specialModelWithPropertyDispatch(
+             PlayerHeadBlock.ROTATION,
+             rotation -> special(new PlayerHeadSpecialRenderer.Unbaked(), SkullBlockRenderer.TRANSFORMATIONS.freeTransformations(rotation))
+         );
+     }
+ 
+-    public static BuiltInBlockModels.SpecialModelFactory createPlayerWallHead() {
++    private static BuiltInBlockModels.SpecialModelFactory createPlayerWallHead() {
+         return specialModelWithPropertyDispatch(
+             PlayerWallHeadBlock.FACING,
+             facing -> special(new PlayerHeadSpecialRenderer.Unbaked(), SkullBlockRenderer.TRANSFORMATIONS.wallTransformation(facing))
+         );
+     }
+ 
+-    public static BuiltInBlockModels.SpecialModelFactory createBanner(DyeColor color) {
++    private static BuiltInBlockModels.SpecialModelFactory createBanner(DyeColor color) {
+         return specialModelWithPropertyDispatch(
+             BannerBlock.ROTATION,
+             rotation -> special(
+@@ -154,7 +_,7 @@
+         );
+     }
+ 
+-    public static BuiltInBlockModels.SpecialModelFactory createWallBanner(DyeColor color) {
++    private static BuiltInBlockModels.SpecialModelFactory createWallBanner(DyeColor color) {
+         return specialModelWithPropertyDispatch(
+             WallBannerBlock.FACING,
+             facing -> special(
+@@ -163,31 +_,31 @@
+         );
+     }
+ 
+-    public static BuiltInBlockModels.SpecialModelFactory createShulkerBox() {
++    private static BuiltInBlockModels.SpecialModelFactory createShulkerBox() {
+         return specialModelWithPropertyDispatch(
+             ShulkerBoxBlock.FACING, facing -> special(new ShulkerBoxSpecialRenderer.Unbaked(), ShulkerBoxRenderer.modelTransform(facing))
+         );
+     }
+ 
+-    public static BuiltInBlockModels.SpecialModelFactory createDyedShulkerBox(DyeColor color) {
++    private static BuiltInBlockModels.SpecialModelFactory createDyedShulkerBox(DyeColor color) {
+         return specialModelWithPropertyDispatch(
+             ShulkerBoxBlock.FACING, facing -> special(new ShulkerBoxSpecialRenderer.Unbaked(color), ShulkerBoxRenderer.modelTransform(facing))
+         );
+     }
+ 
+-    public static BlockModel.Unbaked createChest(Identifier texture, ChestType chestType, Direction facing) {
++    private static BlockModel.Unbaked createChest(Identifier texture, ChestType chestType, Direction facing) {
+         return special(new ChestSpecialRenderer.Unbaked(texture, chestType), ChestRenderer.modelTransformation(facing));
+     }
+ 
+-    public static BuiltInBlockModels.SpecialModelFactory createSingletonChest(Identifier texture) {
++    private static BuiltInBlockModels.SpecialModelFactory createSingletonChest(Identifier texture) {
+         return specialModelWithPropertyDispatch(ChestBlock.FACING, facing -> createChest(texture, ChestType.SINGLE, facing));
+     }
+ 
+-    public static BuiltInBlockModels.SpecialModelFactory createChest(MultiblockChestResources<Identifier> textures) {
++    private static BuiltInBlockModels.SpecialModelFactory createChest(MultiblockChestResources<Identifier> textures) {
+         return specialModelWithPropertyDispatch(ChestBlock.FACING, ChestBlock.TYPE, (facing, type) -> createChest(textures.select(type), type, facing));
+     }
+ 
+-    public static BuiltInBlockModels.SpecialModelFactory createXmasChest(MultiblockChestResources<Identifier> textures) {
++    private static BuiltInBlockModels.SpecialModelFactory createXmasChest(MultiblockChestResources<Identifier> textures) {
+         return specialModelWithPropertyDispatch(
+             ChestBlock.FACING,
+             ChestBlock.TYPE,
+@@ -200,7 +_,7 @@
+         );
+     }
+ 
+-    public static BuiltInBlockModels.SpecialModelFactory createCopperGolem(WeatheringCopper.WeatherState weatherState) {
++    private static BuiltInBlockModels.SpecialModelFactory createCopperGolem(WeatheringCopper.WeatherState weatherState) {
+         return specialModelWithPropertyDispatch(
+             CopperGolemStatueBlock.FACING,
+             CopperGolemStatueBlock.POSE,
+@@ -210,21 +_,21 @@
+         );
+     }
+ 
+-    public static BuiltInBlockModels.SpecialModelFactory createDecoratedPot() {
++    private static BuiltInBlockModels.SpecialModelFactory createDecoratedPot() {
+         return specialModelWithPropertyDispatch(
+             DecoratedPotBlock.HORIZONTAL_FACING, facing -> special(new DecoratedPotSpecialRenderer.Unbaked(), DecoratedPotRenderer.modelTransformation(facing))
+         );
+     }
+ 
+-    public static BlockStateModelWrapper.Unbaked createBlockStateModelWrapper(BlockColors blockColors, BlockState blockState) {
++    private static BlockStateModelWrapper.Unbaked createBlockStateModelWrapper(BlockColors blockColors, BlockState blockState) {
+         return new BlockStateModelWrapper.Unbaked(blockState, blockColors.getTintSources(blockState), Optional.empty());
+     }
+ 
+-    public static CompositeBlockModel.Unbaked combineSpecialAndBlockModels(BlockModel.Unbaked specialModel, BlockColors blockColors, BlockState blockState) {
++    private static CompositeBlockModel.Unbaked combineSpecialAndBlockModels(BlockModel.Unbaked specialModel, BlockColors blockColors, BlockState blockState) {
+         return new CompositeBlockModel.Unbaked(createBlockStateModelWrapper(blockColors, blockState), specialModel, Optional.empty());
+     }
+ 
+-    public static SelectBlockModel.Unbaked createFlowerBedModel(BlockColors blockColors, BlockState blockState) {
++    private static SelectBlockModel.Unbaked createFlowerBedModel(BlockColors blockColors, BlockState blockState) {
+         List<BlockTintSource> tintSources = blockColors.getTintSources(blockState);
+         Transformation customFlowerTransform = new Transformation(new Vector3f(0.25F, 0.0F, 0.25F), null, null, null);
+         BlockStateModelWrapper.Unbaked customTransformModel = new BlockStateModelWrapper.Unbaked(blockState, tintSources, Optional.of(customFlowerTransform));
+@@ -238,14 +_,14 @@
+         );
+     }
+ 
+-    public static BlockModel.Unbaked createEnchantingTable() {
++    private static BlockModel.Unbaked createEnchantingTable() {
+         return special(
+             new BookSpecialRenderer.Unbaked(0.0F, 0.0F, 0.0F),
+             new Transformation(new Vector3f(0.5F, 0.8125F, 0.5F), Axis.ZP.rotationDegrees(180.0F), null, Axis.XP.rotationDegrees(90.0F))
+         );
+     }
+ 
+-    public static <P extends Comparable<P>> BuiltInBlockModels.SpecialModelFactory specialModelWithPropertyDispatch(
++    private static <P extends Comparable<P>> BuiltInBlockModels.SpecialModelFactory specialModelWithPropertyDispatch(
+         Property<P> property, Function<P, BlockModel.Unbaked> blockModel
+     ) {
+         return state -> {
+@@ -254,7 +_,7 @@
+         };
+     }
+ 
+-    public static <P1 extends Comparable<P1>, P2 extends Comparable<P2>> BuiltInBlockModels.SpecialModelFactory specialModelWithPropertyDispatch(
++    private static <P1 extends Comparable<P1>, P2 extends Comparable<P2>> BuiltInBlockModels.SpecialModelFactory specialModelWithPropertyDispatch(
+         Property<P1> property1, Property<P2> property2, BiFunction<P1, P2, BlockModel.Unbaked> blockModel
+     ) {
+         return state -> {
+@@ -270,7 +_,7 @@
          return builder.build();
      }
  
+-    public static class Builder {
++    private static class Builder {
+         private final BlockColors blockColors;
+         private final Map<BlockState, BlockModel.Unbaked> result = new HashMap<>();
+ 
+@@ -278,16 +_,16 @@
+             this.blockColors = blockColors;
+         }
+ 
+-        public void put(BuiltInBlockModels.ModelFactory factory, Block a, Block b) {
++        private void put(BuiltInBlockModels.ModelFactory factory, Block a, Block b) {
+             this.put(factory, a);
+             this.put(factory, b);
+         }
+ 
+-        public void put(BlockModel.Unbaked specialModel, Block block) {
++        private void put(BlockModel.Unbaked specialModel, Block block) {
+             this.put((BuiltInBlockModels.SpecialModelFactory)var1 -> specialModel, block);
+         }
+ 
+-        public void put(BuiltInBlockModels.ModelFactory factory, Block block) {
++        private void put(BuiltInBlockModels.ModelFactory factory, Block block) {
+             for (BlockState blockState : block.getStateDefinition().getPossibleStates()) {
+                 this.result.put(blockState, factory.create(this.blockColors, blockState));
+             }
+@@ -299,12 +_,12 @@
+     }
+ 
+     @FunctionalInterface
+-    public interface ModelFactory {
++    private interface ModelFactory {
+         BlockModel.Unbaked create(BlockColors colors, BlockState state);
+     }
+ 
+     @FunctionalInterface
+-    public interface SpecialModelFactory extends BuiltInBlockModels.ModelFactory {
++    private interface SpecialModelFactory extends BuiltInBlockModels.ModelFactory {
+         @Override
+         default BlockModel.Unbaked create(BlockColors colors, BlockState state) {
+             return BuiltInBlockModels.combineSpecialAndBlockModels(this.createSpecial(state), colors, state);

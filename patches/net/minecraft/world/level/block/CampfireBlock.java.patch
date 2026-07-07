@@ -1,6 +1,30 @@
 --- a/net/minecraft/world/level/block/CampfireBlock.java
 +++ b/net/minecraft/world/level/block/CampfireBlock.java
-@@ -108,8 +_,9 @@
+@@ -9,7 +_,6 @@
+ import net.minecraft.sounds.SoundSource;
+ import net.minecraft.stats.Stats;
+ import net.minecraft.tags.BlockTags;
+-import net.minecraft.tags.ItemTags;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.InteractionHand;
+ import net.minecraft.world.InteractionResult;
+@@ -88,23 +_,14 @@
+             }
+         }
+ 
+-        if (itemStack.is(ItemTags.DOWSES_CAMPFIRES) && state.getValue(LIT)) {
+-            if (!level.isClientSide()) {
+-                level.levelEvent(null, 1009, pos, 0);
+-            }
+-
+-            dowse(player, level, pos, state);
+-            level.setBlockAndUpdate(pos, state.setValue(LIT, false));
+-            return InteractionResult.SUCCESS;
+-        } else {
+-            return InteractionResult.TRY_WITH_EMPTY_HAND;
+-        }
++        return InteractionResult.TRY_WITH_EMPTY_HAND;
+     }
  
      @Override
      protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
@@ -11,7 +35,7 @@
          }
  
          super.entityInside(state, level, pos, entity, effectApplier, isPrecise);
-@@ -123,7 +_,7 @@
+@@ -118,7 +_,7 @@
          return this.defaultBlockState()
              .setValue(WATERLOGGED, replacedWater)
              .setValue(SIGNAL_FIRE, this.isSmokeSource(level.getBlockState(pos.below())))
@@ -20,7 +44,16 @@
              .setValue(FACING, context.getHorizontalDirection());
      }
  
-@@ -220,6 +_,11 @@
+@@ -199,7 +_,7 @@
+                 dowse(null, level, pos, state);
+             }
+ 
+-            level.setBlockAndUpdate(pos, state.setValue(WATERLOGGED, true).setValue(LIT, false));
++            level.setBlock(pos, state.setValue(WATERLOGGED, true).setValue(LIT, false), 3);
+             level.scheduleTick(pos, fluidState.getType(), fluidState.getType().getTickDelay(level));
+             return true;
+         } else {
+@@ -215,6 +_,11 @@
              && projectile.mayInteract(serverLevel, pos)
              && !state.getValue(LIT)
              && !state.getValue(WATERLOGGED)) {
@@ -32,7 +65,7 @@
              level.setBlock(pos, state.setValue(BlockStateProperties.LIT, true), 11);
          }
      }
-@@ -258,7 +_,7 @@
+@@ -253,7 +_,7 @@
                  return true;
              }
  

@@ -12,7 +12,6 @@ import net.kyori.adventure.text.Component;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.item.equipment.EquipmentAsset;
 import net.minecraft.world.item.equipment.EquipmentAssets;
-import net.minecraft.world.item.equipment.trim.MaterialAssetGroup;
 import net.minecraft.world.item.equipment.trim.TrimMaterial;
 import org.intellij.lang.annotations.Subst;
 import org.jetbrains.annotations.Unmodifiable;

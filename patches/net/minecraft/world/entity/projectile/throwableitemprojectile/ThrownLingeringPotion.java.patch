@@ -1,15 +1,37 @@
 --- a/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownLingeringPotion.java
 +++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownLingeringPotion.java
-@@ -30,7 +_,7 @@
+@@ -9,7 +_,6 @@
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.Items;
+ import net.minecraft.world.level.Level;
+-import net.minecraft.world.phys.EntityHitResult;
+ import net.minecraft.world.phys.HitResult;
+ 
+ public class ThrownLingeringPotion extends AbstractThrownPotion {
+@@ -31,18 +_,10 @@
      }
  
      @Override
 -    public void onHitAsPotion(ServerLevel level, ItemStack potionItem, HitResult hitResult) {
+-        AreaEffectCloud cloud;
+-        if (hitResult instanceof EntityHitResult entityHitResult) {
+-            cloud = new AreaEffectCloud(
+-                this.level(), entityHitResult.getEntity().getX(), entityHitResult.getEntity().getY(), entityHitResult.getEntity().getZ()
+-            );
+-        } else {
+-            cloud = new AreaEffectCloud(this.level(), this.getX(), this.getY(), this.getZ());
+-        }
+-
+-        if (this.getOwner() instanceof LivingEntity livingEntity) {
+-            cloud.setOwner(livingEntity);
 +    public boolean onHitAsPotion(ServerLevel level, ItemStack potionItem, @org.jspecify.annotations.Nullable HitResult hitResult) { // Paper - More projectile API
-         AreaEffectCloud cloud = new AreaEffectCloud(this.level(), this.getX(), this.getY(), this.getZ());
-         if (this.getOwner() instanceof LivingEntity owner) {
-             cloud.setOwner(owner);
-@@ -42,6 +_,15 @@
++        AreaEffectCloud cloud = new AreaEffectCloud(this.level(), this.getX(), this.getY(), this.getZ());
++        if (this.getOwner() instanceof LivingEntity owner) {
++            cloud.setOwner(owner);
+         }
+ 
+         cloud.setRadius(3.0F);
+@@ -51,6 +_,15 @@
          cloud.setWaitTime(10);
          cloud.setRadiusPerTick(-cloud.getRadius() / cloud.getDuration());
          cloud.applyComponentsFromItemStack(potionItem);

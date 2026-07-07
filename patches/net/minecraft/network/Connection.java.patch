@@ -8,7 +8,15 @@
  import io.netty.channel.ChannelHandlerContext;
  import io.netty.channel.ChannelInboundHandler;
  import io.netty.channel.ChannelInitializer;
-@@ -65,9 +_,14 @@
+@@ -26,6 +_,7 @@
+ import java.nio.channels.ClosedChannelException;
+ import java.util.Objects;
+ import java.util.Queue;
++import java.util.UUID;
+ import java.util.concurrent.RejectedExecutionException;
+ import java.util.function.Consumer;
+ import javax.crypto.Cipher;
+@@ -64,9 +_,14 @@
      private static final ProtocolInfo<ServerHandshakePacketListener> INITIAL_PROTOCOL = HandshakeProtocols.SERVERBOUND;
      private final PacketFlow receiving;
      private volatile boolean sendLoginDisconnect = true;
@@ -24,10 +32,11 @@
      private volatile @Nullable PacketListener disconnectListener;
      private volatile @Nullable PacketListener packetListener;
      private @Nullable DisconnectionDetails disconnectionDetails;
-@@ -81,6 +_,50 @@
+@@ -79,6 +_,51 @@
+     private boolean handlingFault;
      private volatile @Nullable DisconnectionDetails delayedDisconnect;
      private @Nullable BandwidthDebugMonitor bandwidthDebugMonitor;
-     private @Nullable UUID intendedProfileId;
++    private @Nullable UUID intendedProfileId;
 +    @Nullable
 +    private ProtocolInfo<?> inboundProtocol;
 +    public String hostname = ""; // CraftBukkit - add field
@@ -75,7 +84,7 @@
  
      public Connection(PacketFlow receiving) {
          this.receiving = receiving;
-@@ -91,30 +_,57 @@
+@@ -89,30 +_,57 @@
          super.channelActive(ctx);
          this.channel = ctx.channel();
          this.address = this.channel.remoteAddress();
@@ -133,7 +142,7 @@
                      DisconnectionDetails details;
                      if (listener != null) {
                          details = listener.createDisconnectionInfo(reason, cause);
-@@ -122,9 +_,11 @@
+@@ -120,9 +_,11 @@
                          details = new DisconnectionDetails(reason);
                      }
  
@@ -146,7 +155,7 @@
                              Packet<?> packet = this.sendLoginDisconnect
                                  ? new ClientboundLoginDisconnectPacket(reason)
                                  : new ClientboundDisconnectPacket(reason);
-@@ -141,6 +_,7 @@
+@@ -139,6 +_,7 @@
                  }
              }
          }
@@ -154,7 +163,7 @@
      }
  
      protected void channelRead0(ChannelHandlerContext ctx, Packet<?> packet) {
-@@ -149,11 +_,60 @@
+@@ -147,11 +_,60 @@
              if (packetListener == null) {
                  throw new IllegalStateException("Received a packet before the packet listener was initialized");
              }
@@ -216,7 +225,7 @@
                  } catch (RejectedExecutionException ignored) {
                      this.disconnect(Component.translatable("multiplayer.disconnect.server_shutdown"));
                  } catch (ClassCastException exception) {
-@@ -201,6 +_,7 @@
+@@ -199,6 +_,7 @@
              throw new IllegalStateException("Invalid inbound protocol: " + protocol.id());
          }
  
@@ -224,7 +233,7 @@
          this.packetListener = packetListener;
          this.disconnectListener = null;
          UnconfiguredPipelineHandler.InboundConfigurationTask configMessage = UnconfiguredPipelineHandler.setupInboundProtocol(protocol);
-@@ -222,7 +_,12 @@
+@@ -220,7 +_,12 @@
          BundlerInfo bundlerInfo = protocol.bundlerInfo();
          if (bundlerInfo != null) {
              PacketBundleUnpacker newUnbundler = new PacketBundleUnpacker(bundlerInfo);
@@ -238,7 +247,7 @@
          }
  
          boolean isLoginProtocol = protocol.id() == ConnectionProtocol.LOGIN;
-@@ -279,11 +_,38 @@
+@@ -277,11 +_,38 @@
      }
  
      public void send(Packet<?> packet, @Nullable ChannelFutureListener listener, boolean flush) {
@@ -280,7 +289,7 @@
          }
      }
  
-@@ -292,7 +_,7 @@
+@@ -290,7 +_,7 @@
              this.flushQueue();
              action.accept(this);
          } else {
@@ -289,7 +298,7 @@
          }
      }
  
-@@ -306,21 +_,42 @@
+@@ -304,21 +_,42 @@
      }
  
      private void doSendPacket(Packet<?> packet, @Nullable ChannelFutureListener listener, boolean flush) {
@@ -341,7 +350,7 @@
          }
      }
  
-@@ -332,21 +_,92 @@
+@@ -330,21 +_,92 @@
          }
      }
  
@@ -440,7 +449,7 @@
          }
  
          if (!this.isConnected() && !this.disconnectionHandled) {
-@@ -354,7 +_,7 @@
+@@ -352,7 +_,7 @@
          }
  
          if (this.channel != null) {
@@ -449,7 +458,7 @@
          }
  
          if (this.tickCount++ % 20 == 0) {
-@@ -381,7 +_,7 @@
+@@ -379,7 +_,7 @@
          if (this.address == null) {
              return "local";
          } else {
@@ -458,7 +467,7 @@
          }
      }
  
-@@ -390,6 +_,8 @@
+@@ -388,6 +_,8 @@
      }
  
      public void disconnect(DisconnectionDetails details) {
@@ -467,7 +476,7 @@
          if (this.channel == null) {
              this.delayedDisconnect = details;
          }
-@@ -424,6 +_,7 @@
+@@ -422,6 +_,7 @@
      }
  
      public static ChannelFuture connect(InetSocketAddress address, EventLoopGroupHolder eventLoopGroupHolder, Connection connection) {
@@ -475,7 +484,7 @@
          return new Bootstrap().group(eventLoopGroupHolder.eventLoopGroup()).handler(new ChannelInitializer<Channel>() {
              @Override
              protected void initChannel(Channel channel) {
-@@ -511,10 +_,24 @@
+@@ -509,10 +_,24 @@
          return connection;
      }
  
@@ -503,7 +512,7 @@
  
      public boolean isConnected() {
          return this.channel != null && this.channel.isOpen();
-@@ -538,44 +_,75 @@
+@@ -536,44 +_,75 @@
          }
      }
  
@@ -590,10 +599,18 @@
              }
          }
      }
-@@ -599,4 +_,108 @@
-     public @Nullable UUID getIntendedProfileId() {
-         return this.intendedProfileId;
+@@ -589,4 +_,116 @@
+     public void setBandwidthLogger(LocalSampleLogger bandwidthLogger) {
+         this.bandwidthDebugMonitor = new BandwidthDebugMonitor(bandwidthLogger);
      }
++
++    public void setIntendedProfileId(UUID profileId) {
++        this.intendedProfileId = profileId;
++    }
++
++    public @Nullable UUID getIntendedProfileId() {
++        return this.intendedProfileId;
++    }
 +
 +    public Channel channel() {
 +        return this.channel;

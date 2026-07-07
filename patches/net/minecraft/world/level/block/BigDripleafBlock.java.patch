@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/BigDripleafBlock.java
 +++ b/net/minecraft/world/level/block/BigDripleafBlock.java
-@@ -42,6 +_,12 @@
+@@ -41,6 +_,12 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
  
@@ -11,9 +11,15 @@
 +// CraftBukkit end
 +
  public class BigDripleafBlock extends HorizontalDirectionalBlock implements SimpleWaterloggedBlock, BonemealableBlock {
-     public static final MapCodec<BigDripleafBlock> CODEC = simpleCodec(BigDripleafBlock::new);
      private static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
-@@ -127,7 +_,7 @@
+     private static final EnumProperty<Tilt> TILT = BlockStateProperties.TILT;
+@@ -115,12 +_,12 @@
+ 
+     protected static boolean place(LevelAccessor level, BlockPos pos, FluidState fluidState, Direction facing) {
+         BlockState newState = Blocks.BIG_DRIPLEAF.defaultBlockState().setValue(WATERLOGGED, fluidState.isSourceOfType(Fluids.WATER)).setValue(FACING, facing);
+-        return level.setBlockAndUpdate(pos, newState);
++        return level.setBlock(pos, newState, 3);
+     }
  
      @Override
      protected void onProjectileHit(Level level, BlockState state, BlockHitResult blockHit, Projectile projectile) {
@@ -22,7 +28,7 @@
      }
  
      @Override
-@@ -139,6 +_,8 @@
+@@ -132,6 +_,8 @@
      protected boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
          BlockPos belowPos = pos.below();
          BlockState belowState = level.getBlockState(belowPos);
@@ -31,7 +37,7 @@
          return belowState.is(this) || belowState.is(Blocks.BIG_DRIPLEAF_STEM) || belowState.is(BlockTags.SUPPORTS_BIG_DRIPLEAF);
      }
  
-@@ -188,9 +_,23 @@
+@@ -181,9 +_,23 @@
  
      @Override
      protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
@@ -56,7 +62,7 @@
              }
          }
      }
-@@ -202,9 +_,9 @@
+@@ -195,9 +_,9 @@
          } else {
              Tilt tilt = state.getValue(TILT);
              if (tilt == Tilt.UNSTABLE) {
@@ -68,7 +74,7 @@
              } else if (tilt == Tilt.FULL) {
                  resetTilt(state, level, pos);
              }
-@@ -227,31 +_,43 @@
+@@ -220,31 +_,43 @@
          return entity.onGround() && entity.position().y > pos.getY() + 0.6875F;
      }
  

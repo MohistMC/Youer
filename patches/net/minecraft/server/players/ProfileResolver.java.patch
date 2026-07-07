@@ -1,10 +1,21 @@
 --- a/net/minecraft/server/players/ProfileResolver.java
 +++ b/net/minecraft/server/players/ProfileResolver.java
+@@ -4,8 +_,8 @@
+ import com.google.common.cache.CacheLoader;
+ import com.google.common.cache.LoadingCache;
+ import com.mojang.authlib.GameProfile;
+-import com.mojang.authlib.minecraft.SessionService;
+-import com.mojang.authlib.services.ProfileResult;
++import com.mojang.authlib.minecraft.MinecraftSessionService;
++import com.mojang.authlib.services.ProfileResult; 
+ import com.mojang.datafixers.util.Either;
+ import java.time.Duration;
+ import java.util.Optional;
 @@ -25,14 +_,20 @@
          private final LoadingCache<String, Optional<GameProfile>> profileCacheByName;
          private final LoadingCache<UUID, Optional<GameProfile>> profileCacheById;
  
--        public Cached(MinecraftSessionService sessionService, UserNameToIdResolver nameToIdCache) {
+-        public Cached(SessionService sessionService, UserNameToIdResolver nameToIdCache) {
 +        public Cached(MinecraftSessionService sessionService, UserNameToIdResolver nameToIdCache, final io.papermc.paper.profile.PaperFilledProfileCache paperCache) { // Paper - add paperCache
              this.profileCacheById = CacheBuilder.newBuilder()
                  .expireAfterAccess(Duration.ofMinutes(10L))

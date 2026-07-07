@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/chunk/status/ChunkStatusTasks.java
 +++ b/net/minecraft/world/level/chunk/status/ChunkStatusTasks.java
-@@ -41,7 +_,7 @@
+@@ -13,7 +_,6 @@
+ import net.minecraft.world.entity.EntitySpawnReason;
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.level.ChunkPos;
+-import net.minecraft.world.level.chunk.CarvingMask;
+ import net.minecraft.world.level.chunk.ChunkAccess;
+ import net.minecraft.world.level.chunk.ImposterProtoChunk;
+ import net.minecraft.world.level.chunk.LevelChunk;
+@@ -42,7 +_,7 @@
          WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> chunks, ChunkAccess chunk
      ) {
          ServerLevel level = context.level();
@@ -9,7 +17,48 @@
              context.generator()
                  .createStructures(
                      level.registryAccess(),
-@@ -188,25 +_,80 @@
+@@ -119,7 +_,10 @@
+     ) {
+         ServerLevel level = context.level();
+         WorldGenRegion region = new WorldGenRegion(level, chunks, step, chunk);
+-        CarvingMask.Filter filter = chunk instanceof ProtoChunk protoChunk ? Blender.createAroundOldChunksCarvingMaskFilter(region, protoChunk) : null;
++        if (chunk instanceof ProtoChunk protoChunk) {
++            Blender.addAroundOldChunksCarvingMaskFilter(region, protoChunk);
++        }
++
+         context.generator()
+             .applyCarvers(
+                 region,
+@@ -127,20 +_,19 @@
+                 level.getChunkSource().randomState(),
+                 level.getBiomeManager(),
+                 level.structureManager().forWorldGenRegion(region),
+-                chunk,
+-                filter
++                chunk
+             );
++        return CompletableFuture.completedFuture(chunk);
++    }
++
++    public static CompletableFuture<ChunkAccess> generateFeatures(
++        WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> chunks, ChunkAccess chunk
++    ) {
++        ServerLevel level = context.level();
+         Heightmap.primeHeightmaps(
+             chunk,
+             EnumSet.of(Heightmap.Types.MOTION_BLOCKING, Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, Heightmap.Types.OCEAN_FLOOR, Heightmap.Types.WORLD_SURFACE)
+         );
+-        return CompletableFuture.completedFuture(chunk);
+-    }
+-
+-    public static CompletableFuture<ChunkAccess> generateFeatures(
+-        WorldGenContext context, ChunkStep step, StaticCache2D<GenerationChunkHolder> chunks, ChunkAccess chunk
+-    ) {
+-        ServerLevel level = context.level();
+         WorldGenRegion region = new WorldGenRegion(level, chunks, step, chunk);
+         if (!SharedConstants.DEBUG_DISABLE_FEATURES) {
+             context.generator().applyBiomeDecoration(region, chunk, level.structureManager().forWorldGenRegion(region));
+@@ -187,25 +_,80 @@
              } else {
                  levelChunk = new LevelChunk(level, protoChunk, lc -> {
                      try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(chunk.problemPath(), LOGGER)) {

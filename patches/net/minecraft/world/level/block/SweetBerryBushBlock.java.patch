@@ -1,21 +1,19 @@
 --- a/net/minecraft/world/level/block/SweetBerryBushBlock.java
 +++ b/net/minecraft/world/level/block/SweetBerryBushBlock.java
-@@ -31,6 +_,14 @@
+@@ -30,6 +_,12 @@
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
  
 +// CraftBukkit start
-+import java.util.LinkedList;
-+import java.util.List;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.inventory.CraftItemStack;
 +import org.bukkit.event.player.PlayerHarvestBlockEvent;
 +// CraftBukkit end
 +
  public class SweetBerryBushBlock extends VegetationBlock implements BonemealableBlock {
-     public static final MapCodec<SweetBerryBushBlock> CODEC = simpleCodec(SweetBerryBushBlock::new);
      private static final float HURT_SPEED_THRESHOLD = 0.003F;
-@@ -71,15 +_,17 @@
+     public static final int MAX_AGE = 3;
+@@ -64,15 +_,17 @@
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
          int age = state.getValue(AGE);
@@ -35,7 +33,7 @@
          if (entity instanceof LivingEntity && !entity.is(EntityTypes.FOX) && !entity.is(EntityTypes.BEE)) {
              entity.makeStuckInBlock(state, new Vec3(0.8F, 0.75, 0.8F));
              if (level instanceof ServerLevel serverLevel && state.getValue(AGE) != 0) {
-@@ -88,7 +_,7 @@
+@@ -81,7 +_,7 @@
                      double xs = Math.abs(movement.x());
                      double zs = Math.abs(movement.z());
                      if (xs >= 0.003F || zs >= 0.003F) {
@@ -44,7 +42,7 @@
                      }
                  }
              }
-@@ -108,6 +_,7 @@
+@@ -101,6 +_,7 @@
      protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
          if (state.getValue(AGE) > 1) {
              if (level instanceof ServerLevel serverLevel) {
@@ -52,7 +50,7 @@
                  Block.dropFromBlockInteractLootTable(
                      serverLevel,
                      BuiltInLootTables.HARVEST_SWEET_BERRY_BUSH,
-@@ -115,8 +_,16 @@
+@@ -108,8 +_,16 @@
                      level.getBlockEntity(pos),
                      null,
                      player,

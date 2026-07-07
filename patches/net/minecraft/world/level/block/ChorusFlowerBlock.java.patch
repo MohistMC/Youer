@@ -1,15 +1,15 @@
 --- a/net/minecraft/world/level/block/ChorusFlowerBlock.java
 +++ b/net/minecraft/world/level/block/ChorusFlowerBlock.java
-@@ -23,6 +_,8 @@
+@@ -20,6 +_,8 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
  
 +import org.bukkit.craftbukkit.event.CraftEventFactory; // CraftBukkit
 +
  public class ChorusFlowerBlock extends Block {
-     public static final MapCodec<ChorusFlowerBlock> CODEC = RecordCodecBuilder.mapCodec(
-         i -> i.group(BuiltInRegistries.BLOCK.byNameCodec().fieldOf("plant").forGetter(b -> b.plant), propertiesCodec()).apply(i, ChorusFlowerBlock::new)
-@@ -65,10 +_,13 @@
+     public static final int DEAD_AGE = 5;
+     public static final IntegerProperty AGE = BlockStateProperties.AGE_5;
+@@ -54,10 +_,13 @@
          BlockPos above = pos.above();
          if (level.isEmptyBlock(above) && above.getY() <= level.getMaxY()) {
              int currentAge = state.getValue(AGE);
@@ -24,7 +24,7 @@
                  if (belowState.is(BlockTags.SUPPORTS_CHORUS_FLOWER)) {
                      growUpwards = true;
                  } else if (belowState.is(this.plant)) {
-@@ -77,7 +_,9 @@
+@@ -66,7 +_,9 @@
                      for (int i = 0; i < 4; i++) {
                          BlockState testState = level.getBlockState(pos.below(height + 1));
                          if (!testState.is(this.plant)) {
@@ -35,7 +35,7 @@
                                  pillarOnSupportBlock = true;
                              }
                              break;
-@@ -94,8 +_,12 @@
+@@ -83,8 +_,12 @@
                  }
  
                  if (growUpwards && allNeighborsEmpty(level, above, null) && level.isEmptyBlock(pos.above(2))) {
@@ -50,7 +50,7 @@
                  } else if (currentAge < 4) {
                      int numBranchAttempts = random.nextInt(4);
                      if (pillarOnSupportBlock) {
-@@ -108,30 +_,43 @@
+@@ -97,30 +_,43 @@
                          Direction direction = Direction.Plane.HORIZONTAL.getRandomDirection(random);
                          BlockPos target = pos.relative(direction);
                          if (level.isEmptyBlock(target) && level.isEmptyBlock(target.below()) && allNeighborsEmpty(level, target, direction.getOpposite())) {
@@ -100,7 +100,7 @@
          level.levelEvent(1034, pos, 0);
      }
  
-@@ -166,6 +_,8 @@
+@@ -155,6 +_,8 @@
      @Override
      protected boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
          BlockState belowState = level.getBlockState(pos.below());
@@ -109,10 +109,12 @@
          if (!belowState.is(this.plant) && !belowState.is(BlockTags.SUPPORTS_CHORUS_FLOWER)) {
              if (!belowState.isAir()) {
                  return false;
-@@ -255,6 +_,11 @@
+@@ -243,7 +_,12 @@
+     @Override
      protected void onProjectileHit(Level level, BlockState state, BlockHitResult blockHit, Projectile projectile) {
          BlockPos pos = blockHit.getBlockPos();
-         if (level instanceof ServerLevel serverLevel && projectile.mayInteract(serverLevel, pos) && projectile.mayBreak(serverLevel)) {
+-        if (level instanceof ServerLevel serverLevel && projectile.mayInteract(serverLevel, pos) && projectile.mayBreak(serverLevel, pos)) {
++        if (level instanceof ServerLevel serverLevel && projectile.mayInteract(serverLevel, pos) && projectile.mayBreak(serverLevel)) {
 +            // CraftBukkit
 +            if (!CraftEventFactory.callEntityChangeBlockEvent(projectile, pos, state.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
 +                return;

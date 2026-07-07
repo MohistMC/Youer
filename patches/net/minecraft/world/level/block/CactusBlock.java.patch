@@ -1,15 +1,15 @@
 --- a/net/minecraft/world/level/block/CactusBlock.java
 +++ b/net/minecraft/world/level/block/CactusBlock.java
-@@ -22,7 +_,7 @@
+@@ -21,7 +_,7 @@
  import net.minecraft.world.phys.shapes.CollisionContext;
  import net.minecraft.world.phys.shapes.VoxelShape;
  
 -public class CactusBlock extends Block {
 +public class CactusBlock extends Block implements BonemealableBlock { // Purpur - bonemealable cactus
-     public static final MapCodec<CactusBlock> CODEC = simpleCodec(CactusBlock::new);
      public static final IntegerProperty AGE = BlockStateProperties.AGE_15;
      public static final int MAX_AGE = 15;
-@@ -45,6 +_,7 @@
+     private static final VoxelShape SHAPE = Block.column(14.0, 0.0, 16.0);
+@@ -38,6 +_,7 @@
  
      @Override
      protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
@@ -17,7 +17,7 @@
          if (!state.canSurvive(level, pos)) {
              level.destroyBlock(pos, true);
          }
-@@ -57,19 +_,20 @@
+@@ -50,19 +_,20 @@
              int height = 1;
              int age = state.getValue(AGE);
  
@@ -43,7 +43,7 @@
                  BlockState aboveBlock = state.setValue(AGE, 0);
                  level.setBlock(pos, aboveBlock, 260);
                  level.neighborChanged(aboveBlock, above, this, null, false);
-@@ -78,6 +_,8 @@
+@@ -71,6 +_,8 @@
              if (age < 15) {
                  level.setBlock(pos, state.setValue(AGE, age + 1), 260);
              }
@@ -52,7 +52,7 @@
          }
      }
  
-@@ -113,18 +_,21 @@
+@@ -106,18 +_,21 @@
      protected boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
          for (Direction direction : Direction.Plane.HORIZONTAL) {
              BlockState neighbor = level.getBlockState(pos.relative(direction));
@@ -76,7 +76,7 @@
      }
  
      @Override
-@@ -136,4 +_,34 @@
+@@ -129,4 +_,34 @@
      protected boolean isPathfindable(BlockState state, PathComputationType type) {
          return false;
      }

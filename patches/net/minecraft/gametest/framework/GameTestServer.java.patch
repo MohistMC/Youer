@@ -1,5 +1,14 @@
 --- a/net/minecraft/gametest/framework/GameTestServer.java
 +++ b/net/minecraft/gametest/framework/GameTestServer.java
+@@ -2,7 +_,7 @@
+ 
+ import com.google.common.base.Stopwatch;
+ import com.mojang.authlib.GameProfile;
+-import com.mojang.authlib.services.ServicesKeySet;
++import com.mojang.authlib.yggdrasil.ServicesKeySet;
+ import com.mojang.brigadier.StringReader;
+ import com.mojang.logging.LogUtils;
+ import com.mojang.serialization.Lifecycle;
 @@ -91,6 +_,11 @@
      private final Stopwatch stopwatch = Stopwatch.createUnstarted();
      private static final WorldOptions WORLD_OPTIONS = new WorldOptions(0L, false, false);
@@ -12,6 +21,15 @@
  
      public static GameTestServer create(
          Thread serverThread,
+@@ -119,7 +_,7 @@
+                             Registry<LevelStem> noDatapackDimensions = new MappedRegistry<>(Registries.LEVEL_STEM, Lifecycle.stable()).freeze();
+                             WorldDimensions worldDimensions = context.datapackWorldgen()
+                                 .lookupOrThrow(Registries.WORLD_PRESET)
+-                                .getOrThrow(WorldPresets.FLAT_ALL_DIMENSIONS)
++                                .getOrThrow(WorldPresets.FLAT)
+                                 .value()
+                                 .createWorldDimensions();
+                             WorldDimensions.Complete dimensions = worldDimensions.bake(noDatapackDimensions);
 @@ -154,12 +_,12 @@
          boolean verify,
          int repeatCount
@@ -27,7 +45,7 @@
              Proxy.NO_PROXY,
              DataFixers.getDataFixer(),
              NO_SERVICES,
-@@ -174,12 +_,22 @@
+@@ -174,20 +_,31 @@
  
      @Override
      protected boolean initServer() {
@@ -42,17 +60,39 @@
 +        this.initPostWorld();
          Gizmos.withCollector(GizmoCollector.NOOP);
 -        this.loadLevel();
+-        this.testBatches = this.evaluateTestsToRun(this);
 +        net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerAboutToStart(this);
 +        this.loadLevel("blah");
 +        // Paper end
-         ServerLevel level = this.overworld();
-         this.testBatches = this.evaluateTestsToRun(level);
++        ServerLevel level = this.overworld();
++        this.testBatches = this.evaluateTestsToRun(level);
          LOGGER.info("Started game test server");
 +        net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerStarting(this);
          return true;
      }
  
-@@ -258,8 +_,14 @@
+-    private List<GameTestBatch> evaluateTestsToRun(MinecraftServer server) {
+-        Registry<GameTestInstance> testRegistry = server.registryAccess().lookupOrThrow(Registries.TEST_INSTANCE);
++    private List<GameTestBatch> evaluateTestsToRun(ServerLevel level) {
++        Registry<GameTestInstance> testRegistry = level.registryAccess().lookupOrThrow(Registries.TEST_INSTANCE);
+         Collection<Holder.Reference<GameTestInstance>> tests;
+         GameTestBatchFactory.TestDecorator decorator;
+         if (this.testSelection.isPresent()) {
+-            tests = getTestsForSelection(server.registryAccess(), this.testSelection.get()).filter(test -> !test.value().manualOnly()).toList();
++            tests = getTestsForSelection(level.registryAccess(), this.testSelection.get()).filter(test -> !test.value().manualOnly()).toList();
+             if (tests.isEmpty()) {
+                 LOGGER.warn("Test selection matcher ({}) found no tests", this.testSelection.get());
+                 System.exit(-1);
+@@ -210,7 +_,7 @@
+             decorator = GameTestBatchFactory.DIRECT;
+         }
+ 
+-        return GameTestBatchFactory.divideIntoBatches(tests, decorator, server);
++        return GameTestBatchFactory.divideIntoBatches(tests, decorator, level);
+     }
+ 
+     private static Stream<GameTestInfo> rotateAndMultiply(Holder.Reference<GameTestInstance> test, ServerLevel level) {
+@@ -257,8 +_,14 @@
              GlobalTestReporter.finish();
              LOGGER.info("========= {} GAME TESTS COMPLETE IN {} ======================", this.testTracker.getTotalCount(), this.stopwatch.stop());
              if (this.testTracker.hasFailedRequired()) {
@@ -68,7 +108,7 @@
              } else {
                  LOGGER.info("All {} required tests passed :)", this.testTracker.getTotalCount());
              }
-@@ -275,11 +_,11 @@
+@@ -274,11 +_,11 @@
  
      private static void logFailedTest(GameTestInfo testInfo) {
          if (testInfo.getRotation() != Rotation.NONE) {
@@ -82,7 +122,19 @@
          }
      }
  
-@@ -392,6 +_,13 @@
+@@ -319,9 +_,9 @@
+ 
+     private void startTests(ServerLevel level) {
+         RandomSource random = level.getRandom();
+-        BlockPos startPos = new BlockPos(random.nextIntBetweenInclusive(-14999992, 14999992), 4, random.nextIntBetweenInclusive(-14999992, 14999992));
++        BlockPos startPos = new BlockPos(random.nextIntBetweenInclusive(-14999992, 14999992), -59, random.nextIntBetweenInclusive(-14999992, 14999992));
+         level.setRespawnData(LevelData.RespawnData.of(level.dimension(), startPos, 0.0F, 0.0F));
+-        GameTestRunner runner = GameTestRunner.Builder.fromBatches(this.testBatches, this)
++        GameTestRunner runner = GameTestRunner.Builder.fromBatches(this.testBatches, level)
+             .newStructureSpawner(new StructureGridSpawner(startPos, 8, false))
+             .build();
+         Collection<GameTestInfo> testInfos = runner.getTestInfos();
+@@ -391,6 +_,13 @@
          return false;
      }
  
@@ -96,7 +148,7 @@
      @Override
      public boolean isSingleplayerOwner(NameAndId nameAndId) {
          return false;
-@@ -439,5 +_,16 @@
+@@ -438,5 +_,16 @@
          @Override
          public void save() {
          }

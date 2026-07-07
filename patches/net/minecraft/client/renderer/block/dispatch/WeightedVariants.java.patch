@@ -1,37 +1,14 @@
 --- a/net/minecraft/client/renderer/block/dispatch/WeightedVariants.java
 +++ b/net/minecraft/client/renderer/block/dispatch/WeightedVariants.java
-@@ -46,9 +_,31 @@
-         return this.materialFlags;
-     }
+@@ -11,10 +_,8 @@
+ import net.neoforged.api.distmarker.Dist;
+ import net.neoforged.api.distmarker.OnlyIn;
  
--    @Override
--    public void collectParts(RandomSource random, List<BlockStateModelPart> output) {
--        this.list.getRandomOrThrow(random).collectParts(random, output);
-+    // Neo: Implement our overload so child models can have custom logic
-+    @Override
-+    public void collectParts(net.minecraft.client.renderer.block.BlockAndTintGetter level, net.minecraft.core.BlockPos pos, net.minecraft.world.level.block.state.BlockState state, RandomSource random, List<BlockStateModelPart> output) {
-+        this.list.getRandomOrThrow(random).collectParts(level, pos, state, random, output);
-+    }
-+
-+    @Override
-+    @org.jspecify.annotations.Nullable
-+    public Object createGeometryKey(net.minecraft.client.renderer.block.BlockAndTintGetter level, net.minecraft.core.BlockPos pos, net.minecraft.world.level.block.state.BlockState state, RandomSource random) {
-+        return this.list.getRandomOrThrow(random).createGeometryKey(level, pos, state, random);
-+    }
-+
-+    @Override
-+    public Material.Baked particleMaterial(net.minecraft.client.renderer.block.BlockAndTintGetter level, net.minecraft.core.BlockPos pos, net.minecraft.world.level.block.state.BlockState state) {
-+        return this.list.unwrap().getFirst().value().particleMaterial(level, pos, state);
-+    }
-+
-+    @Override
-+    @BakedQuad.MaterialFlags
-+    public int materialFlags(net.minecraft.client.renderer.block.BlockAndTintGetter level, net.minecraft.core.BlockPos pos, net.minecraft.world.level.block.state.BlockState state) {
-+        int flags = 0;
-+        for (Weighted<BlockStateModel> model : this.list.unwrap()) {
-+            flags |= model.value().materialFlags(level, pos, state);
-+        }
-+        return flags;
-     }
- 
-     public record Unbaked(WeightedList<BlockStateModel.Unbaked> entries) implements BlockStateModel.Unbaked {
+-import net.neoforged.neoforge.client.model.DynamicBlockStateModel;
+-
+ @OnlyIn(Dist.CLIENT)
+-public class WeightedVariants implements BlockStateModel, DynamicBlockStateModel {
++public class WeightedVariants implements BlockStateModel {
+     private final WeightedList<BlockStateModel> list;
+     private final Material.Baked particleMaterial;
+     private final @BakedQuad.MaterialFlags int materialFlags;

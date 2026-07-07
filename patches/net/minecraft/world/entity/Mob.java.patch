@@ -401,22 +401,24 @@
          return attributeModifiers.compute(attribute, baseValue, slot);
      }
  
-@@ -685,23 +_,31 @@
+@@ -685,37 +_,51 @@
  
      @Override
      public void checkDespawn() {
 +        if (net.neoforged.neoforge.event.EventHooks.checkMobDespawn(this)) return;
          if (this.level().getDifficulty() == Difficulty.PEACEFUL && !this.getType().isAllowedInPeaceful()) {
 -            this.discard();
-+            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
-         } else if (!this.isPersistenceRequired() && !this.requiresCustomPersistence()) {
+-        } else {
+-            boolean isPersistent = this.isPersistenceRequired() || this.requiresCustomPersistence();
 -            Entity player = this.level().getNearestPlayer(this, -1.0);
++            this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++        } else if (!this.isPersistenceRequired() && !this.requiresCustomPersistence()) {
 +            Entity player = this.level().findNearbyPlayer(this, -1.0, EntitySelector.PLAYER_AFFECTS_SPAWNING); // Paper - Affects Spawning API
              if (player != null) {
 -                double distSqr = player.distanceToSqr(this);
 -                int instantDespawnDistance = this.getType().getCategory().getDespawnDistance();
 -                int despawnDistanceSqr = instantDespawnDistance * instantDespawnDistance;
--                if (distSqr > despawnDistanceSqr && this.removeWhenFarAway(distSqr)) {
+-                if (!isPersistent && distSqr > despawnDistanceSqr && this.removeWhenFarAway(distSqr)) {
 -                    this.discard();
 +                // Paper start - Configurable despawn distances
 +                final io.papermc.paper.configuration.WorldConfiguration.Entities.Spawning.DespawnRangePair despawnRangePair = this.level().paperConfig().entities.spawning.despawnRanges.get(this.getType().getCategory());
@@ -433,7 +435,11 @@
  
 -                int noDespawnDistance = this.getType().getCategory().getNoDespawnDistance();
 -                int noDespawnDistanceSqr = noDespawnDistance * noDespawnDistance;
--                if (this.noActionTime > 600 && this.random.nextInt(800) == 0 && distSqr > noDespawnDistanceSqr && this.removeWhenFarAway(distSqr)) {
+-                if (!isPersistent
+-                    && this.noActionTime > 600
+-                    && this.random.nextInt(800) == 0
+-                    && distSqr > noDespawnDistanceSqr
+-                    && this.removeWhenFarAway(distSqr)) {
 -                    this.discard();
 -                } else if (distSqr < noDespawnDistanceSqr) {
 +                if (despawnRangePair.soft().shouldDespawn(shape, dxSqr, dySqr, dzSqr, dy)) {
@@ -445,7 +451,11 @@
                      this.noActionTime = 0;
                  }
              }
-@@ -713,6 +_,15 @@
++        } else {
++            this.noActionTime = 0;
+         }
+     }
+ 
      @Override
      protected final void serverAiStep() {
          this.noActionTime++;
@@ -461,7 +471,16 @@
          ProfilerFiller profiler = Profiler.get();
          profiler.push("sensing");
          this.sensing.tick();
-@@ -883,15 +_,76 @@
+@@ -765,7 +_,7 @@
+         return 75;
+     }
+ 
+-    public void clampHeadRotationToBody() {
++    protected void clampHeadRotationToBody() {
+         float limit = this.getMaxHeadYRot();
+         float headYRot = this.getYHeadRot();
+         float delta = Mth.wrapDegrees(this.yBodyRot - headYRot);
+@@ -886,15 +_,76 @@
              public boolean stillValid(Player player) {
                  return player.getVehicle() == Mob.this || player.isWithinEntityInteractionRange(Mob.this, 4.0);
              }
@@ -538,7 +557,7 @@
              float dropChance = this.dropChances.byEquipment(slot);
              if (dropChance != 0.0F) {
                  boolean preserve = this.dropChances.isPreserved(slot);
-@@ -910,7 +_,8 @@
+@@ -913,7 +_,8 @@
                      }
  
                      this.spawnAtLocation(level, itemStack);
@@ -548,7 +567,7 @@
                  }
              }
          }
-@@ -929,11 +_,17 @@
+@@ -932,11 +_,17 @@
  
          for (EquipmentSlot slot : EquipmentSlot.VALUES) {
              ItemStack itemStack = this.getItemBySlot(slot);
@@ -568,7 +587,7 @@
                      this.spawnAtLocation(level, itemStack);
                  }
              }
-@@ -1078,6 +_,11 @@
+@@ -1081,6 +_,11 @@
          }
      }
  
@@ -580,7 +599,7 @@
      public @Nullable SpawnGroupData finalizeSpawn(
          ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason spawnReason, @Nullable SpawnGroupData groupData
      ) {
-@@ -1089,7 +_,8 @@
+@@ -1092,7 +_,8 @@
              );
          }
  
@@ -590,7 +609,7 @@
          return groupData;
      }
  
-@@ -1176,7 +_,7 @@
+@@ -1179,7 +_,7 @@
      }
  
      protected InteractionResult mobInteract(Player player, InteractionHand hand) {
@@ -599,7 +618,7 @@
      }
  
      protected void usePlayerItem(Player player, InteractionHand hand, ItemStack itemStack) {
-@@ -1227,30 +_,69 @@
+@@ -1230,30 +_,69 @@
      public <T extends Mob> @Nullable T convertTo(
          EntityType<T> entityType, ConversionParams params, EntitySpawnReason spawnReason, ConversionParams.AfterConversion<T> afterConversion
      ) {
@@ -688,7 +707,7 @@
      }
  
      @Override
-@@ -1291,7 +_,17 @@
+@@ -1294,7 +_,17 @@
      public boolean startRiding(Entity entity, boolean force, boolean sendEventAndTriggers) {
          boolean result = super.startRiding(entity, force, sendEventAndTriggers);
          if (result && this.isLeashed()) {
@@ -707,7 +726,7 @@
          }
  
          return result;
-@@ -1395,18 +_,29 @@
+@@ -1398,18 +_,29 @@
          }
  
          this.postPiercingAttack();
@@ -738,7 +757,7 @@
      @VisibleForTesting
      public void removeFreeWill() {
          this.removeAllGoals(goal -> true);
-@@ -1460,7 +_,7 @@
+@@ -1463,7 +_,7 @@
                  Set<WrappedGoal> availableGoals = this.goalSelector.getAvailableGoals();
                  List<DebugGoalInfo.DebugGoal> goalInfo = new ArrayList<>(availableGoals.size());
                  availableGoals.forEach(
@@ -747,7 +766,7 @@
                  );
                  return new DebugGoalInfo(goalInfo);
              }
-@@ -1473,4 +_,93 @@
+@@ -1476,4 +_,93 @@
      public float chargeSpeedModifier() {
          return 1.0F;
      }

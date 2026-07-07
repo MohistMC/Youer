@@ -89,7 +89,23 @@
                                  this.setSuccess(true);
                                  return dispensed;
                              }
-@@ -141,8 +_,45 @@
+@@ -121,7 +_,6 @@
+         DispenserBlock.registerBehavior(Items.ACACIA_BOAT, new BoatDispenseItemBehavior(EntityTypes.ACACIA_BOAT));
+         DispenserBlock.registerBehavior(Items.CHERRY_BOAT, new BoatDispenseItemBehavior(EntityTypes.CHERRY_BOAT));
+         DispenserBlock.registerBehavior(Items.MANGROVE_BOAT, new BoatDispenseItemBehavior(EntityTypes.MANGROVE_BOAT));
+-        DispenserBlock.registerBehavior(Items.POPLAR_BOAT, new BoatDispenseItemBehavior(EntityTypes.POPLAR_BOAT));
+         DispenserBlock.registerBehavior(Items.PALE_OAK_BOAT, new BoatDispenseItemBehavior(EntityTypes.PALE_OAK_BOAT));
+         DispenserBlock.registerBehavior(Items.BAMBOO_RAFT, new BoatDispenseItemBehavior(EntityTypes.BAMBOO_RAFT));
+         DispenserBlock.registerBehavior(Items.OAK_CHEST_BOAT, new BoatDispenseItemBehavior(EntityTypes.OAK_CHEST_BOAT));
+@@ -132,7 +_,6 @@
+         DispenserBlock.registerBehavior(Items.ACACIA_CHEST_BOAT, new BoatDispenseItemBehavior(EntityTypes.ACACIA_CHEST_BOAT));
+         DispenserBlock.registerBehavior(Items.CHERRY_CHEST_BOAT, new BoatDispenseItemBehavior(EntityTypes.CHERRY_CHEST_BOAT));
+         DispenserBlock.registerBehavior(Items.MANGROVE_CHEST_BOAT, new BoatDispenseItemBehavior(EntityTypes.MANGROVE_CHEST_BOAT));
+-        DispenserBlock.registerBehavior(Items.POPLAR_CHEST_BOAT, new BoatDispenseItemBehavior(EntityTypes.POPLAR_CHEST_BOAT));
+         DispenserBlock.registerBehavior(Items.PALE_OAK_CHEST_BOAT, new BoatDispenseItemBehavior(EntityTypes.PALE_OAK_CHEST_BOAT));
+         DispenserBlock.registerBehavior(Items.BAMBOO_CHEST_RAFT, new BoatDispenseItemBehavior(EntityTypes.BAMBOO_CHEST_RAFT));
+         DispenseItemBehavior filledBucketBehavior = new DefaultDispenseItemBehavior() {
+@@ -143,8 +_,45 @@
                  DispensibleContainerItem bucket = (DispensibleContainerItem)dispensed.getItem();
                  BlockPos target = source.pos().relative(source.state().getValue(DispenserBlock.FACING));
                  Level level = source.level();
@@ -137,7 +153,7 @@
                      return this.consumeWithRemainder(source, dispensed, new ItemStack(Items.BUCKET));
                  } else {
                      return this.defaultDispenseItemBehavior.dispense(source, dispensed);
-@@ -166,14 +_,22 @@
+@@ -168,14 +_,22 @@
                  BlockPos target = source.pos().relative(source.state().getValue(DispenserBlock.FACING));
                  BlockState blockState = level.getBlockState(target);
                  if (blockState.getBlock() instanceof BucketPickup bucket) {
@@ -161,7 +177,7 @@
                  } else {
                      return super.execute(source, dispensed);
                  }
-@@ -186,11 +_,54 @@
+@@ -188,11 +_,54 @@
                  this.setSuccess(true);
                  Level level = source.level();
                  BlockPos target = source.pos().relative(source.state().getValue(DispenserBlock.FACING));
@@ -220,7 +236,7 @@
  
                  return dispensed;
              }
-@@ -205,15 +_,41 @@
+@@ -207,15 +_,41 @@
                  }
  
                  BlockPos target = source.pos().relative(source.state().getValue(DispenserBlock.FACING));
@@ -269,7 +285,7 @@
                  this.setSuccess(true);
                  return dispensed;
              }
-@@ -226,6 +_,13 @@
+@@ -228,9 +_,18 @@
                      Level level = source.level();
                      Direction direction = source.state().getValue(DispenserBlock.FACING);
                      BlockPos target = source.pos().relative(direction);
@@ -281,8 +297,15 @@
 +                    }
 +                    // Paper end - Call BlockDispenseEvent
                      if (level.isEmptyBlock(target) && WitherSkullBlock.canSpawnMob(level, target, dispensed)) {
-                         level.setBlock(
-                             target,
+-                        level.setBlockAndUpdate(
+-                            target, Blocks.WITHER_SKELETON_SKULL.defaultBlockState().setValue(SkullBlock.ROTATION, RotationSegment.convertToSegment(direction))
++                        level.setBlock(
++                            target,
++                            Blocks.WITHER_SKELETON_SKULL.defaultBlockState().setValue(SkullBlock.ROTATION, RotationSegment.convertToSegment(direction)),
++                            3
+                         );
+                         level.gameEvent(null, GameEvent.BLOCK_PLACE, target);
+                         if (level.getBlockEntity(target) instanceof SkullBlockEntity skullBlockEntity) {
 @@ -240,7 +_,7 @@
                          dispensed.shrink(1);
                          this.setSuccess(true);
@@ -292,7 +315,7 @@
                      }
  
                      return dispensed;
-@@ -253,6 +_,13 @@
+@@ -253,16 +_,23 @@
                  Level level = source.level();
                  BlockPos target = source.pos().relative(source.state().getValue(DispenserBlock.FACING));
                  CarvedPumpkinBlock pumpkinBlock = (CarvedPumpkinBlock)Blocks.CARVED_PUMPKIN;
@@ -305,8 +328,11 @@
 +                // Paper end - Call BlockDispenseEvent
                  if (level.isEmptyBlock(target) && pumpkinBlock.canSpawnGolem(level, target)) {
                      if (!level.isClientSide()) {
-                         level.setBlock(target, pumpkinBlock.defaultBlockState(), 3);
-@@ -262,7 +_,7 @@
+-                        level.setBlockAndUpdate(target, pumpkinBlock.defaultBlockState());
++                        level.setBlock(target, pumpkinBlock.defaultBlockState(), 3);
+                         level.gameEvent(null, GameEvent.BLOCK_PLACE, target);
+                     }
+ 
                      dispensed.shrink(1);
                      this.setSuccess(true);
                  } else {
@@ -372,7 +398,7 @@
                  for (Armadillo armadillo : armadillos) {
                      if (armadillo.brushOffScute(null, dispensed)) {
                          dispensed.hurtAndBreak(16, level, null, item -> {});
-@@ -353,6 +_,13 @@
+@@ -353,9 +_,15 @@
                  BlockState blockState = level.getBlockState(pos);
                  Optional<BlockState> maybeWaxed = HoneycombItem.getWaxed(blockState);
                  if (maybeWaxed.isPresent()) {
@@ -385,8 +411,11 @@
 +                    // Paper end - Call BlockDispenseEvent
                      level.setBlockAndUpdate(pos, maybeWaxed.get());
                      level.levelEvent(3003, pos, 0);
+-                    level.playSound(null, pos, SoundEvents.HONEYCOMB_WAX_ON, SoundSource.BLOCKS, 1.0F, 1.0F);
                      dispensed.shrink(1);
-@@ -382,6 +_,12 @@
+                     this.setSuccess(true);
+                     return dispensed;
+@@ -383,6 +_,12 @@
                          return this.defaultDispenseItemBehavior.dispense(source, dispensed);
                      }
  
@@ -399,7 +428,7 @@
                      if (!level.isClientSide()) {
                          RandomSource random = level.getRandom();
  
-@@ -405,5 +_,22 @@
+@@ -406,5 +_,22 @@
          DispenserBlock.registerBehavior(Items.TNT_MINECART, new MinecartDispenseItemBehavior(EntityTypes.TNT_MINECART));
          DispenserBlock.registerBehavior(Items.HOPPER_MINECART, new MinecartDispenseItemBehavior(EntityTypes.HOPPER_MINECART));
          DispenserBlock.registerBehavior(Items.COMMAND_BLOCK_MINECART, new MinecartDispenseItemBehavior(EntityTypes.COMMAND_BLOCK_MINECART));

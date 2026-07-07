@@ -1,27 +1,11 @@
 --- a/net/minecraft/client/renderer/entity/LivingEntityRenderer.java
 +++ b/net/minecraft/client/renderer/entity/LivingEntityRenderer.java
-@@ -73,6 +_,7 @@
+@@ -53,7 +_,7 @@
+         this.shadowRadius = shadow;
      }
  
-     public void submit(S state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera) {
-+        if (net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.RenderLivingEvent.Pre<T, S, M>(state, this, state.partialTick, poseStack, submitNodeCollector)).isCanceled()) return;
-         poseStack.pushPose();
-         if (state.hasPose(Pose.SLEEPING)) {
-             Direction bedOrientation = state.bedOrientation;
-@@ -110,6 +_,7 @@
- 
-         poseStack.popPose();
-         super.submit(state, poseStack, submitNodeCollector, camera);
-+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.RenderLivingEvent.Post<T, S, M>(state, this, state.partialTick, poseStack, submitNodeCollector));
+-    public final boolean addLayer(RenderLayer<S, M> layer) {
++    protected final boolean addLayer(RenderLayer<S, M> layer) {
+         return this.layers.add(layer);
      }
  
-     protected boolean shouldRenderLayers(S state) {
-@@ -201,7 +_,7 @@
-     protected boolean shouldShowName(T entity, double distanceToCameraSq) {
-         if (entity.isDiscrete()) {
-             float maxDist = 32.0F;
--            if (distanceToCameraSq >= 1024.0) {
-+            if (!net.neoforged.neoforge.client.ClientHooks.isNameplateInRenderDistance(entity, distanceToCameraSq)) {
-                 return false;
-             }
-         }

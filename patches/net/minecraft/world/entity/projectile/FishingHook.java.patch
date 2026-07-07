@@ -285,6 +285,24 @@
              return dmg;
          } else {
              return 0;
+@@ -495,7 +_,7 @@
+ 
+     @Override
+     public void handleEntityEvent(byte id) {
+-        if (id == 31 && this.hookedIn != null) {
++        if (id == 31 && this.level().isClientSide() && this.hookedIn instanceof Player player && player.isLocalPlayer()) {
+             this.pullEntity(this.hookedIn);
+         }
+ 
+@@ -504,7 +_,7 @@
+ 
+     public void pullEntity(Entity entity) {
+         Entity owner = this.getOwner();
+-        if (owner != null && entity.canSimulateMovement()) {
++        if (owner != null) {
+             Vec3 delta = new Vec3(owner.getX() - this.getX(), owner.getY() - this.getY(), owner.getZ() - this.getZ()).scale(0.1);
+             entity.setDeltaMovement(entity.getDeltaMovement().add(delta));
+         }
 @@ -517,8 +_,15 @@
  
      @Override

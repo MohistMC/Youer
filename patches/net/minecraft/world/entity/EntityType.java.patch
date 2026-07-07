@@ -16,7 +16,7 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      private final Holder.Reference<EntityType<?>> builtInRegistryHolder = BuiltInRegistries.ENTITY_TYPE.createIntrusiveHolder(this);
      public static final Codec<EntityType<?>> CODEC = BuiltInRegistries.ENTITY_TYPE.byNameCodec();
-@@ -68,15 +_,36 @@
+@@ -68,16 +_,36 @@
      private final String descriptionId;
      private @Nullable Component description;
      private final Optional<ResourceKey<LootTable>> lootTable;
@@ -25,7 +25,8 @@
      private final float spawnDimensionsScale;
      private final FeatureFlagSet requiredFeatures;
      private final boolean allowedInPeaceful;
- 
+-    private final boolean trackDeltas;
++
 +    private final java.util.function.Predicate<EntityType<?>> trackDeltasSupplier;
 +    private final java.util.function.ToIntFunction<EntityType<?>> trackingRangeSupplier;
 +    private final java.util.function.ToIntFunction<EntityType<?>> updateIntervalSupplier;
@@ -40,7 +41,7 @@
 +        return BuiltInRegistries.ENTITY_TYPE.getValue(location);
 +    }
 +    // Purpur end - PlayerSetSpawnerTypeWithEggEvent
-+
+ 
      public static Identifier getKey(EntityType<?> type) {
          return BuiltInRegistries.ENTITY_TYPE.getKey(type);
      }
@@ -54,10 +55,14 @@
      public EntityType(
          EntityType.EntityFactory<T> factory,
          MobCategory category,
-@@ -94,6 +_,30 @@
+@@ -93,8 +_,31 @@
+         String descriptionId,
+         Optional<ResourceKey<LootTable>> lootTable,
          FeatureFlagSet requiredFeatures,
-         boolean allowedInPeaceful
-     ) {
+-        boolean allowedInPeaceful,
+-        boolean trackDeltas
++        boolean allowedInPeaceful
++    ) {
 +        this(factory, category, serialize, summon, fireImmune, canSpawnFarFromPlayer, immuneTo, dimensions, spawnDimensionsScale, clientTrackingRange, updateInterval, descriptionId, lootTable, requiredFeatures, allowedInPeaceful, EntityType::defaultTrackDeltasSupplier, EntityType::defaultTrackingRangeSupplier, EntityType::defaultUpdateIntervalSupplier, false);
 +    }
 +
@@ -81,14 +86,14 @@
 +            final java.util.function.ToIntFunction<EntityType<?>> trackingRangeSupplier,
 +            final java.util.function.ToIntFunction<EntityType<?>> updateIntervalSupplier,
 +            boolean onlyOpCanSetNbt
-+    ) {
+     ) {
          this.factory = factory;
          this.category = category;
-         this.canSpawnFarFromPlayer = canSpawnFarFromPlayer;
-@@ -109,25 +_,28 @@
+@@ -111,26 +_,28 @@
          this.lootTable = lootTable;
          this.requiredFeatures = requiredFeatures;
          this.allowedInPeaceful = allowedInPeaceful;
+-        this.trackDeltas = trackDeltas;
 -    }
 -
 -    public @Nullable T spawn(
@@ -129,7 +134,7 @@
      }
  
      public static <T extends Entity> PostSpawnProcessor<T> createDefaultStackConfig(Level level, ItemStack itemStack, @Nullable LivingEntity user) {
-@@ -148,24 +_,52 @@
+@@ -151,24 +_,52 @@
          PostSpawnProcessor<T> initialConfig, Level level, ItemStack itemStack, @Nullable LivingEntity user
      ) {
          TypedEntityData<EntityType<?>> entityData = itemStack.get(DataComponents.ENTITY_DATA);
@@ -195,7 +200,7 @@
              if (entity instanceof Mob mob) {
                  mob.playAmbientSound();
              }
-@@ -200,6 +_,13 @@
+@@ -203,6 +_,13 @@
              mob.yHeadRot = mob.getYRot();
              mob.yBodyRot = mob.getYRot();
              mob.finalizeSpawn(level, level.getCurrentDifficultyAt(mob.blockPosition()), spawnReason, null);
@@ -209,7 +214,7 @@
          }
  
          if (postSpawnConfig != null) {
-@@ -226,6 +_,13 @@
+@@ -229,6 +_,13 @@
                  if (level.isClientSide()
                      || !entity.getType().onlyOpCanSetNbt()
                      || user instanceof Player player && server.getPlayerList().isOp(player.nameAndId())) {
@@ -223,7 +228,7 @@
                      entityData.loadInto(entity);
                  }
              }
-@@ -252,6 +_,16 @@
+@@ -255,6 +_,16 @@
          return this.category;
      }
  
@@ -240,7 +245,7 @@
      public String getDescriptionId() {
          return this.descriptionId;
      }
-@@ -292,7 +_,7 @@
+@@ -295,7 +_,7 @@
      }
  
      public boolean canSpawn(Level level) {
@@ -249,7 +254,7 @@
      }
  
      public @Nullable T create(Level level, EntitySpawnReason reason) {
-@@ -304,10 +_,29 @@
+@@ -307,10 +_,29 @@
      }
  
      public static Optional<Entity> create(ValueInput input, Level level, EntitySpawnRequest request) {
@@ -281,7 +286,7 @@
          );
      }
  
-@@ -383,7 +_,18 @@
+@@ -386,7 +_,18 @@
      }
  
      public static Stream<Entity> loadEntitiesRecursive(ValueInput.ValueInputList entities, Level level, EntitySpawnReason reason) {
@@ -300,7 +305,7 @@
              output.accept(entity);
              return entity;
          }));
-@@ -408,14 +_,23 @@
+@@ -411,15 +_,33 @@
      }
  
      public int clientTrackingRange() {
@@ -318,13 +323,24 @@
      }
  
      public boolean trackDeltas() {
+-        return this.trackDeltas;
 +        return this.trackDeltasSupplier.test(this);
 +    }
 +    private boolean defaultTrackDeltasSupplier() {
-         return this != EntityTypes.PLAYER
-             && this != EntityTypes.LLAMA_SPIT
-             && this != EntityTypes.WITHER
-@@ -442,14 +_,17 @@
++        return this != EntityTypes.PLAYER
++            && this != EntityTypes.LLAMA_SPIT
++            && this != EntityTypes.WITHER
++            && this != EntityTypes.BAT
++            && this != EntityTypes.ITEM_FRAME
++            && this != EntityTypes.GLOW_ITEM_FRAME
++            && this != EntityTypes.LEASH_KNOT
++            && this != EntityTypes.PAINTING
++            && this != EntityTypes.END_CRYSTAL
++            && this != EntityTypes.EVOKER_FANGS;
+     }
+ 
+     public @Nullable T tryCast(Entity entity) {
+@@ -436,14 +_,17 @@
          return this.builtInRegistryHolder;
      }
  
@@ -343,10 +359,11 @@
      public static class Builder<T extends Entity> {
          private final EntityType.EntityFactory<T> factory;
          private final MobCategory category;
-@@ -469,6 +_,10 @@
+@@ -463,7 +_,10 @@
          );
          private final DependantName<EntityType<?>, String> descriptionId = id -> Util.makeDescriptionId("entity", id.identifier());
          private boolean allowedInPeaceful = true;
+-        private boolean trackDeltas = true;
 +        private java.util.function.Predicate<EntityType<?>> velocityUpdateSupplier = EntityType::defaultTrackDeltasSupplier;
 +        private java.util.function.ToIntFunction<EntityType<?>> trackingRangeSupplier = EntityType::defaultTrackingRangeSupplier;
 +        private java.util.function.ToIntFunction<EntityType<?>> updateIntervalSupplier = EntityType::defaultUpdateIntervalSupplier;
@@ -354,10 +371,12 @@
  
          private Builder(EntityType.EntityFactory<T> factory, MobCategory category) {
              this.factory = factory;
-@@ -587,6 +_,26 @@
+@@ -582,8 +_,23 @@
              return this;
          }
  
+-        public EntityType.Builder<T> dontTrackDeltas() {
+-            this.trackDeltas = false;
 +        public EntityType.Builder<T> setUpdateInterval(int interval) {
 +            this.updateIntervalSupplier = t->interval;
 +            return this;
@@ -375,18 +394,14 @@
 +
 +        public EntityType.Builder<T> setOnlyOpCanSetNbt(boolean onlyOpCanSetNbt) {
 +            this.onlyOpCanSetNbt = onlyOpCanSetNbt;
-+            return this;
-+        }
-+
-         public EntityType<T> build(ResourceKey<EntityType<?>> name) {
-             if (this.serialize) {
-                 Util.fetchChoiceType(References.ENTITY_TREE, name.identifier().toString());
-@@ -607,7 +_,11 @@
-                 this.descriptionId.get(name),
+             return this;
+         }
+ 
+@@ -608,7 +_,10 @@
                  this.lootTable.get(name),
                  this.requiredFeatures,
--                this.allowedInPeaceful
-+                this.allowedInPeaceful,
+                 this.allowedInPeaceful,
+-                this.trackDeltas
 +                this.velocityUpdateSupplier,
 +                this.trackingRangeSupplier,
 +                this.updateIntervalSupplier,

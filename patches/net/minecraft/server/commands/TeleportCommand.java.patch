@@ -1,6 +1,102 @@
 --- a/net/minecraft/server/commands/TeleportCommand.java
 +++ b/net/minecraft/server/commands/TeleportCommand.java
-@@ -244,30 +_,38 @@
+@@ -33,18 +_,6 @@
+     private static final SimpleCommandExceptionType INVALID_POSITION = new SimpleCommandExceptionType(
+         Component.translatable("commands.teleport.invalidPosition")
+     );
+-    private static final CommandResponseTracker.MessagesWithArg<Entity, Entity> RESPONSE_TELEPORT_TO_ENTITY = CommandResponseTracker.messages(
+-        (entity, var1, destination) -> Component.translatable("commands.teleport.success.entity.single", entity.getDisplayName(), destination.getDisplayName()),
+-        (elementCount, var1, destination) -> Component.translatable("commands.teleport.success.entity.multiple", elementCount, destination.getDisplayName())
+-    );
+-    private static final CommandResponseTracker.MessagesWithArg<Entity, Vec3> RESPONSE_TELEPORT_TO_POS = CommandResponseTracker.messages(
+-        (entity, var1, pos) -> Component.translatable(
+-            "commands.teleport.success.location.single", entity.getDisplayName(), formatDouble(pos.x), formatDouble(pos.y), formatDouble(pos.z)
+-        ),
+-        (elementCount, var1, pos) -> Component.translatable(
+-            "commands.teleport.success.location.multiple", elementCount, formatDouble(pos.x), formatDouble(pos.y), formatDouble(pos.z)
+-        )
+-    );
+ 
+     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+         LiteralCommandNode<CommandSourceStack> teleport = dispatcher.register(
+@@ -161,8 +_,6 @@
+     }
+ 
+     private static int teleportToEntity(CommandSourceStack source, Collection<? extends Entity> entities, Entity destination) throws CommandSyntaxException {
+-        CommandResponseTracker<Entity> tracker = CommandResponseTracker.create();
+-
+         for (Entity entity : entities) {
+             performTeleport(
+                 source,
+@@ -176,10 +_,20 @@
+                 destination.getXRot(),
+                 null
+             );
+-            tracker.track(entity);
+-        }
+-
+-        return tracker.sendFeedback(source, true, RESPONSE_TELEPORT_TO_ENTITY, destination);
++        }
++
++        if (entities.size() == 1) {
++            source.sendSuccess(
++                () -> Component.translatable(
++                    "commands.teleport.success.entity.single", entities.iterator().next().getDisplayName(), destination.getDisplayName()
++                ),
++                true
++            );
++        } else {
++            source.sendSuccess(() -> Component.translatable("commands.teleport.success.entity.multiple", entities.size(), destination.getDisplayName()), true);
++        }
++
++        return entities.size();
+     }
+ 
+     private static int teleportToPos(
+@@ -190,7 +_,6 @@
+         @Nullable Coordinates rotation,
+         @Nullable LookAt lookAt
+     ) throws CommandSyntaxException {
+-        CommandResponseTracker<Entity> tracker = CommandResponseTracker.create();
+         Vec3 pos = destination.getPosition(source);
+         Vec2 rot = rotation == null ? null : rotation.getRotation(source);
+ 
+@@ -201,11 +_,29 @@
+             } else {
+                 performTeleport(source, entity, level, pos.x, pos.y, pos.z, relatives, rot.y, rot.x, lookAt);
+             }
+-
+-            tracker.track(entity);
+-        }
+-
+-        return tracker.sendFeedback(source, true, RESPONSE_TELEPORT_TO_POS, pos);
++        }
++
++        if (entities.size() == 1) {
++            source.sendSuccess(
++                () -> Component.translatable(
++                    "commands.teleport.success.location.single",
++                    entities.iterator().next().getDisplayName(),
++                    formatDouble(pos.x),
++                    formatDouble(pos.y),
++                    formatDouble(pos.z)
++                ),
++                true
++            );
++        } else {
++            source.sendSuccess(
++                () -> Component.translatable(
++                    "commands.teleport.success.location.multiple", entities.size(), formatDouble(pos.x), formatDouble(pos.y), formatDouble(pos.z)
++                ),
++                true
++            );
++        }
++
++        return entities.size();
+     }
+ 
+     private static Set<Relative> getRelatives(Coordinates destination, @Nullable Coordinates rotation, boolean sameDimension) {
+@@ -231,30 +_,38 @@
          float xRot,
          @Nullable LookAt lookAt
      ) throws CommandSyntaxException {

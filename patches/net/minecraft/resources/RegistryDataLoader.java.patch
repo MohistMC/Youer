@@ -1,6 +1,51 @@
 --- a/net/minecraft/resources/RegistryDataLoader.java
 +++ b/net/minecraft/resources/RegistryDataLoader.java
-@@ -132,7 +_,7 @@
+@@ -60,15 +_,13 @@
+ import net.minecraft.world.level.biome.Biome;
+ import net.minecraft.world.level.biome.MultiNoiseBiomeSourceParameterList;
+ import net.minecraft.world.level.block.entity.BannerPattern;
+-import net.minecraft.world.level.block.entity.DecoratedPotPattern;
+ import net.minecraft.world.level.block.entity.trialspawner.TrialSpawnerConfig;
+ import net.minecraft.world.level.dimension.DimensionType;
+ import net.minecraft.world.level.dimension.LevelStem;
+ import net.minecraft.world.level.levelgen.DensityFunctions;
+ import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
+-import net.minecraft.world.level.levelgen.SurfaceRules;
+-import net.minecraft.world.level.levelgen.carver.WorldCarver;
+-import net.minecraft.world.level.levelgen.feature.Feature;
++import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver;
++import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
+ import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorPreset;
+ import net.minecraft.world.level.levelgen.placement.PlacedFeature;
+ import net.minecraft.world.level.levelgen.presets.WorldPreset;
+@@ -87,8 +_,8 @@
+         new RegistryDataLoader.RegistryData<>(Registries.DIMENSION_TYPE, DimensionType.DIRECT_CODEC),
+         new RegistryDataLoader.RegistryData<>(Registries.BIOME, Biome.DIRECT_CODEC),
+         new RegistryDataLoader.RegistryData<>(Registries.CHAT_TYPE, ChatType.DIRECT_CODEC),
+-        new RegistryDataLoader.RegistryData<>(Registries.CARVER, WorldCarver.DIRECT_CODEC),
+-        new RegistryDataLoader.RegistryData<>(Registries.FEATURE, Feature.DIRECT_CODEC),
++        new RegistryDataLoader.RegistryData<>(Registries.CONFIGURED_CARVER, ConfiguredWorldCarver.DIRECT_CODEC),
++        new RegistryDataLoader.RegistryData<>(Registries.CONFIGURED_FEATURE, ConfiguredFeature.DIRECT_CODEC),
+         new RegistryDataLoader.RegistryData<>(Registries.PLACED_FEATURE, PlacedFeature.DIRECT_CODEC),
+         new RegistryDataLoader.RegistryData<>(Registries.STRUCTURE, Structure.DIRECT_CODEC),
+         new RegistryDataLoader.RegistryData<>(Registries.STRUCTURE_SET, StructureSet.DIRECT_CODEC),
+@@ -97,8 +_,6 @@
+         new RegistryDataLoader.RegistryData<>(Registries.NOISE_SETTINGS, NoiseGeneratorSettings.DIRECT_CODEC),
+         new RegistryDataLoader.RegistryData<>(Registries.NOISE, NormalNoise.NoiseParameters.DIRECT_CODEC),
+         new RegistryDataLoader.RegistryData<>(Registries.DENSITY_FUNCTION, DensityFunctions.DIRECT_CODEC),
+-        new RegistryDataLoader.RegistryData<>(Registries.MATERIAL_RULE, SurfaceRules.RuleSource.DIRECT_CODEC),
+-        new RegistryDataLoader.RegistryData<>(Registries.MATERIAL_CONDITION, SurfaceRules.ConditionSource.DIRECT_CODEC),
+         new RegistryDataLoader.RegistryData<>(Registries.WORLD_PRESET, WorldPreset.DIRECT_CODEC),
+         new RegistryDataLoader.RegistryData<>(Registries.FLAT_LEVEL_GENERATOR_PRESET, FlatLevelGeneratorPreset.DIRECT_CODEC),
+         new RegistryDataLoader.RegistryData<>(Registries.TRIM_PATTERN, TrimPattern.DIRECT_CODEC),
+@@ -131,13 +_,12 @@
+         new RegistryDataLoader.RegistryData<>(Registries.WORLD_CLOCK, WorldClock.DIRECT_CODEC),
+         new RegistryDataLoader.RegistryData<>(Registries.TIMELINE, Timeline.DIRECT_CODEC, Timeline::validateRegistry),
+         new RegistryDataLoader.RegistryData<>(Registries.VILLAGER_TRADE, VillagerTrade.CODEC),
+-        new RegistryDataLoader.RegistryData<>(Registries.TRADE_SET, TradeSet.CODEC),
+-        new RegistryDataLoader.RegistryData<>(Registries.DECORATED_POT_PATTERN, DecoratedPotPattern.CODEC)
++        new RegistryDataLoader.RegistryData<>(Registries.TRADE_SET, TradeSet.CODEC)
+     );
      public static final List<RegistryDataLoader.RegistryData<?>> DIMENSION_REGISTRIES = List.of(
          new RegistryDataLoader.RegistryData<>(Registries.LEVEL_STEM, LevelStem.CODEC)
      );
@@ -9,16 +54,19 @@
          new RegistryDataLoader.RegistryData<>(Registries.BIOME, Biome.NETWORK_CODEC),
          new RegistryDataLoader.RegistryData<>(Registries.CHAT_TYPE, ChatType.DIRECT_CODEC),
          new RegistryDataLoader.RegistryData<>(Registries.TRIM_PATTERN, TrimPattern.DIRECT_CODEC),
-@@ -162,7 +_,7 @@
+@@ -166,9 +_,8 @@
+         new RegistryDataLoader.RegistryData<>(Registries.TEST_INSTANCE, GameTestInstance.DIRECT_CODEC),
          new RegistryDataLoader.RegistryData<>(Registries.DIALOG, Dialog.DIRECT_CODEC),
          new RegistryDataLoader.RegistryData<>(Registries.WORLD_CLOCK, WorldClock.DIRECT_CODEC),
-         new RegistryDataLoader.RegistryData<>(Registries.TIMELINE, Timeline.NETWORK_CODEC)
+-        new RegistryDataLoader.RegistryData<>(Registries.TIMELINE, Timeline.NETWORK_CODEC),
+-        new RegistryDataLoader.RegistryData<>(Registries.DECORATED_POT_PATTERN, DecoratedPotPattern.CODEC)
 -    );
++        new RegistryDataLoader.RegistryData<>(Registries.TIMELINE, Timeline.NETWORK_CODEC)
 +    )); // Neo: Keep the list so custom registries can be added later
  
      public static CompletableFuture<RegistryAccess.Frozen> load(
          ResourceManager resourceManager,
-@@ -176,7 +_,7 @@
+@@ -182,7 +_,7 @@
                  return new ResourceManagerRegistryLoadTask<>(data, Lifecycle.stable(), loadingErrors, resourceManager);
              }
          };
@@ -27,7 +75,7 @@
      }
  
      public static CompletableFuture<RegistryAccess.Frozen> load(
-@@ -192,14 +_,16 @@
+@@ -198,14 +_,16 @@
                  return new NetworkRegistryLoadTask<>(data, Lifecycle.stable(), loadingErrors, entries, knownDataSource);
              }
          };
@@ -46,7 +94,7 @@
      ) {
          return CompletableFuture.<CompletableFuture<RegistryAccess.Frozen>>supplyAsync(
                  () -> {
-@@ -218,6 +_,15 @@
+@@ -224,6 +_,15 @@
                      return CompletableFuture.allOf(loadCompletions)
                          .thenApplyAsync(
                              ignored -> {
@@ -62,7 +110,7 @@
                                  List<RegistryLoadTask<?>> frozenRegistries = loadTasks.stream().filter(task -> task.freezeRegistry(loadingErrors)).toList();
                                  if (!loadingErrors.isEmpty()) {
                                      throw logErrors(loadingErrors);
-@@ -246,11 +_,21 @@
+@@ -252,11 +_,21 @@
          final Map<ResourceKey<? extends Registry<?>>, RegistryOps.RegistryInfo<?>> result = new HashMap<>();
          contextRegistries.forEach(e -> result.put(e.key(), createInfoForContextRegistry((HolderLookup.RegistryLookup<?>)e)));
          newRegistriesAndLoaders.forEach(e -> result.put(e.registryKey(), e.createRegistryInfo()));
@@ -84,7 +132,7 @@
          };
      }
  
-@@ -312,7 +_,11 @@
+@@ -318,7 +_,11 @@
      public record NetworkedRegistryData(List<RegistrySynchronization.PackedRegistryEntry> elements, TagNetworkSerialization.NetworkPayload tags) {
      }
  

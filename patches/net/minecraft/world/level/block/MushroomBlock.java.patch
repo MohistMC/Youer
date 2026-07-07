@@ -1,14 +1,6 @@
 --- a/net/minecraft/world/level/block/MushroomBlock.java
 +++ b/net/minecraft/world/level/block/MushroomBlock.java
-@@ -20,6 +_,7 @@
- import net.minecraft.world.level.levelgen.feature.configurations.HugeMushroomFeatureConfiguration;
- import net.minecraft.world.phys.shapes.CollisionContext;
- import net.minecraft.world.phys.shapes.VoxelShape;
-+import org.bukkit.TreeType;
- 
- public class MushroomBlock extends VegetationBlock implements BonemealableBlock {
-     public static final MapCodec<MushroomBlock> CODEC = RecordCodecBuilder.mapCodec(
-@@ -46,7 +_,7 @@
+@@ -34,7 +_,7 @@
  
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
@@ -17,7 +9,7 @@
              int max = 5;
              int r = 4;
  
-@@ -59,6 +_,7 @@
+@@ -47,6 +_,7 @@
              }
  
              BlockPos offset = pos.offset(random.nextInt(3) - 1, random.nextInt(2) - random.nextInt(2), random.nextInt(3) - 1);
@@ -25,7 +17,7 @@
  
              for (int i = 0; i < 4; i++) {
                  if (level.isEmptyBlock(offset) && state.canSurvive(level, offset)) {
-@@ -69,7 +_,7 @@
+@@ -57,7 +_,7 @@
              }
  
              if (level.isEmptyBlock(offset) && state.canSurvive(level, offset)) {
@@ -34,7 +26,7 @@
              }
          }
      }
-@@ -83,16 +_,26 @@
+@@ -71,16 +_,26 @@
      protected boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
          BlockPos belowPos = pos.below();
          BlockState below = level.getBlockState(belowPos);
@@ -44,7 +36,7 @@
      }
  
      public boolean growMushroom(ServerLevel level, BlockPos pos, BlockState state, RandomSource random) {
-         Optional<? extends Holder<ConfiguredFeature<?, ?>>> feature = level.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(this.feature);
+         Optional<? extends Holder<Feature>> feature = level.registryAccess().lookupOrThrow(Registries.FEATURE).get(this.feature);
 +
 +        // Neo: Fire the BlockGrowFeatureEvent and update the result of the Optional local with the new feature.
 +        var event = net.neoforged.neoforge.event.EventHooks.fireBlockGrowFeature(level, random, pos, feature.orElse(null));

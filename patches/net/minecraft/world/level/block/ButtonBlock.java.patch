@@ -1,18 +1,6 @@
 --- a/net/minecraft/world/level/block/ButtonBlock.java
 +++ b/net/minecraft/world/level/block/ButtonBlock.java
-@@ -39,6 +_,11 @@
- import net.minecraft.world.phys.shapes.VoxelShape;
- import org.jspecify.annotations.Nullable;
- 
-+// CraftBukkit start
-+import org.bukkit.event.block.BlockRedstoneEvent;
-+import org.bukkit.event.entity.EntityInteractEvent;
-+// CraftBukkit end
-+
- public class ButtonBlock extends FaceAttachedHorizontalDirectionalBlock {
-     public static final MapCodec<ButtonBlock> CODEC = RecordCodecBuilder.mapCodec(
-         i -> i.group(
-@@ -90,6 +_,11 @@
+@@ -74,6 +_,11 @@
              return InteractionResult.CONSUME;
          }
  
@@ -24,7 +12,7 @@
          this.press(state, level, pos, player);
          return InteractionResult.SUCCESS;
      }
-@@ -97,7 +_,9 @@
+@@ -81,14 +_,16 @@
      @Override
      protected void onExplosionHit(BlockState state, ServerLevel level, BlockPos pos, Explosion explosion, BiConsumer<ItemStack, BlockPos> onHit) {
          if (explosion.canTriggerBlocks() && !state.getValue(POWERED)) {
@@ -35,7 +23,15 @@
          }
  
          super.onExplosionHit(state, level, pos, explosion, onHit);
-@@ -150,6 +_,7 @@
+     }
+ 
+     public void press(BlockState state, Level level, BlockPos pos, @Nullable Player player) {
+-        level.setBlockAndUpdate(pos, state.setValue(POWERED, true));
++        level.setBlock(pos, state.setValue(POWERED, true), 3);
+         this.updateNeighbours(state, level, pos);
+         level.scheduleTick(pos, this, this.ticksToStayPressed);
+         this.playSound(player, level, pos, true);
+@@ -134,6 +_,7 @@
  
      @Override
      protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
@@ -43,7 +39,7 @@
          if (!level.isClientSide() && this.type.canButtonBeActivatedByArrows() && !state.getValue(POWERED)) {
              this.checkPressed(state, level, pos);
          }
-@@ -161,7 +_,21 @@
+@@ -145,15 +_,29 @@
              : null;
          boolean shouldBePressed = firstArrow != null;
          boolean wasPressed = state.getValue(POWERED);
@@ -57,11 +53,21 @@
 +        }
 +        // CraftBukkit end
          if (shouldBePressed != wasPressed) {
+-            level.setBlockAndUpdate(pos, state.setValue(POWERED, shouldBePressed));
 +            // Paper start - Call BlockRedstoneEvent
 +            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBinaryRedstoneChange(level, pos, shouldBePressed)) {
 +                return;
 +            }
 +            // Paper end - Call BlockRedstoneEvent
-             level.setBlock(pos, state.setValue(POWERED, shouldBePressed), 3);
++            level.setBlock(pos, state.setValue(POWERED, shouldBePressed), 3);
              this.updateNeighbours(state, level, pos);
              this.playSound(null, level, pos, shouldBePressed);
+             level.gameEvent(firstArrow, shouldBePressed ? GameEvent.BLOCK_ACTIVATE : GameEvent.BLOCK_DEACTIVATE, pos);
+         }
+ 
+         if (shouldBePressed) {
+-            level.scheduleTick(pos, this, this.ticksToStayPressed);
++            level.scheduleTick(new BlockPos(pos), this, this.ticksToStayPressed);
+         }
+     }
+ 

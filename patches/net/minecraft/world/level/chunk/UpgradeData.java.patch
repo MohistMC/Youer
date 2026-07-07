@@ -1,6 +1,38 @@
 --- a/net/minecraft/world/level/chunk/UpgradeData.java
 +++ b/net/minecraft/world/level/chunk/UpgradeData.java
-@@ -87,6 +_,25 @@
+@@ -13,8 +_,8 @@
+ import java.util.Map;
+ import java.util.Set;
+ import net.minecraft.core.BlockPos;
+-import net.minecraft.core.CompositeDirection;
+ import net.minecraft.core.Direction;
++import net.minecraft.core.Direction8;
+ import net.minecraft.core.SectionPos;
+ import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.nbt.CompoundTag;
+@@ -42,10 +_,10 @@
+     private static final Logger LOGGER = LogUtils.getLogger();
+     public static final UpgradeData EMPTY = new UpgradeData(EmptyBlockGetter.INSTANCE);
+     private static final String TAG_INDICES = "Indices";
+-    private static final CompositeDirection.Direction8[] DIRECTIONS = CompositeDirection.Direction8.values();
++    private static final Direction8[] DIRECTIONS = Direction8.values();
+     private static final Codec<List<SavedTick<Block>>> BLOCK_TICKS_CODEC = SavedTick.codec(BuiltInRegistries.BLOCK.byNameCodec().orElse(Blocks.AIR)).listOf();
+     private static final Codec<List<SavedTick<Fluid>>> FLUID_TICKS_CODEC = SavedTick.codec(BuiltInRegistries.FLUID.byNameCodec().orElse(Fluids.EMPTY)).listOf();
+-    private final EnumSet<CompositeDirection.Direction8> sides = EnumSet.noneOf(CompositeDirection.Direction8.class);
++    private final EnumSet<Direction8> sides = EnumSet.noneOf(Direction8.class);
+     private final List<SavedTick<Block>> neighborBlockTicks = Lists.newArrayList();
+     private final List<SavedTick<Fluid>> neighborFluidTicks = Lists.newArrayList();
+     private final int[][] index;
+@@ -65,7 +_,7 @@
+         });
+         int sideInt = tag.getIntOr("Sides", 0);
+ 
+-        for (CompositeDirection.Direction8 direction8 : CompositeDirection.Direction8.values()) {
++        for (Direction8 direction8 : Direction8.values()) {
+             if ((sideInt & 1 << direction8.ordinal()) != 0) {
+                 this.sides.add(direction8);
+             }
+@@ -87,13 +_,36 @@
          }
      }
  
@@ -26,7 +58,8 @@
      public void upgrade(LevelChunk chunk) {
          this.upgradeInside(chunk);
  
-@@ -94,6 +_,10 @@
+-        for (CompositeDirection.Direction8 direction8 : DIRECTIONS) {
++        for (Direction8 direction8 : DIRECTIONS) {
              upgradeSides(chunk, direction8);
          }
  
@@ -37,7 +70,7 @@
          Level level = chunk.getLevel();
          this.neighborBlockTicks.forEach(tick -> {
              Block type = tick.type() == Blocks.AIR ? level.getBlockState(tick.pos()).getBlock() : tick.type();
-@@ -103,6 +_,7 @@
+@@ -103,10 +_,11 @@
              Fluid type = tick.type() == Fluids.EMPTY ? level.getFluidState(tick.pos()).getType() : tick.type();
              level.scheduleTick(tick.pos(), type, tick.delay(), tick.priority());
          });
@@ -45,3 +78,60 @@
          CHUNKY_FIXERS.forEach(fixer -> fixer.processChunk(level));
      }
  
+-    private static void upgradeSides(LevelChunk chunk, CompositeDirection.Direction8 direction8) {
++    private static void upgradeSides(LevelChunk chunk, Direction8 direction8) {
+         Level level = chunk.getLevel();
+         if (chunk.getUpgradeData().sides.remove(direction8)) {
+             Set<Direction> directions = direction8.getDirections();
+@@ -216,7 +_,7 @@
+ 
+         int sides = 0;
+ 
+-        for (CompositeDirection.Direction8 side : this.sides) {
++        for (Direction8 side : this.sides) {
+             sides |= 1 << side.ordinal();
+         }
+ 
+@@ -285,7 +_,6 @@
+             Blocks.JUNGLE_SIGN,
+             Blocks.DARK_OAK_SIGN,
+             Blocks.PALE_OAK_SIGN,
+-            Blocks.POPLAR_SIGN,
+             Blocks.OAK_WALL_SIGN,
+             Blocks.SPRUCE_WALL_SIGN,
+             Blocks.BIRCH_WALL_SIGN,
+@@ -293,7 +_,6 @@
+             Blocks.JUNGLE_WALL_SIGN,
+             Blocks.DARK_OAK_WALL_SIGN,
+             Blocks.PALE_OAK_WALL_SIGN,
+-            Blocks.POPLAR_WALL_SIGN,
+             Blocks.OAK_HANGING_SIGN,
+             Blocks.SPRUCE_HANGING_SIGN,
+             Blocks.BIRCH_HANGING_SIGN,
+@@ -301,15 +_,13 @@
+             Blocks.JUNGLE_HANGING_SIGN,
+             Blocks.DARK_OAK_HANGING_SIGN,
+             Blocks.PALE_OAK_HANGING_SIGN,
+-            Blocks.POPLAR_HANGING_SIGN,
+             Blocks.OAK_WALL_HANGING_SIGN,
+             Blocks.SPRUCE_WALL_HANGING_SIGN,
+             Blocks.BIRCH_WALL_HANGING_SIGN,
+             Blocks.ACACIA_WALL_HANGING_SIGN,
+             Blocks.JUNGLE_WALL_HANGING_SIGN,
+             Blocks.DARK_OAK_WALL_HANGING_SIGN,
+-            Blocks.PALE_OAK_WALL_HANGING_SIGN,
+-            Blocks.POPLAR_WALL_HANGING_SIGN
++            Blocks.PALE_OAK_WALL_HANGING_SIGN
+         ) {
+             @Override
+             public BlockState updateShape(BlockState state, Direction direction, BlockState neighbour, LevelAccessor level, BlockPos pos, BlockPos neighbourPos) {
+@@ -354,9 +_,6 @@
+             Blocks.CHERRY_LEAVES,
+             Blocks.BIRCH_LEAVES,
+             Blocks.PALE_OAK_LEAVES,
+-            Blocks.RED_POPLAR_LEAVES,
+-            Blocks.ORANGE_POPLAR_LEAVES,
+-            Blocks.YELLOW_POPLAR_LEAVES,
+             Blocks.DARK_OAK_LEAVES,
+             Blocks.JUNGLE_LEAVES,
+             Blocks.OAK_LEAVES,

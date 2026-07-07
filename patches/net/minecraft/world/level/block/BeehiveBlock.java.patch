@@ -1,6 +1,20 @@
 --- a/net/minecraft/world/level/block/BeehiveBlock.java
 +++ b/net/minecraft/world/level/block/BeehiveBlock.java
-@@ -88,8 +_,8 @@
+@@ -2,13 +_,11 @@
+ 
+ import java.util.List;
+ import java.util.function.BiConsumer;
+-import net.minecraft.advancements.triggers.CriteriaTriggers;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.component.DataComponents;
+ import net.minecraft.core.particles.ParticleTypes;
+ import net.minecraft.server.level.ServerLevel;
+-import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.sounds.SoundEvents;
+ import net.minecraft.sounds.SoundSource;
+ import net.minecraft.stats.Stats;
+@@ -81,8 +_,8 @@
      }
  
      @Override
@@ -11,7 +25,7 @@
          if (!level.isClientSide() && blockEntity instanceof BeehiveBlockEntity beehiveBlockEntity) {
              if (!EnchantmentHelper.hasTag(destroyedWith, EnchantmentTags.PREVENTS_BEE_SPAWNS_WHEN_MINING)) {
                  beehiveBlockEntity.emptyAllLivingFromHive(player, state, BeehiveBlockEntity.BeeReleaseStatus.EMERGENCY);
-@@ -97,7 +_,7 @@
+@@ -90,7 +_,7 @@
                  this.angerNearbyBees(level, pos);
              }
  
@@ -20,7 +34,7 @@
          }
      }
  
-@@ -119,6 +_,7 @@
+@@ -112,6 +_,7 @@
              for (Bee bee : beesToAnger) {
                  if (bee.getTarget() == null) {
                      Player angerTarget = Util.getRandom(playersToBeAngryAt, level.getRandom());
@@ -28,7 +42,7 @@
                      bee.setTarget(angerTarget);
                  }
              }
-@@ -141,8 +_,20 @@
+@@ -134,8 +_,20 @@
          boolean hiveEmptied = false;
          if (honeyLevel >= 5) {
              Item item = itemStack.getItem();
@@ -51,3 +65,12 @@
                  level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BEEHIVE_SHEAR, SoundSource.BLOCKS, 1.0F, 1.0F);
                  itemStack.hurtAndBreak(1, player, hand.asEquipmentSlot());
                  hiveEmptied = true;
+@@ -189,7 +_,7 @@
+     }
+ 
+     public void resetHoneyLevel(Level level, BlockState state, BlockPos pos) {
+-        level.setBlockAndUpdate(pos, state.setValue(HONEY_LEVEL, 0));
++        level.setBlock(pos, state.setValue(HONEY_LEVEL, 0), 3);
+     }
+ 
+     @Override

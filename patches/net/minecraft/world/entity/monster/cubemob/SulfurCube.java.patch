@@ -8,11 +8,13 @@
  import org.jspecify.annotations.Nullable;
  
  public class SulfurCube extends AbstractCubeMob implements Bucketable, Shearable {
-@@ -95,7 +_,7 @@
+@@ -94,8 +_,8 @@
+     private SulfurCubeArchetype.KnockbackModifiers knockbackModifier = SulfurCubeArchetype.DEFAULT_KNOCKBACK_MODIFIERS;
      private SulfurCubeArchetype.SoundSettings soundSettings = SulfurCubeArchetype.DEFAULT_SOUND_SETTINGS;
      private int fuse = -1;
-     private List<SulfurCubeArchetype.ContactDamage> contactDamages = new ArrayList<>();
+-    private final List<SulfurCubeArchetype.ContactDamage> contactDamages = new ArrayList<>();
 -    private static final EntityDataAccessor<Integer> MAX_FUSE = SynchedEntityData.defineId(SulfurCube.class, EntityDataSerializers.INT);
++    private List<SulfurCubeArchetype.ContactDamage> contactDamages = new ArrayList<>();
 +    public static final EntityDataAccessor<Integer> MAX_FUSE = SynchedEntityData.defineId(SulfurCube.class, EntityDataSerializers.INT);
      private static final EntityDataAccessor<Boolean> FROM_BUCKET = SynchedEntityData.defineId(SulfurCube.class, EntityDataSerializers.BOOLEAN);
      private static final boolean DEFAULT_FROM_BUCKET = false;
@@ -174,16 +176,19 @@
                          this.gameEvent(GameEvent.SHEAR, player);
                          heldItem.hurtAndBreak(1, player, hand.asEquipmentSlot());
                          CriteriaTriggers.PLAYER_SHEARED_EQUIPMENT.trigger((ServerPlayer)player, itemStackToShear, this);
-@@ -525,7 +_,7 @@
+@@ -524,8 +_,9 @@
+     private void applyContactDamage(Entity entity) {
          if (this.level() instanceof ServerLevel serverLevel) {
              for (SulfurCubeArchetype.ContactDamage damage : this.contactDamages) {
-                 entity.hurtServer(
--                    serverLevel, new DamageSource(damage.damageType(), damage.attributeToSource() ? this : null), damage.amount().sample(this.getRandom())
+-                Entity damageSource = !damage.attributeToSource() && !(entity instanceof Player) ? null : this;
+-                entity.hurtServer(serverLevel, new DamageSource(damage.damageType(), damageSource), damage.amount().sample(this.getRandom()));
++                entity.hurtServer(
 +                    serverLevel, new DamageSource(damage.damageType(), damage.attributeToSource() ? this : null).eventEntityDamager(this).knownCause(org.bukkit.event.entity.EntityDamageEvent.DamageCause.CONTACT), damage.amount().sample(this.getRandom()) // Paper - add damager for EntityDamageEvent
-                 );
++                );
              }
          }
-@@ -556,12 +_,12 @@
+     }
+@@ -555,12 +_,12 @@
      }
  
      @Override
@@ -198,7 +203,7 @@
          return this.isTiny() ? SoundEvents.SULFUR_CUBE_SMALL_DEATH : SoundEvents.SULFUR_CUBE_DEATH;
      }
  
-@@ -604,11 +_,25 @@
+@@ -603,11 +_,25 @@
      }
  
      @Override
@@ -227,7 +232,7 @@
          this.playSound(this.getEjectSound());
          this.pickupTimer = 100;
      }
-@@ -827,7 +_,7 @@
+@@ -826,7 +_,7 @@
      }
  
      @Override
@@ -236,7 +241,7 @@
          if (source.getEntity() != null && this.hasBodyItem()) {
              float horizontalHitAngleScale = 1.6F;
              float verticalHitAngleScale = 0.5F;
-@@ -865,16 +_,26 @@
+@@ -864,16 +_,26 @@
              double knockBackResistance = this.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE);
              horizontalPower *= (float)(1.0 - knockBackResistance);
              verticalPower *= (float)(1.0 - knockBackResistance);
@@ -266,7 +271,7 @@
          }
      }
  
-@@ -1009,7 +_,7 @@
+@@ -1008,7 +_,7 @@
          }
  
          @Override

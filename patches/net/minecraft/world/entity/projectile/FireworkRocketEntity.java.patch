@@ -67,7 +67,7 @@
          }
      }
  
-@@ -190,14 +_,18 @@
+@@ -190,23 +_,31 @@
          level.broadcastEntityEvent(this, (byte)17);
          this.gameEvent(GameEvent.EXPLODE, this.getOwner());
          this.dealExplosionDamage(level);
@@ -88,8 +88,10 @@
          }
      }
  
-@@ -206,7 +_,11 @@
-         BlockPos pos = new BlockPos(hitResult.getBlockPos());
+     @Override
+     protected void onHitBlock(BlockHitResult hitResult) {
+-        BlockPos pos = hitResult.getBlockPos().immutable();
++        BlockPos pos = new BlockPos(hitResult.getBlockPos());
          this.level().getBlockState(pos).entityInside(this.level(), pos, this, InsideBlockEffectApplier.NOOP, true);
          if (this.level() instanceof ServerLevel level && this.hasExplosion()) {
 -            this.explode(level);

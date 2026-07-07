@@ -4,7 +4,7 @@ import com.destroystokyo.paper.event.profile.FillProfileEvent;
 import com.destroystokyo.paper.event.profile.PreFillProfileEvent;
 import com.mojang.authlib.Environment;
 import com.mojang.authlib.GameProfile;
-import com.mojang.authlib.yggdrasil.ProfileResult;
+import com.mojang.authlib.services.ProfileResult; 
 import com.mojang.authlib.yggdrasil.ServicesKeySet;
 import com.mojang.authlib.yggdrasil.YggdrasilMinecraftSessionService;
 

@@ -1,14 +1,14 @@
 --- a/net/minecraft/world/level/block/EndPortalBlock.java
 +++ b/net/minecraft/world/level/block/EndPortalBlock.java
-@@ -28,6 +_,7 @@
+@@ -27,6 +_,7 @@
  import net.minecraft.world.phys.shapes.CollisionContext;
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
 +import org.bukkit.event.player.PlayerRespawnEvent;
  
  public class EndPortalBlock extends BaseEntityBlock implements Portal {
-     public static final MapCodec<EndPortalBlock> CODEC = simpleCodec(EndPortalBlock::new);
-@@ -59,8 +_,14 @@
+     private static final VoxelShape SHAPE = Block.column(16.0, 6.0, 12.0);
+@@ -52,8 +_,14 @@
  
      @Override
      protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
@@ -23,7 +23,7 @@
                  player.showEndCredits();
              } else {
                  entity.setAsInsidePortal(this, pos);
-@@ -70,9 +_,8 @@
+@@ -63,9 +_,8 @@
  
      @Override
      public @Nullable TeleportTransition getPortalDestination(ServerLevel currentLevel, Entity entity, BlockPos portalEntryPos) {
@@ -35,7 +35,7 @@
          ResourceKey<Level> newDimension = fromEnd ? respawnData.dimension() : Level.END;
          BlockPos spawnBlockPos = fromEnd ? respawnData.pos() : ServerLevel.END_SPAWN_POINT;
          ServerLevel newLevel = currentLevel.getServer().getLevel(newDimension);
-@@ -80,12 +_,12 @@
+@@ -73,12 +_,12 @@
              return null;
          }
  
@@ -50,7 +50,7 @@
              yRot = Direction.WEST.toYRot();
              xRot = 0.0F;
              relatives = Relative.union(Relative.DELTA, Set.of(Relative.X_ROT));
-@@ -97,15 +_,26 @@
+@@ -90,15 +_,26 @@
              xRot = respawnData.pitch();
              relatives = Relative.union(Relative.DELTA, Relative.ROTATION);
              if (entity instanceof ServerPlayer serverPlayer) {

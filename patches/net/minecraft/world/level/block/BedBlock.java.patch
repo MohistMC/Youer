@@ -1,14 +1,14 @@
 --- a/net/minecraft/world/level/block/BedBlock.java
 +++ b/net/minecraft/world/level/block/BedBlock.java
-@@ -26,6 +_,7 @@
- import net.minecraft.world.item.context.BlockPlaceContext;
- import net.minecraft.world.level.BlockGetter;
- import net.minecraft.world.level.CollisionGetter;
-+import net.minecraft.world.level.ExplosionDamageCalculator;
- import net.minecraft.world.level.Level;
- import net.minecraft.world.level.LevelReader;
- import net.minecraft.world.level.ScheduledTickAccess;
-@@ -79,43 +_,83 @@
+@@ -13,6 +_,7 @@
+ import net.minecraft.world.InteractionResult;
+ import net.minecraft.world.attribute.BedRule;
+ import net.minecraft.world.attribute.EnvironmentAttributes;
++import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.entity.npc.villager.Villager;
+@@ -68,43 +_,83 @@
      protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
          if (level.isClientSide()) {
              return InteractionResult.SUCCESS_SERVER;
@@ -128,11 +128,14 @@
  
      private boolean kickVillagerOutOfBed(Level level, BlockPos pos) {
          List<Villager> villagers = level.getEntitiesOfClass(Villager.class, new AABB(pos), LivingEntity::isSleeping);
-@@ -129,7 +_,7 @@
+@@ -114,6 +_,11 @@
  
-     @Override
-     public void fallOn(Level level, BlockState state, BlockPos pos, Entity entity, double fallDistance) {
--        super.fallOn(level, state, pos, entity, fallDistance * 0.5);
+         villagers.get(0).stopSleeping();
+         return true;
++    }
++
++    @Override
++    public void fallOn(Level level, BlockState state, BlockPos pos, Entity entity, double fallDistance) {
 +        super.fallOn(level, state, pos, entity, fallDistance); // Purpur - Configurable block fall damage modifiers
      }
  

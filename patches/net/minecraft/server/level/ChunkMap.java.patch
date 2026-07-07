@@ -1,6 +1,22 @@
 --- a/net/minecraft/server/level/ChunkMap.java
 +++ b/net/minecraft/server/level/ChunkMap.java
-@@ -94,6 +_,7 @@
+@@ -43,6 +_,7 @@
+ import java.util.function.IntFunction;
+ import java.util.function.IntSupplier;
+ import java.util.function.Predicate;
++import java.util.function.Supplier;
+ import java.util.stream.Stream;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+@@ -78,7 +_,6 @@
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.TicketStorage;
+-import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.chunk.ChunkAccess;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+ import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
+@@ -94,14 +_,16 @@
  import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
  import net.minecraft.world.level.chunk.storage.SerializableChunkData;
  import net.minecraft.world.level.chunk.storage.SimpleRegionStorage;
@@ -8,7 +24,17 @@
  import net.minecraft.world.level.entity.ChunkStatusUpdateListener;
  import net.minecraft.world.level.gamerules.GameRules;
  import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
-@@ -124,10 +_,7 @@
+-import net.minecraft.world.level.levelgen.NoiseRouterData;
++import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
+ import net.minecraft.world.level.levelgen.RandomState;
+ import net.minecraft.world.level.levelgen.structure.StructureStart;
+ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
+ import net.minecraft.world.level.storage.LevelStorageSource;
++import net.minecraft.world.level.storage.SavedDataStorage;
+ import net.minecraft.world.phys.Vec3;
+ import org.apache.commons.lang3.mutable.MutableBoolean;
+ import org.jspecify.annotations.Nullable;
+@@ -123,10 +_,7 @@
      public static final int MIN_VIEW_DISTANCE = 2;
      public static final int MAX_VIEW_DISTANCE = 32;
      public static final int FORCED_TICKET_LEVEL = ChunkLevel.byStatus(FullChunkStatus.ENTITY_TICKING);
@@ -20,7 +46,7 @@
      public final ServerLevel level;
      private final ThreadedLevelLightEngine lightEngine;
      private final BlockableEventLoop<Runnable> mainThreadExecutor;
-@@ -137,20 +_,43 @@
+@@ -136,19 +_,43 @@
      private final PoiManager poiManager;
      public final LongSet toDrop = new LongOpenHashSet();
      private boolean modified;
@@ -29,7 +55,7 @@
 +    // Paper - rewrite chunk system
      private final ChunkStatusUpdateListener chunkStatusListener;
      public final ChunkMap.DistanceManager distanceManager;
-     private final String storageName;
++    private final String storageName;
      private final PlayerMap playerMap = new PlayerMap();
      public final Int2ObjectMap<ChunkMap.TrackedEntity> entityMap = new Int2ObjectOpenHashMap<>();
      private final Long2ByteMap chunkTypeCache = new Long2ByteOpenHashMap();
@@ -71,11 +97,24 @@
  
      public ChunkMap(
          ServerLevel level,
-@@ -179,20 +_,26 @@
+@@ -160,6 +_,7 @@
+         LightChunkGetter chunkGetter,
+         ChunkGenerator generator,
+         ChunkStatusUpdateListener chunkStatusListener,
++        Supplier<SavedDataStorage> overworldDataStorage,
+         TicketStorage ticketStorage,
+         int serverViewDistance,
+         boolean syncWrites
+@@ -172,25 +_,30 @@
+             DataFixTypes.CHUNK
+         );
+         Path storageFolder = levelStorage.getDimensionPath(level.dimension());
++        this.storageName = storageFolder.getFileName().toString();
          this.level = level;
          RegistryAccess registryAccess = level.registryAccess();
          long levelSeed = level.getSeed();
 -        if (generator instanceof NoiseBasedChunkGenerator noiseGenerator) {
+-            this.randomState = RandomState.create(registryAccess.lookupOrThrow(Registries.NOISE), levelSeed, noiseGenerator.generatorSettings().value());
 +        // CraftBukkit start - SPIGOT-7051: It's a rigged game! Use delegate for random state creation, otherwise it is not so random.
 +        ChunkGenerator randomGenerator = generator;
 +        if (randomGenerator instanceof org.bukkit.craftbukkit.generator.CustomChunkGenerator customChunkGenerator) {
@@ -83,9 +122,12 @@
 +        }
 +        if (randomGenerator instanceof NoiseBasedChunkGenerator noiseGenerator) {
 +            // CraftBukkit end
-             this.randomState = RandomState.create(noiseGenerator.generatorSettings().value(), registryAccess.lookupOrThrow(Registries.NOISE), levelSeed);
++            this.randomState = RandomState.create(noiseGenerator.generatorSettings().value(), registryAccess.lookupOrThrow(Registries.NOISE), levelSeed);
          } else {
-             this.randomState = RandomState.create(NoiseGeneratorSettings.dummy(), registryAccess.lookupOrThrow(Registries.NOISE), levelSeed);
+-            this.randomState = RandomState.create(
+-                registryAccess.lookupOrThrow(Registries.NOISE), levelSeed, false, Blocks.STONE.defaultBlockState(), 63, NoiseRouterData.none(), List.of()
+-            );
++            this.randomState = RandomState.create(NoiseGeneratorSettings.dummy(), registryAccess.lookupOrThrow(Registries.NOISE), levelSeed);
          }
  
 -        this.chunkGeneratorState = generator.createState(registryAccess.lookupOrThrow(Registries.STRUCTURE_SET), this.randomState, levelSeed);
@@ -103,7 +145,7 @@
          this.distanceManager = new ChunkMap.DistanceManager(ticketStorage, executor, mainThreadExecutor);
          this.ticketStorage = ticketStorage;
          this.poiManager = new PoiManager(
-@@ -205,12 +_,53 @@
+@@ -203,12 +_,53 @@
              level
          );
          this.setServerViewDistance(serverViewDistance);
@@ -160,7 +202,7 @@
  
      protected ChunkGenerator generator() {
          return this.worldGenContext.generator();
-@@ -225,23 +_,11 @@
+@@ -223,23 +_,11 @@
      }
  
      public boolean isChunkTracked(ServerPlayer player, int chunkX, int chunkZ) {
@@ -187,7 +229,7 @@
      }
  
      protected ThreadedLevelLightEngine getLightEngine() {
-@@ -249,11 +_,17 @@
+@@ -247,11 +_,17 @@
      }
  
      public @Nullable ChunkHolder getUpdatingChunkIfPresent(long key) {
@@ -207,7 +249,7 @@
      }
  
      public @Nullable ChunkStatus getLatestStatus(long key) {
-@@ -262,12 +_,7 @@
+@@ -260,12 +_,7 @@
      }
  
      protected IntSupplier getChunkQueueLevel(long pos) {
@@ -221,7 +263,7 @@
      }
  
      public String getChunkDebugData(ChunkPos pos) {
-@@ -293,47 +_,7 @@
+@@ -291,47 +_,7 @@
      }
  
      CompletableFuture<ChunkResult<List<ChunkAccess>>> getChunkRangeFuture(ChunkHolder centerChunk, int range, IntFunction<ChunkStatus> distanceToStatus) {
@@ -270,7 +312,7 @@
      }
  
      public ReportedException debugFuturesAndCreateReportedException(IllegalStateException exception, String details) {
-@@ -346,9 +_,9 @@
+@@ -344,9 +_,9 @@
              }
          });
          sb.append("Updating:").append(System.lineSeparator());
@@ -282,7 +324,7 @@
          CrashReport report = CrashReport.forThrowable(exception, "Chunk loading");
          CrashReportCategory category = report.addCategory("Chunk loading");
          category.setDetail("Details", details);
-@@ -357,91 +_,28 @@
+@@ -355,91 +_,28 @@
      }
  
      public CompletableFuture<ChunkResult<LevelChunk>> prepareEntityTickingChunk(ChunkHolder chunk) {
@@ -383,7 +425,7 @@
      }
  
      protected void tick(BooleanSupplier haveTime) {
-@@ -457,122 +_,28 @@
+@@ -455,122 +_,28 @@
      }
  
      public boolean hasWork() {
@@ -513,7 +555,19 @@
      }
  
      private ChunkAccess handleChunkLoadFailure(Throwable throwable, ChunkPos pos) {
-@@ -610,228 +_,136 @@
+@@ -578,7 +_,10 @@
+         Throwable cause = unwrapped instanceof ReportedException e ? e.getCause() : unwrapped;
+         boolean alwaysThrow = cause instanceof Error;
+         boolean ioException = cause instanceof IOException || cause instanceof NbtException;
+-        if (!alwaysThrow && ioException) {
++        if (!alwaysThrow) {
++            if (!ioException) {
++            }
++
+             this.level.getServer().reportChunkLoadFailure(cause, this.storageInfo(), pos);
+             return this.createEmptyChunk(pos);
+         } else {
+@@ -605,228 +_,136 @@
  
      @Override
      public GenerationChunkHolder acquireGeneration(long chunkNode) {
@@ -817,7 +871,7 @@
  
      public @Nullable LevelChunk getChunkToSend(long key) {
          ChunkHolder chunkHolder = this.getVisibleChunkIfPresent(key);
-@@ -839,7 +_,7 @@
+@@ -834,7 +_,7 @@
      }
  
      public int size() {
@@ -826,7 +880,7 @@
      }
  
      public net.minecraft.server.level.DistanceManager getDistanceManager() {
-@@ -866,10 +_,10 @@
+@@ -861,10 +_,10 @@
              .addColumn("fluid_ticks")
              .build(output);
  
@@ -841,7 +895,7 @@
              Optional<ChunkAccess> chunk = Optional.ofNullable(holder.getLatestChunk());
              Optional<LevelChunk> fullChunk = chunk.flatMap(
                  chunkAccess -> chunkAccess instanceof LevelChunk levelChunk ? Optional.of(levelChunk) : Optional.empty()
-@@ -914,39 +_,82 @@
+@@ -909,39 +_,82 @@
          return this.read(pos).thenApplyAsync(chunkTag -> chunkTag.map(this::upgradeChunkTag), Util.backgroundExecutor().forName("upgradeChunk"));
      }
  
@@ -937,7 +991,7 @@
              if (holder != null) {
                  LevelChunk chunk = holder.getTickingChunk();
                  if (chunk != null) {
-@@ -957,8 +_,14 @@
+@@ -952,8 +_,14 @@
      }
  
      public boolean anyPlayerCloseEnoughForSpawning(ChunkPos pos) {
@@ -954,7 +1008,7 @@
      }
  
      public boolean anyPlayerCloseEnoughTo(BlockPos pos, int maxDistance) {
-@@ -974,39 +_,83 @@
+@@ -969,39 +_,83 @@
      }
  
      private boolean anyPlayerCloseEnoughForSpawningInternal(ChunkPos pos) {
@@ -1051,7 +1105,7 @@
      }
  
      private boolean playerIsCloseEnoughTo(ServerPlayer player, Vec3 pos, int maxDistance) {
-@@ -1038,18 +_,20 @@
+@@ -1033,18 +_,20 @@
              this.updatePlayerPos(player);
              if (!ignored) {
                  this.distanceManager.addPlayer(SectionPos.of(player), player);
@@ -1074,7 +1128,7 @@
          }
      }
  
-@@ -1059,13 +_,7 @@
+@@ -1054,13 +_,7 @@
      }
  
      public void move(ServerPlayer player) {
@@ -1089,7 +1143,7 @@
  
          SectionPos oldSection = player.getLastSectionPos();
          SectionPos newSection = SectionPos.of(player);
-@@ -1074,6 +_,7 @@
+@@ -1069,6 +_,7 @@
          boolean positionChanged = oldSection.asLong() != newSection.asLong();
          if (positionChanged || wasIgnored != ignored) {
              this.updatePlayerPos(player);
@@ -1097,7 +1151,7 @@
              if (!wasIgnored) {
                  this.distanceManager.removePlayer(oldSection, player);
              }
-@@ -1090,57 +_,49 @@
+@@ -1085,57 +_,49 @@
                  this.playerMap.unIgnorePlayer(player);
              }
  
@@ -1178,7 +1232,7 @@
              if (range != 0) {
                  int updateInterval = type.updateInterval();
                  if (this.entityMap.containsKey(entity.getId())) {
-@@ -1149,6 +_,12 @@
+@@ -1144,6 +_,12 @@
  
                  ChunkMap.TrackedEntity trackedEntity = new ChunkMap.TrackedEntity(entity, range, updateInterval, type.trackDeltas());
                  this.entityMap.put(entity.getId(), trackedEntity);
@@ -1191,7 +1245,7 @@
                  trackedEntity.updatePlayers(this.level.players());
                  if (entity instanceof ServerPlayer player) {
                      this.updatePlayerStatus(player, true);
-@@ -1164,6 +_,7 @@
+@@ -1159,6 +_,7 @@
      }
  
      protected void removeEntity(Entity entity) {
@@ -1199,7 +1253,7 @@
          if (entity instanceof ServerPlayer player) {
              this.updatePlayerStatus(player, false);
  
-@@ -1176,12 +_,38 @@
+@@ -1171,12 +_,38 @@
          if (trackedEntity != null) {
              trackedEntity.broadcastRemoved();
          }
@@ -1241,7 +1295,16 @@
  
          List<ServerPlayer> movedPlayers = Lists.newArrayList();
          List<ServerPlayer> players = this.level.players();
-@@ -1278,17 +_,11 @@
+@@ -1264,22 +_,20 @@
+         return this.poiManager;
+     }
+ 
++    public String getStorageName() {
++        return this.storageName;
++    }
++
+     void onFullChunkStatusChange(ChunkPos pos, FullChunkStatus status) {
+         this.chunkStatusListener.onChunkStatusChange(pos, status);
      }
  
      public void waitForLightBeforeSending(ChunkPos centerChunk, int chunkRadius) {
@@ -1261,7 +1324,7 @@
              LevelChunk chunk = chunkHolder.getChunkToSend();
              if (chunk != null) {
                  consumer.accept(chunk);
-@@ -1296,14 +_,35 @@
+@@ -1287,14 +_,35 @@
          }
      }
  
@@ -1299,7 +1362,7 @@
          }
  
          @Override
-@@ -1317,15 +_,98 @@
+@@ -1308,15 +_,98 @@
          }
      }
  
@@ -1401,7 +1464,7 @@
              this.entity = entity;
              this.range = range;
              this.lastSectionPos = SectionPos.of(entity);
-@@ -1372,6 +_,7 @@
+@@ -1363,6 +_,7 @@
          }
  
          public void removePlayer(ServerPlayer player) {
@@ -1409,7 +1472,7 @@
              if (this.seenBy.remove(player.connection)) {
                  this.serverEntity.removePairing(player);
                  if (this.seenBy.isEmpty()) {
-@@ -1381,23 +_,48 @@
+@@ -1372,23 +_,48 @@
          }
  
          public void updatePlayer(ServerPlayer player) {
@@ -1468,7 +1531,7 @@
                      }
                  } else {
                      this.removePlayer(player);
-@@ -1410,16 +_,24 @@
+@@ -1401,16 +_,24 @@
          }
  
          private int getEffectiveRange() {
@@ -1503,7 +1566,7 @@
          }
  
          public void updatePlayers(List<ServerPlayer> players) {
-@@ -1427,5 +_,20 @@
+@@ -1418,5 +_,20 @@
                  this.updatePlayer(player);
              }
          }

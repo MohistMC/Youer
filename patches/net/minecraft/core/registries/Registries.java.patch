@@ -1,6 +1,84 @@
 --- a/net/minecraft/core/registries/Registries.java
 +++ b/net/minecraft/core/registries/Registries.java
-@@ -326,7 +_,7 @@
+@@ -150,6 +_,7 @@
+     public static final ResourceKey<Registry<BlockEntityType<?>>> BLOCK_ENTITY_TYPE = createRegistryKey("block_entity_type");
+     public static final ResourceKey<Registry<BlockPredicateType<?>>> BLOCK_PREDICATE_TYPE = createRegistryKey("block_predicate_type");
+     public static final ResourceKey<Registry<BlockStateProviderType<?>>> BLOCK_STATE_PROVIDER_TYPE = createRegistryKey("worldgen/block_state_provider_type");
++    public static final ResourceKey<Registry<MapCodec<? extends Block>>> BLOCK_TYPE = createRegistryKey("block_type");
+     public static final ResourceKey<Registry<Block>> BLOCK = createRegistryKey("block");
+     public static final ResourceKey<Registry<MapCodec<? extends WorldCarver>>> CARVER_TYPE = createRegistryKey("worldgen/carver_type");
+     public static final ResourceKey<Registry<MapCodec<? extends ChunkGenerator>>> CHUNK_GENERATOR = createRegistryKey("worldgen/chunk_generator");
+@@ -162,6 +_,7 @@
+     public static final ResourceKey<Registry<DataComponentType<?>>> DATA_COMPONENT_TYPE = createRegistryKey("data_component_type");
+     public static final ResourceKey<Registry<GameRule<?>>> GAME_RULE = createRegistryKey("game_rule");
+     public static final ResourceKey<Registry<DebugSubscription<?>>> DEBUG_SUBSCRIPTION = createRegistryKey("debug_subscription");
++    public static final ResourceKey<Registry<DecoratedPotPattern>> DECORATED_POT_PATTERN = createRegistryKey("decorated_pot_pattern");
+     public static final ResourceKey<Registry<MapCodec<? extends DensityFunction>>> DENSITY_FUNCTION_TYPE = createRegistryKey("worldgen/density_function_type");
+     public static final ResourceKey<Registry<MapCodec<? extends DialogBody>>> DIALOG_BODY_TYPE = createRegistryKey("dialog_body_type");
+     public static final ResourceKey<Registry<MapCodec<? extends Dialog>>> DIALOG_TYPE = createRegistryKey("dialog_type");
+@@ -186,7 +_,7 @@
+     public static final ResourceKey<Registry<EnvironmentAttribute<?>>> ENVIRONMENT_ATTRIBUTE = createRegistryKey("environment_attribute");
+     public static final ResourceKey<Registry<AttributeType<?>>> ATTRIBUTE_TYPE = createRegistryKey("attribute_type");
+     public static final ResourceKey<Registry<FeatureSizeType<?>>> FEATURE_SIZE_TYPE = createRegistryKey("worldgen/feature_size_type");
+-    public static final ResourceKey<Registry<MapCodec<? extends Feature>>> FEATURE_TYPE = createRegistryKey("worldgen/feature_type");
++    public static final ResourceKey<Registry<Feature>> FEATURE = createRegistryKey("worldgen/feature");
+     public static final ResourceKey<Registry<MapCodec<? extends FloatProvider>>> FLOAT_PROVIDER_TYPE = createRegistryKey("float_provider_type");
+     public static final ResourceKey<Registry<Fluid>> FLUID = createRegistryKey("fluid");
+     public static final ResourceKey<Registry<FoliagePlacerType<?>>> FOLIAGE_PLACER_TYPE = createRegistryKey("worldgen/foliage_placer_type");
+@@ -205,17 +_,17 @@
+         "loot_score_provider_type"
+     );
+     public static final ResourceKey<Registry<MapDecorationType>> MAP_DECORATION_TYPE = createRegistryKey("map_decoration_type");
+-    public static final ResourceKey<Registry<MapCodec<? extends SurfaceRules.ConditionSource>>> MATERIAL_CONDITION_TYPE = createRegistryKey(
+-        "worldgen/material_condition_type"
++    public static final ResourceKey<Registry<MapCodec<? extends SurfaceRules.ConditionSource>>> MATERIAL_CONDITION = createRegistryKey(
++        "worldgen/material_condition"
+     );
+-    public static final ResourceKey<Registry<MapCodec<? extends SurfaceRules.RuleSource>>> MATERIAL_RULE_TYPE = createRegistryKey("worldgen/material_rule_type");
++    public static final ResourceKey<Registry<MapCodec<? extends SurfaceRules.RuleSource>>> MATERIAL_RULE = createRegistryKey("worldgen/material_rule");
+     public static final ResourceKey<Registry<MemoryModuleType<?>>> MEMORY_MODULE_TYPE = createRegistryKey("memory_module_type");
+     public static final ResourceKey<Registry<MenuType<?>>> MENU = createRegistryKey("menu");
+     public static final ResourceKey<Registry<MobEffect>> MOB_EFFECT = createRegistryKey("mob_effect");
+     public static final ResourceKey<Registry<NumberFormatType<?>>> NUMBER_FORMAT_TYPE = createRegistryKey("number_format_type");
+     public static final ResourceKey<Registry<ParticleType<?>>> PARTICLE_TYPE = createRegistryKey("particle_type");
+     public static final ResourceKey<Registry<MapCodec<? extends PlacementModifier>>> PLACEMENT_MODIFIER_TYPE = createRegistryKey(
+-        "worldgen/placement_modifier_type"
++            "worldgen/placement_modifier_type"
+     );
+     public static final ResourceKey<Registry<PoiType>> POINT_OF_INTEREST_TYPE = createRegistryKey("point_of_interest_type");
+     public static final ResourceKey<Registry<MapCodec<? extends PoolAliasBinding>>> POOL_ALIAS_BINDING = createRegistryKey("worldgen/pool_alias_binding");
+@@ -258,7 +_,6 @@
+     public static final ResourceKey<Registry<Biome>> BIOME = createRegistryKey("worldgen/biome");
+     public static final ResourceKey<Registry<CatSoundVariant>> CAT_SOUND_VARIANT = createRegistryKey("cat_sound_variant");
+     public static final ResourceKey<Registry<CatVariant>> CAT_VARIANT = createRegistryKey("cat_variant");
+-    public static final ResourceKey<Registry<WorldCarver>> CARVER = createRegistryKey("worldgen/carver");
+     public static final ResourceKey<Registry<ChatType>> CHAT_TYPE = createRegistryKey("chat_type");
+     public static final ResourceKey<Registry<ChickenSoundVariant>> CHICKEN_SOUND_VARIANT = createRegistryKey("chicken_sound_variant");
+     public static final ResourceKey<Registry<ChickenVariant>> CHICKEN_VARIANT = createRegistryKey("chicken_variant");
+@@ -276,8 +_,6 @@
+     public static final ResourceKey<Registry<FrogVariant>> FROG_VARIANT = createRegistryKey("frog_variant");
+     public static final ResourceKey<Registry<Instrument>> INSTRUMENT = createRegistryKey("instrument");
+     public static final ResourceKey<Registry<JukeboxSong>> JUKEBOX_SONG = createRegistryKey("jukebox_song");
+-    public static final ResourceKey<Registry<SurfaceRules.ConditionSource>> MATERIAL_CONDITION = createRegistryKey("worldgen/material_condition");
+-    public static final ResourceKey<Registry<SurfaceRules.RuleSource>> MATERIAL_RULE = createRegistryKey("worldgen/material_rule");
+     public static final ResourceKey<Registry<MultiNoiseBiomeSourceParameterList>> MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST = createRegistryKey(
+         "worldgen/multi_noise_biome_source_parameter_list"
+     );
+@@ -305,13 +_,11 @@
+     public static final ResourceKey<Registry<WolfSoundVariant>> WOLF_SOUND_VARIANT = createRegistryKey("wolf_sound_variant");
+     public static final ResourceKey<Registry<WorldClock>> WORLD_CLOCK = createRegistryKey("world_clock");
+     public static final ResourceKey<Registry<WorldPreset>> WORLD_PRESET = createRegistryKey("worldgen/world_preset");
+-    public static final ResourceKey<Registry<DecoratedPotPattern>> DECORATED_POT_PATTERN = createRegistryKey("decorated_pot_pattern");
+     public static final ResourceKey<Registry<Level>> DIMENSION = createRegistryKey("dimension");
+     public static final ResourceKey<Registry<LevelStem>> LEVEL_STEM = createRegistryKey("dimension");
+     public static final ResourceKey<Registry<LootTable>> LOOT_TABLE = createRegistryKey("loot_table");
+     public static final ResourceKey<Registry<LootItemFunction>> ITEM_MODIFIER = createRegistryKey("item_modifier");
+     public static final ResourceKey<Registry<LootItemCondition>> PREDICATE = createRegistryKey("predicate");
+-    public static final ResourceKey<Registry<SlotSource>> SLOT_SOURCE = createRegistryKey("slot_source");
+     public static final ResourceKey<Registry<Advancement>> ADVANCEMENT = createRegistryKey("advancement");
+     public static final ResourceKey<Registry<Recipe<?>>> RECIPE = createRegistryKey("recipe");
+ 
+@@ -328,7 +_,7 @@
      }
  
      private static String registryDirPath(ResourceKey<? extends Registry<?>> registryKey) {

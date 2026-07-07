@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/NoteBlock.java
 +++ b/net/minecraft/world/level/block/NoteBlock.java
-@@ -64,6 +_,7 @@
+@@ -57,6 +_,7 @@
  
      @Override
      public BlockState getStateForPlacement(BlockPlaceContext context) {
@@ -8,7 +8,7 @@
          return this.setInstrument(context.getLevel(), context.getClickedPos(), this.defaultBlockState());
      }
  
-@@ -78,6 +_,7 @@
+@@ -71,6 +_,7 @@
          BlockState neighbourState,
          RandomSource random
      ) {
@@ -16,7 +16,7 @@
          boolean neighborDirectionSetsInstrument = directionToNeighbour.getAxis() == Direction.Axis.Y;
          return neighborDirectionSetsInstrument
              ? this.setInstrument(level, pos, state)
-@@ -86,10 +_,17 @@
+@@ -79,18 +_,25 @@
  
      @Override
      protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, @Nullable Orientation orientation, boolean movedByPiston) {
@@ -33,8 +33,9 @@
 +                state = level.getBlockState(pos); // CraftBukkit - SPIGOT-5617: update in case changed in event
              }
  
-             level.setBlock(pos, state.setValue(POWERED, signal), 3);
-@@ -97,7 +_,7 @@
+-            level.setBlockAndUpdate(pos, state.setValue(POWERED, signal));
++            level.setBlock(pos, state.setValue(POWERED, signal), 3);
+         }
      }
  
      private void playNote(@Nullable Entity source, BlockState state, Level level, BlockPos pos) {
@@ -43,18 +44,20 @@
              level.blockEvent(pos, this, 0, 0);
              level.gameEvent(source, GameEvent.NOTE_BLOCK_PLAY, pos);
          }
-@@ -115,7 +_,9 @@
+@@ -108,8 +_,10 @@
      @Override
      protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
          if (!level.isClientSide()) {
 -            state = state.cycle(NOTE);
+-            level.setBlockAndUpdate(pos, state);
 +            int _new = net.neoforged.neoforge.common.CommonHooks.onNoteChange(level, pos, state, state.getValue(NOTE), state.cycle(NOTE).getValue(NOTE));
 +            if (_new == -1) return InteractionResult.FAIL;
 +            if (!io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates) state = state.setValue(NOTE, _new); // Paper - prevent noteblock note from updating
-             level.setBlock(pos, state, 3);
++            level.setBlock(pos, state, 3);
              this.playNote(player, state, level, pos);
              player.awardStat(Stats.TUNE_NOTEBLOCK);
-@@ -138,10 +_,17 @@
+         }
+@@ -131,10 +_,17 @@
  
      @Override
      protected boolean triggerEvent(BlockState state, Level level, BlockPos pos, int b0, int b1) {
@@ -73,7 +76,7 @@
              pitch = getPitchFromNote(note);
              level.addParticle(ParticleTypes.NOTE, pos.getX() + 0.5, pos.getY() + 1.2, pos.getZ() + 0.5, note / 24.0, 0.0, 0.0);
          } else {
-@@ -157,7 +_,7 @@
+@@ -150,7 +_,7 @@
  
              soundEvent = Holder.direct(SoundEvent.createVariableRangeEvent(soundId));
          } else {

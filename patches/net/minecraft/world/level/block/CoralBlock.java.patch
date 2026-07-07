@@ -1,6 +1,26 @@
 --- a/net/minecraft/world/level/block/CoralBlock.java
 +++ b/net/minecraft/world/level/block/CoralBlock.java
-@@ -37,6 +_,11 @@
+@@ -1,9 +_,10 @@
+ package net.minecraft.world.level.block;
+ 
++import com.mojang.serialization.MapCodec;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
++import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.server.level.ServerLevel;
+-import net.minecraft.tags.FluidTags;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.item.context.BlockPlaceContext;
+ import net.minecraft.world.level.BlockGetter;
+@@ -15,6 +_,7 @@
+ import org.jspecify.annotations.Nullable;
+ 
+ public class CoralBlock extends Block {
++    public static final MapCodec<Block> DEAD_CORAL_FIELD = BuiltInRegistries.BLOCK.byNameCodec().fieldOf("dead");
+     private final Block deadBlock;
+ 
+     public CoralBlock(Block deadBlock, BlockBehaviour.Properties properties) {
+@@ -25,6 +_,11 @@
      @Override
      protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
          if (!this.scanForWater(level, pos)) {
@@ -12,7 +32,7 @@
              level.setBlock(pos, this.deadBlock.defaultBlockState(), 2);
          }
      }
-@@ -60,9 +_,11 @@
+@@ -48,9 +_,11 @@
      }
  
      protected boolean scanForWater(BlockGetter level, BlockPos blockPos) {

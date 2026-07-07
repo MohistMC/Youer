@@ -1,19 +1,14 @@
 --- a/net/minecraft/world/level/levelgen/feature/EndPlatformFeature.java
 +++ b/net/minecraft/world/level/levelgen/feature/EndPlatformFeature.java
-@@ -7,6 +_,12 @@
- import net.minecraft.world.level.block.Blocks;
- import net.minecraft.world.level.levelgen.feature.configurations.NoneFeatureConfiguration;
+@@ -11,7 +_,6 @@
  
-+// CraftBukkit start
-+import java.util.List;
-+import org.bukkit.block.BlockState;
-+import org.bukkit.event.world.PortalCreateEvent;
-+// CraftBukkit end
-+
- public class EndPlatformFeature extends Feature<NoneFeatureConfiguration> {
-     public EndPlatformFeature(Codec<NoneFeatureConfiguration> codec) {
-         super(codec);
-@@ -19,6 +_,13 @@
+ public record EndPlatformFeature() implements Feature {
+     public static final MapCodec<EndPlatformFeature> CODEC = MapCodec.unit(EndPlatformFeature::new);
+-
+     @Override
+     public MapCodec<EndPlatformFeature> codec() {
+         return CODEC;
+@@ -24,6 +_,13 @@
      }
  
      public static void createEndPlatform(ServerLevelAccessor newLevel, BlockPos origin, boolean dropResources) {
@@ -27,7 +22,7 @@
          BlockPos.MutableBlockPos pos = origin.mutable();
  
          for (int dz = -2; dz <= 2; dz++) {
-@@ -26,15 +_,31 @@
+@@ -31,15 +_,31 @@
                  for (int dy = -1; dy < 3; dy++) {
                      BlockPos blockPos = pos.set(origin).move(dx, dy, dz);
                      Block block = dy == -1 ? Blocks.OBSIDIAN : Blocks.AIR;
@@ -38,8 +33,8 @@
 +                            blockList.destroyBlock(blockPos, true, null); // CraftBukkit
                          }
  
--                        newLevel.setBlock(blockPos, block.defaultBlockState(), 3);
-+                        blockList.setBlock(blockPos, block.defaultBlockState(), Block.UPDATE_ALL); // CraftBukkit
+-                        newLevel.setBlockAndUpdate(blockPos, block.defaultBlockState());
++                        blockList.setBlockAndUpdate(blockPos, block.defaultBlockState()); // CraftBukkit
                      }
                  }
              }

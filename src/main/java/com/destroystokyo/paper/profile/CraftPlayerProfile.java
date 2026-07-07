@@ -1,7 +1,7 @@
 package com.destroystokyo.paper.profile;
 
 import com.google.common.base.Preconditions;
-import com.mojang.authlib.yggdrasil.ProfileResult;
+import com.mojang.authlib.services.ProfileResult; 
 import com.mojang.datafixers.util.Either;
 import io.papermc.paper.configuration.GlobalConfiguration;
 import com.google.common.collect.Iterables;

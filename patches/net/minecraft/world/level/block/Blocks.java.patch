@@ -1,37 +1,21 @@
 --- a/net/minecraft/world/level/block/Blocks.java
 +++ b/net/minecraft/world/level/block/Blocks.java
-@@ -705,7 +_,7 @@
-             .pushReaction(PushReaction.DESTROY)
-     );
-     public static final Block POWERED_RAIL = register(
--        BlockItemIds.POWERED_RAIL, PoweredRailBlock::new, BlockBehaviour.Properties.of().noCollision().strength(0.7F).sound(SoundType.METAL)
-+        BlockItemIds.POWERED_RAIL, properties -> new PoweredRailBlock(properties, true), BlockBehaviour.Properties.of().noCollision().strength(0.7F).sound(SoundType.METAL)
-     );
-     public static final Block DETECTOR_RAIL = register(
-         BlockItemIds.DETECTOR_RAIL, DetectorRailBlock::new, BlockBehaviour.Properties.of().noCollision().strength(0.7F).sound(SoundType.METAL)
-@@ -5519,6 +_,7 @@
-             .mapColor(MapColor.PLANT)
-             .forceSolidOff()
-             .instabreak()
-+            .randomTicks() // Purpur - Chance for azalea blocks to grow into trees naturally
-             .sound(SoundType.AZALEA)
-             .noOcclusion()
-             .pushReaction(PushReaction.DESTROY)
-@@ -5529,6 +_,7 @@
-         BlockBehaviour.Properties.of()
-             .mapColor(MapColor.PLANT)
-             .forceSolidOff()
-+            .randomTicks() // Purpur - Chance for azalea blocks to grow into trees naturally
-             .instabreak()
-             .sound(SoundType.FLOWERING_AZALEA)
-             .noOcclusion()
-@@ -5995,7 +_,8 @@
-     static {
-         for (Block block : BuiltInRegistries.BLOCK) {
-             for (BlockState state : block.getStateDefinition().getPossibleStates()) {
--                Block.BLOCK_STATE_REGISTRY.add(state);
-+                // Neo: comment out, it's done in NeoForgeRegistryCallbacks
-+                //Block.BLOCK_STATE_REGISTRY.add(blockstate);
-                 state.initCache();
-             }
-         }
+@@ -5785,15 +_,15 @@
+         return blockState -> blockState.getValue(BlockStateProperties.WATERLOGGED) ? MapColor.WATER : mapColor;
+     }
+ 
+-    public static Boolean never(BlockState state, BlockGetter blockGetter, BlockPos blockPos, EntityType<?> entityType) {
++    private static Boolean never(BlockState state, BlockGetter blockGetter, BlockPos blockPos, EntityType<?> entityType) {
+         return false;
+     }
+ 
+-    public static Boolean always(BlockState state, BlockGetter blockGetter, BlockPos blockPos, EntityType<?> entityType) {
++    private static Boolean always(BlockState state, BlockGetter blockGetter, BlockPos blockPos, EntityType<?> entityType) {
+         return true;
+     }
+ 
+-    public static Boolean ocelotOrParrot(BlockState state, BlockGetter blockGetter, BlockPos blockPos, EntityType<?> entityType) {
++    private static Boolean ocelotOrParrot(BlockState state, BlockGetter blockGetter, BlockPos blockPos, EntityType<?> entityType) {
+         return entityType == EntityTypes.OCELOT || entityType == EntityTypes.PARROT;
+     }
+ 

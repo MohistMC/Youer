@@ -52,17 +52,15 @@
              this.brushingCompleted(level, user, brush);
              return true;
          }
-@@ -78,8 +_,8 @@
+@@ -78,7 +_,7 @@
          int completionState = this.getCompletionState();
          if (previousCompletionState != completionState) {
              BlockState previousState = this.getBlockState();
 -            BlockState state = previousState.setValue(BlockStateProperties.DUSTED, completionState);
--            level.setBlock(this.getBlockPos(), state, 3);
 +            BlockState state = nextBrokenBlockState; // Paper - EntityChangeBlockEvent - use precomputed - diff on change
-+            level.setBlock(this.getBlockPos(), state, Block.UPDATE_ALL);
+             level.setBlockAndUpdate(this.getBlockPos(), state);
          }
  
-         return false;
 @@ -116,7 +_,13 @@
      private void brushingCompleted(ServerLevel level, LivingEntity user, ItemStack brush) {
          this.dropContent(level, user, brush);
@@ -82,7 +80,7 @@
              turnsInto = Blocks.AIR;
          }
  
--        level.setBlock(this.worldPosition, turnsInto.defaultBlockState(), 3);
+-        level.setBlockAndUpdate(this.worldPosition, turnsInto.defaultBlockState());
 +        // Paper start - EntityChangeEvent - extract result block logic
 +        return turnsInto;
 +    }

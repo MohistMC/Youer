@@ -137,7 +137,7 @@
      @Override
      public float getAgeScale() {
          return this.isBaby() ? 0.65F : 1.0F;
-@@ -157,18 +_,22 @@
+@@ -157,19 +_,22 @@
      protected void registerGoals() {
          this.goalSelector.addGoal(0, new BreathAirGoal(this));
          this.goalSelector.addGoal(0, new TryFindWaterGoal(this));
@@ -150,6 +150,7 @@
          this.goalSelector.addGoal(5, new LookAtPlayerGoal(this, Player.class, 6.0F));
          this.goalSelector.addGoal(5, new DolphinJumpGoal(this, 10));
 -        this.goalSelector.addGoal(6, new MeleeAttackGoal(this, 1.2F, true));
+-        this.goalSelector.addGoal(7, new Dolphin.MoveToItemGoal());
 +        //this.goalSelector.addGoal(6, new MeleeAttackGoal(this, 1.2F, true)); // Purpur - moved up - Dolphins naturally aggressive to players chance
          this.goalSelector.addGoal(8, new Dolphin.PlayWithItemsGoal());
          this.goalSelector.addGoal(8, new FollowPlayerRiddenEntityGoal(this, AbstractBoat.class));
@@ -161,7 +162,7 @@
      }
  
      public static AttributeSupplier.Builder createAttributes() {
-@@ -192,7 +_,7 @@
+@@ -193,7 +_,7 @@
  
      @Override
      public int getMaxAirSupply() {
@@ -170,7 +171,7 @@
      }
  
      @Override
-@@ -220,11 +_,17 @@
+@@ -221,11 +_,17 @@
          if (this.getItemBySlot(EquipmentSlot.MAINHAND).isEmpty()) {
              ItemStack itemStack = entity.getItem();
              if (this.canHoldItem(itemStack)) {
@@ -189,7 +190,7 @@
              }
          }
      }
-@@ -391,6 +_,7 @@
+@@ -392,6 +_,7 @@
  
          @Override
          public boolean canUse() {
@@ -197,7 +198,7 @@
              return this.dolphin.gotFish() && this.dolphin.getAirSupply() >= 100;
          }
  
-@@ -488,7 +_,7 @@
+@@ -489,7 +_,7 @@
  
          @Override
          public void start() {
@@ -206,7 +207,7 @@
          }
  
          @Override
-@@ -507,7 +_,7 @@
+@@ -508,13 +_,65 @@
              }
  
              if (this.player.isSwimming() && this.player.level().getRandom().nextInt(6) == 0) {
@@ -215,3 +216,145 @@
              }
          }
      }
+ 
+-    private abstract class ItemGoal extends Goal {
+-        protected void drop(ItemStack itemStack) {
++    private class PlayWithItemsGoal extends Goal {
++        private int cooldown;
++
++        public PlayWithItemsGoal() {
++            this.setFlags(EnumSet.of(Goal.Flag.MOVE));
++        }
++
++        @Override
++        public boolean canUse() {
++            if (this.cooldown > Dolphin.this.tickCount) {
++                return false;
++            }
++
++            List<ItemEntity> items = Dolphin.this.level()
++                .getEntitiesOfClass(ItemEntity.class, Dolphin.this.getBoundingBox().inflate(8.0, 8.0, 8.0), Dolphin.ALLOWED_ITEMS);
++            return !items.isEmpty() || !Dolphin.this.getItemBySlot(EquipmentSlot.MAINHAND).isEmpty();
++        }
++
++        @Override
++        public void start() {
++            List<ItemEntity> items = Dolphin.this.level()
++                .getEntitiesOfClass(ItemEntity.class, Dolphin.this.getBoundingBox().inflate(8.0, 8.0, 8.0), Dolphin.ALLOWED_ITEMS);
++            if (!items.isEmpty()) {
++                Dolphin.this.getNavigation().moveTo(items.get(0), 1.2F);
++                Dolphin.this.playSound(SoundEvents.DOLPHIN_PLAY, 1.0F, 1.0F);
++            }
++
++            this.cooldown = 0;
++        }
++
++        @Override
++        public void stop() {
++            ItemStack itemStack = Dolphin.this.getItemBySlot(EquipmentSlot.MAINHAND);
++            if (!itemStack.isEmpty()) {
++                this.drop(itemStack);
++                Dolphin.this.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
++                this.cooldown = Dolphin.this.tickCount + Dolphin.this.random.nextInt(100);
++            }
++        }
++
++        @Override
++        public void tick() {
++            List<ItemEntity> items = Dolphin.this.level()
++                .getEntitiesOfClass(ItemEntity.class, Dolphin.this.getBoundingBox().inflate(8.0, 8.0, 8.0), Dolphin.ALLOWED_ITEMS);
++            ItemStack itemStack = Dolphin.this.getItemBySlot(EquipmentSlot.MAINHAND);
++            if (!itemStack.isEmpty()) {
++                this.drop(itemStack);
++                Dolphin.this.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
++            } else if (!items.isEmpty()) {
++                Dolphin.this.getNavigation().moveTo(items.get(0), 1.2F);
++            }
++        }
++
++        private void drop(ItemStack itemStack) {
+             if (!itemStack.isEmpty()) {
+                 double yHandPos = Dolphin.this.getEyeY() - 0.3F;
+                 ItemEntity thrownItem = new ItemEntity(Dolphin.this.level(), Dolphin.this.getX(), yHandPos, Dolphin.this.getZ(), itemStack);
+@@ -532,81 +_,6 @@
+                 );
+                 Dolphin.this.level().addFreshEntity(thrownItem);
+             }
+-        }
+-
+-        protected boolean dropItem() {
+-            ItemStack itemStack = Dolphin.this.getItemBySlot(EquipmentSlot.MAINHAND);
+-            if (itemStack.isEmpty()) {
+-                return false;
+-            }
+-
+-            this.drop(itemStack);
+-            Dolphin.this.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
+-            return true;
+-        }
+-    }
+-
+-    private class MoveToItemGoal extends Dolphin.ItemGoal {
+-        private int cooldown;
+-
+-        public MoveToItemGoal() {
+-            this.setFlags(EnumSet.of(Goal.Flag.MOVE));
+-        }
+-
+-        @Override
+-        public boolean canUse() {
+-            if (this.cooldown > Dolphin.this.tickCount) {
+-                return false;
+-            }
+-
+-            List<ItemEntity> items = Dolphin.this.level()
+-                .getEntitiesOfClass(ItemEntity.class, Dolphin.this.getBoundingBox().inflate(8.0, 8.0, 8.0), Dolphin.ALLOWED_ITEMS);
+-            return !items.isEmpty();
+-        }
+-
+-        @Override
+-        public void stop() {
+-            if (this.dropItem()) {
+-                this.cooldown = Dolphin.this.tickCount + Dolphin.this.random.nextInt(100);
+-            }
+-        }
+-
+-        @Override
+-        public void start() {
+-            List<ItemEntity> items = Dolphin.this.level()
+-                .getEntitiesOfClass(ItemEntity.class, Dolphin.this.getBoundingBox().inflate(8.0, 8.0, 8.0), Dolphin.ALLOWED_ITEMS);
+-            if (!items.isEmpty()) {
+-                Dolphin.this.getNavigation().moveTo(items.get(0), 1.2F);
+-                Dolphin.this.playSound(SoundEvents.DOLPHIN_PLAY, 1.0F, 1.0F);
+-            }
+-
+-            this.cooldown = 0;
+-        }
+-
+-        @Override
+-        public void tick() {
+-            List<ItemEntity> items = Dolphin.this.level()
+-                .getEntitiesOfClass(ItemEntity.class, Dolphin.this.getBoundingBox().inflate(8.0, 8.0, 8.0), Dolphin.ALLOWED_ITEMS);
+-            if (!items.isEmpty()) {
+-                Dolphin.this.getNavigation().moveTo(items.get(0), 1.2F);
+-            }
+-        }
+-    }
+-
+-    private class PlayWithItemsGoal extends Dolphin.ItemGoal {
+-        @Override
+-        public boolean canUse() {
+-            return !Dolphin.this.getItemBySlot(EquipmentSlot.MAINHAND).isEmpty();
+-        }
+-
+-        @Override
+-        public void stop() {
+-            this.dropItem();
+-        }
+-
+-        @Override
+-        public void tick() {
+-            this.dropItem();
+         }
+     }
+ }

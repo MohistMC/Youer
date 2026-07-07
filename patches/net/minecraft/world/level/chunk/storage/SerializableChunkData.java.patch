@@ -8,7 +8,23 @@
  import net.minecraft.resources.Identifier;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.util.ProblemReporter;
-@@ -91,7 +_,10 @@
+@@ -44,6 +_,7 @@
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.entity.BlockEntity;
+ import net.minecraft.world.level.block.state.BlockState;
++import net.minecraft.world.level.chunk.CarvingMask;
+ import net.minecraft.world.level.chunk.ChunkAccess;
+ import net.minecraft.world.level.chunk.ChunkSource;
+ import net.minecraft.world.level.chunk.DataLayer;
+@@ -82,6 +_,7 @@
+     BlendingData.@Nullable Packed blendingData,
+     @Nullable BelowZeroRetrogen belowZeroRetrogen,
+     UpgradeData upgradeData,
++    long @Nullable [] carvingMask,
+     Map<Heightmap.Types, long[]> heightmaps,
+     ChunkAccess.PackedTicks packedTicks,
+     @Nullable ShortList[] postProcessingSections,
+@@ -89,7 +_,10 @@
      List<SerializableChunkData.SectionData> sectionData,
      List<CompoundTag> entities,
      List<CompoundTag> blockEntities,
@@ -20,7 +36,7 @@
  ) {
      private static final Codec<List<SavedTick<Block>>> BLOCK_TICKS_CODEC = SavedTick.codec(BuiltInRegistries.BLOCK.byNameCodec()).listOf();
      private static final Codec<List<SavedTick<Fluid>>> FLUID_TICKS_CODEC = SavedTick.codec(BuiltInRegistries.FLUID.byNameCodec()).listOf();
-@@ -107,11 +_,77 @@
+@@ -105,11 +_,77 @@
      public static final String BLOCK_LIGHT_TAG = "BlockLight";
      public static final String SKY_LIGHT_TAG = "SkyLight";
  
@@ -98,8 +114,11 @@
          ChunkPos chunkPos = new ChunkPos(chunkData.getIntOr("xPos", 0), chunkData.getIntOr("zPos", 0));
          long lastUpdateTime = chunkData.getLongOr("LastUpdate", 0L);
          long inhabitedTime = chunkData.getLongOr("InhabitedTime", 0L);
-@@ -123,7 +_,7 @@
-         long[] carvingMask = chunkData.getLongArray("carving_mask").orElse(null);
+@@ -118,9 +_,10 @@
+         boolean lightCorrect = chunkData.getBooleanOr("isLightOn", false);
+         BlendingData.Packed blendingData = chunkData.read("blending_data", BlendingData.Packed.CODEC).orElse(null);
+         BelowZeroRetrogen belowZeroRetrogen = chunkData.read("below_zero_retrogen", BelowZeroRetrogen.CODEC).orElse(null);
++        long[] carvingMask = chunkData.getLongArray("carving_mask").orElse(null);
          Map<Heightmap.Types, long[]> heightmaps = new EnumMap<>(Heightmap.Types.class);
          chunkData.getCompound("Heightmaps").ifPresent(heightmapsTag -> {
 -            for (Heightmap.Types type : status.heightmapsAfter()) {
@@ -107,7 +126,7 @@
                  heightmapsTag.getLongArray(type.getSerializationKey()).ifPresent(longs -> heightmaps.put(type, longs));
              }
          });
-@@ -151,7 +_,7 @@
+@@ -148,7 +_,7 @@
          CompoundTag structureData = chunkData.getCompoundOrEmpty("structures");
          ListTag sectionTags = chunkData.getListOrEmpty("sections");
          List<SerializableChunkData.SectionData> sectionData = new ArrayList<>(sectionTags.size());
@@ -116,7 +135,7 @@
          Codec<PalettedContainer<BlockState>> blockStatesCodec = containerFactory.blockStatesContainerCodec();
  
          for (int i = 0; i < sectionTags.size(); i++) {
-@@ -161,14 +_,16 @@
+@@ -158,14 +_,16 @@
                  int y = sectionTag.getByteOr("Y", (byte)0);
                  LevelChunkSection section;
                  if (y >= levelHeight.getMinSectionY() && y <= levelHeight.getMaxSectionY()) {
@@ -135,7 +154,7 @@
                          .map(
                              container -> biomesCodec.parse(NbtOps.INSTANCE, container)
                                  .promotePartial(msg -> logErrors(chunkPos, y, msg))
-@@ -182,9 +_,22 @@
+@@ -179,9 +_,22 @@
  
                  DataLayer blockLight = sectionTag.getByteArray("BlockLight").map(DataLayer::new).orElse(null);
                  DataLayer skyLight = sectionTag.getByteArray("SkyLight").map(DataLayer::new).orElse(null);
@@ -159,7 +178,15 @@
  
          return new SerializableChunkData(
              containerFactory,
-@@ -204,9 +_,65 @@
+@@ -193,6 +_,7 @@
+             blendingData,
+             belowZeroRetrogen,
+             upgradeData,
++            carvingMask,
+             heightmaps,
+             packedTicks,
+             postProcessingSections,
+@@ -200,9 +_,65 @@
              sectionData,
              entities,
              blockEntities,
@@ -226,7 +253,7 @@
  
      public ProtoChunk read(ServerLevel level, PoiManager poiManager, RegionStorageInfo regionInfo, ChunkPos pos) {
          if (!Objects.equals(pos, this.chunkPos)) {
-@@ -226,7 +_,7 @@
+@@ -222,7 +_,7 @@
              SectionPos sectionPos = SectionPos.of(pos, section.y);
              if (section.chunkSection != null) {
                  sections[level.getSectionIndexFromSectionY(section.y)] = section.chunkSection;
@@ -235,7 +262,7 @@
              }
  
              boolean hasBlockLight = section.blockLight != null;
-@@ -263,6 +_,9 @@
+@@ -259,6 +_,9 @@
                  postLoadChunk(level, this.entities, this.blockEntities),
                  BlendingData.unpack(this.blendingData)
              );
@@ -245,7 +272,7 @@
          } else {
              ProtoChunkTicks<Block> blockTicks = ProtoChunkTicks.load(this.packedTicks.blocks());
              ProtoChunkTicks<Fluid> fluidTicks = ProtoChunkTicks.load(this.packedTicks.fluids());
-@@ -281,10 +_,16 @@
+@@ -277,10 +_,16 @@
              }
          }
  
@@ -263,7 +290,7 @@
              long[] heightmap = this.heightmaps.get(type);
              if (heightmap != null) {
                  chunk.setHeightmap(type, heightmap);
-@@ -304,6 +_,10 @@
+@@ -300,6 +_,10 @@
              }
          }
  
@@ -274,11 +301,15 @@
          if (chunkType == ChunkType.LEVELCHUNK) {
              return new ImposterProtoChunk((LevelChunk)chunk, false);
          }
-@@ -322,11 +_,11 @@
-             protoChunk.setCarvingMask(new CarvingMask(this.carvingMask, chunk.getMinY()));
+@@ -314,11 +_,15 @@
+             protoChunk.setBlockEntityNbt(blockEntity);
          }
  
 -        return protoChunk;
++        if (this.carvingMask != null) {
++            protoChunk.setCarvingMask(new CarvingMask(this.carvingMask, chunk.getMinY()));
++        }
++
 +        return this.loadStarlightLightData(level, protoChunk); // Paper - starlight
      }
  
@@ -288,7 +319,7 @@
      }
  
      public static SerializableChunkData copyOf(ServerLevel level, ChunkAccess chunk) {
-@@ -336,21 +_,44 @@
+@@ -328,21 +_,44 @@
  
          ChunkPos pos = chunk.getPos();
          List<SerializableChunkData.SectionData> sectionData = new ArrayList<>();
@@ -347,16 +378,21 @@
  
          List<CompoundTag> blockEntities = new ArrayList<>(chunk.getBlockEntitiesPos().size());
  
-@@ -364,7 +_,7 @@
+@@ -354,43 +_,71 @@
+         }
+ 
          List<CompoundTag> entities = new ArrayList<>();
-         long[] carvingMask = null;
++        long[] carvingMask = null;
          if (chunk.getPersistedStatus().getChunkType() == ChunkType.PROTOCHUNK) {
 -            ProtoChunk protoChunk = (ProtoChunk)chunk;
 +            ProtoChunk protoChunk = (ProtoChunk) chunk;
              entities.addAll(protoChunk.getEntities());
-             CarvingMask existingMask = protoChunk.getCarvingMask();
-             if (existingMask != null) {
-@@ -375,36 +_,58 @@
++            CarvingMask existingMask = protoChunk.getCarvingMask();
++            if (existingMask != null) {
++                carvingMask = existingMask.toArray();
++            }
+         }
+ 
          Map<Heightmap.Types, long[]> heightmaps = new EnumMap<>(Heightmap.Types.class);
  
          for (Entry<Heightmap.Types, Heightmap> entry : chunk.getHeightmaps()) {
@@ -404,7 +440,6 @@
 -            Optionull.map(chunk.getBlendingData(), BlendingData::pack),
 -            chunk.getBelowZeroRetrogen(),
 -            chunk.getUpgradeData().copy(),
--            carvingMask,
 -            heightmaps,
 -            ticksForSerialization,
 -            postProcessingSections,
@@ -437,7 +472,7 @@
          );
      }
  
-@@ -442,6 +_,19 @@
+@@ -428,6 +_,19 @@
                  sectionTag.putByteArray("SkyLight", section.skyLight.getData());
              }
  
@@ -457,7 +492,17 @@
              if (!sectionTag.isEmpty()) {
                  sectionTag.putByte("Y", (byte)section.y);
                  sectionTags.add(sectionTag);
-@@ -471,6 +_,26 @@
+@@ -446,6 +_,9 @@
+             ListTag entityTags = new ListTag();
+             entityTags.addAll(this.entities);
+             tag.put("entities", entityTags);
++            if (this.carvingMask != null) {
++                tag.putLongArray("carving_mask", this.carvingMask);
++            }
+         }
+ 
+         saveTicks(tag, this.packedTicks);
+@@ -454,6 +_,26 @@
          this.heightmaps.forEach((type, data) -> heightmapsTag.put(type.getSerializationKey(), new LongArrayTag(data)));
          tag.put("Heightmaps", heightmapsTag);
          tag.put("structures", this.structureData);
@@ -484,7 +529,7 @@
          return tag;
      }
  
-@@ -549,6 +_,12 @@
+@@ -532,6 +_,12 @@
              } else {
                  StructureStart start = StructureStart.loadStaticStart(context, startsTag.getCompoundOrEmpty(key), seed);
                  if (start != null) {
@@ -497,7 +542,7 @@
                      outmap.put(startFeature, start);
                  }
              }
-@@ -607,6 +_,60 @@
+@@ -590,6 +_,60 @@
          }
      }
  

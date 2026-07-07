@@ -1,6 +1,20 @@
 --- a/net/minecraft/world/level/levelgen/FlatLevelSource.java
 +++ b/net/minecraft/world/level/levelgen/FlatLevelSource.java
-@@ -30,19 +_,27 @@
+@@ -18,33 +_,39 @@
+ import net.minecraft.world.level.biome.FixedBiomeSource;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.state.BlockState;
+-import net.minecraft.world.level.chunk.CarvingMask;
+ import net.minecraft.world.level.chunk.ChunkAccess;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+ import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
+ import net.minecraft.world.level.levelgen.blending.Blender;
+ import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings;
+ import net.minecraft.world.level.levelgen.structure.StructureSet;
+-import org.jspecify.annotations.Nullable;
+ 
+ public class FlatLevelSource extends ChunkGenerator {
+     public static final MapCodec<FlatLevelSource> CODEC = RecordCodecBuilder.mapCodec(
          i -> i.group(FlatLevelGeneratorSettings.CODEC.fieldOf("settings").forGetter(FlatLevelSource::settings)).apply(i, i.stable(FlatLevelSource::new))
      );
      private final FlatLevelGeneratorSettings settings;
@@ -26,12 +40,27 @@
              .structureOverrides()
              .map(HolderSet::stream)
              .orElseGet(() -> structureSets.listElements().map(e -> (Holder<StructureSet>)e));
--        return ChunkGeneratorStructureState.createForFlat(randomState, levelSeed, this.biomeSource, structures);
+-        return ChunkGeneratorStructureState.createForFlat(randomState, levelSeed, this.getOrigin(randomState), this.biomeSource, structures);
 +        return ChunkGeneratorStructureState.createForFlat(randomState, levelSeed, this.biomeSource, structures, conf); // Spigot
      }
  
      @Override
-@@ -142,5 +_,13 @@
+@@ -123,13 +_,7 @@
+ 
+     @Override
+     public void applyCarvers(
+-        WorldGenRegion region,
+-        long seed,
+-        RandomState randomState,
+-        BiomeManager biomeManager,
+-        StructureManager structureManager,
+-        ChunkAccess chunk,
+-        CarvingMask.@Nullable Filter filter
++        WorldGenRegion region, long seed, RandomState randomState, BiomeManager biomeManager, StructureManager structureManager, ChunkAccess chunk
+     ) {
+     }
+ 
+@@ -150,5 +_,13 @@
      @Override
      public int getSeaLevel() {
          return -63;

@@ -5,7 +5,7 @@ import com.google.common.collect.Iterables;
 import com.mojang.authlib.GameProfile;
 import com.mojang.authlib.properties.Property;
 import com.mojang.authlib.properties.PropertyMap;
-import com.mojang.authlib.yggdrasil.ProfileResult;
+import com.mojang.authlib.services.ProfileResult; 
 import com.mojang.datafixers.util.Either;
 import io.papermc.paper.profile.MutablePropertyMap;
 import java.util.ArrayList;

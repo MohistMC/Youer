@@ -1,14 +1,14 @@
 --- a/net/minecraft/world/level/block/DetectorRailBlock.java
 +++ b/net/minecraft/world/level/block/DetectorRailBlock.java
-@@ -25,6 +_,7 @@
+@@ -24,6 +_,7 @@
  import net.minecraft.world.level.block.state.properties.Property;
  import net.minecraft.world.level.block.state.properties.RailShape;
  import net.minecraft.world.phys.AABB;
 +import org.bukkit.event.block.BlockRedstoneEvent;
  
  public class DetectorRailBlock extends BaseRailBlock {
-     public static final MapCodec<DetectorRailBlock> CODEC = simpleCodec(DetectorRailBlock::new);
-@@ -39,6 +_,10 @@
+     public static final EnumProperty<RailShape> SHAPE = BlockStateProperties.RAIL_SHAPE_STRAIGHT;
+@@ -32,6 +_,10 @@
  
      public DetectorRailBlock(BlockBehaviour.Properties properties) {
          super(true, properties);
@@ -19,7 +19,7 @@
          this.registerDefaultState(this.stateDefinition.any().setValue(POWERED, false).setValue(SHAPE, RailShape.NORTH_SOUTH).setValue(WATERLOGGED, false));
      }
  
-@@ -54,6 +_,7 @@
+@@ -47,6 +_,7 @@
  
      @Override
      protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
@@ -27,7 +27,7 @@
          if (!level.isClientSide()) {
              if (!state.getValue(POWERED)) {
                  this.checkPressed(level, pos, state);
-@@ -79,6 +_,7 @@
+@@ -72,6 +_,7 @@
  
      private void checkPressed(Level level, BlockPos pos, BlockState state) {
          if (this.canSurvive(state, level, pos)) {
@@ -35,7 +35,7 @@
              boolean wasPressed = state.getValue(POWERED);
              boolean shouldBePressed = false;
              List<AbstractMinecart> entities = this.getInteractingMinecartOfType(level, pos, AbstractMinecart.class, e -> true);
-@@ -86,6 +_,14 @@
+@@ -79,9 +_,17 @@
                  shouldBePressed = true;
              }
  
@@ -49,8 +49,21 @@
 +
              if (shouldBePressed && !wasPressed) {
                  BlockState newState = state.setValue(POWERED, true);
-                 level.setBlock(pos, newState, 3);
-@@ -183,6 +_,6 @@
+-                level.setBlockAndUpdate(pos, newState);
++                level.setBlock(pos, newState, 3);
+                 this.updatePowerToConnected(level, pos, newState, true);
+                 level.updateNeighborsAt(pos, this);
+                 level.updateNeighborsAt(pos.below(), this);
+@@ -90,7 +_,7 @@
+ 
+             if (!shouldBePressed && wasPressed) {
+                 BlockState newState = state.setValue(POWERED, false);
+-                level.setBlockAndUpdate(pos, newState);
++                level.setBlock(pos, newState, 3);
+                 this.updatePowerToConnected(level, pos, newState, false);
+                 level.updateNeighborsAt(pos, this);
+                 level.updateNeighborsAt(pos.below(), this);
+@@ -176,6 +_,6 @@
  
      @Override
      protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {

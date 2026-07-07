@@ -1,13 +1,13 @@
 --- a/net/minecraft/world/level/block/EyeblossomBlock.java
 +++ b/net/minecraft/world/level/block/EyeblossomBlock.java
-@@ -80,25 +_,31 @@
+@@ -69,25 +_,31 @@
          boolean shouldBeOpen = level.environmentAttributes().getValue(EnvironmentAttributes.EYEBLOSSOM_OPEN, pos).toBoolean(this.type.open);
          if (shouldBeOpen == this.type.open) {
              return false;
 -        }
 -
 -        EyeblossomBlock.Type newType = this.type.transform();
--        level.setBlock(pos, newType.state(), 3);
+-        level.setBlockAndUpdate(pos, newType.state());
 -        level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(state));
 -        newType.spawnTransformParticle(level, pos, random);
 -        BlockPos.betweenClosed(pos.offset(-3, -2, -3), pos.offset(3, 2, 3)).forEach(nearby -> {
@@ -25,7 +25,7 @@
 -        });
 -        return true;
 +            // CraftBukkit end
-+            level.setBlock(pos, newType.state(), 3);
++            level.setBlockAndUpdate(pos, newType.state());
 +            level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(state));
 +            newType.spawnTransformParticle(level, pos, random);
 +            BlockPos.betweenClosed(pos.offset(-3, -2, -3), pos.offset(3, 2, 3)).forEach(nearby -> {

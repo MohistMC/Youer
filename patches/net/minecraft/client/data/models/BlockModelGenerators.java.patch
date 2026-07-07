@@ -1,19 +1,2125 @@
 --- a/net/minecraft/client/data/models/BlockModelGenerators.java
 +++ b/net/minecraft/client/data/models/BlockModelGenerators.java
-@@ -4554,4 +_,16 @@
-             return this;
+@@ -122,10 +_,10 @@
+ 
+ @OnlyIn(Dist.CLIENT)
+ public class BlockModelGenerators {
+-    public final Consumer<BlockModelDefinitionGenerator> blockStateOutput;
+-    public final ItemModelOutput itemModelOutput;
+-    public final BiConsumer<Identifier, ModelInstance> modelOutput;
+-    public static final List<Block> NON_ORIENTABLE_TRAPDOOR = List.of(Blocks.OAK_TRAPDOOR, Blocks.DARK_OAK_TRAPDOOR, Blocks.IRON_TRAPDOOR);
++    private final Consumer<BlockModelDefinitionGenerator> blockStateOutput;
++    private final ItemModelOutput itemModelOutput;
++    private final BiConsumer<Identifier, ModelInstance> modelOutput;
++    private static final List<Block> NON_ORIENTABLE_TRAPDOOR = List.of(Blocks.OAK_TRAPDOOR, Blocks.DARK_OAK_TRAPDOOR, Blocks.IRON_TRAPDOOR);
+     public static final VariantMutator NOP = v -> v;
+     public static final VariantMutator UV_LOCK = VariantMutator.UV_LOCK.withValue(true);
+     public static final VariantMutator X_ROT_90 = VariantMutator.X_ROT.withValue(Quadrant.R90);
+@@ -134,32 +_,32 @@
+     public static final VariantMutator Y_ROT_90 = VariantMutator.Y_ROT.withValue(Quadrant.R90);
+     public static final VariantMutator Y_ROT_180 = VariantMutator.Y_ROT.withValue(Quadrant.R180);
+     public static final VariantMutator Y_ROT_270 = VariantMutator.Y_ROT.withValue(Quadrant.R270);
+-    public static final Function<ConditionBuilder, ConditionBuilder> FLOWER_BED_MODEL_1_SEGMENT_CONDITION = condition -> condition;
+-    public static final Function<ConditionBuilder, ConditionBuilder> FLOWER_BED_MODEL_2_SEGMENT_CONDITION = condition -> condition.term(
++    private static final Function<ConditionBuilder, ConditionBuilder> FLOWER_BED_MODEL_1_SEGMENT_CONDITION = condition -> condition;
++    private static final Function<ConditionBuilder, ConditionBuilder> FLOWER_BED_MODEL_2_SEGMENT_CONDITION = condition -> condition.term(
+         BlockStateProperties.FLOWER_AMOUNT, 2, 3, 4
+     );
+-    public static final Function<ConditionBuilder, ConditionBuilder> FLOWER_BED_MODEL_3_SEGMENT_CONDITION = condition -> condition.term(
++    private static final Function<ConditionBuilder, ConditionBuilder> FLOWER_BED_MODEL_3_SEGMENT_CONDITION = condition -> condition.term(
+         BlockStateProperties.FLOWER_AMOUNT, 3, 4
+     );
+-    public static final Function<ConditionBuilder, ConditionBuilder> FLOWER_BED_MODEL_4_SEGMENT_CONDITION = condition -> condition.term(
++    private static final Function<ConditionBuilder, ConditionBuilder> FLOWER_BED_MODEL_4_SEGMENT_CONDITION = condition -> condition.term(
+         BlockStateProperties.FLOWER_AMOUNT, 4
+     );
+-    public static final Function<ConditionBuilder, ConditionBuilder> LEAF_LITTER_MODEL_1_SEGMENT_CONDITION = condition -> condition.term(
++    private static final Function<ConditionBuilder, ConditionBuilder> LEAF_LITTER_MODEL_1_SEGMENT_CONDITION = condition -> condition.term(
+         BlockStateProperties.SEGMENT_AMOUNT, 1
+     );
+-    public static final Function<ConditionBuilder, ConditionBuilder> LEAF_LITTER_MODEL_2_SEGMENT_CONDITION = condition -> condition.term(
++    private static final Function<ConditionBuilder, ConditionBuilder> LEAF_LITTER_MODEL_2_SEGMENT_CONDITION = condition -> condition.term(
+         BlockStateProperties.SEGMENT_AMOUNT, 2, 3
+     );
+-    public static final Function<ConditionBuilder, ConditionBuilder> LEAF_LITTER_MODEL_3_SEGMENT_CONDITION = condition -> condition.term(
++    private static final Function<ConditionBuilder, ConditionBuilder> LEAF_LITTER_MODEL_3_SEGMENT_CONDITION = condition -> condition.term(
+         BlockStateProperties.SEGMENT_AMOUNT, 3
+     );
+-    public static final Function<ConditionBuilder, ConditionBuilder> LEAF_LITTER_MODEL_4_SEGMENT_CONDITION = condition -> condition.term(
++    private static final Function<ConditionBuilder, ConditionBuilder> LEAF_LITTER_MODEL_4_SEGMENT_CONDITION = condition -> condition.term(
+         BlockStateProperties.SEGMENT_AMOUNT, 4
+     );
+-    public static final Transformation SKULL_TRANSFORM = new Transformation(
++    private static final Transformation SKULL_TRANSFORM = new Transformation(
+         new Vector3f(0.5F, 0.0F, 0.5F), new Quaternionf().rotationX((float) Math.PI), null, null
+     );
+-    public static final Map<Block, BlockModelGenerators.BlockStateGeneratorSupplier> FULL_BLOCK_MODEL_CUSTOM_GENERATORS = Map.of(
++    private static final Map<Block, BlockModelGenerators.BlockStateGeneratorSupplier> FULL_BLOCK_MODEL_CUSTOM_GENERATORS = Map.of(
+         Blocks.STONE,
+         BlockModelGenerators::createMirroredCubeGenerator,
+         Blocks.DEEPSLATE,
+@@ -167,36 +_,36 @@
+         Blocks.MUD_BRICKS,
+         BlockModelGenerators::createNorthWestMirroredCubeGenerator
+     );
+-    public static final PropertyDispatch<VariantMutator> ROTATION_FACING = PropertyDispatch.modify(BlockStateProperties.FACING)
++    private static final PropertyDispatch<VariantMutator> ROTATION_FACING = PropertyDispatch.modify(BlockStateProperties.FACING)
+         .select(Direction.DOWN, X_ROT_90)
+         .select(Direction.UP, X_ROT_270)
+         .select(Direction.NORTH, NOP)
+         .select(Direction.SOUTH, Y_ROT_180)
+         .select(Direction.WEST, Y_ROT_270)
+         .select(Direction.EAST, Y_ROT_90);
+-    public static final PropertyDispatch<VariantMutator> ROTATIONS_COLUMN_WITH_FACING = PropertyDispatch.modify(BlockStateProperties.FACING)
++    private static final PropertyDispatch<VariantMutator> ROTATIONS_COLUMN_WITH_FACING = PropertyDispatch.modify(BlockStateProperties.FACING)
+         .select(Direction.DOWN, X_ROT_180)
+         .select(Direction.UP, NOP)
+         .select(Direction.NORTH, X_ROT_90)
+         .select(Direction.SOUTH, X_ROT_90.then(Y_ROT_180))
+         .select(Direction.WEST, X_ROT_90.then(Y_ROT_270))
+         .select(Direction.EAST, X_ROT_90.then(Y_ROT_90));
+-    public static final PropertyDispatch<VariantMutator> ROTATION_TORCH = PropertyDispatch.modify(BlockStateProperties.HORIZONTAL_FACING)
++    private static final PropertyDispatch<VariantMutator> ROTATION_TORCH = PropertyDispatch.modify(BlockStateProperties.HORIZONTAL_FACING)
+         .select(Direction.EAST, NOP)
+         .select(Direction.SOUTH, Y_ROT_90)
+         .select(Direction.WEST, Y_ROT_180)
+         .select(Direction.NORTH, Y_ROT_270);
+-    public static final PropertyDispatch<VariantMutator> ROTATION_HORIZONTAL_FACING_ALT = PropertyDispatch.modify(BlockStateProperties.HORIZONTAL_FACING)
++    private static final PropertyDispatch<VariantMutator> ROTATION_HORIZONTAL_FACING_ALT = PropertyDispatch.modify(BlockStateProperties.HORIZONTAL_FACING)
+         .select(Direction.SOUTH, NOP)
+         .select(Direction.WEST, Y_ROT_90)
+         .select(Direction.NORTH, Y_ROT_180)
+         .select(Direction.EAST, Y_ROT_270);
+-    public static final PropertyDispatch<VariantMutator> ROTATION_HORIZONTAL_FACING = PropertyDispatch.modify(BlockStateProperties.HORIZONTAL_FACING)
++    private static final PropertyDispatch<VariantMutator> ROTATION_HORIZONTAL_FACING = PropertyDispatch.modify(BlockStateProperties.HORIZONTAL_FACING)
+         .select(Direction.EAST, Y_ROT_90)
+         .select(Direction.SOUTH, Y_ROT_180)
+         .select(Direction.WEST, Y_ROT_270)
+         .select(Direction.NORTH, NOP);
+-    public static final Map<Block, TexturedModel> TEXTURED_MODELS = ImmutableMap.<Block, TexturedModel>builder()
++    private static final Map<Block, TexturedModel> TEXTURED_MODELS = ImmutableMap.<Block, TexturedModel>builder()
+         .put(Blocks.SANDSTONE, TexturedModel.TOP_BOTTOM_WITH_WALL.get(Blocks.SANDSTONE))
+         .put(Blocks.RED_SANDSTONE, TexturedModel.TOP_BOTTOM_WITH_WALL.get(Blocks.RED_SANDSTONE))
+         .put(Blocks.SMOOTH_SANDSTONE, TexturedModel.createAllSame(TextureMapping.getBlockTexture(Blocks.SANDSTONE, "_top")))
+@@ -232,7 +_,7 @@
+         .put(Blocks.CHISELED_TUFF_BRICKS, TexturedModel.COLUMN_WITH_WALL.get(Blocks.CHISELED_TUFF_BRICKS))
+         .put(Blocks.CHISELED_TUFF, TexturedModel.COLUMN_WITH_WALL.get(Blocks.CHISELED_TUFF))
+         .build();
+-    public static final Map<BlockFamily.Variant, BiConsumer<BlockModelGenerators.BlockFamilyProvider, Block>> SHAPE_CONSUMERS = ImmutableMap.<BlockFamily.Variant, BiConsumer<BlockModelGenerators.BlockFamilyProvider, Block>>builder()
++    private static final Map<BlockFamily.Variant, BiConsumer<BlockModelGenerators.BlockFamilyProvider, Block>> SHAPE_CONSUMERS = ImmutableMap.<BlockFamily.Variant, BiConsumer<BlockModelGenerators.BlockFamilyProvider, Block>>builder()
+         .put(BlockFamily.Variant.BUTTON, BlockModelGenerators.BlockFamilyProvider::button)
+         .put(BlockFamily.Variant.CARPET, BlockModelGenerators.BlockFamilyProvider::carpet)
+         .put(BlockFamily.Variant.DOOR, BlockModelGenerators.BlockFamilyProvider::door)
+@@ -255,7 +_,7 @@
+         .put(BlockFamily.Variant.COBBLED, BlockModelGenerators.BlockFamilyProvider::fullBlockVariant)
+         .put(BlockFamily.Variant.PILLAR, BlockModelGenerators.BlockFamilyProvider::pillar)
+         .build();
+-    public static final Map<Direction, VariantMutator> MULTIFACE_GENERATOR = ImmutableMap.of(
++    private static final Map<Direction, VariantMutator> MULTIFACE_GENERATOR = ImmutableMap.of(
+         Direction.NORTH,
+         NOP,
+         Direction.EAST,
+@@ -269,60 +_,60 @@
+         Direction.DOWN,
+         X_ROT_90.then(UV_LOCK)
+     );
+-    public static final Map<BlockModelGenerators.BookSlotModelCacheKey, Identifier> CHISELED_BOOKSHELF_SLOT_MODEL_CACHE = new HashMap<>();
++    private static final Map<BlockModelGenerators.BookSlotModelCacheKey, Identifier> CHISELED_BOOKSHELF_SLOT_MODEL_CACHE = new HashMap<>();
+ 
+-    public static Variant plainModel(Identifier model) {
++    private static Variant plainModel(Identifier model) {
+         return new Variant(model);
+     }
+ 
+-    public static MultiVariant variant(Variant variant) {
++    private static MultiVariant variant(Variant variant) {
+         return new MultiVariant(WeightedList.of(variant));
+     }
+ 
+-    public static MultiVariant variants(Variant... variant) {
++    private static MultiVariant variants(Variant... variant) {
+         return new MultiVariant(WeightedList.of(Arrays.stream(variant).map(v -> new Weighted<>(v, 1)).toList()));
+     }
+ 
+-    public static MultiVariant plainVariant(Identifier model) {
++    private static MultiVariant plainVariant(Identifier model) {
+         return variant(plainModel(model));
+     }
+ 
+-    public static ConditionBuilder condition() {
++    private static ConditionBuilder condition() {
+         return new ConditionBuilder();
+     }
+ 
+     @SafeVarargs
+-    public static <T extends Enum<T> & StringRepresentable> ConditionBuilder condition(EnumProperty<T> property, T term, T... additionalTerms) {
++    private static <T extends Enum<T> & StringRepresentable> ConditionBuilder condition(EnumProperty<T> property, T term, T... additionalTerms) {
+         return condition().term(property, term, additionalTerms);
+     }
+ 
+-    public static ConditionBuilder condition(BooleanProperty property, boolean term) {
++    private static ConditionBuilder condition(BooleanProperty property, boolean term) {
+         return condition().term(property, term);
+     }
+ 
+-    public static Condition or(ConditionBuilder... terms) {
++    private static Condition or(ConditionBuilder... terms) {
+         return new CombinedCondition(CombinedCondition.Operation.OR, Stream.of(terms).map(ConditionBuilder::build).toList());
+     }
+ 
+-    public static Condition and(ConditionBuilder... terms) {
++    private static Condition and(ConditionBuilder... terms) {
+         return new CombinedCondition(CombinedCondition.Operation.AND, Stream.of(terms).map(ConditionBuilder::build).toList());
+     }
+ 
+-    public static BlockModelDefinitionGenerator createMirroredCubeGenerator(
++    private static BlockModelDefinitionGenerator createMirroredCubeGenerator(
+         Block block, Variant normal, TextureMapping mapping, BiConsumer<Identifier, ModelInstance> modelOutput
+     ) {
+         Variant mirrored = plainModel(ModelTemplates.CUBE_MIRRORED_ALL.create(block, mapping, modelOutput));
+         return MultiVariantGenerator.dispatch(block, createRotatedVariants(normal, mirrored));
+     }
+ 
+-    public static BlockModelDefinitionGenerator createNorthWestMirroredCubeGenerator(
++    private static BlockModelDefinitionGenerator createNorthWestMirroredCubeGenerator(
+         Block block, Variant normal, TextureMapping mapping, BiConsumer<Identifier, ModelInstance> modelOutput
+     ) {
+         MultiVariant northWestMirrored = plainVariant(ModelTemplates.CUBE_NORTH_WEST_MIRRORED_ALL.create(block, mapping, modelOutput));
+         return createSimpleBlock(block, northWestMirrored);
+     }
+ 
+-    public static BlockModelDefinitionGenerator createMirroredColumnGenerator(
++    private static BlockModelDefinitionGenerator createMirroredColumnGenerator(
+         Block block, Variant normal, TextureMapping mapping, BiConsumer<Identifier, ModelInstance> modelOutput
+     ) {
+         Variant mirrored = plainModel(ModelTemplates.CUBE_COLUMN_MIRRORED.create(block, mapping, modelOutput));
+@@ -337,88 +_,88 @@
+         this.modelOutput = modelOutput;
+     }
+ 
+-    public void registerSimpleItemModel(Item item, Identifier model) {
++    private void registerSimpleItemModel(Item item, Identifier model) {
+         this.itemModelOutput.accept(item, ItemModelUtils.plainModel(model));
+     }
+ 
+-    public void registerSimpleItemModel(Block block, Identifier model) {
++    private void registerSimpleItemModel(Block block, Identifier model) {
+         this.itemModelOutput.accept(block.asItem(), ItemModelUtils.plainModel(model));
+     }
+ 
+-    public void registerSimpleTintedItemModel(Block block, Identifier model, ItemTintSource tint) {
++    private void registerSimpleTintedItemModel(Block block, Identifier model, ItemTintSource tint) {
+         this.itemModelOutput.accept(block.asItem(), ItemModelUtils.tintedModel(model, tint));
+     }
+ 
+-    public Identifier createFlatItemModel(Item item) {
++    private Identifier createFlatItemModel(Item item) {
+         return this.createFlatItemModel(item, TextureMapping.getItemTexture(item));
+     }
+ 
+-    public Identifier createFlatItemModelWithBlockTexture(Item item, Block block) {
++    private Identifier createFlatItemModelWithBlockTexture(Item item, Block block) {
+         return this.createFlatItemModel(item, TextureMapping.getBlockTexture(block));
+     }
+ 
+-    public Identifier createFlatItemModelWithBlockTexture(Item item, Block block, String suffix) {
++    private Identifier createFlatItemModelWithBlockTexture(Item item, Block block, String suffix) {
+         return this.createFlatItemModel(item, TextureMapping.getBlockTexture(block, suffix));
+     }
+ 
+-    public Identifier createFlatItemModel(Item item, Material material) {
++    private Identifier createFlatItemModel(Item item, Material material) {
+         return ModelTemplates.FLAT_ITEM.create(ModelLocationUtils.getModelLocation(item), TextureMapping.layer0(material), this.modelOutput);
+     }
+ 
+-    public Identifier createTwoLayeredItemModel(Item item, Material base, Material overlay) {
++    private Identifier createTwoLayeredItemModel(Item item, Material base, Material overlay) {
+         return ModelTemplates.TWO_LAYERED_ITEM.create(ModelLocationUtils.getModelLocation(item), TextureMapping.layered(base, overlay), this.modelOutput);
+     }
+ 
+-    public void registerSimpleFlatItemModel(Item item) {
++    private void registerSimpleFlatItemModel(Item item) {
+         this.registerSimpleItemModel(item, this.createFlatItemModel(item));
+     }
+ 
+-    public void registerSimpleFlatItemModel(Block block) {
++    private void registerSimpleFlatItemModel(Block block) {
+         Item blockItem = block.asItem();
+         if (blockItem != Items.AIR) {
+             this.registerSimpleItemModel(blockItem, this.createFlatItemModelWithBlockTexture(blockItem, block));
          }
      }
-+
-+    /**
-+     * Neo: create a {@link BlockModelGenerators.BlockFamilyProvider} which re-uses the existing model of the given full
-+     * block instead of creating a model and blockstate file for it. Intended for use cases where the full block is
-+     * separately generated or otherwise exists such as when a dummy {@link BlockFamily} is used to create additional
-+     * variants for existing vanilla block families
-+     */
-+    public BlockModelGenerators.BlockFamilyProvider familyWithExistingFullBlock(Block fullBlock) {
-+        var provider = new BlockModelGenerators.BlockFamilyProvider(TextureMapping.cube(fullBlock));
-+        provider.fullBlock = BlockModelGenerators.plainModel(ModelLocationUtils.getModelLocation(fullBlock));
-+        return provider;
-+    }
- }
+ 
+-    public void registerSimpleFlatItemModel(Block block, String suffix) {
++    private void registerSimpleFlatItemModel(Block block, String suffix) {
+         Item blockItem = block.asItem();
+         if (blockItem != Items.AIR) {
+             this.registerSimpleItemModel(blockItem, this.createFlatItemModelWithBlockTexture(blockItem, block, suffix));
+         }
+     }
+ 
+-    public static MultiVariant createRotatedVariants(Variant base) {
++    private static MultiVariant createRotatedVariants(Variant base) {
+         return variants(base, base.with(Y_ROT_90), base.with(Y_ROT_180), base.with(Y_ROT_270));
+     }
+ 
+-    public static MultiVariant createRotatedVariants(Variant normal, Variant mirrored) {
++    private static MultiVariant createRotatedVariants(Variant normal, Variant mirrored) {
+         return variants(normal, mirrored, normal.with(Y_ROT_180), mirrored.with(Y_ROT_180));
+     }
+ 
+-    public static PropertyDispatch<MultiVariant> createBooleanModelDispatch(BooleanProperty property, MultiVariant onTrue, MultiVariant onFalse) {
++    private static PropertyDispatch<MultiVariant> createBooleanModelDispatch(BooleanProperty property, MultiVariant onTrue, MultiVariant onFalse) {
+         return PropertyDispatch.initial(property).select(true, onTrue).select(false, onFalse);
+     }
+ 
+-    public void createRotatedMirroredVariantBlock(Block block) {
++    private void createRotatedMirroredVariantBlock(Block block) {
+         Variant normal = plainModel(TexturedModel.CUBE.create(block, this.modelOutput));
+         Variant mirrored = plainModel(TexturedModel.CUBE_MIRRORED.create(block, this.modelOutput));
+         this.blockStateOutput.accept(MultiVariantGenerator.dispatch(block, createRotatedVariants(normal, mirrored)));
+     }
+ 
+-    public void createRotatedVariantBlock(Block block) {
++    private void createRotatedVariantBlock(Block block) {
+         this.createRotatedVariantBlock(block, TexturedModel.CUBE);
+     }
+ 
+-    public void createRotatedVariantBlock(Block block, TexturedModel.Provider modelProvider) {
++    private void createRotatedVariantBlock(Block block, TexturedModel.Provider modelProvider) {
+         this.createRotatedVariantBlock(block, modelProvider.create(block, this.modelOutput));
+     }
+ 
+-    public void createRotatedVariantBlock(Block block, Identifier model) {
++    private void createRotatedVariantBlock(Block block, Identifier model) {
+         Variant normal = plainModel(model);
+         this.blockStateOutput.accept(MultiVariantGenerator.dispatch(block, createRotatedVariants(normal)));
+     }
+ 
+-    public void createBrushableBlock(Block block) {
++    private void createBrushableBlock(Block block) {
+         this.blockStateOutput
+             .accept(MultiVariantGenerator.dispatch(block).with(PropertyDispatch.initial(BlockStateProperties.DUSTED).generate(dustProgress -> {
+                 String suffix = "_" + dustProgress;
+@@ -430,7 +_,7 @@
+         this.registerSimpleItemModel(block, ModelLocationUtils.getModelLocation(block, "_0"));
+     }
+ 
+-    public static BlockModelDefinitionGenerator createButton(Block block, MultiVariant normal, MultiVariant pressed) {
++    private static BlockModelDefinitionGenerator createButton(Block block, MultiVariant normal, MultiVariant pressed) {
+         return MultiVariantGenerator.dispatch(block)
+             .with(PropertyDispatch.initial(BlockStateProperties.POWERED).select(false, normal).select(true, pressed))
+             .with(
+@@ -450,7 +_,7 @@
+             );
+     }
+ 
+-    public static BlockModelDefinitionGenerator createDoor(
++    private static BlockModelDefinitionGenerator createDoor(
+         Block block,
+         MultiVariant bottomLeft,
+         MultiVariant bottomLeftOpen,
+@@ -504,7 +_,7 @@
+             );
+     }
+ 
+-    public static BlockModelDefinitionGenerator createCustomFence(
++    private static BlockModelDefinitionGenerator createCustomFence(
+         Block block, MultiVariant post, MultiVariant north, MultiVariant east, MultiVariant south, MultiVariant west
+     ) {
+         return MultiPartGenerator.multiPart(block)
+@@ -515,7 +_,7 @@
+             .with(condition().term(BlockStateProperties.WEST, true), west);
+     }
+ 
+-    public static BlockModelDefinitionGenerator createFence(Block block, MultiVariant post, MultiVariant side) {
++    private static BlockModelDefinitionGenerator createFence(Block block, MultiVariant post, MultiVariant side) {
+         return MultiPartGenerator.multiPart(block)
+             .with(post)
+             .with(condition().term(BlockStateProperties.NORTH, true), side.with(UV_LOCK))
+@@ -524,7 +_,7 @@
+             .with(condition().term(BlockStateProperties.WEST, true), side.with(Y_ROT_270).with(UV_LOCK));
+     }
+ 
+-    public static BlockModelDefinitionGenerator createWall(Block block, MultiVariant post, MultiVariant lowSide, MultiVariant tallSide) {
++    private static BlockModelDefinitionGenerator createWall(Block block, MultiVariant post, MultiVariant lowSide, MultiVariant tallSide) {
+         return MultiPartGenerator.multiPart(block)
+             .with(condition().term(BlockStateProperties.UP, true), post)
+             .with(condition().term(BlockStateProperties.NORTH_WALL, WallSide.LOW), lowSide.with(UV_LOCK))
+@@ -537,7 +_,7 @@
+             .with(condition().term(BlockStateProperties.WEST_WALL, WallSide.TALL), tallSide.with(Y_ROT_270).with(UV_LOCK));
+     }
+ 
+-    public static BlockModelDefinitionGenerator createFenceGate(
++    private static BlockModelDefinitionGenerator createFenceGate(
+         Block block, MultiVariant open, MultiVariant closed, MultiVariant openWall, MultiVariant closedWall, boolean uvLock
+     ) {
+         return MultiVariantGenerator.dispatch(block)
+@@ -552,7 +_,7 @@
+             .with(ROTATION_HORIZONTAL_FACING_ALT);
+     }
+ 
+-    public static BlockModelDefinitionGenerator createStairs(Block block, MultiVariant inner, MultiVariant straight, MultiVariant outer) {
++    private static BlockModelDefinitionGenerator createStairs(Block block, MultiVariant inner, MultiVariant straight, MultiVariant outer) {
+         return MultiVariantGenerator.dispatch(block)
+             .with(
+                 PropertyDispatch.initial(BlockStateProperties.HORIZONTAL_FACING, BlockStateProperties.HALF, BlockStateProperties.STAIRS_SHAPE)
+@@ -599,7 +_,7 @@
+             );
+     }
+ 
+-    public static BlockModelDefinitionGenerator createOrientableTrapdoor(Block block, MultiVariant top, MultiVariant bottom, MultiVariant open) {
++    private static BlockModelDefinitionGenerator createOrientableTrapdoor(Block block, MultiVariant top, MultiVariant bottom, MultiVariant open) {
+         return MultiVariantGenerator.dispatch(block)
+             .with(
+                 PropertyDispatch.initial(BlockStateProperties.HORIZONTAL_FACING, BlockStateProperties.HALF, BlockStateProperties.OPEN)
+@@ -622,7 +_,7 @@
+             );
+     }
+ 
+-    public static BlockModelDefinitionGenerator createTrapdoor(Block block, MultiVariant top, MultiVariant bottom, MultiVariant open) {
++    private static BlockModelDefinitionGenerator createTrapdoor(Block block, MultiVariant top, MultiVariant bottom, MultiVariant open) {
+         return MultiVariantGenerator.dispatch(block)
+             .with(
+                 PropertyDispatch.initial(BlockStateProperties.HORIZONTAL_FACING, BlockStateProperties.HALF, BlockStateProperties.OPEN)
+@@ -645,7 +_,7 @@
+             );
+     }
+ 
+-    public static BlockModelDefinitionGenerator createBed(Block block, MultiVariant headModel, MultiVariant footModel) {
++    private static BlockModelDefinitionGenerator createBed(Block block, MultiVariant headModel, MultiVariant footModel) {
+         return MultiVariantGenerator.dispatch(block)
+             .with(
+                 PropertyDispatch.initial(BlockStateProperties.HORIZONTAL_FACING, BlockStateProperties.BED_PART)
+@@ -660,7 +_,7 @@
+             );
+     }
+ 
+-    public static BlockModelDefinitionGenerator createSign(Block block, MultiVariant rot0, MultiVariant rot1, MultiVariant rot2, MultiVariant rot3) {
++    private static BlockModelDefinitionGenerator createSign(Block block, MultiVariant rot0, MultiVariant rot1, MultiVariant rot2, MultiVariant rot3) {
+         return MultiVariantGenerator.dispatch(block)
+             .with(
+                 PropertyDispatch.initial(BlockStateProperties.ROTATION_16)
+@@ -683,7 +_,7 @@
+             );
+     }
+ 
+-    public static BlockModelDefinitionGenerator createHangingSign(
++    private static BlockModelDefinitionGenerator createHangingSign(
+         Block block,
+         MultiVariant rot0,
+         MultiVariant rot1,
+@@ -732,18 +_,18 @@
+             );
+     }
+ 
+-    public static MultiVariantGenerator createSimpleBlock(Block block, MultiVariant variant) {
++    private static MultiVariantGenerator createSimpleBlock(Block block, MultiVariant variant) {
+         return MultiVariantGenerator.dispatch(block, variant);
+     }
+ 
+-    public static PropertyDispatch<VariantMutator> createRotatedPillar() {
++    private static PropertyDispatch<VariantMutator> createRotatedPillar() {
+         return PropertyDispatch.modify(BlockStateProperties.AXIS)
+             .select(Direction.Axis.Y, NOP)
+             .select(Direction.Axis.Z, X_ROT_90)
+             .select(Direction.Axis.X, X_ROT_90.then(Y_ROT_90));
+     }
+ 
+-    public static BlockModelDefinitionGenerator createPillarBlockUVLocked(
++    private static BlockModelDefinitionGenerator createPillarBlockUVLocked(
+         Block block, TextureMapping mapping, BiConsumer<Identifier, ModelInstance> modelOutput
+     ) {
+         MultiVariant xAxisModel = plainVariant(ModelTemplates.CUBE_COLUMN_UV_LOCKED_X.create(block, mapping, modelOutput));
+@@ -758,25 +_,25 @@
+             );
+     }
+ 
+-    public static BlockModelDefinitionGenerator createAxisAlignedPillarBlock(Block block, MultiVariant model) {
++    private static BlockModelDefinitionGenerator createAxisAlignedPillarBlock(Block block, MultiVariant model) {
+         return MultiVariantGenerator.dispatch(block, model).with(createRotatedPillar());
+     }
+ 
+-    public void createAxisAlignedPillarBlockCustomModel(Block block, MultiVariant model) {
++    private void createAxisAlignedPillarBlockCustomModel(Block block, MultiVariant model) {
+         this.blockStateOutput.accept(createAxisAlignedPillarBlock(block, model));
+     }
+ 
+-    public void createAxisAlignedPillarBlock(Block block, TexturedModel.Provider modelProvider) {
++    private void createAxisAlignedPillarBlock(Block block, TexturedModel.Provider modelProvider) {
+         MultiVariant model = plainVariant(modelProvider.create(block, this.modelOutput));
+         this.blockStateOutput.accept(createAxisAlignedPillarBlock(block, model));
+     }
+ 
+-    public void createHorizontallyRotatedBlock(Block block, TexturedModel.Provider modelProvider) {
++    private void createHorizontallyRotatedBlock(Block block, TexturedModel.Provider modelProvider) {
+         MultiVariant model = plainVariant(modelProvider.create(block, this.modelOutput));
+         this.blockStateOutput.accept(MultiVariantGenerator.dispatch(block, model).with(ROTATION_HORIZONTAL_FACING));
+     }
+ 
+-    public static BlockModelDefinitionGenerator createRotatedPillarWithHorizontalVariant(Block block, MultiVariant model, MultiVariant horizontalModel) {
++    private static BlockModelDefinitionGenerator createRotatedPillarWithHorizontalVariant(Block block, MultiVariant model, MultiVariant horizontalModel) {
+         return MultiVariantGenerator.dispatch(block)
+             .with(
+                 PropertyDispatch.initial(BlockStateProperties.AXIS)
+@@ -786,13 +_,13 @@
+             );
+     }
+ 
+-    public void createRotatedPillarWithHorizontalVariant(Block block, TexturedModel.Provider verticalProvider, TexturedModel.Provider horizontalProvider) {
++    private void createRotatedPillarWithHorizontalVariant(Block block, TexturedModel.Provider verticalProvider, TexturedModel.Provider horizontalProvider) {
+         MultiVariant model = plainVariant(verticalProvider.create(block, this.modelOutput));
+         MultiVariant horizontalModel = plainVariant(horizontalProvider.create(block, this.modelOutput));
+         this.blockStateOutput.accept(createRotatedPillarWithHorizontalVariant(block, model, horizontalModel));
+     }
+ 
+-    public void createCreakingHeart(Block block) {
++    private void createCreakingHeart(Block block) {
+         MultiVariant model = plainVariant(TexturedModel.COLUMN_ALT.create(block, this.modelOutput));
+         MultiVariant horizontalModel = plainVariant(TexturedModel.COLUMN_HORIZONTAL_ALT.create(block, this.modelOutput));
+         MultiVariant activeModel = plainVariant(this.createCreakingHeartModel(TexturedModel.COLUMN_ALT, block, "_awake"));
+@@ -817,7 +_,7 @@
+             );
+     }
+ 
+-    public Identifier createCreakingHeartModel(TexturedModel.Provider provider, Block block, String suffix) {
++    private Identifier createCreakingHeartModel(TexturedModel.Provider provider, Block block, String suffix) {
+         return provider.updateTexture(
+                 t -> t.put(TextureSlot.SIDE, TextureMapping.getBlockTexture(block, suffix))
+                     .put(TextureSlot.END, TextureMapping.getBlockTexture(block, "_top" + suffix))
+@@ -825,15 +_,15 @@
+             .createWithSuffix(block, suffix, this.modelOutput);
+     }
+ 
+-    public Identifier createSuffixedVariant(Block block, String suffix, ModelTemplate template, Function<Material, TextureMapping> textureMapping) {
++    private Identifier createSuffixedVariant(Block block, String suffix, ModelTemplate template, Function<Material, TextureMapping> textureMapping) {
+         return template.createWithSuffix(block, suffix, textureMapping.apply(TextureMapping.getBlockTexture(block, suffix)), this.modelOutput);
+     }
+ 
+-    public static BlockModelDefinitionGenerator createPressurePlate(Block block, MultiVariant off, MultiVariant on) {
++    private static BlockModelDefinitionGenerator createPressurePlate(Block block, MultiVariant off, MultiVariant on) {
+         return MultiVariantGenerator.dispatch(block).with(createBooleanModelDispatch(BlockStateProperties.POWERED, on, off));
+     }
+ 
+-    public static BlockModelDefinitionGenerator createSlab(Block block, MultiVariant bottom, MultiVariant top, MultiVariant full) {
++    private static BlockModelDefinitionGenerator createSlab(Block block, MultiVariant bottom, MultiVariant top, MultiVariant full) {
+         return MultiVariantGenerator.dispatch(block)
+             .with(
+                 PropertyDispatch.initial(BlockStateProperties.SLAB_TYPE)
+@@ -843,11 +_,11 @@
+             );
+     }
+ 
+-    public void createTrivialCube(Block block) {
++    private void createTrivialCube(Block block) {
+         this.createTrivialBlock(block, TexturedModel.CUBE);
+     }
+ 
+-    public void createTrivialBlock(Block block, TexturedModel.Provider modelProvider) {
++    private void createTrivialBlock(Block block, TexturedModel.Provider modelProvider) {
+         this.blockStateOutput.accept(createSimpleBlock(block, plainVariant(modelProvider.create(block, this.modelOutput))));
+     }
+ 
+@@ -857,23 +_,23 @@
+         this.registerSimpleTintedItemModel(block, blockModel, ItemModelUtils.constantTint(tintColor));
+     }
+ 
+-    public void createVine() {
++    private void createVine() {
+         this.createMultifaceBlockStates(Blocks.VINE);
+         Identifier itemModel = this.createFlatItemModelWithBlockTexture(Items.VINE, Blocks.VINE);
+         this.registerSimpleTintedItemModel(Blocks.VINE, itemModel, ItemModelUtils.constantTint(-12012264));
+     }
+ 
+-    public void createItemWithGrassTint(Block block) {
++    private void createItemWithGrassTint(Block block) {
+         Identifier itemModel = this.createFlatItemModelWithBlockTexture(block.asItem(), block);
+         this.registerSimpleTintedItemModel(block, itemModel, new GrassColorSource());
+     }
+ 
+-    public BlockModelGenerators.BlockFamilyProvider family(Block block) {
++    private BlockModelGenerators.BlockFamilyProvider family(Block block) {
+         TexturedModel model = TEXTURED_MODELS.getOrDefault(block, TexturedModel.CUBE.get(block));
+         return new BlockModelGenerators.BlockFamilyProvider(model.getMapping()).fullBlock(block, model.getTemplate());
+     }
+ 
+-    public void createDoor(Block door) {
++    private void createDoor(Block door) {
+         TextureMapping mapping = TextureMapping.door(door);
+         MultiVariant doorBottomLeft = plainVariant(ModelTemplates.DOOR_BOTTOM_LEFT.create(door, mapping, this.modelOutput));
+         MultiVariant doorBottomLeftOpen = plainVariant(ModelTemplates.DOOR_BOTTOM_LEFT_OPEN.create(door, mapping, this.modelOutput));
+@@ -900,7 +_,7 @@
+             );
+     }
+ 
+-    public void copyDoorModel(Block donor, Block acceptor) {
++    private void copyDoorModel(Block donor, Block acceptor) {
+         MultiVariant doorBottomLeft = plainVariant(ModelTemplates.DOOR_BOTTOM_LEFT.getDefaultModelLocation(donor));
+         MultiVariant doorBottomLeftOpen = plainVariant(ModelTemplates.DOOR_BOTTOM_LEFT_OPEN.getDefaultModelLocation(donor));
+         MultiVariant doorBottomRight = plainVariant(ModelTemplates.DOOR_BOTTOM_RIGHT.getDefaultModelLocation(donor));
+@@ -926,7 +_,7 @@
+             );
+     }
+ 
+-    public void createOrientableTrapdoor(Block trapdoor) {
++    private void createOrientableTrapdoor(Block trapdoor) {
+         TextureMapping mapping = TextureMapping.defaultTexture(trapdoor);
+         MultiVariant top = plainVariant(ModelTemplates.ORIENTABLE_TRAPDOOR_TOP.create(trapdoor, mapping, this.modelOutput));
+         Identifier bottom = ModelTemplates.ORIENTABLE_TRAPDOOR_BOTTOM.create(trapdoor, mapping, this.modelOutput);
+@@ -935,7 +_,7 @@
+         this.registerSimpleItemModel(trapdoor, bottom);
+     }
+ 
+-    public void createTrapdoor(Block trapdoor) {
++    private void createTrapdoor(Block trapdoor) {
+         TextureMapping mapping = TextureMapping.defaultTexture(trapdoor);
+         MultiVariant top = plainVariant(ModelTemplates.TRAPDOOR_TOP.create(trapdoor, mapping, this.modelOutput));
+         Identifier bottom = ModelTemplates.TRAPDOOR_BOTTOM.create(trapdoor, mapping, this.modelOutput);
+@@ -944,7 +_,7 @@
+         this.registerSimpleItemModel(trapdoor, bottom);
+     }
+ 
+-    public void copyTrapdoorModel(Block donor, Block acceptor) {
++    private void copyTrapdoorModel(Block donor, Block acceptor) {
+         MultiVariant top = plainVariant(ModelTemplates.TRAPDOOR_TOP.getDefaultModelLocation(donor));
+         MultiVariant bottom = plainVariant(ModelTemplates.TRAPDOOR_BOTTOM.getDefaultModelLocation(donor));
+         MultiVariant open = plainVariant(ModelTemplates.TRAPDOOR_OPEN.getDefaultModelLocation(donor));
+@@ -952,7 +_,7 @@
+         this.blockStateOutput.accept(createTrapdoor(acceptor, top, bottom, open));
+     }
+ 
+-    public void createBigDripLeafBlock() {
++    private void createBigDripLeafBlock() {
+         MultiVariant noTilt = plainVariant(ModelLocationUtils.getModelLocation(Blocks.BIG_DRIPLEAF));
+         MultiVariant partialTilt = plainVariant(ModelLocationUtils.getModelLocation(Blocks.BIG_DRIPLEAF, "_partial_tilt"));
+         MultiVariant fullTilt = plainVariant(ModelLocationUtils.getModelLocation(Blocks.BIG_DRIPLEAF, "_full_tilt"));
+@@ -970,39 +_,39 @@
+             );
+     }
+ 
+-    public BlockModelGenerators.WoodProvider woodProvider(Block log) {
++    private BlockModelGenerators.WoodProvider woodProvider(Block log) {
+         return new BlockModelGenerators.WoodProvider(TextureMapping.logColumn(log));
+     }
+ 
+-    public void createNonTemplateModelBlock(Block block) {
++    private void createNonTemplateModelBlock(Block block) {
+         this.createNonTemplateModelBlock(block, block);
+     }
+ 
+-    public void createNonTemplateModelBlock(Block block, Block donor) {
++    private void createNonTemplateModelBlock(Block block, Block donor) {
+         this.blockStateOutput.accept(createSimpleBlock(block, plainVariant(ModelLocationUtils.getModelLocation(donor))));
+     }
+ 
+-    public void createCrossBlockWithDefaultItem(Block block, BlockModelGenerators.PlantType plantType) {
++    private void createCrossBlockWithDefaultItem(Block block, BlockModelGenerators.PlantType plantType) {
+         this.registerSimpleItemModel(block.asItem(), plantType.createItemModelUsingBlockTexture(this, block));
+         this.createCrossBlock(block, plantType);
+     }
+ 
+-    public void createCrossBlockWithDefaultItem(Block block, BlockModelGenerators.PlantType plantType, TextureMapping textures) {
++    private void createCrossBlockWithDefaultItem(Block block, BlockModelGenerators.PlantType plantType, TextureMapping textures) {
+         this.registerSimpleFlatItemModel(block);
+         this.createCrossBlock(block, plantType, textures);
+     }
+ 
+-    public void createCrossBlock(Block block, BlockModelGenerators.PlantType plantType) {
++    private void createCrossBlock(Block block, BlockModelGenerators.PlantType plantType) {
+         TextureMapping textures = plantType.getTextureMapping(block);
+         this.createCrossBlock(block, plantType, textures);
+     }
+ 
+-    public void createCrossBlock(Block block, BlockModelGenerators.PlantType plantType, TextureMapping textures) {
++    private void createCrossBlock(Block block, BlockModelGenerators.PlantType plantType, TextureMapping textures) {
+         MultiVariant model = plainVariant(plantType.getCross().create(block, textures, this.modelOutput));
+         this.blockStateOutput.accept(createSimpleBlock(block, model));
+     }
+ 
+-    public void createCrossBlock(Block block, BlockModelGenerators.PlantType plantType, Property<Integer> property, int... stages) {
++    private void createCrossBlock(Block block, BlockModelGenerators.PlantType plantType, Property<Integer> property, int... stages) {
+         if (property.getPossibleValues().size() != stages.length) {
+             throw new IllegalArgumentException("missing values for property: " + property);
+         }
+@@ -1015,19 +_,19 @@
+         })));
+     }
+ 
+-    public void createPlantWithDefaultItem(Block standAlone, Block potted, BlockModelGenerators.PlantType plantType) {
++    private void createPlantWithDefaultItem(Block standAlone, Block potted, BlockModelGenerators.PlantType plantType) {
+         this.registerSimpleItemModel(standAlone.asItem(), plantType.createItemModelUsingBlockTexture(this, standAlone));
+         this.createPlant(standAlone, potted, plantType);
+     }
+ 
+-    public void createPlant(Block standAlone, Block potted, BlockModelGenerators.PlantType plantType) {
++    private void createPlant(Block standAlone, Block potted, BlockModelGenerators.PlantType plantType) {
+         this.createCrossBlock(standAlone, plantType);
+         TextureMapping textures = plantType.getPlantTextureMapping(standAlone);
+         MultiVariant model = plainVariant(plantType.getCrossPot().create(potted, textures, this.modelOutput));
+         this.blockStateOutput.accept(createSimpleBlock(potted, model));
+     }
+ 
+-    public void createCoralFans(Block fan, Block wallFan) {
++    private void createCoralFans(Block fan, Block wallFan) {
+         TexturedModel fanTemplate = TexturedModel.CORAL_FAN.get(fan);
+         MultiVariant fanModel = plainVariant(fanTemplate.create(fan, this.modelOutput));
+         this.blockStateOutput.accept(createSimpleBlock(fan, fanModel));
+@@ -1036,7 +_,7 @@
+         this.registerSimpleFlatItemModel(fan);
+     }
+ 
+-    public void createStems(Block growingStem, Block attachedStem) {
++    private void createStems(Block growingStem, Block attachedStem) {
+         this.registerSimpleFlatItemModel(growingStem.asItem());
+         TextureMapping growingMapping = TextureMapping.stem(growingStem);
+         TextureMapping attachedMapping = TextureMapping.attachedStem(growingStem, attachedStem);
+@@ -1062,7 +_,7 @@
+             );
+     }
+ 
+-    public void createPitcherPlant() {
++    private void createPitcherPlant() {
+         Block block = Blocks.PITCHER_PLANT;
+         this.registerSimpleFlatItemModel(block.asItem());
+         MultiVariant topModel = plainVariant(ModelLocationUtils.getModelLocation(block, "_top"));
+@@ -1070,7 +_,7 @@
+         this.createDoubleBlock(block, topModel, bottomModel);
+     }
+ 
+-    public void createPitcherCrop() {
++    private void createPitcherCrop() {
+         Block block = Blocks.PITCHER_CROP;
+         this.registerSimpleFlatItemModel(block.asItem());
+         this.blockStateOutput
+@@ -1085,7 +_,7 @@
+             );
+     }
+ 
+-    public void createCoral(Block plant, Block deadPlant, Block block, Block deadBlock, Block fan, Block deadFan, Block wallFan, Block deadWallFan) {
++    private void createCoral(Block plant, Block deadPlant, Block block, Block deadBlock, Block fan, Block deadFan, Block wallFan, Block deadWallFan) {
+         this.createCrossBlockWithDefaultItem(plant, BlockModelGenerators.PlantType.NOT_TINTED);
+         this.createCrossBlockWithDefaultItem(deadPlant, BlockModelGenerators.PlantType.NOT_TINTED);
+         this.createTrivialCube(block);
+@@ -1094,24 +_,24 @@
+         this.createCoralFans(deadFan, deadWallFan);
+     }
+ 
+-    public void createDoublePlant(Block block, BlockModelGenerators.PlantType plantType) {
++    private void createDoublePlant(Block block, BlockModelGenerators.PlantType plantType) {
+         MultiVariant topModel = plainVariant(this.createSuffixedVariant(block, "_top", plantType.getCross(), TextureMapping::cross));
+         MultiVariant bottomModel = plainVariant(this.createSuffixedVariant(block, "_bottom", plantType.getCross(), TextureMapping::cross));
+         this.createDoubleBlock(block, topModel, bottomModel);
+     }
+ 
+-    public void createDoublePlantWithDefaultItem(Block block, BlockModelGenerators.PlantType plantType) {
++    private void createDoublePlantWithDefaultItem(Block block, BlockModelGenerators.PlantType plantType) {
+         this.registerSimpleFlatItemModel(block, "_top");
+         this.createDoublePlant(block, plantType);
+     }
+ 
+-    public void createTintedDoublePlant(Block block) {
++    private void createTintedDoublePlant(Block block) {
+         Identifier itemModel = this.createFlatItemModelWithBlockTexture(block.asItem(), block, "_top");
+         this.registerSimpleTintedItemModel(block, itemModel, new GrassColorSource());
+         this.createDoublePlant(block, BlockModelGenerators.PlantType.TINTED);
+     }
+ 
+-    public void createSunflower() {
++    private void createSunflower() {
+         this.registerSimpleFlatItemModel(Blocks.SUNFLOWER, "_front");
+         MultiVariant topModel = plainVariant(ModelLocationUtils.getModelLocation(Blocks.SUNFLOWER, "_top"));
+         MultiVariant bottomModel = plainVariant(
+@@ -1120,7 +_,7 @@
+         this.createDoubleBlock(Blocks.SUNFLOWER, topModel, bottomModel);
+     }
+ 
+-    public void createTallSeagrass() {
++    private void createTallSeagrass() {
+         MultiVariant topModel = plainVariant(this.createSuffixedVariant(Blocks.TALL_SEAGRASS, "_top", ModelTemplates.SEAGRASS, TextureMapping::defaultTexture));
+         MultiVariant bottomModel = plainVariant(
+             this.createSuffixedVariant(Blocks.TALL_SEAGRASS, "_bottom", ModelTemplates.SEAGRASS, TextureMapping::defaultTexture)
+@@ -1128,7 +_,7 @@
+         this.createDoubleBlock(Blocks.TALL_SEAGRASS, topModel, bottomModel);
+     }
+ 
+-    public void createSmallDripleaf() {
++    private void createSmallDripleaf() {
+         MultiVariant topModel = plainVariant(ModelLocationUtils.getModelLocation(Blocks.SMALL_DRIPLEAF, "_top"));
+         MultiVariant bottomModel = plainVariant(ModelLocationUtils.getModelLocation(Blocks.SMALL_DRIPLEAF, "_bottom"));
+         this.blockStateOutput
+@@ -1143,7 +_,7 @@
+             );
+     }
+ 
+-    public void createDoubleBlock(Block block, MultiVariant topModel, MultiVariant bottomModel) {
++    private void createDoubleBlock(Block block, MultiVariant topModel, MultiVariant bottomModel) {
+         this.blockStateOutput
+             .accept(
+                 MultiVariantGenerator.dispatch(block)
+@@ -1155,7 +_,7 @@
+             );
+     }
+ 
+-    public void createPassiveRail(Block block) {
++    private void createPassiveRail(Block block) {
+         TextureMapping texture = TextureMapping.rail(block);
+         TextureMapping cornerTexture = TextureMapping.rail(TextureMapping.getBlockTexture(block, "_corner"));
+         MultiVariant flat = plainVariant(ModelTemplates.RAIL_FLAT.create(block, texture, this.modelOutput));
+@@ -1182,7 +_,7 @@
+             );
+     }
+ 
+-    public void createActiveRail(Block block) {
++    private void createActiveRail(Block block) {
+         MultiVariant flat = plainVariant(this.createSuffixedVariant(block, "", ModelTemplates.RAIL_FLAT, TextureMapping::rail));
+         MultiVariant risingNE = plainVariant(this.createSuffixedVariant(block, "", ModelTemplates.RAIL_RAISED_NE, TextureMapping::rail));
+         MultiVariant risingSW = plainVariant(this.createSuffixedVariant(block, "", ModelTemplates.RAIL_RAISED_SW, TextureMapping::rail));
+@@ -1207,17 +_,17 @@
+             );
+     }
+ 
+-    public void createAirLikeBlock(Block block, Item particleItem) {
++    private void createAirLikeBlock(Block block, Item particleItem) {
+         MultiVariant dummyModel = plainVariant(ModelTemplates.PARTICLE_ONLY.create(block, TextureMapping.particleFromItem(particleItem), this.modelOutput));
+         this.blockStateOutput.accept(createSimpleBlock(block, dummyModel));
+     }
+ 
+-    public void createAirLikeBlock(Block block, Material particle) {
++    private void createAirLikeBlock(Block block, Material particle) {
+         MultiVariant dummyModel = plainVariant(ModelTemplates.PARTICLE_ONLY.create(block, TextureMapping.particle(particle), this.modelOutput));
+         this.blockStateOutput.accept(createSimpleBlock(block, dummyModel));
+     }
+ 
+-    public MultiVariant createParticleOnlyBlockModel(Block block, Block particleDonor) {
++    private MultiVariant createParticleOnlyBlockModel(Block block, Block particleDonor) {
+         return plainVariant(ModelTemplates.PARTICLE_ONLY.create(block, TextureMapping.particle(particleDonor), this.modelOutput));
+     }
+ 
+@@ -1225,17 +_,17 @@
+         this.blockStateOutput.accept(createSimpleBlock(block, this.createParticleOnlyBlockModel(block, particleDonor)));
+     }
+ 
+-    public void createParticleOnlyBlock(Block block) {
++    private void createParticleOnlyBlock(Block block) {
+         this.createParticleOnlyBlock(block, block);
+     }
+ 
+-    public void createFullAndCarpetBlocks(Block block, Block carpet) {
++    private void createFullAndCarpetBlocks(Block block, Block carpet) {
+         this.createTrivialCube(block);
+         MultiVariant model = plainVariant(TexturedModel.CARPET.get(block).create(carpet, this.modelOutput));
+         this.blockStateOutput.accept(createSimpleBlock(carpet, model));
+     }
+ 
+-    public void createLeafLitter(Block block) {
++    private void createLeafLitter(Block block) {
+         MultiVariant model1 = plainVariant(TexturedModel.LEAF_LITTER_1.create(block, this.modelOutput));
+         MultiVariant model2 = plainVariant(TexturedModel.LEAF_LITTER_2.create(block, this.modelOutput));
+         MultiVariant model3 = plainVariant(TexturedModel.LEAF_LITTER_3.create(block, this.modelOutput));
+@@ -1254,7 +_,7 @@
+         );
+     }
+ 
+-    public void createFlowerBed(Block flowerbed) {
++    private void createFlowerBed(Block flowerbed) {
+         MultiVariant model1 = plainVariant(TexturedModel.FLOWERBED_1.create(flowerbed, this.modelOutput));
+         MultiVariant model2 = plainVariant(TexturedModel.FLOWERBED_2.create(flowerbed, this.modelOutput));
+         MultiVariant model3 = plainVariant(TexturedModel.FLOWERBED_3.create(flowerbed, this.modelOutput));
+@@ -1273,7 +_,7 @@
+         );
+     }
+ 
+-    public void createSegmentedBlock(
++    private void createSegmentedBlock(
+         Block segmentedProperty,
+         MultiVariant model1,
+         Function<ConditionBuilder, ConditionBuilder> model1SegmentCondition,
+@@ -1306,20 +_,20 @@
+             );
+     }
+ 
+-    public void createColoredBlockWithRandomRotations(TexturedModel.Provider modelProvider, List<Block> blocks) {
++    private void createColoredBlockWithRandomRotations(TexturedModel.Provider modelProvider, List<Block> blocks) {
+         for (Block block : blocks) {
+             this.createRotatedVariantBlock(block, modelProvider);
+         }
+     }
+ 
+-    public void createColoredBlockWithStateRotations(TexturedModel.Provider modelProvider, List<Block> blocks) {
++    private void createColoredBlockWithStateRotations(TexturedModel.Provider modelProvider, List<Block> blocks) {
+         for (Block block : blocks) {
+             MultiVariant model = plainVariant(modelProvider.create(block, this.modelOutput));
+             this.blockStateOutput.accept(MultiVariantGenerator.dispatch(block, model).with(ROTATION_HORIZONTAL_FACING_ALT));
+         }
+     }
+ 
+-    public void createGlassBlocks(Block block, Block pane) {
++    private void createGlassBlocks(Block block, Block pane) {
+         this.createTrivialBlock(block, TexturedModel.CUBE.updateTexture(mapping -> mapping.forceAllTranslucent()));
+         TextureMapping paneMapping = TextureMapping.pane(block, pane).forceAllTranslucent();
+         MultiVariant post = plainVariant(ModelTemplates.STAINED_GLASS_PANE_POST.create(pane, paneMapping, this.modelOutput));
+@@ -1344,7 +_,7 @@
+             );
+     }
+ 
+-    public void createCommandBlock(Block block) {
++    private void createCommandBlock(Block block) {
+         TextureMapping normalTextures = TextureMapping.commandBlock(block);
+         MultiVariant normalModel = plainVariant(ModelTemplates.COMMAND_BLOCK.create(block, normalTextures, this.modelOutput));
+         MultiVariant conditionalModel = plainVariant(
+@@ -1358,12 +_,12 @@
+             );
+     }
+ 
+-    public void createAnvil(Block block) {
++    private void createAnvil(Block block) {
+         MultiVariant anvilModel = plainVariant(TexturedModel.ANVIL.create(block, this.modelOutput));
+         this.blockStateOutput.accept(createSimpleBlock(block, anvilModel).with(ROTATION_HORIZONTAL_FACING_ALT));
+     }
+ 
+-    public static MultiVariant createBambooModels(int age) {
++    private static MultiVariant createBambooModels(int age) {
+         String ageSuffix = "_age" + age;
+         return new MultiVariant(
+             WeightedList.of(
+@@ -1374,7 +_,7 @@
+         );
+     }
+ 
+-    public void createBamboo() {
++    private void createBamboo() {
+         this.blockStateOutput
+             .accept(
+                 MultiPartGenerator.multiPart(Blocks.BAMBOO)
+@@ -1391,7 +_,7 @@
+             );
+     }
+ 
+-    public void createBarrel() {
++    private void createBarrel() {
+         Material openTop = TextureMapping.getBlockTexture(Blocks.BARREL, "_top_open");
+         MultiVariant closedModel = plainVariant(TexturedModel.CUBE_BOTTOM_TOP.create(Blocks.BARREL, this.modelOutput));
+         MultiVariant openModel = plainVariant(
+@@ -1408,7 +_,7 @@
+             );
+     }
+ 
+-    public static <T extends Comparable<T>> PropertyDispatch<MultiVariant> createEmptyOrFullDispatch(
++    private static <T extends Comparable<T>> PropertyDispatch<MultiVariant> createEmptyOrFullDispatch(
+         Property<T> property, T threshold, MultiVariant fullModel, MultiVariant emptyModel
+     ) {
+         return PropertyDispatch.initial(property).generate(value -> {
+@@ -1417,7 +_,7 @@
+         });
+     }
+ 
+-    public void createBeeNest(Block block, Function<Block, TextureMapping> mappingFunction) {
++    private void createBeeNest(Block block, Function<Block, TextureMapping> mappingFunction) {
+         TextureMapping emptyMapping = mappingFunction.apply(block).copyForced(TextureSlot.SIDE, TextureSlot.PARTICLE);
+         TextureMapping fullMapping = emptyMapping.copyAndUpdate(TextureSlot.FRONT, TextureMapping.getBlockTexture(block, "_front_honey"));
+         Identifier emptyModel = ModelTemplates.CUBE_ORIENTABLE_TOP_BOTTOM.createWithSuffix(block, "_empty", emptyMapping, this.modelOutput);
+@@ -1437,7 +_,7 @@
+             );
+     }
+ 
+-    public void createCropBlock(Block block, Property<Integer> property, int... stages) {
++    private void createCropBlock(Block block, Property<Integer> property, int... stages) {
+         this.registerSimpleFlatItemModel(block.asItem());
+         if (property.getPossibleValues().size() != stages.length) {
+             throw new IllegalArgumentException();
+@@ -1450,7 +_,7 @@
+         })));
+     }
+ 
+-    public void createBell() {
++    private void createBell() {
+         MultiVariant floor = plainVariant(ModelLocationUtils.getModelLocation(Blocks.BELL, "_floor"));
+         MultiVariant ceiling = plainVariant(ModelLocationUtils.getModelLocation(Blocks.BELL, "_ceiling"));
+         MultiVariant wall = plainVariant(ModelLocationUtils.getModelLocation(Blocks.BELL, "_wall"));
+@@ -1481,7 +_,7 @@
+             );
+     }
+ 
+-    public void createGrindstone() {
++    private void createGrindstone() {
+         this.blockStateOutput
+             .accept(
+                 MultiVariantGenerator.dispatch(Blocks.GRINDSTONE, plainVariant(ModelLocationUtils.getModelLocation(Blocks.GRINDSTONE)))
+@@ -1503,7 +_,7 @@
+             );
+     }
+ 
+-    public void createFurnace(Block furnace, TexturedModel.Provider provider) {
++    private void createFurnace(Block furnace, TexturedModel.Provider provider) {
+         MultiVariant normalModel = plainVariant(provider.create(furnace, this.modelOutput));
+         Material frontTexture = TextureMapping.getBlockTexture(furnace, "_front_on");
+         MultiVariant litModel = plainVariant(
+@@ -1517,7 +_,7 @@
+             );
+     }
+ 
+-    public void createCampfires(Block... campFires) {
++    private void createCampfires(Block... campFires) {
+         MultiVariant offModel = plainVariant(ModelLocationUtils.decorateBlockModelLocation("campfire_off"));
+ 
+         for (Block campFire : campFires) {
+@@ -1532,12 +_,12 @@
+         }
+     }
+ 
+-    public void createAzalea(Block block) {
++    private void createAzalea(Block block) {
+         MultiVariant model = plainVariant(ModelTemplates.AZALEA.create(block, TextureMapping.cubeTop(block), this.modelOutput));
+         this.blockStateOutput.accept(createSimpleBlock(block, model));
+     }
+ 
+-    public void createPottedAzalea(Block block) {
++    private void createPottedAzalea(Block block) {
+         MultiVariant model;
+         if (block == Blocks.POTTED_FLOWERING_AZALEA) {
+             model = plainVariant(ModelTemplates.POTTED_FLOWERING_AZALEA.create(block, TextureMapping.pottedAzalea(block), this.modelOutput));
+@@ -1548,13 +_,13 @@
+         this.blockStateOutput.accept(createSimpleBlock(block, model));
+     }
+ 
+-    public void createBookshelf() {
++    private void createBookshelf() {
+         TextureMapping textures = TextureMapping.column(TextureMapping.getBlockTexture(Blocks.BOOKSHELF), TextureMapping.getBlockTexture(Blocks.OAK_PLANKS));
+         MultiVariant model = plainVariant(ModelTemplates.CUBE_COLUMN.create(Blocks.BOOKSHELF, textures, this.modelOutput));
+         this.blockStateOutput.accept(createSimpleBlock(Blocks.BOOKSHELF, model));
+     }
+ 
+-    public void createRedstoneWire() {
++    private void createRedstoneWire() {
+         this.registerSimpleFlatItemModel(Items.REDSTONE);
+         this.blockStateOutput
+             .accept(
+@@ -1616,7 +_,7 @@
+             );
+     }
+ 
+-    public void createComparator() {
++    private void createComparator() {
+         this.registerSimpleFlatItemModel(Items.COMPARATOR);
+         this.blockStateOutput
+             .accept(
+@@ -1632,7 +_,7 @@
+             );
+     }
+ 
+-    public void createSmoothStoneSlab() {
++    private void createSmoothStoneSlab() {
+         TextureMapping smoothStoneTextures = TextureMapping.cube(Blocks.SMOOTH_STONE);
+         TextureMapping smoothStoneSlabTextures = TextureMapping.column(
+             TextureMapping.getBlockTexture(Blocks.SMOOTH_STONE_SLAB, "_side"), smoothStoneTextures.get(TextureSlot.TOP)
+@@ -1649,7 +_,7 @@
+             );
+     }
+ 
+-    public void createBrewingStand() {
++    private void createBrewingStand() {
+         this.registerSimpleFlatItemModel(Items.BREWING_STAND);
+         this.blockStateOutput
+             .accept(
+@@ -1682,7 +_,7 @@
+             );
+     }
+ 
+-    public void createMushroomBlock(Block block) {
++    private void createMushroomBlock(Block block) {
+         MultiVariant skin = plainVariant(ModelTemplates.SINGLE_FACE.create(block, TextureMapping.defaultTexture(block), this.modelOutput));
+         MultiVariant skinless = plainVariant(ModelLocationUtils.decorateBlockModelLocation("mushroom_block_inside"));
+         this.blockStateOutput
+@@ -1704,7 +_,7 @@
+         this.registerSimpleItemModel(block, TexturedModel.CUBE.createWithSuffix(block, "_inventory", this.modelOutput));
+     }
+ 
+-    public void createCakeBlock() {
++    private void createCakeBlock() {
+         this.registerSimpleFlatItemModel(Items.CAKE);
+         this.blockStateOutput
+             .accept(
+@@ -1722,7 +_,7 @@
+             );
+     }
+ 
+-    public void createCartographyTable() {
++    private void createCartographyTable() {
+         TextureMapping mapping = new TextureMapping()
+             .put(TextureSlot.PARTICLE, TextureMapping.getBlockTexture(Blocks.CARTOGRAPHY_TABLE, "_side3"))
+             .put(TextureSlot.DOWN, TextureMapping.getBlockTexture(Blocks.DARK_OAK_PLANKS))
+@@ -1735,7 +_,7 @@
+             .accept(createSimpleBlock(Blocks.CARTOGRAPHY_TABLE, plainVariant(ModelTemplates.CUBE.create(Blocks.CARTOGRAPHY_TABLE, mapping, this.modelOutput))));
+     }
+ 
+-    public void createSmithingTable() {
++    private void createSmithingTable() {
+         TextureMapping mapping = new TextureMapping()
+             .put(TextureSlot.PARTICLE, TextureMapping.getBlockTexture(Blocks.SMITHING_TABLE, "_front"))
+             .put(TextureSlot.DOWN, TextureMapping.getBlockTexture(Blocks.SMITHING_TABLE, "_bottom"))
+@@ -1748,26 +_,26 @@
+             .accept(createSimpleBlock(Blocks.SMITHING_TABLE, plainVariant(ModelTemplates.CUBE.create(Blocks.SMITHING_TABLE, mapping, this.modelOutput))));
+     }
+ 
+-    public void createCraftingTableLike(Block block, Block bottomBlock, BiFunction<Block, Block, TextureMapping> mappingProvider) {
++    private void createCraftingTableLike(Block block, Block bottomBlock, BiFunction<Block, Block, TextureMapping> mappingProvider) {
+         TextureMapping mapping = mappingProvider.apply(block, bottomBlock);
+         this.blockStateOutput.accept(createSimpleBlock(block, plainVariant(ModelTemplates.CUBE.create(block, mapping, this.modelOutput))));
+     }
+ 
+-    public void createPumpkins() {
++    private void createPumpkins() {
+         TextureMapping pumpkinTextures = TextureMapping.column(Blocks.PUMPKIN);
+         this.blockStateOutput.accept(createSimpleBlock(Blocks.PUMPKIN, plainVariant(ModelLocationUtils.getModelLocation(Blocks.PUMPKIN))));
+         this.createPumpkinVariant(Blocks.CARVED_PUMPKIN, pumpkinTextures);
+         this.createPumpkinVariant(Blocks.JACK_O_LANTERN, pumpkinTextures);
+     }
+ 
+-    public void createPumpkinVariant(Block block, TextureMapping textures) {
++    private void createPumpkinVariant(Block block, TextureMapping textures) {
+         MultiVariant model = plainVariant(
+             ModelTemplates.CUBE_ORIENTABLE.create(block, textures.copyAndUpdate(TextureSlot.FRONT, TextureMapping.getBlockTexture(block)), this.modelOutput)
+         );
+         this.blockStateOutput.accept(MultiVariantGenerator.dispatch(block, model).with(ROTATION_HORIZONTAL_FACING));
+     }
+ 
+-    public void createCauldrons() {
++    private void createCauldrons() {
+         this.registerSimpleFlatItemModel(Items.CAULDRON);
+         this.createNonTemplateModelBlock(Blocks.CAULDRON);
+         this.blockStateOutput
+@@ -1868,7 +_,7 @@
+             );
+     }
+ 
+-    public void createChorusFlower() {
++    private void createChorusFlower() {
+         TextureMapping aliveTextures = TextureMapping.defaultTexture(Blocks.CHORUS_FLOWER);
+         MultiVariant aliveModel = plainVariant(ModelTemplates.CHORUS_FLOWER.create(Blocks.CHORUS_FLOWER, aliveTextures, this.modelOutput));
+         MultiVariant deadModel = plainVariant(
+@@ -1878,7 +_,7 @@
+             .accept(MultiVariantGenerator.dispatch(Blocks.CHORUS_FLOWER).with(createEmptyOrFullDispatch(BlockStateProperties.AGE_5, 5, deadModel, aliveModel)));
+     }
+ 
+-    public void createCrafterBlock() {
++    private void createCrafterBlock() {
+         MultiVariant off = plainVariant(ModelLocationUtils.getModelLocation(Blocks.CRAFTER));
+         MultiVariant triggeredLocation = plainVariant(ModelLocationUtils.getModelLocation(Blocks.CRAFTER, "_triggered"));
+         MultiVariant craftingLocation = plainVariant(ModelLocationUtils.getModelLocation(Blocks.CRAFTER, "_crafting"));
+@@ -1897,7 +_,7 @@
+             );
+     }
+ 
+-    public void createDispenserBlock(Block block) {
++    private void createDispenserBlock(Block block) {
+         TextureMapping horizontalTextures = new TextureMapping()
+             .put(TextureSlot.TOP, TextureMapping.getBlockTexture(Blocks.FURNACE, "_top"))
+             .put(TextureSlot.SIDE, TextureMapping.getBlockTexture(Blocks.FURNACE, "_side"))
+@@ -1922,7 +_,7 @@
+             );
+     }
+ 
+-    public void createEndPortalFrame() {
++    private void createEndPortalFrame() {
+         MultiVariant empty = plainVariant(ModelLocationUtils.getModelLocation(Blocks.END_PORTAL_FRAME));
+         MultiVariant filled = plainVariant(ModelLocationUtils.getModelLocation(Blocks.END_PORTAL_FRAME, "_filled"));
+         this.blockStateOutput
+@@ -1933,7 +_,7 @@
+             );
+     }
+ 
+-    public void createChorusPlant() {
++    private void createChorusPlant() {
+         MultiVariant side = plainVariant(ModelLocationUtils.getModelLocation(Blocks.CHORUS_PLANT, "_side"));
+         Variant noside = plainModel(ModelLocationUtils.getModelLocation(Blocks.CHORUS_PLANT, "_noside"));
+         Variant noside1 = plainModel(ModelLocationUtils.getModelLocation(Blocks.CHORUS_PLANT, "_noside1"));
+@@ -2016,7 +_,7 @@
+             );
+     }
+ 
+-    public void createComposter() {
++    private void createComposter() {
+         this.blockStateOutput
+             .accept(
+                 MultiPartGenerator.multiPart(Blocks.COMPOSTER)
+@@ -2056,7 +_,7 @@
+             );
+     }
+ 
+-    public void createCopperBulb(Block copperBulb) {
++    private void createCopperBulb(Block copperBulb) {
+         MultiVariant baseModel = plainVariant(ModelTemplates.CUBE_ALL.create(copperBulb, TextureMapping.cube(copperBulb), this.modelOutput));
+         MultiVariant baseModelPowered = plainVariant(this.createSuffixedVariant(copperBulb, "_powered", ModelTemplates.CUBE_ALL, TextureMapping::cube));
+         MultiVariant litModel = plainVariant(this.createSuffixedVariant(copperBulb, "_lit", ModelTemplates.CUBE_ALL, TextureMapping::cube));
+@@ -2064,7 +_,7 @@
+         this.blockStateOutput.accept(createCopperBulb(copperBulb, baseModel, litModel, baseModelPowered, litModelPowered));
+     }
+ 
+-    public static BlockModelDefinitionGenerator createCopperBulb(
++    private static BlockModelDefinitionGenerator createCopperBulb(
+         Block copperBulb, MultiVariant baseModel, MultiVariant litModel, MultiVariant baseModelPowered, MultiVariant litModelPowered
+     ) {
+         return MultiVariantGenerator.dispatch(copperBulb)
+@@ -2077,7 +_,7 @@
+             }));
+     }
+ 
+-    public void copyCopperBulbModel(Block donor, Block acceptor) {
++    private void copyCopperBulbModel(Block donor, Block acceptor) {
+         MultiVariant baseModel = plainVariant(ModelLocationUtils.getModelLocation(donor));
+         MultiVariant baseModelPowered = plainVariant(ModelLocationUtils.getModelLocation(donor, "_powered"));
+         MultiVariant litModel = plainVariant(ModelLocationUtils.getModelLocation(donor, "_lit"));
+@@ -2086,19 +_,19 @@
+         this.blockStateOutput.accept(createCopperBulb(acceptor, baseModel, litModel, baseModelPowered, litModelPowered));
+     }
+ 
+-    public void createAmethystCluster(Block clusterBlock) {
++    private void createAmethystCluster(Block clusterBlock) {
+         MultiVariant model = plainVariant(ModelTemplates.CROSS.create(clusterBlock, TextureMapping.cross(clusterBlock), this.modelOutput));
+         this.blockStateOutput.accept(MultiVariantGenerator.dispatch(clusterBlock, model).with(ROTATIONS_COLUMN_WITH_FACING));
+     }
+ 
+-    public void createAmethystClusters() {
++    private void createAmethystClusters() {
+         this.createAmethystCluster(Blocks.SMALL_AMETHYST_BUD);
+         this.createAmethystCluster(Blocks.MEDIUM_AMETHYST_BUD);
+         this.createAmethystCluster(Blocks.LARGE_AMETHYST_BUD);
+         this.createAmethystCluster(Blocks.AMETHYST_CLUSTER);
+     }
+ 
+-    public void createSpeleothem(Block block) {
++    private void createSpeleothem(Block block) {
+         PropertyDispatch.C2<MultiVariant, Direction, SpeleothemThickness> generator = PropertyDispatch.initial(
+             BlockStateProperties.VERTICAL_DIRECTION, BlockStateProperties.SPELEOTHEM_THICKNESS
+         );
+@@ -2114,13 +_,13 @@
+         this.blockStateOutput.accept(MultiVariantGenerator.dispatch(block).with(generator));
+     }
+ 
+-    public MultiVariant createSpeleothemVariant(Direction direction, SpeleothemThickness speleothemThickness, Block block) {
++    private MultiVariant createSpeleothemVariant(Direction direction, SpeleothemThickness speleothemThickness, Block block) {
+         String suffix = "_" + direction.getSerializedName() + "_" + speleothemThickness.getSerializedName();
+         TextureMapping texture = TextureMapping.cross(TextureMapping.getBlockTexture(block, suffix));
+         return plainVariant(ModelTemplates.POINTED_DRIPSTONE.createWithSuffix(block, suffix, texture, this.modelOutput));
+     }
+ 
+-    public void createNyliumBlock(Block block) {
++    private void createNyliumBlock(Block block) {
+         TextureMapping mapping = new TextureMapping()
+             .put(TextureSlot.BOTTOM, TextureMapping.getBlockTexture(Blocks.NETHERRACK))
+             .put(TextureSlot.TOP, TextureMapping.getBlockTexture(block))
+@@ -2128,7 +_,7 @@
+         this.blockStateOutput.accept(createSimpleBlock(block, plainVariant(ModelTemplates.CUBE_BOTTOM_TOP.create(block, mapping, this.modelOutput))));
+     }
+ 
+-    public void createDaylightDetector() {
++    private void createDaylightDetector() {
+         Material sideTexture = TextureMapping.getBlockTexture(Blocks.DAYLIGHT_DETECTOR, "_side");
+         TextureMapping normalTextures = new TextureMapping()
+             .put(TextureSlot.TOP, TextureMapping.getBlockTexture(Blocks.DAYLIGHT_DETECTOR, "_top"))
+@@ -2153,12 +_,12 @@
+             );
+     }
+ 
+-    public void createRotatableColumn(Block block) {
++    private void createRotatableColumn(Block block) {
+         this.blockStateOutput
+             .accept(MultiVariantGenerator.dispatch(block, plainVariant(ModelLocationUtils.getModelLocation(block))).with(ROTATIONS_COLUMN_WITH_FACING));
+     }
+ 
+-    public void createLightningRod(Block block, Block waxedBlock) {
++    private void createLightningRod(Block block, Block waxedBlock) {
+         MultiVariant on = plainVariant(ModelLocationUtils.getModelLocation(Blocks.LIGHTNING_ROD.weathering().unaffected(), "_on"));
+         MultiVariant off = plainVariant(ModelTemplates.LIGHTNING_ROD.create(block, TextureMapping.defaultTexture(block), this.modelOutput));
+         this.blockStateOutput
+@@ -2176,7 +_,7 @@
+         this.itemModelOutput.copy(block.asItem(), waxedBlock.asItem());
+     }
+ 
+-    public void createFarmland(Block farmland, Material baseTexture, Material bottomTexture, ModelTemplate template) {
++    private void createFarmland(Block farmland, Material baseTexture, Material bottomTexture, ModelTemplate template) {
+         TextureMapping dryTextures = new TextureMapping()
+             .put(TextureSlot.SIDE, baseTexture)
+             .put(TextureSlot.BOTTOM, bottomTexture)
+@@ -2191,14 +_,14 @@
+             .accept(MultiVariantGenerator.dispatch(farmland).with(createEmptyOrFullDispatch(BlockStateProperties.MOISTURE, 7, moistModel, dryModel)));
+     }
+ 
+-    public MultiVariant createFloorFireModels(Block block) {
++    private MultiVariant createFloorFireModels(Block block) {
+         return variants(
+             plainModel(ModelTemplates.FIRE_FLOOR.create(ModelLocationUtils.getModelLocation(block, "_floor0"), TextureMapping.fire0(block), this.modelOutput)),
+             plainModel(ModelTemplates.FIRE_FLOOR.create(ModelLocationUtils.getModelLocation(block, "_floor1"), TextureMapping.fire1(block), this.modelOutput))
+         );
+     }
+ 
+-    public MultiVariant createSideFireModels(Block block) {
++    private MultiVariant createSideFireModels(Block block) {
+         return variants(
+             plainModel(ModelTemplates.FIRE_SIDE.create(ModelLocationUtils.getModelLocation(block, "_side0"), TextureMapping.fire0(block), this.modelOutput)),
+             plainModel(ModelTemplates.FIRE_SIDE.create(ModelLocationUtils.getModelLocation(block, "_side1"), TextureMapping.fire1(block), this.modelOutput)),
+@@ -2211,7 +_,7 @@
+         );
+     }
+ 
+-    public MultiVariant createTopFireModels(Block block) {
++    private MultiVariant createTopFireModels(Block block) {
+         return variants(
+             plainModel(ModelTemplates.FIRE_UP.create(ModelLocationUtils.getModelLocation(block, "_up0"), TextureMapping.fire0(block), this.modelOutput)),
+             plainModel(ModelTemplates.FIRE_UP.create(ModelLocationUtils.getModelLocation(block, "_up1"), TextureMapping.fire1(block), this.modelOutput)),
+@@ -2220,7 +_,7 @@
+         );
+     }
+ 
+-    public void createFire() {
++    private void createFire() {
+         ConditionBuilder noSides = condition()
+             .term(BlockStateProperties.NORTH, false)
+             .term(BlockStateProperties.EAST, false)
+@@ -2242,7 +_,7 @@
+             );
+     }
+ 
+-    public void createSoulFire() {
++    private void createSoulFire() {
+         MultiVariant floorFireModels = this.createFloorFireModels(Blocks.SOUL_FIRE);
+         MultiVariant sideFireModels = this.createSideFireModels(Blocks.SOUL_FIRE);
+         this.blockStateOutput
+@@ -2256,14 +_,14 @@
+             );
+     }
+ 
+-    public void createLantern(Block block) {
++    private void createLantern(Block block) {
+         MultiVariant ground = plainVariant(TexturedModel.LANTERN.create(block, this.modelOutput));
+         MultiVariant hanging = plainVariant(TexturedModel.HANGING_LANTERN.create(block, this.modelOutput));
+         this.registerSimpleFlatItemModel(block.asItem());
+         this.blockStateOutput.accept(MultiVariantGenerator.dispatch(block).with(createBooleanModelDispatch(BlockStateProperties.HANGING, hanging, ground)));
+     }
+ 
+-    public void createCopperLantern(Block unwaxed, Block waxed) {
++    private void createCopperLantern(Block unwaxed, Block waxed) {
+         Identifier ground = TexturedModel.LANTERN.create(unwaxed, this.modelOutput);
+         Identifier hanging = TexturedModel.HANGING_LANTERN.create(unwaxed, this.modelOutput);
+         this.registerSimpleFlatItemModel(unwaxed.asItem());
+@@ -2280,13 +_,13 @@
+             );
+     }
+ 
+-    public void createCopperChain(Block unwaxed, Block waxed) {
++    private void createCopperChain(Block unwaxed, Block waxed) {
+         MultiVariant model = plainVariant(TexturedModel.CHAIN.create(unwaxed, this.modelOutput));
+         this.createAxisAlignedPillarBlockCustomModel(unwaxed, model);
+         this.createAxisAlignedPillarBlockCustomModel(waxed, model);
+     }
+ 
+-    public void createMuddyMangroveRoots() {
++    private void createMuddyMangroveRoots() {
+         TextureMapping textures = TextureMapping.column(
+             TextureMapping.getBlockTexture(Blocks.MUDDY_MANGROVE_ROOTS, "_side"), TextureMapping.getBlockTexture(Blocks.MUDDY_MANGROVE_ROOTS, "_top")
+         );
+@@ -2294,7 +_,7 @@
+         this.blockStateOutput.accept(createAxisAlignedPillarBlock(Blocks.MUDDY_MANGROVE_ROOTS, model));
+     }
+ 
+-    public void createMangrovePropagule() {
++    private void createMangrovePropagule() {
+         this.registerSimpleFlatItemModel(Items.MANGROVE_PROPAGULE);
+         Block block = Blocks.MANGROVE_PROPAGULE;
+         MultiVariant plantedModel = plainVariant(ModelLocationUtils.getModelLocation(block));
+@@ -2308,7 +_,7 @@
+             );
+     }
+ 
+-    public void createFrostedIce() {
++    private void createFrostedIce() {
+         this.blockStateOutput
+             .accept(
+                 MultiVariantGenerator.dispatch(Blocks.FROSTED_ICE)
+@@ -2322,7 +_,7 @@
+             );
+     }
+ 
+-    public void createGrassBlocks() {
++    private void createGrassBlocks() {
+         Material bottomTexture = TextureMapping.getBlockTexture(Blocks.DIRT);
+         TextureMapping snowyMapping = new TextureMapping()
+             .put(TextureSlot.BOTTOM, bottomTexture)
+@@ -2353,12 +_,12 @@
+         this.createGrassLikeBlock(Blocks.PODZOL, podzolModel, snowyGrass);
+     }
+ 
+-    public void createGrassLikeBlock(Block block, MultiVariant normal, MultiVariant snowy) {
++    private void createGrassLikeBlock(Block block, MultiVariant normal, MultiVariant snowy) {
+         this.blockStateOutput
+             .accept(MultiVariantGenerator.dispatch(block).with(PropertyDispatch.initial(BlockStateProperties.SNOWY).select(true, snowy).select(false, normal)));
+     }
+ 
+-    public void createCocoa() {
++    private void createCocoa() {
+         this.registerSimpleFlatItemModel(Items.COCOA_BEANS);
+         this.blockStateOutput
+             .accept(
+@@ -2373,7 +_,7 @@
+             );
+     }
+ 
+-    public void createShelfMushroom() {
++    private void createShelfMushroom() {
+         Identifier shelfMushroom = ModelLocationUtils.getModelLocation(Blocks.SHELF_MUSHROOM, "_stage0");
+         this.registerSimpleItemModel(Blocks.SHELF_MUSHROOM, shelfMushroom);
+         this.blockStateOutput
+@@ -2388,14 +_,14 @@
+             );
+     }
+ 
+-    public void createWeightedPressurePlate(Block block, Block appearance) {
++    private void createWeightedPressurePlate(Block block, Block appearance) {
+         TextureMapping textures = TextureMapping.defaultTexture(appearance);
+         MultiVariant up = plainVariant(ModelTemplates.PRESSURE_PLATE_UP.create(block, textures, this.modelOutput));
+         MultiVariant down = plainVariant(ModelTemplates.PRESSURE_PLATE_DOWN.create(block, textures, this.modelOutput));
+         this.blockStateOutput.accept(MultiVariantGenerator.dispatch(block).with(createEmptyOrFullDispatch(BlockStateProperties.POWER, 1, down, up)));
+     }
+ 
+-    public void createHopper() {
++    private void createHopper() {
+         MultiVariant downBlock = plainVariant(ModelLocationUtils.getModelLocation(Blocks.HOPPER));
+         MultiVariant sideBlock = plainVariant(ModelLocationUtils.getModelLocation(Blocks.HOPPER, "_side"));
+         this.registerSimpleFlatItemModel(Items.HOPPER);
+@@ -2413,13 +_,13 @@
+             );
+     }
+ 
+-    public void copyModel(Block donor, Block acceptor) {
++    private void copyModel(Block donor, Block acceptor) {
+         MultiVariant model = plainVariant(ModelLocationUtils.getModelLocation(donor));
+         this.blockStateOutput.accept(MultiVariantGenerator.dispatch(acceptor, model));
+         this.itemModelOutput.copy(donor.asItem(), acceptor.asItem());
+     }
+ 
+-    public void createBarsAndItem(Block block) {
++    private void createBarsAndItem(Block block) {
+         TextureMapping textures = TextureMapping.bars(block);
+         this.createBars(
+             block,
+@@ -2433,7 +_,7 @@
+         this.registerSimpleFlatItemModel(block);
+     }
+ 
+-    public void createBarsAndItem(Block unwaxed, Block waxed) {
++    private void createBarsAndItem(Block unwaxed, Block waxed) {
+         TextureMapping textures = TextureMapping.bars(unwaxed);
+         Identifier postEndResource = ModelTemplates.BARS_POST_ENDS.create(unwaxed, textures, this.modelOutput);
+         Identifier postResource = ModelTemplates.BARS_POST.create(unwaxed, textures, this.modelOutput);
+@@ -2447,7 +_,7 @@
+         this.itemModelOutput.copy(unwaxed.asItem(), waxed.asItem());
+     }
+ 
+-    public void createBars(
++    private void createBars(
+         Block block,
+         Identifier postEndResource,
+         Identifier postResource,
+@@ -2513,12 +_,12 @@
+             );
+     }
+ 
+-    public void createNonTemplateHorizontalBlock(Block block) {
++    private void createNonTemplateHorizontalBlock(Block block) {
+         this.blockStateOutput
+             .accept(MultiVariantGenerator.dispatch(block, plainVariant(ModelLocationUtils.getModelLocation(block))).with(ROTATION_HORIZONTAL_FACING));
+     }
+ 
+-    public void createLever() {
++    private void createLever() {
+         MultiVariant off = plainVariant(ModelLocationUtils.getModelLocation(Blocks.LEVER));
+         MultiVariant on = plainVariant(ModelLocationUtils.getModelLocation(Blocks.LEVER, "_on"));
+         this.registerSimpleFlatItemModel(Blocks.LEVER);
+@@ -2544,18 +_,18 @@
+             );
+     }
+ 
+-    public void createLilyPad() {
++    private void createLilyPad() {
+         Identifier itemModel = this.createFlatItemModelWithBlockTexture(Items.LILY_PAD, Blocks.LILY_PAD);
+         this.registerSimpleTintedItemModel(Blocks.LILY_PAD, itemModel, ItemModelUtils.constantTint(-9321636));
+         this.createRotatedVariantBlock(Blocks.LILY_PAD, ModelLocationUtils.getModelLocation(Blocks.LILY_PAD));
+     }
+ 
+-    public void createFrogspawnBlock() {
++    private void createFrogspawnBlock() {
+         this.registerSimpleFlatItemModel(Blocks.FROGSPAWN);
+         this.blockStateOutput.accept(createSimpleBlock(Blocks.FROGSPAWN, plainVariant(ModelLocationUtils.getModelLocation(Blocks.FROGSPAWN))));
+     }
+ 
+-    public void createNetherPortalBlock() {
++    private void createNetherPortalBlock() {
+         this.blockStateOutput
+             .accept(
+                 MultiVariantGenerator.dispatch(Blocks.NETHER_PORTAL)
+@@ -2567,7 +_,7 @@
+             );
+     }
+ 
+-    public void createNetherrack() {
++    private void createNetherrack() {
+         Variant model = plainModel(TexturedModel.CUBE.create(Blocks.NETHERRACK, this.modelOutput));
+         this.blockStateOutput
+             .accept(
+@@ -2595,7 +_,7 @@
+             );
+     }
+ 
+-    public void createObserver() {
++    private void createObserver() {
+         MultiVariant off = plainVariant(ModelLocationUtils.getModelLocation(Blocks.OBSERVER));
+         MultiVariant on = plainVariant(ModelLocationUtils.getModelLocation(Blocks.OBSERVER, "_on"));
+         this.blockStateOutput
+@@ -2604,7 +_,7 @@
+             );
+     }
+ 
+-    public void createPistons() {
++    private void createPistons() {
+         TextureMapping commonMapping = new TextureMapping()
+             .put(TextureSlot.BOTTOM, TextureMapping.getBlockTexture(Blocks.PISTON, "_bottom"))
+             .put(TextureSlot.SIDE, TextureMapping.getBlockTexture(Blocks.PISTON, "_side"));
+@@ -2623,7 +_,7 @@
+         this.registerSimpleItemModel(Blocks.STICKY_PISTON, stickyInventory);
+     }
+ 
+-    public void createPistonVariant(Block block, MultiVariant extended, TextureMapping textures) {
++    private void createPistonVariant(Block block, MultiVariant extended, TextureMapping textures) {
+         MultiVariant retracted = plainVariant(ModelTemplates.PISTON.create(block, textures, this.modelOutput));
+         this.blockStateOutput
+             .accept(
+@@ -2633,7 +_,7 @@
+             );
+     }
+ 
+-    public void createPistonHeads() {
++    private void createPistonHeads() {
+         TextureMapping commonMapping = new TextureMapping()
+             .put(TextureSlot.UNSTICKY, TextureMapping.getBlockTexture(Blocks.PISTON, "_top"))
+             .put(TextureSlot.SIDE, TextureMapping.getBlockTexture(Blocks.PISTON, "_side"));
+@@ -2671,7 +_,7 @@
+             );
+     }
+ 
+-    public void createTrialSpawner() {
++    private void createTrialSpawner() {
+         Block block = Blocks.TRIAL_SPAWNER;
+         TextureMapping inactiveTextures = TextureMapping.trialSpawner(block, "_side_inactive", "_top_inactive");
+         TextureMapping activeTextures = TextureMapping.trialSpawner(block, "_side_active", "_top_active");
+@@ -2708,7 +_,7 @@
+             );
+     }
+ 
+-    public void createVault() {
++    private void createVault() {
+         Block block = Blocks.VAULT;
+         TextureMapping inactiveTextures = TextureMapping.vault(block, "_front_off", "_side_off", "_top", "_bottom");
+         TextureMapping activeTextures = TextureMapping.vault(block, "_front_on", "_side_on", "_top", "_bottom");
+@@ -2745,7 +_,7 @@
+             })).with(ROTATION_HORIZONTAL_FACING));
+     }
+ 
+-    public void createSculkSensor() {
++    private void createSculkSensor() {
+         Identifier inactiveModel = ModelLocationUtils.getModelLocation(Blocks.SCULK_SENSOR, "_inactive");
+         MultiVariant inactive = plainVariant(inactiveModel);
+         MultiVariant active = plainVariant(ModelLocationUtils.getModelLocation(Blocks.SCULK_SENSOR, "_active"));
+@@ -2760,7 +_,7 @@
+             );
+     }
+ 
+-    public void createCalibratedSculkSensor() {
++    private void createCalibratedSculkSensor() {
+         Identifier inactiveModel = ModelLocationUtils.getModelLocation(Blocks.CALIBRATED_SCULK_SENSOR, "_inactive");
+         MultiVariant inactive = plainVariant(inactiveModel);
+         MultiVariant active = plainVariant(ModelLocationUtils.getModelLocation(Blocks.CALIBRATED_SCULK_SENSOR, "_active"));
+@@ -2776,7 +_,7 @@
+             );
+     }
+ 
+-    public void createSculkShrieker() {
++    private void createSculkShrieker() {
+         Identifier sculkShriekerModel = ModelTemplates.SCULK_SHRIEKER.create(Blocks.SCULK_SHRIEKER, TextureMapping.sculkShrieker(false), this.modelOutput);
+         MultiVariant sculkShrieker = plainVariant(sculkShriekerModel);
+         MultiVariant sculkShriekerCanSummon = plainVariant(
+@@ -2790,7 +_,7 @@
+             );
+     }
+ 
+-    public void createScaffolding() {
++    private void createScaffolding() {
+         Identifier stableModel = ModelLocationUtils.getModelLocation(Blocks.SCAFFOLDING, "_stable");
+         MultiVariant stable = plainVariant(stableModel);
+         MultiVariant unstable = plainVariant(ModelLocationUtils.getModelLocation(Blocks.SCAFFOLDING, "_unstable"));
+@@ -2799,7 +_,7 @@
+             .accept(MultiVariantGenerator.dispatch(Blocks.SCAFFOLDING).with(createBooleanModelDispatch(BlockStateProperties.BOTTOM, unstable, stable)));
+     }
+ 
+-    public void createCaveVines() {
++    private void createCaveVines() {
+         MultiVariant offHead = plainVariant(this.createSuffixedVariant(Blocks.CAVE_VINES, "", ModelTemplates.CROSS, TextureMapping::cross));
+         MultiVariant onHead = plainVariant(this.createSuffixedVariant(Blocks.CAVE_VINES, "_lit", ModelTemplates.CROSS, TextureMapping::cross));
+         this.blockStateOutput
+@@ -2810,13 +_,13 @@
+             .accept(MultiVariantGenerator.dispatch(Blocks.CAVE_VINES_PLANT).with(createBooleanModelDispatch(BlockStateProperties.BERRIES, onBody, offBody)));
+     }
+ 
+-    public void createRedstoneLamp() {
++    private void createRedstoneLamp() {
+         MultiVariant off = plainVariant(TexturedModel.CUBE.create(Blocks.REDSTONE_LAMP, this.modelOutput));
+         MultiVariant on = plainVariant(this.createSuffixedVariant(Blocks.REDSTONE_LAMP, "_on", ModelTemplates.CUBE_ALL, TextureMapping::cube));
+         this.blockStateOutput.accept(MultiVariantGenerator.dispatch(Blocks.REDSTONE_LAMP).with(createBooleanModelDispatch(BlockStateProperties.LIT, on, off)));
+     }
+ 
+-    public void createNormalTorch(Block ground, Block wall) {
++    private void createNormalTorch(Block ground, Block wall) {
+         TextureMapping textures = TextureMapping.torch(ground);
+         this.blockStateOutput.accept(createSimpleBlock(ground, plainVariant(ModelTemplates.TORCH.create(ground, textures, this.modelOutput))));
+         this.blockStateOutput
+@@ -2824,7 +_,7 @@
+         this.registerSimpleFlatItemModel(ground);
+     }
+ 
+-    public void createRedstoneTorch() {
++    private void createRedstoneTorch() {
+         TextureMapping onTextures = TextureMapping.torch(Blocks.REDSTONE_TORCH);
+         TextureMapping offTextures = TextureMapping.torch(TextureMapping.getBlockTexture(Blocks.REDSTONE_TORCH, "_off"));
+         MultiVariant groundModelOn = plainVariant(ModelTemplates.REDSTONE_TORCH.create(Blocks.REDSTONE_TORCH, onTextures, this.modelOutput));
+@@ -2846,7 +_,7 @@
+         this.registerSimpleFlatItemModel(Blocks.REDSTONE_TORCH);
+     }
+ 
+-    public void createRepeater() {
++    private void createRepeater() {
+         this.registerSimpleFlatItemModel(Items.REPEATER);
+         this.blockStateOutput
+             .accept(
+@@ -2871,7 +_,7 @@
+             );
+     }
+ 
+-    public void createSeaPickle() {
++    private void createSeaPickle() {
+         this.registerSimpleFlatItemModel(Items.SEA_PICKLE);
+         this.blockStateOutput
+             .accept(
+@@ -2890,7 +_,7 @@
+             );
+     }
+ 
+-    public void createSnowBlocks() {
++    private void createSnowBlocks() {
+         TextureMapping textures = TextureMapping.cube(Blocks.SNOW);
+         MultiVariant snowModel = plainVariant(ModelTemplates.CUBE_ALL.create(Blocks.SNOW_BLOCK, textures, this.modelOutput));
+         this.blockStateOutput
+@@ -2905,7 +_,7 @@
+         this.blockStateOutput.accept(createSimpleBlock(Blocks.SNOW_BLOCK, snowModel));
+     }
+ 
+-    public void createStonecutter() {
++    private void createStonecutter() {
+         this.blockStateOutput
+             .accept(
+                 MultiVariantGenerator.dispatch(Blocks.STONECUTTER, plainVariant(ModelLocationUtils.getModelLocation(Blocks.STONECUTTER)))
+@@ -2913,7 +_,7 @@
+             );
+     }
+ 
+-    public void createStructureBlock() {
++    private void createStructureBlock() {
+         Identifier inventory = TexturedModel.CUBE.create(Blocks.STRUCTURE_BLOCK, this.modelOutput);
+         this.registerSimpleItemModel(Blocks.STRUCTURE_BLOCK, inventory);
+         this.blockStateOutput
+@@ -2932,7 +_,7 @@
+             );
+     }
+ 
+-    public void createTestBlock() {
++    private void createTestBlock() {
+         Map<TestBlockMode, Identifier> variantIds = new HashMap<>();
+ 
+         for (TestBlockMode mode : TestBlockMode.values()) {
+@@ -2962,7 +_,7 @@
+             );
+     }
+ 
+-    public void createSweetBerryBush() {
++    private void createSweetBerryBush() {
+         this.registerSimpleFlatItemModel(Items.SWEET_BERRIES);
+         this.blockStateOutput
+             .accept(
+@@ -2978,7 +_,7 @@
+             );
+     }
+ 
+-    public void createTripwire() {
++    private void createTripwire() {
+         this.registerSimpleFlatItemModel(Items.STRING);
+         this.blockStateOutput
+             .accept(
+@@ -3097,7 +_,7 @@
+             );
+     }
+ 
+-    public void createTripwireHook() {
++    private void createTripwireHook() {
+         this.registerSimpleFlatItemModel(Blocks.TRIPWIRE_HOOK);
+         this.blockStateOutput
+             .accept(
+@@ -3114,7 +_,7 @@
+             );
+     }
+ 
+-    public Variant createTurtleEggModel(int count, String hatchProgress, TextureMapping texture) {
++    private Variant createTurtleEggModel(int count, String hatchProgress, TextureMapping texture) {
+         return switch (count) {
+             case 1 -> plainModel(
+                 ModelTemplates.TURTLE_EGG.create(ModelLocationUtils.decorateBlockModelLocation(hatchProgress + "turtle_egg"), texture, this.modelOutput)
+@@ -3135,7 +_,7 @@
+         };
+     }
+ 
+-    public Variant createTurtleEggModel(int eggs, int hatch) {
++    private Variant createTurtleEggModel(int eggs, int hatch) {
+         return switch (hatch) {
+             case 0 -> this.createTurtleEggModel(eggs, "", TextureMapping.cube(TextureMapping.getBlockTexture(Blocks.TURTLE_EGG)));
+             case 1 -> this.createTurtleEggModel(
+@@ -3146,7 +_,7 @@
+         };
+     }
+ 
+-    public void createTurtleEgg() {
++    private void createTurtleEgg() {
+         this.registerSimpleFlatItemModel(Items.TURTLE_EGG);
+         this.blockStateOutput
+             .accept(
+@@ -3158,7 +_,7 @@
+             );
+     }
+ 
+-    public void createDriedGhastBlock() {
++    private void createDriedGhastBlock() {
+         Identifier driedGhast = ModelLocationUtils.getModelLocation(Blocks.DRIED_GHAST, "_hydration_0");
+         this.registerSimpleItemModel(Blocks.DRIED_GHAST, driedGhast);
+         Function<Integer, Identifier> createModel = stage -> {
+@@ -3179,7 +_,7 @@
+             );
+     }
+ 
+-    public void createSnifferEgg() {
++    private void createSnifferEgg() {
+         this.registerSimpleFlatItemModel(Items.SNIFFER_EGG);
+         this.blockStateOutput
+             .accept(MultiVariantGenerator.dispatch(Blocks.SNIFFER_EGG).with(PropertyDispatch.initial(SnifferEggBlock.HATCH).generate(stage -> {
+@@ -3193,17 +_,17 @@
+             })));
+     }
+ 
+-    public void createMultiface(Block block) {
++    private void createMultiface(Block block) {
+         this.registerSimpleFlatItemModel(block);
+         this.createMultifaceBlockStates(block);
+     }
+ 
+-    public void createMultiface(Block block, Item item) {
++    private void createMultiface(Block block, Item item) {
+         this.registerSimpleFlatItemModel(item);
+         this.createMultifaceBlockStates(block);
+     }
+ 
+-    public static <T extends Property<?>> Map<T, VariantMutator> selectMultifaceProperties(StateHolder<?, ?> holder, Function<Direction, T> converter) {
++    private static <T extends Property<?>> Map<T, VariantMutator> selectMultifaceProperties(StateHolder<?, ?> holder, Function<Direction, T> converter) {
+         Builder<T, VariantMutator> result = ImmutableMap.builderWithExpectedSize(MULTIFACE_GENERATOR.size());
+         MULTIFACE_GENERATOR.forEach((direction, mutator) -> {
+             T property = converter.apply(direction);
+@@ -3214,7 +_,7 @@
+         return result.build();
+     }
+ 
+-    public void createMultifaceBlockStates(Block block) {
++    private void createMultifaceBlockStates(Block block) {
+         Map<Property<Boolean>, VariantMutator> directionProperties = selectMultifaceProperties(block.defaultBlockState(), MultifaceBlock::getFaceProperty);
+         ConditionBuilder noFaces = condition();
+         directionProperties.forEach((property, mutator) -> noFaces.term((Property<Boolean>)property, false));
+@@ -3227,7 +_,7 @@
+         this.blockStateOutput.accept(generator);
+     }
+ 
+-    public void createMossyCarpet(Block block) {
++    private void createMossyCarpet(Block block) {
+         Map<Property<WallSide>, VariantMutator> directionProperties = selectMultifaceProperties(block.defaultBlockState(), MossyCarpetBlock::getPropertyForFace);
+         ConditionBuilder noFaces = condition().term(MossyCarpetBlock.BASE, false);
+         directionProperties.forEach((property, mutator) -> noFaces.term((Property<WallSide>)property, WallSide.NONE));
+@@ -3255,7 +_,7 @@
+         this.blockStateOutput.accept(generator);
+     }
+ 
+-    public void createHangingMoss(Block block) {
++    private void createHangingMoss(Block block) {
+         this.registerSimpleFlatItemModel(block);
+         this.blockStateOutput.accept(MultiVariantGenerator.dispatch(block).with(PropertyDispatch.initial(HangingMossBlock.TIP).generate(isTip -> {
+             String suffix = isTip ? "_tip" : "";
+@@ -3264,7 +_,7 @@
+         })));
+     }
+ 
+-    public void createSculkCatalyst() {
++    private void createSculkCatalyst() {
+         Material bottom = TextureMapping.getBlockTexture(Blocks.SCULK_CATALYST, "_bottom");
+         TextureMapping defaultTextureMap = new TextureMapping()
+             .put(TextureSlot.BOTTOM, bottom)
+@@ -3285,7 +_,7 @@
+         this.registerSimpleItemModel(Blocks.SCULK_CATALYST, defaultModel);
+     }
+ 
+-    public void createShelf(Block block, Block particle) {
++    private void createShelf(Block block, Block particle) {
+         TextureMapping mapping = new TextureMapping()
+             .put(TextureSlot.ALL, TextureMapping.getBlockTexture(block))
+             .put(TextureSlot.PARTICLE, TextureMapping.getBlockTexture(particle));
+@@ -3300,7 +_,7 @@
+         this.registerSimpleItemModel(block, ModelTemplates.SHELF_INVENTORY.create(block, mapping, this.modelOutput));
+     }
+ 
+-    public void addShelfPart(
++    private void addShelfPart(
+         Block block,
+         TextureMapping mapping,
+         MultiPartGenerator generator,
+@@ -3312,7 +_,7 @@
+         forEachHorizontalDirection((direction, rotation) -> generator.with(shelfCondition(direction, isPowered, sideChainPart), variant.with(rotation)));
+     }
+ 
+-    public static void forEachHorizontalDirection(BiConsumer<Direction, VariantMutator> consumer) {
++    private static void forEachHorizontalDirection(BiConsumer<Direction, VariantMutator> consumer) {
+         List.of(Pair.of(Direction.NORTH, NOP), Pair.of(Direction.EAST, Y_ROT_90), Pair.of(Direction.SOUTH, Y_ROT_180), Pair.of(Direction.WEST, Y_ROT_270))
+             .forEach(pair -> {
+                 Direction direction = pair.getFirst();
+@@ -3321,7 +_,7 @@
+             });
+     }
+ 
+-    public static Condition shelfCondition(Direction direction, @Nullable Boolean isPowered, @Nullable SideChainPart sideChainPart) {
++    private static Condition shelfCondition(Direction direction, @Nullable Boolean isPowered, @Nullable SideChainPart sideChainPart) {
+         ConditionBuilder facing = condition(BlockStateProperties.HORIZONTAL_FACING, direction);
+         if (isPowered == null) {
+             return facing.build();
+@@ -3331,7 +_,7 @@
+         return sideChainPart != null ? and(facing, powered, condition(BlockStateProperties.SIDE_CHAIN_PART, sideChainPart)) : and(facing, powered);
+     }
+ 
+-    public void createChiseledBookshelf() {
++    private void createChiseledBookshelf() {
+         Block block = Blocks.CHISELED_BOOKSHELF;
+         MultiVariant body = plainVariant(ModelLocationUtils.getModelLocation(block));
+         MultiPartGenerator multiPartGenerator = MultiPartGenerator.multiPart(block);
+@@ -3345,7 +_,7 @@
+         CHISELED_BOOKSHELF_SLOT_MODEL_CACHE.clear();
+     }
+ 
+-    public void addSlotStateAndRotationVariants(MultiPartGenerator multiPartGenerator, Condition facingCondition, VariantMutator mutator) {
++    private void addSlotStateAndRotationVariants(MultiPartGenerator multiPartGenerator, Condition facingCondition, VariantMutator mutator) {
+         List.of(
+                 Pair.of(ChiseledBookShelfBlock.SLOT_0_OCCUPIED, ModelTemplates.CHISELED_BOOKSHELF_SLOT_TOP_LEFT),
+                 Pair.of(ChiseledBookShelfBlock.SLOT_1_OCCUPIED, ModelTemplates.CHISELED_BOOKSHELF_SLOT_TOP_MID),
+@@ -3362,7 +_,7 @@
+             });
+     }
+ 
+-    public void addBookSlotModel(
++    private void addBookSlotModel(
+         MultiPartGenerator multiPartGenerator,
+         Condition facingCondition,
+         VariantMutator mutator,
+@@ -3384,13 +_,13 @@
+         );
+     }
+ 
+-    public void createMagmaBlock() {
++    private void createMagmaBlock() {
+         Material texture = new Material(Identifier.withDefaultNamespace("block/magma"));
+         MultiVariant model = plainVariant(ModelTemplates.CUBE_ALL.create(Blocks.MAGMA_BLOCK, TextureMapping.cube(texture), this.modelOutput));
+         this.blockStateOutput.accept(createSimpleBlock(Blocks.MAGMA_BLOCK, model));
+     }
+ 
+-    public void createShulkerBox(Block block, @Nullable DyeColor color) {
++    private void createShulkerBox(Block block, @Nullable DyeColor color) {
+         this.createParticleOnlyBlock(block);
+         Item item = block.asItem();
+         Identifier baseModel = ModelTemplates.SHULKER_BOX_INVENTORY.create(item, TextureMapping.particle(block), this.modelOutput);
+@@ -3401,12 +_,12 @@
+         this.itemModelOutput.accept(item, itemModel);
+     }
+ 
+-    public void createGrowingPlant(Block kelp, Block kelpPlant, BlockModelGenerators.PlantType type) {
++    private void createGrowingPlant(Block kelp, Block kelpPlant, BlockModelGenerators.PlantType type) {
+         this.createCrossBlock(kelp, type);
+         this.createCrossBlock(kelpPlant, type);
+     }
+ 
+-    public void createInfestedStone() {
++    private void createInfestedStone() {
+         Identifier normalModel = ModelLocationUtils.getModelLocation(Blocks.STONE);
+         Variant normal = plainModel(normalModel);
+         Variant mirrored = plainModel(ModelLocationUtils.getModelLocation(Blocks.STONE, "_mirrored"));
+@@ -3414,7 +_,7 @@
+         this.registerSimpleItemModel(Blocks.INFESTED_STONE, normalModel);
+     }
+ 
+-    public void createInfestedDeepslate() {
++    private void createInfestedDeepslate() {
+         Identifier normalModel = ModelLocationUtils.getModelLocation(Blocks.DEEPSLATE);
+         Variant normal = plainModel(normalModel);
+         Variant mirrored = plainModel(ModelLocationUtils.getModelLocation(Blocks.DEEPSLATE, "_mirrored"));
+@@ -3423,14 +_,14 @@
+         this.registerSimpleItemModel(Blocks.INFESTED_DEEPSLATE, normalModel);
+     }
+ 
+-    public void createNetherRoots(Block roots, Block pottedRoots) {
++    private void createNetherRoots(Block roots, Block pottedRoots) {
+         this.createCrossBlockWithDefaultItem(roots, BlockModelGenerators.PlantType.NOT_TINTED);
+         TextureMapping textures = TextureMapping.plant(TextureMapping.getBlockTexture(roots, "_pot"));
+         MultiVariant model = plainVariant(BlockModelGenerators.PlantType.NOT_TINTED.getCrossPot().create(pottedRoots, textures, this.modelOutput));
+         this.blockStateOutput.accept(createSimpleBlock(pottedRoots, model));
+     }
+ 
+-    public void createRespawnAnchor() {
++    private void createRespawnAnchor() {
+         Material bottom = TextureMapping.getBlockTexture(Blocks.RESPAWN_ANCHOR, "_bottom");
+         Material topOff = TextureMapping.getBlockTexture(Blocks.RESPAWN_ANCHOR, "_top_off");
+         Material topOn = TextureMapping.getBlockTexture(Blocks.RESPAWN_ANCHOR, "_top");
+@@ -3452,7 +_,7 @@
+         this.registerSimpleItemModel(Blocks.RESPAWN_ANCHOR, chargeLevelModels[0]);
+     }
+ 
+-    public static VariantMutator applyRotation(FrontAndTop orientation) {
++    private static VariantMutator applyRotation(FrontAndTop orientation) {
+         return switch (orientation) {
+             case DOWN_NORTH -> X_ROT_90;
+             case DOWN_SOUTH -> X_ROT_90.then(Y_ROT_180);
+@@ -3469,7 +_,7 @@
+         };
+     }
+ 
+-    public void createJigsaw() {
++    private void createJigsaw() {
+         Material front = TextureMapping.getBlockTexture(Blocks.JIGSAW, "_top");
+         Material back = TextureMapping.getBlockTexture(Blocks.JIGSAW, "_bottom");
+         Material side = TextureMapping.getBlockTexture(Blocks.JIGSAW, "_side");
+@@ -3489,7 +_,7 @@
+             );
+     }
+ 
+-    public void createPetrifiedOakSlab() {
++    private void createPetrifiedOakSlab() {
+         Block fullBlock = Blocks.OAK_PLANKS;
+         MultiVariant fullBlockModel = plainVariant(ModelLocationUtils.getModelLocation(fullBlock));
+         TextureMapping fullBlockTextures = TextureMapping.cube(fullBlock);
+@@ -3499,7 +_,7 @@
+         this.blockStateOutput.accept(createSlab(petrifiedSlab, petrifiedSlabBottom, petrifiedSlabTop, fullBlockModel));
+     }
+ 
+-    public void createHead(Block standAlone, Block wall, SkullBlock.Type skullType, Identifier itemBase) {
++    private void createHead(Block standAlone, Block wall, SkullBlock.Type skullType, Identifier itemBase) {
+         MultiVariant blockModel = plainVariant(ModelLocationUtils.decorateBlockModelLocation("skull"));
+         this.blockStateOutput.accept(createSimpleBlock(standAlone, blockModel));
+         this.blockStateOutput.accept(createSimpleBlock(wall, blockModel));
+@@ -3511,7 +_,7 @@
+         }
+     }
+ 
+-    public void createHeads() {
++    private void createHeads() {
+         Identifier defaultHeadItemBase = ModelLocationUtils.decorateItemModelLocation("template_skull");
+         this.createHead(Blocks.CREEPER_HEAD, Blocks.CREEPER_WALL_HEAD, SkullBlock.Types.CREEPER, defaultHeadItemBase);
+         this.createHead(Blocks.PLAYER_HEAD, Blocks.PLAYER_WALL_HEAD, SkullBlock.Types.PLAYER, defaultHeadItemBase);
+@@ -3522,14 +_,14 @@
+         this.createHead(Blocks.DRAGON_HEAD, Blocks.DRAGON_WALL_HEAD, SkullBlock.Types.DRAGON, ModelLocationUtils.getModelLocation(Items.DRAGON_HEAD));
+     }
+ 
+-    public void createCopperGolemStatues() {
++    private void createCopperGolemStatues() {
+         WeatheringCopper.WeatherState.forEach(state -> {
+             this.createCopperGolemStatue(Blocks.COPPER_GOLEM_STATUE.weathering().pick(state), Blocks.COPPER_BLOCK.weathering().pick(state), state);
+             this.copyModel(Blocks.COPPER_GOLEM_STATUE.weathering().pick(state), Blocks.COPPER_GOLEM_STATUE.waxed().pick(state));
+         });
+     }
+ 
+-    public void createCopperGolemStatue(Block block, Block particle, WeatheringCopper.WeatherState state) {
++    private void createCopperGolemStatue(Block block, Block particle, WeatheringCopper.WeatherState state) {
+         MultiVariant blockModel = plainVariant(
+             ModelTemplates.PARTICLE_ONLY.create(block, TextureMapping.particle(TextureMapping.getBlockTexture(particle)), this.modelOutput)
+         );
+@@ -3554,7 +_,7 @@
+             );
+     }
+ 
+-    public void createBanner(DyeColor baseColor) {
++    private void createBanner(DyeColor baseColor) {
+         Block standAlone = Blocks.BANNER.pick(baseColor);
+         Block wall = Blocks.WALL_BANNER.pick(baseColor);
+         MultiVariant blockModel = plainVariant(ModelLocationUtils.decorateBlockModelLocation("banner"));
+@@ -3573,7 +_,7 @@
+             );
+     }
+ 
+-    public void createChest(Block block, Block particle, Identifier texture, boolean hasGiftVariant) {
++    private void createChest(Block block, Block particle, Identifier texture, boolean hasGiftVariant) {
+         this.createParticleOnlyBlock(block, particle);
+         Item chestItem = block.asItem();
+         Identifier itemModelBase = ModelTemplates.CHEST_INVENTORY.create(chestItem, TextureMapping.particle(particle), this.modelOutput);
+@@ -3586,17 +_,17 @@
+         }
+     }
+ 
+-    public void createChest(Block block, Block particle, MultiblockChestResources<Identifier> textures, boolean hasGiftVariant) {
++    private void createChest(Block block, Block particle, MultiblockChestResources<Identifier> textures, boolean hasGiftVariant) {
+         this.createChest(block, particle, textures.single(), hasGiftVariant);
+     }
+ 
+-    public void createChests() {
++    private void createChests() {
+         this.createChest(Blocks.CHEST, Blocks.OAK_PLANKS, ChestSpecialRenderer.REGULAR, true);
+         this.createChest(Blocks.TRAPPED_CHEST, Blocks.OAK_PLANKS, ChestSpecialRenderer.TRAPPED, true);
+         this.createChest(Blocks.ENDER_CHEST, Blocks.OBSIDIAN, ChestSpecialRenderer.ENDER_CHEST, false);
+     }
+ 
+-    public void createCopperChests() {
++    private void createCopperChests() {
+         WeatheringCopper.WeatherState.forEach(
+             state -> {
+                 this.createChest(
+@@ -3607,7 +_,7 @@
+         );
+     }
+ 
+-    public void createBed(DyeColor dyeColor) {
++    private void createBed(DyeColor dyeColor) {
+         Block bed = Blocks.BED.pick(dyeColor);
+         Identifier head = ModelTemplates.BED_HEAD.createWithSuffix(bed, "_" + BedPart.HEAD, TextureMapping.bed(bed, BedPart.HEAD), this.modelOutput);
+         Identifier foot = ModelTemplates.BED_FOOT.createWithSuffix(bed, "_" + BedPart.FOOT, TextureMapping.bed(bed, BedPart.FOOT), this.modelOutput);
+@@ -3620,7 +_,7 @@
+         this.itemModelOutput.accept(bed.asItem(), ItemModelUtils.composite(itemModelHead, itemModelFoot));
+     }
+ 
+-    public void generateSimpleSpecialItemModel(Block block, Optional<Transformation> transformation, SpecialModelRenderer.Unbaked<?> specialModel) {
++    private void generateSimpleSpecialItemModel(Block block, Optional<Transformation> transformation, SpecialModelRenderer.Unbaked<?> specialModel) {
+         Item item = block.asItem();
+         Identifier harcodedModelBase = ModelLocationUtils.getModelLocation(item);
+         this.itemModelOutput.accept(item, ItemModelUtils.specialModel(harcodedModelBase, transformation, specialModel));
+@@ -4113,7 +_,7 @@
+         this.createInfestedDeepslate();
+     }
+ 
+-    public void createLightBlock() {
++    private void createLightBlock() {
+         ItemModel.Unbaked base = ItemModelUtils.plainModel(this.createFlatItemModel(Items.LIGHT));
+         Map<Integer, ItemModel.Unbaked> overrides = new HashMap<>(16);
+         PropertyDispatch.C1<MultiVariant, Integer> light = PropertyDispatch.initial(BlockStateProperties.LEVEL);
+@@ -4134,13 +_,13 @@
+         this.blockStateOutput.accept(MultiVariantGenerator.dispatch(Blocks.LIGHT).with(light));
+     }
+ 
+-    public void createCopperChainItem(Item unwaxed, Item waxed) {
++    private void createCopperChainItem(Item unwaxed, Item waxed) {
+         Identifier model = this.createFlatItemModel(unwaxed);
+         this.registerSimpleItemModel(unwaxed, model);
+         this.registerSimpleItemModel(waxed, model);
+     }
+ 
+-    public void createCandleAndCandleCake(Block candleBlock, Block candleCakeBlock) {
++    private void createCandleAndCandleCake(Block candleBlock, Block candleCakeBlock) {
+         this.registerSimpleFlatItemModel(candleBlock.asItem());
+         TextureMapping candleTexture = TextureMapping.cube(TextureMapping.getBlockTexture(candleBlock));
+         TextureMapping candleLitTexture = TextureMapping.cube(TextureMapping.getBlockTexture(candleBlock, "_lit"));
+@@ -4183,7 +_,7 @@
+             .accept(MultiVariantGenerator.dispatch(candleCakeBlock).with(createBooleanModelDispatch(BlockStateProperties.LIT, litCandleCake, candleCake)));
+     }
+ 
+-    public class BlockFamilyProvider {
++    private class BlockFamilyProvider {
+         private final TextureMapping mapping;
+         private final Map<ModelTemplate, Identifier> models = new HashMap<>();
+         private @Nullable BlockFamily family;
+@@ -4369,7 +_,7 @@
+             return this.hangingSign(hangingSign, this.family.get(BlockFamily.Variant.STRIPPED_LOG), BlockFamily.Variant.WALL_HANGING_SIGN);
+         }
+ 
+-        public BlockModelGenerators.BlockFamilyProvider hangingSign(Block hangingSign, Block particleBlock, BlockFamily.Variant wallVarient) {
++        private BlockModelGenerators.BlockFamilyProvider hangingSign(Block hangingSign, Block particleBlock, BlockFamily.Variant wallVarient) {
+             TextureMapping mapping = new TextureMapping()
+                 .put(TextureSlot.ALL, TextureMapping.getBlockTexture(hangingSign))
+                 .put(TextureSlot.PARTICLE, TextureMapping.getBlockTexture(particleBlock));
+@@ -4444,14 +_,14 @@
+             return this;
+         }
+ 
+-        public BlockModelGenerators.BlockFamilyProvider fullBlockVariant(Block variant) {
++        private BlockModelGenerators.BlockFamilyProvider fullBlockVariant(Block variant) {
+             TexturedModel model = BlockModelGenerators.TEXTURED_MODELS.getOrDefault(variant, TexturedModel.CUBE.get(variant));
+             MultiVariant variantModel = BlockModelGenerators.plainVariant(model.create(variant, BlockModelGenerators.this.modelOutput));
+             BlockModelGenerators.this.blockStateOutput.accept(BlockModelGenerators.createSimpleBlock(variant, variantModel));
+             return this;
+         }
+ 
+-        public BlockModelGenerators.BlockFamilyProvider pillar(Block variant) {
++        private BlockModelGenerators.BlockFamilyProvider pillar(Block variant) {
+             MultiVariant verticalModel = BlockModelGenerators.plainVariant(TexturedModel.COLUMN.create(variant, BlockModelGenerators.this.modelOutput));
+             MultiVariant horizontalModel = BlockModelGenerators.plainVariant(
+                 TexturedModel.COLUMN_HORIZONTAL.create(variant, BlockModelGenerators.this.modelOutput)
+@@ -4461,12 +_,12 @@
+             return this;
+         }
+ 
+-        public BlockModelGenerators.BlockFamilyProvider door(Block door) {
++        private BlockModelGenerators.BlockFamilyProvider door(Block door) {
+             BlockModelGenerators.this.createDoor(door);
+             return this;
+         }
+ 
+-        public void trapdoor(Block result) {
++        private void trapdoor(Block result) {
+             if (BlockModelGenerators.NON_ORIENTABLE_TRAPDOOR.contains(result)) {
+                 BlockModelGenerators.this.createTrapdoor(result);
+             } else {
+@@ -4474,7 +_,7 @@
+             }
+         }
+ 
+-        public Identifier getOrCreateModel(ModelTemplate modelTemplate, Block block) {
++        private Identifier getOrCreateModel(ModelTemplate modelTemplate, Block block) {
+             return this.models.computeIfAbsent(modelTemplate, template -> template.create(block, this.mapping, BlockModelGenerators.this.modelOutput));
+         }
+ 
+@@ -4494,14 +_,14 @@
+     }
+ 
+     @FunctionalInterface
+-    public interface BlockStateGeneratorSupplier {
++    private interface BlockStateGeneratorSupplier {
+         BlockModelDefinitionGenerator create(Block block, Variant normal, TextureMapping mapping, BiConsumer<Identifier, ModelInstance> modelOutput);
+     }
+ 
+-    public record BookSlotModelCacheKey(ModelTemplate template, String modelSuffix) {
++    private record BookSlotModelCacheKey(ModelTemplate template, String modelSuffix) {
+     }
+ 
+-    public enum PlantType {
++    private enum PlantType {
+         TINTED(ModelTemplates.TINTED_CROSS, ModelTemplates.TINTED_FLOWER_POT_CROSS, false),
+         NOT_TINTED(ModelTemplates.CROSS, ModelTemplates.FLOWER_POT_CROSS, false),
+         EMISSIVE_NOT_TINTED(ModelTemplates.CROSS_EMISSIVE, ModelTemplates.FLOWER_POT_CROSS_EMISSIVE, true);
+@@ -4553,7 +_,7 @@
+         }
+     }
+ 
+-    public class WoodProvider {
++    private class WoodProvider {
+         private final TextureMapping logMapping;
+ 
+         public WoodProvider(TextureMapping logMapping) {

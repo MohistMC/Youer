@@ -1,6 +1,29 @@
 --- a/net/minecraft/world/level/block/BubbleColumnBlock.java
 +++ b/net/minecraft/world/level/block/BubbleColumnBlock.java
-@@ -51,6 +_,7 @@
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.level.block;
+ 
++import com.mojang.serialization.MapCodec;
+ import java.util.Optional;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+@@ -34,9 +_,15 @@
+ import org.jspecify.annotations.Nullable;
+ 
+ public class BubbleColumnBlock extends Block implements BucketPickup {
++    public static final MapCodec<BubbleColumnBlock> CODEC = simpleCodec(BubbleColumnBlock::new);
+     public static final BooleanProperty DRAG_DOWN = BlockStateProperties.DRAG;
+     private static final int CHECK_PERIOD = 5;
+ 
++    @Override
++    public MapCodec<BubbleColumnBlock> codec() {
++        return CODEC;
++    }
++
+     public BubbleColumnBlock(BlockBehaviour.Properties properties) {
+         super(properties);
+         this.registerDefaultState(this.stateDefinition.any().setValue(DRAG_DOWN, true));
+@@ -44,6 +_,7 @@
  
      @Override
      protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
@@ -8,7 +31,7 @@
          if (isPrecise) {
              BlockState stateAbove = level.getBlockState(pos.above());
              boolean nothingAbove = stateAbove.getCollisionShape(level, pos).isEmpty() && stateAbove.getFluidState().isEmpty();
-@@ -107,10 +_,12 @@
+@@ -100,10 +_,12 @@
      private static BlockState getColumnState(Block bubbleColumn, BlockState belowState, BlockState occupyState) {
          if (belowState.is(bubbleColumn)) {
              return belowState;
@@ -25,7 +48,7 @@
          } else {
              return occupyState.is(bubbleColumn) ? Blocks.WATER.defaultBlockState() : occupyState;
          }
-@@ -179,7 +_,7 @@
+@@ -172,7 +_,7 @@
      @Override
      protected boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
          BlockState belowState = level.getBlockState(pos.below());

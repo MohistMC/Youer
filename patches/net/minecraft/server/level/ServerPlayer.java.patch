@@ -1025,7 +1025,7 @@
 +            Runnable consumeAnchorCharge = null; // Paper - Fix SPIGOT-5989 (don't use charge until after respawn event)
              Optional<Vec3> standUpPosition = RespawnAnchorBlock.findStandUpPosition(EntityTypes.PLAYER, level, pos);
              if (!forced && consumeSpawnBlock && standUpPosition.isPresent()) {
--                level.setBlock(pos, blockState.setValue(RespawnAnchorBlock.CHARGE, blockState.getValue(RespawnAnchorBlock.CHARGE) - 1), 3);
+-                level.setBlockAndUpdate(pos, blockState.setValue(RespawnAnchorBlock.CHARGE, blockState.getValue(RespawnAnchorBlock.CHARGE) - 1));
 +                consumeAnchorCharge = () -> level.setBlock(pos, blockState.setValue(RespawnAnchorBlock.CHARGE, blockState.getValue(RespawnAnchorBlock.CHARGE) - 1), Block.UPDATE_ALL); // Paper - Fix SPIGOT-5989 (don't use charge until after respawn event)
              }
 +            final Runnable finalConsumeAnchorCharge = consumeAnchorCharge; // Paper - Fix SPIGOT-5989
@@ -2210,7 +2210,19 @@
      }
  
      @Override
-@@ -2135,9 +_,9 @@
+@@ -2086,8 +_,9 @@
+         return this.allowsListing;
+     }
+ 
+-    public WardenSpawnTracker getWardenSpawnTracker() {
+-        return this.wardenSpawnTracker;
++    @Override
++    public Optional<WardenSpawnTracker> getWardenSpawnTracker() {
++        return Optional.of(this.wardenSpawnTracker);
+     }
+ 
+     public void setSpawnExtraParticlesOnFall(boolean toggle) {
+@@ -2134,9 +_,9 @@
      }
  
      @Override
@@ -2222,7 +2234,7 @@
          if (oldVehicle instanceof LivingEntity livingEntity) {
              for (MobEffectInstance effect : livingEntity.getActiveEffects()) {
                  this.connection.send(new ClientboundRemoveMobEffectPacket(oldVehicle.getId(), effect.getEffect()));
-@@ -2289,9 +_,11 @@
+@@ -2288,9 +_,11 @@
          }
      }
  
@@ -2237,7 +2249,7 @@
          }
  
          private static float calculateLookAtYaw(Vec3 position, BlockPos lookAtBlockPos) {
-@@ -2311,4 +_,196 @@
+@@ -2310,4 +_,196 @@
          );
          public static final ServerPlayer.SavedPosition EMPTY = new ServerPlayer.SavedPosition(Optional.empty(), Optional.empty(), Optional.empty());
      }

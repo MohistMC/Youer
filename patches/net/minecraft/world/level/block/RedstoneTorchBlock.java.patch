@@ -1,21 +1,25 @@
 --- a/net/minecraft/world/level/block/RedstoneTorchBlock.java
 +++ b/net/minecraft/world/level/block/RedstoneTorchBlock.java
-@@ -19,12 +_,13 @@
- import net.minecraft.world.level.block.state.properties.BooleanProperty;
- import net.minecraft.world.level.redstone.ExperimentalRedstoneUtils;
- import net.minecraft.world.level.redstone.Orientation;
-+import org.bukkit.event.block.BlockRedstoneEvent;
- import org.jspecify.annotations.Nullable;
+@@ -1,9 +_,5 @@
+ package net.minecraft.world.level.block;
+ 
+-import com.google.common.collect.Lists;
+-import java.util.List;
+-import java.util.Map;
+-import java.util.WeakHashMap;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.particles.DustParticleOptions;
+@@ -22,7 +_,7 @@
  
  public class RedstoneTorchBlock extends BaseTorchBlock {
-     public static final MapCodec<RedstoneTorchBlock> CODEC = simpleCodec(RedstoneTorchBlock::new);
      public static final BooleanProperty LIT = BlockStateProperties.LIT;
 -    private static final Map<BlockGetter, List<RedstoneTorchBlock.Toggle>> RECENT_TOGGLES = new WeakHashMap<>();
 +    // Paper - Faster redstone torch rapid clock removal; Move the mapped list to World
      public static final int RECENT_TOGGLE_TIMER = 60;
      public static final int MAX_RECENT_TOGGLES = 8;
      public static final int RESTART_DELAY = 160;
-@@ -67,14 +_,23 @@
+@@ -60,22 +_,36 @@
      @Override
      protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
          boolean neighborSignal = this.hasNeighborSignal(level, pos, state);
@@ -35,27 +39,30 @@
  
          if (state.getValue(LIT)) {
              if (neighborSignal) {
+-                level.setBlockAndUpdate(pos, state.setValue(LIT, false));
 +                // Paper start - Call BlockRedstoneEvent
 +                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBinaryRedstoneChange(level, pos, false)) {
 +                    return;
 +                }
 +                // Paper end - Call BlockRedstoneEvent
-                 level.setBlock(pos, state.setValue(LIT, false), 3);
++                level.setBlock(pos, state.setValue(LIT, false), 3);
                  if (isToggledTooFrequently(level, pos, true)) {
                      level.levelEvent(1502, pos, 0);
-@@ -82,6 +_,11 @@
+                     level.scheduleTick(pos, level.getBlockState(pos).getBlock(), 160);
                  }
              }
          } else if (!neighborSignal && !isToggledTooFrequently(level, pos, false)) {
+-            level.setBlockAndUpdate(pos, state.setValue(LIT, true));
 +            // Paper start - Call BlockRedstoneEvent
 +            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBinaryRedstoneChange(level, pos, true)) {
 +                return;
 +            }
 +            // Paper end - Call BlockRedstoneEvent
-             level.setBlock(pos, state.setValue(LIT, true), 3);
++            level.setBlock(pos, state.setValue(LIT, true), 3);
          }
      }
-@@ -129,7 +_,12 @@
+ 
+@@ -122,7 +_,12 @@
      }
  
      private static boolean isToggledTooFrequently(Level level, BlockPos pos, boolean add) {

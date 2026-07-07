@@ -1,6 +1,14 @@
 --- a/net/minecraft/server/packs/repository/ServerPacksSource.java
 +++ b/net/minecraft/server/packs/repository/ServerPacksSource.java
-@@ -48,7 +_,7 @@
+@@ -8,6 +_,7 @@
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.server.packs.FeatureFlagsMetadataSection;
+ import net.minecraft.server.packs.PackLocationInfo;
++import net.minecraft.server.packs.PackResources;
+ import net.minecraft.server.packs.PackSelectionConfig;
+ import net.minecraft.server.packs.PackType;
+ import net.minecraft.server.packs.VanillaPackResources;
+@@ -47,7 +_,7 @@
      public static VanillaPackResources createVanillaPackSource() {
          return new VanillaPackResourcesBuilder()
              .setMetadata(BUILT_IN_METADATA)
@@ -9,7 +17,15 @@
              .applyDevelopmentConfig()
              .pushJarResources()
              .build(VANILLA_PACK_INFO);
-@@ -66,15 +_,30 @@
+@@ -59,21 +_,36 @@
+     }
+ 
+     @Override
+-    protected @Nullable Pack createVanillaPack(Pack.ResourcesSupplier resources) {
+-        return Pack.readMetaAndCreate(VANILLA_PACK_INFO, resources, PackType.SERVER_DATA, VANILLA_SELECTION_CONFIG);
++    protected @Nullable Pack createVanillaPack(PackResources resources) {
++        return Pack.readMetaAndCreate(VANILLA_PACK_INFO, fixedResources(resources), PackType.SERVER_DATA, VANILLA_SELECTION_CONFIG);
+     }
  
      @Override
      protected @Nullable Pack createBuiltinPack(String id, Pack.ResourcesSupplier resources, Component name) {

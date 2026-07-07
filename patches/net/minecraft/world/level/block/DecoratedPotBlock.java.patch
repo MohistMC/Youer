@@ -1,9 +1,33 @@
 --- a/net/minecraft/world/level/block/DecoratedPotBlock.java
 +++ b/net/minecraft/world/level/block/DecoratedPotBlock.java
-@@ -209,6 +_,11 @@
+@@ -18,6 +_,7 @@
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.entity.projectile.Projectile;
+ import net.minecraft.world.inventory.AbstractContainerMenu;
++import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.context.BlockPlaceContext;
+ import net.minecraft.world.item.enchantment.EnchantmentHelper;
+@@ -166,10 +_,9 @@
+         BlockEntity maybeEntity = params.getOptionalParameter(LootContextParams.BLOCK_ENTITY);
+         if (maybeEntity instanceof DecoratedPotBlockEntity entity) {
+             params.withDynamicDrop(SHERDS_DYNAMIC_DROP_ID, output -> {
+-                entity.getDecorations().left().ifPresent(item -> output.accept(item.create()));
+-                entity.getDecorations().back().ifPresent(item -> output.accept(item.create()));
+-                entity.getDecorations().front().ifPresent(item -> output.accept(item.create()));
+-                entity.getDecorations().right().ifPresent(item -> output.accept(item.create()));
++                for (Item item : entity.getDecorations().ordered()) {
++                    output.accept(item.getDefaultInstance());
++                }
+             });
+         }
+ 
+@@ -201,7 +_,12 @@
+     @Override
      protected void onProjectileHit(Level level, BlockState state, BlockHitResult blockHit, Projectile projectile) {
          BlockPos pos = blockHit.getBlockPos();
-         if (level instanceof ServerLevel serverLevel && projectile.mayInteract(serverLevel, pos) && projectile.mayBreak(serverLevel)) {
+-        if (level instanceof ServerLevel serverLevel && projectile.mayInteract(serverLevel, pos) && projectile.mayBreak(serverLevel, pos)) {
++        if (level instanceof ServerLevel serverLevel && projectile.mayInteract(serverLevel, pos) && projectile.mayBreak(serverLevel)) {
 +            // CraftBukkit start - call EntityChangeBlockEvent
 +            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(projectile, pos, this.getFluidState(state).createLegacyBlock())) {
 +                return;

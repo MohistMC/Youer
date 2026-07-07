@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/material/FlowingFluid.java
 +++ b/net/minecraft/world/level/material/FlowingFluid.java
-@@ -30,6 +_,12 @@
+@@ -8,7 +_,6 @@
+ import it.unimi.dsi.fastutil.shorts.Short2ObjectOpenHashMap;
+ import java.util.Map;
+ import java.util.Map.Entry;
+-import net.minecraft.SharedConstants;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.server.level.ServerLevel;
+@@ -29,6 +_,12 @@
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
@@ -13,7 +21,7 @@
  
  public abstract class FlowingFluid extends Fluid {
      public static final BooleanProperty FALLING = BlockStateProperties.FALLING;
-@@ -46,6 +_,48 @@
+@@ -45,6 +_,48 @@
      });
      private final Map<FluidState, VoxelShape> shapes = Maps.newIdentityHashMap();
  
@@ -62,7 +70,7 @@
      @Override
      protected void createFluidStateDefinition(StateDefinition.Builder<Fluid, FluidState> builder) {
          builder.add(FALLING);
-@@ -125,6 +_,15 @@
+@@ -124,6 +_,15 @@
                  Fluid newBelowFluidType = newBelowFluid.getType();
                  if (belowFluid.canBeReplacedWith(level, belowPos, newBelowFluidType, Direction.DOWN)
                      && canHoldSpecificFluid(level, belowPos, belowState, newBelowFluidType)) {
@@ -78,7 +86,7 @@
                      this.spreadTo(level, belowPos, belowState, Direction.DOWN, newBelowFluid);
                      if (this.sourceNeighborCount(level, pos) >= 3) {
                          this.spreadToSides(level, pos, fluidState, state);
-@@ -153,7 +_,18 @@
+@@ -152,7 +_,18 @@
                  Direction spread = entry.getKey();
                  FluidState newNeighborFluid = entry.getValue();
                  BlockPos neighborPos = pos.relative(spread);
@@ -98,7 +106,7 @@
              }
          }
      }
-@@ -165,10 +_,11 @@
+@@ -164,10 +_,11 @@
  
          for (Direction direction : Direction.Plane.HORIZONTAL) {
              BlockPos relativePos = mutablePos.setWithOffset(pos, direction);
@@ -112,7 +120,7 @@
                      neighbourSources++;
                  }
  
-@@ -176,7 +_,7 @@
+@@ -175,7 +_,7 @@
              }
          }
  
@@ -121,7 +129,7 @@
              BlockState belowState = level.getBlockState(mutablePos.setWithOffset(pos, Direction.DOWN));
              FluidState belowFluid = belowState.getFluidState();
              if (belowState.isSolid() || this.isSourceBlockOfThisType(belowFluid)) {
-@@ -195,83 +_,102 @@
+@@ -194,83 +_,102 @@
          return amount <= 0 ? Fluids.EMPTY.defaultFluidState() : this.getFlowing(amount, false);
      }
  
@@ -267,7 +275,7 @@
 +                this.beforeDestroyingBlock(level, pos, state, pos.relative(direction.getOpposite())); // Paper - Add BlockBreakBlockEvent
              }
  
-             level.setBlock(pos, target.createLegacyBlock(), 3);
+             level.setBlockAndUpdate(pos, target.createLegacyBlock());
          }
      }
  
@@ -276,7 +284,7 @@
      protected abstract void beforeDestroyingBlock(LevelAccessor level, BlockPos pos, BlockState state);
  
      protected int getSlopeDistance(LevelReader level, BlockPos pos, int pass, Direction from, BlockState state, FlowingFluid.SpreadContext context) {
-@@ -280,7 +_,8 @@
+@@ -279,7 +_,8 @@
          for (Direction direction : Direction.Plane.HORIZONTAL) {
              if (direction != from) {
                  BlockPos testPos = pos.relative(direction);
@@ -286,7 +294,7 @@
                  FluidState testFluidState = testState.getFluidState();
                  if (this.canPassThrough(level, this.getFlowing(), pos, state, direction, testPos, testState, testFluidState)) {
                      if (context.isHole(testPos)) {
-@@ -357,7 +_,8 @@
+@@ -356,7 +_,8 @@
  
          for (Direction direction : Direction.Plane.HORIZONTAL) {
              BlockPos testPos = pos.relative(direction);
@@ -296,7 +304,7 @@
              FluidState testFluidState = testState.getFluidState();
              if (this.canMaybePassThrough(level, pos, state, direction, testPos, testState, testFluidState)) {
                  FluidState newFluid = this.getNewLiquid(level, testPos, testState);
-@@ -432,12 +_,26 @@
+@@ -417,12 +_,26 @@
              if (newFluidState.isEmpty()) {
                  fluidState = newFluidState;
                  blockState = Blocks.AIR.defaultBlockState();
@@ -307,7 +315,7 @@
 +                }
 +                blockState = ((CraftBlockData) event.getNewData()).getState();
 +                // CraftBukkit end
-                 level.setBlock(pos, blockState, 3);
+                 level.setBlockAndUpdate(pos, blockState);
              } else if (newFluidState != fluidState) {
                  fluidState = newFluidState;
 -                blockState = fluidState.createLegacyBlock();
@@ -319,13 +327,13 @@
 +                }
 +                blockState = ((CraftBlockData) event.getNewData()).getState();
 +                // CraftBukkit end
-                 level.setBlock(pos, blockState, 3);
+                 level.setBlockAndUpdate(pos, blockState);
 -                level.scheduleTick(pos, fluidState.getType(), tickDelay);
 +                level.scheduleTick(pos, newFluidState.getType(), tickDelay);
              }
          }
  
-@@ -504,8 +_,27 @@
+@@ -489,8 +_,27 @@
              return this.getBlockState(pos, this.getCacheKey(pos));
          }
  

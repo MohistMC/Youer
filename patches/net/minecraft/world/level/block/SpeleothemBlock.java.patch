@@ -1,7 +1,11 @@
 --- a/net/minecraft/world/level/block/SpeleothemBlock.java
 +++ b/net/minecraft/world/level/block/SpeleothemBlock.java
-@@ -190,6 +_,11 @@
-                 && projectile.mayBreak(serverLevel)
+@@ -183,9 +_,14 @@
+             BlockPos blockPos = blockHit.getBlockPos();
+             if (level instanceof ServerLevel serverLevel
+                 && projectile.mayInteract(serverLevel, blockPos)
+-                && projectile.mayBreak(serverLevel, blockPos)
++                && projectile.mayBreak(serverLevel)
                  && projectile instanceof ThrownTrident
                  && projectile.getDeltaMovement().length() > 0.6) {
 +                // CraftBukkit start
@@ -12,7 +16,7 @@
                  level.destroyBlock(blockPos, true);
              }
          }
-@@ -380,16 +_,16 @@
+@@ -376,16 +_,16 @@
          if (this.isUnmergedTipWithDirection(existingStateAtTargetPos, growToDirection.getOpposite())) {
              this.createMergedTips(existingStateAtTargetPos, level, targetPos);
          } else if (existingStateAtTargetPos.isAir() || existingStateAtTargetPos.is(Blocks.WATER)) {
@@ -27,12 +31,12 @@
              .setValue(TIP_DIRECTION, direction)
              .setValue(THICKNESS, thickness)
              .setValue(WATERLOGGED, level.getFluidState(pos).is(Fluids.WATER));
--        level.setBlock(pos, state, 3);
+-        level.setBlockAndUpdate(pos, state);
 +        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(level, source, pos, state, Block.UPDATE_ALL); // CraftBukkit
      }
  
      private void createMergedTips(BlockState tipState, LevelAccessor level, BlockPos tipPos) {
-@@ -403,8 +_,8 @@
+@@ -399,8 +_,8 @@
              stalagmitePos = tipPos.below();
          }
  

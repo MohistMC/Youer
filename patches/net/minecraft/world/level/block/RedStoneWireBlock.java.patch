@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/RedStoneWireBlock.java
 +++ b/net/minecraft/world/level/block/RedStoneWireBlock.java
-@@ -240,7 +_,7 @@
+@@ -233,7 +_,7 @@
          BlockState relativeState = level.getBlockState(relativePos);
          if (canConnectUp) {
              boolean isPlaceableAbove = relativeState.getBlock() instanceof TrapDoorBlock || this.canSurviveOn(level, relativePos, relativeState);
@@ -9,7 +9,7 @@
                  if (relativeState.isFaceSturdy(level, relativePos, direction.getOpposite())) {
                      return RedstoneSide.UP;
                  }
-@@ -249,10 +_,14 @@
+@@ -242,10 +_,14 @@
              }
          }
  
@@ -28,7 +28,7 @@
      }
  
      @Override
-@@ -266,6 +_,56 @@
+@@ -259,6 +_,56 @@
          return relativeState.isFaceSturdy(level, relativePos, Direction.UP) || relativeState.is(Blocks.HOPPER);
      }
  
@@ -85,7 +85,7 @@
      private void updatePowerStrength(
          Level level, BlockPos pos, BlockState state, @Nullable Orientation orientation, boolean shapeUpdateWiresAroundInitialPosition
      ) {
-@@ -296,7 +_,13 @@
+@@ -289,7 +_,13 @@
      @Override
      protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
          if (!oldState.is(state.getBlock()) && !level.isClientSide()) {
@@ -100,7 +100,7 @@
  
              for (Direction direction : Direction.Plane.VERTICAL) {
                  level.updateNeighborsAt(pos.relative(direction), this);
-@@ -313,7 +_,13 @@
+@@ -306,7 +_,13 @@
                  level.updateNeighborsAt(pos.relative(direction), this);
              }
  
@@ -115,7 +115,7 @@
              this.updateNeighborsOfNeighboringWires(level, pos);
          }
      }
-@@ -336,14 +_,20 @@
+@@ -329,14 +_,20 @@
      @Override
      protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, @Nullable Orientation orientation, boolean movedByPiston) {
          if (!level.isClientSide()) {
@@ -143,3 +143,12 @@
          }
      }
  
+@@ -476,7 +_,7 @@
+             newState = newState.setValue(POWER, state.getValue(POWER));
+             newState = this.getConnectionState(level, newState, pos);
+             if (newState != state) {
+-                level.setBlockAndUpdate(pos, newState);
++                level.setBlock(pos, newState, 3);
+                 this.updatesOnShapeChange(level, pos, state, newState);
+                 return InteractionResult.SUCCESS;
+             }

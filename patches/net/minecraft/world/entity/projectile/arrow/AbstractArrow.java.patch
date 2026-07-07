@@ -193,7 +193,7 @@
          }
  
          if (entity.hurtOrSimulate(damageSource, damage)) {
-@@ -493,7 +_,7 @@
+@@ -493,20 +_,18 @@
  
              this.playSound(this.soundEvent, 1.0F, 1.2F / (this.random.nextFloat() * 0.2F + 0.9F));
              if (this.getPierceLevel() <= 0) {
@@ -202,16 +202,27 @@
              }
          } else {
              entity.setRemainingFireTicks(remainingFireTicks);
-@@ -504,7 +_,7 @@
-                     this.spawnAtLocation(level, this.getPickupItem(), 0.1F);
+-            if (this.level() instanceof ServerLevel level) {
+-                this.deflect(ProjectileDeflection.REVERSE, entity, this.owner, false);
+-                this.setDeltaMovement(this.getDeltaMovement().scale(0.2));
+-                if (this.getDeltaMovement().lengthSqr() < 1.0E-7) {
+-                    if (this.pickup == AbstractArrow.Pickup.ALLOWED) {
+-                        this.spawnAtLocation(level, this.getPickupItem(), 0.1F);
+-                    }
+-
+-                    this.discard();
++            this.deflect(ProjectileDeflection.REVERSE, entity, this.owner, false);
++            this.setDeltaMovement(this.getDeltaMovement().scale(0.2));
++            if (this.level() instanceof ServerLevel level && this.getDeltaMovement().lengthSqr() < 1.0E-7) {
++                if (this.pickup == AbstractArrow.Pickup.ALLOWED) {
++                    this.spawnAtLocation(level, this.getPickupItem(), 0.1F);
                  }
- 
--                this.discard();
++
 +                this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
              }
          }
      }
-@@ -517,7 +_,7 @@
+@@ -519,7 +_,7 @@
              double knockbackResistance = Math.max(0.0, 1.0 - mob.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE));
              Vec3 movement = this.getDeltaMovement().multiply(1.0, 0.0, 1.0).normalize().scale(knockback * 0.6 * knockbackResistance);
              if (movement.lengthSqr() > 0.0) {
@@ -220,7 +231,7 @@
              }
          }
      }
-@@ -564,6 +_,12 @@
+@@ -566,6 +_,12 @@
          return this.firedFromWeapon;
      }
  
@@ -233,7 +244,7 @@
      protected SoundEvent getDefaultHitGroundSoundEvent() {
          return SoundEvents.ARROW_HIT;
      }
-@@ -617,7 +_,7 @@
+@@ -619,7 +_,7 @@
          this.lastState = input.read("inBlockState", BlockState.CODEC).orElse(null);
          this.shakeTime = input.getByteOr("shake", (byte)0) & 255;
          this.setInGround(input.getBooleanOr("inGround", false));
@@ -242,7 +253,7 @@
          this.pickup = input.read("pickup", AbstractArrow.Pickup.LEGACY_CODEC).orElse(AbstractArrow.Pickup.DISALLOWED);
          this.setCritArrow(input.getBooleanOr("crit", false));
          this.setPierceLevel(input.getByteOr("PierceLevel", (byte)0));
-@@ -628,7 +_,14 @@
+@@ -630,7 +_,14 @@
  
      @Override
      public void setOwner(@Nullable Entity owner) {
@@ -257,7 +268,7 @@
  
          this.pickup = switch (owner) {
              case Player ignored when this.pickup == AbstractArrow.Pickup.DISALLOWED -> AbstractArrow.Pickup.ALLOWED;
-@@ -640,17 +_,32 @@
+@@ -642,17 +_,32 @@
      @Override
      public void playerTouch(Player player) {
          if (!this.level().isClientSide() && (this.isInGround() || this.isNoPhysics()) && this.shakeTime <= 0) {
@@ -294,7 +305,7 @@
              case CREATIVE_ONLY -> player.hasInfiniteMaterials();
          };
      }
-@@ -745,7 +_,7 @@
+@@ -747,7 +_,7 @@
          return true;
      }
  

@@ -1,6 +1,42 @@
 --- a/net/minecraft/util/datafix/DataFixers.java
 +++ b/net/minecraft/util/datafix/DataFixers.java
-@@ -554,6 +_,20 @@
+@@ -64,6 +_,7 @@
+ import net.minecraft.util.datafix.fixes.BlockRenameFix;
+ import net.minecraft.util.datafix.fixes.BlockStateStructureTemplateFix;
+ import net.minecraft.util.datafix.fixes.BoatSplitFix;
++import net.minecraft.util.datafix.fixes.CarvingStepRemoveFix;
+ import net.minecraft.util.datafix.fixes.CatTypeFix;
+ import net.minecraft.util.datafix.fixes.CauldronRenameFix;
+ import net.minecraft.util.datafix.fixes.CavesAndCliffsRenames;
+@@ -226,8 +_,6 @@
+ import net.minecraft.util.datafix.fixes.PlayerUUIDFix;
+ import net.minecraft.util.datafix.fixes.PoiTypeRemoveFix;
+ import net.minecraft.util.datafix.fixes.PoiTypeRenameFix;
+-import net.minecraft.util.datafix.fixes.PotDecorationsBlockEntityUnflatteningFix;
+-import net.minecraft.util.datafix.fixes.PotDecorationsComponentUnflatteningFix;
+ import net.minecraft.util.datafix.fixes.PrimedTntBlockStateFixer;
+ import net.minecraft.util.datafix.fixes.ProjectileStoredWeaponFix;
+ import net.minecraft.util.datafix.fixes.RaidRenamesDataFix;
+@@ -396,9 +_,6 @@
+ import net.minecraft.util.datafix.schemas.V4771;
+ import net.minecraft.util.datafix.schemas.V4881;
+ import net.minecraft.util.datafix.schemas.V4885;
+-import net.minecraft.util.datafix.schemas.V4996;
+-import net.minecraft.util.datafix.schemas.V4996_1;
+-import net.minecraft.util.datafix.schemas.V4997;
+ import net.minecraft.util.datafix.schemas.V501;
+ import net.minecraft.util.datafix.schemas.V700;
+ import net.minecraft.util.datafix.schemas.V701;
+@@ -423,7 +_,7 @@
+     private static final BiFunction<Integer, Schema, Schema> SAME_NAMESPACED = NamespacedSchema::new;
+     private static final Result DATA_FIXER;
+     private static final FileFixerUpper FILE_FIXER;
+-    public static final int BLENDING_VERSION = 4997;
++    public static final int BLENDING_VERSION = 4882;
+ 
+     private DataFixers() {
+     }
+@@ -558,6 +_,20 @@
          Schema v1456 = fixerUpper.addSchema(1456, SAME_NAMESPACED);
          fixerUpper.addFixer(new EntityItemFrameDirectionFix(v1456, false));
          Schema v1458 = fixerUpper.addSchema(1458, V1458::new);
@@ -21,7 +57,7 @@
          fixerUpper.addFixer(new EntityCustomNameToComponentFix(v1458));
          fixerUpper.addFixer(new ItemCustomNameToComponentFix(v1458));
          fixerUpper.addFixer(new BlockEntityCustomNameToComponentFix(v1458));
-@@ -1377,10 +_,35 @@
+@@ -1381,10 +_,35 @@
          Schema v3800 = fixerUpper.addSchema(3800, SAME_NAMESPACED);
          UnaryOperator<String> scuteRenamer = createRenamer(Map.of("minecraft:scute", "minecraft:turtle_scute"));
          fixerUpper.addFixer(ItemRenameFix.create(v3800, "Rename scute item to turtle_scute", scuteRenamer));
@@ -57,7 +93,7 @@
          Schema v3807 = fixerUpper.addSchema(3807, V3807::new);
          fixerUpper.addFixer(new AddNewChoices(v3807, "Added Vault", References.BLOCK_ENTITY));
          Schema v3807_1 = fixerUpper.addSchema(3807, 1, SAME_NAMESPACED);
-@@ -1403,6 +_,18 @@
+@@ -1407,6 +_,18 @@
                  v3814, "Rename jump strength attribute", createRenamer("minecraft:horse.jump_strength", "minecraft:generic.jump_strength")
              )
          );
@@ -76,3 +112,36 @@
          Schema v3816 = fixerUpper.addSchema(3816, V3816::new);
          fixerUpper.addFixer(new AddNewChoices(v3816, "Added Bogged", References.ENTITY));
          Schema v3818 = fixerUpper.addSchema(3818, V3818::new);
+@@ -1449,6 +_,8 @@
+         fixerUpper.addFixer(new OminousBannerRarityFix(v4054));
+         Schema v4055 = fixerUpper.addSchema(4055, SAME_NAMESPACED);
+         fixerUpper.addFixer(new AttributeIdPrefixFix(v4055));
++        Schema v4057 = fixerUpper.addSchema(4057, SAME_NAMESPACED);
++        fixerUpper.addFixer(new CarvingStepRemoveFix(v4057));
+         Schema v4059 = fixerUpper.addSchema(4059, V4059::new);
+         fixerUpper.addFixer(new FoodToConsumableFix(v4059));
+         Schema v4061 = fixerUpper.addSchema(4061, SAME_NAMESPACED);
+@@ -1636,6 +_,8 @@
+         Schema v4881 = fixerUpper.addSchema(4881, V4881::new);
+         fixerUpper.addFixer(new AddNewChoices(v4881, "Added Sulfur Cube", References.ENTITY));
+         fixerUpper.addFixer(new AddNewChoices(v4881, "Added Potent Sulfur", References.BLOCK_ENTITY));
++        Schema blendingSchema = fixerUpper.addSchema(4882, SAME_NAMESPACED);
++        fixerUpper.addFixer(new BlendingDataFix(blendingSchema));
+         Schema v4885 = fixerUpper.addSchema(4885, V4885::new);
+         fixerUpper.addFixer(new RemoveBlockEntityTagFix(v4885, Set.of("minecraft:bed")));
+         Schema v4888 = fixerUpper.addSchema(4888, SAME_NAMESPACED);
+@@ -1644,14 +_,6 @@
+         fixerUpper.addFixer(new OptionsForceDefaultGraphicsApiFix(v4892));
+         Schema v4899 = fileFixerUpper.addSchema(fixerUpper, 4899, SAME_NAMESPACED);
+         fileFixerUpper.addFixer(new ReenableSpectatorsGenerateChunksInHardcoreWorldsFileFix(v4899));
+-        Schema v4996 = fixerUpper.addSchema(4996, V4996::new);
+-        fixerUpper.addFixer(new PotDecorationsComponentUnflatteningFix(v4996));
+-        Schema v4996_1 = fixerUpper.addSchema(4996, 1, V4996_1::new);
+-        fixerUpper.addFixer(new PotDecorationsBlockEntityUnflatteningFix(v4996_1));
+-        Schema blendingSchema = fixerUpper.addSchema(4997, SAME_NAMESPACED);
+-        fixerUpper.addFixer(new BlendingDataFix(blendingSchema));
+-        Schema v4997 = fixerUpper.addSchema(4997, V4997::new);
+-        fixerUpper.addFixer(new AddNewChoices(v4997, "Added Poplar Boat and Poplar Chest Boat", References.ENTITY));
+     }
+ 
+     private static UnaryOperator<String> createRenamerNoNamespace(Map<String, String> map) {

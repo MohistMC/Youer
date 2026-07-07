@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/ComposterBlock.java
 +++ b/net/minecraft/world/level/block/ComposterBlock.java
-@@ -41,12 +_,18 @@
+@@ -40,11 +_,17 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
  
@@ -9,7 +9,6 @@
 +// CraftBukkit end
 +
  public class ComposterBlock extends Block implements WorldlyContainerHolder {
-     public static final MapCodec<ComposterBlock> CODEC = simpleCodec(ComposterBlock::new);
      public static final int READY = 8;
      public static final int MIN_LEVEL = 0;
      public static final int MAX_LEVEL = 7;
@@ -19,7 +18,41 @@
      public static final Object2FloatMap<ItemLike> COMPOSTABLES = new Object2FloatOpenHashMap<>();
      private static final int HOLE_WIDTH = 12;
      private static final VoxelShape[] SHAPES = Util.make(
-@@ -242,6 +_,15 @@
+@@ -74,9 +_,6 @@
+         add(0.3F, Items.BIRCH_LEAVES);
+         add(0.3F, Items.AZALEA_LEAVES);
+         add(0.3F, Items.MANGROVE_LEAVES);
+-        add(0.3F, Items.RED_POPLAR_LEAVES);
+-        add(0.3F, Items.ORANGE_POPLAR_LEAVES);
+-        add(0.3F, Items.YELLOW_POPLAR_LEAVES);
+         add(0.3F, Items.OAK_SAPLING);
+         add(0.3F, Items.SPRUCE_SAPLING);
+         add(0.3F, Items.BIRCH_SAPLING);
+@@ -85,7 +_,6 @@
+         add(0.3F, Items.CHERRY_SAPLING);
+         add(0.3F, Items.DARK_OAK_SAPLING);
+         add(0.3F, Items.PALE_OAK_SAPLING);
+-        add(0.3F, Items.POPLAR_SAPLING);
+         add(0.3F, Items.MANGROVE_PROPAGULE);
+         add(0.3F, Items.BEETROOT_SEEDS);
+         add(0.3F, Items.DRIED_KELP);
+@@ -113,7 +_,6 @@
+         add(0.3F, Items.CACTUS_FLOWER);
+         add(0.3F, Items.DRY_SHORT_GRASS);
+         add(0.3F, Items.DRY_TALL_GRASS);
+-        add(0.3F, Items.RED_SHRUB);
+         add(0.5F, Items.DRIED_KELP_BLOCK);
+         add(0.5F, Items.TALL_GRASS);
+         add(0.5F, Items.FLOWERING_AZALEA_LEAVES);
+@@ -171,7 +_,6 @@
+         add(0.65F, Items.MOSS_BLOCK);
+         add(0.65F, Items.PALE_MOSS_BLOCK);
+         add(0.65F, Items.BIG_DRIPLEAF);
+-        add(0.65F, Items.SHELF_MUSHROOM);
+         add(0.85F, Items.HAY_BLOCK);
+         add(0.85F, Items.BROWN_MUSHROOM_BLOCK);
+         add(0.85F, Items.RED_MUSHROOM_BLOCK);
+@@ -241,6 +_,15 @@
          if (state.getValue(LEVEL) == 7) {
              level.scheduleTick(pos, state.getBlock(), 20);
          }
@@ -35,7 +68,7 @@
      }
  
      @Override
-@@ -249,13 +_,28 @@
+@@ -248,13 +_,28 @@
          ItemStack itemStack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult
      ) {
          int fillLevel = state.getValue(LEVEL);
@@ -71,7 +104,7 @@
  
              return InteractionResult.SUCCESS;
          } else {
-@@ -263,6 +_,25 @@
+@@ -262,6 +_,25 @@
          }
      }
  
@@ -97,7 +130,7 @@
      @Override
      protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
          int fillLevel = state.getValue(LEVEL);
-@@ -276,8 +_,20 @@
+@@ -275,8 +_,20 @@
  
      public static BlockState insertItem(Entity sourceEntity, BlockState state, ServerLevel level, ItemStack itemStack, BlockPos pos) {
          int fillLevel = state.getValue(LEVEL);
@@ -120,7 +153,7 @@
              itemStack.shrink(1);
              return newState;
          } else {
-@@ -286,6 +_,14 @@
+@@ -285,6 +_,14 @@
      }
  
      public static BlockState extractProduce(Entity sourceEntity, BlockState state, Level level, BlockPos pos) {
@@ -135,7 +168,13 @@
          if (!level.isClientSide()) {
              Vec3 itemPos = Vec3.atLowerCornerWithOffset(pos, 0.5, 1.01, 0.5).offsetRandomXZ(level.getRandom(), 0.7F);
              ItemEntity entity = new ItemEntity(level, itemPos.x(), itemPos.y(), itemPos.z(), new ItemStack(Items.BONE_MEAL));
-@@ -305,15 +_,41 @@
+@@ -299,21 +_,47 @@
+ 
+     private static BlockState empty(@Nullable Entity sourceEntity, BlockState state, LevelAccessor level, BlockPos pos) {
+         BlockState newState = state.setValue(LEVEL, 0);
+-        level.setBlockAndUpdate(pos, newState);
++        level.setBlock(pos, newState, 3);
+         level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(sourceEntity, newState));
          return newState;
      }
  
@@ -170,15 +209,26 @@
  
          int newLevel = fillLevel + 1;
          BlockState newState = state.setValue(LEVEL, newLevel);
+-        level.setBlockAndUpdate(pos, newState);
 +        // Paper start - move the EntityChangeBlockEvent here to avoid conflict later for the compost events
 +        if (sourceEntity != null && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(sourceEntity, pos, newState)) {
 +            return null;
 +        }
 +        // Paper end
-         level.setBlock(pos, newState, 3);
++        level.setBlock(pos, newState, 3);
          level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(sourceEntity, newState));
          if (newLevel == 7) {
-@@ -357,13 +_,14 @@
+             level.scheduleTick(pos, state.getBlock(), 20);
+@@ -325,7 +_,7 @@
+     @Override
+     protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
+         if (state.getValue(LEVEL) == 7) {
+-            level.setBlockAndUpdate(pos, state.cycle(LEVEL));
++            level.setBlock(pos, state.cycle(LEVEL), 3);
+             level.playSound(null, pos, SoundEvents.COMPOSTER_READY, SoundSource.BLOCKS, 1.0F, 1.0F);
+         }
+     }
+@@ -356,13 +_,14 @@
          if (contentLevel == 8) {
              return new ComposterBlock.OutputContainer(state, level, pos, new ItemStack(Items.BONE_MEAL));
          } else {
@@ -195,7 +245,7 @@
          }
  
          @Override
-@@ -390,6 +_,7 @@
+@@ -389,6 +_,7 @@
  
          public InputContainer(BlockState state, LevelAccessor level, BlockPos pos) {
              super(1);
@@ -203,7 +253,7 @@
              this.state = state;
              this.level = level;
              this.pos = pos;
-@@ -407,7 +_,7 @@
+@@ -406,7 +_,7 @@
  
          @Override
          public boolean canPlaceItemThroughFace(int slot, ItemStack itemStack, @Nullable Direction direction) {
@@ -212,7 +262,7 @@
          }
  
          @Override
-@@ -421,6 +_,11 @@
+@@ -420,6 +_,11 @@
              if (!contents.isEmpty()) {
                  this.changed = true;
                  BlockState newState = ComposterBlock.addItem(null, this.state, this.level, this.pos, contents);
@@ -224,7 +274,7 @@
                  this.level.levelEvent(1500, this.pos, newState != this.state ? 1 : 0);
                  this.removeItemNoUpdate(0);
              }
-@@ -438,6 +_,7 @@
+@@ -437,6 +_,7 @@
              this.state = state;
              this.level = level;
              this.pos = pos;
@@ -232,7 +282,7 @@
          }
  
          @Override
-@@ -462,8 +_,21 @@
+@@ -461,8 +_,21 @@
  
          @Override
          public void setChanged() {

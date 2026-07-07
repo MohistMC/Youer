@@ -1,6 +1,14 @@
 --- a/net/minecraft/util/Util.java
 +++ b/net/minecraft/util/Util.java
-@@ -103,9 +_,25 @@
+@@ -46,7 +_,6 @@
+ import java.time.format.DateTimeFormatter;
+ import java.time.format.FormatStyle;
+ import java.util.Arrays;
+-import java.util.Collection;
+ import java.util.EnumMap;
+ import java.util.EnumSet;
+ import java.util.HexFormat;
+@@ -104,9 +_,25 @@
      private static final int DEFAULT_MAX_THREADS = 255;
      private static final int DEFAULT_SAFE_FILE_OPERATION_RETRIES = 10;
      private static final String MAX_THREADS_SYSTEM_PROPERTY = "max.bg.threads";
@@ -28,7 +36,7 @@
      private static final DateTimeFormatter FILENAME_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH.mm.ss", Locale.ROOT);
      public static final int LINEAR_LOOKUP_THRESHOLD = 8;
      private static final Set<String> ALLOWED_UNTRUSTED_LINK_PROTOCOLS = Set.of("http", "https");
-@@ -146,6 +_,8 @@
+@@ -147,6 +_,8 @@
          escaper.addEscape('\\', "\\\\");
      }).build();
      private static Consumer<String> thePauser = msg -> {};
@@ -37,7 +45,7 @@
  
      public static <K, V> Collector<Entry<? extends K, ? extends V>, ?, Map<K, V>> toMap() {
          return Collectors.toMap(Entry::getKey, Entry::getValue);
-@@ -181,7 +_,7 @@
+@@ -182,7 +_,7 @@
      }
  
      public static long getNanos() {
@@ -46,7 +54,7 @@
      }
  
      public static long getEpochMillis() {
-@@ -192,9 +_,10 @@
+@@ -193,9 +_,10 @@
          return FILENAME_DATE_TIME_FORMATTER.format(ZonedDateTime.now());
      }
  
@@ -59,7 +67,7 @@
          if (threads <= 0) {
              executor = MoreExecutors.newDirectExecutorService();
          } else {
-@@ -209,7 +_,7 @@
+@@ -210,7 +_,7 @@
                      }
  
                      @Override
@@ -68,7 +76,7 @@
                          if (exception != null) {
                              Util.LOGGER.warn("{} died", this.getName(), exception);
                          } else {
-@@ -219,16 +_,30 @@
+@@ -220,16 +_,30 @@
                          super.onTermination(exception);
                      }
                  };
@@ -101,7 +109,7 @@
      }
  
      private static int getMaxThreads() {
-@@ -278,6 +_,21 @@
+@@ -279,6 +_,21 @@
          }));
      }
  
@@ -123,7 +131,7 @@
      public static void throwAsRuntime(Throwable throwable) {
          throw throwable instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(throwable);
      }
-@@ -313,8 +_,8 @@
+@@ -314,8 +_,8 @@
                  .getSchema(DataFixUtils.makeKey(SharedConstants.getCurrentVersion().dataVersion().version()))
                  .getChoiceType(reference, name);
          } catch (IllegalArgumentException e) {
@@ -134,7 +142,7 @@
                  throw e;
              }
          }
-@@ -735,20 +_,20 @@
+@@ -736,20 +_,20 @@
  
      public static void logAndPauseIfInIde(String message) {
          LOGGER.error(message);
@@ -158,3 +166,34 @@
              LOGGER.error("Trying to throw a fatal exception, pausing in IDE", t);
              doPause(t.getMessage());
          }
+@@ -1167,24 +_,24 @@
+         return ImmutableList.<T>builderWithExpectedSize(list.size() + 1).add(element).addAll(list).build();
+     }
+ 
+-    public static <T> List<T> join(Collection<T> first, Collection<T> second) {
++    public static <T> List<T> join(List<T> first, List<T> second) {
+         Builder<T> builder = ImmutableList.builderWithExpectedSize(first.size() + second.size());
+         builder.addAll(first);
+         builder.addAll(second);
+         return builder.build();
+     }
+ 
+-    public static <T> List<T> join(Collection<T>... collections) {
++    public static <T> List<T> join(List<T>... lists) {
+         int size = 0;
+ 
+-        for (Collection<T> collection : collections) {
+-            size += collection.size();
++        for (List<T> list : lists) {
++            size += list.size();
+         }
+ 
+         Builder<T> builder = ImmutableList.builderWithExpectedSize(size);
+ 
+-        for (Collection<T> collection : collections) {
+-            builder.addAll(collection);
++        for (List<T> list : lists) {
++            builder.addAll(list);
+         }
+ 
+         return builder.build();

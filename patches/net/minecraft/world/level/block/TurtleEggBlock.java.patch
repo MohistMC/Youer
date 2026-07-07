@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/TurtleEggBlock.java
 +++ b/net/minecraft/world/level/block/TurtleEggBlock.java
-@@ -32,6 +_,12 @@
+@@ -31,6 +_,12 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
  
@@ -11,11 +11,14 @@
 +// CraftBukkit end
 +
  public class TurtleEggBlock extends Block {
-     public static final MapCodec<TurtleEggBlock> CODEC = simpleCodec(TurtleEggBlock::new);
      public static final IntegerProperty HATCH = BlockStateProperties.HATCH;
-@@ -75,6 +_,19 @@
+     public static final IntegerProperty EGGS = BlockStateProperties.EGGS;
+@@ -66,8 +_,21 @@
+     private void destroyEgg(Level level, BlockState state, BlockPos pos, Entity entity, int randomness) {
+         if (state.is(Blocks.TURTLE_EGG)
              && level instanceof ServerLevel serverLevel
-             && this.canDestroyEgg(serverLevel, entity)
+-            && this.canDestroyEgg(serverLevel, pos, entity)
++            && this.canDestroyEgg(serverLevel, entity)
              && level.getRandom().nextInt(randomness) == 0) {
 +            // CraftBukkit start - Step on eggs
 +            org.bukkit.event.Cancellable cancellable;
@@ -33,7 +36,7 @@
              this.decreaseEggs(serverLevel, pos, state);
          }
      }
-@@ -96,10 +_,20 @@
+@@ -89,10 +_,20 @@
          if (this.shouldUpdateHatchLevel(level, pos) && onSand(level, pos)) {
              int hatch = state.getValue(HATCH);
              if (hatch < 2) {
@@ -55,7 +58,7 @@
                  level.playSound(null, pos, SoundEvents.TURTLE_EGG_HATCH, SoundSource.BLOCKS, 0.7F, 0.9F + random.nextFloat() * 0.2F);
                  level.removeBlock(pos, false);
                  level.gameEvent(GameEvent.BLOCK_DESTROY, pos, GameEvent.Context.of(state));
-@@ -111,7 +_,7 @@
+@@ -104,7 +_,7 @@
                          turtle.setAge(-24000);
                          turtle.setHomePos(pos);
                          turtle.snapTo(pos.getX() + 0.3 + i * 0.2, pos.getY(), pos.getZ() + 0.3, 0.0F, 0.0F);
@@ -64,7 +67,7 @@
                      }
                  }
              }
-@@ -134,13 +_,13 @@
+@@ -127,13 +_,13 @@
      }
  
      private boolean shouldUpdateHatchLevel(Level level, BlockPos pos) {
@@ -81,15 +84,19 @@
          this.decreaseEggs(level, pos, state);
      }
  
-@@ -168,10 +_,32 @@
+@@ -160,13 +_,33 @@
+         builder.add(HATCH, EGGS);
      }
  
-     private boolean canDestroyEgg(ServerLevel level, Entity entity) {
+-    private boolean canDestroyEgg(ServerLevel level, BlockPos pos, Entity entity) {
++    private boolean canDestroyEgg(ServerLevel level, Entity entity) {
 +        // Purpur start - Add turtle egg block options
          if (entity instanceof Turtle || entity instanceof Bat) {
              return false;
+-        } else if (entity instanceof Player player) {
+-            return !level.getServer().isUnderSpawnProtection(level, pos, player);
 -        } else {
--            return !(entity instanceof LivingEntity) ? false : entity instanceof Player || level.getGameRules().get(GameRules.MOB_GRIEFING);
+-            return entity instanceof LivingEntity ? level.getGameRules().get(GameRules.MOB_GRIEFING) : false;
 -        }
 +        }
 +        if (level.purpurConfig.turtleEggsBreakFromExpOrbs && entity instanceof net.minecraft.world.entity.ExperienceOrb) {

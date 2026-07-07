@@ -1,20 +1,6 @@
 --- a/net/minecraft/world/level/block/SpongeBlock.java
 +++ b/net/minecraft/world/level/block/SpongeBlock.java
-@@ -14,6 +_,13 @@
- import net.minecraft.world.level.redstone.Orientation;
- import org.jspecify.annotations.Nullable;
- 
-+// CraftBukkit start
-+import java.util.List;
-+import org.bukkit.craftbukkit.block.CraftBlockState;
-+import org.bukkit.craftbukkit.util.BlockStateListPopulator;
-+import org.bukkit.event.block.SpongeAbsorbEvent;
-+// CraftBukkit end
-+
- public class SpongeBlock extends Block {
-     public static final MapCodec<SpongeBlock> CODEC = simpleCodec(SpongeBlock::new);
-     public static final int MAX_DEPTH = 6;
-@@ -50,7 +_,9 @@
+@@ -43,7 +_,9 @@
      }
  
      private boolean removeWaterBreadthFirstSearch(Level level, BlockPos startPos) {
@@ -25,7 +11,7 @@
              for (Direction direction : ALL_DIRECTIONS) {
                  consumer.accept(pos.relative(direction));
              }
-@@ -58,28 +_,68 @@
+@@ -51,28 +_,68 @@
              if (pos.equals(startPos)) {
                  return BlockPos.TraversalNodeStatus.ACCEPT;
              } else {
@@ -43,7 +29,7 @@
                      return BlockPos.TraversalNodeStatus.ACCEPT;
                  } else {
 -                    if (state.getBlock() instanceof LiquidBlock) {
--                        level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+-                        level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
 +                    if (blockState.getBlock() instanceof LiquidBlock) {
 +                        blockList.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL); // CraftBukkit
 +                        // Purpur start - Option for sponges to work on lava and mud
@@ -58,7 +44,7 @@
  
 -                        BlockEntity blockEntity = state.hasBlockEntity() ? level.getBlockEntity(pos) : null;
 -                        dropResources(state, level, pos, blockEntity);
--                        level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+-                        level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
 +                        // CraftBukkit start
 +                        // BlockEntity blockEntity = state.hasBlockEntity() ? level.getBlockEntity(pos) : null;
 +                        // dropResources(state, level, pos, blockEntity);

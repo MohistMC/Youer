@@ -8,7 +8,31 @@
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Codec;
  import com.mojang.serialization.DataResult;
-@@ -110,7 +_,7 @@
+@@ -15,7 +_,6 @@
+ import net.minecraft.core.HolderGetter;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.HolderSet;
+-import net.minecraft.core.component.BlockTransformer;
+ import net.minecraft.core.component.DataComponentInitializers;
+ import net.minecraft.core.component.DataComponentMap;
+ import net.minecraft.core.component.DataComponentType;
+@@ -64,7 +_,6 @@
+ import net.minecraft.world.inventory.Slot;
+ import net.minecraft.world.inventory.tooltip.TooltipComponent;
+ import net.minecraft.world.item.component.AttackRange;
+-import net.minecraft.world.item.component.BlockTransformerMappings;
+ import net.minecraft.world.item.component.Consumable;
+ import net.minecraft.world.item.component.Consumables;
+ import net.minecraft.world.item.component.DamageResistant;
+@@ -90,7 +_,6 @@
+ import net.minecraft.world.level.ItemLike;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.Block;
+-import net.minecraft.world.level.block.entity.DecoratedPotPattern;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.saveddata.maps.MapId;
+ import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
+@@ -113,7 +_,7 @@
              : DataResult.success(item)
      );
      private static final Logger LOGGER = LogUtils.getLogger();
@@ -17,7 +41,7 @@
      public static final Identifier BASE_ATTACK_DAMAGE_ID = Identifier.withDefaultNamespace("base_attack_damage");
      public static final Identifier BASE_ATTACK_SPEED_ID = Identifier.withDefaultNamespace("base_attack_speed");
      public static final int DEFAULT_MAX_STACK_SIZE = 64;
-@@ -121,6 +_,7 @@
+@@ -124,6 +_,7 @@
      private final @Nullable ItemStackTemplate craftingRemainingItem;
      protected final String descriptionId;
      private final FeatureFlagSet requiredFeatures;
@@ -25,7 +49,7 @@
  
      public static int getId(Item item) {
          return item == null ? 0 : BuiltInRegistries.ITEM.getId(item);
-@@ -143,12 +_,13 @@
+@@ -146,12 +_,13 @@
          BuiltInRegistries.DATA_COMPONENT_INITIALIZERS.add(properties.itemIdOrThrow(), componentInitializer);
          this.craftingRemainingItem = properties.craftingRemainingItem;
          this.requiredFeatures = properties.requiredFeatures;
@@ -40,7 +64,7 @@
      }
  
      @Deprecated
-@@ -160,6 +_,21 @@
+@@ -163,6 +_,21 @@
          return this.builtInRegistryHolder.components();
      }
  
@@ -62,7 +86,7 @@
      public int getDefaultMaxStackSize() {
          return this.components().getOrDefault(DataComponents.MAX_STACK_SIZE, 1);
      }
-@@ -167,6 +_,8 @@
+@@ -170,6 +_,8 @@
      public void onUseTick(Level level, LivingEntity livingEntity, ItemStack itemStack, int ticksRemaining) {
      }
  
@@ -71,7 +95,18 @@
      public void onDestroyed(ItemEntity itemEntity) {
      }
  
-@@ -283,6 +_,8 @@
+@@ -184,9 +_,7 @@
+     }
+ 
+     public InteractionResult useOn(UseOnContext context) {
+-        ItemStack stack = context.getItemInHand();
+-        BlockTransformer blockTransformer = stack.get(DataComponents.BLOCK_TRANSFORMER);
+-        return blockTransformer != null ? blockTransformer.transformBlock(context) : InteractionResult.PASS;
++        return InteractionResult.PASS;
+     }
+ 
+     public float getDestroySpeed(ItemStack itemStack, BlockState state) {
+@@ -288,6 +_,8 @@
          return BuiltInRegistries.ITEM.wrapAsHolder(this).getRegisteredName();
      }
  
@@ -80,7 +115,7 @@
      public final @Nullable ItemStackTemplate getCraftingRemainder() {
          return this.craftingRemainingItem;
      }
-@@ -308,10 +_,24 @@
+@@ -313,10 +_,24 @@
          }
      }
  
@@ -106,7 +141,7 @@
          } else {
              return !itemStack.has(DataComponents.BLOCKS_ATTACKS) && !itemStack.has(DataComponents.KINETIC_WEAPON) ? 0 : 72000;
          }
-@@ -349,13 +_,26 @@
+@@ -354,13 +_,26 @@
      }
  
      public boolean useOnRelease(ItemStack itemStack) {
@@ -134,7 +169,7 @@
      public boolean canFitInsideContainerItems() {
          return true;
      }
-@@ -380,6 +_,12 @@
+@@ -385,6 +_,12 @@
          private @Nullable ResourceKey<Item> id;
          private DependantName<Item, String> descriptionId = ITEM_DESCRIPTION_ID;
          private final DependantName<Item, Identifier> model = ResourceKey::identifier;
@@ -147,7 +182,40 @@
  
          public Item.Properties food(FoodProperties foodProperties) {
              return this.food(foodProperties, Consumables.DEFAULT_FOOD);
-@@ -664,7 +_,11 @@
+@@ -438,10 +_,6 @@
+             return this.component(DataComponents.ENCHANTABLE, new Enchantable(value));
+         }
+ 
+-        public Item.Properties potPattern(ResourceKey<DecoratedPotPattern> pattern) {
+-            return this.delayedComponent(DataComponents.PROVIDES_POTTERY_PATTERN, context -> context.getOrThrow(pattern));
+-        }
+-
+         public Item.Properties repairable(Item repairItem) {
+             return this.component(DataComponents.REPAIRABLE, new Repairable(HolderSet.direct(repairItem.builtInRegistryHolder())));
+         }
+@@ -470,18 +_,15 @@
+         }
+ 
+         public Item.Properties axe(ToolMaterial material, float attackDamageBaseline, float attackSpeedBaseline) {
+-            return this.tool(material, BlockTags.MINEABLE_WITH_AXE, attackDamageBaseline, attackSpeedBaseline, 5.0F)
+-                .delayedComponent(DataComponents.BLOCK_TRANSFORMER, var0 -> BlockTransformerMappings.AXE);
++            return this.tool(material, BlockTags.MINEABLE_WITH_AXE, attackDamageBaseline, attackSpeedBaseline, 5.0F);
+         }
+ 
+         public Item.Properties hoe(ToolMaterial material, float attackDamageBaseline, float attackSpeedBaseline) {
+-            return this.tool(material, BlockTags.MINEABLE_WITH_HOE, attackDamageBaseline, attackSpeedBaseline, 0.0F)
+-                .delayedComponent(DataComponents.BLOCK_TRANSFORMER, var0 -> BlockTransformerMappings.HOE);
++            return this.tool(material, BlockTags.MINEABLE_WITH_HOE, attackDamageBaseline, attackSpeedBaseline, 0.0F);
+         }
+ 
+         public Item.Properties shovel(ToolMaterial material, float attackDamageBaseline, float attackSpeedBaseline) {
+-            return this.tool(material, BlockTags.MINEABLE_WITH_SHOVEL, attackDamageBaseline, attackSpeedBaseline, 0.0F)
+-                .delayedComponent(DataComponents.BLOCK_TRANSFORMER, var0 -> BlockTransformerMappings.SHOVEL);
++            return this.tool(material, BlockTags.MINEABLE_WITH_SHOVEL, attackDamageBaseline, attackSpeedBaseline, 0.0F);
+         }
+ 
+         public Item.Properties sword(ToolMaterial material, float attackDamageBaseline, float attackSpeedBaseline) {
+@@ -676,7 +_,11 @@
          }
  
          public <T> Item.Properties delayedHolderComponent(DataComponentType<Holder<T>> type, ResourceKey<T> valueKey) {
@@ -160,7 +228,7 @@
              return this;
          }
  
-@@ -713,7 +_,26 @@
+@@ -725,7 +_,26 @@
  
          boolean isPeaceful();
  
@@ -187,7 +255,7 @@
              return level == null ? EMPTY : new Item.TooltipContext() {
                  @Override
                  public HolderLookup.Provider registries() {
-@@ -733,6 +_,17 @@
+@@ -745,6 +_,17 @@
                  @Override
                  public boolean isPeaceful() {
                      return level.getDifficulty() == Difficulty.PEACEFUL;

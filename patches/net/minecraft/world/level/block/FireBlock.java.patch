@@ -1,21 +1,18 @@
 --- a/net/minecraft/world/level/block/FireBlock.java
 +++ b/net/minecraft/world/level/block/FireBlock.java
-@@ -27,6 +_,14 @@
+@@ -26,6 +_,11 @@
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
  
 +// CraftBukkit start
-+import org.bukkit.craftbukkit.block.CraftBlockState;
-+import org.bukkit.craftbukkit.block.CraftBlockStates;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.event.block.BlockBurnEvent;
-+import org.bukkit.event.block.BlockFadeEvent;
 +// CraftBukkit end
 +
  public class FireBlock extends BaseFireBlock {
-     public static final MapCodec<FireBlock> CODEC = simpleCodec(FireBlock::new);
      public static final int MAX_AGE = 15;
-@@ -99,7 +_,25 @@
+     public static final IntegerProperty AGE = BlockStateProperties.AGE_15;
+@@ -92,7 +_,25 @@
          BlockState neighbourState,
          RandomSource random
      ) {
@@ -42,7 +39,7 @@
      }
  
      @Override
-@@ -115,13 +_,13 @@
+@@ -108,13 +_,13 @@
      protected BlockState getStateForPlacement(BlockGetter level, BlockPos pos) {
          BlockPos below = pos.below();
          BlockState belowState = level.getBlockState(below);
@@ -58,7 +55,7 @@
                  }
              }
  
-@@ -139,17 +_,17 @@
+@@ -132,17 +_,17 @@
  
      @Override
      protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
@@ -80,7 +77,7 @@
              } else {
                  int newAge = Math.min(15, age + random.nextInt(3) / 2);
                  if (age != newAge) {
-@@ -161,26 +_,28 @@
+@@ -154,26 +_,28 @@
                      if (!this.isValidFireLocation(level, pos)) {
                          BlockPos below = pos.below();
                          if (!level.getBlockState(below).isFaceSturdy(level, below, Direction.UP) || age > 3) {
@@ -118,11 +115,11 @@
                  BlockPos.MutableBlockPos testPos = new BlockPos.MutableBlockPos();
  
                  for (int xx = -1; xx <= 1; xx++) {
-@@ -202,7 +_,15 @@
+@@ -195,7 +_,15 @@
  
                                      if (odds > 0 && random.nextInt(rate) <= odds && (!level.isRaining() || !this.isNearRain(level, testPos))) {
                                          int spreadAge = Math.min(15, age + random.nextInt(5) / 4);
--                                        level.setBlock(testPos, this.getStateWithAge(level, testPos, spreadAge), 3);
+-                                        level.setBlockAndUpdate(testPos, this.getStateWithAge(level, testPos, spreadAge));
 +                                        // CraftBukkit start - Call to stop spread of fire
 +                                        if (!level.getBlockState(testPos).is(Blocks.FIRE)) {
 +                                            if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(level, testPos, pos).isCancelled()) {
@@ -135,7 +132,7 @@
                                      }
                                  }
                              }
-@@ -221,32 +_,46 @@
+@@ -214,32 +_,46 @@
              || level.isRainingAt(testPos.south());
      }
  
@@ -178,7 +175,7 @@
 +
              if (random.nextInt(age + 10) < 5 && !level.isRainingAt(pos)) {
                  int newAge = Math.min(age + random.nextInt(5) / 4, 15);
-                 level.setBlock(pos, this.getStateWithAge(level, pos, newAge), 3);
+                 level.setBlockAndUpdate(pos, this.getStateWithAge(level, pos, newAge));
              } else {
 -                level.removeBlock(pos, false);
 -            }
@@ -190,7 +187,7 @@
              }
          }
      }
-@@ -258,7 +_,7 @@
+@@ -251,7 +_,7 @@
  
      private boolean isValidFireLocation(BlockGetter level, BlockPos pos) {
          for (Direction direction : Direction.values()) {
@@ -199,7 +196,7 @@
                  return true;
              }
          }
-@@ -275,25 +_,26 @@
+@@ -268,25 +_,26 @@
  
          for (Direction direction : Direction.values()) {
              BlockState blockState = level.getBlockState(pos.relative(direction));
@@ -232,7 +229,7 @@
      }
  
      @Override
-@@ -302,8 +_,21 @@
+@@ -295,8 +_,21 @@
      }
  
      private void setFlammable(Block block, int igniteOdds, int burnOdds) {

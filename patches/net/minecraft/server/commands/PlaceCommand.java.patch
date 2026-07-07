@@ -1,5 +1,35 @@
 --- a/net/minecraft/server/commands/PlaceCommand.java
 +++ b/net/minecraft/server/commands/PlaceCommand.java
+@@ -29,7 +_,7 @@
+ import net.minecraft.world.level.block.Rotation;
+ import net.minecraft.world.level.block.entity.StructureBlockEntity;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+-import net.minecraft.world.level.levelgen.feature.Feature;
++import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
+ import net.minecraft.world.level.levelgen.structure.BoundingBox;
+ import net.minecraft.world.level.levelgen.structure.Structure;
+ import net.minecraft.world.level.levelgen.structure.StructureStart;
+@@ -66,7 +_,7 @@
+                 .then(
+                     Commands.literal("feature")
+                         .then(
+-                            Commands.argument("feature", ResourceKeyArgument.key(Registries.FEATURE))
++                            Commands.argument("feature", ResourceKeyArgument.key(Registries.CONFIGURED_FEATURE))
+                                 .executes(
+                                     c -> placeFeature(
+                                         c.getSource(), ResourceKeyArgument.getConfiguredFeature(c, "feature"), BlockPos.containing(c.getSource().getPosition())
+@@ -248,9 +_,9 @@
+         );
+     }
+ 
+-    public static int placeFeature(CommandSourceStack source, Holder.Reference<Feature> featureHolder, BlockPos pos) throws CommandSyntaxException {
++    public static int placeFeature(CommandSourceStack source, Holder.Reference<ConfiguredFeature<?, ?>> featureHolder, BlockPos pos) throws CommandSyntaxException {
+         ServerLevel level = source.getLevel();
+-        Feature feature = featureHolder.value();
++        ConfiguredFeature<?, ?> feature = featureHolder.value();
+         ChunkPos chunkPos = ChunkPos.containing(pos);
+         checkLoaded(level, new ChunkPos(chunkPos.x() - 1, chunkPos.z() - 1), new ChunkPos(chunkPos.x() + 1, chunkPos.z() + 1));
+         if (!feature.place(level, level.getChunkSource().getGenerator(), level.getRandom(), pos)) {
 @@ -296,6 +_,7 @@
              throw ERROR_STRUCTURE_FAILED.create();
          }

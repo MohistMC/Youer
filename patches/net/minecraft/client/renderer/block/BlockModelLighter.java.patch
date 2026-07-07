@@ -1,11 +1,66 @@
 --- a/net/minecraft/client/renderer/block/BlockModelLighter.java
 +++ b/net/minecraft/client/renderer/block/BlockModelLighter.java
-@@ -30,6 +_,8 @@
+@@ -18,13 +_,13 @@
+ @OnlyIn(Dist.CLIENT)
+ public class BlockModelLighter {
+     private static final int CACHE_SIZE = 100;
+-    protected static final ThreadLocal<BlockModelLighter.Cache> CACHE = ThreadLocal.withInitial(BlockModelLighter.Cache::new);
++    private static final ThreadLocal<BlockModelLighter.Cache> CACHE = ThreadLocal.withInitial(BlockModelLighter.Cache::new);
+     public static final int CHECK_LIGHT = -1;
+-    protected final BlockModelLighter.Cache cache;
+-    protected final BlockPos.MutableBlockPos scratchPos = new BlockPos.MutableBlockPos();
+-    protected boolean faceCubic;
++    private final BlockModelLighter.Cache cache;
++    private final BlockPos.MutableBlockPos scratchPos = new BlockPos.MutableBlockPos();
++    private boolean faceCubic;
+     private boolean facePartial;
+-    protected final float[] faceShape = new float[BlockModelLighter.SizeInfo.COUNT];
++    private final float[] faceShape = new float[BlockModelLighter.SizeInfo.COUNT];
+ 
+     public BlockModelLighter() {
          this.cache = CACHE.get();
+@@ -217,7 +_,7 @@
+         outputInstance.setColor(ARGB.gray(directionalBrightness));
      }
  
-+    public void reset() { }
-+
-     public int getLightCoords(BlockState state, BlockAndTintGetter level, BlockPos relativePos) {
-         return this.cache.getLightCoords(state, level, relativePos);
+-    protected void prepareQuadShape(BlockAndTintGetter level, BlockState state, BlockPos pos, BakedQuad quad, boolean ambientOcclusion) {
++    private void prepareQuadShape(BlockAndTintGetter level, BlockState state, BlockPos pos, BakedQuad quad, boolean ambientOcclusion) {
+         float minX = 32.0F;
+         float minY = 32.0F;
+         float minZ = 32.0F;
+@@ -280,7 +_,7 @@
+         CACHE.get().disable();
      }
+ 
+-    public enum AdjacencyInfo {
++    private enum AdjacencyInfo {
+         DOWN(
+             new Direction[]{Direction.WEST, Direction.EAST, Direction.NORTH, Direction.SOUTH},
+             0.5F,
+@@ -552,7 +_,7 @@
+             }
+         );
+ 
+-        public final Direction[] corners;
++        private final Direction[] corners;
+         private final boolean doNonCubicWeight;
+         private final BlockModelLighter.SizeInfo[] vert0Weights;
+         private final BlockModelLighter.SizeInfo[] vert1Weights;
+@@ -694,7 +_,7 @@
+         }
+     }
+ 
+-    public enum SizeInfo {
++    private enum SizeInfo {
+         DOWN(0),
+         UP(1),
+         NORTH(2),
+@@ -709,7 +_,7 @@
+         FLIP_EAST(11);
+ 
+         public static final int COUNT = values().length;
+-        public final int index;
++        private final int index;
+ 
+         SizeInfo(int index) {
+             this.index = index;

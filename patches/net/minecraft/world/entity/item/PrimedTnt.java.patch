@@ -45,7 +45,7 @@
          this.setDeltaMovement(this.getDeltaMovement().scale(this.getAirDrag()));
          if (this.onGround()) {
              this.setDeltaMovement(this.getDeltaMovement().multiply(0.7, -0.5, 0.7));
-@@ -107,20 +_,34 @@
+@@ -107,22 +_,34 @@
          int fuse = this.getFuse() - 1;
          this.setFuse(fuse);
          if (fuse <= 0) {
@@ -63,6 +63,8 @@
                  this.level().addParticle(ParticleTypes.SMOKE, this.getX(), this.getY() + 0.5, this.getZ(), 0.0, 0.0, 0.0);
              }
          }
+-
+-        this.setRequiresPrecisePosition(this.horizontalCollision || this.verticalCollision);
 +        // Paper start - Option to prevent TNT from moving in water
 +        if (!this.isRemoved() && this.wasTouchingWater && this.level().paperConfig().fixes.preventTntFromMovingInWater) {
 +            this.hurtMarked = true;
@@ -81,7 +83,7 @@
              this.level()
                  .explode(
                      this,
-@@ -129,10 +_,11 @@
+@@ -131,10 +_,11 @@
                      this.getX(),
                      this.getY(0.0625),
                      this.getZ(),
@@ -95,11 +97,14 @@
          }
      }
  
-@@ -205,4 +_,39 @@
-     public final boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
+@@ -208,8 +_,38 @@
          return false;
      }
-+
+ 
+-    @Override
+-    public boolean canSimulateMovement() {
+-        return true;
+-    }
 +    // Paper start - Option to prevent TNT from moving in water
 +    @Override
 +    public boolean isPushedByFluid() {

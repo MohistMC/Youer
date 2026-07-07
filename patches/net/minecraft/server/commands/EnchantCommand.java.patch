@@ -1,6 +1,22 @@
 --- a/net/minecraft/server/commands/EnchantCommand.java
 +++ b/net/minecraft/server/commands/EnchantCommand.java
-@@ -65,7 +_,7 @@
+@@ -35,15 +_,6 @@
+         (level, max) -> Component.translatableEscape("commands.enchant.failed.level", level, max)
+     );
+     private static final SimpleCommandExceptionType ERROR_NOTHING_HAPPENED = new SimpleCommandExceptionType(Component.translatable("commands.enchant.failed"));
+-    private static final CommandResponseTracker.MessagesWithArgs<Entity, Holder<Enchantment>, Integer> RESPONSE_ENCHANT = CommandResponseTracker.messages(
+-        ERROR_NOTHING_HAPPENED,
+-        (entity, var1, enchantment, level) -> Component.translatable(
+-            "commands.enchant.success.single", Enchantment.getFullname(enchantment, level), entity.getDisplayName()
+-        ),
+-        (entityCount, var1, enchantment, level) -> Component.translatable(
+-            "commands.enchant.success.multiple", Enchantment.getFullname(enchantment, level), entityCount
+-        )
+-    );
+ 
+     public static void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext context) {
+         dispatcher.register(
+@@ -74,31 +_,48 @@
  
      private static int enchant(CommandSourceStack source, Collection<? extends Entity> targets, Holder<Enchantment> enchantmentHolder, int level) throws CommandSyntaxException {
          Enchantment enchantment = enchantmentHolder.value();
@@ -9,7 +25,10 @@
              throw ERROR_LEVEL_TOO_HIGH.create(level, enchantment.getMaxLevel());
          }
  
-@@ -75,8 +_,8 @@
+-        CommandResponseTracker<Entity> tracker = CommandResponseTracker.create();
++        int success = 0;
+ 
+         for (Entity entity : targets) {
              if (entity instanceof LivingEntity target) {
                  ItemStack item = target.getMainHandItem();
                  if (!item.isEmpty()) {
@@ -18,5 +37,39 @@
 +                    if (item.supportsEnchantment(enchantmentHolder) // Neo: Respect IItemExtension#supportsEnchantment
 +                        && EnchantmentHelper.isEnchantmentCompatible(EnchantmentHelper.getEnchantmentsForCrafting(item).keySet(), enchantmentHolder) || (org.purpurmc.purpur.PurpurConfig.allowUnsafeEnchantCommand && !item.hasEnchantment(enchantmentHolder))) { // Purpur - Config to allow unsafe enchants
                          item.enchant(enchantmentHolder, level);
-                         success++;
+-                        tracker.track(entity);
++                        success++;
                      } else if (targets.size() == 1) {
+                         throw ERROR_INCOMPATIBLE.create(item.getHoverName().getString());
+                     }
+                 } else if (targets.size() == 1) {
+-                    throw ERROR_NO_ITEM.create(target.getDisplayName().getString());
++                    throw ERROR_NO_ITEM.create(target.getName().getString());
+                 }
+             } else if (targets.size() == 1) {
+-                throw ERROR_NOT_LIVING_ENTITY.create(entity.getDisplayName().getString());
++                throw ERROR_NOT_LIVING_ENTITY.create(entity.getName().getString());
+             }
+         }
+ 
+-        return tracker.sendFeedback(source, true, RESPONSE_ENCHANT, enchantmentHolder, level);
++        if (success == 0) {
++            throw ERROR_NOTHING_HAPPENED.create();
++        }
++
++        if (targets.size() == 1) {
++            source.sendSuccess(
++                () -> Component.translatable(
++                    "commands.enchant.success.single", Enchantment.getFullname(enchantmentHolder, level), targets.iterator().next().getDisplayName()
++                ),
++                true
++            );
++        } else {
++            source.sendSuccess(
++                () -> Component.translatable("commands.enchant.success.multiple", Enchantment.getFullname(enchantmentHolder, level), targets.size()), true
++            );
++        }
++
++        return success;
+     }
+ }

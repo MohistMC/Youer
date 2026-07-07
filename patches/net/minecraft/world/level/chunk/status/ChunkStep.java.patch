@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/chunk/status/ChunkStep.java
 +++ b/net/minecraft/world/level/chunk/status/ChunkStep.java
-@@ -11,14 +_,55 @@
+@@ -5,37 +_,70 @@
+ import java.util.concurrent.CompletableFuture;
+ import net.minecraft.server.level.GenerationChunkHolder;
+ import net.minecraft.util.StaticCache2D;
+-import net.minecraft.util.profiling.Profiler;
+-import net.minecraft.util.profiling.Zone;
+ import net.minecraft.util.profiling.jfr.JvmProfiler;
+ import net.minecraft.util.profiling.jfr.callback.ProfiledDuration;
+ import net.minecraft.world.level.chunk.ChunkAccess;
  import net.minecraft.world.level.chunk.ProtoChunk;
  import org.jspecify.annotations.Nullable;
  
@@ -59,9 +67,18 @@
 -    public CompletableFuture<ChunkAccess> apply(WorldGenContext context, StaticCache2D<GenerationChunkHolder> cache, ChunkAccess chunk) {
 +    public CompletableFuture<ChunkAccess> apply(final WorldGenContext context, final StaticCache2D<GenerationChunkHolder> cache, final ChunkAccess chunk) {
          if (chunk.getPersistedStatus().isBefore(this.targetStatus)) {
-             ProfiledDuration profiledDuration = JvmProfiler.INSTANCE.onChunkGenerate(chunk.getPos(), context.level().dimension(), this.targetStatus.getName());
-             return this.task.doWork(context, this, cache, chunk).thenApply(newCenterChunk -> this.completeChunkGeneration(newCenterChunk, profiledDuration));
-@@ -27,7 +_,7 @@
+-            String stepName = this.targetStatus.getName();
+-
+-            try (Zone var5 = Profiler.get().zone(stepName)) {
+-                ProfiledDuration profiledDuration = JvmProfiler.INSTANCE.onChunkGenerate(chunk.getPos(), context.level().dimension(), stepName);
+-                return this.task
+-                    .doWork(context, this, cache, chunk)
+-                    .thenApply(newCenterChunk -> this.completeChunkGeneration(newCenterChunk, profiledDuration));
+-            }
++            ProfiledDuration profiledDuration = JvmProfiler.INSTANCE.onChunkGenerate(chunk.getPos(), context.level().dimension(), this.targetStatus.getName());
++            return this.task.doWork(context, this, cache, chunk).thenApply(newCenterChunk -> this.completeChunkGeneration(newCenterChunk, profiledDuration));
+         } else {
+             return this.task.doWork(context, this, cache, chunk);
          }
      }
  
@@ -70,7 +87,7 @@
          if (newCenterChunk instanceof ProtoChunk protochunk && protochunk.getPersistedStatus().isBefore(this.targetStatus)) {
              protochunk.setPersistedStatus(this.targetStatus);
          }
-@@ -39,6 +_,55 @@
+@@ -47,6 +_,55 @@
          return newCenterChunk;
      }
  
@@ -126,7 +143,7 @@
      public static class Builder {
          private final ChunkStatus status;
          private final @Nullable ChunkStep parent;
-@@ -46,7 +_,7 @@
+@@ -54,7 +_,7 @@
          private int blockStateWriteRadius = -1;
          private ChunkStatusTask task = ChunkStatusTasks::passThrough;
  
@@ -135,7 +152,7 @@
              if (status.getParent() != status) {
                  throw new IllegalArgumentException("Not starting with the first status: " + status);
              }
-@@ -56,7 +_,7 @@
+@@ -64,7 +_,7 @@
              this.directDependenciesByRadius = new ChunkStatus[0];
          }
  
@@ -144,7 +161,7 @@
              if (parent.targetStatus.getIndex() != status.getIndex() - 1) {
                  throw new IllegalArgumentException("Out of order status: " + status);
              }
-@@ -66,7 +_,7 @@
+@@ -74,7 +_,7 @@
              this.directDependenciesByRadius = new ChunkStatus[]{parent.targetStatus};
          }
  
@@ -153,7 +170,7 @@
              if (status.isOrAfter(this.status)) {
                  throw new IllegalArgumentException("Status " + status + " can not be required by " + this.status);
              }
-@@ -85,23 +_,23 @@
+@@ -93,23 +_,23 @@
              return this;
          }
  
@@ -184,7 +201,7 @@
              );
          }
  
-@@ -128,7 +_,7 @@
+@@ -136,7 +_,7 @@
              return accumulatedDependencies;
          }
  

@@ -1,14 +1,6 @@
 --- a/net/minecraft/world/level/block/LightningRodBlock.java
 +++ b/net/minecraft/world/level/block/LightningRodBlock.java
-@@ -22,6 +_,7 @@
- import net.minecraft.world.level.material.FluidState;
- import net.minecraft.world.level.material.Fluids;
- import net.minecraft.world.level.redstone.ExperimentalRedstoneUtils;
-+import org.bukkit.event.block.BlockRedstoneEvent;
- 
- public class LightningRodBlock extends RodBlock implements SimpleWaterloggedBlock {
-     public static final MapCodec<LightningRodBlock> CODEC = simpleCodec(LightningRodBlock::new);
-@@ -82,6 +_,13 @@
+@@ -75,6 +_,13 @@
      }
  
      public void onLightningStrike(BlockState state, Level level, BlockPos pos) {
@@ -19,10 +11,10 @@
 +            }
 +        }
 +        // Paper end - Call BlockRedstoneEvent
-         level.setBlock(pos, state.setValue(POWERED, true), 3);
+         level.setBlockAndUpdate(pos, state.setValue(POWERED, true));
          this.updateNeighbours(state, level, pos);
          level.scheduleTick(pos, this, 8);
-@@ -95,6 +_,13 @@
+@@ -88,6 +_,13 @@
  
      @Override
      protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
@@ -33,6 +25,6 @@
 +            }
 +        }
 +        // Paper end - Call BlockRedstoneEvent
-         level.setBlock(pos, state.setValue(POWERED, false), 3);
+         level.setBlockAndUpdate(pos, state.setValue(POWERED, false));
          this.updateNeighbours(state, level, pos);
      }
