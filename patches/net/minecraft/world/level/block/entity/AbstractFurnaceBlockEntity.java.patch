@@ -32,15 +32,7 @@
  import org.jspecify.annotations.Nullable;
  
  public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer, StackedContentsCompatible, RecipeCraftingHolder {
-@@ -63,13 +_,22 @@
-     public int cookingTimer;
-     public int cookingTotalTime;
-     protected final ContainerData dataAccess = new ContainerData() {
-+        {
-+            Objects.requireNonNull(AbstractFurnaceBlockEntity.this);
-+        }
-+
-         @Override
+@@ -67,9 +_,14 @@
          public int get(int dataId) {
              switch (dataId) {
                  case 0:
@@ -56,7 +48,7 @@
                  case 2:
                      return AbstractFurnaceBlockEntity.this.cookingTimer;
                  case 3:
-@@ -103,34 +_,69 @@
+@@ -103,13 +_,46 @@
      };
      public final Reference2IntOpenHashMap<ResourceKey<Recipe<?>>> recipesUsed = new Reference2IntOpenHashMap<>();
      private final RecipeManager.CachedCheck<SingleRecipeInput, ? extends AbstractCookingRecipe> quickCheck;
@@ -104,33 +96,18 @@
  
      @Override
      protected void loadAdditional(ValueInput input) {
-         super.loadAdditional(input);
-         this.items = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
-         ContainerHelper.loadAllItems(input, this.items);
--        this.cookingTimer = input.getShortOr("cooking_time_spent", (short)0);
--        this.cookingTotalTime = input.getShortOr("cooking_total_time", (short)0);
--        this.litTimeRemaining = input.getShortOr("lit_time_remaining", (short)0);
--        this.litTotalTime = input.getShortOr("lit_total_time", (short)0);
-+        this.cookingTimer = input.getIntOr("cooking_time_spent", (short)0);
-+        this.cookingTotalTime = input.getIntOr("cooking_total_time", (short)0);
-+        this.litTimeRemaining = input.getIntOr("lit_time_remaining", (short)0);
-+        this.litTotalTime = input.getIntOr("lit_total_time", (short)0);
+@@ -122,6 +_,7 @@
+         this.litTotalTime = input.getShortOr("lit_total_time", (short)0);
          this.recipesUsed.clear();
          this.recipesUsed.putAll(input.read("RecipesUsed", RECIPES_USED_CODEC).orElse(Map.of()));
 +        this.cookSpeedMultiplier = input.getDoubleOr("Paper.CookSpeedMultiplier", 1); // Paper - cook speed multiplier API
      }
  
      @Override
-     protected void saveAdditional(ValueOutput output) {
-         super.saveAdditional(output);
--        output.putShort("cooking_time_spent", (short)this.cookingTimer);
--        output.putShort("cooking_total_time", (short)this.cookingTotalTime);
--        output.putShort("lit_time_remaining", (short)this.litTimeRemaining);
--        output.putShort("lit_total_time", (short)this.litTotalTime);
-+        output.putInt("cooking_time_spent", this.cookingTimer);
-+        output.putInt("cooking_total_time", this.cookingTotalTime);
-+        output.putInt("lit_time_remaining", this.litTimeRemaining);
-+        output.putInt("lit_total_time", this.litTotalTime);
+@@ -131,6 +_,7 @@
+         output.putShort("cooking_total_time", (short)this.cookingTotalTime);
+         output.putShort("lit_time_remaining", (short)this.litTimeRemaining);
+         output.putShort("lit_total_time", (short)this.litTotalTime);
 +        output.putDouble("Paper.CookSpeedMultiplier", this.cookSpeedMultiplier); // Paper - cook speed multiplier API
          ContainerHelper.saveAllItems(output, this.items);
          output.store("RecipesUsed", RECIPES_USED_CODEC, this.recipesUsed);

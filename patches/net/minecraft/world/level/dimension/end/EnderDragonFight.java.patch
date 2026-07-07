@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/dimension/end/EnderDragonFight.java
 +++ b/net/minecraft/world/level/dimension/end/EnderDragonFight.java
-@@ -16,11 +_,11 @@
+@@ -16,6 +_,7 @@
  import java.util.Optional;
  import java.util.Set;
  import java.util.UUID;
@@ -8,41 +8,14 @@
  import java.util.function.Predicate;
  import net.minecraft.advancements.triggers.CriteriaTriggers;
  import net.minecraft.core.BlockPos;
- import net.minecraft.core.Direction;
--import net.minecraft.core.Holder;
- import net.minecraft.core.UUIDUtil;
- import net.minecraft.core.registries.Registries;
- import net.minecraft.data.worldgen.features.EndFeatures;
-@@ -57,8 +_,9 @@
+@@ -57,6 +_,7 @@
  import net.minecraft.world.level.chunk.LevelChunk;
  import net.minecraft.world.level.chunk.status.ChunkStatus;
  import net.minecraft.world.level.levelgen.Heightmap;
 +import net.minecraft.world.level.levelgen.feature.EndPodiumFeature;
  import net.minecraft.world.level.levelgen.feature.EndSpikeFeature;
--import net.minecraft.world.level.levelgen.feature.Feature;
-+import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration;
+ import net.minecraft.world.level.levelgen.feature.Feature;
  import net.minecraft.world.level.saveddata.SavedData;
- import net.minecraft.world.level.saveddata.SavedDataType;
- import net.minecraft.world.phys.AABB;
-@@ -76,7 +_,6 @@
-     private static final int GATEWAY_DISTANCE = 96;
-     public static final int DRAGON_SPAWN_Y = 128;
-     private static final Component EVENT_DISPLAY_NAME = Component.translatable("entity.minecraft.ender_dragon");
--    private static final BlockPos END_PODIUM_LOCATION = BlockPos.ZERO;
-     private Predicate<Entity> validPlayer;
-     public ServerBossEvent dragonEvent;
-     public ServerLevel level;
-@@ -147,10 +_,6 @@
-         this.respawnCrystals = respawnCrystals;
-     }
- 
--    public static BlockPos getPodiumLocation(BlockPos offset) {
--        return END_PODIUM_LOCATION.offset(offset);
--    }
--
-     public void init(ServerLevel level, long seed, BlockPos origin) {
-         this.level = level;
-         this.origin = origin;
 @@ -159,6 +_,12 @@
          );
          this.dragonEvent.setPlayBossMusic(true).setCreateWorldFog(true);
@@ -68,15 +41,6 @@
                  this.dragonUUID = null;
              }
          }
-@@ -333,7 +_,7 @@
-             }
-         }
- 
--        BlockPos endPodiumLocation = getPodiumLocation(this.origin);
-+        BlockPos endPodiumLocation = EndPodiumFeature.getLocation(this.origin);
-         int maxY = this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, endPodiumLocation).getY();
- 
-         for (int y = maxY; y >= this.level.getMinY(); y--) {
 @@ -407,12 +_,20 @@
              this.dragonEvent.setVisible(false);
              this.spawnExitPortal(true);
@@ -88,7 +52,7 @@
 -                    );
 -            }
 +            // Paper start - Add DragonEggFormEvent
-+            BlockPos eggPosition = this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, EndPodiumFeature.getLocation(this.origin));
++            BlockPos eggPosition = this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, getPodiumLocation(this.origin));
 +            org.bukkit.craftbukkit.block.CraftBlockState eggState = org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(this.level, eggPosition);
 +            eggState.setBlock(Blocks.DRAGON_EGG.defaultBlockState());
 +            io.papermc.paper.event.block.DragonEggFormEvent eggEvent = new io.papermc.paper.event.block.DragonEggFormEvent(
@@ -104,7 +68,7 @@
  
              this.hasPreviouslyKilledDragon = true;
              this.dragonKilled = true;
-@@ -427,28 +_,41 @@
+@@ -427,26 +_,39 @@
          this.setDirty();
      }
  
@@ -144,11 +108,8 @@
      public void spawnExitPortal(boolean activated) {
 +        EndPodiumFeature feature = new EndPodiumFeature(activated);
          if (this.exitPortalLocation == null) {
--            this.exitPortalLocation = this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, getPodiumLocation(this.origin)).below();
-+            this.exitPortalLocation = this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EndPodiumFeature.getLocation(this.origin)).below();
+             this.exitPortalLocation = this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, getPodiumLocation(this.origin)).below();
  
-             while (this.level.getBlockState(this.exitPortalLocation).is(Blocks.BEDROCK) && this.exitPortalLocation.getY() > 63) {
-                 this.exitPortalLocation = this.exitPortalLocation.below();
 @@ -457,9 +_,14 @@
              this.exitPortalLocation = this.exitPortalLocation.atY(Math.max(this.level.getMinY() + 1, this.exitPortalLocation.getY()));
              this.setDirty();

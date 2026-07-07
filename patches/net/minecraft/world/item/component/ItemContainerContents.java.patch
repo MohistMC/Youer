@@ -1,14 +1,5 @@
 --- a/net/minecraft/world/item/component/ItemContainerContents.java
 +++ b/net/minecraft/world/item/component/ItemContainerContents.java
-@@ -21,7 +_,7 @@
- import net.minecraft.world.item.ItemStackTemplate;
- import net.minecraft.world.item.TooltipFlag;
- 
--public final class ItemContainerContents implements ContainerComponent<ItemContainerContents>, TooltipProvider {
-+public final class ItemContainerContents implements TooltipProvider {
-     private static final int NO_SLOT = -1;
-     public static final int MAX_SIZE = 256;
-     public static final ItemContainerContents EMPTY = new ItemContainerContents(List.of());
 @@ -30,6 +_,7 @@
          .xmap(ItemContainerContents::fromSlots, ItemContainerContents::asSlots);
      public static final StreamCodec<RegistryFriendlyByteBuf, ItemContainerContents> STREAM_CODEC = ItemStackTemplate.STREAM_CODEC
@@ -17,58 +8,13 @@
          .<List<Optional<ItemStackTemplate>>>apply(ByteBufCodecs.list(256))
          .map(ItemContainerContents::new, c -> c.items);
      public final List<Optional<ItemStackTemplate>> items;
-@@ -125,8 +_,7 @@
-         return this.createStackFromSlot(0);
-     }
+@@ -204,6 +_,36 @@
  
--    @Override
--    public Stream<ItemStack> itemCopies() {
-+    public Stream<ItemStack> allItemsCopyStream() {
-         return this.items.stream().map(i -> i.map(ItemStackTemplate::create).orElse(ItemStack.EMPTY));
-     }
- 
-@@ -143,25 +_,6 @@
-     }
- 
-     @Override
--    public int size() {
--        return this.items.size();
--    }
--
--    public ItemContainerContents copyWithContents(Stream<ItemStack> newContents) {
--        return fromItems(newContents.toList());
--    }
--
--    public ItemContainerContents.Mutable asMutable() {
--        List<ItemStack> itemsList = new ArrayList<>(this.items.size());
--
--        for (Optional<ItemStackTemplate> item : this.items) {
--            itemsList.add(item.map(ItemStackTemplate::create).orElse(ItemStack.EMPTY));
--        }
--
--        return new ItemContainerContents.Mutable(itemsList);
--    }
--
--    @Override
-     public boolean equals(Object obj) {
-         return this == obj ? true : obj instanceof ItemContainerContents contents && this.items.equals(contents.items);
-     }
-@@ -192,18 +_,33 @@
-         }
-     }
- 
--    public static class Mutable extends SimpleMutableContainer<ItemContainerContents> {
--        private Mutable(List<ItemStack> items) {
--            super(items);
--        }
--
--        @Override
--        public boolean canInsertNewSlots() {
--            return this.items.size() < 256;
--        }
--
--        public ItemContainerContents toImmutable() {
--            return ItemContainerContents.fromItems(this.items);
+         public ItemContainerContents toImmutable() {
+             return ItemContainerContents.fromItems(this.items);
++        }
++    }
++
 +    /**
 +     * Neo:
 +     * {@return the number of slots in this container}

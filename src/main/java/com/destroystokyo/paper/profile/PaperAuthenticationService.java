@@ -3,13 +3,12 @@ package com.destroystokyo.paper.profile;
 import com.mojang.authlib.Environment;
 import com.mojang.authlib.EnvironmentParser;
 import com.mojang.authlib.GameProfileRepository;
-import com.mojang.authlib.minecraft.MinecraftSessionService;
-import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
-import com.mojang.authlib.yggdrasil.YggdrasilEnvironment;
 
+import com.mojang.authlib.minecraft.SessionService;
+import com.mojang.authlib.services.MinecraftServicesDiscoveryService;
 import java.net.Proxy;
 
-public class PaperAuthenticationService extends YggdrasilAuthenticationService {
+public class PaperAuthenticationService extends MinecraftServicesDiscoveryService {
 
     private final Environment environment;
 
@@ -19,7 +18,7 @@ public class PaperAuthenticationService extends YggdrasilAuthenticationService {
     }
 
     @Override
-    public MinecraftSessionService createMinecraftSessionService() {
+    public SessionService createMinecraftSessionService() {
         return new PaperMinecraftSessionService(this.getServicesKeySet(), this.getProxy(), this.environment);
     }
 

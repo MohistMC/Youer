@@ -1,13 +1,5 @@
 --- a/net/minecraft/world/level/chunk/ChunkGenerator.java
 +++ b/net/minecraft/world/level/chunk/ChunkGenerator.java
-@@ -65,7 +_,6 @@
- import net.minecraft.world.level.levelgen.XoroshiroRandomSource;
- import net.minecraft.world.level.levelgen.blending.Blender;
- import net.minecraft.world.level.levelgen.feature.FeatureCountTracker;
--import net.minecraft.world.level.levelgen.placement.FeaturePlacer;
- import net.minecraft.world.level.levelgen.placement.PlacedFeature;
- import net.minecraft.world.level.levelgen.structure.BoundingBox;
- import net.minecraft.world.level.levelgen.structure.Structure;
 @@ -95,23 +_,24 @@
      public ChunkGenerator(BiomeSource biomeSource, Function<Holder<Biome>, BiomeGenerationSettings> generationSettingsGetter) {
          this.biomeSource = biomeSource;
@@ -132,15 +124,7 @@
          ChunkPos centerPos = chunk.getPos();
          if (!SharedConstants.debugVoidTerrain(centerPos)) {
              SectionPos sectionPos = SectionPos.of(centerPos, level.getMinSectionY());
-@@ -346,7 +_,6 @@
-             });
-             possibleBiomes.retainAll(this.biomeSource.possibleBiomes());
-             int featureStepCount = featureList.size();
--            FeaturePlacer placer = new FeaturePlacer(level, this);
- 
-             try {
-                 Registry<PlacedFeature> featureRegistry = level.registryAccess().lookupOrThrow(Registries.PLACED_FEATURE);
-@@ -400,11 +_,18 @@
+@@ -400,7 +_,14 @@
                              Supplier<String> currentlyGenerating = () -> featureRegistry.getResourceKey(feature)
                                  .map(Object::toString)
                                  .orElseGet(feature::toString);
@@ -156,11 +140,6 @@
  
                              try {
                                  level.setCurrentlyGenerating(currentlyGenerating);
--                                placer.placeWithBiomeCheck(feature, random, origin);
-+                                feature.placeWithBiomeCheck(level, this, random, origin);
-                             } catch (Exception e) {
-                                 CrashReport report = CrashReport.forThrowable(e, "Feature placement");
-                                 report.addCategory("Feature").setDetail("Description", currentlyGenerating::get);
 @@ -429,6 +_,35 @@
          }
      }

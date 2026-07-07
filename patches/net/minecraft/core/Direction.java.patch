@@ -5,7 +5,7 @@
  import org.jspecify.annotations.Nullable;
  
 -public enum Direction implements Directional, StringRepresentable {
-+public enum Direction implements StringRepresentable, ca.spottedleaf.moonrise.patches.collisions.util.CollisionDirection { // Paper - optimise collisions
++public enum Direction implements Directional, StringRepresentable, ca.spottedleaf.moonrise.patches.collisions.util.CollisionDirection { // Paper - optimise collisions
      DOWN(0, 1, -1, "down", Direction.AxisDirection.NEGATIVE, Direction.Axis.Y, new Vec3i(0, -1, 0)),
      UP(1, 0, -1, "up", Direction.AxisDirection.POSITIVE, Direction.Axis.Y, new Vec3i(0, 1, 0)),
      NORTH(2, 3, 2, "north", Direction.AxisDirection.NEGATIVE, Direction.Axis.Z, new Vec3i(0, 0, -1)),
@@ -105,34 +105,27 @@
      }
  
      public Direction getClockWise(Direction.Axis axis) {
-@@ -244,24 +_,16 @@
-         };
-     }
+@@ -246,17 +_,17 @@
  
--    @Override
+     @Override
      public int getStepX() {
 -        return this.normal.getX();
 +        return this.adjX; // Paper - Perf: Inline shift direction fields
      }
  
--    @Override
+     @Override
      public int getStepY() {
 -        return this.normal.getY();
 +        return this.adjY; // Paper - Perf: Inline shift direction fields
      }
  
--    @Override
+     @Override
      public int getStepZ() {
 -        return this.normal.getZ();
--    }
--
--    @Override
--    public Vec3i getStep() {
--        return this.getUnitVec3i();
 +        return this.adjZ; // Paper - Perf: Inline shift direction fields
      }
  
-     public Vector3f step() {
+     @Override
 @@ -614,4 +_,17 @@
              return this.faces.length;
          }

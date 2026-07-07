@@ -1,16 +1,13 @@
 --- a/net/minecraft/server/packs/resources/MultiPackResourceManager.java
 +++ b/net/minecraft/server/packs/resources/MultiPackResourceManager.java
-@@ -7,9 +_,9 @@
+@@ -7,6 +_,7 @@
  import java.util.Optional;
  import java.util.Set;
  import java.util.TreeMap;
 +import java.util.function.Predicate;
  import java.util.stream.Stream;
  import net.minecraft.resources.Identifier;
--import net.minecraft.server.packs.PackMetadataResources;
- import net.minecraft.server.packs.PackResources;
- import net.minecraft.server.packs.PackType;
- import org.jspecify.annotations.Nullable;
+ import net.minecraft.server.packs.PackMetadataResources;
 @@ -28,7 +_,8 @@
          for (PackResources pack : packs) {
              ResourceFilterSection filterSection = this.getPackFilterSection(pack);
@@ -29,40 +26,3 @@
              LOGGER.error("Failed to get filter section from pack {}", pack.packId());
              return null;
          }
-@@ -81,24 +_,24 @@
-     }
- 
-     @Override
--    public Map<Identifier, Resource> listResources(String directory, ResourceManager.Selector selector) {
-+    public Map<Identifier, Resource> listResources(String directory, Predicate<Identifier> filter) {
-         checkTrailingDirectoryPath(directory);
-         Map<Identifier, Resource> result = new TreeMap<>();
- 
-         for (FallbackResourceManager manager : this.namespacedManagers.values()) {
--            result.putAll(manager.listResources(directory, selector));
-+            result.putAll(manager.listResources(directory, filter));
-         }
- 
-         return result;
-     }
- 
-     @Override
--    public Map<Identifier, List<Resource>> listResourceStacks(String directory, ResourceManager.Selector selector) {
-+    public Map<Identifier, List<Resource>> listResourceStacks(String directory, Predicate<Identifier> filter) {
-         checkTrailingDirectoryPath(directory);
-         Map<Identifier, List<Resource>> result = new TreeMap<>();
- 
-         for (FallbackResourceManager manager : this.namespacedManagers.values()) {
--            result.putAll(manager.listResourceStacks(directory, selector));
-+            result.putAll(manager.listResourceStacks(directory, filter));
-         }
- 
-         return result;
-@@ -117,6 +_,6 @@
- 
-     @Override
-     public void close() {
--        this.packs.forEach(PackMetadataResources::close);
-+        this.packs.forEach(PackResources::close);
-     }
- }

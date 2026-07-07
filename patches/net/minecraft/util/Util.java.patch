@@ -1,13 +1,5 @@
 --- a/net/minecraft/util/Util.java
 +++ b/net/minecraft/util/Util.java
-@@ -46,7 +_,6 @@
- import java.time.format.DateTimeFormatter;
- import java.time.format.FormatStyle;
- import java.util.Arrays;
--import java.util.Collection;
- import java.util.EnumMap;
- import java.util.EnumSet;
- import java.util.HexFormat;
 @@ -104,9 +_,25 @@
      private static final int DEFAULT_MAX_THREADS = 255;
      private static final int DEFAULT_SAFE_FILE_OPERATION_RETRIES = 10;
@@ -142,58 +134,3 @@
                  throw e;
              }
          }
-@@ -736,20 +_,20 @@
- 
-     public static void logAndPauseIfInIde(String message) {
-         LOGGER.error(message);
--        if (SharedConstants.IS_RUNNING_IN_IDE) {
-+        if (SharedConstants.IS_RUNNING_WITH_JDWP) {
-             doPause(message);
-         }
-     }
- 
-     public static void logAndPauseIfInIde(String message, Throwable throwable) {
-         LOGGER.error(message, throwable);
--        if (SharedConstants.IS_RUNNING_IN_IDE) {
-+        if (SharedConstants.IS_RUNNING_WITH_JDWP) {
-             doPause(message);
-         }
-     }
- 
-     public static <T extends Throwable> T pauseInIde(T t) {
--        if (SharedConstants.IS_RUNNING_IN_IDE) {
-+        if (SharedConstants.IS_RUNNING_WITH_JDWP) {
-             LOGGER.error("Trying to throw a fatal exception, pausing in IDE", t);
-             doPause(t.getMessage());
-         }
-@@ -1167,24 +_,24 @@
-         return ImmutableList.<T>builderWithExpectedSize(list.size() + 1).add(element).addAll(list).build();
-     }
- 
--    public static <T> List<T> join(Collection<T> first, Collection<T> second) {
-+    public static <T> List<T> join(List<T> first, List<T> second) {
-         Builder<T> builder = ImmutableList.builderWithExpectedSize(first.size() + second.size());
-         builder.addAll(first);
-         builder.addAll(second);
-         return builder.build();
-     }
- 
--    public static <T> List<T> join(Collection<T>... collections) {
-+    public static <T> List<T> join(List<T>... lists) {
-         int size = 0;
- 
--        for (Collection<T> collection : collections) {
--            size += collection.size();
-+        for (List<T> list : lists) {
-+            size += list.size();
-         }
- 
-         Builder<T> builder = ImmutableList.builderWithExpectedSize(size);
- 
--        for (Collection<T> collection : collections) {
--            builder.addAll(collection);
-+        for (List<T> list : lists) {
-+            builder.addAll(list);
-         }
- 
-         return builder.build();

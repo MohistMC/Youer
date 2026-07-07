@@ -8,65 +8,6 @@
  import org.slf4j.Logger;
  
  public class DebugCommand {
-@@ -102,13 +_,6 @@
-     private static class TraceCustomExecutor
-         extends CustomCommandExecutor.WithErrorHandling<CommandSourceStack>
-         implements CustomCommandExecutor.CommandAdapter<CommandSourceStack> {
--        private static final CommandResponseTracker.DispatchWithArg<Component, CommandFunction<CommandSourceStack>, String> RESPONSE_TRACE = new CommandResponseTracker.DispatchWithArg<>(
--            (function, totalValue, outputName) -> Component.translatable(
--                "commands.debug.function.success.single", totalValue, Component.translationArg(function.id()), outputName
--            ),
--            (functionCount, totalValue, outputName) -> Component.translatable("commands.debug.function.success.multiple", totalValue, functionCount, outputName)
--        );
--
-         public void runGuarded(
-             CommandSourceStack source, ContextChain<CommandSourceStack> currentStep, ChainModifiers modifiers, ExecutionControl<CommandSourceStack> context
-         ) throws CommandSyntaxException {
-@@ -125,7 +_,7 @@
-             MinecraftServer server = source.getServer();
-             String outputName = "debug-trace-" + Util.getFilenameFormattedDateTime() + ".txt";
-             CommandDispatcher<CommandSourceStack> dispatcher = source.getServer().getFunctions().getDispatcher();
--            CommandResponseTracker<CommandFunction<CommandSourceStack>> tracker = CommandResponseTracker.create();
-+            int commandCount = 0;
- 
-             try {
-                 Path dirPath = server.getFile("debug");
-@@ -144,7 +_,7 @@
-                                 super.execute(sender, contextx, frame);
-                             }
-                         }).bind(functionSource));
--                        tracker.track(function, instantiatedFunction.entries().size());
-+                        commandCount += instantiatedFunction.entries().size();
-                     } catch (FunctionInstantiationException exception) {
-                         source.sendFailure(exception.messageComponent());
-                     }
-@@ -154,8 +_,25 @@
-                 source.sendFailure(Component.translatable("commands.debug.function.traceFailed"));
-             }
- 
-+            int finalCommandCount = commandCount;
-             context.queueNext(
--                (var3, var4) -> source.sendSuccess(() -> tracker.dispatch(CommandResponseTracker.ElementType.ANY, RESPONSE_TRACE, outputName), true)
-+                (c, frame) -> {
-+                    if (functions.size() == 1) {
-+                        source.sendSuccess(
-+                            () -> Component.translatable(
-+                                "commands.debug.function.success.single",
-+                                finalCommandCount,
-+                                Component.translationArg(functions.iterator().next().id()),
-+                                outputName
-+                            ),
-+                            true
-+                        );
-+                    } else {
-+                        source.sendSuccess(
-+                            () -> Component.translatable("commands.debug.function.success.multiple", finalCommandCount, functions.size(), outputName), true
-+                        );
-+                    }
-+                }
-             );
-         }
-     }
 @@ -257,6 +_,13 @@
          public boolean alwaysAccepts() {
              return true;

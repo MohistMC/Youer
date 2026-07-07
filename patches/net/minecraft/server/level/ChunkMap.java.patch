@@ -8,15 +8,7 @@
  import java.util.stream.Stream;
  import net.minecraft.CrashReport;
  import net.minecraft.CrashReportCategory;
-@@ -78,7 +_,6 @@
- import net.minecraft.world.level.ChunkPos;
- import net.minecraft.world.level.Level;
- import net.minecraft.world.level.TicketStorage;
--import net.minecraft.world.level.block.Blocks;
- import net.minecraft.world.level.chunk.ChunkAccess;
- import net.minecraft.world.level.chunk.ChunkGenerator;
- import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
-@@ -94,14 +_,16 @@
+@@ -94,14 +_,17 @@
  import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
  import net.minecraft.world.level.chunk.storage.SerializableChunkData;
  import net.minecraft.world.level.chunk.storage.SimpleRegionStorage;
@@ -24,8 +16,8 @@
  import net.minecraft.world.level.entity.ChunkStatusUpdateListener;
  import net.minecraft.world.level.gamerules.GameRules;
  import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
--import net.minecraft.world.level.levelgen.NoiseRouterData;
 +import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
+ import net.minecraft.world.level.levelgen.NoiseRouterData;
  import net.minecraft.world.level.levelgen.RandomState;
  import net.minecraft.world.level.levelgen.structure.StructureStart;
  import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
@@ -105,7 +97,7 @@
          TicketStorage ticketStorage,
          int serverViewDistance,
          boolean syncWrites
-@@ -172,25 +_,30 @@
+@@ -172,10 +_,17 @@
              DataFixTypes.CHUNK
          );
          Path storageFolder = levelStorage.getDimensionPath(level.dimension());
@@ -114,7 +106,6 @@
          RegistryAccess registryAccess = level.registryAccess();
          long levelSeed = level.getSeed();
 -        if (generator instanceof NoiseBasedChunkGenerator noiseGenerator) {
--            this.randomState = RandomState.create(registryAccess.lookupOrThrow(Registries.NOISE), levelSeed, noiseGenerator.generatorSettings().value());
 +        // CraftBukkit start - SPIGOT-7051: It's a rigged game! Use delegate for random state creation, otherwise it is not so random.
 +        ChunkGenerator randomGenerator = generator;
 +        if (randomGenerator instanceof org.bukkit.craftbukkit.generator.CustomChunkGenerator customChunkGenerator) {
@@ -122,12 +113,11 @@
 +        }
 +        if (randomGenerator instanceof NoiseBasedChunkGenerator noiseGenerator) {
 +            // CraftBukkit end
-+            this.randomState = RandomState.create(noiseGenerator.generatorSettings().value(), registryAccess.lookupOrThrow(Registries.NOISE), levelSeed);
+             this.randomState = RandomState.create(registryAccess.lookupOrThrow(Registries.NOISE), levelSeed, noiseGenerator.generatorSettings().value());
          } else {
--            this.randomState = RandomState.create(
--                registryAccess.lookupOrThrow(Registries.NOISE), levelSeed, false, Blocks.STONE.defaultBlockState(), 63, NoiseRouterData.none(), List.of()
--            );
-+            this.randomState = RandomState.create(NoiseGeneratorSettings.dummy(), registryAccess.lookupOrThrow(Registries.NOISE), levelSeed);
+             this.randomState = RandomState.create(
+@@ -183,14 +_,14 @@
+             );
          }
  
 -        this.chunkGeneratorState = generator.createState(registryAccess.lookupOrThrow(Registries.STRUCTURE_SET), this.randomState, levelSeed);

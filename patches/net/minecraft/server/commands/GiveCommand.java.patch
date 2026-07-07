@@ -1,46 +1,5 @@
 --- a/net/minecraft/server/commands/GiveCommand.java
 +++ b/net/minecraft/server/commands/GiveCommand.java
-@@ -3,7 +_,6 @@
- import com.mojang.brigadier.CommandDispatcher;
- import com.mojang.brigadier.arguments.IntegerArgumentType;
- import com.mojang.brigadier.exceptions.CommandSyntaxException;
--import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType;
- import java.util.Collection;
- import net.minecraft.commands.CommandBuildContext;
- import net.minecraft.commands.CommandSourceStack;
-@@ -19,17 +_,6 @@
- import net.minecraft.world.item.ItemStack;
- 
- public class GiveCommand {
--    private static final Dynamic2CommandExceptionType TOO_MANY_ITEMS = new Dynamic2CommandExceptionType(
--        (maxCount, item) -> Component.translatableEscape("commands.give.failed.toomanyitems", maxCount, item)
--    );
--    private static final CommandResponseTracker.MessagesWithArgs<ServerPlayer, Integer, ItemStack> RESPONSE_GIVE = CommandResponseTracker.messages(
--        (player, var1, count, prototypeItemStack) -> Component.translatable(
--            "commands.give.success.single", count, prototypeItemStack.getDisplayName(), player.getDisplayName()
--        ),
--        (playerCount, var1, count, prototypeItemStack) -> Component.translatable(
--            "commands.give.success.multiple", count, prototypeItemStack.getDisplayName(), playerCount
--        )
--    );
-     public static final int MAX_ALLOWED_ITEMSTACKS = 100;
- 
-     public static void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext context) {
-@@ -58,12 +_,12 @@
-     }
- 
-     private static int giveItem(CommandSourceStack source, ItemInput input, Collection<ServerPlayer> players, int count) throws CommandSyntaxException {
--        CommandResponseTracker<ServerPlayer> tracker = CommandResponseTracker.create();
-         ItemStack prototypeItemStack = input.createItemStack(1);
-         int maxStackSize = prototypeItemStack.getMaxStackSize();
-         int maxAllowedCount = maxStackSize * 100;
-         if (count > maxAllowedCount) {
--            throw TOO_MANY_ITEMS.create(maxAllowedCount, prototypeItemStack.getDisplayName());
-+            source.sendFailure(Component.translatable("commands.give.failed.toomanyitems", maxAllowedCount, prototypeItemStack.getDisplayName()));
-+            return 0;
-         }
- 
-         for (ServerPlayer player : players) {
 @@ -74,8 +_,9 @@
                  remaining -= size;
                  ItemStack copyToDrop = prototypeItemStack.copyWithCount(size);
@@ -52,7 +11,7 @@
                      if (drop != null) {
                          drop.makeFakeItem();
                      }
-@@ -93,17 +_,26 @@
+@@ -93,7 +_,7 @@
                          );
                      player.containerMenu.broadcastChanges();
                  } else {
@@ -61,27 +20,3 @@
                      if (drop != null) {
                          drop.setNoPickUpDelay();
                          drop.setTarget(player.getUUID());
-                     }
-                 }
-             }
--
--            tracker.track(player);
--        }
--
--        return tracker.sendFeedback(source, true, RESPONSE_GIVE, count, prototypeItemStack);
-+        }
-+
-+        if (players.size() == 1) {
-+            source.sendSuccess(
-+                () -> Component.translatable(
-+                    "commands.give.success.single", count, prototypeItemStack.getDisplayName(), players.iterator().next().getDisplayName()
-+                ),
-+                true
-+            );
-+        } else {
-+            source.sendSuccess(() -> Component.translatable("commands.give.success.multiple", count, prototypeItemStack.getDisplayName(), players.size()), true); // Paper - MC-151857 - correct translation key
-+        }
-+
-+        return players.size();
-     }
- }

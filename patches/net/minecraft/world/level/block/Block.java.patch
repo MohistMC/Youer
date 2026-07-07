@@ -52,15 +52,27 @@
              String className = this.getClass().getSimpleName();
              if (!className.endsWith("Block")) {
                  LOGGER.error("Block classes should end with Block and {} doesn't.", className);
-@@ -247,7 +_,7 @@
-             || state.is(BlockTags.SHULKER_BOXES);
+@@ -248,13 +_,13 @@
      }
  
--    public static boolean dropFromBlockInteractLootTable(
-+    protected static boolean dropFromBlockInteractLootTable(
-         ServerLevel level,
-         ResourceKey<LootTable> key,
-         BlockState interactedBlockState,
+     public static boolean dropFromBlockInteractLootTable(
+-        ServerLevel level,
+-        ResourceKey<LootTable> key,
+-        BlockState interactedBlockState,
+-        @Nullable BlockEntity interactedBlockEntity,
+-        @Nullable ItemInstance tool,
+-        @Nullable Entity interactingEntity,
+-        BiConsumer<ServerLevel, ItemStack> consumer
++            ServerLevel level,
++            ResourceKey<LootTable> key,
++            BlockState interactedBlockState,
++            @Nullable BlockEntity interactedBlockEntity,
++            @Nullable ItemInstance tool,
++            @Nullable Entity interactingEntity,
++            BiConsumer<ServerLevel, ItemStack> consumer
+     ) {
+         return dropFromLootTable(
+             level,
 @@ -282,7 +_,15 @@
          }
      }
@@ -256,20 +268,18 @@
  
      public boolean isPossibleToRespawnInThis(BlockState state) {
          return !state.isSolid() && !state.liquid();
-@@ -454,21 +_,15 @@
+@@ -454,21 +_,18 @@
      }
  
      public void fallOn(Level level, BlockState state, BlockPos pos, Entity entity, double fallDistance) {
 -        double reducedFallDistance = fallDistance * (1.0F - this.getFallDistanceReduction());
 -        entity.causeFallDamage(reducedFallDistance, 1.0F, entity.damageSources().fall());
--    }
--
--    public void bounceOn(Level level, BlockState state, BlockPos pos, Entity entity, double fallDistance) {
--    }
--
 +        entity.causeFallDamage(fallDistance * fallDistanceMultiplier, fallDamageMultiplier, entity.damageSources().fall()); // Purpur - Configurable block fall damage modifiers
-+    }
-+
+     }
+ 
+     public void bounceOn(Level level, BlockState state, BlockPos pos, Entity entity, double fallDistance) {
+     }
+ 
 +    /// @deprecated NeoForge: Use [net.neoforged.neoforge.common.extensions.IBlockStateExtension#getBounceRestitution()]
 +    @Deprecated
      public float getBounceRestitution() {

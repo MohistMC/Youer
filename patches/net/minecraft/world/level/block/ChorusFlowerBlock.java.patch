@@ -109,12 +109,10 @@
          if (!belowState.is(this.plant) && !belowState.is(BlockTags.SUPPORTS_CHORUS_FLOWER)) {
              if (!belowState.isAir()) {
                  return false;
-@@ -243,7 +_,12 @@
-     @Override
+@@ -244,6 +_,11 @@
      protected void onProjectileHit(Level level, BlockState state, BlockHitResult blockHit, Projectile projectile) {
          BlockPos pos = blockHit.getBlockPos();
--        if (level instanceof ServerLevel serverLevel && projectile.mayInteract(serverLevel, pos) && projectile.mayBreak(serverLevel, pos)) {
-+        if (level instanceof ServerLevel serverLevel && projectile.mayInteract(serverLevel, pos) && projectile.mayBreak(serverLevel)) {
+         if (level instanceof ServerLevel serverLevel && projectile.mayInteract(serverLevel, pos) && projectile.mayBreak(serverLevel, pos)) {
 +            // CraftBukkit
 +            if (!CraftEventFactory.callEntityChangeBlockEvent(projectile, pos, state.getFluidState().createLegacyBlock())) { // Paper - fix wrong block state
 +                return;

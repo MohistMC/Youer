@@ -8,68 +8,6 @@
  import java.util.IdentityHashMap;
  import java.util.List;
  import java.util.Map;
-@@ -19,9 +_,7 @@
- import net.minecraft.core.RegistryCodecs;
- import net.minecraft.core.registries.BuiltInRegistries;
- import net.minecraft.core.registries.Registries;
--import net.minecraft.data.worldgen.BootstrapContext;
- import net.minecraft.resources.Identifier;
--import net.minecraft.resources.RegistryFileCodec;
- import net.minecraft.resources.ResourceKey;
- import net.minecraft.util.Mth;
- import net.minecraft.util.RandomSource;
-@@ -265,21 +_,9 @@
-     }
- 
-     public interface ConditionSource extends Function<SurfaceRules.Context, SurfaceRules.Condition> {
--        Codec<SurfaceRules.ConditionSource> DIRECT_CODEC = BuiltInRegistries.MATERIAL_CONDITION_TYPE
-+        Codec<SurfaceRules.ConditionSource> CODEC = BuiltInRegistries.MATERIAL_CONDITION
-             .byNameCodec()
-             .dispatch(SurfaceRules.ConditionSource::codec, Function.identity());
--        Codec<SurfaceRules.ConditionSource> CODEC = RegistryFileCodec.create(Registries.MATERIAL_CONDITION, DIRECT_CODEC).xmap(holder -> {
--            return switch (holder) {
--                case Holder.Direct<SurfaceRules.ConditionSource> direct -> (SurfaceRules.ConditionSource)direct.value();
--                case Holder.Reference<SurfaceRules.ConditionSource> reference -> new SurfaceRules.HolderConditionSource(reference);
--                default -> throw new MatchException(null, null);
--            };
--        }, value -> {
--            return switch (value) {
--                case SurfaceRules.HolderConditionSource(Holder<SurfaceRules.ConditionSource> holder) -> holder;
--                default -> Holder.direct(value);
--            };
--        });
- 
-         static MapCodec<? extends SurfaceRules.ConditionSource> bootstrap(Registry<MapCodec<? extends SurfaceRules.ConditionSource>> registry) {
-             SurfaceRules.register(registry, "biome", SurfaceRules.BiomeConditionSource.CODEC);
-@@ -541,28 +_,6 @@
-         }
-     }
- 
--    private record HolderConditionSource(Holder<SurfaceRules.ConditionSource> holder) implements SurfaceRules.ConditionSource {
--        public SurfaceRules.Condition apply(SurfaceRules.Context context) {
--            return this.holder.value().apply(context);
--        }
--
--        @Override
--        public MapCodec<SurfaceRules.HolderConditionSource> codec() {
--            throw new UnsupportedOperationException("HolderConditionSource cannot be serialized");
--        }
--    }
--
--    private record HolderRuleSource(Holder<SurfaceRules.RuleSource> holder) implements SurfaceRules.RuleSource {
--        public SurfaceRules.SurfaceRule apply(SurfaceRules.Context context) {
--            return this.holder.value().apply(context);
--        }
--
--        @Override
--        public MapCodec<SurfaceRules.HolderRuleSource> codec() {
--            throw new UnsupportedOperationException("HolderRuleSource cannot be serialized");
--        }
--    }
--
-     private enum Hole implements SurfaceRules.ConditionSource {
-         INSTANCE;
- 
 @@ -578,7 +_,7 @@
          }
      }
@@ -79,39 +17,6 @@
          protected final SurfaceRules.Context context;
          private long lastUpdate;
          private @Nullable Boolean result;
-@@ -686,22 +_,7 @@
-     }
- 
-     public interface RuleSource extends Function<SurfaceRules.Context, SurfaceRules.SurfaceRule> {
--        Codec<SurfaceRules.RuleSource> DIRECT_CODEC = BuiltInRegistries.MATERIAL_RULE_TYPE
--            .byNameCodec()
--            .dispatch(SurfaceRules.RuleSource::codec, Function.identity());
--        Codec<Holder<SurfaceRules.RuleSource>> HOLDER_CODEC = RegistryFileCodec.create(Registries.MATERIAL_RULE, DIRECT_CODEC);
--        Codec<SurfaceRules.RuleSource> CODEC = HOLDER_CODEC.xmap(holder -> {
--            return switch (holder) {
--                case Holder.Direct<SurfaceRules.RuleSource> direct -> (SurfaceRules.RuleSource)direct.value();
--                case Holder.Reference<SurfaceRules.RuleSource> reference -> new SurfaceRules.HolderRuleSource(reference);
--                default -> throw new MatchException(null, null);
--            };
--        }, value -> {
--            return switch (value) {
--                case SurfaceRules.HolderRuleSource(Holder<SurfaceRules.RuleSource> holder) -> holder;
--                default -> Holder.direct(value);
--            };
--        });
-+        Codec<SurfaceRules.RuleSource> CODEC = BuiltInRegistries.MATERIAL_RULE.byNameCodec().dispatch(SurfaceRules.RuleSource::codec, Function.identity());
- 
-         static MapCodec<? extends SurfaceRules.RuleSource> bootstrap(Registry<MapCodec<? extends SurfaceRules.RuleSource>> registry) {
-             SurfaceRules.register(registry, "bandlands", SurfaceRules.Bandlands.CODEC);
-@@ -740,7 +_,7 @@
- 
-         public SurfaceRules.SurfaceRule apply(SurfaceRules.Context context) {
-             if (this.sequence.size() == 1) {
--                return this.sequence.getFirst().apply(context);
-+                return this.sequence.get(0).apply(context);
-             }
- 
-             Builder<SurfaceRules.SurfaceRule> builder = ImmutableList.builder();
 @@ -815,7 +_,7 @@
          }
      }

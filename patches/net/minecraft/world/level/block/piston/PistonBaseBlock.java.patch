@@ -1,46 +1,5 @@
 --- a/net/minecraft/world/level/block/piston/PistonBaseBlock.java
 +++ b/net/minecraft/world/level/block/piston/PistonBaseBlock.java
-@@ -1,7 +_,11 @@
- package net.minecraft.world.level.block.piston;
- 
-+import com.google.common.collect.ImmutableList;
- import com.google.common.collect.Lists;
- import com.google.common.collect.Maps;
-+import com.mojang.serialization.Codec;
-+import com.mojang.serialization.MapCodec;
-+import com.mojang.serialization.codecs.RecordCodecBuilder;
- import java.util.List;
- import java.util.Map;
- import java.util.Map.Entry;
-@@ -40,7 +_,16 @@
- import net.minecraft.world.phys.shapes.VoxelShape;
- import org.jspecify.annotations.Nullable;
- 
-+// CraftBukkit start
-+import org.bukkit.craftbukkit.block.CraftBlock;
-+import org.bukkit.event.block.BlockPistonRetractEvent;
-+import org.bukkit.event.block.BlockPistonExtendEvent;
-+// CraftBukkit end
-+
- public class PistonBaseBlock extends DirectionalBlock {
-+    public static final MapCodec<PistonBaseBlock> CODEC = RecordCodecBuilder.mapCodec(
-+        i -> i.group(Codec.BOOL.fieldOf("sticky").forGetter(b -> b.isSticky), propertiesCodec()).apply(i, PistonBaseBlock::new)
-+    );
-     public static final BooleanProperty EXTENDED = BlockStateProperties.EXTENDED;
-     public static final int TRIGGER_EXTEND = 0;
-     public static final int TRIGGER_CONTRACT = 1;
-@@ -49,6 +_,11 @@
-     private static final Map<Direction, VoxelShape> SHAPES = Shapes.rotateAll(Block.boxZ(16.0, 4.0, 16.0));
-     private final boolean isSticky;
- 
-+    @Override
-+    public MapCodec<PistonBaseBlock> codec() {
-+        return CODEC;
-+    }
-+
-     public PistonBaseBlock(boolean isSticky, BlockBehaviour.Properties properties) {
-         super(properties);
-         this.registerDefaultState(this.stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(EXTENDED, false));
 @@ -136,6 +_,12 @@
      @Override
      protected boolean triggerEvent(BlockState state, Level level, BlockPos pos, int b0, int b1) {

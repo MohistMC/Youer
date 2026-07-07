@@ -1,27 +1,12 @@
 --- a/net/minecraft/world/item/component/ChargedProjectiles.java
 +++ b/net/minecraft/world/item/component/ChargedProjectiles.java
-@@ -1,11 +_,10 @@
+@@ -1,5 +_,6 @@
  package net.minecraft.world.item.component;
  
 +import com.google.common.collect.Lists;
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Codec;
--import java.util.ArrayList;
- import java.util.List;
- import java.util.function.Consumer;
--import java.util.stream.Stream;
- import net.minecraft.ChatFormatting;
- import net.minecraft.core.component.DataComponentGetter;
- import net.minecraft.core.component.DataComponents;
-@@ -19,7 +_,7 @@
- import net.minecraft.world.item.TooltipFlag;
- import org.slf4j.Logger;
- 
--public record ChargedProjectiles(List<ItemStackTemplate> items) implements ContainerComponent<ChargedProjectiles>, TooltipProvider {
-+public record ChargedProjectiles(List<ItemStackTemplate> items) implements TooltipProvider {
-     private static final Logger LOGGER = LogUtils.getLogger();
-     private static final int MAX_SIZE = 1024;
-     public static final ChargedProjectiles EMPTY = new ChargedProjectiles(List.of());
+ import java.util.ArrayList;
 @@ -28,6 +_,7 @@
          .xmap(ChargedProjectiles::new, projectiles -> projectiles.items);
      public static final StreamCodec<RegistryFriendlyByteBuf, ChargedProjectiles> STREAM_CODEC = ItemStackTemplate.STREAM_CODEC
@@ -30,74 +15,3 @@
          .map(ChargedProjectiles::new, projectiles -> projectiles.items);
  
      public ChargedProjectiles {
-@@ -59,34 +_,14 @@
-         return false;
-     }
- 
--    @Override
--    public Stream<ItemStack> itemCopies() {
--        return this.items.stream().map(ItemStackTemplate::create);
--    }
--
--    @Override
--    public int size() {
--        return this.items.size();
-+    public List<ItemStack> itemCopies() {
-+        return Lists.transform(this.items, ItemStackTemplate::create);
-     }
- 
-     public boolean isEmpty() {
-         return this.items.isEmpty();
-     }
- 
--    public ChargedProjectiles copyWithContents(Stream<ItemStack> newContents) {
--        return new ChargedProjectiles(newContents.filter(s -> !s.isEmpty()).map(ItemStackTemplate::fromNonEmptyStack).toList());
--    }
--
--    public ChargedProjectiles.Mutable asMutable() {
--        List<ItemStack> itemsList = new ArrayList<>(this.items.size());
--
--        for (ItemStackTemplate item : this.items) {
--            itemsList.add(item.create());
--        }
--
--        return new ChargedProjectiles.Mutable(itemsList);
--    }
--
-     @Override
-     public void addToTooltip(Item.TooltipContext context, Consumer<Component> consumer, TooltipFlag flag, DataComponentGetter components) {
-         ItemStack current = null;
-@@ -122,33 +_,5 @@
-         projectile.addDetailsToTooltip(
-             context, projectileDisplay, null, TooltipFlag.NORMAL, line -> consumer.accept(Component.literal("  ").append(line).withStyle(ChatFormatting.GRAY))
-         );
--    }
--
--    public static class Mutable extends SimpleMutableContainer<ChargedProjectiles> {
--        private Mutable(List<ItemStack> items) {
--            super(items);
--        }
--
--        @Override
--        protected boolean addSlotWithItem(ItemStack itemStack) {
--            return !itemStack.isEmpty() && super.addSlotWithItem(itemStack);
--        }
--
--        @Override
--        public boolean canInsertNewSlots() {
--            return this.items.size() < 1024;
--        }
--
--        public ChargedProjectiles toImmutable() {
--            List<ItemStackTemplate> nonEmptyItems = new ArrayList<>(this.items.size());
--
--            for (ItemStack item : this.items) {
--                if (!item.isEmpty()) {
--                    nonEmptyItems.add(ItemStackTemplate.fromNonEmptyStack(item));
--                }
--            }
--
--            return new ChargedProjectiles(nonEmptyItems);
--        }
-     }
- }

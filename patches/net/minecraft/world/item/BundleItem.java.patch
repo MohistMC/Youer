@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/BundleItem.java
 +++ b/net/minecraft/world/item/BundleItem.java
-@@ -58,12 +_,12 @@
+@@ -58,7 +_,7 @@
      @Override
      public boolean overrideStackedOnOther(ItemStack self, Slot slot, ClickAction clickAction, Player player) {
          BundleContents initialContents = self.get(DataComponents.BUNDLE_CONTENTS);
@@ -9,12 +9,6 @@
              return false;
          }
  
-         ItemStack other = slot.getItem();
--        BundleContents.Mutable contents = initialContents.asMutable();
-+        BundleContents.Mutable contents = new BundleContents.Mutable(initialContents);
-         if (clickAction == ClickAction.PRIMARY && !other.isEmpty()) {
-             if (contents.tryTransfer(slot, player) > 0) {
-                 playInsertSound(player);
 @@ -95,6 +_,7 @@
  
      @Override
@@ -23,39 +17,3 @@
          if (clickAction == ClickAction.PRIMARY && other.isEmpty()) {
              toggleSelectedItem(self, -1);
              return false;
-@@ -105,7 +_,7 @@
-             return false;
-         }
- 
--        BundleContents.Mutable contents = initialContents.asMutable();
-+        BundleContents.Mutable contents = new BundleContents.Mutable(initialContents);
-         if (clickAction == ClickAction.PRIMARY && !other.isEmpty()) {
-             if (slot.allowModification(player) && contents.tryInsert(other) > 0) {
-                 playInsertSound(player);
-@@ -168,7 +_,7 @@
-     public static void toggleSelectedItem(ItemStack stack, int selectedItem) {
-         BundleContents initialContents = stack.get(DataComponents.BUNDLE_CONTENTS);
-         if (initialContents != null) {
--            BundleContents.Mutable contents = initialContents.asMutable();
-+            BundleContents.Mutable contents = new BundleContents.Mutable(initialContents);
-             contents.toggleSelectedItem(selectedItem);
-             stack.set(DataComponents.BUNDLE_CONTENTS, contents.toImmutable());
-         }
-@@ -203,7 +_,7 @@
-     }
- 
-     private static Optional<ItemStack> removeOneItemFromBundle(ItemStack self, Player player, BundleContents initialContents) {
--        BundleContents.Mutable contents = initialContents.asMutable();
-+        BundleContents.Mutable contents = new BundleContents.Mutable(initialContents);
-         ItemStack removed = contents.removeOne();
-         if (removed != null) {
-             playRemoveOneSound(player);
-@@ -248,7 +_,7 @@
-         BundleContents contents = entity.getItem().get(DataComponents.BUNDLE_CONTENTS);
-         if (contents != null) {
-             entity.getItem().set(DataComponents.BUNDLE_CONTENTS, BundleContents.EMPTY);
--            ItemUtils.onContainerDestroyed(entity, contents.itemCopies());
-+            ItemUtils.onContainerDestroyed(entity, contents.itemCopyStream());
-         }
-     }
- 

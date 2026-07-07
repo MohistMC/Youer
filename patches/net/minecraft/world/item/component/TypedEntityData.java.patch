@@ -1,21 +1,5 @@
 --- a/net/minecraft/world/item/component/TypedEntityData.java
 +++ b/net/minecraft/world/item/component/TypedEntityData.java
-@@ -11,7 +_,6 @@
- import java.util.function.Consumer;
- import java.util.function.Function;
- import net.minecraft.ChatFormatting;
--import net.minecraft.core.DefaultedRegistry;
- import net.minecraft.core.HolderLookup;
- import net.minecraft.core.component.DataComponentGetter;
- import net.minecraft.nbt.CompoundTag;
-@@ -26,7 +_,6 @@
- import net.minecraft.world.entity.EntityType;
- import net.minecraft.world.item.Item;
- import net.minecraft.world.item.TooltipFlag;
--import net.minecraft.world.level.SpawnData;
- import net.minecraft.world.level.block.entity.BlockEntity;
- import net.minecraft.world.level.storage.TagValueInput;
- import net.minecraft.world.level.storage.TagValueOutput;
 @@ -85,6 +_,32 @@
          this.tag = stripId(data);
      }
@@ -49,18 +33,3 @@
      public static <T> TypedEntityData<T> of(T type, CompoundTag data) {
          return new TypedEntityData<>(type, data);
      }
-@@ -136,14 +_,6 @@
-             entity.load(TagValueInput.create(reporter, entity.registryAccess(), entityData));
-             entity.setUUID(uuid);
-         }
--    }
--
--    public boolean loadInto(SpawnData spawnData, DefaultedRegistry<IdType> registry) {
--        CompoundTag entityTag = spawnData.getEntityToSpawn();
--        CompoundTag oldTag = entityTag.copy();
--        spawnData.getEntityToSpawn().putString("id", registry.getKey(this.type()).toString());
--        entityTag.merge(this.getUnsafe());
--        return !entityTag.equals(oldTag);
-     }
- 
-     public boolean loadInto(BlockEntity blockEntity, HolderLookup.Provider registries) {

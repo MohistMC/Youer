@@ -8,30 +8,6 @@
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Codec;
  import com.mojang.serialization.DataResult;
-@@ -15,7 +_,6 @@
- import net.minecraft.core.HolderGetter;
- import net.minecraft.core.HolderLookup;
- import net.minecraft.core.HolderSet;
--import net.minecraft.core.component.BlockTransformer;
- import net.minecraft.core.component.DataComponentInitializers;
- import net.minecraft.core.component.DataComponentMap;
- import net.minecraft.core.component.DataComponentType;
-@@ -64,7 +_,6 @@
- import net.minecraft.world.inventory.Slot;
- import net.minecraft.world.inventory.tooltip.TooltipComponent;
- import net.minecraft.world.item.component.AttackRange;
--import net.minecraft.world.item.component.BlockTransformerMappings;
- import net.minecraft.world.item.component.Consumable;
- import net.minecraft.world.item.component.Consumables;
- import net.minecraft.world.item.component.DamageResistant;
-@@ -90,7 +_,6 @@
- import net.minecraft.world.level.ItemLike;
- import net.minecraft.world.level.Level;
- import net.minecraft.world.level.block.Block;
--import net.minecraft.world.level.block.entity.DecoratedPotPattern;
- import net.minecraft.world.level.block.state.BlockState;
- import net.minecraft.world.level.saveddata.maps.MapId;
- import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
 @@ -113,7 +_,7 @@
              : DataResult.success(item)
      );
@@ -95,17 +71,6 @@
      public void onDestroyed(ItemEntity itemEntity) {
      }
  
-@@ -184,9 +_,7 @@
-     }
- 
-     public InteractionResult useOn(UseOnContext context) {
--        ItemStack stack = context.getItemInHand();
--        BlockTransformer blockTransformer = stack.get(DataComponents.BLOCK_TRANSFORMER);
--        return blockTransformer != null ? blockTransformer.transformBlock(context) : InteractionResult.PASS;
-+        return InteractionResult.PASS;
-     }
- 
-     public float getDestroySpeed(ItemStack itemStack, BlockState state) {
 @@ -288,6 +_,8 @@
          return BuiltInRegistries.ITEM.wrapAsHolder(this).getRegisteredName();
      }
@@ -182,39 +147,6 @@
  
          public Item.Properties food(FoodProperties foodProperties) {
              return this.food(foodProperties, Consumables.DEFAULT_FOOD);
-@@ -438,10 +_,6 @@
-             return this.component(DataComponents.ENCHANTABLE, new Enchantable(value));
-         }
- 
--        public Item.Properties potPattern(ResourceKey<DecoratedPotPattern> pattern) {
--            return this.delayedComponent(DataComponents.PROVIDES_POTTERY_PATTERN, context -> context.getOrThrow(pattern));
--        }
--
-         public Item.Properties repairable(Item repairItem) {
-             return this.component(DataComponents.REPAIRABLE, new Repairable(HolderSet.direct(repairItem.builtInRegistryHolder())));
-         }
-@@ -470,18 +_,15 @@
-         }
- 
-         public Item.Properties axe(ToolMaterial material, float attackDamageBaseline, float attackSpeedBaseline) {
--            return this.tool(material, BlockTags.MINEABLE_WITH_AXE, attackDamageBaseline, attackSpeedBaseline, 5.0F)
--                .delayedComponent(DataComponents.BLOCK_TRANSFORMER, var0 -> BlockTransformerMappings.AXE);
-+            return this.tool(material, BlockTags.MINEABLE_WITH_AXE, attackDamageBaseline, attackSpeedBaseline, 5.0F);
-         }
- 
-         public Item.Properties hoe(ToolMaterial material, float attackDamageBaseline, float attackSpeedBaseline) {
--            return this.tool(material, BlockTags.MINEABLE_WITH_HOE, attackDamageBaseline, attackSpeedBaseline, 0.0F)
--                .delayedComponent(DataComponents.BLOCK_TRANSFORMER, var0 -> BlockTransformerMappings.HOE);
-+            return this.tool(material, BlockTags.MINEABLE_WITH_HOE, attackDamageBaseline, attackSpeedBaseline, 0.0F);
-         }
- 
-         public Item.Properties shovel(ToolMaterial material, float attackDamageBaseline, float attackSpeedBaseline) {
--            return this.tool(material, BlockTags.MINEABLE_WITH_SHOVEL, attackDamageBaseline, attackSpeedBaseline, 0.0F)
--                .delayedComponent(DataComponents.BLOCK_TRANSFORMER, var0 -> BlockTransformerMappings.SHOVEL);
-+            return this.tool(material, BlockTags.MINEABLE_WITH_SHOVEL, attackDamageBaseline, attackSpeedBaseline, 0.0F);
-         }
- 
-         public Item.Properties sword(ToolMaterial material, float attackDamageBaseline, float attackSpeedBaseline) {
 @@ -676,7 +_,11 @@
          }
  

@@ -86,7 +86,7 @@ public abstract class AbstractProjectile extends CraftEntity implements Projecti
 
     @Override
     public java.util.UUID getOwnerUniqueId() {
-        return Optionull.map(this.getHandle().owner, EntityReference::getUUID);
+        return Optionull.map(this.getHandle().getOwner(), EntityReference::getUUID);
     }
     // Paper end - More projectile API
 }

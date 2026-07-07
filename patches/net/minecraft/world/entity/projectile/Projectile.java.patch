@@ -1,35 +1,12 @@
 --- a/net/minecraft/world/entity/projectile/Projectile.java
 +++ b/net/minecraft/world/entity/projectile/Projectile.java
-@@ -4,9 +_,6 @@
- import it.unimi.dsi.fastutil.doubles.DoubleDoubleImmutablePair;
- import java.util.function.Consumer;
- import net.minecraft.core.BlockPos;
--import net.minecraft.core.component.DataComponentGetter;
--import net.minecraft.core.component.DataComponentType;
--import net.minecraft.core.component.DataComponents;
- import net.minecraft.network.protocol.Packet;
- import net.minecraft.network.protocol.game.ClientGamePacketListener;
- import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
-@@ -23,14 +_,11 @@
- import net.minecraft.world.entity.TraceableEntity;
- import net.minecraft.world.entity.player.Player;
- import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
--import net.minecraft.world.item.AdventureModePredicate;
- import net.minecraft.world.item.Item;
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.item.enchantment.EnchantmentHelper;
--import net.minecraft.world.level.GameType;
- import net.minecraft.world.level.Level;
- import net.minecraft.world.level.block.state.BlockState;
--import net.minecraft.world.level.block.state.pattern.BlockInWorld;
- import net.minecraft.world.level.gameevent.GameEvent;
- import net.minecraft.world.level.gamerules.GameRules;
- import net.minecraft.world.level.storage.ValueInput;
-@@ -46,32 +_,16 @@
+@@ -45,12 +_,13 @@
+ public abstract class Projectile extends Entity implements TraceableEntity {
      private static final boolean DEFAULT_LEFT_OWNER = false;
      private static final boolean DEFAULT_HAS_BEEN_SHOT = false;
-     public @Nullable EntityReference<Entity> owner;
--    private @Nullable AdventureModePredicate canBreak;
+-    public @Nullable EntityReference<Entity> owner;
++    protected @Nullable EntityReference<Entity> owner;
+     private @Nullable AdventureModePredicate canBreak;
      public boolean leftOwner = false;
      private boolean leftOwnerChecked;
      public boolean hasBeenShot = false;
@@ -38,27 +15,6 @@
  
      protected Projectile(EntityType<? extends Projectile> type, Level level) {
          super(type, level);
-     }
- 
--    @Override
--    protected void applyImplicitComponents(DataComponentGetter components) {
--        this.applyImplicitComponentIfPresent(components, DataComponents.CAN_BREAK);
--        super.applyImplicitComponents(components);
--    }
--
--    @Override
--    protected <T> boolean applyImplicitComponent(DataComponentType<T> type, T value) {
--        if (type == DataComponents.CAN_BREAK) {
--            this.canBreak = castComponentValue(DataComponents.CAN_BREAK, value);
--            return true;
--        } else {
--            return super.applyImplicitComponent(type, value);
--        }
--    }
--
-     protected void setOwner(@Nullable EntityReference<Entity> owner) {
-         this.owner = owner;
-     }
 @@ -106,6 +_,9 @@
      @Override
      protected void readAdditionalSaveData(ValueInput input) {
@@ -84,16 +40,9 @@
      }
  
      @Override
-@@ -195,55 +_,127 @@
-         this.resetFallDistance();
+@@ -202,13 +_,32 @@
      }
  
--    public boolean canBreakBlockInAdventureMode(BlockInWorld blockInWorld) {
--        return this.getOwner() instanceof Player player && player.gameMode() != GameType.ADVENTURE
--            ? true
--            : this.canBreak != null && this.canBreak.test(blockInWorld);
--    }
--
      public static <T extends Projectile> T spawnProjectileFromRotation(
 -        Projectile.ProjectileFactory<T> creator, ServerLevel serverLevel, ItemStack itemStack, LivingEntity source, float yOffset, float pow, float uncertainty
 -    ) {
@@ -102,32 +51,6 @@
 -            serverLevel,
 -            itemStack,
 -            projectile -> projectile.shootFromRotation(source, source.getXRot(), source.getYRot(), yOffset, pow, uncertainty)
--        );
--    }
--
--    public static <T extends Projectile> T spawnProjectileUsingShoot(
--        Projectile.ProjectileFactory<T> creator,
--        ServerLevel serverLevel,
--        ItemStack itemStack,
--        LivingEntity source,
--        double targetX,
--        double targetY,
--        double targetZ,
--        float pow,
--        float uncertainty
--    ) {
--        return spawnProjectile(
--            creator.create(serverLevel, source, itemStack), serverLevel, itemStack, projectile -> projectile.shoot(targetX, targetY, targetZ, pow, uncertainty)
--        );
--    }
--
--    public static <T extends Projectile> T spawnProjectileUsingShoot(
--        T projectile, ServerLevel serverLevel, ItemStack itemStack, double targetX, double targetY, double targetZ, float pow, float uncertainty
--    ) {
--        return spawnProjectile(projectile, serverLevel, itemStack, i -> projectile.shoot(targetX, targetY, targetZ, pow, uncertainty));
--    }
--
--    public static <T extends Projectile> T spawnProjectile(T projectile, ServerLevel serverLevel, ItemStack itemStack) {
 +            final Projectile.ProjectileFactory<T> creator,
 +            final ServerLevel serverLevel,
 +            final ItemStack itemStack,
@@ -154,26 +77,19 @@
 +                serverLevel,
 +                itemStack,
 +                projectile -> projectile.shootFromRotation(source, source.getXRot(), source.getYRot(), yOffset, pow, uncertainty)
-+        );
-+    }
-+
-+    public static <T extends Projectile> T spawnProjectileUsingShoot(
-+            final Projectile.ProjectileFactory<T> creator,
-+            final ServerLevel serverLevel,
-+            final ItemStack itemStack,
-+            final LivingEntity source,
-+            final double targetX,
-+            final double targetY,
-+            final double targetZ,
-+            final float pow,
-+            final float uncertainty
-+    ) {
-+        return spawnProjectile(
-+                creator.create(serverLevel, source, itemStack), serverLevel, itemStack, projectile -> projectile.shoot(targetX, targetY, targetZ, pow, uncertainty)
-+        );
-+    }
-+
-+    public static <T extends Projectile> T spawnProjectileUsingShoot(
+         );
+     }
+ 
+@@ -229,21 +_,80 @@
+     }
+ 
+     public static <T extends Projectile> T spawnProjectileUsingShoot(
+-        T projectile, ServerLevel serverLevel, ItemStack itemStack, double targetX, double targetY, double targetZ, float pow, float uncertainty
+-    ) {
+-        return spawnProjectile(projectile, serverLevel, itemStack, i -> projectile.shoot(targetX, targetY, targetZ, pow, uncertainty));
+-    }
+-
+-    public static <T extends Projectile> T spawnProjectile(T projectile, ServerLevel serverLevel, ItemStack itemStack) {
 +            final T projectile,
 +            final ServerLevel serverLevel,
 +            final ItemStack itemStack,
@@ -327,7 +243,7 @@
  
          return Mth.lerp(0.2F, rotO, rot);
      }
-@@ -372,13 +_,11 @@
+@@ -372,7 +_,7 @@
      @Override
      public boolean mayInteract(ServerLevel level, BlockPos pos) {
          Entity owner = this.getOwner();
@@ -335,24 +251,4 @@
 +        return owner instanceof Player ? owner.mayInteract(level, pos) : owner == null || net.neoforged.neoforge.event.EventHooks.canEntityGrief(level, owner);
      }
  
--    public boolean mayBreak(ServerLevel level, BlockPos pos) {
--        return this.is(EntityTypeTags.IMPACT_PROJECTILES)
--            && level.getGameRules().get(GameRules.PROJECTILES_CAN_BREAK_BLOCKS)
--            && this.canBreakBlockInAdventureMode(new BlockInWorld(level, pos, false));
-+    public boolean mayBreak(ServerLevel level) {
-+        return this.is(EntityTypeTags.IMPACT_PROJECTILES) && level.getGameRules().get(GameRules.PROJECTILES_CAN_BREAK_BLOCKS);
-     }
- 
-     @Override
-@@ -409,11 +_,6 @@
-         }
- 
-         return false;
--    }
--
--    @Override
--    public boolean canSimulateMovement() {
--        return true;
-     }
- 
-     @FunctionalInterface
+     public boolean mayBreak(ServerLevel level, BlockPos pos) {

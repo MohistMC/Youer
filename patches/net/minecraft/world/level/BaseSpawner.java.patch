@@ -1,14 +1,6 @@
 --- a/net/minecraft/world/level/BaseSpawner.java
 +++ b/net/minecraft/world/level/BaseSpawner.java
-@@ -19,7 +_,6 @@
- import net.minecraft.world.entity.EntityType;
- import net.minecraft.world.entity.Mob;
- import net.minecraft.world.entity.SpawnPlacements;
--import net.minecraft.world.item.component.TypedEntityData;
- import net.minecraft.world.level.entity.EntityTypeTest;
- import net.minecraft.world.level.gameevent.GameEvent;
- import net.minecraft.world.level.storage.TagValueInput;
-@@ -60,18 +_,16 @@
+@@ -60,9 +_,11 @@
      public int maxNearbyEntities = 6;
      public int requiredPlayerRange = 16;
      public int spawnRange = 4;
@@ -16,12 +8,11 @@
  
      public void setEntityId(EntityType<?> type, @Nullable Level level, RandomSource random, BlockPos pos) {
          this.getOrCreateNextSpawnData(level, random, pos).getEntityToSpawn().putString("id", BuiltInRegistries.ENTITY_TYPE.getKey(type).toString());
--    }
--
--    public void setEntityData(TypedEntityData<EntityType<?>> entityData, @Nullable Level level, RandomSource random, BlockPos pos) {
--        SpawnData spawnData = this.getOrCreateNextSpawnData(level, random, pos);
--        entityData.loadInto(spawnData, BuiltInRegistries.ENTITY_TYPE);
 +        this.spawnPotentials = WeightedList.of(); // CraftBukkit - SPIGOT-3496, MC-92282
+     }
+ 
+     public void setEntityData(TypedEntityData<EntityType<?>> entityData, @Nullable Level level, RandomSource random, BlockPos pos) {
+@@ -71,7 +_,8 @@
      }
  
      public boolean isNearPlayer(Level level, BlockPos pos) {

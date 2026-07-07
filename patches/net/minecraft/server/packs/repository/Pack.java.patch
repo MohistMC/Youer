@@ -1,19 +1,5 @@
 --- a/net/minecraft/server/packs/repository/Pack.java
 +++ b/net/minecraft/server/packs/repository/Pack.java
-@@ -4,13 +_,11 @@
- import com.mojang.logging.LogUtils;
- import java.util.List;
- import java.util.function.Function;
--import java.util.stream.Stream;
- import net.minecraft.SharedConstants;
- import net.minecraft.network.chat.Component;
- import net.minecraft.server.packs.FeatureFlagsMetadataSection;
- import net.minecraft.server.packs.OverlayMetadataSection;
- import net.minecraft.server.packs.PackLocationInfo;
--import net.minecraft.server.packs.PackMetadataResources;
- import net.minecraft.server.packs.PackResources;
- import net.minecraft.server.packs.PackSelectionConfig;
- import net.minecraft.server.packs.PackType;
 @@ -26,6 +_,16 @@
      public final Pack.ResourcesSupplier resources;
      private final Pack.Metadata metadata;
@@ -66,15 +52,6 @@
          this.location = location;
          this.resources = resources;
          this.metadata = metadata;
-@@ -45,7 +_,7 @@
-     public static Pack.@Nullable Metadata readPackMetadata(
-         PackLocationInfo location, Pack.ResourcesSupplier resources, PackFormat currentPackVersion, PackType type
-     ) {
--        try (PackMetadataResources pack = resources.openMetadata(location)) {
-+        try (PackResources pack = resources.openPrimary(location)) {
-             PackMetadataSection meta;
-             try {
-                 meta = pack.getMetadataSection(PackMetadataSection.forPackType(type));
 @@ -63,7 +_,15 @@
                  PackCompatibility packCompatibility = PackCompatibility.forVersion(meta.supportedFormats(), currentPackVersion);
                  OverlayMetadataSection overlays = pack.getMetadataSection(OverlayMetadataSection.forPackType(type));
@@ -92,21 +69,6 @@
              }
          } catch (Exception e) {
              LOGGER.warn("Failed to read pack {} metadata", location.id(), e);
-@@ -95,12 +_,8 @@
-         return this.metadata.requestedFeatures();
-     }
- 
--    public PackMetadataResources openMetadata() {
--        return this.resources.openMetadata(this.location);
--    }
--
--    public Stream<PackResources> open() {
--        return this.resources.openResources(this.location, this.metadata);
-+    public PackResources open() {
-+        return this.resources.openFull(this.location, this.metadata);
-     }
- 
-     public String getId() {
 @@ -127,6 +_,38 @@
          return this.location.source();
      }
@@ -160,14 +122,3 @@
      }
  
      public enum Position {
-@@ -181,8 +_,8 @@
-     }
- 
-     public interface ResourcesSupplier {
--        PackMetadataResources openMetadata(PackLocationInfo location);
-+        PackResources openPrimary(PackLocationInfo location);
- 
--        Stream<PackResources> openResources(PackLocationInfo location, Pack.Metadata metadata);
-+        PackResources openFull(PackLocationInfo location, Pack.Metadata metadata);
-     }
- }

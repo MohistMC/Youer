@@ -1,26 +1,6 @@
 --- a/net/minecraft/server/Services.java
 +++ b/net/minecraft/server/Services.java
-@@ -1,10 +_,10 @@
- package net.minecraft.server;
- 
- import com.mojang.authlib.GameProfileRepository;
--import com.mojang.authlib.minecraft.SessionService;
--import com.mojang.authlib.services.MinecraftServicesDiscoveryService;
--import com.mojang.authlib.services.ServicesKeySet;
--import com.mojang.authlib.services.ServicesKeyType;
-+import com.mojang.authlib.minecraft.MinecraftSessionService;
-+import com.mojang.authlib.yggdrasil.ServicesKeySet;
-+import com.mojang.authlib.yggdrasil.ServicesKeyType;
-+import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
- import java.io.File;
- import net.minecraft.server.players.CachedUserNameToIdResolver;
- import net.minecraft.server.players.ProfileResolver;
-@@ -13,20 +_,46 @@
- import org.jspecify.annotations.Nullable;
- 
- public record Services(
--    SessionService sessionService,
-+    MinecraftSessionService sessionService,
+@@ -17,16 +_,42 @@
      ServicesKeySet servicesKeySet,
      GameProfileRepository profileRepository,
      UserNameToIdResolver nameToIdCache,
@@ -31,14 +11,13 @@
      public static final String USERID_CACHE_FILE = "usercache.json";
  
 -    public static Services create(MinecraftServicesDiscoveryService serviceAccess, File nameCacheDir) {
--        SessionService sessionService = serviceAccess.createMinecraftSessionService();
 +    // Paper start - add paper configuration files
 +    public record PaperServices(
 +            io.papermc.paper.configuration.PaperConfigurations configurations,
 +            io.papermc.paper.profile.PaperFilledProfileCache filledProfileCache
 +    ) {}
 +
-+    public Services(MinecraftSessionService sessionService, ServicesKeySet servicesKeySet, GameProfileRepository profileRepository, UserNameToIdResolver nameToIdCache, ProfileResolver profileResolver) {
++    public Services(SessionService sessionService, ServicesKeySet servicesKeySet, GameProfileRepository profileRepository, UserNameToIdResolver nameToIdCache, ProfileResolver profileResolver) {
 +        this(sessionService, servicesKeySet, profileRepository, nameToIdCache, profileResolver, null);
 +    }
 +
@@ -48,8 +27,8 @@
 +    }
 +    // Paper end - add paper configuration files
 +
-+    public static Services create(YggdrasilAuthenticationService serviceAccess, File nameCacheDir, final File userCacheFile, final joptsimple.OptionSet options) throws Exception { // Paper - add options to load paper config files; add userCacheFile parameter
-+        MinecraftSessionService sessionService = serviceAccess.createMinecraftSessionService();
++    public static Services create(MinecraftServicesDiscoveryService serviceAccess, File nameCacheDir, final File userCacheFile, final joptsimple.OptionSet options) throws Exception { // Paper - add options to load paper config files; add userCacheFile parameter
+         SessionService sessionService = serviceAccess.createMinecraftSessionService();
          GameProfileRepository profileRepository = serviceAccess.createProfileRepository();
 -        UserNameToIdResolver profileCache = new CachedUserNameToIdResolver(profileRepository, new File(nameCacheDir, "usercache.json"));
 -        ProfileResolver profileResolver = new ProfileResolver.Cached(sessionService, profileCache);
