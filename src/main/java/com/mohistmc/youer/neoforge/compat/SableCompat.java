@@ -23,6 +23,6 @@ public class SableCompat {
         World world = pos.getWorld();
         if (world == null) return pos;
         Vec3 vec3 = Sable.HELPER.projectOutOfSubLevel(WorldAPI.getServerLevel(world), CraftLocation.toVec3D(pos));
-        return CraftLocation.toBukkit(vec3, world);
+        return CraftLocation.toBukkit(vec3, world, pos.getYaw(), pos.getPitch());
     }
 }
