@@ -142,12 +142,13 @@
      public Brain<? extends LivingEntity> getBrain() {
          return (Brain<? extends LivingEntity>)this.brain;
      }
-@@ -358,12 +_,16 @@
+@@ -358,12 +_,17 @@
              .add(Attributes.AIR_DRAG_MODIFIER)
              .add(Attributes.FRICTION_MODIFIER)
              .add(Attributes.NAME_TAG_DISTANCE)
 +            .add(net.neoforged.neoforge.common.NeoForgeMod.SWIM_SPEED)
 +            .add(net.neoforged.neoforge.common.NeoForgeMod.NAMETAG_DISTANCE)
++            .add(net.neoforged.neoforge.common.NeoForgeMod.GLIDING_FLIGHT)
              .add(Attributes.BELOW_NAME_DISTANCE);
      }
 +    public boolean shouldSendAttribute(Attribute attribute) { return true; } // Purpur - Ridables
@@ -2042,24 +2043,45 @@
                  this.setSharedFlag(7, false);
                  return;
              }
-@@ -3177,7 +_,16 @@
+@@ -3176,8 +_,20 @@
+                 int freeFallInterval = checkFallFlyTicks / 10;
                  if (freeFallInterval % 2 == 0) {
                      List<EquipmentSlot> slotsWithGliders = EquipmentSlot.VALUES.stream().filter(slot -> canGlideUsing(this.getItemBySlot(slot), slot)).toList();
-                     EquipmentSlot slotToDamage = Util.getRandom(slotsWithGliders, this.random);
+-                    EquipmentSlot slotToDamage = Util.getRandom(slotsWithGliders, this.random);
 -                    this.getItemBySlot(slotToDamage).hurtAndBreak(1, this, slotToDamage);
-+                    // Purpur start - Implement elytra settings
-+                    int damage = level().purpurConfig.elytraDamagePerSecond;
-+                    if (level().purpurConfig.elytraDamageMultiplyBySpeed > 0) {
-+                        double speed = getDeltaMovement().lengthSqr();
-+                        if (speed > level().purpurConfig.elytraDamageMultiplyBySpeed) {
-+                            damage *= (int) speed;
++                    //  Neo: If the list is empty, we probably have something else adding the gliding flight attribute (directly to the entity or otherwise)
++                    if (!slotsWithGliders.isEmpty()) {
++                        EquipmentSlot slotToDamage = Util.getRandom(slotsWithGliders, this.random);
++                        // Purpur start - Implement elytra settings
++                        int damage = level().purpurConfig.elytraDamagePerSecond;
++                        if (level().purpurConfig.elytraDamageMultiplyBySpeed > 0) {
++                            double speed = getDeltaMovement().lengthSqr();
++                            if (speed > level().purpurConfig.elytraDamageMultiplyBySpeed) {
++                                damage *= (int) speed;
++                            }
 +                        }
++                        this.getItemBySlot(slotToDamage).hurtAndBreak(damage, this, slotToDamage);
++                        // Purpur end - Implement elytra settings
 +                    }
-+                    this.getItemBySlot(slotToDamage).hurtAndBreak(damage, this, slotToDamage);
-+                    // Purpur end - Implement elytra settings
                  }
  
                  this.gameEvent(GameEvent.ELYTRA_GLIDE);
+@@ -3186,7 +_,15 @@
+     }
+ 
+     protected boolean canGlide() {
++        return canGlide(true);
++    }
++
++    protected boolean canGlide(boolean isNeoForgeConnection) {
+         if (!this.onGround() && !this.isPassenger() && !this.hasEffect(MobEffects.LEVITATION)) {
++            // Neo: Check only (on a NeoForge connection) the gliding flight attribute on the entity (for directly applied attributes)
++            // (LocalPlayer#canGlide calls this with false, to support clients connecting to vanilla servers)
++            var glidingFlight = this.getAttributeValue(net.neoforged.neoforge.common.NeoForgeMod.GLIDING_FLIGHT);
++            if (isNeoForgeConnection) return glidingFlight > 0;
+             for (EquipmentSlot slot : EquipmentSlot.VALUES) {
+                 if (canGlideUsing(this.getItemBySlot(slot), slot)) {
+                     return true;
 @@ -3203,10 +_,25 @@
      }
  
@@ -2607,6 +2629,15 @@
      private static SlotAccess createEquipmentSlotAccess(LivingEntity entity, EquipmentSlot equipmentSlot) {
          return equipmentSlot != EquipmentSlot.HEAD && equipmentSlot != EquipmentSlot.MAINHAND && equipmentSlot != EquipmentSlot.OFFHAND
              ? SlotAccess.forEquipmentSlot(entity, equipmentSlot, stack -> stack.isEmpty() || entity.getEquipmentSlotForItem(stack) == equipmentSlot)
+@@ -3981,6 +_,8 @@
+     }
+ 
+     public static boolean canGlideUsing(ItemStack itemStack, EquipmentSlot slot) {
++        // Neo: Check if the item has the gliding flight attribute
++        if (itemStack.getAttributeModifiers().compute(net.neoforged.neoforge.common.NeoForgeMod.GLIDING_FLIGHT, 0, slot) > 0) return true;
+         if (!itemStack.has(DataComponents.GLIDER)) {
+             return false;
+         }
 @@ -4027,5 +_,51 @@
      }
  
