@@ -2647,6 +2647,17 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
     public ChunkSnapshot getEmptyChunkSnapshot(int x, int z, boolean includeBiome, boolean includeBiomeTemp);
 
     /**
+     * Sets if this world can spawn monsters.
+     * <p>Note that setting {@code false} only affects
+     * natural spawning. It doesn't affect spawn eggs, summon command, mobs
+     * spawned from structure generation, spawners, etc.</p>
+     *
+     * @param allowMonsters - if true, monsters are allowed to spawn in this
+     *     world via natural spawning mechanisms.
+     */
+    public void setAllowMonsterSpawning(boolean allowMonsters);
+
+    /**
      * Sets the spawn flags for this.
      * <p>Note that setting {@code false} for either only affects
      * natural spawning. It doesn't affect spawn eggs, summon command, mobs
