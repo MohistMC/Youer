@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/entity/ExperienceOrb.java
 +++ b/net/minecraft/world/entity/ExperienceOrb.java
+@@ -2,6 +_,8 @@
+ 
+ import java.util.List;
+ import java.util.Optional;
++import java.util.concurrent.atomic.AtomicBoolean;
++import java.util.concurrent.atomic.AtomicInteger;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.network.syncher.EntityDataAccessor;
+ import net.minecraft.network.syncher.EntityDataSerializers;
 @@ -25,6 +_,15 @@
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.phys.shapes.Shapes;
@@ -135,7 +144,18 @@
              Vec3 delta = new Vec3(
                  this.followingPlayer.getX() - this.getX(),
                  this.followingPlayer.getY() + this.followingPlayer.getEyeHeight() / 2.0 - this.getY(),
-@@ -196,11 +_,16 @@
+@@ -191,16 +_,27 @@
+         }
+     }
+ 
++    public static AtomicBoolean fake_award = new AtomicBoolean(false);
++    public static AtomicInteger fake_award_amount = new AtomicInteger(0);
+     public static void award(ServerLevel level, Vec3 pos, int amount) {
++        if (fake_award.getAndSet(false)) {
++            fake_award_amount.set(amount);
++            return;
++        }
+         awardWithDirection(level, pos, Vec3.ZERO, amount);
      }
  
      public static void awardWithDirection(ServerLevel level, Vec3 pos, Vec3 roughDirection, int amount) {

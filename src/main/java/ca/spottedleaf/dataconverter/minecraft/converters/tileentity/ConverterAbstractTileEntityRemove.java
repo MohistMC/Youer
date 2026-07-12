@@ -61,8 +61,43 @@ public final class ConverterAbstractTileEntityRemove {
                     return null;
                 }
 
+                // Paper start - call event on block entity removal
+                final java.util.function.Supplier<net.kyori.adventure.key.Key> worldKeySupplier = com.google.common.base.Suppliers.memoize(() -> {
+                    final ca.spottedleaf.dataconverter.types.MapType context = data.getMap(net.minecraft.util.datafix.fixes.ChunkHeightAndBiomeFix.DATAFIXER_CONTEXT_TAG);
+                    if (context == null) return null;
+
+                    final @org.intellij.lang.annotations.Subst("minecraft:overworld") String levelIdentifier = context.getString("level_identifier");
+                    if (levelIdentifier == null) return null;
+
+                    return net.kyori.adventure.key.Key.key(levelIdentifier);
+                });
+                // Paper end - call event on block entity removal
+
                 for (int i = 0; i < blockEntities.size(); ++i) {
                     if (isType(blockEntities.getMap(i), type)) {
+                        // Paper start - call event on block entity removal
+                        final net.kyori.adventure.key.Key worldKey = worldKeySupplier.get();
+                        if (worldKey != null) {
+                            final MapType blockEntity = blockEntities.getMap(i);
+                            final Number x = blockEntity.getNumber("x");
+                            final Number y = blockEntity.getNumber("y");
+                            final Number z = blockEntity.getNumber("z");
+                            if (x != null && y != null && z != null) {
+                                final org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer container = new org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer(
+                                        net.minecraft.util.datafix.fixes.RemoveBlockEntityTagFix.DATA_TYPE_REGISTRY
+                                );
+                                if (blockEntity.getMap("PublicBukkitValues") instanceof final ca.spottedleaf.dataconverter.types.nbt.NBTMapType nbtMapType) {
+                                    container.putAll(nbtMapType.getTag());
+                                }
+                                new io.papermc.paper.event.server.AsyncServerDataFixerRemoveBlockEntityEvent(
+                                        worldKey,
+                                        net.kyori.adventure.key.Key.key(type),
+                                        io.papermc.paper.math.Position.block(x.intValue(), y.intValue(), z.intValue()),
+                                        container
+                                ).callEvent();
+                            }
+                        }
+                        // Paper end - call event on block entity removal
                         blockEntities.remove(i--);
                     }
                 }

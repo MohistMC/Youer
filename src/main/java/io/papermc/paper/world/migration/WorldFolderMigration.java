@@ -1,6 +1,5 @@
 package io.papermc.paper.world.migration;
 
-import com.mojang.logging.LogUtils;
 import io.papermc.paper.world.saveddata.PaperLevelOverrides;
 import io.papermc.paper.world.saveddata.PaperWorldMetadata;
 import java.io.IOException;
@@ -19,7 +18,7 @@ import org.slf4j.Logger;
 @NullMarked
 public final class WorldFolderMigration {
     private static final Logger LOGGER = com.mohistmc.youer.util.LogUtils.getClassLogger();
-    private static final boolean DISABLE_MIGRATION_DELAY = Boolean.getBoolean("paper.disableMigrationDelay");
+    private static final boolean DISABLE_MIGRATION_DELAY = true;
     public static boolean didInitialLoad;
     private static boolean startupMigrationWarningShown;
 

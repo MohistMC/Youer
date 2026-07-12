@@ -758,11 +758,6 @@
 +        this.heal$regainReason = regainReason;
 +    }
 +
-+    public void heal(float f, EntityRegainHealthEvent.RegainReason regainReason) {
-+        this.pushHealReason(regainReason);
-+        this.heal(f);
-+    }
-+
      public void heal(float heal) {
 +        heal = net.neoforged.neoforge.event.EventHooks.onLivingHeal(this, heal);
 +        if (heal <= 0) return;
@@ -779,6 +774,11 @@
 +            }
 +            // CraftBukkit end
          }
++    }
++
++    public void heal(float f, EntityRegainHealthEvent.RegainReason regainReason) {
++        this.pushHealReason(regainReason);
++        this.heal(f);
      }
  
      public float getHealth() {
@@ -1267,7 +1267,7 @@
                      this.level().addFreshEntity(itemEntity);
                  }
              }
-@@ -1509,27 +_,41 @@
+@@ -1509,27 +_,44 @@
      }
  
      protected void dropAllDeathLoot(ServerLevel level, DamageSource source) {
@@ -1294,14 +1294,6 @@
      protected void dropEquipment(ServerLevel level) {
      }
  
--    protected void dropExperience(ServerLevel level, @Nullable Entity killer) {
--        if (!this.wasExperienceConsumed()
--            && (
--                this.isAlwaysExperienceDropper()
--                    || this.lastHurtByPlayerMemoryTime > 0 && this.shouldDropExperience() && level.getGameRules().get(GameRules.MOB_DROPS)
--            )) {
--            ExperienceOrb.award(level, this.position(), this.getExperienceReward(level, killer));
--        }
 +    public int getExpReward(ServerLevel level, @Nullable Entity entity) { // CraftBukkit
 +        if (!this.wasExperienceConsumed() && (this.isAlwaysExperienceDropper() || this.lastHurtByPlayerMemoryTime > 0 && this.shouldDropExperience() && (Boolean) level.getGameRules().get(GameRules.MOB_DROPS))) {
 +            return this.getExperienceReward(level, entity); // CraftBukkit
@@ -1310,12 +1302,21 @@
 +        return 0; // CraftBukkit
 +    }
 +
-+    protected void dropExperience(ServerLevel level, @Nullable Entity entity) {
+     protected void dropExperience(ServerLevel level, @Nullable Entity killer) {
+-        if (!this.wasExperienceConsumed()
+-            && (
+-                this.isAlwaysExperienceDropper()
+-                    || this.lastHurtByPlayerMemoryTime > 0 && this.shouldDropExperience() && level.getGameRules().get(GameRules.MOB_DROPS)
+-            )) {
+-            ExperienceOrb.award(level, this.position(), this.getExperienceReward(level, killer));
 +        // CraftBukkit start - Update getExpReward() above if the removed if() changes!
 +        if (!(this instanceof net.minecraft.world.entity.boss.enderdragon.EnderDragon)) { // CraftBukkit - SPIGOT-2420: Special case ender dragon will drop the xp over time
-+            ExperienceOrb.awardWithDirection(level, this.position(), Vec3.ZERO, this.expToDrop, this instanceof ServerPlayer ? org.bukkit.entity.ExperienceOrb.SpawnReason.PLAYER_DEATH : org.bukkit.entity.ExperienceOrb.SpawnReason.ENTITY_DEATH, entity, this); // Paper
++            int reward = net.neoforged.neoforge.event.EventHooks.getExperienceDrop(this, this.getLastHurtByPlayer(), this.getExperienceReward(level, killer));
++            ExperienceOrb.fake_award.set(true);
++            ExperienceOrb.award((ServerLevel) this.level(), this.position(), reward);
++            ExperienceOrb.awardWithDirection(level, this.position(), Vec3.ZERO, ExperienceOrb.fake_award_amount.getAndSet(0), this instanceof ServerPlayer ? org.bukkit.entity.ExperienceOrb.SpawnReason.PLAYER_DEATH : org.bukkit.entity.ExperienceOrb.SpawnReason.ENTITY_DEATH, killer, this); // Paper
 +            this.expToDrop = 0;
-+        }
+         }
 +        // CraftBukkit end
      }
  
