@@ -36,13 +36,13 @@ import org.jetbrains.annotations.NotNull;
  */
 public class BansCommand extends Command {
 
-    private final List<String> params = Arrays.asList("add", "show", "setmessage");
+    private final List<String> params = Arrays.asList("add", "show", "setmessage", "reload");
     private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe", "block", "nbt", "world", "structure");
 
     public BansCommand(String name) {
         super(name);
         this.description = I18n.as("banscmd.description");
-        this.usageMessage = "/bans [add|show|setmessage] [item|item-moshou|entity|enchantment|recipe|block|world|structure]";
+        this.usageMessage = "/bans [add|show|setmessage|reload] [item|item-moshou|entity|enchantment|recipe|block|world|structure]";
         this.setPermission("youer.command.bans");
     }
 
@@ -52,6 +52,12 @@ public class BansCommand extends Command {
             return false;
         }
         String check = I18n.as("banscmd.check");
+
+        if (args.length >= 1 && args[0].equalsIgnoreCase("reload")) {
+            BanConfig.reloadAll();
+            sender.sendMessage(ChatColor.GREEN + I18n.as("banscmd.reload.success"));
+            return true;
+        }
 
         if (!(sender instanceof Player player)) {
             sender.sendMessage(ChatColor.RED + I18n.as("banscmd.error.notplayer"));

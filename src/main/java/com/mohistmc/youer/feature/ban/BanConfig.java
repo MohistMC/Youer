@@ -107,6 +107,20 @@ public class BanConfig extends YouerPluginConfig {
         }
     }
 
+    public static void reloadAll() {
+        for (BanConfig config : new BanConfig[]{MOSHOU, ITEM, ENTITY, ENCHANTMENT, RECIPE, BLOCK, NBT, WORLD, STRUCTURE, BAN_MESSAGE}) {
+            try {
+                config.yaml.load(config.config);
+                for (Map.Entry<BanType, BanConfig> entry : typeToConfigMap.entrySet()) {
+                    if (entry.getValue() == config) {
+                        refreshCache(entry.getKey());
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }
+    }
+
     public void setBanMessage(String key, Object value) {
         BAN_MESSAGE.yaml.set(key, value);
         BAN_MESSAGE.save();
