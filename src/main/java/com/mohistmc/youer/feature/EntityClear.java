@@ -47,36 +47,40 @@ public class EntityClear {
     }
 
     public static void run_item() {
-        AtomicInteger size_item = new AtomicInteger(0);
-        for (World world : Bukkit.getWorlds()) {
-            for (Entity entity : world.getEntities()) {
-                if (entity instanceof Item item) {
-                    if (!YouerConfig.clear_item_whitelist.contains(item.getItemStack().getType().name())) {
-                        entity.remove();
-                        size_item.addAndGet(1);
+        MinecraftServer.getServer().execute(() -> {
+            AtomicInteger size_item = new AtomicInteger(0);
+            for (World world : Bukkit.getWorlds()) {
+                for (Entity entity : world.getEntities()) {
+                    if (entity instanceof Item item) {
+                        if (!YouerConfig.clear_item_whitelist.contains(item.getItemStack().getType().name())) {
+                            entity.remove();
+                            size_item.addAndGet(1);
+                        }
                     }
                 }
             }
-        }
-        if (!YouerConfig.clear_item_msg.isEmpty()) {
-            Bukkit.broadcastMessage(YouerConfig.clear_item_msg.replace("%size%", String.valueOf(size_item.getAndSet(0))));
-        }
+            if (!YouerConfig.clear_item_msg.isEmpty()) {
+                Bukkit.broadcastMessage(YouerConfig.clear_item_msg.replace("%size%", String.valueOf(size_item.getAndSet(0))));
+            }
+        });
     }
 
     public static void run_monster() {
-        AtomicInteger size_monster = new AtomicInteger(0);
-        for (World world : Bukkit.getWorlds()) {
-            for (Entity entity : world.getEntities()) {
-                if (entity instanceof Monster monster) {
-                    if (!YouerConfig.clear_monster_whitelist.contains(monster.getType().name()) && monster.getCustomName() == null) {
-                        entity.remove();
-                        size_monster.addAndGet(1);
+        MinecraftServer.getServer().execute(() -> {
+            AtomicInteger size_monster = new AtomicInteger(0);
+            for (World world : Bukkit.getWorlds()) {
+                for (Entity entity : world.getEntities()) {
+                    if (entity instanceof Monster monster) {
+                        if (!YouerConfig.clear_monster_whitelist.contains(monster.getType().name()) && monster.customName() == null) {
+                            entity.remove();
+                            size_monster.addAndGet(1);
+                        }
                     }
                 }
             }
-        }
-        if (!YouerConfig.clear_monster_msg.isEmpty()) {
-            Bukkit.broadcastMessage(YouerConfig.clear_monster_msg.replace("%size%", String.valueOf(size_monster.getAndSet(0))));
-        }
+            if (!YouerConfig.clear_monster_msg.isEmpty()) {
+                Bukkit.broadcastMessage(YouerConfig.clear_monster_msg.replace("%size%", String.valueOf(size_monster.getAndSet(0))));
+            }
+        });
     }
 }
