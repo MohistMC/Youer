@@ -139,7 +139,7 @@
      }
  
      public static VoxelShape create(AABB aabb) {
-@@ -128,92 +_,54 @@
+@@ -128,15 +_,50 @@
          return join(first, second, BooleanOp.OR);
      }
  
@@ -189,88 +189,18 @@
      }
  
      public static VoxelShape joinUnoptimized(VoxelShape first, VoxelShape second, BooleanOp op) {
--        if (op.apply(false, false)) {
--            throw (IllegalArgumentException)Util.pauseInIde(new IllegalArgumentException());
--        }
--
--        if (first == second) {
--            return op.apply(true, true) ? first : empty();
--        }
--
--        boolean firstOnlyMatters = op.apply(true, false);
--        boolean secondOnlyMatters = op.apply(false, true);
--        if (first.isEmpty()) {
--            return secondOnlyMatters ? second : empty();
--        }
--
--        if (second.isEmpty()) {
--            return firstOnlyMatters ? first : empty();
--        }
--
--        IndexMerger xMerger = createIndexMerger(1, first.getCoords(Direction.Axis.X), second.getCoords(Direction.Axis.X), firstOnlyMatters, secondOnlyMatters);
--        IndexMerger yMerger = createIndexMerger(
--            xMerger.size() - 1, first.getCoords(Direction.Axis.Y), second.getCoords(Direction.Axis.Y), firstOnlyMatters, secondOnlyMatters
--        );
--        IndexMerger zMerger = createIndexMerger(
--            (xMerger.size() - 1) * (yMerger.size() - 1),
--            first.getCoords(Direction.Axis.Z),
--            second.getCoords(Direction.Axis.Z),
--            firstOnlyMatters,
--            secondOnlyMatters
--        );
--        BitSetDiscreteVoxelShape voxelShape = BitSetDiscreteVoxelShape.join(first.shape, second.shape, xMerger, yMerger, zMerger, op);
--        return xMerger instanceof DiscreteCubeMerger && yMerger instanceof DiscreteCubeMerger && zMerger instanceof DiscreteCubeMerger
--            ? new CubeVoxelShape(voxelShape)
--            : new ArrayVoxelShape(voxelShape, xMerger.getList(), yMerger.getList(), zMerger.getList());
-+        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.joinUnoptimized(first, second, op); // Paper - optimise collisions
++        if (Boolean.parseBoolean("true")) return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.joinUnoptimized(first, second, op); // Paper - optimise collisions
+         if (op.apply(false, false)) {
+             throw (IllegalArgumentException)Util.pauseInIde(new IllegalArgumentException());
+         }
+@@ -173,6 +_,7 @@
      }
  
      public static boolean joinIsNotEmpty(VoxelShape first, VoxelShape second, BooleanOp op) {
--        if (op.apply(false, false)) {
--            throw (IllegalArgumentException)Util.pauseInIde(new IllegalArgumentException());
--        }
--
--        boolean firstEmpty = first.isEmpty();
--        boolean secondEmpty = second.isEmpty();
--        if (!firstEmpty && !secondEmpty) {
--            if (first == second) {
--                return op.apply(true, true);
--            }
--
--            boolean firstOnlyMatters = op.apply(true, false);
--            boolean secondOnlyMatters = op.apply(false, true);
--
--            for (Direction.Axis axis : AxisCycle.AXIS_VALUES) {
--                if (first.max(axis) < second.min(axis) - 1.0E-7) {
--                    return firstOnlyMatters || secondOnlyMatters;
--                }
--
--                if (second.max(axis) < first.min(axis) - 1.0E-7) {
--                    return firstOnlyMatters || secondOnlyMatters;
--                }
--            }
--
--            IndexMerger xMerger = createIndexMerger(
--                1, first.getCoords(Direction.Axis.X), second.getCoords(Direction.Axis.X), firstOnlyMatters, secondOnlyMatters
--            );
--            IndexMerger yMerger = createIndexMerger(
--                xMerger.size() - 1, first.getCoords(Direction.Axis.Y), second.getCoords(Direction.Axis.Y), firstOnlyMatters, secondOnlyMatters
--            );
--            IndexMerger zMerger = createIndexMerger(
--                (xMerger.size() - 1) * (yMerger.size() - 1),
--                first.getCoords(Direction.Axis.Z),
--                second.getCoords(Direction.Axis.Z),
--                firstOnlyMatters,
--                secondOnlyMatters
--            );
--            return joinIsNotEmpty(xMerger, yMerger, zMerger, first.shape, second.shape, op);
--        } else {
--            return op.apply(!firstEmpty, !secondEmpty);
--        }
-+        return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.isJoinNonEmpty(first, second, op); // Paper - optimise collisions
-     }
- 
-     private static boolean joinIsNotEmpty(
++        if (Boolean.parseBoolean("true")) return ca.spottedleaf.moonrise.patches.collisions.CollisionUtil.isJoinNonEmpty(first, second, op); // Paper - optimise collisions
+         if (op.apply(false, false)) {
+             throw (IllegalArgumentException)Util.pauseInIde(new IllegalArgumentException());
+         }
 @@ -238,63 +_,116 @@
          return distance;
      }
