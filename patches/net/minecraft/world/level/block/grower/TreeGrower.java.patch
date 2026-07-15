@@ -72,12 +72,16 @@
          }
      }
  
-@@ -210,4 +_,60 @@
+@@ -210,4 +_,67 @@
              ? OptionalInt.of(treeConfig.trunkPlacer.getBaseHeight())
              : OptionalInt.empty();
      }
 +
 +    // CraftBukkit start
++    public static Map<String, TreeGrower> getGrowers() {
++        return GROWERS;
++    }
++
 +    private void setTreeType(Holder<ConfiguredFeature<?, ?>> feature) {
 +        org.bukkit.TreeType treeType;
 +        if (feature.is(TreeFeatures.OAK) || feature.is(TreeFeatures.OAK_BEES_005)) {
@@ -127,7 +131,10 @@
 +        } else if (feature.is(TreeFeatures.PALE_OAK_CREAKING)) {
 +            treeType = org.bukkit.TreeType.PALE_OAK_CREAKING;
 +        } else {
-+            throw new IllegalArgumentException("Unknown tree generator " + feature);
++            treeType = com.mohistmc.youer.neoforge.NeoForgeInjectBukkit.treeTypeByGrowerName.get(this.name);
++            if (treeType == null) {
++                treeType = org.bukkit.TreeType.CUSTOM;
++            }
 +        }
 +        net.minecraft.world.level.block.SaplingBlock.treeType = treeType;
 +    }

@@ -1,6 +1,6 @@
 package io.papermc.paper.adventure;
 
-import com.mohistmc.youer.ai.deepseek.DeepSeek;
+import com.mohistmc.youer.feature.deepseek.DeepSeek;
 import io.papermc.paper.chat.ChatRenderer;
 import io.papermc.paper.event.player.AbstractChatEvent;
 import io.papermc.paper.event.player.AsyncChatEvent;

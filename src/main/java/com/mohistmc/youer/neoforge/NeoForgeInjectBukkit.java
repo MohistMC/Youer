@@ -26,11 +26,13 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.grower.TreeGrower;
 import net.minecraft.world.level.dimension.LevelStem;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Statistic;
+import org.bukkit.TreeType;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.CraftStatistic;
 import org.bukkit.craftbukkit.util.CraftMagicNumbers;
@@ -62,6 +64,7 @@ public class NeoForgeInjectBukkit {
     private static final BiMap<Identifier, Statistic> STATISTICS = HashBiMap.create(CraftStatistic.statistics);
     public static Map<MobCategory, SpawnCategory> spawnCategoryMap = new HashMap<>();
     public static Map<SpawnCategory, MobCategory> CategoryspawnMap = new HashMap<>();
+    public static Map<String, TreeType> treeTypeByGrowerName = new HashMap<>();
 
 
     public static void init() {
@@ -72,6 +75,7 @@ public class NeoForgeInjectBukkit {
         addStatistic();
         loadSpawnCategory();
         addPose();
+        addEnumTreeType();
         reloadBukkitRegistries();
     }
 
@@ -293,6 +297,20 @@ public class NeoForgeInjectBukkit {
         }
     }
 
+    public static void addEnumTreeType() {
+        for (Map.Entry<String, TreeGrower> entry : TreeGrower.getGrowers().entrySet()) {
+            String name = entry.getKey();
+            if (!name.contains(":")) continue;
+
+            String enumName = MohistDynamEnum.normalizeName(name);
+            TreeType treeType = MohistDynamEnum.addEnum(TreeType.class, enumName);
+            if (treeType != null) {
+                treeTypeByGrowerName.put(name, treeType);
+                debug("Registered forge TreeGrower {} as TreeType(Bukkit) {}", name, treeType);
+            }
+        }
+    }
+
     public static boolean isMods(Identifier resourceLocation) {
         return resourceLocation != null && !resourceLocation.getNamespace().equals(NamespacedKey.MINECRAFT);
     }
@@ -309,10 +327,10 @@ public class NeoForgeInjectBukkit {
     }
 
     public static void debug(String message, Object p0) {
-        if (DEBUG) Youer.LOGGER.debug(message, p0);
+        if (DEBUG) Youer.LOGGER.info(message, p0);
     }
 
     public static void debug(String message, Object p0, Object p1) {
-        if (DEBUG) Youer.LOGGER.debug(message, p0, p1);
+        if (DEBUG) Youer.LOGGER.info(message, p0, p1);
     }
 }
