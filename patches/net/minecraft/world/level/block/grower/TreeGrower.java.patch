@@ -121,12 +121,16 @@
                      return false;
                  }
              }
-@@ -200,4 +_,55 @@
+@@ -200,4 +_,63 @@
  
          return false;
      }
 +
 +    // CraftBukkit start
++    public static Map<String, TreeGrower> getGrowers() {
++        return GROWERS;
++    }
++
 +    private void setTreeType(Holder<ConfiguredFeature<?, ?>> holder) {
 +        ResourceKey<ConfiguredFeature<?, ?>> worldgentreeabstract = holder.unwrapKey().get();
 +        if (worldgentreeabstract == TreeFeatures.OAK || worldgentreeabstract == TreeFeatures.OAK_BEES_005) {
@@ -172,7 +176,11 @@
 +        } else if (worldgentreeabstract == TreeFeatures.CHERRY || worldgentreeabstract == TreeFeatures.CHERRY_BEES_005) {
 +            net.minecraft.world.level.block.SaplingBlock.treeType = org.bukkit.TreeType.CHERRY;
 +        } else {
-+            SaplingBlock.treeType = TreeType.CUSTOM; // Mohist - handle mod tree generator
++            org.bukkit.TreeType treeType = com.mohistmc.youer.neoforge.NeoForgeInjectBukkit.treeTypeByGrowerName.get(this.name);
++            if (treeType == null) {
++                treeType = org.bukkit.TreeType.CUSTOM;
++            }
++            net.minecraft.world.level.block.SaplingBlock.treeType = treeType;
 +        }
 +    }
 +    // CraftBukkit end

@@ -31,6 +31,7 @@ import net.minecraft.world.inventory.RecipeBookType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.grower.TreeGrower;
 import net.minecraft.world.level.dimension.LevelStem;
 import org.bukkit.Art;
 import org.bukkit.Fluid;
@@ -39,6 +40,7 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.Statistic;
+import org.bukkit.TreeType;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.craftbukkit.CraftStatistic;
@@ -76,6 +78,7 @@ public class NeoForgeInjectBukkit {
     private static final BiMap<ResourceLocation, Statistic> STATISTICS = HashBiMap.create(CraftStatistic.statistics);
     public static final BiMap<SoundEvent, Sound> MODD_SOUNDS = HashBiMap.create();
     public static final BiMap<PaintingVariant, Art> MODD_ART = HashBiMap.create();
+    public static Map<String, TreeType> treeTypeByGrowerName = new HashMap<>();
 
     public static void init() {
         addEnumMaterialInItems();
@@ -92,6 +95,7 @@ public class NeoForgeInjectBukkit {
         addModSound();
         addModRecipeBookType();
         addEnumAttribute();
+        addEnumTreeType();
         reloadBukkitRegistries();
     }
 
@@ -390,6 +394,20 @@ public class NeoForgeInjectBukkit {
             if (!knownTypes.contains(name)) {
                 var bukkit = MohistDynamEnum.addEnum(PlayerRecipeBookSettingsChangeEvent.RecipeBookType.class, name, List.of(), List.of());
                 debug("Registered {} as recipe book type {}", name, bukkit);
+            }
+        }
+    }
+
+    public static void addEnumTreeType() {
+        for (Map.Entry<String, TreeGrower> entry : TreeGrower.getGrowers().entrySet()) {
+            String name = entry.getKey();
+            if (!name.contains(":")) continue;
+
+            String enumName = MohistDynamEnum.normalizeName(name);
+            TreeType treeType = MohistDynamEnum.addEnum(TreeType.class, enumName);
+            if (treeType != null) {
+                treeTypeByGrowerName.put(name, treeType);
+                debug("Registered forge TreeGrower {} as TreeType(Bukkit) {}", name, treeType);
             }
         }
     }
