@@ -1,4 +1,4 @@
-package com.mohistmc.youer.ai.deepseek;
+package com.mohistmc.youer.feature.deepseek;
 
 import com.mohistmc.mjson.Json;
 import com.mohistmc.youer.Youer;

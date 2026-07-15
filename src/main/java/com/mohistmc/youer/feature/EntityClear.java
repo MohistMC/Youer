@@ -5,7 +5,7 @@ import com.mohistmc.youer.YouerConfig;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import net.minecraft.server.MinecraftServer;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -47,38 +47,40 @@ public class EntityClear {
     }
 
     public static void run_item() {
-        Set<String> whitelist = new java.util.HashSet<>(YouerConfig.clear_item_whitelist);
-        int size_item = 0;
-        for (World world : Bukkit.getWorlds()) {
-            for (Entity entity : world.getEntities()) {
-                if (entity instanceof Item item) {
-                    if (!whitelist.contains(item.getItemStack().getType().name())) {
-                        entity.remove();
-                        size_item++;
+        MinecraftServer.getServer().execute(() -> {
+            AtomicInteger size_item = new AtomicInteger(0);
+            for (World world : Bukkit.getWorlds()) {
+                for (Entity entity : world.getEntities()) {
+                    if (entity instanceof Item item) {
+                        if (!YouerConfig.clear_item_whitelist.contains(item.getItemStack().getType().name())) {
+                            entity.remove();
+                            size_item.addAndGet(1);
+                        }
                     }
                 }
             }
-        }
-        if (!YouerConfig.clear_item_msg.isEmpty()) {
-            Bukkit.broadcastMessage(YouerConfig.clear_item_msg.replace("%size%", String.valueOf(size_item)));
-        }
+            if (!YouerConfig.clear_item_msg.isEmpty()) {
+                Bukkit.broadcastMessage(YouerConfig.clear_item_msg.replace("%size%", String.valueOf(size_item.getAndSet(0))));
+            }
+        });
     }
 
     public static void run_monster() {
-        Set<String> whitelist = new java.util.HashSet<>(YouerConfig.clear_monster_whitelist);
-        int size_monster = 0;
-        for (World world : Bukkit.getWorlds()) {
-            for (Entity entity : world.getEntities()) {
-                if (entity instanceof Monster monster) {
-                    if (!whitelist.contains(monster.getType().name()) && monster.getCustomName() == null) {
-                        entity.remove();
-                        size_monster++;
+        MinecraftServer.getServer().execute(() -> {
+            AtomicInteger size_monster = new AtomicInteger(0);
+            for (World world : Bukkit.getWorlds()) {
+                for (Entity entity : world.getEntities()) {
+                    if (entity instanceof Monster monster) {
+                        if (!YouerConfig.clear_monster_whitelist.contains(monster.getType().name()) && monster.customName() == null) {
+                            entity.remove();
+                            size_monster.addAndGet(1);
+                        }
                     }
                 }
             }
-        }
-        if (!YouerConfig.clear_monster_msg.isEmpty()) {
-            Bukkit.broadcastMessage(YouerConfig.clear_monster_msg.replace("%size%", String.valueOf(size_monster)));
-        }
+            if (!YouerConfig.clear_monster_msg.isEmpty()) {
+                Bukkit.broadcastMessage(YouerConfig.clear_monster_msg.replace("%size%", String.valueOf(size_monster.getAndSet(0))));
+            }
+        });
     }
 }

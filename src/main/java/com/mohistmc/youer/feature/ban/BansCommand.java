@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -127,6 +128,27 @@ public class BansCommand extends Command {
                             sender.sendMessage(check);
                             return false;
                         }
+
+                        if (args.length >= 3) {
+                            String entityName = args[2];
+                            if (BuiltInRegistries.ENTITY_TYPE.get(Identifier.parse(entityName)).isEmpty()) {
+                                sender.sendMessage(I18n.as("banscmd.add.entity.invalid").formatted(entityName));
+                                return false;
+                            }
+
+                            String entityKey = Identifier.parse(entityName).toString();
+                            List<String> old = BanConfig.getListByType(BanType.ENTITY);
+                            if (old.contains(entityKey)) {
+                                sender.sendMessage(ChatColor.YELLOW + I18n.as("banscmd.add.entity.exists").formatted(entityKey));
+                                return false;
+                            }
+
+                            old.add(entityKey);
+                            BanConfig.saveToYaml(player, com.mohistmc.youer.feature.ban.ClickType.ADD, old, BanType.ENTITY);
+                            sender.sendMessage(I18n.as("banscmd.add.entity.success").formatted(entityKey));
+                            return true;
+                        }
+
                         BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ENTITY, I18n.as("banscmd.gui.add.entity"));
                         Inventory inventory = banSaveInventory.getInventory();
                         player.openInventory(inventory);
@@ -496,6 +518,17 @@ public class BansCommand extends Command {
                     .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
                     .limit(50)
                     .collect(Collectors.toList());
+        }
+
+        if (args.length == 3 && args[0].equals("add") && args[1].equals("entity") && (sender.isOp() || testPermission(sender))) {
+            List<String> completions = new ArrayList<>();
+            for (var entityType : BuiltInRegistries.ENTITY_TYPE) {
+                Identifier key = BuiltInRegistries.ENTITY_TYPE.getKey(entityType);
+                if (key != null && key.toString().toLowerCase().startsWith(args[2].toLowerCase())) {
+                    completions.add(key.toString());
+                }
+            }
+            return completions.stream().limit(50).collect(Collectors.toList());
         }
 
         return list;

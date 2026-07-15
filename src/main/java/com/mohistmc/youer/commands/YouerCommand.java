@@ -39,7 +39,7 @@ import org.jetbrains.annotations.NotNull;
 public class YouerCommand extends Command {
 
     private static final String[] COMMAND_LIST = {
-            "windows", "mods", "playermods", "reload", "version",
+            "info", "mods", "playermods", "reload", "version",
             "channels_incom", "channels_outgo", "speed", "printthreadcost",
             "packetstats", "heal", "help", "cleardropitem", "memoryfix", "showp",
             "backupworld", "migratedb"
@@ -338,7 +338,8 @@ public class YouerCommand extends Command {
                 sender.sendMessage(I18n.as("youercmd.memoryfix.result", result));
                 return true;
             }
-            case "windows" -> {
+            case "info" -> {
+                int pid = (int) ProcessHandle.current().pid();
                 int playerAmount = Bukkit.getOnlinePlayers().size();
                 int maxplayerAmount = Bukkit.getMaxPlayers();
                 boolean onlineMode = Bukkit.getOnlineMode();
@@ -349,43 +350,44 @@ public class YouerCommand extends Command {
                 String osArch = System.getProperty("os.arch");
                 String osVersion = System.getProperty("os.version");
 
-                sender.sendMessage(I18n.as("youercmd.windows.title"));
+                sender.sendMessage(I18n.as("youercmd.info.title"));
 
-                sender.sendMessage(I18n.as("youercmd.windows.version", bukkitVersion));
-                sender.sendMessage(I18n.as("youercmd.windows.players", playerAmount, maxplayerAmount));
-                sender.sendMessage(I18n.as("youercmd.windows.onlineMode", onlineMode ? I18n.as("youercmd.windows.enabled") : I18n.as("youercmd.windows.disabled")));
-                sender.sendMessage(I18n.as("youercmd.windows.javaVersion", javaVersion));
-                sender.sendMessage(I18n.as("youercmd.windows.jvmUptime", getJVMUpTime()));
+                sender.sendMessage(I18n.as("youercmd.info.pid", pid));
+                sender.sendMessage(I18n.as("youercmd.info.version", bukkitVersion));
+                sender.sendMessage(I18n.as("youercmd.info.players", playerAmount, maxplayerAmount));
+                sender.sendMessage(I18n.as("youercmd.info.onlineMode", onlineMode ? I18n.as("youercmd.info.enabled") : I18n.as("youercmd.info.disabled")));
+                sender.sendMessage(I18n.as("youercmd.info.javaVersion", javaVersion));
+                sender.sendMessage(I18n.as("youercmd.info.jvmUptime", getJVMUpTime()));
 
-                sender.sendMessage(I18n.as("youercmd.windows.memory",
+                sender.sendMessage(I18n.as("youercmd.info.memory",
                         StatsUtils.BytesToMegaBytes(StatsUtils.freeMemory()),
                         StatsUtils.BytesToMegaBytes(StatsUtils.totalMemory()),
                         StatsUtils.BytesToMegaBytes(StatsUtils.maxMemory()),
-                        I18n.as("youercmd.windows.disk.free"),
-                        I18n.as("youercmd.windows.disk.usable"),
-                        I18n.as("youercmd.windows.disk.total")));
+                        I18n.as("youercmd.info.disk.free"),
+                        I18n.as("youercmd.info.disk.usable"),
+                        I18n.as("youercmd.info.disk.total")));
 
                 try {
-                    sender.sendMessage(I18n.as("youercmd.windows.cpu",
+                    sender.sendMessage(I18n.as("youercmd.info.cpu",
                             StatsUtils.LoadAverange(),
-                            I18n.as("youercmd.windows.cpu.loadavg"),
+                            I18n.as("youercmd.info.cpu.loadavg"),
                             StatsUtils.getProcessCpuLoad(),
-                            I18n.as("youercmd.windows.cpu.process")));
+                            I18n.as("youercmd.info.cpu.process")));
                 } catch (final Exception ignored) {
-                    sender.sendMessage(I18n.as("youercmd.windows.cpu.unavailable_msg"));
+                    sender.sendMessage(I18n.as("youercmd.info.cpu.unavailable_msg"));
                 }
 
-                sender.sendMessage(I18n.as("youercmd.windows.disk",
+                sender.sendMessage(I18n.as("youercmd.info.disk",
                         StatsUtils.BytesToGigaBytes(StatsUtils.freeDisk()),
                         StatsUtils.BytesToGigaBytes(StatsUtils.usableDisk()),
                         StatsUtils.BytesToGigaBytes(StatsUtils.totalDisk()),
-                        I18n.as("youercmd.windows.disk.free"),
-                        I18n.as("youercmd.windows.disk.usable"),
-                        I18n.as("youercmd.windows.disk.total")));
+                        I18n.as("youercmd.info.disk.free"),
+                        I18n.as("youercmd.info.disk.usable"),
+                        I18n.as("youercmd.info.disk.total")));
 
-                sender.sendMessage(I18n.as("youercmd.windows.system", osName, osVersion, osArch));
+                sender.sendMessage(I18n.as("youercmd.info.system", osName, osVersion, osArch));
 
-                sender.sendMessage(I18n.as("youercmd.windows.separator"));
+                sender.sendMessage(I18n.as("youercmd.info.separator"));
             }
 
             case "showp" -> {

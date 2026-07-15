@@ -1,7 +1,7 @@
 package com.mohistmc.youer.commands;
 
-import com.mohistmc.youer.ai.deepseek.ChatRequest;
-import com.mohistmc.youer.ai.deepseek.DeepSeek;
+import com.mohistmc.youer.feature.deepseek.ChatRequest;
+import com.mohistmc.youer.feature.deepseek.DeepSeek;
 import com.mohistmc.youer.api.gui.DemoGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.ItemStackFactory;
