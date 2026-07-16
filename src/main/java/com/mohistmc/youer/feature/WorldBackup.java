@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.FileVisitOption;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -21,6 +22,7 @@ import java.util.Comparator;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 import net.minecraft.server.MinecraftServer;
@@ -83,8 +85,10 @@ public class WorldBackup {
             }
         } else {
             try (OutputStream fos = Files.newOutputStream(zip.toPath());
-                 ZipOutputStream zos = new ZipOutputStream(fos)) {
-                Files.walk(worldPath)
+                 ZipOutputStream zos = new ZipOutputStream(fos);
+                 Stream<Path> pathStream = Files.walk(worldPath, FileVisitOption.FOLLOW_LINKS)) {
+
+                pathStream
                         .filter(p -> !p.equals(worldPath))
                         .filter(p -> !p.getFileName().toString().equals("session.lock"))
                         .forEach(p -> addToZip(worldPath, p, zos));
@@ -113,7 +117,7 @@ public class WorldBackup {
     }
 
     private static void writeTarArchive(Path baseDir, OutputStream os) throws IOException {
-        try (var stream = Files.walk(baseDir)
+        try (var stream = Files.walk(baseDir, FileVisitOption.FOLLOW_LINKS)
                 .filter(p -> !p.equals(baseDir))
                 .filter(p -> !p.getFileName().toString().equals("session.lock"))
                 .sorted()) {

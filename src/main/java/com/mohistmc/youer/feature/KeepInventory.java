@@ -3,7 +3,6 @@ package com.mohistmc.youer.feature;
 import com.mohistmc.youer.YouerConfig;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.gamerules.GameRules;
-import org.bukkit.GameRule;
 import org.bukkit.entity.Player;
 
 /**
@@ -29,7 +28,7 @@ public class KeepInventory {
         }
         String world = bukkit_player.getWorld().getName();
         boolean i = YouerConfig.keepinventory_global ? YouerConfig.keepinventory_inventory : YouerConfig.yml.getBoolean("keepinventory." + world + ".inventory");
-        player.getBukkitEntity().getWorld().setGameRule(GameRule.KEEP_INVENTORY, i);
+        player.getBukkitEntity().getWorld().setGameRule(org.bukkit.GameRules.KEEP_INVENTORY, i);
         return i;
     }
 

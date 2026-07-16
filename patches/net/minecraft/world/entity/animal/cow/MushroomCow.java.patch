@@ -8,7 +8,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class MushroomCow extends AbstractCow implements Shearable {
-@@ -69,6 +_,51 @@
+@@ -69,13 +_,58 @@
          super(type, level);
      }
  
@@ -60,6 +60,14 @@
      @Override
      public float getWalkTargetValue(BlockPos pos, LevelReader level) {
          return level.getBlockState(pos.below()).is(Blocks.MYCELIUM) ? 10.0F : level.getPathfindingCostFromLightLevels(pos);
+     }
+ 
+     public static boolean checkMushroomSpawnRules(
+-        EntityType<MushroomCow> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random
++        EntityType<? extends MushroomCow> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random
+     ) {
+         return level.getBlockState(pos.below()).is(BlockTags.MOOSHROOMS_SPAWNABLE_ON) && isBrightEnoughToSpawn(level, pos);
+     }
 @@ -124,7 +_,13 @@
              return InteractionResult.SUCCESS;
          } else if (itemStack.is(Items.SHEARS) && this.readyForShearing()) {
