@@ -6,15 +6,15 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import org.purpurmc.purpur.util.MinecraftInternalPlugin;
 
 public abstract class BossBarTask extends BukkitRunnable {
-    private final Map<UUID, BossBar> bossbars = new HashMap<>();
+    private final Map<UUID, BossBar> bossbars = new ConcurrentHashMap<>();
     private boolean started;
 
     abstract BossBar createBossBar();
@@ -92,12 +92,14 @@ public abstract class BossBarTask extends BukkitRunnable {
         RamBarTask.instance().start();
         TPSBarTask.instance().start();
         CompassTask.instance().start();
+        PacketBarTask.instance().start();
     }
 
     public static void stopAll() {
         RamBarTask.instance().stop();
         TPSBarTask.instance().stop();
         CompassTask.instance().stop();
+        PacketBarTask.instance().stop();
     }
 
     public static void addToAll(ServerPlayer player) {
@@ -111,11 +113,15 @@ public abstract class BossBarTask extends BukkitRunnable {
         if (player.compassBar()) {
             CompassTask.instance().addPlayer(bukkit);
         }
+        if (player.packetBar()) {
+            PacketBarTask.instance().addPlayer(bukkit);
+        }
     }
 
     public static void removeFromAll(Player player) {
         RamBarTask.instance().removePlayer(player);
         TPSBarTask.instance().removePlayer(player);
         CompassTask.instance().removePlayer(player);
+        PacketBarTask.instance().removePlayer(player);
     }
 }

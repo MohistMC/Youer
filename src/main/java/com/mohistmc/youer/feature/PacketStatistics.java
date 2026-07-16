@@ -31,7 +31,7 @@ public class PacketStatistics {
     // Add method to get start time
     private static volatile long startTime = 0;
 
-    public static void startStatisticsUpdater() {
+    public static synchronized void startStatisticsUpdater() {
         if (running) return;
 
         running = true;
@@ -50,7 +50,7 @@ public class PacketStatistics {
         updaterThread.start();
     }
 
-    public static void stopStatisticsUpdater() {
+    public static synchronized void stopStatisticsUpdater() {
         running = false;
         collecting = false;
         if (updaterThread != null) {
