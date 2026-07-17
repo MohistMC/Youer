@@ -53,52 +53,29 @@
                      this.dropItem(level, null);
                  }
              }
-@@ -74,19 +_,33 @@
-     public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
-         if (this.isInvulnerableToBase(source)) {
-             return false;
--        }
--
--        if (!level.getGameRules().get(GameRules.MOB_GRIEFING) && source.getEntity() instanceof Mob) {
-+        } else if (!level.getGameRules().get(GameRules.MOB_GRIEFING) && source.getEntity() instanceof Mob) {
-             return false;
--        }
--
--        if (!this.isRemoved()) {
--            this.kill(level);
--            this.markHurt();
--            this.dropItem(level, source.getEntity());
--        }
--
--        return true;
-+        } else {
-+            if (!this.isRemoved()) {
-+                // CraftBukkit start - fire break events
-+                Entity damager = source.getDirectEntity();
-+                final org.bukkit.event.hanging.HangingBreakEvent event;
-+                if (damager != null) {
-+                    event = new org.bukkit.event.hanging.HangingBreakByEntityEvent((org.bukkit.entity.Hanging) this.getBukkitEntity(), damager.getBukkitEntity(), new org.bukkit.craftbukkit.damage.CraftDamageSource(source), source.is(net.minecraft.tags.DamageTypeTags.IS_EXPLOSION) ? org.bukkit.event.hanging.HangingBreakEvent.RemoveCause.EXPLOSION : org.bukkit.event.hanging.HangingBreakEvent.RemoveCause.ENTITY);
-+                } else {
-+                    event = new org.bukkit.event.hanging.HangingBreakEvent((org.bukkit.entity.Hanging) this.getBukkitEntity(), source.is(net.minecraft.tags.DamageTypeTags.IS_EXPLOSION) ? org.bukkit.event.hanging.HangingBreakEvent.RemoveCause.EXPLOSION : org.bukkit.event.hanging.HangingBreakEvent.RemoveCause.DEFAULT);
-+                }
-+
-+                event.callEvent();
-+
-+                if (this.isRemoved() || event.isCancelled()) {
-+                    return true;
-+                }
-+                // CraftBukkit end
-+
-+                this.kill(level);
-+                this.markHurt();
-+                this.dropItem(level, source.getEntity());
+@@ -81,6 +_,22 @@
+         }
+ 
+         if (!this.isRemoved()) {
++            // CraftBukkit start - fire break events
++            Entity damager = source.getDirectEntity();
++            final org.bukkit.event.hanging.HangingBreakEvent event;
++            if (damager != null) {
++                event = new org.bukkit.event.hanging.HangingBreakByEntityEvent((org.bukkit.entity.Hanging) this.getBukkitEntity(), damager.getBukkitEntity(), new org.bukkit.craftbukkit.damage.CraftDamageSource(source), source.is(net.minecraft.tags.DamageTypeTags.IS_EXPLOSION) ? org.bukkit.event.hanging.HangingBreakEvent.RemoveCause.EXPLOSION : org.bukkit.event.hanging.HangingBreakEvent.RemoveCause.ENTITY);
++            } else {
++                event = new org.bukkit.event.hanging.HangingBreakEvent((org.bukkit.entity.Hanging) this.getBukkitEntity(), source.is(net.minecraft.tags.DamageTypeTags.IS_EXPLOSION) ? org.bukkit.event.hanging.HangingBreakEvent.RemoveCause.EXPLOSION : org.bukkit.event.hanging.HangingBreakEvent.RemoveCause.DEFAULT);
 +            }
 +
-+            return true;
-+        }
-     }
- 
-     @Override
++            event.callEvent();
++
++            if (this.isRemoved() || event.isCancelled()) {
++                return true;
++            }
++            // CraftBukkit end
++
+             this.kill(level);
+             this.markHurt();
+             this.dropItem(level, source.getEntity());
 @@ -102,14 +_,24 @@
      @Override
      public void move(MoverType moverType, Vec3 delta) {
