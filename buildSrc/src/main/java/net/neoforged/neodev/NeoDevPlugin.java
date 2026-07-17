@@ -459,7 +459,7 @@ public class NeoDevPlugin implements Plugin<Project> {
             if (project.getProperties().containsKey(installerDebugProperty) && Boolean.parseBoolean(project.getProperties().get(installerDebugProperty).toString())) {
                 task.from(universalJar.flatMap(AbstractArchiveTask::getArchiveFile), spec -> {
                     spec.into("data");
-                    spec.rename(_ -> String.format("neoforge-%s-universal.jar", neoForgeVersion.get()));
+                    spec.rename(name -> String.format("neoforge-%s-universal.jar", neoForgeVersion.get()));
                 });
             }
         });

@@ -73,6 +73,9 @@ public interface CraftRecipe extends Recipe {
             return new RecipeChoice.ExactChoice(choices);
         } else {
             final RegistryKeySet<ItemType> itemTypes = PaperRegistrySets.convertToApi(RegistryKey.ITEM, ingredient.values);
+            if (itemTypes.isEmpty()) {
+                return RecipeChoice.empty();
+            }
             return RecipeChoice.itemType(itemTypes);
         }
     }
