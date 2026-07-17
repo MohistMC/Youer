@@ -1,6 +1,19 @@
 --- a/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/net/minecraft/world/level/chunk/ChunkAccess.java
-@@ -59,14 +_,14 @@
+@@ -29,12 +_,9 @@
+ import net.minecraft.core.QuartPos;
+ import net.minecraft.core.SectionPos;
+ import net.minecraft.nbt.CompoundTag;
+-import net.minecraft.util.Continuation;
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.ProblemReporter;
+ import net.minecraft.world.entity.Entity;
+-import net.minecraft.world.level.BlockScanUtils;
+-import net.minecraft.world.level.BlockStateConsumer;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.LevelHeightAccessor;
+ import net.minecraft.world.level.biome.Biome;
+@@ -62,14 +_,14 @@
  
  import net.neoforged.neoforge.attachment.IAttachmentHolder;
  
@@ -17,7 +30,7 @@
      private long inhabitedTime;
      @Deprecated
      private @Nullable BiomeGenerationSettings carverBiomeSettings;
-@@ -74,13 +_,68 @@
+@@ -77,13 +_,68 @@
      protected final UpgradeData upgradeData;
      protected final @Nullable BlendingData blendingData;
      public final Map<Heightmap.Types, Heightmap> heightmaps = Maps.newEnumMap(Heightmap.Types.class);
@@ -87,7 +100,7 @@
  
      public ChunkAccess(
          ChunkPos chunkPos,
-@@ -91,14 +_,15 @@
+@@ -94,14 +_,15 @@
          LevelChunkSection @Nullable [] sections,
          @Nullable BlendingData blendingData
      ) {
@@ -105,7 +118,7 @@
          if (sections != null) {
              if (this.sections.length == sections.length) {
                  System.arraycopy(sections, 0, this.sections, 0, this.sections.length);
-@@ -107,13 +_,23 @@
+@@ -110,13 +_,23 @@
              }
          }
  
@@ -132,7 +145,7 @@
              }
          }
      }
-@@ -122,6 +_,8 @@
+@@ -125,6 +_,8 @@
          return GameEventListenerRegistry.NOOP;
      }
  
@@ -141,7 +154,7 @@
      public @Nullable BlockState setBlockState(BlockPos pos, BlockState state) {
          return this.setBlockState(pos, state, 3);
      }
-@@ -268,6 +_,7 @@
+@@ -271,6 +_,7 @@
      public boolean tryMarkSaved() {
          if (this.unsaved) {
              this.unsaved = false;
@@ -149,7 +162,7 @@
              return true;
          } else {
              return false;
-@@ -275,7 +_,7 @@
+@@ -278,7 +_,7 @@
      }
  
      public boolean isUnsaved() {
@@ -158,7 +171,7 @@
      }
  
      public abstract ChunkStatus getPersistedStatus();
-@@ -320,10 +_,14 @@
+@@ -323,21 +_,32 @@
  
      @Override
      public final void findBlockLightSources(BiConsumer<BlockPos, BlockState> consumer) {
@@ -167,26 +180,38 @@
      }
  
      public void findBlocks(Predicate<BlockState> predicate, BiConsumer<BlockPos, BlockState> consumer) {
+-        BlockStateConsumer blockStateConsumer = (pos, state) -> {
+-            consumer.accept(pos, state);
+-            return Continuation.CONTINUE;
+-        };
+-        int max = 15;
 +        findBlocks(predicate, (state, pos) -> predicate.test(state), consumer);
 +    }
 +
 +    public void findBlocks(Predicate<BlockState> predicate, java.util.function.BiPredicate<BlockState, BlockPos> fineFilter, BiConsumer<BlockPos, BlockState> consumer) {
-         BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
++        BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
  
          for (int sectionY = this.getMinSectionY(); sectionY <= this.getMaxSectionY(); sectionY++) {
-@@ -335,8 +_,9 @@
-                     for (int z = 0; z < 16; z++) {
-                         for (int x = 0; x < 16; x++) {
-                             BlockState state = section.getBlockState(x, y, z);
--                            if (predicate.test(state)) {
--                                consumer.accept(mutablePos.setWithOffset(origin, x, y, z), state);
+             LevelChunkSection section = this.getSection(this.getSectionIndexFromSectionY(sectionY));
+             if (section.maybeHas(predicate)) {
+                 BlockPos origin = SectionPos.of(this.chunkPos, sectionY).origin();
+-                BlockScanUtils.findBlocksInSection(section, origin, 0, 0, 0, 15, 15, 15, predicate, blockStateConsumer);
++
++                for (int y = 0; y < 16; y++) {
++                    for (int z = 0; z < 16; z++) {
++                        for (int x = 0; x < 16; x++) {
++                            BlockState state = section.getBlockState(x, y, z);
 +                            mutablePos.setWithOffset(origin, x, y, z);
 +                            if (fineFilter.test(state, mutablePos)) {
 +                                consumer.accept(mutablePos, state);
-                             }
-                         }
-                     }
-@@ -433,19 +_,40 @@
++                            }
++                        }
++                    }
++                }
+             }
+         }
+     }
+@@ -430,19 +_,40 @@
  
      @Override
      public Holder<Biome> getNoiseBiome(int quartX, int quartY, int quartZ) {
@@ -231,7 +256,7 @@
  
      public void fillBiomesFromNoise(BiomeResolver biomeResolver, Climate.Sampler sampler) {
          ChunkPos pos = this.getPos();
-@@ -477,13 +_,90 @@
+@@ -474,13 +_,90 @@
      }
  
      public void initializeLightSources() {

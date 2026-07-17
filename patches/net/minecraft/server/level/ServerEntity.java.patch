@@ -1,14 +1,28 @@
 --- a/net/minecraft/server/level/ServerEntity.java
 +++ b/net/minecraft/server/level/ServerEntity.java
-@@ -35,7 +_,6 @@
+@@ -26,21 +_,15 @@
+ import net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket;
+ import net.minecraft.network.protocol.game.ClientboundSetPassengersPacket;
+ import net.minecraft.network.protocol.game.ClientboundUpdateAttributesPacket;
+-import net.minecraft.network.protocol.game.MovementPacket;
+-import net.minecraft.network.protocol.game.VecDelta;
+ import net.minecraft.network.protocol.game.VecDeltaCodec;
+ import net.minecraft.network.syncher.SynchedEntityData;
+ import net.minecraft.util.Mth;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.EquipmentSlot;
+-import net.minecraft.world.entity.InterpolationHandler;
+-import net.minecraft.world.entity.InterpolationTracker;
+ import net.minecraft.world.entity.Leashable;
  import net.minecraft.world.entity.LivingEntity;
+-import net.minecraft.world.entity.PositionPath;
  import net.minecraft.world.entity.ai.attributes.AttributeInstance;
  import net.minecraft.world.entity.decoration.ItemFrame;
 -import net.minecraft.world.entity.item.ItemEntity;
  import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
  import net.minecraft.world.entity.projectile.hurtingprojectile.AbstractHurtingProjectile;
  import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
-@@ -66,12 +_,14 @@
+@@ -71,12 +_,14 @@
      private Vec3 lastSentMovement;
      private int tickCount;
      private int teleportDelay;
@@ -25,7 +39,7 @@
          this.level = level;
          this.synchronizer = synchronizer;
          this.entity = entity;
-@@ -86,24 +_,42 @@
+@@ -91,24 +_,42 @@
          this.trackedDataValues = entity.getEntityData().getNonDefaultValues();
      }
  
@@ -73,7 +87,19 @@
                          data.tickCarriedBy(player, itemStack, frame);
                          Packet<?> packet = data.getUpdatePacket(id, player);
                          if (packet != null) {
-@@ -121,7 +_,7 @@
+@@ -121,19 +_,12 @@
+             this.sendDirtyEntityData();
+         }
+ 
+-        InterpolationHandler interpolation = this.entity.getInterpolation();
+-        InterpolationTracker interpolationTracker = interpolation != null ? interpolation.interpolationTracker() : null;
+-        Vec3 currentPosition = this.entity.trackingPosition();
+-        if (interpolationTracker != null) {
+-            interpolationTracker.updateTracking(currentPosition);
+-        }
+-
+         if (this.entity.syncPosition) {
+             this.tickCount = this.tickCount / this.updateInterval * this.updateInterval + this.updateInterval;
              this.entity.syncPosition = false;
          }
  
@@ -82,11 +108,38 @@
              byte yRotn = Mth.packDegrees(this.entity.getYRot());
              byte xRotn = Mth.packDegrees(this.entity.getXRot());
              boolean shouldSendRotation = Math.abs(yRotn - this.lastSentYRot) >= 1 || Math.abs(xRotn - this.lastSentXRot) >= 1;
-@@ -140,7 +_,13 @@
+@@ -144,37 +_,57 @@
+                     this.lastSentXRot = xRotn;
+                 }
+ 
+-                if (interpolationTracker != null) {
+-                    interpolationTracker.clear();
+-                }
+-
+-                this.positionCodec.setBase(currentPosition);
++                this.positionCodec.setBase(this.entity.trackingPosition());
+                 this.sendDirtyEntityData();
+                 this.wasRiding = true;
+             } else if (this.entity instanceof AbstractMinecart minecart && minecart.getBehavior() instanceof NewMinecartBehavior newMinecartBehavior) {
+                 this.handleMinecartPosRot(newMinecartBehavior, yRotn, xRotn, shouldSendRotation);
              } else {
                  this.teleportDelay++;
-                 Vec3 currentPosition = this.entity.trackingPosition();
--                boolean positionChanged = this.positionCodec.delta(currentPosition).lengthSqr() >= 7.6293945E-6F;
+-                PositionPath position;
+-                if (interpolationTracker != null) {
+-                    position = interpolationTracker.getPositionPath(currentPosition);
+-                    interpolationTracker.clear();
+-                } else {
+-                    position = PositionPath.of(currentPosition);
+-                }
+-
+-                MovementPacket<ClientGamePacketListener> packet;
+-                if (this.entity instanceof AbstractArrow) {
+-                    packet = this.createMovePacket(position, yRotn, xRotn, true, true);
+-                } else {
+-                    boolean positionChanged = this.positionCodec.delta(currentPosition).lengthSqr() >= 7.6293945E-6F;
+-                    boolean shouldSendPosition = positionChanged || this.tickCount % 60 == 0;
+-                    packet = this.createMovePacket(position, yRotn, xRotn, shouldSendPosition, shouldSendRotation);
++                Vec3 currentPosition = this.entity.trackingPosition();
 +                // Paper start - reduce allocation of Vec3D here
 +                Vec3 base = this.positionCodec.base;
 +                double vec3_dx = currentPosition.x - base.x;
@@ -94,41 +147,37 @@
 +                double vec3_dz = currentPosition.z - base.z;
 +                boolean positionChanged = (vec3_dx * vec3_dx + vec3_dy * vec3_dy + vec3_dz * vec3_dz) >= 7.62939453125E-6D;
 +                // Paper end - reduce allocation of Vec3D here
-                 Packet<ClientGamePacketListener> packet = null;
-                 boolean pos = positionChanged || this.tickCount % 60 == 0;
-                 boolean sentPosition = false;
-@@ -149,28 +_,11 @@
-                 long ya = this.positionCodec.encodeY(currentPosition);
-                 long za = this.positionCodec.encodeZ(currentPosition);
-                 boolean deltaTooBig = xa < -32768L || xa > 32767L || ya < -32768L || ya > 32767L || za < -32768L || za > 32767L;
--                boolean sendPrecisePosition = this.entity.getRequiresPrecisePosition()
++                Packet<ClientGamePacketListener> packet = null;
++                boolean pos = positionChanged || this.tickCount % 60 == 0;
++                boolean sentPosition = false;
++                boolean sentRotation = false;
++                long xa = this.positionCodec.encodeX(currentPosition);
++                long ya = this.positionCodec.encodeY(currentPosition);
++                long za = this.positionCodec.encodeZ(currentPosition);
++                boolean deltaTooBig = xa < -32768L || xa > 32767L || ya < -32768L || ya > 32767L || za < -32768L || za > 32767L;
 +                if (this.forceStateResync || this.entity.getRequiresPrecisePosition() // Paper - fix desync when a player is added to the tracker
-                     || deltaTooBig
-                     || this.teleportDelay > 400
-                     || this.wasRiding
--                    || this.wasOnGround != this.entity.onGround();
--                if (!sendPrecisePosition && pos && this.entity instanceof ItemEntity) {
--                    if (!this.entity.verticalCollision
--                        || (xa == 0L || VecDeltaCodec.encodingPrecisionLoss(currentPosition.x) == 0.0)
--                            && (za == 0L || VecDeltaCodec.encodingPrecisionLoss(currentPosition.z) == 0.0)) {
--                        if (this.entity.horizontalCollision
--                            && (
--                                xa != 0L && VecDeltaCodec.encodingPrecisionLoss(currentPosition.z) != 0.0
--                                    || za != 0L && VecDeltaCodec.encodingPrecisionLoss(currentPosition.x) != 0.0
--                            )) {
--                            sendPrecisePosition = true;
--                        }
--                    } else {
--                        sendPrecisePosition = true;
--                    }
--                }
--
--                if (sendPrecisePosition) {
++                    || deltaTooBig
++                    || this.teleportDelay > 400
++                    || this.wasRiding
 +                    || this.wasOnGround != this.entity.onGround()) {
-                     this.wasOnGround = this.entity.onGround();
-                     this.teleportDelay = 0;
-                     packet = ClientboundEntityPositionSyncPacket.of(this.entity);
-@@ -192,7 +_,8 @@
++                    this.wasOnGround = this.entity.onGround();
++                    this.teleportDelay = 0;
++                    packet = ClientboundEntityPositionSyncPacket.of(this.entity);
++                    sentPosition = true;
++                    sentRotation = true;
++                } else if ((!pos || !shouldSendRotation) && !(this.entity instanceof AbstractArrow)) {
++                    if (pos) {
++                        packet = new ClientboundMoveEntityPacket.Pos(this.entity.getId(), (short)xa, (short)ya, (short)za, this.entity.onGround());
++                        sentPosition = true;
++                    } else if (shouldSendRotation) {
++                        packet = new ClientboundMoveEntityPacket.Rot(this.entity.getId(), yRotn, xRotn, this.entity.onGround());
++                        sentRotation = true;
++                    }
++                } else {
++                    packet = new ClientboundMoveEntityPacket.PosRot(this.entity.getId(), (short)xa, (short)ya, (short)za, yRotn, xRotn, this.entity.onGround());
++                    sentPosition = true;
++                    sentRotation = true;
+                 }
  
                  if (this.entity.needsSync || this.trackDelta || this.entity instanceof LivingEntity livingEntity && livingEntity.isFallFlying()) {
                      Vec3 movement = this.entity.getDeltaMovement();
@@ -138,7 +187,7 @@
                      if (diff > 1.0E-7 || diff > 0.0 && movement.lengthSqr() == 0.0) {
                          this.lastSentMovement = movement;
                          if (this.entity instanceof AbstractHurtingProjectile projectile) {
-@@ -209,6 +_,7 @@
+@@ -191,21 +_,21 @@
                              this.synchronizer.sendToTrackingPlayers(new ClientboundSetEntityMotionPacket(this.entity.getId(), this.lastSentMovement));
                          }
                      }
@@ -146,7 +195,32 @@
                  }
  
                  if (packet != null) {
-@@ -235,11 +_,31 @@
+                     this.synchronizer.sendToTrackingPlayers(packet);
+-                    this.sendDirtyEntityData();
+-                    if (packet.hasPosition()) {
+-                        this.positionCodec.setBase(currentPosition);
+-                    }
+-
+-                    if (packet.hasRotation()) {
+-                        this.lastSentYRot = yRotn;
+-                        this.lastSentXRot = xRotn;
+-                    }
+-                } else {
+-                    this.sendDirtyEntityData();
++                }
++
++                this.sendDirtyEntityData();
++                if (sentPosition) {
++                    this.positionCodec.setBase(currentPosition);
++                }
++
++                if (sentRotation) {
++                    this.lastSentYRot = yRotn;
++                    this.lastSentXRot = xRotn;
+                 }
+ 
+                 this.wasRiding = false;
+@@ -218,60 +_,35 @@
              }
  
              this.entity.needsSync = false;
@@ -180,7 +254,56 @@
              this.synchronizer.sendToTrackingPlayersAndSelf(new ClientboundSetEntityMotionPacket(this.entity));
          }
      }
-@@ -278,6 +_,7 @@
+ 
+-    private @Nullable MovementPacket<ClientGamePacketListener> createMovePacket(
+-        PositionPath position, byte yRotn, byte xRotn, boolean shouldSendPosition, boolean shouldSendRotation
+-    ) {
+-        if (this.entity.getRequiresPrecisePosition() || this.teleportDelay > 400 || this.wasRiding || this.wasOnGround != this.entity.onGround()) {
+-            this.wasOnGround = this.entity.onGround();
+-            this.teleportDelay = 0;
+-            return ClientboundEntityPositionSyncPacket.of(this.entity, position);
+-        }
+-
+-        if (shouldSendPosition) {
+-            VecDelta encodedDelta = this.positionCodec.tryEncode(position);
+-            if (encodedDelta == null || this.isFullPrecisionEncodingRequired(position.endPosition(), encodedDelta)) {
+-                return ClientboundEntityPositionSyncPacket.of(this.entity, position);
+-            } else {
+-                return shouldSendRotation
+-                    ? new ClientboundMoveEntityPacket.PosRot(this.entity.getId(), encodedDelta, yRotn, xRotn, this.entity.onGround())
+-                    : new ClientboundMoveEntityPacket.Pos(this.entity.getId(), encodedDelta, this.entity.onGround());
+-            }
+-        } else {
+-            return shouldSendRotation ? new ClientboundMoveEntityPacket.Rot(this.entity.getId(), yRotn, xRotn, this.entity.onGround()) : null;
+-        }
+-    }
+-
+-    private boolean isFullPrecisionEncodingRequired(Vec3 pos, VecDelta delta) {
+-        if (this.entity instanceof ItemEntity) {
+-            if (this.entity.verticalCollision
+-                && (
+-                    delta.hasDeltaX() && VecDeltaCodec.encodingPrecisionLoss(pos.x) != 0.0
+-                        || delta.hasDeltaZ() && VecDeltaCodec.encodingPrecisionLoss(pos.z) != 0.0
+-                )) {
+-                return true;
+-            }
+-
+-            if (this.entity.horizontalCollision
+-                && (
+-                    delta.hasDeltaX() && VecDeltaCodec.encodingPrecisionLoss(pos.z) != 0.0
+-                        || delta.hasDeltaZ() && VecDeltaCodec.encodingPrecisionLoss(pos.x) != 0.0
+-                )) {
+-                return true;
+-            }
+-        }
+-
+-        return false;
+-    }
+-
+     private void handleMinecartPosRot(NewMinecartBehavior newMinecartBehavior, byte yRotn, byte xRotn, boolean shouldSendRotation) {
+         this.sendDirtyEntityData();
+         if (newMinecartBehavior.lerpSteps.isEmpty()) {
+@@ -306,6 +_,7 @@
      public void removePairing(ServerPlayer player) {
          this.entity.stopSeenByPlayer(player);
          player.connection.send(new ClientboundRemoveEntitiesPacket(this.entity.getId()));
@@ -188,7 +311,7 @@
      }
  
      public void addPairing(ServerPlayer player) {
-@@ -285,22 +_,32 @@
+@@ -313,22 +_,32 @@
          this.sendPairingData(player, packets::add);
          player.connection.send(new ClientboundBundlePacket(packets));
          this.entity.startSeenByPlayer(player);
@@ -223,7 +346,7 @@
              if (!attributes.isEmpty()) {
                  broadcast.accept(new ClientboundUpdateAttributesPacket(this.entity.getId(), attributes));
              }
-@@ -317,8 +_,9 @@
+@@ -345,8 +_,9 @@
              }
  
              if (!slots.isEmpty()) {
@@ -234,7 +357,7 @@
          }
  
          if (!this.entity.getPassengers().isEmpty()) {
-@@ -332,6 +_,8 @@
+@@ -360,6 +_,8 @@
          if (this.entity instanceof Leashable leashable && leashable.isLeashed()) {
              broadcast.accept(new ClientboundSetEntityLinkPacket(this.entity, leashable.getLeashHolder()));
          }
@@ -243,7 +366,7 @@
      }
  
      public Vec3 getPositionBase() {
-@@ -365,6 +_,11 @@
+@@ -393,6 +_,11 @@
          if (this.entity instanceof LivingEntity livingEntity) {
              Set<AttributeInstance> attributes = livingEntity.getAttributes().getAttributesToSync();
              if (!attributes.isEmpty()) {

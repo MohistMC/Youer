@@ -1,12 +1,43 @@
 --- a/net/minecraft/server/commands/GameRuleCommand.java
 +++ b/net/minecraft/server/commands/GameRuleCommand.java
-@@ -34,8 +_,7 @@
+@@ -3,8 +_,6 @@
+ import com.mojang.brigadier.CommandDispatcher;
+ import com.mojang.brigadier.builder.LiteralArgumentBuilder;
+ import com.mojang.brigadier.context.CommandContext;
+-import com.mojang.brigadier.exceptions.CommandSyntaxException;
+-import com.mojang.brigadier.exceptions.Dynamic2CommandExceptionType;
+ import net.minecraft.commands.CommandBuildContext;
+ import net.minecraft.commands.CommandSourceStack;
+ import net.minecraft.commands.Commands;
+@@ -14,10 +_,6 @@
+ import net.minecraft.world.level.gamerules.GameRules;
  
-     private static <T> int setRule(CommandContext<CommandSourceStack> context, GameRule<T> gameRule) {
+ public class GameRuleCommand {
+-    private static final Dynamic2CommandExceptionType ERROR_GAME_RULE_NOT_SET = new Dynamic2CommandExceptionType(
+-        (gameRule, value) -> Component.translatableEscape("commands.gamerule.not_set", gameRule, value)
+-    );
+-
+     public static void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext context) {
+         final LiteralArgumentBuilder<CommandSourceStack> base = Commands.literal("gamerule").requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS));
+         new GameRules(context.enabledFeatures()).visitGameRuleTypes(new GameRuleTypeVisitor() {
+@@ -38,17 +_,10 @@
+             .then(Commands.argument("value", gameRule.argument()).executes(c -> setRule(c, gameRule)));
+     }
+ 
+-    private static <T> int setRule(CommandContext<CommandSourceStack> context, GameRule<T> gameRule) throws CommandSyntaxException {
++    private static <T> int setRule(CommandContext<CommandSourceStack> context, GameRule<T> gameRule) {
          CommandSourceStack source = context.getSource();
 -        T value = context.getArgument("value", gameRule.valueClass());
--        source.getLevel().getGameRules().set(gameRule, value, context.getSource().getServer());
+-        GameRules gameRules = source.getLevel().getGameRules();
+-        String seralizedValue = gameRule.serialize(value);
+-        if (gameRules.get(gameRule).equals(value)) {
+-            throw ERROR_GAME_RULE_NOT_SET.create(gameRule, seralizedValue);
+-        }
+-
+-        gameRules.set(gameRule, value, context.getSource().getServer());
+-        source.sendSuccess(() -> Component.translatable("commands.gamerule.set", gameRule.id(), seralizedValue), true);
 +        T value = org.bukkit.craftbukkit.event.CraftEventFactory.handleGameRuleSet(gameRule, context.getArgument("value", gameRule.valueClass()), source.getLevel(), source.getBukkitSender()).value(); // Paper - per-world game rules and event
-         source.sendSuccess(() -> Component.translatable("commands.gamerule.set", gameRule.id(), gameRule.serialize(value)), true);
++        source.sendSuccess(() -> Component.translatable("commands.gamerule.set", gameRule.id(), gameRule.serialize(value)), true);
          return gameRule.getCommandResult(value);
      }
+ 

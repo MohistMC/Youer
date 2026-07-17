@@ -18,7 +18,28 @@
  import org.jspecify.annotations.Nullable;
  
  public class BlockItem extends Item {
-@@ -49,7 +_,6 @@
+@@ -40,25 +_,15 @@
+     @Override
+     public InteractionResult useOn(UseOnContext context) {
+         InteractionResult placeResult = this.place(new BlockPlaceContext(context));
+-        if (placeResult.consumesAction()) {
+-            return placeResult;
+-        } else {
+-            InteractionResult result = super.useOn(context);
+-            if (result.consumesAction()) {
+-                return result;
+-            } else {
+-                return context.getItemInHand().has(DataComponents.CONSUMABLE)
+-                    ? super.use(context.getLevel(), context.getPlayer(), context.getHand())
+-                    : placeResult;
+-            }
+-        }
++        return !placeResult.consumesAction() && context.getItemInHand().has(DataComponents.CONSUMABLE)
++            ? super.use(context.getLevel(), context.getPlayer(), context.getHand())
++            : placeResult;
+     }
+ 
+     public InteractionResult place(BlockPlaceContext placeContext) {
          if (!this.getBlock().isEnabled(placeContext.getLevel().enabledFeatures())) {
              return InteractionResult.FAIL;
          }
@@ -26,7 +47,7 @@
          if (!placeContext.canPlace()) {
              return InteractionResult.FAIL;
          }
-@@ -58,42 +_,73 @@
+@@ -67,42 +_,73 @@
          if (updatedPlaceContext == null) {
              return InteractionResult.FAIL;
          }
@@ -123,7 +144,7 @@
      public @Nullable BlockPlaceContext updatePlacementContext(BlockPlaceContext context) {
          return context;
      }
-@@ -107,7 +_,16 @@
+@@ -116,7 +_,16 @@
      }
  
      protected boolean updateCustomBlockEntityTag(BlockPos pos, Level level, @Nullable Player player, ItemStack itemStack, BlockState placedState) {
@@ -141,7 +162,7 @@
      }
  
      protected @Nullable BlockState getPlacementState(BlockPlaceContext context) {
-@@ -131,8 +_,20 @@
+@@ -140,8 +_,20 @@
  
      protected boolean canPlace(BlockPlaceContext context, BlockState stateForPlacement) {
          Player player = context.getPlayer();
@@ -164,7 +185,7 @@
      }
  
      protected boolean mustSurvive() {
-@@ -146,26 +_,27 @@
+@@ -155,26 +_,27 @@
      public static boolean updateCustomBlockEntityTag(Level level, @Nullable Player player, BlockPos pos, ItemStack itemStack) {
          if (level.isClientSide()) {
              return false;
@@ -208,7 +229,7 @@
      }
  
      @Override
-@@ -197,6 +_,7 @@
+@@ -206,6 +_,7 @@
      public void onDestroyed(ItemEntity entity) {
          ItemContainerContents container = entity.getItem().set(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
          if (container != null) {

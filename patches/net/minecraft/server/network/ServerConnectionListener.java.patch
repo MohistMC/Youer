@@ -1,6 +1,14 @@
 --- a/net/minecraft/server/network/ServerConnectionListener.java
 +++ b/net/minecraft/server/network/ServerConnectionListener.java
-@@ -30,6 +_,7 @@
+@@ -24,14 +_,13 @@
+ import java.util.Collections;
+ import java.util.Iterator;
+ import java.util.List;
+-import java.util.Queue;
+ import java.util.UUID;
+-import java.util.concurrent.ConcurrentLinkedQueue;
+ import java.util.concurrent.TimeUnit;
+ import net.minecraft.CrashReport;
  import net.minecraft.ReportedException;
  import net.minecraft.SharedConstants;
  import net.minecraft.network.Connection;
@@ -8,7 +16,7 @@
  import net.minecraft.network.PacketSendListener;
  import net.minecraft.network.RateKickingConnection;
  import net.minecraft.network.chat.Component;
-@@ -41,6 +_,7 @@
+@@ -43,21 +_,51 @@
  
  public class ServerConnectionListener {
      private static final Logger LOGGER = LogUtils.getLogger();
@@ -16,7 +24,12 @@
      private final MinecraftServer server;
      public volatile boolean running;
      private volatile @Nullable UUID sessionId;
-@@ -52,9 +_,39 @@
+     private final List<ChannelFuture> channels = Collections.synchronizedList(Lists.newArrayList());
+     private final List<Connection> connections = Collections.synchronizedList(Lists.newArrayList());
+-    private final Queue<Connection> pendingConnections = new ConcurrentLinkedQueue<>();
+ 
+     public ServerConnectionListener(MinecraftServer server) {
+         this.server = server;
          this.running = true;
      }
  
@@ -56,7 +69,7 @@
              this.channels
                  .add(
                      new ServerBootstrap()
-@@ -68,7 +_,8 @@
+@@ -71,7 +_,8 @@
                                      } catch (ChannelException var5) {
                                      }
  
@@ -66,11 +79,11 @@
                                      if (ServerConnectionListener.this.server.repliesToStatus()) {
                                          pipeline.addLast("legacy_query", new LegacyQueryHandler(ServerConnectionListener.this.getServer()));
                                      }
-@@ -78,7 +_,37 @@
+@@ -81,7 +_,37 @@
                                      Connection connection = rateLimitPacketsPerSecond > 0
                                          ? new RateKickingConnection(rateLimitPacketsPerSecond)
                                          : new Connection(PacketFlow.SERVERBOUND);
--                                    ServerConnectionListener.this.connections.add(connection);
+-                                    ServerConnectionListener.this.pendingConnections.add(connection);
 +                                    // Paper start - Add support for Proxy Protocol
 +                                    if (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.proxyProtocol) {
 +                                        channel.pipeline().addAfter(HandlerNames.TIMEOUT, "haproxy-decoder", new io.netty.handler.codec.haproxy.HAProxyMessageDecoder());
@@ -105,7 +118,7 @@
                                      connection.configurePacketHandler(pipeline);
                                      connection.setListenerForServerboundHandshake(
                                          new ServerHandshakePacketListenerImpl(ServerConnectionListener.this.server, connection)
-@@ -86,14 +_,25 @@
+@@ -89,14 +_,25 @@
                                  }
                              }
                          )
@@ -133,7 +146,7 @@
      public SocketAddress startMemoryChannel() {
          ChannelFuture newChannel;
          synchronized (this.channels) {
-@@ -121,7 +_,7 @@
+@@ -124,7 +_,7 @@
                          }
                      }
                  )
@@ -142,10 +155,11 @@
                  .localAddress(LocalAddress.ANY)
                  .bind()
                  .syncUninterruptibly();
-@@ -164,12 +_,26 @@
+@@ -167,13 +_,26 @@
  
      public void tick() {
          synchronized (this.connections) {
+-            this.addPendingConnections();
 +            // Spigot start
 +            this.addPending(); // Paper - prevent blocking on adding a new connection while the server is ticking
 +            // This prevents players from 'gaming' the server, and strategically relogging to increase their position in the tick order
@@ -169,7 +183,7 @@
                          try {
                              connection.tick();
                          } catch (Exception e) {
-@@ -183,6 +_,7 @@
+@@ -187,6 +_,7 @@
                              connection.setReadOnly();
                          }
                      } else {
@@ -177,3 +191,17 @@
                          iterator.remove();
                          connection.handleDisconnection();
                      }
+@@ -203,13 +_,6 @@
+ 
+     public MinecraftServer getServer() {
+         return this.server;
+-    }
+-
+-    private void addPendingConnections() {
+-        Connection connection;
+-        while ((connection = this.pendingConnections.poll()) != null) {
+-            this.connections.add(connection);
+-        }
+     }
+ 
+     public List<Connection> getConnections() {

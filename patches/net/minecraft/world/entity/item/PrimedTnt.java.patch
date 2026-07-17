@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/entity/item/PrimedTnt.java
 +++ b/net/minecraft/world/entity/item/PrimedTnt.java
-@@ -28,6 +_,9 @@
+@@ -15,7 +_,6 @@
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.entity.EntityTypes;
+ import net.minecraft.world.entity.LivingEntity;
+-import net.minecraft.world.entity.MoveSimulationType;
+ import net.minecraft.world.entity.MoverType;
+ import net.minecraft.world.entity.TraceableEntity;
+ import net.minecraft.world.level.BlockGetter;
+@@ -29,6 +_,9 @@
  import net.minecraft.world.level.portal.TeleportTransition;
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
@@ -10,7 +18,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class PrimedTnt extends Entity implements TraceableEntity {
-@@ -54,6 +_,7 @@
+@@ -55,6 +_,7 @@
      public @Nullable EntityReference<LivingEntity> owner;
      private boolean usedPortal;
      public float explosionPower = 4.0F;
@@ -18,7 +26,7 @@
  
      public PrimedTnt(EntityType<? extends PrimedTnt> type, Level level) {
          super(type, level);
-@@ -63,7 +_,7 @@
+@@ -64,7 +_,7 @@
      public PrimedTnt(Level level, double x, double y, double z, @Nullable LivingEntity owner) {
          this(EntityTypes.TNT, level);
          this.setPos(x, y, z);
@@ -27,7 +35,7 @@
          this.setDeltaMovement(-Math.sin(rot) * 0.02, 0.2F, -Math.cos(rot) * 0.02);
          this.setFuse(80);
          this.xo = x;
-@@ -95,10 +_,17 @@
+@@ -96,10 +_,17 @@
  
      @Override
      public void tick() {
@@ -45,7 +53,7 @@
          this.setDeltaMovement(this.getDeltaMovement().scale(this.getAirDrag()));
          if (this.onGround()) {
              this.setDeltaMovement(this.getDeltaMovement().multiply(0.7, -0.5, 0.7));
-@@ -107,22 +_,34 @@
+@@ -108,22 +_,34 @@
          int fuse = this.getFuse() - 1;
          this.setFuse(fuse);
          if (fuse <= 0) {
@@ -83,7 +91,7 @@
              this.level()
                  .explode(
                      this,
-@@ -131,10 +_,11 @@
+@@ -132,10 +_,11 @@
                      this.getX(),
                      this.getY(0.0625),
                      this.getZ(),
@@ -97,13 +105,13 @@
          }
      }
  
-@@ -208,8 +_,38 @@
+@@ -209,8 +_,38 @@
          return false;
      }
  
 -    @Override
--    public boolean canSimulateMovement() {
--        return true;
+-    public MoveSimulationType getMoveSimulationType() {
+-        return MoveSimulationType.SERVER_AND_CLIENT;
 -    }
 +    // Paper start - Option to prevent TNT from moving in water
 +    @Override

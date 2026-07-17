@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/LevelReader.java
 +++ b/net/minecraft/world/level/LevelReader.java
-@@ -25,8 +_,21 @@
+@@ -25,9 +_,22 @@
  
  import net.neoforged.neoforge.common.extensions.ILevelReaderExtension;
  
@@ -17,9 +17,53 @@
 +    // Paper end - rewrite chunk system
 +
      @Nullable ChunkAccess getChunk(final int chunkX, final int chunkZ, final ChunkStatus targetStatus, final boolean loadOrGenerate);
-+
+ 
 +    @Nullable ChunkAccess getChunkIfLoadedImmediately(int x, int z); // Paper - ifLoaded api (we need this since current impl blocks if the chunk is loading)
 +    default @Nullable ChunkAccess getChunkIfLoadedImmediately(BlockPos pos) { return this.getChunkIfLoadedImmediately(pos.getX() >> 4, pos.getZ() >> 4); }
- 
++
      @Deprecated
      boolean hasChunk(int chunkX, int chunkZ);
+ 
+@@ -140,7 +_,26 @@
+     }
+ 
+     default boolean containsAnyLiquid(AABB box) {
+-        return this.findBlocksIn(box).filterState(state -> !state.getFluidState().isEmpty()).anyMatched();
++        int x0 = Mth.floor(box.minX);
++        int x1 = Mth.ceil(box.maxX);
++        int y0 = Mth.floor(box.minY);
++        int y1 = Mth.ceil(box.maxY);
++        int z0 = Mth.floor(box.minZ);
++        int z1 = Mth.ceil(box.maxZ);
++        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
++
++        for (int x = x0; x < x1; x++) {
++            for (int y = y0; y < y1; y++) {
++                for (int z = z0; z < z1; z++) {
++                    BlockState blockState = this.getBlockState(pos.set(x, y, z));
++                    if (!blockState.getFluidState().isEmpty()) {
++                        return true;
++                    }
++                }
++            }
++        }
++
++        return false;
+     }
+ 
+     default int getMaxLocalRawBrightness(BlockPos pos) {
+@@ -155,14 +_,6 @@
+ 
+     default int getEffectiveSkyBrightness(BlockPos pos) {
+         return this.getBrightness(LightLayer.SKY, pos) - this.getSkyDarken();
+-    }
+-
+-    default BlockScanUtils.BlockMatcher findBlocksIn(AABB box) {
+-        return new BlockScanUtils.BlockMatcher(this, box);
+-    }
+-
+-    default BlockScanUtils.BlockMatcher findBlocksIn(BlockPos from, BlockPos to) {
+-        return new BlockScanUtils.BlockMatcher(this, from, to);
+     }
+ 
+     @Deprecated

@@ -1,6 +1,48 @@
 --- a/net/minecraft/world/level/block/ComposterBlock.java
 +++ b/net/minecraft/world/level/block/ComposterBlock.java
-@@ -40,11 +_,17 @@
+@@ -1,17 +_,14 @@
+ package net.minecraft.world.level.block;
+ 
+-import java.util.Optional;
++import it.unimi.dsi.fastutil.objects.Object2FloatMap;
++import it.unimi.dsi.fastutil.objects.Object2FloatOpenHashMap;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+-import net.minecraft.core.Holder;
+-import net.minecraft.core.component.DataComponents;
+ import net.minecraft.core.particles.ParticleTypes;
+-import net.minecraft.core.registries.Registries;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.sounds.SoundEvents;
+ import net.minecraft.sounds.SoundSource;
+ import net.minecraft.stats.Stats;
+-import net.minecraft.util.Mth;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.util.Util;
+ import net.minecraft.world.InteractionHand;
+@@ -24,8 +_,8 @@
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.Items;
+-import net.minecraft.world.item.component.Compostable;
+ import net.minecraft.world.level.BlockGetter;
++import net.minecraft.world.level.ItemLike;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.LevelAccessor;
+ import net.minecraft.world.level.block.state.BlockBehaviour;
+@@ -35,11 +_,6 @@
+ import net.minecraft.world.level.block.state.properties.IntegerProperty;
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.level.pathfinder.PathComputationType;
+-import net.minecraft.world.level.storage.loot.LootContext;
+-import net.minecraft.world.level.storage.loot.LootParams;
+-import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+-import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+-import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
+ import net.minecraft.world.phys.BlockHitResult;
+ import net.minecraft.world.phys.Vec3;
+ import net.minecraft.world.phys.shapes.BooleanOp;
+@@ -48,11 +_,18 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
  
@@ -15,44 +57,146 @@
      public static final IntegerProperty LEVEL = BlockStateProperties.LEVEL_COMPOSTER;
 +    /** @deprecated Neo: Use the {@link net.neoforged.neoforge.registries.datamaps.builtin.NeoForgeDataMaps#COMPOSTABLES compostable} data map instead */
 +    @Deprecated
-     public static final Object2FloatMap<ItemLike> COMPOSTABLES = new Object2FloatOpenHashMap<>();
++    public static final Object2FloatMap<ItemLike> COMPOSTABLES = new Object2FloatOpenHashMap<>();
      private static final int HOLE_WIDTH = 12;
      private static final VoxelShape[] SHAPES = Util.make(
-@@ -74,9 +_,6 @@
-         add(0.3F, Items.BIRCH_LEAVES);
-         add(0.3F, Items.AZALEA_LEAVES);
-         add(0.3F, Items.MANGROVE_LEAVES);
--        add(0.3F, Items.RED_POPLAR_LEAVES);
--        add(0.3F, Items.ORANGE_POPLAR_LEAVES);
--        add(0.3F, Items.YELLOW_POPLAR_LEAVES);
-         add(0.3F, Items.OAK_SAPLING);
-         add(0.3F, Items.SPRUCE_SAPLING);
-         add(0.3F, Items.BIRCH_SAPLING);
-@@ -85,7 +_,6 @@
-         add(0.3F, Items.CHERRY_SAPLING);
-         add(0.3F, Items.DARK_OAK_SAPLING);
-         add(0.3F, Items.PALE_OAK_SAPLING);
--        add(0.3F, Items.POPLAR_SAPLING);
-         add(0.3F, Items.MANGROVE_PROPAGULE);
-         add(0.3F, Items.BEETROOT_SEEDS);
-         add(0.3F, Items.DRIED_KELP);
-@@ -113,7 +_,6 @@
-         add(0.3F, Items.CACTUS_FLOWER);
-         add(0.3F, Items.DRY_SHORT_GRASS);
-         add(0.3F, Items.DRY_TALL_GRASS);
--        add(0.3F, Items.RED_SHRUB);
-         add(0.5F, Items.DRIED_KELP_BLOCK);
-         add(0.5F, Items.TALL_GRASS);
-         add(0.5F, Items.FLOWERING_AZALEA_LEAVES);
-@@ -171,7 +_,6 @@
-         add(0.65F, Items.MOSS_BLOCK);
-         add(0.65F, Items.PALE_MOSS_BLOCK);
-         add(0.65F, Items.BIG_DRIPLEAF);
--        add(0.65F, Items.SHELF_MUSHROOM);
-         add(0.85F, Items.HAY_BLOCK);
-         add(0.85F, Items.BROWN_MUSHROOM_BLOCK);
-         add(0.85F, Items.RED_MUSHROOM_BLOCK);
-@@ -241,6 +_,15 @@
+         () -> {
+@@ -64,6 +_,134 @@
+         }
+     );
+ 
++    public static void bootStrap() {
++        COMPOSTABLES.defaultReturnValue(-1.0F);
++        float low = 0.3F;
++        float lowMid = 0.5F;
++        float mid = 0.65F;
++        float midHigh = 0.85F;
++        float high = 1.0F;
++        add(0.3F, Items.JUNGLE_LEAVES);
++        add(0.3F, Items.OAK_LEAVES);
++        add(0.3F, Items.SPRUCE_LEAVES);
++        add(0.3F, Items.DARK_OAK_LEAVES);
++        add(0.3F, Items.PALE_OAK_LEAVES);
++        add(0.3F, Items.ACACIA_LEAVES);
++        add(0.3F, Items.CHERRY_LEAVES);
++        add(0.3F, Items.BIRCH_LEAVES);
++        add(0.3F, Items.AZALEA_LEAVES);
++        add(0.3F, Items.MANGROVE_LEAVES);
++        add(0.3F, Items.OAK_SAPLING);
++        add(0.3F, Items.SPRUCE_SAPLING);
++        add(0.3F, Items.BIRCH_SAPLING);
++        add(0.3F, Items.JUNGLE_SAPLING);
++        add(0.3F, Items.ACACIA_SAPLING);
++        add(0.3F, Items.CHERRY_SAPLING);
++        add(0.3F, Items.DARK_OAK_SAPLING);
++        add(0.3F, Items.PALE_OAK_SAPLING);
++        add(0.3F, Items.MANGROVE_PROPAGULE);
++        add(0.3F, Items.BEETROOT_SEEDS);
++        add(0.3F, Items.DRIED_KELP);
++        add(0.3F, Items.SHORT_GRASS);
++        add(0.3F, Items.KELP);
++        add(0.3F, Items.MELON_SEEDS);
++        add(0.3F, Items.PUMPKIN_SEEDS);
++        add(0.3F, Items.SEAGRASS);
++        add(0.3F, Items.SWEET_BERRIES);
++        add(0.3F, Items.GLOW_BERRIES);
++        add(0.3F, Items.WHEAT_SEEDS);
++        add(0.3F, Items.MOSS_CARPET);
++        add(0.3F, Items.PALE_MOSS_CARPET);
++        add(0.3F, Items.PALE_HANGING_MOSS);
++        add(0.3F, Items.PINK_PETALS);
++        add(0.3F, Items.WILDFLOWERS);
++        add(0.3F, Items.LEAF_LITTER);
++        add(0.3F, Items.SMALL_DRIPLEAF);
++        add(0.3F, Items.HANGING_ROOTS);
++        add(0.3F, Items.MANGROVE_ROOTS);
++        add(0.3F, Items.TORCHFLOWER_SEEDS);
++        add(0.3F, Items.PITCHER_POD);
++        add(0.3F, Items.FIREFLY_BUSH);
++        add(0.3F, Items.BUSH);
++        add(0.3F, Items.CACTUS_FLOWER);
++        add(0.3F, Items.DRY_SHORT_GRASS);
++        add(0.3F, Items.DRY_TALL_GRASS);
++        add(0.5F, Items.DRIED_KELP_BLOCK);
++        add(0.5F, Items.TALL_GRASS);
++        add(0.5F, Items.FLOWERING_AZALEA_LEAVES);
++        add(0.5F, Items.CACTUS);
++        add(0.5F, Items.SUGAR_CANE);
++        add(0.5F, Items.VINE);
++        add(0.5F, Items.NETHER_SPROUTS);
++        add(0.5F, Items.WEEPING_VINES);
++        add(0.5F, Items.TWISTING_VINES);
++        add(0.5F, Items.MELON_SLICE);
++        add(0.5F, Items.GLOW_LICHEN);
++        add(0.65F, Items.SEA_PICKLE);
++        add(0.65F, Items.LILY_PAD);
++        add(0.65F, Items.PUMPKIN);
++        add(0.65F, Items.CARVED_PUMPKIN);
++        add(0.65F, Items.MELON);
++        add(0.65F, Items.APPLE);
++        add(0.65F, Items.BEETROOT);
++        add(0.65F, Items.CARROT);
++        add(0.65F, Items.COCOA_BEANS);
++        add(0.65F, Items.POTATO);
++        add(0.65F, Items.WHEAT);
++        add(0.65F, Items.BROWN_MUSHROOM);
++        add(0.65F, Items.RED_MUSHROOM);
++        add(0.65F, Items.MUSHROOM_STEM);
++        add(0.65F, Items.CRIMSON_FUNGUS);
++        add(0.65F, Items.WARPED_FUNGUS);
++        add(0.65F, Items.NETHER_WART);
++        add(0.65F, Items.CRIMSON_ROOTS);
++        add(0.65F, Items.WARPED_ROOTS);
++        add(0.65F, Items.SHROOMLIGHT);
++        add(0.65F, Items.DANDELION);
++        add(0.65F, Items.POPPY);
++        add(0.65F, Items.BLUE_ORCHID);
++        add(0.65F, Items.ALLIUM);
++        add(0.65F, Items.AZURE_BLUET);
++        add(0.65F, Items.RED_TULIP);
++        add(0.65F, Items.ORANGE_TULIP);
++        add(0.65F, Items.WHITE_TULIP);
++        add(0.65F, Items.PINK_TULIP);
++        add(0.65F, Items.OXEYE_DAISY);
++        add(0.65F, Items.CORNFLOWER);
++        add(0.65F, Items.LILY_OF_THE_VALLEY);
++        add(0.65F, Items.WITHER_ROSE);
++        add(0.65F, Items.OPEN_EYEBLOSSOM);
++        add(0.65F, Items.CLOSED_EYEBLOSSOM);
++        add(0.65F, Items.FERN);
++        add(0.65F, Items.SUNFLOWER);
++        add(0.65F, Items.LILAC);
++        add(0.65F, Items.ROSE_BUSH);
++        add(0.65F, Items.PEONY);
++        add(0.65F, Items.LARGE_FERN);
++        add(0.65F, Items.SPORE_BLOSSOM);
++        add(0.65F, Items.AZALEA);
++        add(0.65F, Items.MOSS_BLOCK);
++        add(0.65F, Items.PALE_MOSS_BLOCK);
++        add(0.65F, Items.BIG_DRIPLEAF);
++        add(0.85F, Items.HAY_BLOCK);
++        add(0.85F, Items.BROWN_MUSHROOM_BLOCK);
++        add(0.85F, Items.RED_MUSHROOM_BLOCK);
++        add(0.85F, Items.NETHER_WART_BLOCK);
++        add(0.85F, Items.WARPED_WART_BLOCK);
++        add(0.85F, Items.FLOWERING_AZALEA);
++        add(0.85F, Items.BREAD);
++        add(0.85F, Items.BAKED_POTATO);
++        add(0.85F, Items.COOKIE);
++        add(0.85F, Items.TORCHFLOWER);
++        add(0.85F, Items.PITCHER_PLANT);
++        add(1.0F, Items.CAKE);
++        add(1.0F, Items.PUMPKIN_PIE);
++    }
++
++    private static void add(float value, ItemLike item) {
++        COMPOSTABLES.put(item.asItem(), value);
++    }
++
+     public ComposterBlock(BlockBehaviour.Properties properties) {
+         super(properties);
+         this.registerDefaultState(this.stateDefinition.any().setValue(LEVEL, 0));
+@@ -114,6 +_,15 @@
          if (state.getValue(LEVEL) == 7) {
              level.scheduleTick(pos, state.getBlock(), 20);
          }
@@ -68,13 +212,14 @@
      }
  
      @Override
-@@ -248,13 +_,28 @@
+@@ -121,14 +_,28 @@
          ItemStack itemStack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult
      ) {
          int fillLevel = state.getValue(LEVEL);
--        if (fillLevel < 8 && COMPOSTABLES.containsKey(itemStack.getItem())) {
--            if (fillLevel < 7 && !level.isClientSide()) {
--                BlockState newState = addItem(player, state, level, pos, itemStack);
+-        Compostable compostable = itemStack.get(DataComponents.COMPOSTABLE);
+-        if (fillLevel < 8 && compostable != null) {
+-            if (fillLevel < 7 && level instanceof ServerLevel serverLevel) {
+-                BlockState newState = addLayer(player, state, serverLevel, pos, compostable);
 -                level.levelEvent(1500, pos, state != newState ? 1 : 0);
 -                player.awardStat(Stats.ITEM_USED.get(itemStack.getItem()));
 -                itemStack.consume(1, player);
@@ -104,7 +249,7 @@
  
              return InteractionResult.SUCCESS;
          } else {
-@@ -262,6 +_,25 @@
+@@ -136,6 +_,25 @@
          }
      }
  
@@ -130,12 +275,13 @@
      @Override
      protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
          int fillLevel = state.getValue(LEVEL);
-@@ -275,8 +_,20 @@
+@@ -149,9 +_,20 @@
  
      public static BlockState insertItem(Entity sourceEntity, BlockState state, ServerLevel level, ItemStack itemStack, BlockPos pos) {
          int fillLevel = state.getValue(LEVEL);
--        if (fillLevel < 7 && COMPOSTABLES.containsKey(itemStack.getItem())) {
--            BlockState newState = addItem(sourceEntity, state, level, pos, itemStack);
+-        Compostable compostable = itemStack.get(DataComponents.COMPOSTABLE);
+-        if (fillLevel < 7 && compostable != null) {
+-            BlockState newState = addLayer(sourceEntity, state, level, pos, compostable);
 +        if (fillLevel < 7 && getValue(itemStack) > 0) {
 +            // CraftBukkit start
 +            double rand = level.getRandom().nextDouble();
@@ -153,7 +299,7 @@
              itemStack.shrink(1);
              return newState;
          } else {
-@@ -285,6 +_,14 @@
+@@ -160,6 +_,14 @@
      }
  
      public static BlockState extractProduce(Entity sourceEntity, BlockState state, Level level, BlockPos pos) {
@@ -168,7 +314,7 @@
          if (!level.isClientSide()) {
              Vec3 itemPos = Vec3.atLowerCornerWithOffset(pos, 0.5, 1.01, 0.5).offsetRandomXZ(level.getRandom(), 0.7F);
              ItemEntity entity = new ItemEntity(level, itemPos.x(), itemPos.y(), itemPos.z(), new ItemStack(Items.BONE_MEAL));
-@@ -299,21 +_,47 @@
+@@ -174,50 +_,59 @@
  
      private static BlockState empty(@Nullable Entity sourceEntity, BlockState state, LevelAccessor level, BlockPos pos) {
          BlockState newState = state.setValue(LEVEL, 0);
@@ -178,8 +324,9 @@
          return newState;
      }
  
+-    private static BlockState addLayer(@Nullable Entity sourceEntity, BlockState state, ServerLevel level, BlockPos pos, Compostable compostable) {
 +    @Nullable // Paper
-     private static BlockState addItem(@Nullable Entity sourceEntity, BlockState state, LevelAccessor level, BlockPos pos, ItemStack itemStack) {
++    private static BlockState addItem(@Nullable Entity sourceEntity, BlockState state, LevelAccessor level, BlockPos pos, ItemStack itemStack) {
 +        // CraftBukkit start
 +        return addItem(sourceEntity, state, level, pos, itemStack, level.getRandom().nextDouble());
 +    }
@@ -187,14 +334,41 @@
 +    private static BlockState addItem(@Nullable Entity sourceEntity, BlockState state, LevelAccessor level, BlockPos pos, ItemStack itemStack, double rand) {
 +        // CraftBukkit end
          int fillLevel = state.getValue(LEVEL);
-         float chance = COMPOSTABLES.getFloat(itemStack.getItem());
--        if ((fillLevel != 0 || !(chance > 0.0F)) && !(level.getRandom().nextDouble() < chance)) {
+-        LootContext lootContext = new LootContext.Builder(
+-                new LootParams.Builder(level)
+-                    .withParameter(LootContextParams.BLOCK_STATE, state)
+-                    .withOptionalParameter(LootContextParams.INTERACTING_ENTITY, sourceEntity)
+-                    .create(LootContextParamSets.BLOCK_INTERACT)
+-            )
+-            .create(Optional.empty());
+-        Optional<NumberProvider> layers = level.getServer()
+-            .reloadableRegistries()
+-            .lookup()
+-            .lookup(Registries.NUMBER_PROVIDER)
+-            .flatMap(registry -> registry.get(compostable.layers()))
+-            .map(Holder.Reference::value);
+-        if (layers.isEmpty()) {
+-            return state;
+-        }
+-
+-        int layersToAdd = layers.get().getInt(lootContext);
+-        if (layersToAdd > 0) {
+-            int newLevel = Mth.clamp(fillLevel + layersToAdd, 0, 7);
+-            BlockState newState = state.setValue(LEVEL, newLevel);
+-            level.setBlockAndUpdate(pos, newState);
+-            level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(sourceEntity, newState));
+-            if (newLevel == 7) {
+-                level.scheduleTick(pos, state.getBlock(), 20);
+-            }
+-
+-            return newState;
++        float chance = COMPOSTABLES.getFloat(itemStack.getItem());
 +        // Paper start - Add CompostItemEvent and EntityCompostItemEvent
 +        boolean willRaiseLevel = !((fillLevel != 0 || chance <= 0.0F) && rand >= (double) chance);
 +        final io.papermc.paper.event.block.CompostItemEvent event;
 +        if (sourceEntity == null) {
 +            event = new io.papermc.paper.event.block.CompostItemEvent(org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), itemStack.getBukkitStack(), willRaiseLevel);
-+        } else {
+         } else {
 +            event = new io.papermc.paper.event.entity.EntityCompostItemEvent(sourceEntity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), itemStack.getBukkitStack(), willRaiseLevel);
 +        }
 +        if (!event.callEvent()) { // check for cancellation of entity event (non entity event can't be cancelled cause of hoppers)
@@ -206,20 +380,23 @@
 +            // Paper end - Add CompostItemEvent and EntityCompostItemEvent
              return state;
          }
- 
-         int newLevel = fillLevel + 1;
-         BlockState newState = state.setValue(LEVEL, newLevel);
--        level.setBlockAndUpdate(pos, newState);
++
++        int newLevel = fillLevel + 1;
++        BlockState newState = state.setValue(LEVEL, newLevel);
 +        // Paper start - move the EntityChangeBlockEvent here to avoid conflict later for the compost events
 +        if (sourceEntity != null && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(sourceEntity, pos, newState)) {
 +            return null;
 +        }
 +        // Paper end
 +        level.setBlock(pos, newState, 3);
-         level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(sourceEntity, newState));
-         if (newLevel == 7) {
-             level.scheduleTick(pos, state.getBlock(), 20);
-@@ -325,7 +_,7 @@
++        level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(sourceEntity, newState));
++        if (newLevel == 7) {
++            level.scheduleTick(pos, state.getBlock(), 20);
++        }
++
++        return newState;
+     }
+ 
      @Override
      protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
          if (state.getValue(LEVEL) == 7) {
@@ -228,7 +405,7 @@
              level.playSound(null, pos, SoundEvents.COMPOSTER_READY, SoundSource.BLOCKS, 1.0F, 1.0F);
          }
      }
-@@ -356,13 +_,14 @@
+@@ -248,13 +_,14 @@
          if (contentLevel == 8) {
              return new ComposterBlock.OutputContainer(state, level, pos, new ItemStack(Items.BONE_MEAL));
          } else {
@@ -245,7 +422,7 @@
          }
  
          @Override
-@@ -389,6 +_,7 @@
+@@ -281,6 +_,7 @@
  
          public InputContainer(BlockState state, LevelAccessor level, BlockPos pos) {
              super(1);
@@ -253,19 +430,25 @@
              this.state = state;
              this.level = level;
              this.pos = pos;
-@@ -406,7 +_,7 @@
+@@ -298,7 +_,7 @@
  
          @Override
          public boolean canPlaceItemThroughFace(int slot, ItemStack itemStack, @Nullable Direction direction) {
--            return !this.changed && direction == Direction.UP && ComposterBlock.COMPOSTABLES.containsKey(itemStack.getItem());
+-            return !this.changed && direction == Direction.UP && itemStack.has(DataComponents.COMPOSTABLE);
 +            return !this.changed && direction == Direction.UP && getValue(itemStack) > 0f;
          }
  
          @Override
-@@ -420,6 +_,11 @@
-             if (!contents.isEmpty()) {
+@@ -309,10 +_,14 @@
+         @Override
+         public void setChanged() {
+             ItemStack contents = this.getItem(0);
+-            Compostable compostable = contents.get(DataComponents.COMPOSTABLE);
+-            if (!contents.isEmpty() && compostable != null && this.level instanceof ServerLevel serverLevel) {
++            if (!contents.isEmpty()) {
                  this.changed = true;
-                 BlockState newState = ComposterBlock.addItem(null, this.state, this.level, this.pos, contents);
+-                BlockState newState = ComposterBlock.addLayer(null, this.state, serverLevel, this.pos, compostable);
++                BlockState newState = ComposterBlock.addItem(null, this.state, this.level, this.pos, contents);
 +                // Paper start - Add CompostItemEvent and EntityCompostItemEvent
 +                if (newState == null) {
 +                    return;
@@ -274,7 +457,7 @@
                  this.level.levelEvent(1500, this.pos, newState != this.state ? 1 : 0);
                  this.removeItemNoUpdate(0);
              }
-@@ -437,6 +_,7 @@
+@@ -330,6 +_,7 @@
              this.state = state;
              this.level = level;
              this.pos = pos;
@@ -282,7 +465,7 @@
          }
  
          @Override
-@@ -461,8 +_,21 @@
+@@ -354,8 +_,21 @@
  
          @Override
          public void setChanged() {

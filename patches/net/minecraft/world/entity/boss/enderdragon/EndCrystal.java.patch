@@ -60,13 +60,18 @@
      @Override
      protected Entity.MovementEmission getMovementEmission() {
          return Entity.MovementEmission.NONE;
-@@ -58,21 +_,81 @@
-         if (this.level() instanceof ServerLevel) {
+@@ -55,24 +_,84 @@
+         this.time++;
+         this.applyEffectsFromBlocks();
+         this.handlePortal();
+-        if (this.level() instanceof ServerLevel serverLevel) {
++        if (this.level() instanceof ServerLevel) {
              BlockPos pos = this.blockPosition();
-             if (((ServerLevel)this.level()).getDragonFight() != null && this.level().getBlockState(pos).isAir()) {
--                this.level().setBlockAndUpdate(pos, BaseFireBlock.getState(this.level(), pos));
+-            if (serverLevel.getDragonFight() != null && serverLevel.getBlockState(pos).isAir()) {
+-                serverLevel.setBlockAndUpdate(pos, BaseFireBlock.getState(serverLevel, pos));
 -            }
 -        }
++            if (((ServerLevel)this.level()).getDragonFight() != null && this.level().getBlockState(pos).isAir()) {
 +                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(this.level(), pos, this).isCancelled()) { // Paper
 +                    this.level().setBlockAndUpdate(pos, BaseFireBlock.getState(this.level(), pos));
 +                } // Paper

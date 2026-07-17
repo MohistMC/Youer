@@ -1,6 +1,15 @@
 --- a/net/minecraft/world/level/block/VineBlock.java
 +++ b/net/minecraft/world/level/block/VineBlock.java
-@@ -163,7 +_,7 @@
+@@ -25,8 +_,6 @@
+ import net.neoforged.neoforge.common.IShearable;
+ 
+ public class VineBlock extends Block implements IShearable {
+-    private static final int SEARCH_RADIUS = 4;
+-    private static final int MAX_NEIGHBORS_TO_GROW = 4;
+     public static final BooleanProperty UP = PipeBlock.UP;
+     public static final BooleanProperty NORTH = PipeBlock.NORTH;
+     public static final BooleanProperty EAST = PipeBlock.EAST;
+@@ -165,7 +_,7 @@
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
          if (level.getGameRules().get(GameRules.SPREAD_VINES)) {
@@ -9,7 +18,7 @@
                  Direction testDirection = Direction.getRandom(random);
                  BlockPos abovePos = pos.above();
                  if (testDirection.getAxis().isHorizontal() && !state.getValue(getPropertyForFace(testDirection))) {
-@@ -177,30 +_,33 @@
+@@ -179,30 +_,33 @@
                              boolean ccwHasConnectingFace = state.getValue(getPropertyForFace(ccwDirection));
                              BlockPos cwTestPos = testPos.relative(cwDirection);
                              BlockPos ccwTestPos = testPos.relative(ccwDirection);
@@ -52,7 +61,7 @@
                              return;
                          }
  
-@@ -218,7 +_,7 @@
+@@ -220,7 +_,7 @@
                              }
  
                              if (this.hasHorizontalConnection(aboveState)) {
@@ -61,7 +70,7 @@
                              }
  
                              return;
-@@ -232,7 +_,7 @@
+@@ -234,7 +_,7 @@
                              BlockState before = belowState.isAir() ? this.defaultBlockState() : belowState;
                              BlockState after = this.copyRandomFaces(state, before, random);
                              if (before != after && this.hasHorizontalConnection(after)) {
@@ -70,3 +79,28 @@
                              }
                          }
                      }
+@@ -260,10 +_,20 @@
+         return state.getValue(NORTH) || state.getValue(EAST) || state.getValue(SOUTH) || state.getValue(WEST);
+     }
+ 
+-    private boolean canSpread(LevelReader level, BlockPos pos) {
+-        BlockPos minPos = pos.offset(-4, -1, -4);
+-        BlockPos maxPos = pos.offset(4, 1, 4);
+-        return level.findBlocksIn(minPos, maxPos).filterState(state -> state.is(this)).atMostMatched(4);
++    private boolean canSpread(BlockGetter level, BlockPos pos) {
++        int radius = 4;
++        Iterable<BlockPos> iterable = BlockPos.betweenClosed(pos.getX() - 4, pos.getY() - 1, pos.getZ() - 4, pos.getX() + 4, pos.getY() + 1, pos.getZ() + 4);
++        int max = 5;
++
++        for (BlockPos blockPos : iterable) {
++            if (level.getBlockState(blockPos).is(this)) {
++                if (--max <= 0) {
++                    return false;
++                }
++            }
++        }
++
++        return true;
+     }
+ 
+     @Override

@@ -1,14 +1,44 @@
 --- a/net/minecraft/server/commands/ScheduleCommand.java
 +++ b/net/minecraft/server/commands/ScheduleCommand.java
-@@ -32,7 +_,7 @@
+@@ -2,6 +_,7 @@
+ 
+ import com.mojang.brigadier.CommandDispatcher;
+ import com.mojang.brigadier.arguments.IntegerArgumentType;
++import com.mojang.brigadier.arguments.StringArgumentType;
+ import com.mojang.brigadier.exceptions.CommandSyntaxException;
+ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
+ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+@@ -13,7 +_,6 @@
+ import net.minecraft.commands.CommandSourceStack;
+ import net.minecraft.commands.Commands;
+ import net.minecraft.commands.SharedSuggestionProvider;
+-import net.minecraft.commands.arguments.IdentifierArgument;
+ import net.minecraft.commands.arguments.TimeArgument;
+ import net.minecraft.commands.arguments.item.FunctionArgument;
+ import net.minecraft.commands.functions.CommandFunction;
+@@ -31,8 +_,8 @@
+         s -> Component.translatableEscape("commands.schedule.cleared.failure", s)
      );
      private static final SimpleCommandExceptionType ERROR_MACRO = new SimpleCommandExceptionType(Component.translatableEscape("commands.schedule.macro"));
-     private static final SuggestionProvider<CommandSourceStack> SUGGEST_SCHEDULE = (c, p) -> SharedSuggestionProvider.suggest(
--        c.getSource().getServer().getScheduledEvents().getEventsIds(), p
+-    private static final SuggestionProvider<CommandSourceStack> SUGGEST_SCHEDULE = (c, p) -> SharedSuggestionProvider.suggestResource(
+-        c.getSource().getServer().getScheduledEvents().getEventsIds().stream().map(Identifier::parse), p
++    private static final SuggestionProvider<CommandSourceStack> SUGGEST_SCHEDULE = (c, p) -> SharedSuggestionProvider.suggest(
 +        c.getSource().getLevel().scheduledEvents.getEventsIds(), p // Paper - Make schedule command per-world
      );
  
      public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+@@ -82,9 +_,9 @@
+                 .then(
+                     Commands.literal("clear")
+                         .then(
+-                            Commands.argument("function", IdentifierArgument.id())
++                            Commands.argument("function", StringArgumentType.greedyString())
+                                 .suggests(SUGGEST_SCHEDULE)
+-                                .executes(c -> remove(c.getSource(), IdentifierArgument.getId(c, "function")))
++                                .executes(c -> remove(c.getSource(), StringArgumentType.getString(c, "function")))
+                         )
+                 )
+         );
 @@ -102,7 +_,7 @@
  
          long tickTime = source.getLevel().getGameTime() + time;
@@ -18,12 +48,22 @@
          Optional<CommandFunction<CommandSourceStack>> function = callback.getSecond().left();
          if (function.isPresent()) {
              if (function.get() instanceof MacroFunction) {
-@@ -130,7 +_,7 @@
+@@ -129,14 +_,13 @@
+         return Math.floorMod(tickTime, Integer.MAX_VALUE);
      }
  
-     private static int remove(CommandSourceStack source, String id) throws CommandSyntaxException {
--        int count = source.getServer().getScheduledEvents().remove(id);
+-    private static int remove(CommandSourceStack source, Identifier id) throws CommandSyntaxException {
+-        String stringId = id.toString();
+-        int count = source.getServer().getScheduledEvents().remove(stringId);
++    private static int remove(CommandSourceStack source, String id) throws CommandSyntaxException {
 +        int count = source.getLevel().scheduledEvents.remove(id); // Paper - Make schedule command per-world
          if (count == 0) {
-             throw ERROR_CANT_REMOVE.create(id);
+-            throw ERROR_CANT_REMOVE.create(stringId);
++            throw ERROR_CANT_REMOVE.create(id);
          }
+ 
+-        source.sendSuccess(() -> Component.translatable("commands.schedule.cleared.success", count, stringId), true);
++        source.sendSuccess(() -> Component.translatable("commands.schedule.cleared.success", count, id), true);
+         return count;
+     }
+ }

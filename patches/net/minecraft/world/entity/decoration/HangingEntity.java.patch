@@ -1,11 +1,19 @@
 --- a/net/minecraft/world/entity/decoration/HangingEntity.java
 +++ b/net/minecraft/world/entity/decoration/HangingEntity.java
-@@ -84,7 +_,7 @@
+@@ -84,12 +_,11 @@
              return false;
          }
  
--        boolean isSupported = BlockPos.betweenClosedStream(this.calculateSupportBox()).allMatch(pos -> {
+-        boolean isSupported = this.level().findBlocksIn(this.calculateSupportBox()).filterState(HangingEntity::isSupportingBlock).allMatched();
 +        boolean isSupported = BlockPos.betweenClosedStream(this.calculateSupportBox()).filter(pos -> !net.minecraft.world.level.block.Block.canSupportCenter(this.level(), pos, this.getDirection())).allMatch(pos -> {
-             BlockState state = this.level().getBlockState(pos);
-             return state.isSolid() || DiodeBlock.isDiode(state);
-         });
++            BlockState state = this.level().getBlockState(pos);
++            return state.isSolid() || DiodeBlock.isDiode(state);
++        });
+         return isSupported && this.canCoexist(false);
+-    }
+-
+-    private static boolean isSupportingBlock(BlockState state) {
+-        return state.isSolid() || DiodeBlock.isDiode(state);
+     }
+ 
+     protected AABB calculateSupportBox() {

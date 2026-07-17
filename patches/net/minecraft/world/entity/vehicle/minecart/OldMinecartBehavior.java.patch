@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/entity/vehicle/minecart/OldMinecartBehavior.java
 +++ b/net/minecraft/world/entity/vehicle/minecart/OldMinecartBehavior.java
-@@ -24,6 +_,11 @@
+@@ -12,7 +_,6 @@
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.EntitySelector;
+ import net.minecraft.world.entity.InterpolationHandler;
+-import net.minecraft.world.entity.LinearInterpolationHandler;
+ import net.minecraft.world.entity.MoverType;
+ import net.minecraft.world.entity.animal.golem.IronGolem;
+ import net.minecraft.world.entity.player.Player;
+@@ -25,6 +_,11 @@
  import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
  
@@ -12,7 +20,26 @@
  public class OldMinecartBehavior extends MinecartBehavior {
      private static final double MINECART_RIDABLE_THRESHOLD = 0.01;
      private static final double MAX_SPEED_IN_WATER = 0.2;
-@@ -62,7 +_,7 @@
+@@ -35,7 +_,7 @@
+ 
+     public OldMinecartBehavior(AbstractMinecart minecart) {
+         super(minecart);
+-        this.interpolation = new LinearInterpolationHandler(minecart);
++        this.interpolation = new InterpolationHandler(minecart, this::onInterpolation);
+     }
+ 
+     @Override
+@@ -43,8 +_,7 @@
+         return this.interpolation;
+     }
+ 
+-    @Override
+-    public void onInterpolationStart(InterpolationHandler interpolation) {
++    public void onInterpolation(InterpolationHandler interpolation) {
+         this.setDeltaMovement(this.targetDeltaMovement);
+     }
+ 
+@@ -64,7 +_,7 @@
              this.minecart.setOnRails(onRails);
              if (onRails) {
                  this.moveAlongTrack(level);
@@ -21,7 +48,7 @@
                      this.minecart.activateMinecart(level, var11.getX(), var11.getY(), var11.getZ(), state.getValue(PoweredRailBlock.POWERED));
                  }
              } else {
-@@ -112,7 +_,7 @@
+@@ -114,7 +_,7 @@
          y = pos.getY();
          boolean powerTrack = false;
          boolean haltTrack = false;
@@ -30,7 +57,7 @@
              powerTrack = state.getValue(PoweredRailBlock.POWERED);
              haltTrack = !powerTrack;
          }
-@@ -123,7 +_,7 @@
+@@ -125,7 +_,7 @@
          }
  
          Vec3 movement = this.getDeltaMovement();
@@ -39,7 +66,7 @@
          switch (shape) {
              case ASCENDING_EAST:
                  this.setDeltaMovement(movement.add(-slideSpeed, 0.0, 0.0));
-@@ -242,8 +_,8 @@
+@@ -244,8 +_,8 @@
              Vec3 vec3 = this.getDeltaMovement();
              double speedLength = vec3.horizontalDistance();
              if (speedLength > 0.01) {
@@ -50,7 +77,7 @@
              } else {
                  Vec3 deltaMovement = this.getDeltaMovement();
                  double dx = deltaMovement.x;
-@@ -279,9 +_,10 @@
+@@ -281,9 +_,10 @@
              yt--;
          }
  
@@ -63,7 +90,7 @@
              y = yt;
              if (shape.isSlope()) {
                  y = yt + 1;
-@@ -317,9 +_,10 @@
+@@ -319,9 +_,10 @@
              yt--;
          }
  
@@ -76,7 +103,7 @@
              Pair<Vec3i, Vec3i> exits = AbstractMinecart.exits(shape);
              Vec3i exit0 = exits.getFirst();
              Vec3i exit1 = exits.getSecond();
-@@ -375,16 +_,42 @@
+@@ -377,16 +_,42 @@
                          && !(entity instanceof AbstractMinecart)
                          && !this.minecart.isVehicle()
                          && !entity.isPassenger()) {
@@ -122,7 +149,7 @@
                  }
              }
          }
-@@ -406,11 +_,18 @@
+@@ -408,11 +_,18 @@
  
      @Override
      public double getMaxSpeed(ServerLevel level) {

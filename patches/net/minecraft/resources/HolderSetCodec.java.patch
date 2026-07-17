@@ -40,7 +40,15 @@
                                  );
                              return result.map(holders -> Pair.of((HolderSet<E>)holders, (T)p.getSecond()));
                          }
-@@ -76,6 +_,9 @@
+@@ -70,12 +_,15 @@
+ 
+     public <T> DataResult<T> encode(HolderSet<E> input, DynamicOps<T> ops, T prefix) {
+         if (ops instanceof RegistryOps<T> registryOps) {
+-            Optional<? extends HolderOwner<E>> maybeOwner = registryOps.getter(this.registryKey);
++            Optional<HolderOwner<E>> maybeOwner = registryOps.owner(this.registryKey);
+             if (maybeOwner.isPresent()) {
+-                if (!input.canSerializeIn((HolderOwner<E>)maybeOwner.get())) {
++                if (!input.canSerializeIn(maybeOwner.get())) {
                      return DataResult.error(() -> "HolderSet " + input + " is not valid in current registry set");
                  }
  

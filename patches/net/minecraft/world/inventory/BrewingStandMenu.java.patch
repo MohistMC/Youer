@@ -1,5 +1,18 @@
 --- a/net/minecraft/world/inventory/BrewingStandMenu.java
 +++ b/net/minecraft/world/inventory/BrewingStandMenu.java
+@@ -12,10 +_,10 @@
+ import net.minecraft.world.entity.player.Inventory;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.item.ItemStack;
++import net.minecraft.world.item.Items;
+ import net.minecraft.world.item.alchemy.Potion;
++import net.minecraft.world.item.alchemy.PotionBrewing;
+ import net.minecraft.world.item.alchemy.PotionContents;
+-import net.minecraft.world.item.crafting.RecipeAccess;
+-import net.minecraft.world.item.crafting.RecipePropertySet;
+ 
+ public class BrewingStandMenu extends AbstractContainerMenu {
+     private static final Identifier EMPTY_SLOT_FUEL = Identifier.withDefaultNamespace("container/slot/brewing_fuel");
 @@ -33,6 +_,10 @@
      private final Container brewingStand;
      public final ContainerData brewingStandData;
@@ -11,7 +24,7 @@
  
      public BrewingStandMenu(int containerId, Inventory inventory) {
          this(containerId, inventory, new SimpleContainer(5), new SimpleContainerData(2));
-@@ -40,22 +_,39 @@
+@@ -40,25 +_,39 @@
  
      public BrewingStandMenu(int containerId, Inventory inventory, Container brewingStand, ContainerData brewingStandData) {
          super(MenuType.BREWING_STAND, containerId);
@@ -21,16 +34,21 @@
 +        checkContainerDataCount(brewingStandData, 3); // Paper - Add recipeBrewTime
          this.brewingStand = brewingStand;
          this.brewingStandData = brewingStandData;
-         PotionBrewing potionBrewing = inventory.player.level().potionBrewing();
--        this.addSlot(new BrewingStandMenu.PotionSlot(brewingStand, 0, 56, 51));
--        this.addSlot(new BrewingStandMenu.PotionSlot(brewingStand, 1, 79, 58));
--        this.addSlot(new BrewingStandMenu.PotionSlot(brewingStand, 2, 102, 51));
+-        RecipeAccess recipeAccess = inventory.player.level().recipeAccess();
+-        RecipePropertySet brewingInputs = recipeAccess.propertySet(RecipePropertySet.BREWING_INPUTS);
+-        this.addSlot(new BrewingStandMenu.PotionSlot(brewingInputs, brewingStand, 0, 56, 51));
+-        this.addSlot(new BrewingStandMenu.PotionSlot(brewingInputs, brewingStand, 1, 79, 58));
+-        this.addSlot(new BrewingStandMenu.PotionSlot(brewingInputs, brewingStand, 2, 102, 51));
+-        this.ingredientSlot = this.addSlot(
+-            new BrewingStandMenu.IngredientsSlot(recipeAccess.propertySet(RecipePropertySet.BREWING_REAGENTS), brewingStand, 3, 79, 17)
+-        );
++        PotionBrewing potionBrewing = inventory.player.level().potionBrewing();
 +        // Paper start - custom potion mixes
 +        this.addSlot(new BrewingStandMenu.PotionSlot(potionBrewing, brewingStand, 0, 56, 51));
 +        this.addSlot(new BrewingStandMenu.PotionSlot(potionBrewing, brewingStand, 1, 79, 58));
 +        this.addSlot(new BrewingStandMenu.PotionSlot(potionBrewing, brewingStand, 2, 102, 51));
 +        // Paper end - custom potion mixes
-         this.ingredientSlot = this.addSlot(new BrewingStandMenu.IngredientsSlot(potionBrewing, brewingStand, 3, 79, 17));
++        this.ingredientSlot = this.addSlot(new BrewingStandMenu.IngredientsSlot(potionBrewing, brewingStand, 3, 79, 17));
          this.addSlot(new BrewingStandMenu.FuelSlot(brewingStand, 4, 17, 17));
 -        this.addDataSlots(brewingStandData);
 +        // Paper start - Add recipeBrewTime
@@ -56,38 +74,68 @@
          return this.brewingStand.stillValid(player);
      }
  
-@@ -75,7 +_,7 @@
+@@ -66,7 +_,6 @@
+     public ItemStack quickMoveStack(Player player, int slotIndex) {
+         ItemStack clicked = ItemStack.EMPTY;
+         Slot slot = this.slots.get(slotIndex);
+-        RecipePropertySet brewingInputs = player.level().recipeAccess().propertySet(RecipePropertySet.BREWING_INPUTS);
+         if (slot != null && slot.hasItem()) {
+             ItemStack stack = slot.getItem();
+             clicked = stack.copy();
+@@ -79,7 +_,7 @@
                      if (!this.moveItemStackTo(stack, 3, 4, false)) {
                          return ItemStack.EMPTY;
                      }
--                } else if (BrewingStandMenu.PotionSlot.mayPlaceItem(clicked)) {
+-                } else if (brewingInputs.test(clicked)) {
 +                } else if (BrewingStandMenu.PotionSlot.mayPlaceItem(player.level().potionBrewing(), clicked)) {
                      if (!this.moveItemStackTo(stack, 0, 3, false)) {
                          return ItemStack.EMPTY;
                      }
-@@ -157,13 +_,20 @@
+@@ -147,30 +_,34 @@
      }
  
-     private static class PotionSlot extends Slot {
+     private static class IngredientsSlot extends Slot {
+-        private final RecipePropertySet propertySet;
 +        private final PotionBrewing potionBrewing;
-+
-         public PotionSlot(Container container, int slot, int x, int y) {
-+            this(PotionBrewing.EMPTY, container, slot, x, y);
-+        }
-+
-+        public PotionSlot(PotionBrewing potionBrewing, Container container, int slot, int x, int y) {
+ 
+-        public IngredientsSlot(RecipePropertySet propertySet, Container container, int slot, int x, int y) {
++        public IngredientsSlot(PotionBrewing potionBrewing, Container container, int slot, int x, int y) {
              super(container, slot, x, y);
+-            this.propertySet = propertySet;
 +            this.potionBrewing = potionBrewing;
          }
  
          @Override
          public boolean mayPlace(ItemStack itemStack) {
--            return mayPlaceItem(itemStack);
+-            return this.propertySet.test(itemStack);
++            return this.potionBrewing.isIngredient(itemStack);
+         }
+     }
+ 
+     private static class PotionSlot extends Slot {
+-        private final RecipePropertySet propertySet;
+-
+-        public PotionSlot(RecipePropertySet propertySet, Container container, int slot, int x, int y) {
++        private final PotionBrewing potionBrewing;
++
++        public PotionSlot(Container container, int slot, int x, int y) {
++            this(PotionBrewing.EMPTY, container, slot, x, y);
++        }
++
++        public PotionSlot(PotionBrewing potionBrewing, Container container, int slot, int x, int y) {
+             super(container, slot, x, y);
+-            this.propertySet = propertySet;
++            this.potionBrewing = potionBrewing;
+         }
+ 
+         @Override
+         public boolean mayPlace(ItemStack itemStack) {
+-            return this.propertySet.test(itemStack);
 +            return mayPlaceItem(this.potionBrewing, itemStack);
          }
  
          @Override
-@@ -175,19 +_,38 @@
+@@ -182,15 +_,38 @@
          public void onTake(Player player, ItemStack carried) {
              Optional<Holder<Potion>> potion = carried.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY).potion();
              if (potion.isPresent() && player instanceof ServerPlayer serverPlayer) {
@@ -99,10 +147,10 @@
          }
  
 +        @Deprecated // Neo: use the overload that takes PotionBrewing instead
-         public static boolean mayPlaceItem(ItemStack itemStack) {
-             return itemStack.is(Items.POTION) || itemStack.is(Items.SPLASH_POTION) || itemStack.is(Items.LINGERING_POTION) || itemStack.is(Items.GLASS_BOTTLE);
-         }
- 
++        public static boolean mayPlaceItem(ItemStack itemStack) {
++            return itemStack.is(Items.POTION) || itemStack.is(Items.SPLASH_POTION) || itemStack.is(Items.LINGERING_POTION) || itemStack.is(Items.GLASS_BOTTLE);
++        }
++
 +        public static boolean mayPlaceItem(PotionBrewing potionBrewing, ItemStack itemStack) {
 +            return potionBrewing.isInput(itemStack) || itemStack.is(Items.GLASS_BOTTLE);
 +        }

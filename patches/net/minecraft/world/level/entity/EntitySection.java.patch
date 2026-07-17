@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/entity/EntitySection.java
 +++ b/net/minecraft/world/level/entity/EntitySection.java
-@@ -19,6 +_,12 @@
+@@ -5,7 +_,6 @@
+ import java.util.stream.Stream;
+ import net.minecraft.util.AbortableIterationConsumer;
+ import net.minecraft.util.ClassInstanceMultiMap;
+-import net.minecraft.util.Continuation;
+ import net.minecraft.util.VisibleForDebug;
+ import net.minecraft.world.phys.AABB;
+ import org.slf4j.Logger;
+@@ -20,6 +_,12 @@
          this.storage = new ClassInstanceMultiMap<>(entityClass);
      }
  
@@ -13,3 +21,41 @@
      public void add(T entity) {
          this.storage.add(entity);
      }
+@@ -28,30 +_,30 @@
+         return this.storage.remove(entity);
+     }
+ 
+-    public Continuation getEntities(AABB bb, AbortableIterationConsumer<T> entities) {
++    public AbortableIterationConsumer.Continuation getEntities(AABB bb, AbortableIterationConsumer<T> entities) {
+         for (T entity : this.storage) {
+             if (entity.getBoundingBox().intersects(bb) && entities.accept(entity).shouldAbort()) {
+-                return Continuation.ABORT;
++                return AbortableIterationConsumer.Continuation.ABORT;
+             }
+         }
+ 
+-        return Continuation.CONTINUE;
++        return AbortableIterationConsumer.Continuation.CONTINUE;
+     }
+ 
+-    public <U extends T> Continuation getEntities(EntityTypeTest<T, U> type, AABB bb, AbortableIterationConsumer<? super U> consumer) {
++    public <U extends T> AbortableIterationConsumer.Continuation getEntities(EntityTypeTest<T, U> type, AABB bb, AbortableIterationConsumer<? super U> consumer) {
+         Collection<? extends T> foundEntities = this.storage.find(type.getBaseClass());
+         if (foundEntities.isEmpty()) {
+-            return Continuation.CONTINUE;
++            return AbortableIterationConsumer.Continuation.CONTINUE;
+         }
+ 
+         for (T entity : foundEntities) {
+             U maybeEntity = (U)type.tryCast(entity);
+             if (maybeEntity != null && entity.getBoundingBox().intersects(bb) && consumer.accept(maybeEntity).shouldAbort()) {
+-                return Continuation.ABORT;
++                return AbortableIterationConsumer.Continuation.ABORT;
+             }
+         }
+ 
+-        return Continuation.CONTINUE;
++        return AbortableIterationConsumer.Continuation.CONTINUE;
+     }
+ 
+     public boolean isEmpty() {

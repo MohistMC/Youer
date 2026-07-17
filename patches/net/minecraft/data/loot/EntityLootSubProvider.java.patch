@@ -1,6 +1,84 @@
 --- a/net/minecraft/data/loot/EntityLootSubProvider.java
 +++ b/net/minecraft/data/loot/EntityLootSubProvider.java
-@@ -117,12 +_,16 @@
+@@ -8,6 +_,7 @@
+ import java.util.Map;
+ import java.util.Optional;
+ import java.util.Set;
++import java.util.function.BiConsumer;
+ import java.util.stream.Collectors;
+ import net.minecraft.advancements.predicates.DamageSourcePredicate;
+ import net.minecraft.advancements.predicates.DataComponentMatchers;
+@@ -19,10 +_,12 @@
+ import net.minecraft.advancements.predicates.entity.EntityPredicate;
+ import net.minecraft.advancements.predicates.entity.SheepPredicate;
+ import net.minecraft.core.HolderGetter;
++import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.component.DataComponentExactPredicate;
+ import net.minecraft.core.component.DataComponents;
+ import net.minecraft.core.component.predicates.DataComponentPredicates;
+ import net.minecraft.core.component.predicates.EnchantmentsPredicate;
++import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.tags.EnchantmentTags;
+@@ -44,28 +_,13 @@
+ import net.minecraft.world.level.storage.loot.predicates.LootItemEntityPropertyCondition;
+ 
+ public abstract class EntityLootSubProvider implements LootTableSubProvider {
+-    protected final LootTableSubProvider.Context output;
+-    protected final HolderGetter<Enchantment> enchantments;
+-    protected final HolderGetter<EntityType<?>> entityTypes;
+-    protected final HolderGetter<FrogVariant> frogVariants;
++    protected final HolderLookup.Provider registries;
+     private final FeatureFlagSet allowed;
+     private final FeatureFlagSet required;
+     private final Map<EntityType<?>, Map<ResourceKey<LootTable>, LootTable.Builder>> map = Maps.newHashMap();
+ 
+-    protected EntityLootSubProvider(FeatureFlagSet enabledFeatures, LootTableSubProvider.Context output) {
+-        this(enabledFeatures, enabledFeatures, output);
+-    }
+-
+-    protected EntityLootSubProvider(FeatureFlagSet allowed, FeatureFlagSet required, LootTableSubProvider.Context output) {
+-        this.allowed = allowed;
+-        this.required = required;
+-        this.output = output;
+-        this.enchantments = output.lookup(Registries.ENCHANTMENT);
+-        this.entityTypes = output.lookup(Registries.ENTITY_TYPE);
+-        this.frogVariants = output.lookup(Registries.FROG_VARIANT);
+-    }
+-
+     protected final AnyOfCondition.Builder shouldSmeltLoot() {
++        HolderLookup.RegistryLookup<Enchantment> enchantmentsRegistry = this.registries.lookupOrThrow(Registries.ENCHANTMENT);
+         return AnyOfCondition.anyOf(
+             LootItemEntityPropertyCondition.hasProperties(
+                 LootContext.EntityTarget.THIS, EntityPredicate.Builder.entity().flags(EntityFlagsPredicate.Builder.flags().setOnFire(true))
+@@ -84,7 +_,7 @@
+                                                 EnchantmentsPredicate.enchantments(
+                                                     List.of(
+                                                         new EnchantmentPredicate(
+-                                                            this.enchantments.getOrThrow(EnchantmentTags.SMELTS_LOOT), MinMaxBounds.Ints.ANY
++                                                            enchantmentsRegistry.getOrThrow(EnchantmentTags.SMELTS_LOOT), MinMaxBounds.Ints.ANY
+                                                         )
+                                                     )
+                                                 )
+@@ -97,6 +_,16 @@
+         );
+     }
+ 
++    protected EntityLootSubProvider(FeatureFlagSet enabledFeatures, HolderLookup.Provider registries) {
++        this(enabledFeatures, enabledFeatures, registries);
++    }
++
++    protected EntityLootSubProvider(FeatureFlagSet allowed, FeatureFlagSet required, HolderLookup.Provider registries) {
++        this.allowed = allowed;
++        this.required = required;
++        this.registries = registries;
++    }
++
+     public static LootPool.Builder createSheepDispatchPool(ColorCollection<ResourceKey<LootTable>> tableNames) {
+         AlternativesEntry.Builder variants = AlternativesEntry.alternatives();
+ 
+@@ -119,12 +_,16 @@
  
      public abstract void generate();
  
@@ -9,13 +87,50 @@
 +    }
 +
      @Override
-     public void generate(BiConsumer<ResourceKey<LootTable>, LootTable.Builder> output) {
+-    public void run() {
++    public void generate(BiConsumer<ResourceKey<LootTable>, LootTable.Builder> output) {
          this.generate();
          Set<ResourceKey<LootTable>> seen = new HashSet<>();
--        BuiltInRegistries.ENTITY_TYPE
--            .listElements()
+-        this.output
+-            .listContextElements(Registries.ENTITY_TYPE)
 +        this.getKnownEntityTypes()
 +            .map(EntityType::builtInRegistryHolder)
              .forEach(
                  holder -> {
                      EntityType<?> type = holder.value();
+@@ -147,7 +_,7 @@
+                                             );
+                                         }
+ 
+-                                        this.output.accept((ResourceKey<LootTable>)id, builder);
++                                        output.accept((ResourceKey<LootTable>)id, builder);
+                                     }
+                                 );
+                             }
+@@ -172,19 +_,21 @@
+         }
+     }
+ 
+-    protected LootItemCondition.Builder killedByFrog() {
++    protected LootItemCondition.Builder killedByFrog(HolderGetter<EntityType<?>> entityTypes) {
+         return DamageSourceCondition.hasDamageSource(
+-            DamageSourcePredicate.Builder.damageType().source(EntityPredicate.Builder.entity().of(this.entityTypes, EntityTypes.FROG))
++            DamageSourcePredicate.Builder.damageType().source(EntityPredicate.Builder.entity().of(entityTypes, EntityTypes.FROG))
+         );
+     }
+ 
+-    protected LootItemCondition.Builder killedByFrogVariant(ResourceKey<FrogVariant> variant) {
++    protected LootItemCondition.Builder killedByFrogVariant(
++        HolderGetter<EntityType<?>> entityTypes, HolderGetter<FrogVariant> frogVariants, ResourceKey<FrogVariant> variant
++    ) {
+         return DamageSourceCondition.hasDamageSource(
+             DamageSourcePredicate.Builder.damageType()
+                 .source(
+                     EntityPredicate.Builder.entity()
+-                        .of(this.entityTypes, EntityTypes.FROG)
+-                        .components(DataComponentExactPredicate.expect(DataComponents.FROG_VARIANT, this.frogVariants.getOrThrow(variant)))
++                        .of(entityTypes, EntityTypes.FROG)
++                        .components(DataComponentExactPredicate.expect(DataComponents.FROG_VARIANT, frogVariants.getOrThrow(variant)))
+                 )
+         );
+     }

@@ -1,9 +1,21 @@
 --- a/net/minecraft/world/entity/projectile/Projectile.java
 +++ b/net/minecraft/world/entity/projectile/Projectile.java
-@@ -45,12 +_,13 @@
+@@ -20,7 +_,6 @@
+ import net.minecraft.world.entity.EntitySelector;
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.entity.LivingEntity;
+-import net.minecraft.world.entity.MoveSimulationType;
+ import net.minecraft.world.entity.TraceableEntity;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
+@@ -46,16 +_,13 @@
  public abstract class Projectile extends Entity implements TraceableEntity {
      private static final boolean DEFAULT_LEFT_OWNER = false;
      private static final boolean DEFAULT_HAS_BEEN_SHOT = false;
+-    private static final String TAG_OWNER = "Owner";
+-    private static final String TAG_LEFT_OWNER = "LeftOwner";
+-    private static final String TAG_HAS_BEEN_SHOT = "HasBeenShot";
+-    private static final String TAG_CAN_BREAK = "can_break";
 -    public @Nullable EntityReference<Entity> owner;
 +    protected @Nullable EntityReference<Entity> owner;
      private @Nullable AdventureModePredicate canBreak;
@@ -15,7 +27,17 @@
  
      protected Projectile(EntityType<? extends Projectile> type, Level level) {
          super(type, level);
-@@ -106,6 +_,9 @@
+@@ -102,9 +_,6 @@
+         }
+ 
+         output.putBoolean("HasBeenShot", this.hasBeenShot);
+-        if (this.canBreak != null) {
+-            output.store("can_break", AdventureModePredicate.CODEC, this.canBreak);
+-        }
+     }
+ 
+     protected boolean ownedBy(Entity entity) {
+@@ -114,9 +_,11 @@
      @Override
      protected void readAdditionalSaveData(ValueInput input) {
          this.setOwner(EntityReference.read(input, "Owner"));
@@ -24,8 +46,11 @@
 +        // Paper end - Reset pearls when they stop being ticked; Don't store shooter name for pearls to block enderpearl travel exploit
          this.leftOwner = input.getBooleanOr("LeftOwner", false);
          this.hasBeenShot = input.getBooleanOr("HasBeenShot", false);
+-        this.canBreak = input.read("can_break", AdventureModePredicate.CODEC).orElse(null);
      }
-@@ -178,7 +_,14 @@
+ 
+     @Override
+@@ -187,7 +_,14 @@
          float zd = Mth.cos(yRot * (float) (Math.PI / 180.0)) * Mth.cos(xRot * (float) (Math.PI / 180.0));
          this.shoot(xd, yd, zd, pow, uncertainty);
          Vec3 sourceMovement = source.getKnownMovement();
@@ -40,7 +65,7 @@
      }
  
      @Override
-@@ -202,13 +_,32 @@
+@@ -211,13 +_,32 @@
      }
  
      public static <T extends Projectile> T spawnProjectileFromRotation(
@@ -80,7 +105,7 @@
          );
      }
  
-@@ -229,21 +_,80 @@
+@@ -238,21 +_,80 @@
      }
  
      public static <T extends Projectile> T spawnProjectileUsingShoot(
@@ -173,7 +198,7 @@
  
      public void applyOnProjectileSpawned(ServerLevel serverLevel, ItemStack pickupItemStack) {
          EnchantmentHelper.onProjectileSpawned(serverLevel, pickupItemStack, this, item -> {});
-@@ -255,6 +_,17 @@
+@@ -264,6 +_,17 @@
          }
      }
  
@@ -191,7 +216,7 @@
      protected ProjectileDeflection hitTargetOrDeflectSelf(HitResult hitResult) {
          if (hitResult.getType() == HitResult.Type.ENTITY) {
              EntityHitResult entityHitResult = (EntityHitResult)hitResult;
-@@ -322,16 +_,36 @@
+@@ -331,16 +_,36 @@
      }
  
      protected void onHitBlock(BlockHitResult hitResult) {
@@ -228,7 +253,7 @@
          return owner == null || this.leftOwner || !owner.isPassengerOfSameVehicle(entity);
      }
  
-@@ -343,13 +_,7 @@
+@@ -352,13 +_,7 @@
      }
  
      protected static float lerpRotation(float rotO, float rot) {
@@ -243,7 +268,7 @@
  
          return Mth.lerp(0.2F, rotO, rot);
      }
-@@ -372,7 +_,7 @@
+@@ -381,7 +_,7 @@
      @Override
      public boolean mayInteract(ServerLevel level, BlockPos pos) {
          Entity owner = this.getOwner();
@@ -252,3 +277,14 @@
      }
  
      public boolean mayBreak(ServerLevel level, BlockPos pos) {
+@@ -421,8 +_,8 @@
+     }
+ 
+     @Override
+-    public MoveSimulationType getMoveSimulationType() {
+-        return MoveSimulationType.SERVER_AND_CLIENT;
++    public boolean canSimulateMovement() {
++        return true;
+     }
+ 
+     @FunctionalInterface

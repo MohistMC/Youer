@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
 +++ b/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
-@@ -16,12 +_,22 @@
+@@ -16,13 +_,22 @@
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.Vec3;
@@ -19,18 +19,21 @@
  
  public abstract class BlockAttachedEntity extends Entity {
      private static final Logger LOGGER = LogUtils.getLogger();
--    private int checkInterval;
+-    private static final int CHECK_INTERVAL = 100;
+-    private int ticksSinceLastCheck;
 +    private int checkInterval; { this.checkInterval = this.getId() % this.level().spigotConfig.hangingTickFrequency; } // Paper - Perf: offset item frame ticking
      protected BlockPos pos;
  
      protected BlockAttachedEntity(EntityType<? extends BlockAttachedEntity> type, Level level) {
-@@ -39,10 +_,28 @@
+@@ -40,20 +_,34 @@
      public void tick() {
          if (this.level() instanceof ServerLevel level) {
              this.checkBelowWorld();
--            if (this.checkInterval++ == 100) {
+-            if (this.ticksSinceLastCheck++ >= 100) {
+-                this.ticksSinceLastCheck = 0;
+-                this.tickAtCheckInterval();
 +            if (this.checkInterval++ == this.level().spigotConfig.hangingTickFrequency) { // Spigot
-                 this.checkInterval = 0;
++                this.checkInterval = 0;
                  if (!this.isRemoved() && !this.survives()) {
 -                    this.discard();
 +                    // CraftBukkit start - fire break events
@@ -55,7 +58,16 @@
                      this.dropItem(level, null);
                  }
              }
-@@ -74,19 +_,33 @@
+         }
+     }
+ 
+-    protected void tickAtCheckInterval() {
+-    }
+-
+     public abstract boolean survives();
+ 
+     @Override
+@@ -79,19 +_,33 @@
      public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
          if (this.isInvulnerableToBase(source)) {
              return false;
@@ -101,7 +113,7 @@
      }
  
      @Override
-@@ -102,14 +_,24 @@
+@@ -107,14 +_,24 @@
      @Override
      public void move(MoverType moverType, Vec3 delta) {
          if (this.level() instanceof ServerLevel level && !this.isRemoved() && delta.lengthSqr() > 0.0) {
@@ -128,7 +140,7 @@
              this.kill(level);
              this.dropItem(level, null);
          }
-@@ -155,4 +_,13 @@
+@@ -160,4 +_,13 @@
      @Override
      public void refreshDimensions() {
      }

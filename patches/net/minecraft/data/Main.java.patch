@@ -1,6 +1,25 @@
 --- a/net/minecraft/data/Main.java
 +++ b/net/minecraft/data/Main.java
-@@ -74,10 +_,14 @@
+@@ -13,6 +_,7 @@
+ import net.minecraft.SuppressForbidden;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.RegistrySetBuilder;
++import net.minecraft.data.advancements.packs.VanillaAdvancementProvider;
+ import net.minecraft.data.info.BiomeParametersDumpReport;
+ import net.minecraft.data.info.BlockListReport;
+ import net.minecraft.data.info.CommandsReport;
+@@ -20,7 +_,10 @@
+ import net.minecraft.data.info.PacketReport;
+ import net.minecraft.data.info.RegistryComponentsReport;
+ import net.minecraft.data.info.RegistryDumpReport;
++import net.minecraft.data.loot.packs.TradeRebalanceLootTableProvider;
++import net.minecraft.data.loot.packs.VanillaLootTableProvider;
+ import net.minecraft.data.metadata.PackMetadataGenerator;
++import net.minecraft.data.recipes.packs.VanillaRecipeProvider;
+ import net.minecraft.data.registries.RegistriesDatapackGenerator;
+ import net.minecraft.data.registries.TradeRebalanceRegistries;
+ import net.minecraft.data.registries.VanillaRegistries;
+@@ -70,10 +_,14 @@
          OptionSpec<Void> serverOption = parser.accepts("server", "Include server generators");
          OptionSpec<Void> devOption = parser.accepts("dev", "Include development tools");
          OptionSpec<Void> reportsOption = parser.accepts("reports", "Include data reports");
@@ -16,7 +35,7 @@
          OptionSet optionSet = parser.parse(args);
          if (!optionSet.has(helpOption) && optionSet.hasOptions()) {
              Path output = Paths.get(outputOption.value(optionSet));
-@@ -86,11 +_,19 @@
+@@ -82,11 +_,19 @@
              boolean dev = allOptions || optionSet.has(devOption);
              boolean reports = allOptions || optionSet.has(reportsOption);
              Collection<Path> input = optionSet.valuesOf(inputOption).stream().map(x$0 -> Paths.get(x$0)).toList();
@@ -38,3 +57,105 @@
          } else {
              parser.printHelpOn(System.out);
          }
+@@ -106,67 +_,54 @@
+     }
+ 
+     public static void addServerDefinitionProviders(DataGenerator generator, boolean server, boolean reports) {
+-        CompletableFuture<HolderLookup.Provider> vanillaWorldRegistries = CompletableFuture.supplyAsync(
+-            VanillaRegistries::createWorldLookup, Util.backgroundExecutor()
+-        );
+-        CompletableFuture<HolderLookup.Provider> reloadableVanillaRegistries = vanillaWorldRegistries.thenApplyAsync(
+-            VanillaRegistries::createReloadableLookup, Util.backgroundExecutor()
+-        );
++        CompletableFuture<HolderLookup.Provider> vanillaRegistries = CompletableFuture.supplyAsync(VanillaRegistries::createLookup, Util.backgroundExecutor());
+         DataGenerator.PackGenerator serverVanillaPack = generator.getVanillaPack(server);
+-        serverVanillaPack.addProvider(bindRegistries(RegistriesDatapackGenerator::forWorldLayer, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(RegistriesDatapackGenerator::forReloadableLayer, reloadableVanillaRegistries));
+-        TagsProvider<Block> vanillaBlockTagsProvider = serverVanillaPack.addProvider(bindRegistries(VanillaBlockTagsProvider::new, vanillaWorldRegistries));
+-        TagsProvider<Item> vanillaItemTagsProvider = serverVanillaPack.addProvider(bindRegistries(VanillaItemTagsProvider::new, vanillaWorldRegistries));
+-        TagsProvider<Biome> vanillaBiomeTagsProvider = serverVanillaPack.addProvider(bindRegistries(BiomeTagsProvider::new, vanillaWorldRegistries));
++        serverVanillaPack.addProvider(bindRegistries(RegistriesDatapackGenerator::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(VanillaAdvancementProvider::create, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(VanillaLootTableProvider::create, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(VanillaRecipeProvider.Runner::new, vanillaRegistries));
++        TagsProvider<Block> vanillaBlockTagsProvider = serverVanillaPack.addProvider(bindRegistries(VanillaBlockTagsProvider::new, vanillaRegistries));
++        TagsProvider<Item> vanillaItemTagsProvider = serverVanillaPack.addProvider(bindRegistries(VanillaItemTagsProvider::new, vanillaRegistries));
++        TagsProvider<Biome> vanillaBiomeTagsProvider = serverVanillaPack.addProvider(bindRegistries(BiomeTagsProvider::new, vanillaRegistries));
+         TagsProvider<BannerPattern> vanillaBannerPatternTagsProvider = serverVanillaPack.addProvider(
+-            bindRegistries(BannerPatternTagsProvider::new, vanillaWorldRegistries)
++            bindRegistries(BannerPatternTagsProvider::new, vanillaRegistries)
+         );
+-        TagsProvider<Structure> vanillaStructureTagsProvider = serverVanillaPack.addProvider(bindRegistries(StructureTagsProvider::new, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(DamageTypeTagsProvider::new, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(DialogTagsProvider::new, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(EntityTypeTagsProvider::new, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(FlatLevelGeneratorPresetTagsProvider::new, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(FluidTagsProvider::new, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(GameEventTagsProvider::new, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(InstrumentTagsProvider::new, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(PaintingVariantTagsProvider::new, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(PoiTypeTagsProvider::new, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(WorldPresetTagsProvider::new, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(VanillaEnchantmentTagsProvider::new, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(TimelineTagsProvider::new, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(PotionTagsProvider::new, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(VillagerTradesTagsProvider::new, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(FeatureTagsProvider::new, vanillaWorldRegistries));
++        TagsProvider<Structure> vanillaStructureTagsProvider = serverVanillaPack.addProvider(bindRegistries(StructureTagsProvider::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(DamageTypeTagsProvider::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(DialogTagsProvider::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(EntityTypeTagsProvider::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(FlatLevelGeneratorPresetTagsProvider::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(FluidTagsProvider::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(GameEventTagsProvider::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(InstrumentTagsProvider::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(PaintingVariantTagsProvider::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(PoiTypeTagsProvider::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(WorldPresetTagsProvider::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(VanillaEnchantmentTagsProvider::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(TimelineTagsProvider::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(PotionTagsProvider::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(VillagerTradesTagsProvider::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(FeatureTagsProvider::new, vanillaRegistries));
+         serverVanillaPack = generator.getVanillaPack(reports);
+-        serverVanillaPack.addProvider(bindRegistries(BiomeParametersDumpReport::new, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(RegistryComponentsReport::new, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(BlockListReport::new, vanillaWorldRegistries));
+-        serverVanillaPack.addProvider(bindRegistries(CommandsReport::new, vanillaWorldRegistries));
++        serverVanillaPack.addProvider(bindRegistries(BiomeParametersDumpReport::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(RegistryComponentsReport::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(BlockListReport::new, vanillaRegistries));
++        serverVanillaPack.addProvider(bindRegistries(CommandsReport::new, vanillaRegistries));
+         serverVanillaPack.addProvider(RegistryDumpReport::new);
+         serverVanillaPack.addProvider(PacketReport::new);
+         serverVanillaPack.addProvider(DatapackStructureReport::new);
+         serverVanillaPack.addProvider(JsonRpcApiSchema::new);
+-        CompletableFuture<RegistrySetBuilder.PatchedRegistries> tradeRebalanceWorldRegistries = TradeRebalanceRegistries.createPatchedWorldRegistries(
+-            vanillaWorldRegistries
+-        );
+-        CompletableFuture<RegistrySetBuilder.PatchedRegistries> tradeRebalanceReloadableRegistries = TradeRebalanceRegistries.createPatchedReloadable(
+-            tradeRebalanceWorldRegistries.thenApply(RegistrySetBuilder.PatchedRegistries::full), reloadableVanillaRegistries
+-        );
++        CompletableFuture<RegistrySetBuilder.PatchedRegistries> tradeRebalanceRegistries = TradeRebalanceRegistries.createLookup(vanillaRegistries);
++        CompletableFuture<HolderLookup.Provider> patchedRegistrySet = tradeRebalanceRegistries.thenApply(RegistrySetBuilder.PatchedRegistries::patches);
+         DataGenerator.PackGenerator tradeRebalancePack = generator.getBuiltinDatapack(server, "trade_rebalance");
+-        tradeRebalancePack.addProvider(
+-            bindRegistries(RegistriesDatapackGenerator::forWorldLayer, tradeRebalanceWorldRegistries.thenApply(RegistrySetBuilder.PatchedRegistries::patches))
+-        );
+-        tradeRebalancePack.addProvider(
+-            bindRegistries(
+-                RegistriesDatapackGenerator::forReloadableLayer, tradeRebalanceReloadableRegistries.thenApply(RegistrySetBuilder.PatchedRegistries::patches)
+-            )
+-        );
++        tradeRebalancePack.addProvider(bindRegistries(RegistriesDatapackGenerator::new, patchedRegistrySet));
+         tradeRebalancePack.addProvider(
+             o -> PackMetadataGenerator.forFeaturePack(
+                 o, Component.translatable("dataPack.trade_rebalance.description"), FeatureFlagSet.of(FeatureFlags.TRADE_REBALANCE)
+             )
+         );
+-        CompletableFuture<HolderLookup.Provider> patchedRegistries = tradeRebalanceWorldRegistries.thenApply(RegistrySetBuilder.PatchedRegistries::full);
++        CompletableFuture<HolderLookup.Provider> patchedRegistries = tradeRebalanceRegistries.thenApply(RegistrySetBuilder.PatchedRegistries::full);
++        tradeRebalancePack.addProvider(bindRegistries(TradeRebalanceLootTableProvider::create, patchedRegistries));
+         tradeRebalancePack.addProvider(bindRegistries(TradeRebalanceEnchantmentTagsProvider::new, patchedRegistries));
+         tradeRebalancePack.addProvider(bindRegistries(TradeRebalanceTradeTagsProvider::new, patchedRegistries));
+         serverVanillaPack = generator.getBuiltinDatapack(server, "redstone_experiments");

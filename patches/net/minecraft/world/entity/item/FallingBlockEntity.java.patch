@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -51,6 +_,8 @@
+@@ -27,7 +_,6 @@
+ import net.minecraft.world.entity.EntitySelector;
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.entity.EntityTypes;
+-import net.minecraft.world.entity.MoveSimulationType;
+ import net.minecraft.world.entity.MoverType;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.context.DirectionalPlaceContext;
+@@ -52,6 +_,8 @@
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.HitResult;
  import net.minecraft.world.phys.Vec3;
@@ -9,7 +17,7 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -72,6 +_,7 @@
+@@ -73,6 +_,7 @@
      public @Nullable CompoundTag blockData;
      public boolean forceTickAfterTeleportToDuplicate;
      protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
@@ -17,7 +25,7 @@
  
      public FallingBlockEntity(EntityType<? extends FallingBlockEntity> type, Level level) {
          super(type, level);
-@@ -90,6 +_,12 @@
+@@ -91,6 +_,12 @@
      }
  
      public static FallingBlockEntity fall(Level level, BlockPos pos, BlockState state) {
@@ -30,7 +38,7 @@
          FallingBlockEntity entity = new FallingBlockEntity(
              level,
              pos.getX() + 0.5,
-@@ -97,11 +_,15 @@
+@@ -98,11 +_,15 @@
              pos.getZ() + 0.5,
              state.hasProperty(BlockStateProperties.WATERLOGGED) ? state.setValue(BlockStateProperties.WATERLOGGED, false) : state
          );
@@ -48,7 +56,7 @@
      @Override
      public boolean isAttackable() {
          return false;
-@@ -147,18 +_,27 @@
+@@ -148,18 +_,27 @@
      @Override
      public void tick() {
          if (this.blockState.isAir()) {
@@ -78,7 +86,7 @@
                  double moveVec = this.getDeltaMovement().lengthSqr();
                  if (isConcrete && moveVec > 1.0) {
                      BlockHitResult clip = this.level()
-@@ -167,19 +_,19 @@
+@@ -168,19 +_,19 @@
                                  new Vec3(this.xo, this.yo, this.zo), this.position(), ClipContext.Block.COLLIDER, ClipContext.Fluid.SOURCE_ONLY, this
                              )
                          );
@@ -101,7 +109,7 @@
                      }
                  } else {
                      BlockState currentState = this.level().getBlockState(pos);
-@@ -196,11 +_,17 @@
+@@ -197,11 +_,17 @@
                                      this.blockState = this.blockState.setValue(BlockStateProperties.WATERLOGGED, true);
                                  }
  
@@ -121,7 +129,7 @@
                                      if (block instanceof Fallable fallable) {
                                          fallable.onLand(this.level(), pos, this.blockState, currentState, this);
                                      }
-@@ -217,35 +_,37 @@
+@@ -218,35 +_,37 @@
                                                  CompoundTag merged = output.buildResult();
                                                  this.blockData.forEach((name, tag) -> merged.put(name, tag.copy()));
                                                  blockEntity.loadWithComponents(TagValueInput.create(reporter, registryAccess, merged));
@@ -166,7 +174,7 @@
          }
      }
  
-@@ -298,6 +_,7 @@
+@@ -299,6 +_,7 @@
          }
  
          output.putBoolean("CancelDrop", this.cancelDrop);
@@ -174,7 +182,7 @@
      }
  
      @Override
-@@ -309,8 +_,9 @@
+@@ -310,8 +_,9 @@
          this.fallDamagePerDistance = input.getFloatOr("FallHurtAmount", 0.0F);
          this.fallDamageMax = input.getIntOr("FallHurtMax", 40);
          this.dropItem = input.getBooleanOr("DropItem", true);
@@ -185,7 +193,7 @@
      }
  
      public void setHurtsEntities(float damagePerDistance, int damageMax) {
-@@ -366,12 +_,7 @@
+@@ -367,12 +_,7 @@
          ResourceKey<Level> oldDimension = this.level().dimension();
          boolean fromOrToEnd = (oldDimension == Level.END || newDimension == Level.END) && oldDimension != newDimension;
          Entity newEntity = super.teleport(transition);
@@ -195,7 +203,7 @@
 -    }
 -
 -    @Override
--    public boolean canSimulateMovement() {
--        return true;
+-    public MoveSimulationType getMoveSimulationType() {
+-        return MoveSimulationType.SERVER_AND_CLIENT;
      }
  }

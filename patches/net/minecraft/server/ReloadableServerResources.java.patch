@@ -1,6 +1,14 @@
 --- a/net/minecraft/server/ReloadableServerResources.java
 +++ b/net/minecraft/server/ReloadableServerResources.java
-@@ -30,6 +_,11 @@
+@@ -6,6 +_,7 @@
+ import java.util.concurrent.Executor;
+ import net.minecraft.commands.CommandBuildContext;
+ import net.minecraft.commands.Commands;
++import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.LayeredRegistryAccess;
+ import net.minecraft.core.Registry;
+ import net.minecraft.core.component.DataComponentInitializers;
+@@ -29,22 +_,34 @@
      private final ServerFunctionLibrary functionLibrary;
      private final List<Registry.PendingTags<?>> postponedTags;
      private final List<DataComponentInitializers.PendingComponents<?>> newComponents;
@@ -11,14 +19,27 @@
 +    private final java.util.Map<net.neoforged.neoforge.resource.ListenerKey<?>, PreparableReloadListener> retainedListeners = new java.util.IdentityHashMap<>();
  
      private ReloadableServerResources(
-         LayeredRegistryAccess<RegistryLayer> fullLayers,
-@@ -45,8 +_,14 @@
+-        ReloadableServerRegistries.LoadResult loadingContext,
++        LayeredRegistryAccess<RegistryLayer> fullLayers,
++        HolderLookup.Provider loadingContext,
+         FeatureFlagSet enabledFeatures,
+         Commands.CommandSelection commandSelection,
+         List<Registry.PendingTags<?>> postponedTags,
+         PermissionSet functionCompilationPermissions,
+         List<DataComponentInitializers.PendingComponents<?>> newComponents
+     ) {
+-        this.fullRegistryHolder = new ReloadableServerRegistries.Holder(loadingContext.layers().compositeAccess());
++        this.fullRegistryHolder = new ReloadableServerRegistries.Holder(fullLayers.compositeAccess());
+         this.postponedTags = postponedTags;
          this.newComponents = newComponents;
-         this.recipes = new RecipeManager(loadingContext);
-         this.commands = new Commands(commandSelection, CommandBuildContext.simple(loadingContext, enabledFeatures));
+-        this.recipes = new RecipeManager(loadingContext.lookupWithUpdatedTags());
+-        this.commands = new Commands(commandSelection, CommandBuildContext.simple(loadingContext.lookupWithUpdatedTags(), enabledFeatures));
+-        this.advancements = new ServerAdvancementManager(loadingContext.lookupWithUpdatedTags());
++        this.recipes = new RecipeManager(loadingContext);
++        this.commands = new Commands(commandSelection, CommandBuildContext.simple(loadingContext, enabledFeatures));
 +        io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setDispatcher(this.commands, CommandBuildContext.simple(loadingContext, enabledFeatures)); // Paper - Brigadier Command API
 +        io.papermc.paper.command.PaperCommands.registerCommands(); // Paper
-         this.advancements = new ServerAdvancementManager(loadingContext);
++        this.advancements = new ServerAdvancementManager(loadingContext);
          this.functionLibrary = new ServerFunctionLibrary(functionCompilationPermissions, this.commands.getDispatcher());
 +        // Neo: Store registries and create context object
 +        this.registryAccess = fullLayers.compositeAccess();
@@ -27,10 +48,14 @@
      }
  
      public ServerFunctionLibrary getFunctionLibrary() {
-@@ -73,6 +_,32 @@
-         return List.of(this.recipes, this.functionLibrary, this.advancements);
+@@ -68,7 +_,33 @@
      }
  
+     public List<PreparableReloadListener> listeners() {
+-        return List.of(this.functionLibrary);
++        return List.of(this.recipes, this.functionLibrary, this.advancements);
++    }
++
 +    /// {@return the reload listener registered with the provided key}
 +    @SuppressWarnings("unchecked")
 +    public <T extends PreparableReloadListener> T getListener(net.neoforged.neoforge.resource.ListenerKey<T> key) {
@@ -55,12 +80,19 @@
 +      */
 +    public HolderLookup.Provider getRegistryLookup() {
 +        return this.loadingContext;
-+    }
-+
+     }
+ 
      public static CompletableFuture<ReloadableServerResources> loadResources(
-         ResourceManager resourceManager,
-         LayeredRegistryAccess<RegistryLayer> contextLayers,
-@@ -99,15 +_,44 @@
+@@ -89,22 +_,52 @@
+                     .thenCompose(
+                         pendingComponents -> {
+                             ReloadableServerResources result = new ReloadableServerResources(
+-                                fullRegistries,
++                                fullRegistries.layers(),
++                                fullRegistries.lookupWithUpdatedTags(),
+                                 enabledFeatures,
+                                 commandSelection,
+                                 updatedContextTags,
                                  functionCompilationPermissions,
                                  (List<DataComponentInitializers.PendingComponents<?>>)pendingComponents
                              );
@@ -106,7 +138,7 @@
                                  .thenApply(ignore -> result);
                          }
                      )
-@@ -116,6 +_,8 @@
+@@ -113,6 +_,8 @@
  
      public void updateComponentsAndStaticRegistryTags() {
          this.postponedTags.forEach(Registry.PendingTags::apply);

@@ -1,6 +1,90 @@
 --- a/net/minecraft/server/commands/PlaceCommand.java
 +++ b/net/minecraft/server/commands/PlaceCommand.java
-@@ -296,6 +_,7 @@
+@@ -3,20 +_,17 @@
+ import com.mojang.brigadier.CommandDispatcher;
+ import com.mojang.brigadier.arguments.FloatArgumentType;
+ import com.mojang.brigadier.arguments.IntegerArgumentType;
+-import com.mojang.brigadier.builder.RequiredArgumentBuilder;
+ import com.mojang.brigadier.exceptions.CommandSyntaxException;
+ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
+ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
+ import com.mojang.brigadier.suggestion.SuggestionProvider;
+ import java.util.Optional;
+ import net.minecraft.IdentifierException;
+-import net.minecraft.commands.CommandBuildContext;
+ import net.minecraft.commands.CommandSourceStack;
+ import net.minecraft.commands.Commands;
+ import net.minecraft.commands.SharedSuggestionProvider;
+ import net.minecraft.commands.arguments.IdentifierArgument;
+ import net.minecraft.commands.arguments.ResourceKeyArgument;
+-import net.minecraft.commands.arguments.ResourceOrIdArgument;
+ import net.minecraft.commands.arguments.TemplateMirrorArgument;
+ import net.minecraft.commands.arguments.TemplateRotationArgument;
+ import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
+@@ -62,26 +_,26 @@
+         return SharedSuggestionProvider.suggestResource(structureManager.listTemplates(), builder);
+     };
+ 
+-    public static void register(CommandDispatcher<CommandSourceStack> dispatcher, CommandBuildContext context) {
++    public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+         dispatcher.register(
+             Commands.literal("place")
+                 .requires(Commands.hasPermission(Commands.LEVEL_GAMEMASTERS))
+                 .then(
+                     Commands.literal("feature")
+                         .then(
+-                            (Commands.argument("feature", ResourceOrIdArgument.feature(context))
+-                                    .executes(
+-                                        c -> placeFeature(
+-                                            (CommandSourceStack)c.getSource(),
+-                                            ResourceOrIdArgument.getFeature(c, "feature"),
+-                                            BlockPos.containing(((CommandSourceStack)c.getSource()).getPosition())
+-                                        )
+-                                    ))
++                            Commands.argument("feature", ResourceKeyArgument.key(Registries.FEATURE))
++                                .executes(
++                                    c -> placeFeature(
++                                        c.getSource(), ResourceKeyArgument.getConfiguredFeature(c, "feature"), BlockPos.containing(c.getSource().getPosition())
++                                    )
++                                )
+                                 .then(
+                                     Commands.argument("pos", BlockPosArgument.blockPos())
+                                         .executes(
+                                             c -> placeFeature(
+-                                                c.getSource(), ResourceOrIdArgument.getFeature(c, "feature"), BlockPosArgument.getLoadedBlockPos(c, "pos")
++                                                c.getSource(),
++                                                ResourceKeyArgument.getConfiguredFeature(c, "feature"),
++                                                BlockPosArgument.getLoadedBlockPos(c, "pos")
+                                             )
+                                         )
+                                 )
+@@ -251,7 +_,7 @@
+         );
+     }
+ 
+-    public static int placeFeature(CommandSourceStack source, Holder<Feature> featureHolder, BlockPos pos) throws CommandSyntaxException {
++    public static int placeFeature(CommandSourceStack source, Holder.Reference<Feature> featureHolder, BlockPos pos) throws CommandSyntaxException {
+         ServerLevel level = source.getLevel();
+         Feature feature = featureHolder.value();
+         ChunkPos chunkPos = ChunkPos.containing(pos);
+@@ -260,14 +_,8 @@
+             throw ERROR_FEATURE_FAILED.create();
+         }
+ 
+-        Optional<String> key = featureHolder.getRegisteredNameIfPresent();
+-        if (key.isPresent()) {
+-            String id = key.get();
+-            source.sendSuccess(() -> Component.translatable("commands.place.feature.success", id, pos.getX(), pos.getY(), pos.getZ()), true);
+-        } else {
+-            source.sendSuccess(() -> Component.translatable("commands.place.feature.success.inline", pos.getX(), pos.getY(), pos.getZ()), true);
+-        }
+-
++        String id = featureHolder.key().identifier().toString();
++        source.sendSuccess(() -> Component.translatable("commands.place.feature.success", id, pos.getX(), pos.getY(), pos.getZ()), true);
+         return 1;
+     }
+ 
+@@ -305,6 +_,7 @@
              throw ERROR_STRUCTURE_FAILED.create();
          }
  

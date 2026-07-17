@@ -28,11 +28,15 @@
      }
  
      protected ResourceKey<? extends Registry<T>> registryKey() {
-@@ -59,12 +_,18 @@
-         return new RegistryOps.RegistryInfo<>(this.registry, this.concurrentRegistrationGetter, this.registry.registryLifecycle());
-     }
+@@ -55,12 +_,22 @@
+ 
+     public abstract CompletableFuture<?> load(RegistryOps.RegistryInfoLookup context, Executor executor);
  
 -    protected void registerElements(Stream<RegistryLoadTask.PendingRegistration<T>> elements) {
++    public RegistryOps.RegistryInfo<?> createRegistryInfo() {
++        return new RegistryOps.RegistryInfo<>(this.registry, this.concurrentRegistrationGetter, this.registry.registryLifecycle());
++    }
++
 +    protected void registerElements(final Stream<RegistryLoadTask.PendingRegistration<T>> elements, final io.papermc.paper.registry.data.util.Conversions conversions) { // Paper - pass conversions
          synchronized (this.registryWriteLock) {
              elements.forEach(
@@ -50,7 +54,7 @@
              );
              this.elementsRegistered = true;
          }
-@@ -103,7 +_,15 @@
+@@ -99,7 +_,15 @@
          ) {
              try (Reader reader = thunk.openAsReader()) {
                  JsonElement json = StrictJsonParser.parse(reader);

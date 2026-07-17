@@ -1,19 +1,45 @@
 --- a/net/minecraft/server/packs/resources/SimpleJsonResourceReloadListener.java
 +++ b/net/minecraft/server/packs/resources/SimpleJsonResourceReloadListener.java
-@@ -42,7 +_,8 @@
+@@ -11,8 +_,11 @@
+ import java.util.HashMap;
+ import java.util.Map;
+ import java.util.Map.Entry;
++import net.minecraft.core.HolderLookup;
++import net.minecraft.core.Registry;
+ import net.minecraft.resources.FileToIdConverter;
+ import net.minecraft.resources.Identifier;
++import net.minecraft.resources.ResourceKey;
+ import net.minecraft.util.StrictJsonParser;
+ import net.minecraft.util.profiling.ProfilerFiller;
+ import org.slf4j.Logger;
+@@ -23,6 +_,10 @@
+     private final Codec<T> codec;
+     private final FileToIdConverter lister;
+ 
++    protected SimpleJsonResourceReloadListener(HolderLookup.Provider registries, Codec<T> codec, ResourceKey<? extends Registry<T>> registryKey) {
++        this(registries.createSerializationContext(JsonOps.INSTANCE), codec, FileToIdConverter.registry(registryKey));
++    }
++
+     protected SimpleJsonResourceReloadListener(Codec<T> codec, FileToIdConverter lister) {
+         this(JsonOps.INSTANCE, codec, lister);
+     }
+@@ -35,14 +_,40 @@
  
      protected Map<Identifier, T> prepare(ResourceManager manager, ProfilerFiller profiler) {
          Map<Identifier, T> result = new HashMap<>();
--        scanDirectory(manager, this.lister, this.ops, this.codec, result);
+-
+-        for (Entry<Identifier, Resource> entry : this.lister.listMatchingResources(manager).entrySet()) {
 +        // Neo: add condition context
 +        scanDirectory(manager, this.lister, this.makeConditionalOps(this.ops), this.codec, result);
-         return result;
-     }
- 
-@@ -52,16 +_,29 @@
-         scanDirectory(manager, FileToIdConverter.registry(registryKey), ops, codec, result);
-     }
- 
++        return result;
++    }
++
++    public static <T> void scanDirectory(
++        ResourceManager manager, ResourceKey<? extends Registry<T>> registryKey, DynamicOps<JsonElement> ops, Codec<T> codec, Map<Identifier, T> result
++    ) {
++        scanDirectory(manager, FileToIdConverter.registry(registryKey), ops, codec, result);
++    }
++
 +    public static <T> void scanDirectoryWithOptionalValues(
 +            ResourceManager manager,
 +            ResourceKey<? extends Registry<T>> registryKey,
@@ -24,16 +50,17 @@
 +        scanDirectory(manager, FileToIdConverter.registry(registryKey), ops, codec, result);
 +    }
 +
-     public static <T> void scanDirectory(
-         ResourceManager manager, FileToIdConverter lister, DynamicOps<JsonElement> ops, Codec<T> codec, Map<Identifier, T> result
-     ) {
++    public static <T> void scanDirectory(
++        ResourceManager manager, FileToIdConverter lister, DynamicOps<JsonElement> ops, Codec<T> codec, Map<Identifier, T> result
++    ) {
 +        var conditionalCodec = net.neoforged.neoforge.common.conditions.ConditionalOps.createConditionalCodec(codec);
-         for (Entry<Identifier, Resource> entry : lister.listMatchingResources(manager).entrySet()) {
++        for (Entry<Identifier, Resource> entry : lister.listMatchingResources(manager).entrySet()) {
              Identifier location = entry.getKey();
-             Identifier id = lister.fileToId(location);
+-            Identifier id = this.lister.fileToId(location);
++            Identifier id = lister.fileToId(location);
  
              try (Reader reader = entry.getValue().openAsReader()) {
--                codec.parse(ops, StrictJsonParser.parse(reader)).ifSuccess(parsed -> {
+-                this.codec.parse(this.ops, StrictJsonParser.parse(reader)).ifSuccess(parsed -> {
 -                    if (result.putIfAbsent(id, (T)parsed) != null) {
 +                conditionalCodec.parse(ops, com.google.gson.JsonParser.parseReader(reader)).ifSuccess(parsed -> {
 +                    if (parsed.isEmpty()) {
@@ -42,10 +69,12 @@
                          throw new IllegalStateException("Duplicate data file ignored with ID " + id);
                      }
                  }).ifError(error -> LOGGER.error("Couldn't parse data file '{}' from '{}': {}", id, location, error));
-@@ -69,5 +_,46 @@
+@@ -50,7 +_,46 @@
                  LOGGER.error("Couldn't parse data file '{}' from '{}'", id, location, e);
              }
          }
+-
+-        return result;
 +    }
 +
 +    /// Neo: Overload of [#scanDirectory(ResourceManager, FileToIdConverter, DynamicOps, Codec, Map)] with support

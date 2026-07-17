@@ -12,6 +12,15 @@
  
      public static GameTestServer create(
          Thread serverThread,
+@@ -117,7 +_,7 @@
+                         initConfig,
+                         context -> {
+                             Registry<LevelStem> noDatapackDimensions = new MappedRegistry<>(Registries.LEVEL_STEM, Lifecycle.stable()).freeze();
+-                            WorldDimensions worldDimensions = context.datapackWorldRegistries()
++                            WorldDimensions worldDimensions = context.datapackWorldgen()
+                                 .lookupOrThrow(Registries.WORLD_PRESET)
+                                 .getOrThrow(WorldPresets.FLAT_ALL_DIMENSIONS)
+                                 .value()
 @@ -154,7 +_,7 @@
          boolean verify,
          int repeatCount
@@ -68,7 +77,18 @@
      }
  
      private static Stream<GameTestInfo> rotateAndMultiply(Holder.Reference<GameTestInstance> test, ServerLevel level) {
-@@ -257,8 +_,14 @@
+@@ -248,17 +_,23 @@
+         }
+ 
+         if (level.getGameTime() % 20L == 0L) {
+-            LOGGER.info("{}", this.testTracker.getProgressBar());
++            LOGGER.info(this.testTracker.getProgressBar());
+         }
+ 
+         if (this.testTracker.isDone()) {
+             this.halt(false);
+-            LOGGER.info("{}", this.testTracker.getProgressBar());
++            LOGGER.info(this.testTracker.getProgressBar());
              GlobalTestReporter.finish();
              LOGGER.info("========= {} GAME TESTS COMPLETE IN {} ======================", this.testTracker.getTotalCount(), this.stopwatch.stop());
              if (this.testTracker.hasFailedRequired()) {

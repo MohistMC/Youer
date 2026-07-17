@@ -1,29 +1,15 @@
 --- a/net/minecraft/world/level/block/EyeblossomBlock.java
 +++ b/net/minecraft/world/level/block/EyeblossomBlock.java
-@@ -69,25 +_,31 @@
+@@ -69,24 +_,31 @@
          boolean shouldBeOpen = level.environmentAttributes().getValue(EnvironmentAttributes.EYEBLOSSOM_OPEN, pos).toBoolean(this.type.open);
          if (shouldBeOpen == this.type.open) {
              return false;
--        }
--
--        EyeblossomBlock.Type newType = this.type.transform();
--        level.setBlockAndUpdate(pos, newType.state());
--        level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(state));
--        newType.spawnTransformParticle(level, pos, random);
--        BlockPos.betweenClosed(pos.offset(-3, -2, -3), pos.offset(3, 2, 3)).forEach(nearby -> {
--            BlockState nearbyState = level.getBlockState(nearby);
--            if (nearbyState == state) {
--                double distance = Math.sqrt(pos.distSqr(nearby));
--                int delay = random.nextIntBetweenInclusive((int)(distance * 5.0), (int)(distance * 10.0));
--                level.scheduleTick(nearby, state.getBlock(), delay);
 +        } else {
 +            EyeblossomBlock.Type newType = this.type.transform();
 +            // CraftBukkit start - BlockFormEvent
 +            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockFormEvent(level, pos, newType.state(), 3)) {
 +                return false;
-             }
--        });
--        return true;
++            }
 +            // CraftBukkit end
 +            level.setBlockAndUpdate(pos, newType.state());
 +            level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(state));
@@ -37,7 +23,20 @@
 +                }
 +            });
 +            return true;
-+        }
+         }
+-
+-        EyeblossomBlock.Type newType = this.type.transform();
+-        level.setBlockAndUpdate(pos, newType.state());
+-        level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(state));
+-        newType.spawnTransformParticle(level, pos, random);
+-        BlockPos minPos = pos.offset(-3, -2, -3);
+-        BlockPos maxPos = pos.offset(3, 2, 3);
+-        level.findBlocksIn(minPos, maxPos).filterState(nearbyState -> nearbyState == state).forEach((nearbyPos, var5x) -> {
+-            double distance = Math.sqrt(pos.distSqr(nearbyPos));
+-            int delay = random.nextIntBetweenInclusive((int)(distance * 5.0), (int)(distance * 10.0));
+-            level.scheduleTick(nearbyPos, state.getBlock(), delay);
+-        });
+-        return true;
      }
  
      @Override

@@ -1,31 +1,52 @@
 --- a/net/minecraft/server/ServerAdvancementManager.java
 +++ b/net/minecraft/server/ServerAdvancementManager.java
-@@ -20,9 +_,13 @@
+@@ -10,29 +_,46 @@
+ import net.minecraft.advancements.AdvancementNode;
+ import net.minecraft.advancements.AdvancementTree;
+ import net.minecraft.advancements.TreeNodePosition;
+-import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.resources.Identifier;
++import net.minecraft.server.packs.resources.ResourceManager;
++import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
+ import net.minecraft.util.ProblemReporter;
++import net.minecraft.util.profiling.ProfilerFiller;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
+-public class ServerAdvancementManager {
 +// CraftBukkit start
 +import java.util.HashMap;
 +// CraftBukkit end
 +
- public class ServerAdvancementManager extends SimpleJsonResourceReloadListener<Advancement> {
++public class ServerAdvancementManager extends SimpleJsonResourceReloadListener<Advancement> {
      private static final Logger LOGGER = LogUtils.getLogger();
--    public Map<Identifier, AdvancementHolder> advancements = Map.of();
+-    public final Map<Identifier, AdvancementHolder> advancements;
+-    private final AdvancementTree tree;
 +    public Map<Identifier, AdvancementHolder> advancements = new HashMap<>(); // CraftBukkit - SPIGOT-7734: mutable
-     private AdvancementTree tree = new AdvancementTree();
-     private final HolderLookup.Provider registries;
++    private AdvancementTree tree = new AdvancementTree();
++    private final HolderLookup.Provider registries;
  
-@@ -34,12 +_,18 @@
-     protected void apply(Map<Identifier, Advancement> preparations, ResourceManager manager, ProfilerFiller profiler) {
+     public ServerAdvancementManager(HolderLookup.Provider registries) {
+-        HolderLookup.RegistryLookup<Advancement> advancements = registries.lookupOrThrow(Registries.ADVANCEMENT);
++        super(registries, Advancement.CODEC, Registries.ADVANCEMENT);
++        this.registries = registries;
++    }
++
++    protected void apply(Map<Identifier, Advancement> preparations, ResourceManager manager, ProfilerFiller profiler) {
          Builder<Identifier, AdvancementHolder> builder = ImmutableMap.builder();
-         preparations.forEach((id, advancement) -> {
+-        advancements.listElements().forEach(advancement -> {
+-            validate(registries, (Holder.Reference<Advancement>)advancement);
+-            builder.put(advancement.key().identifier(), new AdvancementHolder(advancement.key().identifier(), advancement.value()));
++        preparations.forEach((id, advancement) -> {
 +            // Spigot start
 +            if (org.spigotmc.SpigotConfig.disabledAdvancements != null && (org.spigotmc.SpigotConfig.disabledAdvancements.contains("*") || org.spigotmc.SpigotConfig.disabledAdvancements.contains(id.toString()) || org.spigotmc.SpigotConfig.disabledAdvancements.contains(id.getNamespace()))) {
 +                return;
 +            }
 +            // Spigot end
-             this.validate(id, advancement);
-             builder.put(id, new AdvancementHolder(id, advancement));
++            this.validate(id, advancement);
++            builder.put(id, new AdvancementHolder(id, advancement));
          });
          this.advancements = builder.buildOrThrow();
          AdvancementTree tree = new AdvancementTree();
@@ -34,3 +55,18 @@
  
          for (AdvancementNode root : tree.roots()) {
              if (root.holder().value().display().isPresent()) {
+@@ -43,11 +_,11 @@
+         this.tree = tree;
+     }
+ 
+-    private static void validate(HolderLookup.Provider registries, Holder.Reference<Advancement> advancement) {
++    private void validate(Identifier id, Advancement advancement) {
+         ProblemReporter.Collector problemCollector = new ProblemReporter.Collector();
+-        advancement.value().validate(problemCollector, registries);
++        advancement.validate(problemCollector, this.registries);
+         if (!problemCollector.isEmpty()) {
+-            LOGGER.warn("Found validation problems in advancement {}: \n{}", advancement.key().identifier(), problemCollector.getReport());
++            LOGGER.warn("Found validation problems in advancement {}: \n{}", id, problemCollector.getReport());
+         }
+     }
+ 

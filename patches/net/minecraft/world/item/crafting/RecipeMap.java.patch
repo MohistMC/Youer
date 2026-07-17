@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/crafting/RecipeMap.java
 +++ b/net/minecraft/world/item/crafting/RecipeMap.java
-@@ -2,9 +_,13 @@
+@@ -2,35 +_,82 @@
  
  import com.google.common.collect.ImmutableMap;
  import com.google.common.collect.ImmutableMultimap;
@@ -13,8 +13,9 @@
 +import java.util.LinkedHashMap;
  import java.util.Map;
  import java.util.stream.Stream;
+-import net.minecraft.core.HolderLookup;
  import net.minecraft.resources.ResourceKey;
-@@ -12,11 +_,11 @@
+ import net.minecraft.world.level.Level;
  import org.jspecify.annotations.Nullable;
  
  public class RecipeMap {
@@ -30,11 +31,23 @@
          this.byType = byType;
          this.byKey = byKey;
      }
-@@ -30,7 +_,50 @@
-             byKey.put(recipe.id(), recipe);
-         }
  
+-    public static RecipeMap create(HolderLookup<Recipe<?>> recipes) {
++    public static RecipeMap create(Iterable<RecipeHolder<?>> recipes) {
+         Builder<RecipeType<?>, RecipeHolder<?>> byType = ImmutableMultimap.builder();
+         com.google.common.collect.ImmutableMap.Builder<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey = ImmutableMap.builder();
+-        recipes.listElements().forEach(recipe -> {
+-            RecipeHolder<? extends Recipe<?>> legacyRecipeHolder = new RecipeHolder<>(recipe.key(), recipe.value());
+-            byType.put(recipe.value().getType(), legacyRecipeHolder);
+-            byKey.put(recipe.key(), legacyRecipeHolder);
+-        });
 -        return new RecipeMap(byType.build(), byKey.build());
++
++        for (RecipeHolder<?> recipe : recipes) {
++            byType.put(recipe.value().getType(), recipe);
++            byKey.put(recipe.id(), recipe);
++        }
++
 +        // CraftBukkit start - mutable
 +        return new RecipeMap(com.google.common.collect.LinkedHashMultimap.create(byType.build()), com.google.common.collect.Maps.newLinkedHashMap(byKey.build()));
 +    }

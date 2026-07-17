@@ -1,6 +1,14 @@
 --- a/net/minecraft/server/Bootstrap.java
 +++ b/net/minecraft/server/Bootstrap.java
-@@ -44,6 +_,7 @@
+@@ -25,6 +_,7 @@
+ import net.minecraft.world.flag.FeatureFlags;
+ import net.minecraft.world.item.CreativeModeTabs;
+ import net.minecraft.world.item.Item;
++import net.minecraft.world.level.block.ComposterBlock;
+ import net.minecraft.world.level.block.FireBlock;
+ import net.minecraft.world.level.block.state.BlockBehaviour;
+ import net.minecraft.world.level.gamerules.GameRule;
+@@ -43,11 +_,13 @@
          if (!isBootstrapped) {
              isBootstrapped = true;
              Instant start = Instant.now();
@@ -8,7 +16,13 @@
              if (BuiltInRegistries.REGISTRY.keySet().isEmpty()) {
                  throw new IllegalStateException("Unable to load registries");
              }
-@@ -57,8 +_,14 @@
+ 
+             FireBlock.bootStrap();
++            ComposterBlock.bootStrap();
+             if (EntityType.getKey(EntityTypes.PLAYER) == null) {
+                 throw new IllegalStateException("Failed loading EntityTypes");
+             }
+@@ -55,8 +_,14 @@
              EntitySelectorOptions.bootStrap();
              DispenseItemBehavior.bootStrap();
              CauldronInteractions.bootStrap();
@@ -24,7 +38,7 @@
              wrapStreams();
              bootstrapDuration.set(Duration.between(start, Instant.now()).toMillis());
          }
-@@ -121,7 +_,6 @@
+@@ -119,7 +_,6 @@
              Commands.validate();
          }
  

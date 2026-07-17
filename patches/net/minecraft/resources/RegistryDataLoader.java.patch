@@ -1,15 +1,65 @@
 --- a/net/minecraft/resources/RegistryDataLoader.java
 +++ b/net/minecraft/resources/RegistryDataLoader.java
-@@ -137,7 +_,7 @@
+@@ -21,8 +_,6 @@
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.ReportedException;
+-import net.minecraft.advancements.Advancement;
+-import net.minecraft.core.HolderGetter;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.Registry;
+ import net.minecraft.core.RegistryAccess;
+@@ -53,12 +_,10 @@
+ import net.minecraft.world.entity.decoration.painting.PaintingVariant;
+ import net.minecraft.world.item.Instrument;
+ import net.minecraft.world.item.JukeboxSong;
+-import net.minecraft.world.item.crafting.Recipe;
+ import net.minecraft.world.item.enchantment.Enchantment;
+ import net.minecraft.world.item.enchantment.providers.EnchantmentProvider;
+ import net.minecraft.world.item.equipment.trim.TrimMaterial;
+ import net.minecraft.world.item.equipment.trim.TrimPattern;
+-import net.minecraft.world.item.slot.SlotSources;
+ import net.minecraft.world.item.trading.TradeSet;
+ import net.minecraft.world.item.trading.VillagerTrade;
+ import net.minecraft.world.level.biome.Biome;
+@@ -81,17 +_,13 @@
+ import net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool;
+ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType;
+ import net.minecraft.world.level.levelgen.synth.NormalNoise;
+-import net.minecraft.world.level.storage.loot.LootTable;
+-import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
+-import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+-import net.minecraft.world.level.storage.loot.providers.number.NumberProviders;
+ import net.minecraft.world.timeline.Timeline;
+ import org.slf4j.Logger;
+ 
+ public class RegistryDataLoader {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private static final Comparator<ResourceKey<?>> ERROR_KEY_COMPARATOR = Comparator.<ResourceKey<?>, Identifier>comparing(ResourceKey::registry).thenComparing(ResourceKey::identifier);
+-    public static final List<RegistryDataLoader.RegistryData<?>> WORLD_REGISTRIES = List.of(
++    public static final List<RegistryDataLoader.RegistryData<?>> WORLDGEN_REGISTRIES = List.of(
+         new RegistryDataLoader.RegistryData<>(Registries.DIMENSION_TYPE, DimensionType.DIRECT_CODEC),
+         new RegistryDataLoader.RegistryData<>(Registries.BIOME, Biome.DIRECT_CODEC),
+         new RegistryDataLoader.RegistryData<>(Registries.CHAT_TYPE, ChatType.DIRECT_CODEC),
+@@ -145,16 +_,7 @@
      public static final List<RegistryDataLoader.RegistryData<?>> DIMENSION_REGISTRIES = List.of(
          new RegistryDataLoader.RegistryData<>(Registries.LEVEL_STEM, LevelStem.CODEC)
      );
+-    public static final List<RegistryDataLoader.RegistryData<?>> RELOADABLE_REGISTRIES = List.of(
+-        new RegistryDataLoader.RegistryData<>(Registries.LOOT_TABLE, LootTable.DIRECT_CODEC),
+-        new RegistryDataLoader.RegistryData<>(Registries.PREDICATE, LootItemCondition.DIRECT_CODEC),
+-        new RegistryDataLoader.RegistryData<>(Registries.NUMBER_PROVIDER, NumberProviders.DIRECT_CODEC),
+-        new RegistryDataLoader.RegistryData<>(Registries.ITEM_MODIFIER, LootItemFunctions.ROOT_CODEC),
+-        new RegistryDataLoader.RegistryData<>(Registries.SLOT_SOURCE, SlotSources.DIRECT_CODEC),
+-        new RegistryDataLoader.RegistryData<>(Registries.ADVANCEMENT, Advancement.CODEC),
+-        new RegistryDataLoader.RegistryData<>(Registries.RECIPE, Recipe.CODEC)
+-    );
 -    public static final List<RegistryDataLoader.RegistryData<?>> SYNCHRONIZED_REGISTRIES = List.of(
 +    public static final List<RegistryDataLoader.RegistryData<?>> SYNCHRONIZED_REGISTRIES = net.neoforged.neoforge.registries.DataPackRegistriesHooks.grabNetworkableRegistries(List.of(
          new RegistryDataLoader.RegistryData<>(Registries.BIOME, Biome.NETWORK_CODEC),
          new RegistryDataLoader.RegistryData<>(Registries.CHAT_TYPE, ChatType.DIRECT_CODEC),
          new RegistryDataLoader.RegistryData<>(Registries.TRIM_PATTERN, TrimPattern.DIRECT_CODEC),
-@@ -168,7 +_,7 @@
+@@ -185,7 +_,7 @@
          new RegistryDataLoader.RegistryData<>(Registries.WORLD_CLOCK, WorldClock.DIRECT_CODEC),
          new RegistryDataLoader.RegistryData<>(Registries.TIMELINE, Timeline.NETWORK_CODEC),
          new RegistryDataLoader.RegistryData<>(Registries.DECORATED_POT_PATTERN, DecoratedPotPattern.CODEC)
@@ -18,7 +68,7 @@
  
      public static CompletableFuture<RegistryAccess.Frozen> load(
          ResourceManager resourceManager,
-@@ -182,7 +_,7 @@
+@@ -199,7 +_,7 @@
                  return new ResourceManagerRegistryLoadTask<>(data, Lifecycle.stable(), loadingErrors, resourceManager);
              }
          };
@@ -27,7 +77,7 @@
      }
  
      public static CompletableFuture<RegistryAccess.Frozen> load(
-@@ -198,14 +_,16 @@
+@@ -215,14 +_,16 @@
                  return new NetworkRegistryLoadTask<>(data, Lifecycle.stable(), loadingErrors, entries, knownDataSource);
              }
          };
@@ -46,7 +96,7 @@
      ) {
          return CompletableFuture.<CompletableFuture<RegistryAccess.Frozen>>supplyAsync(
                  () -> {
-@@ -224,6 +_,15 @@
+@@ -241,6 +_,15 @@
                      return CompletableFuture.allOf(loadCompletions)
                          .thenApplyAsync(
                              ignored -> {
@@ -62,18 +112,27 @@
                                  List<RegistryLoadTask<?>> frozenRegistries = loadTasks.stream().filter(task -> task.freezeRegistry(loadingErrors)).toList();
                                  if (!loadingErrors.isEmpty()) {
                                      throw logErrors(loadingErrors);
-@@ -252,11 +_,21 @@
-         final Map<ResourceKey<? extends Registry<?>>, RegistryOps.RegistryInfo<?>> result = new HashMap<>();
-         contextRegistries.forEach(e -> result.put(e.key(), createInfoForContextRegistry((HolderLookup.RegistryLookup<?>)e)));
-         newRegistriesAndLoaders.forEach(e -> result.put(e.registryKey(), e.createRegistryInfo()));
+@@ -266,15 +_,29 @@
+     private static RegistryOps.RegistryInfoLookup createContext(
+         List<HolderLookup.RegistryLookup<?>> contextRegistries, List<RegistryLoadTask<?>> newRegistriesAndLoaders
+     ) {
+-        final Map<ResourceKey<? extends Registry<?>>, HolderGetter<?>> result = new HashMap<>();
+-        contextRegistries.forEach(e -> result.put(e.key(), e));
+-        newRegistriesAndLoaders.forEach(e -> result.put(e.registryKey(), e.concurrentRegistrationGetter));
++        final Map<ResourceKey<? extends Registry<?>>, RegistryOps.RegistryInfo<?>> result = new HashMap<>();
++        contextRegistries.forEach(e -> result.put(e.key(), createInfoForContextRegistry((HolderLookup.RegistryLookup<?>)e)));
++        newRegistriesAndLoaders.forEach(e -> result.put(e.registryKey(), e.createRegistryInfo()));
 +        // this creates a HolderLookup.Provider to be used exclusively to obtain real instances of values to pre-populate builders
 +        // for the Registry Modification API. This concatenates the context registry lookups and the empty registries about to be filled.
 +        final HolderLookup.Provider providerForBuilders = HolderLookup.Provider.create(java.util.stream.Stream.concat(contextRegistries.stream(), newRegistriesAndLoaders.stream().map(t -> t.registry))); // Paper - add method to get the value for pre-filling builders in the reg mod API
          return new RegistryOps.RegistryInfoLookup() {
              @Override
-             public <T> Optional<RegistryOps.RegistryInfo<T>> lookup(ResourceKey<? extends Registry<? extends T>> key) {
-                 return Optional.ofNullable((RegistryOps.RegistryInfo<T>)result.get(key));
-             }
+-            public <T> Optional<HolderGetter<T>> lookup(ResourceKey<? extends Registry<? extends T>> key) {
+-                return Optional.ofNullable((HolderGetter<T>)result.get(key));
+-            }
++            public <T> Optional<RegistryOps.RegistryInfo<T>> lookup(ResourceKey<? extends Registry<? extends T>> key) {
++                return Optional.ofNullable((RegistryOps.RegistryInfo<T>)result.get(key));
++            }
 +
 +            // Paper start - add method to get the value for pre-filling builders in the reg mod API
 +            @Override
@@ -82,9 +141,14 @@
 +            }
 +            // Paper end - add method to get the value for pre-filling builders in the reg mod API
          };
++    }
++
++    private static <T> RegistryOps.RegistryInfo<T> createInfoForContextRegistry(HolderLookup.RegistryLookup<T> lookup) {
++        return new RegistryOps.RegistryInfo<>(lookup, lookup, lookup.registryLifecycle());
      }
  
-@@ -318,7 +_,11 @@
+     private static ReportedException logErrors(Map<ResourceKey<?>, Exception> loadingErrors) {
+@@ -331,7 +_,11 @@
      public record NetworkedRegistryData(List<RegistrySynchronization.PackedRegistryEntry> elements, TagNetworkSerialization.NetworkPayload tags) {
      }
  

@@ -1,5 +1,21 @@
 --- a/net/minecraft/world/entity/npc/wanderingtrader/WanderingTraderSpawner.java
 +++ b/net/minecraft/world/entity/npc/wanderingtrader/WanderingTraderSpawner.java
+@@ -4,7 +_,6 @@
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.tags.BiomeTags;
+-import net.minecraft.util.Continuation;
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.entity.EntitySpawnReason;
+@@ -15,6 +_,7 @@
+ import net.minecraft.world.entity.ai.village.poi.PoiTypes;
+ import net.minecraft.world.entity.animal.equine.TraderLlama;
+ import net.minecraft.world.entity.player.Player;
++import net.minecraft.world.level.BlockGetter;
+ import net.minecraft.world.level.CustomSpawner;
+ import net.minecraft.world.level.LevelReader;
+ import net.minecraft.world.level.gamerules.GameRules;
 @@ -37,30 +_,38 @@
  
      public WanderingTraderSpawner(SavedDataStorage savedDataStorage) {
@@ -92,3 +108,20 @@
              if (wanderingTraderSpawnType.isSpawnPositionOk(level, spawnPos, EntityTypes.WANDERING_TRADER)) {
                  spawnPosition = spawnPos;
                  break;
+@@ -137,8 +_,13 @@
+         return spawnPosition;
+     }
+ 
+-    private boolean hasEnoughSpace(LevelReader level, BlockPos spawnPos) {
+-        return !level.findBlocksIn(spawnPos, spawnPos.offset(1, 2, 1))
+-            .forEachUntil((pos, state) -> Continuation.continueIf(state.getCollisionShape(level, pos).isEmpty()));
++    private boolean hasEnoughSpace(BlockGetter level, BlockPos spawnPos) {
++        for (BlockPos pos : BlockPos.betweenClosed(spawnPos, spawnPos.offset(1, 2, 1))) {
++            if (!level.getBlockState(pos).getCollisionShape(level, pos).isEmpty()) {
++                return false;
++            }
++        }
++
++        return true;
+     }
+ }

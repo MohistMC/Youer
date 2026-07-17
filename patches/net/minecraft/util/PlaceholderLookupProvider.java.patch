@@ -1,9 +1,47 @@
 --- a/net/minecraft/util/PlaceholderLookupProvider.java
 +++ b/net/minecraft/util/PlaceholderLookupProvider.java
-@@ -52,6 +_,13 @@
-                             )
-                         );
-                 }
+@@ -4,12 +_,14 @@
+ import com.mojang.serialization.DataResult;
+ import com.mojang.serialization.DynamicOps;
+ import com.mojang.serialization.JavaOps;
++import com.mojang.serialization.Lifecycle;
+ import java.util.HashMap;
+ import java.util.Map;
+ import java.util.Optional;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderGetter;
+ import net.minecraft.core.HolderLookup;
++import net.minecraft.core.HolderOwner;
+ import net.minecraft.core.HolderSet;
+ import net.minecraft.core.Registry;
+ import net.minecraft.resources.RegistryOps;
+@@ -32,13 +_,33 @@
+     }
+ 
+     public <V> RegistryOps<V> createSerializationContext(DynamicOps<V> parent) {
+-        return RegistryOps.create(parent, new RegistryOps.RegistryInfoLookup() {
+-            @Override
+-            public <T> Optional<HolderGetter<T>> lookup(ResourceKey<? extends Registry<? extends T>> registryKey) {
+-                Optional<HolderGetter<T>> result = PlaceholderLookupProvider.this.context.lookup(registryKey).map(e -> (HolderGetter<T>)e);
+-                return result.or(() -> Optional.of(PlaceholderLookupProvider.this.lookup.castAsLookup()));
++        return RegistryOps.create(
++            parent,
++            new RegistryOps.RegistryInfoLookup() {
++                @Override
++                public <T> Optional<RegistryOps.RegistryInfo<T>> lookup(ResourceKey<? extends Registry<? extends T>> registryKey) {
++                    return PlaceholderLookupProvider.this.context
++                        .lookup(registryKey)
++                        .map(RegistryOps.RegistryInfo::fromRegistryLookup)
++                        .or(
++                            () -> Optional.of(
++                                new RegistryOps.RegistryInfo<>(
++                                    PlaceholderLookupProvider.this.lookup.castAsOwner(),
++                                    PlaceholderLookupProvider.this.lookup.castAsLookup(),
++                                    Lifecycle.experimental()
++                                )
++                            )
++                        );
++                }
 +
 +                // Paper start add method to get the value for pre-filling builders in the reg mod API
 +                @Override
@@ -12,5 +50,28 @@
 +                }
 +                // Paper end - add method to get the value for pre-filling builders in the reg mod API
              }
-         );
+-        });
++        );
      }
+ 
+     public RegistryContextSwapper createSwapper() {
+@@ -55,7 +_,7 @@
+         return !this.holders.isEmpty() || !this.holderSets.isEmpty();
+     }
+ 
+-    private class UniversalLookup implements HolderGetter<Object> {
++    private class UniversalLookup implements HolderGetter<Object>, HolderOwner<Object> {
+         @Override
+         public Optional<Holder.Reference<Object>> get(ResourceKey<Object> id) {
+             return Optional.of(this.getOrCreate(id));
+@@ -86,6 +_,10 @@
+ 
+         public <T> HolderGetter<T> castAsLookup() {
+             return (HolderGetter<T>)this;
++        }
++
++        public <T> HolderOwner<T> castAsOwner() {
++            return (HolderOwner<T>)this;
+         }
+     }
+ }

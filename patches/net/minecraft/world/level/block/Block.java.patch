@@ -293,7 +293,27 @@
      public float getFriction() {
          return this.friction;
      }
-@@ -498,6 +_,7 @@
+@@ -481,16 +_,12 @@
+         return this.jumpFactor;
+     }
+ 
+-    public void spawnDestroyByEntityParticles(Level level, @Nullable Entity entity, BlockPos pos, BlockState state) {
+-        level.levelEvent(entity, 2001, pos, getId(state));
+-    }
+-
+-    public void spawnDestroyParticles(Level level, BlockPos pos, BlockState state) {
+-        this.spawnDestroyByEntityParticles(level, null, pos, state);
++    protected void spawnDestroyParticles(Level level, Player player, BlockPos pos, BlockState state) {
++        level.levelEvent(player, 2001, pos, getId(state));
+     }
+ 
+     public BlockState playerWillDestroy(Level level, BlockPos pos, BlockState state, Player player) {
+-        this.spawnDestroyByEntityParticles(level, player, pos, state);
++        this.spawnDestroyParticles(level, player, pos, state);
+         if (state.is(BlockTags.GUARDED_BY_PIGLINS) && level instanceof ServerLevel serverLevel) {
+             PiglinAi.angerNearbyPiglins(serverLevel, player, false);
+         }
+@@ -502,6 +_,7 @@
      public void handlePrecipitation(BlockState state, Level level, BlockPos pos, Biome.Precipitation precipitation) {
      }
  
@@ -301,7 +321,7 @@
      public boolean dropFromExplosion(Explosion explosion) {
          return true;
      }
-@@ -521,10 +_,16 @@
+@@ -525,10 +_,16 @@
          BlockState result = this.defaultBlockState();
  
          for (Property<?> property : source.getBlock().getStateDefinition().getProperties()) {
@@ -319,7 +339,7 @@
      }
  
      @Override
-@@ -574,17 +_,55 @@
+@@ -578,17 +_,55 @@
          return state.setValue(property, (T)value);
      }
  

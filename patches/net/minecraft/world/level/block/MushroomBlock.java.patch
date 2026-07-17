@@ -1,15 +1,31 @@
 --- a/net/minecraft/world/level/block/MushroomBlock.java
 +++ b/net/minecraft/world/level/block/MushroomBlock.java
-@@ -34,7 +_,7 @@
+@@ -19,8 +_,6 @@
+ import net.minecraft.world.phys.shapes.VoxelShape;
+ 
+ public class MushroomBlock extends VegetationBlock implements BonemealableBlock {
+-    private static final int SEARCH_RADIUS = 4;
+-    private static final int MAX_NEIGHBORS_TO_GROW = 4;
+     private static final VoxelShape SHAPE = Block.column(6.0, 0.0, 6.0);
+     private final ResourceKey<Feature> feature;
+ 
+@@ -36,12 +_,20 @@
  
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
 -        if (random.nextInt(25) == 0) {
+-            if (!this.canSpread(level, pos)) {
+-                return;
 +        if (random.nextFloat() < (level.spigotConfig.mushroomModifier / (100.0F * 25))) { // Spigot - SPIGOT-7159: Better modifier resolution
-             int max = 5;
-             int r = 4;
- 
-@@ -47,6 +_,7 @@
++            int max = 5;
++            int r = 4;
++
++            for (BlockPos blockPos : BlockPos.betweenClosed(pos.offset(-4, -1, -4), pos.offset(4, 1, 4))) {
++                if (level.getBlockState(blockPos).is(this)) {
++                    if (--max <= 0) {
++                        return;
++                    }
++                }
              }
  
              BlockPos offset = pos.offset(random.nextInt(3) - 1, random.nextInt(2) - random.nextInt(2), random.nextInt(3) - 1);
@@ -17,7 +33,7 @@
  
              for (int i = 0; i < 4; i++) {
                  if (level.isEmptyBlock(offset) && state.canSurvive(level, offset)) {
-@@ -57,7 +_,7 @@
+@@ -52,15 +_,9 @@
              }
  
              if (level.isEmptyBlock(offset) && state.canSurvive(level, offset)) {
@@ -25,8 +41,16 @@
 +                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(level, sourcePos, offset, state, Block.UPDATE_CLIENTS); // CraftBukkit // Paper - Use correct source for mushroom block spread event
              }
          }
+-    }
+-
+-    private boolean canSpread(ServerLevel level, BlockPos pos) {
+-        BlockPos minPos = pos.offset(-4, -1, -4);
+-        BlockPos maxPos = pos.offset(4, 1, 4);
+-        return level.findBlocksIn(minPos, maxPos).filterState(state -> state.is(this)).atMostMatched(4);
      }
-@@ -71,16 +_,26 @@
+ 
+     @Override
+@@ -72,16 +_,26 @@
      protected boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
          BlockPos belowPos = pos.below();
          BlockState below = level.getBlockState(belowPos);

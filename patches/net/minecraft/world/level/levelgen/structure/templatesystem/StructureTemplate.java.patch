@@ -29,7 +29,43 @@
      public Vec3i getSize() {
          return this.size;
      }
-@@ -209,7 +_,7 @@
+@@ -109,20 +_,24 @@
+             this.size = size;
+ 
+             try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(LOGGER)) {
+-                level.findBlocksIn(minCorner, maxCorner).filterState(state -> !ignoreBlocks.contains(state.getBlock())).forEach((pos, state) -> {
++                for (BlockPos pos : BlockPos.betweenClosed(minCorner, maxCorner)) {
+                     BlockPos relativePos = pos.subtract(minCorner);
+-                    BlockEntity blockEntity = level.getBlockEntity(pos);
+-                    StructureTemplate.StructureBlockInfo info;
+-                    if (blockEntity != null) {
+-                        TagValueOutput output = TagValueOutput.createWithContext(reporter, level.registryAccess());
+-                        blockEntity.saveWithId(output);
+-                        info = new StructureTemplate.StructureBlockInfo(relativePos, state, output.buildResult());
+-                    } else {
+-                        info = new StructureTemplate.StructureBlockInfo(relativePos, state, null);
++                    BlockState blockState = level.getBlockState(pos);
++                    if (!ignoreBlocks.stream().anyMatch(blockState::is)) {
++                        BlockEntity blockEntity = level.getBlockEntity(pos);
++                        StructureTemplate.StructureBlockInfo info;
++                        if (blockEntity != null) {
++                            TagValueOutput output = TagValueOutput.createWithContext(reporter, level.registryAccess());
++                            blockEntity.saveWithId(output);
++                            info = new StructureTemplate.StructureBlockInfo(relativePos, blockState, output.buildResult());
++                        } else {
++                            info = new StructureTemplate.StructureBlockInfo(relativePos, blockState, null);
++                        }
++
++                        addToLists(info, fullBlockList, blockEntitiesList, otherBlocksList);
+                     }
++                }
+ 
+-                    addToLists(info, fullBlockList, blockEntitiesList, otherBlocksList);
+-                });
+                 List<StructureTemplate.StructureBlockInfo> blockInfoList = buildInfoList(fullBlockList, blockEntitiesList, otherBlocksList);
+                 this.palettes.clear();
+                 this.palettes.add(new StructureTemplate.Palette(blockInfoList));
+@@ -205,7 +_,7 @@
              result.add(
                  jigsaw.withInfo(
                      new StructureTemplate.StructureBlockInfo(
@@ -38,7 +74,7 @@
                      )
                  )
              );
-@@ -228,7 +_,7 @@
+@@ -224,7 +_,7 @@
          for (StructureTemplate.StructureBlockInfo blockInfo : settings.getRandomPalette(this.palettes, position).blocks(block)) {
              BlockPos blockPos = absolute ? calculateRelativePosition(settings, blockInfo.pos).offset(position) : blockInfo.pos;
              if (boundingBox == null || boundingBox.isInside(blockPos)) {
@@ -47,7 +83,7 @@
              }
          }
  
-@@ -245,6 +_,10 @@
+@@ -241,6 +_,10 @@
          return transform(pos, settings.getMirror(), settings.getRotation(), settings.getRotationPivot());
      }
  
@@ -58,7 +94,7 @@
      public boolean placeInWorld(
          ServerLevelAccessor level,
          BlockPos position,
-@@ -256,7 +_,19 @@
+@@ -252,7 +_,19 @@
          if (this.palettes.isEmpty()) {
              return false;
          }
@@ -79,7 +115,7 @@
          List<StructureTemplate.StructureBlockInfo> blockInfoList = settings.getRandomPalette(this.palettes, position).blocks();
          if ((!blockInfoList.isEmpty() || !settings.isIgnoreEntities() && !this.entityInfoList.isEmpty())
              && this.size.getX() >= 1
-@@ -272,7 +_,7 @@
+@@ -268,7 +_,7 @@
              int maxX = Integer.MIN_VALUE;
              int maxY = Integer.MIN_VALUE;
              int maxZ = Integer.MIN_VALUE;
@@ -88,7 +124,7 @@
  
              try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(LOGGER)) {
                  for (StructureTemplate.StructureBlockInfo blockInfo : processedBlockInfoList) {
-@@ -284,6 +_,20 @@
+@@ -280,6 +_,20 @@
                              level.setBlock(blockPos, Blocks.BARRIER.defaultBlockState(), 820);
                          }
  
@@ -109,7 +145,7 @@
                          if (level.setBlock(blockPos, state, updateMode)) {
                              minX = Math.min(minX, blockPos.getX());
                              minY = Math.min(minY, blockPos.getY());
-@@ -295,13 +_,14 @@
+@@ -291,13 +_,14 @@
                              if (blockInfo.nbt != null) {
                                  BlockEntity blockEntity = level.getBlockEntity(blockPos);
                                  if (blockEntity != null) {
@@ -125,7 +161,7 @@
                                  }
                              }
  
-@@ -379,23 +_,16 @@
+@@ -375,23 +_,16 @@
                          if (blockInfo.getSecond() != null) {
                              BlockEntity blockEntity = level.getBlockEntity(blockPos);
                              if (blockEntity != null) {
@@ -152,7 +188,7 @@
                  }
              }
  
-@@ -429,6 +_,10 @@
+@@ -425,6 +_,10 @@
          });
      }
  
@@ -163,7 +199,7 @@
      public static List<StructureTemplate.StructureBlockInfo> processBlockInfos(
          ServerLevelAccessor level,
          BlockPos position,
-@@ -436,6 +_,10 @@
+@@ -432,6 +_,10 @@
          StructurePlaceSettings settings,
          List<StructureTemplate.StructureBlockInfo> blockInfoList
      ) {
@@ -174,7 +210,7 @@
          List<StructureTemplate.StructureBlockInfo> originalBlockInfoList = new ArrayList<>();
          List<StructureTemplate.StructureBlockInfo> processedBlockInfoList = new ArrayList<>();
          boolean processOnlyInCurrentChunk = true;
-@@ -458,7 +_,7 @@
+@@ -454,7 +_,7 @@
                  Iterator<StructureProcessor> iterator = settings.getProcessors().iterator();
  
                  while (processedBlockInfo != null && iterator.hasNext()) {
@@ -183,7 +219,7 @@
                  }
  
                  if (processedBlockInfo != null) {
-@@ -475,22 +_,30 @@
+@@ -471,22 +_,30 @@
          return processedBlockInfoList;
      }
  
@@ -229,7 +265,7 @@
                  ListTag posTag = new ListTag();
                  posTag.add(DoubleTag.valueOf(pos.x));
                  posTag.add(DoubleTag.valueOf(pos.y));
-@@ -498,12 +_,12 @@
+@@ -494,12 +_,12 @@
                  tag.put("Pos", posTag);
                  tag.remove("UUID");
                  createEntityIgnoreException(problemReporter, level, tag).ifPresent(entity -> {
@@ -245,7 +281,7 @@
                          mob.finalizeSpawn(level, level.getCurrentDifficultyAt(BlockPos.containing(pos)), EntitySpawnReason.STRUCTURE, null);
                      }
  
-@@ -514,13 +_,13 @@
+@@ -510,13 +_,13 @@
      }
  
      private static Optional<Entity> createEntityIgnoreException(ProblemReporter reporter, ServerLevelAccessor level, CompoundTag tag) {
@@ -266,7 +302,7 @@
      }
  
      public Vec3i getSize(Rotation rotation) {
-@@ -693,6 +_,11 @@
+@@ -689,6 +_,11 @@
  
          tag.put("entities", entityList);
          tag.put("size", this.newIntegerList(this.size.getX(), this.size.getY(), this.size.getZ()));
@@ -278,7 +314,7 @@
          return NbtUtils.addCurrentDataVersion(tag);
      }
  
-@@ -718,6 +_,11 @@
+@@ -714,6 +_,11 @@
              BlockPos blockPos = new BlockPos(blockPosTag.getIntOr(0, 0), blockPosTag.getIntOr(1, 0), blockPosTag.getIntOr(2, 0));
              entityTag.getCompound("nbt").ifPresent(nbt -> this.entityInfoList.add(new StructureTemplate.StructureEntityInfo(pos, blockPos, nbt)));
          });
@@ -290,7 +326,7 @@
      }
  
      private void loadPalette(HolderGetter<Block> blockLookup, ListTag paletteList, ListTag blockList) {
-@@ -817,7 +_,7 @@
+@@ -813,7 +_,7 @@
  
      public static final class Palette {
          private final List<StructureTemplate.StructureBlockInfo> blocks;

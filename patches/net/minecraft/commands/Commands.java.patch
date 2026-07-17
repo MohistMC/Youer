@@ -8,7 +8,7 @@
  import com.mojang.brigadier.CommandDispatcher;
  import com.mojang.brigadier.ParseResults;
  import com.mojang.brigadier.StringReader;
-@@ -157,6 +_,7 @@
+@@ -158,6 +_,7 @@
  import org.slf4j.Logger;
  
  public class Commands {
@@ -16,7 +16,7 @@
      public static final String COMMAND_PREFIX = "/";
      private static final ThreadLocal<@Nullable ExecutionContext<CommandSourceStack>> CURRENT_EXECUTION_CONTEXT = new ThreadLocal<>();
      private static final Logger LOGGER = LogUtils.getLogger();
-@@ -181,6 +_,7 @@
+@@ -182,6 +_,7 @@
  
          @Override
          public boolean isRestricted(CommandNode<CommandSourceStack> node) {
@@ -24,7 +24,7 @@
              Predicate<CommandSourceStack> requirement = node.getRequirement();
              return !requirement.test(this.noPermissionSource);
          }
-@@ -188,6 +_,11 @@
+@@ -189,6 +_,11 @@
      private final CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
  
      public Commands(Commands.CommandSelection commandSelection, CommandBuildContext context) {
@@ -36,7 +36,7 @@
          AdvancementCommands.register(this.dispatcher);
          AttributeCommand.register(this.dispatcher, context);
          ExecuteCommand.register(this.dispatcher, context);
-@@ -261,11 +_,11 @@
+@@ -263,11 +_,11 @@
              JfrCommand.register(this.dispatcher);
          }
  
@@ -50,7 +50,7 @@
              RaidCommand.register(this.dispatcher, context);
              DebugPathCommand.register(this.dispatcher);
              DebugMobSpawningCommand.register(this.dispatcher);
-@@ -285,6 +_,8 @@
+@@ -287,6 +_,8 @@
              OpCommand.register(this.dispatcher);
              PardonCommand.register(this.dispatcher);
              PardonIpCommand.register(this.dispatcher);
@@ -59,7 +59,7 @@
              PerfCommand.register(this.dispatcher);
              SaveAllCommand.register(this.dispatcher);
              SaveOffCommand.register(this.dispatcher);
-@@ -293,13 +_,58 @@
+@@ -295,13 +_,58 @@
              StopCommand.register(this.dispatcher);
              TransferCommand.register(this.dispatcher);
              WhitelistCommand.register(this.dispatcher);
@@ -119,7 +119,7 @@
          this.dispatcher.setConsumer(ExecutionCommandSource.resultConsumer());
      }
  
-@@ -319,7 +_,24 @@
+@@ -321,7 +_,24 @@
      }
  
      public void performCommand(ParseResults<CommandSourceStack> command, String commandString) {
@@ -144,7 +144,7 @@
          Profiler.get().push(() -> "/" + commandString);
          ContextChain<CommandSourceStack> commandChain = finishParsing(command, commandString, sender);
  
-@@ -332,10 +_,12 @@
+@@ -334,10 +_,12 @@
                      )
                  );
              }
@@ -160,7 +160,7 @@
                  StackTraceElement[] stackTrace = e.getStackTrace();
  
                  for (int i = 0; i < Math.min(stackTrace.length, 3); i++) {
-@@ -366,7 +_,11 @@
+@@ -368,7 +_,11 @@
              return ContextChain.tryFlatten(command.getContext().build(commandString))
                  .orElseThrow(() -> CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownCommand().createWithContext(command.getReader()));
          } catch (CommandSyntaxException e) {
@@ -173,7 +173,7 @@
              if (e.getInput() != null && e.getCursor() >= 0) {
                  int cursor = Math.min(e.getInput().length(), e.getCursor());
                  MutableComponent context = Component.empty()
-@@ -383,7 +_,17 @@
+@@ -385,7 +_,17 @@
                  }
  
                  context.append(Component.translatable("command.context.here").withStyle(ChatFormatting.RED, ChatFormatting.ITALIC));
@@ -192,7 +192,7 @@
              }
  
              return null;
-@@ -411,17 +_,110 @@
+@@ -413,17 +_,110 @@
      }
  
      public void sendCommands(ServerPlayer player) {
@@ -306,7 +306,7 @@
                  if (builder.getRedirect() != null) {
                      builder.redirect(converted.get(builder.getRedirect()));
                  }
-@@ -430,12 +_,11 @@
+@@ -432,12 +_,11 @@
                  converted.put(child, node);
                  target.addChild(node);
                  if (!child.getChildren().isEmpty()) {

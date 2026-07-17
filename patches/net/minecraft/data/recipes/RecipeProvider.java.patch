@@ -1,6 +1,110 @@
 --- a/net/minecraft/data/recipes/RecipeProvider.java
 +++ b/net/minecraft/data/recipes/RecipeProvider.java
-@@ -625,8 +_,7 @@
+@@ -1,11 +_,15 @@
+ package net.minecraft.data.recipes;
+ 
+ import com.google.common.collect.ImmutableMap;
++import com.google.common.collect.Sets;
+ import com.mojang.datafixers.util.Pair;
++import java.util.ArrayList;
+ import java.util.Arrays;
+ import java.util.List;
+ import java.util.Map;
+ import java.util.Optional;
++import java.util.Set;
++import java.util.concurrent.CompletableFuture;
+ import java.util.stream.Stream;
+ import net.minecraft.advancements.Advancement;
+ import net.minecraft.advancements.AdvancementHolder;
+@@ -15,17 +_,20 @@
+ import net.minecraft.advancements.triggers.CriteriaTriggers;
+ import net.minecraft.advancements.triggers.Criterion;
+ import net.minecraft.advancements.triggers.EnterBlockTrigger;
++import net.minecraft.advancements.triggers.ImpossibleTrigger;
+ import net.minecraft.advancements.triggers.InventoryChangeTrigger;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderGetter;
+-import net.minecraft.core.Registry;
++import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.component.DataComponentPatch;
+ import net.minecraft.core.component.DataComponents;
+ import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.data.BlockFamilies;
+ import net.minecraft.data.BlockFamily;
+-import net.minecraft.data.worldgen.BootstrapContext;
++import net.minecraft.data.CachedOutput;
++import net.minecraft.data.DataProvider;
++import net.minecraft.data.PackOutput;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.tags.ItemTags;
+@@ -51,10 +_,9 @@
+ import org.jspecify.annotations.Nullable;
+ 
+ public abstract class RecipeProvider {
++    protected final HolderLookup.Provider registries;
+     protected final HolderGetter<Item> items;
+-    private final HolderGetter<TrimPattern> trimPatterns;
+     protected final RecipeOutput output;
+-    protected final BootstrapContext<Advancement> advancementOutput;
+     private static final Map<BlockFamily.Variant, RecipeProvider.FamilyCraftingRecipeProvider> SHAPE_BUILDERS = ImmutableMap.<BlockFamily.Variant, RecipeProvider.FamilyCraftingRecipeProvider>builder()
+         .put(BlockFamily.Variant.BUTTON, (context, result, base) -> context.buttonBuilder(result, Ingredient.of(base)))
+         .put(BlockFamily.Variant.CHISELED, (context, result, base) -> context.chiseledBuilder(RecipeCategory.BUILDING_BLOCKS, result, Ingredient.of(base)))
+@@ -91,39 +_,10 @@
+         .put(BlockFamily.Variant.COBBLED, (context, result, base) -> context.stonecutterResultFromBase(RecipeCategory.BUILDING_BLOCKS, result, base, 1))
+         .build();
+ 
+-    protected RecipeProvider(BootstrapContext<Recipe<?>> recipeOutput, BootstrapContext<Advancement> advancementOutput) {
+-        this.advancementOutput = advancementOutput;
+-        this.output = new RecipeOutput() {
+-            @Override
+-            public void accept(ResourceKey<Recipe<?>> id, Recipe<?> recipe, @Nullable AdvancementHolder advancementHolder) {
+-                recipeOutput.register(id, recipe);
+-                if (advancementHolder != null) {
+-                    this.acceptAdvancement(advancementHolder);
+-                }
+-            }
+-
+-            private void acceptAdvancement(AdvancementHolder advancementHolder) {
+-                advancementHolder.register(advancementOutput);
+-            }
+-
+-            @Override
+-            public Advancement.Builder advancement() {
+-                return Advancement.Builder.recipeAdvancement().parent(RecipeBuilder.ROOT_RECIPE_ADVANCEMENT);
+-            }
+-
+-            @Override
+-            public <S> HolderGetter<S> lookup(ResourceKey<? extends Registry<? extends S>> key) {
+-                return recipeOutput.lookup(key);
+-            }
+-
+-            @Deprecated
+-            @Override
+-            public <S> Stream<Holder.Reference<S>> listContextElements(ResourceKey<? extends Registry<? extends S>> key) {
+-                return recipeOutput.listContextElements(key);
+-            }
+-        };
+-        this.items = recipeOutput.lookup(Registries.ITEM);
+-        this.trimPatterns = recipeOutput.lookup(Registries.TRIM_PATTERN);
++    protected RecipeProvider(HolderLookup.Provider registries, RecipeOutput output) {
++        this.registries = registries;
++        this.items = registries.lookupOrThrow(Registries.ITEM);
++        this.output = output;
+     }
+ 
+     protected abstract void buildRecipes();
+@@ -196,7 +_,7 @@
+     }
+ 
+     protected void trimSmithing(Item trimTemplate, ResourceKey<TrimPattern> patternId, ResourceKey<Recipe<?>> id) {
+-        Holder.Reference<TrimPattern> pattern = this.trimPatterns.getOrThrow(patternId);
++        Holder.Reference<TrimPattern> pattern = this.registries.lookupOrThrow(Registries.TRIM_PATTERN).getOrThrow(patternId);
+         SmithingTrimRecipeBuilder.smithingTrim(
+                 Ingredient.of(trimTemplate), this.tag(ItemTags.TRIMMABLE_ARMOR), this.tag(ItemTags.TRIM_MATERIALS), pattern, RecipeCategory.MISC
+             )
+@@ -648,8 +_,7 @@
      }
  
      protected void waxRecipes(FeatureFlagSet flagSet) {
@@ -10,7 +114,23 @@
              .forEach(
                  (block, waxedBlock) -> {
                      if (waxedBlock.requiredFeatures().isSubsetOf(flagSet)) {
-@@ -854,6 +_,10 @@
+@@ -740,15 +_,6 @@
+             .save(this.output);
+     }
+ 
+-    protected void cushionRecipe(Item woolSlab, Item result) {
+-        this.shaped(RecipeCategory.DECORATIONS, result, 1)
+-            .define('#', woolSlab)
+-            .group("cushion")
+-            .unlockedBy(getHasName(woolSlab), this.has(woolSlab))
+-            .pattern("###")
+-            .save(this.output);
+-    }
+-
+     protected void generateRecipes(BlockFamily family, FeatureFlagSet flagSet) {
+         family.getVariants().forEach((variant, result) -> {
+             if (result.requiredFeatures().isSubsetOf(flagSet)) {
+@@ -886,6 +_,10 @@
          return Ingredient.of(this.items.getOrThrow(id));
      }
  
@@ -21,43 +141,80 @@
      protected ShapedRecipeBuilder shaped(RecipeCategory category, ItemLike item) {
          return ShapedRecipeBuilder.shaped(this.items, category, item);
      }
-@@ -904,14 +_,14 @@
-                         final List<CompletableFuture<?>> tasks = new ArrayList<>();
-                         RecipeOutput recipeOutput = new RecipeOutput() {
-                             @Override
--                            public void accept(ResourceKey<Recipe<?>> id, Recipe<?> recipe, @Nullable AdvancementHolder advancementHolder) {
+@@ -914,5 +_,76 @@
+     @FunctionalInterface
+     private interface FamilyStonecutterRecipeProvider {
+         void create(RecipeProvider context, ItemLike result, ItemLike base);
++    }
++
++    public abstract static class Runner implements DataProvider {
++        private final PackOutput packOutput;
++        private final CompletableFuture<HolderLookup.Provider> registries;
++
++        protected Runner(PackOutput packOutput, CompletableFuture<HolderLookup.Provider> registries) {
++            this.packOutput = packOutput;
++            this.registries = registries;
++        }
++
++        @Override
++        public final CompletableFuture<?> run(CachedOutput cache) {
++            return this.registries
++                .thenCompose(
++                    registries -> {
++                        final PackOutput.PathProvider recipePathProvider = this.packOutput.createRegistryElementsPathProvider(Registries.RECIPE);
++                        final PackOutput.PathProvider advancementPathProvider = this.packOutput.createRegistryElementsPathProvider(Registries.ADVANCEMENT);
++                        final Set<ResourceKey<Recipe<?>>> allRecipes = Sets.newHashSet();
++                        final List<CompletableFuture<?>> tasks = new ArrayList<>();
++                        RecipeOutput recipeOutput = new RecipeOutput() {
++                            @Override
 +                            public void accept(ResourceKey<Recipe<?>> id, Recipe<?> recipe, @Nullable AdvancementHolder advancementHolder, net.neoforged.neoforge.common.conditions.ICondition... conditions) {
-                                 if (!allRecipes.add(id)) {
-                                     throw new IllegalStateException("Duplicate recipe " + id.identifier());
-                                 }
- 
--                                this.saveRecipe(id, recipe);
++                                if (!allRecipes.add(id)) {
++                                    throw new IllegalStateException("Duplicate recipe " + id.identifier());
++                                }
++
 +                                this.saveRecipe(id, recipe, conditions);
-                                 if (advancementHolder != null) {
--                                    this.saveAdvancement(advancementHolder);
++                                if (advancementHolder != null) {
 +                                    this.saveAdvancement(advancementHolder, conditions);
-                                 }
-                             }
- 
-@@ -929,13 +_,19 @@
-                             }
- 
-                             private void saveRecipe(ResourceKey<Recipe<?>> id, Recipe<?> recipe) {
--                                tasks.add(DataProvider.saveStable(cache, registries, Recipe.CODEC, recipe, recipePathProvider.json(id.identifier())));
++                                }
++                            }
++
++                            @Override
++                            public Advancement.Builder advancement() {
++                                return Advancement.Builder.recipeAdvancement().parent(RecipeBuilder.ROOT_RECIPE_ADVANCEMENT);
++                            }
++
++                            @Override
++                            public void includeRootAdvancement() {
++                                AdvancementHolder root = Advancement.Builder.recipeAdvancement()
++                                    .addCriterion("impossible", CriteriaTriggers.IMPOSSIBLE.createCriterion(new ImpossibleTrigger.TriggerInstance()))
++                                    .build(RecipeBuilder.ROOT_RECIPE_ADVANCEMENT);
++                                this.saveAdvancement(root);
++                            }
++
++                            private void saveRecipe(ResourceKey<Recipe<?>> id, Recipe<?> recipe) {
 +                                saveRecipe(id, recipe, new net.neoforged.neoforge.common.conditions.ICondition[0]);
 +                            }
 +                            private void saveRecipe(ResourceKey<Recipe<?>> id, Recipe<?> recipe, net.neoforged.neoforge.common.conditions.ICondition... conditions) {
 +                                tasks.add(DataProvider.saveStable(cache, registries, Recipe.CONDITIONAL_CODEC, Optional.of(new net.neoforged.neoforge.common.conditions.WithConditions<>(recipe, conditions)), recipePathProvider.json(id.identifier())));
-                             }
- 
-                             private void saveAdvancement(AdvancementHolder advancementHolder) {
++                            }
++
++                            private void saveAdvancement(AdvancementHolder advancementHolder) {
 +                                saveAdvancement(advancementHolder, new net.neoforged.neoforge.common.conditions.ICondition[0]);
 +                            }
 +                            private void saveAdvancement(AdvancementHolder advancementHolder, net.neoforged.neoforge.common.conditions.ICondition... conditions) {
-                                 tasks.add(
-                                     DataProvider.saveStable(
--                                        cache, registries, Advancement.CODEC, advancementHolder.value(), advancementPathProvider.json(advancementHolder.id())
++                                tasks.add(
++                                    DataProvider.saveStable(
 +                                        cache, registries, Advancement.CONDITIONAL_CODEC, Optional.of(new net.neoforged.neoforge.common.conditions.WithConditions<>(advancementHolder.value(), conditions)), advancementPathProvider.json(advancementHolder.id())
-                                     )
-                                 );
-                             }
++                                    )
++                                );
++                            }
++                        };
++                        this.createRecipeProvider(registries, recipeOutput).buildRecipes();
++                        return CompletableFuture.allOf(tasks.toArray(CompletableFuture[]::new));
++                    }
++                );
++        }
++
++        protected abstract RecipeProvider createRecipeProvider(HolderLookup.Provider registries, RecipeOutput output);
+     }
+ }

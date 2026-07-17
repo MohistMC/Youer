@@ -1,6 +1,19 @@
 --- a/net/minecraft/world/level/block/BrewingStandBlock.java
 +++ b/net/minecraft/world/level/block/BrewingStandBlock.java
-@@ -57,8 +_,7 @@
+@@ -47,11 +_,7 @@
+ 
+     @Override
+     public <T extends BlockEntity> @Nullable BlockEntityTicker<T> getTicker(Level level, BlockState blockState, BlockEntityType<T> type) {
+-        return level instanceof ServerLevel serverLevel
+-            ? createTickerHelper(
+-                type, BlockEntityTypes.BREWING_STAND, (var1, pos, state, entity) -> BrewingStandBlockEntity.serverTick(serverLevel, pos, state, entity)
+-            )
+-            : null;
++        return level.isClientSide() ? null : createTickerHelper(type, BlockEntityTypes.BREWING_STAND, BrewingStandBlockEntity::serverTick);
+     }
+ 
+     @Override
+@@ -61,8 +_,7 @@
  
      @Override
      protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {

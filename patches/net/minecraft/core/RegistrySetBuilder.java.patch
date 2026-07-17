@@ -1,9 +1,113 @@
 --- a/net/minecraft/core/RegistrySetBuilder.java
 +++ b/net/minecraft/core/RegistrySetBuilder.java
-@@ -38,6 +_,13 @@
-         ResourceKey<? extends Registry<? extends T>> key, Lifecycle lifecycle, HolderOwner<T> owner, Map<ResourceKey<T>, Holder.Reference<T>> entries
-     ) {
-         return new RegistrySetBuilder.EmptyTagRegistryLookup<T>(owner) {
+@@ -2,232 +_,305 @@
+ 
+ import com.google.common.collect.ImmutableMap;
+ import com.google.common.collect.ImmutableMap.Builder;
++import com.mojang.serialization.DynamicOps;
+ import com.mojang.serialization.Lifecycle;
+ import java.util.ArrayList;
+ import java.util.HashMap;
++import java.util.Iterator;
+ import java.util.List;
+ import java.util.Map;
+-import java.util.Objects;
++import java.util.Optional;
+ import java.util.Set;
++import java.util.function.Supplier;
+ import java.util.stream.Collectors;
+ import java.util.stream.Stream;
+-import net.minecraft.core.registries.BootstrapRegistry;
+-import net.minecraft.core.registries.EmptyTagLookupWrapper;
+-import net.minecraft.core.registries.MultiRegistryBootstrap;
+-import net.minecraft.core.registries.PatchedRegistry;
+-import net.minecraft.core.registries.SingleRegistryBootstrap;
+ import net.minecraft.data.worldgen.BootstrapContext;
++import net.minecraft.resources.Identifier;
++import net.minecraft.resources.RegistryOps;
+ import net.minecraft.resources.ResourceKey;
++import net.minecraft.tags.TagKey;
++import org.apache.commons.lang3.mutable.MutableObject;
++import org.jspecify.annotations.Nullable;
+ 
+ public class RegistrySetBuilder {
+-    private final List<RegistrySetBuilder.RegistryStub> entries = new ArrayList<>();
+-
+-    private static RegistrySetBuilder.RegistryStub placeholderStub(ResourceKey<? extends Registry<?>> key) {
+-        return new RegistrySetBuilder.RegistryStub() {
+-            @Override
+-            public Stream<ResourceKey<? extends Registry<?>>> requiredRegistries() {
+-                return Stream.of(key);
+-            }
+-
+-            @Override
+-            public void apply(RegistrySetBuilder.BuildState state) {
+-            }
+-        };
+-    }
+-
+-    public <T> RegistrySetBuilder add(ResourceKey<? extends Registry<T>> key, SingleRegistryBootstrap<T> bootstrap) {
+-        this.entries.add(new RegistrySetBuilder.RegistryStub() {
+-            @Override
+-            public Stream<ResourceKey<? extends Registry<?>>> requiredRegistries() {
+-                return Stream.of(key);
+-            }
+-
+-            @Override
+-            public void apply(RegistrySetBuilder.BuildState state) {
+-                bootstrap.run(state.createBootstrap(key));
+-            }
+-        });
+-        return this;
+-    }
+-
+-    public RegistrySetBuilder add(MultiRegistryBootstrap bootstrap) {
+-        this.entries.add(new RegistrySetBuilder.RegistryStub() {
+-            @Override
+-            public Stream<ResourceKey<? extends Registry<?>>> requiredRegistries() {
+-                return bootstrap.requestedRegistries().stream();
+-            }
+-
+-            @Override
+-            public void apply(RegistrySetBuilder.BuildState state) {
+-                bootstrap.run(state::createBootstrap);
+-            }
+-        });
+-        return this;
+-    }
+-
+-    private static HolderLookup.Provider buildProviderWithContext(HolderLookup.Provider context, Stream<? extends HolderLookup.RegistryLookup<?>> newRegistries) {
+-        Map<ResourceKey<? extends Registry<?>>, HolderLookup.RegistryLookup<?>> lookups = new HashMap<>();
+-        context.listRegistries()
+-            .forEach(contextRegistry -> lookups.put(contextRegistry.key(), EmptyTagLookupWrapper.wrap((HolderLookup.RegistryLookup<?>)contextRegistry)));
+-        newRegistries.forEach(newRegistry -> lookups.put(newRegistry.key(), EmptyTagLookupWrapper.wrap((HolderLookup.RegistryLookup<?>)newRegistry)));
+-        return HolderLookup.Provider.create(lookups.values().stream());
+-    }
+-
+-    public HolderLookup.Provider build(HolderLookup.Provider context) {
+-        RegistrySetBuilder.BuildState state = RegistrySetBuilder.BuildState.createAndApply(context, this.entries);
+-        List<HolderLookup.RegistryLookup<?>> bootstrappedRegistries = new ArrayList<>(state.bootstrappedRegistries.size());
+-
+-        for (RegistrySetBuilder.BootstrappedRegistryState<?> newRegistry : state.bootstrappedRegistries.values()) {
+-            newRegistry.bindHolders();
+-            newRegistry.freeze();
+-            newRegistry.errorOnMissingHolders(state);
+-            bootstrappedRegistries.add(newRegistry.registry());
++    private final List<RegistrySetBuilder.RegistryStub<?>> entries = new ArrayList<>();
++
++    private static <T> HolderGetter<T> wrapContextLookup(HolderLookup.RegistryLookup<T> original) {
++        return new RegistrySetBuilder.EmptyTagLookup<T>(original) {
++            @Override
++            public Optional<Holder.Reference<T>> get(ResourceKey<T> id) {
++                return original.get(id);
++            }
++        };
++    }
++
++    private static <T> HolderLookup.RegistryLookup<T> lookupFromMap(
++        ResourceKey<? extends Registry<? extends T>> key, Lifecycle lifecycle, HolderOwner<T> owner, Map<ResourceKey<T>, Holder.Reference<T>> entries
++    ) {
++        return new RegistrySetBuilder.EmptyTagRegistryLookup<T>(owner) {
 +            // Paper start - add getValueForCopying method
 +            @Override
 +            public Optional<T> getValueForCopying(final ResourceKey<T> resourceKey) {
@@ -11,24 +115,90 @@
 +            }
 +            // Paper end - add getValueForCopying method
 +
-             @Override
-             public ResourceKey<? extends Registry<? extends T>> key() {
-                 return key;
-@@ -69,6 +_,10 @@
-         return this.add(key, Lifecycle.stable(), bootstrap);
-     }
- 
++            @Override
++            public ResourceKey<? extends Registry<? extends T>> key() {
++                return key;
++            }
++
++            @Override
++            public Lifecycle registryLifecycle() {
++                return lifecycle;
++            }
++
++            @Override
++            public Optional<Holder.Reference<T>> get(ResourceKey<T> id) {
++                return Optional.ofNullable(entries.get(id));
++            }
++
++            @Override
++            public Stream<Holder.Reference<T>> listElements() {
++                return entries.values().stream();
++            }
++        };
++    }
++
++    public <T> RegistrySetBuilder add(ResourceKey<? extends Registry<T>> key, Lifecycle lifecycle, RegistrySetBuilder.RegistryBootstrap<T> bootstrap) {
++        this.entries.add(new RegistrySetBuilder.RegistryStub<>(key, lifecycle, bootstrap));
++        return this;
++    }
++
++    public <T> RegistrySetBuilder add(ResourceKey<? extends Registry<T>> key, RegistrySetBuilder.RegistryBootstrap<T> bootstrap) {
++        return this.add(key, Lifecycle.stable(), bootstrap);
++    }
++
 +    public List<? extends ResourceKey<? extends Registry<?>>> getEntryKeys() {
 +        return this.entries.stream().map(RegistrySetBuilder.RegistryStub::key).toList();
 +    }
 +
-     private RegistrySetBuilder.BuildState createState(RegistryAccess context) {
-         RegistrySetBuilder.BuildState state = RegistrySetBuilder.BuildState.create(context, this.entries.stream().map(RegistrySetBuilder.RegistryStub::key));
-         this.entries.forEach(e -> e.apply(state));
-@@ -118,6 +_,13 @@
-                     public <T> Optional<RegistryOps.RegistryInfo<T>> lookup(ResourceKey<? extends Registry<? extends T>> registryKey) {
-                         return getEntry(registryKey).map(Entry::opsInfo);
-                     }
++    private RegistrySetBuilder.BuildState createState(RegistryAccess context) {
++        RegistrySetBuilder.BuildState state = RegistrySetBuilder.BuildState.create(context, this.entries.stream().map(RegistrySetBuilder.RegistryStub::key));
++        this.entries.forEach(e -> e.apply(state));
++        return state;
++    }
++
++    private static HolderLookup.Provider buildProviderWithContext(
++        RegistrySetBuilder.UniversalOwner owner, RegistryAccess context, Stream<HolderLookup.RegistryLookup<?>> newRegistries
++    ) {
++        record Entry<T>(HolderLookup.RegistryLookup<T> lookup, RegistryOps.RegistryInfo<T> opsInfo) {
++            public static <T> Entry<T> createForContextRegistry(HolderLookup.RegistryLookup<T> registryLookup) {
++                return new Entry<>(
++                    new RegistrySetBuilder.EmptyTagLookupWrapper<>(registryLookup, registryLookup), RegistryOps.RegistryInfo.fromRegistryLookup(registryLookup)
++                );
++            }
++
++            public static <T> Entry<T> createForNewRegistry(RegistrySetBuilder.UniversalOwner owner, HolderLookup.RegistryLookup<T> registryLookup) {
++                return new Entry<>(
++                    new RegistrySetBuilder.EmptyTagLookupWrapper<>(owner.cast(), registryLookup),
++                    new RegistryOps.RegistryInfo<>(owner.cast(), registryLookup, registryLookup.registryLifecycle())
++                );
++            }
+         }
+ 
++        final Map<ResourceKey<? extends Registry<?>>, Entry<?>> lookups = new HashMap<>();
++        context.registries().forEach(contextRegistry -> lookups.put(contextRegistry.key(), Entry.createForContextRegistry(contextRegistry.value())));
++        newRegistries.forEach(newRegistry -> lookups.put(newRegistry.key(), Entry.createForNewRegistry(owner, newRegistry)));
++        return new HolderLookup.Provider() {
++            @Override
++            public Stream<ResourceKey<? extends Registry<?>>> listRegistryKeys() {
++                return lookups.keySet().stream();
++            }
++
++            private <T> Optional<Entry<T>> getEntry(ResourceKey<? extends Registry<? extends T>> key) {
++                return Optional.ofNullable((Entry<T>)lookups.get(key));
++            }
++
++            @Override
++            public <T> Optional<HolderLookup.RegistryLookup<T>> lookup(ResourceKey<? extends Registry<? extends T>> key) {
++                return this.getEntry(key).map(Entry::lookup);
++            }
++
++            @Override
++            public <V> RegistryOps<V> createSerializationContext(DynamicOps<V> parent) {
++                return RegistryOps.create(parent, new RegistryOps.RegistryInfoLookup() {
++                    @Override
++                    public <T> Optional<RegistryOps.RegistryInfo<T>> lookup(ResourceKey<? extends Registry<? extends T>> registryKey) {
++                        return getEntry(registryKey).map(Entry::opsInfo);
++                    }
 +
 +                    // Paper start - add method to get the value for pre-filling builders in the reg mod API
 +                    @Override
@@ -36,20 +206,95 @@
 +                        throw new UnsupportedOperationException("Not implemented");
 +                    }
 +                    // Paper end - add method to get the value for pre-filling builders in the reg mod API
-                 });
-             }
-         };
-@@ -183,16 +_,22 @@
-             holder.supplier = () -> cloner.clone((T)elementHolder.value(), patchProvider, targetProvider.get());
-             entries.put(elementKey, holder);
-         });
--        HolderLookup.RegistryLookup<T> fallbackContents = fallbackProvider.lookupOrThrow(registryKey);
--        fallbackContents.listElements().forEach(elementHolder -> {
--            ResourceKey<T> elementKey = elementHolder.key();
--            entries.computeIfAbsent(elementKey, key -> {
--                RegistrySetBuilder.LazyHolder<T> holder = new RegistrySetBuilder.LazyHolder<>(owner, elementKey);
--                holder.supplier = () -> cloner.clone((T)elementHolder.value(), fallbackProvider, targetProvider.get());
--                return holder;
++                });
++            }
++        };
++    }
++
++    public HolderLookup.Provider build(RegistryAccess context) {
++        RegistrySetBuilder.BuildState state = this.createState(context);
++        Stream<HolderLookup.RegistryLookup<?>> newRegistries = this.entries
++            .stream()
++            .map(stub -> stub.collectRegisteredValues(state).buildAsLookup(state.owner));
++        HolderLookup.Provider result = buildProviderWithContext(state.owner, context, newRegistries);
++        state.reportNotCollectedHolders();
++        state.reportUnclaimedRegisteredValues();
+         state.throwOnError();
+-        return buildProviderWithContext(context, bootstrappedRegistries.stream());
++        return result;
+     }
+ 
+-    private static Set<ResourceKey<? extends Registry<?>>> findRegistriesMissingFromPatch(
+-        HolderLookup.Provider contextRegistries, HolderLookup.Provider baseRegistries, List<RegistrySetBuilder.RegistryStub> entries
++    private HolderLookup.Provider createLazyFullPatchedRegistries(
++        RegistryAccess context,
++        HolderLookup.Provider fallbackProvider,
++        Cloner.Factory clonerFactory,
++        Map<ResourceKey<? extends Registry<?>>, RegistrySetBuilder.RegistryContents<?>> newRegistries,
++        HolderLookup.Provider patchOnlyRegistries
+     ) {
+-        Set<? extends ResourceKey<? extends Registry<?>>> existingKeys = Stream.concat(newRegistryKeys(entries.stream()), contextRegistries.listRegistryKeys())
+-            .collect(Collectors.toSet());
+-        return baseRegistries.listRegistryKeys().filter(e -> !existingKeys.contains(e)).collect(Collectors.toSet());
+-    }
+-
+-    public RegistrySetBuilder.PatchedRegistries buildPatch(HolderLookup.Provider context, HolderLookup.Provider fallbackProvider, Cloner.Factory clonerFactory) {
+-        Set<ResourceKey<? extends Registry<?>>> missingFromPatch = findRegistriesMissingFromPatch(context, fallbackProvider, this.entries);
+-        List<RegistrySetBuilder.RegistryStub> expandedEntries = Stream.concat(
+-                this.entries.stream(), missingFromPatch.stream().map(RegistrySetBuilder::placeholderStub)
++        RegistrySetBuilder.UniversalOwner fullPatchedOwner = new RegistrySetBuilder.UniversalOwner();
++        MutableObject<HolderLookup.Provider> resultReference = new MutableObject<>();
++        List<HolderLookup.RegistryLookup<?>> lazyFullRegistries = newRegistries.keySet()
++            .stream()
++            .map(
++                registryKey -> this.createLazyFullPatchedRegistries(
++                    fullPatchedOwner,
++                    clonerFactory,
++                    (ResourceKey<? extends Registry<? extends Object>>)registryKey,
++                    patchOnlyRegistries,
++                    fallbackProvider,
++                    resultReference
++                )
+             )
+-            .toList();
+-        RegistrySetBuilder.BuildState state = RegistrySetBuilder.BuildState.createAndApply(context, expandedEntries);
+-        List<HolderLookup.RegistryLookup<?>> bootstrappedRegistries = new ArrayList<>(state.bootstrappedRegistries.size());
+-
+-        for (RegistrySetBuilder.BootstrappedRegistryState<?> newRegistry : state.bootstrappedRegistries.values()) {
+-            newRegistry.bindHolders();
+-            newRegistry.validatePatchHolders(state, fallbackProvider);
+-            newRegistry.freeze();
+-            bootstrappedRegistries.add(newRegistry.registry());
+-        }
+-
+-        HolderLookup.Provider patchOnlyRegistries = buildProviderWithContext(context, bootstrappedRegistries.stream());
++            .collect(Collectors.toUnmodifiableList());
++        HolderLookup.Provider result = buildProviderWithContext(fullPatchedOwner, context, lazyFullRegistries.stream());
++        resultReference.setValue(result);
++        return result;
++    }
++
++    private <T> HolderLookup.RegistryLookup<T> createLazyFullPatchedRegistries(
++        HolderOwner<T> owner,
++        Cloner.Factory clonerFactory,
++        ResourceKey<? extends Registry<? extends T>> registryKey,
++        HolderLookup.Provider patchProvider,
++        HolderLookup.Provider fallbackProvider,
++        MutableObject<HolderLookup.Provider> targetProvider
++    ) {
++        Cloner<T> cloner = clonerFactory.cloner(registryKey);
++        if (cloner == null) {
++            throw new NullPointerException("No cloner for " + registryKey.identifier());
++        }
++
++        Map<ResourceKey<T>, Holder.Reference<T>> entries = new HashMap<>();
++        HolderLookup.RegistryLookup<T> patchContents = patchProvider.lookupOrThrow(registryKey);
++        patchContents.listElements().forEach(elementHolder -> {
++            ResourceKey<T> elementKey = elementHolder.key();
++            RegistrySetBuilder.LazyHolder<T> holder = new RegistrySetBuilder.LazyHolder<>(owner, elementKey);
++            holder.supplier = () -> cloner.clone((T)elementHolder.value(), patchProvider, targetProvider.get());
++            entries.put(elementKey, holder);
++        });
 +        Optional<? extends HolderLookup.RegistryLookup<T>> fallbackContents = fallbackProvider.lookup(registryKey);
 +        Lifecycle lifecycle;
 +        if (fallbackContents.isPresent()) {
@@ -61,41 +306,330 @@
 +                    holder.supplier = () -> cloner.clone((T) elementHolder.value(), fallbackProvider, targetProvider.get());
 +                    return holder;
 +                });
-             });
--        });
--        Lifecycle lifecycle = patchContents.registryLifecycle().add(fallbackContents.registryLifecycle());
++            });
 +            lifecycle = patchContents.registryLifecycle().add(registrylookup1.registryLifecycle());
 +        } else {
 +            lifecycle = patchContents.registryLifecycle();
 +        }
-         return lookupFromMap(registryKey, lifecycle, owner, entries);
++        return lookupFromMap(registryKey, lifecycle, owner, entries);
++    }
++
++    public RegistrySetBuilder.PatchedRegistries buildPatch(RegistryAccess context, HolderLookup.Provider fallbackProvider, Cloner.Factory clonerFactory) {
++        RegistrySetBuilder.BuildState state = this.createState(context);
++        Map<ResourceKey<? extends Registry<?>>, RegistrySetBuilder.RegistryContents<?>> newRegistries = new HashMap<>();
++        this.entries
++            .stream()
++            .map(stub -> stub.collectRegisteredValues(state))
++            .forEach(e -> newRegistries.put(e.key, (RegistrySetBuilder.RegistryContents<?>)e));
++        Set<ResourceKey<? extends Registry<?>>> contextRegistries = context.listRegistryKeys().collect(Collectors.toUnmodifiableSet());
++        fallbackProvider.listRegistryKeys()
++            .filter(k -> !contextRegistries.contains(k))
++            .forEach(
++                resourceKey -> newRegistries.putIfAbsent(
++                    (ResourceKey<? extends Registry<?>>)resourceKey,
++                    new RegistrySetBuilder.RegistryContents<>((ResourceKey<? extends Registry<?>>)resourceKey, Lifecycle.stable(), Map.of())
++                )
++            );
++        Stream<HolderLookup.RegistryLookup<?>> dynamicRegistries = newRegistries.values()
++            .stream()
++            .map(registryContents -> registryContents.buildAsLookup(state.owner));
++        HolderLookup.Provider patchOnlyRegistries = buildProviderWithContext(state.owner, context, dynamicRegistries);
++        state.reportUnclaimedRegisteredValues();
+         state.throwOnError();
+-        HolderLookup.Provider fullPatchedRegistries = EmptyTagLookupWrapper.wrap(
+-            PatchedRegistry.applyPatches(context, fallbackProvider, patchOnlyRegistries, clonerFactory, state.bootstrappedRegistries.keySet())
++        HolderLookup.Provider fullPatchedRegistries = this.createLazyFullPatchedRegistries(
++            context, fallbackProvider, clonerFactory, newRegistries, patchOnlyRegistries
+         );
+         return new RegistrySetBuilder.PatchedRegistries(fullPatchedRegistries, patchOnlyRegistries);
      }
  
-@@ -237,7 +_,7 @@
-             RegistrySetBuilder.UniversalLookup lookup = new RegistrySetBuilder.UniversalLookup(owner);
-             Builder<Identifier, HolderGetter<?>> registries = ImmutableMap.builder();
-             context.registries()
--                .forEach(contextRegistry -> registries.put(contextRegistry.key().identifier(), RegistrySetBuilder.wrapContextLookup(contextRegistry.value())));
+-    private static <T> ResourceKey<? extends Registry<T>> eyerollCast(ResourceKey<? extends Registry<? extends T>> registryKey) {
+-        return (ResourceKey<? extends Registry<T>>)registryKey;
+-    }
+-
+-    private static Stream<ResourceKey<? extends Registry<?>>> newRegistryKeys(Stream<RegistrySetBuilder.RegistryStub> entries) {
+-        return entries.flatMap(RegistrySetBuilder.RegistryStub::requiredRegistries).distinct();
+-    }
+-
+-    private record BootstrappedRegistryState<T>(BootstrapRegistry<T> registry, Map<ResourceKey<T>, T> registeredValues) {
+-        public static <T> RegistrySetBuilder.BootstrappedRegistryState<T> create(ResourceKey<? extends Registry<T>> key, Lifecycle lifecycle) {
+-            BootstrapRegistry<T> newRegistry = new BootstrapRegistry<>(key, lifecycle);
+-            return new RegistrySetBuilder.BootstrappedRegistryState<>(newRegistry, new HashMap<>());
++    private record BuildState(
++        RegistrySetBuilder.UniversalOwner owner,
++        RegistrySetBuilder.UniversalLookup lookup,
++        Map<Identifier, HolderGetter<?>> registries,
++        Map<ResourceKey<?>, RegistrySetBuilder.RegisteredValue<?>> registeredValues,
++        List<RuntimeException> errors
++    ) {
++        public static RegistrySetBuilder.BuildState create(RegistryAccess context, Stream<ResourceKey<? extends Registry<?>>> newRegistries) {
++            RegistrySetBuilder.UniversalOwner owner = new RegistrySetBuilder.UniversalOwner();
++            List<RuntimeException> errors = new ArrayList<>();
++            RegistrySetBuilder.UniversalLookup lookup = new RegistrySetBuilder.UniversalLookup(owner);
++            Builder<Identifier, HolderGetter<?>> registries = ImmutableMap.builder();
++            context.registries()
 +                .forEach(contextRegistry -> registries.put(contextRegistry.key().identifier(), net.neoforged.neoforge.common.CommonHooks.wrapRegistryLookup(contextRegistry.value())));
-             newRegistries.forEach(newRegistry -> registries.put(newRegistry.identifier(), lookup));
-             return new RegistrySetBuilder.BuildState(owner, lookup, registries.build(), new HashMap<>(), errors);
++            newRegistries.forEach(newRegistry -> registries.put(newRegistry.identifier(), lookup));
++            return new RegistrySetBuilder.BuildState(owner, lookup, registries.build(), new HashMap<>(), errors);
          }
-@@ -260,6 +_,11 @@
-                 public <S> HolderGetter<S> lookup(ResourceKey<? extends Registry<? extends S>> key) {
-                     return (HolderGetter<S>)BuildState.this.registries.getOrDefault(key.identifier(), BuildState.this.lookup);
+ 
+-        public BootstrapContext<T> createBootstrapContext(RegistrySetBuilder.BuildState state) {
++        public <T> BootstrapContext<T> bootstrapContext() {
+             return new BootstrapContext<T>() {
+                 @Override
+-                public Holder.Reference<T> register(ResourceKey<T> key, T value) {
+-                    T previousValue = BootstrappedRegistryState.this.registeredValues.put(key, value);
++                public Holder.Reference<T> register(ResourceKey<T> key, T value, Lifecycle lifecycle) {
++                    RegistrySetBuilder.RegisteredValue<?> previousValue = BuildState.this.registeredValues
++                        .put(key, new RegistrySetBuilder.RegisteredValue(value, lifecycle));
+                     if (previousValue != null) {
+-                        state.errors.add(new IllegalStateException("Duplicate registration for " + key + ", new=" + value + ", old=" + previousValue));
++                        BuildState.this.errors
++                            .add(new IllegalStateException("Duplicate registration for " + key + ", new=" + value + ", old=" + previousValue.value));
+                     }
+ 
+-                    return BootstrappedRegistryState.this.registry.getOrThrow(key);
++                    return BuildState.this.lookup.getOrCreate(key);
                  }
-+
-+                @Override
+ 
+                 @Override
+                 public <S> HolderGetter<S> lookup(ResourceKey<? extends Registry<? extends S>> key) {
+-                    return state.allRegistries.lookupOrThrow(key);
++                    return (HolderGetter<S>)BuildState.this.registries.getOrDefault(key.identifier(), BuildState.this.lookup);
+                 }
+ 
+                 @Override
+-                public <S> Stream<Holder.Reference<S>> listContextElements(ResourceKey<? extends Registry<? extends S>> key) {
+-                    return state.contextRegistries.lookupOrThrow(key).listElements();
 +                public <S> Optional<HolderLookup<S>> holderLookup(ResourceKey<? extends Registry<? extends S>> registry) {
 +                    return Optional.ofNullable((HolderLookup<S>) BuildState.this.registries.get(registry.identifier()));
-+                }
+                 }
              };
          }
  
-@@ -411,6 +_,26 @@
-         @Override
-         public Optional<Holder.Reference<Object>> get(ResourceKey<Object> id) {
-             return Optional.of(this.getOrCreate(id));
+-        public void bindHolders() {
+-            this.registeredValues.forEach((key, value) -> this.registry.getOrThrow((ResourceKey<T>)key).bindValue((T)value));
+-        }
+-
+-        public void freeze() {
+-            this.registry.freeze();
+-        }
+-
+-        public void errorOnMissingHolders(RegistrySetBuilder.BuildState state) {
+-            this.registry.listElements().forEach(element -> {
+-                if (!element.isBound()) {
+-                    state.errors().add(new IllegalStateException("No value registered for key " + element.key().identifier()));
+-                }
+-            });
+-        }
+-
+-        public void validatePatchHolders(RegistrySetBuilder.BuildState state, HolderLookup.Provider fallback) {
+-            HolderLookup<T> baseRegistry = fallback.lookupOrThrow(this.registry.key());
+-            this.registry
+-                .removeIf(
+-                    element -> {
+-                        if (element.isBound()) {
+-                            return false;
+-                        }
+-
+-                        if (baseRegistry.get(element.key()).isEmpty()) {
+-                            state.errors()
+-                                .add(new IllegalStateException("Value " + element.key().identifier() + " referenced by patched element is not present in base"));
+-                        }
+-
+-                        return true;
+-                    }
+-                );
+-        }
+-    }
+-
+-    private record BuildState(
+-        HolderLookup.Provider contextRegistries,
+-        HolderLookup.Provider allRegistries,
+-        Map<ResourceKey<? extends Registry<?>>, RegistrySetBuilder.BootstrappedRegistryState<?>> bootstrappedRegistries,
+-        List<RuntimeException> errors
+-    ) {
+-        public static RegistrySetBuilder.BuildState createAndApply(HolderLookup.Provider context, List<RegistrySetBuilder.RegistryStub> entries) {
+-            RegistrySetBuilder.BuildState state = create(context, entries);
+-            entries.forEach(e -> e.apply(state));
+-            return state;
+-        }
+-
+-        private static RegistrySetBuilder.BuildState create(HolderLookup.Provider context, List<RegistrySetBuilder.RegistryStub> entries) {
+-            List<RuntimeException> errors = new ArrayList<>();
+-            Builder<ResourceKey<? extends Registry<?>>, HolderLookup.RegistryLookup<?>> allRegistries = ImmutableMap.builder();
+-            Builder<ResourceKey<? extends Registry<?>>, RegistrySetBuilder.BootstrappedRegistryState<?>> bootstrappedRegistries = ImmutableMap.builder();
+-            context.listRegistries()
+-                .forEach(
+-                    contextRegistry -> allRegistries.put(contextRegistry.key(), EmptyTagLookupWrapper.wrap((HolderLookup.RegistryLookup<?>)contextRegistry))
+-                );
+-            RegistrySetBuilder.newRegistryKeys(entries.stream())
+-                .forEach(
+-                    newRegistryKey -> {
+-                        RegistrySetBuilder.BootstrappedRegistryState<?> newRegistryEntry = RegistrySetBuilder.BootstrappedRegistryState.create(
+-                            RegistrySetBuilder.eyerollCast((ResourceKey<? extends Registry<?>>)newRegistryKey), Lifecycle.stable()
+-                        );
+-                        BootstrapRegistry<?> newRegistry = newRegistryEntry.registry();
+-                        bootstrappedRegistries.put(newRegistry.key(), newRegistryEntry);
+-                        allRegistries.put(newRegistry.key(), newRegistry);
+-                    }
+-                );
+-            return new RegistrySetBuilder.BuildState(
+-                context, HolderLookup.Provider.create(allRegistries.build().values().stream()), bootstrappedRegistries.build(), errors
+-            );
++        public void reportUnclaimedRegisteredValues() {
++            this.registeredValues
++                .forEach((key, registeredValue) -> this.errors.add(new IllegalStateException("Orpaned value " + registeredValue.value + " for key " + key)));
++        }
++
++        public void reportNotCollectedHolders() {
++            for (ResourceKey<Object> key : this.lookup.holders.keySet()) {
++                this.errors.add(new IllegalStateException("Unreferenced key: " + key));
++            }
+         }
+ 
+         public void throwOnError() {
+@@ -241,21 +_,165 @@
+                 throw result;
+             }
+         }
+-
+-        public <T> BootstrapContext<T> createBootstrap(ResourceKey<? extends Registry<T>> key) {
+-            RegistrySetBuilder.BootstrappedRegistryState<T> targetRegistry = Objects.requireNonNull(
+-                (RegistrySetBuilder.BootstrappedRegistryState<T>)this.bootstrappedRegistries.get(key), () -> "No registry named " + key.identifier()
+-            );
+-            return targetRegistry.createBootstrapContext(this);
++    }
++
++    private abstract static class EmptyTagLookup<T> implements HolderGetter<T> {
++        protected final HolderOwner<T> owner;
++
++        protected EmptyTagLookup(HolderOwner<T> owner) {
++            this.owner = owner;
++        }
++
++        @Override
++        public Optional<HolderSet.Named<T>> get(TagKey<T> id) {
++            return Optional.of(HolderSet.emptyNamed(this.owner, id));
++        }
++    }
++
++    private static class EmptyTagLookupWrapper<T> extends RegistrySetBuilder.EmptyTagRegistryLookup<T> implements HolderLookup.RegistryLookup.Delegate<T> {
++        private final HolderLookup.RegistryLookup<T> parent;
++
++        private EmptyTagLookupWrapper(HolderOwner<T> owner, HolderLookup.RegistryLookup<T> parent) {
++            super(owner);
++            this.parent = parent;
++        }
++
++        @Override
++        public HolderLookup.RegistryLookup<T> parent() {
++            return this.parent;
++        }
++    }
++
++    private abstract static class EmptyTagRegistryLookup<T> extends RegistrySetBuilder.EmptyTagLookup<T> implements HolderLookup.RegistryLookup<T> {
++        protected EmptyTagRegistryLookup(HolderOwner<T> owner) {
++            super(owner);
++        }
++
++        @Override
++        public Stream<HolderSet.Named<T>> listTags() {
++            throw new UnsupportedOperationException("Tags are not available in datagen");
++        }
++    }
++
++    private static class LazyHolder<T> extends Holder.Reference<T> {
++        private @Nullable Supplier<T> supplier;
++
++        protected LazyHolder(HolderOwner<T> owner, @Nullable ResourceKey<T> key) {
++            super(Holder.Reference.Type.STAND_ALONE, owner, key, null);
++        }
++
++        @Override
++        protected void bindValue(T value) {
++            super.bindValue(value);
++            this.supplier = null;
++        }
++
++        @Override
++        public T value() {
++            if (this.supplier != null) {
++                this.bindValue(this.supplier.get());
++            }
++
++            return super.value();
+         }
+     }
+ 
+     public record PatchedRegistries(HolderLookup.Provider full, HolderLookup.Provider patches) {
+     }
+ 
+-    private interface RegistryStub {
+-        Stream<ResourceKey<? extends Registry<?>>> requiredRegistries();
+-
+-        void apply(RegistrySetBuilder.BuildState state);
++    private record RegisteredValue<T>(T value, Lifecycle lifecycle) {
++    }
++
++    @FunctionalInterface
++    public interface RegistryBootstrap<T> {
++        void run(BootstrapContext<T> registry);
++    }
++
++    private record RegistryContents<T>(
++        ResourceKey<? extends Registry<? extends T>> key, Lifecycle lifecycle, Map<ResourceKey<T>, RegistrySetBuilder.ValueAndHolder<T>> values
++    ) {
++        public HolderLookup.RegistryLookup<T> buildAsLookup(RegistrySetBuilder.UniversalOwner owner) {
++            Map<ResourceKey<T>, Holder.Reference<T>> entries = this.values
++                .entrySet()
++                .stream()
++                .collect(Collectors.toUnmodifiableMap(java.util.Map.Entry::getKey, e -> {
++                    RegistrySetBuilder.ValueAndHolder<T> entry = e.getValue();
++                    Holder.Reference<T> holder = entry.holder().orElseGet(() -> Holder.Reference.createStandAlone(owner.cast(), e.getKey()));
++                    holder.bindValue(entry.value().value());
++                    return holder;
++                }));
++            return RegistrySetBuilder.lookupFromMap(this.key, this.lifecycle, owner.cast(), entries);
++        }
++    }
++
++    private record RegistryStub<T>(ResourceKey<? extends Registry<T>> key, Lifecycle lifecycle, RegistrySetBuilder.RegistryBootstrap<T> bootstrap) {
++        private void apply(RegistrySetBuilder.BuildState state) {
++            this.bootstrap.run(state.bootstrapContext());
++        }
++
++        public RegistrySetBuilder.RegistryContents<T> collectRegisteredValues(RegistrySetBuilder.BuildState state) {
++            Map<ResourceKey<T>, RegistrySetBuilder.ValueAndHolder<T>> result = new HashMap<>();
++            Iterator<java.util.Map.Entry<ResourceKey<?>, RegistrySetBuilder.RegisteredValue<?>>> iterator = state.registeredValues.entrySet().iterator();
++
++            while (iterator.hasNext()) {
++                java.util.Map.Entry<ResourceKey<?>, RegistrySetBuilder.RegisteredValue<?>> entry = iterator.next();
++                ResourceKey<?> key = entry.getKey();
++                if (key.isFor(this.key)) {
++                    ResourceKey<T> castKey = (ResourceKey<T>)key;
++                    RegistrySetBuilder.RegisteredValue<T> value = (RegistrySetBuilder.RegisteredValue<T>)entry.getValue();
++                    Holder.Reference<T> holder = (Holder.Reference<T>)state.lookup.holders.remove(key);
++                    result.put(castKey, new RegistrySetBuilder.ValueAndHolder<>(value, Optional.ofNullable(holder)));
++                    iterator.remove();
++                }
++            }
++
++            return new RegistrySetBuilder.RegistryContents<>(this.key, this.lifecycle, result);
++        }
++    }
++
++    private static class UniversalLookup extends RegistrySetBuilder.EmptyTagLookup<Object> implements HolderLookup<java.lang.Object> {
++        private final Map<ResourceKey<Object>, Holder.Reference<Object>> holders = new HashMap<>();
++
++        public UniversalLookup(HolderOwner<Object> owner) {
++            super(owner);
++        }
++
++        @Override
++        public Optional<Holder.Reference<Object>> get(ResourceKey<Object> id) {
++            return Optional.of(this.getOrCreate(id));
 +        }
 +
 +        @Override
@@ -116,6 +650,19 @@
 +        @Override
 +        public Stream<TagKey<Object>> listTagIds() {
 +            return Stream.empty();
-         }
- 
-         private <T> Holder.Reference<T> getOrCreate(ResourceKey<T> id) {
++        }
++
++        private <T> Holder.Reference<T> getOrCreate(ResourceKey<T> id) {
++            return (Holder.Reference<T>)this.holders.computeIfAbsent((ResourceKey<Object>)id, k -> Holder.Reference.createStandAlone(this.owner, (ResourceKey<Object>)k));
++        }
++    }
++
++    private static class UniversalOwner implements HolderOwner<Object> {
++        public <T> HolderOwner<T> cast() {
++            return (HolderOwner<T>)this;
++        }
++    }
++
++    private record ValueAndHolder<T>(RegistrySetBuilder.RegisteredValue<T> value, Optional<Holder.Reference<T>> holder) {
+     }
+ }

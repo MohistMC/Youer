@@ -16,7 +16,22 @@
  
  public abstract class AbstractThrownPotion extends ThrowableItemProjectile {
      public static final double SPLASH_RANGE = 4.0;
-@@ -67,54 +_,103 @@
+@@ -54,11 +_,11 @@
+             BlockPos blockEffectPos = blockHitPos.relative(hitDirection);
+             PotionContents potion = potionItemStack.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY);
+             if (potion.is(Potions.WATER)) {
+-                this.douseFire(blockEffectPos);
+-                this.douseFire(blockEffectPos.relative(hitDirection.getOpposite()));
++                this.dowseFire(blockEffectPos);
++                this.dowseFire(blockEffectPos.relative(hitDirection.getOpposite()));
+ 
+                 for (Direction direction : Direction.Plane.HORIZONTAL) {
+-                    this.douseFire(blockEffectPos.relative(direction));
++                    this.dowseFire(blockEffectPos.relative(direction));
+                 }
+             }
+         }
+@@ -67,64 +_,103 @@
      @Override
      protected void onHit(HitResult hitResult) {
          super.onHit(hitResult);
@@ -34,14 +49,26 @@
 -                this.onHitAsWater(level);
 -            } else if (potion.hasEffects()) {
 -                this.onHitAsPotion(level, potionItemStack, hitResult);
+-            }
+-
+-            if (potion.potion().isPresent() && potion.potion().get().value().hasInstantEffects()) {
+-                level.levelEvent(2007, this.blockPosition(), potion.getColor());
+-                if (!this.isSilent()) {
+-                    level.levelEvent(1054, this.blockPosition(), 0);
+-                }
+-            } else {
+-                level.levelEvent(2002, this.blockPosition(), potion.getColor());
+-                if (!this.isSilent()) {
+-                    level.levelEvent(1053, this.blockPosition(), 0);
+-                }
+-            }
+-
+-            this.discard();
 +                showParticles = this.onHitAsWater(level, hitResult); // Paper - Fix potions splash events
 +            } else if (true || potion.hasEffects()) { // CraftBukkit - Call event even if no effects to apply
 +                showParticles = this.onHitAsPotion(level, potionItemStack, hitResult); // Paper - pass HitResult
-             }
- 
--            int type = potion.potion().isPresent() && potion.potion().get().value().hasInstantEffects() ? 2007 : 2002;
--            level.levelEvent(type, this.blockPosition(), potion.getColor());
--            this.discard();
++            }
++
 +            if (showParticles) { // Paper - Fix potions splash events
 +                int type = potion.potion().isPresent() && potion.potion().get().value().hasInstantEffects()
 +                        ? LevelEvent.PARTICLES_INSTANT_POTION_SPLASH
@@ -108,7 +135,8 @@
 -    protected abstract void onHitAsPotion(ServerLevel level, ItemStack potionItem, HitResult hitResult);
 +    protected abstract boolean onHitAsPotion(ServerLevel level, ItemStack potionItem, @org.jspecify.annotations.Nullable HitResult hitResult); // Paper - Fix potions splash events & More Projectile API
  
-     private void dowseFire(BlockPos pos) {
+-    private void douseFire(BlockPos pos) {
++    private void dowseFire(BlockPos pos) {
          BlockState blockState = this.level().getBlockState(pos);
          if (blockState.is(BlockTags.FIRE)) {
 -            this.level().destroyBlock(pos, false, this);
@@ -126,12 +154,12 @@
 +            // CraftBukkit end
          } else if (CampfireBlock.isLitCampfire(blockState)) {
 -            this.level().levelEvent(null, 1009, pos, 0);
--            CampfireBlock.dowse(this.getOwner(), this.level(), pos, blockState);
+-            CampfireBlock.douse(this.getOwner(), this.level(), pos, blockState);
 -            this.level().setBlockAndUpdate(pos, blockState.setValue(CampfireBlock.LIT, false));
 +            // CraftBukkit start
 +            if (CraftEventFactory.callEntityChangeBlockEvent(this, pos, blockState.setValue(CampfireBlock.LIT, false))) {
 +                this.level().levelEvent(null, 1009, pos, 0);
-+                CampfireBlock.dowse(this.getOwner(), this.level(), pos, blockState);
++                CampfireBlock.douse(this.getOwner(), this.level(), pos, blockState);
 +                this.level().setBlockAndUpdate(pos, blockState.setValue(CampfireBlock.LIT, false));
 +            }
 +            // CraftBukkit end

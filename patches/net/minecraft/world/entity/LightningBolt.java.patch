@@ -17,7 +17,7 @@
  
      public LightningBolt(EntityType<? extends LightningBolt> type, Level level) {
          super(type, level);
-@@ -72,10 +_,18 @@
+@@ -72,35 +_,41 @@
          }
      }
  
@@ -35,9 +35,56 @@
 -        if (this.life == 2) {
 +        if (!this.isEffect && this.life == 2) { // Paper - Properly handle lightning effects api
              if (this.level().isClientSide()) {
-                 this.level()
-                     .playLocalSound(
-@@ -106,7 +_,7 @@
+-                if (!this.isSilent()) {
+-                    this.level()
+-                        .playLocalSound(
+-                            this.getX(),
+-                            this.getY(),
+-                            this.getZ(),
+-                            SoundEvents.LIGHTNING_BOLT_THUNDER,
+-                            SoundSource.WEATHER,
+-                            10000.0F,
+-                            0.8F + this.random.nextFloat() * 0.2F,
+-                            false
+-                        );
+-                    this.level()
+-                        .playLocalSound(
+-                            this.getX(),
+-                            this.getY(),
+-                            this.getZ(),
+-                            SoundEvents.LIGHTNING_BOLT_IMPACT,
+-                            SoundSource.WEATHER,
+-                            2.0F,
+-                            0.5F + this.random.nextFloat() * 0.2F,
+-                            false
+-                        );
+-                }
++                this.level()
++                    .playLocalSound(
++                        this.getX(),
++                        this.getY(),
++                        this.getZ(),
++                        SoundEvents.LIGHTNING_BOLT_THUNDER,
++                        SoundSource.WEATHER,
++                        10000.0F,
++                        0.8F + this.random.nextFloat() * 0.2F,
++                        false
++                    );
++                this.level()
++                    .playLocalSound(
++                        this.getX(),
++                        this.getY(),
++                        this.getZ(),
++                        SoundEvents.LIGHTNING_BOLT_IMPACT,
++                        SoundSource.WEATHER,
++                        2.0F,
++                        0.5F + this.random.nextFloat() * 0.2F,
++                        false
++                    );
+             } else {
+                 Difficulty difficulty = this.level().getDifficulty();
+                 if (difficulty == Difficulty.NORMAL || difficulty == Difficulty.HARD) {
+@@ -108,7 +_,7 @@
                  }
  
                  this.powerLightningRod();
@@ -46,7 +93,7 @@
                  this.gameEvent(GameEvent.LIGHTNING_STRIKE);
              }
          }
-@@ -129,7 +_,7 @@
+@@ -131,7 +_,7 @@
                      }
                  }
  
@@ -55,7 +102,7 @@
              } else if (this.life < -this.random.nextInt(10)) {
                  this.flashes--;
                  this.life = 1;
-@@ -138,10 +_,10 @@
+@@ -140,10 +_,10 @@
              }
          }
  
@@ -68,7 +115,7 @@
                  List<Entity> entities = this.level()
                      .getEntities(
                          this,
-@@ -150,6 +_,7 @@
+@@ -152,6 +_,7 @@
                      );
  
                  for (Entity entity : entities) {
@@ -76,7 +123,7 @@
                      entity.thunderHit((ServerLevel)this.level(), this);
                  }
  
-@@ -167,34 +_,43 @@
+@@ -169,34 +_,43 @@
      }
  
      private void spawnFire(int additionalSources) {
@@ -123,7 +170,7 @@
              }
  
              BlockPos.MutableBlockPos workPos = struckPos.mutable();
-@@ -203,16 +_,16 @@
+@@ -205,16 +_,16 @@
  
              for (int strike = 0; strike < strikesCount; strike++) {
                  int stepCount = random.nextInt(8) + 1;
@@ -143,7 +190,7 @@
              if (stepPos.isEmpty()) {
                  break;
              }
-@@ -221,11 +_,17 @@
+@@ -223,11 +_,17 @@
          }
      }
  

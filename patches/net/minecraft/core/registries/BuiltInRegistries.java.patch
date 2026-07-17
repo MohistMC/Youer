@@ -1,6 +1,6 @@
 --- a/net/minecraft/core/registries/BuiltInRegistries.java
 +++ b/net/minecraft/core/registries/BuiltInRegistries.java
-@@ -364,6 +_,11 @@
+@@ -365,6 +_,11 @@
      public static final Registry<MapCodec<? extends SlotSource>> SLOT_SOURCE_TYPE = registerSimple(Registries.SLOT_SOURCE_TYPE, SlotSources::bootstrap);
      public static final Registry<Consumer<GameTestHelper>> TEST_FUNCTION = registerSimple(Registries.TEST_FUNCTION, BuiltinTestFunctions::bootstrap);
      public static final Registry<? extends Registry<?>> REGISTRY = WRITABLE_REGISTRY;
@@ -12,7 +12,7 @@
  
      private static <T> Registry<T> registerSimple(ResourceKey<? extends Registry<T>> name, BuiltInRegistries.RegistryBootstrap<T> loader) {
          return internalRegister(name, new MappedRegistry<>(name, Lifecycle.stable(), false), loader);
-@@ -389,6 +_,7 @@
+@@ -390,6 +_,7 @@
          ResourceKey<? extends Registry<T>> name, R registry, BuiltInRegistries.RegistryBootstrap<T> loader
      ) {
          Bootstrap.checkBootstrapCalled(() -> "registry " + name.identifier());
@@ -20,7 +20,7 @@
          Identifier key = name.identifier();
          LOADERS.put(key, () -> loader.run(registry));
          WRITABLE_REGISTRY.register((ResourceKey)name, registry, RegistrationInfo.BUILT_IN);
-@@ -396,16 +_,34 @@
+@@ -397,16 +_,34 @@
      }
  
      public static void bootStrap() {
@@ -55,7 +55,7 @@
          });
      }
  
-@@ -414,6 +_,7 @@
+@@ -415,6 +_,7 @@
  
          for (Registry<?> registry : REGISTRY) {
              bindBootstrappedTagsToEmpty(registry);
@@ -63,7 +63,7 @@
              registry.freeze();
          }
      }
-@@ -437,6 +_,10 @@
+@@ -438,6 +_,10 @@
  
      private static void bindBootstrappedTagsToEmpty(Registry<?> registry) {
          ((MappedRegistry)registry).bindAllTagsToEmpty();

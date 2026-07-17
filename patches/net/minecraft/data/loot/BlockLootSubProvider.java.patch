@@ -1,6 +1,281 @@
 --- a/net/minecraft/data/loot/BlockLootSubProvider.java
 +++ b/net/minecraft/data/loot/BlockLootSubProvider.java
-@@ -716,12 +_,16 @@
+@@ -6,14 +_,21 @@
+ import java.util.Locale;
+ import java.util.Map;
+ import java.util.Set;
++import java.util.function.BiConsumer;
+ import java.util.function.Function;
+ import java.util.stream.IntStream;
+ import net.minecraft.advancements.predicates.BlockPredicate;
++import net.minecraft.advancements.predicates.DataComponentMatchers;
++import net.minecraft.advancements.predicates.EnchantmentPredicate;
++import net.minecraft.advancements.predicates.ItemPredicate;
+ import net.minecraft.advancements.predicates.LocationPredicate;
++import net.minecraft.advancements.predicates.MinMaxBounds;
+ import net.minecraft.advancements.predicates.StatePropertiesPredicate;
+ import net.minecraft.core.Direction;
+-import net.minecraft.core.HolderGetter;
++import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.component.DataComponents;
++import net.minecraft.core.component.predicates.DataComponentPredicates;
++import net.minecraft.core.component.predicates.EnchantmentsPredicate;
+ import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.resources.ResourceKey;
+@@ -56,43 +_,44 @@
+ import net.minecraft.world.level.storage.loot.functions.SetItemCountFunction;
+ import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+ import net.minecraft.world.level.storage.loot.predicates.BonusLevelTableCondition;
+-import net.minecraft.world.level.storage.loot.predicates.ConditionReference;
+ import net.minecraft.world.level.storage.loot.predicates.ConditionUserBuilder;
+ import net.minecraft.world.level.storage.loot.predicates.ExplosionCondition;
+ import net.minecraft.world.level.storage.loot.predicates.LocationCheck;
+ import net.minecraft.world.level.storage.loot.predicates.LootItemBlockStatePropertyCondition;
+ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+ import net.minecraft.world.level.storage.loot.predicates.LootItemRandomChanceCondition;
+-import net.minecraft.world.level.storage.loot.predicates.LootPredicates;
++import net.minecraft.world.level.storage.loot.predicates.MatchTool;
+ import net.minecraft.world.level.storage.loot.providers.number.BinomialDistributionGenerator;
+ import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
+ import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
+ import net.minecraft.world.level.storage.loot.providers.number.UniformGenerator;
+ 
+ public abstract class BlockLootSubProvider implements LootTableSubProvider {
+-    protected final LootTableSubProvider.Context output;
+-    protected final HolderGetter<Enchantment> enchantments;
+-    protected final HolderGetter<Item> items;
+-    protected final HolderGetter<Block> blocks;
+-    protected final HolderGetter<LootItemCondition> predicates;
++    protected final HolderLookup.Provider registries;
+     private final Set<Item> explosionResistant;
+     private final FeatureFlagSet enabledFeatures;
+     private final Map<ResourceKey<LootTable>, LootTable.Builder> map = new HashMap<>();
+     protected static final float[] NORMAL_LEAVES_SAPLING_CHANCES = new float[]{0.05F, 0.0625F, 0.083333336F, 0.1F};
+     private static final float[] NORMAL_LEAVES_STICK_CHANCES = new float[]{0.02F, 0.022222223F, 0.025F, 0.033333335F, 0.1F};
+ 
+-    protected BlockLootSubProvider(Set<Item> explosionResistant, FeatureFlagSet enabledFeatures, LootTableSubProvider.Context output) {
+-        this.explosionResistant = explosionResistant;
+-        this.enabledFeatures = enabledFeatures;
+-        this.output = output;
+-        this.enchantments = output.lookup(Registries.ENCHANTMENT);
+-        this.items = output.lookup(Registries.ITEM);
+-        this.blocks = output.lookup(Registries.BLOCK);
+-        this.predicates = output.lookup(Registries.PREDICATE);
+-    }
+-
+     protected LootItemCondition.Builder hasSilkTouch() {
+-        return ConditionReference.conditionReference(this.predicates.getOrThrow(LootPredicates.TOOL_CAN_SILK_TOUCH));
++        return MatchTool.toolMatches(
++            ItemPredicate.Builder.item()
++                .withComponents(
++                    DataComponentMatchers.Builder.components()
++                        .partial(
++                            DataComponentPredicates.ENCHANTMENTS,
++                            EnchantmentsPredicate.enchantments(
++                                List.of(
++                                    new EnchantmentPredicate(
++                                        this.registries.lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(Enchantments.SILK_TOUCH), MinMaxBounds.Ints.atLeast(1)
++                                    )
++                                )
++                            )
++                        )
++                        .build()
++                )
++        );
+     }
+ 
+     protected LootItemCondition.Builder doesNotHaveSilkTouch() {
+@@ -100,7 +_,7 @@
+     }
+ 
+     protected LootItemCondition.Builder hasShears() {
+-        return ConditionReference.conditionReference(this.predicates.getOrThrow(LootPredicates.TOOL_CAN_SHEAR));
++        return MatchTool.toolMatches(ItemPredicate.Builder.item().of(this.registries.lookupOrThrow(Registries.ITEM), Items.SHEARS));
+     }
+ 
+     private LootItemCondition.Builder hasShearsOrSilkTouch() {
+@@ -111,6 +_,12 @@
+         return this.hasShearsOrSilkTouch().invert();
+     }
+ 
++    protected BlockLootSubProvider(Set<Item> explosionResistant, FeatureFlagSet enabledFeatures, HolderLookup.Provider registries) {
++        this.explosionResistant = explosionResistant;
++        this.enabledFeatures = enabledFeatures;
++        this.registries = registries;
++    }
++
+     protected <T extends FunctionUserBuilder<T>> T applyExplosionDecay(ItemLike type, FunctionUserBuilder<T> builder) {
+         return !this.explosionResistant.contains(type.asItem()) ? builder.apply(ApplyExplosionDecay.explosionDecay()) : builder.unwrap();
+     }
+@@ -258,37 +_,40 @@
+     }
+ 
+     protected LootTable.Builder createCopperOreDrops(Block block) {
++        HolderLookup.RegistryLookup<Enchantment> enchantments = this.registries.lookupOrThrow(Registries.ENCHANTMENT);
+         return this.createSilkTouchDispatchTable(
+             block,
+             (LootPoolEntryContainer.Builder<?>)this.applyExplosionDecay(
+                 block,
+                 LootItem.lootTableItem(Items.RAW_COPPER)
+                     .apply(SetItemCountFunction.setCount(UniformGenerator.between(2.0F, 5.0F)))
+-                    .apply(ApplyBonusCount.addOreBonusCount(this.enchantments.getOrThrow(Enchantments.FORTUNE)))
++                    .apply(ApplyBonusCount.addOreBonusCount(enchantments.getOrThrow(Enchantments.FORTUNE)))
+             )
+         );
+     }
+ 
+     protected LootTable.Builder createLapisOreDrops(Block block) {
++        HolderLookup.RegistryLookup<Enchantment> enchantments = this.registries.lookupOrThrow(Registries.ENCHANTMENT);
+         return this.createSilkTouchDispatchTable(
+             block,
+             (LootPoolEntryContainer.Builder<?>)this.applyExplosionDecay(
+                 block,
+                 LootItem.lootTableItem(Items.LAPIS_LAZULI)
+                     .apply(SetItemCountFunction.setCount(UniformGenerator.between(4.0F, 9.0F)))
+-                    .apply(ApplyBonusCount.addOreBonusCount(this.enchantments.getOrThrow(Enchantments.FORTUNE)))
++                    .apply(ApplyBonusCount.addOreBonusCount(enchantments.getOrThrow(Enchantments.FORTUNE)))
+             )
+         );
+     }
+ 
+     protected LootTable.Builder createRedstoneOreDrops(Block block) {
++        HolderLookup.RegistryLookup<Enchantment> enchantments = this.registries.lookupOrThrow(Registries.ENCHANTMENT);
+         return this.createSilkTouchDispatchTable(
+             block,
+             (LootPoolEntryContainer.Builder<?>)this.applyExplosionDecay(
+                 block,
+                 LootItem.lootTableItem(Items.REDSTONE)
+                     .apply(SetItemCountFunction.setCount(UniformGenerator.between(4.0F, 5.0F)))
+-                    .apply(ApplyBonusCount.addUniformBonusCount(this.enchantments.getOrThrow(Enchantments.FORTUNE)))
++                    .apply(ApplyBonusCount.addUniformBonusCount(enchantments.getOrThrow(Enchantments.FORTUNE)))
+             )
+         );
+     }
+@@ -373,10 +_,11 @@
+     }
+ 
+     protected LootTable.Builder createOreDrop(Block original, Item drop) {
++        HolderLookup.RegistryLookup<Enchantment> enchantments = this.registries.lookupOrThrow(Registries.ENCHANTMENT);
+         return this.createSilkTouchDispatchTable(
+             original,
+             (LootPoolEntryContainer.Builder<?>)this.applyExplosionDecay(
+-                original, LootItem.lootTableItem(drop).apply(ApplyBonusCount.addOreBonusCount(this.enchantments.getOrThrow(Enchantments.FORTUNE)))
++                original, LootItem.lootTableItem(drop).apply(ApplyBonusCount.addOreBonusCount(enchantments.getOrThrow(Enchantments.FORTUNE)))
+             )
+         );
+     }
+@@ -394,13 +_,14 @@
+     }
+ 
+     protected LootTable.Builder createGrassDrops(Block original) {
++        HolderLookup.RegistryLookup<Enchantment> enchantments = this.registries.lookupOrThrow(Registries.ENCHANTMENT);
+         return this.createShearsDispatchTable(
+             original,
+             (LootPoolEntryContainer.Builder<?>)this.applyExplosionDecay(
+                 original,
+                 LootItem.lootTableItem(Items.WHEAT_SEEDS)
+                     .when(LootItemRandomChanceCondition.randomChance(0.125F))
+-                    .apply(ApplyBonusCount.addUniformBonusCount(this.enchantments.getOrThrow(Enchantments.FORTUNE), 2))
++                    .apply(ApplyBonusCount.addUniformBonusCount(enchantments.getOrThrow(Enchantments.FORTUNE), 2))
+             )
+         );
+     }
+@@ -516,10 +_,11 @@
+     }
+ 
+     protected LootTable.Builder createLeavesDrops(Block original, Block sapling, float... saplingChances) {
++        HolderLookup.RegistryLookup<Enchantment> enchantments = this.registries.lookupOrThrow(Registries.ENCHANTMENT);
+         return this.createSilkTouchOrShearsDispatchTable(
+                 original,
+                 ((LootPoolSingletonContainer.Builder)this.applyExplosionCondition(original, LootItem.lootTableItem(sapling)))
+-                    .when(BonusLevelTableCondition.bonusLevelFlatChance(this.enchantments.getOrThrow(Enchantments.FORTUNE), saplingChances))
++                    .when(BonusLevelTableCondition.bonusLevelFlatChance(enchantments.getOrThrow(Enchantments.FORTUNE), saplingChances))
+             )
+             .withPool(
+                 LootPool.lootPool()
+@@ -529,14 +_,13 @@
+                         ((LootPoolSingletonContainer.Builder)this.applyExplosionDecay(
+                                 original, LootItem.lootTableItem(Items.STICK).apply(SetItemCountFunction.setCount(UniformGenerator.between(1.0F, 2.0F)))
+                             ))
+-                            .when(
+-                                BonusLevelTableCondition.bonusLevelFlatChance(this.enchantments.getOrThrow(Enchantments.FORTUNE), NORMAL_LEAVES_STICK_CHANCES)
+-                            )
++                            .when(BonusLevelTableCondition.bonusLevelFlatChance(enchantments.getOrThrow(Enchantments.FORTUNE), NORMAL_LEAVES_STICK_CHANCES))
+                     )
+             );
+     }
+ 
+     protected LootTable.Builder createOakLeavesDrops(Block original, Block sapling, float... saplingChances) {
++        HolderLookup.RegistryLookup<Enchantment> enchantments = this.registries.lookupOrThrow(Registries.ENCHANTMENT);
+         return this.createLeavesDrops(original, sapling, saplingChances)
+             .withPool(
+                 LootPool.lootPool()
+@@ -546,7 +_,7 @@
+                         ((LootPoolSingletonContainer.Builder)this.applyExplosionCondition(original, LootItem.lootTableItem(Items.APPLE)))
+                             .when(
+                                 BonusLevelTableCondition.bonusLevelFlatChance(
+-                                    this.enchantments.getOrThrow(Enchantments.FORTUNE), 0.005F, 0.0055555557F, 0.00625F, 0.008333334F, 0.025F
++                                    enchantments.getOrThrow(Enchantments.FORTUNE), 0.005F, 0.0055555557F, 0.00625F, 0.008333334F, 0.025F
+                                 )
+                             )
+                     )
+@@ -554,16 +_,18 @@
+     }
+ 
+     protected LootTable.Builder createMangroveLeavesDrops(Block block) {
++        HolderLookup.RegistryLookup<Enchantment> enchantments = this.registries.lookupOrThrow(Registries.ENCHANTMENT);
+         return this.createSilkTouchOrShearsDispatchTable(
+             block,
+             ((LootPoolSingletonContainer.Builder)this.applyExplosionDecay(
+                     Blocks.MANGROVE_LEAVES, LootItem.lootTableItem(Items.STICK).apply(SetItemCountFunction.setCount(UniformGenerator.between(1.0F, 2.0F)))
+                 ))
+-                .when(BonusLevelTableCondition.bonusLevelFlatChance(this.enchantments.getOrThrow(Enchantments.FORTUNE), NORMAL_LEAVES_STICK_CHANCES))
++                .when(BonusLevelTableCondition.bonusLevelFlatChance(enchantments.getOrThrow(Enchantments.FORTUNE), NORMAL_LEAVES_STICK_CHANCES))
+         );
+     }
+ 
+     protected LootTable.Builder createCropDrops(Block original, Item cropDrop, Item seedDrop, LootItemCondition.Builder isMaxAge) {
++        HolderLookup.RegistryLookup<Enchantment> enchantments = this.registries.lookupOrThrow(Registries.ENCHANTMENT);
+         return this.applyExplosionDecay(
+             original,
+             LootTable.lootTable()
+@@ -573,7 +_,7 @@
+                         .when(isMaxAge)
+                         .add(
+                             LootItem.lootTableItem(seedDrop)
+-                                .apply(ApplyBonusCount.addBonusBinomialDistributionCount(this.enchantments.getOrThrow(Enchantments.FORTUNE), 0.5714286F, 3))
++                                .apply(ApplyBonusCount.addBonusBinomialDistributionCount(enchantments.getOrThrow(Enchantments.FORTUNE), 0.5714286F, 3))
+                         )
+                 )
+         );
+@@ -587,6 +_,7 @@
+     }
+ 
+     protected LootTable.Builder createDoublePlantWithSeedDrops(Block block, Block drop) {
++        HolderLookup.RegistryLookup<Block> blocks = this.registries.lookupOrThrow(Registries.BLOCK);
+         LootPoolEntryContainer.Builder<?> dropEntry = LootItem.lootTableItem(drop)
+             .apply(SetItemCountFunction.setCount(ConstantValue.exactly(2.0F)))
+             .when(this.hasShears())
+@@ -607,7 +_,7 @@
+                             LocationPredicate.Builder.location()
+                                 .setBlock(
+                                     BlockPredicate.Builder.block()
+-                                        .of(this.blocks, block)
++                                        .of(blocks, block)
+                                         .setProperties(StatePropertiesPredicate.Builder.properties().hasProperty(DoublePlantBlock.HALF, DoubleBlockHalf.UPPER))
+                                 ),
+                             Direction.UP
+@@ -626,7 +_,7 @@
+                             LocationPredicate.Builder.location()
+                                 .setBlock(
+                                     BlockPredicate.Builder.block()
+-                                        .of(this.blocks, block)
++                                        .of(blocks, block)
+                                         .setProperties(StatePropertiesPredicate.Builder.properties().hasProperty(DoublePlantBlock.HALF, DoubleBlockHalf.LOWER))
+                                 ),
+                             Direction.DOWN
+@@ -694,12 +_,16 @@
  
      protected abstract void generate();
  
@@ -9,7 +284,8 @@
 +    }
 +
      @Override
-     public void generate(BiConsumer<ResourceKey<LootTable>, LootTable.Builder> output) {
+-    public void run() {
++    public void generate(BiConsumer<ResourceKey<LootTable>, LootTable.Builder> output) {
          this.generate();
          Set<ResourceKey<LootTable>> seen = new HashSet<>();
  
@@ -18,3 +294,16 @@
              if (block.isEnabled(this.enabledFeatures)) {
                  block.getLootTable()
                      .ifPresent(
+@@ -727,10 +_,11 @@
+     }
+ 
+     protected void addNetherVinesDropTable(Block vineBlock, Block plantBlock) {
++        HolderLookup.RegistryLookup<Enchantment> enchantments = this.registries.lookupOrThrow(Registries.ENCHANTMENT);
+         LootTable.Builder builder = this.createSilkTouchOrShearsDispatchTable(
+             vineBlock,
+             LootItem.lootTableItem(vineBlock)
+-                .when(BonusLevelTableCondition.bonusLevelFlatChance(this.enchantments.getOrThrow(Enchantments.FORTUNE), 0.33F, 0.55F, 0.77F, 1.0F))
++                .when(BonusLevelTableCondition.bonusLevelFlatChance(enchantments.getOrThrow(Enchantments.FORTUNE), 0.33F, 0.55F, 0.77F, 1.0F))
+         );
+         this.add(vineBlock, builder);
+         this.add(plantBlock, builder);

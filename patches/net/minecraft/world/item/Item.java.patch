@@ -8,7 +8,7 @@
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Codec;
  import com.mojang.serialization.DataResult;
-@@ -113,7 +_,7 @@
+@@ -115,7 +_,7 @@
              : DataResult.success(item)
      );
      private static final Logger LOGGER = LogUtils.getLogger();
@@ -17,7 +17,7 @@
      public static final Identifier BASE_ATTACK_DAMAGE_ID = Identifier.withDefaultNamespace("base_attack_damage");
      public static final Identifier BASE_ATTACK_SPEED_ID = Identifier.withDefaultNamespace("base_attack_speed");
      public static final int DEFAULT_MAX_STACK_SIZE = 64;
-@@ -124,6 +_,7 @@
+@@ -126,6 +_,7 @@
      private final @Nullable ItemStackTemplate craftingRemainingItem;
      protected final String descriptionId;
      private final FeatureFlagSet requiredFeatures;
@@ -25,7 +25,7 @@
  
      public static int getId(Item item) {
          return item == null ? 0 : BuiltInRegistries.ITEM.getId(item);
-@@ -146,12 +_,13 @@
+@@ -148,12 +_,13 @@
          BuiltInRegistries.DATA_COMPONENT_INITIALIZERS.add(properties.itemIdOrThrow(), componentInitializer);
          this.craftingRemainingItem = properties.craftingRemainingItem;
          this.requiredFeatures = properties.requiredFeatures;
@@ -40,7 +40,7 @@
      }
  
      @Deprecated
-@@ -163,6 +_,21 @@
+@@ -165,6 +_,21 @@
          return this.builtInRegistryHolder.components();
      }
  
@@ -62,7 +62,7 @@
      public int getDefaultMaxStackSize() {
          return this.components().getOrDefault(DataComponents.MAX_STACK_SIZE, 1);
      }
-@@ -170,6 +_,8 @@
+@@ -172,6 +_,8 @@
      public void onUseTick(Level level, LivingEntity livingEntity, ItemStack itemStack, int ticksRemaining) {
      }
  
@@ -71,7 +71,7 @@
      public void onDestroyed(ItemEntity itemEntity) {
      }
  
-@@ -288,6 +_,8 @@
+@@ -290,6 +_,8 @@
          return BuiltInRegistries.ITEM.wrapAsHolder(this).getRegisteredName();
      }
  
@@ -80,7 +80,7 @@
      public final @Nullable ItemStackTemplate getCraftingRemainder() {
          return this.craftingRemainingItem;
      }
-@@ -313,10 +_,24 @@
+@@ -315,10 +_,24 @@
          }
      }
  
@@ -106,7 +106,7 @@
          } else {
              return !itemStack.has(DataComponents.BLOCKS_ATTACKS) && !itemStack.has(DataComponents.KINETIC_WEAPON) ? 0 : 72000;
          }
-@@ -354,13 +_,26 @@
+@@ -356,13 +_,26 @@
      }
  
      public boolean useOnRelease(ItemStack itemStack) {
@@ -134,7 +134,7 @@
      public boolean canFitInsideContainerItems() {
          return true;
      }
-@@ -385,6 +_,12 @@
+@@ -387,6 +_,12 @@
          private @Nullable ResourceKey<Item> id;
          private DependantName<Item, String> descriptionId = ITEM_DESCRIPTION_ID;
          private final DependantName<Item, Identifier> model = ResourceKey::identifier;
@@ -147,11 +147,11 @@
  
          public Item.Properties food(FoodProperties foodProperties) {
              return this.food(foodProperties, Consumables.DEFAULT_FOOD);
-@@ -676,7 +_,11 @@
+@@ -678,7 +_,11 @@
          }
  
          public <T> Item.Properties delayedHolderComponent(DataComponentType<Holder<T>> type, ResourceKey<T> valueKey) {
--            this.componentInitializer = this.componentInitializer.andThen((components, context, key) -> components.set(type, context.getOrThrow(valueKey)));
+-            this.componentInitializer = this.componentInitializer.andThen((components, context, var4) -> components.set(type, context.getOrThrow(valueKey)));
 +            this.componentInitializer = this.componentInitializer.andThen((components, context, key) -> {
 +                var value = context.getOrThrow(valueKey);
 +                net.neoforged.neoforge.common.CommonHooks.validateComponent(value);
@@ -160,7 +160,7 @@
              return this;
          }
  
-@@ -725,7 +_,26 @@
+@@ -731,7 +_,26 @@
  
          boolean isPeaceful();
  
@@ -187,7 +187,7 @@
              return level == null ? EMPTY : new Item.TooltipContext() {
                  @Override
                  public HolderLookup.Provider registries() {
-@@ -745,6 +_,17 @@
+@@ -751,6 +_,17 @@
                  @Override
                  public boolean isPeaceful() {
                      return level.getDifficulty() == Difficulty.PEACEFUL;

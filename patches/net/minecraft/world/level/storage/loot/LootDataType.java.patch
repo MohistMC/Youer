@@ -1,19 +1,42 @@
 --- a/net/minecraft/world/level/storage/loot/LootDataType.java
 +++ b/net/minecraft/world/level/storage/loot/LootDataType.java
-@@ -15,7 +_,7 @@
+@@ -1,5 +_,6 @@
+ package net.minecraft.world.level.storage.loot;
+ 
++import com.mojang.serialization.Codec;
+ import java.util.stream.Stream;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.Registry;
+@@ -8,47 +_,53 @@
+ import net.minecraft.util.ProblemReporter;
+ import net.minecraft.util.context.ContextKeySet;
+ import net.minecraft.world.item.slot.SlotSource;
++import net.minecraft.world.item.slot.SlotSources;
+ import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
++import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
  import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
  import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+-import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
  
--public record LootDataType<T extends Validatable>(ResourceKey<Registry<T>> registryKey, Codec<T> codec, LootDataType.ContextGetter<T> contextGetter) {
+-public record LootDataType<T extends Validatable>(ResourceKey<Registry<T>> registryKey, LootDataType.ContextGetter<T> contextGetter) {
 +public record LootDataType<T extends Validatable>(ResourceKey<Registry<T>> registryKey, Codec<T> codec, LootDataType.ContextGetter<T> contextGetter, @org.jspecify.annotations.Nullable T defaultValue, Codec<java.util.Optional<T>> conditionalCodec, java.util.function.BiConsumer<T, net.minecraft.resources.Identifier> idSetter) {
      public static final LootDataType<LootItemCondition> PREDICATE = new LootDataType<>(
-         Registries.PREDICATE, LootItemCondition.DIRECT_CODEC, LootDataType.ContextGetter.constant(LootContextParamSets.ALL_PARAMS)
+-        Registries.PREDICATE, LootDataType.ContextGetter.constant(LootContextParamSets.ALL_PARAMS)
++        Registries.PREDICATE, LootItemCondition.DIRECT_CODEC, LootDataType.ContextGetter.constant(LootContextParamSets.ALL_PARAMS)
      );
-@@ -25,12 +_,29 @@
+     public static final LootDataType<LootItemFunction> MODIFIER = new LootDataType<>(
+-        Registries.ITEM_MODIFIER, LootDataType.ContextGetter.constant(LootContextParamSets.ALL_PARAMS)
++        Registries.ITEM_MODIFIER, LootItemFunctions.ROOT_CODEC, LootDataType.ContextGetter.constant(LootContextParamSets.ALL_PARAMS)
+     );
      public static final LootDataType<SlotSource> SLOT_SOURCE = new LootDataType<>(
-         Registries.SLOT_SOURCE, SlotSources.CODEC, LootDataType.ContextGetter.constant(LootContextParamSets.ALL_PARAMS)
-     );
--    public static final LootDataType<LootTable> TABLE = new LootDataType<>(Registries.LOOT_TABLE, LootTable.DIRECT_CODEC, LootTable::getParamSet);
+-        Registries.SLOT_SOURCE, LootDataType.ContextGetter.constant(LootContextParamSets.ALL_PARAMS)
+-    );
+-    public static final LootDataType<LootTable> TABLE = new LootDataType<>(Registries.LOOT_TABLE, LootTable::getParamSet);
+-    public static final LootDataType<NumberProvider> NUMBER_PROVIDER = new LootDataType<>(
+-        Registries.NUMBER_PROVIDER, LootDataType.ContextGetter.constant(LootContextParamSets.ALL_PARAMS)
+-    );
++        Registries.SLOT_SOURCE, SlotSources.CODEC, LootDataType.ContextGetter.constant(LootContextParamSets.ALL_PARAMS)
++    );
 +    public static final LootDataType<LootTable> TABLE = new LootDataType<>(Registries.LOOT_TABLE, LootTable.DIRECT_CODEC, LootTable::getParamSet, LootTable.EMPTY, LootTable::setLootTableId);
 +
 +    /**
@@ -40,3 +63,21 @@
      }
  
      public void runValidation(ValidationContextSource contextSource, HolderLookup<T> lookup) {
+         lookup.listElements().forEach(holder -> this.runValidation(contextSource, holder.key(), holder.value()));
+     }
+ 
+-    public void runValidation(ValidationContextSource contextSource, HolderLookup.Provider registries) {
+-        HolderLookup<T> registry = registries.lookupOrThrow(this.registryKey());
+-        this.runValidation(contextSource, registry);
+-    }
+-
+-    public void runValidationIfPresent(ValidationContextSource contextSource, HolderLookup.Provider registries) {
+-        registries.lookup(this.registryKey()).ifPresent(registry -> this.runValidation(contextSource, registry));
+-    }
+-
+     public static Stream<LootDataType<?>> values() {
+-        return Stream.of(PREDICATE, MODIFIER, SLOT_SOURCE, TABLE, NUMBER_PROVIDER);
++        return Stream.of(PREDICATE, MODIFIER, SLOT_SOURCE, TABLE);
+     }
+ 
+     @FunctionalInterface

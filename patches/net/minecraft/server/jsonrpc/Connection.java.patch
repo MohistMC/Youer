@@ -8,3 +8,16 @@
      }
  
      protected void channelRead0(ChannelHandlerContext channelHandlerContext, JsonElement jsonElement) {
+@@ -206,10 +_,10 @@
+             JsonElement result = this.dispatchIncomingRequest(method, params);
+             return result != null && sendResponse ? JsonRPCUtils.createSuccessResult(id, result) : null;
+         } catch (InvalidParameterJsonRpcException e) {
+-            LOGGER.debug("Invalid parameter invocation {}: {}", method, params, e);
++            LOGGER.debug("Invalid parameter invocation {}: {}, {}", method, params, e.getMessage());
+             return sendResponse ? JsonRPCErrors.INVALID_PARAMS.create(id, e.getMessage()) : null;
+         } catch (EncodeJsonRpcException e) {
+-            LOGGER.error("Failed to encode json rpc response {}", method, e);
++            LOGGER.error("Failed to encode json rpc response {}: {}", method, e.getMessage());
+             return sendResponse ? JsonRPCErrors.INTERNAL_ERROR.create(id, e.getMessage()) : null;
+         } catch (InvalidRequestJsonRpcException e) {
+             return sendResponse ? JsonRPCErrors.INVALID_REQUEST.create(id, e.getMessage()) : null;

@@ -77,7 +77,7 @@
          return level.getDifficulty() != Difficulty.PEACEFUL;
      }
  
-@@ -96,17 +_,28 @@
+@@ -96,21 +_,32 @@
          float sizeJumpBoostPower = this.getSize() * 0.1F;
          this.setDeltaMovement(movement.x, this.getJumpPower() + sizeJumpBoostPower, movement.z);
          this.needsSync = true;
@@ -100,11 +100,16 @@
 -            super.jumpInLiquid(type);
 +            onSuper.run();
          }
-+    }
-+
-+    @Override
-+    public void jumpInFluid(net.neoforged.neoforge.fluids.FluidType type) {
-+        this.jumpInLiquidInternal(() -> type == net.neoforged.neoforge.common.NeoForgeMod.LAVA_TYPE.value(), () -> super.jumpInFluid(type));
      }
  
      @Override
+-    protected boolean canDealDamage() {
++    public void jumpInFluid(net.neoforged.neoforge.fluids.FluidType type) {
++        this.jumpInLiquidInternal(() -> type == net.neoforged.neoforge.common.NeoForgeMod.LAVA_TYPE.value(), () -> super.jumpInFluid(type));
++    }
++
++    @Override
++    protected boolean isDealsDamage() {
+         return this.isEffectiveAi();
+     }
+ 
