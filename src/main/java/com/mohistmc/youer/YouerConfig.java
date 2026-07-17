@@ -140,6 +140,19 @@ public class YouerConfig {
     public static int backup_world_interval;
     public static int backup_world_max_backups;
     public static boolean backup_world_use_zstd;
+    // Mod Compatibility
+    public static ModCompatibilityConfig terrablender_compat;
+    public static ModCompatibilityConfig lithostitched_compat;
+    
+    public static class ModCompatibilityConfig {
+        public boolean enable;
+        public List<String> skip_worlds;
+        
+        public ModCompatibilityConfig(boolean enable, List<String> skip_worlds) {
+            this.enable = enable;
+            this.skip_worlds = skip_worlds;
+        }
+    }
 
     static int version;
     static Map<String, Command> commands;
@@ -349,6 +362,15 @@ public class YouerConfig {
 
         getBoolean("keepinventory.world.inventory", false);
         getBoolean("keepinventory.world.exp", false);
+
+        terrablender_compat = new ModCompatibilityConfig(
+            getBoolean("modcompatibility.terrablender.enable", true),
+            getStringList("modcompatibility.terrablender.skip_worlds", new ArrayList<>())
+        );
+        lithostitched_compat = new ModCompatibilityConfig(
+            getBoolean("modcompatibility.lithostitched.enable", true),
+            getStringList("modcompatibility.lithostitched.skip_worlds", new ArrayList<>())
+        );
     }
 
     public static boolean isCN() {
