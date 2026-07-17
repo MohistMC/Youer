@@ -143,6 +143,7 @@ public class YouerConfig {
     // Mod Compatibility
     public static ModCompatibilityConfig terrablender_compat;
     public static ModCompatibilityConfig lithostitched_compat;
+    public static boolean keepSpawnLoaded;
     
     public static class ModCompatibilityConfig {
         public boolean enable;
@@ -340,6 +341,7 @@ public class YouerConfig {
         custom_disabled_spawner = getBoolean("custom.disabled_spawner", false);
         custom_disabled_sign_commands = getBoolean("custom.disabled_signblock_commands", true);
         no_damage_particle = getBoolean("custom.no_damage_particle", false);
+        keepSpawnLoaded = getBoolean("custom.keepSpawnLoaded", true);
 
         backup_world_enable = getBoolean("backup_world.enable", false);
         backup_world_interval = getInt("backup_world.interval", 3600);

@@ -1,10 +1,11 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -6,11 +_,23 @@
+@@ -6,11 +_,24 @@
  import com.google.common.collect.Lists;
  import com.google.common.collect.Maps;
  import com.google.common.collect.Sets;
 +import com.google.gson.Gson;
++import com.mohistmc.youer.YouerConfig;
 +import com.mohistmc.youer.api.ColorAPI;
 +import com.mohistmc.youer.api.ServerAPI;
 +import com.mohistmc.youer.feature.YouerPlugin;
@@ -478,24 +479,37 @@
              int i = serverchunkcache.getGenerator().getSpawnHeight(p_177897_);
              if (i < p_177897_.getMinBuildHeight()) {
                  BlockPos blockpos = chunkpos.getWorldPosition();
-@@ -484,25 +_,60 @@
+@@ -484,25 +_,64 @@
          serverleveldata.setGameType(GameType.SPECTATOR);
      }
  
+-    public void prepareLevels(ChunkProgressListener p_129941_) {
+-        ServerLevel serverlevel = this.overworld();
+-        LOGGER.info("Preparing start region for dimension {}", serverlevel.dimension().location());
 +    public void prepareLevels(ChunkProgressListener p_129941_, ServerLevel serverlevel) {
 +        markWorldsDirty();
 +        this.forceTicks = true;
 +        LOGGER.info(I18n.as("minecraftserver.4", serverlevel.dimension().location()));
-+        BlockPos blockpos = serverlevel.getSharedSpawnPos();
-+        p_129941_.updateSpawnPos(new ChunkPos(blockpos));
-+        ServerChunkCache serverchunkcache = serverlevel.getChunkSource();
-+        this.nextTickTimeNanos = Util.getNanos();
-+        serverlevel.setDefaultSpawnPos(blockpos, serverlevel.getSharedSpawnAngle());
+         BlockPos blockpos = serverlevel.getSharedSpawnPos();
+         p_129941_.updateSpawnPos(new ChunkPos(blockpos));
+         ServerChunkCache serverchunkcache = serverlevel.getChunkSource();
+         this.nextTickTimeNanos = Util.getNanos();
+         serverlevel.setDefaultSpawnPos(blockpos, serverlevel.getSharedSpawnAngle());
+-        int i = this.getGameRules().getInt(GameRules.RULE_SPAWN_CHUNK_RADIUS);
++        if (YouerConfig.keepSpawnLoaded) {
 +        int i = serverlevel.getGameRules().getInt(GameRules.RULE_SPAWN_CHUNK_RADIUS);
-+        int j = i > 0 ? Mth.square(ChunkProgressListener.calculateDiameter(i)) : 0;
-+
-+        while (serverchunkcache.getTickingGenerated() < j) {
+         int j = i > 0 ? Mth.square(ChunkProgressListener.calculateDiameter(i)) : 0;
+ 
+         while (serverchunkcache.getTickingGenerated() < j) {
+-            this.nextTickTimeNanos = Util.getNanos() + PREPARE_LEVELS_DEFAULT_DELAY_NANOS;
+-            this.waitUntilNextTick();
+-        }
+-
+-        this.nextTickTimeNanos = Util.getNanos() + PREPARE_LEVELS_DEFAULT_DELAY_NANOS;
+-        this.waitUntilNextTick();
+-
 +            this.executeModerately();
++        }
 +        }
 +
 +        this.executeModerately();
@@ -519,29 +533,24 @@
 +        // CraftBukkit end
 +    }
 +
-     public void prepareLevels(ChunkProgressListener p_129941_) {
-         ServerLevel serverlevel = this.overworld();
--        LOGGER.info("Preparing start region for dimension {}", serverlevel.dimension().location());
++    public void prepareLevels(ChunkProgressListener p_129941_) {
++        ServerLevel serverlevel = this.overworld();
 +        this.forceTicks = true;
 +        LOGGER.info(I18n.as("minecraftserver.4", serverlevel.dimension().location()));
-         BlockPos blockpos = serverlevel.getSharedSpawnPos();
-         p_129941_.updateSpawnPos(new ChunkPos(blockpos));
-         ServerChunkCache serverchunkcache = serverlevel.getChunkSource();
-         this.nextTickTimeNanos = Util.getNanos();
-         serverlevel.setDefaultSpawnPos(blockpos, serverlevel.getSharedSpawnAngle());
--        int i = this.getGameRules().getInt(GameRules.RULE_SPAWN_CHUNK_RADIUS);
-+        int i = serverlevel.getGameRules().getInt(GameRules.RULE_SPAWN_CHUNK_RADIUS);
-         int j = i > 0 ? Mth.square(ChunkProgressListener.calculateDiameter(i)) : 0;
- 
-         while (serverchunkcache.getTickingGenerated() < j) {
--            this.nextTickTimeNanos = Util.getNanos() + PREPARE_LEVELS_DEFAULT_DELAY_NANOS;
--            this.waitUntilNextTick();
-+            this.executeModerately();
-         }
- 
--        this.nextTickTimeNanos = Util.getNanos() + PREPARE_LEVELS_DEFAULT_DELAY_NANOS;
--        this.waitUntilNextTick();
--
++        BlockPos blockpos = serverlevel.getSharedSpawnPos();
++        p_129941_.updateSpawnPos(new ChunkPos(blockpos));
++        ServerChunkCache serverchunkcache = serverlevel.getChunkSource();
++        this.nextTickTimeNanos = Util.getNanos();
++        serverlevel.setDefaultSpawnPos(blockpos, serverlevel.getSharedSpawnAngle());
++        if (YouerConfig.keepSpawnLoaded) {
++            int i = serverlevel.getGameRules().getInt(GameRules.RULE_SPAWN_CHUNK_RADIUS);
++            int j = i > 0 ? Mth.square(ChunkProgressListener.calculateDiameter(i)) : 0;
++
++            while (serverchunkcache.getTickingGenerated() < j) {
++                this.executeModerately();
++            }
++        }
++
 +        this.executeModerately();
          for (ServerLevel serverlevel1 : this.levels.values()) {
              ForcedChunksSavedData forcedchunkssaveddata = serverlevel1.getDataStorage().get(ForcedChunksSavedData.factory(), "chunks");
