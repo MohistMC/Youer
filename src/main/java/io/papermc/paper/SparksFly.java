@@ -20,7 +20,6 @@ import net.minecraft.util.ExceptionCollector;
 import org.bukkit.Server;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.craftbukkit.CraftServer;
 
 // It's like electricity.
 public final class SparksFly {

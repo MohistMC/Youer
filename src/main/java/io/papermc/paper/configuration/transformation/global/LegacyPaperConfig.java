@@ -1,13 +1,11 @@
 package io.papermc.paper.configuration.transformation.global;
 
 import com.mohistmc.youer.api.ColorAPI;
-import com.mojang.logging.LogUtils;
 import io.papermc.paper.configuration.Configuration;
 import java.util.function.Predicate;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.minimessage.MiniMessage;
-import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.minecraft.network.protocol.game.ServerboundPlaceRecipePacket;
 import org.bukkit.ChatColor;
 import org.bukkit.configuration.file.YamlConfiguration;

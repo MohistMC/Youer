@@ -2,7 +2,6 @@ package org.bukkit.inventory;
 
 import org.bukkit.NamespacedKey;
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Represents a smithing transform recipe.

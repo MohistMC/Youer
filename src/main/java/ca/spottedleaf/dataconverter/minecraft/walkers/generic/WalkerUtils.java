@@ -3,11 +3,8 @@ package ca.spottedleaf.dataconverter.minecraft.walkers.generic;
 import ca.spottedleaf.dataconverter.converters.datatypes.DataType;
 import ca.spottedleaf.dataconverter.minecraft.converters.helpers.RenameHelper;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCDataType;
-import ca.spottedleaf.dataconverter.minecraft.datatypes.MCValueType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
 import ca.spottedleaf.dataconverter.types.ListType;
 import ca.spottedleaf.dataconverter.types.MapType;
-import java.util.ArrayList;
 
 public final class WalkerUtils {
 

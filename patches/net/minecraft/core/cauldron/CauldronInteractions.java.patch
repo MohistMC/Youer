@@ -106,7 +106,13 @@
                      level.playSound(null, pos, SoundEvents.BOTTLE_EMPTY, SoundSource.BLOCKS, 1.0F, 1.0F);
                      level.gameEvent(null, GameEvent.FLUID_PLACE, pos);
                  }
-@@ -118,14 +_,14 @@
+@@ -113,19 +_,19 @@
+                 return InteractionResult.TRY_WITH_EMPTY_HAND;
+             }
+         });
+-        WATER.put(ItemTags.CAULDRON_CAN_REMOVE_DYE, CauldronInteractions::dyedItemIteration);
++        WATER.put(ItemTags.CAULDRON_CAN_REMOVE_DYE, (state1, level1, pos1, player1, hand1, itemInHand1, itemInHand2) -> dyedItemIteration(state1, level1, pos1, player1, hand1, itemInHand1));
+         Items.BANNER.forEach(banner -> WATER.put(banner, CauldronInteractions::bannerInteraction));
          Items.DYED_SHULKER_BOX.forEach(dyedShulkerBox -> WATER.put(dyedShulkerBox, CauldronInteractions::shulkerBoxInteraction));
          LAVA.put(
              Items.BUCKET,
@@ -310,7 +316,7 @@
      }
  
 -    public static InteractionResult dyedItemIteration(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, ItemStack itemInHand) {
-+    public static InteractionResult dyedItemIteration(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, ItemStack itemInHand, final net.minecraft.core.Direction hitDirection // Paper - add hitDirection
++    public static InteractionResult dyedItemIteration(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, ItemStack itemInHand
 +    ) {
          if (!itemInHand.has(DataComponents.DYED_COLOR)) {
              return InteractionResult.TRY_WITH_EMPTY_HAND;

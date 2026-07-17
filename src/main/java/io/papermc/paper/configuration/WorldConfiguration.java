@@ -2,7 +2,6 @@ package io.papermc.paper.configuration;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
-import com.mojang.logging.LogUtils;
 import io.papermc.paper.FeatureHooks;
 import io.papermc.paper.configuration.legacy.MaxEntityCollisionsInitializer;
 import io.papermc.paper.configuration.legacy.RequiresSpigotInitialization;

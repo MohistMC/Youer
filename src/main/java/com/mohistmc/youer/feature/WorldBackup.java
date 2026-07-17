@@ -41,7 +41,7 @@ public class WorldBackup {
                 if (MinecraftServer.getServer().hasStopped()) return;
                 backup();
             }, 1000L * YouerConfig.backup_world_interval, 1000L * YouerConfig.backup_world_interval, TimeUnit.MILLISECONDS);
-            Youer.LOGGER.info(I18n.as("worldbackupcmd.notice.backupScheduled"), YouerConfig.backup_world_interval);
+            Youer.LOGGER.info(I18n.as("worldbackupcmd.notice.backupScheduled", YouerConfig.backup_world_interval));
         }
     }
 
@@ -131,21 +131,30 @@ public class WorldBackup {
         }
     }
 
-    private static void writeTarEntry(Path baseDir, Path file, OutputStream os) throws IOException {
+    private static void writeTarEntry(Path baseDir, Path file, OutputStream os) {
         try {
             String entryName = baseDir.relativize(file).toString().replace("\\", "/");
             boolean isDir = Files.isDirectory(file);
             long size = isDir ? 0 : Files.size(file);
 
+            byte[] nameBytes = entryName.getBytes(StandardCharsets.UTF_8);
+
+            // For paths > 100 bytes, write a PAX extended header (POSIX.1-2001)
+            // This modern TAR extension supports arbitrarily long filenames
+            if (nameBytes.length > 100) {
+                writePaxPathHeader(entryName, isDir, os);
+                // The actual file entry uses just the filename, since PAX header carries the full path
+                String shortName = file.getFileName().toString();
+                nameBytes = shortName.getBytes(StandardCharsets.UTF_8);
+                if (nameBytes.length > 100) {
+                    nameBytes = Arrays.copyOf(nameBytes, 100);
+                }
+            }
+
             byte[] header = new byte[512];
 
             // File name (100 bytes)
-            byte[] nameBytes = entryName.getBytes(StandardCharsets.UTF_8);
-            if (nameBytes.length > 100) {
-                Youer.LOGGER.warn("Path too long for TAR, skipping: {}", entryName);
-                return;
-            }
-            System.arraycopy(nameBytes, 0, header, 0, nameBytes.length);
+            System.arraycopy(nameBytes, 0, header, 0, Math.min(nameBytes.length, 100));
 
             // Mode (8 bytes)
             String mode = isDir ? "040755" : "0100644";
@@ -198,6 +207,78 @@ public class WorldBackup {
             }
         } catch (IOException e) {
             Youer.LOGGER.warn(I18n.as("worldbackupcmd.notice.skippedLockedFile", file.getFileName()), e);
+        }
+    }
+
+    /** Writes a PAX extended header (type 'x') carrying the full entry path. */
+    private static void writePaxPathHeader(String entryName, boolean isDir, OutputStream os) throws IOException {
+        // PAX header record format: "<length> path=<value>\n"
+        // where length includes the digits, the space, and the value itself.
+        // Solve for the correct length iteratively.
+        String paxValue = "path=" + entryName + "\n";
+        int dataLen = paxValue.length();
+        int totalLen = dataLen + 2; // minimum: 1 digit + 1 space
+        while (String.valueOf(totalLen).length() + 1 != totalLen - dataLen) {
+            totalLen++;
+        }
+        String record = totalLen + " " + paxValue;
+
+        byte[] data = record.getBytes(StandardCharsets.UTF_8);
+
+        byte[] header = new byte[512];
+
+        // Name: the parent directory path + "/PaxHeaders" (convention for locating the header)
+        String parent = "";
+        int idx = entryName.lastIndexOf('/');
+        if (idx >= 0) {
+            parent = entryName.substring(0, idx);
+        }
+        String paxName = parent.isEmpty() ? "PaxHeaders" : parent + "/PaxHeaders";
+        byte[] paxNameBytes = paxName.getBytes(StandardCharsets.UTF_8);
+        if (paxNameBytes.length > 100) {
+            paxNameBytes = Arrays.copyOf(paxNameBytes, 100);
+        }
+        System.arraycopy(paxNameBytes, 0, header, 0, paxNameBytes.length);
+
+        // Mode (0644)
+        String mode = "000644\0";
+        System.arraycopy(mode.getBytes(StandardCharsets.US_ASCII), 0, header, 100, mode.length());
+
+        // Size (12 bytes)
+        String sizeStr = String.format("%011o", data.length);
+        System.arraycopy(sizeStr.getBytes(StandardCharsets.US_ASCII), 0, header, 124, 11);
+        header[135] = ' ';
+
+        // MTime (12 bytes)
+        String mtimeStr = String.format("%011o", System.currentTimeMillis() / 1000);
+        System.arraycopy(mtimeStr.getBytes(StandardCharsets.US_ASCII), 0, header, 136, 11);
+        header[147] = ' ';
+
+        // Type flag: 'x' = PAX extended header
+        header[156] = (byte) 'x';
+
+        // USTAR magic + version
+        System.arraycopy("ustar\0".getBytes(StandardCharsets.US_ASCII), 0, header, 257, 6);
+        System.arraycopy("00".getBytes(StandardCharsets.US_ASCII), 0, header, 263, 2);
+
+        // Checksum
+        Arrays.fill(header, 148, 156, (byte) ' ');
+        int sum = 0;
+        for (byte b : header) {
+            sum += b & 0xFF;
+        }
+        String chksumStr = String.format("%06o", sum);
+        System.arraycopy(chksumStr.getBytes(StandardCharsets.US_ASCII), 0, header, 148, 6);
+        header[154] = ' ';
+        header[155] = 0;
+
+        os.write(header);
+        os.write(data);
+
+        // Pad to 512-byte boundary
+        int padding = (int) ((512 - (data.length % 512)) % 512);
+        if (padding > 0) {
+            os.write(new byte[padding]);
         }
     }
 
