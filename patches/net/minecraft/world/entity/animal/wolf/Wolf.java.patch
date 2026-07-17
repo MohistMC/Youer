@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/entity/animal/wolf/Wolf.java
 +++ b/net/minecraft/world/entity/animal/wolf/Wolf.java
-@@ -87,6 +_,10 @@
+@@ -34,7 +_,6 @@
+ import net.minecraft.world.entity.EntityAttachment;
+ import net.minecraft.world.entity.EntityAttachments;
+ import net.minecraft.world.entity.EntityDimensions;
+-import net.minecraft.world.entity.EntityEvent;
+ import net.minecraft.world.entity.EntityReference;
+ import net.minecraft.world.entity.EntitySpawnReason;
+ import net.minecraft.world.entity.EntityType;
+@@ -88,6 +_,10 @@
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.Vec3;
@@ -11,7 +19,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class Wolf extends TamableAnimal implements NeutralMob {
-@@ -103,6 +_,37 @@
+@@ -104,6 +_,37 @@
      private static final EntityDimensions BABY_DIMENSIONS = EntityDimensions.scalable(0.3F, 0.425F)
          .withEyeHeight(0.34375F)
          .withAttachments(EntityAttachments.builder().attach(EntityAttachment.PASSENGER, 0.0F, 0.4375F, 0.0F));
@@ -49,7 +57,7 @@
      private static final float START_HEALTH = 8.0F;
      private static final float TAME_HEALTH = 40.0F;
      private static final float ARMOR_REPAIR_UNIT = 0.125F;
-@@ -124,12 +_,98 @@
+@@ -125,12 +_,98 @@
          this.setPathfindingMalus(PathType.ON_TOP_OF_POWDER_SNOW, -1.0F);
      }
  
@@ -148,7 +156,7 @@
          this.goalSelector.addGoal(4, new LeapAtTargetGoal(this, 0.4F));
          this.goalSelector.addGoal(5, new MeleeAttackGoal(this, 1.0, true));
          this.goalSelector.addGoal(6, new FollowOwnerGoal(this, 1.0, 10.0F, 2.0F));
-@@ -142,7 +_,7 @@
+@@ -143,7 +_,7 @@
          this.targetSelector.addGoal(2, new OwnerHurtTargetGoal(this));
          this.targetSelector.addGoal(3, new HurtByTargetGoal(this).setAlertOthers());
          this.targetSelector.addGoal(4, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false, this::isAngryAt));
@@ -157,7 +165,7 @@
          this.targetSelector.addGoal(6, new NonTameRandomTargetGoal<>(this, Turtle.class, false, Turtle.BABY_ON_LAND_SELECTOR));
          this.targetSelector.addGoal(7, new NearestAttackableTargetGoal<>(this, AbstractSkeleton.class, false));
          this.targetSelector.addGoal(8, new ResetUniversalAngerTargetGoal<>(this, true));
-@@ -237,6 +_,7 @@
+@@ -238,6 +_,7 @@
      protected void addAdditionalSaveData(ValueOutput output) {
          super.addAdditionalSaveData(output);
          output.store("CollarColor", DyeColor.LEGACY_ID_CODEC, this.getCollarColor());
@@ -165,7 +173,7 @@
          VariantUtils.writeVariant(output, this.getVariant());
          this.addPersistentAngerSaveData(output);
          this.getSoundVariant()
-@@ -251,6 +_,10 @@
+@@ -252,6 +_,10 @@
          super.readAdditionalSaveData(input);
          VariantUtils.readVariant(input, Registries.WOLF_VARIANT).ifPresent(this::setVariant);
          this.setCollarColor(input.read("CollarColor", DyeColor.LEGACY_ID_CODEC).orElse(DEFAULT_COLLAR_COLOR));
@@ -176,7 +184,7 @@
          this.readPersistentAngerSaveData(this.level(), input);
          input.read("sound_variant", ResourceKey.codec(Registries.WOLF_SOUND_VARIANT))
              .flatMap(soundVariant -> this.registryAccess().lookupOrThrow(Registries.WOLF_SOUND_VARIANT).get((ResourceKey<WolfSoundVariant>)soundVariant))
-@@ -274,6 +_,10 @@
+@@ -275,6 +_,10 @@
          }
  
          this.setSoundVariant(WolfSoundVariants.pickRandomSoundVariant(this.registryAccess(), level.getRandom()));
@@ -187,7 +195,7 @@
          return super.finalizeSpawn(level, difficulty, spawnReason, groupData);
      }
  
-@@ -322,6 +_,11 @@
+@@ -323,6 +_,11 @@
      public void tick() {
          super.tick();
          if (this.isAlive()) {
@@ -199,7 +207,7 @@
              this.interestedAngleO = this.interestedAngle;
              if (this.isInterested()) {
                  this.interestedAngle = this.interestedAngle + (1.0F - this.interestedAngle) * 0.4F;
-@@ -403,8 +_,9 @@
+@@ -404,8 +_,9 @@
              return false;
          }
  
@@ -210,7 +218,7 @@
      }
  
      @Override
-@@ -419,7 +_,7 @@
+@@ -420,7 +_,7 @@
              if (Crackiness.WOLF_ARMOR.byDamage(damageBefore, maxDamage) != Crackiness.WOLF_ARMOR.byDamage(this.getBodyArmorItem())) {
                  this.playSound(SoundEvents.WOLF_ARMOR_CRACK);
                  level.sendParticles(
@@ -219,7 +227,7 @@
                  );
              }
          }
-@@ -433,7 +_,7 @@
+@@ -434,7 +_,7 @@
      protected void applyTamingSideEffects() {
          if (this.isTame()) {
              this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(40.0);
@@ -228,7 +236,7 @@
          } else {
              this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(8.0);
          }
-@@ -483,7 +_,7 @@
+@@ -484,7 +_,7 @@
                      this.setOrderedToSit(!this.isOrderedToSit());
                      this.jumping = false;
                      this.navigation.stop();
@@ -237,7 +245,7 @@
                      return InteractionResult.SUCCESS.withoutItem();
                  }
  
-@@ -492,6 +_,25 @@
+@@ -493,6 +_,25 @@
  
              DyeColor color = itemStack.get(DataComponents.DYE);
              if (color != null && color != this.getCollarColor()) {
@@ -263,7 +271,7 @@
                  this.setCollarColor(color);
                  itemStack.consume(1, player);
                  return InteractionResult.SUCCESS;
-@@ -500,13 +_,28 @@
+@@ -501,13 +_,28 @@
              itemStack.consume(1, player);
              this.tryToTame(player);
              return InteractionResult.SUCCESS_SERVER;
@@ -293,3 +301,12 @@
              this.tame(player);
              this.navigation.stop();
              this.setTarget(null);
+@@ -519,7 +_,7 @@
+     }
+ 
+     @Override
+-    public void handleEntityEvent(@EntityEvent.Value byte id) {
++    public void handleEntityEvent(byte id) {
+         if (id == 8) {
+             this.isShaking = true;
+             this.shakeAnim = 0.0F;

@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/chunk/ChunkGenerator.java
 +++ b/net/minecraft/world/level/chunk/ChunkGenerator.java
-@@ -95,23 +_,24 @@
+@@ -41,7 +_,6 @@
+ import net.minecraft.server.level.WorldGenRegion;
+ import net.minecraft.util.Util;
+ import net.minecraft.util.random.WeightedList;
+-import net.minecraft.world.attribute.EnvironmentAttributes;
+ import net.minecraft.world.entity.MobCategory;
+ import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.Level;
+@@ -96,23 +_,24 @@
      public ChunkGenerator(BiomeSource biomeSource, Function<Holder<Biome>, BiomeGenerationSettings> generationSettingsGetter) {
          this.biomeSource = biomeSource;
          this.generationSettingsGetter = generationSettingsGetter;
@@ -32,7 +40,7 @@
      }
  
      public Optional<Identifier> getTypeNameForDataFixer() {
-@@ -122,17 +_,11 @@
+@@ -123,17 +_,11 @@
          return CompletableFuture.supplyAsync(() -> {
              protoChunk.fillBiomesFromNoise(this.biomeSource, randomState.sampler());
              return protoChunk;
@@ -52,7 +60,7 @@
      );
  
      public @Nullable Pair<BlockPos, Holder<Structure>> findNearestMapStructure(
-@@ -142,10 +_,28 @@
+@@ -143,10 +_,28 @@
              return null;
          }
  
@@ -82,7 +90,7 @@
          ChunkGeneratorStructureState generatorState = level.getChunkSource().getGeneratorState();
          Map<StructurePlacement, Set<Holder<Structure>>> placementScans = new Object2ObjectArrayMap<>();
  
-@@ -240,6 +_,7 @@
+@@ -241,6 +_,7 @@
          BlockPos.MutableBlockPos structurePos = new BlockPos.MutableBlockPos();
  
          for (ChunkPos chunkPos : positions) {
@@ -90,7 +98,7 @@
              structurePos.set(SectionPos.sectionToBlockCoord(chunkPos.x(), 8), 32, SectionPos.sectionToBlockCoord(chunkPos.z(), 8));
              double distSqr = structurePos.distSqr(pos);
              boolean isClosest = closestPos == null || distSqr < closest;
-@@ -271,9 +_,12 @@
+@@ -272,9 +_,12 @@
          for (int x = -radius; x <= radius; x++) {
              boolean xEdge = x == -radius || x == radius;
  
@@ -106,7 +114,7 @@
                      int sectorX = chunkOriginX + spacing * x;
                      int sectorZ = chunkOriginZ + spacing * z;
                      ChunkPos chunkTarget = config.getPotentialStructureChunk(seed, sectorX, sectorZ);
-@@ -305,7 +_,7 @@
+@@ -306,7 +_,7 @@
                      return Pair.of(config.getLocatePos(chunkTarget), structure);
                  }
  
@@ -115,7 +123,7 @@
                  StructureStart start = structureManager.getStartForStructure(SectionPos.bottomOf(chunk), structure.value(), chunk);
                  if (start != null && start.isValid() && (!createReference || tryAddReference(structureManager, start))) {
                      return Pair.of(config.getLocatePos(start.getChunkPos()), structure);
-@@ -325,7 +_,7 @@
+@@ -326,7 +_,7 @@
          }
      }
  
@@ -124,7 +132,7 @@
          ChunkPos centerPos = chunk.getPos();
          if (!SharedConstants.debugVoidTerrain(centerPos)) {
              SectionPos sectionPos = SectionPos.of(centerPos, level.getMinSectionY());
-@@ -400,7 +_,14 @@
+@@ -401,7 +_,14 @@
                              Supplier<String> currentlyGenerating = () -> featureRegistry.getResourceKey(feature)
                                  .map(Object::toString)
                                  .orElseGet(feature::toString);
@@ -140,7 +148,7 @@
  
                              try {
                                  level.setCurrentlyGenerating(currentlyGenerating);
-@@ -429,6 +_,35 @@
+@@ -430,6 +_,35 @@
          }
      }
  
@@ -176,7 +184,25 @@
      private static BoundingBox getWritableArea(ChunkAccess chunk) {
          ChunkPos chunkPos = chunk.getPos();
          int targetBlockX = chunkPos.getMinBlockX();
-@@ -505,7 +_,7 @@
+@@ -456,7 +_,7 @@
+ 
+     public abstract int getGenDepth();
+ 
+-    public WeightedList<MobSpawnSettings.SpawnerData> getMobsAt(Level level, StructureManager structureManager, MobCategory mobCategory, BlockPos pos) {
++    public WeightedList<MobSpawnSettings.SpawnerData> getMobsAt(Holder<Biome> biome, StructureManager structureManager, MobCategory mobCategory, BlockPos pos) {
+         Map<Structure, LongSet> structures = structureManager.getAllStructuresAt(pos);
+ 
+         for (Entry<Structure, LongSet> entry : structures.entrySet()) {
+@@ -478,7 +_,7 @@
+             }
+         }
+ 
+-        return level.environmentAttributes().getValue(EnvironmentAttributes.NATURAL_MOB_SPAWNS, pos).getMobsToSpawn(mobCategory);
++        return biome.value().getMobSettings().getMobs(mobCategory);
+     }
+ 
+     public void createStructures(
+@@ -506,7 +_,7 @@
                              }
                          }
  
@@ -185,7 +211,7 @@
                              if (structures.size() == 1) {
                                  this.tryGenerateStructure(
                                      structures.get(0),
-@@ -600,6 +_,14 @@
+@@ -601,6 +_,14 @@
              biomePredicate
          );
          if (start.isValid()) {

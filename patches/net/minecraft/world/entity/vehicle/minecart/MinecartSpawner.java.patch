@@ -1,13 +1,16 @@
 --- a/net/minecraft/world/entity/vehicle/minecart/MinecartSpawner.java
 +++ b/net/minecraft/world/entity/vehicle/minecart/MinecartSpawner.java
-@@ -1,5 +_,6 @@
+@@ -1,8 +_,8 @@
  package net.minecraft.world.entity.vehicle.minecart;
  
 +import java.util.Objects;
  import net.minecraft.core.BlockPos;
  import net.minecraft.server.level.ServerLevel;
+-import net.minecraft.world.entity.EntityEvent;
  import net.minecraft.world.entity.EntityType;
-@@ -15,9 +_,18 @@
+ import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemStack;
+@@ -16,10 +_,19 @@
  
  public class MinecartSpawner extends AbstractMinecart {
      private final BaseSpawner spawner = new BaseSpawner() {
@@ -18,11 +21,21 @@
          @Override
          public void broadcastEvent(Level level, BlockPos pos, int id) {
              level.broadcastEntityEvent(MinecartSpawner.this, (byte)id);
-+        }
+         }
 +
 +        @Override
 +        public com.mojang.datafixers.util.Either<net.minecraft.world.level.block.entity.BlockEntity, net.minecraft.world.entity.Entity> getOwner() {
 +            return com.mojang.datafixers.util.Either.right(MinecartSpawner.this);
-         }
++        }
      };
      private final Runnable ticker;
+ 
+@@ -62,7 +_,7 @@
+     }
+ 
+     @Override
+-    public void handleEntityEvent(@EntityEvent.Value byte id) {
++    public void handleEntityEvent(byte id) {
+         this.spawner.onEventTriggered(this.level(), id);
+     }
+ 

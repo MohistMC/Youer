@@ -1,6 +1,6 @@
 --- a/net/minecraft/data/loot/BlockLootSubProvider.java
 +++ b/net/minecraft/data/loot/BlockLootSubProvider.java
-@@ -6,14 +_,21 @@
+@@ -6,15 +_,21 @@
  import java.util.Locale;
  import java.util.Map;
  import java.util.Set;
@@ -15,6 +15,7 @@
 +import net.minecraft.advancements.predicates.MinMaxBounds;
  import net.minecraft.advancements.predicates.StatePropertiesPredicate;
  import net.minecraft.core.Direction;
+-import net.minecraft.core.Holder;
 -import net.minecraft.core.HolderGetter;
 +import net.minecraft.core.HolderLookup;
  import net.minecraft.core.component.DataComponents;
@@ -23,18 +24,30 @@
  import net.minecraft.core.registries.BuiltInRegistries;
  import net.minecraft.core.registries.Registries;
  import net.minecraft.resources.ResourceKey;
-@@ -56,43 +_,44 @@
+@@ -47,7 +_,7 @@
+ import net.minecraft.world.level.storage.loot.LootTable;
+ import net.minecraft.world.level.storage.loot.entries.LootItem;
+ import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
+-import net.minecraft.world.level.storage.loot.entries.UniformContainerBase;
++import net.minecraft.world.level.storage.loot.entries.LootPoolSingletonContainer;
+ import net.minecraft.world.level.storage.loot.functions.ApplyBonusCount;
+ import net.minecraft.world.level.storage.loot.functions.ApplyExplosionDecay;
+ import net.minecraft.world.level.storage.loot.functions.CopyBlockState;
+@@ -56,63 +_,69 @@
+ import net.minecraft.world.level.storage.loot.functions.LimitCount;
  import net.minecraft.world.level.storage.loot.functions.SetItemCountFunction;
  import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+-import net.minecraft.world.level.storage.loot.predicates.AnyOfCondition;
  import net.minecraft.world.level.storage.loot.predicates.BonusLevelTableCondition;
--import net.minecraft.world.level.storage.loot.predicates.ConditionReference;
  import net.minecraft.world.level.storage.loot.predicates.ConditionUserBuilder;
  import net.minecraft.world.level.storage.loot.predicates.ExplosionCondition;
+-import net.minecraft.world.level.storage.loot.predicates.InvertedLootItemCondition;
  import net.minecraft.world.level.storage.loot.predicates.LocationCheck;
- import net.minecraft.world.level.storage.loot.predicates.LootItemBlockStatePropertyCondition;
++import net.minecraft.world.level.storage.loot.predicates.LootItemBlockStatePropertyCondition;
  import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
  import net.minecraft.world.level.storage.loot.predicates.LootItemRandomChanceCondition;
 -import net.minecraft.world.level.storage.loot.predicates.LootPredicates;
+-import net.minecraft.world.level.storage.loot.predicates.MatchBlock;
 +import net.minecraft.world.level.storage.loot.predicates.MatchTool;
  import net.minecraft.world.level.storage.loot.providers.number.BinomialDistributionGenerator;
  import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
@@ -64,8 +77,9 @@
 -        this.predicates = output.lookup(Registries.PREDICATE);
 -    }
 -
-     protected LootItemCondition.Builder hasSilkTouch() {
--        return ConditionReference.conditionReference(this.predicates.getOrThrow(LootPredicates.TOOL_CAN_SILK_TOUCH));
+-    protected Holder<LootItemCondition> hasSilkTouch() {
+-        return this.predicates.getOrThrow(LootPredicates.TOOL_CAN_SILK_TOUCH);
++    protected LootItemCondition.Builder hasSilkTouch() {
 +        return MatchTool.toolMatches(
 +            ItemPredicate.Builder.item()
 +                .withComponents(
@@ -86,16 +100,22 @@
      }
  
      protected LootItemCondition.Builder doesNotHaveSilkTouch() {
-@@ -100,7 +_,7 @@
+-        return InvertedLootItemCondition.invert(this.hasSilkTouch());
++        return this.hasSilkTouch().invert();
      }
  
-     protected LootItemCondition.Builder hasShears() {
--        return ConditionReference.conditionReference(this.predicates.getOrThrow(LootPredicates.TOOL_CAN_SHEAR));
+-    protected Holder<LootItemCondition> hasShears() {
+-        return this.predicates.getOrThrow(LootPredicates.TOOL_CAN_SHEAR);
++    protected LootItemCondition.Builder hasShears() {
 +        return MatchTool.toolMatches(ItemPredicate.Builder.item().of(this.registries.lookupOrThrow(Registries.ITEM), Items.SHEARS));
      }
  
      private LootItemCondition.Builder hasShearsOrSilkTouch() {
-@@ -111,6 +_,12 @@
+-        return new AnyOfCondition.Builder().or(this.hasShears()).or(this.hasSilkTouch());
++        return this.hasShears().or(this.hasSilkTouch());
+     }
+ 
+     private LootItemCondition.Builder doesNotHaveShearsOrSilkTouch() {
          return this.hasShearsOrSilkTouch().invert();
      }
  
@@ -108,6 +128,66 @@
      protected <T extends FunctionUserBuilder<T>> T applyExplosionDecay(ItemLike type, FunctionUserBuilder<T> builder) {
          return !this.explosionResistant.contains(type.asItem()) ? builder.apply(ApplyExplosionDecay.explosionDecay()) : builder.unwrap();
      }
+@@ -126,7 +_,7 @@
+             .withPool(this.applyExplosionCondition(drop, LootPool.lootPool().setRolls(ConstantValue.exactly(1.0F)).add(LootItem.lootTableItem(drop))));
+     }
+ 
+-    private static LootTable.Builder createSelfDropDispatchTable(Block original, Holder<LootItemCondition> condition, LootPoolEntryContainer.Builder<?> entry) {
++    protected static LootTable.Builder createSelfDropDispatchTable(Block original, LootItemCondition.Builder condition, LootPoolEntryContainer.Builder<?> entry) {
+         return LootTable.lootTable()
+             .withPool(LootPool.lootPool().setRolls(ConstantValue.exactly(1.0F)).add(LootItem.lootTableItem(original).when(condition).otherwise(entry)));
+     }
+@@ -140,7 +_,7 @@
+     }
+ 
+     protected LootTable.Builder createSilkTouchOrShearsDispatchTable(Block original, LootPoolEntryContainer.Builder<?> entry) {
+-        return createSelfDropDispatchTable(original, Holder.direct(this.hasShearsOrSilkTouch().build()), entry);
++        return createSelfDropDispatchTable(original, this.hasShearsOrSilkTouch(), entry);
+     }
+ 
+     protected LootTable.Builder createSingleItemTableWithSilkTouch(Block original, ItemLike drop) {
+@@ -149,7 +_,7 @@
+         );
+     }
+ 
+-    protected LootTable.Builder createSingleItemTable(ItemLike drop, Holder<NumberProvider> count) {
++    protected LootTable.Builder createSingleItemTable(ItemLike drop, NumberProvider count) {
+         return LootTable.lootTable()
+             .withPool(
+                 LootPool.lootPool()
+@@ -162,7 +_,7 @@
+             );
+     }
+ 
+-    protected LootTable.Builder createSingleItemTableWithSilkTouch(Block original, ItemLike drop, Holder<NumberProvider> count) {
++    protected LootTable.Builder createSingleItemTableWithSilkTouch(Block original, ItemLike drop, NumberProvider count) {
+         return this.createSilkTouchDispatchTable(
+             original,
+             (LootPoolEntryContainer.Builder<?>)this.applyExplosionDecay(original, LootItem.lootTableItem(drop).apply(SetItemCountFunction.setCount(count)))
+@@ -196,9 +_,8 @@
+                                 .apply(
+                                     SetItemCountFunction.setCount(ConstantValue.exactly(2.0F))
+                                         .when(
+-                                            MatchBlock.blockMatches(
+-                                                this.blocks, slab, StatePropertiesPredicate.Builder.properties().hasProperty(SlabBlock.TYPE, SlabType.DOUBLE)
+-                                            )
++                                            LootItemBlockStatePropertyCondition.hasBlockStateProperties(slab)
++                                                .setProperties(StatePropertiesPredicate.Builder.properties().hasProperty(SlabBlock.TYPE, SlabType.DOUBLE))
+                                         )
+                                 )
+                         )
+@@ -215,7 +_,10 @@
+                         .setRolls(ConstantValue.exactly(1.0F))
+                         .add(
+                             LootItem.lootTableItem(drop)
+-                                .when(MatchBlock.blockMatches(this.blocks, drop, StatePropertiesPredicate.Builder.properties().hasProperty(property, value)))
++                                .when(
++                                    LootItemBlockStatePropertyCondition.hasBlockStateProperties(drop)
++                                        .setProperties(StatePropertiesPredicate.Builder.properties().hasProperty(property, value))
++                                )
+                         )
+                 )
+             );
 @@ -258,37 +_,40 @@
      }
  
@@ -152,7 +232,19 @@
              )
          );
      }
-@@ -373,10 +_,11 @@
+@@ -349,7 +_,10 @@
+             .withPool(
+                 LootPool.lootPool()
+                     .add(LootItem.lootTableItem(Items.GLOW_BERRIES))
+-                    .when(MatchBlock.blockMatches(this.blocks, original, StatePropertiesPredicate.Builder.properties().hasProperty(CaveVines.BERRIES, true)))
++                    .when(
++                        LootItemBlockStatePropertyCondition.hasBlockStateProperties(original)
++                            .setProperties(StatePropertiesPredicate.Builder.properties().hasProperty(CaveVines.BERRIES, true))
++                    )
+             );
+     }
+ 
+@@ -370,10 +_,11 @@
      }
  
      protected LootTable.Builder createOreDrop(Block original, Item drop) {
@@ -165,7 +257,7 @@
              )
          );
      }
-@@ -394,13 +_,14 @@
+@@ -391,13 +_,14 @@
      }
  
      protected LootTable.Builder createGrassDrops(Block original) {
@@ -181,21 +273,90 @@
              )
          );
      }
-@@ -516,10 +_,11 @@
+@@ -415,9 +_,8 @@
+                                     StemBlock.AGE.getPossibleValues(),
+                                     age -> SetItemCountFunction.setCount(BinomialDistributionGenerator.binomial(3, (age + 1) / 15.0F))
+                                         .when(
+-                                            MatchBlock.blockMatches(
+-                                                this.blocks, block, StatePropertiesPredicate.Builder.properties().hasProperty(StemBlock.AGE, age.intValue())
+-                                            )
++                                            LootItemBlockStatePropertyCondition.hasBlockStateProperties(block)
++                                                .setProperties(StatePropertiesPredicate.Builder.properties().hasProperty(StemBlock.AGE, age.intValue()))
+                                         )
+                                 )
+                         )
+@@ -447,7 +_,7 @@
+             .withPool(LootPool.lootPool().setRolls(ConstantValue.exactly(1.0F)).when(this.hasShearsOrSilkTouch()).add(LootItem.lootTableItem(drop)));
+     }
+ 
+-    protected LootTable.Builder createMultifaceBlockDrops(Block block, Holder<LootItemCondition> condition) {
++    protected LootTable.Builder createMultifaceBlockDrops(Block block, LootItemCondition.Builder condition) {
+         return LootTable.lootTable()
+             .withPool(
+                 LootPool.lootPool()
+@@ -460,11 +_,10 @@
+                                     Direction.values(),
+                                     dir -> SetItemCountFunction.setCount(ConstantValue.exactly(1.0F), true)
+                                         .when(
+-                                            MatchBlock.blockMatches(
+-                                                this.blocks,
+-                                                block,
+-                                                StatePropertiesPredicate.Builder.properties().hasProperty(MultifaceBlock.getFaceProperty(dir), true)
+-                                            )
++                                            LootItemBlockStatePropertyCondition.hasBlockStateProperties(block)
++                                                .setProperties(
++                                                    StatePropertiesPredicate.Builder.properties().hasProperty(MultifaceBlock.getFaceProperty(dir), true)
++                                                )
+                                         )
+                                 )
+                                 .apply(SetItemCountFunction.setCount(ConstantValue.exactly(-1.0F), true))
+@@ -485,11 +_,10 @@
+                                     Direction.values(),
+                                     dir -> SetItemCountFunction.setCount(ConstantValue.exactly(1.0F), true)
+                                         .when(
+-                                            MatchBlock.blockMatches(
+-                                                this.blocks,
+-                                                block,
+-                                                StatePropertiesPredicate.Builder.properties().hasProperty(MultifaceBlock.getFaceProperty(dir), true)
+-                                            )
++                                            LootItemBlockStatePropertyCondition.hasBlockStateProperties(block)
++                                                .setProperties(
++                                                    StatePropertiesPredicate.Builder.properties().hasProperty(MultifaceBlock.getFaceProperty(dir), true)
++                                                )
+                                         )
+                                 )
+                                 .apply(SetItemCountFunction.setCount(ConstantValue.exactly(-1.0F), true))
+@@ -507,9 +_,8 @@
+                             block,
+                             LootItem.lootTableItem(block)
+                                 .when(
+-                                    MatchBlock.blockMatches(
+-                                        this.blocks, block, StatePropertiesPredicate.Builder.properties().hasProperty(MossyCarpetBlock.BASE, true)
+-                                    )
++                                    LootItemBlockStatePropertyCondition.hasBlockStateProperties(block)
++                                        .setProperties(StatePropertiesPredicate.Builder.properties().hasProperty(MossyCarpetBlock.BASE, true))
+                                 )
+                         )
+                     )
+@@ -517,39 +_,37 @@
      }
  
      protected LootTable.Builder createLeavesDrops(Block original, Block sapling, float... saplingChances) {
 +        HolderLookup.RegistryLookup<Enchantment> enchantments = this.registries.lookupOrThrow(Registries.ENCHANTMENT);
          return this.createSilkTouchOrShearsDispatchTable(
                  original,
-                 ((LootPoolSingletonContainer.Builder)this.applyExplosionCondition(original, LootItem.lootTableItem(sapling)))
+-                (LootPoolEntryContainer.Builder<?>)((UniformContainerBase.Builder)this.applyExplosionCondition(original, LootItem.lootTableItem(sapling)))
 -                    .when(BonusLevelTableCondition.bonusLevelFlatChance(this.enchantments.getOrThrow(Enchantments.FORTUNE), saplingChances))
++                ((LootPoolSingletonContainer.Builder)this.applyExplosionCondition(original, LootItem.lootTableItem(sapling)))
 +                    .when(BonusLevelTableCondition.bonusLevelFlatChance(enchantments.getOrThrow(Enchantments.FORTUNE), saplingChances))
              )
              .withPool(
                  LootPool.lootPool()
-@@ -529,14 +_,13 @@
-                         ((LootPoolSingletonContainer.Builder)this.applyExplosionDecay(
+                     .setRolls(ConstantValue.exactly(1.0F))
+                     .when(this.doesNotHaveShearsOrSilkTouch())
+                     .add(
+-                        (LootPoolEntryContainer.Builder<?>)((UniformContainerBase.Builder)this.applyExplosionDecay(
++                        ((LootPoolSingletonContainer.Builder)this.applyExplosionDecay(
                                  original, LootItem.lootTableItem(Items.STICK).apply(SetItemCountFunction.setCount(UniformGenerator.between(1.0F, 2.0F)))
                              ))
 -                            .when(
@@ -211,8 +372,13 @@
          return this.createLeavesDrops(original, sapling, saplingChances)
              .withPool(
                  LootPool.lootPool()
-@@ -546,7 +_,7 @@
-                         ((LootPoolSingletonContainer.Builder)this.applyExplosionCondition(original, LootItem.lootTableItem(Items.APPLE)))
+                     .setRolls(ConstantValue.exactly(1.0F))
+                     .when(this.doesNotHaveShearsOrSilkTouch())
+                     .add(
+-                        (LootPoolEntryContainer.Builder<?>)((UniformContainerBase.Builder)this.applyExplosionCondition(
+-                                original, LootItem.lootTableItem(Items.APPLE)
+-                            ))
++                        ((LootPoolSingletonContainer.Builder)this.applyExplosionCondition(original, LootItem.lootTableItem(Items.APPLE)))
                              .when(
                                  BonusLevelTableCondition.bonusLevelFlatChance(
 -                                    this.enchantments.getOrThrow(Enchantments.FORTUNE), 0.005F, 0.0055555557F, 0.00625F, 0.008333334F, 0.025F
@@ -220,14 +386,15 @@
                                  )
                              )
                      )
-@@ -554,16 +_,18 @@
+@@ -557,16 +_,18 @@
      }
  
      protected LootTable.Builder createMangroveLeavesDrops(Block block) {
 +        HolderLookup.RegistryLookup<Enchantment> enchantments = this.registries.lookupOrThrow(Registries.ENCHANTMENT);
          return this.createSilkTouchOrShearsDispatchTable(
              block,
-             ((LootPoolSingletonContainer.Builder)this.applyExplosionDecay(
+-            (LootPoolEntryContainer.Builder<?>)((UniformContainerBase.Builder)this.applyExplosionDecay(
++            ((LootPoolSingletonContainer.Builder)this.applyExplosionDecay(
                      Blocks.MANGROVE_LEAVES, LootItem.lootTableItem(Items.STICK).apply(SetItemCountFunction.setCount(UniformGenerator.between(1.0F, 2.0F)))
                  ))
 -                .when(BonusLevelTableCondition.bonusLevelFlatChance(this.enchantments.getOrThrow(Enchantments.FORTUNE), NORMAL_LEAVES_STICK_CHANCES))
@@ -240,7 +407,7 @@
          return this.applyExplosionDecay(
              original,
              LootTable.lootTable()
-@@ -573,7 +_,7 @@
+@@ -576,7 +_,7 @@
                          .when(isMaxAge)
                          .add(
                              LootItem.lootTableItem(seedDrop)
@@ -249,7 +416,7 @@
                          )
                  )
          );
-@@ -587,6 +_,7 @@
+@@ -590,11 +_,12 @@
      }
  
      protected LootTable.Builder createDoublePlantWithSeedDrops(Block block, Block drop) {
@@ -257,7 +424,24 @@
          LootPoolEntryContainer.Builder<?> dropEntry = LootItem.lootTableItem(drop)
              .apply(SetItemCountFunction.setCount(ConstantValue.exactly(2.0F)))
              .when(this.hasShears())
-@@ -607,7 +_,7 @@
+             .otherwise(
+-                (LootPoolEntryContainer.Builder<?>)((UniformContainerBase.Builder)this.applyExplosionCondition(block, LootItem.lootTableItem(Items.WHEAT_SEEDS)))
++                ((LootPoolSingletonContainer.Builder)this.applyExplosionCondition(block, LootItem.lootTableItem(Items.WHEAT_SEEDS)))
+                     .when(LootItemRandomChanceCondition.randomChance(0.125F))
+             );
+         return LootTable.lootTable()
+@@ -602,16 +_,15 @@
+                 LootPool.lootPool()
+                     .add(dropEntry)
+                     .when(
+-                        MatchBlock.blockMatches(
+-                            this.blocks, block, StatePropertiesPredicate.Builder.properties().hasProperty(DoublePlantBlock.HALF, DoubleBlockHalf.LOWER)
+-                        )
++                        LootItemBlockStatePropertyCondition.hasBlockStateProperties(block)
++                            .setProperties(StatePropertiesPredicate.Builder.properties().hasProperty(DoublePlantBlock.HALF, DoubleBlockHalf.LOWER))
+                     )
+                     .when(
+                         LocationCheck.checkLocation(
                              LocationPredicate.Builder.location()
                                  .setBlock(
                                      BlockPredicate.Builder.block()
@@ -266,7 +450,18 @@
                                          .setProperties(StatePropertiesPredicate.Builder.properties().hasProperty(DoublePlantBlock.HALF, DoubleBlockHalf.UPPER))
                                  ),
                              Direction.UP
-@@ -626,7 +_,7 @@
+@@ -622,16 +_,15 @@
+                 LootPool.lootPool()
+                     .add(dropEntry)
+                     .when(
+-                        MatchBlock.blockMatches(
+-                            this.blocks, block, StatePropertiesPredicate.Builder.properties().hasProperty(DoublePlantBlock.HALF, DoubleBlockHalf.UPPER)
+-                        )
++                        LootItemBlockStatePropertyCondition.hasBlockStateProperties(block)
++                            .setProperties(StatePropertiesPredicate.Builder.properties().hasProperty(DoublePlantBlock.HALF, DoubleBlockHalf.UPPER))
+                     )
+                     .when(
+                         LocationCheck.checkLocation(
                              LocationPredicate.Builder.location()
                                  .setBlock(
                                      BlockPredicate.Builder.block()
@@ -275,7 +470,39 @@
                                          .setProperties(StatePropertiesPredicate.Builder.properties().hasProperty(DoublePlantBlock.HALF, DoubleBlockHalf.LOWER))
                                  ),
                              Direction.DOWN
-@@ -694,12 +_,16 @@
+@@ -653,11 +_,8 @@
+                                     List.of(2, 3, 4),
+                                     count -> SetItemCountFunction.setCount(ConstantValue.exactly(count.intValue()))
+                                         .when(
+-                                            MatchBlock.blockMatches(
+-                                                this.blocks,
+-                                                block,
+-                                                StatePropertiesPredicate.Builder.properties().hasProperty(CandleBlock.CANDLES, count.intValue())
+-                                            )
++                                            LootItemBlockStatePropertyCondition.hasBlockStateProperties(block)
++                                                .setProperties(StatePropertiesPredicate.Builder.properties().hasProperty(CandleBlock.CANDLES, count.intValue()))
+                                         )
+                                 )
+                         )
+@@ -679,12 +_,11 @@
+                                         IntStream.rangeClosed(1, 4).boxed().toList(),
+                                         count -> SetItemCountFunction.setCount(ConstantValue.exactly(count.intValue()))
+                                             .when(
+-                                                MatchBlock.blockMatches(
+-                                                    this.blocks,
+-                                                    block,
+-                                                    StatePropertiesPredicate.Builder.properties()
+-                                                        .hasProperty(segmentableBlock.getSegmentAmountProperty(), count.intValue())
+-                                                )
++                                                LootItemBlockStatePropertyCondition.hasBlockStateProperties(block)
++                                                    .setProperties(
++                                                        StatePropertiesPredicate.Builder.properties()
++                                                            .hasProperty(segmentableBlock.getSegmentAmountProperty(), count.intValue())
++                                                    )
+                                             )
+                                     )
+                             )
+@@ -703,12 +_,16 @@
  
      protected abstract void generate();
  
@@ -294,7 +521,7 @@
              if (block.isEnabled(this.enabledFeatures)) {
                  block.getLootTable()
                      .ifPresent(
-@@ -727,10 +_,11 @@
+@@ -736,10 +_,11 @@
      }
  
      protected void addNetherVinesDropTable(Block vineBlock, Block plantBlock) {

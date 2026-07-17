@@ -1,6 +1,67 @@
 --- a/net/minecraft/world/level/storage/loot/functions/ExplorationMapFunction.java
 +++ b/net/minecraft/world/level/storage/loot/functions/ExplorationMapFunction.java
-@@ -84,8 +_,25 @@
+@@ -3,14 +_,14 @@
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import java.util.Optional;
++import java.util.List;
+ import java.util.Set;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Holder;
+-import net.minecraft.core.HolderSet;
+-import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.server.level.ServerLevel;
++import net.minecraft.tags.StructureTags;
++import net.minecraft.tags.TagKey;
+ import net.minecraft.util.context.ContextKey;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.Items;
+@@ -25,6 +_,7 @@
+ import net.minecraft.world.phys.Vec3;
+ 
+ public class ExplorationMapFunction extends LootItemConditionalFunction {
++    public static final TagKey<Structure> DEFAULT_DESTINATION = StructureTags.ON_TREASURE_MAPS;
+     public static final Holder<MapDecorationType> DEFAULT_DECORATION = MapDecorationTypes.WOODLAND_MANSION;
+     public static final byte DEFAULT_ZOOM = 2;
+     public static final int DEFAULT_SEARCH_RADIUS = 50;
+@@ -33,7 +_,7 @@
+         i -> commonFields(i)
+             .and(
+                 i.group(
+-                    RegistryCodecs.homogeneousList(Registries.STRUCTURE).fieldOf("destination").forGetter(f -> f.destination),
++                    TagKey.codec(Registries.STRUCTURE).optionalFieldOf("destination", DEFAULT_DESTINATION).forGetter(f -> f.destination),
+                     MapDecorationType.CODEC.optionalFieldOf("decoration", DEFAULT_DECORATION).forGetter(f -> f.mapDecoration),
+                     Codec.BYTE.optionalFieldOf("zoom", (byte)2).forGetter(f -> f.zoom),
+                     Codec.INT.optionalFieldOf("search_radius", 50).forGetter(f -> f.searchRadius),
+@@ -42,21 +_,21 @@
+             )
+             .apply(i, ExplorationMapFunction::new)
+     );
+-    private final HolderSet<Structure> destination;
++    private final TagKey<Structure> destination;
+     private final Holder<MapDecorationType> mapDecoration;
+     private final byte zoom;
+     private final int searchRadius;
+     private final boolean skipKnownStructures;
+ 
+     private ExplorationMapFunction(
+-        Optional<Holder<LootItemCondition>> condition,
+-        HolderSet<Structure> destination,
++        List<LootItemCondition> predicates,
++        TagKey<Structure> destination,
+         Holder<MapDecorationType> mapDecoration,
+         byte zoom,
+         int searchRadius,
+         boolean skipKnownStructures
+     ) {
+-        super(condition);
++        super(predicates);
+         this.destination = destination;
+         this.mapDecoration = mapDecoration;
+         this.zoom = zoom;
+@@ -83,8 +_,25 @@
          Vec3 lootPos = context.getOptionalParameter(LootContextParams.ORIGIN);
          if (lootPos != null) {
              ServerLevel level = context.getLevel();
@@ -27,3 +88,48 @@
              );
              if (nearestMapStructure != null) {
                  ItemStack map = MapItem.create(level, nearestMapStructure.getX(), nearestMapStructure.getZ(), this.zoom, true, true);
+@@ -97,25 +_,26 @@
+         return itemStack;
+     }
+ 
+-    public static ExplorationMapFunction.Builder makeExplorationMap(HolderSet<Structure> destination) {
+-        return new ExplorationMapFunction.Builder(destination);
++    public static ExplorationMapFunction.Builder makeExplorationMap() {
++        return new ExplorationMapFunction.Builder();
+     }
+ 
+     public static class Builder extends LootItemConditionalFunction.Builder<ExplorationMapFunction.Builder> {
+-        private final HolderSet<Structure> destination;
++        private TagKey<Structure> destination = ExplorationMapFunction.DEFAULT_DESTINATION;
+         private Holder<MapDecorationType> mapDecoration = ExplorationMapFunction.DEFAULT_DECORATION;
+         private byte zoom = 2;
+         private int searchRadius = 50;
+         private boolean skipKnownStructures = true;
+ 
+-        public Builder(HolderSet<Structure> destination) {
+-            this.destination = destination;
+-        }
+-
+         protected ExplorationMapFunction.Builder getThis() {
+             return this;
+         }
+ 
++        public ExplorationMapFunction.Builder setDestination(TagKey<Structure> destination) {
++            this.destination = destination;
++            return this;
++        }
++
+         public ExplorationMapFunction.Builder setMapDecoration(Holder<MapDecorationType> mapDecoration) {
+             this.mapDecoration = mapDecoration;
+             return this;
+@@ -138,7 +_,9 @@
+ 
+         @Override
+         public LootItemFunction build() {
+-            return new ExplorationMapFunction(this.getCondition(), this.destination, this.mapDecoration, this.zoom, this.searchRadius, this.skipKnownStructures);
++            return new ExplorationMapFunction(
++                this.getConditions(), this.destination, this.mapDecoration, this.zoom, this.searchRadius, this.skipKnownStructures
++            );
+         }
+     }
+ }

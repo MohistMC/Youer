@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/entity/animal/allay/Allay.java
 +++ b/net/minecraft/world/entity/animal/allay/Allay.java
-@@ -99,10 +_,24 @@
+@@ -30,7 +_,6 @@
+ import net.minecraft.world.SimpleContainer;
+ import net.minecraft.world.damagesource.DamageSource;
+ import net.minecraft.world.entity.Entity;
+-import net.minecraft.world.entity.EntityEvent;
+ import net.minecraft.world.entity.EntitySpawnReason;
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.entity.EntityTypes;
+@@ -100,10 +_,24 @@
      private float dancingAnimationTicks;
      private float spinningAnimationTicks;
      private float spinningAnimationTicks0;
@@ -26,7 +34,7 @@
          this.setCanPickUpLoot(this.canPickUpLoot());
          this.vibrationUser = new Allay.VibrationUser();
          this.vibrationData = new VibrationSystem.Data();
-@@ -112,6 +_,49 @@
+@@ -113,6 +_,49 @@
          );
      }
  
@@ -76,7 +84,7 @@
      @Override
      protected Brain<Allay> makeBrain(Brain.Packed packedBrain) {
          return BRAIN_PROVIDER.makeBrain(this, packedBrain);
-@@ -202,6 +_,7 @@
+@@ -203,6 +_,7 @@
      protected void customServerAiStep(ServerLevel level) {
          ProfilerFiller profiler = Profiler.get();
          profiler.push("allayBrain");
@@ -84,7 +92,7 @@
          this.getBrain().tick(level, this);
          profiler.pop();
          profiler.push("allayActivityUpdate");
-@@ -214,6 +_,7 @@
+@@ -215,6 +_,7 @@
      public void aiStep() {
          super.aiStep();
          if (!this.level().isClientSide() && this.isAlive() && this.tickCount % 10 == 0) {
@@ -92,7 +100,7 @@
              this.heal(1.0F);
          }
  
-@@ -282,7 +_,12 @@
+@@ -283,7 +_,12 @@
          ItemStack interactionItem = player.getItemInHand(hand);
          ItemStack itemInHand = this.getItemInHand(InteractionHand.MAIN_HAND);
          if (this.isDancing() && interactionItem.is(ItemTags.DUPLICATES_ALLAYS) && this.canDuplicate()) {
@@ -106,7 +114,7 @@
              this.level().broadcastEntityEvent(this, (byte)18);
              this.level().playSound(player, this, SoundEvents.AMETHYST_BLOCK_CHIME, SoundSource.NEUTRAL, 2.0F, 1.0F);
              this.removeInteractionItem(player, interactionItem);
-@@ -341,9 +_,9 @@
+@@ -342,9 +_,9 @@
      public boolean wantsToPickUp(ServerLevel level, ItemStack itemStack) {
          ItemStack itemInHand = this.getItemInHand(InteractionHand.MAIN_HAND);
          return !itemInHand.isEmpty()
@@ -118,7 +126,7 @@
      }
  
      private boolean allayConsidersItemEqual(ItemStack item1, ItemStack item2) {
-@@ -385,6 +_,7 @@
+@@ -386,6 +_,7 @@
      }
  
      private boolean shouldStopDancing() {
@@ -126,7 +134,7 @@
          return this.jukeboxPos == null
              || !this.jukeboxPos.closerToCenterThan(this.position(), GameEvent.JUKEBOX_PLAY.value().notificationRadius())
              || !this.level().getBlockState(this.jukeboxPos).is(Blocks.JUKEBOX);
-@@ -411,11 +_,12 @@
+@@ -412,11 +_,12 @@
      @Override
      protected void dropEquipment(ServerLevel level) {
          super.dropEquipment(level);
@@ -141,7 +149,7 @@
          }
      }
  
-@@ -437,7 +_,7 @@
+@@ -438,7 +_,7 @@
          super.readAdditionalSaveData(input);
          this.readInventoryFromTag(input);
          this.vibrationData = input.read("listener", VibrationSystem.Data.CODEC).orElseGet(VibrationSystem.Data::new);
@@ -150,7 +158,7 @@
      }
  
      @Override
-@@ -463,8 +_,17 @@
+@@ -464,8 +_,17 @@
              allay.setPersistenceRequired();
              allay.resetDuplicationCooldown();
              this.resetDuplicationCooldown();
@@ -168,7 +176,16 @@
      }
  
      public void resetDuplicationCooldown() {
-@@ -517,6 +_,8 @@
+@@ -486,7 +_,7 @@
+     }
+ 
+     @Override
+-    public void handleEntityEvent(@EntityEvent.Value byte id) {
++    public void handleEntityEvent(byte id) {
+         if (id == 18) {
+             for (int i = 0; i < 3; i++) {
+                 this.spawnHeartParticle();
+@@ -518,6 +_,8 @@
          private final int listenerRadius;
  
          public JukeboxListener(PositionSource listenerSource, int listenerRadius) {
@@ -177,7 +194,7 @@
              this.listenerSource = listenerSource;
              this.listenerRadius = listenerRadius;
          }
-@@ -579,7 +_,7 @@
+@@ -580,7 +_,7 @@
              ServerLevel level, BlockPos pos, Holder<GameEvent> event, @Nullable Entity sourceEntity, @Nullable Entity projectileOwner, float receivingDistance
          ) {
              if (event.is(GameEvent.NOTE_BLOCK_PLAY)) {

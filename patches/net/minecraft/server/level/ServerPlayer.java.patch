@@ -38,7 +38,7 @@
  import net.minecraft.world.inventory.NautilusInventoryMenu;
  import net.minecraft.world.inventory.RemoteSlot;
  import net.minecraft.world.inventory.ResultSlot;
-@@ -169,20 +_,23 @@
+@@ -169,21 +_,23 @@
  import net.minecraft.world.item.component.WrittenBookContent;
  import net.minecraft.world.item.crafting.Recipe;
  import net.minecraft.world.item.crafting.RecipeHolder;
@@ -58,12 +58,13 @@
  import net.minecraft.world.level.block.entity.BlockEntity;
  import net.minecraft.world.level.block.entity.CommandBlockEntity;
  import net.minecraft.world.level.block.entity.SignBlockEntity;
+-import net.minecraft.world.level.block.entity.SignTextSlot;
  import net.minecraft.world.level.block.state.BlockState;
 +import net.minecraft.world.level.dimension.LevelStem;
  import net.minecraft.world.level.gameevent.GameEvent;
  import net.minecraft.world.level.gamerules.GameRules;
  import net.minecraft.world.level.portal.TeleportTransition;
-@@ -202,11 +_,35 @@
+@@ -203,11 +_,35 @@
  import net.minecraft.world.scores.Team;
  import net.minecraft.world.scores.TeamColor;
  import net.minecraft.world.scores.criteria.ObjectiveCriteria;
@@ -100,7 +101,7 @@
      private static final int NEUTRAL_MOB_DEATH_NOTIFICATION_RADII_XZ = 32;
      private static final int NEUTRAL_MOB_DEATH_NOTIFICATION_RADII_Y = 10;
      private static final int FLY_STAT_RECORDING_SPEED = 25;
-@@ -229,7 +_,7 @@
+@@ -230,7 +_,7 @@
      private static final boolean DEFAULT_SEEN_CREDITS = false;
      private static final boolean DEFAULT_SPAWN_EXTRA_PARTICLES_ON_FALL = false;
      public ServerGamePacketListenerImpl connection;
@@ -109,7 +110,7 @@
      public final ServerPlayerGameMode gameMode;
      private final PlayerAdvancements advancements;
      private final ServerStatsCounter stats;
-@@ -255,7 +_,8 @@
+@@ -256,7 +_,8 @@
      private int levitationStartTime;
      private boolean disconnected;
      private int requestedViewDistance = 2;
@@ -119,7 +120,7 @@
      private @Nullable Vec3 startingToFallPosition;
      private @Nullable Vec3 enteredNetherPosition;
      private @Nullable Vec3 enteredLavaOnVehiclePosition;
-@@ -273,7 +_,6 @@
+@@ -274,7 +_,6 @@
      private Vec3 lastKnownClientMovement = Vec3.ZERO;
      private Input lastClientInput = Input.EMPTY;
      private final Set<ThrownEnderpearl> enderPearls = new HashSet<>();
@@ -127,7 +128,7 @@
      private long timeEntitySatOnShoulder;
      private CompoundTag shoulderEntityLeft = new CompoundTag();
      private CompoundTag shoulderEntityRight = new CompoundTag();
-@@ -302,6 +_,13 @@
+@@ -303,6 +_,13 @@
              }
          }
  
@@ -141,7 +142,7 @@
          @Override
          public void sendSlotChange(AbstractContainerMenu container, int slotIndex, ItemStack itemStack) {
              ServerPlayer.this.connection.send(new ClientboundContainerSetSlotPacket(container.containerId, container.incrementStateId(), slotIndex, itemStack));
-@@ -318,6 +_,10 @@
+@@ -319,6 +_,10 @@
          }
  
          private void broadcastDataValue(AbstractContainerMenu container, int id, int value) {
@@ -152,7 +153,7 @@
              ServerPlayer.this.connection.send(new ClientboundContainerSetDataPacket(container.containerId, id, value));
          }
  
-@@ -337,6 +_,32 @@
+@@ -338,6 +_,32 @@
              }
          }
  
@@ -185,7 +186,7 @@
          @Override
          public void dataChanged(AbstractContainerMenu container, int id, int value) {
          }
-@@ -363,10 +_,89 @@
+@@ -364,10 +_,89 @@
          public void sendSystemMessage(Component message) {
              ServerPlayer.this.sendSystemMessage(message);
          }
@@ -275,7 +276,7 @@
  
      public ServerPlayer(MinecraftServer server, ServerLevel level, GameProfile gameProfile, ClientInformation clientInformation) {
          super(level, gameProfile);
-@@ -377,14 +_,29 @@
+@@ -378,14 +_,29 @@
          this.recipeBook = new ServerRecipeBook((id, output) -> server.getRecipeManager().listDisplaysForRecipe(id, output));
          this.stats = server.getPlayerList().getPlayerStats(this);
          this.advancements = server.getPlayerList().getPlayerAdvancements(this);
@@ -307,7 +308,7 @@
          return BlockPos.containing(future.join());
      }
  
-@@ -397,6 +_,7 @@
+@@ -398,6 +_,7 @@
          this.seenCredits = input.getBooleanOr("seenCredits", false);
          input.read("recipeBook", ServerRecipeBook.Packed.CODEC)
              .ifPresent(p -> this.recipeBook.loadUntrusted(p, id -> this.server.getRecipeManager().byKey(id).isPresent()));
@@ -315,7 +316,7 @@
          if (this.isSleeping()) {
              this.stopSleeping();
          }
-@@ -404,13 +_,29 @@
+@@ -405,13 +_,29 @@
          this.respawnConfig = input.read("respawn", ServerPlayer.RespawnConfig.CODEC).orElse(null);
          this.spawnExtraParticlesOnFall = input.getBooleanOr("spawn_extra_particles_on_fall", false);
          this.raidOmenPosition = input.read("raid_omen_position", BlockPos.CODEC).orElse(null);
@@ -348,7 +349,7 @@
      @Override
      protected void addAdditionalSaveData(ValueOutput output) {
          super.addAdditionalSaveData(output);
-@@ -426,7 +_,6 @@
+@@ -427,7 +_,6 @@
          output.putBoolean("spawn_extra_particles_on_fall", this.spawnExtraParticlesOnFall);
          output.storeNullable("raid_omen_position", BlockPos.CODEC, this.raidOmenPosition);
          this.saveEnderPearls(output);
@@ -356,7 +357,7 @@
          if (!this.getShoulderEntityLeft().isEmpty()) {
              output.store("ShoulderEntityLeft", CompoundTag.CODEC, this.getShoulderEntityLeft());
          }
-@@ -434,12 +_,27 @@
+@@ -435,12 +_,27 @@
          if (!this.getShoulderEntityRight().isEmpty()) {
              output.store("ShoulderEntityRight", CompoundTag.CODEC, this.getShoulderEntityRight());
          }
@@ -385,7 +386,7 @@
              ValueOutput vehicleWrapper = playerOutput.child("RootVehicle");
              vehicleWrapper.store("Attach", UUIDUtil.CODEC, vehicle.getUUID());
              rootVehicle.save(vehicleWrapper.child("Entity"));
-@@ -468,10 +_,10 @@
+@@ -469,10 +_,10 @@
  
                  if (!this.isPassenger()) {
                      LOGGER.warn("Couldn't reattach entity to player");
@@ -398,7 +399,7 @@
                      }
                  }
              }
-@@ -483,6 +_,7 @@
+@@ -484,6 +_,7 @@
              ValueOutput.ValueOutputList pearlsOutput = playerOutput.childrenList("ender_pearls");
  
              for (ThrownEnderpearl enderPearl : this.enderPearls) {
@@ -406,7 +407,7 @@
                  if (enderPearl.isRemoved()) {
                      LOGGER.warn("Trying to save removed ender pearl, skipping");
                  } else {
-@@ -517,6 +_,20 @@
+@@ -518,6 +_,20 @@
          }
      }
  
@@ -427,7 +428,7 @@
      public void setExperiencePoints(int amount) {
          float limit = this.getXpNeededForNextLevel();
          float max = (limit - 1.0F) / limit;
-@@ -551,6 +_,7 @@
+@@ -552,6 +_,7 @@
      public void initMenu(AbstractContainerMenu container) {
          container.addSlotListener(this.containerListener);
          container.setSynchronizer(this.containerSynchronizer);
@@ -435,7 +436,7 @@
      }
  
      public void initInventoryMenu() {
-@@ -581,6 +_,11 @@
+@@ -582,6 +_,11 @@
  
      @Override
      public void tick() {
@@ -447,7 +448,7 @@
          this.connection.tickClientLoadTimeout();
          this.gameMode.tick();
          this.wardenSpawnTracker.tick();
-@@ -588,9 +_,18 @@
+@@ -589,9 +_,18 @@
              this.invulnerableTime--;
          }
  
@@ -469,7 +470,7 @@
              this.containerMenu = this.inventoryMenu;
          }
  
-@@ -616,9 +_,15 @@
+@@ -617,9 +_,15 @@
          this.trackEnteredOrExitedLavaOnVehicle();
          this.updatePlayerAttributes();
          this.advancements.flushDirty(this, true);
@@ -487,7 +488,7 @@
      }
  
      private void updatePlayerAttributes() {
-@@ -652,10 +_,10 @@
+@@ -653,10 +_,10 @@
  
      public void doTick() {
          try {
@@ -500,7 +501,7 @@
                      this.containerMenu = this.inventoryMenu;
                  }
  
-@@ -671,7 +_,26 @@
+@@ -672,7 +_,26 @@
                  }
  
                  if (!this.isSleeping()) {
@@ -528,7 +529,7 @@
                  }
              }
  
-@@ -685,7 +_,7 @@
+@@ -686,7 +_,7 @@
              if (this.getHealth() != this.lastSentHealth
                  || this.lastSentFood != this.foodData.getFoodLevel()
                  || this.foodData.getSaturationLevel() == 0.0F != this.lastFoodSaturationZero) {
@@ -537,7 +538,7 @@
                  this.lastSentHealth = this.getHealth();
                  this.lastSentFood = this.foodData.getFoodLevel();
                  this.lastFoodSaturationZero = this.foodData.getSaturationLevel() == 0.0F;
-@@ -716,6 +_,12 @@
+@@ -717,6 +_,12 @@
                  this.updateScoreForCriteria(ObjectiveCriteria.EXPERIENCE, Mth.ceil(this.lastRecordedExperience));
              }
  
@@ -550,7 +551,7 @@
              if (this.experienceLevel != this.lastRecordedLevel) {
                  this.lastRecordedLevel = this.experienceLevel;
                  this.updateScoreForCriteria(ObjectiveCriteria.LEVEL, Mth.ceil(this.lastRecordedLevel));
-@@ -726,9 +_,29 @@
+@@ -727,9 +_,29 @@
                  this.connection.send(new ClientboundSetExperiencePacket(this.experienceProgress, this.totalExperience, this.experienceLevel));
              }
  
@@ -580,7 +581,7 @@
          } catch (Throwable t) {
              CrashReport report = CrashReport.forThrowable(t, "Ticking player");
              CrashReportCategory category = report.addCategory("Player being ticked");
-@@ -739,7 +_,7 @@
+@@ -740,7 +_,7 @@
  
      private void synchronizeSpecialItemUpdates(ItemStack itemStack) {
          MapId mapId = itemStack.get(DataComponents.MAP_ID);
@@ -589,7 +590,7 @@
          if (data != null) {
              Packet<?> packet = data.getUpdatePacket(mapId, this);
              if (packet != null) {
-@@ -753,7 +_,7 @@
+@@ -754,7 +_,7 @@
          if (this.level().getDifficulty() == Difficulty.PEACEFUL && this.level().getGameRules().get(GameRules.NATURAL_HEALTH_REGENERATION)) {
              if (this.tickCount % 20 == 0) {
                  if (this.getHealth() < this.getMaxHealth()) {
@@ -598,7 +599,7 @@
                  }
  
                  float saturation = this.foodData.getSaturationLevel();
-@@ -773,7 +_,8 @@
+@@ -774,7 +_,8 @@
          this.playShoulderEntityAmbientSound(this.getShoulderEntityLeft());
          this.playShoulderEntityAmbientSound(this.getShoulderEntityRight());
          if (this.fallDistance > 0.5 || this.isInWater() || this.getAbilities().flying || this.isSleeping() || this.isInPowderSnow) {
@@ -608,7 +609,7 @@
          }
      }
  
-@@ -817,32 +_,61 @@
+@@ -818,32 +_,61 @@
      @Override
      public void removeEntitiesOnShoulder() {
          if (this.timeEntitySatOnShoulder + 20L < this.level().getGameTime()) {
@@ -685,7 +686,7 @@
      }
  
      @Override
-@@ -885,29 +_,113 @@
+@@ -886,29 +_,113 @@
          this.level().getScoreboard().forAllObjectives(criteria, this, score -> score.set(value));
      }
  
@@ -818,7 +819,7 @@
              if (team == null || team.getDeathMessageVisibility() == Team.Visibility.ALWAYS) {
                  this.server.getPlayerList().broadcastSystemMessage(deathMessage, false);
              } else if (team.getDeathMessageVisibility() == Team.Visibility.HIDE_FOR_OTHER_TEAMS) {
-@@ -916,7 +_,7 @@
+@@ -917,7 +_,7 @@
                  this.server.getPlayerList().broadcastSystemToAllExceptTeam(this, deathMessage);
              }
          } else {
@@ -827,7 +828,7 @@
          }
  
          this.removeEntitiesOnShoulder();
-@@ -924,11 +_,35 @@
+@@ -925,11 +_,35 @@
              this.tellNeutralMobsThatIDied();
          }
  
@@ -866,7 +867,7 @@
          LivingEntity killer = this.getKillCredit();
          if (killer != null) {
              this.awardStat(Stats.ENTITY_KILLED_BY.get(killer.getType()));
-@@ -962,10 +_,10 @@
+@@ -963,10 +_,10 @@
          if (victim != this) {
              super.awardKillScore(victim, killingBlow);
              Scoreboard scoreboard = this.level().getScoreboard();
@@ -879,7 +880,7 @@
              } else {
                  this.awardStat(Stats.MOB_KILLS);
              }
-@@ -978,11 +_,11 @@
+@@ -979,11 +_,11 @@
  
      private void handleTeamKill(ScoreHolder source, ScoreHolder target, Map<TeamColor, ObjectiveCriteria> criteriaByTeam) {
          Scoreboard scoreboard = this.level().getScoreboard();
@@ -893,7 +894,7 @@
              }
          }
      }
-@@ -991,16 +_,35 @@
+@@ -992,16 +_,35 @@
      public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
          if (this.isInvulnerableTo(level, source)) {
              return false;
@@ -939,7 +940,7 @@
      }
  
      @Override
-@@ -1012,22 +_,99 @@
+@@ -1013,22 +_,99 @@
          return this.level().isPvpAllowed();
      }
  
@@ -1045,7 +1046,7 @@
      }
  
      public boolean isReceivingWaypoints() {
-@@ -1048,44 +_,6 @@
+@@ -1049,44 +_,6 @@
          super.onAttributeUpdated(attribute);
      }
  
@@ -1090,7 +1091,7 @@
      public static Optional<ServerPlayer.RespawnPosAngle> findRespawnAndUseSpawnBlock(
          ServerLevel level, ServerPlayer.RespawnConfig respawnConfig, boolean consumeSpawnBlock
      ) {
-@@ -1097,28 +_,27 @@
+@@ -1098,28 +_,27 @@
          BlockState blockState = level.getBlockState(pos);
          Block block = blockState.getBlock();
          if (block instanceof RespawnAnchorBlock && (forced || blockState.getValue(RespawnAnchorBlock.CHARGE) > 0) && RespawnAnchorBlock.canSetSpawn(level, pos)
@@ -1131,7 +1132,7 @@
          }
      }
  
-@@ -1132,7 +_,11 @@
+@@ -1133,7 +_,11 @@
          }
      }
  
@@ -1143,7 +1144,7 @@
          if (this.isRemoved()) {
              return null;
          }
-@@ -1143,13 +_,48 @@
+@@ -1144,13 +_,48 @@
  
          ServerLevel newLevel = transition.newLevel();
          ServerLevel oldLevel = this.level();
@@ -1193,7 +1194,7 @@
              this.connection.resetPosition();
              transition.postTeleportTransition().onTransition(this);
              return this;
-@@ -1157,22 +_,24 @@
+@@ -1158,22 +_,24 @@
  
          this.isChangingDimension = true;
          LevelData levelData = newLevel.getLevelData();
@@ -1222,7 +1223,7 @@
          this.connection.resetPosition();
          newLevel.addDuringTeleport(this);
          profiler.pop();
-@@ -1182,12 +_,24 @@
+@@ -1183,12 +_,24 @@
          playerList.sendLevelInfo(this, newLevel);
          playerList.sendAllPlayerInfo(this);
          playerList.sendActivePlayerEffects(this);
@@ -1248,7 +1249,7 @@
          return this;
      }
  
-@@ -1200,23 +_,34 @@
+@@ -1201,23 +_,34 @@
      public void triggerDimensionChangeTriggers(ServerLevel oldLevel) {
          ResourceKey<Level> oldKey = oldLevel.dimension();
          ResourceKey<Level> newKey = this.level().dimension();
@@ -1291,7 +1292,7 @@
      }
  
      @Override
-@@ -1225,63 +_,146 @@
+@@ -1226,63 +_,146 @@
          this.containerMenu.broadcastChanges();
      }
  
@@ -1483,7 +1484,13 @@
          }
      }
  
-@@ -1292,6 +_,7 @@
+@@ -1290,12 +_,10 @@
+     public void startSleeping(BlockPos bedPosition) {
+         this.resetStat(Stats.CUSTOM.get(Stats.TIME_SINCE_REST));
+         super.startSleeping(bedPosition);
+-        if (this.connection != null) {
+-            this.connection.teleport(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
+-        }
      }
  
      private boolean bedInRange(BlockPos pos, Direction direction) {
@@ -1491,7 +1498,7 @@
          return this.isReachableBedBlock(pos) || this.isReachableBedBlock(pos.relative(direction.getOpposite()));
      }
  
-@@ -1309,19 +_,30 @@
+@@ -1313,19 +_,30 @@
  
      @Override
      public void stopSleepInBed(boolean forcefulWakeUp, boolean updateLevelList) {
@@ -1524,15 +1531,20 @@
      }
  
      @Override
-@@ -1361,6 +_,7 @@
+@@ -1364,9 +_,10 @@
+     }
  
      @Override
-     public void openTextEdit(SignBlockEntity sign, boolean isFrontText) {
+-    public void openTextEdit(SignBlockEntity sign, SignTextSlot slot) {
++    public void openTextEdit(SignBlockEntity sign, boolean isFrontText) {
 +        if (level().purpurConfig.signAllowColors) this.connection.send(sign.getTranslatedUpdatePacket(textFilteringEnabled, isFrontText)); // Purpur - Signs allow color codes
          this.connection.send(new ClientboundBlockUpdatePacket(this.level(), sign.getBlockPos()));
-         this.connection.send(new ClientboundOpenSignEditorPacket(sign.getBlockPos(), isFrontText));
+-        this.connection.send(new ClientboundOpenSignEditorPacket(sign.getBlockPos(), slot));
++        this.connection.send(new ClientboundOpenSignEditorPacket(sign.getBlockPos(), isFrontText));
      }
-@@ -1374,29 +_,89 @@
+ 
+     @Override
+@@ -1378,29 +_,89 @@
          this.containerCounter = this.containerCounter % 100 + 1;
      }
  
@@ -1640,7 +1652,7 @@
          }
      }
  
-@@ -1407,27 +_,49 @@
+@@ -1411,27 +_,49 @@
  
      @Override
      public void openHorseInventory(AbstractHorse horse, Container container) {
@@ -1700,7 +1712,7 @@
          this.initMenu(this.containerMenu);
      }
  
-@@ -1449,14 +_,35 @@
+@@ -1453,14 +_,35 @@
  
      @Override
      public void closeContainer() {
@@ -1736,7 +1748,7 @@
          this.containerMenu = this.inventoryMenu;
      }
  
-@@ -1548,13 +_,13 @@
+@@ -1552,13 +_,13 @@
      @Override
      public void awardStat(Stat<?> stat, int count) {
          this.stats.increment(this, stat, count);
@@ -1752,7 +1764,23 @@
      }
  
      @Override
-@@ -1585,9 +_,9 @@
+@@ -1571,6 +_,7 @@
+         CriteriaTriggers.RECIPE_CRAFTED.trigger(this, recipe.id(), itemStacks);
+     }
+ 
++    @Override
+     public void awardRecipesByKey(List<ResourceKey<Recipe<?>>> recipeIds) {
+         List<RecipeHolder<?>> recipes = recipeIds.stream()
+             .flatMap(id -> this.server.getRecipeManager().byKey((ResourceKey<Recipe<?>>)id).stream())
+@@ -1578,6 +_,7 @@
+         this.awardRecipes(recipes);
+     }
+ 
++    @Override
+     public int resetRecipes(Collection<RecipeHolder<?>> recipe) {
+         return this.recipeBook.removeRecipes(recipe, this);
+     }
+@@ -1587,9 +_,9 @@
          super.jumpFromGround();
          this.awardStat(Stats.JUMP);
          if (this.isSprinting()) {
@@ -1764,7 +1792,7 @@
          }
      }
  
-@@ -1602,6 +_,13 @@
+@@ -1604,6 +_,13 @@
      public void disconnect() {
          this.disconnected = true;
          this.ejectPassengers();
@@ -1778,7 +1806,7 @@
          if (this.isSleeping()) {
              this.stopSleepInBed(true, false);
          }
-@@ -1613,7 +_,28 @@
+@@ -1615,7 +_,28 @@
  
      public void resetSentInfo() {
          this.lastSentHealth = -1.0E8F;
@@ -1808,7 +1836,7 @@
  
      @Override
      public void completeUsingItem() {
-@@ -1642,18 +_,18 @@
+@@ -1644,18 +_,18 @@
          this.onUpdateAbilities();
          this.getAttributes().assignBaseValues(oldPlayer.getAttributes());
          if (restoreAll) {
@@ -1830,7 +1858,7 @@
              if (this.level().getGameRules().get(GameRules.KEEP_INVENTORY) || oldPlayer.isSpectator()) {
                  this.transferInventoryXpAndScore(oldPlayer);
              }
-@@ -1665,7 +_,7 @@
+@@ -1667,7 +_,7 @@
          this.lastSentExp = -1;
          this.lastSentHealth = -1.0F;
          this.lastSentFood = -1;
@@ -1839,7 +1867,7 @@
          this.seenCredits = oldPlayer.seenCredits;
          this.enteredNetherPosition = oldPlayer.enteredNetherPosition;
          this.currentExplosionImpactPos = oldPlayer.currentExplosionImpactPos;
-@@ -1676,6 +_,15 @@
+@@ -1678,6 +_,15 @@
          this.setShoulderEntityRight(oldPlayer.getShoulderEntityRight());
          this.setLastDeathLocation(oldPlayer.getLastDeathLocation());
          this.waypointIcon().copyFrom(oldPlayer.waypointIcon());
@@ -1855,7 +1883,7 @@
      }
  
      private void transferInventoryXpAndScore(Player oldPlayer) {
-@@ -1719,9 +_,23 @@
+@@ -1721,9 +_,23 @@
          CriteriaTriggers.EFFECTS_CHANGED.trigger(this, null);
      }
  
@@ -1880,7 +1908,7 @@
      }
  
      @Override
-@@ -1730,7 +_,7 @@
+@@ -1732,7 +_,7 @@
      }
  
      @Override
@@ -1889,7 +1917,7 @@
          if (this.isSleeping()) {
              this.stopSleepInBed(true, true);
          }
-@@ -1739,7 +_,7 @@
+@@ -1741,7 +_,7 @@
              this.setCamera(this);
          }
  
@@ -1898,7 +1926,7 @@
          if (success) {
              this.setYHeadRot(relatives.contains(Relative.Y_ROT) ? this.getYHeadRot() + newYRot : newYRot);
              this.connection.resetFlyingTicks();
-@@ -1777,11 +_,18 @@
+@@ -1779,11 +_,18 @@
      }
  
      public boolean setGameMode(GameType mode) {
@@ -1921,7 +1949,7 @@
          this.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.CHANGE_GAME_MODE, mode.getId()));
          if (mode == GameType.SPECTATOR) {
              this.removeEntitiesOnShoulder();
-@@ -1797,7 +_,7 @@
+@@ -1799,7 +_,7 @@
  
          this.onUpdateAbilities();
          this.updateEffectVisibility();
@@ -1930,7 +1958,7 @@
      }
  
      @Override
-@@ -1823,6 +_,20 @@
+@@ -1825,6 +_,20 @@
          );
      }
  
@@ -1951,7 +1979,7 @@
      @Override
      public void sendSystemMessage(Component message) {
          this.sendSystemMessage(message, false);
-@@ -1865,8 +_,13 @@
+@@ -1867,8 +_,13 @@
      }
  
      public void sendChatMessage(OutgoingChatMessage message, boolean filtered, ChatType.Bound chatType) {
@@ -1966,7 +1994,7 @@
          }
      }
  
-@@ -1877,6 +_,40 @@
+@@ -1879,6 +_,40 @@
      }
  
      public void updateOptions(ClientInformation information) {
@@ -2007,7 +2035,7 @@
          this.language = information.language();
          this.requestedViewDistance = information.viewDistance();
          this.chatVisibility = information.chatVisibility();
-@@ -1934,7 +_,67 @@
+@@ -1936,7 +_,67 @@
  
      public void resetLastActionTime() {
          this.lastActionTime = Util.getMillis();
@@ -2076,7 +2104,7 @@
  
      public ServerStatsCounter getStats() {
          return this.stats;
-@@ -1961,9 +_,25 @@
+@@ -1963,9 +_,25 @@
      public void setCamera(@Nullable Entity newCamera) {
          Entity oldCamera = this.getCamera();
          this.camera = newCamera == null ? this : newCamera;
@@ -2103,7 +2131,7 @@
              }
  
              if (newCamera != null) {
-@@ -1987,11 +_,19 @@
+@@ -1989,11 +_,19 @@
      }
  
      public @Nullable Component getTabListDisplayName() {
@@ -2125,7 +2153,7 @@
      }
  
      @Override
-@@ -2021,11 +_,61 @@
+@@ -2023,11 +_,61 @@
      }
  
      public void setRespawnPosition(ServerPlayer.@Nullable RespawnConfig respawnConfig, boolean showMessage) {
@@ -2189,7 +2217,7 @@
      }
  
      public SectionPos getLastSectionPos() {
-@@ -2045,17 +_,93 @@
+@@ -2047,17 +_,93 @@
      }
  
      @Override
@@ -2287,7 +2315,7 @@
      }
  
      public TextFilter getTextFilter() {
-@@ -2072,6 +_,7 @@
+@@ -2074,6 +_,7 @@
      }
  
      private GameType calculateGameModeForNewPlayer(@Nullable GameType loadedGameType) {
@@ -2295,7 +2323,7 @@
          GameType forcedGameType = this.server.getForcedGameType();
          if (forcedGameType != null) {
              return forcedGameType;
-@@ -2106,8 +_,10 @@
+@@ -2108,8 +_,10 @@
          super.updateUsingItem(useItem);
      }
  
@@ -2307,7 +2335,7 @@
          ItemStack removed = inventory.removeFromSelected(all);
          this.containerMenu
              .findSlot(inventory, inventory.getSelectedSlot())
-@@ -2116,7 +_,7 @@
+@@ -2118,7 +_,7 @@
              this.stopUsingItem();
          }
  
@@ -2316,7 +2344,7 @@
      }
  
      @Override
-@@ -2130,8 +_,9 @@
+@@ -2132,8 +_,9 @@
          return this.allowsListing;
      }
  
@@ -2328,7 +2356,7 @@
      }
  
      public void setSpawnExtraParticlesOnFall(boolean toggle) {
-@@ -2178,9 +_,9 @@
+@@ -2180,9 +_,9 @@
      }
  
      @Override
@@ -2340,7 +2368,7 @@
          if (oldVehicle instanceof LivingEntity livingEntity) {
              for (MobEffectInstance effect : livingEntity.getActiveEffects()) {
                  this.connection.send(new ClientboundRemoveMobEffectPacket(oldVehicle.getId(), effect.getEffect()));
-@@ -2332,9 +_,11 @@
+@@ -2334,9 +_,11 @@
          }
      }
  
@@ -2355,7 +2383,7 @@
          }
  
          private static float calculateLookAtYaw(Vec3 position, BlockPos lookAtBlockPos) {
-@@ -2354,4 +_,196 @@
+@@ -2356,4 +_,196 @@
          );
          public static final ServerPlayer.SavedPosition EMPTY = new ServerPlayer.SavedPosition(Optional.empty(), Optional.empty(), Optional.empty());
      }

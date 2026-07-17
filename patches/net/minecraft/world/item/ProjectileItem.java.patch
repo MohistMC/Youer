@@ -1,15 +1,52 @@
 --- a/net/minecraft/world/item/ProjectileItem.java
 +++ b/net/minecraft/world/item/ProjectileItem.java
-@@ -20,7 +_,7 @@
+@@ -1,13 +_,12 @@
+ package net.minecraft.world.item;
+ 
+-import java.util.Optional;
++import java.util.OptionalInt;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.Position;
+ import net.minecraft.core.dispenser.BlockSource;
+ import net.minecraft.world.entity.projectile.Projectile;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.DispenserBlock;
+-import net.minecraft.world.level.block.LevelEvent;
+ import net.minecraft.world.phys.Vec3;
+ 
+ public interface ProjectileItem {
+@@ -21,9 +_,7 @@
          projectile.shoot(xd, yd, zd, pow, uncertainty);
      }
  
--    record DispenseConfig(ProjectileItem.PositionFunction positionFunction, float uncertainty, float power, OptionalInt overrideDispenseEvent) {
+-    record DispenseConfig(
+-        ProjectileItem.PositionFunction positionFunction, float uncertainty, float power, Optional<@LevelEvent.Value Integer> overrideDispenseEvent
+-    ) {
 +    public record DispenseConfig(ProjectileItem.PositionFunction positionFunction, float uncertainty, float power, OptionalInt overrideDispenseEvent) {
          public static final ProjectileItem.DispenseConfig DEFAULT = builder().build();
  
          public static ProjectileItem.DispenseConfig.Builder builder() {
-@@ -62,7 +_,7 @@
+@@ -36,7 +_,7 @@
+             );
+             private float uncertainty = 6.0F;
+             private float power = 1.1F;
+-            private Optional<@LevelEvent.Value Integer> overrideDispenseEvent = Optional.empty();
++            private OptionalInt overrideDispenseEvent = OptionalInt.empty();
+ 
+             public ProjectileItem.DispenseConfig.Builder positionFunction(ProjectileItem.PositionFunction positionFunction) {
+                 this.positionFunction = positionFunction;
+@@ -53,8 +_,8 @@
+                 return this;
+             }
+ 
+-            public ProjectileItem.DispenseConfig.Builder overrideDispenseEvent(@LevelEvent.Value int dispenseEvent) {
+-                this.overrideDispenseEvent = Optional.of(dispenseEvent);
++            public ProjectileItem.DispenseConfig.Builder overrideDispenseEvent(int dispenseEvent) {
++                this.overrideDispenseEvent = OptionalInt.of(dispenseEvent);
+                 return this;
+             }
+ 
+@@ -65,7 +_,7 @@
      }
  
      @FunctionalInterface

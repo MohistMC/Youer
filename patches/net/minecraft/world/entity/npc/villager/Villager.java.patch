@@ -1,6 +1,22 @@
 --- a/net/minecraft/world/entity/npc/villager/Villager.java
 +++ b/net/minecraft/world/entity/npc/villager/Villager.java
-@@ -90,8 +_,11 @@
+@@ -46,7 +_,6 @@
+ import net.minecraft.world.entity.ConversionParams;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.EntityDimensions;
+-import net.minecraft.world.entity.EntityEvent;
+ import net.minecraft.world.entity.EntitySpawnReason;
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.entity.EntityTypes;
+@@ -79,7 +_,6 @@
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.entity.raid.Raid;
+ import net.minecraft.world.entity.schedule.Activity;
+-import net.minecraft.world.food.VillagerFood;
+ import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.Items;
+@@ -92,14 +_,18 @@
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.timeline.Timelines;
@@ -12,7 +28,14 @@
  
  public class Villager extends AbstractVillager implements VillagerDataHolder, ReputationEventHandler {
      private static final Logger LOGGER = LogUtils.getLogger();
-@@ -112,18 +_,20 @@
+     private static final EntityDataAccessor<VillagerData> DATA_VILLAGER_DATA = SynchedEntityData.defineId(Villager.class, EntityDataSerializers.VILLAGER_DATA);
+     private static final EntityDataAccessor<Boolean> DATA_VILLAGER_DATA_FINALIZED = SynchedEntityData.defineId(Villager.class, EntityDataSerializers.BOOLEAN);
+     public static final int BREEDING_FOOD_THRESHOLD = 12;
++    public static final Map<Item, Integer> FOOD_POINTS = ImmutableMap.of(Items.BREAD, 4, Items.POTATO, 1, Items.CARROT, 1, Items.BEETROOT, 1);
+     private static final int MAX_GOSSIP_TOPICS = 10;
+     private static final int GOSSIP_COOLDOWN = 1200;
+     private static final int GOSSIP_DECAY_INTERVAL = 24000;
+@@ -113,18 +_,20 @@
      private static final int DEFAULT_LAST_RESTOCK = 0;
      private static final int DEFAULT_LAST_GOSSIP_DECAY = 0;
      private static final int DEFAULT_RESTOCKS_TODAY = 0;
@@ -34,7 +57,7 @@
      private static final Brain.Provider<Villager> BRAIN_PROVIDER = Brain.<Villager>provider(
          List.of(
              SensorType.NEAREST_LIVING_ENTITIES,
-@@ -145,7 +_,7 @@
+@@ -146,7 +_,7 @@
                  activities.add(
                      ActivityData.create(
                          Activity.WORK,
@@ -43,7 +66,7 @@
                          ImmutableSet.of(Pair.of(MemoryModuleType.JOB_SITE, MemoryStatus.VALUE_PRESENT))
                      )
                  );
-@@ -178,6 +_,8 @@
+@@ -179,6 +_,8 @@
          MemoryModuleType.MEETING_POINT,
          (villager, poiType) -> poiType.is(PoiTypes.MEETING)
      );
@@ -52,7 +75,7 @@
  
      public Villager(EntityType<? extends Villager> entityType, Level level) {
          super(entityType, level);
-@@ -187,6 +_,110 @@
+@@ -188,6 +_,110 @@
          this.setCanPickUpLoot(true);
      }
  
@@ -163,7 +186,7 @@
      @Override
      public Brain<Villager> getBrain() {
          return (Brain<Villager>) super.getBrain();
-@@ -225,15 +_,58 @@
+@@ -226,15 +_,58 @@
      }
  
      public static AttributeSupplier.Builder createAttributes() {
@@ -225,7 +248,7 @@
          if (!this.isTrading() && this.updateMerchantTimer > 0) {
              this.updateMerchantTimer--;
              if (this.updateMerchantTimer <= 0) {
-@@ -242,7 +_,7 @@
+@@ -243,7 +_,7 @@
                      this.increaseProfessionLevelOnUpdate = false;
                  }
  
@@ -234,7 +257,7 @@
              }
          }
  
-@@ -252,7 +_,7 @@
+@@ -253,7 +_,7 @@
              this.lastTradedPlayer = null;
          }
  
@@ -243,7 +266,7 @@
              Raid raid = level.getRaidAt(this.blockPosition());
              if (raid != null && raid.isActive() && !raid.isOver()) {
                  level.broadcastEntityEvent(this, (byte)42);
-@@ -263,6 +_,7 @@
+@@ -264,6 +_,7 @@
              this.stopTrading();
          }
  
@@ -251,7 +274,7 @@
          super.customServerAiStep(level);
      }
  
-@@ -279,7 +_,7 @@
+@@ -280,7 +_,7 @@
      @Override
      public InteractionResult mobInteract(Player player, InteractionHand hand) {
          ItemStack itemStack = player.getItemInHand(hand);
@@ -260,7 +283,7 @@
              return super.mobInteract(player, hand);
          }
  
-@@ -302,6 +_,9 @@
+@@ -303,6 +_,9 @@
                  return InteractionResult.CONSUME;
              }
  
@@ -270,7 +293,7 @@
              this.startTrading(player);
          }
  
-@@ -358,7 +_,13 @@
+@@ -359,7 +_,13 @@
          this.updateDemand();
  
          for (MerchantOffer offer : this.getOffers()) {
@@ -285,7 +308,7 @@
          }
  
          this.resendOffersToTradingPlayer();
-@@ -419,7 +_,13 @@
+@@ -420,7 +_,13 @@
          int missedUpdates = 2 - this.numberOfRestocksToday;
          if (missedUpdates > 0) {
              for (MerchantOffer offer : this.getOffers()) {
@@ -300,7 +323,7 @@
              }
          }
  
-@@ -432,7 +_,7 @@
+@@ -433,7 +_,7 @@
  
      public void updateDemand() {
          for (MerchantOffer offer : this.getOffers()) {
@@ -309,7 +332,7 @@
          }
      }
  
-@@ -440,6 +_,7 @@
+@@ -441,6 +_,7 @@
          int reputation = this.getPlayerReputation(player);
          if (reputation != 0) {
              for (MerchantOffer offer : this.getOffers()) {
@@ -317,7 +340,7 @@
                  offer.addToSpecialPriceDiff(-Mth.floor(reputation * offer.getPriceMultiplier()));
              }
          }
-@@ -449,6 +_,7 @@
+@@ -450,6 +_,7 @@
              int amplifier = effect.getAmplifier();
  
              for (MerchantOffer offer : this.getOffers()) {
@@ -325,7 +348,7 @@
                  double modifier = 0.3 + 0.0625 * amplifier;
                  int costReduction = (int)Math.floor(modifier * offer.getBaseCostA().getCount());
                  offer.addToSpecialPriceDiff(-Math.max(costReduction, 1));
-@@ -480,6 +_,9 @@
+@@ -481,6 +_,9 @@
          output.putLong("LastRestock", this.lastRestockGameTime);
          output.putLong("LastGossipDecay", this.lastGossipDecayTime);
          output.putInt("RestocksToday", this.numberOfRestocksToday);
@@ -335,7 +358,7 @@
      }
  
      @Override
-@@ -503,6 +_,7 @@
+@@ -504,6 +_,7 @@
          }
  
          this.numberOfRestocksToday = input.getIntOr("RestocksToday", 0);
@@ -343,7 +366,7 @@
      }
  
      @Override
-@@ -570,7 +_,7 @@
+@@ -571,7 +_,7 @@
          }
  
          if (offer.shouldRewardExp()) {
@@ -352,7 +375,7 @@
          }
      }
  
-@@ -588,7 +_,7 @@
+@@ -589,7 +_,7 @@
  
      @Override
      public void die(DamageSource source) {
@@ -361,7 +384,7 @@
          Entity murderer = source.getEntity();
          if (murderer != null) {
              this.tellWitnessesThatIWasMurdered(murderer);
-@@ -636,7 +_,7 @@
+@@ -637,7 +_,7 @@
  
      @Override
      public boolean canBreed() {
@@ -370,7 +393,43 @@
      }
  
      private boolean hungry() {
-@@ -687,7 +_,7 @@
+@@ -645,24 +_,22 @@
+     }
+ 
+     private void eatUntilFull() {
+-        if (this.hungry()) {
++        if (this.hungry() && this.countFoodPointsInInventory() != 0) {
+             for (int slot = 0; slot < this.getInventory().getContainerSize(); slot++) {
+                 ItemStack itemStack = this.getInventory().getItem(slot);
+-                VillagerFood villagerFood = itemStack.get(DataComponents.VILLAGER_FOOD);
+-                if (villagerFood != null) {
+-                    int itemCount = itemStack.getCount();
+-                    int toRemove = 0;
++                if (!itemStack.isEmpty()) {
++                    Integer value = FOOD_POINTS.get(itemStack.getItem());
++                    if (value != null) {
++                        int itemCount = itemStack.getCount();
+ 
+-                    for (int count = itemCount; count > 0; count--) {
+-                        this.foodLevel = this.foodLevel + villagerFood.nutrition();
+-                        toRemove++;
+-                        if (!this.hungry()) {
+-                            this.getInventory().removeItem(slot, toRemove);
+-                            return;
++                        for (int count = itemCount; count > 0; count--) {
++                            this.foodLevel = this.foodLevel + value;
++                            this.getInventory().removeItem(slot, 1);
++                            if (!this.hungry()) {
++                                return;
++                            }
+                         }
+                     }
+-
+-                    this.getInventory().removeItem(slot, toRemove);
+                 }
+             }
+         }
+@@ -690,7 +_,7 @@
          return VillagerData.canLevelUp(currentLevel) && this.villagerXp >= VillagerData.getMaxXpPerLevel(currentLevel);
      }
  
@@ -379,7 +438,16 @@
          this.setVillagerData(this.getVillagerData().withLevel(this.getVillagerData().level() + 1));
          this.updateTrades(level);
      }
-@@ -721,6 +_,10 @@
+@@ -701,7 +_,7 @@
+     }
+ 
+     @Override
+-    public void handleEntityEvent(@EntityEvent.Value byte id) {
++    public void handleEntityEvent(byte id) {
+         if (id == 12) {
+             this.addParticlesAroundSelf(ParticleTypes.HEART);
+         } else if (id == 13) {
+@@ -724,6 +_,10 @@
          }
  
          this.finalizeVillagerType(level, this.blockPosition());
@@ -390,7 +458,7 @@
          return super.finalizeSpawn(level, difficulty, spawnReason, groupData);
      }
  
-@@ -743,13 +_,21 @@
+@@ -746,13 +_,21 @@
  
      @Override
      public void thunderHit(ServerLevel level, LightningBolt lightningBolt) {
@@ -415,11 +483,15 @@
              if (witch == null) {
                  super.thunderHit(level, lightningBolt);
              }
-@@ -766,7 +_,10 @@
+@@ -769,11 +_,10 @@
      @Override
      public boolean wantsToPickUp(ServerLevel level, ItemStack itemStack) {
          Item item = itemStack.getItem();
--        return (itemStack.is(ItemTags.VILLAGER_PICKS_UP) || this.getVillagerData().profession().value().requestedItems().contains(item))
+-        return (
+-                itemStack.is(ItemTags.VILLAGER_PICKS_UP)
+-                    || itemStack.has(DataComponents.VILLAGER_FOOD)
+-                    || this.getVillagerData().profession().value().requestedItems().contains(item)
+-            )
 +        // Neo: Allow Farmer Villagers to pick up SpecialPlantable items.
 +        boolean isFarmerDesiredSeed = (itemStack.getItem() instanceof net.neoforged.neoforge.common.SpecialPlantable specialPlantable && specialPlantable.villagerCanPlantItem(this))
 +                && this.getVillagerData().profession().value().secondaryPoi().stream().anyMatch(secondaryPoi -> secondaryPoi.defaultBlockState().is(net.neoforged.neoforge.common.Tags.Blocks.VILLAGER_FARMLANDS));
@@ -427,7 +499,21 @@
              && this.getInventory().canAddItem(itemStack);
      }
  
-@@ -784,20 +_,28 @@
+@@ -787,33 +_,32 @@
+ 
+     private int countFoodPointsInInventory() {
+         SimpleContainer inventory = this.getInventory();
+-        int points = 0;
+-
+-        for (ItemStack item : inventory.getItems()) {
+-            VillagerFood villagerFood = item.get(DataComponents.VILLAGER_FOOD);
+-            if (villagerFood != null) {
+-                points += item.count() * villagerFood.nutrition();
+-            }
+-        }
+-
+-        return points;
++        return FOOD_POINTS.entrySet().stream().mapToInt(entry -> inventory.countItem(entry.getKey()) * entry.getValue()).sum();
      }
  
      public boolean hasFarmSeeds() {
@@ -459,7 +545,7 @@
      }
  
      public void gossip(ServerLevel level, Villager target, long timestamp) {
-@@ -821,6 +_,7 @@
+@@ -837,6 +_,7 @@
      }
  
      public void spawnGolemIfNeeded(ServerLevel level, long timestamp, int villagersNeededToAgree) {
@@ -467,7 +553,7 @@
          if (this.wantsToSpawnGolem(timestamp)) {
              AABB villagerSearchBox = this.getBoundingBox().inflate(10.0, 10.0, 10.0);
              List<Villager> nearbyVillagers = level.getEntitiesOfClass(Villager.class, villagerSearchBox);
-@@ -829,7 +_,7 @@
+@@ -845,7 +_,7 @@
                  .limit(5L)
                  .toList();
              if (nearbyVillagersThatWantAGolem.size() >= villagersNeededToAgree) {
@@ -476,7 +562,7 @@
                          EntityTypes.IRON_GOLEM,
                          EntitySpawnReason.MOB_SUMMONED,
                          level,
-@@ -838,9 +_,11 @@
+@@ -854,9 +_,11 @@
                          8,
                          6,
                          SpawnUtil.Strategy.LEGACY_IRON_GOLEM,

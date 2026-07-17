@@ -8,15 +8,7 @@
  import net.minecraft.util.RandomSource;
  import net.minecraft.world.DifficultyInstance;
  import net.minecraft.world.InteractionHand;
-@@ -30,6 +_,7 @@
- import net.minecraft.world.entity.EntityAttachment;
- import net.minecraft.world.entity.EntityAttachments;
- import net.minecraft.world.entity.EntityDimensions;
-+import net.minecraft.world.entity.EntityEvent;
- import net.minecraft.world.entity.EntitySpawnReason;
- import net.minecraft.world.entity.EntityType;
- import net.minecraft.world.entity.EntityTypes;
-@@ -52,11 +_,19 @@
+@@ -53,11 +_,19 @@
  import net.minecraft.world.item.trading.MerchantOffers;
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.ServerLevelAccessor;
@@ -36,7 +28,7 @@
  public class ZombieVillager extends Zombie implements VillagerDataHolder {
      public static final EntityDataAccessor<Boolean> DATA_CONVERTING_ID = SynchedEntityData.defineId(ZombieVillager.class, EntityDataSerializers.BOOLEAN);
      private static final EntityDataAccessor<VillagerData> DATA_VILLAGER_DATA = SynchedEntityData.defineId(
-@@ -79,11 +_,79 @@
+@@ -80,11 +_,79 @@
      private static final EntityDimensions BABY_DIMENSIONS = EntityDimensions.scalable(0.49F, 0.98F)
          .withEyeHeight(0.67F)
          .withAttachments(EntityAttachments.builder().attach(EntityAttachment.VEHICLE, 0.0F, 0.125F, 0.0F));
@@ -116,7 +108,7 @@
      @Override
      protected void defineSynchedData(SynchedEntityData.Builder entityData) {
          super.defineSynchedData(entityData);
-@@ -150,23 +_,28 @@
+@@ -151,23 +_,28 @@
      public void tick() {
          if (!this.level().isClientSide() && this.isAlive() && this.isConverting()) {
              int amount = this.getConversionProgress();
@@ -148,7 +140,7 @@
                  }
  
                  return InteractionResult.SUCCESS_SERVER;
-@@ -193,12 +_,20 @@
+@@ -194,12 +_,20 @@
      }
  
      public void startConverting(@Nullable UUID player, int time) {
@@ -172,7 +164,16 @@
      }
  
      @Override
-@@ -228,7 +_,8 @@
+@@ -208,7 +_,7 @@
+     }
+ 
+     @Override
+-    public void handleEntityEvent(@EntityEvent.Value byte id) {
++    public void handleEntityEvent(byte id) {
+         if (id == 16) {
+             if (!this.isSilent()) {
+                 this.level()
+@@ -229,7 +_,8 @@
      }
  
      private void finishConversion(ServerLevel level) {
@@ -182,7 +183,7 @@
              EntityTypes.VILLAGER,
              ConversionParams.single(this, false, false),
              villager -> {
-@@ -255,19 +_,25 @@
+@@ -256,19 +_,25 @@
                  villager.finalizeSpawn(level, level.getCurrentDifficultyAt(villager.blockPosition()), EntitySpawnReason.CONVERSION, null);
                  villager.refreshBrain(level);
                  if (this.conversionStarter != null) {
@@ -211,7 +212,7 @@
      }
  
      @VisibleForTesting
-@@ -285,7 +_,7 @@
+@@ -286,7 +_,7 @@
                  for (int yy = (int)this.getY() - 4; yy < (int)this.getY() + 4 && specialBlocksCount < 14; yy++) {
                      for (int zz = (int)this.getZ() - 4; zz < (int)this.getZ() + 4 && specialBlocksCount < 14; zz++) {
                          BlockState state = this.level().getBlockState(blockPos.set(xx, yy, zz));

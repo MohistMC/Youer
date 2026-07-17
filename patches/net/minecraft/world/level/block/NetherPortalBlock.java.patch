@@ -102,11 +102,15 @@
          BlockUtil.FoundRectangle exitPortal;
          TeleportTransition.PostTeleportTransition post;
          if (exitPortalPos.isPresent()) {
-@@ -152,17 +_,22 @@
+@@ -152,21 +_,22 @@
                  blockPos -> newLevel.getBlockState(blockPos) == portalState
              );
              post = TeleportTransition.PLAY_PORTAL_SOUND.then(e -> e.placePortalTicket(pos));
 -        } else {
+-            if (entity.isSpectator()) {
+-                return null;
+-            }
+-
 +        } else if (result.canCreatePortal()) { // CraftBukkit
              Direction.Axis sourcePortalAxis = entity.level().getBlockState(portalEntryPos).getOptionalValue(AXIS).orElse(Direction.Axis.X);
 -            Optional<BlockUtil.FoundRectangle> createdExit = newLevel.getPortalForcer().createPortal(approximateExitPos, sourcePortalAxis);
@@ -128,7 +132,7 @@
  
          return getDimensionTransitionFromExit(entity, portalEntryPos, exitPortal, newLevel, post);
      }
-@@ -217,7 +_,7 @@
+@@ -221,7 +_,7 @@
          );
          Vec3 collisionFreePos = PortalShape.findCollisionFreePosition(targetPos, newLevel, entity, dimensions);
          return new TeleportTransition(

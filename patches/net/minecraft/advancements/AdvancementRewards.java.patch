@@ -1,6 +1,36 @@
 --- a/net/minecraft/advancements/AdvancementRewards.java
 +++ b/net/minecraft/advancements/AdvancementRewards.java
-@@ -43,6 +_,7 @@
+@@ -8,8 +_,6 @@
+ import net.minecraft.commands.CacheableFunction;
+ import net.minecraft.commands.CommandSourceStack;
+ import net.minecraft.commands.functions.CommandFunction;
+-import net.minecraft.core.Holder;
+-import net.minecraft.core.HolderSet;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.server.MinecraftServer;
+@@ -26,17 +_,17 @@
+ import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+ import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+ 
+-public record AdvancementRewards(int experience, HolderSet<LootTable> loot, List<ResourceKey<Recipe<?>>> recipes, Optional<CacheableFunction> function) {
++public record AdvancementRewards(int experience, List<ResourceKey<LootTable>> loot, List<ResourceKey<Recipe<?>>> recipes, Optional<CacheableFunction> function) {
+     public static final Codec<AdvancementRewards> CODEC = RecordCodecBuilder.create(
+         i -> i.group(
+                 Codec.INT.optionalFieldOf("experience", 0).forGetter(AdvancementRewards::experience),
+-                LootTable.LIST_CODEC.optionalFieldOf("loot", HolderSet.empty()).forGetter(AdvancementRewards::loot),
++                LootTable.KEY_CODEC.listOf().optionalFieldOf("loot", List.of()).forGetter(AdvancementRewards::loot),
+                 Recipe.KEY_CODEC.listOf().optionalFieldOf("recipes", List.of()).forGetter(AdvancementRewards::recipes),
+                 CacheableFunction.CODEC.optionalFieldOf("function").forGetter(AdvancementRewards::function)
+             )
+             .apply(i, AdvancementRewards::new)
+     );
+-    public static final AdvancementRewards EMPTY = new AdvancementRewards(0, HolderSet.empty(), List.of(), Optional.empty());
++    public static final AdvancementRewards EMPTY = new AdvancementRewards(0, List.of(), List.of(), Optional.empty());
+ 
+     public void grant(ServerPlayer player) {
+         player.giveExperiencePoints(this.experience);
+@@ -45,11 +_,12 @@
          LootParams params = new LootParams.Builder(level)
              .withParameter(LootContextParams.THIS_ENTITY, player)
              .withParameter(LootContextParams.ORIGIN, player.position())
@@ -8,3 +38,42 @@
              .create(LootContextParamSets.ADVANCEMENT_REWARD);
          boolean changes = false;
  
+-        for (Holder<LootTable> lootTable : this.loot) {
+-            for (ItemStack itemStack : lootTable.value().getRandomItems(params)) {
++        for (ResourceKey<LootTable> lootTable : this.loot) {
++            for (ItemStack itemStack : server.reloadableRegistries().getLootTable(lootTable).getRandomItems(params)) {
+                 if (player.addItem(itemStack)) {
+                     level.playSound(
+                         null,
+@@ -93,7 +_,7 @@
+ 
+     public static class Builder {
+         private int experience;
+-        private final ImmutableList.Builder<Holder<LootTable>> loot = ImmutableList.builder();
++        private final ImmutableList.Builder<ResourceKey<LootTable>> loot = ImmutableList.builder();
+         private final ImmutableList.Builder<ResourceKey<Recipe<?>>> recipes = ImmutableList.builder();
+         private Optional<Identifier> function = Optional.empty();
+ 
+@@ -106,11 +_,11 @@
+             return this;
+         }
+ 
+-        public static AdvancementRewards.Builder loot(Holder<LootTable> id) {
++        public static AdvancementRewards.Builder loot(ResourceKey<LootTable> id) {
+             return new AdvancementRewards.Builder().addLootTable(id);
+         }
+ 
+-        public AdvancementRewards.Builder addLootTable(Holder<LootTable> id) {
++        public AdvancementRewards.Builder addLootTable(ResourceKey<LootTable> id) {
+             this.loot.add(id);
+             return this;
+         }
+@@ -134,7 +_,7 @@
+         }
+ 
+         public AdvancementRewards build() {
+-            return new AdvancementRewards(this.experience, HolderSet.direct(this.loot.build()), this.recipes.build(), this.function.map(CacheableFunction::new));
++            return new AdvancementRewards(this.experience, this.loot.build(), this.recipes.build(), this.function.map(CacheableFunction::new));
+         }
+     }
+ }

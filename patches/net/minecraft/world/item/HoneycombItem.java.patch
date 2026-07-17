@@ -9,7 +9,13 @@
  import net.minecraft.world.InteractionResult;
  import net.minecraft.world.entity.player.Player;
  import net.minecraft.world.item.context.UseOnContext;
-@@ -32,6 +_,10 @@
+@@ -27,12 +_,15 @@
+ import net.minecraft.world.level.block.WeatheringCopperCollection;
+ import net.minecraft.world.level.block.entity.SignBlockEntity;
+ import net.minecraft.world.level.block.entity.SignText;
+-import net.minecraft.world.level.block.entity.SignTextSlot;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.block.state.properties.ChestType;
  import net.minecraft.world.level.gameevent.GameEvent;
  
  public class HoneycombItem extends Item implements SignApplicator {
@@ -20,7 +26,7 @@
      public static final Supplier<BiMap<Block, Block>> WAXABLES = Suppliers.memoize(
          () -> {
              Builder<Block, Block> builderx = ImmutableBiMap.builder();
-@@ -56,6 +_,10 @@
+@@ -57,6 +_,10 @@
              return builderx.build();
          }
      );
@@ -31,7 +37,7 @@
      public static final Supplier<BiMap<Block, Block>> WAX_OFF_BY_BLOCK = Suppliers.memoize(() -> WAXABLES.get().inverse());
      public static final ImmutableMap<Block, Pair<RecipeCategory, String>> WAXED_RECIPES;
  
-@@ -71,6 +_,14 @@
+@@ -72,6 +_,14 @@
          return getWaxed(oldState).map(waxedState -> {
              Player player = context.getPlayer();
              ItemStack itemInHand = context.getItemInHand();
@@ -46,7 +52,7 @@
              if (player instanceof ServerPlayer serverPlayer) {
                  CriteriaTriggers.ITEM_USED_ON_BLOCK.trigger(serverPlayer, pos, itemInHand);
              }
-@@ -79,12 +_,10 @@
+@@ -80,12 +_,10 @@
              level.setBlock(pos, waxedState, 11);
              level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(player, waxedState));
              level.levelEvent(player, 3003, pos, 0);
@@ -59,7 +65,7 @@
              }
  
              return (InteractionResult)InteractionResult.SUCCESS;
-@@ -92,15 +_,13 @@
+@@ -93,15 +_,13 @@
      }
  
      public static Optional<BlockState> getWaxed(BlockState oldState) {
@@ -68,11 +74,12 @@
      }
  
      @Override
-     public boolean tryApplyToSign(Level level, SignBlockEntity sign, boolean isFrontText, ItemStack item, Player player) {
+-    public boolean tryApplyToSign(Level level, SignBlockEntity sign, SignTextSlot slot, ItemStack item, Player player) {
++    public boolean tryApplyToSign(Level level, SignBlockEntity sign, boolean isFrontText, ItemStack item, Player player) {
          if (sign.setWaxed(true)) {
 -            BlockPos blockPos = sign.getBlockPos();
 -            level.levelEvent(null, 3003, blockPos, 0);
--            level.playSound(player, blockPos, SoundEvents.HONEYCOMB_WAX_ON, SoundSource.BLOCKS, 1.0F, 1.0F);
+-            level.playSound(null, blockPos, SoundEvents.HONEYCOMB_WAX_ON, SoundSource.BLOCKS, 1.0F, 1.0F);
 +            level.levelEvent(null, 3003, sign.getBlockPos(), 0);
              return true;
          } else {

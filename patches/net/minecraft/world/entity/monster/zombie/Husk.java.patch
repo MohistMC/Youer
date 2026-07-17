@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/entity/monster/zombie/Husk.java
 +++ b/net/minecraft/world/entity/monster/zombie/Husk.java
-@@ -35,11 +_,79 @@
+@@ -26,7 +_,6 @@
+ import net.minecraft.world.item.Items;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.ServerLevelAccessor;
+-import net.minecraft.world.level.block.LevelEvent;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class Husk extends Zombie {
+@@ -36,11 +_,79 @@
  
      public Husk(EntityType<? extends Husk> type, Level level) {
          super(type, level);
@@ -82,7 +90,7 @@
      }
  
      @Override
-@@ -67,7 +_,7 @@
+@@ -68,7 +_,7 @@
          boolean result = super.doHurtTarget(level, target);
          if (result && this.getMainHandItem().isEmpty() && target instanceof LivingEntity livingEntity) {
              float difficulty = level.getCurrentDifficultyAt(this.blockPosition()).getEffectiveDifficulty();
@@ -91,15 +99,27 @@
          }
  
          return result;
-@@ -80,6 +_,7 @@
+@@ -80,13 +_,12 @@
+     }
  
      @Override
-     protected void doUnderWaterConversion(ServerLevel level) {
+-    protected @LevelEvent.Value int getConversionSound() {
+-        return 1041;
+-    }
+-
+-    @Override
+-    protected EntityType<? extends Zombie> convertsToWhenDrowning() {
+-        return EntityTypes.ZOMBIE;
++    protected void doUnderWaterConversion(ServerLevel level) {
 +        if (!net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, EntityTypes.ZOMBIE, (timer) -> this.conversionTime = timer)) return;
-         this.convertToZombieType(level, EntityTypes.ZOMBIE);
-         if (!this.isSilent()) {
-             level.levelEvent(null, 1041, this.blockPosition(), 0);
-@@ -94,7 +_,7 @@
++        this.convertToZombieType(level, EntityTypes.ZOMBIE);
++        if (!this.isSilent()) {
++            level.levelEvent(null, 1041, this.blockPosition(), 0);
++        }
+     }
+ 
+     @Override
+@@ -97,7 +_,7 @@
          groupData = super.finalizeSpawn(level, difficulty, spawnReason, groupData);
          float difficultyModifier = difficulty.getSpecialMultiplier();
          if (spawnReason != EntitySpawnReason.CONVERSION) {

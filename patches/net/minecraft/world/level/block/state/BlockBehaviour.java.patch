@@ -18,7 +18,15 @@
  import net.minecraft.tags.FluidTags;
  import net.minecraft.tags.TagKey;
  import net.minecraft.util.Mth;
-@@ -80,19 +_,23 @@
+@@ -52,7 +_,6 @@
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.EntityBlock;
+ import net.minecraft.world.level.block.Mirror;
+-import net.minecraft.world.level.block.Portal;
+ import net.minecraft.world.level.block.RenderShape;
+ import net.minecraft.world.level.block.Rotation;
+ import net.minecraft.world.level.block.SoundType;
+@@ -81,19 +_,23 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
  
@@ -44,7 +52,7 @@
      protected final boolean dynamicShape;
      protected final FeatureFlagSet requiredFeatures;
      protected final BlockBehaviour.Properties properties;
-@@ -110,7 +_,6 @@
+@@ -111,7 +_,6 @@
          this.speedFactor = properties.speedFactor;
          this.jumpFactor = properties.jumpFactor;
          this.bounceRestitution = properties.bounceRestitution;
@@ -52,7 +60,7 @@
          this.dynamicShape = properties.dynamicShape;
          this.requiredFeatures = properties.requiredFeatures;
          this.properties = properties;
-@@ -120,6 +_,14 @@
+@@ -121,6 +_,14 @@
          return this.properties;
      }
  
@@ -67,7 +75,7 @@
      protected void updateIndirectNeighbourShapes(BlockState state, LevelAccessor level, BlockPos pos, @Block.UpdateFlags int updateFlags, int updateLimit) {
      }
  
-@@ -153,32 +_,40 @@
+@@ -154,32 +_,40 @@
      }
  
      protected void onPlace(BlockState state, Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
@@ -115,7 +123,18 @@
          }
      }
  
-@@ -238,7 +_,7 @@
+@@ -193,10 +_,6 @@
+         return InteractionResult.TRY_WITH_EMPTY_HAND;
+     }
+ 
+-    protected boolean showAsInteractableInSpectatorMode(BlockState state, Level level, BlockPos pos, BlockHitResult hitResult) {
+-        return state.getMenuProvider(level, pos) != null || state.getBlock() instanceof Portal;
+-    }
+-
+     protected boolean triggerEvent(BlockState state, Level level, BlockPos pos, int b0, int b1) {
+         return false;
+     }
+@@ -243,7 +_,7 @@
      }
  
      protected boolean canBeReplaced(BlockState state, BlockPlaceContext context) {
@@ -124,7 +143,7 @@
      }
  
      protected boolean canBeReplaced(BlockState state, Fluid fluid) {
-@@ -322,14 +_,21 @@
+@@ -327,14 +_,21 @@
      protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
      }
  
@@ -149,7 +168,7 @@
      }
  
      protected void spawnAfterBreak(BlockState state, ServerLevel level, BlockPos pos, ItemStack tool, boolean dropExperience) {
-@@ -376,10 +_,13 @@
+@@ -381,10 +_,13 @@
          return this.isRandomlyTicking;
      }
  
@@ -163,7 +182,7 @@
      protected ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state, boolean includeData) {
          return new ItemStack(this.asItem());
      }
-@@ -396,7 +_,11 @@
+@@ -401,7 +_,11 @@
          return this.properties.destroyTime;
      }
  
@@ -176,7 +195,7 @@
          private static final Direction[] DIRECTIONS = Direction.values();
          private static final VoxelShape[] EMPTY_OCCLUSION_SHAPES = Util.make(new VoxelShape[DIRECTIONS.length], s -> Arrays.fill(s, Shapes.empty()));
          private static final VoxelShape[] FULL_BLOCK_OCCLUSION_SHAPES = Util.make(new VoxelShape[DIRECTIONS.length], s -> Arrays.fill(s, Shapes.block()));
-@@ -431,6 +_,76 @@
+@@ -436,6 +_,76 @@
          private boolean propagatesSkylightDown;
          private int lightDampening;
  
@@ -253,7 +272,7 @@
          protected BlockStateBase(Block owner, Property<?>[] propertyKeys, Comparable<?>[] propertyValues) {
              super(owner, propertyKeys, propertyValues);
              BlockBehaviour.Properties properties = owner.properties;
-@@ -455,36 +_,46 @@
+@@ -460,36 +_,46 @@
              this.replaceable = properties.replaceable;
          }
  
@@ -320,7 +339,7 @@
  
              this.legacySolid = this.calculateSolid();
              this.occlusionShape = this.canOcclude ? this.owner.getOcclusionShape(this.asState()) : Shapes.empty();
-@@ -497,7 +_,12 @@
+@@ -502,7 +_,12 @@
                  this.occlusionShapesByFace = new VoxelShape[DIRECTIONS.length];
  
                  for (Direction direction : DIRECTIONS) {
@@ -334,7 +353,7 @@
                  }
              }
  
-@@ -515,10 +_,22 @@
+@@ -520,10 +_,22 @@
          }
  
          @Deprecated
@@ -357,7 +376,7 @@
          public boolean isValidSpawn(BlockGetter level, BlockPos pos, EntityType<?> type) {
              return this.getBlock().properties.isValidSpawn.test(this.asState(), level, pos, type);
          }
-@@ -539,22 +_,26 @@
+@@ -544,22 +_,26 @@
              return this.occlusionShape;
          }
  
@@ -394,7 +413,7 @@
          public boolean ignitedByLava() {
              return this.ignitedByLava;
          }
-@@ -565,9 +_,11 @@
+@@ -570,9 +_,11 @@
          }
  
          public MapColor getMapColor(BlockGetter level, BlockPos pos) {
@@ -407,7 +426,7 @@
          public BlockState rotate(Rotation rotation) {
              return this.getBlock().rotate(this.asState(), rotation);
          }
-@@ -625,14 +_,16 @@
+@@ -630,14 +_,16 @@
          }
  
          public PushReaction getPistonPushReaction() {
@@ -426,7 +445,7 @@
              return this.canOcclude;
          }
  
-@@ -719,7 +_,13 @@
+@@ -724,7 +_,13 @@
          }
  
          public void onPlace(Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
@@ -441,7 +460,7 @@
          }
  
          public void affectNeighborsAfterRemoval(ServerLevel level, BlockPos pos, boolean movedByPiston) {
-@@ -744,6 +_,7 @@
+@@ -749,6 +_,7 @@
  
          public void spawnAfterBreak(ServerLevel level, BlockPos pos, ItemStack tool, boolean dropExperience) {
              this.getBlock().spawnAfterBreak(this.asState(), level, pos, tool, dropExperience);
@@ -449,7 +468,7 @@
          }
  
          public List<ItemStack> getDrops(LootParams.Builder params) {
-@@ -751,6 +_,9 @@
+@@ -756,6 +_,9 @@
          }
  
          public InteractionResult useItemOn(ItemStack itemStack, Level level, Player player, InteractionHand hand, BlockHitResult hitResult) {
@@ -459,7 +478,18 @@
              return this.getBlock().useItemOn(itemStack, this.asState(), level, hitResult.getBlockPos(), player, hand, hitResult);
          }
  
-@@ -826,11 +_,11 @@
+@@ -763,10 +_,6 @@
+             return this.getBlock().useWithoutItem(this.asState(), level, hitResult.getBlockPos(), player, hitResult);
+         }
+ 
+-        public boolean showAsInteractableInSpectatorMode(Level level, BlockPos pos, BlockHitResult hitResult) {
+-            return this.getBlock().showAsInteractableInSpectatorMode(this.asState(), level, pos, hitResult);
+-        }
+-
+         public void attack(Level level, BlockPos pos, Player player) {
+             this.getBlock().attack(this.asState(), level, pos, player);
+         }
+@@ -835,11 +_,11 @@
              return this.getBlock() instanceof EntityBlock ? ((EntityBlock)this.getBlock()).getTicker(level, this.asState(), type) : null;
          }
  
@@ -473,7 +503,7 @@
              return this.isRandomlyTicking;
          }
  
-@@ -838,6 +_,7 @@
+@@ -847,6 +_,7 @@
              return this.getBlock().getSeed(this.asState(), pos);
          }
  
@@ -481,7 +511,7 @@
          public SoundType getSoundType() {
              return this.getBlock().getSoundType(this.asState());
          }
-@@ -893,10 +_,10 @@
+@@ -902,10 +_,10 @@
          private static final class Cache {
              private static final Direction[] DIRECTIONS = Direction.values();
              private static final int SUPPORT_TYPE_COUNT = SupportType.values().length;
@@ -495,7 +525,7 @@
  
              private Cache(BlockState state) {
                  Block block = state.getBlock();
-@@ -951,6 +_,7 @@
+@@ -960,6 +_,7 @@
      }
  
      public static class Properties {
@@ -503,7 +533,15 @@
          private Function<BlockState, MapColor> mapColor = state -> MapColor.NONE;
          private boolean hasCollision = true;
          private SoundType soundType = SoundType.STONE;
-@@ -983,17 +_,15 @@
+@@ -985,24 +_,22 @@
+         @Deprecated
+         private boolean forceSolidOff;
+         private boolean forceSolidOn;
+-        private PushReaction pushReaction = PushReaction.PUSH_PULL;
++        private PushReaction pushReaction = PushReaction.NORMAL;
+         private boolean spawnTerrainParticles = true;
+         private NoteBlockInstrument instrument = NoteBlockInstrument.HARP;
+         private boolean replaceable;
          private BlockBehaviour.StateArgumentPredicate<EntityType<?>> isValidSpawn = (state, level, pos, entityType) -> state.isFaceSturdy(
                  level, pos, Direction.UP
              )
@@ -523,7 +561,7 @@
  
          private Properties() {
          }
-@@ -1091,11 +_,6 @@
+@@ -1100,11 +_,6 @@
  
          public BlockBehaviour.Properties bounceRestitution(float bounceRestitution) {
              this.bounceRestitution = bounceRestitution;

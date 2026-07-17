@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/entity/vehicle/minecart/MinecartTNT.java
 +++ b/net/minecraft/world/entity/vehicle/minecart/MinecartTNT.java
-@@ -24,6 +_,8 @@
+@@ -9,7 +_,6 @@
+ import net.minecraft.tags.DamageTypeTags;
+ import net.minecraft.util.Mth;
+ import net.minecraft.world.damagesource.DamageSource;
+-import net.minecraft.world.entity.EntityEvent;
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.entity.projectile.Projectile;
+ import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
+@@ -25,6 +_,8 @@
  import net.minecraft.world.level.material.FluidState;
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
@@ -9,7 +17,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class MinecartTNT extends AbstractMinecart {
-@@ -35,6 +_,7 @@
+@@ -36,6 +_,7 @@
      public int fuse = -1;
      public float explosionPowerBase = 4.0F;
      public float explosionSpeedFactor = 1.0F;
@@ -17,7 +25,7 @@
  
      public MinecartTNT(EntityType<? extends MinecartTNT> type, Level level) {
          super(type, level);
-@@ -49,6 +_,12 @@
+@@ -50,6 +_,12 @@
      public void tick() {
          super.tick();
          if (this.fuse > 0) {
@@ -30,7 +38,7 @@
              this.fuse--;
              this.level().addParticle(ParticleTypes.SMOKE, this.getX(), this.getY() + 0.5, this.getZ(), 0.0, 0.0, 0.0);
          } else if (this.fuse == 0) {
-@@ -80,8 +_,7 @@
+@@ -81,8 +_,7 @@
              this.destroy(level, this.getDropItem());
          } else {
              if (this.fuse < 0) {
@@ -40,7 +48,7 @@
              }
          }
      }
-@@ -100,20 +_,18 @@
+@@ -101,20 +_,18 @@
          if (this.level() instanceof ServerLevel level) {
              if (level.getGameRules().get(GameRules.TNT_EXPLODES)) {
                  double speed = Math.min(Math.sqrt(speedSqr), 5.0);
@@ -72,7 +80,16 @@
              }
          }
      }
-@@ -144,9 +_,21 @@
+@@ -137,7 +_,7 @@
+     }
+ 
+     @Override
+-    public void handleEntityEvent(@EntityEvent.Value byte id) {
++    public void handleEntityEvent(byte id) {
+         if (id == 70) {
+             this.primeFuse(null);
+         } else {
+@@ -145,9 +_,21 @@
          }
      }
  

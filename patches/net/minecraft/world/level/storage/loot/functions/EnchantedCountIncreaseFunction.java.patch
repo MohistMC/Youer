@@ -1,7 +1,11 @@
 --- a/net/minecraft/world/level/storage/loot/functions/EnchantedCountIncreaseFunction.java
 +++ b/net/minecraft/world/level/storage/loot/functions/EnchantedCountIncreaseFunction.java
-@@ -6,7 +_,8 @@
- import java.util.List;
+@@ -3,10 +_,11 @@
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import java.util.Optional;
++import java.util.List;
  import java.util.Set;
  import net.minecraft.core.Holder;
 -import net.minecraft.core.HolderGetter;
@@ -10,16 +14,33 @@
  import net.minecraft.util.context.ContextKey;
  import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.LivingEntity;
-@@ -29,7 +_,7 @@
-             .and(
-                 i.group(
-                     Enchantment.CODEC.fieldOf("enchantment").forGetter(f -> f.enchantment),
--                    NumberProviders.DIRECT_CODEC.fieldOf("count").forGetter(f -> f.count),
-+                    NumberProviders.CODEC.fieldOf("count").forGetter(f -> f.count),
-                     Codec.INT.optionalFieldOf("limit", 0).forGetter(f -> f.limit)
-                 )
-             )
-@@ -71,6 +_,14 @@
+@@ -36,13 +_,11 @@
+             .apply(i, EnchantedCountIncreaseFunction::new)
+     );
+     private final Holder<Enchantment> enchantment;
+-    private final Holder<NumberProvider> count;
++    private final NumberProvider count;
+     private final int limit;
+ 
+-    private EnchantedCountIncreaseFunction(
+-        Optional<Holder<LootItemCondition>> condition, Holder<Enchantment> enchantment, Holder<NumberProvider> count, int limit
+-    ) {
+-        super(condition);
++    private EnchantedCountIncreaseFunction(List<LootItemCondition> predicates, Holder<Enchantment> enchantment, NumberProvider count, int limit) {
++        super(predicates);
+         this.enchantment = enchantment;
+         this.count = count;
+         this.limit = limit;
+@@ -61,7 +_,7 @@
+     @Override
+     public void validate(ValidationContext context) {
+         super.validate(context);
+-        Validatable.validateHolder(context, "count", this.count);
++        Validatable.validate(context, "count", this.count);
+     }
+ 
+     private boolean hasLimit() {
+@@ -73,11 +_,19 @@
          Entity killer = context.getOptionalParameter(LootContextParams.ATTACKING_ENTITY);
          if (killer instanceof LivingEntity entity) {
              int level = EnchantmentHelper.getEnchantmentLevel(this.enchantment, entity);
@@ -34,13 +55,39 @@
              if (level == 0) {
                  return itemStack;
              }
-@@ -85,7 +_,8 @@
+ 
+-            float addition = level * this.count.value().getFloat(context);
++            float addition = level * this.count.getFloat(context);
+             itemStack.grow(Math.round(addition));
+             if (this.hasLimit()) {
+                 itemStack.limitSize(this.limit);
+@@ -87,16 +_,17 @@
          return itemStack;
      }
  
--    public static EnchantedCountIncreaseFunction.Builder lootingMultiplier(HolderGetter<Enchantment> enchantments, NumberProvider count) {
+-    public static EnchantedCountIncreaseFunction.Builder lootingMultiplier(HolderGetter<Enchantment> enchantments, Holder<NumberProvider> count) {
 +    public static EnchantedCountIncreaseFunction.Builder lootingMultiplier(HolderLookup.Provider registries, NumberProvider count) {
 +        HolderLookup.RegistryLookup<Enchantment> enchantments = registries.lookupOrThrow(Registries.ENCHANTMENT);
          return new EnchantedCountIncreaseFunction.Builder(enchantments.getOrThrow(Enchantments.LOOTING), count);
      }
  
+     public static class Builder extends LootItemConditionalFunction.Builder<EnchantedCountIncreaseFunction.Builder> {
+         private final Holder<Enchantment> enchantment;
+-        private final Holder<NumberProvider> count;
++        private final NumberProvider count;
+         private int limit = 0;
+ 
+-        public Builder(Holder<Enchantment> enchantment, Holder<NumberProvider> count) {
++        public Builder(Holder<Enchantment> enchantment, NumberProvider count) {
+             this.enchantment = enchantment;
+             this.count = count;
+         }
+@@ -112,7 +_,7 @@
+ 
+         @Override
+         public LootItemFunction build() {
+-            return new EnchantedCountIncreaseFunction(this.getCondition(), this.enchantment, this.count, this.limit);
++            return new EnchantedCountIncreaseFunction(this.getConditions(), this.enchantment, this.count, this.limit);
+         }
+     }
+ }

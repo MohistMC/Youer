@@ -94,7 +94,11 @@
  import net.minecraft.world.item.crafting.RecipeManager;
  import net.minecraft.world.level.ChunkPos;
  import net.minecraft.world.level.CustomSpawner;
-@@ -160,6 +_,7 @@
+@@ -156,9 +_,11 @@
+ import net.minecraft.world.level.WorldDataConfiguration;
+ import net.minecraft.world.level.biome.BiomeManager;
+ import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.entity.FuelValues;
  import net.minecraft.world.level.chunk.status.ChunkStatus;
  import net.minecraft.world.level.chunk.storage.ChunkIOErrorReporter;
  import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
@@ -102,7 +106,7 @@
  import net.minecraft.world.level.dimension.LevelStem;
  import net.minecraft.world.level.gamerules.GameRule;
  import net.minecraft.world.level.gamerules.GameRuleMap;
-@@ -168,32 +_,49 @@
+@@ -167,32 +_,49 @@
  import net.minecraft.world.level.levelgen.Heightmap;
  import net.minecraft.world.level.levelgen.PatrolSpawner;
  import net.minecraft.world.level.levelgen.PhantomSpawner;
@@ -154,7 +158,7 @@
      private static final int OVERLOADED_TICKS_THRESHOLD = 20;
      private static final long OVERLOADED_WARNING_INTERVAL_NANOS = 10L * TimeUtil.NANOSECONDS_PER_SECOND;
      private static final int OVERLOADED_TICKS_WARNING_INTERVAL = 100;
-@@ -216,7 +_,7 @@
+@@ -215,7 +_,7 @@
      public final PlayerDataStorage playerDataStorage;
      private final SavedDataStorage savedDataStorage;
      private final List<Runnable> tickables = Lists.newArrayList();
@@ -163,7 +167,7 @@
      private MetricsRecorder metricsRecorder = InactiveMetricsRecorder.INSTANCE;
      private Consumer<ProfileResults> onMetricsRecordingStopped = results -> this.stopRecordingMetrics();
      private Consumer<Path> onMetricsRecordingFinished = ignored -> {};
-@@ -224,7 +_,7 @@
+@@ -223,7 +_,7 @@
      private MinecraftServer.@Nullable TimeProfiler debugCommandProfiler;
      private boolean debugCommandProfilerDelayStart;
      private ServerConnectionListener connection;
@@ -172,7 +176,7 @@
      private @Nullable ServerStatus status;
      private ServerStatus.@Nullable Favicon statusIcon;
      private final RandomSource random = RandomSource.create();
-@@ -235,13 +_,14 @@
+@@ -234,13 +_,14 @@
      private Map<ResourceKey<Level>, ServerLevel> levels = Maps.newLinkedHashMap();
      private PlayerList playerList;
      private volatile boolean running = true;
@@ -188,7 +192,7 @@
      private int playerIdleTimeout;
      private final long[] tickTimesNanos = new long[100];
      private long aggregatedTickTimesNanos = 0L;
-@@ -269,7 +_,7 @@
+@@ -268,7 +_,7 @@
      private @Nullable CommandStorage commandStorage;
      private final CustomBossEvents customBossEvents;
      private final RandomSequences randomSequences;
@@ -197,12 +201,12 @@
      private final ServerFunctionManager functionManager;
      private boolean enforceWhitelist;
      private boolean usingWhitelist;
-@@ -282,18 +_,226 @@
+@@ -281,17 +_,226 @@
      private final ServerDebugSubscribers debugSubscribers = new ServerDebugSubscribers(this);
      protected WorldData worldData;
      private LevelData.RespawnData effectiveRespawnData = LevelData.RespawnData.DEFAULT;
 +    public PotionBrewing potionBrewing;
-     private FuelValues fuelValues;
++    private FuelValues fuelValues;
      private int emptyTicks;
      private volatile boolean isSaving;
      private final SuppressedExceptionCollector suppressedExceptions = new SuppressedExceptionCollector();
@@ -426,7 +430,7 @@
          thread.setUncaughtExceptionHandler((t, e) -> LOGGER.error("Uncaught exception in server thread", e));
          if (Runtime.getRuntime().availableProcessors() > 4) {
              thread.setPriority(8);
-@@ -306,6 +_,10 @@
+@@ -304,6 +_,10 @@
      }
  
      public MinecraftServer(
@@ -437,7 +441,7 @@
          Thread serverThread,
          LevelStorageSource.LevelStorageAccess storageSource,
          PackRepository packRepository,
-@@ -319,36 +_,36 @@
+@@ -317,35 +_,36 @@
          NotificationManager notificationManager
      ) {
          super("Server", propagatesCrashes);
@@ -478,12 +482,11 @@
          this.executor = Util.backgroundExecutor();
 +        this.potionBrewing = PotionBrewing.bootstrap(this.worldData.enabledFeatures(), this.registryAccess());
          this.resources.managers.getRecipeManager().finalizeRecipeLoading(this.worldData.enabledFeatures());
--        this.fuelValues = FuelValues.vanillaBurnTimes(this.registries.compositeAccess(), this.worldData.enabledFeatures());
 +        this.fuelValues = net.neoforged.neoforge.common.DataMapHooks.populateFuelValues(this.registries.compositeAccess(), this.worldData.enabledFeatures());
          this.tickFrame = TracyClient.createDiscontinuousFrame("Server Tick");
          this.notificationManager = notificationManager;
          this.serverActivityMonitor = new ServerActivityMonitor(notificationManager, 30);
-@@ -356,7 +_,14 @@
+@@ -353,7 +_,14 @@
          this.clockManager = this.getDataStorage().computeIfAbsent(ServerClockManager.TYPE);
          this.clockManager.init(this);
          this.customBossEvents = this.savedDataStorage.computeIfAbsent(CustomBossEvents.TYPE);
@@ -499,7 +502,7 @@
      }
  
      protected abstract boolean initServer() throws IOException;
-@@ -389,15 +_,15 @@
+@@ -386,15 +_,15 @@
          };
      }
  
@@ -520,7 +523,7 @@
          if (profiledDuration != null) {
              profiledDuration.finish(true);
          }
-@@ -411,33 +_,150 @@
+@@ -408,33 +_,150 @@
          }
      }
  
@@ -688,7 +691,7 @@
                  }
              } catch (Throwable t) {
                  CrashReport report = CrashReport.forThrowable(t, "Exception initializing level");
-@@ -454,25 +_,7 @@
+@@ -451,25 +_,7 @@
          }
  
          GlobalPos focusPos = this.selectLevelLoadFocusPos();
@@ -715,7 +718,7 @@
      }
  
      private static void setInitialSpawn(
-@@ -484,7 +_,25 @@
+@@ -481,7 +_,25 @@
              levelData.setSpawn(LevelData.RespawnData.of(level.dimension(), BlockPos.ZERO.above(80), 0.0F, 0.0F));
          } else {
              ServerChunkCache chunkSource = level.getChunkSource();
@@ -742,7 +745,7 @@
              levelLoadListener.start(LevelLoadListener.Stage.PREPARE_GLOBAL_SPAWN, 0);
              levelLoadListener.updateFocus(level.dimension(), spawnChunk);
              int height = chunkSource.getGenerator().getSpawnHeight(level);
-@@ -529,19 +_,22 @@
+@@ -526,19 +_,22 @@
          }
      }
  
@@ -770,7 +773,7 @@
              chunkLoadCounter.track(level, () -> {
                  TicketStorage savedTickets = level.getDataStorage().get(TicketStorage.TYPE);
                  if (savedTickets != null) {
-@@ -550,17 +_,19 @@
+@@ -547,17 +_,19 @@
              });
          }
  
@@ -796,7 +799,7 @@
      }
  
      protected GlobalPos selectLevelLoadFocusPos() {
-@@ -582,7 +_,12 @@
+@@ -579,7 +_,12 @@
      public abstract boolean shouldRconBroadcast();
  
      public boolean saveAllChunks(boolean silent, boolean flush, boolean force) {
@@ -810,7 +813,7 @@
          boolean result = false;
  
          for (ServerLevel level : this.getAllLevels()) {
-@@ -590,10 +_,28 @@
+@@ -587,10 +_,28 @@
                  LOGGER.info("Saving chunks for level '{}'/{}", level, level.dimension().identifier());
              }
  
@@ -840,7 +843,7 @@
          GameProfile singleplayerProfile = this.getSingleplayerProfile();
          this.storageSource.saveDataTag(this.worldData, singleplayerProfile == null ? null : singleplayerProfile.id());
          if (flush) {
-@@ -601,9 +_,8 @@
+@@ -598,9 +_,8 @@
          } else {
              this.savedDataStorage.scheduleSave();
          }
@@ -851,7 +854,7 @@
  
      public boolean saveEverything(boolean silent, boolean flush, boolean force) {
          try {
-@@ -622,19 +_,57 @@
+@@ -619,19 +_,57 @@
          this.stopServer();
      }
  
@@ -910,7 +913,7 @@
          }
  
          LOGGER.info("Saving worlds");
-@@ -645,7 +_,7 @@
+@@ -642,7 +_,7 @@
              }
          }
  
@@ -919,7 +922,7 @@
              this.nextTickTimeNanos = Util.getNanos() + TimeUtil.NANOSECONDS_PER_MILLISECOND;
  
              for (ServerLevel level : this.getAllLevels()) {
-@@ -656,17 +_,15 @@
+@@ -653,17 +_,15 @@
              this.waitUntilNextTick();
          }
  
@@ -945,7 +948,7 @@
  
          this.isSaving = false;
          this.savedDataStorage.close();
-@@ -677,6 +_,30 @@
+@@ -674,6 +_,30 @@
          } catch (IOException e) {
              LOGGER.error("Failed to unlock level {}", this.storageSource.getLevelId(), e);
          }
@@ -976,7 +979,7 @@
      }
  
      public String getLocalIp() {
-@@ -692,6 +_,16 @@
+@@ -689,6 +_,16 @@
      }
  
      public void halt(boolean wait) {
@@ -993,7 +996,7 @@
          this.running = false;
          if (wait) {
              try {
-@@ -702,37 +_,232 @@
+@@ -699,37 +_,232 @@
          }
      }
  
@@ -1240,7 +1243,7 @@
  
                  boolean sprinting = thisTickNanos == 0L;
                  if (this.debugCommandProfilerDelayStart) {
-@@ -740,7 +_,7 @@
+@@ -737,7 +_,7 @@
                      this.debugCommandProfiler = new MinecraftServer.TimeProfiler(Util.getNanos(), this.tickCount);
                  }
  
@@ -1249,7 +1252,7 @@
  
                  try (Profiler.Scope ignored = Profiler.use(this.createProfiler())) {
                      this.processPacketsAndTick(sprinting);
-@@ -749,7 +_,7 @@
+@@ -746,7 +_,7 @@
                      this.mayHaveDelayedTasks = true;
                      this.delayedTasksMaxNextTickTimeNanos = Math.max(Util.getNanos() + thisTickNanos, this.nextTickTimeNanos);
                      this.startMeasuringTaskExecutionTime();
@@ -1258,7 +1261,7 @@
                      this.finishMeasuringTaskExecutionTime();
                      if (sprinting) {
                          this.tickRateManager.endTickWork();
-@@ -764,6 +_,8 @@
+@@ -761,6 +_,8 @@
                  this.isReady = true;
                  JvmProfiler.INSTANCE.onServerTick(this.smoothedTickTimeMillis);
              }
@@ -1267,7 +1270,7 @@
          } catch (Throwable t) {
              LOGGER.error("Encountered an unexpected exception", t);
              CrashReport report = constructOrExtractCrashReport(t);
-@@ -775,6 +_,7 @@
+@@ -772,6 +_,7 @@
                  LOGGER.error("We were unable to save this crash report to disk.");
              }
  
@@ -1275,7 +1278,7 @@
              this.onServerCrash(report);
          } finally {
              try {
-@@ -782,8 +_,6 @@
+@@ -779,8 +_,6 @@
                  this.stopServer();
              } catch (Throwable t) {
                  LOGGER.error("Exception stopping the server", t);
@@ -1284,7 +1287,7 @@
              }
          }
      }
-@@ -835,7 +_,14 @@
+@@ -832,7 +_,14 @@
      }
  
      private boolean haveTime() {
@@ -1300,7 +1303,7 @@
      }
  
      public NotificationManager notificationManager() {
-@@ -843,11 +_,11 @@
+@@ -840,11 +_,11 @@
      }
  
      protected void waitUntilNextTick() {
@@ -1314,7 +1317,7 @@
          } finally {
              this.waitingForNextTick = false;
          }
-@@ -864,35 +_,59 @@
+@@ -861,35 +_,59 @@
          }
      }
  
@@ -1379,7 +1382,7 @@
      }
  
      public void doRunTask(TickTask task) {
-@@ -943,10 +_,12 @@
+@@ -940,10 +_,12 @@
      }
  
      protected void tickServer(BooleanSupplier haveTime) {
@@ -1393,7 +1396,7 @@
                  this.emptyTicks++;
              } else {
                  this.emptyTicks = 0;
-@@ -958,25 +_,67 @@
+@@ -955,25 +_,67 @@
                      this.autoSave();
                  }
  
@@ -1464,7 +1467,7 @@
          profiler.push("tallying");
          long tickTime = Util.getNanos() - nano;
          int tickIndex = this.tickCount % 100;
-@@ -986,22 +_,30 @@
+@@ -983,22 +_,30 @@
          this.smoothedTickTimeMillis = this.smoothedTickTimeMillis * 0.8F + (float)tickTime / (float)TimeUtil.NANOSECONDS_PER_MILLISECOND * 0.19999999F;
          this.logTickMethodTime(nano);
          profiler.pop();
@@ -1499,7 +1502,7 @@
          LOGGER.debug("Autosave started");
          ProfilerFiller profiler = Profiler.get();
          profiler.push("save");
-@@ -1016,6 +_,16 @@
+@@ -1013,6 +_,16 @@
          }
      }
  
@@ -1516,7 +1519,7 @@
      private int computeNextAutosaveInterval() {
          float ticksPerSecond;
          if (this.tickRateManager.isSprinting()) {
-@@ -1043,11 +_,12 @@
+@@ -1040,11 +_,12 @@
      private ServerStatus buildServerStatus() {
          ServerStatus.Players players = this.buildPlayerStatus();
          return new ServerStatus(
@@ -1531,7 +1534,7 @@
          );
      }
  
-@@ -1058,7 +_,7 @@
+@@ -1055,7 +_,7 @@
              return new ServerStatus.Players(maxPlayers, players.size(), List.of());
          }
  
@@ -1540,7 +1543,7 @@
          ObjectArrayList<NameAndId> sample = new ObjectArrayList<>(sampleSize);
          int offset = Mth.nextInt(this.random, 0, players.size() - sampleSize);
  
-@@ -1071,15 +_,39 @@
+@@ -1068,15 +_,39 @@
          return new ServerStatus.Players(maxPlayers, players.size(), sample);
      }
  
@@ -1581,7 +1584,7 @@
              profiler.pop();
          }
  
-@@ -1089,13 +_,27 @@
+@@ -1086,13 +_,27 @@
              profiler.pop();
          }
  
@@ -1610,7 +1613,7 @@
              try {
                  level.tick(haveTime);
              } catch (Throwable t) {
-@@ -1103,10 +_,15 @@
+@@ -1100,10 +_,15 @@
                  level.fillReportDetails(report);
                  throw new ReportedException(report);
              }
@@ -1626,7 +1629,7 @@
  
          profiler.popPush("connection");
          this.tickConnection();
-@@ -1114,8 +_,8 @@
+@@ -1111,8 +_,8 @@
          this.playerList.tick();
          profiler.popPush("debugSubscribers");
          this.debugSubscribers.tick();
@@ -1636,7 +1639,7 @@
              GameTestTicker.SINGLETON.tick();
          }
  
-@@ -1136,9 +_,12 @@
+@@ -1133,9 +_,12 @@
          this.serverActivityMonitor.tick();
      }
  
@@ -1651,7 +1654,7 @@
          this.effectiveRespawnData = respawnLevel.getWorldBorderAdjustedRespawnData(respawnData);
      }
  
-@@ -1147,9 +_,16 @@
+@@ -1144,9 +_,16 @@
      }
  
      public void forceGameTimeSynchronization() {
@@ -1669,7 +1672,7 @@
          profiler.pop();
      }
  
-@@ -1177,6 +_,24 @@
+@@ -1174,6 +_,24 @@
          return this.levels.get(dimension);
      }
  
@@ -1694,7 +1697,7 @@
      public Set<ResourceKey<Level>> levelKeys() {
          return this.levels.keySet();
      }
-@@ -1200,11 +_,11 @@
+@@ -1197,11 +_,11 @@
      }
  
      public String getServerModName() {
@@ -1708,7 +1711,7 @@
      }
  
      public SystemReport fillSystemReport(SystemReport systemReport) {
-@@ -1222,7 +_,7 @@
+@@ -1219,7 +_,7 @@
              () -> FeatureFlags.REGISTRY.toNames(this.worldData.enabledFeatures()).stream().map(Identifier::toString).collect(Collectors.joining(", "))
          );
          systemReport.setDetail("World Generation", () -> this.worldData.worldGenSettingsLifecycle().toString());
@@ -1717,7 +1720,7 @@
          systemReport.setDetail("Suppressed Exceptions", this.suppressedExceptions::dump);
          if (this.serverId != null) {
              systemReport.setDetail("Server Id", () -> this.serverId);
-@@ -1239,7 +_,7 @@
+@@ -1236,7 +_,7 @@
  
      @Override
      public void sendSystemMessage(Component message) {
@@ -1726,7 +1729,7 @@
      }
  
      public KeyPair getKeyPair() {
-@@ -1276,11 +_,17 @@
+@@ -1273,11 +_,17 @@
          }
      }
  
@@ -1749,7 +1752,7 @@
          }
      }
  
-@@ -1296,6 +_,11 @@
+@@ -1293,6 +_,11 @@
  
      public void setDifficultyLocked(boolean locked) {
          this.worldData.setDifficultyLocked(locked);
@@ -1761,7 +1764,7 @@
          this.getPlayerList().getPlayers().forEach(this::sendDifficultyUpdate);
      }
  
-@@ -1356,10 +_,20 @@
+@@ -1353,10 +_,20 @@
  
      @Override
      public String getMotd() {
@@ -1783,7 +1786,7 @@
          this.motd = motd;
      }
  
-@@ -1389,16 +_,20 @@
+@@ -1386,16 +_,20 @@
          int count = 0;
  
          for (ServerPlayer player : this.getPlayerList().getPlayers()) {
@@ -1807,7 +1810,7 @@
      }
  
      public boolean isReady() {
-@@ -1465,7 +_,7 @@
+@@ -1462,7 +_,7 @@
      @Override
      public void executeIfPossible(Runnable command) {
          if (this.isStopped()) {
@@ -1816,7 +1819,7 @@
          }
  
          super.executeIfPossible(command);
-@@ -1500,19 +_,28 @@
+@@ -1497,19 +_,28 @@
          return this.functionManager;
      }
  
@@ -1850,7 +1853,7 @@
                      return ReloadableServerResources.loadResources(
                              resources,
                              this.registries,
-@@ -1534,16 +_,36 @@
+@@ -1531,15 +_,36 @@
              .thenAcceptAsync(newResources -> {
                  this.resources.close();
                  this.resources = newResources;
@@ -1873,7 +1876,6 @@
                  this.getPlayerList().reloadResources();
                  this.functionManager.replaceLibrary(this.resources.managers.getFunctionLibrary());
                  this.structureTemplateManager.onResourceManagerReload(this.resources.resourceManager);
--                this.fuelValues = FuelValues.vanillaBurnTimes(this.registries.compositeAccess(), this.worldData.enabledFeatures());
 +                this.fuelValues = net.neoforged.neoforge.common.DataMapHooks.populateFuelValues(this.registries.compositeAccess(), this.worldData.enabledFeatures());
 +                org.bukkit.craftbukkit.block.data.CraftBlockData.reloadCache(); // Paper - cache block data strings; they can be defined by datapacks so refresh it here
 +                // Paper start - brigadier command API
@@ -1890,7 +1892,7 @@
              }, this);
          if (this.isSameThread()) {
              this.managedBlock(result::isDone);
-@@ -1558,9 +_,11 @@
+@@ -1554,9 +_,11 @@
          DataPackConfig dataPackConfig = initialDataConfig.dataPacks();
          FeatureFlagSet forcedFeatures = initMode ? FeatureFlagSet.of() : initialDataConfig.enabledFeatures();
          FeatureFlagSet allowedFeatures = initMode ? FeatureFlags.REGISTRY.allFlags() : initialDataConfig.enabledFeatures();
@@ -1904,7 +1906,7 @@
          }
  
          Set<String> selected = Sets.newLinkedHashSet();
-@@ -1607,13 +_,15 @@
+@@ -1603,13 +_,15 @@
              selected.add("vanilla");
          }
  
@@ -1921,7 +1923,7 @@
          enableForcedFeaturePacks(packRepository, forcedFeatures);
          DataPackConfig packConfig = getSelectedPacks(packRepository, disableInactive);
          FeatureFlagSet packRequestedFeatures = packRepository.getRequestedFeatureFlags().join(forcedFeatures);
-@@ -1645,7 +_,7 @@
+@@ -1641,7 +_,7 @@
                  }
              }
  
@@ -1930,7 +1932,7 @@
          }
      }
  
-@@ -1662,8 +_,8 @@
+@@ -1658,8 +_,8 @@
              UserWhiteList whiteList = playerList.getWhiteList();
  
              for (ServerPlayer player : Lists.newArrayList(playerList.getPlayers())) {
@@ -1941,7 +1943,7 @@
                  }
              }
          }
-@@ -1693,12 +_,12 @@
+@@ -1689,12 +_,12 @@
      }
  
      public ServerLevel findRespawnDimension() {
@@ -1956,7 +1958,7 @@
      public void setRespawnData(LevelData.RespawnData respawnData) {
          ServerLevelData levelData = this.worldData.overworldData();
          LevelData.RespawnData oldRespawnData = levelData.getRespawnData();
-@@ -1766,17 +_,20 @@
+@@ -1762,17 +_,20 @@
          return this.randomSequences;
      }
  
@@ -1982,7 +1984,7 @@
      }
  
      public boolean isEnforceWhitelist() {
-@@ -1830,6 +_,31 @@
+@@ -1826,6 +_,31 @@
  
      public abstract boolean isSingleplayerOwner(NameAndId nameAndId);
  
@@ -2014,7 +2016,7 @@
      public void dumpServerProperties(Path path) throws IOException {
      }
  
-@@ -1867,7 +_,7 @@
+@@ -1863,7 +_,7 @@
      private void dumpGameRules(Path path) throws IOException {
          try (Writer output = Files.newBufferedWriter(path)) {
              final List<String> entries = Lists.newArrayList();
@@ -2023,7 +2025,7 @@
              gameRules.visitGameRuleTypes(new GameRuleTypeVisitor() {
                  @Override
                  public <T> void visit(GameRule<T> gameRule) {
-@@ -1924,7 +_,25 @@
+@@ -1920,7 +_,25 @@
          }
      }
  
@@ -2049,7 +2051,7 @@
          if (this.willStartRecordingMetrics) {
              this.metricsRecorder = ActiveMetricsRecorder.createStarted(
                  new ServerMetricsSamplersProvider(Util.timeSource(), this.isDedicatedServer()),
-@@ -1989,6 +_,10 @@
+@@ -1985,6 +_,10 @@
          return this.worldData;
      }
  
@@ -2060,7 +2062,7 @@
      public RegistryAccess.Frozen registryAccess() {
          return this.registries.compositeAccess();
      }
-@@ -2045,27 +_,41 @@
+@@ -2041,27 +_,41 @@
  
      public void logChatMessage(Component message, ChatType.Bound chatType, @Nullable String tag) {
          String decoratedMessage = chatType.decorate(message).getString();
@@ -2106,7 +2108,7 @@
      }
  
      public boolean setAutoSave(boolean enable) {
-@@ -2091,12 +_,14 @@
+@@ -2087,12 +_,14 @@
          return false;
      }
  
@@ -2124,7 +2126,7 @@
                  player.connection.send(new ClientboundEntityEventPacket(player, event));
              }
          } else if (rule == GameRules.LIMITED_CRAFTING || rule == GameRules.IMMEDIATE_RESPAWN) {
-@@ -2104,21 +_,23 @@
+@@ -2100,21 +_,23 @@
                  ? ClientboundGameEventPacket.LIMITED_CRAFTING
                  : ClientboundGameEventPacket.IMMEDIATE_RESPAWN;
              ClientboundGameEventPacket packet = new ClientboundGameEventPacket(eventType, (Boolean)value ? 1.0F : 0.0F);
@@ -2159,7 +2161,7 @@
      }
  
      @Deprecated
-@@ -2130,12 +_,14 @@
+@@ -2126,12 +_,14 @@
          return this.savedDataStorage;
      }
  
@@ -2176,7 +2178,7 @@
      }
  
      public boolean acceptsTransfers() {
-@@ -2199,6 +_,10 @@
+@@ -2195,6 +_,14 @@
          this.suppressedExceptions.addEntry("packet/" + packetType, throwable);
      }
  
@@ -2184,10 +2186,14 @@
 +        return this.potionBrewing;
 +    }
 +
-     public FuelValues fuelValues() {
-         return this.fuelValues;
++    public FuelValues fuelValues() {
++        return this.fuelValues;
++    }
++
+     public ServerLinks serverLinks() {
+         return ServerLinks.EMPTY;
      }
-@@ -2298,4 +_,53 @@
+@@ -2290,4 +_,53 @@
              };
          }
      }

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/ComposterBlock.java
 +++ b/net/minecraft/world/level/block/ComposterBlock.java
-@@ -1,17 +_,14 @@
+@@ -1,15 +_,14 @@
  package net.minecraft.world.level.block;
  
 -import java.util.Optional;
@@ -8,10 +8,8 @@
 +import it.unimi.dsi.fastutil.objects.Object2FloatOpenHashMap;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
--import net.minecraft.core.Holder;
 -import net.minecraft.core.component.DataComponents;
  import net.minecraft.core.particles.ParticleTypes;
--import net.minecraft.core.registries.Registries;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.sounds.SoundEvents;
  import net.minecraft.sounds.SoundSource;
@@ -20,7 +18,7 @@
  import net.minecraft.util.RandomSource;
  import net.minecraft.util.Util;
  import net.minecraft.world.InteractionHand;
-@@ -24,8 +_,8 @@
+@@ -22,8 +_,8 @@
  import net.minecraft.world.entity.player.Player;
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.item.Items;
@@ -30,7 +28,7 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.LevelAccessor;
  import net.minecraft.world.level.block.state.BlockBehaviour;
-@@ -35,11 +_,6 @@
+@@ -33,12 +_,6 @@
  import net.minecraft.world.level.block.state.properties.IntegerProperty;
  import net.minecraft.world.level.gameevent.GameEvent;
  import net.minecraft.world.level.pathfinder.PathComputationType;
@@ -39,10 +37,11 @@
 -import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
 -import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 -import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
+-import net.minecraft.world.level.storage.loot.providers.number.NumberProviders;
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.phys.shapes.BooleanOp;
-@@ -48,11 +_,18 @@
+@@ -47,11 +_,18 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
  
@@ -61,7 +60,7 @@
      private static final int HOLE_WIDTH = 12;
      private static final VoxelShape[] SHAPES = Util.make(
          () -> {
-@@ -64,6 +_,134 @@
+@@ -63,6 +_,134 @@
          }
      );
  
@@ -196,7 +195,7 @@
      public ComposterBlock(BlockBehaviour.Properties properties) {
          super(properties);
          this.registerDefaultState(this.stateDefinition.any().setValue(LEVEL, 0));
-@@ -114,6 +_,15 @@
+@@ -113,6 +_,15 @@
          if (state.getValue(LEVEL) == 7) {
              level.scheduleTick(pos, state.getBlock(), 20);
          }
@@ -212,7 +211,7 @@
      }
  
      @Override
-@@ -121,14 +_,28 @@
+@@ -120,14 +_,28 @@
          ItemStack itemStack, BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hitResult
      ) {
          int fillLevel = state.getValue(LEVEL);
@@ -249,7 +248,7 @@
  
              return InteractionResult.SUCCESS;
          } else {
-@@ -136,6 +_,25 @@
+@@ -135,6 +_,25 @@
          }
      }
  
@@ -275,7 +274,7 @@
      @Override
      protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
          int fillLevel = state.getValue(LEVEL);
-@@ -149,9 +_,20 @@
+@@ -148,9 +_,20 @@
  
      public static BlockState insertItem(Entity sourceEntity, BlockState state, ServerLevel level, ItemStack itemStack, BlockPos pos) {
          int fillLevel = state.getValue(LEVEL);
@@ -299,7 +298,7 @@
              itemStack.shrink(1);
              return newState;
          } else {
-@@ -160,6 +_,14 @@
+@@ -159,6 +_,14 @@
      }
  
      public static BlockState extractProduce(Entity sourceEntity, BlockState state, Level level, BlockPos pos) {
@@ -314,7 +313,7 @@
          if (!level.isClientSide()) {
              Vec3 itemPos = Vec3.atLowerCornerWithOffset(pos, 0.5, 1.01, 0.5).offsetRandomXZ(level.getRandom(), 0.7F);
              ItemEntity entity = new ItemEntity(level, itemPos.x(), itemPos.y(), itemPos.z(), new ItemStack(Items.BONE_MEAL));
-@@ -174,50 +_,59 @@
+@@ -173,45 +_,59 @@
  
      private static BlockState empty(@Nullable Entity sourceEntity, BlockState state, LevelAccessor level, BlockPos pos) {
          BlockState newState = state.setValue(LEVEL, 0);
@@ -341,12 +340,7 @@
 -                    .create(LootContextParamSets.BLOCK_INTERACT)
 -            )
 -            .create(Optional.empty());
--        Optional<NumberProvider> layers = level.getServer()
--            .reloadableRegistries()
--            .lookup()
--            .lookup(Registries.NUMBER_PROVIDER)
--            .flatMap(registry -> registry.get(compostable.layers()))
--            .map(Holder.Reference::value);
+-        Optional<NumberProvider> layers = NumberProviders.getFromComponent(level, compostable, Compostable::layers);
 -        if (layers.isEmpty()) {
 -            return state;
 -        }
@@ -405,7 +399,7 @@
              level.playSound(null, pos, SoundEvents.COMPOSTER_READY, SoundSource.BLOCKS, 1.0F, 1.0F);
          }
      }
-@@ -248,13 +_,14 @@
+@@ -242,13 +_,14 @@
          if (contentLevel == 8) {
              return new ComposterBlock.OutputContainer(state, level, pos, new ItemStack(Items.BONE_MEAL));
          } else {
@@ -422,7 +416,7 @@
          }
  
          @Override
-@@ -281,6 +_,7 @@
+@@ -275,6 +_,7 @@
  
          public InputContainer(BlockState state, LevelAccessor level, BlockPos pos) {
              super(1);
@@ -430,7 +424,7 @@
              this.state = state;
              this.level = level;
              this.pos = pos;
-@@ -298,7 +_,7 @@
+@@ -292,7 +_,7 @@
  
          @Override
          public boolean canPlaceItemThroughFace(int slot, ItemStack itemStack, @Nullable Direction direction) {
@@ -439,7 +433,7 @@
          }
  
          @Override
-@@ -309,10 +_,14 @@
+@@ -303,10 +_,14 @@
          @Override
          public void setChanged() {
              ItemStack contents = this.getItem(0);
@@ -457,7 +451,7 @@
                  this.level.levelEvent(1500, this.pos, newState != this.state ? 1 : 0);
                  this.removeItemNoUpdate(0);
              }
-@@ -330,6 +_,7 @@
+@@ -324,6 +_,7 @@
              this.state = state;
              this.level = level;
              this.pos = pos;
@@ -465,7 +459,7 @@
          }
  
          @Override
-@@ -354,8 +_,21 @@
+@@ -348,8 +_,21 @@
  
          @Override
          public void setChanged() {

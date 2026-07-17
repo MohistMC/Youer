@@ -9,6 +9,18 @@
  import net.minecraft.core.HolderSet;
  import net.minecraft.core.RegistryCodecs;
  import net.minecraft.core.component.DataComponents;
+@@ -46,9 +_,9 @@
+     private final boolean includeAdditionalCostComponent;
+ 
+     private EnchantRandomlyFunction(
+-        Optional<Holder<LootItemCondition>> condition, Optional<HolderSet<Enchantment>> options, boolean onlyCompatible, boolean includeAdditionalCostComponent
++        List<LootItemCondition> predicates, Optional<HolderSet<Enchantment>> options, boolean onlyCompatible, boolean includeAdditionalCostComponent
+     ) {
+-        super(condition);
++        super(predicates);
+         this.options = options;
+         this.onlyCompatible = onlyCompatible;
+         this.includeAdditionalCostComponent = includeAdditionalCostComponent;
 @@ -72,7 +_,7 @@
          Stream<Holder<Enchantment>> compatibleEnchantmentsStream = this.options
              .map(HolderSet::stream)
@@ -29,3 +41,12 @@
      }
  
      public static class Builder extends LootItemConditionalFunction.Builder<EnchantRandomlyFunction.Builder> {
+@@ -142,7 +_,7 @@
+ 
+         @Override
+         public LootItemFunction build() {
+-            return new EnchantRandomlyFunction(this.getCondition(), this.options, this.onlyCompatible, this.includeAdditionalCostComponent);
++            return new EnchantRandomlyFunction(this.getConditions(), this.options, this.onlyCompatible, this.includeAdditionalCostComponent);
+         }
+     }
+ }

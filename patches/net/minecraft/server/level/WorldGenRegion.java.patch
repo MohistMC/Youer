@@ -1,15 +1,38 @@
 --- a/net/minecraft/server/level/WorldGenRegion.java
 +++ b/net/minecraft/server/level/WorldGenRegion.java
-@@ -61,7 +_,7 @@
+@@ -25,7 +_,6 @@
+ import net.minecraft.util.Util;
+ import net.minecraft.world.DifficultyInstance;
+ import net.minecraft.world.attribute.EnvironmentAttributeReader;
+-import net.minecraft.world.attribute.EnvironmentAttributeSystem;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.flag.FeatureFlagSet;
+@@ -37,7 +_,6 @@
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.EntityBlock;
+-import net.minecraft.world.level.block.LevelEvent;
+ import net.minecraft.world.level.block.entity.BlockEntity;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.border.WorldBorder;
+@@ -63,8 +_,7 @@
  
  public class WorldGenRegion implements WorldGenLevel {
      private static final Logger LOGGER = LogUtils.getLogger();
+-    private static final Identifier WORLDGEN_REGION_RANDOM = Identifier.withDefaultNamespace("worldgen_region_random");
 -    private final StaticCache2D<@Nullable ChunkAccess> cache;
 +    private final StaticCache2D<GenerationChunkHolder> cache;
      private final ChunkAccess center;
      private final ServerLevel level;
      private final long seed;
-@@ -79,13 +_,39 @@
+@@ -77,18 +_,44 @@
+     private final ChunkStep generatingStep;
+     private @Nullable Supplier<String> currentlyGenerating;
+     private final AtomicLong subTickCount = new AtomicLong();
+-    private final EnvironmentAttributeSystem environmentAttributes;
++    private static final Identifier WORLDGEN_REGION_RANDOM = Identifier.withDefaultNamespace("worldgen_region_random");
+     private final int centerChunkX;
      private final int centerChunkZ;
      private final int writeRadius;
  
@@ -54,7 +77,15 @@
          this.center = center;
          this.level = level;
          this.seed = level.getSeed();
-@@ -123,14 +_,17 @@
+@@ -100,7 +_,6 @@
+         this.centerChunkX = centerPos.x();
+         this.centerChunkZ = centerPos.z();
+         this.writeRadius = generatingStep.blockStateWriteRadius();
+-        this.environmentAttributes = EnvironmentAttributeSystem.builder().addStaticLayers(this).build();
+     }
+ 
+     public boolean isOldChunkAround(ChunkPos pos, int range) {
+@@ -127,14 +_,17 @@
          ChunkStatus maxAllowedStatus = distance >= this.generatingStep.directDependencies().size()
              ? null
              : this.generatingStep.directDependencies().get(distance);
@@ -77,7 +108,7 @@
          }
  
          CrashReport report = CrashReport.forThrowable(
-@@ -140,7 +_,7 @@
+@@ -144,7 +_,7 @@
          category.setDetail("Requested chunk", String.format(Locale.ROOT, "%d, %d", chunkX, chunkZ));
          category.setDetail("Generating status", () -> this.generatingStep.targetStatus().getName());
          category.setDetail("Requested status", targetStatus::getName);
@@ -86,7 +117,7 @@
          category.setDetail("Maximum allowed status", () -> maxAllowedStatus == null ? "null" : maxAllowedStatus.getName());
          category.setDetail("Dependencies", this.generatingStep.directDependencies()::toString);
          category.setDetail("Requested distance", distance);
-@@ -154,6 +_,28 @@
+@@ -158,6 +_,28 @@
          return distance < this.generatingStep.directDependencies().size();
      }
  
@@ -115,7 +146,7 @@
      @Override
      public BlockState getBlockState(BlockPos pos) {
          int chunkX = SectionPos.blockToSectionCoord(pos.getX());
-@@ -269,22 +_,32 @@
+@@ -273,22 +_,32 @@
          return Math.abs(this.centerChunkX - chunkX) <= this.writeRadius && Math.abs(this.centerChunkZ - chunkZ) <= this.writeRadius;
      }
  
@@ -159,7 +190,7 @@
              return false;
          } else if (this.center.isUpgrading()) {
              LevelHeightAccessor levelHeightAccessor = this.center.getHeightAccessorForGeneration();
-@@ -302,7 +_,7 @@
+@@ -306,7 +_,7 @@
  
          ChunkAccess chunk = this.getChunk(pos);
          BlockState oldState = chunk.setBlockState(pos, blockState, updateFlags);
@@ -168,7 +199,7 @@
              this.level.updatePOIOnBlockStateChange(pos, oldState, blockState);
          }
  
-@@ -315,6 +_,17 @@
+@@ -319,6 +_,17 @@
                      chunk.removeBlockEntity(pos);
                  }
              } else {
@@ -186,7 +217,7 @@
                  CompoundTag tag = new CompoundTag();
                  tag.putInt("x", pos.getX());
                  tag.putInt("y", pos.getY());
-@@ -342,6 +_,14 @@
+@@ -346,6 +_,14 @@
  
      @Override
      public boolean addFreshEntity(Entity entity) {
@@ -201,7 +232,7 @@
          int xc = SectionPos.blockToSectionCoord(entity.getBlockX());
          int zc = SectionPos.blockToSectionCoord(entity.getBlockZ());
          this.getChunk(xc, zc).addEntity(entity);
-@@ -350,7 +_,7 @@
+@@ -354,7 +_,7 @@
  
      @Override
      public boolean removeBlock(BlockPos pos, boolean movedByPiston) {
@@ -210,3 +241,20 @@
      }
  
      @Override
+@@ -449,7 +_,7 @@
+     }
+ 
+     @Override
+-    public void levelEvent(@Nullable Entity source, @LevelEvent.Value int type, BlockPos pos, int data) {
++    public void levelEvent(@Nullable Entity source, int type, BlockPos pos, int data) {
+     }
+ 
+     @Override
+@@ -503,6 +_,6 @@
+ 
+     @Override
+     public EnvironmentAttributeReader environmentAttributes() {
+-        return this.environmentAttributes;
++        return EnvironmentAttributeReader.EMPTY;
+     }
+ }

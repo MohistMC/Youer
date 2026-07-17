@@ -1,6 +1,11 @@
 --- a/net/minecraft/world/entity/vehicle/boat/AbstractBoat.java
 +++ b/net/minecraft/world/entity/vehicle/boat/AbstractBoat.java
-@@ -25,9 +_,7 @@
+@@ -21,14 +_,11 @@
+ import net.minecraft.world.InteractionResult;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.EntityDimensions;
+-import net.minecraft.world.entity.EntityEvent;
+ import net.minecraft.world.entity.EntitySelector;
  import net.minecraft.world.entity.EntityType;
  import net.minecraft.world.entity.InterpolationHandler;
  import net.minecraft.world.entity.Leashable;
@@ -10,7 +15,7 @@
  import net.minecraft.world.entity.MoverType;
  import net.minecraft.world.entity.Pose;
  import net.minecraft.world.entity.animal.Animal;
-@@ -65,7 +_,7 @@
+@@ -66,7 +_,7 @@
      private final float[] paddlePositions = new float[2];
      private float outOfControlTicks;
      private float deltaRotation;
@@ -19,7 +24,7 @@
      private boolean inputLeft;
      private boolean inputRight;
      private boolean inputUp;
-@@ -83,6 +_,15 @@
+@@ -84,6 +_,15 @@
      private Leashable.@Nullable LeashData leashData;
      private final Supplier<Item> dropItem;
  
@@ -35,7 +40,7 @@
      public AbstractBoat(EntityType<? extends AbstractBoat> type, Level level, Supplier<Item> dropItem) {
          super(type, level);
          this.dropItem = dropItem;
-@@ -124,7 +_,7 @@
+@@ -125,7 +_,7 @@
      }
  
      @Override
@@ -44,7 +49,7 @@
          return true;
      }
  
-@@ -179,11 +_,30 @@
+@@ -180,11 +_,30 @@
  
      @Override
      public void push(Entity entity) {
@@ -75,7 +80,7 @@
              super.push(entity);
          }
      }
-@@ -250,6 +_,18 @@
+@@ -251,6 +_,18 @@
              this.setDeltaMovement(Vec3.ZERO);
          }
  
@@ -94,7 +99,7 @@
          this.applyEffectsFromBlocks();
          this.applyEffectsFromBlocks();
          this.tickBubbleColumn();
-@@ -328,14 +_,13 @@
+@@ -329,14 +_,13 @@
                  int diff = 60 - bubbleTime - 1;
                  if (diff > 0 && bubbleTime == 0) {
                      this.setBubbleTime(0);
@@ -112,12 +117,12 @@
                  }
  
                  this.isAboveBubbleColumn = false;
-@@ -343,27 +_,6 @@
+@@ -344,27 +_,6 @@
          }
      }
  
 -    @Override
--    public void handleEntityEvent(byte id) {
+-    public void handleEntityEvent(@EntityEvent.Value byte id) {
 -        super.handleEntityEvent(id);
 -        if (id == 71) {
 -            this.handleBubbleColumnEffect(true);
@@ -140,7 +145,7 @@
      protected @Nullable SoundEvent getPaddleSound() {
          return switch (this.getStatus()) {
              case IN_WATER, UNDER_WATER, UNDER_FLOWING_WATER -> SoundEvents.BOAT_PADDLE_WATER;
-@@ -417,6 +_,7 @@
+@@ -418,6 +_,7 @@
              float friction = this.getGroundFriction();
              if (friction > 0.0F) {
                  this.landFriction = friction;
@@ -148,7 +153,7 @@
                  return AbstractBoat.Status.ON_LAND;
              } else {
                  return AbstractBoat.Status.IN_AIR;
-@@ -442,7 +_,7 @@
+@@ -443,7 +_,7 @@
                  for (int z = minZ; z < maxZ; z++) {
                      pos.set(x, y, z);
                      FluidState fluidState = this.level().getFluidState(pos);
@@ -157,7 +162,7 @@
                          blockHeight = Math.max(blockHeight, fluidState.getHeight(this.level(), pos));
                      }
  
-@@ -484,7 +_,7 @@
+@@ -485,7 +_,7 @@
                              BlockState blockState = this.level().getBlockState(blockPos);
                              if (!(blockState.getBlock() instanceof LilyPadBlock)
                                  && Shapes.joinIsNotEmpty(blockState.getCollisionShape(this.level(), blockPos).move(blockPos), boatShape, BooleanOp.AND)) {
@@ -166,7 +171,7 @@
                                  count++;
                              }
                          }
-@@ -513,7 +_,7 @@
+@@ -514,7 +_,7 @@
                  for (int z = minZ; z < maxZ; z++) {
                      pos.set(x, y, z);
                      FluidState fluidState = this.level().getFluidState(pos);
@@ -175,7 +180,7 @@
                          float height = y + fluidState.getHeight(this.level(), pos);
                          this.waterLevel = Math.max(height, this.waterLevel);
                          inWater |= bb.minY < height;
-@@ -542,7 +_,7 @@
+@@ -543,7 +_,7 @@
                  for (int z = z0; z < z1; z++) {
                      pos.set(x, y, z);
                      FluidState fluidState = this.level().getFluidState(pos);
@@ -184,7 +189,7 @@
                          if (!fluidState.isSource()) {
                              return AbstractBoat.Status.UNDER_FLOWING_WATER;
                          }
-@@ -569,7 +_,7 @@
+@@ -570,7 +_,7 @@
              this.waterLevel = this.getY(1.0);
              double targetY = this.getWaterLevelAbove() - this.getBbHeight() + 0.101;
              if (this.level().noCollision(this, this.getBoundingBox().move(0.0, targetY - this.getY(), 0.0))) {
@@ -193,7 +198,7 @@
                  this.setDeltaMovement(this.getDeltaMovement().multiply(1.0, 0.0, 1.0));
                  this.lastYd = 0.0;
              }
-@@ -660,6 +_,11 @@
+@@ -661,6 +_,11 @@
              passenger.setYRot(passenger.getYRot() + this.deltaRotation);
              passenger.setYHeadRot(passenger.getYHeadRot() + this.deltaRotation);
              this.clampRotation(passenger);
@@ -205,7 +210,7 @@
          }
      }
  
-@@ -696,26 +_,12 @@
+@@ -697,26 +_,12 @@
      }
  
      protected void clampRotation(Entity passenger) {
@@ -238,7 +243,7 @@
      }
  
      @Override
-@@ -746,12 +_,20 @@
+@@ -747,12 +_,20 @@
      }
  
      @Override
@@ -262,7 +267,7 @@
      }
  
      @Override
-@@ -760,7 +_,7 @@
+@@ -761,7 +_,7 @@
          if (!this.isPassenger()) {
              if (onGround) {
                  this.resetFallDistance();
@@ -271,7 +276,7 @@
                  this.fallDistance -= (float)ya;
              }
          }
-@@ -815,7 +_,13 @@
+@@ -816,7 +_,13 @@
  
      @Override
      public final ItemStack getPickResult() {

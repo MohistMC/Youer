@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/entity/animal/equine/AbstractHorse.java
 +++ b/net/minecraft/world/entity/animal/equine/AbstractHorse.java
-@@ -74,6 +_,10 @@
+@@ -27,7 +_,6 @@
+ import net.minecraft.world.entity.AgeableMob;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.EntityDimensions;
+-import net.minecraft.world.entity.EntityEvent;
+ import net.minecraft.world.entity.EntityReference;
+ import net.minecraft.world.entity.EntitySpawnReason;
+ import net.minecraft.world.entity.EntityType;
+@@ -75,6 +_,10 @@
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
@@ -11,7 +19,7 @@
  import org.jspecify.annotations.Nullable;
  
  public abstract class AbstractHorse extends Animal implements PlayerRideableJumping, HasCustomInventoryScreen, OwnableEntity {
-@@ -123,15 +_,65 @@
+@@ -124,15 +_,65 @@
      protected boolean canGallop = true;
      protected int gallopSoundCounter;
      public @Nullable EntityReference<LivingEntity> owner;
@@ -78,7 +86,7 @@
          this.goalSelector.addGoal(2, new BreedGoal(this, 1.0, AbstractHorse.class));
          this.goalSelector.addGoal(4, new FollowParentGoal(this, 1.0));
          this.goalSelector.addGoal(6, new WaterAvoidingRandomStrollGoal(this, 0.7));
-@@ -251,7 +_,7 @@
+@@ -252,7 +_,7 @@
      }
  
      @Override
@@ -87,7 +95,7 @@
          return !this.isVehicle();
      }
  
-@@ -298,7 +_,7 @@
+@@ -299,7 +_,7 @@
  
      public void createInventory() {
          SimpleContainer old = this.inventory;
@@ -96,7 +104,7 @@
          if (old != null) {
              int max = Math.min(old.getContainerSize(), this.inventory.getContainerSize());
  
-@@ -342,9 +_,9 @@
+@@ -343,9 +_,9 @@
      protected void playStepSound(BlockPos pos, BlockState blockState) {
          if (!blockState.liquid()) {
              BlockState aboveState = this.level().getBlockState(pos.above());
@@ -108,7 +116,7 @@
              }
  
              if (this.isVehicle() && this.canGallop) {
-@@ -390,7 +_,7 @@
+@@ -391,7 +_,7 @@
      }
  
      public int getMaxTemper() {
@@ -117,7 +125,7 @@
      }
  
      @Override
-@@ -453,7 +_,7 @@
+@@ -454,7 +_,7 @@
              temper = 5;
              if (!this.level().isClientSide() && this.isTamed() && this.getAge() == 0 && !this.isInLove()) {
                  itemUsed = true;
@@ -126,7 +134,7 @@
              }
          } else if (itemStack.is(Items.GOLDEN_APPLE) || itemStack.is(Items.ENCHANTED_GOLDEN_APPLE)) {
              heal = 10.0F;
-@@ -461,12 +_,12 @@
+@@ -462,12 +_,12 @@
              temper = 10;
              if (!this.level().isClientSide() && this.isTamed() && this.getAge() == 0 && !this.isInLove()) {
                  itemUsed = true;
@@ -141,7 +149,7 @@
              itemUsed = true;
          }
  
-@@ -537,7 +_,7 @@
+@@ -538,7 +_,7 @@
          super.aiStep();
          if (this.level() instanceof ServerLevel level && this.isAlive()) {
              if (this.random.nextInt(900) == 0 && this.deathTime == 0) {
@@ -150,7 +158,7 @@
              }
  
              if (this.canEatGrass()) {
-@@ -639,6 +_,16 @@
+@@ -640,6 +_,16 @@
          }
      }
  
@@ -167,7 +175,7 @@
      @Override
      public InteractionResult mobInteract(Player player, InteractionHand hand) {
          if (this.isVehicle() || this.isBaby()) {
-@@ -773,6 +_,7 @@
+@@ -774,6 +_,7 @@
          Vec3 movement = this.getDeltaMovement();
          this.setDeltaMovement(movement.x, impulse, movement.z);
          this.needsSync = true;
@@ -175,7 +183,7 @@
          if (input.z > 0.0) {
              float sin = Mth.sin(this.getYRot() * (float) (Math.PI / 180.0));
              float cos = Mth.cos(this.getYRot() * (float) (Math.PI / 180.0));
-@@ -792,6 +_,7 @@
+@@ -793,6 +_,7 @@
          output.putInt("Temper", this.getTemper());
          output.putBoolean("Tame", this.isTamed());
          EntityReference.store(this.owner, output, "Owner");
@@ -183,7 +191,7 @@
      }
  
      @Override
-@@ -802,6 +_,9 @@
+@@ -803,6 +_,9 @@
          this.setTemper(input.getIntOr("Temper", 0));
          this.setTamed(input.getBooleanOr("Tame", false));
          this.owner = EntityReference.readWithOldOwnerConversion(input, "Owner", this.level());
@@ -193,7 +201,7 @@
      }
  
      @Override
-@@ -893,6 +_,17 @@
+@@ -894,6 +_,17 @@
  
      @Override
      public void handleStartJump(int jumpScale) {
@@ -211,7 +219,16 @@
          this.allowStandSliding = true;
          this.standIfPossible();
          this.playJumpSound();
-@@ -1020,8 +_,13 @@
+@@ -915,7 +_,7 @@
+     }
+ 
+     @Override
+-    public void handleEntityEvent(@EntityEvent.Value byte id) {
++    public void handleEntityEvent(byte id) {
+         if (id == 7) {
+             this.spawnTamingParticles(true);
+         } else if (id == 6) {
+@@ -1021,8 +_,13 @@
              groupData = new AgeableMob.AgeableMobGroupData(0.2F);
          }
  

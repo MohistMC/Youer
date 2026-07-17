@@ -183,10 +183,11 @@
      }
  
      public static Ingredient of(ItemLike itemLike) {
-@@ -95,6 +_,14 @@
+@@ -95,7 +_,17 @@
      }
  
      public SlotDisplay display() {
+-        return new SlotDisplay.TagSlotDisplay(this.values);
 +        if (this.customIngredient != null) {
 +            return this.customIngredient.display();
 +        }
@@ -195,10 +196,13 @@
 +            return new SlotDisplay.Composite(this.itemStacks().stream().map(ItemStackTemplate::fromNonEmptyStack).<SlotDisplay>map(SlotDisplay.ItemStackSlotDisplay::new).toList());
 +        }
 +        // Paper end - show exact ingredients in recipe book
-         return (SlotDisplay)this.values
-             .unwrap()
-             .map(SlotDisplay.TagSlotDisplay::new, l -> new SlotDisplay.Composite(l.stream().map(Ingredient::displayForSingleItem).toList()));
-@@ -113,9 +_,5 @@
++        return (SlotDisplay)this.values
++            .unwrap()
++            .map(SlotDisplay.TagSlotDisplay::new, l -> new SlotDisplay.Composite(l.stream().map(Ingredient::displayForSingleItem).toList()));
+     }
+ 
+     public static SlotDisplay optionalIngredientToDisplay(Optional<Ingredient> ingredient) {
+@@ -111,9 +_,5 @@
          } else {
              return inputDisplay;
          }

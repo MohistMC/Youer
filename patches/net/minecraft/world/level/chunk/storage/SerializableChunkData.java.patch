@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/chunk/storage/SerializableChunkData.java
 +++ b/net/minecraft/world/level/chunk/storage/SerializableChunkData.java
-@@ -31,6 +_,7 @@
+@@ -15,7 +_,6 @@
+ import java.util.Map;
+ import java.util.Objects;
+ import java.util.Optional;
+-import java.util.Set;
+ import java.util.Map.Entry;
+ import net.minecraft.Optionull;
+ import net.minecraft.core.BlockPos;
+@@ -32,6 +_,7 @@
  import net.minecraft.nbt.NbtOps;
  import net.minecraft.nbt.NbtUtils;
  import net.minecraft.nbt.ShortTag;
@@ -8,7 +16,7 @@
  import net.minecraft.resources.Identifier;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.util.ProblemReporter;
-@@ -44,6 +_,7 @@
+@@ -45,6 +_,7 @@
  import net.minecraft.world.level.block.Block;
  import net.minecraft.world.level.block.entity.BlockEntity;
  import net.minecraft.world.level.block.state.BlockState;
@@ -16,7 +24,7 @@
  import net.minecraft.world.level.chunk.ChunkAccess;
  import net.minecraft.world.level.chunk.ChunkSource;
  import net.minecraft.world.level.chunk.DataLayer;
-@@ -82,6 +_,7 @@
+@@ -83,6 +_,7 @@
      BlendingData.@Nullable Packed blendingData,
      @Nullable BelowZeroRetrogen belowZeroRetrogen,
      UpgradeData upgradeData,
@@ -24,7 +32,7 @@
      Map<Heightmap.Types, long[]> heightmaps,
      ChunkAccess.PackedTicks packedTicks,
      @Nullable ShortList[] postProcessingSections,
-@@ -89,7 +_,10 @@
+@@ -90,7 +_,10 @@
      List<SerializableChunkData.SectionData> sectionData,
      List<CompoundTag> entities,
      List<CompoundTag> blockEntities,
@@ -36,7 +44,7 @@
  ) {
      private static final Codec<List<SavedTick<Block>>> BLOCK_TICKS_CODEC = SavedTick.codec(BuiltInRegistries.BLOCK.byNameCodec()).listOf();
      private static final Codec<List<SavedTick<Fluid>>> FLUID_TICKS_CODEC = SavedTick.codec(BuiltInRegistries.FLUID.byNameCodec()).listOf();
-@@ -105,11 +_,77 @@
+@@ -106,11 +_,77 @@
      public static final String BLOCK_LIGHT_TAG = "BlockLight";
      public static final String SKY_LIGHT_TAG = "SkyLight";
  
@@ -114,19 +122,19 @@
          ChunkPos chunkPos = new ChunkPos(chunkData.getIntOr("xPos", 0), chunkData.getIntOr("zPos", 0));
          long lastUpdateTime = chunkData.getLongOr("LastUpdate", 0L);
          long inhabitedTime = chunkData.getLongOr("InhabitedTime", 0L);
-@@ -118,9 +_,10 @@
+@@ -119,9 +_,10 @@
          boolean lightCorrect = chunkData.getBooleanOr("isLightOn", false);
          BlendingData.Packed blendingData = chunkData.read("blending_data", BlendingData.Packed.CODEC).orElse(null);
          BelowZeroRetrogen belowZeroRetrogen = chunkData.read("below_zero_retrogen", BelowZeroRetrogen.CODEC).orElse(null);
 +        long[] carvingMask = chunkData.getLongArray("carving_mask").orElse(null);
          Map<Heightmap.Types, long[]> heightmaps = new EnumMap<>(Heightmap.Types.class);
          chunkData.getCompound("Heightmaps").ifPresent(heightmapsTag -> {
--            for (Heightmap.Types type : status.heightmapsAfter()) {
+-            for (Heightmap.Types type : Heightmap.Types.values()) {
 +            for (Heightmap.Types type : status.getChunkSaveHeightmaps()) {
                  heightmapsTag.getLongArray(type.getSerializationKey()).ifPresent(longs -> heightmaps.put(type, longs));
              }
          });
-@@ -148,7 +_,7 @@
+@@ -149,7 +_,7 @@
          CompoundTag structureData = chunkData.getCompoundOrEmpty("structures");
          ListTag sectionTags = chunkData.getListOrEmpty("sections");
          List<SerializableChunkData.SectionData> sectionData = new ArrayList<>(sectionTags.size());
@@ -135,7 +143,7 @@
          Codec<PalettedContainer<BlockState>> blockStatesCodec = containerFactory.blockStatesContainerCodec();
  
          for (int i = 0; i < sectionTags.size(); i++) {
-@@ -158,14 +_,16 @@
+@@ -159,14 +_,16 @@
                  int y = sectionTag.getByteOr("Y", (byte)0);
                  LevelChunkSection section;
                  if (y >= levelHeight.getMinSectionY() && y <= levelHeight.getMaxSectionY()) {
@@ -154,7 +162,7 @@
                          .map(
                              container -> biomesCodec.parse(NbtOps.INSTANCE, container)
                                  .promotePartial(msg -> logErrors(chunkPos, y, msg))
-@@ -179,9 +_,22 @@
+@@ -180,9 +_,22 @@
  
                  DataLayer blockLight = sectionTag.getByteArray("BlockLight").map(DataLayer::new).orElse(null);
                  DataLayer skyLight = sectionTag.getByteArray("SkyLight").map(DataLayer::new).orElse(null);
@@ -178,7 +186,7 @@
  
          return new SerializableChunkData(
              containerFactory,
-@@ -193,6 +_,7 @@
+@@ -194,6 +_,7 @@
              blendingData,
              belowZeroRetrogen,
              upgradeData,
@@ -186,7 +194,7 @@
              heightmaps,
              packedTicks,
              postProcessingSections,
-@@ -200,9 +_,65 @@
+@@ -201,9 +_,65 @@
              sectionData,
              entities,
              blockEntities,
@@ -253,7 +261,7 @@
  
      public ProtoChunk read(ServerLevel level, PoiManager poiManager, RegionStorageInfo regionInfo, ChunkPos pos) {
          if (!Objects.equals(pos, this.chunkPos)) {
-@@ -222,7 +_,7 @@
+@@ -223,7 +_,7 @@
              SectionPos sectionPos = SectionPos.of(pos, section.y);
              if (section.chunkSection != null) {
                  sections[level.getSectionIndexFromSectionY(section.y)] = section.chunkSection;
@@ -262,7 +270,7 @@
              }
  
              boolean hasBlockLight = section.blockLight != null;
-@@ -259,6 +_,9 @@
+@@ -260,6 +_,9 @@
                  postLoadChunk(level, this.entities, this.blockEntities),
                  BlendingData.unpack(this.blendingData)
              );
@@ -272,7 +280,7 @@
          } else {
              ProtoChunkTicks<Block> blockTicks = ProtoChunkTicks.load(this.packedTicks.blocks());
              ProtoChunkTicks<Fluid> fluidTicks = ProtoChunkTicks.load(this.packedTicks.fluids());
-@@ -277,10 +_,16 @@
+@@ -278,12 +_,22 @@
              }
          }
  
@@ -283,14 +291,23 @@
 +        // CraftBukkit end
 +
          chunk.setLightCorrect(this.lightCorrect);
-         EnumSet<Heightmap.Types> toPrime = EnumSet.noneOf(Heightmap.Types.class);
+-        Set<Heightmap.Types> toPrime = EnumSet.copyOf(chunk.getPersistedStatus().heightmapsAfter());
++        EnumSet<Heightmap.Types> toPrime = EnumSet.noneOf(Heightmap.Types.class);
  
--        for (Heightmap.Types type : chunk.getPersistedStatus().heightmapsAfter()) {
+-        for (Entry<Heightmap.Types, long[]> entry : this.heightmaps.entrySet()) {
+-            chunk.setHeightmap(entry.getKey(), entry.getValue());
+-            toPrime.remove(entry.getKey());
 +        for (Heightmap.Types type : chunk.getPersistedStatus().getChunkSaveHeightmaps()) {
-             long[] heightmap = this.heightmaps.get(type);
-             if (heightmap != null) {
-                 chunk.setHeightmap(type, heightmap);
-@@ -300,6 +_,10 @@
++            long[] heightmap = this.heightmaps.get(type);
++            if (heightmap != null) {
++                chunk.setHeightmap(type, heightmap);
++            } else {
++                toPrime.add(type);
++            }
+         }
+ 
+         Heightmap.primeHeightmaps(chunk, toPrime);
+@@ -297,6 +_,10 @@
              }
          }
  
@@ -301,7 +318,7 @@
          if (chunkType == ChunkType.LEVELCHUNK) {
              return new ImposterProtoChunk((LevelChunk)chunk, false);
          }
-@@ -314,11 +_,15 @@
+@@ -311,11 +_,15 @@
              protoChunk.setBlockEntityNbt(blockEntity);
          }
  
@@ -319,7 +336,7 @@
      }
  
      public static SerializableChunkData copyOf(ServerLevel level, ChunkAccess chunk) {
-@@ -328,21 +_,44 @@
+@@ -325,21 +_,44 @@
  
          ChunkPos pos = chunk.getPos();
          List<SerializableChunkData.SectionData> sectionData = new ArrayList<>();
@@ -378,7 +395,7 @@
  
          List<CompoundTag> blockEntities = new ArrayList<>(chunk.getBlockEntitiesPos().size());
  
-@@ -354,43 +_,71 @@
+@@ -351,41 +_,71 @@
          }
  
          List<CompoundTag> entities = new ArrayList<>();
@@ -396,12 +413,12 @@
          Map<Heightmap.Types, long[]> heightmaps = new EnumMap<>(Heightmap.Types.class);
  
          for (Entry<Heightmap.Types, Heightmap> entry : chunk.getHeightmaps()) {
--            if (chunk.getPersistedStatus().heightmapsAfter().contains(entry.getKey())) {
+-            long[] data = entry.getValue().getRawData();
+-            heightmaps.put(entry.getKey(), (long[])data.clone());
 +            if (chunk.getPersistedStatus().getChunkSaveHeightmaps().contains(entry.getKey())) {
-                 long[] data = entry.getValue().getRawData();
--                heightmaps.put(entry.getKey(), (long[])data.clone());
++                long[] data = entry.getValue().getRawData();
 +                heightmaps.put(entry.getKey(), (long[]) data.clone());
-             }
++            }
          }
  
          ChunkAccess.PackedTicks ticksForSerialization = chunk.getTicksForSerialization(level.getGameTime());
@@ -472,7 +489,7 @@
          );
      }
  
-@@ -428,6 +_,19 @@
+@@ -423,6 +_,19 @@
                  sectionTag.putByteArray("SkyLight", section.skyLight.getData());
              }
  
@@ -492,7 +509,7 @@
              if (!sectionTag.isEmpty()) {
                  sectionTag.putByte("Y", (byte)section.y);
                  sectionTags.add(sectionTag);
-@@ -446,6 +_,9 @@
+@@ -441,6 +_,9 @@
              ListTag entityTags = new ListTag();
              entityTags.addAll(this.entities);
              tag.put("entities", entityTags);
@@ -502,7 +519,7 @@
          }
  
          saveTicks(tag, this.packedTicks);
-@@ -454,6 +_,26 @@
+@@ -449,6 +_,26 @@
          this.heightmaps.forEach((type, data) -> heightmapsTag.put(type.getSerializationKey(), new LongArrayTag(data)));
          tag.put("Heightmaps", heightmapsTag);
          tag.put("structures", this.structureData);
@@ -529,7 +546,7 @@
          return tag;
      }
  
-@@ -532,6 +_,12 @@
+@@ -527,6 +_,12 @@
              } else {
                  StructureStart start = StructureStart.loadStaticStart(context, startsTag.getCompoundOrEmpty(key), seed);
                  if (start != null) {
@@ -542,7 +559,7 @@
                      outmap.put(startFeature, start);
                  }
              }
-@@ -590,6 +_,60 @@
+@@ -585,6 +_,60 @@
          }
      }
  

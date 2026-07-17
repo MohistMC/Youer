@@ -219,7 +219,7 @@
                  }
  
                  if (processedBlockInfo != null) {
-@@ -471,22 +_,30 @@
+@@ -471,39 +_,43 @@
          return processedBlockInfoList;
      }
  
@@ -265,9 +265,13 @@
                  ListTag posTag = new ListTag();
                  posTag.add(DoubleTag.valueOf(pos.x));
                  posTag.add(DoubleTag.valueOf(pos.y));
-@@ -494,12 +_,12 @@
+                 posTag.add(DoubleTag.valueOf(pos.z));
                  tag.put("Pos", posTag);
                  tag.remove("UUID");
+-                if (tag.contains("block_pos")) {
+-                    tag.store("block_pos", BlockPos.CODEC, blockPos);
+-                }
+-
                  createEntityIgnoreException(problemReporter, level, tag).ifPresent(entity -> {
 -                    float yRot = entity.rotate(rotation);
 -                    yRot += entity.mirror(mirror) - entity.getYRot();
@@ -281,7 +285,7 @@
                          mob.finalizeSpawn(level, level.getCurrentDifficultyAt(BlockPos.containing(pos)), EntitySpawnReason.STRUCTURE, null);
                      }
  
-@@ -510,13 +_,13 @@
+@@ -514,13 +_,13 @@
      }
  
      private static Optional<Entity> createEntityIgnoreException(ProblemReporter reporter, ServerLevelAccessor level, CompoundTag tag) {
@@ -302,7 +306,7 @@
      }
  
      public Vec3i getSize(Rotation rotation) {
-@@ -689,6 +_,11 @@
+@@ -693,6 +_,11 @@
  
          tag.put("entities", entityList);
          tag.put("size", this.newIntegerList(this.size.getX(), this.size.getY(), this.size.getZ()));
@@ -314,7 +318,7 @@
          return NbtUtils.addCurrentDataVersion(tag);
      }
  
-@@ -714,6 +_,11 @@
+@@ -718,6 +_,11 @@
              BlockPos blockPos = new BlockPos(blockPosTag.getIntOr(0, 0), blockPosTag.getIntOr(1, 0), blockPosTag.getIntOr(2, 0));
              entityTag.getCompound("nbt").ifPresent(nbt -> this.entityInfoList.add(new StructureTemplate.StructureEntityInfo(pos, blockPos, nbt)));
          });
@@ -326,7 +330,7 @@
      }
  
      private void loadPalette(HolderGetter<Block> blockLookup, ListTag paletteList, ListTag blockList) {
-@@ -813,7 +_,7 @@
+@@ -817,7 +_,7 @@
  
      public static final class Palette {
          private final List<StructureTemplate.StructureBlockInfo> blocks;

@@ -43,8 +43,12 @@
              level.setBlock(pos, movingPistonState, 276);
              level.setBlockEntity(
                  MovingPistonBlock.newMovingBlockEntity(
-@@ -194,24 +_,39 @@
-                         || movingState.getPistonPushReaction() != PushReaction.NORMAL
+@@ -191,27 +_,42 @@
+                     if (b0 != 1
+                         || movingState.isAir()
+                         || !isPushable(movingState, level, twoPos, direction.getOpposite(), false, direction)
+-                        || movingState.getPistonPushReaction() != PushReaction.PUSH_PULL
++                        || movingState.getPistonPushReaction() != PushReaction.NORMAL
                              && !movingState.is(Blocks.PISTON)
                              && !movingState.is(Blocks.STICKY_PISTON)) {
 +                        // Paper start - Fix sticky pistons and BlockPistonRetractEvent; fire BlockPistonRetractEvent for sticky pistons retracting nothing (air)
@@ -85,6 +89,21 @@
              return false;
          }
  
+@@ -237,11 +_,11 @@
+             }
+ 
+             switch (state.getPistonPushReaction()) {
+-                case IMMOVEABLE:
++                case BLOCK:
+                     return false;
+-                case POPPED:
++                case DESTROY:
+                     return allowDestroyable;
+-                case PUSH:
++                case PUSH_ONLY:
+                     return direction == connectionDirection;
+             }
+         } else if (state.getValue(EXTENDED)) {
 @@ -276,29 +_,89 @@
          BlockState[] toUpdate = new BlockState[toPush.size() + toDestroy.size()];
          Direction pushDirection = extending ? direction : direction.getOpposite();

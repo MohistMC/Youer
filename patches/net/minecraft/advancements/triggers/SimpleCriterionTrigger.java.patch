@@ -1,6 +1,21 @@
 --- a/net/minecraft/advancements/triggers/SimpleCriterionTrigger.java
 +++ b/net/minecraft/advancements/triggers/SimpleCriterionTrigger.java
-@@ -20,14 +_,14 @@
+@@ -7,28 +_,27 @@
+ import java.util.Map.Entry;
+ import java.util.function.Predicate;
+ import net.minecraft.advancements.CriterionTriggerInstance;
++import net.minecraft.advancements.predicates.ContextAwarePredicate;
+ import net.minecraft.advancements.predicates.entity.EntityPredicate;
+-import net.minecraft.core.Holder;
+ import net.minecraft.server.PlayerAdvancements;
+ import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.world.level.storage.loot.LootContext;
+ import net.minecraft.world.level.storage.loot.Validatable;
+ import net.minecraft.world.level.storage.loot.ValidationContextSource;
+-import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+ 
+ public abstract class SimpleCriterionTrigger<T extends SimpleCriterionTrigger.SimpleInstance> implements CriterionTrigger<T> {
+     protected void trigger(ServerPlayer player, Predicate<T> matcher) {
          PlayerAdvancements advancements = player.getAdvancements();
          Map<PlayerAdvancements.TriggerInstanceKey, T> listenersForType = advancements.getTriggerMapForType(this);
          if (listenersForType != null && !listenersForType.isEmpty()) {
@@ -11,9 +26,22 @@
              for (Entry<PlayerAdvancements.TriggerInstanceKey, T> entry : listenersForType.entrySet()) {
                  T value = entry.getValue();
                  if (matcher.test(value)) {
-                     Optional<ContextAwarePredicate> predicate = value.player();
--                    if (!predicate.isPresent() || predicate.get().matches(playerContext)) {
+-                    Optional<Holder<LootItemCondition>> predicate = value.player();
+-                    if (!predicate.isPresent() || predicate.get().value().test(playerContext)) {
++                    Optional<ContextAwarePredicate> predicate = value.player();
 +                    if (!predicate.isPresent() || predicate.get().matches(playerContext = (playerContext == null ? EntityPredicate.createContext(player, player) : playerContext))) { // Paper - Perf: lazily create LootContext for criterions
                          if (matchedConditions == null) {
                              matchedConditions = new ArrayList<>();
                          }
+@@ -49,9 +_,9 @@
+     public interface SimpleInstance extends CriterionTriggerInstance {
+         @Override
+         default void validate(ValidationContextSource validator) {
+-            Validatable.validateHolder(validator.entityContext(), "player", this.player());
++            Validatable.validate(validator.entityContext(), "player", this.player());
+         }
+ 
+-        Optional<Holder<LootItemCondition>> player();
++        Optional<ContextAwarePredicate> player();
+     }
+ }

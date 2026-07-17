@@ -66,3 +66,25 @@
      }
  
      private ChunkAccess doFill(
+@@ -523,7 +_,7 @@
+ 
+     private BlockState debugPreliminarySurfaceLevel(NoiseChunk noiseChunk, int posX, int posY, int posZ, BlockState state) {
+         if (SharedConstants.DEBUG_AQUIFERS && posZ >= 0 && posZ % 4 == 0) {
+-            int preliminarySurfaceLevel = noiseChunk.computePreliminarySurfaceLevel(posX, posZ);
++            int preliminarySurfaceLevel = noiseChunk.preliminarySurfaceLevel(posX, posZ);
+             int adjustedSurfaceLevel = preliminarySurfaceLevel + 8;
+             if (posY == adjustedSurfaceLevel) {
+                 state = adjustedSurfaceLevel < this.getSeaLevel() ? Blocks.SLIME_BLOCK.defaultBlockState() : Blocks.HONEY_BLOCK.defaultBlockState();
+@@ -552,10 +_,10 @@
+     public void spawnOriginalMobs(WorldGenRegion worldGenRegion) {
+         if (!this.settings.value().disableMobGeneration()) {
+             ChunkPos center = worldGenRegion.getCenter();
+-            BlockPos sourcePos = center.getWorldPosition().atY(worldGenRegion.getMaxY());
++            Holder<Biome> biome = worldGenRegion.getBiome(center.getWorldPosition().atY(worldGenRegion.getMaxY()));
+             WorldgenRandom random = new WorldgenRandom(new LegacyRandomSource(RandomSupport.generateUniqueSeed()));
+             random.setDecorationSeed(worldGenRegion.getSeed(), center.getMinBlockX(), center.getMinBlockZ());
+-            NaturalSpawner.spawnMobsForChunkGeneration(worldGenRegion, sourcePos, center, random);
++            NaturalSpawner.spawnMobsForChunkGeneration(worldGenRegion, biome, center, random);
+         }
+     }
+ }

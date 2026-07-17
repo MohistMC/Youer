@@ -60,9 +60,25 @@
      }
  
      protected BlockState updateBodyAfterConvertedFromHead(BlockState headState, BlockState bodyState) {
-@@ -116,13 +_,13 @@
+@@ -103,26 +_,26 @@
+     }
+ 
      @Override
-     public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state) {
+-    public boolean isValidBonemealTarget(LevelReader level, BlockPos pos, BlockState state, BonemealSource source) {
++    public boolean isValidBonemealTarget(LevelReader level, BlockPos pos, BlockState state) {
+         BlockPos growthPos = pos.relative(this.growthDirection);
+         return this.canGrowInto(level.getBlockState(growthPos)) && level.isInsideBuildHeight(growthPos);
+     }
+ 
+     @Override
+-    public boolean isBonemealSuccess(Level level, RandomSource random, BlockPos pos, BlockState state, BonemealSource source) {
++    public boolean isBonemealSuccess(Level level, RandomSource random, BlockPos pos, BlockState state) {
+         return true;
+     }
+ 
+     @Override
+-    public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state, BonemealSource source) {
++    public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state) {
          BlockPos forwardPos = pos.relative(this.growthDirection);
 -        int nextAge = Math.min(state.getValue(AGE) + 1, 25);
 +        int nextAge = Math.min(state.getValue(AGE) + 1, getMaxGrowthAge()); // Purpur - kelp, cave, weeping, and twisting configurable max growth age

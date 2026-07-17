@@ -99,8 +99,8 @@
 -        ItemStack itemStack = updatedPlaceContext.getItemInHand();
 -        BlockState placedState = level.getBlockState(pos);
 -        if (placedState.is(placementState.getBlock())) {
--            placedState = this.updateBlockStateFromTag(pos, level, itemStack, placedState);
--            this.updateCustomBlockEntityTag(pos, level, player, itemStack, placedState);
+-            placedState = updateBlockStateFromTag(pos, level, itemStack, placedState);
+-            updateCustomBlockEntityTag(level, player, pos, itemStack);
 -            updateBlockEntityComponents(level, pos, itemStack);
 -            placedState.getBlock().setPlacedBy(level, pos, placedState, player, itemStack);
 -            if (player instanceof ServerPlayer serverPlayer) {
@@ -144,11 +144,11 @@
      public @Nullable BlockPlaceContext updatePlacementContext(BlockPlaceContext context) {
          return context;
      }
-@@ -116,7 +_,16 @@
+@@ -115,12 +_,25 @@
+         }
      }
  
-     protected boolean updateCustomBlockEntityTag(BlockPos pos, Level level, @Nullable Player player, ItemStack itemStack, BlockState placedState) {
--        return updateCustomBlockEntityTag(level, player, pos, itemStack);
++    protected boolean updateCustomBlockEntityTag(BlockPos pos, Level level, @Nullable Player player, ItemStack itemStack, BlockState placedState) {
 +        // Purpur start - Persistent BlockEntity Lore and DisplayName
 +        boolean handled = updateCustomBlockEntityTag(level, player, pos, itemStack);
 +        if (level.purpurConfig.persistentTileEntityLore) {
@@ -159,10 +159,19 @@
 +        }
 +        return handled;
 +        // Purpur end - Persistent BlockEntity Lore and DisplayName
++    }
++
+     protected @Nullable BlockState getPlacementState(BlockPlaceContext context) {
+         BlockState stateForPlacement = this.getBlock().getStateForPlacement(context);
+         return stateForPlacement != null && this.canPlace(context, stateForPlacement) ? stateForPlacement : null;
      }
  
-     protected @Nullable BlockState getPlacementState(BlockPlaceContext context) {
-@@ -140,8 +_,20 @@
+-    private static BlockState updateBlockStateFromTag(BlockPos pos, Level level, ItemStack itemStack, BlockState placedState) {
++    private BlockState updateBlockStateFromTag(BlockPos pos, Level level, ItemStack itemStack, BlockState placedState) {
+         BlockItemStateProperties blockState = itemStack.getOrDefault(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY);
+         if (blockState.isEmpty()) {
+             return placedState;
+@@ -136,8 +_,20 @@
  
      protected boolean canPlace(BlockPlaceContext context, BlockState stateForPlacement) {
          Player player = context.getPlayer();
@@ -185,7 +194,7 @@
      }
  
      protected boolean mustSurvive() {
-@@ -155,26 +_,27 @@
+@@ -151,26 +_,27 @@
      public static boolean updateCustomBlockEntityTag(Level level, @Nullable Player player, BlockPos pos, ItemStack itemStack) {
          if (level.isClientSide()) {
              return false;
@@ -229,7 +238,7 @@
      }
  
      @Override
-@@ -206,6 +_,7 @@
+@@ -202,6 +_,7 @@
      public void onDestroyed(ItemEntity entity) {
          ItemContainerContents container = entity.getItem().set(DataComponents.CONTAINER, ItemContainerContents.EMPTY);
          if (container != null) {

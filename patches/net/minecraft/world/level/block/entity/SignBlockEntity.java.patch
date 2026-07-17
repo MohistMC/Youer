@@ -1,6 +1,21 @@
 --- a/net/minecraft/world/level/block/entity/SignBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/SignBlockEntity.java
-@@ -17,6 +_,7 @@
+@@ -5,14 +_,10 @@
+ import java.util.List;
+ import java.util.UUID;
+ import java.util.function.UnaryOperator;
+-import net.minecraft.ChatFormatting;
+ import net.minecraft.commands.CommandSource;
+ import net.minecraft.commands.CommandSourceStack;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.HolderLookup;
+-import net.minecraft.core.component.DataComponentGetter;
+-import net.minecraft.core.component.DataComponentMap;
+-import net.minecraft.core.component.DataComponents;
+ import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.network.chat.ClickEvent;
+ import net.minecraft.network.chat.Component;
+@@ -21,12 +_,12 @@
  import net.minecraft.network.chat.Style;
  import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
  import net.minecraft.server.level.ServerLevel;
@@ -8,7 +23,13 @@
  import net.minecraft.server.network.FilteredText;
  import net.minecraft.server.permissions.LevelBasedPermissionSet;
  import net.minecraft.sounds.SoundEvent;
-@@ -33,6 +_,14 @@
+ import net.minecraft.sounds.SoundEvents;
+ import net.minecraft.util.Mth;
+-import net.minecraft.util.Unit;
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.SignBlock;
+@@ -38,18 +_,23 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -23,10 +44,36 @@
  public class SignBlockEntity extends BlockEntity {
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final int MAX_TEXT_LINE_WIDTH = 90;
-@@ -58,10 +_,15 @@
-     }
+     private static final int TEXT_LINE_HEIGHT = 10;
+     private static final boolean DEFAULT_IS_WAXED = false;
+-    private static final boolean DEFAULT_ALLOW_OP_FEATURES = false;
+-    private static final Component CLICK_ACTIONS_DISABLED = Component.translatable("sign.click_actions_disabled").withStyle(ChatFormatting.RED);
+     public @Nullable UUID playerWhoMayEdit;
+-    private SignText frontText = SignText.EMPTY;
+-    private SignText backText = SignText.EMPTY;
++    private SignText frontText;
++    private SignText backText;
+     private boolean isWaxed = false;
+-    private boolean allowOpFeatures = false;
  
-     public boolean isFacingFrontText(Player player) {
+     public SignBlockEntity(BlockPos worldPosition, BlockState blockState) {
+         this(BlockEntityTypes.SIGN, worldPosition, blockState);
+@@ -57,26 +_,42 @@
+ 
+     public SignBlockEntity(BlockEntityType<? extends SignBlockEntity> type, BlockPos worldPosition, BlockState blockState) {
+         super(type, worldPosition, blockState);
+-    }
+-
+-    public SignTextSlot getSlotPlayerIsFacing(Player player) {
++        this.frontText = this.createDefaultSignText();
++        this.backText = this.createDefaultSignText();
++    }
++
++    protected SignText createDefaultSignText() {
++        return new SignText();
++    }
++
++    public boolean isFacingFrontText(Player player) {
 +        // Paper start - More Sign Block API
 +        return this.isFacingFrontText(player.getX(), player.getZ());
 +    }
@@ -40,12 +87,83 @@
 +            double zd = z - (this.getBlockPos().getZ() + signPositionOffset.z); // Paper - More Sign Block API
              float signYRot = sign.getYRotationDegrees(this.getBlockState());
              float playerYRot = (float)(Mth.atan2(zd, xd) * 180.0F / (float)Math.PI) - 90.0F;
-             return Mth.degreesDifferenceAbs(signYRot, playerYRot) <= 90.0F;
-@@ -129,11 +_,13 @@
+-            return Mth.degreesDifferenceAbs(signYRot, playerYRot) <= 90.0F ? SignTextSlot.FRONT : SignTextSlot.BACK;
++            return Mth.degreesDifferenceAbs(signYRot, playerYRot) <= 90.0F;
+         } else {
+-            return SignTextSlot.FRONT;
++            return false;
+         }
+     }
  
-     public void updateSignText(Player player, boolean frontText, List<FilteredText> lines) {
+-    public SignText getText(SignTextSlot slot) {
+-        return switch (slot) {
+-            case FRONT -> this.frontText;
+-            case BACK -> this.backText;
+-        };
++    public SignText getText(boolean isFrontText) {
++        return isFrontText ? this.frontText : this.backText;
++    }
++
++    public SignText getFrontText() {
++        return this.frontText;
++    }
++
++    public SignText getBackText() {
++        return this.backText;
+     }
+ 
+     public int getTextLineHeight() {
+@@ -90,29 +_,30 @@
+     @Override
+     protected void saveAdditional(ValueOutput output) {
+         super.saveAdditional(output);
+-        if (this.allowOpFeatures) {
+-            output.putBoolean("allow_op_features", this.allowOpFeatures);
+-        }
+-
+-        output.store("front_text", SignText.CODEC, this.frontText);
+-        output.store("back_text", SignText.CODEC, this.backText);
++        output.store("front_text", SignText.DIRECT_CODEC, this.frontText);
++        output.store("back_text", SignText.DIRECT_CODEC, this.backText);
+         output.putBoolean("is_waxed", this.isWaxed);
+     }
+ 
+     @Override
+     protected void loadAdditional(ValueInput input) {
+         super.loadAdditional(input);
+-        this.allowOpFeatures = input.getBooleanOr("allow_op_features", false);
+-        this.frontText = input.read("front_text", SignText.CODEC).map(this::resolveLines).orElse(SignText.EMPTY);
+-        this.backText = input.read("back_text", SignText.CODEC).map(this::resolveLines).orElse(SignText.EMPTY);
++        this.frontText = input.read("front_text", SignText.DIRECT_CODEC).map(this::loadLines).orElseGet(SignText::new);
++        this.backText = input.read("back_text", SignText.DIRECT_CODEC).map(this::loadLines).orElseGet(SignText::new);
+         this.isWaxed = input.getBooleanOr("is_waxed", false);
+     }
+ 
+-    private SignText resolveLines(SignText data) {
+-        return !this.allowOpFeatures ? data : data.asMutable().modifyLines(this::resolveLine).asImmutable();
++    private SignText loadLines(SignText data) {
++        for (int i = 0; i < 4; i++) {
++            Component unfilteredMessage = this.loadLine(data.getMessage(i, false));
++            Component filteredMessage = this.loadLine(data.getMessage(i, true));
++            data = data.setMessage(i, unfilteredMessage, filteredMessage);
++        }
++
++        return data;
+     }
+ 
+-    private Component resolveLine(Component component) {
++    private Component loadLine(Component component) {
+         if (this.level instanceof ServerLevel serverLevel) {
+             try {
+                 return ComponentUtils.resolve(ResolutionContext.create(createCommandSourceStack(null, serverLevel, this.worldPosition)), component);
+@@ -123,110 +_,221 @@
+         return component;
+     }
+ 
+-    public void updateSignText(Player player, SignTextSlot slot, List<FilteredText> lines) {
++    public void updateSignText(Player player, boolean frontText, List<FilteredText> lines) {
          if (!this.isWaxed() && player.getUUID().equals(this.getPlayerWhoMayEdit()) && this.level != null) {
--            this.updateText(text -> this.setMessages(player, lines, text), frontText);
+-            this.updateText(text -> updateMessages(lines, text, player.isTextFilteringEnabled()), slot);
 +            this.updateText(text -> this.setMessages(player, lines, text, frontText), frontText); // CraftBukkit
              this.setAllowedPlayerEditor(null);
              this.level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(), 3);
@@ -56,11 +174,17 @@
          }
      }
  
-@@ -142,19 +_,57 @@
-         return this.setText(function.apply(text), isFrontText);
-     }
- 
--    private SignText setMessages(Player player, List<FilteredText> lines, SignText text) {
+-    public boolean updateText(UnaryOperator<SignText> function, SignTextSlot slot) {
+-        SignText currentText = this.getText(slot);
+-        SignText newText = function.apply(currentText);
+-        if (currentText != newText) {
+-            this.setText(newText, slot);
+-            return true;
++    public boolean updateText(UnaryOperator<SignText> function, boolean isFrontText) {
++        SignText text = this.getText(isFrontText);
++        return this.setText(function.apply(text), isFrontText);
++    }
++
 +    // Purpur start - Signs allow color codes
 +    private Component translateColors(org.bukkit.entity.Player player, String line, Style style) {
 +        if (level.purpurConfig.signAllowColors) {
@@ -69,30 +193,61 @@
 +            if (player.hasPermission("purpur.sign.magic")) line = line.replaceAll("(?i)&([kr])", "\u00a7$1");
 +
 +            return io.papermc.paper.adventure.PaperAdventure.asVanilla(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().deserialize(line));
-+        } else {
+         } else {
+-            return false;
 +            return Component.literal(line).setStyle(style);
-+        }
-+    }
+         }
+     }
+-
+-    private static SignText updateMessages(List<FilteredText> newLines, SignText originalText, boolean shouldFilter) {
+-        SignText.Mutable result = originalText.asMutable();
+-        List<Component> originalLines = originalText.getMessages(shouldFilter);
+-
+-        for (int i = 0; i < newLines.size(); i++) {
+-            FilteredText line = newLines.get(i);
+-            Style currentTextStyle = originalLines.get(i).getStyle();
+-            if (shouldFilter) {
+-                result.setLine(i, Component.literal(line.filteredOrEmpty()).setStyle(currentTextStyle));
 +    // Purpur end - Signs allow color codes
 +
 +    private SignText setMessages(Player player, List<FilteredText> lines, SignText text, boolean front) { // CraftBukkit
 +        SignText originalText = text; // CraftBukkit
-         for (int i = 0; i < lines.size(); i++) {
-             FilteredText line = lines.get(i);
-             Style currentTextStyle = text.getMessage(i, player.isTextFilteringEnabled()).getStyle();
++        for (int i = 0; i < lines.size(); i++) {
++            FilteredText line = lines.get(i);
++            Style currentTextStyle = text.getMessage(i, player.isTextFilteringEnabled()).getStyle();
 +
 +            org.bukkit.entity.Player craftPlayer =  (org.bukkit.craftbukkit.entity.CraftPlayer) player.getBukkitEntity(); // Purpur - Signs allow color codes
-             if (player.isTextFilteringEnabled()) {
--                text = text.setMessage(i, Component.literal(line.filteredOrEmpty()).setStyle(currentTextStyle));
++            if (player.isTextFilteringEnabled()) {
 +                text = text.setMessage(i, Component.literal(net.minecraft.util.StringUtil.filterText(line.filteredOrEmpty())).setStyle(currentTextStyle)); // Paper - filter sign text to chat only
              } else {
-                 text = text.setMessage(
+-                result.setLine(
 -                    i, Component.literal(line.raw()).setStyle(currentTextStyle), Component.literal(line.filteredOrEmpty()).setStyle(currentTextStyle)
++                text = text.setMessage(
 +                    i, translateColors(craftPlayer, net.minecraft.util.StringUtil.filterText(line.raw()), currentTextStyle), translateColors(craftPlayer, net.minecraft.util.StringUtil.filterText(line.filteredOrEmpty()), currentTextStyle) // Paper - filter sign text to chat only // Purpur - Signs allow color codes
                  );
              }
          }
  
+-        return result.asImmutable();
+-    }
+-
+-    public void setText(SignText text, SignTextSlot slot) {
+-        switch (slot) {
+-            case FRONT:
+-                this.frontText = text;
+-                break;
+-            case BACK:
+-                this.backText = text;
+-        }
+-
+-        this.markUpdated();
+-    }
+-
+-    public boolean canExecuteClickCommands(SignTextSlot slot, Player player) {
+-        return this.isWaxed() && this.getText(slot).hasAnyClickCommands(player.isTextFilteringEnabled());
+-    }
+-
+-    public boolean executeClickCommandsIfPresent(ServerLevel level, Player player, BlockPos pos, SignTextSlot slot) {
 +        // CraftBukkit start
 +        org.bukkit.entity.Player apiPlayer = ((net.minecraft.server.level.ServerPlayer) player).getBukkitEntity();
 +        List<net.kyori.adventure.text.Component> componentLines = new java.util.ArrayList<>(); // Paper - adventure
@@ -114,14 +269,50 @@
 +        }
 +        // CraftBukkit end
 +
-         return text;
-     }
++        return text;
++    }
++
++    public boolean setText(SignText text, boolean isFrontText) {
++        return isFrontText ? this.setFrontText(text) : this.setBackText(text);
++    }
++
++    private boolean setBackText(SignText text) {
++        if (text != this.backText) {
++            this.backText = text;
++            this.markUpdated();
++            return true;
++        } else {
++            return false;
++        }
++    }
++
++    private boolean setFrontText(SignText text) {
++        if (text != this.frontText) {
++            this.frontText = text;
++            this.markUpdated();
++            return true;
++        } else {
++            return false;
++        }
++    }
++
++    public boolean canExecuteClickCommands(boolean isFrontText, Player player) {
++        return this.isWaxed() && this.getText(isFrontText).hasAnyClickCommands(player);
++    }
++
++    public boolean executeClickCommandsIfPresent(ServerLevel level, Player player, BlockPos pos, boolean isFrontText) {
+         boolean hasAnyClickCommand = false;
  
-@@ -194,7 +_,23 @@
+-        for (Component message : this.getText(slot).getMessages(player.isTextFilteringEnabled())) {
++        for (Component message : this.getText(isFrontText).getMessages(player.isTextFilteringEnabled())) {
+             Style style = message.getStyle();
              ClickEvent event = style.getClickEvent();
              switch (event) {
                  case ClickEvent.RunCommand command:
--                    level.getServer().getCommands().performPrefixedCommand(createCommandSourceStack(player, level, pos), command.command());
+-                    if (this.allowOpFeatures) {
+-                        level.getServer().getCommands().performPrefixedCommand(createCommandSourceStack(player, level, pos), command.command());
+-                    }
+-
 +                    // Paper start - Fix commands from signs not firing command events
 +                    String commandLine = command.command().startsWith("/") ? command.command() : "/" + command.command();
 +                    if (org.spigotmc.SpigotConfig.logCommands) {
@@ -142,16 +333,31 @@
                      hasAnyClickCommand = true;
                      break;
                  case ClickEvent.ShowDialog dialog:
-@@ -202,7 +_,7 @@
+-                    if (this.allowOpFeatures) {
+-                        player.openDialog(dialog.dialog());
+-                    }
+-
++                    player.openDialog(dialog.dialog());
                      hasAnyClickCommand = true;
                      break;
                  case ClickEvent.Custom custom:
--                    level.getServer().handleCustomClickAction(custom.id(), custom.payload());
+-                    if (this.allowOpFeatures) {
+-                        level.getServer().handleCustomClickAction(custom.id(), custom.payload());
+-                    }
+-
 +                    level.getServer().handleCustomClickAction(custom.id(), custom.payload(), (net.minecraft.server.level.ServerPlayer) player, player.getGameProfile());
                      hasAnyClickCommand = true;
-                     break;
+-                    continue;
++                    break;
                  case null:
-@@ -213,14 +_,79 @@
+                 default:
+             }
+         }
+ 
+-        if (!this.allowOpFeatures && hasAnyClickCommand) {
+-            player.sendOverlayMessage(CLICK_ACTIONS_DISABLED);
+-        }
+-
          return hasAnyClickCommand;
      }
  
@@ -233,7 +439,7 @@
      public ClientboundBlockEntityDataPacket getUpdatePacket() {
          return ClientboundBlockEntityDataPacket.create(this);
      }
-@@ -235,12 +_,17 @@
+@@ -241,12 +_,17 @@
      }
  
      public @Nullable UUID getPlayerWhoMayEdit() {
@@ -252,3 +458,35 @@
      }
  
      public boolean isWaxed() {
+@@ -283,31 +_,5 @@
+ 
+     public SoundEvent getSignInteractionFailedSoundEvent() {
+         return SoundEvents.WAXED_SIGN_INTERACT_FAIL;
+-    }
+-
+-    @Override
+-    protected void applyImplicitComponents(DataComponentGetter components) {
+-        super.applyImplicitComponents(components);
+-        this.frontText = components.getOrDefault(DataComponents.SIGN_TEXT_FRONT, SignText.EMPTY);
+-        this.backText = components.getOrDefault(DataComponents.SIGN_TEXT_BACK, SignText.EMPTY);
+-        this.isWaxed = components.get(DataComponents.WAXED) != null;
+-    }
+-
+-    @Override
+-    protected void collectImplicitComponents(DataComponentMap.Builder components) {
+-        super.collectImplicitComponents(components);
+-        components.set(DataComponents.SIGN_TEXT_FRONT, this.frontText);
+-        components.set(DataComponents.SIGN_TEXT_BACK, this.backText);
+-        if (this.isWaxed) {
+-            components.set(DataComponents.WAXED, Unit.INSTANCE);
+-        }
+-    }
+-
+-    @Override
+-    public void removeComponentsFromTag(ValueOutput output) {
+-        super.removeComponentsFromTag(output);
+-        output.discard("front_text");
+-        output.discard("back_text");
+-        output.discard("is_waxed");
+     }
+ }

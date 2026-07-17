@@ -571,13 +571,11 @@
              if (chunk != null) {
                  chunkHolder.broadcastChanges(chunk);
              }
-@@ -366,16 +_,30 @@
+@@ -366,14 +_,30 @@
      private void tickChunks(ProfilerFiller profiler, long timeDiff) {
          profiler.push("naturalSpawnCount");
          int chunkCount = this.distanceManager.getNaturalSpawnChunkCount();
--        NaturalSpawner.SpawnState spawnCookie = NaturalSpawner.createState(
--            chunkCount, this.level.getAllEntities(), this::getFullChunk, new LocalMobCapCalculator(this.chunkMap)
--        );
+-        NaturalSpawner.SpawnState spawnCookie = NaturalSpawner.createState(chunkCount, this.level, this::getFullChunk, new LocalMobCapCalculator(this.chunkMap));
 -        this.lastSpawnState = spawnCookie;
 -        boolean doMobSpawning = this.level.getGameRules().get(GameRules.SPAWN_MOBS);
 +        // Paper start - Optional per player mob spawns
@@ -610,7 +608,7 @@
          } else {
              spawningCategories = List.of();
          }
-@@ -386,18 +_,21 @@
+@@ -384,18 +_,21 @@
              profiler.popPush("filteringSpawningChunks");
              this.chunkMap.collectSpawningChunks(spawningChunks);
              profiler.popPush("shuffleSpawningChunks");
@@ -635,7 +633,7 @@
          if (doMobSpawning) {
              profiler.popPush("customSpawners");
              this.level.tickCustomSpawners(this.spawnEnemies);
-@@ -409,22 +_,25 @@
+@@ -407,22 +_,25 @@
      private void tickSpawningChunk(LevelChunk chunk, long timeDiff, List<MobCategory> spawningCategories, NaturalSpawner.SpawnState spawnCookie) {
          ChunkPos chunkPos = chunk.getPos();
          chunk.incrementInhabitedTime(timeDiff);
@@ -666,7 +664,7 @@
      }
  
      @Override
-@@ -482,19 +_,11 @@
+@@ -480,19 +_,11 @@
      }
  
      public CompletableFuture<?> addTicketAndLoadWithRadius(TicketType type, ChunkPos pos, int radius) {
@@ -691,7 +689,7 @@
      }
  
      public void addTicketWithRadius(TicketType type, ChunkPos pos, int radius) {
-@@ -548,13 +_,25 @@
+@@ -546,13 +_,25 @@
          this.chunkMap.setServerViewDistance(newDistance);
      }
  
@@ -717,7 +715,7 @@
      }
  
      public String getChunkDebugData(ChunkPos pos) {
-@@ -620,13 +_,13 @@
+@@ -618,13 +_,13 @@
          }
  
          @Override

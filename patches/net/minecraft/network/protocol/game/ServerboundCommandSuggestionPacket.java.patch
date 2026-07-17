@@ -1,11 +1,77 @@
 --- a/net/minecraft/network/protocol/game/ServerboundCommandSuggestionPacket.java
 +++ b/net/minecraft/network/protocol/game/ServerboundCommandSuggestionPacket.java
-@@ -19,7 +_,7 @@
+@@ -1,39 +_,30 @@
+ package net.minecraft.network.protocol.game;
  
-     private ServerboundCommandSuggestionPacket(FriendlyByteBuf input) {
-         this.id = input.readVarInt();
--        this.command = input.readUtf(32500);
+-import io.netty.buffer.ByteBuf;
+-import io.netty.handler.codec.DecoderException;
+-import net.minecraft.network.SkipPacketDecoderException;
+-import net.minecraft.network.codec.ByteBufCodecs;
++import net.minecraft.network.FriendlyByteBuf;
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.PacketType;
+ 
+-public record ServerboundCommandSuggestionPacket(int id, String command) implements Packet<ServerGamePacketListener> {
+-    public static final StreamCodec<ByteBuf, ServerboundCommandSuggestionPacket> STREAM_CODEC = createStreamCodec(32500);
+-    public static final StreamCodec<ByteBuf, ServerboundCommandSuggestionPacket> CHAT_ONLY_STREAM_CODEC = new StreamCodec<ByteBuf, ServerboundCommandSuggestionPacket>() {
+-        private final StreamCodec<ByteBuf, ServerboundCommandSuggestionPacket> downstream = ServerboundCommandSuggestionPacket.createStreamCodec(256);
+-
+-        public ServerboundCommandSuggestionPacket decode(ByteBuf input) {
+-            try {
+-                return this.downstream.decode(input);
+-            } catch (DecoderException e) {
+-                throw new SkipPacketDecoderException(e);
+-            }
+-        }
+-
+-        public void encode(ByteBuf output, ServerboundCommandSuggestionPacket packet) {
+-            ServerboundCommandSuggestionPacket.STREAM_CODEC.encode(output, packet);
+-        }
+-    };
+-
+-    private static StreamCodec<ByteBuf, ServerboundCommandSuggestionPacket> createStreamCodec(int maxLength) {
+-        return StreamCodec.composite(
+-            ByteBufCodecs.VAR_INT,
+-            ServerboundCommandSuggestionPacket::id,
+-            ByteBufCodecs.stringUtf8(maxLength),
+-            ServerboundCommandSuggestionPacket::command,
+-            ServerboundCommandSuggestionPacket::new
+-        );
++public class ServerboundCommandSuggestionPacket implements Packet<ServerGamePacketListener> {
++    public static final StreamCodec<FriendlyByteBuf, ServerboundCommandSuggestionPacket> STREAM_CODEC = Packet.codec(
++        ServerboundCommandSuggestionPacket::write, ServerboundCommandSuggestionPacket::new
++    );
++    private final int id;
++    private final String command;
++
++    public ServerboundCommandSuggestionPacket(int id, String command) {
++        this.id = id;
++        this.command = command;
++    }
++
++    private ServerboundCommandSuggestionPacket(FriendlyByteBuf input) {
++        this.id = input.readVarInt();
 +        this.command = input.readUtf(2048); // Paper
++    }
++
++    private void write(FriendlyByteBuf output) {
++        output.writeVarInt(this.id);
++        output.writeUtf(this.command, 32500);
      }
  
-     private void write(FriendlyByteBuf output) {
+     @Override
+@@ -43,5 +_,13 @@
+ 
+     public void handle(ServerGamePacketListener listener) {
+         listener.handleCustomCommandSuggestions(this);
++    }
++
++    public int getId() {
++        return this.id;
++    }
++
++    public String getCommand() {
++        return this.command;
+     }
+ }

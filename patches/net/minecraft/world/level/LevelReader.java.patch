@@ -1,6 +1,16 @@
 --- a/net/minecraft/world/level/LevelReader.java
 +++ b/net/minecraft/world/level/LevelReader.java
-@@ -25,9 +_,22 @@
+@@ -16,9 +_,6 @@
+ import net.minecraft.world.level.biome.Biome;
+ import net.minecraft.world.level.biome.BiomeManager;
+ import net.minecraft.world.level.block.state.BlockState;
+-import net.minecraft.world.level.blockscan.BlockMatcher;
+-import net.minecraft.world.level.blockscan.BoxBlockMatcher;
+-import net.minecraft.world.level.blockscan.OrderedBlockMatcher;
+ import net.minecraft.world.level.chunk.ChunkAccess;
+ import net.minecraft.world.level.chunk.status.ChunkStatus;
+ import net.minecraft.world.level.dimension.DimensionType;
+@@ -28,9 +_,22 @@
  
  import net.neoforged.neoforge.common.extensions.ILevelReaderExtension;
  
@@ -24,7 +34,7 @@
      @Deprecated
      boolean hasChunk(int chunkX, int chunkZ);
  
-@@ -140,7 +_,26 @@
+@@ -143,7 +_,26 @@
      }
  
      default boolean containsAnyLiquid(AABB box) {
@@ -52,18 +62,34 @@
      }
  
      default int getMaxLocalRawBrightness(BlockPos pos) {
-@@ -155,14 +_,6 @@
+@@ -158,30 +_,6 @@
  
      default int getEffectiveSkyBrightness(BlockPos pos) {
          return this.getBrightness(LightLayer.SKY, pos) - this.getSkyDarken();
 -    }
 -
--    default BlockScanUtils.BlockMatcher findBlocksIn(AABB box) {
--        return new BlockScanUtils.BlockMatcher(this, box);
+-    default BlockMatcher findBlocksIn(AABB box) {
+-        return new BoxBlockMatcher(this, box);
 -    }
 -
--    default BlockScanUtils.BlockMatcher findBlocksIn(BlockPos from, BlockPos to) {
--        return new BlockScanUtils.BlockMatcher(this, from, to);
+-    default BlockMatcher findBlocksIn(BlockPos from, BlockPos to) {
+-        return new BoxBlockMatcher(this, from, to);
+-    }
+-
+-    default OrderedBlockMatcher findBlocksIn(Iterable<BlockPos> positions) {
+-        return new OrderedBlockMatcher(this, positions);
+-    }
+-
+-    default OrderedBlockMatcher findBlocksInBoxByManhattanDistance(BlockPos origin, int range) {
+-        return this.findBlocksIn(BlockPos.withinBoxByManhattanDistance(origin, range, range, range));
+-    }
+-
+-    default OrderedBlockMatcher findBlocksInBoxByManhattanDistance(BlockPos origin, int rangeXZ, int rangeY) {
+-        return this.findBlocksIn(BlockPos.withinBoxByManhattanDistance(origin, rangeXZ, rangeY, rangeXZ));
+-    }
+-
+-    default OrderedBlockMatcher findBlocksInManhattan(BlockPos origin, int range) {
+-        return this.findBlocksIn(BlockPos.withinManhattan(origin, range));
      }
  
      @Deprecated

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/NyliumBlock.java
 +++ b/net/minecraft/world/level/block/NyliumBlock.java
-@@ -31,6 +_,11 @@
+@@ -31,26 +_,40 @@
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
          if (!canBeNylium(state, level, pos)) {
@@ -12,3 +12,36 @@
              level.setBlockAndUpdate(pos, Blocks.NETHERRACK.defaultBlockState());
          }
      }
+ 
+     @Override
+-    public boolean isValidBonemealTarget(LevelReader level, BlockPos pos, BlockState state, BonemealSource source) {
++    public boolean isValidBonemealTarget(LevelReader level, BlockPos pos, BlockState state) {
+         return level.getBlockState(pos.above()).isAir() && level.isInsideBuildHeight(pos.above());
+     }
+ 
+     @Override
+-    public boolean isBonemealSuccess(Level level, RandomSource random, BlockPos pos, BlockState state, BonemealSource source) {
++    public boolean isBonemealSuccess(Level level, RandomSource random, BlockPos pos, BlockState state) {
+         return true;
+     }
+ 
+     @Override
+-    public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state, BonemealSource source) {
++    public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state) {
++        BlockState blockState = level.getBlockState(pos);
+         BlockPos abovePos = pos.above();
+         ChunkGenerator generator = level.getChunkSource().getGenerator();
+         Registry<Feature> configuredFeatures = level.registryAccess().lookupOrThrow(Registries.FEATURE);
+-        this.place(configuredFeatures, NetherFeatures.NYLIUM_BONEMEAL, level, generator, random, abovePos);
++        if (blockState.is(Blocks.CRIMSON_NYLIUM)) {
++            this.place(configuredFeatures, NetherFeatures.CRIMSON_FOREST_VEGETATION_BONEMEAL, level, generator, random, abovePos);
++        } else if (blockState.is(Blocks.WARPED_NYLIUM)) {
++            this.place(configuredFeatures, NetherFeatures.WARPED_FOREST_VEGETATION_BONEMEAL, level, generator, random, abovePos);
++            this.place(configuredFeatures, NetherFeatures.NETHER_SPROUTS_BONEMEAL, level, generator, random, abovePos);
++            if (random.nextInt(8) == 0) {
++                this.place(configuredFeatures, NetherFeatures.TWISTING_VINES_BONEMEAL, level, generator, random, abovePos);
++            }
++        }
+     }
+ 
+     private void place(

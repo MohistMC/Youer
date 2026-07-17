@@ -72,7 +72,7 @@
  import net.minecraft.world.level.levelgen.Heightmap;
  import net.minecraft.world.level.material.Fluid;
  import net.minecraft.world.level.material.FluidState;
-@@ -153,6 +_,35 @@
+@@ -153,14 +_,43 @@
  import net.minecraft.world.scores.Scoreboard;
  import net.minecraft.world.scores.Team;
  import net.minecraft.world.waypoints.WaypointTransmitter;
@@ -106,9 +106,10 @@
 +import org.bukkit.event.vehicle.VehicleExitEvent;
 +import org.bukkit.plugin.PluginManager;
  import org.jetbrains.annotations.Contract;
+-import org.joml.Quaternionf;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
-@@ -160,6 +_,7 @@
+ 
  import net.neoforged.neoforge.common.extensions.IEntityExtension;
  
  public abstract class Entity
@@ -116,7 +117,7 @@
      implements Nameable,
      EntityAccess,
      ScoreHolder,
-@@ -168,7 +_,68 @@
+@@ -169,7 +_,68 @@
      ItemOwner,
      SlotProvider,
      DebugValueSource,
@@ -186,16 +187,18 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final String TAG_ID = "id";
      public static final String TAG_UUID = "UUID";
-@@ -209,6 +_,8 @@
+@@ -209,8 +_,9 @@
+     private static final double LAVA_SLOW_FLOW_SCALE = 0.0023333333333333335;
      private static final int MAX_BLOCK_ITERATIONS_ALONG_TRAVEL_PER_TICK = 16;
      private static final double MAX_MOVEMENT_RESETTING_TRACE_DISTANCE = 8.0;
+-    private static final Set<TagKey<Fluid>> FLUIDS_WITH_CURRENT = Set.of(FluidTags.WATER, FluidTags.LAVA);
      private static double viewScale = 1.0;
 +    /** @deprecated Neo: Use the getter to allow overriding in mods */
 +    @Deprecated
      private final EntityType<?> type;
      private boolean requiresPrecisePosition;
      private int id = 0;
-@@ -216,7 +_,7 @@
+@@ -218,7 +_,7 @@
      public ImmutableList<Entity> passengers = ImmutableList.of();
      protected int boardingCooldown;
      private @Nullable Entity vehicle;
@@ -204,7 +207,7 @@
      public double xo;
      public double yo;
      public double zo;
-@@ -234,6 +_,7 @@
+@@ -236,6 +_,7 @@
      public boolean verticalCollision;
      public boolean verticalCollisionBelow;
      public boolean minorHorizontalCollision;
@@ -212,7 +215,7 @@
      protected Vec3 stuckSpeedMultiplier = Vec3.ZERO;
      private Entity.@Nullable RemovalReason removalReason;
      public static final float DEFAULT_BB_WIDTH = 0.6F;
-@@ -245,8 +_,9 @@
+@@ -247,11 +_,12 @@
      public double xOld;
      public double yOld;
      public double zOld;
@@ -222,8 +225,12 @@
 +    public final RandomSource random; // Paper - Share random for entities to make them more random // Purpur - Add toggle for RNG manipulation
      public int tickCount;
      private int remainingFireTicks;
-     private final EntityFluidInteraction fluidInteraction = new EntityFluidInteraction(Set.of(FluidTags.WATER, FluidTags.LAVA));
-@@ -276,12 +_,11 @@
+-    private final EntityFluidInteraction fluidInteraction = new EntityFluidInteraction(FLUIDS_WITH_CURRENT);
++    private final EntityFluidInteraction fluidInteraction = new EntityFluidInteraction(Set.of(FluidTags.WATER, FluidTags.LAVA));
+     public boolean wasTouchingWater;
+     protected boolean wasEyeInWater;
+     public int invulnerableTime;
+@@ -278,12 +_,11 @@
      private final VecDeltaCodec packetPositionCodec = new VecDeltaCodec();
      public boolean needsSync;
      public boolean syncPosition;
@@ -238,7 +245,7 @@
      private boolean hasGlowingTag;
      private final Set<String> tags = Sets.newHashSet();
      private final double[] pistonDeltas = new double[]{0.0, 0.0, 0.0};
-@@ -297,22 +_,249 @@
+@@ -299,22 +_,249 @@
      public boolean hasVisualFire;
      private Vec3 lastKnownSpeed = Vec3.ZERO;
      private @Nullable Vec3 lastKnownPosition;
@@ -489,7 +496,7 @@
          SynchedEntityData.Builder entityDataBuilder = new SynchedEntityData.Builder(this);
          entityDataBuilder.define(DATA_SHARED_FLAGS_ID, (byte)0);
          entityDataBuilder.define(DATA_AIR_SUPPLY_ID, this.getMaxAirSupply());
-@@ -324,8 +_,13 @@
+@@ -326,8 +_,13 @@
          entityDataBuilder.define(DATA_TICKS_FROZEN, 0);
          this.defineSynchedData(entityDataBuilder);
          this.entityData = entityDataBuilder.build();
@@ -503,7 +510,7 @@
      }
  
      public boolean isColliding(BlockPos pos, BlockState state) {
-@@ -338,6 +_,12 @@
+@@ -340,6 +_,12 @@
          return team != null && team.getColor().isPresent() ? team.getColor().get().rgb() : 16777215;
      }
  
@@ -516,7 +523,7 @@
      public boolean isSpectator() {
          return false;
      }
-@@ -399,7 +_,7 @@
+@@ -401,7 +_,7 @@
      }
  
      public boolean addTag(String tag) {
@@ -525,7 +532,7 @@
      }
  
      public boolean removeTag(String tag) {
-@@ -407,12 +_,18 @@
+@@ -409,12 +_,18 @@
      }
  
      public void kill(ServerLevel level) {
@@ -546,7 +553,7 @@
      }
  
      protected abstract void defineSynchedData(SynchedEntityData.Builder entityData);
-@@ -421,6 +_,48 @@
+@@ -423,6 +_,48 @@
          return this.entityData;
      }
  
@@ -595,7 +602,7 @@
      @Override
      public boolean equals(Object obj) {
          return obj instanceof Entity entity ? entity.getId() == this.getId() : false;
-@@ -432,7 +_,13 @@
+@@ -434,7 +_,13 @@
      }
  
      public void remove(Entity.RemovalReason reason) {
@@ -610,7 +617,7 @@
      }
  
      public void onClientRemoval() {
-@@ -442,6 +_,15 @@
+@@ -444,6 +_,15 @@
      }
  
      public void setPose(Pose pose) {
@@ -626,7 +633,7 @@
          this.entityData.set(DATA_POSE, pose);
      }
  
-@@ -465,6 +_,32 @@
+@@ -467,6 +_,32 @@
      }
  
      public void setRot(float yRot, float xRot) {
@@ -659,7 +666,7 @@
          this.setYRot(yRot % 360.0F);
          this.setXRot(xRot % 360.0F);
      }
-@@ -474,8 +_,8 @@
+@@ -476,8 +_,8 @@
      }
  
      public void setPos(double x, double y, double z) {
@@ -670,7 +677,7 @@
      }
  
      protected final AABB makeBoundingBox() {
-@@ -509,12 +_,31 @@
+@@ -511,12 +_,31 @@
      }
  
      public void tick() {
@@ -702,7 +709,7 @@
          this.computeSpeed();
          this.inBlockState = null;
          if (this.isPassenger() && this.getVehicle().isRemoved()) {
-@@ -525,7 +_,7 @@
+@@ -527,7 +_,7 @@
              this.boardingCooldown--;
          }
  
@@ -711,7 +718,7 @@
          if (this.canSpawnSprintParticle()) {
              this.spawnSprintParticle();
          }
-@@ -552,7 +_,11 @@
+@@ -554,7 +_,11 @@
          }
  
          if (this.isInLava()) {
@@ -724,7 +731,7 @@
          }
  
          this.checkBelowWorld();
-@@ -578,12 +_,18 @@
+@@ -580,12 +_,18 @@
      }
  
      public void setSharedFlagOnFire(boolean value) {
@@ -746,7 +753,7 @@
          }
      }
  
-@@ -610,15 +_,42 @@
+@@ -612,15 +_,42 @@
      }
  
      public void lavaIgnite() {
@@ -791,7 +798,7 @@
                  && this.shouldPlayLavaHurtSound()
                  && !this.isSilent()) {
                  serverLevel.playSound(
-@@ -633,6 +_,22 @@
+@@ -635,6 +_,22 @@
      }
  
      public final void igniteForSeconds(float numberOfSeconds) {
@@ -814,7 +821,7 @@
          this.igniteForTicks(Mth.floor(numberOfSeconds * 20.0F));
      }
  
-@@ -657,7 +_,7 @@
+@@ -659,7 +_,7 @@
      }
  
      protected void onBelowWorld() {
@@ -823,7 +830,7 @@
      }
  
      public boolean isFree(double xa, double ya, double za) {
-@@ -713,16 +_,30 @@
+@@ -715,16 +_,30 @@
          return this.onGround;
      }
  
@@ -860,7 +867,7 @@
              this.horizontalCollision = false;
              this.verticalCollision = false;
              this.verticalCollisionBelow = false;
-@@ -730,6 +_,10 @@
+@@ -732,6 +_,10 @@
          } else {
              if (moverType == MoverType.PISTON) {
                  delta = this.limitPistonMovement(delta);
@@ -871,7 +878,7 @@
                  if (delta.equals(Vec3.ZERO)) {
                      return;
                  }
-@@ -745,6 +_,13 @@
+@@ -747,6 +_,13 @@
                  this.stuckSpeedMultiplier = Vec3.ZERO;
                  this.setDeltaMovement(Vec3.ZERO);
              }
@@ -885,7 +892,7 @@
  
              delta = this.maybeBackOffFromEdge(delta, moverType);
              Vec3 movement = this.collide(delta);
-@@ -764,7 +_,6 @@
+@@ -766,7 +_,6 @@
                  Vec3 newPosition = pos.add(movement);
                  this.addMovementThisTick(new Entity.Movement(pos, newPosition, delta));
                  this.setPos(newPosition);
@@ -893,7 +900,7 @@
              }
  
              profiler.pop();
-@@ -795,8 +_,30 @@
+@@ -797,8 +_,30 @@
                  profiler.pop();
              } else {
                  if (this.canSimulateMovement() && (movedVertically && this.verticalCollision || this.horizontalCollision)) {
@@ -926,7 +933,7 @@
  
                  if (!this.level().isClientSide() || this.isLocalInstanceAuthoritative()) {
                      Entity.MovementEmission emission = this.getMovementEmission();
-@@ -809,19 +_,22 @@
+@@ -811,19 +_,22 @@
                  this.setDeltaMovement(this.getDeltaMovement().multiply(blockSpeedFactor, 1.0, blockSpeedFactor));
                  profiler.pop();
              }
@@ -961,7 +968,7 @@
          double restitution = this.isSuppressingBounce() ? 0.0 : this.getEntityBounciness();
          Vec3 currentMovement = this.getDeltaMovement();
          Vec3 movementAfterBounce = currentMovement;
-@@ -836,10 +_,8 @@
+@@ -838,10 +_,8 @@
          boolean bounced = restitution > 0.0 && (xCollision || zCollision);
          if (this.verticalCollision) {
              if (this.verticalCollisionBelow) {
@@ -974,7 +981,7 @@
                      : 0.0;
              }
  
-@@ -859,7 +_,6 @@
+@@ -861,7 +_,6 @@
          }
  
          if (bounced) {
@@ -982,7 +989,7 @@
              this.gameEvent(GameEvent.BOUNCE);
              this.syncPosition = true;
          }
-@@ -867,6 +_,8 @@
+@@ -869,6 +_,8 @@
          this.setDeltaMovement(movementAfterBounce);
      }
  
@@ -991,7 +998,7 @@
      private double getBlockBounciness(Block onBlock) {
          float blockBounciness = onBlock.getBounceRestitution();
          if (!(this instanceof LivingEntity)) {
-@@ -1077,16 +_,14 @@
+@@ -1079,16 +_,14 @@
      }
  
      protected BlockPos getOnPos(float offset) {
@@ -1010,7 +1017,7 @@
                  ? getOnPos.atY(Mth.floor(this.position.y - offset))
                  : getOnPos;
          } else {
-@@ -1160,34 +_,76 @@
+@@ -1162,34 +_,76 @@
      }
  
      private Vec3 collide(Vec3 movement) {
@@ -1115,7 +1122,7 @@
      }
  
      private static float[] collectCandidateStepUpHeights(AABB boundingBox, List<VoxelShape> colliders, float maxStepHeight, float stepHeightToSkip) {
-@@ -1290,6 +_,20 @@
+@@ -1292,6 +_,20 @@
          return SoundEvents.GENERIC_SPLASH;
      }
  
@@ -1136,7 +1143,7 @@
      private void checkInsideBlocks(List<Entity.Movement> movements, InsideBlockEffectApplier.StepBasedCollector effectCollector) {
          if (this.isAffectedByBlocks()) {
              LongSet visitedBlocks = this.visitedBlocks;
-@@ -1358,7 +_,7 @@
+@@ -1360,7 +_,7 @@
                          if (insideBlock) {
                              try {
                                  boolean isPrecise = movedFar || deflatedBoundingBoxAtTarget.intersects(blockIntersection);
@@ -1145,7 +1152,7 @@
                                  state.entityInside(this.level(), blockIntersection, this, effectCollector, isPrecise);
                                  this.onInsideBlock(state);
                              } catch (Throwable t) {
-@@ -1372,7 +_,7 @@
+@@ -1374,7 +_,7 @@
                          }
  
                          if (insideFluid) {
@@ -1154,7 +1161,7 @@
                              state.getFluidState().entityInside(this.level(), blockIntersection, this, effectCollector);
                          }
  
-@@ -1457,20 +_,20 @@
+@@ -1459,20 +_,20 @@
          return !aboveState.is(BlockTags.INSIDE_STEP_SOUND_BLOCKS) && !aboveState.is(BlockTags.COMBINATION_STEP_SOUND_BLOCKS) ? affectingPos : abovePos;
      }
  
@@ -1184,7 +1191,7 @@
      }
  
      private boolean shouldPlayAmethystStepSound(BlockState affectingState) {
-@@ -1584,7 +_,7 @@
+@@ -1586,7 +_,7 @@
      }
  
      public boolean fireImmune() {
@@ -1193,7 +1200,25 @@
      }
  
      public boolean causeFallDamage(double fallDistance, float damageModifier, DamageSource damageSource) {
-@@ -1728,6 +_,7 @@
+@@ -1656,7 +_,7 @@
+     }
+ 
+     protected boolean updateFluidInteraction() {
+-        boolean inAnyFluid = this.fluidInteraction.update(this, !this.isPushedByFluid());
++        this.fluidInteraction.update(this, !this.isPushedByFluid());
+         boolean inWater = this.fluidInteraction.isInFluid(FluidTags.WATER);
+         boolean inLava = this.fluidInteraction.isInFluid(FluidTags.LAVA);
+         if (inWater) {
+@@ -1678,7 +_,7 @@
+             }
+         }
+ 
+-        return inAnyFluid;
++        return inWater || inLava;
+     }
+ 
+     protected void doWaterSplashEffect() {
+@@ -1730,6 +_,7 @@
      protected void spawnSprintParticle() {
          BlockPos pos = this.getOnPosLegacy();
          BlockState blockState = this.level().getBlockState(pos);
@@ -1201,7 +1226,7 @@
          if (blockState.getRenderShape() != RenderShape.INVISIBLE) {
              Vec3 movement = this.getDeltaMovement();
              BlockPos entityPosition = this.blockPosition();
-@@ -1742,7 +_,7 @@
+@@ -1744,7 +_,7 @@
              }
  
              this.level()
@@ -1210,7 +1235,7 @@
          }
      }
  
-@@ -1797,6 +_,7 @@
+@@ -1799,6 +_,7 @@
          this.yo = y;
          this.zo = cz;
          this.setPos(cx, y, cz);
@@ -1218,7 +1243,7 @@
      }
  
      public void snapTo(Vec3 pos) {
-@@ -1922,14 +_,30 @@
+@@ -1924,14 +_,30 @@
      }
  
      public void push(double xa, double ya, double za) {
@@ -1251,7 +1276,45 @@
      }
  
      @Deprecated
-@@ -2034,8 +_,20 @@
+@@ -1953,7 +_,7 @@
+     }
+ 
+     public final Vec3 getViewVector(float a) {
+-        return calculateViewVector(this.getViewXRot(a), this.getViewYRot(a));
++        return this.calculateViewVector(this.getViewXRot(a), this.getViewYRot(a));
+     }
+ 
+     public Direction getNearestViewDirection() {
+@@ -1976,7 +_,7 @@
+         return partialTicks == 1.0F ? this.getYRot() : Mth.rotLerp(partialTicks, this.yRotO, this.getYRot());
+     }
+ 
+-    public static Vec3 calculateViewVector(float xRot, float yRot) {
++    public final Vec3 calculateViewVector(float xRot, float yRot) {
+         float realXRot = xRot * (float) (Math.PI / 180.0);
+         float realYRot = -yRot * (float) (Math.PI / 180.0);
+         float yCos = Mth.cos(realYRot);
+@@ -1986,16 +_,12 @@
+         return new Vec3(ySin * xCos, -xSin, yCos * xCos);
+     }
+ 
+-    public static Quaternionf calculateViewQuaternion(float xRot, float yRot) {
+-        return new Quaternionf().rotationY(-yRot * (float) (Math.PI / 180.0)).rotateX(xRot * (float) (Math.PI / 180.0));
+-    }
+-
+     public final Vec3 getUpVector(float a) {
+-        return calculateUpVector(this.getViewXRot(a), this.getViewYRot(a));
++        return this.calculateUpVector(this.getViewXRot(a), this.getViewYRot(a));
+     }
+ 
+-    protected static Vec3 calculateUpVector(float xRot, float yRot) {
+-        return calculateViewVector(xRot - 90.0F, yRot);
++    protected final Vec3 calculateUpVector(float xRot, float yRot) {
++        return this.calculateViewVector(xRot - 90.0F, yRot);
+     }
+ 
+     public final Vec3 getEyePosition() {
+@@ -2040,8 +_,20 @@
      }
  
      public boolean isPushable() {
@@ -1272,7 +1335,7 @@
  
      public void awardKillScore(Entity victim, DamageSource killingBlow) {
          if (victim instanceof ServerPlayer serverPlayer) {
-@@ -2062,17 +_,25 @@
+@@ -2068,17 +_,25 @@
      }
  
      public boolean saveAsPassenger(ValueOutput output) {
@@ -1301,7 +1364,7 @@
          return true;
      }
  
-@@ -2080,15 +_,36 @@
+@@ -2086,15 +_,36 @@
          return this.isPassenger() ? false : this.saveAsPassenger(output);
      }
  
@@ -1343,7 +1406,7 @@
              output.store("Rotation", Vec2.CODEC, new Vec2(this.getYRot(), this.getXRot()));
              output.putDouble("fall_distance", this.fallDistance);
              output.putShort("Fire", (short)this.remainingFireTicks);
-@@ -2096,7 +_,29 @@
+@@ -2102,7 +_,29 @@
              output.putBoolean("OnGround", this.onGround());
              output.putBoolean("Invulnerable", this.invulnerable);
              output.putInt("PortalCooldown", this.portalCooldown);
@@ -1374,7 +1437,7 @@
              output.storeNullable("CustomName", ComponentSerialization.CODEC, this.getCustomName());
              if (this.isCustomNameVisible()) {
                  output.putBoolean("CustomNameVisible", this.isCustomNameVisible());
-@@ -2131,13 +_,18 @@
+@@ -2137,13 +_,18 @@
                  output.store("data", CustomData.CODEC, this.customData);
              }
  
@@ -1395,7 +1458,7 @@
                          passengersList.discardLast();
                      }
                  }
-@@ -2146,8 +_,41 @@
+@@ -2152,8 +_,41 @@
                      output.discard("Passengers");
                  }
              }
@@ -1439,7 +1502,7 @@
              CrashReportCategory category = report.addCategory("Entity being saved");
              this.fillCrashReportCategory(category);
              throw new ReportedException(report);
-@@ -2194,17 +_,25 @@
+@@ -2200,17 +_,25 @@
                  this.setGlowingTag(input.getBooleanOr("Glowing", false));
                  this.setTicksFrozen(input.getIntOr("TicksFrozen", 0));
                  this.hasVisualFire = input.getBooleanOr("HasVisualFire", false);
@@ -1473,7 +1536,7 @@
                  this.readAdditionalSaveData(input);
                  if (this.repositionEntityAfterLoad()) {
                      this.reapplyPosition();
-@@ -2212,6 +_,60 @@
+@@ -2218,6 +_,60 @@
              } else {
                  throw new IllegalStateException("Entity has invalid rotation");
              }
@@ -1534,7 +1597,7 @@
          } catch (Throwable t) {
              CrashReport report = CrashReport.forThrowable(t, "Loading entity NBT");
              CrashReportCategory category = report.addCategory("Entity being loaded");
-@@ -2225,7 +_,13 @@
+@@ -2231,7 +_,13 @@
      }
  
      public final @Nullable String getEncodeId() {
@@ -1549,7 +1612,7 @@
              return null;
          }
  
-@@ -2233,6 +_,12 @@
+@@ -2239,6 +_,12 @@
          return typeId.identifier().toString();
      }
  
@@ -1562,7 +1625,7 @@
      protected abstract void readAdditionalSaveData(ValueInput input);
  
      protected abstract void addAdditionalSaveData(ValueOutput output);
-@@ -2246,12 +_,57 @@
+@@ -2252,12 +_,57 @@
      }
  
      public @Nullable ItemEntity spawnAtLocation(ServerLevel level, ItemStack itemStack, Vec3 offset) {
@@ -1622,7 +1685,7 @@
          level.addFreshEntity(entity);
          return entity;
      }
-@@ -2269,17 +_,106 @@
+@@ -2275,17 +_,106 @@
              return false;
          }
  
@@ -1739,7 +1802,7 @@
      }
  
      public InteractionResult interact(Player player, InteractionHand hand, Vec3 location) {
-@@ -2295,6 +_,15 @@
+@@ -2301,6 +_,15 @@
  
                  for (Leashable mob : mobsToLeash) {
                      if (mob.canHaveALeashAttachedTo(this)) {
@@ -1755,7 +1818,7 @@
                          mob.setLeashedTo(this, true);
                          anyLeashed = true;
                      }
-@@ -2309,11 +_,11 @@
+@@ -2315,11 +_,11 @@
          }
  
          ItemStack heldItem = player.getItemInHand(hand);
@@ -1769,7 +1832,7 @@
              && target.canShearEquipment(player)
              && !player.isSecondaryUseActive()
              && target.attemptToShearEquipment(player, hand, heldItem)) {
-@@ -2322,6 +_,14 @@
+@@ -2328,6 +_,14 @@
              if (this.isAlive() && this instanceof Leashable leashable) {
                  if (leashable.getLeashHolder() == player) {
                      if (!this.level().isClientSide()) {
@@ -1784,7 +1847,7 @@
                          if (player.hasInfiniteMaterials()) {
                              leashable.removeLeash();
                          } else {
-@@ -2342,6 +_,13 @@
+@@ -2348,6 +_,13 @@
                      }
  
                      if (leashable.canHaveALeashAttachedTo(player)) {
@@ -1798,7 +1861,7 @@
                          if (leashable.isLeashed()) {
                              leashable.dropLeash();
                          }
-@@ -2359,7 +_,13 @@
+@@ -2365,7 +_,13 @@
      }
  
      public boolean shearOffAllLeashConnections(@Nullable Player player) {
@@ -1813,7 +1876,7 @@
          if (dropped && this.level() instanceof ServerLevel serverLevel) {
              serverLevel.playSound(null, this.blockPosition(), SoundEvents.SHEARS_SNIP, player != null ? player.getSoundSource() : this.getSoundSource());
          }
-@@ -2368,15 +_,36 @@
+@@ -2374,15 +_,36 @@
      }
  
      public boolean dropAllLeashConnections(@Nullable Player player) {
@@ -1854,7 +1917,7 @@
          }
  
          if (dropped) {
-@@ -2397,7 +_,11 @@
+@@ -2403,7 +_,11 @@
  
      public void rideTick() {
          this.setDeltaMovement(Vec3.ZERO);
@@ -1867,7 +1930,7 @@
          if (this.isPassenger()) {
              this.getVehicle().positionRider(this);
          }
-@@ -2444,15 +_,13 @@
+@@ -2450,15 +_,13 @@
      }
  
      public boolean startRiding(Entity entityToRide, boolean force, boolean sendEventAndTriggers) {
@@ -1885,7 +1948,7 @@
              return false;
          }
  
-@@ -2462,7 +_,29 @@
+@@ -2468,7 +_,29 @@
              }
          }
  
@@ -1915,7 +1978,7 @@
              if (this.isPassenger()) {
                  this.stopRiding();
              }
-@@ -2473,8 +_,8 @@
+@@ -2479,8 +_,8 @@
              if (sendEventAndTriggers) {
                  this.level().gameEvent(this, GameEvent.ENTITY_MOUNT, this.vehicle.position);
                  entityToRide.getIndirectPassengersStream()
@@ -1926,7 +1989,7 @@
              }
  
              return true;
-@@ -2493,21 +_,18 @@
+@@ -2499,21 +_,18 @@
          }
      }
  
@@ -1956,7 +2019,7 @@
              Entity.RemovalReason removalReason = this.getRemovalReason();
              if (removalReason == null || removalReason.shouldDestroy()) {
                  this.level().gameEvent(this, GameEvent.ENTITY_DISMOUNT, oldVehicle.position);
-@@ -2516,7 +_,13 @@
+@@ -2522,7 +_,13 @@
      }
  
      public void stopRiding() {
@@ -1971,7 +2034,7 @@
      }
  
      protected void addPassenger(Entity passenger) {
-@@ -2536,12 +_,60 @@
+@@ -2542,12 +_,60 @@
  
              this.passengers = ImmutableList.copyOf(newPassengers);
          }
@@ -2035,7 +2098,7 @@
  
          if (this.passengers.size() == 1 && this.passengers.get(0) == passenger) {
              this.passengers = ImmutableList.of();
-@@ -2550,12 +_,15 @@
+@@ -2556,12 +_,15 @@
          }
  
          passenger.boardingCooldown = 60;
@@ -2051,7 +2114,7 @@
      protected boolean couldAcceptPassenger() {
          return true;
      }
-@@ -2564,41 +_,29 @@
+@@ -2570,41 +_,29 @@
          return this.getInterpolation() != null && this.getInterpolation().hasActiveInterpolation();
      }
  
@@ -2106,7 +2169,34 @@
      }
  
      public @Nullable InterpolationHandler getInterpolation() {
-@@ -2639,15 +_,18 @@
+@@ -2620,15 +_,11 @@
+     }
+ 
+     public Vec3 getLookAngle() {
+-        return calculateViewVector(this.getXRot(), this.getYRot());
+-    }
+-
+-    public Quaternionf getLookQuaternion() {
+-        return calculateViewQuaternion(this.getXRot(), this.getYRot());
++        return this.calculateViewVector(this.getXRot(), this.getYRot());
+     }
+ 
+     public Vec3 getHeadLookAngle() {
+-        return calculateViewVector(this.getXRot(), this.getYHeadRot());
++        return this.calculateViewVector(this.getXRot(), this.getYHeadRot());
+     }
+ 
+     public Vec3 getHandHoldingItemAngle(Item item) {
+@@ -2637,7 +_,7 @@
+         } else {
+             boolean itemOnlyInOffhand = player.getOffhandItem().is(item) && !player.getMainHandItem().is(item);
+             HumanoidArm itemArm = itemOnlyInOffhand ? player.getMainArm().getOpposite() : player.getMainArm();
+-            return calculateViewVector(0.0F, this.getYRot() + (itemArm == HumanoidArm.RIGHT ? 80 : -80)).scale(0.5);
++            return this.calculateViewVector(0.0F, this.getYRot() + (itemArm == HumanoidArm.RIGHT ? 80 : -80)).scale(0.5);
+         }
+     }
+ 
+@@ -2649,15 +_,18 @@
          return Vec3.directionFromRotation(this.getRotationVector());
      }
  
@@ -2127,16 +2217,42 @@
              }
          }
      }
-@@ -2663,7 +_,7 @@
+@@ -2672,7 +_,10 @@
+                     this.setPortalCooldown();
                      TeleportTransition teleportTransition = this.portalProcess.getPortalDestination(level, this);
                      if (teleportTransition != null) {
-                         ServerLevel newLevel = teleportTransition.newLevel();
--                        if (level.isAllowedToEnterPortal(newLevel) && (newLevel.dimension() == level.dimension() || this.canTeleport(level, newLevel))) {
+-                        this.teleportToPortalDestination(level, teleportTransition);
++                        ServerLevel newLevel = teleportTransition.newLevel();
 +                        if ((this instanceof ServerPlayer && newLevel == null) || (newLevel != null && level.isAllowedToEnterPortal(newLevel) && (newLevel.dimension() == level.dimension() || this.canTeleport(level, newLevel)))) { // CraftBukkit - always call event for players
-                             this.teleport(teleportTransition);
-                         }
++                            this.teleport(teleportTransition);
++                        }
                      }
-@@ -2768,6 +_,13 @@
+ 
+                     profiler.pop();
+@@ -2683,13 +_,6 @@
+         }
+     }
+ 
+-    public void teleportToPortalDestination(ServerLevel level, TeleportTransition teleportTransition) {
+-        ServerLevel newLevel = teleportTransition.newLevel();
+-        if (level.isAllowedToEnterPortal(newLevel) && (newLevel.dimension() == level.dimension() || this.canTeleport(level, newLevel))) {
+-            this.teleport(teleportTransition);
+-        }
+-    }
+-
+     public int getDimensionChangingDelay() {
+         Entity firstPassenger = this.getFirstPassenger();
+         return firstPassenger instanceof ServerPlayer ? firstPassenger.getDimensionChangingDelay() : 300;
+@@ -2702,7 +_,7 @@
+     public void handleDamageEvent(DamageSource source) {
+     }
+ 
+-    public void handleEntityEvent(@EntityEvent.Value byte id) {
++    public void handleEntityEvent(byte id) {
+         switch (id) {
+             case 53:
+                 HoneyBlock.showSlideParticles(this);
+@@ -2782,6 +_,13 @@
      }
  
      public void setSwimming(boolean swimming) {
@@ -2150,7 +2266,7 @@
          this.setSharedFlag(4, swimming);
      }
  
-@@ -2805,6 +_,7 @@
+@@ -2819,6 +_,7 @@
      }
  
      public @Nullable PlayerTeam getTeam() {
@@ -2158,7 +2274,7 @@
          return this.level().getScoreboard().getPlayersTeam(this.getScoreboardName());
      }
  
-@@ -2820,8 +_,12 @@
+@@ -2834,8 +_,12 @@
          return this.getTeam() != null ? this.getTeam().isAlliedTo(other) : false;
      }
  
@@ -2172,7 +2288,7 @@
      }
  
      public boolean getSharedFlag(@Entity.Flags int flag) {
-@@ -2838,7 +_,7 @@
+@@ -2852,7 +_,7 @@
      }
  
      public int getMaxAirSupply() {
@@ -2181,7 +2297,7 @@
      }
  
      public int getAirSupply() {
-@@ -2846,10 +_,24 @@
+@@ -2860,10 +_,24 @@
      }
  
      public void setAirSupply(int supply) {
@@ -2207,7 +2323,7 @@
          this.setTicksFrozen(0);
      }
  
-@@ -2876,11 +_,41 @@
+@@ -2890,11 +_,41 @@
  
      public void thunderHit(ServerLevel level, LightningBolt lightningBolt) {
          this.setRemainingFireTicks(this.remainingFireTicks + 1);
@@ -2253,7 +2369,7 @@
      }
  
      public void onAboveBubbleColumn(boolean dragDown, BlockPos pos) {
-@@ -2888,18 +_,15 @@
+@@ -2902,18 +_,15 @@
      }
  
      protected static void handleOnAboveBubbleColumn(Entity entity, boolean dragDown, BlockPos pos) {
@@ -2279,7 +2395,7 @@
          sendBubbleColumnParticles(entity.level, pos);
      }
  
-@@ -2923,21 +_,24 @@
+@@ -2937,21 +_,24 @@
      }
  
      protected static void handleOnInsideBubbleColumn(Entity entity, boolean dragDown) {
@@ -2314,7 +2430,7 @@
      public boolean killedEntity(ServerLevel level, LivingEntity entity, DamageSource source) {
          return true;
      }
-@@ -3005,7 +_,7 @@
+@@ -3019,7 +_,7 @@
      }
  
      protected Component getTypeName() {
@@ -2323,7 +2439,7 @@
      }
  
      public boolean is(Entity other) {
-@@ -3034,36 +_,41 @@
+@@ -3048,36 +_,41 @@
      public String toString() {
          String levelId = this.level() == null ? "~NULL~" : this.level().toString();
          return this.removalReason != null
@@ -2373,7 +2489,7 @@
      }
  
      public boolean isInvulnerable() {
-@@ -3083,6 +_,13 @@
+@@ -3097,6 +_,13 @@
      }
  
      public void restoreFrom(Entity oldEntity) {
@@ -2387,7 +2503,7 @@
          try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(this.problemPath(), LOGGER)) {
              TagValueOutput entityData = TagValueOutput.createWithContext(reporter, oldEntity.registryAccess());
              oldEntity.saveWithoutId(entityData);
-@@ -3094,7 +_,66 @@
+@@ -3108,7 +_,66 @@
      }
  
      public @Nullable Entity teleport(TeleportTransition transition) {
@@ -2454,7 +2570,7 @@
              ServerLevel newLevel = transition.newLevel();
              boolean otherDimension = newLevel.dimension() != serverLevel.dimension();
              if (!transition.asPassenger()) {
-@@ -3144,10 +_,16 @@
+@@ -3158,10 +_,16 @@
              return null;
          }
  
@@ -2472,7 +2588,7 @@
  
          for (Entity newPassenger : newPassengers) {
              newPassenger.startRiding(newEntity, true, false);
-@@ -3158,6 +_,7 @@
+@@ -3172,6 +_,7 @@
          this.teleportSpectators(transition, oldLevel);
          profiler.pop();
          return newEntity;
@@ -2480,7 +2596,7 @@
      }
  
      protected void teleportSpectators(TeleportTransition transition, ServerLevel oldLevel) {
-@@ -3233,9 +_,17 @@
+@@ -3247,9 +_,17 @@
      }
  
      protected void removeAfterChangingDimensions() {
@@ -2500,7 +2616,7 @@
          }
  
          if (this instanceof WaypointTransmitter waypoint && this.level instanceof ServerLevel serverLevel) {
-@@ -3248,10 +_,11 @@
+@@ -3262,10 +_,11 @@
      }
  
      public boolean canUsePortal(boolean ignorePassenger) {
@@ -2513,7 +2629,7 @@
          if (from.dimension() == Level.END && to.dimension() == Level.OVERWORLD) {
              for (Entity passenger : this.getPassengers()) {
                  if (passenger instanceof ServerPlayer player && !player.seenCredits) {
-@@ -3316,6 +_,7 @@
+@@ -3330,6 +_,7 @@
          return this.stringUUID;
      }
  
@@ -2521,7 +2637,7 @@
      public boolean isPushedByFluid() {
          return true;
      }
-@@ -3370,10 +_,15 @@
+@@ -3384,10 +_,15 @@
          return null;
      }
  
@@ -2540,7 +2656,7 @@
          return newEntity != null;
      }
  
-@@ -3427,6 +_,8 @@
+@@ -3441,6 +_,8 @@
          EntityDimensions oldDim = this.dimensions;
          Pose pose = this.getPose();
          EntityDimensions newDim = this.getDimensions(pose);
@@ -2549,7 +2665,7 @@
          this.dimensions = newDim;
          this.eyeHeight = newDim.eyeHeight();
          this.reapplyPosition();
-@@ -3489,7 +_,26 @@
+@@ -3503,7 +_,26 @@
      }
  
      public final void setBoundingBox(AABB bb) {
@@ -2577,7 +2693,7 @@
      }
  
      public final float getEyeHeight(Pose pose) {
-@@ -3513,6 +_,12 @@
+@@ -3527,6 +_,12 @@
      }
  
      public void stopSeenByPlayer(ServerPlayer player) {
@@ -2590,7 +2706,7 @@
      }
  
      public float rotate(Rotation rotation) {
-@@ -3571,21 +_,34 @@
+@@ -3585,21 +_,34 @@
      }
  
      private Stream<Entity> getIndirectPassengersStream() {
@@ -2626,7 +2742,7 @@
      }
  
      public int countPlayerPassengers() {
-@@ -3593,6 +_,7 @@
+@@ -3607,6 +_,7 @@
      }
  
      public boolean hasExactlyOnePlayerPassenger() {
@@ -2634,7 +2750,7 @@
          return this.countPlayerPassengers() == 1;
      }
  
-@@ -3633,16 +_,8 @@
+@@ -3647,16 +_,8 @@
          return passenger != null && passenger.isClientAuthoritative();
      }
  
@@ -2653,7 +2769,16 @@
      }
  
      public boolean isEffectiveAi() {
-@@ -3681,9 +_,38 @@
+@@ -3684,7 +_,7 @@
+     }
+ 
+     public PushReaction getPistonPushReaction() {
+-        return PushReaction.PUSH_PULL;
++        return PushReaction.NORMAL;
+     }
+ 
+     public SoundSource getSoundSource() {
+@@ -3695,9 +_,38 @@
          return 0;
      }
  
@@ -2693,7 +2818,7 @@
              this.position(),
              this.getRotationVector(),
              level,
-@@ -3712,6 +_,12 @@
+@@ -3726,6 +_,12 @@
          return Mth.lerp(partial, this.yRotO, this.yRot);
      }
  
@@ -2706,7 +2831,7 @@
      public boolean touchingUnloadedChunk() {
          AABB box = this.getBoundingBox().inflate(1.0);
          int x0 = Mth.floor(box.minX);
-@@ -3787,7 +_,9 @@
+@@ -3801,7 +_,9 @@
  
      public void addDeltaMovement(Vec3 momentum) {
          if (momentum.isFinite()) {
@@ -2717,7 +2842,7 @@
          }
      }
  
-@@ -3852,8 +_,43 @@
+@@ -3866,8 +_,43 @@
      }
  
      public final void setPosRaw(double x, double y, double z) {
@@ -2762,7 +2887,7 @@
              int fx = Mth.floor(x);
              int fy = Mth.floor(y);
              int fz = Mth.floor(z);
-@@ -3875,7 +_,22 @@
+@@ -3889,7 +_,22 @@
                      serverLevel.getWaypointManager().updatePlayer(player);
                  }
              }
@@ -2786,7 +2911,7 @@
      }
  
      public void checkDespawn() {
-@@ -3927,6 +_,12 @@
+@@ -3941,6 +_,12 @@
          return this.getTicksFrozen() > 0;
      }
  
@@ -2799,7 +2924,7 @@
      public float getYRot() {
          return this.yRot;
      }
-@@ -3956,16 +_,12 @@
+@@ -3970,16 +_,12 @@
          }
      }
  
@@ -2817,7 +2942,7 @@
      }
  
      public void onExplosionHit(@Nullable Entity explosionCausedBy) {
-@@ -3981,7 +_,15 @@
+@@ -3995,7 +_,15 @@
      }
  
      @Override
@@ -2834,7 +2959,7 @@
          if (this.removalReason == null) {
              this.removalReason = reason;
          }
-@@ -3990,15 +_,36 @@
+@@ -4004,15 +_,36 @@
              this.stopRiding();
          }
  
@@ -2872,7 +2997,7 @@
      @Override
      public void setLevelCallback(EntityInLevelCallback levelCallback) {
          this.levelCallback = levelCallback;
-@@ -4006,11 +_,9 @@
+@@ -4020,11 +_,9 @@
  
      @Override
      public boolean shouldBeSaved() {
@@ -2887,7 +3012,7 @@
      }
  
      @Override
-@@ -4022,6 +_,90 @@
+@@ -4036,6 +_,90 @@
          return true;
      }
  
@@ -2978,7 +3103,7 @@
      public boolean isFlyingVehicle() {
          return false;
      }
-@@ -4221,4 +_,50 @@
+@@ -4235,4 +_,50 @@
              return this.save;
          }
      }

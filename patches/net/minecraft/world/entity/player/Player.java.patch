@@ -11,7 +11,15 @@
  import java.util.Collection;
  import java.util.List;
  import java.util.Optional;
-@@ -44,7 +_,6 @@
+@@ -28,6 +_,7 @@
+ import net.minecraft.network.syncher.EntityDataSerializers;
+ import net.minecraft.network.syncher.SynchedEntityData;
+ import net.minecraft.resources.Identifier;
++import net.minecraft.resources.ResourceKey;
+ import net.minecraft.server.dialog.Dialog;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.ServerPlayer;
+@@ -43,7 +_,6 @@
  import net.minecraft.tags.DamageTypeTags;
  import net.minecraft.tags.EntityTypeTags;
  import net.minecraft.tags.FluidTags;
@@ -19,7 +27,7 @@
  import net.minecraft.util.Mth;
  import net.minecraft.util.Unit;
  import net.minecraft.util.Util;
-@@ -54,7 +_,7 @@
+@@ -53,7 +_,7 @@
  import net.minecraft.world.InteractionResult;
  import net.minecraft.world.ItemStackWithSlot;
  import net.minecraft.world.MenuProvider;
@@ -28,7 +36,14 @@
  import net.minecraft.world.damagesource.DamageSource;
  import net.minecraft.world.effect.MobEffectInstance;
  import net.minecraft.world.effect.MobEffectUtil;
-@@ -69,7 +_,6 @@
+@@ -62,14 +_,12 @@
+ import net.minecraft.world.entity.ContainerUser;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.EntityEquipment;
+-import net.minecraft.world.entity.EntityEvent;
+ import net.minecraft.world.entity.EntityReference;
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.entity.EntityTypes;
  import net.minecraft.world.entity.EquipmentSlot;
  import net.minecraft.world.entity.HumanoidArm;
  import net.minecraft.world.entity.LivingEntity;
@@ -47,7 +62,15 @@
  import net.minecraft.world.entity.projectile.FishingHook;
  import net.minecraft.world.entity.projectile.Projectile;
  import net.minecraft.world.entity.projectile.ProjectileDeflection;
-@@ -105,7 +_,6 @@
+@@ -97,6 +_,7 @@
+ import net.minecraft.world.item.ProjectileWeaponItem;
+ import net.minecraft.world.item.component.BlocksAttacks;
+ import net.minecraft.world.item.component.ResolvableProfile;
++import net.minecraft.world.item.crafting.Recipe;
+ import net.minecraft.world.item.crafting.RecipeHolder;
+ import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
+ import net.minecraft.world.item.enchantment.EnchantmentHelper;
+@@ -104,12 +_,10 @@
  import net.minecraft.world.item.trading.MerchantOffers;
  import net.minecraft.world.level.GameType;
  import net.minecraft.world.level.Level;
@@ -55,6 +78,11 @@
  import net.minecraft.world.level.block.entity.CommandBlockEntity;
  import net.minecraft.world.level.block.entity.ContainerOpenersCounter;
  import net.minecraft.world.level.block.entity.JigsawBlockEntity;
+ import net.minecraft.world.level.block.entity.SignBlockEntity;
+-import net.minecraft.world.level.block.entity.SignTextSlot;
+ import net.minecraft.world.level.block.entity.StructureBlockEntity;
+ import net.minecraft.world.level.block.entity.TestBlockEntity;
+ import net.minecraft.world.level.block.entity.TestInstanceBlockEntity;
 @@ -122,11 +_,14 @@
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
@@ -215,6 +243,15 @@
          if (this.canPlayerFitWithinBlocksAndEntitiesWhen(Pose.SWIMMING)) {
              Pose desiredPose = this.getDesiredPose();
              Pose actualPose;
+@@ -415,7 +_,7 @@
+     }
+ 
+     @Override
+-    public void handleEntityEvent(@EntityEvent.Value byte id) {
++    public void handleEntityEvent(byte id) {
+         if (id == 9) {
+             this.completeUsingItem();
+         } else if (id == 23) {
 @@ -427,6 +_,18 @@
          }
      }
@@ -435,6 +472,15 @@
          }
      }
  
+@@ -769,7 +_,7 @@
+         return false;
+     }
+ 
+-    public void openTextEdit(SignBlockEntity sign, SignTextSlot slot) {
++    public void openTextEdit(SignBlockEntity sign, boolean isFrontText) {
+     }
+ 
+     public void openMinecartCommandBlock(MinecartCommandBlock commandBlock) {
 @@ -817,6 +_,8 @@
  
              return InteractionResult.PASS;
@@ -780,7 +826,21 @@
          super.stopSleeping();
          if (this.level() instanceof ServerLevel && updateLevelList) {
              ((ServerLevel)this.level()).updateSleepingPlayerList();
-@@ -1399,7 +_,7 @@
+@@ -1365,6 +_,13 @@
+     public void triggerRecipeCrafted(RecipeHolder<?> recipe, List<ItemStack> itemStacks) {
+     }
+ 
++    public void awardRecipesByKey(List<ResourceKey<Recipe<?>>> recipeIds) {
++    }
++
++    public int resetRecipes(Collection<RecipeHolder<?>> recipe) {
++        return 0;
++    }
++
+     @Override
+     public void travel(Vec3 input) {
+         if (this.isPassenger()) {
+@@ -1392,7 +_,7 @@
      }
  
      @Override
@@ -789,7 +849,7 @@
          return !this.abilities.flying && super.canGlide();
      }
  
-@@ -1423,7 +_,8 @@
+@@ -1416,7 +_,8 @@
  
      @Override
      public boolean causeFallDamage(double fallDistance, float damageModifier, DamageSource damageSource) {
@@ -799,7 +859,7 @@
              return false;
          }
  
-@@ -1435,7 +_,7 @@
+@@ -1428,7 +_,7 @@
      }
  
      public boolean tryToStartFallFlying() {
@@ -808,7 +868,7 @@
              this.startFallFlying();
              return true;
          } else {
-@@ -1444,7 +_,15 @@
+@@ -1437,7 +_,15 @@
      }
  
      public void startFallFlying() {
@@ -825,7 +885,7 @@
      }
  
      @Override
-@@ -1458,13 +_,13 @@
+@@ -1451,13 +_,13 @@
      protected void playStepSound(BlockPos onPos, BlockState onState) {
          if (this.isInWater()) {
              this.waterSwimSound();
@@ -841,7 +901,7 @@
                  } else {
                      super.playStepSound(primaryStepSoundPos, primaryStepState);
                  }
-@@ -1495,6 +_,10 @@
+@@ -1488,6 +_,10 @@
      }
  
      public void giveExperiencePoints(int i) {
@@ -852,7 +912,7 @@
          this.increaseScore(i);
          this.experienceProgress = this.experienceProgress + (float)i / this.getXpNeededForNextLevel();
          this.totalExperience = Mth.clamp(this.totalExperience + i, 0, Integer.MAX_VALUE);
-@@ -1522,7 +_,7 @@
+@@ -1515,7 +_,7 @@
      }
  
      public void onEnchantmentPerformed(ItemStack itemStack, int enchantmentCost) {
@@ -861,7 +921,7 @@
          if (this.experienceLevel < 0) {
              this.experienceLevel = 0;
              this.experienceProgress = 0.0F;
-@@ -1533,6 +_,10 @@
+@@ -1526,6 +_,10 @@
      }
  
      public void giveExperienceLevels(int amount) {
@@ -872,7 +932,7 @@
          this.experienceLevel = IntMath.saturatedAdd(this.experienceLevel, amount);
          if (this.experienceLevel < 0) {
              this.experienceLevel = 0;
-@@ -1555,16 +_,40 @@
+@@ -1548,16 +_,40 @@
          }
      }
  
@@ -915,7 +975,7 @@
      }
  
      public FoodData getFoodData() {
-@@ -1584,6 +_,9 @@
+@@ -1577,6 +_,9 @@
      }
  
      public boolean mayUseItemAt(BlockPos pos, Direction direction, ItemStack itemStack) {
@@ -925,7 +985,7 @@
          if (this.abilities.mayBuild) {
              return true;
          }
-@@ -1595,7 +_,23 @@
+@@ -1588,7 +_,23 @@
  
      @Override
      protected int getBaseExperienceReward(ServerLevel level) {
@@ -950,7 +1010,7 @@
      }
  
      @Override
-@@ -1639,6 +_,13 @@
+@@ -1632,6 +_,13 @@
          return this.inventory.add(itemStack);
      }
  
@@ -964,7 +1024,7 @@
      public abstract @Nullable GameType gameMode();
  
      @Override
-@@ -1667,7 +_,11 @@
+@@ -1660,7 +_,11 @@
  
      @Override
      public Component getDisplayName() {
@@ -977,7 +1037,7 @@
          return this.decorateDisplayNameComponent(result);
      }
  
-@@ -1807,10 +_,39 @@
+@@ -1800,10 +_,39 @@
      }
  
      @Override
@@ -1021,7 +1081,7 @@
  
      public void resetOnlyAttackStrengthTicker() {
          this.attackStrengthTicker = 0;
-@@ -1843,28 +_,43 @@
+@@ -1836,28 +_,43 @@
          return ImmutableList.of(Pose.STANDING, Pose.CROUCHING, Pose.SWIMMING);
      }
  
@@ -1071,7 +1131,7 @@
      }
  
      @Override
-@@ -1904,7 +_,7 @@
+@@ -1897,7 +_,7 @@
      }
  
      public boolean isScoping() {
@@ -1080,7 +1140,7 @@
      }
  
      @Override
-@@ -2027,10 +_,48 @@
+@@ -2020,10 +_,48 @@
          return this.damageSources().playerAttack(this);
      }
  

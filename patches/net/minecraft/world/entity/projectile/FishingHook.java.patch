@@ -1,6 +1,11 @@
 --- a/net/minecraft/world/entity/projectile/FishingHook.java
 +++ b/net/minecraft/world/entity/projectile/FishingHook.java
-@@ -26,7 +_,6 @@
+@@ -22,12 +_,10 @@
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.entity.Entity;
+-import net.minecraft.world.entity.EntityEvent;
+ import net.minecraft.world.entity.EntityType;
  import net.minecraft.world.entity.EntityTypes;
  import net.minecraft.world.entity.ExperienceOrb;
  import net.minecraft.world.entity.InterpolationHandler;
@@ -8,7 +13,7 @@
  import net.minecraft.world.entity.MoverType;
  import net.minecraft.world.entity.item.ItemEntity;
  import net.minecraft.world.entity.player.Player;
-@@ -50,6 +_,12 @@
+@@ -51,6 +_,12 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -21,7 +26,7 @@
  public class FishingHook extends Projectile {
      private static final Logger LOGGER = LogUtils.getLogger();
      private final RandomSource syncronizedRandom = RandomSource.create();
-@@ -64,17 +_,32 @@
+@@ -65,17 +_,32 @@
      public int timeUntilHooked;
      public float fishAngle;
      private boolean openWater = true;
@@ -56,7 +61,7 @@
      }
  
      public FishingHook(EntityType<? extends FishingHook> type, Level level) {
-@@ -154,12 +_,12 @@
+@@ -155,12 +_,12 @@
          super.tick();
          Player owner = this.getPlayerOwner();
          if (owner == null) {
@@ -71,7 +76,7 @@
                      return;
                  }
              } else {
-@@ -177,12 +_,14 @@
+@@ -178,12 +_,14 @@
              if (this.currentState == FishingHook.FishHookState.FLYING) {
                  if (this.hookedIn != null) {
                      this.setDeltaMovement(Vec3.ZERO);
@@ -86,7 +91,7 @@
                      this.currentState = FishingHook.FishHookState.BOBBING;
                      return;
                  }
-@@ -197,6 +_,7 @@
+@@ -198,6 +_,7 @@
                              this.setPos(this.hookedIn.getX(), this.hookedIn.getY(0.8), this.hookedIn.getZ());
                          } else {
                              this.setHookedEntity(null);
@@ -94,7 +99,7 @@
                              this.currentState = FishingHook.FishHookState.FLYING;
                          }
                      }
-@@ -236,7 +_,7 @@
+@@ -237,7 +_,7 @@
              }
  
              if (!fluidState.is(FluidTags.WATER) && !this.onGround() && this.hookedIn == null) {
@@ -103,7 +108,7 @@
              }
  
              this.move(MoverType.SELF, this.getDeltaMovement());
-@@ -256,20 +_,20 @@
+@@ -257,20 +_,20 @@
          if (owner.canInteractWithLevel()) {
              ItemStack selectedItem = owner.getMainHandItem();
              ItemStack selectedItemOffHand = owner.getOffhandItem();
@@ -128,7 +133,7 @@
      }
  
      @Override
-@@ -300,11 +_,11 @@
+@@ -301,11 +_,11 @@
          ServerLevel serverLevel = (ServerLevel)this.level();
          int fishingSpeed = 1;
          BlockPos above = blockPos.above();
@@ -142,7 +147,7 @@
              fishingSpeed--;
          }
  
-@@ -314,6 +_,10 @@
+@@ -315,6 +_,10 @@
                  this.timeUntilLured = 0;
                  this.timeUntilHooked = 0;
                  this.getEntityData().set(DATA_BITING, false);
@@ -153,7 +158,7 @@
              }
          } else if (this.timeUntilHooked > 0) {
              this.timeUntilHooked -= fishingSpeed;
-@@ -337,6 +_,13 @@
+@@ -338,6 +_,13 @@
                      serverLevel.sendParticles(ParticleTypes.FISHING, fishX, fishY, fishZ, 0, -particleZMovement, 0.01, particleXMovement, 1.0);
                  }
              } else {
@@ -167,7 +172,7 @@
                  this.playSound(SoundEvents.FISHING_BOBBER_SPLASH, 0.25F, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
                  double y = this.getY() + 0.5;
                  serverLevel.sendParticles(
-@@ -380,14 +_,31 @@
+@@ -381,14 +_,31 @@
              }
  
              if (this.timeUntilLured <= 0) {
@@ -203,7 +208,7 @@
  
      public boolean calculateOpenWater(BlockPos blockPos) {
          FishingHook.OpenWaterType previousLayer = FishingHook.OpenWaterType.INVALID;
-@@ -446,36 +_,73 @@
+@@ -447,36 +_,73 @@
      protected void readAdditionalSaveData(ValueInput input) {
      }
  
@@ -280,7 +285,7 @@
                      if (itemStack.is(ItemTags.FISHES)) {
                          owner.awardStat(Stats.FISH_CAUGHT, 1);
                      }
-@@ -485,10 +_,28 @@
+@@ -486,10 +_,28 @@
              }
  
              if (this.onGround()) {
@@ -310,11 +315,13 @@
              return dmg;
          } else {
              return 0;
-@@ -497,21 +_,16 @@
+@@ -497,22 +_,17 @@
+     }
  
      @Override
-     public void handleEntityEvent(byte id) {
+-    public void handleEntityEvent(@EntityEvent.Value byte id) {
 -        if (id == 31 && this.hookedIn != null) {
++    public void handleEntityEvent(byte id) {
 +        if (id == 31 && this.level().isClientSide() && this.hookedIn instanceof Player player && player.isLocalPlayer()) {
              this.pullEntity(this.hookedIn);
          }
@@ -334,7 +341,7 @@
              Vec3 delta = new Vec3(owner.getX() - this.getX(), owner.getY() - this.getY(), owner.getZ() - this.getZ()).scale(0.1);
              entity.setDeltaMovement(entity.getDeltaMovement().add(delta));
          }
-@@ -524,8 +_,15 @@
+@@ -525,8 +_,15 @@
  
      @Override
      public void remove(Entity.RemovalReason reason) {
@@ -351,7 +358,7 @@
      }
  
      @Override
-@@ -571,7 +_,7 @@
+@@ -572,7 +_,7 @@
          if (this.getPlayerOwner() == null) {
              int ownerId = packet.getData();
              LOGGER.error("Failed to recreate fishing hook on client. {} (id: {}) is not a valid owner.", this.level().getEntity(ownerId), ownerId);

@@ -1,10 +1,25 @@
 --- a/net/minecraft/world/level/block/NetherFungusBlock.java
 +++ b/net/minecraft/world/level/block/NetherFungusBlock.java
-@@ -58,6 +_,20 @@
+@@ -46,18 +_,32 @@
+     }
  
      @Override
-     public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state) {
+-    public boolean isValidBonemealTarget(LevelReader level, BlockPos pos, BlockState state, BonemealSource source) {
++    public boolean isValidBonemealTarget(LevelReader level, BlockPos pos, BlockState state) {
+         BlockState belowState = level.getBlockState(pos.below());
+         return belowState.is(this.requiredBlock) && level.isInsideBuildHeight(pos.above());
+     }
+ 
+     @Override
+-    public boolean isBonemealSuccess(Level level, RandomSource random, BlockPos pos, BlockState state, BonemealSource source) {
++    public boolean isBonemealSuccess(Level level, RandomSource random, BlockPos pos, BlockState state) {
+         return random.nextFloat() < 0.4;
+     }
+ 
+     @Override
+-    public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state, BonemealSource source) {
 -        this.getFeature(level).ifPresent(feature -> feature.value().place(level, level.getChunkSource().getGenerator(), random, pos));
++    public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state) {
 +        // Neo: Fire the BlockGrowFeatureEvent and change the ifPresent call to use the event's result.
 +        var event = net.neoforged.neoforge.event.EventHooks.fireBlockGrowFeature(level, random, pos, this.getFeature(level).orElse(null));
 +        if (event.isCanceled()) return;

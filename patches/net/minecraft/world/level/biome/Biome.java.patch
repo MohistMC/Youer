@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/biome/Biome.java
 +++ b/net/minecraft/world/level/biome/Biome.java
-@@ -35,9 +_,9 @@
+@@ -16,7 +_,6 @@
+ import net.minecraft.util.StringRepresentable;
+ import net.minecraft.world.attribute.EnvironmentAttribute;
+ import net.minecraft.world.attribute.EnvironmentAttributeMap;
+-import net.minecraft.world.attribute.EnvironmentAttributes;
+ import net.minecraft.world.attribute.modifier.AttributeModifier;
+ import net.minecraft.world.level.DryFoliageColor;
+ import net.minecraft.world.level.FoliageColor;
+@@ -36,10 +_,11 @@
  public final class Biome {
      public static final Codec<Biome> DIRECT_CODEC = RecordCodecBuilder.create(
          i -> i.group(
@@ -8,37 +16,63 @@
 +                Biome.ClimateSettings.CODEC.forGetter(b -> b.modifiableBiomeInfo().getOriginalBiomeInfo().climateSettings()), // FORGE: Patch codec to ignore field redirect coremods.
                  EnvironmentAttributeMap.CODEC_ONLY_POSITIONAL.optionalFieldOf("attributes", EnvironmentAttributeMap.EMPTY).forGetter(b -> b.attributes),
 -                BiomeSpecialEffects.CODEC.fieldOf("effects").forGetter(b -> b.specialEffects),
+-                BiomeGenerationSettings.CODEC.forGetter(b -> b.generationSettings)
 +                BiomeSpecialEffects.CODEC.fieldOf("effects").forGetter(b -> b.modifiableBiomeInfo().getOriginalBiomeInfo().effects()), // FORGE: Patch codec to ignore field redirect coremods.
-                 BiomeGenerationSettings.CODEC.forGetter(b -> b.generationSettings),
-                 MobSpawnSettings.CODEC.forGetter(b -> b.mobSettings)
++                BiomeGenerationSettings.CODEC.forGetter(b -> b.generationSettings),
++                MobSpawnSettings.CODEC.forGetter(b -> b.mobSettings)
              )
-@@ -65,10 +_,12 @@
+             .apply(i, Biome::new)
+     );
+@@ -49,7 +_,12 @@
+                 EnvironmentAttributeMap.NETWORK_CODEC.optionalFieldOf("attributes", EnvironmentAttributeMap.EMPTY).forGetter(b -> b.attributes),
+                 BiomeSpecialEffects.CODEC.fieldOf("effects").forGetter(b -> b.specialEffects)
+             )
+-            .apply(i, (climateSettings, attributes, specialEffects) -> new Biome(climateSettings, attributes, specialEffects, BiomeGenerationSettings.EMPTY))
++            .apply(
++                i,
++                (climateSettings, attributes, specialEffects) -> new Biome(
++                    climateSettings, attributes, specialEffects, BiomeGenerationSettings.EMPTY, MobSpawnSettings.EMPTY
++                )
++            )
+     );
+     public static final Codec<Holder<Biome>> CODEC = RegistryFileCodec.create(Registries.BIOME, DIRECT_CODEC);
+     public static final Codec<HolderSet<Biome>> LIST_CODEC = RegistryCodecs.homogeneousList(Registries.BIOME, DIRECT_CODEC);
+@@ -60,9 +_,12 @@
      @Deprecated(forRemoval = true)
      public static final PerlinSimplexNoise BIOME_INFO_NOISE = new PerlinSimplexNoise(new WorldgenRandom(new LegacyRandomSource(2345L)), ImmutableList.of(0));
      private static final int TEMPERATURE_CACHE_SIZE = 1024;
 +    /** Neo: Field accesses are redirected to {@link #getModifiedClimateSettings()} with a coremod. */
      private final Biome.ClimateSettings climateSettings;
      private final BiomeGenerationSettings generationSettings;
-     private final MobSpawnSettings mobSettings;
++    private final MobSpawnSettings mobSettings;
      private final EnvironmentAttributeMap attributes;
 +    /** Neo: Field accesses are redirected to {@link #getModifiedSpecialEffects()} with a coremod. */
      private final BiomeSpecialEffects specialEffects;
      private final ThreadLocal<Long2FloatLinkedOpenHashMap> temperatureCache = ThreadLocal.withInitial(() -> {
          Long2FloatLinkedOpenHashMap map = new Long2FloatLinkedOpenHashMap(1024, 0.25F) {
-@@ -92,10 +_,11 @@
-         this.mobSettings = mobSettings;
+@@ -78,12 +_,19 @@
+         Biome.ClimateSettings climateSettings,
+         EnvironmentAttributeMap attributes,
+         BiomeSpecialEffects specialEffects,
+-        BiomeGenerationSettings generationSettings
++        BiomeGenerationSettings generationSettings,
++        MobSpawnSettings mobSettings
+     ) {
+         this.climateSettings = climateSettings;
++        this.generationSettings = generationSettings;
++        this.mobSettings = mobSettings;
          this.attributes = attributes;
          this.specialEffects = specialEffects;
+-        this.generationSettings = generationSettings;
 +        this.modifiableBiomeInfo = new net.neoforged.neoforge.common.world.ModifiableBiomeInfo(new net.neoforged.neoforge.common.world.ModifiableBiomeInfo.BiomeInfo(climateSettings, specialEffects, generationSettings, mobSettings)); // FORGE: cache original biome info on construction so we can bypass our field read coremods where necessary
-     }
- 
-     public MobSpawnSettings getMobSettings() {
--        return this.mobSettings;
++    }
++
++    public MobSpawnSettings getMobSettings() {
 +        return this.modifiableBiomeInfo().get().mobSpawnSettings();
      }
  
      public boolean hasPrecipitation() {
-@@ -123,20 +_,7 @@
+@@ -111,20 +_,7 @@
  
      @Deprecated
      public float getTemperature(BlockPos pos, int seaLevel) {
@@ -60,7 +94,7 @@
      }
  
      public boolean shouldFreeze(LevelReader level, BlockPos pos) {
-@@ -197,7 +_,7 @@
+@@ -185,7 +_,7 @@
      }
  
      public BiomeGenerationSettings getGenerationSettings() {
@@ -69,7 +103,53 @@
      }
  
      public int getGrassColor(double x, double z) {
-@@ -429,5 +_,32 @@
+@@ -247,6 +_,7 @@
+         private @Nullable Float downfall;
+         private final EnvironmentAttributeMap.Builder attributes = EnvironmentAttributeMap.builder();
+         private @Nullable BiomeSpecialEffects specialEffects;
++        private @Nullable MobSpawnSettings mobSpawnSettings;
+         private @Nullable BiomeGenerationSettings generationSettings;
+ 
+         public Biome.BiomeBuilder hasPrecipitation(boolean hasPrecipitation) {
+@@ -291,7 +_,7 @@
+         }
+ 
+         public Biome.BiomeBuilder mobSpawnSettings(MobSpawnSettings mobSpawnSettings) {
+-            this.setAttribute(EnvironmentAttributes.NATURAL_MOB_SPAWNS, mobSpawnSettings);
++            this.mobSpawnSettings = mobSpawnSettings;
+             return this;
+         }
+ 
+@@ -306,12 +_,17 @@
+         }
+ 
+         public Biome build() {
+-            if (this.temperature != null && this.downfall != null && this.specialEffects != null && this.generationSettings != null) {
++            if (this.temperature != null
++                && this.downfall != null
++                && this.specialEffects != null
++                && this.mobSpawnSettings != null
++                && this.generationSettings != null) {
+                 return new Biome(
+                     new Biome.ClimateSettings(this.hasPrecipitation, this.temperature, this.temperatureModifier, this.downfall),
+                     this.attributes.build(),
+                     this.specialEffects,
+-                    this.generationSettings
++                    this.generationSettings,
++                    this.mobSpawnSettings
+                 );
+             } else {
+                 throw new IllegalStateException("You are missing parameters to build a proper biome\n" + this);
+@@ -330,6 +_,8 @@
+                 + this.downfall
+                 + ",\nspecialEffects="
+                 + this.specialEffects
++                + ",\nmobSpawnSettings="
++                + this.mobSpawnSettings
+                 + ",\ngenerationSettings="
+                 + this.generationSettings
+                 + ",\n}";
+@@ -409,5 +_,32 @@
          public String getSerializedName() {
              return this.name;
          }

@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/entity/animal/dolphin/Dolphin.java
 +++ b/net/minecraft/world/entity/animal/dolphin/Dolphin.java
-@@ -68,6 +_,9 @@
+@@ -27,7 +_,6 @@
+ import net.minecraft.world.entity.EntityAttachment;
+ import net.minecraft.world.entity.EntityAttachments;
+ import net.minecraft.world.entity.EntityDimensions;
+-import net.minecraft.world.entity.EntityEvent;
+ import net.minecraft.world.entity.EntitySpawnReason;
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.entity.EntityTypes;
+@@ -69,6 +_,9 @@
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.Vec3;
@@ -10,7 +18,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class Dolphin extends AgeableWaterCreature {
-@@ -85,14 +_,103 @@
+@@ -86,14 +_,103 @@
          .withAttachments(EntityAttachments.builder().attach(EntityAttachment.PASSENGER, 0.0F, 0.3125F, 0.0F));
      private static final boolean DEFAULT_GOT_FISH = false;
      public @Nullable BlockPos treasurePos;
@@ -115,7 +123,7 @@
      @Override
      public @Nullable SpawnGroupData finalizeSpawn(
          ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason spawnReason, @Nullable SpawnGroupData groupData
-@@ -100,6 +_,7 @@
+@@ -101,6 +_,7 @@
          this.setAirSupply(this.getMaxAirSupply());
          this.setXRot(0.0F);
          SpawnGroupData spawnGroupData = Objects.requireNonNullElseGet(groupData, () -> new AgeableMob.AgeableMobGroupData(0.1F));
@@ -123,7 +131,7 @@
          return super.finalizeSpawn(level, difficulty, spawnReason, spawnGroupData);
      }
  
-@@ -107,6 +_,13 @@
+@@ -108,6 +_,13 @@
          return EntityTypes.DOLPHIN.create(level, EntitySpawnReason.BREEDING);
      }
  
@@ -137,7 +145,7 @@
      @Override
      public float getAgeScale() {
          return this.isBaby() ? 0.65F : 1.0F;
-@@ -157,19 +_,22 @@
+@@ -158,19 +_,22 @@
      protected void registerGoals() {
          this.goalSelector.addGoal(0, new BreathAirGoal(this));
          this.goalSelector.addGoal(0, new TryFindWaterGoal(this));
@@ -162,7 +170,7 @@
      }
  
      public static AttributeSupplier.Builder createAttributes() {
-@@ -193,7 +_,7 @@
+@@ -194,7 +_,7 @@
  
      @Override
      public int getMaxAirSupply() {
@@ -171,7 +179,7 @@
      }
  
      @Override
-@@ -221,11 +_,17 @@
+@@ -222,11 +_,17 @@
          if (this.getItemBySlot(EquipmentSlot.MAINHAND).isEmpty()) {
              ItemStack itemStack = entity.getItem();
              if (this.canHoldItem(itemStack)) {
@@ -190,7 +198,16 @@
              }
          }
      }
-@@ -392,6 +_,7 @@
+@@ -288,7 +_,7 @@
+     }
+ 
+     @Override
+-    public void handleEntityEvent(@EntityEvent.Value byte id) {
++    public void handleEntityEvent(byte id) {
+         if (id == 38) {
+             this.addParticlesAroundSelf(ParticleTypes.HAPPY_VILLAGER);
+         } else {
+@@ -393,6 +_,7 @@
  
          @Override
          public boolean canUse() {
@@ -198,7 +215,7 @@
              return this.dolphin.gotFish() && this.dolphin.getAirSupply() >= 100;
          }
  
-@@ -489,7 +_,7 @@
+@@ -490,7 +_,7 @@
  
          @Override
          public void start() {
@@ -207,7 +224,7 @@
          }
  
          @Override
-@@ -508,13 +_,65 @@
+@@ -509,13 +_,65 @@
              }
  
              if (this.player.isSwimming() && this.player.level().getRandom().nextInt(6) == 0) {
@@ -276,7 +293,7 @@
              if (!itemStack.isEmpty()) {
                  double yHandPos = Dolphin.this.getEyeY() - 0.3F;
                  ItemEntity thrownItem = new ItemEntity(Dolphin.this.level(), Dolphin.this.getX(), yHandPos, Dolphin.this.getZ(), itemStack);
-@@ -532,81 +_,6 @@
+@@ -533,81 +_,6 @@
                  );
                  Dolphin.this.level().addFreshEntity(thrownItem);
              }

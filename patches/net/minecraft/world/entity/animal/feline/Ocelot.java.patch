@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/entity/animal/feline/Ocelot.java
 +++ b/net/minecraft/world/entity/animal/feline/Ocelot.java
-@@ -67,11 +_,57 @@
+@@ -21,7 +_,6 @@
+ import net.minecraft.world.entity.EntityAttachment;
+ import net.minecraft.world.entity.EntityAttachments;
+ import net.minecraft.world.entity.EntityDimensions;
+-import net.minecraft.world.entity.EntityEvent;
+ import net.minecraft.world.entity.EntitySelector;
+ import net.minecraft.world.entity.EntitySpawnReason;
+ import net.minecraft.world.entity.EntityType;
+@@ -68,11 +_,57 @@
      private Ocelot.@Nullable OcelotAvoidEntityGoal<Player> ocelotAvoidPlayersGoal;
      private Ocelot.@Nullable OcelotTemptGoal temptGoal;
  
@@ -58,7 +66,7 @@
      public boolean isTrusting() {
          return this.entityData.get(DATA_TRUSTING);
      }
-@@ -103,12 +_,14 @@
+@@ -104,12 +_,14 @@
      protected void registerGoals() {
          this.temptGoal = new Ocelot.OcelotTemptGoal(this, 0.6, i -> i.is(ItemTags.OCELOT_FOOD), true);
          this.goalSelector.addGoal(1, new FloatGoal(this));
@@ -73,7 +81,7 @@
          this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Chicken.class, false));
          this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Turtle.class, 10, false, false, Turtle.BABY_ON_LAND_SELECTOR));
      }
-@@ -135,7 +_,7 @@
+@@ -136,7 +_,7 @@
  
      @Override
      public boolean removeWhenFarAway(double distSqr) {
@@ -82,7 +90,7 @@
      }
  
      public static AttributeSupplier.Builder createAttributes() {
-@@ -168,7 +_,7 @@
+@@ -169,7 +_,7 @@
          if ((this.temptGoal == null || this.temptGoal.isRunning()) && !this.isTrusting() && this.isFood(itemStack) && player.distanceToSqr(this) < 9.0) {
              this.usePlayerItem(player, hand, itemStack);
              if (!this.level().isClientSide()) {
@@ -91,3 +99,12 @@
                      this.setTrusting(true);
                      this.spawnTrustingParticles(true);
                      this.level().broadcastEntityEvent(this, (byte)41);
+@@ -186,7 +_,7 @@
+     }
+ 
+     @Override
+-    public void handleEntityEvent(@EntityEvent.Value byte id) {
++    public void handleEntityEvent(byte id) {
+         if (id == 41) {
+             this.spawnTrustingParticles(true);
+         } else if (id == 40) {

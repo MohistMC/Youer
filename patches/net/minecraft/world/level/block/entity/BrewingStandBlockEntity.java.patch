@@ -1,26 +1,31 @@
 --- a/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
-@@ -1,12 +_,14 @@
+@@ -1,15 +_,15 @@
  package net.minecraft.world.level.block.entity;
  
 +import java.util.ArrayList;
  import java.util.Arrays;
 -import java.util.Optional;
+-import java.util.function.Function;
 +import java.util.List;
 +import java.util.Objects;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
  import net.minecraft.core.NonNullList;
+-import net.minecraft.core.component.DataComponents;
  import net.minecraft.network.chat.Component;
+-import net.minecraft.resources.ResourceKey;
 -import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.server.MinecraftServer;
- import net.minecraft.tags.ItemTags;
++import net.minecraft.tags.ItemTags;
  import net.minecraft.world.ContainerHelper;
  import net.minecraft.world.Containers;
-@@ -19,17 +_,20 @@
+ import net.minecraft.world.WorldlyContainer;
+@@ -21,25 +_,20 @@
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.item.ItemStackTemplate;
  import net.minecraft.world.item.Items;
+-import net.minecraft.world.item.component.BrewingFuel;
 -import net.minecraft.world.item.crafting.BrewingInput;
 -import net.minecraft.world.item.crafting.BrewingRecipe;
 -import net.minecraft.world.item.crafting.RecipeAccess;
@@ -34,6 +39,13 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
+-import net.minecraft.world.level.storage.loot.LootContext;
+-import net.minecraft.world.level.storage.loot.LootParams;
+-import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+-import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+-import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
+-import net.minecraft.world.level.storage.loot.providers.number.NumberProviders;
+-import net.minecraft.world.phys.Vec3;
 +import org.bukkit.craftbukkit.block.CraftBlock;
 +import org.bukkit.craftbukkit.entity.CraftHumanEntity;
 +import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -45,14 +57,34 @@
  import org.jspecify.annotations.Nullable;
  
  public class BrewingStandBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer {
-@@ -47,15 +_,21 @@
+@@ -48,33 +_,30 @@
+     private static final int[] SLOTS_FOR_UP = new int[]{3};
+     private static final int[] SLOTS_FOR_DOWN = new int[]{0, 1, 2, 3};
+     private static final int[] SLOTS_FOR_SIDES = new int[]{0, 1, 2, 4};
++    public static final int FUEL_USES = 20;
+     public static final int DATA_BREW_TIME = 0;
+     public static final int DATA_FUEL_USES = 1;
+-    public static final int DATA_TOTAL_BREW_TIME = 2;
+-    public static final int DATA_TOTAL_FUEL_USES = 3;
+-    public static final int NUM_DATA_VALUES = 4;
+-    private static final int DEFAULT_BREW_TIME = 0;
+-    public static final int BREWING_TIME_SECONDS = 20;
+-    private static final int DEFAULT_FUEL = 0;
+-    private static final float DEFAULT_SPEED_MULTIPLIER = 1.0F;
+-    private static final int DEFAULT_FUEL_USES = 20;
++    public static final int NUM_DATA_VALUES = 2;
++    private static final short DEFAULT_BREW_TIME = 0;
++    private static final byte DEFAULT_FUEL = 0;
      private static final Component DEFAULT_NAME = Component.translatable("container.brewing");
      private NonNullList<ItemStack> items = NonNullList.withSize(5, ItemStack.EMPTY);
      public int brewTime;
+-    private int totalBrewTime;
 +    public int recipeBrewTime = 400; // Paper - Add recipeBrewTime
      private boolean[] lastPotionCount;
      private Item ingredient;
      public int fuel;
+-    private int totalFuel;
+-    private float speedMultiplier = 1.0F;
      protected final ContainerData dataAccess = new ContainerData() {
 +        {
 +            Objects.requireNonNull(BrewingStandBlockEntity.this);
@@ -63,26 +95,31 @@
              return switch (dataId) {
                  case 0 -> BrewingStandBlockEntity.this.brewTime;
                  case 1 -> BrewingStandBlockEntity.this.fuel;
+-                case 2 -> BrewingStandBlockEntity.this.totalBrewTime;
+-                case 3 -> BrewingStandBlockEntity.this.totalFuel;
 +                case 2 -> BrewingStandBlockEntity.this.recipeBrewTime; // Paper - Add recipeBrewTime
                  default -> 0;
              };
          }
-@@ -68,15 +_,51 @@
+@@ -87,21 +_,51 @@
                      break;
                  case 1:
                      BrewingStandBlockEntity.this.fuel = value;
 +                    // Paper start - Add recipeBrewTime
-+                    break;
-+                case 2:
+                     break;
+                 case 2:
+-                    BrewingStandBlockEntity.this.totalBrewTime = value;
 +                    BrewingStandBlockEntity.this.recipeBrewTime = value;
-+                    break;
+                     break;
+-                case 3:
+-                    BrewingStandBlockEntity.this.totalFuel = value;
 +                // Paper end - Add recipeBrewTime
              }
          }
  
          @Override
          public int getCount() {
--            return 2;
+-            return 4;
 +            return 3; // Paper - Add recipeBrewTime
          }
      };
@@ -121,16 +158,50 @@
  
      public BrewingStandBlockEntity(BlockPos worldPosition, BlockState blockState) {
          super(BlockEntityTypes.BREWING_STAND, worldPosition, blockState);
-@@ -102,22 +_,35 @@
+@@ -127,65 +_,50 @@
          this.items = items;
      }
  
+-    protected LootContext getLootContext(ServerLevel level) {
+-        return new LootContext.Builder(
+-                new LootParams.Builder(level)
+-                    .withParameter(LootContextParams.BLOCK_STATE, this.getBlockState())
+-                    .withParameter(LootContextParams.BLOCK_ENTITY, this)
+-                    .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(this.getBlockPos()))
+-                    .withParameter(LootContextParams.CONTAINER, this)
+-                    .create(LootContextParamSets.CONTAINER_PROCESS)
+-            )
+-            .create(Optional.empty());
+-    }
+-
+-    protected <T> int getProvidedInteger(ServerLevel level, T component, Function<T, ResourceKey<NumberProvider>> getter, int defaultValue) {
+-        Optional<NumberProvider> provider = NumberProviders.getFromComponent(level, component, getter);
+-        return provider.isPresent() ? provider.get().getInt(this.getLootContext(level)) : defaultValue;
+-    }
+-
+-    protected <T> float getProvidedFloat(ServerLevel level, T component, Function<T, ResourceKey<NumberProvider>> getter, float defaultValue) {
+-        Optional<NumberProvider> provider = NumberProviders.getFromComponent(level, component, getter);
+-        return provider.isPresent() ? provider.get().getFloat(this.getLootContext(level)) : defaultValue;
+-    }
+-
+-    protected int getUses(ServerLevel level, BrewingFuel brewingFuel) {
+-        return this.getProvidedInteger(level, brewingFuel, BrewingFuel::uses, 0);
+-    }
+-
+-    protected float getSpeedMultiplier(ServerLevel level, BrewingFuel brewingFuel) {
+-        return this.getProvidedFloat(level, brewingFuel, BrewingFuel::speedMultiplier, 1.0F);
+-    }
+-
 -    public static void serverTick(ServerLevel level, BlockPos pos, BlockState selfState, BrewingStandBlockEntity entity) {
 +    public static void serverTick(Level level, BlockPos pos, BlockState selfState, BrewingStandBlockEntity entity) {
          ItemStack fuel = entity.items.get(4);
-         if (entity.fuel <= 0 && fuel.is(ItemTags.BREWING_FUEL)) {
--            entity.fuel = 20;
+-        BrewingFuel brewingFuel = fuel.get(DataComponents.BREWING_FUEL);
+-        if (entity.fuel <= 0 && brewingFuel != null) {
+-            entity.fuel = entity.getUses(level, brewingFuel);
+-            entity.totalFuel = entity.fuel;
+-            entity.speedMultiplier = entity.getSpeedMultiplier(level, brewingFuel);
 -            fuel.shrink(1);
++        if (entity.fuel <= 0 && fuel.is(ItemTags.BREWING_FUEL)) {
 +            // CraftBukkit start
 +            org.bukkit.event.inventory.BrewingStandFuelEvent event = new org.bukkit.event.inventory.BrewingStandFuelEvent(
 +                    org.bukkit.craftbukkit.block.CraftBlock.at(level, pos),
@@ -162,11 +233,13 @@
              } else if (!brewable || !ingredient.is(entity.ingredient)) {
                  entity.brewTime = 0;
              }
-@@ -125,7 +_,14 @@
+ 
              setChanged(level, pos, selfState);
          } else if (brewable && entity.fuel > 0) {
+-            float speedMutliplier = entity.speedMultiplier > 0.0F ? entity.speedMultiplier : 1.0F;
              entity.fuel--;
--            entity.brewTime = 400;
+-            entity.brewTime = (int)Math.ceil(400.0F / speedMutliplier);
+-            entity.totalBrewTime = entity.brewTime;
 +            // CraftBukkit start
 +            org.bukkit.event.block.BrewingStartEvent event = new org.bukkit.event.block.BrewingStartEvent(
 +                    org.bukkit.craftbukkit.block.CraftBlock.at(level, pos),
@@ -178,7 +251,7 @@
              entity.ingredient = ingredient.getItem();
              setChanged(level, pos, selfState);
          }
-@@ -134,7 +_,7 @@
+@@ -194,7 +_,7 @@
          if (!Arrays.equals(newCount, entity.lastPotionCount)) {
              entity.lastPotionCount = newCount;
              BlockState state = selfState;
@@ -187,7 +260,7 @@
                  return;
              }
  
-@@ -158,43 +_,60 @@
+@@ -218,43 +_,60 @@
          return result;
      }
  
@@ -268,12 +341,40 @@
          ingredient.shrink(1);
          if (remainder != null) {
              if (ingredient.isEmpty()) {
-@@ -231,18 +_,15 @@
+@@ -273,42 +_,33 @@
+         super.loadAdditional(input);
+         this.items = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
+         ContainerHelper.loadAllItems(input, this.items);
+-        this.brewTime = input.getIntOr("BrewTime", 0);
+-        this.totalBrewTime = input.getIntOr("total_brew_time", 400);
++        this.brewTime = input.getShortOr("BrewTime", (short)0);
+         if (this.brewTime > 0) {
+             this.ingredient = this.items.get(3).getItem();
+         }
+ 
+-        this.fuel = input.getIntOr("Fuel", 0);
+-        this.totalFuel = input.getIntOr("total_fuel", 20);
+-        this.speedMultiplier = input.getFloatOr("speed_multiplier", 1.0F);
++        this.fuel = input.getByteOr("Fuel", (byte)0);
+     }
+ 
+     @Override
+     protected void saveAdditional(ValueOutput output) {
+         super.saveAdditional(output);
+-        output.putInt("BrewTime", this.brewTime);
+-        output.putInt("total_brew_time", this.totalBrewTime);
++        output.putShort("BrewTime", (short)this.brewTime);
+         ContainerHelper.saveAllItems(output, this.items);
+-        output.putInt("Fuel", this.fuel);
+-        output.putInt("total_fuel", this.totalFuel);
+-        output.putFloat("speed_multiplier", this.speedMultiplier);
++        output.putByte("Fuel", (byte)this.fuel);
+     }
  
      @Override
      public boolean canPlaceItem(int slot, ItemStack itemStack) {
 -        if (slot == 4) {
--            return itemStack.is(ItemTags.BREWING_FUEL);
+-            return itemStack.has(DataComponents.BREWING_FUEL);
 -        }
 -
 -        if (this.level == null) {

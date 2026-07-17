@@ -1,45 +1,112 @@
 --- a/net/minecraft/world/level/biome/MobSpawnSettings.java
 +++ b/net/minecraft/world/level/biome/MobSpawnSettings.java
-@@ -44,6 +_,8 @@
-     private final float creatureGenerationProbability;
-     private final Map<MobCategory, WeightedList<MobSpawnSettings.SpawnerData>> spawners;
+@@ -4,20 +_,16 @@
+ import com.google.common.collect.Maps;
+ import com.mojang.logging.LogUtils;
+ import com.mojang.serialization.Codec;
++import com.mojang.serialization.DataResult;
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import java.util.EnumMap;
+ import java.util.Map;
+-import java.util.Set;
+ import java.util.Map.Entry;
+ import net.minecraft.core.registries.BuiltInRegistries;
++import net.minecraft.util.ExtraCodecs;
+ import net.minecraft.util.StringRepresentable;
+ import net.minecraft.util.Util;
+ import net.minecraft.util.random.WeightedList;
+-import net.minecraft.util.valueproviders.ConstantInt;
+-import net.minecraft.util.valueproviders.IntProvider;
+-import net.minecraft.util.valueproviders.IntProviders;
+-import net.minecraft.util.valueproviders.UniformInt;
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.entity.EntityTypes;
+ import net.minecraft.world.entity.MobCategory;
+@@ -26,116 +_,116 @@
+ 
+ public class MobSpawnSettings {
+     private static final Logger LOGGER = LogUtils.getLogger();
+-    public static final float DEFAULT_CREATURE_WORLD_GEN_SPAWN_PROBABILITY = 0.1F;
++    private static final float DEFAULT_CREATURE_SPAWN_PROBABILITY = 0.1F;
+     public static final WeightedList<MobSpawnSettings.SpawnerData> EMPTY_MOB_LIST = WeightedList.of();
+     public static final MobSpawnSettings EMPTY = new MobSpawnSettings.Builder().build();
+-    public static final Codec<MobSpawnSettings> CODEC = RecordCodecBuilder.create(
++    public static final MapCodec<MobSpawnSettings> CODEC = RecordCodecBuilder.mapCodec(
+         i -> i.group(
++                Codec.floatRange(0.0F, 0.9999999F).optionalFieldOf("creature_spawn_probability", 0.1F).forGetter(b -> b.creatureGenerationProbability),
+                 Codec.simpleMap(
+                         MobCategory.CODEC,
+                         WeightedList.codec(MobSpawnSettings.SpawnerData.CODEC).promotePartial(Util.prefix("Spawn data: ", LOGGER::error)),
+                         StringRepresentable.keys(MobCategory.values())
+                     )
+-                    .fieldOf("spawns_by_category")
+-                    .forGetter(b -> b.spawnsByCategory),
++                    .fieldOf("spawners")
++                    .forGetter(b -> b.spawners),
+                 Codec.simpleMap(BuiltInRegistries.ENTITY_TYPE.byNameCodec(), MobSpawnSettings.MobSpawnCost.CODEC, BuiltInRegistries.ENTITY_TYPE)
+                     .fieldOf("spawn_costs")
+                     .forGetter(b -> b.mobSpawnCosts)
+             )
+             .apply(i, MobSpawnSettings::new)
+     );
+-    private final Map<MobCategory, WeightedList<MobSpawnSettings.SpawnerData>> spawnsByCategory;
++    private final float creatureGenerationProbability;
++    private final Map<MobCategory, WeightedList<MobSpawnSettings.SpawnerData>> spawners;
      private final Map<EntityType<?>, MobSpawnSettings.MobSpawnCost> mobSpawnCosts;
 +    private final java.util.Set<MobCategory> typesView;
 +    private final java.util.Set<EntityType<?>> costView;
  
      private MobSpawnSettings(
-         float creatureGenerationProbability,
-@@ -53,24 +_,58 @@
-         this.creatureGenerationProbability = creatureGenerationProbability;
-         this.spawners = ImmutableMap.copyOf(spawners);
+-        Map<MobCategory, WeightedList<MobSpawnSettings.SpawnerData>> spawnsByCategory, Map<EntityType<?>, MobSpawnSettings.MobSpawnCost> mobSpawnCosts
++        float creatureGenerationProbability,
++        Map<MobCategory, WeightedList<MobSpawnSettings.SpawnerData>> spawners,
++        Map<EntityType<?>, MobSpawnSettings.MobSpawnCost> mobSpawnCosts
+     ) {
+-        this.spawnsByCategory = ImmutableMap.copyOf(spawnsByCategory);
++        this.creatureGenerationProbability = creatureGenerationProbability;
++        this.spawners = ImmutableMap.copyOf(spawners);
          this.mobSpawnCosts = ImmutableMap.copyOf(mobSpawnCosts);
+-    }
+-
+-    public WeightedList<MobSpawnSettings.SpawnerData> getMobsToSpawn(MobCategory category) {
+-        return this.spawnsByCategory.getOrDefault(category, EMPTY_MOB_LIST);
+-    }
+-
+-    public @Nullable WeightedList<MobSpawnSettings.SpawnerData> getMobsInCategory(MobCategory category) {
+-        return this.spawnsByCategory.get(category);
+-    }
+-
+-    public Set<MobCategory> definedCategories() {
+-        return this.spawnsByCategory.keySet();
 +        this.typesView = java.util.Collections.unmodifiableSet(this.spawners.keySet());
 +        this.costView = java.util.Collections.unmodifiableSet(this.mobSpawnCosts.keySet());
-     }
- 
-     public WeightedList<MobSpawnSettings.SpawnerData> getMobs(MobCategory category) {
-         return this.spawners.getOrDefault(category, EMPTY_MOB_LIST);
-     }
- 
-+    public java.util.Set<MobCategory> getSpawnerTypes() {
-+         return this.typesView;
 +    }
 +
++    public WeightedList<MobSpawnSettings.SpawnerData> getMobs(MobCategory category) {
++        return this.spawners.getOrDefault(category, EMPTY_MOB_LIST);
++    }
++
++    public java.util.Set<MobCategory> getSpawnerTypes() {
++         return this.typesView;
+     }
+ 
      public MobSpawnSettings.@Nullable MobSpawnCost getMobSpawnCost(EntityType<?> type) {
          return this.mobSpawnCosts.get(type);
      }
  
+-    public Map<EntityType<?>, MobSpawnSettings.MobSpawnCost> allSpawnCosts() {
+-        return this.mobSpawnCosts;
 +    public java.util.Set<EntityType<?>> getEntityTypes() {
 +         return this.costView;
 +    }
 +
-     public float getCreatureProbability() {
-         return this.creatureGenerationProbability;
++    public float getCreatureProbability() {
++        return this.creatureGenerationProbability;
      }
  
      public static class Builder {
--        protected final Map<MobCategory, WeightedList.Builder<MobSpawnSettings.SpawnerData>> spawners = Util.makeEnumMap(
--            MobCategory.class, c -> WeightedList.builder()
+-        private final Map<MobCategory, WeightedList.Builder<MobSpawnSettings.SpawnerData>> spawnsByCategory = new EnumMap<>(MobCategory.class);
 +        // Paper start - Perf: keep track of data in a pair set to give O(1) contains calls - we have to hook removals incase plugins mess with it
 +        public static class MobListBuilder<E> extends WeightedList.Builder<E> {
 +            @Override
@@ -65,8 +132,125 @@
 +        }
 +        public final Map<MobCategory, WeightedList.Builder<MobSpawnSettings.SpawnerData>> spawners = Util.makeEnumMap(
 +                MobCategory.class, c -> new MobListBuilder<>()
-         );
++        );
 +        // Paper end - Perf: keep track of data in a pair set to give O(1) contains calls
          protected final Map<EntityType<?>, MobSpawnSettings.MobSpawnCost> mobSpawnCosts = Maps.newLinkedHashMap();
-         protected float creatureGenerationProbability = 0.1F;
+-
+-        public MobSpawnSettings.Builder addSpawn(EntityType<?> type, int weight, int minCount, int maxCount) {
+-            IntProvider count;
+-            if (minCount == maxCount) {
+-                count = new ConstantInt(minCount);
+-            } else {
+-                count = new UniformInt(minCount, maxCount);
+-            }
+-
+-            this.addSpawn(type, type.getCategory(), weight, count);
+-            return this;
+-        }
+-
+-        public MobSpawnSettings.Builder addSpawn(EntityType<?> type, int weight, IntProvider count) {
+-            this.addSpawn(type, type.getCategory(), weight, count);
+-            return this;
+-        }
+-
+-        @Deprecated
+-        public MobSpawnSettings.Builder addSpawn(EntityType<?> type, MobCategory category, int weight, IntProvider count) {
+-            this.forCategory(category).add(new MobSpawnSettings.SpawnerData(type, count), weight);
+-            return this;
+-        }
+-
+-        public MobSpawnSettings.Builder addAllSpawns(MobCategory category, WeightedList<MobSpawnSettings.SpawnerData> spawns) {
+-            this.forCategory(category).addAll(spawns);
+-            return this;
+-        }
+-
+-        public MobSpawnSettings.Builder noSpawns(MobCategory category) {
+-            this.spawnsByCategory.put(category, WeightedList.builder());
+-            return this;
+-        }
+-
+-        public MobSpawnSettings.Builder dontOverride(MobCategory category) {
+-            this.spawnsByCategory.remove(category);
+-            return this;
+-        }
+-
+-        public MobSpawnSettings.Builder addMobSpawnCost(EntityType<?> type, double charge, double energyBudget) {
++        protected float creatureGenerationProbability = 0.1F;
++
++        public MobSpawnSettings.Builder addSpawn(MobCategory category, int weight, MobSpawnSettings.SpawnerData spawnerData) {
++            this.spawners.get(category).add(spawnerData, weight);
++            return this;
++        }
++
++        public MobSpawnSettings.Builder addMobCharge(EntityType<?> type, double charge, double energyBudget) {
+             this.mobSpawnCosts.put(type, new MobSpawnSettings.MobSpawnCost(energyBudget, charge));
+             return this;
+         }
  
+-        public MobSpawnSettings.Builder addAllCosts(Map<EntityType<?>, MobSpawnSettings.MobSpawnCost> costs) {
+-            this.mobSpawnCosts.putAll(costs);
++        public MobSpawnSettings.Builder creatureGenerationProbability(float creatureGenerationProbability) {
++            this.creatureGenerationProbability = creatureGenerationProbability;
+             return this;
+         }
+ 
+         public MobSpawnSettings build() {
+             return new MobSpawnSettings(
+-                this.spawnsByCategory.entrySet().stream().collect(ImmutableMap.toImmutableMap(Entry::getKey, e -> e.getValue().build())),
++                this.creatureGenerationProbability,
++                this.spawners.entrySet().stream().collect(ImmutableMap.toImmutableMap(Entry::getKey, e -> e.getValue().build())),
+                 ImmutableMap.copyOf(this.mobSpawnCosts)
+             );
+         }
+-
+-        private WeightedList.Builder<MobSpawnSettings.SpawnerData> forCategory(MobCategory category) {
+-            return this.spawnsByCategory.computeIfAbsent(category, var0 -> WeightedList.builder());
+-        }
+     }
+ 
+     public record MobSpawnCost(double energyBudget, double charge) {
+@@ -145,14 +_,20 @@
+         );
+     }
+ 
+-    public record SpawnerData(EntityType<?> type, IntProvider count) {
+-        public static final MapCodec<MobSpawnSettings.SpawnerData> CODEC = RecordCodecBuilder.mapCodec(
+-            i -> i.group(
+-                    BuiltInRegistries.ENTITY_TYPE.byNameCodec().fieldOf("type").forGetter(MobSpawnSettings.SpawnerData::type),
+-                    IntProviders.CODEC.fieldOf("count").forGetter(MobSpawnSettings.SpawnerData::count)
+-                )
+-                .apply(i, MobSpawnSettings.SpawnerData::new)
+-        );
++    public record SpawnerData(EntityType<?> type, int minCount, int maxCount) {
++        public static final MapCodec<MobSpawnSettings.SpawnerData> CODEC = RecordCodecBuilder.<MobSpawnSettings.SpawnerData>mapCodec(
++                i -> i.group(
++                        BuiltInRegistries.ENTITY_TYPE.byNameCodec().fieldOf("type").forGetter(d -> d.type),
++                        ExtraCodecs.POSITIVE_INT.fieldOf("minCount").forGetter(e -> e.minCount),
++                        ExtraCodecs.POSITIVE_INT.fieldOf("maxCount").forGetter(e -> e.maxCount)
++                    )
++                    .apply(i, MobSpawnSettings.SpawnerData::new)
++            )
++            .validate(
++                spawnerData -> spawnerData.minCount > spawnerData.maxCount
++                    ? DataResult.error(() -> "minCount needs to be smaller or equal to maxCount")
++                    : DataResult.success(spawnerData)
++            );
+ 
+         public SpawnerData {
+             type = type.getCategory() == MobCategory.MISC ? EntityTypes.PIG : type;
+@@ -160,14 +_,7 @@
+ 
+         @Override
+         public String toString() {
+-            return EntityType.getKey(this.type)
+-                + "*("
+-                + this.count.minInclusive()
+-                + "-"
+-                + this.count.maxInclusive()
+-                + ") ("
+-                + BuiltInRegistries.INT_PROVIDER_TYPE.getKey(this.count.codec())
+-                + ")";
++            return EntityType.getKey(this.type) + "*(" + this.minCount + "-" + this.maxCount + ")";
+         }
+     }
+ }

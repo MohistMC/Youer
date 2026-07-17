@@ -16,7 +16,7 @@
  import java.util.stream.Stream;
  import net.minecraft.advancements.Advancement;
  import net.minecraft.advancements.AdvancementHolder;
-@@ -15,17 +_,20 @@
+@@ -15,18 +_,20 @@
  import net.minecraft.advancements.triggers.CriteriaTriggers;
  import net.minecraft.advancements.triggers.Criterion;
  import net.minecraft.advancements.triggers.EnterBlockTrigger;
@@ -24,6 +24,7 @@
  import net.minecraft.advancements.triggers.InventoryChangeTrigger;
  import net.minecraft.core.Holder;
  import net.minecraft.core.HolderGetter;
+-import net.minecraft.core.HolderSet;
 -import net.minecraft.core.Registry;
 +import net.minecraft.core.HolderLookup;
  import net.minecraft.core.component.DataComponentPatch;
@@ -39,7 +40,7 @@
  import net.minecraft.resources.Identifier;
  import net.minecraft.resources.ResourceKey;
  import net.minecraft.tags.ItemTags;
-@@ -51,10 +_,9 @@
+@@ -52,10 +_,9 @@
  import org.jspecify.annotations.Nullable;
  
  public abstract class RecipeProvider {
@@ -51,7 +52,7 @@
      private static final Map<BlockFamily.Variant, RecipeProvider.FamilyCraftingRecipeProvider> SHAPE_BUILDERS = ImmutableMap.<BlockFamily.Variant, RecipeProvider.FamilyCraftingRecipeProvider>builder()
          .put(BlockFamily.Variant.BUTTON, (context, result, base) -> context.buttonBuilder(result, Ingredient.of(base)))
          .put(BlockFamily.Variant.CHISELED, (context, result, base) -> context.chiseledBuilder(RecipeCategory.BUILDING_BLOCKS, result, Ingredient.of(base)))
-@@ -91,39 +_,10 @@
+@@ -92,39 +_,10 @@
          .put(BlockFamily.Variant.COBBLED, (context, result, base) -> context.stonecutterResultFromBase(RecipeCategory.BUILDING_BLOCKS, result, base, 1))
          .build();
  
@@ -95,7 +96,7 @@
      }
  
      protected abstract void buildRecipes();
-@@ -196,7 +_,7 @@
+@@ -197,7 +_,7 @@
      }
  
      protected void trimSmithing(Item trimTemplate, ResourceKey<TrimPattern> patternId, ResourceKey<Recipe<?>> id) {
@@ -104,7 +105,7 @@
          SmithingTrimRecipeBuilder.smithingTrim(
                  Ingredient.of(trimTemplate), this.tag(ItemTags.TRIMMABLE_ARMOR), this.tag(ItemTags.TRIM_MATERIALS), pattern, RecipeCategory.MISC
              )
-@@ -648,8 +_,7 @@
+@@ -649,8 +_,7 @@
      }
  
      protected void waxRecipes(FeatureFlagSet flagSet) {
@@ -114,7 +115,7 @@
              .forEach(
                  (block, waxedBlock) -> {
                      if (waxedBlock.requiredFeatures().isSubsetOf(flagSet)) {
-@@ -740,15 +_,6 @@
+@@ -741,15 +_,6 @@
              .save(this.output);
      }
  
@@ -130,7 +131,18 @@
      protected void generateRecipes(BlockFamily family, FeatureFlagSet flagSet) {
          family.getVariants().forEach((variant, result) -> {
              if (result.requiredFeatures().isSubsetOf(flagSet)) {
-@@ -886,6 +_,10 @@
+@@ -828,9 +_,7 @@
+ 
+     protected static Criterion<EnterBlockTrigger.TriggerInstance> insideOf(Block block) {
+         return CriteriaTriggers.ENTER_BLOCK
+-            .createCriterion(
+-                new EnterBlockTrigger.TriggerInstance(Optional.empty(), Optional.of(HolderSet.direct(block.builtInRegistryHolder())), Optional.empty())
+-            );
++            .createCriterion(new EnterBlockTrigger.TriggerInstance(Optional.empty(), Optional.of(block.builtInRegistryHolder()), Optional.empty()));
+     }
+ 
+     protected Criterion<BredAnimalsTrigger.TriggerInstance> bredAnimal() {
+@@ -889,6 +_,10 @@
          return Ingredient.of(this.items.getOrThrow(id));
      }
  
@@ -141,7 +153,7 @@
      protected ShapedRecipeBuilder shaped(RecipeCategory category, ItemLike item) {
          return ShapedRecipeBuilder.shaped(this.items, category, item);
      }
-@@ -914,5 +_,76 @@
+@@ -917,5 +_,76 @@
      @FunctionalInterface
      private interface FamilyStonecutterRecipeProvider {
          void create(RecipeProvider context, ItemLike result, ItemLike base);
