@@ -1093,9 +1093,16 @@
  
      private Path locateStatsFile(GameProfile gameProfile) {
          Path statFolder = this.server.getWorldPath(LevelResource.PLAYER_STATS_DIR);
-@@ -787,20 +_,22 @@
+@@ -786,12 +_,18 @@
+     }
  
      public PlayerAdvancements getPlayerAdvancements(ServerPlayer player) {
++        // Neo: return a no-op PlayerAdvancements for fake players to avoid leaking CriteriaTrigger entries (#1487)
++        if (player.isFakePlayer()) {
++            Path path = this.server.getWorldPath(LevelResource.PLAYER_ADVANCEMENTS_DIR).resolve("_fake.json");
++            return new net.neoforged.neoforge.common.util.FakePlayer.FakePlayerAdvancements(
++                    this.server.getFixerUpper(), this, this.server.getAdvancements(), path, player);
++        }
          UUID uuid = player.getUUID();
 -        PlayerAdvancements result = this.advancements.get(uuid);
 +        PlayerAdvancements result = player.getAdvancements(); // CraftBukkit
@@ -1106,12 +1113,8 @@
 +            // this.advancements.put(uuid, result); // CraftBukkit
          }
  
--        result.setPlayer(player);
-+        // Forge: don't overwrite active player with a fake one.
-+        if (!(player instanceof net.neoforged.neoforge.common.util.FakePlayer))
-+            result.setPlayer(player);
-         return result;
-     }
+         result.setPlayer(player);
+@@ -800,7 +_,7 @@
  
      public void setViewDistance(int viewDistance) {
          this.viewDistance = viewDistance;
