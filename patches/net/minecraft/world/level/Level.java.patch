@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1,14 +_,20 @@
+@@ -1,20 +_,23 @@
  package net.minecraft.world.level;
  
  import com.google.common.collect.Lists;
@@ -10,8 +10,7 @@
  import com.mojang.serialization.Codec;
  import java.io.IOException;
  import java.util.Collection;
-+import java.util.HashMap;
- import java.util.Iterator;
+-import java.util.Iterator;
  import java.util.List;
  import java.util.Locale;
 +import java.util.Map;
@@ -21,6 +20,12 @@
  import java.util.function.Consumer;
  import java.util.function.Predicate;
  import java.util.stream.Collectors;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+-import net.minecraft.ReportedException;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.Holder;
 @@ -30,6 +_,7 @@
  import net.minecraft.resources.ResourceKey;
  import net.minecraft.server.MinecraftServer;
@@ -29,14 +34,6 @@
  import net.minecraft.sounds.SoundEvent;
  import net.minecraft.sounds.SoundEvents;
  import net.minecraft.sounds.SoundSource;
-@@ -51,6 +_,7 @@
- import net.minecraft.world.entity.EntitySelector;
- import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
- import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
-+import net.minecraft.world.entity.item.ItemEntity;
- import net.minecraft.world.entity.player.Player;
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.item.alchemy.PotionBrewing;
 @@ -61,6 +_,7 @@
  import net.minecraft.world.level.block.BaseFireBlock;
  import net.minecraft.world.level.block.Block;
@@ -45,36 +42,26 @@
  import net.minecraft.world.level.block.entity.BlockEntity;
  import net.minecraft.world.level.block.entity.FuelValues;
  import net.minecraft.world.level.block.entity.TickingBlockEntity;
-@@ -71,6 +_,7 @@
- import net.minecraft.world.level.chunk.PalettedContainerFactory;
- import net.minecraft.world.level.chunk.status.ChunkStatus;
- import net.minecraft.world.level.dimension.DimensionType;
-+import net.minecraft.world.level.dimension.LevelStem;
- import net.minecraft.world.level.entity.EntityTypeTest;
- import net.minecraft.world.level.entity.LevelEntityGetter;
- import net.minecraft.world.level.gameevent.GameEvent;
-@@ -86,13 +_,25 @@
+@@ -86,13 +_,21 @@
  import net.minecraft.world.level.storage.WritableLevelData;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
 +import net.minecraft.world.phys.shapes.VoxelShape;
  import net.minecraft.world.scores.Scoreboard;
++import net.neoforged.neoforge.common.extensions.ILevelExtension;
  import org.apache.commons.lang3.mutable.MutableBoolean;
 +import org.bukkit.Bukkit;
 +import org.bukkit.Location;
 +import org.bukkit.craftbukkit.CraftServer;
 +import org.bukkit.craftbukkit.CraftWorld;
-+import org.bukkit.craftbukkit.block.CapturedBlockState;
 +import org.bukkit.craftbukkit.block.CraftBlockState;
 +import org.bukkit.craftbukkit.block.data.CraftBlockData;
 +import org.bukkit.craftbukkit.util.CraftNamespacedKey;
-+import org.bukkit.craftbukkit.util.CraftSpawnCategory;
 +import org.bukkit.entity.SpawnCategory;
-+import org.bukkit.event.block.BlockPhysicsEvent;
  import org.jspecify.annotations.Nullable;
  
- import net.neoforged.neoforge.common.extensions.ILevelExtension;
- 
+-import net.neoforged.neoforge.common.extensions.ILevelExtension;
+-
 -public abstract class Level implements LevelAccessor, AutoCloseable, ILevelExtension {
 +public abstract class Level extends net.neoforged.neoforge.attachment.AttachmentHolder implements LevelAccessor, AutoCloseable, ILevelExtension, ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel, ca.spottedleaf.moonrise.patches.chunk_system.world.ChunkSystemEntityGetter { // Paper - rewrite chunk system // Paper - optimise collisions
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);

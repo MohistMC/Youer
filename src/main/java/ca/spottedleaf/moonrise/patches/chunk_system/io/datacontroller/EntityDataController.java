@@ -5,7 +5,6 @@ import ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO;
 import ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.ChunkPos;
-import net.minecraft.world.level.chunk.storage.EntityStorage;
 import net.minecraft.world.level.chunk.storage.RegionFileStorage;
 import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
 import java.io.IOException;

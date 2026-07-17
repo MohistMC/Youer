@@ -10,14 +10,12 @@ import ca.spottedleaf.moonrise.patches.chunk_system.level.poi.ChunkSystemPoiMana
 import ca.spottedleaf.moonrise.patches.chunk_system.level.poi.PoiChunk;
 import ca.spottedleaf.moonrise.patches.chunk_system.scheduling.ChunkTaskScheduler;
 import ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder;
-import net.minecraft.server.level.ServerChunkCache;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.chunk.ChunkAccess;
 import net.minecraft.world.level.chunk.ImposterProtoChunk;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.ProtoChunk;
 import net.minecraft.world.level.chunk.status.ChunkStatus;
-import net.minecraft.world.level.chunk.status.ChunkStatusTasks;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.lang.invoke.VarHandle;

@@ -1,6 +1,5 @@
 package com.mojang.brigadier.tree;
 
-import com.mojang.brigadier.builder.ArgumentBuilder;
 import java.util.Collection;
 import com.mojang.brigadier.builder.RequiredArgumentBuilder;
 import com.mojang.brigadier.suggestion.Suggestions;

@@ -1,6 +1,5 @@
 package io.papermc.paper.world.migration;
 
-import com.mojang.logging.LogUtils;
 import com.mojang.serialization.Dynamic;
 import io.papermc.paper.world.saveddata.PaperWorldPDC;
 import java.io.DataInputStream;

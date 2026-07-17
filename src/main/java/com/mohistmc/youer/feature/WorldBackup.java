@@ -41,7 +41,7 @@ public class WorldBackup {
                 if (MinecraftServer.getServer().hasStopped()) return;
                 backup();
             }, 1000L * YouerConfig.backup_world_interval, 1000L * YouerConfig.backup_world_interval, TimeUnit.MILLISECONDS);
-            Youer.LOGGER.info(I18n.as("worldbackupcmd.notice.backupScheduled"), YouerConfig.backup_world_interval);
+            Youer.LOGGER.info(I18n.as("worldbackupcmd.notice.backupScheduled", YouerConfig.backup_world_interval));
         }
     }
 

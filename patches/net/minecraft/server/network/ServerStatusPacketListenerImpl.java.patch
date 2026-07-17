@@ -1,27 +1,14 @@
 --- a/net/minecraft/server/network/ServerStatusPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerStatusPacketListenerImpl.java
-@@ -1,5 +_,10 @@
- package net.minecraft.server.network;
- 
-+import java.net.InetSocketAddress;
-+import java.util.Collections;
-+import java.util.Iterator;
-+import java.util.Optional;
-+import net.minecraft.SharedConstants;
- import net.minecraft.network.Connection;
- import net.minecraft.network.DisconnectionDetails;
+@@ -5,7 +_,6 @@
  import net.minecraft.network.chat.Component;
-@@ -9,16 +_,27 @@
+ import net.minecraft.network.protocol.ping.ClientboundPongResponsePacket;
+ import net.minecraft.network.protocol.ping.ServerboundPingRequestPacket;
+-import net.minecraft.network.protocol.status.ClientboundStatusResponsePacket;
  import net.minecraft.network.protocol.status.ServerStatus;
  import net.minecraft.network.protocol.status.ServerStatusPacketListener;
  import net.minecraft.network.protocol.status.ServerboundStatusRequestPacket;
-+import net.minecraft.server.MinecraftServer;
-+import net.minecraft.server.level.ServerPlayer;
-+import net.minecraft.server.players.NameAndId;
-+import org.bukkit.craftbukkit.util.CraftChatMessage;
-+import org.bukkit.craftbukkit.util.CraftIconCache;
-+import org.bukkit.entity.Player;
- 
+@@ -13,12 +_,17 @@
  public class ServerStatusPacketListenerImpl implements ServerStatusPacketListener {
      private static final Component DISCONNECT_REASON = Component.translatable("multiplayer.status.request_handled");
      private final ServerStatus status;

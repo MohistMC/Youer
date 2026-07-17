@@ -27,7 +27,7 @@
  import java.net.Proxy;
  import java.nio.file.FileStore;
  import java.nio.file.Files;
-@@ -30,12 +_,16 @@
+@@ -30,12 +_,13 @@
  import java.util.Map;
  import java.util.Objects;
  import java.util.Optional;
@@ -37,39 +37,11 @@
  import java.util.Map.Entry;
  import java.util.concurrent.CompletableFuture;
  import java.util.concurrent.Executor;
+-import java.util.concurrent.RejectedExecutionException;
 +import java.util.concurrent.ExecutorService;
-+import java.util.concurrent.Executors;
- import java.util.concurrent.RejectedExecutionException;
-+import java.util.concurrent.atomic.AtomicBoolean;
  import java.util.concurrent.atomic.AtomicReference;
  import java.util.concurrent.locks.LockSupport;
  import java.util.function.BooleanSupplier;
-@@ -43,6 +_,7 @@
- import java.util.function.Function;
- import java.util.function.Supplier;
- import java.util.stream.Collectors;
-+import joptsimple.OptionSet;
- import net.minecraft.CrashReport;
- import net.minecraft.CrashReportCategory;
- import net.minecraft.ReportType;
-@@ -61,6 +_,8 @@
- import net.minecraft.core.registries.Registries;
- import net.minecraft.data.worldgen.features.MiscOverworldFeatures;
- import net.minecraft.gametest.framework.GameTestTicker;
-+import net.minecraft.nbt.NbtException;
-+import net.minecraft.nbt.ReportedNbtException;
- import net.minecraft.nbt.Tag;
- import net.minecraft.network.PacketProcessor;
- import net.minecraft.network.chat.ChatDecorator;
-@@ -76,6 +_,8 @@
- import net.minecraft.resources.Identifier;
- import net.minecraft.resources.ResourceKey;
- import net.minecraft.server.bossevents.CustomBossEvents;
-+import net.minecraft.server.dedicated.DedicatedServer;
-+import net.minecraft.server.dedicated.DedicatedServerProperties;
- import net.minecraft.server.level.ChunkLoadCounter;
- import net.minecraft.server.level.ChunkMap;
- import net.minecraft.server.level.DemoMode;
 @@ -115,6 +_,7 @@
  import net.minecraft.util.RandomSource;
  import net.minecraft.util.TimeUtil;
@@ -94,7 +66,7 @@
  import net.minecraft.world.level.dimension.LevelStem;
  import net.minecraft.world.level.gamerules.GameRule;
  import net.minecraft.world.level.gamerules.GameRuleMap;
-@@ -169,32 +_,49 @@
+@@ -169,32 +_,40 @@
  import net.minecraft.world.level.levelgen.Heightmap;
  import net.minecraft.world.level.levelgen.PatrolSpawner;
  import net.minecraft.world.level.levelgen.PhantomSpawner;
@@ -121,15 +93,6 @@
  import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.scores.ScoreboardSaveData;
-+import org.bukkit.Bukkit;
-+import org.bukkit.craftbukkit.CraftRegistry;
-+import org.bukkit.craftbukkit.CraftServer;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
-+import org.bukkit.craftbukkit.util.CraftLocation;
-+import org.bukkit.event.server.ServerLoadEvent;
-+import org.bukkit.event.world.SpawnChangeEvent;
-+import org.jline.terminal.Terminal;
-+import org.jline.terminal.TerminalBuilder;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  

@@ -1,7 +1,6 @@
 package io.papermc.paper.event.entity;
 
 import org.bukkit.entity.Entity;
-import org.bukkit.event.Cancellable;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.NullMarked;

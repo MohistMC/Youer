@@ -8,14 +8,6 @@
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Codec;
  import it.unimi.dsi.fastutil.floats.FloatArraySet;
-@@ -25,6 +_,7 @@
- import java.util.Optional;
- import java.util.Set;
- import java.util.UUID;
-+import java.util.concurrent.atomic.AtomicBoolean;
- import java.util.concurrent.atomic.AtomicInteger;
- import java.util.function.BiConsumer;
- import java.util.function.Predicate;
 @@ -48,6 +_,7 @@
  import net.minecraft.core.component.DataComponents;
  import net.minecraft.core.particles.BlockParticleOption;
@@ -33,21 +25,19 @@
  import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
  import net.minecraft.network.protocol.game.VecDeltaCodec;
  import net.minecraft.network.syncher.EntityDataAccessor;
-@@ -102,6 +_,9 @@
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.item.Items;
- import net.minecraft.world.item.component.CustomData;
-+import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
-+import net.minecraft.world.item.enchantment.EnchantmentHelper;
-+import net.minecraft.world.item.equipment.Equippable;
- import net.minecraft.world.level.BlockGetter;
- import net.minecraft.world.level.ChunkPos;
- import net.minecraft.world.level.ClipContext;
-@@ -119,10 +_,12 @@
- import net.minecraft.world.level.block.SoundType;
+@@ -110,19 +_,18 @@
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.Blocks;
+-import net.minecraft.world.level.block.FenceGateBlock;
+ import net.minecraft.world.level.block.HoneyBlock;
+ import net.minecraft.world.level.block.Mirror;
+ import net.minecraft.world.level.block.Portal;
+ import net.minecraft.world.level.block.RenderShape;
+ import net.minecraft.world.level.block.Rotation;
+-import net.minecraft.world.level.block.SoundType;
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.border.WorldBorder;
-+import net.minecraft.world.level.dimension.LevelStem;
  import net.minecraft.world.level.entity.EntityAccess;
  import net.minecraft.world.level.entity.EntityInLevelCallback;
  import net.minecraft.world.level.gameevent.DynamicGameEventListener;
@@ -56,38 +46,20 @@
  import net.minecraft.world.level.levelgen.Heightmap;
  import net.minecraft.world.level.material.Fluid;
  import net.minecraft.world.level.material.FluidState;
-@@ -151,6 +_,35 @@
+@@ -151,6 +_,17 @@
  import net.minecraft.world.scores.Scoreboard;
  import net.minecraft.world.scores.Team;
  import net.minecraft.world.waypoints.WaypointTransmitter;
 +import org.bukkit.Bukkit;
-+import org.bukkit.Location;
-+import org.bukkit.Server;
-+import org.bukkit.block.BlockFace;
 +import org.bukkit.command.CommandSender;
-+import org.bukkit.craftbukkit.CraftWorld;
-+import org.bukkit.craftbukkit.entity.CraftEntity;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
-+import org.bukkit.craftbukkit.util.CraftLocation;
 +import org.bukkit.entity.Hanging;
 +import org.bukkit.entity.Vehicle;
-+import org.bukkit.event.entity.CreatureSpawnEvent;
-+import org.bukkit.event.entity.EntityAirChangeEvent;
-+import org.bukkit.event.entity.EntityCombustByEntityEvent;
 +import org.bukkit.event.entity.EntityCombustEvent;
-+import org.bukkit.event.entity.EntityDismountEvent;
-+import org.bukkit.event.entity.EntityDropItemEvent;
 +import org.bukkit.event.entity.EntityMountEvent;
-+import org.bukkit.event.entity.EntityPoseChangeEvent;
-+import org.bukkit.event.entity.EntityRemoveEvent;
-+import org.bukkit.event.entity.EntityTeleportEvent;
-+import org.bukkit.event.entity.EntityUnleashEvent;
-+import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 +import org.bukkit.event.player.PlayerTeleportEvent;
-+import org.bukkit.event.vehicle.VehicleBlockCollisionEvent;
 +import org.bukkit.event.vehicle.VehicleEnterEvent;
-+import org.bukkit.event.vehicle.VehicleExitEvent;
 +import org.bukkit.plugin.PluginManager;
  import org.jetbrains.annotations.Contract;
  import org.jspecify.annotations.Nullable;
