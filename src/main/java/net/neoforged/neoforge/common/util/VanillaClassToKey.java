@@ -5,9 +5,9 @@
 
 package net.neoforged.neoforge.common.util;
 
+import com.google.common.base.Preconditions;
 import net.minecraft.resources.Identifier;
 import org.jetbrains.annotations.ApiStatus;
-import org.spongepowered.include.com.google.common.base.Preconditions;
 
 @ApiStatus.Internal
 public class VanillaClassToKey {
