@@ -965,34 +965,29 @@
              BlockPos pos = this.findLightningTargetAround(this.getBlockRandomPos(minX, 0, minZ, 15));
              if (this.isRainingAt(pos)) {
                  DifficultyInstance difficulty = this.getCurrentDifficultyAt(pos);
-@@ -555,12 +_,21 @@
+@@ -555,11 +_,20 @@
                      && this.random.nextDouble() < difficulty.getEffectiveDifficulty() * 0.01
                      && !this.getBlockState(pos.below()).is(BlockTags.LIGHTNING_RODS);
                  if (isTrap) {
 -                    SkeletonHorse horse = EntityTypes.SKELETON_HORSE.create(this, EntitySpawnReason.EVENT);
--                    if (horse != null) {
--                        horse.setTrap(true);
--                        horse.setAge(0);
--                        horse.setPos(pos.getX(), pos.getY(), pos.getZ());
--                        this.addFreshEntity(horse);
 +                    // Purpur start - Special mobs naturally spawn
-+                    net.minecraft.world.entity.animal.equine.AbstractHorse skeletonHorse;
++                    net.minecraft.world.entity.animal.equine.AbstractHorse horse;
 +                    if (purpurConfig.zombieHorseSpawnChance > 0D && random.nextDouble() <= purpurConfig.zombieHorseSpawnChance) {
-+                        skeletonHorse = EntityTypes.ZOMBIE_HORSE.create(this, EntitySpawnReason.EVENT);
++                        horse = EntityTypes.ZOMBIE_HORSE.create(this, EntitySpawnReason.EVENT);
 +                    } else {
-+                        skeletonHorse = EntityTypes.SKELETON_HORSE.create(this, EntitySpawnReason.EVENT);
-+                        if (skeletonHorse != null) ((SkeletonHorse) skeletonHorse).setTrap(true);
++                        horse = EntityTypes.SKELETON_HORSE.create(this, EntitySpawnReason.EVENT);
++                        if (horse != null) ((SkeletonHorse) horse).setTrap(true);
 +                    }
 +                    // Purpur end - Special mobs naturally spawn
-+                    if (skeletonHorse != null) {
+                     if (horse != null) {
+-                        horse.setTrap(true);
 +                        //horse.setTrap(true); // Purpur - Special mobs naturally spawn - moved up
-+                        skeletonHorse.setAge(0);
-+                        skeletonHorse.setPos(pos.getX(), pos.getY(), pos.getZ());
-+                        skeletonHorse.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.LIGHTNING); // CraftBukkit
-+                        this.addFreshEntity(skeletonHorse);
+                         horse.setAge(0);
+                         horse.setPos(pos.getX(), pos.getY(), pos.getZ());
++                        horse.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.LIGHTNING); // CraftBukkit
+                         this.addFreshEntity(horse);
                      }
                  }
- 
 @@ -568,7 +_,7 @@
                  if (bolt != null) {
                      bolt.snapTo(Vec3.atBottomCenterOf(pos));

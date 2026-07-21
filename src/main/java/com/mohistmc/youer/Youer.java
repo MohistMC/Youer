@@ -5,14 +5,10 @@ import com.mohistmc.youer.eventhandler.EventDispatcherRegistry;
 import com.mohistmc.youer.feature.ban.BanConfig;
 import com.mohistmc.youer.feature.db.DatabaseConfig;
 import com.mohistmc.youer.util.ExceptionHandler;
-import com.mohistmc.youer.util.VersionInfo;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
-import net.neoforged.neoforge.common.NeoForgeVersion;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -21,15 +17,8 @@ public class Youer {
     public static final String modid = "youer";
     public static Logger LOGGER = LogManager.getLogger();
     public static i18n i18n;
-    public static String version = "26.2";
-    public static VersionInfo versionInfo;
 
     public Youer(IEventBus modEventBus, Dist dist, ModContainer container) {
-        Map<String, String> arguments = new HashMap<>();
-        arguments.put("youer", version);
-        arguments.put("paper", "26.2-60");
-        arguments.put("neoforge", NeoForgeVersion.getVersion());
-        versionInfo = new VersionInfo(arguments);
         EventDispatcherRegistry.init();
         DatabaseConfig.init();
         BanConfig.init();

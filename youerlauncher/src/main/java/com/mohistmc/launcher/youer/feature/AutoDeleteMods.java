@@ -52,6 +52,8 @@ public class AutoDeleteMods {
         //put("me.drex.crashexploitfixer.neoforge.CrashExploitFixerNeoforge", DeletionReason.DUPLICATE_FEATURE);
         //put("fabric-carpet-refmap", DeletionReason.FABRIC_ONLY);
         //put("carpet.CarpetServer", DeletionReason.DUPLICATE_FEATURE);
+        put("com.axalotl.async.neoforge.AsyncNeoForge", DeletionReason.DUPLICATE_FEATURE);
+        put("com.ishland.c2me.C2MEMod", DeletionReason.DUPLICATE_FEATURE);
     }};
 
     /**

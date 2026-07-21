@@ -165,9 +165,7 @@ public class PaperVersionCommand {
     private CompletableFuture<ComputedVersion> fetchVersionMessage() {
        return CompletableFuture.supplyAsync(() -> {
            final Component message = Component.textOfChildren(
-               Component.text(Bukkit.getVersionMessage(), NamedTextColor.WHITE),
-               Component.newline(),
-               this.versionFetcher.getVersionMessage()
+               Component.text(Bukkit.getVersionMessage(), NamedTextColor.WHITE)
            );
 
            return new ComputedVersion(
