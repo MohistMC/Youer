@@ -29,6 +29,9 @@ public class YouerMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
+        if (mixinClassName.equals("com.mohistmc.youer.mixins.compat.spark.MixinNeoForgeWorldInfoProvider")) {
+            return hasClass("me.lucko.spark.neoforge.NeoForgeSparkMod");
+        }
         return true;
     }
 
@@ -49,5 +52,14 @@ public class YouerMixinPlugin implements IMixinConfigPlugin {
 
     @Override
     public void postApply(String targetClassName, ClassNode targetClass, String mixinClassName, IMixinInfo mixinInfo) {
+    }
+
+    public boolean hasClass(String className) {
+        try {
+            Class.forName(className);
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
     }
 }

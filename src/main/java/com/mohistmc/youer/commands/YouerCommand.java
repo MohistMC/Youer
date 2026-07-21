@@ -10,6 +10,7 @@ import com.mohistmc.youer.api.PlayerAPI;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.feature.PacketStatistics;
 import com.mohistmc.youer.feature.WorldBackup;
+import org.purpurmc.purpur.task.PacketBarTask;
 import com.mohistmc.youer.feature.db.DatabaseMigration;
 import com.mohistmc.youer.util.I18n;
 import com.mohistmc.youer.util.MemoryUtils;
@@ -177,6 +178,10 @@ public class YouerCommand extends Command {
                         String durationString = TimeUtils.formatDuration(durationSeconds);
 
                         PacketStatistics.stopCollecting();
+
+                        // Stop the packet bar too — it would otherwise show stale zeros
+                        PacketBarTask.instance().stop();
+
                         sender.sendMessage(I18n.as("packetstats.report.title"));
                         sender.sendMessage(I18n.as("packetstats.total.bytes", StringUtil.formatBytes(PacketStatistics.getTotalBytesSent())));
                         sender.sendMessage(I18n.as("packetstats.total.packets", String.valueOf(PacketStatistics.getTotalPacketsSent())));

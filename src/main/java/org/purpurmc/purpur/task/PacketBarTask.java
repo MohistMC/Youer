@@ -120,6 +120,12 @@ public class PacketBarTask extends BossBarTask {
         return String.format("%.1f%s", (double) bytes / (1L << (z * 10)), "BKMGTPE".charAt(z));
     }
 
+    @Override
+    public void stop() {
+        super.stop();
+        this.statsStarted = false;
+    }
+
     // -- Accessors --
 
     public long getBytesPerSecond() {
