@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 public class MixinNeoForgeWorldInfoProvider {
 
     @Inject(method = "countEntities", at = @At("HEAD"), cancellable = true)
-    private void youer$disableGui(ServerLevel level, CallbackInfoReturnable<Integer> cir) {
+    private void youer$countEntities(ServerLevel level, CallbackInfoReturnable<Integer> cir) {
         int count = level.getEntityCount();
        cir.setReturnValue(count);
     }
