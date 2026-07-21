@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -2,6 +_,9 @@
+@@ -2,11 +_,15 @@
  
  import com.google.common.annotations.VisibleForTesting;
  import com.google.common.collect.Lists;
@@ -10,6 +10,12 @@
  import com.mojang.datafixers.DataFixer;
  import com.mojang.datafixers.util.Pair;
  import com.mojang.logging.LogUtils;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
++import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+ import it.unimi.dsi.fastutil.longs.LongSet;
+ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 @@ -27,6 +_,7 @@
  import java.util.Set;
  import java.util.UUID;
@@ -113,6 +119,17 @@
      private final GameEventDispatcher gameEventDispatcher;
      public boolean noSave;
      private final SleepStatus sleepStatus;
+@@ -208,6 +_,10 @@
+     private final LevelTicks<Block> blockTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded);
+     private final LevelTicks<Fluid> fluidTicks = new LevelTicks<>(this::isPositionTickingWithEntitiesLoaded);
+     private final PathTypeCache pathTypesByPosCache = new PathTypeCache();
++    private final Long2ObjectOpenHashMap<DifficultyCacheEntry> difficultyCache = new Long2ObjectOpenHashMap<>();
++
++    private static record DifficultyCacheEntry(long inhabitedTime, long worldTime, DifficultyInstance instance) {
++    }
+     private final Set<Mob> navigatingMobs = new ObjectOpenHashSet<>();
+     private volatile boolean isUpdatingNavigations;
+     protected final Raids raids;
 @@ -216,44 +_,496 @@
      private boolean handlingTick;
      private final List<CustomSpawner> customSpawners;
@@ -1117,6 +1134,42 @@
                      message = Component.translatable("sleep.players_sleeping", this.sleepStatus.amountSleeping(), this.sleepStatus.sleepersNeeded(percentage));
                  }
  
+@@ -683,15 +_,26 @@
+ 
+     @Override
+     public DifficultyInstance getCurrentDifficultyAt(BlockPos pos) {
+-        long localTime = 0L;
+-        float moonBrightness = 0.0F;
+-        ChunkAccess chunk = this.getChunk(SectionPos.blockToSectionCoord(pos.getX()), SectionPos.blockToSectionCoord(pos.getZ()), ChunkStatus.FULL, false);
+-        if (chunk != null) {
+-            localTime = chunk.getInhabitedTime();
+-            moonBrightness = this.getMoonBrightness(pos);
+-        }
+-
+-        return new DifficultyInstance(this.getDifficulty(), this.getOverworldClockTime(), localTime, moonBrightness);
++        int chunkX = SectionPos.blockToSectionCoord(pos.getX());
++        int chunkZ = SectionPos.blockToSectionCoord(pos.getZ());
++        long key = ChunkPos.pack(chunkX, chunkZ);
++
++        ChunkAccess chunk = this.getChunk(chunkX, chunkZ, ChunkStatus.FULL, false);
++        if (chunk == null) {
++            return new DifficultyInstance(this.getDifficulty(), this.getOverworldClockTime(), 0L, 0.0F);
++        }
++
++        long inhabitedTime = chunk.getInhabitedTime();
++        long worldTime = this.getOverworldClockTime();
++        DifficultyCacheEntry cached = this.difficultyCache.get(key);
++        if (cached != null && cached.inhabitedTime == inhabitedTime && cached.worldTime == worldTime) {
++            return cached.instance;
++        }
++
++        float moonBrightness = this.getMoonBrightness(pos);
++        DifficultyInstance instance = new DifficultyInstance(this.getDifficulty(), worldTime, inhabitedTime, moonBrightness);
++        this.difficultyCache.put(key, new DifficultyCacheEntry(inhabitedTime, worldTime, instance));
++        return instance;
+     }
+ 
+     public float getMoonBrightness(BlockPos pos) {
 @@ -749,8 +_,8 @@
                  weatherData.setThunderTime(thunderTime);
                  weatherData.setRainTime(rainTime);
@@ -1128,7 +1181,7 @@
              }
  
              this.oThunderLevel = this.thunderLevel;
-@@ -771,37 +_,49 @@
+@@ -771,37 +_,40 @@
              this.rainLevel = Mth.clamp(this.rainLevel, 0.0F, 1.0F);
          }
  
@@ -1142,34 +1195,26 @@
 -            this.server
 -                .getPlayerList()
 -                .broadcastAll(new ClientboundGameEventPacket(ClientboundGameEventPacket.THUNDER_LEVEL_CHANGE, this.thunderLevel), this.dimension());
-+        for (ServerPlayer player : this.players) {
-+            if (player.level() == this) {
-+                player.tickWeather();
-+            }
-         }
- 
-         if (wasRaining != this.isRaining()) {
+-        }
+-
+-        if (wasRaining != this.isRaining()) {
 -            if (wasRaining) {
 -                this.server.getPlayerList().broadcastAll(new ClientboundGameEventPacket(ClientboundGameEventPacket.STOP_RAINING, 0.0F));
 -            } else {
 -                this.server.getPlayerList().broadcastAll(new ClientboundGameEventPacket(ClientboundGameEventPacket.START_RAINING, 0.0F));
--            }
++        boolean weatherChanged = wasRaining != this.isRaining();
++        for (ServerPlayer player : this.players) {
++            if (player.level() == this) {
++                player.tickWeather();
++                if (weatherChanged) {
++                    player.setPlayerWeather((!wasRaining ? org.bukkit.WeatherType.DOWNFALL : org.bukkit.WeatherType.CLEAR), false);
++                }
++                player.updateWeather(this.oRainLevel, this.rainLevel, this.oThunderLevel, this.thunderLevel);
+             }
 -
 -            this.server.getPlayerList().broadcastAll(new ClientboundGameEventPacket(ClientboundGameEventPacket.RAIN_LEVEL_CHANGE, this.rainLevel));
 -            this.server.getPlayerList().broadcastAll(new ClientboundGameEventPacket(ClientboundGameEventPacket.THUNDER_LEVEL_CHANGE, this.thunderLevel));
--        }
-+            // Only send weather packets to those affected
-+            for (ServerPlayer player : this.players) {
-+                if (player.level() == this) {
-+                    player.setPlayerWeather((!wasRaining ? org.bukkit.WeatherType.DOWNFALL : org.bukkit.WeatherType.CLEAR), false);
-+                }
-+            }
-+        }
-+        for (ServerPlayer player : this.players) {
-+            if (player.level() == this) {
-+                player.updateWeather(this.oRainLevel, this.rainLevel, this.oThunderLevel, this.thunderLevel);
-+            }
-+        }
+         }
 +        // CraftBukkit end
      }
  
@@ -1428,13 +1473,14 @@
          Entity existing = this.getEntity(player.getUUID());
          if (existing != null) {
              LOGGER.warn("Force-added player with duplicate UUID {}", player.getUUID());
-@@ -988,45 +_,136 @@
+@@ -988,45 +_,138 @@
              this.removePlayerImmediately((ServerPlayer)existing, Entity.RemovalReason.DISCARDED);
          }
  
 -        this.entityManager.addNewEntity(player);
 +        this.moonrise$getEntityLookup().addNewEntity(player); // Paper - rewrite chunk system
 +        player.onAddedToLevel();
++        this.server.addEntityToGlobalCache(player); // Youer - global entity cache
      }
  
      private boolean addEntity(Entity entity) {
@@ -1475,6 +1521,7 @@
 +            // CraftBukkit end
 +            if (this.moonrise$getEntityLookup().addNewEntity(entity)) {
 +                entity.onAddedToLevel();
++                this.server.addEntityToGlobalCache(entity); // Youer - global entity cache
 +                return true;
 +            } else {
 +                return false;
@@ -1806,6 +1853,20 @@
              if (this.sendParticles(player, overrideLimiter, x, y, z, packet)) {
                  result++;
              }
+@@ -1367,6 +_,13 @@
+             return entity;
+         }
+ 
++        // Youer start - use global entity cache
++        Entity cached = this.server.getEntityFromGlobalCache(uuid);
++        if (cached != null && !cached.isRemoved()) {
++            return cached;
++        }
++        // Youer end - use global entity cache
++
+         for (ServerLevel otherLevel : this.getServer().getAllLevels()) {
+             if (otherLevel != this) {
+                 Entity otherEntity = otherLevel.getEntity(uuid);
 @@ -1391,7 +_,7 @@
      }
  
@@ -2160,7 +2221,7 @@
                      String message = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
                          "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
-@@ -1907,16 +_,58 @@
+@@ -1907,17 +_,60 @@
                  ServerLevel.this.navigatingMobs.add(mob);
              }
  
@@ -2219,8 +2280,10 @@
 +            }
 +            // Spigot end
              ServerLevel.this.getChunkSource().removeEntity(entity);
++            ServerLevel.this.server.removeEntityFromGlobalCache(entity); // Youer - global entity cache
              if (entity instanceof ServerPlayer player) {
                  ServerLevel.this.players.remove(player);
+                 ServerLevel.this.getWaypointManager().removePlayer(player);
 @@ -1925,28 +_,93 @@
              }
  
