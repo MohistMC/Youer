@@ -1,6 +1,14 @@
 --- a/net/minecraft/server/network/config/PrepareSpawnTask.java
 +++ b/net/minecraft/server/network/config/PrepareSpawnTask.java
-@@ -36,29 +_,79 @@
+@@ -4,6 +_,7 @@
+ import java.util.Optional;
+ import java.util.concurrent.CompletableFuture;
+ import java.util.function.Consumer;
++import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.network.Connection;
+ import net.minecraft.network.protocol.Packet;
+@@ -36,29 +_,82 @@
      private final LevelLoadListener loadListener;
      private PrepareSpawnTask.@Nullable State state;
  
@@ -9,6 +17,7 @@
 +    private final com.mojang.authlib.GameProfile profile;
 +    private final net.minecraft.server.network.ServerConfigurationPacketListenerImpl listener;
 +    private boolean newPlayer;
++    private @Nullable CompoundTag cachedPlayerData; // Youer - cache player data to avoid double I/O
 +
 +    public PrepareSpawnTask(MinecraftServer server, final com.mojang.authlib.GameProfile profile, final net.minecraft.server.network.ServerConfigurationPacketListenerImpl listener) {
 +        this.profile = profile;
@@ -24,12 +33,15 @@
      @Override
      public void start(Consumer<Packet<?>> connection) {
          try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(LOGGER)) {
-             Optional<ValueInput> loadedData = this.server
+-            Optional<ValueInput> loadedData = this.server
 -                .getPlayerList()
 -                .loadPlayerData(this.nameAndId)
 -                .map(tag -> TagValueInput.create(reporter, this.server.registryAccess(), tag));
++            Optional<CompoundTag> loadedTag = this.server
 +                    .getPlayerList()
-+                    .loadPlayerData(this.nameAndId)
++                    .loadPlayerData(this.nameAndId);
++            this.cachedPlayerData = loadedTag.orElse(null); // Youer - cache to avoid double I/O
++            Optional<ValueInput> loadedData = loadedTag
 +                    .map(tag -> TagValueInput.create(reporter, this.server.registryAccess(), tag));
 +            // Paper start - move logic in Entity to here, to use bukkit supplied world UUID & reset to main world spawn if no valid world is found
 +            this.newPlayer = loadedData.isEmpty(); // New players don't have saved data!
@@ -172,7 +184,7 @@
                  PrepareSpawnTask.this.loadListener.start(LevelLoadListener.Stage.LOAD_PLAYER_CHUNKS, this.chunkLoadCounter.totalChunks());
                  PrepareSpawnTask.this.loadListener.updateFocus(this.spawnLevel.dimension(), spawnChunk);
              }
-@@ -172,14 +_,48 @@
+@@ -172,14 +_,65 @@
          public ServerPlayer spawn(Connection connection, CommonListenerCookie cookie) {
              ChunkPos spawnChunk = ChunkPos.containing(BlockPos.containing(this.spawnPosition));
              this.spawnLevel.waitForEntities(spawnChunk, 3);
@@ -192,16 +204,17 @@
 +            // Paper end - configuration api - possibly use legacy saved server player instance
  
              try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(player.problemPath(), PrepareSpawnTask.LOGGER)) {
-                 Optional<ValueInput> input = PrepareSpawnTask.this.server
+-                Optional<ValueInput> input = PrepareSpawnTask.this.server
 -                    .getPlayerList()
 -                    .loadPlayerData(PrepareSpawnTask.this.nameAndId)
 -                    .map(tag -> TagValueInput.create(reporter, PrepareSpawnTask.this.server.registryAccess(), tag));
-+                        .getPlayerList()
-+                        .loadPlayerData(PrepareSpawnTask.this.nameAndId)
++                // Youer start - use cached player data to avoid double file I/O
++                Optional<ValueInput> input;
++                if (PrepareSpawnTask.this.cachedPlayerData != null) {
++                    input = Optional.of(PrepareSpawnTask.this.cachedPlayerData)
 +                        // CraftBukkit start
 +                        .map(tag -> {
 +                            org.bukkit.craftbukkit.entity.CraftPlayer craftPlayer = player.getBukkitEntity();
-+                            // Only update first played if it is older than the one we have
 +                            long modified = new java.io.File(PrepareSpawnTask.this.server.getPlayerList().playerIo.getPlayerDir(), player.getStringUUID() + ".dat").lastModified();
 +                            if (modified < craftPlayer.getFirstPlayed()) {
 +                                craftPlayer.setFirstPlayed(modified);
@@ -210,6 +223,23 @@
 +                        })
 +                        // CraftBukkit end
 +                        .map(tag -> TagValueInput.create(reporter, PrepareSpawnTask.this.server.registryAccess(), tag));
++                } else {
++                    input = PrepareSpawnTask.this.server
++                            .getPlayerList()
++                            .loadPlayerData(PrepareSpawnTask.this.nameAndId)
++                            // CraftBukkit start
++                            .map(tag -> {
++                                org.bukkit.craftbukkit.entity.CraftPlayer craftPlayer = player.getBukkitEntity();
++                                long modified = new java.io.File(PrepareSpawnTask.this.server.getPlayerList().playerIo.getPlayerDir(), player.getStringUUID() + ".dat").lastModified();
++                                if (modified < craftPlayer.getFirstPlayed()) {
++                                    craftPlayer.setFirstPlayed(modified);
++                                }
++                                return tag;
++                            })
++                            // CraftBukkit end
++                            .map(tag -> TagValueInput.create(reporter, PrepareSpawnTask.this.server.registryAccess(), tag));
++                }
++                // Youer end - use cached player data to avoid double file I/O
                  input.ifPresent(player::load);
 +                net.neoforged.neoforge.event.EventHooks.firePlayerLoadingEvent(player, PrepareSpawnTask.this.server.getPlayerList(), player.getStringUUID());
 +                // CraftBukkit start - Better rename detection

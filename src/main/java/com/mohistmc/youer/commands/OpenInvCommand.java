@@ -54,15 +54,15 @@ public class OpenInvCommand extends BukkitCommand {
 
     @Override
     public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, String[] args) {
-        if (sender instanceof final Player player) {
-            if (args.length == 2 && args[0].equalsIgnoreCase("enderchest") && player.isOp() && Bukkit.getServer().getPlayer(args[1]) != null) {
-                final Player tPlayer = Bukkit.getServer().getPlayer(args[1]);
+        if (sender instanceof Player player) {
+            Player tPlayer = Bukkit.getPlayer(args[1]);
+            if (args.length == 2 && args[0].equalsIgnoreCase("enderchest") && player.isOp() && tPlayer != null) {
                 player.openInventory(tPlayer.getEnderChest());
             }
-            if (args.length == 2 && args[0].equalsIgnoreCase("inventory") && player.isOp() && Bukkit.getServer().getPlayer(args[1]) != null) {
-                final Player tPlayer = Bukkit.getServer().getPlayer(args[1]);
+            if (args.length == 2 && args[0].equalsIgnoreCase("inventory") && player.isOp() && tPlayer != null) {
                 player.openInventory(tPlayer.getInventory());
             }
+            // TODO OfflinePlayer
             return true;
         }
         sender.sendMessage("§c?");

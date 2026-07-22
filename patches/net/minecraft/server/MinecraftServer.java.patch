@@ -27,7 +27,7 @@
  import java.net.Proxy;
  import java.nio.file.FileStore;
  import java.nio.file.Files;
-@@ -30,12 +_,13 @@
+@@ -30,12 +_,14 @@
  import java.util.Map;
  import java.util.Objects;
  import java.util.Optional;
@@ -36,6 +36,7 @@
  import java.util.UUID;
  import java.util.Map.Entry;
  import java.util.concurrent.CompletableFuture;
++import java.util.concurrent.ConcurrentHashMap;
  import java.util.concurrent.Executor;
 -import java.util.concurrent.RejectedExecutionException;
 +import java.util.concurrent.ExecutorService;
@@ -50,7 +51,7 @@
  import net.minecraft.util.debug.ServerDebugSubscribers;
  import net.minecraft.util.debugchart.SampleLogger;
  import net.minecraft.util.debugchart.TpsDebugDimensions;
-@@ -133,6 +_,7 @@
+@@ -133,12 +_,14 @@
  import net.minecraft.util.profiling.metrics.profiling.ServerMetricsSamplersProvider;
  import net.minecraft.util.profiling.metrics.storage.MetricsPersister;
  import net.minecraft.util.thread.ReentrantBlockableEventLoop;
@@ -58,6 +59,13 @@
  import net.minecraft.world.Difficulty;
  import net.minecraft.world.RandomSequences;
  import net.minecraft.world.Stopwatches;
+ import net.minecraft.world.clock.ClockTimeMarkers;
+ import net.minecraft.world.clock.ServerClockManager;
+ import net.minecraft.world.clock.WorldClocks;
++import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.ai.village.VillageSiege;
+ import net.minecraft.world.entity.npc.CatSpawner;
+ import net.minecraft.world.entity.npc.wanderingtrader.WanderingTraderSpawner;
 @@ -161,6 +_,7 @@
  import net.minecraft.world.level.chunk.status.ChunkStatus;
  import net.minecraft.world.level.chunk.storage.ChunkIOErrorReporter;
@@ -127,8 +135,11 @@
      private @Nullable ServerStatus status;
      private ServerStatus.@Nullable Favicon statusIcon;
      private final RandomSource random = RandomSource.create();
-@@ -237,13 +_,14 @@
+@@ -235,15 +_,17 @@
+     private int port = -1;
+     private final LayeredRegistryAccess<RegistryLayer> registries;
      private Map<ResourceKey<Level>, ServerLevel> levels = Maps.newLinkedHashMap();
++    private final Map<UUID, Entity> globalEntityCache = new ConcurrentHashMap<>();
      private PlayerList playerList;
      private volatile boolean running = true;
 +    private volatile boolean isRestarting = false; // Paper - flag to signify we're attempting to restart
@@ -1626,10 +1637,32 @@
          profiler.pop();
      }
  
-@@ -1190,6 +_,24 @@
+@@ -1190,6 +_,47 @@
          return this.levels.get(dimension);
      }
  
++    // Youer start - global entity cache for cross-dimension lookups
++    public void addEntityToGlobalCache(Entity entity) {
++        if (entity != null) {
++            this.globalEntityCache.put(entity.getUUID(), entity);
++        }
++    }
++
++    public void removeEntityFromGlobalCache(Entity entity) {
++        if (entity != null) {
++            this.globalEntityCache.remove(entity.getUUID());
++        }
++    }
++
++    public @Nullable Entity getEntityFromGlobalCache(UUID uuid) {
++        return this.globalEntityCache.get(uuid);
++    }
++
++    public void clearEntityCacheForLevel(ServerLevel level) {
++        this.globalEntityCache.values().removeIf(e -> e.level() == level);
++    }
++    // Youer end - global entity cache for cross-dimension lookups
++
 +    // CraftBukkit start
 +    public void addLevel(ServerLevel level) {
 +        Map<ResourceKey<Level>, ServerLevel> oldLevels = this.levels;
@@ -1645,6 +1678,7 @@
 +        newLevels.remove(level.dimension());
 +        this.levels = Collections.unmodifiableMap(newLevels);
 +        this.markWorldsDirty();
++        this.clearEntityCacheForLevel(level); // Youer - clean up entity cache for removed level
 +    }
 +    // CraftBukkit end
 +

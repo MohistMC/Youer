@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/packs/repository/PackRepository.java
 +++ b/net/minecraft/server/packs/repository/PackRepository.java
-@@ -15,44 +_,73 @@
+@@ -15,15 +_,30 @@
  import net.minecraft.server.packs.PackResources;
  import net.minecraft.util.Util;
  import net.minecraft.world.flag.FeatureFlagSet;
@@ -11,22 +11,28 @@
      private final Set<RepositorySource> sources;
      private Map<String, Pack> available = ImmutableMap.of();
      private List<Pack> selected = ImmutableList.of();
-+    private final net.minecraft.world.level.validation.DirectoryValidator validator; // Paper - add validator
++    private net.minecraft.world.level.validation.DirectoryValidator validator; // Paper - add validator
  
      public PackRepository(RepositorySource... sources) {
-+        this.validator = new DirectoryValidator(path -> true);
-         this.sources = ImmutableSet.copyOf(sources);
-     }
- 
+-        this.sources = ImmutableSet.copyOf(sources);
++        this.validator = new DirectoryValidator(_ -> true);
++        this.sources = new java.util.LinkedHashSet<>(List.of(sources)); //Neo: This needs to be a mutable set, so that we can add to it later on.
++    }
++
 +    // Paper start - add validator
-+    public PackRepository(final net.minecraft.world.level.validation.DirectoryValidator validator, final RepositorySource... sources) {
++    public PackRepository(net.minecraft.world.level.validation.DirectoryValidator validator, RepositorySource... sources) {
 +        this.validator = validator;
 +        // Paper end - add validator
 +        this.sources = new java.util.LinkedHashSet<>(List.of(sources)); //Neo: This needs to be a mutable set, so that we can add to it later on.
 +    }
 +
++    public PackRepository validate(net.minecraft.world.level.validation.DirectoryValidator validator) {
++        this.validator = validator;
++        return this;
+     }
+ 
      public static String displayPackList(Collection<Pack> packs) {
-         return packs.stream().map(pack -> pack.getId() + (pack.getCompatibility().isCompatible() ? "" : " (incompatible)")).collect(Collectors.joining(", "));
+@@ -31,28 +_,47 @@
      }
  
      public void reload() {

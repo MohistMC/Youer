@@ -1,6 +1,5 @@
 package io.papermc.paper.plugin;
 
-import com.mojang.logging.LogUtils;
 import io.papermc.paper.configuration.PaperConfigurations;
 import io.papermc.paper.plugin.entrypoint.Entrypoint;
 import io.papermc.paper.plugin.entrypoint.LaunchEntryPointHandler;

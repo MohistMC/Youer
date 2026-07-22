@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit;
 
 import ca.spottedleaf.common.time.TickData;
+import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -9,6 +10,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.MapMaker;
 import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
+import com.mohistmc.youer.util.ProxyUtils;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.JsonOps;
@@ -435,6 +437,29 @@ public final class CraftServer implements Server {
 
         NeoForgeInjectBukkit.init();
 
+        initConfig(); // Youer
+
+        this.overrideAllCommandBlockCommands = this.commandsConfiguration.getStringList("command-block-overrides").contains("*");
+        this.ignoreVanillaPermissions = this.commandsConfiguration.getBoolean("ignore-vanilla-permissions");
+        this.overrideSpawnLimits();
+        console.autosavePeriod = this.configuration.getInt("ticks-per.autosave");
+        this.warningState = WarningState.value(this.configuration.getString("settings.deprecated-verbose"));
+        TicketType.PLUGIN_TYPE_TIMEOUT = this.configuration.getInt("chunk-gc.period-in-ticks");
+        this.minimumAPI = ApiVersion.getOrCreateVersion(this.configuration.getString("settings.minimum-api"));
+        this.loadIcon();
+        this.loadCompatibilities();
+        CraftMagicNumbers.INSTANCE.getCommodore().updateReroute(activeCompatibilities::contains);
+
+        // Set map color cache
+        if (this.configuration.getBoolean("settings.use-map-color-cache")) {
+            MapPalette.setMapColorCache(new CraftMapColorCache(this.logger));
+        }
+        this.potionBrewer = new io.papermc.paper.potion.PaperPotionBrewer(console); // Paper - custom potion mixes
+        datapackManager = new io.papermc.paper.datapack.PaperDatapackManager(console.getPackRepository()); // Paper
+    }
+
+    // Youer start
+    public void initConfig() {
         this.configuration = YamlConfiguration.loadConfiguration(this.getConfigFile());
         this.configuration.options().copyDefaults(true);
         YamlConfiguration configurationDefaults = YamlConfiguration.loadConfiguration(new InputStreamReader(this.getClass().getClassLoader().getResourceAsStream("configurations/bukkit.yml"), StandardCharsets.UTF_8));
@@ -478,24 +503,8 @@ public final class CraftServer implements Server {
         }
 
         this.saveCommandsConfig();
-        this.overrideAllCommandBlockCommands = this.commandsConfiguration.getStringList("command-block-overrides").contains("*");
-        this.ignoreVanillaPermissions = this.commandsConfiguration.getBoolean("ignore-vanilla-permissions");
-        this.overrideSpawnLimits();
-        console.autosavePeriod = this.configuration.getInt("ticks-per.autosave");
-        this.warningState = WarningState.value(this.configuration.getString("settings.deprecated-verbose"));
-        TicketType.PLUGIN_TYPE_TIMEOUT = this.configuration.getInt("chunk-gc.period-in-ticks");
-        this.minimumAPI = ApiVersion.getOrCreateVersion(this.configuration.getString("settings.minimum-api"));
-        this.loadIcon();
-        this.loadCompatibilities();
-        CraftMagicNumbers.INSTANCE.getCommodore().updateReroute(activeCompatibilities::contains);
-
-        // Set map color cache
-        if (this.configuration.getBoolean("settings.use-map-color-cache")) {
-            MapPalette.setMapColorCache(new CraftMapColorCache(this.logger));
-        }
-        this.potionBrewer = new io.papermc.paper.potion.PaperPotionBrewer(console); // Paper - custom potion mixes
-        datapackManager = new io.papermc.paper.datapack.PaperDatapackManager(console.getPackRepository()); // Paper
     }
+    // Youer end
 
     public boolean getCommandBlockOverride(String command) {
         return this.overrideAllCommandBlockCommands || this.commandsConfiguration.getStringList("command-block-overrides").contains(command);
@@ -884,7 +893,7 @@ public final class CraftServer implements Server {
     @Override
     public long getConnectionThrottle() {
         // Spigot start - Automatically set connection throttle for bungee configurations
-        if (org.spigotmc.SpigotConfig.bungee || io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled) { // Paper - Add Velocity IP Forwarding Support
+        if (ProxyUtils.useProxy()) { // Paper - Add Velocity IP Forwarding Support
             return -1;
         } else {
             return this.configuration.getInt("settings.connection-throttle");
@@ -1134,7 +1143,7 @@ public final class CraftServer implements Server {
     }
 
     @SuppressWarnings({ "unchecked", "finally" })
-    private void loadCustomPermissions() {
+    public void loadCustomPermissions() {
         File file = new File(this.configuration.getString("settings.permissions-file"));
         FileInputStream stream;
 

@@ -34,14 +34,14 @@ public class AutoDeleteMods {
         put("com.meowconsole.neoforge.MeowConsoleNeoForgeMod", DeletionReason.DUPLICATE_FEATURE);
         //put("org.embeddedt.modernfix.ModernFix", DeletionReason.DUPLICATE_FEATURE);
         put("ca.spottedleaf.moonrise.neoforge.MoonriseNeoForge", DeletionReason.DUPLICATE_FEATURE);
-        //put("me.steinborn.krypton.mod.server.KryptonServerInitializer", DeletionReason.DUPLICATE_FEATURE);
-        //put("me.steinborn.krypton.mod.KryptonBootstrap", DeletionReason.DUPLICATE_FEATURE);
-        //put("org.thinkingstudio.krypton_foxified.KryptonFoxified", DeletionReason.DUPLICATE_FEATURE);
-        //put("net.caffeinemc.mods.lithium.neoforge.LithiumNeoForgeMod", DeletionReason.DUPLICATE_FEATURE);
-        //put("me.jellysquid.mods.lithium.common.LithiumMod", DeletionReason.DUPLICATE_FEATURE);
+        put("me.steinborn.krypton.mod.server.KryptonServerInitializer", DeletionReason.DUPLICATE_FEATURE);
+        put("me.steinborn.krypton.mod.KryptonBootstrap", DeletionReason.DUPLICATE_FEATURE);
+        put("org.thinkingstudio.krypton_foxified.KryptonFoxified", DeletionReason.DUPLICATE_FEATURE);
+        put("net.caffeinemc.mods.lithium.neoforge.LithiumNeoForgeMod", DeletionReason.DUPLICATE_FEATURE);
+        put("me.jellysquid.mods.lithium.common.LithiumMod", DeletionReason.DUPLICATE_FEATURE);
         //put("com.bawnorton.neruina.Neruina", DeletionReason.DUPLICATE_FEATURE);
-        //put("ca.spottedleaf.starlight.common.ScalableLuxEntrypoint", DeletionReason.DUPLICATE_FEATURE);
-        //put("me.drex.antixray.neoforge.AntiXrayMod", DeletionReason.DUPLICATE_FEATURE);
+        put("ca.spottedleaf.starlight.common.ScalableLuxEntrypoint", DeletionReason.DUPLICATE_FEATURE);
+        put("me.drex.antixray.neoforge.AntiXrayMod", DeletionReason.DUPLICATE_FEATURE);
         //put("dev.uncandango.alltheleaks.AllTheLeaks", DeletionReason.DUPLICATE_FEATURE);
         //put("com.yshs.searchonmcmod.SearchOnMcmod", DeletionReason.CLIENT_ONLY);
         //put("eu.midnightdust.cullleaves.neoforge.CullLeavesClientForge", DeletionReason.CLIENT_ONLY);
@@ -52,6 +52,8 @@ public class AutoDeleteMods {
         //put("me.drex.crashexploitfixer.neoforge.CrashExploitFixerNeoforge", DeletionReason.DUPLICATE_FEATURE);
         //put("fabric-carpet-refmap", DeletionReason.FABRIC_ONLY);
         //put("carpet.CarpetServer", DeletionReason.DUPLICATE_FEATURE);
+        put("com.axalotl.async.neoforge.AsyncNeoForge", DeletionReason.DUPLICATE_FEATURE);
+        put("com.ishland.c2me.C2MEMod", DeletionReason.DUPLICATE_FEATURE);
     }};
 
     /**

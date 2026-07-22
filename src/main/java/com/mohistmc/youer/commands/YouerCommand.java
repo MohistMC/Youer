@@ -10,11 +10,13 @@ import com.mohistmc.youer.api.PlayerAPI;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.feature.PacketStatistics;
 import com.mohistmc.youer.feature.WorldBackup;
+import org.purpurmc.purpur.task.PacketBarTask;
 import com.mohistmc.youer.feature.db.DatabaseMigration;
 import com.mohistmc.youer.util.I18n;
 import com.mohistmc.youer.util.MemoryUtils;
 import com.mohistmc.youer.util.TimeUtils;
 import com.mohistmc.youer.util.YouerThreadCost;
+import com.mohistmc.youer.util.YouerVersion;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
@@ -26,15 +28,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.neoforged.neoforge.common.NeoForgeVersion;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
+import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.WorldInfo;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.spigotmc.SpigotConfig;
 
 public class YouerCommand extends Command {
 
@@ -126,6 +131,9 @@ public class YouerCommand extends Command {
             case "reload" -> {
                 MinecraftServer console = MinecraftServer.getServer();
                 YouerConfig.init((File) console.options.valueOf("youer-settings"));
+                ((CraftServer) Bukkit.getServer()).initConfig();
+                ((CraftServer) Bukkit.getServer()).loadCustomPermissions();
+                SpigotConfig.init((File) console.options.valueOf("spigot-settings"));
                 for (ServerLevel world : console.getAllLevels()) {
                     world.spigotConfig.init(); // TODO
                 }
@@ -135,9 +143,10 @@ public class YouerCommand extends Command {
                 return true;
             }
             case "version" -> {
-                sender.sendMessage("Youer: " + Youer.versionInfo.youer());
-                sender.sendMessage("NeoForge: " + Youer.versionInfo.neoforge());
-                sender.sendMessage("Paper: " + Youer.versionInfo.paper());
+                sender.sendMessage("Youer: " + YouerVersion.getVersion());
+                sender.sendMessage("NeoForge: " + NeoForgeVersion.getVersion());
+                sender.sendMessage("Paper: " + YouerVersion.getPaperVersion());
+                sender.sendMessage("Purpur: " + YouerVersion.getPurpurVersion());
                 return true;
             }
             case "packetstats" -> {
@@ -169,6 +178,10 @@ public class YouerCommand extends Command {
                         String durationString = TimeUtils.formatDuration(durationSeconds);
 
                         PacketStatistics.stopCollecting();
+
+                        // Stop the packet bar too — it would otherwise show stale zeros
+                        PacketBarTask.instance().stop();
+
                         sender.sendMessage(I18n.as("packetstats.report.title"));
                         sender.sendMessage(I18n.as("packetstats.total.bytes", StringUtil.formatBytes(PacketStatistics.getTotalBytesSent())));
                         sender.sendMessage(I18n.as("packetstats.total.packets", String.valueOf(PacketStatistics.getTotalPacketsSent())));

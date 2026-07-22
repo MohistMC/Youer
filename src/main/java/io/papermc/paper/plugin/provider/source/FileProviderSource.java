@@ -75,11 +75,13 @@ public class FileProviderSource implements ProviderSource<Path, Path> {
             );
         }
 
+        /*
         final PluginMeta config = type.getConfig(file);
         if ((config.getName().equals("spark") && config.getMainClass().equals("me.lucko.spark.bukkit.BukkitSparkPlugin")) && !SparksFly.isPluginPreferred()) {
             LOGGER.info("The spark plugin will not be loaded as this server bundles the spark profiler.");
             return;
         }
+        */
 
         type.register(entrypointHandler, file, context);
     }

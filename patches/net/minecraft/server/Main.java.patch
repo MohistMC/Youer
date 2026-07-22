@@ -50,7 +50,7 @@
  import net.minecraft.world.flag.FeatureFlags;
  import net.minecraft.world.level.LevelSettings;
  import net.minecraft.world.level.WorldDataConfiguration;
-@@ -56,21 +_,26 @@
+@@ -56,21 +_,30 @@
  import net.minecraft.world.level.levelgen.presets.WorldPresets;
  import net.minecraft.world.level.storage.LevelDataAndDimensions;
  import net.minecraft.world.level.storage.LevelStorageSource;
@@ -72,6 +72,10 @@
 +        io.papermc.paper.log.LogManagerShutdownThread.hook(); // Paper - Improved watchdog support
 +        Youer.initI18n(); // Youer
          SharedConstants.tryDetectVersion();
++        // Paper start - Perf: Skip data fixer schema sanity check
++        // This is a startup sanity check for entity and block entity types and forces Vanilla datafixer building
++        SharedConstants.CHECK_DATA_FIXER_SCHEMA = Boolean.getBoolean("paper.updatingMinecraft");
++        // Paper end - Perf: Skip data fixer schema sanity check
          OptionParser parser = new OptionParser();
          OptionSpec<Void> nogui = parser.accepts("nogui");
 -        OptionSpec<Void> initSettings = parser.accepts("initSettings", "Initializes 'server.properties' and 'eula.txt', then quits");

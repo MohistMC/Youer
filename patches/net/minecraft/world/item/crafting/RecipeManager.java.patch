@@ -1,6 +1,13 @@
 --- a/net/minecraft/world/item/crafting/RecipeManager.java
 +++ b/net/minecraft/world/item/crafting/RecipeManager.java
-@@ -9,6 +_,7 @@
+@@ -3,12 +_,14 @@
+ import com.google.common.annotations.VisibleForTesting;
+ import com.google.gson.JsonObject;
+ import com.google.gson.JsonParseException;
++import com.mohistmc.youer.feature.ban.bans.BanRecipe;
+ import com.mojang.logging.LogUtils;
+ import com.mojang.serialization.JsonOps;
+ import it.unimi.dsi.fastutil.objects.Object2IntMap;
  import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
  import java.util.ArrayList;
  import java.util.Collection;
@@ -24,7 +31,7 @@
  
      public RecipeManager(HolderLookup.Provider registries) {
          this.registries = registries;
-@@ -68,8 +_,13 @@
+@@ -68,14 +_,21 @@
  
      protected RecipeMap prepare(ResourceManager manager, ProfilerFiller profiler) {
          SortedMap<Identifier, Recipe<?>> recipes = new TreeMap<>();
@@ -40,6 +47,17 @@
          );
          List<RecipeHolder<?>> recipeHolders = new ArrayList<>(recipes.size());
          recipes.forEach((id, recipe) -> {
+-            ResourceKey<Recipe<?>> key = ResourceKey.create(Registries.RECIPE, id);
+-            RecipeHolder<?> holder = new RecipeHolder<>(key, recipe);
+-            recipeHolders.add(holder);
++            if (!BanRecipe.checkBan(id)) {
++                ResourceKey<Recipe<?>> key = ResourceKey.create(Registries.RECIPE, id);
++                RecipeHolder<?> holder = new RecipeHolder<>(key, recipe);
++                recipeHolders.add(holder);
++            }
+         });
+         return RecipeMap.create(recipeHolders);
+     }
 @@ -85,7 +_,27 @@
          LOGGER.info("Loaded {} recipes", recipes.values().size());
      }
