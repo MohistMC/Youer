@@ -11,7 +11,7 @@ public class TpadenyCommands extends Command {
     public TpadenyCommands(String name) {
         super(name);
         this.usageMessage = "/tpadeny";
-        this.setPermission("youer.command.tpa");
+        this.setPermission("youer.command.tpadeny");
     }
 
     @Override

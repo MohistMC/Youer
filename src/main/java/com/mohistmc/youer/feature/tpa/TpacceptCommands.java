@@ -11,7 +11,7 @@ public class TpacceptCommands extends Command {
     public TpacceptCommands(String name) {
         super(name);
         this.usageMessage = "/tpaccept";
-        this.setPermission("youer.command.tpa");
+        this.setPermission("youer.command.tpaccept");
     }
 
     @Override
