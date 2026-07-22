@@ -833,7 +833,7 @@
          Entity entity = this.getEntities().get(p_8854_.getUUID());
          if (entity != null) {
              LOGGER.warn("Force-added player with duplicate UUID {}", p_8854_.getUUID());
-@@ -903,15 +_,65 @@
+@@ -903,15 +_,66 @@
              this.removePlayerImmediately((ServerPlayer)entity, Entity.RemovalReason.DISCARDED);
          }
  
@@ -849,6 +849,7 @@
 +            return true;
 +        }
 +        // Paper end - extra debug info
++        if (p_8873_.spawnReason == null) p_8873_.spawnReason = p_8873_.bukkit_spawnReason; // Paper - Entity#getEntitySpawnReason
          if (p_8873_.isRemoved()) {
 -            LOGGER.warn("Tried to add entity {} but it was marked as removed already", EntityType.getKey(p_8873_.getType()));
 -            return false;
@@ -876,7 +877,7 @@
 +                return true;
 +            }
 +            // Paper end - capture all item additions to the world
-+            if (!AsyncCatcher.catchAsync() && p_8873_.spawnReason != null && !CraftEventFactory.doEntityAddEventCalling(this, p_8873_, p_8873_.spawnReason)) {
++            if (!AsyncCatcher.catchAsync() && p_8873_.bukkit_spawnReason != null && !CraftEventFactory.doEntityAddEventCalling(this, p_8873_, p_8873_.bukkit_spawnReason)) {
 +                return false;
 +            }
 +            if (this.entityManager.addNewEntity(p_8873_)) {
