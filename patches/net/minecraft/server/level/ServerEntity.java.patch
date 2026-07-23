@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/ServerEntity.java
 +++ b/net/minecraft/server/level/ServerEntity.java
-@@ -5,7 +_,7 @@
+@@ -5,9 +_,10 @@
  import com.mojang.logging.LogUtils;
  import java.util.ArrayList;
  import java.util.Collection;
@@ -8,7 +8,10 @@
 +import java.util.HashSet;
  import java.util.List;
  import java.util.Set;
++import java.util.concurrent.atomic.AtomicBoolean;
  import java.util.function.Consumer;
+ import java.util.stream.Stream;
+ import javax.annotation.Nullable;
 @@ -28,6 +_,7 @@
  import net.minecraft.network.protocol.game.ClientboundUpdateAttributesPacket;
  import net.minecraft.network.protocol.game.VecDeltaCodec;
@@ -45,7 +48,7 @@
          this.level = p_8528_;
          this.broadcast = p_8532_;
          this.entity = p_8529_;
-@@ -83,10 +_,18 @@
+@@ -83,10 +_,17 @@
          this.trackedDataValues = p_8529_.getEntityData().getNonDefaultValues();
      }
  
@@ -55,7 +58,6 @@
 +        this.forceStateResync = true;
 +    }
 +    // Paper end - fix desync when a player is added to the tracker
-+
 +
      public void sendChanges() {
          List<Entity> list = this.entity.getPassengers();
@@ -217,15 +219,56 @@
      }
  
      public Vec3 getPositionBase() {
-@@ -328,6 +_,11 @@
+@@ -322,12 +_,42 @@
+         List<SynchedEntityData.DataValue<?>> list = synchedentitydata.packDirty();
+         if (list != null) {
+             this.trackedDataValues = synchedentitydata.getNonDefaultValues();
++            // CraftBukkit start - Send real health to other players, keep scaled health for self
++            if (this.entity instanceof ServerPlayer serverPlayer) {
++                org.bukkit.entity.Player bukkitPlayer = serverPlayer.getBukkitEntity();
++                if (bukkitPlayer.isHealthScaled()) {
++                    List<SynchedEntityData.DataValue<?>> broadcastList = new ArrayList<>(list);
++                    for (int i = 0; i < broadcastList.size(); i++) {
++                        SynchedEntityData.DataValue<?> dataValue = broadcastList.get(i);
++                        if (dataValue.id() == LivingEntity.DATA_HEALTH_ID.id()) {
++                            broadcastList.set(i, SynchedEntityData.DataValue.create(LivingEntity.DATA_HEALTH_ID, (float) bukkitPlayer.getHealth()));
++                            break;
++                        }
++                    }
++                    this.sendScaledMaxHealth.set(true);
++                    // Broadcast with real health to all other tracking players
++                    this.broadcast.accept(new ClientboundSetEntityDataPacket(this.entity.getId(), broadcastList));
++                    // Send with scaled health to the player themselves
++                    serverPlayer.connection.send(new ClientboundSetEntityDataPacket(this.entity.getId(), list));
++                }
++            }
++            // CraftBukkit end
+             this.broadcastAndSend(new ClientboundSetEntityDataPacket(this.entity.getId(), list));
+         }
+ 
          if (this.entity instanceof LivingEntity) {
              Set<AttributeInstance> set = ((LivingEntity)this.entity).getAttributes().getAttributesToSync();
              if (!set.isEmpty()) {
 +                // CraftBukkit start - Send scaled max health
-+                if (this.entity instanceof ServerPlayer) {
-+                    ((ServerPlayer) this.entity).getBukkitEntity().injectScaledMaxHealth(set, false);
++                if (this.entity instanceof ServerPlayer serverPlayer) {
++                    this.sendScaledMaxHealth.set(true);
++                    // Send unscaled attributes to all other tracking players
++                    this.broadcast.accept(new ClientboundUpdateAttributesPacket(this.entity.getId(), set));
++                    // Send scaled max health only to the player themselves
++                    serverPlayer.getBukkitEntity().injectScaledMaxHealth(set, false);
++                    serverPlayer.connection.send(new ClientboundUpdateAttributesPacket(this.entity.getId(), set));
 +                }
 +                // CraftBukkit end
                  this.broadcastAndSend(new ClientboundUpdateAttributesPacket(this.entity.getId(), set));
              }
  
+@@ -335,7 +_,9 @@
+         }
+     }
+ 
++    private final AtomicBoolean sendScaledMaxHealth = new AtomicBoolean(false);
+     private void broadcastAndSend(Packet<?> p_8539_) {
++        if (sendScaledMaxHealth.getAndSet(false)) return;
+         this.broadcast.accept(p_8539_);
+         if (this.entity instanceof ServerPlayer) {
+             ((ServerPlayer)this.entity).connection.send(p_8539_);
