@@ -76,14 +76,30 @@
      private static void applyEffects(
          Level p_155098_, BlockPos p_155099_, int p_155100_, @Nullable Holder<MobEffect> p_316599_, @Nullable Holder<MobEffect> p_316343_
      ) {
-@@ -245,8 +_,8 @@
+@@ -245,8 +_,24 @@
  
              int j = (9 + p_155100_ * 2) * 20;
              AABB aabb = new AABB(p_155099_).inflate(d0).expandTowards(0.0, (double)p_155098_.getHeight(), 0.0);
 -            List<Player> list = p_155098_.getEntitiesOfClass(Player.class, aabb);
 -
-+            List<Player> list = getHumansInRange(p_155098_, p_155099_, p_155100_, applyEffects$blockEntity); // Paper - Custom beacon ranges
++            // Paper start - Custom beacon ranges
++            double range = applyEffects$blockEntity != null ? applyEffects$blockEntity.getEffectRange() : d0;
++            if (range != d0) {
++                aabb = new AABB(p_155099_).inflate(range).expandTowards(0.0, (double)p_155098_.getHeight(), 0.0);
++            }
++            List<Player> list;
++            if (range <= 128.0) {
++                list = p_155098_.getEntitiesOfClass(Player.class, aabb);
++            } else {
++                list = new java.util.ArrayList<>();
++                for (Player player : p_155098_.players()) {
++                    if (!player.isSpectator() && player.getBoundingBox().intersects(aabb)) {
++                        list.add(player);
++                    }
++                }
++            }
 +            applyEffects$blockEntity = null;
++            // Paper end - Custom beacon ranges
              for (Player player : list) {
                  player.addEffect(new MobEffectInstance(p_316599_, j, i, true, true));
              }
