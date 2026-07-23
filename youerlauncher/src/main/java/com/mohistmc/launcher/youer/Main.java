@@ -63,15 +63,12 @@ public class Main {
                     System.getProperty("java.version"),
                     ManagementFactory.getRuntimeMXBean().getName().split("@")[0]
             );
-            if (YouerConfigUtil.isCN()) {
-                System.out.println("+------------------------------------------------------+");
-                System.out.println("|                                                      |");
-                System.out.println("| 官网推出一键开服功能　　　　　　　　　　　　　　　　 |");
-                System.out.println("| 官网(中国): https://www.mohistmc.cn/                 |");
-                System.out.println("| 爱发电: https://ifdian.net/a/MohistMC                |");
-                System.out.println("|                                                      |");
-                System.out.println("+------------------------------------------------------+");
-            }
+            System.out.println("+------------------------------------------------------+");
+            System.out.println("|                                                      |");
+            System.out.println("| Patreon: https://www.patreon.com/c/mohistmc          |");
+            System.out.println("| 爱发电: https://ifdian.net/a/MohistMC                |");
+            System.out.println("|                                                      |");
+            System.out.println("+------------------------------------------------------+");
         }
 
 

@@ -1,4 +1,4 @@
-package net.neoforged.neoforge.mixins;
+package com.mohistmc.youer.mixins.compat.create;
 
 import com.mohistmc.youer.api.event.block.BlockSetBlockEvent;
 import com.simibubi.create.content.kinetics.base.BlockBreakingKineticBlockEntity;
