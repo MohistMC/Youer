@@ -25,13 +25,30 @@
              .instabreak()
              .sound(SoundType.FLOWERING_AZALEA)
              .noOcclusion()
-@@ -5995,7 +_,8 @@
+@@ -5993,11 +_,24 @@
+     }
+ 
      static {
++        // Paper start - Perf: Optimize block state cache initialization
++        // initCache of the first state of every block runs directly (to make sure Blocks is always called here) before the rest are put off-thread
++        final java.util.List<BlockState> statesToInit = new java.util.ArrayList<>();
          for (Block block : BuiltInRegistries.BLOCK) {
++            boolean first = true;
              for (BlockState state : block.getStateDefinition().getPossibleStates()) {
 -                Block.BLOCK_STATE_REGISTRY.add(state);
+-                state.initCache();
 +                // Neo: comment out, it's done in NeoForgeRegistryCallbacks
 +                //Block.BLOCK_STATE_REGISTRY.add(blockstate);
-                 state.initCache();
++                if (first) {
++                    first = false;
++                    state.initCache();
++                } else {
++                    statesToInit.add(state);
++                }
              }
          }
++        // Make sure this stays as a method reference, else the synthetic lambda method makes this blow up
++        statesToInit.parallelStream().forEach(BlockBehaviour.BlockStateBase::initCache);
++        // Paper end - Perf: Optimize block state cache initialization
+     }
+ }
