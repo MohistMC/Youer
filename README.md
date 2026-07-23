@@ -7,7 +7,7 @@
       <img alt="GitHub Stars" src="https://img.shields.io/github/stars/MohistMC/Youer?logo=github&color=181717&style=flat-square">
     </a>
     <a href="https://neoforged.net/">
-      <img alt="NeoForge" src="https://img.shields.io/badge/NeoForge-21.1.241-FF8B00?style=flat-square">
+      <img alt="NeoForge" src="https://img.shields.io/badge/NeoForge-21.1.243-FF8B00?style=flat-square">
     </a>
     <a href="https://www.azul.com/downloads/?version=java-21-lts#zulu">
       <img alt="JDK" src="https://img.shields.io/badge/JDK-21.0.8-007396?logo=java&logoColor=white&style=flat-square">
