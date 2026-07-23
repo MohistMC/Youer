@@ -95,7 +95,6 @@ import net.minecraft.server.players.UserWhiteListEntry;
 import net.minecraft.sounds.SoundEvent;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.AttributeMap;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.food.FoodData;
 import net.minecraft.world.inventory.AbstractContainerMenu;
@@ -2767,7 +2766,10 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     public void setMaxHealth(double amount) {
         super.setMaxHealth(amount);
         this.health = Math.min(this.health, amount);
-        this.getHandle().resetSentInfo();
+        // Youer start - A Bukkit max-health change must reach the owning modded client immediately.
+        // Waiting for entity tracking is not reliable for the player tracking itself.
+        this.updateScaledHealth();
+        // Youer end
     }
 
     @Override
@@ -2833,10 +2835,13 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
     }
 
     public void updateScaledHealth(boolean sendHealth) {
-        AttributeMap attributemapserver = this.getHandle().getAttributes();
-        Collection<AttributeInstance> set = attributemapserver.getSyncableAttributes();
-
+        // Youer start - Only max health belongs in a scaled-health update.
+        // CraftBukkit's original implementation sends every syncable attribute. On a modded
+        // server that can overwrite unrelated attributes with an intermediate equipment state
+        // (for example while Mekanism consumes jetpack fuel and refreshes chest-slot modifiers).
+        Collection<AttributeInstance> set = new ArrayList<>(1);
         this.injectScaledMaxHealth(set, true);
+        // Youer end
 
         // SPIGOT-3813: Attributes before health
         if (this.getHandle().connection != null) {

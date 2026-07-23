@@ -219,15 +219,23 @@
      }
  
      public Vec3 getPositionBase() {
-@@ -328,6 +_,11 @@
+@@ -328,6 +_,18 @@
          if (this.entity instanceof LivingEntity) {
              Set<AttributeInstance> set = ((LivingEntity)this.entity).getAttributes().getAttributesToSync();
              if (!set.isEmpty()) {
+-                this.broadcastAndSend(new ClientboundUpdateAttributesPacket(this.entity.getId(), set));
 +                // CraftBukkit start - Send scaled max health
-+                if (this.entity instanceof ServerPlayer) {
-+                    ((ServerPlayer) this.entity).getBukkitEntity().injectScaledMaxHealth(set, false);
++                if (this.entity instanceof ServerPlayer serverPlayer && serverPlayer.getBukkitEntity().isHealthScaled()) {
++                    // Youer start - Health scaling is private to the owning player's HUD. Do not
++                    // mutate AttributeMap#getAttributesToSync (or leak the scaled value to trackers).
++                    this.broadcast.accept(new ClientboundUpdateAttributesPacket(this.entity.getId(), set));
++                    Collection<AttributeInstance> selfAttributes = new ArrayList<>(set);
++                    serverPlayer.getBukkitEntity().injectScaledMaxHealth(selfAttributes, false);
++                    serverPlayer.connection.send(new ClientboundUpdateAttributesPacket(this.entity.getId(), selfAttributes));
++                    // Youer end
++                } else {
++                    this.broadcastAndSend(new ClientboundUpdateAttributesPacket(this.entity.getId(), set));
 +                }
 +                // CraftBukkit end
-                 this.broadcastAndSend(new ClientboundUpdateAttributesPacket(this.entity.getId(), set));
              }
  
