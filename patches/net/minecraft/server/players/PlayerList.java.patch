@@ -1145,7 +1145,7 @@
      public UserWhiteList getWhiteList() {
          return this.whitelist;
      }
-@@ -680,25 +_,39 @@
+@@ -680,25 +_,44 @@
      }
  
      public void sendLevelInfo(ServerPlayer p_11230_, ServerLevel p_11231_) {
@@ -1178,7 +1178,12 @@
      public void sendAllPlayerInfo(ServerPlayer p_11293_) {
          p_11293_.inventoryMenu.sendAllDataToRemote();
 -        p_11293_.resetSentInfo();
-+        p_11293_.getBukkitEntity().updateScaledHealth(); // CraftBukkit - Update scaled health on respawn and worldchange
++        // Paper start - send all attributes
++        // needs to be done because the ServerPlayer instance is being reused on respawn instead of getting replaced like on vanilla
++        java.util.Collection<net.minecraft.world.entity.ai.attributes.AttributeInstance> syncableAttributes = p_11293_.getAttributes().getSyncableAttributes();
++        p_11293_.getBukkitEntity().injectScaledMaxHealth(syncableAttributes, true);
++        p_11293_.connection.send(new net.minecraft.network.protocol.game.ClientboundUpdateAttributesPacket(p_11293_.getId(), syncableAttributes));
++        // Paper end - send all attributes
 +        p_11293_.refreshEntityData(p_11293_); // CraftBukkkit - SPIGOT-7218: sync metadata
          p_11293_.connection.send(new ClientboundSetCarriedItemPacket(p_11293_.getInventory().selected));
 +        // CraftBukkit start - from GameRules

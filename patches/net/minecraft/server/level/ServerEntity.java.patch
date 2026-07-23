@@ -185,20 +185,18 @@
          if (this.trackedDataValues != null) {
              p_289563_.accept(new ClientboundSetEntityDataPacket(this.entity.getId(), this.trackedDataValues));
          }
-@@ -256,6 +_,13 @@
-         boolean flag = this.trackDelta;
+@@ -257,6 +_,11 @@
          if (this.entity instanceof LivingEntity) {
              Collection<AttributeInstance> collection = ((LivingEntity)this.entity).getAttributes().getSyncableAttributes();
-+
-+            // CraftBukkit start - If sending own attributes send scaled health instead of current maximum health
-+            if (this.entity.getId() == p_289562_.getId()) {
-+                ((ServerPlayer) this.entity).getBukkitEntity().injectScaledMaxHealth(collection, false);
-+            }
-+            // CraftBukkit end
-+
              if (!collection.isEmpty()) {
++                // CraftBukkit start - If sending own attributes send scaled health instead of current maximum health
++                if (this.entity.getId() == p_289562_.getId()) {
++                    ((ServerPlayer) this.entity).getBukkitEntity().injectScaledMaxHealth(collection, false);
++                }
++                // CraftBukkit end
                  p_289563_.accept(new ClientboundUpdateAttributesPacket(this.entity.getId(), collection));
              }
+ 
 @@ -280,8 +_,9 @@
              }
  
