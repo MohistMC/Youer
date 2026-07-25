@@ -200,7 +200,7 @@ public class DummyGeneratorAccess implements WorldGenLevel {
 
     @Override
     public BlockEntity getBlockEntity(BlockPos pos) {
-        throw new UnsupportedOperationException("Not supported yet.");
+        return null; // Dummy world has no block entities; mods like kaleidoscopetavern call this in pickupBlock
     }
 
     @Override
