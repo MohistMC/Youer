@@ -47,18 +47,30 @@
      public ShulkerBoxBlockEntity(@Nullable DyeColor color, BlockPos worldPosition, BlockState blockState) {
          super(BlockEntityTypes.SHULKER_BOX, worldPosition, blockState);
          this.color = color;
-@@ -171,6 +_,7 @@
+@@ -166,11 +_,18 @@
+     @Override
+     public void startOpen(ContainerUser containerUser) {
+         if (!this.remove && !containerUser.getLivingEntity().isSpectator()) {
++            if (containerUser.getLivingEntity() instanceof net.minecraft.world.entity.player.Player player) {
++                if (this.transaction.contains(player.getBukkitEntity())) {
++                    return;
++                }
++            }
+             if (this.openCount < 0) {
+                 this.openCount = 0;
              }
  
              this.openCount++;
++            System.out.println("[Youer Debug] ShulkerBox startOpen called. openCount: " + this.openCount);
 +            if (opened) return; // CraftBukkit - only animate if not already forced open by API
              this.level.blockEvent(this.worldPosition, this.getBlockState().getBlock(), 1, this.openCount);
              if (this.openCount == 1) {
                  this.level.gameEvent(containerUser.getLivingEntity(), GameEvent.CONTAINER_OPEN, this.worldPosition);
-@@ -186,6 +_,7 @@
+@@ -186,6 +_,8 @@
      public void stopOpen(ContainerUser containerUser) {
          if (!this.remove && !containerUser.getLivingEntity().isSpectator()) {
              this.openCount--;
++            System.out.println("[Youer Debug] ShulkerBox stopOpen called. openCount: " + this.openCount);
 +            if (opened) return; // CraftBukkit - only animate if not already forced open by API
              this.level.blockEvent(this.worldPosition, this.getBlockState().getBlock(), 1, this.openCount);
              if (this.openCount <= 0) {
