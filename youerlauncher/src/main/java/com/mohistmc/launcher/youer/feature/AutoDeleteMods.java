@@ -81,7 +81,8 @@ public class AutoDeleteMods {
             new AbstractMap.SimpleEntry<>("com.daqem.grieflogger.neoforge.GriefLoggerNeoForge", MYSQL),
             new AbstractMap.SimpleEntry<>("com.daqem.grieflogger.neoforge.GriefLoggerNeoForge", SQLITE),
             new AbstractMap.SimpleEntry<>("com.daqem.grieflogger.neoforge.GriefLoggerNeoForge", PROTOBUF),
-            new AbstractMap.SimpleEntry<>("me.cortex.voxy.Voxy", SQLITE)
+            new AbstractMap.SimpleEntry<>("me.cortex.voxy.Voxy", SQLITE),
+            new AbstractMap.SimpleEntry<>("io.github.catt1eyaa.ChronoVault", ZSTD)
     );
 
     /**
