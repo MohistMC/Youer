@@ -305,6 +305,7 @@ public final class CraftLegacy {
     }
 
     static {
+        if (!org.purpurmc.purpur.PurpurConfig.loggerSuppressInitLegacyMaterialError) // Purpur
         LOGGER.warn(I18n.as("craftlegacy.1"));
         if (MinecraftServer.getServer() != null && MinecraftServer.getServer().isDebugging()) {
             new Exception().printStackTrace();

@@ -466,11 +466,11 @@ public class PurpurConfig {
         beeCountPayload = getBoolean("settings.bee-count-payload", beeCountPayload);
     }
 
-    public static boolean loggerSuppressInitLegacyMaterialError = false;
-    public static boolean loggerSuppressIgnoredAdvancementWarnings = false;
-    public static boolean loggerSuppressUnrecognizedRecipeErrors = false;
-    public static boolean loggerSuppressSetBlockFarChunk = false;
-    public static boolean loggerSuppressLibraryLoader = false;
+    public static boolean loggerSuppressInitLegacyMaterialError = true;
+    public static boolean loggerSuppressIgnoredAdvancementWarnings = true;
+    public static boolean loggerSuppressUnrecognizedRecipeErrors = true;
+    public static boolean loggerSuppressSetBlockFarChunk = true;
+    public static boolean loggerSuppressLibraryLoader = true;
     private static void loggerSettings() {
         loggerSuppressInitLegacyMaterialError = getBoolean("settings.logger.suppress-init-legacy-material-errors", loggerSuppressInitLegacyMaterialError);
         loggerSuppressIgnoredAdvancementWarnings = getBoolean("settings.logger.suppress-ignored-advancement-warnings", loggerSuppressIgnoredAdvancementWarnings);

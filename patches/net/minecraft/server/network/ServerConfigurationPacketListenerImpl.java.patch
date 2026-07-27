@@ -19,7 +19,7 @@
  import org.slf4j.Logger;
  
  public class ServerConfigurationPacketListenerImpl extends ServerCommonPacketListenerImpl implements ServerConfigurationPacketListener, TickablePacketListener {
-@@ -72,8 +_,23 @@
+@@ -72,15 +_,33 @@
      }
  
      public void startConfiguration() {
@@ -34,16 +34,20 @@
 +    private void runConfiguration() {
          this.send(new ClientboundCustomPayloadPacket(new BrandPayload(this.server.getServerModName())));
          ServerLinks serverlinks = this.server.serverLinks();
-+        // CraftBukkit start
-+        CraftServerLinks wrapper = new CraftServerLinks(serverlinks);
-+        org.bukkit.event.player.PlayerLinksSendEvent event = new org.bukkit.event.player.PlayerLinksSendEvent(player.getBukkitEntity(), wrapper);
-+        player.getBukkitEntity().getServer().getPluginManager().callEvent(event);
-+        serverlinks = wrapper.getServerLinks();
-+        // CraftBukkit end
-         if (!serverlinks.isEmpty()) {
-             this.send(new ClientboundServerLinksPacket(serverlinks.untrust()));
-         }
-@@ -81,6 +_,8 @@
+-        if (!serverlinks.isEmpty()) {
+-            this.send(new ClientboundServerLinksPacket(serverlinks.untrust()));
+-        }
++        // Youer Fix NeoForge's `SERVER_EPOLL_EVENT_GROUP` causing Bukkit events to be perceived as occurring outside the main thread.
++        ThreadUtils.executeOnMainThread(() -> {
++            // CraftBukkit start
++            CraftServerLinks links = new CraftServerLinks(serverlinks);
++            new org.bukkit.event.player.PlayerLinksSendEvent(player.getBukkitEntity(), links).callEvent();
++            if (!links.getServerLinks().isEmpty()) {
++                this.send(new ClientboundServerLinksPacket(links.getServerLinks().untrust()));
++            }
++            // CraftBukkit end
++        });
+ 
          LayeredRegistryAccess<RegistryLayer> layeredregistryaccess = this.server.registries();
          List<KnownPack> list = this.server.getResourceManager().listPacks().flatMap(p_325637_ -> p_325637_.location().knownPackInfo().stream()).toList();
          this.send(new ClientboundUpdateEnabledFeaturesPacket(FeatureFlags.REGISTRY.toNames(this.server.getWorldData().enabledFeatures())));
@@ -80,7 +84,7 @@
 +            if (!this.connectionType.isNeoForge() && !net.neoforged.neoforge.network.registration.NetworkRegistry.initializeOtherConnection(this)) {
 +                return;
 +            }
-+            ThreadUtils.executeOnMainThread(this::runConfiguration);
++            this.runConfiguration();
 +        }
      }
  
