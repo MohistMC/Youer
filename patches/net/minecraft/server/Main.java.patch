@@ -83,7 +83,7 @@
          OptionSpec<Void> demo = parser.accepts("demo");
          OptionSpec<Void> bonusChest = parser.accepts("bonusChest");
          OptionSpec<Void> forceUpgrade = parser.accepts("forceUpgrade");
-@@ -86,12 +_,109 @@
+@@ -86,47 +_,221 @@
          OptionSpec<Path> pidFile = parser.accepts("pidFile").withRequiredArg().withValuesConvertedBy(new PathConverter());
          OptionSpec<String> nonOptions = parser.nonOptions();
  
@@ -194,7 +194,15 @@
  
              Path pidFilePath = options.valueOf(pidFile);
              if (pidFilePath != null) {
-@@ -103,30 +_,98 @@
+                 writePidFile(pidFilePath);
+             }
+ 
+-            CrashReport.preload();
++            // Paper start - Perf: Run CrashReport preload asynchronously
++            // The actual result is discarded/irrelevant, but hardware and software info is memoized
++            Thread.ofPlatform().daemon().name("CrashReport preload thread").start(CrashReport::preload);
++            // Paper end - Perf: Run CrashReport preload asynchronously
+             if (options.has(jfrProfilingOption)) {
                  JvmProfiler.INSTANCE.start(Environment.SERVER);
              }
  
@@ -208,6 +216,12 @@
 +            io.papermc.paper.plugin.PluginInitializerManager.load(options); // Paper
              Bootstrap.bootStrap();
              Bootstrap.validate();
++            // Paper start - Perf: Init DataConverter asynchronously
++            // Init for both of these are fairly expensive class-loading wise. Both are called again below/in MinecraftServer.spin,
++            // so failure during class init will become visible there.
++            Thread.ofPlatform().daemon().name("DataConverter MCTypeRegistry init thread").start(ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry::init);
++            Thread.ofPlatform().daemon().name("DataFixers init thread").start(DataFixers::getDataFixer);
++            // Paper end - Perf: Init DataConverter asynchronously
              Util.startTimerHackThread();
              Path settingsFile = Paths.get("server.properties");
 -            DedicatedServerSettings settings = new DedicatedServerSettings(settingsFile);

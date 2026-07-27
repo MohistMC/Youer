@@ -563,11 +563,6 @@ public class ClientHooks {
         return event;
     }
 
-    public static boolean isNameplateInRenderDistance(LivingEntity entity, double squareDistance) {
-        double value = entity.getAttributeValue(NeoForgeMod.NAMETAG_DISTANCE);
-        return !(squareDistance > value * value);
-    }
-
     public static boolean shouldRenderEffect(MobEffectInstance effectInstance) {
         return IClientMobEffectExtensions.of(effectInstance).isVisibleInInventory(effectInstance);
     }

@@ -30,8 +30,8 @@
 ## 📊 Progress Status
 
 ✅ **Core Integration**
-- [x] NeoForge ([ebd6aed98](https://github.com/neoforged/NeoForge/commit/ebd6aed98))
-- [x] Paper ([3a55f625d4](https://github.com/PaperMC/Paper/commit/3a55f625d4))
+- [x] NeoForge ([1fd4c72df](https://github.com/neoforged/NeoForge/commit/1fd4c72df))
+- [x] Paper ([5563e58283](https://github.com/PaperMC/Paper/commit/5563e58283))
 - [x] PurPur ([21a41545d](https://github.com/PurpurMC/Purpur/commit/21a41545d))
 
 🔄 **Compatible Progress**
