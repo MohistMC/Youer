@@ -118,9 +118,10 @@ public class NeoForgeEventHandler {
                     return;
                 }
 
-                // Note: don't send data maps over in-memory connections for normal registries, else the client-side handling will wipe non-synced data maps.
-                // Sending them for synced datapack registries is fine and required as those registries are recreated on the client
-                if (player.connection.getConnection().isMemoryConnection() && DataPackRegistriesHooks.getSyncedRegistry((ResourceKey) registry) == null) {
+                // Note: don't send data maps over in-memory connections, else the client-side handling will wipe non-synced data maps.
+                // To prevent serialization issues with data component defaults holding datapack objects on static registries, synced
+                // datapack registries are not recreated on the client in singleplayer.
+                if (player.connection.getConnection().isMemoryConnection()) {
                     return;
                 }
                 final var playerMaps = player.connection.getConnection().channel().attr(RegistryManager.ATTRIBUTE_KNOWN_DATA_MAPS).get();
