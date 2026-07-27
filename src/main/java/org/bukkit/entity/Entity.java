@@ -1,5 +1,6 @@
 package org.bukkit.entity;
 
+import io.papermc.paper.math.Angle;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -135,8 +136,20 @@ public interface Entity extends Metadatable, CommandSender, Nameable, Persistent
      *
      * @param yaw the yaw
      * @param pitch the pitch
+     * @see #setRotation(Angle, Angle)
      */
+    @ApiStatus.Obsolete(since = "26.2")
     public void setRotation(float yaw, float pitch);
+
+    /**
+     * Sets the entity's rotation.
+     * <p>
+     * Note that if the entity is affected by AI, it may override this rotation.
+     *
+     * @param yaw the yaw
+     * @param pitch the pitch
+     */
+    void setRotation(@NotNull Angle yaw, @NotNull Angle pitch);
 
     // Paper start - Teleport API
     /**

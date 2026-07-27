@@ -11,6 +11,7 @@ import io.papermc.paper.datacomponent.DataComponentType;
 import io.papermc.paper.datacomponent.PaperDataComponentType;
 import io.papermc.paper.entity.LookAnchor;
 import io.papermc.paper.entity.TeleportFlag;
+import io.papermc.paper.math.Angle;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Objects;
@@ -295,6 +296,17 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
         pitch = Location.normalizePitch(pitch);
 
         this.getHandle().forceSetRotation(yaw, false, pitch, false);
+    }
+
+    @Override
+    public void setRotation(Angle yaw, Angle pitch) {
+        NumberConversions.checkFinite(pitch.degrees(), "pitch not finite");
+        NumberConversions.checkFinite(yaw.degrees(), "yaw not finite");
+
+        float yawValue = Location.normalizeYaw(yaw.degrees());
+        float pitchValue = Location.normalizePitch(pitch.degrees());
+
+        this.getHandle().forceSetRotation(yawValue, yaw.relative(), pitchValue, pitch.relative());
     }
 
     @Override
