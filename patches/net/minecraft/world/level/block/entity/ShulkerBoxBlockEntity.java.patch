@@ -47,7 +47,17 @@
      public ShulkerBoxBlockEntity(@Nullable DyeColor color, BlockPos worldPosition, BlockState blockState) {
          super(BlockEntityTypes.SHULKER_BOX, worldPosition, blockState);
          this.color = color;
-@@ -171,6 +_,7 @@
+@@ -166,11 +_,17 @@
+     @Override
+     public void startOpen(ContainerUser containerUser) {
+         if (!this.remove && !containerUser.getLivingEntity().isSpectator()) {
++            if (containerUser.getLivingEntity() instanceof net.minecraft.world.entity.player.Player player) {
++                if (this.transaction.contains(player.getBukkitEntity())) {
++                    return;
++                }
++            }
+             if (this.openCount < 0) {
+                 this.openCount = 0;
              }
  
              this.openCount++;
