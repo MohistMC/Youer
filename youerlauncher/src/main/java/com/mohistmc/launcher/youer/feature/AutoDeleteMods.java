@@ -25,18 +25,19 @@ public class AutoDeleteMods {
      * Value: Reason for deletion
      */
     private static final Map<String, DeletionReason> MOD_BLACKLIST = new HashMap<>() {{
-        put("org.spongepowered.common.applaunch.AppLaunch", DeletionReason.CORE_CONFLICT);
+            put("org.spongepowered.common.applaunch.AppLaunch", DeletionReason.CORE_CONFLICT);
         //put("me.wesley1808.servercore.common.ServerCore", DeletionReason.DUPLICATE_FEATURE);
         put("i18nupdatemod.I18nUpdateMod", DeletionReason.CLIENT_ONLY);
         put("dev.tr7zw.skinlayers.SkinLayersMod", DeletionReason.CLIENT_ONLY);
         put("com.biel.mod.mixin.VelocityMixin", DeletionReason.DUPLICATE_FEATURE);
         put("optifine.Differ", DeletionReason.CLIENT_ONLY);
-        put("org.embeddedt.modernfix.ModernFix", DeletionReason.DUPLICATE_FEATURE);
+        //put("org.embeddedt.modernfix.ModernFix", DeletionReason.DUPLICATE_FEATURE);
         put("ca.spottedleaf.moonrise.neoforge.MoonriseNeoForge", DeletionReason.DUPLICATE_FEATURE);
         put("me.steinborn.krypton.mod.server.KryptonServerInitializer", DeletionReason.DUPLICATE_FEATURE);
         put("me.steinborn.krypton.mod.KryptonBootstrap", DeletionReason.DUPLICATE_FEATURE);
         put("org.thinkingstudio.krypton_foxified.KryptonFoxified", DeletionReason.DUPLICATE_FEATURE);
         put("one.pkg.mod.krypton_fnp.NeoModBootstrap", DeletionReason.DUPLICATE_FEATURE);
+        put("one.pkg.kfnp.NeoModBootstrap", DeletionReason.DUPLICATE_FEATURE);
         put("net.caffeinemc.mods.lithium.neoforge.LithiumNeoForgeMod", DeletionReason.DUPLICATE_FEATURE);
         put("me.jellysquid.mods.lithium.common.LithiumMod", DeletionReason.DUPLICATE_FEATURE);
         //put("com.bawnorton.neruina.Neruina", DeletionReason.DUPLICATE_FEATURE);
@@ -64,10 +65,22 @@ public class AutoDeleteMods {
         put("com.wfphantom.stfudisconnect.STFUDisconnect", DeletionReason.DUPLICATE_FEATURE);
     }};
 
-    private static final Map<String, String> LIB_BLACKLIST = new HashMap<>() {{
-        put("cn.tohsaka.factory.zstdmc.Zstdmc", "libraries/com/github/luben/zstd-jni/1.5.7-8/zstd-jni-1.5.7-8.jar;");
-        put("cn.tohsaka.factory.zstdnet.Zstdnet", "libraries/com/github/luben/zstd-jni/1.5.7-8/zstd-jni-1.5.7-8.jar;");
-        put("cn.ussshenzhou.notenoughbandwidth.NotEnoughBandwidthLegacy", "libraries/com/github/luben/zstd-jni/1.5.7-8/zstd-jni-1.5.7-8.jar;");
+       private static final String END = OSUtil.getOS().isWindows() ? ";" : ":";
+    private static final String ZSTD = "libraries/com/github/luben/zstd-jni/1.5.7-8/zstd-jni-1.5.7-8.jar" + END;
+    private static final String MYSQL = "libraries/com/mysql/mysql-connector-j/8.4.0/mysql-connector-j-8.4.0.jar" + END;
+    private static final String SQLITE = "libraries/org/xerial/sqlite-jdbc/3.46.0.0/sqlite-jdbc-3.46.0.0.jar" + END;
+    private static final String PROTOBUF = "libraries/com/google/protobuf/protobuf-java/3.25.1/protobuf-java-3.25.1.jar" + END;
+    private static final List<Map.Entry<String, String>> LIB_BLACKLIST = Arrays.asList(
+            new AbstractMap.SimpleEntry<>("cn.tohsaka.factory.zstdmc.Zstdmc", ZSTD),
+            new AbstractMap.SimpleEntry<>("cn.tohsaka.factory.zstdnet.Zstdnet", ZSTD),
+            new AbstractMap.SimpleEntry<>("cn.ussshenzhou.notenoughbandwidth.NotEnoughBandwidthLegacy", ZSTD),
+            new AbstractMap.SimpleEntry<>("cn.ussshenzhou.notenoughbandwidth.NotEnoughBandwidth", ZSTD),
+            new AbstractMap.SimpleEntry<>("com.daqem.grieflogger.neoforge.GriefLoggerNeoForge", MYSQL),
+            new AbstractMap.SimpleEntry<>("com.daqem.grieflogger.neoforge.GriefLoggerNeoForge", SQLITE),
+            new AbstractMap.SimpleEntry<>("com.daqem.grieflogger.neoforge.GriefLoggerNeoForge", PROTOBUF),
+            new AbstractMap.SimpleEntry<>("me.cortex.voxy.Voxy", SQLITE),
+            new AbstractMap.SimpleEntry<>("io.github.catt1eyaa.ChronoVault", ZSTD)
+            new AbstractMap.SimpleEntry<>("TheAmirtini.coreprotectneo.Coreprotectneo", SQLITE)
     }};
 
     /**
