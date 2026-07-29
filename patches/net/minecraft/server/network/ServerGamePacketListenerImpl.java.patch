@@ -571,10 +571,11 @@
              this.player.sendSystemMessage(Component.translatable("advMode.notAllowed"));
          } else {
              BaseCommandBlock basecommandblock = p_9913_.getCommandBlock(this.player.level());
-@@ -625,6 +_,23 @@
+@@ -624,7 +_,23 @@
+     @Override
      public void handlePickItem(ServerboundPickItemPacket p_9880_) {
          PacketUtils.ensureRunningOnSameThread(p_9880_, this, this.player.serverLevel());
-         this.player.getInventory().pickSlot(p_9880_.getSlot());
+-        this.player.getInventory().pickSlot(p_9880_.getSlot());
 +        // Paper start - validate pick item position
 +        if (!(p_9880_.getSlot() >= 0 && p_9880_.getSlot() < this.player.getInventory().items.size())) {
 +            ServerGamePacketListenerImpl.LOGGER.warn("{} tried to set an invalid carried item", this.player.getName().getString());
