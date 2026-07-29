@@ -18,7 +18,6 @@
 package com.mohistmc.launcher.youer.action;
 
 import com.mohistmc.launcher.youer.Main;
-import com.mohistmc.launcher.youer.config.YouerConfigUtil;
 import com.mohistmc.launcher.youer.feature.DefaultLibraries;
 import com.mohistmc.launcher.youer.libraries.Libraries;
 import com.mohistmc.launcher.youer.util.DataParser;
@@ -124,6 +123,7 @@ public class Action {
         copyFileFromJar(universalJar, "data/neoforge-" + neoforgeVer + "-universal.jar", false);
 
         if (!needsInstall()) return;
+        YouerModuleManager.INSTANCE.init(DataParser.launchArgs);
         System.out.println(I18n.as("installation.start"));
         System.out.println(I18n.as("libraries.global.percentage"));
         tasks.add(new FileCopyTask(universalJar, "data/neoforge-" + neoforgeVer + "-universal.jar", true));
@@ -221,9 +221,6 @@ public class Action {
             unmute();
         }
         System.out.println(I18n.as("installation.finished"));
-        YouerConfigUtil.yml.set("youer.installation-finished", true);
-        YouerConfigUtil.save();
-        JarTool.restartServer(launchArgs, true);
     }
 
     protected void run(String mainClass, String... args) throws Exception {

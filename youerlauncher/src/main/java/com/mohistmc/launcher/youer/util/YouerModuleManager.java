@@ -17,7 +17,6 @@
 
 package com.mohistmc.launcher.youer.util;
 
-import com.mohistmc.launcher.youer.config.YouerConfigUtil;
 import java.io.File;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -218,10 +217,12 @@ public class YouerModuleManager {
         }))));
     }
 
+    private static volatile boolean initialized = false;
+
     public void init(List<String> args) {
+        if (initialized) return;
+        initialized = true;
         applyLaunchArgs(args);
-        YouerConfigUtil.yml.set("youer.installation-finished", false);
-        YouerConfigUtil.save();
     }
 
     private record ParserData(String module, String packages, String target) {

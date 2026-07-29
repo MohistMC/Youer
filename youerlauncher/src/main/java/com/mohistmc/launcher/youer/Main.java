@@ -54,7 +54,7 @@ public class Main {
         DataParser.parseLaunchArgs();
         YouerConfigUtil.init();
         YouerConfigUtil.i18n();
-        if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.aBoolean("youer.show_logo", true)) {
+        if (YouerConfigUtil.aBoolean("youer.show_logo", true)) {
             System.out.printf("%n%s%n%s - %s, Java(%s) %s PID: %s%n",
                     Logo.asYouer(),
                     i18n.as("youer.launch.welcomemessage"),
@@ -76,13 +76,11 @@ public class Main {
             System.setProperty("log4j2.configurationFile", "log4j2_youer.xml");
         }
 
-        if (YouerConfigUtil.INSTALLATIONFINISHED() && YouerConfigUtil.CHECK_LIBRARIES()) {
+        if (YouerConfigUtil.CHECK_LIBRARIES()) {
             DefaultLibraries.run();
         }
 
-        if (YouerConfigUtil.INSTALLATIONFINISHED()) {
-            new Action();
-        }
+        new Action();
         AutoDeleteMods.deleteIncompatibleMods();
         List<String> forgeArgs = new ArrayList<>();
         for (String arg : DataParser.launchArgs.stream().filter(s ->
