@@ -398,7 +398,35 @@ public class CommonHooks {
     }
 
     public static boolean onLivingDrops(LivingEntity entity, DamageSource source, Collection<ItemEntity> drops, boolean recentlyHit) {
-        return NeoForge.EVENT_BUS.post(new LivingDropsEvent(entity, source, drops, recentlyHit)).isCanceled();
+        // Paper start - Integrate with Paper's deathDropItems mechanism
+        // When deathDropItems is active during death, spawnAtLocation returns null
+        // in the deathDropItems path, causing NeoForge's captureDrops to remain empty.
+        // Pre-populate drops from deathDropItems so LivingDropsEvent has the actual items.
+        boolean hasDeathDrops = false;
+        if (entity.deathDropItems != null && !entity.deathDropItems.isEmpty()) {
+            hasDeathDrops = true;
+            for (Entity.DefaultDrop dd : entity.deathDropItems) {
+                net.minecraft.world.item.ItemStack stack = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(dd.stack());
+                if (!stack.isEmpty()) {
+                    ItemEntity itemEntity = new ItemEntity(entity.level(), entity.getX(), entity.getY(), entity.getZ(), stack);
+                    itemEntity.setDefaultPickUpDelay();
+                    drops.add(itemEntity);
+                }
+            }
+        }
+        // Paper end
+
+        boolean cancelled = NeoForge.EVENT_BUS.post(new LivingDropsEvent(entity, source, drops, recentlyHit)).isCanceled();
+
+        // Paper start - If items were pre-released (event not cancelled), clear deathDropItems
+        // to prevent the Paper death mechanism from creating duplicates in postDeathEventTasks.
+        // If the event was cancelled, keep deathDropItems intact for EntityDeathEvent fallback.
+        if (hasDeathDrops && !cancelled) {
+            entity.deathDropItems.clear();
+        }
+        // Paper end
+
+        return cancelled;
     }
 
     public static LivingFallEvent onLivingFall(LivingEntity entity, double distance, float damageMultiplier) {

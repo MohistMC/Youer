@@ -304,17 +304,20 @@
          if (this.lastHurtByPlayer != null) {
              this.lastHurtByPlayer.store(output, "last_hurt_by_player");
              output.putInt("last_hurt_by_player_memory_time", this.lastHurtByPlayerMemoryTime);
-@@ -778,27 +_,74 @@
+@@ -778,27 +_,87 @@
          }
      }
  
--    public @Nullable ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand) {
-+    // Paper start - Extend dropItem API
-+    public final @Nullable ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand) {
-+        return this.drop(itemStack, randomly, thrownFromHand, true, null);
++    // Youer start
++    public boolean callEvent = true;
++    public java.util.function.@Nullable Consumer<org.bukkit.entity.Item> entityOperation = null;
++    public void paperDrop(boolean callEvent, java.util.function.@Nullable Consumer<org.bukkit.entity.Item> entityOperation) {
++        this.callEvent = callEvent;
++        this.entityOperation = entityOperation;
 +    }
-+    public @Nullable ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand, final boolean callEvent, final java.util.function.@Nullable Consumer<org.bukkit.entity.Item> entityOperation) {
-+        // Paper end - Extend dropItem API
++
++    // Paper start - Extend dropItem API
+     public @Nullable ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand) {
          if (itemStack.isEmpty()) {
              return null;
 -        }
@@ -331,6 +334,7 @@
 -        }
 -
 -        return entity;
+-    }
 +        } else {
 +            ItemEntity entity = this.createItemStackToDrop(itemStack, randomly, thrownFromHand);
 +            if (entity != null) {
@@ -338,6 +342,7 @@
 +                    captureDrops().add(entity);
 +                } else {
 +                    // CraftBukkit start - fire PlayerDropItemEvent
++                    if (entityOperation != null) entityOperation.accept((org.bukkit.entity.Item) entity.getBukkitEntity());
 +                    if (callEvent && this instanceof ServerPlayer) {
 +                        org.bukkit.entity.Player player = (org.bukkit.entity.Player) this.getBukkitEntity();
 +                        org.bukkit.entity.Item drop = (org.bukkit.entity.Item) entity.getBukkitEntity();
@@ -358,9 +363,11 @@
 +                                // Fallback
 +                                player.getInventory().addItem(drop.getItemStack());
 +                            }
++                            paperDrop(true, null); // Youer
 +                            return null;
 +                        }
 +                    }
++                    paperDrop(true, null); // Youer
 +                    // CraftBukkit end
 +                    this.level().addFreshEntity(entity);
 +                }
@@ -368,7 +375,13 @@
 +
 +            return entity;
 +        }
-     }
++    }
++    public @Nullable ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand, final boolean callEvent, final java.util.function.@Nullable Consumer<org.bukkit.entity.Item> entityOperation) {
++        paperDrop(callEvent, entityOperation);
++        // Paper end - Extend dropItem API
++        return drop(itemStack, randomly, thrownFromHand);
++    }
++    // Youe end
  
      @Override
      protected void readAdditionalSaveData(ValueInput input) {

@@ -1444,12 +1444,47 @@
      protected abstract void readAdditionalSaveData(ValueInput input);
  
      protected abstract void addAdditionalSaveData(ValueOutput output);
-@@ -2216,12 +_,57 @@
+@@ -2215,13 +_,71 @@
+         return this.spawnAtLocation(level, itemStack, 0.0F);
      }
  
++    // Youer start
++    public java.util.function.@Nullable Consumer<? super ItemEntity> delayedAddConsumer = null;
      public @Nullable ItemEntity spawnAtLocation(ServerLevel level, ItemStack itemStack, Vec3 offset) {
 +        // Paper start - Restore vanilla drops behavior
-+        return this.spawnAtLocation(level, itemStack, offset, null);
+         if (itemStack.isEmpty()) {
+             return null;
+         }
+-
++        // CraftBukkit start - Capture drops for death event
++        if (this instanceof LivingEntity livingEntity && livingEntity.deathDropItems != null) {
++            // Paper start - Restore vanilla drops behavior
++            livingEntity.deathDropItems.add(new DefaultDrop(itemStack, dropStack -> {
++                ItemEntity dropEntity = new ItemEntity(this.level, this.getX() + offset.x, this.getY() + offset.y, this.getZ() + offset.z, dropStack); // stack is copied before consumer
++                dropEntity.setDefaultPickUpDelay();
++                if (captureDrops() != null) captureDrops().add(dropEntity);
++                else
++                    level.addFreshEntity(dropEntity);
++                if (delayedAddConsumer != null) delayedAddConsumer.accept(dropEntity);
++            }));
++            // Paper end - Restore vanilla drops behavior
++            return null;
++        }
++        // CraftBukkit end
+         ItemEntity entity = new ItemEntity(level, this.getX() + offset.x, this.getY() + offset.y, this.getZ() + offset.z, itemStack);
+-        entity.setDefaultPickUpDelay();
++        entity.setDefaultPickUpDelay(); // Paper - diff on change (in dropConsumer)
++        // CraftBukkit start
++        org.bukkit.event.entity.EntityDropItemEvent event = new org.bukkit.event.entity.EntityDropItemEvent(this.getBukkitEntity(), (org.bukkit.entity.Item) entity.getBukkitEntity());
++        org.bukkit.Bukkit.getPluginManager().callEvent(event);
++        if (event.isCancelled()) {
++            return null;
++        }
++        // CraftBukkit end
++        if (captureDrops() != null) captureDrops().add(entity);
++        else
++            level.addFreshEntity(entity);
++        return entity;
 +    }
 +
 +    public record DefaultDrop(Item item, org.bukkit.inventory.ItemStack stack, java.util.function.@Nullable Consumer<ItemStack> dropConsumer) {
@@ -1466,33 +1501,12 @@
 +        }
 +    }
 +
-+    public @Nullable ItemEntity spawnAtLocation(final ServerLevel level, final ItemStack itemStack, final Vec3 offset, java.util.function.@Nullable Consumer<? super ItemEntity> delayedAddConsumer) {
-+        // Paper end - Restore vanilla drops behavior
-         if (itemStack.isEmpty()) {
-             return null;
-         }
--
-+        // CraftBukkit start - Capture drops for death event
-+        if (this instanceof LivingEntity livingEntity && livingEntity.deathDropItems != null) {
-+            // Paper start - Restore vanilla drops behavior
-+            livingEntity.deathDropItems.add(new DefaultDrop(itemStack, dropStack -> {
-+                ItemEntity dropEntity = new ItemEntity(this.level, this.getX() + offset.x, this.getY() + offset.y, this.getZ() + offset.z, dropStack); // stack is copied before consumer
-+                dropEntity.setDefaultPickUpDelay();
-+                this.level.addFreshEntity(dropEntity);
-+                if (delayedAddConsumer != null) delayedAddConsumer.accept(dropEntity);
-+            }));
-+            // Paper end - Restore vanilla drops behavior
-+            return null;
-+        }
-+        // CraftBukkit end
-         ItemEntity entity = new ItemEntity(level, this.getX() + offset.x, this.getY() + offset.y, this.getZ() + offset.z, itemStack);
--        entity.setDefaultPickUpDelay();
-+        entity.setDefaultPickUpDelay(); // Paper - diff on change (in dropConsumer)
-+        // Paper start - Call EntityDropItemEvent
-+        return this.spawnAtLocation(level, entity);
++    public @Nullable ItemEntity spawnAtLocation(ServerLevel level, ItemStack itemStack, Vec3 offset, java.util.function.@Nullable Consumer<? super ItemEntity> delayedAddConsumer) {
++        this.delayedAddConsumer = delayedAddConsumer;
++        return this.spawnAtLocation(level, itemStack, offset);
 +    }
 +
-+    public @Nullable ItemEntity spawnAtLocation(final ServerLevel level, final ItemEntity entity) {
++    public @Nullable ItemEntity spawnAtLocation(ServerLevel level, ItemEntity entity) {
 +        // Paper end - Call EntityDropItemEvent
 +        // CraftBukkit start
 +        org.bukkit.event.entity.EntityDropItemEvent event = new org.bukkit.event.entity.EntityDropItemEvent(this.getBukkitEntity(), (org.bukkit.entity.Item) entity.getBukkitEntity());

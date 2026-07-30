@@ -8,6 +8,7 @@ import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import net.minecraft.world.level.block.state.StateHolder;
 import net.minecraft.world.level.block.state.properties.Property;
 
@@ -18,6 +19,11 @@ public final class ZeroCollidingReferenceStateTable<O, S> {
     private final Collection<Property<?>> properties;
 
     public ZeroCollidingReferenceStateTable(final Property<?>[] properties) {
+        if (properties == null || properties.length == 0) {
+            this.propertyToIndexer = new Int2ObjectOpenHashMap<>(0);
+            this.properties = Collections.emptyList();
+            return;
+        }
         this.propertyToIndexer = new Int2ObjectOpenHashMap<>(properties.length);
         this.properties = ReferenceArrayList.wrap(properties.clone());
 
@@ -25,24 +31,19 @@ public final class ZeroCollidingReferenceStateTable<O, S> {
 
         // important that each table sees the same property order given the same _set_ of properties,
         // as each table will calculate the index for the block state
-        Arrays.sort(sortedProperties, (final Property<?> p1, final Property<?> p2) -> {
-            return Integer.compare(
-                ((PropertyAccess<?>)p1).moonrise$getId(),
-                ((PropertyAccess<?>)p2).moonrise$getId()
-            );
-        });
+        Arrays.sort(sortedProperties, Comparator.comparingInt(Property::moonrise$getId));
 
         int currentMultiple = 1;
         for (final Property<?> property : sortedProperties) {
             final int totalValues = property.getPossibleValues().size();
 
             this.propertyToIndexer.put(
-                ((PropertyAccess<?>)property).moonrise$getId(),
+                property.moonrise$getId(),
                 new Indexer(
                     totalValues,
                     currentMultiple,
-                    IntegerUtil.getUnsignedDivisorMagic((long)currentMultiple, 32),
-                    IntegerUtil.getUnsignedDivisorMagic((long)totalValues, 32)
+                    IntegerUtil.getUnsignedDivisorMagic(currentMultiple, 32),
+                    IntegerUtil.getUnsignedDivisorMagic(totalValues, 32)
                 )
             );
 
@@ -51,17 +52,20 @@ public final class ZeroCollidingReferenceStateTable<O, S> {
     }
 
     public <T extends Comparable<T>> boolean hasProperty(final Property<T> property) {
-        return this.propertyToIndexer.containsKey(((PropertyAccess<T>)property).moonrise$getId());
+        return this.propertyToIndexer.containsKey(property.moonrise$getId());
     }
 
     public long getIndex(final StateHolder<O, S> stateHolder, final Property<?>[] keys, final Comparable<?>[] values) {
+        if (keys == null || keys.length == 0) {
+            return 0L;
+        }
         long ret = 0L;
 
         for (int i = 0; i < keys.length; ++i) {
             final Property<?> property = keys[i];
             final Comparable<?> value = values[i];
 
-            final Indexer indexer = this.propertyToIndexer.get(((PropertyAccess<?>)property).moonrise$getId());
+            final Indexer indexer = this.propertyToIndexer.get(property.moonrise$getId());
 
             ret += ((long)((PropertyAccess)property).moonrise$getIdFor(value)) * (long)indexer.multiple;
         }
@@ -84,7 +88,7 @@ public final class ZeroCollidingReferenceStateTable<O, S> {
             if (value == null) {
                 continue;
             }
-            this.lookup[(int)((PropertyAccessStateHolder)(StateHolder<O, S>)value).moonrise$getTableIndex()] = value;
+            this.lookup[(int)((PropertyAccessStateHolder) value).moonrise$getTableIndex()] = value;
         }
 
         for (final S value : this.lookup) {
@@ -95,7 +99,7 @@ public final class ZeroCollidingReferenceStateTable<O, S> {
     }
 
     public <T extends Comparable<T>> T get(final long index, final Property<T> property) {
-        final Indexer indexer = this.propertyToIndexer.get(((PropertyAccess<T>)property).moonrise$getId());
+        final Indexer indexer = this.propertyToIndexer.get(property.moonrise$getId());
         if (indexer == null) {
             return null;
         }
@@ -109,12 +113,12 @@ public final class ZeroCollidingReferenceStateTable<O, S> {
     }
 
     public <T extends Comparable<T>> S set(final long index, final Property<T> property, final T with) {
-        final int newValueId = ((PropertyAccess<T>)property).moonrise$getIdFor(with);
+        final int newValueId = property.moonrise$getIdFor(with);
         if (newValueId < 0) {
             return null;
         }
 
-        final Indexer indexer = this.propertyToIndexer.get(((PropertyAccess<T>)property).moonrise$getId());
+        final Indexer indexer = this.propertyToIndexer.get(property.moonrise$getId());
         if (indexer == null) {
             return null;
         }
@@ -131,12 +135,12 @@ public final class ZeroCollidingReferenceStateTable<O, S> {
     }
 
     public <T extends Comparable<T>> S trySet(final long index, final Property<T> property, final T with, final S dfl) {
-        final Indexer indexer = this.propertyToIndexer.get(((PropertyAccess<T>)property).moonrise$getId());
+        final Indexer indexer = this.propertyToIndexer.get(property.moonrise$getId());
         if (indexer == null) {
             return dfl;
         }
 
-        final int newValueId = ((PropertyAccess<T>)property).moonrise$getIdFor(with);
+        final int newValueId = property.moonrise$getIdFor(with);
         if (newValueId < 0) {
             return null;
         }

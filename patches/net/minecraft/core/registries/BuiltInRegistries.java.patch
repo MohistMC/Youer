@@ -20,7 +20,7 @@
          Identifier key = name.identifier();
          LOADERS.put(key, () -> loader.run(registry));
          WRITABLE_REGISTRY.register((ResourceKey)name, registry, RegistrationInfo.BUILT_IN);
-@@ -397,16 +_,34 @@
+@@ -397,16 +_,41 @@
      }
  
      public static void bootStrap() {
@@ -32,6 +32,13 @@
 +        REGISTRY.freeze(); // Paper - freeze main registry early
          createContents();
 +        runnable.run(); // Paper
++        // Paper start - unfreeze root registry to allow mod registrations during freeze() callbacks
++        // The early freeze above protects createContents() from unwanted root registry modification.
++        // However, mods like Create use mixins that fire at the HEAD of the private freeze() method
++        // to register new sub-registries to the root registry. Without unfreezing here, these mod
++        // registrations fail because the root registry is already frozen.
++        ((MappedRegistry)REGISTRY).unfreeze(false);
++        // Paper end
          freeze();
          validate(REGISTRY);
      }
