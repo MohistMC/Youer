@@ -66,6 +66,7 @@ public class AutoDeleteMods {
         put("snownee.pdgamerules.PDGameRulesMod", DeletionReason.DUPLICATE_FEATURE);
         put("com.xinian.KryptonHybrid.kryptonhybrid", DeletionReason.DUPLICATE_FEATURE);
         put("com.wfphantom.stfudisconnect.STFUDisconnect", DeletionReason.DUPLICATE_FEATURE);
+        put("io.github.steveplays28.noisium.neoforge.NoisiumNeoForge", DeletionReason.DUPLICATE_FEATURE);
     }};
 
     private static final String END = OSUtil.getOS().isWindows() ? ";" : ":";
@@ -106,7 +107,7 @@ public class AutoDeleteMods {
             } catch (Exception ignored) {
             }
         }
-        syncLibBlacklistToJarLoader();
+
         if (!YouerConfigUtil.AutoDeleteMods()) return;
         System.out.println(I18n.as("update.mods"));
 

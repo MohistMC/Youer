@@ -17,6 +17,7 @@
 
 package com.mohistmc.launcher.youer.util;
 
+import com.mohistmc.launcher.youer.feature.AutoDeleteMods;
 import java.io.File;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -120,6 +121,7 @@ public class YouerModuleManager {
 
     @SneakyThrows
     public static void applyLaunchArgs(List<String> args) {
+        AutoDeleteMods.syncLibBlacklistToJarLoader();
         List<String> opens = new ArrayList<>();
         opens.add("java.base/java.util=ALL-UNNAMED");
         opens.add("java.base/java.lang=ALL-UNNAMED");

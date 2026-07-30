@@ -5,6 +5,7 @@ import com.mohistmc.youer.commands.DeepseekCommand;
 import com.mohistmc.youer.commands.HatCommand;
 import com.mohistmc.youer.commands.HideAllCommand;
 import com.mohistmc.youer.commands.HideCommand;
+import com.mohistmc.youer.commands.LightFixCommand;
 import com.mohistmc.youer.commands.OpenInvCommand;
 import com.mohistmc.youer.commands.VanishCommand;
 import com.mohistmc.youer.feature.back.BackCommands;
@@ -92,6 +93,7 @@ public class YouerPlugin {
         if (CommandsConfig.INSTANCE.enable("deepseek.enable")) {
             commands.put("deepseek", new DeepseekCommand("deepseek"));
         }
+        commands.put("lightfix", new LightFixCommand("lightfix"));
     }
 
     public static void registerListener(Event event) {
