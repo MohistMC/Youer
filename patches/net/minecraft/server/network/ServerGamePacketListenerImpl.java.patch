@@ -1631,7 +1631,12 @@
                  if (this.player.gameMode.useItem(this.player, level, itemStack, hand) instanceof InteractionResult.Success success
                      && success.swingSource() == InteractionResult.SwingSource.SERVER) {
                      this.player.swing(hand, true);
-@@ -1443,7 +_,7 @@
+@@ -1439,11 +_,11 @@
+     @Override
+     public void handleTeleportToEntityPacket(ServerboundTeleportToEntityPacket packet) {
+         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
+-        if (this.player.isSpectator()) {
++        if (this.player.isSpectator() && this.player.getBukkitEntity().hasPermission("purpur.spectator-can-teleport-to-players")) { // Purpur - Require permission for Spectator to teleport to players
              for (ServerLevel level : this.server.getAllLevels()) {
                  Entity entity = packet.getEntity(level);
                  if (entity != null) {
@@ -1679,11 +1684,12 @@
          this.player.getTextFilter().leave();
      }
  
-@@ -1487,7 +_,17 @@
+@@ -1487,13 +_,28 @@
      @Override
      public void handleSetCarriedItem(ServerboundSetCarriedItemPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
 +        if (this.player.isImmobile()) return; // CraftBukkit
++        if (net.neoforged.neoforge.event.EventHooks.onSwitchHotbarSlotPre(this.player, this.player.getInventory().getSelectedSlot(), packet.getSlot())) return;
          if (packet.getSlot() >= 0 && packet.getSlot() < Inventory.getSelectionSize()) {
 +            if (packet.getSlot() == this.player.getInventory().getSelectedSlot()) { return; } // Paper - don't fire itemheldevent when there wasn't a slot change
 +            PlayerItemHeldEvent event = new PlayerItemHeldEvent(this.getCraftPlayer(), this.player.getInventory().getSelectedSlot(), packet.getSlot());
@@ -1697,6 +1703,16 @@
              if (this.player.getInventory().getSelectedSlot() != packet.getSlot() && this.player.getUsedItemHand() == InteractionHand.MAIN_HAND) {
                  this.player.stopUsingItem();
              }
+ 
+             this.player.getInventory().setSelectedSlot(packet.getSlot());
+             this.player.resetLastActionTime();
++
++            if (this.player.getInventory().getSelectedSlot() != packet.getSlot()) {
++                net.neoforged.neoforge.event.EventHooks.onSwitchHotbarSlotPost(this.player, this.player.getInventory().getSelectedSlot(), packet.getSlot());
++            }
+         } else {
+             LOGGER.warn("{} tried to set an invalid carried item", this.player.getPlainTextName());
+         }
 @@ -1501,6 +_,12 @@
  
      @Override
