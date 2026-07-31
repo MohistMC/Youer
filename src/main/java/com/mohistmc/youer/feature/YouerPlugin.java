@@ -7,6 +7,7 @@ import com.mohistmc.youer.commands.HideAllCommand;
 import com.mohistmc.youer.commands.HideCommand;
 import com.mohistmc.youer.commands.LightFixCommand;
 import com.mohistmc.youer.commands.OpenInvCommand;
+import com.mohistmc.youer.commands.PregenCommand;
 import com.mohistmc.youer.commands.VanishCommand;
 import com.mohistmc.youer.feature.back.BackCommands;
 import com.mohistmc.youer.feature.back.BackConfig;
@@ -94,6 +95,7 @@ public class YouerPlugin {
             commands.put("deepseek", new DeepseekCommand("deepseek"));
         }
         commands.put("lightfix", new LightFixCommand("lightfix"));
+        commands.put("pregen", new PregenCommand("pregen"));
     }
 
     public static void registerListener(Event event) {

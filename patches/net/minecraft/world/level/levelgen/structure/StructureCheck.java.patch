@@ -30,3 +30,49 @@
                  return StructureCheckResult.START_NOT_PRESENT;
              } else {
                  boolean flag = this.featureChecks
+@@ -111,8 +_,37 @@
+             .isPresent();
+     }
+ 
++    // Youer start - cache chunks confirmed to hold no structure data. Vanilla re-runs a
++    // blocking region-file scan for EVERY (chunk, structure) pair (~10 disk reads per chunk
++    // while pregenerating), stalling the worldgen threads. The scan result for a chunk is
++    // deterministic, so a bounded cache of "empty" chunks is safe; loadedChunks (memory) is
++    // still consulted first, and real data evicts the entry.
++    private static final int MAX_SCANNED_EMPTY_CACHE = 1_000_000;
++    private final it.unimi.dsi.fastutil.longs.LongOpenHashSet scannedEmptyChunks = new it.unimi.dsi.fastutil.longs.LongOpenHashSet();
++
++    private boolean markScannedEmpty(long key) {
++        synchronized (this.scannedEmptyChunks) {
++            if (this.scannedEmptyChunks.size() > MAX_SCANNED_EMPTY_CACHE) {
++                this.scannedEmptyChunks.clear();
++            }
++            return this.scannedEmptyChunks.add(key);
++        }
++    }
++
++    private void unmarkScannedEmpty(long key) {
++        synchronized (this.scannedEmptyChunks) {
++            this.scannedEmptyChunks.remove(key);
++        }
++    }
++    // Youer end
++
+     @Nullable
+     private StructureCheckResult tryLoadFromStorage(ChunkPos p_226734_, Structure p_226735_, boolean p_226736_, long p_226737_) {
++        // Youer start - skip the blocking disk scan for chunks already known to be empty.
++        if (!this.markScannedEmpty(p_226737_)) {
++            return null;
++        }
++        // Youer end
+         CollectFields collectfields = new CollectFields(
+             new FieldSelector(IntTag.TYPE, "DataVersion"),
+             new FieldSelector("Level", "Structures", CompoundTag.TYPE, "Starts"),
+@@ -147,6 +_,7 @@
+                 if (object2intmap == null) {
+                     return null;
+                 } else {
++                    this.unmarkScannedEmpty(p_226737_); // Youer - real data found, don't keep it cached as empty
+                     this.storeFullResults(p_226737_, object2intmap);
+                     return this.checkStructureInfo(object2intmap, p_226735_, p_226736_);
+                 }
