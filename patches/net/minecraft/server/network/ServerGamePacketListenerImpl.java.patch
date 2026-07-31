@@ -1684,14 +1684,14 @@
          this.player.getTextFilter().leave();
      }
  
-@@ -1487,13 +_,28 @@
+@@ -1487,13 +_,30 @@
      @Override
      public void handleSetCarriedItem(ServerboundSetCarriedItemPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
 +        if (this.player.isImmobile()) return; // CraftBukkit
-+        if (net.neoforged.neoforge.event.EventHooks.onSwitchHotbarSlotPre(this.player, this.player.getInventory().getSelectedSlot(), packet.getSlot())) return;
          if (packet.getSlot() >= 0 && packet.getSlot() < Inventory.getSelectionSize()) {
 +            if (packet.getSlot() == this.player.getInventory().getSelectedSlot()) { return; } // Paper - don't fire itemheldevent when there wasn't a slot change
++            if (net.neoforged.neoforge.event.EventHooks.onSwitchHotbarSlotPre(this.player, this.player.getInventory().getSelectedSlot(), packet.getSlot())) return;
 +            PlayerItemHeldEvent event = new PlayerItemHeldEvent(this.getCraftPlayer(), this.player.getInventory().getSelectedSlot(), packet.getSlot());
 +            this.cserver.getPluginManager().callEvent(event);
 +            if (event.isCancelled()) {
@@ -1704,11 +1704,13 @@
                  this.player.stopUsingItem();
              }
  
++            int cachedOldSlotIndex = this.player.getInventory().getSelectedSlot();
++
              this.player.getInventory().setSelectedSlot(packet.getSlot());
              this.player.resetLastActionTime();
 +
-+            if (this.player.getInventory().getSelectedSlot() != packet.getSlot()) {
-+                net.neoforged.neoforge.event.EventHooks.onSwitchHotbarSlotPost(this.player, this.player.getInventory().getSelectedSlot(), packet.getSlot());
++            if (cachedOldSlotIndex != packet.getSlot()) {
++                net.neoforged.neoforge.event.EventHooks.onSwitchHotbarSlotPost(this.player, cachedOldSlotIndex, packet.getSlot());
 +            }
          } else {
              LOGGER.warn("{} tried to set an invalid carried item", this.player.getPlainTextName());
