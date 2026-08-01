@@ -90,18 +90,11 @@
      private static int getMaxThreads() {
          String s = System.getProperty("max.bg.threads");
          if (s != null) {
-@@ -226,9 +_,14 @@
- 
-     private static ExecutorService makeIoExecutor(String p_314465_, boolean p_314461_) {
-         AtomicInteger atomicinteger = new AtomicInteger(1);
-+        // Youer start - vanilla runs IO threads at MIN_PRIORITY(1), which starves chunk saving
-+        // while the world-gen threads are busy (pregen). Overridable via -Dyouer.io.thread.priority.
-+        int priority = Integer.getInteger("youer.io.thread.priority", 4);
-+        // Youer end
+@@ -229,6 +_,7 @@
          return Executors.newCachedThreadPool(p_314387_ -> {
              Thread thread = new Thread(p_314387_);
              thread.setName(p_314465_ + atomicinteger.getAndIncrement());
-+            thread.setPriority(priority); // Youer
++            thread.setPriority(1);
              thread.setDaemon(p_314461_);
              thread.setUncaughtExceptionHandler(Util::onThreadException);
              return thread;

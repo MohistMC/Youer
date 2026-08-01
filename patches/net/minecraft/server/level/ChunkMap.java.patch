@@ -34,14 +34,7 @@
  import org.slf4j.Logger;
  
  public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider, GeneratingChunkMap {
-@@ -139,9 +_,34 @@
-     private final Long2ByteMap chunkTypeCache = new Long2ByteOpenHashMap();
-     private final Long2LongMap chunkSaveCooldowns = new Long2LongOpenHashMap();
-     private final Queue<Runnable> unloadQueue = Queues.newConcurrentLinkedQueue();
-+    // Youer start - cap concurrent off-thread chunk serializations to bound memory pressure
-+    private static final int MAX_PENDING_SERIALIZATIONS = Integer.getInteger("youer.save.serialization.max", 4096);
-+    public final java.util.concurrent.atomic.AtomicInteger pendingSerializations = new java.util.concurrent.atomic.AtomicInteger();
-+    // Youer end
+@@ -142,6 +_,27 @@
      public int serverViewDistance;
      private final WorldGenContext worldGenContext;
  
@@ -114,51 +107,6 @@
              return p_140179_;
          }
      }
-@@ -462,10 +_,18 @@
-     }
- 
-     private void processUnloads(BooleanSupplier p_140354_) {
-+        // Youer start - cap unload work per tick. Vanilla drains the whole toDrop backlog
-+        // whenever there's tick time, but during pregen the backlog can reach tens of
-+        // thousands of chunks whose generation claims are still held (each active
-+        // ChunkGenerationTask claims a radius-8 pyramid of holders). Draining all of them in
-+        // one tick stalls the server thread; a fixed per-tick cap keeps the main thread
-+        // responsive, and the backlog shrinks as claims are released.
-+        int maxUnloads = Integer.getInteger("youer.unload.max", 2000);
-         LongIterator longiterator = this.toDrop.iterator();
-         int i = 0;
- 
--        while (longiterator.hasNext() && (p_140354_.getAsBoolean() || i < 200 || this.toDrop.size() > 2000)) {
-+        while (longiterator.hasNext() && i < maxUnloads) {
-+            i++; // count every iteration, including claimed holders that skip below
-             long j = longiterator.nextLong();
-             ChunkHolder chunkholder = this.updatingChunkMap.get(j);
-             if (chunkholder != null) {
-@@ -476,20 +_,20 @@
-                 this.updatingChunkMap.remove(j);
-                 this.pendingUnloads.put(j, chunkholder);
-                 this.modified = true;
--                i++;
-                 this.scheduleUnload(j, chunkholder);
-             }
- 
-             longiterator.remove();
-         }
- 
--        int k = Math.max(0, this.unloadQueue.size() - 2000);
-+        int k = 0;
- 
-         Runnable runnable;
--        while ((p_140354_.getAsBoolean() || k > 0) && (runnable = this.unloadQueue.poll()) != null) {
--            k--;
-+        while (k < maxUnloads && (runnable = this.unloadQueue.poll()) != null) {
-+            k++;
-             runnable.run();
-         }
-+        // Youer end
- 
-         int l = 0;
-         ObjectIterator<ChunkHolder> objectiterator = this.visibleChunkMap.values().iterator();
 @@ -510,6 +_,7 @@
                  if (this.pendingUnloads.remove(p_140182_, p_140183_) && chunkaccess != null) {
                      if (chunkaccess instanceof LevelChunk levelchunk) {
@@ -186,51 +134,14 @@
                      LOGGER.error("Chunk file at {} is missing level data, skipping", p_140418_);
                  }
  
-@@ -754,14 +_,38 @@
-                     }
-                 }
+@@ -756,6 +_,7 @@
  
--                this.level.getProfiler().incrementCounter("chunkSave");
--                CompoundTag compoundtag = ChunkSerializer.write(this.level, p_140259_);
--                this.write(chunkpos, compoundtag).exceptionally(p_351776_ -> {
--                    this.level.getServer().reportChunkSaveFailure(p_351776_, this.storageInfo(), chunkpos);
--                    return null;
-+                // Youer start - serialize off the calling thread. Vanilla runs ChunkSerializer.write
-+                // (palette packing, tick serialization, DFU encoding) synchronously on the caller,
-+                // normally the server thread; with thousands of dirty chunks from pregen this
-+                // freezes the server for minutes. Serialize on the background pool, then hop back
-+                // to the main thread only for the save event and the (already async) disk write.
-+                if (this.pendingSerializations.incrementAndGet() > MAX_PENDING_SERIALIZATIONS) {
-+                    this.pendingSerializations.decrementAndGet();
-+                    p_140259_.setUnsaved(true); // too many in flight, keep it dirty for the next save
-+                    return false;
-+                }
-+                net.minecraft.Util.backgroundExecutor().execute(() -> {
-+                    CompoundTag compoundtag;
-+                    try {
-+                        compoundtag = ChunkSerializer.write(this.level, p_140259_);
-+                    } catch (Throwable throwable) {
-+                        this.level.getServer().reportChunkSaveFailure(throwable, this.storageInfo(), chunkpos);
-+                        this.pendingSerializations.decrementAndGet();
-+                        return;
-+                    }
-+                    CompoundTag tag = compoundtag;
-+                    this.mainThreadExecutor.execute(() -> {
-+                        this.pendingSerializations.decrementAndGet();
-+                        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.ChunkDataEvent.Save(p_140259_, p_140259_.getLevel() != null ? p_140259_.getLevel() : this.level, tag));
-+                        this.write(chunkpos, tag).exceptionally(p_351776_ -> {
-+                            this.level.getServer().reportChunkSaveFailure(p_351776_, this.storageInfo(), chunkpos);
-+                            return null;
-+                        });
-+                        this.markPosition(chunkpos, chunkstatus.getChunkType());
-+                    });
-                 });
--                this.markPosition(chunkpos, chunkstatus.getChunkType());
-                 return true;
-+                // Youer end
-             } catch (Exception exception) {
-                 this.level.getServer().reportChunkSaveFailure(exception, this.storageInfo(), chunkpos);
-                 return false;
+                 this.level.getProfiler().incrementCounter("chunkSave");
+                 CompoundTag compoundtag = ChunkSerializer.write(this.level, p_140259_);
++                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.ChunkDataEvent.Save(p_140259_, p_140259_.getLevel() != null ? p_140259_.getLevel() : this.level, compoundtag));
+                 this.write(chunkpos, compoundtag).exceptionally(p_351776_ -> {
+                     this.level.getServer().reportChunkSaveFailure(p_351776_, this.storageInfo(), chunkpos);
+                     return null;
 @@ -792,7 +_,7 @@
          }
      }

@@ -205,7 +205,7 @@
      }
  
      @Override
-@@ -549,13 +_,29 @@
+@@ -549,13 +_,19 @@
          }
  
          @Override
@@ -217,22 +217,12 @@
 -                ServerChunkCache.this.lightEngine.tryScheduleUpdate();
 -                return super.pollTask();
 +            try {
-+                // Youer start - drain scheduling tasks FIRST: vanilla skips the whole queue
-+                // whenever runDistanceManagerUpdates() returns true, which starves chunk
-+                // requests during pregen (distance updates fire almost every tick). Drain a
-+                // configurable batch, then run the distance-manager updates.
-+                boolean processedAny = false;
-+                int batch = Integer.getInteger("youer.schedule.batch", 128);
-+                for (int i = 0; i < batch && super.pollTask(); i++) {
-+                    processedAny = true;
-+                }
 +                if (ServerChunkCache.this.runDistanceManagerUpdates()) {
-+                    processedAny = true;
++                    return true;
 +                } else {
 +                    ServerChunkCache.this.lightEngine.tryScheduleUpdate();
++                    return super.pollTask();
 +                }
-+                return processedAny;
-+                // Youer end
 +            } finally {
 +                ServerChunkCache.this.chunkMap.callbackExecutor.run();
              }

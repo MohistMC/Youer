@@ -110,15 +110,11 @@ public abstract class BossBarTask extends BukkitRunnable {
         if (player.compassBar()) {
             CompassTask.instance().addPlayer(bukkit);
         }
-        if (com.mohistmc.youer.commands.PregenCommand.isOwner(player.getUUID())) {
-            PregenBossBarTask.instance().addPlayer(bukkit);
-        }
     }
 
     public static void removeFromAll(Player player) {
         RamBarTask.instance().removePlayer(player);
         TPSBarTask.instance().removePlayer(player);
         CompassTask.instance().removePlayer(player);
-        PregenBossBarTask.instance().removePlayer(player);
     }
 }
