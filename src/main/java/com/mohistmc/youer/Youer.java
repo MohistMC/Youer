@@ -25,6 +25,7 @@ public class Youer {
     public static i18n i18n;
     public static String version = "1.21.1";
     public static VersionInfo versionInfo;
+    public static final boolean DEBUG = Boolean.getBoolean("youer.debug");
 
     public Youer(IEventBus modEventBus, Dist dist, ModContainer container) {
         Map<String, String> arguments = new HashMap<>();

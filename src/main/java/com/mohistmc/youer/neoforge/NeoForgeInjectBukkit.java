@@ -56,7 +56,7 @@ import org.bukkit.event.player.PlayerRecipeBookSettingsChangeEvent;
 import org.bukkit.potion.PotionType;
 
 public class NeoForgeInjectBukkit {
-    public static final boolean DEBUG = Boolean.getBoolean("youer.debug");
+
     public static BiMap<ResourceKey<LevelStem>, World.Environment> environment =
             HashBiMap.create(ImmutableMap.<ResourceKey<LevelStem>, World.Environment>builder()
                     .put(LevelStem.OVERWORLD, World.Environment.NORMAL)
@@ -428,10 +428,10 @@ public class NeoForgeInjectBukkit {
     }
     
     public static void debug(String message, Object p0) {
-        if (DEBUG) Youer.LOGGER.debug(message, p0);
+        if (Youer.DEBUG) Youer.LOGGER.debug(message, p0);
     }
 
     public static void debug(String message, Object p0, Object p1) {
-        if (DEBUG) Youer.LOGGER.debug(message, p0, p1);
+        if (Youer.DEBUG) Youer.LOGGER.debug(message, p0, p1);
     }
 }
