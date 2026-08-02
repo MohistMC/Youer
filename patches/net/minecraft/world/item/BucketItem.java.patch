@@ -34,7 +34,7 @@
                  BlockState blockstate1 = p_40703_.getBlockState(blockpos);
                  if (blockstate1.getBlock() instanceof BucketPickup bucketpickup) {
 +                    // CraftBukkit start
-+                    ItemStack dummyFluid = bucketpickup.pickupBlock(p_40704_, DummyGeneratorAccess.INSTANCE, blockpos, blockstate1);
++                    ItemStack dummyFluid = dummyFluid(bucketpickup, p_40704_, blockpos, blockstate1); // Youer - Fix mixin injection pickupBlock
 +                    if (dummyFluid.isEmpty()) return InteractionResultHolder.fail(itemstack); // Don't fire event if the bucket won't be filled.
 +                    PlayerBucketFillEvent event = CraftEventFactory.callPlayerBucketFillEvent((ServerLevel) p_40703_, p_40704_, blockpos, blockpos, blockhitresult.getDirection(), itemstack, dummyFluid.getItem(), p_40705_);
 +
@@ -68,9 +68,16 @@
                      this.checkExtraContent(p_40704_, p_40703_, itemstack, blockpos2);
                      if (p_40704_ instanceof ServerPlayer) {
                          CriteriaTriggers.PLACED_BLOCK.trigger((ServerPlayer)p_40704_, blockpos2, itemstack);
-@@ -90,6 +_,13 @@
+@@ -89,7 +_,20 @@
+         }
      }
  
++    // Youer start
++    public ItemStack dummyFluid(BucketPickup bucketpickup, Player player, BlockPos blockpos, BlockState blockstate) {
++        return bucketpickup.pickupBlock(player, DummyGeneratorAccess.INSTANCE, blockpos, blockstate);
++    }
++    // Youer end
++
      public static ItemStack getEmptySuccessItem(ItemStack p_40700_, Player p_40701_) {
 +        // Paper start - Fix PlayerBucketEmptyEvent result itemstack
 +        if (itemLeftInHandAfterPlayerBucketEmptyEvent != null) {
