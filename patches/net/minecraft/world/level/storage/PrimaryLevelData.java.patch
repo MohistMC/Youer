@@ -46,11 +46,17 @@
  import org.slf4j.Logger;
  
  public class PrimaryLevelData implements ServerLevelData, WorldData {
-@@ -74,6 +_,28 @@
+@@ -74,6 +_,34 @@
      private boolean wasModded;
      private final Set<String> removedFeatureFlags;
      private final TimerQueue<MinecraftServer> scheduledEvents;
 +    private boolean confirmedExperimentalWarning = false;
++    // Youer start - cache the WorldGenSettings tag across saves (see setTagData)
++    @Nullable
++    private CompoundTag cachedWorldGenSettingsTag;
++    @Nullable
++    private Registry<LevelStem> cachedWorldGenSettingsRegistry;
++    // Youer end
 +    // CraftBukkit start - Add world and pdc
 +    public Registry<LevelStem> customDimensions;
 +    private ServerLevel world;
@@ -97,15 +103,40 @@
      }
  
      @Override
-@@ -229,7 +_,7 @@
+@@ -229,9 +_,30 @@
          p_78547_.put("Version", compoundtag);
          NbtUtils.addCurrentDataVersion(p_78547_);
          DynamicOps<Tag> dynamicops = p_78546_.createSerializationContext(NbtOps.INSTANCE);
 -        WorldGenSettings.encode(dynamicops, this.worldOptions, p_78546_)
-+        WorldGenSettings.encode(dynamicops, this.worldOptions, new WorldDimensions(this.customDimensions != null ? this.customDimensions : p_78546_.registryOrThrow(Registries.LEVEL_STEM)))
-             .resultOrPartial(Util.prefix("WorldGenSettings: ", LOGGER::error))
-             .ifPresent(p_78574_ -> p_78547_.put("WorldGenSettings", p_78574_));
+-            .resultOrPartial(Util.prefix("WorldGenSettings: ", LOGGER::error))
+-            .ifPresent(p_78574_ -> p_78547_.put("WorldGenSettings", p_78574_));
++        // Youer start - cache the WorldGenSettings tag
++        // The encode input (worldOptions + the LEVEL_STEM registry) never changes while the server
++        // runs, yet every autosave re-encodes the whole registry once per dimension (main world and
++        // each dimension's level.dat), which dominated saveEverything in big modpack profiles. Cache
++        // the resulting tag; the registry reference comparison invalidates the cache if a plugin ever
++        // swaps the dimensions registry (e.g. CraftBukkit's customDimensions). The tag is read-only
++        // once stored, so the background level.dat writes sharing it are safe.
++        Registry<LevelStem> registry = this.customDimensions != null ? this.customDimensions : p_78546_.registryOrThrow(Registries.LEVEL_STEM);
++        Tag worldGenSettingsTag;
++        if (com.mohistmc.youer.YouerConfig.cache_worldgen_settings && this.cachedWorldGenSettingsTag != null && this.cachedWorldGenSettingsRegistry == registry) {
++            worldGenSettingsTag = this.cachedWorldGenSettingsTag;
++        } else {
++            worldGenSettingsTag = WorldGenSettings.encode(dynamicops, this.worldOptions, new WorldDimensions(registry))
++                .resultOrPartial(Util.prefix("WorldGenSettings: ", LOGGER::error))
++                .orElse(null);
++            if (worldGenSettingsTag instanceof CompoundTag compoundTag) {
++                this.cachedWorldGenSettingsTag = compoundTag;
++                this.cachedWorldGenSettingsRegistry = registry;
++            }
++        }
++        if (worldGenSettingsTag != null) {
++            p_78547_.put("WorldGenSettings", worldGenSettingsTag);
++        }
++        // Youer end
          p_78547_.putInt("GameType", this.settings.gameType().getId());
+         p_78547_.putInt("SpawnX", this.spawnPos.getX());
+         p_78547_.putInt("SpawnY", this.spawnPos.getY());
 @@ -273,6 +_,18 @@
          if (this.wanderingTraderId != null) {
              p_78547_.putUUID("WanderingTraderId", this.wanderingTraderId);

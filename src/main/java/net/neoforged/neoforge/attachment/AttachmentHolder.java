@@ -153,20 +153,20 @@ public abstract class AttachmentHolder implements IAttachmentHolder {
             // Use tryParse to not discard valid attachment type keys, even if there is a malformed key.
             ResourceLocation keyLocation = ResourceLocation.tryParse(key);
             if (keyLocation == null) {
-                LOGGER.error("Encountered invalid data attachment key {}. Skipping.", key);
+                LOGGER.debug("Encountered invalid data attachment key {}. Skipping.", key);
                 continue;
             }
 
             var type = NeoForgeRegistries.ATTACHMENT_TYPES.get(keyLocation);
             if (type == null || type.serializer == null) {
-                LOGGER.error("Encountered unknown or non-serializable data attachment {}. Skipping.", key);
+                LOGGER.debug("Encountered unknown or non-serializable data attachment {}. Skipping.", key);
                 continue;
             }
 
             try {
                 getAttachmentMap().put(type, ((IAttachmentSerializer<Tag, ?>) type.serializer).read(getExposedHolder(), tag.get(key), provider));
             } catch (Exception exception) {
-                LOGGER.error("Failed to deserialize data attachment {}. Skipping.", key, exception);
+                LOGGER.debug("Failed to deserialize data attachment {}. Skipping.", key, exception);
             }
         }
     }

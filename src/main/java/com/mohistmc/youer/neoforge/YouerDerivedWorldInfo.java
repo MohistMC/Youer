@@ -1,12 +1,24 @@
 package com.mohistmc.youer.neoforge;
 
+import com.mojang.serialization.Dynamic;
 import com.mojang.serialization.Lifecycle;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.UUID;
 import net.minecraft.CrashReportCategory;
 import net.minecraft.core.BlockPos;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtAccounter;
+import net.minecraft.nbt.NbtIo;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.Difficulty;
 import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.dimension.DimensionType;
+import net.minecraft.world.level.storage.LevelStorageSource;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.LevelHeightAccessor;
 import net.minecraft.world.level.LevelSettings;
@@ -23,15 +35,37 @@ import org.jetbrains.annotations.NotNull;
 public class YouerDerivedWorldInfo extends PrimaryLevelData {
 
     private final ServerLevelData derivedWorldInfo;
+    private final GameRules gameRules; // Youer - per-dimension game rules (independent copy of the main world's rules)
 
-    public YouerDerivedWorldInfo(ServerLevelData derivedWorldInfo, LevelSettings p_78470_, WorldOptions p_78471_, SpecialWorldProperty p_252268_, Lifecycle p_78472_) {
+    public YouerDerivedWorldInfo(ServerLevelData derivedWorldInfo, GameRules gameRules, LevelSettings p_78470_, WorldOptions p_78471_, SpecialWorldProperty p_252268_, Lifecycle p_78472_) {
         super(p_78470_, p_78471_, p_252268_, p_78472_);
         this.derivedWorldInfo = derivedWorldInfo;
+        this.gameRules = gameRules;
     }
 
-    public static YouerDerivedWorldInfo create(ServerLevelData worldInfo) {
-        return new YouerDerivedWorldInfo(worldInfo, worldSettings(worldInfo), generatorSettings(worldInfo), specialWorldProperty(worldInfo), lifecycle(worldInfo));
+    public static YouerDerivedWorldInfo create(ServerLevelData worldInfo, GameRules gameRules) {
+        return new YouerDerivedWorldInfo(worldInfo, gameRules, worldSettings(worldInfo), generatorSettings(worldInfo), specialWorldProperty(worldInfo), lifecycle(worldInfo));
     }
+
+    // Youer - per-dimension game rules: start from a copy of the main world's rules, then restore
+    // the rules persisted in the dimension's own level.dat (written by saveDimensionDataTag) if present.
+    public static GameRules loadDimensionGameRules(MinecraftServer server, LevelStorageSource.LevelStorageAccess storage, ResourceKey<Level> dimension) {
+        GameRules rules = server.getWorldData().getGameRules().copy();
+        Path dimensionLevelFile = DimensionType.getStorageFolder(dimension, storage.levelDirectory.path()).resolve("level.dat");
+        if (Files.isRegularFile(dimensionLevelFile)) {
+            try {
+                CompoundTag dimensionData = NbtIo.readCompressed(dimensionLevelFile, NbtAccounter.unlimitedHeap()).getCompound("Data");
+                if (dimensionData.contains("GameRules")) {
+                    rules = new GameRules(new Dynamic<>(NbtOps.INSTANCE, dimensionData.get("GameRules")));
+                }
+            } catch (IOException ioexception) {
+                LOGGER.error("Failed to read game rules from {}", dimensionLevelFile, ioexception);
+            }
+        }
+        return rules;
+    }
+
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger("Youer");
 
     private static LevelSettings worldSettings(ServerLevelData data) {
         data = resolveDelegate(data);
@@ -205,7 +239,7 @@ public class YouerDerivedWorldInfo extends PrimaryLevelData {
 
     @Override
     public @NotNull GameRules getGameRules() {
-        return derivedWorldInfo.getGameRules();
+        return this.gameRules; // Youer - per-dimension game rules instead of the shared main world rules
     }
 
     @Override

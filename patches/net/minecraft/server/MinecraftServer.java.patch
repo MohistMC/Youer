@@ -362,13 +362,15 @@
  
                  try {
                      serverlevel.fillReportDetails(crashreport);
-@@ -403,8 +_,32 @@
+@@ -403,8 +_,33 @@
          for (Entry<ResourceKey<LevelStem>, LevelStem> entry : registry.entrySet()) {
              ResourceKey<LevelStem> resourcekey = entry.getKey();
              if (resourcekey != LevelStem.OVERWORLD) {
 +                if (BanWorld.checkBan(resourcekey.location())) continue;
                  ResourceKey<Level> resourcekey1 = ResourceKey.create(Registries.DIMENSION, resourcekey.location());
-                 DerivedLevelData derivedleveldata = new DerivedLevelData(this.worldData, serverleveldata);
+-                DerivedLevelData derivedleveldata = new DerivedLevelData(this.worldData, serverleveldata);
++                // Youer - per-dimension game rules: independent copy, restored from the dimension's own level.dat
++                DerivedLevelData derivedleveldata = new DerivedLevelData(this.worldData, serverleveldata, com.mohistmc.youer.neoforge.YouerDerivedWorldInfo.loadDimensionGameRules(this, this.storageSource, resourcekey1));
 +
 +                String name = resourcekey == LevelStem.NETHER ? "DIM1" : "DIM-1";
 +                if (resourcekey == LevelStem.NETHER) {

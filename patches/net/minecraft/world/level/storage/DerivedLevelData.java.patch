@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/storage/DerivedLevelData.java
 +++ b/net/minecraft/world/level/storage/DerivedLevelData.java
-@@ -3,17 +_,24 @@
+@@ -3,21 +_,31 @@
  import java.util.UUID;
  import net.minecraft.CrashReportCategory;
  import net.minecraft.core.BlockPos;
@@ -17,14 +17,23 @@
  public class DerivedLevelData implements ServerLevelData {
      private final WorldData worldData;
      public final ServerLevelData wrapped;
+-
+-    public DerivedLevelData(WorldData p_78079_, ServerLevelData p_78080_) {
 +    private ResourceKey<LevelStem> typeKey;
 +
 +    public void setTypeKey(ResourceKey<LevelStem> typeKey) {
 +        this.typeKey = typeKey;
 +    }
- 
-     public DerivedLevelData(WorldData p_78079_, ServerLevelData p_78080_) {
++
++    private final GameRules gameRules; // Youer - per-dimension game rules, independent from the main world's
++
++    public DerivedLevelData(WorldData p_78079_, ServerLevelData p_78080_, GameRules gameRules) {
          this.worldData = p_78079_;
+         this.wrapped = p_78080_;
++        this.gameRules = gameRules;
+     }
+ 
+     @Override
 @@ -42,7 +_,20 @@
  
      @Override
@@ -44,6 +53,15 @@
 +            }
 +            return worldName + suffix;
 +        }
+     }
+ 
+     @Override
+@@ -132,7 +_,7 @@
+ 
+     @Override
+     public GameRules getGameRules() {
+-        return this.worldData.getGameRules();
++        return this.gameRules; // Youer - the dimension's own game rules instead of the main world's
      }
  
      @Override

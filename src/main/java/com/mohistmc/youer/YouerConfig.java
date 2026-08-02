@@ -72,6 +72,12 @@ public class YouerConfig {
     public static String keepinventory_exp_permission;
     // Thread Priority
     public static int server_thread;
+    // Async advancement loading (parses the player's advancement file off the main thread on login)
+    public static boolean async_advancement_loading;
+    // Cache the WorldGenSettings NBT tag: its encode input (worldOptions + LEVEL_STEM registry) never
+    // changes while the server runs, yet every autosave re-encodes it once per dimension (main world
+    // and each dimension level.dat). Re-encoding dominated saveEverything in profiles of big modpacks.
+    public static boolean cache_worldgen_settings;
     public static boolean clear_item;
     public static List<String> clear_item_whitelist;
     public static String clear_item_msg;
@@ -144,7 +150,8 @@ public class YouerConfig {
     public static ModCompatibilityConfig terrablender_compat;
     public static ModCompatibilityConfig lithostitched_compat;
     public static boolean keepSpawnLoaded;
-    
+    public static boolean no_recipeBook;
+
     public static class ModCompatibilityConfig {
         public boolean enable;
         public List<String> skip_worlds;
@@ -282,6 +289,8 @@ public class YouerConfig {
         keepinventory_exp = getBoolean("keepinventory.global.exp", true);
         keepinventory_exp_permission = getString("keepinventory.permission.exp", "youer.keepinventory.exp");
         server_thread = getInt("threadpriority.server_thread", 5);
+        async_advancement_loading = getBoolean("youer.async_advancement_loading", true);
+        cache_worldgen_settings = getBoolean("youer.cache_worldgen_settings", true);
 
         clear_item = getBoolean("entity.clear.item.enable", false);
         clear_item_whitelist = getStringList("entity.clear.item.whitelist", new ArrayList<>());
@@ -342,6 +351,7 @@ public class YouerConfig {
         custom_disabled_sign_commands = getBoolean("custom.disabled_signblock_commands", true);
         no_damage_particle = getBoolean("custom.no_damage_particle", false);
         keepSpawnLoaded = getBoolean("custom.keepSpawnLoaded", true);
+        no_recipeBook = getBoolean("custom.no_recipeBook", false);
 
         backup_world_enable = getBoolean("backup_world.enable", false);
         backup_world_interval = getInt("backup_world.interval", 3600);
