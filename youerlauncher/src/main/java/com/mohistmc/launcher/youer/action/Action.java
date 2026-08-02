@@ -22,6 +22,7 @@ import com.mohistmc.launcher.youer.feature.DefaultLibraries;
 import com.mohistmc.launcher.youer.libraries.Libraries;
 import com.mohistmc.launcher.youer.util.DataParser;
 import com.mohistmc.launcher.youer.util.I18n;
+import com.mohistmc.launcher.youer.util.ProgressBar;
 import com.mohistmc.launcher.youer.util.YouerModuleManager;
 import com.mohistmc.tools.FileUtils;
 import com.mohistmc.tools.JarMerger;
@@ -47,9 +48,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import lombok.SneakyThrows;
-import me.tongfei.progressbar.ProgressBar;
-import me.tongfei.progressbar.ProgressBarBuilder;
-import me.tongfei.progressbar.ProgressBarStyle;
 
 public class Action {
 
@@ -207,12 +205,7 @@ public class Action {
         tasks.add(new JarMergeTask(PATCHED, universalJar, PAPER_REMAP_0));
         tasks.add(new JarMergeTask(PAPER_REMAP_0, MC_SRG, PAPER_REMAP));
         tasks.add(new FileCheckTask(PAPER_REMAP_0));
-        try (ProgressBar pb = new ProgressBarBuilder()
-                .setTaskName("")
-                .setInitialMax(tasks.size())
-                .setStyle(ProgressBarStyle.ASCII)
-                .setUpdateIntervalMillis(100)
-                .build()) {
+        try (ProgressBar pb = new ProgressBar("", tasks.size())) {
 
             mute();
             for (InstallationTask task : tasks) {

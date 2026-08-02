@@ -1,6 +1,7 @@
 package com.mohistmc.launcher.youer.libraries;
 
 import com.mohistmc.launcher.youer.Main;
+import com.mohistmc.launcher.youer.util.ProgressBar;
 import com.mohistmc.tools.SHA256;
 import java.io.File;
 import java.io.IOException;
@@ -18,9 +19,6 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import lombok.SneakyThrows;
 import lombok.ToString;
-import me.tongfei.progressbar.ProgressBar;
-import me.tongfei.progressbar.ProgressBarBuilder;
-import me.tongfei.progressbar.ProgressBarStyle;
 
 @ToString
 public class LibrariesDownloadQueue {
@@ -73,12 +71,7 @@ public class LibrariesDownloadQueue {
      */
     public void progressBar() {
         if (needDownload()) {
-            ProgressBarBuilder builder = new ProgressBarBuilder()
-                    .setTaskName("")
-                    .setStyle(ProgressBarStyle.ASCII)
-                    .setUpdateIntervalMillis(100)
-                    .setInitialMax(need_download.size());
-            try (ProgressBar pb = builder.build()) {
+            try (ProgressBar pb = new ProgressBar("", need_download.size())) {
                 for (Libraries lib : need_download) {
                     File file = new File(parentDirectory, lib.path);
                     file.getParentFile().mkdirs();
