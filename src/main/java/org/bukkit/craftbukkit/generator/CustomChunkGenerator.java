@@ -309,9 +309,9 @@ public class CustomChunkGenerator extends InternalChunkGenerator {
     }
 
     @Override
-    public void applyBiomeDecorationCB(WorldGenLevel world, ChunkAccess chunk, StructureManager structureAccessor) {
+    public void applyBiomeDecoration(WorldGenLevel world, ChunkAccess chunk, StructureManager structureAccessor) {
         if (this.generator == null) {
-            super.applyBiomeDecorationCB(world, chunk, structureAccessor, true);
+            super.applyBiomeDecoration(world, chunk, structureAccessor, true);
             return;
         }
 
@@ -320,7 +320,7 @@ public class CustomChunkGenerator extends InternalChunkGenerator {
         int z = chunk.getPos().z;
 
         random.setSeed(Mth.getSeed(x, "should-decoration".hashCode(), z) ^ world.getSeed());
-        super.applyBiomeDecorationCB(world, chunk, structureAccessor, this.generator.shouldGenerateDecorations(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z));
+        super.applyBiomeDecoration(world, chunk, structureAccessor, this.generator.shouldGenerateDecorations(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z));
     }
 
     @Override
