@@ -24,36 +24,22 @@
  import java.util.concurrent.atomic.AtomicInteger;
  import java.util.function.BooleanSupplier;
  import java.util.function.Function;
-@@ -56,9 +_,11 @@
+@@ -51,7 +_,6 @@
+ import net.minecraft.network.protocol.game.ClientboundDamageEventPacket;
+ import net.minecraft.network.protocol.game.ClientboundEntityEventPacket;
+ import net.minecraft.network.protocol.game.ClientboundExplodePacket;
+-import net.minecraft.network.protocol.game.ClientboundGameEventPacket;
+ import net.minecraft.network.protocol.game.ClientboundLevelEventPacket;
  import net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket;
  import net.minecraft.network.protocol.game.ClientboundSoundEntityPacket;
- import net.minecraft.network.protocol.game.ClientboundSoundPacket;
-+import net.minecraft.resources.Identifier;
- import net.minecraft.resources.ResourceKey;
- import net.minecraft.server.MinecraftServer;
- import net.minecraft.server.ServerScoreboard;
-+import net.minecraft.server.bossevents.CustomBossEvents;
- import net.minecraft.server.players.SleepStatus;
- import net.minecraft.server.waypoints.ServerWaypointManager;
- import net.minecraft.sounds.SoundEvent;
-@@ -69,6 +_,7 @@
- import net.minecraft.util.CsvOutput;
+@@ -70,7 +_,6 @@
  import net.minecraft.util.Mth;
  import net.minecraft.util.ProgressListener;
-+import net.minecraft.util.RandomSource;
  import net.minecraft.util.Util;
- import net.minecraft.util.datafix.DataFixTypes;
+-import net.minecraft.util.datafix.DataFixTypes;
  import net.minecraft.util.debug.DebugSubscriptions;
-@@ -78,7 +_,9 @@
- import net.minecraft.util.random.WeightedList;
- import net.minecraft.util.valueproviders.IntProvider;
- import net.minecraft.util.valueproviders.UniformInt;
-+import net.minecraft.world.Difficulty;
- import net.minecraft.world.DifficultyInstance;
-+import net.minecraft.world.RandomSequences;
- import net.minecraft.world.TickRateManager;
- import net.minecraft.world.attribute.EnvironmentAttributeSystem;
- import net.minecraft.world.attribute.EnvironmentAttributes;
+ import net.minecraft.util.debug.LevelDebugSynchronizers;
+ import net.minecraft.util.profiling.Profiler;
 @@ -102,7 +_,7 @@
  import net.minecraft.world.entity.ai.village.poi.PoiTypes;
  import net.minecraft.world.entity.animal.equine.SkeletonHorse;
@@ -2009,7 +1995,7 @@
              this.blockEntityTickers.size(),
              getTypeCount(this.blockEntityTickers, TickingBlockEntity::getType),
              this.getBlockTicks().count(),
-@@ -1703,15 +_,26 @@
+@@ -1703,15 +_,25 @@
  
      @Override
      public LevelEntityGetter<Entity> getEntities() {
@@ -2022,7 +2008,6 @@
 -
 -    public void addWorldGenChunkEntities(Stream<Entity> loaded) {
 -        this.entityManager.addWorldGenChunkEntities(loaded);
-+        org.spigotmc.AsyncCatcher.catchOp("Chunk getEntities call"); // Spigot
 +        return this.moonrise$getEntityLookup(); // Paper - rewrite chunk system
 +    }
 +

@@ -2559,6 +2559,15 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
     // Paper end - flying fall damage
 
     @Override
+    public void resetFlyingTicks() {
+        if (getHandle().connection == null) {
+            return;
+        }
+
+        getHandle().connection.resetFlyingTicks();
+    }
+
+    @Override
     public void setFlySpeed(float value) {
         this.validateSpeed(value);
         ServerPlayer player = this.getHandle();

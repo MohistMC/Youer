@@ -1,8 +1,8 @@
-Paper inherits its licensing from upstream projects.
+Paper inherits its licensing from the included upstream projects.
 
 As such, Paper is licensed under the
 [GNU General Public License version 3](licenses/GPL.md); as it inherits it from Spigot,
-who in turn inherits it from the original Bukkit and Craftbukkit projects.
+who in turn inherits it from the original Bukkit and CraftBukkit projects.
 
 Any author who is _not_ listed below should be presumed to have released their work
 under the original [GPL](licenses/GPL.md) license.
@@ -15,9 +15,9 @@ The authors listed below have chosen to release their code under that more permi
 should submit a pull request to this project to add their name.
 
 ```text
-Zach Brown <zach.brown@destroystokyo.com>
+Zach Brown <1254957+zachbr@users.noreply.github.com>
 Daniel Ennis <aikar@aikar.co>
-kashike <kashike@vq.lc>
+Riley Park <rileysebastianpark@gmail.com>
 Black Hole <black-hole@live.com>
 Mark Vainomaa <mikroskeem@mikroskeem.eu>
 Mystiflow <mystiflow@gmail.com>
@@ -28,7 +28,7 @@ chickeneer <emcchickeneer@gmail.com>
 Minecrell <minecrell@minecrell.net>
 Techcable <Techcable@outlook.com>
 BillyGalbreath <blake.galbreath@gmail.com>
-MiniDigger <admin@benndorf.dev>
+MiniDigger | Martin <admin@minidigger.dev>
 Brokkonaut <hannos17@gmx.de>
 vemacs <d@nkmem.es>
 stonar96 <minecraft.stonar96@gmail.com>
@@ -38,12 +38,12 @@ MicleBrick <miclebrick@outlook.com>
 Trigary <trigary0@gmail.com>
 rickyboy320 <rickw320@hotmail.com>
 DoNotSpamPls <7570108+DoNotSpamPls@users.noreply.github.com>
-JRoy <joshroy126@gmail.com>
+Josh Roy <10731363+JRoy@users.noreply.github.com>
 ysl3000 <yannicklamprecht@live.de>
 Machine_Maker <machine@machinemaker.me>
 Ivan Pekov <ivan@mrivanplays.com>
 Camotoy <20743703+Camotoy@users.noreply.github.com>
-Bjarne Koll <lynxplay101@gmail.com>
+Bjarne Koll <git@lynxplay.dev>
 MeFisto94 <MeFisto94@users.noreply.github.com>
 Owen1212055 <23108066+Owen1212055@users.noreply.github.com>
 LemonCaramel <admin@caramel.moe>
@@ -65,4 +65,7 @@ aerulion <aerulion@gmail.com>
 Lukas Planz <lukas.planz@web.de>
 granny <contact@granny.dev>
 mja00 <me@mja00.dev>
+roro1506HD <16260475+roro1506HD@users.noreply.github.com>
+Toffikk <slodkitofik@gmail.com>
+NonSwag <mail@nonswag.dev>
 ```

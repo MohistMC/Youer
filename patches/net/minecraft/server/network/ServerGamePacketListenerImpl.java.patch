@@ -2178,11 +2178,10 @@
              this.player.resetLastActionTime();
              this.player.setShiftKeyDown(packet.usingSecondaryAction());
              if (target != null && level.getWorldBorder().isWithinBounds(target.blockPosition())) {
-@@ -1853,7 +_,63 @@
+@@ -1853,6 +_,58 @@
                      ItemStack tool = this.player.getItemInHand(hand);
                      if (tool.isItemEnabled(level.enabledFeatures())) {
                          ItemStack usedItemStack = tool.copy();
--                        if (this.player.interactOn(target, hand, location) instanceof InteractionResult.Success success) {
 +                        // CraftBukkit start
 +                        final Item itemType = tool.getItem();
 +                        boolean triggerLeashUpdate = usedItemStack.is(Items.LEAD) && target instanceof net.minecraft.world.entity.Leashable;
@@ -2235,14 +2234,9 @@
 +                            return;
 +                        }
 +                        // CraftBukkit end
-+                        var interactionResult = net.neoforged.neoforge.common.CommonHooks.onInteractEntityAt(player, target, location, hand);
-+                        if (interactionResult == null) {
-+                            interactionResult = this.player.interactOn(target, hand, location);
-+                        }
-+                        if (interactionResult instanceof InteractionResult.Success success) {
+                         if (this.player.interactOn(target, hand, location) instanceof InteractionResult.Success success) {
                              ItemStack awardedForStack = success.wasItemInteraction() ? usedItemStack : ItemStack.EMPTY;
                              CriteriaTriggers.PLAYER_INTERACTED_WITH_ENTITY.trigger(this.player, awardedForStack, target);
-                             if (success.swingSource() == InteractionResult.SwingSource.SERVER) {
 @@ -1863,6 +_,12 @@
                      }
                  }

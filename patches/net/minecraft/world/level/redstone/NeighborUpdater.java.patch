@@ -1,35 +1,37 @@
 --- a/net/minecraft/world/level/redstone/NeighborUpdater.java
 +++ b/net/minecraft/world/level/redstone/NeighborUpdater.java
-@@ -7,11 +_,16 @@
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Direction;
- import net.minecraft.core.registries.BuiltInRegistries;
-+import net.minecraft.server.level.ServerLevel;
- import net.minecraft.world.level.Level;
- import net.minecraft.world.level.LevelAccessor;
+@@ -1,6 +_,7 @@
+ package net.minecraft.world.level.redstone;
+ 
+ import java.util.Locale;
++import java.util.concurrent.atomic.AtomicReference;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.ReportedException;
+@@ -12,6 +_,8 @@
  import net.minecraft.world.level.block.Block;
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.level.block.state.BlockState;
-+import org.bukkit.craftbukkit.CraftWorld;
 +import org.bukkit.craftbukkit.block.CraftBlock;
-+import org.bukkit.craftbukkit.block.data.CraftBlockData;
 +import org.bukkit.event.block.BlockPhysicsEvent;
  import org.jspecify.annotations.Nullable;
  
  public interface NeighborUpdater {
-@@ -57,8 +_,26 @@
+@@ -56,9 +_,28 @@
+         }
      }
  
-     static void executeUpdate(Level level, BlockState state, BlockPos pos, Block changedBlock, @Nullable Orientation orientation, boolean movedByPiston) {
-+        // Paper start - Add source block to BlockPhysicsEvent
-+        executeUpdate(level, state, pos, changedBlock, orientation, movedByPiston, pos);
++    // Paper start - Add source block to BlockPhysicsEvent
++    static AtomicReference<@Nullable BlockPos> sourcePos = new AtomicReference<>();
++    static void setSourcePos(@Nullable BlockPos sourcePos1) {
++        sourcePos.set(sourcePos1);
 +    }
 +
-+    static void executeUpdate(Level level, BlockState state, BlockPos pos, Block changedBlock, @Nullable Orientation orientation, boolean movedByPiston, BlockPos sourcePos) {
-+        // Paper end - Add source block to BlockPhysicsEvent
+     static void executeUpdate(Level level, BlockState state, BlockPos pos, Block changedBlock, @Nullable Orientation orientation, boolean movedByPiston) {
          try {
 +            // CraftBukkit start
-+            org.bukkit.event.block.BlockPhysicsEvent event = new org.bukkit.event.block.BlockPhysicsEvent(org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), state.asBlockData(), org.bukkit.craftbukkit.block.CraftBlock.at(level, sourcePos)); // Paper - Add source block to BlockPhysicsEvent
++            BlockPos sourcePos1 = sourcePos.get() == null ? pos : sourcePos.getAndSet(null);
++            BlockPhysicsEvent event = new BlockPhysicsEvent(CraftBlock.at(level, pos), state.asBlockData(), CraftBlock.at(level, sourcePos1));
 +            level.getCraftServer().getPluginManager().callEvent(event);
 +
 +            if (event.isCancelled()) {
@@ -44,3 +46,14 @@
          } catch (Throwable t) {
              CrashReport report = CrashReport.forThrowable(t, "Exception while updating neighbours");
              CrashReportCategory category = report.addCategory("Block being updated");
+@@ -82,4 +_,10 @@
+             throw new ReportedException(report);
+         }
+     }
++
++    static void executeUpdate(Level level, BlockState state, BlockPos pos, Block changedBlock, @Nullable Orientation orientation, boolean movedByPiston, BlockPos sourcePos) {
++        setSourcePos(sourcePos);
++        executeUpdate(level, state, pos, changedBlock, orientation, movedByPiston);
++    }
++    // Paper end - Add source block to BlockPhysicsEvent
+ }

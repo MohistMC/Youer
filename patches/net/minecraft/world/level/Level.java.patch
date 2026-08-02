@@ -204,7 +204,7 @@
 +    }
 +
 +    @Override
-+    public final <T extends Entity> List<T> getEntitiesOfClass(final Class<T> entityClass, final AABB boundingBox, final Predicate<? super T> predicate) {
++    public <T extends Entity> List<T> getEntitiesOfClass(final Class<T> entityClass, final AABB boundingBox, final Predicate<? super T> predicate) {
 +        Profiler.get().incrementCounter("getEntities");
 +        final List<T> ret = new java.util.ArrayList<>();
 +
@@ -838,7 +838,7 @@
 +        this.purpurConfig = new org.purpurmc.purpur.PurpurWorldConfig(bukkitName, environment, worldKey); // Purpur - Purpur config files
 +        this.playerBreedingCooldowns = this.getNewBreedingCooldownCache(); // Purpur - Add adjustable breeding cooldown to config
 +        this.generator = generator;
-+        this.world = new CraftWorld((ServerLevel) this, worldKey, biomeProvider, environment);
++        this.world = this instanceof ServerLevel ? new CraftWorld((ServerLevel) this, worldKey, biomeProvider, environment) : null; // Paper - ABI compat: allow mods extending Level directly (CraftWorld requires a ServerLevel)
 +
 +        for (SpawnCategory spawnCategory : SpawnCategory.values()) {
 +            if (org.bukkit.craftbukkit.util.CraftSpawnCategory.isValidForLimits(spawnCategory)) {
@@ -849,13 +849,50 @@
          this.levelData = levelData;
          this.dimensionTypeRegistration = dimensionTypeRegistration;
          this.dimension = dimension;
-@@ -155,12 +_,54 @@
+@@ -155,12 +_,90 @@
          this.registryAccess = registryAccess;
          this.palettedContainerFactory = PalettedContainerFactory.create(registryAccess);
          this.damageSources = new DamageSources(registryAccess);
+-    }
 +        this.entityLookup = new ca.spottedleaf.moonrise.patches.chunk_system.level.entity.dfl.DefaultEntityLookup(this); // Paper - rewrite chunk system
 +        this.chunkPacketBlockController = this.paperConfig().anticheat.antiXray.enabled ? new io.papermc.paper.antixray.ChunkPacketBlockControllerAntiXray(this, executor) : io.papermc.paper.antixray.ChunkPacketBlockController.NO_OPERATION_INSTANCE; // Paper - Anti-Xray
-     }
++    }
++
++    // Paper start - ABI compat: restore the vanilla constructor signature for mods calling the original
++    protected Level(
++        WritableLevelData levelData,
++        ResourceKey<Level> dimension,
++        RegistryAccess registryAccess,
++        Holder<DimensionType> dimensionTypeRegistration,
++        boolean isClientSide,
++        boolean isDebug,
++        long biomeZoomSeed,
++        int maxChainedNeighborUpdates
++    ) {
++        this(levelData, dimension, registryAccess, dimensionTypeRegistration, isClientSide, isDebug, biomeZoomSeed, maxChainedNeighborUpdates,
++            "default", // Paper - bukkitName
++            null, // Paper - generator
++            null, // Paper - biomeProvider
++            org.bukkit.World.Environment.NORMAL, // Paper - environment
++            (spigotConfig) -> {
++                final net.minecraft.server.MinecraftServer server = net.minecraft.server.MinecraftServer.getServer();
++                if (server == null) {
++                    throw new IllegalStateException("MinecraftServer is not initialized while creating a Level");
++                }
++                return server.paperConfigurations.createWorldConfig(
++                    io.papermc.paper.configuration.PaperConfigurations.createWorldContextMap(
++                        server.storageSource.getDimensionPath(dimension),
++                        dimension.identifier(),
++                        spigotConfig,
++                        server.registryAccess(),
++                        server.overworld().getGameRules() // NeoForge: MinecraftServer.getGameRules() is unsupported (per-level game rules); use the overworld's
++                    )
++                );
++            }, // Paper - paperWorldConfigCreator
++            net.minecraft.server.MinecraftServer.getServer() != null ? net.minecraft.server.MinecraftServer.getServer().executor : java.util.concurrent.ForkJoinPool.commonPool() // Paper - executor
++        );
++    }
++    // Paper end - ABI compat: restore the vanilla constructor signature for mods calling the original
  
      public int getNextEntityId() {
          return 0;
