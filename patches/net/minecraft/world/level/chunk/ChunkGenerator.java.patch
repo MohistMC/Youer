@@ -118,7 +118,23 @@
                  blockpos$mutableblockpos.set(SectionPos.sectionToBlockCoord(chunkpos.x, 8), 32, SectionPos.sectionToBlockCoord(chunkpos.z, 8));
                  double d1 = blockpos$mutableblockpos.distSqr(p_223185_);
                  boolean flag = pair == null || d1 < d0;
-@@ -313,6 +_,27 @@
+@@ -384,7 +_,14 @@
+                             int l1 = aint[k1];
+                             PlacedFeature placedfeature = featuresorter$stepfeaturedata.features().get(l1);
+                             Supplier<String> supplier1 = () -> registry1.getResourceKey(placedfeature).map(Object::toString).orElseGet(placedfeature::toString);
+-                            worldgenrandom.setFeatureSeed(i, l1, k);
++                            // Paper start - Configurable feature seeds; change populationSeed used in random
++                            long featurePopulationSeed = i;
++                            final long configFeatureSeed = p_223087_.getMinecraftWorld().paperConfig().featureSeeds.features.getLong(placedfeature.feature());
++                            if (configFeatureSeed != -1) {
++                                featurePopulationSeed = worldgenrandom.setDecorationSeed(configFeatureSeed, blockpos.getX(), blockpos.getZ()); // See seededrandom.setDecorationSeed from above
++                            }
++                            worldgenrandom.setFeatureSeed(featurePopulationSeed, l1, k);
++                            // Paper end - Configurable feature seeds
+ 
+                             try {
+                                 p_223087_.setCurrentlyGenerating(supplier1);
+@@ -407,6 +_,27 @@
          }
      }
  
@@ -143,25 +159,9 @@
 +        // CraftBukkit end
 +    }
 +
-     public void applyBiomeDecoration(WorldGenLevel p_223087_, ChunkAccess p_223088_, StructureManager p_223089_) {
-         ChunkPos chunkpos = p_223088_.getPos();
-         if (!SharedConstants.debugVoidTerrain(chunkpos)) {
-@@ -384,7 +_,14 @@
-                             int l1 = aint[k1];
-                             PlacedFeature placedfeature = featuresorter$stepfeaturedata.features().get(l1);
-                             Supplier<String> supplier1 = () -> registry1.getResourceKey(placedfeature).map(Object::toString).orElseGet(placedfeature::toString);
--                            worldgenrandom.setFeatureSeed(i, l1, k);
-+                            // Paper start - Configurable feature seeds; change populationSeed used in random
-+                            long featurePopulationSeed = i;
-+                            final long configFeatureSeed = p_223087_.getMinecraftWorld().paperConfig().featureSeeds.features.getLong(placedfeature.feature());
-+                            if (configFeatureSeed != -1) {
-+                                featurePopulationSeed = worldgenrandom.setDecorationSeed(configFeatureSeed, blockpos.getX(), blockpos.getZ()); // See seededrandom.setDecorationSeed from above
-+                            }
-+                            worldgenrandom.setFeatureSeed(featurePopulationSeed, l1, k);
-+                            // Paper end - Configurable feature seeds
- 
-                             try {
-                                 p_223087_.setCurrentlyGenerating(supplier1);
+     private static BoundingBox getWritableArea(ChunkAccess p_187718_) {
+         ChunkPos chunkpos = p_187718_.getPos();
+         int i = chunkpos.getMinBlockX();
 @@ -429,6 +_,10 @@
          return this.biomeSource;
      }
