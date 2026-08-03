@@ -1114,15 +1114,24 @@
              ObjectArrayList<GameProfile> objectarraylist = new ObjectArrayList<>(j);
              int k = Mth.nextInt(this.random, 0, list.size() - j);
  
-@@ -992,19 +_,67 @@
+@@ -992,19 +_,77 @@
  
      public void tickChildren(BooleanSupplier p_129954_) {
          this.getPlayerList().getPlayers().forEach(p_341570_ -> p_341570_.connection.suspendFlushing());
 +        this.server.getScheduler().mainThreadHeartbeat(this.tickCount); // CraftBukkit
 +        // Paper start - Folia scheduler API
 +        ((io.papermc.paper.threadedregions.scheduler.FoliaGlobalRegionScheduler) Bukkit.getGlobalRegionScheduler()).tick();
++        // Youer start - Iterate over a snapshot of the entity list
 +        for (ServerLevel level : getWorldArray()) {
-+            for (final Entity entity : level.getEntities().getAll()) {
++            java.util.List<Entity> entities = new java.util.ArrayList<>();
++            try {
++                for (final Entity entity : level.getEntities().getAll()) {
++                    entities.add(entity);
++                }
++            } catch (ArrayIndexOutOfBoundsException | java.util.ConcurrentModificationException e) {
++                continue;
++            }
++            for (final Entity entity : entities) {
 +                if (entity == null || entity.isRemoved()) {
 +                    continue;
 +                }
@@ -1133,6 +1142,7 @@
 +            }
 +        }
 +        // Paper end - Folia scheduler API
++        // Youer end
 +        io.papermc.paper.adventure.providers.ClickCallbackProviderImpl.CALLBACK_MANAGER.handleQueue(this.tickCount); // Paper
          this.profiler.push("commandFunctions");
          this.getFunctions().tick();
