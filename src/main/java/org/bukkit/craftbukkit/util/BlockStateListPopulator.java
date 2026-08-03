@@ -10,6 +10,7 @@ import java.util.function.Predicate;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.LevelAccessor;
 import net.minecraft.world.level.block.EntityBlock;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -181,4 +182,9 @@ public class BlockStateListPopulator extends DummyGeneratorAccess {
         return world.getBrightness(type, pos);
     }
     // Paper end
+
+    @Override
+    public RandomSource getRandom() {
+        return this.world.getRandom();
+    }
 }
