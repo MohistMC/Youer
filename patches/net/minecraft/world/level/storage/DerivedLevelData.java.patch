@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/storage/DerivedLevelData.java
 +++ b/net/minecraft/world/level/storage/DerivedLevelData.java
-@@ -3,21 +_,31 @@
+@@ -3,21 +_,37 @@
  import java.util.UUID;
  import net.minecraft.CrashReportCategory;
  import net.minecraft.core.BlockPos;
@@ -18,7 +18,6 @@
      private final WorldData worldData;
      public final ServerLevelData wrapped;
 -
--    public DerivedLevelData(WorldData p_78079_, ServerLevelData p_78080_) {
 +    private ResourceKey<LevelStem> typeKey;
 +
 +    public void setTypeKey(ResourceKey<LevelStem> typeKey) {
@@ -26,6 +25,12 @@
 +    }
 +
 +    private final GameRules gameRules; // Youer - per-dimension game rules, independent from the main world's
++
++    // Youer - keep the vanilla two-arg constructor: precompiled mods (e.g. AE2 spatial storage) link against
++    // (WorldData, ServerLevelData), so removing it would cause NoSuchMethodError at runtime
+     public DerivedLevelData(WorldData p_78079_, ServerLevelData p_78080_) {
++        this(p_78079_, p_78080_, p_78079_.getGameRules());
++    }
 +
 +    public DerivedLevelData(WorldData p_78079_, ServerLevelData p_78080_, GameRules gameRules) {
          this.worldData = p_78079_;
