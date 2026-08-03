@@ -437,7 +437,7 @@
          this.playerIo.save(p_11277_);
          ServerStatsCounter serverstatscounter = this.stats.get(p_11277_.getUUID());
          if (serverstatscounter != null) {
-@@ -350,23 +_,74 @@
+@@ -350,23 +_,75 @@
          }
      }
  
@@ -484,6 +484,7 @@
 +        // Paper end - Drop carried item when player has disconnected
 +
          this.save(p_11287_);
++        p_11287_.getAdvancements().flushSave(); // Youer - the player is leaving: make sure the advancement file is on disk before the save() returns
          if (p_11287_.isPassenger()) {
              Entity entity = p_11287_.getRootVehicle();
              if (entity.hasExactlyOnePlayerPassenger()) {
@@ -1118,7 +1119,7 @@
              if (serverplayer != p_11242_ && serverplayer.level().dimension() == p_11247_) {
                  double d0 = p_11243_ - serverplayer.getX();
                  double d1 = p_11244_ - serverplayer.getY();
-@@ -655,11 +_,24 @@
+@@ -655,11 +_,37 @@
      }
  
      public void saveAll() {
@@ -1142,6 +1143,19 @@
 +                // Paper end - Incremental chunk and player saving
 +            }
 +            return null; }); // Paper - ensure main
++        // Youer start - Async advancement saving
++        // PlayerAdvancements.save() above only submits the save now. When saveAll is called from a
++        // non-main thread (e.g. the NeoForge autosave thread) wait for the submits to hit disk here.
++        // The vanilla autosave runs on the main thread (MinecraftServer.tickServer -> saveEverything)
++        // and must not block: the tick continues while the workers drain the queue. Disconnects are
++        // guaranteed by PlayerList.remove -> flushSave, and server shutdown by removeAll(), which
++        // saves each player through remove().
++        if (!this.server.isSameThread()) {
++            for (int i = 0; i < this.players.size(); ++i) {
++                this.players.get(i).getAdvancements().flushSave();
++            }
++        }
++        // Youer end
 +    }
      public UserWhiteList getWhiteList() {
          return this.whitelist;

@@ -74,6 +74,8 @@ public class YouerConfig {
     public static int server_thread;
     // Async advancement loading (parses the player's advancement file off the main thread on login)
     public static boolean async_advancement_loading;
+    // Async advancement saving (snapshots on the main thread, codec encode + Gson + file write on a worker)
+    public static boolean async_advancement_saving;
     // Cache the WorldGenSettings NBT tag: its encode input (worldOptions + LEVEL_STEM registry) never
     // changes while the server runs, yet every autosave re-encodes it once per dimension (main world
     // and each dimension level.dat). Re-encoding dominated saveEverything in profiles of big modpacks.
@@ -290,6 +292,7 @@ public class YouerConfig {
         keepinventory_exp_permission = getString("keepinventory.permission.exp", "youer.keepinventory.exp");
         server_thread = getInt("threadpriority.server_thread", 5);
         async_advancement_loading = getBoolean("youer.async_advancement_loading", true);
+        async_advancement_saving = getBoolean("youer.async_advancement_saving", true);
         cache_worldgen_settings = getBoolean("youer.cache_worldgen_settings", true);
 
         clear_item = getBoolean("entity.clear.item.enable", false);
