@@ -1000,14 +1000,15 @@
              if (source.getDirectEntity() instanceof AbstractArrow abstractArrow && abstractArrow.getPierceLevel() > 0) {
                  return 0.0F;
              } else {
-@@ -1334,8 +_,25 @@
+@@ -1334,8 +_,26 @@
                  }
  
                  float damageBlocked = blocksAttacks.resolveBlockedDamage(source, damage, angle);
 -                blocksAttacks.hurtBlockingItem(this.level(), blockingWith, this, this.getUsedItemHand(), damageBlocked);
 -                if (damageBlocked > 0.0F && !source.is(DamageTypeTags.IS_PROJECTILE) && source.getDirectEntity() instanceof LivingEntity livingEntity) {
 +
-+                var ev = net.neoforged.neoforge.common.CommonHooks.onDamageBlock(this, this.damageContainers.peek(), damageBlocked, !blocksAttacks.bypassedBy().map(t -> t.contains(source.typeHolder())).orElse(false));
++                var damageContainer = this.damageContainers.empty() ? new net.neoforged.neoforge.common.damagesource.DamageContainer(source, damage) : this.damageContainers.peek();
++                var ev = net.neoforged.neoforge.common.CommonHooks.onDamageBlock(this, damageContainer, damageBlocked, !blocksAttacks.bypassedBy().map(t -> t.contains(source.typeHolder())).orElse(false));
 +                // Youer start
 +                float bukkit = -(float) bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.BLOCKING);
 +                if (ev.getBlockedDamage() == ev.getOriginalBlockedDamage()) {
@@ -1021,7 +1022,7 @@
 +                // Youer end
 +                if (!ev.getBlocked()) return 0.0F;
 +                damageBlocked = ev.getBlockedDamage();
-+                this.damageContainers.peek().setBlockedDamage(ev);
++                damageContainer.setBlockedDamage(ev);
 +                blocksAttacks.hurtBlockingItem(this.level(), blockingWith, this, this.getUsedItemHand(), damageBlocked, ev.shieldDamage());
 +
 +                if (damageBlocked > 0.0F && !source.is(DamageTypeTags.IS_PROJECTILE) && source.getDirectEntity() instanceof LivingEntity livingEntity && livingEntity.distanceToSqr(this) <= Mth.square(200.0)) { // Paper - Fix shield disable inconsistency & Check distance in entity interactions
