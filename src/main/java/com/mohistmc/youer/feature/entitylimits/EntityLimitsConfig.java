@@ -10,7 +10,9 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.Mob;
 import org.bukkit.World;
+import org.bukkit.configuration.ConfigurationSection;
 
 /**
  * @author Mgazul
@@ -35,12 +37,25 @@ public class EntityLimitsConfig extends YouerPluginConfig {
     public List<EntityLimits> getEntityLimits() {
         List<EntityLimits> entityLimits = new ArrayList<>();
         for (String worldName : yaml.getKeys(false)) {
-            for (String entityName : yaml.getConfigurationSection(worldName).getKeys(false)) {
+            ConfigurationSection worldSection = yaml.getConfigurationSection(worldName);
+            if (worldSection == null) {
+                continue;
+            }
+            for (String entityName : worldSection.getKeys(false)) {
                 int entityLimit = yaml.getInt(worldName + "." + entityName, -1);
                 entityLimits.add(new EntityLimits(worldName, entityName, entityLimit));
             }
         }
         return entityLimits;
+    }
+
+    public int getChunkLimit() {
+        return yaml.getInt("chunk-limit", -1);
+    }
+
+    public void setChunkLimit(int limit) {
+        yaml.set("chunk-limit", limit);
+        save();
     }
 
     public void remove(String worldName, String entityName) {
@@ -68,6 +83,23 @@ public class EntityLimitsConfig extends YouerPluginConfig {
                         ));
         int limit = yaml.getInt(world.getName() + "." + entity.getBukkitEntity().getType().name(), -1);
         int entitySize = collect.getOrDefault(entity.getType(), 0);
+        return entitySize >= limit;
+    }
+
+    public boolean canSpawnInChunk(Entity entity) {
+        if (!(entity instanceof Mob)) {
+            return false;
+        }
+        int limit = getChunkLimit();
+        if (limit <= 0) {
+            return false;
+        }
+        long entitySize = 0;
+        for (org.bukkit.entity.Entity e : entity.getBukkitEntity().getChunk().getEntities()) {
+            if (e instanceof org.bukkit.entity.Mob) {
+                entitySize++;
+            }
+        }
         return entitySize >= limit;
     }
 }

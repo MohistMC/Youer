@@ -2,6 +2,7 @@ package com.mohistmc.youer.api;
 
 import com.mohistmc.youer.feature.ban.BanConfig;
 import com.mohistmc.youer.feature.ban.BanType;
+import java.util.IdentityHashMap;
 import java.util.Objects;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -9,6 +10,8 @@ import net.minecraft.world.entity.Entity;
 import org.bukkit.entity.EntityType;
 
 public class EntityAPI {
+
+    private static final IdentityHashMap<net.minecraft.world.entity.EntityType<?>, String> KEY_CACHE = new IdentityHashMap<>();
 
     public static EntityType entityType(String entityName) {
         EntityType type = EntityType.fromName(entityName);
@@ -29,13 +32,12 @@ public class EntityAPI {
     }
 
     public static String resourceLocation(Entity nmsEntity) {
-        var key = BuiltInRegistries.ENTITY_TYPE.getKey(nmsEntity.getType());
-        return key.toString();
+        return KEY_CACHE.computeIfAbsent(nmsEntity.getType(), t -> BuiltInRegistries.ENTITY_TYPE.getKey(t).toString());
     }
 
     public static boolean isBan(Entity entity) {
         if (entity == null || BanConfig.ENTITY == null) return false;
-        var list = BanConfig.getListByType(BanType.ENTITY);
+        var list = BanConfig.getSetByType(BanType.ENTITY);
         if (list.isEmpty()) return false;
         return list.contains(resourceLocation(entity));
     }

@@ -4,7 +4,9 @@ import com.mohistmc.youer.feature.config.YouerPluginConfig;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,7 +26,7 @@ public class BanConfig extends YouerPluginConfig {
     public static BanConfig WORLD;
     public static BanConfig STRUCTURE;
 
-    private static final Map<BanType, List<String>> globalCache = new HashMap<>();
+    private static final Map<BanType, Set<String>> globalCache = new HashMap<>();
     private static final Map<BanType, BanConfig> typeToConfigMap = new HashMap<>();
 
     public BanConfig(File file) {
@@ -62,8 +64,14 @@ public class BanConfig extends YouerPluginConfig {
         refreshCache(BanType.STRUCTURE);
     }
 
+    // Youer start - hot path: O(1) contains lookup
+    public static Set<String> getSetByType(BanType type) {
+        return globalCache.getOrDefault(type, Collections.emptySet());
+    }
+    // Youer end
+
     public static List<String> getListByType(BanType type) {
-        return globalCache.getOrDefault(type, new ArrayList<>());
+        return new ArrayList<>(getSetByType(type));
     }
 
     public List<String> getList(BanType type) {
@@ -82,9 +90,9 @@ public class BanConfig extends YouerPluginConfig {
         if (config != null) {
             try {
                 List<String> list = config.yaml.getStringList(type.key);
-                globalCache.put(type, list != null ? new ArrayList<>(list) : new ArrayList<>());
+                globalCache.put(type, list != null ? new HashSet<>(list) : new HashSet<>());
             } catch (Exception e) {
-                globalCache.put(type, new ArrayList<>());
+                globalCache.put(type, new HashSet<>());
             }
         }
     }

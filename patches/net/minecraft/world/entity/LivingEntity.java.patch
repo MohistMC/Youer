@@ -1709,9 +1709,16 @@
              int i = this.getTicksFrozen();
              if (this.isInPowderSnow && this.canFreeze()) {
                  this.setTicksFrozen(Math.min(this.getTicksRequiredToFreeze(), i + 1));
-@@ -2707,9 +_,66 @@
+@@ -2705,11 +_,72 @@
+             this.checkAutoSpinAttack(aabb, this.getBoundingBox());
+         }
  
-         this.pushEntities();
+-        this.pushEntities();
++        // Youer start - throttle pushEntities: O(n²) hotspot in crowded areas
++        if (((this.tickCount + this.getId()) & 3) == 0) {
++            this.pushEntities();
++        }
++        // Youer end
          this.level().getProfiler().pop();
 +        // Paper start - Add EntityMoveEvent
 +        if (this.xo != this.getX() || this.yo != this.getY() || this.zo != this.getZ() || this.yRotO != this.getYRot() || this.xRotO != this.getXRot()) {

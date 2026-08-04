@@ -38,7 +38,7 @@ public class EntityLimitsCommands extends Command {
         super(name);
     }
 
-    private final List<String> params = List.of("add");
+    private final List<String> params = List.of("add", "chunklimit");
 
     @Override
     public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) {
@@ -156,6 +156,21 @@ public class EntityLimitsCommands extends Command {
                     player.sendMessage(ChatColor.GREEN + I18n.as("entitylimits.add.success").formatted(entityName, world.getName(), limit));
                     return true;
                 }
+            } catch (NumberFormatException e) {
+                player.sendMessage(ChatColor.RED + I18n.as("entitylimits.add.invalidnumber"));
+            }
+        }
+        if (args[0].equalsIgnoreCase("chunklimit") && sender.isOp()) {
+            if (args.length < 2) {
+                player.sendMessage(ChatColor.RED + I18n.as("entitylimits.chunklimit.usage"));
+                return false;
+            }
+
+            try {
+                int limit = Integer.parseInt(args[1]);
+                EntityLimitsConfig.INSTANCE.setChunkLimit(limit);
+                player.sendMessage(ChatColor.GREEN + I18n.as("entitylimits.chunklimit.success").formatted(limit));
+                return true;
             } catch (NumberFormatException e) {
                 player.sendMessage(ChatColor.RED + I18n.as("entitylimits.add.invalidnumber"));
             }
