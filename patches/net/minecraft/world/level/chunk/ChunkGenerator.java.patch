@@ -37,7 +37,7 @@
      }
  
      public abstract void applyCarvers(
-@@ -131,10 +_,28 @@
+@@ -131,10 +_,50 @@
              return null;
          }
  
@@ -52,9 +52,31 @@
 +        final List<org.bukkit.generator.structure.Structure> apiStructures = wantedStructures.stream().map(org.bukkit.craftbukkit.generator.structure.CraftStructure::minecraftHolderToBukkit).toList();
 +        if (!apiStructures.isEmpty()) {
 +            final io.papermc.paper.event.world.StructuresLocateEvent event = new io.papermc.paper.event.world.StructuresLocateEvent(bukkitWorld, origin, apiStructures, maxSearchRadius, createReference);
-+            if (!event.callEvent()) {
++            // Paper start - StructuresLocateEvent must fire on the main thread; async /locate dispatches it there and waits
++            final boolean[] cancelled = new boolean[1];
++            final Throwable[] error = new Throwable[1];
++            if (io.papermc.paper.util.MCUtil.isMainThread() || !level.getServer().isRunning()) { // Paper - fire inline when stopping, main thread may not drain the executor queue
++                cancelled[0] = !event.callEvent();
++            } else {
++                final java.util.concurrent.CompletableFuture<Void> dispatched = new java.util.concurrent.CompletableFuture<>();
++                level.getServer().execute(() -> {
++                    try {
++                        cancelled[0] = !event.callEvent();
++                    } catch (Throwable throwable) {
++                        error[0] = throwable;
++                    } finally {
++                        dispatched.complete(null);
++                    }
++                });
++                dispatched.join();
++                if (error[0] != null) {
++                    throw new RuntimeException("Failed to fire StructuresLocateEvent on the main thread", error[0]);
++                }
++            }
++            if (cancelled[0]) {
 +                return null;
 +            }
++            // Paper end
 +            if (event.getResult() != null) {
 +                return Pair.of(io.papermc.paper.util.MCUtil.toBlockPos(event.getResult().pos()), org.bukkit.craftbukkit.generator.structure.CraftStructure.bukkitToMinecraftHolder(event.getResult().structure()));
 +            }
