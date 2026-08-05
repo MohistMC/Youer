@@ -262,4 +262,13 @@ public class ConfigByWorlds {
     public static boolean keepspawninmemory(String w){
         return config.getBoolean("worlds." + w + ".keepspawninmemory", true);
     }
+
+    public static boolean isMaintenance(String w) {
+        return f.exists() && config.getBoolean("worlds." + w + ".maintenance", false);
+    }
+
+    public static void setMaintenance(String w, boolean maintenance) {
+        config.set("worlds." + w + ".maintenance", maintenance);
+        init();
+    }
 }

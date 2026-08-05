@@ -30,7 +30,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class WorldsCommands extends Command {
 
-    private final List<String> params = Arrays.asList("create", "delete", "tp", "import", "unload", "info", "addinfo", "setname", "setspawn", "gui", "difficulty", "gamemode");
+    private final List<String> params = Arrays.asList("create", "delete", "tp", "import", "unload", "info", "addinfo", "setname", "setspawn", "gui", "difficulty", "gamemode", "maintenance");
 
     public WorldsCommands(String name) {
         super(name);
@@ -51,6 +51,62 @@ public class WorldsCommands extends Command {
     public boolean execute(@NotNull CommandSender sender, @NotNull String currentAlias, String[] args) {
         if (args.length == 0) {
             this.sendHelp(sender);
+            return false;
+        }
+        if (args[0].equalsIgnoreCase("maintenance")) {
+            String worldName = null;
+            String action = null;
+            if (args.length == 1) {
+                if (sender instanceof Player p) {
+                    worldName = p.getWorld().getName();
+                }
+            } else if (args.length == 2) {
+                if (args[1].equalsIgnoreCase("on") || args[1].equalsIgnoreCase("off")) {
+                    action = args[1];
+                    if (sender instanceof Player p) {
+                        worldName = p.getWorld().getName();
+                    }
+                } else {
+                    worldName = args[1];
+                }
+            } else if (args.length == 3) {
+                worldName = args[1];
+                action = args[2];
+            }
+            if (worldName == null) {
+                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.maintenance.usage"));
+                return false;
+            }
+            World world = Bukkit.getWorld(worldName);
+            if (world == null) {
+                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.maintenance.worldNotExists", worldName));
+                return false;
+            }
+            if (action == null) {
+                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.maintenance.status", worldName, I18n.as(ConfigByWorlds.isMaintenance(worldName) ? "worldcommands.maintenance.status.on" : "worldcommands.maintenance.status.off")));
+                return true;
+            }
+            if (action.equalsIgnoreCase("on")) {
+                if (worldName.equalsIgnoreCase(Bukkit.getUnsafe().getMainLevelName())) {
+                    sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.maintenance.denyMainworld"));
+                    return false;
+                }
+                ConfigByWorlds.setMaintenance(worldName, true);
+                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.maintenance.enable", worldName));
+                for (Player p : world.getPlayers()) {
+                    if (!p.isOp()) {
+                        p.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.maintenance.deny"));
+                        ConfigByWorlds.getSpawn(Bukkit.getUnsafe().getMainLevelName(), p);
+                    }
+                }
+                return true;
+            }
+            if (action.equalsIgnoreCase("off")) {
+                ConfigByWorlds.setMaintenance(worldName, false);
+                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.maintenance.disable", worldName));
+                return true;
+            }
+            sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.maintenance.usage"));
             return false;
         }
         if (sender instanceof Player player) {
@@ -317,6 +373,17 @@ public class WorldsCommands extends Command {
             list.addAll(Bukkit.getWorldsByName());
         }
 
+        if (args.length == 2 && args[0].equalsIgnoreCase("maintenance")) {
+            list.add("on");
+            list.add("off");
+            list.addAll(Bukkit.getWorldsByName());
+        }
+
+        if (args.length == 3 && args[0].equalsIgnoreCase("maintenance")) {
+            list.add("on");
+            list.add("off");
+        }
+
         return list;
     }
 
@@ -334,5 +401,6 @@ public class WorldsCommands extends Command {
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds gui " + I18n.as("worldmanage.command.gui"));
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds difficulty <0-3> " + I18n.as("worldmanage.command.difficulty"));
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds gamemode <0-3>" + I18n.as("worldmanage.command.gamemode"));
+        player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds maintenance [world] <on|off> " + I18n.as("worldmanage.command.maintenance"));
     }
 }

@@ -32,6 +32,7 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
 /**
@@ -113,7 +114,11 @@ public class YouerPlugin {
             GuiListener.onInventoryCloseEvent(event1);
         }
         if (event instanceof PlayerTeleportEvent event1) {
+            WorldManage.hookTeleport(event1);
             BackCommands.hookTeleport(event1);
+        }
+        if (event instanceof PlayerChangedWorldEvent event1) {
+            WorldManage.hookChangedWorld(event1);
         }
         if (event instanceof PlayerDeathEvent event1) {
             BackCommands.hooktDeath(event1);

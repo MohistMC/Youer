@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/players/PlayerList.java
 +++ b/net/minecraft/server/players/PlayerList.java
-@@ -1,27 +_,36 @@
+@@ -1,27 +_,37 @@
  package net.minecraft.server.players;
  
 +import com.destroystokyo.paper.console.TerminalConsoleCommandSender;
@@ -12,6 +12,7 @@
 +import com.mohistmc.youer.YouerConfig;
 +import com.mohistmc.youer.api.ColorAPI;
 +import com.mohistmc.youer.bukkit.inventory.InventoryOwner;
++import com.mohistmc.youer.feature.world.utils.ConfigByWorlds;
  import com.mojang.authlib.GameProfile;
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Dynamic;
@@ -120,11 +121,17 @@
          ServerLevel serverlevel = this.server.getLevel(resourcekey);
          ServerLevel serverlevel1;
          if (serverlevel == null) {
-@@ -161,36 +_,47 @@
+@@ -161,36 +_,53 @@
          } else {
              serverlevel1 = serverlevel;
          }
 -
++        // Youer start - world maintenance mode
++        if (ConfigByWorlds.isMaintenance(serverlevel1.getWorld().getName()) && !this.isOp(gameprofile)) {
++            LOGGER.warn("Player {} attempted to join maintenance world {}, defaulting to overworld", gameprofile.getName(), serverlevel1.getWorld().getName());
++            serverlevel1 = this.server.overworld();
++        }
++        // Youer end
 +        if (optional1.isEmpty() ) {
 +            p_11263_.spawnReason = org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT; // set Player SpawnReason to DEFAULT on first login
 +            // Paper end - reset to main world spawn if first spawn or invalid world
