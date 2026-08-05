@@ -84,11 +84,9 @@ public class YouerConfig {
     public static boolean cache_worldgen_settings;
     public static boolean clear_item;
     public static List<String> clear_item_whitelist;
-    public static String clear_item_msg;
     public static int clear_item_time;
     public static boolean clear_monster;
     public static List<String> clear_monster_whitelist;
-    public static String clear_monster_msg;
     public static int clear_monster_time;
     // Ban
     public static boolean ban_item_enable;
@@ -299,12 +297,10 @@ public class YouerConfig {
 
         clear_item = getBoolean("entity.clear.item.enable", false);
         clear_item_whitelist = getStringList("entity.clear.item.whitelist", new ArrayList<>());
-        clear_item_msg = getString("entity.clear.item.msg", "[Server] Cleaned up %size% drop item");
         clear_item_time = getInt("entity.clear.item.time", 1800);
 
         clear_monster = getBoolean("entity.clear.monster.enable", false);
         clear_monster_whitelist = getStringList("entity.clear.monster.whitelist", new ArrayList<>());
-        clear_monster_msg = getString("entity.clear.monster.msg", "[Server] Cleaned up %size% monster");
         clear_monster_time = getInt("entity.clear.monster.time", 1800);
 
         ban_item_enable = getBoolean("bans.item", false);

@@ -21,7 +21,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
@@ -31,9 +30,7 @@ import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.CraftServer;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.spigotmc.SpigotConfig;
 
@@ -42,7 +39,7 @@ public class YouerCommand extends Command {
     private static final String[] COMMAND_LIST = {
             "windows", "mods", "playermods", "reload", "version",
             "channels_incom", "channels_outgo", "speed", "printthreadcost",
-            "packetstats", "heal", "help", "cleardropitem", "memoryfix", "showp",
+            "packetstats", "heal", "help", "memoryfix", "showp",
             "backupworld"
     };
 
@@ -73,8 +70,6 @@ public class YouerCommand extends Command {
                         .toList();
             } else if (args.length == 2 && (args[0].equalsIgnoreCase("heal") || args[0].equalsIgnoreCase("showp"))) {
                 return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
-            } else if (args.length == 2 && args[0].equalsIgnoreCase("cleardropitem")) {
-                return Bukkit.getWorldsByName().stream().toList();
             }
         }
 
@@ -301,29 +296,6 @@ public class YouerCommand extends Command {
                     sender.sendMessage(ChatColor.RED + I18n.as("error.notplayer"));
                 }
             }
-            case "cleardropitem" -> {
-                if (args.length == 2) {
-                    World world = Bukkit.getWorld(args[1]);
-                    if (world == null) {
-                        sender.sendMessage(ChatColor.RED + " World not found!");
-                        return false;
-                    } else {
-                        AtomicInteger size = new AtomicInteger(0);
-                        for (org.bukkit.entity.Entity entity : world.getEntities().stream().toList()) {
-                            if (entity.getType() == EntityType.ITEM) {
-                                ItemStack item = ((org.bukkit.entity.Item) entity).getItemStack();
-                                entity.remove();
-                                size.addAndGet(item.getAmount());
-                            }
-                        }
-                        sender.sendMessage(I18n.as("worldcommands.world.cleardropitem", size.get(), world.getName()));
-                        return true;
-                    }
-                } else {
-                    sender.sendMessage(ChatColor.RED + "Usage: /mohist cleardropitem <worldname>");
-                    return false;
-                }
-            }
             case "memoryfix" -> {
                 if (!OSUtil.getOS().isWindows()) {
                     sender.sendMessage(ChatColor.RED + I18n.as("youercmd.memoryfix.not.windows"));
@@ -470,7 +442,6 @@ public class YouerCommand extends Command {
         sender.sendMessage(ChatColor.GREEN + "/youer packetstats <start|stop|status>" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.packetstats"));
         sender.sendMessage(ChatColor.GREEN + "/youer heal [player]" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.heal"));
         sender.sendMessage(ChatColor.GREEN + "/youer speed <value>" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.speed"));
-        sender.sendMessage(ChatColor.GREEN + "/youer cleardropitem <world>" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.cleardropitem"));
         sender.sendMessage(ChatColor.GREEN + "/youer memoryfix" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.memoryfix"));
         sender.sendMessage(ChatColor.GREEN + "/youer channels_incom" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.channels_incom"));
         sender.sendMessage(ChatColor.GREEN + "/youer channels_outgo" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.channels_outgo"));

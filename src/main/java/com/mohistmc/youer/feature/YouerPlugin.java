@@ -2,6 +2,7 @@ package com.mohistmc.youer.feature;
 
 import com.mohistmc.youer.api.gui.GuiListener;
 import com.mohistmc.youer.commands.DeepseekCommand;
+import com.mohistmc.youer.commands.EntityClearCommand;
 import com.mohistmc.youer.commands.HatCommand;
 import com.mohistmc.youer.commands.HideAllCommand;
 import com.mohistmc.youer.commands.HideCommand;
@@ -93,6 +94,9 @@ public class YouerPlugin {
         if (CommandsConfig.INSTANCE.enable("deepseek.enable")) {
             commands.put("deepseek", new DeepseekCommand("deepseek"));
         }
+        if (CommandsConfig.INSTANCE.enable("entityclear.enable")) {
+            commands.put("entityclear", new EntityClearCommand("entityclear"));
+        }
         commands.put("lightfix", new LightFixCommand("lightfix"));
     }
 
@@ -105,6 +109,7 @@ public class YouerPlugin {
         }
         if (event instanceof InventoryCloseEvent event1) {
             BanListener.save(event1);
+            EntityClearListener.save(event1);
             GuiListener.onInventoryCloseEvent(event1);
         }
         if (event instanceof PlayerTeleportEvent event1) {

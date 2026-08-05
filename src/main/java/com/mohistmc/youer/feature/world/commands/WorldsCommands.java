@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.atomic.AtomicInteger;
 import net.minecraft.server.MinecraftServer;
 import org.bukkit.Bukkit;
 import org.bukkit.Difficulty;
@@ -24,7 +23,6 @@ import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
@@ -32,7 +30,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class WorldsCommands extends Command {
 
-    private final List<String> params = Arrays.asList("create", "delete", "tp", "import", "unload", "info", "addinfo", "setname", "setspawn", "gui", "difficulty", "cleardropitem", "gamemode");
+    private final List<String> params = Arrays.asList("create", "delete", "tp", "import", "unload", "info", "addinfo", "setname", "setspawn", "gui", "difficulty", "gamemode");
 
     public WorldsCommands(String name) {
         super(name);
@@ -268,19 +266,6 @@ public class WorldsCommands extends Command {
                 return false;
             }
 
-            if (args.length == 1 && args[0].equalsIgnoreCase("cleardropitem")) {
-                AtomicInteger size = new AtomicInteger(0);
-                for (org.bukkit.entity.Entity entity : worldByplayer.getEntities().stream().toList()) {
-                    if (entity.getType() == EntityType.ITEM) {
-                        ItemStack item = ((org.bukkit.entity.Item) entity).getItemStack();
-                        entity.remove();
-                        size.addAndGet(item.getAmount());
-                    }
-                }
-                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.world.cleardropitem", size.get(), worldByplayer.getName()));
-                return true;
-
-            }
         } else {
             if (args.length == 3 && args[0].equalsIgnoreCase("tp") && sender.isOp()) {
                 for (Player target : Bukkit.getOnlinePlayers()) {
@@ -348,7 +333,6 @@ public class WorldsCommands extends Command {
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds setspawn " + I18n.as("worldmanage.command.setspawn"));
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds gui " + I18n.as("worldmanage.command.gui"));
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds difficulty <0-3> " + I18n.as("worldmanage.command.difficulty"));
-        player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds cleardropitem " + I18n.as("worldmanage.command.cleardropitem"));
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds gamemode <0-3>" + I18n.as("worldmanage.command.gamemode"));
     }
 }
