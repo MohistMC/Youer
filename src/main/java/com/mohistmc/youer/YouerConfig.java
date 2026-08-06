@@ -2,6 +2,7 @@ package com.mohistmc.youer;
 
 import com.google.common.base.Throwables;
 import com.mohistmc.youer.api.ColorAPI;
+import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.commands.DumpCommand;
 import com.mohistmc.youer.commands.InfoCommand;
 import com.mohistmc.youer.commands.ItemsCommand;
@@ -10,6 +11,8 @@ import com.mohistmc.youer.commands.ShowsCommand;
 import com.mohistmc.youer.commands.YouerCommand;
 import com.mohistmc.youer.feature.YouerPlugin;
 import com.mohistmc.youer.feature.ban.BansCommand;
+import com.mohistmc.youer.feature.create.CreateItemDrainCommand;
+import com.mohistmc.youer.feature.create.PotionBanConfig;
 import com.mohistmc.youer.feature.entitylimits.EntityLimitsConfig;
 import com.mohistmc.youer.util.I18n;
 import com.mohistmc.youer.util.YamlUtils;
@@ -187,6 +190,10 @@ public class YouerConfig {
         commands.put("items", new ItemsCommand("items"));
         commands.put("permission", new PermissionCommand("permission"));
         commands.put("bans", new BansCommand("bans"));
+        if (ServerAPI.hasMod("create")) {
+            commands.put("create_item_drain", new CreateItemDrainCommand("create_item_drain"));
+            PotionBanConfig.init();
+        }
         commands.put("shows", new ShowsCommand("shows"));
         commands.put("infos", new InfoCommand("infos"));
         EntityLimitsConfig.init();

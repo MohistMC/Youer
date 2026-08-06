@@ -13,6 +13,7 @@ import com.mohistmc.youer.feature.back.BackCommands;
 import com.mohistmc.youer.feature.back.BackConfig;
 import com.mohistmc.youer.feature.ban.BanListener;
 import com.mohistmc.youer.feature.commands.CommandsConfig;
+import com.mohistmc.youer.feature.create.PotionBanListener;
 import com.mohistmc.youer.feature.entitylimits.EntityLimitsCommands;
 import com.mohistmc.youer.feature.item.ItemsConfig;
 import com.mohistmc.youer.feature.menu.MenuCommand;
@@ -110,6 +111,7 @@ public class YouerPlugin {
         }
         if (event instanceof InventoryCloseEvent event1) {
             BanListener.save(event1);
+            PotionBanListener.save(event1);
             EntityClearListener.save(event1);
             GuiListener.onInventoryCloseEvent(event1);
         }
