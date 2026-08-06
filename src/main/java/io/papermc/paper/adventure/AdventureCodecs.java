@@ -149,7 +149,7 @@ public final class AdventureCodecs {
     ).apply(instance, ClickEvent::showDialog)));
     static final MapCodec<ClickEvent> CUSTOM_CODEC = mapCodec((instance) -> instance.group(
         KEY_CODEC.fieldOf("id").forGetter(a -> ((ClickEvent.Payload.Custom) a.payload()).key()),
-            BINARY_TAG_HOLDER_CODEC.optionalFieldOf("payload").forGetter(a -> Optional.ofNullable(((ClickEvent.Payload.Custom) a.payload()).nbt()))
+        BINARY_TAG_HOLDER_CODEC.optionalFieldOf("payload").forGetter(a -> Optional.ofNullable(((ClickEvent.Payload.Custom) a.payload()).nbt()))
     ).apply(instance, (key, binaryTagHolder) -> {
         return ClickEvent.custom(key, binaryTagHolder.orElse(null));
     }));

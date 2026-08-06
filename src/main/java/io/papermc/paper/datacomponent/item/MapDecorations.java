@@ -14,7 +14,6 @@ import org.jspecify.annotations.Nullable;
  * @see io.papermc.paper.datacomponent.DataComponentTypes#MAP_DECORATIONS
  */
 @NullMarked
-@ApiStatus.Experimental
 @ApiStatus.NonExtendable
 public interface MapDecorations {
 
@@ -53,7 +52,6 @@ public interface MapDecorations {
     /**
      * Decoration present on the map.
      */
-    @ApiStatus.Experimental
     @ApiStatus.NonExtendable
     interface DecorationEntry {
 

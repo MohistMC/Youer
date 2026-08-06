@@ -20,16 +20,17 @@
          }
  
          if (this.container instanceof RecipeCraftingHolder recipeCraftingHolder) {
-@@ -79,7 +_,7 @@
+@@ -79,20 +_,27 @@
      private NonNullList<ItemStack> getRemainingItems(CraftingInput input, Level level) {
          return level instanceof ServerLevel serverLevel
              ? serverLevel.recipeAccess()
 -                .getRecipeFor(RecipeType.CRAFTING, input, serverLevel)
 +                .getRecipeFor(RecipeType.CRAFTING, input, serverLevel, this.craftSlots.getCurrentRecipe()) // Paper - Perf: Improve mass crafting; check last recipe used first
                  .map(recipe -> recipe.value().getRemainingItems(input))
-                 .orElseGet(() -> copyAllInputItems(input))
+-                .orElseGet(() -> copyAllInputItems(input))
++                .orElseGet(() -> CraftingRecipe.defaultCraftingReminder(input)) // Paper - Fix #1822: Return default remainder when recipe is null
              : CraftingRecipe.defaultCraftingReminder(input);
-@@ -87,12 +_,19 @@
+     }
  
      @Override
      public void onTake(Player player, ItemStack carried) {

@@ -8,9 +8,8 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Contract;
 
 /**
- * A data-centric version-specific registry entry for the {@link TrimPattern} type.
+ * A data-centric version-specific registry entry for the {@link org.bukkit.inventory.meta.trim.TrimPattern} type.
  */
-@ApiStatus.Experimental
 @ApiStatus.NonExtendable
 public interface TrimPatternRegistryEntry {
 
@@ -47,7 +46,6 @@ public interface TrimPatternRegistryEntry {
      *     <li>{@link #description(Component)}</li>
      * </ul>
      */
-    @ApiStatus.Experimental
     @ApiStatus.NonExtendable
     interface Builder extends TrimPatternRegistryEntry, RegistryBuilder<TrimPattern> {
 

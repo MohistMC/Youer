@@ -22,7 +22,6 @@ import org.jspecify.annotations.Nullable;
 /**
  * A data-centric version-specific registry entry for the {@link Enchantment} type.
  */
-@ApiStatus.Experimental
 @ApiStatus.NonExtendable
 public interface EnchantmentRegistryEntry {
 
@@ -138,7 +137,6 @@ public interface EnchantmentRegistryEntry {
      *     <li>{@link #activeSlots(Iterable)}</li>
      * </ul>
      */
-    @ApiStatus.Experimental
     @ApiStatus.NonExtendable
     interface Builder extends EnchantmentRegistryEntry, RegistryBuilder<Enchantment> {
 
@@ -154,7 +152,7 @@ public interface EnchantmentRegistryEntry {
 
         /**
          * Configures the set of supported items this enchantment can be applied on. This
-         * can be a {@link RegistryKeySet} created via {@link RegistrySet#keySet(RegistryKey, Iterable)} or
+         * can be a {@link RegistryKeySet} created via {@link RegistrySet#keySet(io.papermc.paper.registry.RegistryKey, Iterable)} or
          * a tag obtained via {@link RegistryComposeEvent#getOrCreateTag(TagKey)} with
          * tag keys found in {@link io.papermc.paper.registry.keys.tags.ItemTypeTagKeys} such as
          * {@link io.papermc.paper.registry.keys.tags.ItemTypeTagKeys#ENCHANTABLE_ARMOR} and
@@ -171,7 +169,7 @@ public interface EnchantmentRegistryEntry {
         /**
          * Configures a set of item types this enchantment can naturally be applied to, when enchanting in an
          * enchantment table.This can be a {@link RegistryKeySet} created via
-         * {@link RegistrySet#keySet(RegistryKey, Iterable)} or a tag obtained via
+         * {@link RegistrySet#keySet(io.papermc.paper.registry.RegistryKey, Iterable)} or a tag obtained via
          * {@link RegistryComposeEvent#getOrCreateTag(TagKey)} with
          * tag keys found in {@link io.papermc.paper.registry.keys.tags.ItemTypeTagKeys} such as
          * {@link io.papermc.paper.registry.keys.tags.ItemTypeTagKeys#ENCHANTABLE_ARMOR} and
@@ -296,7 +294,6 @@ public interface EnchantmentRegistryEntry {
     /**
      * The enchantment cost interface represents the cost of applying an enchantment, split up into its different components.
      */
-    @ApiStatus.Experimental
     @ApiStatus.NonExtendable
     interface EnchantmentCost {
 

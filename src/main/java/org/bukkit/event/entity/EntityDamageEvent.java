@@ -316,8 +316,7 @@ public class EntityDamageEvent extends EntityEvent implements Cancellable {
         WORLD_BORDER,
         /**
          * Damage caused when an entity contacts another entity (sulfur cube) or block (cactus, dripstone stalagmite,
-         * berry bush, campfire, magma block). (Stonecutters too if you have the Stonecutter damage Purpur feature
-         * enabled)
+         * berry bush, campfire, magma block).
          * <p>
          * Damage: variable
          */

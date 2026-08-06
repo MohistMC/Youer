@@ -322,27 +322,15 @@
  
              boolean safeModeEnabled = options.has(safeMode);
              if (safeModeEnabled) {
-@@ -161,6 +_,25 @@
+@@ -161,6 +_,13 @@
              }
  
              PackRepository packRepository = ServerPacksSource.createPackRepository(access);
-+            // CraftBukkit start
-+            File bukkitDataPackFolder = new File(access.getLevelPath(LevelResource.DATAPACK_DIR).toFile(), "bukkit");
-+            if (!bukkitDataPackFolder.exists()) {
-+                bukkitDataPackFolder.mkdirs();
++            // Paper start
++            if (!safeModeEnabled) {
++                io.papermc.paper.datapack.DynamicBuiltinPacks.refreshAllMetadata(access);
 +            }
-+            File mcMeta = new File(bukkitDataPackFolder, "pack.mcmeta");
-+            try {
-+                com.google.common.io.Files.write("{\n"
-+                        + "    \"pack\": {\n"
-+                        + "        \"description\": \"Data pack for resources provided by Bukkit plugins\",\n"
-+                        + "        \"min_format\": " + SharedConstants.getCurrentVersion().packVersion(PackType.SERVER_DATA) + ",\n"
-+                        + "        \"max_format\": " + SharedConstants.getCurrentVersion().packVersion(PackType.SERVER_DATA) + "\n"
-+                        + "    }\n"
-+                        + "}\n", mcMeta, com.google.common.base.Charsets.UTF_8);
-+            } catch (java.io.IOException ex) {
-+                throw new RuntimeException("Could not initialize Bukkit datapack", ex);
-+            }
++            // Paper end
 +            AtomicReference<WorldLoader.DataLoadContext> worldLoader = new AtomicReference<>();
 +            // CraftBukkit end
  

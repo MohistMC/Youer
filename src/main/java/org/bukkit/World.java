@@ -2668,14 +2668,20 @@ public interface World extends RegionAccessor, WorldInfo, PluginMessageRecipient
      *     world via natural spawning mechanisms.
      * @param allowAnimals - if true, animals are allowed to spawn in this
      *     world via natural spawning mechanisms.
+     * @deprecated the vanilla server no longer maintains this functionality.
+     * See {@link #setAllowMonsterSpawning(boolean)} if you want to dis/allow monster spawning.
+     * Plugins can control natural spawning of animals via events like {@link org.bukkit.event.entity.EntitySpawnEvent} and the {@link org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason#NATURAL}.
      */
+    @Deprecated(since = "26.2", forRemoval = true)
     public void setSpawnFlags(boolean allowMonsters, boolean allowAnimals);
 
     /**
      * Gets whether animals can spawn in this world.
      *
      * @return whether animals can spawn in this world.
+     * @deprecated the vanilla server no longer maintains this functionality. Plugins can control natural spawning via events like {@link org.bukkit.event.entity.EntitySpawnEvent} and the {@link org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason#NATURAL}.
      */
+    @Deprecated(since = "26.2", forRemoval = true)
     public boolean getAllowAnimals();
 
     /**

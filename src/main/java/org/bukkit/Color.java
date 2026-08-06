@@ -401,7 +401,6 @@ public final class Color implements ConfigurationSerializable {
         );
     }
 
-    @SuppressWarnings("javadoc")
     @NotNull
     public static Color deserialize(@NotNull Map<String, Object> map) {
         return fromARGB(
