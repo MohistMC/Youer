@@ -16,8 +16,10 @@ import java.util.Map.Entry;
 import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.stats.StatType;
 import net.minecraft.stats.Stats;
 import net.minecraft.world.entity.MobCategory;
@@ -76,6 +78,7 @@ public class NeoForgeInjectBukkit {
         loadSpawnCategory();
         addPose();
         addEnumTreeType();
+        addEnumEnvironment(MinecraftServer.getServer().registryAccess().lookupOrThrow(Registries.LEVEL_STEM));
         reloadBukkitRegistries();
     }
 
