@@ -252,6 +252,14 @@ public class EntityDamageEvent extends EntityEvent implements Cancellable {
          * raw {@link EntityDamageEvent#getDamage()}.
          */
         BASE,
+        // Youer start - enum order mirrors the server's actual calculation order in
+        // LivingEntity#hurt (shield block -> freezing -> helmet), so that
+        // setDamage(double) recalculates modifiers in the same order the server applies them.
+        /**
+         * This represents  the damage reduction caused by blocking, only present for
+         * {@link Player Players}.
+         */
+        BLOCKING,
         /**
          * This represents the damage increased by freezing status.
          */
@@ -261,11 +269,7 @@ public class EntityDamageEvent extends EntityEvent implements Cancellable {
          * by a falling block.
          */
         HARD_HAT,
-        /**
-         * This represents  the damage reduction caused by blocking, only present for
-         * {@link Player Players}.
-         */
-        BLOCKING,
+        // Youer end
         /**
          * This represents the damage reduction caused by wearing armor.
          */

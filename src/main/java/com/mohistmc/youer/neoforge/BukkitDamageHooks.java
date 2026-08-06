@@ -18,6 +18,18 @@ public class BukkitDamageHooks {
     public static EntityDamageEvent handleEntityDamage(LivingEntity livingEntity, final DamageSource damagesource, float f) {
         float originalDamage = f;
 
+        // Youer start - simulation order must match the server's actual calculation order
+        // (shield block happens before freezing/helmet reduction in LivingEntity#hurt), otherwise
+        // the BLOCKING modifier would be computed against the already x5/x0.75 inflated damage.
+        Function<Double, Double> blocking = new Function<Double, Double>() {
+            @Override
+            public Double apply(Double f) {
+                return -((livingEntity.isDamageSourceBlocked(damagesource)) ? f : 0.0);
+            }
+        };
+        float blockingModifier = blocking.apply((double) f).floatValue();
+        f += blockingModifier;
+
         Function<Double, Double> freezing = new Function<Double, Double>() {
             @Override
             public Double apply(Double f) {
@@ -41,15 +53,7 @@ public class BukkitDamageHooks {
         };
         float hardHatModifier = hardHat.apply((double) f).floatValue();
         f += hardHatModifier;
-
-        Function<Double, Double> blocking = new Function<Double, Double>() {
-            @Override
-            public Double apply(Double f) {
-                return -((livingEntity.isDamageSourceBlocked(damagesource)) ? f : 0.0);
-            }
-        };
-        float blockingModifier = blocking.apply((double) f).floatValue();
-        f += blockingModifier;
+        // Youer end
 
         Function<Double, Double> armor = new Function<Double, Double>() {
             @Override

@@ -776,7 +776,7 @@
          this.entityData.set(DATA_HEALTH_ID, Mth.clamp(p_21154_, 0.0F, this.getMaxHealth()));
      }
  
-@@ -1079,63 +_,114 @@
+@@ -1079,63 +_,142 @@
          return this.getHealth() <= 0.0F;
      }
  
@@ -806,7 +806,10 @@
              return false;
          } else {
 +            this.damageContainers.push(new net.neoforged.neoforge.common.damagesource.DamageContainer(p_21016_, p_21017_));
-+            if (net.neoforged.neoforge.common.CommonHooks.onEntityIncomingDamage(this, this.damageContainers.peek())) return false;
++            if (net.neoforged.neoforge.common.CommonHooks.onEntityIncomingDamage(this, this.damageContainers.peek())) {
++                this.damageContainers.pop(); // Youer - fix stack leak on cancelled incoming damage (upstream 1.21.2+ fix)
++                return false;
++            }
              if (this.isSleeping() && !this.level().isClientSide) {
                  this.stopSleeping();
              }
@@ -837,8 +840,14 @@
 +            if (p_21017_ > 0.0F) {
 +                boolean originalBlocked = this.isDamageSourceBlocked(p_21016_);
 +                ev = net.neoforged.neoforge.common.CommonHooks.onDamageBlock(this, this.damageContainers.peek(), originalBlocked);
-+                float bukkit = -(float) bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.BLOCKING);
-+                if (originalBlocked == ev.getBlocked() && ev.getBlockedDamage() == ev.getOriginalBlockedDamage()) {
++                // Youer start - only override vanilla blocking when the plugin actually modified the BLOCKING modifier.
++                // This keeps vanilla/neo-forge blocking intact (incl. non-player shields, which have no BLOCKING
++                // modifier), respects state changes made during the bukkit event, and avoids the live-reference
++                // mismatch between getBlockedDamage() and getOriginalBlockedDamage().
++                if (bukkitEntityDamageEvent != null
++                    && bukkitEntityDamageEvent.isApplicable(EntityDamageEvent.DamageModifier.BLOCKING)
++                    && Math.abs(bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.BLOCKING) - bukkitEntityDamageEvent.getOriginalDamage(EntityDamageEvent.DamageModifier.BLOCKING)) >= Mth.EPSILON) {
++                    float bukkit = -(float) bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.BLOCKING);
 +                    if (bukkit > 0.0F) {
 +                        ev.setBlocked(true);
 +                        ev.setBlockedDamage(bukkit);
@@ -846,6 +855,7 @@
 +                        ev.setBlocked(false);
 +                    }
                  }
++                // Youer end
 +                if (ev.getBlocked()) {
 +                    this.damageContainers.peek().setBlockedDamage(ev);
 +                    if (ev.shieldDamage() > 0) {
@@ -864,14 +874,35 @@
              }
  
              if (p_21016_.is(DamageTypeTags.IS_FREEZING) && this.getType().is(EntityTypeTags.FREEZE_HURTS_EXTRA_TYPES)) {
-+                p_21017_ = applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.FREEZING, p_21017_);
-                 p_21017_ *= 5.0F;
+-                p_21017_ *= 5.0F;
++                // Youer start - when the plugin modified the FREEZING modifier, apply the plugin value directly
++                // instead of the vanilla x5 (the plain isStillOriginal check never matches here since current == base).
++                if (bukkitEntityDamageEvent != null
++                    && bukkitEntityDamageEvent.isApplicable(EntityDamageEvent.DamageModifier.FREEZING)
++                    && Math.abs(bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.FREEZING) - (-4.0 * p_21017_)) >= Mth.EPSILON) {
++                    p_21017_ = (float) (bukkitEntityDamageEvent.getDamage() + bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.FREEZING));
++                } else {
++                    p_21017_ = applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.FREEZING, p_21017_);
++                    p_21017_ *= 5.0F;
++                }
++                // Youer end
              }
  
              if (p_21016_.is(DamageTypeTags.DAMAGES_HELMET) && !this.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {
-+                p_21017_ = applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.HARD_HAT, p_21017_);
-                 this.hurtHelmet(p_21016_, p_21017_);
-                 p_21017_ *= 0.75F;
+-                this.hurtHelmet(p_21016_, p_21017_);
+-                p_21017_ *= 0.75F;
++                // Youer start - same for HARD_HAT; expected value is -0.25x the damage after the freezing step
++                if (bukkitEntityDamageEvent != null
++                    && bukkitEntityDamageEvent.isApplicable(EntityDamageEvent.DamageModifier.HARD_HAT)
++                    && Math.abs(bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.HARD_HAT) - (-0.25 * p_21017_)) >= Mth.EPSILON) {
++                    p_21017_ = (float) (bukkitEntityDamageEvent.getDamage() + bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.HARD_HAT));
++                    this.hurtHelmet(p_21016_, p_21017_);
++                } else {
++                    p_21017_ = applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.HARD_HAT, p_21017_);
++                    this.hurtHelmet(p_21016_, p_21017_);
++                    p_21017_ *= 0.75F;
++                }
++                // Youer end
              }
  
 +            this.damageContainers.peek().setNewDamage(p_21017_); //update container with vanilla changes
@@ -1391,7 +1422,7 @@
      }
  
 -    protected float getDamageAfterMagicAbsorb(DamageSource p_21193_, float p_21194_) {
-+    private float applyBukkitDamageModifier(EntityDamageEvent.DamageModifier modifier, float currentDamage) {
++    protected float applyBukkitDamageModifier(EntityDamageEvent.DamageModifier modifier, float currentDamage) { // Youer - protected so Player.actuallyHurt can apply modifiers
 +        if (bukkitEntityDamageEvent != null && bukkitEntityDamageEvent.isApplicable(modifier)) {
 +            double baseDamage = bukkitEntityDamageEvent.getDamage();
 +            if (bukkitEntityDamageEvent.isStillOriginal(modifier, baseDamage, currentDamage)) {
@@ -1426,7 +1457,7 @@
                  }
  
                  return p_21194_;
-@@ -1679,11 +_,16 @@
+@@ -1679,11 +_,26 @@
  
      protected void actuallyHurt(DamageSource p_21240_, float p_21241_) {
          if (!this.isInvulnerableTo(p_21240_)) {
@@ -1439,11 +1470,21 @@
 +            armorAbsorb = applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.ARMOR, armorAbsorb);
 +            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ARMOR, this.damageContainers.peek().getNewDamage() - armorAbsorb);
 +            this.getDamageAfterMagicAbsorb(p_21240_, this.damageContainers.peek().getNewDamage());
-+            float damage = net.neoforged.neoforge.common.CommonHooks.onLivingDamagePre(this, this.damageContainers.peek());
++            // Youer start - apply MAGIC modifier (enchantment + effect reduction step)
++            this.damageContainers.peek().setNewDamage(applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.MAGIC, this.damageContainers.peek().getNewDamage()));
++            // Youer end
++            // Youer start - clamp negative damage (plugin/mod may set a negative value, which would otherwise
++            // refund absorption and heal the entity instead of damaging it)
++            float damage = Math.max(net.neoforged.neoforge.common.CommonHooks.onLivingDamagePre(this, this.damageContainers.peek()), 0.0F);
++            this.damageContainers.peek().setNewDamage(damage);
++            // Youer end
 +            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ABSORPTION, Math.min(this.getAbsorptionAmount(), damage));
 +            float absorbed = Math.min(damage, this.damageContainers.peek().getReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ABSORPTION));
 +            this.setAbsorptionAmount(Math.max(0, this.getAbsorptionAmount() - absorbed));
-+            float f1 = this.damageContainers.peek().getNewDamage();
++            // Youer start - apply ABSORPTION modifier on the post-absorption damage, clamped to avoid healing
++            float f1 = Math.max(applyBukkitDamageModifier(EntityDamageEvent.DamageModifier.ABSORPTION, this.damageContainers.peek().getNewDamage()), 0.0F);
++            this.damageContainers.peek().setNewDamage(f1);
++            // Youer end
 +            float f = absorbed;
              if (f > 0.0F && f < 3.4028235E37F && p_21240_.getEntity() instanceof ServerPlayer serverplayer) {
                  serverplayer.awardStat(Stats.DAMAGE_DEALT_ABSORBED, Math.round(f * 10.0F));
