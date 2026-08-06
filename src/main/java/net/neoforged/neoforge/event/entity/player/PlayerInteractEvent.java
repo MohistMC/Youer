@@ -358,7 +358,7 @@ public abstract class PlayerInteractEvent extends PlayerEvent {
      * If the interaction was on a block, will be the position of that block.
      * Otherwise, will be a BlockPos centered on the player.
      * Will never be null.
-     *
+     * 
      * @return The position involved in this interaction.
      */
     public BlockPos getPos() {

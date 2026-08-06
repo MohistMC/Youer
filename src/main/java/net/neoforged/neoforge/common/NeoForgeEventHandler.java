@@ -42,7 +42,6 @@ import net.neoforged.neoforge.network.ConfigSync;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.payload.RegistryDataMapSyncPayload;
 import net.neoforged.neoforge.registries.DataMapLoader;
-import net.neoforged.neoforge.registries.DataPackRegistriesHooks;
 import net.neoforged.neoforge.registries.RegistryManager;
 import net.neoforged.neoforge.resource.NeoForgeReloadListeners;
 import net.neoforged.neoforge.server.command.ConfigCommand;

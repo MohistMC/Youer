@@ -67,11 +67,17 @@
      public static AttributeSupplier.Builder createAttributes() {
          return createBaseHorseAttributes().add(Attributes.MAX_HEALTH, 15.0).add(Attributes.MOVEMENT_SPEED, 0.2F);
      }
-@@ -63,6 +_,7 @@
+@@ -63,11 +_,12 @@
  
      @Override
      protected void addBehaviourGoals() {
 +        if (level().purpurConfig.skeletonHorseCanSwim) goalSelector.addGoal(0, new net.minecraft.world.entity.ai.goal.FloatGoal(this)); // Purpur - Ridables
+     }
+ 
+     @Override
+     public SoundEvent getAmbientSound() {
+-        return this.isEyeInFluid(FluidTags.WATER) ? SoundEvents.SKELETON_HORSE_AMBIENT_WATER : SoundEvents.SKELETON_HORSE_AMBIENT;
++        return this.getFluidInteraction().isEyeInFluidMatching(this, (_, type, _) -> type.getIsWaterLike()) ? SoundEvents.SKELETON_HORSE_AMBIENT_WATER : SoundEvents.SKELETON_HORSE_AMBIENT;
      }
  
      @Override

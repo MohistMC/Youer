@@ -484,19 +484,12 @@ public class NeoForgeMod {
 
         @Override
         public double motionScale(Entity entity) {
-            return entity.level().environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, entity.blockPosition()) ? 0.007D : 0.0023333333333333335D;
+            return entity.level().environmentAttributes().getValue(EnvironmentAttributes.FAST_LAVA, entity.blockPosition()) ? Entity.LAVA_FAST_FLOW_SCALE : Entity.LAVA_SLOW_FLOW_SCALE;
         }
 
         @Override
         public void setItemMovement(ItemEntity entity) {
-            Vec3 vec3 = entity.getDeltaMovement();
-            entity.setDeltaMovement(vec3.x * (double) 0.95F, vec3.y + (double) (vec3.y < (double) 0.06F ? 5.0E-4F : 0.0F), vec3.z * (double) 0.95F);
-        }
-
-        @Override
-        public boolean move(FluidState state, LivingEntity entity, Vec3 movementVector, double gravity) {
-            // Prevent water movement logic (which is denoted by returning false) being used for lava
-            return true;
+            entity.setFluidMovement(.95F);
         }
     });
 

@@ -172,7 +172,7 @@
      public boolean canBreatheUnderwater() {
          return this.is(EntityTypeTags.CAN_BREATHE_UNDER_WATER);
      }
-@@ -430,6 +_,12 @@
+@@ -430,11 +_,20 @@
                  if (dist < 0.0) {
                      double damagePerBlock = level.getWorldBorder().getDamagePerBlock();
                      if (damagePerBlock > 0.0) {
@@ -185,6 +185,14 @@
                          this.hurtServer(level, this.damageSources().outOfBorder(), Math.max(1, Mth.floor(-dist * damagePerBlock)));
                      }
                  }
+             }
+ 
++            int airSupply = this.getAirSupply();
++            net.neoforged.neoforge.common.CommonHooks.onLivingBreathe(this, level, airSupply - decreaseAirSupply(airSupply), increaseAirSupply(airSupply) - airSupply);
++            if (false) // Neo: Handled in CommonHooks#onLivingBreathe(LivingEntity, int, int)
+             if (this.isEyeInFluid(FluidTags.WATER)
+                 && !level.getBlockState(BlockPos.containing(this.getX(), this.getEyeY(), this.getZ())).is(Blocks.BUBBLE_COLUMN)) {
+                 boolean canDrownInWater = !this.canBreatheUnderwater()
 @@ -445,7 +_,7 @@
                      if (this.shouldTakeDrowningDamage()) {
                          this.setAirSupply(0);
@@ -216,7 +224,7 @@
 +    }
 +    // DivineMC end - Lag Compensation
 +
-     protected boolean shouldTakeDrowningDamage() {
+     public boolean shouldTakeDrowningDamage() {
 -        return this.getAirSupply() <= -20;
 +        return this.getAirSupply() <= -this.level().purpurConfig.drowningDamageInterval; // Purpur - Drowning Settings
      }
@@ -1730,6 +1738,15 @@
      }
  
      protected float getWaterSlowDown() {
+@@ -2424,7 +_,7 @@
+     }
+ 
+     protected boolean shouldTravelInFluid(FluidState fluidState) {
+-        return (this.isInWater() || this.isInLava()) && this.isAffectedByFluids() && !this.canStandOnFluid(fluidState);
++        return (this.isInWater() || this.isInLava() || this.isInFluidType(fluidState)) && this.isAffectedByFluids() && !this.canStandOnFluid(fluidState);
+     }
+ 
+     protected void travelFlying(Vec3 input, float speed) {
 @@ -2441,6 +_,20 @@
              this.move(MoverType.SELF, this.getDeltaMovement());
              this.setDeltaMovement(this.getDeltaMovement().scale(0.5));
@@ -1760,22 +1777,23 @@
              )
              : 1.0F;
          Vec3 movement = this.handleRelativeFrictionAndCalculateMovement(input, blockFriction);
-@@ -2483,7 +_,15 @@
-         return computeModifiedFriction(this.omnidirectionalAirMover() ? 0.91F : 0.98F, (float)this.getAttributeValue(Attributes.AIR_DRAG_MODIFIER));
-     }
- 
-+    /**
-+     * @deprecated Neo: use {@link #travelInFluid(Vec3, FluidState)} instead
-+     */
-+    @Deprecated
-     protected void travelInFluid(Vec3 input) {
-+        travelInFluid(input, this.level().getFluidState(this.blockPosition()));
-+    }
-+
-+    private void travelInFluid(Vec3 input, FluidState fluidState) {
+@@ -2487,10 +_,15 @@
          boolean isFalling = this.getDeltaMovement().y <= 0.0;
          double oldY = this.getY();
          double baseGravity = this.getEffectiveGravity();
++        if (this.isInFluidType((entity, type, _) -> !type.isVanilla() && entity.isEyeInFluid(type))) {
++            if (this.moveInFluid(this.level().getFluidState(BlockPos.containing(this.getEyePosition())), input, baseGravity)) {
++                return;
++            }
++        }
+         if (this.isInWater()) {
+             this.travelInWater(input, baseGravity, isFalling, oldY);
+             this.floatInWaterWhileRidden();
+-        } else {
++        } else if (this.isInLava()) { // Neo: only apply lava movement if the player is actually in lava and not another fluid
+             this.travelInLava(input, baseGravity, isFalling, oldY);
+         }
+     }
 @@ -2512,6 +_,7 @@
              slowDown = 0.96F;
          }
@@ -1784,6 +1802,15 @@
          this.moveRelative(speed, input);
          this.move(MoverType.SELF, this.getDeltaMovement());
          Vec3 movement = this.getDeltaMovement();
+@@ -2555,7 +_,7 @@
+ 
+     private void floatInWaterWhileRidden() {
+         boolean canEntityFloatInWater = this.is(EntityTypeTags.CAN_FLOAT_WHILE_RIDDEN);
+-        if (canEntityFloatInWater && this.isVehicle() && this.getFluidHeight(FluidTags.WATER) > this.getFluidJumpThreshold()) {
++        if (canEntityFloatInWater && this.isVehicle() && this.getFluidInteraction().getMaxFluidHeightMatching(this, (_, type, _) -> type.getIsWaterLike()) > this.getFluidJumpThreshold()) {
+             this.setDeltaMovement(this.getDeltaMovement().add(0.0, 0.04F, 0.0));
+         }
+     }
 @@ -2577,6 +_,11 @@
      }
  
@@ -1956,15 +1983,29 @@
      }
  
      protected void tickHeadTurn(float yBodyRotT) {
-@@ -3082,14 +_,16 @@
+@@ -3071,6 +_,10 @@
+         profiler.push("jump");
+         if (this.jumping && this.isAffectedByFluids()) {
+             double fluidHeight;
++            net.neoforged.neoforge.fluids.FluidType fluidType = this.getFluidInteraction().getMaxHeightFluidType();
++            if (!fluidType.isAir()) {
++                fluidHeight = this.getFluidTypeHeight(fluidType);
++            } else
+             if (this.isInLava()) {
+                 fluidHeight = this.getFluidHeight(FluidTags.LAVA);
+             } else {
+@@ -3081,15 +_,19 @@
+             double fluidJumpThreshold = this.getFluidJumpThreshold();
              if (!inWaterAndHasFluidHeight || this.onGround() && !(fluidHeight > fluidJumpThreshold)) {
                  if (!this.isInLava() || this.onGround() && this.isInShallowFluid(FluidTags.LAVA)) {
++                    if (fluidType.isAir() || this.onGround() && !(fluidHeight > fluidJumpThreshold)) {
                      if ((this.onGround() || inWaterAndHasFluidHeight && fluidHeight <= fluidJumpThreshold) && this.noJumpDelay == 0) {
 +                        if (new com.destroystokyo.paper.event.entity.EntityJumpEvent(getBukkitLivingEntity()).callEvent()) { // Paper - Entity Jump API
                          this.jumpFromGround();
                          this.noJumpDelay = 10;
 +                        } else { this.setJumping(false); } // Paper - Entity Jump API; setJumping(false) stops a potential loop
                      }
++                    } else this.jumpInFluid(fluidType);
                  } else {
 -                    this.jumpInLiquid(FluidTags.LAVA);
 +                    this.jumpInFluid(net.neoforged.neoforge.common.NeoForgeMod.LAVA_TYPE.value());

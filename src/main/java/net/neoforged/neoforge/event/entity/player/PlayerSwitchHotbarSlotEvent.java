@@ -16,8 +16,8 @@ import org.jetbrains.annotations.ApiStatus;
 /// If the server doesn't receive the packet, neither of
 /// the two events will be fired.
 ///
-/// @see Pre
-/// @see Post
+/// @see PlayerSwitchHotbarSlotEvent.Pre
+/// @see PlayerSwitchHotbarSlotEvent.Post
 public abstract class PlayerSwitchHotbarSlotEvent extends PlayerEvent {
     private final int oldSlotIndex;
     private final int newSlotIndex;

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/ai/goal/FloatGoal.java
 +++ b/net/minecraft/world/entity/ai/goal/FloatGoal.java
-@@ -9,6 +_,7 @@
+@@ -9,13 +_,14 @@
  
      public FloatGoal(Mob mob) {
          this.mob = mob;
@@ -8,3 +8,11 @@
          this.setFlags(EnumSet.of(Goal.Flag.JUMP));
          mob.getNavigation().setCanFloat(true);
      }
+ 
+     @Override
+     public boolean canUse() {
+-        return this.mob.isInWater() && this.mob.getFluidHeight(FluidTags.WATER) > this.mob.getFluidJumpThreshold() || this.mob.isInLava();
++        return this.mob.isInWater() && this.mob.getFluidHeight(FluidTags.WATER) > this.mob.getFluidJumpThreshold() || this.mob.isInLava() || this.mob.getFluidInteraction().isInFluidMatching(this.mob, (entity, fluidType, height) -> entity.canSwimInFluidType(fluidType) && height > entity.getFluidJumpThreshold());
+     }
+ 
+     @Override

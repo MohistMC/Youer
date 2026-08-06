@@ -79,7 +79,10 @@ class CommandTreeCleaner {
 
         @Override
         public boolean isRestricted(CommandNode<SharedSuggestionProvider> node) {
-            return node.getRequirement() instanceof PermissionProviderCheck<?>(PermissionCheck test, java.util.concurrent.atomic.AtomicReference<com.mojang.brigadier.tree.CommandNode<net.minecraft.commands.CommandSourceStack>> vanillaNode) && test instanceof PermissionCheck.Require;
+            return node.getRequirement() instanceof PermissionProviderCheck<?>(
+                    PermissionCheck test,
+                    java.util.concurrent.atomic.AtomicReference<CommandNode<net.minecraft.commands.CommandSourceStack>> vanillaNode
+            ) && test instanceof PermissionCheck.Require;
         }
     };
 
