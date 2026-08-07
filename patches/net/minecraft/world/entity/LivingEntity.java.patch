@@ -776,7 +776,7 @@
          this.entityData.set(DATA_HEALTH_ID, Mth.clamp(p_21154_, 0.0F, this.getMaxHealth()));
      }
  
-@@ -1079,63 +_,142 @@
+@@ -1079,63 +_,147 @@
          return this.getHealth() <= 0.0F;
      }
  
@@ -877,8 +877,11 @@
 -                p_21017_ *= 5.0F;
 +                // Youer start - when the plugin modified the FREEZING modifier, apply the plugin value directly
 +                // instead of the vanilla x5 (the plain isStillOriginal check never matches here since current == base).
++                // The damage must still match the event's BASE: if a mod changed the container mid-pipeline
++                // (e.g. in LivingShieldBlockEvent) we fall through to the vanilla path so the mod wins.
 +                if (bukkitEntityDamageEvent != null
 +                    && bukkitEntityDamageEvent.isApplicable(EntityDamageEvent.DamageModifier.FREEZING)
++                    && Math.abs(p_21017_ - (float) bukkitEntityDamageEvent.getDamage()) < Mth.EPSILON
 +                    && Math.abs(bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.FREEZING) - (-4.0 * p_21017_)) >= Mth.EPSILON) {
 +                    p_21017_ = (float) (bukkitEntityDamageEvent.getDamage() + bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.FREEZING));
 +                } else {
@@ -891,9 +894,11 @@
              if (p_21016_.is(DamageTypeTags.DAMAGES_HELMET) && !this.getItemBySlot(EquipmentSlot.HEAD).isEmpty()) {
 -                this.hurtHelmet(p_21016_, p_21017_);
 -                p_21017_ *= 0.75F;
-+                // Youer start - same for HARD_HAT; expected value is -0.25x the damage after the freezing step
++                // Youer start - same for HARD_HAT; expected value is -0.25x the damage after the freezing step.
++                // Damage must still match the event's BASE so mod container edits are never overridden.
 +                if (bukkitEntityDamageEvent != null
 +                    && bukkitEntityDamageEvent.isApplicable(EntityDamageEvent.DamageModifier.HARD_HAT)
++                    && Math.abs(p_21017_ - (float) bukkitEntityDamageEvent.getDamage()) < Mth.EPSILON
 +                    && Math.abs(bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.HARD_HAT) - (-0.25 * p_21017_)) >= Mth.EPSILON) {
 +                    p_21017_ = (float) (bukkitEntityDamageEvent.getDamage() + bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.HARD_HAT));
 +                    this.hurtHelmet(p_21016_, p_21017_);

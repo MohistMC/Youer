@@ -1,8 +1,14 @@
 --- a/net/minecraft/world/item/crafting/AbstractCookingRecipe.java
 +++ b/net/minecraft/world/item/crafting/AbstractCookingRecipe.java
-@@ -5,7 +_,7 @@
+@@ -1,11 +_,13 @@
+ package net.minecraft.world.item.crafting;
+ 
++import com.mohistmc.youer.neoforge.ModSpecialCookingRecipe;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.NonNullList;
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.level.Level;
++import org.bukkit.NamespacedKey;
  
 -public abstract class AbstractCookingRecipe implements Recipe<SingleRecipeInput> {
 +public abstract class AbstractCookingRecipe extends io.papermc.paper.inventory.recipe.RecipeBookExactChoiceRecipe<SingleRecipeInput> implements Recipe<SingleRecipeInput> {
@@ -17,3 +23,15 @@
      }
  
      public boolean matches(SingleRecipeInput p_344849_, Level p_345973_) {
+@@ -76,4 +_,11 @@
+     public interface Factory<T extends AbstractCookingRecipe> {
+         T create(String p_312581_, CookingBookCategory p_312220_, Ingredient p_312282_, ItemStack p_311868_, float p_312803_, int p_312165_);
+     }
++
++    // CraftBukkit start
++    @Override
++    public org.bukkit.inventory.Recipe toBukkitRecipe(NamespacedKey id) {
++        return new ModSpecialCookingRecipe(id, this);
++    }
++// CraftBukkit end
+ }
