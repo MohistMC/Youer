@@ -174,7 +174,7 @@ public class Action {
     }
 
     private void initInstallerLib() throws MalformedURLException {
-        Libraries libraries = Libraries.from("net/neoforged/installertools/installertools/4.0.12/installertools-4.0.12-fatjar.jar|ba3e9d27d9f5145f829ac94124e3d97b80f027949d690b430305734526f143db|813509");
+        Libraries libraries = Libraries.from("net/neoforged/installertools/installertools/4.0.17/installertools-4.0.17-fatjar.jar|5999a84d0d0270ee70678870faf54e9d90ffaa0a3e5783e5b6466da5e457d0a8|814132");
         File file = new File(LIBRARIES, libraries.getPath());
         URL url = file.toURI().toURL();
         installerTourls.add(url);
