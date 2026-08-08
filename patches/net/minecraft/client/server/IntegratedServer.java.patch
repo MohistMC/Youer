@@ -9,26 +9,12 @@
              serverThread,
              levelStorageAccess,
              packRepository,
-@@ -103,11 +_,13 @@
+@@ -103,7 +_,7 @@
          LOGGER.info("Starting integrated minecraft server version {}", SharedConstants.getCurrentVersion().name());
          this.setUsesAuthentication(true);
          this.initializeKeyPair();
 -        this.loadLevel();
-+        net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerAboutToStart(this);
 +        this.loadLevel("");
          GameProfile host = this.getSingleplayerProfile();
          String levelName = this.getWorldData().getLevelName();
          this.setMotd(host != null ? host.name() + " - " + levelName : levelName);
-         this.saveEverything(false, true, true);
-+        net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerStarting(this);
-         return true;
-     }
- 
-@@ -371,6 +_,7 @@
- 
-     @Override
-     public void halt(boolean wait) {
-+        if (isRunning())
-         this.executeBlocking(() -> {
-             for (ServerPlayer player : Lists.newArrayList(this.getPlayerList().getPlayers())) {
-                 if (!player.getUUID().equals(this.uuid)) {
