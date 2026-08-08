@@ -190,7 +190,7 @@
      private @Nullable BlockState inBlockState = null;
      public static final int MAX_MOVEMENTS_HANDELED_PER_TICK = 100;
      private final ArrayDeque<Entity.Movement> movementThisTick = new ArrayDeque<>(100);
-@@ -302,15 +_,241 @@
+@@ -302,15 +_,242 @@
      private final LongSet visitedBlocks = new LongOpenHashSet();
      private final InsideBlockEffectApplier.StepBasedCollector insideEffectCollector = new InsideBlockEffectApplier.StepBasedCollector();
      private CustomData customData = CustomData.EMPTY;
@@ -208,6 +208,7 @@
 +    // Marks an entity, that it was removed by a plugin via Entity#remove
 +    // Main use case currently is for SPIGOT-7487, preventing dropping of leash when leash is removed
 +    public boolean pluginRemoved = false;
++    public org.bukkit.event.entity.EntityRemoveEvent.@Nullable Cause removeEventCause;
 +    protected int numCollisions = 0; // Paper - Cap entity collisions
 +    public boolean fromNetherPortal; // Paper - Add option to nerf pigmen from nether portals
 +    public boolean spawnedViaMobSpawner; // Paper - Yes this name is similar to above, upstream took the better one
@@ -1203,6 +1204,18 @@
      }
  
      public void snapTo(Vec3 pos) {
+@@ -1865,6 +_,11 @@
+     public void push(Entity entity) {
+         if (!this.isPassengerOfSameVehicle(entity)) {
+             if (!entity.noPhysics && !this.noPhysics) {
++                if (this.level.paperConfig().collisions.onlyPlayersCollide && !(entity instanceof ServerPlayer || this instanceof ServerPlayer)) return; // Paper - Collision option for requiring a player participant
++                // Paper start - Add EntityCollideWithEntity Event
++                if (io.papermc.paper.event.entity.EntityCollideWithEntityEvent.getHandlerList().getRegisteredListeners().length != 0 &&
++                        !new io.papermc.paper.event.entity.EntityCollideWithEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity()).callEvent()) return;
++                // Paper end - Add EntityCollideWithEntity Event
+                 double xa = entity.getX() - this.getX();
+                 double za = entity.getZ() - this.getZ();
+                 double dd = Mth.absMax(xa, za);
 @@ -1900,8 +_,24 @@
      }
  
@@ -2684,7 +2697,7 @@
      }
  
      public void onExplosionHit(@Nullable Entity explosionCausedBy) {
-@@ -3911,7 +_,15 @@
+@@ -3911,23 +_,57 @@
      }
  
      @Override
@@ -2700,8 +2713,10 @@
 +        final boolean alreadyRemoved = this.removalReason != null; // Paper - Folia schedulers
          if (this.removalReason == null) {
              this.removalReason = reason;
++            this.removeEventCause = cause; // Paper
          }
-@@ -3920,15 +_,36 @@
+ 
+         if (this.removalReason.shouldDestroy()) {
              this.stopRiding();
          }
  
@@ -2719,8 +2734,13 @@
  
      public void unsetRemoved() {
          this.removalReason = null;
-     }
- 
+-    }
++        // Paper start
++        this.removeEventCause = null;
++        this.pluginRemoved = false;
++        // Paper end
++    }
++
 +    // Paper start - Folia schedulers
 +    /**
 +     * Invoked only when the entity is truly removed from the server, never to be added to any world.
@@ -2735,10 +2755,9 @@
 +        this.getBukkitEntity().taskScheduler.registerTo(net.minecraft.server.MinecraftServer.getServer().entitySchedulerTickList);
 +    }
 +    // Paper end - optimise Folia entity scheduler
-+
+ 
      @Override
      public void setLevelCallback(EntityInLevelCallback levelCallback) {
-         this.levelCallback = levelCallback;
 @@ -3936,11 +_,9 @@
  
      @Override

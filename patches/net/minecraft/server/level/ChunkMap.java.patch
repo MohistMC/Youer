@@ -1180,7 +1180,7 @@
              if (range != 0) {
                  int updateInterval = type.updateInterval();
                  if (this.entityMap.containsKey(entity.getId())) {
-@@ -1149,6 +_,12 @@
+@@ -1149,6 +_,14 @@
  
                  ChunkMap.TrackedEntity trackedEntity = new ChunkMap.TrackedEntity(entity, range, updateInterval, type.trackDeltas());
                  this.entityMap.put(entity.getId(), trackedEntity);
@@ -1189,6 +1189,8 @@
 +                    throw new IllegalStateException("Entity is already tracked");
 +                }
 +                ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity)entity).moonrise$setTrackedEntity(trackedEntity);
++                // note: the tick loop is OK when adding entities
++                this.trackerEntities.add(entity);
 +                // Paper end - optimise entity tracker
                  trackedEntity.updatePlayers(this.level.players());
                  if (entity instanceof ServerPlayer player) {
@@ -1201,31 +1203,51 @@
          if (entity instanceof ServerPlayer player) {
              this.updatePlayerStatus(player, false);
  
-@@ -1176,12 +_,38 @@
+@@ -1176,12 +_,58 @@
          if (trackedEntity != null) {
              trackedEntity.broadcastRemoved();
          }
 -    }
-+        ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity)entity).moonrise$setTrackedEntity(null); // Paper - optimise entity tracker
++        // Paper start - optimise entity tracker
++        ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity)entity).moonrise$setTrackedEntity(null);
++        this.checkIteratingTrackerEntities();
++        this.trackerEntities.remove(entity);
++        // Paper end - optimise entity tracker
 +    }
 +
 +    // Paper start - optimise entity tracker
-+    private void newTrackerTick() {
-+        final ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup entityLookup = (ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server.ServerEntityLookup)((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getEntityLookup();;
++    private static final Entity[] EMPTY_ENTITY_ARRAY = new Entity[0];
++    private ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.entity.Entity> trackerEntities = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_ENTITY_ARRAY);
++    private boolean iteratingTrackerEntities = false;
 +
-+        final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.entity.Entity> trackerEntities = entityLookup.trackerEntities;
-+        final Entity[] trackerEntitiesRaw = trackerEntities.getRawDataUnchecked();
-+        for (int i = 0, len = trackerEntities.size(); i < len; ++i) {
-+            final Entity entity = trackerEntitiesRaw[i];
-+            final ChunkMap.TrackedEntity tracker = ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity)entity).moonrise$getTrackedEntity();
-+            if (tracker == null) {
-+                continue;
++    private void checkIteratingTrackerEntities() {
++        if (!this.iteratingTrackerEntities) {
++            return;
++        }
++
++        this.trackerEntities = this.trackerEntities.copy();
++        this.iteratingTrackerEntities = false;
++    }
++
++    private void newTrackerTick() {
++        this.iteratingTrackerEntities = true;
++        try {
++            final ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.entity.Entity> trackerEntities = this.trackerEntities;
++            final Entity[] trackerEntitiesRaw = trackerEntities.getRawDataUnchecked();
++            for (int i = 0, len = trackerEntities.size(); i < len; ++i) {
++                final Entity entity = trackerEntitiesRaw[i];
++                final ChunkMap.TrackedEntity tracker = ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity)entity).moonrise$getTrackedEntity();
++                if (tracker == null) {
++                    continue;
++                }
++                ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$tick(((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkData().nearbyPlayers);
++                if (((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$hasPlayers()
++                        || ((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkStatus().isOrAfter(FullChunkStatus.ENTITY_TICKING)) {
++                    tracker.serverEntity.sendChanges();
++                }
 +            }
-+            ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$tick(((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkData().nearbyPlayers);
-+            if (((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$hasPlayers()
-+                    || ((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkStatus().isOrAfter(FullChunkStatus.ENTITY_TICKING)) {
-+                tracker.serverEntity.sendChanges();
-+            }
++        } finally {
++            this.iteratingTrackerEntities = false;
 +        }
 +    }
 +    // Paper end - optimise entity tracker
