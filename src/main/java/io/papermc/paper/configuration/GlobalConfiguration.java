@@ -179,6 +179,50 @@ public class GlobalConfiguration extends ConfigurationPart {
         public CompressionFormat compressionFormat = CompressionFormat.ZLIB;
         @Comment("Only checks an item's amount and type instead of its full data during inventory desync checks.")
         public boolean simplifyRemoteItemMatching = false;
+        @Comment(
+            "Controls which on-disk region file format is used for saving/loading chunks. ANVIL is the vanilla " +
+            ".mca format. LINEAR uses the third-party .linear format (see " +
+            "github.com/xymb-endcrystalme/LinearRegionFileFormatTools), which compresses an entire 32x32 region as " +
+            "a single stream instead of per-chunk, typically giving much better compression ratios at the cost of " +
+            "needing to rewrite/recompress the whole region file on every flush. Existing .linear or .mca files " +
+            "found on disk are always honored regardless of this setting - it only controls the format used for " +
+            "brand-new regions. Switching this after regions already exist does not retroactively convert them."
+        )
+        public RegionFileFormat regionFileFormat = RegionFileFormat.ANVIL;
+        @Comment(
+            "The zstd compression level used when writing .linear region files (1-22, higher = smaller files but " +
+            "more CPU). Defaults to a fast level since Linear recompresses the entire region (not just the changed " +
+            "chunk) on every flush; raise it to 6-9+ if you want smaller files on disk and can afford the extra CPU."
+        )
+        public int linearCompressionLevel = 3;
+        @Comment(
+            "Number of background worker threads used to compress/write dirty .linear regions asynchronously, " +
+            "instead of blocking chunk I/O while a region is recompressed and saved. Different regions may be " +
+            "processed in parallel, but the same region is never flushed by more than one worker at a time. " +
+            "Changes require a restart."
+        )
+        @Constraints.Min(1)
+        public int linearFlushThreads = 2;
+        @Comment("How often, in seconds, the background .linear flusher checks for dirty regions to save.")
+        @Constraints.Min(1)
+        public int linearFlushIntervalSeconds = 5;
+        @Comment(
+            "Number of internal worker threads zstd itself uses to compress a single .linear region, via zstd's " +
+            "own multi-threaded compression API. This is separate from and safe alongside linear-flush-threads - " +
+            "it parallelizes work within one compression job rather than across regions, entirely inside zstd's " +
+            "own library, with no Minecraft-side concurrency involved. 0 disables this (default, unchanged " +
+            "behavior); try 2-4 if compression is still a CPU bottleneck after lowering linear-compression-level."
+        )
+        public int linearCompressionThreads = 0;
+        @Comment(
+            "Maximum estimated memory, in megabytes, that cached .linear regions' decompressed chunk data may use " +
+            "at once. Unlike Anvil, Linear has to hold a whole region's chunks decompressed in memory while it's " +
+            "cached (inherent to the format, not specific to this implementation) - this bounds that growth " +
+            "independently of region-file-cache-size, evicting the least-recently-used region early if needed. " +
+            "Has no effect on Anvil regions."
+        )
+        @Constraints.Min(1)
+        public int linearRegionCacheMemoryBudgetMb = 512;
 
         public enum CompressionFormat {
             GZIP,
@@ -186,6 +230,11 @@ public class GlobalConfiguration extends ConfigurationPart {
             LZ4,
             ZSTD,
             NONE
+        }
+
+        public enum RegionFileFormat {
+            ANVIL,
+            LINEAR
         }
     }
 

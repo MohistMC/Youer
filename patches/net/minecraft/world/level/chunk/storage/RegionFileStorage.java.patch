@@ -1,11 +1,77 @@
 --- a/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
 +++ b/net/minecraft/world/level/chunk/storage/RegionFileStorage.java
-@@ -34,7 +_,7 @@
+@@ -3,7 +_,9 @@
++import com.mohistmc.youer.region.LinearRegionFile;
+ import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
+ import java.io.DataInputStream;
+ import java.io.DataOutputStream;
+ import java.io.IOException;
++import java.nio.file.Files;
+ import java.nio.file.Path;
+ import javax.annotation.Nullable;
+ import net.minecraft.FileUtil;
+@@ -28,23 +_,61 @@
+         this.info = p_326161_;
+     }
+ 
++    // Youer - recomputed on demand (only runs on a cache miss, not per read/write) rather than tracked as a
++    // running counter, since a cached LinearRegionFile's memory usage changes as chunks are written after
++    // caching - a counter updated only at insert/evict time would go stale.
++    private long currentEstimatedMemoryUsageBytes() {
++        long total = 0L;
++        for (RegionFile regionfile : this.regionCache.values()) {
++            if (regionfile instanceof LinearRegionFile linearRegionFile) {
++                total += linearRegionFile.estimatedMemoryUsageBytes();
++            }
++        }
++        return total;
++    }
++
++    // Youer start - Linear region format - choose RegionFile vs LinearRegionFile per-region based on what
++    // actually exists on disk first, so an already-converted-to-Linear world is always read correctly
++    // regardless of config, and a partial conversion degrades gracefully instead of orphaning files.
++    // The configured default format is only consulted for a brand-new region.
++    // Keep this method's original RegionFile return type: many mods target its exact bytecode descriptor.
+     private RegionFile getRegionFile(ChunkPos p_63712_) throws IOException {
+         long i = ChunkPos.asLong(p_63712_.getRegionX(), p_63712_.getRegionZ());
+         RegionFile regionfile = this.regionCache.getAndMoveToFirst(i);
          if (regionfile != null) {
              return regionfile;
          } else {
 -            if (this.regionCache.size() >= 256) {
-+            if (this.regionCache.size() >= io.papermc.paper.configuration.GlobalConfiguration.get().misc.regionFileCacheSize) { // Paper - Sanitise RegionFileCache and make configurable
++            // Youer start - also evict while over the Linear-specific memory budget (no-op for pure-Anvil caches)
++            long memoryBudgetBytes = (long) io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.linearRegionCacheMemoryBudgetMb * 1024L * 1024L;
++            while ((this.regionCache.size() >= io.papermc.paper.configuration.GlobalConfiguration.get().misc.regionFileCacheSize // Paper - Sanitise RegionFileCache and make configurable
++                    || this.currentEstimatedMemoryUsageBytes() > memoryBudgetBytes)
++                    && !this.regionCache.isEmpty()) {
                  this.regionCache.removeLast().close();
              }
++            // Youer end
  
+             FileUtil.createDirectoriesSafe(this.folder);
+-            Path path = this.folder.resolve("r." + p_63712_.getRegionX() + "." + p_63712_.getRegionZ() + ".mca");
+-            RegionFile regionfile1 = new RegionFile(this.info, path, this.folder, this.sync);
++            int regionX = p_63712_.getRegionX();
++            int regionZ = p_63712_.getRegionZ();
++            Path linearPath = this.folder.resolve("r." + regionX + "." + regionZ + LinearRegionFile.LINEAR_EXTENSION);
++            Path anvilPath = this.folder.resolve("r." + regionX + "." + regionZ + ANVIL_EXTENSION);
++
++            RegionFile regionfile1;
++            if (Files.exists(linearPath)) {
++                regionfile1 = new LinearRegionFile(this.info, linearPath, this.folder, this.sync);
++            } else if (Files.exists(anvilPath)) {
++                regionfile1 = new RegionFile(this.info, anvilPath, this.folder, this.sync);
++            } else {
++                regionfile1 = switch (io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.regionFileFormat) {
++                    case LINEAR -> new LinearRegionFile(this.info, linearPath, this.folder, this.sync);
++                    case ANVIL -> new RegionFile(this.info, anvilPath, this.folder, this.sync);
++                };
++            }
+             this.regionCache.putAndMoveToFirst(i, regionfile1);
+             return regionfile1;
+         }
+     }
++    // Youer end - Linear region format
+ 
+     @Nullable
+     public CompoundTag read(ChunkPos p_63707_) throws IOException {
