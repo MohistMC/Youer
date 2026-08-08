@@ -78,23 +78,39 @@
          int i = p_227069_ >> 4;
          int j = p_227070_ >> 4;
          WorldgenRandom worldgenrandom = new WorldgenRandom(new LegacyRandomSource(0L));
-@@ -147,7 +_,7 @@
+@@ -147,7 +_,14 @@
  
      @FunctionalInterface
      public interface FrequencyReducer {
 -        boolean shouldGenerate(long p_227099_, int p_227100_, int p_227101_, int p_227102_, float p_227103_);
-+        boolean shouldGenerate(long p_227099_, int p_227100_, int p_227101_, int p_227102_, float p_227103_, @org.jetbrains.annotations.Nullable Integer saltOverride); // Paper - Add missing structure set seed configs
++        boolean shouldGenerate(long seed, int salt, int chunkX, int chunkZ, float chance, @org.jetbrains.annotations.Nullable Integer saltOverride); // Paper - Add missing structure set seed configs
++
++        // Paper start - Backwards compatibility for mods using the old API
++        @Deprecated
++        default boolean shouldGenerate(long seed, int salt, int chunkX, int chunkZ, float chance) {
++            return this.shouldGenerate(seed, salt, chunkX, chunkZ, chance, null);
++        }
++        // Paper end
      }
  
      public static enum FrequencyReductionMethod implements StringRepresentable {
-@@ -167,8 +_,8 @@
+@@ -167,9 +_,16 @@
              this.reducer = p_227117_;
          }
  
 -        public boolean shouldGenerate(long p_227120_, int p_227121_, int p_227122_, int p_227123_, float p_227124_) {
 -            return this.reducer.shouldGenerate(p_227120_, p_227121_, p_227122_, p_227123_, p_227124_);
-+        public boolean shouldGenerate(long p_227120_, int p_227121_, int p_227122_, int p_227123_, float p_227124_, @org.jetbrains.annotations.Nullable Integer saltOverride) { // Paper - Add missing structure set seed configs
-+            return this.reducer.shouldGenerate(p_227120_, p_227121_, p_227122_, p_227123_, p_227124_, saltOverride); // Paper - Add missing structure set seed configs
-         }
+-        }
++        public boolean shouldGenerate(long seed, int salt, int chunkX, int chunkZ, float chance, @org.jetbrains.annotations.Nullable Integer saltOverride) { // Paper - Add missing structure set seed configs
++            return this.reducer.shouldGenerate(seed, salt, chunkX, chunkZ, chance, saltOverride);
++        }
++
++        // Paper start - Backwards compatibility for mods using the old API
++        @Deprecated
++        public boolean shouldGenerate(long seed, int salt, int chunkX, int chunkZ, float chance) {
++            return this.shouldGenerate(seed, salt, chunkX, chunkZ, chance, null);
++        }
++        // Paper end
  
          @Override
+         public String getSerializedName() {
