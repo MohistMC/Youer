@@ -530,6 +530,6 @@ public class ObjGeometry implements ExtendedUnbakedGeometry {
     }
 
     public record Settings(Identifier modelLocation,
-                           boolean automaticCulling, boolean shadeQuads, boolean flipV,
-                           boolean emissiveAmbient, @Nullable String mtlOverride) {}
+            boolean automaticCulling, boolean shadeQuads, boolean flipV,
+            boolean emissiveAmbient, @Nullable String mtlOverride) {}
 }

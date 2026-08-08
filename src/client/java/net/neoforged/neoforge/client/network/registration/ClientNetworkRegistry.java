@@ -269,7 +269,7 @@ public final class ClientNetworkRegistry extends NetworkRegistry {
      * This will respond to the server with the client's set of builtin channels to indicate it supports the common protocol.
      * <p>
      * Invoked on the network thread.
-     *
+     * 
      * @param listener The listener which received the brand payload.
      */
     public static void sendInitialListeningChannels(ClientConfigurationPacketListener listener) {
