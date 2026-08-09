@@ -305,6 +305,19 @@ public class FluidType {
      * @return {@code true} if custom movement logic is performed, {@code false} otherwise
      */
     public boolean move(FluidState state, LivingEntity entity, Vec3 movementVector, double gravity) {
+        return move(entity, movementVector, gravity);
+    }
+
+    /// Performs how an entity moves when within the fluid. If using custom
+    /// movement logic, the method should return `true`. Otherwise, the
+    /// movement logic will default to water if [#getIsWaterLike()] returns
+    /// `true` or no movement if it returns `false`.
+    ///
+    /// @param entity         the entity moving within the fluid
+    /// @param movementVector the velocity of how the entity wants to move
+    /// @param gravity        the gravity to apply to the entity
+    /// @return `true` if custom movement logic is performed, `false` otherwise
+    public boolean move(LivingEntity entity, Vec3 movementVector, double gravity) {
         return false;
     }
 
