@@ -1,6 +1,6 @@
-<div style="text-align: center;">
-  <h1 style="text-align: center;">Youer 26.2</h1>
-  <h3 style="text-align: center;">Minecraft NeoForge Hybrid server implementing the Paper/Purpur API</h3>
+<div align="center">
+  <h1 align="center">Youer 26.2</h1>
+  <h3 align="center">Minecraft NeoForge Hybrid server implementing the Paper/Purpur API</h3>
 
   <p style="text-align: center;">
     <a href="https://github.com/MohistMC/Youer/stargazers">
