@@ -654,7 +654,7 @@
          UUID uuid = p_295670_.getId();
          Set<ServerPlayer> set = Sets.newIdentityHashSet();
  
-@@ -434,72 +_,272 @@
+@@ -434,72 +_,274 @@
          }
  
          return !set.isEmpty();
@@ -663,7 +663,6 @@
 +        // CraftBukkit end
      }
  
-+    // CraftBukkit start
      public ServerPlayer respawn(ServerPlayer p_11237_, boolean p_11238_, Entity.RemovalReason p_348558_) {
 +        p_11237_.stopRiding();
          this.players.remove(p_11237_);
@@ -807,9 +806,11 @@
 +        cserver.getPluginManager().callEvent(new com.destroystokyo.paper.event.player.PlayerPostRespawnEvent(serverplayer.getBukkitEntity(),
 +                CraftLocation.toBukkit(dimensiontransition.pos(), dimensiontransition.newLevel().getWorld(), dimensiontransition.yRot(), dimensiontransition.xRot()),
 +                isBedSpawn));
++        p_11237_.respawn$location = null;
          return serverplayer;
      }
  
++    // Youer start - For teleport only
 +    public ServerPlayer respawn(ServerPlayer entityplayer, boolean flag, Entity.RemovalReason entity_removalreason, PlayerRespawnEvent.RespawnReason reason) {
 +        return this.respawn(entityplayer, flag, entity_removalreason, reason, null);
 +    }
@@ -946,6 +947,7 @@
 +
 +        return entityplayer1;
 +    }
++    // Youer end
 +
      public void sendActivePlayerEffects(ServerPlayer p_348494_) {
          this.sendActiveEffects(p_348494_, p_348494_.connection);

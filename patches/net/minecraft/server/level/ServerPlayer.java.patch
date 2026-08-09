@@ -1,10 +1,17 @@
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -1,16 +_,29 @@
+@@ -1,18 +_,50 @@
  package net.minecraft.server.level;
  
++import com.destroystokyo.paper.ClientOption;
++import com.destroystokyo.paper.PaperSkinParts;
++import com.destroystokyo.paper.event.entity.PlayerNaturallySpawnCreaturesEvent;
++import com.destroystokyo.paper.event.player.PlayerClientOptionsChangeEvent;
 +import com.destroystokyo.paper.event.player.PlayerSetSpawnEvent;
++import com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent;
++import com.destroystokyo.paper.event.player.PlayerStopSpectatingEntityEvent;
 +import com.destroystokyo.paper.event.player.PlayerTeleportEndGatewayEvent;
++import com.google.common.collect.ImmutableSet;
  import com.google.common.net.InetAddresses;
 +import com.mohistmc.youer.YouerConfig;
 +import com.mohistmc.youer.api.ColorAPI;
@@ -13,24 +20,45 @@
 +import com.mohistmc.youer.feature.KeepInventory;
  import com.mojang.authlib.GameProfile;
  import com.mojang.datafixers.util.Either;
++import com.mojang.datafixers.util.Pair;
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Dynamic;
 +import io.papermc.paper.adventure.PaperAdventure;
++import io.papermc.paper.event.player.PlayerInventorySlotChangeEvent;
++import io.papermc.paper.util.MCUtil;
  import java.net.InetSocketAddress;
 +import java.util.ArrayList;
  import java.util.Collection;
++import java.util.EnumSet;
++import java.util.HashMap;
  import java.util.List;
++import java.util.Locale;
++import java.util.Map;
 +import java.util.Objects;
  import java.util.Optional;
  import java.util.OptionalInt;
  import java.util.Set;
 +import java.util.concurrent.atomic.AtomicBoolean;
 +import java.util.concurrent.atomic.AtomicReference;
++import java.util.function.Consumer;
 +import java.util.function.IntConsumer;
++import java.util.function.Supplier;
  import java.util.stream.Collectors;
  import javax.annotation.Nullable;
++import net.kyori.adventure.text.minimessage.MiniMessage;
++import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
++import net.kyori.adventure.translation.Translator;
  import net.minecraft.ChatFormatting;
-@@ -38,7 +_,6 @@
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+@@ -32,13 +_,13 @@
+ import net.minecraft.nbt.NbtOps;
+ import net.minecraft.nbt.Tag;
+ import net.minecraft.network.PacketSendListener;
++import net.minecraft.network.RegistryFriendlyByteBuf;
+ import net.minecraft.network.chat.ChatType;
+ import net.minecraft.network.chat.CommonComponents;
+ import net.minecraft.network.chat.Component;
  import net.minecraft.network.chat.HoverEvent;
  import net.minecraft.network.chat.OutgoingChatMessage;
  import net.minecraft.network.chat.RemoteChatSession;
@@ -83,21 +111,30 @@
  import net.minecraft.world.item.enchantment.EnchantmentHelper;
  import net.minecraft.world.item.trading.MerchantOffers;
  import net.minecraft.world.level.ChunkPos;
-@@ -144,6 +_,7 @@
+@@ -144,11 +_,15 @@
  import net.minecraft.world.level.biome.BiomeManager;
  import net.minecraft.world.level.block.BedBlock;
  import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
 +import net.minecraft.world.level.block.ChestBlock;
++import net.minecraft.world.level.block.EndGatewayBlock;
  import net.minecraft.world.level.block.HorizontalDirectionalBlock;
  import net.minecraft.world.level.block.RespawnAnchorBlock;
  import net.minecraft.world.level.block.entity.BlockEntity;
-@@ -158,12 +_,46 @@
+ import net.minecraft.world.level.block.entity.CommandBlockEntity;
+ import net.minecraft.world.level.block.entity.SignBlockEntity;
++import net.minecraft.world.level.block.entity.TheEndGatewayBlockEntity;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.level.portal.DimensionTransition;
+@@ -158,12 +_,55 @@
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.ScoreAccess;
  import net.minecraft.world.scores.ScoreHolder;
 +import net.minecraft.world.scores.Scoreboard;
  import net.minecraft.world.scores.Team;
  import net.minecraft.world.scores.criteria.ObjectiveCriteria;
++import net.neoforged.neoforge.attachment.AttachmentSync;
 +import net.neoforged.neoforge.common.CommonHooks;
 +import net.neoforged.neoforge.common.NeoForge;
 +import net.neoforged.neoforge.common.util.FriendlyByteBufUtil;
@@ -105,12 +142,15 @@
 +import net.neoforged.neoforge.event.EventHooks;
 +import net.neoforged.neoforge.event.entity.player.PlayerContainerEvent;
 +import net.neoforged.neoforge.event.entity.player.PlayerEvent;
++import net.neoforged.neoforge.network.payload.AdvancedContainerSetDataPayload;
 +import net.neoforged.neoforge.network.payload.AdvancedOpenScreenPayload;
 +import org.bukkit.Bukkit;
++import org.bukkit.GameMode;
 +import org.bukkit.Location;
 +import org.bukkit.WeatherType;
 +import org.bukkit.craftbukkit.CraftWorld;
 +import org.bukkit.craftbukkit.CraftWorldBorder;
++import org.bukkit.craftbukkit.block.CraftEndGateway;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
 +import org.bukkit.craftbukkit.event.CraftPortalEvent;
@@ -120,16 +160,21 @@
 +import org.bukkit.event.entity.EntityExhaustionEvent;
 +import org.bukkit.event.entity.EntityPotionEffectEvent;
 +import org.bukkit.event.entity.PlayerDeathEvent;
++import org.bukkit.event.inventory.InventoryCloseEvent;
 +import org.bukkit.event.player.PlayerBedLeaveEvent;
 +import org.bukkit.event.player.PlayerChangedMainHandEvent;
 +import org.bukkit.event.player.PlayerChangedWorldEvent;
++import org.bukkit.event.player.PlayerGameModeChangeEvent;
 +import org.bukkit.event.player.PlayerLocaleChangeEvent;
 +import org.bukkit.event.player.PlayerPortalEvent;
++import org.bukkit.event.player.PlayerQuitEvent;
 +import org.bukkit.event.player.PlayerRespawnEvent;
 +import org.bukkit.event.player.PlayerSpawnChangeEvent;
 +import org.bukkit.event.player.PlayerTeleportEvent;
 +import org.bukkit.event.player.PlayerToggleSneakEvent;
 +import org.bukkit.inventory.MainHand;
++import org.purpurmc.purpur.PurpurConfig;
++import org.purpurmc.purpur.event.PlayerAFKEvent;
  import org.slf4j.Logger;
  
  public class ServerPlayer extends Player {
@@ -142,7 +187,7 @@
      private boolean disconnected;
      private int requestedViewDistance = 2;
      private String language = "en_us";
-+    public java.util.Locale adventure$locale = java.util.Locale.US; // Paper
++    public Locale adventure$locale = Locale.US; // Paper
      @Nullable
      private Vec3 startingToFallPosition;
      @Nullable
@@ -150,8 +195,8 @@
          }
  
          private void broadcastDataValue(AbstractContainerMenu p_143455_, int p_143456_, int p_143457_) {
-+            if (ServerPlayer.this.connection.hasChannel(net.neoforged.neoforge.network.payload.AdvancedContainerSetDataPayload.TYPE)) {
-+                ServerPlayer.this.connection.send(new net.neoforged.neoforge.network.payload.AdvancedContainerSetDataPayload((byte) p_143455_.containerId, (short) p_143456_, p_143457_));
++            if (ServerPlayer.this.connection.hasChannel(AdvancedContainerSetDataPayload.TYPE)) {
++                ServerPlayer.this.connection.send(new AdvancedContainerSetDataPayload((byte) p_143455_.containerId, (short) p_143456_, p_143457_));
 +                return;
 +            }
              ServerPlayer.this.connection.send(new ClientboundContainerSetDataPacket(p_143455_.containerId, p_143456_, p_143457_));
@@ -167,11 +212,11 @@
 +            Slot slot = handler.getSlot(slotId);
 +            if (!(slot instanceof ResultSlot)) {
 +                if (slot.container == ServerPlayer.this.getInventory()) {
-+                    if (io.papermc.paper.event.player.PlayerInventorySlotChangeEvent.getHandlerList().getRegisteredListeners().length == 0) {
++                    if (PlayerInventorySlotChangeEvent.getHandlerList().getRegisteredListeners().length == 0) {
 +                        CriteriaTriggers.INVENTORY_CHANGED.trigger(ServerPlayer.this, ServerPlayer.this.getInventory(), stack);
 +                        return;
 +                    }
-+                    io.papermc.paper.event.player.PlayerInventorySlotChangeEvent event = new io.papermc.paper.event.player.PlayerInventorySlotChangeEvent(ServerPlayer.this.getBukkitEntity(), slotId, CraftItemStack.asBukkitCopy(oldStack), CraftItemStack.asBukkitCopy(stack));
++                    PlayerInventorySlotChangeEvent event = new PlayerInventorySlotChangeEvent(ServerPlayer.this.getBukkitEntity(), slotId, CraftItemStack.asBukkitCopy(oldStack), CraftItemStack.asBukkitCopy(stack));
 +                    event.callEvent();
 +                    if (event.shouldTriggerAdvancements()) {
 +                        CriteriaTriggers.INVENTORY_CHANGED.trigger(ServerPlayer.this, ServerPlayer.this.getInventory(), stack);
@@ -191,7 +236,7 @@
 +    private int containerUpdateDelay; // Paper - Configurable container update tick rate
 +    // Paper start - cancellable death event
 +    public boolean queueHealthUpdatePacket;
-+    public net.minecraft.network.protocol.game.ClientboundSetHealthPacket queuedHealthUpdatePacket;
++    public ClientboundSetHealthPacket queuedHealthUpdatePacket;
 +    // Paper end - cancellable death event
 +    // CraftBukkit start
 +    public CraftPlayer.TransferCookieConnection transferCookieConnection;
@@ -210,14 +255,14 @@
 +    // CraftBukkit end
 +
 +    // Youer start
-+    public org.bukkit.event.player.PlayerRespawnEvent.RespawnReason respawn$reason = null;
-+    public org.bukkit.Location respawn$location = null;
++    public @Nullable PlayerRespawnEvent.RespawnReason respawn$reason = null;
++    public @Nullable Location respawn$location = null;
 +    // Youer end
 +    public boolean isRealPlayer; // Paper
 +    public long loginTime; // Paper - Replace OfflinePlayer#getLastPlayed
 +    public @Nullable String clientBrandName = null; // Paper - Brand support
-+    public org.bukkit.event.player.PlayerQuitEvent.QuitReason quitReason = null; // Paper - Add API for quit reason; there are a lot of changes to do if we change all methods leading to the event
-+    public com.destroystokyo.paper.event.entity.PlayerNaturallySpawnCreaturesEvent playerNaturallySpawnedEvent; // Paper - PlayerNaturallySpawnCreaturesEvent
++    public PlayerQuitEvent.QuitReason quitReason = null; // Paper - Add API for quit reason; there are a lot of changes to do if we change all methods leading to the event
++    public PlayerNaturallySpawnCreaturesEvent playerNaturallySpawnedEvent; // Paper - PlayerNaturallySpawnCreaturesEvent
 +    public boolean purpurClient = false; // Purpur
 +    private boolean tpsBar = false; // Purpur
 +    private boolean compassBar = false; // Purpur
@@ -435,7 +480,7 @@
 +        }
 +        // Paper end - Configurable container update tick rate
 +        if (!this.level().isClientSide && this.containerMenu != this.inventoryMenu && (this.isImmobile() || !this.containerMenu.stillValid(this))) { // Paper - Prevent opening inventories when frozen
-+            InventoryOwner.setClose$Reason(org.bukkit.event.inventory.InventoryCloseEvent.Reason.CANT_USE); // Paper - Inventory close reason
++            InventoryOwner.setClose$Reason(InventoryCloseEvent.Reason.CANT_USE); // Paper - Inventory close reason
              this.closeContainer();
              this.containerMenu = this.inventoryMenu;
          }
@@ -566,7 +611,7 @@
 +
 +        // SPIGOT-943 - only call if they have an inventory open
 +        if (this.containerMenu != this.inventoryMenu) {
-+            InventoryOwner.setClose$Reason(org.bukkit.event.inventory.InventoryCloseEvent.Reason.DEATH); // Paper - Inventory close reason
++            InventoryOwner.setClose$Reason(InventoryCloseEvent.Reason.DEATH); // Paper - Inventory close reason
 +            this.closeContainer();
 +        }
 +        String deathMessage = event.getDeathMessage();
@@ -615,7 +660,7 @@
              }
          }
      }
-@@ -783,27 +_,65 @@
+@@ -783,30 +_,68 @@
      }
  
      private boolean isPvpAllowed() {
@@ -673,9 +718,9 @@
 +        org.bukkit.entity.Player respawnPlayer = this.getBukkitEntity();
 +        Location location = CraftLocation.toBukkit(dimensionTransition.pos(), dimensionTransition.newLevel().getWorld(), dimensionTransition.yRot(), dimensionTransition.xRot());
 +        // Paper start - respawn flags
-+        com.google.common.collect.ImmutableSet.Builder<org.bukkit.event.player.PlayerRespawnEvent.RespawnFlag> builder = com.google.common.collect.ImmutableSet.builder();
-+        if (respawn$reason == org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.END_PORTAL) {
-+            builder.add(org.bukkit.event.player.PlayerRespawnEvent.RespawnFlag.END_PORTAL);
++        ImmutableSet.Builder<PlayerRespawnEvent.RespawnFlag> builder = ImmutableSet.builder();
++        if (respawn$reason == PlayerRespawnEvent.RespawnReason.END_PORTAL) {
++            builder.add(PlayerRespawnEvent.RespawnFlag.END_PORTAL);
 +        }
 +        PlayerRespawnEvent respawnEvent = new PlayerRespawnEvent(respawnPlayer, location, isBedSpawn, isAnchorSpawn, respawn$reason, builder);
 +        // Paper end - respawn flags
@@ -691,32 +736,46 @@
 +        // CraftBukkit end
      }
  
-     public static Optional<ServerPlayer.RespawnPosAngle> findRespawnAndUseSpawnBlock(
-@@ -821,12 +_,12 @@
+-    public static Optional<ServerPlayer.RespawnPosAngle> findRespawnAndUseSpawnBlock(
++    public static Optional<RespawnPosAngle> findRespawnAndUseSpawnBlock(
+         ServerLevel p_348505_, BlockPos p_348607_, float p_348481_, boolean p_348513_, boolean p_348600_
+     ) {
+         BlockState blockstate = p_348505_.getBlockState(p_348607_);
+@@ -821,20 +_,20 @@
                  );
              }
  
 -            return optional.map(p_348139_ -> ServerPlayer.RespawnPosAngle.of(p_348139_, p_348607_));
-+            return optional.map(p_348139_ -> ServerPlayer.RespawnPosAngle.of(p_348139_, p_348607_, false, true)); // CraftBukkit
++            return optional.map(p_348139_ -> RespawnPosAngle.of(p_348139_, p_348607_, false, true)); // CraftBukkit
          } else if (block instanceof BedBlock && BedBlock.canSetSpawn(p_348505_)) {
              return BedBlock.findStandUpPosition(EntityType.PLAYER, p_348505_, p_348607_, blockstate.getValue(BedBlock.FACING), p_348481_)
 -                .map(p_348148_ -> ServerPlayer.RespawnPosAngle.of(p_348148_, p_348607_));
-+                .map(p_348148_ -> ServerPlayer.RespawnPosAngle.of(p_348148_, p_348607_, true, false));
++                .map(p_348148_ -> RespawnPosAngle.of(p_348148_, p_348607_, true, false));
          } else if (!p_348513_) {
 -            return Optional.empty();
 +            return blockstate.getRespawnPosition(EntityType.PLAYER, p_348505_, p_348607_, p_348481_);
          } else {
              boolean flag = block.isPossibleToRespawnInThis(blockstate);
              BlockState blockstate1 = p_348505_.getBlockState(p_348607_.above());
-@@ -834,7 +_,7 @@
+             boolean flag1 = blockstate1.getBlock().isPossibleToRespawnInThis(blockstate1);
              return flag && flag1
                  ? Optional.of(
-                     new ServerPlayer.RespawnPosAngle(
+-                    new ServerPlayer.RespawnPosAngle(
 -                        new Vec3((double)p_348607_.getX() + 0.5, (double)p_348607_.getY() + 0.1, (double)p_348607_.getZ() + 0.5), p_348481_
++                    new RespawnPosAngle(
 +                        new Vec3((double)p_348607_.getX() + 0.5, (double)p_348607_.getY() + 0.1, (double)p_348607_.getZ() + 0.5), p_348481_, false, false // CraftBukkit
                      )
                  )
                  : Optional.empty();
+@@ -843,7 +_,7 @@
+ 
+     public void showEndCredits() {
+         this.unRide();
+-        this.serverLevel().removePlayerImmediately(this, Entity.RemovalReason.CHANGED_DIMENSION);
++        this.serverLevel().removePlayerImmediately(this, RemovalReason.CHANGED_DIMENSION);
+         if (!this.wonGame) {
+             this.wonGame = true;
+             this.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.WIN_GAME, 0.0F));
 @@ -854,6 +_,8 @@
      @Nullable
      @Override
@@ -732,9 +791,9 @@
              if (serverlevel.dimension() == resourcekey) {
 -                this.connection.teleport(p_350472_.pos().x, p_350472_.pos().y, p_350472_.pos().z, p_350472_.yRot(), p_350472_.xRot());
 +                // Paper start - gateway-specific teleport event
-+                if (this.portalProcess != null && this.portalProcess.isSamePortal(((net.minecraft.world.level.block.EndGatewayBlock) net.minecraft.world.level.block.Blocks.END_GATEWAY)) && this.serverLevel().getBlockEntity(this.portalProcess.getEntryPosition()) instanceof net.minecraft.world.level.block.entity.TheEndGatewayBlockEntity theEndGatewayBlockEntity) {
++                if (this.portalProcess != null && this.portalProcess.isSamePortal(((EndGatewayBlock) Blocks.END_GATEWAY)) && this.serverLevel().getBlockEntity(this.portalProcess.getEntryPosition()) instanceof TheEndGatewayBlockEntity theEndGatewayBlockEntity) {
 +                    Location to = CraftLocation.toBukkit(p_350472_.pos(), this.serverLevel().getWorld(), p_350472_.yRot(), p_350472_.xRot());
-+                    final PlayerTeleportEndGatewayEvent event = new PlayerTeleportEndGatewayEvent(this.getBukkitEntity(), this.getBukkitEntity().getLocation(), to, new org.bukkit.craftbukkit.block.CraftEndGateway(to.getWorld(), theEndGatewayBlockEntity));
++                    final PlayerTeleportEndGatewayEvent event = new PlayerTeleportEndGatewayEvent(this.getBukkitEntity(), this.getBukkitEntity().getLocation(), to, new CraftEndGateway(to.getWorld(), theEndGatewayBlockEntity));
 +                    if (!event.callEvent() || event.getTo() == null) {
 +                        return null;
 +                    }
@@ -750,11 +809,13 @@
                  this.connection.resetPosition();
                  p_350472_.postDimensionTransition().onTransition(this);
                  return this;
-@@ -877,7 +_,7 @@
+@@ -876,8 +_,8 @@
+                 this.connection.send(new ClientboundChangeDifficultyPacket(leveldata.getDifficulty(), leveldata.isDifficultyLocked()));
                  PlayerList playerlist = this.server.getPlayerList();
                  playerlist.sendPlayerPermissionLevel(this);
-                 serverlevel1.removePlayerImmediately(this, Entity.RemovalReason.CHANGED_DIMENSION);
+-                serverlevel1.removePlayerImmediately(this, Entity.RemovalReason.CHANGED_DIMENSION);
 -                this.unsetRemoved();
++                serverlevel1.removePlayerImmediately(this, RemovalReason.CHANGED_DIMENSION);
 +                this.revive();
                  serverlevel1.getProfiler().push("moving");
                  if (resourcekey == Level.OVERWORLD && serverlevel.dimension() == Level.NETHER) {
@@ -769,7 +830,7 @@
                  this.lastSentHealth = -1.0F;
                  this.lastSentFood = -1;
 +                // Neo: On the client all attachments are lost on dimension change and need to be re-sent
-+                net.neoforged.neoforge.attachment.AttachmentSync.syncInitialPlayerAttachments(this);
++                AttachmentSync.syncInitialPlayerAttachments(this);
 +                EventHooks.firePlayerChangedDimensionEvent(this, resourcekey, p_350472_.newLevel().dimension());
 +
 +                PlayerChangedWorldEvent changeEvent = new PlayerChangedWorldEvent(this.getBukkitEntity(), serverlevel1.getWorld());
@@ -799,12 +860,14 @@
  
      public void triggerDimensionChangeTriggers(ServerLevel p_9210_) {
          ResourceKey<Level> resourcekey = p_9210_.dimension();
-@@ -934,6 +_,15 @@
+@@ -933,20 +_,29 @@
+     }
  
      @Override
-     public Either<Player.BedSleepingProblem, Unit> startSleepInBed(BlockPos p_9115_) {
+-    public Either<Player.BedSleepingProblem, Unit> startSleepInBed(BlockPos p_9115_) {
++    public Either<BedSleepingProblem, Unit> startSleepInBed(BlockPos p_9115_) {
 +        // Neo: Encapsulate the vanilla check logic to supply to the CanPlayerSleepEvent
-+        var vanillaResult = ((java.util.function.Supplier<Either<BedSleepingProblem, Unit>>) () -> {
++        var vanillaResult = ((Supplier<Either<BedSleepingProblem, Unit>>) () -> {
 +        // Guard against modded beds that may not have the FACING property.
 +        // We just return success (Unit) here. Modders will need to implement conditions in the CanPlayerSleepEvent
 +        if (!this.level().getBlockState(p_9115_).hasProperty(HorizontalDirectionalBlock.FACING)) {
@@ -814,12 +877,35 @@
 +        // Start vanilla code
          Direction direction = this.level().getBlockState(p_9115_).getValue(HorizontalDirectionalBlock.FACING);
          if (this.isSleeping() || !this.isAlive()) {
-             return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
-@@ -962,7 +_,21 @@
-                         return Either.left(Player.BedSleepingProblem.NOT_SAFE);
+-            return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
++            return Either.left(BedSleepingProblem.OTHER_PROBLEM);
+         } else if (!this.level().dimensionType().natural()) {
+-            return Either.left(Player.BedSleepingProblem.NOT_POSSIBLE_HERE);
++            return Either.left(BedSleepingProblem.NOT_POSSIBLE_HERE);
+         } else if (!this.bedInRange(p_9115_, direction)) {
+-            return Either.left(Player.BedSleepingProblem.TOO_FAR_AWAY);
++            return Either.left(BedSleepingProblem.TOO_FAR_AWAY);
+         } else if (this.bedBlocked(p_9115_, direction)) {
+-            return Either.left(Player.BedSleepingProblem.OBSTRUCTED);
++            return Either.left(BedSleepingProblem.OBSTRUCTED);
+         } else {
+             this.setRespawnPosition(this.level().dimension(), p_9115_, this.getYRot(), false, true);
+             if (this.level().isDay()) {
+-                return Either.left(Player.BedSleepingProblem.NOT_POSSIBLE_NOW);
++                return Either.left(BedSleepingProblem.NOT_POSSIBLE_NOW);
+             } else {
+                 if (!this.isCreative()) {
+                     double d0 = 8.0;
+@@ -959,11 +_,25 @@
+                             p_9062_ -> p_9062_.isPreventingPlayerRest(this)
+                         );
+                     if (!list.isEmpty()) {
+-                        return Either.left(Player.BedSleepingProblem.NOT_SAFE);
++                        return Either.left(BedSleepingProblem.NOT_SAFE);
                      }
                  }
 -
+-                Either<Player.BedSleepingProblem, Unit> either = super.startSleepInBed(p_9115_).ifRight(p_9029_ -> {
 +        // End vanilla code
 +            }
 +        }
@@ -827,7 +913,7 @@
 +        }).get();
 +
 +        // Fire the event. Return the error if one exists after the event, otherwise use the vanilla logic to start sleeping.
-+        vanillaResult = net.neoforged.neoforge.event.EventHooks.canPlayerStartSleeping(this, p_9115_, vanillaResult);
++        vanillaResult = EventHooks.canPlayerStartSleeping(this, p_9115_, vanillaResult);
 +        if (vanillaResult.left().isPresent()) {
 +            return vanillaResult;
 +        }
@@ -835,9 +921,10 @@
 +        {
 +            {
 +                // Start vanilla code
-                 Either<Player.BedSleepingProblem, Unit> either = super.startSleepInBed(p_9115_).ifRight(p_9029_ -> {
++                Either<BedSleepingProblem, Unit> either = super.startSleepInBed(p_9115_).ifRight(p_9029_ -> {
                      this.awardStat(Stats.SLEEP_IN_BED);
                      CriteriaTriggers.SLEPT_IN_BED.trigger(this);
+                 });
 @@ -984,6 +_,7 @@
      }
  
@@ -889,17 +976,17 @@
 +
      @Override
      public OptionalInt openMenu(@Nullable MenuProvider p_9033_) {
-+        return openMenu(p_9033_, (java.util.function.Consumer<net.minecraft.network.RegistryFriendlyByteBuf>) null);
++        return openMenu(p_9033_, (Consumer<RegistryFriendlyByteBuf>) null);
 +    }
 +
 +    @Override
-+    public OptionalInt openMenu(@Nullable MenuProvider p_9033_, @Nullable java.util.function.Consumer<net.minecraft.network.RegistryFriendlyByteBuf> extraDataWriter) {
++    public OptionalInt openMenu(@Nullable MenuProvider p_9033_, @Nullable Consumer<RegistryFriendlyByteBuf> extraDataWriter) {
          if (p_9033_ == null) {
              return OptionalInt.empty();
          } else {
              if (this.containerMenu != this.inventoryMenu) {
 -                this.closeContainer();
-+                InventoryOwner.setClose$Reason(org.bukkit.event.inventory.InventoryCloseEvent.Reason.OPEN_NEW); // Paper - Inventory close reason
++                InventoryOwner.setClose$Reason(InventoryCloseEvent.Reason.OPEN_NEW); // Paper - Inventory close reason
 +                if (p_9033_.shouldTriggerClientSideContainerClosingOnOpen())
 +                    this.closeContainer();
 +                else
@@ -954,7 +1041,7 @@
 +                        boolean cancelled = false;
 +                        abstractcontainermenu.containerOwner = this;
 +                        // Paper start - Add titleOverride to InventoryOpenEvent
-+                        final com.mojang.datafixers.util.Pair<net.kyori.adventure.text.Component, AbstractContainerMenu> result = CraftEventFactory.callInventoryOpenEventWithTitle(this, abstractcontainermenu, cancelled);
++                        final Pair<net.kyori.adventure.text.Component, AbstractContainerMenu> result = CraftEventFactory.callInventoryOpenEventWithTitle(this, abstractcontainermenu, cancelled);
 +                        abstractcontainermenu = result.getSecond();
 +                        title = PaperAdventure.asVanilla(result.getFirst());
 +                        // Paper end - Add titleOverride to InventoryOpenEvent
@@ -1017,14 +1104,14 @@
      }
  
      @Override
-+    public void closeContainer(org.bukkit.event.inventory.InventoryCloseEvent.Reason reason) {
++    public void closeContainer(InventoryCloseEvent.Reason reason) {
 +        InventoryOwner.setClose$Reason(reason);
 +        closeContainer();
 +    }
 +
 +    // Paper start - special close for unloaded inventory
 +    @Override
-+    public void closeUnloadedInventory(org.bukkit.event.inventory.InventoryCloseEvent.Reason reason) {
++    public void closeUnloadedInventory(InventoryCloseEvent.Reason reason) {
 +        // copied from above
 +        CraftEventFactory.handleInventoryCloseEvent(this, reason); // CraftBukkit
 +        // Paper end
@@ -1124,13 +1211,13 @@
 +    // Purpur start
 +    public void sendActionBarMessage(@Nullable String message) {
 +        if (message != null && !message.isEmpty()) {
-+            sendActionBarMessage(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(message));
++            sendActionBarMessage(MiniMessage.miniMessage().deserialize(message));
 +        }
 +    }
 +
 +    public void sendActionBarMessage(@Nullable net.kyori.adventure.text.Component message) {
 +        if (message != null) {
-+            sendActionBarMessage(io.papermc.paper.adventure.PaperAdventure.asVanilla(message));
++            sendActionBarMessage(PaperAdventure.asVanilla(message));
 +        }
 +    }
 +
@@ -1254,9 +1341,9 @@
      public boolean setGameMode(GameType p_143404_) {
          boolean flag = this.isSpectator();
 -        if (!this.gameMode.changeGameModeForPlayer(p_143404_)) {
-+        p_143404_ = net.neoforged.neoforge.common.CommonHooks.onChangeGameType(this, this.gameMode.getGameModeForPlayer(), p_143404_);
++        p_143404_ = CommonHooks.onChangeGameType(this, this.gameMode.getGameModeForPlayer(), p_143404_);
 +        if (p_143404_ == null) return false;
-+        org.bukkit.event.player.PlayerGameModeChangeEvent event = this.gameMode.changeGameModeForPlayer(p_143404_, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.UNKNOWN, null);
++        PlayerGameModeChangeEvent event = this.gameMode.changeGameModeForPlayer(p_143404_, PlayerGameModeChangeEvent.Cause.UNKNOWN, null);
 +        if (event == null || event.isCancelled()) {
              return false;
          } else {
@@ -1269,11 +1356,11 @@
 +    }
 +
 +    @Nullable
-+    public org.bukkit.event.player.PlayerGameModeChangeEvent setGameMode(GameType p_143404_, org.bukkit.event.player.PlayerGameModeChangeEvent.Cause cause, @Nullable net.kyori.adventure.text.Component message) {
++    public PlayerGameModeChangeEvent setGameMode(GameType p_143404_, PlayerGameModeChangeEvent.Cause cause, @Nullable net.kyori.adventure.text.Component message) {
 +        boolean flag = this.isSpectator();
-+        p_143404_ = net.neoforged.neoforge.common.CommonHooks.onChangeGameType(this, this.gameMode.getGameModeForPlayer(), p_143404_);
++        p_143404_ = CommonHooks.onChangeGameType(this, this.gameMode.getGameModeForPlayer(), p_143404_);
 +        if (p_143404_ == null) return null;
-+        org.bukkit.event.player.PlayerGameModeChangeEvent event = this.gameMode.changeGameModeForPlayer(p_143404_, cause, message);
++        PlayerGameModeChangeEvent event = this.gameMode.changeGameModeForPlayer(p_143404_, cause, message);
 +        if (event == null || event.isCancelled()) {
 +            return null;
 +            // Paper end - Expand PlayerGameModeChangeEvent
@@ -1327,16 +1414,16 @@
      }
  
 +    // Paper start - Client option API
-+    private java.util.Map<com.destroystokyo.paper.ClientOption<?>, ?> getClientOptionMap(String locale, int viewDistance, com.destroystokyo.paper.ClientOption.ChatVisibility chatVisibility, boolean chatColors, com.destroystokyo.paper.PaperSkinParts skinParts, org.bukkit.inventory.MainHand mainHand, boolean allowsServerListing, boolean textFilteringEnabled) {
-+        java.util.Map<com.destroystokyo.paper.ClientOption<?>, Object> map = new java.util.HashMap<>();
-+        map.put(com.destroystokyo.paper.ClientOption.LOCALE, locale);
-+        map.put(com.destroystokyo.paper.ClientOption.VIEW_DISTANCE, viewDistance);
-+        map.put(com.destroystokyo.paper.ClientOption.CHAT_VISIBILITY, chatVisibility);
-+        map.put(com.destroystokyo.paper.ClientOption.CHAT_COLORS_ENABLED, chatColors);
-+        map.put(com.destroystokyo.paper.ClientOption.SKIN_PARTS, skinParts);
-+        map.put(com.destroystokyo.paper.ClientOption.MAIN_HAND, mainHand);
-+        map.put(com.destroystokyo.paper.ClientOption.ALLOW_SERVER_LISTINGS, allowsServerListing);
-+        map.put(com.destroystokyo.paper.ClientOption.TEXT_FILTERING_ENABLED, textFilteringEnabled);
++    private Map<ClientOption<?>, ?> getClientOptionMap(String locale, int viewDistance, ClientOption.ChatVisibility chatVisibility, boolean chatColors, PaperSkinParts skinParts, MainHand mainHand, boolean allowsServerListing, boolean textFilteringEnabled) {
++        Map<ClientOption<?>, Object> map = new HashMap<>();
++        map.put(ClientOption.LOCALE, locale);
++        map.put(ClientOption.VIEW_DISTANCE, viewDistance);
++        map.put(ClientOption.CHAT_VISIBILITY, chatVisibility);
++        map.put(ClientOption.CHAT_COLORS_ENABLED, chatColors);
++        map.put(ClientOption.SKIN_PARTS, skinParts);
++        map.put(ClientOption.MAIN_HAND, mainHand);
++        map.put(ClientOption.ALLOW_SERVER_LISTINGS, allowsServerListing);
++        map.put(ClientOption.TEXT_FILTERING_ENABLED, textFilteringEnabled);
 +        return map;
 +    }
 +    // Paper end
@@ -1351,7 +1438,7 @@
 -        this.getEntityData().set(DATA_PLAYER_MODE_CUSTOMISATION, (byte)p_301998_.modelCustomisation());
 -        this.getEntityData().set(DATA_PLAYER_MAIN_HAND, (byte)p_301998_.mainHand().getId());
 -    }
-+        new com.destroystokyo.paper.event.player.PlayerClientOptionsChangeEvent(getBukkitEntity(), getClientOptionMap(p_301998_.language(), p_301998_.viewDistance(), com.destroystokyo.paper.ClientOption.ChatVisibility.valueOf(p_301998_.chatVisibility().name()), p_301998_.chatColors(), new com.destroystokyo.paper.PaperSkinParts(p_301998_.modelCustomisation()), p_301998_.mainHand() == HumanoidArm.LEFT ? MainHand.LEFT : MainHand.RIGHT, p_301998_.allowsListing(), p_301998_.textFilteringEnabled())).callEvent(); // Paper - settings event
++        new PlayerClientOptionsChangeEvent(getBukkitEntity(), getClientOptionMap(p_301998_.language(), p_301998_.viewDistance(), ClientOption.ChatVisibility.valueOf(p_301998_.chatVisibility().name()), p_301998_.chatColors(), new PaperSkinParts(p_301998_.modelCustomisation()), p_301998_.mainHand() == HumanoidArm.LEFT ? MainHand.LEFT : MainHand.RIGHT, p_301998_.allowsListing(), p_301998_.textFilteringEnabled())).callEvent(); // Paper - settings event
 +        // CraftBukkit start
 +        if (getMainArm() != p_301998_.mainHand()) {
 +            PlayerChangedMainHandEvent event = new PlayerChangedMainHandEvent(getBukkitEntity(), getMainArm() == HumanoidArm.LEFT ? MainHand.LEFT : MainHand.RIGHT);
@@ -1363,7 +1450,7 @@
 +        }
 +        // CraftBukkit end
 +        this.language = p_301998_.language();
-+        this.adventure$locale = java.util.Objects.requireNonNullElse(net.kyori.adventure.translation.Translator.parseLocale(this.language), java.util.Locale.US); // Paper
++        this.adventure$locale = Objects.requireNonNullElse(Translator.parseLocale(this.language), Locale.US); // Paper
 +        this.requestedViewDistance = p_301998_.viewDistance();
 +        this.chatVisibility = p_301998_.chatVisibility();
 +        this.canChatColor = p_301998_.chatColors();
@@ -1376,7 +1463,7 @@
 +    // Paper start - don't call options events on login
 +    public void updateOptionsNoEvents(ClientInformation p_301998_) {
 +        this.language = p_301998_.language();
-+        this.adventure$locale = java.util.Objects.requireNonNullElse(net.kyori.adventure.translation.Translator.parseLocale(this.language), java.util.Locale.US); // Paper
++        this.adventure$locale = Objects.requireNonNullElse(Translator.parseLocale(this.language), Locale.US); // Paper
 +        this.requestedViewDistance = p_301998_.viewDistance();
 +        this.chatVisibility = p_301998_.chatVisibility();
 +        this.canChatColor = p_301998_.chatColors();
@@ -1406,9 +1493,9 @@
 +            return;
 +        }
 +
-+        String msg = afk ? org.purpurmc.purpur.PurpurConfig.afkBroadcastAway : org.purpurmc.purpur.PurpurConfig.afkBroadcastBack;
++        String msg = afk ? PurpurConfig.afkBroadcastAway : PurpurConfig.afkBroadcastBack;
 +
-+        org.purpurmc.purpur.event.PlayerAFKEvent event = new org.purpurmc.purpur.event.PlayerAFKEvent(this.getBukkitEntity(), afk, this.level().purpurConfig.idleTimeoutKick, msg, !Bukkit.isPrimaryThread());
++        PlayerAFKEvent event = new PlayerAFKEvent(this.getBukkitEntity(), afk, this.level().purpurConfig.idleTimeoutKick, msg, !Bukkit.isPrimaryThread());
 +        if (!event.callEvent() || event.shouldKick()) {
 +            return;
 +        }
@@ -1422,21 +1509,21 @@
 +        msg = event.getBroadcastMsg();
 +        if (msg != null && !msg.isEmpty()) {
 +            String playerName = this.getGameProfile().getName();
-+            if (org.purpurmc.purpur.PurpurConfig.afkBroadcastUseDisplayName) {
++            if (PurpurConfig.afkBroadcastUseDisplayName) {
 +                net.kyori.adventure.text.Component playerDisplayNameComponent = ColorAPI.adventure(this.getBukkitEntity().getDisplayName());
-+                playerName = net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer.plainText().serialize(playerDisplayNameComponent);
++                playerName = PlainTextComponentSerializer.plainText().serialize(playerDisplayNameComponent);
 +            }
 +            server.getPlayerList().broadcastMiniMessage(String.format(msg, playerName), false);
 +        }
 +
 +        if (this.level().purpurConfig.idleTimeoutUpdateTabList) {
 +            String scoreboardName = getScoreboardName();
-+            String playerListName = net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().serialize(getBukkitEntity().playerListName());
++            String playerListName = MiniMessage.miniMessage().serialize(getBukkitEntity().playerListName());
 +            String[] split = playerListName.split(scoreboardName);
-+            String prefix = (split.length > 0 ? split[0] : "").replace(org.purpurmc.purpur.PurpurConfig.afkTabListPrefix, "");
-+            String suffix = (split.length > 1 ? split[1] : "").replace(org.purpurmc.purpur.PurpurConfig.afkTabListSuffix, "");
++            String prefix = (split.length > 0 ? split[0] : "").replace(PurpurConfig.afkTabListPrefix, "");
++            String suffix = (split.length > 1 ? split[1] : "").replace(PurpurConfig.afkTabListSuffix, "");
 +            if (afk) {
-+                getBukkitEntity().setPlayerListName(org.purpurmc.purpur.PurpurConfig.afkTabListPrefix + prefix + scoreboardName + suffix + org.purpurmc.purpur.PurpurConfig.afkTabListSuffix, true);
++                getBukkitEntity().setPlayerListName(PurpurConfig.afkTabListPrefix + prefix + scoreboardName + suffix + PurpurConfig.afkTabListSuffix, true);
 +            } else {
 +                getBukkitEntity().setPlayerListName(prefix + scoreboardName + suffix, true);
 +            }
@@ -1466,13 +1553,13 @@
          if (entity != this.camera) {
 +            // Paper start - Add PlayerStartSpectatingEntityEvent and PlayerStopSpectatingEntity
 +            if (this.camera == this) {
-+                com.destroystokyo.paper.event.player.PlayerStopSpectatingEntityEvent playerStopSpectatingEntityEvent = new com.destroystokyo.paper.event.player.PlayerStopSpectatingEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity());
++                PlayerStopSpectatingEntityEvent playerStopSpectatingEntityEvent = new PlayerStopSpectatingEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity());
 +                if (!playerStopSpectatingEntityEvent.callEvent()) {
 +                    this.camera = entity; // rollback camera entity again
 +                    return;
 +                }
 +            } else {
-+                com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent playerStartSpectatingEntityEvent = new com.destroystokyo.paper.event.player.PlayerStartSpectatingEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity(), p_9214_.getBukkitEntity());
++                PlayerStartSpectatingEntityEvent playerStartSpectatingEntityEvent = new PlayerStartSpectatingEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity(), p_9214_.getBukkitEntity());
 +                if (!playerStartSpectatingEntityEvent.callEvent()) {
 +                    this.camera = entity; // rollback camera entity again
 +                    return;
@@ -1538,16 +1625,16 @@
 -            if (p_9163_ && !flag) {
 -                this.sendSystemMessage(Component.translatable("block.minecraft.set_spawn"));
 +            boolean flag2 = p_9160_.equals(this.respawnPosition) && p_9159_.equals(this.respawnDimension);
-+            spawnLoc = io.papermc.paper.util.MCUtil.toLocation(this.getServer().getLevel(p_9159_), p_9160_);
++            spawnLoc = MCUtil.toLocation(this.getServer().getLevel(p_9159_), p_9160_);
 +            spawnLoc.setYaw(p_9161_);
 +            willNotify = p_9163_ && !flag2;
 +        }
 +        PlayerSetSpawnEvent.Cause cause = setRespawnPosition$setSpawnCause.getAndSet(PlayerSetSpawnEvent.Cause.UNKNOWN);
 +        PlayerSpawnChangeEvent dumbEvent = new PlayerSpawnChangeEvent(this.getBukkitEntity(), spawnLoc, p_9162_,
-+                cause == com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.PLAYER_RESPAWN ? PlayerSpawnChangeEvent.Cause.RESET : PlayerSpawnChangeEvent.Cause.valueOf(cause.name()));
++                cause == PlayerSetSpawnEvent.Cause.PLAYER_RESPAWN ? PlayerSpawnChangeEvent.Cause.RESET : PlayerSpawnChangeEvent.Cause.valueOf(cause.name()));
 +        dumbEvent.callEvent();
 +
-+        com.destroystokyo.paper.event.player.PlayerSetSpawnEvent event = new com.destroystokyo.paper.event.player.PlayerSetSpawnEvent(this.getBukkitEntity(), cause, dumbEvent.getNewSpawn(), dumbEvent.isForced(), willNotify, willNotify ? net.kyori.adventure.text.Component.translatable("block.minecraft.set_spawn") : null);
++        PlayerSetSpawnEvent event = new PlayerSetSpawnEvent(this.getBukkitEntity(), cause, dumbEvent.getNewSpawn(), dumbEvent.isForced(), willNotify, willNotify ? net.kyori.adventure.text.Component.translatable("block.minecraft.set_spawn") : null);
 +        event.setCancelled(dumbEvent.isCancelled());
 +        if (!event.callEvent()) {
 +            setRespawnPosition$canCancel.set(false);
@@ -1555,7 +1642,7 @@
 +        }
 +        if (event.getLocation() != null) {
 +            p_9159_ = event.getLocation().getWorld() != null ? ((CraftWorld) event.getLocation().getWorld()).getHandle().dimension() : p_9159_;
-+            p_9160_ = io.papermc.paper.util.MCUtil.toBlockPosition(event.getLocation());
++            p_9160_ = MCUtil.toBlockPosition(event.getLocation());
 +            p_9161_ = event.getLocation().getYaw();
 +            p_9162_ = event.isForced();
 +            // Paper end - Add PlayerSetSpawnEvent
@@ -1571,12 +1658,12 @@
      }
 +    public boolean setRespawnPosition(ResourceKey<Level> p_9159_, @Nullable BlockPos p_9160_, float p_9161_, boolean p_9162_, boolean p_9163_, PlayerSpawnChangeEvent.Cause cause) {
 +        setRespawnPosition$setSpawnCause(cause == PlayerSpawnChangeEvent.Cause.RESET ?
-+                com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.PLAYER_RESPAWN : com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.valueOf(cause.name()));
++                PlayerSetSpawnEvent.Cause.PLAYER_RESPAWN : PlayerSetSpawnEvent.Cause.valueOf(cause.name()));
 +        setRespawnPosition(p_9159_, p_9160_, p_9161_, p_9162_, p_9163_);
 +        return setRespawnPosition$canCancel.getAndSet(true);
 +    }
 +
-+    public boolean setRespawnPosition(ResourceKey<Level> dimension, @Nullable BlockPos pos, float angle, boolean forced, boolean sendMessage, com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause cause) {
++    public boolean setRespawnPosition(ResourceKey<Level> dimension, @Nullable BlockPos pos, float angle, boolean forced, boolean sendMessage, PlayerSetSpawnEvent.Cause cause) {
 +        setRespawnPosition$setSpawnCause.set( cause);
 +        setRespawnPosition(dimension, pos, angle, forced, sendMessage);
 +        return setRespawnPosition$canCancel.getAndSet(true);
@@ -1682,7 +1769,7 @@
      public void loadGameTypes(@Nullable CompoundTag p_143428_) {
 +        // Paper start - Expand PlayerGameModeChangeEvent
 +        if (this.server.getForcedGameType() != null && this.server.getForcedGameType() != ServerPlayer.readPlayerMode(p_143428_, "playerGameType")) {
-+            if (new org.bukkit.event.player.PlayerGameModeChangeEvent(this.getBukkitEntity(), org.bukkit.GameMode.getByValue(this.server.getDefaultGameType().getId()), org.bukkit.event.player.PlayerGameModeChangeEvent.Cause.DEFAULT_GAMEMODE, null).callEvent()) {
++            if (new PlayerGameModeChangeEvent(this.getBukkitEntity(), GameMode.getByValue(this.server.getDefaultGameType().getId()), PlayerGameModeChangeEvent.Cause.DEFAULT_GAMEMODE, null).callEvent()) {
 +                this.gameMode.setGameModeForPlayer(this.server.getForcedGameType(), GameType.DEFAULT_MODE);
 +            } else {
 +                this.gameMode.setGameModeForPlayer(ServerPlayer.readPlayerMode(p_143428_,"playerGameType"), ServerPlayer.readPlayerMode(p_143428_, "previousPlayerGameType"));
@@ -1886,14 +1973,14 @@
 +        }
 +
 +        if (this.containerMenu != this.inventoryMenu) {
-+            this.closeContainer(org.bukkit.event.inventory.InventoryCloseEvent.Reason.TELEPORT);
++            this.closeContainer(InventoryCloseEvent.Reason.TELEPORT);
 +        }
 +
 +        ServerLevel toLevel = ((CraftWorld) to.getWorld()).getHandle();
 +        if (this.level() == toLevel) {
-+            this.connection.internalTeleport(to.getX(), to.getY(), to.getZ(), to.getYaw(), to.getPitch(), java.util.EnumSet.noneOf(net.minecraft.world.entity.RelativeMovement.class));
++            this.connection.internalTeleport(to.getX(), to.getY(), to.getZ(), to.getYaw(), to.getPitch(), EnumSet.noneOf(RelativeMovement.class));
 +        } else {
-+            this.server.getPlayerList().respawn(this, true, RemovalReason.KILLED, org.bukkit.event.player.PlayerRespawnEvent.RespawnReason.DEATH, to);
++            this.server.getPlayerList().respawn(this, true, RemovalReason.KILLED, PlayerRespawnEvent.RespawnReason.DEATH, to);
 +        }
 +    }
 +
