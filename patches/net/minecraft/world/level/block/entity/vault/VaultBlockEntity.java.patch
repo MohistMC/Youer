@@ -11,6 +11,15 @@
  import org.slf4j.Logger;
  
  public class VaultBlockEntity extends BlockEntity {
+@@ -70,6 +_,8 @@
+         super.saveAdditional(p_323998_, p_324356_);
+         p_323998_.put("config", encode(VaultConfig.CODEC, this.config, p_324356_));
+         p_323998_.put("shared_data", encode(VaultSharedData.CODEC, this.sharedData, p_324356_));
++        // Youer - Remove invalid items from itemsToEject to prevent strict codec encoding failure
++        this.serverData.getItemsToEject().removeIf(stack -> stack == null || stack.isEmpty() || stack.getCount() <= 0);
+         p_323998_.put("server_data", encode(VaultServerData.CODEC, this.serverData, p_324356_));
+     }
+ 
 @@ -286,6 +_,14 @@
                      if (!list.isEmpty()) {
                          p_324373_.awardStat(Stats.ITEM_USED.get(p_324551_.getItem()));

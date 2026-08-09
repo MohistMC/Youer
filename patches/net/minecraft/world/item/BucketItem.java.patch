@@ -29,7 +29,7 @@
  
      public BucketItem(Fluid p_40689_, Item.Properties p_40690_) {
          super(p_40690_);
-@@ -55,12 +_,22 @@
+@@ -55,12 +_,27 @@
              } else if (this.content == Fluids.EMPTY) {
                  BlockState blockstate1 = p_40703_.getBlockState(blockpos);
                  if (blockstate1.getBlock() instanceof BucketPickup bucketpickup) {
@@ -50,7 +50,12 @@
 +                        bucketpickup.getPickupSound(blockstate1).ifPresent(p_150709_ -> p_40704_.playSound(p_150709_, 1.0F, 1.0F));
                          p_40703_.gameEvent(p_40704_, GameEvent.FLUID_PICKUP, blockpos);
 -                        ItemStack itemstack2 = ItemUtils.createFilledResult(itemstack, p_40704_, itemstack3);
-+                        ItemStack itemstack2 = ItemUtils.createFilledResult(itemstack, p_40704_, CraftItemStack.asNMSCopy(event.getItemStack())); // CraftBukkit
++                        // Youer start
++                        // Use plugin override if set, otherwise use real pickup result
++                        ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItemStack());
++                        ItemStack resultStack = ItemStack.matches(eventStack, dummyFluid) ? itemstack3 : eventStack;
++                        ItemStack itemstack2 = ItemUtils.createFilledResult(itemstack, p_40704_, resultStack);
++                        // Youer end
                          if (!p_40703_.isClientSide) {
                              CriteriaTriggers.FILLED_BUCKET.trigger((ServerPlayer)p_40704_, itemstack3);
                          }
@@ -68,12 +73,21 @@
                      this.checkExtraContent(p_40704_, p_40703_, itemstack, blockpos2);
                      if (p_40704_ instanceof ServerPlayer) {
                          CriteriaTriggers.PLACED_BLOCK.trigger((ServerPlayer)p_40704_, blockpos2, itemstack);
-@@ -89,7 +_,20 @@
+@@ -89,7 +_,29 @@
          }
      }
  
 +    // Youer start
 +    public ItemStack dummyFluid(BucketPickup bucketpickup, Player player, BlockPos blockpos, BlockState blockstate) {
++        if (player != null && player.level() instanceof ServerLevel serverLevel) {
++            // Only check if fluid exists, avoiding double pickup side effects
++            var fluidState = serverLevel.getFluidState(blockpos);
++            if (!fluidState.isEmpty()) {
++                return new ItemStack(fluidState.getType().getBucket());
++            }
++            return ItemStack.EMPTY;
++        }
++        // Fallback to DummyGeneratorAccess for non-fluid blocks (e.g. cauldrons)
 +        return bucketpickup.pickupBlock(player, DummyGeneratorAccess.INSTANCE, blockpos, blockstate);
 +    }
 +    // Youer end
@@ -123,7 +137,7 @@
 +            BlockPos clicked = mohist$clickedPos.getAndSet(null);
 +            InteractionHand enumhand = mohist$hand.getAndSet(null);
 +            // Mohist end
-+            if (flag2 && p_150716_ != null) {
++            if (flag1 && p_150716_ != null) {
 +                PlayerBucketEmptyEvent event = CraftEventFactory.callPlayerBucketEmptyEvent((ServerLevel) p_150717_, p_150716_, p_150718_, clicked, enumdirection, container, enumhand);
 +                if (event.isCancelled()) {
 +                    ((ServerPlayer) p_150716_).getBukkitEntity().updateInventory(); // SPIGOT-4541
