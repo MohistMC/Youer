@@ -30,12 +30,12 @@ import org.jetbrains.annotations.NotNull;
  */
 public class EntityClearCommand extends BukkitCommand {
 
-    private static final List<String> TYPES = Arrays.asList("item", "monster", "all", "add", "show");
+    private static final List<String> TYPES = Arrays.asList("item", "entity", "all", "add", "show");
 
     public EntityClearCommand(String name) {
         super(name);
         this.description = I18n.as("entityclear.description");
-        this.usageMessage = "/entityclear [item|monster|all|add <item|entity>|show <item|entity>]";
+        this.usageMessage = "/entityclear [item|entity|all|add <item|entity>|show <item|entity>]";
         this.setPermission("youer.command.entityclear");
     }
 
@@ -55,6 +55,33 @@ public class EntityClearCommand extends BukkitCommand {
             for (String type : Arrays.asList("item", "entity")) {
                 if (type.toLowerCase().startsWith(args[1].toLowerCase())) {
                     list.add(type);
+                }
+            }
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("add") && args[1].equalsIgnoreCase("entity")) {
+            // Individual entity suggestions
+            for (var key : net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.keySet()) {
+                String name = key.toString();
+                if (name.toLowerCase().startsWith(args[2].toLowerCase())) {
+                    list.add(name);
+                }
+                String blacklistName = "!" + name;
+                if (blacklistName.toLowerCase().startsWith(args[2].toLowerCase())) {
+                    list.add(blacklistName);
+                }
+            }
+            // Mod wildcard suggestions (modid:*)
+            java.util.Set<String> namespaces = new java.util.HashSet<>();
+            for (var key : net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.keySet()) {
+                namespaces.add(key.getNamespace());
+            }
+            for (String ns : namespaces) {
+                String wildcard = ns + ":*";
+                if (wildcard.toLowerCase().startsWith(args[2].toLowerCase())) {
+                    list.add(wildcard);
+                }
+                String blacklistWildcard = "!" + ns + ":*";
+                if (blacklistWildcard.toLowerCase().startsWith(args[2].toLowerCase())) {
+                    list.add(blacklistWildcard);
                 }
             }
         }
@@ -77,9 +104,9 @@ public class EntityClearCommand extends BukkitCommand {
                 EntityClear.run_item();
                 sender.sendMessage(I18n.as("entityclear.item.started"));
             }
-            case "monster" -> {
+            case "entity" -> {
                 EntityClear.run_monster();
-                sender.sendMessage(I18n.as("entityclear.monster.started"));
+                sender.sendMessage(I18n.as("entityclear.entity.started"));
             }
             case "all" -> {
                 EntityClear.run_item();
@@ -91,7 +118,7 @@ public class EntityClearCommand extends BukkitCommand {
                     sender.sendMessage(ChatColor.RED + I18n.as("entityclear.error.notplayer"));
                     return false;
                 }
-                if (args.length != 2) {
+                if (args.length < 2) {
                     sender.sendMessage(ChatColor.RED + I18n.as("entityclear.usage"));
                     return false;
                 }
@@ -104,6 +131,38 @@ public class EntityClearCommand extends BukkitCommand {
                         return true;
                     }
                     case "entity" -> {
+                        if (args.length >= 3) {
+                            String entityName = args[2];
+                            String rawName = entityName.startsWith("!") ? entityName.substring(1) : entityName;
+                            boolean isWildcard = rawName.matches("^[a-z0-9_.-]+:\\*$");
+                            if (!isWildcard) {
+                                net.minecraft.resources.ResourceLocation entityKey = net.minecraft.resources.ResourceLocation.parse(rawName);
+                                if (!net.minecraft.core.registries.BuiltInRegistries.ENTITY_TYPE.containsKey(entityKey)) {
+                                    sender.sendMessage(ChatColor.RED + I18n.as("entityclear.add.entity.invalid").formatted(entityName));
+                                    return false;
+                                }
+                            }
+
+                            List<String> old = new ArrayList<>(EntityClear.getWhitelist(false));
+                            if (old.contains(entityName)) {
+                                if (entityName.startsWith("!")) {
+                                    sender.sendMessage(ChatColor.YELLOW + I18n.as("entityclear.add.entity.blacklist_exists").formatted(entityName));
+                                } else {
+                                    sender.sendMessage(ChatColor.YELLOW + I18n.as("entityclear.add.entity.exists").formatted(entityName));
+                                }
+                                return false;
+                            }
+
+                            old.add(entityName);
+                            EntityClear.saveMonsterWhitelist(old);
+                            if (entityName.startsWith("!")) {
+                                sender.sendMessage(ChatColor.GREEN + I18n.as("entityclear.add.entity.blacklist_success").formatted(entityName));
+                            } else {
+                                sender.sendMessage(ChatColor.GREEN + I18n.as("entityclear.add.entity.success").formatted(entityName));
+                            }
+                            return true;
+                        }
+
                         EntityClearInventory clearInventory = new EntityClearInventory(EntityClearType.ENTITY, I18n.as("entityclear.gui.add.entity"));
                         Inventory inventory = clearInventory.getInventory();
                         player.openInventory(inventory);
@@ -156,8 +215,22 @@ public class EntityClearCommand extends BukkitCommand {
                         DemoGUI wh = new DemoGUI(I18n.as("entityclear.show.entity"));
                         List<String> old = new ArrayList<>(EntityClear.getWhitelist(false));
                         for (String s : old) {
-                            wh.addItem(new GUIItem(new ItemStackFactory(ItemAPI.getEggMaterial(EntityAPI.getType(s)))
-                                    .setDisplayName(s)
+                            Material icon;
+                            String displayName;
+                            if (s.startsWith("!")) {
+                                // Blacklist entry - force clear
+                                icon = Material.REDSTONE_BLOCK;
+                                displayName = "§c" + s;
+                            } else if (s.endsWith(":*")) {
+                                // Wildcard whitelist
+                                icon = Material.BARRIER;
+                                displayName = s;
+                            } else {
+                                icon = ItemAPI.getEggMaterial(EntityAPI.getType(s));
+                                displayName = s;
+                            }
+                            wh.addItem(new GUIItem(new ItemStackFactory(icon)
+                                    .setDisplayName(displayName)
                                     .addLore("§e" + I18n.as("entityclear.show.lore"))
                                     .build()) {
                                 @Override
@@ -173,6 +246,11 @@ public class EntityClearCommand extends BukkitCommand {
                             });
                         }
                         wh.openGUI(player);
+                        // Show blacklist summary in chat
+                        List<String> blacklist = old.stream().filter(e -> e.startsWith("!")).toList();
+                        if (!blacklist.isEmpty()) {
+                            player.sendMessage(ChatColor.RED + I18n.as("entityclear.show.blacklist") + " §f" + String.join("§7, §f", blacklist));
+                        }
                         return true;
                     }
                     default -> {

@@ -1,10 +1,12 @@
 package com.mohistmc.youer.commands;
 
+import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.api.PlayerAPI;
 import com.mohistmc.youer.api.gui.DemoGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.ItemStackFactory;
+import com.mohistmc.youer.feature.EntityClear;
 import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,6 +21,7 @@ import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -156,6 +159,18 @@ public class InfoCommand extends Command {
                     sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.ticks") + ChatColor.YELLOW + entity.getTicksLived() + " ticks");
                     sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.frozen") + ChatColor.YELLOW + entity.isFrozen());
                     sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.gravity") + ChatColor.YELLOW + entity.hasGravity());
+
+                    // Auto-clear status
+                    if (((CraftEntity) entity).getHandle() instanceof net.minecraft.world.entity.Mob mob) {
+                        boolean canClear = !EntityClear.shouldSkipEntity(mob, YouerConfig.clear_monster_whitelist);
+                        if (YouerConfig.clear_monster) {
+                            sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.auto_clear") + ChatColor.YELLOW + (canClear ? I18n.as("info.yes") : I18n.as("info.no")));
+                        } else {
+                            sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.auto_clear") + ChatColor.YELLOW + I18n.as("info.entity.auto_clear_disabled"));
+                        }
+                    } else {
+                        sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.auto_clear") + ChatColor.YELLOW + I18n.as("info.no"));
+                    }
 
                     if (entity.getCustomName() != null) {
                         sender.sendMessage(ChatColor.GOLD + I18n.as("info.entity.custom_name") + ChatColor.YELLOW + entity.getCustomName());

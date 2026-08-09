@@ -95,7 +95,7 @@ public class EntityClear {
                     return;
                 }
                 MinecraftServer.getServer().execute(() -> {
-                    String msg = (s <= 5 ? "§c" : "") + I18n.as("entityclear.monster.warn", s);
+                    String msg = (s <= 5 ? "§c" : "") + I18n.as("entityclear.entity.warn", s);
                     for (Player player : Bukkit.getOnlinePlayers()) {
                         player.sendActionBar(msg);
                     }
@@ -135,13 +135,43 @@ public class EntityClear {
         if (!entity.isAlive()) {
             return true;
         }
-        if (whitelist.contains(entity.getBukkitEntity().getType().getKey().asString())) {
-            return true;
+        String entityKey = entity.getBukkitEntity().getType().getKey().asString();
+
+        // Blacklist (! prefix) takes priority: always clear
+        if (matchesBlacklist(entityKey, whitelist)) {
+            return false;
+        }
+
+        // Whitelist check
+        for (String banned : whitelist) {
+            if (banned.startsWith("!")) continue;
+            if (banned.endsWith(":*")) {
+                if (entityKey.startsWith(banned.substring(0, banned.length() - 1))) {
+                    return true;
+                }
+            } else if (banned.equals(entityKey)) {
+                return true;
+            }
         }
         if (entity.hasCustomName()) {
             return true;
         }
         return entity.isPersistenceRequired() || entity.requiresCustomPersistence() || !entity.getBukkitEntity().getPersistentDataContainer().isEmpty();
+    }
+
+    public static boolean matchesBlacklist(String entityKey, List<String> list) {
+        for (String entry : list) {
+            if (!entry.startsWith("!")) continue;
+            String pattern = entry.substring(1);
+            if (pattern.endsWith(":*")) {
+                if (entityKey.startsWith(pattern.substring(0, pattern.length() - 1))) {
+                    return true;
+                }
+            } else if (pattern.equals(entityKey)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static void run_item() {
@@ -171,13 +201,18 @@ public class EntityClear {
             int size_monster = 0;
             for (World world : Bukkit.getWorlds()) {
                 for (Entity entity : world.getEntities()) {
-                    if (((CraftEntity)entity).getHandle() instanceof Mob mob && !shouldSkipEntity(mob, YouerConfig.clear_monster_whitelist)) {
+                    String entityKey = entity.getType().getKey().asString();
+                    // Blacklist check for ALL entities (non-Mob too)
+                    if (matchesBlacklist(entityKey, YouerConfig.clear_monster_whitelist)) {
+                        entity.remove();
+                        size_monster++;
+                    } else if (((CraftEntity)entity).getHandle() instanceof Mob mob && !shouldSkipEntity(mob, YouerConfig.clear_monster_whitelist)) {
                         entity.remove();
                         size_monster++;
                     }
                 }
             }
-            String msg = I18n.as("entityclear.monster.done", size_monster, String.format("%.2f", (System.nanoTime() - start) / 1_000_000.0));
+            String msg = I18n.as("entityclear.entity.done", size_monster, String.format("%.2f", (System.nanoTime() - start) / 1_000_000.0));
             for (Player player : Bukkit.getOnlinePlayers()) {
                 player.sendActionBar(msg);
             }

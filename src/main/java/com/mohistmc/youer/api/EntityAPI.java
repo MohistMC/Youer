@@ -39,6 +39,16 @@ public class EntityAPI {
         if (entity == null || BanConfig.ENTITY == null) return false;
         var list = BanConfig.getSetByType(BanType.ENTITY);
         if (list.isEmpty()) return false;
-        return list.contains(resourceLocation(entity));
+        String entityKey = resourceLocation(entity);
+        for (String banned : list) {
+            if (banned.endsWith(":*")) {
+                if (entityKey.startsWith(banned.substring(0, banned.length() - 1))) {
+                    return true;
+                }
+            } else if (banned.equals(entityKey)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

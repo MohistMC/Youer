@@ -70,7 +70,7 @@ public class EntityLimitsConfig extends YouerPluginConfig {
 
     public boolean canSpawn(Entity entity) {
         World world = entity.level().getWorld();
-        boolean hasLimit = yaml.contains(world.getName() + "." + entity.getBukkitEntity().getType().name());
+        boolean hasLimit = yaml.contains(world.getName() + "." + entity.getBukkitEntity().getType().getKey().asString());
         if (!hasLimit) {
             return false;
         }
@@ -81,7 +81,7 @@ public class EntityLimitsConfig extends YouerPluginConfig {
                                 entity1 -> 1,
                                 Integer::sum
                         ));
-        int limit = yaml.getInt(world.getName() + "." + entity.getBukkitEntity().getType().name(), -1);
+        int limit = yaml.getInt(world.getName() + "." + entity.getBukkitEntity().getType().getKey().asString(), -1);
         int entitySize = collect.getOrDefault(entity.getType(), 0);
         return entitySize >= limit;
     }

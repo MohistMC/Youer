@@ -154,6 +154,30 @@ public class BansCommand extends Command {
                             sender.sendMessage(ChatColor.RED + check);
                             return false;
                         }
+
+                        if (args.length >= 3) {
+                            String entityName = args[2];
+                            boolean isWildcard = entityName.matches("^[a-z0-9_.-]+:\\*$");
+                            if (!isWildcard) {
+                                ResourceLocation entityKey = ResourceLocation.parse(entityName);
+                                if (!BuiltInRegistries.ENTITY_TYPE.containsKey(entityKey)) {
+                                    sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.entity.invalid").formatted(entityName));
+                                    return false;
+                                }
+                            }
+
+                            List<String> old = BanConfig.getListByType(BanType.ENTITY);
+                            if (old.contains(entityName)) {
+                                sender.sendMessage(ChatColor.YELLOW + I18n.as("banscmd.add.entity.exists").formatted(entityName));
+                                return false;
+                            }
+
+                            old.add(entityName);
+                            BanUtils.saveToYaml(player, com.mohistmc.youer.feature.ban.ClickType.ADD, old, BanType.ENTITY);
+                            sender.sendMessage(ChatColor.GREEN + I18n.as("banscmd.add.entity.success").formatted(entityName));
+                            return true;
+                        }
+
                         BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ENTITY, I18n.as("banscmd.gui.add.entity"));
                         Inventory inventory = banSaveInventory.getInventory();
                         player.openInventory(inventory);
@@ -547,6 +571,29 @@ public class BansCommand extends Command {
             return BuiltInRegistries.STRUCTURE_TYPE.keySet().stream().map(ResourceLocation::toString).toList();
         }
 
+        if (args.length == 3 && args[0].equals("add") && args[1].equals("entity") && (sender.isOp() || testPermission(sender))) {
+            java.util.Set<String> suggestions = new java.util.HashSet<>();
+            for (var key : BuiltInRegistries.ENTITY_TYPE.keySet()) {
+                String name = key.toString();
+                if (name.toLowerCase().startsWith(args[2].toLowerCase())) {
+                    suggestions.add(name);
+                }
+            }
+            // Mod wildcard suggestions (modid:*)
+            java.util.Set<String> namespaces = new java.util.HashSet<>();
+            for (var key : BuiltInRegistries.ENTITY_TYPE.keySet()) {
+                namespaces.add(key.getNamespace());
+            }
+            for (String ns : namespaces) {
+                String wildcard = ns + ":*";
+                if (wildcard.toLowerCase().startsWith(args[2].toLowerCase())) {
+                    suggestions.add(wildcard);
+                }
+            }
+            List<String> sorted = new ArrayList<>(suggestions);
+            java.util.Collections.sort(sorted);
+            return sorted.stream().limit(50).collect(Collectors.toList());
+        }
         if (args.length == 3 && args[0].equals("add") && args[1].equals("block") && (sender.isOp() || testPermission(sender))) {
             return java.util.Arrays.stream(Material.values())
                     .filter(m -> m.isBlock() && !m.isAirSafe() && !m.isLegacy())
