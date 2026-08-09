@@ -411,13 +411,7 @@
      }
  
      protected abstract boolean initServer() throws IOException;
-@@ -393,15 +_,15 @@
-         };
-     }
- 
--    protected void loadLevel() {
-+    protected void loadLevel(final String levelId) { // CraftBukkit
-         boolean startedWorldLoadProfiling = !JvmProfiler.INSTANCE.isRunning()
+@@ -398,10 +_,10 @@
              && SharedConstants.DEBUG_JFR_PROFILING_ENABLE_LEVEL_LOADING
              && JvmProfiler.INSTANCE.start(Environment.from(this));
          ProfiledDuration profiledDuration = JvmProfiler.INSTANCE.onWorldLoadedStarted();
@@ -426,7 +420,7 @@
 -        this.forceDifficulty();
 -        this.prepareLevels();
 +        // Paper start - rework world loading process
-+        io.papermc.paper.world.PaperWorldLoader loader = io.papermc.paper.world.PaperWorldLoader.create(this, levelId);
++        io.papermc.paper.world.PaperWorldLoader loader = io.papermc.paper.world.PaperWorldLoader.create(this, this.storageSource.getLevelId());
 +        loader.loadInitialWorlds();
 +        // Paper end - rework world loading process
          if (profiledDuration != null) {
