@@ -776,11 +776,18 @@
          if (!this.wonGame) {
              this.wonGame = true;
              this.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.WIN_GAME, 0.0F));
-@@ -854,6 +_,8 @@
+@@ -854,6 +_,15 @@
      @Nullable
      @Override
      public Entity changeDimension(DimensionTransition p_350472_) {
-+	    if (this.isSleeping()) return null; // CraftBukkit - SPIGOT-3154
++        // Youer start - Allow dimension change during sleep (e.g. mod dream sequences)
++        if (this.isSleeping()) {
++            this.stopSleepInBed(true, false);
++            if (this.isSleeping()) {
++                return null; // Bed leave was cancelled by a plugin
++            }
++        }
++        // Youer end
 +        if (!CommonHooks.onTravelToDimension(this, p_350472_.newLevel().dimension())) return null;
          if (this.isRemoved()) {
              return null;
