@@ -73,6 +73,79 @@ public class ConfigByWorlds {
         return null;
     }
 
+    public static void saveWorldBorder(World world) {
+        if (f.exists() && world != null) {
+            if (config.getString("worlds." + world.getName()) != null) {
+                config.set("worlds." + world.getName() + ".worldborder", world.getWorldBorder().getSize());
+                config.set("worlds." + world.getName() + ".worldborder_center_x", world.getWorldBorder().getCenter().getX());
+                config.set("worlds." + world.getName() + ".worldborder_center_z", world.getWorldBorder().getCenter().getZ());
+            }
+            init();
+        }
+    }
+
+    public static void saveWorldBorder(World world, double newSize) {
+        if (f.exists() && world != null) {
+            if (config.getString("worlds." + world.getName()) != null) {
+                config.set("worlds." + world.getName() + ".worldborder", newSize);
+                config.set("worlds." + world.getName() + ".worldborder_center_x", world.getWorldBorder().getCenter().getX());
+                config.set("worlds." + world.getName() + ".worldborder_center_z", world.getWorldBorder().getCenter().getZ());
+            }
+            init();
+        }
+    }
+
+    public static void saveWorldBorderCenter(World world, double newCenterX, double newCenterZ) {
+        if (f.exists() && world != null) {
+            if (config.getString("worlds." + world.getName()) != null) {
+                config.set("worlds." + world.getName() + ".worldborder", world.getWorldBorder().getSize());
+                config.set("worlds." + world.getName() + ".worldborder_center_x", newCenterX);
+                config.set("worlds." + world.getName() + ".worldborder_center_z", newCenterZ);
+            }
+            init();
+        }
+    }
+
+    public static void saveGameRule(World world, String ruleName, String value) {
+        if (f.exists() && world != null) {
+            if (config.getString("worlds." + world.getName()) != null) {
+                config.set("worlds." + world.getName() + ".gamerules." + ruleName, value);
+            }
+            init();
+        }
+    }
+
+    public static void loadGameRules(World world) {
+        if (f.exists() && world != null) {
+            ConfigurationSection gamerules = config.getConfigurationSection("worlds." + world.getName() + ".gamerules");
+            if (gamerules != null) {
+                for (String key : gamerules.getKeys(false)) {
+                    org.bukkit.GameRule<?> gameRule = org.bukkit.GameRule.getByName(key);
+                    if (gameRule != null) {
+                        String value = gamerules.getString(key);
+                        if (value != null) {
+                            applyGameRule(world, gameRule, value);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private static <T> void applyGameRule(World world, org.bukkit.GameRule<T> gameRule, String value) {
+        world.setGameRule(gameRule, parseGameRuleValue(gameRule, value));
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T parseGameRuleValue(org.bukkit.GameRule<T> gameRule, String value) {
+        if (gameRule.getType() == Boolean.class) {
+            return (T) Boolean.valueOf(value);
+        } else if (gameRule.getType() == Integer.class) {
+            return (T) Integer.valueOf(value);
+        }
+        return null;
+    }
+
     public static void addWorld(String w, boolean isYouer) {
         if (Bukkit.getWorld(w) != null) {
             World world = Bukkit.getWorld(w);
@@ -192,6 +265,10 @@ public class ConfigByWorlds {
                     if (config.get("worlds." + w + ".worldborder") != null) {
                         world.getWorldBorder().setSize(config.getDouble("worlds." + w + ".worldborder"));
                     }
+                    if (config.get("worlds." + w + ".worldborder_center_x") != null && config.get("worlds." + w + ".worldborder_center_z") != null) {
+                        world.getWorldBorder().setCenter(config.getDouble("worlds." + w + ".worldborder_center_x"), config.getDouble("worlds." + w + ".worldborder_center_z"));
+                    }
+                    loadGameRules(world);
                     config.set("worlds." + w + ".seed", world.getSeed());
                     init();
                     world.setKeepSpawnInMemory(config.getBoolean("worlds." + w + ".keepspawninmemory", true));

@@ -24,6 +24,11 @@ import com.mohistmc.youer.feature.warps.WarpsCommands;
 import com.mohistmc.youer.feature.warps.WarpsConfig;
 import com.mohistmc.youer.feature.world.WorldManage;
 import com.mohistmc.youer.feature.world.commands.WorldsCommands;
+import com.mohistmc.youer.feature.world.utils.ConfigByWorlds;
+import io.papermc.paper.event.world.WorldGameRuleChangeEvent;
+import io.papermc.paper.event.world.border.WorldBorderBoundsChangeEvent;
+import io.papermc.paper.event.world.border.WorldBorderBoundsChangeFinishEvent;
+import io.papermc.paper.event.world.border.WorldBorderCenterChangeEvent;
 import java.util.Map;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -124,6 +129,33 @@ public class YouerPlugin {
         }
         if (event instanceof PlayerDeathEvent event1) {
             BackCommands.hooktDeath(event1);
+        }
+        // Persist world border and game rule changes for custom worlds
+        if (event instanceof WorldBorderBoundsChangeEvent event1) {
+            if (CommandsConfig.INSTANCE.enable("worlds.enable") && !event1.isCancelled()) {
+                // Event fires before the change, save the new size from the event
+                ConfigByWorlds.saveWorldBorder(event1.getWorld(), event1.getNewSize());
+            }
+        }
+        if (event instanceof WorldBorderBoundsChangeFinishEvent event1) {
+            if (CommandsConfig.INSTANCE.enable("worlds.enable")) {
+                // Event fires when timed move finishes, save the final size from the event
+                ConfigByWorlds.saveWorldBorder(event1.getWorld(), event1.getNewSize());
+            }
+        }
+        if (event instanceof WorldBorderCenterChangeEvent event1) {
+            if (CommandsConfig.INSTANCE.enable("worlds.enable") && !event1.isCancelled()) {
+                // Event fires before the change, save the new center from the event
+                ConfigByWorlds.saveWorldBorderCenter(event1.getWorld(), event1.getNewCenter().getX(), event1.getNewCenter().getZ());
+            }
+        }
+        if (event instanceof WorldGameRuleChangeEvent event1) {
+            if (CommandsConfig.INSTANCE.enable("worlds.enable") && !event1.isCancelled()) {
+                org.bukkit.GameRule<?> gameRule = event1.getGameRule();
+                if (gameRule != null) {
+                    ConfigByWorlds.saveGameRule(event1.getWorld(), gameRule.getName(), event1.getValue());
+                }
+            }
         }
     }
 }
