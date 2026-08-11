@@ -121,11 +121,16 @@ public class EntityClear {
     }
 
     public static boolean shouldSkipItem(ItemStack itemStack, List<String> whitelist) {
-        if (whitelist.contains(itemStack.getType().getKey().asString())) {
-            return true;
-        }
-        if (whitelist.contains(itemStack.getType().name())) {
-            return true;
+        String itemKey = itemStack.getType().getKey().asString();
+        for (String entry : whitelist) {
+            if (entry.endsWith(":*")) {
+                // Wildcard match (modid:*) - skip any item whose key starts with the modid prefix
+                if (itemKey.startsWith(entry.substring(0, entry.length() - 1))) {
+                    return true;
+                }
+            } else if (entry.equals(itemKey) || entry.equals(itemStack.getType().name())) {
+                return true;
+            }
         }
         return itemStack.hasCustomModelData() || !itemStack.getPersistentDataContainer().isEmpty();
     }
@@ -183,6 +188,9 @@ public class EntityClear {
                 for (Entity entity : world.getEntities()) {
                     if (entity instanceof Item item && !shouldSkipItem(item.getItemStack(), YouerConfig.clear_item_whitelist)) {
                         size_item += item.getItemStack().getAmount();
+                        if (YouerConfig.trash_enable) {
+                            EntityClearTrash.addItem(item.getItemStack());
+                        }
                         entity.remove();
                         size_stack++;
                     }

@@ -79,40 +79,38 @@ public class DemoGUI {
         return this.items;
     }
 
+    public final void clearItems() {
+        this.items.clear();
+    }
+
+    public final void setPage(int page) {
+        this.pageChoose = Math.max(0, page);
+    }
+
+    public final int getPage() {
+        return this.pageChoose;
+    }
+
     public GUI getGUI() {
         return getGUI(this.items);
     }
 
 
     private GUI getGUI(List<GUIItem> items) {
-        int page = items.size() / 36 + 1;
+        int page = items.isEmpty() ? 1 : (items.size() + 35) / 36;
+        if (pageChoose >= page) {
+            pageChoose = Math.max(0, page - 1);
+        }
         for (int i = 0; i < 36; i++) {
             gui.setItem(i, new GUIItem(new ItemStack(Material.AIR)));
         }
 
         int index = 0;
-        if (pageChoose == page - 1) {
-            if (pageChoose == 0) {
-                for (int i = 0; i < items.size() % 36; i++) {
-                    gui.setItem(index, items.get(i));
-                    index++;
-                }
-            } else {
-                for (int i = this.pageChoose * 36; i < pageChoose * 36 + items.size() % 36; i++) {
-                    gui.setItem(index, items.get(i));
-                    index++;
-                }
-            }
-        } else if (pageChoose == 0) {
-            for (int i = 0; i < 36; i++) {
-                gui.setItem(index, items.get(i));
-                index++;
-            }
-        } else {
-            for (int i = this.pageChoose * 36; i < this.pageChoose * 36 + 36; i++) {
-                gui.setItem(index, items.get(i));
-                index++;
-            }
+        int start = pageChoose * 36;
+        int end = Math.min(start + 36, items.size());
+        for (int i = start; i < end; i++) {
+            gui.setItem(index, items.get(i));
+            index++;
         }
 
         if (this.pageChoose == 0) {

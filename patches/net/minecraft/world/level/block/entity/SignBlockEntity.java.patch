@@ -48,6 +48,34 @@
              float f = signblock.getYRotationDegrees(this.getBlockState());
              float f1 = (float)(Mth.atan2(d1, d0) * 180.0F / (float)Math.PI) - 90.0F;
              return Mth.degreesDifferenceAbs(f, f1) <= 90.0F;
+@@ -107,17 +_,19 @@
+         super.loadAdditional(p_155716_, p_324351_);
+         DynamicOps<Tag> dynamicops = p_324351_.createSerializationContext(NbtOps.INSTANCE);
+         if (p_155716_.contains("front_text")) {
+-            SignText.DIRECT_CODEC
+-                .parse(dynamicops, p_155716_.getCompound("front_text"))
+-                .resultOrPartial(LOGGER::error)
+-                .ifPresent(p_278212_ -> this.frontText = this.loadLines(p_278212_));
++            SignText parsed = SignText.DIRECT_CODEC
++                    .parse(dynamicops, p_155716_.getCompound("front_text"))
++                    .resultOrPartial(e -> LOGGER.warn("Invalid sign front_text, resetting to default: {}", e))
++                    .orElseGet(this::createDefaultSignText);
++            this.frontText = this.loadLines(parsed);
+         }
+ 
+         if (p_155716_.contains("back_text")) {
+-            SignText.DIRECT_CODEC
+-                .parse(dynamicops, p_155716_.getCompound("back_text"))
+-                .resultOrPartial(LOGGER::error)
+-                .ifPresent(p_278213_ -> this.backText = this.loadLines(p_278213_));
++            SignText parsed = SignText.DIRECT_CODEC
++                    .parse(dynamicops, p_155716_.getCompound("back_text"))
++                    .resultOrPartial(e -> LOGGER.warn("Invalid sign back_text, resetting to default: {}", e))
++                    .orElseGet(this::createDefaultSignText);
++            this.backText = this.loadLines(parsed);
+         }
+ 
+         this.isWaxed = p_155716_.getBoolean("is_waxed");
 @@ -146,11 +_,13 @@
  
      public void updateSignText(Player p_278048_, boolean p_278103_, List<FilteredText> p_277990_) {

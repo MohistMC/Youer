@@ -1,6 +1,6 @@
 --- a/net/minecraft/network/PacketEncoder.java
 +++ b/net/minecraft/network/PacketEncoder.java
-@@ -1,11 +_,13 @@
+@@ -1,11 +_,16 @@
  package net.minecraft.network;
  
 +import com.mohistmc.youer.feature.PacketStatistics;
@@ -11,10 +11,13 @@
  import net.minecraft.network.protocol.Packet;
  import net.minecraft.network.protocol.PacketType;
 +import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
++import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
++import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
++import net.minecraft.core.registries.BuiltInRegistries;
  import net.minecraft.util.profiling.jfr.JvmProfiler;
  import org.slf4j.Logger;
  
-@@ -15,30 +_,82 @@
+@@ -15,30 +_,104 @@
  
      public PacketEncoder(ProtocolInfo<T> p_320006_) {
          this.protocolInfo = p_320006_;
@@ -41,7 +44,29 @@
 +                    packetClassName = ((ClientboundCustomPayloadPacket) p_130546_).payload().type().id().toString();
 +                }
 +
-+                PacketStatistics.updatePacketStats(packetClassName, i);
++                String playerName = null;
++                String worldName = "unknown";
++                Connection connection = p_130545_.pipeline().get(Connection.class);
++                if (connection != null) {
++                    net.minecraft.server.level.ServerPlayer player = connection.getPlayer();
++                    if (player != null) {
++                        playerName = player.getName().getString();
++                        worldName = player.level().dimension().location().toString();
++                    }
++                }
++
++                if (p_130546_ instanceof ClientboundLevelChunkWithLightPacket chunkPacket) {
++                    PacketStatistics.updateChunkPacketStats(worldName, chunkPacket.getX(), chunkPacket.getZ(), i, playerName);
++                }
++
++                if (p_130546_ instanceof ClientboundBlockEntityDataPacket bePacket) {
++                    String typeKey = BuiltInRegistries.BLOCK_ENTITY_TYPE.getKey(bePacket.getType()).toString();
++                    PacketStatistics.updateBlockEntityStats(
++                        worldName, bePacket.getPos().getX(), bePacket.getPos().getY(), bePacket.getPos().getZ(),
++                        typeKey, i);
++                }
++
++                PacketStatistics.updatePacketStats(packetClassName, i, playerName);
 +            }
 +
              if (LOGGER.isDebugEnabled()) {

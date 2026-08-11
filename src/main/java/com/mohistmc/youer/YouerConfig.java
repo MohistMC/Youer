@@ -75,8 +75,6 @@ public class YouerConfig {
     public static String keepinventory_inventory_permission;
     public static boolean keepinventory_exp;
     public static String keepinventory_exp_permission;
-    // Thread Priority
-    public static int server_thread;
     // Async advancement loading (parses the player's advancement file off the main thread on login)
     public static boolean async_advancement_loading;
     // Async advancement saving (snapshots on the main thread, codec encode + Gson + file write on a worker)
@@ -88,6 +86,8 @@ public class YouerConfig {
     public static boolean clear_item;
     public static List<String> clear_item_whitelist;
     public static int clear_item_time;
+    public static boolean trash_enable;
+    public static int trash_days;
     public static boolean clear_monster;
     public static List<String> clear_monster_whitelist;
     public static int clear_monster_time;
@@ -278,7 +278,7 @@ public class YouerConfig {
         return yml.getString("youer.lang", Locale.getDefault().toString());
     }
 
-    private static void mohist() {
+    private static void youer() {
         show_logo = getBoolean("youer.show_logo", true);
         youer_lang = getString("youer.lang", Locale.getDefault().toString());
         check_update = getBoolean("youer.check_update", true);
@@ -297,7 +297,6 @@ public class YouerConfig {
         keepinventory_inventory_permission = getString("keepinventory.permission.inventory", "youer.keepinventory.inventory");
         keepinventory_exp = getBoolean("keepinventory.global.exp", true);
         keepinventory_exp_permission = getString("keepinventory.permission.exp", "youer.keepinventory.exp");
-        server_thread = getInt("threadpriority.server_thread", 5);
         async_advancement_loading = getBoolean("youer.async_advancement_loading", true);
         async_advancement_saving = getBoolean("youer.async_advancement_saving", true);
         cache_worldgen_settings = getBoolean("youer.cache_worldgen_settings", true);
@@ -305,6 +304,9 @@ public class YouerConfig {
         clear_item = getBoolean("entity.clear.item.enable", false);
         clear_item_whitelist = getStringList("entity.clear.item.whitelist", new ArrayList<>());
         clear_item_time = getInt("entity.clear.item.time", 1800);
+
+        trash_enable = getBoolean("entity.clear.item.trash.enable", true);
+        trash_days = getInt("entity.clear.item.trash.days", 1);
 
         clear_monster = getBoolean("entity.clear.monster.enable", false);
         clear_monster_whitelist = getStringList("entity.clear.monster.whitelist", new ArrayList<>());
@@ -397,11 +399,6 @@ public class YouerConfig {
         return yml.getString("youer.lang", Locale.getDefault().toString()).contains("CN");
     }
 
-    public static int getThreadPriority() {
-        int priority = YouerConfig.yml.getInt("threadpriority.server_thread", 5);
-        priority = Math.max(Thread.MIN_PRIORITY, Math.min(Thread.MAX_PRIORITY, priority));
-        return priority;
-    }
 
     public static String getMessage_require_neoforge() {
         return ColorAPI.string(message_require_neoforge.formatted(NeoForgeVersion.getVersion()));

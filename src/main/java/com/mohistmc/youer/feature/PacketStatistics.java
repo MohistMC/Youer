@@ -1,6 +1,7 @@
 package com.mohistmc.youer.feature;
 
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
@@ -21,6 +22,21 @@ public class PacketStatistics {
     private static final Map<String, AtomicLong> currentSecondPacketsByPacketType = new ConcurrentHashMap<>();
     private static final Map<String, Long> bytesPerSecondByPacketType = new ConcurrentHashMap<>();
     private static final Map<String, Long> packetsPerSecondByPacketType = new ConcurrentHashMap<>();
+    // Per-chunk statistics for ClientboundLevelChunkWithLightPacket
+    private static final Map<String, AtomicLong> chunkBytes = new ConcurrentHashMap<>();
+    private static final Map<String, AtomicLong> chunkPackets = new ConcurrentHashMap<>();
+    private static final Map<String, Set<String>> chunkPlayers = new ConcurrentHashMap<>();
+    // Per-player statistics
+    private static final Map<String, AtomicLong> playerBytes = new ConcurrentHashMap<>();
+    private static final Map<String, AtomicLong> playerPackets = new ConcurrentHashMap<>();
+    // Per-packet-type player list
+    private static final Map<String, Set<String>> packetTypePlayers = new ConcurrentHashMap<>();
+    // Per-block-entity statistics for ClientboundBlockEntityDataPacket
+    private static final Map<String, AtomicLong> bePosBytes = new ConcurrentHashMap<>();
+    private static final Map<String, AtomicLong> bePosPackets = new ConcurrentHashMap<>();
+    private static final Map<String, String> bePosTypes = new ConcurrentHashMap<>();
+    private static final Map<String, AtomicLong> beTypeBytes = new ConcurrentHashMap<>();
+    private static final Map<String, AtomicLong> beTypePackets = new ConcurrentHashMap<>();
     private static volatile long lastSecond = System.currentTimeMillis() / 1000;
     @Getter
     private static volatile long bytesPerSecond = 0;
@@ -61,6 +77,7 @@ public class PacketStatistics {
         if (updaterThread != null) {
             updaterThread.interrupt();
         }
+        resetStatistics();
     }
 
     public static void startCollecting() {
@@ -100,7 +117,7 @@ public class PacketStatistics {
     }
 
     // Update packet statistics
-    public static void updatePacketStats(String packetClassName, int bytes) {
+    public static void updatePacketStats(String packetClassName, int bytes, @org.jetbrains.annotations.Nullable String playerName) {
         if (!collecting) return; // If collection is not enabled, do not record data
 
         // Update global statistics
@@ -114,6 +131,35 @@ public class PacketStatistics {
         packetsByPacketType.computeIfAbsent(packetClassName, k -> new AtomicLong(0)).incrementAndGet();
         currentSecondBytesByPacketType.computeIfAbsent(packetClassName, k -> new AtomicLong(0)).addAndGet(bytes);
         currentSecondPacketsByPacketType.computeIfAbsent(packetClassName, k -> new AtomicLong(0)).incrementAndGet();
+
+        // Update per-player statistics
+        if (playerName != null) {
+            playerBytes.computeIfAbsent(playerName, k -> new AtomicLong(0)).addAndGet(bytes);
+            playerPackets.computeIfAbsent(playerName, k -> new AtomicLong(0)).incrementAndGet();
+            packetTypePlayers.computeIfAbsent(packetClassName, k -> ConcurrentHashMap.newKeySet()).add(playerName);
+        }
+    }
+
+    // Update per-chunk statistics for ClientboundLevelChunkWithLightPacket
+    public static void updateChunkPacketStats(String world, int x, int z, int bytes, @org.jetbrains.annotations.Nullable String playerName) {
+        if (!collecting) return;
+        String key = world + ":" + x + "," + z;
+        chunkBytes.computeIfAbsent(key, k -> new AtomicLong(0)).addAndGet(bytes);
+        chunkPackets.computeIfAbsent(key, k -> new AtomicLong(0)).incrementAndGet();
+        if (playerName != null) {
+            chunkPlayers.computeIfAbsent(key, k -> ConcurrentHashMap.newKeySet()).add(playerName);
+        }
+    }
+
+    // Update per-block-entity statistics for ClientboundBlockEntityDataPacket
+    public static void updateBlockEntityStats(String world, int x, int y, int z, String type, int bytes) {
+        if (!collecting) return;
+        String posKey = world + ":" + x + "," + y + "," + z;
+        bePosBytes.computeIfAbsent(posKey, k -> new AtomicLong(0)).addAndGet(bytes);
+        bePosPackets.computeIfAbsent(posKey, k -> new AtomicLong(0)).incrementAndGet();
+        bePosTypes.putIfAbsent(posKey, type);
+        beTypeBytes.computeIfAbsent(type, k -> new AtomicLong(0)).addAndGet(bytes);
+        beTypePackets.computeIfAbsent(type, k -> new AtomicLong(0)).incrementAndGet();
     }
 
     // Provide access methods for statistics
@@ -144,6 +190,42 @@ public class PacketStatistics {
         return packetsPerSecondByPacketType.getOrDefault(packetType, 0L);
     }
 
+    public static Map<String, Map<String, Long>> getChunkStats() {
+        return chunkBytes.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> {
+                            Map<String, Long> stats = new java.util.HashMap<>();
+                            stats.put("bytes", e.getValue().get());
+                            stats.put("packets", chunkPackets.getOrDefault(e.getKey(), new AtomicLong(0)).get());
+                            return stats;
+                        }));
+    }
+
+    public static Map<String, Map<String, Long>> getBlockEntityPosStats() {
+        return bePosBytes.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> {
+                            Map<String, Long> stats = new java.util.HashMap<>();
+                            stats.put("bytes", e.getValue().get());
+                            stats.put("packets", bePosPackets.getOrDefault(e.getKey(), new AtomicLong(0)).get());
+                            return stats;
+                        }));
+    }
+
+    public static Map<String, Map<String, Long>> getBlockEntityTypeStats() {
+        return beTypeBytes.entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> {
+                            Map<String, Long> stats = new java.util.HashMap<>();
+                            stats.put("bytes", e.getValue().get());
+                            stats.put("packets", beTypePackets.getOrDefault(e.getKey(), new AtomicLong(0)).get());
+                            return stats;
+                        }));
+    }
+
     // Reset statistics
     public static void resetStatistics() {
         totalBytesSent.set(0);
@@ -153,12 +235,23 @@ public class PacketStatistics {
         bytesPerSecond = 0;
         packetsPerSecond = 0;
 
-        bytesByPacketType.values().forEach(counter -> counter.set(0));
-        packetsByPacketType.values().forEach(counter -> counter.set(0));
-        currentSecondBytesByPacketType.values().forEach(counter -> counter.set(0));
-        currentSecondPacketsByPacketType.values().forEach(counter -> counter.set(0));
+        bytesByPacketType.clear();
+        packetsByPacketType.clear();
+        currentSecondBytesByPacketType.clear();
+        currentSecondPacketsByPacketType.clear();
         bytesPerSecondByPacketType.clear();
         packetsPerSecondByPacketType.clear();
+        chunkBytes.clear();
+        chunkPackets.clear();
+        chunkPlayers.clear();
+        playerBytes.clear();
+        playerPackets.clear();
+        packetTypePlayers.clear();
+        bePosBytes.clear();
+        bePosPackets.clear();
+        bePosTypes.clear();
+        beTypeBytes.clear();
+        beTypePackets.clear();
     }
 
     public static java.nio.file.Path savePacketStatsToJson() throws java.io.IOException {
@@ -178,6 +271,8 @@ public class PacketStatistics {
         root.addProperty("bytesPerSecond", PacketStatistics.getBytesPerSecond());
         root.addProperty("packetsPerSecond", PacketStatistics.getPacketsPerSecond());
         root.addProperty("timestamp", timestamp);
+        root.addProperty("durationMs", System.currentTimeMillis() - PacketStatistics.getStartTime());
+        root.addProperty("durationSeconds", (System.currentTimeMillis() - PacketStatistics.getStartTime()) / 1000);
 
         com.google.gson.JsonObject packetTypes = new com.google.gson.JsonObject();
         Map<String, Long> bytesByPacketType = PacketStatistics.getBytesByPacketType();
@@ -194,13 +289,67 @@ public class PacketStatistics {
                     com.google.gson.JsonObject packetStats = new com.google.gson.JsonObject();
                     packetStats.addProperty("bytes", bytes);
                     packetStats.addProperty("packets", packets);
+                    packetStats.addProperty("avgBytesPerPacket", packets > 0 ? bytes / packets : 0);
+                    packetStats.addProperty("bandwidthPercentage", (double) bytes / PacketStatistics.getTotalBytesSent() * 100);
                     packetStats.addProperty("bytesPerSecond", bytesPerSecond);
                     packetStats.addProperty("packetsPerSecond", packetsPerSecond);
+
+                    com.google.gson.JsonArray players = new com.google.gson.JsonArray();
+                    Set<String> playerSet = packetTypePlayers.get(packetType);
+                    if (playerSet != null) {
+                        playerSet.forEach(players::add);
+                    }
+                    packetStats.add("players", players);
 
                     packetTypes.add(packetType, packetStats);
                 });
 
         root.add("packetTypes", packetTypes);
+
+        com.google.gson.JsonObject playerStats = new com.google.gson.JsonObject();
+        playerBytes.forEach((name, bytes) -> {
+            com.google.gson.JsonObject entry = new com.google.gson.JsonObject();
+            entry.addProperty("bytes", bytes.get());
+            entry.addProperty("packets", playerPackets.getOrDefault(name, new AtomicLong(0)).get());
+            playerStats.add(name, entry);
+        });
+        root.add("playerStats", playerStats);
+
+        com.google.gson.JsonObject chunkStats = new com.google.gson.JsonObject();
+        chunkBytes.forEach((pos, bytes) -> {
+            com.google.gson.JsonObject chunkEntry = new com.google.gson.JsonObject();
+            chunkEntry.addProperty("bytes", bytes.get());
+            chunkEntry.addProperty("packets", chunkPackets.getOrDefault(pos, new AtomicLong(0)).get());
+            com.google.gson.JsonArray players = new com.google.gson.JsonArray();
+            Set<String> playerSet = chunkPlayers.get(pos);
+            if (playerSet != null) {
+                playerSet.forEach(players::add);
+            }
+            chunkEntry.add("players", players);
+            chunkStats.add(pos, chunkEntry);
+        });
+        root.add("chunkStats", chunkStats);
+
+        com.google.gson.JsonObject blockEntityStats = new com.google.gson.JsonObject();
+        com.google.gson.JsonObject bePositions = new com.google.gson.JsonObject();
+        bePosBytes.forEach((pos, bytes) -> {
+            com.google.gson.JsonObject entry = new com.google.gson.JsonObject();
+            entry.addProperty("bytes", bytes.get());
+            entry.addProperty("packets", bePosPackets.getOrDefault(pos, new AtomicLong(0)).get());
+            entry.addProperty("type", bePosTypes.getOrDefault(pos, "unknown"));
+            bePositions.add(pos, entry);
+        });
+        blockEntityStats.add("positions", bePositions);
+
+        com.google.gson.JsonObject beTypes = new com.google.gson.JsonObject();
+        PacketStatistics.getBlockEntityTypeStats().forEach((type, stats) -> {
+            com.google.gson.JsonObject entry = new com.google.gson.JsonObject();
+            entry.addProperty("bytes", stats.get("bytes"));
+            entry.addProperty("packets", stats.get("packets"));
+            beTypes.add(type, entry);
+        });
+        blockEntityStats.add("types", beTypes);
+        root.add("blockEntityStats", blockEntityStats);
 
         try (java.io.FileWriter writer = new java.io.FileWriter(filePath.toFile())) {
             new com.google.gson.GsonBuilder().setPrettyPrinting().create().toJson(root, writer);

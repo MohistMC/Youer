@@ -8,6 +8,7 @@ import com.mohistmc.youer.api.gui.ItemStackFactory;
 import com.mohistmc.youer.feature.EntityClear;
 import com.mohistmc.youer.feature.EntityClearInventory;
 import com.mohistmc.youer.feature.EntityClearListener;
+import com.mohistmc.youer.feature.EntityClearTrash;
 import com.mohistmc.youer.feature.EntityClearType;
 import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
@@ -30,27 +31,26 @@ import org.jetbrains.annotations.NotNull;
  */
 public class EntityClearCommand extends BukkitCommand {
 
-    private static final List<String> TYPES = Arrays.asList("item", "entity", "all", "add", "show");
+    private static final List<String> TYPES = Arrays.asList("item", "entity", "all", "trash", "add", "show");
 
     public EntityClearCommand(String name) {
         super(name);
         this.description = I18n.as("entityclear.description");
-        this.usageMessage = "/entityclear [item|entity|all|add <item|entity>|show <item|entity>]";
-        this.setPermission("youer.command.entityclear");
+        this.usageMessage = "/entityclear [item|entity|all|trash|add <item|entity>|show <item|entity>]";
     }
 
     @Override
     public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) {
         List<String> list = new ArrayList<>();
-        if (!sender.isOp() && !testPermission(sender)) {
-            return list;
-        }
         if (args.length == 1) {
+            // All players can see subcommands (trash is available to everyone)
             for (String type : TYPES) {
                 if (type.toLowerCase().startsWith(args[0].toLowerCase())) {
                     list.add(type);
                 }
             }
+        } else if (!sender.isOp() && !testPermission(sender)) {
+            return list;
         } else if (args.length == 2 && (args[0].equalsIgnoreCase("add") || args[0].equalsIgnoreCase("show"))) {
             for (String type : Arrays.asList("item", "entity")) {
                 if (type.toLowerCase().startsWith(args[1].toLowerCase())) {
@@ -84,13 +84,42 @@ public class EntityClearCommand extends BukkitCommand {
                     list.add(blacklistWildcard);
                 }
             }
+        } else if (args.length == 3 && args[0].equalsIgnoreCase("add") && args[1].equalsIgnoreCase("item")) {
+            // Individual item suggestions
+            for (var key : net.minecraft.core.registries.BuiltInRegistries.ITEM.keySet()) {
+                String name = key.toString();
+                if (name.toLowerCase().startsWith(args[2].toLowerCase())) {
+                    list.add(name);
+                }
+            }
+            // Mod wildcard suggestions (modid:*)
+            java.util.Set<String> namespaces = new java.util.HashSet<>();
+            for (var key : net.minecraft.core.registries.BuiltInRegistries.ITEM.keySet()) {
+                namespaces.add(key.getNamespace());
+            }
+            for (String ns : namespaces) {
+                String wildcard = ns + ":*";
+                if (wildcard.toLowerCase().startsWith(args[2].toLowerCase())) {
+                    list.add(wildcard);
+                }
+            }
         }
         return list;
     }
 
     @Override
     public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, String[] args) {
-        if (!testPermission(sender)) {
+        // Trash subcommand is available to all players without permission check
+        if (args.length > 0 && args[0].equalsIgnoreCase("trash")) {
+            if (!(sender instanceof Player player)) {
+                sender.sendMessage(ChatColor.RED + I18n.as("entityclear.error.notplayer"));
+                return false;
+            }
+            EntityClearTrash.openTrash(player);
+            return true;
+        }
+
+        if (!sender.hasPermission("youer.command.entityclear")) {
             return true;
         }
         if (args.length == 0) {
@@ -124,6 +153,29 @@ public class EntityClearCommand extends BukkitCommand {
                 }
                 switch (args[1].toLowerCase(Locale.ENGLISH)) {
                     case "item" -> {
+                        if (args.length >= 3) {
+                            String itemName = args[2];
+                            boolean isWildcard = itemName.matches("^[a-z0-9_.-]+:\\*$");
+                            if (!isWildcard) {
+                                net.minecraft.resources.ResourceLocation itemKey = net.minecraft.resources.ResourceLocation.parse(itemName);
+                                if (!net.minecraft.core.registries.BuiltInRegistries.ITEM.containsKey(itemKey)) {
+                                    sender.sendMessage(ChatColor.RED + I18n.as("entityclear.add.item.invalid").formatted(itemName));
+                                    return false;
+                                }
+                            }
+
+                            List<String> old = new ArrayList<>(EntityClear.getWhitelist(true));
+                            if (old.contains(itemName)) {
+                                sender.sendMessage(ChatColor.YELLOW + I18n.as("entityclear.add.item.exists").formatted(itemName));
+                                return false;
+                            }
+
+                            old.add(itemName);
+                            EntityClear.saveItemWhitelist(old);
+                            sender.sendMessage(ChatColor.GREEN + I18n.as("entityclear.add.item.success").formatted(itemName));
+                            return true;
+                        }
+
                         EntityClearInventory clearInventory = new EntityClearInventory(EntityClearType.ITEM, I18n.as("entityclear.gui.add.item"));
                         Inventory inventory = clearInventory.getInventory();
                         player.openInventory(inventory);
@@ -189,7 +241,7 @@ public class EntityClearCommand extends BukkitCommand {
                         DemoGUI wh = new DemoGUI(I18n.as("entityclear.show.item"));
                         List<String> old = new ArrayList<>(EntityClear.getWhitelist(true));
                         for (String s : old) {
-                            Material material = Material.matchMaterial(s);
+                            Material material = s.endsWith(":*") ? Material.BARRIER : Material.matchMaterial(s);
                             if (material != null && !material.isAirSafe()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
                                         .setDisplayName(s)
