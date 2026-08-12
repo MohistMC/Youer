@@ -719,7 +719,7 @@
              for (Entity entity : p_8664_.getPassengers()) {
                  this.tickPassenger(p_8664_, entity);
              }
-@@ -786,12 +_,20 @@
+@@ -786,12 +_,48 @@
  
      @Override
      public boolean mayInteract(Player p_8696_, BlockPos p_8697_) {
@@ -733,6 +733,34 @@
          return !this.server.isUnderSpawnProtection(this, p_8697_, p_8696_) && this.getWorldBorder().isWithinBounds(p_8697_);
      }
  
++    // Paper start - Incremental chunk and player saving
++    public void saveIncrementally(boolean doFull) {
++        ServerChunkCache chunkproviderserver = this.getChunkSource();
++
++        if (doFull) {
++            org.bukkit.Bukkit.getPluginManager().callEvent(new org.bukkit.event.world.WorldSaveEvent(getWorld()));
++        }
++
++        if (doFull) {
++            this.saveLevelData();
++        }
++
++        // chunk autosave is already called by the ChunkSystem during unload processing (ChunkMap#processUnloads)
++
++        // Copied from save()
++        // CraftBukkit start - moved from MinecraftServer.saveChunks
++        if (doFull) { // Paper
++            ServerLevel worldserver1 = this;
++
++            this.K.setWorldBorder(worldserver1.getWorldBorder().createSettings());
++            this.K.setCustomBossEvents(this.server.getCustomBossEvents().save(this.registryAccess()));
++            // Youer - save the dimension's own level.dat into its folder (DIM-1, DIM1, dimensions/...) instead of overwriting the main world/level.dat
++            this.convertable.saveDimensionDataTag(this.server.registryAccess(), this.K, this.server.getPlayerList().getSingleplayerData(), worldserver1.dimension(), worldserver1.getGameRules());
++        }
++        // CraftBukkit end
++    }
++    // Paper end - Incremental chunk and player saving
++
      public void save(@Nullable ProgressListener p_8644_, boolean p_8645_, boolean p_8646_) {
          ServerChunkCache serverchunkcache = this.getChunkSource();
          if (!p_8646_) {
