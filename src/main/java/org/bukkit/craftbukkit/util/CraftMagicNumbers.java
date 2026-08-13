@@ -138,8 +138,10 @@ public final class CraftMagicNumbers implements UnsafeValues {
     // ========================================================================
     public static final Map<Block, Material> BLOCK_MATERIAL = new IdentityHashMap<>();
     public static final Map<Item, Material> ITEM_MATERIAL = new IdentityHashMap<>();
-    public static final Map<Material, Item> MATERIAL_ITEM = new EnumMap<>(Material.class);
-    public static final Map<Material, Block> MATERIAL_BLOCK = new EnumMap<>(Material.class);
+    // Use HashMap instead of EnumMap: Youer dynamically adds enum constants via Material.addMaterial at runtime,
+    // EnumMap's internal array is sized at construction time and will throw ArrayIndexOutOfBoundsException on new enums
+    public static final Map<Material, Item> MATERIAL_ITEM = new HashMap<>();
+    public static final Map<Material, Block> MATERIAL_BLOCK = new HashMap<>();
 
     static {
         for (Block block : BuiltInRegistries.BLOCK) {
