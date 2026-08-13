@@ -304,7 +304,7 @@ public class CraftPlayerProfile implements PlayerProfile, SharedPlayerProfile {
 
     private static GameProfile createAuthLibProfile(UUID uniqueId, String name) {
         Preconditions.checkArgument(name == null || name.length() <= 16, "Name cannot be longer than 16 characters");
-        Preconditions.checkArgument(name == null || StringUtil.isValidPlayerName(name), "The name of the profile contains invalid characters: %s", name);
+        // Preconditions.checkArgument(name == null || StringUtil.isValidPlayerName(name), "The name of the profile contains invalid characters: %s", name);
         return new GameProfile(
             uniqueId != null ? uniqueId : Util.NIL_UUID,
             name != null ? name : ""
