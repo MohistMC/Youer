@@ -1,13 +1,14 @@
 --- a/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
 +++ b/net/minecraft/world/entity/projectile/ThrownEnderpearl.java
-@@ -66,23 +_,30 @@
+@@ -66,23 +_,31 @@
  
                  if (entity instanceof ServerPlayer serverplayer) {
                      if (serverplayer.connection.isAcceptingMessages()) {
 +                        // CraftBukkit start
 +                        Entity tp = entity.changeDimension(new DimensionTransition(serverlevel, this.position(), entity.getDeltaMovement(), entity.getYRot(), entity.getXRot(), DimensionTransition.DO_NOTHING, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.ENDER_PEARL));
 +                        if (tp == null) {
-+                            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT);
++                            this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
++                            this.discard();
 +                            return;
 +                        }
 +                        // CraftBukkit end
@@ -37,26 +38,24 @@
                      }
                  } else {
                      entity.changeDimension(
-@@ -94,11 +_,11 @@
+@@ -94,10 +_,12 @@
                      this.playSound(serverlevel, this.position());
                  }
  
--                this.discard();
-+                this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
++                this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+                 this.discard();
                  return;
              }
  
--            this.discard();
-+            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
++            this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
+             this.discard();
              return;
          }
-     }
-@@ -115,7 +_,7 @@
+@@ -115,6 +_,7 @@
      public void tick() {
          Entity entity = this.getOwner();
          if (entity instanceof ServerPlayer && !entity.isAlive() && this.level().getGameRules().getBoolean(GameRules.RULE_ENDER_PEARLS_VANISH_ON_DEATH)) {
--            this.discard();
-+            this.discard(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
++            this.removeReason(org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
+             this.discard();
          } else {
              super.tick();
-         }
