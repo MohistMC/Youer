@@ -1,0 +1,69 @@
+--- a/net/minecraft/client/Options.java
++++ b/net/minecraft/client/Options.java
+@@ -1095,7 +_,7 @@
+         this.incompatibleResourcePacks.clear();
+ 
+         for (Pack entry : packRepository.getSelectedPacks()) {
+-            if (!entry.isFixedPosition()) {
++            if (!entry.isFixedPosition() && !entry.isHidden()) {
+                 this.resourcePacks.add(entry.getId());
+                 if (!entry.getCompatibility().isCompatible()) {
+                     this.incompatibleResourcePacks.add(entry.getId());
+@@ -1474,6 +_,7 @@
+     }
+ 
+     public Options(Minecraft minecraft, File workingDirectory) {
++        setForgeKeybindProperties();
+         this.minecraft = minecraft;
+         this.optionsFile = new File(workingDirectory, "options.txt");
+         boolean largeDistances = Runtime.getRuntime().maxMemory() >= 1000000000L;
+@@ -1494,6 +_,7 @@
+             var1 -> this.setGraphicsPresetToCustom()
+         );
+         this.syncWrites = Util.getPlatform() == Util.OS.WINDOWS;
++        net.neoforged.neoforge.client.ClientHooks.onRegisterKeyMappings(this, KeyMapping.Category.SORT_ORDER);
+         this.load();
+     }
+ 
+@@ -1626,10 +_,15 @@
+         access.process("musicFrequency", this.musicFrequency);
+ 
+         for (KeyMapping keyMapping : this.keyMappings) {
+-            String currentValue = keyMapping.saveString();
++            String currentValue = keyMapping.saveString() + (keyMapping.getKeyModifier() != net.neoforged.neoforge.client.settings.KeyModifier.NONE ? ":" + keyMapping.getKeyModifier() : "");
+             String newValue = access.process("key_" + keyMapping.getName(), currentValue);
+             if (!currentValue.equals(newValue)) {
+-                keyMapping.setKey(InputConstants.getKey(newValue));
++                if (newValue.indexOf(':') != -1) {
++                    String[] pts = newValue.split(":");
++                    keyMapping.setKeyModifierAndCode(net.neoforged.neoforge.client.settings.KeyModifier.valueFromString(pts[1]), InputConstants.getKey(pts[0]));
++                } else {
++                    keyMapping.setKeyModifierAndCode(net.neoforged.neoforge.client.settings.KeyModifier.NONE, InputConstants.getKey(newValue));
++                }
+             }
+         }
+ 
+@@ -1924,6 +_,23 @@
+         }
+ 
+         repository.setSelected(selected);
++    }
++
++    private void setForgeKeybindProperties() {
++        net.neoforged.neoforge.client.settings.KeyConflictContext inGame = net.neoforged.neoforge.client.settings.KeyConflictContext.IN_GAME;
++        keyUp.setKeyConflictContext(inGame);
++        keyLeft.setKeyConflictContext(inGame);
++        keyDown.setKeyConflictContext(inGame);
++        keyRight.setKeyConflictContext(inGame);
++        keyJump.setKeyConflictContext(inGame);
++        keyShift.setKeyConflictContext(inGame);
++        keySprint.setKeyConflictContext(inGame);
++        keyAttack.setKeyConflictContext(inGame);
++        keyChat.setKeyConflictContext(inGame);
++        keyPlayerList.setKeyConflictContext(inGame);
++        keyCommand.setKeyConflictContext(inGame);
++        keyTogglePerspective.setKeyConflictContext(inGame);
++        keySmoothCamera.setKeyConflictContext(inGame);
+     }
+ 
+     public CameraType getCameraType() {

@@ -1,0 +1,94 @@
+--- a/net/minecraft/client/gui/screens/options/controls/KeyBindsScreen.java
++++ b/net/minecraft/client/gui/screens/options/controls/KeyBindsScreen.java
+@@ -24,6 +_,11 @@
+     public long lastKeySelection;
+     private KeyBindsList keyBindsList;
+     private Button resetButton;
++    // Neo: These are to hold the last key and modifier pressed so they can be checked in keyReleased
++    private InputConstants.Key lastPressedKey = InputConstants.UNKNOWN;
++    private InputConstants.Key lastPressedModifier = InputConstants.UNKNOWN;
++    private boolean isLastKeyHeldDown = false;
++    private boolean isLastModifierHeldDown = false;
+ 
+     public KeyBindsScreen(Screen lastScreen, Options options) {
+         super(lastScreen, options, TITLE);
+@@ -42,7 +_,7 @@
+     protected void addFooter() {
+         this.resetButton = Button.builder(Component.translatable("controls.resetAll"), button -> {
+             for (KeyMapping key : this.options.keyMappings) {
+-                key.setKey(key.getDefaultKey());
++                key.setToDefault();
+             }
+ 
+             this.keyBindsList.resetMappingAndUpdateButtons();
+@@ -73,18 +_,67 @@
+     @Override
+     public boolean keyPressed(KeyEvent event) {
+         if (this.selectedKey != null) {
++            var key = InputConstants.getKey(event);
++            if (this.lastPressedModifier == InputConstants.UNKNOWN && net.neoforged.neoforge.client.settings.KeyModifier.isKeyCodeModifier(key)) {
++                this.lastPressedModifier = key;
++                this.isLastModifierHeldDown = true;
++            } else {
++                this.lastPressedKey = key;
++                this.isLastKeyHeldDown = true;
++            }
++            return true;
++        } else {
++            return super.keyPressed(event);
++        }
++    }
++
++    @Override
++    public boolean keyReleased(KeyEvent event) {
++        // We ignore events from keys with the scan code 63 as they're emitted
++        // (only as RELEASE, not PRESS) by Mac systems to indicate that "Fn" is being pressed
++        // See https://github.com/neoforged/NeoForge/issues/1683
++        if (this.selectedKey != null && (!net.minecraft.client.input.InputQuirks.ON_OSX || event.scancode() != 63)) {
+             if (event.isEscape()) {
++                this.selectedKey.setKeyModifierAndCode(net.neoforged.neoforge.client.settings.KeyModifier.NONE, InputConstants.UNKNOWN);
+                 this.selectedKey.setKey(InputConstants.UNKNOWN);
++                this.lastPressedKey = InputConstants.UNKNOWN;
++                this.lastPressedModifier = InputConstants.UNKNOWN;
++                this.isLastKeyHeldDown = false;
++                this.isLastModifierHeldDown = false;
+             } else {
+-                this.selectedKey.setKey(InputConstants.getKey(event));
+-            }
++                var key = InputConstants.getKey(event);
++                if (this.lastPressedKey.equals(key)) {
++                    this.isLastKeyHeldDown = false;
++                } else if (this.lastPressedModifier.equals(key)) {
++                    this.isLastModifierHeldDown = false;
++                }
+ 
++                if (!this.isLastKeyHeldDown && !this.isLastModifierHeldDown) {
++                    if (!this.lastPressedKey.equals(InputConstants.UNKNOWN)) {
++                        this.selectedKey.setKeyModifierAndCode(
++                                net.neoforged.neoforge.client.settings.KeyModifier.getKeyModifier(this.lastPressedModifier),
++                                this.lastPressedKey
++                        );
++                        this.selectedKey.setKey(this.lastPressedKey);
++                    } else {
++                        this.selectedKey.setKeyModifierAndCode(
++                                net.neoforged.neoforge.client.settings.KeyModifier.NONE,
++                                this.lastPressedModifier
++                        );
++                        this.selectedKey.setKey(this.lastPressedModifier);
++                    }
++                    this.lastPressedKey = InputConstants.UNKNOWN;
++                    this.lastPressedModifier = InputConstants.UNKNOWN;
++                } else {
++                    return true;
++                }
++            }
+             this.selectedKey = null;
+             this.lastKeySelection = Util.getMillis();
+             this.keyBindsList.resetMappingAndUpdateButtons();
+             return true;
+         } else {
+-            return super.keyPressed(event);
++            return super.keyReleased(event);
+         }
+     }
+ 

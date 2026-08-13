@@ -1,0 +1,48 @@
+--- a/net/minecraft/client/renderer/entity/EntityRenderer.java
++++ b/net/minecraft/client/renderer/entity/EntityRenderer.java
+@@ -129,11 +_,15 @@
+     ) {
+         poseStack.pushPose();
+         if (state.scoreText != null) {
++            var event = new net.neoforged.neoforge.client.event.RenderNameTagEvent.DoRender(state, state.scoreText, this, poseStack, submitNodeCollector, camera, state.partialTick);
++            if (!net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event).isCanceled())
+             submitNodeCollector.submitNameTag(poseStack, state.nameTagAttachment, offset, state.scoreText, !state.isDiscrete, state.lightCoords, camera);
+             poseStack.translate(0.0F, 9.0F * 1.15F * 0.025F, 0.0F);
+         }
+ 
+         if (state.nameTag != null) {
++            var event = new net.neoforged.neoforge.client.event.RenderNameTagEvent.DoRender(state, state.nameTag, this, poseStack, submitNodeCollector, camera, state.partialTick);
++            if (!net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event).isCanceled())
+             submitNodeCollector.submitNameTag(poseStack, state.nameTagAttachment, offset, state.nameTag, !state.isDiscrete, state.lightCoords, camera);
+         }
+ 
+@@ -158,6 +_,7 @@
+         S state = this.createRenderState();
+         this.extractRenderState(entity, state, partialTicks);
+         this.finalizeRenderState(entity, state);
++        net.neoforged.neoforge.client.renderstate.RenderStateExtensions.onUpdateEntityRenderState(this, entity, state);
+         return state;
+     }
+ 
+@@ -167,6 +_,7 @@
+         state.y = Mth.lerp(partialTicks, entity.yOld, entity.getY());
+         state.z = Mth.lerp(partialTicks, entity.zOld, entity.getZ());
+         state.isInvisible = entity.isInvisible();
++        state.partialTick = partialTicks;
+         state.ageInTicks = entity.tickCount + partialTicks;
+         state.boundingBoxWidth = entity.getBbWidth();
+         state.boundingBoxHeight = entity.getBbHeight();
+@@ -252,9 +_,11 @@
+     protected final void extractNameTags(T entity, S state, float partialTicks, double nameTagDistance, double belowNameDistance) {
+         if (this.entityRenderDispatcher.camera != null) {
+             state.distanceToCameraSq = this.entityRenderDispatcher.distanceToSqr(entity);
+-            boolean shouldShowName = state.distanceToCameraSq < Mth.square(nameTagDistance) && this.shouldShowName(entity, state.distanceToCameraSq);
++            var event = new net.neoforged.neoforge.client.event.RenderNameTagEvent.CanRender(entity, state, this.getNameTag(entity), this, partialTicks);
++            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event);
++            boolean shouldShowName = event.canRender().isTrue() || (event.canRender().isDefault() && state.distanceToCameraSq < Mth.square(nameTagDistance) && this.shouldShowName(entity, state.distanceToCameraSq));
+             if (shouldShowName) {
+-                state.nameTag = this.getNameTag(entity);
++                state.nameTag = event.getContent();
+                 state.nameTagAttachment = entity.getAttachments().getNullable(EntityAttachment.NAME_TAG, 0, entity.getYRot(partialTicks));
+             } else {
+                 state.nameTag = null;

@@ -1,0 +1,69 @@
+--- a/net/minecraft/client/gui/screens/inventory/EffectsInInventory.java
++++ b/net/minecraft/client/gui/screens/inventory/EffectsInInventory.java
+@@ -47,7 +_,15 @@
+         int availableWidth = this.screen.width - xo;
+         Collection<MobEffectInstance> activeEffects = this.minecraft.player.getActiveEffects();
+         if (!activeEffects.isEmpty() && availableWidth >= 32) {
+-            int maxWidth = availableWidth >= 120 ? availableWidth - 7 : 32;
++            boolean wideDisplay = availableWidth >= 120;
++            var event = net.neoforged.neoforge.client.ClientHooks.onScreenPotionSize(screen, availableWidth, !wideDisplay, xo);
++            if (event.isCanceled()) return;
++            wideDisplay = !event.isCompact();
++            xo = event.getHorizontalOffset();
++
++            activeEffects = activeEffects.stream().filter(net.neoforged.neoforge.client.ClientHooks::shouldRenderEffect).sorted().collect(java.util.stream.Collectors.toList());
++
++            int maxWidth = wideDisplay ? availableWidth - 7 : 32;
+             int yStep = 33;
+             if (activeEffects.size() > 5) {
+                 yStep = 132 / (activeEffects.size() - 1);
+@@ -65,11 +_,14 @@
+         Font font = this.screen.getFont();
+ 
+         for (MobEffectInstance effect : sortedEffects) {
++            var renderer = net.neoforged.neoforge.client.extensions.common.IClientMobEffectExtensions.of(effect);
+             boolean isAmbient = effect.isAmbient();
+             Component effectText = this.getEffectName(effect);
+             Component duration = MobEffectUtil.formatDuration(effect, 1.0F, this.minecraft.level.tickRateManager().tickrate());
+             int textureWidth = this.extractBackground(graphics, font, effectText, duration, x0, y0, isAmbient, maxWidth);
+-            this.extractText(graphics, effectText, duration, font, x0, y0, textureWidth, yStep, mouseX, mouseY);
++            if (!renderer.renderInventoryText(effect, screen, graphics, x0, y0, 0))
++            this.renderText(graphics, effectText, duration, font, x0, y0, textureWidth, yStep, mouseX, mouseY, effect);
++            if (!renderer.renderInventoryIcon(effect, screen, graphics, x0 + 7, y0, 0))
+             graphics.blitSprite(RenderPipelines.GUI_TEXTURED, Hud.getMobEffectSprite(effect.getEffect()), x0 + 7, y0 + 7, 18, 18);
+             y0 += yStep;
+         }
+@@ -85,9 +_,15 @@
+         return textureWidth;
+     }
+ 
++    // Neo: Call the method that takes the effect instance for which the text is being rendered
+     private void extractText(
+         GuiGraphicsExtractor graphics, Component effectText, Component duration, Font font, int x0, int y0, int textureWidth, int yStep, int mouseX, int mouseY
+     ) {
++        renderText(graphics, effectText, duration, font, x0, y0, textureWidth, yStep, mouseX, mouseY, null);
++    }
++    private void renderText(
++        GuiGraphicsExtractor graphics, Component effectText, Component duration, Font font, int x0, int y0, int textureWidth, int yStep, int mouseX, int mouseY, @org.jspecify.annotations.Nullable MobEffectInstance effectInstance
++    ) {
+         int textX = x0 + 32;
+         int textY = y0 + 7;
+         int maxTextWidth = textureWidth - 32 - 7;
+@@ -102,8 +_,15 @@
+             isCompact = true;
+         }
+ 
+-        if (isCompact && mouseX >= x0 && mouseX <= x0 + textureWidth && mouseY >= y0 && mouseY <= y0 + yStep) {
+-            graphics.setTooltipForNextFrame(this.screen.getFont(), List.of(effectText, duration), Optional.empty(), mouseX, mouseY);
++        if (mouseX >= x0 && mouseX <= x0 + textureWidth && mouseY >= y0 && mouseY <= y0 + yStep) {
++            // Neo: Allow mods to create or adjust the tooltip shown when hovering over a mob effect.
++            var list = isCompact ? List.of(effectText, duration) : List.<Component>of();
++            if (effectInstance != null) {
++                list = net.neoforged.neoforge.client.ClientHooks.getEffectTooltip(screen, effectInstance, list);
++            }
++            if (!list.isEmpty()) {
++                graphics.setTooltipForNextFrame(this.screen.getFont(), list, Optional.empty(), mouseX, mouseY);
++            }
+         }
+     }
+ 

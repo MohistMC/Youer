@@ -1,0 +1,19 @@
+--- a/net/minecraft/client/ClientRecipeBook.java
++++ b/net/minecraft/client/ClientRecipeBook.java
+@@ -74,6 +_,16 @@
+                     .collect(ImmutableList.toImmutableList())
+             );
+         }
++        // Neo: Do the same for modded search categories.
++        for (var entry : net.neoforged.neoforge.client.RecipeBookManager.getSearchCategories().entrySet()) {
++            byCategory.put(
++                entry.getKey(),
++                entry.getValue()
++                    .stream()
++                    .flatMap(category -> byCategory.getOrDefault(category, List.of()).stream())
++                    .collect(ImmutableList.toImmutableList())
++            );
++        }
+ 
+         this.collectionsByTab = Map.copyOf(byCategory);
+         this.allCollections = all.build();

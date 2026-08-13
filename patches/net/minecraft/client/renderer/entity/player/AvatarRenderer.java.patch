@@ -1,0 +1,68 @@
+--- a/net/minecraft/client/renderer/entity/player/AvatarRenderer.java
++++ b/net/minecraft/client/renderer/entity/player/AvatarRenderer.java
+@@ -94,6 +_,12 @@
+     }
+ 
+     private static HumanoidModel.ArmPose getArmPose(Avatar avatar, ItemStack itemInHand, InteractionHand hand) {
++        var extensions = net.neoforged.neoforge.client.extensions.common.IClientItemExtensions.of(itemInHand);
++        var armPose = extensions.getArmPose(avatar, hand, itemInHand);
++        if (armPose != null) {
++            return armPose;
++        }
++
+         if (itemInHand.isEmpty()) {
+             return HumanoidModel.ArmPose.EMPTY;
+         }
+@@ -154,6 +_,13 @@
+         poseStack.scale(0.9375F, 0.9375F, 0.9375F);
+     }
+ 
++    @Override
++    public void submit(AvatarRenderState state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera) {
++        if (net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.RenderPlayerEvent.Pre<>(state, this, state.partialTick, poseStack, submitNodeCollector)).isCanceled()) return;
++        super.submit(state, poseStack, submitNodeCollector, camera);
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.RenderPlayerEvent.Post<>(state, this, state.partialTick, poseStack, submitNodeCollector));
++    }
++
+     protected void submitNameDisplay(AvatarRenderState state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera) {
+         poseStack.pushPose();
+         int offset = state.showExtraEars ? -10 : 0;
+@@ -190,7 +_,7 @@
+         state.heldOnHead.clear();
+         if (state.isUsingItem) {
+             ItemStack useItem = entity.getItemInHand(state.useItemHand);
+-            if (useItem.is(Items.SPYGLASS)) {
++            if (useItem.canPerformAction(net.neoforged.neoforge.common.ItemAbilities.SPYGLASS_SCOPE)) {
+                 this.itemModelResolver.updateForLiving(state.heldOnHead, useItem, ItemDisplayContext.HEAD, entity);
+             }
+         }
+@@ -236,11 +_,29 @@
+         state.capeFlap = state.capeFlap + Mth.sin(walkDistance * 6.0F) * 32.0F * pow;
+     }
+ 
++    /**
++     * @deprecated Neo: use {@link #renderRightHand(PoseStack, SubmitNodeCollector, int, Identifier, boolean, Avatar)} instead
++     */
++    @Deprecated
+     public void renderRightHand(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int lightCoords, Identifier skinTexture, boolean hasSleeve) {
++        this.renderRightHand(poseStack, submitNodeCollector, lightCoords, skinTexture, hasSleeve, (AvatarlikeEntity) net.minecraft.client.Minecraft.getInstance().player);
++    }
++
++    public void renderRightHand(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int lightCoords, Identifier skinTexture, boolean hasSleeve, AvatarlikeEntity avatar) {
++        if(!net.neoforged.neoforge.client.ClientHooks.renderSpecificFirstPersonArm(poseStack, submitNodeCollector, lightCoords, skinTexture, hasSleeve, avatar, HumanoidArm.RIGHT, this.model.rightArm))
+         this.renderHand(poseStack, submitNodeCollector, lightCoords, skinTexture, this.model.rightArm, hasSleeve);
+     }
+ 
++    /**
++     * @deprecated Neo: use {@link #renderLeftHand(PoseStack, SubmitNodeCollector, int, Identifier, boolean, Avatar)} instead
++     */
++    @Deprecated
+     public void renderLeftHand(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int lightCoords, Identifier skinTexture, boolean hasSleeve) {
++        this.renderLeftHand(poseStack, submitNodeCollector, lightCoords, skinTexture, hasSleeve, (AvatarlikeEntity) net.minecraft.client.Minecraft.getInstance().player);
++    }
++
++    public void renderLeftHand(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int lightCoords, Identifier skinTexture, boolean hasSleeve, AvatarlikeEntity avatar) {
++        if(!net.neoforged.neoforge.client.ClientHooks.renderSpecificFirstPersonArm(poseStack, submitNodeCollector, lightCoords, skinTexture, hasSleeve, avatar, HumanoidArm.LEFT, this.model.leftArm))
+         this.renderHand(poseStack, submitNodeCollector, lightCoords, skinTexture, this.model.leftArm, hasSleeve);
+     }
+ 

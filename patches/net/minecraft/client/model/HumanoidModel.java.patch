@@ -1,0 +1,58 @@
+--- a/net/minecraft/client/model/HumanoidModel.java
++++ b/net/minecraft/client/model/HumanoidModel.java
+@@ -391,6 +_,9 @@
+                 break;
+             case SPEAR:
+                 SpearAnimations.thirdPersonHandUse(this.rightArm, this.head, true, state.getUseItemStackForArm(HumanoidArm.RIGHT), state);
++                break;
++            default:
++                state.rightArmPose.applyTransform(this, state, net.minecraft.world.entity.HumanoidArm.RIGHT);
+         }
+     }
+ 
+@@ -436,6 +_,9 @@
+                 break;
+             case SPEAR:
+                 SpearAnimations.thirdPersonHandUse(this.leftArm, this.head, false, state.getUseItemStackForArm(HumanoidArm.LEFT), state);
++                break;
++            default:
++                state.leftArmPose.applyTransform(this, state, net.minecraft.world.entity.HumanoidArm.LEFT);
+         }
+     }
+ 
+@@ -519,9 +_,20 @@
+         private final boolean twoHanded;
+         private final boolean affectsOffhandPose;
+ 
++        private final net.neoforged.neoforge.client.@org.jspecify.annotations.Nullable IArmPoseTransformer forgeArmPose;
++
++        @net.neoforged.fml.common.asm.enumextension.ReservedConstructor
+         ArmPose(boolean twoHanded, boolean affectsOffhandPose) {
+             this.twoHanded = twoHanded;
+             this.affectsOffhandPose = affectsOffhandPose;
++            this.forgeArmPose = null;
++        }
++
++        private ArmPose(boolean twoHanded, boolean affectsOffhandPose, net.neoforged.neoforge.client.IArmPoseTransformer forgeArmPose) {
++            this.twoHanded = twoHanded;
++            this.affectsOffhandPose = affectsOffhandPose;
++            com.google.common.base.Preconditions.checkNotNull(forgeArmPose, "Cannot create new ArmPose with null transformer!");
++            this.forgeArmPose = forgeArmPose;
+         }
+ 
+         public boolean isTwoHanded() {
+@@ -530,6 +_,14 @@
+ 
+         public boolean affectsOffhandPose() {
+             return this.affectsOffhandPose;
++        }
++
++        public <T extends HumanoidRenderState> void applyTransform(HumanoidModel<T> model, T entity, net.minecraft.world.entity.HumanoidArm arm) {
++            if (this.forgeArmPose != null) this.forgeArmPose.applyTransform(model, entity, arm);
++        }
++
++        public static net.neoforged.fml.common.asm.enumextension.ExtensionInfo getExtensionInfo() {
++            return net.neoforged.fml.common.asm.enumextension.ExtensionInfo.nonExtended(HumanoidModel.ArmPose.class);
+         }
+ 
+         public <S extends ArmedEntityRenderState> void animateUseItem(S state, PoseStack poseStack, float ticksUsingItem, HumanoidArm arm, ItemStack actualItem) {

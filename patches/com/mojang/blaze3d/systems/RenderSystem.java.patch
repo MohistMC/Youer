@@ -1,0 +1,44 @@
+--- a/com/mojang/blaze3d/systems/RenderSystem.java
++++ b/com/mojang/blaze3d/systems/RenderSystem.java
+@@ -71,6 +_,7 @@
+     private static @Nullable DynamicUniforms dynamicUniforms;
+     private static final ScissorState scissorStateForRenderTypeDraws = new ScissorState();
+     private static final SamplerCache samplerCache = new SamplerCache();
++    private static final net.neoforged.neoforge.client.pipeline.PipelineModifierStack PIPELINE_MODIFIERS = new net.neoforged.neoforge.client.pipeline.PipelineModifierStack();
+ 
+     public static SamplerCache getSamplerCache() {
+         return samplerCache;
+@@ -377,5 +_,33 @@
+     }
+ 
+     private record GpuAsyncTask(Runnable callback, GpuFence fence) {
++    }
++
++    /// Neo: Push the provided [net.neoforged.neoforge.client.pipeline.PipelineModifier] to be applied to subsequent rendering.
++    ///
++    /// Must be paired with a corresponding [#popPipelineModifier()] call after flushing the used buffers
++    public static void pushPipelineModifier(net.minecraft.resources.ResourceKey<net.neoforged.neoforge.client.pipeline.PipelineModifier> modifier) {
++        PIPELINE_MODIFIERS.push(modifier);
++    }
++
++    /// Neo: Pop the last [net.neoforged.neoforge.client.pipeline.PipelineModifier] off the modifier stack
++    public static void popPipelineModifier() {
++        PIPELINE_MODIFIERS.pop();
++    }
++
++    /// Neo: Run the provided [Runnable] with the provided [net.neoforged.neoforge.client.pipeline.PipelineModifier] applied
++    /// to the pipelines used by the rendering done in the [Runnable]
++    public static void renderWithPipelineModifier(net.minecraft.resources.ResourceKey<net.neoforged.neoforge.client.pipeline.PipelineModifier> modifier, Runnable renderTask) {
++        PIPELINE_MODIFIERS.renderWithModifier(modifier, renderTask);
++    }
++
++    @org.jetbrains.annotations.ApiStatus.Internal
++    public static com.mojang.blaze3d.pipeline.RenderPipeline applyPipelineModifiers(com.mojang.blaze3d.pipeline.RenderPipeline pipeline) {
++        return PIPELINE_MODIFIERS.apply(pipeline);
++    }
++
++    @org.jetbrains.annotations.ApiStatus.Internal
++    public static void ensurePipelineModifiersEmpty() {
++        PIPELINE_MODIFIERS.ensureEmpty();
+     }
+ }

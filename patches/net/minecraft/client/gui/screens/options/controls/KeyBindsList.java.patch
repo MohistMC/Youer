@@ -1,0 +1,35 @@
+--- a/net/minecraft/client/gui/screens/options/controls/KeyBindsList.java
++++ b/net/minecraft/client/gui/screens/options/controls/KeyBindsList.java
+@@ -39,7 +_,7 @@
+                 this.addEntry(new KeyBindsList.CategoryEntry(category));
+             }
+ 
+-            Component name = Component.translatable(key.getName());
++            Component name = key.getDisplayName();
+             int width = minecraft.font.width(name);
+             if (width > this.maxNameWidth) {
+                 this.maxNameWidth = width;
+@@ -123,6 +_,7 @@
+                 )
+                 .build();
+             this.resetButton = Button.builder(RESET_BUTTON_TITLE, button -> {
++                this.key.setToDefault();
+                 key.setKey(key.getDefaultKey());
+                 KeyBindsList.this.resetMappingAndUpdateButtons();
+             }).bounds(0, 0, 50, 20).createNarration(defaultNarrationSupplier -> Component.translatable("narrator.controls.reset", name)).build();
+@@ -164,13 +_,13 @@
+             MutableComponent tooltip = Component.empty();
+             if (!this.key.isUnbound()) {
+                 for (KeyMapping otherKey : KeyBindsList.this.minecraft.options.keyMappings) {
+-                    if (otherKey != this.key && this.key.same(otherKey) && (!otherKey.isDefault() || !this.key.isDefault())) {
++                    if ((otherKey != this.key && this.key.same(otherKey)) || otherKey.hasKeyModifierConflict(this.key)) { // Neo: gracefully handle conflicts like SHIFT vs SHIFT+G
+                         if (this.hasCollision) {
+                             tooltip.append(", ");
+                         }
+ 
+                         this.hasCollision = true;
+-                        tooltip.append(Component.translatable(otherKey.getName()));
++                        tooltip.append(otherKey.getDisplayName());
+                     }
+                 }
+             }

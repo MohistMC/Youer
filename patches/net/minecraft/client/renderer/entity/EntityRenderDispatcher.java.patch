@@ -1,0 +1,26 @@
+--- a/net/minecraft/client/renderer/entity/EntityRenderDispatcher.java
++++ b/net/minecraft/client/renderer/entity/EntityRenderDispatcher.java
+@@ -201,6 +_,14 @@
+         return this.itemInHandRenderer;
+     }
+ 
++    public Map<PlayerModelType, EntityRenderer<? extends Avatar, ?>> getPlayerRenderers() {
++        return java.util.Collections.unmodifiableMap(playerRenderers);
++    }
++
++    public Map<PlayerModelType, EntityRenderer<? extends Avatar, ?>> getMannequinRenderers() {
++        return java.util.Collections.unmodifiableMap(mannequinRenderers);
++    }
++
+     @Override
+     public void onResourceManagerReload(ResourceManager resourceManager) {
+         EntityRendererProvider.Context context = new EntityRendererProvider.Context(
+@@ -218,5 +_,8 @@
+         this.renderers = EntityRenderers.createEntityRenderers(context);
+         this.playerRenderers = EntityRenderers.createAvatarRenderers(context);
+         this.mannequinRenderers = EntityRenderers.createAvatarRenderers(context);
++        net.neoforged.fml.ModLoader.postEvent(new net.neoforged.neoforge.client.event.EntityRenderersEvent.AddLayers(
++                renderers, playerRenderers, mannequinRenderers, context
++        ));
+     }
+ }

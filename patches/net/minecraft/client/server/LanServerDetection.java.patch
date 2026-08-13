@@ -1,0 +1,24 @@
+--- a/net/minecraft/client/server/LanServerDetection.java
++++ b/net/minecraft/client/server/LanServerDetection.java
+@@ -32,7 +_,7 @@
+             this.setDaemon(true);
+             this.setUncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LanServerDetection.LOGGER));
+             this.socket = new MulticastSocket(4445);
+-            this.pingGroup = InetAddress.getByName("224.0.2.60");
++            this.pingGroup = InetAddress.getByName(LanServerPinger.MULTICAST_GROUP);
+             this.socket.setSoTimeout(5000);
+             this.socket.joinGroup(this.pingGroup);
+         }
+@@ -85,7 +_,11 @@
+             String motd = LanServerPinger.parseMotd(pingData);
+             String address = LanServerPinger.parseAddress(pingData);
+             if (address != null) {
+-                address = socketAddress.getHostAddress() + ":" + address;
++                if (net.neoforged.neoforge.network.DualStackUtils.checkIPv6(socketAddress)) {
++                    address = "[" + com.google.common.net.InetAddresses.toAddrString(socketAddress) + "]:" + address;
++                } else {
++                    address = socketAddress.getHostAddress() + ":" + address;
++                }
+                 boolean found = false;
+ 
+                 for (LanServer server : this.servers) {
