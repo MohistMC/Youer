@@ -280,7 +280,7 @@
          }
      }
  
-@@ -292,9 +_,33 @@
+@@ -292,9 +_,50 @@
              this.flushQueue();
              action.accept(this);
          } else {
@@ -312,6 +312,23 @@
 +            this.pendingActions.add(new WrappedConsumer(connection -> connection.channel.eventLoop().execute(task)));
 +            this.flushQueue();
 +        }
++    }
++
++    /**
++     * Schedules a task on the channel's event loop after all currently queued packets have been submitted for writing.
++     * This allows the compression packet to be written and compression to be enabled in the same event-loop task.
++     * Vanilla enables compression from a write-future listener, which may run after another packet has already been
++     * queued without compression.
++     *
++     * @see <a href="https://mojira.dev/MC-308621">MC-308621</a>
++     */
++    public void sendPacketAndScheduleNettyTask(final Packet<?> packet, final boolean flush, final Runnable after) {
++        this.scheduleNettyTask(() -> {
++            Connection.this.sendPacket(packet, null, flush);
++            if (after != null) {
++                after.run();
++            }
++        });
 +    }
 +    // Paper end - Add netty task scheduling helper
  
