@@ -642,7 +642,7 @@
              this.player.sendSystemMessage(Component.translatable("advMode.notAllowed"));
          } else {
              BaseCommandBlock commandBlock = packet.getCommandBlock(this.player.level());
-@@ -704,13 +_,13 @@
+@@ -704,13 +_,14 @@
              if (level.isLoaded(pos)) {
                  BlockState blockState = level.getBlockState(pos);
                  boolean includeData = this.player.hasInfiniteMaterials() && packet.includeData();
@@ -655,6 +655,7 @@
                      }
  
 -                    this.tryPickItem(itemStack);
++                    // this.tryPickItem(itemStack);
 +                    this.tryPickItem(itemStack, pos, null, packet.includeData()); // Paper - Extend PlayerPickItemEvent API
                  }
              }
@@ -668,12 +669,7 @@
              }
  
              if (packet.includeData() && this.player.canUseGameMasterBlocks() && entity instanceof Avatar avatar) {
-@@ -746,22 +_,36 @@
-         }
-     }
- 
--    private void tryPickItem(ItemStack itemStack) {
-+    private void tryPickItem(ItemStack itemStack, @Nullable BlockPos blockPos, @Nullable Entity entity, boolean includeData) { // Paper - Extend PlayerPickItemEvent API
+@@ -750,19 +_,48 @@
          if (itemStack.isItemEnabled(this.player.level().enabledFeatures())) {
              Inventory inventory = this.player.getInventory();
              int slotWithExistingItem = inventory.findSlotMatchingItem(itemStack);
@@ -689,6 +685,7 @@
 +                    ? new io.papermc.paper.event.player.PlayerPickEntityEvent(bukkitPlayer, entity.getBukkitEntity(), bukkitItem, includeData, targetSlot, sourceSlot)
 +                    : new io.papermc.paper.event.player.PlayerPickBlockEvent(bukkitPlayer, org.bukkit.craftbukkit.block.CraftBlock.at(this.player.level(), blockPos), bukkitItem, includeData, targetSlot, sourceSlot);
 +            if (!event.callEvent()) {
++                this.clearTPI();
 +                return;
 +            }
 +            slotWithExistingItem = event.getSourceSlot();
@@ -708,9 +705,24 @@
              this.send(new ClientboundSetHeldSlotPacket(inventory.getSelectedSlot()));
              this.player.inventoryMenu.broadcastChanges();
 +            if (io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.updateEquipmentOnPlayerActions) this.player.detectEquipmentUpdates(); // Paper - Force update attributes.
++            this.clearTPI();
          }
++    }
++
++    @Nullable BlockPos blockPos; @Nullable Entity entity; boolean includeData;
++    private void clearTPI() {
++        this.blockPos = null;
++        this.entity = null;
++        this.includeData = false;
++    }
++    private void tryPickItem(ItemStack itemStack, @Nullable BlockPos blockPos, @Nullable Entity entity, boolean includeData) { // Paper - Extend PlayerPickItemEvent API
++        this.blockPos = blockPos;
++        this.entity = entity;
++        this.includeData = includeData;
++       tryPickItem(itemStack);
      }
  
+     @Override
 @@ -788,7 +_,7 @@
              }
  
