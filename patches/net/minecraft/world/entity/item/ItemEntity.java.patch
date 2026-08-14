@@ -132,13 +132,14 @@
              if (this.isInWater() && this.getFluidHeight(FluidTags.WATER) > 0.1F) {
                  this.setUnderwaterMovement();
              } else if (this.isInLava() && this.getFluidHeight(FluidTags.LAVA) > 0.1F) {
-@@ -143,8 +_,12 @@
+@@ -143,8 +_,13 @@
                  this.applyEffectsFromBlocks();
                  float airDrag = this.getAirDrag();
                  float groundFriction = airDrag;
 -                if (this.onGround()) {
 -                    groundFriction *= this.level().getBlockState(this.getBlockPosBelowThatAffectsMyMovement()).getBlock().getFriction();
-+                if (this.frictionState == net.kyori.adventure.util.TriState.FALSE) { // Paper - Friction API
++                // Paper start - Friction API
++                if (this.frictionState == net.kyori.adventure.util.TriState.FALSE) {
 +                    groundFriction = 1F;
 +                } else if (this.onGround()) {
 +                // Paper end - Friction API
@@ -147,18 +148,6 @@
                  }
  
                  this.setDeltaMovement(this.getDeltaMovement().multiply(groundFriction, airDrag, groundFriction));
-@@ -164,9 +_,11 @@
-                 this.mergeWithNeighbours();
-             }
- 
-+            /* CraftBukkit start - moved up
-             if (this.age != -32768) {
-                 this.age++;
-             }
-+            // CraftBukkit end */
- 
-             this.needsSync = this.needsSync | this.updateFluidInteraction();
-             if (!this.level().isClientSide()) {
 @@ -176,8 +_,22 @@
                  }
              }
