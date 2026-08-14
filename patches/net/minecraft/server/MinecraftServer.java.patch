@@ -586,7 +586,7 @@
              }
  
              serverlevel.save(null, p_129887_, serverlevel.noSave && !p_129888_);
-@@ -550,31 +_,46 @@
+@@ -550,31 +_,58 @@
  
          ServerLevel serverlevel2 = this.overworld();
          ServerLevelData serverleveldata = this.worldData.overworldData();
@@ -609,6 +609,18 @@
  
      public boolean saveEverything(boolean p_195515_, boolean p_195516_, boolean p_195517_) {
 -        boolean flag;
++        if (p_195517_) {
++            boolean flag;
++            try {
++                this.isSaving = true;
++                this.getPlayerList().saveAll();
++                flag = this.saveAllChunks(p_195515_, p_195516_, p_195517_);
++            } finally {
++                this.isSaving = false;
++            }
++
++            return flag;
++        }
 +        // Paper start - Incremental chunk and player saving
 +        int playerSaveInterval = io.papermc.paper.configuration.GlobalConfiguration.get().playerAutoSave.rate;
 +        if (playerSaveInterval < 0) {
