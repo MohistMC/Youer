@@ -42,6 +42,7 @@ public class AutoDeleteMods {
         put("one.pkg.mod.krypton_fnp.NeoModBootstrap", DeletionReason.DUPLICATE_FEATURE);
         put("one.pkg.kfnp.NeoModBootstrap", DeletionReason.DUPLICATE_FEATURE);
         put("net.caffeinemc.mods.lithium.neoforge.LithiumNeoForgeMod", DeletionReason.DUPLICATE_FEATURE);
+        put("net.caffeinemc.mods.sodium.service.SodiumWorkarounds", DeletionReason.CLIENT_ONLY);
         put("me.jellysquid.mods.lithium.common.LithiumMod", DeletionReason.DUPLICATE_FEATURE);
         //put("com.bawnorton.neruina.Neruina", DeletionReason.DUPLICATE_FEATURE);
         put("ca.spottedleaf.starlight.common.ScalableLuxEntrypoint", DeletionReason.DUPLICATE_FEATURE);
@@ -67,6 +68,15 @@ public class AutoDeleteMods {
         put("com.xinian.KryptonHybrid.kryptonhybrid", DeletionReason.DUPLICATE_FEATURE);
         put("com.wfphantom.stfudisconnect.STFUDisconnect", DeletionReason.DUPLICATE_FEATURE);
         put("io.github.steveplays28.noisium.neoforge.NoisiumNeoForge", DeletionReason.DUPLICATE_FEATURE);
+        put("fi.dy.masa.tweakeroo.Tweakeroo", DeletionReason.CLIENT_ONLY);
+        put("gg.essential.container.loader.stage0.EssentialLoader", DeletionReason.CLIENT_ONLY);
+        put("net.jaiz.coolrain.CoolRain", DeletionReason.CLIENT_ONLY);
+        put("de.keksuccino.drippyloadingscreen.DrippyLoadingScreenNeoForge", DeletionReason.CLIENT_ONLY);
+        put("com.mr_toad.lib.core.ToadLib", DeletionReason.CLIENT_ONLY);
+        put("io.github.jamalam360.shut_up_gl_error.neoforge.ShutUpGLErrorNeoForge", DeletionReason.CLIENT_ONLY);
+        put("com.github.newvisualkeybing.NewVisualKeybing", DeletionReason.CLIENT_ONLY);
+        put("top.leonx.irisflw.IrisFlwNeoForge", DeletionReason.CLIENT_ONLY);
+        put("com.leclowndu93150.particlerain.ParticleRainClient", DeletionReason.CLIENT_ONLY);
     }};
 
     private static final String END = OSUtil.getOS().isWindows() ? ";" : ":";
