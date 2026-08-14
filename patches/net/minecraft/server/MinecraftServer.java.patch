@@ -586,7 +586,7 @@
              }
  
              serverlevel.save(null, p_129887_, serverlevel.noSave && !p_129888_);
-@@ -550,15 +_,15 @@
+@@ -550,31 +_,46 @@
  
          ServerLevel serverlevel2 = this.overworld();
          ServerLevelData serverleveldata = this.worldData.overworldData();
@@ -605,6 +605,42 @@
          }
  
          return flag;
+     }
+ 
+     public boolean saveEverything(boolean p_195515_, boolean p_195516_, boolean p_195517_) {
+-        boolean flag;
++        // Paper start - Incremental chunk and player saving
++        int playerSaveInterval = io.papermc.paper.configuration.GlobalConfiguration.get().playerAutoSave.rate;
++        if (playerSaveInterval < 0) {
++            playerSaveInterval = autosavePeriod;
++        }
++        this.profiler.push("save");
++        PulseGrasp.feelPulse("save");
++        final boolean fullSave = autosavePeriod > 0 && this.tickCount % autosavePeriod == 0;
+         try {
+             this.isSaving = true;
+-            this.getPlayerList().saveAll();
+-            flag = this.saveAllChunks(p_195515_, p_195516_, p_195517_);
++            if (playerSaveInterval > 0) {
++                this.playerList.saveAll(playerSaveInterval);
++            }
++            for (ServerLevel level : this.getAllLevels()) {
++                if (level.paperConfig().chunks.autoSaveInterval.value() > 0) {
++                    level.saveIncrementally(fullSave);
++                }
++            }
+         } finally {
+             this.isSaving = false;
+         }
+-
+-        return flag;
++        this.profiler.pop();
++        PulseGrasp.pulseComplete();
++        // Paper end - Incremental chunk and player saving
++        return fullSave;
+     }
+ 
+     @Override
 @@ -582,21 +_,57 @@
          this.stopServer();
      }
@@ -1014,7 +1050,7 @@
          }
      }
  
-@@ -900,33 +_,79 @@
+@@ -900,33 +_,56 @@
  
      public void tickServer(BooleanSupplier p_129871_) {
          long i = Util.getNanos();
@@ -1050,30 +1086,7 @@
 -            LOGGER.debug("Autosave finished");
 -        }
 -
-+        // Paper start - Incremental chunk and player saving
-+        int playerSaveInterval = io.papermc.paper.configuration.GlobalConfiguration.get().playerAutoSave.rate;
-+        if (playerSaveInterval < 0) {
-+            playerSaveInterval = autosavePeriod;
-+        }
-+        this.profiler.push("save");
-+        PulseGrasp.feelPulse("save");
-+        final boolean fullSave = autosavePeriod > 0 && this.tickCount % autosavePeriod == 0;
-+        try {
-+            this.isSaving = true;
-+            if (playerSaveInterval > 0) {
-+                this.playerList.saveAll(playerSaveInterval);
-+            }
-+            for (ServerLevel level : this.getAllLevels()) {
-+                if (level.paperConfig().chunks.autoSaveInterval.value() > 0) {
-+                    level.saveIncrementally(fullSave);
-+                }
-+            }
-+        } finally {
-+            this.isSaving = false;
-+        }
-+        this.profiler.pop();
-+        PulseGrasp.pulseComplete();
-+        // Paper end - Incremental chunk and player saving
++        this.saveEverything(true, false, false); // Youer
 +        // Paper start - move executeAll() into full server tick timing
 +        this.runAllTasks();
 +        // Paper end
