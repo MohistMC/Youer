@@ -185,6 +185,24 @@
                          levelchunk1.incrementInhabitedTime(j);
                          if (flag1 && (this.spawnEnemies || this.spawnFriendlies) && this.level.getWorldBorder().isWithinBounds(chunkpos)) {
                              NaturalSpawner.spawnForChunk(this.level, levelchunk1, naturalspawner$spawnstate, this.spawnFriendlies, this.spawnEnemies, flag);
+@@ -415,6 +_,17 @@
+         return this.chunkMap.size();
+     }
+ 
++    /** 统计实体运转级别（ENTITY_TICKING）的活跃区块数 */
++    public int getActiveChunksCount() {
++        int count = 0;
++        for (ChunkHolder chunkholder : this.chunkMap.getChunks()) {
++            if (ChunkLevel.fullStatus(chunkholder.getTicketLevel()).isOrAfter(FullChunkStatus.ENTITY_TICKING)) {
++                count++;
++            }
++        }
++        return count;
++    }
++
+     public void blockChanged(BlockPos p_8451_) {
+         int i = SectionPos.blockToSectionCoord(p_8451_.getX());
+         int j = SectionPos.blockToSectionCoord(p_8451_.getZ());
 @@ -435,11 +_,17 @@
      }
  

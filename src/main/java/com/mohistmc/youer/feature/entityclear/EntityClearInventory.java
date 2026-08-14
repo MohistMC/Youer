@@ -1,4 +1,4 @@
-package com.mohistmc.youer.feature;
+package com.mohistmc.youer.feature.entityclear;
 
 import lombok.Getter;
 import org.bukkit.Bukkit;

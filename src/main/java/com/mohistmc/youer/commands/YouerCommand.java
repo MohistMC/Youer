@@ -3,25 +3,20 @@ package com.mohistmc.youer.commands;
 import com.mohistmc.tools.NumberUtil;
 import com.mohistmc.tools.OSUtil;
 import com.mohistmc.tools.StatsUtils;
-import com.mohistmc.tools.StringUtil;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.PlayerAPI;
 import com.mohistmc.youer.api.ServerAPI;
-import com.mohistmc.youer.feature.PacketStatistics;
 import com.mohistmc.youer.feature.WorldBackup;
+import com.mohistmc.youer.feature.entityclear.EntityClear;
 import com.mohistmc.youer.util.I18n;
 import com.mohistmc.youer.util.MemoryUtils;
-import com.mohistmc.youer.util.TimeUtils;
-import com.mohistmc.youer.util.YouerThreadCost;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
-import java.util.stream.Stream;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import org.bukkit.Bukkit;
@@ -38,8 +33,8 @@ public class YouerCommand extends Command {
 
     private static final String[] COMMAND_LIST = {
             "windows", "mods", "playermods", "reload", "version",
-            "channels_incom", "channels_outgo", "speed", "printthreadcost",
-            "packetstats", "heal", "help", "memoryfix", "showp",
+            "channels_incom", "channels_outgo", "speed",
+            "heal", "help", "memoryfix", "showp",
             "backupworld"
     };
 
@@ -64,10 +59,6 @@ public class YouerCommand extends Command {
                 }
             } else if (args.length == 2 && args[0].equalsIgnoreCase("playermods")) {
                 return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
-            } else if (args.length == 2 && args[0].equalsIgnoreCase("packetstats")) {
-                return Stream.of("start", "stop", "status")
-                        .filter(param -> param.toLowerCase().startsWith(args[1].toLowerCase()))
-                        .toList();
             } else if (args.length == 2 && (args[0].equalsIgnoreCase("heal") || args[0].equalsIgnoreCase("showp"))) {
                 return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
             }
@@ -118,6 +109,10 @@ public class YouerCommand extends Command {
                     world.spigotConfig.init();
                 }
 
+                // 重启 EntityClear 调度器，使新的 enable/time 配置热生效
+                EntityClear.stop();
+                EntityClear.start();
+
                 console.server.reloadCount++;
                 sender.sendMessage(ChatColor.GREEN + I18n.as("youercmd.reload.complete"));
                 return true;
@@ -129,109 +124,6 @@ public class YouerCommand extends Command {
                 sender.sendMessage("CraftBukkit: " + Youer.versionInfo.craftbukkit());
                 sender.sendMessage("Spigot: " + Youer.versionInfo.spigot());
                 return true;
-            }
-            case "packetstats" -> {
-                if (args.length < 2) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("packetstats.usage"));
-                    return false;
-                }
-
-                switch (args[1].toLowerCase()) {
-                    case "start" -> {
-                        if (PacketStatistics.isCollecting()) {
-                            sender.sendMessage(ChatColor.YELLOW + I18n.as("packetstats.already.running"));
-                            return true;
-                        }
-                        PacketStatistics.startCollecting();
-                        sender.sendMessage(ChatColor.GREEN + I18n.as("packetstats.started"));
-                        sender.sendMessage(ChatColor.GRAY + I18n.as("packetstats.stop.to.view"));
-                        return true;
-                    }
-                    case "stop" -> {
-                        if (!PacketStatistics.isCollecting()) {
-                            sender.sendMessage(ChatColor.YELLOW + I18n.as("packetstats.not.running"));
-                            return true;
-                        }
-
-                        long stopTime = System.currentTimeMillis();
-                        long durationMillis = stopTime - PacketStatistics.getStartTime();
-                        long durationSeconds = durationMillis / 1000;
-                        String durationString = TimeUtils.formatDuration(durationSeconds);
-
-                        PacketStatistics.stopCollecting();
-                        sender.sendMessage(ChatColor.GOLD + I18n.as("packetstats.report.title"));
-                        sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.total.bytes", StringUtil.formatBytes(PacketStatistics.getTotalBytesSent())));
-                        sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.total.packets", String.valueOf(PacketStatistics.getTotalPacketsSent())));
-                        sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.transfer.rate", StringUtil.formatBytes(PacketStatistics.getBytesPerSecond())));
-                        sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.packets.per.second", String.valueOf(PacketStatistics.getPacketsPerSecond())));
-                        sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.duration", durationString));
-
-                        Map<String, Long> bytesByPacketType = PacketStatistics.getBytesByPacketType();
-                        if (!bytesByPacketType.isEmpty()) {
-                            sender.sendMessage(ChatColor.GOLD + I18n.as("packetstats.by.type.title", String.valueOf(bytesByPacketType.size())));
-
-                            List<Map.Entry<String, Long>> top10 = bytesByPacketType.entrySet().stream()
-                                    .filter(entry -> entry.getValue() > 0 && PacketStatistics.getPacketsByPacketType().getOrDefault(entry.getKey(), 0L) > 0)
-                                    .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                                    .limit(10)
-                                    .toList();
-
-                            for (int i = 0; i < top10.size(); i++) {
-                                Map.Entry<String, Long> entry = top10.get(i);
-                                String packetType = entry.getKey();
-                                long bytes = entry.getValue();
-                                long packets = PacketStatistics.getPacketsByPacketType().getOrDefault(packetType, 0L);
-                                long bytesPerSecond = PacketStatistics.getBytesPerSecondByPacketType(packetType);
-                                long packetsPerSecond = PacketStatistics.getPacketsPerSecondByPacketType(packetType);
-
-                                ChatColor rankColor = switch (i) {
-                                    case 0 -> ChatColor.RED;
-                                    case 1 -> ChatColor.GOLD;
-                                    case 2 -> ChatColor.YELLOW;
-                                    default -> ChatColor.WHITE;
-                                };
-
-                                sender.sendMessage(rankColor + String.format("%2d", i + 1) + ". " +
-                                        ChatColor.GREEN + packetType + ChatColor.GRAY + ": " +
-                                        ChatColor.AQUA + StringUtil.formatBytes(bytes) +
-                                        ChatColor.GRAY + " (" + ChatColor.YELLOW + packets + ChatColor.DARK_GRAY + "p" + ChatColor.GRAY + ") " +
-                                        ChatColor.DARK_AQUA + "| " +
-                                        ChatColor.AQUA + StringUtil.formatBytes(bytesPerSecond) + "/s " +
-                                        ChatColor.GRAY + "(" + ChatColor.YELLOW + packetsPerSecond + ChatColor.DARK_GRAY + "p" + ChatColor.GRAY + "/s)");
-                            }
-
-                            if (bytesByPacketType.size() > 10) {
-                                sender.sendMessage(ChatColor.GRAY + I18n.as("packetstats.more.types", String.valueOf(bytesByPacketType.size() - 10)));
-                            }
-
-                            try {
-                                java.nio.file.Path savePath = PacketStatistics.savePacketStatsToJson();
-                                sender.sendMessage(ChatColor.GREEN + I18n.as("packetstats.saved", savePath.toAbsolutePath().toString()));
-                            } catch (Exception e) {
-                                sender.sendMessage(ChatColor.RED + I18n.as("packetstats.save.failed", e.getMessage()));
-                            }
-                        } else {
-                            sender.sendMessage(ChatColor.YELLOW + I18n.as("packetstats.no.data"));
-                        }
-
-                        return true;
-                    }
-                    case "status" -> {
-                        if (PacketStatistics.isCollecting()) {
-                            sender.sendMessage(ChatColor.GREEN + I18n.as("packetstats.status.running"));
-                            sender.sendMessage(ChatColor.AQUA + I18n.as("packetstats.status.collected",
-                                    StringUtil.formatBytes(PacketStatistics.getTotalBytesSent()) + ChatColor.AQUA + " / " +
-                                            ChatColor.YELLOW + PacketStatistics.getTotalPacketsSent() + ChatColor.DARK_GRAY + "p"));
-                        } else {
-                            sender.sendMessage(ChatColor.RED + I18n.as("packetstats.status.not.running"));
-                        }
-                        return true;
-                    }
-                    default -> {
-                        sender.sendMessage(ChatColor.RED + I18n.as("packetstats.usage"));
-                        return false;
-                    }
-                }
             }
             case "heal" -> {
                 Player target;
@@ -267,7 +159,6 @@ public class YouerCommand extends Command {
             }
 
             case "channels_incom" -> sender.sendMessage(ServerAPI.channels_Incoming().toString());
-            case "printthreadcost" -> YouerThreadCost.dumpThreadCpuTime(sender);
             case "channels_outgo" -> sender.sendMessage(ServerAPI.channels_Outgoing().toString());
             case "speed" -> {
                 if (sender instanceof Player p) {
@@ -439,13 +330,11 @@ public class YouerCommand extends Command {
         sender.sendMessage(ChatColor.GREEN + "/youer playermods <player>" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.playermods"));
         sender.sendMessage(ChatColor.GREEN + "/youer reload" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.reload"));
         sender.sendMessage(ChatColor.GREEN + "/youer version" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.version"));
-        sender.sendMessage(ChatColor.GREEN + "/youer packetstats <start|stop|status>" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.packetstats"));
         sender.sendMessage(ChatColor.GREEN + "/youer heal [player]" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.heal"));
         sender.sendMessage(ChatColor.GREEN + "/youer speed <value>" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.speed"));
         sender.sendMessage(ChatColor.GREEN + "/youer memoryfix" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.memoryfix"));
         sender.sendMessage(ChatColor.GREEN + "/youer channels_incom" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.channels_incom"));
         sender.sendMessage(ChatColor.GREEN + "/youer channels_outgo" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.channels_outgo"));
-        sender.sendMessage(ChatColor.GREEN + "/youer printthreadcost" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.printthreadcost"));
         sender.sendMessage(ChatColor.GREEN + "/youer help" + ChatColor.GRAY + " - " + ChatColor.YELLOW + I18n.as("youercmd.help.help"));
     }
 }

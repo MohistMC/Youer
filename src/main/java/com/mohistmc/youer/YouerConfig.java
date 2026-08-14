@@ -7,6 +7,7 @@ import com.mohistmc.youer.commands.DumpCommand;
 import com.mohistmc.youer.commands.InfoCommand;
 import com.mohistmc.youer.commands.ItemsCommand;
 import com.mohistmc.youer.commands.PermissionCommand;
+import com.mohistmc.youer.commands.PulseGraspCommand;
 import com.mohistmc.youer.commands.ShowsCommand;
 import com.mohistmc.youer.commands.YouerCommand;
 import com.mohistmc.youer.feature.YouerPlugin;
@@ -91,6 +92,8 @@ public class YouerConfig {
     public static boolean clear_monster;
     public static List<String> clear_monster_whitelist;
     public static int clear_monster_time;
+    public static String clear_item_mode;
+    public static String clear_monster_mode;
     // Ban
     public static boolean ban_item_enable;
     public static boolean ban_block_enable;
@@ -196,6 +199,7 @@ public class YouerConfig {
         }
         commands.put("shows", new ShowsCommand("shows"));
         commands.put("infos", new InfoCommand("infos"));
+        commands.put("pulsegrasp", new PulseGraspCommand("pulsegrasp"));
         EntityLimitsConfig.init();
         YouerPlugin.registerCommands(commands);
 
@@ -304,6 +308,7 @@ public class YouerConfig {
         clear_item = getBoolean("entity.clear.item.enable", false);
         clear_item_whitelist = getStringList("entity.clear.item.whitelist", new ArrayList<>());
         clear_item_time = getInt("entity.clear.item.time", 1800);
+        clear_item_mode = getString("entity.clear.item.mode", "whitelist");
 
         trash_enable = getBoolean("entity.clear.item.trash.enable", true);
         trash_days = getInt("entity.clear.item.trash.days", 1);
@@ -311,6 +316,7 @@ public class YouerConfig {
         clear_monster = getBoolean("entity.clear.monster.enable", false);
         clear_monster_whitelist = getStringList("entity.clear.monster.whitelist", new ArrayList<>());
         clear_monster_time = getInt("entity.clear.monster.time", 1800);
+        clear_monster_mode = getString("entity.clear.monster.mode", "whitelist");
 
         ban_item_enable = getBoolean("bans.item", false);
         ban_block_enable = getBoolean("bans.block", false);

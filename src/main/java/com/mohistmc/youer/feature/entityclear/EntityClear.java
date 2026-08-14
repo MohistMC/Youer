@@ -1,4 +1,4 @@
-package com.mohistmc.youer.feature;
+package com.mohistmc.youer.feature.entityclear;
 
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.util.I18n;
@@ -17,7 +17,6 @@ import org.bukkit.World;
 import org.bukkit.craftbukkit.entity.CraftEntity;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
-import org.bukkit.entity.Monster;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -31,10 +30,12 @@ public class EntityClear {
     // 清理前的预告时间（秒）
     public static final long WARN_TIME = 30;
 
-    public static final ScheduledExecutorService ENTITYCLEAR_ITEM = new ScheduledThreadPoolExecutor(1, new NamedThreadFactory("EntityClear - Item"));
-    public static final ScheduledExecutorService ENTITYCLEAR_MONSTER = new ScheduledThreadPoolExecutor(1, new NamedThreadFactory("EntityClear - Monster"));
+    // 非 final — reload 时需要重建调度器以应用新的 enable/time 配置
+    public static ScheduledExecutorService ENTITYCLEAR_ITEM;
+    public static ScheduledExecutorService ENTITYCLEAR_MONSTER;
 
     public static void start() {
+        restartSchedulers();
         if (YouerConfig.clear_item) {
             ENTITYCLEAR_ITEM.scheduleAtFixedRate(() -> {
                 if (MinecraftServer.getServer().hasStopped()) {
@@ -66,8 +67,25 @@ public class EntityClear {
     }
 
     public static void stop() {
-        ENTITYCLEAR_ITEM.shutdown();
-        ENTITYCLEAR_MONSTER.shutdown();
+        shutdownSchedulers();
+    }
+
+    /** 重建 item/monster 调度器 — 使 reload 后新的 enable/time 配置生效 */
+    private static void restartSchedulers() {
+        shutdownSchedulers();
+        ENTITYCLEAR_ITEM = new ScheduledThreadPoolExecutor(1, new NamedThreadFactory("EntityClear - Item"));
+        ENTITYCLEAR_MONSTER = new ScheduledThreadPoolExecutor(1, new NamedThreadFactory("EntityClear - Monster"));
+    }
+
+    private static void shutdownSchedulers() {
+        if (ENTITYCLEAR_ITEM != null) {
+            ENTITYCLEAR_ITEM.shutdownNow();
+            ENTITYCLEAR_ITEM = null;
+        }
+        if (ENTITYCLEAR_MONSTER != null) {
+            ENTITYCLEAR_MONSTER.shutdownNow();
+            ENTITYCLEAR_MONSTER = null;
+        }
     }
 
     public static void warn_item() {
@@ -104,6 +122,89 @@ public class EntityClear {
         }
     }
 
+    // ==================== 模式与列表判断 ====================
+
+    /**
+     * 当前模式是否为白名单（默认）— 由 entity.clear.item.mode / entity.clear.monster.mode 分别配置，
+     * blacklist 为黑名单模式。
+     *
+     * @param item true 使用物品模式，false 使用实体模式
+     */
+    public static boolean isWhitelistMode(boolean item) {
+        String mode = item ? YouerConfig.clear_item_mode : YouerConfig.clear_monster_mode;
+        return !"blacklist".equalsIgnoreCase(mode);
+    }
+
+    /**
+     * 匹配列表条目，返回判定结果。
+     * 返回 true  = 强制清理（应清除）
+     * 返回 false = 排除清理（应保护，跳过）
+     * 返回 null  = 未命中列表
+     * <p>
+     * 模式区别：
+     * - 白名单模式（默认）：普通条目 → 排除清理；! 前缀条目 → 强制清理
+     * - 黑名单模式：普通条目 → 强制清理；! 前缀条目 → 排除清理
+     */
+    private static Boolean matchItem(String itemKey, ItemStack itemStack, List<String> list) {
+        for (String entry : list) {
+            boolean inverted = entry.startsWith("!");
+            String pattern = inverted ? entry.substring(1) : entry;
+            boolean hit;
+            if (pattern.endsWith(":*")) {
+                // Wildcard match (modid:*) - any item whose key starts with the modid prefix
+                hit = itemKey.startsWith(pattern.substring(0, pattern.length() - 1));
+            } else {
+                hit = pattern.equals(itemKey) || pattern.equals(itemStack.getType().name());
+            }
+            if (hit) {
+                return isWhitelistMode(true) ? inverted : !inverted;
+            }
+        }
+        return null;
+    }
+
+    private static Boolean matchEntity(String entityKey, List<String> list) {
+        for (String entry : list) {
+            boolean inverted = entry.startsWith("!");
+            String pattern = inverted ? entry.substring(1) : entry;
+            boolean hit;
+            if (pattern.endsWith(":*")) {
+                // Wildcard match (modid:*)
+                hit = entityKey.startsWith(pattern.substring(0, pattern.length() - 1));
+            } else {
+                hit = pattern.equals(entityKey);
+            }
+            if (hit) {
+                return isWhitelistMode(false) ? inverted : !inverted;
+            }
+        }
+        return null;
+    }
+
+    public static boolean shouldSkipItem(ItemStack itemStack, List<String> list) {
+        String itemKey = itemStack.getType().getKey().asString();
+        Boolean match = matchItem(itemKey, itemStack, list);
+        if (match != null) {
+            return !match; // 强制清理 → false（不跳过）；排除清理 → true（跳过）
+        }
+        return itemStack.hasCustomModelData() || !itemStack.getPersistentDataContainer().isEmpty();
+    }
+
+    public static boolean shouldSkipEntity(Mob entity, List<String> list) {
+        if (!entity.isAlive()) {
+            return true;
+        }
+        String entityKey = entity.getBukkitEntity().getType().getKey().asString();
+        Boolean match = matchEntity(entityKey, list);
+        if (match != null) {
+            return !match;
+        }
+        if (entity.hasCustomName()) {
+            return true;
+        }
+        return entity.isPersistenceRequired() || entity.requiresCustomPersistence() || !entity.getBukkitEntity().getPersistentDataContainer().isEmpty();
+    }
+
     public static List<String> getWhitelist(boolean item) {
         return item ? YouerConfig.clear_item_whitelist : YouerConfig.clear_monster_whitelist;
     }
@@ -120,64 +221,7 @@ public class EntityClear {
         YouerConfig.clear_monster_whitelist = list;
     }
 
-    public static boolean shouldSkipItem(ItemStack itemStack, List<String> whitelist) {
-        String itemKey = itemStack.getType().getKey().asString();
-        for (String entry : whitelist) {
-            if (entry.endsWith(":*")) {
-                // Wildcard match (modid:*) - skip any item whose key starts with the modid prefix
-                if (itemKey.startsWith(entry.substring(0, entry.length() - 1))) {
-                    return true;
-                }
-            } else if (entry.equals(itemKey) || entry.equals(itemStack.getType().name())) {
-                return true;
-            }
-        }
-        return itemStack.hasCustomModelData() || !itemStack.getPersistentDataContainer().isEmpty();
-    }
-
-
-    public static boolean shouldSkipEntity(Mob entity, List<String> whitelist) {
-        if (!entity.isAlive()) {
-            return true;
-        }
-        String entityKey = entity.getBukkitEntity().getType().getKey().asString();
-
-        // Blacklist (! prefix) takes priority: always clear
-        if (matchesBlacklist(entityKey, whitelist)) {
-            return false;
-        }
-
-        // Whitelist check
-        for (String banned : whitelist) {
-            if (banned.startsWith("!")) continue;
-            if (banned.endsWith(":*")) {
-                if (entityKey.startsWith(banned.substring(0, banned.length() - 1))) {
-                    return true;
-                }
-            } else if (banned.equals(entityKey)) {
-                return true;
-            }
-        }
-        if (entity.hasCustomName()) {
-            return true;
-        }
-        return entity.isPersistenceRequired() || entity.requiresCustomPersistence() || !entity.getBukkitEntity().getPersistentDataContainer().isEmpty();
-    }
-
-    public static boolean matchesBlacklist(String entityKey, List<String> list) {
-        for (String entry : list) {
-            if (!entry.startsWith("!")) continue;
-            String pattern = entry.substring(1);
-            if (pattern.endsWith(":*")) {
-                if (entityKey.startsWith(pattern.substring(0, pattern.length() - 1))) {
-                    return true;
-                }
-            } else if (pattern.equals(entityKey)) {
-                return true;
-            }
-        }
-        return false;
-    }
+    // ==================== 清理执行 ====================
 
     public static void run_item() {
         MinecraftServer.getServer().execute(() -> {
@@ -209,14 +253,19 @@ public class EntityClear {
             int size_monster = 0;
             for (World world : Bukkit.getWorlds()) {
                 for (Entity entity : world.getEntities()) {
-                    String entityKey = entity.getType().getKey().asString();
-                    // Blacklist check for ALL entities (non-Mob too)
-                    if (matchesBlacklist(entityKey, YouerConfig.clear_monster_whitelist)) {
-                        entity.remove();
-                        size_monster++;
-                    } else if (((CraftEntity)entity).getHandle() instanceof Mob mob && !shouldSkipEntity(mob, YouerConfig.clear_monster_whitelist)) {
-                        entity.remove();
-                        size_monster++;
+                    if (((CraftEntity) entity).getHandle() instanceof Mob mob) {
+                        if (!shouldSkipEntity(mob, YouerConfig.clear_monster_whitelist)) {
+                            entity.remove();
+                            size_monster++;
+                        }
+                    } else {
+                        // 非 Mob 实体（箭、掉落物等）：仅响应强制清理条目
+                        String entityKey = entity.getType().getKey().asString();
+                        Boolean match = matchEntity(entityKey, YouerConfig.clear_monster_whitelist);
+                        if (match != null && match) {
+                            entity.remove();
+                            size_monster++;
+                        }
                     }
                 }
             }

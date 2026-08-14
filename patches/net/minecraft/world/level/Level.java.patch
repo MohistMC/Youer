@@ -1,12 +1,13 @@
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1,17 +_,26 @@
+@@ -1,17 +_,27 @@
  package net.minecraft.world.level;
  
 +import ca.spottedleaf.moonrise.common.util.TickThread;
  import com.google.common.collect.Lists;
 +import com.mohistmc.youer.YouerConfig;
 +import com.mohistmc.youer.api.event.block.SetBlockEvent;
++import com.mohistmc.youer.feature.pulsegrasp.PulseGrasp;
 +import com.mohistmc.youer.feature.ban.bans.BanBlock;
  import com.mojang.serialization.Codec;
 +import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
@@ -660,6 +661,22 @@
          if (!this.pendingBlockEntityTickers.isEmpty()) {
              this.blockEntityTickers.addAll(this.pendingBlockEntityTickers);
              this.pendingBlockEntityTickers.clear();
+@@ -506,7 +_,15 @@
+             if (tickingblockentity.isRemoved()) {
+                 iterator.remove();
+             } else if (flag && this.shouldTickBlocksAt(tickingblockentity.getPos())) {
++                long beStart = PulseGrasp.isGrasping() ? System.nanoTime() : 0L;
+                 tickingblockentity.tick();
++                if (PulseGrasp.isGrasping()) {
++                    PulseGrasp.recordBlockEntityPulse(tickingblockentity.getType(), System.nanoTime() - beStart,
++                            this.dimension().location().toString(),
++                            tickingblockentity.getPos().getX(),
++                            tickingblockentity.getPos().getY(),
++                            tickingblockentity.getPos().getZ());
++                }
+             }
+         }
+ 
 @@ -516,12 +_,18 @@
  
      public <T extends Entity> void guardEntityTick(Consumer<T> p_46654_, T p_46655_) {

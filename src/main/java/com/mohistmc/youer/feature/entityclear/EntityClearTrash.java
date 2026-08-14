@@ -1,4 +1,4 @@
-package com.mohistmc.youer.feature;
+package com.mohistmc.youer.feature.entityclear;
 
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.gui.DemoGUI;

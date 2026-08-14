@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1,7 +_,17 @@
+@@ -1,7 +_,18 @@
  package net.minecraft.server.level;
  
 +import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
@@ -10,6 +10,7 @@
 +import com.mohistmc.youer.Youer;
 +import com.mohistmc.youer.YouerConfig;
 +import com.mohistmc.youer.api.event.block.PlayerMayInteractBlockEvent;
++import com.mohistmc.youer.feature.pulsegrasp.PulseGrasp;
 +import com.mohistmc.youer.feature.ban.bans.BanEntity;
 +import com.mohistmc.youer.feature.world.utils.ConfigByWorlds;
 +import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
@@ -398,7 +399,22 @@
      }
  
      @Override
-@@ -340,12 +_,21 @@
+@@ -332,20 +_,36 @@
+         TickRateManager tickratemanager = this.tickRateManager();
+         boolean flag = tickratemanager.runsNormally();
+         if (flag) {
++            PulseGrasp.setLevel(this.dimension().location().toString());
++            PulseGrasp.recordChunkStats(this.getChunkSource().getLoadedChunksCount(), this.getChunkSource().getActiveChunksCount());
++            PulseGrasp.feelPulse("world_border");
+             profilerfiller.push("world border");
+             this.getWorldBorder().tick();
++            profilerfiller.pop();
++            PulseGrasp.pulseComplete();
++            PulseGrasp.feelPulse("weather");
+             profilerfiller.popPush("weather");
+             this.advanceWeatherCycle();
++            PulseGrasp.pulseComplete();
+         }
  
          int i = this.getGameRules().getInt(GameRules.RULE_PLAYERS_SLEEPING_PERCENTAGE);
          if (this.sleepStatus.areEnoughSleeping(i) && this.sleepStatus.areEnoughDeepSleeping(i, this.players)) {
@@ -425,19 +441,46 @@
              if (this.getGameRules().getBoolean(GameRules.RULE_WEATHER_CYCLE) && this.isRaining()) {
                  this.resetWeatherCycle();
              }
-@@ -360,9 +_,9 @@
+@@ -356,36 +_,50 @@
+             this.tickTime();
+         }
+ 
++        PulseGrasp.feelPulse("tickPending");
+         profilerfiller.popPush("tickPending");
          if (!this.isDebug() && flag) {
              long k = this.getGameTime();
++            PulseGrasp.feelPulse("blockTicks");
              profilerfiller.push("blockTicks");
 -            this.blockTicks.tick(k, 65536, this::tickBlock);
 +            this.blockTicks.tick(k, paperConfig().environment.maxBlockTicks, this::tickBlock); // Paper - configurable max block ticks
++            profilerfiller.pop();
++            PulseGrasp.pulseComplete();
++            PulseGrasp.feelPulse("fluidTicks");
              profilerfiller.popPush("fluidTicks");
 -            this.fluidTicks.tick(k, 65536, this::tickFluid);
 +            this.fluidTicks.tick(k, paperConfig().environment.maxFluidTicks, this::tickFluid); // Paper - configurable max block ticks
              profilerfiller.pop();
++            PulseGrasp.pulseComplete();
          }
++        PulseGrasp.pulseComplete();
  
-@@ -380,7 +_,7 @@
++        PulseGrasp.feelPulse("raid");
+         profilerfiller.popPush("raid");
+         if (flag) {
+             this.raids.tick();
+         }
++        PulseGrasp.pulseComplete();
+ 
++        PulseGrasp.feelPulse("chunkSource");
+         profilerfiller.popPush("chunkSource");
+         this.getChunkSource().tick(p_8794_, true);
++        PulseGrasp.pulseComplete();
++        PulseGrasp.feelPulse("blockEvents");
+         profilerfiller.popPush("blockEvents");
+         if (flag) {
+             this.runBlockEvents();
+         }
++        PulseGrasp.pulseComplete();
  
          this.handlingTick = false;
          profilerfiller.pop();
@@ -446,6 +489,12 @@
          if (flag1) {
              this.resetEmptyTime();
          }
+ 
+         if (flag1 || this.emptyTime++ < 300) {
++            PulseGrasp.feelPulse("entities");
+             profilerfiller.push("entities");
+             if (this.dragonFight != null && flag) {
+                 profilerfiller.push("dragonFight");
 @@ -393,6 +_,7 @@
                  profilerfiller.pop();
              }
@@ -454,25 +503,46 @@
              this.entityTickList.forEach(p_308566_ -> {
                  if (!p_308566_.isRemoved()) {
                      if (this.shouldDiscardEntity(p_308566_)) {
-@@ -412,7 +_,9 @@
+@@ -412,19 +_,38 @@
                              }
  
                              profilerfiller.push("tick");
 -                            this.guardEntityTick(this::tickNonPassenger, p_308566_);
 +                            if (!p_308566_.isRemoved() && !(p_308566_ instanceof net.neoforged.neoforge.entity.PartEntity)) {
++                                long entityStart = PulseGrasp.isGrasping() ? System.nanoTime() : 0L;
 +                                this.guardEntityTick(this::tickNonPassenger, p_308566_);
++                                if (PulseGrasp.isGrasping()) {
++                                    PulseGrasp.recordEntityPulse(
++                                            BuiltInRegistries.ENTITY_TYPE.getKey(p_308566_.getType()).toString(),
++                                            System.nanoTime() - entityStart,
++                                            p_308566_.getUUID(),
++                                            p_308566_.level().dimension().location().toString(),
++                                            p_308566_.blockPosition().getX(),
++                                            p_308566_.blockPosition().getY(),
++                                            p_308566_.blockPosition().getZ());
++                                }
 +                            }
                              profilerfiller.pop();
                          }
                      }
-@@ -420,6 +_,7 @@
+                 }
              });
              profilerfiller.pop();
++            PulseGrasp.pulseComplete();
++            PulseGrasp.feelPulse("blockEntities");
              this.tickBlockEntities();
++            PulseGrasp.pulseComplete();
 +            spigotConfig.currentPrimedTnt = 0; // Spigot // Mohist move form Level#tickBlockEntities
          }
  
++        PulseGrasp.feelPulse("entityManagement");
          profilerfiller.push("entityManagement");
+         this.entityManager.tick();
+         profilerfiller.pop();
++        PulseGrasp.pulseComplete();
+     }
+ 
+     @Override
 @@ -435,16 +_,16 @@
      protected void tickTime() {
          if (this.tickTime) {

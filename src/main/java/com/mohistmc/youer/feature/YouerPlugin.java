@@ -2,7 +2,6 @@ package com.mohistmc.youer.feature;
 
 import com.mohistmc.youer.api.gui.GuiListener;
 import com.mohistmc.youer.commands.DeepseekCommand;
-import com.mohistmc.youer.commands.EntityClearCommand;
 import com.mohistmc.youer.commands.HatCommand;
 import com.mohistmc.youer.commands.HideAllCommand;
 import com.mohistmc.youer.commands.HideCommand;
@@ -14,6 +13,10 @@ import com.mohistmc.youer.feature.back.BackConfig;
 import com.mohistmc.youer.feature.ban.BanListener;
 import com.mohistmc.youer.feature.commands.CommandsConfig;
 import com.mohistmc.youer.feature.create.PotionBanListener;
+import com.mohistmc.youer.feature.entityclear.EntityClear;
+import com.mohistmc.youer.feature.entityclear.EntityClearCommand;
+import com.mohistmc.youer.feature.entityclear.EntityClearListener;
+import com.mohistmc.youer.feature.entityclear.EntityClearTrash;
 import com.mohistmc.youer.feature.entitylimits.EntityLimitsCommands;
 import com.mohistmc.youer.feature.item.ItemsConfig;
 import com.mohistmc.youer.feature.menu.MenuCommand;

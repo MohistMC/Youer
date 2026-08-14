@@ -1,15 +1,10 @@
-package com.mohistmc.youer.commands;
+package com.mohistmc.youer.feature.entityclear;
 
 import com.mohistmc.youer.api.EntityAPI;
 import com.mohistmc.youer.api.ItemAPI;
 import com.mohistmc.youer.api.gui.DemoGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.ItemStackFactory;
-import com.mohistmc.youer.feature.EntityClear;
-import com.mohistmc.youer.feature.EntityClearInventory;
-import com.mohistmc.youer.feature.EntityClearListener;
-import com.mohistmc.youer.feature.EntityClearTrash;
-import com.mohistmc.youer.feature.EntityClearType;
 import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import java.util.Arrays;

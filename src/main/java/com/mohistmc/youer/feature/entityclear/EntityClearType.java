@@ -1,4 +1,4 @@
-package com.mohistmc.youer.feature;
+package com.mohistmc.youer.feature.entityclear;
 
 /**
  * @author Mgazul
