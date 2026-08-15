@@ -3,7 +3,6 @@ package org.bukkit.craftbukkit.command;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.api.ColorAPI;
 import java.util.UUID;
-import org.bukkit.ChatColor;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.conversations.Conversation;
 import org.bukkit.conversations.ConversationAbandonedEvent;
@@ -33,7 +32,10 @@ public class CraftConsoleCommandSender extends ServerCommandSender implements Co
 
     @Override
     public void sendRawMessage(String message) {
-        Youer.LOGGER.info(ChatColor.stripColor(ColorAPI.string(message)));
+        String processed = ColorAPI.string(message);
+        net.kyori.adventure.text.Component component = net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer
+                .legacySection().deserialize(processed);
+        Youer.LOGGER.info(io.papermc.paper.adventure.PaperAdventure.ANSI_SERIALIZER.serialize(component));
     }
 
     @Override
@@ -98,7 +100,7 @@ public class CraftConsoleCommandSender extends ServerCommandSender implements Co
     // Paper start
     @Override
     public void sendMessage(final net.kyori.adventure.identity.Identity identity, final net.kyori.adventure.text.Component message, final net.kyori.adventure.audience.MessageType type) {
-        this.sendMessage(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(message)); // Purpur
+        this.sendRawMessage(net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer.legacySection().serialize(message));
     }
 
     @Override
