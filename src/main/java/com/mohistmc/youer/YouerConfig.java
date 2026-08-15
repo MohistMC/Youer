@@ -8,6 +8,7 @@ import com.mohistmc.youer.commands.InfoCommand;
 import com.mohistmc.youer.commands.ItemsCommand;
 import com.mohistmc.youer.commands.PermissionCommand;
 import com.mohistmc.youer.commands.PulseGraspCommand;
+import com.mohistmc.youer.commands.PluginManagerCommand;
 import com.mohistmc.youer.commands.ShowsCommand;
 import com.mohistmc.youer.commands.YouerCommand;
 import com.mohistmc.youer.feature.YouerPlugin;
@@ -200,6 +201,7 @@ public class YouerConfig {
         commands.put("shows", new ShowsCommand("shows"));
         commands.put("infos", new InfoCommand("infos"));
         commands.put("pulsegrasp", new PulseGraspCommand("pulsegrasp"));
+        commands.put("plugin", new PluginManagerCommand("plugin"));
         EntityLimitsConfig.init();
         YouerPlugin.registerCommands(commands);
 
