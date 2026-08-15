@@ -7,8 +7,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 系统资源脉象分析器 — 每秒采样服务器 JVM 堆内存使用与进程 CPU 使用率，
- * 输出与网络流量（flowSeries）对齐的时间序列，用于对照性能波动定位资源瓶颈。
+ * System resource profiler — samples JVM heap usage and process CPU usage
+ * every second, outputting a time series aligned with flowSeries to locate resource bottlenecks.
  */
 public class SystemProfiler {
 
@@ -16,7 +16,7 @@ public class SystemProfiler {
     private Thread updaterThread;
     private volatile boolean running = false;
 
-    // ---- 生命周期 ----
+    // ---- Lifecycle ----
 
     void start() {
         if (running) return;
@@ -43,14 +43,14 @@ public class SystemProfiler {
             updaterThread.interrupt();
             updaterThread = null;
         }
-        sample(); // 补录最后一段
+        sample(); // capture the final segment
     }
 
     public void reset() {
         samples.clear();
     }
 
-    // ---- 采样 ----
+    // ---- Sampling ----
 
     private void sample() {
         Runtime runtime = Runtime.getRuntime();
@@ -59,7 +59,7 @@ public class SystemProfiler {
         samples.add(new SystemSample(System.currentTimeMillis() / 1000, heapUsed, heapMax, calcProcessCpuPercent()));
     }
 
-    /** 获取服务器进程 CPU 使用率（0-100），不可用时返回 0 */
+    /** Get server process CPU usage (0-100), returns 0 when unavailable */
     private double calcProcessCpuPercent() {
         try {
             com.sun.management.OperatingSystemMXBean osBean =
@@ -71,7 +71,7 @@ public class SystemProfiler {
         }
     }
 
-    // ---- JSON 输出 ----
+    // ---- JSON output ----
 
     JsonArray toJson() {
         JsonArray array = new JsonArray();

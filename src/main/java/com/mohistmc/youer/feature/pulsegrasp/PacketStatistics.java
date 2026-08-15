@@ -3,15 +3,15 @@ package com.mohistmc.youer.feature.pulsegrasp;
 import java.util.Map;
 
 /**
- * 数据包统计 — 委托到 PulseGrasp 的 PacketProfiler 实例。
+ * Packet statistics — delegates to the PacketProfiler instance in PulseGrasp.
  * <p>
- * 作为向后兼容层，保留静态方法供 PacketEncoder 补丁调用。
- * 实际数据由 PulseGrasp 的 PacketProfiler 实例管理。
+ * Backward-compatibility layer keeping static methods for the PacketEncoder patch.
+ * Actual data is managed by the PulseGrasp PacketProfiler instance.
  */
 public class PacketStatistics {
 
     public static void startStatisticsUpdater() {
-        // 不再需要独立线程，由 PulseGrasp 管理
+        // no longer needs its own thread; managed by PulseGrasp
     }
 
     public static boolean isCollecting() {
@@ -82,7 +82,7 @@ public class PacketStatistics {
     }
 
     public static java.nio.file.Path savePacketStatsToJson() throws java.io.IOException {
-        // 不再独立保存，由 PulseGrasp 诊断报告统一输出
+        // no longer saved separately; output by the PulseGrasp diagnostic report
         return null;
     }
 }

@@ -3,7 +3,7 @@ package com.mohistmc.youer.feature.pulsegrasp;
 import java.util.UUID;
 
 /**
- * 实例追踪数据通用接口
+ * Common interface for instance trace data.
  */
 interface TraceData {
     String world();
@@ -14,11 +14,11 @@ interface TraceData {
     int count();
 }
 
-/** 实体实例追踪 — 按 UUID 标识 */
+/** Entity instance trace — keyed by UUID */
 class EntityTrace implements TraceData {
     final UUID uuid;
-    final String world;
-    final int x, y, z;
+    String world;
+    int x, y, z;
     long totalNanos;
     int count;
 
@@ -35,6 +35,14 @@ class EntityTrace implements TraceData {
         count++;
     }
 
+    /** Refresh entity position — called on move to keep records accurate */
+    void updatePosition(String world, int x, int y, int z) {
+        this.world = world;
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
     @Override public String world() { return world; }
     @Override public int x() { return x; }
     @Override public int y() { return y; }
@@ -43,7 +51,7 @@ class EntityTrace implements TraceData {
     @Override public int count() { return count; }
 }
 
-/** 方块实体实例追踪 — 按坐标标识，附带注册 id（如 minecraft:furnace） */
+/** Block entity instance trace — keyed by position, with registered id (e.g. minecraft:furnace) */
 class BlockEntityTrace implements TraceData {
     final String type;
     final String world;
@@ -72,7 +80,7 @@ class BlockEntityTrace implements TraceData {
     @Override public int count() { return count; }
 }
 
-/** 一次生命体征采样 */
+/** A single vital-sign sample */
 class VitalSign {
     final long timestamp;
     final double tps;
@@ -87,7 +95,7 @@ class VitalSign {
     }
 }
 
-/** 区块统计采样（按维度聚合）— 记录总区块数与活跃区块数 */
+/** Chunk statistics sample (aggregated per dimension) — records total and active chunk counts */
 class ChunkStat {
     int samples;
     long totalSum;
@@ -108,7 +116,7 @@ class ChunkStat {
     }
 }
 
-/** 一次系统资源采样（JVM 堆内存 + 进程 CPU 使用率） */
+/** A single system resource sample (JVM heap + process CPU usage) */
 class SystemSample {
     final long timestamp;
     final long heapUsedBytes;

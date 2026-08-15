@@ -13,16 +13,16 @@ import java.time.format.DateTimeFormatter;
 import org.bukkit.Bukkit;
 
 /**
- * PulseGrasp — 服务端"把脉"诊断系统
+ * PulseGrasp — server-side diagnostic system.
  * <p>
- * 实时采集服务器每 tick 各环节耗时、实体类型耗时、方块实体类型耗时、
- * TPS/MSPT/Ping 生命体征时间序列，以及网络数据包发送统计，
- * 停止时输出融合 JSON 诊断报告，精准定位 MSPT 消耗源头与网络流量画像。
+ * Samples per-tick timing, entity/block-entity timing, TPS/MSPT/Ping
+ * vital-sign series, and packet send statistics. On stop, outputs a merged
+ * JSON report to locate MSPT bottlenecks and network traffic patterns.
  * <p>
- * 融合数据特点：
- * - 方块实体同时有 tick 耗时（计算性能）和网络包字节（网络负载），可交叉分析
- * - 玩家维度同时有 Ping（延迟）和网络包字节（流量消耗），可定位网络卡顿用户
- * - 区块维度有网络包发送量，可发现异常高频区块
+ * Merged data:
+ * - Block entities hold both tick time (compute) and packet bytes (network)
+ * - Players hold both Ping (latency) and packet bytes (traffic)
+ * - Chunks expose packet volume to detect abnormal high-frequency chunks
  */
 public class PulseGrasp {
 
@@ -30,7 +30,7 @@ public class PulseGrasp {
     private volatile boolean grasping = false;
     private long graspStartMs;
 
-    // 记录者（start/stop 命令执行者）
+    // Recorder (start/stop command executor)
     private String startName;
     private String startUuid;
     private String stopName;
@@ -40,13 +40,14 @@ public class PulseGrasp {
     private final PacketProfiler packetProfiler = new PacketProfiler();
     private final ThreadProfiler threadProfiler = new ThreadProfiler();
     private final SystemProfiler systemProfiler = new SystemProfiler();
+    private final MethodSampler methodSampler = new MethodSampler();
 
-    // 异步诊断线程（报告生成在后台执行，避免阻塞 Server thread）
+    // Async diagnostic thread (report generated in background)
     private Thread diagnoseThread;
     private String lastReportPath;
     private String notifyUuid;
 
-    // ---- 单例 ----
+    // ---- Singleton ----
 
     public static PulseGrasp instance() {
         return instance;
@@ -56,12 +57,30 @@ public class PulseGrasp {
         return instance.grasping;
     }
 
-    // ---- 生命周期 ----
+    // ---- Lifecycle ----
 
-    /** 开始把脉 — 同时启动 Tick 切脉、网络数据包分析和系统资源采样 */
+    /** Optional sampling params; null fields fall back to MethodSampler defaults (25ms / 64 / 40). */
+    public static final class SampleOptions {
+        public final Long intervalMs;
+        public final Integer maxDepth;
+        public final Integer maxTopN;
+
+        public SampleOptions(Long intervalMs, Integer maxDepth, Integer maxTopN) {
+            this.intervalMs = intervalMs;
+            this.maxDepth = maxDepth;
+            this.maxTopN = maxTopN;
+        }
+    }
+
+    /** Start — begins tick timing, packet analysis, and system sampling */
     public void startGrasp(String name, String uuid) {
+        startGrasp(name, uuid, null);
+    }
+
+    /** Start — uses MethodSampler defaults when opts or fields are null */
+    public void startGrasp(String name, String uuid, SampleOptions opts) {
         if (grasping) return;
-        joinDiagnoseThread(); // 等待上一次诊断线程结束，防止其读取到被 reset 的数据
+        joinDiagnoseThread(); // wait for previous diagnostic thread to read clean data
         grasping = true;
         graspStartMs = System.currentTimeMillis();
         startName = name;
@@ -74,9 +93,15 @@ public class PulseGrasp {
         packetProfiler.start();
         systemProfiler.reset();
         systemProfiler.start();
+        if (opts != null) {
+            if (opts.intervalMs != null) methodSampler.setIntervalMs(opts.intervalMs);
+            if (opts.maxDepth != null) methodSampler.setMaxDepth(opts.maxDepth);
+            if (opts.maxTopN != null) methodSampler.setMaxTopN(opts.maxTopN);
+        }
+        methodSampler.start(serverThreadId());
     }
 
-    /** 停止把脉 — 报告生成挪到后台线程异步执行，Server thread 立即返回 */
+    /** Stop — generates the report on a background thread, returns immediately */
     public void stopGraspAndDiagnose(String name, String uuid) {
         if (!grasping) return;
         stopName = name;
@@ -85,11 +110,12 @@ public class PulseGrasp {
         grasping = false;
         packetProfiler.stop();
         systemProfiler.stop();
+        methodSampler.stop();
         diagnoseThread = new Thread(() -> {
             diagnose();
             notifyReportDone();
         }, "PulseGrasp-Diagnose");
-        diagnoseThread.setDaemon(true); // 服务器关停时不阻塞退出
+        diagnoseThread.setDaemon(true); // don't block server shutdown
         diagnoseThread.start();
     }
 
@@ -103,7 +129,14 @@ public class PulseGrasp {
         }
     }
 
-    /** 报告生成完成后的通知 — 控制台日志 + 主线程通知发起玩家 */
+    /** Resolve the Server thread ID for stack sampling; fall back to current thread */
+    private long serverThreadId() {
+        net.minecraft.server.MinecraftServer server = net.minecraft.server.MinecraftServer.getServer();
+        Thread serverThread = server != null ? server.getRunningThread() : null;
+        return serverThread != null ? serverThread.getId() : Thread.currentThread().getId();
+    }
+
+    /** Notify on report completion — console log + notify the requesting player */
     private void notifyReportDone() {
         Bukkit.getLogger().info(I18n.as("pulsegrasp.done.log", lastReportPath));
         if (notifyUuid == null || "none".equals(notifyUuid)) return;
@@ -116,12 +149,12 @@ public class PulseGrasp {
                     player.sendMessage(I18n.as("pulsegrasp.done", lastReportPath));
                 }
             } catch (IllegalArgumentException ignored) {
-                // UUID 非法时仅保留控制台日志
+                // keep console log only on invalid UUID
             }
         });
     }
 
-    // ============ 静态便捷方法 ============
+    // ============ Static convenience methods ============
 
     public static void start() {
         instance.startGrasp("console", "none");
@@ -129,6 +162,10 @@ public class PulseGrasp {
 
     public static void start(String name, String uuid) {
         instance.startGrasp(name, uuid);
+    }
+
+    public static void start(String name, String uuid, SampleOptions opts) {
+        instance.startGrasp(name, uuid, opts);
     }
 
     public static void stop() {
@@ -171,7 +208,7 @@ public class PulseGrasp {
         return instance.tickProfiler.getTickCount();
     }
 
-    // ---- 内部委托（不对外暴露 instance()） ----
+    // ---- Internal delegation (no exposed instance()) ----
 
     public TickProfiler tickProfiler() {
         return tickProfiler;
@@ -181,7 +218,7 @@ public class PulseGrasp {
         return packetProfiler;
     }
 
-    // ---- 诊断报告 ----
+    // ---- Diagnostic report ----
 
     private void diagnose() {
         long durationMs = System.currentTimeMillis() - graspStartMs;
@@ -194,7 +231,7 @@ public class PulseGrasp {
         root.addProperty("durationMs", durationMs);
         root.addProperty("durationSeconds", durationMs / 1000);
 
-        // ====== 记录者信息 ======
+        // ====== Recorder info ======
         JsonObject recordedBy = new JsonObject();
         JsonObject startBy = new JsonObject();
         startBy.addProperty("name", startName != null ? startName : "unknown");
@@ -206,9 +243,9 @@ public class PulseGrasp {
         recordedBy.add("stop", stopBy);
         root.add("recordedBy", recordedBy);
 
-        // ====== 第一层：Tick 切脉数据 ======
+        // ====== Layer 1: Tick timing data ======
         JsonObject tickData = tickProfiler.toJson(durationMs);
-        // 将 tick 子字段平铺到根
+        // flatten tick sub-fields to root
         copyProperty(tickData, root, "graspedTicks");
         copyProperty(tickData, root, "avgTickTimeMs");
         copyProperty(tickData, root, "meridians");
@@ -216,20 +253,20 @@ public class PulseGrasp {
         copyProperty(tickData, root, "vitalSigns");
         copyProperty(tickData, root, "worldChunks");
 
-        // ====== 第二层：网络数据包脉象（仅调用一次，供融合与 network 段共用） ======
+        // ====== Layer 2: Packet data (called once, shared by merge and network section) ======
         JsonObject packetData = packetProfiler.toJson(durationMs);
 
-        // ====== 方块实体：融合 tick 耗时 + 网络包数据 ======
-        // 从 tick 数据取 blockEntityMeridians（含 tick 耗时和 topConsumers）
-        // 从 packet 数据取 blockEntityStats（含网络包字节）
-        // 融合：在 blockEntityMeridians 的每个类型条目中注入 packetBytes/packetCount
+        // ====== Block entities: merge tick time + packet data ======
+        // tick data provides blockEntityMeridians (time + topConsumers)
+        // packet data provides blockEntityStats (bytes)
+        // merge: inject packetBytes/packetCount into each type entry
         JsonObject beMerged = mergeBlockEntityData(
                 tickData.getAsJsonArray("blockEntityMeridians"),
                 packetData.getAsJsonObject("blockEntityStats")
         );
         root.add("blockEntityMeridians", beMerged);
 
-        // ====== 网络数据包脉象 ======
+        // ====== Network packet data ======
         JsonObject networkSection = new JsonObject();
         networkSection.addProperty("totalBytes", packetData.get("totalBytes").getAsLong());
         networkSection.addProperty("totalPackets", packetData.get("totalPackets").getAsLong());
@@ -239,16 +276,19 @@ public class PulseGrasp {
         networkSection.add("playerStats", packetData.get("playerStats"));
         networkSection.add("chunkStats", packetData.get("chunkStats"));
         networkSection.add("flowSeries", packetData.get("flowSeries"));
-        // 方块实体网络包数据已融合到 blockEntityMeridians，此处不再重复
+        // block entity packet data already merged into blockEntityMeridians
         root.add("network", networkSection);
 
-        // ====== 第三层：线程 CPU 脉象（停止时快照） ======
+        // ====== Layer 3: Thread CPU snapshot (at stop) ======
         root.add("threadDump", threadProfiler.capture());
 
-        // ====== 系统资源时间序列（内存 + CPU） ======
+        // ====== Method-level self-time sampling (Server thread stack samples) ======
+        root.add("methodSampler", methodSampler.toJson());
+
+        // ====== System resource time series (memory + CPU) ======
         root.add("systemSeries", systemProfiler.toJson());
 
-        // 写入文件
+        // write to file
         try (FileWriter writer = new FileWriter(path.toFile())) {
             new GsonBuilder().setPrettyPrinting().create().toJson(root, writer);
         } catch (IOException e) {
@@ -257,13 +297,13 @@ public class PulseGrasp {
     }
 
     /**
-     * 融合方块实体数据：将 tick 耗时（blockEntityMeridians JsonArray）与网络包统计（blockEntityStats JsonObject）合并。
-     * 每个类型条目同时包含 tick 性能指标和网络流量指标。
+     * Merge block entity data: combine tick time (blockEntityMeridians JsonArray) with packet stats (blockEntityStats JsonObject).
+     * Each type entry gets both tick performance and network traffic metrics.
      */
     private JsonObject mergeBlockEntityData(JsonArray tickBeArray, JsonObject packetBeStats) {
         JsonObject merged = new JsonObject();
 
-        // 将 tick 的 JsonArray 转为按 name 查找的 Map
+        // convert tick JsonArray to name-indexed Map
         java.util.Map<String, JsonObject> tickLookup = new java.util.LinkedHashMap<>();
         if (tickBeArray != null) {
             for (int i = 0; i < tickBeArray.size(); i++) {
@@ -272,7 +312,7 @@ public class PulseGrasp {
             }
         }
 
-        // 将 packet 的 types 转为按 name 查找的 Map
+        // convert packet types to name-indexed Map
         java.util.Map<String, JsonObject> packetLookup = new java.util.LinkedHashMap<>();
         if (packetBeStats != null && packetBeStats.has("types")) {
             JsonObject packetTypes = packetBeStats.getAsJsonObject("types");
@@ -281,7 +321,7 @@ public class PulseGrasp {
             }
         }
 
-        // 收集所有类型名（tick 和 packet 的并集）
+        // collect all type names (union of tick and packet)
         java.util.Set<String> allTypes = new java.util.LinkedHashSet<>();
         allTypes.addAll(tickLookup.keySet());
         allTypes.addAll(packetLookup.keySet());
@@ -291,7 +331,7 @@ public class PulseGrasp {
         for (String type : allTypes) {
             JsonObject entry = new JsonObject();
 
-            // tick 数据
+            // tick data
             JsonObject tickEntry = tickLookup.get(type);
             if (tickEntry != null) {
                 copyProperty(tickEntry, entry, "totalMs");
@@ -301,7 +341,7 @@ public class PulseGrasp {
                 copyProperty(tickEntry, entry, "topConsumers");
             }
 
-            // 网络包数据
+            // packet data
             JsonObject pktEntry = packetLookup.get(type);
             if (pktEntry != null) {
                 entry.addProperty("packetBytes", pktEntry.get("bytes").getAsLong());
@@ -314,7 +354,7 @@ public class PulseGrasp {
             mergedTypes.add(type, entry);
         }
 
-        // 按 tick 总耗时降序排列（有 tick 数据的排前面），然后输出为 JsonArray
+        // sort by tick total time descending (tick entries first), then output as JsonArray
         com.google.gson.JsonArray sortedArray = new com.google.gson.JsonArray();
         allTypes.stream()
                 .sorted((a, b) -> {
@@ -328,7 +368,7 @@ public class PulseGrasp {
                         double bMs = bTick.get("totalMs").getAsDouble();
                         return Double.compare(bMs, aMs);
                     }
-                    // 都没有 tick 数据，按 packetBytes 降序
+                    // no tick data for either; sort by packetBytes descending
                     JsonObject aPkt = packetLookup.get(a);
                     JsonObject bPkt = packetLookup.get(b);
                     long aBytes = aPkt != null ? aPkt.get("bytes").getAsLong() : 0;
@@ -342,7 +382,7 @@ public class PulseGrasp {
                 });
         merged.add("types", sortedArray);
 
-        // 位置级数据（仅保留网络包统计，已有网络包数据）
+        // position-level data (keep packet stats only)
         if (packetBeStats != null && packetBeStats.has("positions")) {
             merged.add("positions", packetBeStats.get("positions"));
         }

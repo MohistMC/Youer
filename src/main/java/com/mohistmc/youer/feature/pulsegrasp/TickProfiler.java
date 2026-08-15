@@ -7,45 +7,50 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 import org.bukkit.Bukkit;
 
 /**
- * Tick 切脉分析器 — 采集服务器每 tick 各环节耗时、实体/方块实体类型耗时及生命体征。
+ * Tick profiler — collects per-tick timing, entity/block-entity type timing, and vital signs.
  */
 public class TickProfiler {
 
     private static final int TOP_CONSUMER_LIMIT = 10;
 
-    // 环节耗时
+    /** Identity writer for drill-down records — attaches the type name for self-identification */
+    @FunctionalInterface
+    private interface TypeIdentityWriter {
+        void write(JsonObject obj, TraceData trace, String typeName);
+    }
+
+    // meridian timing
     private final Map<String, Long> meridianTimes = new LinkedHashMap<>();
     private final Map<String, Integer> meridianCounts = new LinkedHashMap<>();
 
-    // 实体耗时
+    // entity timing
     private final Map<String, Long> entityMeridianTimes = new LinkedHashMap<>();
     private final Map<String, Integer> entityMeridianCounts = new LinkedHashMap<>();
     private final Map<String, Map<UUID, EntityTrace>> entityInstanceTraces = new HashMap<>();
 
-    // 方块实体耗时
+    // block entity timing
     private final Map<String, Long> blockEntityMeridianTimes = new LinkedHashMap<>();
     private final Map<String, Integer> blockEntityMeridianCounts = new LinkedHashMap<>();
     private final Map<String, Map<String, BlockEntityTrace>> blockEntityInstanceTraces = new HashMap<>();
 
-    // 生命体征
+    // vital signs
     private final java.util.List<VitalSign> vitalSigns = new java.util.ArrayList<>();
 
-    // 区块统计（按维度）
+    // chunk statistics (per dimension)
     private final Map<String, ChunkStat> chunkStats = new LinkedHashMap<>();
 
-    // 当前切脉状态
+    // current profiling state
     private String currentMeridian;
     private long meridianStartNs;
-    private String currentDimension; // 当前维度上下文，用于 meridian 名前缀
+    private String currentDimension; // current dimension context for meridian name prefix
 
     private int tickCount;
 
-    // ---- 生命周期 ----
+    // ---- Lifecycle ----
 
     void reset() {
         tickCount = 0;
@@ -62,13 +67,13 @@ public class TickProfiler {
         currentMeridian = null;
     }
 
-    // ---- 对外接口 ----
+    // ---- Public API ----
 
     public int getTickCount() {
         return tickCount;
     }
 
-    /** 记录一次 tick 完成 — 同时采集生命体征 */
+    /** Record a tick completion — also samples vital signs */
     public void markTick() {
         tickCount++;
         vitalSigns.add(new VitalSign(
@@ -89,12 +94,12 @@ public class TickProfiler {
         return count > 0 ? total / count : 0;
     }
 
-    /** 设置当前维度上下文 — 随后的 feelPulse 会自动添加维度前缀 */
+    /** Set current dimension context — subsequent feelPulse calls add a dimension prefix */
     public void setLevel(String dimension) {
         currentDimension = dimension;
     }
 
-    /** 开始切脉 — 进入某个环节（自动添加维度前缀） */
+    /** Start timing a meridian (auto-adds dimension prefix) */
     public void feelPulse(String meridian) {
         if (currentMeridian != null) {
             pulseComplete();
@@ -103,7 +108,7 @@ public class TickProfiler {
         meridianStartNs = System.nanoTime();
     }
 
-    /** 切脉结束 */
+    /** End meridian timing */
     public void pulseComplete() {
         if (currentMeridian == null) return;
         long elapsed = System.nanoTime() - meridianStartNs;
@@ -112,18 +117,20 @@ public class TickProfiler {
         currentMeridian = null;
     }
 
-    /** 记录实体 tick 耗时（自动添加维度前缀） */
+    /** Record entity tick time (auto-adds dimension prefix) */
     public void recordEntityPulse(String entityType, long nanos, UUID uuid, String world, int x, int y, int z) {
         String key = currentDimension != null ? currentDimension + "@@" + entityType : entityType;
         entityMeridianTimes.merge(key, nanos, Long::sum);
         entityMeridianCounts.merge(key, 1, Integer::sum);
-        entityInstanceTraces
+        EntityTrace entityTrace = entityInstanceTraces
                 .computeIfAbsent(key, k -> new HashMap<>())
-                .computeIfAbsent(uuid, k -> new EntityTrace(uuid, world, x, y, z))
-                .accumulate(nanos);
+                .computeIfAbsent(uuid, k -> new EntityTrace(uuid, world, x, y, z));
+        // refresh position on move to keep records accurate
+        entityTrace.updatePosition(world, x, y, z);
+        entityTrace.accumulate(nanos);
     }
 
-    /** 记录方块实体 tick 耗时（自动添加维度前缀） */
+    /** Record block entity tick time (auto-adds dimension prefix) */
     public void recordBlockEntityPulse(String blockEntityType, long nanos, String world, int x, int y, int z) {
         String key = currentDimension != null ? currentDimension + ":" + blockEntityType : blockEntityType;
         blockEntityMeridianTimes.merge(key, nanos, Long::sum);
@@ -135,35 +142,41 @@ public class TickProfiler {
                 .accumulate(nanos);
     }
 
-    /** 记录当前维度的区块统计（总区块数与活跃区块数） */
+    /** Record chunk statistics for the current dimension (total and active chunks) */
     public void recordChunkStat(int totalChunks, int activeChunks) {
         if (currentDimension == null) return;
         chunkStats.computeIfAbsent(currentDimension, k -> new ChunkStat()).accumulate(totalChunks, activeChunks);
     }
 
-    // ---- JSON 输出 ----
+    // ---- JSON output ----
 
     JsonObject toJson(long totalDurationMs) {
         JsonObject root = new JsonObject();
         root.addProperty("graspedTicks", tickCount);
         root.addProperty("avgTickTimeMs", tickCount > 0 ? String.format("%.2f", (double) totalDurationMs / tickCount) : "0");
 
-        // 环节脉象
+        // meridian data
         root.add("meridians", buildSortedJsonArray(meridianTimes, meridianCounts, totalDurationMs));
 
-        // 实体脉象（含实例下钻）
+        // entity data (with instance drill-down)
         @SuppressWarnings("unchecked")
         Map<String, Map<Object, ? extends TraceData>> entityTraces = (Map<String, Map<Object, ? extends TraceData>>) (Map<?, ?>) entityInstanceTraces;
         root.add("entityMeridians", buildEntityJsonArray(entityMeridianTimes, entityMeridianCounts, entityTraces, totalDurationMs,
-                (obj, trace) -> obj.addProperty("uuid", ((EntityTrace) trace).uuid.toString())));
+                (obj, trace, typeName) -> {
+                    obj.addProperty("uuid", ((EntityTrace) trace).uuid.toString());
+                    obj.addProperty("type", typeName);
+                }));
 
-        // 方块实体脉象（含实例下钻）
+        // block entity data (with instance drill-down)
         @SuppressWarnings("unchecked")
         Map<String, Map<Object, ? extends TraceData>> blockEntityTraces = (Map<String, Map<Object, ? extends TraceData>>) (Map<?, ?>) blockEntityInstanceTraces;
         root.add("blockEntityMeridians", buildEntityJsonArray(blockEntityMeridianTimes, blockEntityMeridianCounts, blockEntityTraces, totalDurationMs,
-                (obj, trace) -> obj.addProperty("type", ((BlockEntityTrace) trace).type)));
+                (obj, trace, typeName) -> {
+                    obj.addProperty("type", ((BlockEntityTrace) trace).type);
+                    obj.addProperty("world", trace.world());
+                }));
 
-        // 生命体征
+        // vital signs
         JsonArray vitalArray = new JsonArray();
         for (VitalSign vs : vitalSigns) {
             JsonObject obj = new JsonObject();
@@ -175,7 +188,7 @@ public class TickProfiler {
         }
         root.add("vitalSigns", vitalArray);
 
-        // 世界区块统计
+        // world chunk statistics
         root.add("worldChunks", buildChunkJsonArray());
 
         return root;
@@ -221,7 +234,7 @@ public class TickProfiler {
             Map<String, Integer> counts,
             Map<String, Map<Object, ? extends TraceData>> instanceTraces,
             long totalDurationMs,
-            BiConsumer<JsonObject, TraceData> identityWriter) {
+            TypeIdentityWriter identityWriter) {
         List<Map.Entry<String, Long>> sorted = times.entrySet().stream()
                 .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
                 .collect(Collectors.toList());
@@ -229,12 +242,15 @@ public class TickProfiler {
         for (Map.Entry<String, Long> entry : sorted) {
             JsonObject typeObj = new JsonObject();
             String key = entry.getKey();
+            String name;
             int dimIdx = key.indexOf("@@");
             if (dimIdx >= 0) {
-                typeObj.addProperty("name", key.substring(dimIdx + 2));
+                name = key.substring(dimIdx + 2);
+                typeObj.addProperty("name", name);
                 typeObj.addProperty("dimension", key.substring(0, dimIdx));
             } else {
-                typeObj.addProperty("name", key);
+                name = key;
+                typeObj.addProperty("name", name);
                 typeObj.addProperty("dimension", "");
             }
             typeObj.addProperty("totalMs", String.format("%.2f", entry.getValue() / 1_000_000.0));
@@ -242,7 +258,7 @@ public class TickProfiler {
             typeObj.addProperty("avgMs", String.format("%.4f", entry.getValue() / 1_000_000.0 / Math.max(1, counts.getOrDefault(entry.getKey(), 0))));
             typeObj.addProperty("percentage", totalDurationMs > 0 ? String.format("%.2f", entry.getValue() / 1_000_000.0 / totalDurationMs * 100) : "0.00");
 
-            // 实例下钻（无数据时输出空数组，保证前端 schema 稳定）
+            // instance drill-down (empty array when no data, keeps front-end schema stable)
             JsonArray consumers = new JsonArray();
             Map<Object, ? extends TraceData> instances = instanceTraces.get(entry.getKey());
             if (instances != null && !instances.isEmpty()) {
@@ -252,8 +268,7 @@ public class TickProfiler {
                         .forEach(e -> {
                             TraceData trace = e.getValue();
                             JsonObject obj = new JsonObject();
-                            identityWriter.accept(obj, trace);
-                            obj.addProperty("world", trace.world());
+                            identityWriter.write(obj, trace, name);
                             obj.addProperty("pos", trace.x() + "," + trace.y() + "," + trace.z());
                             obj.addProperty("totalMs", String.format("%.2f", trace.totalNanos() / 1_000_000.0));
                             obj.addProperty("count", trace.count());

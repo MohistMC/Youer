@@ -11,25 +11,25 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 /**
- * 网络数据包脉象分析器 — 采集服务端发送的所有数据包统计数据，
- * 按类型、玩家、区块、方块实体等维度聚合，与 TickProfiler 数据融合输出。
+ * Network packet profiler — collects statistics for all packets sent by the
+ * server, aggregated by type, player, chunk, and block entity, merged with TickProfiler data.
  */
 public class PacketProfiler {
 
-    // 全局流量统计
+    // global traffic statistics
     private final AtomicLong totalBytesSent = new AtomicLong(0);
     private final AtomicLong totalPacketsSent = new AtomicLong(0);
 
-    // 每秒流量（滑动窗口）
+    // per-second traffic (sliding window)
     private final AtomicLong currentSecondBytes = new AtomicLong(0);
     private final AtomicLong currentSecondPackets = new AtomicLong(0);
     private volatile long bytesPerSecond = 0;
     private volatile long packetsPerSecond = 0;
 
-    // 每秒流量时间序列
+    // per-second traffic time series
     private final java.util.List<FlowSample> flowSamples = new java.util.ArrayList<>();
 
-    // 按数据包类型统计
+    // per packet type statistics
     private final Map<String, AtomicLong> bytesByPacketType = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> packetsByPacketType = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> currentSecondBytesByPacketType = new ConcurrentHashMap<>();
@@ -37,22 +37,22 @@ public class PacketProfiler {
     private final Map<String, Long> bytesPerSecondByPacketType = new ConcurrentHashMap<>();
     private final Map<String, Long> packetsPerSecondByPacketType = new ConcurrentHashMap<>();
 
-    // 按区块统计（ClientboundLevelChunkWithLightPacket）
+    // per chunk statistics (ClientboundLevelChunkWithLightPacket)
     private final Map<String, AtomicLong> chunkBytes = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> chunkPackets = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> chunkPlayers = new ConcurrentHashMap<>();
 
-    // 按玩家统计
+    // per player statistics
     private final Map<String, AtomicLong> playerBytes = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> playerPackets = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> packetTypePlayers = new ConcurrentHashMap<>();
 
-    // 按方块实体统计（ClientboundBlockEntityDataPacket）
-    // 按坐标
+    // per block entity statistics (ClientboundBlockEntityDataPacket)
+    // by position
     private final Map<String, AtomicLong> bePosBytes = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> bePosPackets = new ConcurrentHashMap<>();
     private final Map<String, String> bePosTypes = new ConcurrentHashMap<>();
-    // 按类型
+    // by type
     private final Map<String, AtomicLong> beTypeBytes = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> beTypePackets = new ConcurrentHashMap<>();
 
@@ -60,7 +60,7 @@ public class PacketProfiler {
     private Thread updaterThread;
     private volatile boolean running = false;
 
-    // ---- 生命周期 ----
+    // ---- Lifecycle ----
 
     void start() {
         if (running) return;
@@ -117,9 +117,9 @@ public class PacketProfiler {
         beTypePackets.clear();
     }
 
-    // ---- 更新钩子（由 PacketEncoder 补丁调用） ----
+    // ---- Update hooks (called by the PacketEncoder patch) ----
 
-    /** 更新数据包统计 */
+    /** Update packet statistics */
     public void updatePacketStats(String packetClassName, int bytes, String playerName) {
         totalBytesSent.addAndGet(bytes);
         totalPacketsSent.incrementAndGet();
@@ -138,7 +138,7 @@ public class PacketProfiler {
         }
     }
 
-    /** 更新区块数据包统计 */
+    /** Update chunk packet statistics */
     public void updateChunkPacketStats(String world, int x, int z, int bytes, String playerName) {
         String key = world + ":" + x + "," + z;
         chunkBytes.computeIfAbsent(key, k -> new AtomicLong(0)).addAndGet(bytes);
@@ -148,7 +148,7 @@ public class PacketProfiler {
         }
     }
 
-    /** 更新方块实体数据包统计 */
+    /** Update block entity packet statistics */
     public void updateBlockEntityStats(String world, int x, int y, int z, String type, int bytes) {
         String posKey = world + ":" + x + "," + y + "," + z;
         bePosBytes.computeIfAbsent(posKey, k -> new AtomicLong(0)).addAndGet(bytes);
@@ -158,7 +158,7 @@ public class PacketProfiler {
         beTypePackets.computeIfAbsent(type, k -> new AtomicLong(0)).incrementAndGet();
     }
 
-    // ---- 内部 ----
+    // ---- Internal ----
 
     private void updateSecondlyStats() {
         long currentSecond = System.currentTimeMillis() / 1000;
@@ -181,7 +181,7 @@ public class PacketProfiler {
         }
     }
 
-    /** 停止时补录最后一秒尚未滚动的流量 */
+    /** Flush the last second's unrolled traffic on stop */
     private void flushRemainingFlow() {
         long bytes = currentSecondBytes.getAndSet(0);
         long packets = currentSecondPackets.getAndSet(0);
@@ -190,7 +190,7 @@ public class PacketProfiler {
         }
     }
 
-    /** 一次每秒流量采样 */
+    /** A single per-second traffic sample */
     private static class FlowSample {
         final long timestamp;
         final long bytes;
@@ -203,7 +203,7 @@ public class PacketProfiler {
         }
     }
 
-    // ---- 查询接口 ----
+    // ---- Query API ----
 
     public long getTotalBytes() { return totalBytesSent.get(); }
     public long getTotalPackets() { return totalPacketsSent.get(); }
@@ -228,7 +228,7 @@ public class PacketProfiler {
         return packetsPerSecondByPacketType.getOrDefault(packetType, 0L);
     }
 
-    // ---- JSON 输出 ----
+    // ---- JSON output ----
 
     JsonObject toJson(long totalDurationMs) {
         JsonObject root = new JsonObject();
@@ -237,7 +237,7 @@ public class PacketProfiler {
         root.addProperty("bytesPerSecond", bytesPerSecond);
         root.addProperty("packetsPerSecond", packetsPerSecond);
 
-        // 每秒流量时间序列
+        // per-second traffic time series
         JsonArray flowSeries = new JsonArray();
         for (FlowSample sample : flowSamples) {
             JsonObject obj = new JsonObject();
@@ -248,7 +248,7 @@ public class PacketProfiler {
         }
         root.add("flowSeries", flowSeries);
 
-        // 按数据包类型
+        // by packet type
         JsonObject packetTypes = new JsonObject();
         getBytesByPacketType().entrySet().stream()
                 .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
@@ -276,7 +276,7 @@ public class PacketProfiler {
                 });
         root.add("packetTypes", packetTypes);
 
-        // 按玩家
+        // by player
         JsonObject playerStats = new JsonObject();
         playerBytes.forEach((name, bytes) -> {
             JsonObject entry = new JsonObject();
@@ -286,7 +286,7 @@ public class PacketProfiler {
         });
         root.add("playerStats", playerStats);
 
-        // 按区块
+        // by chunk
         JsonObject chunkStats = new JsonObject();
         chunkBytes.forEach((pos, bytes) -> {
             JsonObject chunkEntry = new JsonObject();
@@ -300,7 +300,7 @@ public class PacketProfiler {
         });
         root.add("chunkStats", chunkStats);
 
-        // 按方块实体（位置 + 类型）
+        // by block entity (position + type)
         JsonObject blockEntityStats = new JsonObject();
         JsonObject bePositions = new JsonObject();
         bePosBytes.forEach((pos, bytes) -> {

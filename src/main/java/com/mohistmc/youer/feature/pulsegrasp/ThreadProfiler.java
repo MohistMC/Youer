@@ -10,8 +10,8 @@ import java.util.Comparator;
 import java.util.List;
 
 /**
- * 线程 CPU 脉象分析器 — 在诊断停止时捕获所有线程的 CPU 时间、状态和堆栈信息，
- * 提供 JVM 线程级别的资源消耗画像，与 Tick 切脉和网络包数据融合输出。
+ * Thread CPU profiler — captures CPU time, state, and stack traces of all
+ * threads at diagnostic stop, providing a JVM thread-level resource profile.
  */
 public class ThreadProfiler {
 
@@ -24,10 +24,10 @@ public class ThreadProfiler {
         }
     }
 
-    /** 捕获当前所有线程的 CPU 时间快照 */
+    /** Capture a CPU time snapshot of all threads */
     public JsonObject capture() {
         long[] ids = threadMXBean.getAllThreadIds();
-        // 批量获取线程信息，减少逐线程 native 调用（profiler attach 期间 JVMTI 调用会被放大）
+        // batch-fetch thread info to reduce per-thread native calls
         ThreadInfo[] infos = threadMXBean.getThreadInfo(ids, 20);
         List<ThreadCpuTime> list = new ArrayList<>(ids.length);
 
@@ -69,11 +69,11 @@ public class ThreadProfiler {
 
         list.sort(Comparator.comparingLong(t -> -t.cpuTime));
 
-        // 计算汇总
+        // compute totals
         long totalCpuTime = list.stream().mapToLong(t -> t.cpuTime).sum();
         long totalUserTime = list.stream().mapToLong(t -> t.userTime).sum();
 
-        // 构建 JSON
+        // build JSON
         JsonObject root = new JsonObject();
         root.addProperty("totalThreads", list.size());
         root.addProperty("totalCpuTimeMs", totalCpuTime);
@@ -92,7 +92,7 @@ public class ThreadProfiler {
             obj.addProperty("waitedTime", t.waitedTime);
             obj.addProperty("blockedCount", t.blockedCount);
             obj.addProperty("waitedCount", t.waitedCount);
-            // 无条件输出（空值时给空串，保证前端 schema 稳定）
+            // always output (empty string when null, keeps front-end schema stable)
             obj.addProperty("lockInfo", t.lockInfo != null ? t.lockInfo : "");
             obj.addProperty("lockOwnerId", t.lockOwnerId);
             obj.addProperty("lockOwnerName", t.lockOwnerName != null ? t.lockOwnerName : "");
@@ -104,7 +104,7 @@ public class ThreadProfiler {
         return root;
     }
 
-    // ---- 内部数据结构 ----
+    // ---- Internal data structure ----
 
     private static class ThreadCpuTime {
         long id;
