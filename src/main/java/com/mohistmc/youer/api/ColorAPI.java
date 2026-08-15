@@ -6,7 +6,9 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 /**
@@ -57,6 +59,59 @@ public class ColorAPI {
      */
     public static net.minecraft.network.chat.Component vanilla(String text) {
         return net.minecraft.network.chat.Component.literal(string(text));
+    }
+
+    /**
+     * Process color codes and return ANSI-formatted string with true color (24-bit RGB) support.
+     * Unlike ANSIComponentSerializer which may quantize colors, this always outputs true-color sequences.
+     */
+    public static String ansi(String text) {
+        return ansi(adventure(text));
+    }
+
+    /**
+     * Convert an Adventure Component to an ANSI-formatted string with true color (24-bit RGB) support.
+     */
+    public static String ansi(Component component) {
+        final StringBuilder sb = new StringBuilder();
+        appendAnsi(sb, component);
+        return sb.toString();
+    }
+
+    private static final char ANSI_ESC = 0x1B;
+
+    private static void appendAnsi(StringBuilder sb, Component component) {
+        final TextColor color = component.style().color();
+        if (color != null) {
+            final int r = (color.value() >> 16) & 0xFF;
+            final int g = (color.value() >> 8) & 0xFF;
+            final int b = color.value() & 0xFF;
+            sb.append(ANSI_ESC).append("[38;2;").append(r).append(';').append(g).append(';').append(b).append('m');
+        }
+        if (component.style().decoration(TextDecoration.BOLD) == TextDecoration.State.TRUE) {
+            sb.append(ANSI_ESC).append("[1m");
+        }
+        if (component.style().decoration(TextDecoration.ITALIC) == TextDecoration.State.TRUE) {
+            sb.append(ANSI_ESC).append("[3m");
+        }
+        if (component.style().decoration(TextDecoration.UNDERLINED) == TextDecoration.State.TRUE) {
+            sb.append(ANSI_ESC).append("[4m");
+        }
+        if (component.style().decoration(TextDecoration.STRIKETHROUGH) == TextDecoration.State.TRUE) {
+            sb.append(ANSI_ESC).append("[9m");
+        }
+        if (component.style().decoration(TextDecoration.OBFUSCATED) == TextDecoration.State.TRUE) {
+            sb.append(ANSI_ESC).append("[8m");
+        }
+        if (component instanceof TextComponent text) {
+            sb.append(text.content());
+        }
+        for (final Component child : component.children()) {
+            appendAnsi(sb, child);
+        }
+        if (color != null) {
+            sb.append(ANSI_ESC).append("[0m");
+        }
     }
 
     /**
