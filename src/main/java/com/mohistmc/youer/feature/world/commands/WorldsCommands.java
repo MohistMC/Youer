@@ -40,11 +40,11 @@ public class WorldsCommands extends Command {
     }
 
     public static void worldNotExists(Player player, String world) {
-        player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.command.thisWorld") + world + I18n.as("worldcommands.command.worldDontExist"));
+        player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.command.worldNotExists", world));
     }
 
     public static void worldAllExists(Player player, String world) {
-        player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.command.thisWorld") + world + I18n.as("worldcommands.command.worldExists"));
+        player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.command.worldExists", world));
     }
 
     @Override
@@ -163,7 +163,7 @@ public class WorldsCommands extends Command {
                     return false;
                 }
                 ConfigByWorlds.getSpawn(worldName, player);
-                player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.command.teleport") + worldName + I18n.as("worldcommands.command.spawn"));
+                player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.command.teleportSpawn", worldName));
                 return true;
             }
             if (args.length == 1 && args[0].equalsIgnoreCase("spawn")) {

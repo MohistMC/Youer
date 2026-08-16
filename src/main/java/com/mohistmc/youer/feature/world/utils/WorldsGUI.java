@@ -158,7 +158,7 @@ public class WorldsGUI {
 
             World world = Bukkit.getWorld(worldName);
             if (world == null) {
-                String msg = String.format(I18n.as("worldlistener.ICL.worldCreateFailurePart1") + worldName) + I18n.as("worldlistener.ICL.worldCreateFailurePart2");
+                String msg = I18n.as("worldlistener.ICL.worldCreateFailure", worldName);
                 p.sendMessage(ChatColor.RED + msg);
                 return;
             }
