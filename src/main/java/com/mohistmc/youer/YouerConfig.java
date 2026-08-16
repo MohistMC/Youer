@@ -6,6 +6,7 @@ import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.commands.DumpCommand;
 import com.mohistmc.youer.commands.InfoCommand;
 import com.mohistmc.youer.commands.ItemsCommand;
+import com.mohistmc.youer.commands.LogFilterCommand;
 import com.mohistmc.youer.commands.PermissionCommand;
 import com.mohistmc.youer.commands.PulseGraspCommand;
 import com.mohistmc.youer.commands.PluginManagerCommand;
@@ -16,6 +17,8 @@ import com.mohistmc.youer.feature.ban.BansCommand;
 import com.mohistmc.youer.feature.create.CreateItemDrainCommand;
 import com.mohistmc.youer.feature.create.PotionBanConfig;
 import com.mohistmc.youer.feature.entitylimits.EntityLimitsConfig;
+import com.mohistmc.youer.feature.logfilter.LogFilter;
+import com.mohistmc.youer.feature.logfilter.LogFilterConfig;
 import com.mohistmc.youer.util.I18n;
 import com.mohistmc.youer.util.YamlUtils;
 import java.io.File;
@@ -202,6 +205,9 @@ public class YouerConfig {
         commands.put("infos", new InfoCommand("infos"));
         commands.put("pulsegrasp", new PulseGraspCommand("pulsegrasp"));
         commands.put("plugin", new PluginManagerCommand("plugin"));
+        commands.put("logfilter", new LogFilterCommand("logfilter"));
+        LogFilterConfig.init();
+        LogFilter.register();
         EntityLimitsConfig.init();
         YouerPlugin.registerCommands(commands);
 
