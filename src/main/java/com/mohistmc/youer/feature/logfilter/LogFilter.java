@@ -100,6 +100,16 @@ public final class LogFilter extends AbstractFilter {
         if (msg == null) {
             return Result.NEUTRAL;
         }
+        // Command feedback (e.g. /logfilter list output) must never be filtered
+        // by the very rules it displays - a "Leaked resource" rule must not hide
+        // the list entry that shows "Leaked resource". Such feedback carries §
+        // colour codes when sent to players, and ANSI escape sequences (ESC, 0x1B)
+        // when sent to the console (CraftConsoleCommandSender converts § via the
+        // ANSI serializer before logging), while raw server/mod log lines carry
+        // neither. Skip both forms so a broad rule cannot swallow command output.
+        if (msg.indexOf('§') >= 0 || msg.indexOf('\u001B') >= 0) {
+            return Result.NEUTRAL;
+        }
         for (Pattern pattern : patterns) {
             if (pattern.matcher(msg).find()) {
                 return Result.DENY;

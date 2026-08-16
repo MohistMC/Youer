@@ -63,10 +63,19 @@
         </Async>
     </Appenders>
     <Loggers>
-        <Root level="debug">
+        <!-- make sure mojang's logging is set to 'info' so that their LOGGER.isDebugEnabled() behavior isn't active -->
+        <Logger level="${sys:forge.logging.mojang.level:-info}" name="com.mojang"/>
+        <Logger level="${sys:forge.logging.mojang.level:-info}" name="net.minecraft"/>
+        <Logger level="${sys:forge.logging.classtransformer.level:-info}" name="cpw.mods.modlauncher.ClassTransformer"/>
+
+        <!-- Netty reflects into JDK internals, and it's causing useless DEBUG-level error stacktraces. We just ignore them -->
+        <Logger name="io.netty.util.internal.PlatformDependent0">
             <filters>
-                <MarkerFilter marker="NETWORK_PACKETS" onMatch="DENY" onMismatch="NEUTRAL" />
+                <RegexFilter regex="^direct buffer constructor: unavailable$" onMatch="DENY" onMismatch="NEUTRAL" />
+                <RegexFilter regex="^jdk\.internal\.misc\.Unsafe\.allocateUninitializedArray\(int\): unavailable$" onMatch="DENY" onMismatch="NEUTRAL" />
             </filters>
+        </Logger>
+        <Root level="debug">
             <AppenderRef ref="Async"/>
         </Root>
     </Loggers>

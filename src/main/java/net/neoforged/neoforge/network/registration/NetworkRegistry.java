@@ -8,6 +8,7 @@ package net.neoforged.neoforge.network.registration;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
+import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.api.PlayerAPI;
@@ -224,7 +225,7 @@ public class NetworkRegistry {
             recorder.update();
             // These two checks can only be hit on receipt of a payload, as senders will be checked before reaching this method.
             if (registration == null) {
-                LOGGER.warn("No registration for payload {}; refusing to decode.", id);
+                if (Youer.DEBUG) LOGGER.warn("No registration for payload {}; refusing to decode.", id);
                 return (flow == PacketFlow.CLIENTBOUND && ((StandardMessenger)Bukkit.getServer().getMessenger()).registry.containsKey(id)) ? PluginsPayload.dcodec(id, 32767) : null;
             }
 
