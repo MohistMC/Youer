@@ -24,6 +24,7 @@ import com.mohistmc.youer.feature.entitylimits.EntityLimitsConfig;
 import com.mohistmc.youer.feature.logfilter.LogFilter;
 import com.mohistmc.youer.feature.logfilter.LogFilterConfig;
 import com.mohistmc.youer.util.I18n;
+import com.mohistmc.youer.util.I18nOverrides;
 import com.mohistmc.youer.util.YamlUtils;
 import java.io.File;
 import java.io.IOException;
@@ -217,6 +218,7 @@ public class YouerConfig {
         EnchantLimitConfig.init();
         EntityDamageConfig.init();
         EntityLimitsConfig.init();
+        I18nOverrides.init();
         YouerPlugin.registerCommands(commands);
 
         version = getInt("config-version", 1);
