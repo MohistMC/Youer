@@ -40,15 +40,15 @@ public final class PluginManager {
         // Match by plugin identifier (parsed from plugin.yml) rather than file name,
         // because Paper's remapper renames the loaded file with a timestamp suffix.
         String pluginName = pluginNameOfJar(file);
-        if (pluginName != null && Bukkit.getPluginManager().getPlugin(pluginName) != null) {
+        if (pluginName != null && PaperPluginManagerImpl.getInstance().getPlugin(pluginName) != null) {
             return I18n.as("pluginmanager.load.already", pluginName);
         }
         try {
-            Plugin plugin = Bukkit.getPluginManager().loadPlugin(file);
+            Plugin plugin = PaperPluginManagerImpl.getInstance().loadPlugin(file);
             if (plugin == null) {
                 return I18n.as("pluginmanager.load.failed", file.getName());
             }
-            Bukkit.getPluginManager().enablePlugin(plugin);
+            PaperPluginManagerImpl.getInstance().enablePlugin(plugin);
             return I18n.as("pluginmanager.load.success", plugin.getName());
         } catch (Exception e) {
             return I18n.as("pluginmanager.load.error", file.getName(), String.valueOf(e.getMessage()));
@@ -63,23 +63,23 @@ public final class PluginManager {
      * @return a localized result message
      */
     public static String reload(String name) {
-        Plugin plugin = Bukkit.getPluginManager().getPlugin(name);
+        Plugin plugin = PaperPluginManagerImpl.getInstance().getPlugin(name);
         if (plugin == null) {
             return I18n.as("pluginmanager.notfound", name);
         }
-        File file = plugin instanceof JavaPlugin javaPlugin ? javaPlugin.getFile() : null;
+        File file = plugin instanceof JavaPlugin javaPlugin ? originalJar(plugin, javaPlugin.getFile()) : null;
         if (file == null) {
             return I18n.as("pluginmanager.nofile", name);
         }
         unregisterCommands(plugin);
-        Bukkit.getPluginManager().disablePlugin(plugin);
+        PaperPluginManagerImpl.getInstance().disablePlugin(plugin);
         removeFromInternalLists(plugin);
         try {
-            Plugin loaded = Bukkit.getPluginManager().loadPlugin(file);
+            Plugin loaded = PaperPluginManagerImpl.getInstance().loadPlugin(file);
             if (loaded == null) {
                 return I18n.as("pluginmanager.load.failed", file.getName());
             }
-            Bukkit.getPluginManager().enablePlugin(loaded);
+            PaperPluginManagerImpl.getInstance().enablePlugin(loaded);
             return I18n.as("pluginmanager.reload.success", loaded.getName());
         } catch (Exception e) {
             return I18n.as("pluginmanager.reload.error", name, String.valueOf(e.getMessage()));
@@ -94,14 +94,44 @@ public final class PluginManager {
      * @return a localized result message
      */
     public static String unload(String name) {
-        Plugin plugin = Bukkit.getPluginManager().getPlugin(name);
+        Plugin plugin = PaperPluginManagerImpl.getInstance().getPlugin(name);
         if (plugin == null) {
             return I18n.as("pluginmanager.notfound", name);
         }
         unregisterCommands(plugin);
-        Bukkit.getPluginManager().disablePlugin(plugin);
+        PaperPluginManagerImpl.getInstance().disablePlugin(plugin);
         removeFromInternalLists(plugin);
         return I18n.as("pluginmanager.unload.success", name);
+    }
+
+    /**
+     * Paper/Mohist remap plugin jars into {@code plugins/.paper-remapped/} at load time, so
+     * {@link JavaPlugin#getFile()} points at that stale remapped copy instead of the jar the
+     * user actually edits. The remapped copy is named {@code <name>-<timestamp>.jar} in the
+     * {@code unknown-origin} sub-folder, so its file name cannot be used to locate the original.
+     * Match the original jar in the plugins directory by the plugin identifier declared in
+     * plugin.yml instead, so reload picks up the new code; {@code PaperPluginManagerImpl#loadPlugin}
+     * will re-remap it whenever its content has changed.
+     */
+    private static File originalJar(Plugin plugin, File file) {
+        if (file == null) return null;
+        String abs = file.getAbsolutePath().replace('\\', '/');
+        if (!abs.contains("/.paper-remapped/")) {
+            return file;
+        }
+        File pluginsDir = new File("plugins");
+        File[] jars = pluginsDir.listFiles((dir, name) -> name.endsWith(".jar"));
+        if (jars != null) {
+            String pluginName = plugin.getName();
+            for (File jar : jars) {
+                if (pluginName.equals(pluginNameOfJar(jar))) {
+                    return jar;
+                }
+            }
+        }
+        // Fallback: non-timestamped copies share the original file name.
+        File original = new File(pluginsDir, file.getName());
+        return original.isFile() ? original : file;
     }
 
     /**
