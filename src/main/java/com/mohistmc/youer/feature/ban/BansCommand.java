@@ -80,7 +80,14 @@ public class BansCommand extends Command {
                         sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.recipe.exists"));
                         return false;
                     }
-                    if (!BanRecipe.CACHE.contains(ResourceLocation.parse(name))) {
+                    ResourceLocation recipeKey;
+                    try {
+                        recipeKey = ResourceLocation.parse(name);
+                    } catch (RuntimeException ex) {
+                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.recipe.notexists"));
+                        return false;
+                    }
+                    if (!BanRecipe.CACHE.contains(recipeKey)) {
                         sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.recipe.notexists"));
                         return false;
                     }
@@ -97,7 +104,14 @@ public class BansCommand extends Command {
                         sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.world.exists"));
                         return false;
                     }
-                    if (!BanWorld.CACHE.contains(ResourceLocation.parse(name))) {
+                    ResourceLocation worldKey;
+                    try {
+                        worldKey = ResourceLocation.parse(name);
+                    } catch (RuntimeException ex) {
+                        sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.world.notexists"));
+                        return false;
+                    }
+                    if (!BanWorld.CACHE.contains(worldKey)) {
                         sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.world.notexists"));
                         return false;
                     }
@@ -159,7 +173,13 @@ public class BansCommand extends Command {
                             String entityName = args[2];
                             boolean isWildcard = entityName.matches("^[a-z0-9_.-]+:\\*$");
                             if (!isWildcard) {
-                                ResourceLocation entityKey = ResourceLocation.parse(entityName);
+                                ResourceLocation entityKey;
+                                try {
+                                    entityKey = ResourceLocation.parse(entityName);
+                                } catch (RuntimeException ex) {
+                                    sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.entity.invalid").formatted(entityName));
+                                    return false;
+                                }
                                 if (!BuiltInRegistries.ENTITY_TYPE.containsKey(entityKey)) {
                                     sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.entity.invalid").formatted(entityName));
                                     return false;
@@ -322,7 +342,13 @@ public class BansCommand extends Command {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.entity"));
                         List<String> old = BanConfig.getListByType(BanType.ENTITY);
                         for (String s : BanConfig.getListByType(BanType.ENTITY)) {
-                            wh.addItem(new GUIItem(new ItemStackFactory(ItemAPI.getEggMaterial(EntityAPI.getType(s)))
+                            net.minecraft.world.entity.EntityType<?> type;
+                            try {
+                                type = EntityAPI.getType(s);
+                            } catch (RuntimeException ex) {
+                                type = null; // Wildcard (modid:*) or unknown entries cannot be parsed as ResourceLocation
+                            }
+                            wh.addItem(new GUIItem(new ItemStackFactory(ItemAPI.getEggMaterial(type))
                                     .setDisplayName(s)
                                     .addLore("§e" + I18n.as("banscmd.show.lore"))
                                     .build()) {
