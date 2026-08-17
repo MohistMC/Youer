@@ -1,5 +1,6 @@
 package org.spigotmc;
 
+import com.mohistmc.youer.util.I18n;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MonitorInfo;
 import java.lang.management.ThreadInfo;
@@ -84,40 +85,40 @@ public class WatchdogThread extends ca.spottedleaf.moonrise.common.util.TickThre
                 if (isLongTimeout) {
                     // Paper end
                     log.log(Level.SEVERE, "------------------------------");
-                    log.log(Level.SEVERE, "The server has stopped responding! This is (probably) not a Youer bug.");
-                    log.log(Level.SEVERE, "If you see a plugin in the Server thread dump below, then please report it to that author");
-                    log.log(Level.SEVERE, "\t *Especially* if it looks like HTTP or MySQL operations are occurring");
-                    log.log(Level.SEVERE, "If you see a world save or edit, then it means you did far more than your server can handle at once");
-                    log.log(Level.SEVERE, "\t If this is the case, consider increasing timeout-time in spigot.yml but note that this will replace the crash with LARGE lag spikes");
-                    log.log(Level.SEVERE, "If you are unsure or still think this is a Paper bug, please report this to https://github.com/MohistMC/Youer/issues");
-                    log.log(Level.SEVERE, "Be sure to include ALL relevant console errors and Minecraft crash reports");
-                    log.log(Level.SEVERE, "Youer version: " + Bukkit.getServer().getVersion());
+                    log.log(Level.SEVERE, I18n.as("watchdog.serverStoppedResponding"));
+                    log.log(Level.SEVERE, I18n.as("watchdog.reportPlugin"));
+                    log.log(Level.SEVERE, I18n.as("watchdog.especialHttp"));
+                    log.log(Level.SEVERE, I18n.as("watchdog.worldSave"));
+                    log.log(Level.SEVERE, I18n.as("watchdog.increaseTimeout"));
+                    log.log(Level.SEVERE, I18n.as("watchdog.reportIssue"));
+                    log.log(Level.SEVERE, I18n.as("watchdog.includeErrors"));
+                    log.log(Level.SEVERE, I18n.as("watchdog.youerVersion", Bukkit.getServer().getVersion()));
                     //
                     if (net.minecraft.world.level.Level.lastPhysicsProblem != null) {
                         log.log(Level.SEVERE, "------------------------------");
-                        log.log(Level.SEVERE, "During the run of the server, a physics stackoverflow was supressed");
-                        log.log(Level.SEVERE, "near " + net.minecraft.world.level.Level.lastPhysicsProblem);
+                        log.log(Level.SEVERE, I18n.as("watchdog.physicsSuppressed"));
+                        log.log(Level.SEVERE, I18n.as("watchdog.physicsNear", net.minecraft.world.level.Level.lastPhysicsProblem));
                     }
                     // Paper end
                 } else {
-                    log.log(Level.SEVERE, "--- DO NOT REPORT THIS TO PAPER - THIS IS NOT A BUG OR A CRASH  - " + Bukkit.getServer().getVersion() + " ---");
-                    log.log(Level.SEVERE, "The server has not responded for " + (currentTime - lastTick) / 1000 + " seconds! Creating thread dump");
+                    log.log(Level.SEVERE, I18n.as("watchdog.notBugShort", Bukkit.getServer().getVersion()));
+                    log.log(Level.SEVERE, I18n.as("watchdog.noResponse", (currentTime - lastTick) / 1000));
                 }
                 // Paper end - Different message for short timeout
                 log.log(Level.SEVERE, "------------------------------");
-                log.log(Level.SEVERE, "Server thread dump (Look for plugins here before reporting to Youer!):"); // Paper
+                log.log(Level.SEVERE, I18n.as("watchdog.serverThreadDump")); // Paper
                 WatchdogThread.dumpThread(ManagementFactory.getThreadMXBean().getThreadInfo(MinecraftServer.getServer().serverThread.getId(), Integer.MAX_VALUE), log);
                 log.log(Level.SEVERE, "------------------------------");
                 //
                 // Paper start - Only print full dump on long timeouts
                 if (isLongTimeout) {
-                    log.log(Level.SEVERE, "Entire Thread Dump:");
+                    log.log(Level.SEVERE, I18n.as("watchdog.entireThreadDump"));
                     ThreadInfo[] threads = ManagementFactory.getThreadMXBean().dumpAllThreads(true, true);
                     for (ThreadInfo thread : threads) {
                         WatchdogThread.dumpThread(thread, log);
                     }
                 } else {
-                    log.log(Level.SEVERE, "--- DO NOT REPORT THIS TO PAPER - THIS IS NOT A BUG OR A CRASH ---");
+                    log.log(Level.SEVERE, I18n.as("watchdog.notBug"));
                 }
                 log.log(Level.SEVERE, "------------------------------");
                 if (isLongTimeout) {
@@ -155,20 +156,18 @@ public class WatchdogThread extends ca.spottedleaf.moonrise.common.util.TickThre
     {
         log.log( Level.SEVERE, "------------------------------" );
         //
-        log.log( Level.SEVERE, "Current Thread: " + thread.getThreadName() );
-        log.log( Level.SEVERE, "\tPID: " + thread.getThreadId()
-                + " | Suspended: " + thread.isSuspended()
-                + " | Native: " + thread.isInNative()
-                + " | State: " + thread.getThreadState() );
+        log.log( Level.SEVERE, I18n.as("watchdog.currentThread", thread.getThreadName()) );
+        log.log( Level.SEVERE, I18n.as("watchdog.threadMeta", thread.getThreadId(),
+                thread.isSuspended(), thread.isInNative(), thread.getThreadState()) );
         if ( thread.getLockedMonitors().length != 0 )
         {
-            log.log( Level.SEVERE, "\tThread is waiting on monitor(s):" );
+            log.log( Level.SEVERE, I18n.as("watchdog.waitingMonitors") );
             for ( MonitorInfo monitor : thread.getLockedMonitors() )
             {
-                log.log( Level.SEVERE, "\t\tLocked on:" + monitor.getLockedStackFrame() );
+                log.log( Level.SEVERE, I18n.as("watchdog.lockedOn", monitor.getLockedStackFrame()) );
             }
         }
-        log.log( Level.SEVERE, "\tStack:" );
+        log.log( Level.SEVERE, I18n.as("watchdog.stack") );
         //
         for ( StackTraceElement stack : thread.getStackTrace() )
         {
