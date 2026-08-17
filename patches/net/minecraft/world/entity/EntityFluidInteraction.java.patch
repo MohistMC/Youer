@@ -67,7 +67,7 @@
                                  }
                              }
                          }
-@@ -118,43 +_,154 @@
+@@ -118,43 +_,168 @@
          return hasFluid;
      }
  
@@ -145,6 +145,20 @@
 +            }
 +        }
 +        return maxHeightType;
++    }
++
++    public float getFallDistanceModifier(Entity entity) {
++        float minMod = 1F;
++        for (var entry : this.trackerByFluid.entrySet()) {
++            if (entry.getValue().height <= 0D || entry.getKey().isVanilla() || entry.getKey().getIsWaterLike()) {
++                continue;
++            }
++            float mod = entity.getFluidFallDistanceModifier(entry.getKey());
++            if (mod < minMod) {
++                minMod = mod;
++            }
++        }
++        return minMod;
 +    }
 +
 +    /// @deprecated Neo: use [#isInFluid(net.neoforged.neoforge.fluids.FluidType)] instead
