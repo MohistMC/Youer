@@ -1948,7 +1948,7 @@
                      }
                  }
                  break;
-@@ -1622,15 +_,23 @@
+@@ -1622,15 +_,29 @@
      @Override
      public void handleContainerClose(ServerboundContainerClosePacket p_9858_) {
          PacketUtils.ensureRunningOnSameThread(p_9858_, this, this.player.serverLevel());
@@ -1964,6 +1964,12 @@
      @Override
      public void handleContainerClick(ServerboundContainerClickPacket p_9856_) {
          PacketUtils.ensureRunningOnSameThread(p_9856_, this, this.player.serverLevel());
++        if (p_9856_.getSlotNum() >= 0
++                && com.mohistmc.youer.feature.ban.bans.BanItem.checkClickedItem(this.player, this.player.containerMenu.getSlot(p_9856_.getSlotNum()).getItem())) { // Youer - confiscate moshou items on click
++            this.player.containerMenu.getSlot(p_9856_.getSlotNum()).set(ItemStack.EMPTY);
++            this.player.containerMenu.sendAllDataToRemote();
++            return;
++        }
 +        if (this.player.isImmobile()) return; // CraftBukkit
          this.player.resetLastActionTime();
 -        if (this.player.containerMenu.containerId == p_9856_.getContainerId()) {

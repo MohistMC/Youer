@@ -2,8 +2,11 @@ package com.mohistmc.youer.feature.ban.bans;
 
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.ItemAPI;
+import com.mohistmc.youer.api.gui.GUI;
+import com.mohistmc.youer.api.gui.GuiListener;
 import com.mohistmc.youer.feature.ban.BanConfig;
 import com.mohistmc.youer.feature.ban.BanType;
+import com.mohistmc.youer.util.I18n;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
@@ -24,6 +27,10 @@ public class BanItem {
     public static boolean check(net.minecraft.world.entity.player.Player player, ItemStack itemStack) {
         if (player == null) return false;
         if (player.getBukkitEntity().isOp()) return false;
+        if (checkMoShou(player, itemStack)) {
+            player.containerMenu.sendAllDataToRemote();
+            return true;
+        }
         if (BanEnchantment.check(itemStack)) {
             player.containerMenu.sendAllDataToRemote();
             return true;
@@ -92,7 +99,7 @@ public class BanItem {
         if (!YouerConfig.ban_item_enable) return false;
         var list = BanConfig.getListByType(BanType.ITEM_MOSHOU);
         if (list.isEmpty()) return false;
-        return list.contains(itemStack.getType().key().asString());
+        return list.contains(itemStack.getType().key().asString()) || BanNbt.check(itemStack);
     }
 
     public static boolean checkMoShou(ItemStack itemStack) {
@@ -105,5 +112,20 @@ public class BanItem {
         if (bukkitPlayer.isOp()) return false;
         String permission = moshou_permission + itemStack.getBukkitStack().getType().name().toLowerCase();
         return checkMoShou(itemStack) && !bukkitPlayer.hasPermission(permission);
+    }
+
+    /**
+     * Checks an item that was clicked in a container slot, moshou first. The
+     * bans show item-moshou GUI is exempt, otherwise the admin could not remove
+     * entries from the list.
+     */
+    public static boolean checkClickedItem(net.minecraft.server.level.ServerPlayer player, ItemStack clicked) {
+        if (clicked == null || clicked.isEmpty()) return false;
+        if (player.getBukkitEntity().isOp()) return false;
+        GUI gui = GuiListener.openGUI.get(player.getBukkitEntity());
+        if (gui != null && I18n.as("banscmd.show.item-moshou").equals(gui.tempName)) {
+            return false;
+        }
+        return checkMoShou(player, clicked);
     }
 }

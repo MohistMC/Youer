@@ -95,13 +95,14 @@
      }
  
      public ObjectArrayList<ItemStack> getRandomItems(LootParams p_347545_, RandomSource p_347680_) {
-@@ -124,7 +_,8 @@
+@@ -124,7 +_,9 @@
  
      private ObjectArrayList<ItemStack> getRandomItems(LootContext p_230923_) {
          ObjectArrayList<ItemStack> objectarraylist = new ObjectArrayList<>();
 -        this.getRandomItems(p_230923_, objectarraylist::add);
 +        this.getRandomItemsRaw(p_230923_, createStackSplitter(p_230923_.getLevel(), objectarraylist::add));
 +        objectarraylist = net.neoforged.neoforge.common.CommonHooks.modifyLoot(this.getLootTableId(), objectarraylist, p_230923_);
++        objectarraylist.removeIf(itemstack -> !itemstack.isEmpty() && com.mohistmc.youer.feature.ban.bans.BanItem.checkMoShou(itemstack)); // Youer - moshou items never appear in loot
          return objectarraylist;
      }
  

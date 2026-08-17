@@ -15,7 +15,7 @@ public class GUI {
     public GUIItem[] items;
     public Inventory inv;
     GUIType type;
-    String tempName;
+    public String tempName;
 
     private GUI() {
     }

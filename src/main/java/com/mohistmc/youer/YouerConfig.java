@@ -213,6 +213,7 @@ public class YouerConfig {
         commands.put("logfilter", new LogFilterCommand("logfilter"));
         commands.put("enchantlimit", new EnchantLimitCommand("enchantlimit"));
         commands.put("entitydamage", new EntityDamageCommand("entitydamage"));
+
         LogFilterConfig.init();
         LogFilter.register();
         EnchantLimitConfig.init();
