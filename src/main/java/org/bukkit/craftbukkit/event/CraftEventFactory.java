@@ -1388,8 +1388,15 @@ public class CraftEventFactory {
     public static com.mojang.datafixers.util.Pair<net.kyori.adventure.text.@org.jetbrains.annotations.Nullable Component, @org.jetbrains.annotations.Nullable AbstractContainerMenu> callInventoryOpenEventWithTitle(ServerPlayer player, AbstractContainerMenu container, boolean cancelled) {
         // Paper end - Add titleOverride to InventoryOpenEvent
         if (player.containerMenu != player.inventoryMenu && !alreadyProcessed) { // fire INVENTORY_CLOSE if one already open
-            player.connection.handleContainerClose(new ServerboundContainerClosePacket(player.containerMenu.containerId), InventoryCloseEvent.Reason.OPEN_NEW); // Paper - Inventory close reason
-            alreadyProcessed = false;
+            // Guard against plugins that re-open an inventory synchronously from the
+            // InventoryCloseEvent listener; without this the close would re-trigger the
+            // listener forever, ending in a StackOverflowError.
+            alreadyProcessed = true;
+            try {
+                player.connection.handleContainerClose(new ServerboundContainerClosePacket(player.containerMenu.containerId), InventoryCloseEvent.Reason.OPEN_NEW); // Paper - Inventory close reason
+            } finally {
+                alreadyProcessed = false;
+            }
         }
 
         CraftServer server = player.level().getCraftServer();

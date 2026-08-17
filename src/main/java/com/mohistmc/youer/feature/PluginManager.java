@@ -11,6 +11,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandMap;
 import org.bukkit.command.PluginCommand;
+import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -49,6 +50,7 @@ public final class PluginManager {
                 return I18n.as("pluginmanager.load.failed", file.getName());
             }
             PaperPluginManagerImpl.getInstance().enablePlugin(plugin);
+            syncCommands();
             return I18n.as("pluginmanager.load.success", plugin.getName());
         } catch (Exception e) {
             return I18n.as("pluginmanager.load.error", file.getName(), String.valueOf(e.getMessage()));
@@ -80,6 +82,7 @@ public final class PluginManager {
                 return I18n.as("pluginmanager.load.failed", file.getName());
             }
             PaperPluginManagerImpl.getInstance().enablePlugin(loaded);
+            syncCommands();
             return I18n.as("pluginmanager.reload.success", loaded.getName());
         } catch (Exception e) {
             return I18n.as("pluginmanager.reload.error", name, String.valueOf(e.getMessage()));
@@ -101,6 +104,7 @@ public final class PluginManager {
         unregisterCommands(plugin);
         PaperPluginManagerImpl.getInstance().disablePlugin(plugin);
         removeFromInternalLists(plugin);
+        syncCommands();
         return I18n.as("pluginmanager.unload.success", name);
     }
 
@@ -132,6 +136,20 @@ public final class PluginManager {
         // Fallback: non-timestamped copies share the original file name.
         File original = new File(pluginsDir, file.getName());
         return original.isFile() ? original : file;
+    }
+
+    /**
+     * Re-send the command tree to all online players. After a plugin is loaded,
+     * reloaded or unloaded the Brigadier dispatcher changes, but clients keep
+     * their stale command tree from login and would not tab-complete the new
+     * commands until the next join.
+     */
+    private static void syncCommands() {
+        try {
+            ((CraftServer) Bukkit.getServer()).syncCommands();
+        } catch (Exception ignored) {
+            // Best-effort; failing to refresh client command trees is non-fatal.
+        }
     }
 
     /**
