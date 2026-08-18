@@ -37,7 +37,7 @@ import org.jetbrains.annotations.NotNull;
 public class BansCommand extends Command {
 
     private final List<String> params = Arrays.asList("add", "show", "setmessage", "reload");
-    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe", "block", "nbt", "world", "structure");
+    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe", "block", "nbt", "world", "structure", "effect");
 
     public BansCommand(String name) {
         super(name);
@@ -141,6 +141,37 @@ public class BansCommand extends Command {
                     return false;
                 }
                 switch (args[1]) {
+                    case "effect" -> {
+                        if (!YouerConfig.ban_effect_enable) {
+                            sender.sendMessage(ChatColor.RED + check);
+                            return false;
+                        }
+                        if (args.length < 3) {
+                            sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
+                            return false;
+                        }
+                        String effectName = args[2];
+                        ResourceLocation effectKey;
+                        try {
+                            effectKey = ResourceLocation.parse(effectName);
+                        } catch (RuntimeException ex) {
+                            sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.effect.invalid").formatted(effectName));
+                            return false;
+                        }
+                        if (!BuiltInRegistries.MOB_EFFECT.containsKey(effectKey)) {
+                            sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.effect.invalid").formatted(effectName));
+                            return false;
+                        }
+                        List<String> old = BanConfig.getListByType(BanType.EFFECT);
+                        if (old.contains(effectName)) {
+                            sender.sendMessage(ChatColor.YELLOW + I18n.as("banscmd.add.effect.exists").formatted(effectName));
+                            return false;
+                        }
+                        old.add(effectName);
+                        BanUtils.saveToYaml(player, com.mohistmc.youer.feature.ban.ClickType.ADD, old, BanType.EFFECT);
+                        sender.sendMessage(ChatColor.GREEN + I18n.as("banscmd.add.effect.success").formatted(effectName));
+                        return true;
+                    }
                     case "item" -> {
                         if (!YouerConfig.ban_item_enable) {
                             sender.sendMessage(ChatColor.RED + check);
@@ -288,6 +319,28 @@ public class BansCommand extends Command {
                     return false;
                 }
                 switch (args[1]) {
+                    case "effect" -> {
+                        DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.effect"));
+                        List<String> old = BanConfig.getListByType(BanType.EFFECT);
+                        for (String s : BanConfig.getListByType(BanType.EFFECT)) {
+                            wh.addItem(new GUIItem(new ItemStackFactory(Material.POTION)
+                                    .setDisplayName(s)
+                                    .addLore("§e" + I18n.as("banscmd.show.lore"))
+                                    .build()) {
+                                @Override
+                                public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
+                                    if (type.isRightClick()) {
+                                        old.remove(s);
+                                        BanUtils.saveToYaml(u, com.mohistmc.youer.feature.ban.ClickType.REMOVE, old, BanType.EFFECT);
+                                        wh.removeItem(this);
+                                        wh.openGUI(player);
+                                    }
+                                }
+                            });
+                        }
+                        wh.openGUI(player);
+                        return true;
+                    }
                     case "item" -> {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.item"));
                         List<String> old = BanConfig.getListByType(BanType.ITEM);
@@ -595,6 +648,14 @@ public class BansCommand extends Command {
         }
         if (args.length == 3 && args[0].equals("add") && args[1].equals("structure") && (sender.isOp() || testPermission(sender))) {
             return BuiltInRegistries.STRUCTURE_TYPE.keySet().stream().map(ResourceLocation::toString).toList();
+        }
+
+        if (args.length == 3 && args[0].equals("add") && args[1].equals("effect") && (sender.isOp() || testPermission(sender))) {
+            return BuiltInRegistries.MOB_EFFECT.keySet().stream()
+                    .map(ResourceLocation::toString)
+                    .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
+                    .limit(50)
+                    .collect(Collectors.toList());
         }
 
         if (args.length == 3 && args[0].equals("add") && args[1].equals("entity") && (sender.isOp() || testPermission(sender))) {

@@ -23,6 +23,7 @@ public class BanUtils {
             case BLOCK -> BanConfig.BLOCK.put(banType.key, list);
             case WORLD -> BanConfig.WORLD.put(banType.key, list);
             case STRUCTURE -> BanConfig.STRUCTURE.put(banType.key, list);
+            case EFFECT -> BanConfig.EFFECT.put(banType.key, list);
         }
         if (clickType == ClickType.ADD) {
             player.sendMessage(I18n.as(banType.i18n_key_add));

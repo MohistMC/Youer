@@ -12,7 +12,8 @@ public enum BanType {
     RECIPE("RECIPES", "bans.add.recipe", "bans.remove.recipe"),
     BLOCK("BLOCKS", "bans.add.block", "bans.remove.block"),
     WORLD("WORLDS", "bans.add.world", "bans.remove.world"),
-    STRUCTURE("STRUCTURE", "bans.add.structure", "bans.remove.structure");
+    STRUCTURE("STRUCTURE", "bans.add.structure", "bans.remove.structure"),
+    EFFECT("EFFECTS", "bans.add.effect", "bans.remove.effect");
 
     public final String key;
     public final String i18n_key_add;
