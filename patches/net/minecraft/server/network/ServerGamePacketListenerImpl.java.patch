@@ -1658,7 +1658,7 @@
                      return;
                  }
              }
-@@ -1461,18 +_,36 @@
+@@ -1461,18 +_,37 @@
      @Override
      public void onDisconnect(DisconnectionDetails details) {
          LOGGER.info("{} lost connection: {}", this.player.getPlainTextName(), details.reason().getString());
@@ -1686,9 +1686,9 @@
              .broadcastSystemMessage(Component.translatable("multiplayer.player.left", this.player.getDisplayName()).withStyle(ChatFormatting.YELLOW), false);
 +         */
          this.player.disconnect();
--        this.server.getPlayerList().remove(this.player);
+         this.server.getPlayerList().remove(this.player);
 +        // Paper start - Adventure
-+        quitMessage = quitMessage == null ? this.server.getPlayerList().remove(this.player) : this.server.getPlayerList().remove(this.player, quitMessage); // Paper - pass in quitMessage to fix kick message not being used
++        quitMessage = this.server.getPlayerList().quitMessage; // Paper - pass in quitMessage to fix kick message not being used
 +        if ((quitMessage != null) && !quitMessage.equals(net.kyori.adventure.text.Component.empty())) {
 +            this.server.getPlayerList().broadcastSystemMessage(PaperAdventure.asVanilla(quitMessage), false);
 +            // Paper end - Adventure

@@ -186,12 +186,13 @@
              }
          }
      }
-@@ -139,21 +_,25 @@
+@@ -139,21 +_,26 @@
  
      private void verifyLoginAndFinishConnectionSetup(GameProfile profile) {
          PlayerList playerList = this.server.getPlayerList();
 -        Component error = playerList.canPlayerLogin(this.connection.getRemoteAddress(), new NameAndId(profile));
-+        Component error = org.bukkit.craftbukkit.event.CraftEventFactory.handleLoginResult(playerList.canPlayerLogin(this.connection.getRemoteAddress(), new NameAndId(profile)), this.paperLoginConnection, this.connection, profile, this.server, true); // Paper
++        playerList.canPlayerLogin(this.connection.getRemoteAddress(), new NameAndId(profile));
++        Component error = org.bukkit.craftbukkit.event.CraftEventFactory.handleLoginResult(playerList.canPlayerLogin$LoginResult, this.paperLoginConnection, this.connection, profile, this.server, true); // Paper
          if (error != null) {
 -            this.disconnect(error);
 +            this.disconnectAsync(error); // Paper

@@ -321,7 +321,7 @@
      public void addWorldborderListener(ServerLevel level) {
          level.getWorldBorder().addListener(new BorderChangeListener() {
              @Override
-@@ -290,65 +_,149 @@
+@@ -290,64 +_,151 @@
      }
  
      protected void save(ServerPlayer player) {
@@ -341,13 +341,9 @@
          }
      }
  
--    public void remove(ServerPlayer player) {
-+    public net.kyori.adventure.text.@Nullable Component remove(ServerPlayer player) {
-+        // Paper start - Fix kick event leave message not being sent
-+        return this.remove(player, net.kyori.adventure.text.Component.translatable("multiplayer.player.left", net.kyori.adventure.text.format.NamedTextColor.YELLOW, io.papermc.paper.configuration.GlobalConfiguration.get().messages.useDisplayNameInQuitMessage ? player.getBukkitEntity().displayName() : io.papermc.paper.adventure.PaperAdventure.asAdventure(player.getDisplayName())));
-+    }
-+    public net.kyori.adventure.text.@Nullable Component remove(final ServerPlayer player, final net.kyori.adventure.text.Component leaveMessage) {
-+        // Paper end - Fix kick event leave message not being sent
++    public net.kyori.adventure.text.@Nullable Component quitMessage;
++    public net.kyori.adventure.text.@Nullable Component remove$leaveMessage;
+     public void remove(ServerPlayer player) {
 +        org.purpurmc.purpur.task.BossBarTask.removeFromAll(player.getBukkitEntity()); // Purpur - Implement TPSBar
 +        net.neoforged.neoforge.event.EventHooks.firePlayerLoggedOut(player);
          ServerLevel level = player.level();
@@ -357,8 +353,11 @@
 +        if (player.containerMenu != player.inventoryMenu) {
 +            player.closeContainer(org.bukkit.event.inventory.InventoryCloseEvent.Reason.DISCONNECT); // Paper - Inventory close reason
 +        }
-+
-+        org.bukkit.event.player.PlayerQuitEvent playerQuitEvent = new org.bukkit.event.player.PlayerQuitEvent(player.getBukkitEntity(), leaveMessage, player.quitReason); // Paper - Adventure & Add API for quit reason
++        if (remove$leaveMessage == null) {
++            remove$leaveMessage = net.kyori.adventure.text.Component.translatable("multiplayer.player.left", net.kyori.adventure.text.format.NamedTextColor.YELLOW, io.papermc.paper.configuration.GlobalConfiguration.get().messages.useDisplayNameInQuitMessage ? player.getBukkitEntity().displayName() : io.papermc.paper.adventure.PaperAdventure.asAdventure(player.getDisplayName()));
++        }
++        org.bukkit.event.player.PlayerQuitEvent playerQuitEvent = new org.bukkit.event.player.PlayerQuitEvent(player.getBukkitEntity(), remove$leaveMessage, player.quitReason); // Paper - Adventure & Add API for quit reason
++        remove$leaveMessage = null; // Youer
 +        this.cserver.getPluginManager().callEvent(playerQuitEvent);
 +        player.getBukkitEntity().disconnect();
 +
@@ -435,9 +434,6 @@
 -        this.broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(player.getUUID())));
 -    }
 -
--    public @Nullable Component canPlayerLogin(SocketAddress address, NameAndId nameAndId) {
--        if (this.bans.isBanned(nameAndId)) {
--            UserBanListEntry ban = this.bans.get(nameAndId);
 +        // CraftBukkit start
 +        // this.broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(player.getUUID())));
 +        ClientboundPlayerInfoRemovePacket packet = new ClientboundPlayerInfoRemovePacket(List.of(player.getUUID()));
@@ -453,7 +449,7 @@
 +        // This removes the scoreboard (and player reference) for the specific player in the manager
 +        this.cserver.getScoreboardManager().removePlayer(player.getBukkitEntity());
 +        // CraftBukkit end
-+        return playerQuitEvent.quitMessage(); // Paper - Adventure
++        quitMessage = playerQuitEvent.quitMessage(); // Paper - Adventure
 +    }
 +
 +    // Paper start - PlayerLoginEvent
@@ -465,7 +461,10 @@
 +        }
 +    }
 +    // Paper end - PlayerLoginEvent
-+    public LoginResult canPlayerLogin(final SocketAddress address, final NameAndId nameAndId) { // Paper - PlayerLoginEvent
++    public LoginResult canPlayerLogin$LoginResult;  // Paper - PlayerLoginEvent
+     public @Nullable Component canPlayerLogin(SocketAddress address, NameAndId nameAndId) {
+-        if (this.bans.isBanned(nameAndId)) {
+-            UserBanListEntry ban = this.bans.get(nameAndId);
 +        LoginResult whitelistEventResult; // Paper
 +        // Paper start - Fix MC-158900
 +        UserBanListEntry ban1;
@@ -477,27 +476,28 @@
                  reason.append(Component.translatable("multiplayer.disconnect.banned.expiration", BAN_DATE_FORMAT.format(ban.getExpires())));
              }
  
--            return reason;
-+            return new LoginResult(reason, org.bukkit.event.player.PlayerLoginEvent.Result.KICK_BANNED); // Paper - PlayerLoginEvent
++            canPlayerLogin$LoginResult = new LoginResult(reason, org.bukkit.event.player.PlayerLoginEvent.Result.KICK_BANNED); // Paper - PlayerLoginEvent
+             return reason;
          } else {
 -            if (!this.isWhiteListed(nameAndId)) {
--                return Component.translatable("multiplayer.disconnect.not_whitelisted");
 +            if ((whitelistEventResult = this.isWhiteListedLogin(nameAndId)).result == org.bukkit.event.player.PlayerLoginEvent.Result.KICK_WHITELIST) { // Paper - whitelist event
-+                return whitelistEventResult; // Paper - whitelist event
++                canPlayerLogin$LoginResult = whitelistEventResult; // Paper - whitelist event
+                 return Component.translatable("multiplayer.disconnect.not_whitelisted");
              }
  
-             if (this.ipBans.isBanned(address)) {
-@@ -358,20 +_,19 @@
+@@ -358,20 +_,23 @@
                      reason.append(Component.translatable("multiplayer.disconnect.banned_ip.expiration", BAN_DATE_FORMAT.format(ban.getExpires())));
                  }
  
--                return reason;
-+                return new LoginResult(reason, org.bukkit.event.player.PlayerLoginEvent.Result.KICK_BANNED); // Paper - PlayerLoginEvent
++                canPlayerLogin$LoginResult = new LoginResult(reason, org.bukkit.event.player.PlayerLoginEvent.Result.KICK_BANNED); // Paper - PlayerLoginEvent
+                 return reason;
              } else {
--                return this.players.size() >= this.getMaxPlayers() && !this.canBypassPlayerLimit(nameAndId)
++                canPlayerLogin$LoginResult = this.canBypassFullServerLogin(nameAndId, new LoginResult(Component.translatable("multiplayer.disconnect.server_full"), org.bukkit.event.player.PlayerLoginEvent.Result.KICK_FULL)); // Paper - PlayerServerFullCheckEvent
+                 return this.players.size() >= this.getMaxPlayers() && !this.canBypassPlayerLimit(nameAndId)
 -                    ? Component.translatable("multiplayer.disconnect.server_full")
 -                    : null;
-+                return this.canBypassFullServerLogin(nameAndId, new LoginResult(Component.translatable("multiplayer.disconnect.server_full"), org.bukkit.event.player.PlayerLoginEvent.Result.KICK_FULL)); // Paper - PlayerServerFullCheckEvent
++                        ? Component.translatable("multiplayer.disconnect.server_full")
++                        : null;
              }
          }
      }
