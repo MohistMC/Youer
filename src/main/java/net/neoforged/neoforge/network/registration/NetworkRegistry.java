@@ -225,7 +225,7 @@ public class NetworkRegistry {
             recorder.update();
             // These two checks can only be hit on receipt of a payload, as senders will be checked before reaching this method.
             if (registration == null) {
-                if (Youer.DEBUG) LOGGER.warn("No registration for payload {}; refusing to decode.", id);
+                LOGGER.warn("No registration for payload {}; refusing to decode.", id);
                 return (flow == PacketFlow.CLIENTBOUND && ((StandardMessenger)Bukkit.getServer().getMessenger()).registry.containsKey(id)) ? PluginsPayload.dcodec(id, 32767) : null;
             }
 
