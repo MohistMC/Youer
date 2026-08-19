@@ -447,11 +447,11 @@ public class NetworkRegistry {
                 return;
             }
 
-            if (hasChannel(listener, customPayloadPacket.payload().type().id())) {
+            if (hasChannel(listener, id)) {
                 return;
             }
 
-            throw new UnsupportedOperationException("Payload %s may not be sent to the client!".formatted(customPayloadPacket.payload().type().id()));
+            throw new UnsupportedOperationException("Payload %s may not be sent to the client!".formatted(id));
         }
     }
 
@@ -469,11 +469,11 @@ public class NetworkRegistry {
                 return;
             }
 
-            if (hasChannel(listener, customPayloadPacket.payload().type().id())) {
+            if (hasChannel(listener, id)) {
                 return;
             }
 
-            throw new UnsupportedOperationException("Payload %s may not be sent to the server!".formatted(customPayloadPacket.payload().type().id()));
+            throw new UnsupportedOperationException("Payload %s may not be sent to the server!".formatted(id));
         }
     }
 
@@ -559,10 +559,10 @@ public class NetworkRegistry {
                 return;
             }
 
-            NetworkChannel channel = payloadSetup.getChannel(ConnectionProtocol.PLAY, customPayloadPacket.payload().type().id());
+            NetworkChannel channel = payloadSetup.getChannel(ConnectionProtocol.PLAY, id);
 
             if (channel == null) {
-                LOGGER.trace("Somebody tried to send: {} to a client which cannot accept it. Not sending packet.", customPayloadPacket.payload().type().id());
+                LOGGER.trace("Somebody tried to send: {} to a client which cannot accept it. Not sending packet.", id);
                 return;
             }
 
@@ -630,7 +630,7 @@ public class NetworkRegistry {
         nowForgottenChannels.add(MinecraftRegisterPayload.ID);
         nowForgottenChannels.add(MinecraftUnregisterPayload.ID);
         PAYLOAD_REGISTRATIONS.get(ConnectionProtocol.PLAY).entrySet().stream()
-                .filter(registration -> registration.getValue().flow().isEmpty() || registration.getValue().flow().get() == PacketFlow.SERVERBOUND)
+                .filter(registration -> registration.getValue().matchesFlow(PacketFlow.SERVERBOUND))
                 .filter(registration -> registration.getValue().optional())
                 .forEach(registration -> nowForgottenChannels.add(registration.getKey()));
         return nowForgottenChannels.build();
