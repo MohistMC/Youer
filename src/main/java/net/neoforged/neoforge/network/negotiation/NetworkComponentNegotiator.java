@@ -7,6 +7,7 @@ package net.neoforged.neoforge.network.negotiation;
 
 import com.google.common.collect.HashBasedTable;
 import com.google.common.collect.Table;
+import com.mohistmc.youer.bukkit.neoforge.bridge.NetBridge;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -171,7 +172,7 @@ public class NetworkComponentNegotiator {
         }
 
         //Check if both sides have the same version.
-        if (!left.version().equals(right.version())) {
+        if (!NetBridge.versionsMatch(left.version(), right.version())) {
             String clientVer, serverVer;
             if (requestingSide.equals("client")) {
                 clientVer = right.version();

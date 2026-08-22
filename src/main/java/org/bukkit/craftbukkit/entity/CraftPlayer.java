@@ -25,13 +25,12 @@ import io.papermc.paper.math.Position;
 import io.papermc.paper.util.MCUtil;
 import it.unimi.dsi.fastutil.shorts.ShortArraySet;
 import it.unimi.dsi.fastutil.shorts.ShortSet;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
+import com.mohistmc.youer.YouerConfig;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -48,8 +47,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import net.kyori.adventure.dialog.DialogLike;
 import net.kyori.adventure.identity.Identity;
@@ -109,6 +106,7 @@ import net.minecraft.network.protocol.game.ClientboundTabListPacket;
 import net.minecraft.network.protocol.game.ClientboundUpdateAttributesPacket;
 import net.minecraft.network.protocol.game.ClientboundUpdateMobEffectPacket;
 import net.minecraft.resources.Identifier;
+import net.minecraft.network.ConnectionProtocol;
 import net.minecraft.server.PlayerAdvancements;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerLevel;
@@ -140,6 +138,9 @@ import net.minecraft.world.level.storage.LevelData;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
+import net.neoforged.neoforge.network.PacketDistributor;
+import net.neoforged.neoforge.network.payload.MinecraftRegisterPayload;
+import net.neoforged.neoforge.network.registration.NetworkRegistry;
 import org.bukkit.BanEntry;
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
@@ -2305,18 +2306,20 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
 
     @Override
     public void sendPluginMessage(Plugin source, String channel, byte[] message) {
+        if (YouerConfig.pluginchannel_debug) System.out.println("Plugin message from " + channel + ": " + new String(message, StandardCharsets.UTF_8));
         StandardMessenger.validatePluginMessage(this.server.getMessenger(), source, channel, message);
         if (this.getHandle().connection == null) return;
 
-        if (this.channels().contains(channel)) {
-            Identifier id = Identifier.parse(StandardMessenger.validateAndCorrectChannel(channel));
-            this.sendCustomPayload(id, message);
+        Identifier id = Identifier.parse(StandardMessenger.validateAndCorrectChannel(channel));
+        // Accept channels the client declared via vanilla minecraft:register (pluginMessagerChannels) or channels
+        // negotiated by a NeoForge modded client (ChannelAttributes).
+        if (this.channels().contains(channel) || NetworkRegistry.hasChannel(this.getHandle().connection.getConnection(), ConnectionProtocol.PLAY, id)) {
+            ((StandardMessenger) this.server.getMessenger()).sendCustomPayload(source, this, id, message);
         }
     }
 
     private void sendCustomPayload(Identifier id, byte[] message) {
-        ClientboundCustomPayloadPacket packet = new ClientboundCustomPayloadPacket(new DiscardedPayload(id, message));
-        //this.getHandle().connection.send(packet);
+        ((StandardMessenger) this.server.getMessenger()).sendCustomPayload(null, this, id, message);
     }
 
     @Override
@@ -2465,18 +2468,11 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
         Set<String> listening = this.server.getMessenger().getIncomingChannels();
 
         if (!listening.isEmpty()) {
-            ByteArrayOutputStream stream = new ByteArrayOutputStream();
-
+            Set<Identifier> newChannels = new HashSet<>();
             for (String channel : listening) {
-                try {
-                    stream.write(channel.getBytes(StandardCharsets.UTF_8));
-                    stream.write((byte) 0);
-                } catch (IOException ex) {
-                    Logger.getLogger(CraftPlayer.class.getName()).log(Level.SEVERE, "Could not send Plugin Channel REGISTER to " + this.getName(), ex);
-                }
+                newChannels.add(Identifier.parse(channel));
             }
-
-            this.sendCustomPayload(ServerGamePacketListenerImpl.CUSTOM_REGISTER, stream.toByteArray());
+            PacketDistributor.sendToPlayer(this.getHandle(), new MinecraftRegisterPayload(newChannels));
         }
     }
 

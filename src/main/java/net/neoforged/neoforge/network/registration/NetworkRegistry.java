@@ -221,6 +221,77 @@ public class NetworkRegistry {
         byProtocol.put(type.id(), handler);
     }
 
+    // Youer start - dynamic plugin channel registration
+    /**
+     * Dynamically registers a plugin channel payload and its handler(s) after the standard registration phase.
+     * Used by the Bukkit plugin messenger to register plugin channels as NeoForge payloads at runtime.
+     *
+     * @param type          The type of the payload.
+     * @param codec         The codec for the payload.
+     * @param serverHandler The server-side handler, or null if the payload is clientbound only.
+     * @param clientHandler The client-side handler, or null if the payload is serverbound only.
+     * @param protocols     The protocols this payload supports.
+     * @param flow          The flow of this payload. Specify {@link Optional#empty()} for both directions.
+     * @param version       The version of the payload.
+     * @param optional      If the payload is optional.
+     */
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+    public static <T extends CustomPacketPayload, B extends FriendlyByteBuf> void registerDynamicPayload(
+            CustomPacketPayload.Type<T> type,
+            StreamCodec<? super B, T> codec,
+            @Nullable IPayloadHandler<T> serverHandler,
+            @Nullable IPayloadHandler<T> clientHandler,
+            List<ConnectionProtocol> protocols,
+            Optional<PacketFlow> flow,
+            String version,
+            boolean optional) {
+        PayloadRegistration<T> registration = new PayloadRegistration<>(type, (StreamCodec<? super RegistryFriendlyByteBuf, T>) codec, protocols, flow, version.strip(), optional);
+
+        for (ConnectionProtocol protocol : protocols) {
+            Map<Identifier, PayloadRegistration<?>> byProtocol = PAYLOAD_REGISTRATIONS.get(protocol);
+            if (byProtocol == null) {
+                continue;
+            }
+            byProtocol.put(type.id(), registration);
+
+            if (serverHandler != null && registration.matchesFlow(PacketFlow.SERVERBOUND)) {
+                registerHandler(SERVERBOUND_HANDLERS, protocol, PacketFlow.SERVERBOUND, type, serverHandler);
+            }
+            if (clientHandler != null && registration.matchesFlow(PacketFlow.CLIENTBOUND)) {
+                registerHandler(CLIENTBOUND_HANDLERS, protocol, PacketFlow.CLIENTBOUND, type, clientHandler);
+            }
+        }
+    }
+
+    /**
+     * Removes a previously dynamically registered plugin channel payload for the given protocol.
+     *
+     * @param protocol The protocol to deregister from.
+     * @param id       The id of the payload to deregister.
+     */
+    public static void unregisterDynamicPayload(ConnectionProtocol protocol, Identifier id) {
+        Map<Identifier, PayloadRegistration<?>> byProtocol = PAYLOAD_REGISTRATIONS.get(protocol);
+        if (byProtocol != null) {
+            byProtocol.remove(id);
+        }
+        Map<Identifier, IPayloadHandler<?>> serverbound = SERVERBOUND_HANDLERS.get(protocol);
+        if (serverbound != null) {
+            serverbound.remove(id);
+        }
+        Map<Identifier, IPayloadHandler<?>> clientbound = CLIENTBOUND_HANDLERS.get(protocol);
+        if (clientbound != null) {
+            clientbound.remove(id);
+        }
+    }
+
+    /**
+     * {@return true if the given id is a built-in NeoForge payload}
+     */
+    public static boolean isBuiltinPayload(Identifier id) {
+        return BUILTIN_PAYLOADS.containsKey(id);
+    }
+    // Youer end - dynamic plugin channel registration
+
     /**
      * Attempts to retrieve the {@link StreamCodec} for a non-vanilla payload.
      * <p>

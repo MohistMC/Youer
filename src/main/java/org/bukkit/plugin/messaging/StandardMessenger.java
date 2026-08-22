@@ -2,6 +2,13 @@ package org.bukkit.plugin.messaging;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
+import com.google.common.collect.MultimapBuilder;
+import com.google.common.collect.SetMultimap;
+import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.bukkit.neoforge.bridge.NetBridge;
+import com.mohistmc.youer.bukkit.neoforge.channel.ChannelContext;
+import com.mohistmc.youer.bukkit.neoforge.stats.TrafficAuditor;
+import com.mohistmc.youer.util.I18n;
 import io.papermc.paper.connection.PlayerGameConnection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -10,6 +17,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Level;
 import io.papermc.paper.connection.PlayerConnection;
+import net.minecraft.resources.Identifier;
+import net.neoforged.neoforge.network.registration.NetworkRegistry;
+import org.bukkit.craftbukkit.entity.CraftPlayer;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -24,6 +34,11 @@ public class StandardMessenger implements Messenger {
     private final Map<Plugin, Set<String>> outgoingByPlugin = new HashMap<Plugin, Set<String>>();
     private final Object incomingLock = new Object();
     private final Object outgoingLock = new Object();
+    // Youer start - NeoForge plugin channel support
+    public final Map<Identifier, ChannelContext> registry = new HashMap<>();
+    private final SetMultimap<Plugin, Identifier> crossSend = MultimapBuilder.hashKeys().hashSetValues().build();
+    private final TrafficAuditor recorder = new TrafficAuditor();
+    // Youer end - NeoForge plugin channel support
 
     private void addToOutgoing(@NotNull Plugin plugin, @NotNull String channel) {
         synchronized (outgoingLock) {
@@ -42,6 +57,7 @@ public class StandardMessenger implements Messenger {
 
             plugins.add(plugin);
             channels.add(channel);
+            updateChannel(channel, true);
         }
     }
 
@@ -65,6 +81,7 @@ public class StandardMessenger implements Messenger {
                     outgoingByPlugin.remove(plugin);
                 }
             }
+            updateChannel(channel, false);
         }
     }
 
@@ -111,6 +128,7 @@ public class StandardMessenger implements Messenger {
             }
 
             registrations.add(registration);
+            updateChannel(registration.getChannel(), true);
         }
     }
 
@@ -135,6 +153,7 @@ public class StandardMessenger implements Messenger {
                     incomingByPlugin.remove(registration.getPlugin());
                 }
             }
+            updateChannel(registration.getChannel(), false);
         }
     }
 
@@ -585,4 +604,80 @@ public class StandardMessenger implements Messenger {
         }
         validateChannel(channel);
     }
+
+    // Youer start - NeoForge plugin channel support
+    public void sendCustomPayload(Plugin src, CraftPlayer dst, Identifier location, byte[] data) {
+        ChannelContext channel = registry.get(location);
+
+        if (channel == null || channel.outgoing().isEmpty()) {
+            String name = src != null ? src.getDescription().getFullName() : "Unknown";
+            if (src == null) {
+                registerAnonymousOutgoing(location);
+            } else {
+                registerOutgoingPluginChannel(src, location.toString());
+            }
+            Youer.LOGGER.warn(I18n.as("plugin.unregistered_channel_warning"), name, location);
+            // Re-fetch after the (re)registration above so we never use a stale null reference.
+            channel = registry.get(location);
+        }
+
+        if (channel == null) {
+            // The channel is a builtin/reserved NeoForge channel that must not be routed as a plugin payload.
+            return;
+        }
+
+        if (src == null) {
+            Youer.LOGGER.warn(I18n.as("plugin.anonymous_packet_warning"), location);
+        } else if (!channel.outgoing().contains(src)) {
+            synchronized (crossSend) {
+                if (crossSend.put(src, location)) {
+                    Youer.LOGGER.warn(I18n.as("plugin.cross_plugin_channel_warning"),
+                            src.getDescription().getFullName());
+                }
+            }
+        }
+
+        channel.send(src, dst, data);
+    }
+
+    public void registerAnonymousOutgoing(Identifier location) {
+        updateChannel(location, true);
+    }
+
+    private void updateChannel(Identifier location, boolean create) {
+        if (location == null) {
+            return;
+        }
+        var id = location.toString();
+        if (create) {
+            var channel = registry.computeIfAbsent(location, it -> {
+                var inByChannel = incomingByChannel.computeIfAbsent(id, k -> new HashSet<>());
+                var outByChannel = outgoingByChannel.computeIfAbsent(id, k -> new HashSet<>());
+                return NetBridge.open(location, inByChannel, outByChannel);
+            });
+            if (channel != null && channel.worker() != null) {
+                channel.worker().synchronize();
+            }
+        } else {
+            // No plugin uses this channel anymore: drop the lingering context so the
+            // dynamically registered NeoForge payload is actually deregistered.
+            var channel = registry.get(location);
+            var inbound = incomingByChannel.get(id);
+            if (channel != null && channel.outgoing().isEmpty() && (inbound == null || inbound.isEmpty())) {
+                registry.remove(location);
+                for (var protocol : ChannelContext.PROTOCOLS) {
+                    NetworkRegistry.unregisterDynamicPayload(protocol, location);
+                }
+            }
+        }
+    }
+
+    private void updateChannel(String location, boolean create) {
+        updateChannel(Identifier.tryParse(location), create);
+    }
+
+    public TrafficAuditor getPacketRecorder() {
+        return recorder;
+    }
+    // Youer end - NeoForge plugin channel support
 }

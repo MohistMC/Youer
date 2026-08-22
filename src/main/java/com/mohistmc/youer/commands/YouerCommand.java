@@ -24,11 +24,16 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.network.ConnectionProtocol;
+import net.minecraft.network.protocol.PacketFlow;
 import net.neoforged.neoforge.common.NeoForgeVersion;
+import net.neoforged.neoforge.network.registration.NetworkRegistry;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
@@ -45,7 +50,7 @@ public class YouerCommand extends Command {
 
     private static final String[] COMMAND_LIST = {
             "info", "mods", "playermods", "reload", "version",
-            "channels_incom", "channels_outgo", "speed", "printthreadcost",
+            "channels_incom", "channels_outgo", "modchannels", "speed", "printthreadcost",
             "packetstats", "heal", "help", "cleardropitem", "memoryfix", "showp",
             "backupworld", "migratedb"
     };
@@ -289,9 +294,38 @@ public class YouerCommand extends Command {
                 return true;
             }
 
-            case "channels_incom" -> sender.sendMessage(ServerAPI.channels_Incoming().toString());
-            case "printthreadcost" -> YouerThreadCost.dumpThreadCpuTime(sender);
-            case "channels_outgo" -> sender.sendMessage(ServerAPI.channels_Outgoing().toString());
+            case "channels_incom" -> {
+                listPluginChannels(sender, true);
+                return true;
+            }
+            case "channels_outgo" -> {
+                listPluginChannels(sender, false);
+                return true;
+            }
+            case "modchannels" -> {
+                // List every custom payload channel registered by mods through NeoForge.
+                sender.sendMessage(I18n.as("youercmd.modchannels.title"));
+                boolean any = false;
+                for (ConnectionProtocol protocol : NetworkRegistry.PAYLOAD_REGISTRATIONS.keySet()) {
+                    var registrations = NetworkRegistry.PAYLOAD_REGISTRATIONS.get(protocol);
+                    if (registrations.isEmpty()) {
+                        continue;
+                    }
+                    any = true;
+                    sender.sendMessage(I18n.as("youercmd.modchannels.protocol", protocol.toString(), registrations.size()));
+                    for (var entry : registrations.entrySet()) {
+                        var reg = entry.getValue();
+                        String flow = reg.flow()
+                                .map(f -> f == PacketFlow.SERVERBOUND ? "UPSTREAM" : "DOWNSTREAM")
+                                .orElse("BIDIRECTIONAL");
+                        sender.sendMessage(I18n.as("youercmd.modchannels.entry", entry.getKey().toString(), flow, reg.version()));
+                    }
+                }
+                if (!any) {
+                    sender.sendMessage(I18n.as("youercmd.modchannels.empty"));
+                }
+                return true;
+            }
             case "speed" -> {
                 if (sender instanceof Player p) {
                     if (args.length == 2 && p.isOp()) {
@@ -502,6 +536,25 @@ public class YouerCommand extends Command {
         return true;
     }
 
+    private void listPluginChannels(CommandSender sender, boolean incoming) {
+        var messenger = Bukkit.getMessenger();
+        var byChannel = new TreeMap<String, TreeSet<String>>();
+        for (var plugin : Bukkit.getPluginManager().getPlugins()) {
+            var channels = incoming ? messenger.getIncomingChannels(plugin) : messenger.getOutgoingChannels(plugin);
+            for (var ch : channels) {
+                byChannel.computeIfAbsent(ch, k -> new TreeSet<>()).add(plugin.getName());
+            }
+        }
+        sender.sendMessage(I18n.as(incoming ? "youercmd.channels_incom.title" : "youercmd.channels_outgo.title"));
+        if (byChannel.isEmpty()) {
+            sender.sendMessage(I18n.as("youercmd.channels.empty"));
+            return;
+        }
+        for (var entry : byChannel.entrySet()) {
+            sender.sendMessage(I18n.as("youercmd.channels.entry", entry.getKey(), String.join(", ", entry.getValue())));
+        }
+    }
+
     public static String getJVMUpTime() {
         long uptime = ManagementFactory.getRuntimeMXBean().getUptime();
         long seconds = uptime / 1000;
@@ -529,6 +582,7 @@ public class YouerCommand extends Command {
         sender.sendMessage(I18n.as("youercmd.help.memoryfix"));
         sender.sendMessage(I18n.as("youercmd.help.channels_incom"));
         sender.sendMessage(I18n.as("youercmd.help.channels_outgo"));
+        sender.sendMessage(I18n.as("youercmd.help.modchannels"));
         sender.sendMessage(I18n.as("youercmd.help.printthreadcost"));
         sender.sendMessage(I18n.as("youercmd.help.help"));
         sender.sendMessage(I18n.as("youercmd.help.backupworld"));
