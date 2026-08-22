@@ -22,20 +22,26 @@
                  @Override
                  public HolderLookup.RegistryLookup<T> parent() {
                      return RegistryLookup.this;
-@@ -96,9 +_,28 @@
+@@ -96,9 +_,34 @@
              };
          }
  
-+        /**
-+         * {@return the data map value attached with the object with the key, or {@code null} if there's no attached value}
-+         *
-+         * @param type the type of the data map
-+         * @param key  the object to get the value for
-+         * @param <A>  the data type
-+         */
++        /// {@return the data map value attached with the object with the key, or {@code null} if there's no attached value}
++        ///
++        /// @param type the type of the data map
++        /// @param key  the object to get the value for
++        /// @param <A>  the data type
 +        @org.jspecify.annotations.Nullable
 +        default <A> A getData(net.neoforged.neoforge.registries.datamaps.DataMapType<T, A> type, ResourceKey<T> key) {
 +            return null;
++        }
++
++        /// {@return the data map of the given `type`}
++        ///
++        /// @param type the type of the data map
++        /// @param <A>  the data type
++        default <A> Map<ResourceKey<T>, A> getDataMap(net.neoforged.neoforge.registries.datamaps.DataMapType<T, A> type) {
++            return Map.of();
 +        }
 +
          interface Delegate<T> extends HolderLookup.RegistryLookup<T> {
@@ -51,7 +57,7 @@
              @Override
              default ResourceKey<? extends Registry<? extends T>> key() {
                  return this.parent().key();
-@@ -127,6 +_,12 @@
+@@ -127,6 +_,17 @@
              @Override
              default Stream<HolderSet.Named<T>> listTags() {
                  return this.parent().listTags();
@@ -59,8 +65,13 @@
 +
 +            @Override
 +            @org.jspecify.annotations.Nullable
-+            default <A> A getData(net.neoforged.neoforge.registries.datamaps.DataMapType<T, A> attachment, ResourceKey<T> key) {
-+                return parent().getData(attachment, key);
++            default <A> A getData(net.neoforged.neoforge.registries.datamaps.DataMapType<T, A> type, ResourceKey<T> key) {
++                return parent().getData(type, key);
++            }
++
++            @Override
++            default <A> Map<ResourceKey<T>, A> getDataMap(net.neoforged.neoforge.registries.datamaps.DataMapType<T, A> type) {
++                return parent().getDataMap(type);
              }
          }
      }
