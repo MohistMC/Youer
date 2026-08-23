@@ -3,6 +3,7 @@ package org.bukkit.craftbukkit.entity;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.io.BaseEncoding;
+import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.feature.GlobalVariableSystem;
@@ -2445,7 +2446,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
 
     @Override
     public void sendPluginMessage(Plugin source, String channel, byte[] message) {
-        if (YouerConfig.pluginchannel_debug) System.out.println("Plugin message from " + channel + ": " + new String( message, StandardCharsets.UTF_8));
+        if (YouerConfig.pluginchannel_debug) Youer.LOGGER.info("Plugin message from {}: {}", channel, new String(message, StandardCharsets.UTF_8));
         StandardMessenger.validatePluginMessage(this.server.getMessenger(), source, channel, message);
         if (this.getHandle().connection == null) return;
 
@@ -2453,10 +2454,6 @@ public class CraftPlayer extends CraftHumanEntity implements Player {
             ResourceLocation id = ResourceLocation.parse(StandardMessenger.validateAndCorrectChannel(channel));
             this.server.getMessenger().sendCustomPayload(source, this, id, message);
         }
-    }
-
-    private void sendCustomPayload(ResourceLocation id, byte[] message) {
-        server.getMessenger().sendCustomPayload(null, this, id, message);
     }
 
     @Override

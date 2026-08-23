@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.logging.Level;
 import lombok.Getter;
 import net.minecraft.network.ConnectionProtocol;
 import net.minecraft.network.FriendlyByteBuf;
@@ -71,7 +72,12 @@ public class PluginChannel<T extends PluginChannelHandler> {
             return;
         }
         for (var listener : fire) {
-            listener.getListener().onPluginMessageReceived(type.id().toString(), src, message);
+            try {
+                listener.getListener().onPluginMessageReceived(type.id().toString(), src, message);
+            } catch (Throwable t) {
+                listener.getPlugin().getLogger().log(Level.WARNING,
+                        String.format("Plugin %s generated an exception whilst handling plugin message", listener.getPlugin().getDescription().getFullName()), t);
+            }
         }
     }
 

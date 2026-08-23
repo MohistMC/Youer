@@ -1,5 +1,6 @@
 package com.mohistmc.youer.bukkit.messaging;
 
+import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.YouerConfig;
 import java.nio.charset.StandardCharsets;
 import net.minecraft.server.level.ServerPlayer;
@@ -13,7 +14,12 @@ public record PluginPayloadHandler(PluginChannel<PluginPayloadHandler> channel) 
     @Override
     public void handle(PluginsDiscardedPayload pkt, IPayloadContext ctx) {
         ctx.enqueueWork(() -> {
-            var bukkit = ((ServerPlayer) ctx.player()).getBukkitEntity();
+            if (!(ctx.player() instanceof ServerPlayer serverPlayer)) {
+                // Player disconnected before the task ran: release the retained slice to avoid a buffer leak.
+                pkt.leak();
+                return;
+            }
+            var bukkit = serverPlayer.getBukkitEntity();
             channel.dispatchMessage(bukkit, pkt.leak());
         });
     }
@@ -26,7 +32,7 @@ public record PluginPayloadHandler(PluginChannel<PluginPayloadHandler> channel) 
     @Override
     public void sendCustomPayload(Plugin src, CraftPlayer dst, byte[] data) {
         if (YouerConfig.pluginchannel_debug)
-            System.out.printf("sendCustomPayload: %s %s%n", channel.getChannel().toString(), new String(data, StandardCharsets.UTF_8));
+            Youer.LOGGER.info("sendCustomPayload: {} {}", channel.getChannel(), new String(data, StandardCharsets.UTF_8));
         PacketDistributor.sendToPlayer(dst.getHandle(), new PluginsDiscardedPayload(channel.getType(), data));
     }
 }

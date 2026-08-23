@@ -2,8 +2,6 @@ package org.bukkit.plugin.messaging;
 
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.ImmutableSet.Builder;
-import com.google.common.collect.MultimapBuilder;
-import com.google.common.collect.SetMultimap;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.bukkit.messaging.NeoMessaging;
 import com.mohistmc.youer.bukkit.messaging.PacketRecorder;
@@ -14,6 +12,7 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import net.minecraft.resources.ResourceLocation;
 import org.bukkit.craftbukkit.entity.CraftPlayer;
@@ -32,8 +31,7 @@ public class StandardMessenger implements Messenger {
     private final Object incomingLock = new Object();
     private final Object outgoingLock = new Object();
 
-    public final Map<ResourceLocation, PluginChannel> registry = new HashMap<>();
-    private final SetMultimap<Plugin, ResourceLocation> crossSend = MultimapBuilder.hashKeys().hashSetValues().build();
+    public final Map<ResourceLocation, PluginChannel> registry = new ConcurrentHashMap<>();
     private final PacketRecorder recorder = new PacketRecorder();
     private void addToOutgoing(@NotNull Plugin plugin, @NotNull String channel) {
         synchronized (outgoingLock) {
@@ -586,28 +584,19 @@ public class StandardMessenger implements Messenger {
 
     public void sendCustomPayload(Plugin src, CraftPlayer dst, ResourceLocation location, byte[] data) {
         PluginChannel channel = registry.get(location);
-
         if (channel == null || channel.getOutgoing().isEmpty()) {
-            String name = src != null ? src.getDescription().getFullName() : "Unknown";
-            if (src == null) {
-                registerAnonymousOutgoing(location);
-            } else {
+            // Defensive fallback: validatePluginMessage already guarantees the source plugin
+            // registered this outgoing channel, so this branch is normally unreachable.
+            if (src != null) {
                 registerOutgoingPluginChannel(src, location.toString());
+                channel = registry.get(location);
             }
-            Youer.LOGGER.warn(I18n.as("plugin.unregistered_channel_warning"), name, location);
-        }
-
-        if (src == null) {
-            Youer.LOGGER.warn(I18n.as("plugin.anonymous_packet_warning"), location);
-        } else if (!channel.getOutgoing().contains(src)) {
-            synchronized (crossSend) {
-                if (crossSend.put(src, location)) {
-                    Youer.LOGGER.warn(I18n.as("plugin.cross_plugin_channel_warning"),
-                            src.getDescription().getFullName());
-                }
+            if (channel == null || channel.getOutgoing().isEmpty()) {
+                String name = src != null ? src.getDescription().getFullName() : "Unknown";
+                Youer.LOGGER.warn(I18n.as("plugin.unregistered_channel_warning"), name, location);
+                return;
             }
         }
-
         channel.sendCustomPayload(src, dst, data);
     }
 
