@@ -587,7 +587,7 @@
      }
  
      public Collection<MobEffectInstance> getActiveEffects() {
-@@ -1010,30 +_,88 @@
+@@ -1010,30 +_,93 @@
      }
  
      public final boolean addEffect(MobEffectInstance newEffect) {
@@ -596,6 +596,25 @@
 -
 -    public boolean addEffect(MobEffectInstance newEffect, @Nullable Entity source) {
 -        if (!this.canBeAffected(newEffect)) {
+-            return false;
+-        }
+-
+-        MobEffectInstance effect = this.activeEffects.get(newEffect.getEffect());
+-        boolean changed = false;
+-        if (effect == null) {
+-            this.activeEffects.put(newEffect.getEffect(), newEffect);
+-            this.onEffectAdded(newEffect, source);
+-            changed = true;
+-            newEffect.onEffectAdded(this);
+-        } else if (effect.update(newEffect)) {
+-            this.onEffectUpdated(effect, true, source);
+-            changed = true;
+-        }
+-
+-        newEffect.onEffectStarted(this);
+-        return changed;
+-    }
+-
 +        return this.addEffect(newEffect, (Entity) null);
 +    }
 +
@@ -620,24 +639,13 @@
 +            return true;
 +        }
 +        // CraftBukkit end
++        // Youer start - ban effects at the lowest level, before any event machinery
++        if (com.mohistmc.youer.feature.ban.bans.BanEffect.check(newEffect.getEffect())) {
++            return false;
++        }
++        // Youer end
 +        if (!net.neoforged.neoforge.common.CommonHooks.canMobEffectBeApplied(this, newEffect, source)) {
-             return false;
--        }
--
--        MobEffectInstance effect = this.activeEffects.get(newEffect.getEffect());
--        boolean changed = false;
--        if (effect == null) {
--            this.activeEffects.put(newEffect.getEffect(), newEffect);
--            this.onEffectAdded(newEffect, source);
--            changed = true;
--            newEffect.onEffectAdded(this);
--        } else if (effect.update(newEffect)) {
--            this.onEffectUpdated(effect, true, source);
--            changed = true;
--        }
--
--        newEffect.onEffectStarted(this);
--        return changed;
++            return false;
 +        } else {
 +            MobEffectInstance effect = this.activeEffects.get(newEffect.getEffect());
 +            boolean changed = false;
@@ -684,8 +692,8 @@
 +            newEffect.onEffectStarted(this);
 +            return changed;
 +        }
-     }
- 
++    }
++
 +    /**
 +     * Neo: Override-Only. Call via {@link net.neoforged.neoforge.common.CommonHooks#canMobEffectBeApplied(LivingEntity, MobEffectInstance, Entity)}
 +     *

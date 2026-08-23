@@ -26,6 +26,8 @@ public class BanConfig {
     public static BanConfig BLOCK;
     public static BanConfig NBT;
     public static BanConfig WORLD;
+    public static BanConfig STRUCTURE;
+    public static BanConfig EFFECT;
 
     private static BanDatabaseStorage storage;
     private static final Map<BanType, List<String>> globalCache = new HashMap<>();
@@ -49,6 +51,8 @@ public class BanConfig {
         BLOCK = new BanConfig(BanType.BLOCK);
         NBT = new BanConfig(null); // NBT operations
         WORLD = new BanConfig(BanType.WORLD);
+        STRUCTURE = new BanConfig(BanType.STRUCTURE);
+        EFFECT = new BanConfig(BanType.EFFECT);
 
         typeToConfigMap.put(BanType.ITEM_MOSHOU, ITEM_MOSHOU);
         typeToConfigMap.put(BanType.ITEM, ITEM);
@@ -57,6 +61,8 @@ public class BanConfig {
         typeToConfigMap.put(BanType.RECIPE, RECIPE);
         typeToConfigMap.put(BanType.BLOCK, BLOCK);
         typeToConfigMap.put(BanType.WORLD, WORLD);
+        typeToConfigMap.put(BanType.STRUCTURE, STRUCTURE);
+        typeToConfigMap.put(BanType.EFFECT, EFFECT);
 
         for (BanType type : typeToConfigMap.keySet()) refreshCache(type);
     }
@@ -135,6 +141,8 @@ public class BanConfig {
             case RECIPE -> BanConfig.RECIPE.put(banType.key, list);
             case BLOCK -> BanConfig.BLOCK.put(banType.key, list);
             case WORLD -> BanConfig.WORLD.put(banType.key, list);
+            case STRUCTURE -> BanConfig.STRUCTURE.put(banType.key, list);
+            case EFFECT -> BanConfig.EFFECT.put(banType.key, list);
         }
         if (clickType == ClickType.ADD) {
             player.sendMessage(I18n.as(banType.i18n_key_add));

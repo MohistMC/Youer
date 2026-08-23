@@ -35,12 +35,12 @@ import org.jetbrains.annotations.NotNull;
 public class BansCommand extends Command {
 
     private final List<String> params = Arrays.asList("add", "show", "setmessage");
-    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe", "block", "nbt", "world");
+    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe", "block", "nbt", "world", "structure", "effect");
 
     public BansCommand(String name) {
         super(name);
         this.description = I18n.as("banscmd.description");
-        this.usageMessage = "/bans [add|show|setmessage] [item|item-moshou|entity|enchantment|recipe|block|world]";
+        this.usageMessage = "/bans [add|show|setmessage] [item|item-moshou|entity|enchantment|recipe|block|world|structure|effect]";
         this.setPermission("youer.command.bans");
     }
 
@@ -131,12 +131,15 @@ public class BansCommand extends Command {
 
                         if (args.length >= 3) {
                             String entityName = args[2];
-                            if (BuiltInRegistries.ENTITY_TYPE.get(Identifier.parse(entityName)).isEmpty()) {
-                                sender.sendMessage(I18n.as("banscmd.add.entity.invalid").formatted(entityName));
-                                return false;
+                            boolean isWildcard = entityName.matches("^[a-z0-9_.-]+:\\*$");
+                            if (!isWildcard) {
+                                if (BuiltInRegistries.ENTITY_TYPE.get(Identifier.parse(entityName)).isEmpty()) {
+                                    sender.sendMessage(I18n.as("banscmd.add.entity.invalid").formatted(entityName));
+                                    return false;
+                                }
                             }
 
-                            String entityKey = Identifier.parse(entityName).toString();
+                            String entityKey = isWildcard ? entityName : Identifier.parse(entityName).toString();
                             List<String> old = BanConfig.getListByType(BanType.ENTITY);
                             if (old.contains(entityKey)) {
                                 sender.sendMessage(ChatColor.YELLOW + I18n.as("banscmd.add.entity.exists").formatted(entityKey));
@@ -150,6 +153,90 @@ public class BansCommand extends Command {
                         }
 
                         BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.ENTITY, I18n.as("banscmd.gui.add.entity"));
+                        Inventory inventory = banSaveInventory.getInventory();
+                        player.openInventory(inventory);
+                        BanListener.openInventory = banSaveInventory;
+                        return true;
+                    }
+                    case "structure" -> {
+                        if (!YouerConfig.ban_structure_enable) {
+                            sender.sendMessage(check);
+                            return false;
+                        }
+
+                        if (args.length >= 3) {
+                            String structureName = args[2];
+                            boolean isWildcard = structureName.matches("^[a-z0-9_.-]+:\\*$");
+                            if (!isWildcard) {
+                                Identifier structureKey;
+                                try {
+                                    structureKey = Identifier.parse(structureName);
+                                } catch (RuntimeException ex) {
+                                    sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.structure.notexists").formatted(structureName));
+                                    return false;
+                                }
+                                if (!BuiltInRegistries.STRUCTURE_TYPE.containsKey(structureKey)) {
+                                    sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.structure.notexists").formatted(structureName));
+                                    return false;
+                                }
+                            }
+
+                            List<String> old = BanConfig.getListByType(BanType.STRUCTURE);
+                            if (old.contains(structureName)) {
+                                sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.structure.exists"));
+                                return false;
+                            }
+
+                            old.add(structureName);
+                            BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.STRUCTURE, I18n.as("banscmd.gui.add.structure"));
+                            banSaveInventory.saveToYaml(player, com.mohistmc.youer.feature.ban.ClickType.ADD, old, BanType.STRUCTURE);
+                            sender.sendMessage(ChatColor.GREEN + I18n.as("banscmd.add.structure.success").formatted(structureName));
+                            return true;
+                        }
+
+                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.STRUCTURE, I18n.as("banscmd.gui.add.structure"));
+                        Inventory inventory = banSaveInventory.getInventory();
+                        player.openInventory(inventory);
+                        BanListener.openInventory = banSaveInventory;
+                        return true;
+                    }
+                    case "effect" -> {
+                        if (!YouerConfig.ban_effect_enable) {
+                            sender.sendMessage(check);
+                            return false;
+                        }
+
+                        if (args.length >= 3) {
+                            String effectName = args[2];
+                            boolean isWildcard = effectName.matches("^[a-z0-9_.-]+:\\*$");
+                            if (!isWildcard) {
+                                Identifier effectKey;
+                                try {
+                                    effectKey = Identifier.parse(effectName);
+                                } catch (RuntimeException ex) {
+                                    sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.effect.invalid").formatted(effectName));
+                                    return false;
+                                }
+                                if (!BuiltInRegistries.MOB_EFFECT.containsKey(effectKey)) {
+                                    sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.effect.invalid").formatted(effectName));
+                                    return false;
+                                }
+                            }
+
+                            List<String> old = BanConfig.getListByType(BanType.EFFECT);
+                            if (old.contains(effectName)) {
+                                sender.sendMessage(ChatColor.YELLOW + I18n.as("banscmd.add.effect.exists").formatted(effectName));
+                                return false;
+                            }
+
+                            old.add(effectName);
+                            BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.EFFECT, I18n.as("banscmd.gui.add.effect"));
+                            banSaveInventory.saveToYaml(player, com.mohistmc.youer.feature.ban.ClickType.ADD, old, BanType.EFFECT);
+                            sender.sendMessage(ChatColor.GREEN + I18n.as("banscmd.add.effect.success").formatted(effectName));
+                            return true;
+                        }
+
+                        BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.EFFECT, I18n.as("banscmd.gui.add.effect"));
                         Inventory inventory = banSaveInventory.getInventory();
                         player.openInventory(inventory);
                         BanListener.openInventory = banSaveInventory;
@@ -245,6 +332,10 @@ public class BansCommand extends Command {
                             "banscmd.show.item-moshou", s -> new ItemStackFactory(Material.matchMaterial(s)));
                     case "entity" -> showBanList(player, BanType.ENTITY, BanConfig.ENTITY,
                             "banscmd.show.entity", s -> new ItemStackFactory(ItemAPI.getEggMaterial(EntityAPI.getType(s))));
+                    case "structure" -> showBanList(player, BanType.STRUCTURE, BanConfig.STRUCTURE,
+                            "banscmd.show.structure", s -> new ItemStackFactory(Material.STRUCTURE_VOID));
+                    case "effect" -> showBanList(player, BanType.EFFECT, BanConfig.EFFECT,
+                            "banscmd.show.effect", s -> new ItemStackFactory(Material.POTION));
                     case "enchantment" -> showBanList(player, BanType.ENCHANTMENT, BanConfig.ENCHANTMENT,
                             "banscmd.show.enchantment", s -> new ItemStackFactory(Material.ENCHANTED_BOOK)
                             .setEnchantment(ItemAPI.getEnchantmentByKey(s)));
@@ -528,9 +619,53 @@ public class BansCommand extends Command {
                     completions.add(key.toString());
                 }
             }
+            addModWildcardSuggestions(completions, args[2]);
+            return completions.stream().limit(50).collect(Collectors.toList());
+        }
+
+        if (args.length == 3 && args[0].equals("add") && args[1].equals("structure") && (sender.isOp() || testPermission(sender))) {
+            List<String> completions = new ArrayList<>();
+            for (var key : BuiltInRegistries.STRUCTURE_TYPE.keySet()) {
+                if (key.toString().toLowerCase().startsWith(args[2].toLowerCase())) {
+                    completions.add(key.toString());
+                }
+            }
+            addModWildcardSuggestions(completions, args[2]);
+            return completions.stream().limit(50).collect(Collectors.toList());
+        }
+
+        if (args.length == 3 && args[0].equals("add") && args[1].equals("effect") && (sender.isOp() || testPermission(sender))) {
+            List<String> completions = new ArrayList<>();
+            for (var key : BuiltInRegistries.MOB_EFFECT.keySet()) {
+                if (key.toString().toLowerCase().startsWith(args[2].toLowerCase())) {
+                    completions.add(key.toString());
+                }
+            }
+            addModWildcardSuggestions(completions, args[2]);
             return completions.stream().limit(50).collect(Collectors.toList());
         }
 
         return list;
+    }
+
+    /**
+     * Adds {@code <namespace>:*} wildcard suggestions for every distinct namespace present
+     * in the relevant registry, matching the current partial argument.
+     */
+    private void addModWildcardSuggestions(List<String> completions, String partial) {
+        String lower = partial.toLowerCase();
+        BuiltInRegistries.REGISTRY.keySet(); // touch to ensure registries are available
+        java.util.Set<String> namespaces = new java.util.HashSet<>();
+        for (var reg : BuiltInRegistries.REGISTRY) {
+            for (var key : reg.keySet()) {
+                namespaces.add(key.getNamespace());
+            }
+        }
+        for (String ns : namespaces) {
+            String wildcard = ns + ":*";
+            if (wildcard.toLowerCase().startsWith(lower)) {
+                completions.add(wildcard);
+            }
+        }
     }
 }

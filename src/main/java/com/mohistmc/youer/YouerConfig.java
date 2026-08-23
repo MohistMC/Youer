@@ -90,6 +90,8 @@ public class YouerConfig {
     public static boolean ban_enchantment_enable;
     public static boolean ban_recipe_enable;
     public static boolean ban_world_enable;
+    public static boolean ban_structure_enable;
+    public static boolean ban_effect_enable;
     public static String pingCommandOutput;
     // Ban events
     public static boolean doFireTick;
@@ -297,6 +299,8 @@ public class YouerConfig {
         ban_enchantment_enable = getBoolean("bans.enchantment", false);
         ban_recipe_enable = getBoolean("bans.recipe", false);
         ban_world_enable = getBoolean("bans.world", false);
+        ban_structure_enable = getBoolean("bans.structure", false);
+        ban_effect_enable = getBoolean("bans.effect", false);
 
         pingCommandOutput = getString("settings.messages.ping-command-output", "§2%s's ping is %sms");
 

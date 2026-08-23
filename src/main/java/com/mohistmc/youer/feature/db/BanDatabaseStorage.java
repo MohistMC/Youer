@@ -31,6 +31,8 @@ public class BanDatabaseStorage {
     private static final String RECIPE      = "bans.recipe";
     private static final String BLOCK       = "bans.block";
     private static final String WORLD       = "bans.world";
+    private static final String STRUCTURE   = "bans.structure";
+    private static final String EFFECT      = "bans.effect";
     private static final String NBT         = "bans.nbt";
 
     public void init() {
@@ -41,6 +43,8 @@ public class BanDatabaseStorage {
         initListTable(RECIPE,      "ban_recipe");
         initListTable(BLOCK,       "ban_block");
         initListTable(WORLD,       "ban_world");
+        initListTable(STRUCTURE,   "ban_structure");
+        initListTable(EFFECT,      "ban_effect");
         initNbtTable();
     }
 
@@ -89,6 +93,8 @@ public class BanDatabaseStorage {
             case RECIPE      -> RECIPE;
             case BLOCK       -> BLOCK;
             case WORLD       -> WORLD;
+            case STRUCTURE   -> STRUCTURE;
+            case EFFECT      -> EFFECT;
         };
     }
 
@@ -101,6 +107,8 @@ public class BanDatabaseStorage {
             case RECIPE      -> "ban_recipe";
             case BLOCK       -> "ban_block";
             case WORLD       -> "ban_world";
+            case STRUCTURE   -> "ban_structure";
+            case EFFECT      -> "ban_effect";
         };
     }
 
