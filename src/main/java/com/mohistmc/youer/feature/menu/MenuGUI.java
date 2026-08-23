@@ -5,6 +5,7 @@ import com.mohistmc.youer.api.gui.DefaultGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.GUIType;
 import com.mohistmc.youer.api.gui.ItemStackFactory;
+import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.feature.GlobalVariableSystem;
 import java.util.List;
 import java.util.Map;
@@ -93,10 +94,10 @@ public class MenuGUI {
                 @Override
                 public void ClickAction(ClickType type, Player p, ItemStack clickedItem) {
                     if (icon.hasUsePermission() && !p.hasPermission(icon.getUse_permission())) return;
-                    handleIconClick(p, icon);
                     if (!icon.isKeepOpen()) {
                         p.closeInventory();
                     }
+                    handleIconClick(p, icon);
                 }
             });
         }
@@ -122,13 +123,13 @@ public class MenuGUI {
             String message = action.substring(5).trim();
             player.sendMessage(GlobalVariableSystem.as(player, message));
         } else if (action.startsWith("player:")) {
-            String cmd = action.substring(7).trim();
+            String cmd = stripLeadingSlash(action.substring(7).trim());
             player.performCommand(GlobalVariableSystem.as(player, cmd));
         } else if (action.startsWith("console:")) {
-            String cmd = action.substring(8).trim();
+            String cmd = stripLeadingSlash(action.substring(8).trim());
             Bukkit.getServer().dispatchCommand(Bukkit.getConsoleSender(), GlobalVariableSystem.as(player, cmd));
         } else if (action.startsWith("op:")) {
-            String cmd = action.substring(3).trim();
+            String cmd = stripLeadingSlash(action.substring(3).trim());
             boolean op = player.isOp();
             try {
                 if (!op) {
@@ -139,6 +140,13 @@ public class MenuGUI {
                 player.setOp(op);
             }
         }
+    }
+
+    private static String stripLeadingSlash(String command) {
+        while (command.startsWith("/")) {
+            command = command.substring(1);
+        }
+        return command;
     }
 
     private static Material parseMaterial(String materialName) {
