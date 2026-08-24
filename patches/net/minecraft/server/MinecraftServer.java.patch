@@ -219,7 +219,7 @@
          AtomicReference<S> atomicreference = new AtomicReference<>();
 -        Thread thread = new Thread(() -> atomicreference.get().runServer(), "Server thread");
 -        thread.setUncaughtExceptionHandler((p_177909_, p_177910_) -> LOGGER.error("Uncaught exception in server thread", p_177910_));
-+        Thread thread = new ca.spottedleaf.moonrise.common.util.TickThread(() -> atomicreference.get().runServer(), "Server thread");
++        Thread thread = new Thread(net.neoforged.fml.util.thread.SidedThreadGroups.SERVER, () -> atomicreference.get().runServer(), "Server thread");
 +        thread.setUncaughtExceptionHandler((p_177909_, p_177910_) -> LOGGER.error(I18n.as("minecraftserver.1"), p_177910_));
 +        thread.setPriority(Thread.NORM_PRIORITY + 2); // Paper - Perf: Boost priority
          if (Runtime.getRuntime().availableProcessors() > 4) {
@@ -268,7 +268,7 @@
          }
      }
  
-@@ -325,6 +_,66 @@
+@@ -325,6 +_,59 @@
  
      protected abstract boolean initServer() throws IOException;
  
@@ -311,13 +311,6 @@
 +        LockSupport.parkNanos("executing tasks", 1000L);
 +        // CraftBukkit end
 +    }
-+
-+    // Paper start - rewrite chunk system
-+    @Override
-+    public boolean isSameThread() {
-+        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThread();
-+    }
-+    // Paper end - rewrite chunk system
 +
 +    public boolean isDebugging() {
 +        return false;
@@ -1615,6 +1608,15 @@
      public RegistryAccess.Frozen registryAccess() {
          return this.registries.compositeAccess();
      }
+@@ -1931,7 +_,7 @@
+     }
+ 
+     public void logChatMessage(Component p_241503_, ChatType.Bound p_241402_, @Nullable String p_241481_) {
+-        String s = p_241402_.decorate(p_241503_).getString();
++        String s = ColorAPI.ansi(p_241402_.decorate(p_241503_).getString()); // Youer - convert § codes to ANSI for the console
+         if (p_241481_ != null) {
+             LOGGER.info("[{}] {}", p_241481_, s);
+         } else {
 @@ -1939,8 +_,15 @@
          }
      }

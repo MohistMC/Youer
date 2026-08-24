@@ -348,51 +348,37 @@ public final class CraftServer implements Server {
 
     @Override
     public final boolean isOwnedByCurrentRegion(World world, io.papermc.paper.math.Position position) {
-        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
-                ((CraftWorld) world).getHandle(), position.blockX() >> 4, position.blockZ() >> 4
-        );
+        return isPrimaryThread(); // Youer TODO
     }
 
     @Override
     public final boolean isOwnedByCurrentRegion(World world, io.papermc.paper.math.Position position, int squareRadiusChunks) {
-        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
-                ((CraftWorld) world).getHandle(), position.blockX() >> 4, position.blockZ() >> 4, squareRadiusChunks
-        );
+        return isPrimaryThread(); // Youer TODO
     }
 
     @Override
     public final boolean isOwnedByCurrentRegion(Location location) {
-        World world = location.getWorld();
-        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
-                ((CraftWorld) world).getHandle(), location.getBlockX() >> 4, location.getBlockZ() >> 4
-        );
+        return isPrimaryThread(); // Youer TODO
     }
 
     @Override
     public final boolean isOwnedByCurrentRegion(Location location, int squareRadiusChunks) {
-        World world = location.getWorld();
-        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
-                ((CraftWorld) world).getHandle(), location.getBlockX() >> 4, location.getBlockZ() >> 4, squareRadiusChunks
-        );
+        return isPrimaryThread(); // Youer TODO
     }
 
     @Override
     public final boolean isOwnedByCurrentRegion(World world, int chunkX, int chunkZ) {
-        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
-                ((CraftWorld) world).getHandle(), chunkX, chunkZ
-        );
+        return isPrimaryThread(); // Youer TODO
     }
 
     @Override
     public final boolean isOwnedByCurrentRegion(World world, int chunkX, int chunkZ, int squareRadiusChunks) {
-        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(
-                ((CraftWorld) world).getHandle(), chunkX, chunkZ, squareRadiusChunks
-        );
+        return isPrimaryThread(); // Youer TODO
     }
 
     @Override
     public final boolean isOwnedByCurrentRegion(Entity entity) {
-        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(((CraftEntity) entity).getHandleRaw());
+        return isPrimaryThread(); // Youer TODO
     }
     // Paper end - Folia reagion threading API
 
@@ -2760,7 +2746,7 @@ public final class CraftServer implements Server {
 
     @Override
     public boolean isPrimaryThread() {
-        return ca.spottedleaf.moonrise.common.util.TickThread.isTickThread(); // Paper - rewrite chunk system
+        return Thread.currentThread().equals(this.console.serverThread) || this.console.hasStopped() || !org.spigotmc.AsyncCatcher.enabled; // All bets are off if we have shut down (e.g. due to watchdog)
     }
 
     // Paper start - Adventure

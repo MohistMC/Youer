@@ -319,7 +319,16 @@ public final class ChatProcessor {
 
         private void sendToServer(final ChatType.Bound chatType, final @Nullable Function<Audience, net.minecraft.network.chat.Component> msgFunction) {
             final PlayerChatMessage toConsoleMessage = msgFunction == null ? ChatProcessor.this.message : ChatProcessor.this.message.withUnsignedContent(msgFunction.apply(ChatProcessor.this.server.console));
-            ChatProcessor.this.server.logChatMessage(toConsoleMessage.decoratedContent(), chatType, ChatProcessor.this.server.getPlayerList().verifyChatTrusted(toConsoleMessage) ? null : "Not Secure");
+            final net.minecraft.network.chat.Component content = toConsoleMessage.decoratedContent();
+            final String notSecure = ChatProcessor.this.server.getPlayerList().verifyChatTrusted(toConsoleMessage) ? null : "Not Secure";
+            // Convert legacy § codes to ANSI colors so the terminal shows colors instead of raw codes.
+            // The file appender strips both § and ANSI escapes, so the log stays clean.
+            final String text = com.mohistmc.youer.api.ColorAPI.ansi(content.getString());
+            if (notSecure != null) {
+                net.minecraft.server.MinecraftServer.LOGGER.info("[{}] {}", notSecure, text);
+            } else {
+                net.minecraft.server.MinecraftServer.LOGGER.info("{}", text);
+            }
         }
     }
 

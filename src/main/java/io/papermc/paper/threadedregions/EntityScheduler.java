@@ -1,14 +1,16 @@
 package io.papermc.paper.threadedregions;
 
 import ca.spottedleaf.concurrentutil.util.Validate;
-import ca.spottedleaf.moonrise.common.util.TickThread;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.entity.Entity;
 import org.bukkit.craftbukkit.entity.CraftEntity;
+
+import static net.minecraft.server.MinecraftServer.LOGGER;
 
 /**
  * An entity can move between worlds with an arbitrary tick delay, be temporarily removed
@@ -139,7 +141,10 @@ public final class EntityScheduler {
     public void executeTick() {
         final Entity thisEntity = this.entity.getHandleRaw();
 
-        TickThread.ensureTickThread(thisEntity, "May not tick entity scheduler asynchronously");
+        if (Thread.currentThread() != MinecraftServer.getServer().serverThread) {
+            LOGGER.error("Thread {} failed main thread check: May not tick entity scheduler asynchronously", Thread.currentThread().getName(), new Throwable());
+            throw new IllegalStateException("May not tick entity scheduler asynchronously");
+        }
         final List<ScheduledTask> toRun;
         synchronized (this.stateLock) {
             if (this.tickCount == RETIRED_TICK_COUNT) {
@@ -161,7 +166,7 @@ public final class EntityScheduler {
 
         // Note: It is allowed for the tasks executed to retire the entity in a given task.
         for (int i = 0, len = this.currentlyExecuting.size(); i < len; ++i) {
-            if (!TickThread.isTickThreadFor(thisEntity)) {
+            if (Thread.currentThread() != MinecraftServer.getServer().serverThread) {
                 // tp has been queued sync by one of the tasks
                 // in this case, we need to delay the tasks for next tick
                 break;

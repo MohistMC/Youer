@@ -95,9 +95,13 @@ public class EntityLimitsConfig extends YouerPluginConfig {
             return false;
         }
         long entitySize = 0;
-        for (org.bukkit.entity.Entity e : entity.getBukkitEntity().getChunk().getEntities()) {
-            if (e instanceof org.bukkit.entity.Mob) {
-                entitySize++;
+        net.minecraft.server.level.ServerLevel serverLevel = WorldAPI.getServerLevel(entity.level().getWorld());
+        net.minecraft.world.level.ChunkPos pos = new net.minecraft.world.level.ChunkPos(entity.blockPosition());
+        if (serverLevel.entityManager.areEntitiesLoaded(pos.toLong())) {
+            for (Entity e : serverLevel.entityManager.getEntities(pos)) {
+                if (e instanceof Mob) {
+                    entitySize++;
+                }
             }
         }
         return entitySize >= limit;

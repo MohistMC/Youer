@@ -9,7 +9,7 @@ import java.util.logging.Logger;
 import net.minecraft.server.MinecraftServer;
 import org.bukkit.Bukkit;
 
-public class WatchdogThread extends ca.spottedleaf.moonrise.common.util.TickThread // Paper - rewrite chunk system
+public class WatchdogThread extends Thread
 {
     public static final boolean DISABLE_WATCHDOG = Boolean.getBoolean("disable.watchdog"); // Paper - Improved watchdog support
     private static WatchdogThread instance;

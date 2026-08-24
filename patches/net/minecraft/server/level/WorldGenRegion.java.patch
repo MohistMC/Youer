@@ -21,6 +21,18 @@
      @Override
      public BlockState getBlockState(BlockPos p_9587_) {
          return this.getChunk(SectionPos.blockToSectionCoord(p_9587_.getX()), SectionPos.blockToSectionCoord(p_9587_.getZ())).getBlockState(p_9587_);
+@@ -181,6 +_,11 @@
+     }
+ 
+     @Override
++    public Holder<Biome> getNoiseBiome(int biomeX, int biomeY, int biomeZ) {
++        return this.getUncachedNoiseBiome(biomeX, biomeY, biomeZ);
++    }
++
++    @Override
+     public float getShade(Direction p_9555_, boolean p_9556_) {
+         return 1.0F;
+     }
 @@ -196,7 +_,7 @@
          if (blockstate.isAir()) {
              return false;
@@ -30,14 +42,52 @@
                  BlockEntity blockentity = blockstate.hasBlockEntity() ? this.getBlockEntity(p_9550_) : null;
                  Block.dropResources(blockstate, this.level, p_9550_, blockentity, p_9552_, ItemStack.EMPTY);
              }
-@@ -257,6 +_,7 @@
+@@ -239,7 +_,7 @@
+             return null;
+         }
+     }
+-
++    private boolean hasSetFarWarned = false; // Paper - Buffer OOB setBlock calls
+     @Override
+     public boolean ensureCanWrite(BlockPos p_181031_) {
+         int i = SectionPos.blockToSectionCoord(p_181031_.getX());
+@@ -257,17 +_,25 @@
  
              return true;
          } else {
+-            Util.logAndPauseIfInIde(
+-                "Detected setBlock in a far chunk ["
+-                    + i
+-                    + ", "
+-                    + j
+-                    + "], pos: "
+-                    + p_181031_
+-                    + ", status: "
+-                    + this.generatingStep.targetStatus()
+-                    + (this.currentlyGenerating == null ? "" : ", currently generating: " + this.currentlyGenerating.get())
+-            );
 +            if (!org.purpurmc.purpur.PurpurConfig.loggerSuppressSetBlockFarChunk) // Purpur
-             Util.logAndPauseIfInIde(
-                 "Detected setBlock in a far chunk ["
-                     + i
++                if (!hasSetFarWarned) {
++                    Util.logAndPauseIfInIde(
++                            "Detected setBlock in a far chunk ["
++                                    + i
++                                    + ", "
++                                    + j
++                                    + "], pos: "
++                                    + p_181031_
++                                    + ", status: "
++                                    + this.generatingStep.targetStatus()
++                                    + (this.currentlyGenerating == null ? "" : ", currently generating: " + this.currentlyGenerating.get())
++                    );
++                    hasSetFarWarned = true;
++                    if (this.getServer() != null && this.getServer().isDebugging()) {
++                        io.papermc.paper.util.TraceUtil.dumpTraceForThread("far setBlock call");
++                    }
++                }
++            // Paper end - Buffer OOB setBlock calls
+             return false;
+         }
+     }
 @@ -279,6 +_,7 @@
          } else {
              ChunkAccess chunkaccess = this.getChunk(p_9539_);

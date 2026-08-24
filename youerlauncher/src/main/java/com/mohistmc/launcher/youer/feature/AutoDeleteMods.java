@@ -56,7 +56,6 @@ public class AutoDeleteMods {
         put("dev.imb11.sounds.loaders.neoforge.SoundsNeoForge", DeletionReason.CLIENT_ONLY);
         put("me.drex.crashexploitfixer.neoforge.CrashExploitFixerNeoforge", DeletionReason.DUPLICATE_FEATURE);
         put("fabric-carpet-refmap", DeletionReason.FABRIC_ONLY);
-        put("com.ishland.c2me.C2MEMod", DeletionReason.CLIENT_ONLY);
         put("me.pepperbell.continuity.client.ContinuityClient", DeletionReason.CLIENT_ONLY);
         put("link.e4mc.neoforge.E4mcClientNeoForge", DeletionReason.DUPLICATE_FEATURE);
         put("org.adde0109.pcf.PCFNeo", DeletionReason.DUPLICATE_FEATURE);
