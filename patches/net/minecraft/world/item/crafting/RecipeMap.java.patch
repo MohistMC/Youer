@@ -30,7 +30,7 @@
          this.byType = byType;
          this.byKey = byKey;
      }
-@@ -30,7 +_,50 @@
+@@ -30,7 +_,59 @@
              byKey.put(recipe.id(), recipe);
          }
  
@@ -41,6 +41,10 @@
 +
 +    public void addRecipe(RecipeHolder<?> holder) {
 +        Collection<RecipeHolder<?>> recipes = this.byType.get(holder.value().getType());
++        if (recipes instanceof com.google.common.collect.ImmutableCollection) {
++            this.byType = com.google.common.collect.LinkedHashMultimap.create(this.byType);
++            recipes = this.byType.get(holder.value().getType());
++        }
 +
 +        if (this.byKey.containsKey(holder.id())) {
 +            throw new IllegalStateException("Duplicate recipe ignored with ID " + holder.id());
@@ -57,7 +61,12 @@
 +        if (remove == null) {
 +            return false;
 +        }
-+        final Collection<? extends RecipeHolder<?>> recipes = this.byType(remove.value().getType());
++        // CraftBukkit start - defensive: ensure byType is mutable before attempting remove
++        if (this.byType instanceof com.google.common.collect.ImmutableMultimap) {
++            this.byType = com.google.common.collect.LinkedHashMultimap.create(this.byType);
++        }
++        // CraftBukkit end
++        final Collection<? extends RecipeHolder<?>> recipes = this.byType.get(remove.value().getType());
 +        return recipes.remove(remove);
 +    }
 +    // Paper end - replace removeRecipe implementation
