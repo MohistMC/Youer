@@ -76,23 +76,6 @@
                  ChunkAccess chunkaccess1 = chunkholder.getChunkIfPresent(ChunkStatus.FULL);
                  if (chunkaccess1 != null) {
                      this.storeInCache(i, chunkaccess1, ChunkStatus.FULL);
-@@ -224,7 +_,15 @@
-         long i = chunkpos.toLong();
-         int j = ChunkLevel.byStatus(p_331599_);
-         ChunkHolder chunkholder = this.getVisibleChunkIfPresent(i);
--        if (p_8460_) {
-+        // CraftBukkit start - don't add new ticket for currently unloading chunk
-+        boolean currentlyUnloading = false;
-+        if (chunkholder != null) {
-+            FullChunkStatus oldChunkState = ChunkLevel.fullStatus(chunkholder.oldTicketLevel);
-+            FullChunkStatus currentChunkState = ChunkLevel.fullStatus(chunkholder.getTicketLevel());
-+            currentlyUnloading = (oldChunkState.isOrAfter(FullChunkStatus.FULL) && !currentChunkState.isOrAfter(FullChunkStatus.FULL));
-+        }
-+        if (p_8460_ && !currentlyUnloading) {
-+            // CraftBukkit end
-             this.distanceManager.addTicket(TicketType.UNKNOWN, chunkpos, j, chunkpos);
-             if (this.chunkAbsent(chunkholder, j)) {
-                 ProfilerFiller profilerfiller = this.level.getProfiler();
 @@ -250,8 +_,12 @@
      @Override
      public boolean hasChunk(int p_8429_, int p_8430_) {
