@@ -1,15 +1,20 @@
 --- a/net/minecraft/server/level/ChunkHolder.java
 +++ b/net/minecraft/server/level/ChunkHolder.java
-@@ -71,6 +_,18 @@
+@@ -71,6 +_,23 @@
          this.changedBlocksPerSection = new ShortSet[p_142988_.getSectionsCount()];
      }
  
 +    // CraftBukkit start
-+    public LevelChunk getFullChunkNow() {
++    public @org.jspecify.annotations.Nullable LevelChunk getFullChunkNow() {
 +        // Note: We use the oldTicketLevel for isLoaded checks.
-+        if (!ChunkLevel.fullStatus(this.oldTicketLevel).isOrAfter(FullChunkStatus.FULL)) return null;
++        // Youer - C2ME noops ChunkHolder#setLevel so oldTicketLevel never reaches FULL; fall back to the
++        // full-chunk future (C2ME implements it against its own status system) in that case
++        if (!ChunkLevel.fullStatus(this.oldTicketLevel).isOrAfter(FullChunkStatus.FULL)) {
++            return this.getFullChunkFuture().getNow(UNLOADED_LEVEL_CHUNK).orElse(null);
++        }
 +        return this.getFullChunkNowUnchecked();
 +    }
++    // CraftBukkit end
 +
 +    public LevelChunk getFullChunkNowUnchecked() {
 +        return (LevelChunk) this.getChunkIfPresentUnchecked(ChunkStatus.FULL);

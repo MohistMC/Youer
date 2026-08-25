@@ -122,7 +122,7 @@
          if (!flag) {
              return false;
          } else {
-@@ -217,19 +_,31 @@
+@@ -217,19 +_,32 @@
      }
  
      private void unloadEntity(EntityAccess p_157586_) {
@@ -147,12 +147,13 @@
 +                if (p_157593_ instanceof Entity entity) entity.onAddedToLevel();
 +            });
              this.chunkLoadStatuses.put(chunkentities.getPos().toLong(), PersistentEntitySectionManager.ChunkLoadStatus.LOADED);
-+            if (!AsyncCatcher.catchAsync()) {
-+                // CraftBukkit start - call entity load event
-+                List<Entity> entities = getEntities(chunkentities.getPos());
-+                CraftEventFactory.callEntitiesLoadEvent(((EntityStorage) permanentStorage).level, chunkentities.getPos(), entities);
-+                // CraftBukkit end
-+            }
++            // CraftBukkit start - call entity load event on the main thread (execute runs immediately on the main thread, queues otherwise e.g. C2ME async load)
++            ChunkPos chunkPos = chunkentities.getPos();
++            ((EntityStorage) permanentStorage).level.getServer().execute(() -> {
++                List<Entity> entities = getEntities(chunkPos);
++                CraftEventFactory.callEntitiesLoadEvent(((EntityStorage) permanentStorage).level, chunkPos, entities);
++            });
++            // CraftBukkit end
          }
      }
  
