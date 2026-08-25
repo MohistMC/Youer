@@ -14,7 +14,7 @@
  import java.util.function.Function;
  import java.util.stream.Collectors;
  import net.minecraft.Util;
-@@ -29,6 +_,10 @@
+@@ -29,6 +_,11 @@
  import net.minecraft.world.phys.shapes.CollisionContext;
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
@@ -22,6 +22,7 @@
 +import org.bukkit.craftbukkit.block.CraftBlockState;
 +import org.bukkit.craftbukkit.block.CraftBlockStates;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.spigotmc.AsyncCatcher;
  
  public class FireBlock extends BaseFireBlock {
      public static final MapCodec<FireBlock> CODEC = simpleCodec(FireBlock::new);
@@ -154,7 +155,7 @@
                                      }
                                  }
                              }
-@@ -240,32 +_,54 @@
+@@ -240,32 +_,56 @@
              || p_53429_.isRainingAt(p_53430_.south());
      }
  
@@ -186,18 +187,20 @@
              BlockState blockstate = p_221151_.getBlockState(p_221152_);
 +
 +            // CraftBukkit start
-+            org.bukkit.block.Block theBlock = p_221151_.getWorld().getBlockAt(p_221152_.getX(), p_221152_.getY(), p_221152_.getZ());
-+            org.bukkit.block.Block sourceBlock = CraftBlock.at(p_221151_, sourceposition.get());
++            if (!AsyncCatcher.catchAsync()) {
++                org.bukkit.block.Block theBlock = p_221151_.getWorld().getBlockAt(p_221152_.getX(), p_221152_.getY(), p_221152_.getZ());
++                org.bukkit.block.Block sourceBlock = CraftBlock.at(p_221151_, sourceposition.get());
 +
-+            org.bukkit.event.block.BlockBurnEvent event = new org.bukkit.event.block.BlockBurnEvent(theBlock, sourceBlock);
-+            p_221151_.getCraftServer().getPluginManager().callEvent(event);
++                org.bukkit.event.block.BlockBurnEvent event = new org.bukkit.event.block.BlockBurnEvent(theBlock, sourceBlock);
++                p_221151_.getCraftServer().getPluginManager().callEvent(event);
 +
-+            if (event.isCancelled()) {
-+                return;
-+            }
++                if (event.isCancelled()) {
++                    return;
++                }
 +
-+            if (blockstate.getBlock() instanceof TntBlock && !CraftEventFactory.callTNTPrimeEvent(p_221151_, p_221152_, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.FIRE, null, sourceposition.getAndSet(BlockPos.ZERO))) {
-+                return;
++                if (blockstate.getBlock() instanceof TntBlock && !CraftEventFactory.callTNTPrimeEvent(p_221151_, p_221152_, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.FIRE, null, sourceposition.getAndSet(BlockPos.ZERO))) {
++                    return;
++                }
 +            }
 +            // CraftBukkit end
 +
