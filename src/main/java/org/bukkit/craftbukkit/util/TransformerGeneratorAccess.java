@@ -1,7 +1,9 @@
 package org.bukkit.craftbukkit.util;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.structure.StructurePiece;
@@ -10,6 +12,7 @@ import org.bukkit.craftbukkit.block.CraftBlockEntityState;
 import org.bukkit.craftbukkit.block.CraftBlockState;
 import org.bukkit.craftbukkit.block.CraftBlockStates;
 import org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason;
+import org.jspecify.annotations.NonNull;
 
 public class TransformerGeneratorAccess extends DelegatedGeneratorAccess {
 
@@ -94,5 +97,19 @@ public class TransformerGeneratorAccess extends DelegatedGeneratorAccess {
     @Override
     public boolean setBlock(BlockPos pos, BlockState state, int flags) {
         return this.setBlock(pos, state, flags, 512);
+    }
+
+    @Override
+    public @NonNull BlockState getBlockState(BlockPos pos) {
+        // Youer start - guard against out-of-bounds chunk access from structure processors during parallel world gen (C2ME)
+        if (this.getHandle() instanceof net.minecraft.server.level.WorldGenRegion region) {
+            int chunkX = SectionPos.blockToSectionCoord(pos.getX());
+            int chunkZ = SectionPos.blockToSectionCoord(pos.getZ());
+            if (!region.hasChunk(chunkX, chunkZ)) {
+                return Blocks.AIR.defaultBlockState();
+            }
+        }
+        // Youer end
+        return super.getBlockState(pos);
     }
 }

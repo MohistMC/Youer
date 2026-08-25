@@ -199,28 +199,3 @@
      }
  
      @Override
-@@ -549,13 +_,19 @@
-         }
- 
-         @Override
-+        // CraftBukkit start - process pending Chunk loadCallback() and unloadCallback() after each run task
-         public boolean pollTask() {
--            if (ServerChunkCache.this.runDistanceManagerUpdates()) {
--                return true;
--            } else {
--                ServerChunkCache.this.lightEngine.tryScheduleUpdate();
--                return super.pollTask();
-+            try {
-+                if (ServerChunkCache.this.runDistanceManagerUpdates()) {
-+                    return true;
-+                } else {
-+                    ServerChunkCache.this.lightEngine.tryScheduleUpdate();
-+                    return super.pollTask();
-+                }
-+            } finally {
-+                ServerChunkCache.this.chunkMap.callbackExecutor.run();
-             }
-+            // CraftBukkit end
-         }
-     }
- }

@@ -18,7 +18,9 @@
 package com.mohistmc.youer.eventhandler.dispatcher;
 
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.level.chunk.LevelChunk;
 import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.neoforge.event.level.ChunkEvent;
 import net.neoforged.neoforge.event.level.LevelEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.craftbukkit.CraftServer;
@@ -29,6 +31,20 @@ public class WorldEventDispatcher {
     public void onWorldUnload(LevelEvent.Unload event) {
         if (event.getLevel() instanceof ServerLevel serverLevel) {
             ((CraftServer) Bukkit.getServer()).removeWorld(serverLevel);
+        }
+    }
+
+    @SubscribeEvent
+    public void onChunkLoad(ChunkEvent.Load event) {
+        if (event.getChunk() instanceof LevelChunk levelChunk) {
+            levelChunk.loadCallback();
+        }
+    }
+
+    @SubscribeEvent
+    public void onChunkUnload(ChunkEvent.Unload event) {
+        if (event.getChunk() instanceof LevelChunk levelChunk) {
+            levelChunk.unloadCallback();
         }
     }
 }

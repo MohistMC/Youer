@@ -1,13 +1,5 @@
 --- a/net/minecraft/server/level/ChunkHolder.java
 +++ b/net/minecraft/server/level/ChunkHolder.java
-@@ -17,6 +_,7 @@
- import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
- import net.minecraft.network.protocol.game.ClientboundLightUpdatePacket;
- import net.minecraft.network.protocol.game.ClientboundSectionBlocksUpdatePacket;
-+import net.minecraft.server.MinecraftServer;
- import net.minecraft.world.level.ChunkPos;
- import net.minecraft.world.level.Level;
- import net.minecraft.world.level.LevelHeightAccessor;
 @@ -71,6 +_,18 @@
          this.changedBlocksPerSection = new ShortSet[p_142988_.getSectionsCount()];
      }
@@ -35,44 +27,7 @@
              if (this.changedBlocksPerSection[i] == null) {
                  this.hasChangedSections = true;
                  this.changedBlocksPerSection[i] = new ShortOpenHashSet();
-@@ -257,11 +_,44 @@
-         p_287599_.onFullChunkStatusChange(this.pos, p_287649_);
-     }
- 
-+    // CraftBukkit start
-+    // ChunkUnloadEvent: Called before the chunk is unloaded: isChunkLoaded is still true and chunk can still be modified by plugins.
-+    // SPIGOT-7780: Moved out of updateFutures to call all chunk unload events before calling updateHighestAllowedStatus for all chunks
-+    protected void callEventIfUnloading(ChunkMap playerchunkmap) {
-+        FullChunkStatus oldFullChunkStatus = ChunkLevel.fullStatus(this.oldTicketLevel);
-+        FullChunkStatus newFullChunkStatus = ChunkLevel.fullStatus(this.ticketLevel);
-+        boolean oldIsFull = oldFullChunkStatus.isOrAfter(FullChunkStatus.FULL);
-+        boolean newIsFull = newFullChunkStatus.isOrAfter(FullChunkStatus.FULL);
-+        if (oldIsFull && !newIsFull) {
-+            this.getFullChunkFuture().thenAccept((either) -> {
-+                LevelChunk chunk = (LevelChunk) either.orElse(null);
-+                if (chunk != null) {
-+                    playerchunkmap.callbackExecutor.execute(() -> {
-+                        // Minecraft will apply the chunks tick lists to the world once the chunk got loaded, and then store the tick
-+                        // lists again inside the chunk once the chunk becomes inaccessible and set the chunk's needsSaving flag.
-+                        // These actions may however happen deferred, so we manually set the needsSaving flag already here.
-+                        chunk.setUnsaved(true);
-+                        chunk.unloadCallback();
-+                    });
-+                }
-+            }).exceptionally((throwable) -> {
-+                // ensure exceptions are printed, by default this is not the case
-+                MinecraftServer.LOGGER.error("Failed to schedule unload callback for chunk " + ChunkHolder.this.pos, throwable);
-+                return null;
-+            });
-+
-+            // Run callback right away if the future was already done
-+            playerchunkmap.callbackExecutor.run();
-+        }
-+    }
-+    // CraftBukkit end
-+
-     protected void updateFutures(ChunkMap p_143004_, Executor p_143005_) {
-         FullChunkStatus fullchunkstatus = ChunkLevel.fullStatus(this.oldTicketLevel);
+@@ -262,6 +_,7 @@
          FullChunkStatus fullchunkstatus1 = ChunkLevel.fullStatus(this.ticketLevel);
          boolean flag = fullchunkstatus.isOrAfter(FullChunkStatus.FULL);
          boolean flag1 = fullchunkstatus1.isOrAfter(FullChunkStatus.FULL);
@@ -80,29 +35,3 @@
          this.wasAccessibleSinceLastSave |= flag1;
          if (!flag && flag1) {
              this.fullChunkFuture = p_143004_.prepareAccessibleChunk(this);
-@@ -310,6 +_,25 @@
- 
-         this.onLevelChange.onLevelChange(this.pos, this::getQueueLevel, this.ticketLevel, this::setQueueLevel);
-         this.oldTicketLevel = this.ticketLevel;
-+        // CraftBukkit start
-+        // ChunkLoadEvent: Called after the chunk is loaded: isChunkLoaded returns true and chunk is ready to be modified by plugins.
-+        if (!fullchunkstatus.isOrAfter(FullChunkStatus.FULL) && fullchunkstatus1.isOrAfter(FullChunkStatus.FULL)) {
-+            this.getFullChunkFuture().thenAccept((either) -> {
-+                LevelChunk chunk = (LevelChunk) either.orElse(null);
-+                if (chunk != null) {
-+                    p_143004_.callbackExecutor.execute(() -> {
-+                        chunk.loadCallback();
-+                    });
-+                }
-+            }).exceptionally((throwable) -> {
-+                // ensure exceptions are printed, by default this is not the case
-+                net.minecraft.server.MinecraftServer.LOGGER.error("Failed to schedule load callback for chunk " + this.pos, throwable);
-+                return null;
-+            });
-+            // Run callback right away if the future was already done
-+            p_143004_.callbackExecutor.run();
-+        }
-+        // CraftBukkit end
-     }
- 
-     public boolean wasAccessibleSinceLastSave() {

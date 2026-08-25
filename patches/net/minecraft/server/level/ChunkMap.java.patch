@@ -34,34 +34,6 @@
  import org.slf4j.Logger;
  
  public class ChunkMap extends ChunkStorage implements ChunkHolder.PlayerProvider, GeneratingChunkMap {
-@@ -142,6 +_,27 @@
-     public int serverViewDistance;
-     private final WorldGenContext worldGenContext;
- 
-+    // CraftBukkit start - recursion-safe executor for Chunk loadCallback() and unloadCallback()
-+    public final CallbackExecutor callbackExecutor = new CallbackExecutor();
-+    public static final class CallbackExecutor implements java.util.concurrent.Executor, Runnable {
-+
-+        private final java.util.Queue<Runnable> queue = new ConcurrentLinkedQueue<>();
-+
-+        @Override
-+        public void execute(Runnable runnable) {
-+            queue.add(runnable);
-+        }
-+
-+        @Override
-+        public void run() {
-+            Runnable task;
-+            while ((task = queue.poll()) != null) {
-+                task.run();
-+            }
-+        }
-+    };
-+    // CraftBukkit end
-+
-     public ChunkMap(
-         ServerLevel p_214836_,
-         LevelStorageSource.LevelStorageAccess p_214837_,
 @@ -168,13 +_,21 @@
          this.level = p_214836_;
          RegistryAccess registryaccess = p_214836_.registryAccess();

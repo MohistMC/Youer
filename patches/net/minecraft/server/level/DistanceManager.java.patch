@@ -39,16 +39,6 @@
      protected DistanceManager(Executor p_140774_, Executor p_140775_) {
          ProcessorHandle<Runnable> processorhandle = ProcessorHandle.of("player ticket throttler", p_140775_::execute);
          ChunkTaskPriorityQueueSorter chunktaskpriorityqueuesorter = new ChunkTaskPriorityQueueSorter(ImmutableList.of(processorhandle), p_140774_, 4);
-@@ -113,6 +_,9 @@
-         }
- 
-         if (!this.chunksToUpdateFutures.isEmpty()) {
-+            // CraftBukkit start - SPIGOT-7780: Call chunk unload events before updateHighestAllowedStatus
-+            new HashSet<>(this.chunksToUpdateFutures).forEach((playerchunk) -> playerchunk.callEventIfUnloading(p_140806_));
-+            // CraftBukkit end
-             this.chunksToUpdateFutures.forEach(p_347062_ -> p_347062_.updateHighestAllowedStatus(p_140806_));
-             this.chunksToUpdateFutures.forEach(p_183908_ -> p_183908_.updateFutures(p_140806_, this.mainThreadExecutor));
-             this.chunksToUpdateFutures.clear();
 @@ -144,6 +_,9 @@
          }
      }
@@ -59,7 +49,7 @@
      void addTicket(long p_140785_, Ticket<?> p_140786_) {
          SortedArraySet<Ticket<?>> sortedarrayset = this.getTickets(p_140785_);
          int i = getTicketLevelAt(sortedarrayset);
-@@ -152,11 +_,26 @@
+@@ -152,11 +_,25 @@
          if (p_140786_.getTicketLevel() < i) {
              this.ticketTracker.update(p_140785_, p_140786_.getTicketLevel(), true);
          }
@@ -77,7 +67,6 @@
 +        return addTicketCB.getAndSet(false);
 +    }
 +    // CraftBukkit end
-+
  
      void removeTicket(long p_140819_, Ticket<?> p_140820_) {
          SortedArraySet<Ticket<?>> sortedarrayset = this.getTickets(p_140819_);
