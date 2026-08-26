@@ -1,12 +1,15 @@
 --- a/net/minecraft/world/entity/item/ItemEntity.java
 +++ b/net/minecraft/world/entity/item/ItemEntity.java
-@@ -1,5 +_,6 @@
+@@ -1,7 +_,9 @@
  package net.minecraft.world.entity.item;
  
 +import com.mohistmc.youer.feature.ban.bans.BanItem;
  import java.util.Objects;
  import java.util.UUID;
++import java.util.concurrent.atomic.AtomicBoolean;
  import javax.annotation.Nullable;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.component.DataComponents;
 @@ -31,6 +_,9 @@
  import net.minecraft.world.level.gameevent.GameEvent;
  import net.minecraft.world.level.portal.DimensionTransition;
@@ -222,12 +225,18 @@
                  merge(this, itemstack, p_32016_, itemstack1);
              } else {
                  merge(p_32016_, itemstack1, this, itemstack);
-@@ -254,10 +_,16 @@
+@@ -254,10 +_,22 @@
      }
  
      private static void merge(ItemEntity p_32018_, ItemStack p_32019_, ItemEntity p_32020_, ItemStack p_32021_) {
 +        // CraftBukkit start
-+        if (!CraftEventFactory.callItemMergeEvent(p_32020_, p_32018_)) {
++        AtomicBoolean call = new AtomicBoolean(false);
++        Objects.requireNonNull(p_32018_.getServer()).execute(() -> {
++            if (!CraftEventFactory.callItemMergeEvent(p_32020_, p_32018_)) {
++                call.set(true);
++            }
++        });
++        if (call.get()) {
 +            return;
 +        }
 +        // CraftBukkit end

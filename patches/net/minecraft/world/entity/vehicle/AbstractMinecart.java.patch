@@ -1,13 +1,16 @@
 --- a/net/minecraft/world/entity/vehicle/AbstractMinecart.java
 +++ b/net/minecraft/world/entity/vehicle/AbstractMinecart.java
-@@ -4,7 +_,6 @@
+@@ -4,9 +_,9 @@
  import com.google.common.collect.ImmutableMap;
  import com.google.common.collect.Maps;
  import com.mojang.datafixers.util.Pair;
 -import java.util.EnumMap;
  import java.util.List;
  import java.util.Map;
++import java.util.Objects;
  import javax.annotation.Nullable;
+ import net.minecraft.BlockUtil;
+ import net.minecraft.Util;
 @@ -44,6 +_,8 @@
  import net.minecraft.world.level.block.state.properties.RailShape;
  import net.minecraft.world.phys.AABB;
@@ -122,12 +125,12 @@
 +            org.bukkit.Location from = new org.bukkit.Location(bworld, prevX, prevY, prevZ, prevYaw, prevPitch);
 +            org.bukkit.Location to = CraftLocation.toBukkit(this.position(), bworld, this.getYRot(), this.getXRot());
 +            org.bukkit.entity.Vehicle vehicle = (org.bukkit.entity.Vehicle) this.getBukkitEntity();
-+
-+            this.level().getCraftServer().getPluginManager().callEvent(new org.bukkit.event.vehicle.VehicleUpdateEvent(vehicle));
-+
-+            if (!from.equals(to)) {
-+                this.level().getCraftServer().getPluginManager().callEvent(new org.bukkit.event.vehicle.VehicleMoveEvent(vehicle, from, to));
-+            }
++            Objects.requireNonNull(this.getServer()).execute(() -> {
++                this.level().getCraftServer().getPluginManager().callEvent(new org.bukkit.event.vehicle.VehicleUpdateEvent(vehicle));
++                if (!from.equals(to)) {
++                    this.level().getCraftServer().getPluginManager().callEvent(new org.bukkit.event.vehicle.VehicleMoveEvent(vehicle, from, to));
++                }
++            });
 +            // CraftBukkit end
 +            AABB box;
 +            if (getCollisionHandler() != null) box = getCollisionHandler().getMinecartCollisionBox(this);

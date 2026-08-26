@@ -2,6 +2,7 @@ package io.papermc.paper.plugin.manager;
 
 import com.google.common.collect.Sets;
 import com.mohistmc.youer.YouerConfig;
+import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.bukkit.entity.CraftFakePlayer;
 import com.mohistmc.youer.feature.YouerPlugin;
 import com.mohistmc.youer.util.I18n;
@@ -42,7 +43,7 @@ class PaperEventManager {
         if (event.isAsynchronous() && this.server.isPrimaryThread()) {
             throw new IllegalStateException(I18n.as("papereventmanager.1", event.getEventName()));
         } else if (!event.isAsynchronous() && !this.server.isPrimaryThread() && !this.server.isStopping()) {
-            throw new IllegalStateException(I18n.as("papereventmanager.2", event.getEventName(), Thread.currentThread().toString()));
+            throw new IllegalStateException(I18n.as("papereventmanager.2", event.getEventName(), Thread.currentThread().toString(), ServerAPI.getNMSServer().serverThread));
         }
 
         HandlerList handlers = event.getHandlers();

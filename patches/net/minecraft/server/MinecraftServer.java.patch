@@ -579,7 +579,7 @@
              }
  
              serverlevel.save(null, p_129887_, serverlevel.noSave && !p_129888_);
-@@ -550,31 +_,58 @@
+@@ -550,15 +_,15 @@
  
          ServerLevel serverlevel2 = this.overworld();
          ServerLevelData serverleveldata = this.worldData.overworldData();
@@ -598,54 +598,6 @@
          }
  
          return flag;
-     }
- 
-     public boolean saveEverything(boolean p_195515_, boolean p_195516_, boolean p_195517_) {
--        boolean flag;
-+        if (p_195517_) {
-+            boolean flag;
-+            try {
-+                this.isSaving = true;
-+                this.getPlayerList().saveAll();
-+                flag = this.saveAllChunks(p_195515_, p_195516_, p_195517_);
-+            } finally {
-+                this.isSaving = false;
-+            }
-+
-+            return flag;
-+        }
-+        // Paper start - Incremental chunk and player saving
-+        int playerSaveInterval = io.papermc.paper.configuration.GlobalConfiguration.get().playerAutoSave.rate;
-+        if (playerSaveInterval < 0) {
-+            playerSaveInterval = autosavePeriod;
-+        }
-+        this.profiler.push("save");
-+        PulseGrasp.feelPulse("save");
-+        final boolean fullSave = autosavePeriod > 0 && this.tickCount % autosavePeriod == 0;
-         try {
-             this.isSaving = true;
--            this.getPlayerList().saveAll();
--            flag = this.saveAllChunks(p_195515_, p_195516_, p_195517_);
-+            if (playerSaveInterval > 0) {
-+                this.playerList.saveAll(playerSaveInterval);
-+            }
-+            for (ServerLevel level : this.getAllLevels()) {
-+                if (level.paperConfig().chunks.autoSaveInterval.value() > 0) {
-+                    level.saveIncrementally(fullSave);
-+                }
-+            }
-         } finally {
-             this.isSaving = false;
-         }
--
--        return flag;
-+        this.profiler.pop();
-+        PulseGrasp.pulseComplete();
-+        // Paper end - Incremental chunk and player saving
-+        return fullSave;
-     }
- 
-     @Override
 @@ -582,21 +_,57 @@
          this.stopServer();
      }
@@ -1055,7 +1007,7 @@
          }
      }
  
-@@ -900,33 +_,56 @@
+@@ -900,33 +_,65 @@
  
      public void tickServer(BooleanSupplier p_129871_) {
          long i = Util.getNanos();
@@ -1085,13 +1037,18 @@
 -        if (this.ticksUntilAutosave <= 0) {
 -            this.ticksUntilAutosave = this.computeNextAutosaveInterval();
 -            LOGGER.debug("Autosave started");
--            this.profiler.push("save");
--            this.saveEverything(true, false, false);
--            this.profiler.pop();
++        // CraftBukkit start
++        if (this.autosavePeriod > 0 && this.ticksUntilAutosave <= 0) {
++            this.ticksUntilAutosave = this.autosavePeriod;
++            // CraftBukkit end
++            MinecraftServer.LOGGER.debug("Autosave started");
+             this.profiler.push("save");
+             this.saveEverything(true, false, false);
+             this.profiler.pop();
 -            LOGGER.debug("Autosave finished");
--        }
++            MinecraftServer.LOGGER.debug("Autosave finished");
+         }
 -
-+        this.saveEverything(true, false, false); // Youer
 +        // Paper start - move executeAll() into full server tick timing
 +        this.runAllTasks();
 +        // Paper end
