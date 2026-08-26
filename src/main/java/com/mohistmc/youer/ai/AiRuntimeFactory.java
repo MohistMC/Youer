@@ -1,0 +1,40 @@
+package com.mohistmc.youer.ai;
+
+import com.mohistmc.youer.YouerConfig;
+import com.mohistmc.youer.ai.http.AiHttpClient;
+import com.mohistmc.youer.ai.model.AiProfile;
+import com.mohistmc.youer.ai.provider.AiProvider;
+import com.mohistmc.youer.ai.provider.AiProviderFactory;
+import java.time.Duration;
+import java.util.Map;
+
+public final class AiRuntimeFactory {
+
+    private AiRuntimeFactory() {
+    }
+
+    public static AiRuntime createFromConfig(AiHttpClient httpClient) {
+        AiProfile profile = new AiProfile(
+                "default",
+                YouerConfig.ai_provider,
+                YouerConfig.ai_baseUrl,
+                YouerConfig.ai_api_key,
+                YouerConfig.ai_model,
+                YouerConfig.ai_system_prompt,
+                YouerConfig.ai_max_tokens,
+                Duration.ofSeconds(YouerConfig.ai_timeout_seconds),
+                YouerConfig.ai_api_version);
+        AiProvider provider = AiProviderFactory.create(profile, httpClient);
+        return new AiRuntime(
+                YouerConfig.ai_enable,
+                profile.name(),
+                YouerConfig.ai_command,
+                YouerConfig.ai_all_command,
+                YouerConfig.ai_chat_format,
+                YouerConfig.ai_max_history,
+                YouerConfig.ai_worker_threads,
+                YouerConfig.ai_queue_capacity,
+                Map.of(profile.name(), profile),
+                Map.of(profile.name(), provider));
+    }
+}

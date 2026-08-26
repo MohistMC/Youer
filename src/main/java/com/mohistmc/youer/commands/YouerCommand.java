@@ -5,6 +5,7 @@ import com.mohistmc.tools.OSUtil;
 import com.mohistmc.tools.StatsUtils;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.YouerConfig;
+import com.mohistmc.youer.ai.AiChatHandler;
 import com.mohistmc.youer.api.PlayerAPI;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.feature.WorldBackup;
@@ -99,9 +100,10 @@ public class YouerCommand extends Command {
                     sender.sendMessage(ChatColor.RED + I18n.as("youercmd.playermods.playernotOnline", args[1]));
                 }
             }
-            case "reload" -> {
+            case "" -> {
                 MinecraftServer console = MinecraftServer.getServer();
                 YouerConfig.init((File) console.options.valueOf("youer-settings"));
+                AiChatHandler.configure();
                 ((CraftServer) Bukkit.getServer()).initConfig();
                 ((CraftServer) Bukkit.getServer()).loadCustomPermissions();
                 SpigotConfig.init((File) console.options.valueOf("spigot-settings"));
