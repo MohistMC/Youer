@@ -1500,13 +1500,16 @@ public final class CraftServer implements Server {
         if (creator.keepSpawnLoaded() == net.kyori.adventure.util.TriState.FALSE) { // Paper
             worlddata.getGameRules().getRule(GameRules.RULE_SPAWN_CHUNK_RADIUS).set(0, (ServerLevel) null);
         }
-        boolean skipTerrablenderForWorld = com.mohistmc.youer.YouerConfig.terrablender_compat.skip_worlds.stream().anyMatch(name::startsWith);
-        if (com.mohistmc.youer.YouerConfig.terrablender_compat.enable && !skipTerrablenderForWorld && ServerAPI.hasMod("terrablender")) {
-            TerraBlenderCompat.initializeBiomes(this.console.registryAccess(), worlddimension.type(), actualDimension, worlddimension.generator(), seed);
-        }
-        boolean skipLithostitchedForWorld = com.mohistmc.youer.YouerConfig.lithostitched_compat.skip_worlds.stream().anyMatch(name::startsWith);
-        if (com.mohistmc.youer.YouerConfig.lithostitched_compat.enable && !skipLithostitchedForWorld && ServerAPI.hasMod("lithostitched")) {
-            LithostitchedCompat.applyBiomeInjectors(this.console, actualDimension, worlddimension);
+        try {
+            boolean skipTerrablenderForWorld = com.mohistmc.youer.YouerConfig.terrablender_compat.skip_worlds.stream().anyMatch(name::startsWith);
+            if (com.mohistmc.youer.YouerConfig.terrablender_compat.enable && !skipTerrablenderForWorld && ServerAPI.hasMod("terrablender")) {
+                TerraBlenderCompat.initializeBiomes(this.console.registryAccess(), worlddimension.type(), actualDimension, worlddimension.generator(), seed);
+            }
+            boolean skipLithostitchedForWorld = com.mohistmc.youer.YouerConfig.lithostitched_compat.skip_worlds.stream().anyMatch(name::startsWith);
+            if (com.mohistmc.youer.YouerConfig.lithostitched_compat.enable && !skipLithostitchedForWorld && ServerAPI.hasMod("lithostitched")) {
+                LithostitchedCompat.applyBiomeInjectors(this.console, actualDimension, worlddimension);
+            }
+        } catch (NoClassDefFoundError ignored) {
         }
         net.minecraft.world.level.Level.craftWorldData(creator.environment(), generator, biomeProvider);
         ServerLevel internal = new ServerLevel(this.console, this.console.executor, worldSession, worlddata, worldKey, worlddimension, this.getServer().progressListenerFactory.create(worlddata.getGameRules().getInt(GameRules.RULE_SPAWN_CHUNK_RADIUS)),
