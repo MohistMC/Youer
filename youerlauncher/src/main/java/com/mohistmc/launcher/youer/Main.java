@@ -49,7 +49,6 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         System.setProperty("org.jline.terminal.disableDeprecatedProviderWarning", "true");
-        System.setProperty("mixin.env.disableRefMap", "true");
         mainArgs.addAll(List.of(args));
         DataParser.parseVersions();
         DataParser.parseLaunchArgs();

@@ -1,10 +1,11 @@
 --- a/net/minecraft/world/level/block/DaylightDetectorBlock.java
 +++ b/net/minecraft/world/level/block/DaylightDetectorBlock.java
-@@ -24,6 +_,7 @@
+@@ -24,6 +_,8 @@
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.shapes.CollisionContext;
  import net.minecraft.world.phys.shapes.VoxelShape;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.spigotmc.AsyncCatcher;
  
  public class DaylightDetectorBlock extends BaseEntityBlock {
      public static final MapCodec<DaylightDetectorBlock> CODEC = simpleCodec(DaylightDetectorBlock::new);
@@ -12,7 +13,7 @@
  
          i = Mth.clamp(i, 0, 15);
          if (p_52411_.getValue(POWER) != i) {
-+            i = CraftEventFactory.callRedstoneChange(p_52412_, p_52413_, ((Integer) p_52411_.getValue(POWER)), i).getNewCurrent(); // CraftBukkit - Call BlockRedstoneEvent
++            if (!AsyncCatcher.catchAsync()) i = CraftEventFactory.callRedstoneChange(p_52412_, p_52413_, ((Integer) p_52411_.getValue(POWER)), i).getNewCurrent(); // CraftBukkit - Call BlockRedstoneEvent
              p_52412_.setBlock(p_52413_, p_52411_.setValue(POWER, Integer.valueOf(i)), 3);
          }
      }
