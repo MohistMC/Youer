@@ -1,30 +1,37 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
+import ca.spottedleaf.converter.datatypes.DataWalker;
+import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.MapType;
 
 public final class V1929 {
 
     private static final int VERSION = MCVersions.V19W04B + 2;
 
     public static void register() {
-        MCTypeRegistry.ENTITY.addWalker(VERSION, "minecraft:wandering_trader", (final MapType data, final long fromVersion, final long toVersion) -> {
-            WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, data, "Inventory", fromVersion, toVersion);
+        MCTypeRegistry.ENTITY.addWalker(VERSION, "minecraft:wandering_trader", new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, data, "Inventory", fromVersion, toVersion);
 
-            WalkerUtils.convertList(MCTypeRegistry.VILLAGER_TRADE, data.getMap("Offers"), "Recipes", fromVersion, toVersion);
+                WalkerUtils.convertList(MCTypeRegistry.VILLAGER_TRADE, data.getMap("Offers"), "Recipes", fromVersion, toVersion);
 
-            return null;
+                return null;
+            }
         });
 
-        MCTypeRegistry.ENTITY.addWalker(VERSION, "minecraft:trader_llama", (final MapType data, final long fromVersion, final long toVersion) -> {
-            WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, data, "SaddleItem", fromVersion, toVersion);
-            WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, data, "DecorItem", fromVersion, toVersion);
+        MCTypeRegistry.ENTITY.addWalker(VERSION, "minecraft:trader_llama", new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, data, "SaddleItem", fromVersion, toVersion);
+                WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, data, "DecorItem", fromVersion, toVersion);
 
-            WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, data, "Items", fromVersion, toVersion);
+                WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, data, "Items", fromVersion, toVersion);
 
-            return null;
+                return null;
+            }
         });
     }
 

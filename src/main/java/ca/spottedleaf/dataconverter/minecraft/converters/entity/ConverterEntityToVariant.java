@@ -1,7 +1,7 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.entity;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
-import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.MapType;
 import java.util.function.IntFunction;
 
 public final class ConverterEntityToVariant extends DataConverter<MapType, MapType> {

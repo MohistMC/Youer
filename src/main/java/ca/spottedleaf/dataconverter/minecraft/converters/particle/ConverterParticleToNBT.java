@@ -1,8 +1,8 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.particle;
 
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.TypeUtil;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.TypeUtil;
 import ca.spottedleaf.dataconverter.types.nbt.NBTMapType;
 import ca.spottedleaf.dataconverter.util.NamespaceUtil;
 import com.mojang.brigadier.StringReader;
@@ -27,7 +27,7 @@ public final class ConverterParticleToNBT {
     }
 
     private static void convertItem(final MapType nbt, final String data) {
-        final MapType itemNBT = nbt.getTypeUtil().createEmptyMap();
+        final MapType itemNBT = nbt.createEmptyMap();
         nbt.setMap("item", itemNBT);
         itemNBT.setInt("Count", 1);
 
@@ -91,7 +91,7 @@ public final class ConverterParticleToNBT {
     }
 
     private static void convertBlock(final MapType nbt, final String data) {
-        final MapType blockNBT = nbt.getTypeUtil().createEmptyMap();
+        final MapType blockNBT = nbt.createEmptyMap();
         nbt.setMap("block_state", blockNBT);
 
         final int propertiesStart = data.indexOf('[');
@@ -191,12 +191,12 @@ public final class ConverterParticleToNBT {
 
             nbt.setInt("arrival_in_ticks", arrival);
 
-            final MapType destination = nbt.getTypeUtil().createEmptyMap();
+            final MapType destination = nbt.createEmptyMap();
             nbt.setMap("destination", destination);
 
             destination.setString("type", "minecraft:block");
 
-            final ListType pos = nbt.getTypeUtil().createEmptyList();
+            final ListType pos = nbt.createEmptyList();
             destination.setList("pos", pos);
 
             pos.addInt(Mth.floor(posX));

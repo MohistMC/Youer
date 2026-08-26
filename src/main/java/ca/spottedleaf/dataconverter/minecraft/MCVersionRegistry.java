@@ -1,6 +1,6 @@
 package ca.spottedleaf.dataconverter.minecraft;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.versions.V4290;
 import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
@@ -10,10 +10,10 @@ import it.unimi.dsi.fastutil.ints.IntRBTreeSet;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongComparator;
 import it.unimi.dsi.fastutil.longs.LongLinkedOpenHashSet;
-import org.slf4j.Logger;
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Locale;
+import org.slf4j.Logger;
 
 public final class MCVersionRegistry {
 
@@ -298,7 +298,7 @@ public final class MCVersionRegistry {
             4885,
             4888,
             4892,
-            // All up to 26.2-pre-6
+            // All up to 26.2
         };
         Arrays.sort(converterVersions);
 

@@ -1,8 +1,8 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.itemstack;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
-import ca.spottedleaf.dataconverter.minecraft.converters.helpers.RenameHelper;
-import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.util.RenameHelper;
 import ca.spottedleaf.dataconverter.util.NamespaceUtil;
 import java.util.function.Function;
 

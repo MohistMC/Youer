@@ -1,8 +1,10 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.tileentity;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.MapType;
 
 public final class ConverterAbstractTileEntityRemove {
 
@@ -37,7 +39,7 @@ public final class ConverterAbstractTileEntityRemove {
         MCTypeRegistry.STRUCTURE.addStructureConverter(new DataConverter<>(version) {
             @Override
             public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
-                final ca.spottedleaf.dataconverter.types.ListType blocks = data.getList("blocks", ca.spottedleaf.dataconverter.types.ObjectType.MAP);
+                final ListType blocks = data.getList("blocks", ObjectType.MAP);
                 if (blocks == null) {
                     return null;
                 }
@@ -56,14 +58,14 @@ public final class ConverterAbstractTileEntityRemove {
         MCTypeRegistry.CHUNK.addStructureConverter(new DataConverter<>(version) {
             @Override
             public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
-                final ca.spottedleaf.dataconverter.types.ListType blockEntities = data.getList("block_entities", ca.spottedleaf.dataconverter.types.ObjectType.MAP);
+                final ListType blockEntities = data.getList("block_entities", ObjectType.MAP);
                 if (blockEntities == null) {
                     return null;
                 }
 
                 // Paper start - call event on block entity removal
                 final java.util.function.Supplier<net.kyori.adventure.key.Key> worldKeySupplier = com.google.common.base.Suppliers.memoize(() -> {
-                    final ca.spottedleaf.dataconverter.types.MapType context = data.getMap(net.minecraft.util.datafix.fixes.ChunkHeightAndBiomeFix.DATAFIXER_CONTEXT_TAG);
+                    final MapType context = data.getMap(net.minecraft.util.datafix.fixes.ChunkHeightAndBiomeFix.DATAFIXER_CONTEXT_TAG);
                     if (context == null) return null;
 
                     final @org.intellij.lang.annotations.Subst("minecraft:overworld") String levelIdentifier = context.getString("level_identifier");
@@ -84,16 +86,16 @@ public final class ConverterAbstractTileEntityRemove {
                             final Number z = blockEntity.getNumber("z");
                             if (x != null && y != null && z != null) {
                                 final org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer container = new org.bukkit.craftbukkit.persistence.CraftPersistentDataContainer(
-                                        net.minecraft.util.datafix.fixes.RemoveBlockEntityTagFix.DATA_TYPE_REGISTRY
+                                    net.minecraft.util.datafix.fixes.RemoveBlockEntityTagFix.DATA_TYPE_REGISTRY
                                 );
                                 if (blockEntity.getMap("PublicBukkitValues") instanceof final ca.spottedleaf.dataconverter.types.nbt.NBTMapType nbtMapType) {
                                     container.putAll(nbtMapType.getTag());
                                 }
                                 new io.papermc.paper.event.server.AsyncServerDataFixerRemoveBlockEntityEvent(
-                                        worldKey,
-                                        net.kyori.adventure.key.Key.key(type),
-                                        io.papermc.paper.math.Position.block(x.intValue(), y.intValue(), z.intValue()),
-                                        container
+                                    worldKey,
+                                    net.kyori.adventure.key.Key.key(type),
+                                    io.papermc.paper.math.Position.block(x.intValue(), y.intValue(), z.intValue()),
+                                    container
                                 ).callEvent();
                             }
                         }

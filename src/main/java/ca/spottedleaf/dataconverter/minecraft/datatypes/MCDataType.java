@@ -1,12 +1,12 @@
 package ca.spottedleaf.dataconverter.minecraft.datatypes;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
-import ca.spottedleaf.dataconverter.converters.datatypes.DataHook;
-import ca.spottedleaf.dataconverter.converters.datatypes.DataType;
-import ca.spottedleaf.dataconverter.converters.datatypes.DataWalker;
+import ca.spottedleaf.common.map.longs.Long2ObjectArraySortedMap;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataHook;
+import ca.spottedleaf.converter.datatypes.DataType;
+import ca.spottedleaf.converter.datatypes.DataWalker;
+import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersionRegistry;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.util.Long2ObjectArraySortedMap;
 import java.util.ArrayList;
 import java.util.List;
 

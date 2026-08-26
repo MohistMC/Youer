@@ -1,7 +1,7 @@
 package ca.spottedleaf.dataconverter.minecraft;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
-import ca.spottedleaf.dataconverter.converters.datatypes.DataType;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataType;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCDataType;
 import ca.spottedleaf.dataconverter.minecraft.versions.V99;
 import ca.spottedleaf.dataconverter.types.json.JsonMapType;

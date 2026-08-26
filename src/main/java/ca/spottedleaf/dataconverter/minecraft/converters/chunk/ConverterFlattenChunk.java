@@ -1,13 +1,13 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.chunk;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.types.TypeUtil;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperBlockFlatteningV1450;
 import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperItemNameV102;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.Types;
 import com.mojang.datafixers.DataFixUtils;
 import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
@@ -16,14 +16,14 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
-import net.minecraft.util.datafix.PackedBitStorage;
-import org.slf4j.Logger;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
+import net.minecraft.util.datafix.PackedBitStorage;
+import org.slf4j.Logger;
 
 import static it.unimi.dsi.fastutil.HashCommon.arraySize;
 
@@ -813,16 +813,17 @@ public final class ConverterFlattenChunk extends DataConverter<MapType, MapType>
         }
 
         public MapType writeBackToLevel() {
+            final TypeUtil<?> typeUtil = this.level.getTypeUtil();
             if (this.tileEntities.isEmpty()) {
                 this.level.remove("TileEntities");
             } else {
-                final ListType tileEntities = Types.NBT.createEmptyList();
+                final ListType tileEntities = typeUtil.createEmptyList();
                 this.tileEntities.values().forEach(tileEntities::addMap);
                 this.level.setList("TileEntities", tileEntities);
             }
 
-            final MapType indices = Types.NBT.createEmptyMap();
-            final ListType sections = Types.NBT.createEmptyList();
+            final MapType indices = typeUtil.createEmptyMap();
+            final ListType sections = typeUtil.createEmptyList();
             for (final Section section : this.sections) {
                 if (section == null) {
                     continue;
@@ -834,7 +835,7 @@ public final class ConverterFlattenChunk extends DataConverter<MapType, MapType>
 
             this.level.setList("Sections", sections);
 
-            final MapType upgradeData = Types.NBT.createEmptyMap();
+            final MapType upgradeData = typeUtil.createEmptyMap();
             upgradeData.setByte("Sides", (byte)this.sides);
             upgradeData.setMap("Indices", indices);
 
@@ -845,11 +846,15 @@ public final class ConverterFlattenChunk extends DataConverter<MapType, MapType>
     }
 
     static class Section {
-        final Palette palette = new Palette();
+        final Palette palette;
 
         static final class Palette extends Reference2IntOpenHashMap<MapType> {
 
-            final ListType paletteStates = Types.NBT.createEmptyList();
+            final ListType paletteStates;
+
+            public Palette(final TypeUtil<?> typeUtil) {
+                this.paletteStates = typeUtil.createEmptyList();
+            }
 
             private int find(final MapType k) {
                 if (((k) == (null)))
@@ -924,6 +929,7 @@ public final class ConverterFlattenChunk extends DataConverter<MapType, MapType>
         final int[] buffer = new int[4096];
 
         public Section(final MapType section) {
+            this.palette = new Palette(section.getTypeUtil());
             this.section = section;
             this.y = section.getInt("Y");
             this.hasData = section.hasKey("Blocks", ObjectType.BYTE_ARRAY);

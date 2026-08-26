@@ -1,16 +1,15 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.itemstack;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.Types;
 import com.mojang.logging.LogUtils;
-import org.slf4j.Logger;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
 
 public final class ConverterFlattenItemStack extends DataConverter<MapType, MapType> {
 
@@ -449,7 +448,7 @@ public final class ConverterFlattenItemStack extends DataConverter<MapType, MapT
             // migrate damage
             MapType tag = data.getMap("tag");
             if (tag == null) {
-                tag = Types.NBT.createEmptyMap();
+                tag = data.createEmptyMap();
                 data.setMap("tag", tag);
             }
             tag.setInt("Damage", damage);

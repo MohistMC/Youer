@@ -1,19 +1,23 @@
 package ca.spottedleaf.dataconverter.types.json;
 
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.TypeUtil;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
 import ca.spottedleaf.dataconverter.types.Types;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
-import java.util.LinkedHashSet;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 
-public final class JsonMapType implements MapType {
+public final class JsonMapType extends MapType {
 
     final JsonObject map;
     final boolean compressed;
@@ -29,7 +33,7 @@ public final class JsonMapType implements MapType {
     }
 
     @Override
-    public TypeUtil<JsonElement> getTypeUtil() {
+    public JsonTypeUtil getTypeUtil() {
         return this.compressed ? Types.JSON_COMPRESSED : Types.JSON;
     }
 
@@ -59,6 +63,16 @@ public final class JsonMapType implements MapType {
                 '}';
     }
 
+    @Override
+    public JsonListType createEmptyList() {
+        return new JsonListType(this.compressed);
+    }
+
+    @Override
+    public JsonMapType createEmptyMap() {
+        return new JsonMapType(this.compressed);
+    }
+
     public JsonObject getJson() {
         return this.map;
     }
@@ -80,19 +94,62 @@ public final class JsonMapType implements MapType {
 
     @Override
     public Set<String> keys() {
-        // ah shit. no keyset method
-        final Set<String> keys = new LinkedHashSet<>();
-
-        for (final Map.Entry<String, JsonElement> entry : this.map.entrySet()) {
-            keys.add(entry.getKey());
-        }
-
-        return keys;
+        return this.map.keySet();
     }
 
     @Override
-    public MapType copy() {
+    public JsonMapType copy() {
         return new JsonMapType(this.map.deepCopy(), this.compressed);
+    }
+
+    @Override
+    public boolean rename(final String fromKey, final String toKey) {
+        final JsonElement value = this.map.remove(fromKey);
+        if (value == null) {
+            return false;
+        }
+
+        this.map.add(toKey, value);
+        return true;
+    }
+
+    @Override
+    public boolean renameKeys(final Function<String, String> renamer) {
+        record RenameEntry(String newKey, JsonElement value) {}
+
+        List<RenameEntry> renames = null;
+
+        for (final Iterator<Map.Entry<String, JsonElement>> iterator = this.map.entrySet().iterator(); iterator.hasNext();) {
+            final Map.Entry<String, JsonElement> entry = iterator.next();
+
+            final String renamed = renamer.apply(entry.getKey());
+
+            if (renamed == null) {
+                continue;
+            }
+
+            final JsonElement value = entry.getValue();
+
+            iterator.remove();
+
+            if (renames == null) {
+                renames = new ArrayList<>();
+            }
+
+            renames.add(new RenameEntry(renamed, value));
+        }
+
+        if (renames == null) {
+            return false;
+        }
+
+        for (int i = 0, len = renames.size(); i < len; ++i) {
+            final RenameEntry entry = renames.get(i);
+
+            this.map.add(entry.newKey, entry.value);
+        }
+
+        return true;
     }
 
     @Override
@@ -123,7 +180,7 @@ public final class JsonMapType implements MapType {
         if (primitive.isString()) {
             return type == ObjectType.STRING || (this.compressed && type == ObjectType.NUMBER);
         } else if (primitive.isBoolean()) {
-            return type.isNumber();
+            return type == ObjectType.BOOLEAN || type.isNumber();
         } else {
             // is number
             final Number number = primitive.getAsNumber();
@@ -149,27 +206,24 @@ public final class JsonMapType implements MapType {
     }
 
     @Override
+    public Object getGenericAndRemove(final String key) {
+        final JsonElement ret = this.map.remove(key);
+
+        return this.getTypeUtil().baseToGeneric(ret);
+    }
+
+    @Override
     public Object getGeneric(final String key) {
         final JsonElement element = this.map.get(key);
-        if (element == null || element.isJsonNull()) {
-            return null;
-        } else if (element.isJsonObject()) {
-            return new JsonMapType((JsonObject)element, this.compressed);
-        } else if (element.isJsonArray()) {
-            return new JsonListType((JsonArray)element, this.compressed);
-        } else {
-            // primitive
-            final JsonPrimitive primitive = (JsonPrimitive)element;
-            if (primitive.isNumber()) {
-                return primitive.getAsNumber();
-            } else if (primitive.isString()) {
-                return primitive.getAsString();
-            } else if (primitive.isBoolean()) {
-                return Boolean.valueOf(primitive.getAsBoolean());
-            } else {
-                throw new IllegalStateException("Unknown json object " + element);
-            }
-        }
+
+        return this.getTypeUtil().baseToGeneric(element);
+    }
+
+    @Override
+    public Object getGeneric(final String key, final Object dfl) {
+        final JsonElement element = this.map.get(key);
+
+        return element == null ? dfl : this.getTypeUtil().baseToGeneric(element);
     }
 
     @Override
@@ -196,6 +250,68 @@ public final class JsonMapType implements MapType {
         }
 
         return dfl;
+    }
+
+    @Override
+    public BigInteger getBigInteger(final String key) {
+        return this.getBigInteger(key, null);
+    }
+
+    @Override
+    public BigInteger getBigInteger(final String key, final BigInteger dfl) {
+        final JsonElement element = this.map.get(key);
+        if (element instanceof JsonPrimitive) {
+            final JsonPrimitive primitive = (JsonPrimitive)element;
+            if (primitive.isNumber()) {
+                return primitive.getAsBigDecimal().toBigInteger();
+            } else if (primitive.isBoolean()) {
+                return primitive.getAsBoolean() ? BigInteger.ONE : BigInteger.ZERO;
+            } else if (this.compressed && primitive.isString()) {
+                try {
+                    return BigInteger.valueOf((long)Integer.parseInt(primitive.getAsString()));
+                } catch (final NumberFormatException ex) {
+                    return null;
+                }
+            }
+        }
+
+        return dfl;
+    }
+
+    @Override
+    public void setBigInteger(final String key, final BigInteger val) {
+        this.map.addProperty(key, val);
+    }
+
+    @Override
+    public BigDecimal getBigDecimal(final String key) {
+        return this.getBigDecimal(key, null);
+    }
+
+    @Override
+    public BigDecimal getBigDecimal(final String key, final BigDecimal dfl) {
+        final JsonElement element = this.map.get(key);
+        if (element instanceof JsonPrimitive) {
+            final JsonPrimitive primitive = (JsonPrimitive)element;
+            if (primitive.isNumber()) {
+                return primitive.getAsBigDecimal();
+            } else if (primitive.isBoolean()) {
+                return primitive.getAsBoolean() ? BigDecimal.ONE : BigDecimal.ZERO;
+            } else if (this.compressed && primitive.isString()) {
+                try {
+                    return BigDecimal.valueOf((long)Integer.parseInt(primitive.getAsString()));
+                } catch (final NumberFormatException ex) {
+                    return null;
+                }
+            }
+        }
+
+        return dfl;
+    }
+
+    @Override
+    public void setBigDecimal(final String key, final BigDecimal val) {
+        this.map.addProperty(key, val);
     }
 
     @Override
@@ -384,18 +500,44 @@ public final class JsonMapType implements MapType {
     }
 
     @Override
-    public ListType getListUnchecked(final String key) {
+    public JsonListType getListUnchecked(final String key) {
         return this.getListUnchecked(key, null);
     }
 
     @Override
-    public ListType getListUnchecked(final String key, final ListType dfl) {
+    public JsonListType getListUnchecked(final String key, final ListType dfl) {
         final JsonElement element = this.map.get(key);
         if (element instanceof JsonArray) {
             return new JsonListType((JsonArray)element, this.compressed);
         }
 
-        return dfl;
+        return (JsonListType)dfl;
+    }
+
+    @Override
+    public JsonListType getList(final String key, final ObjectType type) {
+        return this.getList(key, type, null);
+    }
+
+    @Override
+    public JsonListType getOrCreateList(final String key, final ObjectType type) {
+        JsonListType ret = this.getList(key, type);
+        if (ret == null) {
+            this.setList(key, ret = this.createEmptyList());
+        }
+
+        return ret;
+    }
+
+    @Override
+    public JsonListType getList(final String key, final ObjectType type, final ListType dfl) {
+        final JsonListType ret = this.getListUnchecked(key, null);
+        final ObjectType retType;
+        if (ret != null && ((retType = ret.getUniformType()) == type || retType == ObjectType.UNDEFINED || retType == ObjectType.NONE)) {
+            return ret;
+        } else {
+            return (JsonListType)dfl;
+        }
     }
 
     @Override
@@ -404,18 +546,29 @@ public final class JsonMapType implements MapType {
     }
 
     @Override
-    public MapType getMap(final String key) {
+    public JsonMapType getMap(final String key) {
         return this.getMap(key, null);
     }
 
     @Override
-    public MapType getMap(final String key, final MapType dfl) {
+    public JsonMapType getOrCreateMap(final String key) {
+        JsonMapType ret = this.getMap(key);
+        if (ret == null) {
+            this.setMap(key, ret = this.createEmptyMap());
+        }
+
+        return ret;
+    }
+
+
+    @Override
+    public JsonMapType getMap(final String key, final MapType dfl) {
         final JsonElement element = this.map.get(key);
         if (element instanceof JsonObject) {
             return new JsonMapType((JsonObject)element, this.compressed);
         }
 
-        return dfl;
+        return (JsonMapType)dfl;
     }
 
     @Override
@@ -468,5 +621,12 @@ public final class JsonMapType implements MapType {
     @Override
     public void setString(final String key, final String val) {
         this.map.addProperty(key, val);
+    }
+
+    @Override
+    public void setGeneric(final String key, final Object value) {
+        final JsonElement element = this.getTypeUtil().genericToBase(value);
+
+        this.map.add(key, element);
     }
 }

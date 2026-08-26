@@ -1,24 +1,25 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataWalker;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.types.TypeUtil;
+import ca.spottedleaf.converter.util.RenameHelper;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
-import ca.spottedleaf.dataconverter.minecraft.converters.helpers.RenameHelper;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.Types;
 import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.ints.Int2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
-import org.apache.commons.lang3.mutable.MutableBoolean;
-import org.slf4j.Logger;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
+import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.slf4j.Logger;
 
 public final class V2832 {
 
@@ -295,6 +296,8 @@ public final class V2832 {
         MCTypeRegistry.WORLD_GEN_SETTINGS.addStructureConverter(new DataConverter<>(VERSION) {
             @Override
             public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
+                final TypeUtil<?> typeUtil = data.getTypeUtil();
+
                 // converters were added to older versions note whether the world has increased height already or not
                 final boolean noHeightFlag = !data.hasKey("has_increased_height_already");
                 final boolean hasIncreasedHeight = data.getBoolean("has_increased_height_already", true);
@@ -330,7 +333,7 @@ public final class V2832 {
                         if ("minecraft:vanilla_layered".equals(sourceType) || (noHeightFlag && "minecraft:multi_noise".equals(sourceType))) {
                             largeBiomes = biomeSource.getBoolean("large_biomes");
 
-                            final MapType newBiomeSource = Types.NBT.createEmptyMap();
+                            final MapType newBiomeSource = typeUtil.createEmptyMap();
                             generator.setMap("biome_source", newBiomeSource);
 
                             newBiomeSource.setString("preset", "minecraft:overworld");
@@ -371,6 +374,8 @@ public final class V2832 {
         MCTypeRegistry.CHUNK.addStructureConverter(new DataConverter<>(VERSION) {
             @Override
             public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
+                final TypeUtil<?> typeUtil = data.getTypeUtil();
+
                 // The below covers padPaletteEntries - this was written BEFORE that code was added to the datafixer -
                 // and this still works, so I'm keeping it. Don't fix what isn't broken.
                 fixLithiumChunks(data); // See https://github.com/CaffeineMC/lithium-fabric/issues/279
@@ -389,12 +394,9 @@ public final class V2832 {
                 final MutableBoolean isAlreadyExtended = new MutableBoolean();
 
                 final MapType[] newBiomes = createBiomeSections(level, isOverworld, minSection, isAlreadyExtended);
-                final MapType wrappedEmptyBlockPalette = getEmptyBlockPalette();
+                final MapType wrappedEmptyBlockPalette = getEmptyBlockPalette(typeUtil);
 
-                ListType sections = level.getList("Sections", ObjectType.MAP);
-                if (sections == null) {
-                    level.setList("Sections", sections = Types.NBT.createEmptyList());
-                }
+                final ListType sections = level.getOrCreateList("Sections", ObjectType.MAP);
 
                 // must update sections for two things:
                 // 1. the biomes are now stored per section, so we must insert the biomes palette into each section (and create them if they don't exist)
@@ -451,7 +453,7 @@ public final class V2832 {
                         continue;
                     }
 
-                    final MapType newSection = Types.NBT.createEmptyMap();
+                    final MapType newSection = typeUtil.createEmptyMap();
                     sections.addMap(newSection);
 
                     newSection.setByte("Y", (byte)sectionY);
@@ -471,113 +473,119 @@ public final class V2832 {
             }
         });
 
-        MCTypeRegistry.WORLD_GEN_SETTINGS.addStructureWalker(VERSION, (final MapType data, final long fromVersion, final long toVersion) -> {
-            final MapType dimensions = data.getMap("dimensions");
+        MCTypeRegistry.WORLD_GEN_SETTINGS.addStructureWalker(VERSION, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                final MapType dimensions = data.getMap("dimensions");
 
-            if (dimensions == null) {
-                return null;
-            }
-
-            for (final String dimension : dimensions.keys()) {
-                final MapType dimensionData = dimensions.getMap(dimension);
-                if (dimensionData == null) {
-                    continue;
+                if (dimensions == null) {
+                    return null;
                 }
 
-                final MapType generator = dimensionData.getMap("generator");
-                if (generator == null) {
-                    continue;
-                }
-
-                final String type = generator.getString("type");
-                if (type == null) {
-                    continue;
-                }
-
-                switch (type) {
-                    case "minecraft:flat": {
-                        final MapType settings = generator.getMap("settings");
-                        if (settings == null) {
-                            continue;
-                        }
-
-                        WalkerUtils.convert(MCTypeRegistry.BIOME, settings, "biome", fromVersion, toVersion);
-
-                        WalkerUtils.convertListPath(MCTypeRegistry.BLOCK_NAME, settings, "layers", "block", fromVersion, toVersion);
-
-                        break;
+                for (final String dimension : dimensions.keys()) {
+                    final MapType dimensionData = dimensions.getMap(dimension);
+                    if (dimensionData == null) {
+                        continue;
                     }
-                    case "minecraft:noise": {
-                        final MapType settings = generator.getMap("settings");
-                        if (settings != null) {
-                            WalkerUtils.convert(MCTypeRegistry.BLOCK_NAME, settings, "default_block", fromVersion, toVersion);
-                            WalkerUtils.convert(MCTypeRegistry.BLOCK_NAME, settings, "default_fluid", fromVersion, toVersion);
+
+                    final MapType generator = dimensionData.getMap("generator");
+                    if (generator == null) {
+                        continue;
+                    }
+
+                    final String type = generator.getString("type");
+                    if (type == null) {
+                        continue;
+                    }
+
+                    switch (type) {
+                        case "minecraft:flat": {
+                            final MapType settings = generator.getMap("settings");
+                            if (settings == null) {
+                                continue;
+                            }
+
+                            WalkerUtils.convert(MCTypeRegistry.BIOME, settings, "biome", fromVersion, toVersion);
+
+                            WalkerUtils.convertListPath(MCTypeRegistry.BLOCK_NAME, settings, "layers", "block", fromVersion, toVersion);
+
+                            break;
                         }
+                        case "minecraft:noise": {
+                            final MapType settings = generator.getMap("settings");
+                            if (settings != null) {
+                                WalkerUtils.convert(MCTypeRegistry.BLOCK_NAME, settings, "default_block", fromVersion, toVersion);
+                                WalkerUtils.convert(MCTypeRegistry.BLOCK_NAME, settings, "default_fluid", fromVersion, toVersion);
+                            }
 
-                        final MapType biomeSource = generator.getMap("biome_source");
-                        if (biomeSource != null) {
-                            final String biomeSourceType = biomeSource.getString("type", "");
-                            switch (biomeSourceType) {
-                                case "minecraft:fixed": {
-                                    WalkerUtils.convert(MCTypeRegistry.BIOME, biomeSource, "biome", fromVersion, toVersion);
-                                    break;
-                                }
+                            final MapType biomeSource = generator.getMap("biome_source");
+                            if (biomeSource != null) {
+                                final String biomeSourceType = biomeSource.getString("type", "");
+                                switch (biomeSourceType) {
+                                    case "minecraft:fixed": {
+                                        WalkerUtils.convert(MCTypeRegistry.BIOME, biomeSource, "biome", fromVersion, toVersion);
+                                        break;
+                                    }
 
-                                case "minecraft:multi_noise": {
-                                    WalkerUtils.convert(MCTypeRegistry.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST, biomeSource, "preset", fromVersion, toVersion);
+                                    case "minecraft:multi_noise": {
+                                        WalkerUtils.convert(MCTypeRegistry.MULTI_NOISE_BIOME_SOURCE_PARAMETER_LIST, biomeSource, "preset", fromVersion, toVersion);
 
-                                    // Vanilla's schema is _still_ wrong. It should be DSL.fields("biomes", DSL.list(DSL.fields("biome")))
-                                    // But it just contains the list part. That obviously can never be the case, because
-                                    // the root object is a compound, not a list.
-                                    WalkerUtils.convertListPath(MCTypeRegistry.BIOME, biomeSource, "biomes", "biome", fromVersion, toVersion);
-                                    break;
-                                }
+                                        // Vanilla's schema is _still_ wrong. It should be DSL.fields("biomes", DSL.list(DSL.fields("biome")))
+                                        // But it just contains the list part. That obviously can never be the case, because
+                                        // the root object is a compound, not a list.
+                                        WalkerUtils.convertListPath(MCTypeRegistry.BIOME, biomeSource, "biomes", "biome", fromVersion, toVersion);
+                                        break;
+                                    }
 
-                                case "minecraft:checkerboard": {
-                                    WalkerUtils.convertList(MCTypeRegistry.BIOME, biomeSource, "biomes", fromVersion, toVersion);
-                                    break;
+                                    case "minecraft:checkerboard": {
+                                        WalkerUtils.convertList(MCTypeRegistry.BIOME, biomeSource, "biomes", fromVersion, toVersion);
+                                        break;
+                                    }
                                 }
                             }
-                        }
 
-                        break;
+                            break;
+                        }
                     }
                 }
-            }
 
-            return null;
-        });
-
-        MCTypeRegistry.CHUNK.addStructureWalker(VERSION, (final MapType data, final long fromVersion, final long toVersion) -> {
-            final MapType level = data.getMap("Level");
-            if (level == null) {
                 return null;
             }
+        });
 
-            WalkerUtils.convertList(MCTypeRegistry.ENTITY, level, "Entities", fromVersion, toVersion);
-            WalkerUtils.convertList(MCTypeRegistry.TILE_ENTITY, level, "TileEntities", fromVersion, toVersion);
-
-            final ListType tileTicks = level.getList("TileTicks", ObjectType.MAP);
-            if (tileTicks != null) {
-                for (int i = 0, len = tileTicks.size(); i < len; ++i) {
-                    final MapType tileTick = tileTicks.getMap(i);
-                    WalkerUtils.convert(MCTypeRegistry.BLOCK_NAME, tileTick, "i", fromVersion, toVersion);
+        MCTypeRegistry.CHUNK.addStructureWalker(VERSION, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                final MapType level = data.getMap("Level");
+                if (level == null) {
+                    return null;
                 }
-            }
 
-            final ListType sections = level.getList("Sections", ObjectType.MAP);
-            if (sections != null) {
-                for (int i = 0, len = sections.size(); i < len; ++i) {
-                    final MapType section = sections.getMap(i);
+                WalkerUtils.convertList(MCTypeRegistry.ENTITY, level, "Entities", fromVersion, toVersion);
+                WalkerUtils.convertList(MCTypeRegistry.TILE_ENTITY, level, "TileEntities", fromVersion, toVersion);
 
-                    WalkerUtils.convertList(MCTypeRegistry.BIOME, section.getMap("biomes"), "palette", fromVersion, toVersion);
-                    WalkerUtils.convertList(MCTypeRegistry.BLOCK_STATE, section.getMap("block_states"), "palette", fromVersion, toVersion);
+                final ListType tileTicks = level.getList("TileTicks", ObjectType.MAP);
+                if (tileTicks != null) {
+                    for (int i = 0, len = tileTicks.size(); i < len; ++i) {
+                        final MapType tileTick = tileTicks.getMap(i);
+                        WalkerUtils.convert(MCTypeRegistry.BLOCK_NAME, tileTick, "i", fromVersion, toVersion);
+                    }
                 }
+
+                final ListType sections = level.getList("Sections", ObjectType.MAP);
+                if (sections != null) {
+                    for (int i = 0, len = sections.size(); i < len; ++i) {
+                        final MapType section = sections.getMap(i);
+
+                        WalkerUtils.convertList(MCTypeRegistry.BIOME, section.getMap("biomes"), "palette", fromVersion, toVersion);
+                        WalkerUtils.convertList(MCTypeRegistry.BLOCK_STATE, section.getMap("block_states"), "palette", fromVersion, toVersion);
+                    }
+                }
+
+                WalkerUtils.convertValues(MCTypeRegistry.STRUCTURE_FEATURE, level.getMap("Structures"), "Starts", fromVersion, toVersion);
+
+                return null;
             }
-
-            WalkerUtils.convertValues(MCTypeRegistry.STRUCTURE_FEATURE, level.getMap("Structures"), "Starts", fromVersion, toVersion);
-
-            return null;
         });
     }
 
@@ -604,11 +612,11 @@ public final class V2832 {
         level.setString("Status", update);
     }
 
-    private static MapType getEmptyBlockPalette() {
-        final MapType airBlockState = Types.NBT.createEmptyMap();
+    private static MapType getEmptyBlockPalette(final TypeUtil<?> typeUtil) {
+        final MapType airBlockState = typeUtil.createEmptyMap();
         airBlockState.setString("Name", "minecraft:air");
 
-        final ListType emptyBlockPalette = Types.NBT.createEmptyList();
+        final ListType emptyBlockPalette = typeUtil.createEmptyList();
         emptyBlockPalette.addMap(airBlockState);
 
         return V2832.wrapPalette(emptyBlockPalette);
@@ -631,6 +639,7 @@ public final class V2832 {
 
     private static void updateChunkData(final MapType level, final boolean wantExtendedHeight, final boolean isAlreadyExtended,
                                         final boolean onNoiseGenerator, final V2841.SimplePaletteReader bottomSection) {
+        final TypeUtil<?> typeUtil = level.getTypeUtil();
         level.remove("Biomes");
         if (!wantExtendedHeight) {
             padCarvingMasks(level, 16, 0);
@@ -665,7 +674,7 @@ public final class V2832 {
             return;
         }
 
-        final MapType blendingData = Types.NBT.createEmptyMap();
+        final MapType blendingData = typeUtil.createEmptyMap();
         level.setMap("blending_data", blendingData);
 
         blendingData.setBoolean("old_noise", STATUS_IS_OR_AFTER_NOISE.contains(status));
@@ -694,7 +703,7 @@ public final class V2832 {
         if (hasBedrock && missingBedrock.cardinality() != missingBedrock.size()) {
             final String targetStatus = "full".equals(status) ? "heightmaps" : status;
 
-            final MapType belowZeroRetrogen = Types.NBT.createEmptyMap();
+            final MapType belowZeroRetrogen = typeUtil.createEmptyMap();
             level.setMap("below_zero_retrogen", belowZeroRetrogen);
 
             belowZeroRetrogen.setString("target_status", targetStatus);
@@ -710,7 +719,7 @@ public final class V2832 {
         final MapType carvingMasks = level.getMap("CarvingMasks");
         if (carvingMasks == null) {
             // if empty, DFU still writes
-            level.setMap("CarvingMasks", Types.NBT.createEmptyMap());
+            level.setMap("CarvingMasks", level.createEmptyMap());
             return;
         }
 
@@ -735,12 +744,13 @@ public final class V2832 {
             return;
         }
 
+        final TypeUtil<?> typeUtil = level.getTypeUtil();
 
         // offset the section array to the new format
         for (int i = 0; i < 4; ++i) {
             // always create new copies, so that modifying one doesn't modify ALL of them!
-            list.addList(0, Types.NBT.createEmptyList()); // add below
-            list.addList(Types.NBT.createEmptyList()); // add above
+            list.addList(0, typeUtil.createEmptyList()); // add below
+            list.addList(typeUtil.createEmptyList()); // add above
         }
     }
 
@@ -780,7 +790,8 @@ public final class V2832 {
     }
 
     private static MapType[] createBiomeSections(final MapType level, final boolean wantExtendedHeight,
-                                                         final int minSection, final MutableBoolean isAlreadyExtended) {
+                                                 final int minSection, final MutableBoolean isAlreadyExtended) {
+        final TypeUtil<?> typeUtil = level.getTypeUtil();
         final MapType[] ret = new MapType[wantExtendedHeight ? 24 : 16];
 
         final int[] biomes = level.getInts("Biomes");
@@ -788,17 +799,17 @@ public final class V2832 {
         if (biomes != null && biomes.length == 1536) { // magic value for 24 sections of biomes (24 * 4^3)
             isAlreadyExtended.setValue(true);
             for (int sectionIndex = 0; sectionIndex < 24; ++sectionIndex) {
-                ret[sectionIndex] = createBiomeSection(biomes, sectionIndex * 64, -1); // -1 is all 1s
+                ret[sectionIndex] = createBiomeSection(typeUtil, biomes, sectionIndex * 64, -1); // -1 is all 1s
             }
         } else if (biomes != null && biomes.length == 1024) { // magic value for 24 sections of biomes (16 * 4^3)
             for (int sectionY = 0; sectionY < 16; ++sectionY) {
-                ret[sectionY - minSection] = createBiomeSection(biomes, sectionY * 64, -1); // -1 is all 1s
+                ret[sectionY - minSection] = createBiomeSection(typeUtil, biomes, sectionY * 64, -1); // -1 is all 1s
             }
 
             if (wantExtendedHeight) {
                 // must set the new sections at top and bottom
-                final MapType bottomCopy = createBiomeSection(biomes, 0, 15); // just want the biomes at y = 0
-                final MapType topCopy = createBiomeSection(biomes, 1008, 15); // just want the biomes at y = 252
+                final MapType bottomCopy = createBiomeSection(typeUtil, biomes, 0, 15); // just want the biomes at y = 0
+                final MapType topCopy = createBiomeSection(typeUtil, biomes, 1008, 15); // just want the biomes at y = 252
 
                 for (int sectionIndex = 0; sectionIndex < 4; ++sectionIndex) {
                     ret[sectionIndex] = bottomCopy.copy(); // copy palette so that later possible modifications don't trash all sections
@@ -809,7 +820,7 @@ public final class V2832 {
                 }
             }
         } else {
-            final ListType palette = Types.NBT.createEmptyList();
+            final ListType palette = typeUtil.createEmptyList();
             palette.addString("minecraft:plains");
 
             for (int i = 0; i < ret.length; ++i) {
@@ -820,7 +831,7 @@ public final class V2832 {
         return ret;
     }
 
-    private static MapType createBiomeSection(final int[] biomes, final int offset, final int mask) {
+    private static MapType createBiomeSection(final TypeUtil<?> typeUtil, final int[] biomes, final int offset, final int mask) {
         final Int2IntLinkedOpenHashMap paletteId = new Int2IntLinkedOpenHashMap();
 
         for (int idx = 0; idx < 64; ++idx) {
@@ -828,7 +839,7 @@ public final class V2832 {
             paletteId.putIfAbsent(biome, paletteId.size());
         }
 
-        final ListType paletteString = Types.NBT.createEmptyList();
+        final ListType paletteString = typeUtil.createEmptyList();
         for (final IntIterator iterator = paletteId.keySet().iterator(); iterator.hasNext();) {
             final int biomeId = iterator.nextInt();
             final String biome = biomeId >= 0 && biomeId < BIOMES_BY_ID.length ? BIOMES_BY_ID[biomeId] : null;
@@ -876,7 +887,7 @@ public final class V2832 {
     }
 
     private static MapType wrapPalette(final ListType palette, final long[] blockStates) {
-        final MapType ret = Types.NBT.createEmptyMap();
+        final MapType ret = palette.createEmptyMap();
         ret.setList("palette", palette);
         if (blockStates != null) {
             ret.setLongs("data", blockStates);
@@ -902,11 +913,11 @@ public final class V2832 {
             return;
         }
 
-        layers.addMap(0, createEmptyLayer()); // add at the bottom
+        layers.addMap(0, createEmptyLayer(layers.getTypeUtil())); // add at the bottom
     }
 
-    private static MapType createEmptyLayer() {
-        final MapType ret = Types.NBT.createEmptyMap();
+    private static MapType createEmptyLayer(final TypeUtil<?> typeUtil) {
+        final MapType ret = typeUtil.createEmptyMap();
         ret.setInt("height", 64);
         ret.setString("block", "minecraft:air");
 

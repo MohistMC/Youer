@@ -1,9 +1,9 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.MapType;
 
 public final class V4064 {
 
@@ -21,7 +21,7 @@ public final class V4064 {
                 if (components.hasKey("minecraft:fire_resistant")) {
                     components.remove("minecraft:fire_resistant");
 
-                    final MapType damageResistant = components.getTypeUtil().createEmptyMap();
+                    final MapType damageResistant = components.createEmptyMap();
                     components.setMap("minecraft:damage_resistant", damageResistant);
 
                     damageResistant.setString("types", "#minecraft:is_fire");

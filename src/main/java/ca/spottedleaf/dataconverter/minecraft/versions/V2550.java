@@ -1,17 +1,17 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.types.TypeUtil;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.Types;
 import com.google.common.collect.ImmutableMap;
-import org.apache.commons.lang3.math.NumberUtils;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import org.apache.commons.lang3.math.NumberUtils;
 
 public final class V2550 {
 
@@ -33,8 +33,8 @@ public final class V2550 {
 
     private static record StructureFeatureConfiguration(int spacing, int separation, int salt) {
 
-        public MapType serialize() {
-            final MapType ret = Types.NBT.createEmptyMap();
+        public MapType serialize(final TypeUtil<?> typeUtil) {
+            final MapType ret = typeUtil.createEmptyMap();
 
             ret.setInt("spacing", this.spacing);
             ret.setInt("separation", this.separation);
@@ -48,6 +48,7 @@ public final class V2550 {
         MCTypeRegistry.WORLD_GEN_SETTINGS.addStructureConverter(new DataConverter<>(VERSION) {
             @Override
             public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
+                final TypeUtil<?> typeUtil = data.getTypeUtil();
                 final long seed = data.getLong("RandomSeed");
                 String generatorName = data.getString("generatorName");
                 if (generatorName != null) {
@@ -62,15 +63,15 @@ public final class V2550 {
                 boolean caves = false;
 
                 if ("customized".equals(generatorName) || generatorName == null) {
-                    generator = defaultOverworld(seed);
+                    generator = defaultOverworld(typeUtil, seed);
                 } else {
                     switch (generatorName) {
                         case "flat": {
                             final MapType generatorOptions = data.getMap("generatorOptions");
 
-                            final MapType structures = fixFlatStructures(generatorOptions);
-                            final MapType settings = Types.NBT.createEmptyMap();
-                            generator = Types.NBT.createEmptyMap();
+                            final MapType structures = fixFlatStructures(typeUtil, generatorOptions);
+                            final MapType settings = typeUtil.createEmptyMap();
+                            generator = typeUtil.createEmptyMap();
                             generator.setString("type", "minecraft:flat");
                             generator.setMap("settings", settings);
 
@@ -78,12 +79,12 @@ public final class V2550 {
 
                             ListType layers = generatorOptions.getList("layers", ObjectType.MAP);
                             if (layers == null) {
-                                layers = Types.NBT.createEmptyList();
+                                layers = typeUtil.createEmptyList();
 
                                 final int[] heights = new int[] { 1, 2, 1 };
                                 final String[] blocks = new String[] { "minecraft:bedrock", "minecraft:dirt", "minecraft:grass_block" };
                                 for (int i = 0; i < 3; ++i) {
-                                    final MapType layer = Types.NBT.createEmptyMap();
+                                    final MapType layer = typeUtil.createEmptyMap();
                                     layer.setInt("height", heights[i]);
                                     layer.setString("block", blocks[i]);
                                     layers.addMap(layer);
@@ -97,7 +98,7 @@ public final class V2550 {
                         }
 
                         case "debug_all_block_states": {
-                            generator = Types.NBT.createEmptyMap();
+                            generator = typeUtil.createEmptyMap();
                             generator.setString("type", "minecraft:debug");
                             break;
                         }
@@ -119,7 +120,7 @@ public final class V2550 {
 
                             MapType biomeSource = generatorOptions == null ? null : generatorOptions.getMap("biome_source");
                             if (biomeSource == null) {
-                                biomeSource = Types.NBT.createEmptyMap();
+                                biomeSource = typeUtil.createEmptyMap();
                                 biomeSource.setString("type", "minecraft:fixed");
                             }
 
@@ -131,7 +132,7 @@ public final class V2550 {
                                 biomeSource.setString("biome", biome);
                             }
 
-                            generator = noise(seed, newType, biomeSource);
+                            generator = noise(typeUtil, seed, newType, biomeSource);
                             break;
                         }
 
@@ -141,8 +142,8 @@ public final class V2550 {
                             boolean amplified = generatorName.equals("amplified");
                             boolean largeBiomes = generatorName.equals("largebiomes");
 
-                            generator = noise(seed, amplified ? "minecraft:amplified" : "minecraft:overworld",
-                                    vanillaBiomeSource(seed, default11Gen, largeBiomes));
+                            generator = noise(typeUtil, seed, amplified ? "minecraft:amplified" : "minecraft:overworld",
+                                    vanillaBiomeSource(typeUtil, seed, default11Gen, largeBiomes));
                             break;
                         }
                     }
@@ -151,12 +152,12 @@ public final class V2550 {
                 final boolean mapFeatures = data.getBoolean("MapFeatures", true);
                 final boolean bonusChest = data.getBoolean("BonusChest", false);
 
-                final MapType ret = Types.NBT.createEmptyMap();
+                final MapType ret = typeUtil.createEmptyMap();
 
                 ret.setLong("seed", seed);
                 ret.setBoolean("generate_features", mapFeatures);
                 ret.setBoolean("bonus_chest", bonusChest);
-                ret.setMap("dimensions", vanillaLevels(seed, generator, caves));
+                ret.setMap("dimensions", vanillaLevels(typeUtil, seed, generator, caves));
                 if (legacyCustomOptions != null) {
                     ret.setString("legacy_custom_options", legacyCustomOptions);
                 }
@@ -166,8 +167,8 @@ public final class V2550 {
         });
     }
 
-    public static MapType noise(final long seed, final String worldType, final MapType biomeSource) {
-        final MapType ret = Types.NBT.createEmptyMap();
+    public static MapType noise(final TypeUtil<?> typeUtil, final long seed, final String worldType, final MapType biomeSource) {
+        final MapType ret = typeUtil.createEmptyMap();
 
         ret.setString("type", "minecraft:noise");
         ret.setMap("biome_source", biomeSource);
@@ -177,8 +178,8 @@ public final class V2550 {
         return ret;
     }
 
-    public static MapType vanillaBiomeSource(final long seed, final boolean default11Gen, final boolean largeBiomes) {
-        final MapType ret = Types.NBT.createEmptyMap();
+    public static MapType vanillaBiomeSource(final TypeUtil<?> typeUtil, final long seed, final boolean default11Gen, final boolean largeBiomes) {
+        final MapType ret = typeUtil.createEmptyMap();
 
         ret.setString("type", "minecraft:vanilla_layered");
         ret.setLong("seed", seed);
@@ -190,7 +191,7 @@ public final class V2550 {
         return ret;
     }
 
-    public static MapType fixFlatStructures(final MapType generatorOptions) {
+    public static MapType fixFlatStructures(final TypeUtil<?> typeUtil, final MapType generatorOptions) {
         int distance = 32;
         int spread = 3;
         int count = 128;
@@ -269,15 +270,15 @@ public final class V2550 {
             }
         }
 
-        final MapType ret = Types.NBT.createEmptyMap();
-        final MapType structuresSerialized = Types.NBT.createEmptyMap();
+        final MapType ret = typeUtil.createEmptyMap();
+        final MapType structuresSerialized = typeUtil.createEmptyMap();
         ret.setMap("structures", structuresSerialized);
         for (final String key : newStructures.keySet()) {
-            structuresSerialized.setMap(key, newStructures.get(key).serialize());
+            structuresSerialized.setMap(key, newStructures.get(key).serialize(typeUtil));
         }
 
         if (stronghold) {
-            final MapType strongholdData = Types.NBT.createEmptyMap();
+            final MapType strongholdData = typeUtil.createEmptyMap();
             ret.setMap("stronghold", strongholdData);
 
             strongholdData.setInt("distance", distance);
@@ -288,12 +289,12 @@ public final class V2550 {
         return ret;
     }
 
-    public static MapType vanillaLevels(final long seed, final MapType generator, final boolean caves) {
-        final MapType ret = Types.NBT.createEmptyMap();
+    public static MapType vanillaLevels(final TypeUtil<?> typeUtil, final long seed, final MapType generator, final boolean caves) {
+        final MapType ret = typeUtil.createEmptyMap();
 
-        final MapType overworld = Types.NBT.createEmptyMap();
-        final MapType nether = Types.NBT.createEmptyMap();
-        final MapType end = Types.NBT.createEmptyMap();
+        final MapType overworld = typeUtil.createEmptyMap();
+        final MapType nether = typeUtil.createEmptyMap();
+        final MapType end = typeUtil.createEmptyMap();
 
         ret.setMap("minecraft:overworld", overworld);
         ret.setMap("minecraft:the_nether", nether);
@@ -305,25 +306,25 @@ public final class V2550 {
 
         // nether
         nether.setString("type", "minecraft:the_nether");
-        final MapType netherBiomeSource = Types.NBT.createEmptyMap();
+        final MapType netherBiomeSource = typeUtil.createEmptyMap();
         netherBiomeSource.setString("type", "minecraft:multi_noise");
         netherBiomeSource.setLong("seed", seed);
         netherBiomeSource.setString("preset", "minecraft:nether");
 
-        nether.setMap("generator", noise(seed, "minecraft:nether", netherBiomeSource));
+        nether.setMap("generator", noise(typeUtil, seed, "minecraft:nether", netherBiomeSource));
 
         // end
         end.setString("type", "minecraft:the_end");
-        final MapType endBiomeSource = Types.NBT.createEmptyMap();
+        final MapType endBiomeSource = typeUtil.createEmptyMap();
         endBiomeSource.setString("type", "minecraft:the_end");
         endBiomeSource.setLong("seed", seed);
-        end.setMap("generator", noise(seed,"minecraft:end", endBiomeSource));
+        end.setMap("generator", noise(typeUtil, seed,"minecraft:end", endBiomeSource));
 
         return ret;
     }
 
-    public static MapType defaultOverworld(final long seed) {
-        return noise(seed, "minecraft:overworld", vanillaBiomeSource(seed, false, false));
+    public static MapType defaultOverworld(final TypeUtil<?> typeUtil, final long seed) {
+        return noise(typeUtil, seed, "minecraft:overworld", vanillaBiomeSource(typeUtil, seed, false, false));
     }
 
     private static int getInt(final String value, final int dfl) {

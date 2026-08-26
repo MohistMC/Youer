@@ -1,12 +1,14 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
+import ca.spottedleaf.converter.datatypes.DataWalker;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.converters.advancements.ConverterAbstractAdvancementsRename;
 import ca.spottedleaf.dataconverter.minecraft.converters.recipe.ConverterAbstractRecipeRename;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,15 +33,18 @@ public final class V2100 {
 
         //registerMob("minecraft:bee"); // changed in 1.21.5 to simple
         //registerMob("minecraft:bee_stinger"); // changed in 1.21.5 to simple
-        MCTypeRegistry.TILE_ENTITY.addWalker(VERSION, "minecraft:beehive", (data, fromVersion, toVersion) -> {
-            final ListType bees = data.getList("Bees", ObjectType.MAP);
-            if (bees != null) {
-                for (int i = 0, len = bees.size(); i < len; ++i) {
-                    WalkerUtils.convert(MCTypeRegistry.ENTITY, bees.getMap(i), "EntityData", fromVersion, toVersion);
+        MCTypeRegistry.TILE_ENTITY.addWalker(VERSION, "minecraft:beehive", new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                final ListType bees = data.getList("Bees", ObjectType.MAP);
+                if (bees != null) {
+                    for (int i = 0, len = bees.size(); i < len; ++i) {
+                        WalkerUtils.convert(MCTypeRegistry.ENTITY, bees.getMap(i), "EntityData", fromVersion, toVersion);
+                    }
                 }
-            }
 
-            return null;
+                return null;
+            }
         });
     }
 

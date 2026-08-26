@@ -1,13 +1,14 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataWalker;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.util.RenameHelper;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
-import ca.spottedleaf.dataconverter.minecraft.converters.helpers.RenameHelper;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
 
 public final class V3813 {
 
@@ -125,9 +126,12 @@ public final class V3813 {
             }
         });
 
-        MCTypeRegistry.SAVED_DATA_MAP_DATA.addStructureWalker(VERSION, (final MapType root, final long fromVersion, final long toVersion) -> {
-            WalkerUtils.convertListPath(MCTypeRegistry.TEXT_COMPONENT, root.getMap("data"), "banners", "name", fromVersion, toVersion);
-            return null;
+        MCTypeRegistry.SAVED_DATA_MAP_DATA.addStructureWalker(VERSION, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType root, final long fromVersion, final long toVersion) {
+                WalkerUtils.convertListPath(MCTypeRegistry.TEXT_COMPONENT, root.getMap("data"), "banners", "name", fromVersion, toVersion);
+                return null;
+            }
         });
     }
 

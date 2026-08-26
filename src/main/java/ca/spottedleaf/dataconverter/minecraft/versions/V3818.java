@@ -1,16 +1,16 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
-import ca.spottedleaf.dataconverter.converters.datatypes.DataWalker;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataWalker;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.util.RenameHelper;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
-import ca.spottedleaf.dataconverter.minecraft.converters.helpers.RenameHelper;
 import ca.spottedleaf.dataconverter.minecraft.converters.itemstack.ConverterItemStackToDataComponents;
 import ca.spottedleaf.dataconverter.minecraft.converters.particle.ConverterParticleToNBT;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
 import ca.spottedleaf.dataconverter.types.Types;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,7 +58,7 @@ public final class V3818 {
                             final int count = item.getInt("Count");
 
                             if ("minecraft:air".equals(id) || count <= 0) {
-                                itemList.setMap(i, item.getTypeUtil().createEmptyMap());
+                                itemList.setMap(i, item.createEmptyMap());
                             }
                         }
                     }
@@ -87,10 +87,13 @@ public final class V3818 {
                 return null;
             }
         });
-        MCTypeRegistry.TILE_ENTITY.addWalker(VERSION, "minecraft:beehive", (final MapType root, final long fromVersion, final long toVersion) -> {
-            WalkerUtils.convertListPath(MCTypeRegistry.ENTITY, root, "bees", "entity_data", fromVersion, toVersion);
+        MCTypeRegistry.TILE_ENTITY.addWalker(VERSION, "minecraft:beehive", new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType root, final long fromVersion, final long toVersion) {
+                WalkerUtils.convertListPath(MCTypeRegistry.ENTITY, root, "bees", "entity_data", fromVersion, toVersion);
 
-            return null;
+                return null;
+            }
         });
 
         // Step 1
@@ -293,17 +296,20 @@ public final class V3818 {
             }
         });
 
-        MCTypeRegistry.PARTICLE.addStructureWalker(VERSION, 4, (final Object input, final long fromVersion, final long toVersion) -> {
-            if (!(input instanceof MapType)) {
+        MCTypeRegistry.PARTICLE.addStructureWalker(VERSION, 4, new DataWalker<>() {
+            @Override
+            public Object walk(final Object input, final long fromVersion, final long toVersion) {
+                if (!(input instanceof MapType)) {
+                    return null;
+                }
+
+                final MapType root = (MapType) input;
+
+                WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, root, "item", fromVersion, toVersion);
+                WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, root, "block_state", fromVersion, toVersion);
+
                 return null;
             }
-
-            final MapType root = (MapType)input;
-
-            WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, root, "item", fromVersion, toVersion);
-            WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, root, "block_state", fromVersion, toVersion);
-
-            return null;
         });
 
         // Step 5
@@ -315,11 +321,14 @@ public final class V3818 {
             }
         });
 
-        MCTypeRegistry.ITEM_STACK.addStructureWalker(VERSION, 5, (final MapType root, final long fromVersion, final long toVersion) -> {
-            WalkerUtils.convert(MCTypeRegistry.ITEM_NAME, root, "id", fromVersion, toVersion);
-            WalkerUtils.convert(MCTypeRegistry.DATA_COMPONENTS, root, "components", fromVersion, toVersion);
+        MCTypeRegistry.ITEM_STACK.addStructureWalker(VERSION, 5, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType root, final long fromVersion, final long toVersion) {
+                WalkerUtils.convert(MCTypeRegistry.ITEM_NAME, root, "id", fromVersion, toVersion);
+                WalkerUtils.convert(MCTypeRegistry.DATA_COMPONENTS, root, "components", fromVersion, toVersion);
 
-            return null;
+                return null;
+            }
         });
 
         // Step 6
@@ -337,7 +346,7 @@ public final class V3818 {
                 data.remove("effects");
                 data.remove("Potion");
 
-                final MapType potionContents = data.getTypeUtil().createEmptyMap();
+                final MapType potionContents = data.createEmptyMap();
                 data.setMap("potion_contents", potionContents);
 
                 if (color != null) {

@@ -1,11 +1,11 @@
 package ca.spottedleaf.dataconverter.minecraft.walkers.generic;
 
-import ca.spottedleaf.dataconverter.converters.datatypes.DataType;
-import ca.spottedleaf.dataconverter.converters.datatypes.DataWalker;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.converter.datatypes.DataType;
+import ca.spottedleaf.converter.datatypes.DataWalker;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
 
-public class DataWalkerListPaths<T, R> implements DataWalker<MapType> {
+public class DataWalkerListPaths<T, R> extends DataWalker<MapType> {
 
     protected final DataType<T, R> type;
     protected final String[] paths;

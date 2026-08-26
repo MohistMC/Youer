@@ -6,7 +6,7 @@ import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 
 public final class V4882 {
 
-    private static final int VERSION = MCVersions.V26_2_SNAPSHOT1 - 1;
+    private static final int VERSION = MCVersions.V26_1_2 + 92;
 
     public static void register() {
         // See V3088 for why this converter is duplicated in multiple versions

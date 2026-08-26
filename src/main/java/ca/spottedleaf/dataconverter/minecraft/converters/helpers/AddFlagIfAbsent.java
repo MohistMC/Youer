@@ -1,7 +1,7 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.helpers;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
-import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.MapType;
 
 public final class AddFlagIfAbsent extends DataConverter<MapType, MapType> {
 

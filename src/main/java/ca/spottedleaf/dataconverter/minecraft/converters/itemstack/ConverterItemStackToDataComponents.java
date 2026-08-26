@@ -1,17 +1,17 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.itemstack;
 
-import ca.spottedleaf.dataconverter.minecraft.converters.helpers.RenameHelper;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.types.TypeUtil;
+import ca.spottedleaf.converter.util.RenameHelper;
 import ca.spottedleaf.dataconverter.minecraft.util.ComponentUtils;
 import ca.spottedleaf.dataconverter.minecraft.versions.V3818;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.TypeUtil;
 import ca.spottedleaf.dataconverter.util.NamespaceUtil;
-import net.minecraft.util.Mth;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import net.minecraft.util.Mth;
 
 public final class ConverterItemStackToDataComponents {
 
@@ -154,7 +154,7 @@ public final class ConverterItemStackToDataComponents {
 
         final Object lootTable = tileEntity.getGeneric("LootTable");
         if (lootTable != null) {
-            final MapType containerLoot = tileEntity.getTypeUtil().createEmptyMap();
+            final MapType containerLoot = tileEntity.createEmptyMap();
             transientItem.componentSetMap("minecraft:container_loot", containerLoot);
 
             containerLoot.setGeneric("loot_table", lootTable);
@@ -191,10 +191,10 @@ public final class ConverterItemStackToDataComponents {
                 if (item != null) {
                     tileEntity.remove("item");
 
-                    final ListType container = tileEntity.getTypeUtil().createEmptyList();
+                    final ListType container = tileEntity.createEmptyList();
                     transientItem.componentSetList("minecraft:container", container);
 
-                    final MapType wrappedItem = tileEntity.getTypeUtil().createEmptyMap();
+                    final MapType wrappedItem = tileEntity.createEmptyMap();
                     container.addMap(wrappedItem);
 
                     wrappedItem.setInt("slot", 0);
@@ -246,7 +246,7 @@ public final class ConverterItemStackToDataComponents {
                         final int slot = (int)item.getByte("Slot", (byte)0) & 0xFF;
                         item.remove("Slot");
 
-                        final MapType wrappedItem = item.getTypeUtil().createEmptyMap();
+                        final MapType wrappedItem = item.createEmptyMap();
                         items.setMap(i, wrappedItem);
 
                         wrappedItem.setInt("slot", slot);
@@ -1225,7 +1225,7 @@ public final class ConverterItemStackToDataComponents {
         }
 
         public MapType serialize() {
-            final MapType ret = this.components.getTypeUtil().createEmptyMap();
+            final MapType ret = this.components.createEmptyMap();
 
             ret.setString("id", this.id);
             ret.setInt("count", this.count);

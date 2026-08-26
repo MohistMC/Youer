@@ -1,16 +1,16 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.MapType;
 import ca.spottedleaf.dataconverter.types.nbt.NBTMapType;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.datafixers.util.Pair;
-import net.minecraft.nbt.CompoundTag;
-import net.minecraft.nbt.TagParser;
 import java.util.HashMap;
 import java.util.Map;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.TagParser;
 
 public final class V4061 {
 

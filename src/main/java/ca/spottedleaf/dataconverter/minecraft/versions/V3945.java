@@ -1,12 +1,12 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.util.RenameHelper;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
-import ca.spottedleaf.dataconverter.minecraft.converters.helpers.RenameHelper;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -125,7 +125,7 @@ public final class V3945 {
             }
         }
 
-        final ListType retList = list.getTypeUtil().createEmptyList();
+        final ListType retList = list.createEmptyList();
 
         for (final MapType modifier : ret.values()) {
             retList.addMap(modifier);

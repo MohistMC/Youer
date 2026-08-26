@@ -1,5 +1,7 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
+import ca.spottedleaf.converter.datatypes.DataWalker;
+import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.converters.entity.ConverterAbstractEntityRename;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
@@ -7,11 +9,10 @@ import ca.spottedleaf.dataconverter.minecraft.hooks.DataHookEnforceNamespacedID;
 import ca.spottedleaf.dataconverter.minecraft.hooks.DataHookValueTypeEnforceNamespaced;
 import ca.spottedleaf.dataconverter.minecraft.walkers.block_name.DataWalkerBlockNames;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.DataWalkerTypePaths;
+import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
 import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItemLists;
 import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItems;
 import ca.spottedleaf.dataconverter.minecraft.walkers.tile_entity.DataWalkerTileEntities;
-import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.MapType;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -161,20 +162,26 @@ public final class V705 {
         registerThrowableProjectile("minecraft:snowball");
         //registerMob("minecraft:snowman"); // now simple in 1.21.5
         MCTypeRegistry.ENTITY.addWalker(VERSION, "minecraft:spawner_minecart", new DataWalkerBlockNames("DisplayTile"));
-        MCTypeRegistry.ENTITY.addWalker(VERSION, "minecraft:spawner_minecart", (final MapType data, final long fromVersion, final long toVersion) -> {
-            return MCTypeRegistry.UNTAGGED_SPAWNER.convert(data, fromVersion, toVersion);
+        MCTypeRegistry.ENTITY.addWalker(VERSION, "minecraft:spawner_minecart", new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                return MCTypeRegistry.UNTAGGED_SPAWNER.convert(data, fromVersion, toVersion);
+            }
         });
         MCTypeRegistry.ENTITY.addWalker(VERSION, "minecraft:spectral_arrow", new DataWalkerBlockNames("inTile"));
         //registerMob("minecraft:spider"); // now simple in 1.21.5
         //registerMob("minecraft:squid"); // now simple in 1.21.5
         //registerMob("minecraft:stray"); // now simple in 1.21.5
         MCTypeRegistry.ENTITY.addWalker(VERSION, "minecraft:tnt_minecart", new DataWalkerBlockNames("DisplayTile"));
-        MCTypeRegistry.ENTITY.addWalker(VERSION, "minecraft:villager", (final MapType data, final long fromVersion, final long toVersion) -> {
-            WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, data, "Inventory", fromVersion, toVersion);
+        MCTypeRegistry.ENTITY.addWalker(VERSION, "minecraft:villager", new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, data, "Inventory", fromVersion, toVersion);
 
-            WalkerUtils.convertList(MCTypeRegistry.VILLAGER_TRADE, data.getMap("Offers"), "Recipes", fromVersion, toVersion);
+                WalkerUtils.convertList(MCTypeRegistry.VILLAGER_TRADE, data.getMap("Offers"), "Recipes", fromVersion, toVersion);
 
-            return null;
+                return null;
+            }
         });
         //registerMob("minecraft:villager_golem"); // now simple in 1.21.5
         //registerMob("minecraft:witch"); // now simple in 1.21.5
@@ -187,10 +194,13 @@ public final class V705 {
         MCTypeRegistry.ENTITY.addWalker(VERSION, "minecraft:zombie_horse", new DataWalkerItems("SaddleItem"));
         //registerMob("minecraft:zombie_pigman"); // now simple in 1.21.5
         //registerMob("minecraft:zombie_villager"); // now simple in 1.21.5
-        MCTypeRegistry.ENTITY.addWalker(VERSION, "minecraft:zombie_villager", (final MapType data, final long fromVersion, final long toVersion) -> {
-            WalkerUtils.convertList(MCTypeRegistry.VILLAGER_TRADE, data.getMap("Offers"), "Recipes", fromVersion, toVersion);
+        MCTypeRegistry.ENTITY.addWalker(VERSION, "minecraft:zombie_villager", new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                WalkerUtils.convertList(MCTypeRegistry.VILLAGER_TRADE, data.getMap("Offers"), "Recipes", fromVersion, toVersion);
 
-            return null;
+                return null;
+            }
         });
         //registerMob("minecraft:evocation_illager"); // now simple in 1.21.5
         MCTypeRegistry.ENTITY.addWalker(VERSION, "minecraft:llama", new DataWalkerItemLists("Items"));

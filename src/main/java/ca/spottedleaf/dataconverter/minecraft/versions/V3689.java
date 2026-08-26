@@ -1,11 +1,10 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
+import ca.spottedleaf.converter.datatypes.DataWalker;
+import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
 
 public final class V3689 {
 
@@ -16,11 +15,14 @@ public final class V3689 {
         // minecraft:wind_charge is a simple entity
         // minecraft:breeze_wind_charge is a simple entity
 
-        MCTypeRegistry.TILE_ENTITY.addWalker(VERSION, "minecraft:trial_spawner", (final MapType data, final long fromVersion, final long toVersion) -> {
-            WalkerUtils.convertListPath(MCTypeRegistry.ENTITY, data, "spawn_potentials", "data", "entity", fromVersion, toVersion);
+        MCTypeRegistry.TILE_ENTITY.addWalker(VERSION, "minecraft:trial_spawner", new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                WalkerUtils.convertListPath(MCTypeRegistry.ENTITY, data, "spawn_potentials", "data", "entity", fromVersion, toVersion);
 
-            WalkerUtils.convert(MCTypeRegistry.ENTITY, data.getMap("spawn_data"), "entity", fromVersion, toVersion);
-            return null;
+                WalkerUtils.convert(MCTypeRegistry.ENTITY, data.getMap("spawn_data"), "entity", fromVersion, toVersion);
+                return null;
+            }
         });
     }
 

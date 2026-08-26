@@ -1,11 +1,11 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.helpers;
 
-import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.types.nbt.NBTMapType;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.minecraft.nbt.TagParser;
 import java.util.HashMap;
 import java.util.Map;
+import net.minecraft.nbt.TagParser;
 
 public final class HelperBlockFlatteningV1450 {
 

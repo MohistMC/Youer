@@ -1,10 +1,10 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.TypeUtil;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.Types;
 
 public final class V1946 {
 
@@ -14,7 +14,8 @@ public final class V1946 {
         MCTypeRegistry.POI_CHUNK.addStructureConverter(new DataConverter<>(VERSION) {
             @Override
             public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
-                final MapType sections = Types.NBT.createEmptyMap();
+                final TypeUtil<?> typeUtil = data.getTypeUtil();
+                final MapType sections = typeUtil.createEmptyMap();
                 data.setMap("Sections", sections);
 
                 for (int y = 0; y < 16; ++y) {
@@ -27,7 +28,7 @@ public final class V1946 {
 
                     data.remove(key);
 
-                    final MapType section = Types.NBT.createEmptyMap();
+                    final MapType section = typeUtil.createEmptyMap();
                     section.setGeneric("Records", records);
                     sections.setMap(key, section);
                 }

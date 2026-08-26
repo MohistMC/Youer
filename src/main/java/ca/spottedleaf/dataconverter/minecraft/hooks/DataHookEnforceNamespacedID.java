@@ -1,10 +1,10 @@
 package ca.spottedleaf.dataconverter.minecraft.hooks;
 
-import ca.spottedleaf.dataconverter.converters.datatypes.DataHook;
-import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.converter.datatypes.DataHook;
+import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.util.NamespaceUtil;
 
-public class DataHookEnforceNamespacedID implements DataHook<MapType, MapType> {
+public class DataHookEnforceNamespacedID extends DataHook<MapType, MapType> {
 
     private final String path;
 

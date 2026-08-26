@@ -1,14 +1,15 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataWalker;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.types.TypeUtil;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.hooks.DataHookValueTypeEnforceNamespaced;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.Types;
 
 public final class V1125 {
 
@@ -32,12 +33,9 @@ public final class V1125 {
                     return null;
                 }
 
-                ListType tileEntities = level.getList("TileEntities", ObjectType.MAP);
-                if (tileEntities == null) {
-                    tileEntities = Types.NBT.createEmptyList();
-                    level.setList("TileEntities", tileEntities);
-                }
+                final ListType tileEntities = level.getOrCreateList("TileEntities", ObjectType.MAP);
 
+                final TypeUtil<?> typeUtil = level.getTypeUtil();
                 for (int i = 0, len = sections.size(); i < len; ++i) {
                     final MapType section = sections.getMap(i);
 
@@ -57,7 +55,7 @@ public final class V1125 {
                         final int localZ = (blockIndex >> 4) & 15;
                         final int localY = (blockIndex >> 8) & 15;
 
-                        final MapType newTile = Types.NBT.createEmptyMap();
+                        final MapType newTile = typeUtil.createEmptyMap();
                         newTile.setString("id", "minecraft:bed");
                         newTile.setInt("x", localX + (chunkX << 4));
                         newTile.setInt("y", localY + (sectionY << 4));
@@ -84,13 +82,16 @@ public final class V1125 {
         });
 
 
-        MCTypeRegistry.ADVANCEMENTS.addStructureWalker(VERSION, (final MapType data, final long fromVersion, final long toVersion) -> {
-            WalkerUtils.convertKeys(MCTypeRegistry.BIOME, data.getMap("minecraft:adventure/adventuring_time"), "criteria", fromVersion, toVersion);
-            WalkerUtils.convertKeys(MCTypeRegistry.ENTITY_NAME, data.getMap("minecraft:adventure/kill_a_mob"), "criteria", fromVersion, toVersion);
-            WalkerUtils.convertKeys(MCTypeRegistry.ENTITY_NAME, data.getMap("minecraft:adventure/kill_all_mobs"), "criteria", fromVersion, toVersion);
-            WalkerUtils.convertKeys(MCTypeRegistry.ENTITY_NAME, data.getMap("minecraft:adventure/bred_all_animals"), "criteria", fromVersion, toVersion);
+        MCTypeRegistry.ADVANCEMENTS.addStructureWalker(VERSION, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                WalkerUtils.convertKeys(MCTypeRegistry.BIOME, data.getMap("minecraft:adventure/adventuring_time"), "criteria", fromVersion, toVersion);
+                WalkerUtils.convertKeys(MCTypeRegistry.ENTITY_NAME, data.getMap("minecraft:adventure/kill_a_mob"), "criteria", fromVersion, toVersion);
+                WalkerUtils.convertKeys(MCTypeRegistry.ENTITY_NAME, data.getMap("minecraft:adventure/kill_all_mobs"), "criteria", fromVersion, toVersion);
+                WalkerUtils.convertKeys(MCTypeRegistry.ENTITY_NAME, data.getMap("minecraft:adventure/bred_all_animals"), "criteria", fromVersion, toVersion);
 
-            return null;
+                return null;
+            }
         });
 
         // Enforce namespacing for ids

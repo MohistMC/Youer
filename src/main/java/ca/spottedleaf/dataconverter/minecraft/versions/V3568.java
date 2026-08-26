@@ -1,12 +1,12 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.util.RenameHelper;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
-import ca.spottedleaf.dataconverter.minecraft.converters.helpers.RenameHelper;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -156,14 +156,14 @@ public final class V3568 {
         final DataConverter<MapType, MapType> mooshroomConverter = new DataConverter<>(VERSION) {
             @Override
             public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
-                final MapType newEffect = data.getTypeUtil().createEmptyMap();
+                final MapType newEffect = data.createEmptyMap();
                 updateSuspiciousStew(data, newEffect);
 
                 data.remove("EffectId");
                 data.remove("EffectDuration");
 
                 if (!newEffect.isEmpty()) {
-                    final ListType stewEffects = data.getTypeUtil().createEmptyList();
+                    final ListType stewEffects = data.createEmptyList();
                     data.setList("stew_effects", stewEffects);
 
                     stewEffects.addMap(newEffect);

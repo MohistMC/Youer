@@ -1,13 +1,13 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItemLists;
 import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItems;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
 
 public final class V3808 {
 
@@ -45,7 +45,7 @@ public final class V3808 {
                 if (this.clearArmor) {
                     final ListType armor = data.getList("ArmorItems", ObjectType.MAP);
                     if (armor != null && armor.size() > 2) {
-                        armor.setMap(2, data.getTypeUtil().createEmptyMap());
+                        armor.setMap(2, data.createEmptyMap());
                     }
 
                     final ListType chances = data.getList("ArmorDropChances", ObjectType.FLOAT);

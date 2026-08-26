@@ -1,10 +1,9 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.Types;
 
 public final class V1918 {
 
@@ -47,7 +46,7 @@ public final class V1918 {
                 data.remove("Career");
                 data.remove("CareerLevel");
 
-                final MapType villagerData = Types.NBT.createEmptyMap();
+                final MapType villagerData = data.createEmptyMap();
                 data.setMap("VillagerData", villagerData);
                 villagerData.setString("type", "minecraft:plains");
                 villagerData.setString("profession", getProfessionString(profession, career));

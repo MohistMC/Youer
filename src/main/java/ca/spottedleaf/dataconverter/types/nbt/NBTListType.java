@@ -1,10 +1,12 @@
 package ca.spottedleaf.dataconverter.types.nbt;
 
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.TypeUtil;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
 import ca.spottedleaf.dataconverter.types.Types;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.Objects;
 import net.minecraft.nbt.ByteArrayTag;
 import net.minecraft.nbt.ByteTag;
 import net.minecraft.nbt.CompoundTag;
@@ -20,7 +22,7 @@ import net.minecraft.nbt.ShortTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
 
-public final class NBTListType implements ListType {
+public final class NBTListType extends ListType {
 
     final ListTag list;
 
@@ -33,8 +35,13 @@ public final class NBTListType implements ListType {
     }
 
     @Override
-    public TypeUtil<Tag> getTypeUtil() {
+    public NBTTypeUtil getTypeUtil() {
         return Types.NBT;
+    }
+
+    @Override
+    public int hashCode() {
+        return this.list.hashCode();
     }
 
     @Override
@@ -50,15 +57,20 @@ public final class NBTListType implements ListType {
     }
 
     @Override
-    public int hashCode() {
-        return this.list.hashCode();
-    }
-
-    @Override
     public String toString() {
         return "NBTListType{" +
                 "list=" + this.list +
                 '}';
+    }
+
+    @Override
+    public NBTListType createEmptyList() {
+        return new NBTListType();
+    }
+
+    @Override
+    public NBTMapType createEmptyMap() {
+        return new NBTMapType();
     }
 
     public ListTag getTag() {
@@ -66,41 +78,8 @@ public final class NBTListType implements ListType {
     }
 
     @Override
-    public ListType copy() {
+    public NBTListType copy() {
         return new NBTListType(this.list.copy());
-    }
-
-    static ObjectType getType(final byte id) {
-        switch (id) {
-            case Tag.TAG_END:
-                return ObjectType.NONE;
-            case Tag.TAG_BYTE:
-                return ObjectType.BYTE;
-            case Tag.TAG_SHORT:
-                return ObjectType.SHORT;
-            case Tag.TAG_INT:
-                return ObjectType.INT;
-            case Tag.TAG_LONG:
-                return ObjectType.LONG;
-            case Tag.TAG_FLOAT:
-                return ObjectType.FLOAT;
-            case Tag.TAG_DOUBLE:
-                return ObjectType.DOUBLE;
-            case Tag.TAG_BYTE_ARRAY:
-                return ObjectType.BYTE_ARRAY;
-            case Tag.TAG_STRING:
-                return ObjectType.STRING;
-            case Tag.TAG_LIST:
-                return ObjectType.LIST;
-            case Tag.TAG_COMPOUND:
-                return ObjectType.MAP;
-            case Tag.TAG_INT_ARRAY:
-                return ObjectType.INT_ARRAY;
-            case Tag.TAG_LONG_ARRAY:
-                return ObjectType.LONG_ARRAY;
-            default:
-                throw new IllegalStateException("Unknown type: " + id);
-        }
     }
 
     @Override
@@ -109,7 +88,7 @@ public final class NBTListType implements ListType {
 
         for (int i = 0, len = this.list.size(); i < len; ++i) {
             final Tag tag = this.list.get(i);
-            final ObjectType tagType = getType(tag.getId());
+            final ObjectType tagType = NBTTypeUtil.getType(tag.getId());
             if (curr == null) {
                 curr = tagType;
             } else if (tagType != curr) {
@@ -126,13 +105,28 @@ public final class NBTListType implements ListType {
     }
 
     @Override
+    public boolean isEmpty() {
+        return this.list.isEmpty();
+    }
+
+    @Override
     public void remove(final int index) {
         this.list.remove(index);
     }
 
     @Override
+    public Object getGenericAndRemove(final int index) {
+        return Types.NBT.baseToGeneric(this.list.remove(index));
+    }
+
+    @Override
     public Object getGeneric(final int index) {
         return Types.NBT.baseToGeneric(this.list.get(index));
+    }
+
+    @Override
+    public void setGeneric(final int index, final Object to) {
+        this.list.set(index, Types.NBT.genericToBase(Objects.requireNonNull(to)));
     }
 
     @Override
@@ -151,6 +145,36 @@ public final class NBTListType implements ListType {
             return dfl;
         }
         return numericTag.box();
+    }
+
+    @Override
+    public BigInteger getBigInteger(final int index) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public BigInteger getBigInteger(final int index, final BigInteger dfl) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setBigInteger(final int index, final BigInteger to) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public BigDecimal getBigDecimal(final int index) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public BigDecimal getBigDecimal(final int index, final BigDecimal dfl) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setBigDecimal(final int index, final BigDecimal to) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -379,7 +403,7 @@ public final class NBTListType implements ListType {
     }
 
     @Override
-    public ListType getList(final int index) {
+    public NBTListType getList(final int index) {
         final Tag tag = this.list.get(index); // does bound checking for us
         if (!(tag instanceof ListTag list)) {
             throw new IllegalStateException();
@@ -388,10 +412,10 @@ public final class NBTListType implements ListType {
     }
 
     @Override
-    public ListType getList(final int index, final ListType dfl) {
+    public NBTListType getList(final int index, final ListType dfl) {
         final Tag tag = this.list.get(index); // does bound checking for us
         if (!(tag instanceof ListTag list)) {
-            return dfl;
+            return (NBTListType)dfl;
         }
         return new NBTListType(list);
     }
@@ -402,7 +426,7 @@ public final class NBTListType implements ListType {
     }
 
     @Override
-    public MapType getMap(final int index) {
+    public NBTMapType getMap(final int index) {
         final Tag tag = this.list.get(index); // does bound checking for us
         if (!(tag instanceof CompoundTag compoundTag)) {
             throw new IllegalStateException();
@@ -411,10 +435,10 @@ public final class NBTListType implements ListType {
     }
 
     @Override
-    public MapType getMap(final int index, final MapType dfl) {
+    public NBTMapType getMap(final int index, final MapType dfl) {
         final Tag tag = this.list.get(index); // does bound checking for us
         if (!(tag instanceof CompoundTag compoundTag)) {
-            return dfl;
+            return (NBTMapType)dfl;
         }
         return new NBTMapType(compoundTag);
     }
@@ -446,6 +470,31 @@ public final class NBTListType implements ListType {
     @Override
     public void setString(final int index, final String to) {
         this.list.set(index, StringTag.valueOf(to));
+    }
+
+    @Override
+    public void addGeneric(final Object value) {
+        this.list.add(Types.NBT.genericToBase(Objects.requireNonNull(value)));
+    }
+
+    @Override
+    public void addBigInteger(final BigInteger i) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void addBigInteger(final int index, final BigInteger i) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void addBigDecimal(final BigDecimal d) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void addBigDecimal(final int index, final BigDecimal d) {
+        throw new UnsupportedOperationException();
     }
 
     @Override

@@ -1,21 +1,21 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.types.TypeUtil;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.Types;
 import com.mojang.datafixers.DataFixUtils;
 import it.unimi.dsi.fastutil.ints.Int2IntOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
-import net.minecraft.util.datafix.PackedBitStorage;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import net.minecraft.util.datafix.PackedBitStorage;
 
 public final class V1496 {
 
@@ -164,10 +164,7 @@ public final class V1496 {
 
                 // if sides changed during process, update it now
                 if (newSides != 0) {
-                    MapType upgradeData = level.getMap("UpgradeData");
-                    if (upgradeData == null) {
-                        level.setMap("UpgradeData", upgradeData = Types.NBT.createEmptyMap());
-                    }
+                    final MapType upgradeData = level.getOrCreateMap("UpgradeData");
 
                     upgradeData.setByte("Sides", (byte)(upgradeData.getByte("Sides") | newSides));
                 }
@@ -290,6 +287,8 @@ public final class V1496 {
             this.stateToIdMap = new Int2IntOpenHashMap();
             this.stateToIdMap.defaultReturnValue(-1);
 
+            final TypeUtil<?> typeUtil = this.palette.getTypeUtil();
+
             for(int i = 0; i < this.palette.size(); ++i) {
                 final MapType blockState = this.palette.getMap(i);
                 final String name = blockState.getString("Name", "");
@@ -299,7 +298,7 @@ public final class V1496 {
 
                     this.leaveIds.add(i);
                     this.stateToIdMap.put(this.getStateId(name, notDecayable, 7), i);
-                    this.palette.setMap(i, this.makeNewLeafTag(name, notDecayable, 7));
+                    this.palette.setMap(i, this.makeNewLeafTag(typeUtil, name, notDecayable, 7));
                 }
 
                 if (LOGS.contains(name)) {
@@ -310,9 +309,9 @@ public final class V1496 {
             return this.leaveIds.isEmpty() && this.logIds.isEmpty();
         }
 
-        private MapType makeNewLeafTag(final String name, final boolean notDecayable, final int distance) {
-            final MapType properties = Types.NBT.createEmptyMap();
-            final MapType ret = Types.NBT.createEmptyMap();
+        private MapType makeNewLeafTag(final TypeUtil<?> typeUtil, final String name, final boolean notDecayable, final int distance) {
+            final MapType properties = typeUtil.createEmptyMap();
+            final MapType ret = typeUtil.createEmptyMap();
 
             ret.setString("Name", name);
             ret.setMap("Properties", properties);
@@ -350,7 +349,7 @@ public final class V1496 {
                 newStateId = this.palette.size();
                 this.leaveIds.add(newStateId);
                 this.stateToIdMap.put(newState, newStateId);
-                this.palette.addMap(this.makeNewLeafTag(name, persistent, distance));
+                this.palette.addMap(this.makeNewLeafTag(this.palette.getTypeUtil(), name, persistent, distance));
             }
 
             if (1 << this.storage.getBits() <= newStateId) {

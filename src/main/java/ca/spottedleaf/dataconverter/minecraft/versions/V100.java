@@ -1,17 +1,14 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataWalker;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.types.TypeUtil;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.minecraft.walkers.block_name.DataWalkerBlockNames;
-import ca.spottedleaf.dataconverter.minecraft.walkers.generic.DataWalkerTypePaths;
-import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItemLists;
-import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItems;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.Types;
 
 public final class V100 {
 
@@ -24,16 +21,18 @@ public final class V100 {
                 final ListType equipment = data.getList("Equipment", ObjectType.MAP);
                 data.remove("Equipment");
 
+                final TypeUtil<?> typeUtil = data.getTypeUtil();
+
                 if (equipment != null) {
                     if (equipment.size() > 0 && data.getListUnchecked("HandItems") == null) {
-                        final ListType handItems = Types.NBT.createEmptyList();
+                        final ListType handItems = typeUtil.createEmptyList();
                         data.setList("HandItems", handItems);
                         handItems.addMap(equipment.getMap(0));
-                        handItems.addMap(Types.NBT.createEmptyMap());
+                        handItems.addMap(typeUtil.createEmptyMap());
                     }
 
                     if (equipment.size() > 1 && data.getListUnchecked("ArmorItems") == null) {
-                        final ListType armorItems = Types.NBT.createEmptyList();
+                        final ListType armorItems = typeUtil.createEmptyList();
                         data.setList("ArmorItems", armorItems);
                         for (int i = 1; i < Math.min(equipment.size(), 5); ++i) {
                             armorItems.addMap(equipment.getMap(i));
@@ -46,7 +45,7 @@ public final class V100 {
 
                 if (dropChances != null) {
                     if (data.getListUnchecked("HandDropChances") == null) {
-                        final ListType handDropChances = Types.NBT.createEmptyList();
+                        final ListType handDropChances = typeUtil.createEmptyList();
                         data.setList("HandDropChances", handDropChances);
                         if (0 < dropChances.size()) {
                             handDropChances.addFloat(dropChances.getFloat(0));
@@ -57,7 +56,7 @@ public final class V100 {
                     }
 
                     if (data.getListUnchecked("ArmorDropChances") == null) {
-                        final ListType armorDropChances = Types.NBT.createEmptyList();
+                        final ListType armorDropChances = typeUtil.createEmptyList();
                         data.setList("ArmorDropChances", armorDropChances);
                         for (int i = 1; i < 5; ++i) {
                             if (i < dropChances.size()) {
@@ -72,13 +71,16 @@ public final class V100 {
                 return null;
             }
         });
-        MCTypeRegistry.ENTITY_EQUIPMENT.addStructureWalker(VERSION, (final MapType data, final long fromVersion, final long toVersion) -> {
-            WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, data, "ArmorItems", fromVersion, toVersion);
-            WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, data, "HandItems", fromVersion, toVersion);
-            WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, data, "body_armor_item", fromVersion, toVersion);
-            WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, data, "saddle", fromVersion, toVersion);
+        MCTypeRegistry.ENTITY_EQUIPMENT.addStructureWalker(VERSION, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, data, "ArmorItems", fromVersion, toVersion);
+                WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, data, "HandItems", fromVersion, toVersion);
+                WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, data, "body_armor_item", fromVersion, toVersion);
+                WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, data, "saddle", fromVersion, toVersion);
 
-            return null;
+                return null;
+            }
         });
 
         //registerMob("ArmorStand"); // changed to simple in 1.21.5

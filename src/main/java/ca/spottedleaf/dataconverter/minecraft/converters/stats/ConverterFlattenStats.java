@@ -1,19 +1,18 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.stats;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperBlockFlatteningV1450;
 import ca.spottedleaf.dataconverter.minecraft.converters.itemstack.ConverterFlattenItemStack;
 import ca.spottedleaf.dataconverter.minecraft.versions.V1451;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.Types;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import org.apache.commons.lang3.StringUtils;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import org.apache.commons.lang3.StringUtils;
 
 public final class ConverterFlattenStats {
 
@@ -259,7 +258,7 @@ public final class ConverterFlattenStats {
         return new DataConverter<>(VERSION, VERSION_STEP) {
             @Override
             public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
-                final MapType stats = Types.NBT.createEmptyMap();
+                final MapType stats = data.createEmptyMap();
 
                 for (final String statKey : data.keys()) {
                     final Number value = data.getNumber(statKey);

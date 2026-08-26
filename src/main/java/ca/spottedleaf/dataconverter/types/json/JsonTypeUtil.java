@@ -1,18 +1,20 @@
 package ca.spottedleaf.dataconverter.types.json;
 
-import ca.spottedleaf.dataconverter.minecraft.converters.helpers.CopyHelper;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.TypeUtil;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.types.TypeUtil;
+import ca.spottedleaf.converter.types.impl.java.JavaTypeUtil;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.Map;
 
-public final class JsonTypeUtil implements TypeUtil<JsonElement> {
+public final class JsonTypeUtil extends TypeUtil<JsonElement> {
 
     private final boolean compressed;
 
@@ -25,25 +27,31 @@ public final class JsonTypeUtil implements TypeUtil<JsonElement> {
     }
 
     @Override
-    public ListType createEmptyList() {
+    public JsonListType createEmptyList() {
         return new JsonListType(this.compressed);
     }
 
     @Override
-    public MapType createEmptyMap() {
+    public JsonMapType createEmptyMap() {
         return new JsonMapType(this.compressed);
     }
 
     @Override
-    public Object convertTo(final Object valueGeneric, final TypeUtil<?> to) {
+    public Object convertGenericToGeneric(final Object valueGeneric, final TypeUtil<?> to) {
         if (valueGeneric == null || valueGeneric instanceof String || valueGeneric instanceof Boolean) {
             return valueGeneric;
         }
         if (valueGeneric instanceof Number number) {
-            if (CopyHelper.sanitizeNumber(number) == null) {
-                throw new IllegalStateException("Unknown type: " + number);
+            if (to.isCompatibleNumber(number)) {
+                return valueGeneric;
             }
-            return number;
+            throw new IllegalStateException("Unknown type: " + number.getClass());
+        }
+        if (valueGeneric.getClass().isArray()) {
+            if (to.isCompatibleArray(valueGeneric)) {
+                return valueGeneric;
+            }
+            throw new IllegalStateException("Unknown type: " + valueGeneric.getClass());
         }
         if (valueGeneric instanceof JsonListType listType) {
             return convertJson(to, listType.array, this.compressed); // override input compression
@@ -75,8 +83,11 @@ public final class JsonTypeUtil implements TypeUtil<JsonElement> {
             if (primitive.isBoolean()) {
                 return Boolean.valueOf(primitive.getAsBoolean());
             } else if (primitive.isNumber()) {
-                final Number number = CopyHelper.sanitizeNumber(primitive.getAsNumber());
-                return number != null ? number : convertBDToGeneric(primitive.getAsBigDecimal());
+                final Number number = primitive.getAsNumber();
+                if (JavaTypeUtil.INSTANCE.isCompatibleNumber(number)) {
+                    return number;
+                } // else: fall back to BigDecimal
+                return primitive.getAsBigDecimal();
             } else if (primitive.isString()) {
                 return primitive.getAsString();
             }
@@ -104,7 +115,59 @@ public final class JsonTypeUtil implements TypeUtil<JsonElement> {
         throw new IllegalStateException("Unrecognized type " + input);
     }
 
-    private static Number convertBDToGeneric(final BigDecimal input) {
+    @Override
+    public boolean isCompatibleNumber(final Number number) {
+        return switch (number) {
+            case Byte b -> true;
+            case Short s -> true;
+            case Integer i -> true;
+            case Long l -> true;
+            case Float f -> true;
+            case Double d -> true;
+            case BigInteger bi -> true;
+            case BigDecimal bd -> true;
+
+            default -> false;
+        };
+    }
+
+    @Override
+    public boolean isCompatibleArray(final Object array) {
+        return false;
+    }
+
+    @Override
+    public ObjectType getTypeBase(final JsonElement value) {
+        if (value instanceof JsonObject) {
+            return ObjectType.MAP;
+        } else if (value instanceof JsonArray) {
+            return ObjectType.LIST;
+        } else if (value instanceof JsonNull) {
+            return null;
+        } else {
+            final JsonPrimitive primitive = (JsonPrimitive)value;
+            if (primitive.isBoolean()) {
+                return ObjectType.BOOLEAN;
+            } else if (primitive.isNumber()) {
+                final Number number = primitive.getAsNumber();
+                if (JavaTypeUtil.INSTANCE.isCompatibleNumber(number)) {
+                    return JavaTypeUtil.INSTANCE.getTypeBase(number);
+                } // else: fall back to BigDecimal
+                return ObjectType.BIG_DECIMAL;
+            } else if (primitive.isString()) {
+                return ObjectType.STRING;
+            }
+        }
+
+        return null;
+    }
+
+    @Override
+    public Object deepCopy(final JsonElement base) {
+        return base == null ? null : base.deepCopy();
+    }
+
+    public static Number convertBDToGeneric(final BigDecimal input) {
         try {
             final long l = input.longValueExact();
             final byte b = (byte)l;
@@ -145,8 +208,15 @@ public final class JsonTypeUtil implements TypeUtil<JsonElement> {
             if (primitive.isBoolean()) {
                 return Boolean.valueOf(primitive.getAsBoolean());
             } else if (primitive.isNumber()) {
-                final Number number = CopyHelper.sanitizeNumber(primitive.getAsNumber());
-                return number != null ? number : convertBDToGeneric(primitive.getAsBigDecimal());
+                final Number number = primitive.getAsNumber();
+                if (to.isCompatibleNumber(number)) {
+                    return number;
+                } // else: fall back to BigDecimal
+                final BigDecimal bd = primitive.getAsBigDecimal();
+                if (to.isCompatibleNumber(bd)) {
+                    return bd;
+                } // else: need to convert from BigDecimal, as target does not support BigDecimal
+                return convertBDToGeneric(bd);
             } else if (primitive.isString()) {
                 return primitive.getAsString();
             }

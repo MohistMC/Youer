@@ -1,24 +1,28 @@
 package ca.spottedleaf.dataconverter.types.nbt;
 
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.TypeUtil;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
 import ca.spottedleaf.dataconverter.types.Types;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.function.Function;
 import net.minecraft.nbt.ByteArrayTag;
-import net.minecraft.nbt.ByteTag;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.IntArrayTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.nbt.LongArrayTag;
 import net.minecraft.nbt.NumericTag;
 import net.minecraft.nbt.StringTag;
-import net.minecraft.nbt.StringTagVisitor;
 import net.minecraft.nbt.Tag;
 
-import java.util.Set;
-
-public final class NBTMapType implements MapType {
+public final class NBTMapType extends MapType {
 
     final CompoundTag map;
 
@@ -28,6 +32,16 @@ public final class NBTMapType implements MapType {
 
     public NBTMapType(final CompoundTag tag) {
         this.map = tag;
+    }
+
+    @Override
+    public NBTTypeUtil getTypeUtil() {
+        return Types.NBT;
+    }
+
+    @Override
+    public int hashCode() {
+        return this.map.hashCode();
     }
 
     @Override
@@ -43,20 +57,20 @@ public final class NBTMapType implements MapType {
     }
 
     @Override
-    public TypeUtil<Tag> getTypeUtil() {
-        return Types.NBT;
-    }
-
-    @Override
-    public int hashCode() {
-        return this.map.hashCode();
-    }
-
-    @Override
     public String toString() {
         return "NBTMapType{" +
                 "map=" + this.map +
                 '}';
+    }
+
+    @Override
+    public NBTListType createEmptyList() {
+        return new NBTListType();
+    }
+
+    @Override
+    public NBTMapType createEmptyMap() {
+        return new NBTMapType();
     }
 
     @Override
@@ -84,8 +98,58 @@ public final class NBTMapType implements MapType {
     }
 
     @Override
-    public MapType copy() {
+    public NBTMapType copy() {
         return new NBTMapType(this.map.copy());
+    }
+
+    @Override
+    public boolean rename(final String fromKey, final String toKey) {
+        final Tag value = this.map.remove(fromKey);
+        if (value == null) {
+            return false;
+        }
+
+        this.map.put(toKey, value);
+        return true;
+    }
+
+    @Override
+    public boolean renameKeys(final Function<String, String> renamer) {
+        record RenameEntry(String newKey, Tag value) {}
+
+        List<RenameEntry> renames = null;
+
+        for (final Iterator<Map.Entry<String, Tag>> iterator = this.map.entrySet().iterator(); iterator.hasNext();) {
+            final Map.Entry<String, Tag> entry = iterator.next();
+
+            final String renamed = renamer.apply(entry.getKey());
+
+            if (renamed == null) {
+                continue;
+            }
+
+            final Tag value = entry.getValue();
+
+            iterator.remove();
+
+            if (renames == null) {
+                renames = new ArrayList<>();
+            }
+
+            renames.add(new RenameEntry(renamed, value));
+        }
+
+        if (renames == null) {
+            return false;
+        }
+
+        for (int i = 0, len = renames.size(); i < len; ++i) {
+            final RenameEntry entry = renames.get(i);
+
+            this.map.put(entry.newKey, entry.value);
+        }
+
+        return true;
     }
 
     @Override
@@ -100,9 +164,9 @@ public final class NBTMapType implements MapType {
             return false;
         }
 
-        final ObjectType valueType = NBTListType.getType(tag.getId());
+        final ObjectType valueType = NBTTypeUtil.getType(tag.getId());
 
-        return valueType == type || (type == ObjectType.NUMBER && valueType.isNumber());
+        return valueType == type || ((type == ObjectType.NUMBER || type == ObjectType.BOOLEAN) && valueType.isNumber());
     }
 
     @Override
@@ -111,36 +175,20 @@ public final class NBTMapType implements MapType {
     }
 
     @Override
+    public Object getGenericAndRemove(final String key) {
+        return Types.NBT.baseToGeneric(this.map.remove(key));
+    }
+
+    @Override
     public Object getGeneric(final String key) {
+        return this.getGeneric(key, null);
+    }
+
+    @Override
+    public Object getGeneric(final String key, final Object dfl) {
         final Tag tag = this.map.get(key);
-        if (tag == null) {
-            return null;
-        }
 
-        switch (NBTListType.getType(tag.getId())) {
-            case BYTE:
-            case SHORT:
-            case INT:
-            case LONG:
-            case FLOAT:
-            case DOUBLE:
-                return ((NumericTag)tag).box();
-            case MAP:
-                return new NBTMapType((CompoundTag)tag);
-            case LIST:
-                return new NBTListType((ListTag)tag);
-            case STRING:
-                return ((StringTag)tag).value();
-            case BYTE_ARRAY:
-                return ((ByteArrayTag)tag).getAsByteArray();
-            // Note: No short array tag!
-            case INT_ARRAY:
-                return ((IntArrayTag)tag).getAsIntArray();
-            case LONG_ARRAY:
-                return ((LongArrayTag)tag).getAsLongArray();
-        }
-
-        throw new IllegalStateException("Unrecognized type " + tag);
+        return tag == null ? dfl : Types.NBT.baseToGeneric(tag);
     }
 
     @Override
@@ -155,6 +203,36 @@ public final class NBTMapType implements MapType {
             return numTag.box();
         }
         return dfl;
+    }
+
+    @Override
+    public BigInteger getBigInteger(final String key) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public BigInteger getBigInteger(final String key, final BigInteger dfl) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setBigInteger(final String key, final BigInteger val) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public BigDecimal getBigDecimal(final String key) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public BigDecimal getBigDecimal(final String key, final BigDecimal dfl) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setBigDecimal(final String key, final BigDecimal val) {
+        throw new UnsupportedOperationException();
     }
 
     @Override
@@ -384,17 +462,43 @@ public final class NBTMapType implements MapType {
     }
 
     @Override
-    public ListType getListUnchecked(final String key) {
+    public NBTListType getListUnchecked(final String key) {
         return this.getListUnchecked(key, null);
     }
 
     @Override
-    public ListType getListUnchecked(final String key, final ListType dfl) {
+    public NBTListType getListUnchecked(final String key, final ListType dfl) {
         final Tag tag = this.map.get(key);
         if (tag instanceof ListTag listTag) {
             return new NBTListType(listTag);
         }
-        return dfl;
+        return (NBTListType)dfl;
+    }
+
+    @Override
+    public NBTListType getList(final String key, final ObjectType type) {
+        return this.getList(key, type, null);
+    }
+
+    @Override
+    public NBTListType getOrCreateList(final String key, final ObjectType type) {
+        NBTListType ret = this.getList(key, type);
+        if (ret == null) {
+            this.setList(key, ret = this.createEmptyList());
+        }
+
+        return ret;
+    }
+
+    @Override
+    public NBTListType getList(final String key, final ObjectType type, final ListType dfl) {
+        final NBTListType ret = this.getListUnchecked(key, null);
+        final ObjectType retType;
+        if (ret != null && ((retType = ret.getUniformType()) == type || retType == ObjectType.UNDEFINED || retType == ObjectType.NONE)) {
+            return ret;
+        } else {
+            return (NBTListType)dfl;
+        }
     }
 
     @Override
@@ -403,17 +507,31 @@ public final class NBTMapType implements MapType {
     }
 
     @Override
-    public MapType getMap(final String key) {
+    public NBTMapType getMap(final String key) {
         return this.getMap(key, null);
     }
 
     @Override
-    public MapType getMap(final String key, final MapType dfl) {
+    public NBTMapType getOrCreateMap(final String key) {
         final Tag tag = this.map.get(key);
         if (tag instanceof CompoundTag compoundTag) {
             return new NBTMapType(compoundTag);
         }
-        return dfl;
+
+        final CompoundTag ret = new CompoundTag();
+
+        this.map.put(key, ret);
+
+        return new NBTMapType(ret);
+    }
+
+    @Override
+    public NBTMapType getMap(final String key, final MapType dfl) {
+        final Tag tag = this.map.get(key);
+        if (tag instanceof CompoundTag compoundTag) {
+            return new NBTMapType(compoundTag);
+        }
+        return (NBTMapType)dfl;
     }
 
     @Override
@@ -438,5 +556,10 @@ public final class NBTMapType implements MapType {
     @Override
     public void setString(final String key, final String val) {
         this.map.putString(key, val);
+    }
+
+    @Override
+    public void setGeneric(final String key, final Object value) {
+        this.map.put(key, Types.NBT.genericToBase(Objects.requireNonNull(value)));
     }
 }

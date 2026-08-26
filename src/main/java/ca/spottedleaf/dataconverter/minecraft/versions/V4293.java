@@ -1,10 +1,10 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
 
 public final class V4293 {
 
@@ -43,7 +43,7 @@ public final class V4293 {
 
             @Override
             public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
-                final MapType dropChances = data.getTypeUtil().createEmptyMap();
+                final MapType dropChances = data.createEmptyMap();
 
                 convertDropChances(data, "ArmorDropChances", ARMOR_SLOTS, dropChances);
                 convertDropChances(data, "HandDropChances", HAND_SLOTS, dropChances);

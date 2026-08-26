@@ -1,11 +1,10 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.Types;
 
 public final class V806 {
 
@@ -15,11 +14,7 @@ public final class V806 {
         final DataConverter<MapType, MapType> potionWaterUpdater = new DataConverter<>(VERSION) {
             @Override
             public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
-                MapType tag = data.getMap("tag");
-                if (tag == null) {
-                    tag = Types.NBT.createEmptyMap();
-                    data.setMap("tag", tag);
-                }
+                final MapType tag = data.getOrCreateMap("tag");
 
                 if (!tag.hasKey("Potion", ObjectType.STRING)) {
                     tag.setString("Potion", "minecraft:water");
