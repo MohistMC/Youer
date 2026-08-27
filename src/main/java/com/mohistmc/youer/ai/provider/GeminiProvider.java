@@ -82,9 +82,10 @@ public final class GeminiProvider implements AiProvider {
                 .set("contents", contents)
                 .set("generationConfig", Json.object()
                         .set("maxOutputTokens", profile.maxTokens()));
-        if (profile.systemPrompt() != null && !profile.systemPrompt().isBlank()) {
+        String systemPrompt = ProviderSupport.systemPrompt(profile, request.messages());
+        if (!systemPrompt.isBlank()) {
             body.set("system_instruction", Json.object()
-                    .set("parts", Json.array().add(Json.object().set("text", profile.systemPrompt()))));
+                    .set("parts", Json.array().add(Json.object().set("text", systemPrompt))));
         }
         if (!request.tools().isEmpty()) {
             Json declarations = Json.array();

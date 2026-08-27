@@ -79,8 +79,9 @@ public final class AnthropicProvider implements AiProvider {
                 .set("model", profile.model())
                 .set("messages", messages)
                 .set("max_tokens", profile.maxTokens());
-        if (profile.systemPrompt() != null && !profile.systemPrompt().isBlank()) {
-            body.set("system", profile.systemPrompt());
+        String systemPrompt = ProviderSupport.systemPrompt(profile, request.messages());
+        if (!systemPrompt.isBlank()) {
+            body.set("system", systemPrompt);
         }
         if (!request.tools().isEmpty()) {
             Json tools = Json.array();

@@ -14,7 +14,6 @@ public final class AiRuntimeFactory {
 
     public static AiRuntime createFromConfig(AiHttpClient httpClient) {
         AiProfile profile = new AiProfile(
-                "default",
                 YouerConfig.ai_provider,
                 YouerConfig.ai_baseUrl,
                 YouerConfig.ai_api_key,

@@ -10,6 +10,7 @@ public final class AiToolPermissions {
         ensureOpDefault("youer.ai.tools.use", "Allows use of AI tools");
         ensureOpDefault("youer.ai.tools.command.player", "Allows AI player command execution");
         ensureOpDefault("youer.ai.tools.command.console", "Allows AI console command execution");
+        ensureOpDefault("youer.ai.skills.use", "Allows use of AI Skills");
     }
     public static void ensureOpDefault(String node) { ensureOpDefault(node, "AI tool permission"); }
     private static void ensureOpDefault(String node, String description) {

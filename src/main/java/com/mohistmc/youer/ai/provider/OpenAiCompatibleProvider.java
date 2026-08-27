@@ -63,10 +63,12 @@ public final class OpenAiCompatibleProvider implements AiProvider {
 
     private Json requestBody(AiChatRequest request) {
         Json messages = Json.array();
-        if (profile.systemPrompt() != null && !profile.systemPrompt().isBlank()) {
-            messages.add(message("system", profile.systemPrompt()));
+        String systemPrompt = ProviderSupport.systemPrompt(profile, request.messages());
+        if (!systemPrompt.isBlank()) {
+            messages.add(message("system", systemPrompt));
         }
         for (AiMessage item : request.messages()) {
+            if (item.role() == AiRole.SYSTEM) continue;
             serializeMessage(messages, item);
         }
         Json body = Json.object()
@@ -179,7 +181,7 @@ public final class OpenAiCompatibleProvider implements AiProvider {
         if (!request.tools().isEmpty() && (response.status() == 400 || response.status() == 422)
                 && explicitlyRejectsTools(response.body())) {
             throw new AiToolCapabilityException(
-                    profile.name(), profile.provider(), response.status(), response.header("x-request-id"));
+                    profile.provider(), response.status(), response.header("x-request-id"));
         }
         AiErrorType type = switch (response.status()) {
             case 401, 403 -> AiErrorType.AUTHENTICATION;
@@ -204,7 +206,6 @@ public final class OpenAiCompatibleProvider implements AiProvider {
     private AiProviderException error(AiErrorType type, AiHttpResponse response, String message) {
         return new AiProviderException(
                 type,
-                profile.name(),
                 profile.provider(),
                 response.status(),
                 response.header("x-request-id"),

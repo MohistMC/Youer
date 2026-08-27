@@ -139,5 +139,9 @@ public final class AiToolRegistry {
         public AiRegisteredTool find(String name) {
             return tools.get(name);
         }
+
+        public boolean has(String name) {
+            return tools.containsKey(name);
+        }
     }
 }

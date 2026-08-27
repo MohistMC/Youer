@@ -8,6 +8,10 @@ import com.mohistmc.youer.ai.http.AiHttpResponse;
 import com.mohistmc.youer.ai.http.AiHttpClient;
 import com.mohistmc.youer.ai.http.AiHttpException;
 import com.mohistmc.youer.ai.http.AiHttpRequest;
+import com.mohistmc.youer.ai.model.AiMessage;
+import com.mohistmc.youer.ai.model.AiRole;
+import java.util.ArrayList;
+import java.util.List;
 
 final class ProviderSupport {
 
@@ -20,7 +24,6 @@ final class ProviderSupport {
         } catch (AiHttpException exception) {
             throw new AiProviderException(
                     exception.timeout() ? AiErrorType.TIMEOUT : AiErrorType.HTTP,
-                    profile.name(),
                     profile.provider(),
                     null,
                     null,
@@ -57,7 +60,7 @@ final class ProviderSupport {
             requestId = response.header("request-id");
         }
         return new AiProviderException(
-                type, profile.name(), profile.provider(), response.status(), requestId, message);
+                type, profile.provider(), response.status(), requestId, message);
     }
 
     static String string(Json object, String field) {
@@ -66,5 +69,18 @@ final class ProviderSupport {
 
     static Integer integer(Json object, String field) {
         return object.has(field) && object.at(field).isNumber() ? object.at(field).asInteger() : null;
+    }
+
+    static String systemPrompt(AiProfile profile, List<AiMessage> messages) {
+        List<String> parts = new ArrayList<>();
+        if (profile.systemPrompt() != null && !profile.systemPrompt().isBlank()) {
+            parts.add(profile.systemPrompt());
+        }
+        messages.stream()
+                .filter(message -> message.role() == AiRole.SYSTEM)
+                .map(AiMessage::text)
+                .filter(text -> text != null && !text.isBlank())
+                .forEach(parts::add);
+        return String.join("\n\n", parts);
     }
 }

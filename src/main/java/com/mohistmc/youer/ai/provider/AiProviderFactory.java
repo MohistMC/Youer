@@ -31,10 +31,9 @@ public final class AiProviderFactory {
         }
         throw new AiProviderException(
                 AiErrorType.CONFIGURATION,
-                profile.name(),
                 profile.provider(),
                 null,
                 null,
-                "Unsupported AI provider for profile '" + profile.name() + "': " + profile.provider());
+                "Unsupported AI provider: " + profile.provider());
     }
 }

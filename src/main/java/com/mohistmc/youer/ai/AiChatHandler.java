@@ -28,6 +28,9 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.UUID;
 import java.util.concurrent.ForkJoinPool;
+import java.nio.file.Path;
+import java.util.function.Function;
+import com.mohistmc.youer.ai.skill.*;
 
 public final class AiChatHandler {
 
@@ -47,8 +50,15 @@ public final class AiChatHandler {
         }
         AiRuntime runtime = AiRuntimeFactory.createFromConfig(new UnirestAiHttpClient());
         AiToolPermissions.registerDefaults();
+        AiSkillCatalog skillCatalog = new AiSkillLoader(new AiSkillParser(), LOGGER).load(
+                AiChatHandler.class.getClassLoader(), "ai/skills/index.txt",
+                Path.of("youer-config", "ai", "skills"));
+        AiSkillRegistry skillRegistry = new AiSkillRegistry(skillCatalog);
+        skillRegistry.registerPermissions();
+        Function<AiToolContext, AiSkillAccess> skillAccess = context ->
+                new BukkitAiSkillAccess(Bukkit.getPlayer(context.playerId()));
         AiToolOwner owner = new AiToolOwner("runtime", AiToolSource.BUILT_IN, () -> true);
-        List<AiRegisteredTool> catalog = builtIns(owner);
+        List<AiRegisteredTool> catalog = builtIns(owner, skillRegistry, skillAccess);
         TOOL_REGISTRY.initializeRuntimeTools(owner, catalog);
         AiToolRegistry.activate(TOOL_REGISTRY);
         AiConfirmationNotifier notifier = new AiConfirmationNotifier(Bukkit::getPlayer);
@@ -62,7 +72,10 @@ public final class AiChatHandler {
                     return player != null && player.hasPermission("youer.ai.use")
                             && player.hasPermission("youer.ai.tools.use") && player.hasPermission(permission);
                 }, context -> Bukkit.getPlayer(context.playerId()) != null);
-        service = new AiChatService(runtime, HISTORY, TOOL_REGISTRY, new AiAgentLoop(toolExecutor));
+        AiCapabilitySnapshotProvider capabilitySnapshots = new AiCapabilitySnapshotProvider(
+                dispatcher, TOOL_REGISTRY, skillRegistry, skillAccess, new AiSkillIndex());
+        service = new AiChatService(
+                runtime, HISTORY, TOOL_REGISTRY, new AiAgentLoop(toolExecutor), capabilitySnapshots);
     }
 
     public static boolean handle(Player player, String rawMessage) {
@@ -104,7 +117,10 @@ public final class AiChatHandler {
                 && player.hasPermission("youer.ai.tools.use") && player.hasPermission(permission));
     }
 
-    private static List<AiRegisteredTool> builtIns(AiToolOwner owner) {
+    private static List<AiRegisteredTool> builtIns(
+            AiToolOwner owner,
+            AiSkillRegistry skillRegistry,
+            Function<AiToolContext, AiSkillAccess> skillAccess) {
         BukkitAiCommandGateway gateway = new BukkitAiCommandGateway();
         AiCommandSanitizer sanitizer = new AiCommandSanitizer();
         Json commandSchema = Json.object().set("type", "object")
@@ -117,6 +133,8 @@ public final class AiChatHandler {
                                 .set("enum", Json.array().add("player").add("console"))))
                 .set("additionalProperties", false);
         List<AiRegisteredTool> tools = new ArrayList<>();
+        tools.add(TOOL_REGISTRY.registered(owner, LoadSkillTool.definition(),
+                new LoadSkillTool(skillRegistry, TOOL_REGISTRY, skillAccess)));
         tools.add(TOOL_REGISTRY.registered(owner, new AiToolDefinition("search_commands", "Search visible Minecraft commands",
                         searchSchema, "youer.ai.tools.use", AiToolRisk.READ_ONLY,
                         AiToolExecutionMode.MAIN_THREAD, Duration.ofSeconds(5)),
@@ -169,8 +187,7 @@ public final class AiChatHandler {
         player.sendMessage(localizedFailure(cause));
         if (cause instanceof AiProviderException providerError) {
             LOGGER.error(
-                    "AI request failed: profile={}, provider={}, status={}, requestId={}, error={}",
-                    providerError.profile(),
+                    "AI request failed: provider={}, status={}, requestId={}, error={}",
                     providerError.provider(),
                     providerError.status(),
                     providerError.requestId(),

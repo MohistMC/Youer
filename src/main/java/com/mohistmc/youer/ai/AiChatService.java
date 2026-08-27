@@ -7,6 +7,8 @@ import com.mohistmc.youer.ai.model.AiChatResponse;
 import com.mohistmc.youer.ai.model.AiMessage;
 import com.mohistmc.youer.ai.model.AiRole;
 import com.mohistmc.youer.ai.provider.AiProvider;
+import com.mohistmc.youer.ai.skill.AiCapabilitySnapshot;
+import com.mohistmc.youer.ai.skill.AiCapabilitySnapshotProvider;
 import com.mohistmc.youer.ai.tool.AiAgentLoop;
 import com.mohistmc.youer.ai.tool.AiAgentRequest;
 import com.mohistmc.youer.ai.tool.AiToolRegistry;
@@ -38,26 +40,28 @@ public final class AiChatService implements AutoCloseable {
     private final ThreadPoolExecutor executor;
     private final AiToolRegistry toolRegistry;
     private final AiAgentLoop agentLoop;
+    private final AiCapabilitySnapshotProvider capabilitySnapshots;
 
     public AiChatService(AiRuntime runtime, AiConversationStore history) {
-        this(runtime, history, new AiToolRegistry(new com.mohistmc.youer.ai.tool.AiToolSchemaValidator()), null);
+        this(runtime, history, new AiToolRegistry(new com.mohistmc.youer.ai.tool.AiToolSchemaValidator()), null, null);
     }
 
     public AiChatService(
-            AiRuntime runtime, AiConversationStore history, AiToolRegistry toolRegistry, AiAgentLoop agentLoop) {
+            AiRuntime runtime,
+            AiConversationStore history,
+            AiToolRegistry toolRegistry,
+            AiAgentLoop agentLoop,
+            AiCapabilitySnapshotProvider capabilitySnapshots) {
         this.runtime = runtime;
         this.history = history;
         this.toolRegistry = toolRegistry;
         this.agentLoop = agentLoop;
+        this.capabilitySnapshots = capabilitySnapshots;
+        if (agentLoop != null && capabilitySnapshots == null) {
+            throw new IllegalArgumentException("Agent loop requires capability snapshots");
+        }
         this.executor = createExecutor(runtime);
     }
-
-    // 待审查删除：生产入口需要玩家名称和 Locale 的 AiToolContext；UUID 重载仅被旧测试使用。
-    /*
-    public CompletableFuture<AiChatResponse> chat(UUID playerId, String message) {
-        return chat(new AiToolContext(playerId, playerId.toString(), Locale.ROOT), message);
-    }
-    */
 
     public CompletableFuture<AiChatResponse> chat(AiToolContext context, String message) {
         UUID playerId = context.playerId();
@@ -138,27 +142,39 @@ public final class AiChatService implements AutoCloseable {
         ArrayList<AiMessage> messages = new ArrayList<>(history.snapshot(playerId).messages());
         AiMessage userMessage = new AiMessage(AiRole.USER, message);
         messages.add(userMessage);
+        if (capabilitySnapshots != null) {
+            return capabilitySnapshots.snapshot(context, snapshot.toolsEnabled())
+                    .thenCompose(capabilities -> invokeWithCapabilities(
+                            snapshot, context, version, userMessage, messages, capabilities));
+        }
+        return invokeWithCapabilities(snapshot, context, version, userMessage, messages, null);
+    }
+
+    private java.util.concurrent.CompletionStage<AiChatResponse> invokeWithCapabilities(
+            AiRuntime snapshot,
+            AiToolContext context,
+            long version,
+            AiMessage userMessage,
+            ArrayList<AiMessage> messages,
+            AiCapabilitySnapshot capabilities) {
+        UUID playerId = context.playerId();
+        AiProvider provider = snapshot.provider();
+        if (capabilities != null && !capabilities.systemContext().isBlank()) {
+            messages.add(0, new AiMessage(AiRole.SYSTEM, capabilities.systemContext()));
+        }
         if (agentLoop == null) {
             AiChatResponse response = provider.chat(new AiChatRequest(messages));
             history.appendIfVersion(playerId, version, userMessage,
                     new AiMessage(AiRole.ASSISTANT, response.content()), snapshot.maxHistory());
             return CompletableFuture.completedFuture(response);
         }
-        AiToolRegistry.Snapshot tools = snapshot.toolsEnabled()
-                ? toolRegistry.snapshot(permission -> hasToolPermission(context, permission))
-                : toolRegistry.snapshot(permission -> false);
+        AiToolRegistry.Snapshot tools = java.util.Objects.requireNonNull(capabilities).tools();
         return agentLoop.run(new AiAgentRequest(provider, messages, tools, context,
                         snapshot.maxToolSteps(), snapshot.maxToolCallsPerTurn()))
                 .thenApply(result -> {
                     history.appendIfVersion(playerId, version, result.turn(), snapshot.maxHistory());
                     return result.response();
                 });
-    }
-
-    private static boolean hasToolPermission(AiToolContext context, String permission) {
-        org.bukkit.entity.Player player = org.bukkit.Bukkit.getPlayer(context.playerId());
-        return player != null && player.hasPermission("youer.ai.use")
-                && player.hasPermission("youer.ai.tools.use") && player.hasPermission(permission);
     }
 
     private <T> CompletableFuture<T> submit(Supplier<T> action) {
