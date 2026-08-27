@@ -11,6 +11,14 @@ import com.mohistmc.youer.ai.model.AiChatRequest;
 import com.mohistmc.youer.ai.model.AiChatResponse;
 import com.mohistmc.youer.ai.model.AiMessage;
 import com.mohistmc.youer.ai.model.AiTokenUsage;
+import com.mohistmc.youer.ai.model.AiContentPart;
+import com.mohistmc.youer.ai.model.AiTextContent;
+import com.mohistmc.youer.ai.model.AiToolCallContent;
+import com.mohistmc.youer.ai.model.AiToolResultContent;
+import com.mohistmc.youer.ai.model.AiRole;
+import com.mohistmc.youer.api.ai.tool.AiToolDefinition;
+import java.util.ArrayList;
+import java.util.List;
 import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Locale;
@@ -33,9 +41,14 @@ public final class OpenAiCompatibleProvider implements AiProvider {
                 httpClient,
                 new AiHttpRequest(URI.create(profile.baseUrl()), headers(), requestBody(request).toString()));
         if (response.status() < 200 || response.status() >= 300) {
-            throw statusError(response);
+            throw statusError(request, response);
         }
         return parseResponse(response);
+    }
+
+    @Override
+    public AiProviderCapabilities capabilities() {
+        return AiProviderCapabilities.TOOLS;
     }
 
     private Map<String, String> headers() {
@@ -54,13 +67,57 @@ public final class OpenAiCompatibleProvider implements AiProvider {
             messages.add(message("system", profile.systemPrompt()));
         }
         for (AiMessage item : request.messages()) {
-            messages.add(message(item.role().name().toLowerCase(Locale.ROOT), item.content()));
+            serializeMessage(messages, item);
         }
-        return Json.object()
+        Json body = Json.object()
                 .set("model", profile.model())
                 .set("messages", messages)
                 .set("max_tokens", profile.maxTokens())
                 .set("stream", false);
+        if (!request.tools().isEmpty()) {
+            Json tools = Json.array();
+            request.tools().forEach(definition -> tools.add(tool(definition)));
+            body.set("tools", tools).set("tool_choice", "auto");
+        }
+        return body;
+    }
+
+    private static void serializeMessage(Json messages, AiMessage item) {
+        if (item.role() == AiRole.TOOL) {
+            for (AiContentPart part : item.content()) {
+                if (part instanceof AiToolResultContent result) {
+                    messages.add(Json.object().set("role", "tool")
+                            .set("tool_call_id", result.callId()).set("content", result.content()));
+                }
+            }
+            return;
+        }
+        Json message = Json.object().set("role", item.role().name().toLowerCase(Locale.ROOT));
+        if (!item.text().isEmpty()) {
+            message.set("content", item.text());
+        }
+        Json calls = Json.array();
+        for (AiContentPart part : item.content()) {
+            if (part instanceof AiToolCallContent call) {
+                calls.add(Json.object().set("id", call.id()).set("type", "function")
+                        .set("function", Json.object().set("name", call.name())
+                                .set("arguments", call.arguments().toString())));
+            }
+        }
+        if (!calls.asJsonList().isEmpty()) {
+            message.set("tool_calls", calls);
+        }
+        String reasoning = item.attributes().get("reasoning_content");
+        if (reasoning != null) {
+            message.set("reasoning_content", reasoning);
+        }
+        messages.add(message);
+    }
+
+    private static Json tool(AiToolDefinition definition) {
+        return Json.object().set("type", "function").set("function", Json.object()
+                .set("name", definition.name()).set("description", definition.description())
+                .set("parameters", Json.read(definition.inputSchema().toString())));
     }
 
     private static Json message(String role, String content) {
@@ -70,7 +127,8 @@ public final class OpenAiCompatibleProvider implements AiProvider {
     private AiChatResponse parseResponse(AiHttpResponse response) {
         Json root = ProviderSupport.parseJson(profile, response);
 
-        String content = null;
+        List<AiContentPart> content = new ArrayList<>();
+        Map<String, String> attributes = new LinkedHashMap<>();
         String finishReason = null;
         try {
             for (Json choice : root.at("choices").asJsonList()) {
@@ -78,16 +136,30 @@ public final class OpenAiCompatibleProvider implements AiProvider {
                 if (message.has("content") && message.at("content").isString()) {
                     String candidate = message.at("content").asString();
                     if (candidate != null && !candidate.isBlank()) {
-                        content = candidate;
-                        finishReason = nullableString(choice, "finish_reason");
-                        break;
+                        content.add(new AiTextContent(candidate));
                     }
                 }
+                if (message.has("tool_calls") && message.at("tool_calls").isArray()) {
+                    for (Json value : message.at("tool_calls").asJsonList()) {
+                        Json function = value.at("function");
+                        String id = nullableString(value, "id");
+                        String name = nullableString(function, "name");
+                        String arguments = nullableString(function, "arguments");
+                        Json parsed = arguments == null ? null : Json.read(arguments);
+                        content.add(new AiToolCallContent(id, name, parsed));
+                    }
+                }
+                String reasoning = nullableString(message, "reasoning_content");
+                if (reasoning != null) {
+                    attributes.put("reasoning_content", reasoning);
+                }
+                finishReason = nullableString(choice, "finish_reason");
+                if (!content.isEmpty()) break;
             }
         } catch (RuntimeException exception) {
             throw error(AiErrorType.INVALID_RESPONSE, response, "AI provider returned an invalid response shape");
         }
-        if (content == null) {
+        if (content.isEmpty()) {
             throw error(AiErrorType.EMPTY_RESPONSE, response, "AI provider returned no text content");
         }
 
@@ -99,16 +171,34 @@ public final class OpenAiCompatibleProvider implements AiProvider {
                     nullableInteger(value, "completion_tokens"),
                     nullableInteger(value, "total_tokens"));
         }
-        return new AiChatResponse(content, nullableString(root, "model"), finishReason, usage);
+        return new AiChatResponse(new AiMessage(AiRole.ASSISTANT, content, attributes),
+                nullableString(root, "model"), finishReason, usage);
     }
 
-    private AiProviderException statusError(AiHttpResponse response) {
+    private AiProviderException statusError(AiChatRequest request, AiHttpResponse response) {
+        if (!request.tools().isEmpty() && (response.status() == 400 || response.status() == 422)
+                && explicitlyRejectsTools(response.body())) {
+            throw new AiToolCapabilityException(
+                    profile.name(), profile.provider(), response.status(), response.header("x-request-id"));
+        }
         AiErrorType type = switch (response.status()) {
             case 401, 403 -> AiErrorType.AUTHENTICATION;
             case 429 -> AiErrorType.RATE_LIMIT;
             default -> AiErrorType.HTTP;
         };
         return error(type, response, "AI provider request failed with HTTP " + response.status());
+    }
+
+    private static boolean explicitlyRejectsTools(String body) {
+        try {
+            Json error = Json.read(body).at("error");
+            String code = nullableString(error, "code");
+            String parameter = nullableString(error, "param");
+            return List.of("unsupported_parameter", "unknown_parameter", "unsupported_feature").contains(code)
+                    && List.of("tools", "tool_choice", "functions", "function_call").contains(parameter);
+        } catch (RuntimeException ignored) {
+            return false;
+        }
     }
 
     private AiProviderException error(AiErrorType type, AiHttpResponse response, String message) {

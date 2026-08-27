@@ -11,22 +11,61 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import com.mohistmc.mjson.Json;
+import com.mohistmc.youer.YouerConfig;
+import com.mohistmc.youer.ai.tool.*;
+import com.mohistmc.youer.ai.tool.command.*;
+import com.mohistmc.youer.ai.tool.confirmation.*;
+import com.mohistmc.youer.ai.tool.http.*;
+import com.mohistmc.youer.api.ai.tool.*;
+import java.time.Clock;
+import java.time.Duration;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Locale;
+import java.util.UUID;
+import java.util.concurrent.ForkJoinPool;
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class AiChatHandler {
 
     private static final Logger LOGGER = LogManager.getLogger(AiChatHandler.class);
     private static final AiConversationStore HISTORY = new AiConversationStore();
     private static volatile AiChatService service;
+    private static final AiToolSchemaValidator TOOL_SCHEMA = new AiToolSchemaValidator();
+    private static final AiToolRegistry TOOL_REGISTRY = new AiToolRegistry(TOOL_SCHEMA);
+    private static final AiConfirmationStore CONFIRMATIONS = new AiConfirmationStore(Clock.systemUTC());
+    private static final AtomicLong GENERATION = new AtomicLong();
 
     private AiChatHandler() {
     }
 
     public static synchronized void configure() {
         AiRuntime runtime = AiRuntimeFactory.createFromConfig(new UnirestAiHttpClient());
+        AiToolPermissions.registerDefaults();
+        long generation = GENERATION.get() + 1;
+        AiToolOwner owner = new AiToolOwner("runtime-" + generation, AiToolSource.BUILT_IN, () -> true);
+        List<AiRegisteredTool> catalog = builtIns(owner);
+        TOOL_REGISTRY.replaceRuntimeTools(owner, catalog);
+        CONFIRMATIONS.cancelAll("reload");
+        GENERATION.set(generation);
+        AiToolRegistry.activate(TOOL_REGISTRY);
+        AiConfirmationNotifier notifier = new AiConfirmationNotifier(Bukkit::getPlayer);
+        AiConfirmationApproval approval = new AiConfirmationApproval(CONFIRMATIONS,
+                Duration.ofSeconds(runtime.confirmationTimeoutSeconds()),
+                runtime.playerCommandsRequireConfirmation(), GENERATION::get, notifier::notify);
+        AiExecutionDispatcher dispatcher = new AiExecutionDispatcher(ForkJoinPool.commonPool(), AiChatHandler::dispatch);
+        AiToolExecutor toolExecutor = new AiToolExecutor(TOOL_SCHEMA, approval, dispatcher,
+                (context, permission) -> {
+                    Player player = Bukkit.getPlayer(context.playerId());
+                    return player != null && player.hasPermission("youer.ai.use")
+                            && player.hasPermission("youer.ai.tools.use") && player.hasPermission(permission);
+                }, context -> Bukkit.getPlayer(context.playerId()) != null);
         if (service == null) {
-            service = new AiChatService(runtime, HISTORY);
+            service = new AiChatService(runtime, HISTORY, TOOL_REGISTRY, new AiAgentLoop(toolExecutor));
         } else {
             service.replaceRuntime(runtime);
+            service.replaceAgentLoop(new AiAgentLoop(toolExecutor));
         }
     }
 
@@ -52,7 +91,8 @@ public final class AiChatHandler {
                 player.sendMessage("<" + player.getName() + "> " + rawMessage);
             }
         });
-        current.chat(player.getUniqueId(), input.message()).whenComplete((response, failure) ->
+        current.chat(new AiToolContext(player.getUniqueId(), player.getName(), player.locale()), input.message())
+                .whenComplete((response, failure) ->
                 dispatch(() -> complete(player, input, runtime, response, failure)));
         return true;
     }
@@ -62,10 +102,54 @@ public final class AiChatHandler {
     }
 
     public static synchronized void close() {
+        CONFIRMATIONS.cancelAll("shutdown");
         if (service != null) {
             service.close();
             service = null;
         }
+        AiToolRegistry.deactivate(TOOL_REGISTRY);
+    }
+
+    public static boolean confirm(UUID playerId, String id) { return CONFIRMATIONS.confirm(playerId, id); }
+    public static boolean cancel(UUID playerId, String id) { return CONFIRMATIONS.cancel(playerId, id); }
+    public static AiToolRegistry.Snapshot tools(Player player) {
+        return TOOL_REGISTRY.snapshot(permission -> player.hasPermission("youer.ai.use")
+                && player.hasPermission("youer.ai.tools.use") && player.hasPermission(permission));
+    }
+
+    private static List<AiRegisteredTool> builtIns(AiToolOwner owner) {
+        BukkitAiCommandGateway gateway = new BukkitAiCommandGateway();
+        AiCommandSanitizer sanitizer = new AiCommandSanitizer();
+        Json commandSchema = Json.object().set("type", "object")
+                .set("properties", Json.object().set("command", Json.object().set("type", "string").set("minLength", 1)))
+                .set("required", Json.array().add("command")).set("additionalProperties", false);
+        Json searchSchema = Json.object().set("type", "object")
+                .set("properties", Json.object()
+                        .set("query", Json.object().set("type", "string"))
+                        .set("mode", Json.object().set("type", "string")
+                                .set("enum", Json.array().add("player").add("console"))))
+                .set("additionalProperties", false);
+        List<AiRegisteredTool> tools = new ArrayList<>();
+        tools.add(TOOL_REGISTRY.registered(owner, new AiToolDefinition("search_commands", "Search visible Minecraft commands",
+                        searchSchema, "youer.ai.tools.use", AiToolRisk.READ_ONLY,
+                        AiToolExecutionMode.MAIN_THREAD, Duration.ofSeconds(5)),
+                        new SearchCommandsTool(gateway, Bukkit::getPlayer)));
+        tools.add(TOOL_REGISTRY.registered(owner, new AiToolDefinition("execute_player_command", "Execute one command as the player",
+                        commandSchema, "youer.ai.tools.command.player", AiToolRisk.PLAYER_ACTION,
+                        AiToolExecutionMode.MAIN_THREAD, Duration.ofSeconds(10)),
+                        new PlayerCommandTool(gateway, sanitizer, Bukkit::getPlayer)));
+        tools.add(TOOL_REGISTRY.registered(owner, new AiToolDefinition("execute_console_command", "Execute one command as the server console",
+                        commandSchema, "youer.ai.tools.command.console", AiToolRisk.SERVER_ACTION,
+                        AiToolExecutionMode.MAIN_THREAD, Duration.ofSeconds(10)),
+                        new ConsoleCommandTool(gateway, sanitizer)));
+        AiToolOwner httpOwner = new AiToolOwner(owner.id(), AiToolSource.CONFIGURED_HTTP, () -> true);
+        AiExternalHttpTransport transport = new JdkAiExternalHttpTransport();
+        for (AiHttpToolDefinition definition : new AiHttpToolParser().parse(YouerConfig.ai_http_tools)) {
+            AiToolPermissions.ensureOpDefault(definition.tool().permission());
+            tools.add(TOOL_REGISTRY.registered(httpOwner, definition.tool(),
+                    new AiHttpToolHandler(definition, transport)));
+        }
+        return List.copyOf(tools);
     }
 
     private static boolean hasChatPermission(Player player) {

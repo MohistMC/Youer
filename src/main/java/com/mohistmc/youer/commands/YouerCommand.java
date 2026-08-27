@@ -100,7 +100,7 @@ public class YouerCommand extends Command {
                     sender.sendMessage(ChatColor.RED + I18n.as("youercmd.playermods.playernotOnline", args[1]));
                 }
             }
-            case "" -> {
+            case "reload" -> {
                 MinecraftServer console = MinecraftServer.getServer();
                 YouerConfig.init((File) console.options.valueOf("youer-settings"));
                 AiChatHandler.configure();

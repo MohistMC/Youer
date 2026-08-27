@@ -6,4 +6,8 @@ import com.mohistmc.youer.ai.model.AiChatResponse;
 public interface AiProvider {
 
     AiChatResponse chat(AiChatRequest request);
+
+    default AiProviderCapabilities capabilities() {
+        return AiProviderCapabilities.NONE;
+    }
 }

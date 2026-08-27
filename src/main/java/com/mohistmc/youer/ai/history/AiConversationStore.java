@@ -61,6 +61,34 @@ public final class AiConversationStore {
         }
     }
 
+    public boolean appendIfVersion(
+            UUID playerId, long expectedVersion, AiConversationTurn turn, int maxHistory) {
+        lifecycleLock.readLock().lock();
+        try {
+            Conversation conversation = conversations.get(playerId);
+            if (conversation == null) return false;
+            synchronized (conversation) {
+                if (conversation.version != expectedVersion) return false;
+                conversation.messages.addAll(turn.messages());
+                int limit = Math.max(2, maxHistory);
+                while (conversation.messages.size() > limit) {
+                    conversation.messages.remove(0);
+                    while (!conversation.messages.isEmpty()
+                            && conversation.messages.getFirst().role() != AiRole.USER) {
+                        conversation.messages.remove(0);
+                    }
+                    if (conversation.messages.isEmpty()) {
+                        conversation.messages.addAll(turn.messages());
+                        break;
+                    }
+                }
+                return true;
+            }
+        } finally {
+            lifecycleLock.readLock().unlock();
+        }
+    }
+
     public void clear(UUID playerId) {
         lifecycleLock.readLock().lock();
         try {

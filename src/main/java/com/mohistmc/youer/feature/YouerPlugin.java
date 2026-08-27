@@ -43,6 +43,8 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
+import org.bukkit.event.server.PluginDisableEvent;
+import com.mohistmc.youer.api.ai.tool.AiTools;
 
 /**
  * @author Mgazul by MohistMC
@@ -112,6 +114,9 @@ public class YouerPlugin {
     }
 
     public static void registerListener(Event event) {
+        if (event instanceof PluginDisableEvent event1) {
+            AiTools.unregister(event1.getPlugin());
+        }
         if (event instanceof InventoryClickEvent inventoryClickEvent) {
             GuiListener.onInventoryClickEvent(inventoryClickEvent);
         }

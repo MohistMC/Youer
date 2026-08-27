@@ -14,6 +14,10 @@ import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
+import com.mohistmc.youer.api.ai.tool.AiToolDefinition;
+import com.mohistmc.youer.api.ai.tool.AiToolHandler;
+import com.mohistmc.youer.api.ai.tool.AiToolRegistration;
+import com.mohistmc.youer.api.ai.tool.AiTools;
 
 public class ServerAPI {
 
@@ -74,5 +78,10 @@ public class ServerAPI {
 
     public static MinecraftServer getNMSServer() {
         return MinecraftServer.getServer();
+    }
+
+    public static AiToolRegistration registerAiTool(
+            Plugin owner, AiToolDefinition definition, AiToolHandler handler) {
+        return AiTools.register(owner, definition, handler);
     }
 }

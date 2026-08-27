@@ -34,6 +34,11 @@ public final class AiRuntimeFactory {
                 YouerConfig.ai_max_history,
                 YouerConfig.ai_worker_threads,
                 YouerConfig.ai_queue_capacity,
+                YouerConfig.ai_tools_enable,
+                Math.max(1, YouerConfig.ai_tools_max_steps),
+                Math.max(1, YouerConfig.ai_tools_max_calls_per_turn),
+                Math.max(1, YouerConfig.ai_tools_confirmation_timeout_seconds),
+                YouerConfig.ai_tools_player_commands_require_confirmation,
                 Map.of(profile.name(), profile),
                 Map.of(profile.name(), provider));
     }

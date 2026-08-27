@@ -143,6 +143,12 @@ public class YouerConfig {
     public static String ai_command;
     public static String ai_all_command;
     public static String ai_chat_format;
+    public static boolean ai_tools_enable;
+    public static int ai_tools_max_steps;
+    public static int ai_tools_max_calls_per_turn;
+    public static int ai_tools_confirmation_timeout_seconds;
+    public static boolean ai_tools_player_commands_require_confirmation;
+    public static List<Map<?, ?>> ai_http_tools;
     public static boolean custom_no_villager;
     public static boolean custom_entity_tp_end;
     public static boolean custom_entity_tp_nether;
@@ -293,6 +299,11 @@ public class YouerConfig {
         return config.getStringList(path);
     }
 
+    private static List<Map<?, ?>> getMapList(String path) {
+        config.addDefault(path, new ArrayList<>());
+        return List.copyOf(config.getMapList(path));
+    }
+
     private static String getString(String path, String def) {
         config.addDefault(path, def);
         return config.getString(path, def);
@@ -385,6 +396,13 @@ public class YouerConfig {
         ai_command = getString("ai.command", "ai");
         ai_all_command = getString("ai.all_command", "ai-all");
         ai_chat_format = getString("ai.chat_format", "<小小墨> %s");
+        ai_tools_enable = getBoolean("ai.tools.enable", false);
+        ai_tools_max_steps = getInt("ai.tools.max_steps", 5);
+        ai_tools_max_calls_per_turn = getInt("ai.tools.max_calls_per_turn", 8);
+        ai_tools_confirmation_timeout_seconds = getInt("ai.tools.confirmation_timeout_seconds", 60);
+        ai_tools_player_commands_require_confirmation = getBoolean(
+                "ai.tools.player_commands_require_confirmation", true);
+        ai_http_tools = getMapList("ai.http_tools");
 
         custom_no_villager = getBoolean("custom.no_villager", false);
         custom_entity_tp_end = getBoolean("custom.entity_tp_end", true);

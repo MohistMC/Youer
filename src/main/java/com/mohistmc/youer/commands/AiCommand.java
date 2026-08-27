@@ -20,19 +20,20 @@ import org.jetbrains.annotations.NotNull;
 
 public final class AiCommand extends BukkitCommand {
 
-    private static final List<String> PARAMETERS = List.of("history", "clearall", "clear");
+    private static final List<String> PARAMETERS = List.of("history", "clearall", "clear", "tools", "confirm", "cancel");
 
     public AiCommand(String name) {
         super(name);
         this.description = "AI chat administration";
-        this.usageMessage = "/ai <clear|clearall|history>";
-        this.setPermission("youer.command.ai");
+        this.usageMessage = "/ai <clear|clearall|history|tools|confirm|cancel>";
+        this.setPermission("youer.command.ai;youer.ai.tools.use");
     }
 
     @Override
     public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, String[] args) {
         boolean administrativePermission = sender.hasPermission("youer.command.ai.admin");
-        if (!sender.hasPermission("youer.command.ai")) {
+        String subcommand = args.length == 0 ? "" : args[0].toLowerCase(java.util.Locale.ROOT);
+        if (!mayUseSubcommand(sender, subcommand)) {
             sender.sendMessage(I18n.as("ai.command.no_permission"));
             return true;
         }
@@ -50,7 +51,16 @@ public final class AiCommand extends BukkitCommand {
             return true;
         }
 
-        switch (args[0].toLowerCase()) {
+        switch (subcommand) {
+            case "confirm" -> sender.sendMessage(args.length == 2 && AiChatHandler.confirm(player.getUniqueId(), args[1])
+                    ? I18n.as("ai.command.confirm.success") : I18n.as("ai.command.pending.notfound"));
+            case "cancel" -> sender.sendMessage(args.length == 2 && AiChatHandler.cancel(player.getUniqueId(), args[1])
+                    ? I18n.as("ai.command.cancel.success") : I18n.as("ai.command.pending.notfound"));
+            case "tools" -> sender.sendMessage(I18n.as("ai.command.tools", AiChatHandler.tools(player).definitions().stream()
+                    .map(definition -> definition.name() + " ["
+                            + I18n.as("ai.tool.risk." + definition.risk().name().toLowerCase(java.util.Locale.ROOT))
+                            + "; " + definition.permission() + "]")
+                    .collect(java.util.stream.Collectors.joining(", "))));
             case "clear" -> clear(sender, player, service, args, administrativePermission);
             case "clearall" -> {
                 if (!administrativePermission) {
@@ -64,6 +74,13 @@ public final class AiCommand extends BukkitCommand {
             default -> sender.sendMessage(I18n.as("ai.command.usage"));
         }
         return true;
+    }
+
+    static boolean mayUseSubcommand(CommandSender sender, String subcommand) {
+        if (sender.hasPermission("youer.command.ai")) return true;
+        return ("confirm".equals(subcommand) || "cancel".equals(subcommand) || "tools".equals(subcommand))
+                && sender.hasPermission("youer.ai.use")
+                && sender.hasPermission("youer.ai.tools.use");
     }
 
     private static void clear(
@@ -106,11 +123,13 @@ public final class AiCommand extends BukkitCommand {
         List<String> matches = new ArrayList<>();
         if (args.length == 1) {
             for (String parameter : PARAMETERS) {
-                if (parameter.startsWith(args[0].toLowerCase())) {
+                if (parameter.startsWith(args[0].toLowerCase())
+                        && mayUseSubcommand(sender, parameter)) {
                     matches.add(parameter);
                 }
             }
-        } else if (args.length == 2 && "clear".equalsIgnoreCase(args[0])) {
+        } else if (args.length == 2 && "clear".equalsIgnoreCase(args[0])
+                && mayUseSubcommand(sender, "clear")) {
             for (Player player : Bukkit.getOnlinePlayers()) {
                 if (player.getName().toLowerCase().startsWith(args[1].toLowerCase())) {
                     matches.add(player.getName());

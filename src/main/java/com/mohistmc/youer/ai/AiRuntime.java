@@ -13,12 +13,25 @@ public record AiRuntime(
         int maxHistory,
         int workerThreads,
         int queueCapacity,
+        boolean toolsEnabled,
+        int maxToolSteps,
+        int maxToolCallsPerTurn,
+        int confirmationTimeoutSeconds,
+        boolean playerCommandsRequireConfirmation,
         Map<String, AiProfile> profiles,
         Map<String, AiProvider> providers) {
 
     public AiRuntime {
         profiles = Map.copyOf(profiles);
         providers = Map.copyOf(providers);
+    }
+
+    public AiRuntime(
+            boolean enabled, String defaultProfileName, String command, String allCommand,
+            String chatFormat, int maxHistory, int workerThreads, int queueCapacity,
+            Map<String, AiProfile> profiles, Map<String, AiProvider> providers) {
+        this(enabled, defaultProfileName, command, allCommand, chatFormat, maxHistory,
+                workerThreads, queueCapacity, false, 5, 8, 60, true, profiles, providers);
     }
 
     public AiProfile defaultProfile() {
