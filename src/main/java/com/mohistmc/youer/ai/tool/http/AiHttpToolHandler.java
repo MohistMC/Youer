@@ -55,7 +55,7 @@ public final class AiHttpToolHandler implements AiToolHandler {
         return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
     }
     private static String resolveEnv(String value) {
-        Matcher matcher = ENV.matcher(value); StringBuffer result = new StringBuffer();
+        Matcher matcher = ENV.matcher(value); StringBuilder result = new StringBuilder();
         while (matcher.find()) {
             String secret = System.getenv(matcher.group(1));
             if (secret == null) throw new IllegalStateException("Required HTTP tool environment variable is missing");

@@ -26,7 +26,6 @@ public final class AiRuntimeFactory {
         return new AiRuntime(
                 YouerConfig.ai_enable,
                 YouerConfig.ai_command,
-                YouerConfig.ai_all_command,
                 YouerConfig.ai_chat_format,
                 YouerConfig.ai_max_history,
                 YouerConfig.ai_worker_threads,

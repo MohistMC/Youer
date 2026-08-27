@@ -19,8 +19,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.net.URI;
 import java.util.LinkedHashMap;
-import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
 
 public final class AnthropicProvider implements AiProvider {
 
@@ -33,13 +33,15 @@ public final class AnthropicProvider implements AiProvider {
     }
 
     @Override
-    public AiChatResponse chat(AiChatRequest request) {
-        AiHttpResponse response = ProviderSupport.execute(
+    public CompletionStage<AiChatResponse> chat(AiChatRequest request) {
+        return ProviderSupport.execute(
                 profile,
                 httpClient,
-                new AiHttpRequest(URI.create(profile.baseUrl()), headers(), requestBody(request).toString()));
-        ProviderSupport.requireSuccess(profile, response);
-        return parseResponse(response);
+                new AiHttpRequest(URI.create(profile.baseUrl()), headers(), requestBody(request).toString()))
+                .thenApply(response -> {
+                    ProviderSupport.requireSuccess(profile, response);
+                    return parseResponse(response);
+                });
     }
 
     @Override
@@ -62,11 +64,11 @@ public final class AnthropicProvider implements AiProvider {
             if (item.role() == AiRole.SYSTEM) continue;
             Json blocks = Json.array();
             for (AiContentPart part : item.content()) {
-                if (part instanceof AiTextContent text) {
-                    blocks.add(Json.object().set("type", "text").set("text", text.text()));
-                } else if (part instanceof AiToolCallContent call) {
-                    blocks.add(Json.object().set("type", "tool_use").set("id", call.id())
-                            .set("name", call.name()).set("input", Json.read(call.arguments().toString())));
+                if (part instanceof AiTextContent(String text1)) {
+                    blocks.add(Json.object().set("type", "text").set("text", text1));
+                } else if (part instanceof AiToolCallContent(String id, String name, Json arguments)) {
+                    blocks.add(Json.object().set("type", "tool_use").set("id", id)
+                            .set("name", name).set("input", Json.read(arguments.toString())));
                 } else if (part instanceof AiToolResultContent result) {
                     blocks.add(Json.object().set("type", "tool_result").set("tool_use_id", result.callId())
                             .set("content", result.content()).set("is_error", result.error()));

@@ -4,6 +4,9 @@ import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
 import kong.unirest.core.Header;
 import kong.unirest.core.HttpResponse;
 import kong.unirest.core.Unirest;
@@ -12,21 +15,38 @@ import kong.unirest.core.UnirestException;
 public final class UnirestAiHttpClient implements AiHttpClient {
 
     @Override
-    public AiHttpResponse execute(AiHttpRequest request, Duration timeout) {
+    public CompletionStage<AiHttpResponse> execute(AiHttpRequest request, Duration timeout) {
         try {
-            HttpResponse<String> response = Unirest.post(request.uri().toString())
+            return Unirest.post(request.uri().toString())
                     .headers(request.headers())
                     .requestTimeout(Math.toIntExact(timeout.toMillis()))
                     .body(request.body())
-                    .asString();
-            Map<String, String> headers = new LinkedHashMap<>();
-            for (Header header : response.getHeaders().all()) {
-                headers.merge(header.getName(), header.getValue(), (first, second) -> first + ", " + second);
-            }
-            return new AiHttpResponse(response.getStatus(), headers, response.getBody());
+                    .asStringAsync()
+                    .handle((response, failure) -> {
+                        if (failure != null) {
+                            throw new AiHttpException(isTimeout(failure), unwrap(failure));
+                        }
+                        return response(response);
+                    });
         } catch (UnirestException | ArithmeticException exception) {
-            throw new AiHttpException(isTimeout(exception), exception);
+            return CompletableFuture.failedFuture(new AiHttpException(isTimeout(exception), exception));
         }
+    }
+
+    private static AiHttpResponse response(HttpResponse<String> response) {
+        Map<String, String> headers = new LinkedHashMap<>();
+        for (Header header : response.getHeaders().all()) {
+            headers.merge(header.getName(), header.getValue(), (first, second) -> first + ", " + second);
+        }
+        return new AiHttpResponse(response.getStatus(), headers, response.getBody());
+    }
+
+    private static Throwable unwrap(Throwable failure) {
+        Throwable current = failure;
+        while (current instanceof CompletionException && current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current;
     }
 
     private static boolean isTimeout(Throwable failure) {

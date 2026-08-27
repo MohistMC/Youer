@@ -141,7 +141,6 @@ public class YouerConfig {
     public static int ai_worker_threads;
     public static int ai_queue_capacity;
     public static String ai_command;
-    public static String ai_all_command;
     public static String ai_chat_format;
     public static boolean ai_tools_enable;
     public static int ai_tools_max_steps;
@@ -395,7 +394,6 @@ public class YouerConfig {
         ai_worker_threads = getInt("ai.worker_threads", 4);
         ai_queue_capacity = getInt("ai.queue_capacity", 100);
         ai_command = getString("ai.command", "ai");
-        ai_all_command = getString("ai.all_command", "ai-all");
         ai_chat_format = getString("ai.chat_format", "<小小墨> %s");
         ai_tools_enable = getBoolean("ai.tools.enable", false);
         ai_tools_max_steps = getInt("ai.tools.max_steps", 5);

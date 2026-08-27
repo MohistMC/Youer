@@ -13,17 +13,12 @@ import com.mohistmc.youer.ai.tool.AiAgentLoop;
 import com.mohistmc.youer.ai.tool.AiAgentRequest;
 import com.mohistmc.youer.ai.tool.AiToolRegistry;
 import com.mohistmc.youer.api.ai.tool.AiToolContext;
+import org.checkerframework.checker.nullness.qual.NonNull;
 
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -38,23 +33,20 @@ public final class AiChatService implements AutoCloseable {
     private final AtomicBoolean accepting = new AtomicBoolean(true);
     private final AtomicLong acceptedRequests = new AtomicLong();
     private final ThreadPoolExecutor executor;
-    private final AiToolRegistry toolRegistry;
     private final AiAgentLoop agentLoop;
     private final AiCapabilitySnapshotProvider capabilitySnapshots;
 
     public AiChatService(AiRuntime runtime, AiConversationStore history) {
-        this(runtime, history, new AiToolRegistry(new com.mohistmc.youer.ai.tool.AiToolSchemaValidator()), null, null);
+        this(runtime, history, null, null);
     }
 
     public AiChatService(
             AiRuntime runtime,
             AiConversationStore history,
-            AiToolRegistry toolRegistry,
             AiAgentLoop agentLoop,
             AiCapabilitySnapshotProvider capabilitySnapshots) {
         this.runtime = runtime;
         this.history = history;
-        this.toolRegistry = toolRegistry;
         this.agentLoop = agentLoop;
         this.capabilitySnapshots = capabilitySnapshots;
         if (agentLoop != null && capabilitySnapshots == null) {
@@ -138,7 +130,6 @@ public final class AiChatService implements AutoCloseable {
     private java.util.concurrent.CompletionStage<AiChatResponse> invoke(
             AiRuntime snapshot, AiToolContext context, long version, String message) {
         UUID playerId = context.playerId();
-        AiProvider provider = snapshot.provider();
         ArrayList<AiMessage> messages = new ArrayList<>(history.snapshot(playerId).messages());
         AiMessage userMessage = new AiMessage(AiRole.USER, message);
         messages.add(userMessage);
@@ -160,17 +151,19 @@ public final class AiChatService implements AutoCloseable {
         UUID playerId = context.playerId();
         AiProvider provider = snapshot.provider();
         if (capabilities != null && !capabilities.systemContext().isBlank()) {
-            messages.add(0, new AiMessage(AiRole.SYSTEM, capabilities.systemContext()));
+            messages.addFirst(new AiMessage(AiRole.SYSTEM, capabilities.systemContext()));
         }
         if (agentLoop == null) {
-            AiChatResponse response = provider.chat(new AiChatRequest(messages));
-            history.appendIfVersion(playerId, version, userMessage,
-                    new AiMessage(AiRole.ASSISTANT, response.content()), snapshot.maxHistory());
-            return CompletableFuture.completedFuture(response);
+            return submitStage(() -> provider.chat(new AiChatRequest(messages)))
+                    .thenApply(response -> {
+                        history.appendIfVersion(playerId, version, userMessage,
+                                new AiMessage(AiRole.ASSISTANT, response.content()), snapshot.maxHistory());
+                        return response;
+                    });
         }
         AiToolRegistry.Snapshot tools = java.util.Objects.requireNonNull(capabilities).tools();
         return agentLoop.run(new AiAgentRequest(provider, messages, tools, context,
-                        snapshot.maxToolSteps(), snapshot.maxToolCallsPerTurn()))
+                        snapshot.maxToolSteps(), snapshot.maxToolCallsPerTurn()), executor)
                 .thenApply(result -> {
                     history.appendIfVersion(playerId, version, result.turn(), snapshot.maxHistory());
                     return result.response();
@@ -197,7 +190,7 @@ public final class AiChatService implements AutoCloseable {
     private <T> CompletableFuture<T> submitStage(
             Supplier<? extends java.util.concurrent.CompletionStage<T>> action) {
         CompletableFuture<T> result = new CompletableFuture<>();
-        submit(() -> {
+        CompletableFuture<Void> scheduled = submit(() -> {
             try {
                 action.get().whenComplete((value, failure) -> {
                     if (failure == null) result.complete(value);
@@ -207,6 +200,11 @@ public final class AiChatService implements AutoCloseable {
                 result.completeExceptionally(failure);
             }
             return null;
+        });
+        scheduled.whenComplete((ignored, failure) -> {
+            if (failure != null) {
+                result.completeExceptionally(failure);
+            }
         });
         return result;
     }
@@ -223,7 +221,7 @@ public final class AiChatService implements AutoCloseable {
                 runtime.workerThreads(),
                 0L,
                 TimeUnit.MILLISECONDS,
-                new ArrayBlockingQueue<>(runtime.queueCapacity()),
+                new ArrayBlockingQueue<>(runtime.workerThreads() + runtime.queueCapacity()),
                 new AiThreadFactory(),
                 new ThreadPoolExecutor.AbortPolicy());
     }
@@ -232,7 +230,7 @@ public final class AiChatService implements AutoCloseable {
         private static final AtomicInteger SEQUENCE = new AtomicInteger();
 
         @Override
-        public Thread newThread(Runnable runnable) {
+        public Thread newThread(@NonNull Runnable runnable) {
             Thread thread = new Thread(runnable, "Youer AI Worker-" + SEQUENCE.incrementAndGet());
             thread.setDaemon(true);
             return thread;

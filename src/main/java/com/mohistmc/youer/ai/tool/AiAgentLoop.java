@@ -14,6 +14,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.Executor;
+import java.util.function.Function;
 
 public final class AiAgentLoop {
     private final AiToolExecutor executor;
@@ -22,30 +25,39 @@ public final class AiAgentLoop {
         this.executor = executor;
     }
 
-    public CompletionStage<AiAgentResult> run(AiAgentRequest request) {
+    public CompletionStage<AiAgentResult> run(AiAgentRequest request, Executor providerExecutor) {
         ArrayList<AiMessage> messages = new ArrayList<>(request.messages());
         int turnStart = lastUserIndex(messages);
-        return step(request, messages, turnStart, 0, 0, false);
+        return step(request, messages, turnStart, 0, 0, false, providerExecutor);
     }
 
     private CompletionStage<AiAgentResult> step(
             AiAgentRequest request, ArrayList<AiMessage> messages, int turnStart,
-            int steps, int calls, boolean plainFallback) {
+            int steps, int calls, boolean plainFallback, Executor providerExecutor) {
         if (steps >= request.maxSteps()) return failed(I18n.as("ai.tool.error.step_limit"));
         List<AiToolDefinition> definitions =
                 !plainFallback && request.provider().capabilities().toolCalling()
                         ? request.tools().definitions() : List.of();
-        AiChatResponse response;
-        try {
-            response = request.provider().chat(new AiChatRequest(messages, definitions));
-        } catch (AiToolCapabilityException unsupported) {
-            if (!plainFallback && !definitions.isEmpty()) {
-                return step(request, messages, turnStart, steps, calls, true);
-            }
-            return CompletableFuture.failedFuture(unsupported);
-        } catch (Throwable failure) {
-            return CompletableFuture.failedFuture(failure);
-        }
+        return invokeProvider(request, messages, definitions, providerExecutor)
+                .handle((response, failure) -> {
+                    if (failure == null) {
+                        return continueStep(request, messages, turnStart, steps, calls,
+                                plainFallback, providerExecutor, response);
+                    }
+                    Throwable cause = unwrap(failure);
+                    if (cause instanceof AiToolCapabilityException
+                            && !plainFallback && !definitions.isEmpty()) {
+                        return step(request, messages, turnStart, steps, calls, true, providerExecutor);
+                    }
+                    return CompletableFuture.<AiAgentResult>failedFuture(cause);
+                })
+                .thenCompose(Function.identity());
+    }
+
+    private CompletionStage<AiAgentResult> continueStep(
+            AiAgentRequest request, ArrayList<AiMessage> messages, int turnStart,
+            int steps, int calls, boolean plainFallback, Executor providerExecutor,
+            AiChatResponse response) {
         List<AiToolCallContent> toolCalls = response.message().content().stream()
                 .filter(AiToolCallContent.class::isInstance).map(AiToolCallContent.class::cast).toList();
         messages.add(response.message());
@@ -72,7 +84,23 @@ public final class AiAgentLoop {
         }
         int nextCalls = calls + toolCalls.size();
         return chain.thenCompose(ignored -> step(
-                request, messages, turnStart, steps + 1, nextCalls, plainFallback));
+                request, messages, turnStart, steps + 1, nextCalls, plainFallback, providerExecutor));
+    }
+
+    private static CompletionStage<AiChatResponse> invokeProvider(
+            AiAgentRequest request, List<AiMessage> messages,
+            List<AiToolDefinition> definitions, Executor providerExecutor) {
+        return CompletableFuture.supplyAsync(
+                        () -> request.provider().chat(new AiChatRequest(messages, definitions)), providerExecutor)
+                .thenCompose(Function.identity());
+    }
+
+    private static Throwable unwrap(Throwable failure) {
+        Throwable current = failure;
+        while (current instanceof CompletionException && current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current;
     }
 
     private static int lastUserIndex(List<AiMessage> messages) {

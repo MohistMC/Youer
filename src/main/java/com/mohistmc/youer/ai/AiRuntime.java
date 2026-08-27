@@ -6,7 +6,6 @@ import com.mohistmc.youer.ai.provider.AiProvider;
 public record AiRuntime(
         boolean enabled,
         String command,
-        String allCommand,
         String chatFormat,
         int maxHistory,
         int workerThreads,
@@ -20,10 +19,10 @@ public record AiRuntime(
         AiProvider provider) {
 
     public AiRuntime(
-            boolean enabled, String command, String allCommand,
+            boolean enabled, String command,
             String chatFormat, int maxHistory, int workerThreads, int queueCapacity,
             AiProfile profile, AiProvider provider) {
-        this(enabled, command, allCommand, chatFormat, maxHistory, workerThreads, queueCapacity,
+        this(enabled, command, chatFormat, maxHistory, workerThreads, queueCapacity,
                 false, 5, 8, 60, true, profile, provider);
     }
 }

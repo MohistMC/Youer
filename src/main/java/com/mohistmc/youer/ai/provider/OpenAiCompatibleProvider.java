@@ -23,6 +23,7 @@ import java.net.URI;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
 
 public final class OpenAiCompatibleProvider implements AiProvider {
 
@@ -35,15 +36,17 @@ public final class OpenAiCompatibleProvider implements AiProvider {
     }
 
     @Override
-    public AiChatResponse chat(AiChatRequest request) {
-        AiHttpResponse response = ProviderSupport.execute(
+    public CompletionStage<AiChatResponse> chat(AiChatRequest request) {
+        return ProviderSupport.execute(
                 profile,
                 httpClient,
-                new AiHttpRequest(URI.create(profile.baseUrl()), headers(), requestBody(request).toString()));
-        if (response.status() < 200 || response.status() >= 300) {
-            throw statusError(request, response);
-        }
-        return parseResponse(response);
+                new AiHttpRequest(URI.create(profile.baseUrl()), headers(), requestBody(request).toString()))
+                .thenApply(response -> {
+                    if (response.status() < 200 || response.status() >= 300) {
+                        throw statusError(request, response);
+                    }
+                    return parseResponse(response);
+                });
     }
 
     @Override
@@ -100,10 +103,10 @@ public final class OpenAiCompatibleProvider implements AiProvider {
         }
         Json calls = Json.array();
         for (AiContentPart part : item.content()) {
-            if (part instanceof AiToolCallContent call) {
-                calls.add(Json.object().set("id", call.id()).set("type", "function")
-                        .set("function", Json.object().set("name", call.name())
-                                .set("arguments", call.arguments().toString())));
+            if (part instanceof AiToolCallContent(String id, String name, Json arguments)) {
+                calls.add(Json.object().set("id", id).set("type", "function")
+                        .set("function", Json.object().set("name", name)
+                                .set("arguments", arguments.toString())));
             }
         }
         if (!calls.asJsonList().isEmpty()) {

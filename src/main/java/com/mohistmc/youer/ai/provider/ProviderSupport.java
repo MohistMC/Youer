@@ -12,23 +12,50 @@ import com.mohistmc.youer.ai.model.AiMessage;
 import com.mohistmc.youer.ai.model.AiRole;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.CompletionStage;
 
 final class ProviderSupport {
 
     private ProviderSupport() {
     }
 
-    static AiHttpResponse execute(AiProfile profile, AiHttpClient client, AiHttpRequest request) {
+    static CompletionStage<AiHttpResponse> execute(AiProfile profile, AiHttpClient client, AiHttpRequest request) {
         try {
-            return client.execute(request, profile.timeout());
+            return client.execute(request, profile.timeout()).handle((response, failure) -> {
+                if (failure != null) {
+                    throw transportFailure(profile, failure);
+                }
+                return response;
+            });
         } catch (AiHttpException exception) {
-            throw new AiProviderException(
+            return CompletableFuture.failedFuture(transportFailure(profile, exception));
+        }
+    }
+
+    private static RuntimeException transportFailure(AiProfile profile, Throwable failure) {
+        Throwable cause = unwrap(failure);
+        if (cause instanceof AiHttpException exception) {
+            return new AiProviderException(
                     exception.timeout() ? AiErrorType.TIMEOUT : AiErrorType.HTTP,
                     profile.provider(),
                     null,
                     null,
                     exception.timeout() ? "AI provider request timed out" : "AI provider transport failed");
         }
+        if (cause instanceof RuntimeException runtimeException) {
+            return runtimeException;
+        }
+        return new CompletionException(cause);
+    }
+
+    private static Throwable unwrap(Throwable failure) {
+        Throwable current = failure;
+        while (current instanceof CompletionException && current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current;
     }
 
     static Json parseJson(AiProfile profile, AiHttpResponse response) {

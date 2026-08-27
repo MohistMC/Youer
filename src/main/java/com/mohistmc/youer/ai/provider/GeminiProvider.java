@@ -22,6 +22,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.CompletionStage;
 
 public final class GeminiProvider implements AiProvider {
 
@@ -34,13 +35,15 @@ public final class GeminiProvider implements AiProvider {
     }
 
     @Override
-    public AiChatResponse chat(AiChatRequest request) {
+    public CompletionStage<AiChatResponse> chat(AiChatRequest request) {
         String encodedModel = URLEncoder.encode(profile.model(), StandardCharsets.UTF_8).replace("+", "%20");
         URI uri = URI.create(profile.baseUrl().replace("{model}", encodedModel));
-        AiHttpResponse response = ProviderSupport.execute(
-                profile, httpClient, new AiHttpRequest(uri, headers(), requestBody(request).toString()));
-        ProviderSupport.requireSuccess(profile, response);
-        return parseResponse(response);
+        return ProviderSupport.execute(
+                profile, httpClient, new AiHttpRequest(uri, headers(), requestBody(request).toString()))
+                .thenApply(response -> {
+                    ProviderSupport.requireSuccess(profile, response);
+                    return parseResponse(response);
+                });
     }
 
     @Override
@@ -65,15 +68,17 @@ public final class GeminiProvider implements AiProvider {
             String role = item.role() == AiRole.ASSISTANT ? "model" : "user";
             Json parts = Json.array();
             for (AiContentPart part : item.content()) {
-                if (part instanceof AiTextContent text) {
-                    parts.add(Json.object().set("text", text.text()));
-                } else if (part instanceof AiToolCallContent call) {
-                    parts.add(Json.object().set("functionCall", Json.object().set("id", call.id())
-                            .set("name", call.name()).set("args", Json.read(call.arguments().toString()))));
-                } else if (part instanceof AiToolResultContent result) {
-                    parts.add(Json.object().set("functionResponse", Json.object().set("id", result.callId())
-                            .set("name", result.name()).set("response", Json.object()
-                                    .set("content", result.content()).set("error", result.error()))));
+                if (part instanceof AiTextContent(String text1)) {
+                    parts.add(Json.object().set("text", text1));
+                } else if (part instanceof AiToolCallContent(String id, String name, Json arguments)) {
+                    parts.add(Json.object().set("functionCall", Json.object().set("id", id)
+                            .set("name", name).set("args", Json.read(arguments.toString()))));
+                } else if (part instanceof AiToolResultContent(
+                        String callId, String name, String content, boolean error
+                )) {
+                    parts.add(Json.object().set("functionResponse", Json.object().set("id", callId)
+                            .set("name", name).set("response", Json.object()
+                                    .set("content", content).set("error", error))));
                 }
             }
             contents.add(Json.object().set("role", role).set("parts", parts));

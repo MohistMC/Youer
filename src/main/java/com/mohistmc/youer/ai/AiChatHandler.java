@@ -75,7 +75,7 @@ public final class AiChatHandler {
         AiCapabilitySnapshotProvider capabilitySnapshots = new AiCapabilitySnapshotProvider(
                 dispatcher, TOOL_REGISTRY, skillRegistry, skillAccess, new AiSkillIndex());
         service = new AiChatService(
-                runtime, HISTORY, TOOL_REGISTRY, new AiAgentLoop(toolExecutor), capabilitySnapshots);
+                runtime, HISTORY, new AiAgentLoop(toolExecutor), capabilitySnapshots);
     }
 
     public static boolean handle(Player player, String rawMessage) {
@@ -88,7 +88,7 @@ public final class AiChatHandler {
         if (!runtime.enabled() || !hasChatPermission(player)) {
             return false;
         }
-        AiChatInput input = AiChatInput.parse(rawMessage, runtime.command(), runtime.allCommand()).orElse(null);
+        AiChatInput input = AiChatInput.parse(rawMessage, runtime.command()).orElse(null);
         if (input == null) {
             return false;
         }

@@ -51,8 +51,8 @@ public final class AiConversationStore {
                 conversation.messages.add(assistantMessage);
                 int limit = evenLimit(maxHistory);
                 while (conversation.messages.size() > limit) {
-                    conversation.messages.remove(0);
-                    conversation.messages.remove(0);
+                    conversation.messages.removeFirst();
+                    conversation.messages.removeFirst();
                 }
                 return true;
             }
@@ -72,11 +72,10 @@ public final class AiConversationStore {
                 conversation.messages.addAll(turn.messages());
                 int limit = Math.max(2, maxHistory);
                 while (conversation.messages.size() > limit) {
-                    conversation.messages.remove(0);
-                    while (!conversation.messages.isEmpty()
-                            && conversation.messages.getFirst().role() != AiRole.USER) {
-                        conversation.messages.remove(0);
-                    }
+                    do {
+                        conversation.messages.removeFirst();
+                    } while (!conversation.messages.isEmpty()
+                            && conversation.messages.getFirst().role() != AiRole.USER);
                     if (conversation.messages.isEmpty()) {
                         conversation.messages.addAll(turn.messages());
                         break;
