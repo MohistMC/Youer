@@ -6,6 +6,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+
+import com.mohistmc.youer.api.ai.tool.AiToolDefinition;
+import com.mohistmc.youer.api.ai.tool.AiToolHandler;
+import com.mohistmc.youer.api.ai.tool.AiToolRegistration;
+import com.mohistmc.youer.api.ai.tool.AiTools;
 import net.minecraft.server.MinecraftServer;
 import net.neoforged.fml.ModList;
 import net.neoforged.neoforgespi.language.IModInfo;
@@ -14,10 +19,6 @@ import org.bukkit.entity.EnderDragon;
 import org.bukkit.entity.EntityType;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.Plugin;
-import com.mohistmc.youer.api.ai.tool.AiToolDefinition;
-import com.mohistmc.youer.api.ai.tool.AiToolHandler;
-import com.mohistmc.youer.api.ai.tool.AiToolRegistration;
-import com.mohistmc.youer.api.ai.tool.AiTools;
 
 public class ServerAPI {
 
@@ -80,6 +81,7 @@ public class ServerAPI {
         return MinecraftServer.getServer();
     }
 
+    //  TODO AiTool 注册
     public static AiToolRegistration registerAiTool(
             Plugin owner, AiToolDefinition definition, AiToolHandler handler) {
         return AiTools.register(owner, definition, handler);

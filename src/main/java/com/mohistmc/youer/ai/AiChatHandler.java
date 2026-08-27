@@ -4,6 +4,10 @@ import com.mohistmc.youer.ai.error.AiProviderException;
 import com.mohistmc.youer.ai.history.AiConversationStore;
 import com.mohistmc.youer.ai.http.UnirestAiHttpClient;
 import com.mohistmc.youer.ai.model.AiChatResponse;
+import com.mohistmc.youer.api.ai.tool.AiToolContext;
+import com.mohistmc.youer.api.ai.tool.AiToolDefinition;
+import com.mohistmc.youer.api.ai.tool.AiToolExecutionMode;
+import com.mohistmc.youer.api.ai.tool.AiToolRisk;
 import com.mohistmc.youer.util.I18n;
 import java.util.concurrent.RejectedExecutionException;
 import net.minecraft.server.MinecraftServer;
@@ -17,15 +21,13 @@ import com.mohistmc.youer.ai.tool.*;
 import com.mohistmc.youer.ai.tool.command.*;
 import com.mohistmc.youer.ai.tool.confirmation.*;
 import com.mohistmc.youer.ai.tool.http.*;
-import com.mohistmc.youer.api.ai.tool.*;
+
 import java.time.Clock;
 import java.time.Duration;
 import java.util.List;
 import java.util.ArrayList;
-import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.atomic.AtomicLong;
 
 public final class AiChatHandler {
 
@@ -35,25 +37,24 @@ public final class AiChatHandler {
     private static final AiToolSchemaValidator TOOL_SCHEMA = new AiToolSchemaValidator();
     private static final AiToolRegistry TOOL_REGISTRY = new AiToolRegistry(TOOL_SCHEMA);
     private static final AiConfirmationStore CONFIRMATIONS = new AiConfirmationStore(Clock.systemUTC());
-    private static final AtomicLong GENERATION = new AtomicLong();
 
     private AiChatHandler() {
     }
 
-    public static synchronized void configure() {
+    private static synchronized void initialize() {
+        if (service != null) {
+            return;
+        }
         AiRuntime runtime = AiRuntimeFactory.createFromConfig(new UnirestAiHttpClient());
         AiToolPermissions.registerDefaults();
-        long generation = GENERATION.get() + 1;
-        AiToolOwner owner = new AiToolOwner("runtime-" + generation, AiToolSource.BUILT_IN, () -> true);
+        AiToolOwner owner = new AiToolOwner("runtime", AiToolSource.BUILT_IN, () -> true);
         List<AiRegisteredTool> catalog = builtIns(owner);
-        TOOL_REGISTRY.replaceRuntimeTools(owner, catalog);
-        CONFIRMATIONS.cancelAll("reload");
-        GENERATION.set(generation);
+        TOOL_REGISTRY.initializeRuntimeTools(owner, catalog);
         AiToolRegistry.activate(TOOL_REGISTRY);
         AiConfirmationNotifier notifier = new AiConfirmationNotifier(Bukkit::getPlayer);
         AiConfirmationApproval approval = new AiConfirmationApproval(CONFIRMATIONS,
                 Duration.ofSeconds(runtime.confirmationTimeoutSeconds()),
-                runtime.playerCommandsRequireConfirmation(), GENERATION::get, notifier::notify);
+                runtime.playerCommandsRequireConfirmation(), notifier::notify);
         AiExecutionDispatcher dispatcher = new AiExecutionDispatcher(ForkJoinPool.commonPool(), AiChatHandler::dispatch);
         AiToolExecutor toolExecutor = new AiToolExecutor(TOOL_SCHEMA, approval, dispatcher,
                 (context, permission) -> {
@@ -61,18 +62,13 @@ public final class AiChatHandler {
                     return player != null && player.hasPermission("youer.ai.use")
                             && player.hasPermission("youer.ai.tools.use") && player.hasPermission(permission);
                 }, context -> Bukkit.getPlayer(context.playerId()) != null);
-        if (service == null) {
-            service = new AiChatService(runtime, HISTORY, TOOL_REGISTRY, new AiAgentLoop(toolExecutor));
-        } else {
-            service.replaceRuntime(runtime);
-            service.replaceAgentLoop(new AiAgentLoop(toolExecutor));
-        }
+        service = new AiChatService(runtime, HISTORY, TOOL_REGISTRY, new AiAgentLoop(toolExecutor));
     }
 
     public static boolean handle(Player player, String rawMessage) {
         AiChatService current = service;
         if (current == null) {
-            configure();
+            initialize();
             current = service;
         }
         AiRuntime runtime = current.runtime();
@@ -99,15 +95,6 @@ public final class AiChatHandler {
 
     public static AiChatService service() {
         return service;
-    }
-
-    public static synchronized void close() {
-        CONFIRMATIONS.cancelAll("shutdown");
-        if (service != null) {
-            service.close();
-            service = null;
-        }
-        AiToolRegistry.deactivate(TOOL_REGISTRY);
     }
 
     public static boolean confirm(UUID playerId, String id) { return CONFIRMATIONS.confirm(playerId, id); }

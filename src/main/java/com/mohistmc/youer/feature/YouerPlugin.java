@@ -114,6 +114,7 @@ public class YouerPlugin {
     }
 
     public static void registerListener(Event event) {
+        //  TODO AiTool 注册监听器
         if (event instanceof PluginDisableEvent event1) {
             AiTools.unregister(event1.getPlugin());
         }

@@ -3,7 +3,7 @@ package com.mohistmc.youer.ai.tool;
 import com.mohistmc.youer.api.ai.tool.AiToolDefinition;
 import com.mohistmc.youer.api.ai.tool.AiToolHandler;
 import com.mohistmc.youer.api.ai.tool.AiToolRegistration;
-import java.util.ArrayList;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,6 +19,7 @@ public final class AiToolRegistry {
     private final AiToolSchemaValidator schemaValidator;
     private final Map<String, AiRegisteredTool> pluginTools = new LinkedHashMap<>();
     private Map<String, AiRegisteredTool> runtimeTools = Map.of();
+    private boolean runtimeToolsInitialized;
 
     public AiToolRegistry(AiToolSchemaValidator schemaValidator) {
         this.schemaValidator = Objects.requireNonNull(schemaValidator, "schemaValidator");
@@ -79,8 +80,11 @@ public final class AiToolRegistry {
                 && entry.getValue().owner().id().equals(plugin.getName()));
     }
 
-    public synchronized void replaceRuntimeTools(AiToolOwner owner, List<AiRegisteredTool> tools) {
+    public synchronized void initializeRuntimeTools(AiToolOwner owner, List<AiRegisteredTool> tools) {
         Objects.requireNonNull(owner, "owner");
+        if (runtimeToolsInitialized) {
+            throw new IllegalStateException("AI runtime tools are already initialized");
+        }
         LinkedHashMap<String, AiRegisteredTool> replacement = new LinkedHashMap<>();
         for (AiRegisteredTool tool : List.copyOf(tools)) {
             if (!tool.owner().id().equals(owner.id())) {
@@ -92,6 +96,7 @@ public final class AiToolRegistry {
             }
         }
         runtimeTools = Map.copyOf(replacement);
+        runtimeToolsInitialized = true;
     }
 
     public synchronized Snapshot snapshot(Predicate<String> permissionCheck) {
@@ -133,10 +138,6 @@ public final class AiToolRegistry {
 
         public AiRegisteredTool find(String name) {
             return tools.get(name);
-        }
-
-        public List<AiRegisteredTool> tools() {
-            return List.copyOf(new ArrayList<>(tools.values()));
         }
     }
 }

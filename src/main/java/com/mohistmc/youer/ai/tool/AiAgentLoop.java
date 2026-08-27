@@ -6,8 +6,8 @@ import com.mohistmc.youer.ai.model.AiChatResponse;
 import com.mohistmc.youer.ai.model.AiMessage;
 import com.mohistmc.youer.ai.model.AiRole;
 import com.mohistmc.youer.ai.model.AiToolCallContent;
-import com.mohistmc.youer.ai.model.AiToolResultContent;
 import com.mohistmc.youer.ai.provider.AiToolCapabilityException;
+import com.mohistmc.youer.api.ai.tool.AiToolDefinition;
 import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +32,7 @@ public final class AiAgentLoop {
             AiAgentRequest request, ArrayList<AiMessage> messages, int turnStart,
             int steps, int calls, boolean plainFallback) {
         if (steps >= request.maxSteps()) return failed(I18n.as("ai.tool.error.step_limit"));
-        List<com.mohistmc.youer.api.ai.tool.AiToolDefinition> definitions =
+        List<AiToolDefinition> definitions =
                 !plainFallback && request.provider().capabilities().toolCalling()
                         ? request.tools().definitions() : List.of();
         AiChatResponse response;

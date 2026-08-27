@@ -9,17 +9,15 @@ import com.mohistmc.youer.ai.model.AiRole;
 import com.mohistmc.youer.ai.provider.AiProvider;
 import com.mohistmc.youer.ai.tool.AiAgentLoop;
 import com.mohistmc.youer.ai.tool.AiAgentRequest;
-import com.mohistmc.youer.ai.tool.AiAgentResult;
 import com.mohistmc.youer.ai.tool.AiToolRegistry;
 import com.mohistmc.youer.api.ai.tool.AiToolContext;
-import java.util.Locale;
+
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -32,15 +30,14 @@ import java.util.function.Supplier;
 
 public final class AiChatService implements AutoCloseable {
 
-    private final AtomicReference<AiRuntime> runtime;
+    private final AiRuntime runtime;
     private final AiConversationStore history;
-    private final ConcurrentLinkedQueue<ThreadPoolExecutor> executors = new ConcurrentLinkedQueue<>();
     private final ConcurrentHashMap<UUID, CompletableFuture<?>> playerChains = new ConcurrentHashMap<>();
     private final AtomicBoolean accepting = new AtomicBoolean(true);
     private final AtomicLong acceptedRequests = new AtomicLong();
-    private volatile ThreadPoolExecutor executor;
+    private final ThreadPoolExecutor executor;
     private final AiToolRegistry toolRegistry;
-    private volatile AiAgentLoop agentLoop;
+    private final AiAgentLoop agentLoop;
 
     public AiChatService(AiRuntime runtime, AiConversationStore history) {
         this(runtime, history, new AiToolRegistry(new com.mohistmc.youer.ai.tool.AiToolSchemaValidator()), null);
@@ -48,25 +45,27 @@ public final class AiChatService implements AutoCloseable {
 
     public AiChatService(
             AiRuntime runtime, AiConversationStore history, AiToolRegistry toolRegistry, AiAgentLoop agentLoop) {
-        this.runtime = new AtomicReference<>(runtime);
+        this.runtime = runtime;
         this.history = history;
         this.toolRegistry = toolRegistry;
         this.agentLoop = agentLoop;
         this.executor = createExecutor(runtime);
-        this.executors.add(executor);
     }
 
+    // 待审查删除：生产入口需要玩家名称和 Locale 的 AiToolContext；UUID 重载仅被旧测试使用。
+    /*
     public CompletableFuture<AiChatResponse> chat(UUID playerId, String message) {
         return chat(new AiToolContext(playerId, playerId.toString(), Locale.ROOT), message);
     }
+    */
 
     public CompletableFuture<AiChatResponse> chat(AiToolContext context, String message) {
         UUID playerId = context.playerId();
         if (!accepting.get()) {
             return CompletableFuture.failedFuture(new RejectedExecutionException("AI chat service is retired"));
         }
-        AiRuntime snapshot = runtime.get();
-        if (!snapshot.enabled() || snapshot.defaultProfile() == null || snapshot.defaultProvider() == null) {
+        AiRuntime snapshot = runtime;
+        if (!snapshot.enabled() || snapshot.profile() == null || snapshot.provider() == null) {
             return CompletableFuture.failedFuture(new IllegalStateException("AI chat service is unavailable"));
         }
         long capacity = (long) snapshot.workerThreads() + snapshot.queueCapacity();
@@ -96,41 +95,12 @@ public final class AiChatService implements AutoCloseable {
         return result;
     }
 
-    public synchronized void replaceRuntime(AiRuntime replacement) {
-        AiRuntime previous = runtime.get();
-        if (previous.workerThreads() != replacement.workerThreads()
-                || previous.queueCapacity() != replacement.queueCapacity()) {
-            ThreadPoolExecutor previousExecutor = executor;
-            ThreadPoolExecutor replacementExecutor = createExecutor(replacement);
-            executors.add(replacementExecutor);
-            executor = replacementExecutor;
-            previousExecutor.shutdown();
-        }
-        runtime.set(replacement);
-    }
-
-    public void replaceAgentLoop(AiAgentLoop replacement) {
-        agentLoop = java.util.Objects.requireNonNull(replacement, "replacement");
-    }
-
-    boolean usesAgentLoop(AiAgentLoop expected) {
-        return agentLoop == expected;
-    }
-
     public AiRuntime runtime() {
-        return runtime.get();
-    }
-
-    public AiConversationSnapshot history(UUID playerId) {
-        return history.snapshot(playerId);
+        return runtime;
     }
 
     public Map<UUID, AiConversationSnapshot> histories() {
         return history.snapshots();
-    }
-
-    public int historySize(UUID playerId) {
-        return history.size(playerId);
     }
 
     public void clear(UUID playerId) {
@@ -151,15 +121,12 @@ public final class AiChatService implements AutoCloseable {
         retire();
         long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
         try {
-            for (ThreadPoolExecutor current : executors) {
-                long remaining = deadline - System.nanoTime();
-                if (remaining <= 0 || !current.awaitTermination(remaining, TimeUnit.NANOSECONDS)) {
-                    shutdownNow();
-                    return;
-                }
+            long remaining = deadline - System.nanoTime();
+            if (remaining <= 0 || !executor.awaitTermination(remaining, TimeUnit.NANOSECONDS)) {
+                executor.shutdownNow();
             }
         } catch (InterruptedException exception) {
-            shutdownNow();
+            executor.shutdownNow();
             Thread.currentThread().interrupt();
         }
     }
@@ -167,12 +134,11 @@ public final class AiChatService implements AutoCloseable {
     private java.util.concurrent.CompletionStage<AiChatResponse> invoke(
             AiRuntime snapshot, AiToolContext context, long version, String message) {
         UUID playerId = context.playerId();
-        AiProvider provider = snapshot.defaultProvider();
+        AiProvider provider = snapshot.provider();
         ArrayList<AiMessage> messages = new ArrayList<>(history.snapshot(playerId).messages());
         AiMessage userMessage = new AiMessage(AiRole.USER, message);
         messages.add(userMessage);
-        AiAgentLoop loop = agentLoop;
-        if (loop == null) {
+        if (agentLoop == null) {
             AiChatResponse response = provider.chat(new AiChatRequest(messages));
             history.appendIfVersion(playerId, version, userMessage,
                     new AiMessage(AiRole.ASSISTANT, response.content()), snapshot.maxHistory());
@@ -181,7 +147,7 @@ public final class AiChatService implements AutoCloseable {
         AiToolRegistry.Snapshot tools = snapshot.toolsEnabled()
                 ? toolRegistry.snapshot(permission -> hasToolPermission(context, permission))
                 : toolRegistry.snapshot(permission -> false);
-        return loop.run(new AiAgentRequest(provider, messages, tools, context,
+        return agentLoop.run(new AiAgentRequest(provider, messages, tools, context,
                         snapshot.maxToolSteps(), snapshot.maxToolCallsPerTurn()))
                 .thenApply(result -> {
                     history.appendIfVersion(playerId, version, result.turn(), snapshot.maxHistory());
@@ -204,20 +170,10 @@ public final class AiChatService implements AutoCloseable {
                 result.completeExceptionally(failure);
             }
         };
-        ThreadPoolExecutor selected = executor;
         try {
-            selected.execute(command);
+            executor.execute(command);
         } catch (RejectedExecutionException exception) {
-            ThreadPoolExecutor replacement = executor;
-            if (selected != replacement && accepting.get()) {
-                try {
-                    replacement.execute(command);
-                } catch (RejectedExecutionException retryFailure) {
-                    result.completeExceptionally(retryFailure);
-                }
-            } else {
-                result.completeExceptionally(exception);
-            }
+            result.completeExceptionally(exception);
         }
         return result;
     }
@@ -241,12 +197,8 @@ public final class AiChatService implements AutoCloseable {
 
     private void shutdownWhenRetiredAndIdle() {
         if (!accepting.get() && playerChains.isEmpty()) {
-            executors.forEach(ThreadPoolExecutor::shutdown);
+            executor.shutdown();
         }
-    }
-
-    private void shutdownNow() {
-        executors.forEach(ThreadPoolExecutor::shutdownNow);
     }
 
     private static ThreadPoolExecutor createExecutor(AiRuntime runtime) {

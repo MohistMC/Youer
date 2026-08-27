@@ -113,21 +113,6 @@ public final class AiConversationStore {
         }
     }
 
-    public int size(UUID playerId) {
-        lifecycleLock.readLock().lock();
-        try {
-            Conversation conversation = conversations.get(playerId);
-            if (conversation == null) {
-                return 0;
-            }
-            synchronized (conversation) {
-                return conversation.messages.size();
-            }
-        } finally {
-            lifecycleLock.readLock().unlock();
-        }
-    }
-
     public Map<UUID, AiConversationSnapshot> snapshots() {
         lifecycleLock.readLock().lock();
         try {

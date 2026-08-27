@@ -6,7 +6,6 @@ import com.mohistmc.youer.ai.model.AiProfile;
 import com.mohistmc.youer.ai.provider.AiProvider;
 import com.mohistmc.youer.ai.provider.AiProviderFactory;
 import java.time.Duration;
-import java.util.Map;
 
 public final class AiRuntimeFactory {
 
@@ -27,7 +26,6 @@ public final class AiRuntimeFactory {
         AiProvider provider = AiProviderFactory.create(profile, httpClient);
         return new AiRuntime(
                 YouerConfig.ai_enable,
-                profile.name(),
                 YouerConfig.ai_command,
                 YouerConfig.ai_all_command,
                 YouerConfig.ai_chat_format,
@@ -39,7 +37,7 @@ public final class AiRuntimeFactory {
                 Math.max(1, YouerConfig.ai_tools_max_calls_per_turn),
                 Math.max(1, YouerConfig.ai_tools_confirmation_timeout_seconds),
                 YouerConfig.ai_tools_player_commands_require_confirmation,
-                Map.of(profile.name(), profile),
-                Map.of(profile.name(), provider));
+                profile,
+                provider);
     }
 }

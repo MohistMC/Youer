@@ -184,7 +184,7 @@ public class YouerConfig {
     public static class ModCompatibilityConfig {
         public boolean enable;
         public List<String> skip_worlds;
-        
+
         public ModCompatibilityConfig(boolean enable, List<String> skip_worlds) {
             this.enable = enable;
             this.skip_worlds = skip_worlds;
@@ -299,6 +299,7 @@ public class YouerConfig {
         return config.getStringList(path);
     }
 
+    // TODO Map<List<Map<?, ?>>>
     private static List<Map<?, ?>> getMapList(String path) {
         config.addDefault(path, new ArrayList<>());
         return List.copyOf(config.getMapList(path));

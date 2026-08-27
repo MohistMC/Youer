@@ -9,7 +9,6 @@ public record AiPendingAction(
         String id,
         UUID playerId,
         String summary,
-        long generation,
         Instant createdAt,
         Instant expiresAt,
         CompletableFuture<AiConfirmationDecision> future) {

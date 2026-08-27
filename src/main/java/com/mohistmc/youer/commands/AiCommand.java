@@ -108,7 +108,7 @@ public final class AiCommand extends BukkitCommand {
 
     private static void showHistory(Player player, AiChatService service) {
         Map<UUID, AiConversationSnapshot> histories = service.histories();
-        String profile = service.runtime().defaultProfileName();
+        String profile = service.runtime().profile().name();
         DemoGUI gui = new DemoGUI(I18n.as("ai.history.title", profile, histories.size()));
         histories.forEach((playerId, snapshot) -> gui.addItem(new GUIItem(new ItemStackFactory(Material.PLAYER_HEAD)
                 .setLore(List.of(I18n.as("ai.history.lore", snapshot.messages().size())))

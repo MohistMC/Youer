@@ -9,19 +9,17 @@ import com.mohistmc.youer.api.ai.tool.AiToolRisk;
 import java.time.Duration;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
-import java.util.function.LongSupplier;
 
 public final class AiConfirmationApproval implements AiToolApproval {
     private final AiConfirmationStore store;
     private final Duration timeout;
     private final boolean confirmPlayerCommands;
-    private final LongSupplier generation;
     private final Consumer<AiPendingAction> notifier;
 
     public AiConfirmationApproval(AiConfirmationStore store, Duration timeout, boolean confirmPlayerCommands,
-            LongSupplier generation, Consumer<AiPendingAction> notifier) {
+            Consumer<AiPendingAction> notifier) {
         this.store = store; this.timeout = timeout; this.confirmPlayerCommands = confirmPlayerCommands;
-        this.generation = generation; this.notifier = notifier;
+        this.notifier = notifier;
     }
 
     @Override public CompletionStage<AiToolApprovalDecision> request(
@@ -34,7 +32,7 @@ public final class AiConfirmationApproval implements AiToolApproval {
         String arguments = call.arguments().toString();
         if (arguments.length() > 512) arguments = arguments.substring(0, 512);
         AiPendingAction action = store.create(context.playerId(), tool.definition().name() + " " + arguments,
-                generation.getAsLong(), timeout);
+                timeout);
         notifier.accept(action);
         return action.decision().thenApply(decision -> switch (decision) {
             case APPROVED -> AiToolApprovalDecision.APPROVED;
