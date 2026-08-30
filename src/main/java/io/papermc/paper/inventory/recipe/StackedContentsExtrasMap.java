@@ -4,6 +4,9 @@ import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.ObjectOpenCustomHashSet;
 import it.unimi.dsi.fastutil.objects.ObjectSet;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Predicate;
 import net.minecraft.world.entity.player.StackedContents;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.ItemStackLinkedSet;
@@ -16,6 +19,7 @@ public final class StackedContentsExtrasMap {
     private final StackedContents<ItemOrExact> contents;
     public Object2IntMap<ItemOrExact.Item> regularRemoved = new Object2IntOpenHashMap<>(); // needed for re-using the regular contents (for ShapelessRecipe)
     public final ObjectSet<ItemStack> exactIngredients = new ObjectOpenCustomHashSet<>(ItemStackLinkedSet.TYPE_AND_TAG);
+    public final List<Predicate<ItemStack>> predicateIngredients = new ArrayList<>();
 
     public StackedContentsExtrasMap(final StackedContents<ItemOrExact> contents) {
         this.contents = contents;
@@ -23,8 +27,11 @@ public final class StackedContentsExtrasMap {
 
     public void initialize(final Recipe<?> recipe) {
         this.exactIngredients.clear();
+        this.predicateIngredients.clear();
         for (final Ingredient ingredient : recipe.placementInfo().ingredients()) {
-            if (ingredient.isExact()) {
+            if (ingredient.stackPredicate != null) {
+                this.predicateIngredients.add(ingredient.stackPredicate);
+            } else if (ingredient.isExact()) {
                 this.exactIngredients.addAll(ingredient.itemStacks());
             }
         }
@@ -54,11 +61,17 @@ public final class StackedContentsExtrasMap {
         for (final Object2IntMap.Entry<ItemOrExact.Item> entry : this.regularRemoved.object2IntEntrySet()) {
             this.contents.amounts.addTo(entry.getKey(), entry.getIntValue());
         }
+        this.predicateIngredients.clear();
         this.exactIngredients.clear();
         this.regularRemoved.clear();
     }
 
     public boolean accountStack(final ItemStack stack, final int count) {
+        for (Predicate<ItemStack> stackPredicate : this.predicateIngredients) {
+            if (!stackPredicate.test(stack)) continue;
+            this.contents.account(new ItemOrExact.Exact(stack), count);
+            return true;
+        }
         if (this.exactIngredients.contains(stack)) {
             this.contents.account(new ItemOrExact.Exact(stack), count);
             return true;

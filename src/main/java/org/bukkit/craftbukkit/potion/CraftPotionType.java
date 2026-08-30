@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.function.Supplier;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.Registries;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.alchemy.Potion;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
@@ -29,8 +30,11 @@ public class CraftPotionType implements PotionType.InternalPotionData {
         Preconditions.checkArgument(minecraft != null);
 
         net.minecraft.core.Registry<Potion> registry = CraftRegistry.getMinecraftRegistry(Registries.POTION);
-        PotionType bukkit = Registry.POTION.get(CraftNamespacedKey.fromMinecraft(registry.getResourceKey(minecraft).orElseThrow().identifier()));
-
+        Identifier key = registry.getResourceKey(minecraft).orElseThrow().identifier();
+        PotionType bukkit = Registry.POTION.get(CraftNamespacedKey.fromMinecraft(key));
+        if (bukkit == null) {
+            bukkit = CraftPotionUtil.mods.get(key);
+        }
         Preconditions.checkArgument(bukkit != null);
 
         return bukkit;

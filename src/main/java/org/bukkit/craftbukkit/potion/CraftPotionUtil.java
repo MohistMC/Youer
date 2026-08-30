@@ -3,7 +3,10 @@ package org.bukkit.craftbukkit.potion;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.BiMap;
 import com.google.common.collect.ImmutableBiMap;
+import java.util.HashMap;
+import java.util.Map;
 import net.minecraft.core.Holder;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import org.bukkit.potion.PotionData;
@@ -12,6 +15,8 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
 
 public class CraftPotionUtil {
+
+    public static Map<Identifier, PotionType> mods = new HashMap<>(); // Youer
 
     private static final BiMap<PotionType, PotionType> upgradeable = ImmutableBiMap.<PotionType, PotionType>builder()
             // Start generate - CraftPotionUtil#upgradeable

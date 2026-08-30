@@ -3795,20 +3795,20 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
     // Purpur end - ItemStack convenience methods
 
     // Youer start
-    public static Material addMaterial(String materialName, int id, boolean isBlock, boolean isItem, Identifier resourceLocation) {
+    public static Material addMaterial(String materialName, int id, int stack, boolean isBlock, boolean isItem, Identifier resourceLocation) {
         if (isBlock) {
             Material material = BY_NAME.get(materialName);
             if (material != null) {
                 material.isModBlock = true;
             } else {
-                material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, isBlock, isItem));
+                material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, isBlock, isItem));
             }
             BY_NAME.put(materialName, material);
             material.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
             BY_KEY.put(resourceLocation.toString(), material);
             return material;
         } else { // Forge Items
-            Material material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, isBlock, isItem));
+            Material material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, isBlock, isItem));
             BY_NAME.put(materialName, material);
             material.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
             material.isModItem = true;

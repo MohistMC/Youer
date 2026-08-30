@@ -37,6 +37,7 @@ import org.bukkit.Statistic;
 import org.bukkit.TreeType;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.CraftStatistic;
+import org.bukkit.craftbukkit.potion.CraftPotionUtil;
 import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 import org.bukkit.craftbukkit.util.CraftSpawnCategory;
 import org.bukkit.entity.Entity;
@@ -74,6 +75,7 @@ public class NeoForgeInjectBukkit {
         addEnumEffectAndPotion();
         addEnumMaterialsInBlocks();
         addEnumEntity();
+        // addEnumParticle();
         addStatistic();
         loadSpawnCategory();
         addPose();
@@ -90,18 +92,16 @@ public class NeoForgeInjectBukkit {
 
     public static void addEnumMaterialInItems() {
         var registry = BuiltInRegistries.ITEM;
-        List<String> materials = new ArrayList<>(Arrays.stream(Material.values())
-                .map(Enum::name)
-                .toList());
         for (Item item : registry) {
             Identifier resourceLocation = registry.getKey(item);
             boolean isMod = isMods(resourceLocation);
             String materialName = getMaterialName(resourceLocation, isMod);
 
-            if (isMod || !materials.contains(materialName)) {
+            if (isMod || CraftMagicNumbers.getMaterial(item) == null) {
                 int id = Item.getId(item);
+                int maxStackSize = item.getDefaultInstance().getMaxStackSize();
 
-                Material material = Material.addMaterial(materialName, id, false, true, resourceLocation);
+                Material material = Material.addMaterial(materialName, id, maxStackSize, false, true, resourceLocation);
 
                 if (material != null) {
                     CraftMagicNumbers.ITEM_MATERIAL.put(item, material);
@@ -110,7 +110,6 @@ public class NeoForgeInjectBukkit {
                 }
             }
         }
-        materials.clear();
     }
 
     public static void addEnumMaterialsInBlocks() {
@@ -123,12 +122,12 @@ public class NeoForgeInjectBukkit {
             boolean isMod = isMods(resourceLocation);
             String materialName = getMaterialName(resourceLocation, isMod);
 
-            // 检查是否需要添加材料
             if (isMod || !materials.contains(materialName)) {
                 int id = Item.getId(block.asItem());
                 Item item = Item.byId(id);
+                int maxStackSize = item.getDefaultInstance().getMaxStackSize();
 
-                Material material = Material.addMaterial(materialName, id, true, false, resourceLocation);
+                Material material = Material.addMaterial(materialName, id, maxStackSize, true, false, resourceLocation);
                 if (material != null) {
                     CraftMagicNumbers.BLOCK_MATERIAL.put(block, material);
                     CraftMagicNumbers.MATERIAL_BLOCK.put(material, block);
@@ -162,6 +161,7 @@ public class NeoForgeInjectBukkit {
                     } catch (Exception e) {
                         PotionType potionType = MohistDynamEnum.addEnum(PotionType.class, name, List.of(String.class), List.of(resourceLocation.toString()));
                         if (potionType != null) {
+                            CraftPotionUtil.mods.put(resourceLocation, potionType);
                             debug("Save-PotionType:{} - {}", name, potionType.name());
                         }
                     }
