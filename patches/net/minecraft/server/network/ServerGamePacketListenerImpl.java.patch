@@ -1964,18 +1964,18 @@
      @Override
      public void handleContainerClick(ServerboundContainerClickPacket p_9856_) {
          PacketUtils.ensureRunningOnSameThread(p_9856_, this, this.player.serverLevel());
-+        int clickedSlot1 = p_9856_.getSlotNum();
-+        if (clickedSlot1 >= 0 && clickedSlot1 <= this.player.containerMenu.slots.size()
-+                && com.mohistmc.youer.feature.ban.bans.BanItem.checkClickedItem(this.player, this.player.containerMenu.getSlot(clickedSlot1).getItem())) { // Youer - confiscate moshou items on click
-+            this.player.containerMenu.getSlot(clickedSlot1).set(ItemStack.EMPTY);
-+            this.player.containerMenu.sendAllDataToRemote();
-+            return;
-+        }
 +        if (this.player.isImmobile()) return; // CraftBukkit
          this.player.resetLastActionTime();
 -        if (this.player.containerMenu.containerId == p_9856_.getContainerId()) {
 -            if (this.player.isSpectator()) {
 +        if (this.player.containerMenu.containerId == p_9856_.getContainerId() && this.player.containerMenu.stillValid(this.player)) { // CraftBukkit
++            int clickedSlot1 = p_9856_.getSlotNum();
++            if (YouerConfig.ban_item_enable && clickedSlot1 >= 0 && clickedSlot1 < this.player.containerMenu.slots.size()
++                    && com.mohistmc.youer.feature.ban.bans.BanItem.checkClickedItem(this.player, this.player.containerMenu.getSlot(clickedSlot1).getItem())) { // Youer - confiscate moshou items on click
++                this.player.containerMenu.getSlot(clickedSlot1).set(ItemStack.EMPTY);
++                this.player.containerMenu.sendAllDataToRemote();
++                return;
++            }
 +            boolean cancelled = this.player.isSpectator(); // CraftBukkit - see below if
 +            if (false/*this.player.isSpectator()*/) { // CraftBukkit
                  this.player.containerMenu.sendAllDataToRemote();
