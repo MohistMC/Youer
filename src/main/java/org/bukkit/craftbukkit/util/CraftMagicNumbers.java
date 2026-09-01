@@ -168,11 +168,18 @@ public final class CraftMagicNumbers implements UnsafeValues {
     }
 
     public static Material getMaterial(Block block) {
-        return CraftMagicNumbers.BLOCK_MATERIAL.get(block);
+        Material material = CraftMagicNumbers.BLOCK_MATERIAL.get(block);
+        return material != null ? material : Material.AIR;
     }
 
     public static Material getMaterial(Item item) {
-        return CraftMagicNumbers.ITEM_MATERIAL.getOrDefault(item, Material.AIR);
+        // Note: modded items may be present in the map with a null value (see static
+        // initializer, where Material.getMaterial(<key>) returns null for unmapped mod
+        // items). getOrDefault only substitutes when the KEY is absent, not when the
+        // value is null, so guard against null explicitly to never hand callers a null
+        // Material (Bukkit/Paper and plugins assume ItemStack.getType() is non-null).
+        Material material = CraftMagicNumbers.ITEM_MATERIAL.get(item);
+        return material != null ? material : Material.AIR;
     }
 
     public static Item getItem(Material material) {

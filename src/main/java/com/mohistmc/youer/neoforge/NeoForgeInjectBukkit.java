@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -115,6 +116,7 @@ public class NeoForgeInjectBukkit {
     public static void addEnumMaterialsInBlocks() {
         var registry = BuiltInRegistries.BLOCK;
         List<String> materials = new ArrayList<>(Arrays.stream(Material.values())
+                .filter(Objects::nonNull)
                 .map(Enum::name)
                 .toList());
         for (Block block : registry) {

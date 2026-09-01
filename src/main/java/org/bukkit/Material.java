@@ -2793,6 +2793,10 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
     private final Supplier<BlockType> blockType;
     public boolean isModBlock = false;
     public boolean isModItem = false;
+    // Youer start - stack size override for dynamically added (modded) materials.
+    // -1 means "not overridden"; getMaxStackSize() falls back to the item type in that case.
+    private int modMaxStackSize = -1;
+    // Youer end
 
     private Material(final int id) {
         this(id, MaterialData.class);
@@ -2801,6 +2805,17 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
     // Youer start - constructor used to set if the Material is a block or not
     private Material(final int id, boolean isForgeBlock, boolean isForgeItem) {
         this(id);
+        this.isModBlock = isForgeBlock;
+        this.isModItem = isForgeItem;
+    }
+
+    // Constructor matching MohistDynamEnum.addEnum(Material.class, ..., (int id, int stack,
+    // boolean isForgeBlock, boolean isForgeItem)). Added because NeoForgeInjectBukkit now
+    // passes the item's max stack size; without this signature the reflective enum-injection
+    // fails and addEnum returns null, leaving modded items/blocks unmapped.
+    private Material(final int id, int stack, boolean isForgeBlock, boolean isForgeItem) {
+        this(id);
+        this.modMaxStackSize = stack;
         this.isModBlock = isForgeBlock;
         this.isModItem = isForgeItem;
     }
@@ -2941,6 +2956,12 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
         if (this == LEGACY_AIR) {
             return 0;
         }
+        // Youer start - use the stack size captured at injection time for modded materials,
+        // whose ItemType may not resolve through the registry.
+        if (this.modMaxStackSize > 0) {
+            return this.modMaxStackSize;
+        }
+        // Youer end
         ItemType type = asItemType();
         return type == null ? 64 : type.getMaxStackSize();
     }
@@ -3802,6 +3823,7 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
                 material.isModBlock = true;
             } else {
                 material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, isBlock, isItem));
+                if(material == null) return null;
             }
             BY_NAME.put(materialName, material);
             material.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
@@ -3809,6 +3831,7 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
             return material;
         } else { // Forge Items
             Material material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, isBlock, isItem));
+            if(material == null) return null;
             BY_NAME.put(materialName, material);
             material.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
             material.isModItem = true;
