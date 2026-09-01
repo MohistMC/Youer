@@ -142,7 +142,7 @@ public class CraftItemType<M extends ItemMeta> extends HolderableBase<Item> impl
 
     @Override
     public int getMaxStackSize() {
-        return this.getHandle().components().getOrDefault(DataComponents.MAX_STACK_SIZE, 64);
+        return this.getHandle().getDefaultInstance().getMaxStackSize();
     }
 
     @Override
