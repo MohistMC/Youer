@@ -1250,7 +1250,7 @@
      }
  
      @Nullable
-@@ -1688,22 +_,29 @@
+@@ -1688,11 +_,18 @@
          }
  
          public void onTickingStart(Entity p_143363_) {
@@ -1269,11 +1269,7 @@
          }
  
          public void onTrackingStart(Entity p_143371_) {
--            ServerLevel.this.getChunkSource().addEntity(p_143371_);
-+            // ServerLevel.this.getChunkSource().addEntity(p_143371_); // Paper - ignore and warn about illegal addEntity calls instead of crashing server; moved down below valid=true
-             if (p_143371_ instanceof ServerPlayer serverplayer) {
-                 ServerLevel.this.players.add(serverplayer);
-                 ServerLevel.this.updateSleepingPlayerList();
+@@ -1703,7 +_,7 @@
              }
  
              if (p_143371_ instanceof Mob mob) {
@@ -1282,7 +1278,7 @@
                      String s = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
                          "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
-@@ -1713,16 +_,67 @@
+@@ -1713,16 +_,66 @@
                  ServerLevel.this.navigatingMobs.add(mob);
              }
  
@@ -1297,7 +1293,6 @@
              p_143371_.updateDynamicGameEventListener(DynamicGameEventListener::add);
 +            p_143371_.inWorld = true; // CraftBukkit - Mark entity as in world
 +            p_143371_.valid = true; // CraftBukkit
-+            ServerLevel.this.getChunkSource().addEntity(p_143371_); // Paper - ignore and warn about illegal addEntity calls instead of crashing server
 +            // Paper start - Entity origin API
 +            if (p_143371_.getOriginVector() == null) {
 +                p_143371_.setOrigin(p_143371_.getBukkitEntity().getLocation());

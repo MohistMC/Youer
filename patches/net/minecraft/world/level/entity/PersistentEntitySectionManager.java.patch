@@ -47,7 +47,7 @@
              return false;
          } else {
              return true;
-@@ -71,7 +_,16 @@
+@@ -71,11 +_,26 @@
          return this.addEntity(p_157534_, false);
      }
  
@@ -64,6 +64,16 @@
          if (!this.addEntityUuid(p_157539_)) {
              return false;
          } else {
+             long i = SectionPos.asLong(p_157539_.blockPosition());
++            if (p_157539_ instanceof Entity entity && this.chunkVisibility.get(ChunkPos.asLong(entity.getBlockX() >> 4, entity.getBlockZ() >> 4)) == Visibility.HIDDEN) {
++                if (this.permanentStorage instanceof EntityStorage storage
++                        && storage.level.getChunkSource().isChunkLoaded(entity.getBlockX() >> 4, entity.getBlockZ() >> 4)) {
++                    this.updateChunkStatus(new ChunkPos(entity.getBlockX() >> 4, entity.getBlockZ() >> 4), FullChunkStatus.FULL);
++                }
++            }
+             EntitySection<T> entitysection = this.sectionStorage.getOrCreateSection(i);
+             entitysection.add(p_157539_);
+             p_157539_.setLevelCallback(new PersistentEntitySectionManager.Callback(p_157539_, i, entitysection));
 @@ -101,11 +_,17 @@
      }
  
