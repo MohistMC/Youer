@@ -75,7 +75,7 @@
          return p_53455_.getBlockState(blockpos).isFaceSturdy(p_53455_, blockpos, Direction.UP) || this.isValidFireLocation(p_53455_, p_53456_);
      }
  
-+    private AtomicReference<BlockPos> sourceposition = new AtomicReference(BlockPos.ZERO);
++    private final AtomicReference<BlockPos> checkBurnOut$sourceposition = new AtomicReference<>(BlockPos.ZERO);
      @Override
      protected void tick(BlockState p_221160_, ServerLevel p_221161_, BlockPos p_221162_, RandomSource p_221163_) {
 +        if (BanEvents.banFireTick()) return;
@@ -96,7 +96,7 @@
              } else {
                  int j = Math.min(15, i + p_221163_.nextInt(3) / 2);
                  if (i != j) {
-@@ -178,26 +_,28 @@
+@@ -178,26 +_,33 @@
                      if (!this.isValidFireLocation(p_221161_, p_221162_)) {
                          BlockPos blockpos = p_221162_.below();
                          if (!p_221161_.getBlockState(blockpos).isFaceSturdy(p_221161_, blockpos, Direction.UP) || i > 3) {
@@ -123,12 +123,17 @@
 -                this.checkBurnOut(p_221161_, p_221162_.above(), 250 + k, p_221163_, i);
 -                this.checkBurnOut(p_221161_, p_221162_.north(), 300 + k, p_221163_, i);
 -                this.checkBurnOut(p_221161_, p_221162_.south(), 300 + k, p_221163_, i);
-+
++                this.checkBurnOut$sourceposition.set(p_221162_);
 +                this.checkBurnOut(p_221161_, p_221162_.east(), 300 + k, p_221163_, i, Direction.WEST);
++                this.checkBurnOut$sourceposition.set(p_221162_);
 +                this.checkBurnOut(p_221161_, p_221162_.west(), 300 + k, p_221163_, i, Direction.EAST);
++                this.checkBurnOut$sourceposition.set(p_221162_);
 +                this.checkBurnOut(p_221161_, p_221162_.below(), 250 + k, p_221163_, i, Direction.UP);
++                this.checkBurnOut$sourceposition.set(p_221162_);
 +                this.checkBurnOut(p_221161_, p_221162_.above(), 250 + k, p_221163_, i, Direction.DOWN);
++                this.checkBurnOut$sourceposition.set(p_221162_);
 +                this.checkBurnOut(p_221161_, p_221162_.north(), 300 + k, p_221163_, i, Direction.SOUTH);
++                this.checkBurnOut$sourceposition.set(p_221162_);
 +                this.checkBurnOut(p_221161_, p_221162_.south(), 300 + k, p_221163_, i, Direction.NORTH);
 +
                  BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos();
@@ -155,7 +160,7 @@
                                      }
                                  }
                              }
-@@ -240,32 +_,56 @@
+@@ -240,32 +_,57 @@
              || p_53429_.isRainingAt(p_53430_.south());
      }
  
@@ -189,7 +194,8 @@
 +            // CraftBukkit start
 +            if (!AsyncCatcher.catchAsync()) {
 +                org.bukkit.block.Block theBlock = p_221151_.getWorld().getBlockAt(p_221152_.getX(), p_221152_.getY(), p_221152_.getZ());
-+                org.bukkit.block.Block sourceBlock = CraftBlock.at(p_221151_, sourceposition.get());
++                BlockPos sourceposition = checkBurnOut$sourceposition.getAndSet(BlockPos.ZERO);
++                org.bukkit.block.Block sourceBlock = p_221151_.getWorld().getBlockAt(sourceposition.getX(), sourceposition.getY(), sourceposition.getZ());
 +
 +                org.bukkit.event.block.BlockBurnEvent event = new org.bukkit.event.block.BlockBurnEvent(theBlock, sourceBlock);
 +                p_221151_.getCraftServer().getPluginManager().callEvent(event);
@@ -198,7 +204,7 @@
 +                    return;
 +                }
 +
-+                if (blockstate.getBlock() instanceof TntBlock && !CraftEventFactory.callTNTPrimeEvent(p_221151_, p_221152_, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.FIRE, null, sourceposition.getAndSet(BlockPos.ZERO))) {
++                if (blockstate.getBlock() instanceof TntBlock && !CraftEventFactory.callTNTPrimeEvent(p_221151_, p_221152_, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.FIRE, null, sourceposition)) {
 +                    return;
 +                }
 +            }
