@@ -10,6 +10,7 @@ import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.worldselection.AbstractGameRulesScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.util.CommonColors;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.world.level.gamerules.GameRule;
@@ -33,7 +34,7 @@ public class GenericGameRuleEntry<T> extends GameRuleEntry {
             if (value.isSuccess()) {
                 input.setTextColor(CommonColors.TEXT_GRAY);
                 screen.clearInvalid(this);
-                screen.gameRules.set(gameRule, value.getOrThrow(), null);
+                screen.gameRules.set(gameRule, value.getOrThrow(), (ServerLevel) null);
             } else {
                 input.setTextColor(CommonColors.RED);
                 screen.markInvalid(this);

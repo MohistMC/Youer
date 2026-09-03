@@ -1,5 +1,13 @@
 --- a/net/minecraft/client/gui/screens/worldselection/CreateWorldScreen.java
 +++ b/net/minecraft/client/gui/screens/worldselection/CreateWorldScreen.java
+@@ -55,6 +_,7 @@
+ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.RegistryLayer;
+ import net.minecraft.server.WorldLoader;
++import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.packs.repository.PackRepository;
+ import net.minecraft.server.packs.repository.ServerPacksSource;
+ import net.minecraft.server.permissions.LevelBasedPermissionSet;
 @@ -169,6 +_,7 @@
          queueLoadScreen(minecraft, PREPARING_WORLD_DATA);
          long start = Util.getMillis();
@@ -8,6 +16,15 @@
          WorldDataConfiguration dataConfig = SharedConstants.IS_RUNNING_IN_IDE
              ? new WorldDataConfiguration(new DataPackConfig(List.of("vanilla", "tests"), List.of()), FeatureFlags.DEFAULT_FLAGS)
              : WorldDataConfiguration.DEFAULT;
+@@ -294,7 +_,7 @@
+         GameRules gameRules;
+         if (isDebug) {
+             gameRules = MinecraftServer.DEFAULT_GAME_RULES.get();
+-            gameRules.set(GameRules.ADVANCE_TIME, false, null);
++            gameRules.set(GameRules.ADVANCE_TIME, false, (ServerLevel) null);
+         } else {
+             gameRules = this.uiState.getGameRules().copy(enabledFeatures);
+         }
 @@ -329,6 +_,10 @@
              SystemToast.onPackCopyFailure(this.minecraft, worldFolder);
              return false;

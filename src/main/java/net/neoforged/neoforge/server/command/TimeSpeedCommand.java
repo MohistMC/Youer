@@ -12,6 +12,7 @@ import com.mojang.brigadier.builder.ArgumentBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
+import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.gamerules.GameRules;
 
 class TimeSpeedCommand {
@@ -61,10 +62,10 @@ class TimeSpeedCommand {
         var gameRules = source.getLevel().getGameRules();
         final var advanceTime = gameRules.get(GameRules.ADVANCE_TIME);
         if (!advanceTime && speed > 0) {
-            gameRules.set(GameRules.ADVANCE_TIME, true, null);
+            gameRules.set(GameRules.ADVANCE_TIME, true, (ServerLevel) null);
             source.sendSuccess(() -> CommandUtils.makeTranslatableWithFallback("commands.gamerule.set", GameRules.ADVANCE_TIME.id(), gameRules.getAsString(GameRules.ADVANCE_TIME)), true);
         } else if (advanceTime && speed == 0) {
-            gameRules.set(GameRules.ADVANCE_TIME, false, null);
+            gameRules.set(GameRules.ADVANCE_TIME, false, (ServerLevel) null);
             source.sendSuccess(() -> CommandUtils.makeTranslatableWithFallback("commands.gamerule.set", GameRules.ADVANCE_TIME.id(), gameRules.getAsString(GameRules.ADVANCE_TIME)), true);
             return Command.SINGLE_SUCCESS;
         }

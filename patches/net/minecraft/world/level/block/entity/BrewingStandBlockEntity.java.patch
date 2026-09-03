@@ -130,15 +130,14 @@
              setChanged(level, pos, selfState);
          }
  
-@@ -109,7 +_,7 @@
+@@ -109,6 +_,7 @@
              entity.brewTime--;
              boolean isDoneBrewing = entity.brewTime == 0;
              if (isDoneBrewing && brewable) {
--                doBrew(level, pos, entity.items);
-+                doBrew(level, pos, entity.items, entity); // CraftBukkit
++                doBrew$brewingStandBlock = entity;
+                 doBrew(level, pos, entity.items);
              } else if (!brewable || !ingredient.is(entity.ingredient)) {
                  entity.brewTime = 0;
-             }
 @@ -117,7 +_,14 @@
              setChanged(level, pos, selfState);
          } else if (brewable && entity.fuel > 0) {
@@ -164,12 +163,12 @@
                  return;
              }
  
-@@ -170,16 +_,41 @@
+@@ -170,16 +_,43 @@
          return false;
      }
  
--    private static void doBrew(Level level, BlockPos pos, NonNullList<ItemStack> items) {
-+    private static void doBrew(Level level, BlockPos pos, NonNullList<ItemStack> items, BrewingStandBlockEntity brewingstandblockentity) { // CraftBukkit
++    private static BrewingStandBlockEntity doBrew$brewingStandBlock;
+     private static void doBrew(Level level, BlockPos pos, NonNullList<ItemStack> items) {
 +        if (net.neoforged.neoforge.event.EventHooks.onPotionAttemptBrew(items)) return;
          ItemStack ingredient = items.get(3);
          PotionBrewing potionBrewing = level.potionBrewing();
@@ -179,7 +178,8 @@
 -        }
 -
 +        // CraftBukkit start
-+        InventoryHolder owner = brewingstandblockentity.getOwner();
++        BrewingStandBlockEntity brewingstandblockentity = doBrew$brewingStandBlock;
++        InventoryHolder owner = brewingstandblockentity == null ? null : brewingstandblockentity.getOwner();
 +        List<org.bukkit.inventory.ItemStack> brewResults = new ArrayList<>(3);
 +        for (int i = 0; i < 3; ++i) {
 +            brewResults.add(i, CraftItemStack.asCraftMirror(potionBrewing.mix(ingredient, items.get(i))));

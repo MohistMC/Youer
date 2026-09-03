@@ -1,15 +1,41 @@
 --- a/net/minecraft/client/gui/screens/worldselection/AbstractGameRulesScreen.java
 +++ b/net/minecraft/client/gui/screens/worldselection/AbstractGameRulesScreen.java
-@@ -293,6 +_,12 @@
-                             this.addEntry(gameRule, (x$0, x$1, x$2, x$3) -> AbstractGameRulesScreen.this.new IntegerRuleEntry(x$0, x$1, x$2, x$3));
-                         }
+@@ -33,6 +_,7 @@
+ import net.minecraft.network.chat.Component;
+ import net.minecraft.network.chat.ComponentUtils;
+ import net.minecraft.network.chat.MutableComponent;
++import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.FormattedCharSequence;
+ import net.minecraft.world.level.gamerules.GameRule;
+ import net.minecraft.world.level.gamerules.GameRuleCategory;
+@@ -141,7 +_,7 @@
+             this.checkbox = CycleButton.onOffBuilder(AbstractGameRulesScreen.this.gameRules.get(gameRule))
+                 .displayOnlyValue()
+                 .withCustomNarration(button -> button.createDefaultNarrationMessage().append("\n").append(narration))
+-                .create(10, 5, 44, 20, name, (button, newValue) -> AbstractGameRulesScreen.this.gameRules.set(gameRule, newValue, null));
++                .create(10, 5, 44, 20, name, (button, newValue) -> AbstractGameRulesScreen.this.gameRules.set(gameRule, newValue, (ServerLevel) null));
+             this.children.add(this.checkbox);
+         }
  
+@@ -234,7 +_,7 @@
+                 if (value.isSuccess()) {
+                     this.input.setTextColor(-2039584);
+                     AbstractGameRulesScreen.this.clearInvalid(this);
+-                    AbstractGameRulesScreen.this.gameRules.set(gameRule, value.getOrThrow(), null);
++                    AbstractGameRulesScreen.this.gameRules.set(gameRule, value.getOrThrow(), (ServerLevel) null);
+                 } else {
+                     this.input.setTextColor(-65536);
+                     AbstractGameRulesScreen.this.markInvalid(this);
+@@ -291,6 +_,12 @@
+                         @Override
+                         public void visitInteger(GameRule<Integer> gameRule) {
+                             this.addEntry(gameRule, (x$0, x$1, x$2, x$3) -> AbstractGameRulesScreen.this.new IntegerRuleEntry(x$0, x$1, x$2, x$3));
++                        }
++
 +                        @Override
 +                        public <T> void visit(GameRule<T> gameRule) {
 +                            // Neo: Append custom entries for none bool/int game rules
 +                            net.neoforged.neoforge.client.gamerules.GameRuleEntryFactoryManager.appendGameRuleEntry(AbstractGameRulesScreen.this, gameRule, this::addEntry);
-+                        }
-+
+                         }
+ 
                          private <T> void addEntry(GameRule<T> gameRule, AbstractGameRulesScreen.EntryFactory<T> factory) {
-                             Component readableName = Component.translatable(gameRule.getDescriptionId());
-                             String descriptionKey = gameRule.getDescriptionId() + ".description";

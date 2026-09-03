@@ -54,6 +54,7 @@ public class AutoDeleteMods {
         //put("carpet.CarpetServer", DeletionReason.DUPLICATE_FEATURE);
         put("com.axalotl.async.neoforge.AsyncNeoForge", DeletionReason.DUPLICATE_FEATURE);
         put("com.ishland.c2me.C2MEMod", DeletionReason.DUPLICATE_FEATURE);
+        put("com.github.mahmudindev.mcmod.dimensionfixer.neoforge.DimensionFixerNeoForge", DeletionReason.DUPLICATE_FEATURE);
     }};
 
     /**
