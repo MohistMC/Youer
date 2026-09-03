@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/storage/loot/LootTable.java
 +++ b/net/minecraft/world/level/storage/loot/LootTable.java
-@@ -9,10 +_,10 @@
+@@ -9,12 +_,13 @@
  import java.util.Iterator;
  import java.util.List;
  import java.util.Optional;
@@ -9,11 +9,14 @@
  import java.util.function.Consumer;
  import net.minecraft.core.Holder;
 -import net.minecraft.core.HolderSet;
--import net.minecraft.core.RegistryCodecs;
  import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
  import net.minecraft.resources.Identifier;
- import net.minecraft.resources.RegistryFileCodec;
-@@ -28,6 +_,10 @@
++import net.minecraft.resources.RegistryFileCodec;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.Mth;
+@@ -27,6 +_,10 @@
  import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
  import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
  import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
@@ -24,7 +27,7 @@
  import org.slf4j.Logger;
  
  public class LootTable implements Validatable {
-@@ -40,31 +_,36 @@
+@@ -39,31 +_,36 @@
              i -> i.group(
                      LootContextParamSets.CODEC.lenientOptionalFieldOf("type", DEFAULT_PARAM_SET).forGetter(t -> t.paramSet),
                      Identifier.CODEC.optionalFieldOf("random_sequence").forGetter(t -> t.randomSequence),
@@ -36,11 +39,12 @@
                  .apply(i, LootTable::new)
          )
      );
+-    public static final Codec<Holder<LootTable>> CODEC = RegistryCodecs.holder(Registries.LOOT_TABLE, DIRECT_CODEC);
+-    public static final Codec<HolderSet<LootTable>> LIST_CODEC = RegistryCodecs.holderSet(Registries.LOOT_TABLE, DIRECT_CODEC);
+-    public static final LootTable EMPTY = new LootTable(LootContextParamSets.EMPTY, Optional.empty(), List.of(), Optional.empty());
 +    public static final Codec<Optional<net.neoforged.neoforge.common.conditions.WithConditions<LootTable>>> CONDITIONAL_DIRECT_CODEC =
 +            net.neoforged.neoforge.common.conditions.ConditionalOps.createConditionalCodecWithConditions(DIRECT_CODEC);
-     public static final Codec<Holder<LootTable>> CODEC = RegistryFileCodec.create(Registries.LOOT_TABLE, DIRECT_CODEC);
--    public static final Codec<HolderSet<LootTable>> LIST_CODEC = RegistryCodecs.homogeneousList(Registries.LOOT_TABLE, DIRECT_CODEC);
--    public static final LootTable EMPTY = new LootTable(LootContextParamSets.EMPTY, Optional.empty(), List.of(), Optional.empty());
++    public static final Codec<Holder<LootTable>> CODEC = RegistryFileCodec.create(Registries.LOOT_TABLE, DIRECT_CODEC);
 +    public static final LootTable EMPTY = new LootTable(LootContextParamSets.EMPTY, Optional.empty(), List.of(), List.of());
      private final ContextKeySet paramSet;
      private final Optional<Identifier> randomSequence;
@@ -70,7 +74,7 @@
                      output.accept(result);
                  } else {
                      int count = result.getCount();
-@@ -79,14 +_,16 @@
+@@ -78,14 +_,16 @@
          };
      }
  
@@ -88,7 +92,7 @@
  
              for (LootPool pool : this.pools) {
                  pool.addRandomItems(decoratedOutput, context);
-@@ -99,18 +_,15 @@
+@@ -98,18 +_,15 @@
      }
  
      public void getRandomItems(LootParams params, long optionalLootTableSeed, Consumer<ItemStack> output) {
@@ -110,7 +114,7 @@
      }
  
      public ObjectArrayList<ItemStack> getRandomItems(LootParams params, RandomSource randomSource) {
-@@ -127,7 +_,8 @@
+@@ -126,7 +_,8 @@
  
      private ObjectArrayList<ItemStack> getRandomItems(LootContext context) {
          ObjectArrayList<ItemStack> result = new ObjectArrayList<>();
@@ -120,7 +124,7 @@
          return result;
      }
  
-@@ -138,13 +_,26 @@
+@@ -137,13 +_,26 @@
      @Override
      public void validate(ValidationContext context) {
          Validatable.validate(context, "pools", this.pools);
@@ -149,7 +153,7 @@
          List<Integer> availableSlots = this.getAvailableSlots(container, random);
          this.shuffleAndSplitItems(itemStacks, availableSlots.size(), random);
  
-@@ -214,11 +_,68 @@
+@@ -213,11 +_,68 @@
          return new LootTable.Builder();
      }
  
@@ -219,7 +223,7 @@
  
          public LootTable.Builder withPool(LootPool.Builder pool) {
              this.pools.add(pool.build());
-@@ -235,8 +_,8 @@
+@@ -234,8 +_,8 @@
              return this;
          }
  
@@ -230,7 +234,7 @@
              return this;
          }
  
-@@ -245,7 +_,21 @@
+@@ -244,7 +_,21 @@
          }
  
          public LootTable build() {

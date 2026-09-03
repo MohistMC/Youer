@@ -1,0 +1,31 @@
+--- a/net/minecraft/world/level/storage/loot/providers/number/AggregateProvider.java
++++ /dev/null
+@@ -1,28 +_,0 @@
+-package net.minecraft.world.level.storage.loot.providers.number;
+-
+-import com.mojang.serialization.Codec;
+-import com.mojang.serialization.MapCodec;
+-import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import net.minecraft.core.HolderSet;
+-import net.minecraft.world.level.storage.loot.Validatable;
+-import net.minecraft.world.level.storage.loot.ValidationContext;
+-
+-public interface AggregateProvider<Value extends Validatable> extends Validatable {
+-    static <Value extends Validatable, Self extends AggregateProvider<Value>> MapCodec<Self> mapCodec(
+-        Codec<HolderSet<Value>> valueCodec, AggregateProvider.Factory<Value, Self> factory
+-    ) {
+-        return RecordCodecBuilder.mapCodec(i -> i.group(valueCodec.fieldOf("inputs").forGetter(AggregateProvider::inputs)).apply(i, factory::create));
+-    }
+-
+-    HolderSet<Value> inputs();
+-
+-    @Override
+-    default void validate(ValidationContext context) {
+-        Validatable.validateHolderSet(context, "inputs", this.inputs(), 1);
+-    }
+-
+-    @FunctionalInterface
+-    interface Factory<Value extends Validatable, Self extends AggregateProvider<Value>> {
+-        Self create(HolderSet<Value> value);
+-    }
+-}

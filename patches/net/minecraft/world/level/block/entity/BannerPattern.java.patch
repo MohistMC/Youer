@@ -1,0 +1,24 @@
+--- a/net/minecraft/world/level/block/entity/BannerPattern.java
++++ b/net/minecraft/world/level/block/entity/BannerPattern.java
+@@ -4,11 +_,11 @@
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.network.RegistryFriendlyByteBuf;
+ import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.resources.Identifier;
++import net.minecraft.resources.RegistryFileCodec;
+ 
+ public record BannerPattern(Identifier assetId, String translationKey) {
+     public static final Codec<BannerPattern> DIRECT_CODEC = RecordCodecBuilder.create(
+@@ -21,7 +_,7 @@
+     public static final StreamCodec<RegistryFriendlyByteBuf, BannerPattern> DIRECT_STREAM_CODEC = StreamCodec.composite(
+         Identifier.STREAM_CODEC, BannerPattern::assetId, ByteBufCodecs.STRING_UTF8, BannerPattern::translationKey, BannerPattern::new
+     );
+-    public static final Codec<Holder<BannerPattern>> CODEC = RegistryCodecs.holder(Registries.BANNER_PATTERN, DIRECT_CODEC);
++    public static final Codec<Holder<BannerPattern>> CODEC = RegistryFileCodec.create(Registries.BANNER_PATTERN, DIRECT_CODEC);
+     public static final StreamCodec<RegistryFriendlyByteBuf, Holder<BannerPattern>> STREAM_CODEC = ByteBufCodecs.holder(
+         Registries.BANNER_PATTERN, DIRECT_STREAM_CODEC
+     );

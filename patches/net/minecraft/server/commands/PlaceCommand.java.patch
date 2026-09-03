@@ -21,7 +21,21 @@
  import net.minecraft.commands.arguments.TemplateMirrorArgument;
  import net.minecraft.commands.arguments.TemplateRotationArgument;
  import net.minecraft.commands.arguments.coordinates.BlockPosArgument;
-@@ -62,26 +_,26 @@
+@@ -32,8 +_,6 @@
+ import net.minecraft.world.level.block.Rotation;
+ import net.minecraft.world.level.block.entity.StructureBlockEntity;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+-import net.minecraft.world.level.levelgen.RandomState;
+-import net.minecraft.world.level.levelgen.densityfunction.SamplerContext;
+ import net.minecraft.world.level.levelgen.feature.Feature;
+ import net.minecraft.world.level.levelgen.structure.BoundingBox;
+ import net.minecraft.world.level.levelgen.structure.Structure;
+@@ -60,30 +_,30 @@
+         Component.translatable("commands.place.template.failed")
+     );
+     private static final SuggestionProvider<CommandSourceStack> SUGGEST_TEMPLATES = (context, builder) -> {
+-        StructureTemplateManager structureManager = context.getSource().getLevel().getStructureTemplateManager();
++        StructureTemplateManager structureManager = context.getSource().getLevel().getStructureManager();
          return SharedSuggestionProvider.suggestResource(structureManager.listTemplates(), builder);
      };
  
@@ -58,7 +72,7 @@
                                              )
                                          )
                                  )
-@@ -251,7 +_,7 @@
+@@ -253,7 +_,7 @@
          );
      }
  
@@ -67,7 +81,7 @@
          ServerLevel level = source.getLevel();
          Feature feature = featureHolder.value();
          ChunkPos chunkPos = ChunkPos.containing(pos);
-@@ -260,14 +_,8 @@
+@@ -262,14 +_,8 @@
              throw ERROR_FEATURE_FAILED.create();
          }
  
@@ -84,7 +98,26 @@
          return 1;
      }
  
-@@ -305,6 +_,7 @@
+@@ -289,16 +_,14 @@
+         ServerLevel level = source.getLevel();
+         Structure structure = structureHolder.value();
+         ChunkGenerator chunkGenerator = level.getChunkSource().getGenerator();
+-        RandomState randomState = level.getChunkSource().randomState();
+         StructureStart start = structure.generate(
+             structureHolder,
+             level.dimension(),
+             source.registryAccess(),
+             chunkGenerator,
+             chunkGenerator.getBiomeSource(),
+-            randomState.createClimateSampler(SamplerContext.EMPTY_UNCACHED),
+-            randomState,
+-            level.getStructureTemplateManager(),
++            level.getChunkSource().randomState(),
++            level.getStructureManager(),
+             level.getSeed(),
+             ChunkPos.containing(pos),
+             0,
+@@ -309,6 +_,7 @@
              throw ERROR_STRUCTURE_FAILED.create();
          }
  
@@ -92,3 +125,12 @@
          BoundingBox boundingBox = start.getBoundingBox();
          ChunkPos chunkMin = new ChunkPos(SectionPos.blockToSectionCoord(boundingBox.minX()), SectionPos.blockToSectionCoord(boundingBox.minZ()));
          ChunkPos chunkMax = new ChunkPos(SectionPos.blockToSectionCoord(boundingBox.maxX()), SectionPos.blockToSectionCoord(boundingBox.maxZ()));
+@@ -333,7 +_,7 @@
+         CommandSourceStack source, Identifier template, BlockPos pos, Rotation rotation, Mirror mirror, float integrity, int seed, boolean strict
+     ) throws CommandSyntaxException {
+         ServerLevel level = source.getLevel();
+-        StructureTemplateManager manager = level.getStructureTemplateManager();
++        StructureTemplateManager manager = level.getStructureManager();
+ 
+         Optional<StructureTemplate> maybeStructureTemplate;
+         try {

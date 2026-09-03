@@ -1,6 +1,29 @@
 --- a/net/minecraft/world/level/block/Blocks.java
 +++ b/net/minecraft/world/level/block/Blocks.java
-@@ -202,7 +_,7 @@
+@@ -46,22 +_,12 @@
+ import net.minecraft.world.level.material.Fluids;
+ import net.minecraft.world.level.material.MapColor;
+ import net.minecraft.world.level.material.PushReaction;
+-import net.minecraft.world.phys.AABB;
+ 
+ public class Blocks {
+     private static final BlockBehaviour.StatePredicate NOT_CLOSED_SHULKER = (state, level, pos) -> level.getBlockEntity(pos) instanceof ShulkerBoxBlockEntity shulkerBoxBlockEntity
+         ? shulkerBoxBlockEntity.isClosed()
+         : true;
+     private static final BlockBehaviour.StatePredicate NOT_EXTENDED_PISTON = (state, level, pos) -> !state.getValue(PistonBaseBlock.EXTENDED);
+-    private static final BlockBehaviour.StateArgumentPredicate<AABB> NEAR_PLANE_INTERSECTS_OUTLINE = (state, level, blockPos, nearPlaneBox) -> {
+-        for (AABB outlineBox : state.getOcclusionShape().toAabbs()) {
+-            if (outlineBox.move(blockPos).intersects(nearPlaneBox)) {
+-                return true;
+-            }
+-        }
+-
+-        return false;
+-    };
+     public static final Block AIR = register(BlockItemIds.AIR, AirBlock::new, BlockBehaviour.Properties.of().replaceable().noCollision().noLootTable().air());
+     public static final Block STONE = register(
+         BlockItemIds.STONE,
+@@ -212,7 +_,7 @@
              .randomTicks()
              .instabreak()
              .sound(SoundType.GRASS)
@@ -9,7 +32,7 @@
      );
      public static final Block SPRUCE_SAPLING = register(
          BlockItemIds.SPRUCE_SAPLING,
-@@ -213,7 +_,7 @@
+@@ -223,7 +_,7 @@
              .randomTicks()
              .instabreak()
              .sound(SoundType.GRASS)
@@ -18,7 +41,7 @@
      );
      public static final Block BIRCH_SAPLING = register(
          BlockItemIds.BIRCH_SAPLING,
-@@ -224,7 +_,7 @@
+@@ -234,7 +_,7 @@
              .randomTicks()
              .instabreak()
              .sound(SoundType.GRASS)
@@ -27,7 +50,7 @@
      );
      public static final Block JUNGLE_SAPLING = register(
          BlockItemIds.JUNGLE_SAPLING,
-@@ -235,7 +_,7 @@
+@@ -245,7 +_,7 @@
              .randomTicks()
              .instabreak()
              .sound(SoundType.GRASS)
@@ -36,7 +59,7 @@
      );
      public static final Block ACACIA_SAPLING = register(
          BlockItemIds.ACACIA_SAPLING,
-@@ -246,7 +_,7 @@
+@@ -256,7 +_,7 @@
              .randomTicks()
              .instabreak()
              .sound(SoundType.GRASS)
@@ -45,7 +68,7 @@
      );
      public static final Block CHERRY_SAPLING = register(
          BlockItemIds.CHERRY_SAPLING,
-@@ -257,7 +_,7 @@
+@@ -267,7 +_,7 @@
              .randomTicks()
              .instabreak()
              .sound(SoundType.CHERRY_SAPLING)
@@ -54,7 +77,7 @@
      );
      public static final Block DARK_OAK_SAPLING = register(
          BlockItemIds.DARK_OAK_SAPLING,
-@@ -268,7 +_,7 @@
+@@ -278,7 +_,7 @@
              .randomTicks()
              .instabreak()
              .sound(SoundType.GRASS)
@@ -63,7 +86,7 @@
      );
      public static final Block PALE_OAK_SAPLING = register(
          BlockItemIds.PALE_OAK_SAPLING,
-@@ -279,7 +_,7 @@
+@@ -289,7 +_,7 @@
              .randomTicks()
              .instabreak()
              .sound(SoundType.GRASS)
@@ -72,7 +95,7 @@
      );
      public static final Block MANGROVE_PROPAGULE = register(
          BlockItemIds.MANGROVE_PROPAGULE,
-@@ -291,7 +_,7 @@
+@@ -301,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -81,7 +104,7 @@
      );
      public static final Block POPLAR_SAPLING = register(
          BlockItemIds.POPLAR_SAPLING,
-@@ -302,7 +_,7 @@
+@@ -312,7 +_,7 @@
              .randomTicks()
              .instabreak()
              .sound(SoundType.GRASS)
@@ -90,7 +113,7 @@
      );
      public static final Block BEDROCK = register(
          BlockItemIds.BEDROCK,
-@@ -321,7 +_,7 @@
+@@ -331,7 +_,7 @@
              .replaceable()
              .noCollision()
              .strength(100.0F)
@@ -99,7 +122,7 @@
              .noLootTable()
              .liquid()
              .sound(SoundType.EMPTY)
-@@ -336,7 +_,7 @@
+@@ -346,7 +_,7 @@
              .randomTicks()
              .strength(100.0F)
              .lightLevel(state -> 15)
@@ -108,7 +131,7 @@
              .noLootTable()
              .liquid()
              .sound(SoundType.EMPTY)
-@@ -354,7 +_,7 @@
+@@ -364,7 +_,7 @@
              .instrument(NoteBlockInstrument.SNARE)
              .strength(0.25F)
              .sound(SoundType.SUSPICIOUS_SAND)
@@ -117,7 +140,7 @@
      );
      public static final Block RED_SAND = register(
          BlockItemIds.RED_SAND,
-@@ -374,7 +_,7 @@
+@@ -384,7 +_,7 @@
              .instrument(NoteBlockInstrument.SNARE)
              .strength(0.25F)
              .sound(SoundType.SUSPICIOUS_GRAVEL)
@@ -126,25 +149,45 @@
      );
      public static final Block GOLD_ORE = register(
          BlockItemIds.GOLD_ORE,
-@@ -647,7 +_,7 @@
+@@ -464,6 +_,7 @@
+             .sound(SoundType.MANGROVE_ROOTS)
+             .noOcclusion()
              .isSuffocating(Blocks::never)
-             .isViewBlocking(Blocks::never)
++            .isViewBlocking(Blocks::never)
+             .noOcclusion()
+             .ignitedByLava()
+     );
+@@ -654,8 +_,9 @@
+             .noOcclusion()
+             .isValidSpawn(Blocks::ocelotOrParrot)
+             .isSuffocating(Blocks::never)
++            .isViewBlocking(Blocks::never)
              .ignitedByLava()
 -            .pushReaction(PushReaction.POPPED)
 +            .pushReaction(PushReaction.DESTROY)
              .isRedstoneConductor(Blocks::never)
      );
      public static final Block DARK_OAK_LEAVES = register(
-@@ -666,7 +_,7 @@
+@@ -672,8 +_,9 @@
+             .noOcclusion()
+             .isValidSpawn(Blocks::ocelotOrParrot)
              .isSuffocating(Blocks::never)
-             .isViewBlocking(Blocks::never)
++            .isViewBlocking(Blocks::never)
              .ignitedByLava()
 -            .pushReaction(PushReaction.POPPED)
 +            .pushReaction(PushReaction.DESTROY)
              .isRedstoneConductor(Blocks::never)
      );
      public static final Block MANGROVE_LEAVES = register(
-@@ -782,7 +_,7 @@
+@@ -740,6 +_,7 @@
+             .isValidSpawn(Blocks::never)
+             .isRedstoneConductor(Blocks::never)
+             .isSuffocating(Blocks::never)
++            .isViewBlocking(Blocks::never)
+     );
+     public static final Block LAPIS_ORE = register(
+         BlockItemIds.LAPIS_ORE,
+@@ -788,7 +_,7 @@
              .fallDistanceReduction(0.5F)
              .noOcclusion()
              .ignitedByLava()
@@ -153,7 +196,7 @@
      );
      public static final Block STRAW_BED = register(
          BlockItemIds.STRAW_BED,
-@@ -793,7 +_,7 @@
+@@ -799,7 +_,7 @@
              .strength(0.2F)
              .noOcclusion()
              .ignitedByLava()
@@ -162,7 +205,7 @@
      );
      public static final Block POWERED_RAIL = register(
          BlockItemIds.POWERED_RAIL, PoweredRailBlock::new, BlockBehaviour.Properties.of().noCollision().strength(0.7F).sound(SoundType.METAL)
-@@ -812,7 +_,7 @@
+@@ -818,7 +_,7 @@
              .noCollision()
              .requiresCorrectToolForDrops()
              .strength(4.0F)
@@ -171,7 +214,7 @@
      );
      public static final Block SHORT_GRASS = register(
          BlockItemIds.SHORT_GRASS,
-@@ -825,7 +_,7 @@
+@@ -831,7 +_,7 @@
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XYZ)
              .ignitedByLava()
@@ -180,7 +223,7 @@
      );
      public static final Block FERN = register(
          BlockItemIds.FERN,
-@@ -838,7 +_,7 @@
+@@ -844,7 +_,7 @@
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XYZ)
              .ignitedByLava()
@@ -189,7 +232,7 @@
      );
      public static final Block DEAD_BUSH = register(
          BlockItemIds.DEAD_BUSH,
-@@ -850,7 +_,7 @@
+@@ -856,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .ignitedByLava()
@@ -198,7 +241,7 @@
      );
      public static final Block BUSH = register(
          BlockItemIds.BUSH,
-@@ -862,7 +_,7 @@
+@@ -868,19 +_,19 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .ignitedByLava()
@@ -207,7 +250,12 @@
      );
      public static final Block RED_SHRUB = register(
          BlockItemIds.RED_SHRUB,
-@@ -874,7 +_,7 @@
+         BushBlock::new,
+         BlockBehaviour.Properties.of()
+-            .mapColor(MapColor.CRIMSON_NYLIUM)
++            .mapColor(MapColor.PLANT)
+             .replaceable()
+             .noCollision()
              .instabreak()
              .sound(SoundType.RED_SHRUB)
              .ignitedByLava()
@@ -216,7 +264,7 @@
      );
      public static final Block SHORT_DRY_GRASS = register(
          BlockItemIds.SHORT_DRY_GRASS,
-@@ -887,7 +_,7 @@
+@@ -893,7 +_,7 @@
              .sound(SoundType.GRASS)
              .ignitedByLava()
              .offsetType(BlockBehaviour.OffsetType.XYZ)
@@ -225,7 +273,7 @@
      );
      public static final Block TALL_DRY_GRASS = register(
          BlockItemIds.TALL_DRY_GRASS,
-@@ -900,7 +_,7 @@
+@@ -906,7 +_,7 @@
              .sound(SoundType.GRASS)
              .ignitedByLava()
              .offsetType(BlockBehaviour.OffsetType.XYZ)
@@ -234,7 +282,7 @@
      );
      public static final Block SEAGRASS = register(
          BlockItemIds.SEAGRASS,
-@@ -911,7 +_,7 @@
+@@ -917,7 +_,7 @@
              .noCollision()
              .instabreak()
              .sound(SoundType.WET_GRASS)
@@ -243,7 +291,7 @@
      );
      public static final Block TALL_SEAGRASS = register(
          BlockIds.TALL_SEAGRASS,
-@@ -923,13 +_,13 @@
+@@ -929,13 +_,13 @@
              .instabreak()
              .sound(SoundType.WET_GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -259,16 +307,17 @@
      );
      public static final ColorCollection<Block> WOOL = ColorCollection.registerBlocks(
          BlockItemIds.WOOL,
-@@ -962,7 +_,7 @@
+@@ -967,7 +_,8 @@
+             .isValidSpawn(Blocks::never)
              .isRedstoneConductor(Blocks::never)
              .isSuffocating(Blocks::never)
-             .isViewBlocking(Blocks::never)
 -            .pushReaction(PushReaction.IMMOVEABLE)
++            .isViewBlocking(Blocks::never)
 +            .pushReaction(PushReaction.BLOCK)
      );
      public static final Block DANDELION = register(
          BlockItemIds.DANDELION,
-@@ -973,7 +_,7 @@
+@@ -978,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -277,7 +326,7 @@
      );
      public static final Block GOLDEN_DANDELION = register(
          BlockItemIds.GOLDEN_DANDELION,
-@@ -984,7 +_,7 @@
+@@ -989,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -286,7 +335,7 @@
      );
      public static final Block TORCHFLOWER = register(
          BlockItemIds.TORCHFLOWER,
-@@ -995,7 +_,7 @@
+@@ -1000,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -295,7 +344,7 @@
      );
      public static final Block POPPY = register(
          BlockItemIds.POPPY,
-@@ -1006,7 +_,7 @@
+@@ -1011,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -304,7 +353,7 @@
      );
      public static final Block BLUE_ORCHID = register(
          BlockItemIds.BLUE_ORCHID,
-@@ -1017,7 +_,7 @@
+@@ -1022,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -313,7 +362,7 @@
      );
      public static final Block ALLIUM = register(
          BlockItemIds.ALLIUM,
-@@ -1028,7 +_,7 @@
+@@ -1033,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -322,7 +371,7 @@
      );
      public static final Block AZURE_BLUET = register(
          BlockItemIds.AZURE_BLUET,
-@@ -1039,7 +_,7 @@
+@@ -1044,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -331,7 +380,7 @@
      );
      public static final Block RED_TULIP = register(
          BlockItemIds.RED_TULIP,
-@@ -1050,7 +_,7 @@
+@@ -1055,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -340,7 +389,7 @@
      );
      public static final Block ORANGE_TULIP = register(
          BlockItemIds.ORANGE_TULIP,
-@@ -1061,7 +_,7 @@
+@@ -1066,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -349,7 +398,7 @@
      );
      public static final Block WHITE_TULIP = register(
          BlockItemIds.WHITE_TULIP,
-@@ -1072,7 +_,7 @@
+@@ -1077,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -358,7 +407,7 @@
      );
      public static final Block PINK_TULIP = register(
          BlockItemIds.PINK_TULIP,
-@@ -1083,7 +_,7 @@
+@@ -1088,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -367,7 +416,7 @@
      );
      public static final Block OXEYE_DAISY = register(
          BlockItemIds.OXEYE_DAISY,
-@@ -1094,7 +_,7 @@
+@@ -1099,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -376,7 +425,7 @@
      );
      public static final Block CORNFLOWER = register(
          BlockItemIds.CORNFLOWER,
-@@ -1105,7 +_,7 @@
+@@ -1110,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -385,7 +434,7 @@
      );
      public static final Block WITHER_ROSE = register(
          BlockItemIds.WITHER_ROSE,
-@@ -1116,7 +_,7 @@
+@@ -1121,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -394,7 +443,7 @@
      );
      public static final Block LILY_OF_THE_VALLEY = register(
          BlockItemIds.LILY_OF_THE_VALLEY,
-@@ -1127,7 +_,7 @@
+@@ -1132,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -403,7 +452,7 @@
      );
      public static final Block BROWN_MUSHROOM = register(
          BlockItemIds.BROWN_MUSHROOM,
-@@ -1140,7 +_,7 @@
+@@ -1145,7 +_,7 @@
              .sound(SoundType.GRASS)
              .lightLevel(state -> 1)
              .postProcess(Blocks::postProcessSelf)
@@ -412,7 +461,7 @@
      );
      public static final Block RED_MUSHROOM = register(
          BlockItemIds.RED_MUSHROOM,
-@@ -1152,7 +_,7 @@
+@@ -1157,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .postProcess(Blocks::postProcessSelf)
@@ -421,7 +470,12 @@
      );
      public static final Block GOLD_BLOCK = register(
          BlockItemIds.GOLD_BLOCK,
-@@ -1340,12 +_,12 @@
+@@ -1341,17 +_,16 @@
+             .instrument(NoteBlockInstrument.BASEDRUM)
+             .requiresCorrectToolForDrops()
+             .strength(50.0F, 1200.0F)
+-            .pushReaction(PushReaction.IMMOVEABLE)
+     );
      public static final Block TORCH = register(
          BlockItemIds.TORCH,
          p -> new TorchBlock(ParticleTypes.FLAME, p),
@@ -436,7 +490,7 @@
      );
      public static final Block FIRE = register(
          BlockIds.FIRE,
-@@ -1357,7 +_,7 @@
+@@ -1363,7 +_,7 @@
              .instabreak()
              .lightLevel(state -> 15)
              .sound(SoundType.WOOL)
@@ -445,7 +499,7 @@
      );
      public static final Block SOUL_FIRE = register(
          BlockIds.SOUL_FIRE,
-@@ -1369,7 +_,7 @@
+@@ -1375,7 +_,7 @@
              .instabreak()
              .lightLevel(state -> 10)
              .sound(SoundType.WOOL)
@@ -454,16 +508,16 @@
      );
      public static final Block SPAWNER = register(
          BlockItemIds.SPAWNER,
-@@ -1394,7 +_,7 @@
+@@ -1400,7 +_,7 @@
          BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).instrument(NoteBlockInstrument.BASS).strength(2.5F).sound(SoundType.WOOD).ignitedByLava()
      );
      public static final Block REDSTONE_WIRE = register(
--        BlockItemIds.REDSTONE_DUST, RedStoneWireBlock::new, BlockBehaviour.Properties.of().noCollision().instabreak().pushReaction(PushReaction.POPPED)
+-        BlockItemIds.REDSTONE_DUST, RedstoneWireBlock::new, BlockBehaviour.Properties.of().noCollision().instabreak().pushReaction(PushReaction.POPPED)
 +        BlockItemIds.REDSTONE_DUST, RedStoneWireBlock::new, BlockBehaviour.Properties.of().noCollision().instabreak().pushReaction(PushReaction.DESTROY)
      );
      public static final Block DIAMOND_ORE = register(
          BlockItemIds.DIAMOND_ORE,
-@@ -1424,7 +_,7 @@
+@@ -1430,12 +_,18 @@
              .randomTicks()
              .instabreak()
              .sound(SoundType.CROP)
@@ -472,6 +526,18 @@
      );
      public static final Block FARMLAND = register(
          BlockItemIds.FARMLAND,
+         p -> new FarmlandBlock(DIRT, p),
+-        BlockBehaviour.Properties.of().mapColor(MapColor.DIRT).randomTicks().strength(0.6F).sound(SoundType.GRAVEL).isSuffocating(Blocks::always)
++        BlockBehaviour.Properties.of()
++            .mapColor(MapColor.DIRT)
++            .randomTicks()
++            .strength(0.6F)
++            .sound(SoundType.GRAVEL)
++            .isViewBlocking(Blocks::always)
++            .isSuffocating(Blocks::always)
+     );
+     public static final Block FURNACE = register(
+         BlockItemIds.FURNACE,
 @@ -1565,12 +_,12 @@
              .strength(3.0F)
              .noOcclusion()
@@ -625,11 +691,13 @@
      );
      public static final Block STONE_BUTTON = register(BlockItemIds.STONE_BUTTON, p -> new ButtonBlock(BlockSetType.STONE, 20, p), buttonProperties());
      public static final Block SNOW = register(
-@@ -2138,7 +_,7 @@
+@@ -2137,8 +_,8 @@
+             .strength(0.1F)
              .requiresCorrectToolForDrops()
              .sound(SoundType.SNOW)
-             .isViewBlocking((state, level, pos) -> state.getValue(SnowLayerBlock.LAYERS) >= 8)
+-            .isViewBlocking((state, level, pos, aabb) -> state.getValue(SnowLayerBlock.LAYERS) >= 8)
 -            .pushReaction(PushReaction.POPPED)
++            .isViewBlocking((state, level, pos) -> state.getValue(SnowLayerBlock.LAYERS) >= 8)
 +            .pushReaction(PushReaction.DESTROY)
      );
      public static final Block ICE = register(
@@ -661,7 +729,15 @@
      );
      public static final Block JUKEBOX = register(
          BlockItemIds.JUKEBOX,
-@@ -2253,22 +_,22 @@
+@@ -2223,6 +_,7 @@
+             .sound(SoundType.SOUL_SAND)
+             .isValidSpawn(Blocks::always)
+             .isRedstoneConductor(Blocks::always)
++            .isViewBlocking(Blocks::always)
+             .isSuffocating(Blocks::always)
+             .postProcess(Blocks::postProcessAbove)
+     );
+@@ -2252,22 +_,22 @@
      public static final Block SOUL_TORCH = register(
          BlockItemIds.SOUL_TORCH,
          p -> new TorchBlock(ParticleTypes.SOUL_FIRE_FLAME, p),
@@ -688,7 +764,7 @@
      );
      public static final Block GLOWSTONE = register(
          BlockItemIds.GLOWSTONE,
-@@ -2289,7 +_,7 @@
+@@ -2288,7 +_,7 @@
              .strength(-1.0F)
              .sound(SoundType.GLASS)
              .lightLevel(state -> 11)
@@ -697,7 +773,7 @@
      );
      public static final Block CARVED_PUMPKIN = register(
          BlockItemIds.CARVED_PUMPKIN,
-@@ -2299,7 +_,7 @@
+@@ -2298,7 +_,7 @@
              .strength(1.0F)
              .sound(SoundType.WOOD)
              .isValidSpawn(Blocks::always)
@@ -706,7 +782,7 @@
      );
      public static final Block JACK_O_LANTERN = register(
          BlockItemIds.JACK_O_LANTERN,
-@@ -2310,13 +_,15 @@
+@@ -2309,13 +_,15 @@
              .sound(SoundType.WOOD)
              .lightLevel(state -> 15)
              .isValidSpawn(Blocks::always)
@@ -725,7 +801,15 @@
      );
      public static final ColorCollection<Block> STAINED_GLASS = ColorCollection.registerBlocks(
          BlockItemIds.STAINED_GLASS,
-@@ -2552,25 +_,25 @@
+@@ -2330,6 +_,7 @@
+             .isValidSpawn(Blocks::never)
+             .isRedstoneConductor(Blocks::never)
+             .isSuffocating(Blocks::never)
++            .isViewBlocking(Blocks::never)
+     );
+     public static final Block OAK_TRAPDOOR = register(
+         BlockItemIds.OAK_TRAPDOOR,
+@@ -2550,25 +_,25 @@
              .instrument(NoteBlockInstrument.DIDGERIDOO)
              .strength(1.0F)
              .sound(SoundType.WOOD)
@@ -755,7 +839,7 @@
      );
      public static final Block PUMPKIN_STEM = register(
          BlockItemIds.PUMPKIN_CROP,
-@@ -2588,7 +_,7 @@
+@@ -2586,7 +_,7 @@
              .randomTicks()
              .instabreak()
              .sound(SoundType.HARD_CROP)
@@ -764,7 +848,7 @@
      );
      public static final Block MELON_STEM = register(
          BlockItemIds.MELON_CROP,
-@@ -2606,7 +_,7 @@
+@@ -2604,7 +_,7 @@
              .randomTicks()
              .instabreak()
              .sound(SoundType.HARD_CROP)
@@ -773,7 +857,7 @@
      );
      public static final Block VINE = register(
          BlockItemIds.VINE,
-@@ -2619,7 +_,7 @@
+@@ -2617,7 +_,7 @@
              .strength(0.2F)
              .sound(SoundType.VINE)
              .ignitedByLava()
@@ -782,7 +866,7 @@
      );
      public static final Block GLOW_LICHEN = register(
          BlockItemIds.GLOW_LICHEN,
-@@ -2632,7 +_,7 @@
+@@ -2630,7 +_,7 @@
              .sound(SoundType.GLOW_LICHEN)
              .lightLevel(GlowLichenBlock.emission(7))
              .ignitedByLava()
@@ -791,7 +875,7 @@
      );
      public static final Block RESIN_CLUMP = register(
          BlockItemIds.RESIN_CLUMP,
-@@ -2643,7 +_,7 @@
+@@ -2641,7 +_,7 @@
              .noCollision()
              .sound(SoundType.RESIN)
              .ignitedByLava()
@@ -800,7 +884,7 @@
      );
      public static final Block OAK_FENCE_GATE = register(
          BlockItemIds.OAK_FENCE_GATE,
-@@ -2666,7 +_,7 @@
+@@ -2664,7 +_,7 @@
      public static final Block LILY_PAD = register(
          BlockItemIds.LILY_PAD,
          LilyPadBlock::new,
@@ -809,7 +893,7 @@
      );
      public static final Block RESIN_BLOCK = register(
          BlockItemIds.RESIN_BLOCK,
-@@ -2716,7 +_,7 @@
+@@ -2714,7 +_,7 @@
      public static final Block NETHER_WART = register(
          BlockItemIds.NETHER_WART,
          NetherWartBlock::new,
@@ -818,7 +902,7 @@
      );
      public static final Block ENCHANTING_TABLE = register(
          BlockItemIds.ENCHANTING_TABLE,
-@@ -2760,7 +_,7 @@
+@@ -2758,7 +_,7 @@
              .lightLevel(state -> 15)
              .strength(-1.0F, 3600000.0F)
              .noLootTable()
@@ -827,7 +911,7 @@
      );
      public static final Block END_PORTAL_FRAME = register(
          BlockItemIds.END_PORTAL_FRAME,
-@@ -2785,7 +_,7 @@
+@@ -2783,7 +_,7 @@
              .strength(3.0F, 9.0F)
              .lightLevel(state -> 1)
              .noOcclusion()
@@ -836,7 +920,7 @@
      );
      public static final Block REDSTONE_LAMP = register(
          BlockItemIds.REDSTONE_LAMP,
-@@ -2806,7 +_,7 @@
+@@ -2804,18 +_,18 @@
              .strength(0.2F, 3.0F)
              .sound(SoundType.WOOD)
              .noOcclusion()
@@ -845,16 +929,21 @@
      );
      public static final Block SHELF_MUSHROOM = register(
          BlockItemIds.SHELF_MUSHROOM,
-@@ -2817,7 +_,7 @@
+         ShelfMushroomBlock::new,
+         BlockBehaviour.Properties.of()
+-            .mapColor(MapColor.TERRACOTTA_YELLOW)
++            .mapColor(MapColor.PLANT)
+             .bounceRestitution(0.75F)
              .fallDistanceReduction(0.5F)
-             .sound(SoundType.WOOD)
+-            .sound(SoundType.SHELF_MUSHROOM)
++            .sound(SoundType.WOOD)
              .noOcclusion()
 -            .pushReaction(PushReaction.POPPED)
 +            .pushReaction(PushReaction.DESTROY)
      );
      public static final Block SANDSTONE_STAIRS = registerLegacyStair(BlockItemIds.SANDSTONE_STAIRS, SANDSTONE);
      public static final Block EMERALD_ORE = register(
-@@ -2838,10 +_,10 @@
+@@ -2836,10 +_,10 @@
      public static final Block TRIPWIRE_HOOK = register(
          BlockItemIds.TRIPWIRE_HOOK,
          TripWireHookBlock::new,
@@ -867,7 +956,7 @@
      );
      public static final Block EMERALD_BLOCK = register(
          BlockItemIds.EMERALD_BLOCK,
-@@ -2935,7 +_,7 @@
+@@ -2933,7 +_,7 @@
              .randomTicks()
              .instabreak()
              .sound(SoundType.CROP)
@@ -876,7 +965,7 @@
      );
      public static final Block POTATOES = register(
          BlockItemIds.POTATO_CROP,
-@@ -2946,7 +_,7 @@
+@@ -2944,7 +_,7 @@
              .randomTicks()
              .instabreak()
              .sound(SoundType.CROP)
@@ -885,7 +974,7 @@
      );
      public static final Block OAK_BUTTON = register(BlockItemIds.OAK_BUTTON, p -> new ButtonBlock(BlockSetType.OAK, 30, p), buttonProperties());
      public static final Block SPRUCE_BUTTON = register(BlockItemIds.SPRUCE_BUTTON, p -> new ButtonBlock(BlockSetType.SPRUCE, 30, p), buttonProperties());
-@@ -2962,68 +_,68 @@
+@@ -2960,68 +_,68 @@
      public static final Block SKELETON_SKULL = register(
          BlockItemIds.SKELETON_SKULL,
          p -> new SkullBlock(SkullBlock.Types.SKELETON, p),
@@ -968,7 +1057,7 @@
      );
      public static final Block ANVIL = register(
          BlockItemIds.ANVIL,
-@@ -3033,7 +_,7 @@
+@@ -3031,7 +_,7 @@
              .requiresCorrectToolForDrops()
              .strength(5.0F, 1200.0F)
              .sound(SoundType.ANVIL)
@@ -977,7 +1066,7 @@
      );
      public static final Block CHIPPED_ANVIL = register(
          BlockItemIds.CHIPPED_ANVIL,
-@@ -3043,7 +_,7 @@
+@@ -3041,7 +_,7 @@
              .requiresCorrectToolForDrops()
              .strength(5.0F, 1200.0F)
              .sound(SoundType.ANVIL)
@@ -986,7 +1075,7 @@
      );
      public static final Block DAMAGED_ANVIL = register(
          BlockItemIds.DAMAGED_ANVIL,
-@@ -3053,7 +_,7 @@
+@@ -3051,7 +_,7 @@
              .requiresCorrectToolForDrops()
              .strength(5.0F, 1200.0F)
              .sound(SoundType.ANVIL)
@@ -995,7 +1084,7 @@
      );
      public static final Block TRAPPED_CHEST = register(
          BlockItemIds.TRAPPED_CHEST,
-@@ -3063,15 +_,15 @@
+@@ -3061,15 +_,15 @@
      public static final Block LIGHT_WEIGHTED_PRESSURE_PLATE = register(
          BlockItemIds.LIGHT_WEIGHTED_PRESSURE_PLATE,
          p -> new WeightedPressurePlateBlock(15, BlockSetType.GOLD, p),
@@ -1014,7 +1103,7 @@
      );
      public static final Block DAYLIGHT_DETECTOR = register(
          BlockItemIds.DAYLIGHT_DETECTOR,
-@@ -3164,7 +_,7 @@
+@@ -3162,7 +_,7 @@
              .noOcclusion()
              .isValidSpawn(Blocks::never)
              .noTerrainParticles()
@@ -1023,7 +1112,7 @@
      );
      public static final Block LIGHT = register(
          BlockItemIds.LIGHT,
-@@ -3255,7 +_,7 @@
+@@ -3253,7 +_,7 @@
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
              .ignitedByLava()
@@ -1032,7 +1121,7 @@
      );
      public static final Block LILAC = register(
          BlockItemIds.LILAC,
-@@ -3267,7 +_,7 @@
+@@ -3265,7 +_,7 @@
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
              .ignitedByLava()
@@ -1041,7 +1130,7 @@
      );
      public static final Block ROSE_BUSH = register(
          BlockItemIds.ROSE_BUSH,
-@@ -3279,7 +_,7 @@
+@@ -3277,7 +_,7 @@
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
              .ignitedByLava()
@@ -1050,7 +1139,7 @@
      );
      public static final Block PEONY = register(
          BlockItemIds.PEONY,
-@@ -3291,7 +_,7 @@
+@@ -3289,7 +_,7 @@
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
              .ignitedByLava()
@@ -1059,7 +1148,7 @@
      );
      public static final Block TALL_GRASS = register(
          BlockItemIds.TALL_GRASS,
-@@ -3304,7 +_,7 @@
+@@ -3302,7 +_,7 @@
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
              .ignitedByLava()
@@ -1068,7 +1157,7 @@
      );
      public static final Block LARGE_FERN = register(
          BlockItemIds.LARGE_FERN,
-@@ -3317,7 +_,7 @@
+@@ -3315,7 +_,7 @@
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
              .ignitedByLava()
@@ -1077,7 +1166,7 @@
      );
      public static final ColorCollection<Block> BANNER = ColorCollection.registerBlocks(
          BlockItemIds.BANNER,
-@@ -3616,7 +_,7 @@
+@@ -3614,7 +_,7 @@
              .strength(3.0F)
              .noOcclusion()
              .ignitedByLava()
@@ -1086,7 +1175,7 @@
      );
      public static final Block BIRCH_DOOR = register(
          BlockItemIds.BIRCH_DOOR,
-@@ -3627,7 +_,7 @@
+@@ -3625,7 +_,7 @@
              .strength(3.0F)
              .noOcclusion()
              .ignitedByLava()
@@ -1095,7 +1184,7 @@
      );
      public static final Block JUNGLE_DOOR = register(
          BlockItemIds.JUNGLE_DOOR,
-@@ -3638,7 +_,7 @@
+@@ -3636,7 +_,7 @@
              .strength(3.0F)
              .noOcclusion()
              .ignitedByLava()
@@ -1104,7 +1193,7 @@
      );
      public static final Block ACACIA_DOOR = register(
          BlockItemIds.ACACIA_DOOR,
-@@ -3649,7 +_,7 @@
+@@ -3647,7 +_,7 @@
              .strength(3.0F)
              .noOcclusion()
              .ignitedByLava()
@@ -1113,7 +1202,7 @@
      );
      public static final Block CHERRY_DOOR = register(
          BlockItemIds.CHERRY_DOOR,
-@@ -3660,7 +_,7 @@
+@@ -3658,7 +_,7 @@
              .strength(3.0F)
              .noOcclusion()
              .ignitedByLava()
@@ -1122,7 +1211,7 @@
      );
      public static final Block DARK_OAK_DOOR = register(
          BlockItemIds.DARK_OAK_DOOR,
-@@ -3671,7 +_,7 @@
+@@ -3669,7 +_,7 @@
              .strength(3.0F)
              .noOcclusion()
              .ignitedByLava()
@@ -1131,7 +1220,7 @@
      );
      public static final Block PALE_OAK_DOOR = register(
          BlockItemIds.PALE_OAK_DOOR,
-@@ -3682,7 +_,7 @@
+@@ -3680,7 +_,7 @@
              .strength(3.0F)
              .noOcclusion()
              .ignitedByLava()
@@ -1140,7 +1229,7 @@
      );
      public static final Block MANGROVE_DOOR = register(
          BlockItemIds.MANGROVE_DOOR,
-@@ -3693,7 +_,7 @@
+@@ -3691,7 +_,7 @@
              .strength(3.0F)
              .noOcclusion()
              .ignitedByLava()
@@ -1149,7 +1238,7 @@
      );
      public static final Block POPLAR_DOOR = register(
          BlockItemIds.POPLAR_DOOR,
-@@ -3704,7 +_,7 @@
+@@ -3702,7 +_,7 @@
              .strength(3.0F)
              .noOcclusion()
              .ignitedByLava()
@@ -1158,7 +1247,7 @@
      );
      public static final Block BAMBOO_DOOR = register(
          BlockItemIds.BAMBOO_DOOR,
-@@ -3715,7 +_,7 @@
+@@ -3713,7 +_,7 @@
              .strength(3.0F)
              .noOcclusion()
              .ignitedByLava()
@@ -1167,7 +1256,7 @@
      );
      public static final Block END_ROD = register(
          BlockItemIds.END_ROD,
-@@ -3731,7 +_,7 @@
+@@ -3729,7 +_,7 @@
              .strength(0.4F)
              .sound(SoundType.WOOD)
              .noOcclusion()
@@ -1176,7 +1265,7 @@
      );
      public static final Block CHORUS_FLOWER = register(
          BlockItemIds.CHORUS_FLOWER,
-@@ -3744,7 +_,7 @@
+@@ -3742,7 +_,7 @@
              .sound(SoundType.WOOD)
              .noOcclusion()
              .isValidSpawn(Blocks::never)
@@ -1185,7 +1274,7 @@
              .isRedstoneConductor(Blocks::never)
      );
      public static final Block PURPUR_BLOCK = register(
-@@ -3779,7 +_,7 @@
+@@ -3777,7 +_,7 @@
              .randomTicks()
              .instabreak()
              .sound(SoundType.CROP)
@@ -1194,7 +1283,7 @@
      );
      public static final Block PITCHER_CROP = register(
          BlockItemIds.PITCHER_CROP,
-@@ -3790,7 +_,7 @@
+@@ -3788,7 +_,7 @@
              .randomTicks()
              .instabreak()
              .sound(SoundType.CROP)
@@ -1203,7 +1292,7 @@
      );
      public static final Block PITCHER_PLANT = register(
          BlockItemIds.PITCHER_PLANT,
-@@ -3802,7 +_,7 @@
+@@ -3800,7 +_,7 @@
              .sound(SoundType.CROP)
              .offsetType(BlockBehaviour.OffsetType.XZ)
              .ignitedByLava()
@@ -1212,7 +1301,7 @@
      );
      public static final Block BEETROOTS = register(
          BlockItemIds.BEETROOT_CROP,
-@@ -3813,7 +_,7 @@
+@@ -3811,12 +_,17 @@
              .randomTicks()
              .instabreak()
              .sound(SoundType.CROP)
@@ -1221,7 +1310,18 @@
      );
      public static final Block DIRT_PATH = register(
          BlockItemIds.DIRT_PATH,
-@@ -3834,7 +_,7 @@
+         p -> new PathBlock(DIRT, p),
+-        BlockBehaviour.Properties.of().mapColor(MapColor.DIRT).strength(0.65F).sound(SoundType.GRASS).isSuffocating(Blocks::always)
++        BlockBehaviour.Properties.of()
++            .mapColor(MapColor.DIRT)
++            .strength(0.65F)
++            .sound(SoundType.GRASS)
++            .isViewBlocking(Blocks::always)
++            .isSuffocating(Blocks::always)
+     );
+     public static final Block END_GATEWAY = register(
+         BlockIds.END_GATEWAY,
+@@ -3827,7 +_,7 @@
              .lightLevel(state -> 15)
              .strength(-1.0F, 3600000.0F)
              .noLootTable()
@@ -1230,7 +1330,7 @@
      );
      public static final Block REPEATING_COMMAND_BLOCK = register(
          BlockItemIds.REPEATING_COMMAND_BLOCK,
-@@ -3896,7 +_,7 @@
+@@ -3889,7 +_,7 @@
      public static final Block STRUCTURE_VOID = register(
          BlockItemIds.STRUCTURE_VOID,
          StructureVoidBlock::new,
@@ -1239,7 +1339,7 @@
      );
      public static final Block OBSERVER = register(
          BlockItemIds.OBSERVER,
-@@ -3924,7 +_,7 @@
+@@ -3917,7 +_,7 @@
              .instrument(NoteBlockInstrument.BASEDRUM)
              .requiresCorrectToolForDrops()
              .strength(1.4F)
@@ -1248,7 +1348,20 @@
      );
      public static final ColorCollection<Block> CONCRETE = ColorCollection.registerBlocks(
          BlockItemIds.CONCRETE,
-@@ -3951,12 +_,12 @@
+@@ -3929,12 +_,6 @@
+             .requiresCorrectToolForDrops()
+             .strength(1.8F)
+     );
+-    public static final ColorCollection<Block> CONCRETE_STAIRS = ColorCollection.zipMap(
+-        ColorCollection.VALUES, BlockItemIds.CONCRETE_STAIRS, (color, id) -> registerStair(id, CONCRETE.pick(color))
+-    );
+-    public static final ColorCollection<Block> CONCRETE_SLAB = ColorCollection.zipMap(
+-        ColorCollection.VALUES, BlockItemIds.CONCRETE_SLAB, (color, id) -> registerSlab(id, CONCRETE.pick(color))
+-    );
+     public static final ColorCollection<Block> CONCRETE_POWDER = ColorCollection.registerBlocks(
+         BlockItemIds.CONCRETE_POWDER,
+         Blocks::register,
+@@ -3950,12 +_,12 @@
              .randomTicks()
              .instabreak()
              .sound(SoundType.WET_GRASS)
@@ -1263,7 +1376,7 @@
      );
      public static final Block DRIED_KELP_BLOCK = register(
          BlockItemIds.DRIED_KELP_BLOCK, BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_GREEN).strength(0.5F, 2.5F).sound(SoundType.GRASS)
-@@ -3971,7 +_,7 @@
+@@ -3970,7 +_,7 @@
              .sound(SoundType.METAL)
              .randomTicks()
              .noOcclusion()
@@ -1272,7 +1385,7 @@
      );
      public static final Block SNIFFER_EGG = register(
          BlockItemIds.SNIFFER_EGG,
-@@ -4136,27 +_,27 @@
+@@ -4135,27 +_,27 @@
      public static final Block TUBE_CORAL = register(
          BlockItemIds.TUBE_CORAL,
          p -> new CoralPlantBlock(DEAD_TUBE_CORAL, p),
@@ -1305,7 +1418,7 @@
      );
      public static final Block DEAD_TUBE_CORAL_FAN = register(
          BlockItemIds.DEAD_TUBE_CORAL_FAN,
-@@ -4216,27 +_,27 @@
+@@ -4215,27 +_,27 @@
      public static final Block TUBE_CORAL_FAN = register(
          BlockItemIds.TUBE_CORAL_FAN,
          p -> new CoralFanBlock(DEAD_TUBE_CORAL_FAN, p),
@@ -1338,7 +1451,7 @@
      );
      public static final Block DEAD_TUBE_CORAL_WALL_FAN = register(
          BlockIds.DEAD_TUBE_CORAL_WALL_FAN,
-@@ -4301,7 +_,7 @@
+@@ -4300,7 +_,7 @@
              .noCollision()
              .instabreak()
              .sound(SoundType.WET_GRASS)
@@ -1347,7 +1460,7 @@
      );
      public static final Block BRAIN_CORAL_WALL_FAN = register(
          BlockIds.BRAIN_CORAL_WALL_FAN,
-@@ -4311,7 +_,7 @@
+@@ -4310,7 +_,7 @@
              .noCollision()
              .instabreak()
              .sound(SoundType.WET_GRASS)
@@ -1356,7 +1469,7 @@
      );
      public static final Block BUBBLE_CORAL_WALL_FAN = register(
          BlockIds.BUBBLE_CORAL_WALL_FAN,
-@@ -4321,12 +_,17 @@
+@@ -4320,12 +_,17 @@
              .noCollision()
              .instabreak()
              .sound(SoundType.WET_GRASS)
@@ -1376,7 +1489,7 @@
      );
      public static final Block HORN_CORAL_WALL_FAN = register(
          BlockIds.HORN_CORAL_WALL_FAN,
-@@ -4336,7 +_,7 @@
+@@ -4335,7 +_,7 @@
              .noCollision()
              .instabreak()
              .sound(SoundType.WET_GRASS)
@@ -1385,7 +1498,7 @@
      );
      public static final Block SEA_PICKLE = register(
          BlockItemIds.SEA_PICKLE,
-@@ -4346,7 +_,7 @@
+@@ -4345,7 +_,7 @@
              .lightLevel(state -> SeaPickleBlock.isDead(state) ? 0 : 3 + 3 * state.getValue(SeaPickleBlock.PICKLES))
              .sound(SoundType.SLIME_BLOCK)
              .noOcclusion()
@@ -1394,7 +1507,7 @@
      );
      public static final Block BLUE_ICE = register(
          BlockItemIds.BLUE_ICE,
-@@ -4377,7 +_,7 @@
+@@ -4376,7 +_,7 @@
              .sound(SoundType.BAMBOO_SAPLING)
              .offsetType(BlockBehaviour.OffsetType.XZ)
              .ignitedByLava()
@@ -1403,7 +1516,7 @@
      );
      public static final Block BAMBOO = register(
          BlockItemIds.BAMBOO,
-@@ -4393,7 +_,7 @@
+@@ -4392,7 +_,7 @@
              .dynamicShape()
              .offsetType(BlockBehaviour.OffsetType.XZ)
              .ignitedByLava()
@@ -1412,7 +1525,7 @@
              .isRedstoneConductor(Blocks::never)
      );
      public static final Block POTTED_BAMBOO = register(BlockIds.POTTED_BAMBOO, p -> new FlowerPotBlock(BAMBOO, p), flowerPotProperties());
-@@ -4411,7 +_,7 @@
+@@ -4410,7 +_,7 @@
              .replaceable()
              .noCollision()
              .noLootTable()
@@ -1421,7 +1534,7 @@
              .liquid()
              .sound(SoundType.EMPTY)
      );
-@@ -4464,7 +_,7 @@
+@@ -4463,7 +_,7 @@
              .sound(SoundType.SCAFFOLDING)
              .dynamicShape()
              .isValidSpawn(Blocks::never)
@@ -1430,7 +1543,7 @@
              .isRedstoneConductor(Blocks::never)
      );
      public static final Block LOOM = register(
-@@ -4514,7 +_,7 @@
+@@ -4513,7 +_,7 @@
              .requiresCorrectToolForDrops()
              .strength(2.0F, 6.0F)
              .sound(SoundType.STONE)
@@ -1439,7 +1552,7 @@
      );
      public static final Block LECTERN = register(
          BlockItemIds.LECTERN,
-@@ -4534,7 +_,7 @@
+@@ -4533,7 +_,7 @@
      public static final Block BELL = register(
          BlockItemIds.BELL,
          BellBlock::new,
@@ -1448,7 +1561,7 @@
      );
      public static final Block LANTERN = register(
          BlockItemIds.LANTERN,
-@@ -4546,7 +_,7 @@
+@@ -4545,7 +_,7 @@
              .sound(SoundType.LANTERN)
              .lightLevel(state -> 15)
              .noOcclusion()
@@ -1457,7 +1570,7 @@
      );
      public static final Block SOUL_LANTERN = register(
          BlockItemIds.SOUL_LANTERN,
-@@ -4558,7 +_,7 @@
+@@ -4557,7 +_,7 @@
              .sound(SoundType.LANTERN)
              .lightLevel(state -> 10)
              .noOcclusion()
@@ -1466,7 +1579,7 @@
      );
      public static final WeatheringCopperCollection<Block> COPPER_LANTERN = WeatheringCopperCollection.registerBlocks(
          BlockItemIds.COPPER_LANTERN,
-@@ -4572,7 +_,7 @@
+@@ -4571,7 +_,7 @@
              .sound(SoundType.LANTERN)
              .lightLevel(state -> 15)
              .noOcclusion()
@@ -1475,7 +1588,7 @@
      );
      public static final Block CAMPFIRE = register(
          BlockItemIds.CAMPFIRE,
-@@ -4601,7 +_,12 @@
+@@ -4600,7 +_,12 @@
      public static final Block SWEET_BERRY_BUSH = register(
          BlockItemIds.SWEET_BERRY_CROP,
          SweetBerryBushBlock::new,
@@ -1489,7 +1602,7 @@
      );
      public static final Block WARPED_STEM = register(BlockItemIds.WARPED_STEM, RotatedPillarBlock::new, netherStemProperties(MapColor.WARPED_STEM));
      public static final Block STRIPPED_WARPED_STEM = register(
-@@ -4631,7 +_,7 @@
+@@ -4630,7 +_,7 @@
      public static final Block WARPED_FUNGUS = register(
          BlockItemIds.WARPED_FUNGUS,
          p -> new NetherFungusBlock(TreeFeatures.WARPED_FUNGUS_PLANTED, WARPED_NYLIUM, BlockTags.SUPPORTS_WARPED_FUNGUS, p),
@@ -1498,7 +1611,7 @@
      );
      public static final Block WARPED_WART_BLOCK = register(
          BlockItemIds.WARPED_WART_BLOCK, BlockBehaviour.Properties.of().mapColor(MapColor.WARPED_WART_BLOCK).strength(1.0F).sound(SoundType.WART_BLOCK)
-@@ -4646,7 +_,7 @@
+@@ -4645,7 +_,7 @@
              .instabreak()
              .sound(SoundType.ROOTS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -1507,7 +1620,7 @@
      );
      public static final Block NETHER_SPROUTS = register(
          BlockItemIds.NETHER_SPROUTS,
-@@ -4658,7 +_,7 @@
+@@ -4657,7 +_,7 @@
              .instabreak()
              .sound(SoundType.NETHER_SPROUTS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -1516,7 +1629,7 @@
      );
      public static final Block CRIMSON_STEM = register(BlockItemIds.CRIMSON_STEM, RotatedPillarBlock::new, netherStemProperties(MapColor.CRIMSON_STEM));
      public static final Block STRIPPED_CRIMSON_STEM = register(
-@@ -4688,7 +_,7 @@
+@@ -4687,7 +_,7 @@
      public static final Block CRIMSON_FUNGUS = register(
          BlockItemIds.CRIMSON_FUNGUS,
          p -> new NetherFungusBlock(TreeFeatures.CRIMSON_FUNGUS_PLANTED, CRIMSON_NYLIUM, BlockTags.SUPPORTS_CRIMSON_FUNGUS, p),
@@ -1525,7 +1638,7 @@
      );
      public static final Block SHROOMLIGHT = register(
          BlockItemIds.SHROOMLIGHT,
-@@ -4703,12 +_,12 @@
+@@ -4702,12 +_,12 @@
              .noCollision()
              .instabreak()
              .sound(SoundType.WEEPING_VINES)
@@ -1540,7 +1653,7 @@
      );
      public static final Block TWISTING_VINES = register(
          BlockItemIds.TWISTING_VINES,
-@@ -4719,7 +_,7 @@
+@@ -4718,7 +_,7 @@
              .noCollision()
              .instabreak()
              .sound(SoundType.WEEPING_VINES)
@@ -1549,7 +1662,7 @@
      );
      public static final Block TWISTING_VINES_PLANT = register(
          BlockIds.TWISTING_VINES_PLANT,
-@@ -4729,7 +_,7 @@
+@@ -4728,7 +_,7 @@
              .noCollision()
              .instabreak()
              .sound(SoundType.WEEPING_VINES)
@@ -1558,7 +1671,7 @@
      );
      public static final Block CRIMSON_ROOTS = register(
          BlockItemIds.CRIMSON_ROOTS,
-@@ -4741,7 +_,7 @@
+@@ -4740,7 +_,7 @@
              .instabreak()
              .sound(SoundType.ROOTS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -1567,7 +1680,7 @@
      );
      public static final Block CRIMSON_PLANKS = register(
          BlockItemIds.CRIMSON_PLANKS,
-@@ -4762,7 +_,7 @@
+@@ -4761,7 +_,7 @@
              .instrument(NoteBlockInstrument.BASS)
              .noCollision()
              .strength(0.5F)
@@ -1576,7 +1689,7 @@
      );
      public static final Block WARPED_PRESSURE_PLATE = register(
          BlockItemIds.WARPED_PRESSURE_PLATE,
-@@ -4773,7 +_,7 @@
+@@ -4772,7 +_,7 @@
              .instrument(NoteBlockInstrument.BASS)
              .noCollision()
              .strength(0.5F)
@@ -1585,7 +1698,7 @@
      );
      public static final Block CRIMSON_FENCE = register(
          BlockItemIds.CRIMSON_FENCE,
-@@ -4835,7 +_,7 @@
+@@ -4834,7 +_,7 @@
              .instrument(NoteBlockInstrument.BASS)
              .strength(3.0F)
              .noOcclusion()
@@ -1594,7 +1707,7 @@
      );
      public static final Block WARPED_DOOR = register(
          BlockItemIds.WARPED_DOOR,
-@@ -4845,7 +_,7 @@
+@@ -4844,7 +_,7 @@
              .instrument(NoteBlockInstrument.BASS)
              .strength(3.0F)
              .noOcclusion()
@@ -1603,7 +1716,34 @@
      );
      public static final Block CRIMSON_SIGN = register(
          BlockItemIds.CRIMSON_SIGN,
-@@ -4977,7 +_,7 @@
+@@ -4900,7 +_,9 @@
+         BlockItemIds.TEST_BLOCK, TestBlock::new, BlockBehaviour.Properties.of().mapColor(MapColor.COLOR_LIGHT_GRAY).strength(-1.0F, 3600000.0F).noLootTable()
+     );
+     public static final Block TEST_INSTANCE_BLOCK = register(
+-        BlockItemIds.TEST_INSTANCE_BLOCK, TestInstanceBlock::new, BlockBehaviour.Properties.of().noOcclusion().strength(-1.0F, 3600000.0F).noLootTable()
++        BlockItemIds.TEST_INSTANCE_BLOCK,
++        TestInstanceBlock::new,
++        BlockBehaviour.Properties.of().noOcclusion().strength(-1.0F, 3600000.0F).noLootTable().isViewBlocking(Blocks::never)
+     );
+     public static final Block COMPOSTER = register(
+         BlockItemIds.COMPOSTER,
+@@ -4950,7 +_,6 @@
+             .requiresCorrectToolForDrops()
+             .strength(50.0F, 1200.0F)
+             .lightLevel(state -> 10)
+-            .pushReaction(PushReaction.IMMOVEABLE)
+     );
+     public static final Block RESPAWN_ANCHOR = register(
+         BlockItemIds.RESPAWN_ANCHOR,
+@@ -4961,7 +_,6 @@
+             .requiresCorrectToolForDrops()
+             .strength(50.0F, 1200.0F)
+             .lightLevel(state -> RespawnAnchorBlock.getScaledChargeLevel(state, 15))
+-            .pushReaction(PushReaction.IMMOVEABLE)
+     );
+     public static final Block POTTED_CRIMSON_FUNGUS = register(
+         BlockIds.POTTED_CRIMSON_FUNGUS, p -> new FlowerPotBlock(CRIMSON_FUNGUS, p), flowerPotProperties()
+@@ -4976,7 +_,7 @@
              .requiresCorrectToolForDrops()
              .strength(3.5F)
              .sound(SoundType.LODESTONE)
@@ -1612,7 +1752,7 @@
      );
      public static final Block BLACKSTONE = register(
          BlockItemIds.BLACKSTONE,
-@@ -5019,7 +_,7 @@
+@@ -5018,7 +_,7 @@
              .instrument(NoteBlockInstrument.BASEDRUM)
              .noCollision()
              .strength(0.5F)
@@ -1621,7 +1761,7 @@
      );
      public static final Block POLISHED_BLACKSTONE_BUTTON = register(
          BlockItemIds.POLISHED_BLACKSTONE_BUTTON, p -> new ButtonBlock(BlockSetType.STONE, 20, p), buttonProperties()
-@@ -5074,7 +_,7 @@
+@@ -5073,7 +_,7 @@
              .strength(1.5F)
              .sound(SoundType.AMETHYST)
              .requiresCorrectToolForDrops()
@@ -1630,7 +1770,7 @@
      );
      public static final Block AMETHYST_CLUSTER = register(
          BlockItemIds.AMETHYST_CLUSTER,
-@@ -5086,7 +_,7 @@
+@@ -5085,7 +_,7 @@
              .sound(SoundType.AMETHYST_CLUSTER)
              .strength(1.5F)
              .lightLevel(state -> 5)
@@ -1639,7 +1779,15 @@
      );
      public static final Block LARGE_AMETHYST_BUD = register(
          BlockItemIds.LARGE_AMETHYST_BUD,
-@@ -5226,7 +_,7 @@
+@@ -5187,6 +_,7 @@
+             .isValidSpawn(Blocks::never)
+             .isRedstoneConductor(Blocks::never)
+             .isSuffocating(Blocks::never)
++            .isViewBlocking(Blocks::never)
+     );
+     public static final Block POWDER_SNOW = register(
+         BlockItemIds.POWDER_SNOW,
+@@ -5224,7 +_,7 @@
              .noCollision()
              .strength(0.2F)
              .sound(SoundType.SCULK_VEIN)
@@ -1648,7 +1796,24 @@
      );
      public static final Block SCULK_CATALYST = register(
          BlockItemIds.SCULK_CATALYST,
-@@ -5301,7 +_,7 @@
+@@ -5281,14 +_,14 @@
+         Blocks::register,
+         (state, p) -> new StairBlock(CUT_COPPER.waxed().pick(state).defaultBlockState(), p),
+         (state, p) -> new WeatheringCopperStairBlock(state, CUT_COPPER.weathering().pick(state).defaultBlockState(), p),
+-        state -> BlockBehaviour.Properties.ofFullCopy(CUT_COPPER.weathering().pick(state)).isViewBlocking(NEAR_PLANE_INTERSECTS_OUTLINE)
++        state -> BlockBehaviour.Properties.ofFullCopy(CUT_COPPER.weathering().pick(state))
+     );
+     public static final WeatheringCopperCollection<Block> CUT_COPPER_SLAB = WeatheringCopperCollection.registerBlocks(
+         BlockItemIds.CUT_COPPER_SLAB,
+         Blocks::register,
+         (var0, p) -> new SlabBlock(p),
+         WeatheringCopperSlabBlock::new,
+-        state -> BlockBehaviour.Properties.ofFullCopy(CUT_COPPER.weathering().pick(state)).isViewBlocking(NEAR_PLANE_INTERSECTS_OUTLINE)
++        state -> BlockBehaviour.Properties.ofFullCopy(CUT_COPPER.weathering().pick(state))
+     );
+     public static final WeatheringCopperCollection<Block> COPPER_DOOR = WeatheringCopperCollection.registerBlocks(
+         BlockItemIds.COPPER_DOOR,
+@@ -5299,7 +_,7 @@
              .mapColor(var1 -> COPPER_BLOCK.weathering().pick(state).defaultMapColor())
              .strength(3.0F, 6.0F)
              .noOcclusion()
@@ -1657,7 +1822,15 @@
      );
      public static final WeatheringCopperCollection<Block> COPPER_TRAPDOOR = WeatheringCopperCollection.registerBlocks(
          BlockItemIds.COPPER_TRAPDOOR,
-@@ -5371,7 +_,7 @@
+@@ -5327,6 +_,7 @@
+             .isValidSpawn(Blocks::never)
+             .isRedstoneConductor(Blocks::never)
+             .isSuffocating(Blocks::never)
++            .isViewBlocking(Blocks::never)
+     );
+     public static final WeatheringCopperCollection<Block> COPPER_BULB = WeatheringCopperCollection.registerBlocks(
+         BlockItemIds.COPPER_BULB,
+@@ -5368,7 +_,7 @@
              .mapColor(var1 -> COPPER_BLOCK.weathering().pick(state).defaultMapColor())
              .strength(3.0F, 6.0F)
              .sound(SoundType.COPPER_GOLEM_STATUE)
@@ -1666,7 +1839,7 @@
              .noOcclusion()
      );
      public static final WeatheringCopperCollection<Block> LIGHTNING_ROD = WeatheringCopperCollection.registerBlocks(
-@@ -5409,7 +_,7 @@
+@@ -5406,7 +_,7 @@
              .strength(1.5F, 3.0F)
              .dynamicShape()
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -1675,7 +1848,7 @@
              .isRedstoneConductor(Blocks::never)
              .noOcclusion()
      );
-@@ -5426,7 +_,7 @@
+@@ -5423,7 +_,7 @@
              .strength(1.5F, 3.0F)
              .dynamicShape()
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -1684,7 +1857,7 @@
              .isRedstoneConductor(Blocks::never)
              .noOcclusion()
      );
-@@ -5440,7 +_,7 @@
+@@ -5437,7 +_,7 @@
              .lightLevel(CaveVines.emission(14))
              .instabreak()
              .sound(SoundType.CAVE_VINES)
@@ -1693,7 +1866,7 @@
      );
      public static final Block CAVE_VINES_PLANT = register(
          BlockIds.CAVE_VINES_PLANT,
-@@ -5451,12 +_,12 @@
+@@ -5448,12 +_,12 @@
              .lightLevel(CaveVines.emission(14))
              .instabreak()
              .sound(SoundType.CAVE_VINES)
@@ -1708,7 +1881,7 @@
      );
      public static final Block AZALEA = register(
          BlockItemIds.AZALEA,
-@@ -5467,7 +_,7 @@
+@@ -5464,7 +_,7 @@
              .instabreak()
              .sound(SoundType.AZALEA)
              .noOcclusion()
@@ -1717,7 +1890,7 @@
      );
      public static final Block FLOWERING_AZALEA = register(
          BlockItemIds.FLOWERING_AZALEA,
-@@ -5478,22 +_,22 @@
+@@ -5475,22 +_,22 @@
              .instabreak()
              .sound(SoundType.FLOWERING_AZALEA)
              .noOcclusion()
@@ -1744,7 +1917,7 @@
      );
      public static final Block LEAF_LITTER = register(
          BlockItemIds.LEAF_LITTER,
-@@ -5503,22 +_,22 @@
+@@ -5500,22 +_,22 @@
              .replaceable()
              .noCollision()
              .sound(SoundType.LEAF_LITTER)
@@ -1771,7 +1944,7 @@
      );
      public static final Block SMALL_DRIPLEAF = register(
          BlockItemIds.SMALL_DRIPLEAF,
-@@ -5529,7 +_,7 @@
+@@ -5526,7 +_,7 @@
              .instabreak()
              .sound(SoundType.SMALL_DRIPLEAF)
              .offsetType(BlockBehaviour.OffsetType.XYZ)
@@ -1780,7 +1953,7 @@
      );
      public static final Block HANGING_ROOTS = register(
          BlockItemIds.HANGING_ROOTS,
-@@ -5542,7 +_,7 @@
+@@ -5539,7 +_,7 @@
              .sound(SoundType.HANGING_ROOTS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
              .ignitedByLava()
@@ -1789,7 +1962,15 @@
      );
      public static final Block ROOTED_DIRT = register(
          BlockItemIds.ROOTED_DIRT, RootedDirtBlock::new, BlockBehaviour.Properties.of().mapColor(MapColor.DIRT).strength(0.5F).sound(SoundType.ROOTED_DIRT)
-@@ -5649,7 +_,7 @@
+@@ -5551,6 +_,7 @@
+             .mapColor(MapColor.TERRACOTTA_CYAN)
+             .isValidSpawn(Blocks::always)
+             .isRedstoneConductor(Blocks::always)
++            .isViewBlocking(Blocks::always)
+             .isSuffocating(Blocks::always)
+             .sound(SoundType.MUD)
+     );
+@@ -5645,7 +_,7 @@
              .noOcclusion()
              .noCollision()
              .sound(SoundType.FROGSPAWN)
@@ -1798,7 +1979,12 @@
      );
      public static final Block REINFORCED_DEEPSLATE = register(
          BlockItemIds.REINFORCED_DEEPSLATE,
-@@ -5662,7 +_,7 @@
+@@ -5654,12 +_,11 @@
+             .instrument(NoteBlockInstrument.BASEDRUM)
+             .sound(SoundType.DEEPSLATE)
+             .strength(55.0F, 1200.0F)
+-            .pushReaction(PushReaction.IMMOVEABLE)
+     );
      public static final Block DECORATED_POT = register(
          BlockItemIds.DECORATED_POT,
          DecoratedPotBlock::new,
@@ -1807,7 +1993,23 @@
      );
      public static final Block CRAFTER = register(
          BlockItemIds.CRAFTER, CrafterBlock::new, BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(1.5F, 3.5F)
-@@ -5699,7 +_,7 @@
+@@ -5673,6 +_,7 @@
+             .lightLevel(state -> state.getValue(TrialSpawnerBlock.STATE).lightLevel())
+             .strength(50.0F)
+             .sound(SoundType.TRIAL_SPAWNER)
++            .isViewBlocking(Blocks::never)
+             .noOcclusion()
+     );
+     public static final Block VAULT = register(
+@@ -5685,6 +_,7 @@
+             .sound(SoundType.VAULT)
+             .lightLevel(state -> state.getValue(VaultBlock.STATE).lightLevel())
+             .strength(50.0F)
++            .isViewBlocking(Blocks::never)
+     );
+     public static final Block HEAVY_CORE = register(
+         BlockItemIds.HEAVY_CORE,
+@@ -5694,7 +_,7 @@
              .instrument(NoteBlockInstrument.SNARE)
              .sound(SoundType.HEAVY_CORE)
              .strength(10.0F)
@@ -1816,7 +2018,7 @@
              .explosionResistance(1200.0F)
      );
      public static final Block PALE_MOSS_BLOCK = register(
-@@ -5710,7 +_,7 @@
+@@ -5705,7 +_,7 @@
              .mapColor(MapColor.COLOR_LIGHT_GRAY)
              .strength(0.1F)
              .sound(SoundType.MOSS)
@@ -1825,7 +2027,7 @@
      );
      public static final Block PALE_MOSS_CARPET = register(
          BlockItemIds.PALE_MOSS_CARPET,
-@@ -5720,7 +_,7 @@
+@@ -5715,7 +_,7 @@
              .mapColor(PALE_MOSS_BLOCK.defaultMapColor())
              .strength(0.1F)
              .sound(SoundType.MOSS_CARPET)
@@ -1834,7 +2036,7 @@
              .noOcclusion()
      );
      public static final Block PALE_HANGING_MOSS = register(
-@@ -5731,7 +_,7 @@
+@@ -5726,7 +_,7 @@
              .mapColor(PALE_MOSS_BLOCK.defaultMapColor())
              .noCollision()
              .sound(SoundType.MOSS_CARPET)
@@ -1843,7 +2045,7 @@
      );
      public static final Block OPEN_EYEBLOSSOM = register(
          BlockItemIds.OPEN_EYEBLOSSOM,
-@@ -5742,7 +_,7 @@
+@@ -5737,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -1852,7 +2054,7 @@
              .randomTicks()
      );
      public static final Block CLOSED_EYEBLOSSOM = register(
-@@ -5754,7 +_,7 @@
+@@ -5749,7 +_,7 @@
              .instabreak()
              .sound(SoundType.GRASS)
              .offsetType(BlockBehaviour.OffsetType.XZ)
@@ -1861,7 +2063,7 @@
              .randomTicks()
      );
      public static final Block POTTED_OPEN_EYEBLOSSOM = register(
-@@ -5773,7 +_,7 @@
+@@ -5768,7 +_,7 @@
              .noCollision()
              .instabreak()
              .sound(SoundType.SWEET_BERRY_BUSH)
@@ -1870,7 +2072,7 @@
      );
  
      private static ToIntFunction<BlockState> litBlockEmission(int lightEmission) {
-@@ -5784,15 +_,15 @@
+@@ -5779,15 +_,15 @@
          return blockState -> blockState.getValue(BlockStateProperties.WATERLOGGED) ? MapColor.WATER : mapColor;
      }
  
@@ -1889,29 +2091,33 @@
          return entityType == EntityTypes.OCELOT || entityType == EntityTypes.PARROT;
      }
  
-@@ -5836,7 +_,7 @@
+@@ -5829,8 +_,9 @@
+             .noOcclusion()
+             .isValidSpawn(Blocks::ocelotOrParrot)
              .isSuffocating(Blocks::never)
-             .isViewBlocking(Blocks::never)
++            .isViewBlocking(Blocks::never)
              .ignitedByLava()
 -            .pushReaction(PushReaction.POPPED)
 +            .pushReaction(PushReaction.DESTROY)
              .isRedstoneConductor(Blocks::never);
      }
  
-@@ -5849,7 +_,7 @@
+@@ -5842,7 +_,8 @@
+             .dynamicShape()
              .noOcclusion()
              .isSuffocating(NOT_CLOSED_SHULKER)
-             .isViewBlocking(NOT_CLOSED_SHULKER)
 -            .pushReaction(PushReaction.POPPED);
++            .isViewBlocking(NOT_CLOSED_SHULKER)
 +            .pushReaction(PushReaction.DESTROY);
      }
  
      private static BlockBehaviour.Properties pistonProperties() {
-@@ -5859,15 +_,15 @@
+@@ -5851,15 +_,16 @@
+             .strength(1.5F)
              .isRedstoneConductor(Blocks::never)
              .isSuffocating(NOT_EXTENDED_PISTON)
-             .isViewBlocking(NOT_EXTENDED_PISTON)
 -            .pushReaction(PushReaction.IMMOVEABLE);
++            .isViewBlocking(NOT_EXTENDED_PISTON)
 +            .pushReaction(PushReaction.BLOCK);
      }
  
@@ -1926,7 +2132,7 @@
      }
  
      private static BlockBehaviour.Properties candleProperties(MapColor color) {
-@@ -5877,7 +_,7 @@
+@@ -5869,37 +_,27 @@
              .strength(0.1F)
              .sound(SoundType.CANDLE)
              .lightLevel(CandleBlock.LIGHT_EMISSION)
@@ -1935,3 +2141,38 @@
      }
  
      private static Block registerLegacyStair(BlockItemId id, Block base) {
+-        return register(
+-            id.block(),
+-            p -> new StairBlock(base.defaultBlockState(), p),
+-            BlockBehaviour.Properties.ofLegacyCopy(base).isViewBlocking(NEAR_PLANE_INTERSECTS_OUTLINE)
+-        );
++        return register(id.block(), p -> new StairBlock(base.defaultBlockState(), p), BlockBehaviour.Properties.ofLegacyCopy(base));
+     }
+ 
+     private static Block registerStair(BlockItemId id, Block base) {
+-        return register(
+-            id, p -> new StairBlock(base.defaultBlockState(), p), BlockBehaviour.Properties.ofFullCopy(base).isViewBlocking(NEAR_PLANE_INTERSECTS_OUTLINE)
+-        );
++        return register(id, p -> new StairBlock(base.defaultBlockState(), p), BlockBehaviour.Properties.ofFullCopy(base));
+     }
+ 
+     private static Block registerSlab(BlockItemId id, Block base) {
+-        return register(id, SlabBlock::new, BlockBehaviour.Properties.ofLegacyCopy(base).isViewBlocking(NEAR_PLANE_INTERSECTS_OUTLINE));
++        return register(id, SlabBlock::new, BlockBehaviour.Properties.ofLegacyCopy(base));
+     }
+ 
+     private static Block registerSlab(BlockItemId id, Block base, float destroyTime) {
+-        return register(id, SlabBlock::new, BlockBehaviour.Properties.ofLegacyCopy(base).isViewBlocking(NEAR_PLANE_INTERSECTS_OUTLINE).destroyTime(destroyTime));
++        return register(id, SlabBlock::new, BlockBehaviour.Properties.ofLegacyCopy(base).destroyTime(destroyTime));
+     }
+ 
+     private static Block registerSlab(BlockItemId id, Block base, float destroyTime, float explosionResistance) {
+-        return register(
+-            id,
+-            SlabBlock::new,
+-            BlockBehaviour.Properties.ofLegacyCopy(base).isViewBlocking(NEAR_PLANE_INTERSECTS_OUTLINE).strength(destroyTime, explosionResistance)
+-        );
++        return register(id, SlabBlock::new, BlockBehaviour.Properties.ofLegacyCopy(base).strength(destroyTime, explosionResistance));
+     }
+ 
+     private static Block registerWall(BlockItemId id, Block base) {

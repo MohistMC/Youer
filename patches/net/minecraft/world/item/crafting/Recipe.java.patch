@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/crafting/Recipe.java
 +++ b/net/minecraft/world/item/crafting/Recipe.java
-@@ -1,31 +_,27 @@
+@@ -1,15 +_,13 @@
  package net.minecraft.world.item.crafting;
  
 +import com.mohistmc.youer.neoforge.ModSpecialRecipe;
@@ -11,16 +11,13 @@
  import java.util.function.BiFunction;
 -import net.minecraft.core.Holder;
 -import net.minecraft.core.HolderSet;
--import net.minecraft.core.RegistryCodecs;
  import net.minecraft.core.registries.BuiltInRegistries;
  import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
  import net.minecraft.network.RegistryFriendlyByteBuf;
  import net.minecraft.network.codec.ByteBufCodecs;
  import net.minecraft.network.codec.StreamCodec;
--import net.minecraft.resources.RegistryFileCodec;
- import net.minecraft.resources.ResourceKey;
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.item.crafting.display.RecipeDisplay;
+@@ -19,12 +_,11 @@
  import net.minecraft.world.level.Level;
  
  public interface Recipe<T extends RecipeInput> {
@@ -30,12 +27,12 @@
 +    Codec<java.util.Optional<net.neoforged.neoforge.common.conditions.WithConditions<Recipe<?>>>> CONDITIONAL_CODEC = net.neoforged.neoforge.common.conditions.ConditionalOps.createConditionalCodecWithConditions(CODEC);
      StreamCodec<RegistryFriendlyByteBuf, Recipe<?>> STREAM_CODEC = ByteBufCodecs.registry(Registries.RECIPE_SERIALIZER)
          .dispatch(Recipe::getSerializer, RecipeSerializer::streamCodec);
--    Codec<Holder<Recipe<?>>> CODEC = RegistryFileCodec.create(Registries.RECIPE, DIRECT_CODEC);
--    Codec<HolderSet<Recipe<?>>> LIST_CODEC = RegistryCodecs.homogeneousList(Registries.RECIPE, DIRECT_CODEC);
+-    Codec<Holder<Recipe<?>>> CODEC = RegistryCodecs.holder(Registries.RECIPE, DIRECT_CODEC);
+-    Codec<HolderSet<Recipe<?>>> LIST_CODEC = RegistryCodecs.holderSet(Registries.RECIPE, DIRECT_CODEC);
  
      boolean matches(T input, Level level);
  
-@@ -50,6 +_,10 @@
+@@ -49,6 +_,10 @@
      }
  
      RecipeBookCategory recipeBookCategory();

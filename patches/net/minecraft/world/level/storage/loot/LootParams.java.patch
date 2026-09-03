@@ -1,0 +1,59 @@
+--- a/net/minecraft/world/level/storage/loot/LootParams.java
++++ b/net/minecraft/world/level/storage/loot/LootParams.java
+@@ -2,7 +_,6 @@
+ 
+ import com.google.common.collect.Maps;
+ import java.util.Map;
+-import java.util.NoSuchElementException;
+ import java.util.function.Consumer;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.server.level.ServerLevel;
+@@ -46,7 +_,7 @@
+ 
+     public static class Builder {
+         private final ServerLevel level;
+-        private final ContextMap.Builder params = ContextMap.builder();
++        private final ContextMap.Builder params = new ContextMap.Builder();
+         private final Map<Identifier, LootParams.DynamicDrop> dynamicDrops = Maps.newHashMap();
+         private float luck;
+ 
+@@ -59,26 +_,21 @@
+         }
+ 
+         public <T> LootParams.Builder withParameter(ContextKey<T> param, T value) {
+-            this.params.set(param, value);
++            this.params.withParameter(param, value);
+             return this;
+         }
+ 
+         public <T> LootParams.Builder withOptionalParameter(ContextKey<T> param, @Nullable T value) {
+-            this.params.set(param, value);
++            this.params.withOptionalParameter(param, value);
+             return this;
+         }
+ 
+         public <T> T getParameter(ContextKey<T> param) {
+-            T value = this.params.get(param);
+-            if (value == null) {
+-                throw new NoSuchElementException(param.name().toString());
+-            } else {
+-                return value;
+-            }
++            return this.params.getParameter(param);
+         }
+ 
+         public <T> @Nullable T getOptionalParameter(ContextKey<T> param) {
+-            return this.params.get(param);
++            return this.params.getOptionalParameter(param);
+         }
+ 
+         public LootParams.Builder withDynamicDrop(Identifier location, LootParams.DynamicDrop dynamicDrop) {
+@@ -96,7 +_,7 @@
+         }
+ 
+         public LootParams create(ContextKeySet contextKeySet) {
+-            ContextMap keySet = this.params.buildAndValidate(contextKeySet);
++            ContextMap keySet = this.params.create(contextKeySet);
+             return new LootParams(this.level, keySet, this.dynamicDrops, this.luck);
+         }
+     }

@@ -1,0 +1,29 @@
+--- a/net/minecraft/data/recipes/packs/VanillaRecipeProvider.java
++++ b/net/minecraft/data/recipes/packs/VanillaRecipeProvider.java
+@@ -51,7 +_,6 @@
+ import net.minecraft.world.item.crafting.ShieldDecorationRecipe;
+ import net.minecraft.world.item.crafting.SmokingRecipe;
+ import net.minecraft.world.item.crafting.TransmuteRecipe;
+-import net.minecraft.world.item.crafting.TransmuteResult;
+ import net.minecraft.world.item.equipment.trim.TrimPattern;
+ import net.minecraft.world.item.equipment.trim.TrimPatterns;
+ import net.minecraft.world.level.ItemLike;
+@@ -2137,14 +_,16 @@
+                 () -> new FireworkStarFadeRecipe(Ingredient.of(Items.FIREWORK_STAR), this.tag(ItemTags.DYES), new ItemStackTemplate(Items.FIREWORK_STAR))
+             )
+             .save(this.output, "firework_star_fade");
+-        TransmuteRecipeBuilder.transmute(RecipeCategory.MISC, this.tag(ItemTags.CLONABLE_MAPS), Ingredient.of(Items.MAP), TransmuteResult.KEEP_INPUT_ITEM)
++        TransmuteRecipeBuilder.transmute(
++                RecipeCategory.MISC, Ingredient.of(Items.FILLED_MAP), Ingredient.of(Items.MAP), new ItemStackTemplate(Items.FILLED_MAP)
++            )
+             .addMaterialCountToOutput()
+             .setMaterialCount(TransmuteRecipe.FULL_RANGE_MATERIAL_COUNT)
+             .group("map_cloning")
+             .unlockedBy("has_filled_map", this.has(Items.FILLED_MAP))
+             .save(this.output, "map_cloning");
+         SpecialRecipeBuilder.special(
+-                () -> new MapExtendingRecipe(this.tag(ItemTags.EXTENDABLE_MAPS), Ingredient.of(Items.PAPER), TransmuteResult.KEEP_INPUT_ITEM)
++                () -> new MapExtendingRecipe(Ingredient.of(Items.FILLED_MAP), Ingredient.of(Items.PAPER), new ItemStackTemplate(Items.FILLED_MAP))
+             )
+             .save(this.output, "map_extending");
+         SpecialRecipeBuilder.special(RepairItemRecipe::new).save(this.output, "repair_item");

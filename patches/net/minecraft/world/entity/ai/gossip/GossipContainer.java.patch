@@ -51,7 +51,24 @@
          if (entries.isEmpty()) {
              return Collections.emptyList();
          }
-@@ -176,7 +_,23 @@
+@@ -95,7 +_,7 @@
+         return this.gossips.computeIfAbsent(target, uuid -> new GossipContainer.EntityGossips());
+     }
+ 
+-    public int transferFrom(GossipContainer source, RandomSource random, int maxCount) {
++    public void transferFrom(GossipContainer source, RandomSource random, int maxCount) {
+         Collection<GossipContainer.GossipEntry> newGossips = source.selectGossipsForTransfer(random, maxCount);
+         newGossips.forEach(newGossip -> {
+             int decayedValue = newGossip.value - newGossip.type.decayPerTransfer;
+@@ -103,7 +_,6 @@
+                 this.getOrCreate(newGossip.target).entries.mergeInt(newGossip.type, decayedValue, GossipContainer::mergeValuesForTransfer);
+             }
+         });
+-        return newGossips.size();
+     }
+ 
+     public int getReputation(UUID entity, Predicate<GossipType> types) {
+@@ -177,7 +_,23 @@
          private final Object2IntMap<GossipType> entries = new Object2IntOpenHashMap<>();
  
          public int weightedValue(Predicate<GossipType> types) {
@@ -76,7 +93,7 @@
          }
  
          public Stream<GossipContainer.GossipEntry> unpack(UUID target) {
-@@ -215,6 +_,44 @@
+@@ -216,6 +_,44 @@
          public void remove(GossipType type) {
              this.entries.removeInt(type);
          }

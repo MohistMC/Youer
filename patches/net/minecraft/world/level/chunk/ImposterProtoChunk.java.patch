@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/chunk/ImposterProtoChunk.java
 +++ b/net/minecraft/world/level/chunk/ImposterProtoChunk.java
-@@ -8,6 +_,7 @@
+@@ -8,10 +_,12 @@
  import net.minecraft.core.Holder;
  import net.minecraft.core.HolderLookup;
  import net.minecraft.nbt.CompoundTag;
@@ -8,7 +8,12 @@
  import net.minecraft.world.entity.Entity;
  import net.minecraft.world.level.ChunkPos;
  import net.minecraft.world.level.biome.Biome;
-@@ -28,7 +_,7 @@
+ import net.minecraft.world.level.biome.BiomeResolver;
++import net.minecraft.world.level.biome.Climate;
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.entity.BlockEntity;
+ import net.minecraft.world.level.block.state.BlockState;
+@@ -27,7 +_,7 @@
  import net.minecraft.world.ticks.TickContainerAccess;
  import org.jspecify.annotations.Nullable;
  
@@ -17,7 +22,7 @@
      private final LevelChunk wrapped;
      private final boolean allowWrites;
  
-@@ -38,6 +_,48 @@
+@@ -37,6 +_,48 @@
          this.allowWrites = allowWrites;
      }
  
@@ -66,7 +71,7 @@
      @Override
      public @Nullable BlockEntity getBlockEntity(BlockPos pos) {
          return this.wrapped.getBlockEntity(pos);
-@@ -48,6 +_,13 @@
+@@ -47,6 +_,13 @@
          return this.wrapped.getBlockState(pos);
      }
  
@@ -80,7 +85,7 @@
      @Override
      public FluidState getFluidState(BlockPos pos) {
          return this.wrapped.getFluidState(pos);
-@@ -210,6 +_,10 @@
+@@ -209,6 +_,10 @@
      }
  
      @Override
@@ -91,7 +96,7 @@
      public TickContainerAccess<Block> getBlockTicks() {
          return this.allowWrites ? this.wrapped.getBlockTicks() : BlackholeTickAccess.emptyContainer();
      }
-@@ -229,6 +_,24 @@
+@@ -228,6 +_,24 @@
          return this.wrapped.getBlendingData();
      }
  
@@ -116,7 +121,19 @@
      public LevelChunk getWrapped() {
          return this.wrapped;
      }
-@@ -258,5 +_,10 @@
+@@ -243,9 +_,9 @@
+     }
+ 
+     @Override
+-    public void fillBiomesFromNoise(BiomeResolver biomeResolver) {
++    public void fillBiomesFromNoise(BiomeResolver biomeResolver, Climate.Sampler sampler) {
+         if (this.allowWrites) {
+-            this.wrapped.fillBiomesFromNoise(biomeResolver);
++            this.wrapped.fillBiomesFromNoise(biomeResolver, sampler);
+         }
+     }
+ 
+@@ -257,5 +_,10 @@
      @Override
      public ChunkSkyLightSources getSkyLightSources() {
          return this.wrapped.getSkyLightSources();

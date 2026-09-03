@@ -1,6 +1,45 @@
 --- a/net/minecraft/world/level/pathfinder/WalkNodeEvaluator.java
 +++ b/net/minecraft/world/level/pathfinder/WalkNodeEvaluator.java
-@@ -248,7 +_,7 @@
+@@ -22,6 +_,7 @@
+ import net.minecraft.world.level.block.LeavesBlock;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.material.FluidState;
++import net.minecraft.world.level.material.Fluids;
+ import net.minecraft.world.phys.AABB;
+ import net.minecraft.world.phys.Vec3;
+ import net.minecraft.world.phys.shapes.VoxelShape;
+@@ -54,12 +_,15 @@
+         int startY = this.mob.getBlockY();
+         BlockState blockState = this.currentContext.getBlockState(reusablePos.set(this.mob.getX(), startY, this.mob.getZ()));
+         if (!this.mob.canStandOnFluid(blockState.getFluidState())) {
+-            if (this.canFloat() && this.mob.isInFloatableFluid()) {
+-                while (blockState.getFluidState().is(FluidTags.ENTITY_FLOATABLE)) {
++            if (this.canFloat() && this.mob.isInWater()) {
++                while (true) {
++                    if (!blockState.is(Blocks.WATER) && blockState.getFluidState() != Fluids.WATER.getSource(false)) {
++                        startY--;
++                        break;
++                    }
++
+                     blockState = this.currentContext.getBlockState(reusablePos.set(this.mob.getX(), ++startY, this.mob.getZ()));
+                 }
+-
+-                startY--;
+             } else if (this.mob.onGround()) {
+                 startY = Mth.floor(this.mob.getY() + 0.5);
+             } else {
+@@ -209,9 +_,7 @@
+ 
+     protected double getFloorLevel(BlockPos pos) {
+         BlockGetter level = this.currentContext.level();
+-        return (this.canFloat() || this.isAmphibious()) && level.getFluidState(pos).is(FluidTags.ENTITY_FLOATABLE)
+-            ? pos.getY() + 0.5
+-            : getFloorLevel(level, pos);
++        return (this.canFloat() || this.isAmphibious()) && level.getFluidState(pos).is(FluidTags.WATER) ? pos.getY() + 0.5 : getFloorLevel(level, pos);
+     }
+ 
+     public static double getFloorLevel(BlockGetter level, BlockPos pos) {
+@@ -246,7 +_,7 @@
              if ((best == null || best.costMalus < 0.0F)
                  && jumpSize > 0
                  && (pathType != PathType.FENCE || this.canWalkOverFences())
@@ -9,7 +48,7 @@
                  && pathType != PathType.TRAPDOOR
                  && pathType != PathType.POWDER_SNOW) {
                  best = this.tryJumpOn(x, y, z, jumpSize, nodeHeight, travelDirection, blockPathTypeCurrent, reusablePos);
-@@ -479,6 +_,12 @@
+@@ -477,6 +_,12 @@
                  for (int dz = -1; dz <= 1; dz++) {
                      if (dx != 0 || dz != 0) {
                          PathType pathType = context.getPathTypeFromState(x + dx, y + dy, z + dz);
@@ -22,7 +61,7 @@
                          if (pathType == PathType.DAMAGING) {
                              return PathType.DAMAGING_IN_NEIGHBOR;
                          }
-@@ -503,7 +_,14 @@
+@@ -501,7 +_,14 @@
      }
  
      protected static PathType getPathTypeFromState(BlockGetter level, BlockPos pos) {
@@ -38,7 +77,7 @@
          Block block = blockState.getBlock();
          if (blockState.isAir()) {
              return PathType.OPEN;
-@@ -517,7 +_,7 @@
+@@ -515,7 +_,7 @@
              return PathType.POWDER_SNOW;
          }
  
@@ -47,7 +86,7 @@
              return PathType.DAMAGING;
          }
  
-@@ -531,6 +_,8 @@
+@@ -529,6 +_,8 @@
  
          if (!blockState.is(Blocks.WITHER_ROSE) && !blockState.is(BlockTags.SPELEOTHEMS)) {
              FluidState fluidState = blockState.getFluidState();
@@ -56,7 +95,7 @@
              if (fluidState.is(FluidTags.LAVA)) {
                  return PathType.LAVA;
              }
-@@ -560,6 +_,8 @@
+@@ -558,6 +_,8 @@
                      if (!blockState.isPathfindable(PathComputationType.LAND)) {
                          return PathType.BLOCKED;
                      } else {

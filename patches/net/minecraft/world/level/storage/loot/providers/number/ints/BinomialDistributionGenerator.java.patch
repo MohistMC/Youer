@@ -1,0 +1,51 @@
+--- a/net/minecraft/world/level/storage/loot/providers/number/ints/BinomialDistributionGenerator.java
++++ /dev/null
+@@ -1,48 +_,0 @@
+-package net.minecraft.world.level.storage.loot.providers.number.ints;
+-
+-import com.mojang.serialization.MapCodec;
+-import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import net.minecraft.core.Holder;
+-import net.minecraft.util.RandomSource;
+-import net.minecraft.world.level.storage.loot.LootContext;
+-import net.minecraft.world.level.storage.loot.Validatable;
+-import net.minecraft.world.level.storage.loot.ValidationContext;
+-import net.minecraft.world.level.storage.loot.providers.number.floats.ContextFloatProvider;
+-import net.minecraft.world.level.storage.loot.providers.number.floats.ContextFloatProviders;
+-
+-public record BinomialDistributionGenerator(Holder<ContextIntProvider> n, Holder<ContextFloatProvider> p) implements ContextIntProvider {
+-    public static final MapCodec<BinomialDistributionGenerator> MAP_CODEC = RecordCodecBuilder.mapCodec(
+-        i -> i.group(
+-                ContextIntProviders.CODEC.fieldOf("n").forGetter(BinomialDistributionGenerator::n),
+-                ContextFloatProviders.CODEC.fieldOf("p").forGetter(BinomialDistributionGenerator::p)
+-            )
+-            .apply(i, BinomialDistributionGenerator::new)
+-    );
+-
+-    @Override
+-    public MapCodec<BinomialDistributionGenerator> codec() {
+-        return MAP_CODEC;
+-    }
+-
+-    @Override
+-    public int getIntUnsafe(LootContext context) {
+-        int n = this.n().value().getIntUnsafe(context);
+-        float p = ContextIntProvider.throwIfInvalid(this.p().value().getFloatUnsafe(context));
+-        RandomSource random = context.getRandom();
+-        int result = 0;
+-
+-        for (int i = 0; i < n; i++) {
+-            if (random.nextFloat() < p) {
+-                result++;
+-            }
+-        }
+-
+-        return result;
+-    }
+-
+-    @Override
+-    public void validate(ValidationContext context) {
+-        Validatable.validateHolder(context, "n", this.n);
+-        Validatable.validateHolder(context, "p", this.p);
+-    }
+-}

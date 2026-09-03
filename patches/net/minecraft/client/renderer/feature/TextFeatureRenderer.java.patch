@@ -1,0 +1,101 @@
+--- a/net/minecraft/client/renderer/feature/TextFeatureRenderer.java
++++ b/net/minecraft/client/renderer/feature/TextFeatureRenderer.java
+@@ -4,7 +_,7 @@
+ import java.util.List;
+ import net.minecraft.client.gui.Font;
+ import net.minecraft.client.gui.font.TextRenderable;
+-import net.minecraft.client.renderer.feature.submit.TranslucentSubmit;
++import net.minecraft.client.renderer.feature.submit.SubmitNode;
+ import net.minecraft.util.FormattedCharSequence;
+ import net.neoforged.api.distmarker.Dist;
+ import net.neoforged.api.distmarker.OnlyIn;
+@@ -24,52 +_,22 @@
+             glyphRenderer.pose.set(submit.pose());
+             glyphRenderer.lightCoords = submit.lightCoords();
+             glyphRenderer.displayMode = submit.displayMode();
+-            switch (submit.content()) {
+-                case TextFeatureRenderer.Content.Text text:
+-                    renderText(font, glyphRenderer, text);
+-                    break;
+-                case TextFeatureRenderer.Content.StandaloneBackground standaloneBackground:
+-                    glyphRenderer.acceptRenderable(
+-                        font.prepareBackground(
+-                            standaloneBackground.x0(),
+-                            standaloneBackground.y0(),
+-                            standaloneBackground.x1(),
+-                            standaloneBackground.y1(),
+-                            standaloneBackground.color()
+-                        )
+-                    );
+-                    break;
+-                default:
+-                    throw new MatchException(null, null);
++            if (submit.outlineColor() == 0) {
++                Font.PreparedText text = font.prepareText(
++                    submit.string(), submit.x(), submit.y(), submit.color(), submit.dropShadow(), false, submit.backgroundColor()
++                );
++                text.visit(glyphRenderer);
++            } else {
++                Font.PreparedText outline = font.prepare8xTextOutline(submit.string(), submit.x(), submit.y(), submit.outlineColor());
++                Font.PreparedText text = font.prepareText(submit.string(), submit.x(), submit.y(), submit.color(), false, false, 0);
++                glyphRenderer.displayMode = Font.DisplayMode.NORMAL;
++                outline.visit(glyphRenderer);
++                glyphRenderer.displayMode = Font.DisplayMode.POLYGON_OFFSET;
++                text.visit(glyphRenderer);
+             }
+         }
+     }
+ 
+-    private static void renderText(Font font, TextFeatureRenderer.GlyphRenderer glyphRenderer, TextFeatureRenderer.Content.Text content) {
+-        if (content.outlineColor() == 0) {
+-            Font.PreparedText text = font.prepareText(
+-                content.string(), content.x(), content.y(), content.color(), content.dropShadow(), false, content.backgroundColor()
+-            );
+-            text.visit(glyphRenderer);
+-        } else {
+-            Font.PreparedText outline = font.prepare8xTextOutline(content.string(), content.x(), content.y(), content.outlineColor());
+-            Font.PreparedText text = font.prepareText(content.string(), content.x(), content.y(), content.color(), false, false, 0);
+-            glyphRenderer.displayMode = Font.DisplayMode.NORMAL;
+-            outline.visit(glyphRenderer);
+-            glyphRenderer.displayMode = Font.DisplayMode.POLYGON_OFFSET;
+-            text.visit(glyphRenderer);
+-        }
+-    }
+-
+-    public sealed interface Content permits TextFeatureRenderer.Content.Text, TextFeatureRenderer.Content.StandaloneBackground {
+-        record StandaloneBackground(float x0, float y0, float x1, float y1, int color) implements TextFeatureRenderer.Content {
+-        }
+-
+-        record Text(float x, float y, FormattedCharSequence string, boolean dropShadow, int color, int backgroundColor, int outlineColor)
+-            implements TextFeatureRenderer.Content {
+-        }
+-    }
+-
+     private class GlyphRenderer implements Font.GlyphVisitor {
+         private final Matrix4f pose = new Matrix4f();
+         private int lightCoords = 15728880;
+@@ -82,12 +_,18 @@
+         }
+     }
+ 
+-    public record Submit(Matrix4fc pose, Font.DisplayMode displayMode, int lightCoords, TextFeatureRenderer.Content content) implements TranslucentSubmit {
+-        @Override
+-        public float distanceToCameraSq() {
+-            return TranslucentSubmit.computeDistanceToCameraSq(this.pose);
+-        }
+-
++    public record Submit(
++        Matrix4fc pose,
++        float x,
++        float y,
++        FormattedCharSequence string,
++        boolean dropShadow,
++        Font.DisplayMode displayMode,
++        int lightCoords,
++        int color,
++        int backgroundColor,
++        int outlineColor
++    ) implements SubmitNode {
+         @Override
+         public FeatureRendererType<TextFeatureRenderer.Submit> featureType() {
+             return TextFeatureRenderer.TYPE;

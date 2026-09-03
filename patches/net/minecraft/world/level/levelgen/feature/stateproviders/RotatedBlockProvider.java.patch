@@ -1,0 +1,40 @@
+--- a/net/minecraft/world/level/levelgen/feature/stateproviders/RotatedBlockProvider.java
++++ b/net/minecraft/world/level/levelgen/feature/stateproviders/RotatedBlockProvider.java
+@@ -5,13 +_,12 @@
+ import java.util.Optional;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+-import net.minecraft.core.Holder;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.level.LevelAccessor;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+ 
+-public record RotatedBlockProvider(Holder<BlockStateProvider> state, Optional<Direction> direction) implements BlockStateProvider {
++public record RotatedBlockProvider(BlockStateProvider state, Optional<Direction> direction) implements BlockStateProvider {
+     public static final MapCodec<RotatedBlockProvider> CODEC = RecordCodecBuilder.mapCodec(
+         i -> i.group(
+                 BlockStateProvider.CODEC.fieldOf("state").forGetter(RotatedBlockProvider::state),
+@@ -21,7 +_,7 @@
+     );
+ 
+     public RotatedBlockProvider(BlockStateProvider state) {
+-        this(Holder.direct(state), Optional.empty());
++        this(state, Optional.empty());
+     }
+ 
+     @Override
+@@ -32,11 +_,10 @@
+     @Override
+     public BlockState getState(LevelAccessor level, RandomSource random, BlockPos pos) {
+         Direction direction = this.direction.orElseGet(() -> Direction.getRandom(random));
+-        BlockState newState = this.state
+-            .value()
++        return this.state
+             .getState(level, random, pos)
+             .trySetValue(BlockStateProperties.AXIS, direction.getAxis())
++            .trySetValue(BlockStateProperties.HORIZONTAL_FACING, direction)
+             .trySetValue(BlockStateProperties.FACING, direction);
+-        return direction.getAxis().isHorizontal() ? newState.trySetValue(BlockStateProperties.HORIZONTAL_FACING, direction) : newState;
+     }
+ }

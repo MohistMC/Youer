@@ -1,21 +1,25 @@
 --- a/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
-@@ -6,13 +_,10 @@
+@@ -6,17 +_,15 @@
  import it.unimi.dsi.fastutil.objects.Reference2IntMap.Entry;
  import java.util.List;
  import java.util.Map;
--import java.util.Optional;
--import java.util.function.Function;
 +import java.util.Objects;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
  import net.minecraft.core.NonNullList;
--import net.minecraft.core.component.DataComponentType;
 -import net.minecraft.core.component.DataComponents;
  import net.minecraft.resources.ResourceKey;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.server.level.ServerPlayer;
-@@ -29,24 +_,29 @@
+-import net.minecraft.tags.ItemTags;
+ import net.minecraft.util.Mth;
+ import net.minecraft.world.ContainerHelper;
+-import net.minecraft.world.Containers;
+ import net.minecraft.world.WorldlyContainer;
+ import net.minecraft.world.entity.ExperienceOrb;
+ import net.minecraft.world.entity.player.Player;
+@@ -28,20 +_,29 @@
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.item.ItemStackTemplate;
  import net.minecraft.world.item.Items;
@@ -31,12 +35,8 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
--import net.minecraft.world.level.storage.loot.LootContext;
--import net.minecraft.world.level.storage.loot.LootParams;
--import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
--import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
--import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
--import net.minecraft.world.level.storage.loot.providers.number.NumberProviders;
+-import net.minecraft.world.level.storage.loot.providers.number.floats.ResolvableFloat;
+-import net.minecraft.world.level.storage.loot.providers.number.ints.ResolvableInt;
  import net.minecraft.world.phys.Vec3;
 +import org.bukkit.craftbukkit.block.CraftBlock;
 +import org.bukkit.craftbukkit.entity.CraftHumanEntity;
@@ -52,7 +52,7 @@
  import org.jspecify.annotations.Nullable;
  
  public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer, StackedContentsCompatible, RecipeCraftingHolder {
-@@ -64,25 +_,28 @@
+@@ -59,25 +_,28 @@
      public static final int BURN_TIME_STANDARD = 200;
      public static final int BURN_COOL_SPEED = 2;
      private static final Codec<Map<ResourceKey<Recipe<?>>, Integer>> RECIPES_USED_CODEC = Codec.unboundedMap(Recipe.KEY_CODEC, Codec.INT);
@@ -88,7 +88,7 @@
                  case 2:
                      return AbstractFurnaceBlockEntity.this.cookingTimer;
                  case 3:
-@@ -116,36 +_,69 @@
+@@ -111,36 +_,69 @@
      };
      public final Reference2IntOpenHashMap<ResourceKey<Recipe<?>>> recipesUsed = new Reference2IntOpenHashMap<>();
      private final RecipeManager.CachedCheck<SingleRecipeInput, ? extends AbstractCookingRecipe> quickCheck;
@@ -169,7 +169,7 @@
          ContainerHelper.saveAllItems(output, this.items);
          output.store("RecipesUsed", RECIPES_USED_CODEC, this.recipesUsed);
      }
-@@ -164,6 +_,21 @@
+@@ -159,6 +_,21 @@
          }
  
          ItemStack fuel = entity.items.get(1);
@@ -191,7 +191,7 @@
          ItemStack ingredient = entity.items.get(0);
          boolean hasIngredient = !ingredient.isEmpty();
          boolean hasFuel = !fuel.isEmpty();
-@@ -176,31 +_,48 @@
+@@ -171,31 +_,48 @@
                      ItemStack burnResult = recipe.value().assemble(input);
                      if (!burnResult.isEmpty() && canBurn(entity.items, maxStackSize, burnResult)) {
                          if (!isLit) {
@@ -217,7 +217,7 @@
 -                            }
 -
 -                            if (newLitTime > 0) {
--                                consumeFuel(entity.items, fuel);
+-                                consumeFuel(level, pos, entity.items, fuel);
 +                            if (newLitTime > 0 && burnEvent.isBurning()) { // CraftBukkit - respect event output
 +                                if (burnEvent.willConsumeFuel()) { // Paper - add consumeFuel to FurnaceBurnEvent
 +                                    consumeFuel(entity.items, fuel);
@@ -255,7 +255,7 @@
                                  changed = true;
                              }
                          } else {
-@@ -226,13 +_,16 @@
+@@ -221,22 +_,18 @@
          if (changed) {
              setChanged(level, pos, state);
          }
@@ -263,17 +263,29 @@
 +        if (usedLavaFromUnderneath) entity.items.set(1, ItemStack.EMPTY); // Purpur - Furnace uses lava from underneath
      }
  
-     private static void consumeFuel(NonNullList<ItemStack> items, ItemStack fuel) {
+-    private static void consumeFuel(ServerLevel level, BlockPos pos, NonNullList<ItemStack> items, ItemStack fuel) {
++    private static void consumeFuel(NonNullList<ItemStack> items, ItemStack fuel) {
          Item fuelItem = fuel.getItem();
+-        ItemStackTemplate remainder = fuelItem.getCraftingRemainder();
+-        ItemStack newFuel = fuel;
 +        // Neo: Query the crafting remainder prior to stack mutation (shrink) in order to grab the correct value
 +        ItemStackTemplate remainder = fuel.getCraftingRemainder();
          fuel.shrink(1);
-         if (fuel.isEmpty()) {
--            ItemStackTemplate remainder = fuelItem.getCraftingRemainder();
-             items.set(1, remainder != null ? remainder.create() : ItemStack.EMPTY);
+-        if (remainder != null) {
+-            if (fuel.isEmpty()) {
+-                newFuel = remainder.create();
+-            } else {
+-                Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), remainder.create());
+-            }
++        if (fuel.isEmpty()) {
++            items.set(1, remainder != null ? remainder.create() : ItemStack.EMPTY);
          }
+-
+-        items.set(1, newFuel);
      }
-@@ -252,68 +_,69 @@
+ 
+     private static boolean canBurn(NonNullList<ItemStack> items, int maxStackSize, ItemStack burnResult) {
+@@ -254,42 +_,69 @@
          return resultCount <= maxResultCount;
      }
  
@@ -321,38 +333,12 @@
          inputItemStack.shrink(1);
 -    }
 -
--    protected LootContext getLootContext(ServerLevel level) {
--        return new LootContext.Builder(
--                new LootParams.Builder(level)
--                    .withParameter(LootContextParams.BLOCK_STATE, this.getBlockState())
--                    .withParameter(LootContextParams.BLOCK_ENTITY, this)
--                    .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(this.getBlockPos()))
--                    .withParameter(LootContextParams.CONTAINER, this)
--                    .create(LootContextParamSets.CONTAINER_PROCESS)
--            )
--            .create(Optional.empty());
--    }
--
--    protected <T> int getProvidedInteger(
--        ServerLevel level, ItemStack itemStack, DataComponentType<T> componentType, Function<T, ResourceKey<NumberProvider>> getter, int defaultValue
--    ) {
--        Optional<NumberProvider> provider = NumberProviders.getFromItemComponent(level, itemStack, componentType, getter);
--        return provider.isPresent() ? provider.get().getInt(this.getLootContext(level)) : defaultValue;
--    }
--
--    protected <T> float getProvidedFloat(
--        ServerLevel level, ItemStack itemStack, DataComponentType<T> componentType, Function<T, ResourceKey<NumberProvider>> getter, float defaultValue
--    ) {
--        Optional<NumberProvider> provider = NumberProviders.getFromItemComponent(level, itemStack, componentType, getter);
--        return provider.isPresent() ? provider.get().getFloat(this.getLootContext(level)) : defaultValue;
--    }
--
 -    protected int getBurnDuration(ServerLevel level, ItemStack fuelItem) {
--        return this.getProvidedInteger(level, fuelItem, DataComponents.COOKING_FUEL, CookingFuel::burnTime, 0);
+-        return ResolvableInt.getFromItem(fuelItem, DataComponents.COOKING_FUEL, CookingFuel::burnTime, this.getLootContext(level), 0);
 -    }
 -
 -    protected float getSpeedMultiplier(ServerLevel level, ItemStack fuelItem) {
--        return this.getProvidedFloat(level, fuelItem, DataComponents.COOKING_FUEL, CookingFuel::speedMultiplier, 1.0F);
+-        return ResolvableFloat.getFromItem(fuelItem, DataComponents.COOKING_FUEL, CookingFuel::speedMultiplier, this.getLootContext(level), 1.0F);
 -    }
 -
 -    private static int getTotalCookTime(RecipeHolder<? extends AbstractCookingRecipe> recipe, AbstractFurnaceBlockEntity entity) {
@@ -391,7 +377,16 @@
      @Override
      public int[] getSlotsForFace(Direction direction) {
          if (direction == Direction.DOWN) {
-@@ -350,17 +_,57 @@
+@@ -306,7 +_,7 @@
+ 
+     @Override
+     public boolean canTakeItemThroughFace(int slot, ItemStack itemStack, Direction direction) {
+-        return direction == Direction.DOWN && slot == 1 ? itemStack.is(ItemTags.FURNACE_FUEL_BOTTOM_TAKEABLE) : true;
++        return direction == Direction.DOWN && slot == 1 ? itemStack.is(Items.WATER_BUCKET) || itemStack.is(Items.BUCKET) : true;
+     }
+ 
+     @Override
+@@ -326,17 +_,57 @@
  
      @Override
      public void setItem(int slot, ItemStack itemStack) {
@@ -451,7 +446,7 @@
      @Override
      public boolean canPlaceItem(int slot, ItemStack itemStack) {
          if (slot == 2) {
-@@ -372,7 +_,7 @@
+@@ -348,7 +_,7 @@
          }
  
          ItemStack fuelSlot = this.items.get(1);
@@ -460,7 +455,7 @@
      }
  
      @Override
-@@ -392,8 +_,8 @@
+@@ -368,8 +_,8 @@
      public void awardUsedRecipes(Player player, List<ItemStack> itemStacks) {
      }
  
@@ -471,7 +466,7 @@
          player.awardRecipes(recipesToAward);
  
          for (RecipeHolder<?> recipe : recipesToAward) {
-@@ -404,30 +_,60 @@
+@@ -380,30 +_,60 @@
      }
  
      public List<RecipeHolder<?>> getRecipesToAwardAndPopExperience(ServerLevel level, Vec3 position) {

@@ -1,6 +1,333 @@
 --- a/net/minecraft/world/level/levelgen/structure/structures/NetherFortressPieces.java
 +++ b/net/minecraft/world/level/levelgen/structure/structures/NetherFortressPieces.java
-@@ -1108,10 +_,15 @@
+@@ -19,9 +_,9 @@
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+ import net.minecraft.world.level.levelgen.structure.BoundingBox;
+ import net.minecraft.world.level.levelgen.structure.StructurePiece;
++import net.minecraft.world.level.levelgen.structure.StructurePieceAccessor;
+ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
+ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+-import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
+ import net.minecraft.world.level.material.Fluids;
+ import net.minecraft.world.level.storage.loot.BuiltInLootTables;
+ import org.jspecify.annotations.Nullable;
+@@ -50,7 +_,7 @@
+ 
+     private static NetherFortressPieces.@Nullable NetherBridgePiece findAndCreateBridgePieceFactory(
+         NetherFortressPieces.PieceWeight piece,
+-        StructurePiecesBuilder builder,
++        StructurePieceAccessor structurePieceAccessor,
+         RandomSource random,
+         int footX,
+         int footY,
+@@ -61,31 +_,35 @@
+         Class<? extends NetherFortressPieces.NetherBridgePiece> pieceClass = piece.pieceClass;
+         NetherFortressPieces.NetherBridgePiece structurePiece = null;
+         if (pieceClass == NetherFortressPieces.BridgeStraight.class) {
+-            structurePiece = NetherFortressPieces.BridgeStraight.createPiece(builder, random, footX, footY, footZ, direction, depth);
++            structurePiece = NetherFortressPieces.BridgeStraight.createPiece(structurePieceAccessor, random, footX, footY, footZ, direction, depth);
+         } else if (pieceClass == NetherFortressPieces.BridgeCrossing.class) {
+-            structurePiece = NetherFortressPieces.BridgeCrossing.createPiece(builder, footX, footY, footZ, direction, depth);
++            structurePiece = NetherFortressPieces.BridgeCrossing.createPiece(structurePieceAccessor, footX, footY, footZ, direction, depth);
+         } else if (pieceClass == NetherFortressPieces.RoomCrossing.class) {
+-            structurePiece = NetherFortressPieces.RoomCrossing.createPiece(builder, footX, footY, footZ, direction, depth);
++            structurePiece = NetherFortressPieces.RoomCrossing.createPiece(structurePieceAccessor, footX, footY, footZ, direction, depth);
+         } else if (pieceClass == NetherFortressPieces.StairsRoom.class) {
+-            structurePiece = NetherFortressPieces.StairsRoom.createPiece(builder, footX, footY, footZ, depth, direction);
++            structurePiece = NetherFortressPieces.StairsRoom.createPiece(structurePieceAccessor, footX, footY, footZ, depth, direction);
+         } else if (pieceClass == NetherFortressPieces.MonsterThrone.class) {
+-            structurePiece = NetherFortressPieces.MonsterThrone.createPiece(builder, footX, footY, footZ, depth, direction);
++            structurePiece = NetherFortressPieces.MonsterThrone.createPiece(structurePieceAccessor, footX, footY, footZ, depth, direction);
+         } else if (pieceClass == NetherFortressPieces.CastleEntrance.class) {
+-            structurePiece = NetherFortressPieces.CastleEntrance.createPiece(builder, random, footX, footY, footZ, direction, depth);
++            structurePiece = NetherFortressPieces.CastleEntrance.createPiece(structurePieceAccessor, random, footX, footY, footZ, direction, depth);
+         } else if (pieceClass == NetherFortressPieces.CastleSmallCorridorPiece.class) {
+-            structurePiece = NetherFortressPieces.CastleSmallCorridorPiece.createPiece(builder, footX, footY, footZ, direction, depth);
++            structurePiece = NetherFortressPieces.CastleSmallCorridorPiece.createPiece(structurePieceAccessor, footX, footY, footZ, direction, depth);
+         } else if (pieceClass == NetherFortressPieces.CastleSmallCorridorRightTurnPiece.class) {
+-            structurePiece = NetherFortressPieces.CastleSmallCorridorRightTurnPiece.createPiece(builder, random, footX, footY, footZ, direction, depth);
++            structurePiece = NetherFortressPieces.CastleSmallCorridorRightTurnPiece.createPiece(
++                structurePieceAccessor, random, footX, footY, footZ, direction, depth
++            );
+         } else if (pieceClass == NetherFortressPieces.CastleSmallCorridorLeftTurnPiece.class) {
+-            structurePiece = NetherFortressPieces.CastleSmallCorridorLeftTurnPiece.createPiece(builder, random, footX, footY, footZ, direction, depth);
++            structurePiece = NetherFortressPieces.CastleSmallCorridorLeftTurnPiece.createPiece(
++                structurePieceAccessor, random, footX, footY, footZ, direction, depth
++            );
+         } else if (pieceClass == NetherFortressPieces.CastleCorridorStairsPiece.class) {
+-            structurePiece = NetherFortressPieces.CastleCorridorStairsPiece.createPiece(builder, footX, footY, footZ, direction, depth);
++            structurePiece = NetherFortressPieces.CastleCorridorStairsPiece.createPiece(structurePieceAccessor, footX, footY, footZ, direction, depth);
+         } else if (pieceClass == NetherFortressPieces.CastleCorridorTBalconyPiece.class) {
+-            structurePiece = NetherFortressPieces.CastleCorridorTBalconyPiece.createPiece(builder, footX, footY, footZ, direction, depth);
++            structurePiece = NetherFortressPieces.CastleCorridorTBalconyPiece.createPiece(structurePieceAccessor, footX, footY, footZ, direction, depth);
+         } else if (pieceClass == NetherFortressPieces.CastleSmallCorridorCrossingPiece.class) {
+-            structurePiece = NetherFortressPieces.CastleSmallCorridorCrossingPiece.createPiece(builder, footX, footY, footZ, direction, depth);
++            structurePiece = NetherFortressPieces.CastleSmallCorridorCrossingPiece.createPiece(structurePieceAccessor, footX, footY, footZ, direction, depth);
+         } else if (pieceClass == NetherFortressPieces.CastleStalkRoom.class) {
+-            structurePiece = NetherFortressPieces.CastleStalkRoom.createPiece(builder, footX, footY, footZ, direction, depth);
++            structurePiece = NetherFortressPieces.CastleStalkRoom.createPiece(structurePieceAccessor, footX, footY, footZ, direction, depth);
+         }
+ 
+         return structurePiece;
+@@ -115,17 +_,19 @@
+         }
+ 
+         @Override
+-        public void addChildren(StructurePiece startPiece, StructurePiecesBuilder builder, RandomSource random) {
+-            this.generateChildForward((NetherFortressPieces.StartPiece)startPiece, builder, random, 8, 3, false);
+-            this.generateChildLeft((NetherFortressPieces.StartPiece)startPiece, builder, random, 3, 8, false);
+-            this.generateChildRight((NetherFortressPieces.StartPiece)startPiece, builder, random, 3, 8, false);
++        public void addChildren(StructurePiece startPiece, StructurePieceAccessor structurePieceAccessor, RandomSource random) {
++            this.generateChildForward((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 8, 3, false);
++            this.generateChildLeft((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 3, 8, false);
++            this.generateChildRight((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 3, 8, false);
+         }
+ 
+         public static NetherFortressPieces.@Nullable BridgeCrossing createPiece(
+-            StructurePiecesBuilder builder, int footX, int footY, int footZ, Direction direction, int genDepth
++            StructurePieceAccessor structurePieceAccessor, int footX, int footY, int footZ, Direction direction, int genDepth
+         ) {
+             BoundingBox box = BoundingBox.orientBox(footX, footY, footZ, -8, -3, 0, 19, 10, 19, direction);
+-            return isOkBox(box) && builder.findCollisionPiece(box) == null ? new NetherFortressPieces.BridgeCrossing(genDepth, box, direction) : null;
++            return isOkBox(box) && structurePieceAccessor.findCollisionPiece(box) == null
++                ? new NetherFortressPieces.BridgeCrossing(genDepth, box, direction)
++                : null;
+         }
+ 
+         @Override
+@@ -194,10 +_,12 @@
+         }
+ 
+         public static NetherFortressPieces.@Nullable BridgeEndFiller createPiece(
+-            StructurePiecesBuilder builder, RandomSource random, int footX, int footY, int footZ, Direction direction, int genDepth
++            StructurePieceAccessor structurePieceAccessor, RandomSource random, int footX, int footY, int footZ, Direction direction, int genDepth
+         ) {
+             BoundingBox box = BoundingBox.orientBox(footX, footY, footZ, -1, -3, 0, 5, 10, 8, direction);
+-            return isOkBox(box) && builder.findCollisionPiece(box) == null ? new NetherFortressPieces.BridgeEndFiller(genDepth, random, box, direction) : null;
++            return isOkBox(box) && structurePieceAccessor.findCollisionPiece(box) == null
++                ? new NetherFortressPieces.BridgeEndFiller(genDepth, random, box, direction)
++                : null;
+         }
+ 
+         @Override
+@@ -263,15 +_,17 @@
+         }
+ 
+         @Override
+-        public void addChildren(StructurePiece startPiece, StructurePiecesBuilder builder, RandomSource random) {
+-            this.generateChildForward((NetherFortressPieces.StartPiece)startPiece, builder, random, 1, 3, false);
++        public void addChildren(StructurePiece startPiece, StructurePieceAccessor structurePieceAccessor, RandomSource random) {
++            this.generateChildForward((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 1, 3, false);
+         }
+ 
+         public static NetherFortressPieces.@Nullable BridgeStraight createPiece(
+-            StructurePiecesBuilder builder, RandomSource random, int footX, int footY, int footZ, Direction direction, int genDepth
++            StructurePieceAccessor structurePieceAccessor, RandomSource random, int footX, int footY, int footZ, Direction direction, int genDepth
+         ) {
+             BoundingBox box = BoundingBox.orientBox(footX, footY, footZ, -1, -3, 0, 5, 10, 19, direction);
+-            return isOkBox(box) && builder.findCollisionPiece(box) == null ? new NetherFortressPieces.BridgeStraight(genDepth, random, box, direction) : null;
++            return isOkBox(box) && structurePieceAccessor.findCollisionPiece(box) == null
++                ? new NetherFortressPieces.BridgeStraight(genDepth, random, box, direction)
++                : null;
+         }
+ 
+         @Override
+@@ -329,15 +_,15 @@
+         }
+ 
+         @Override
+-        public void addChildren(StructurePiece startPiece, StructurePiecesBuilder builder, RandomSource random) {
+-            this.generateChildForward((NetherFortressPieces.StartPiece)startPiece, builder, random, 1, 0, true);
++        public void addChildren(StructurePiece startPiece, StructurePieceAccessor structurePieceAccessor, RandomSource random) {
++            this.generateChildForward((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 1, 0, true);
+         }
+ 
+         public static NetherFortressPieces.@Nullable CastleCorridorStairsPiece createPiece(
+-            StructurePiecesBuilder builder, int footX, int footY, int footZ, Direction direction, int genDepth
++            StructurePieceAccessor structurePieceAccessor, int footX, int footY, int footZ, Direction direction, int genDepth
+         ) {
+             BoundingBox box = BoundingBox.orientBox(footX, footY, footZ, -1, -7, 0, 5, 14, 10, direction);
+-            return isOkBox(box) && builder.findCollisionPiece(box) == null
++            return isOkBox(box) && structurePieceAccessor.findCollisionPiece(box) == null
+                 ? new NetherFortressPieces.CastleCorridorStairsPiece(genDepth, box, direction)
+                 : null;
+         }
+@@ -405,22 +_,22 @@
+         }
+ 
+         @Override
+-        public void addChildren(StructurePiece startPiece, StructurePiecesBuilder builder, RandomSource random) {
++        public void addChildren(StructurePiece startPiece, StructurePieceAccessor structurePieceAccessor, RandomSource random) {
+             int zOff = 1;
+             Direction orientation = this.getOrientation();
+             if (orientation == Direction.WEST || orientation == Direction.NORTH) {
+                 zOff = 5;
+             }
+ 
+-            this.generateChildLeft((NetherFortressPieces.StartPiece)startPiece, builder, random, 0, zOff, random.nextInt(8) > 0);
+-            this.generateChildRight((NetherFortressPieces.StartPiece)startPiece, builder, random, 0, zOff, random.nextInt(8) > 0);
++            this.generateChildLeft((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 0, zOff, random.nextInt(8) > 0);
++            this.generateChildRight((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 0, zOff, random.nextInt(8) > 0);
+         }
+ 
+         public static NetherFortressPieces.@Nullable CastleCorridorTBalconyPiece createPiece(
+-            StructurePiecesBuilder builder, int footX, int footY, int footZ, Direction direction, int genDepth
++            StructurePieceAccessor structurePieceAccessor, int footX, int footY, int footZ, Direction direction, int genDepth
+         ) {
+             BoundingBox box = BoundingBox.orientBox(footX, footY, footZ, -3, 0, 0, 9, 7, 9, direction);
+-            return isOkBox(box) && builder.findCollisionPiece(box) == null
++            return isOkBox(box) && structurePieceAccessor.findCollisionPiece(box) == null
+                 ? new NetherFortressPieces.CastleCorridorTBalconyPiece(genDepth, box, direction)
+                 : null;
+         }
+@@ -486,15 +_,17 @@
+         }
+ 
+         @Override
+-        public void addChildren(StructurePiece startPiece, StructurePiecesBuilder builder, RandomSource random) {
+-            this.generateChildForward((NetherFortressPieces.StartPiece)startPiece, builder, random, 5, 3, true);
++        public void addChildren(StructurePiece startPiece, StructurePieceAccessor structurePieceAccessor, RandomSource random) {
++            this.generateChildForward((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 5, 3, true);
+         }
+ 
+         public static NetherFortressPieces.@Nullable CastleEntrance createPiece(
+-            StructurePiecesBuilder builder, RandomSource random, int footX, int footY, int footZ, Direction direction, int genDepth
++            StructurePieceAccessor structurePieceAccessor, RandomSource random, int footX, int footY, int footZ, Direction direction, int genDepth
+         ) {
+             BoundingBox box = BoundingBox.orientBox(footX, footY, footZ, -5, -3, 0, 13, 14, 13, direction);
+-            return isOkBox(box) && builder.findCollisionPiece(box) == null ? new NetherFortressPieces.CastleEntrance(genDepth, random, box, direction) : null;
++            return isOkBox(box) && structurePieceAccessor.findCollisionPiece(box) == null
++                ? new NetherFortressPieces.CastleEntrance(genDepth, random, box, direction)
++                : null;
+         }
+ 
+         @Override
+@@ -606,17 +_,17 @@
+         }
+ 
+         @Override
+-        public void addChildren(StructurePiece startPiece, StructurePiecesBuilder builder, RandomSource random) {
+-            this.generateChildForward((NetherFortressPieces.StartPiece)startPiece, builder, random, 1, 0, true);
+-            this.generateChildLeft((NetherFortressPieces.StartPiece)startPiece, builder, random, 0, 1, true);
+-            this.generateChildRight((NetherFortressPieces.StartPiece)startPiece, builder, random, 0, 1, true);
++        public void addChildren(StructurePiece startPiece, StructurePieceAccessor structurePieceAccessor, RandomSource random) {
++            this.generateChildForward((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 1, 0, true);
++            this.generateChildLeft((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 0, 1, true);
++            this.generateChildRight((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 0, 1, true);
+         }
+ 
+         public static NetherFortressPieces.@Nullable CastleSmallCorridorCrossingPiece createPiece(
+-            StructurePiecesBuilder builder, int footX, int footY, int footZ, Direction direction, int genDepth
++            StructurePieceAccessor structurePieceAccessor, int footX, int footY, int footZ, Direction direction, int genDepth
+         ) {
+             BoundingBox box = BoundingBox.orientBox(footX, footY, footZ, -1, 0, 0, 5, 7, 5, direction);
+-            return isOkBox(box) && builder.findCollisionPiece(box) == null
++            return isOkBox(box) && structurePieceAccessor.findCollisionPiece(box) == null
+                 ? new NetherFortressPieces.CastleSmallCorridorCrossingPiece(genDepth, box, direction)
+                 : null;
+         }
+@@ -671,15 +_,15 @@
+         }
+ 
+         @Override
+-        public void addChildren(StructurePiece startPiece, StructurePiecesBuilder builder, RandomSource random) {
+-            this.generateChildLeft((NetherFortressPieces.StartPiece)startPiece, builder, random, 0, 1, true);
++        public void addChildren(StructurePiece startPiece, StructurePieceAccessor structurePieceAccessor, RandomSource random) {
++            this.generateChildLeft((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 0, 1, true);
+         }
+ 
+         public static NetherFortressPieces.@Nullable CastleSmallCorridorLeftTurnPiece createPiece(
+-            StructurePiecesBuilder builder, RandomSource random, int footX, int footY, int footZ, Direction direction, int genDepth
++            StructurePieceAccessor structurePieceAccessor, RandomSource random, int footX, int footY, int footZ, Direction direction, int genDepth
+         ) {
+             BoundingBox box = BoundingBox.orientBox(footX, footY, footZ, -1, 0, 0, 5, 7, 5, direction);
+-            return isOkBox(box) && builder.findCollisionPiece(box) == null
++            return isOkBox(box) && structurePieceAccessor.findCollisionPiece(box) == null
+                 ? new NetherFortressPieces.CastleSmallCorridorLeftTurnPiece(genDepth, random, box, direction)
+                 : null;
+         }
+@@ -735,15 +_,17 @@
+         }
+ 
+         @Override
+-        public void addChildren(StructurePiece startPiece, StructurePiecesBuilder builder, RandomSource random) {
+-            this.generateChildForward((NetherFortressPieces.StartPiece)startPiece, builder, random, 1, 0, true);
++        public void addChildren(StructurePiece startPiece, StructurePieceAccessor structurePieceAccessor, RandomSource random) {
++            this.generateChildForward((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 1, 0, true);
+         }
+ 
+         public static NetherFortressPieces.@Nullable CastleSmallCorridorPiece createPiece(
+-            StructurePiecesBuilder builder, int footX, int footY, int footZ, Direction direction, int genDepth
++            StructurePieceAccessor structurePieceAccessor, int footX, int footY, int footZ, Direction direction, int genDepth
+         ) {
+             BoundingBox box = BoundingBox.orientBox(footX, footY, footZ, -1, 0, 0, 5, 7, 5, direction);
+-            return isOkBox(box) && builder.findCollisionPiece(box) == null ? new NetherFortressPieces.CastleSmallCorridorPiece(genDepth, box, direction) : null;
++            return isOkBox(box) && structurePieceAccessor.findCollisionPiece(box) == null
++                ? new NetherFortressPieces.CastleSmallCorridorPiece(genDepth, box, direction)
++                : null;
+         }
+ 
+         @Override
+@@ -799,15 +_,15 @@
+         }
+ 
+         @Override
+-        public void addChildren(StructurePiece startPiece, StructurePiecesBuilder builder, RandomSource random) {
+-            this.generateChildRight((NetherFortressPieces.StartPiece)startPiece, builder, random, 0, 1, true);
++        public void addChildren(StructurePiece startPiece, StructurePieceAccessor structurePieceAccessor, RandomSource random) {
++            this.generateChildRight((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 0, 1, true);
+         }
+ 
+         public static NetherFortressPieces.@Nullable CastleSmallCorridorRightTurnPiece createPiece(
+-            StructurePiecesBuilder builder, RandomSource random, int footX, int footY, int footZ, Direction direction, int genDepth
++            StructurePieceAccessor structurePieceAccessor, RandomSource random, int footX, int footY, int footZ, Direction direction, int genDepth
+         ) {
+             BoundingBox box = BoundingBox.orientBox(footX, footY, footZ, -1, 0, 0, 5, 7, 5, direction);
+-            return isOkBox(box) && builder.findCollisionPiece(box) == null
++            return isOkBox(box) && structurePieceAccessor.findCollisionPiece(box) == null
+                 ? new NetherFortressPieces.CastleSmallCorridorRightTurnPiece(genDepth, random, box, direction)
+                 : null;
+         }
+@@ -863,16 +_,18 @@
+         }
+ 
+         @Override
+-        public void addChildren(StructurePiece startPiece, StructurePiecesBuilder builder, RandomSource random) {
+-            this.generateChildForward((NetherFortressPieces.StartPiece)startPiece, builder, random, 5, 3, true);
+-            this.generateChildForward((NetherFortressPieces.StartPiece)startPiece, builder, random, 5, 11, true);
++        public void addChildren(StructurePiece startPiece, StructurePieceAccessor structurePieceAccessor, RandomSource random) {
++            this.generateChildForward((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 5, 3, true);
++            this.generateChildForward((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 5, 11, true);
+         }
+ 
+         public static NetherFortressPieces.@Nullable CastleStalkRoom createPiece(
+-            StructurePiecesBuilder builder, int footX, int footY, int footZ, Direction direction, int genDepth
++            StructurePieceAccessor structurePieceAccessor, int footX, int footY, int footZ, Direction direction, int genDepth
+         ) {
+             BoundingBox box = BoundingBox.orientBox(footX, footY, footZ, -5, -3, 0, 13, 14, 13, direction);
+-            return isOkBox(box) && builder.findCollisionPiece(box) == null ? new NetherFortressPieces.CastleStalkRoom(genDepth, box, direction) : null;
++            return isOkBox(box) && structurePieceAccessor.findCollisionPiece(box) == null
++                ? new NetherFortressPieces.CastleStalkRoom(genDepth, box, direction)
++                : null;
+         }
+ 
+         @Override
+@@ -1033,10 +_,12 @@
+         }
+ 
+         public static NetherFortressPieces.@Nullable MonsterThrone createPiece(
+-            StructurePiecesBuilder builder, int footX, int footY, int footZ, int genDepth, Direction direction
++            StructurePieceAccessor structurePieceAccessor, int footX, int footY, int footZ, int genDepth, Direction direction
+         ) {
+             BoundingBox box = BoundingBox.orientBox(footX, footY, footZ, -2, 0, 0, 7, 8, 9, direction);
+-            return isOkBox(box) && builder.findCollisionPiece(box) == null ? new NetherFortressPieces.MonsterThrone(genDepth, box, direction) : null;
++            return isOkBox(box) && structurePieceAccessor.findCollisionPiece(box) == null
++                ? new NetherFortressPieces.MonsterThrone(genDepth, box, direction)
++                : null;
+         }
+ 
+         @Override
+@@ -1090,10 +_,15 @@
                  BlockPos pos = this.getWorldPos(3, 5, 5);
                  if (chunkBB.isInside(pos)) {
                      this.hasPlacedSpawner = true;
@@ -17,3 +344,252 @@
                  }
              }
  
+@@ -1136,7 +_,7 @@
+         private NetherFortressPieces.@Nullable NetherBridgePiece generatePiece(
+             NetherFortressPieces.StartPiece startPiece,
+             List<NetherFortressPieces.PieceWeight> currentPieces,
+-            StructurePiecesBuilder builder,
++            StructurePieceAccessor structurePieceAccessor,
+             RandomSource random,
+             int footX,
+             int footY,
+@@ -1160,7 +_,7 @@
+                         }
+ 
+                         NetherFortressPieces.NetherBridgePiece structurePiece = NetherFortressPieces.findAndCreateBridgePieceFactory(
+-                            piece, builder, random, footX, footY, footZ, direction, depth
++                            piece, structurePieceAccessor, random, footX, footY, footZ, direction, depth
+                         );
+                         if (structurePiece != null) {
+                             piece.placeCount++;
+@@ -1175,12 +_,12 @@
+                 }
+             }
+ 
+-            return NetherFortressPieces.BridgeEndFiller.createPiece(builder, random, footX, footY, footZ, direction, depth);
++            return NetherFortressPieces.BridgeEndFiller.createPiece(structurePieceAccessor, random, footX, footY, footZ, direction, depth);
+         }
+ 
+         private @Nullable StructurePiece generateAndAddPiece(
+             NetherFortressPieces.StartPiece startPiece,
+-            StructurePiecesBuilder builder,
++            StructurePieceAccessor structurePieceAccessor,
+             RandomSource random,
+             int footX,
+             int footY,
+@@ -1195,20 +_,27 @@
+                     availablePieces = startPiece.availableCastlePieces;
+                 }
+ 
+-                StructurePiece newPiece = this.generatePiece(startPiece, availablePieces, builder, random, footX, footY, footZ, direction, depth + 1);
++                StructurePiece newPiece = this.generatePiece(
++                    startPiece, availablePieces, structurePieceAccessor, random, footX, footY, footZ, direction, depth + 1
++                );
+                 if (newPiece != null) {
+-                    builder.addPiece(newPiece);
++                    structurePieceAccessor.addPiece(newPiece);
+                     startPiece.pendingChildren.add(newPiece);
+                 }
+ 
+                 return newPiece;
+             } else {
+-                return NetherFortressPieces.BridgeEndFiller.createPiece(builder, random, footX, footY, footZ, direction, depth);
++                return NetherFortressPieces.BridgeEndFiller.createPiece(structurePieceAccessor, random, footX, footY, footZ, direction, depth);
+             }
+         }
+ 
+         protected @Nullable StructurePiece generateChildForward(
+-            NetherFortressPieces.StartPiece startPiece, StructurePiecesBuilder builder, RandomSource random, int xOff, int yOff, boolean isCastle
++            NetherFortressPieces.StartPiece startPiece,
++            StructurePieceAccessor structurePieceAccessor,
++            RandomSource random,
++            int xOff,
++            int yOff,
++            boolean isCastle
+         ) {
+             Direction orientation = this.getOrientation();
+             if (orientation != null) {
+@@ -1216,7 +_,7 @@
+                     case NORTH:
+                         return this.generateAndAddPiece(
+                             startPiece,
+-                            builder,
++                            structurePieceAccessor,
+                             random,
+                             this.boundingBox.minX() + xOff,
+                             this.boundingBox.minY() + yOff,
+@@ -1228,7 +_,7 @@
+                     case SOUTH:
+                         return this.generateAndAddPiece(
+                             startPiece,
+-                            builder,
++                            structurePieceAccessor,
+                             random,
+                             this.boundingBox.minX() + xOff,
+                             this.boundingBox.minY() + yOff,
+@@ -1240,7 +_,7 @@
+                     case WEST:
+                         return this.generateAndAddPiece(
+                             startPiece,
+-                            builder,
++                            structurePieceAccessor,
+                             random,
+                             this.boundingBox.minX() - 1,
+                             this.boundingBox.minY() + yOff,
+@@ -1252,7 +_,7 @@
+                     case EAST:
+                         return this.generateAndAddPiece(
+                             startPiece,
+-                            builder,
++                            structurePieceAccessor,
+                             random,
+                             this.boundingBox.maxX() + 1,
+                             this.boundingBox.minY() + yOff,
+@@ -1268,7 +_,12 @@
+         }
+ 
+         protected @Nullable StructurePiece generateChildLeft(
+-            NetherFortressPieces.StartPiece startPiece, StructurePiecesBuilder builder, RandomSource random, int yOff, int zOff, boolean isCastle
++            NetherFortressPieces.StartPiece startPiece,
++            StructurePieceAccessor structurePieceAccessor,
++            RandomSource random,
++            int yOff,
++            int zOff,
++            boolean isCastle
+         ) {
+             Direction orientation = this.getOrientation();
+             if (orientation != null) {
+@@ -1276,7 +_,7 @@
+                     case NORTH:
+                         return this.generateAndAddPiece(
+                             startPiece,
+-                            builder,
++                            structurePieceAccessor,
+                             random,
+                             this.boundingBox.minX() - 1,
+                             this.boundingBox.minY() + yOff,
+@@ -1288,7 +_,7 @@
+                     case SOUTH:
+                         return this.generateAndAddPiece(
+                             startPiece,
+-                            builder,
++                            structurePieceAccessor,
+                             random,
+                             this.boundingBox.minX() - 1,
+                             this.boundingBox.minY() + yOff,
+@@ -1300,7 +_,7 @@
+                     case WEST:
+                         return this.generateAndAddPiece(
+                             startPiece,
+-                            builder,
++                            structurePieceAccessor,
+                             random,
+                             this.boundingBox.minX() + zOff,
+                             this.boundingBox.minY() + yOff,
+@@ -1312,7 +_,7 @@
+                     case EAST:
+                         return this.generateAndAddPiece(
+                             startPiece,
+-                            builder,
++                            structurePieceAccessor,
+                             random,
+                             this.boundingBox.minX() + zOff,
+                             this.boundingBox.minY() + yOff,
+@@ -1328,7 +_,12 @@
+         }
+ 
+         protected @Nullable StructurePiece generateChildRight(
+-            NetherFortressPieces.StartPiece startPiece, StructurePiecesBuilder builder, RandomSource random, int yOff, int zOff, boolean isCastle
++            NetherFortressPieces.StartPiece startPiece,
++            StructurePieceAccessor structurePieceAccessor,
++            RandomSource random,
++            int yOff,
++            int zOff,
++            boolean isCastle
+         ) {
+             Direction orientation = this.getOrientation();
+             if (orientation != null) {
+@@ -1336,7 +_,7 @@
+                     case NORTH:
+                         return this.generateAndAddPiece(
+                             startPiece,
+-                            builder,
++                            structurePieceAccessor,
+                             random,
+                             this.boundingBox.maxX() + 1,
+                             this.boundingBox.minY() + yOff,
+@@ -1348,7 +_,7 @@
+                     case SOUTH:
+                         return this.generateAndAddPiece(
+                             startPiece,
+-                            builder,
++                            structurePieceAccessor,
+                             random,
+                             this.boundingBox.maxX() + 1,
+                             this.boundingBox.minY() + yOff,
+@@ -1360,7 +_,7 @@
+                     case WEST:
+                         return this.generateAndAddPiece(
+                             startPiece,
+-                            builder,
++                            structurePieceAccessor,
+                             random,
+                             this.boundingBox.minX() + zOff,
+                             this.boundingBox.minY() + yOff,
+@@ -1372,7 +_,7 @@
+                     case EAST:
+                         return this.generateAndAddPiece(
+                             startPiece,
+-                            builder,
++                            structurePieceAccessor,
+                             random,
+                             this.boundingBox.minX() + zOff,
+                             this.boundingBox.minY() + yOff,
+@@ -1434,17 +_,19 @@
+         }
+ 
+         @Override
+-        public void addChildren(StructurePiece startPiece, StructurePiecesBuilder builder, RandomSource random) {
+-            this.generateChildForward((NetherFortressPieces.StartPiece)startPiece, builder, random, 2, 0, false);
+-            this.generateChildLeft((NetherFortressPieces.StartPiece)startPiece, builder, random, 0, 2, false);
+-            this.generateChildRight((NetherFortressPieces.StartPiece)startPiece, builder, random, 0, 2, false);
++        public void addChildren(StructurePiece startPiece, StructurePieceAccessor structurePieceAccessor, RandomSource random) {
++            this.generateChildForward((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 2, 0, false);
++            this.generateChildLeft((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 0, 2, false);
++            this.generateChildRight((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 0, 2, false);
+         }
+ 
+         public static NetherFortressPieces.@Nullable RoomCrossing createPiece(
+-            StructurePiecesBuilder builder, int footX, int footY, int footZ, Direction direction, int genDepth
++            StructurePieceAccessor structurePieceAccessor, int footX, int footY, int footZ, Direction direction, int genDepth
+         ) {
+             BoundingBox box = BoundingBox.orientBox(footX, footY, footZ, -2, 0, 0, 7, 9, 7, direction);
+-            return isOkBox(box) && builder.findCollisionPiece(box) == null ? new NetherFortressPieces.RoomCrossing(genDepth, box, direction) : null;
++            return isOkBox(box) && structurePieceAccessor.findCollisionPiece(box) == null
++                ? new NetherFortressPieces.RoomCrossing(genDepth, box, direction)
++                : null;
+         }
+ 
+         @Override
+@@ -1501,15 +_,17 @@
+         }
+ 
+         @Override
+-        public void addChildren(StructurePiece startPiece, StructurePiecesBuilder builder, RandomSource random) {
+-            this.generateChildRight((NetherFortressPieces.StartPiece)startPiece, builder, random, 6, 2, false);
++        public void addChildren(StructurePiece startPiece, StructurePieceAccessor structurePieceAccessor, RandomSource random) {
++            this.generateChildRight((NetherFortressPieces.StartPiece)startPiece, structurePieceAccessor, random, 6, 2, false);
+         }
+ 
+         public static NetherFortressPieces.@Nullable StairsRoom createPiece(
+-            StructurePiecesBuilder builder, int footX, int footY, int footZ, int genDepth, Direction direction
++            StructurePieceAccessor structurePieceAccessor, int footX, int footY, int footZ, int genDepth, Direction direction
+         ) {
+             BoundingBox box = BoundingBox.orientBox(footX, footY, footZ, -2, 0, 0, 7, 11, 7, direction);
+-            return isOkBox(box) && builder.findCollisionPiece(box) == null ? new NetherFortressPieces.StairsRoom(genDepth, box, direction) : null;
++            return isOkBox(box) && structurePieceAccessor.findCollisionPiece(box) == null
++                ? new NetherFortressPieces.StairsRoom(genDepth, box, direction)
++                : null;
+         }
+ 
+         @Override

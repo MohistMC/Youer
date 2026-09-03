@@ -1,0 +1,52 @@
+--- a/com/mojang/realmsclient/dto/InviteCodeList.java
++++ /dev/null
+@@ -1,49 +_,0 @@
+-package com.mojang.realmsclient.dto;
+-
+-import com.google.gson.JsonArray;
+-import com.google.gson.JsonElement;
+-import com.google.gson.JsonObject;
+-import com.mojang.logging.LogUtils;
+-import java.util.ArrayList;
+-import java.util.List;
+-import net.minecraft.util.LenientJsonParser;
+-import net.neoforged.api.distmarker.Dist;
+-import net.neoforged.api.distmarker.OnlyIn;
+-import org.slf4j.Logger;
+-
+-@OnlyIn(Dist.CLIENT)
+-public record InviteCodeList(List<InviteCode> inviteCodes) {
+-    private static final Logger LOGGER = LogUtils.getLogger();
+-
+-    public static InviteCodeList parse(String json) {
+-        List<InviteCode> codes = new ArrayList<>();
+-
+-        try {
+-            JsonElement root = LenientJsonParser.parse(json);
+-
+-            for (JsonElement element : getInviteCodesArray(root)) {
+-                if (!element.isJsonObject()) {
+-                    LOGGER.error("Invite code list contained a non-object entry: {}", element);
+-                } else {
+-                    InviteCode code = InviteCode.parse(element.getAsJsonObject());
+-                    if (code != null) {
+-                        codes.add(code);
+-                    }
+-                }
+-            }
+-        } catch (Exception e) {
+-            LOGGER.error("Could not parse InviteCodeList", e);
+-        }
+-
+-        return new InviteCodeList(List.copyOf(codes));
+-    }
+-
+-    private static JsonArray getInviteCodesArray(JsonElement root) {
+-        if (root.isJsonArray()) {
+-            return root.getAsJsonArray();
+-        }
+-
+-        JsonObject object = root.getAsJsonObject();
+-        return object.has("result") && object.get("result").isJsonArray() ? object.getAsJsonArray("result") : new JsonArray();
+-    }
+-}

@@ -72,7 +72,7 @@
      public ItemStack(ItemLike item, int count) {
          this(item.asItem().builtInRegistryHolder(), count);
      }
-@@ -359,14 +_,38 @@
+@@ -359,23 +_,43 @@
      }
  
      public InteractionResult useOn(UseOnContext context) {
@@ -104,15 +104,53 @@
          BlockPos pos = context.getClickedPos();
          if (player != null && !player.getAbilities().mayBuild && !this.canPlaceOnBlockInAdventureMode(new BlockInWorld(context.getLevel(), pos, false))) {
              return InteractionResult.PASS;
-         }
- 
-         Item usedItem = this.getItem();
--        InteractionResult result = usedItem.useOn(context);
+-        } else {
+-            ItemStack stackBeforeUse = this.copy();
+-            Item usedItem = this.getItem();
+-            InteractionResult result = usedItem.useOn(context);
+-            if (player != null && result instanceof InteractionResult.Success success && success.wasItemInteraction()) {
+-                player.awardStat(Stats.ITEM_USED.get(usedItem));
+-                ItemStack transformTo = success.heldItemTransformedTo() == null ? this : success.heldItemTransformedTo();
+-                ItemStack resultItemStack = transformTo.applyAfterUseComponentSideEffects(player, stackBeforeUse);
+-                return success.heldItemTransformedTo(resultItemStack);
+-            } else {
+-                return result;
+-            }
+-        }
++        }
++
++        Item usedItem = this.getItem();
 +        InteractionResult result = callback.apply(context);
-         if (player != null && result instanceof InteractionResult.Success success && success.wasItemInteraction()) {
-             player.awardStat(Stats.ITEM_USED.get(usedItem));
-         }
-@@ -413,6 +_,12 @@
++        if (player != null && result instanceof InteractionResult.Success success && success.wasItemInteraction()) {
++            player.awardStat(Stats.ITEM_USED.get(usedItem));
++        }
++
++        return result;
+     }
+ 
+     public float getDestroySpeed(BlockState state) {
+@@ -386,13 +_,13 @@
+         ItemStack stackBeforeUse = this.copy();
+         boolean isInstantlyUsed = this.getUseDuration(player) <= 0;
+         InteractionResult result = this.getItem().use(level, player, hand);
+-        if (isInstantlyUsed && result instanceof InteractionResult.Success success) {
+-            ItemStack transformTo = success.heldItemTransformedTo() == null ? this : success.heldItemTransformedTo();
+-            ItemStack resultItemStack = transformTo.applyAfterUseComponentSideEffects(player, stackBeforeUse);
+-            return success.heldItemTransformedTo(resultItemStack);
+-        } else {
+-            return result;
+-        }
++        return isInstantlyUsed && result instanceof InteractionResult.Success success
++            ? success.heldItemTransformedTo(
++                success.heldItemTransformedTo() == null
++                    ? this.applyAfterUseComponentSideEffects(player, stackBeforeUse)
++                    : success.heldItemTransformedTo().applyAfterUseComponentSideEffects(player, stackBeforeUse)
++            )
++            : result;
+     }
+ 
+     public ItemStack finishUsingItem(Level level, LivingEntity livingEntity) {
+@@ -417,6 +_,12 @@
          return result;
      }
  
@@ -125,7 +163,7 @@
      public boolean isStackable() {
          return this.getMaxStackSize() > 1 && (!this.isDamageableItem() || !this.isDamaged());
      }
-@@ -422,19 +_,39 @@
+@@ -426,19 +_,39 @@
      }
  
      public boolean isDamaged() {
@@ -170,11 +208,11 @@
      }
  
      public boolean isBroken() {
-@@ -445,17 +_,48 @@
+@@ -449,33 +_,79 @@
          return this.isDamageableItem() && this.getDamageValue() >= this.getMaxDamage() - 1;
      }
  
--    public void hurtAndBreak(int amount, ServerLevel level, @Nullable ServerPlayer player, Consumer<Item> onBreak) {
+-    public void hurtAndBreak(int amount, ServerLevel level, @Nullable ServerPlayer player, Consumer<ItemStack> onBreak) {
 +    public void hurtAndBreak(int amount, ServerLevel level, @Nullable LivingEntity player, Consumer<Item> onBreak) {
 +        // Paper start - add force boolean overload
 +        this.hurtAndBreak(amount, level, player, onBreak, false);
@@ -222,12 +260,13 @@
              return 0;
          } else {
              return amount > 0 ? EnchantmentHelper.processDurabilityChange(level, this, amount) : amount;
-@@ -463,13 +_,28 @@
+         }
      }
  
-     private void applyDamage(int newDamage, @Nullable ServerPlayer player, Consumer<Item> onBreak) {
+-    private void applyDamage(int newDamage, @Nullable ServerPlayer player, Consumer<ItemStack> onBreak) {
 -        if (player != null) {
 -            CriteriaTriggers.ITEM_DURABILITY_CHANGED.trigger(player, this, newDamage);
++    private void applyDamage(int newDamage, @Nullable ServerPlayer player, Consumer<Item> onBreak) {
 +        applyDamage(newDamage, (LivingEntity) player, onBreak);
 +    }
 +
@@ -238,7 +277,8 @@
  
          this.setDamageValue(newDamage);
          if (this.isBroken()) {
-             Item item = this.getItem();
+-            ItemStack broken = this.copy();
++            Item item = this.getItem();
 +            // CraftBukkit start - Check for item breaking
 +            if (this.count == 1 && player instanceof ServerPlayer serverplayer) {
 +                org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerItemBreakEvent(serverplayer, this);
@@ -251,9 +291,12 @@
 +            }
 +            // Purpur end - Implement elytra settings
              this.shrink(1);
-             onBreak.accept(item);
+-            onBreak.accept(broken);
++            onBreak.accept(item);
          }
-@@ -482,7 +_,25 @@
+     }
+ 
+@@ -486,7 +_,25 @@
                  return;
              }
  
@@ -280,7 +323,7 @@
              this.applyDamage(newDamage, serverPlayer, i -> {});
          }
      }
-@@ -492,9 +_,14 @@
+@@ -496,9 +_,14 @@
      }
  
      public void hurtAndBreak(int amount, LivingEntity owner, EquipmentSlot slot) {
@@ -296,7 +339,7 @@
              );
          }
      }
-@@ -579,11 +_,17 @@
+@@ -583,11 +_,17 @@
      }
  
      public ItemStack copy() {
@@ -316,7 +359,7 @@
          copy.setPopTime(this.getPopTime());
          return copy;
      }
-@@ -618,6 +_,16 @@
+@@ -622,6 +_,16 @@
          }
      }
  
@@ -333,7 +376,7 @@
      @Deprecated
      public static boolean listMatches(List<ItemStack> left, List<ItemStack> right) {
          if (left.size() != right.size()) {
-@@ -645,6 +_,27 @@
+@@ -649,6 +_,27 @@
          }
      }
  
@@ -361,7 +404,7 @@
      public static boolean matchesIgnoringComponents(ItemStack a, ItemStack b, Predicate<DataComponentType<?>> ignoredPredicate) {
          if (a == b) {
              return true;
-@@ -759,6 +_,12 @@
+@@ -763,6 +_,12 @@
          return this.getItem().useOnRelease(this);
      }
  
@@ -374,7 +417,7 @@
      public <T> @Nullable T set(DataComponentType<T> type, @Nullable T value) {
          return this.components.set(type, value);
      }
-@@ -802,6 +_,25 @@
+@@ -806,6 +_,25 @@
          this.components.setAll(components);
      }
  
@@ -400,7 +443,7 @@
      public Component getHoverName() {
          Component customName = this.getCustomName();
          return customName != null ? customName : this.getItemName();
-@@ -829,7 +_,7 @@
+@@ -833,7 +_,7 @@
      }
  
      public Component getStyledHoverName() {
@@ -409,7 +452,7 @@
          if (this.has(DataComponents.CUSTOM_NAME)) {
              hoverName.withStyle(ChatFormatting.ITALIC);
          }
-@@ -837,24 +_,14 @@
+@@ -841,24 +_,14 @@
          return hoverName;
      }
  
@@ -439,7 +482,7 @@
      }
  
      public List<Component> getTooltipLines(Item.TooltipContext context, @Nullable Player player, TooltipFlag tooltipFlag) {
-@@ -866,6 +_,7 @@
+@@ -870,6 +_,7 @@
              List<Component> lines = Lists.newArrayList();
              lines.add(this.getStyledHoverName());
              this.addDetailsToTooltip(context, display, player, tooltipFlag, lines::add);
@@ -447,7 +490,7 @@
              return lines;
          }
      }
-@@ -895,11 +_,10 @@
+@@ -899,11 +_,10 @@
          this.addToTooltip(DataComponents.PROFILE, context, display, builder, tooltipFlag);
          this.addToTooltip(DataComponents.LORE, context, display, builder, tooltipFlag);
          this.addToTooltip(DataComponents.SULFUR_CUBE_CONTENT, context, display, builder, tooltipFlag);
@@ -461,7 +504,7 @@
          this.addToTooltip(DataComponents.OMINOUS_BOTTLE_AMPLIFIER, context, display, builder, tooltipFlag);
          this.addToTooltip(DataComponents.SUSPICIOUS_STEW_EFFECTS, context, display, builder, tooltipFlag);
          this.addToTooltip(DataComponents.BLOCK_STATE, context, display, builder, tooltipFlag);
-@@ -950,7 +_,10 @@
+@@ -954,7 +_,10 @@
              builder.accept(component);
          }
      }
@@ -473,7 +516,7 @@
      private void addAttributeTooltips(Consumer<Component> consumer, TooltipDisplay display, @Nullable Player player) {
          if (display.shows(DataComponents.ATTRIBUTE_MODIFIERS)) {
              for (EquipmentSlotGroup slot : EquipmentSlotGroup.values()) {
-@@ -1005,22 +_,65 @@
+@@ -1009,22 +_,65 @@
          return !this.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).isEmpty();
      }
  
@@ -539,7 +582,7 @@
      public Component getDisplayName() {
          MutableComponent hoverName = Component.empty().append(this.getHoverName());
          if (this.has(DataComponents.CUSTOM_NAME)) {
-@@ -1029,7 +_,7 @@
+@@ -1033,18 +_,14 @@
  
          MutableComponent result = ComponentUtils.wrapInSquareBrackets(hoverName);
          if (!this.isEmpty()) {
@@ -548,7 +591,20 @@
          }
  
          return result;
-@@ -1085,7 +_,7 @@
+     }
+ 
+-    public SwingAnimation getAttackAnimation() {
+-        return this.getOrDefault(DataComponents.ATTACK_ANIMATION, SwingAnimation.DEFAULT);
+-    }
+-
+-    public SwingAnimation getInteractAnimation() {
+-        return this.getOrDefault(DataComponents.INTERACT_ANIMATION, SwingAnimation.DEFAULT);
++    public SwingAnimation getSwingAnimation() {
++        return this.getOrDefault(DataComponents.SWING_ANIMATION, SwingAnimation.DEFAULT);
+     }
+ 
+     public boolean canPlaceOnBlockInAdventureMode(BlockInWorld blockInWorld) {
+@@ -1093,7 +_,7 @@
      }
  
      public void consume(int amount, @Nullable LivingEntity owner) {
@@ -557,7 +613,7 @@
              this.shrink(amount);
          }
      }
-@@ -1110,11 +_,14 @@
+@@ -1118,11 +_,14 @@
          }
      }
  

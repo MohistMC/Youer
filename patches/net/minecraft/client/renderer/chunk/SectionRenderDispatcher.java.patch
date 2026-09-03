@@ -1,0 +1,77 @@
+--- a/net/minecraft/client/renderer/chunk/SectionRenderDispatcher.java
++++ b/net/minecraft/client/renderer/chunk/SectionRenderDispatcher.java
+@@ -71,7 +_,7 @@
+         GpuDevice gpuDevice = RenderSystem.getDevice();
+         this.stagingBuffer = StagingBuffer.create("Chunk", gpuDevice, 102760448);
+         this.chunkUberBuffers = Util.makeEnumMap(ChunkSectionLayer.class, layer -> {
+-            VertexFormat vertexFormat = layer.pipeline(false).getVertexFormatBinding(0);
++            VertexFormat vertexFormat = layer.pipeline().getVertexFormatBinding(0);
+             UberGpuBuffer<SectionMesh> vertexUberBuffer = new UberGpuBuffer<>(layer.label(), 32, 134217728, vertexFormat.getVertexSize(), this.stagingBuffer);
+             UberGpuBuffer<SectionMesh> indexUberBuffer = new UberGpuBuffer<>(layer.label(), 64, 33554432, 8, this.stagingBuffer);
+             return new SectionRenderDispatcher.SectionUberBuffers(vertexUberBuffer, indexUberBuffer);
+@@ -210,15 +_,29 @@
+         private volatile long sectionNode = SectionPos.asLong(-1, -1, -1);
+         private final BlockPos.MutableBlockPos renderOrigin = new BlockPos.MutableBlockPos(-1, -1, -1);
+         private long uploadedTime;
++        private long fadeDuration;
++        private boolean wasPreviouslyEmpty;
+ 
+         public RenderSection(int index, long sectionNode) {
+             this.index = index;
+             this.setSectionNode(sectionNode);
+         }
+ 
+-        public float getVisibility(long now, long fadeDuration) {
++        public float getVisibility(long now) {
+             long elapsed = now - this.uploadedTime;
+-            return elapsed >= fadeDuration ? 1.0F : (float)elapsed / (float)fadeDuration;
++            return elapsed >= this.fadeDuration ? 1.0F : (float)elapsed / (float)this.fadeDuration;
++        }
++
++        public void setFadeDuration(long fadeDuration) {
++            this.fadeDuration = fadeDuration;
++        }
++
++        public void setWasPreviouslyEmpty(boolean wasPreviouslyEmpty) {
++            this.wasPreviouslyEmpty = wasPreviouslyEmpty;
++        }
++
++        public boolean wasPreviouslyEmpty() {
++            return this.wasPreviouslyEmpty;
+         }
+ 
+         public AABB getBoundingBox() {
+@@ -252,6 +_,7 @@
+             }
+ 
+             this.uploadedTime = 0L;
++            this.wasPreviouslyEmpty = false;
+         }
+ 
+         public BlockPos getRenderOrigin() {
+@@ -314,14 +_,11 @@
+         private SectionMesh setSectionMesh(SectionMesh sectionMesh) {
+             SectionMesh oldMesh = this.sectionMesh.getAndSet(sectionMesh);
+             SectionRenderDispatcher.this.onSectionMeshUpdate.accept(this);
+-            this.updateUploadTime();
+-            return oldMesh;
+-        }
+-
+-        public void updateUploadTime() {
+             if (this.uploadedTime == 0L) {
+                 this.uploadedTime = Util.getMillis();
+             }
++
++            return oldMesh;
+         }
+ 
+         private void releaseSectionMesh(SectionMesh oldMesh) {
+@@ -434,7 +_,7 @@
+                 TranslucencyPointOfView translucencyPointOfView = TranslucencyPointOfView.of(cameraPos, sectionNode);
+                 CompiledSectionMesh compiledSectionMesh = new CompiledSectionMesh(translucencyPointOfView, results);
+                 if (results.renderedLayers.isEmpty()) {
+-                    SectionMesh oldMesh = RenderSection.this.setSectionMesh(results.blockEntities.isEmpty() ? CompiledSectionMesh.EMPTY : compiledSectionMesh);
++                    SectionMesh oldMesh = RenderSection.this.setSectionMesh(compiledSectionMesh);
+                     SectionRenderDispatcher.this.copyLock.lock();
+ 
+                     try {

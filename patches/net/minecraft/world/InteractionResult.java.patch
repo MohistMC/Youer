@@ -1,10 +1,25 @@
 --- a/net/minecraft/world/InteractionResult.java
 +++ b/net/minecraft/world/InteractionResult.java
-@@ -30,18 +_,38 @@
+@@ -8,8 +_,8 @@
+     InteractionResult.Fail,
+     InteractionResult.Pass,
+     InteractionResult.TryEmptyHandInteraction {
+-    InteractionResult.Success SUCCESS = new InteractionResult.Success(InteractionResult.SwingSource.PREDICTED, InteractionResult.ItemContext.DEFAULT);
+-    InteractionResult.Success SUCCESS_SERVER = new InteractionResult.Success(InteractionResult.SwingSource.SERVER_ONLY, InteractionResult.ItemContext.DEFAULT);
++    InteractionResult.Success SUCCESS = new InteractionResult.Success(InteractionResult.SwingSource.CLIENT, InteractionResult.ItemContext.DEFAULT);
++    InteractionResult.Success SUCCESS_SERVER = new InteractionResult.Success(InteractionResult.SwingSource.SERVER, InteractionResult.ItemContext.DEFAULT);
+     InteractionResult.Success CONSUME = new InteractionResult.Success(InteractionResult.SwingSource.NONE, InteractionResult.ItemContext.DEFAULT);
+     InteractionResult.Fail FAIL = new InteractionResult.Fail();
+     InteractionResult.Pass PASS = new InteractionResult.Pass();
+@@ -30,22 +_,38 @@
      record Pass() implements InteractionResult {
      }
  
 -    record Success(InteractionResult.SwingSource swingSource, InteractionResult.ItemContext itemContext) implements InteractionResult {
+-        public boolean shouldSwing() {
+-            return this.swingSource != InteractionResult.SwingSource.NONE;
+-        }
+-
 +    // Paper start - track more context in interaction result
 +    record PaperSuccessContext(net.minecraft.core.@Nullable BlockPos placedPos, boolean updatedBlockEntity) {
 +        static PaperSuccessContext DEFAULT = new PaperSuccessContext(null, false);
@@ -42,3 +57,14 @@
          }
  
          public boolean wasItemInteraction() {
+@@ -59,8 +_,8 @@
+ 
+     enum SwingSource {
+         NONE,
+-        PREDICTED,
+-        SERVER_ONLY;
++        CLIENT,
++        SERVER;
+     }
+ 
+     record TryEmptyHandInteraction() implements InteractionResult {

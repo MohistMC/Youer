@@ -1,0 +1,44 @@
+--- a/com/mojang/renderpearl/backend/vulkan/VulkanBackend.java
++++ b/com/mojang/renderpearl/backend/vulkan/VulkanBackend.java
+@@ -26,7 +_,6 @@
+ import org.jspecify.annotations.Nullable;
+ import org.lwjgl.PointerBuffer;
+ import org.lwjgl.sdl.SDLError;
+-import org.lwjgl.sdl.SDLVideo;
+ import org.lwjgl.sdl.SDLVulkan;
+ import org.lwjgl.system.MemoryStack;
+ import org.lwjgl.system.SharedLibrary;
+@@ -96,6 +_,15 @@
+         }
+     }
+ 
++    @Override
++    public void setWindowHints() {
++    }
++
++    @Override
++    public long getWindowFlags() {
++        return 268435456L;
++    }
++
+     public static @Nullable BackendCreationException checkBackendAvailable() {
+         VulkanBackend probe = new VulkanBackend();
+ 
+@@ -127,12 +_,14 @@
+     }
+ 
+     @Override
+-    public long createWindow(@Nullable String title, int width, int height, long flags) {
+-        return SDLVideo.SDL_CreateWindow(title, width, height, 268435456L | flags);
++    public void handleWindowCreationErrors(@Nullable String error) throws BackendCreationException {
++        throw new BackendCreationException(
++            "Failed to create window for Vulkan: " + Objects.requireNonNullElse(error, "<no error>"), BackendCreationException.Reason.PLATFORM_ERROR
++        );
+     }
+ 
+     @Override
+-    public GpuDevice createDevice(GpuDebugOptions debugOptions) throws BackendCreationException {
++    public GpuDevice createDevice(long window, GpuDebugOptions debugOptions) throws BackendCreationException {
+         if (!NativeLibrariesBootstrap.isVulkanLoaderAvailable()) {
+             throw new BackendCreationException("Vulkan loader library is missing", BackendCreationException.Reason.VULKAN_LOADER_MISSING);
+         }

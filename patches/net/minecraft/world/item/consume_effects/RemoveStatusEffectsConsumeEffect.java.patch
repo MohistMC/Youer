@@ -1,6 +1,16 @@
 --- a/net/minecraft/world/item/consume_effects/RemoveStatusEffectsConsumeEffect.java
 +++ b/net/minecraft/world/item/consume_effects/RemoveStatusEffectsConsumeEffect.java
-@@ -13,6 +_,7 @@
+@@ -4,8 +_,8 @@
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.network.RegistryFriendlyByteBuf;
+ import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+@@ -13,10 +_,11 @@
  import net.minecraft.world.entity.LivingEntity;
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.level.Level;
@@ -8,6 +18,11 @@
  
  public record RemoveStatusEffectsConsumeEffect(HolderSet<MobEffect> effects) implements ConsumeEffect {
      public static final MapCodec<RemoveStatusEffectsConsumeEffect> CODEC = RecordCodecBuilder.mapCodec(
+-        i -> i.group(RegistryCodecs.holderSet(Registries.MOB_EFFECT).fieldOf("effects").forGetter(RemoveStatusEffectsConsumeEffect::effects))
++        i -> i.group(RegistryCodecs.homogeneousList(Registries.MOB_EFFECT).fieldOf("effects").forGetter(RemoveStatusEffectsConsumeEffect::effects))
+             .apply(i, RemoveStatusEffectsConsumeEffect::new)
+     );
+     public static final StreamCodec<RegistryFriendlyByteBuf, RemoveStatusEffectsConsumeEffect> STREAM_CODEC = StreamCodec.composite(
 @@ -33,10 +_,11 @@
      }
  

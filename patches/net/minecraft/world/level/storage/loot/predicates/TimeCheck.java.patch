@@ -1,0 +1,43 @@
+--- a/net/minecraft/world/level/storage/loot/predicates/TimeCheck.java
++++ b/net/minecraft/world/level/storage/loot/predicates/TimeCheck.java
+@@ -7,17 +_,17 @@
+ import net.minecraft.core.Holder;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.world.clock.WorldClock;
+-import net.minecraft.world.level.storage.loot.IntRangePredicate;
++import net.minecraft.world.level.storage.loot.IntRange;
+ import net.minecraft.world.level.storage.loot.LootContext;
+ import net.minecraft.world.level.storage.loot.Validatable;
+ import net.minecraft.world.level.storage.loot.ValidationContext;
+ 
+-public record TimeCheck(Holder<WorldClock> clock, Optional<Long> period, IntRangePredicate value) implements LootItemCondition {
++public record TimeCheck(Holder<WorldClock> clock, Optional<Long> period, IntRange value) implements LootItemCondition {
+     public static final MapCodec<TimeCheck> MAP_CODEC = RecordCodecBuilder.mapCodec(
+         i -> i.group(
+                 WorldClock.CODEC.fieldOf("clock").forGetter(TimeCheck::clock),
+                 Codec.LONG.optionalFieldOf("period").forGetter(TimeCheck::period),
+-                IntRangePredicate.CODEC.fieldOf("value").forGetter(TimeCheck::value)
++                IntRange.CODEC.fieldOf("value").forGetter(TimeCheck::value)
+             )
+             .apply(i, TimeCheck::new)
+     );
+@@ -43,16 +_,16 @@
+         return this.value.test(context, (int)time);
+     }
+ 
+-    public static TimeCheck.Builder time(Holder<WorldClock> clock, IntRangePredicate value) {
++    public static TimeCheck.Builder time(Holder<WorldClock> clock, IntRange value) {
+         return new TimeCheck.Builder(clock, value);
+     }
+ 
+     public static class Builder implements LootItemCondition.Builder {
+         private final Holder<WorldClock> clock;
+         private Optional<Long> period = Optional.empty();
+-        private final IntRangePredicate value;
++        private final IntRange value;
+ 
+-        public Builder(Holder<WorldClock> clock, IntRangePredicate value) {
++        public Builder(Holder<WorldClock> clock, IntRange value) {
+             this.clock = clock;
+             this.value = value;
+         }

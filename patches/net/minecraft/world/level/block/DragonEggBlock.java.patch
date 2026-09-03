@@ -1,15 +1,16 @@
 --- a/net/minecraft/world/level/block/DragonEggBlock.java
 +++ b/net/minecraft/world/level/block/DragonEggBlock.java
-@@ -1,6 +_,8 @@
+@@ -1,7 +_,8 @@
  package net.minecraft.world.level.block;
  
  import net.minecraft.core.BlockPos;
+-import net.minecraft.util.BlockUtil;
 +import net.minecraft.core.particles.ParticleTypes;
 +import net.minecraft.util.Mth;
  import net.minecraft.util.RandomSource;
  import net.minecraft.world.InteractionResult;
  import net.minecraft.world.entity.player.Player;
-@@ -15,8 +_,6 @@
+@@ -16,8 +_,6 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  
  public class DragonEggBlock extends FallingBlock {
@@ -18,7 +19,7 @@
      private static final VoxelShape SHAPE = Block.column(14.0, 0.0, 16.0);
  
      public DragonEggBlock(BlockBehaviour.Properties properties) {
-@@ -40,27 +_,45 @@
+@@ -41,24 +_,45 @@
      }
  
      private void teleport(BlockState state, Level level, BlockPos pos) {
@@ -34,10 +35,7 @@
 -                    && !level.getBlockState(testPos.below()).isAir()
 -                    && worldBorder.isWithinBounds(testPos)
 -                    && level.isInsideBuildHeight(testPos)) {
--                    int xDiff = testPos.getX() - pos.getX() + 16;
--                    int yDiff = testPos.getY() - pos.getY() + 8;
--                    int zDiff = testPos.getZ() - pos.getZ() + 16;
--                    int packedDiff = (xDiff & 0xFF) << 16 | (yDiff & 0xFF) << 8 | zDiff & 0xFF;
+-                    int packedDiff = BlockUtil.packDifferenceInPosition(pos, testPos, 16, 8, 16);
 -                    level.levelEvent(2015, pos, packedDiff);
 +        if (!level.purpurConfig.dragonEggTeleport) return; // Purpur - Option to disable dragon egg teleporting
 +        WorldBorder worldBorder = level.getWorldBorder();

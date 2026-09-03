@@ -1,0 +1,16 @@
+--- a/net/minecraft/client/multiplayer/chat/ChatListener.java
++++ b/net/minecraft/client/multiplayer/chat/ChatListener.java
+@@ -82,8 +_,12 @@
+         return this.delayedMessageQueue.removeIf(message -> signature.equals(message.signature()));
+     }
+ 
++    private boolean willDelayMessages() {
++        return this.messageDelay > 0L && Util.getMillis() < this.previousMessageTime + this.messageDelay;
++    }
++
+     private void handleMessage(@Nullable MessageSignature signature, BooleanSupplier handler) {
+-        if (this.messageDelay > 0L) {
++        if (this.willDelayMessages()) {
+             this.delayedMessageQueue.add(new ChatListener.Message(signature, handler));
+         } else {
+             handler.getAsBoolean();

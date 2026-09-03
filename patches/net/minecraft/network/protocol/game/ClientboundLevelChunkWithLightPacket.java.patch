@@ -1,10 +1,38 @@
 --- a/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java
 +++ b/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java
-@@ -18,15 +_,40 @@
-     private final int z;
-     private final ClientboundLevelChunkPacketData chunkData;
-     private final ClientboundLightUpdatePacketData lightData;
+@@ -2,7 +_,6 @@
+ 
+ import java.util.BitSet;
+ import net.minecraft.network.RegistryFriendlyByteBuf;
+-import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.PacketType;
+@@ -11,30 +_,62 @@
+ import net.minecraft.world.level.lighting.LevelLightEngine;
+ import org.jspecify.annotations.Nullable;
+ 
+-public record ClientboundLevelChunkWithLightPacket(int x, int z, ClientboundLevelChunkPacketData chunkData, ClientboundLightUpdatePacketData lightData)
+-    implements Packet<ClientGamePacketListener> {
+-    public static final StreamCodec<RegistryFriendlyByteBuf, ClientboundLevelChunkWithLightPacket> STREAM_CODEC = StreamCodec.composite(
+-        ByteBufCodecs.INT,
+-        ClientboundLevelChunkWithLightPacket::x,
+-        ByteBufCodecs.INT,
+-        ClientboundLevelChunkWithLightPacket::z,
+-        ClientboundLevelChunkPacketData.STREAM_CODEC,
+-        ClientboundLevelChunkWithLightPacket::chunkData,
+-        ClientboundLightUpdatePacketData.STREAM_CODEC,
+-        ClientboundLevelChunkWithLightPacket::lightData,
+-        ClientboundLevelChunkWithLightPacket::new
++public class ClientboundLevelChunkWithLightPacket implements Packet<ClientGamePacketListener> {
++    public static final StreamCodec<RegistryFriendlyByteBuf, ClientboundLevelChunkWithLightPacket> STREAM_CODEC = Packet.codec(
++        ClientboundLevelChunkWithLightPacket::write, ClientboundLevelChunkWithLightPacket::new
+     );
 -
++    private final int x;
++    private final int z;
++    private final ClientboundLevelChunkPacketData chunkData;
++    private final ClientboundLightUpdatePacketData lightData;
 +    // Paper start - Async-Anti-Xray - Ready flag for the connection, add chunk packet info
 +    private volatile boolean ready;
 +    @Override
@@ -33,20 +61,55 @@
 +    ) {
 +        // Paper end - Anti-Xray
          ChunkPos chunkPos = levelChunk.getPos();
-         this.x = chunkPos.x();
-         this.z = chunkPos.z();
--        this.chunkData = new ClientboundLevelChunkPacketData(levelChunk);
+-        this(
+-            chunkPos.x(),
+-            chunkPos.z(),
+-            new ClientboundLevelChunkPacketData(levelChunk),
+-            new ClientboundLightUpdatePacketData(chunkPos, lightEngine, skyChangedLightSectionFilter, blockChangedLightSectionFilter)
+-        );
++        this.x = chunkPos.x();
++        this.z = chunkPos.z();
 +        io.papermc.paper.antixray.ChunkPacketInfo<net.minecraft.world.level.block.state.BlockState> chunkPacketInfo = modifyBlocks ? levelChunk.getLevel().chunkPacketBlockController.getChunkPacketInfo(this, levelChunk) : null; // Paper - Anti-Xray
 +        this.chunkData = new ClientboundLevelChunkPacketData(levelChunk, chunkPacketInfo); // Paper - Anti-Xray
-         this.lightData = new ClientboundLightUpdatePacketData(chunkPos, lightEngine, skyChangedLightSectionFilter, blockChangedLightSectionFilter);
++        this.lightData = new ClientboundLightUpdatePacketData(chunkPos, lightEngine, skyChangedLightSectionFilter, blockChangedLightSectionFilter);
 +        levelChunk.getLevel().chunkPacketBlockController.modifyBlocks(this, chunkPacketInfo); // Paper - Anti-Xray - Modify blocks
++    }
++
++    private ClientboundLevelChunkWithLightPacket(RegistryFriendlyByteBuf input) {
++        this.x = input.readInt();
++        this.z = input.readInt();
++        this.chunkData = new ClientboundLevelChunkPacketData(input, this.x, this.z);
++        this.lightData = new ClientboundLightUpdatePacketData(input, this.x, this.z);
++    }
++
++    private void write(RegistryFriendlyByteBuf output) {
++        output.writeInt(this.x);
++        output.writeInt(this.z);
++        this.chunkData.write(output);
++        this.lightData.write(output);
      }
  
-     private ClientboundLevelChunkWithLightPacket(RegistryFriendlyByteBuf input) {
-@@ -67,4 +_,11 @@
-     public ClientboundLightUpdatePacketData getLightData() {
-         return this.lightData;
+     @Override
+@@ -45,4 +_,27 @@
+     public void handle(ClientGamePacketListener listener) {
+         listener.handleLevelChunkWithLight(this);
      }
++
++    public int getX() {
++        return this.x;
++    }
++
++    public int getZ() {
++        return this.z;
++    }
++
++    public ClientboundLevelChunkPacketData getChunkData() {
++        return this.chunkData;
++    }
++
++    public ClientboundLightUpdatePacketData getLightData() {
++        return this.lightData;
++    }
 +
 +    // Paper start - Handle oversized block entities in chunks
 +    @Override

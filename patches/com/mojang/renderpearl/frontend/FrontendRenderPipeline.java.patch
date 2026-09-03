@@ -1,0 +1,37 @@
+--- a/com/mojang/renderpearl/frontend/FrontendRenderPipeline.java
++++ /dev/null
+@@ -1,34 +_,0 @@
+-package com.mojang.renderpearl.frontend;
+-
+-import com.mojang.renderpearl.api.pipeline.BindGroupLayout;
+-import com.mojang.renderpearl.api.pipeline.ColorTargetState;
+-import com.mojang.renderpearl.api.pipeline.CompiledRenderPipeline;
+-import com.mojang.renderpearl.api.vertex.VertexFormat;
+-import com.mojang.renderpearl.backend.api.BackendRenderPipeline;
+-import it.unimi.dsi.fastutil.objects.Object2IntMap;
+-import java.util.List;
+-import net.neoforged.api.distmarker.Dist;
+-import net.neoforged.api.distmarker.OnlyIn;
+-import org.jspecify.annotations.Nullable;
+-
+-@OnlyIn(Dist.CLIENT)
+-public record FrontendRenderPipeline(
+-    String name,
+-    BackendRenderPipeline backendRenderPipeline,
+-    List<@Nullable VertexFormat> vertexFormats,
+-    Object2IntMap<String> uniformIndices,
+-    List<BindGroupLayout.UniformDescription> uniforms,
+-    List<@Nullable ColorTargetState> colorTargetStates,
+-    boolean wantsDepthTexture,
+-    int pushConstantSize
+-) implements CompiledRenderPipeline {
+-    @Override
+-    public boolean isClosed() {
+-        return this.backendRenderPipeline().isClosed();
+-    }
+-
+-    @Override
+-    public void close() {
+-        this.backendRenderPipeline.close();
+-    }
+-}

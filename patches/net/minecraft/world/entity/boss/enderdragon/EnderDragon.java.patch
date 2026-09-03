@@ -176,7 +176,15 @@
                          double xdd = targetLocation.x - this.getX();
                          double ydd = targetLocation.y - this.getY();
                          double zdd = targetLocation.z - this.getZ();
-@@ -279,7 +_,7 @@
+@@ -255,6 +_,7 @@
+                         this.setDeltaMovement(this.getDeltaMovement().multiply(slide, 0.91F, slide));
+                     }
+                 } else {
++                    this.interpolation.interpolate();
+                     this.phaseManager.getCurrentPhase().doClientTick();
+                 }
+ 
+@@ -278,7 +_,7 @@
                  this.tickPart(this.body, ss1 * 0.5F, 0.0, -cc1 * 0.5F);
                  this.tickPart(this.wing1, cc1 * 4.5F, 2.0, ss1 * 4.5F);
                  this.tickPart(this.wing2, cc1 * -4.5F, 2.0, ss1 * -4.5F);
@@ -185,7 +193,7 @@
                      this.knockBack(
                          serverLevel,
                          serverLevel.getEntities(
-@@ -366,7 +_,14 @@
+@@ -365,7 +_,14 @@
              if (this.nearestCrystal.isRemoved()) {
                  this.nearestCrystal = null;
              } else if (this.tickCount % 10 == 0 && this.getHealth() < this.getMaxHealth()) {
@@ -201,7 +209,7 @@
              }
          }
  
-@@ -396,10 +_,8 @@
+@@ -395,10 +_,8 @@
                  double xd = entity.getX() - xm;
                  double zd = entity.getZ() - zm;
                  double dd = Math.max(xd * xd + zd * zd, 0.1);
@@ -214,7 +222,7 @@
                      DamageSource damageSource = this.damageSources().mobAttack(this);
                      entity.hurtServer(serverLevel, damageSource, 5.0F);
                      EnchantmentHelper.doPostAttackEffects(serverLevel, entity, damageSource);
-@@ -410,7 +_,7 @@
+@@ -409,7 +_,7 @@
  
      private void hurt(ServerLevel level, List<Entity> entities) {
          for (Entity target : entities) {
@@ -223,7 +231,7 @@
                  DamageSource damageSource = this.damageSources().mobAttack(this);
                  target.hurtServer(level, damageSource, 10.0F);
                  EnchantmentHelper.doPostAttackEffects(level, target, damageSource);
-@@ -431,6 +_,9 @@
+@@ -430,6 +_,9 @@
          int z1 = Mth.floor(bb.maxZ);
          boolean hitWall = false;
          boolean destroyedBlock = false;
@@ -233,7 +241,7 @@
  
          for (int x = x0; x <= x1; x++) {
              for (int y = y0; y <= y1; y++) {
-@@ -438,8 +_,12 @@
+@@ -437,8 +_,12 @@
                      BlockPos blockPos = new BlockPos(x, y, z);
                      BlockState state = level.getBlockState(blockPos);
                      if (!state.isAir() && !state.is(BlockTags.DRAGON_TRANSPARENT)) {
@@ -248,7 +256,7 @@
                          } else {
                              hitWall = true;
                          }
-@@ -448,6 +_,59 @@
+@@ -447,6 +_,59 @@
              }
          }
  
@@ -308,7 +316,7 @@
          if (destroyedBlock) {
              BlockPos randomPos = new BlockPos(
                  x0 + this.random.nextInt(x1 - x0 + 1), y0 + this.random.nextInt(y1 - y0 + 1), z0 + this.random.nextInt(z1 - z0 + 1)
-@@ -464,7 +_,7 @@
+@@ -463,7 +_,7 @@
          }
  
          damage = this.phaseManager.getCurrentPhase().onHurt(source, damage);
@@ -317,7 +325,7 @@
              damage = damage / 4.0F + Math.min(damage, 1.0F);
          }
  
-@@ -505,15 +_,20 @@
+@@ -504,15 +_,20 @@
      }
  
      @Override
@@ -341,7 +349,7 @@
          this.gameEvent(GameEvent.ENTITY_DIE);
          if (this.dragonFight != null) {
              this.dragonFight.updateDragon(this);
-@@ -536,17 +_,38 @@
+@@ -535,17 +_,38 @@
          }
  
          int xpCount = 500;
@@ -384,7 +392,7 @@
              }
          }
  
-@@ -559,19 +_,39 @@
+@@ -558,19 +_,39 @@
          }
  
          if (this.dragonDeathTime >= 200 && this.level() instanceof ServerLevel level) {
@@ -427,7 +435,7 @@
      public int findClosestNode() {
          if (this.nodes[0] == null) {
              for (int i = 0; i < 24; i++) {
-@@ -752,6 +_,7 @@
+@@ -751,6 +_,7 @@
          output.putInt("DragonPhase", this.phaseManager.getCurrentPhase().getPhase().getId());
          output.putInt("DragonDeathTime", this.dragonDeathTime);
          output.putFloat("sitting_damage_received", this.sittingDamageReceived);
@@ -435,7 +443,7 @@
      }
  
      @Override
-@@ -760,6 +_,7 @@
+@@ -759,6 +_,7 @@
          input.getInt("DragonPhase").ifPresent(phaseId -> this.phaseManager.setPhase(EnderDragonPhase.getById(phaseId)));
          this.dragonDeathTime = input.getIntOr("DragonDeathTime", 0);
          this.sittingDamageReceived = input.getFloatOr("sitting_damage_received", 0.0F);
@@ -443,7 +451,7 @@
      }
  
      @Override
-@@ -800,7 +_,7 @@
+@@ -799,7 +_,7 @@
          EnderDragonPhase<? extends DragonPhaseInstance> phase = phaseInstance.getPhase();
          Vec3 result;
          if (phase == EnderDragonPhase.LANDING || phase == EnderDragonPhase.TAKEOFF) {
@@ -452,7 +460,7 @@
              float dist = Math.max((float)Math.sqrt(egg.distToCenterSqr(this.position())) / 4.0F, 1.0F);
              float yOffset = 6.0F / dist;
              float xRotOld = this.getXRot();
-@@ -853,13 +_,18 @@
+@@ -852,13 +_,18 @@
          return this.dragonFight;
      }
  
@@ -473,7 +481,7 @@
          return false;
      }
  
-@@ -869,6 +_,16 @@
+@@ -868,6 +_,16 @@
      }
  
      @Override
@@ -490,7 +498,7 @@
      public void recreateFromPacket(ClientboundAddEntityPacket packet) {
          super.recreateFromPacket(packet);
          EnderDragonPart[] subEntities = this.getSubEntities();
-@@ -886,10 +_,5 @@
+@@ -885,10 +_,5 @@
      @Override
      protected float sanitizeScale(float scale) {
          return 1.0F;

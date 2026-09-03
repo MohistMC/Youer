@@ -29,14 +29,12 @@
                              }
                          }
  
-@@ -116,18 +_,21 @@
+@@ -116,20 +_,25 @@
                              owner.setPortalCooldown();
                          }
  
 -                        ServerPlayer newOwner = player.teleport(
--                            new TeleportTransition(
--                                level, teleportPos, Vec3.ZERO, 0.0F, 0.0F, Relative.union(Relative.ROTATION, Relative.DELTA), TeleportTransition.DO_NOTHING
--                            )
+-                            new TeleportTransition(level, teleportPos, Vec3.ZERO, 0.0F, 0.0F, Relative.ROTATION, TeleportTransition.DO_NOTHING)
 -                        );
 +                        // CraftBukkit start - moved up
 +                        // ServerPlayer newOwner = player.teleport(
@@ -57,7 +55,12 @@
                      }
                  } else {
                      Entity newOwner = owner.teleport(
-@@ -144,9 +_,9 @@
+-                        new TeleportTransition(level, teleportPos, Vec3.ZERO, owner.getYRot(), owner.getXRot(), TeleportTransition.DO_NOTHING)
++                        new TeleportTransition(level, teleportPos, owner.getDeltaMovement(), owner.getYRot(), owner.getXRot(), TeleportTransition.DO_NOTHING)
+                     );
+                     if (newOwner != null) {
+                         newOwner.resetFallDistance();
+@@ -142,9 +_,9 @@
                      this.playSound(level, teleportPos);
                  }
  
@@ -69,7 +72,7 @@
              }
          }
      }
-@@ -169,7 +_,7 @@
+@@ -167,7 +_,7 @@
                  && !owner.isAlive()
                  && !serverPlayer.wonGame
                  && serverPlayer.level().getGameRules().get(GameRules.ENDER_PEARLS_VANISH_ON_DEATH)) {
@@ -78,7 +81,7 @@
              } else {
                  super.tick();
              }
-@@ -198,7 +_,7 @@
+@@ -196,7 +_,7 @@
      public @Nullable Entity teleport(TeleportTransition transition) {
          Entity newEntity = super.teleport(transition);
          if (newEntity != null) {
@@ -87,7 +90,7 @@
          }
  
          return newEntity;
-@@ -206,7 +_,7 @@
+@@ -204,7 +_,7 @@
  
      @Override
      public boolean canTeleport(Level from, Level to) {

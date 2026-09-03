@@ -1,0 +1,26 @@
+--- a/net/minecraft/world/item/equipment/trim/TrimMaterial.java
++++ b/net/minecraft/world/item/equipment/trim/TrimMaterial.java
+@@ -4,13 +_,13 @@
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.network.RegistryFriendlyByteBuf;
+ import net.minecraft.network.chat.Component;
+ import net.minecraft.network.chat.ComponentSerialization;
+ import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.resources.Identifier;
++import net.minecraft.resources.RegistryFileCodec;
+ 
+ public record TrimMaterial(Identifier paletteId, Component description) {
+     public static final Codec<TrimMaterial> DIRECT_CODEC = RecordCodecBuilder.create(
+@@ -23,7 +_,7 @@
+     public static final StreamCodec<RegistryFriendlyByteBuf, TrimMaterial> DIRECT_STREAM_CODEC = StreamCodec.composite(
+         Identifier.STREAM_CODEC, TrimMaterial::paletteId, ComponentSerialization.STREAM_CODEC, TrimMaterial::description, TrimMaterial::new
+     );
+-    public static final Codec<Holder<TrimMaterial>> CODEC = RegistryCodecs.holder(Registries.TRIM_MATERIAL, DIRECT_CODEC);
++    public static final Codec<Holder<TrimMaterial>> CODEC = RegistryFileCodec.create(Registries.TRIM_MATERIAL, DIRECT_CODEC);
+     public static final StreamCodec<RegistryFriendlyByteBuf, Holder<TrimMaterial>> STREAM_CODEC = ByteBufCodecs.holder(
+         Registries.TRIM_MATERIAL, DIRECT_STREAM_CODEC
+     );

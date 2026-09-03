@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/level/levelgen/structure/placement/AbstractSpreadingStructurePlacement.java
 +++ b/net/minecraft/world/level/levelgen/structure/placement/AbstractSpreadingStructurePlacement.java
+@@ -10,7 +_,7 @@
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.Vec3i;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
++import net.minecraft.resources.RegistryFileCodec;
+ import net.minecraft.util.ExtraCodecs;
+ import net.minecraft.util.StringRepresentable;
+ import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
 @@ -20,10 +_,10 @@
  
  public abstract class AbstractSpreadingStructurePlacement implements StructurePlacement {
@@ -14,3 +23,12 @@
      private final Optional<AbstractSpreadingStructurePlacement.ExclusionZone> exclusionZone;
  
      protected static <S extends AbstractSpreadingStructurePlacement> P5<Mu<S>, Vec3i, AbstractSpreadingStructurePlacement.FrequencyReductionMethod, Float, Integer, Optional<AbstractSpreadingStructurePlacement.ExclusionZone>> placementCodec(
+@@ -129,7 +_,7 @@
+     public record ExclusionZone(Holder<StructureSet> otherSet, int chunkCount) {
+         public static final Codec<AbstractSpreadingStructurePlacement.ExclusionZone> CODEC = RecordCodecBuilder.create(
+             i -> i.group(
+-                    RegistryCodecs.holder(Registries.STRUCTURE_SET, StructureSet.DIRECT_CODEC, false)
++                    RegistryFileCodec.create(Registries.STRUCTURE_SET, StructureSet.DIRECT_CODEC, false)
+                         .fieldOf("other_set")
+                         .forGetter(AbstractSpreadingStructurePlacement.ExclusionZone::otherSet),
+                     Codec.intRange(1, 16).fieldOf("chunk_count").forGetter(AbstractSpreadingStructurePlacement.ExclusionZone::chunkCount)

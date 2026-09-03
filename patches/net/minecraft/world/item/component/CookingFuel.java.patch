@@ -1,0 +1,39 @@
+--- a/net/minecraft/world/item/component/CookingFuel.java
++++ b/net/minecraft/world/item/component/CookingFuel.java
+@@ -3,26 +_,24 @@
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import io.netty.buffer.ByteBuf;
++import net.minecraft.core.registries.Registries;
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.resources.ResourceKey;
+-import net.minecraft.world.level.storage.loot.providers.number.floats.ContextFloatProvider;
+-import net.minecraft.world.level.storage.loot.providers.number.floats.ResolvableFloat;
+-import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProvider;
+-import net.minecraft.world.level.storage.loot.providers.number.ints.ResolvableInt;
++import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
+ 
+-public record CookingFuel(ResolvableInt burnTime, ResolvableFloat speedMultiplier) {
++public record CookingFuel(ResourceKey<NumberProvider> burnTime, ResourceKey<NumberProvider> speedMultiplier) {
+     public static final Codec<CookingFuel> CODEC = RecordCodecBuilder.create(
+         i -> i.group(
+-                ResolvableInt.CODEC.fieldOf("burn_time").forGetter(CookingFuel::burnTime),
+-                ResolvableFloat.CODEC.fieldOf("speed_multiplier").forGetter(CookingFuel::speedMultiplier)
++                ResourceKey.codec(Registries.NUMBER_PROVIDER).fieldOf("burn_time").forGetter(CookingFuel::burnTime),
++                ResourceKey.codec(Registries.NUMBER_PROVIDER).fieldOf("speed_multiplier").forGetter(CookingFuel::speedMultiplier)
+             )
+             .apply(i, CookingFuel::new)
+     );
+     public static final StreamCodec<ByteBuf, CookingFuel> STREAM_CODEC = StreamCodec.composite(
+-        ResolvableInt.STREAM_CODEC, CookingFuel::burnTime, ResolvableFloat.STREAM_CODEC, CookingFuel::speedMultiplier, CookingFuel::new
++        ResourceKey.streamCodec(Registries.NUMBER_PROVIDER),
++        CookingFuel::burnTime,
++        ResourceKey.streamCodec(Registries.NUMBER_PROVIDER),
++        CookingFuel::speedMultiplier,
++        CookingFuel::new
+     );
+-
+-    public CookingFuel(ResourceKey<ContextIntProvider> burnTime, ResourceKey<ContextFloatProvider> speedMultiplier) {
+-        this(ResolvableInt.fromKey(burnTime), ResolvableFloat.fromKey(speedMultiplier));
+-    }
+ }

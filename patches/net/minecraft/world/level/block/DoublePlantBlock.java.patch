@@ -1,6 +1,15 @@
 --- a/net/minecraft/world/level/block/DoublePlantBlock.java
 +++ b/net/minecraft/world/level/block/DoublePlantBlock.java
-@@ -73,6 +_,7 @@
+@@ -2,8 +_,6 @@
+ 
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+-import net.minecraft.server.level.ServerLevel;
+-import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.entity.LivingEntity;
+@@ -75,6 +_,7 @@
          }
  
          BlockState belowState = level.getBlockState(pos.below());
@@ -8,11 +17,13 @@
          return belowState.is(this) && belowState.getValue(HALF) == DoubleBlockHalf.LOWER;
      }
  
-@@ -100,11 +_,16 @@
+@@ -102,13 +_,16 @@
      }
  
      @Override
--    public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith) {
+-    public void playerDestroy(
+-        ServerLevel level, ServerPlayer player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith
+-    ) {
 -        super.playerDestroy(level, player, pos, Blocks.AIR.defaultBlockState(), blockEntity, destroyedWith);
 +    public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith, boolean includeDrops, boolean dropExp) { // Paper - fix drops not preventing stats/food exhaustion
 +        super.playerDestroy(level, player, pos, Blocks.AIR.defaultBlockState(), blockEntity, destroyedWith, includeDrops, dropExp); // Paper - fix drops not preventing stats/food exhaustion;

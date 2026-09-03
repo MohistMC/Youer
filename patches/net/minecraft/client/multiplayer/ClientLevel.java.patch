@@ -1,0 +1,41 @@
+--- a/net/minecraft/client/multiplayer/ClientLevel.java
++++ b/net/minecraft/client/multiplayer/ClientLevel.java
+@@ -133,8 +_,6 @@
+ import net.minecraft.world.ticks.LevelTickAccess;
+ import net.neoforged.api.distmarker.Dist;
+ import net.neoforged.api.distmarker.OnlyIn;
+-import org.joml.Vector3f;
+-import org.joml.Vector3fc;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
+@@ -265,7 +_,7 @@
+ 
+     private EnvironmentAttributeSystem.Builder addEnvironmentAttributeLayers(EnvironmentAttributeSystem.Builder environmentAttributes) {
+         environmentAttributes.addDefaultLayers(this);
+-        Vector3fc flashColor = new Vector3f(0.8F, 0.8F, 1.0F);
++        int flashColor = ARGB.color(204, 204, 255);
+         environmentAttributes.addTimeBasedLayer(
+             EnvironmentAttributes.SKY_COLOR, (skyColor, cacheTickId) -> this.getSkyFlashTime() > 0 ? ARGB.srgbLerp(0.22F, skyColor, flashColor) : skyColor
+         );
+@@ -469,8 +_,9 @@
+     }
+ 
+     public void tickNonPassenger(Entity entity) {
++        entity.setOldPosAndRot();
++        entity.tickCount++;
+         Profiler.get().push(entity.typeHolder()::getRegisteredName);
+-        entity.commonTick();
+         entity.tick();
+         Profiler.get().pop();
+ 
+@@ -483,7 +_,8 @@
+         if (entity.isRemoved() || entity.getVehicle() != vehicle) {
+             entity.stopRiding();
+         } else if (entity instanceof Player || this.tickingEntities.contains(entity)) {
+-            entity.commonTick();
++            entity.setOldPosAndRot();
++            entity.tickCount++;
+             entity.rideTick();
+ 
+             for (Entity passenger : entity.getPassengers()) {

@@ -1,0 +1,39 @@
+--- a/net/minecraft/network/protocol/game/ClientboundOpenBookPacket.java
++++ b/net/minecraft/network/protocol/game/ClientboundOpenBookPacket.java
+@@ -6,10 +_,23 @@
+ import net.minecraft.network.protocol.PacketType;
+ import net.minecraft.world.InteractionHand;
+ 
+-public record ClientboundOpenBookPacket(InteractionHand hand) implements Packet<ClientGamePacketListener> {
+-    public static final StreamCodec<FriendlyByteBuf, ClientboundOpenBookPacket> STREAM_CODEC = StreamCodec.composite(
+-        InteractionHand.STREAM_CODEC, ClientboundOpenBookPacket::hand, ClientboundOpenBookPacket::new
++public class ClientboundOpenBookPacket implements Packet<ClientGamePacketListener> {
++    public static final StreamCodec<FriendlyByteBuf, ClientboundOpenBookPacket> STREAM_CODEC = Packet.codec(
++        ClientboundOpenBookPacket::write, ClientboundOpenBookPacket::new
+     );
++    private final InteractionHand hand;
++
++    public ClientboundOpenBookPacket(InteractionHand hand) {
++        this.hand = hand;
++    }
++
++    private ClientboundOpenBookPacket(FriendlyByteBuf input) {
++        this.hand = input.readEnum(InteractionHand.class);
++    }
++
++    private void write(FriendlyByteBuf output) {
++        output.writeEnum(this.hand);
++    }
+ 
+     @Override
+     public PacketType<ClientboundOpenBookPacket> type() {
+@@ -18,5 +_,9 @@
+ 
+     public void handle(ClientGamePacketListener listener) {
+         listener.handleOpenBook(this);
++    }
++
++    public InteractionHand getHand() {
++        return this.hand;
+     }
+ }

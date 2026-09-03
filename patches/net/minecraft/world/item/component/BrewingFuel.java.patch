@@ -1,0 +1,39 @@
+--- a/net/minecraft/world/item/component/BrewingFuel.java
++++ b/net/minecraft/world/item/component/BrewingFuel.java
+@@ -3,26 +_,24 @@
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import io.netty.buffer.ByteBuf;
++import net.minecraft.core.registries.Registries;
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.resources.ResourceKey;
+-import net.minecraft.world.level.storage.loot.providers.number.floats.ContextFloatProvider;
+-import net.minecraft.world.level.storage.loot.providers.number.floats.ResolvableFloat;
+-import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProvider;
+-import net.minecraft.world.level.storage.loot.providers.number.ints.ResolvableInt;
++import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
+ 
+-public record BrewingFuel(ResolvableInt uses, ResolvableFloat speedMultiplier) {
++public record BrewingFuel(ResourceKey<NumberProvider> uses, ResourceKey<NumberProvider> speedMultiplier) {
+     public static final Codec<BrewingFuel> CODEC = RecordCodecBuilder.create(
+         i -> i.group(
+-                ResolvableInt.CODEC.fieldOf("uses").forGetter(BrewingFuel::uses),
+-                ResolvableFloat.CODEC.fieldOf("speed_multiplier").forGetter(BrewingFuel::speedMultiplier)
++                ResourceKey.codec(Registries.NUMBER_PROVIDER).fieldOf("uses").forGetter(BrewingFuel::uses),
++                ResourceKey.codec(Registries.NUMBER_PROVIDER).fieldOf("speed_multiplier").forGetter(BrewingFuel::speedMultiplier)
+             )
+             .apply(i, BrewingFuel::new)
+     );
+     public static final StreamCodec<ByteBuf, BrewingFuel> STREAM_CODEC = StreamCodec.composite(
+-        ResolvableInt.STREAM_CODEC, BrewingFuel::uses, ResolvableFloat.STREAM_CODEC, BrewingFuel::speedMultiplier, BrewingFuel::new
++        ResourceKey.streamCodec(Registries.NUMBER_PROVIDER),
++        BrewingFuel::uses,
++        ResourceKey.streamCodec(Registries.NUMBER_PROVIDER),
++        BrewingFuel::speedMultiplier,
++        BrewingFuel::new
+     );
+-
+-    public BrewingFuel(ResourceKey<ContextIntProvider> uses, ResourceKey<ContextFloatProvider> speedMultiplier) {
+-        this(ResolvableInt.fromKey(uses), ResolvableFloat.fromKey(speedMultiplier));
+-    }
+ }

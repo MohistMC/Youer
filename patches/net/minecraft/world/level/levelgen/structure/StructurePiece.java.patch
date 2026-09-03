@@ -8,7 +8,15 @@
  import net.minecraft.world.level.block.entity.ChestBlockEntity;
  import net.minecraft.world.level.block.entity.DispenserBlockEntity;
  import net.minecraft.world.level.block.state.BlockState;
-@@ -79,6 +_,9 @@
+@@ -29,7 +_,6 @@
+ import net.minecraft.world.level.levelgen.Heightmap;
+ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
+ import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
+-import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
+ import net.minecraft.world.level.material.FluidState;
+ import net.minecraft.world.level.storage.loot.LootTable;
+ import org.jspecify.annotations.Nullable;
+@@ -80,6 +_,9 @@
      }
  
      public final CompoundTag createTag(StructurePieceSerializationContext context) {
@@ -18,7 +26,16 @@
          CompoundTag tag = new CompoundTag();
          tag.putString("id", BuiltInRegistries.STRUCTURE_PIECE.getKey(this.getType()).toString());
          tag.store("BB", BoundingBox.CODEC, this.boundingBox);
-@@ -175,6 +_,11 @@
+@@ -92,7 +_,7 @@
+ 
+     protected abstract void addAdditionalSaveData(StructurePieceSerializationContext context, CompoundTag tag);
+ 
+-    public void addChildren(StructurePiece startPiece, StructurePiecesBuilder builder, RandomSource random) {
++    public void addChildren(StructurePiece startPiece, StructurePieceAccessor structurePieceAccessor, RandomSource random) {
+     }
+ 
+     public abstract void postProcess(
+@@ -176,6 +_,11 @@
                  }
  
                  level.setBlock(pos, blockState, 2);
@@ -30,7 +47,7 @@
                  FluidState fluidState = level.getFluidState(pos);
                  if (!fluidState.isEmpty()) {
                      level.scheduleTick(pos, fluidState.getType(), 0);
-@@ -187,6 +_,48 @@
+@@ -188,6 +_,48 @@
          }
      }
  
@@ -79,7 +96,7 @@
      protected boolean canBeReplaced(LevelReader level, int x, int y, int z, BoundingBox chunkBB) {
          return true;
      }
-@@ -405,10 +_,20 @@
+@@ -406,10 +_,20 @@
                  blockState = reorient(level, pos, Blocks.CHEST.defaultBlockState());
              }
  
@@ -102,7 +119,7 @@
  
              return true;
          } else {
-@@ -419,12 +_,33 @@
+@@ -420,12 +_,33 @@
      protected boolean createDispenser(
          WorldGenLevel level, BoundingBox chunkBB, RandomSource random, int x, int y, int z, Direction facing, ResourceKey<LootTable> lootTable
      ) {

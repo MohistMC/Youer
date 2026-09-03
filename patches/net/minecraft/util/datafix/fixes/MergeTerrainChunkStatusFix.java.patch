@@ -1,0 +1,125 @@
+--- a/net/minecraft/util/datafix/fixes/MergeTerrainChunkStatusFix.java
++++ /dev/null
+@@ -1,122 +_,0 @@
+-package net.minecraft.util.datafix.fixes;
+-
+-import com.mojang.datafixers.DSL;
+-import com.mojang.datafixers.DataFix;
+-import com.mojang.datafixers.OpticFinder;
+-import com.mojang.datafixers.TypeRewriteRule;
+-import com.mojang.datafixers.Typed;
+-import com.mojang.datafixers.schemas.Schema;
+-import com.mojang.datafixers.types.Type;
+-import com.mojang.datafixers.types.templates.List.ListType;
+-import com.mojang.datafixers.util.Either;
+-import com.mojang.datafixers.util.Pair;
+-import com.mojang.datafixers.util.Unit;
+-import com.mojang.serialization.Dynamic;
+-import com.mojang.serialization.OptionalDynamic;
+-import java.util.Objects;
+-import java.util.Optional;
+-import java.util.Set;
+-import net.minecraft.util.datafix.schemas.NamespacedSchema;
+-import org.jspecify.annotations.Nullable;
+-
+-public class MergeTerrainChunkStatusFix extends DataFix {
+-    private static final String BEFORE_TERRAIN_STATUS = "minecraft:biomes";
+-    private static final String OLD_FINAL_TERRAIN_STATUS = "minecraft:carvers";
+-    private static final Set<String> OLD_INTERMEDIATE_TERRAIN_STATUSES = Set.of("minecraft:noise", "minecraft:surface");
+-
+-    public MergeTerrainChunkStatusFix(Schema schema) {
+-        super(schema, false);
+-    }
+-
+-    @Override
+-    protected TypeRewriteRule makeRule() {
+-        Type<?> chunkType = this.getInputSchema().getType(References.CHUNK);
+-        OpticFinder<?> sectionsF = chunkType.findField("sections");
+-        Type<?> sectionType = ((ListType)sectionsF.type()).getElement();
+-        Type<?> biomesType = sectionType.findFieldType("biomes");
+-        Type<?> blockStatesType = sectionType.findFieldType("block_states");
+-        return this.makeRule(chunkType, sectionsF, sectionType, biomesType, blockStatesType);
+-    }
+-
+-    private <Biomes, BlockStates> TypeRewriteRule makeRule(
+-        Type<?> chunkType, OpticFinder<?> sectionsF, Type<?> sectionType, Type<Biomes> biomesType, Type<BlockStates> blockStatesType
+-    ) {
+-        Type<Pair<Either<Biomes, Unit>, Pair<Either<BlockStates, Unit>, Dynamic<?>>>> expectedSectionType = DSL.and(
+-            DSL.optional(DSL.field("biomes", biomesType)), DSL.optional(DSL.field("block_states", blockStatesType)), DSL.remainderType()
+-        );
+-        if (!Objects.equals(sectionType, expectedSectionType)) {
+-            throw new IllegalStateException(sectionType + " did not match " + expectedSectionType);
+-        }
+-
+-        OpticFinder<Pair<Either<Biomes, Unit>, Pair<Either<BlockStates, Unit>, Dynamic<?>>>> sectionF = DSL.typeFinder(expectedSectionType);
+-        return this.fixTypeEverywhereTyped("MergeTerrainChunkStatusFix", chunkType, chunk -> {
+-            MergeTerrainChunkStatusFix.FixedAndStatuses statuses = this.fixStatuses(chunk);
+-            chunk = statuses.fixed;
+-            boolean statusIntermediate = OLD_INTERMEDIATE_TERRAIN_STATUSES.contains(statuses.oldStatus);
+-            boolean targetStatusIntermediate = statuses.oldTargetStatus != null && OLD_INTERMEDIATE_TERRAIN_STATUSES.contains(statuses.oldTargetStatus);
+-            if (statusIntermediate || targetStatusIntermediate) {
+-                boolean onlyRemoveBlocksBelowZero = statuses.oldTargetStatus != null && !targetStatusIntermediate;
+-                chunk = removeBlockStates(chunk, sectionsF, sectionF, onlyRemoveBlocksBelowZero);
+-            }
+-
+-            return chunk;
+-        });
+-    }
+-
+-    private static <Biomes, BlockStates> Typed<?> removeBlockStates(
+-        Typed<?> chunk,
+-        OpticFinder<?> sectionsF,
+-        OpticFinder<Pair<Either<Biomes, Unit>, Pair<Either<BlockStates, Unit>, Dynamic<?>>>> sectionF,
+-        boolean onlyBelowZero
+-    ) {
+-        return chunk.update(DSL.remainderFinder(), remainder -> remainder.remove("Heightmaps").remove("blending_data"))
+-            .updateTyped(
+-                sectionsF,
+-                sections -> sections.update(
+-                    sectionF,
+-                    section -> {
+-                        byte y = section.getSecond().getSecond().get("Y").asByte((byte)0);
+-                        return y >= 0 && onlyBelowZero
+-                            ? section
+-                            : section.mapSecond(
+-                                blockStatesAndRemainder -> blockStatesAndRemainder.<Either<BlockStates, Unit>>mapFirst(var0x -> Either.right(Unit.INSTANCE))
+-                                    .mapSecond(sectionRemainder -> sectionRemainder.remove("block_states"))
+-                            );
+-                    }
+-                )
+-            );
+-    }
+-
+-    private MergeTerrainChunkStatusFix.FixedAndStatuses fixStatuses(Typed<?> chunk) {
+-        Dynamic<?> remainder = chunk.getOrCreate(DSL.remainderFinder());
+-        String oldStatus = unwrapStatus(remainder.get("Status"));
+-        remainder = remainder.set("Status", remainder.createString(fixStatus(oldStatus)));
+-        Optional<? extends Dynamic<?>> maybeBelowZeroRetrogen = remainder.get("below_zero_retrogen").result();
+-        String oldTargetStatus;
+-        if (maybeBelowZeroRetrogen.isPresent()) {
+-            Dynamic<?> belowZeroRetrogen = (Dynamic<?>)maybeBelowZeroRetrogen.get();
+-            oldTargetStatus = unwrapStatus(belowZeroRetrogen.get("target_status"));
+-            belowZeroRetrogen = belowZeroRetrogen.set("target_status", remainder.createString(fixStatus(oldTargetStatus)));
+-            remainder = remainder.set("below_zero_retrogen", belowZeroRetrogen);
+-        } else {
+-            oldTargetStatus = null;
+-        }
+-
+-        return new MergeTerrainChunkStatusFix.FixedAndStatuses(chunk.set(DSL.remainderFinder(), remainder), oldStatus, oldTargetStatus);
+-    }
+-
+-    private static String unwrapStatus(OptionalDynamic<?> status) {
+-        return NamespacedSchema.ensureNamespaced(status.asString("minecraft:empty"));
+-    }
+-
+-    private static String fixStatus(String status) {
+-        if ("minecraft:carvers".equals(status)) {
+-            return "minecraft:terrain";
+-        } else {
+-            return OLD_INTERMEDIATE_TERRAIN_STATUSES.contains(status) ? "minecraft:biomes" : status;
+-        }
+-    }
+-
+-    private record FixedAndStatuses(Typed<?> fixed, String oldStatus, @Nullable String oldTargetStatus) {
+-    }
+-}

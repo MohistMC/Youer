@@ -1,0 +1,21 @@
+--- a/net/minecraft/world/item/component/MobVisibility.java
++++ b/net/minecraft/world/item/component/MobVisibility.java
+@@ -3,8 +_,8 @@
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.network.RegistryFriendlyByteBuf;
+ import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+@@ -16,7 +_,7 @@
+     public static final float MAX_VISIBILITY = 10.0F;
+     public static final Codec<MobVisibility> CODEC = RecordCodecBuilder.create(
+         i -> i.group(
+-                RegistryCodecs.holderSet(Registries.ENTITY_TYPE).fieldOf("targeting_entity_types").forGetter(MobVisibility::targetingEntityTypes),
++                RegistryCodecs.homogeneousList(Registries.ENTITY_TYPE).fieldOf("targeting_entity_types").forGetter(MobVisibility::targetingEntityTypes),
+                 ExtraCodecs.floatRange(0.0F, 10.0F).fieldOf("visibility").forGetter(MobVisibility::visibility)
+             )
+             .apply(i, MobVisibility::new)

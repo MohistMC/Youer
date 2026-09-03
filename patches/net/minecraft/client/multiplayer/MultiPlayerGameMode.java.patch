@@ -1,0 +1,114 @@
+--- a/net/minecraft/client/multiplayer/MultiPlayerGameMode.java
++++ b/net/minecraft/client/multiplayer/MultiPlayerGameMode.java
+@@ -12,12 +_,10 @@
+ import net.minecraft.SharedConstants;
+ import net.minecraft.client.ClientRecipeBook;
+ import net.minecraft.client.Minecraft;
+-import net.minecraft.client.gui.screens.WorldOptionsScreen;
+ import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+ import net.minecraft.client.gui.screens.inventory.CreativeModeInventoryScreen;
+ import net.minecraft.client.multiplayer.prediction.BlockStatePredictionHandler;
+ import net.minecraft.client.multiplayer.prediction.PredictiveAction;
+-import net.minecraft.client.player.ItemActivation;
+ import net.minecraft.client.player.LocalPlayer;
+ import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+ import net.minecraft.client.resources.sounds.SoundInstance;
+@@ -55,7 +_,6 @@
+ import net.minecraft.world.inventory.Slot;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.component.PiercingWeapon;
+-import net.minecraft.world.item.component.SwingAnimation;
+ import net.minecraft.world.item.context.UseOnContext;
+ import net.minecraft.world.item.crafting.display.RecipeDisplayId;
+ import net.minecraft.world.level.GameType;
+@@ -111,10 +_,6 @@
+         }
+ 
+         this.localPlayerMode = mode;
+-        if (this.minecraft.gui.screen() instanceof WorldOptionsScreen worldOptionsScreen) {
+-            worldOptionsScreen.updatePersonalGameModeButton(mode);
+-        }
+-
+         this.localPlayerMode.updatePlayerAbilities(this.minecraft.player.getAbilities());
+     }
+ 
+@@ -376,22 +_,16 @@
+ 
+         if (!itemStack.isEmpty() && !player.getCooldowns().isOnCooldown(itemStack)) {
+             UseOnContext context = new UseOnContext(player, hand, blockHit);
+-            InteractionResult result;
++            InteractionResult success;
+             if (player.hasInfiniteMaterials()) {
+                 int count = itemStack.getCount();
+-                result = itemStack.useOn(context);
++                success = itemStack.useOn(context);
+                 itemStack.setCount(count);
+             } else {
+-                result = itemStack.useOn(context);
+-                if (result instanceof InteractionResult.Success success) {
+-                    ItemStack resultItemStack = Objects.requireNonNullElseGet(success.heldItemTransformedTo(), () -> player.getItemInHand(hand));
+-                    if (resultItemStack != itemStack) {
+-                        player.setItemInHand(hand, resultItemStack);
+-                    }
+-                }
++                success = itemStack.useOn(context);
+             }
+ 
+-            return result;
++            return success;
+         } else {
+             return InteractionResult.PASS;
+         }
+@@ -430,16 +_,12 @@
+         return interactionResult.get();
+     }
+ 
+-    public LocalPlayer createPlayer(ClientLevel level, StatsCounter stats, ClientRecipeBook recipeBook, ItemActivation itemActivation) {
+-        return this.createPlayer(level, stats, recipeBook, Input.EMPTY, false, itemActivation);
++    public LocalPlayer createPlayer(ClientLevel level, StatsCounter stats, ClientRecipeBook recipeBook) {
++        return this.createPlayer(level, stats, recipeBook, Input.EMPTY, false);
+     }
+ 
+-    public LocalPlayer createPlayer(
+-        ClientLevel level, StatsCounter stats, ClientRecipeBook recipeBook, Input lastSentInput, boolean wasSprinting, ItemActivation itemActivation
+-    ) {
+-        return new LocalPlayer(
+-            this.minecraft, level, this.connection, stats, recipeBook, lastSentInput, wasSprinting, this.minecraft.computeChatAbilities(), itemActivation
+-        );
++    public LocalPlayer createPlayer(ClientLevel level, StatsCounter stats, ClientRecipeBook recipeBook, Input lastSentInput, boolean wasSprinting) {
++        return new LocalPlayer(this.minecraft, level, this.connection, stats, recipeBook, lastSentInput, wasSprinting, this.minecraft.computeChatAbilities());
+     }
+ 
+     public void attack(Player player, Entity entity) {
+@@ -539,12 +_,11 @@
+         player.releaseUsingItem();
+     }
+ 
+-    public void piercingAttack(SwingAnimation swingAnimation, PiercingWeapon weapon) {
++    public void piercingAttack(PiercingWeapon weapon) {
+         this.ensureHasSentCarriedItem();
+         this.connection.send(new ServerboundPlayerActionPacket(ServerboundPlayerActionPacket.Action.STAB, BlockPos.ZERO, Direction.DOWN));
+         this.minecraft.player.onAttack();
+         this.minecraft.player.postPiercingAttack();
+-        this.minecraft.player.swing(InteractionHand.MAIN_HAND, swingAnimation, false);
+         weapon.makeSound(this.minecraft.player);
+     }
+ 
+@@ -590,17 +_,5 @@
+ 
+     public void handleSlotStateChanged(int slotId, int containerId, boolean newState) {
+         this.connection.send(new ServerboundContainerSlotStateChangedPacket(slotId, containerId, newState));
+-    }
+-
+-    public void dropItem(LocalPlayer player, boolean all) {
+-        ServerboundPlayerActionPacket.Action action = all
+-            ? ServerboundPlayerActionPacket.Action.DROP_ALL_ITEMS
+-            : ServerboundPlayerActionPacket.Action.DROP_ITEM;
+-        ItemStack prediction = player.getInventory().removeFromSelected(all);
+-        this.ensureHasSentCarriedItem();
+-        this.connection.send(new ServerboundPlayerActionPacket(action, BlockPos.ZERO, Direction.DOWN));
+-        if (!prediction.isEmpty()) {
+-            player.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, false);
+-        }
+     }
+ }

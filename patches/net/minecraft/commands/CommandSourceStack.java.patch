@@ -1,6 +1,6 @@
 --- a/net/minecraft/commands/CommandSourceStack.java
 +++ b/net/minecraft/commands/CommandSourceStack.java
-@@ -9,6 +_,7 @@
+@@ -9,24 +_,25 @@
  import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
  import com.mojang.brigadier.suggestion.Suggestions;
  import com.mojang.brigadier.suggestion.SuggestionsBuilder;
@@ -8,7 +8,10 @@
  import java.util.Collection;
  import java.util.Objects;
  import java.util.Optional;
-@@ -18,12 +_,14 @@
+ import java.util.Set;
+ import java.util.concurrent.CompletableFuture;
+ import java.util.function.BinaryOperator;
+-import java.util.function.Predicate;
  import java.util.function.Supplier;
  import java.util.stream.Stream;
  import net.minecraft.ChatFormatting;
@@ -21,9 +24,11 @@
  import net.minecraft.core.registries.BuiltInRegistries;
 +import net.minecraft.core.registries.Registries;
  import net.minecraft.network.chat.ChatType;
+-import net.minecraft.network.chat.CommonComponents;
  import net.minecraft.network.chat.Component;
  import net.minecraft.network.chat.ComponentUtils;
-@@ -33,7 +_,9 @@
+ import net.minecraft.network.chat.OutgoingChatMessage;
+@@ -35,7 +_,9 @@
  import net.minecraft.server.MinecraftServer;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.server.level.ServerPlayer;
@@ -33,7 +38,7 @@
  import net.minecraft.sounds.SoundEvent;
  import net.minecraft.util.Mth;
  import net.minecraft.util.TaskChainer;
-@@ -48,7 +_,7 @@
+@@ -50,14 +_,15 @@
  
  import net.neoforged.neoforge.common.extensions.ICommandSourceStackExtension;
  
@@ -42,18 +47,112 @@
      public static final SimpleCommandExceptionType ERROR_NOT_PLAYER = new SimpleCommandExceptionType(Component.translatable("permissions.requires.player"));
      public static final SimpleCommandExceptionType ERROR_NOT_ENTITY = new SimpleCommandExceptionType(Component.translatable("permissions.requires.entity"));
      public final CommandSource source;
-@@ -65,6 +_,7 @@
+     private final Vec3 worldPosition;
+     private final ServerLevel level;
+     private final PermissionSet permissions;
+-    private final CommandSourceStack.NamesProvider namesProvider;
++    private final String textName;
++    private final Component displayName;
+     private final MinecraftServer server;
+     private final boolean silent;
+     private final @Nullable Entity entity;
+@@ -66,26 +_,16 @@
      private final Vec2 rotation;
      private final CommandSigningContext signingContext;
      private final TaskChainer chatMessageChainer;
+-
+-    public CommandSourceStack(
+-        CommandSource source, Vec3 position, Vec2 rotation, ServerLevel level, PermissionSet permissions, MinecraftServer server, Entity entity
+-    ) {
+-        this(source, position, rotation, level, permissions, CommandSourceStack.NamesProvider.FOR_ENTITY, server, entity);
+-    }
+-
+-    public CommandSourceStack(
+-        CommandSource source, Vec3 position, Vec2 rotation, ServerLevel level, PermissionSet permissions, Component name, MinecraftServer server
+-    ) {
+-        this(source, position, rotation, level, permissions, CommandSourceStack.NamesProvider.constant(name), server, null);
+-    }
+-
+-    private CommandSourceStack(
 +    public boolean bypassSelectorPermissions = false; // Paper - add bypass for selector permissions
- 
-     public CommandSourceStack(
++
++    public CommandSourceStack(
          CommandSource source,
-@@ -190,6 +_,30 @@
+         Vec3 position,
+         Vec2 rotation,
+         ServerLevel level,
+         PermissionSet permissions,
+-        CommandSourceStack.NamesProvider namesProvider,
++        String textName,
++        Component displayName,
+         MinecraftServer server,
+         @Nullable Entity entity
+     ) {
+@@ -95,7 +_,8 @@
+             rotation,
+             level,
+             permissions,
+-            namesProvider,
++            textName,
++            displayName,
+             server,
+             entity,
+             false,
+@@ -112,7 +_,8 @@
+         Vec2 rotation,
+         ServerLevel level,
+         PermissionSet permissions,
+-        CommandSourceStack.NamesProvider namesProvider,
++        String textName,
++        Component displayName,
+         MinecraftServer server,
+         @Nullable Entity entity,
+         boolean silent,
+@@ -127,7 +_,8 @@
+         this.silent = silent;
+         this.entity = entity;
+         this.permissions = permissions;
+-        this.namesProvider = namesProvider;
++        this.textName = textName;
++        this.displayName = displayName;
+         this.server = server;
+         this.resultCallback = resultCallback;
+         this.anchor = anchor;
+@@ -145,7 +_,8 @@
+                 this.rotation,
+                 this.level,
+                 this.permissions,
+-                this.namesProvider,
++                this.textName,
++                this.displayName,
+                 this.server,
+                 this.entity,
+                 this.silent,
+@@ -165,7 +_,8 @@
+                 this.rotation,
+                 this.level,
+                 this.permissions,
+-                CommandSourceStack.NamesProvider.FOR_ENTITY,
++                entity.getPlainTextName(),
++                entity.getDisplayName(),
+                 this.server,
+                 entity,
+                 this.silent,
+@@ -185,7 +_,8 @@
+                 this.rotation,
+                 this.level,
+                 this.permissions,
+-                this.namesProvider,
++                this.textName,
++                this.displayName,
+                 this.server,
+                 this.entity,
+                 this.silent,
+@@ -195,6 +_,30 @@
+                 this.chatMessageChainer
              );
      }
- 
++
 +    // Paper start - Expose 'with' functions from the CommandSourceStack
 +    @Override
 +    public CommandSourceStack withLocation(org.bukkit.Location location) {
@@ -77,11 +176,94 @@
 +        );
 +    }
 +    // Paper end - Expose 'with' functions from the CommandSourceStack
-+
+ 
      public CommandSourceStack withRotation(Vec2 rotation) {
          return this.rotation.equals(rotation)
-             ? this
-@@ -378,6 +_,45 @@
+@@ -205,7 +_,8 @@
+                 rotation,
+                 this.level,
+                 this.permissions,
+-                this.namesProvider,
++                this.textName,
++                this.displayName,
+                 this.server,
+                 this.entity,
+                 this.silent,
+@@ -225,7 +_,8 @@
+                 this.rotation,
+                 this.level,
+                 this.permissions,
+-                this.namesProvider,
++                this.textName,
++                this.displayName,
+                 this.server,
+                 this.entity,
+                 this.silent,
+@@ -249,7 +_,8 @@
+                 this.rotation,
+                 this.level,
+                 this.permissions,
+-                this.namesProvider,
++                this.textName,
++                this.displayName,
+                 this.server,
+                 this.entity,
+                 true,
+@@ -270,7 +_,8 @@
+                 this.rotation,
+                 this.level,
+                 permissions,
+-                this.namesProvider,
++                this.textName,
++                this.displayName,
+                 this.server,
+                 this.entity,
+                 this.silent,
+@@ -294,7 +_,8 @@
+                 this.rotation,
+                 this.level,
+                 this.permissions,
+-                this.namesProvider,
++                this.textName,
++                this.displayName,
+                 this.server,
+                 this.entity,
+                 this.silent,
+@@ -318,7 +_,8 @@
+             this.rotation,
+             level,
+             this.permissions,
+-            this.namesProvider,
++            this.textName,
++            this.displayName,
+             this.server,
+             this.entity,
+             this.silent,
+@@ -353,7 +_,8 @@
+                 this.rotation,
+                 this.level,
+                 this.permissions,
+-                this.namesProvider,
++                this.textName,
++                this.displayName,
+                 this.server,
+                 this.entity,
+                 this.silent,
+@@ -365,11 +_,11 @@
+     }
+ 
+     public Component getDisplayName() {
+-        return this.namesProvider.displayName(this.entity);
++        return this.displayName;
+     }
+ 
+     public String getTextName() {
+-        return this.namesProvider.textName(this.entity);
++        return this.textName;
+     }
+ 
+     @Override
+@@ -377,6 +_,45 @@
          return this.permissions;
      }
  
@@ -127,7 +309,7 @@
      public Vec3 getPosition() {
          return this.worldPosition;
      }
-@@ -461,6 +_,30 @@
+@@ -460,6 +_,30 @@
          }
      }
  
@@ -158,7 +340,7 @@
      public void sendSuccess(Supplier<Component> messageSupplier, boolean broadcast) {
          boolean shouldSendSystemMessage = this.source.acceptsSuccess() && !this.silent;
          boolean shouldBroadcast = broadcast && this.source.shouldInformAdmins() && !this.silent;
-@@ -481,20 +_,25 @@
+@@ -480,20 +_,25 @@
          GameRules gameRules = this.level.getGameRules();
          if (gameRules.get(GameRules.SEND_COMMAND_FEEDBACK)) {
              for (ServerPlayer player : this.server.getPlayerList().getPlayers()) {
@@ -187,7 +369,7 @@
          }
      }
  
-@@ -505,7 +_,7 @@
+@@ -504,7 +_,7 @@
  
      @Override
      public Collection<String> getOnlinePlayerNames() {
@@ -196,12 +378,21 @@
      }
  
      @Override
-@@ -532,10 +_,17 @@
-     public CompletableFuture<Suggestions> suggestRegistryElements(
-         ResourceKey<? extends Registry<?>> key, SharedSuggestionProvider.ElementSuggestionType elements, SuggestionsBuilder builder, CommandContext<?> context
+@@ -528,21 +_,24 @@
+     }
+ 
+     @Override
+-    public <E> CompletableFuture<Suggestions> suggestRegistryElements(
+-        ResourceKey<? extends Registry<E>> key,
+-        SharedSuggestionProvider.ElementSuggestionType elements,
+-        SuggestionsBuilder builder,
+-        CommandContext<?> context,
+-        Predicate<E> filter
++    public CompletableFuture<Suggestions> suggestRegistryElements(
++        ResourceKey<? extends Registry<?>> key, SharedSuggestionProvider.ElementSuggestionType elements, SuggestionsBuilder builder, CommandContext<?> context
      ) {
 -        return this.getLookup(key).map(registry -> {
--            this.suggestRegistryElements((HolderLookup<?>)registry, elements, builder);
+-            this.suggestRegistryElements((HolderLookup<E>)registry, elements, builder, filter);
 -            return builder.buildFuture();
 -        }).orElseGet(Suggestions::empty);
 +        if (key == Registries.RECIPE) {
@@ -217,12 +408,48 @@
 +        }
      }
  
-     private Optional<? extends HolderLookup<?>> getLookup(ResourceKey<? extends Registry<?>> key) {
-@@ -578,4 +_,16 @@
-     public boolean isSilent() {
+-    private <E> Optional<? extends HolderLookup<E>> getLookup(ResourceKey<? extends Registry<E>> key) {
+-        Optional<? extends Registry<E>> lookup = this.registryAccess().lookup(key);
++    private Optional<? extends HolderLookup<?>> getLookup(ResourceKey<? extends Registry<?>> key) {
++        Optional<? extends Registry<?>> lookup = this.registryAccess().lookup(key);
+         return lookup.isPresent() ? lookup : this.server.reloadableRegistries().lookup().lookup(key);
+     }
+ 
+@@ -582,35 +_,15 @@
          return this.silent;
      }
-+
+ 
+-    public interface NamesProvider {
+-        CommandSourceStack.NamesProvider FOR_ENTITY = new CommandSourceStack.NamesProvider() {
+-            @Override
+-            public Component displayName(@Nullable Entity entity) {
+-                return entity != null ? entity.getDisplayName() : CommonComponents.EMPTY;
+-            }
+-
+-            @Override
+-            public String textName(@Nullable Entity entity) {
+-                return entity != null ? entity.getPlainTextName() : "";
+-            }
+-        };
+-
+-        Component displayName(@Nullable Entity entity);
+-
+-        String textName(@Nullable Entity entity);
+-
+-        static CommandSourceStack.NamesProvider constant(Component value) {
+-            return new CommandSourceStack.NamesProvider() {
+-                @Override
+-                public Component displayName(@Nullable Entity entity) {
+-                    return value;
+-                }
+-
+-                @Override
+-                public String textName(@Nullable Entity entity) {
+-                    return value.getString();
+-                }
+-            };
+-        }
+-    }
 +    // Paper start
 +    @Override
 +    public CommandSourceStack getHandle() {

@@ -1,10 +1,12 @@
 --- a/net/minecraft/world/level/StructureManager.java
 +++ b/net/minecraft/world/level/StructureManager.java
-@@ -48,7 +_,13 @@
+@@ -47,8 +_,14 @@
+         }
      }
  
-     public List<StructureStart> startsForStructure(ChunkPos pos, Predicate<Structure> matcher) {
--        Map<Structure, LongSet> allReferences = this.level.getChunk(pos.x(), pos.z(), ChunkStatus.STRUCTURE_REFERENCES).getAllReferences();
+-    public List<StructureStart> startsForStructure(int sectionX, int sectionZ, Predicate<Structure> matcher) {
+-        Map<Structure, LongSet> allReferences = this.level.getChunk(sectionX, sectionZ, ChunkStatus.STRUCTURE_REFERENCES).getAllReferences();
++    public List<StructureStart> startsForStructure(ChunkPos pos, Predicate<Structure> matcher) {
 +        // Paper start - Fix swamp hut cat generation deadlock
 +        return this.startsForStructure(pos, matcher, null);
 +    }
@@ -15,7 +17,74 @@
          Builder<StructureStart> result = ImmutableList.builder();
  
          for (Entry<Structure, LongSet> entry : allReferences.entrySet()) {
-@@ -111,14 +_,29 @@
+@@ -61,8 +_,8 @@
+         return result.build();
+     }
+ 
+-    public List<StructureStart> startsForStructure(int sectionX, int sectionZ, Structure structure) {
+-        LongSet referencesForStructure = this.level.getChunk(sectionX, sectionZ, ChunkStatus.STRUCTURE_REFERENCES).getReferencesForStructure(structure);
++    public List<StructureStart> startsForStructure(SectionPos pos, Structure structure) {
++        LongSet referencesForStructure = this.level.getChunk(pos.x(), pos.z(), ChunkStatus.STRUCTURE_REFERENCES).getReferencesForStructure(structure);
+         Builder<StructureStart> result = ImmutableList.builder();
+         this.fillStartsForStructure(structure, referencesForStructure, result::add);
+         return result.build();
+@@ -70,23 +_,25 @@
+ 
+     public void fillStartsForStructure(Structure structure, LongSet referencesForStructure, Consumer<StructureStart> consumer) {
+         for (long key : referencesForStructure) {
+-            ChunkPos chunkPos = ChunkPos.unpack(key);
+-            StructureStart start = this.getStartForStructure(structure, this.level.getChunk(chunkPos.x(), chunkPos.z(), ChunkStatus.STRUCTURE_STARTS));
++            SectionPos sectionPos = SectionPos.of(ChunkPos.unpack(key), this.level.getMinSectionY());
++            StructureStart start = this.getStartForStructure(
++                sectionPos, structure, this.level.getChunk(sectionPos.x(), sectionPos.z(), ChunkStatus.STRUCTURE_STARTS)
++            );
+             if (start != null && start.isValid()) {
+                 consumer.accept(start);
+             }
+         }
+     }
+ 
+-    public @Nullable StructureStart getStartForStructure(Structure structure, StructureAccess chunk) {
++    public @Nullable StructureStart getStartForStructure(SectionPos pos, Structure structure, StructureAccess chunk) {
+         return chunk.getStartForStructure(structure);
+     }
+ 
+-    public void setStartForStructure(Structure structure, StructureStart start, StructureAccess chunk) {
++    public void setStartForStructure(SectionPos pos, Structure structure, StructureStart start, StructureAccess chunk) {
+         chunk.setStartForStructure(structure, start);
+     }
+ 
+-    public void addReferenceForStructure(Structure structure, long reference, StructureAccess chunk) {
++    public void addReferenceForStructure(SectionPos pos, Structure structure, long reference, StructureAccess chunk) {
+         chunk.addReferenceForStructure(structure, reference);
+     }
+ 
+@@ -95,23 +_,7 @@
+     }
+ 
+     public StructureStart getStructureAt(BlockPos blockPos, Structure structure) {
+-        int sectionX = SectionPos.blockToSectionCoord(blockPos.getX());
+-        int sectionZ = SectionPos.blockToSectionCoord(blockPos.getZ());
+-
+-        for (StructureStart structureStart : this.startsForStructure(sectionX, sectionZ, structure)) {
+-            if (structureStart.getBoundingBox().isInside(blockPos)) {
+-                return structureStart;
+-            }
+-        }
+-
+-        return StructureStart.INVALID_START;
+-    }
+-
+-    public StructureStart getStructureAt(BlockPos blockPos, HolderSet<Structure> structures) {
+-        int sectionX = SectionPos.blockToSectionCoord(blockPos.getX());
+-        int sectionZ = SectionPos.blockToSectionCoord(blockPos.getZ());
+-
+-        for (StructureStart structureStart : this.startsForStructure(sectionX, sectionZ, this.matching(structures::contains))) {
++        for (StructureStart structureStart : this.startsForStructure(SectionPos.of(blockPos), structure)) {
+             if (structureStart.getBoundingBox().isInside(blockPos)) {
+                 return structureStart;
+             }
+@@ -125,33 +_,41 @@
      }
  
      public StructureStart getStructureWithPieceAt(BlockPos blockPos, HolderSet<Structure> structures) {
@@ -29,6 +98,19 @@
      }
  
      public StructureStart getStructureWithPieceAt(BlockPos blockPos, Predicate<Holder<Structure>> predicate) {
+-        int sectionX = SectionPos.blockToSectionCoord(blockPos.getX());
+-        int sectionZ = SectionPos.blockToSectionCoord(blockPos.getZ());
+-
+-        for (StructureStart structureStart : this.startsForStructure(sectionX, sectionZ, this.matching(predicate))) {
+-            if (this.structureHasPieceAt(blockPos, structureStart)) {
+-                return structureStart;
+-            }
+-        }
+-
+-        return StructureStart.INVALID_START;
+-    }
+-
+-    private Predicate<Structure> matching(Predicate<Holder<Structure>> predicate) {
 +        // Paper start - Fix swamp hut cat generation deadlock
 +        return this.getStructureWithPieceAt(blockPos, predicate, null);
 +    }
@@ -40,10 +122,64 @@
 +    public StructureStart getStructureWithPieceAt(BlockPos blockPos, Predicate<Holder<Structure>> predicate, final @Nullable ServerLevelAccessor levelAccessor) {
 +        // Paper end - Fix swamp hut cat generation deadlock
          Registry<Structure> structures = this.registryAccess().lookupOrThrow(Registries.STRUCTURE);
- 
-         for (StructureStart structureStart : this.startsForStructure(
--            ChunkPos.containing(blockPos), s -> structures.get(structures.getId(s)).map(predicate::test).orElse(false)
+-        return structure -> structures.get(structures.getId(structure)).map(predicate::test).orElse(false);
++
++        for (StructureStart structureStart : this.startsForStructure(
 +            ChunkPos.containing(blockPos), s -> structures.get(structures.getId(s)).map(predicate::test).orElse(false), levelAccessor // Paper - Fix swamp hut cat generation deadlock
-         )) {
-             if (this.structureHasPieceAt(blockPos, structureStart)) {
++        )) {
++            if (this.structureHasPieceAt(blockPos, structureStart)) {
++                return structureStart;
++            }
++        }
++
++        return StructureStart.INVALID_START;
+     }
+ 
+-    public StructureStart getStructureWithPieceAt(int x, int y, int z, Structure structure) {
+-        int sectionX = SectionPos.blockToSectionCoord(x);
+-        int sectionZ = SectionPos.blockToSectionCoord(z);
+-
+-        for (StructureStart structureStart : this.startsForStructure(sectionX, sectionZ, structure)) {
+-            if (this.structureHasPieceAt(x, y, z, structureStart)) {
++    public StructureStart getStructureWithPieceAt(BlockPos blockPos, Structure structure) {
++        for (StructureStart structureStart : this.startsForStructure(SectionPos.of(blockPos), structure)) {
++            if (this.structureHasPieceAt(blockPos, structureStart)) {
                  return structureStart;
+             }
+         }
+@@ -160,12 +_,8 @@
+     }
+ 
+     public boolean structureHasPieceAt(BlockPos blockPos, StructureStart structureStart) {
+-        return this.structureHasPieceAt(blockPos.getX(), blockPos.getY(), blockPos.getZ(), structureStart);
+-    }
+-
+-    public boolean structureHasPieceAt(int x, int y, int z, StructureStart structureStart) {
+         for (StructurePiece piece : structureStart.getPieces()) {
+-            if (piece.getBoundingBox().isInside(x, y, z)) {
++            if (piece.getBoundingBox().isInside(blockPos)) {
+                 return true;
+             }
+         }
+@@ -173,14 +_,14 @@
+         return false;
+     }
+ 
++    public boolean hasAnyStructureAt(BlockPos pos) {
++        SectionPos sectionPos = SectionPos.of(pos);
++        return this.level.getChunk(sectionPos.x(), sectionPos.z(), ChunkStatus.STRUCTURE_REFERENCES).hasAnyStructureReferences();
++    }
++
+     public Map<Structure, LongSet> getAllStructuresAt(BlockPos pos) {
+-        return this.getAllStructuresAt(pos.getX(), pos.getY(), pos.getZ());
+-    }
+-
+-    public Map<Structure, LongSet> getAllStructuresAt(int x, int y, int z) {
+-        int sectionX = SectionPos.blockToSectionCoord(x);
+-        int sectionZ = SectionPos.blockToSectionCoord(z);
+-        return this.level.getChunk(sectionX, sectionZ, ChunkStatus.STRUCTURE_REFERENCES).getAllReferences();
++        SectionPos sectionPos = SectionPos.of(pos);
++        return this.level.getChunk(sectionPos.x(), sectionPos.z(), ChunkStatus.STRUCTURE_REFERENCES).getAllReferences();
+     }
+ 
+     public StructureCheckResult checkStructurePresence(ChunkPos pos, Structure structure, StructurePlacement placement, boolean createReference) {

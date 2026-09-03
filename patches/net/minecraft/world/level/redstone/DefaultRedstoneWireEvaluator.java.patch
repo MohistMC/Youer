@@ -1,10 +1,24 @@
 --- a/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java
 +++ b/net/minecraft/world/level/redstone/DefaultRedstoneWireEvaluator.java
-@@ -17,7 +_,13 @@
+@@ -5,21 +_,27 @@
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.world.level.Level;
+-import net.minecraft.world.level.block.RedstoneWireBlock;
++import net.minecraft.world.level.block.RedStoneWireBlock;
+ import net.minecraft.world.level.block.state.BlockState;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class DefaultRedstoneWireEvaluator extends RedstoneWireEvaluator {
+-    public DefaultRedstoneWireEvaluator(RedstoneWireBlock wireBlock) {
++    public DefaultRedstoneWireEvaluator(RedStoneWireBlock wireBlock) {
+         super(wireBlock);
+     }
+ 
      @Override
      public void updatePowerStrength(Level level, BlockPos pos, BlockState state, @Nullable Orientation orientation, boolean skipShapeUpdates) {
          int targetStrength = this.calculateTargetStrength(level, pos);
--        if (state.getValue(RedStoneWireBlock.POWER) != targetStrength) {
+-        if (state.getValue(RedstoneWireBlock.POWER) != targetStrength) {
 +        // Paper start - Call BlockRedstoneEvent
 +        int previousStrength = state.getValue(RedStoneWireBlock.POWER);
 +        if (previousStrength != targetStrength && level.getBlockState(pos) == state) {
@@ -13,8 +27,11 @@
 +        if (previousStrength != targetStrength) {
 +            // Paper end - Call BlockRedstoneEvent
              if (level.getBlockState(pos) == state) {
-                 level.setBlock(pos, state.setValue(RedStoneWireBlock.POWER, targetStrength), 2);
+-                level.setBlock(pos, state.setValue(RedstoneWireBlock.POWER, targetStrength), 2);
++                level.setBlock(pos, state.setValue(RedStoneWireBlock.POWER, targetStrength), 2);
              }
+ 
+             Set<BlockPos> toUpdate = Sets.newHashSet();
 @@ -35,7 +_,7 @@
          }
      }

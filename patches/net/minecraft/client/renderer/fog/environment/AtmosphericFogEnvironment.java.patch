@@ -1,0 +1,52 @@
+--- a/net/minecraft/client/renderer/fog/environment/AtmosphericFogEnvironment.java
++++ b/net/minecraft/client/renderer/fog/environment/AtmosphericFogEnvironment.java
+@@ -15,9 +_,7 @@
+ import net.minecraft.world.level.material.FogType;
+ import net.neoforged.api.distmarker.Dist;
+ import net.neoforged.api.distmarker.OnlyIn;
+-import org.joml.Vector3f;
+ import org.joml.Vector3fc;
+-import org.joml.Vector4fc;
+ import org.jspecify.annotations.Nullable;
+ 
+ @OnlyIn(Dist.CLIENT)
+@@ -28,31 +_,31 @@
+     private float rainFogMultiplier;
+ 
+     @Override
+-    public Vector3fc getBaseColor(ClientLevel level, Camera camera, int renderDistance, float partialTicks) {
+-        Vector3fc fogColor = camera.attributeProbe().getValue(EnvironmentAttributes.FOG_COLOR, partialTicks);
++    public int getBaseColor(ClientLevel level, Camera camera, int renderDistance, float partialTicks) {
++        int fogColor = camera.attributeProbe().getValue(EnvironmentAttributes.FOG_COLOR, partialTicks);
+         if (renderDistance >= 4) {
+             float sunAngle = camera.attributeProbe().getValue(EnvironmentAttributes.SUN_ANGLE, partialTicks) * (float) (Math.PI / 180.0);
+             float sunX = Mth.sin(sunAngle) > 0.0F ? -1.0F : 1.0F;
+             Vector3fc forwardVector = camera.isPanoramicMode() ? camera.panoramicForwards() : camera.forwardVector();
+             float lookingAtTheSunFactor = forwardVector.dot(sunX, 0.0F, 0.0F);
+             if (lookingAtTheSunFactor > 0.0F) {
+-                Vector4fc color = camera.attributeProbe().getValue(EnvironmentAttributes.SUNRISE_SUNSET_COLOR, partialTicks);
+-                float alpha = color.w();
++                int color = camera.attributeProbe().getValue(EnvironmentAttributes.SUNRISE_SUNSET_COLOR, partialTicks);
++                float alpha = ARGB.alphaFloat(color);
+                 if (alpha > 0.0F) {
+-                    fogColor = ARGB.srgbLerp(lookingAtTheSunFactor * alpha, fogColor, new Vector3f().set(color));
++                    fogColor = ARGB.srgbLerp(lookingAtTheSunFactor * alpha, fogColor, ARGB.opaque(color));
+                 }
+             }
+         }
+ 
+-        Vector3fc skyColor = camera.attributeProbe().getValue(EnvironmentAttributes.SKY_COLOR, partialTicks);
++        int skyColor = camera.attributeProbe().getValue(EnvironmentAttributes.SKY_COLOR, partialTicks);
+         skyColor = applyWeatherDarken(skyColor, level.getRainLevel(partialTicks), level.getThunderLevel(partialTicks));
+         float skyFogEnd = Math.min(camera.attributeProbe().getValue(EnvironmentAttributes.SKY_FOG_END_DISTANCE, partialTicks) / 16.0F, renderDistance);
+         float skyColorMixFactor = Mth.clampedLerp(skyFogEnd / 32.0F, 0.25F, 1.0F);
+         skyColorMixFactor = 1.0F - (float)Math.pow(skyColorMixFactor, 0.25);
+-        return ARGB.srgbLerp(skyColorMixFactor, fogColor, new Vector3f().set(skyColor));
++        return ARGB.srgbLerp(skyColorMixFactor, fogColor, skyColor);
+     }
+ 
+-    private static Vector3fc applyWeatherDarken(Vector3fc color, float rainLevel, float thunderLevel) {
++    private static int applyWeatherDarken(int color, float rainLevel, float thunderLevel) {
+         if (rainLevel > 0.0F) {
+             float rainColorModifier = 1.0F - rainLevel * 0.5F;
+             float rainBlueColorModifier = 1.0F - rainLevel * 0.4F;

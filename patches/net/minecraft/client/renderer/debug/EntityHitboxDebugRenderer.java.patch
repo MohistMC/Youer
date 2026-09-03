@@ -1,0 +1,53 @@
+--- a/net/minecraft/client/renderer/debug/EntityHitboxDebugRenderer.java
++++ b/net/minecraft/client/renderer/debug/EntityHitboxDebugRenderer.java
+@@ -10,7 +_,6 @@
+ import net.minecraft.gizmos.TextGizmo;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.ARGB;
+-import net.minecraft.util.Util;
+ import net.minecraft.util.debug.DebugValueAccess;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.LivingEntity;
+@@ -33,27 +_,25 @@
+     @Override
+     public void emitGizmos(double camX, double camY, double camZ, DebugValueAccess debugValues, Frustum frustum, float partialTicks) {
+         if (this.minecraft.level != null) {
+-            long chunkFadeDuration = Util.toMillis(this.minecraft.options.chunkSectionFadeInTime().get());
+-
+             for (Entity entity : this.minecraft.level.entitiesForRendering()) {
+-                if (!entity.isInvisible()) {
++                if (!entity.isInvisible()
++                    && frustum.isVisible(entity.getBoundingBox())
++                    && this.minecraft.levelExtractor.isEntityVisible(entity, frustum, camX, camY, camZ)
++                    && (entity != this.minecraft.getCameraEntity() || this.minecraft.options.getCameraType() != CameraType.FIRST_PERSON)) {
+                     float entityPartialTicks = this.minecraft
+                         .getDeltaTracker()
+                         .getGameTimeDeltaPartialTick(!this.minecraft.level.tickRateManager().isEntityFrozen(entity));
+-                    if (this.minecraft.levelExtractor.isEntityVisible(entity, frustum, camX, camY, camZ, entityPartialTicks, chunkFadeDuration)
+-                        && (entity != this.minecraft.getCameraEntity() || this.minecraft.options.getCameraType() != CameraType.FIRST_PERSON)) {
+-                        this.showHitboxes(entity, entityPartialTicks, false);
+-                        if (SharedConstants.DEBUG_SHOW_LOCAL_SERVER_ENTITY_HIT_BOXES) {
+-                            Entity serverEntity = this.getServerEntity(entity);
+-                            if (serverEntity != null) {
+-                                this.showHitboxes(entity, entityPartialTicks, true);
+-                            } else {
+-                                Gizmos.billboardText(
+-                                    "Missing Server Entity",
+-                                    entity.getPosition(entityPartialTicks).add(0.0, entity.getBoundingBox().getYsize() + 1.5, 0.0),
+-                                    TextGizmo.Style.forColorAndCentered(-65536)
+-                                );
+-                            }
++                    this.showHitboxes(entity, entityPartialTicks, false);
++                    if (SharedConstants.DEBUG_SHOW_LOCAL_SERVER_ENTITY_HIT_BOXES) {
++                        Entity serverEntity = this.getServerEntity(entity);
++                        if (serverEntity != null) {
++                            this.showHitboxes(entity, entityPartialTicks, true);
++                        } else {
++                            Gizmos.billboardText(
++                                "Missing Server Entity",
++                                entity.getPosition(entityPartialTicks).add(0.0, entity.getBoundingBox().getYsize() + 1.5, 0.0),
++                                TextGizmo.Style.forColorAndCentered(-65536)
++                            );
+                         }
+                     }
+                 }

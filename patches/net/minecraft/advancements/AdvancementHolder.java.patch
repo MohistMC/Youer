@@ -1,6 +1,13 @@
 --- a/net/minecraft/advancements/AdvancementHolder.java
 +++ b/net/minecraft/advancements/AdvancementHolder.java
-@@ -8,6 +_,7 @@
+@@ -1,16 +_,20 @@
+ package net.minecraft.advancements;
+ 
++import java.util.List;
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.data.worldgen.BootstrapContext;
+ import net.minecraft.network.RegistryFriendlyByteBuf;
++import net.minecraft.network.codec.ByteBufCodecs;
  import net.minecraft.network.codec.StreamCodec;
  import net.minecraft.resources.Identifier;
  import net.minecraft.resources.ResourceKey;
@@ -8,7 +15,13 @@
  
  public record AdvancementHolder(Identifier id, Advancement value) {
      public static final StreamCodec<RegistryFriendlyByteBuf, AdvancementHolder> STREAM_CODEC = StreamCodec.composite(
-@@ -33,4 +_,10 @@
+         Identifier.STREAM_CODEC, AdvancementHolder::id, Advancement.STREAM_CODEC, AdvancementHolder::value, AdvancementHolder::new
+     );
++    public static final StreamCodec<RegistryFriendlyByteBuf, List<AdvancementHolder>> LIST_STREAM_CODEC = STREAM_CODEC.apply(ByteBufCodecs.list());
+ 
+     public void register(BootstrapContext<Advancement> output) {
+         output.register(ResourceKey.create(Registries.ADVANCEMENT, this.id), this.value);
+@@ -30,4 +_,10 @@
      public String toString() {
          return this.id.toString();
      }

@@ -1,0 +1,73 @@
+--- a/net/minecraft/client/renderer/texture/TextureManager.java
++++ b/net/minecraft/client/renderer/texture/TextureManager.java
+@@ -2,6 +_,7 @@
+ 
+ import com.mojang.blaze3d.platform.NativeImage;
+ import com.mojang.logging.LogUtils;
++import com.mojang.realmsclient.gui.screens.AddRealmPopupScreen;
+ import java.io.FileNotFoundException;
+ import java.io.IOException;
+ import java.io.UncheckedIOException;
+@@ -28,6 +_,7 @@
+ @OnlyIn(Dist.CLIENT)
+ public class TextureManager implements PreparableReloadListener, AutoCloseable {
+     private static final Logger LOGGER = LogUtils.getLogger();
++    public static final Identifier INTENTIONAL_MISSING_TEXTURE = Identifier.withDefaultNamespace("");
+     private final Map<Identifier, AbstractTexture> byPath = new HashMap<>();
+     private final Set<TickableTexture> tickableTextures = new HashSet<>();
+     private final ResourceManager resourceManager;
+@@ -54,7 +_,7 @@
+ 
+     private TextureContents loadContentsSafe(Identifier textureId, ReloadableTexture texture) {
+         try {
+-            return loadContents(this.resourceManager, texture);
++            return loadContents(this.resourceManager, textureId, texture);
+         } catch (Exception e) {
+             LOGGER.error("Failed to load texture {} into slot {}", texture.resourceId(), textureId, e);
+             return TextureContents.createMissing();
+@@ -128,14 +_,16 @@
+     ) {
+         ResourceManager manager = currentReload.resourceManager();
+         List<TextureManager.PendingReload> reloads = new ArrayList<>();
+-        this.byPath.forEach((var3, texture) -> {
++        this.byPath.forEach((id, texture) -> {
+             if (texture instanceof ReloadableTexture reloadableTexture) {
+-                reloads.add(scheduleLoad(manager, reloadableTexture, taskExecutor));
++                reloads.add(scheduleLoad(manager, id, reloadableTexture, taskExecutor));
+             }
+         });
+         return CompletableFuture.allOf(reloads.stream().map(TextureManager.PendingReload::newContents).toArray(CompletableFuture[]::new))
+             .thenCompose(preparationBarrier::wait)
+-            .thenAcceptAsync(var1 -> {
++            .thenAcceptAsync(unused -> {
++                AddRealmPopupScreen.updateCarouselImages(this.resourceManager);
++
+                 for (TextureManager.PendingReload reload : reloads) {
+                     reload.texture.apply(reload.newContents.join());
+                 }
+@@ -161,18 +_,22 @@
+         });
+     }
+ 
+-    private static TextureContents loadContents(ResourceManager manager, ReloadableTexture texture) throws IOException {
++    private static TextureContents loadContents(ResourceManager manager, Identifier location, ReloadableTexture texture) throws IOException {
+         try {
+             return texture.loadContents(manager);
+         } catch (FileNotFoundException e) {
++            if (location != INTENTIONAL_MISSING_TEXTURE) {
++                LOGGER.warn("Missing resource {} referenced from {}", texture.resourceId(), location);
++            }
++
+             return TextureContents.createMissing();
+         }
+     }
+ 
+-    private static TextureManager.PendingReload scheduleLoad(ResourceManager manager, ReloadableTexture texture, Executor executor) {
++    private static TextureManager.PendingReload scheduleLoad(ResourceManager manager, Identifier location, ReloadableTexture texture, Executor executor) {
+         return new TextureManager.PendingReload(texture, CompletableFuture.supplyAsync(() -> {
+             try {
+-                return loadContents(manager, texture);
++                return loadContents(manager, location, texture);
+             } catch (IOException e) {
+                 throw new UncheckedIOException(e);
+             }

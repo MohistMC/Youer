@@ -1,0 +1,82 @@
+--- a/com/mojang/renderpearl/frontend/shaders/SpvUtil.java
++++ /dev/null
+@@ -1,79 +_,0 @@
+-package com.mojang.renderpearl.frontend.shaders;
+-
+-import com.mojang.renderpearl.api.pipeline.UniformType;
+-import com.mojang.renderpearl.util.ShaderCompileException;
+-import it.unimi.dsi.fastutil.ints.IntList;
+-import java.nio.IntBuffer;
+-import net.neoforged.api.distmarker.Dist;
+-import net.neoforged.api.distmarker.OnlyIn;
+-import org.lwjgl.util.spvc.Spvc;
+-import org.lwjgl.util.spvc.SpvcReflectedResource;
+-
+-@OnlyIn(Dist.CLIENT)
+-public class SpvUtil {
+-    public static final IntList DESCRIPTOR_TYPES = IntList.of(1, 2, 6, 7, 10, 11);
+-
+-    public static void crashIfError(int result, String message) {
+-        if (result != 0) {
+-            throw new IllegalStateException(message + " (" + spvcErrorString(result) + ")");
+-        }
+-    }
+-
+-    public static void throwIfError(int result, String message) throws ShaderCompileException {
+-        if (result != 0) {
+-            throw new ShaderCompileException(message + " (" + spvcErrorString(result) + ")");
+-        }
+-    }
+-
+-    public static String spvcErrorString(int result) {
+-        return switch (result) {
+-            case -4 -> "SPVC_ERROR_INVALID_ARGUMENT";
+-            case -3 -> "SPVC_ERROR_OUT_OF_MEMORY";
+-            case -2 -> "SPVC_ERROR_UNSUPPORTED_SPIRV";
+-            case -1 -> "SPVC_ERROR_INVALID_SPIRV";
+-            default -> Integer.toString(result);
+-        };
+-    }
+-
+-    public static int getDecorationOffset(long compiler, SpvcReflectedResource resource, int decoration, IntBuffer returnBuffer) throws ShaderCompileException {
+-        if (!Spvc.spvc_compiler_get_binary_offset_for_decoration(compiler, resource.id(), decoration, returnBuffer)) {
+-            throw new ShaderCompileException("Couldn't find byte offset for location decoration of " + resource.nameString());
+-        } else {
+-            return returnBuffer.get(0);
+-        }
+-    }
+-
+-    public static int resourceType(UniformType uniformType) {
+-        return switch (uniformType) {
+-            case COMBINED_IMAGE_SAMPLER -> 7;
+-            case UNIFORM_BUFFER -> 1;
+-            case TEXEL_BUFFER -> 7;
+-        };
+-    }
+-
+-    public static String baseTypeString(int baseType) {
+-        return switch (baseType) {
+-            case 0 -> "unknown";
+-            case 1 -> "void";
+-            case 2 -> "bool";
+-            case 3 -> "int8";
+-            case 4 -> "uint8";
+-            case 5 -> "int16";
+-            case 6 -> "uint16";
+-            case 7 -> "int32";
+-            case 8 -> "uint32";
+-            case 9 -> "int64";
+-            case 10 -> "uint64";
+-            case 11 -> "atomic_counter";
+-            case 12 -> "fp16";
+-            case 13 -> "fp32";
+-            case 14 -> "fp64";
+-            case 15 -> "struct";
+-            case 16 -> "image";
+-            case 17 -> "sampled_image";
+-            case 18 -> "sampler";
+-            case 19 -> "acceleration_structure";
+-            default -> "UNKNOWN_TYPE";
+-        };
+-    }
+-}

@@ -1,0 +1,41 @@
+--- a/net/minecraft/world/level/storage/loot/functions/SetItemCountFunction.java
++++ b/net/minecraft/world/level/storage/loot/functions/SetItemCountFunction.java
+@@ -10,19 +_,19 @@
+ import net.minecraft.world.level.storage.loot.Validatable;
+ import net.minecraft.world.level.storage.loot.ValidationContext;
+ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+-import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProvider;
+-import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProviders;
++import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
++import net.minecraft.world.level.storage.loot.providers.number.NumberProviders;
+ 
+ public class SetItemCountFunction extends LootItemConditionalFunction {
+     public static final MapCodec<SetItemCountFunction> MAP_CODEC = RecordCodecBuilder.mapCodec(
+         i -> commonFields(i)
+-            .and(i.group(ContextIntProviders.CODEC.fieldOf("count").forGetter(f -> f.count), Codec.BOOL.optionalFieldOf("add", false).forGetter(f -> f.add)))
++            .and(i.group(NumberProviders.CODEC.fieldOf("count").forGetter(f -> f.count), Codec.BOOL.optionalFieldOf("add", false).forGetter(f -> f.add)))
+             .apply(i, SetItemCountFunction::new)
+     );
+-    private final Holder<ContextIntProvider> count;
++    private final Holder<NumberProvider> count;
+     private final boolean add;
+ 
+-    private SetItemCountFunction(Optional<Holder<LootItemCondition>> condition, Holder<ContextIntProvider> count, boolean add) {
++    private SetItemCountFunction(Optional<Holder<LootItemCondition>> condition, Holder<NumberProvider> count, boolean add) {
+         super(condition);
+         this.count = count;
+         this.add = add;
+@@ -46,11 +_,11 @@
+         return itemStack;
+     }
+ 
+-    public static LootItemConditionalFunction.Builder<?> setCount(Holder<ContextIntProvider> count) {
++    public static LootItemConditionalFunction.Builder<?> setCount(Holder<NumberProvider> count) {
+         return simpleBuilder(conditions -> new SetItemCountFunction(conditions, count, false));
+     }
+ 
+-    public static LootItemConditionalFunction.Builder<?> setCount(Holder<ContextIntProvider> count, boolean add) {
++    public static LootItemConditionalFunction.Builder<?> setCount(Holder<NumberProvider> count, boolean add) {
+         return simpleBuilder(conditions -> new SetItemCountFunction(conditions, count, add));
+     }
+ }

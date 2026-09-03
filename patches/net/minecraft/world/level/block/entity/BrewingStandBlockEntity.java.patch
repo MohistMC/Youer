@@ -1,12 +1,11 @@
 --- a/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BrewingStandBlockEntity.java
-@@ -1,15 +_,15 @@
+@@ -1,13 +_,15 @@
  package net.minecraft.world.level.block.entity;
  
 +import java.util.ArrayList;
  import java.util.Arrays;
 -import java.util.Optional;
--import java.util.function.Function;
 +import java.util.List;
 +import java.util.Objects;
  import net.minecraft.core.BlockPos;
@@ -14,20 +13,20 @@
  import net.minecraft.core.NonNullList;
 -import net.minecraft.core.component.DataComponents;
  import net.minecraft.network.chat.Component;
--import net.minecraft.resources.ResourceKey;
 -import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.server.MinecraftServer;
 +import net.minecraft.tags.ItemTags;
  import net.minecraft.world.ContainerHelper;
  import net.minecraft.world.Containers;
  import net.minecraft.world.WorldlyContainer;
-@@ -21,25 +_,20 @@
+@@ -19,19 +_,20 @@
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.item.ItemStackTemplate;
  import net.minecraft.world.item.Items;
 -import net.minecraft.world.item.component.BrewingFuel;
 -import net.minecraft.world.item.crafting.BrewingInput;
 -import net.minecraft.world.item.crafting.BrewingRecipe;
+-import net.minecraft.world.item.crafting.PotionIngredient;
 -import net.minecraft.world.item.crafting.RecipeAccess;
 -import net.minecraft.world.item.crafting.RecipeHolder;
 -import net.minecraft.world.item.crafting.RecipeManager;
@@ -39,13 +38,6 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
--import net.minecraft.world.level.storage.loot.LootContext;
--import net.minecraft.world.level.storage.loot.LootParams;
--import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
--import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
--import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
--import net.minecraft.world.level.storage.loot.providers.number.NumberProviders;
--import net.minecraft.world.phys.Vec3;
 +import org.bukkit.craftbukkit.block.CraftBlock;
 +import org.bukkit.craftbukkit.entity.CraftHumanEntity;
 +import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -57,7 +49,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class BrewingStandBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer {
-@@ -48,33 +_,30 @@
+@@ -40,33 +_,30 @@
      private static final int[] SLOTS_FOR_UP = new int[]{3};
      private static final int[] SLOTS_FOR_DOWN = new int[]{0, 1, 2, 3};
      private static final int[] SLOTS_FOR_SIDES = new int[]{0, 1, 2, 4};
@@ -101,7 +93,7 @@
                  default -> 0;
              };
          }
-@@ -87,21 +_,51 @@
+@@ -79,21 +_,51 @@
                      break;
                  case 1:
                      BrewingStandBlockEntity.this.fuel = value;
@@ -158,49 +150,40 @@
  
      public BrewingStandBlockEntity(BlockPos worldPosition, BlockState blockState) {
          super(BlockEntityTypes.BREWING_STAND, worldPosition, blockState);
-@@ -127,65 +_,50 @@
+@@ -119,55 +_,50 @@
          this.items = items;
      }
  
--    protected LootContext getLootContext(ServerLevel level) {
--        return new LootContext.Builder(
--                new LootParams.Builder(level)
--                    .withParameter(LootContextParams.BLOCK_STATE, this.getBlockState())
--                    .withParameter(LootContextParams.BLOCK_ENTITY, this)
--                    .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(this.getBlockPos()))
--                    .withParameter(LootContextParams.CONTAINER, this)
--                    .create(LootContextParamSets.CONTAINER_PROCESS)
--            )
--            .create(Optional.empty());
--    }
--
--    protected <T> int getProvidedInteger(ServerLevel level, T component, Function<T, ResourceKey<NumberProvider>> getter, int defaultValue) {
--        Optional<NumberProvider> provider = NumberProviders.getFromComponent(level, component, getter);
--        return provider.isPresent() ? provider.get().getInt(this.getLootContext(level)) : defaultValue;
--    }
--
--    protected <T> float getProvidedFloat(ServerLevel level, T component, Function<T, ResourceKey<NumberProvider>> getter, float defaultValue) {
--        Optional<NumberProvider> provider = NumberProviders.getFromComponent(level, component, getter);
--        return provider.isPresent() ? provider.get().getFloat(this.getLootContext(level)) : defaultValue;
--    }
--
 -    protected int getUses(ServerLevel level, BrewingFuel brewingFuel) {
--        return this.getProvidedInteger(level, brewingFuel, BrewingFuel::uses, 0);
+-        return brewingFuel.uses().get(this.getLootContext(level), 0);
 -    }
 -
 -    protected float getSpeedMultiplier(ServerLevel level, BrewingFuel brewingFuel) {
--        return this.getProvidedFloat(level, brewingFuel, BrewingFuel::speedMultiplier, 1.0F);
+-        return brewingFuel.speedMultiplier().get(this.getLootContext(level), 1.0F);
 -    }
 -
 -    public static void serverTick(ServerLevel level, BlockPos pos, BlockState selfState, BrewingStandBlockEntity entity) {
-+    public static void serverTick(Level level, BlockPos pos, BlockState selfState, BrewingStandBlockEntity entity) {
-         ItemStack fuel = entity.items.get(4);
+-        NonNullList<ItemStack> items = entity.getItems();
+-        ItemStack fuel = items.get(4);
 -        BrewingFuel brewingFuel = fuel.get(DataComponents.BREWING_FUEL);
 -        if (entity.fuel <= 0 && brewingFuel != null) {
 -            entity.fuel = entity.getUses(level, brewingFuel);
 -            entity.totalFuel = entity.fuel;
 -            entity.speedMultiplier = entity.getSpeedMultiplier(level, brewingFuel);
+-            ItemStackTemplate fuelRemainder = fuel.getItem().getCraftingRemainder();
+-            ItemStack newFuel = fuel;
 -            fuel.shrink(1);
+-            if (fuelRemainder != null) {
+-                if (fuel.isEmpty()) {
+-                    newFuel = fuelRemainder.create();
+-                } else {
+-                    Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), fuelRemainder.create());
+-                }
+-            }
+-
+-            items.set(4, newFuel);
++    public static void serverTick(Level level, BlockPos pos, BlockState selfState, BrewingStandBlockEntity entity) {
++        ItemStack fuel = entity.items.get(4);
 +        if (entity.fuel <= 0 && fuel.is(ItemTags.BREWING_FUEL)) {
 +            // CraftBukkit start
 +            org.bukkit.event.inventory.BrewingStandFuelEvent event = new org.bukkit.event.inventory.BrewingStandFuelEvent(
@@ -251,7 +234,7 @@
              entity.ingredient = ingredient.getItem();
              setChanged(level, pos, selfState);
          }
-@@ -194,7 +_,7 @@
+@@ -176,7 +_,7 @@
          if (!Arrays.equals(newCount, entity.lastPotionCount)) {
              entity.lastPotionCount = newCount;
              BlockState state = selfState;
@@ -260,7 +243,7 @@
                  return;
              }
  
-@@ -218,43 +_,60 @@
+@@ -200,43 +_,60 @@
          return result;
      }
  
@@ -341,7 +324,7 @@
          ingredient.shrink(1);
          if (remainder != null) {
              if (ingredient.isEmpty()) {
-@@ -273,42 +_,33 @@
+@@ -255,42 +_,33 @@
          super.loadAdditional(input);
          this.items = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
          ContainerHelper.loadAllItems(input, this.items);
@@ -384,7 +367,7 @@
 -        RecipeAccess recipeAccess = this.level.recipeAccess();
 -        return slot == 3
 -            ? recipeAccess.propertySet(RecipePropertySet.BREWING_REAGENTS).test(itemStack)
--            : recipeAccess.propertySet(RecipePropertySet.BREWING_INPUTS).test(itemStack) && this.getItem(slot).isEmpty();
+-            : PotionIngredient.isPotionInput(itemStack, recipeAccess) && this.getItem(slot).isEmpty();
 +        PotionBrewing potionBrewing = this.level != null ? this.level.potionBrewing() : PotionBrewing.EMPTY;
 +        if (slot == 3) {
 +            return potionBrewing.isIngredient(itemStack);

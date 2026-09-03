@@ -1,0 +1,53 @@
+--- a/net/minecraft/world/level/levelgen/material/condition/VerticalGradientCondition.java
++++ /dev/null
+@@ -1,50 +_,0 @@
+-package net.minecraft.world.level.levelgen.material.condition;
+-
+-import com.mojang.serialization.MapCodec;
+-import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import net.minecraft.resources.Identifier;
+-import net.minecraft.util.Mth;
+-import net.minecraft.util.RandomSource;
+-import net.minecraft.world.level.levelgen.PositionalRandomFactory;
+-import net.minecraft.world.level.levelgen.VerticalAnchor;
+-import net.minecraft.world.level.levelgen.material.MaterialRuleContext;
+-
+-public record VerticalGradientCondition(Identifier randomName, VerticalAnchor trueAtAndBelow, VerticalAnchor falseAtAndAbove) implements MaterialCondition {
+-    public static final MapCodec<VerticalGradientCondition> CODEC = RecordCodecBuilder.mapCodec(
+-        i -> i.group(
+-                Identifier.CODEC.fieldOf("random_name").forGetter(VerticalGradientCondition::randomName),
+-                VerticalAnchor.CODEC.fieldOf("true_at_and_below").forGetter(VerticalGradientCondition::trueAtAndBelow),
+-                VerticalAnchor.CODEC.fieldOf("false_at_and_above").forGetter(VerticalGradientCondition::falseAtAndAbove)
+-            )
+-            .apply(i, VerticalGradientCondition::new)
+-    );
+-
+-    @Override
+-    public MapCodec<VerticalGradientCondition> codec() {
+-        return CODEC;
+-    }
+-
+-    @Override
+-    public ConditionEvaluator compile(MaterialRuleContext ruleContext) {
+-        final int trueAtAndBelow = ruleContext.resolveAnchorY(this.trueAtAndBelow);
+-        final int falseAtAndAbove = ruleContext.resolveAnchorY(this.falseAtAndAbove);
+-        final PositionalRandomFactory randomFactory = ruleContext.getOrCreateRandomFactory(this.randomName);
+-        return new MaterialRuleContext.LazyYCondition(ruleContext) {
+-            @Override
+-            protected boolean compute() {
+-                int blockY = this.context.blockY();
+-                if (blockY <= trueAtAndBelow) {
+-                    return true;
+-                }
+-
+-                if (blockY >= falseAtAndAbove) {
+-                    return false;
+-                }
+-
+-                double probability = Mth.map(blockY, trueAtAndBelow, falseAtAndAbove, 1.0, 0.0);
+-                RandomSource random = randomFactory.at(this.context.blockX(), blockY, this.context.blockZ());
+-                return random.nextFloat() < probability;
+-            }
+-        };
+-    }
+-}

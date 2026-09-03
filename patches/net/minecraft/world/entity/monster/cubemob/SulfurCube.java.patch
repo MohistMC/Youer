@@ -155,19 +155,21 @@
              }
          }
      }
-@@ -340,6 +_,12 @@
+@@ -340,7 +_,13 @@
              && !this.isPrimed()) {
              int fuse = this.explosionData.get().fuse();
              int fuseTime = imminent ? PrimedTnt.getRandomShortFuse(fuse, this.getRandom()) : fuse;
+-            this.setPermanentlyInvulnerable(true);
 +            // Paper start - call EntityIgniteEvent
 +            fuseTime = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityIgniteEvent(this, fuseTime);
 +            if (fuseTime == PrimedTnt.NO_FUSE) {
 +                return false;
 +            }
 +            // Paper end - call EntityIgniteEvent
-             this.setInvulnerable(true);
++            this.setInvulnerable(true);
              this.setFuse(fuseTime);
              this.entityData.set(MAX_FUSE, fuseTime);
+             this.makeSound(SoundEvents.TNT_PRIMED);
 @@ -455,7 +_,15 @@
                  if (heldItem.is(Items.SHEARS) && this.readyForShearing()) {
                      if (this.level() instanceof ServerLevel level) {
@@ -280,7 +282,7 @@
          }
      }
  
-@@ -914,7 +_,7 @@
+@@ -914,13 +_,13 @@
      }
  
      @Override
@@ -289,6 +291,13 @@
          this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(4 * actualSize);
      }
  
+     @Override
+     public boolean isInvulnerableToPiercingWeapon() {
+-        return super.isInvulnerableToPiercingWeapon() && !this.isPrimed();
++        return this.isInvulnerable() && !this.isPrimed();
+     }
+ 
+     @Override
 @@ -1008,7 +_,7 @@
          }
  

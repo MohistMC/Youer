@@ -1,31 +1,43 @@
---- a/net/minecraft/resources/HolderSetCodec.java
+--- /dev/null
 +++ b/net/minecraft/resources/HolderSetCodec.java
-@@ -5,6 +_,7 @@
- import com.mojang.serialization.Codec;
- import com.mojang.serialization.DataResult;
- import com.mojang.serialization.DynamicOps;
+@@ -1,0 +_,117 @@
++package net.minecraft.resources;
++
++import com.mojang.datafixers.util.Either;
++import com.mojang.datafixers.util.Pair;
++import com.mojang.serialization.Codec;
++import com.mojang.serialization.DataResult;
++import com.mojang.serialization.DynamicOps;
 +import java.util.ArrayList;
- import java.util.List;
- import java.util.Optional;
- import net.minecraft.core.Holder;
-@@ -17,7 +_,11 @@
- 
- public class HolderSetCodec<E> implements Codec<HolderSet<E>> {
-     private final ResourceKey<? extends Registry<E>> registryKey;
--    private final Codec<Either<TagKey<E>, List<Holder<E>>>> tagKeyOrValuesCodec;
++import java.util.List;
++import java.util.Optional;
++import net.minecraft.core.Holder;
++import net.minecraft.core.HolderGetter;
++import net.minecraft.core.HolderOwner;
++import net.minecraft.core.HolderSet;
++import net.minecraft.core.Registry;
++import net.minecraft.tags.TagKey;
++import net.minecraft.util.ExtraCodecs;
++
++public class HolderSetCodec<E> implements Codec<HolderSet<E>> {
++    private final ResourceKey<? extends Registry<E>> registryKey;
 +    private final Codec<Holder<E>> elementCodec;
 +    private final Codec<List<Holder<E>>> homogenousListCodec;
 +    private final Codec<Either<TagKey<E>, List<Holder<E>>>> registryAwareCodec;
 +    private final Codec<net.neoforged.neoforge.registries.holdersets.ICustomHolderSet<E>> forgeDispatchCodec;
 +    private final Codec<Either<net.neoforged.neoforge.registries.holdersets.ICustomHolderSet<E>, Either<TagKey<E>, List<Holder<E>>>>> combinedCodec;
- 
-     private static <E> Codec<List<Holder<E>>> homogenousList(Codec<Holder<E>> elementCodec, boolean alwaysUseList) {
-         Codec<List<Holder<E>>> listCodec = elementCodec.listOf().validate(ExtraCodecs.ensureHomogenous(Holder::kind));
-@@ -30,32 +_,40 @@
- 
-     private HolderSetCodec(ResourceKey<? extends Registry<E>> registryKey, Codec<Holder<E>> elementCodec, boolean alwaysUseList) {
-         this.registryKey = registryKey;
--        this.tagKeyOrValuesCodec = Codec.either(TagKey.hashedCodec(registryKey), homogenousList(elementCodec, alwaysUseList));
++
++    private static <E> Codec<List<Holder<E>>> homogenousList(Codec<Holder<E>> elementCodec, boolean alwaysUseList) {
++        Codec<List<Holder<E>>> listCodec = elementCodec.listOf().validate(ExtraCodecs.ensureHomogenous(Holder::kind));
++        return alwaysUseList ? listCodec : ExtraCodecs.compactListCodec(elementCodec, listCodec);
++    }
++
++    public static <E> Codec<HolderSet<E>> create(ResourceKey<? extends Registry<E>> registryKey, Codec<Holder<E>> elementCodec, boolean alwaysUseList) {
++        return new HolderSetCodec<>(registryKey, elementCodec, alwaysUseList);
++    }
++
++    private HolderSetCodec(ResourceKey<? extends Registry<E>> registryKey, Codec<Holder<E>> elementCodec, boolean alwaysUseList) {
++        this.registryKey = registryKey;
 +        this.elementCodec = elementCodec;
 +        this.homogenousListCodec = homogenousList(elementCodec, alwaysUseList);
 +        this.registryAwareCodec = Codec.either(TagKey.hashedCodec(registryKey), this.homogenousListCodec);
@@ -33,31 +45,10 @@
 +        this.forgeDispatchCodec = net.neoforged.neoforge.registries.NeoForgeRegistries.HOLDER_SET_TYPES.byNameCodec()
 +             .dispatch(net.neoforged.neoforge.registries.holdersets.ICustomHolderSet::type, type -> type.makeCodec(registryKey, elementCodec, alwaysUseList));
 +        this.combinedCodec = Codec.either(this.forgeDispatchCodec, this.registryAwareCodec);
-     }
- 
-     @Override
-     public <T> DataResult<Pair<HolderSet<E>, T>> decode(DynamicOps<T> ops, T input) {
--        return this.tagKeyOrValuesCodec
--            .decode(ops, input)
--            .flatMap(
--                tagKeyOrValues -> {
--                    DataResult<HolderSet<E>> result = tagKeyOrValues.getFirst()
--                        .map(
--                            tagKey -> {
--                                if (ops instanceof RegistryOps<T> registryOps) {
--                                    Optional<HolderGetter<E>> maybeRegistry = registryOps.getter(this.registryKey);
--                                    return maybeRegistry.isPresent()
--                                        ? lookupTag(maybeRegistry.get(), (TagKey<E>)tagKey)
--                                        : DataResult.error(() -> "Registry " + this.registryKey.identifier() + " is not available in this context");
--                                } else {
--                                    return DataResult.error(() -> "Registries are not available in this context");
--                                }
--                            },
--                            values -> DataResult.success(HolderSet.direct((List<? extends Holder<E>>)values))
--                        );
--                    return result.map(holders -> Pair.of((HolderSet<E>)holders, (T)tagKeyOrValues.getSecond()));
--                }
--            );
++    }
++
++    @Override
++    public <T> DataResult<Pair<HolderSet<E>, T>> decode(DynamicOps<T> ops, T input) {
 +        if (ops instanceof RegistryOps<T> registryOps) {
 +            Optional<HolderGetter<E>> registryOptional = registryOps.getter(this.registryKey);
 +            if (registryOptional.isPresent()) {
@@ -81,21 +72,15 @@
 +        }
 +
 +        return this.decodeWithoutRegistry(ops, input);
-     }
- 
-     private static <E> DataResult<HolderSet<E>> lookupTag(HolderGetter<E> registry, TagKey<E> key) {
-@@ -65,17 +_,40 @@
-     }
- 
-     public <T> DataResult<T> encode(HolderSet<E> input, DynamicOps<T> ops, T prefix) {
--        if (input instanceof HolderSet.Named<E> named && ops instanceof RegistryOps<T> registryOps) {
--            Optional<? extends HolderOwner<E>> maybeOwner = registryOps.getter(this.registryKey);
--            if (!maybeOwner.isPresent()) {
--                return DataResult.error(() -> "Registry " + this.registryKey.identifier() + " is not available in this context");
--            } else {
--                return !named.canSerializeIn(maybeOwner.get())
--                    ? DataResult.error(() -> "HolderSet " + named + " is not valid in current registry set")
--                    : this.tagKeyOrValuesCodec.encode(Either.left(named.key()), ops, prefix);
++    }
++
++    private static <E> DataResult<HolderSet<E>> lookupTag(HolderGetter<E> registry, TagKey<E> key) {
++        return registry.get(key)
++            .<DataResult<HolderSet<E>>>map(DataResult::success)
++            .orElseGet(() -> DataResult.error(() -> "Missing tag: '" + key.location() + "' in '" + key.registry().identifier() + "'"));
++    }
++
++    public <T> DataResult<T> encode(HolderSet<E> input, DynamicOps<T> ops, T prefix) {
 +        if (ops instanceof RegistryOps<T> registryOps) {
 +            Optional<HolderOwner<E>> maybeOwner = registryOps.owner(this.registryKey);
 +            if (maybeOwner.isPresent()) {
@@ -107,10 +92,8 @@
 +                if (input instanceof net.neoforged.neoforge.registries.holdersets.ICustomHolderSet<E> customHolderSet)
 +                     return this.forgeDispatchCodec.encode(customHolderSet, ops, prefix);
 +                return this.registryAwareCodec.encode(input.unwrap().mapRight(List::copyOf), ops, prefix);
-             }
--        } else {
--            return this.tagKeyOrValuesCodec.encode(Either.right(input.stream().toList()), ops, prefix);
-         }
++            }
++        }
 +
 +        return this.encodeWithoutRegistry(input, ops, prefix);
 +    }
@@ -133,5 +116,5 @@
 +
 +    private <T> DataResult<T> encodeWithoutRegistry(HolderSet<E> input, DynamicOps<T> ops, T prefix) {
 +        return this.homogenousListCodec.encode(input.stream().toList(), ops, prefix);
-     }
- }
++    }
++}

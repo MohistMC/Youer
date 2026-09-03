@@ -1,0 +1,204 @@
+--- /dev/null
++++ b/com/mojang/renderpearl/backend/opengl/VertexArrayCache.java
+@@ -1,0 +_,201 @@
++package com.mojang.renderpearl.backend.opengl;
++
++import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
++import com.mojang.renderpearl.api.vertex.VertexFormat;
++import com.mojang.renderpearl.api.vertex.VertexFormatElement;
++import java.util.Arrays;
++import java.util.HashMap;
++import java.util.List;
++import java.util.Map;
++import java.util.Objects;
++import java.util.Set;
++import java.util.stream.Collectors;
++import net.minecraft.util.VisibleForDebug;
++import net.neoforged.api.distmarker.Dist;
++import net.neoforged.api.distmarker.OnlyIn;
++import org.jspecify.annotations.Nullable;
++import org.lwjgl.opengl.ARBVertexAttribBinding;
++import org.lwjgl.opengl.GL33C;
++import org.lwjgl.opengl.GLCapabilities;
++
++@OnlyIn(Dist.CLIENT)
++public abstract class VertexArrayCache {
++    public static VertexArrayCache create(GLCapabilities capabilities, GlDebugLabel debugLabels, Set<String> enabledExtensions) {
++        if (capabilities.GL_ARB_vertex_attrib_binding && GlDevice.USE_GL_ARB_vertex_attrib_binding) {
++            enabledExtensions.add("GL_ARB_vertex_attrib_binding");
++            return new VertexArrayCache.Separate(debugLabels);
++        } else {
++            return new VertexArrayCache.Emulated(debugLabels);
++        }
++    }
++
++    public abstract VertexArrayCache.VertexArray bindVertexArray(
++        final @Nullable VertexFormat[] vertexBindings,
++        final @Nullable GpuBufferSlice[] vertexBuffers,
++        final VertexArrayCache.@Nullable VertexArray lastBoundVertexArray
++    );
++
++    private static class Emulated extends VertexArrayCache {
++        private final Map<List<@Nullable VertexFormat>, VertexArrayCache.VertexArray> cache = new HashMap<>();
++        private final GlDebugLabel debugLabels;
++
++        public Emulated(GlDebugLabel debugLabels) {
++            this.debugLabels = debugLabels;
++        }
++
++        @Override
++        public VertexArrayCache.VertexArray bindVertexArray(
++            VertexFormat[] vertexBindings, GpuBufferSlice[] vertexBuffers, VertexArrayCache.VertexArray lastBoundVertexArray
++        ) {
++            List<VertexFormat> listBindings = Arrays.asList(vertexBindings);
++            VertexArrayCache.VertexArray vertexArray = this.cache.get(listBindings);
++            if (vertexArray == null) {
++                int id = GlStateManager._glGenVertexArrays();
++                GlStateManager._glBindVertexArray(id);
++                setupCombinedAttributes(vertexBindings, true, vertexBuffers);
++                VertexArrayCache.VertexArray vao = new VertexArrayCache.VertexArray(id, vertexBindings);
++                this.debugLabels.applyLabel(vao);
++                this.cache.put(listBindings, vao);
++                return vao;
++            }
++
++            GlStateManager._glBindVertexArray(vertexArray.id);
++            if (vertexArray != lastBoundVertexArray) {
++                setupCombinedAttributes(vertexBindings, false, vertexBuffers);
++            }
++
++            return vertexArray;
++        }
++
++        private static void setupCombinedAttributes(@Nullable VertexFormat[] vertexBindings, boolean enable, @Nullable GpuBufferSlice[] vertexBuffers) {
++            int attributeIndex = 0;
++
++            for (int i = 0; i < vertexBindings.length; i++) {
++                VertexFormat vertexBinding = vertexBindings[i];
++                if (vertexBinding != null) {
++                    GlBuffer buffer = (GlBuffer)vertexBuffers[i].buffer();
++                    GlStateManager._glBindBuffer(34962, buffer.handle());
++                    int vertexSize = vertexBinding.getVertexSize();
++
++                    for (VertexFormatElement element : vertexBinding.getElements()) {
++                        long totalOffset = vertexBuffers[i].offset() + element.offset();
++                        int glExternalId = GlConst.toGlExternalId(element.format());
++                        int glType = GlConst.toGlType(element.format());
++                        boolean isIntegerFormat = GlConst.isGlFormatInteger(glExternalId);
++                        boolean isNormalizedFormat = GlConst.isFormatNormalized(element.format());
++                        int channelCount = GlConst.glFormatChannelCount(glExternalId);
++                        if (enable) {
++                            GlStateManager._enableVertexAttribArray(attributeIndex);
++                        }
++
++                        if (isIntegerFormat) {
++                            GlStateManager._vertexAttribIPointer(attributeIndex, channelCount, glType, vertexSize, totalOffset);
++                        } else {
++                            GlStateManager._vertexAttribPointer(attributeIndex, channelCount, glType, isNormalizedFormat, vertexSize, totalOffset);
++                        }
++
++                        GL33C.glVertexAttribDivisor(attributeIndex, vertexBinding.getStepRate());
++                        attributeIndex++;
++                    }
++                }
++            }
++        }
++    }
++
++    private static class Separate extends VertexArrayCache {
++        private final Map<List<@Nullable VertexFormat>, VertexArrayCache.VertexArray> cache = new HashMap<>();
++        private final GlDebugLabel debugLabels;
++        private final boolean needsMesaWorkaround;
++
++        public Separate(GlDebugLabel debugLabels) {
++            this.debugLabels = debugLabels;
++            if ("Mesa".equals(GlStateManager._getString(7936))) {
++                String version = GlStateManager._getString(7938);
++                this.needsMesaWorkaround = version.contains("25.0.0") || version.contains("25.0.1") || version.contains("25.0.2");
++            } else {
++                this.needsMesaWorkaround = false;
++            }
++        }
++
++        @Override
++        public VertexArrayCache.VertexArray bindVertexArray(
++            VertexFormat[] vertexBindings, GpuBufferSlice[] vertexBuffers, VertexArrayCache.VertexArray lastBoundVertexArray
++        ) {
++            List<VertexFormat> listBindings = Arrays.asList(vertexBindings);
++            VertexArrayCache.VertexArray vertexArray = this.cache.get(listBindings);
++            if (vertexArray == null) {
++                int id = GlStateManager._glGenVertexArrays();
++                GlStateManager._glBindVertexArray(id);
++                int attribLocation = 0;
++
++                for (int i = 0; i < vertexBindings.length; i++) {
++                    VertexFormat vertexBinding = vertexBindings[i];
++                    if (vertexBinding != null) {
++                        for (VertexFormatElement element : vertexBinding.getElements()) {
++                            if (element != null) {
++                                GlStateManager._enableVertexAttribArray(attribLocation);
++                                int glExternalId = GlConst.toGlExternalId(element.format());
++                                int glType = GlConst.toGlType(element.format());
++                                boolean isIntegerFormat = GlConst.isGlFormatInteger(glExternalId);
++                                boolean isNormalizedFormat = GlConst.isFormatNormalized(element.format());
++                                int channelCount = GlConst.glFormatChannelCount(glExternalId);
++                                if (isIntegerFormat) {
++                                    ARBVertexAttribBinding.glVertexAttribIFormat(attribLocation, channelCount, glType, element.offset());
++                                } else {
++                                    ARBVertexAttribBinding.glVertexAttribFormat(attribLocation, channelCount, glType, isNormalizedFormat, element.offset());
++                                }
++
++                                ARBVertexAttribBinding.glVertexAttribBinding(attribLocation, i);
++                                attribLocation++;
++                            }
++                        }
++
++                        ARBVertexAttribBinding.glVertexBindingDivisor(i, vertexBinding.getStepRate());
++                    }
++                }
++
++                for (int i = 0; i < vertexBuffers.length; i++) {
++                    GpuBufferSlice vertexBufferSlice = vertexBuffers[i];
++                    if (vertexBufferSlice != null) {
++                        GlBuffer vertexBuffer = (GlBuffer)vertexBufferSlice.buffer();
++                        ARBVertexAttribBinding.glBindVertexBuffer(i, vertexBuffer.handle(), vertexBufferSlice.offset(), vertexBindings[i].getVertexSize());
++                    }
++                }
++
++                VertexArrayCache.VertexArray vao = new VertexArrayCache.VertexArray(id, vertexBindings);
++                this.debugLabels.applyLabel(vao);
++                this.cache.put(listBindings, vao);
++                return vao;
++            } else {
++                GlStateManager._glBindVertexArray(vertexArray.id);
++                if (vertexArray != lastBoundVertexArray) {
++                    for (int i = 0; i < vertexBuffers.length; i++) {
++                        GpuBufferSlice vertexBufferSlice = vertexBuffers[i];
++                        if (vertexBufferSlice != null) {
++                            GlBuffer vertexBuffer = (GlBuffer)vertexBufferSlice.buffer();
++                            if (this.needsMesaWorkaround) {
++                                ARBVertexAttribBinding.glBindVertexBuffer(i, 0, 0L, 0);
++                            }
++
++                            ARBVertexAttribBinding.glBindVertexBuffer(i, vertexBuffer.handle(), vertexBufferSlice.offset(), vertexBindings[i].getVertexSize());
++                        }
++                    }
++                }
++
++                return vertexArray;
++            }
++        }
++    }
++
++    public static class VertexArray {
++        @VisibleForDebug
++        final int id;
++        @VisibleForDebug
++        final String formatName;
++
++        private VertexArray(int id, @Nullable VertexFormat[] vertexBindings) {
++            this.id = id;
++            this.formatName = Arrays.stream(vertexBindings).filter(Objects::nonNull).map(VertexFormat::toString).collect(Collectors.joining(", "));
++        }
++    }
++}

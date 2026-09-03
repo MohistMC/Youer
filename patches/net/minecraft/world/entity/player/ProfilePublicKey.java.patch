@@ -1,6 +1,26 @@
 --- a/net/minecraft/world/entity/player/ProfilePublicKey.java
 +++ b/net/minecraft/world/entity/player/ProfilePublicKey.java
-@@ -24,7 +_,7 @@
+@@ -2,7 +_,6 @@
+ 
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import io.netty.buffer.ByteBuf;
+ import java.nio.ByteBuffer;
+ import java.nio.ByteOrder;
+ import java.security.PublicKey;
+@@ -10,10 +_,9 @@
+ import java.time.Instant;
+ import java.util.Arrays;
+ import java.util.UUID;
++import net.minecraft.network.FriendlyByteBuf;
+ import net.minecraft.network.chat.Component;
+ import net.minecraft.network.chat.ThrowingComponent;
+-import net.minecraft.network.codec.ByteBufCodecs;
+-import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.util.Crypt;
+ import net.minecraft.util.ExtraCodecs;
+ import net.minecraft.util.SignatureValidator;
+@@ -26,7 +_,7 @@
  
      public static ProfilePublicKey createValidated(SignatureValidator validator, UUID profileId, ProfilePublicKey.Data data) throws ProfilePublicKey.ValidationException {
          if (!data.validateSignature(validator, profileId)) {
@@ -9,7 +29,33 @@
          } else {
              return new ProfilePublicKey(data);
          }
-@@ -87,8 +_,18 @@
+@@ -46,15 +_,16 @@
+                 )
+                 .apply(i, ProfilePublicKey.Data::new)
+         );
+-        public static final StreamCodec<ByteBuf, ProfilePublicKey.Data> STREAM_CODEC = StreamCodec.composite(
+-            ByteBufCodecs.INSTANT,
+-            ProfilePublicKey.Data::expiresAt,
+-            ByteBufCodecs.PUBLIC_KEY,
+-            ProfilePublicKey.Data::key,
+-            ByteBufCodecs.byteArray(4096),
+-            ProfilePublicKey.Data::keySignature,
+-            ProfilePublicKey.Data::new
+-        );
++
++        public Data(FriendlyByteBuf input) {
++            this(input.readInstant(), input.readPublicKey(), input.readByteArray(4096));
++        }
++
++        public void write(FriendlyByteBuf output) {
++            output.writeInstant(this.expiresAt);
++            output.writePublicKey(this.key);
++            output.writeByteArray(this.keySignature);
++        }
+ 
+         private boolean validateSignature(SignatureValidator validator, UUID profileId) {
+             return validator.validate(this.signedPayload(profileId), this.keySignature);
+@@ -88,8 +_,18 @@
      }
  
      public static class ValidationException extends ThrowingComponent {

@@ -1,8 +1,10 @@
 --- a/net/minecraft/world/level/LevelReader.java
 +++ b/net/minecraft/world/level/LevelReader.java
-@@ -16,9 +_,6 @@
+@@ -15,11 +_,7 @@
+ import net.minecraft.world.flag.FeatureFlagSet;
  import net.minecraft.world.level.biome.Biome;
  import net.minecraft.world.level.biome.BiomeManager;
+-import net.minecraft.world.level.biome.BiomeResolver;
  import net.minecraft.world.level.block.state.BlockState;
 -import net.minecraft.world.level.blockscan.BlockMatcher;
 -import net.minecraft.world.level.blockscan.BoxBlockMatcher;
@@ -10,11 +12,11 @@
  import net.minecraft.world.level.chunk.ChunkAccess;
  import net.minecraft.world.level.chunk.status.ChunkStatus;
  import net.minecraft.world.level.dimension.DimensionType;
-@@ -28,9 +_,22 @@
+@@ -29,9 +_,22 @@
  
  import net.neoforged.neoforge.common.extensions.ILevelReaderExtension;
  
--public interface LevelReader extends BlockAndLightGetter, CollisionGetter, SignalGetter, BiomeManager.NoiseBiomeSource, ILevelReaderExtension {
+-public interface LevelReader extends BlockAndLightGetter, CollisionGetter, SignalGetter, BiomeResolver, ILevelReaderExtension {
 +public interface LevelReader extends BlockAndLightGetter, CollisionGetter, SignalGetter, BiomeManager.NoiseBiomeSource, ILevelReaderExtension, ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevelReader { // Paper - rewrite chunk system
 +    // Paper start - rewrite chunk system
 +    @Override
@@ -34,7 +36,7 @@
      @Deprecated
      boolean hasChunk(int chunkX, int chunkZ);
  
-@@ -143,7 +_,26 @@
+@@ -144,7 +_,26 @@
      }
  
      default boolean containsAnyLiquid(AABB box) {
@@ -62,14 +64,14 @@
      }
  
      default int getMaxLocalRawBrightness(BlockPos pos) {
-@@ -158,30 +_,6 @@
+@@ -159,30 +_,6 @@
  
      default int getEffectiveSkyBrightness(BlockPos pos) {
          return this.getBrightness(LightLayer.SKY, pos) - this.getSkyDarken();
 -    }
 -
 -    default BlockMatcher findBlocksIn(AABB box) {
--        return new BoxBlockMatcher(this, box);
+-        return this.findBlocksIn(BlockPos.containing(box.getMinPosition()), BlockPos.containing(box.getMaxPosition()));
 -    }
 -
 -    default BlockMatcher findBlocksIn(BlockPos from, BlockPos to) {

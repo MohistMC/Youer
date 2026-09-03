@@ -1,10 +1,13 @@
 --- a/net/minecraft/server/ServerAdvancementManager.java
 +++ b/net/minecraft/server/ServerAdvancementManager.java
-@@ -10,29 +_,46 @@
- import net.minecraft.advancements.AdvancementNode;
+@@ -7,39 +_,64 @@
+ import java.util.Map;
+ import net.minecraft.advancements.Advancement;
+ import net.minecraft.advancements.AdvancementHolder;
++import net.minecraft.advancements.AdvancementNode;
  import net.minecraft.advancements.AdvancementTree;
- import net.minecraft.advancements.TreeNodePosition;
 -import net.minecraft.core.Holder;
++import net.minecraft.advancements.TreeNodePosition;
  import net.minecraft.core.HolderLookup;
  import net.minecraft.core.registries.Registries;
  import net.minecraft.resources.Identifier;
@@ -51,11 +54,15 @@
          this.advancements = builder.buildOrThrow();
          AdvancementTree tree = new AdvancementTree();
          tree.addAll(this.advancements.values());
+-        tree.repositionNodes();
 +        LOGGER.info("Loaded {} advancements", tree.nodes().size()); // Paper - Improve logging and errors; moved from AdvancementTree#addAll
- 
-         for (AdvancementNode root : tree.roots()) {
-             if (root.holder().value().display().isPresent()) {
-@@ -43,11 +_,11 @@
++
++        for (AdvancementNode root : tree.roots()) {
++            if (root.holder().value().display().isPresent()) {
++                TreeNodePosition.run(root);
++            }
++        }
++
          this.tree = tree;
      }
  

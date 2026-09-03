@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/inventory/MerchantMenu.java
 +++ b/net/minecraft/world/inventory/MerchantMenu.java
-@@ -30,6 +_,18 @@
+@@ -2,7 +_,6 @@
+ 
+ import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.sounds.SoundSource;
+-import net.minecraft.util.Prediction;
+ import net.minecraft.world.Container;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.npc.ClientSideMerchant;
+@@ -31,6 +_,18 @@
      private int merchantLevel;
      private boolean showProgressBar;
      private boolean canRestock;
@@ -19,7 +27,7 @@
  
      public MerchantMenu(int containerId, Inventory inventory) {
          this(containerId, inventory, new ClientSideMerchant(inventory.player));
-@@ -42,6 +_,7 @@
+@@ -43,6 +_,7 @@
          this.addSlot(new Slot(this.tradeContainer, 0, 136, 37));
          this.addSlot(new Slot(this.tradeContainer, 1, 162, 37));
          this.addSlot(new MerchantResultSlot(inventory.player, merchant, this.tradeContainer, 2, 220, 37));
@@ -27,7 +35,7 @@
          this.addStandardInventorySlots(inventory, 108, 84);
      }
  
-@@ -61,6 +_,7 @@
+@@ -62,6 +_,7 @@
  
      @Override
      public boolean stillValid(Player player) {
@@ -35,7 +43,7 @@
          return this.trader.stillValid(player);
      }
  
-@@ -105,12 +_,12 @@
+@@ -106,12 +_,12 @@
              ItemStack stack = slot.getItem();
              clicked = stack.copy();
              if (slotIndex == 2) {
@@ -51,7 +59,7 @@
              } else if (slotIndex != 0 && slotIndex != 1) {
                  if (slotIndex >= 3 && slotIndex < 30) {
                      if (!this.moveItemStackTo(stack, 30, 39, false)) {
-@@ -123,24 +_,40 @@
+@@ -124,24 +_,40 @@
                  return ItemStack.EMPTY;
              }
  
@@ -104,3 +112,24 @@
              Entity entity = (Entity)this.trader;
              entity.level()
                  .playLocalSound(entity.getX(), entity.getY(), entity.getZ(), this.trader.getNotifyTradeSound(), SoundSource.NEUTRAL, 1.0F, 1.0F, false);
+@@ -156,16 +_,16 @@
+             if (!player.isAlive() || player instanceof ServerPlayer serverPlayer && serverPlayer.hasDisconnected()) {
+                 ItemStack itemStack = this.tradeContainer.removeItemNoUpdate(0);
+                 if (!itemStack.isEmpty()) {
+-                    player.drop(itemStack, false, Prediction.SERVER_ONLY);
++                    player.drop(itemStack, false);
+                 }
+ 
+                 itemStack = this.tradeContainer.removeItemNoUpdate(1);
+                 if (!itemStack.isEmpty()) {
+-                    player.drop(itemStack, false, Prediction.SERVER_ONLY);
++                    player.drop(itemStack, false);
+                 }
+             } else if (player instanceof ServerPlayer) {
+-                player.getInventory().placeItemBackInInventory(this.tradeContainer.removeItemNoUpdate(0), Prediction.SERVER_ONLY);
+-                player.getInventory().placeItemBackInInventory(this.tradeContainer.removeItemNoUpdate(1), Prediction.SERVER_ONLY);
++                player.getInventory().placeItemBackInInventory(this.tradeContainer.removeItemNoUpdate(0));
++                player.getInventory().placeItemBackInInventory(this.tradeContainer.removeItemNoUpdate(1));
+             }
+         }
+     }

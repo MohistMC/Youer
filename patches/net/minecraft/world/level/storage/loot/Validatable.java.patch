@@ -1,0 +1,26 @@
+--- a/net/minecraft/world/level/storage/loot/Validatable.java
++++ b/net/minecraft/world/level/storage/loot/Validatable.java
+@@ -22,7 +_,7 @@
+         optional.ifPresent(v -> v.validate(context.forField(name)));
+     }
+ 
+-    static void validateHolder(ValidationContext context, Holder<? extends Validatable> holder) {
++    private static void validateHolder(ValidationContext context, Holder<? extends Validatable> holder) {
+         ValidationContext elementContext;
+         if (holder instanceof Holder.Reference<?> reference) {
+             ResourceKey<?> id = reference.key();
+@@ -50,14 +_,6 @@
+     static void validateHolder(ValidationContext context, String name, List<? extends Holder<? extends Validatable>> list) {
+         for (int i = 0; i < list.size(); i++) {
+             list.get(i).value().validate(context.forIndexedField(name, i));
+-        }
+-    }
+-
+-    static void validateHolderSet(ValidationContext context, String name, HolderSet<? extends Validatable> holderSet, int minSize) {
+-        ValidationContext namedContext = context.forField(name);
+-        validateHolderSet(namedContext, holderSet);
+-        if (holderSet.size() < minSize) {
+-            namedContext.reportProblem(new ValidationContext.MinBoundsProblem(minSize));
+         }
+     }
+ 

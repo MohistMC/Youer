@@ -1,10 +1,33 @@
 --- a/net/minecraft/world/entity/ai/goal/FloatGoal.java
 +++ b/net/minecraft/world/entity/ai/goal/FloatGoal.java
-@@ -9,6 +_,7 @@
+@@ -2,28 +_,21 @@
+ 
+ import java.util.EnumSet;
+ import net.minecraft.tags.FluidTags;
+-import net.minecraft.tags.TagKey;
+ import net.minecraft.world.entity.Mob;
+-import net.minecraft.world.level.material.Fluid;
+ 
+ public class FloatGoal extends Goal {
+     private final Mob mob;
+-    protected final TagKey<Fluid> fluid;
  
      public FloatGoal(Mob mob) {
+-        this(mob, FluidTags.ENTITY_FLOATABLE);
+-    }
+-
+-    public FloatGoal(Mob mob, TagKey<Fluid> fluid) {
          this.mob = mob;
+-        this.fluid = fluid;
 +        if (mob.level().paperConfig().entities.behavior.spawnerNerfedMobsShouldJump) mob.goalFloat = this; // Paper - Allow nerfed mobs to jump and float
          this.setFlags(EnumSet.of(Goal.Flag.JUMP));
          mob.getNavigation().setCanFloat(true);
      }
+ 
+     @Override
+     public boolean canUse() {
+-        return this.mob.isInFluidDeeperThan(this.mob.getFluidJumpThreshold(), this.fluid) || this.mob.isInLava();
++        return this.mob.isInWater() && this.mob.getFluidHeight(FluidTags.WATER) > this.mob.getFluidJumpThreshold() || this.mob.isInLava();
+     }
+ 
+     @Override

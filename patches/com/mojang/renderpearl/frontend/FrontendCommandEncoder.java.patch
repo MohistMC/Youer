@@ -1,0 +1,95 @@
+--- a/com/mojang/renderpearl/frontend/FrontendCommandEncoder.java
++++ b/com/mojang/renderpearl/frontend/FrontendCommandEncoder.java
+@@ -200,12 +_,7 @@
+             }
+ 
+             return new FrontendRenderPass(
+-                this.backend.createRenderPass(descriptor),
+-                this.device,
+-                descriptor.colorAttachments(),
+-                descriptor.depthAttachment() != null,
+-                this::submitRenderPass,
+-                renderArea
++                this.backend.createRenderPass(descriptor), this.device, descriptor.colorAttachments(), this::submitRenderPass, renderArea
+             );
+         } else {
+             throw new IllegalArgumentException(
+@@ -244,24 +_,12 @@
+ 
+         this.verifyColorTexture(colorTexture);
+         this.verifyDepthTexture(depthTexture);
+-        if (colorTexture.getMipLevels() != depthTexture.getMipLevels()) {
+-            throw new IllegalArgumentException("Both textures must have the same mip count");
+-        }
+-
+         this.backend.clearColorAndDepthTextures(colorTexture, clearColor, depthTexture, clearDepth);
+     }
+ 
+     @Override
+     public void clearColorAndDepthTextures(
+-        GpuTexture colorTexture,
+-        Vector4fc clearColor,
+-        GpuTexture depthTexture,
+-        double clearDepth,
+-        int regionX,
+-        int regionY,
+-        int regionWidth,
+-        int regionHeight,
+-        int mipLevel
++        GpuTexture colorTexture, Vector4fc clearColor, GpuTexture depthTexture, double clearDepth, int regionX, int regionY, int regionWidth, int regionHeight
+     ) {
+         if (this.isInRenderPass) {
+             throw new IllegalStateException("Close the existing render pass before creating a new one!");
+@@ -269,12 +_,8 @@
+ 
+         this.verifyColorTexture(colorTexture);
+         this.verifyDepthTexture(depthTexture);
+-        if (colorTexture.getMipLevels() != depthTexture.getMipLevels()) {
+-            throw new IllegalArgumentException("Both textures must have the same mip count");
+-        }
+-
+-        this.verifyRegion(colorTexture, regionX, regionY, regionWidth, regionHeight, mipLevel);
+-        this.backend.clearColorAndDepthTextures(colorTexture, clearColor, depthTexture, clearDepth, regionX, regionY, regionWidth, regionHeight, mipLevel);
++        this.verifyRegion(colorTexture, regionX, regionY, regionWidth, regionHeight);
++        this.backend.clearColorAndDepthTextures(colorTexture, clearColor, depthTexture, clearDepth, regionX, regionY, regionWidth, regionHeight);
+     }
+ 
+     @Override
+@@ -813,16 +_,12 @@
+         }
+     }
+ 
+-    private void verifyRegion(GpuTexture colorTexture, int regionX, int regionY, int regionWidth, int regionHeight, int mipLevel) {
+-        if (mipLevel >= colorTexture.getMipLevels()) {
+-            throw new IllegalArgumentException("Mip level " + mipLevel + " out of range for texture with " + colorTexture.getMipLevels() + " mips");
+-        }
+-
+-        if (regionX < 0 || regionX >= colorTexture.getWidth(mipLevel)) {
++    private void verifyRegion(GpuTexture colorTexture, int regionX, int regionY, int regionWidth, int regionHeight) {
++        if (regionX < 0 || regionX >= colorTexture.getWidth(0)) {
+             throw new IllegalArgumentException("regionX should not be outside of the texture");
+         }
+ 
+-        if (regionY < 0 || regionY >= colorTexture.getHeight(mipLevel)) {
++        if (regionY < 0 || regionY >= colorTexture.getHeight(0)) {
+             throw new IllegalArgumentException("regionY should not be outside of the texture");
+         }
+ 
+@@ -830,7 +_,7 @@
+             throw new IllegalArgumentException("regionWidth should be greater than 0");
+         }
+ 
+-        if (regionX + regionWidth > colorTexture.getWidth(mipLevel)) {
++        if (regionX + regionWidth > colorTexture.getWidth(0)) {
+             throw new IllegalArgumentException("regionWidth + regionX should be less than the texture width");
+         }
+ 
+@@ -838,7 +_,7 @@
+             throw new IllegalArgumentException("regionHeight should be greater than 0");
+         }
+ 
+-        if (regionY + regionHeight > colorTexture.getHeight(mipLevel)) {
++        if (regionY + regionHeight > colorTexture.getHeight(0)) {
+             throw new IllegalArgumentException("regionWidth + regionX should be less than the texture height");
+         }
+     }

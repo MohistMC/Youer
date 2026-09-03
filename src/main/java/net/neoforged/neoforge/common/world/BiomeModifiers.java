@@ -19,7 +19,7 @@ import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.biome.MobSpawnSettings;
 import net.minecraft.world.level.biome.MobSpawnSettings.SpawnerData;
 import net.minecraft.world.level.levelgen.GenerationStep.Decoration;
-import net.minecraft.world.level.levelgen.carver.ConfiguredWorldCarver;
+import net.minecraft.world.level.levelgen.carver.WorldCarver;
 import net.minecraft.world.level.levelgen.placement.PlacedFeature;
 import net.neoforged.neoforge.common.NeoForgeMod;
 
@@ -163,7 +163,7 @@ public final class BiomeModifiers {
                 MobSpawnSettingsBuilder spawns = builder.getMobSpawnSettings();
                 for (Weighted<SpawnerData> spawner : this.spawners.unwrap()) {
                     EntityType<?> type = spawner.value().type();
-                    spawns.addSpawn(type.getCategory(), spawner.weight(), spawner.value());
+                    spawns.addSpawn(type, spawner.weight(), spawner.value().count());
                 }
             }
         }
@@ -222,7 +222,7 @@ public final class BiomeModifiers {
      * @param biomes  Biomes to add features to.
      * @param carvers ConfiguredWorldCarvers to add to biomes.
      */
-    public record AddCarversBiomeModifier(HolderSet<Biome> biomes, HolderSet<ConfiguredWorldCarver<?>> carvers) implements BiomeModifier {
+    public record AddCarversBiomeModifier(HolderSet<Biome> biomes, HolderSet<WorldCarver> carvers) implements BiomeModifier {
         @Override
         public void modify(Holder<Biome> biome, Phase phase, ModifiableBiomeInfo.BiomeInfo.Builder builder) {
             if (phase == Phase.ADD && this.biomes.contains(biome)) {
@@ -252,7 +252,7 @@ public final class BiomeModifiers {
      * @param biomes  Biomes to remove carvers from.
      * @param carvers ConfiguredWorldCarvers to remove from biomes.
      */
-    public record RemoveCarversBiomeModifier(HolderSet<Biome> biomes, HolderSet<ConfiguredWorldCarver<?>> carvers) implements BiomeModifier {
+    public record RemoveCarversBiomeModifier(HolderSet<Biome> biomes, HolderSet<WorldCarver> carvers) implements BiomeModifier {
         @Override
         public void modify(Holder<Biome> biome, Phase phase, ModifiableBiomeInfo.BiomeInfo.Builder builder) {
             if (phase == Phase.REMOVE && this.biomes.contains(biome)) {
@@ -293,7 +293,7 @@ public final class BiomeModifiers {
             if (phase == Phase.ADD) {
                 MobSpawnSettingsBuilder spawnBuilder = builder.getMobSpawnSettings();
                 for (var entityType : entityTypes) {
-                    spawnBuilder.addMobCharge(entityType.value(), spawnCost.charge(), spawnCost.energyBudget());
+                    spawnBuilder.addMobSpawnCost(entityType.value(), spawnCost.charge(), spawnCost.energyBudget());
                 }
             }
         }

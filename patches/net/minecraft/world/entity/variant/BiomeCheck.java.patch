@@ -1,0 +1,18 @@
+--- a/net/minecraft/world/entity/variant/BiomeCheck.java
++++ b/net/minecraft/world/entity/variant/BiomeCheck.java
+@@ -3,13 +_,13 @@
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.world.level.biome.Biome;
+ 
+ public record BiomeCheck(HolderSet<Biome> requiredBiomes) implements SpawnCondition {
+     public static final MapCodec<BiomeCheck> MAP_CODEC = RecordCodecBuilder.mapCodec(
+-        i -> i.group(RegistryCodecs.holderSet(Registries.BIOME).fieldOf("biomes").forGetter(BiomeCheck::requiredBiomes)).apply(i, BiomeCheck::new)
++        i -> i.group(RegistryCodecs.homogeneousList(Registries.BIOME).fieldOf("biomes").forGetter(BiomeCheck::requiredBiomes)).apply(i, BiomeCheck::new)
+     );
+ 
+     public boolean test(SpawnContext context) {

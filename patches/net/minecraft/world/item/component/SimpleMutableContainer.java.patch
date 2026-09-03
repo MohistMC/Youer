@@ -1,0 +1,54 @@
+--- a/net/minecraft/world/item/component/SimpleMutableContainer.java
++++ b/net/minecraft/world/item/component/SimpleMutableContainer.java
+@@ -29,7 +_,8 @@
+     public int replaceSlotItems(ItemProvider newItems, SlotSelector slotSelector) {
+         int successCount = 0;
+ 
+-        for (int index = 0; index < this.items.size() && newItems.hasNext(); index++) {
++        int index;
++        for (index = 0; index < this.items.size() && newItems.hasNext(); index++) {
+             ItemStack currentItem = this.items.get(index);
+             if (slotSelector.trySelectSlot(currentItem)) {
+                 boolean success = this.setItem(index, newItems.next());
+@@ -39,6 +_,10 @@
+             }
+         }
+ 
++        if (index == this.items.size()) {
++            successCount += this.insertNewSlots(newItems, slotSelector);
++        }
++
+         return successCount;
+     }
+ 
+@@ -53,8 +_,30 @@
+         }
+     }
+ 
++    protected int insertNewSlots(ItemProvider newItems, SlotSelector slotSelector) {
++        int successCount = 0;
++
++        while (newItems.hasNext() && this.canInsertNewSlots() && slotSelector.trySelectSlot(ItemStack.EMPTY)) {
++            boolean success = this.addSlotWithItem(newItems.next());
++            if (success) {
++                successCount++;
++            }
++        }
++
++        return successCount;
++    }
++
+     protected boolean setItem(int slot, ItemStack itemStack) {
+         this.items.set(slot, itemStack);
+         return true;
++    }
++
++    protected boolean addSlotWithItem(ItemStack itemStack) {
++        this.items.add(itemStack);
++        return true;
++    }
++
++    public boolean canInsertNewSlots() {
++        return false;
+     }
+ }

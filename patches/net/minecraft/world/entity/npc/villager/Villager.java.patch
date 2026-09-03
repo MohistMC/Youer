@@ -35,14 +35,14 @@
      private static final int MAX_GOSSIP_TOPICS = 10;
      private static final int GOSSIP_COOLDOWN = 1200;
      private static final int GOSSIP_DECAY_INTERVAL = 24000;
-@@ -113,18 +_,20 @@
+@@ -113,16 +_,20 @@
      private static final int DEFAULT_LAST_RESTOCK = 0;
      private static final int DEFAULT_LAST_GOSSIP_DECAY = 0;
      private static final int DEFAULT_RESTOCKS_TODAY = 0;
 +    private static final boolean DEFAULT_ASSIGN_PROFESSION_WHEN_SPAWNED = false;
      private static final EntityDimensions BABY_DIMENSIONS = EntityDimensions.scalable(0.49F, 0.98F).withEyeHeight(0.63F);
-     private int updateMerchantTimer;
-     private boolean increaseProfessionLevelOnUpdate;
++    private int updateMerchantTimer;
++    private boolean increaseProfessionLevelOnUpdate;
      private @Nullable Player lastTradedPlayer;
      private int foodLevel = 0;
 -    private final GossipContainer gossips = new GossipContainer();
@@ -57,7 +57,7 @@
      private static final Brain.Provider<Villager> BRAIN_PROVIDER = Brain.<Villager>provider(
          List.of(
              SensorType.NEAREST_LIVING_ENTITIES,
-@@ -146,7 +_,7 @@
+@@ -144,7 +_,7 @@
                  activities.add(
                      ActivityData.create(
                          Activity.WORK,
@@ -66,7 +66,7 @@
                          ImmutableSet.of(Pair.of(MemoryModuleType.JOB_SITE, MemoryStatus.VALUE_PRESENT))
                      )
                  );
-@@ -179,6 +_,8 @@
+@@ -177,6 +_,8 @@
          MemoryModuleType.MEETING_POINT,
          (villager, poiType) -> poiType.is(PoiTypes.MEETING)
      );
@@ -75,7 +75,7 @@
  
      public Villager(EntityType<? extends Villager> entityType, Level level) {
          super(entityType, level);
-@@ -188,6 +_,110 @@
+@@ -186,6 +_,110 @@
          this.setCanPickUpLoot(true);
      }
  
@@ -186,7 +186,7 @@
      @Override
      public Brain<Villager> getBrain() {
          return (Brain<Villager>) super.getBrain();
-@@ -226,15 +_,58 @@
+@@ -224,32 +_,88 @@
      }
  
      public static AttributeSupplier.Builder createAttributes() {
@@ -245,19 +245,21 @@
 +            this.assignProfessionWhenSpawned = false;
 +        }
 +
-         if (!this.isTrading() && this.updateMerchantTimer > 0) {
-             this.updateMerchantTimer--;
-             if (this.updateMerchantTimer <= 0) {
-@@ -243,7 +_,7 @@
-                     this.increaseProfessionLevelOnUpdate = false;
-                 }
- 
--                this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 0));
++        if (!this.isTrading() && this.updateMerchantTimer > 0) {
++            this.updateMerchantTimer--;
++            if (this.updateMerchantTimer <= 0) {
++                if (this.increaseProfessionLevelOnUpdate) {
++                    this.increaseMerchantCareer(level);
++                    this.increaseProfessionLevelOnUpdate = false;
++                }
++
 +                this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 0), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.VILLAGER_TRADE); // CraftBukkit
-             }
-         }
- 
-@@ -253,7 +_,7 @@
++            }
++        }
++
+         if (this.lastTradedPlayer != null) {
+             level.onReputationEvent(ReputationEventType.TRADE, this.lastTradedPlayer, this);
+             level.broadcastEntityEvent(this, (byte)14);
              this.lastTradedPlayer = null;
          }
  
@@ -266,7 +268,11 @@
              Raid raid = level.getRaidAt(this.blockPosition());
              if (raid != null && raid.isActive() && !raid.isOver()) {
                  level.broadcastEntityEvent(this, (byte)42);
-@@ -264,6 +_,7 @@
+             }
+         }
+ 
+-        if ((this.offers == null || this.offers.isEmpty()) && this.isTrading()) {
++        if (this.getVillagerData().profession().is(VillagerProfession.NONE) && this.isTrading()) {
              this.stopTrading();
          }
  
@@ -274,7 +280,7 @@
          super.customServerAiStep(level);
      }
  
-@@ -280,7 +_,7 @@
+@@ -266,7 +_,7 @@
      @Override
      public InteractionResult mobInteract(Player player, InteractionHand hand) {
          ItemStack itemStack = player.getItemInHand(hand);
@@ -283,7 +289,7 @@
              return super.mobInteract(player, hand);
          }
  
-@@ -303,6 +_,9 @@
+@@ -289,6 +_,9 @@
                  return InteractionResult.CONSUME;
              }
  
@@ -293,7 +299,20 @@
              this.startTrading(player);
          }
  
-@@ -359,7 +_,13 @@
+@@ -317,6 +_,12 @@
+         }
+     }
+ 
++    @Override
++    protected void stopTrading() {
++        super.stopTrading();
++        this.resetSpecialPrices();
++    }
++
+     private void resetSpecialPrices() {
+         if (!this.level().isClientSide()) {
+             for (MerchantOffer offer : this.getOffers()) {
+@@ -339,7 +_,13 @@
          this.updateDemand();
  
          for (MerchantOffer offer : this.getOffers()) {
@@ -308,7 +327,7 @@
          }
  
          this.resendOffersToTradingPlayer();
-@@ -420,7 +_,13 @@
+@@ -400,7 +_,13 @@
          int missedUpdates = 2 - this.numberOfRestocksToday;
          if (missedUpdates > 0) {
              for (MerchantOffer offer : this.getOffers()) {
@@ -323,7 +342,7 @@
              }
          }
  
-@@ -433,7 +_,7 @@
+@@ -413,23 +_,27 @@
  
      public void updateDemand() {
          for (MerchantOffer offer : this.getOffers()) {
@@ -332,23 +351,36 @@
          }
      }
  
-@@ -441,6 +_,7 @@
+     private void updateSpecialPrices(Player player) {
+-        this.resetSpecialPrices();
          int reputation = this.getPlayerReputation(player);
-         if (reputation != 0) {
-             for (MerchantOffer offer : this.getOffers()) {
+-        MobEffectInstance heroOfTheVillage = player.getEffect(MobEffects.HERO_OF_THE_VILLAGE);
+-        double heroModifier = heroOfTheVillage == null ? 0.0 : 0.3F + 0.0625F * heroOfTheVillage.getAmplifier();
+-
+-        for (MerchantOffer offer : this.getOffers()) {
+-            if (reputation != 0) {
++        if (reputation != 0) {
++            for (MerchantOffer offer : this.getOffers()) {
 +                if (offer.ignoreDiscounts) continue; // Paper - Add ignore discounts API
                  offer.addToSpecialPriceDiff(-Mth.floor(reputation * offer.getPriceMultiplier()));
              }
-         }
-@@ -450,6 +_,7 @@
-             int amplifier = effect.getAmplifier();
- 
-             for (MerchantOffer offer : this.getOffers()) {
+-
+-            if (heroModifier > 0.0) {
+-                int costReduction = (int)Math.floor(heroModifier * offer.getBaseCostA().getCount());
++        }
++
++        if (player.hasEffect(MobEffects.HERO_OF_THE_VILLAGE)) {
++            MobEffectInstance effect = player.getEffect(MobEffects.HERO_OF_THE_VILLAGE);
++            int amplifier = effect.getAmplifier();
++
++            for (MerchantOffer offer : this.getOffers()) {
 +                if (offer.ignoreDiscounts) continue; // Paper - Add ignore discounts API
-                 double modifier = 0.3 + 0.0625 * amplifier;
-                 int costReduction = (int)Math.floor(modifier * offer.getBaseCostA().getCount());
++                double modifier = 0.3 + 0.0625 * amplifier;
++                int costReduction = (int)Math.floor(modifier * offer.getBaseCostA().getCount());
                  offer.addToSpecialPriceDiff(-Math.max(costReduction, 1));
-@@ -481,6 +_,9 @@
+             }
+         }
+@@ -459,6 +_,9 @@
          output.putLong("LastRestock", this.lastRestockGameTime);
          output.putLong("LastGossipDecay", this.lastGossipDecayTime);
          output.putInt("RestocksToday", this.numberOfRestocksToday);
@@ -358,15 +390,41 @@
      }
  
      @Override
-@@ -504,6 +_,7 @@
-         }
- 
+@@ -477,17 +_,12 @@
+         this.villagerXp = input.getIntOr("Xp", 0);
+         this.lastRestockGameTime = input.getLongOr("LastRestock", 0L);
+         this.lastGossipDecayTime = input.getLongOr("LastGossipDecay", 0L);
++        if (this.level() instanceof ServerLevel) {
++            this.refreshBrain((ServerLevel)this.level());
++        }
++
          this.numberOfRestocksToday = input.getIntOr("RestocksToday", 0);
+-        if (this.level() instanceof ServerLevel serverLevel) {
+-            this.refreshBrain(serverLevel);
+-        }
+-    }
+-
+-    @Override
+-    public void postDataManipulated() {
+-        if (this.isTrading()) {
+-            this.resendOffersToTradingPlayer();
+-        }
 +        this.assignProfessionWhenSpawned = input.getBooleanOr("AssignProfessionWhenSpawned", false);
      }
  
      @Override
-@@ -571,7 +_,7 @@
+@@ -549,16 +_,13 @@
+         this.villagerXp = this.villagerXp + offer.getXp();
+         this.lastTradedPlayer = this.getTradingPlayer();
+         if (this.shouldIncreaseLevel()) {
+-            if (this.level() instanceof ServerLevel serverLevel) {
+-                this.increaseMerchantCareer(serverLevel);
+-                this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 0));
+-            }
+-
++            this.updateMerchantTimer = 40;
++            this.increaseProfessionLevelOnUpdate = true;
+             popXp += 5;
          }
  
          if (offer.shouldRewardExp()) {
@@ -375,7 +433,7 @@
          }
      }
  
-@@ -589,7 +_,7 @@
+@@ -576,7 +_,7 @@
  
      @Override
      public void die(DamageSource source) {
@@ -384,7 +442,7 @@
          Entity murderer = source.getEntity();
          if (murderer != null) {
              this.tellWitnessesThatIWasMurdered(murderer);
-@@ -637,7 +_,7 @@
+@@ -624,7 +_,7 @@
  
      @Override
      public boolean canBreed() {
@@ -393,7 +451,7 @@
      }
  
      private boolean hungry() {
-@@ -645,24 +_,22 @@
+@@ -632,24 +_,22 @@
      }
  
      private void eatUntilFull() {
@@ -429,7 +487,7 @@
                  }
              }
          }
-@@ -690,7 +_,7 @@
+@@ -677,7 +_,7 @@
          return VillagerData.canLevelUp(currentLevel) && this.villagerXp >= VillagerData.getMaxXpPerLevel(currentLevel);
      }
  
@@ -438,7 +496,7 @@
          this.setVillagerData(this.getVillagerData().withLevel(this.getVillagerData().level() + 1));
          this.updateTrades(level);
      }
-@@ -701,7 +_,7 @@
+@@ -688,7 +_,7 @@
      }
  
      @Override
@@ -447,7 +505,7 @@
          if (id == 12) {
              this.addParticlesAroundSelf(ParticleTypes.HEART);
          } else if (id == 13) {
-@@ -724,6 +_,10 @@
+@@ -711,6 +_,10 @@
          }
  
          this.finalizeVillagerType(level, this.blockPosition());
@@ -458,7 +516,7 @@
          return super.finalizeSpawn(level, difficulty, spawnReason, groupData);
      }
  
-@@ -746,13 +_,21 @@
+@@ -733,13 +_,21 @@
  
      @Override
      public void thunderHit(ServerLevel level, LightningBolt lightningBolt) {
@@ -483,7 +541,7 @@
              if (witch == null) {
                  super.thunderHit(level, lightningBolt);
              }
-@@ -769,11 +_,10 @@
+@@ -756,11 +_,10 @@
      @Override
      public boolean wantsToPickUp(ServerLevel level, ItemStack itemStack) {
          Item item = itemStack.getItem();
@@ -499,7 +557,7 @@
              && this.getInventory().canAddItem(itemStack);
      }
  
-@@ -787,33 +_,32 @@
+@@ -774,53 +_,41 @@
  
      private int countFoodPointsInInventory() {
          SimpleContainer inventory = this.getInventory();
@@ -539,13 +597,34 @@
              if (SharedConstants.DEBUG_UNLOCK_ALL_TRADES && data.level() < 5) {
                  this.increaseMerchantCareer(level);
              }
+-
+-            Player tradingPlayer = this.getTradingPlayer();
+-            if (tradingPlayer != null) {
+-                this.updateSpecialPrices(tradingPlayer);
+-                this.resendOffersToTradingPlayer();
+-            }
 +            return true; // Paper - More vanilla friendly methods to update trades
          }
 +        return false; // Paper - More vanilla friendly methods to update trades
      }
  
      public void gossip(ServerLevel level, Villager target, long timestamp) {
-@@ -837,6 +_,7 @@
+         if ((timestamp < this.lastGossipTime || timestamp >= this.lastGossipTime + 1200L)
+             && (timestamp < target.lastGossipTime || timestamp >= target.lastGossipTime + 1200L)) {
+-            int newGossip = this.gossips.transferFrom(target.gossips, this.random, 10);
++            this.gossips.transferFrom(target.gossips, this.random, 10);
+             this.lastGossipTime = timestamp;
+             target.lastGossipTime = timestamp;
+             this.spawnGolemIfNeeded(level, timestamp, 5);
+-            Player tradingPlayer = this.getTradingPlayer();
+-            if (tradingPlayer != null && newGossip > 0) {
+-                this.updateSpecialPrices(tradingPlayer);
+-                this.resendOffersToTradingPlayer();
+-            }
+         }
+     }
+ 
+@@ -835,6 +_,7 @@
      }
  
      public void spawnGolemIfNeeded(ServerLevel level, long timestamp, int villagersNeededToAgree) {
@@ -553,7 +632,7 @@
          if (this.wantsToSpawnGolem(timestamp)) {
              AABB villagerSearchBox = this.getBoundingBox().inflate(10.0, 10.0, 10.0);
              List<Villager> nearbyVillagers = level.getEntitiesOfClass(Villager.class, villagerSearchBox);
-@@ -845,7 +_,7 @@
+@@ -843,7 +_,7 @@
                  .limit(5L)
                  .toList();
              if (nearbyVillagersThatWantAGolem.size() >= villagersNeededToAgree) {
@@ -562,7 +641,7 @@
                          EntityTypes.IRON_GOLEM,
                          EntitySpawnReason.MOB_SUMMONED,
                          level,
-@@ -854,9 +_,11 @@
+@@ -852,9 +_,11 @@
                          8,
                          6,
                          SpawnUtil.Strategy.LEGACY_IRON_GOLEM,
@@ -576,3 +655,16 @@
                      nearbyVillagers.forEach(GolemSensor::golemDetected);
                  }
              }
+@@ -876,12 +_,6 @@
+             this.gossips.add(source.getUUID(), GossipType.MINOR_NEGATIVE, 25);
+         } else if (type == ReputationEventType.VILLAGER_KILLED) {
+             this.gossips.add(source.getUUID(), GossipType.MAJOR_NEGATIVE, 25);
+-        }
+-
+-        Player tradingPlayer = this.getTradingPlayer();
+-        if (tradingPlayer != null && tradingPlayer.getUUID().equals(source.getUUID())) {
+-            this.updateSpecialPrices(tradingPlayer);
+-            this.resendOffersToTradingPlayer();
+         }
+     }
+ 

@@ -1,0 +1,38 @@
+--- a/net/minecraft/client/renderer/WorldBorderRenderer.java
++++ b/net/minecraft/client/renderer/WorldBorderRenderer.java
+@@ -30,7 +_,6 @@
+ import org.joml.Matrix4f;
+ import org.joml.Vector3f;
+ import org.joml.Vector4f;
+-import org.jspecify.annotations.Nullable;
+ 
+ @OnlyIn(Dist.CLIENT)
+ public class WorldBorderRenderer implements AutoCloseable {
+@@ -44,7 +_,7 @@
+     private double lastBorderMaxX;
+     private double lastBorderMinZ;
+     private double lastBorderMaxZ;
+-    private @Nullable AbstractTexture texture;
++    private AbstractTexture texture;
+     private final GpuBuffer worldBorderBuffer = RenderSystem.getDevice()
+         .createBuffer(() -> "World border vertex buffer", 40, 16L * DefaultVertexFormat.POSITION_TEX.getVertexSize());
+     private final RenderSystem.AutoStorageIndexBuffer indices = RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS);
+@@ -53,7 +_,8 @@
+     public WorldBorderRenderer() {
+         Minecraft minecraft = Minecraft.getInstance();
+         this.textureManager = minecraft.getTextureManager();
+-        this.textureManager.register(FORCEFIELD_LOCATION, new MipmappedTexture(FORCEFIELD_LOCATION, 4));
++        this.textureManager.registerAndLoad(FORCEFIELD_LOCATION, new MipmappedTexture(FORCEFIELD_LOCATION, 4));
++        this.texture = this.textureManager.getTexture(FORCEFIELD_LOCATION);
+     }
+ 
+     @Override
+@@ -191,7 +_,7 @@
+         RenderSystem.bindDefaultUniforms(renderPass);
+         renderPass.setUniform("DynamicTransforms", dynamicTransforms);
+         renderPass.setIndexBuffer(indexBuffer, this.indices.type());
+-        renderPass.setUniform("Sampler0", abstractTexture.getTextureView(), abstractTexture.getSampler());
++        renderPass.bindTexture("Sampler0", abstractTexture.getTextureView(), abstractTexture.getSampler());
+         renderPass.setVertexBuffer(0, this.worldBorderBuffer.slice());
+     }
+ 

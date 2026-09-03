@@ -71,7 +71,35 @@
          Entity currentOwner = this.getOwner();
          DamageSource damageSource = this.damageSources().trident(this, currentOwner == null ? this : currentOwner);
          if (this.level() instanceof ServerLevel serverLevel) {
-@@ -170,8 +_,8 @@
+@@ -127,8 +_,11 @@
+         }
+ 
+         this.dealtDamage = true;
+-        boolean wasHurt = entity.hurtOrSimulate(damageSource, dmg);
+-        if (wasHurt) {
++        if (entity.hurtOrSimulate(damageSource, dmg)) {
++            if (entity.is(EntityTypes.ENDERMAN)) {
++                return;
++            }
++
+             if (this.level() instanceof ServerLevel serverLevel) {
+                 EnchantmentHelper.doPostAttackEffectsWithItemSourceOnBreak(
+                     serverLevel, entity, damageSource, this.getWeaponItem(), weapon -> this.kill(serverLevel)
+@@ -141,10 +_,9 @@
+             }
+         }
+ 
+-        if (entity.projectileReceivesSideEffectsOnHit(wasHurt)) {
+-            this.playSound(SoundEvents.TRIDENT_HIT, 1.0F, 1.0F);
+-            this.deflect(ProjectileDeflection.REVERSE, entity, this.owner, false, new Vec3(0.02, 0.2, 0.02));
+-        }
++        this.deflect(ProjectileDeflection.REVERSE, entity, this.owner, false);
++        this.setDeltaMovement(this.getDeltaMovement().multiply(0.02, 0.2, 0.02));
++        this.playSound(SoundEvents.TRIDENT_HIT, 1.0F, 1.0F);
+     }
+ 
+     @Override
+@@ -168,8 +_,8 @@
      }
  
      @Override

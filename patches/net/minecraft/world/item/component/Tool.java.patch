@@ -1,0 +1,21 @@
+--- a/net/minecraft/world/item/component/Tool.java
++++ b/net/minecraft/world/item/component/Tool.java
+@@ -5,8 +_,8 @@
+ import java.util.List;
+ import java.util.Optional;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.network.RegistryFriendlyByteBuf;
+ import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+@@ -59,7 +_,7 @@
+     public record Rule(HolderSet<Block> blocks, Optional<Float> speed, Optional<Boolean> correctForDrops) {
+         public static final Codec<Tool.Rule> CODEC = RecordCodecBuilder.create(
+             i -> i.group(
+-                    RegistryCodecs.holderSet(Registries.BLOCK).fieldOf("blocks").forGetter(Tool.Rule::blocks),
++                    RegistryCodecs.homogeneousList(Registries.BLOCK).fieldOf("blocks").forGetter(Tool.Rule::blocks),
+                     ExtraCodecs.POSITIVE_FLOAT.optionalFieldOf("speed").forGetter(Tool.Rule::speed),
+                     Codec.BOOL.optionalFieldOf("correct_for_drops").forGetter(Tool.Rule::correctForDrops)
+                 )

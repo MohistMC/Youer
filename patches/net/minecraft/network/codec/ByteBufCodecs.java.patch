@@ -1,14 +1,82 @@
 --- a/net/minecraft/network/codec/ByteBufCodecs.java
 +++ b/net/minecraft/network/codec/ByteBufCodecs.java
-@@ -17,7 +_,6 @@
+@@ -15,13 +_,8 @@
+ import io.netty.buffer.ByteBuf;
+ import io.netty.handler.codec.DecoderException;
  import io.netty.handler.codec.EncoderException;
+-import java.security.Key;
+-import java.security.PublicKey;
+-import java.time.Instant;
  import java.util.ArrayList;
+-import java.util.BitSet;
  import java.util.Collection;
 -import java.util.Iterator;
  import java.util.List;
  import java.util.Map;
  import java.util.Optional;
-@@ -292,7 +_,13 @@
+@@ -51,8 +_,6 @@
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.tags.TagKey;
+ import net.minecraft.util.ARGB;
+-import net.minecraft.util.Crypt;
+-import net.minecraft.util.CryptException;
+ import net.minecraft.util.LenientJsonParser;
+ import net.minecraft.util.Mth;
+ import org.joml.Quaternionfc;
+@@ -172,15 +_,6 @@
+             FriendlyByteBuf.writeLongArray(output, value);
+         }
+     };
+-    StreamCodec<ByteBuf, BitSet> BIT_SET = new StreamCodec<ByteBuf, BitSet>() {
+-        public BitSet decode(ByteBuf input) {
+-            return BitSet.valueOf(FriendlyByteBuf.readByteArray(input));
+-        }
+-
+-        public void encode(ByteBuf output, BitSet value) {
+-            FriendlyByteBuf.writeByteArray(output, value.toByteArray());
+-        }
+-    };
+     StreamCodec<ByteBuf, String> STRING_UTF8 = stringUtf8(32767);
+     StreamCodec<ByteBuf, Tag> TAG = tagCodec(NbtAccounter::defaultQuota);
+     StreamCodec<ByteBuf, Tag> TRUSTED_TAG = tagCodec(NbtAccounter::unlimitedHeap);
+@@ -263,17 +_,6 @@
+             output.writeByte(ARGB.blue(value));
+         }
+     };
+-    StreamCodec<ByteBuf, Instant> INSTANT = LONG.map(Instant::ofEpochMilli, Instant::toEpochMilli);
+-    int PUBLIC_KEY_SIZE = 256;
+-    int MAX_PUBLIC_KEY_HEADER_SIZE = 256;
+-    int MAX_PUBLIC_KEY_LENGTH = 512;
+-    StreamCodec<ByteBuf, PublicKey> PUBLIC_KEY = byteArray(512).map(bytes -> {
+-        try {
+-            return Crypt.byteToPublicKey(bytes);
+-        } catch (CryptException e) {
+-            throw new DecoderException("Malformed public key bytes", e);
+-        }
+-    }, Key::getEncoded);
+ 
+     static StreamCodec<ByteBuf, byte[]> byteArray(int maxSize) {
+         return new StreamCodec<ByteBuf, byte[]>() {
+@@ -303,18 +_,6 @@
+         };
+     }
+ 
+-    static StreamCodec<ByteBuf, BitSet> fixedBitSet(int size) {
+-        return new StreamCodec<ByteBuf, BitSet>() {
+-            public BitSet decode(ByteBuf input) {
+-                return FriendlyByteBuf.readFixedBitSet(input, size);
+-            }
+-
+-            public void encode(ByteBuf output, BitSet value) {
+-                FriendlyByteBuf.writeFixedBitSet(output, value, size);
+-            }
+-        };
+-    }
+-
+     static StreamCodec<ByteBuf, Optional<Tag>> optionalTagCodec(Supplier<NbtAccounter> accounter) {
+         return new StreamCodec<ByteBuf, Optional<Tag>>() {
+             public Optional<Tag> decode(ByteBuf input) {
+@@ -330,7 +_,13 @@
      static StreamCodec<ByteBuf, Tag> tagCodec(Supplier<NbtAccounter> accounter) {
          return new StreamCodec<ByteBuf, Tag>() {
              public Tag decode(ByteBuf input) {
@@ -23,7 +91,7 @@
                  if (result == null) {
                      throw new DecoderException("Expected non-null compound tag");
                  } else {
-@@ -371,6 +_,48 @@
+@@ -409,6 +_,48 @@
          };
      }
  
@@ -72,7 +140,7 @@
      static <B extends ByteBuf, V> StreamCodec<B, Optional<V>> optional(StreamCodec<? super B, V> original) {
          return new StreamCodec<B, Optional<V>>() {
              public Optional<V> decode(B input) {
-@@ -450,42 +_,6 @@
+@@ -488,42 +_,6 @@
          return original -> collection(ArrayList::new, original, maxSize);
      }
  
@@ -115,7 +183,7 @@
      static <B extends ByteBuf, K, V, M extends Map<K, V>> StreamCodec<B, M> map(
          IntFunction<? extends M> constructor, StreamCodec<? super B, K> keyCodec, StreamCodec<? super B, V> valueCodec
      ) {
-@@ -575,7 +_,7 @@
+@@ -613,7 +_,7 @@
      }
  
      static <V> StreamCodec.CodecOperation<RegistryFriendlyByteBuf, V, V> registryFriendlyLengthPrefixed(int maxSize) {
@@ -124,7 +192,7 @@
      }
  
      static <T> StreamCodec<ByteBuf, T> idMapper(IntFunction<T> byId, ToIntFunction<T> toId) {
-@@ -601,7 +_,7 @@
+@@ -639,7 +_,7 @@
      ) {
          return new StreamCodec<RegistryFriendlyByteBuf, R>() {
              private IdMap<R> getRegistryOrThrow(RegistryFriendlyByteBuf input) {
@@ -133,7 +201,7 @@
              }
  
              public R decode(RegistryFriendlyByteBuf input) {
-@@ -631,7 +_,7 @@
+@@ -669,7 +_,7 @@
              private static final int DIRECT_HOLDER_ID = 0;
  
              private IdMap<Holder<T>> getRegistryOrThrow(RegistryFriendlyByteBuf input) {
@@ -142,7 +210,7 @@
              }
  
              public Holder<T> decode(RegistryFriendlyByteBuf input) {
-@@ -653,13 +_,38 @@
+@@ -691,13 +_,38 @@
          };
      }
  
@@ -181,7 +249,7 @@
                  if (count == -1) {
                      Registry<T> registry = input.registryAccess().lookupOrThrow(registryKey);
                      return registry.get(TagKey.create(registryKey, Identifier.STREAM_CODEC.decode(input))).orElseThrow();
-@@ -675,6 +_,15 @@
+@@ -713,6 +_,15 @@
              }
  
              public void encode(RegistryFriendlyByteBuf output, HolderSet<T> value) {

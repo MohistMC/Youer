@@ -1,0 +1,137 @@
+--- a/net/minecraft/world/level/biome/BiomeSource.java
++++ b/net/minecraft/world/level/biome/BiomeSource.java
+@@ -2,6 +_,7 @@
+ 
+ import com.google.common.base.Suppliers;
+ import com.google.common.collect.ImmutableSet;
++import com.google.common.collect.Sets;
+ import com.mojang.datafixers.util.Pair;
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.MapCodec;
+@@ -21,11 +_,9 @@
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.level.LevelReader;
+-import net.minecraft.world.level.levelgen.RandomState;
+-import net.minecraft.world.level.levelgen.densityfunction.SamplerContext;
+ import org.jspecify.annotations.Nullable;
+ 
+-public abstract class BiomeSource {
++public abstract class BiomeSource implements BiomeResolver {
+     public static final Codec<BiomeSource> CODEC = BuiltInRegistries.BIOME_SOURCE.byNameCodec().dispatchStable(BiomeSource::codec, Function.identity());
+     private final Supplier<Set<Holder<Biome>>> possibleBiomes = Suppliers.memoize(
+         () -> this.collectPossibleBiomes().distinct().collect(ImmutableSet.toImmutableSet())
+@@ -42,10 +_,36 @@
+         return this.possibleBiomes.get();
+     }
+ 
++    public Set<Holder<Biome>> getBiomesWithin(int x, int y, int z, int r, Climate.Sampler sampler) {
++        int x0 = QuartPos.fromBlock(x - r);
++        int y0 = QuartPos.fromBlock(y - r);
++        int z0 = QuartPos.fromBlock(z - r);
++        int x1 = QuartPos.fromBlock(x + r);
++        int y1 = QuartPos.fromBlock(y + r);
++        int z1 = QuartPos.fromBlock(z + r);
++        int w = x1 - x0 + 1;
++        int d = y1 - y0 + 1;
++        int h = z1 - z0 + 1;
++        Set<Holder<Biome>> biomeSet = Sets.newHashSet();
++
++        for (int row = 0; row < h; row++) {
++            for (int column = 0; column < w; column++) {
++                for (int depth = 0; depth < d; depth++) {
++                    int noiseX = x0 + column;
++                    int noiseY = y0 + depth;
++                    int noiseZ = z0 + row;
++                    biomeSet.add(this.getNoiseBiome(noiseX, noiseY, noiseZ, sampler));
++                }
++            }
++        }
++
++        return biomeSet;
++    }
++
+     public @Nullable Pair<BlockPos, Holder<Biome>> findBiomeHorizontal(
+-        int x, int y, int z, int searchRadius, Predicate<Holder<Biome>> allowed, RandomSource random, RandomState randomState
++        int x, int y, int z, int searchRadius, Predicate<Holder<Biome>> allowed, RandomSource random, Climate.Sampler sampler
+     ) {
+-        return this.findBiomeHorizontal(x, y, z, searchRadius, 1, allowed, random, false, randomState);
++        return this.findBiomeHorizontal(x, y, z, searchRadius, 1, allowed, random, false, sampler);
+     }
+ 
+     public @Nullable Pair<BlockPos, Holder<Biome>> findClosestBiome3d(
+@@ -54,7 +_,7 @@
+         int sampleResolutionHorizontal,
+         int sampleResolutionVertical,
+         Predicate<Holder<Biome>> allowed,
+-        RandomState randomState,
++        Climate.Sampler sampler,
+         LevelReader level
+     ) {
+         Set<Holder<Biome>> candidateBiomes = this.possibleBiomes().stream().filter(allowed).collect(Collectors.toUnmodifiableSet());
+@@ -62,7 +_,6 @@
+             return null;
+         }
+ 
+-        BiomeResolver resolver = this.createCachingResolver(randomState);
+         int sampleRadius = Math.floorDiv(searchRadius, sampleResolutionHorizontal);
+         int[] sampleYs = Mth.outFromOrigin(origin.getY(), level.getMinY() + 1, level.getMaxY() + 1, sampleResolutionVertical).toArray();
+ 
+@@ -74,7 +_,7 @@
+ 
+             for (int blockY : sampleYs) {
+                 int noiseY = QuartPos.fromBlock(blockY);
+-                Holder<Biome> biome = resolver.getNoiseBiome(noiseX, noiseY, noiseZ);
++                Holder<Biome> biome = this.getNoiseBiome(noiseX, noiseY, noiseZ, sampler);
+                 if (candidateBiomes.contains(biome)) {
+                     return Pair.of(new BlockPos(blockX, blockY, blockZ), biome);
+                 }
+@@ -93,13 +_,12 @@
+         Predicate<Holder<Biome>> allowed,
+         RandomSource random,
+         boolean findClosest,
+-        RandomState randomState
++        Climate.Sampler sampler
+     ) {
+         int noiseCenterX = QuartPos.fromBlock(originX);
+         int noiseCenterZ = QuartPos.fromBlock(originZ);
+         int noiseRadius = QuartPos.fromBlock(searchRadius);
+         int noiseY = QuartPos.fromBlock(originY);
+-        BiomeResolver resolver = this.createCachingResolver(randomState);
+         Pair<BlockPos, Holder<Biome>> result = null;
+         int found = 0;
+         int startRadius = findClosest ? 0 : noiseRadius;
+@@ -122,7 +_,7 @@
+ 
+                     int noiseX = noiseCenterX + x;
+                     int noiseZ = noiseCenterZ + z;
+-                    Holder<Biome> biome = resolver.getNoiseBiome(noiseX, noiseY, noiseZ);
++                    Holder<Biome> biome = this.getNoiseBiome(noiseX, noiseY, noiseZ, sampler);
+                     if (allowed.test(biome)) {
+                         if (result == null || random.nextInt(found + 1) == 0) {
+                             BlockPos resultPos = new BlockPos(QuartPos.toBlock(noiseX), originY, QuartPos.toBlock(noiseZ));
+@@ -144,22 +_,8 @@
+         return result;
+     }
+ 
+-    public final BiomeResolver createUncachedResolver(RandomState randomState) {
+-        return this.createResolver(randomState.createClimateSampler(SamplerContext.EMPTY_UNCACHED));
+-    }
+-
+-    public final BiomeResolver createCachingResolver(RandomState randomState) {
+-        SamplerContext context = SamplerContext.builder().enableCaches().build();
+-        return this.createResolver(randomState.createClimateSampler(context));
+-    }
+-
+-    public abstract BiomeResolver createResolver(Climate.Sampler sampler);
+-
+-    public BiomeResolver createResolverForChunk(
+-        Climate.Sampler sampler, int minQuartX, int minQuartY, int minQuartZ, int quartSizeX, int quartSizeY, int quartSizeZ
+-    ) {
+-        return this.createResolver(sampler);
+-    }
++    @Override
++    public abstract Holder<Biome> getNoiseBiome(final int quartX, final int quartY, final int quartZ, final Climate.Sampler sampler);
+ 
+     public void addDebugInfo(List<String> result, BlockPos feetPos, Climate.Sampler sampler) {
+     }

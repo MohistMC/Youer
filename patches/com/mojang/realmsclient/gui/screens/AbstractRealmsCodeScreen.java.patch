@@ -1,0 +1,63 @@
+--- a/com/mojang/realmsclient/gui/screens/AbstractRealmsCodeScreen.java
++++ /dev/null
+@@ -1,60 +_,0 @@
+-package com.mojang.realmsclient.gui.screens;
+-
+-import net.minecraft.client.gui.GuiGraphicsExtractor;
+-import net.minecraft.client.gui.layouts.HeaderAndFooterLayout;
+-import net.minecraft.client.gui.screens.Screen;
+-import net.minecraft.client.renderer.RenderPipelines;
+-import net.minecraft.network.chat.Component;
+-import net.minecraft.realms.RealmsScreen;
+-import net.minecraft.resources.Identifier;
+-import net.neoforged.api.distmarker.Dist;
+-import net.neoforged.api.distmarker.OnlyIn;
+-
+-@OnlyIn(Dist.CLIENT)
+-public abstract class AbstractRealmsCodeScreen extends RealmsScreen {
+-    private static final Identifier MENU_LIST_BACKGROUND = Identifier.withDefaultNamespace("textures/gui/menu_list_background.png");
+-    protected final HeaderAndFooterLayout layout = new HeaderAndFooterLayout(this);
+-
+-    protected AbstractRealmsCodeScreen(Component title) {
+-        super(title);
+-    }
+-
+-    @Override
+-    protected void repositionElements() {
+-        this.layout.arrangeElements();
+-    }
+-
+-    @Override
+-    protected void extractMenuBackground(GuiGraphicsExtractor graphics) {
+-        super.extractMenuBackground(graphics, 0, 0, this.width, this.height);
+-        if (this.shouldRenderListBackgroundAndSeparators()) {
+-            graphics.blit(
+-                RenderPipelines.GUI_TEXTURED,
+-                MENU_LIST_BACKGROUND,
+-                0,
+-                this.layout.getHeaderHeight(),
+-                0.0F,
+-                0.0F,
+-                this.width,
+-                this.layout.getContentHeight(),
+-                32,
+-                32
+-            );
+-        }
+-    }
+-
+-    @Override
+-    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+-        super.extractRenderState(graphics, mouseX, mouseY, a);
+-        if (this.shouldRenderListBackgroundAndSeparators()) {
+-            graphics.blit(RenderPipelines.GUI_TEXTURED, Screen.HEADER_SEPARATOR, 0, this.layout.getHeaderHeight() - 2, 0.0F, 0.0F, this.width, 2, 32, 2);
+-            graphics.blit(
+-                RenderPipelines.GUI_TEXTURED, Screen.FOOTER_SEPARATOR, 0, this.height - this.layout.getFooterHeight(), 0.0F, 0.0F, this.width, 2, 32, 2
+-            );
+-        }
+-    }
+-
+-    protected boolean shouldRenderListBackgroundAndSeparators() {
+-        return true;
+-    }
+-}

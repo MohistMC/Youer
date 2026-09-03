@@ -1,0 +1,54 @@
+--- a/com/mojang/renderpearl/backend/opengl/GlDebugLabel.java
++++ b/com/mojang/renderpearl/backend/opengl/GlDebugLabel.java
+@@ -29,6 +_,9 @@
+     public void applyLabel(GlProgram program) {
+     }
+ 
++    public void applyLabel(VertexArrayCache.VertexArray vertexArray) {
++    }
++
+     public void pushDebugGroup(Supplier<String> label) {
+     }
+ 
+@@ -74,7 +_,9 @@
+ 
+         @Override
+         public void applyLabel(GlShaderModule shaderModule) {
+-            KHRDebug.glObjectLabel(33505, shaderModule.getShaderId(), StringUtil.truncateStringIfNecessary(shaderModule.getLabel(), this.maxLabelLength, true));
++            KHRDebug.glObjectLabel(
++                33505, shaderModule.getShaderId(), StringUtil.truncateStringIfNecessary(shaderModule.getDebugLabel(), this.maxLabelLength, true)
++            );
+         }
+ 
+         @Override
+@@ -83,6 +_,11 @@
+         }
+ 
+         @Override
++        public void applyLabel(VertexArrayCache.VertexArray vertexArray) {
++            KHRDebug.glObjectLabel(32884, vertexArray.id, StringUtil.truncateStringIfNecessary(vertexArray.formatName, this.maxLabelLength, true));
++        }
++
++        @Override
+         public void pushDebugGroup(Supplier<String> label) {
+             KHRDebug.glPushDebugGroup(33354, 0, label.get());
+         }
+@@ -116,12 +_,17 @@
+ 
+         @Override
+         public void applyLabel(GlShaderModule shaderModule) {
+-            EXTDebugLabel.glLabelObjectEXT(35656, shaderModule.getShaderId(), StringUtil.truncateStringIfNecessary(shaderModule.getLabel(), 256, true));
++            EXTDebugLabel.glLabelObjectEXT(35656, shaderModule.getShaderId(), StringUtil.truncateStringIfNecessary(shaderModule.getDebugLabel(), 256, true));
+         }
+ 
+         @Override
+         public void applyLabel(GlProgram program) {
+             EXTDebugLabel.glLabelObjectEXT(35648, program.getProgramId(), StringUtil.truncateStringIfNecessary(program.getDebugLabel(), 256, true));
++        }
++
++        @Override
++        public void applyLabel(VertexArrayCache.VertexArray vertexArray) {
++            EXTDebugLabel.glLabelObjectEXT(32884, vertexArray.id, StringUtil.truncateStringIfNecessary(vertexArray.formatName, 256, true));
+         }
+ 
+         @Override

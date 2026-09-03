@@ -1,0 +1,60 @@
+--- a/net/minecraft/util/datafix/fixes/UnfilledBuriedTreasureMapFix.java
++++ /dev/null
+@@ -1,57 +_,0 @@
+-package net.minecraft.util.datafix.fixes;
+-
+-import com.mojang.datafixers.DSL;
+-import com.mojang.datafixers.DataFix;
+-import com.mojang.datafixers.OpticFinder;
+-import com.mojang.datafixers.TypeRewriteRule;
+-import com.mojang.datafixers.Typed;
+-import com.mojang.datafixers.schemas.Schema;
+-import com.mojang.datafixers.types.Type;
+-import com.mojang.datafixers.util.Pair;
+-import java.util.Optional;
+-import net.minecraft.util.Util;
+-import net.minecraft.util.datafix.ExtraDataFixUtils;
+-import net.minecraft.util.datafix.schemas.NamespacedSchema;
+-
+-public class UnfilledBuriedTreasureMapFix extends DataFix {
+-    private static final String NEW_TRANSLATION = "item.minecraft.buried_treasure_map";
+-    private static final String OLD_TRANSLATION = "filled_map.buried_treasure";
+-
+-    public UnfilledBuriedTreasureMapFix(Schema outputSchema) {
+-        super(outputSchema, false);
+-    }
+-
+-    @Override
+-    protected TypeRewriteRule makeRule() {
+-        Type<?> itemStackType = this.getInputSchema().getType(References.ITEM_STACK);
+-        OpticFinder<Pair<String, String>> idFinder = DSL.fieldFinder("id", DSL.named(References.ITEM_NAME.typeName(), NamespacedSchema.namespacedString()));
+-        OpticFinder<?> componentsFinder = itemStackType.findField("components");
+-        return this.fixTypeEverywhereTyped(
+-            "UnfilledBuriedTreasureMapFix",
+-            itemStackType,
+-            itemStack -> {
+-                Optional<String> id = itemStack.getOptional(idFinder).map(Pair::getSecond);
+-                return id.filter(itemId -> itemId.equals("minecraft:map")).isPresent()
+-                    ? itemStack.updateTyped(componentsFinder, UnfilledBuriedTreasureMapFix::fix)
+-                    : itemStack;
+-            }
+-        );
+-    }
+-
+-    private static <T> Typed<T> fix(Typed<T> typed) {
+-        return Util.writeAndReadTypedOrThrow(
+-            typed,
+-            typed.getType(),
+-            value -> {
+-                boolean holdsLegacyName = value.get("minecraft:item_name")
+-                    .result()
+-                    .flatMap(ExtraDataFixUtils::getPlainTranslationKey)
+-                    .filter(nameKey -> nameKey.equals("filled_map.buried_treasure"))
+-                    .isPresent();
+-                return holdsLegacyName
+-                    ? value.update("minecraft:item_name", itemName -> itemName.set("translate", itemName.createString("item.minecraft.buried_treasure_map")))
+-                    : value;
+-            }
+-        );
+-    }
+-}

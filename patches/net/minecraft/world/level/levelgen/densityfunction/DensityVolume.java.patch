@@ -1,0 +1,100 @@
+--- a/net/minecraft/world/level/levelgen/densityfunction/DensityVolume.java
++++ /dev/null
+@@ -1,97 +_,0 @@
+-package net.minecraft.world.level.levelgen.densityfunction;
+-
+-import net.minecraft.util.Mth;
+-import net.minecraft.world.level.levelgen.structure.BoundingBox;
+-
+-public record DensityVolume(int sizeX, int sizeY, int sizeZ, int minBlockX, int minBlockY, int minBlockZ, int stepBlockX, int stepBlockY, int stepBlockZ) {
+-    public static final int NO_BLOCK = -1;
+-
+-    public DensityVolume(int sizeX, int sizeY, int sizeZ, int minBlockX, int minBlockY, int minBlockZ, int stepBlockX, int stepBlockY, int stepBlockZ) {
+-        if (sizeX <= 0 || sizeY <= 0 || sizeZ <= 0) {
+-            throw new IllegalArgumentException("Size must be positive, was: " + sizeX + "x" + sizeY + "x" + sizeZ);
+-        }
+-
+-        if (stepBlockX > 0 && stepBlockY > 0 && stepBlockZ > 0) {
+-            this.sizeX = sizeX;
+-            this.sizeY = sizeY;
+-            this.sizeZ = sizeZ;
+-            this.minBlockX = minBlockX;
+-            this.minBlockY = minBlockY;
+-            this.minBlockZ = minBlockZ;
+-            this.stepBlockX = stepBlockX;
+-            this.stepBlockY = stepBlockY;
+-            this.stepBlockZ = stepBlockZ;
+-        } else {
+-            throw new IllegalArgumentException("Step must be positive, was: " + stepBlockX + "; " + stepBlockY + "; " + stepBlockZ);
+-        }
+-    }
+-
+-    public DensityVolume(int sizeX, int sizeY, int sizeZ, int minBlockX, int minBlockY, int minBlockZ) {
+-        this(sizeX, sizeY, sizeZ, minBlockX, minBlockY, minBlockZ, 1, 1, 1);
+-    }
+-
+-    public int indexUnchecked(int indexX, int indexY, int indexZ) {
+-        return indexY + (indexX + indexZ * this.sizeX) * this.sizeY;
+-    }
+-
+-    public int blockX(int x) {
+-        return this.minBlockX + x * this.stepBlockX;
+-    }
+-
+-    public int blockY(int y) {
+-        return this.minBlockY + y * this.stepBlockY;
+-    }
+-
+-    public int blockZ(int z) {
+-        return this.minBlockZ + z * this.stepBlockZ;
+-    }
+-
+-    public int maxBlockX() {
+-        return this.minBlockX + this.sizeX * this.stepBlockX - 1;
+-    }
+-
+-    public int maxBlockY() {
+-        return this.minBlockY + this.sizeY * this.stepBlockY - 1;
+-    }
+-
+-    public int maxBlockZ() {
+-        return this.minBlockZ + this.sizeZ * this.stepBlockZ - 1;
+-    }
+-
+-    public int size() {
+-        return this.sizeX * this.sizeY * this.sizeZ;
+-    }
+-
+-    public boolean intersects(BoundingBox box) {
+-        return box.intersects(this.minBlockX, this.minBlockY, this.minBlockZ, this.maxBlockX(), this.maxBlockY(), this.maxBlockZ());
+-    }
+-
+-    private boolean containsBlockRelative(int relativeX, int relativeY, int relativeZ) {
+-        return relativeX >= 0
+-            && relativeY >= 0
+-            && relativeZ >= 0
+-            && relativeX < this.sizeX * this.stepBlockX
+-            && relativeY < this.sizeY * this.stepBlockY
+-            && relativeZ < this.sizeZ * this.stepBlockZ
+-            && Math.floorMod(relativeX, this.stepBlockX) == 0
+-            && Math.floorMod(relativeY, this.stepBlockY) == 0
+-            && Math.floorMod(relativeZ, this.stepBlockZ) == 0;
+-    }
+-
+-    public int indexOfBlock(int blockX, int blockY, int blockZ) {
+-        int relativeX = blockX - this.minBlockX;
+-        int relativeY = blockY - this.minBlockY;
+-        int relativeZ = blockZ - this.minBlockZ;
+-        if (this.stepBlockX == 1 && this.stepBlockY == 1 && this.stepBlockZ == 1) {
+-            if (relativeX >= 0 && relativeY >= 0 && relativeZ >= 0 && relativeX < this.sizeX && relativeY < this.sizeY && relativeZ < this.sizeZ) {
+-                return this.indexUnchecked(relativeX, relativeY, relativeZ);
+-            }
+-        } else if (this.containsBlockRelative(relativeX, relativeY, relativeZ)) {
+-            return this.indexUnchecked(
+-                Mth.floorDiv(relativeX, this.stepBlockX), Mth.floorDiv(relativeY, this.stepBlockY), Mth.floorDiv(relativeZ, this.stepBlockZ)
+-            );
+-        }
+-
+-        return -1;
+-    }
+-}

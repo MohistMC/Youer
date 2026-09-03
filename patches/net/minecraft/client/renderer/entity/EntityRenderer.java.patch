@@ -1,0 +1,40 @@
+--- a/net/minecraft/client/renderer/entity/EntityRenderer.java
++++ b/net/minecraft/client/renderer/entity/EntityRenderer.java
+@@ -61,7 +_,7 @@
+         return entity.isOnFire() ? 15 : entity.level().getBrightness(LightLayer.BLOCK, blockPos);
+     }
+ 
+-    public boolean shouldRender(T entity, Frustum culler, double camX, double camY, double camZ, float partialTicks) {
++    public boolean shouldRender(T entity, Frustum culler, double camX, double camY, double camZ) {
+         if (!entity.shouldRender(camX, camY, camZ)) {
+             return false;
+         }
+@@ -70,7 +_,7 @@
+             return true;
+         }
+ 
+-        AABB boundingBox = this.getBoundingBoxForCulling(entity, partialTicks).inflate(0.5);
++        AABB boundingBox = this.getBoundingBoxForCulling(entity).inflate(0.5);
+         if (boundingBox.hasNaN() || boundingBox.getSize() == 0.0) {
+             boundingBox = new AABB(entity.getX() - 2.0, entity.getY() - 2.0, entity.getZ() - 2.0, entity.getX() + 2.0, entity.getY() + 2.0, entity.getZ() + 2.0);
+         }
+@@ -82,7 +_,7 @@
+         if (entity instanceof Leashable leashable) {
+             Entity leashHolder = leashable.getLeashHolder();
+             if (leashHolder != null) {
+-                AABB leasherBox = this.entityRenderDispatcher.getRenderer(leashHolder).getBoundingBoxForCulling(leashHolder, partialTicks);
++                AABB leasherBox = this.entityRenderDispatcher.getRenderer(leashHolder).getBoundingBoxForCulling(leashHolder);
+                 return culler.isVisible(leasherBox) || culler.isVisible(boundingBox.minmax(leasherBox));
+             }
+         }
+@@ -90,8 +_,8 @@
+         return false;
+     }
+ 
+-    protected AABB getBoundingBoxForCulling(T entity, float partialTicks) {
+-        return entity.getInterpolatedBoundingBox(partialTicks);
++    protected AABB getBoundingBoxForCulling(T entity) {
++        return entity.getBoundingBox();
+     }
+ 
+     protected boolean affectedByCulling(T entity) {

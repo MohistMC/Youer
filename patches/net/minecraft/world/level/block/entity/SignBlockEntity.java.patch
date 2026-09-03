@@ -156,7 +156,7 @@
          if (this.level instanceof ServerLevel serverLevel) {
              try {
                  return ComponentUtils.resolve(ResolutionContext.create(createCommandSourceStack(null, serverLevel, this.worldPosition)), component);
-@@ -123,110 +_,221 @@
+@@ -123,109 +_,220 @@
          return component;
      }
  
@@ -362,6 +362,12 @@
      }
  
 -    private static CommandSourceStack createCommandSourceStack(@Nullable Player player, ServerLevel level, BlockPos pos) {
+-        return player != null
+-            ? new CommandSourceStack(CommandSource.NULL, Vec3.atCenterOf(pos), Vec2.ZERO, level, LevelBasedPermissionSet.GAMEMASTER, level.getServer(), player)
+-            : new CommandSourceStack(
+-                CommandSource.NULL, Vec3.atCenterOf(pos), Vec2.ZERO, level, LevelBasedPermissionSet.GAMEMASTER, Component.literal("Sign"), level.getServer()
+-            );
+-    }
 +    // CraftBukkit start
 +    private final CommandSource commandSource = new CommandSource() {
 +
@@ -391,8 +397,8 @@
 +
 +    private CommandSourceStack createCommandSourceStack(@Nullable Player player, ServerLevel level, BlockPos pos) {
 +        // CraftBukkit end
-         String textName = player == null ? "Sign" : player.getPlainTextName();
-         Component displayName = player == null ? Component.literal("Sign") : player.getDisplayName();
++        String textName = player == null ? "Sign" : player.getPlainTextName();
++        Component displayName = player == null ? Component.literal("Sign") : player.getDisplayName();
 +        // Paper start - Fix commands from signs not firing command events
 +        CommandSource commandSource = level.paperConfig().misc.showSignClickCommandFailureMsgsToPlayer ? new io.papermc.paper.commands.DelegatingCommandSource(this.commandSource) {
 +            @Override
@@ -409,12 +415,11 @@
 +        } : this.commandSource;
 +        // Paper end - Fix commands from signs not firing command events
 +        // CraftBukkit - this
-         return new CommandSourceStack(
--            CommandSource.NULL, Vec3.atCenterOf(pos), Vec2.ZERO, level, LevelBasedPermissionSet.GAMEMASTER, textName, displayName, level.getServer(), player
++        return new CommandSourceStack(
 +            commandSource, Vec3.atCenterOf(pos), Vec2.ZERO, level, LevelBasedPermissionSet.GAMEMASTER, textName, displayName, level.getServer(), player
-         );
-     }
- 
++        );
++    }
++
 +    // Purpur start - Signs allow color codes
 +    public ClientboundBlockEntityDataPacket getTranslatedUpdatePacket(boolean filtered, boolean front) {
 +        try (net.minecraft.util.ProblemReporter.ScopedCollector scopedCollector = new net.minecraft.util.ProblemReporter.ScopedCollector(this.problemPath(), LOGGER)) {
@@ -435,10 +440,9 @@
 +        }
 +    }
 +    // Purpur end - Signs allow color codes
-+
+ 
      public ClientboundBlockEntityDataPacket getUpdatePacket() {
          return ClientboundBlockEntityDataPacket.create(this);
-     }
 @@ -241,12 +_,17 @@
      }
  

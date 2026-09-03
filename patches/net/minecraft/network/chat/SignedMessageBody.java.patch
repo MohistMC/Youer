@@ -1,0 +1,45 @@
+--- a/net/minecraft/network/chat/SignedMessageBody.java
++++ b/net/minecraft/network/chat/SignedMessageBody.java
+@@ -5,13 +_,11 @@
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import io.netty.buffer.ByteBuf;
+ import java.nio.charset.StandardCharsets;
+ import java.security.SignatureException;
+ import java.time.Instant;
+ import java.util.Optional;
+-import net.minecraft.network.codec.ByteBufCodecs;
+-import net.minecraft.network.codec.StreamCodec;
++import net.minecraft.network.FriendlyByteBuf;
+ import net.minecraft.util.ExtraCodecs;
+ import net.minecraft.util.SignatureUpdater;
+ 
+@@ -44,17 +_,16 @@
+     }
+ 
+     public record Packed(String content, Instant timeStamp, long salt, LastSeenMessages.Packed lastSeen) {
+-        public static final StreamCodec<ByteBuf, SignedMessageBody.Packed> STREAM_CODEC = StreamCodec.composite(
+-            ByteBufCodecs.stringUtf8(256),
+-            SignedMessageBody.Packed::content,
+-            ByteBufCodecs.INSTANT,
+-            SignedMessageBody.Packed::timeStamp,
+-            ByteBufCodecs.LONG,
+-            SignedMessageBody.Packed::salt,
+-            LastSeenMessages.Packed.STREAM_CODEC,
+-            SignedMessageBody.Packed::lastSeen,
+-            SignedMessageBody.Packed::new
+-        );
++        public Packed(FriendlyByteBuf input) {
++            this(input.readUtf(256), input.readInstant(), input.readLong(), new LastSeenMessages.Packed(input));
++        }
++
++        public void write(FriendlyByteBuf output) {
++            output.writeUtf(this.content, 256);
++            output.writeInstant(this.timeStamp);
++            output.writeLong(this.salt);
++            this.lastSeen.write(output);
++        }
+ 
+         public Optional<SignedMessageBody> unpack(MessageSignatureCache cache) {
+             return this.lastSeen.unpack(cache).map(lastSeen -> new SignedMessageBody(this.content, this.timeStamp, this.salt, lastSeen));

@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/chunk/ChunkAccess.java
 +++ b/net/minecraft/world/level/chunk/ChunkAccess.java
-@@ -29,7 +_,6 @@
+@@ -16,6 +_,7 @@
+ import java.util.Set;
+ import java.util.Map.Entry;
+ import java.util.function.BiConsumer;
++import java.util.function.Function;
+ import java.util.function.Predicate;
+ import java.util.function.Supplier;
+ import net.minecraft.CrashReport;
+@@ -28,7 +_,6 @@
  import net.minecraft.core.QuartPos;
  import net.minecraft.core.SectionPos;
  import net.minecraft.nbt.CompoundTag;
@@ -8,7 +16,13 @@
  import net.minecraft.util.Mth;
  import net.minecraft.util.ProblemReporter;
  import net.minecraft.world.entity.Entity;
-@@ -43,8 +_,6 @@
+@@ -36,16 +_,17 @@
+ import net.minecraft.world.level.LevelHeightAccessor;
+ import net.minecraft.world.level.biome.Biome;
+ import net.minecraft.world.level.biome.BiomeGenerationSettings;
++import net.minecraft.world.level.biome.BiomeManager;
+ import net.minecraft.world.level.biome.BiomeResolver;
++import net.minecraft.world.level.biome.Climate;
  import net.minecraft.world.level.block.Block;
  import net.minecraft.world.level.block.entity.BlockEntity;
  import net.minecraft.world.level.block.state.BlockState;
@@ -17,11 +31,16 @@
  import net.minecraft.world.level.chunk.status.ChunkStatus;
  import net.minecraft.world.level.gameevent.GameEventListenerRegistry;
  import net.minecraft.world.level.levelgen.BelowZeroRetrogen;
-@@ -62,14 +_,14 @@
+ import net.minecraft.world.level.levelgen.Heightmap;
++import net.minecraft.world.level.levelgen.NoiseChunk;
+ import net.minecraft.world.level.levelgen.blending.BlendingData;
+ import net.minecraft.world.level.levelgen.structure.Structure;
+ import net.minecraft.world.level.levelgen.structure.StructureStart;
+@@ -58,27 +_,83 @@
  
  import net.neoforged.neoforge.attachment.IAttachmentHolder;
  
--public abstract class ChunkAccess implements LightChunk, StructureAccess, BiomeManager.NoiseBiomeSource, IAttachmentHolder {
+-public abstract class ChunkAccess implements LightChunk, StructureAccess, BiomeResolver, IAttachmentHolder {
 +public abstract class ChunkAccess implements LightChunk, StructureAccess, BiomeManager.NoiseBiomeSource, IAttachmentHolder, ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk { // Paper - rewrite chunk system
      public static final int NO_FILLED_SECTION = -1;
      private static final Logger LOGGER = LogUtils.getLogger();
@@ -34,14 +53,15 @@
      private long inhabitedTime;
      @Deprecated
      private @Nullable BiomeGenerationSettings carverBiomeSettings;
-@@ -77,13 +_,68 @@
++    protected @Nullable NoiseChunk noiseChunk;
      protected final UpgradeData upgradeData;
      protected final @Nullable BlendingData blendingData;
      public final Map<Heightmap.Types, Heightmap> heightmaps = Maps.newEnumMap(Heightmap.Types.class);
 -    protected ChunkSkyLightSources skyLightSources;
 +    // Paper - rewrite chunk system
      private final Map<Structure, StructureStart> structureStarts = Maps.newHashMap();
-     private final Map<Structure, LongSet> structuresRefences = Maps.newHashMap();
+-    private final Map<Structure, LongSet> structureReferences = Maps.newHashMap();
++    private final Map<Structure, LongSet> structuresRefences = Maps.newHashMap();
      protected final Map<BlockPos, CompoundTag> pendingBlockEntities = Maps.newHashMap();
      public final Map<BlockPos, BlockEntity> blockEntities = new Object2ObjectOpenHashMap<>();
      protected final LevelHeightAccessor levelHeightAccessor;
@@ -104,7 +124,7 @@
  
      public ChunkAccess(
          ChunkPos chunkPos,
-@@ -94,14 +_,15 @@
+@@ -89,14 +_,15 @@
          LevelChunkSection @Nullable [] sections,
          @Nullable BlendingData blendingData
      ) {
@@ -122,7 +142,7 @@
          if (sections != null) {
              if (this.sections.length == sections.length) {
                  System.arraycopy(sections, 0, this.sections, 0, this.sections.length);
-@@ -110,13 +_,23 @@
+@@ -105,13 +_,23 @@
              }
          }
  
@@ -149,7 +169,7 @@
              }
          }
      }
-@@ -125,6 +_,8 @@
+@@ -120,6 +_,8 @@
          return GameEventListenerRegistry.NOOP;
      }
  
@@ -158,7 +178,37 @@
      public @Nullable BlockState setBlockState(BlockPos pos, BlockState state) {
          return this.setBlockState(pos, state, 3);
      }
-@@ -271,6 +_,7 @@
+@@ -220,24 +_,24 @@
+ 
+     @Override
+     public LongSet getReferencesForStructure(Structure structure) {
+-        return this.structureReferences.getOrDefault(structure, EMPTY_REFERENCE_SET);
++        return this.structuresRefences.getOrDefault(structure, EMPTY_REFERENCE_SET);
+     }
+ 
+     @Override
+     public void addReferenceForStructure(Structure structure, long reference) {
+-        this.structureReferences.computeIfAbsent(structure, k -> new LongOpenHashSet()).add(reference);
++        this.structuresRefences.computeIfAbsent(structure, k -> new LongOpenHashSet()).add(reference);
+         this.markUnsaved();
+     }
+ 
+     @Override
+     public Map<Structure, LongSet> getAllReferences() {
+-        return Collections.unmodifiableMap(this.structureReferences);
++        return Collections.unmodifiableMap(this.structuresRefences);
+     }
+ 
+     @Override
+     public void setAllReferences(Map<Structure, LongSet> data) {
+-        this.structureReferences.clear();
+-        this.structureReferences.putAll(data);
++        this.structuresRefences.clear();
++        this.structuresRefences.putAll(data);
+         this.markUnsaved();
+     }
+ 
+@@ -266,6 +_,7 @@
      public boolean tryMarkSaved() {
          if (this.unsaved) {
              this.unsaved = false;
@@ -166,7 +216,7 @@
              return true;
          } else {
              return false;
-@@ -278,7 +_,7 @@
+@@ -273,7 +_,7 @@
      }
  
      public boolean isUnsaved() {
@@ -175,7 +225,7 @@
      }
  
      public abstract ChunkStatus getPersistedStatus();
-@@ -323,21 +_,32 @@
+@@ -318,21 +_,32 @@
  
      @Override
      public final void findBlockLightSources(BiConsumer<BlockPos, BlockState> consumer) {
@@ -215,7 +265,22 @@
              }
          }
      }
-@@ -430,19 +_,40 @@
+@@ -406,6 +_,14 @@
+         return this.levelHeightAccessor.getHeight();
+     }
+ 
++    public NoiseChunk getOrCreateNoiseChunk(Function<ChunkAccess, NoiseChunk> factory) {
++        if (this.noiseChunk == null) {
++            this.noiseChunk = factory.apply(this);
++        }
++
++        return this.noiseChunk;
++    }
++
+     @Deprecated
+     public BiomeGenerationSettings carverBiome(Supplier<BiomeGenerationSettings> source) {
+         if (this.carverBiomeSettings == null) {
+@@ -417,21 +_,42 @@
  
      @Override
      public Holder<Biome> getNoiseBiome(int quartX, int quartY, int quartZ) {
@@ -258,9 +323,26 @@
      }
 +    // CraftBukkit end
  
-     public void fillBiomesFromNoise(BiomeResolver biomeResolver, Climate.Sampler sampler) {
+-    public void fillBiomesFromNoise(BiomeResolver biomeResolver) {
++    public void fillBiomesFromNoise(BiomeResolver biomeResolver, Climate.Sampler sampler) {
          ChunkPos pos = this.getPos();
-@@ -474,13 +_,90 @@
+         int quartMinX = QuartPos.fromBlock(pos.getMinBlockX());
+         int quartMinZ = QuartPos.fromBlock(pos.getMinBlockZ());
+@@ -440,8 +_,12 @@
+         for (int sectionY = heightAccessor.getMinSectionY(); sectionY <= heightAccessor.getMaxSectionY(); sectionY++) {
+             LevelChunkSection section = this.getSection(this.getSectionIndexFromSectionY(sectionY));
+             int quartMinY = QuartPos.fromSection(sectionY);
+-            section.fillBiomesFromNoise(biomeResolver, quartMinX, quartMinY, quartMinZ);
++            section.fillBiomesFromNoise(biomeResolver, sampler, quartMinX, quartMinY, quartMinZ);
+         }
++    }
++
++    public boolean hasAnyStructureReferences() {
++        return !this.getAllReferences().isEmpty();
+     }
+ 
+     public @Nullable BelowZeroRetrogen getBelowZeroRetrogen() {
+@@ -457,13 +_,90 @@
      }
  
      public void initializeLightSources() {

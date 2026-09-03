@@ -16,7 +16,7 @@
  import net.minecraft.world.level.pathfinder.PathComputationType;
  import net.minecraft.world.phys.shapes.CollisionContext;
  import net.minecraft.world.phys.shapes.VoxelShape;
-@@ -89,37 +_,78 @@
+@@ -89,32 +_,78 @@
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
          int moisture = state.getValue(MOISTURE);
@@ -38,15 +38,10 @@
      @Override
      public void fallOn(Level level, BlockState state, BlockPos pos, Entity entity, double fallDistance) {
 -        if (level instanceof ServerLevel serverLevel && level.getRandom().nextFloat() < fallDistance - 0.5 && entity instanceof LivingEntity) {
--            if (entity instanceof Player player) {
--                if (level.getServer().isUnderSpawnProtection(serverLevel, pos, player)) {
--                    return;
--                }
--            } else if (!serverLevel.getGameRules().get(GameRules.MOB_GRIEFING)) {
--                return;
--            }
--
--            if (entity.getBbWidth() * entity.getBbWidth() * entity.getBbHeight() > 0.512F) {
+-            boolean canTrample = entity instanceof Player player
+-                ? !level.getServer().isUnderSpawnProtection(serverLevel, pos, player)
+-                : serverLevel.getGameRules().get(GameRules.MOB_GRIEFING);
+-            if (canTrample && entity.getBbWidth() * entity.getBbWidth() * entity.getBbHeight() > 0.512F) {
 -                this.turnToBaseBlock(entity, state, level, pos);
 -            }
 +        super.fallOn(level, state, pos, entity, fallDistance); // CraftBukkit - moved here as game rules / events shouldn't affect fall damage.
@@ -110,7 +105,7 @@
          BlockState newState = pushEntitiesUp(state, this.baseBlock.defaultBlockState(), level, pos);
          level.setBlockAndUpdate(pos, newState);
          level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(sourceEntity, newState));
-@@ -130,7 +_,27 @@
+@@ -125,7 +_,27 @@
      }
  
      private static boolean isNearWater(LevelReader level, BlockPos pos) {

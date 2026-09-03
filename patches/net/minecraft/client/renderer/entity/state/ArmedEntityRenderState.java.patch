@@ -1,0 +1,59 @@
+--- a/net/minecraft/client/renderer/entity/state/ArmedEntityRenderState.java
++++ b/net/minecraft/client/renderer/entity/state/ArmedEntityRenderState.java
+@@ -3,25 +_,27 @@
+ import net.minecraft.client.model.HumanoidModel;
+ import net.minecraft.client.renderer.item.ItemModelResolver;
+ import net.minecraft.client.renderer.item.ItemStackRenderState;
++import net.minecraft.world.InteractionHand;
+ import net.minecraft.world.entity.HumanoidArm;
+ import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.item.ItemDisplayContext;
+ import net.minecraft.world.item.ItemStack;
++import net.minecraft.world.item.SwingAnimationType;
+ import net.neoforged.api.distmarker.Dist;
+ import net.neoforged.api.distmarker.OnlyIn;
+-import org.jspecify.annotations.Nullable;
+ 
+ @OnlyIn(Dist.CLIENT)
+ public class ArmedEntityRenderState extends LivingEntityRenderState {
+     public HumanoidArm mainArm = HumanoidArm.RIGHT;
++    public HumanoidArm attackArm = HumanoidArm.RIGHT;
+     public HumanoidModel.ArmPose rightArmPose = HumanoidModel.ArmPose.EMPTY;
+     public final ItemStackRenderState rightHandItemState = new ItemStackRenderState();
+     public ItemStack rightHandItemStack = ItemStack.EMPTY;
+     public HumanoidModel.ArmPose leftArmPose = HumanoidModel.ArmPose.EMPTY;
+     public final ItemStackRenderState leftHandItemState = new ItemStackRenderState();
+     public ItemStack leftHandItemStack = ItemStack.EMPTY;
+-    public LivingEntity.@Nullable SwingDescription currentSwing;
+-    public float swingAnimation;
++    public SwingAnimationType swingAnimationType = SwingAnimationType.WHACK;
++    public float attackTime;
+ 
+     public ItemStackRenderState getMainHandItemState() {
+         return this.mainArm == HumanoidArm.RIGHT ? this.rightHandItemState : this.leftHandItemState;
+@@ -35,21 +_,16 @@
+         return arm == HumanoidArm.RIGHT ? this.rightHandItemStack : this.leftHandItemStack;
+     }
+ 
+-    public HumanoidModel.ArmPose getArmPose(HumanoidArm arm) {
+-        return switch (arm) {
+-            case LEFT -> this.leftArmPose;
+-            case RIGHT -> this.rightArmPose;
+-        };
+-    }
+-
+     public float ticksUsingItem(HumanoidArm arm) {
+         return 0.0F;
+     }
+ 
+     public static void extractArmedEntityRenderState(LivingEntity entity, ArmedEntityRenderState state, ItemModelResolver itemModelResolver, float partialTicks) {
+         state.mainArm = entity.getMainArm();
+-        state.currentSwing = entity.getCurrentSwing();
+-        state.swingAnimation = entity.getSwingAnimation(partialTicks);
++        state.attackArm = entity.swingingArm != InteractionHand.OFF_HAND ? state.mainArm : state.mainArm.getOpposite();
++        ItemStack itemStack = entity.getItemHeldByArm(state.attackArm);
++        state.swingAnimationType = itemStack.getSwingAnimation().type();
++        state.attackTime = entity.getAttackAnim(partialTicks);
+         itemModelResolver.updateForLiving(
+             state.rightHandItemState, entity.getItemHeldByArm(HumanoidArm.RIGHT), ItemDisplayContext.THIRD_PERSON_RIGHT_HAND, entity
+         );

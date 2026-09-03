@@ -108,7 +108,7 @@
          }
      }
  
-@@ -183,6 +_,35 @@
+@@ -183,13 +_,51 @@
          return book;
      }
  
@@ -142,20 +142,30 @@
 +    // CraftBukkit end
 +
      private CommandSourceStack createCommandSourceStack(@Nullable Player player, ServerLevel level) {
-         String textName;
-         Component displayName;
-@@ -195,8 +_,9 @@
-         }
- 
++        String textName;
++        Component displayName;
++        if (player == null) {
++            textName = "Lectern";
++            displayName = Component.literal("Lectern");
++        } else {
++            textName = player.getPlainTextName();
++            displayName = player.getDisplayName();
++        }
++
          Vec3 pos = Vec3.atCenterOf(this.worldPosition);
+-        return player != null
+-            ? new CommandSourceStack(CommandSource.NULL, pos, Vec2.ZERO, level, LevelBasedPermissionSet.GAMEMASTER, level.getServer(), player)
+-            : new CommandSourceStack(
+-                CommandSource.NULL, pos, Vec2.ZERO, level, LevelBasedPermissionSet.GAMEMASTER, Component.literal("Lectern"), level.getServer()
+-            );
 +        // CraftBukkit - commandSource
-         return new CommandSourceStack(
--            CommandSource.NULL, pos, Vec2.ZERO, level, LevelBasedPermissionSet.GAMEMASTER, textName, displayName, level.getServer(), player
++        return new CommandSourceStack(
 +            commandSource, pos, Vec2.ZERO, level, LevelBasedPermissionSet.GAMEMASTER, textName, displayName, level.getServer(), player
-         );
++        );
      }
  
-@@ -227,6 +_,7 @@
+     @Override
+@@ -219,6 +_,7 @@
          if (state.getValue(LecternBlock.HAS_BOOK) && this.level != null) {
              Direction direction = state.getValue(LecternBlock.FACING);
              ItemStack book = this.getBook().copy();
@@ -163,7 +173,7 @@
              float xo = 0.25F * direction.getStepX();
              float zo = 0.25F * direction.getStepZ();
              ItemEntity entity = new ItemEntity(this.level, pos.getX() + 0.5 + xo, pos.getY() + 1, pos.getZ() + 0.5 + zo, book);
-@@ -237,7 +_,7 @@
+@@ -229,7 +_,7 @@
  
      @Override
      public AbstractContainerMenu createMenu(int containerId, Inventory inventory, Player player) {

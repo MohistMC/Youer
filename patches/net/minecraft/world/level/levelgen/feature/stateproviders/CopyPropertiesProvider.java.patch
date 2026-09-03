@@ -1,0 +1,32 @@
+--- a/net/minecraft/world/level/levelgen/feature/stateproviders/CopyPropertiesProvider.java
++++ b/net/minecraft/world/level/levelgen/feature/stateproviders/CopyPropertiesProvider.java
+@@ -3,19 +_,18 @@
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import net.minecraft.core.BlockPos;
+-import net.minecraft.core.Holder;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.level.LevelAccessor;
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.state.BlockState;
+ 
+-public record CopyPropertiesProvider(Holder<BlockStateProvider> source) implements BlockStateProvider {
++public record CopyPropertiesProvider(BlockStateProvider source) implements BlockStateProvider {
+     public static final MapCodec<CopyPropertiesProvider> CODEC = RecordCodecBuilder.mapCodec(
+         i -> i.group(BlockStateProvider.CODEC.fieldOf("source").forGetter(CopyPropertiesProvider::source)).apply(i, CopyPropertiesProvider::new)
+     );
+ 
+     public CopyPropertiesProvider(Block block) {
+-        this(BlockStateProvider.holderOf(block));
++        this(BlockStateProvider.simple(block.defaultBlockState()));
+     }
+ 
+     @Override
+@@ -25,6 +_,6 @@
+ 
+     @Override
+     public BlockState getState(LevelAccessor level, RandomSource random, BlockPos pos) {
+-        return this.source.value().getState(level, random, pos).withPropertiesOf(level.getBlockState(pos));
++        return this.source.getState(level, random, pos).withPropertiesOf(level.getBlockState(pos));
+     }
+ }

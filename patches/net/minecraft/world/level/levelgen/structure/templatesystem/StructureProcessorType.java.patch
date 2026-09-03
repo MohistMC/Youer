@@ -1,0 +1,16 @@
+--- a/net/minecraft/world/level/levelgen/structure/templatesystem/StructureProcessorType.java
++++ b/net/minecraft/world/level/levelgen/structure/templatesystem/StructureProcessorType.java
+@@ -4,11 +_,11 @@
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
++import net.minecraft.resources.RegistryFileCodec;
+ 
+ public interface StructureProcessorType {
+     Codec<StructureProcessor> SINGLE_CODEC = BuiltInRegistries.STRUCTURE_PROCESSOR.byNameCodec().dispatch("processor_type", StructureProcessor::codec, c -> c);
+     Codec<StructureProcessorList> LIST_OBJECT_CODEC = SINGLE_CODEC.listOf().xmap(StructureProcessorList::new, StructureProcessorList::list);
+     Codec<StructureProcessorList> DIRECT_CODEC = Codec.withAlternative(LIST_OBJECT_CODEC.fieldOf("processors").codec(), LIST_OBJECT_CODEC);
+-    Codec<Holder<StructureProcessorList>> LIST_CODEC = RegistryCodecs.holder(Registries.PROCESSOR_LIST, DIRECT_CODEC);
++    Codec<Holder<StructureProcessorList>> LIST_CODEC = RegistryFileCodec.create(Registries.PROCESSOR_LIST, DIRECT_CODEC);
+ }

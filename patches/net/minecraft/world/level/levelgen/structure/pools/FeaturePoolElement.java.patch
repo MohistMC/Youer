@@ -1,0 +1,58 @@
+--- a/net/minecraft/world/level/levelgen/structure/pools/FeaturePoolElement.java
++++ b/net/minecraft/world/level/levelgen/structure/pools/FeaturePoolElement.java
+@@ -9,6 +_,8 @@
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.Vec3i;
+ import net.minecraft.data.worldgen.Pools;
++import net.minecraft.nbt.CompoundTag;
++import net.minecraft.resources.Identifier;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.level.StructureManager;
+ import net.minecraft.world.level.WorldGenLevel;
+@@ -27,11 +_,24 @@
+     public static final MapCodec<FeaturePoolElement> CODEC = RecordCodecBuilder.mapCodec(
+         i -> i.group(PlacedFeature.CODEC.fieldOf("feature").forGetter(e -> e.feature), projectionCodec()).apply(i, FeaturePoolElement::new)
+     );
++    private static final Identifier DEFAULT_JIGSAW_NAME = Identifier.withDefaultNamespace("bottom");
+     private final Holder<PlacedFeature> feature;
++    private final CompoundTag defaultJigsawNBT;
+ 
+     protected FeaturePoolElement(Holder<PlacedFeature> feature, StructureTemplatePool.Projection projection) {
+         super(projection);
+         this.feature = feature;
++        this.defaultJigsawNBT = this.fillDefaultJigsawNBT();
++    }
++
++    private CompoundTag fillDefaultJigsawNBT() {
++        CompoundTag tag = new CompoundTag();
++        tag.store("name", Identifier.CODEC, DEFAULT_JIGSAW_NAME);
++        tag.putString("final_state", "minecraft:air");
++        tag.store("pool", JigsawBlockEntity.POOL_CODEC, Pools.EMPTY);
++        tag.store("target", Identifier.CODEC, JigsawBlockEntity.EMPTY_ID);
++        tag.store("joint", JigsawBlockEntity.JointType.CODEC, JigsawBlockEntity.JointType.ROLLABLE);
++        return tag;
+     }
+ 
+     @Override
+@@ -44,15 +_,12 @@
+         StructureTemplateManager structureTemplateManager, BlockPos position, Rotation rotation, RandomSource random
+     ) {
+         return List.of(
+-            new StructureTemplate.JigsawBlockInfo(
+-                position,
+-                Blocks.JIGSAW.defaultBlockState().setValue(JigsawBlock.ORIENTATION, FrontAndTop.fromFrontAndTop(Direction.DOWN, Direction.SOUTH)),
+-                JigsawBlockEntity.JointType.ROLLABLE,
+-                null,
+-                Pools.EMPTY,
+-                JigsawBlockEntity.EMPTY_ID,
+-                0,
+-                0
++            StructureTemplate.JigsawBlockInfo.of(
++                new StructureTemplate.StructureBlockInfo(
++                    position,
++                    Blocks.JIGSAW.defaultBlockState().setValue(JigsawBlock.ORIENTATION, FrontAndTop.fromFrontAndTop(Direction.DOWN, Direction.SOUTH)),
++                    this.defaultJigsawNBT
++                )
+             )
+         );
+     }

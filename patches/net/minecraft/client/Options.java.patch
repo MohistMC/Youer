@@ -1,0 +1,99 @@
+--- a/net/minecraft/client/Options.java
++++ b/net/minecraft/client/Options.java
+@@ -10,7 +_,6 @@
+ import com.google.gson.JsonElement;
+ import com.google.gson.reflect.TypeToken;
+ import com.mojang.blaze3d.platform.InputConstants;
+-import com.mojang.blaze3d.platform.MacosUtil;
+ import com.mojang.blaze3d.platform.Window;
+ import com.mojang.blaze3d.systems.RenderSystem;
+ import com.mojang.datafixers.util.Pair;
+@@ -223,7 +_,7 @@
+     private final OptionInstance<Boolean> vignette = OptionInstance.createBoolean(
+         "options.vignette", OptionInstance.cachedConstantTooltip(GRAPHICS_TOOLTIP_VIGNETTE), true
+     );
+-    private static final Component GRAPHICS_TOOLTIP_IMPROVED_TRANSPARENCY = Component.translatable("options.improvedTransparency.oit.tooltip");
++    private static final Component GRAPHICS_TOOLTIP_IMPROVED_TRANSPARENCY = Component.translatable("options.improvedTransparency.tooltip");
+     private final OptionInstance<Boolean> improvedTransparency = OptionInstance.createBoolean(
+         "options.improvedTransparency", OptionInstance.cachedConstantTooltip(GRAPHICS_TOOLTIP_IMPROVED_TRANSPARENCY), false, value -> {
+             operateOnLevelExtractor(LevelExtractor::allChanged);
+@@ -488,22 +_,6 @@
+             }
+         }
+     );
+-    private static final Component QUIT_SHORTCUTS_TOOLTIP = Component.translatable("options.quitShortcuts.tooltip");
+-    private final OptionInstance<Boolean> quitShortcuts = OptionInstance.createBoolean(
+-        "options.quitShortcuts", OptionInstance.cachedConstantTooltip(QUIT_SHORTCUTS_TOOLTIP), true, value -> {
+-            Window window = Minecraft.getInstance().getWindow();
+-            if (window != null) {
+-                window.setQuitShortcuts(value);
+-            }
+-        }
+-    );
+-    private static final Component CTRL_CLICK_EMULATES_RIGHT_CLICK_TOOLTIP = Component.translatable("options.ctrlClickEmulatesRightClick.tooltip");
+-    private final OptionInstance<Boolean> ctrlClickEmulatesRightClick = OptionInstance.createBoolean(
+-        "options.ctrlClickEmulatesRightClick",
+-        OptionInstance.cachedConstantTooltip(CTRL_CLICK_EMULATES_RIGHT_CLICK_TOOLTIP),
+-        false,
+-        MacosUtil::setCtrlClickEmulatesRightClick
+-    );
+     public int glDebugVerbosity = 1;
+     private final OptionInstance<Boolean> autoJump = OptionInstance.createBoolean("options.autoJump", false);
+     private static final Component ACCESSIBILITY_TOOLTIP_ROTATE_WITH_MINECART = Component.translatable("options.rotateWithMinecart.tooltip");
+@@ -598,13 +_,6 @@
+         false,
+         value -> Minecraft.getInstance().getWindow().setExclusiveFullscreen(value)
+     );
+-    private static final Component MAC_FULLSCREEN_MENU_VISIBILITY_TOOLTIP = Component.translatable("options.macFullscreenMenuVisibility.tooltip");
+-    private final OptionInstance<Boolean> macFullscreenMenuVisibility = OptionInstance.createBoolean(
+-        "options.macFullscreenMenuVisibility",
+-        OptionInstance.cachedConstantTooltip(MAC_FULLSCREEN_MENU_VISIBILITY_TOOLTIP),
+-        false,
+-        MacosUtil::setFullscreenMenuVisibility
+-    );
+     private final OptionInstance<Boolean> bobView = OptionInstance.createBoolean("options.viewBobbing", true);
+     private static final Component KEY_TOGGLE = Component.translatable("options.key.toggle");
+     private static final Component KEY_HOLD = Component.translatable("options.key.hold");
+@@ -1242,14 +_,6 @@
+         return this.allowCursorChanges;
+     }
+ 
+-    public OptionInstance<Boolean> quitShortcuts() {
+-        return this.quitShortcuts;
+-    }
+-
+-    public OptionInstance<Boolean> ctrlClickEmulatesRightClick() {
+-        return this.ctrlClickEmulatesRightClick;
+-    }
+-
+     public OptionInstance<Boolean> autoJump() {
+         return this.autoJump;
+     }
+@@ -1387,10 +_,6 @@
+         return this.exclusiveFullscreen;
+     }
+ 
+-    public OptionInstance<Boolean> macFullscreenMenuVisibility() {
+-        return this.macFullscreenMenuVisibility;
+-    }
+-
+     public OptionInstance<Boolean> bobView() {
+         return this.bobView;
+     }
+@@ -1565,7 +_,6 @@
+         access.process("prioritizeChunkUpdates", this.prioritizeChunkUpdates);
+         access.process("fullscreen", this.fullscreen);
+         access.process("exclusiveFullscreen", this.exclusiveFullscreen);
+-        access.process("macFullscreenMenuVisibility", this.macFullscreenMenuVisibility);
+         access.process("gamma", this.gamma);
+         access.process("guiScale", this.guiScale);
+         access.process("debugGuiScale", this.debugGuiScale);
+@@ -1643,8 +_,6 @@
+         this.tutorialStep = access.process("tutorialStep", this.tutorialStep, TutorialSteps::getByName, TutorialSteps::getName);
+         access.process("mouseWheelSensitivity", this.mouseWheelSensitivity);
+         access.process("allowCursorChanges", this.allowCursorChanges);
+-        access.process("quitShortcuts", this.quitShortcuts);
+-        access.process("ctrlClickEmulatesRightClick", this.ctrlClickEmulatesRightClick);
+         this.glDebugVerbosity = access.process("glDebugVerbosity", this.glDebugVerbosity);
+         this.skipMultiplayerWarning = access.process("skipMultiplayerWarning", this.skipMultiplayerWarning);
+         access.process("hideMatchedNames", this.hideMatchedNames);

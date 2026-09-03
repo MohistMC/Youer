@@ -1,6 +1,41 @@
 --- a/net/minecraft/world/item/enchantment/Enchantment.java
 +++ b/net/minecraft/world/item/enchantment/Enchantment.java
-@@ -119,6 +_,10 @@
+@@ -14,10 +_,10 @@
+ import net.minecraft.ChatFormatting;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.component.DataComponentMap;
+ import net.minecraft.core.component.DataComponentType;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.network.RegistryFriendlyByteBuf;
+ import net.minecraft.network.chat.CommonComponents;
+ import net.minecraft.network.chat.Component;
+@@ -28,6 +_,7 @@
+ import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.resources.Identifier;
++import net.minecraft.resources.RegistryFixedCodec;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.tags.EnchantmentTags;
+ import net.minecraft.util.ExtraCodecs;
+@@ -62,12 +_,12 @@
+         i -> i.group(
+                 ComponentSerialization.CODEC.fieldOf("description").forGetter(Enchantment::description),
+                 Enchantment.EnchantmentDefinition.CODEC.forGetter(Enchantment::definition),
+-                RegistryCodecs.holderSet(Registries.ENCHANTMENT).optionalFieldOf("exclusive_set", HolderSet.empty()).forGetter(Enchantment::exclusiveSet),
++                RegistryCodecs.homogeneousList(Registries.ENCHANTMENT).optionalFieldOf("exclusive_set", HolderSet.empty()).forGetter(Enchantment::exclusiveSet),
+                 EnchantmentEffectComponents.CODEC.optionalFieldOf("effects", DataComponentMap.EMPTY).forGetter(Enchantment::effects)
+             )
+             .apply(i, Enchantment::new)
+     );
+-    public static final Codec<Holder<Enchantment>> CODEC = RegistryCodecs.holder(Registries.ENCHANTMENT);
++    public static final Codec<Holder<Enchantment>> CODEC = RegistryFixedCodec.create(Registries.ENCHANTMENT);
+     public static final StreamCodec<RegistryFriendlyByteBuf, Holder<Enchantment>> STREAM_CODEC = ByteBufCodecs.holderRegistry(Registries.ENCHANTMENT);
+ 
+     public static Enchantment.Cost constantCost(int base) {
+@@ -118,6 +_,10 @@
          return itemStacks;
      }
  
@@ -11,7 +46,7 @@
      public HolderSet<Item> getSupportedItems() {
          return this.definition.supportedItems();
      }
-@@ -127,10 +_,20 @@
+@@ -126,10 +_,20 @@
          return this.definition.slots().stream().anyMatch(group -> group.test(slot));
      }
  
@@ -32,7 +67,7 @@
      public boolean isSupportedItem(ItemStack item) {
          return item.is(this.definition.supportedItems);
      }
-@@ -183,6 +_,10 @@
+@@ -182,6 +_,10 @@
          return result;
      }
  
@@ -43,7 +78,7 @@
      public boolean canEnchant(ItemStack itemStack) {
          return this.definition.supportedItems().contains(itemStack.typeHolder());
      }
-@@ -312,7 +_,21 @@
+@@ -311,7 +_,21 @@
          applyEffects(
              this.getEffects(EnchantmentEffectComponents.POST_PIERCING_ATTACK),
              entityContext(serverLevel, enchantmentLevel, user, user.position()),
@@ -66,7 +101,7 @@
          );
      }
  
-@@ -522,12 +_,26 @@
+@@ -521,12 +_,26 @@
          return new Enchantment.Builder(definition);
      }
  
@@ -93,7 +128,7 @@
          public Builder(Enchantment.EnchantmentDefinition definition) {
              this.definition = definition;
          }
-@@ -538,7 +_,7 @@
+@@ -537,7 +_,7 @@
          }
  
          public <E> Enchantment.Builder withEffect(DataComponentType<List<ConditionalEffect<E>>> type, E effect, LootItemCondition.Builder condition) {
@@ -102,7 +137,7 @@
              return this;
          }
  
-@@ -554,7 +_,7 @@
+@@ -553,7 +_,7 @@
              E effect,
              LootItemCondition.Builder condition
          ) {
@@ -111,7 +146,7 @@
              return this;
          }
  
-@@ -580,6 +_,16 @@
+@@ -579,6 +_,16 @@
              return this;
          }
  
@@ -128,7 +163,7 @@
          private <E> List<E> getEffectsList(DataComponentType<List<E>> type) {
              return (List<E>)this.effectLists.computeIfAbsent(type, k -> {
                  ArrayList<E> newList = new ArrayList<>();
-@@ -590,7 +_,8 @@
+@@ -589,7 +_,8 @@
  
          public Enchantment build(Identifier descriptionKey) {
              return new Enchantment(
@@ -138,3 +173,14 @@
                  this.definition,
                  this.exclusiveSet,
                  this.effectMapBuilder.build()
+@@ -623,8 +_,8 @@
+     ) {
+         public static final MapCodec<Enchantment.EnchantmentDefinition> CODEC = RecordCodecBuilder.mapCodec(
+             i -> i.group(
+-                    RegistryCodecs.holderSet(Registries.ITEM).fieldOf("supported_items").forGetter(Enchantment.EnchantmentDefinition::supportedItems),
+-                    RegistryCodecs.holderSet(Registries.ITEM).optionalFieldOf("primary_items").forGetter(Enchantment.EnchantmentDefinition::primaryItems),
++                    RegistryCodecs.homogeneousList(Registries.ITEM).fieldOf("supported_items").forGetter(Enchantment.EnchantmentDefinition::supportedItems),
++                    RegistryCodecs.homogeneousList(Registries.ITEM).optionalFieldOf("primary_items").forGetter(Enchantment.EnchantmentDefinition::primaryItems),
+                     ExtraCodecs.intRange(1, 1024).fieldOf("weight").forGetter(Enchantment.EnchantmentDefinition::weight),
+                     ExtraCodecs.intRange(1, 255).fieldOf("max_level").forGetter(Enchantment.EnchantmentDefinition::maxLevel),
+                     Enchantment.Cost.CODEC.fieldOf("min_cost").forGetter(Enchantment.EnchantmentDefinition::minCost),

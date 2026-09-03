@@ -1,0 +1,40 @@
+--- a/net/minecraft/world/level/levelgen/feature/FallenTreeFeature.java
++++ b/net/minecraft/world/level/levelgen/feature/FallenTreeFeature.java
+@@ -10,7 +_,6 @@
+ import java.util.function.Function;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+-import net.minecraft.core.Holder;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.util.valueproviders.IntProvider;
+ import net.minecraft.util.valueproviders.IntProviders;
+@@ -22,9 +_,8 @@
+ import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider;
+ import net.minecraft.world.level.levelgen.feature.treedecorators.TreeDecorator;
+ 
+-public record FallenTreeFeature(
+-    Holder<BlockStateProvider> trunkProvider, IntProvider logLength, List<TreeDecorator> stumpDecorators, List<TreeDecorator> logDecorators
+-) implements Feature {
++public record FallenTreeFeature(BlockStateProvider trunkProvider, IntProvider logLength, List<TreeDecorator> stumpDecorators, List<TreeDecorator> logDecorators)
++    implements Feature {
+     private static final int STUMP_HEIGHT = 1;
+     private static final int STUMP_HEIGHT_PLUS_EMPTY_SPACE = 2;
+     private static final int FALLEN_LOG_MAX_FALL_HEIGHT_TO_GROUND = 5;
+@@ -124,7 +_,7 @@
+     private BlockPos placeLogBlock(
+         WorldGenLevel level, RandomSource random, BlockPos.MutableBlockPos blockPos, Function<BlockState, BlockState> sidewaysStateModifier
+     ) {
+-        level.setBlockAndUpdate(blockPos, sidewaysStateModifier.apply(this.trunkProvider.value().getState(level, random, blockPos)));
++        level.setBlockAndUpdate(blockPos, sidewaysStateModifier.apply(this.trunkProvider.getState(level, random, blockPos)));
+         this.markAboveForPostProcessing(level, blockPos);
+         return blockPos.immutable();
+     }
+@@ -170,7 +_,7 @@
+         }
+ 
+         public FallenTreeFeature build() {
+-            return new FallenTreeFeature(Holder.direct(this.trunkProvider), this.logLength, List.copyOf(this.stumpDecorators), List.copyOf(this.logDecorators));
++            return new FallenTreeFeature(this.trunkProvider, this.logLength, List.copyOf(this.stumpDecorators), List.copyOf(this.logDecorators));
+         }
+     }
+ }

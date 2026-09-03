@@ -1,0 +1,45 @@
+--- a/net/minecraft/world/level/levelgen/material/condition/MaterialCondition.java
++++ /dev/null
+@@ -1,42 +_,0 @@
+-package net.minecraft.world.level.levelgen.material.condition;
+-
+-import com.mojang.serialization.Codec;
+-import com.mojang.serialization.MapCodec;
+-import java.util.function.Function;
+-import net.minecraft.core.Holder;
+-import net.minecraft.core.registries.BuiltInRegistries;
+-import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+-import net.minecraft.world.level.levelgen.material.MaterialRuleContext;
+-
+-public interface MaterialCondition {
+-    Codec<MaterialCondition> DIRECT_CODEC = BuiltInRegistries.MATERIAL_CONDITION_TYPE.byNameCodec().dispatch(MaterialCondition::codec, Function.identity());
+-    Codec<MaterialCondition> CODEC = RegistryCodecs.holder(Registries.MATERIAL_CONDITION, DIRECT_CODEC).xmap(holder -> {
+-        return switch (holder) {
+-            case Holder.Direct<MaterialCondition> direct -> (MaterialCondition)direct.value();
+-            case Holder.Reference<MaterialCondition> reference -> new MaterialCondition.HolderHolder(reference);
+-            default -> throw new MatchException(null, null);
+-        };
+-    }, value -> {
+-        return switch (value) {
+-            case MaterialCondition.HolderHolder(Holder<MaterialCondition> holder) -> holder;
+-            default -> Holder.direct(value);
+-        };
+-    });
+-
+-    ConditionEvaluator compile(MaterialRuleContext context);
+-
+-    MapCodec<? extends MaterialCondition> codec();
+-
+-    record HolderHolder(Holder<MaterialCondition> holder) implements MaterialCondition {
+-        @Override
+-        public ConditionEvaluator compile(MaterialRuleContext context) {
+-            return this.holder.value().compile(context);
+-        }
+-
+-        @Override
+-        public MapCodec<MaterialCondition.HolderHolder> codec() {
+-            throw new UnsupportedOperationException("HolderHolder cannot be serialized");
+-        }
+-    }
+-}

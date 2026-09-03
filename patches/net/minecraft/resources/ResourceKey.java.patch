@@ -1,16 +1,25 @@
 --- a/net/minecraft/resources/ResourceKey.java
 +++ b/net/minecraft/resources/ResourceKey.java
-@@ -73,6 +_,13 @@
-         return createRegistryKey(this.registryName);
-     }
+@@ -11,8 +_,6 @@
+ import net.minecraft.network.codec.StreamCodec;
  
+ public class ResourceKey<T> implements Comparable<ResourceKey<?>> {
+-    public static final StreamCodec<ByteBuf, ResourceKey<? extends Registry<?>>> REGISTRY_STREAM_CODEC = Identifier.STREAM_CODEC
+-        .map(ResourceKey::createRegistryKey, ResourceKey::identifier);
+     private static final ConcurrentMap<ResourceKey.InternKey, ResourceKey<?>> VALUES = new MapMaker().weakValues().makeMap();
+     private final Identifier registryName;
+     private final Identifier identifier;
+@@ -73,6 +_,13 @@
+ 
+     public ResourceKey<Registry<T>> registryKey() {
+         return createRegistryKey(this.registryName);
++    }
++
 +    @Override
 +    public int compareTo(ResourceKey<?> o) {
 +        int ret = this.registry().compareTo(o.registry());
 +        if (ret == 0) ret = this.identifier().compareTo(o.identifier());
 +        return ret;
-+    }
-+
-     private record InternKey(Identifier registry, Identifier identifier) {
      }
- }
+ 
+     private record InternKey(Identifier registry, Identifier identifier) {

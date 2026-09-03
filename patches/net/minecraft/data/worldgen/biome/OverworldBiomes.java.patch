@@ -1,0 +1,135 @@
+--- a/net/minecraft/data/worldgen/biome/OverworldBiomes.java
++++ b/net/minecraft/data/worldgen/biome/OverworldBiomes.java
+@@ -43,7 +_,7 @@
+             .hasPrecipitation(true)
+             .temperature(temperature)
+             .downfall(downfall)
+-            .setAttribute(EnvironmentAttributes.SKY_COLOR, ARGB.vector3fFromRGB24(calculateSkyColor(temperature)))
++            .setAttribute(EnvironmentAttributes.SKY_COLOR, calculateSkyColor(temperature))
+             .specialEffects(new BiomeSpecialEffects.Builder().waterColor(4159204).build());
+     }
+ 
+@@ -394,7 +_,7 @@
+         generation.addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, deep ? AquaticPlacements.SEAGRASS_DEEP_WARM : AquaticPlacements.SEAGRASS_WARM);
+         BiomeDefaultFeatures.addLukeWarmKelp(generation);
+         return baseOcean()
+-            .setAttribute(EnvironmentAttributes.WATER_FOG_COLOR, ARGB.vector3fFromRGB24(-16509389))
++            .setAttribute(EnvironmentAttributes.WATER_FOG_COLOR, -16509389)
+             .specialEffects(new BiomeSpecialEffects.Builder().waterColor(4566514).build())
+             .mobSpawnSettings(mobs.build())
+             .generationSettings(generation.build())
+@@ -409,7 +_,7 @@
+             .addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, AquaticPlacements.SEAGRASS_WARM)
+             .addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, AquaticPlacements.SEA_PICKLE);
+         return baseOcean()
+-            .setAttribute(EnvironmentAttributes.WATER_FOG_COLOR, ARGB.vector3fFromRGB24(-16507085))
++            .setAttribute(EnvironmentAttributes.WATER_FOG_COLOR, -16507085)
+             .specialEffects(new BiomeSpecialEffects.Builder().waterColor(4445678).build())
+             .mobSpawnSettings(mobs.build())
+             .generationSettings(generation.build())
+@@ -561,9 +_,9 @@
+ 
+         BiomeDefaultFeatures.addDefaultExtraVegetation(generation, true);
+         EnvironmentAttributeMap paleGardenAttributes = EnvironmentAttributeMap.builder()
+-            .set(EnvironmentAttributes.SKY_COLOR, ARGB.vector3fFromRGB24(-4605511))
+-            .set(EnvironmentAttributes.FOG_COLOR, ARGB.vector3fFromRGB24(-8292496))
+-            .set(EnvironmentAttributes.WATER_FOG_COLOR, ARGB.vector3fFromRGB24(-11179648))
++            .set(EnvironmentAttributes.SKY_COLOR, -4605511)
++            .set(EnvironmentAttributes.FOG_COLOR, -8292496)
++            .set(EnvironmentAttributes.WATER_FOG_COLOR, -11179648)
+             .set(EnvironmentAttributes.BACKGROUND_MUSIC, BackgroundMusic.EMPTY)
+             .set(EnvironmentAttributes.MUSIC_VOLUME, 0.0F)
+             .build();
+@@ -605,7 +_,7 @@
+         BiomeDefaultFeatures.addSwampExtraVegetation(generation);
+         generation.addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, AquaticPlacements.SEAGRASS_SWAMP);
+         return baseBiome(0.8F, 0.9F)
+-            .setAttribute(EnvironmentAttributes.WATER_FOG_COLOR, ARGB.vector3fFromRGB24(-14474473))
++            .setAttribute(EnvironmentAttributes.WATER_FOG_COLOR, -14474473)
+             .modifyAttribute(EnvironmentAttributes.WATER_FOG_END_DISTANCE, FloatModifier.MULTIPLY, 0.85F)
+             .setAttribute(EnvironmentAttributes.BACKGROUND_MUSIC, new BackgroundMusic(SoundEvents.MUSIC_BIOME_SWAMP))
+             .setAttribute(EnvironmentAttributes.INCREASED_FIRE_BURNOUT, true)
+@@ -634,8 +_,8 @@
+         BiomeDefaultFeatures.addMangroveSwampVegetation(generation);
+         BiomeDefaultFeatures.addMangroveSwampExtraVegetation(generation);
+         return baseBiome(0.8F, 0.9F)
+-            .setAttribute(EnvironmentAttributes.FOG_COLOR, ARGB.vector3fFromRGB24(-4138753))
+-            .setAttribute(EnvironmentAttributes.WATER_FOG_COLOR, ARGB.vector3fFromRGB24(-11699616))
++            .setAttribute(EnvironmentAttributes.FOG_COLOR, -4138753)
++            .setAttribute(EnvironmentAttributes.WATER_FOG_COLOR, -11699616)
+             .modifyAttribute(EnvironmentAttributes.WATER_FOG_END_DISTANCE, FloatModifier.MULTIPLY, 0.85F)
+             .setAttribute(EnvironmentAttributes.BACKGROUND_MUSIC, new BackgroundMusic(SoundEvents.MUSIC_BIOME_SWAMP))
+             .setAttribute(EnvironmentAttributes.INCREASED_FIRE_BURNOUT, true)
+@@ -714,7 +_,11 @@
+     public static Biome theVoid(HolderGetter<PlacedFeature> placedFeatures, HolderGetter<WorldCarver> carvers) {
+         BiomeGenerationSettings.Builder generation = new BiomeGenerationSettings.Builder(placedFeatures, carvers);
+         generation.addFeature(GenerationStep.Decoration.TOP_LAYER_MODIFICATION, MiscOverworldPlacements.VOID_START_PLATFORM);
+-        return baseBiome(0.5F, 0.5F).hasPrecipitation(false).mobSpawnSettings(MobSpawnSettings.NO_SPAWNS).generationSettings(generation.build()).build();
++        return baseBiome(0.5F, 0.5F)
++            .hasPrecipitation(false)
++            .mobSpawnSettings(new MobSpawnSettings.Builder().build())
++            .generationSettings(generation.build())
++            .build();
+     }
+ 
+     public static Biome meadowOrCherryGrove(HolderGetter<PlacedFeature> placedFeatures, HolderGetter<WorldCarver> carvers, boolean cherryGrove) {
+@@ -740,7 +_,7 @@
+                 .grassColorOverride(11983713)
+                 .foliageColorOverride(11983713);
+             return baseBiome(0.5F, 0.8F)
+-                .setAttribute(EnvironmentAttributes.WATER_FOG_COLOR, ARGB.vector3fFromRGB24(-10635281))
++                .setAttribute(EnvironmentAttributes.WATER_FOG_COLOR, -10635281)
+                 .setAttribute(EnvironmentAttributes.BACKGROUND_MUSIC, new BackgroundMusic(SoundEvents.MUSIC_BIOME_CHERRY_GROVE))
+                 .specialEffects(effects.build())
+                 .mobSpawnSettings(mobs.build())
+@@ -759,7 +_,7 @@
+     public static Biome dappledForest(HolderGetter<PlacedFeature> placedFeatures, HolderGetter<WorldCarver> carvers) {
+         BiomeGenerationSettings.Builder generation = new BiomeGenerationSettings.Builder(placedFeatures, carvers);
+         globalOverworldGeneration(generation);
+-        BackgroundMusic music = new BackgroundMusic(SoundEvents.MUSIC_BIOME_FOREST);
++        BackgroundMusic music = new BackgroundMusic(SoundEvents.MUSIC_BIOME_FLOWER_FOREST);
+         BiomeDefaultFeatures.addDefaultOres(generation);
+         BiomeDefaultFeatures.addDefaultSoftDisks(generation);
+         generation.addFeature(GenerationStep.Decoration.VEGETAL_DECORATION, VegetationPlacements.TREES_DAPPLED_FOREST);
+@@ -773,9 +_,9 @@
+             .putAttributes(
+                 EnvironmentAttributeMap.builder()
+                     .set(EnvironmentAttributes.BACKGROUND_MUSIC, music)
+-                    .set(EnvironmentAttributes.SKY_COLOR, ARGB.vector3fFromRGB24(8168447))
+-                    .set(EnvironmentAttributes.FOG_COLOR, ARGB.vector3fFromRGB24(13424866))
+-                    .set(EnvironmentAttributes.WATER_FOG_COLOR, ARGB.vector3fFromRGB24(3625300))
++                    .set(EnvironmentAttributes.SKY_COLOR, 8168447)
++                    .set(EnvironmentAttributes.FOG_COLOR, 13424866)
++                    .set(EnvironmentAttributes.WATER_FOG_COLOR, 3625300)
+                     .build()
+             )
+             .specialEffects(
+@@ -895,9 +_,9 @@
+         BiomeDefaultFeatures.addDefaultSoftDisks(generation);
+         BiomeDefaultFeatures.addSulfurCavesFeatures(generation);
+         return baseBiome(0.8F, 0.4F)
+-            .setAttribute(EnvironmentAttributes.FOG_COLOR, ARGB.vector3fFromRGB24(-7555023))
++            .setAttribute(EnvironmentAttributes.FOG_COLOR, -7555023)
+             .setAttribute(EnvironmentAttributes.BACKGROUND_MUSIC, new BackgroundMusic(SoundEvents.MUSIC_BIOME_SULFUR_CAVES))
+-            .setAttribute(EnvironmentAttributes.WATER_FOG_COLOR, ARGB.vector3fFromRGB24(-15248324))
++            .setAttribute(EnvironmentAttributes.WATER_FOG_COLOR, -15248324)
+             .specialEffects(new BiomeSpecialEffects.Builder().waterColor(-13320311).grassColorOverride(11249231).build())
+             .mobSpawnSettings(mobs.build())
+             .generationSettings(generation.build())
+@@ -943,6 +_,7 @@
+     }
+ 
+     public static Biome deepDark(HolderGetter<PlacedFeature> placedFeatures, HolderGetter<WorldCarver> carvers) {
++        MobSpawnSettings.Builder noMobs = new MobSpawnSettings.Builder();
+         BiomeGenerationSettings.Builder generation = new BiomeGenerationSettings.Builder(placedFeatures, carvers);
+         generation.addCarver(Carvers.CAVE);
+         generation.addCarver(Carvers.CAVE_EXTRA_UNDERGROUND);
+@@ -960,7 +_,7 @@
+         BiomeDefaultFeatures.addSculk(generation);
+         return baseBiome(0.8F, 0.4F)
+             .setAttribute(EnvironmentAttributes.BACKGROUND_MUSIC, new BackgroundMusic(SoundEvents.MUSIC_BIOME_DEEP_DARK))
+-            .mobSpawnSettings(MobSpawnSettings.NO_SPAWNS)
++            .mobSpawnSettings(noMobs.build())
+             .generationSettings(generation.build())
+             .build();
+     }

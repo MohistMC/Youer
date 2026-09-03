@@ -1,0 +1,106 @@
+--- a/net/minecraft/world/level/levelgen/densityfunction/op/FindTopSurfaceFunction.java
++++ /dev/null
+@@ -1,103 +_,0 @@
+-package net.minecraft.world.level.levelgen.densityfunction.op;
+-
+-import com.mojang.serialization.Codec;
+-import com.mojang.serialization.MapCodec;
+-import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import net.minecraft.util.ExtraCodecs;
+-import net.minecraft.util.Interval;
+-import net.minecraft.util.Mth;
+-import net.minecraft.world.level.dimension.DimensionType;
+-import net.minecraft.world.level.levelgen.densityfunction.DensityBuffer;
+-import net.minecraft.world.level.levelgen.densityfunction.DensityFunction;
+-import net.minecraft.world.level.levelgen.densityfunction.DensitySampler;
+-import net.minecraft.world.level.levelgen.densityfunction.DensityVolume;
+-import net.minecraft.world.level.levelgen.densityfunction.DfRewriteRule;
+-import net.minecraft.world.level.levelgen.densityfunction.SamplerContext;
+-
+-public record FindTopSurfaceFunction(DensityFunction density, DensityFunction upperBound, int lowerBound, int cellHeight) implements DensityFunction {
+-    public static final MapCodec<FindTopSurfaceFunction> CODEC = RecordCodecBuilder.mapCodec(
+-        i -> i.group(
+-                DensityFunction.CODEC.fieldOf("density").forGetter(FindTopSurfaceFunction::density),
+-                DensityFunction.CODEC.fieldOf("upper_bound").forGetter(FindTopSurfaceFunction::upperBound),
+-                Codec.intRange(DimensionType.MIN_Y * 2, DimensionType.MAX_Y * 2).fieldOf("lower_bound").forGetter(FindTopSurfaceFunction::lowerBound),
+-                ExtraCodecs.POSITIVE_INT.fieldOf("cell_height").forGetter(FindTopSurfaceFunction::cellHeight)
+-            )
+-            .apply(i, FindTopSurfaceFunction::new)
+-    );
+-
+-    @Override
+-    public DensitySampler compileSampler(DensityFunction.CompileContext context) {
+-        FindTopSurfaceFunction.Sampler sampler = new FindTopSurfaceFunction.Sampler(
+-            this.density.compileSampler(context), this.upperBound.compileSampler(context), this.lowerBound, this.cellHeight
+-        );
+-        return new SliceFunction.YSampler(sampler, 0);
+-    }
+-
+-    @Override
+-    public DensityFunction rewriteChildren(DfRewriteRule rule) {
+-        DensityFunction density = rule.rewrite(this.density);
+-        DensityFunction upperBound = rule.rewrite(this.upperBound);
+-        return density == this.density && upperBound == this.upperBound
+-            ? this
+-            : new FindTopSurfaceFunction(density, upperBound, this.lowerBound, this.cellHeight);
+-    }
+-
+-    @Override
+-    public Interval range() {
+-        return Interval.of(this.lowerBound, Math.max(this.lowerBound, this.upperBound.range().max()));
+-    }
+-
+-    @Override
+-    public @DensityFunction.Axes int domainAxes() {
+-        return (this.density.domainAxes() | this.upperBound.domainAxes()) & -3;
+-    }
+-
+-    @Override
+-    public MapCodec<FindTopSurfaceFunction> codec() {
+-        return CODEC;
+-    }
+-
+-    private record Sampler(DensitySampler density, DensitySampler upperBound, int lowerBound, int cellHeight) implements DensitySampler {
+-        @Override
+-        public void sampleVolume(SamplerContext context, DensityBuffer outputBuffer, DensityVolume volume) {
+-            if (volume.sizeY() != 1) {
+-                throw new IllegalArgumentException("Cannot sample with sizeY=" + volume.sizeY());
+-            }
+-
+-            this.upperBound.sampleVolume(context, outputBuffer, volume);
+-            int index = 0;
+-
+-            for (int z = 0; z < volume.sizeZ(); z++) {
+-                int blockZ = volume.blockZ(z);
+-
+-                for (int x = 0; x < volume.sizeX(); x++) {
+-                    int blockX = volume.blockX(x);
+-                    float upperBound = outputBuffer.get(index);
+-                    outputBuffer.set(index, this.findSurfaceFrom(context, blockX, blockZ, upperBound));
+-                    index++;
+-                }
+-            }
+-        }
+-
+-        @Override
+-        public float sampleValue(SamplerContext context, int blockX, int blockY, int blockZ) {
+-            float upperBound = this.upperBound.sampleValue(context, blockX, blockY, blockZ);
+-            return this.findSurfaceFrom(context, blockX, blockZ, upperBound);
+-        }
+-
+-        private int findSurfaceFrom(SamplerContext context, int x, int z, float upperBound) {
+-            int topY = Mth.floor(upperBound / this.cellHeight) * this.cellHeight;
+-            if (topY <= this.lowerBound) {
+-                return this.lowerBound;
+-            }
+-
+-            for (int probeY = topY; probeY >= this.lowerBound; probeY -= this.cellHeight) {
+-                if (this.density.sampleValue(context, x, probeY, z) > 0.0F) {
+-                    return probeY;
+-                }
+-            }
+-
+-            return this.lowerBound;
+-        }
+-    }
+-}

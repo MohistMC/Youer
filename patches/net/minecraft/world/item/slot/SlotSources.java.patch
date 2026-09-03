@@ -1,0 +1,25 @@
+--- a/net/minecraft/world/item/slot/SlotSources.java
++++ b/net/minecraft/world/item/slot/SlotSources.java
+@@ -6,9 +_,10 @@
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderSet;
+ import net.minecraft.core.Registry;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
++import net.minecraft.resources.RegistryFileCodec;
+ 
+ public interface SlotSources {
+     Codec<SlotSource> TYPED_CODEC = BuiltInRegistries.SLOT_SOURCE_TYPE.byNameCodec().dispatch(SlotSource::codec, c -> c);
+@@ -19,8 +_,8 @@
+                 slotSource -> slotSource instanceof GroupSlotSource composite ? Either.right(composite) : Either.left(slotSource)
+             )
+     );
+-    Codec<Holder<SlotSource>> CODEC = RegistryCodecs.holder(Registries.SLOT_SOURCE, DIRECT_CODEC);
+-    Codec<HolderSet<SlotSource>> LIST_CODEC = RegistryCodecs.holderSet(Registries.SLOT_SOURCE, TYPED_CODEC);
++    Codec<Holder<SlotSource>> CODEC = RegistryFileCodec.create(Registries.SLOT_SOURCE, DIRECT_CODEC);
++    Codec<HolderSet<SlotSource>> LIST_CODEC = RegistryCodecs.homogeneousList(Registries.SLOT_SOURCE, DIRECT_CODEC);
+ 
+     static MapCodec<? extends SlotSource> bootstrap(Registry<MapCodec<? extends SlotSource>> registry) {
+         Registry.register(registry, "group", GroupSlotSource.MAP_CODEC);

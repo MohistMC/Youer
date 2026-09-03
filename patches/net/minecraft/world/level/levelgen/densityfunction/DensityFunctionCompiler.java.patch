@@ -1,0 +1,82 @@
+--- a/net/minecraft/world/level/levelgen/densityfunction/DensityFunctionCompiler.java
++++ /dev/null
+@@ -1,79 +_,0 @@
+-package net.minecraft.world.level.levelgen.densityfunction;
+-
+-import com.mojang.serialization.MapCodec;
+-import java.util.HashMap;
+-import java.util.Map;
+-import java.util.concurrent.ConcurrentHashMap;
+-import java.util.concurrent.locks.ReentrantLock;
+-import java.util.function.Function;
+-import net.minecraft.util.Interval;
+-import net.minecraft.world.level.levelgen.densityfunction.op.CacheFunction;
+-
+-public class DensityFunctionCompiler {
+-    private final DensityFunction.CompileContext context;
+-    private final Map<DensityFunction, DensitySampler> samplers = new ConcurrentHashMap<>();
+-    private final Function<DensityFunction, DensitySampler> optimizeAndCompile = this::optimizeAndCompile;
+-    private final DfRewriteRule optimizerRule = DfRewriteRule.sequence(new DfRewriteRule() {
+-        @Override
+-        public DensityFunction rewrite(DensityFunction function) {
+-            function = DfRewriteRule.INLINE_REFERENCE.rewrite(function);
+-            return function instanceof CacheFunction cache ? DensityFunctionCompiler.this.reuseOrPrepareCache(cache) : function.rewriteChildren(this);
+-        }
+-    }, DfRewriteRule.SLICE_UNIFORM_AXES);
+-    private final ReentrantLock compileLock = new ReentrantLock();
+-    private final Map<DensityFunction, DensityFunctionCompiler.PreparedCache> preparedCaches = new HashMap<>();
+-    private int nextCacheId;
+-
+-    public DensityFunctionCompiler(DensityFunction.CompileContext context) {
+-        this.context = context;
+-    }
+-
+-    public DensitySampler getSampler(DensityFunction function) {
+-        return this.samplers.computeIfAbsent(function, this.optimizeAndCompile);
+-    }
+-
+-    private DensitySampler optimizeAndCompile(DensityFunction function) {
+-        this.compileLock.lock();
+-
+-        try {
+-            DensityFunction optimizedFunction = this.optimizerRule.rewrite(function);
+-            return optimizedFunction.compileSampler(this.context);
+-        } finally {
+-            this.compileLock.unlock();
+-        }
+-    }
+-
+-    private DensityFunction reuseOrPrepareCache(CacheFunction cache) {
+-        DensityFunctionCompiler.PreparedCache prepared = this.preparedCaches.get(cache.input());
+-        if (prepared == null) {
+-            prepared = this.prepareCache(cache);
+-            this.preparedCaches.put(cache.input(), prepared);
+-        }
+-
+-        return prepared;
+-    }
+-
+-    private DensityFunctionCompiler.PreparedCache prepareCache(CacheFunction cache) {
+-        int id = this.nextCacheId++;
+-        DensityFunction input = this.optimizerRule.rewrite(cache.input());
+-        CachingDensitySampler cachingSampler = new CachingDensitySampler(id, input.compileSampler(this.context));
+-        return new DensityFunctionCompiler.PreparedCache(id, input.range(), input.domainAxes(), cachingSampler);
+-    }
+-
+-    private record PreparedCache(int id, Interval range, @DensityFunction.Axes int domainAxes, DensitySampler cachingSampler) implements DensityFunction {
+-        @Override
+-        public DensitySampler compileSampler(DensityFunction.CompileContext context) {
+-            return this.cachingSampler;
+-        }
+-
+-        @Override
+-        public DensityFunction rewriteChildren(DfRewriteRule rule) {
+-            return this;
+-        }
+-
+-        @Override
+-        public MapCodec<DensityFunctionCompiler.PreparedCache> codec() {
+-            throw new UnsupportedOperationException("PreparedCache should never be encoded");
+-        }
+-    }
+-}

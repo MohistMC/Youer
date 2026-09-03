@@ -15,16 +15,15 @@
  import net.minecraft.world.entity.MoverType;
  import net.minecraft.world.entity.Pose;
  import net.minecraft.world.entity.animal.Animal;
-@@ -66,7 +_,7 @@
+@@ -66,6 +_,7 @@
      private final float[] paddlePositions = new float[2];
      private float outOfControlTicks;
      private float deltaRotation;
--    private final InterpolationHandler interpolation = new LinearInterpolationHandler(this, 3);
 +    private final InterpolationHandler interpolation = new InterpolationHandler(this, 3);
      private boolean inputLeft;
      private boolean inputRight;
      private boolean inputUp;
-@@ -84,6 +_,15 @@
+@@ -83,6 +_,15 @@
      private Leashable.@Nullable LeashData leashData;
      private final Supplier<Item> dropItem;
  
@@ -40,7 +39,7 @@
      public AbstractBoat(EntityType<? extends AbstractBoat> type, Level level, Supplier<Item> dropItem) {
          super(type, level);
          this.dropItem = dropItem;
-@@ -125,7 +_,7 @@
+@@ -124,7 +_,7 @@
      }
  
      @Override
@@ -49,7 +48,7 @@
          return true;
      }
  
-@@ -180,11 +_,30 @@
+@@ -179,11 +_,30 @@
  
      @Override
      public void push(Entity entity) {
@@ -80,10 +79,34 @@
              super.push(entity);
          }
      }
-@@ -251,6 +_,18 @@
-             this.setDeltaMovement(Vec3.ZERO);
+@@ -201,8 +_,8 @@
+     }
+ 
+     @Override
+-    protected InterpolationHandler createInterpolationHandler() {
+-        return LinearInterpolationHandler.create(this, 3);
++    public InterpolationHandler getInterpolation() {
++        return this.interpolation;
+     }
+ 
+     @Override
+@@ -233,6 +_,7 @@
          }
  
+         super.tick();
++        this.interpolation.interpolate();
+         if (this.isLocalInstanceAuthoritative()) {
+             if (!(this.getFirstPassenger() instanceof Player)) {
+                 this.setPaddleState(false, false);
+@@ -247,9 +_,20 @@
+             this.move(MoverType.SELF, this.getDeltaMovement());
+         } else {
+             this.setDeltaMovement(Vec3.ZERO);
+-            this.deltaRotation = 0.0F;
+-        }
+-
++        }
++
 +        // CraftBukkit start
 +        org.bukkit.Location to = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(this.position(), this.level(), this.getYRot(), this.getXRot());
 +        org.bukkit.entity.Vehicle vehicle = (org.bukkit.entity.Vehicle) this.getBukkitEntity();
@@ -99,7 +122,7 @@
          this.applyEffectsFromBlocks();
          this.applyEffectsFromBlocks();
          this.tickBubbleColumn();
-@@ -329,14 +_,13 @@
+@@ -328,14 +_,13 @@
                  int diff = 60 - bubbleTime - 1;
                  if (diff > 0 && bubbleTime == 0) {
                      this.setBubbleTime(0);
@@ -117,7 +140,7 @@
                  }
  
                  this.isAboveBubbleColumn = false;
-@@ -344,27 +_,6 @@
+@@ -343,27 +_,6 @@
          }
      }
  
@@ -145,7 +168,7 @@
      protected @Nullable SoundEvent getPaddleSound() {
          return switch (this.getStatus()) {
              case IN_WATER, UNDER_WATER, UNDER_FLOWING_WATER -> SoundEvents.BOAT_PADDLE_WATER;
-@@ -418,6 +_,7 @@
+@@ -417,6 +_,7 @@
              float friction = this.getGroundFriction();
              if (friction > 0.0F) {
                  this.landFriction = friction;
@@ -153,7 +176,7 @@
                  return AbstractBoat.Status.ON_LAND;
              } else {
                  return AbstractBoat.Status.IN_AIR;
-@@ -443,7 +_,7 @@
+@@ -442,7 +_,7 @@
                  for (int z = minZ; z < maxZ; z++) {
                      pos.set(x, y, z);
                      FluidState fluidState = this.level().getFluidState(pos);
@@ -162,7 +185,7 @@
                          blockHeight = Math.max(blockHeight, fluidState.getHeight(this.level(), pos));
                      }
  
-@@ -485,7 +_,7 @@
+@@ -484,7 +_,7 @@
                              BlockState blockState = this.level().getBlockState(blockPos);
                              if (!(blockState.getBlock() instanceof LilyPadBlock)
                                  && Shapes.joinIsNotEmpty(blockState.getCollisionShape(this.level(), blockPos).move(blockPos), boatShape, BooleanOp.AND)) {
@@ -171,7 +194,7 @@
                                  count++;
                              }
                          }
-@@ -514,7 +_,7 @@
+@@ -513,7 +_,7 @@
                  for (int z = minZ; z < maxZ; z++) {
                      pos.set(x, y, z);
                      FluidState fluidState = this.level().getFluidState(pos);
@@ -180,7 +203,7 @@
                          float height = y + fluidState.getHeight(this.level(), pos);
                          this.waterLevel = Math.max(height, this.waterLevel);
                          inWater |= bb.minY < height;
-@@ -543,7 +_,7 @@
+@@ -542,7 +_,7 @@
                  for (int z = z0; z < z1; z++) {
                      pos.set(x, y, z);
                      FluidState fluidState = this.level().getFluidState(pos);
@@ -189,7 +212,7 @@
                          if (!fluidState.isSource()) {
                              return AbstractBoat.Status.UNDER_FLOWING_WATER;
                          }
-@@ -570,7 +_,7 @@
+@@ -569,7 +_,7 @@
              this.waterLevel = this.getY(1.0);
              double targetY = this.getWaterLevelAbove() - this.getBbHeight() + 0.101;
              if (this.level().noCollision(this, this.getBoundingBox().move(0.0, targetY - this.getY(), 0.0))) {
@@ -198,9 +221,17 @@
                  this.setDeltaMovement(this.getDeltaMovement().multiply(1.0, 0.0, 1.0));
                  this.lastYd = 0.0;
              }
-@@ -661,6 +_,11 @@
-             passenger.setYRot(passenger.getYRot() + this.deltaRotation);
-             passenger.setYHeadRot(passenger.getYHeadRot() + this.deltaRotation);
+@@ -657,12 +_,14 @@
+     protected void positionRider(Entity passenger, Entity.MoveFunction moveFunction) {
+         super.positionRider(passenger, moveFunction);
+         if (!passenger.is(EntityTypeTags.CAN_TURN_IN_BOATS)) {
+-            if (passenger.isLocalInstanceAuthoritative()) {
+-                passenger.setYRot(passenger.getYRot() + this.deltaRotation);
+-                passenger.setYHeadRot(passenger.getYHeadRot() + this.deltaRotation);
+-            }
+-
++            passenger.setYRot(passenger.getYRot() + this.deltaRotation);
++            passenger.setYHeadRot(passenger.getYHeadRot() + this.deltaRotation);
              this.clampRotation(passenger);
 +            if (passenger instanceof Animal animal && this.getPassengers().size() == this.getMaxPassengers()) {
 +                int rotationOffset = passenger.getId() % 2 == 0 ? 90 : 270;
@@ -210,23 +241,23 @@
          }
      }
  
-@@ -697,26 +_,12 @@
+@@ -698,32 +_,18 @@
+         return super.getDismountLocationForPassenger(passenger);
      }
  
-     protected void clampRotation(Entity passenger) {
+-    protected float clampRotation(Entity passenger) {
 -        float passengerBodyYRot = this.calculatePassengerBodyYRot(passenger);
 -        passenger.setYBodyRot(passengerBodyYRot);
 -        if (passenger instanceof Mob mob) {
--            passenger.yRotO = passenger.yRotO + Mth.wrapDegrees(passengerBodyYRot - passenger.getYRot());
 -            passenger.setYRot(passengerBodyYRot);
 -            mob.clampHeadRotationToBody();
+-            return Mth.wrapDegrees(passengerBodyYRot - passenger.getYRot());
 -        } else {
 -            float delta = Mth.wrapDegrees(passenger.getYRot() - passengerBodyYRot);
 -            float maxHeadRotation = 105.0F;
 -            float targetDelta = Mth.clamp(delta, -105.0F, 105.0F);
--            passenger.yRotO += targetDelta - delta;
 -            passenger.setYRot(passenger.getYRot() + targetDelta - delta);
--            passenger.setYHeadRot(passenger.getYRot());
+-            return targetDelta - delta;
 -        }
 -    }
 -
@@ -234,6 +265,7 @@
 -        return passenger instanceof Animal && this.getPassengers().size() == this.getMaxPassengers()
 -            ? this.getYRot() + (passenger.getId() % 2 == 0 ? 90.0F : 270.0F)
 -            : this.getYRot();
++    protected void clampRotation(Entity passenger) {
 +        passenger.setYBodyRot(this.getYRot());
 +        float delta = Mth.wrapDegrees(passenger.getYRot() - this.getYRot());
 +        float targetDelta = Mth.clamp(delta, -105.0F, 105.0F);
@@ -243,7 +275,14 @@
      }
  
      @Override
-@@ -747,12 +_,20 @@
+     public void onPassengerTurned(Entity passenger) {
+-        float yDelta = this.clampRotation(passenger);
+-        passenger.yRotO += yDelta;
++        this.clampRotation(passenger);
+     }
+ 
+     @Override
+@@ -749,12 +_,20 @@
      }
  
      @Override
@@ -267,7 +306,7 @@
      }
  
      @Override
-@@ -761,7 +_,7 @@
+@@ -763,7 +_,7 @@
          if (!this.isPassenger()) {
              if (onGround) {
                  this.resetFallDistance();
@@ -276,7 +315,7 @@
                  this.fallDistance -= (float)ya;
              }
          }
-@@ -816,7 +_,13 @@
+@@ -818,7 +_,13 @@
  
      @Override
      public final ItemStack getPickResult() {

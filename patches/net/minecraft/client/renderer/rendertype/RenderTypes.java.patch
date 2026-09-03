@@ -1,0 +1,109 @@
+--- a/net/minecraft/client/renderer/rendertype/RenderTypes.java
++++ b/net/minecraft/client/renderer/rendertype/RenderTypes.java
+@@ -416,6 +_,14 @@
+                 .createRenderSetup()
+         )
+     );
++    private static final RenderType TEXT_BACKGROUND = RenderType.create(
++        "text_background",
++        RenderSetup.builder(RenderPipelines.TEXT_BACKGROUND)
++            .setOitPipelines(RenderPipelines.OIT_TEXT_BACKGROUND)
++            .useLightmap()
++            .sortOnUpload()
++            .createRenderSetup()
++    );
+     private static final Function<Identifier, RenderType> TEXT_GRAYSCALE = Util.memoize(
+         texture -> RenderType.create(
+             "text_grayscale",
+@@ -450,13 +_,31 @@
+     );
+     private static final Function<Identifier, RenderType> TEXT_SEE_THROUGH = Util.memoize(
+         texture -> RenderType.create(
+-            "text_see_through", RenderSetup.builder(RenderPipelines.TEXT_SEE_THROUGH).withTexture("Sampler0", texture).useLightmap().createRenderSetup()
++            "text_see_through",
++            RenderSetup.builder(RenderPipelines.TEXT_SEE_THROUGH)
++                .setOitPipelines(RenderPipelines.OIT_TEXT_SEE_THROUGH)
++                .withTexture("Sampler0", texture)
++                .useLightmap()
++                .createRenderSetup()
+         )
++    );
++    private static final RenderType TEXT_BACKGROUND_SEE_THROUGH = RenderType.create(
++        "text_background_see_through",
++        RenderSetup.builder(RenderPipelines.TEXT_BACKGROUND_SEE_THROUGH)
++            .setOitPipelines(RenderPipelines.OIT_TEXT_BACKGROUND_SEE_THROUGH)
++            .useLightmap()
++            .sortOnUpload()
++            .createRenderSetup()
+     );
+     private static final Function<Identifier, RenderType> TEXT_GRAYSCALE_SEE_THROUGH = Util.memoize(
+         texture -> RenderType.create(
+             "text_grayscale_see_through",
+-            RenderSetup.builder(RenderPipelines.TEXT_GRAYSCALE_SEE_THROUGH).withTexture("Sampler0", texture).useLightmap().sortOnUpload().createRenderSetup()
++            RenderSetup.builder(RenderPipelines.TEXT_GRAYSCALE_SEE_THROUGH)
++                .setOitPipelines(RenderPipelines.OIT_TEXT_GRAYSCALE_SEE_THROUGH)
++                .withTexture("Sampler0", texture)
++                .useLightmap()
++                .sortOnUpload()
++                .createRenderSetup()
+         )
+     );
+     private static final RenderType LIGHTNING = RenderType.create(
+@@ -486,11 +_,7 @@
+     );
+     public static final RenderType LINES_TRANSLUCENT = RenderType.create(
+         "lines_translucent",
+-        RenderSetup.builder(RenderPipelines.LINES_TRANSLUCENT).setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING).createRenderSetup()
+-    );
+-    public static final RenderType LINES_TRANSLUCENT_NO_DEPTH_WRITE = RenderType.create(
+-        "lines_translucent_no_depth_write",
+-        RenderSetup.builder(RenderPipelines.LINES_TRANSLUCENT_NO_DEPTH_WRITE)
++        RenderSetup.builder(RenderPipelines.LINES_TRANSLUCENT)
+             .setOitPipelines(RenderPipelines.OIT_LINES_TRANSLUCENT)
+             .setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING)
+             .createRenderSetup()
+@@ -504,7 +_,10 @@
+     );
+     public static final RenderType SECONDARY_BLOCK_OUTLINE = RenderType.create(
+         "secondary_block_outline",
+-        RenderSetup.builder(RenderPipelines.SECONDARY_BLOCK_OUTLINE).setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING).createRenderSetup()
++        RenderSetup.builder(RenderPipelines.SECONDARY_BLOCK_OUTLINE)
++            .setOitPipelines(RenderPipelines.OIT_SECONDARY_BLOCK_OUTLINE)
++            .setLayeringTransform(LayeringTransform.VIEW_OFFSET_Z_LAYERING)
++            .createRenderSetup()
+     );
+     private static final RenderType DEBUG_FILLED_BOX = RenderType.create(
+         "debug_filled_box",
+@@ -736,6 +_,10 @@
+         return TEXT.apply(texture);
+     }
+ 
++    public static RenderType textBackground() {
++        return TEXT_BACKGROUND;
++    }
++
+     public static RenderType textGrayscale(Identifier texture) {
+         return TEXT_GRAYSCALE.apply(texture);
+     }
+@@ -752,6 +_,10 @@
+         return TEXT_SEE_THROUGH.apply(texture);
+     }
+ 
++    public static RenderType textBackgroundSeeThrough() {
++        return TEXT_BACKGROUND_SEE_THROUGH;
++    }
++
+     public static RenderType textGrayscaleSeeThrough(Identifier texture) {
+         return TEXT_GRAYSCALE_SEE_THROUGH.apply(texture);
+     }
+@@ -778,10 +_,6 @@
+ 
+     public static RenderType linesTranslucent() {
+         return LINES_TRANSLUCENT;
+-    }
+-
+-    public static RenderType linesTranslucentNoDepthWrite() {
+-        return LINES_TRANSLUCENT_NO_DEPTH_WRITE;
+     }
+ 
+     public static RenderType linesDepthBias() {

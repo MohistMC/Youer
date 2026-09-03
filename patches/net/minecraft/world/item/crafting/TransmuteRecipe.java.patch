@@ -1,6 +1,18 @@
 --- a/net/minecraft/world/item/crafting/TransmuteRecipe.java
 +++ b/net/minecraft/world/item/crafting/TransmuteRecipe.java
-@@ -17,6 +_,10 @@
+@@ -7,11 +_,9 @@
+ import java.util.Collections;
+ import java.util.List;
+ import net.minecraft.advancements.predicates.MinMaxBounds;
+-import net.minecraft.core.Holder;
+ import net.minecraft.network.RegistryFriendlyByteBuf;
+ import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+-import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.ItemStackTemplate;
+ import net.minecraft.world.item.Items;
+@@ -19,6 +_,10 @@
  import net.minecraft.world.item.crafting.display.ShapelessCraftingRecipeDisplay;
  import net.minecraft.world.item.crafting.display.SlotDisplay;
  import net.minecraft.world.level.Level;
@@ -11,7 +23,83 @@
  
  public class TransmuteRecipe extends NormalCraftingRecipe {
      private static final int MIN_MATERIAL_COUNT = 1;
-@@ -198,6 +_,13 @@
+@@ -34,7 +_,7 @@
+                 Ingredient.CODEC.fieldOf("input").forGetter(o -> o.input),
+                 Ingredient.CODEC.fieldOf("material").forGetter(o -> o.material),
+                 MATERIAL_COUNT_BOUNDS.optionalFieldOf("material_count", DEFAULT_MATERIAL_COUNT).forGetter(o -> o.materialCount),
+-                TransmuteResult.CODEC.fieldOf("result").forGetter(o -> o.result),
++                ItemStackTemplate.CODEC.fieldOf("result").forGetter(o -> o.result),
+                 Codec.BOOL.optionalFieldOf("add_material_count_to_result", false).forGetter(o -> o.addMaterialCountToResult)
+             )
+             .apply(i, TransmuteRecipe::new)
+@@ -50,7 +_,7 @@
+         o -> o.material,
+         MinMaxBounds.Ints.STREAM_CODEC,
+         o -> o.materialCount,
+-        TransmuteResult.STREAM_CODEC,
++        ItemStackTemplate.STREAM_CODEC,
+         o -> o.result,
+         ByteBufCodecs.BOOL,
+         o -> o.addMaterialCountToResult,
+@@ -60,7 +_,7 @@
+     private final Ingredient input;
+     private final Ingredient material;
+     private final MinMaxBounds.Ints materialCount;
+-    private final TransmuteResult result;
++    private final ItemStackTemplate result;
+     private final boolean addMaterialCountToResult;
+ 
+     public TransmuteRecipe(
+@@ -69,7 +_,7 @@
+         Ingredient input,
+         Ingredient material,
+         MinMaxBounds.Ints materialCount,
+-        TransmuteResult result,
++        ItemStackTemplate result,
+         boolean addMaterialCountToResult
+     ) {
+         super(commonInfo, bookInfo);
+@@ -93,7 +_,7 @@
+     }
+ 
+     private ItemStack computeResult(ItemStack inputIngredient, int materialCount) {
+-        return createWithOriginalComponents(this.result.resolve(inputIngredient.typeHolder()), inputIngredient, materialCount);
++        return createWithOriginalComponents(this.result, inputIngredient, materialCount);
+     }
+ 
+     public boolean matches(CraftingInput input, Level level) {
+@@ -180,10 +_,11 @@
+ 
+         for (int materialCount = minMaterialCount; materialCount <= maxMaterialCount; materialCount++) {
+             ingredientSlots.add(materialDisplay);
++            int resultCount = this.computeResultSize(materialCount);
+             displays.add(
+                 new ShapelessCraftingRecipeDisplay(
+                     List.copyOf(ingredientSlots),
+-                    this.resultDisplay(this.computeResultSize(materialCount)),
++                    new SlotDisplay.ItemStackSlotDisplay(this.result.withCount(resultCount)),
+                     new SlotDisplay.ItemSlotDisplay(Items.CRAFTING_TABLE)
+                 )
+             );
+@@ -192,17 +_,6 @@
+         return displays;
+     }
+ 
+-    private SlotDisplay resultDisplay(int resultCount) {
+-        return this.result
+-            .item()
+-            .map(item -> this.stackDisplay((Holder<Item>)item, resultCount))
+-            .orElseGet(() -> new SlotDisplay.Composite(this.input.items().map(item -> this.stackDisplay((Holder<Item>)item, resultCount)).toList()));
+-    }
+-
+-    private SlotDisplay stackDisplay(Holder<Item> item, int resultCount) {
+-        return new SlotDisplay.ItemStackSlotDisplay(this.result.resolve(item, resultCount));
+-    }
+-
+     private int minMaterialCount() {
+         return this.materialCount.min().orElse(1);
+     }
+@@ -210,6 +_,13 @@
      private int maxMaterialCount() {
          return this.materialCount.max().orElse(8);
      }

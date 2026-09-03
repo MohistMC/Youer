@@ -1,0 +1,33 @@
+--- a/net/minecraft/world/level/storage/loot/functions/SetRandomDyesFunction.java
++++ b/net/minecraft/world/level/storage/loot/functions/SetRandomDyesFunction.java
+@@ -13,16 +_,16 @@
+ import net.minecraft.world.item.component.DyedItemColor;
+ import net.minecraft.world.level.storage.loot.LootContext;
+ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+-import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProvider;
+-import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProviders;
++import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
++import net.minecraft.world.level.storage.loot.providers.number.NumberProviders;
+ 
+ public class SetRandomDyesFunction extends LootItemConditionalFunction {
+     public static final MapCodec<SetRandomDyesFunction> MAP_CODEC = RecordCodecBuilder.mapCodec(
+-        i -> commonFields(i).and(ContextIntProviders.CODEC.fieldOf("number_of_dyes").forGetter(f -> f.numberOfDyes)).apply(i, SetRandomDyesFunction::new)
++        i -> commonFields(i).and(NumberProviders.CODEC.fieldOf("number_of_dyes").forGetter(f -> f.numberOfDyes)).apply(i, SetRandomDyesFunction::new)
+     );
+-    private final Holder<ContextIntProvider> numberOfDyes;
++    private final Holder<NumberProvider> numberOfDyes;
+ 
+-    private SetRandomDyesFunction(Optional<Holder<LootItemCondition>> condition, Holder<ContextIntProvider> numberOfDyes) {
++    private SetRandomDyesFunction(Optional<Holder<LootItemCondition>> condition, Holder<NumberProvider> numberOfDyes) {
+         super(condition);
+         this.numberOfDyes = numberOfDyes;
+     }
+@@ -49,7 +_,7 @@
+         return DyedItemColor.applyDyes(itemStack, dyes);
+     }
+ 
+-    public static LootItemConditionalFunction.Builder<?> withCount(Holder<ContextIntProvider> numberOfDyes) {
++    public static LootItemConditionalFunction.Builder<?> withCount(Holder<NumberProvider> numberOfDyes) {
+         return simpleBuilder(conditions -> new SetRandomDyesFunction(conditions, numberOfDyes));
+     }
+ }

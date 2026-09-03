@@ -1,0 +1,159 @@
+--- a/net/minecraft/world/item/component/BlockTransformers.java
++++ /dev/null
+@@ -1,156 +_,0 @@
+-package net.minecraft.world.item.component;
+-
+-import com.google.common.collect.ImmutableList;
+-import java.util.List;
+-import java.util.Set;
+-import java.util.Map.Entry;
+-import net.minecraft.core.Direction;
+-import net.minecraft.core.Holder;
+-import net.minecraft.core.component.BlockTransformer;
+-import net.minecraft.core.registries.Registries;
+-import net.minecraft.data.worldgen.BootstrapContext;
+-import net.minecraft.resources.Identifier;
+-import net.minecraft.resources.ResourceKey;
+-import net.minecraft.sounds.SoundEvent;
+-import net.minecraft.sounds.SoundEvents;
+-import net.minecraft.tags.BlockTags;
+-import net.minecraft.world.item.HoneycombItem;
+-import net.minecraft.world.level.block.Block;
+-import net.minecraft.world.level.block.Blocks;
+-import net.minecraft.world.level.block.CopperChestBlock;
+-import net.minecraft.world.level.block.DoorBlock;
+-import net.minecraft.world.level.block.WeatheringCopper;
+-import net.minecraft.world.level.levelgen.blockpredicates.BlockPredicate;
+-import net.minecraft.world.level.levelgen.feature.stateproviders.CopyPropertiesProvider;
+-import net.minecraft.world.level.levelgen.feature.stateproviders.RuleBasedStateProvider;
+-import net.minecraft.world.level.storage.loot.BuiltInLootTables;
+-
+-public class BlockTransformers {
+-    public static final ResourceKey<BlockTransformer> SHOVEL = createKey("shovel");
+-    public static final ResourceKey<BlockTransformer> AXE = createKey("axe");
+-    public static final ResourceKey<BlockTransformer> HOE = createKey("hoe");
+-
+-    private static ResourceKey<BlockTransformer> createKey(String name) {
+-        return ResourceKey.create(Registries.BLOCK_TRANSFORMER, Identifier.withDefaultNamespace(name));
+-    }
+-
+-    public static void bootstrap(BootstrapContext<BlockTransformer> context) {
+-        context.register(
+-            SHOVEL,
+-            new BlockTransformer(
+-                List.of(
+-                    BlockTransformer.BlockTransformData.builder(
+-                            BlockPredicate.allOf(
+-                                BlockPredicate.matchesTag(BlockTags.TURNS_INTO_DIRT_PATH), BlockPredicate.matchesTag(Direction.UP, BlockTags.AIR)
+-                            ),
+-                            Blocks.DIRT_PATH
+-                        )
+-                        .sound(SoundEvents.SHOVEL_FLATTEN)
+-                        .disallowedFaces(List.of(Direction.DOWN))
+-                        .build()
+-                )
+-            )
+-        );
+-        context.register(
+-            AXE,
+-            new BlockTransformer(
+-                ImmutableList.<BlockTransformer.BlockTransformData>builder()
+-                    .addAll(List.of(axeStrippables()))
+-                    .addAll(axe(WeatheringCopper.PREVIOUS_BY_BLOCK.get().entrySet(), SoundEvents.AXE_SCRAPE, BlockTransformer.TransformParticle.SCRAPE))
+-                    .addAll(axe(HoneycombItem.WAX_OFF_BY_BLOCK.get().entrySet(), SoundEvents.AXE_WAX_OFF, BlockTransformer.TransformParticle.WAX_OFF))
+-                    .build()
+-            )
+-        );
+-        BlockTransformer.BlockTransformData hoeDefault = BlockTransformer.BlockTransformData.builder(
+-                RuleBasedStateProvider.builder()
+-                    .ifTrueThenProvide(
+-                        BlockPredicate.allOf(BlockPredicate.matchesTag(BlockTags.TURNS_INTO_FARMLAND), BlockPredicate.matchesTag(Direction.UP, BlockTags.AIR)),
+-                        Blocks.FARMLAND
+-                    )
+-                    .ifTrueThenProvide(
+-                        BlockPredicate.allOf(BlockPredicate.matchesBlocks(Blocks.COARSE_DIRT), BlockPredicate.matchesTag(Direction.UP, BlockTags.AIR)),
+-                        Blocks.DIRT
+-                    )
+-                    .build()
+-            )
+-            .sound(SoundEvents.HOE_TILL)
+-            .disallowedFaces(List.of(Direction.DOWN))
+-            .build();
+-        BlockTransformer.BlockTransformData hoeRootedDirt = BlockTransformer.BlockTransformData.builder(
+-                BlockPredicate.matchesBlocks(Blocks.ROOTED_DIRT), Blocks.DIRT
+-            )
+-            .sound(SoundEvents.HOE_TILL)
+-            .loot(BuiltInLootTables.TILL_ROOTED_DIRT)
+-            .dropStrategy(BlockTransformer.DropStrategy.CLICKED_FACE)
+-            .build();
+-        context.register(HOE, new BlockTransformer(ImmutableList.<BlockTransformer.BlockTransformData>builder().add(hoeDefault).add(hoeRootedDirt).build()));
+-    }
+-
+-    private static BlockTransformer.BlockTransformData axeStrippables() {
+-        return BlockTransformer.BlockTransformData.builder(
+-                RuleBasedStateProvider.builder()
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.OAK_WOOD), new CopyPropertiesProvider(Blocks.STRIPPED_OAK_WOOD))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.OAK_LOG), new CopyPropertiesProvider(Blocks.STRIPPED_OAK_LOG))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.DARK_OAK_WOOD), new CopyPropertiesProvider(Blocks.STRIPPED_DARK_OAK_WOOD))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.DARK_OAK_LOG), new CopyPropertiesProvider(Blocks.STRIPPED_DARK_OAK_LOG))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.PALE_OAK_WOOD), new CopyPropertiesProvider(Blocks.STRIPPED_PALE_OAK_WOOD))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.PALE_OAK_LOG), new CopyPropertiesProvider(Blocks.STRIPPED_PALE_OAK_LOG))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.POPLAR_WOOD), new CopyPropertiesProvider(Blocks.STRIPPED_POPLAR_WOOD))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.POPLAR_LOG), new CopyPropertiesProvider(Blocks.STRIPPED_POPLAR_LOG))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.ACACIA_WOOD), new CopyPropertiesProvider(Blocks.STRIPPED_ACACIA_WOOD))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.ACACIA_LOG), new CopyPropertiesProvider(Blocks.STRIPPED_ACACIA_LOG))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.CHERRY_WOOD), new CopyPropertiesProvider(Blocks.STRIPPED_CHERRY_WOOD))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.CHERRY_LOG), new CopyPropertiesProvider(Blocks.STRIPPED_CHERRY_LOG))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.BIRCH_WOOD), new CopyPropertiesProvider(Blocks.STRIPPED_BIRCH_WOOD))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.BIRCH_LOG), new CopyPropertiesProvider(Blocks.STRIPPED_BIRCH_LOG))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.JUNGLE_WOOD), new CopyPropertiesProvider(Blocks.STRIPPED_JUNGLE_WOOD))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.JUNGLE_LOG), new CopyPropertiesProvider(Blocks.STRIPPED_JUNGLE_LOG))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.SPRUCE_WOOD), new CopyPropertiesProvider(Blocks.STRIPPED_SPRUCE_WOOD))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.SPRUCE_LOG), new CopyPropertiesProvider(Blocks.STRIPPED_SPRUCE_LOG))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.WARPED_STEM), new CopyPropertiesProvider(Blocks.STRIPPED_WARPED_STEM))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.WARPED_HYPHAE), new CopyPropertiesProvider(Blocks.STRIPPED_WARPED_HYPHAE))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.CRIMSON_STEM), new CopyPropertiesProvider(Blocks.STRIPPED_CRIMSON_STEM))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.CRIMSON_HYPHAE), new CopyPropertiesProvider(Blocks.STRIPPED_CRIMSON_HYPHAE))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.MANGROVE_WOOD), new CopyPropertiesProvider(Blocks.STRIPPED_MANGROVE_WOOD))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.MANGROVE_LOG), new CopyPropertiesProvider(Blocks.STRIPPED_MANGROVE_LOG))
+-                    .ifTrueThenProvide(BlockPredicate.matchesBlocks(Blocks.BAMBOO_BLOCK), new CopyPropertiesProvider(Blocks.STRIPPED_BAMBOO_BLOCK))
+-                    .build()
+-            )
+-            .sound(SoundEvents.AXE_STRIP)
+-            .build();
+-    }
+-
+-    private static List<BlockTransformer.BlockTransformData> axe(
+-        Set<Entry<Block, Block>> blocks, Holder<SoundEvent> sound, BlockTransformer.TransformParticle particle
+-    ) {
+-        RuleBasedStateProvider.Builder rules = RuleBasedStateProvider.builder();
+-        RuleBasedStateProvider.Builder chestRules = RuleBasedStateProvider.builder();
+-        RuleBasedStateProvider.Builder doorRules = RuleBasedStateProvider.builder();
+-
+-        for (Entry<Block, Block> entry : blocks) {
+-            BlockPredicate predicate = BlockPredicate.matchesBlocks(entry.getKey());
+-            CopyPropertiesProvider provider = new CopyPropertiesProvider(entry.getValue());
+-            switch ((Block)entry.getKey()) {
+-                case CopperChestBlock var12:
+-                    chestRules.ifTrueThenProvide(predicate, provider);
+-                    break;
+-                case DoorBlock var13:
+-                    doorRules.ifTrueThenProvide(predicate, provider);
+-                    break;
+-                default:
+-                    rules.ifTrueThenProvide(predicate, provider);
+-            }
+-        }
+-
+-        return List.of(
+-            BlockTransformer.BlockTransformData.builder(rules.build()).sound(sound).particle(particle).build(),
+-            BlockTransformer.BlockTransformData.builder(chestRules.build())
+-                .sound(sound)
+-                .particle(particle)
+-                .transformType(BlockTransformer.TransformType.COPPER_CHEST)
+-                .updateFromNeighbors(false)
+-                .build(),
+-            BlockTransformer.BlockTransformData.builder(doorRules.build()).sound(sound).particle(particle).updateFromNeighbors(false).build()
+-        );
+-    }
+-}

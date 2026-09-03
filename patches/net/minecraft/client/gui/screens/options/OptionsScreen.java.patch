@@ -1,0 +1,73 @@
+--- a/net/minecraft/client/gui/screens/options/OptionsScreen.java
++++ b/net/minecraft/client/gui/screens/options/OptionsScreen.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.client.gui.screens.options;
+ 
++import java.util.Objects;
+ import java.util.function.Supplier;
+ import net.minecraft.client.Options;
+ import net.minecraft.client.gui.components.Button;
+@@ -22,7 +_,7 @@
+ import net.neoforged.api.distmarker.OnlyIn;
+ 
+ @OnlyIn(Dist.CLIENT)
+-public class OptionsScreen extends Screen {
++public class OptionsScreen extends Screen implements HasGamemasterPermissionReaction {
+     private static final Component TITLE = Component.translatable("options.title");
+     private static final Component SKIN_CUSTOMIZATION = Component.translatable("options.skinCustomisation");
+     private static final Component SOUNDS = Component.translatable("options.sounds");
+@@ -39,11 +_,13 @@
+     private final HeaderAndFooterLayout layout = new HeaderAndFooterLayout(this, 61, 33);
+     private final Screen lastScreen;
+     private final Options options;
++    private final boolean inWorld;
+ 
+-    public OptionsScreen(Screen lastScreen, Options options) {
++    public OptionsScreen(Screen lastScreen, Options options, boolean inWorld) {
+         super(TITLE);
+         this.lastScreen = lastScreen;
+         this.options = options;
++        this.inWorld = inWorld;
+     }
+ 
+     @Override
+@@ -52,7 +_,18 @@
+         header.addChild(new StringWidget(TITLE, this.font), LayoutSettings::alignHorizontallyCenter);
+         LinearLayout subHeader = header.addChild(LinearLayout.horizontal()).spacing(8);
+         subHeader.addChild(this.options.fov().createButton(this.minecraft.options));
+-        subHeader.addChild(this.createOnlineButton());
++        if (this.inWorld) {
++            subHeader.addChild(
++                Button.builder(
++                        Component.translatable("options.worldOptions.button"),
++                        var1x -> this.minecraft.gui.setScreen(new WorldOptionsScreen(this, Objects.requireNonNull(this.minecraft.level)))
++                    )
++                    .build()
++            );
++        } else {
++            subHeader.addChild(this.createOnlineButton());
++        }
++
+         GridLayout gridLayout = new GridLayout();
+         gridLayout.defaultCellSetting().paddingHorizontal(4).paddingBottom(4).alignHorizontallyCenter();
+         GridLayout.RowHelper helper = gridLayout.createRowHelper(2);
+@@ -82,7 +_,7 @@
+ 
+         helper.addChild(this.openScreenButton(CREDITS_AND_ATTRIBUTION, () -> new CreditsAndAttributionScreen(this)));
+         this.layout.addToContents(gridLayout);
+-        this.layout.addToFooter(Button.builder(CommonComponents.GUI_DONE, var1x -> this.onClose()).width(200).build());
++        this.layout.addToFooter(Button.builder(CommonComponents.GUI_DONE, button -> this.onClose()).width(200).build());
+         this.layout.visitWidgets(x$0 -> this.addRenderableWidget(x$0));
+         this.repositionElements();
+     }
+@@ -119,5 +_,10 @@
+ 
+     private Button openScreenButton(Component message, Supplier<Screen> screenToScreen) {
+         return Button.builder(message, var2 -> this.minecraft.gui.setScreen(screenToScreen.get())).build();
++    }
++
++    @Override
++    public void onGamemasterPermissionChanged(boolean hasGamemasterPermission) {
++        this.minecraft.gui.setScreen(new OptionsScreen(this.lastScreen, this.minecraft.options, true));
+     }
+ }

@@ -1,0 +1,51 @@
+--- a/net/minecraft/client/renderer/feature/FeatureRenderDispatcher.java
++++ b/net/minecraft/client/renderer/feature/FeatureRenderDispatcher.java
+@@ -47,6 +_,7 @@
+         this.featureRenderers.put(ShadowFeatureRenderer.TYPE, new ShadowFeatureRenderer());
+         this.featureRenderers.put(FlameFeatureRenderer.TYPE, new FlameFeatureRenderer());
+         this.featureRenderers.put(ModelFeatureRenderer.TYPE, new ModelFeatureRenderer());
++        this.featureRenderers.put(NameTagFeatureRenderer.TYPE, new NameTagFeatureRenderer());
+         this.featureRenderers.put(TextFeatureRenderer.TYPE, new TextFeatureRenderer());
+         this.featureRenderers.put(LeashFeatureRenderer.TYPE, new LeashFeatureRenderer());
+         this.featureRenderers.put(ItemFeatureRenderer.TYPE, new ItemFeatureRenderer());
+@@ -114,7 +_,6 @@
+         frame.executeSolid(renderPass);
+         frame.executeTranslucent(renderPass);
+         frame.executeTranslucentAfterTerrain(renderPass);
+-        frame.executeSeeThrough(renderPass);
+         frame.executeAlwaysOnTop(renderPass);
+     }
+ 
+@@ -210,6 +_,7 @@
+             for (SubmitNodeCollection collection : submitNodeStorage.getSubmitsPerOrder().values()) {
+                 this.executePhase(collection.shadows, context, renderPass);
+                 this.executePhase(collection.translucentModels, context, renderPass);
++                this.executePhase(collection.seeThroughNameTags, context, renderPass);
+                 this.executePhase(collection.nameTags, context, renderPass);
+                 this.executePhase(collection.texts, context, renderPass);
+                 this.executePhase(collection.translucentCustomGeometry, context, renderPass);
+@@ -263,12 +_,6 @@
+             }
+         }
+ 
+-        public void executeSeeThrough(RenderPass renderPass) {
+-            FeatureFrameContext context = Objects.requireNonNull(this.context);
+-            SubmitNodeStorage submitNodeStorage = Objects.requireNonNull(this.submitNodeStorage);
+-            this.executePhase(submitNodeStorage.seeThrough(), context, renderPass);
+-        }
+-
+         public void executeAlwaysOnTop(RenderPass renderPass) {
+             FeatureFrameContext context = Objects.requireNonNull(this.context);
+             SubmitNodeStorage submitNodeStorage = Objects.requireNonNull(this.submitNodeStorage);
+@@ -317,11 +_,6 @@
+             }
+ 
+             return false;
+-        }
+-
+-        public boolean hasAnySeeThrough() {
+-            SubmitNodeStorage submitNodeStorage = Objects.requireNonNull(this.submitNodeStorage);
+-            return !this.groupsByPhase.getOrDefault(submitNodeStorage.seeThrough(), List.of()).isEmpty();
+         }
+ 
+         public boolean isEmpty() {

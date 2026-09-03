@@ -1,0 +1,42 @@
+--- a/net/minecraft/world/item/crafting/display/SlotDisplay.java
++++ b/net/minecraft/world/item/crafting/display/SlotDisplay.java
+@@ -12,11 +_,11 @@
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.HolderSet;
+ import net.minecraft.core.RegistryAccess;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.component.DataComponentType;
+ import net.minecraft.core.component.DataComponents;
+ import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.network.RegistryFriendlyByteBuf;
+ import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+@@ -130,7 +_,7 @@
+         @Override
+         public <T> Stream<T> resolve(ContextMap context, DisplayContentsFactory<T> factory) {
+             if (factory instanceof DisplayContentsFactory.ForStacks<T> stacks) {
+-                RegistryAccess registries = context.get(SlotDisplayContext.REGISTRIES);
++                RegistryAccess registries = context.getOptional(SlotDisplayContext.REGISTRIES);
+                 if (registries != null) {
+                     return registries.lookupOrThrow(Registries.ITEM).componentLookup().findAll(DataComponents.COOKING_FUEL).stream().map(stacks::forStack);
+                 }
+@@ -346,7 +_,7 @@
+ 
+     record TagSlotDisplay(HolderSet<Item> tag) implements SlotDisplay {
+         public static final MapCodec<SlotDisplay.TagSlotDisplay> MAP_CODEC = RecordCodecBuilder.mapCodec(
+-            i -> i.group(RegistryCodecs.holderSet(Registries.ITEM).fieldOf("tag").forGetter(SlotDisplay.TagSlotDisplay::tag))
++            i -> i.group(RegistryCodecs.homogeneousList(Registries.ITEM).fieldOf("tag").forGetter(SlotDisplay.TagSlotDisplay::tag))
+                 .apply(i, SlotDisplay.TagSlotDisplay::new)
+         );
+         public static final StreamCodec<RegistryFriendlyByteBuf, SlotDisplay.TagSlotDisplay> STREAM_CODEC = StreamCodec.composite(
+@@ -386,7 +_,7 @@
+         public <T> Stream<T> resolve(ContextMap context, DisplayContentsFactory<T> factory) {
+             if (factory instanceof DisplayContentsFactory.ForStacks<T> stacks) {
+                 List<ItemStack> displayItems = this.display.resolveForStacks(context);
+-                Optional<? extends HolderLookup.RegistryLookup<Potion>> potions = Optional.ofNullable(context.get(SlotDisplayContext.REGISTRIES))
++                Optional<? extends HolderLookup.RegistryLookup<Potion>> potions = Optional.ofNullable(context.getOptional(SlotDisplayContext.REGISTRIES))
+                     .flatMap(r -> r.lookup(Registries.POTION));
+                 return potions.stream().flatMap(HolderLookup::listElements).flatMap(potion -> {
+                     PotionContents potionContents = new PotionContents(potion);

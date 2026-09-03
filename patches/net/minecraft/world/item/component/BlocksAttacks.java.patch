@@ -1,5 +1,24 @@
 --- a/net/minecraft/world/item/component/BlocksAttacks.java
 +++ b/net/minecraft/world/item/component/BlocksAttacks.java
+@@ -7,8 +_,8 @@
+ import java.util.Optional;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.network.RegistryFriendlyByteBuf;
+ import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+@@ -45,7 +_,7 @@
+                 BlocksAttacks.ItemDamageFunction.CODEC
+                     .optionalFieldOf("item_damage", BlocksAttacks.ItemDamageFunction.DEFAULT)
+                     .forGetter(BlocksAttacks::itemDamage),
+-                RegistryCodecs.holderSet(Registries.DAMAGE_TYPE).optionalFieldOf("bypassed_by").forGetter(BlocksAttacks::bypassedBy),
++                RegistryCodecs.homogeneousList(Registries.DAMAGE_TYPE).optionalFieldOf("bypassed_by").forGetter(BlocksAttacks::bypassedBy),
+                 SoundEvent.CODEC.optionalFieldOf("block_sound").forGetter(BlocksAttacks::blockSound),
+                 SoundEvent.CODEC.optionalFieldOf("disabled_sound").forGetter(BlocksAttacks::disableSound)
+             )
 @@ -85,11 +_,15 @@
              );
      }
@@ -44,3 +63,12 @@
              }
          }
      }
+@@ -147,7 +_,7 @@
+                     ExtraCodecs.POSITIVE_FLOAT
+                         .optionalFieldOf("horizontal_blocking_angle", 90.0F)
+                         .forGetter(BlocksAttacks.DamageReduction::horizontalBlockingAngle),
+-                    RegistryCodecs.holderSet(Registries.DAMAGE_TYPE).optionalFieldOf("type").forGetter(BlocksAttacks.DamageReduction::type),
++                    RegistryCodecs.homogeneousList(Registries.DAMAGE_TYPE).optionalFieldOf("type").forGetter(BlocksAttacks.DamageReduction::type),
+                     Codec.FLOAT.fieldOf("base").forGetter(BlocksAttacks.DamageReduction::base),
+                     Codec.FLOAT.fieldOf("factor").forGetter(BlocksAttacks.DamageReduction::factor)
+                 )

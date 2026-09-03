@@ -26,7 +26,7 @@
  public class FishingHook extends Projectile {
      private static final Logger LOGGER = LogUtils.getLogger();
      private final RandomSource syncronizedRandom = RandomSource.create();
-@@ -65,17 +_,32 @@
+@@ -65,16 +_,32 @@
      public int timeUntilHooked;
      public float fishAngle;
      private boolean openWater = true;
@@ -35,7 +35,6 @@
      public FishingHook.FishHookState currentState = FishingHook.FishHookState.FLYING;
      private final int luck;
      private final int lureSpeed;
--    private final InterpolationHandler interpolationHandler = new LinearInterpolationHandler(this);
 +    private final InterpolationHandler interpolationHandler = new InterpolationHandler(this);
 +
 +    // CraftBukkit start - Extra variables to enable modification of fishing wait time, values are minecraft defaults
@@ -61,7 +60,22 @@
      }
  
      public FishingHook(EntityType<? extends FishingHook> type, Level level) {
-@@ -155,12 +_,12 @@
+@@ -109,8 +_,8 @@
+     }
+ 
+     @Override
+-    protected InterpolationHandler createInterpolationHandler() {
+-        return LinearInterpolationHandler.create(this);
++    public InterpolationHandler getInterpolation() {
++        return this.interpolationHandler;
+     }
+ 
+     @Override
+@@ -150,15 +_,16 @@
+     @Override
+     public void tick() {
+         this.syncronizedRandom.setSeed(this.getUUID().getLeastSignificantBits() ^ this.level().getGameTime());
++        this.getInterpolation().interpolate();
          super.tick();
          Player owner = this.getPlayerOwner();
          if (owner == null) {
@@ -76,7 +90,7 @@
                      return;
                  }
              } else {
-@@ -178,12 +_,14 @@
+@@ -176,12 +_,14 @@
              if (this.currentState == FishingHook.FishHookState.FLYING) {
                  if (this.hookedIn != null) {
                      this.setDeltaMovement(Vec3.ZERO);
@@ -91,7 +105,7 @@
                      this.currentState = FishingHook.FishHookState.BOBBING;
                      return;
                  }
-@@ -198,6 +_,7 @@
+@@ -196,6 +_,7 @@
                              this.setPos(this.hookedIn.getX(), this.hookedIn.getY(0.8), this.hookedIn.getZ());
                          } else {
                              this.setHookedEntity(null);
@@ -99,7 +113,7 @@
                              this.currentState = FishingHook.FishHookState.FLYING;
                          }
                      }
-@@ -237,7 +_,7 @@
+@@ -235,7 +_,7 @@
              }
  
              if (!fluidState.is(FluidTags.WATER) && !this.onGround() && this.hookedIn == null) {
@@ -108,7 +122,7 @@
              }
  
              this.move(MoverType.SELF, this.getDeltaMovement());
-@@ -257,20 +_,20 @@
+@@ -255,20 +_,20 @@
          if (owner.canInteractWithLevel()) {
              ItemStack selectedItem = owner.getMainHandItem();
              ItemStack selectedItemOffHand = owner.getOffhandItem();
@@ -133,7 +147,7 @@
      }
  
      @Override
-@@ -301,11 +_,11 @@
+@@ -299,11 +_,11 @@
          ServerLevel serverLevel = (ServerLevel)this.level();
          int fishingSpeed = 1;
          BlockPos above = blockPos.above();
@@ -147,7 +161,7 @@
              fishingSpeed--;
          }
  
-@@ -315,6 +_,10 @@
+@@ -313,6 +_,10 @@
                  this.timeUntilLured = 0;
                  this.timeUntilHooked = 0;
                  this.getEntityData().set(DATA_BITING, false);
@@ -158,7 +172,7 @@
              }
          } else if (this.timeUntilHooked > 0) {
              this.timeUntilHooked -= fishingSpeed;
-@@ -338,6 +_,13 @@
+@@ -336,6 +_,13 @@
                      serverLevel.sendParticles(ParticleTypes.FISHING, fishX, fishY, fishZ, 0, -particleZMovement, 0.01, particleXMovement, 1.0);
                  }
              } else {
@@ -172,7 +186,7 @@
                  this.playSound(SoundEvents.FISHING_BOBBER_SPLASH, 0.25F, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
                  double y = this.getY() + 0.5;
                  serverLevel.sendParticles(
-@@ -381,14 +_,31 @@
+@@ -379,14 +_,31 @@
              }
  
              if (this.timeUntilLured <= 0) {
@@ -208,7 +222,7 @@
  
      public boolean calculateOpenWater(BlockPos blockPos) {
          FishingHook.OpenWaterType previousLayer = FishingHook.OpenWaterType.INVALID;
-@@ -447,36 +_,73 @@
+@@ -445,36 +_,73 @@
      protected void readAdditionalSaveData(ValueInput input) {
      }
  
@@ -285,7 +299,7 @@
                      if (itemStack.is(ItemTags.FISHES)) {
                          owner.awardStat(Stats.FISH_CAUGHT, 1);
                      }
-@@ -486,10 +_,28 @@
+@@ -484,10 +_,28 @@
              }
  
              if (this.onGround()) {
@@ -315,7 +329,7 @@
              return dmg;
          } else {
              return 0;
-@@ -497,22 +_,17 @@
+@@ -495,22 +_,17 @@
      }
  
      @Override
@@ -341,7 +355,7 @@
              Vec3 delta = new Vec3(owner.getX() - this.getX(), owner.getY() - this.getY(), owner.getZ() - this.getZ()).scale(0.1);
              entity.setDeltaMovement(entity.getDeltaMovement().add(delta));
          }
-@@ -525,8 +_,15 @@
+@@ -523,8 +_,15 @@
  
      @Override
      public void remove(Entity.RemovalReason reason) {
@@ -358,7 +372,7 @@
      }
  
      @Override
-@@ -572,7 +_,7 @@
+@@ -570,7 +_,7 @@
          if (this.getPlayerOwner() == null) {
              int ownerId = packet.getData();
              LOGGER.error("Failed to recreate fishing hook on client. {} (id: {}) is not a valid owner.", this.level().getEntity(ownerId), ownerId);

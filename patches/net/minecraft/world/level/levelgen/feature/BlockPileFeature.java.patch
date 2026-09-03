@@ -1,0 +1,28 @@
+--- a/net/minecraft/world/level/levelgen/feature/BlockPileFeature.java
++++ b/net/minecraft/world/level/levelgen/feature/BlockPileFeature.java
+@@ -4,7 +_,6 @@
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+-import net.minecraft.core.Holder;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.level.LevelAccessor;
+ import net.minecraft.world.level.WorldGenLevel;
+@@ -13,7 +_,7 @@
+ import net.minecraft.world.level.chunk.ChunkGenerator;
+ import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider;
+ 
+-public record BlockPileFeature(Holder<BlockStateProvider> stateProvider) implements Feature {
++public record BlockPileFeature(BlockStateProvider stateProvider) implements Feature {
+     public static final MapCodec<BlockPileFeature> CODEC = RecordCodecBuilder.mapCodec(
+         i -> i.group(BlockStateProvider.CODEC.fieldOf("state_provider").forGetter(BlockPileFeature::stateProvider)).apply(i, BlockPileFeature::new)
+     );
+@@ -53,7 +_,7 @@
+ 
+     private void tryPlaceBlock(WorldGenLevel level, BlockPos blockPos, RandomSource random) {
+         if (level.isEmptyBlock(blockPos) && this.mayPlaceOn(level, blockPos, random)) {
+-            level.setBlock(blockPos, this.stateProvider.value().getState(level, random, blockPos), 260);
++            level.setBlock(blockPos, this.stateProvider.getState(level, random, blockPos), 260);
+         }
+     }
+ }

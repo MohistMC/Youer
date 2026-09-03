@@ -1,0 +1,156 @@
+--- a/net/minecraft/world/level/biome/Climate.java
++++ b/net/minecraft/world/level/biome/Climate.java
+@@ -18,7 +_,8 @@
+ import net.minecraft.core.QuartPos;
+ import net.minecraft.util.ExtraCodecs;
+ import net.minecraft.util.Mth;
+-import net.minecraft.world.level.levelgen.densityfunction.DensitySampler;
++import net.minecraft.world.level.levelgen.DensityFunction;
++import net.minecraft.world.level.levelgen.DensityFunctions;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class Climate {
+@@ -72,6 +_,11 @@
+         return (float)coord / 10000.0F;
+     }
+ 
++    public static Climate.Sampler empty() {
++        DensityFunction zero = DensityFunctions.zero();
++        return new Climate.Sampler(zero, zero, zero, zero, zero, zero);
++    }
++
+     @VisibleForTesting
+     interface DistanceMetric<T> {
+         long distance(Climate.RTree.Node<T> node, long[] target);
+@@ -141,17 +_,8 @@
+         }
+ 
+         public ParameterList(List<Pair<Climate.ParameterPoint, T>> values) {
+-            this(values, 19);
+-        }
+-
+-        private ParameterList(List<Pair<Climate.ParameterPoint, T>> values, int childrenPerNode) {
+             this.values = values;
+-            this.index = Climate.RTree.create(values, childrenPerNode);
+-        }
+-
+-        @VisibleForTesting
+-        public Climate.ParameterList<T> rebuildWithChildrenPerNode(int childrenPerNode) {
+-            return new Climate.ParameterList<>(this.values, childrenPerNode);
++            this.index = Climate.RTree.create(values);
+         }
+ 
+         public List<Pair<Climate.ParameterPoint, T>> values() {
+@@ -236,7 +_,7 @@
+     }
+ 
+     protected static final class RTree<T> {
+-        private static final int CHILDREN_PER_NODE = 19;
++        private static final int CHILDREN_PER_NODE = 6;
+         private final Climate.RTree.Node<T> root;
+         private final ThreadLocal<Climate.RTree.@Nullable Leaf<T>> lastResult = new ThreadLocal<>();
+ 
+@@ -245,10 +_,6 @@
+         }
+ 
+         public static <T> Climate.RTree<T> create(List<Pair<Climate.ParameterPoint, T>> values) {
+-            return create(values, 19);
+-        }
+-
+-        public static <T> Climate.RTree<T> create(List<Pair<Climate.ParameterPoint, T>> values, int childrenPerNode) {
+             if (values.isEmpty()) {
+                 throw new IllegalArgumentException("Need at least one value to build the search tree.");
+             }
+@@ -261,10 +_,10 @@
+             List<Climate.RTree.Leaf<T>> leaves = values.stream()
+                 .map(p -> new Climate.RTree.Leaf<>(p.getFirst(), p.getSecond()))
+                 .collect(Collectors.toCollection(ArrayList::new));
+-            return new Climate.RTree<>(build(dimensions, leaves, childrenPerNode));
++            return new Climate.RTree<>(build(dimensions, leaves));
+         }
+ 
+-        private static <T> Climate.RTree.Node<T> build(int dimensions, List<? extends Climate.RTree.Node<T>> children, int childrenPerNode) {
++        private static <T> Climate.RTree.Node<T> build(int dimensions, List<? extends Climate.RTree.Node<T>> children) {
+             if (children.isEmpty()) {
+                 throw new IllegalStateException("Need at least one child to build a node");
+             }
+@@ -273,7 +_,7 @@
+                 return (Climate.RTree.Node<T>)children.get(0);
+             }
+ 
+-            if (children.size() <= childrenPerNode) {
++            if (children.size() <= 6) {
+                 children.sort(Comparator.comparingLong(leaf -> {
+                     long totalMagnitude = 0L;
+ 
+@@ -293,7 +_,7 @@
+ 
+             for (int d = 0; d < dimensions; d++) {
+                 sort(children, dimensions, d, false);
+-                List<Climate.RTree.SubTree<T>> buckets = bucketize(children, childrenPerNode);
++                List<Climate.RTree.SubTree<T>> buckets = bucketize(children);
+                 long totalCost = 0L;
+ 
+                 for (Climate.RTree.SubTree<T> bucket : buckets) {
+@@ -308,9 +_,7 @@
+             }
+ 
+             sort(minBuckets, dimensions, minDimension, true);
+-            return new Climate.RTree.SubTree<>(
+-                minBuckets.stream().map(b -> build(dimensions, Arrays.asList(b.children), childrenPerNode)).collect(Collectors.toList())
+-            );
++            return new Climate.RTree.SubTree<>(minBuckets.stream().map(b -> build(dimensions, Arrays.asList(b.children))).collect(Collectors.toList()));
+         }
+ 
+         private static <T> void sort(List<? extends Climate.RTree.Node<T>> children, int dimensions, int dimension, boolean absolute) {
+@@ -331,10 +_,10 @@
+             });
+         }
+ 
+-        private static <T> List<Climate.RTree.SubTree<T>> bucketize(List<? extends Climate.RTree.Node<T>> nodes, int childrenPerNode) {
++        private static <T> List<Climate.RTree.SubTree<T>> bucketize(List<? extends Climate.RTree.Node<T>> nodes) {
+             List<Climate.RTree.SubTree<T>> buckets = Lists.newArrayList();
+             List<Climate.RTree.Node<T>> children = Lists.newArrayList();
+-            int expectedChildrenCount = (int)Math.pow(childrenPerNode, Math.floor(Math.log(nodes.size() - 0.01) / Math.log(childrenPerNode)));
++            int expectedChildrenCount = (int)Math.pow(6.0, Math.floor(Math.log(nodes.size() - 0.01) / Math.log(6.0)));
+ 
+             for (Climate.RTree.Node<T> child : nodes) {
+                 children.add(child);
+@@ -466,24 +_,25 @@
+     }
+ 
+     public record Sampler(
+-        DensitySampler.Bound temperature,
+-        DensitySampler.Bound humidity,
+-        DensitySampler.Bound continentalness,
+-        DensitySampler.Bound erosion,
+-        DensitySampler.Bound depth,
+-        DensitySampler.Bound weirdness
++        DensityFunction temperature,
++        DensityFunction humidity,
++        DensityFunction continentalness,
++        DensityFunction erosion,
++        DensityFunction depth,
++        DensityFunction weirdness
+     ) {
+         public Climate.TargetPoint sample(int quartX, int quartY, int quartZ) {
+             int blockX = QuartPos.toBlock(quartX);
+             int blockY = QuartPos.toBlock(quartY);
+             int blockZ = QuartPos.toBlock(quartZ);
++            DensityFunction.SinglePointContext context = new DensityFunction.SinglePointContext(blockX, blockY, blockZ);
+             return Climate.target(
+-                this.temperature.sampleValue(blockX, blockY, blockZ),
+-                this.humidity.sampleValue(blockX, blockY, blockZ),
+-                this.continentalness.sampleValue(blockX, blockY, blockZ),
+-                this.erosion.sampleValue(blockX, blockY, blockZ),
+-                this.depth.sampleValue(blockX, blockY, blockZ),
+-                this.weirdness.sampleValue(blockX, blockY, blockZ)
++                (float)this.temperature.compute(context),
++                (float)this.humidity.compute(context),
++                (float)this.continentalness.compute(context),
++                (float)this.erosion.compute(context),
++                (float)this.depth.compute(context),
++                (float)this.weirdness.compute(context)
+             );
+         }
+     }

@@ -44,11 +44,19 @@
  
      public int getNumberOfItemsToShow() {
          int numberOfItemStacks = this.size();
-@@ -209,6 +_,14 @@
-             Fraction remainingWeight = Fraction.ONE.subtract(this.weight);
+@@ -162,7 +_,7 @@
+         return "BundleContents" + this.items;
+     }
+ 
+-    public static class Mutable extends GrowableMutableContainer<BundleContents> {
++    public static class Mutable extends SimpleMutableContainer<BundleContents> {
+         private Fraction weight;
+         private int selectedItem;
+         private boolean needsFlattening;
+@@ -210,6 +_,14 @@
              return Math.max(remainingWeight.divideBy(itemWeight).intValue(), 0);
          }
-+
+ 
 +        // Paper start - correct bundle inventory action
 +        // Static overload to easily compute this value without the need for an instance of mutable.
 +        static int getMaxAmountToAdd(final ItemStack stack, final Fraction weight) {
@@ -56,6 +64,46 @@
 +            return Math.max(remainingWeight.divideBy(BundleContents.getWeight(stack).getOrThrow()).intValue(), 0);
 +        }
 +        // Paper end - correct bundle inventory action
- 
++
          public int tryInsert(ItemStack itemsToAdd) {
              if (!BundleContents.canItemBeInBundle(itemsToAdd)) {
+                 return 0;
+@@ -296,6 +_,21 @@
+         }
+ 
+         @Override
++        protected int insertNewSlots(ItemProvider newItems, SlotSelector slotSelector) {
++            int successCount;
++            for (successCount = 0; newItems.hasNext() && this.canInsertNewSlots() && slotSelector.trySelectSlot(ItemStack.EMPTY); successCount++) {
++                boolean success = newItems.findNextNonEmpty() && this.addSlotWithItem(newItems.peek());
++                if (!success) {
++                    break;
++                }
++
++                newItems.next();
++            }
++
++            return successCount;
++        }
++
++        @Override
+         protected boolean setItem(int slot, ItemStack itemStack) {
+             ItemStack currentItem = this.items.get(slot);
+             Fraction adjustedWeight = currentItem.isEmpty() ? this.weight : this.weight.subtract(getStackedWeight(currentItem));
+@@ -310,12 +_,12 @@
+         }
+ 
+         @Override
+-        protected boolean addSlotWithItem(ItemProvider newItems) {
+-            if (!newItems.findNextNonEmpty()) {
++        protected boolean addSlotWithItem(ItemStack itemStack) {
++            if (itemStack.isEmpty()) {
+                 return false;
+             } else {
+-                Fraction newWeight = getWeightWithAddedItems(this.weight, newItems.peek());
+-                if (newWeight != null && super.addSlotWithItem(newItems)) {
++                Fraction newWeight = getWeightWithAddedItems(this.weight, itemStack);
++                if (newWeight != null && super.addSlotWithItem(itemStack)) {
+                     this.weight = newWeight;
+                     this.needsFlattening = true;
+                     return true;

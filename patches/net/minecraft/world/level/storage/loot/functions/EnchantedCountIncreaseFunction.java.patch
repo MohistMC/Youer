@@ -14,16 +14,35 @@
  import net.minecraft.util.context.ContextKey;
  import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.LivingEntity;
-@@ -36,13 +_,11 @@
+@@ -19,8 +_,8 @@
+ import net.minecraft.world.level.storage.loot.ValidationContext;
+ import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
+ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+-import net.minecraft.world.level.storage.loot.providers.number.floats.ContextFloatProvider;
+-import net.minecraft.world.level.storage.loot.providers.number.floats.ContextFloatProviders;
++import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
++import net.minecraft.world.level.storage.loot.providers.number.NumberProviders;
+ 
+ public class EnchantedCountIncreaseFunction extends LootItemConditionalFunction {
+     public static final int NO_LIMIT = 0;
+@@ -29,20 +_,18 @@
+             .and(
+                 i.group(
+                     Enchantment.CODEC.fieldOf("enchantment").forGetter(f -> f.enchantment),
+-                    ContextFloatProviders.CODEC.fieldOf("count").forGetter(f -> f.count),
++                    NumberProviders.CODEC.fieldOf("count").forGetter(f -> f.count),
+                     Codec.INT.optionalFieldOf("limit", 0).forGetter(f -> f.limit)
+                 )
+             )
              .apply(i, EnchantedCountIncreaseFunction::new)
      );
      private final Holder<Enchantment> enchantment;
--    private final Holder<NumberProvider> count;
+-    private final Holder<ContextFloatProvider> count;
 +    private final NumberProvider count;
      private final int limit;
  
 -    private EnchantedCountIncreaseFunction(
--        Optional<Holder<LootItemCondition>> condition, Holder<Enchantment> enchantment, Holder<NumberProvider> count, int limit
+-        Optional<Holder<LootItemCondition>> condition, Holder<Enchantment> enchantment, Holder<ContextFloatProvider> count, int limit
 -    ) {
 -        super(condition);
 +    private EnchantedCountIncreaseFunction(List<LootItemCondition> predicates, Holder<Enchantment> enchantment, NumberProvider count, int limit) {
@@ -65,7 +84,7 @@
          return itemStack;
      }
  
--    public static EnchantedCountIncreaseFunction.Builder lootingMultiplier(HolderGetter<Enchantment> enchantments, Holder<NumberProvider> count) {
+-    public static EnchantedCountIncreaseFunction.Builder lootingMultiplier(HolderGetter<Enchantment> enchantments, Holder<ContextFloatProvider> count) {
 +    public static EnchantedCountIncreaseFunction.Builder lootingMultiplier(HolderLookup.Provider registries, NumberProvider count) {
 +        HolderLookup.RegistryLookup<Enchantment> enchantments = registries.lookupOrThrow(Registries.ENCHANTMENT);
          return new EnchantedCountIncreaseFunction.Builder(enchantments.getOrThrow(Enchantments.LOOTING), count);
@@ -73,11 +92,11 @@
  
      public static class Builder extends LootItemConditionalFunction.Builder<EnchantedCountIncreaseFunction.Builder> {
          private final Holder<Enchantment> enchantment;
--        private final Holder<NumberProvider> count;
+-        private final Holder<ContextFloatProvider> count;
 +        private final NumberProvider count;
          private int limit = 0;
  
--        public Builder(Holder<Enchantment> enchantment, Holder<NumberProvider> count) {
+-        public Builder(Holder<Enchantment> enchantment, Holder<ContextFloatProvider> count) {
 +        public Builder(Holder<Enchantment> enchantment, NumberProvider count) {
              this.enchantment = enchantment;
              this.count = count;

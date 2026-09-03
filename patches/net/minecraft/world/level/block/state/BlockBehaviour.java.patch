@@ -168,7 +168,18 @@
      }
  
      protected void spawnAfterBreak(BlockState state, ServerLevel level, BlockPos pos, ItemStack tool, boolean dropExperience) {
-@@ -381,10 +_,13 @@
+@@ -347,10 +_,6 @@
+         return false;
+     }
+ 
+-    protected boolean shouldRedstoneWireConnectTo(BlockState state, BlockGetter level, BlockPos pos, @Nullable Direction direction) {
+-        return state.isSignalSource() && direction != null;
+-    }
+-
+     protected int getSignal(BlockState state, BlockGetter level, BlockPos pos, Direction direction) {
+         return this.ownSignal(state, level, pos);
+     }
+@@ -385,10 +_,13 @@
          return this.isRandomlyTicking;
      }
  
@@ -182,7 +193,7 @@
      protected ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state, boolean includeData) {
          return new ItemStack(this.asItem());
      }
-@@ -401,7 +_,11 @@
+@@ -405,7 +_,11 @@
          return this.properties.destroyTime;
      }
  
@@ -195,7 +206,16 @@
          private static final Direction[] DIRECTIONS = Direction.values();
          private static final VoxelShape[] EMPTY_OCCLUSION_SHAPES = Util.make(new VoxelShape[DIRECTIONS.length], s -> Arrays.fill(s, Shapes.empty()));
          private static final VoxelShape[] FULL_BLOCK_OCCLUSION_SHAPES = Util.make(new VoxelShape[DIRECTIONS.length], s -> Arrays.fill(s, Shapes.block()));
-@@ -436,6 +_,76 @@
+@@ -424,7 +_,7 @@
+         private final boolean canOcclude;
+         private final BlockBehaviour.StatePredicate isRedstoneConductor;
+         private final BlockBehaviour.StatePredicate isSuffocating;
+-        private final BlockBehaviour.StateArgumentPredicate<AABB> isViewBlocking;
++        private final BlockBehaviour.StatePredicate isViewBlocking;
+         private final BlockBehaviour.PostProcess postProcess;
+         private final Predicate<BlockState> emissiveRendering;
+         private final BlockBehaviour.@Nullable OffsetFunction offsetFunction;
+@@ -440,6 +_,76 @@
          private boolean propagatesSkylightDown;
          private int lightDampening;
  
@@ -272,7 +292,7 @@
          protected BlockStateBase(Block owner, Property<?>[] propertyKeys, Comparable<?>[] propertyValues) {
              super(owner, propertyKeys, propertyValues);
              BlockBehaviour.Properties properties = owner.properties;
-@@ -460,36 +_,46 @@
+@@ -464,36 +_,46 @@
              this.replaceable = properties.replaceable;
          }
  
@@ -339,7 +359,7 @@
  
              this.legacySolid = this.calculateSolid();
              this.occlusionShape = this.canOcclude ? this.owner.getOcclusionShape(this.asState()) : Shapes.empty();
-@@ -502,7 +_,12 @@
+@@ -506,7 +_,12 @@
                  this.occlusionShapesByFace = new VoxelShape[DIRECTIONS.length];
  
                  for (Direction direction : DIRECTIONS) {
@@ -353,7 +373,7 @@
                  }
              }
  
-@@ -520,10 +_,22 @@
+@@ -524,10 +_,22 @@
          }
  
          @Deprecated
@@ -376,7 +396,7 @@
          public boolean isValidSpawn(BlockGetter level, BlockPos pos, EntityType<?> type) {
              return this.getBlock().properties.isValidSpawn.test(this.asState(), level, pos, type);
          }
-@@ -544,22 +_,26 @@
+@@ -548,22 +_,26 @@
              return this.occlusionShape;
          }
  
@@ -413,7 +433,7 @@
          public boolean ignitedByLava() {
              return this.ignitedByLava;
          }
-@@ -570,9 +_,11 @@
+@@ -574,9 +_,11 @@
          }
  
          public MapColor getMapColor(BlockGetter level, BlockPos pos) {
@@ -426,7 +446,18 @@
          public BlockState rotate(Rotation rotation) {
              return this.getBlock().rotate(this.asState(), rotation);
          }
-@@ -630,14 +_,16 @@
+@@ -605,10 +_,6 @@
+             return this.getBlock().isSignalSource(this.asState());
+         }
+ 
+-        public boolean shouldRedstoneWireConnectTo(BlockGetter level, BlockPos pos, @Nullable Direction direction) {
+-            return this.getBlock().shouldRedstoneWireConnectTo(this.asState(), level, pos, direction);
+-        }
+-
+         public int getOwnSignal(BlockGetter level, BlockPos pos) {
+             return this.getBlock().ownSignal(this.asState(), level, pos);
+         }
+@@ -638,14 +_,16 @@
          }
  
          public PushReaction getPistonPushReaction() {
@@ -445,7 +476,7 @@
              return this.canOcclude;
          }
  
-@@ -724,7 +_,13 @@
+@@ -732,7 +_,13 @@
          }
  
          public void onPlace(Level level, BlockPos pos, BlockState oldState, boolean movedByPiston) {
@@ -460,7 +491,7 @@
          }
  
          public void affectNeighborsAfterRemoval(ServerLevel level, BlockPos pos, boolean movedByPiston) {
-@@ -749,6 +_,7 @@
+@@ -757,6 +_,7 @@
  
          public void spawnAfterBreak(ServerLevel level, BlockPos pos, ItemStack tool, boolean dropExperience) {
              this.getBlock().spawnAfterBreak(this.asState(), level, pos, tool, dropExperience);
@@ -468,7 +499,7 @@
          }
  
          public List<ItemStack> getDrops(LootParams.Builder params) {
-@@ -756,6 +_,9 @@
+@@ -764,6 +_,9 @@
          }
  
          public InteractionResult useItemOn(ItemStack itemStack, Level level, Player player, InteractionHand hand, BlockHitResult hitResult) {
@@ -478,7 +509,7 @@
              return this.getBlock().useItemOn(itemStack, this.asState(), level, hitResult.getBlockPos(), player, hand, hitResult);
          }
  
-@@ -763,10 +_,6 @@
+@@ -771,10 +_,6 @@
              return this.getBlock().useWithoutItem(this.asState(), level, hitResult.getBlockPos(), player, hitResult);
          }
  
@@ -489,7 +520,22 @@
          public void attack(Level level, BlockPos pos, Player player) {
              this.getBlock().attack(this.asState(), level, pos, player);
          }
-@@ -835,11 +_,11 @@
+@@ -783,12 +_,8 @@
+             return this.isSuffocating.test(this.asState(), level, pos);
+         }
+ 
+-        public boolean isLightPermeable() {
+-            return !this.solidRender || this.getLightDampening() == 0;
+-        }
+-
+-        public boolean isViewBlocking(BlockGetter level, BlockPos blockPos, AABB nearPlaneBox) {
+-            return this.isViewBlocking.test(this.asState(), level, blockPos, nearPlaneBox);
++        public boolean isViewBlocking(BlockGetter level, BlockPos pos) {
++            return this.isViewBlocking.test(this.asState(), level, pos);
+         }
+ 
+         public BlockState updateShape(
+@@ -847,11 +_,11 @@
              return this.getBlock() instanceof EntityBlock ? ((EntityBlock)this.getBlock()).getTicker(level, this.asState(), type) : null;
          }
  
@@ -503,7 +549,7 @@
              return this.isRandomlyTicking;
          }
  
-@@ -847,6 +_,7 @@
+@@ -859,6 +_,7 @@
              return this.getBlock().getSeed(this.asState(), pos);
          }
  
@@ -511,7 +557,7 @@
          public SoundType getSoundType() {
              return this.getBlock().getSoundType(this.asState());
          }
-@@ -902,10 +_,10 @@
+@@ -914,10 +_,10 @@
          private static final class Cache {
              private static final Direction[] DIRECTIONS = Direction.values();
              private static final int SUPPORT_TYPE_COUNT = SupportType.values().length;
@@ -525,7 +571,7 @@
  
              private Cache(BlockState state) {
                  Block block = state.getBlock();
-@@ -960,6 +_,7 @@
+@@ -972,6 +_,7 @@
      }
  
      public static class Properties {
@@ -533,7 +579,7 @@
          private Function<BlockState, MapColor> mapColor = state -> MapColor.NONE;
          private boolean hasCollision = true;
          private SoundType soundType = SoundType.STONE;
-@@ -985,24 +_,22 @@
+@@ -997,24 +_,22 @@
          @Deprecated
          private boolean forceSolidOff;
          private boolean forceSolidOn;
@@ -550,8 +596,9 @@
          private BlockBehaviour.StatePredicate isRedstoneConductor = BlockBehaviour.BlockStateBase::isCollisionShapeFullBlock;
 -        private BlockBehaviour.StatePredicate isSuffocating = (state, level, pos) -> state.is(BlockTags.CAUSES_SUFFOCATION)
 -            && state.isCollisionShapeFullBlock(level, pos);
+-        private BlockBehaviour.StateArgumentPredicate<AABB> isViewBlocking = (state, level, pos, nearPlaneBox) -> this.isSuffocating.test(state, level, pos);
 +        private BlockBehaviour.StatePredicate isSuffocating = (state, level, pos) -> state.blocksMotion() && state.isCollisionShapeFullBlock(level, pos);
-         private BlockBehaviour.StatePredicate isViewBlocking = this.isSuffocating;
++        private BlockBehaviour.StatePredicate isViewBlocking = this.isSuffocating;
          private BlockBehaviour.PostProcess postProcess = (state, level, pos) -> null;
          private Predicate<BlockState> emissiveRendering = var0 -> false;
          private boolean dynamicShape;
@@ -561,15 +608,24 @@
  
          private Properties() {
          }
-@@ -1100,11 +_,6 @@
- 
-         public BlockBehaviour.Properties bounceRestitution(float bounceRestitution) {
-             this.bounceRestitution = bounceRestitution;
--            return this;
--        }
--
--        public BlockBehaviour.Properties fallDistanceReduction(float fallDistanceReduction) {
--            this.fallDistanceReduction = fallDistanceReduction;
+@@ -1115,11 +_,6 @@
              return this;
          }
  
+-        public BlockBehaviour.Properties fallDistanceReduction(float fallDistanceReduction) {
+-            this.fallDistanceReduction = fallDistanceReduction;
+-            return this;
+-        }
+-
+         public BlockBehaviour.Properties sound(SoundType soundType) {
+             this.soundType = soundType;
+             return this;
+@@ -1213,7 +_,7 @@
+             return this;
+         }
+ 
+-        public BlockBehaviour.Properties isViewBlocking(BlockBehaviour.StateArgumentPredicate<AABB> isViewBlocking) {
++        public BlockBehaviour.Properties isViewBlocking(BlockBehaviour.StatePredicate isViewBlocking) {
+             this.isViewBlocking = isViewBlocking;
+             return this;
+         }

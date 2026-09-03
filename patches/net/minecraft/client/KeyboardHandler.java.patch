@@ -1,0 +1,122 @@
+--- a/net/minecraft/client/KeyboardHandler.java
++++ b/net/minecraft/client/KeyboardHandler.java
+@@ -6,7 +_,6 @@
+ import com.mojang.blaze3d.platform.InputConstants;
+ import com.mojang.blaze3d.platform.TextureUtil;
+ import com.mojang.blaze3d.platform.Window;
+-import com.mojang.blaze3d.systems.RenderSystem;
+ import com.mojang.logging.LogUtils;
+ import java.nio.file.Path;
+ import java.util.Locale;
+@@ -25,7 +_,6 @@
+ import net.minecraft.client.gui.screens.debug.GameModeSwitcherScreen;
+ import net.minecraft.client.gui.screens.options.controls.KeyBindsScreen;
+ import net.minecraft.client.input.CharacterEvent;
+-import net.minecraft.client.input.IMECandidatesEvent;
+ import net.minecraft.client.input.KeyEvent;
+ import net.minecraft.client.input.PreeditEvent;
+ import net.minecraft.client.player.LocalPlayer;
+@@ -74,7 +_,6 @@
+     private long debugCrashKeyReportedCount = -1L;
+     private boolean usedDebugKeyAsModifier;
+     private @Nullable PreeditEvent lastPreeditEvent;
+-    private @Nullable IMECandidatesEvent lastIMECandidatesEvent;
+ 
+     public KeyboardHandler(Minecraft minecraft) {
+         this.minecraft = minecraft;
+@@ -102,11 +_,6 @@
+                 this.debugFeedbackEnabledStatus("SmartCull: ", this.minecraft.smartCull);
+                 yield true;
+             }
+-            case 109 -> {
+-                this.minecraft.multiDrawIndirect = !this.minecraft.multiDrawIndirect;
+-                this.debugFeedbackEnabledStatus("MultiDrawIndirect: ", this.minecraft.multiDrawIndirect);
+-                yield true;
+-            }
+             case 111 -> {
+                 if (this.minecraft.player == null) {
+                     yield false;
+@@ -138,13 +_,7 @@
+             }
+             case 119 -> {
+                 this.minecraft.wireframe = !this.minecraft.wireframe;
+-                if (this.minecraft.wireframe && !RenderSystem.isWireframeAvailable()) {
+-                    this.minecraft.wireframe = false;
+-                    this.debugFeedback("Unable to enable WireFrame");
+-                } else {
+-                    this.debugFeedbackEnabledStatus("WireFrame: ", this.minecraft.wireframe);
+-                }
+-
++                this.debugFeedbackEnabledStatus("WireFrame: ", this.minecraft.wireframe);
+                 yield true;
+             }
+         };
+@@ -518,6 +_,7 @@
+                         }
+                     } catch (Throwable t) {
+                         CrashReport report = CrashReport.forThrowable(t, "keyPressed event handler");
++                        screen.fillCrashDetails(report);
+                         CrashReportCategory keyDetails = report.addCategory("Key");
+                         keyDetails.setDetail("Scancode", event.key());
+                         keyDetails.setDetail("Keycode", event.keycode());
+@@ -563,9 +_,10 @@
+                     }
+ 
+                     if (this.minecraft.getDebugOverlay().showProfilerChart() && !debugModifierDown) {
+-                        InputConstants.getKey(event)
+-                            .getNumericKeyValue()
+-                            .ifPresent(digit -> this.minecraft.getDebugOverlay().getProfilerPieChart().profilerPieChartKeyPress(digit));
++                        int digit = event.getDigit();
++                        if (digit != -1) {
++                            this.minecraft.getDebugOverlay().getProfilerPieChart().profilerPieChartKeyPress(digit);
++                        }
+                     }
+ 
+                     if (handlesGameInput) {
+@@ -591,6 +_,7 @@
+                     screen.charTyped(event);
+                 } catch (Throwable t) {
+                     CrashReport report = CrashReport.forThrowable(t, "charTyped event handler");
++                    screen.fillCrashDetails(report);
+                     CrashReportCategory keyDetails = report.addCategory("Key");
+                     keyDetails.setDetail("Codepoint", event.codepoint());
+                     throw new ReportedException(report);
+@@ -607,10 +_,6 @@
+     public void textEditing(long handle, @Nullable PreeditEvent event) {
+         if (handle != 0L && handle == this.minecraft.getWindow().handle()) {
+             this.lastPreeditEvent = event;
+-            if (event == null) {
+-                this.lastIMECandidatesEvent = null;
+-            }
+-
+             Screen screen = this.minecraft.gui.screen();
+             if (screen != null && this.minecraft.gui.overlay() == null) {
+                 submitPreeditEvent(screen, event);
+@@ -618,16 +_,6 @@
+         }
+     }
+ 
+-    public void textEditingCandidates(long handle, @Nullable IMECandidatesEvent event) {
+-        if (handle != 0L && handle == this.minecraft.getWindow().handle()) {
+-            this.lastIMECandidatesEvent = event;
+-        }
+-    }
+-
+-    public @Nullable IMECandidatesEvent getIMECandidates() {
+-        return this.lastIMECandidatesEvent;
+-    }
+-
+     public void resubmitLastPreeditEvent(GuiEventListener screen) {
+         submitPreeditEvent(screen, this.lastPreeditEvent);
+     }
+@@ -637,6 +_,10 @@
+             element.preeditUpdated(event);
+         } catch (Throwable t) {
+             CrashReport report = CrashReport.forThrowable(t, "IME pre-edit event handler");
++            if (element instanceof Screen screen) {
++                screen.fillCrashDetails(report);
++            }
++
+             CrashReportCategory keyDetails = report.addCategory("Event");
+             keyDetails.setDetail("Contents", () -> String.valueOf(event));
+             throw new ReportedException(report);

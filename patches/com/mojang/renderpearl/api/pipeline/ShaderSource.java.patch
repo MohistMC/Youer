@@ -1,0 +1,44 @@
+--- a/com/mojang/renderpearl/api/pipeline/ShaderSource.java
++++ b/com/mojang/renderpearl/api/pipeline/ShaderSource.java
+@@ -4,38 +_,9 @@
+ import net.neoforged.api.distmarker.Dist;
+ import net.neoforged.api.distmarker.OnlyIn;
+ import org.jspecify.annotations.Nullable;
+-import org.lwjgl.system.MemoryUtil;
+-import org.lwjgl.util.shaderc.ShadercIncludeResult;
+ 
++@FunctionalInterface
+ @OnlyIn(Dist.CLIENT)
+-public interface ShaderSource extends AutoCloseable {
+-    @Nullable String getShader(Identifier id, ShaderType type);
+-
+-    ShaderSource.@Nullable CachedIncludeSource getInclude(Identifier id);
+-
+-    @Override
+-    void close();
+-
+-    record CachedIncludeSource(long includeResultPtr) implements AutoCloseable {
+-        public static ShaderSource.CachedIncludeSource create(Identifier id, String source) {
+-            ShadercIncludeResult result = ShadercIncludeResult.calloc();
+-            result.source_name(MemoryUtil.memUTF8(id.toString(), false));
+-            result.content(MemoryUtil.memUTF8(source, false));
+-            return new ShaderSource.CachedIncludeSource(result.address());
+-        }
+-
+-        public static ShaderSource.CachedIncludeSource createError(String message) {
+-            ShadercIncludeResult result = ShadercIncludeResult.calloc();
+-            result.source_name(MemoryUtil.memUTF8("", false));
+-            result.content(MemoryUtil.memUTF8(message, false));
+-            return new ShaderSource.CachedIncludeSource(result.address());
+-        }
+-
+-        @Override
+-        public void close() {
+-            MemoryUtil.nmemFree(MemoryUtil.memGetAddress(this.includeResultPtr + ShadercIncludeResult.SOURCE_NAME));
+-            MemoryUtil.nmemFree(MemoryUtil.memGetAddress(this.includeResultPtr + ShadercIncludeResult.CONTENT));
+-            MemoryUtil.nmemFree(this.includeResultPtr);
+-        }
+-    }
++public interface ShaderSource {
++    @Nullable String get(Identifier id, ShaderType type);
+ }

@@ -1,10 +1,164 @@
 --- a/net/minecraft/advancements/Advancement.java
 +++ b/net/minecraft/advancements/Advancement.java
-@@ -55,6 +_,7 @@
+@@ -11,6 +_,7 @@
+ import net.minecraft.core.ClientAsset;
+ import net.minecraft.core.HolderGetter;
+ import net.minecraft.data.worldgen.BootstrapContext;
++import net.minecraft.network.FriendlyByteBuf;
+ import net.minecraft.network.RegistryFriendlyByteBuf;
+ import net.minecraft.network.chat.Component;
+ import net.minecraft.network.chat.ComponentUtils;
+@@ -20,9 +_,10 @@
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.util.ProblemReporter;
+-import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemStackTemplate;
++import net.minecraft.world.level.ItemLike;
+ import net.minecraft.world.level.storage.loot.ValidationContextSource;
++import org.jspecify.annotations.Nullable;
+ 
+ import net.neoforged.neoforge.common.extensions.IAdvancementBuilderExtension;
+ 
+@@ -52,19 +_,8 @@
+                 })
          )
          .validate(Advancement::validate);
-     public static final StreamCodec<RegistryFriendlyByteBuf, Advancement> STREAM_CODEC = StreamCodec.ofMember(Advancement::write, Advancement::read);
+-    public static final StreamCodec<RegistryFriendlyByteBuf, Advancement> STREAM_CODEC = StreamCodec.composite(
+-        Identifier.STREAM_CODEC.apply(ByteBufCodecs::optional),
+-        Advancement::parent,
+-        DisplayInfo.STREAM_CODEC.apply(ByteBufCodecs::optional),
+-        Advancement::display,
+-        AdvancementRequirements.STREAM_CODEC,
+-        Advancement::requirements,
+-        ByteBufCodecs.BOOL,
+-        Advancement::sendsTelemetryEvent,
+-        (parent, display, requirements, sendsTelemetryEvent) -> new Advancement(
+-            parent, display, AdvancementRewards.EMPTY, Map.of(), requirements, sendsTelemetryEvent
+-        )
+-    );
++    public static final StreamCodec<RegistryFriendlyByteBuf, Advancement> STREAM_CODEC = StreamCodec.ofMember(Advancement::write, Advancement::read);
 +    public static final Codec<Optional<net.neoforged.neoforge.common.conditions.WithConditions<Advancement>>> CONDITIONAL_CODEC = net.neoforged.neoforge.common.conditions.ConditionalOps.createConditionalCodecWithConditions(CODEC);
  
      public Advancement(
          Optional<Identifier> parent,
+@@ -78,25 +_,13 @@
+     }
+ 
+     private static DataResult<Advancement> validate(Advancement advancement) {
+-        boolean isRoot = advancement.parent.isEmpty();
+-        boolean isVisible = advancement.display.isPresent();
+-        boolean hasBackground = isVisible && advancement.display.get().background().isPresent();
+-        if (isRoot && isVisible && !hasBackground) {
+-            return DataResult.error(() -> "Visible advancement roots must have background");
+-        }
+-
+-        if (!isRoot && hasBackground) {
+-            return DataResult.error(() -> "Only advancement roots can have background");
+-        }
+-
+-        DataResult<AdvancementRequirements> requirementValidation = advancement.requirements().validate(advancement.criteria().keySet());
+-        return requirementValidation.isError() ? requirementValidation.map(var1x -> advancement) : DataResult.success(advancement);
++        return advancement.requirements().validate(advancement.criteria().keySet()).map(r -> advancement);
+     }
+ 
+     public static Component decorateName(DisplayInfo display) {
+-        Component displayTitle = display.title();
+-        ChatFormatting color = display.type().getChatColor();
+-        Component tooltip = ComponentUtils.mergeStyles(displayTitle.copy(), Style.EMPTY.withColor(color)).append("\n").append(display.description());
++        Component displayTitle = display.getTitle();
++        ChatFormatting color = display.getType().getChatColor();
++        Component tooltip = ComponentUtils.mergeStyles(displayTitle.copy(), Style.EMPTY.withColor(color)).append("\n").append(display.getDescription());
+         Component title = displayTitle.copy().withStyle(s -> s.withHoverEvent(new HoverEvent.ShowText(tooltip)));
+         return ComponentUtils.wrapInSquareBrackets(title).withStyle(color);
+     }
+@@ -105,6 +_,24 @@
+         return holder.value().name().orElseGet(() -> Component.literal(holder.id().toString()));
+     }
+ 
++    private void write(RegistryFriendlyByteBuf output) {
++        output.writeOptional(this.parent, FriendlyByteBuf::writeIdentifier);
++        DisplayInfo.STREAM_CODEC.apply(ByteBufCodecs::optional).encode(output, this.display);
++        this.requirements.write(output);
++        output.writeBoolean(this.sendsTelemetryEvent);
++    }
++
++    private static Advancement read(RegistryFriendlyByteBuf input) {
++        return new Advancement(
++            input.readOptional(FriendlyByteBuf::readIdentifier),
++            (Optional<DisplayInfo>)DisplayInfo.STREAM_CODEC.apply(ByteBufCodecs::optional).decode(input),
++            AdvancementRewards.EMPTY,
++            Map.of(),
++            new AdvancementRequirements(input),
++            input.readBoolean()
++        );
++    }
++
+     public boolean isRoot() {
+         return this.parent.isEmpty();
+     }
+@@ -144,44 +_,45 @@
+             return this;
+         }
+ 
+-        public Advancement.Builder rootDisplay(
++        public Advancement.Builder display(
+             ItemStackTemplate icon,
+             Component title,
+             Component description,
+-            Identifier background,
++            @Nullable Identifier background,
+             AdvancementType frame,
+             boolean showToast,
+             boolean announceChat,
+             boolean hidden
+         ) {
+             return this.display(
+-                new DisplayInfo(icon, title, description, Optional.of(new ClientAsset.ResourceTexture(background)), frame, showToast, announceChat, hidden)
++                new DisplayInfo(
++                    icon, title, description, Optional.ofNullable(background).map(ClientAsset.ResourceTexture::new), frame, showToast, announceChat, hidden
++                )
+             );
+         }
+ 
+-        public Advancement.Builder rootDisplay(
+-            Item icon,
++        public Advancement.Builder display(
++            ItemLike icon,
+             Component title,
+             Component description,
+-            Identifier background,
++            @Nullable Identifier background,
+             AdvancementType frame,
+             boolean showToast,
+             boolean announceChat,
+             boolean hidden
+         ) {
+-            return this.rootDisplay(new ItemStackTemplate(icon), title, description, background, frame, showToast, announceChat, hidden);
+-        }
+-
+-        public Advancement.Builder display(
+-            ItemStackTemplate icon, Component title, Component description, AdvancementType frame, boolean showToast, boolean announceChat, boolean hidden
+-        ) {
+-            return this.display(new DisplayInfo(icon, title, description, Optional.empty(), frame, showToast, announceChat, hidden));
+-        }
+-
+-        public Advancement.Builder display(
+-            Item icon, Component title, Component description, AdvancementType frame, boolean showToast, boolean announceChat, boolean hidden
+-        ) {
+-            return this.display(new ItemStackTemplate(icon), title, description, frame, showToast, announceChat, hidden);
++            return this.display(
++                new DisplayInfo(
++                    new ItemStackTemplate(icon.asItem()),
++                    title,
++                    description,
++                    Optional.ofNullable(background).map(ClientAsset.ResourceTexture::new),
++                    frame,
++                    showToast,
++                    announceChat,
++                    hidden
++                )
++            );
+         }
+ 
+         public Advancement.Builder display(DisplayInfo display) {

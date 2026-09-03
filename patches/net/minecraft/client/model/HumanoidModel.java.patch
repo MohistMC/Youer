@@ -1,0 +1,254 @@
+--- a/net/minecraft/client/model/HumanoidModel.java
++++ b/net/minecraft/client/model/HumanoidModel.java
+@@ -24,7 +_,6 @@
+ import net.minecraft.world.InteractionHand;
+ import net.minecraft.world.entity.EquipmentSlot;
+ import net.minecraft.world.entity.HumanoidArm;
+-import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.item.ItemStack;
+ import net.neoforged.api.distmarker.Dist;
+ import net.neoforged.api.distmarker.OnlyIn;
+@@ -216,11 +_,16 @@
+ 
+     public void setupAnim(T state) {
+         super.setupAnim(state);
++        HumanoidModel.ArmPose leftArmPose = state.leftArmPose;
++        HumanoidModel.ArmPose rightArmPose = state.rightArmPose;
+         float swimAmount = state.swimAmount;
++        boolean fallFlying = state.isFallFlying;
+         this.head.xRot = state.xRot * (float) (Math.PI / 180.0);
+         this.head.yRot = state.yRot * (float) (Math.PI / 180.0);
+-        if (state.isFallFlying) {
++        if (fallFlying) {
+             this.head.xRot = (float) (-Math.PI / 4);
++        } else if (swimAmount > 0.0F) {
++            this.head.xRot = Mth.rotLerpRad(swimAmount, this.head.xRot, (float) (-Math.PI / 4));
+         }
+ 
+         float animationPos = state.walkAnimationPos;
+@@ -244,23 +_,32 @@
+             this.leftLeg.zRot = -0.07853982F;
+         }
+ 
+-        HumanoidArm prioritizeArm;
++        boolean rightHanded = state.mainArm == HumanoidArm.RIGHT;
+         if (state.isUsingItem) {
+-            prioritizeArm = state.useItemHand.asArm(state.mainArm);
+-        } else {
+-            HumanoidArm offHandArm = InteractionHand.OFF_HAND.asArm(state.mainArm);
+-            prioritizeArm = state.getArmPose(offHandArm).isTwoHanded() ? state.mainArm : offHandArm;
+-        }
+-
+-        if (prioritizeArm == HumanoidArm.RIGHT) {
+-            this.poseRightArm(state);
+-            if (!state.rightArmPose.affectsOffhandPose()) {
++            boolean mainHandUsed = state.useItemHand == InteractionHand.MAIN_HAND;
++            if (mainHandUsed == rightHanded) {
++                this.poseRightArm(state);
++                if (!state.rightArmPose.affectsOffhandPose()) {
++                    this.poseLeftArm(state);
++                }
++            } else {
+                 this.poseLeftArm(state);
++                if (!state.leftArmPose.affectsOffhandPose()) {
++                    this.poseRightArm(state);
++                }
+             }
+         } else {
+-            this.poseLeftArm(state);
+-            if (!state.leftArmPose.affectsOffhandPose()) {
++            boolean twoHandedOffhand = rightHanded ? leftArmPose.isTwoHanded() : rightArmPose.isTwoHanded();
++            if (rightHanded != twoHandedOffhand) {
++                this.poseLeftArm(state);
++                if (!state.leftArmPose.affectsOffhandPose()) {
++                    this.poseRightArm(state);
++                }
++            } else {
+                 this.poseRightArm(state);
++                if (!state.rightArmPose.affectsOffhandPose()) {
++                    this.poseLeftArm(state);
++                }
+             }
+         }
+ 
+@@ -277,63 +_,61 @@
+             this.rightArm.y += 3.2F;
+         }
+ 
+-        if (state.rightArmPose != HumanoidModel.ArmPose.SPYGLASS) {
++        if (rightArmPose != HumanoidModel.ArmPose.SPYGLASS) {
+             AnimationUtils.bobModelPart(this.rightArm, state.ageInTicks, 1.0F);
+         }
+ 
+-        if (state.leftArmPose != HumanoidModel.ArmPose.SPYGLASS) {
++        if (leftArmPose != HumanoidModel.ArmPose.SPYGLASS) {
+             AnimationUtils.bobModelPart(this.leftArm, state.ageInTicks, -1.0F);
+         }
+ 
+         if (swimAmount > 0.0F) {
+-            this.setupSwimAnimation(state, animationPos, swimAmount);
+-        }
+-    }
+-
+-    protected void setupSwimAnimation(T state, float animationPos, float swimAmount) {
+-        if (!state.isFallFlying) {
+-            this.head.xRot = Mth.rotLerpRad(swimAmount, this.head.xRot, (float) (-Math.PI / 4));
+-        }
+-
+-        float swimPos = animationPos % 26.0F;
+-        HumanoidArm swingArm = state.currentSwing != null ? state.currentSwing.hand().asArm(state.mainArm) : null;
+-        float rightArmSwimAmount = state.rightArmPose != HumanoidModel.ArmPose.SPEAR && swingArm != HumanoidArm.RIGHT ? swimAmount : 0.0F;
+-        float leftArmSwimAmount = state.leftArmPose != HumanoidModel.ArmPose.SPEAR && swingArm != HumanoidArm.LEFT ? swimAmount : 0.0F;
+-        if (!state.isUsingItem) {
+-            if (swimPos < 14.0F) {
+-                this.leftArm.xRot = Mth.rotLerpRad(leftArmSwimAmount, this.leftArm.xRot, 0.0F);
+-                this.rightArm.xRot = Mth.lerp(rightArmSwimAmount, this.rightArm.xRot, 0.0F);
+-                this.leftArm.yRot = Mth.rotLerpRad(leftArmSwimAmount, this.leftArm.yRot, (float) Math.PI);
+-                this.rightArm.yRot = Mth.lerp(rightArmSwimAmount, this.rightArm.yRot, (float) Math.PI);
+-                this.leftArm.zRot = Mth.rotLerpRad(
+-                    leftArmSwimAmount, this.leftArm.zRot, (float) Math.PI + 1.8707964F * this.quadraticArmUpdate(swimPos) / this.quadraticArmUpdate(14.0F)
+-                );
+-                this.rightArm.zRot = Mth.lerp(
+-                    rightArmSwimAmount, this.rightArm.zRot, (float) Math.PI - 1.8707964F * this.quadraticArmUpdate(swimPos) / this.quadraticArmUpdate(14.0F)
+-                );
+-            } else if (swimPos >= 14.0F && swimPos < 22.0F) {
+-                float internalSwimPos = (swimPos - 14.0F) / 8.0F;
+-                this.leftArm.xRot = Mth.rotLerpRad(leftArmSwimAmount, this.leftArm.xRot, (float) (Math.PI / 2) * internalSwimPos);
+-                this.rightArm.xRot = Mth.lerp(rightArmSwimAmount, this.rightArm.xRot, (float) (Math.PI / 2) * internalSwimPos);
+-                this.leftArm.yRot = Mth.rotLerpRad(leftArmSwimAmount, this.leftArm.yRot, (float) Math.PI);
+-                this.rightArm.yRot = Mth.lerp(rightArmSwimAmount, this.rightArm.yRot, (float) Math.PI);
+-                this.leftArm.zRot = Mth.rotLerpRad(leftArmSwimAmount, this.leftArm.zRot, 5.012389F - 1.8707964F * internalSwimPos);
+-                this.rightArm.zRot = Mth.lerp(rightArmSwimAmount, this.rightArm.zRot, 1.2707963F + 1.8707964F * internalSwimPos);
+-            } else if (swimPos >= 22.0F && swimPos < 26.0F) {
+-                float internalSwimPos = (swimPos - 22.0F) / 4.0F;
+-                this.leftArm.xRot = Mth.rotLerpRad(leftArmSwimAmount, this.leftArm.xRot, (float) (Math.PI / 2) - (float) (Math.PI / 2) * internalSwimPos);
+-                this.rightArm.xRot = Mth.lerp(rightArmSwimAmount, this.rightArm.xRot, (float) (Math.PI / 2) - (float) (Math.PI / 2) * internalSwimPos);
+-                this.leftArm.yRot = Mth.rotLerpRad(leftArmSwimAmount, this.leftArm.yRot, (float) Math.PI);
+-                this.rightArm.yRot = Mth.lerp(rightArmSwimAmount, this.rightArm.yRot, (float) Math.PI);
+-                this.leftArm.zRot = Mth.rotLerpRad(leftArmSwimAmount, this.leftArm.zRot, (float) Math.PI);
+-                this.rightArm.zRot = Mth.lerp(rightArmSwimAmount, this.rightArm.zRot, (float) Math.PI);
++            float swimPos = animationPos % 26.0F;
++            HumanoidArm attackArm = state.attackArm;
++            float rightArmSwimAmount = state.rightArmPose != HumanoidModel.ArmPose.SPEAR && (attackArm != HumanoidArm.RIGHT || !(state.attackTime > 0.0F))
++                ? swimAmount
++                : 0.0F;
++            float leftArmSwimAmount = state.leftArmPose != HumanoidModel.ArmPose.SPEAR && (attackArm != HumanoidArm.LEFT || !(state.attackTime > 0.0F))
++                ? swimAmount
++                : 0.0F;
++            if (!state.isUsingItem) {
++                if (swimPos < 14.0F) {
++                    this.leftArm.xRot = Mth.rotLerpRad(leftArmSwimAmount, this.leftArm.xRot, 0.0F);
++                    this.rightArm.xRot = Mth.lerp(rightArmSwimAmount, this.rightArm.xRot, 0.0F);
++                    this.leftArm.yRot = Mth.rotLerpRad(leftArmSwimAmount, this.leftArm.yRot, (float) Math.PI);
++                    this.rightArm.yRot = Mth.lerp(rightArmSwimAmount, this.rightArm.yRot, (float) Math.PI);
++                    this.leftArm.zRot = Mth.rotLerpRad(
++                        leftArmSwimAmount, this.leftArm.zRot, (float) Math.PI + 1.8707964F * this.quadraticArmUpdate(swimPos) / this.quadraticArmUpdate(14.0F)
++                    );
++                    this.rightArm.zRot = Mth.lerp(
++                        rightArmSwimAmount,
++                        this.rightArm.zRot,
++                        (float) Math.PI - 1.8707964F * this.quadraticArmUpdate(swimPos) / this.quadraticArmUpdate(14.0F)
++                    );
++                } else if (swimPos >= 14.0F && swimPos < 22.0F) {
++                    float internalSwimPos = (swimPos - 14.0F) / 8.0F;
++                    this.leftArm.xRot = Mth.rotLerpRad(leftArmSwimAmount, this.leftArm.xRot, (float) (Math.PI / 2) * internalSwimPos);
++                    this.rightArm.xRot = Mth.lerp(rightArmSwimAmount, this.rightArm.xRot, (float) (Math.PI / 2) * internalSwimPos);
++                    this.leftArm.yRot = Mth.rotLerpRad(leftArmSwimAmount, this.leftArm.yRot, (float) Math.PI);
++                    this.rightArm.yRot = Mth.lerp(rightArmSwimAmount, this.rightArm.yRot, (float) Math.PI);
++                    this.leftArm.zRot = Mth.rotLerpRad(leftArmSwimAmount, this.leftArm.zRot, 5.012389F - 1.8707964F * internalSwimPos);
++                    this.rightArm.zRot = Mth.lerp(rightArmSwimAmount, this.rightArm.zRot, 1.2707963F + 1.8707964F * internalSwimPos);
++                } else if (swimPos >= 22.0F && swimPos < 26.0F) {
++                    float internalSwimPos = (swimPos - 22.0F) / 4.0F;
++                    this.leftArm.xRot = Mth.rotLerpRad(leftArmSwimAmount, this.leftArm.xRot, (float) (Math.PI / 2) - (float) (Math.PI / 2) * internalSwimPos);
++                    this.rightArm.xRot = Mth.lerp(rightArmSwimAmount, this.rightArm.xRot, (float) (Math.PI / 2) - (float) (Math.PI / 2) * internalSwimPos);
++                    this.leftArm.yRot = Mth.rotLerpRad(leftArmSwimAmount, this.leftArm.yRot, (float) Math.PI);
++                    this.rightArm.yRot = Mth.lerp(rightArmSwimAmount, this.rightArm.yRot, (float) Math.PI);
++                    this.leftArm.zRot = Mth.rotLerpRad(leftArmSwimAmount, this.leftArm.zRot, (float) Math.PI);
++                    this.rightArm.zRot = Mth.lerp(rightArmSwimAmount, this.rightArm.zRot, (float) Math.PI);
++                }
+             }
+-        }
+ 
+-        float amplitude = 0.3F;
+-        float slowdown = 0.33333334F;
+-        this.leftLeg.xRot = Mth.lerp(swimAmount, this.leftLeg.xRot, 0.3F * Mth.cos(animationPos * 0.33333334F + (float) Math.PI));
+-        this.rightLeg.xRot = Mth.lerp(swimAmount, this.rightLeg.xRot, 0.3F * Mth.cos(animationPos * 0.33333334F));
++            float amplitude = 0.3F;
++            float slowdown = 0.33333334F;
++            this.leftLeg.xRot = Mth.lerp(swimAmount, this.leftLeg.xRot, 0.3F * Mth.cos(animationPos * 0.33333334F + (float) Math.PI));
++            this.rightLeg.xRot = Mth.lerp(swimAmount, this.rightLeg.xRot, 0.3F * Mth.cos(animationPos * 0.33333334F));
++        }
+     }
+ 
+     private void poseRightArm(T state) {
+@@ -377,7 +_,7 @@
+                 this.rightArm.yRot = 0.0F;
+                 break;
+             case SPEAR:
+-                SpearAnimations.thirdPersonHandUse(this.rightArm, this.head, HumanoidArm.RIGHT, state.getUseItemStackForArm(HumanoidArm.RIGHT), state);
++                SpearAnimations.thirdPersonHandUse(this.rightArm, this.head, true, state.getUseItemStackForArm(HumanoidArm.RIGHT), state);
+         }
+     }
+ 
+@@ -422,7 +_,7 @@
+                 this.leftArm.yRot = 0.0F;
+                 break;
+             case SPEAR:
+-                SpearAnimations.thirdPersonHandUse(this.leftArm, this.head, HumanoidArm.LEFT, state.getUseItemStackForArm(HumanoidArm.LEFT), state);
++                SpearAnimations.thirdPersonHandUse(this.leftArm, this.head, false, state.getUseItemStackForArm(HumanoidArm.LEFT), state);
+         }
+     }
+ 
+@@ -432,12 +_,10 @@
+     }
+ 
+     protected void setupAttackAnimation(T state) {
+-        float swingAnimation = state.swingAnimation;
+-        LivingEntity.SwingDescription swing = state.currentSwing;
+-        if (!(swingAnimation <= 0.0F) && swing != null) {
+-            HumanoidArm swingArm = swing.hand().asArm(state.mainArm);
+-            this.body.yRot = Mth.sin(Mth.sqrt(swingAnimation) * (float) (Math.PI * 2)) * 0.2F;
+-            if (swingArm == HumanoidArm.LEFT) {
++        float attackTime = state.attackTime;
++        if (!(attackTime <= 0.0F)) {
++            this.body.yRot = Mth.sin(Mth.sqrt(attackTime) * (float) (Math.PI * 2)) * 0.2F;
++            if (state.attackArm == HumanoidArm.LEFT) {
+                 this.body.yRot *= -1.0F;
+             }
+ 
+@@ -449,19 +_,20 @@
+             this.rightArm.yRot = this.rightArm.yRot + this.body.yRot;
+             this.leftArm.yRot = this.leftArm.yRot + this.body.yRot;
+             this.leftArm.xRot = this.leftArm.xRot + this.body.yRot;
+-            switch (swing.animation().type()) {
++            switch (state.swingAnimationType) {
+                 case WHACK:
+-                    float aa = Mth.sin(Ease.outQuart(swingAnimation) * (float) Math.PI);
+-                    float bb = Mth.sin(swingAnimation * (float) Math.PI) * -(this.head.xRot - 0.7F) * 0.75F;
+-                    ModelPart attackArm = this.getArm(swingArm);
++                    float swing = Ease.outQuart(attackTime);
++                    float aa = Mth.sin(swing * (float) Math.PI);
++                    float bb = Mth.sin(attackTime * (float) Math.PI) * -(this.head.xRot - 0.7F) * 0.75F;
++                    ModelPart attackArm = this.getArm(state.attackArm);
+                     attackArm.xRot -= aa * 1.2F + bb;
+                     attackArm.yRot = attackArm.yRot + this.body.yRot * 2.0F;
+-                    attackArm.zRot = attackArm.zRot + Mth.sin(swingAnimation * (float) Math.PI) * -0.4F;
++                    attackArm.zRot = attackArm.zRot + Mth.sin(attackTime * (float) Math.PI) * -0.4F;
+                 case NONE:
+                 default:
+                     break;
+                 case STAB:
+-                    SpearAnimations.thirdPersonAttackHand(this, swingAnimation, swingArm);
++                    SpearAnimations.thirdPersonAttackHand(this, state);
+             }
+         }
+     }
+@@ -495,7 +_,7 @@
+         SPYGLASS(false, false),
+         TOOT_HORN(false, false),
+         BRUSH(false, false),
+-        SPEAR(false, false) {
++        SPEAR(false, true) {
+             @Override
+             public <S extends ArmedEntityRenderState> void animateUseItem(
+                 S state, PoseStack poseStack, float ticksUsingItem, HumanoidArm arm, ItemStack actualItem

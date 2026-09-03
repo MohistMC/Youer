@@ -30,7 +30,7 @@
          float shiftToBlockWall = 0.46875F;
          Vec3 position = Vec3.atCenterOf(blockPos).relative(direction, -0.46875);
          float width = hasFramedMap ? 1.0F : 0.75F;
-@@ -145,9 +_,9 @@
+@@ -145,15 +_,16 @@
      }
  
      @Override
@@ -42,7 +42,15 @@
          }
      }
  
-@@ -176,6 +_,18 @@
+     @Override
+-    protected void onKilled() {
++    public void kill(ServerLevel level) {
+         this.removeFramedMap(this.getItem());
++        super.kill(level);
+     }
+ 
+     private boolean shouldDamageDropItem(DamageSource source) {
+@@ -175,6 +_,18 @@
              if (this.isInvulnerableToBase(source)) {
                  return false;
              } else if (this.shouldDamageDropItem(source)) {
@@ -61,7 +69,7 @@
                  this.dropItem(level, source.getEntity(), false);
                  this.gameEvent(GameEvent.BLOCK_CHANGE, source.getEntity());
                  this.playSound(this.getRemoveItemSound(), 1.0F, 1.0F);
-@@ -231,7 +_,11 @@
+@@ -230,7 +_,11 @@
                  this.removeFramedMap(itemStack);
              } else {
                  if (withFrame) {
@@ -74,7 +82,7 @@
                  }
  
                  if (!itemStack.isEmpty()) {
-@@ -248,7 +_,7 @@
+@@ -247,7 +_,7 @@
      private void removeFramedMap(ItemStack itemStack) {
          MapId mapId = this.getFramedMapId(itemStack);
          if (mapId != null) {
@@ -83,7 +91,7 @@
              if (mapItemSavedData != null) {
                  mapItemSavedData.removedFromFrame(this.pos, this.getId());
              }
-@@ -259,6 +_,13 @@
+@@ -258,6 +_,13 @@
          return this.getEntityData().get(DATA_ITEM);
      }
  
@@ -97,7 +105,7 @@
      public @Nullable MapId getFramedMapId(ItemStack itemStack) {
          return itemStack.get(DataComponents.MAP_ID);
      }
-@@ -272,13 +_,19 @@
+@@ -271,13 +_,19 @@
      }
  
      public void setItem(ItemStack itemStack, boolean updateNeighbours) {
@@ -118,7 +126,7 @@
              this.playSound(this.getAddItemSound(), 1.0F, 1.0F);
          }
  
-@@ -305,6 +_,7 @@
+@@ -304,6 +_,7 @@
      }
  
      private void onItemChanged(ItemStack item) {
@@ -126,7 +134,7 @@
          this.recalculateBoundingBox();
      }
  
-@@ -372,7 +_,13 @@
+@@ -371,7 +_,13 @@
                          return InteractionResult.FAIL;
                      }
  
@@ -141,7 +149,7 @@
                      this.gameEvent(GameEvent.BLOCK_CHANGE, player);
                      itemStack.consume(1, player);
                      return InteractionResult.SUCCESS;
-@@ -380,6 +_,13 @@
+@@ -379,6 +_,13 @@
                      return InteractionResult.PASS;
                  }
              } else {
@@ -155,7 +163,7 @@
                  this.playSound(this.getRotateItemSound(), 1.0F, 1.0F);
                  this.setRotation(this.getRotation() + 1);
                  this.gameEvent(GameEvent.BLOCK_CHANGE, player);
-@@ -412,17 +_,11 @@
+@@ -411,17 +_,11 @@
      @Override
      public ItemStack getPickResult() {
          ItemStack framedStack = this.getItem();

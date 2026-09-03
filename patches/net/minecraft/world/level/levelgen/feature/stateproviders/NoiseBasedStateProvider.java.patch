@@ -1,0 +1,45 @@
+--- a/net/minecraft/world/level/levelgen/feature/stateproviders/NoiseBasedStateProvider.java
++++ b/net/minecraft/world/level/levelgen/feature/stateproviders/NoiseBasedStateProvider.java
+@@ -9,19 +_,18 @@
+ import net.minecraft.util.ExtraCodecs;
+ import net.minecraft.world.level.levelgen.LegacyRandomSource;
+ import net.minecraft.world.level.levelgen.WorldgenRandom;
+-import net.minecraft.world.level.levelgen.synth.Noise;
+ import net.minecraft.world.level.levelgen.synth.NormalNoise;
+ 
+ public abstract class NoiseBasedStateProvider implements BlockStateProvider {
+     protected final long seed;
+-    protected final NormalNoise parameters;
++    protected final NormalNoise.NoiseParameters parameters;
+     protected final float scale;
+-    protected final Noise noise;
++    protected final NormalNoise noise;
+ 
+-    protected static <P extends NoiseBasedStateProvider> P3<Mu<P>, Long, NormalNoise, Float> noiseCodec(Instance<P> instance) {
++    protected static <P extends NoiseBasedStateProvider> P3<Mu<P>, Long, NormalNoise.NoiseParameters, Float> noiseCodec(Instance<P> instance) {
+         return instance.group(
+             Codec.LONG.fieldOf("seed").forGetter(p -> p.seed),
+-            NormalNoise.DIRECT_CODEC.fieldOf("noise").forGetter(p -> p.parameters),
++            NormalNoise.NoiseParameters.DIRECT_CODEC.fieldOf("noise").forGetter(p -> p.parameters),
+             ExtraCodecs.POSITIVE_FLOAT.fieldOf("scale").forGetter(p -> p.scale)
+         );
+     }
+@@ -29,14 +_,14 @@
+     @Override
+     public abstract MapCodec<? extends NoiseBasedStateProvider> codec();
+ 
+-    protected NoiseBasedStateProvider(long seed, NormalNoise parameters, float scale) {
++    protected NoiseBasedStateProvider(long seed, NormalNoise.NoiseParameters parameters, float scale) {
+         this.seed = seed;
+         this.parameters = parameters;
+         this.scale = scale;
+-        this.noise = parameters.create(new WorldgenRandom(new LegacyRandomSource(seed)));
++        this.noise = NormalNoise.create(new WorldgenRandom(new LegacyRandomSource(seed)), parameters);
+     }
+ 
+-    protected float getNoiseValue(BlockPos pos, double scale) {
+-        return this.noise.get(pos.getX() * scale, pos.getY() * scale, pos.getZ() * scale);
++    protected double getNoiseValue(BlockPos pos, double scale) {
++        return this.noise.getValue(pos.getX() * scale, pos.getY() * scale, pos.getZ() * scale);
+     }
+ }

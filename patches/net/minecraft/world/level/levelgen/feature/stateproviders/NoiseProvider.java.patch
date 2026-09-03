@@ -1,0 +1,32 @@
+--- a/net/minecraft/world/level/levelgen/feature/stateproviders/NoiseProvider.java
++++ b/net/minecraft/world/level/levelgen/feature/stateproviders/NoiseProvider.java
+@@ -18,11 +_,11 @@
+     public static final MapCodec<NoiseProvider> CODEC = RecordCodecBuilder.mapCodec(i -> noiseProviderCodec(i).apply(i, NoiseProvider::new));
+     protected final List<BlockState> states;
+ 
+-    protected static <P extends NoiseProvider> P4<Mu<P>, Long, NormalNoise, Float, List<BlockState>> noiseProviderCodec(Instance<P> instance) {
++    protected static <P extends NoiseProvider> P4<Mu<P>, Long, NormalNoise.NoiseParameters, Float, List<BlockState>> noiseProviderCodec(Instance<P> instance) {
+         return noiseCodec(instance).and(ExtraCodecs.nonEmptyList(BlockState.CODEC.listOf()).fieldOf("states").forGetter(p -> p.states));
+     }
+ 
+-    public NoiseProvider(long seed, NormalNoise parameters, float scale, List<BlockState> states) {
++    public NoiseProvider(long seed, NormalNoise.NoiseParameters parameters, float scale, List<BlockState> states) {
+         super(seed, parameters, scale);
+         this.states = states;
+     }
+@@ -38,12 +_,12 @@
+     }
+ 
+     protected BlockState getRandomState(List<BlockState> states, BlockPos pos, double scale) {
+-        float noiseValue = this.getNoiseValue(pos, scale);
++        double noiseValue = this.getNoiseValue(pos, scale);
+         return this.getRandomState(states, noiseValue);
+     }
+ 
+-    protected BlockState getRandomState(List<BlockState> states, float noiseValue) {
+-        float placementValue = Mth.clamp((1.0F + noiseValue) / 2.0F, 0.0F, 0.9999F);
++    protected BlockState getRandomState(List<BlockState> states, double noiseValue) {
++        double placementValue = Mth.clamp((1.0 + noiseValue) / 2.0, 0.0, 0.9999);
+         return states.get((int)(placementValue * states.size()));
+     }
+ }

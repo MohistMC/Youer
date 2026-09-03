@@ -9,7 +9,20 @@
      public static final int MAX_STRUCTURE_DISTANCE = 8;
      private static final EnumSet<Heightmap.Types> WORLDGEN_HEIGHTMAPS = EnumSet.of(Heightmap.Types.OCEAN_FLOOR_WG, Heightmap.Types.WORLD_SURFACE_WG);
      public static final EnumSet<Heightmap.Types> FINAL_HEIGHTMAPS = EnumSet.of(
-@@ -53,12 +_,82 @@
+@@ -22,8 +_,10 @@
+     public static final ChunkStatus STRUCTURE_STARTS = register("structure_starts", EMPTY, WORLDGEN_HEIGHTMAPS, ChunkType.PROTOCHUNK);
+     public static final ChunkStatus STRUCTURE_REFERENCES = register("structure_references", STRUCTURE_STARTS, WORLDGEN_HEIGHTMAPS, ChunkType.PROTOCHUNK);
+     public static final ChunkStatus BIOMES = register("biomes", STRUCTURE_REFERENCES, WORLDGEN_HEIGHTMAPS, ChunkType.PROTOCHUNK);
+-    public static final ChunkStatus TERRAIN = register("terrain", BIOMES, FINAL_HEIGHTMAPS, ChunkType.PROTOCHUNK);
+-    public static final ChunkStatus FEATURES = register("features", TERRAIN, FINAL_HEIGHTMAPS, ChunkType.PROTOCHUNK);
++    public static final ChunkStatus NOISE = register("noise", BIOMES, WORLDGEN_HEIGHTMAPS, ChunkType.PROTOCHUNK);
++    public static final ChunkStatus SURFACE = register("surface", NOISE, WORLDGEN_HEIGHTMAPS, ChunkType.PROTOCHUNK);
++    public static final ChunkStatus CARVERS = register("carvers", SURFACE, FINAL_HEIGHTMAPS, ChunkType.PROTOCHUNK);
++    public static final ChunkStatus FEATURES = register("features", CARVERS, FINAL_HEIGHTMAPS, ChunkType.PROTOCHUNK);
+     public static final ChunkStatus INITIALIZE_LIGHT = register("initialize_light", FEATURES, FINAL_HEIGHTMAPS, ChunkType.PROTOCHUNK);
+     public static final ChunkStatus LIGHT = register("light", INITIALIZE_LIGHT, FINAL_HEIGHTMAPS, ChunkType.PROTOCHUNK);
+     public static final ChunkStatus SPAWN = register("spawn", LIGHT, FINAL_HEIGHTMAPS, ChunkType.PROTOCHUNK);
+@@ -51,12 +_,82 @@
          return list;
      }
  
@@ -92,7 +105,7 @@
      }
  
      public int getIndex() {
-@@ -109,4 +_,16 @@
+@@ -107,4 +_,16 @@
      public String getName() {
          return BuiltInRegistries.CHUNK_STATUS.getKey(this).toString();
      }

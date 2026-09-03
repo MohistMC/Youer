@@ -1,0 +1,38 @@
+--- a/net/minecraft/world/level/biome/TheEndBiomeSource.java
++++ b/net/minecraft/world/level/biome/TheEndBiomeSource.java
+@@ -8,6 +_,7 @@
+ import net.minecraft.core.QuartPos;
+ import net.minecraft.core.SectionPos;
+ import net.minecraft.resources.RegistryOps;
++import net.minecraft.world.level.levelgen.DensityFunction;
+ 
+ public class TheEndBiomeSource extends BiomeSource {
+     public static final MapCodec<TheEndBiomeSource> CODEC = RecordCodecBuilder.mapCodec(
+@@ -50,16 +_,12 @@
+     }
+ 
+     @Override
+-    protected MapCodec<TheEndBiomeSource> codec() {
++    protected MapCodec<? extends BiomeSource> codec() {
+         return CODEC;
+     }
+ 
+     @Override
+-    public BiomeResolver createResolver(Climate.Sampler sampler) {
+-        return (quartX, quartY, quartZ) -> this.getNoiseBiome(quartX, quartY, quartZ, sampler);
+-    }
+-
+-    private Holder<Biome> getNoiseBiome(int quartX, int quartY, int quartZ, Climate.Sampler sampler) {
++    public Holder<Biome> getNoiseBiome(int quartX, int quartY, int quartZ, Climate.Sampler sampler) {
+         int blockX = QuartPos.toBlock(quartX);
+         int blockY = QuartPos.toBlock(quartY);
+         int blockZ = QuartPos.toBlock(quartZ);
+@@ -70,7 +_,7 @@
+         } else {
+             int weirdBlockX = (SectionPos.blockToSectionCoord(blockX) * 2 + 1) * 8;
+             int weirdBlockZ = (SectionPos.blockToSectionCoord(blockZ) * 2 + 1) * 8;
+-            double heightValue = sampler.erosion().sampleValue(weirdBlockX, blockY, weirdBlockZ);
++            double heightValue = sampler.erosion().compute(new DensityFunction.SinglePointContext(weirdBlockX, blockY, weirdBlockZ));
+             if (heightValue > 0.25) {
+                 return this.highlands;
+             } else if (heightValue >= -0.0625) {

@@ -1,0 +1,41 @@
+--- a/net/minecraft/world/level/levelgen/feature/SteppedColumnClusterFeature.java
++++ b/net/minecraft/world/level/levelgen/feature/SteppedColumnClusterFeature.java
+@@ -4,10 +_,9 @@
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+-import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.util.valueproviders.IntProvider;
+ import net.minecraft.util.valueproviders.IntProviders;
+@@ -21,7 +_,7 @@
+ import org.jspecify.annotations.Nullable;
+ 
+ public record SteppedColumnClusterFeature(
+-    Holder<BlockStateProvider> block,
++    BlockStateProvider block,
+     BlockPredicate continueThrough,
+     BlockPredicate canReplace,
+     HolderSet<Block> cannotPlaceOn,
+@@ -35,7 +_,7 @@
+                 BlockStateProvider.CODEC.fieldOf("block").forGetter(SteppedColumnClusterFeature::block),
+                 BlockPredicate.CODEC.fieldOf("continue_through").forGetter(SteppedColumnClusterFeature::continueThrough),
+                 BlockPredicate.CODEC.fieldOf("can_replace").forGetter(SteppedColumnClusterFeature::canReplace),
+-                RegistryCodecs.holderSet(Registries.BLOCK).fieldOf("cannot_place_on").forGetter(SteppedColumnClusterFeature::cannotPlaceOn),
++                RegistryCodecs.homogeneousList(Registries.BLOCK).fieldOf("cannot_place_on").forGetter(SteppedColumnClusterFeature::cannotPlaceOn),
+                 IntProviders.codec(0, 13).fieldOf("cluster_reach").forGetter(SteppedColumnClusterFeature::clusterReach),
+                 IntProviders.codec(1, 150).fieldOf("column_count").forGetter(SteppedColumnClusterFeature::columnCount),
+                 IntProviders.codec(0, 3).fieldOf("column_reach").forGetter(SteppedColumnClusterFeature::columnReach),
+@@ -96,7 +_,7 @@
+ 
+                 while (blocksY >= 0) {
+                     if (this.canReplace.test(level, cursor)) {
+-                        this.setBlock(level, cursor, this.block.value().getState(level, random, cursor));
++                        this.setBlock(level, cursor, this.block.getState(level, random, cursor));
+                         cursor.move(Direction.UP);
+                         placedAny = true;
+                     } else {

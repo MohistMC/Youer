@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/block/TurtleEggBlock.java
 +++ b/net/minecraft/world/level/block/TurtleEggBlock.java
-@@ -31,6 +_,12 @@
+@@ -2,7 +_,6 @@
+ 
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
+-import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.sounds.SoundEvents;
+ import net.minecraft.sounds.SoundSource;
+ import net.minecraft.tags.BlockTags;
+@@ -32,6 +_,12 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
  
@@ -13,7 +21,7 @@
  public class TurtleEggBlock extends Block {
      public static final IntegerProperty HATCH = BlockStateProperties.HATCH;
      public static final IntegerProperty EGGS = BlockStateProperties.EGGS;
-@@ -66,8 +_,21 @@
+@@ -67,8 +_,21 @@
      private void destroyEgg(Level level, BlockState state, BlockPos pos, Entity entity, int randomness) {
          if (state.is(Blocks.TURTLE_EGG)
              && level instanceof ServerLevel serverLevel
@@ -36,7 +44,7 @@
              this.decreaseEggs(serverLevel, pos, state);
          }
      }
-@@ -89,10 +_,20 @@
+@@ -90,10 +_,20 @@
          if (this.shouldUpdateHatchLevel(level, pos) && onSand(level, pos)) {
              int hatch = state.getValue(HATCH);
              if (hatch < 2) {
@@ -58,7 +66,7 @@
                  level.playSound(null, pos, SoundEvents.TURTLE_EGG_HATCH, SoundSource.BLOCKS, 0.7F, 0.9F + random.nextFloat() * 0.2F);
                  level.removeBlock(pos, false);
                  level.gameEvent(GameEvent.BLOCK_DESTROY, pos, GameEvent.Context.of(state));
-@@ -104,7 +_,7 @@
+@@ -105,7 +_,7 @@
                          turtle.setAge(-24000);
                          turtle.setHomePos(pos);
                          turtle.snapTo(pos.getX() + 0.3 + i * 0.2, pos.getY(), pos.getZ() + 0.3, 0.0F, 0.0F);
@@ -67,7 +75,7 @@
                      }
                  }
              }
-@@ -127,13 +_,13 @@
+@@ -128,15 +_,13 @@
      }
  
      private boolean shouldUpdateHatchLevel(Level level, BlockPos pos) {
@@ -77,14 +85,16 @@
      }
  
      @Override
--    public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith) {
+-    public void playerDestroy(
+-        ServerLevel level, ServerPlayer player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith
+-    ) {
 -        super.playerDestroy(level, player, pos, state, blockEntity, destroyedWith);
 +    public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith, boolean includeDrops, boolean dropExp) { // Paper - fix drops not preventing stats/food exhaustion
 +        super.playerDestroy(level, player, pos, state, blockEntity, destroyedWith, includeDrops, dropExp); // Paper - fix drops not preventing stats/food exhaustion
          this.decreaseEggs(level, pos, state);
      }
  
-@@ -160,13 +_,33 @@
+@@ -163,13 +_,33 @@
          builder.add(HATCH, EGGS);
      }
  

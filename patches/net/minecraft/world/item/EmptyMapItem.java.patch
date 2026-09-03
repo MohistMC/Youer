@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/item/EmptyMapItem.java
 +++ b/net/minecraft/world/item/EmptyMapItem.java
-@@ -17,10 +_,16 @@
+@@ -3,7 +_,6 @@
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.sounds.SoundEvents;
+ import net.minecraft.stats.Stats;
+-import net.minecraft.util.Prediction;
+ import net.minecraft.world.InteractionHand;
+ import net.minecraft.world.InteractionResult;
+ import net.minecraft.world.entity.player.Player;
+@@ -18,16 +_,22 @@
      public InteractionResult use(Level level, Player player, InteractionHand hand) {
          ItemStack itemStack = player.getItemInHand(hand);
          if (level instanceof ServerLevel serverLevel) {
@@ -17,3 +25,10 @@
              if (itemStack.isEmpty()) {
                  return InteractionResult.SUCCESS.heldItemTransformedTo(map);
              }
+ 
+             if (!player.getInventory().add(map.copy())) {
+-                player.drop(map, false, Prediction.SERVER_ONLY);
++                player.drop(map, false);
+             }
+ 
+             return InteractionResult.SUCCESS;

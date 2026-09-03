@@ -1,0 +1,77 @@
+--- a/net/minecraft/world/level/levelgen/densityfunction/op/ClampFunction.java
++++ /dev/null
+@@ -1,74 +_,0 @@
+-package net.minecraft.world.level.levelgen.densityfunction.op;
+-
+-import com.mojang.serialization.DataResult;
+-import com.mojang.serialization.MapCodec;
+-import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import net.minecraft.util.Interval;
+-import net.minecraft.util.Mth;
+-import net.minecraft.world.level.levelgen.densityfunction.DensityBuffer;
+-import net.minecraft.world.level.levelgen.densityfunction.DensityFunction;
+-import net.minecraft.world.level.levelgen.densityfunction.DensityFunctions;
+-import net.minecraft.world.level.levelgen.densityfunction.DensitySampler;
+-import net.minecraft.world.level.levelgen.densityfunction.DensityVolume;
+-import net.minecraft.world.level.levelgen.densityfunction.DfRewriteRule;
+-import net.minecraft.world.level.levelgen.densityfunction.SamplerContext;
+-
+-public record ClampFunction(DensityFunction input, float min, float max) implements DensityFunction {
+-    public static final MapCodec<ClampFunction> CODEC = RecordCodecBuilder.<ClampFunction>mapCodec(
+-            i -> i.group(
+-                    DensityFunction.CODEC.fieldOf("input").forGetter(ClampFunction::input),
+-                    DensityFunctions.NOISE_VALUE_CODEC.fieldOf("min").forGetter(ClampFunction::min),
+-                    DensityFunctions.NOISE_VALUE_CODEC.fieldOf("max").forGetter(ClampFunction::max)
+-                )
+-                .apply(i, ClampFunction::new)
+-        )
+-        .validate(ClampFunction::validate);
+-
+-    private static DataResult<ClampFunction> validate(ClampFunction clamp) {
+-        return clamp.max < clamp.min
+-            ? DataResult.error(() -> "min (" + clamp.min + ") must be less than or equal to max (" + clamp.max + ")")
+-            : DataResult.success(clamp);
+-    }
+-
+-    @Override
+-    public DensitySampler compileSampler(DensityFunction.CompileContext context) {
+-        return new ClampFunction.Sampler(this.input.compileSampler(context), this.min, this.max);
+-    }
+-
+-    @Override
+-    public DensityFunction rewriteChildren(DfRewriteRule rule) {
+-        DensityFunction input = rule.rewrite(this.input);
+-        return input == this.input ? this : new ClampFunction(input, this.min, this.max);
+-    }
+-
+-    @Override
+-    public MapCodec<ClampFunction> codec() {
+-        return CODEC;
+-    }
+-
+-    @Override
+-    public Interval range() {
+-        return Interval.clamp(this.input.range(), this.min, this.max);
+-    }
+-
+-    @Override
+-    public @DensityFunction.Axes int domainAxes() {
+-        return this.input.domainAxes();
+-    }
+-
+-    public record Sampler(DensitySampler input, float min, float max) implements DensitySampler {
+-        @Override
+-        public void sampleVolume(SamplerContext context, DensityBuffer outputBuffer, DensityVolume volume) {
+-            this.input.sampleVolume(context, outputBuffer, volume);
+-
+-            for (int i = 0; i < outputBuffer.size(); i++) {
+-                outputBuffer.set(i, Mth.clamp(outputBuffer.get(i), this.min, this.max));
+-            }
+-        }
+-
+-        @Override
+-        public float sampleValue(SamplerContext context, int blockX, int blockY, int blockZ) {
+-            return Mth.clamp(this.input.sampleValue(context, blockX, blockY, blockZ), this.min, this.max);
+-        }
+-    }
+-}

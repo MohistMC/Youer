@@ -1,0 +1,66 @@
+--- a/net/minecraft/world/level/levelgen/NoiseSpawnFinder.java
++++ b/net/minecraft/world/level/levelgen/NoiseSpawnFinder.java
+@@ -4,23 +_,22 @@
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.QuartPos;
+ import net.minecraft.util.Mth;
+-import net.minecraft.world.level.levelgen.densityfunction.DensitySamplerSet;
+ 
+ public class NoiseSpawnFinder {
+     private static final long MAX_RADIUS = 2048L;
+     private NoiseSpawnFinder.Result result;
+ 
+-    private NoiseSpawnFinder(List<SpawnTargetPoint> targetPoints, DensitySamplerSet samplers) {
+-        this.result = getSpawnPositionAndFitness(samplers, targetPoints, 0, 0);
+-        this.radialSearch(samplers, targetPoints, 2048.0F, 512.0F);
+-        this.radialSearch(samplers, targetPoints, 512.0F, 32.0F);
+-    }
+-
+-    public static BlockPos findSpawnPosition(List<SpawnTargetPoint> targetPoints, DensitySamplerSet samplers) {
+-        return (new NoiseSpawnFinder(targetPoints, samplers)).result.location();
+-    }
+-
+-    private void radialSearch(DensitySamplerSet samplers, List<SpawnTargetPoint> targetPoints, float maxRadius, float radiusIncrement) {
++    private NoiseSpawnFinder(List<SpawnTargetPoint.Wired> targetPoints) {
++        this.result = getSpawnPositionAndFitness(targetPoints, 0, 0);
++        this.radialSearch(targetPoints, 2048.0F, 512.0F);
++        this.radialSearch(targetPoints, 512.0F, 32.0F);
++    }
++
++    public static BlockPos findSpawnPosition(List<SpawnTargetPoint.Wired> targetPoints) {
++        return (new NoiseSpawnFinder(targetPoints)).result.location();
++    }
++
++    private void radialSearch(List<SpawnTargetPoint.Wired> targetPoints, float maxRadius, float radiusIncrement) {
+         float angle = 0.0F;
+         float radius = radiusIncrement;
+         BlockPos searchOrigin = this.result.location();
+@@ -28,7 +_,7 @@
+         while (radius <= maxRadius) {
+             int x = searchOrigin.getX() + (int)(Math.sin(angle) * radius);
+             int z = searchOrigin.getZ() + (int)(Math.cos(angle) * radius);
+-            NoiseSpawnFinder.Result candidate = getSpawnPositionAndFitness(samplers, targetPoints, x, z);
++            NoiseSpawnFinder.Result candidate = getSpawnPositionAndFitness(targetPoints, x, z);
+             if (candidate.fitness() < this.result.fitness()) {
+                 this.result = candidate;
+             }
+@@ -41,13 +_,14 @@
+         }
+     }
+ 
+-    private static NoiseSpawnFinder.Result getSpawnPositionAndFitness(DensitySamplerSet samplers, List<SpawnTargetPoint> targetPoints, int blockX, int blockZ) {
+-        int quartBlockX = QuartPos.toBlock(QuartPos.fromBlock(blockX));
+-        int quartBlockZ = QuartPos.toBlock(QuartPos.fromBlock(blockZ));
++    private static NoiseSpawnFinder.Result getSpawnPositionAndFitness(List<SpawnTargetPoint.Wired> targetPoints, int blockX, int blockZ) {
++        DensityFunction.SinglePointContext quartAlignedContext = new DensityFunction.SinglePointContext(
++            QuartPos.toBlock(QuartPos.fromBlock(blockX)), 0, QuartPos.toBlock(QuartPos.fromBlock(blockZ))
++        );
+         long minFitness = Long.MAX_VALUE;
+ 
+-        for (SpawnTargetPoint point : targetPoints) {
+-            minFitness = Math.min(minFitness, point.sampleFitness(samplers, quartBlockX, 0, quartBlockZ));
++        for (SpawnTargetPoint.Wired point : targetPoints) {
++            minFitness = Math.min(minFitness, point.sampleFitness(quartAlignedContext));
+         }
+ 
+         long distanceBiasToWorldOrigin = Mth.square((long)blockX) + Mth.square((long)blockZ);

@@ -1,0 +1,48 @@
+--- a/net/minecraft/world/level/levelgen/blockpredicates/VolumeMatchPredicate.java
++++ /dev/null
+@@ -1,45 +_,0 @@
+-package net.minecraft.world.level.levelgen.blockpredicates;
+-
+-import com.mojang.serialization.DataResult;
+-import com.mojang.serialization.MapCodec;
+-import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import net.minecraft.core.BlockPos;
+-import net.minecraft.core.Vec3i;
+-import net.minecraft.world.level.LevelAccessor;
+-
+-public record VolumeMatchPredicate(Vec3i min, Vec3i max, BlockPredicate match) implements BlockPredicate {
+-    private static final MapCodec<VolumeMatchPredicate> UNVALIDATED_CODEC = RecordCodecBuilder.mapCodec(
+-        i -> i.group(
+-                Vec3i.offsetCodec(16).fieldOf("min").forGetter(VolumeMatchPredicate::min),
+-                Vec3i.offsetCodec(16).fieldOf("max").forGetter(VolumeMatchPredicate::max),
+-                BlockPredicate.CODEC.fieldOf("match").forGetter(VolumeMatchPredicate::match)
+-            )
+-            .apply(i, VolumeMatchPredicate::new)
+-    );
+-    public static final MapCodec<VolumeMatchPredicate> CODEC = UNVALIDATED_CODEC.validate(
+-        p -> p.min.getX() <= p.max.getX() && p.min.getY() <= p.max.getY() && p.min.getZ() <= p.max.getZ()
+-            ? DataResult.success(p)
+-            : DataResult.error(() -> "min bound cannot be larger than max bound")
+-    );
+-
+-    @Override
+-    public BlockPredicateType<VolumeMatchPredicate> type() {
+-        return BlockPredicateType.VOLUME_MATCH;
+-    }
+-
+-    public boolean test(LevelAccessor level, BlockPos blockPos) {
+-        BlockPos.MutableBlockPos pos = blockPos.mutable();
+-
+-        for (int ox = this.min.getX(); ox <= this.max.getX(); ox++) {
+-            for (int oz = this.min.getZ(); oz <= this.max.getZ(); oz++) {
+-                for (int oy = this.min.getY(); oy <= this.max.getY(); oy++) {
+-                    if (!this.match.test(level, pos.setWithOffset(blockPos, ox, oy, oz))) {
+-                        return false;
+-                    }
+-                }
+-            }
+-        }
+-
+-        return true;
+-    }
+-}

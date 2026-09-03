@@ -45,6 +45,7 @@ import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.common.ItemAbilities;
 import net.neoforged.neoforge.common.ItemAbility;
 import net.neoforged.neoforge.common.enums.BubbleColumnDirection;
+import net.neoforged.neoforge.common.util.BlockRelocability;
 import net.neoforged.neoforge.common.world.AuxiliaryLightManager;
 import net.neoforged.neoforge.event.EventHooks;
 import org.jspecify.annotations.Nullable;
@@ -149,10 +150,10 @@ public interface IBlockStateExtension {
     }
 
     /**
-     * Called when a block is removed by {@link PushReaction#DESTROY}. This is responsible for
+     * Called when a block is removed by {@link PushReaction#POPPED}. This is responsible for
      * actually destroying the block, and the block is intact at time of call.
      * <p>
-     * Will only be called if {@link BlockState#getPistonPushReaction} returns {@link PushReaction#DESTROY}.
+     * Will only be called if {@link BlockState#getPistonPushReaction} returns {@link PushReaction#POPPED}.
      * <p>
      * Note: When used in multiplayer, this is called on both client and
      * server sides!
@@ -332,11 +333,11 @@ public interface IBlockStateExtension {
      * @param placeFunction Function to set blocks in the level for the tree, use this instead of the level directly
      * @param randomSource  The random source
      * @param pos           Position of the block to be set to dirt
-     * @param config        Configuration of the trunk placer. Consider azalea trees, which should place rooted dirt instead of regular dirt.
+     * @param tree          Configuration of the trunk placer. Consider azalea trees, which should place rooted dirt instead of regular dirt.
      * @return True to ignore vanilla behaviour
      */
-    default boolean onTreeGrow(WorldGenLevel level, BiConsumer<BlockPos, BlockState> placeFunction, RandomSource randomSource, BlockPos pos, TreeFeature config) {
-        return self().getBlock().onTreeGrow(self(), level, placeFunction, randomSource, pos, config);
+    default boolean onTreeGrow(WorldGenLevel level, BiConsumer<BlockPos, BlockState> placeFunction, RandomSource randomSource, BlockPos pos, TreeFeature tree) {
+        return self().getBlock().onTreeGrow(self(), level, placeFunction, randomSource, pos, tree);
     }
 
     /**
@@ -350,29 +351,6 @@ public interface IBlockStateExtension {
      */
     default boolean isFertile(BlockGetter level, BlockPos pos) {
         return self().getBlock().isFertile(self(), level, pos);
-    }
-
-    /**
-     * Determines if this block can be used as the frame of a conduit.
-     *
-     * @param level   The current level
-     * @param pos     Block position in level
-     * @param conduit Conduit position in level
-     * @return True, to support the conduit, and make it active with this block.
-     */
-    default boolean isConduitFrame(LevelReader level, BlockPos pos, BlockPos conduit) {
-        return self().getBlock().isConduitFrame(self(), level, pos, conduit);
-    }
-
-    /**
-     * Determines if this block can be used as part of a frame of a nether portal.
-     *
-     * @param level The current level
-     * @param pos   Block position in level
-     * @return True, to support being part of a nether portal frame, false otherwise.
-     */
-    default boolean isPortalFrame(BlockGetter level, BlockPos pos) {
-        return self().getBlock().isPortalFrame(self(), level, pos);
     }
 
     /**
@@ -693,20 +671,6 @@ public interface IBlockStateExtension {
     }
 
     /**
-     * Whether redstone dust should visually connect to this block on a side.
-     * <p>
-     * Modded redstone wire blocks should call this function to determine visual connections.
-     *
-     * @param level     The level
-     * @param pos       The block position in level
-     * @param direction The coming direction of the redstone dust connection (with respect to the block at pos)
-     * @return True if redstone dust should visually connect on the side passed
-     */
-    default boolean canRedstoneConnectTo(BlockGetter level, BlockPos pos, @Nullable Direction direction) {
-        return self().getBlock().canConnectRedstone(self(), level, pos, direction);
-    }
-
-    /**
      * Whether this block hides the neighbors face pointed towards by the given direction.
      * <p>
      * This method should only be used for blocks you don't control, for your own blocks override
@@ -820,5 +784,15 @@ public interface IBlockStateExtension {
     /// @return This block states bounce restitution for the given position
     default float getBounceRestitution(Level level, BlockPos pos, Entity entity) {
         return self().getBlock().getBounceRestitution(level, pos, self(), entity);
+    }
+
+    /// Declares whether a block may be relocated and under what circumstances.
+    ///
+    /// @param level LevelReader where this blockstate is being relocated from
+    /// @param pos BlockPos of this blockstate being relocated
+    /// @return BlockRelocability declaring whether the block may be relocated
+    /// @see IBlockExtension#getRelocability
+    default BlockRelocability getRelocability(LevelReader level, BlockPos pos) {
+        return self().getBlock().getRelocability(level, pos, self());
     }
 }

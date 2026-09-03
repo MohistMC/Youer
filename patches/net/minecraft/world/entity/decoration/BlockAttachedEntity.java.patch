@@ -1,6 +1,11 @@
 --- a/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
 +++ b/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
-@@ -16,14 +_,22 @@
+@@ -12,19 +_,26 @@
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.level.Explosion;
+ import net.minecraft.world.level.Level;
+-import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.level.gamerules.GameRules;
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.Vec3;
@@ -26,7 +31,7 @@
      protected BlockPos pos;
  
      protected BlockAttachedEntity(EntityType<? extends BlockAttachedEntity> type, Level level) {
-@@ -41,20 +_,34 @@
+@@ -42,20 +_,34 @@
      public void tick() {
          if (this.level() instanceof ServerLevel level) {
              this.checkBelowWorld();
@@ -68,7 +73,28 @@
      public abstract boolean survives();
  
      @Override
-@@ -80,19 +_,33 @@
+@@ -73,20 +_,6 @@
+     }
+ 
+     @Override
+-    public void kill(ServerLevel level) {
+-        this.kill(level, this);
+-    }
+-
+-    public void kill(ServerLevel level, @Nullable Entity attributedTo) {
+-        this.onKilled();
+-        this.remove(Entity.RemovalReason.KILLED);
+-        this.gameEvent(GameEvent.ENTITY_DIE, attributedTo != null ? attributedTo : this);
+-    }
+-
+-    protected void onKilled() {
+-    }
+-
+-    @Override
+     public boolean hurtClient(DamageSource source) {
+         return !this.isInvulnerableToBase(source);
+     }
+@@ -95,19 +_,33 @@
      public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
          if (this.isInvulnerableToBase(source)) {
              return false;
@@ -80,7 +106,7 @@
 -        }
 -
 -        if (!this.isRemoved()) {
--            this.kill(level);
+-            this.kill(level, source.getEntity());
 -            this.markHurt();
 -            this.dropItem(level, source.getEntity());
 -        }
@@ -114,7 +140,7 @@
      }
  
      @Override
-@@ -108,14 +_,24 @@
+@@ -123,14 +_,24 @@
      @Override
      public void move(MoverType moverType, Vec3 delta) {
          if (this.level() instanceof ServerLevel level && !this.isRemoved() && delta.lengthSqr() > 0.0) {
@@ -141,7 +167,7 @@
              this.kill(level);
              this.dropItem(level, null);
          }
-@@ -161,4 +_,13 @@
+@@ -176,4 +_,13 @@
      @Override
      public void refreshDimensions() {
      }

@@ -1,5 +1,14 @@
 --- a/net/minecraft/world/entity/projectile/ProjectileUtil.java
 +++ b/net/minecraft/world/entity/projectile/ProjectileUtil.java
+@@ -90,7 +_,7 @@
+         }
+ 
+         AABB searchArea = AABB.ofSize(from, entityMargin, entityMargin, entityMargin).expandTowards(to.subtract(from)).inflate(1.0);
+-        Collection<EntityHitResult> entityHit = getManyEntityHitResult(level, source, from, to, searchArea, matching, entityMargin, clipType, true, true);
++        Collection<EntityHitResult> entityHit = getManyEntityHitResult(level, source, from, to, searchArea, matching, entityMargin, clipType, true);
+         return !entityHit.isEmpty() ? Either.right(entityHit) : Either.left(hitResult);
+     }
+ 
 @@ -113,7 +_,7 @@
                  Vec3 location = clipPoint.get();
                  double dd = from.distanceToSqr(location);
@@ -9,7 +18,56 @@
                          if (nearest == 0.0) {
                              hovered = entity;
                              hoveredPos = location;
-@@ -242,8 +_,13 @@
+@@ -164,27 +_,9 @@
+     }
+ 
+     public static Collection<EntityHitResult> getManyEntityHitResult(
+-        Level level,
+-        Entity source,
+-        Vec3 from,
+-        Vec3 to,
+-        AABB targetSearchArea,
+-        Predicate<Entity> matching,
+-        boolean includeFromEntity,
+-        boolean projectSurfaceHitLocation
++        Level level, Entity source, Vec3 from, Vec3 to, AABB targetSearchArea, Predicate<Entity> matching, boolean includeFromEntity
+     ) {
+-        return getManyEntityHitResult(
+-            level,
+-            source,
+-            from,
+-            to,
+-            targetSearchArea,
+-            matching,
+-            computeMargin(source),
+-            ClipContext.Block.COLLIDER,
+-            includeFromEntity,
+-            projectSurfaceHitLocation
+-        );
++        return getManyEntityHitResult(level, source, from, to, targetSearchArea, matching, computeMargin(source), ClipContext.Block.COLLIDER, includeFromEntity);
+     }
+ 
+     public static Collection<EntityHitResult> getManyEntityHitResult(
+@@ -196,8 +_,7 @@
+         Predicate<Entity> matching,
+         float entityMargin,
+         ClipContext.Block clipType,
+-        boolean includeFromEntity,
+-        boolean projectSurfaceHitLocation
++        boolean includeFromEntity
+     ) {
+         List<EntityHitResult> collector = new ArrayList<>();
+ 
+@@ -223,7 +_,7 @@
+ 
+                         Optional<Vec3> surfaceHit = entity.getBoundingBox().clip(outsideHitPosition, towardsTarget);
+                         if (surfaceHit.isPresent()) {
+-                            collector.add(new EntityHitResult(entity, projectSurfaceHitLocation ? surfaceHit.get() : outsideHitPosition));
++                            collector.add(new EntityHitResult(entity, surfaceHit.get()));
+                         }
+                     }
+                 }
+@@ -261,8 +_,13 @@
          }
      }
  

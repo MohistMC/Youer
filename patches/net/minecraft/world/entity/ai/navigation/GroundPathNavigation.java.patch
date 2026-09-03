@@ -1,5 +1,18 @@
 --- a/net/minecraft/world/entity/ai/navigation/GroundPathNavigation.java
 +++ b/net/minecraft/world/entity/ai/navigation/GroundPathNavigation.java
+@@ -3,11 +_,11 @@
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.SectionPos;
+-import net.minecraft.tags.FluidTags;
+ import net.minecraft.util.Mth;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.Mob;
+ import net.minecraft.world.level.Level;
++import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.chunk.LevelChunk;
+ import net.minecraft.world.level.pathfinder.Node;
 @@ -41,7 +_,7 @@
      }
  
@@ -18,7 +31,7 @@
      }
  
      private BlockPos findSurfacePosition(LevelChunk chunk, BlockPos pos, int reachRange) {
-@@ -90,7 +_,7 @@
+@@ -90,16 +_,16 @@
  
      @Override
      public Path createPath(Entity target, int reachRange) {
@@ -27,3 +40,14 @@
      }
  
      private int getSurfaceY() {
+-        if (this.mob.isInFloatableFluid() && this.canFloat()) {
++        if (this.mob.isInWater() && this.canFloat()) {
+             int surface = this.mob.getBlockY();
+             BlockState state = this.level.getBlockState(BlockPos.containing(this.mob.getX(), surface, this.mob.getZ()));
+             int steps = 0;
+ 
+-            while (state.getFluidState().is(FluidTags.ENTITY_FLOATABLE)) {
++            while (state.is(Blocks.WATER)) {
+                 state = this.level.getBlockState(BlockPos.containing(this.mob.getX(), ++surface, this.mob.getZ()));
+                 if (++steps > 16) {
+                     return this.mob.getBlockY();

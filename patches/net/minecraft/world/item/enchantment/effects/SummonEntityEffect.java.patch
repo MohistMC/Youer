@@ -1,6 +1,15 @@
 --- a/net/minecraft/world/item/enchantment/effects/SummonEntityEffect.java
 +++ b/net/minecraft/world/item/enchantment/effects/SummonEntityEffect.java
-@@ -15,9 +_,12 @@
+@@ -7,22 +_,25 @@
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.EntitySpawnReason;
  import net.minecraft.world.entity.EntityType;
  import net.minecraft.world.entity.LightningBolt;
@@ -13,6 +22,12 @@
  
  public record SummonEntityEffect(HolderSet<EntityType<?>> entityTypes, boolean joinTeam) implements EnchantmentEntityEffect {
      public static final MapCodec<SummonEntityEffect> CODEC = RecordCodecBuilder.mapCodec(
+         i -> i.group(
+-                RegistryCodecs.holderSet(Registries.ENTITY_TYPE).fieldOf("entity").forGetter(SummonEntityEffect::entityTypes),
++                RegistryCodecs.homogeneousList(Registries.ENTITY_TYPE).fieldOf("entity").forGetter(SummonEntityEffect::entityTypes),
+                 Codec.BOOL.optionalFieldOf("join_team", false).forGetter(SummonEntityEffect::joinTeam)
+             )
+             .apply(i, SummonEntityEffect::new)
 @@ -34,11 +_,18 @@
          if (Level.isInSpawnableBounds(blockPos)) {
              Optional<Holder<EntityType<?>>> entityType = this.entityTypes().getRandomElement(serverLevel.getRandom());

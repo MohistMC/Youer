@@ -1,0 +1,62 @@
+--- a/net/minecraft/data/recipes/TransmuteRecipeBuilder.java
++++ b/net/minecraft/data/recipes/TransmuteRecipeBuilder.java
+@@ -2,19 +_,17 @@
+ 
+ import net.minecraft.advancements.predicates.MinMaxBounds;
+ import net.minecraft.advancements.triggers.Criterion;
+-import net.minecraft.core.Holder;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemStackTemplate;
+ import net.minecraft.world.item.crafting.Ingredient;
+ import net.minecraft.world.item.crafting.Recipe;
+ import net.minecraft.world.item.crafting.TransmuteRecipe;
+-import net.minecraft.world.item.crafting.TransmuteResult;
+ import org.jspecify.annotations.Nullable;
+ 
+ public class TransmuteRecipeBuilder implements RecipeBuilder {
+     private final RecipeCategory category;
+-    private final TransmuteResult result;
++    private final ItemStackTemplate result;
+     private final Ingredient input;
+     private final Ingredient material;
+     private final RecipeUnlockAdvancementBuilder advancementBuilder = new RecipeUnlockAdvancementBuilder();
+@@ -22,7 +_,7 @@
+     private MinMaxBounds.Ints materialCount = TransmuteRecipe.DEFAULT_MATERIAL_COUNT;
+     private boolean addMaterialCountToOutput;
+ 
+-    private TransmuteRecipeBuilder(RecipeCategory category, TransmuteResult result, Ingredient input, Ingredient material) {
++    private TransmuteRecipeBuilder(RecipeCategory category, ItemStackTemplate result, Ingredient input, Ingredient material) {
+         this.category = category;
+         this.result = result;
+         this.input = input;
+@@ -30,14 +_,10 @@
+     }
+ 
+     public static TransmuteRecipeBuilder transmute(RecipeCategory category, Ingredient input, Ingredient material, Item result) {
+-        return transmute(category, input, material, new TransmuteResult(result));
++        return transmute(category, input, material, new ItemStackTemplate(result));
+     }
+ 
+     public static TransmuteRecipeBuilder transmute(RecipeCategory category, Ingredient input, Ingredient material, ItemStackTemplate result) {
+-        return transmute(category, input, material, TransmuteResult.fromTemplate(result));
+-    }
+-
+-    public static TransmuteRecipeBuilder transmute(RecipeCategory category, Ingredient input, Ingredient material, TransmuteResult result) {
+         return new TransmuteRecipeBuilder(category, result, input, material);
+     }
+ 
+@@ -62,11 +_,8 @@
+     }
+ 
+     @Override
+-    public @Nullable ResourceKey<Recipe<?>> defaultId() {
+-        return this.result
+-            .item()
+-            .map(item -> RecipeBuilder.getDefaultRecipeId(new ItemStackTemplate((Holder<Item>)item, this.result.count(), this.result.components())))
+-            .orElse(null);
++    public ResourceKey<Recipe<?>> defaultId() {
++        return RecipeBuilder.getDefaultRecipeId(this.result);
+     }
+ 
+     @Override

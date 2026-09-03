@@ -1,6 +1,14 @@
 --- a/net/minecraft/server/commands/GameModeCommand.java
 +++ b/net/minecraft/server/commands/GameModeCommand.java
-@@ -48,6 +_,18 @@
+@@ -9,6 +_,7 @@
+ import net.minecraft.commands.arguments.EntityArgument;
+ import net.minecraft.commands.arguments.GameModeArgument;
+ import net.minecraft.network.chat.Component;
++import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.server.permissions.PermissionCheck;
+ import net.minecraft.server.permissions.Permissions;
+@@ -47,9 +_,26 @@
      }
  
      private static int setMode(CommandContext<CommandSourceStack> context, Collection<ServerPlayer> players, GameType type) {
@@ -17,9 +25,17 @@
 +        }
 +        // Purpur end - Gamemode extra permissions
          int count = 0;
-         MinecraftServer server = context.getSource().getServer();
++        MinecraftServer server = context.getSource().getServer();
  
-@@ -68,8 +_,15 @@
+         for (ServerPlayer player : players) {
++            if (server.isSingleplayerOwner(player.nameAndId())) {
++                server.setDefaultGameType(type);
++            }
++
+             if (setGameMode(context.getSource(), player, type)) {
+                 count++;
+             }
+@@ -62,10 +_,27 @@
          setGameMode(player.createCommandSourceStack(), player, type);
      }
  
@@ -34,11 +50,11 @@
 +        org.bukkit.event.player.PlayerGameModeChangeEvent event = player.setGameMode(type, cause, null);
 +        if (event != null && !event.isCancelled()) {
 +            // Paper end - Expand PlayerGameModeChangeEvent
-             MinecraftServer server = source.getServer();
-             if (server.isSingleplayerOwner(player.nameAndId())) {
-                 server.setDefaultGameType(type);
-@@ -77,6 +_,11 @@
- 
++            MinecraftServer server = source.getServer();
++            if (server.isSingleplayerOwner(player.nameAndId())) {
++                server.setDefaultGameType(type);
++            }
++
              logGamemodeChange(source, player, type);
              return true;
 +            // Paper start - Expand PlayerGameModeChangeEvent

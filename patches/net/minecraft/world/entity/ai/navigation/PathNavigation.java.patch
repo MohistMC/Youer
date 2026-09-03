@@ -75,17 +75,22 @@
      public boolean moveTo(double x, double y, double z, double speedModifier) {
          return this.moveTo(this.createPath(x, y, z, 1), speedModifier);
      }
-@@ -179,8 +_,23 @@
+@@ -179,12 +_,23 @@
      }
  
      public boolean moveTo(Entity target, double speedModifier) {
+-        return this.moveTo(target, 1, speedModifier);
+-    }
+-
+-    public boolean moveTo(Entity target, int reachRange, double speedModifier) {
+-        Path newPath = this.createPath(target, reachRange);
+-        return newPath != null && this.moveTo(newPath, speedModifier);
 +        // Paper start - Perf: Optimise pathfinding
 +        if (this.pathfindFailures > 10 && this.path == null && net.minecraft.server.MinecraftServer.currentTick < this.lastFailure + 40) {
 +            return false;
 +        }
 +        // Paper end - Perf: Optimise pathfinding
-         Path newPath = this.createPath(target, 1);
--        return newPath != null && this.moveTo(newPath, speedModifier);
++        Path newPath = this.createPath(target, 1);
 +        // Paper start - Perf: Optimise pathfinding
 +        if (newPath != null && this.moveTo(newPath, speedModifier)) {
 +            this.lastFailure = 0;
@@ -100,7 +105,7 @@
      }
  
      public boolean moveTo(@Nullable Path newPath, double speedModifier) {
-@@ -246,12 +_,12 @@
+@@ -250,12 +_,12 @@
          Vec3 mobPos = this.getTempMobPos();
          this.maxDistanceToWaypoint = this.mob.getBbWidth() > 0.75F ? this.mob.getBbWidth() / 2.0F : 0.75F - this.mob.getBbWidth() / 2.0F;
          Vec3i currentNodePos = this.path.getNextNodePos();

@@ -126,7 +126,154 @@
      }
  
      @Override
-@@ -614,4 +_,17 @@
+@@ -400,9 +_,84 @@
+     }
+ 
+     public enum Axis implements Predicate<Direction>, StringRepresentable {
+-        X("x"),
+-        Y("y"),
+-        Z("z");
++        X("x") {
++            @Override
++            public int choose(int x, int y, int z) {
++                return x;
++            }
++
++            @Override
++            public boolean choose(boolean x, boolean y, boolean z) {
++                return x;
++            }
++
++            @Override
++            public double choose(double x, double y, double z) {
++                return x;
++            }
++
++            @Override
++            public Direction getPositive() {
++                return Direction.EAST;
++            }
++
++            @Override
++            public Direction getNegative() {
++                return Direction.WEST;
++            }
++        },
++        Y("y") {
++            @Override
++            public int choose(int x, int y, int z) {
++                return y;
++            }
++
++            @Override
++            public double choose(double x, double y, double z) {
++                return y;
++            }
++
++            @Override
++            public boolean choose(boolean x, boolean y, boolean z) {
++                return y;
++            }
++
++            @Override
++            public Direction getPositive() {
++                return Direction.UP;
++            }
++
++            @Override
++            public Direction getNegative() {
++                return Direction.DOWN;
++            }
++        },
++        Z("z") {
++            @Override
++            public int choose(int x, int y, int z) {
++                return z;
++            }
++
++            @Override
++            public double choose(double x, double y, double z) {
++                return z;
++            }
++
++            @Override
++            public boolean choose(boolean x, boolean y, boolean z) {
++                return z;
++            }
++
++            @Override
++            public Direction getPositive() {
++                return Direction.SOUTH;
++            }
++
++            @Override
++            public Direction getNegative() {
++                return Direction.NORTH;
++            }
++        };
+ 
+         public static final Direction.Axis[] VALUES = values();
+         public static final StringRepresentable.EnumCodec<Direction.Axis> CODEC = StringRepresentable.fromEnum(Direction.Axis::values);
+@@ -428,21 +_,9 @@
+             return this == X || this == Z;
+         }
+ 
+-        public Direction getPositive() {
+-            return switch (this) {
+-                case X -> Direction.EAST;
+-                case Y -> Direction.UP;
+-                case Z -> Direction.SOUTH;
+-            };
+-        }
++        public abstract Direction getPositive();
+ 
+-        public Direction getNegative() {
+-            return switch (this) {
+-                case X -> Direction.WEST;
+-                case Y -> Direction.DOWN;
+-                case Z -> Direction.NORTH;
+-            };
+-        }
++        public abstract Direction getNegative();
+ 
+         public Direction[] getDirections() {
+             return new Direction[]{this.getPositive(), this.getNegative()};
+@@ -473,29 +_,11 @@
+             return this.name;
+         }
+ 
+-        public int choose(int x, int y, int z) {
+-            return switch (this) {
+-                case X -> x;
+-                case Y -> y;
+-                case Z -> z;
+-            };
+-        }
+-
+-        public double choose(double x, double y, double z) {
+-            return switch (this) {
+-                case X -> x;
+-                case Y -> y;
+-                case Z -> z;
+-            };
+-        }
+-
+-        public boolean choose(boolean x, boolean y, boolean z) {
+-            return switch (this) {
+-                case X -> x;
+-                case Y -> y;
+-                case Z -> z;
+-            };
+-        }
++        public abstract int choose(final int x, final int y, final int z);
++
++        public abstract double choose(final double x, final double y, final double z);
++
++        public abstract boolean choose(final boolean x, final boolean y, final boolean z);
+     }
+ 
+     public enum AxisDirection {
+@@ -569,4 +_,17 @@
              return this.faces.length;
          }
      }

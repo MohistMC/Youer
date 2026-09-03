@@ -1,0 +1,337 @@
+--- a/net/minecraft/world/item/trading/VillagerTrades.java
++++ b/net/minecraft/world/item/trading/VillagerTrades.java
+@@ -18,6 +_,7 @@
+ import net.minecraft.core.component.predicates.VillagerTypePredicate;
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.data.worldgen.BootstrapContext;
++import net.minecraft.network.chat.Component;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.tags.EnchantmentTags;
+@@ -45,13 +_,17 @@
+ import net.minecraft.world.level.storage.loot.functions.FilteredFunction;
+ import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
+ import net.minecraft.world.level.storage.loot.functions.SetEnchantmentsFunction;
++import net.minecraft.world.level.storage.loot.functions.SetNameFunction;
+ import net.minecraft.world.level.storage.loot.functions.SetPotionFunction;
+ import net.minecraft.world.level.storage.loot.functions.SetRandomDyesFunction;
+ import net.minecraft.world.level.storage.loot.functions.SetRandomPotionFunction;
+ import net.minecraft.world.level.storage.loot.functions.SetStewEffectFunction;
+ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+ import net.minecraft.world.level.storage.loot.predicates.LootItemEntityPropertyCondition;
+-import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProviders;
++import net.minecraft.world.level.storage.loot.providers.number.BinomialDistributionGenerator;
++import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
++import net.minecraft.world.level.storage.loot.providers.number.Sum;
++import net.minecraft.world.level.storage.loot.providers.number.UniformGenerator;
+ 
+ public class VillagerTrades {
+     public static final ResourceKey<VillagerTrade> FARMER_1_WHEAT_EMERALD = resourceKey("farmer/1/wheat_emerald");
+@@ -166,11 +_,11 @@
+         "cartographer/2/emerald_and_compass_village_desert_map"
+     );
+     public static final ResourceKey<VillagerTrade> CARTOGRAPHER_3_COMPASS_EMERALD = resourceKey("cartographer/3/compass_emerald");
+-    public static final ResourceKey<VillagerTrade> CARTOGRAPHER_3_EMERALD_AND_COMPASS_OCEAN_MONUMENT_MAP = resourceKey(
+-        "cartographer/3/emerald_and_compass_ocean_monument_map"
++    public static final ResourceKey<VillagerTrade> CARTOGRAPHER_3_EMERALD_AND_COMPASS_OCEAN_EXPLORER_MAP = resourceKey(
++        "cartographer/3/emerald_and_compass_ocean_explorer_map"
+     );
+-    public static final ResourceKey<VillagerTrade> CARTOGRAPHER_3_EMERALD_AND_COMPASS_BURIED_TRIAL_CHAMBERS_MAP = resourceKey(
+-        "cartographer/3/emerald_and_compass_buried_trial_chambers_map"
++    public static final ResourceKey<VillagerTrade> CARTOGRAPHER_3_EMERALD_AND_COMPASS_TRIAL_CHAMBER_MAP = resourceKey(
++        "cartographer/3/emerald_and_compass_trial_chamber_map"
+     );
+     public static final ResourceKey<VillagerTrade> CARTOGRAPHER_4_EMERALD_ITEM_FRAME = resourceKey("cartographer/4/emerald_item_frame");
+     public static final ResourceKey<VillagerTrade> CARTOGRAPHER_4_EMERALD_WHITE_BANNER = resourceKey("cartographer/4/emerald_white_banner");
+@@ -445,12 +_,12 @@
+             VillagerTrade.builder(new TradeCost(Items.EMERALD, 1), new ItemStackTemplate(Items.SUSPICIOUS_STEW), 12, 15, 0.05F)
+                 .addModifier(
+                     new SetStewEffectFunction.Builder()
+-                        .withEffect(MobEffects.NIGHT_VISION, 5)
+-                        .withEffect(MobEffects.JUMP_BOOST, 8)
+-                        .withEffect(MobEffects.WEAKNESS, 7)
+-                        .withEffect(MobEffects.BLINDNESS, 6)
+-                        .withEffect(MobEffects.POISON, 14)
+-                        .withEffect(MobEffects.SATURATION, 7)
++                        .withEffect(MobEffects.NIGHT_VISION, ConstantValue.exactly(5.0F))
++                        .withEffect(MobEffects.JUMP_BOOST, ConstantValue.exactly(8.0F))
++                        .withEffect(MobEffects.WEAKNESS, ConstantValue.exactly(7.0F))
++                        .withEffect(MobEffects.BLINDNESS, ConstantValue.exactly(6.0F))
++                        .withEffect(MobEffects.POISON, ConstantValue.exactly(14.0F))
++                        .withEffect(MobEffects.SATURATION, ConstantValue.exactly(7.0F))
+                 )
+                 .build()
+         );
+@@ -701,7 +_,7 @@
+             CARTOGRAPHER_2_GLASS_PANE_EMERALD,
+             VillagerTrade.builder(new TradeCost(Items.GLASS_PANE, 11), new ItemStackTemplate(Items.EMERALD), 12, 10, 0.05F).build()
+         );
+-        registerBasicExplorerMapTrades(context, villagerVariants, structures);
++        registerBasicExplorerMapTrades(context, items, villagerVariants, structures);
+         register(
+             context,
+             CARTOGRAPHER_3_COMPASS_EMERALD,
+@@ -709,37 +_,35 @@
+         );
+         register(
+             context,
+-            CARTOGRAPHER_3_EMERALD_AND_COMPASS_OCEAN_MONUMENT_MAP,
+-            VillagerTrade.builder(
+-                    new TradeCost(Items.EMERALD, 13), new TradeCost(Items.COMPASS, 1), new ItemStackTemplate(Items.OCEAN_MONUMENT_MAP), 12, 10, 0.2F
+-                )
++            CARTOGRAPHER_3_EMERALD_AND_COMPASS_OCEAN_EXPLORER_MAP,
++            VillagerTrade.builder(new TradeCost(Items.EMERALD, 13), new TradeCost(Items.COMPASS, 1), new ItemStackTemplate(Items.MAP), 12, 10, 0.2F)
+                 .addModifiers(
+                     Holder.direct(
+-                        ExplorationMapFunction.makeExplorationMap(structures.getOrThrow(StructureTags.ON_OCEAN_MONUMENT_MAPS))
++                        ExplorationMapFunction.makeExplorationMap(structures.getOrThrow(StructureTags.ON_OCEAN_EXPLORER_MAPS))
+                             .setMapDecoration(MapDecorationTypes.OCEAN_MONUMENT)
+                             .setSearchRadius(100)
+                             .setSkipKnownStructures(true)
+                             .build()
+                     ),
+-                    discardItemIfItsNot(anyValidMap())
++                    Holder.direct(SetNameFunction.setName(Component.translatable("filled_map.monument"), SetNameFunction.Target.ITEM_NAME).build()),
++                    discardItemIfItsNot(anyValidMap(items))
+                 )
+                 .build()
+         );
+         register(
+             context,
+-            CARTOGRAPHER_3_EMERALD_AND_COMPASS_BURIED_TRIAL_CHAMBERS_MAP,
+-            VillagerTrade.builder(
+-                    new TradeCost(Items.EMERALD, 12), new TradeCost(Items.COMPASS, 1), new ItemStackTemplate(Items.BURIED_TRIAL_CHAMBERS_MAP), 12, 10, 0.2F
+-                )
++            CARTOGRAPHER_3_EMERALD_AND_COMPASS_TRIAL_CHAMBER_MAP,
++            VillagerTrade.builder(new TradeCost(Items.EMERALD, 12), new TradeCost(Items.COMPASS, 1), new ItemStackTemplate(Items.MAP), 12, 10, 0.2F)
+                 .addModifiers(
+                     Holder.direct(
+-                        ExplorationMapFunction.makeExplorationMap(structures.getOrThrow(StructureTags.ON_BURIED_TRIAL_CHAMBERS_MAPS))
++                        ExplorationMapFunction.makeExplorationMap(structures.getOrThrow(StructureTags.ON_TRIAL_CHAMBERS_MAPS))
+                             .setMapDecoration(MapDecorationTypes.TRIAL_CHAMBERS)
+                             .setSearchRadius(100)
+                             .setSkipKnownStructures(true)
+                             .build()
+                     ),
+-                    discardItemIfItsNot(anyValidMap())
++                    Holder.direct(SetNameFunction.setName(Component.translatable("filled_map.trial_chambers"), SetNameFunction.Target.ITEM_NAME).build()),
++                    discardItemIfItsNot(anyValidMap(items))
+                 )
+                 .build()
+         );
+@@ -757,18 +_,17 @@
+         register(
+             context,
+             CARTOGRAPHER_5_EMERALD_AND_COMPASS_WOODLAND_MANSION_MAP,
+-            VillagerTrade.builder(
+-                    new TradeCost(Items.EMERALD, 14), new TradeCost(Items.COMPASS, 1), new ItemStackTemplate(Items.WOODLAND_MANSION_MAP), 12, 30, 0.2F
+-                )
++            VillagerTrade.builder(new TradeCost(Items.EMERALD, 14), new TradeCost(Items.COMPASS, 1), new ItemStackTemplate(Items.MAP), 12, 30, 0.2F)
+                 .addModifiers(
+                     Holder.direct(
+-                        ExplorationMapFunction.makeExplorationMap(structures.getOrThrow(StructureTags.ON_WOODLAND_MANSION_MAPS))
++                        ExplorationMapFunction.makeExplorationMap(structures.getOrThrow(StructureTags.ON_WOODLAND_EXPLORER_MAPS))
+                             .setMapDecoration(MapDecorationTypes.WOODLAND_MANSION)
+                             .setSearchRadius(100)
+                             .setSkipKnownStructures(true)
+                             .build()
+                     ),
+-                    discardItemIfItsNot(anyValidMap())
++                    Holder.direct(SetNameFunction.setName(Component.translatable("filled_map.mansion"), SetNameFunction.Target.ITEM_NAME).build()),
++                    discardItemIfItsNot(anyValidMap(items))
+                 )
+                 .build()
+         );
+@@ -1204,7 +_,7 @@
+             VillagerTrade.builder(
+                     new TradeCost(
+                         Items.POTION.builtInRegistryHolder(),
+-                        ContextIntProviders.exactly(1),
++                        ConstantValue.exactly(1.0F),
+                         DataComponentExactPredicate.expect(DataComponents.POTION_CONTENTS, new PotionContents(Potions.WATER))
+                     ),
+                     new ItemStackTemplate(Items.EMERALD),
+@@ -1672,17 +_,18 @@
+     }
+ 
+     private static void registerBasicExplorerMapTrades(
+-        BootstrapContext<VillagerTrade> context, HolderGetter<VillagerType> villagerVariants, HolderGetter<Structure> structures
++        BootstrapContext<VillagerTrade> context, HolderGetter<Item> items, HolderGetter<VillagerType> villagerVariants, HolderGetter<Structure> structures
+     ) {
+         register(
+             context,
+             CARTOGRAPHER_2_EMERALD_AND_COMPASS_VILLAGE_TAIGA_MAP,
+             createBasicExplorerMapTrades(
++                items,
+                 villagerVariants,
+                 structures,
+                 StructureTags.ON_TAIGA_VILLAGE_MAPS,
+                 MapDecorationTypes.TAIGA_VILLAGE,
+-                Items.TAIGA_VILLAGE_MAP,
++                "village_taiga",
+                 List.of(VillagerType.SWAMP, VillagerType.SNOW, VillagerType.PLAINS)
+             )
+         );
+@@ -1690,11 +_,12 @@
+             context,
+             CARTOGRAPHER_2_EMERALD_AND_COMPASS_EXPLORER_SWAMP_MAP,
+             createBasicExplorerMapTrades(
++                items,
+                 villagerVariants,
+                 structures,
+-                StructureTags.ON_SWAMP_HUT_MAPS,
++                StructureTags.ON_SWAMP_EXPLORER_MAPS,
+                 MapDecorationTypes.SWAMP_HUT,
+-                Items.SWAMP_HUT_MAP,
++                "explorer_swamp",
+                 List.of(VillagerType.TAIGA, VillagerType.SNOW, VillagerType.JUNGLE)
+             )
+         );
+@@ -1702,11 +_,12 @@
+             context,
+             CARTOGRAPHER_2_EMERALD_AND_COMPASS_VILLAGE_SNOWY_MAP,
+             createBasicExplorerMapTrades(
++                items,
+                 villagerVariants,
+                 structures,
+                 StructureTags.ON_SNOWY_VILLAGE_MAPS,
+                 MapDecorationTypes.SNOWY_VILLAGE,
+-                Items.SNOWY_VILLAGE_MAP,
++                "village_snowy",
+                 List.of(VillagerType.TAIGA, VillagerType.SWAMP)
+             )
+         );
+@@ -1714,11 +_,12 @@
+             context,
+             CARTOGRAPHER_2_EMERALD_AND_COMPASS_VILLAGE_SAVANNA_MAP,
+             createBasicExplorerMapTrades(
++                items,
+                 villagerVariants,
+                 structures,
+                 StructureTags.ON_SAVANNA_VILLAGE_MAPS,
+                 MapDecorationTypes.SAVANNA_VILLAGE,
+-                Items.SAVANNA_VILLAGE_MAP,
++                "village_savanna",
+                 List.of(VillagerType.PLAINS, VillagerType.JUNGLE, VillagerType.DESERT)
+             )
+         );
+@@ -1726,11 +_,12 @@
+             context,
+             CARTOGRAPHER_2_EMERALD_AND_COMPASS_VILLAGE_PLAINS_MAP,
+             createBasicExplorerMapTrades(
++                items,
+                 villagerVariants,
+                 structures,
+                 StructureTags.ON_PLAINS_VILLAGE_MAPS,
+                 MapDecorationTypes.PLAINS_VILLAGE,
+-                Items.PLAINS_VILLAGE_MAP,
++                "village_plains",
+                 List.of(VillagerType.TAIGA, VillagerType.SNOW, VillagerType.SAVANNA, VillagerType.DESERT)
+             )
+         );
+@@ -1738,11 +_,12 @@
+             context,
+             CARTOGRAPHER_2_EMERALD_AND_COMPASS_EXPLORER_JUNGLE_MAP,
+             createBasicExplorerMapTrades(
++                items,
+                 villagerVariants,
+                 structures,
+-                StructureTags.ON_JUNGLE_PYRAMID_MAPS,
++                StructureTags.ON_JUNGLE_EXPLORER_MAPS,
+                 MapDecorationTypes.JUNGLE_TEMPLE,
+-                Items.JUNGLE_PYRAMID_MAP,
++                "explorer_jungle",
+                 List.of(VillagerType.SWAMP, VillagerType.SAVANNA, VillagerType.DESERT)
+             )
+         );
+@@ -1750,25 +_,27 @@
+             context,
+             CARTOGRAPHER_2_EMERALD_AND_COMPASS_VILLAGE_DESERT_MAP,
+             createBasicExplorerMapTrades(
++                items,
+                 villagerVariants,
+                 structures,
+                 StructureTags.ON_DESERT_VILLAGE_MAPS,
+                 MapDecorationTypes.DESERT_VILLAGE,
+-                Items.DESERT_VILLAGE_MAP,
++                "village_desert",
+                 List.of(VillagerType.SAVANNA, VillagerType.JUNGLE)
+             )
+         );
+     }
+ 
+     private static VillagerTrade createBasicExplorerMapTrades(
++        HolderGetter<Item> items,
+         HolderGetter<VillagerType> villagerVariants,
+         HolderGetter<Structure> structures,
+         TagKey<Structure> structureTagKey,
+         Holder<MapDecorationType> mapDecorationType,
+-        Item mapItem,
++        String translationKey,
+         List<ResourceKey<VillagerType>> villagerTypes
+     ) {
+-        return VillagerTrade.builder(new TradeCost(Items.EMERALD, 8), new TradeCost(Items.COMPASS, 1), new ItemStackTemplate(mapItem), 12, 5, 0.2F)
++        return VillagerTrade.builder(new TradeCost(Items.EMERALD, 8), new TradeCost(Items.COMPASS, 1), new ItemStackTemplate(Items.MAP), 12, 5, 0.2F)
+             .merchantPredicate(villagerTypeRestriction(villagerTypeHolderSet(villagerVariants, villagerTypes)))
+             .addModifiers(
+                 Holder.direct(
+@@ -1778,7 +_,8 @@
+                         .setSkipKnownStructures(true)
+                         .build()
+                 ),
+-                discardItemIfItsNot(anyValidMap())
++                Holder.direct(SetNameFunction.setName(Component.translatable("filled_map." + translationKey), SetNameFunction.Target.ITEM_NAME).build()),
++                discardItemIfItsNot(anyValidMap(items))
+             )
+             .build();
+     }
+@@ -1832,7 +_,9 @@
+     }
+ 
+     private static LootItemFunction.Builder addRandomDye() {
+-        return SetRandomDyesFunction.withCount(ContextIntProviders.add(ContextIntProviders.exactly(1), ContextIntProviders.binomial(2, 0.75F)));
++        return SetRandomDyesFunction.withCount(
++            Sum.sum(ConstantValue.exactly(1.0F), Holder.direct(new BinomialDistributionGenerator(ConstantValue.exactly(2.0F), ConstantValue.exactly(0.75F))))
++        );
+     }
+ 
+     public static List<Holder<LootItemFunction>> enchantedBook(HolderGetter<Item> items, HolderSet<Enchantment> options) {
+@@ -1862,9 +_,7 @@
+                     )
+                     .build()
+             );
+-        return discardItemIfItsNot(
+-            new SetEnchantmentsFunction.Builder().withEnchantment(enchantment, ContextIntProviders.exactly(level)), bookWithExactLevelEnchants
+-        );
++        return discardItemIfItsNot(new SetEnchantmentsFunction.Builder().withEnchantment(enchantment, ConstantValue.exactly(level)), bookWithExactLevelEnchants);
+     }
+ 
+     public static List<Holder<LootItemFunction>> enchantedItem(HolderGetter<Item> items, HolderSet<Enchantment> options, Item expectedItem) {
+@@ -1879,7 +_,7 @@
+                     .build()
+             );
+         return discardItemIfItsNot(
+-            new EnchantWithLevelsFunction.Builder(ContextIntProviders.between(5, 19)).withOptions(options).includeAdditionalCostComponent(),
++            new EnchantWithLevelsFunction.Builder(UniformGenerator.between(5.0F, 19.0F)).withOptions(options).includeAdditionalCostComponent(),
+             itemWithAnyEnchants
+         );
+     }
+@@ -1895,13 +_,13 @@
+                     )
+                     .build()
+             );
+-        return discardItemIfItsNot(
+-            new SetEnchantmentsFunction.Builder().withEnchantment(enchantment, ContextIntProviders.exactly(level)), itemWithExactLevelEnchants
+-        );
++        return discardItemIfItsNot(new SetEnchantmentsFunction.Builder().withEnchantment(enchantment, ConstantValue.exactly(level)), itemWithExactLevelEnchants);
+     }
+ 
+-    public static ItemPredicate.Builder anyValidMap() {
+-        return new ItemPredicate.Builder().withComponents(DataComponentMatchers.Builder.components().any(DataComponents.MAP_ID).build());
++    public static ItemPredicate.Builder anyValidMap(HolderGetter<Item> items) {
++        return new ItemPredicate.Builder()
++            .of(items, Items.FILLED_MAP)
++            .withComponents(DataComponentMatchers.Builder.components().any(DataComponents.MAP_ID).build());
+     }
+ 
+     public static Holder<LootItemFunction> discardItemIfItsNot(ItemPredicate.Builder test) {

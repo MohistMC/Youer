@@ -1,0 +1,40 @@
+--- a/net/minecraft/world/entity/projectile/ProjectileDeflection.java
++++ b/net/minecraft/world/entity/projectile/ProjectileDeflection.java
+@@ -7,28 +_,28 @@
+ 
+ @FunctionalInterface
+ public interface ProjectileDeflection {
+-    ProjectileDeflection NONE = (var0, var1, var2, var3) -> {};
+-    ProjectileDeflection REVERSE = (projectile, var1, random, power) -> {
++    ProjectileDeflection NONE = (projectile, entity, random) -> {};
++    ProjectileDeflection REVERSE = (projectile, entity, random) -> {
+         float rotation = 170.0F + random.nextFloat() * 20.0F;
+-        projectile.setDeltaMovement(projectile.getDeltaMovement().multiply(-power.x * 0.5, -power.y * 0.5, -power.z * 0.5));
++        projectile.setDeltaMovement(projectile.getDeltaMovement().scale(-0.5));
+         projectile.setYRot(projectile.getYRot() + rotation);
+         projectile.yRotO += rotation;
+         projectile.needsSync = true;
+     };
+-    ProjectileDeflection AIM_DEFLECT = (projectile, entity, var2, power) -> {
++    ProjectileDeflection AIM_DEFLECT = (projectile, entity, random) -> {
+         if (entity != null) {
+             Vec3 lookAngle = entity.getLookAngle();
+-            projectile.setDeltaMovement(lookAngle.multiply(power));
++            projectile.setDeltaMovement(lookAngle);
+             projectile.needsSync = true;
+         }
+     };
+-    ProjectileDeflection MOMENTUM_DEFLECT = (projectile, entity, var2, power) -> {
++    ProjectileDeflection MOMENTUM_DEFLECT = (projectile, entity, random) -> {
+         if (entity != null) {
+-            Vec3 movement = entity.getKnownSpeed().normalize();
+-            projectile.setDeltaMovement(movement.multiply(power));
++            Vec3 movement = entity.getDeltaMovement().normalize();
++            projectile.setDeltaMovement(movement);
+             projectile.needsSync = true;
+         }
+     };
+ 
+-    void deflect(Projectile projectile, @Nullable Entity entity, RandomSource random, Vec3 power);
++    void deflect(final Projectile projectile, final @Nullable Entity entity, final RandomSource random);
+ }

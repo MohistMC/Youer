@@ -1,0 +1,51 @@
+--- a/net/minecraft/world/level/levelgen/SpawnTargetPoint.java
++++ b/net/minecraft/world/level/levelgen/SpawnTargetPoint.java
+@@ -1,27 +_,36 @@
+ package net.minecraft.world.level.levelgen;
+ 
++import com.mojang.datafixers.util.Pair;
+ import com.mojang.serialization.Codec;
++import java.util.List;
+ import java.util.Map;
+-import java.util.Map.Entry;
+ import net.minecraft.core.Holder;
+ import net.minecraft.util.Mth;
+ import net.minecraft.world.level.biome.Climate;
+-import net.minecraft.world.level.levelgen.densityfunction.DensityFunction;
+-import net.minecraft.world.level.levelgen.densityfunction.DensitySamplerSet;
+ 
+ public record SpawnTargetPoint(Map<Holder<DensityFunction>, Climate.Parameter> parameters) {
+     public static final Codec<SpawnTargetPoint> CODEC = Codec.unboundedMap(DensityFunction.REFERENCE_CODEC, Climate.Parameter.CODEC)
+         .xmap(SpawnTargetPoint::new, SpawnTargetPoint::parameters);
+ 
+-    public long sampleFitness(DensitySamplerSet samplers, int blockX, int blockY, int blockZ) {
+-        long fitness = 0L;
+-
+-        for (Entry<Holder<DensityFunction>, Climate.Parameter> parameter : this.parameters.entrySet()) {
+-            DensityFunction function = parameter.getKey().value();
+-            long value = Climate.quantizeCoord(samplers.sampleValue(function, blockX, blockY, blockZ));
+-            fitness += Mth.square(parameter.getValue().distance(value));
++    public SpawnTargetPoint.Wired wire(DensityFunction.Visitor noiseWirer, DensityFunction.Visitor flattener) {
++        return new SpawnTargetPoint.Wired(this.parameters.entrySet().stream().map(entry -> {
++            DensityFunction wiredFunction = entry.getKey().value().mapAll(noiseWirer);
++            DensityFunction flattenedFunction = wiredFunction.mapAll(flattener);
++            return Pair.of(flattenedFunction, entry.getValue());
++        }).toList());
++    }
++
++    public record Wired(List<Pair<DensityFunction, Climate.Parameter>> parameters) {
++        public long sampleFitness(DensityFunction.SinglePointContext context) {
++            long fitness = 0L;
++
++            for (Pair<DensityFunction, Climate.Parameter> parameter : this.parameters) {
++                DensityFunction function = parameter.getFirst();
++                long value = Climate.quantizeCoord((float)function.compute(context));
++                fitness += Mth.square(parameter.getSecond().distance(value));
++            }
++
++            return fitness;
+         }
+-
+-        return fitness;
+     }
+ }

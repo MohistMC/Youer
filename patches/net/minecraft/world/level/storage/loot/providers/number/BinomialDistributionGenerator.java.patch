@@ -1,0 +1,59 @@
+--- /dev/null
++++ b/net/minecraft/world/level/storage/loot/providers/number/BinomialDistributionGenerator.java
+@@ -1,0 +_,56 @@
++package net.minecraft.world.level.storage.loot.providers.number;
++
++import com.mojang.serialization.MapCodec;
++import com.mojang.serialization.codecs.RecordCodecBuilder;
++import net.minecraft.core.Holder;
++import net.minecraft.util.RandomSource;
++import net.minecraft.world.level.storage.loot.LootContext;
++import net.minecraft.world.level.storage.loot.Validatable;
++import net.minecraft.world.level.storage.loot.ValidationContext;
++
++public record BinomialDistributionGenerator(Holder<NumberProvider> n, Holder<NumberProvider> p) implements NumberProvider {
++    public static final MapCodec<BinomialDistributionGenerator> MAP_CODEC = RecordCodecBuilder.mapCodec(
++        i -> i.group(
++                NumberProviders.CODEC.fieldOf("n").forGetter(BinomialDistributionGenerator::n),
++                NumberProviders.CODEC.fieldOf("p").forGetter(BinomialDistributionGenerator::p)
++            )
++            .apply(i, BinomialDistributionGenerator::new)
++    );
++
++    @Override
++    public MapCodec<BinomialDistributionGenerator> codec() {
++        return MAP_CODEC;
++    }
++
++    @Override
++    public int getInt(LootContext context) {
++        int n = this.n.value().getInt(context);
++        float p = this.p.value().getFloat(context);
++        RandomSource random = context.getRandom();
++        int result = 0;
++
++        for (int i = 0; i < n; i++) {
++            if (random.nextFloat() < p) {
++                result++;
++            }
++        }
++
++        return result;
++    }
++
++    @Override
++    public float getFloat(LootContext context) {
++        return this.getInt(context);
++    }
++
++    public static Holder<NumberProvider> binomial(int n, float p) {
++        return Holder.direct(new BinomialDistributionGenerator(ConstantValue.exactly(n), ConstantValue.exactly(p)));
++    }
++
++    @Override
++    public void validate(ValidationContext context) {
++        NumberProvider.super.validate(context);
++        Validatable.validateHolder(context, "n", this.n);
++        Validatable.validateHolder(context, "p", this.p);
++    }
++}

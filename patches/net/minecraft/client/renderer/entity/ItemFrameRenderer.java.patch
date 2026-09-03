@@ -1,0 +1,33 @@
+--- a/net/minecraft/client/renderer/entity/ItemFrameRenderer.java
++++ b/net/minecraft/client/renderer/entity/ItemFrameRenderer.java
+@@ -62,8 +_,8 @@
+             yRot = 180.0F;
+         }
+ 
+-        poseStack.rotateDegrees(Axis.XP, xRot);
+-        poseStack.rotateDegrees(Axis.YP, yRot);
++        poseStack.mulPose(Axis.XP.rotationDegrees(xRot));
++        poseStack.mulPose(Axis.YP.rotationDegrees(yRot));
+         if (!state.frameModel.isEmpty()) {
+             poseStack.pushPose();
+             poseStack.translate(-0.5F, -0.5F, -0.5F);
+@@ -79,8 +_,8 @@
+ 
+         if (state.mapId != null) {
+             int rotation = state.rotation % 4 * 2;
+-            poseStack.rotateDegrees(Axis.ZP, rotation * 360.0F / 8.0F);
+-            poseStack.rotateDegrees(Axis.ZP, 180.0F);
++            poseStack.mulPose(Axis.ZP.rotationDegrees(rotation * 360.0F / 8.0F));
++            poseStack.mulPose(Axis.ZP.rotationDegrees(180.0F));
+             float s = 0.0078125F;
+             poseStack.scale(0.0078125F, 0.0078125F, 0.0078125F);
+             poseStack.translate(-64.0F, -64.0F, 0.0F);
+@@ -88,7 +_,7 @@
+             int lightCoords = this.getLightCoords(state.isGlowFrame, 15728850, state.lightCoords);
+             this.mapRenderer.render(state.mapRenderState, poseStack, submitNodeCollector, true, lightCoords);
+         } else if (!state.item.isEmpty()) {
+-            poseStack.rotateDegrees(Axis.ZP, state.rotation * 360.0F / 8.0F);
++            poseStack.mulPose(Axis.ZP.rotationDegrees(state.rotation * 360.0F / 8.0F));
+             int lightVal = this.getLightCoords(state.isGlowFrame, 15728880, state.lightCoords);
+             poseStack.scale(0.5F, 0.5F, 0.5F);
+             state.item.submit(poseStack, submitNodeCollector, lightVal, OverlayTexture.NO_OVERLAY, state.outlineColor);

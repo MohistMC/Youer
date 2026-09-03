@@ -23,7 +23,15 @@
  import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
  import net.minecraft.world.item.Item;
  import net.minecraft.world.item.ItemStack;
-@@ -94,6 +_,16 @@
+@@ -69,7 +_,6 @@
+ import net.minecraft.world.item.SpawnEggItem;
+ import net.minecraft.world.item.component.AttackRange;
+ import net.minecraft.world.item.component.ItemAttributeModifiers;
+-import net.minecraft.world.item.component.SwingAnimation;
+ import net.minecraft.world.item.component.UseRemainder;
+ import net.minecraft.world.item.enchantment.Enchantment;
+ import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
+@@ -95,6 +_,16 @@
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.ticks.ContainerSingleItem;
@@ -40,7 +48,7 @@
  import org.jspecify.annotations.Nullable;
  
  public abstract class Mob extends LivingEntity implements Targeting, EquipmentUser, Leashable {
-@@ -132,6 +_,7 @@
+@@ -133,6 +_,7 @@
      private final BodyRotationControl bodyRotationControl;
      protected PathNavigation navigation;
      public GoalSelector goalSelector;
@@ -48,7 +56,7 @@
      public GoalSelector targetSelector;
      private @Nullable LivingEntity target;
      private final Sensing sensing;
-@@ -144,13 +_,21 @@
+@@ -145,13 +_,21 @@
      private Leashable.@Nullable LeashData leashData;
      private BlockPos homePosition = BlockPos.ZERO;
      private int homeRadius = -1;
@@ -72,7 +80,7 @@
          this.jumpControl = new JumpControl(this);
          this.bodyRotationControl = this.createBodyControl();
          this.navigation = this.createNavigation(level);
-@@ -205,6 +_,28 @@
+@@ -206,6 +_,28 @@
          return this.lookControl;
      }
  
@@ -101,7 +109,7 @@
      public MoveControl getMoveControl() {
          return this.getControlledVehicle() instanceof Mob riding ? riding.getMoveControl() : this.moveControl;
      }
-@@ -248,8 +_,27 @@
+@@ -249,8 +_,27 @@
          return this.asValidTarget(this.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse(null));
      }
  
@@ -130,7 +138,7 @@
      }
  
      @Override
-@@ -290,7 +_,27 @@
+@@ -291,7 +_,27 @@
          }
  
          profiler.pop();
@@ -159,7 +167,7 @@
  
      @Override
      protected void playHurtSound(DamageSource source) {
-@@ -331,7 +_,7 @@
+@@ -332,7 +_,7 @@
      }
  
      @Override
@@ -168,7 +176,7 @@
          if (id == 20) {
              this.spawnAnim();
          } else {
-@@ -345,6 +_,12 @@
+@@ -346,6 +_,12 @@
          if (!this.level().isClientSide() && this.tickCount % 5 == 0) {
              this.updateControlFlags();
          }
@@ -181,7 +189,7 @@
      }
  
      protected void updateControlFlags() {
-@@ -364,6 +_,12 @@
+@@ -365,6 +_,12 @@
          return null;
      }
  
@@ -194,7 +202,7 @@
      @Override
      protected void addAdditionalSaveData(ValueOutput output) {
          super.addAdditionalSaveData(output);
-@@ -388,13 +_,27 @@
+@@ -389,13 +_,27 @@
          if (this.isNoAi()) {
              output.putBoolean("NoAI", this.isNoAi());
          }
@@ -224,7 +232,7 @@
          this.dropChances = input.read("drop_chances", DropChances.CODEC).orElse(DropChances.DEFAULT);
          this.readLeashData(input);
          this.homeRadius = input.getIntOr("home_radius", -1);
-@@ -406,12 +_,21 @@
+@@ -407,12 +_,21 @@
          this.lootTable = input.read("DeathLootTable", LootTable.KEY_CODEC);
          this.lootTableSeed = input.getLongOr("DeathLootTableSeed", 0L);
          this.setNoAi(input.getBooleanOr("NoAI", false));
@@ -247,7 +255,7 @@
      }
  
      @Override
-@@ -454,9 +_,7 @@
+@@ -455,9 +_,7 @@
      @Override
      public void aiStep() {
          super.aiStep();
@@ -258,7 +266,7 @@
  
          ProfilerFiller profiler = Profiler.get();
          profiler.push("looting");
-@@ -464,12 +_,17 @@
+@@ -465,12 +_,17 @@
              && this.canPickUpLoot()
              && this.isAlive()
              && !this.dead
@@ -277,7 +285,7 @@
                      this.pickUpItem(serverLevel, entity);
                  }
              }
-@@ -478,6 +_,13 @@
+@@ -479,6 +_,13 @@
          profiler.pop();
      }
  
@@ -291,8 +299,17 @@
      protected EquipmentSlot sunProtectionSlot() {
          return EquipmentSlot.HEAD;
      }
-@@ -496,22 +_,14 @@
-                     }
+@@ -489,25 +_,22 @@
+             ItemStack sunBlocker = this.getItemBySlot(slot);
+             if (!sunBlocker.isEmpty()) {
+                 if (sunBlocker.isDamageableItem()) {
+-                    sunBlocker.hurtAndBreak(this.random.nextInt(2), this, slot);
++                    Item sunBlockerItem = sunBlocker.getItem();
++                    sunBlocker.setDamageValue(sunBlocker.getDamageValue() + this.random.nextInt(2));
++                    if (sunBlocker.getDamageValue() >= sunBlocker.getMaxDamage()) {
++                        this.onEquippedItemBroken(sunBlockerItem, slot);
++                        this.setItemSlot(slot, ItemStack.EMPTY);
++                    }
                  }
              } else {
 +                if (getRider() == null || !this.isControllable()) // Purpur - Ridables
@@ -316,7 +333,7 @@
      }
  
      protected Vec3i getPickupReach() {
-@@ -520,49 +_,61 @@
+@@ -516,49 +_,61 @@
  
      protected void pickUpItem(ServerLevel level, ItemEntity entity) {
          ItemStack itemStack = entity.getItem();
@@ -401,7 +418,7 @@
      }
  
      protected boolean canShearEquipment(Player player) {
-@@ -646,6 +_,8 @@
+@@ -642,6 +_,8 @@
      private double getApproximateAttributeWith(ItemStack itemStack, Holder<Attribute> attribute, EquipmentSlot slot) {
          double baseValue = this.getAttributes().hasAttribute(attribute) ? this.getAttributeBaseValue(attribute) : 0.0;
          ItemAttributeModifiers attributeModifiers = itemStack.getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY);
@@ -410,7 +427,7 @@
          return attributeModifiers.compute(attribute, baseValue, slot);
      }
  
-@@ -685,37 +_,51 @@
+@@ -681,37 +_,51 @@
  
      @Override
      public void checkDespawn() {
@@ -480,7 +497,7 @@
          ProfilerFiller profiler = Profiler.get();
          profiler.push("sensing");
          this.sensing.tick();
-@@ -765,7 +_,7 @@
+@@ -761,7 +_,7 @@
          return 75;
      }
  
@@ -489,7 +506,7 @@
          float limit = this.getMaxHeadYRot();
          float headYRot = this.getYHeadRot();
          float delta = Mth.wrapDegrees(this.yBodyRot - headYRot);
-@@ -886,15 +_,76 @@
+@@ -882,15 +_,76 @@
              public boolean stillValid(Player player) {
                  return player.getVehicle() == Mob.this || player.isWithinEntityInteractionRange(Mob.this, 4.0);
              }
@@ -566,7 +583,7 @@
              float dropChance = this.dropChances.byEquipment(slot);
              if (dropChance != 0.0F) {
                  boolean preserve = this.dropChances.isPreserved(slot);
-@@ -913,7 +_,8 @@
+@@ -909,7 +_,8 @@
                      }
  
                      this.spawnAtLocation(level, itemStack);
@@ -576,7 +593,7 @@
                  }
              }
          }
-@@ -932,11 +_,17 @@
+@@ -928,11 +_,17 @@
  
          for (EquipmentSlot slot : EquipmentSlot.VALUES) {
              ItemStack itemStack = this.getItemBySlot(slot);
@@ -596,7 +613,7 @@
                      this.spawnAtLocation(level, itemStack);
                  }
              }
-@@ -1081,6 +_,11 @@
+@@ -1077,6 +_,11 @@
          }
      }
  
@@ -608,7 +625,7 @@
      public @Nullable SpawnGroupData finalizeSpawn(
          ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason spawnReason, @Nullable SpawnGroupData groupData
      ) {
-@@ -1092,7 +_,8 @@
+@@ -1088,7 +_,8 @@
              );
          }
  
@@ -618,7 +635,7 @@
          return groupData;
      }
  
-@@ -1179,7 +_,7 @@
+@@ -1175,7 +_,7 @@
      }
  
      protected InteractionResult mobInteract(Player player, InteractionHand hand) {
@@ -627,7 +644,7 @@
      }
  
      protected void usePlayerItem(Player player, InteractionHand hand, ItemStack itemStack) {
-@@ -1230,30 +_,69 @@
+@@ -1226,30 +_,69 @@
      public <T extends Mob> @Nullable T convertTo(
          EntityType<T> entityType, ConversionParams params, EntitySpawnReason spawnReason, ConversionParams.AfterConversion<T> afterConversion
      ) {
@@ -716,7 +733,7 @@
      }
  
      @Override
-@@ -1294,7 +_,17 @@
+@@ -1290,7 +_,17 @@
      public boolean startRiding(Entity entity, boolean force, boolean sendEventAndTriggers) {
          boolean result = super.startRiding(entity, force, sendEventAndTriggers);
          if (result && this.isLeashed()) {
@@ -735,7 +752,7 @@
          }
  
          return result;
-@@ -1398,18 +_,29 @@
+@@ -1394,18 +_,29 @@
          }
  
          this.postPiercingAttack();
@@ -766,7 +783,7 @@
      @VisibleForTesting
      public void removeFreeWill() {
          this.removeAllGoals(goal -> true);
-@@ -1463,7 +_,7 @@
+@@ -1459,7 +_,7 @@
                  Set<WrappedGoal> availableGoals = this.goalSelector.getAvailableGoals();
                  List<DebugGoalInfo.DebugGoal> goalInfo = new ArrayList<>(availableGoals.size());
                  availableGoals.forEach(
@@ -775,11 +792,18 @@
                  );
                  return new DebugGoalInfo(goalInfo);
              }
-@@ -1476,4 +_,93 @@
-     public float chargeSpeedModifier() {
+@@ -1473,12 +_,92 @@
          return 1.0F;
      }
-+
+ 
+-    public void swingForAttack(InteractionHand hand) {
+-        SwingAnimation swingAnimation = this.getItemInHand(hand).getAttackAnimation();
+-        this.swing(hand, swingAnimation, false);
+-    }
+-
+-    public void swing(InteractionHand hand, SwingAnimation animation) {
+-        this.swing(hand, animation, false);
+-    }
 +    /**
 +     * Returns the type of spawn that created this mob, if applicable.
 +     * If it could not be determined, this will return null.

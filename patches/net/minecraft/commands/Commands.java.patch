@@ -8,7 +8,15 @@
  import com.mojang.brigadier.CommandDispatcher;
  import com.mojang.brigadier.ParseResults;
  import com.mojang.brigadier.StringReader;
-@@ -158,6 +_,7 @@
+@@ -53,7 +_,6 @@
+ import net.minecraft.server.commands.ChaseCommand;
+ import net.minecraft.server.commands.ClearInventoryCommands;
+ import net.minecraft.server.commands.CloneCommands;
+-import net.minecraft.server.commands.ComputeCommand;
+ import net.minecraft.server.commands.DamageCommand;
+ import net.minecraft.server.commands.DataPackCommand;
+ import net.minecraft.server.commands.DeOpCommands;
+@@ -159,6 +_,7 @@
  import org.slf4j.Logger;
  
  public class Commands {
@@ -16,7 +24,7 @@
      public static final String COMMAND_PREFIX = "/";
      private static final ThreadLocal<@Nullable ExecutionContext<CommandSourceStack>> CURRENT_EXECUTION_CONTEXT = new ThreadLocal<>();
      private static final Logger LOGGER = LogUtils.getLogger();
-@@ -182,6 +_,7 @@
+@@ -183,6 +_,7 @@
  
          @Override
          public boolean isRestricted(CommandNode<CommandSourceStack> node) {
@@ -24,7 +32,7 @@
              Predicate<CommandSourceStack> requirement = node.getRequirement();
              return !requirement.test(this.noPermissionSource);
          }
-@@ -189,6 +_,11 @@
+@@ -190,15 +_,19 @@
      private final CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
  
      public Commands(Commands.CommandSelection commandSelection, CommandBuildContext context) {
@@ -36,7 +44,17 @@
          AdvancementCommands.register(this.dispatcher);
          AttributeCommand.register(this.dispatcher, context);
          ExecuteCommand.register(this.dispatcher, context);
-@@ -263,11 +_,11 @@
+         BossBarCommands.register(this.dispatcher, context);
+         ClearInventoryCommands.register(this.dispatcher, context);
+         CloneCommands.register(this.dispatcher, context);
+-        ComputeCommand.register(this.dispatcher, context);
+         DamageCommand.register(this.dispatcher, context);
+-        DataCommands.register(this.dispatcher, context);
++        DataCommands.register(this.dispatcher);
+         DataPackCommand.register(this.dispatcher, context);
+         DebugCommand.register(this.dispatcher);
+         DefaultGameModeCommands.register(this.dispatcher);
+@@ -265,11 +_,11 @@
              JfrCommand.register(this.dispatcher);
          }
  
@@ -50,7 +68,7 @@
              RaidCommand.register(this.dispatcher, context);
              DebugPathCommand.register(this.dispatcher);
              DebugMobSpawningCommand.register(this.dispatcher);
-@@ -287,6 +_,8 @@
+@@ -289,6 +_,8 @@
              OpCommand.register(this.dispatcher);
              PardonCommand.register(this.dispatcher);
              PardonIpCommand.register(this.dispatcher);
@@ -59,7 +77,7 @@
              PerfCommand.register(this.dispatcher);
              SaveAllCommand.register(this.dispatcher);
              SaveOffCommand.register(this.dispatcher);
-@@ -295,13 +_,58 @@
+@@ -297,13 +_,58 @@
              StopCommand.register(this.dispatcher);
              TransferCommand.register(this.dispatcher);
              WhitelistCommand.register(this.dispatcher);
@@ -119,7 +137,7 @@
          this.dispatcher.setConsumer(ExecutionCommandSource.resultConsumer());
      }
  
-@@ -321,7 +_,24 @@
+@@ -323,7 +_,24 @@
      }
  
      public void performCommand(ParseResults<CommandSourceStack> command, String commandString) {
@@ -144,7 +162,7 @@
          Profiler.get().push(() -> "/" + commandString);
          ContextChain<CommandSourceStack> commandChain = finishParsing(command, commandString, sender);
  
-@@ -334,10 +_,12 @@
+@@ -336,10 +_,12 @@
                      )
                  );
              }
@@ -160,7 +178,7 @@
                  StackTraceElement[] stackTrace = e.getStackTrace();
  
                  for (int i = 0; i < Math.min(stackTrace.length, 3); i++) {
-@@ -368,7 +_,11 @@
+@@ -370,7 +_,11 @@
              return ContextChain.tryFlatten(command.getContext().build(commandString))
                  .orElseThrow(() -> CommandSyntaxException.BUILT_IN_EXCEPTIONS.dispatcherUnknownCommand().createWithContext(command.getReader()));
          } catch (CommandSyntaxException e) {
@@ -173,7 +191,7 @@
              if (e.getInput() != null && e.getCursor() >= 0) {
                  int cursor = Math.min(e.getInput().length(), e.getCursor());
                  MutableComponent context = Component.empty()
-@@ -385,7 +_,17 @@
+@@ -387,7 +_,17 @@
                  }
  
                  context.append(Component.translatable("command.context.here").withStyle(ChatFormatting.RED, ChatFormatting.ITALIC));
@@ -192,7 +210,7 @@
              }
  
              return null;
-@@ -413,17 +_,110 @@
+@@ -415,17 +_,110 @@
      }
  
      public void sendCommands(ServerPlayer player) {
@@ -306,7 +324,7 @@
                  if (builder.getRedirect() != null) {
                      builder.redirect(converted.get(builder.getRedirect()));
                  }
-@@ -432,12 +_,11 @@
+@@ -434,12 +_,11 @@
                  converted.put(child, node);
                  target.addChild(node);
                  if (!child.getChildren().isEmpty()) {
@@ -320,3 +338,12 @@
      public static LiteralArgumentBuilder<CommandSourceStack> literal(String literal) {
          return LiteralArgumentBuilder.literal(literal);
      }
+@@ -547,7 +_,7 @@
+     }
+ 
+     public static CommandSourceStack createCompilationContext(PermissionSet compilationPermissions) {
+-        return new CommandSourceStack(CommandSource.NULL, Vec3.ZERO, Vec2.ZERO, null, compilationPermissions, CommonComponents.EMPTY, null);
++        return new CommandSourceStack(CommandSource.NULL, Vec3.ZERO, Vec2.ZERO, null, compilationPermissions, "", CommonComponents.EMPTY, null, null);
+     }
+ 
+     public enum CommandSelection {

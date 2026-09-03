@@ -1,0 +1,79 @@
+--- a/net/minecraft/world/level/levelgen/densityfunction/DfRewriteRule.java
++++ /dev/null
+@@ -1,76 +_,0 @@
+-package net.minecraft.world.level.levelgen.densityfunction;
+-
+-import net.minecraft.core.Direction;
+-import net.minecraft.core.Holder;
+-import net.minecraft.world.level.levelgen.densityfunction.generator.ConstantFunction;
+-import net.minecraft.world.level.levelgen.densityfunction.generator.GradientFunction;
+-import net.minecraft.world.level.levelgen.densityfunction.op.SliceFunction;
+-
+-@FunctionalInterface
+-public interface DfRewriteRule {
+-    DfRewriteRule INLINE_REFERENCE = function -> function instanceof DensityFunctions.HolderHolder(Holder<DensityFunction> holder) ? holder.value() : function;
+-    DfRewriteRule SLICE_UNIFORM_AXES = new DfRewriteRule.SliceUniformAxes(7);
+-
+-    static DfRewriteRule sequence(DfRewriteRule... rules) {
+-        return function -> {
+-            for (DfRewriteRule rule : rules) {
+-                function = rule.rewrite(function);
+-            }
+-
+-            return function;
+-        };
+-    }
+-
+-    DensityFunction rewrite(DensityFunction function);
+-
+-    record SliceUniformAxes(@DensityFunction.Axes int parentDomainAxes) implements DfRewriteRule {
+-        @Override
+-        public DensityFunction rewrite(DensityFunction function) {
+-            if (shouldSkip(function)) {
+-                return function;
+-            }
+-
+-            int domainAxes = function.domainAxes();
+-            if (this.parentDomainAxes == domainAxes) {
+-                return function.rewriteChildren(this);
+-            }
+-
+-            DensityFunction newFunction = function.rewriteChildren(new DfRewriteRule.SliceUniformAxes(domainAxes));
+-            int removedAxes = this.parentDomainAxes & ~domainAxes;
+-            return this.removeAxes(newFunction, removedAxes);
+-        }
+-
+-        private DensityFunction removeAxes(DensityFunction function, @DensityFunction.Axes int axes) {
+-            int filteredAxes = axes & ~getExistingRemovedAxes(function);
+-            if ((filteredAxes & 1) != 0) {
+-                function = new SliceFunction(Direction.Axis.X, 0, function);
+-            }
+-
+-            if ((filteredAxes & 4) != 0) {
+-                function = new SliceFunction(Direction.Axis.Z, 0, function);
+-            }
+-
+-            if ((filteredAxes & 2) != 0) {
+-                function = new SliceFunction(Direction.Axis.Y, 0, function);
+-            }
+-
+-            return function;
+-        }
+-
+-        private static @DensityFunction.Axes int getExistingRemovedAxes(DensityFunction function) {
+-            int axes = 0;
+-
+-            while (function instanceof SliceFunction) {
+-                SliceFunction slice = (SliceFunction)function;
+-                axes |= DensityFunction.axesFrom(slice.axis());
+-                function = slice.input();
+-            }
+-
+-            return axes;
+-        }
+-
+-        private static boolean shouldSkip(DensityFunction function) {
+-            return function instanceof ConstantFunction || function instanceof GradientFunction;
+-        }
+-    }
+-}

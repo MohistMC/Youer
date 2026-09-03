@@ -1,0 +1,28 @@
+--- a/net/minecraft/client/renderer/blockentity/ShelfRenderer.java
++++ b/net/minecraft/client/renderer/blockentity/ShelfRenderer.java
+@@ -65,19 +_,20 @@
+         for (int slot = 0; slot < state.items.length; slot++) {
+             ItemStackRenderState itemStackRenderState = state.items[slot];
+             if (itemStackRenderState != null) {
+-                submitItem(state, itemStackRenderState, poseStack, submitNodeCollector, slot, yRot);
++                this.submitItem(state, itemStackRenderState, poseStack, submitNodeCollector, slot, yRot);
+             }
+         }
+     }
+ 
+-    private static void submitItem(
++    private void submitItem(
+         ShelfRenderState state, ItemStackRenderState itemStackRenderState, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int slot, float yRot
+     ) {
+-        float itemSlotOffsetX = (slot - 1) * 0.3125F;
++        float itemSlotPosition = (slot - 1) * 0.3125F;
++        Vec3 itemOffset = new Vec3(itemSlotPosition, state.alignToBottom ? -0.25 : 0.0, -0.25);
+         poseStack.pushPose();
+         poseStack.translate(0.5F, 0.5F, 0.5F);
+-        poseStack.rotateDegrees(Axis.YP, yRot);
+-        poseStack.translate(itemSlotOffsetX, state.alignToBottom ? -0.25F : 0.0F, -0.25F);
++        poseStack.mulPose(Axis.YP.rotationDegrees(yRot));
++        poseStack.translate(itemOffset);
+         poseStack.scale(0.25F, 0.25F, 0.25F);
+         AABB box = itemStackRenderState.getModelBoundingBox();
+         double offsetY = -box.minY;

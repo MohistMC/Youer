@@ -77,7 +77,7 @@
  
      @Override
      public boolean dampensVibrations() {
-@@ -106,20 +_,56 @@
+@@ -106,10 +_,50 @@
          return 0.04;
      }
  
@@ -129,17 +129,7 @@
          } else {
              super.tick();
              if (this.pickupDelay > 0 && this.pickupDelay != 32767) {
-                 this.pickupDelay--;
-             }
- 
--            if (this.invulnerableTime > 0) {
--                this.invulnerableTime--;
--            }
--
-             this.xo = this.getX();
-             this.yo = this.getY();
-             this.zo = this.getZ();
-@@ -148,8 +_,12 @@
+@@ -144,8 +_,12 @@
                  this.applyEffectsFromBlocks();
                  float airDrag = this.getAirDrag();
                  float groundFriction = airDrag;
@@ -154,7 +144,7 @@
                  }
  
                  this.setDeltaMovement(this.getDeltaMovement().multiply(groundFriction, airDrag, groundFriction));
-@@ -169,9 +_,11 @@
+@@ -165,9 +_,11 @@
                  this.mergeWithNeighbours();
              }
  
@@ -166,7 +156,7 @@
  
              this.needsSync = this.needsSync | this.updateFluidInteraction();
              if (!this.level().isClientSide()) {
-@@ -181,8 +_,22 @@
+@@ -177,8 +_,22 @@
                  }
              }
  
@@ -191,7 +181,7 @@
              }
          }
      }
-@@ -207,9 +_,20 @@
+@@ -203,9 +_,20 @@
  
      private void mergeWithNeighbours() {
          if (this.isMergable()) {
@@ -213,7 +203,7 @@
                      this.tryToMerge(entity);
                      if (this.isRemoved()) {
                          break;
-@@ -221,14 +_,14 @@
+@@ -217,14 +_,14 @@
  
      private boolean isMergable() {
          ItemStack item = this.getItem();
@@ -230,7 +220,7 @@
                  merge(this, thisItemStack, other, otherItemStack);
              } else {
                  merge(other, otherItemStack, this, thisItemStack);
-@@ -255,11 +_,16 @@
+@@ -251,11 +_,16 @@
      }
  
      private static void merge(ItemEntity toItem, ItemStack toStack, ItemEntity fromItem, ItemStack fromStack) {
@@ -248,25 +238,31 @@
          }
      }
  
-@@ -275,31 +_,41 @@
- 
-     @Override
-     public final boolean hurtClient(DamageSource source) {
--        return this.invulnerableTime <= 0 && !this.isInvulnerableToBase(source) ? this.getItem().canBeHurtBy(source) : false;
-+        return this.isInvulnerableToBase(source) ? false : this.getItem().canBeHurtBy(source);
-     }
+@@ -276,27 +_,37 @@
  
      @Override
      public final boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
--        if (this.invulnerableTime <= 0 && !this.isInvulnerableToBase(source)) {
--            if (!level.getGameRules().get(GameRules.MOB_GRIEFING) && source.getEntity() instanceof Mob) {
--                return false;
--            }
+-        if (this.isInvulnerableToBase(source)) {
+-            return false;
+-        }
 -
--            if (!this.getItem().canBeHurtBy(source)) {
--                return false;
--            }
+-        if (!level.getGameRules().get(GameRules.MOB_GRIEFING) && source.getEntity() instanceof Mob) {
+-            return false;
+-        }
 -
+-        if (!this.getItem().canBeHurtBy(source)) {
+-            return false;
+-        }
+-
+-        this.markHurt();
+-        this.health = (int)(this.health - damage);
+-        this.gameEvent(GameEvent.ENTITY_DAMAGE, source.getEntity());
+-        if (this.health <= 0) {
+-            this.getItem().onDestroyed(this);
+-            this.discard();
+-        }
+-
+-        return true;
 +        // Purpur start - Item entity immunities
 +        if (
 +                (immuneToCactus && source.is(net.minecraft.world.damagesource.DamageTypes.CACTUS)) ||
@@ -288,24 +284,20 @@
 +                return false;
 +            }
 +            // CraftBukkit end
-             this.markHurt();
--            this.health = (int)(this.health - damage);
++            this.markHurt();
 +            this.health = (int)((float) this.health - damage);
-             this.gameEvent(GameEvent.ENTITY_DAMAGE, source.getEntity());
-             if (this.health <= 0) {
--                this.getItem().onDestroyed(this);
--                this.discard();
++            this.gameEvent(GameEvent.ENTITY_DAMAGE, source.getEntity());
++            if (this.health <= 0) {
 +                this.getItem().onDestroyed(this, source);
 +                this.discard(EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
-             }
- 
-             return true;
--        } else {
--            return false;
-         }
++            }
++
++            return true;
++        }
      }
  
-@@ -313,11 +_,17 @@
+     @Override
+@@ -309,11 +_,17 @@
          output.putShort("Health", (short)this.health);
          output.putShort("Age", (short)this.age);
          output.putShort("PickupDelay", (short)this.pickupDelay);
@@ -323,7 +315,7 @@
      }
  
      @Override
-@@ -325,11 +_,21 @@
+@@ -321,11 +_,21 @@
          this.health = input.getShortOr("Health", (short)5);
          this.age = input.getShortOr("Age", (short)0);
          this.pickupDelay = input.getShortOr("PickupDelay", (short)0);
@@ -346,7 +338,7 @@
          }
      }
  
-@@ -337,12 +_,92 @@
+@@ -333,12 +_,92 @@
      public void playerTouch(Player player) {
          if (!this.level().isClientSide()) {
              ItemStack itemStack = this.getItem();
@@ -441,7 +433,7 @@
                      itemStack.setCount(orgCount);
                  }
  
-@@ -379,12 +_,28 @@
+@@ -375,12 +_,28 @@
  
      public void setItem(ItemStack itemStack) {
          this.getEntityData().set(DATA_ITEM, itemStack);
@@ -470,18 +462,7 @@
      public void setThrower(Entity thrower) {
          this.thrower = EntityReference.of(thrower);
      }
-@@ -413,10 +_,6 @@
-         return this.pickupDelay > 0;
-     }
- 
--    public void setInvulnerableFor(int ticks) {
--        this.invulnerableTime = ticks;
--    }
--
-     public void setUnlimitedLifetime() {
-         this.age = -32768;
-     }
-@@ -427,7 +_,7 @@
+@@ -419,7 +_,7 @@
  
      public void makeFakeItem() {
          this.setNeverPickUp();
@@ -490,7 +471,7 @@
      }
  
      public static float getSpin(float ageInTicks, float bobOffset) {
-@@ -447,10 +_,5 @@
+@@ -439,10 +_,5 @@
      @Override
      public @Nullable SlotAccess getSlot(int slot) {
          return slot == 0 ? SlotAccess.of(this::getItem, this::setItem) : super.getSlot(slot);

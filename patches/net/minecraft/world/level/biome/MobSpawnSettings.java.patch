@@ -23,7 +23,7 @@
  import net.minecraft.world.entity.EntityType;
  import net.minecraft.world.entity.EntityTypes;
  import net.minecraft.world.entity.MobCategory;
-@@ -26,116 +_,116 @@
+@@ -26,125 +_,116 @@
  
  public class MobSpawnSettings {
      private static final Logger LOGGER = LogUtils.getLogger();
@@ -31,6 +31,15 @@
 +    private static final float DEFAULT_CREATURE_SPAWN_PROBABILITY = 0.1F;
      public static final WeightedList<MobSpawnSettings.SpawnerData> EMPTY_MOB_LIST = WeightedList.of();
      public static final MobSpawnSettings EMPTY = new MobSpawnSettings.Builder().build();
+-    public static final MobSpawnSettings NO_SPAWNS = Util.make(() -> {
+-        MobSpawnSettings.Builder builder = new MobSpawnSettings.Builder();
+-
+-        for (MobCategory category : MobCategory.values()) {
+-            builder.noSpawns(category);
+-        }
+-
+-        return builder.build();
+-    });
 -    public static final Codec<MobSpawnSettings> CODEC = RecordCodecBuilder.create(
 +    public static final MapCodec<MobSpawnSettings> CODEC = RecordCodecBuilder.mapCodec(
          i -> i.group(
@@ -209,7 +218,7 @@
      }
  
      public record MobSpawnCost(double energyBudget, double charge) {
-@@ -145,14 +_,20 @@
+@@ -154,14 +_,20 @@
          );
      }
  
@@ -238,7 +247,7 @@
  
          public SpawnerData {
              type = type.getCategory() == MobCategory.MISC ? EntityTypes.PIG : type;
-@@ -160,14 +_,7 @@
+@@ -169,14 +_,7 @@
  
          @Override
          public String toString() {

@@ -1,0 +1,190 @@
+--- a/net/minecraft/world/level/levelgen/densityfunction/op/SplineFunction.java
++++ /dev/null
+@@ -1,187 +_,0 @@
+-package net.minecraft.world.level.levelgen.densityfunction.op;
+-
+-import com.mojang.serialization.Codec;
+-import com.mojang.serialization.MapCodec;
+-import java.util.Arrays;
+-import java.util.HashMap;
+-import java.util.Map;
+-import net.minecraft.util.BoundedFloatFunction;
+-import net.minecraft.util.CubicSpline;
+-import net.minecraft.util.Interval;
+-import net.minecraft.util.Unit;
+-import net.minecraft.world.level.levelgen.densityfunction.DensityBuffer;
+-import net.minecraft.world.level.levelgen.densityfunction.DensityFunction;
+-import net.minecraft.world.level.levelgen.densityfunction.DensitySampler;
+-import net.minecraft.world.level.levelgen.densityfunction.DensityVolume;
+-import net.minecraft.world.level.levelgen.densityfunction.DfRewriteRule;
+-import net.minecraft.world.level.levelgen.densityfunction.SamplerContext;
+-import net.minecraft.world.level.levelgen.densityfunction.ScopedDensityBuffer;
+-import org.apache.commons.lang3.mutable.MutableBoolean;
+-import org.apache.commons.lang3.mutable.MutableInt;
+-import org.jspecify.annotations.Nullable;
+-
+-public record SplineFunction(CubicSpline<SplineFunction.Coordinate> spline) implements DensityFunction {
+-    private static final Codec<CubicSpline<SplineFunction.Coordinate>> SPLINE_CODEC = CubicSpline.codec(SplineFunction.Coordinate.CODEC);
+-    public static final MapCodec<SplineFunction> CODEC = SPLINE_CODEC.fieldOf("spline").xmap(SplineFunction::new, SplineFunction::spline);
+-
+-    @Override
+-    public DensitySampler compileSampler(DensityFunction.CompileContext context) {
+-        return new SplineFunction.Sampler(context, this.spline);
+-    }
+-
+-    @Override
+-    public Interval range() {
+-        return this.spline.range();
+-    }
+-
+-    @Override
+-    public @DensityFunction.Axes int domainAxes() {
+-        MutableInt axes = new MutableInt(0);
+-        this.spline.forEachCoordinate(coordinate -> axes.setValue(axes.intValue() | coordinate.function().domainAxes()));
+-        return axes.intValue();
+-    }
+-
+-    @Override
+-    public DensityFunction rewriteChildren(DfRewriteRule rule) {
+-        MutableBoolean changed = new MutableBoolean();
+-        CubicSpline<SplineFunction.Coordinate> newSpline = this.spline.mapCoordinates(coordinate -> {
+-            DensityFunction function = coordinate.function();
+-            DensityFunction newFunction = rule.rewrite(function);
+-            if (newFunction != function) {
+-                changed.setTrue();
+-                return new SplineFunction.Coordinate(newFunction);
+-            } else {
+-                return coordinate;
+-            }
+-        });
+-        return changed.isFalse() ? this : new SplineFunction(newSpline);
+-    }
+-
+-    @Override
+-    public MapCodec<SplineFunction> codec() {
+-        return CODEC;
+-    }
+-
+-    @Override
+-    public String toString() {
+-        return this.spline.toString();
+-    }
+-
+-    private static class BufferSplineInput implements SplineFunction.SplineInput, AutoCloseable {
+-        private final SamplerContext context;
+-        private final DensityVolume volume;
+-        private final @Nullable ScopedDensityBuffer[] buffers;
+-        private int index;
+-
+-        private BufferSplineInput(SamplerContext context, DensityVolume volume, int coordinateCount) {
+-            this.context = context;
+-            this.volume = volume;
+-            this.buffers = new ScopedDensityBuffer[coordinateCount];
+-        }
+-
+-        @Override
+-        public float sampleCoordinate(DensitySampler coordinateSampler, int coordinateIndex) {
+-            ScopedDensityBuffer buffer = this.buffers[coordinateIndex];
+-            if (buffer == null) {
+-                buffer = this.context.acquireBuffer(this.volume);
+-                coordinateSampler.sampleVolume(this.context, buffer, this.volume);
+-                this.buffers[coordinateIndex] = buffer;
+-            }
+-
+-            return buffer.get(this.index);
+-        }
+-
+-        @Override
+-        public void close() {
+-            for (ScopedDensityBuffer buffer : this.buffers) {
+-                if (buffer != null) {
+-                    buffer.close();
+-                }
+-            }
+-        }
+-    }
+-
+-    public record Coordinate(DensityFunction function) implements BoundedFloatFunction<Unit> {
+-        public static final Codec<SplineFunction.Coordinate> CODEC = DensityFunction.CODEC
+-            .xmap(SplineFunction.Coordinate::new, SplineFunction.Coordinate::function);
+-
+-        public float apply(Unit point) {
+-            return 0.0F;
+-        }
+-
+-        @Override
+-        public Interval range() {
+-            return this.function.range();
+-        }
+-    }
+-
+-    private static class PointSplineInput implements SplineFunction.SplineInput {
+-        private final SamplerContext context;
+-        private final int blockX;
+-        private final int blockY;
+-        private final int blockZ;
+-        private final float[] cachedValues;
+-
+-        private PointSplineInput(SamplerContext context, int blockX, int blockY, int blockZ, int coordinateCount) {
+-            this.context = context;
+-            this.blockX = blockX;
+-            this.blockY = blockY;
+-            this.blockZ = blockZ;
+-            this.cachedValues = new float[coordinateCount];
+-            Arrays.fill(this.cachedValues, Float.NaN);
+-        }
+-
+-        @Override
+-        public float sampleCoordinate(DensitySampler coordinateSampler, int coordinateIndex) {
+-            float cachedValue = this.cachedValues[coordinateIndex];
+-            if (!Float.isNaN(cachedValue)) {
+-                return cachedValue;
+-            }
+-
+-            float value = coordinateSampler.sampleValue(this.context, this.blockX, this.blockY, this.blockZ);
+-            this.cachedValues[coordinateIndex] = value;
+-            return value;
+-        }
+-    }
+-
+-    private static class Sampler implements DensitySampler {
+-        private final BoundedFloatFunction<SplineFunction.SplineInput> sampler;
+-        private final int coordinateCount;
+-
+-        public Sampler(DensityFunction.CompileContext context, CubicSpline<SplineFunction.Coordinate> spline) {
+-            Map<DensityFunction, SplineFunction.SamplerCoordinate> coordinates = new HashMap<>();
+-            this.sampler = CubicSpline.asSampler(spline.mapCoordinates(coordinate -> coordinates.computeIfAbsent(coordinate.function(), function -> {
+-                int index = coordinates.size();
+-                DensitySampler sampler = function.compileSampler(context);
+-                return new SplineFunction.SamplerCoordinate(sampler, index, function.range());
+-            })));
+-            this.coordinateCount = coordinates.size();
+-        }
+-
+-        @Override
+-        public void sampleVolume(SamplerContext context, DensityBuffer outputBuffer, DensityVolume volume) {
+-            try (SplineFunction.BufferSplineInput input = new SplineFunction.BufferSplineInput(context, volume, this.coordinateCount)) {
+-                for (int i = 0; i < outputBuffer.size(); i++) {
+-                    input.index = i;
+-                    outputBuffer.set(i, this.sampler.apply(input));
+-                }
+-            }
+-        }
+-
+-        @Override
+-        public float sampleValue(SamplerContext context, int blockX, int blockY, int blockZ) {
+-            return this.sampler.apply(new SplineFunction.PointSplineInput(context, blockX, blockY, blockZ, this.coordinateCount));
+-        }
+-    }
+-
+-    private record SamplerCoordinate(DensitySampler sampler, int index, Interval range) implements BoundedFloatFunction<SplineFunction.SplineInput> {
+-        public float apply(SplineFunction.SplineInput input) {
+-            return input.sampleCoordinate(this.sampler, this.index);
+-        }
+-    }
+-
+-    @FunctionalInterface
+-    private interface SplineInput {
+-        float sampleCoordinate(DensitySampler coordinateSampler, int coordinateIndex);
+-    }
+-}

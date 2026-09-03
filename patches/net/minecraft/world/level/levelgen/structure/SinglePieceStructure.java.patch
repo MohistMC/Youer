@@ -1,0 +1,19 @@
+--- a/net/minecraft/world/level/levelgen/structure/SinglePieceStructure.java
++++ b/net/minecraft/world/level/levelgen/structure/SinglePieceStructure.java
+@@ -20,13 +_,9 @@
+ 
+     @Override
+     public Optional<Structure.GenerationStub> findGenerationPoint(Structure.GenerationContext context) {
+-        if (!context.couldValidBiomeExistOnTopOfChunkCenter()) {
+-            return Optional.empty();
+-        } else {
+-            return getLowestY(context, this.width, this.depth) < context.chunkGenerator().getSeaLevel()
+-                ? Optional.empty()
+-                : onTopOfChunkCenterWithoutBiomeCheck(context, Heightmap.Types.WORLD_SURFACE_WG, builder -> this.generatePieces(builder, context));
+-        }
++        return getLowestY(context, this.width, this.depth) < context.chunkGenerator().getSeaLevel()
++            ? Optional.empty()
++            : onTopOfChunkCenter(context, Heightmap.Types.WORLD_SURFACE_WG, builder -> this.generatePieces(builder, context));
+     }
+ 
+     private void generatePieces(StructurePiecesBuilder builder, Structure.GenerationContext context) {

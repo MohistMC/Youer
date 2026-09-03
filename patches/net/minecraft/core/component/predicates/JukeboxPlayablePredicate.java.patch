@@ -1,0 +1,22 @@
+--- a/net/minecraft/core/component/predicates/JukeboxPlayablePredicate.java
++++ b/net/minecraft/core/component/predicates/JukeboxPlayablePredicate.java
+@@ -6,17 +_,17 @@
+ import net.minecraft.advancements.predicates.SingleComponentItemPredicate;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.component.DataComponentType;
+ import net.minecraft.core.component.DataComponents;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.world.item.JukeboxPlayable;
+ import net.minecraft.world.item.JukeboxSong;
+ 
+ public record JukeboxPlayablePredicate(Optional<HolderSet<JukeboxSong>> song) implements SingleComponentItemPredicate<JukeboxPlayable> {
+     public static final Codec<JukeboxPlayablePredicate> CODEC = RecordCodecBuilder.create(
+-        i -> i.group(RegistryCodecs.holderSet(Registries.JUKEBOX_SONG).optionalFieldOf("song").forGetter(JukeboxPlayablePredicate::song))
++        i -> i.group(RegistryCodecs.homogeneousList(Registries.JUKEBOX_SONG).optionalFieldOf("song").forGetter(JukeboxPlayablePredicate::song))
+             .apply(i, JukeboxPlayablePredicate::new)
+     );
+ 

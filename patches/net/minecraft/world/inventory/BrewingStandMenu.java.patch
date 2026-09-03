@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/inventory/BrewingStandMenu.java
 +++ b/net/minecraft/world/inventory/BrewingStandMenu.java
-@@ -1,17 +_,21 @@
+@@ -1,18 +_,21 @@
  package net.minecraft.world.inventory;
  
 +import java.util.Optional;
@@ -19,12 +19,13 @@
 +import net.minecraft.world.item.alchemy.Potion;
 +import net.minecraft.world.item.alchemy.PotionBrewing;
  import net.minecraft.world.item.alchemy.PotionContents;
+-import net.minecraft.world.item.crafting.PotionIngredient;
 -import net.minecraft.world.item.crafting.RecipeAccess;
 -import net.minecraft.world.item.crafting.RecipePropertySet;
  
  public class BrewingStandMenu extends AbstractContainerMenu {
      private static final Identifier EMPTY_SLOT_FUEL = Identifier.withDefaultNamespace("container/slot/brewing_fuel");
-@@ -21,7 +_,7 @@
+@@ -22,7 +_,7 @@
      private static final int INGREDIENT_SLOT = 3;
      private static final int FUEL_SLOT = 4;
      private static final int SLOT_COUNT = 5;
@@ -33,7 +34,7 @@
      private static final int INV_SLOT_START = 5;
      private static final int INV_SLOT_END = 32;
      private static final int USE_ROW_SLOT_START = 32;
-@@ -29,32 +_,50 @@
+@@ -30,31 +_,50 @@
      private final Container brewingStand;
      public final ContainerData brewingStandData;
      private final Slot ingredientSlot;
@@ -56,10 +57,9 @@
          this.brewingStand = brewingStand;
          this.brewingStandData = brewingStandData;
 -        RecipeAccess recipeAccess = inventory.player.level().recipeAccess();
--        RecipePropertySet brewingInputs = recipeAccess.propertySet(RecipePropertySet.BREWING_INPUTS);
--        this.addSlot(new BrewingStandMenu.PotionSlot(brewingInputs, brewingStand, 0, 56, 51));
--        this.addSlot(new BrewingStandMenu.PotionSlot(brewingInputs, brewingStand, 1, 79, 58));
--        this.addSlot(new BrewingStandMenu.PotionSlot(brewingInputs, brewingStand, 2, 102, 51));
+-        this.addSlot(new BrewingStandMenu.PotionSlot(recipeAccess, brewingStand, 0, 56, 51));
+-        this.addSlot(new BrewingStandMenu.PotionSlot(recipeAccess, brewingStand, 1, 79, 58));
+-        this.addSlot(new BrewingStandMenu.PotionSlot(recipeAccess, brewingStand, 2, 102, 51));
 -        this.ingredientSlot = this.addSlot(
 -            new BrewingStandMenu.IngredientsSlot(recipeAccess.propertySet(RecipePropertySet.BREWING_REAGENTS), brewingStand, 3, 79, 17)
 -        );
@@ -99,7 +99,7 @@
      public ItemStack quickMoveStack(Player player, int slotIndex) {
          ItemStack clicked = ItemStack.EMPTY;
          Slot slot = this.slots.get(slotIndex);
--        RecipePropertySet brewingInputs = player.level().recipeAccess().propertySet(RecipePropertySet.BREWING_INPUTS);
+-        RecipeAccess recipeAccess = player.level().recipeAccess();
          if (slot != null && slot.hasItem()) {
              ItemStack stack = slot.getItem();
              clicked = stack.copy();
@@ -107,7 +107,7 @@
                      if (!this.moveItemStackTo(stack, 3, 4, false)) {
                          return ItemStack.EMPTY;
                      }
--                } else if (brewingInputs.test(clicked)) {
+-                } else if (PotionIngredient.isPotionInput(clicked, recipeAccess)) {
 +                } else if (BrewingStandMenu.PotionSlot.mayPlaceItem(player.level().potionBrewing(), clicked)) {
                      if (!this.moveItemStackTo(stack, 0, 3, false)) {
                          return ItemStack.EMPTY;
@@ -162,9 +162,9 @@
      }
  
      private static class PotionSlot extends Slot {
--        private final RecipePropertySet propertySet;
+-        private final RecipeAccess recipeAccess;
 -
--        public PotionSlot(RecipePropertySet propertySet, Container container, int slot, int x, int y) {
+-        public PotionSlot(RecipeAccess recipeAccess, Container container, int slot, int x, int y) {
 +        private final PotionBrewing potionBrewing;
 +
 +        public PotionSlot(Container container, int slot, int x, int y) {
@@ -173,13 +173,13 @@
 +
 +        public PotionSlot(PotionBrewing potionBrewing, Container container, int slot, int x, int y) {
              super(container, slot, x, y);
--            this.propertySet = propertySet;
+-            this.recipeAccess = recipeAccess;
 +            this.potionBrewing = potionBrewing;
          }
  
          @Override
          public boolean mayPlace(ItemStack itemStack) {
--            return this.propertySet.test(itemStack);
+-            return PotionIngredient.isPotionInput(itemStack, this.recipeAccess);
 +            return mayPlaceItem(this.potionBrewing, itemStack);
          }
  

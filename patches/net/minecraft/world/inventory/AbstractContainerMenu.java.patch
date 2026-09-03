@@ -8,7 +8,7 @@
  import com.mojang.logging.LogUtils;
  import it.unimi.dsi.fastutil.ints.IntArrayList;
  import it.unimi.dsi.fastutil.ints.IntList;
-@@ -20,6 +_,8 @@
+@@ -20,9 +_,10 @@
  import net.minecraft.core.NonNullList;
  import net.minecraft.core.registries.BuiltInRegistries;
  import net.minecraft.network.HashedStack;
@@ -16,8 +16,11 @@
 +import net.minecraft.resources.Identifier;
  import net.minecraft.server.level.ServerPlayer;
  import net.minecraft.util.Mth;
+-import net.minecraft.util.Prediction;
  import net.minecraft.world.Container;
-@@ -32,14 +_,15 @@
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.SlotAccess;
+@@ -33,14 +_,15 @@
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.level.block.Block;
  import net.minecraft.world.level.block.entity.BlockEntity;
@@ -35,7 +38,7 @@
      public static final int QUICKCRAFT_TYPE_CHARITABLE = 0;
      public static final int QUICKCRAFT_TYPE_GREEDY = 1;
      public static final int QUICKCRAFT_TYPE_CLONE = 2;
-@@ -65,6 +_,56 @@
+@@ -66,6 +_,56 @@
      private final List<ContainerListener> containerListeners = Lists.newArrayList();
      private @Nullable ContainerSynchronizer synchronizer;
      private boolean suppressRemoteUpdates;
@@ -92,7 +95,7 @@
  
      protected AbstractContainerMenu(@Nullable MenuType<?> menuType, int containerId) {
          this.menuType = menuType;
-@@ -176,8 +_,43 @@
+@@ -177,8 +_,43 @@
  
          if (this.synchronizer != null) {
              this.synchronizer.sendInitialData(this, itemsToSend, carried.copy(), this.remoteDataSlots.toIntArray());
@@ -138,7 +141,7 @@
  
      public void removeSlotListener(ContainerListener listener) {
          this.containerListeners.remove(listener);
-@@ -243,7 +_,7 @@
+@@ -244,7 +_,7 @@
              this.lastSlots.set(i, newItem);
  
              for (ContainerListener containerListener : this.containerListeners) {
@@ -147,7 +150,7 @@
              }
          }
      }
-@@ -351,6 +_,7 @@
+@@ -352,6 +_,7 @@
                      this.resetQuickCraft();
                  }
              } else if (this.quickcraftStatus == 1) {
@@ -155,7 +158,7 @@
                  Slot slot = this.slots.get(slotIndex);
                  ItemStack carriedItemStack = this.getCarried();
                  if (canItemQuickReplace(slot, carriedItemStack, true)
-@@ -375,6 +_,7 @@
+@@ -376,6 +_,7 @@
                      }
  
                      int remaining = this.getCarried().getCount();
@@ -163,7 +166,7 @@
  
                      for (Slot slot : this.quickcraftSlots) {
                          ItemStack carriedItemStack = this.getCarried();
-@@ -387,12 +_,42 @@
+@@ -388,12 +_,42 @@
                              int maxSize = Math.min(source.getMaxStackSize(), slot.getMaxStackSize(source));
                              int newCount = Math.min(getQuickCraftPlaceCount(this.quickcraftSlots.size(), this.quickcraftType, source) + carry, maxSize);
                              remaining -= newCount - carry;
@@ -212,7 +215,7 @@
                  }
  
                  this.resetQuickCraft();
-@@ -401,13 +_,16 @@
+@@ -402,15 +_,18 @@
              }
          } else if (this.quickcraftStatus != 0) {
              this.resetQuickCraft();
@@ -223,16 +226,19 @@
              if (slotIndex == -999) {
                  if (!this.getCarried().isEmpty()) {
                      if (clickAction == ClickAction.PRIMARY) {
--                        player.drop(this.getCarried(), true);
+-                        player.drop(this.getCarried(), true, Prediction.PREDICTED);
 +                        // CraftBukkit start
 +                        ItemStack carried = this.getCarried();
                          this.setCarried(ItemStack.EMPTY);
 +                        player.drop(carried, true);
 +                        // CraftBukkit start
                      } else {
-                         player.drop(this.getCarried().split(1), true);
+-                        player.drop(this.getCarried().split(1), true, Prediction.PREDICTED);
++                        player.drop(this.getCarried().split(1), true);
                      }
-@@ -469,8 +_,18 @@
+                 }
+             } else if (containerInput == ContainerInput.QUICK_MOVE) {
+@@ -470,8 +_,18 @@
                  }
  
                  slot.setChanged();
@@ -251,11 +257,29 @@
              ItemStack source = inventory.getItem(buttonNum);
              Slot target = this.slots.get(slotIndex);
              ItemStack targetItemStack = target.getItem();
-@@ -529,7 +_,11 @@
+@@ -499,7 +_,7 @@
+                         target.setByPlayer(source.split(maxStackSize));
+                         target.onTake(player, targetItemStack);
+                         if (!inventory.add(targetItemStack)) {
+-                            player.drop(targetItemStack, true, Prediction.PREDICTED);
++                            player.drop(targetItemStack, true);
+                         }
+                     } else {
+                         inventory.setItem(buttonNum, targetItemStack);
+@@ -521,7 +_,7 @@
+             }
+ 
+             ItemStack itemStack = slot.safeTake(amount, Integer.MAX_VALUE, player);
+-            player.drop(itemStack, true, Prediction.PREDICTED);
++            player.drop(itemStack, true);
+             player.handleCreativeModeItemDrop(itemStack);
+             if (buttonNum == 1) {
+                 while (!itemStack.isEmpty() && ItemStack.isSameItem(slot.getItem(), itemStack)) {
+@@ -530,7 +_,11 @@
                      }
  
                      itemStack = slot.safeTake(amount, Integer.MAX_VALUE, player);
--                    player.drop(itemStack, true);
+-                    player.drop(itemStack, true, Prediction.PREDICTED);
 +                    // CraftBukkit start - SPIGOT-8010: break loop
 +                    if (player.drop(itemStack, true) == null) {
 +                        break;
@@ -264,7 +288,7 @@
                      player.handleCreativeModeItemDrop(itemStack);
                  }
              }
-@@ -559,19 +_,13 @@
+@@ -560,19 +_,13 @@
          }
      }
  
@@ -290,7 +314,7 @@
          FeatureFlagSet enabledFeatures = player.level().enabledFeatures();
          return carried.isItemEnabled(enabledFeatures) && carried.overrideStackedOnOther(slot, clickAction, player)
              ? true
-@@ -601,14 +_,15 @@
+@@ -602,20 +_,20 @@
          if (player instanceof ServerPlayer) {
              ItemStack carried = this.getCarried();
              if (!carried.isEmpty()) {
@@ -303,12 +327,23 @@
      }
  
      private static void dropOrPlaceInInventory(Player player, ItemStack carried) {
--        boolean playerRemovedNotChangingDimension = player.isRemoved() && player.getRemovalReason() != Entity.RemovalReason.CHANGED_DIMENSION;
+-        if (player instanceof ServerPlayer serverPlayer) {
+-            boolean playerRemovedNotChangingDimension = serverPlayer.isRemoved() && serverPlayer.getRemovalReason() != Entity.RemovalReason.CHANGED_DIMENSION;
+-            if (!playerRemovedNotChangingDimension && !serverPlayer.hasDisconnected()) {
+-                serverPlayer.getInventory().placeItemBackInInventory(carried, Prediction.SERVER_ONLY);
+-            } else {
+-                serverPlayer.drop(carried, false, Prediction.SERVER_ONLY);
+-            }
 +        boolean playerRemovedNotChangingDimension = !player.isAlive() && player.getRemovalReason() != Entity.RemovalReason.CHANGED_DIMENSION;
-         boolean serverPlayerHasDisconnected = player instanceof ServerPlayer serverPlayer && serverPlayer.hasDisconnected();
-         if (playerRemovedNotChangingDimension || serverPlayerHasDisconnected) {
-             player.drop(carried, false);
-@@ -648,6 +_,14 @@
++        boolean serverPlayerHasDisconnected = player instanceof ServerPlayer serverPlayer && serverPlayer.hasDisconnected();
++        if (playerRemovedNotChangingDimension || serverPlayerHasDisconnected) {
++            player.drop(carried, false);
++        } else if (player instanceof ServerPlayer) {
++            player.getInventory().placeItemBackInInventory(carried);
+         }
+     }
+ 
+@@ -650,6 +_,14 @@
      public abstract boolean stillValid(Player player);
  
      protected boolean moveItemStackTo(ItemStack itemStack, int startSlot, int endSlot, boolean backwards) {
@@ -323,7 +358,7 @@
          boolean anythingChanged = false;
          int destSlot = startSlot;
          if (backwards) {
-@@ -658,18 +_,27 @@
+@@ -660,18 +_,27 @@
              while (!itemStack.isEmpty() && (backwards ? destSlot >= startSlot : destSlot < endSlot)) {
                  Slot slot = this.slots.get(destSlot);
                  ItemStack target = slot.getItem();
@@ -353,7 +388,7 @@
                          anythingChanged = true;
                      }
                  }
-@@ -692,10 +_,21 @@
+@@ -694,10 +_,21 @@
              while (backwards ? destSlot >= startSlot : destSlot < endSlot) {
                  Slot slot = this.slots.get(destSlot);
                  ItemStack target = slot.getItem();
@@ -377,7 +412,7 @@
                      anythingChanged = true;
                      break;
                  }
-@@ -783,6 +_,11 @@
+@@ -785,6 +_,11 @@
      }
  
      public ItemStack getCarried() {
@@ -389,7 +424,7 @@
          return this.carried;
      }
  
-@@ -836,4 +_,15 @@
+@@ -838,4 +_,15 @@
          this.stateId = this.stateId + 1 & 32767;
          return this.stateId;
      }

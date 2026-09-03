@@ -1,9 +1,98 @@
 --- a/net/minecraft/core/component/DataComponentPatch.java
 +++ b/net/minecraft/core/component/DataComponentPatch.java
-@@ -104,6 +_,11 @@
+@@ -3,10 +_,10 @@
+ import com.google.common.collect.Sets;
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.DataResult;
+-import it.unimi.dsi.fastutil.objects.ObjectIterable;
+ import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
+ import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
+ import it.unimi.dsi.fastutil.objects.Reference2ObjectMaps;
++import java.util.Optional;
+ import java.util.Set;
+ import java.util.Map.Entry;
+ import java.util.function.Predicate;
+@@ -15,6 +_,7 @@
+ import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.resources.Identifier;
++import net.minecraft.util.Unit;
+ import org.jspecify.annotations.Nullable;
+ 
+ public final class DataComponentPatch {
+@@ -25,21 +_,30 @@
+                 return EMPTY;
+             }
+ 
+-            Reference2ObjectMap<DataComponentType<?>, Object> map = new Reference2ObjectArrayMap<>(data.size());
++            Reference2ObjectMap<DataComponentType<?>, Optional<?>> map = new Reference2ObjectArrayMap<>(data.size());
+ 
+             for (Entry<DataComponentPatch.PatchKey, ?> entry : data.entrySet()) {
+-                map.put(entry.getKey().type(), entry.getValue());
++                DataComponentPatch.PatchKey key = entry.getKey();
++                if (key.removed()) {
++                    map.put(key.type(), Optional.empty());
++                } else {
++                    map.put(key.type(), Optional.of(entry.getValue()));
++                }
+             }
+ 
+             return new DataComponentPatch(map);
+         }, patch -> {
+             Reference2ObjectMap<DataComponentPatch.PatchKey, Object> map = new Reference2ObjectArrayMap<>(patch.map.size());
+ 
+-            for (Entry<DataComponentType<?>, Object> entry : Reference2ObjectMaps.fastIterable(patch.map)) {
++            for (Entry<DataComponentType<?>, Optional<?>> entry : Reference2ObjectMaps.fastIterable(patch.map)) {
+                 DataComponentType<?> type = entry.getKey();
+                 if (!type.isTransient()) {
+-                    Object value = entry.getValue();
+-                    map.put(new DataComponentPatch.PatchKey(type, Removed.isRemoved(value)), value);
++                    Optional<?> value = entry.getValue();
++                    if (value.isPresent()) {
++                        map.put(new DataComponentPatch.PatchKey(type, false), value.get());
++                    } else {
++                        map.put(new DataComponentPatch.PatchKey(type, true), Unit.INSTANCE);
++                    }
+                 }
+             }
+ 
+@@ -61,7 +_,7 @@
+         }
+     );
+     private static final String REMOVED_PREFIX = "!";
+-    final Reference2ObjectMap<DataComponentType<?>, Object> map;
++    final Reference2ObjectMap<DataComponentType<?>, Optional<?>> map;
+ 
+     private static StreamCodec<RegistryFriendlyByteBuf, DataComponentPatch> createStreamCodec(DataComponentPatch.CodecGetter codecGetter) {
+         return new StreamCodec<RegistryFriendlyByteBuf, DataComponentPatch>() {
+@@ -73,17 +_,17 @@
+                 }
+ 
+                 int expectedSize = positiveCount + negativeCount;
+-                Reference2ObjectMap<DataComponentType<?>, Object> map = new Reference2ObjectArrayMap<>(Math.min(expectedSize, 65536));
++                Reference2ObjectMap<DataComponentType<?>, Optional<?>> map = new Reference2ObjectArrayMap<>(Math.min(expectedSize, 65536));
+ 
+                 for (int i = 0; i < positiveCount; i++) {
+                     DataComponentType<?> type = DataComponentType.STREAM_CODEC.decode(input);
+                     Object value = codecGetter.apply(type).decode(input);
+-                    map.put(type, value);
++                    map.put(type, Optional.of(value));
+                 }
+ 
+                 for (int i = 0; i < negativeCount; i++) {
+                     DataComponentType<?> type = DataComponentType.STREAM_CODEC.decode(input);
+-                    map.put(type, Removed.INSTANCE);
++                    map.put(type, Optional.empty());
+                 }
+ 
+                 return new DataComponentPatch(map);
+@@ -94,15 +_,19 @@
                      output.writeVarInt(0);
                      output.writeVarInt(0);
                  } else {
+-                    ObjectIterable<it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<DataComponentType<?>, Object>> fastEntries = Reference2ObjectMaps.fastIterable(
+-                        patch.map
+-                    );
 +                    // Paper start - data sanitization for items
 +                    final io.papermc.paper.util.sanitizer.ItemObfuscationSession itemObfuscationSession = patch.map.isEmpty()
 +                            ? null // Avoid thread local lookup of current session if it won't be needed anyway.
@@ -12,24 +101,47 @@
                      int positiveCount = 0;
                      int negativeCount = 0;
  
-@@ -111,7 +_,7 @@
-                         patch.map
-                     )) {
-                         if (entry.getValue().isPresent()) {
+-                    for (it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<DataComponentType<?>, Object> entry : fastEntries) {
+-                        if (Removed.isNotRemoved(entry.getValue())) {
 -                            positiveCount++;
++                    for (it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<DataComponentType<?>, Optional<?>> entry : Reference2ObjectMaps.fastIterable(
++                        patch.map
++                    )) {
++                        if (entry.getValue().isPresent()) {
 +                            if (!io.papermc.paper.util.sanitizer.ItemComponentSanitizer.shouldDrop(itemObfuscationSession, entry.getKey())) positiveCount++; // Paper - data sanitization for items
                          } else {
                              negativeCount++;
                          }
-@@ -124,6 +_,7 @@
-                         patch.map
-                     )) {
-                         Optional<?> value = entry.getValue();
+@@ -111,17 +_,22 @@
+                     output.writeVarInt(positiveCount);
+                     output.writeVarInt(negativeCount);
+ 
+-                    for (it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<DataComponentType<?>, Object> entry : fastEntries) {
+-                        Object value = entry.getValue();
+-                        if (Removed.isNotRemoved(value)) {
++                    for (it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<DataComponentType<?>, Optional<?>> entry : Reference2ObjectMaps.fastIterable(
++                        patch.map
++                    )) {
++                        Optional<?> value = entry.getValue();
 +                        value = io.papermc.paper.util.sanitizer.ItemComponentSanitizer.override(itemObfuscationSession, entry.getKey(), entry.getValue()); // Paper - data sanitization for items
-                         if (value.isPresent()) {
++                        if (value.isPresent()) {
                              DataComponentType<?> type = entry.getKey();
                              DataComponentType.STREAM_CODEC.encode(output, type);
-@@ -143,7 +_,13 @@
+-                            this.encodeComponent(output, type, value);
++                            this.encodeComponent(output, type, value.get());
+                         }
+                     }
+ 
+-                    for (it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<DataComponentType<?>, Object> entry : fastEntries) {
+-                        if (Removed.isRemoved(entry.getValue())) {
++                    for (it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<DataComponentType<?>, Optional<?>> entry : Reference2ObjectMaps.fastIterable(
++                        patch.map
++                    )) {
++                        if (entry.getValue().isEmpty()) {
+                             DataComponentType<?> type = entry.getKey();
+                             DataComponentType.STREAM_CODEC.encode(output, type);
+                         }
+@@ -130,12 +_,18 @@
              }
  
              private <T> void encodeComponent(RegistryFriendlyByteBuf output, DataComponentType<T> type, Object value) {
@@ -44,7 +156,13 @@
              }
          };
      }
-@@ -156,6 +_,14 @@
+ 
+-    DataComponentPatch(Reference2ObjectMap<DataComponentType<?>, Object> map) {
++    DataComponentPatch(Reference2ObjectMap<DataComponentType<?>, Optional<?>> map) {
+         this.map = map;
+     }
+ 
+@@ -143,15 +_,27 @@
          return new DataComponentPatch.Builder();
      }
  
@@ -59,7 +177,81 @@
      public <T> @Nullable T get(DataComponentGetter prototype, DataComponentType<? extends T> type) {
          return getFromPatchAndPrototype(this.map, prototype, type);
      }
-@@ -254,7 +_,44 @@
+ 
+-    static <T> T getFromPatchAndPrototype(
+-        Reference2ObjectMap<DataComponentType<?>, Object> patch, DataComponentGetter prototype, DataComponentType<? extends T> type
++    static <T> @Nullable T getFromPatchAndPrototype(
++        Reference2ObjectMap<DataComponentType<?>, Optional<?>> patch, DataComponentGetter prototype, DataComponentType<? extends T> type
+     ) {
+-        Object value = patch.get(type);
+-        return (T)(value != null ? Removed.removedToNull(value) : prototype.get(type));
++        Optional<? extends T> value = (Optional<? extends T>)patch.get(type);
++        return (T)(value != null ? value.orElse(null) : prototype.get(type));
++    }
++
++    public Set<Entry<DataComponentType<?>, Optional<?>>> entrySet() {
++        return this.map.entrySet();
+     }
+ 
+     public int size() {
+@@ -163,7 +_,7 @@
+             return EMPTY;
+         }
+ 
+-        Reference2ObjectMap<DataComponentType<?>, Object> newMap = new Reference2ObjectArrayMap<>(this.map);
++        Reference2ObjectMap<DataComponentType<?>, Optional<?>> newMap = new Reference2ObjectArrayMap<>(this.map);
+         newMap.keySet().removeIf(test);
+         return newMap.isEmpty() ? EMPTY : new DataComponentPatch(newMap);
+     }
+@@ -179,9 +_,9 @@
+ 
+         DataComponentMap.Builder added = DataComponentMap.builder();
+         Set<DataComponentType<?>> removed = Sets.newIdentityHashSet();
+-        this.map.forEach((type, value) -> {
+-            if (Removed.isNotRemoved(value)) {
+-                added.setUnchecked((DataComponentType<?>)type, value);
++        this.map.forEach((type, optionalValue) -> {
++            if (optionalValue.isPresent()) {
++                added.setUnchecked((DataComponentType<?>)type, optionalValue.get());
+             } else {
+                 removed.add((DataComponentType<?>)type);
+             }
+@@ -204,23 +_,23 @@
+         return toString(this.map);
+     }
+ 
+-    static String toString(Reference2ObjectMap<DataComponentType<?>, Object> map) {
++    static String toString(Reference2ObjectMap<DataComponentType<?>, Optional<?>> map) {
+         StringBuilder builder = new StringBuilder();
+         builder.append('{');
+         boolean first = true;
+ 
+-        for (Entry<DataComponentType<?>, Object> entry : Reference2ObjectMaps.fastIterable(map)) {
++        for (Entry<DataComponentType<?>, Optional<?>> entry : Reference2ObjectMaps.fastIterable(map)) {
+             if (first) {
+                 first = false;
+             } else {
+                 builder.append(", ");
+             }
+ 
+-            Object value = entry.getValue();
+-            if (Removed.isNotRemoved(value)) {
++            Optional<?> value = entry.getValue();
++            if (value.isPresent()) {
+                 builder.append(entry.getKey());
+                 builder.append("=>");
+-                builder.append(value);
++                builder.append(value.get());
+             } else {
+                 builder.append("!");
+                 builder.append(entry.getKey());
+@@ -232,18 +_,55 @@
+     }
+ 
+     public static class Builder {
+-        private final Reference2ObjectMap<DataComponentType<?>, Object> map = new Reference2ObjectArrayMap<>();
++        private final Reference2ObjectMap<DataComponentType<?>, Optional<?>> map = new Reference2ObjectArrayMap<>();
+ 
          private Builder() {
          }
  
@@ -100,7 +292,24 @@
 +        // CraftBukkit end
 +
          public <T> DataComponentPatch.Builder set(DataComponentType<T> type, T value) {
+-            this.map.put(type, value);
 +            net.neoforged.neoforge.common.CommonHooks.validateComponent(value);
-             this.map.put(type, Optional.of(value));
++            this.map.put(type, Optional.of(value));
              return this;
          }
+ 
+         public <T> DataComponentPatch.Builder remove(DataComponentType<T> type) {
+-            this.map.put(type, Removed.INSTANCE);
++            this.map.put(type, Optional.empty());
+             return this;
+         }
+ 
+@@ -298,7 +_,7 @@
+             );
+ 
+         public Codec<?> valueCodec() {
+-            return this.removed ? Removed.CODEC : this.type.codecOrThrow();
++            return this.removed ? Codec.EMPTY.codec() : this.type.codecOrThrow();
+         }
+     }
+ 

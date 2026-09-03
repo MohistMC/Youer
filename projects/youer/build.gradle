@@ -9,7 +9,7 @@ import org.apache.tools.ant.filters.ReplaceTokens
 plugins {
     id 'java-library'
     id 'maven-publish'
-    id 'net.neoforged.jarcompatibilitychecker' version '0.1.12'
+    id 'net.neoforged.jarcompatibilitychecker' version '0.1.15'
     id 'net.neoforged.gradleutils'
     id 'neoforge.versioning'
     id 'de.undercouch.download' version '5.6.0'
@@ -276,6 +276,7 @@ neoDev {
         gameTestServer {
             type = "gameTestServer"
             loadedMods = [commonMod, neoDev.mods."neoforge-coremods"]
+            systemProperty("eventbus.checkTypesOnDispatch", "true")
         }
         data {
             // We perform client and server datagen in a single clientData run to avoid
@@ -290,13 +291,12 @@ neoDev {
     }
 }
 
-
 generateAccessTransformers {
     // Make all render pipeline snippet fields public
     fieldGroup(
             'render pipeline snippets', PUBLIC,
             named('net/minecraft/client/renderer/RenderPipelines'),
-            fieldsOfType(named('com/mojang/blaze3d/pipeline/RenderPipeline$Snippet'))
+            fieldsOfType(named('com/mojang/renderpearl/api/pipeline/RenderPipeline$Snippet'))
     )
 
     // Make all block constructors public so they can be used by mods

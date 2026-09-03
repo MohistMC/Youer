@@ -1,6 +1,31 @@
 --- a/net/minecraft/util/ExtraCodecs.java
 +++ b/net/minecraft/util/ExtraCodecs.java
-@@ -474,7 +_,7 @@
+@@ -48,7 +_,6 @@
+ import java.util.HexFormat;
+ import java.util.Iterator;
+ import java.util.List;
+-import java.util.Locale;
+ import java.util.Map;
+ import java.util.Objects;
+ import java.util.Optional;
+@@ -139,16 +_,8 @@
+     private static final String HEX_COLOR_PREFIX = "#";
+     public static final Codec<Integer> RGB_COLOR_CODEC = Codec.withAlternative(Codec.INT, VECTOR3F, v -> ARGB.colorFromFloat(1.0F, v.x(), v.y(), v.z()));
+     public static final Codec<Integer> ARGB_COLOR_CODEC = Codec.withAlternative(Codec.INT, VECTOR4F, v -> ARGB.colorFromFloat(v.w(), v.x(), v.y(), v.z()));
+-    public static final Codec<Vector3fc> RGB_COLOR_VEC3_CODEC = Codec.withAlternative(VECTOR3F, Codec.INT, ARGB::vector3fFromRGB24);
+-    public static final Codec<Vector4fc> ARGB_COLOR_VEC4_CODEC = Codec.withAlternative(VECTOR4F, Codec.INT, ARGB::vector4fFromARGB32);
+     public static final Codec<Integer> STRING_RGB_COLOR = Codec.withAlternative(hexColor(6).xmap(ARGB::opaque, ARGB::transparent), RGB_COLOR_CODEC);
+     public static final Codec<Integer> STRING_ARGB_COLOR = Codec.withAlternative(hexColor(8), ARGB_COLOR_CODEC);
+-    public static final Codec<Vector3fc> STRING_RGB_VEC3_COLOR = Codec.withAlternative(
+-        hexColor(6).xmap(ARGB::opaque, ARGB::transparent).xmap(ARGB::vector3fFromRGB24, ARGB::colorFromVector3f), RGB_COLOR_VEC3_CODEC
+-    );
+-    public static final Codec<Vector4fc> STRING_ARGB_VEC4_COLOR = Codec.withAlternative(
+-        hexColor(8).xmap(ARGB::vector4fFromARGB32, ARGB::colorFromVector4f), ARGB_COLOR_VEC4_CODEC
+-    );
+     public static final Codec<Integer> UNSIGNED_BYTE = Codec.BYTE
+         .flatComapMap(
+             UnsignedBytes::toInt,
+@@ -483,7 +_,7 @@
  
      public static <T> Codec<HolderSet<T>> nonEmptyHolderSet(Codec<HolderSet<T>> listCodec) {
          return listCodec.validate(
@@ -9,7 +34,53 @@
          );
      }
  
-@@ -700,6 +_,11 @@
+@@ -664,31 +_,25 @@
+         return Codec.STRING.xmap(pathFactory, path -> FilenameUtils.separatorsToUnix(path.toString()));
+     }
+ 
+-    public static Codec<Path> relativeNormalizedSubPathCodec(Function<String, Path> pathFactory) {
+-        return pathCodec(pathFactory).xmap(Path::normalize, Path::normalize).validate(path -> {
+-            if (path.isAbsolute()) {
+-                return DataResult.error(() -> "Illegal absolute path: " + path);
+-            }
+-
+-            for (Path pathElement : path) {
+-                if (pathElement.startsWith("..") || pathElement.startsWith(".")) {
+-                    return DataResult.error(() -> "Illegal path traversal: " + path);
++    public static Codec<Path> relaiveNormalizedSubPathCodec(Function<String, Path> pathFactory) {
++        return pathCodec(pathFactory)
++            .xmap(Path::normalize, Path::normalize)
++            .validate(
++                path -> {
++                    if (path.isAbsolute()) {
++                        return DataResult.error(() -> "Illegal absolute path: " + path);
++                    } else {
++                        return !path.startsWith("..") && !path.startsWith(".") && !FileUtil.isEmptyPath(path)
++                            ? DataResult.success(path)
++                            : DataResult.error(() -> "Illegal path traversal: " + path);
++                    }
+                 }
+-            }
+-
+-            return FileUtil.isEmptyPath(path) ? DataResult.error(() -> "Path is empty: " + path) : DataResult.success(path);
+-        });
++            );
+     }
+ 
+     public static Codec<Path> guardedPathCodec(Path baseFolder) {
+         FileSystem var1 = baseFolder.getFileSystem();
+-        return relativeNormalizedSubPathCodec(x$0 -> var1.getPath(x$0))
+-            .xmap(baseFolder::resolve, baseFolder::relativize)
+-            .validate(
+-                path -> !path.startsWith(baseFolder)
+-                    ? DataResult.error(() -> String.format(Locale.ROOT, "Path %s does not start with base folder %s", path, baseFolder))
+-                    : DataResult.success(path)
+-            );
++        return relaiveNormalizedSubPathCodec(x$0 -> var1.getPath(x$0)).xmap(baseFolder::resolve, baseFolder::relativize);
+     }
+ 
+     public static <A> MapCodec<A> optionalAlwaysPresentFieldOf(Codec<A> elementCodec, String name, A defaultValue, boolean lenient) {
+@@ -715,6 +_,11 @@
  
          public Set<V> values() {
              return Collections.unmodifiableSet(this.idToValue.values());

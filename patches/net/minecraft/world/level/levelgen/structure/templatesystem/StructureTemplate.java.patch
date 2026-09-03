@@ -65,16 +65,23 @@
                  List<StructureTemplate.StructureBlockInfo> blockInfoList = buildInfoList(fullBlockList, blockEntitiesList, otherBlocksList);
                  this.palettes.clear();
                  this.palettes.add(new StructureTemplate.Palette(blockInfoList));
-@@ -205,7 +_,7 @@
-             result.add(
-                 jigsaw.withInfo(
-                     new StructureTemplate.StructureBlockInfo(
--                        calculateRelativePosition(settings, blockInfo.pos()).offset(position), blockInfo.state.rotate(settings.getRotation()), blockInfo.nbt
+@@ -201,7 +_,14 @@
+         List<StructureTemplate.JigsawBlockInfo> result = new ArrayList<>(jigsaws.size());
+ 
+         for (StructureTemplate.JigsawBlockInfo jigsaw : jigsaws) {
+-            result.add(jigsaw.withInfo(calculateRelativePosition(settings, jigsaw.pos).offset(position), jigsaw.state.rotate(settings.getRotation())));
++            StructureTemplate.StructureBlockInfo blockInfo = jigsaw.info;
++            result.add(
++                jigsaw.withInfo(
++                    new StructureTemplate.StructureBlockInfo(
 +                        calculateRelativePosition(settings, blockInfo.pos()).offset(position), blockInfo.state.rotate(settings.getRotation()), net.neoforged.neoforge.common.CommonHooks.captureStructureRotation(blockInfo.nbt, rotation)
-                     )
-                 )
-             );
-@@ -224,7 +_,7 @@
++                    )
++                )
++            );
+         }
+ 
+         return result;
+@@ -217,7 +_,7 @@
          for (StructureTemplate.StructureBlockInfo blockInfo : settings.getRandomPalette(this.palettes, position).blocks(block)) {
              BlockPos blockPos = absolute ? calculateRelativePosition(settings, blockInfo.pos).offset(position) : blockInfo.pos;
              if (boundingBox == null || boundingBox.isInside(blockPos)) {
@@ -83,7 +90,7 @@
              }
          }
  
-@@ -241,6 +_,10 @@
+@@ -234,6 +_,10 @@
          return transform(pos, settings.getMirror(), settings.getRotation(), settings.getRotationPivot());
      }
  
@@ -94,7 +101,7 @@
      public boolean placeInWorld(
          ServerLevelAccessor level,
          BlockPos position,
-@@ -252,7 +_,19 @@
+@@ -245,7 +_,19 @@
          if (this.palettes.isEmpty()) {
              return false;
          }
@@ -115,7 +122,7 @@
          List<StructureTemplate.StructureBlockInfo> blockInfoList = settings.getRandomPalette(this.palettes, position).blocks();
          if ((!blockInfoList.isEmpty() || !settings.isIgnoreEntities() && !this.entityInfoList.isEmpty())
              && this.size.getX() >= 1
-@@ -268,7 +_,7 @@
+@@ -261,7 +_,7 @@
              int maxX = Integer.MIN_VALUE;
              int maxY = Integer.MIN_VALUE;
              int maxZ = Integer.MIN_VALUE;
@@ -124,7 +131,7 @@
  
              try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(LOGGER)) {
                  for (StructureTemplate.StructureBlockInfo blockInfo : processedBlockInfoList) {
-@@ -280,6 +_,20 @@
+@@ -273,6 +_,20 @@
                              level.setBlock(blockPos, Blocks.BARRIER.defaultBlockState(), 820);
                          }
  
@@ -145,7 +152,7 @@
                          if (level.setBlock(blockPos, state, updateMode)) {
                              minX = Math.min(minX, blockPos.getX());
                              minY = Math.min(minY, blockPos.getY());
-@@ -291,13 +_,14 @@
+@@ -284,13 +_,14 @@
                              if (blockInfo.nbt != null) {
                                  BlockEntity blockEntity = level.getBlockEntity(blockPos);
                                  if (blockEntity != null) {
@@ -161,7 +168,7 @@
                                  }
                              }
  
-@@ -375,23 +_,16 @@
+@@ -368,23 +_,16 @@
                          if (blockInfo.getSecond() != null) {
                              BlockEntity blockEntity = level.getBlockEntity(blockPos);
                              if (blockEntity != null) {
@@ -188,7 +195,7 @@
                  }
              }
  
-@@ -425,6 +_,10 @@
+@@ -418,6 +_,10 @@
          });
      }
  
@@ -199,7 +206,7 @@
      public static List<StructureTemplate.StructureBlockInfo> processBlockInfos(
          ServerLevelAccessor level,
          BlockPos position,
-@@ -432,6 +_,10 @@
+@@ -425,6 +_,10 @@
          StructurePlaceSettings settings,
          List<StructureTemplate.StructureBlockInfo> blockInfoList
      ) {
@@ -210,7 +217,7 @@
          List<StructureTemplate.StructureBlockInfo> originalBlockInfoList = new ArrayList<>();
          List<StructureTemplate.StructureBlockInfo> processedBlockInfoList = new ArrayList<>();
          boolean processOnlyInCurrentChunk = true;
-@@ -454,7 +_,7 @@
+@@ -447,7 +_,7 @@
                  Iterator<StructureProcessor> iterator = settings.getProcessors().iterator();
  
                  while (processedBlockInfo != null && iterator.hasNext()) {
@@ -219,7 +226,7 @@
                  }
  
                  if (processedBlockInfo != null) {
-@@ -471,39 +_,43 @@
+@@ -464,39 +_,43 @@
          return processedBlockInfoList;
      }
  
@@ -285,7 +292,7 @@
                          mob.finalizeSpawn(level, level.getCurrentDifficultyAt(BlockPos.containing(pos)), EntitySpawnReason.STRUCTURE, null);
                      }
  
-@@ -514,13 +_,13 @@
+@@ -507,13 +_,13 @@
      }
  
      private static Optional<Entity> createEntityIgnoreException(ProblemReporter reporter, ServerLevelAccessor level, CompoundTag tag) {
@@ -306,7 +313,7 @@
      }
  
      public Vec3i getSize(Rotation rotation) {
-@@ -693,6 +_,11 @@
+@@ -686,6 +_,11 @@
  
          tag.put("entities", entityList);
          tag.put("size", this.newIntegerList(this.size.getX(), this.size.getY(), this.size.getZ()));
@@ -318,7 +325,7 @@
          return NbtUtils.addCurrentDataVersion(tag);
      }
  
-@@ -718,6 +_,11 @@
+@@ -711,6 +_,11 @@
              BlockPos blockPos = new BlockPos(blockPosTag.getIntOr(0, 0), blockPosTag.getIntOr(1, 0), blockPosTag.getIntOr(2, 0));
              entityTag.getCompound("nbt").ifPresent(nbt -> this.entityInfoList.add(new StructureTemplate.StructureEntityInfo(pos, blockPos, nbt)));
          });
@@ -330,7 +337,59 @@
      }
  
      private void loadPalette(HolderGetter<Block> blockLookup, ListTag paletteList, ListTag blockList) {
-@@ -817,7 +_,7 @@
+@@ -764,20 +_,18 @@
+     }
+ 
+     public record JigsawBlockInfo(
+-        BlockPos pos,
+-        BlockState state,
++        StructureTemplate.StructureBlockInfo info,
+         JigsawBlockEntity.JointType jointType,
+-        @Nullable Identifier name,
++        Identifier name,
+         ResourceKey<StructureTemplatePool> pool,
+         Identifier target,
+         int placementPriority,
+         int selectionPriority
+     ) {
+-        public static StructureTemplate.JigsawBlockInfo parse(StructureTemplate.StructureBlockInfo info) {
++        public static StructureTemplate.JigsawBlockInfo of(StructureTemplate.StructureBlockInfo info) {
+             CompoundTag nbt = Objects.requireNonNull(info.nbt(), () -> info + " nbt was null");
+             return new StructureTemplate.JigsawBlockInfo(
+-                info.pos(),
+-                info.state(),
++                info,
+                 StructureTemplate.getJointType(nbt, info.state()),
+                 nbt.read("name", Identifier.CODEC).orElse(JigsawBlockEntity.EMPTY_ID),
+                 nbt.read("pool", JigsawBlockEntity.POOL_CODEC).orElse(Pools.EMPTY),
+@@ -791,27 +_,28 @@
+         public String toString() {
+             return String.format(
+                 Locale.ROOT,
+-                "<JigsawBlockInfo | %s | %s | name: %s | pool: %s | target: %s | placement: %d | selection: %d>",
+-                this.pos,
+-                this.state,
++                "<JigsawBlockInfo | %s | %s | name: %s | pool: %s | target: %s | placement: %d | selection: %d | %s>",
++                this.info.pos,
++                this.info.state,
+                 this.name,
+                 this.pool.identifier(),
+                 this.target,
+                 this.placementPriority,
+-                this.selectionPriority
++                this.selectionPriority,
++                this.info.nbt
+             );
+         }
+ 
+-        public StructureTemplate.JigsawBlockInfo withInfo(BlockPos pos, BlockState state) {
++        public StructureTemplate.JigsawBlockInfo withInfo(StructureTemplate.StructureBlockInfo info) {
+             return new StructureTemplate.JigsawBlockInfo(
+-                pos, state, this.jointType, this.name, this.pool, this.target, this.placementPriority, this.selectionPriority
++                info, this.jointType, this.name, this.pool, this.target, this.placementPriority, this.selectionPriority
+             );
+         }
+     }
  
      public static final class Palette {
          private final List<StructureTemplate.StructureBlockInfo> blocks;
@@ -339,3 +398,12 @@
          private @Nullable List<StructureTemplate.JigsawBlockInfo> cachedJigsaws;
  
          private Palette(List<StructureTemplate.StructureBlockInfo> blocks) {
+@@ -820,7 +_,7 @@
+ 
+         public List<StructureTemplate.JigsawBlockInfo> jigsaws() {
+             if (this.cachedJigsaws == null) {
+-                this.cachedJigsaws = this.blocks(Blocks.JIGSAW).stream().map(StructureTemplate.JigsawBlockInfo::parse).toList();
++                this.cachedJigsaws = this.blocks(Blocks.JIGSAW).stream().map(StructureTemplate.JigsawBlockInfo::of).toList();
+             }
+ 
+             return this.cachedJigsaws;

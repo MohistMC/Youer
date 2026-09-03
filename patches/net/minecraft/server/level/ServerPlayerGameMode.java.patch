@@ -338,7 +338,7 @@
          InteractionResult result = itemStack.use(level, player, hand);
          ItemStack resultStack;
          if (result instanceof InteractionResult.Success success) {
-@@ -342,44 +_,75 @@
+@@ -342,48 +_,75 @@
          }
  
          if (!player.isUsingItem()) {
@@ -407,6 +407,10 @@
 -                ServerLevel serverLevel = player.level();
 -                TeleportTransition teleportTransition = portal.getPortalDestination(serverLevel, player, pos);
 -                if (teleportTransition != null) {
+-                    if (player.getCamera() != player) {
+-                        player.setCamera(player);
+-                    }
+-
 -                    player.teleportToPortalDestination(serverLevel, teleportTransition);
 -                } else {
 -                    player.sendOverlayMessage(Component.translatable("spectator.cannot_teleport").withStyle(ChatFormatting.RED));
@@ -433,20 +437,39 @@
                  InteractionResult itemUse = state.useItemOn(player.getItemInHand(hand), level, player, hand, hitResult);
                  if (itemUse.consumesAction()) {
                      CriteriaTriggers.ITEM_USED_ON_BLOCK.trigger(player, pos, usedItemStack);
-@@ -395,8 +_,8 @@
+@@ -399,29 +_,28 @@
                  }
              }
  
 -            if (!itemStack.isEmpty() && !player.getCooldowns().isOnCooldown(itemStack)) {
 -                UseOnContext context = new UseOnContext(player, hand, hitResult);
+-                InteractionResult result;
 +            if (event.getUseItem().isTrue() || (!itemStack.isEmpty() && !this.interactResult)) { // add !interactResult SPIGOT-764
 +                if (event.getUseItem().isFalse()) return InteractionResult.PASS;
-                 InteractionResult success;
++                InteractionResult success;
                  if (player.hasInfiniteMaterials()) {
                      int count = itemStack.getCount();
-@@ -412,6 +_,11 @@
+-                    result = itemStack.useOn(context);
++                    success = itemStack.useOn(context);
+                     itemStack.setCount(count);
+                 } else {
+-                    result = itemStack.useOn(context);
+-                    if (result instanceof InteractionResult.Success success) {
+-                        ItemStack resultItemStack = Objects.requireNonNullElseGet(success.heldItemTransformedTo(), () -> player.getItemInHand(hand));
+-                        if (resultItemStack != itemStack) {
+-                            player.setItemInHand(hand, resultItemStack);
+-                        }
+-                    }
++                    success = itemStack.useOn(context);
+                 }
  
-                 return success;
+-                if (result.consumesAction()) {
++                if (success.consumesAction()) {
+                     CriteriaTriggers.ITEM_USED_ON_BLOCK.trigger(player, pos, usedItemStack);
+                 }
+ 
+-                return result;
++                return success;
              } else {
 +                // Paper start - Properly cancel usable items; Cancel only if cancelled + if the interact result is different from default response
 +                if (this.interactResult && this.interactResult != cancelledItem) {
@@ -456,7 +479,7 @@
                  return InteractionResult.PASS;
              }
          }
-@@ -420,4 +_,30 @@
+@@ -430,4 +_,30 @@
      public void setLevel(ServerLevel newLevel) {
          this.level = newLevel;
      }

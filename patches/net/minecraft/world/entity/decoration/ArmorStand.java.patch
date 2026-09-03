@@ -171,7 +171,7 @@
 -        }
 -
 -        if (source.is(DamageTypeTags.BYPASSES_INVULNERABILITY)) {
--            this.kill(level);
+-            this.kill(level, source.getEntity());
 -            return false;
 -        }
 -
@@ -181,7 +181,7 @@
 -
 -        if (source.is(DamageTypeTags.IS_EXPLOSION)) {
 -            this.brokenByAnything(level, source);
--            this.kill(level);
+-            this.kill(level, source.getEntity());
 -            return false;
 -        }
 -
@@ -242,7 +242,7 @@
                  if (source.isCreativePlayer()) {
                      this.playBrokenSound();
                      this.showBreakingParticles();
--                    this.kill(level);
+-                    this.kill(level, source.getEntity());
 +                    this.kill(level, source); // CraftBukkit
                      return true;
                  }
@@ -254,7 +254,7 @@
 -                    this.brokenByPlayer(level, source);
 +                    org.bukkit.event.entity.EntityDeathEvent deathEvent = this.brokenByPlayer(level, source); // Paper
                      this.showBreakingParticles();
--                    this.kill(level);
+-                    this.kill(level, source.getEntity());
 +                    if (!deathEvent.isCancelled()) this.kill(level, source, false); // Paper - we still need to kill to follow vanilla logic (emit the game event etc...)
                  }
  
@@ -273,7 +273,7 @@
          health -= dmg;
          if (health <= 0.5F) {
 -            this.brokenByAnything(level, source);
--            this.kill(level);
+-            this.kill(level, source.getEntity());
 +            // Paper start - avoid duplicate event call
 +            org.bukkit.event.entity.EntityDeathEvent event = this.brokenByAnything(level, source);
 +            if (!event.isCancelled()) this.kill(level, source, false); // CraftBukkit
@@ -324,10 +324,13 @@
      }
  
      private void playBrokenSound() {
-@@ -459,9 +_,45 @@
+@@ -459,9 +_,46 @@
          return this.isSmall();
      }
  
+-    public void kill(ServerLevel level, @Nullable Entity attributedTo) {
+-        this.remove(Entity.RemovalReason.KILLED);
+-        this.gameEvent(GameEvent.ENTITY_DIE, attributedTo != null ? attributedTo : this);
 +    // CraftBukkit start
 +    @Override
 +    public boolean shouldDropExperience() {
@@ -351,9 +354,8 @@
 +    }
 +    // Paper end - Allow ArmorStands not to tick
 +
-     @Override
-     public void kill(ServerLevel level) {
--        this.remove(Entity.RemovalReason.KILLED);
++    @Override
++    public void kill(ServerLevel level) {
 +        // Paper start - pass damage source for event
 +        this.kill(level, null);
 +    }
@@ -368,10 +370,11 @@
 +        }
 +        // Paper end
 +        this.remove(Entity.RemovalReason.KILLED, EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
-         this.gameEvent(GameEvent.ENTITY_DIE);
++        this.gameEvent(GameEvent.ENTITY_DIE);
      }
  
-@@ -472,7 +_,7 @@
+     @Override
+@@ -471,7 +_,7 @@
  
      @Override
      public PushReaction getPistonPushReaction() {
@@ -380,7 +383,7 @@
      }
  
      @Override
-@@ -644,7 +_,7 @@
+@@ -643,7 +_,7 @@
              BlockPos probePos = this.blockPosition();
              int brightestLight = Integer.MIN_VALUE;
  
@@ -389,7 +392,7 @@
                  int blockBrightness = Math.max(this.level().getBrightness(LightLayer.BLOCK, pos), this.level().getBrightness(LightLayer.SKY, pos));
                  if (blockBrightness == 15) {
                      return Vec3.atCenterOf(pos);
-@@ -708,4 +_,28 @@
+@@ -707,4 +_,28 @@
                  .apply(i, ArmorStand.ArmorStandPose::new)
          );
      }

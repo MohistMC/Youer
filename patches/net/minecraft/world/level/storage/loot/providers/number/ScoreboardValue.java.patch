@@ -1,0 +1,65 @@
+--- /dev/null
++++ b/net/minecraft/world/level/storage/loot/providers/number/ScoreboardValue.java
+@@ -1,0 +_,62 @@
++package net.minecraft.world.level.storage.loot.providers.number;
++
++import com.mojang.serialization.Codec;
++import com.mojang.serialization.MapCodec;
++import com.mojang.serialization.codecs.RecordCodecBuilder;
++import net.minecraft.world.level.storage.loot.LootContext;
++import net.minecraft.world.level.storage.loot.Validatable;
++import net.minecraft.world.level.storage.loot.ValidationContext;
++import net.minecraft.world.level.storage.loot.providers.score.ContextScoreboardNameProvider;
++import net.minecraft.world.level.storage.loot.providers.score.ScoreboardNameProvider;
++import net.minecraft.world.level.storage.loot.providers.score.ScoreboardNameProviders;
++import net.minecraft.world.scores.Objective;
++import net.minecraft.world.scores.ReadOnlyScoreInfo;
++import net.minecraft.world.scores.ScoreHolder;
++import net.minecraft.world.scores.Scoreboard;
++
++public record ScoreboardValue(ScoreboardNameProvider target, String score, float scale) implements NumberProvider {
++    public static final MapCodec<ScoreboardValue> MAP_CODEC = RecordCodecBuilder.mapCodec(
++        i -> i.group(
++                ScoreboardNameProviders.CODEC.fieldOf("target").forGetter(ScoreboardValue::target),
++                Codec.STRING.fieldOf("score").forGetter(ScoreboardValue::score),
++                Codec.FLOAT.optionalFieldOf("scale", 1.0F).forGetter(ScoreboardValue::scale)
++            )
++            .apply(i, ScoreboardValue::new)
++    );
++
++    @Override
++    public MapCodec<ScoreboardValue> codec() {
++        return MAP_CODEC;
++    }
++
++    @Override
++    public void validate(ValidationContext context) {
++        NumberProvider.super.validate(context);
++        Validatable.validate(context, "target", this.target);
++    }
++
++    public static ScoreboardValue fromScoreboard(LootContext.EntityTarget entityTarget, String score) {
++        return fromScoreboard(entityTarget, score, 1.0F);
++    }
++
++    public static ScoreboardValue fromScoreboard(LootContext.EntityTarget entityTarget, String score, float scale) {
++        return new ScoreboardValue(ContextScoreboardNameProvider.forTarget(entityTarget), score, scale);
++    }
++
++    @Override
++    public float getFloat(LootContext context) {
++        ScoreHolder scoreHolder = this.target.getScoreHolder(context);
++        if (scoreHolder == null) {
++            return 0.0F;
++        }
++
++        Scoreboard scoreboard = context.getLevel().getScoreboard();
++        Objective objective = scoreboard.getObjective(this.score);
++        if (objective == null) {
++            return 0.0F;
++        }
++
++        ReadOnlyScoreInfo scoreInfo = scoreboard.getPlayerScoreInfo(scoreHolder, objective);
++        return scoreInfo == null ? 0.0F : scoreInfo.value() * this.scale;
++    }
++}

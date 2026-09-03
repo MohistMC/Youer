@@ -1,0 +1,37 @@
+--- a/net/minecraft/world/level/storage/loot/providers/number/BinaryProvider.java
++++ /dev/null
+@@ -1,34 +_,0 @@
+-package net.minecraft.world.level.storage.loot.providers.number;
+-
+-import com.mojang.serialization.Codec;
+-import com.mojang.serialization.MapCodec;
+-import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import net.minecraft.core.Holder;
+-import net.minecraft.world.level.storage.loot.Validatable;
+-import net.minecraft.world.level.storage.loot.ValidationContext;
+-
+-public interface BinaryProvider<Value extends Validatable> extends Validatable {
+-    static <Value extends Validatable, Self extends BinaryProvider<Value>> MapCodec<Self> mapCodec(
+-        Codec<Holder<Value>> valueCodec, BinaryProvider.Factory<Value, Self> factory
+-    ) {
+-        return RecordCodecBuilder.mapCodec(
+-            i -> i.group(valueCodec.fieldOf("left").forGetter(BinaryProvider::left), valueCodec.fieldOf("right").forGetter(BinaryProvider::right))
+-                .apply(i, factory::create)
+-        );
+-    }
+-
+-    @Override
+-    default void validate(ValidationContext context) {
+-        Validatable.validateHolder(context, "left", this.left());
+-        Validatable.validateHolder(context, "right", this.right());
+-    }
+-
+-    Holder<Value> left();
+-
+-    Holder<Value> right();
+-
+-    @FunctionalInterface
+-    interface Factory<Value extends Validatable, Self extends BinaryProvider<Value>> {
+-        Self create(Holder<Value> left, Holder<Value> right);
+-    }
+-}

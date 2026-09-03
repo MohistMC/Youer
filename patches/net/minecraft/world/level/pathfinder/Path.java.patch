@@ -1,0 +1,141 @@
+--- a/net/minecraft/world/level/pathfinder/Path.java
++++ b/net/minecraft/world/level/pathfinder/Path.java
+@@ -1,11 +_,10 @@
+ package net.minecraft.world.level.pathfinder;
+ 
+-import io.netty.buffer.ByteBuf;
+ import java.util.HashSet;
+ import java.util.List;
+ import java.util.Set;
+ import net.minecraft.core.BlockPos;
+-import net.minecraft.network.codec.ByteBufCodecs;
++import net.minecraft.network.FriendlyByteBuf;
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.util.VisibleForDebug;
+ import net.minecraft.world.entity.Entity;
+@@ -13,30 +_,7 @@
+ import org.jspecify.annotations.Nullable;
+ 
+ public final class Path {
+-    public static final StreamCodec<ByteBuf, Path> DEBUG_STREAM_CODEC = StreamCodec.composite(
+-        ByteBufCodecs.BOOL,
+-        p -> p.reached,
+-        ByteBufCodecs.INT,
+-        p -> p.nextNodeIndex,
+-        BlockPos.STREAM_CODEC,
+-        p -> p.target,
+-        Node.DEBUG_STREAM_CODEC.apply(ByteBufCodecs.list()),
+-        p -> p.nodes,
+-        Path.DebugData.STREAM_CODEC,
+-        p -> {
+-            if (p.debugData != null && !p.debugData.targetNodes.isEmpty()) {
+-                return p.debugData;
+-            } else {
+-                throw new IllegalStateException("Missing debug data");
+-            }
+-        },
+-        (reached, nextNodeIndex, target, nodes, debugData) -> {
+-            Path path = new Path(nodes, target, reached);
+-            path.debugData = debugData;
+-            path.nextNodeIndex = nextNodeIndex;
+-            return path;
+-        }
+-    );
++    public static final StreamCodec<FriendlyByteBuf, Path> STREAM_CODEC = StreamCodec.of((output, value) -> value.writeToStream(output), Path::createFromStream);
+     public final List<Node> nodes;
+     private Path.@Nullable DebugData debugData;
+     private int nextNodeIndex;
+@@ -146,7 +_,7 @@
+     }
+ 
+     @VisibleForDebug
+-    void setDebug(List<Node> openSet, List<Node> closedSet, Set<Target> targets) {
++    void setDebug(Node[] openSet, Node[] closedSet, Set<Target> targets) {
+         this.debugData = new Path.DebugData(openSet, closedSet, targets);
+     }
+ 
+@@ -154,6 +_,30 @@
+         return this.debugData;
+     }
+ 
++    public void writeToStream(FriendlyByteBuf buffer) {
++        if (this.debugData != null && !this.debugData.targetNodes.isEmpty()) {
++            buffer.writeBoolean(this.reached);
++            buffer.writeInt(this.nextNodeIndex);
++            buffer.writeBlockPos(this.target);
++            buffer.writeCollection(this.nodes, (out, node) -> node.writeToStream(out));
++            this.debugData.write(buffer);
++        } else {
++            throw new IllegalStateException("Missing debug data");
++        }
++    }
++
++    public static Path createFromStream(FriendlyByteBuf buffer) {
++        boolean reached = buffer.readBoolean();
++        int indexStream = buffer.readInt();
++        BlockPos target = buffer.readBlockPos();
++        List<Node> nodes = buffer.readList(Node::createFromStream);
++        Path.DebugData debugData = Path.DebugData.read(buffer);
++        Path path = new Path(nodes, target, reached);
++        path.debugData = debugData;
++        path.nextNodeIndex = indexStream;
++        return path;
++    }
++
+     @Override
+     public String toString() {
+         return "Path(length=" + this.nodes.size() + ")";
+@@ -167,6 +_,24 @@
+         return this.distToTarget;
+     }
+ 
++    private static Node[] readNodeArray(FriendlyByteBuf input) {
++        Node[] nodes = new Node[input.readVarInt()];
++
++        for (int i = 0; i < nodes.length; i++) {
++            nodes[i] = Node.createFromStream(input);
++        }
++
++        return nodes;
++    }
++
++    private static void writeNodeArray(FriendlyByteBuf output, Node[] nodes) {
++        output.writeVarInt(nodes.length);
++
++        for (Node node : nodes) {
++            node.writeToStream(output);
++        }
++    }
++
+     public Path copy() {
+         Path result = new Path(this.nodes, this.target, this.reached);
+         result.debugData = this.debugData;
+@@ -174,15 +_,18 @@
+         return result;
+     }
+ 
+-    public record DebugData(List<Node> openSet, List<Node> closedSet, Set<Target> targetNodes) {
+-        public static final StreamCodec<ByteBuf, Path.DebugData> STREAM_CODEC = StreamCodec.composite(
+-            Node.DEBUG_STREAM_CODEC.apply(ByteBufCodecs.list()),
+-            Path.DebugData::openSet,
+-            Node.DEBUG_STREAM_CODEC.apply(ByteBufCodecs.list()),
+-            Path.DebugData::closedSet,
+-            Target.DEBUG_STREAM_CODEC.apply(ByteBufCodecs.collection(HashSet::new)),
+-            Path.DebugData::targetNodes,
+-            Path.DebugData::new
+-        );
++    public record DebugData(Node[] openSet, Node[] closedSet, Set<Target> targetNodes) {
++        public void write(FriendlyByteBuf output) {
++            output.writeCollection(this.targetNodes, (out, target) -> target.writeToStream(out));
++            Path.writeNodeArray(output, this.openSet);
++            Path.writeNodeArray(output, this.closedSet);
++        }
++
++        public static Path.DebugData read(FriendlyByteBuf input) {
++            HashSet<Target> targets = input.readCollection(HashSet::new, Target::createFromStream);
++            Node[] openSet = Path.readNodeArray(input);
++            Node[] closedSet = Path.readNodeArray(input);
++            return new Path.DebugData(openSet, closedSet, targets);
++        }
+     }
+ }

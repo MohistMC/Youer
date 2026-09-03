@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/item/crafting/AbstractCookingRecipe.java
++++ b/net/minecraft/world/item/crafting/AbstractCookingRecipe.java
+@@ -71,7 +_,7 @@
+         );
+     }
+ 
+-    public static <T extends AbstractCookingRecipe> MapCodec<T> cookingMapCodec(AbstractCookingRecipe.Factory<T> factory) {
++    public static <T extends AbstractCookingRecipe> MapCodec<T> cookingMapCodec(AbstractCookingRecipe.Factory<T> factory, int defaultCookingTime) {
+         return RecordCodecBuilder.mapCodec(
+             i -> i.group(
+                     Recipe.CommonInfo.MAP_CODEC.forGetter(o -> o.commonInfo),
+@@ -79,7 +_,7 @@
+                     Ingredient.CODEC.fieldOf("ingredient").forGetter(SingleItemRecipe::input),
+                     ItemStackTemplate.CODEC.fieldOf("result").forGetter(SingleItemRecipe::result),
+                     Codec.FLOAT.optionalFieldOf("experience", 0.0F).forGetter(AbstractCookingRecipe::experience),
+-                    Codec.INT.fieldOf("cookingtime").forGetter(AbstractCookingRecipe::cookingTime)
++                    Codec.INT.optionalFieldOf("cookingtime", defaultCookingTime).forGetter(AbstractCookingRecipe::cookingTime)
+                 )
+                 .apply(i, factory::create)
+         );

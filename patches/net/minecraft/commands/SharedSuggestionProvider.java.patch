@@ -1,0 +1,66 @@
+--- a/net/minecraft/commands/SharedSuggestionProvider.java
++++ b/net/minecraft/commands/SharedSuggestionProvider.java
+@@ -17,7 +_,6 @@
+ import java.util.function.Function;
+ import java.util.function.Predicate;
+ import java.util.stream.Stream;
+-import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.Registry;
+ import net.minecraft.core.RegistryAccess;
+@@ -63,47 +_,32 @@
+ 
+     FeatureFlagSet enabledFeatures();
+ 
+-    default <E> void suggestRegistryElements(
+-        HolderLookup<E> registry, SharedSuggestionProvider.ElementSuggestionType elements, SuggestionsBuilder builder, Predicate<E> filter
+-    ) {
++    default void suggestRegistryElements(HolderLookup<?> registry, SharedSuggestionProvider.ElementSuggestionType elements, SuggestionsBuilder builder) {
+         if (elements.shouldSuggestTags()) {
+             suggestResource(registry.listTagIds().map(TagKey::location), builder, "#");
+         }
+ 
+         if (elements.shouldSuggestElements()) {
+-            suggestResource(
+-                registry.listElements().filter(holder -> filter.test(holder.value())).map(Holder.Reference::key).map(ResourceKey::identifier), builder
+-            );
++            suggestResource(registry.listElementIds().map(ResourceKey::identifier), builder);
+         }
+     }
+ 
+-    static <S, E> CompletableFuture<Suggestions> listSuggestions(
++    static <S> CompletableFuture<Suggestions> listSuggestions(
+         CommandContext<S> context,
+         SuggestionsBuilder builder,
+-        ResourceKey<? extends Registry<E>> registryKey,
++        ResourceKey<? extends Registry<?>> registryKey,
+         SharedSuggestionProvider.ElementSuggestionType type
+     ) {
+-        return listSuggestions(context, builder, registryKey, type, var0 -> true);
+-    }
+-
+-    static <S, E> CompletableFuture<Suggestions> listSuggestions(
+-        CommandContext<S> context,
+-        SuggestionsBuilder builder,
+-        ResourceKey<? extends Registry<E>> registryKey,
+-        SharedSuggestionProvider.ElementSuggestionType type,
+-        Predicate<E> filter
+-    ) {
+         return context.getSource() instanceof SharedSuggestionProvider suggestionProvider
+-            ? suggestionProvider.suggestRegistryElements(registryKey, type, builder, context, filter)
++            ? suggestionProvider.suggestRegistryElements(registryKey, type, builder, context)
+             : builder.buildFuture();
+     }
+ 
+-    <E> CompletableFuture<Suggestions> suggestRegistryElements(
+-        final ResourceKey<? extends Registry<E>> key,
++    CompletableFuture<Suggestions> suggestRegistryElements(
++        final ResourceKey<? extends Registry<?>> key,
+         final SharedSuggestionProvider.ElementSuggestionType elements,
+         final SuggestionsBuilder builder,
+-        final CommandContext<?> context,
+-        final Predicate<E> filter
++        final CommandContext<?> context
+     );
+ 
+     static <T> void filterResources(Iterable<T> values, String contents, Function<T, Identifier> converter, Consumer<T> consumer) {

@@ -1,6 +1,14 @@
 --- a/net/minecraft/server/PlayerAdvancements.java
 +++ b/net/minecraft/server/PlayerAdvancements.java
-@@ -47,7 +_,7 @@
+@@ -19,7 +_,6 @@
+ import java.util.HashSet;
+ import java.util.IdentityHashMap;
+ import java.util.LinkedHashMap;
+-import java.util.List;
+ import java.util.Map;
+ import java.util.Set;
+ import java.util.Map.Entry;
+@@ -48,7 +_,7 @@
  
  public class PlayerAdvancements {
      private static final Logger LOGGER = LogUtils.getLogger();
@@ -9,7 +17,7 @@
      private final PlayerList playerList;
      private final Path playerSavePath;
      private AdvancementTree tree;
-@@ -125,6 +_,7 @@
+@@ -126,6 +_,7 @@
      }
  
      public void save() {
@@ -17,7 +25,7 @@
          JsonElement json = this.codec.encodeStart(JsonOps.INSTANCE, this.asData()).getOrThrow();
  
          try {
-@@ -142,6 +_,8 @@
+@@ -143,6 +_,8 @@
          data.forEach((id, progress) -> {
              AdvancementHolder advancement = manager.get(id);
              if (advancement == null) {
@@ -26,7 +34,7 @@
                  LOGGER.warn("Ignored advancement '{}' in progress file {} - it doesn't exist anymore?", id, this.playerSavePath);
              } else {
                  this.startProgress(advancement, progress);
-@@ -162,19 +_,41 @@
+@@ -163,19 +_,41 @@
      }
  
      public boolean award(AdvancementHolder holder, String criterion) {
@@ -58,8 +66,8 @@
 +                // Paper end
                  holder.value().rewards().grant(this.player);
                  holder.value().display().ifPresent(display -> {
--                    if (display.shouldAnnounceChat() && this.player.level().getGameRules().get(GameRules.SHOW_ADVANCEMENT_MESSAGES)) {
--                        this.playerList.broadcastSystemMessage(display.getType().createAnnouncement(holder, this.player), false);
+-                    if (display.announceToChat() && this.player.level().getGameRules().get(GameRules.SHOW_ADVANCEMENT_MESSAGES)) {
+-                        this.playerList.broadcastSystemMessage(display.type().createAnnouncement(holder, this.player), false);
 +                    // Paper start - Add Adventure message to PlayerAdvancementDoneEvent
 +                    if (event.message() != null && this.player.level().getGameRules().get(GameRules.SHOW_ADVANCEMENT_MESSAGES)) {
 +                        if (org.purpurmc.purpur.PurpurConfig.advancementOnlyBroadcastToAffectedPlayer) this.player.sendMessage(message); else // Purpur - Configurable broadcast settings
@@ -70,7 +78,7 @@
                  });
              }
          }
-@@ -194,6 +_,7 @@
+@@ -195,6 +_,7 @@
              this.registerListeners(advancement);
              this.progressChanged.add(advancement);
              result = true;
@@ -78,12 +86,39 @@
          }
  
          if (wasDone && !progress.isDone()) {
-@@ -236,7 +_,7 @@
+@@ -237,7 +_,7 @@
      public void flushDirty(ServerPlayer player, boolean showAdvancements) {
          if (this.isFirstPacket || !this.rootsToUpdate.isEmpty() || !this.progressChanged.isEmpty()) {
              Map<Identifier, AdvancementProgress> progress = new HashMap<>();
--            Set<AdvancementHolder> added = new HashSet<>();
+-            Set<AdvancementNode> added = new HashSet<>();
 +            Set<AdvancementHolder> added = new java.util.TreeSet<>(java.util.Comparator.comparing(adv -> adv.id().toString())); // Paper - Changed from HashSet to TreeSet ordered alphabetically.
              Set<Identifier> removed = new HashSet<>();
  
              for (AdvancementNode root : this.rootsToUpdate) {
+@@ -254,10 +_,7 @@
+ 
+             this.progressChanged.clear();
+             if (!progress.isEmpty() || !added.isEmpty() || !removed.isEmpty()) {
+-                List<ClientboundUpdateAdvancementsPacket.PositionedAdvancement> convertedAdded = added.stream()
+-                    .map(ClientboundUpdateAdvancementsPacket.PositionedAdvancement::fromNode)
+-                    .toList();
+-                player.connection.send(new ClientboundUpdateAdvancementsPacket(this.isFirstPacket, convertedAdded, removed, progress, showAdvancements));
++                player.connection.send(new ClientboundUpdateAdvancementsPacket(this.isFirstPacket, added, removed, progress, showAdvancements));
+             }
+         }
+ 
+@@ -292,12 +_,12 @@
+         this.progress.put(holder, progress);
+     }
+ 
+-    private void updateTreeVisibility(AdvancementNode root, Set<AdvancementNode> added, Set<Identifier> removed) {
++    private void updateTreeVisibility(AdvancementNode root, Set<AdvancementHolder> added, Set<Identifier> removed) {
+         AdvancementVisibilityEvaluator.evaluateVisibility(root, node -> this.getOrStartProgress(node.holder()).isDone(), (node, shouldBeVisible) -> {
+             AdvancementHolder advancement = node.holder();
+             if (shouldBeVisible) {
+                 if (this.visible.add(advancement)) {
+-                    added.add(node);
++                    added.add(advancement);
+                     if (this.progress.containsKey(advancement)) {
+                         this.progressChanged.add(advancement);
+                     }

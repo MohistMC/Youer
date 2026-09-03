@@ -1,0 +1,122 @@
+--- a/net/minecraft/world/level/levelgen/feature/TreeFeature.java
++++ b/net/minecraft/world/level/levelgen/feature/TreeFeature.java
+@@ -14,23 +_,26 @@
+ import java.util.function.BiConsumer;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+-import net.minecraft.core.Holder;
++import net.minecraft.core.HolderGetter;
+ import net.minecraft.tags.BlockTags;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.level.LevelAccessor;
+ import net.minecraft.world.level.LevelSimulatedReader;
+ import net.minecraft.world.level.LevelWriter;
+ import net.minecraft.world.level.WorldGenLevel;
++import net.minecraft.world.level.biome.Biome;
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.LeavesBlock;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+ import net.minecraft.world.level.chunk.ChunkGenerator;
++import net.minecraft.world.level.levelgen.blockpredicates.BlockPredicate;
+ import net.minecraft.world.level.levelgen.feature.featuresize.FeatureSize;
+ import net.minecraft.world.level.levelgen.feature.foliageplacers.FoliagePlacer;
+ import net.minecraft.world.level.levelgen.feature.rootplacers.RootPlacer;
+ import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider;
++import net.minecraft.world.level.levelgen.feature.stateproviders.RuleBasedStateProvider;
+ import net.minecraft.world.level.levelgen.feature.treedecorators.TreeDecorator;
+ import net.minecraft.world.level.levelgen.feature.trunkplacers.TrunkPlacer;
+ import net.minecraft.world.level.levelgen.structure.BoundingBox;
+@@ -39,16 +_,17 @@
+ import net.minecraft.world.phys.shapes.DiscreteVoxelShape;
+ 
+ public record TreeFeature(
+-    Holder<BlockStateProvider> trunkProvider,
++    BlockStateProvider trunkProvider,
+     TrunkPlacer trunkPlacer,
+-    Holder<BlockStateProvider> foliageProvider,
++    BlockStateProvider foliageProvider,
+     FoliagePlacer foliagePlacer,
+     Optional<RootPlacer> rootPlacer,
+     FeatureSize minimumSize,
+     List<TreeDecorator> decorators,
+     boolean ignoreVines,
+-    Holder<BlockStateProvider> belowTrunkProvider
++    BlockStateProvider belowTrunkProvider
+ ) implements Feature {
++    public static final BlockPredicate CAN_PLACE_BELOW_TREE_TRUNKS = BlockPredicate.not(BlockPredicate.matchesTag(BlockTags.CANNOT_REPLACE_BELOW_TREE_TRUNK));
+     public static final MapCodec<TreeFeature> CODEC = RecordCodecBuilder.mapCodec(
+         i -> i.group(
+                 BlockStateProvider.CODEC.fieldOf("trunk_provider").forGetter(TreeFeature::trunkProvider),
+@@ -70,6 +_,10 @@
+         return CODEC;
+     }
+ 
++    public static BlockStateProvider defaultPlaceBelowTreeTrunkProvider(HolderGetter<Biome> biomes) {
++        return RuleBasedStateProvider.ifTrueThenProvide(CAN_PLACE_BELOW_TREE_TRUNKS, Blocks.DIRT);
++    }
++
+     public static boolean isVine(LevelSimulatedReader level, BlockPos pos) {
+         return level.isStateAtPosition(pos, state -> state.is(Blocks.VINE));
+     }
+@@ -276,24 +_,24 @@
+     }
+ 
+     public static class Builder {
+-        public final Holder<BlockStateProvider> trunkProvider;
++        public final BlockStateProvider trunkProvider;
+         private final TrunkPlacer trunkPlacer;
+-        public final Holder<BlockStateProvider> foliageProvider;
++        public final BlockStateProvider foliageProvider;
+         private final FoliagePlacer foliagePlacer;
+         private final Optional<RootPlacer> rootPlacer;
+         private final FeatureSize minimumSize;
+         private List<TreeDecorator> decorators = List.of();
+         private boolean ignoreVines;
+-        private Holder<BlockStateProvider> belowTrunkProvider;
++        private BlockStateProvider belowTrunkProvider;
+ 
+         public Builder(
+-            Holder<BlockStateProvider> trunkProvider,
++            BlockStateProvider trunkProvider,
+             TrunkPlacer trunkPlacer,
+-            Holder<BlockStateProvider> foliageProvider,
++            BlockStateProvider foliageProvider,
+             FoliagePlacer foliagePlacer,
+             Optional<RootPlacer> rootPlacer,
+             FeatureSize minimumSize,
+-            Holder<BlockStateProvider> belowTrunkProvider
++            BlockStateProvider belowTrunkProvider
+         ) {
+             this.trunkProvider = trunkProvider;
+             this.trunkPlacer = trunkPlacer;
+@@ -309,25 +_,13 @@
+             TrunkPlacer trunkPlacer,
+             BlockStateProvider foliageProvider,
+             FoliagePlacer foliagePlacer,
+-            Optional<RootPlacer> rootPlacer,
+-            FeatureSize minimumSize,
+-            Holder<BlockStateProvider> belowTrunkProvider
+-        ) {
+-            this(Holder.direct(trunkProvider), trunkPlacer, Holder.direct(foliageProvider), foliagePlacer, rootPlacer, minimumSize, belowTrunkProvider);
+-        }
+-
+-        public Builder(
+-            BlockStateProvider trunkProvider,
+-            TrunkPlacer trunkPlacer,
+-            BlockStateProvider foliageProvider,
+-            FoliagePlacer foliagePlacer,
+-            FeatureSize minimumSize,
+-            Holder<BlockStateProvider> belowTrunkProvider
++            FeatureSize minimumSize,
++            BlockStateProvider belowTrunkProvider
+         ) {
+             this(trunkProvider, trunkPlacer, foliageProvider, foliagePlacer, Optional.empty(), minimumSize, belowTrunkProvider);
+         }
+ 
+-        public TreeFeature.Builder belowTrunkProvider(Holder<BlockStateProvider> belowTrunkProvider) {
++        public TreeFeature.Builder belowTrunkProvider(BlockStateProvider belowTrunkProvider) {
+             this.belowTrunkProvider = belowTrunkProvider;
+             return this;
+         }

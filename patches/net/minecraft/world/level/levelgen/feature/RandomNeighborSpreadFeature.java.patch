@@ -1,0 +1,52 @@
+--- a/net/minecraft/world/level/levelgen/feature/RandomNeighborSpreadFeature.java
++++ b/net/minecraft/world/level/levelgen/feature/RandomNeighborSpreadFeature.java
+@@ -4,10 +_,9 @@
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+-import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.util.valueproviders.IntProvider;
+ import net.minecraft.util.valueproviders.IntProviders;
+@@ -18,17 +_,12 @@
+ import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider;
+ 
+ public record RandomNeighborSpreadFeature(
+-    Holder<BlockStateProvider> block,
+-    HolderSet<Block> acceptedNeighbors,
+-    BlockPredicate canReplace,
+-    IntProvider attempts,
+-    IntProvider xzOffset,
+-    IntProvider yOffset
++    BlockStateProvider block, HolderSet<Block> acceptedNeighbors, BlockPredicate canReplace, IntProvider attempts, IntProvider xzOffset, IntProvider yOffset
+ ) implements Feature {
+     public static final MapCodec<RandomNeighborSpreadFeature> CODEC = RecordCodecBuilder.mapCodec(
+         i -> i.group(
+                 BlockStateProvider.CODEC.fieldOf("block").forGetter(RandomNeighborSpreadFeature::block),
+-                RegistryCodecs.holderSet(Registries.BLOCK).fieldOf("accepted_neighbors").forGetter(RandomNeighborSpreadFeature::acceptedNeighbors),
++                RegistryCodecs.homogeneousList(Registries.BLOCK).fieldOf("accepted_neighbors").forGetter(RandomNeighborSpreadFeature::acceptedNeighbors),
+                 BlockPredicate.CODEC.fieldOf("can_replace").forGetter(RandomNeighborSpreadFeature::canReplace),
+                 IntProviders.codec(1, 3000).fieldOf("attempts").forGetter(RandomNeighborSpreadFeature::attempts),
+                 IntProviders.codec(-16, 16).fieldOf("xz_offset").forGetter(RandomNeighborSpreadFeature::xzOffset),
+@@ -45,7 +_,7 @@
+ 
+     @Override
+     public boolean place(WorldGenLevel level, ChunkGenerator chunkGenerator, RandomSource random, BlockPos origin) {
+-        level.setBlock(origin, this.block.value().getState(level, random, origin), 2);
++        level.setBlock(origin, this.block.getState(level, random, origin), 2);
+         BlockPos.MutableBlockPos placePos = new BlockPos.MutableBlockPos();
+         BlockPos.MutableBlockPos neighborPos = new BlockPos.MutableBlockPos();
+         int attempts = this.attempts.sample(random);
+@@ -67,7 +_,7 @@
+                 }
+ 
+                 if (neighbours == 1) {
+-                    level.setBlock(placePos, this.block.value().getState(level, random, placePos), 2);
++                    level.setBlock(placePos, this.block.getState(level, random, placePos), 2);
+                 }
+             }
+         }

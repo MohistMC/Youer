@@ -1,0 +1,27 @@
+--- a/net/minecraft/world/level/levelgen/structure/structures/WoodlandMansionStructure.java
++++ b/net/minecraft/world/level/levelgen/structure/structures/WoodlandMansionStructure.java
+@@ -20,7 +_,6 @@
+ 
+ public class WoodlandMansionStructure extends Structure {
+     public static final MapCodec<WoodlandMansionStructure> CODEC = simpleCodec(WoodlandMansionStructure::new);
+-    private static final int START_OFFSET_IN_CHUNK = 7;
+ 
+     public WoodlandMansionStructure(Structure.StructureSettings settings) {
+         super(settings);
+@@ -28,15 +_,8 @@
+ 
+     @Override
+     public Optional<Structure.GenerationStub> findGenerationPoint(Structure.GenerationContext context) {
+-        ChunkPos chunkPos = context.chunkPos();
+-        int blockX = chunkPos.getBlockX(7);
+-        int blockZ = chunkPos.getBlockZ(7);
+-        if (!context.couldValidBiomeExistInTerrainColumn(blockX, blockZ)) {
+-            return Optional.empty();
+-        }
+-
+         Rotation rotation = Rotation.getRandom(context.random());
+-        BlockPos startPos = this.getLowestYIn5by5Box(context, blockX, blockZ, rotation);
++        BlockPos startPos = this.getLowestYIn5by5BoxOffset7Blocks(context, rotation);
+         return startPos.getY() < 60
+             ? Optional.empty()
+             : Optional.of(new Structure.GenerationStub(startPos, builder -> this.generatePieces(builder, context, startPos, rotation)));

@@ -1,5 +1,16 @@
 --- a/net/minecraft/core/component/DataComponents.java
 +++ b/net/minecraft/core/component/DataComponents.java
+@@ -6,9 +_,9 @@
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderSet;
+ import net.minecraft.core.Registry;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.network.chat.Component;
+ import net.minecraft.network.chat.ComponentSerialization;
+ import net.minecraft.network.codec.ByteBufCodecs;
 @@ -46,7 +_,6 @@
  import net.minecraft.world.entity.decoration.painting.PaintingVariant;
  import net.minecraft.world.entity.npc.villager.VillagerType;
@@ -21,15 +32,17 @@
  import net.minecraft.world.item.component.CustomData;
  import net.minecraft.world.item.component.CustomModelData;
  import net.minecraft.world.item.component.DamageResistant;
-@@ -79,7 +_,6 @@
+@@ -77,8 +_,8 @@
+ import net.minecraft.world.item.component.KineticWeapon;
+ import net.minecraft.world.item.component.LodestoneTracker;
  import net.minecraft.world.item.component.MapDecorations;
- import net.minecraft.world.item.component.MapItemColor;
++import net.minecraft.world.item.component.MapItemColor;
  import net.minecraft.world.item.component.MapPostProcessing;
 -import net.minecraft.world.item.component.MobVisibility;
  import net.minecraft.world.item.component.OminousBottleAmplifier;
  import net.minecraft.world.item.component.PiercingWeapon;
  import net.minecraft.world.item.component.ResolvableProfile;
-@@ -109,7 +_,6 @@
+@@ -108,7 +_,6 @@
  import net.minecraft.world.level.block.entity.DecoratedPotPattern;
  import net.minecraft.world.level.block.entity.DecoratedPotPatterns;
  import net.minecraft.world.level.block.entity.PotDecorations;
@@ -37,8 +50,21 @@
  import net.minecraft.world.level.saveddata.maps.MapId;
  
  public class DataComponents {
-@@ -227,9 +_,6 @@
-     public static final DataComponentType<BlockTransformer> BLOCK_TRANSFORMER = register(
+@@ -219,19 +_,13 @@
+     public static final DataComponentType<KineticWeapon> KINETIC_WEAPON = register(
+         "kinetic_weapon", b -> b.persistent(KineticWeapon.CODEC).networkSynchronized(KineticWeapon.STREAM_CODEC).cacheEncoding()
+     );
+-    public static final DataComponentType<SwingAnimation> ATTACK_ANIMATION = register(
+-        "attack_animation", b -> b.persistent(SwingAnimation.CODEC).networkSynchronized(SwingAnimation.STREAM_CODEC)
+-    );
+-    public static final DataComponentType<SwingAnimation> INTERACT_ANIMATION = register(
+-        "interact_animation", b -> b.persistent(SwingAnimation.CODEC).networkSynchronized(SwingAnimation.STREAM_CODEC)
++    public static final DataComponentType<SwingAnimation> SWING_ANIMATION = register(
++        "swing_animation", b -> b.persistent(SwingAnimation.CODEC).networkSynchronized(SwingAnimation.STREAM_CODEC)
+     );
+     public static final DataComponentType<Integer> ADDITIONAL_TRADE_COST = register("additional_trade_cost", b -> b.networkSynchronized(ByteBufCodecs.VAR_INT));
+-    public static final DataComponentType<Holder<BlockTransformer>> BLOCK_TRANSFORMER = register(
++    public static final DataComponentType<BlockTransformer> BLOCK_TRANSFORMER = register(
          "block_transformer", b -> b.persistent(BlockTransformer.CODEC).networkSynchronized(BlockTransformer.STREAM_CODEC).cacheEncoding()
      );
 -    public static final DataComponentType<VillagerFood> VILLAGER_FOOD = register(
@@ -47,7 +73,16 @@
      public static final DataComponentType<ItemEnchantments> STORED_ENCHANTMENTS = register(
          "stored_enchantments", b -> b.persistent(ItemEnchantments.CODEC).networkSynchronized(ItemEnchantments.STREAM_CODEC).cacheEncoding()
      );
-@@ -246,10 +_,10 @@
+@@ -239,16 +_,19 @@
+     public static final DataComponentType<DyedItemColor> DYED_COLOR = register(
+         "dyed_color", b -> b.persistent(DyedItemColor.CODEC).networkSynchronized(DyedItemColor.STREAM_CODEC)
+     );
++    public static final DataComponentType<MapItemColor> MAP_COLOR = register(
++        "map_color", b -> b.persistent(MapItemColor.CODEC).networkSynchronized(MapItemColor.STREAM_CODEC)
++    );
+     public static final DataComponentType<MapId> MAP_ID = register("map_id", b -> b.persistent(MapId.CODEC).networkSynchronized(MapId.STREAM_CODEC));
+     public static final DataComponentType<MapDecorations> MAP_DECORATIONS = register("map_decorations", b -> b.persistent(MapDecorations.CODEC).cacheEncoding());
+     public static final DataComponentType<MapPostProcessing> MAP_POST_PROCESSING = register(
          "map_post_processing", b -> b.networkSynchronized(MapPostProcessing.STREAM_CODEC)
      );
      public static final DataComponentType<ChargedProjectiles> CHARGED_PROJECTILES = register(
@@ -60,7 +95,16 @@
      );
      public static final DataComponentType<PotionContents> POTION_CONTENTS = register(
          "potion_contents", b -> b.persistent(PotionContents.CODEC).networkSynchronized(PotionContents.STREAM_CODEC).cacheEncoding()
-@@ -329,7 +_,7 @@
+@@ -296,7 +_,7 @@
+     );
+     public static final DataComponentType<HolderSet<BannerPattern>> PROVIDES_BANNER_PATTERNS = register(
+         "provides_banner_patterns",
+-        b -> b.persistent(RegistryCodecs.holderSet(Registries.BANNER_PATTERN))
++        b -> b.persistent(RegistryCodecs.homogeneousList(Registries.BANNER_PATTERN))
+             .networkSynchronized(ByteBufCodecs.holderSet(Registries.BANNER_PATTERN))
+             .cacheEncoding()
+     );
+@@ -328,7 +_,7 @@
          "pot_decorations", b -> b.persistent(PotDecorations.CODEC).networkSynchronized(PotDecorations.STREAM_CODEC).cacheEncoding()
      );
      public static final DataComponentType<ItemContainerContents> CONTAINER = register(
@@ -69,7 +113,7 @@
      );
      public static final DataComponentType<BlockItemStateProperties> BLOCK_STATE = register(
          "block_state", b -> b.persistent(BlockItemStateProperties.CODEC).networkSynchronized(BlockItemStateProperties.STREAM_CODEC).cacheEncoding()
-@@ -346,15 +_,6 @@
+@@ -345,15 +_,6 @@
      public static final DataComponentType<Compostable> COMPOSTABLE = register(
          "compostable", b -> b.persistent(Compostable.CODEC).networkSynchronized(Compostable.STREAM_CODEC)
      );
@@ -86,10 +130,9 @@
          "villager/variant", b -> b.persistent(VillagerType.CODEC).networkSynchronized(VillagerType.STREAM_CODEC)
      );
 @@ -444,16 +_,6 @@
-     );
      public static final DataComponentType<Holder<DecoratedPotPattern>> PROVIDES_POTTERY_PATTERN = register(
          "provides_pottery_pattern", b -> b.persistent(DecoratedPotPatterns.CODEC).networkSynchronized(DecoratedPotPatterns.STREAM_CODEC)
--    );
+     );
 -    public static final DataComponentType<SignText> SIGN_TEXT_FRONT = register(
 -        "sign_text_front", b -> b.persistent(SignText.CODEC).networkSynchronized(SignText.STREAM_CODEC).cacheEncoding()
 -    );
@@ -99,6 +142,17 @@
 -    public static final DataComponentType<Unit> WAXED = register("waxed", b -> b.persistent(Unit.CODEC).networkSynchronized(Unit.STREAM_CODEC));
 -    public static final DataComponentType<DyeColor> CUSHION_COLOR = register(
 -        "cushion/color", b -> b.persistent(DyeColor.CODEC).networkSynchronized(DyeColor.STREAM_CODEC)
-     );
+-    );
      public static final DataComponentMap COMMON_ITEM_COMPONENTS = DataComponentMap.builder()
          .set(MAX_STACK_SIZE, 64)
+         .set(LORE, ItemLore.EMPTY)
+@@ -464,8 +_,7 @@
+         .set(RARITY, Rarity.COMMON)
+         .set(BREAK_SOUND, SoundEvents.ITEM_BREAK)
+         .set(TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT)
+-        .set(ATTACK_ANIMATION, SwingAnimation.DEFAULT)
+-        .set(INTERACT_ANIMATION, SwingAnimation.DEFAULT)
++        .set(SWING_ANIMATION, SwingAnimation.DEFAULT)
+         .build();
+ 
+     public static DataComponentType<?> bootstrap(Registry<DataComponentType<?>> registry) {

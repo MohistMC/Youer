@@ -93,13 +93,16 @@
          validateLootRegistries(fullLookupWithUpdatedTags);
          return new ReloadableServerRegistries.LoadResult(fullLayers, fullLookupWithUpdatedTags);
      }
-@@ -54,8 +_,19 @@
+@@ -54,11 +_,19 @@
      private static void validateLootRegistries(HolderLookup.Provider fullContextWithNewTags) {
          ProblemReporter.Collector problems = new ProblemReporter.Collector();
          ValidationContextSource contextSource = new ValidationContextSource(problems, fullContextWithNewTags);
 -        LootDataType.values().forEach(lootDataType -> lootDataType.runValidation(contextSource, fullContextWithNewTags));
 +        LootDataType.values().forEach(lootDataType -> validateRegistry(contextSource, (LootDataType<?>)lootDataType, fullContextWithNewTags));
          problems.forEach((id, problem) -> LOGGER.warn("Found loot table element validation problem in {}: {}", id, problem.description()));
+-        if (problems.hasFatalProblems()) {
+-            throw new IllegalStateException("Found loot table validation problems");
+-        }
 +    }
 +
 +    private static LayeredRegistryAccess<RegistryLayer> createUpdatedRegistries(

@@ -1,0 +1,171 @@
+--- a/com/mojang/renderpearl/backend/opengl/VertexArray.java
++++ /dev/null
+@@ -1,168 +_,0 @@
+-package com.mojang.renderpearl.backend.opengl;
+-
+-import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
+-import com.mojang.renderpearl.backend.api.BackendRenderPipeline;
+-import com.mojang.renderpearl.util.UncheckedAutoCloseable;
+-import java.util.Arrays;
+-import java.util.Set;
+-import java.util.function.BiFunction;
+-import net.neoforged.api.distmarker.Dist;
+-import net.neoforged.api.distmarker.OnlyIn;
+-import org.jspecify.annotations.Nullable;
+-import org.lwjgl.opengl.ARBVertexAttribBinding;
+-import org.lwjgl.opengl.GL33C;
+-import org.lwjgl.opengl.GLCapabilities;
+-
+-@OnlyIn(Dist.CLIENT)
+-public abstract sealed class VertexArray implements UncheckedAutoCloseable permits VertexArray.Emulated, VertexArray.Separate {
+-    protected final int vertexArrayId = GL33C.glGenVertexArrays();
+-
+-    public static BiFunction<GlProgram, BackendRenderPipeline.CreateInfo, VertexArray> createSource(GLCapabilities capabilities, Set<String> enabledExtensions) {
+-        if (capabilities.GL_ARB_vertex_attrib_binding && GlDevice.USE_GL_ARB_vertex_attrib_binding) {
+-            enabledExtensions.add("GL_ARB_vertex_attrib_binding");
+-            return VertexArray.Separate::new;
+-        } else {
+-            return VertexArray.Emulated::new;
+-        }
+-    }
+-
+-    private VertexArray() {
+-    }
+-
+-    @Override
+-    public void close() {
+-        GL33C.glDeleteVertexArrays(this.vertexArrayId);
+-    }
+-
+-    public abstract void bind(final @Nullable GpuBufferSlice[] vertexBuffers);
+-
+-    private static final class Emulated extends VertexArray {
+-        private final int[] bufferStride = new int[16];
+-        private final int[] bufferDivisor = new int[16];
+-        private final int[] bufferIndex = new int[16];
+-        private final int[] channelCount = new int[16];
+-        private final int[] glType = new int[16];
+-        private final boolean[] isInteger = new boolean[16];
+-        private final boolean[] isNormalized = new boolean[16];
+-        private final int[] elementOffset = new int[16];
+-
+-        private Emulated(GlProgram program, BackendRenderPipeline.CreateInfo createInfo) {
+-            GlStateManager._glBindVertexArray(this.vertexArrayId);
+-
+-            for (BackendRenderPipeline.CreateInfo.VertexBuffer vertexBuffer : createInfo.vertexBuffers()) {
+-                this.bufferStride[vertexBuffer.bufferSlot()] = vertexBuffer.stride();
+-                this.bufferDivisor[vertexBuffer.bufferSlot()] = vertexBuffer.stepRate();
+-            }
+-
+-            Arrays.fill(this.bufferIndex, -1);
+-
+-            for (BackendRenderPipeline.CreateInfo.AttribBinding attribBinding : createInfo.attribBindings()) {
+-                int attribLocation = attribBinding.location();
+-                GL33C.glEnableVertexAttribArray(attribLocation);
+-                this.bufferIndex[attribLocation] = attribBinding.bufferSlot();
+-                int glExternalId = GlConst.toGlExternalId(attribBinding.format());
+-                this.glType[attribLocation] = GlConst.toGlType(attribBinding.format());
+-                this.isInteger[attribLocation] = GlConst.isGlFormatInteger(glExternalId);
+-                this.isNormalized[attribLocation] = GlConst.isFormatNormalized(attribBinding.format());
+-                this.channelCount[attribLocation] = GlConst.glFormatChannelCount(glExternalId);
+-                this.elementOffset[attribLocation] = attribBinding.offset();
+-            }
+-
+-            GlStateManager._glBindVertexArray(0);
+-        }
+-
+-        @Override
+-        public void bind(@Nullable GpuBufferSlice[] vertexBuffers) {
+-            GlStateManager._glBindVertexArray(this.vertexArrayId);
+-
+-            for (int attributeIndex = 0; attributeIndex < 16; attributeIndex++) {
+-                if (this.bufferIndex[attributeIndex] != -1) {
+-                    int vertexBufferIndex = this.bufferIndex[attributeIndex];
+-                    if (vertexBuffers[vertexBufferIndex] == null) {
+-                        throw new IllegalStateException("Vertex buffer slot " + vertexBufferIndex + " not specified but required");
+-                    }
+-
+-                    GlStateManager._glBindBuffer(34962, ((GlBuffer)vertexBuffers[vertexBufferIndex].buffer()).handle());
+-                    long totalOffset = vertexBuffers[vertexBufferIndex].offset() + this.elementOffset[attributeIndex];
+-                    if (this.isInteger[attributeIndex]) {
+-                        GL33C.glVertexAttribIPointer(
+-                            attributeIndex, this.channelCount[attributeIndex], this.glType[attributeIndex], this.bufferStride[vertexBufferIndex], totalOffset
+-                        );
+-                    } else {
+-                        GL33C.glVertexAttribPointer(
+-                            attributeIndex,
+-                            this.channelCount[attributeIndex],
+-                            this.glType[attributeIndex],
+-                            this.isNormalized[attributeIndex],
+-                            this.bufferStride[vertexBufferIndex],
+-                            totalOffset
+-                        );
+-                    }
+-
+-                    GL33C.glVertexAttribDivisor(attributeIndex, this.bufferDivisor[vertexBufferIndex]);
+-                }
+-            }
+-        }
+-    }
+-
+-    private static final class Separate extends VertexArray {
+-        private final boolean needsMesaWorkaround;
+-        private final int[] strides = new int[16];
+-
+-        private Separate(GlProgram program, BackendRenderPipeline.CreateInfo createInfo) {
+-            if ("Mesa".equals(GL33C.glGetString(7936))) {
+-                String version = GL33C.glGetString(7938);
+-                this.needsMesaWorkaround = version.contains("25.0.0") || version.contains("25.0.1") || version.contains("25.0.2");
+-            } else {
+-                this.needsMesaWorkaround = false;
+-            }
+-
+-            GlStateManager._glBindVertexArray(this.vertexArrayId);
+-
+-            for (BackendRenderPipeline.CreateInfo.VertexBuffer vertexBuffer : createInfo.vertexBuffers()) {
+-                this.strides[vertexBuffer.bufferSlot()] = vertexBuffer.stride();
+-                ARBVertexAttribBinding.glVertexBindingDivisor(vertexBuffer.bufferSlot(), vertexBuffer.stepRate());
+-            }
+-
+-            for (BackendRenderPipeline.CreateInfo.AttribBinding attribBinding : createInfo.attribBindings()) {
+-                int attribLocation = attribBinding.location();
+-                GL33C.glEnableVertexAttribArray(attribLocation);
+-                int glExternalId = GlConst.toGlExternalId(attribBinding.format());
+-                int glType = GlConst.toGlType(attribBinding.format());
+-                boolean isIntegerFormat = GlConst.isGlFormatInteger(glExternalId);
+-                boolean isNormalizedFormat = GlConst.isFormatNormalized(attribBinding.format());
+-                int channelCount = GlConst.glFormatChannelCount(glExternalId);
+-                if (isIntegerFormat) {
+-                    ARBVertexAttribBinding.glVertexAttribIFormat(attribLocation, channelCount, glType, attribBinding.offset());
+-                } else {
+-                    ARBVertexAttribBinding.glVertexAttribFormat(attribLocation, channelCount, glType, isNormalizedFormat, attribBinding.offset());
+-                }
+-
+-                ARBVertexAttribBinding.glVertexAttribBinding(attribLocation, attribBinding.bufferSlot());
+-            }
+-
+-            GlStateManager._glBindVertexArray(0);
+-        }
+-
+-        @Override
+-        public void bind(@Nullable GpuBufferSlice[] vertexBuffers) {
+-            GlStateManager._glBindVertexArray(this.vertexArrayId);
+-
+-            for (int i = 0; i < vertexBuffers.length; i++) {
+-                if (this.strides[i] != 0) {
+-                    GpuBufferSlice vertexBufferSlice = vertexBuffers[i];
+-                    if (vertexBufferSlice == null) {
+-                        throw new IllegalStateException("Vertex buffer slot " + i + " not specified but required");
+-                    }
+-
+-                    GlBuffer vertexBuffer = (GlBuffer)vertexBufferSlice.buffer();
+-                    if (this.needsMesaWorkaround) {
+-                        ARBVertexAttribBinding.glBindVertexBuffer(i, 0, 0L, 0);
+-                    }
+-
+-                    ARBVertexAttribBinding.glBindVertexBuffer(i, vertexBuffer.handle(), vertexBufferSlice.offset(), this.strides[i]);
+-                }
+-            }
+-        }
+-    }
+-}

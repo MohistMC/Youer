@@ -1,0 +1,24 @@
+--- a/net/minecraft/world/item/trading/TradeRebalanceVillagerTrades.java
++++ b/net/minecraft/world/item/trading/TradeRebalanceVillagerTrades.java
+@@ -14,7 +_,9 @@
+ import net.minecraft.world.item.Items;
+ import net.minecraft.world.item.enchantment.Enchantment;
+ import net.minecraft.world.item.enchantment.Enchantments;
+-import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProviders;
++import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
++import net.minecraft.world.level.storage.loot.providers.number.Sum;
++import net.minecraft.world.level.storage.loot.providers.number.UniformGenerator;
+ 
+ public class TradeRebalanceVillagerTrades extends VillagerTrades {
+     public static final ResourceKey<VillagerTrade> LIBRARIAN_1_EMERALD_AND_BOOK_DESERT_ENCHANTED_BOOK = resourceKey(
+@@ -869,9 +_,7 @@
+         HolderGetter<Item> items, HolderSet<Enchantment> doubleTradePrice, HolderSet<VillagerType> villagerTypes, Holder<Enchantment> enchantment, int level
+     ) {
+         return VillagerTrade.builder(
+-                new TradeCost(
+-                    Items.EMERALD, ContextIntProviders.add(ContextIntProviders.exactly(3 * level + 2), ContextIntProviders.between(0, 5 + level * 10))
+-                ),
++                new TradeCost(Items.EMERALD, Sum.sum(ConstantValue.exactly(3 * level + 2), UniformGenerator.between(0.0F, 5 + level * 10))),
+                 new TradeCost(Items.BOOK, 1),
+                 new ItemStackTemplate(Items.ENCHANTED_BOOK),
+                 12,

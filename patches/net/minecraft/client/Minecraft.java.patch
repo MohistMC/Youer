@@ -1,0 +1,501 @@
+--- a/net/minecraft/client/Minecraft.java
++++ b/net/minecraft/client/Minecraft.java
+@@ -18,7 +_,6 @@
+ import com.mojang.blaze3d.platform.FramerateLimitTracker;
+ import com.mojang.blaze3d.platform.IconSet;
+ import com.mojang.blaze3d.platform.InputConstants;
+-import com.mojang.blaze3d.platform.MacosUtil;
+ import com.mojang.blaze3d.platform.MessageBox;
+ import com.mojang.blaze3d.platform.MonitorManager;
+ import com.mojang.blaze3d.platform.SDLEventHandler;
+@@ -29,8 +_,6 @@
+ import com.mojang.blaze3d.systems.TimerQuery;
+ import com.mojang.datafixers.DataFixer;
+ import com.mojang.jtracy.DiscontinuousFrame;
+-import com.mojang.jtracy.Section;
+-import com.mojang.jtracy.SectionCategory;
+ import com.mojang.jtracy.TracyClient;
+ import com.mojang.logging.LogUtils;
+ import com.mojang.realmsclient.RealmsMainScreen;
+@@ -109,7 +_,6 @@
+ import net.minecraft.client.gui.screens.social.PlayerSocialManager;
+ import net.minecraft.client.gui.screens.social.RemoteFriendListUpdateHandler;
+ import net.minecraft.client.gui.screens.worldselection.WorldOpenFlows;
+-import net.minecraft.client.input.InputQuirks;
+ import net.minecraft.client.main.GameConfig;
+ import net.minecraft.client.model.geom.EntityModelSet;
+ import net.minecraft.client.multiplayer.ClientHandshakePacketListenerImpl;
+@@ -129,7 +_,6 @@
+ import net.minecraft.client.player.LocalPlayerResolver;
+ import net.minecraft.client.profiling.ClientMetricsSamplersProvider;
+ import net.minecraft.client.quickplay.QuickPlayLog;
+-import net.minecraft.client.renderer.FirstPersonHandsAndItemsRenderer;
+ import net.minecraft.client.renderer.GameRenderer;
+ import net.minecraft.client.renderer.GpuWarnlistManager;
+ import net.minecraft.client.renderer.LevelRenderer;
+@@ -186,7 +_,6 @@
+ import net.minecraft.network.chat.contents.KeybindResolver;
+ import net.minecraft.network.protocol.game.ServerboundClientTickEndPacket;
+ import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
+-import net.minecraft.network.protocol.game.ServerboundPunchPacket;
+ import net.minecraft.network.protocol.login.ServerboundHelloPacket;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.server.Bootstrap;
+@@ -246,7 +_,6 @@
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.component.AttackRange;
+ import net.minecraft.world.item.component.PiercingWeapon;
+-import net.minecraft.world.item.component.SwingAnimation;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.RenderShape;
+@@ -268,7 +_,6 @@
+ public class Minecraft extends ReentrantBlockableEventLoop<Runnable> implements WindowEventHandler {
+     private static Minecraft instance;
+     private static final Logger LOGGER = LogUtils.getLogger();
+-    private static final SectionCategory TRACY_CURRENT_LEVEL = TracyClient.createSectionCategory("Level");
+     private static final int MAX_TICKS_PER_UPDATE = 10;
+     public static final Identifier DEFAULT_FONT = Identifier.withDefaultNamespace("default");
+     private static final Identifier REGIONAL_COMPLIANCIES = Identifier.withDefaultNamespace("regional_compliancies.json");
+@@ -347,7 +_,6 @@
+     private @Nullable IntegratedServer singleplayerServer;
+     private @Nullable Connection pendingConnection;
+     private boolean isLocalServer;
+-    private @Nullable Section tracyLevelSection;
+     public @Nullable Entity crosshairPickEntity;
+     public @Nullable HitResult hitResult;
+     private int rightClickDelay;
+@@ -361,7 +_,6 @@
+     private static int fps;
+     private long frameTimeNs;
+     private final FramerateLimitTracker framerateLimitTracker;
+-    public boolean multiDrawIndirect = true;
+     public boolean wireframe;
+     public boolean smartCull = true;
+     private long lastActiveTime = Util.getMillis();
+@@ -442,13 +_,8 @@
+             displayData = gameConfig.display.withSize(this.options.overrideWidth, this.options.overrideHeight);
+         }
+ 
+-        if (this.options.fullscreen().get()) {
+-            displayData = displayData.withFullscreen(true);
+-        }
+-
+         if (!lastStartWasClean) {
+             displayData = displayData.withFullscreen(false);
+-            this.options.fullscreen().set(false);
+             this.options.fullscreenVideoModeString = null;
+             LOGGER.warn("Detected unexpected shutdown during last game startup: resetting fullscreen mode");
+         }
+@@ -456,7 +_,7 @@
+         Util.setTimeSource(RenderSystem.initBackendSystem());
+         this.monitorManager = new MonitorManager();
+         StringBuilder errorMsgBuilder = new StringBuilder("No supported graphics backend was found.");
+-        GpuBackend backend = null;
++        Window windowCandidate = null;
+         GpuDevice device = null;
+         PreferredGraphicsApi forcedGraphicsApi = gameConfig.game.forcedGraphicsApi;
+         if (forcedGraphicsApi != null) {
+@@ -483,70 +_,70 @@
+ 
+         String initialWindowTitle = this.createTitle();
+ 
+-        for (GpuBackend backendToTry : backendsToTry) {
++        for (GpuBackend backend : backendsToTry) {
+             boolean libraryLoaded = false;
+ 
+             try {
+-                backendToTry.loadLibrary();
++                backend.loadLibrary();
+                 libraryLoaded = true;
+-                device = backendToTry.createDevice(
+-                    new GpuDebugOptions(
+-                        this.options.glDebugVerbosity,
+-                        SharedConstants.DEBUG_SYNCHRONOUS_GL_LOGS,
+-                        gameConfig.game.renderDebugLabels,
+-                        gameConfig.game.vulkanValidation
+-                    )
++                windowCandidate = new Window(
++                    this,
++                    displayData,
++                    this.options.fullscreenVideoModeString,
++                    this.options.exclusiveFullscreen().get(),
++                    initialWindowTitle,
++                    this.monitorManager,
++                    backend
+                 );
+-                backend = backendToTry;
++                device = windowCandidate.backend()
++                    .createDevice(
++                        windowCandidate.handle(),
++                        new GpuDebugOptions(
++                            this.options.glDebugVerbosity,
++                            SharedConstants.DEBUG_SYNCHRONOUS_GL_LOGS,
++                            gameConfig.game.renderDebugLabels,
++                            gameConfig.game.vulkanValidation
++                        )
++                    );
++                DeviceInfo deviceInfo = device.getDeviceInfo();
++                int maxSize = deviceInfo.limits().maxTextureSizeForFormat(GpuFormat.RGBA8_UNORM);
++                windowCandidate.setWindowMaxSize(maxSize, maxSize);
++                RenderSystem.initRenderer(device);
++                RenderSystem.trackBackendLibraryForShutdown(backend);
++                LOGGER.info("Using graphics backend {}, using drivers: {}", deviceInfo.backendName(), deviceInfo.driverInfo());
++                LOGGER.info("Using graphics device: {} ({})", deviceInfo.name(), deviceInfo.vendorName());
++                LOGGER.info("Using graphics device extensions: {}", String.join(", ", deviceInfo.underlyingExtensions()));
+                 break;
+             } catch (BackendCreationException exception) {
+-                LOGGER.error("Failed to create backend {}", backendToTry.getName(), exception);
+-                errorMsgBuilder.append("\n\n- Tried ").append(backendToTry.getName()).append(": \n  ").append(exception.getMessage());
++                LOGGER.error("Failed to create backend {}", backend.getName(), exception);
++                errorMsgBuilder.append("\n\n- Tried ").append(backend.getName()).append(": \n  ").append(exception.getMessage());
+                 if (this.backendCreationException == null || exception.getReason() != BackendCreationException.Reason.OPENGL_MISSING) {
+                     this.backendCreationException = exception;
+                 }
+ 
++                if (windowCandidate != null) {
++                    windowCandidate.close();
++                    windowCandidate = null;
++                }
++
+                 if (libraryLoaded) {
+-                    backendToTry.unloadLibrary();
++                    backend.unloadLibrary();
+                 }
+             }
+         }
+ 
+-        if (device == null) {
++        if (windowCandidate == null) {
+             errorMsgBuilder.append("\n\n").append("Please make sure you have up-to-date drivers (see aka.ms/mcdriver for instructions).");
+             String errorMsg = errorMsgBuilder.toString();
+             MessageBox.error(errorMsg);
+             throw new Window.WindowInitFailed(errorMsg);
+         }
+ 
+-        RenderSystem.initRenderer(device);
+-        RenderSystem.trackBackendLibraryForShutdown(backend);
+-        DeviceInfo deviceInfo = device.getDeviceInfo();
+-        LOGGER.info("Using graphics backend {}, using drivers: {}", deviceInfo.backendName(), deviceInfo.driverInfo());
+-        LOGGER.info("Using graphics device: {} ({})", deviceInfo.name(), deviceInfo.vendorName());
+-        LOGGER.info("Using graphics device extensions: {}", String.join(", ", deviceInfo.underlyingExtensions()));
+-        this.window = new Window(
+-            this,
+-            displayData,
+-            this.options.fullscreenVideoModeString,
+-            this.options.exclusiveFullscreen().get(),
+-            initialWindowTitle,
+-            this.monitorManager,
+-            backend
+-        );
+-        int maxSize = deviceInfo.limits().maxTextureSizeForFormat(GpuFormat.RGBA8_UNORM);
+-        this.window.setWindowMaxSize(maxSize, maxSize);
+-
+-        try {
+-            this.window.setIcon(this.vanillaPackResources.fullResources(), SharedConstants.getCurrentVersion().stable() ? IconSet.RELEASE : IconSet.SNAPSHOT);
+-        } catch (IOException e) {
+-            LOGGER.error("Couldn't set icon", e);
+-        }
+-
+-        this.windowSurface = device.createSurface(this.window.handle(), this.window::isIconified);
++        this.window = windowCandidate;
++        this.windowSurface = device.createSurface(this.window.handle());
+         this.sdlEventHandler = new SDLEventHandler(this, this.window);
+         this.textInputManager = new TextInputManager(this.window);
+-        this.sdlEventHandler.flushInputEvents();
++        this.window.show();
+         this.window
+             .setWindowCloseCallback(
+                 new Runnable() {
+@@ -570,7 +_,7 @@
+         this.resourceManager = new ReloadableResourceManager(PackType.CLIENT_RESOURCES);
+         this.resourcePackRepository.reload();
+         this.options.loadSelectedResourcePacks(this.resourcePackRepository);
+-        this.languageManager = new LanguageManager(this, this.options.languageCode, var1 -> {
++        this.languageManager = new LanguageManager(this.options.languageCode, var1 -> {
+             if (this.player != null) {
+                 this.player.connection.updateSearchTrees();
+             }
+@@ -619,6 +_,7 @@
+         }
+ 
+         this.entityRenderDispatcher = new EntityRenderDispatcher(
++            this,
+             this.textureManager,
+             blockModelResolver,
+             this.itemModelResolver,
+@@ -646,8 +_,8 @@
+         this.resourceManager.registerReloadListener(particleResources);
+         this.particleEngine = new ParticleEngine(this.level, particleResources);
+         particleResources.onReload(this.particleEngine::clearParticles);
+-        this.gameRenderer = new GameRenderer(this, new FirstPersonHandsAndItemsRenderer(this), this.modelManager, this.itemModelResolver);
+-        this.resourceManager.registerReloadListener(this.gameRenderer);
++        this.gameRenderer = new GameRenderer(this, this.entityRenderDispatcher.getItemInHandRenderer(), this.modelManager);
++        this.resourceManager.registerReloadListener(this.gameRenderer.createReloadListener());
+         WindowRenderState windowRenderState = this.gameRenderer.gameRenderState().windowRenderState;
+         windowRenderState.width = this.window.getWidth();
+         windowRenderState.height = this.window.getHeight();
+@@ -687,22 +_,28 @@
+                 if (!messages.isEmpty()) {
+                     message.append("\n\nReported GL debug messages:\n").append(String.join("\n", messages));
+                 }
+-            } catch (Throwable var30) {
++            } catch (Throwable var29) {
+             }
+ 
+             this.window.setWindowed(mainRenderTarget.width, mainRenderTarget.height);
+             MessageBox.error(message.toString());
++        } else if (this.options.fullscreen().get() && !this.window.isFullscreen()) {
++            if (lastStartWasClean) {
++                this.window.setFullscreen(true);
++            } else {
++                this.options.fullscreen().set(false);
++            }
+         }
+ 
+         this.window.setAllowCursorChanges(this.options.allowCursorChanges().get());
+-        this.window.setQuitShortcuts(this.options.quitShortcuts().get());
+-        if (InputQuirks.EMULATE_RIGHT_CLICK_WITH_CTRL_KEY) {
+-            MacosUtil.setCtrlClickEmulatesRightClick(this.options.ctrlClickEmulatesRightClick().get());
+-        }
+-
+-        MacosUtil.setFullscreenMenuVisibility(this.options.macFullscreenMenuVisibility().get());
+-        this.window.show();
+         this.resizeGui();
++
++        try {
++            this.window.setIcon(this.vanillaPackResources.fullResources(), SharedConstants.getCurrentVersion().stable() ? IconSet.RELEASE : IconSet.SNAPSHOT);
++        } catch (IOException e) {
++            LOGGER.error("Couldn't set icon", e);
++        }
++
+         this.loadCriticalShaders();
+         this.telemetryManager = new ClientTelemetryManager(this, this.userApiService, this.user);
+         this.profileKeyPairManager = this.offlineDeveloperMode
+@@ -740,9 +_,6 @@
+         }
+ 
+         this.packetProcessor = new PacketProcessor(this.gameThread);
+-        this.sdlEventHandler.pumpEvents();
+-        this.framebufferSizeChanged();
+-        this.renderFrame(false);
+         this.telemetryManager
+             .getOutsideSessionSender()
+             .send(
+@@ -848,7 +_,7 @@
+     }
+ 
+     private void loadCriticalShaders() {
+-        GameRenderer.preloadUiShader(this.vanillaPackResources.asResourceManager());
++        this.gameRenderer.preloadUiShader(this.vanillaPackResources.asProvider());
+     }
+ 
+     private void rollbackResourcePacks(Throwable t, @Nullable GameLoadCookie loadCookie) {
+@@ -1124,7 +_,6 @@
+         Util.shutdownTimeSource();
+ 
+         try {
+-            this.playerSocialManager.getPresenceHandler().sendOfflinePresence();
+             this.remoteFriendListUpdateHandler.close();
+             this.timerQuery.close();
+             this.telemetryManager.close();
+@@ -1145,6 +_,7 @@
+ 
+             this.narrator.destroy();
+             FreeTypeUtil.destroy();
++            Util.shutdownExecutors();
+             this.windowSurface.close();
+             RenderSystem.shutdownRenderer();
+         } catch (Throwable t) {
+@@ -1154,7 +_,6 @@
+             this.window.close();
+             RenderSystem.unloadTrackedBackendLibrary();
+             SDLInit.SDL_Quit();
+-            Util.shutdownExecutors();
+         }
+     }
+ 
+@@ -1246,7 +_,7 @@
+             try (Gizmos.TemporaryCollection ignored = this.levelExtractor.collectPerFrameMainThreadGizmos()) {
+                 profiler.push("update window");
+                 this.window.updateFullscreenIfChanged();
+-                if ((this.windowSurfaceNeedsReconfiguring || this.windowSurface.isSuboptimal() && !this.surfaceIsInvalid) && !this.window.isIconified()) {
++                if (this.windowSurfaceNeedsReconfiguring || this.windowSurface.isSuboptimal() && !this.surfaceIsInvalid) {
+                     Window.FramebufferSize framebufferSize = this.window.queryFramebufferSize();
+                     GpuSurface.PresentMode presentMode = GpuSurface.PresentMode.getSupportedVsyncMode(
+                         this.windowSurface.supportedPresentModes(), this.options.enableVsync().get()
+@@ -1263,7 +_,7 @@
+                     }
+                 }
+ 
+-                if (!this.surfaceIsInvalid) {
++                if (!this.surfaceIsInvalid && !this.window.isIconified()) {
+                     try {
+                         this.windowSurface.acquireNextTexture();
+                     } catch (SurfaceException ex) {
+@@ -1307,7 +_,7 @@
+                 this.gameRenderer.render();
+             }
+ 
+-            profiler.push("swapchainBlit");
++            profiler.push("present");
+             if (this.windowSurface.isAcquired()) {
+                 GpuTextureView colorTexture = this.gameRenderer.mainRenderTarget().getColorTextureView();
+                 if (colorTexture == null) {
+@@ -1322,20 +_,17 @@
+                 this.timerQuery.endProfile();
+             }
+ 
++            profiler.popPush("swapBuffers");
+             if (this.tracyFrameCapture != null) {
+-                profiler.popPush("tracyCapture");
+                 this.tracyFrameCapture.upload();
+                 this.tracyFrameCapture.capture(this.gameRenderer.mainRenderTarget());
+             }
+ 
+-            profiler.popPush("submit");
+             RenderSystem.getDevice().createCommandEncoder().submit();
+-            profiler.popPush("present");
+             if (this.windowSurface.isAcquired()) {
+                 this.windowSurface.present();
+             }
+ 
+-            profiler.popPush("endFrame");
+             if (this.tracyFrameCapture != null) {
+                 this.tracyFrameCapture.endFrame();
+             }
+@@ -1433,7 +_,6 @@
+             this.gui.screen().resize(this.window.getGuiScaledWidth(), this.window.getGuiScaledHeight());
+         }
+ 
+-        this.mouseHandler.resyncMousePosition();
+         this.mouseHandler.setIgnoreFirstMove();
+     }
+ 
+@@ -1614,7 +_,6 @@
+         if (this.missTime <= 0 && !this.player.isUsingItem()) {
+             ItemStack heldItem = this.player.getItemInHand(InteractionHand.MAIN_HAND);
+             if (!heldItem.has(DataComponents.PIERCING_WEAPON)) {
+-                SwingAnimation swingAnimation = heldItem.getAttackAnimation();
+                 if (down && this.hitResult != null && this.hitResult.getType() == HitResult.Type.BLOCK) {
+                     BlockHitResult blockHit = (BlockHitResult)this.hitResult;
+                     BlockPos pos = blockHit.getBlockPos();
+@@ -1622,8 +_,7 @@
+                         Direction direction = blockHit.getDirection();
+                         if (this.gameMode.continueDestroyBlock(pos, direction)) {
+                             this.level.addBreakingBlockEffect(pos, direction);
+-                            this.player.swing(InteractionHand.MAIN_HAND, swingAnimation, false);
+-                            this.player.connection.send(ServerboundPunchPacket.INSTANCE);
++                            this.player.swing(InteractionHand.MAIN_HAND);
+                         }
+                     }
+                 } else {
+@@ -1668,11 +_,11 @@
+                     return false;
+                 }
+ 
+-                SwingAnimation attackAnimation = heldItem.getAttackAnimation();
+                 boolean endAttack = false;
+                 PiercingWeapon piercingWeapon = heldItem.get(DataComponents.PIERCING_WEAPON);
+                 if (piercingWeapon != null) {
+-                    this.gameMode.piercingAttack(attackAnimation, piercingWeapon);
++                    this.gameMode.piercingAttack(piercingWeapon);
++                    this.player.swing(InteractionHand.MAIN_HAND);
+                     return true;
+                 }
+ 
+@@ -1701,8 +_,7 @@
+                         this.player.resetAttackStrengthTicker();
+                 }
+ 
+-                this.player.swing(InteractionHand.MAIN_HAND, attackAnimation, false);
+-                this.player.connection.send(ServerboundPunchPacket.INSTANCE);
++                this.player.swing(InteractionHand.MAIN_HAND);
+                 return endAttack;
+             }
+         }
+@@ -1722,7 +_,6 @@
+                         return;
+                     }
+ 
+-                    SwingAnimation swingAnimation = heldItem.getInteractAnimation();
+                     if (this.hitResult != null) {
+                         switch (this.hitResult.getType()) {
+                             case ENTITY:
+@@ -1734,8 +_,8 @@
+ 
+                                 if (this.player.isWithinEntityInteractionRange(entity, 0.0)
+                                     && this.gameMode.interact(this.player, entity, entityHit, hand) instanceof InteractionResult.Success success) {
+-                                    if (success.swingSource() == InteractionResult.SwingSource.PREDICTED) {
+-                                        this.player.swing(hand, swingAnimation, false);
++                                    if (success.swingSource() == InteractionResult.SwingSource.CLIENT) {
++                                        this.player.swing(hand);
+                                     }
+ 
+                                     return;
+@@ -1746,10 +_,10 @@
+                                 int oldCount = heldItem.getCount();
+                                 InteractionResult useResult = this.gameMode.useItemOn(this.player, hand, blockHit);
+                                 if (useResult instanceof InteractionResult.Success success) {
+-                                    if (success.swingSource() == InteractionResult.SwingSource.PREDICTED) {
+-                                        this.player.swing(hand, swingAnimation, false);
++                                    if (success.swingSource() == InteractionResult.SwingSource.CLIENT) {
++                                        this.player.swing(hand);
+                                         if (!heldItem.isEmpty() && (heldItem.getCount() != oldCount || this.player.hasInfiniteMaterials())) {
+-                                            this.player.itemUsed(hand);
++                                            this.gameRenderer.itemInHandRenderer.itemUsed(hand);
+                                         }
+                                     }
+ 
+@@ -1763,11 +_,11 @@
+                     }
+ 
+                     if (!heldItem.isEmpty() && this.gameMode.useItem(this.player, hand) instanceof InteractionResult.Success success) {
+-                        if (success.swingSource() == InteractionResult.SwingSource.PREDICTED) {
+-                            this.player.swing(hand, swingAnimation, false);
++                        if (success.swingSource() == InteractionResult.SwingSource.CLIENT) {
++                            this.player.swing(hand);
+                         }
+ 
+-                        this.player.itemUsed(hand);
++                        this.gameRenderer.itemInHandRenderer.itemUsed(hand);
+                         return;
+                     }
+                 }
+@@ -1943,8 +_,8 @@
+         }
+ 
+         while (this.options.keyDrop.consumeClick()) {
+-            if (!this.player.isSpectator()) {
+-                this.gameMode.dropItem(this.player, this.hasControlDown());
++            if (!this.player.isSpectator() && this.player.drop(this.hasControlDown())) {
++                this.player.swing(InteractionHand.MAIN_HAND);
+             }
+         }
+ 
+@@ -2232,25 +_,6 @@
+         this.particleEngine.setLevel(level);
+         this.gameRenderer.setLevel(level);
+         this.updateTitle();
+-        if (this.tracyLevelSection != null) {
+-            this.tracyLevelSection.close();
+-            this.tracyLevelSection = null;
+-        }
+-
+-        if (level != null) {
+-            String name;
+-            if (this.isLocalServer()) {
+-                if (this.isMultiplayerServer()) {
+-                    name = "Multiplayer (host)";
+-                } else {
+-                    name = "Singleplayer";
+-                }
+-            } else {
+-                name = "Multiplayer (client)";
+-            }
+-
+-            this.tracyLevelSection = TRACY_CURRENT_LEVEL.enterSection(name);
+-        }
+     }
+ 
+     private UserProperties userProperties() {

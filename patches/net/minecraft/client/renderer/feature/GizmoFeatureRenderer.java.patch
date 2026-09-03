@@ -1,0 +1,20 @@
+--- a/net/minecraft/client/renderer/feature/GizmoFeatureRenderer.java
++++ b/net/minecraft/client/renderer/feature/GizmoFeatureRenderer.java
+@@ -48,7 +_,7 @@
+                 TextGizmo.Style style = text.style();
+                 this.poseStack.pushPose();
+                 this.poseStack.translate((float)(text.pos().x() - camX), (float)(text.pos().y() - camY), (float)(text.pos().z() - camZ));
+-                this.poseStack.rotate(camera.orientation);
++                this.poseStack.mulPose(camera.orientation);
+                 this.poseStack.scale(style.scale() / 16.0F, -style.scale() / 16.0F, style.scale() / 16.0F);
+                 float fontX;
+                 if (style.adjustLeft().isEmpty()) {
+@@ -73,7 +_,7 @@
+ 
+     private void buildLines(List<DrawableGizmoPrimitives.Line> lines, CameraRenderState camera, Matrix4fc modelViewMatrix, boolean opaque) {
+         if (!lines.isEmpty()) {
+-            VertexConsumer builder = this.getVertexBuilder(opaque ? RenderTypes.lines() : RenderTypes.linesTranslucentNoDepthWrite());
++            VertexConsumer builder = this.getVertexBuilder(opaque ? RenderTypes.lines() : RenderTypes.linesTranslucent());
+             PoseStack.Pose pose = this.poseStack.last();
+             Vector4f start = new Vector4f();
+             Vector4f end = new Vector4f();

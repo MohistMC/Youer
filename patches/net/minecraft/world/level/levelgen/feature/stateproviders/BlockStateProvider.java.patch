@@ -1,0 +1,48 @@
+--- a/net/minecraft/world/level/levelgen/feature/stateproviders/BlockStateProvider.java
++++ b/net/minecraft/world/level/levelgen/feature/stateproviders/BlockStateProvider.java
+@@ -1,13 +_,9 @@
+ package net.minecraft.world.level.levelgen.feature.stateproviders;
+ 
+-import com.mojang.datafixers.util.Either;
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.MapCodec;
+ import net.minecraft.core.BlockPos;
+-import net.minecraft.core.Holder;
+ import net.minecraft.core.registries.BuiltInRegistries;
+-import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.level.LevelAccessor;
+ import net.minecraft.world.level.block.Block;
+@@ -15,28 +_,14 @@
+ import org.jspecify.annotations.Nullable;
+ 
+ public interface BlockStateProvider {
+-    Codec<BlockStateProvider> TYPED_CODEC = BuiltInRegistries.BLOCK_STATE_PROVIDER_TYPE.byNameCodec().dispatch(BlockStateProvider::codec, c -> c);
+-    Codec<Either<BlockState, BlockStateProvider>> STATE_OR_PROVIDER_CODEC = Codec.xor(BlockState.FULL_CODEC, TYPED_CODEC);
+-    Codec<BlockStateProvider> DIRECT_CODEC = STATE_OR_PROVIDER_CODEC.xmap(
+-        e -> e.map(SimpleStateProvider::new, s -> (BlockStateProvider)s),
+-        provider -> provider instanceof SimpleStateProvider(BlockState state) ? Either.left(state) : Either.right(provider)
+-    );
+-    Codec<Holder<BlockStateProvider>> CODEC = RegistryCodecs.holder(Registries.BLOCK_STATE_PROVIDER, DIRECT_CODEC);
++    Codec<BlockStateProvider> CODEC = BuiltInRegistries.BLOCK_STATE_PROVIDER_TYPE.byNameCodec().dispatch(BlockStateProvider::codec, c -> c);
+ 
+-    static SimpleStateProvider of(BlockState state) {
++    static SimpleStateProvider simple(BlockState state) {
+         return new SimpleStateProvider(state);
+     }
+ 
+-    static SimpleStateProvider of(Block block) {
++    static SimpleStateProvider simple(Block block) {
+         return new SimpleStateProvider(block.defaultBlockState());
+-    }
+-
+-    static Holder<BlockStateProvider> holderOf(BlockState state) {
+-        return Holder.direct(of(state));
+-    }
+-
+-    static Holder<BlockStateProvider> holderOf(Block block) {
+-        return Holder.direct(of(block));
+     }
+ 
+     MapCodec<? extends BlockStateProvider> codec();

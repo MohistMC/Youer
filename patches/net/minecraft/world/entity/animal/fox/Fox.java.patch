@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/entity/animal/fox/Fox.java
 +++ b/net/minecraft/world/entity/animal/fox/Fox.java
-@@ -41,7 +_,6 @@
+@@ -28,6 +_,7 @@
+ import net.minecraft.stats.Stats;
+ import net.minecraft.tags.BiomeTags;
+ import net.minecraft.tags.BlockTags;
++import net.minecraft.tags.FluidTags;
+ import net.minecraft.tags.ItemTags;
+ import net.minecraft.util.ByIdMap;
+ import net.minecraft.util.Mth;
+@@ -40,7 +_,6 @@
  import net.minecraft.world.entity.EntityAttachment;
  import net.minecraft.world.entity.EntityAttachments;
  import net.minecraft.world.entity.EntityDimensions;
@@ -8,7 +16,7 @@
  import net.minecraft.world.entity.EntityReference;
  import net.minecraft.world.entity.EntitySelector;
  import net.minecraft.world.entity.EntitySpawnReason;
-@@ -107,6 +_,10 @@
+@@ -106,6 +_,10 @@
  import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
  
@@ -19,7 +27,7 @@
  public class Fox extends Animal {
      private static final EntityDataAccessor<Integer> DATA_TYPE_ID = SynchedEntityData.defineId(Fox.class, EntityDataSerializers.INT);
      private static final EntityDataAccessor<Byte> DATA_FLAGS_ID = SynchedEntityData.defineId(Fox.class, EntityDataSerializers.BYTE);
-@@ -150,6 +_,20 @@
+@@ -149,6 +_,20 @@
      private static final float MAX_CROUCH_AMOUNT = 5.0F;
      private int ticksSinceEaten;
  
@@ -40,7 +48,7 @@
      public Fox(EntityType<? extends Fox> type, Level level) {
          super(type, level);
          this.lookControl = new Fox.FoxLookControl();
-@@ -160,6 +_,21 @@
+@@ -159,6 +_,21 @@
          this.getNavigation().setRequiredPathLength(32.0F);
      }
  
@@ -62,7 +70,7 @@
      @Override
      protected void defineSynchedData(SynchedEntityData.Builder entityData) {
          super.defineSynchedData(entityData);
-@@ -287,7 +_,7 @@
+@@ -286,7 +_,7 @@
      }
  
      @Override
@@ -71,7 +79,7 @@
          if (id == 45) {
              ItemStack mouthItem = this.getItemBySlot(EquipmentSlot.MAINHAND);
              if (!mouthItem.isEmpty()) {
-@@ -366,6 +_,11 @@
+@@ -365,6 +_,11 @@
      }
  
      private void setTargetGoals() {
@@ -83,7 +91,7 @@
          if (this.getVariant() == Fox.Variant.RED) {
              this.targetSelector.addGoal(4, this.landTargetGoal);
              this.targetSelector.addGoal(4, this.turtleEggTargetGoal);
-@@ -393,6 +_,7 @@
+@@ -392,6 +_,7 @@
  
      public void setVariant(Fox.Variant variant) {
          this.entityData.set(DATA_TYPE_ID, variant.getId());
@@ -91,7 +99,7 @@
      }
  
      @Override
-@@ -449,7 +_,7 @@
+@@ -448,7 +_,7 @@
          input.read("Trusted", TRUSTED_LIST_CODEC).orElse(List.of()).forEach(this::addTrustedEntity);
          this.setSleeping(input.getBooleanOr("Sleeping", false));
          this.setVariant(input.read("Type", Fox.Variant.CODEC).orElse(Fox.Variant.DEFAULT));
@@ -100,7 +108,7 @@
          this.setIsCrouching(input.getBooleanOr("Crouching", false));
          if (this.level() instanceof ServerLevel) {
              this.setTargetGoals();
-@@ -466,6 +_,12 @@
+@@ -465,6 +_,12 @@
      }
  
      public void setSitting(boolean value) {
@@ -113,7 +121,7 @@
          this.setFlag(1, value);
      }
  
-@@ -525,19 +_,20 @@
+@@ -524,19 +_,20 @@
              thrownItem.setPickUpDelay(40);
              thrownItem.setThrower(this);
              this.playSound(SoundEvents.FOX_SPIT, 1.0F, 1.0F);
@@ -137,7 +145,7 @@
              int count = itemStack.getCount();
              if (count > 1) {
                  this.dropItemStack(itemStack.split(count - 1));
-@@ -548,7 +_,7 @@
+@@ -547,7 +_,7 @@
              this.setItemSlot(EquipmentSlot.MAINHAND, itemStack.split(1));
              this.setGuaranteedDrop(EquipmentSlot.MAINHAND);
              this.take(entity, itemStack.getCount());
@@ -146,7 +154,7 @@
              this.ticksSinceEaten = 0;
          }
      }
-@@ -639,12 +_,12 @@
+@@ -638,12 +_,12 @@
      }
  
      @Override
@@ -161,7 +169,7 @@
      }
  
      private void wakeUp() {
-@@ -705,15 +_,57 @@
+@@ -704,15 +_,57 @@
          return this.getTrustedEntities().anyMatch(trusted -> trusted.matches(entity));
      }
  
@@ -220,7 +228,7 @@
      }
  
      public static boolean isPathClear(Fox fox, LivingEntity target) {
-@@ -869,6 +_,17 @@
+@@ -868,6 +_,17 @@
          @Override
          protected void breed() {
              Fox offspring = (Fox)this.animal.getBreedOffspring(this.level, this.partner);
@@ -238,7 +246,7 @@
              if (offspring != null) {
                  ServerPlayer animalLoveCause = this.animal.getLoveCause();
                  ServerPlayer partnerLoveCause = this.partner.getLoveCause();
-@@ -883,23 +_,34 @@
+@@ -882,23 +_,34 @@
                      offspring.addTrustedEntity(partnerLoveCause);
                  }
  
@@ -280,7 +288,7 @@
                          );
                  }
              }
-@@ -946,7 +_,7 @@
+@@ -945,7 +_,7 @@
          }
  
          protected void onReachedTarget() {
@@ -289,7 +297,7 @@
                  BlockState state = Fox.this.level().getBlockState(this.blockPos);
                  if (state.is(Blocks.SWEET_BERRY_BUSH)) {
                      this.pickSweetBerries(state);
-@@ -963,6 +_,7 @@
+@@ -962,6 +_,7 @@
          private void pickSweetBerries(BlockState state) {
              int age = state.getValue(SweetBerryBushBlock.AGE);
              state.setValue(SweetBerryBushBlock.AGE, 1);
@@ -297,3 +305,12 @@
              int count = 1 + Fox.this.level().getRandom().nextInt(2) + (age == 3 ? 1 : 0);
              ItemStack heldItem = Fox.this.getItemBySlot(EquipmentSlot.MAINHAND);
              if (heldItem.isEmpty()) {
+@@ -1004,7 +_,7 @@
+ 
+         @Override
+         public boolean canUse() {
+-            return Fox.this.isInFluidDeeperThan(0.25, this.fluid) || Fox.this.isInLava();
++            return Fox.this.isInWater() && Fox.this.getFluidHeight(FluidTags.WATER) > 0.25 || Fox.this.isInLava();
+         }
+     }
+ 

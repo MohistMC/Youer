@@ -1,0 +1,58 @@
+--- a/net/minecraft/data/worldgen/features/AquaticFeatures.java
++++ b/net/minecraft/data/worldgen/features/AquaticFeatures.java
+@@ -65,15 +_,17 @@
+         context.register(SEAGRASS_TALL, seagrass(80));
+         context.register(
+             SEA_PICKLE,
+-            new SimpleBlockFeature(new RandomizedIntStateProvider(BlockStateProvider.of(Blocks.SEA_PICKLE), BlockStateProperties.PICKLES, UniformInt.of(1, 4)))
++            new SimpleBlockFeature(
++                new RandomizedIntStateProvider(BlockStateProvider.simple(Blocks.SEA_PICKLE), BlockStateProperties.PICKLES, UniformInt.of(1, 4))
++            )
+         );
+         context.register(
+             KELP,
+             new BlockColumnFeature(
+                 List.of(
+-                    BlockColumnFeature.layer(UniformInt.of(0, 9), BlockStateProvider.of(Blocks.KELP_PLANT)),
++                    BlockColumnFeature.layer(UniformInt.of(0, 9), BlockStateProvider.simple(Blocks.KELP_PLANT)),
+                     BlockColumnFeature.layer(
+-                        ConstantInt.of(1), new RandomizedIntStateProvider(BlockStateProvider.of(Blocks.KELP), KelpBlock.AGE, UniformInt.of(20, 23))
++                        ConstantInt.of(1), new RandomizedIntStateProvider(BlockStateProvider.simple(Blocks.KELP), KelpBlock.AGE, UniformInt.of(20, 23))
+                     )
+                 ),
+                 Direction.UP,
+@@ -152,7 +_,7 @@
+     private static Feature coralBlock(HolderGetter<Feature> features, Holder<Block> block) {
+         return new OverlayFeature(
+             HolderSet.direct(
+-                PlacementUtils.inlinePlaced(new SimpleBlockFeature(BlockStateProvider.of(block.value()))),
++                PlacementUtils.inlinePlaced(new SimpleBlockFeature(BlockStateProvider.simple(block.value()))),
+                 PlacementUtils.inlinePlaced(features.getOrThrow(CORAL_BLOCK_DECORATION))
+             )
+         );
+@@ -160,9 +_,7 @@
+ 
+     private static Holder<PlacedFeature> wallCoral(HolderGetter<Block> blocks, Direction direction) {
+         return PlacementUtils.inlinePlaced(
+-            new SimpleBlockFeature(
+-                new RotatedBlockProvider(Holder.direct(new RandomBlockProvider(blocks.getOrThrow(BlockTags.WALL_CORALS))), Optional.of(direction))
+-            ),
++            new SimpleBlockFeature(new RotatedBlockProvider(new RandomBlockProvider(blocks.getOrThrow(BlockTags.WALL_CORALS)), Optional.of(direction))),
+             new RandomChancePlacement(0.2F),
+             OffsetPlacement.of(direction),
+             BlockPredicateFilter.forPredicate(BlockPredicate.matchesBlocks(Blocks.WATER))
+@@ -174,12 +_,12 @@
+             WeightedList.of(
+                 new Weighted<>(
+                     PlacementUtils.inlinePlaced(
+-                        new SimpleBlockFeature(BlockStateProvider.of(Blocks.TALL_SEAGRASS)),
++                        new SimpleBlockFeature(BlockStateProvider.simple(Blocks.TALL_SEAGRASS)),
+                         BlockPredicateFilter.forPredicate(BlockPredicate.matchesBlocks(Direction.UP, Blocks.WATER))
+                     ),
+                     tallPercentage
+                 ),
+-                new Weighted<>(PlacementUtils.inlinePlaced(new SimpleBlockFeature(BlockStateProvider.of(Blocks.SEAGRASS))), 100 - tallPercentage)
++                new Weighted<>(PlacementUtils.inlinePlaced(new SimpleBlockFeature(BlockStateProvider.simple(Blocks.SEAGRASS))), 100 - tallPercentage)
+             )
+         );
+     }

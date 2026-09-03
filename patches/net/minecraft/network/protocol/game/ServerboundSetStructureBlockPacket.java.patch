@@ -1,0 +1,20 @@
+--- a/net/minecraft/network/protocol/game/ServerboundSetStructureBlockPacket.java
++++ b/net/minecraft/network/protocol/game/ServerboundSetStructureBlockPacket.java
+@@ -80,7 +_,7 @@
+         int maxSize = 48;
+         this.size = new Vec3i(Mth.clamp(input.readByte(), 0, 48), Mth.clamp(input.readByte(), 0, 48), Mth.clamp(input.readByte(), 0, 48));
+         this.mirror = input.readEnum(Mirror.class);
+-        this.rotation = Rotation.STREAM_CODEC.decode(input);
++        this.rotation = input.readEnum(Rotation.class);
+         this.data = input.readUtf(128);
+         this.integrity = Mth.clamp(input.readFloat(), 0.0F, 1.0F);
+         this.seed = input.readVarLong();
+@@ -103,7 +_,7 @@
+         output.writeByte(this.size.getY());
+         output.writeByte(this.size.getZ());
+         output.writeEnum(this.mirror);
+-        Rotation.STREAM_CODEC.encode(output, this.rotation);
++        output.writeEnum(this.rotation);
+         output.writeUtf(this.data);
+         output.writeFloat(this.integrity);
+         output.writeVarLong(this.seed);

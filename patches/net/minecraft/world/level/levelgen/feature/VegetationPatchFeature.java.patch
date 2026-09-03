@@ -1,0 +1,53 @@
+--- a/net/minecraft/world/level/levelgen/feature/VegetationPatchFeature.java
++++ b/net/minecraft/world/level/levelgen/feature/VegetationPatchFeature.java
+@@ -11,8 +_,8 @@
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.util.valueproviders.IntProvider;
+ import net.minecraft.util.valueproviders.IntProviders;
+@@ -28,7 +_,7 @@
+ public class VegetationPatchFeature implements Feature {
+     public static final MapCodec<VegetationPatchFeature> CODEC = makeCodec(VegetationPatchFeature::new);
+     protected final HolderSet<Block> replaceable;
+-    protected final Holder<BlockStateProvider> groundState;
++    protected final BlockStateProvider groundState;
+     protected final Holder<PlacedFeature> vegetationFeature;
+     protected final CaveSurface surface;
+     protected final IntProvider depth;
+@@ -39,11 +_,11 @@
+     protected final float extraEdgeColumnChance;
+ 
+     protected static <T extends VegetationPatchFeature> MapCodec<T> makeCodec(
+-        Function10<HolderSet<Block>, Holder<BlockStateProvider>, Holder<PlacedFeature>, CaveSurface, IntProvider, Float, Integer, Float, IntProvider, Float, T> constructor
++        Function10<HolderSet<Block>, BlockStateProvider, Holder<PlacedFeature>, CaveSurface, IntProvider, Float, Integer, Float, IntProvider, Float, T> constructor
+     ) {
+         return RecordCodecBuilder.mapCodec(
+             i -> i.group(
+-                    RegistryCodecs.holderSet(Registries.BLOCK).fieldOf("replaceable").forGetter(f -> f.replaceable),
++                    RegistryCodecs.homogeneousList(Registries.BLOCK).fieldOf("replaceable").forGetter(f -> f.replaceable),
+                     BlockStateProvider.CODEC.fieldOf("ground_state").forGetter(f -> f.groundState),
+                     PlacedFeature.CODEC.fieldOf("vegetation_feature").forGetter(f -> f.vegetationFeature),
+                     CaveSurface.CODEC.fieldOf("surface").forGetter(f -> f.surface),
+@@ -60,7 +_,7 @@
+ 
+     public VegetationPatchFeature(
+         HolderSet<Block> replaceable,
+-        Holder<BlockStateProvider> groundState,
++        BlockStateProvider groundState,
+         Holder<PlacedFeature> vegetationFeature,
+         CaveSurface surface,
+         IntProvider depth,
+@@ -156,7 +_,7 @@
+ 
+     private boolean placeGround(WorldGenLevel level, Predicate<BlockState> replaceable, RandomSource random, BlockPos.MutableBlockPos belowPos, int depth) {
+         for (int i = 0; i < depth; i++) {
+-            BlockState stateToPlace = this.groundState.value().getState(level, random, belowPos);
++            BlockState stateToPlace = this.groundState.getState(level, random, belowPos);
+             BlockState belowState = level.getBlockState(belowPos);
+             if (!stateToPlace.is(belowState.getBlock())) {
+                 if (!replaceable.test(belowState)) {

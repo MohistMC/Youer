@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/entity/vehicle/minecart/AbstractMinecart.java
 +++ b/net/minecraft/world/entity/vehicle/minecart/AbstractMinecart.java
-@@ -44,6 +_,11 @@
+@@ -23,7 +_,6 @@
+ import net.minecraft.world.entity.EntitySpawnReason;
+ import net.minecraft.world.entity.EntityType;
+ import net.minecraft.world.entity.InterpolationHandler;
+-import net.minecraft.world.entity.LinearInterpolationHandler;
+ import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.entity.MoverType;
+ import net.minecraft.world.entity.Pose;
+@@ -45,6 +_,11 @@
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
@@ -12,7 +20,7 @@
  import org.jspecify.annotations.Nullable;
  
  public abstract class AbstractMinecart extends VehicleEntity {
-@@ -96,14 +_,34 @@
+@@ -97,14 +_,34 @@
              }
          )
      );
@@ -47,7 +55,7 @@
          }
      }
  
-@@ -154,11 +_,19 @@
+@@ -155,11 +_,19 @@
  
      @Override
      public boolean canCollideWith(Entity entity) {
@@ -69,7 +77,7 @@
          return true;
      }
  
-@@ -263,6 +_,21 @@
+@@ -264,6 +_,21 @@
  
      @Override
      public void tick() {
@@ -91,7 +99,7 @@
          if (this.getHurtTime() > 0) {
              this.setHurtTime(this.getHurtTime() - 1);
          }
-@@ -273,8 +_,20 @@
+@@ -274,8 +_,20 @@
  
          this.checkBelowWorld();
          this.computeSpeed();
@@ -113,25 +121,23 @@
          this.updateFluidInteraction();
          if (this.isInLava()) {
              this.lavaIgnite();
-@@ -338,16 +_,11 @@
+@@ -339,13 +_,8 @@
      }
  
      @Override
--    public @Nullable InterpolationHandler getInterpolation() {
-+    public InterpolationHandler getInterpolation() {
-         return this.behavior.getInterpolation();
-     }
- 
-     @Override
--    public void onInterpolationStart(InterpolationHandler interpolation) {
--        this.behavior.onInterpolationStart(interpolation);
+-    protected InterpolationHandler createInterpolationHandler() {
+-        return useExperimentalMovement(this.level()) ? InterpolationHandler.NO_OP : LinearInterpolationHandler.create(this);
 -    }
 -
 -    @Override
-     public void recreateFromPacket(ClientboundAddEntityPacket packet) {
-         super.recreateFromPacket(packet);
-         this.behavior.lerpMotion(this.getDeltaMovement());
-@@ -362,17 +_,68 @@
+-    public void onInterpolationStart(InterpolationHandler interpolation) {
+-        this.behavior.onInterpolationStart(interpolation);
++    public InterpolationHandler getInterpolation() {
++        return this.behavior.getInterpolation();
+     }
+ 
+     @Override
+@@ -363,17 +_,68 @@
          this.behavior.moveAlongTrack(level);
      }
  
@@ -202,7 +208,7 @@
          }
      }
  
-@@ -433,8 +_,8 @@
+@@ -434,8 +_,8 @@
  
      public Vec3 getRedstoneDirection(BlockPos pos) {
          BlockState state = this.level().getBlockState(pos);
@@ -213,7 +219,7 @@
              if (shape == RailShape.EAST_WEST) {
                  if (this.isRedstoneConductor(pos.west())) {
                      return new Vec3(1.0, 0.0, 0.0);
-@@ -479,6 +_,15 @@
+@@ -480,6 +_,15 @@
          this.setDisplayOffset(input.getIntOr("DisplayOffset", this.getDefaultDisplayOffset()));
          this.flipped = input.getBooleanOr("FlippedRotation", false);
          this.firstTick = input.getBooleanOr("HasTicked", false);
@@ -229,7 +235,7 @@
      }
  
      @Override
-@@ -491,13 +_,27 @@
+@@ -492,13 +_,27 @@
  
          output.putBoolean("FlippedRotation", this.flipped);
          output.putBoolean("HasTicked", this.firstTick);
@@ -257,7 +263,7 @@
                      double xa = entity.getX() - this.getX();
                      double za = entity.getZ() - this.getZ();
                      double dd = xa * xa + za * za;
-@@ -606,4 +_,26 @@
+@@ -607,4 +_,26 @@
      public boolean isFurnace() {
          return false;
      }

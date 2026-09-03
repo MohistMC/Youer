@@ -1,0 +1,48 @@
+--- a/net/minecraft/client/renderer/StagedVertexBuffer.java
++++ b/net/minecraft/client/renderer/StagedVertexBuffer.java
+@@ -15,7 +_,6 @@
+ import com.mojang.renderpearl.api.pipeline.IndexType;
+ import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
+ import com.mojang.renderpearl.api.vertex.VertexFormat;
+-import com.mojang.renderpearl.util.UncheckedAutoCloseable;
+ import java.nio.ByteBuffer;
+ import java.util.ArrayList;
+ import java.util.List;
+@@ -321,6 +_,7 @@
+         }
+ 
+         public GpuBuffer acquire(GpuDevice device, int minSize) {
++            this.tryRecycleBuffers();
+             int roundedMinSize = Mth.roundToward(minSize, 262144);
+             GpuBuffer buffer = this.takeBestAvailable(roundedMinSize, roundedMinSize * 4);
+             if (buffer == null) {
+@@ -358,17 +_,15 @@
+             }
+ 
+             if (!this.available.isEmpty()) {
+-                this.available.forEach(UncheckedAutoCloseable::close);
++                this.available.forEach(GpuBuffer::close);
+                 this.available.clear();
+             }
+-
+-            this.tryRecycleBuffers();
+         }
+ 
+         @Override
+         public void close() {
+-            this.available.forEach(UncheckedAutoCloseable::close);
+-            this.usedThisFrame.forEach(UncheckedAutoCloseable::close);
++            this.available.forEach(GpuBuffer::close);
++            this.usedThisFrame.forEach(GpuBuffer::close);
+             this.pendingRecycle.forEach(StagedVertexBuffer.GpuBufferPool.PendingRecycle::close);
+             this.available.clear();
+             this.usedThisFrame.clear();
+@@ -387,7 +_,7 @@
+ 
+             @Override
+             public void close() {
+-                this.buffers.forEach(UncheckedAutoCloseable::close);
++                this.buffers.forEach(GpuBuffer::close);
+                 this.fence.close();
+             }
+         }

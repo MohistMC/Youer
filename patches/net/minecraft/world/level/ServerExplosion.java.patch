@@ -483,6 +483,7 @@
 -                        double knockbackPower = (1.0 - dist) * exposure * knockbackMultiplier * (1.0 - knockbackResistance);
 +                        double knockbackPower = entity instanceof Player && this.level.paperConfig().environment.disableExplosionKnockback ? 0 : (1.0 - dist) * exposure * knockbackMultiplier * (1.0 - knockbackResistance); // Paper
                          Vec3 knockback = direction.scale(knockbackPower);
+-                        entity.pushFromExplosion(knockback);
 +                        knockback = net.neoforged.neoforge.event.EventHooks.getExplosionKnockback(this.level, this, entity, knockback, blocks);
 +                        // CraftBukkit start - Call EntityKnockbackEvent
 +                        if (entity instanceof LivingEntity) {
@@ -492,7 +493,7 @@
 +                            // Paper end - knockback events
 +                        }
 +                        // CraftBukkit end
-                         entity.push(knockback);
++                        entity.push(knockback);
                          if (entity.is(EntityTypeTags.REDIRECTABLE_PROJECTILE) && entity instanceof Projectile projectile) {
                              projectile.setOwner(this.damageSource.getEntity());
 -                        } else if (entity instanceof Player player && !player.isSpectator() && (!player.isCreative() || !player.getAbilities().flying)) {

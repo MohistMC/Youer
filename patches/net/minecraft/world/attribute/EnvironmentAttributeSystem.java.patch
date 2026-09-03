@@ -1,0 +1,37 @@
+--- a/net/minecraft/world/attribute/EnvironmentAttributeSystem.java
++++ b/net/minecraft/world/attribute/EnvironmentAttributeSystem.java
+@@ -14,7 +_,6 @@
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.RegistryAccess;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.util.Mth;
+ import net.minecraft.world.clock.ClockManager;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.LevelAccessor;
+@@ -90,19 +_,14 @@
+     private static <Value> void addBiomeLayerForAttribute(
+         EnvironmentAttributeSystem.Builder builder, EnvironmentAttribute<Value> attribute, BiomeManager biomeManager
+     ) {
+-        builder.addPositionalLayer(
+-            attribute,
+-            (baseValue, pos, biomeWeights) -> {
+-                if (biomeWeights != null && attribute.isSpatiallyInterpolated()) {
+-                    return biomeWeights.applyAttributeLayer(attribute, baseValue);
+-                }
+-
+-                Holder<Biome> biome = attribute.isFullResolutionBiomes()
+-                    ? biomeManager.getBiome(Mth.floor(pos.x), Mth.floor(pos.y), Mth.floor(pos.z))
+-                    : biomeManager.getNoiseBiomeAtPosition(pos.x, pos.y, pos.z);
+-                return biome.value().getAttributes().applyModifier(attribute, baseValue);
++        builder.addPositionalLayer(attribute, (baseValue, pos, biomeWeights) -> {
++            if (biomeWeights != null && attribute.isSpatiallyInterpolated()) {
++                return biomeWeights.applyAttributeLayer(attribute, baseValue);
+             }
+-        );
++
++            Holder<Biome> biome = biomeManager.getNoiseBiomeAtPosition(pos.x, pos.y, pos.z);
++            return biome.value().getAttributes().applyModifier(attribute, baseValue);
++        });
+     }
+ 
+     public void invalidateTickCache() {

@@ -1,0 +1,76 @@
+--- /dev/null
++++ b/net/minecraft/world/level/storage/loot/providers/number/NumberDispatcher.java
+@@ -1,0 +_,73 @@
++package net.minecraft.world.level.storage.loot.providers.number;
++
++import com.mojang.serialization.Codec;
++import com.mojang.serialization.MapCodec;
++import com.mojang.serialization.codecs.RecordCodecBuilder;
++import java.util.List;
++import net.minecraft.core.Holder;
++import net.minecraft.world.level.storage.loot.LootContext;
++import net.minecraft.world.level.storage.loot.Validatable;
++import net.minecraft.world.level.storage.loot.ValidationContext;
++import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
++
++public record NumberDispatcher(List<NumberDispatcher.Case> cases, Holder<NumberProvider> defaultValue) implements NumberProvider {
++    public static final MapCodec<NumberDispatcher> MAP_CODEC = RecordCodecBuilder.mapCodec(
++        i -> i.group(
++                NumberDispatcher.Case.CODEC.listOf().fieldOf("cases").forGetter(n -> n.cases),
++                NumberProviders.CODEC.optionalFieldOf("default", ConstantValue.exactly(0.0F)).forGetter(n -> n.defaultValue)
++            )
++            .apply(i, NumberDispatcher::new)
++    );
++
++    private NumberProvider selectValue(LootContext context) {
++        for (NumberDispatcher.Case aCase : this.cases) {
++            if (aCase.test(context)) {
++                return aCase.numberProvider.value();
++            }
++        }
++
++        return this.defaultValue.value();
++    }
++
++    @Override
++    public float getFloat(LootContext context) {
++        return this.selectValue(context).getFloat(context);
++    }
++
++    @Override
++    public int getInt(LootContext context) {
++        return this.selectValue(context).getInt(context);
++    }
++
++    @Override
++    public void validate(ValidationContext context) {
++        NumberProvider.super.validate(context);
++        Validatable.validate(context, "cases", this.cases);
++        Validatable.validateHolder(context, "default", this.defaultValue);
++    }
++
++    @Override
++    public MapCodec<NumberDispatcher> codec() {
++        return MAP_CODEC;
++    }
++
++    public record Case(Holder<LootItemCondition> condition, Holder<NumberProvider> numberProvider) implements Validatable {
++        public static final Codec<NumberDispatcher.Case> CODEC = RecordCodecBuilder.create(
++            i -> i.group(
++                    LootItemCondition.CODEC.fieldOf("condition").forGetter(c -> c.condition),
++                    NumberProviders.CODEC.fieldOf("number_provider").forGetter(c -> c.numberProvider)
++                )
++                .apply(i, NumberDispatcher.Case::new)
++        );
++
++        public boolean test(LootContext context) {
++            return this.condition.value().test(context);
++        }
++
++        @Override
++        public void validate(ValidationContext context) {
++            Validatable.validateHolder(context, "condition", this.condition);
++            Validatable.validateHolder(context, "number_provider", this.numberProvider);
++        }
++    }
++}

@@ -1,0 +1,47 @@
+--- a/net/minecraft/world/level/block/entity/StructureBlockEntity.java
++++ b/net/minecraft/world/level/block/entity/StructureBlockEntity.java
+@@ -335,7 +_,7 @@
+         boolean saveToDisk,
+         List<Block> ignoreBlocks
+     ) {
+-        StructureTemplateManager manager = level.getStructureTemplateManager();
++        StructureTemplateManager manager = level.getStructureManager();
+ 
+         StructureTemplate structureTemplate;
+         try {
+@@ -365,7 +_,7 @@
+ 
+     public boolean placeStructureIfSameSize(ServerLevel level) {
+         if (this.mode == StructureMode.LOAD && this.structureName != null) {
+-            StructureTemplate template = level.getStructureTemplateManager().get(this.structureName).orElse(null);
++            StructureTemplate template = level.getStructureManager().get(this.structureName).orElse(null);
+             if (template == null) {
+                 return false;
+             } else if (template.getSize().equals(this.structureSize)) {
+@@ -404,7 +_,7 @@
+     }
+ 
+     private @Nullable StructureTemplate getStructureTemplate(ServerLevel level) {
+-        return this.structureName == null ? null : level.getStructureTemplateManager().get(this.structureName).orElse(null);
++        return this.structureName == null ? null : level.getStructureManager().get(this.structureName).orElse(null);
+     }
+ 
+     private void placeStructure(ServerLevel level, StructureTemplate template) {
+@@ -429,7 +_,7 @@
+     public void unloadStructure() {
+         if (this.structureName != null) {
+             ServerLevel serverLevel = (ServerLevel)this.level;
+-            StructureTemplateManager manager = serverLevel.getStructureTemplateManager();
++            StructureTemplateManager manager = serverLevel.getStructureManager();
+             manager.remove(this.structureName);
+         }
+     }
+@@ -437,7 +_,7 @@
+     public boolean isStructureLoadable() {
+         if (this.mode == StructureMode.LOAD && !this.level.isClientSide() && this.structureName != null) {
+             ServerLevel serverLevel = (ServerLevel)this.level;
+-            StructureTemplateManager manager = serverLevel.getStructureTemplateManager();
++            StructureTemplateManager manager = serverLevel.getStructureManager();
+ 
+             try {
+                 return manager.get(this.structureName).isPresent();

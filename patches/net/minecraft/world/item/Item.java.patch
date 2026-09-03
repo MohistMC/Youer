@@ -22,8 +22,9 @@
  import net.minecraft.world.inventory.Slot;
  import net.minecraft.world.inventory.tooltip.TooltipComponent;
  import net.minecraft.world.item.component.AttackRange;
- import net.minecraft.world.item.component.BlockTransformerMappings;
+-import net.minecraft.world.item.component.BlockTransformers;
 -import net.minecraft.world.item.component.BrewingFuel;
++import net.minecraft.world.item.component.BlockTransformerMappings;
  import net.minecraft.world.item.component.Compostable;
  import net.minecraft.world.item.component.Consumable;
  import net.minecraft.world.item.component.Consumables;
@@ -43,8 +44,9 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.saveddata.maps.MapId;
  import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
- import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
--import net.minecraft.world.level.storage.loot.providers.number.NumberProviders;
+-import net.minecraft.world.level.storage.loot.providers.number.floats.ContextFloatProviders;
+-import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProvider;
++import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
@@ -111,6 +113,17 @@
      public void onDestroyed(ItemEntity itemEntity) {
      }
  
+@@ -195,8 +_,8 @@
+ 
+     public InteractionResult useOn(UseOnContext context) {
+         ItemStack stack = context.getItemInHand();
+-        Holder<BlockTransformer> blockTransformer = stack.get(DataComponents.BLOCK_TRANSFORMER);
+-        return blockTransformer != null ? blockTransformer.value().transformBlock(context) : InteractionResult.PASS;
++        BlockTransformer blockTransformer = stack.get(DataComponents.BLOCK_TRANSFORMER);
++        return blockTransformer != null ? blockTransformer.transformBlock(context) : InteractionResult.PASS;
+     }
+ 
+     public float getDestroySpeed(ItemStack itemStack, BlockState state) {
 @@ -298,6 +_,8 @@
          return BuiltInRegistries.ITEM.wrapAsHolder(this).getRegisteredName();
      }
@@ -204,6 +217,36 @@
          public Item.Properties usingConvertsTo(Item item) {
              return this.component(DataComponents.USE_REMAINDER, new UseRemainder(new ItemStackTemplate(item)));
          }
+@@ -485,17 +_,17 @@
+ 
+         public Item.Properties axe(ToolMaterial material, float attackDamageBaseline, float attackSpeedBaseline) {
+             return this.tool(material, BlockTags.MINEABLE_WITH_AXE, attackDamageBaseline, attackSpeedBaseline, 5.0F)
+-                .delayedComponent(DataComponents.BLOCK_TRANSFORMER, context -> context.getOrThrow(BlockTransformers.AXE));
++                .delayedComponent(DataComponents.BLOCK_TRANSFORMER, var0 -> BlockTransformerMappings.AXE);
+         }
+ 
+         public Item.Properties hoe(ToolMaterial material, float attackDamageBaseline, float attackSpeedBaseline) {
+             return this.tool(material, BlockTags.MINEABLE_WITH_HOE, attackDamageBaseline, attackSpeedBaseline, 0.0F)
+-                .delayedComponent(DataComponents.BLOCK_TRANSFORMER, context -> context.getOrThrow(BlockTransformers.HOE));
++                .delayedComponent(DataComponents.BLOCK_TRANSFORMER, var0 -> BlockTransformerMappings.HOE);
+         }
+ 
+         public Item.Properties shovel(ToolMaterial material, float attackDamageBaseline, float attackSpeedBaseline) {
+             return this.tool(material, BlockTags.MINEABLE_WITH_SHOVEL, attackDamageBaseline, attackSpeedBaseline, 0.0F)
+-                .delayedComponent(DataComponents.BLOCK_TRANSFORMER, context -> context.getOrThrow(BlockTransformers.SHOVEL));
++                .delayedComponent(DataComponents.BLOCK_TRANSFORMER, var0 -> BlockTransformerMappings.SHOVEL);
+         }
+ 
+         public Item.Properties sword(ToolMaterial material, float attackDamageBaseline, float attackSpeedBaseline) {
+@@ -543,7 +_,7 @@
+                 )
+                 .component(DataComponents.ATTACK_RANGE, new AttackRange(2.0F, 4.5F, 2.0F, 6.5F, 0.125F, 0.5F))
+                 .component(DataComponents.MINIMUM_ATTACK_CHARGE, 1.0F)
+-                .component(DataComponents.ATTACK_ANIMATION, new SwingAnimation(SwingAnimationType.STAB, (int)(attackDuration * 20.0F)))
++                .component(DataComponents.SWING_ANIMATION, new SwingAnimation(SwingAnimationType.STAB, (int)(attackDuration * 20.0F)))
+                 .attributes(
+                     ItemAttributeModifiers.builder()
+                         .add(
 @@ -633,18 +_,6 @@
              return this.delayedHolderComponent(DataComponents.PROVIDES_TRIM_MATERIAL, material);
          }
@@ -212,12 +255,12 @@
 -            return this.component(DataComponents.SIGN_TEXT_BACK, SignText.EMPTY).component(DataComponents.SIGN_TEXT_FRONT, SignText.EMPTY);
 -        }
 -
--        public Item.Properties cookingFuel(ResourceKey<NumberProvider> burnTime) {
--            return this.component(DataComponents.COOKING_FUEL, new CookingFuel(burnTime, NumberProviders.COOKING_DEFAULT_SPEED_MULTIPLIER));
+-        public Item.Properties cookingFuel(ResourceKey<ContextIntProvider> burnTime) {
+-            return this.component(DataComponents.COOKING_FUEL, new CookingFuel(burnTime, ContextFloatProviders.COOKING_DEFAULT_SPEED_MULTIPLIER));
 -        }
 -
--        public Item.Properties brewingFuel(ResourceKey<NumberProvider> uses) {
--            return this.component(DataComponents.BREWING_FUEL, new BrewingFuel(uses, NumberProviders.COOKING_DEFAULT_SPEED_MULTIPLIER));
+-        public Item.Properties brewingFuel(ResourceKey<ContextIntProvider> uses) {
+-            return this.component(DataComponents.BREWING_FUEL, new BrewingFuel(uses, ContextFloatProviders.BREWING_DEFAULT_SPEED_MULTIPLIER));
 -        }
 -
          public Item.Properties requiredFeatures(FeatureFlag... flags) {
@@ -236,7 +279,12 @@
              return this;
          }
  
-@@ -714,15 +_,6 @@
+@@ -710,19 +_,10 @@
+             return this.component(DataComponents.ATTRIBUTE_MODIFIERS, attributes);
+         }
+ 
+-        public Item.Properties compostable(ResourceKey<ContextIntProvider> layers) {
++        public Item.Properties compostable(ResourceKey<NumberProvider> layers) {
              return this.component(DataComponents.COMPOSTABLE, new Compostable(layers));
          }
  

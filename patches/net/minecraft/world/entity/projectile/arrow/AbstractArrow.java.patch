@@ -1,6 +1,22 @@
 --- a/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
 +++ b/net/minecraft/world/entity/projectile/arrow/AbstractArrow.java
-@@ -53,6 +_,13 @@
+@@ -27,6 +_,7 @@
+ import net.minecraft.world.damagesource.DamageSource;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.EntityType;
++import net.minecraft.world.entity.EntityTypes;
+ import net.minecraft.world.entity.LivingEntity;
+ import net.minecraft.world.entity.MoverType;
+ import net.minecraft.world.entity.OminousItemSpawner;
+@@ -36,6 +_,7 @@
+ import net.minecraft.world.entity.projectile.Projectile;
+ import net.minecraft.world.entity.projectile.ProjectileDeflection;
+ import net.minecraft.world.entity.projectile.ProjectileUtil;
++import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.enchantment.EnchantmentHelper;
+ import net.minecraft.world.level.ClipContext;
+@@ -51,6 +_,13 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
  
@@ -14,7 +30,7 @@
  public abstract class AbstractArrow extends Projectile {
      private static final double ARROW_BASE_DAMAGE = 2.0;
      private static final int SHAKE_TIME = 7;
-@@ -79,6 +_,7 @@
+@@ -77,6 +_,7 @@
      private @Nullable List<Entity> piercedAndKilledEntities;
      public ItemStack pickupItemStack = this.getDefaultPickupItem();
      public @Nullable ItemStack firedFromWeapon = null;
@@ -22,7 +38,7 @@
  
      protected AbstractArrow(EntityType<? extends AbstractArrow> type, Level level) {
          super(type, level);
-@@ -87,7 +_,16 @@
+@@ -85,7 +_,16 @@
      protected AbstractArrow(
          EntityType<? extends AbstractArrow> type, double x, double y, double z, Level level, ItemStack pickupItemStack, @Nullable ItemStack firedFromWeapon
      ) {
@@ -39,7 +55,7 @@
          this.pickupItemStack = pickupItemStack.copy();
          this.applyComponentsFromItemStack(pickupItemStack);
          Unit intangible = pickupItemStack.remove(DataComponents.INTANGIBLE_PROJECTILE);
-@@ -112,8 +_,8 @@
+@@ -110,8 +_,8 @@
      protected AbstractArrow(
          EntityType<? extends AbstractArrow> type, LivingEntity mob, Level level, ItemStack pickupItemStack, @Nullable ItemStack firedFromWeapon
      ) {
@@ -50,7 +66,7 @@
      }
  
      public void setSoundEvent(SoundEvent soundEvent) {
-@@ -147,7 +_,11 @@
+@@ -145,7 +_,11 @@
      @Override
      public void lerpMotion(Vec3 movement) {
          super.lerpMotion(movement);
@@ -63,7 +79,7 @@
          if (this.isInGround() && movement.lengthSqr() > 0.0) {
              this.setInGround(false);
          }
-@@ -208,6 +_,10 @@
+@@ -206,6 +_,10 @@
                  this.setSharedFlagOnFire(this.getRemainingFireTicks() > 0);
              }
          } else {
@@ -74,7 +90,7 @@
              this.inGroundTime = 0;
              Vec3 originalPosition = this.position();
              if (this.isInWater()) {
-@@ -284,11 +_,15 @@
+@@ -282,11 +_,15 @@
  
              if (entitiesHit.isEmpty()) {
                  if (this.isAlive() && blockHitResult.getType() != HitResult.Type.MISS) {
@@ -92,7 +108,7 @@
                  ProjectileDeflection deflection = this.hitTargetsOrDeflectSelf(entitiesHit);
                  this.needsSync = true;
                  if (this.getPierceLevel() > 0 && deflection == ProjectileDeflection.NONE) {
-@@ -301,7 +_,7 @@
+@@ -299,7 +_,7 @@
  
      private ProjectileDeflection hitTargetsOrDeflectSelf(Collection<EntityHitResult> entityHitResults) {
          for (EntityHitResult e : entityHitResults) {
@@ -101,7 +117,7 @@
              if (!this.isAlive() || deflection != ProjectileDeflection.NONE) {
                  return deflection;
              }
-@@ -333,20 +_,37 @@
+@@ -331,20 +_,37 @@
          }
      }
  
@@ -141,7 +157,7 @@
      }
  
      public boolean isInGround() {
-@@ -372,8 +_,8 @@
+@@ -370,8 +_,8 @@
  
      protected void tickDespawn() {
          this.life++;
@@ -152,7 +168,16 @@
          }
      }
  
-@@ -407,9 +_,9 @@
+@@ -386,7 +_,7 @@
+     }
+ 
+     @Override
+-    public void onItemBreak(ItemStack item) {
++    public void onItemBreak(Item item) {
+         this.firedFromWeapon = null;
+     }
+ 
+@@ -405,9 +_,9 @@
      }
  
      @Override
@@ -164,7 +189,7 @@
          }
      }
  
-@@ -436,7 +_,7 @@
+@@ -434,7 +_,7 @@
              }
  
              if (this.piercingIgnoreEntityIds.size() >= this.getPierceLevel() + 1) {
@@ -173,16 +198,17 @@
                  return;
              }
  
-@@ -452,10 +_,18 @@
+@@ -450,12 +_,25 @@
              livingOwner.setLastHurtMob(entity);
          }
  
 +        if (this.isCritArrow()) damageSource = damageSource.critical(); // Paper - add critical damage API
-         boolean isEnderman = entity.is(EntityTypes.ENDERMAN);
++        boolean isEnderman = entity.is(EntityTypes.ENDERMAN);
          int remainingFireTicks = entity.getRemainingFireTicks();
-+
-         if (this.isOnFire() && !isEnderman) {
+-        if (this.isOnFire()) {
 -            entity.igniteForSeconds(5.0F);
++
++        if (this.isOnFire() && !isEnderman) {
 +            // CraftBukkit start
 +            EntityCombustByEntityEvent combustEvent = new EntityCombustByEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity(), 5.0F);
 +            org.bukkit.Bukkit.getPluginManager().callEvent(combustEvent);
@@ -193,36 +219,37 @@
          }
  
          if (entity.hurtOrSimulate(damageSource, damage)) {
-@@ -493,20 +_,18 @@
++            if (isEnderman) {
++                return;
++            }
++
+             if (entity instanceof LivingEntity mob) {
+                 if (!this.level().isClientSide() && this.getPierceLevel() <= 0) {
+                     mob.setArrowCount(mob.getArrowCount() + 1);
+@@ -486,17 +_,18 @@
  
              this.playSound(this.soundEvent, 1.0F, 1.2F / (this.random.nextFloat() * 0.2F + 0.9F));
              if (this.getPierceLevel() <= 0) {
 -                this.discard();
 +                this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
              }
-         } else {
+-        } else if (entity.projectileReceivesSideEffectsOnHit(false)) {
++        } else {
              entity.setRemainingFireTicks(remainingFireTicks);
--            if (this.level() instanceof ServerLevel level) {
--                this.deflect(ProjectileDeflection.REVERSE, entity, this.owner, false);
--                this.setDeltaMovement(this.getDeltaMovement().scale(0.2));
--                if (this.getDeltaMovement().lengthSqr() < 1.0E-7) {
--                    if (this.pickup == AbstractArrow.Pickup.ALLOWED) {
--                        this.spawnAtLocation(level, this.getPickupItem(), 0.1F);
--                    }
--
--                    this.discard();
+-            this.deflect(ProjectileDeflection.REVERSE, entity, this.owner, false, 0.2);
 +            this.deflect(ProjectileDeflection.REVERSE, entity, this.owner, false);
 +            this.setDeltaMovement(this.getDeltaMovement().scale(0.2));
-+            if (this.level() instanceof ServerLevel level && this.getDeltaMovement().lengthSqr() < 1.0E-7) {
-+                if (this.pickup == AbstractArrow.Pickup.ALLOWED) {
-+                    this.spawnAtLocation(level, this.getPickupItem(), 0.1F);
+             if (this.level() instanceof ServerLevel level && this.getDeltaMovement().lengthSqr() < 1.0E-7) {
+                 if (this.pickup == AbstractArrow.Pickup.ALLOWED) {
+                     this.spawnAtLocation(level, this.getPickupItem(), 0.1F);
                  }
-+
+ 
+-                this.discard();
 +                this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
              }
          }
      }
-@@ -519,7 +_,7 @@
+@@ -509,7 +_,7 @@
              double knockbackResistance = Math.max(0.0, 1.0 - mob.getAttributeValue(Attributes.KNOCKBACK_RESISTANCE));
              Vec3 movement = this.getDeltaMovement().multiply(1.0, 0.0, 1.0).normalize().scale(knockback * 0.6 * knockbackResistance);
              if (movement.lengthSqr() > 0.0) {
@@ -231,7 +258,7 @@
              }
          }
      }
-@@ -566,6 +_,12 @@
+@@ -556,6 +_,12 @@
          return this.firedFromWeapon;
      }
  
@@ -244,7 +271,16 @@
      protected SoundEvent getDefaultHitGroundSoundEvent() {
          return SoundEvents.ARROW_HIT;
      }
-@@ -619,7 +_,7 @@
+@@ -575,7 +_,7 @@
+ 
+     protected Collection<EntityHitResult> findHitEntities(Vec3 from, Vec3 to) {
+         return ProjectileUtil.getManyEntityHitResult(
+-            this.level(), this, from, to, this.getBoundingBox().expandTowards(this.getDeltaMovement()).inflate(1.0), this::canHitEntity, false, false
++            this.level(), this, from, to, this.getBoundingBox().expandTowards(this.getDeltaMovement()).inflate(1.0), this::canHitEntity, false
+         );
+     }
+ 
+@@ -609,7 +_,7 @@
          this.lastState = input.read("inBlockState", BlockState.CODEC).orElse(null);
          this.shakeTime = input.getByteOr("shake", (byte)0) & 255;
          this.setInGround(input.getBooleanOr("inGround", false));
@@ -253,7 +289,7 @@
          this.pickup = input.read("pickup", AbstractArrow.Pickup.LEGACY_CODEC).orElse(AbstractArrow.Pickup.DISALLOWED);
          this.setCritArrow(input.getBooleanOr("crit", false));
          this.setPierceLevel(input.getByteOr("PierceLevel", (byte)0));
-@@ -630,7 +_,14 @@
+@@ -620,7 +_,14 @@
  
      @Override
      public void setOwner(@Nullable Entity owner) {
@@ -268,7 +304,7 @@
  
          this.pickup = switch (owner) {
              case Player ignored when this.pickup == AbstractArrow.Pickup.DISALLOWED -> AbstractArrow.Pickup.ALLOWED;
-@@ -642,17 +_,32 @@
+@@ -632,17 +_,32 @@
      @Override
      public void playerTouch(Player player) {
          if (!this.level().isClientSide() && (this.isInGround() || this.isNoPhysics()) && this.shakeTime <= 0) {
@@ -305,7 +341,7 @@
              case CREATIVE_ONLY -> player.hasInfiniteMaterials();
          };
      }
-@@ -747,7 +_,7 @@
+@@ -737,7 +_,7 @@
          return true;
      }
  

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/storage/loot/functions/ExplorationMapFunction.java
 +++ b/net/minecraft/world/level/storage/loot/functions/ExplorationMapFunction.java
-@@ -3,14 +_,14 @@
+@@ -3,20 +_,19 @@
  import com.mojang.serialization.Codec;
  import com.mojang.serialization.MapCodec;
  import com.mojang.serialization.codecs.RecordCodecBuilder;
@@ -10,15 +10,22 @@
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Holder;
 -import net.minecraft.core.HolderSet;
--import net.minecraft.core.RegistryCodecs;
  import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
  import net.minecraft.server.level.ServerLevel;
 +import net.minecraft.tags.StructureTags;
 +import net.minecraft.tags.TagKey;
  import net.minecraft.util.context.ContextKey;
  import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.item.Items;
-@@ -25,6 +_,7 @@
++import net.minecraft.world.item.Items;
+ import net.minecraft.world.item.MapItem;
+-import net.minecraft.world.level.StructureManager;
+ import net.minecraft.world.level.levelgen.structure.Structure;
+-import net.minecraft.world.level.levelgen.structure.StructureStart;
+ import net.minecraft.world.level.saveddata.maps.MapDecorationType;
+ import net.minecraft.world.level.saveddata.maps.MapDecorationTypes;
+ import net.minecraft.world.level.saveddata.maps.MapItemSavedData;
+@@ -26,6 +_,7 @@
  import net.minecraft.world.phys.Vec3;
  
  public class ExplorationMapFunction extends LootItemConditionalFunction {
@@ -26,16 +33,16 @@
      public static final Holder<MapDecorationType> DEFAULT_DECORATION = MapDecorationTypes.WOODLAND_MANSION;
      public static final byte DEFAULT_ZOOM = 2;
      public static final int DEFAULT_SEARCH_RADIUS = 50;
-@@ -33,7 +_,7 @@
+@@ -34,7 +_,7 @@
          i -> commonFields(i)
              .and(
                  i.group(
--                    RegistryCodecs.homogeneousList(Registries.STRUCTURE).fieldOf("destination").forGetter(f -> f.destination),
+-                    RegistryCodecs.holderSet(Registries.STRUCTURE).fieldOf("destination").forGetter(f -> f.destination),
 +                    TagKey.codec(Registries.STRUCTURE).optionalFieldOf("destination", DEFAULT_DESTINATION).forGetter(f -> f.destination),
                      MapDecorationType.CODEC.optionalFieldOf("decoration", DEFAULT_DECORATION).forGetter(f -> f.mapDecoration),
                      Codec.BYTE.optionalFieldOf("zoom", (byte)2).forGetter(f -> f.zoom),
                      Codec.INT.optionalFieldOf("search_radius", 50).forGetter(f -> f.searchRadius),
-@@ -42,21 +_,21 @@
+@@ -43,21 +_,21 @@
              )
              .apply(i, ExplorationMapFunction::new)
      );
@@ -61,10 +68,36 @@
          this.destination = destination;
          this.mapDecoration = mapDecoration;
          this.zoom = zoom;
-@@ -83,8 +_,25 @@
+@@ -77,59 +_,64 @@
+ 
+     @Override
+     public ItemStack run(ItemStack itemStack, LootContext context) {
+-        if (itemStack.isEmpty()) {
++        if (!itemStack.is(Items.MAP)) {
+             return itemStack;
+         }
+ 
          Vec3 lootPos = context.getOptionalParameter(LootContextParams.ORIGIN);
-         if (lootPos != null) {
-             ServerLevel level = context.getLevel();
+-        if (lootPos == null) {
+-            return itemStack;
+-        }
+-
+-        ServerLevel level = context.getLevel();
+-        BlockPos lootBlockPos = BlockPos.containing(lootPos);
+-        if (this.skipKnownStructures) {
+-            this.claimStructureAt(level, lootBlockPos);
+-        }
+-
+-        BlockPos nearestMapStructure = level.findNearestMapStructure(this.destination, lootBlockPos, this.searchRadius, this.skipKnownStructures);
+-        if (nearestMapStructure == null) {
+-            return itemStack;
+-        }
+-
+-        MapItem.applyNewSavedData(level, itemStack, nearestMapStructure.getX(), nearestMapStructure.getZ(), this.zoom, true, true);
+-        MapItem.renderBiomePreviewMap(level, itemStack);
+-        MapItemSavedData.addTargetDecoration(itemStack, nearestMapStructure, "+", this.mapDecoration);
++        if (lootPos != null) {
++            ServerLevel level = context.getLevel();
 +            // Paper start - Configurable cartographer treasure maps
 +            // Simple heuristic for determining if this function is running in the context of a villager selecting
 +            // an item for its offers. Technically other callers could satisfiy this but this minimises the diff and
@@ -82,16 +115,28 @@
 +                    ? !level.paperConfig().environment.treasureMaps.findAlreadyDiscoveredVillager
 +                    : !level.paperConfig().environment.treasureMaps.findAlreadyDiscoveredLootTable.or(!this.skipKnownStructures);
 +            // Paper end - Configurable cartographer treasure maps
-             BlockPos nearestMapStructure = level.findNearestMapStructure(
--                this.destination, BlockPos.containing(lootPos), this.searchRadius, this.skipKnownStructures
++            BlockPos nearestMapStructure = level.findNearestMapStructure(
 +                this.destination, BlockPos.containing(lootPos), this.searchRadius, shouldSkipKnownStructures // Paper - Configurable cartographer treasure maps
-             );
-             if (nearestMapStructure != null) {
-                 ItemStack map = MapItem.create(level, nearestMapStructure.getX(), nearestMapStructure.getZ(), this.zoom, true, true);
-@@ -97,25 +_,26 @@
++            );
++            if (nearestMapStructure != null) {
++                ItemStack map = MapItem.create(level, nearestMapStructure.getX(), nearestMapStructure.getZ(), this.zoom, true, true);
++                MapItem.renderBiomePreviewMap(level, map);
++                MapItemSavedData.addTargetDecoration(map, nearestMapStructure, "+", this.mapDecoration);
++                return map;
++            }
++        }
++
          return itemStack;
      }
  
+-    private void claimStructureAt(ServerLevel level, BlockPos pos) {
+-        StructureManager structureManager = level.structureManager();
+-        StructureStart start = structureManager.getStructureAt(pos, this.destination);
+-        if (start.isValid() && start.canBeReferenced()) {
+-            structureManager.addReference(start);
+-        }
+-    }
+-
 -    public static ExplorationMapFunction.Builder makeExplorationMap(HolderSet<Structure> destination) {
 -        return new ExplorationMapFunction.Builder(destination);
 +    public static ExplorationMapFunction.Builder makeExplorationMap() {
@@ -122,7 +167,7 @@
          public ExplorationMapFunction.Builder setMapDecoration(Holder<MapDecorationType> mapDecoration) {
              this.mapDecoration = mapDecoration;
              return this;
-@@ -138,7 +_,9 @@
+@@ -152,7 +_,9 @@
  
          @Override
          public LootItemFunction build() {

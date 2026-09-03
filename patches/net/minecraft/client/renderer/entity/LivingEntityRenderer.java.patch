@@ -1,0 +1,49 @@
+--- a/net/minecraft/client/renderer/entity/LivingEntityRenderer.java
++++ b/net/minecraft/client/renderer/entity/LivingEntityRenderer.java
+@@ -62,8 +_,8 @@
+         return this.model;
+     }
+ 
+-    protected AABB getBoundingBoxForCulling(T entity, float partialTicks) {
+-        AABB aabb = super.getBoundingBoxForCulling(entity, partialTicks);
++    protected AABB getBoundingBoxForCulling(T entity) {
++        AABB aabb = super.getBoundingBoxForCulling(entity);
+         if (entity.getItemBySlot(EquipmentSlot.HEAD).is(Items.DRAGON_HEAD)) {
+             float extraSize = 0.5F;
+             return aabb.inflate(0.5, 0.5, 0.5);
+@@ -159,7 +_,7 @@
+         }
+ 
+         if (!state.hasPose(Pose.SLEEPING)) {
+-            poseStack.rotateDegrees(Axis.YP, 180.0F - bodyRot);
++            poseStack.mulPose(Axis.YP.rotationDegrees(180.0F - bodyRot));
+         }
+ 
+         if (state.deathTime > 0.0F) {
+@@ -169,19 +_,19 @@
+                 fall = 1.0F;
+             }
+ 
+-            poseStack.rotateDegrees(Axis.ZP, fall * this.getFlipDegrees());
++            poseStack.mulPose(Axis.ZP.rotationDegrees(fall * this.getFlipDegrees()));
+         } else if (state.isAutoSpinAttack) {
+-            poseStack.rotateDegrees(Axis.XP, -90.0F - state.xRot);
+-            poseStack.rotateDegrees(Axis.YP, state.ageInTicks * -75.0F);
++            poseStack.mulPose(Axis.XP.rotationDegrees(-90.0F - state.xRot));
++            poseStack.mulPose(Axis.YP.rotationDegrees(state.ageInTicks * -75.0F));
+         } else if (state.hasPose(Pose.SLEEPING)) {
+             Direction bedOrientation = state.bedOrientation;
+             float angle = bedOrientation != null ? sleepDirectionToRotation(bedOrientation) : bodyRot;
+-            poseStack.rotateDegrees(Axis.YP, angle);
+-            poseStack.rotateDegrees(Axis.ZP, this.getFlipDegrees());
+-            poseStack.rotateDegrees(Axis.YP, 270.0F);
++            poseStack.mulPose(Axis.YP.rotationDegrees(angle));
++            poseStack.mulPose(Axis.ZP.rotationDegrees(this.getFlipDegrees()));
++            poseStack.mulPose(Axis.YP.rotationDegrees(270.0F));
+         } else if (state.isUpsideDown) {
+             poseStack.translate(0.0F, (state.boundingBoxHeight + 0.1F) / entityScale, 0.0F);
+-            poseStack.rotateDegrees(Axis.ZP, 180.0F);
++            poseStack.mulPose(Axis.ZP.rotationDegrees(180.0F));
+         }
+     }
+ 

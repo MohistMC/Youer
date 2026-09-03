@@ -7,14 +7,14 @@
  import net.minecraft.commands.CommandSource;
  import net.minecraft.commands.CommandSourceStack;
  import net.minecraft.network.chat.Component;
-@@ -8,14 +_,20 @@
+@@ -8,13 +_,20 @@
  import net.minecraft.server.permissions.LevelBasedPermissionSet;
  import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
 +import org.bukkit.craftbukkit.command.CraftRemoteConsoleCommandSender;
  
  public class RconConsoleSource implements CommandSource {
-     private static final String RCON = "Rcon";
++    private static final String RCON = "Rcon";
      private static final Component RCON_COMPONENT = Component.literal("Rcon");
      private final StringBuffer buffer = new StringBuffer();
      private final MinecraftServer server;
@@ -29,7 +29,20 @@
          this.server = server;
      }
  
-@@ -42,9 +_,20 @@
+@@ -29,13 +_,32 @@
+     public CommandSourceStack createCommandSourceStack() {
+         ServerLevel level = this.server.overworld();
+         return new CommandSourceStack(
+-            this, Vec3.atLowerCornerOf(level.getRespawnData().pos()), Vec2.ZERO, level, LevelBasedPermissionSet.OWNER, RCON_COMPONENT, this.server
++            this,
++            Vec3.atLowerCornerOf(level.getRespawnData().pos()),
++            Vec2.ZERO,
++            level,
++            LevelBasedPermissionSet.OWNER,
++            "Rcon",
++            RCON_COMPONENT,
++            this.server,
++            null
          );
      }
  

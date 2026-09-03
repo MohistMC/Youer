@@ -1,0 +1,225 @@
+--- a/net/minecraft/data/worldgen/features/CaveFeatures.java
++++ b/net/minecraft/data/worldgen/features/CaveFeatures.java
+@@ -6,7 +_,6 @@
+ import net.minecraft.core.HolderGetter;
+ import net.minecraft.core.HolderSet;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.data.worldgen.BlockStateProviders;
+ import net.minecraft.data.worldgen.BootstrapContext;
+ import net.minecraft.data.worldgen.ProcessorLists;
+ import net.minecraft.data.worldgen.placement.PlacementUtils;
+@@ -24,8 +_,9 @@
+ import net.minecraft.util.valueproviders.WeightedListInt;
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.CaveVines;
++import net.minecraft.world.level.block.CaveVinesBlock;
+ import net.minecraft.world.level.block.MultifaceSpreadeableBlock;
+-import net.minecraft.world.level.block.SculkShriekerBlock;
+ import net.minecraft.world.level.block.SmallDripleafBlock;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+@@ -40,11 +_,9 @@
+ import net.minecraft.world.level.levelgen.feature.LargeDripstoneFeature;
+ import net.minecraft.world.level.levelgen.feature.MonsterRoomFeature;
+ import net.minecraft.world.level.levelgen.feature.MultifaceGrowthFeature;
+-import net.minecraft.world.level.levelgen.feature.OverlayFeature;
+ import net.minecraft.world.level.levelgen.feature.RandomBooleanSelectorFeature;
+ import net.minecraft.world.level.levelgen.feature.RootSystemFeature;
+ import net.minecraft.world.level.levelgen.feature.SculkPatchFeature;
+-import net.minecraft.world.level.levelgen.feature.SequenceFeature;
+ import net.minecraft.world.level.levelgen.feature.SimpleBlockFeature;
+ import net.minecraft.world.level.levelgen.feature.SimpleRandomSelectorFeature;
+ import net.minecraft.world.level.levelgen.feature.SpeleothemClusterFeature;
+@@ -53,14 +_,12 @@
+ import net.minecraft.world.level.levelgen.feature.VegetationPatchFeature;
+ import net.minecraft.world.level.levelgen.feature.WaterloggedVegetationPatchFeature;
+ import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider;
++import net.minecraft.world.level.levelgen.feature.stateproviders.RandomizedIntStateProvider;
+ import net.minecraft.world.level.levelgen.feature.stateproviders.WeightedStateProvider;
+-import net.minecraft.world.level.levelgen.placement.BlockPredicateFilter;
+ import net.minecraft.world.level.levelgen.placement.CaveSurface;
+-import net.minecraft.world.level.levelgen.placement.CountPlacement;
+ import net.minecraft.world.level.levelgen.placement.EnvironmentScanPlacement;
+ import net.minecraft.world.level.levelgen.placement.OffsetPlacement;
+ import net.minecraft.world.level.levelgen.placement.PlacedFeature;
+-import net.minecraft.world.level.levelgen.placement.RandomChancePlacement;
+ import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorList;
+ 
+ public class CaveFeatures {
+@@ -98,11 +_,11 @@
+                 List.of(
+                     BlockColumnFeature.layer(
+                         new WeightedListInt(WeightedList.<IntProvider>builder().add(UniformInt.of(0, 4), 2).add(ConstantInt.of(0), 1).build()),
+-                        BlockStateProvider.of(Blocks.BIG_DRIPLEAF_STEM.defaultBlockState().setValue(BlockStateProperties.HORIZONTAL_FACING, direction))
++                        BlockStateProvider.simple(Blocks.BIG_DRIPLEAF_STEM.defaultBlockState().setValue(BlockStateProperties.HORIZONTAL_FACING, direction))
+                     ),
+                     BlockColumnFeature.layer(
+                         ConstantInt.of(1),
+-                        BlockStateProvider.of(Blocks.BIG_DRIPLEAF.defaultBlockState().setValue(BlockStateProperties.HORIZONTAL_FACING, direction))
++                        BlockStateProvider.simple(Blocks.BIG_DRIPLEAF.defaultBlockState().setValue(BlockStateProperties.HORIZONTAL_FACING, direction))
+                     )
+                 ),
+                 Direction.UP,
+@@ -128,7 +_,6 @@
+ 
+     public static void bootstrap(BootstrapContext<Feature> context) {
+         HolderGetter<Block> blocks = context.lookup(Registries.BLOCK);
+-        HolderGetter<BlockStateProvider> blockStateProviders = context.lookup(Registries.BLOCK_STATE_PROVIDER);
+         HolderGetter<Feature> configuredFeatures = context.lookup(Registries.FEATURE);
+         HolderGetter<StructureProcessorList> processorLists = context.lookup(Registries.PROCESSOR_LIST);
+         context.register(MONSTER_ROOM, new MonsterRoomFeature());
+@@ -313,12 +_,12 @@
+                 0,
+                 3,
+                 blocks.getOrThrow(BlockTags.AZALEA_ROOT_REPLACEABLE),
+-                BlockStateProvider.holderOf(Blocks.ROOTED_DIRT),
++                BlockStateProvider.simple(Blocks.ROOTED_DIRT),
+                 20,
+                 100,
+                 3,
+                 2,
+-                BlockStateProvider.holderOf(Blocks.HANGING_ROOTS),
++                BlockStateProvider.simple(Blocks.HANGING_ROOTS),
+                 20,
+                 2,
+                 BlockPredicate.allOf(
+@@ -336,19 +_,31 @@
+                 2,
+                 3,
+                 blocks.getOrThrow(BlockTags.AZALEA_ROOT_REPLACEABLE),
+-                BlockStateProvider.holderOf(Blocks.SULFUR),
++                BlockStateProvider.simple(Blocks.SULFUR),
+                 20,
+                 184,
+                 1,
+                 1,
+-                BlockStateProvider.holderOf(Blocks.SULFUR),
++                BlockStateProvider.simple(Blocks.SULFUR),
+                 1,
+                 1,
+                 BlockPredicate.ONLY_IN_AIR_PREDICATE
+             )
+         );
+-        Holder<BlockStateProvider> caveVinesBodyProvider = blockStateProviders.getOrThrow(BlockStateProviders.CAVE_VINES_BODY);
+-        Holder<BlockStateProvider> caveVinesHeadProvider = blockStateProviders.getOrThrow(BlockStateProviders.CAVE_VINES_HEAD);
++        WeightedStateProvider caveVinesBodyProvider = new WeightedStateProvider(
++            WeightedList.<BlockState>builder()
++                .add(Blocks.CAVE_VINES_PLANT.defaultBlockState(), 4)
++                .add(Blocks.CAVE_VINES_PLANT.defaultBlockState().setValue(CaveVines.BERRIES, true), 1)
++        );
++        RandomizedIntStateProvider caveVinesHeadProvider = new RandomizedIntStateProvider(
++            new WeightedStateProvider(
++                WeightedList.<BlockState>builder()
++                    .add(Blocks.CAVE_VINES.defaultBlockState(), 4)
++                    .add(Blocks.CAVE_VINES.defaultBlockState().setValue(CaveVines.BERRIES, true), 1)
++            ),
++            CaveVinesBlock.AGE,
++            UniformInt.of(23, 25)
++        );
+         context.register(
+             CAVE_VINE,
+             new BlockColumnFeature(
+@@ -398,7 +_,7 @@
+             MOSS_PATCH,
+             new VegetationPatchFeature(
+                 blocks.getOrThrow(BlockTags.MOSS_REPLACEABLE),
+-                BlockStateProvider.holderOf(Blocks.MOSS_BLOCK),
++                BlockStateProvider.simple(Blocks.MOSS_BLOCK),
+                 PlacementUtils.inlinePlaced(configuredFeatures.getOrThrow(MOSS_VEGETATION)),
+                 CaveSurface.FLOOR,
+                 ConstantInt.of(1),
+@@ -413,7 +_,7 @@
+             MOSS_PATCH_BONEMEAL,
+             new VegetationPatchFeature(
+                 blocks.getOrThrow(BlockTags.MOSS_REPLACEABLE),
+-                BlockStateProvider.holderOf(Blocks.MOSS_BLOCK),
++                BlockStateProvider.simple(Blocks.MOSS_BLOCK),
+                 PlacementUtils.inlinePlaced(configuredFeatures.getOrThrow(MOSS_VEGETATION)),
+                 CaveSurface.FLOOR,
+                 ConstantInt.of(1),
+@@ -440,7 +_,7 @@
+             CLAY_WITH_DRIPLEAVES,
+             new VegetationPatchFeature(
+                 blocks.getOrThrow(BlockTags.LUSH_GROUND_REPLACEABLE),
+-                BlockStateProvider.holderOf(Blocks.CLAY),
++                BlockStateProvider.simple(Blocks.CLAY),
+                 PlacementUtils.inlinePlaced(configuredFeatures.getOrThrow(DRIPLEAF)),
+                 CaveSurface.FLOOR,
+                 ConstantInt.of(3),
+@@ -455,7 +_,7 @@
+             CLAY_POOL_WITH_DRIPLEAVES,
+             new WaterloggedVegetationPatchFeature(
+                 blocks.getOrThrow(BlockTags.LUSH_GROUND_REPLACEABLE),
+-                BlockStateProvider.holderOf(Blocks.CLAY),
++                BlockStateProvider.simple(Blocks.CLAY),
+                 PlacementUtils.inlinePlaced(configuredFeatures.getOrThrow(DRIPLEAF)),
+                 CaveSurface.FLOOR,
+                 ConstantInt.of(3),
+@@ -477,7 +_,7 @@
+             MOSS_PATCH_CEILING,
+             new VegetationPatchFeature(
+                 blocks.getOrThrow(BlockTags.MOSS_REPLACEABLE),
+-                BlockStateProvider.holderOf(Blocks.MOSS_BLOCK),
++                BlockStateProvider.simple(Blocks.MOSS_BLOCK),
+                 PlacementUtils.inlinePlaced(configuredFeatures.getOrThrow(CAVE_VINE_IN_MOSS)),
+                 CaveSurface.CEILING,
+                 UniformInt.of(1, 2),
+@@ -488,16 +_,16 @@
+                 0.3F
+             )
+         );
+-        context.register(SPORE_BLOSSOM, new SimpleBlockFeature(BlockStateProvider.of(Blocks.SPORE_BLOSSOM)));
++        context.register(SPORE_BLOSSOM, new SimpleBlockFeature(BlockStateProvider.simple(Blocks.SPORE_BLOSSOM)));
+         context.register(
+             AMETHYST_GEODE,
+             new GeodeFeature(
+                 new GeodeBlockSettings(
+-                    BlockStateProvider.holderOf(Blocks.AIR),
+-                    BlockStateProvider.holderOf(Blocks.AMETHYST_BLOCK),
+-                    BlockStateProvider.holderOf(Blocks.BUDDING_AMETHYST),
+-                    BlockStateProvider.holderOf(Blocks.CALCITE),
+-                    BlockStateProvider.holderOf(Blocks.SMOOTH_BASALT),
++                    BlockStateProvider.simple(Blocks.AIR),
++                    BlockStateProvider.simple(Blocks.AMETHYST_BLOCK),
++                    BlockStateProvider.simple(Blocks.BUDDING_AMETHYST),
++                    BlockStateProvider.simple(Blocks.CALCITE),
++                    BlockStateProvider.simple(Blocks.SMOOTH_BASALT),
+                     List.of(
+                         Blocks.SMALL_AMETHYST_BUD.defaultBlockState(),
+                         Blocks.MEDIUM_AMETHYST_BUD.defaultBlockState(),
+@@ -521,32 +_,8 @@
+                 1
+             )
+         );
+-        Holder<PlacedFeature> sculkPatchCatalyst = PlacementUtils.inlinePlaced(
+-            new SimpleBlockFeature(BlockStateProvider.of(Blocks.SCULK_CATALYST)),
+-            new RandomChancePlacement(0.5F),
+-            BlockPredicateFilter.forPredicate(BlockPredicate.hasSturdyFace(Direction.DOWN, Direction.UP))
+-        );
+-        context.register(
+-            SCULK_PATCH_DEEP_DARK,
+-            new SequenceFeature(HolderSet.direct(PlacementUtils.inlinePlaced(new SculkPatchFeature(10, 32, 64, 0, 1)), sculkPatchCatalyst))
+-        );
+-        Holder<PlacedFeature> sculkPatchShriekers = PlacementUtils.inlinePlaced(
+-            new SimpleBlockFeature(BlockStateProvider.of(Blocks.SCULK_SHRIEKER.defaultBlockState().setValue(SculkShriekerBlock.CAN_SUMMON, true))),
+-            CountPlacement.of(UniformInt.of(1, 3)),
+-            OffsetPlacement.of(UniformInt.of(-2, 2), UniformInt.of(-2, 2)),
+-            BlockPredicateFilter.forPredicate(
+-                BlockPredicate.allOf(BlockPredicate.ONLY_IN_AIR_PREDICATE, BlockPredicate.hasSturdyFace(Direction.DOWN, Direction.UP))
+-            )
+-        );
+-        context.register(
+-            SCULK_PATCH_ANCIENT_CITY,
+-            new SequenceFeature(
+-                HolderSet.direct(
+-                    PlacementUtils.inlinePlaced(new SculkPatchFeature(10, 32, 64, 0, 1)),
+-                    PlacementUtils.inlinePlaced(new OverlayFeature(HolderSet.direct(sculkPatchCatalyst, sculkPatchShriekers)))
+-                )
+-            )
+-        );
++        context.register(SCULK_PATCH_DEEP_DARK, new SculkPatchFeature(10, 32, 64, 0, 1, ConstantInt.of(0), 0.5F));
++        context.register(SCULK_PATCH_ANCIENT_CITY, new SculkPatchFeature(10, 32, 64, 0, 1, UniformInt.of(1, 3), 0.5F));
+         MultifaceSpreadeableBlock sculkVeinBlock = (MultifaceSpreadeableBlock)Blocks.SCULK_VEIN;
+         context.register(
+             SCULK_VEIN,

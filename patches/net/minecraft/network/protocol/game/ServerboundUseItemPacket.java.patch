@@ -1,18 +1,79 @@
 --- a/net/minecraft/network/protocol/game/ServerboundUseItemPacket.java
 +++ b/net/minecraft/network/protocol/game/ServerboundUseItemPacket.java
-@@ -14,6 +_,7 @@
-     private final int sequence;
-     private final float yRot;
-     private final float xRot;
+@@ -1,24 +_,42 @@
+ package net.minecraft.network.protocol.game;
+ 
+ import net.minecraft.network.FriendlyByteBuf;
+-import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.PacketType;
+ import net.minecraft.world.InteractionHand;
+ 
+-public record ServerboundUseItemPacket(InteractionHand hand, int sequence, float yRot, float xRot) implements Packet<ServerGamePacketListener> {
+-    public static final StreamCodec<FriendlyByteBuf, ServerboundUseItemPacket> STREAM_CODEC = StreamCodec.composite(
+-        InteractionHand.STREAM_CODEC,
+-        ServerboundUseItemPacket::hand,
+-        ByteBufCodecs.VAR_INT,
+-        ServerboundUseItemPacket::sequence,
+-        ByteBufCodecs.FLOAT,
+-        ServerboundUseItemPacket::yRot,
+-        ByteBufCodecs.FLOAT,
+-        ServerboundUseItemPacket::xRot,
+-        ServerboundUseItemPacket::new
++public class ServerboundUseItemPacket implements Packet<ServerGamePacketListener> {
++    public static final StreamCodec<FriendlyByteBuf, ServerboundUseItemPacket> STREAM_CODEC = Packet.codec(
++        ServerboundUseItemPacket::write, ServerboundUseItemPacket::new
+     );
++    private final InteractionHand hand;
++    private final int sequence;
++    private final float yRot;
++    private final float xRot;
 +    public long timestamp; // Spigot
- 
-     public ServerboundUseItemPacket(InteractionHand hand, int sequence, float yRot, float xRot) {
-         this.hand = hand;
-@@ -23,6 +_,7 @@
-     }
- 
-     private ServerboundUseItemPacket(FriendlyByteBuf input) {
++
++    public ServerboundUseItemPacket(InteractionHand hand, int sequence, float yRot, float xRot) {
++        this.hand = hand;
++        this.sequence = sequence;
++        this.yRot = yRot;
++        this.xRot = xRot;
++    }
++
++    private ServerboundUseItemPacket(FriendlyByteBuf input) {
 +        this.timestamp = System.currentTimeMillis(); // Spigot
-         this.hand = input.readEnum(InteractionHand.class);
-         this.sequence = input.readVarInt();
-         this.yRot = input.readFloat();
++        this.hand = input.readEnum(InteractionHand.class);
++        this.sequence = input.readVarInt();
++        this.yRot = input.readFloat();
++        this.xRot = input.readFloat();
++    }
++
++    private void write(FriendlyByteBuf output) {
++        output.writeEnum(this.hand);
++        output.writeVarInt(this.sequence);
++        output.writeFloat(this.yRot);
++        output.writeFloat(this.xRot);
++    }
+ 
+     @Override
+     public PacketType<ServerboundUseItemPacket> type() {
+@@ -27,5 +_,21 @@
+ 
+     public void handle(ServerGamePacketListener listener) {
+         listener.handleUseItem(this);
++    }
++
++    public InteractionHand getHand() {
++        return this.hand;
++    }
++
++    public int getSequence() {
++        return this.sequence;
++    }
++
++    public float getYRot() {
++        return this.yRot;
++    }
++
++    public float getXRot() {
++        return this.xRot;
+     }
+ }

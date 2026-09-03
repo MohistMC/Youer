@@ -1,0 +1,17 @@
+--- a/net/minecraft/world/entity/PositionMoveRotation.java
++++ b/net/minecraft/world/entity/PositionMoveRotation.java
+@@ -23,8 +_,12 @@
+     );
+ 
+     public static PositionMoveRotation of(Entity entity) {
+-        PositionAndRotation current = entity.getClientPositionAndRotation();
+-        return new PositionMoveRotation(current.position(), entity.getKnownMovement(), current.yRot(), current.xRot());
++        if (entity.isInterpolating()) {
++            PositionAndRotation current = entity.getInterpolation().getCurrentPositionAndRotation();
++            return new PositionMoveRotation(current.position(), entity.getKnownMovement(), current.yRot(), current.xRot());
++        } else {
++            return new PositionMoveRotation(entity.position(), entity.getKnownMovement(), entity.getYRot(), entity.getXRot());
++        }
+     }
+ 
+     public PositionMoveRotation withRotation(float yRot, float xRot) {

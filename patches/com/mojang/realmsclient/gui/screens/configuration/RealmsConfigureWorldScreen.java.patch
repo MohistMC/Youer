@@ -1,0 +1,138 @@
+--- a/com/mojang/realmsclient/gui/screens/configuration/RealmsConfigureWorldScreen.java
++++ b/com/mojang/realmsclient/gui/screens/configuration/RealmsConfigureWorldScreen.java
+@@ -6,7 +_,6 @@
+ import com.mojang.realmsclient.client.RealmsError;
+ import com.mojang.realmsclient.dto.PlayerInfo;
+ import com.mojang.realmsclient.dto.PreferredRegionsDto;
+-import com.mojang.realmsclient.dto.RealmTierConfigurationDto;
+ import com.mojang.realmsclient.dto.RealmsRegion;
+ import com.mojang.realmsclient.dto.RealmsServer;
+ import com.mojang.realmsclient.dto.RealmsSlot;
+@@ -52,13 +_,10 @@
+ public class RealmsConfigureWorldScreen extends RealmsScreen {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private static final Component PLAY_TEXT = Component.translatable("mco.selectServer.play");
+-    static final int FOOTER_SEPARATOR_HEIGHT = 2;
+     private final RealmsMainScreen lastScreen;
+     private @Nullable RealmsServer serverData;
+     private @Nullable PreferredRegionsDto regions;
+     private @Nullable Subscription subscription;
+-    private @Nullable RealmTierConfigurationDto tierConfiguration;
+-    private boolean tierConfigurationFetched;
+     private final Map<RealmsRegion, ServiceQuality> regionServiceQuality = new LinkedHashMap<>();
+     private final long serverId;
+     private boolean stateChanged;
+@@ -95,10 +_,6 @@
+             this.fetchSubscription(this.serverId);
+         }
+ 
+-        if (!this.tierConfigurationFetched) {
+-            this.fetchTierConfiguration(this.serverId);
+-        }
+-
+         Component loadingTitle = Component.translatable("mco.configure.world.loading");
+         this.tabNavigationBar = MenuTabBar.builder(this.tabManager, this.width)
+             .addTabs(
+@@ -244,20 +_,8 @@
+         }, this.minecraft);
+     }
+ 
+-    private void fetchTierConfiguration(long realmId) {
+-        RealmsUtil.<RealmTierConfigurationDto>supplyAsync(
+-                client -> client.getRealmTierConfiguration(realmId),
+-                RealmsUtil.openScreenAndLogOnFailure(this::createErrorScreen, "Couldn't get Realm tier configuration")
+-            )
+-            .thenAcceptAsync(tierConfiguration -> {
+-                this.tierConfiguration = tierConfiguration;
+-                this.tierConfigurationFetched = true;
+-                this.onRealmsDataFetched();
+-            }, this.minecraft);
+-    }
+-
+     private void onRealmsDataFetched() {
+-        if (this.serverData != null && this.regions != null && this.subscription != null && this.tierConfigurationFetched) {
++        if (this.serverData != null && this.regions != null && this.subscription != null) {
+             this.regionServiceQuality.clear();
+ 
+             for (RegionDataDto region : this.regions.regionData()) {
+@@ -281,7 +_,7 @@
+                         new RealmsWorldsTab(this, Objects.requireNonNull(this.minecraft), this.serverData),
+                         new RealmsPlayersTab(this, this.minecraft, this.serverData),
+                         new RealmsSubscriptionTab(this, this.minecraft, this.serverData, this.subscription),
+-                        new RealmsSettingsTab(this, this.minecraft, this.serverData, this.tierConfiguration, this.regionServiceQuality)
++                        new RealmsSettingsTab(this, this.minecraft, this.serverData, this.regionServiceQuality)
+                     )
+                     .build()
+             );
+@@ -329,61 +_,29 @@
+         this.minecraft.gui.setScreen(this);
+     }
+ 
+-    public boolean saveSettings(
+-        String name,
+-        String desc,
+-        RegionSelectionPreference preference,
+-        @Nullable RealmsRegion region,
+-        @Nullable Integer renderDistance,
+-        @Nullable Integer simulationDistance
+-    ) {
++    public void saveSettings(String name, String desc, RegionSelectionPreference preference, @Nullable RealmsRegion region) {
+         String description = StringUtil.isBlank(desc) ? "" : desc;
+         String finalName = StringUtil.isBlank(name) ? "" : name;
+-        RealmsRegion regionSelection = preference == RegionSelectionPreference.MANUAL ? region : null;
+-        RegionSelectionPreferenceDto currentRegionSelection = this.serverData.regionSelectionPreference;
+-        boolean configurationChanged = !Objects.equals(finalName, this.serverData.name)
+-            || !Objects.equals(description, this.serverData.motd)
+-            || currentRegionSelection == null
+-            || preference != currentRegionSelection.regionSelectionPreference
+-            || regionSelection != currentRegionSelection.preferredRegion;
+-        if (!configurationChanged && renderDistance == null && simulationDistance == null) {
+-            return true;
+-        }
+-
+         RealmsClient client = RealmsClient.getOrCreate();
+ 
+         try {
++            RealmsSlot realmsSlot = this.serverData.slots.get(this.serverData.activeSlot);
++            RealmsRegion regionSelection = preference == RegionSelectionPreference.MANUAL ? region : null;
+             RegionSelectionPreferenceDto regionSelectionPreference = new RegionSelectionPreferenceDto(preference, regionSelection);
+-            if (configurationChanged) {
+-                RealmsSlot realmsSlot = this.serverData.slots.get(this.serverData.activeSlot);
+-                client.updateConfiguration(
+-                    this.serverData.id, finalName, description, regionSelectionPreference, realmsSlot.slotId, realmsSlot.options, realmsSlot.settings
+-                );
+-            }
+-
+-            if (renderDistance != null) {
+-                client.updateRenderDistance(this.serverData.id, renderDistance);
+-            }
+-
+-            if (simulationDistance != null) {
+-                client.updateSimulationDistance(this.serverData.id, simulationDistance);
+-            }
+-
+-            if (configurationChanged) {
+-                this.serverData.regionSelectionPreference = regionSelectionPreference;
+-                this.serverData.name = name;
+-                this.serverData.motd = description;
+-            }
+-
++            client.updateConfiguration(
++                this.serverData.id, finalName, description, regionSelectionPreference, realmsSlot.slotId, realmsSlot.options, realmsSlot.settings
++            );
++            this.serverData.regionSelectionPreference = regionSelectionPreference;
++            this.serverData.name = name;
++            this.serverData.motd = description;
+             this.stateChanged();
+         } catch (RealmsServiceException e) {
+             LOGGER.error("Couldn't save settings", e);
+             this.minecraft.gui.setScreen(new RealmsGenericErrorScreen(e, this));
+-            return false;
++            return;
+         }
+ 
+         this.minecraft.gui.setScreen(this);
+-        return true;
+     }
+ 
+     public void openTheWorld(boolean join) {

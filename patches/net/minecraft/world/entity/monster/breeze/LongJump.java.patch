@@ -1,0 +1,100 @@
+--- a/net/minecraft/world/entity/monster/breeze/LongJump.java
++++ b/net/minecraft/world/entity/monster/breeze/LongJump.java
+@@ -21,6 +_,7 @@
+ import net.minecraft.world.entity.ai.attributes.Attributes;
+ import net.minecraft.world.entity.ai.behavior.Behavior;
+ import net.minecraft.world.entity.ai.behavior.LongJumpUtil;
++import net.minecraft.world.entity.ai.behavior.Swim;
+ import net.minecraft.world.entity.ai.memory.MemoryModuleType;
+ import net.minecraft.world.entity.ai.memory.MemoryStatus;
+ import net.minecraft.world.level.ClipContext;
+@@ -68,48 +_,48 @@
+             return false;
+         }
+ 
+-        if (!breeze.isInFluidDeeperThan(breeze.getFluidJumpThreshold(), FluidTags.ENTITY_FLOATABLE) && !breeze.isInLava()) {
+-            if (breeze.getBrain().checkMemory(MemoryModuleType.BREEZE_JUMP_TARGET, MemoryStatus.VALUE_PRESENT)) {
+-                return true;
+-            }
+-
+-            LivingEntity attackTarget = breeze.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse(null);
+-            if (attackTarget == null) {
+-                return false;
+-            }
+-
+-            if (outOfAggroRange(breeze, attackTarget)) {
+-                breeze.getBrain().eraseMemory(MemoryModuleType.ATTACK_TARGET);
+-                return false;
+-            }
+-
+-            if (tooCloseForJump(breeze, attackTarget)) {
+-                return false;
+-            }
+-
+-            if (!canJumpFromCurrentPosition(level, breeze)) {
+-                return false;
+-            }
+-
+-            BlockPos targetPos = snapToSurface(breeze, BreezeUtil.randomPointBehindTarget(attackTarget, breeze.getRandom()));
+-            if (targetPos == null) {
+-                return false;
+-            }
+-
+-            BlockState bs = level.getBlockState(targetPos.below());
+-            if (breeze.getType().isBlockDangerous(bs)) {
+-                return false;
+-            }
+-
+-            if (!BreezeUtil.hasLineOfSight(breeze, Vec3.atCenterOf(targetPos)) && !BreezeUtil.hasLineOfSight(breeze, Vec3.atCenterOf(targetPos.above(4)))) {
+-                return false;
+-            }
+-
+-            breeze.getBrain().setMemory(MemoryModuleType.BREEZE_JUMP_TARGET, targetPos);
++        if (Swim.shouldSwim(breeze)) {
++            return false;
++        }
++
++        if (breeze.getBrain().checkMemory(MemoryModuleType.BREEZE_JUMP_TARGET, MemoryStatus.VALUE_PRESENT)) {
+             return true;
+-        } else {
+-            return false;
+-        }
++        }
++
++        LivingEntity attackTarget = breeze.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse(null);
++        if (attackTarget == null) {
++            return false;
++        }
++
++        if (outOfAggroRange(breeze, attackTarget)) {
++            breeze.getBrain().eraseMemory(MemoryModuleType.ATTACK_TARGET);
++            return false;
++        }
++
++        if (tooCloseForJump(breeze, attackTarget)) {
++            return false;
++        }
++
++        if (!canJumpFromCurrentPosition(level, breeze)) {
++            return false;
++        }
++
++        BlockPos targetPos = snapToSurface(breeze, BreezeUtil.randomPointBehindTarget(attackTarget, breeze.getRandom()));
++        if (targetPos == null) {
++            return false;
++        }
++
++        BlockState bs = level.getBlockState(targetPos.below());
++        if (breeze.getType().isBlockDangerous(bs)) {
++            return false;
++        }
++
++        if (!BreezeUtil.hasLineOfSight(breeze, Vec3.atCenterOf(targetPos)) && !BreezeUtil.hasLineOfSight(breeze, Vec3.atCenterOf(targetPos.above(4)))) {
++            return false;
++        }
++
++        breeze.getBrain().setMemory(MemoryModuleType.BREEZE_JUMP_TARGET, targetPos);
++        return true;
+     }
+ 
+     protected boolean checkExtraStartConditions(ServerLevel level, Breeze breeze) {

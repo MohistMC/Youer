@@ -1,0 +1,32 @@
+--- a/com/mojang/realmsclient/gui/screens/configuration/RealmsPreferredRegionSelectionScreen.java
++++ b/com/mojang/realmsclient/gui/screens/configuration/RealmsPreferredRegionSelectionScreen.java
+@@ -28,7 +_,7 @@
+     private static final int SPACING = 8;
+     private final HeaderAndFooterLayout layout = new HeaderAndFooterLayout(this);
+     private final Screen parent;
+-    private final BiConsumer<RegionSelectionPreference, @Nullable RealmsRegion> applySettings;
++    private final BiConsumer<RegionSelectionPreference, RealmsRegion> applySettings;
+     private final Map<RealmsRegion, ServiceQuality> regionServiceQuality;
+     private RealmsPreferredRegionSelectionScreen.@Nullable RegionSelectionList list;
+     private RealmsSettingsTab.RegionSelection selection;
+@@ -36,7 +_,7 @@
+ 
+     public RealmsPreferredRegionSelectionScreen(
+         Screen parent,
+-        BiConsumer<RegionSelectionPreference, @Nullable RealmsRegion> applySettings,
++        BiConsumer<RegionSelectionPreference, RealmsRegion> applySettings,
+         Map<RealmsRegion, ServiceQuality> regionServiceQuality,
+         RealmsSettingsTab.RegionSelection currentSelection
+     ) {
+@@ -75,7 +_,10 @@
+     }
+ 
+     private void onDone() {
+-        this.applySettings.accept(this.selection.preference(), this.selection.region());
++        if (this.selection.region() != null) {
++            this.applySettings.accept(this.selection.preference(), this.selection.region());
++        }
++
+         this.onClose();
+     }
+ 

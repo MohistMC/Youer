@@ -1,0 +1,57 @@
+--- a/net/minecraft/world/level/biome/FixedBiomeSource.java
++++ b/net/minecraft/world/level/biome/FixedBiomeSource.java
+@@ -11,10 +_,9 @@
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.level.LevelReader;
+-import net.minecraft.world.level.levelgen.RandomState;
+ import org.jspecify.annotations.Nullable;
+ 
+-public class FixedBiomeSource extends BiomeSource implements BiomeResolver {
++public class FixedBiomeSource extends BiomeSource implements BiomeManager.NoiseBiomeSource {
+     public static final MapCodec<FixedBiomeSource> CODEC = Biome.CODEC.fieldOf("biome").xmap(FixedBiomeSource::new, s -> s.biome).stable();
+     private final Holder<Biome> biome;
+ 
+@@ -28,13 +_,13 @@
+     }
+ 
+     @Override
+-    protected MapCodec<FixedBiomeSource> codec() {
++    protected MapCodec<? extends BiomeSource> codec() {
+         return CODEC;
+     }
+ 
+     @Override
+-    public BiomeResolver createResolver(Climate.Sampler sampler) {
+-        return this;
++    public Holder<Biome> getNoiseBiome(int quartX, int quartY, int quartZ, Climate.Sampler sampler) {
++        return this.biome;
+     }
+ 
+     @Override
+@@ -52,7 +_,7 @@
+         Predicate<Holder<Biome>> allowed,
+         RandomSource random,
+         boolean findClosest,
+-        RandomState randomState
++        Climate.Sampler sampler
+     ) {
+         if (allowed.test(this.biome)) {
+             return findClosest
+@@ -70,14 +_,14 @@
+         int sampleResolutionHorizontal,
+         int sampleResolutionVertical,
+         Predicate<Holder<Biome>> allowed,
+-        RandomState randomState,
++        Climate.Sampler sampler,
+         LevelReader level
+     ) {
+         return allowed.test(this.biome) ? Pair.of(origin.atY(Mth.clamp(origin.getY(), level.getMinY() + 1, level.getMaxY() + 1)), this.biome) : null;
+     }
+ 
+     @Override
+-    public Set<Holder<Biome>> getBiomesWithin(int x, int y, int z, int radius) {
++    public Set<Holder<Biome>> getBiomesWithin(int x, int y, int z, int r, Climate.Sampler sampler) {
+         return Sets.newHashSet(Set.of(this.biome));
+     }
+ }

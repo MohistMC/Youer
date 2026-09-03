@@ -1,0 +1,25 @@
+--- a/net/minecraft/world/level/storage/loot/functions/LootItemFunctions.java
++++ b/net/minecraft/world/level/storage/loot/functions/LootItemFunctions.java
+@@ -6,9 +_,10 @@
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderSet;
+ import net.minecraft.core.Registry;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
++import net.minecraft.resources.RegistryFileCodec;
+ 
+ public class LootItemFunctions {
+     public static final Codec<LootItemFunction> TYPED_CODEC = BuiltInRegistries.LOOT_FUNCTION_TYPE.byNameCodec().dispatch(LootItemFunction::codec, c -> c);
+@@ -19,8 +_,8 @@
+                 function -> function instanceof SequenceFunction sequence && sequence.canUseInlineCodec() ? Either.right(sequence) : Either.left(function)
+             )
+     );
+-    public static final Codec<Holder<LootItemFunction>> CODEC = RegistryCodecs.holder(Registries.ITEM_MODIFIER, DIRECT_CODEC);
+-    public static final Codec<HolderSet<LootItemFunction>> LIST_CODEC = RegistryCodecs.holderSet(Registries.ITEM_MODIFIER, TYPED_CODEC);
++    public static final Codec<Holder<LootItemFunction>> CODEC = RegistryFileCodec.create(Registries.ITEM_MODIFIER, DIRECT_CODEC);
++    public static final Codec<HolderSet<LootItemFunction>> LIST_CODEC = RegistryCodecs.homogeneousList(Registries.ITEM_MODIFIER, DIRECT_CODEC);
+ 
+     public static MapCodec<? extends LootItemFunction> bootstrap(Registry<MapCodec<? extends LootItemFunction>> registry) {
+         Registry.register(registry, "set_count", SetItemCountFunction.MAP_CODEC);

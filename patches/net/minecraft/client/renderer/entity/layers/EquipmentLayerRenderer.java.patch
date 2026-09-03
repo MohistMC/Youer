@@ -1,0 +1,58 @@
+--- a/net/minecraft/client/renderer/entity/layers/EquipmentLayerRenderer.java
++++ b/net/minecraft/client/renderer/entity/layers/EquipmentLayerRenderer.java
+@@ -35,7 +_,7 @@
+     public EquipmentLayerRenderer(EquipmentAssetManager equipmentAssets, PalettedTextureManager palettedTextures) {
+         this.equipmentAssets = equipmentAssets;
+         this.layerTextureLookup = Util.memoize(key -> key.layer.getTextureLocation(key.layerType));
+-        this.trimTextureLookup = Util.memoize(key -> key.getOrPrepareTexture(palettedTextures));
++        this.trimTextureLookup = Util.memoize(key -> palettedTextures.getOrPrepare(key.baseTexture(), key.paletteId()));
+     }
+ 
+     public <S> void renderLayers(
+@@ -116,40 +_,13 @@
+     }
+ 
+     private record TrimTextureKey(ArmorTrim trim, EquipmentClientInfo.LayerType layerType, EquipmentClientInfo equipmentInfo) {
+-        private PalettedTextureManager.Handle getOrPrepareTexture(PalettedTextureManager palettedTextures) {
+-            Identifier textureId = this.trim.pattern().value().assetId();
++        public Identifier baseTexture() {
++            return this.trim.pattern().value().assetId().withPath(path -> this.layerType.trimAssetPrefix() + "/" + path);
++        }
++
++        public Identifier paletteId() {
+             Identifier paletteId = this.trim.material().value().paletteId();
+-
+-            for (EquipmentClientInfo.TrimOverride override : this.equipmentInfo.trimOverrides()) {
+-                if (override.predicate().matches(this.trim)) {
+-                    textureId = override.textureId().orElse(textureId);
+-                    paletteId = override.paletteId().orElse(null);
+-                    break;
+-                }
+-            }
+-
+-            Identifier baseTexture = textureId.withPath(path -> this.layerType.trimAssetPrefix() + "/" + path);
+-            return paletteId == null ? createTextureWithNoPalette(baseTexture) : palettedTextures.getOrPrepare(baseTexture, paletteId);
+-        }
+-
+-        private static PalettedTextureManager.Handle createTextureWithNoPalette(Identifier texture) {
+-            final Identifier textureLocation = texture.withPath(path -> "textures/" + path + ".png");
+-            return new PalettedTextureManager.Handle() {
+-                @Override
+-                public Identifier textureLocation() {
+-                    return textureLocation;
+-                }
+-
+-                @Override
+-                public float getU(float offset) {
+-                    return offset;
+-                }
+-
+-                @Override
+-                public float getV(float offset) {
+-                    return offset;
+-                }
+-            };
++            return this.equipmentInfo.trimPaletteReplacements().getOrDefault(paletteId, paletteId);
+         }
+     }
+ }

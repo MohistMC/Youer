@@ -1,22 +1,29 @@
 --- a/net/minecraft/server/commands/GiveCommand.java
 +++ b/net/minecraft/server/commands/GiveCommand.java
-@@ -74,8 +_,9 @@
+@@ -74,11 +_,11 @@
                  remaining -= size;
                  ItemStack copyToDrop = prototypeItemStack.copyWithCount(size);
                  boolean added = player.getInventory().add(copyToDrop);
 +                if (org.purpurmc.purpur.PurpurConfig.disableGiveCommandDrops) continue; // Purpur - add config option for toggling give command dropping
                  if (added && copyToDrop.isEmpty()) {
--                    ItemEntity drop = player.drop(prototypeItemStack.copy(), false);
+-                    ItemEntity drop = player.createItemStackToDrop(prototypeItemStack.copy(), false, false);
 +                    ItemEntity drop = player.drop(prototypeItemStack.copy(), false, false, false, null); // Paper - do not fire PlayerDropItemEvent for /give command
                      if (drop != null) {
                          drop.makeFakeItem();
+-                        drop.level().addFreshEntity(drop);
                      }
-@@ -93,7 +_,7 @@
+ 
+                     player.level()
+@@ -94,11 +_,10 @@
                          );
                      player.containerMenu.broadcastChanges();
                  } else {
--                    ItemEntity drop = player.drop(copyToDrop, false);
+-                    ItemEntity drop = player.createItemStackToDrop(copyToDrop, false, false);
 +                    ItemEntity drop = player.drop(copyToDrop, false, false, false, null); // Paper - do not fire PlayerDropItemEvent for /give command
                      if (drop != null) {
                          drop.setNoPickUpDelay();
                          drop.setTarget(player.getUUID());
+-                        drop.level().addFreshEntity(drop);
+                     }
+                 }
+             }

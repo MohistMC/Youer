@@ -91,12 +91,33 @@
      public static boolean canBePlacedAt(Level level, BlockPos pos, Direction forwardDirection) {
          BlockState state = level.getBlockState(pos);
          return !state.isAir() ? false : getState(level, pos).canSurvive(level, pos) || isPortal(level, pos, forwardDirection);
-@@ -194,7 +_,7 @@
-         boolean hasObsidian = false;
+@@ -191,17 +_,22 @@
+         }
+ 
+         BlockPos.MutableBlockPos testPos = pos.mutable();
++        boolean hasObsidian = false;
  
          for (Direction face : Direction.values()) {
--            if (level.getBlockState(testPos.set(pos).move(face)).is(Blocks.OBSIDIAN)) {
+-            BlockState state = level.getBlockState(testPos.set(pos).move(face));
+-            if (PortalShape.FRAME.test(state)) {
+-                Direction.Axis preferredAxis = forwardDirection.getAxis().isHorizontal()
+-                    ? forwardDirection.getCounterClockWise().getAxis()
+-                    : Direction.Plane.HORIZONTAL.getRandomAxis(level.getRandom());
+-                return PortalShape.findEmptyPortalShape(level, pos, preferredAxis).isPresent();
 +            if (level.getBlockState(testPos.set(pos).move(face)).isPortalFrame(level, testPos)) {
-                 hasObsidian = true;
-                 break;
++                hasObsidian = true;
++                break;
              }
+         }
+ 
+-        return false;
++        if (!hasObsidian) {
++            return false;
++        }
++
++        Direction.Axis preferredAxis = forwardDirection.getAxis().isHorizontal()
++            ? forwardDirection.getCounterClockWise().getAxis()
++            : Direction.Plane.HORIZONTAL.getRandomAxis(level.getRandom());
++        return PortalShape.findEmptyPortalShape(level, pos, preferredAxis).isPresent();
+     }
+ }

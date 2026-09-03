@@ -1,0 +1,20 @@
+--- a/net/minecraft/advancements/predicates/EnchantmentPredicate.java
++++ b/net/minecraft/advancements/predicates/EnchantmentPredicate.java
+@@ -6,15 +_,15 @@
+ import java.util.Optional;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.world.item.enchantment.Enchantment;
+ import net.minecraft.world.item.enchantment.ItemEnchantments;
+ 
+ public record EnchantmentPredicate(Optional<HolderSet<Enchantment>> enchantments, MinMaxBounds.Ints level) {
+     public static final Codec<EnchantmentPredicate> CODEC = RecordCodecBuilder.create(
+         i -> i.group(
+-                RegistryCodecs.holderSet(Registries.ENCHANTMENT).optionalFieldOf("enchantments").forGetter(EnchantmentPredicate::enchantments),
++                RegistryCodecs.homogeneousList(Registries.ENCHANTMENT).optionalFieldOf("enchantments").forGetter(EnchantmentPredicate::enchantments),
+                 MinMaxBounds.Ints.CODEC.optionalFieldOf("levels", MinMaxBounds.Ints.ANY).forGetter(EnchantmentPredicate::level)
+             )
+             .apply(i, EnchantmentPredicate::new)

@@ -1,0 +1,35 @@
+--- a/net/minecraft/world/level/levelgen/structure/structures/EndCityStructure.java
++++ b/net/minecraft/world/level/levelgen/structure/structures/EndCityStructure.java
+@@ -5,7 +_,6 @@
+ import java.util.List;
+ import java.util.Optional;
+ import net.minecraft.core.BlockPos;
+-import net.minecraft.world.level.ChunkPos;
+ import net.minecraft.world.level.block.Rotation;
+ import net.minecraft.world.level.levelgen.structure.Structure;
+ import net.minecraft.world.level.levelgen.structure.StructurePiece;
+@@ -14,7 +_,6 @@
+ 
+ public class EndCityStructure extends Structure {
+     public static final MapCodec<EndCityStructure> CODEC = simpleCodec(EndCityStructure::new);
+-    private static final int START_OFFSET_IN_CHUNK = 7;
+ 
+     public EndCityStructure(Structure.StructureSettings settings) {
+         super(settings);
+@@ -22,15 +_,8 @@
+ 
+     @Override
+     public Optional<Structure.GenerationStub> findGenerationPoint(Structure.GenerationContext context) {
+-        ChunkPos chunkPos = context.chunkPos();
+-        int blockX = chunkPos.getBlockX(7);
+-        int blockZ = chunkPos.getBlockZ(7);
+-        if (!context.couldValidBiomeExistInTerrainColumn(blockX, blockZ)) {
+-            return Optional.empty();
+-        }
+-
+         Rotation rotation = Rotation.getRandom(context.random());
+-        BlockPos startPos = this.getLowestYIn5by5Box(context, blockX, blockZ, rotation);
++        BlockPos startPos = this.getLowestYIn5by5BoxOffset7Blocks(context, rotation);
+         return startPos.getY() < 60
+             ? Optional.empty()
+             : Optional.of(new Structure.GenerationStub(startPos, builder -> this.generatePieces(builder, startPos, rotation, context)));

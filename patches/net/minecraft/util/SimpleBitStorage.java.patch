@@ -1,6 +1,13 @@
 --- a/net/minecraft/util/SimpleBitStorage.java
 +++ b/net/minecraft/util/SimpleBitStorage.java
-@@ -204,10 +_,24 @@
+@@ -1,6 +_,5 @@
+ package net.minecraft.util;
+ 
+-import java.util.Arrays;
+ import java.util.function.IntConsumer;
+ import org.apache.commons.lang3.Validate;
+ import org.jspecify.annotations.Nullable;
+@@ -205,10 +_,24 @@
      private final long mask;
      private final int size;
      private final int valuesPerLong;
@@ -27,7 +34,7 @@
      public SimpleBitStorage(int bits, int size, int[] values) {
          this(bits, size);
          int outputIndex = 0;
-@@ -248,8 +_,8 @@
+@@ -249,8 +_,8 @@
          this.mask = (1L << bits) - 1L;
          this.valuesPerLong = (char)(64 / bits);
          int row = 3 * (this.valuesPerLong - 1);
@@ -38,7 +45,7 @@
          this.divideShift = MAGIC[row + 2];
          int requiredLength = (size + this.valuesPerLong - 1) / this.valuesPerLong;
          if (data != null) {
-@@ -261,43 +_,66 @@
+@@ -262,57 +_,66 @@
          } else {
              this.data = new long[requiredLength];
          }
@@ -77,6 +84,20 @@
 -        long cellValue = this.data[cellIndex];
 -        int bitIndex = (index - cellIndex * this.valuesPerLong) * this.bits;
 -        this.data[cellIndex] = cellValue & ~(this.mask << bitIndex) | (value & this.mask) << bitIndex;
+-    }
+-
+-    @Override
+-    public void fill(int value) {
+-        Validate.inclusiveBetween(0L, this.mask, value);
+-        long cellValue = value & this.mask;
+-        int offset = this.bits;
+-
+-        do {
+-            cellValue |= cellValue << offset;
+-            offset <<= 1;
+-        } while (offset < 64);
+-
+-        Arrays.fill(this.data, cellValue);
 -    }
 -
 -    @Override
@@ -139,7 +160,7 @@
      }
  
      @Override
-@@ -361,6 +_,67 @@
+@@ -376,6 +_,67 @@
      public BitStorage copy() {
          return new SimpleBitStorage(this.bits, this.size, (long[])this.data.clone());
      }

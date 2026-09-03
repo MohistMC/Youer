@@ -1,0 +1,25 @@
+--- a/net/minecraft/world/level/levelgen/carver/WorldCarver.java
++++ b/net/minecraft/world/level/levelgen/carver/WorldCarver.java
+@@ -5,9 +_,10 @@
+ import java.util.function.Function;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
++import net.minecraft.resources.RegistryFileCodec;
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.level.ChunkPos;
+@@ -16,8 +_,8 @@
+ 
+ public interface WorldCarver {
+     Codec<WorldCarver> DIRECT_CODEC = BuiltInRegistries.CARVER_TYPE.byNameCodec().dispatch(WorldCarver::codec, Function.identity());
+-    Codec<Holder<WorldCarver>> CODEC = RegistryCodecs.holder(Registries.CARVER, DIRECT_CODEC);
+-    Codec<HolderSet<WorldCarver>> LIST_CODEC = RegistryCodecs.holderSet(Registries.CARVER, DIRECT_CODEC);
++    Codec<Holder<WorldCarver>> CODEC = RegistryFileCodec.create(Registries.CARVER, DIRECT_CODEC);
++    Codec<HolderSet<WorldCarver>> LIST_CODEC = RegistryCodecs.homogeneousList(Registries.CARVER, DIRECT_CODEC);
+ 
+     default int getRange() {
+         return 4;

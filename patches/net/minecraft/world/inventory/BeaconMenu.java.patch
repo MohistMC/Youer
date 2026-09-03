@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/inventory/BeaconMenu.java
 +++ b/net/minecraft/world/inventory/BeaconMenu.java
-@@ -23,20 +_,14 @@
+@@ -4,7 +_,6 @@
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.tags.ItemTags;
+-import net.minecraft.util.Prediction;
+ import net.minecraft.world.Container;
+ import net.minecraft.world.SimpleContainer;
+ import net.minecraft.world.effect.MobEffect;
+@@ -24,20 +_,14 @@
      private static final int USE_ROW_SLOT_START = 28;
      private static final int USE_ROW_SLOT_END = 37;
      private static final int NO_EFFECT = 0;
@@ -26,7 +34,7 @@
  
      public BeaconMenu(int containerId, Container inventory) {
          this(containerId, inventory, new SimpleContainerData(3), ContainerLevelAccess.NULL);
-@@ -44,6 +_,23 @@
+@@ -45,6 +_,23 @@
  
      public BeaconMenu(int containerId, Container inventory, ContainerData beaconData, ContainerLevelAccess access) {
          super(MenuType.BEACON, containerId);
@@ -50,7 +58,15 @@
          checkContainerDataCount(beaconData, 3);
          this.beaconData = beaconData;
          this.access = access;
-@@ -66,6 +_,7 @@
+@@ -60,13 +_,14 @@
+         if (!player.level().isClientSide()) {
+             ItemStack itemStack = this.paymentSlot.remove(this.paymentSlot.getMaxStackSize());
+             if (!itemStack.isEmpty()) {
+-                player.drop(itemStack, false, Prediction.SERVER_ONLY);
++                player.drop(itemStack, false);
+             }
+         }
+     }
  
      @Override
      public boolean stillValid(Player player) {
@@ -58,7 +74,7 @@
          return stillValid(this.access, player, Blocks.BEACON);
      }
  
-@@ -88,10 +_,8 @@
+@@ -89,10 +_,8 @@
                  }
  
                  slot.onQuickCraft(stack, clicked);
@@ -71,7 +87,7 @@
              } else if (slotIndex >= 1 && slotIndex < 28) {
                  if (!this.moveItemStackTo(stack, 28, 37, false)) {
                      return ItemStack.EMPTY;
-@@ -139,6 +_,11 @@
+@@ -140,6 +_,11 @@
      public @Nullable Holder<MobEffect> getSecondaryEffect() {
          return decodeEffect(this.beaconData.get(2));
      }
@@ -83,7 +99,7 @@
  
      public boolean updateEffects(Optional<Holder<MobEffect>> primary, Optional<Holder<MobEffect>> secondary) {
          if (this.paymentSlot.hasItem()) {
-@@ -149,8 +_,16 @@
+@@ -150,8 +_,16 @@
                  return false;
              }
  
@@ -102,7 +118,7 @@
              this.paymentSlot.remove(1);
              this.access.execute(Level::blockEntityChanged);
              return true;
-@@ -178,4 +_,17 @@
+@@ -179,4 +_,17 @@
              return 1;
          }
      }

@@ -45,7 +45,7 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final Map<ResourceKey<RecipePropertySet>, RecipeManager.IngredientExtractor> RECIPE_PROPERTY_SETS = Map.of(
          RecipePropertySet.SMITHING_ADDITION,
-@@ -40,24 +_,66 @@
+@@ -40,26 +_,66 @@
          RecipePropertySet.SMOKER_INPUT,
          forSingleInput(RecipeType.SMOKING),
          RecipePropertySet.CAMPFIRE_INPUT,
@@ -64,11 +64,13 @@
      private SelectableRecipe.SingleInputSet<StonecutterRecipe> stonecutterRecipes = SelectableRecipe.SingleInputSet.empty();
      private List<RecipeManager.ServerDisplayInfo> allDisplays = List.of();
      private Map<ResourceKey<Recipe<?>>, List<RecipeManager.ServerDisplayInfo>> recipeToDisplay = Map.of();
+-    private final Collection<RecipeHolder<?>> learnableRecipes;
 +    private Object2IntMap<ResourceKey<net.minecraft.world.item.crafting.Recipe<?>>> recipePriorities = it.unimi.dsi.fastutil.objects.Object2IntMaps.emptyMap(); // Neo: recipe priorities set from RecipePriorityManager.
  
      public RecipeManager(HolderLookup.Provider registries) {
 -        HolderLookup.RegistryLookup<Recipe<?>> recipeRegistries = registries.lookupOrThrow(Registries.RECIPE);
 -        this.recipes = RecipeMap.create(recipeRegistries);
+-        this.learnableRecipes = this.recipes.values().stream().filter(r -> !r.value().isSpecial()).collect(Collectors.toUnmodifiableList());
 +        this.registries = registries;
 +    }
 +
@@ -120,7 +122,7 @@
          List<SelectableRecipe.SingleInputEntry<StonecutterRecipe>> stonecutterRecipes = new ArrayList<>();
          List<RecipeManager.IngredientCollector> propertySetCollectors = RECIPE_PROPERTY_SETS.entrySet()
              .stream()
-@@ -114,7 +_,10 @@
+@@ -116,7 +_,10 @@
      }
  
      public <I extends RecipeInput, T extends Recipe<I>> Optional<RecipeHolder<T>> getRecipeFor(RecipeType<T> type, I input, Level level) {
@@ -132,7 +134,18 @@
      }
  
      public Optional<RecipeHolder<?>> byKey(ResourceKey<Recipe<?>> recipeId) {
-@@ -160,6 +_,28 @@
+@@ -150,10 +_,6 @@
+         return this.recipes.values();
+     }
+ 
+-    public Collection<RecipeHolder<?>> getLearnableRecipes() {
+-        return this.learnableRecipes;
+-    }
+-
+     public RecipeManager.@Nullable ServerDisplayInfo getRecipeFromDisplay(RecipeDisplayId id) {
+         int index = id.index();
+         return index >= 0 && index < this.allDisplays.size() ? this.allDisplays.get(index) : null;
+@@ -166,6 +_,28 @@
          }
      }
  
@@ -161,7 +174,7 @@
      public static <I extends RecipeInput, T extends Recipe<I>> RecipeManager.CachedCheck<I, T> createCheck(RecipeType<T> type) {
          return new RecipeManager.CachedCheck<I, T>() {
              private @Nullable ResourceKey<Recipe<?>> lastRecipe;
-@@ -216,6 +_,16 @@
+@@ -222,6 +_,16 @@
          return recipe -> recipe.getType() == type && recipe instanceof SingleItemRecipe singleItemRecipe
              ? Optional.of(singleItemRecipe.input())
              : Optional.empty();

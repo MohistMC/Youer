@@ -1,6 +1,23 @@
 --- a/net/minecraft/gametest/framework/TestEnvironmentDefinition.java
 +++ b/net/minecraft/gametest/framework/TestEnvironmentDefinition.java
-@@ -41,6 +_,7 @@
+@@ -13,8 +_,8 @@
+ import net.minecraft.core.Registry;
+ import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.resources.Identifier;
++import net.minecraft.resources.RegistryFileCodec;
+ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.ServerFunctionManager;
+ import net.minecraft.server.level.ServerLevel;
+@@ -35,12 +_,13 @@
+     Codec<TestEnvironmentDefinition<?>> DIRECT_CODEC = BuiltInRegistries.TEST_ENVIRONMENT_DEFINITION_TYPE
+         .byNameCodec()
+         .dispatch(TestEnvironmentDefinition::codec, c -> c);
+-    Codec<Holder<TestEnvironmentDefinition<?>>> CODEC = RegistryCodecs.holder(Registries.TEST_ENVIRONMENT, DIRECT_CODEC);
++    Codec<Holder<TestEnvironmentDefinition<?>>> CODEC = RegistryFileCodec.create(Registries.TEST_ENVIRONMENT, DIRECT_CODEC);
+ 
+     static MapCodec<? extends TestEnvironmentDefinition<?>> bootstrap(Registry<MapCodec<? extends TestEnvironmentDefinition<?>>> registry) {
          Registry.register(registry, "all_of", TestEnvironmentDefinition.AllOf.CODEC);
          Registry.register(registry, "clock_time", TestEnvironmentDefinition.ClockTime.CODEC);
          Registry.register(registry, "difficulty", TestEnvironmentDefinition.SetDifficulty.CODEC);

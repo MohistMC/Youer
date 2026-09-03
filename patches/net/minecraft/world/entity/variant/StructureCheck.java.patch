@@ -1,6 +1,19 @@
 --- a/net/minecraft/world/entity/variant/StructureCheck.java
 +++ b/net/minecraft/world/entity/variant/StructureCheck.java
-@@ -14,7 +_,7 @@
+@@ -3,18 +_,18 @@
+ import com.mojang.serialization.MapCodec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.world.level.levelgen.structure.Structure;
+ 
+ public record StructureCheck(HolderSet<Structure> requiredStructures) implements SpawnCondition {
+     public static final MapCodec<StructureCheck> MAP_CODEC = RecordCodecBuilder.mapCodec(
+-        i -> i.group(RegistryCodecs.holderSet(Registries.STRUCTURE).fieldOf("structures").forGetter(StructureCheck::requiredStructures))
++        i -> i.group(RegistryCodecs.homogeneousList(Registries.STRUCTURE).fieldOf("structures").forGetter(StructureCheck::requiredStructures))
+             .apply(i, StructureCheck::new)
      );
  
      public boolean test(SpawnContext context) {

@@ -1,6 +1,74 @@
 --- a/net/minecraft/core/registries/BuiltInRegistries.java
 +++ b/net/minecraft/core/registries/BuiltInRegistries.java
-@@ -365,6 +_,11 @@
+@@ -124,11 +_,12 @@
+ import net.minecraft.world.level.gameevent.PositionSourceType;
+ import net.minecraft.world.level.gamerules.GameRule;
+ import net.minecraft.world.level.gamerules.GameRules;
++import net.minecraft.world.level.levelgen.DensityFunction;
++import net.minecraft.world.level.levelgen.DensityFunctions;
++import net.minecraft.world.level.levelgen.SurfaceRules;
+ import net.minecraft.world.level.levelgen.blockpredicates.BlockPredicateType;
+ import net.minecraft.world.level.levelgen.carver.WorldCarver;
+ import net.minecraft.world.level.levelgen.carver.WorldCarverTypes;
+-import net.minecraft.world.level.levelgen.densityfunction.DensityFunction;
+-import net.minecraft.world.level.levelgen.densityfunction.DensityFunctions;
+ import net.minecraft.world.level.levelgen.feature.Feature;
+ import net.minecraft.world.level.levelgen.feature.FeatureTypes;
+ import net.minecraft.world.level.levelgen.feature.featuresize.FeatureSizeType;
+@@ -139,9 +_,6 @@
+ import net.minecraft.world.level.levelgen.feature.treedecorators.TreeDecoratorType;
+ import net.minecraft.world.level.levelgen.feature.trunkplacers.TrunkPlacerType;
+ import net.minecraft.world.level.levelgen.heightproviders.HeightProviderType;
+-import net.minecraft.world.level.levelgen.material.MaterialRules;
+-import net.minecraft.world.level.levelgen.material.condition.MaterialCondition;
+-import net.minecraft.world.level.levelgen.material.rule.MaterialRule;
+ import net.minecraft.world.level.levelgen.placement.PlacementModifier;
+ import net.minecraft.world.level.levelgen.placement.PlacementModifierTypes;
+ import net.minecraft.world.level.levelgen.structure.StructureType;
+@@ -168,10 +_,8 @@
+ import net.minecraft.world.level.storage.loot.predicates.LootItemConditionTypes;
+ import net.minecraft.world.level.storage.loot.providers.nbt.NbtProvider;
+ import net.minecraft.world.level.storage.loot.providers.nbt.NbtProviders;
+-import net.minecraft.world.level.storage.loot.providers.number.floats.ContextFloatProvider;
+-import net.minecraft.world.level.storage.loot.providers.number.floats.ContextFloatProviderTypes;
+-import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProvider;
+-import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProviderTypes;
++import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
++import net.minecraft.world.level.storage.loot.providers.number.NumberProviderTypes;
+ import net.minecraft.world.level.storage.loot.providers.score.ScoreboardNameProvider;
+ import net.minecraft.world.level.storage.loot.providers.score.ScoreboardNameProviders;
+ import org.slf4j.Logger;
+@@ -233,11 +_,8 @@
+     public static final Registry<MapCodec<? extends LootItemCondition>> LOOT_CONDITION_TYPE = registerSimple(
+         Registries.LOOT_CONDITION_TYPE, LootItemConditionTypes::bootstrap
+     );
+-    public static final Registry<MapCodec<? extends ContextFloatProvider>> CONTEXT_FLOAT_PROVIDER_TYPE = registerSimple(
+-        Registries.CONTEXT_FLOAT_PROVIDER_TYPE, ContextFloatProviderTypes::bootstrap
+-    );
+-    public static final Registry<MapCodec<? extends ContextIntProvider>> CONTEXT_INT_PROVIDER_TYPE = registerSimple(
+-        Registries.CONTEXT_INT_PROVIDER_TYPE, ContextIntProviderTypes::bootstrap
++    public static final Registry<MapCodec<? extends NumberProvider>> LOOT_NUMBER_PROVIDER_TYPE = registerSimple(
++        Registries.LOOT_NUMBER_PROVIDER_TYPE, NumberProviderTypes::bootstrap
+     );
+     public static final Registry<MapCodec<? extends NbtProvider>> LOOT_NBT_PROVIDER_TYPE = registerSimple(
+         Registries.LOOT_NBT_PROVIDER_TYPE, NbtProviders::bootstrap
+@@ -287,11 +_,11 @@
+     );
+     public static final Registry<MapCodec<? extends BiomeSource>> BIOME_SOURCE = registerSimple(Registries.BIOME_SOURCE, BiomeSources::bootstrap);
+     public static final Registry<MapCodec<? extends ChunkGenerator>> CHUNK_GENERATOR = registerSimple(Registries.CHUNK_GENERATOR, ChunkGenerators::bootstrap);
+-    public static final Registry<MapCodec<? extends MaterialCondition>> MATERIAL_CONDITION_TYPE = registerSimple(
+-        Registries.MATERIAL_CONDITION_TYPE, MaterialRules::bootstrapConditions
++    public static final Registry<MapCodec<? extends SurfaceRules.ConditionSource>> MATERIAL_CONDITION_TYPE = registerSimple(
++        Registries.MATERIAL_CONDITION_TYPE, SurfaceRules.ConditionSource::bootstrap
+     );
+-    public static final Registry<MapCodec<? extends MaterialRule>> MATERIAL_RULE_TYPE = registerSimple(
+-        Registries.MATERIAL_RULE_TYPE, MaterialRules::bootstrapRules
++    public static final Registry<MapCodec<? extends SurfaceRules.RuleSource>> MATERIAL_RULE_TYPE = registerSimple(
++        Registries.MATERIAL_RULE_TYPE, SurfaceRules.RuleSource::bootstrap
+     );
+     public static final Registry<MapCodec<? extends DensityFunction>> DENSITY_FUNCTION_TYPE = registerSimple(
+         Registries.DENSITY_FUNCTION_TYPE, DensityFunctions::bootstrap
+@@ -372,6 +_,11 @@
      public static final Registry<MapCodec<? extends SlotSource>> SLOT_SOURCE_TYPE = registerSimple(Registries.SLOT_SOURCE_TYPE, SlotSources::bootstrap);
      public static final Registry<Consumer<GameTestHelper>> TEST_FUNCTION = registerSimple(Registries.TEST_FUNCTION, BuiltinTestFunctions::bootstrap);
      public static final Registry<? extends Registry<?>> REGISTRY = WRITABLE_REGISTRY;
@@ -12,7 +80,7 @@
  
      private static <T> Registry<T> registerSimple(ResourceKey<? extends Registry<T>> name, BuiltInRegistries.RegistryBootstrap<T> loader) {
          return internalRegister(name, new MappedRegistry<>(name, Lifecycle.stable(), false), loader);
-@@ -390,6 +_,7 @@
+@@ -397,6 +_,7 @@
          ResourceKey<? extends Registry<T>> name, R registry, BuiltInRegistries.RegistryBootstrap<T> loader
      ) {
          Bootstrap.checkBootstrapCalled(() -> "registry " + name.identifier());
@@ -20,7 +88,7 @@
          Identifier key = name.identifier();
          LOADERS.put(key, () -> loader.run(registry));
          WRITABLE_REGISTRY.register((ResourceKey)name, registry, RegistrationInfo.BUILT_IN);
-@@ -397,16 +_,34 @@
+@@ -404,16 +_,34 @@
      }
  
      public static void bootStrap() {
@@ -55,7 +123,7 @@
          });
      }
  
-@@ -415,6 +_,7 @@
+@@ -422,6 +_,7 @@
  
          for (Registry<?> registry : REGISTRY) {
              bindBootstrappedTagsToEmpty(registry);
@@ -63,7 +131,7 @@
              registry.freeze();
          }
      }
-@@ -438,6 +_,10 @@
+@@ -445,6 +_,10 @@
  
      private static void bindBootstrappedTagsToEmpty(Registry<?> registry) {
          ((MappedRegistry)registry).bindAllTagsToEmpty();

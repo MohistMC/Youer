@@ -1,0 +1,23 @@
+--- a/net/minecraft/world/level/storage/loot/predicates/LootItemCondition.java
++++ b/net/minecraft/world/level/storage/loot/predicates/LootItemCondition.java
+@@ -5,16 +_,17 @@
+ import java.util.function.Predicate;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
++import net.minecraft.resources.RegistryFileCodec;
+ import net.minecraft.world.level.storage.loot.LootContext;
+ import net.minecraft.world.level.storage.loot.LootContextUser;
+ 
+ public interface LootItemCondition extends LootContextUser, Predicate<LootContext> {
+     Codec<LootItemCondition> DIRECT_CODEC = BuiltInRegistries.LOOT_CONDITION_TYPE.byNameCodec().dispatch(LootItemCondition::codec, c -> c);
+-    Codec<Holder<LootItemCondition>> CODEC = RegistryCodecs.holder(Registries.PREDICATE, DIRECT_CODEC);
+-    Codec<HolderSet<LootItemCondition>> LIST_CODEC = RegistryCodecs.holderSet(Registries.PREDICATE, DIRECT_CODEC);
++    Codec<Holder<LootItemCondition>> CODEC = RegistryFileCodec.create(Registries.PREDICATE, DIRECT_CODEC);
++    Codec<HolderSet<LootItemCondition>> LIST_CODEC = RegistryCodecs.homogeneousList(Registries.PREDICATE, DIRECT_CODEC);
+ 
+     MapCodec<? extends LootItemCondition> codec();
+ 

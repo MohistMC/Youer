@@ -1,5 +1,24 @@
 --- a/net/minecraft/world/item/enchantment/effects/ApplyMobEffect.java
 +++ b/net/minecraft/world/item/enchantment/effects/ApplyMobEffect.java
+@@ -5,8 +_,8 @@
+ import java.util.Optional;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.RandomSource;
+@@ -23,7 +_,7 @@
+ ) implements EnchantmentEntityEffect {
+     public static final MapCodec<ApplyMobEffect> CODEC = RecordCodecBuilder.mapCodec(
+         i -> i.group(
+-                RegistryCodecs.holderSet(Registries.MOB_EFFECT).fieldOf("to_apply").forGetter(ApplyMobEffect::toApply),
++                RegistryCodecs.homogeneousList(Registries.MOB_EFFECT).fieldOf("to_apply").forGetter(ApplyMobEffect::toApply),
+                 LevelBasedValue.CODEC.fieldOf("min_duration").forGetter(ApplyMobEffect::minDuration),
+                 LevelBasedValue.CODEC.fieldOf("max_duration").forGetter(ApplyMobEffect::maxDuration),
+                 LevelBasedValue.CODEC.fieldOf("min_amplifier").forGetter(ApplyMobEffect::minAmplifier),
 @@ -44,7 +_,7 @@
                  int amplifier = Math.max(
                      0, Math.round(Mth.randomBetween(random, this.minAmplifier.calculate(enchantmentLevel), this.maxAmplifier.calculate(enchantmentLevel)))

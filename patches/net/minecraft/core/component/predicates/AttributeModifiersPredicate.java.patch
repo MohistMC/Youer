@@ -1,5 +1,17 @@
 --- a/net/minecraft/core/component/predicates/AttributeModifiersPredicate.java
 +++ b/net/minecraft/core/component/predicates/AttributeModifiersPredicate.java
+@@ -8,10 +_,10 @@
+ import net.minecraft.advancements.predicates.MinMaxBounds;
+ import net.minecraft.advancements.predicates.SingleComponentItemPredicate;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.component.DataComponentType;
+ import net.minecraft.core.component.DataComponents;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.world.entity.EquipmentSlotGroup;
+ import net.minecraft.world.entity.ai.attributes.Attribute;
 @@ -40,6 +_,14 @@
          return !this.modifiers.isPresent() || this.modifiers.get().test(value.modifiers());
      }
@@ -15,3 +27,12 @@
      public record EntryPredicate(
          Optional<HolderSet<Attribute>> attribute,
          Optional<Identifier> id,
+@@ -49,7 +_,7 @@
+     ) implements Predicate<ItemAttributeModifiers.Entry> {
+         public static final Codec<AttributeModifiersPredicate.EntryPredicate> CODEC = RecordCodecBuilder.create(
+             i -> i.group(
+-                    RegistryCodecs.holderSet(Registries.ATTRIBUTE)
++                    RegistryCodecs.homogeneousList(Registries.ATTRIBUTE)
+                         .optionalFieldOf("attribute")
+                         .forGetter(AttributeModifiersPredicate.EntryPredicate::attribute),
+                     Identifier.CODEC.optionalFieldOf("id").forGetter(AttributeModifiersPredicate.EntryPredicate::id),

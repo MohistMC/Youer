@@ -1,0 +1,155 @@
+--- /dev/null
++++ b/com/mojang/realmsclient/gui/screens/AddRealmPopupScreen.java
+@@ -1,0 +_,152 @@
++package com.mojang.realmsclient.gui.screens;
++
++import java.util.Collection;
++import java.util.List;
++import net.minecraft.client.gui.GuiGraphicsExtractor;
++import net.minecraft.client.gui.components.Button;
++import net.minecraft.client.gui.components.FittingMultiLineTextWidget;
++import net.minecraft.client.gui.components.ImageButton;
++import net.minecraft.client.gui.components.Tooltip;
++import net.minecraft.client.gui.components.WidgetSprites;
++import net.minecraft.client.gui.screens.ConfirmLinkScreen;
++import net.minecraft.client.gui.screens.Screen;
++import net.minecraft.client.renderer.RenderPipelines;
++import net.minecraft.network.chat.Component;
++import net.minecraft.realms.RealmsScreen;
++import net.minecraft.resources.FileToIdConverter;
++import net.minecraft.resources.Identifier;
++import net.minecraft.server.packs.resources.ResourceManager;
++import net.minecraft.util.CommonLinks;
++import net.neoforged.api.distmarker.Dist;
++import net.neoforged.api.distmarker.OnlyIn;
++import org.jspecify.annotations.Nullable;
++
++@OnlyIn(Dist.CLIENT)
++public class AddRealmPopupScreen extends RealmsScreen {
++    private static final Component POPUP_TEXT = Component.translatable("mco.selectServer.popup");
++    private static final Component CLOSE_TEXT = Component.translatable("mco.selectServer.close");
++    private static final Identifier BACKGROUND_SPRITE = Identifier.withDefaultNamespace("popup/background");
++    private static final Identifier TRIAL_AVAILABLE_SPRITE = Identifier.withDefaultNamespace("icon/trial_available");
++    private static final FileToIdConverter CAROUSEL_SELECTOR = new FileToIdConverter("textures/gui/images", ".png");
++    private static final WidgetSprites CROSS_BUTTON_SPRITES = new WidgetSprites(
++        Identifier.withDefaultNamespace("widget/cross_button"), Identifier.withDefaultNamespace("widget/cross_button_highlighted")
++    );
++    private static final int IMAGE_WIDTH = 195;
++    private static final int IMAGE_HEIGHT = 152;
++    private static final int BG_BORDER_SIZE = 6;
++    private static final int BUTTON_SPACING = 4;
++    private static final int PADDING = 10;
++    private static final int WIDTH = 320;
++    private static final int HEIGHT = 172;
++    private static final int TEXT_WIDTH = 100;
++    private static final int BUTTON_WIDTH = 99;
++    private static final int CAROUSEL_SWITCH_INTERVAL = 100;
++    private static List<Identifier> carouselImages = List.of();
++    private final Screen backgroundScreen;
++    private final boolean trialAvailable;
++    private @Nullable Button createTrialButton;
++    private int carouselIndex;
++    private int carouselTick;
++
++    public AddRealmPopupScreen(Screen backgroundScreen, boolean trialAvailable) {
++        super(POPUP_TEXT);
++        this.backgroundScreen = backgroundScreen;
++        this.trialAvailable = trialAvailable;
++    }
++
++    public static void updateCarouselImages(ResourceManager resourceManager) {
++        Collection<Identifier> candidates = CAROUSEL_SELECTOR.listMatchingResources(resourceManager).keySet();
++        carouselImages = candidates.stream().filter(id -> id.getNamespace().equals("realms")).toList();
++    }
++
++    @Override
++    protected void init() {
++        this.backgroundScreen.resize(this.width, this.height);
++        if (this.trialAvailable) {
++            this.createTrialButton = this.addRenderableWidget(
++                Button.builder(Component.translatable("mco.selectServer.trial"), ConfirmLinkScreen.confirmLink(this, CommonLinks.START_REALMS_TRIAL))
++                    .bounds(this.right() - 10 - 99, this.bottom() - 10 - 4 - 40, 99, 20)
++                    .build()
++            );
++        }
++
++        this.addRenderableWidget(
++            Button.builder(Component.translatable("mco.selectServer.buy"), ConfirmLinkScreen.confirmLink(this, CommonLinks.BUY_REALMS))
++                .bounds(this.right() - 10 - 99, this.bottom() - 10 - 20, 99, 20)
++                .build()
++        );
++        ImageButton closeButton = this.addRenderableWidget(
++            new ImageButton(this.left() + 4, this.top() + 4, 14, 14, CROSS_BUTTON_SPRITES, button -> this.onClose(), CLOSE_TEXT)
++        );
++        closeButton.setTooltip(Tooltip.create(CLOSE_TEXT));
++        int textBoxHeight = 142 - (this.trialAvailable ? 40 : 20);
++        FittingMultiLineTextWidget fittingMultiLineTextWidget = new FittingMultiLineTextWidget(
++            this.right() - 10 - 100, this.top() + 10, 100, textBoxHeight, POPUP_TEXT, this.font
++        );
++        if (fittingMultiLineTextWidget.showingScrollBar()) {
++            fittingMultiLineTextWidget.setWidth(100 - fittingMultiLineTextWidget.scrollbarWidth());
++        }
++
++        this.addRenderableWidget(fittingMultiLineTextWidget);
++    }
++
++    @Override
++    public void tick() {
++        super.tick();
++        if (++this.carouselTick > 100) {
++            this.carouselTick = 0;
++            this.carouselIndex = (this.carouselIndex + 1) % carouselImages.size();
++        }
++    }
++
++    @Override
++    public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
++        super.extractRenderState(graphics, mouseX, mouseY, a);
++        if (this.createTrialButton != null) {
++            extractDiamond(graphics, this.createTrialButton);
++        }
++    }
++
++    public static void extractDiamond(GuiGraphicsExtractor graphics, Button button) {
++        int size = 8;
++        graphics.blitSprite(
++            RenderPipelines.GUI_TEXTURED, TRIAL_AVAILABLE_SPRITE, button.getX() + button.getWidth() - 8 - 4, button.getY() + button.getHeight() / 2 - 4, 8, 8
++        );
++    }
++
++    @Override
++    public void extractBackground(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
++        this.backgroundScreen.extractBackground(graphics, -1, -1, a);
++        graphics.nextStratum();
++        this.backgroundScreen.extractRenderState(graphics, -1, -1, a);
++        graphics.nextStratum();
++        this.extractTransparentBackground(graphics);
++        graphics.blitSprite(RenderPipelines.GUI_TEXTURED, BACKGROUND_SPRITE, this.left(), this.top(), 320, 172);
++        if (!carouselImages.isEmpty()) {
++            graphics.blit(
++                RenderPipelines.GUI_TEXTURED, carouselImages.get(this.carouselIndex), this.left() + 10, this.top() + 10, 0.0F, 0.0F, 195, 152, 195, 152
++            );
++        }
++    }
++
++    private int left() {
++        return (this.width - 320) / 2;
++    }
++
++    private int top() {
++        return (this.height - 172) / 2;
++    }
++
++    private int right() {
++        return this.left() + 320;
++    }
++
++    private int bottom() {
++        return this.top() + 172;
++    }
++
++    @Override
++    public void onClose() {
++        this.minecraft.gui.setScreen(this.backgroundScreen);
++    }
++}

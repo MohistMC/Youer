@@ -1,0 +1,34 @@
+--- a/net/minecraft/client/gui/screens/Screen.java
++++ b/net/minecraft/client/gui/screens/Screen.java
+@@ -10,6 +_,8 @@
+ import java.util.Objects;
+ import java.util.concurrent.Executor;
+ import java.util.concurrent.TimeUnit;
++import net.minecraft.CrashReport;
++import net.minecraft.CrashReportCategory;
+ import net.minecraft.SharedConstants;
+ import net.minecraft.client.Minecraft;
+ import net.minecraft.client.NarratorStatus;
+@@ -446,6 +_,11 @@
+         this.repositionElements();
+     }
+ 
++    public void fillCrashDetails(CrashReport report) {
++        CrashReportCategory category = report.addCategory("Affected screen", 1);
++        category.setDetail("Screen name", () -> this.getClass().getCanonicalName());
++    }
++
+     protected boolean isValidCharacterForName(String currentName, int newChar, int cursorPos) {
+         int colonPos = currentName.indexOf(58);
+         int slashPos = currentName.indexOf(47);
+@@ -480,10 +_,6 @@
+ 
+     private void setNarrationSuppressTime(long narrationSuppressTime) {
+         this.narrationSuppressTime = narrationSuppressTime;
+-    }
+-
+-    public void scheduleNarration() {
+-        this.scheduleNarration(0L, true, NarrationTrigger.SYSTEM);
+     }
+ 
+     public void afterMouseMove() {

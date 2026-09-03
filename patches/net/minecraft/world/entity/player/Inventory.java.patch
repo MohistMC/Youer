@@ -9,7 +9,19 @@
  import java.util.Map;
  import java.util.function.Predicate;
  import net.minecraft.CrashReport;
-@@ -24,6 +_,9 @@
+@@ -14,18 +_,19 @@
+ import net.minecraft.network.protocol.game.ClientboundSetPlayerInventoryPacket;
+ import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.tags.TagKey;
+-import net.minecraft.util.Prediction;
+ import net.minecraft.world.Container;
+ import net.minecraft.world.ContainerHelper;
+ import net.minecraft.world.ItemStackWithSlot;
+ import net.minecraft.world.Nameable;
+ import net.minecraft.world.entity.EntityEquipment;
+ import net.minecraft.world.entity.EquipmentSlot;
+-import net.minecraft.world.entity.item.ItemEntity;
+ import net.minecraft.world.item.Item;
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
@@ -19,7 +31,7 @@
  
  public class Inventory implements Container, Nameable {
      public static final int POP_TIME_DURATION = 5;
-@@ -58,6 +_,81 @@
+@@ -60,6 +_,81 @@
      public final EntityEquipment equipment;
      private int timesChanged;
  
@@ -101,7 +113,7 @@
      public Inventory(Player player, EntityEquipment equipment) {
          this.player = player;
          this.equipment = equipment;
-@@ -93,10 +_,32 @@
+@@ -95,10 +_,32 @@
  
      private boolean hasRemainingSpaceForItem(ItemStack slotItemStack, ItemStack newItemStack) {
          return !slotItemStack.isEmpty()
@@ -137,7 +149,7 @@
  
      public int getFreeSlot() {
          for (int i = 0; i < this.items.size(); i++) {
-@@ -108,8 +_,10 @@
+@@ -110,8 +_,10 @@
          return -1;
      }
  
@@ -150,7 +162,7 @@
          if (!this.items.get(this.selected).isEmpty()) {
              int freeSlot = this.getFreeSlot();
              if (freeSlot != -1) {
-@@ -120,8 +_,10 @@
+@@ -122,8 +_,10 @@
          this.items.set(this.selected, itemStack);
      }
  
@@ -163,7 +175,7 @@
          ItemStack tmp = this.items.get(this.selected);
          this.items.set(this.selected, this.items.get(slot));
          this.items.set(slot, tmp);
-@@ -145,12 +_,12 @@
+@@ -147,12 +_,12 @@
          return !item.isDamaged() && !item.isEnchanted() && !item.has(DataComponents.CUSTOM_NAME);
      }
  
@@ -179,7 +191,24 @@
                  && (existingItem.isEmpty() || ItemStack.isSameItemSameComponents(existingItem, inventoryItemStack))) {
                  return i;
              }
-@@ -293,6 +_,8 @@
+@@ -179,13 +_,14 @@
+         return this.selected;
+     }
+ 
+-    public int clearOrCountMatchingItems(Predicate<ItemStack> predicate, boolean countingOnly, int amountToRemove, Container craftSlots) {
++    public int clearOrCountMatchingItems(Predicate<ItemStack> predicate, int amountToRemove, Container craftSlots) {
+         int count = 0;
++        boolean countingOnly = amountToRemove == 0;
+         count += ContainerHelper.clearOrCountMatchingItems(this, predicate, amountToRemove - count, countingOnly);
+         count += ContainerHelper.clearOrCountMatchingItems(craftSlots, predicate, amountToRemove - count, countingOnly);
+         ItemStack carried = this.player.containerMenu.getCarried();
+         count += ContainerHelper.clearOrCountMatchingItems(carried, predicate, amountToRemove - count, countingOnly);
+-        if (!countingOnly && carried.isEmpty()) {
++        if (carried.isEmpty()) {
+             this.player.containerMenu.setCarried(ItemStack.EMPTY);
+         }
+ 
+@@ -294,6 +_,8 @@
          } catch (Throwable t) {
              CrashReport report = CrashReport.forThrowable(t, "Adding item to inventory");
              CrashReportCategory category = report.addCategory("Item being added");
@@ -188,3 +217,40 @@
              category.setDetail("Item ID", Item.getId(itemStack.getItem()));
              category.setDetail("Item data", itemStack.getDamageValue());
              category.setDetail("Item name", () -> itemStack.getHoverName().getString());
+@@ -301,11 +_,11 @@
+         }
+     }
+ 
+-    public void placeItemBackInInventory(ItemStack itemStack, Prediction prediction) {
+-        this.placeItemBackInInventory(itemStack, true, prediction);
++    public void placeItemBackInInventory(ItemStack itemStack) {
++        this.placeItemBackInInventory(itemStack, true);
+     }
+ 
+-    public void placeItemBackInInventory(ItemStack itemStack, boolean shouldSendSetSlotPacket, Prediction prediction) {
++    public void placeItemBackInInventory(ItemStack itemStack, boolean shouldSendSetSlotPacket) {
+         while (!itemStack.isEmpty()) {
+             int slot = this.getSlotWithRemainingSpace(itemStack);
+             if (slot == -1) {
+@@ -313,7 +_,7 @@
+             }
+ 
+             if (slot == -1) {
+-                this.player.drop(itemStack, false, prediction);
++                this.player.drop(itemStack, false);
+                 break;
+             }
+ 
+@@ -446,11 +_,7 @@
+         for (int i = 0; i < this.items.size(); i++) {
+             ItemStack itemStack = this.items.get(i);
+             if (!itemStack.isEmpty()) {
+-                ItemEntity drop = this.player.createItemStackToDrop(itemStack, true, false);
+-                if (drop != null) {
+-                    this.player.level().addFreshEntity(drop);
+-                }
+-
++                this.player.drop(itemStack, true, false);
+                 this.items.set(i, ItemStack.EMPTY);
+             }
+         }

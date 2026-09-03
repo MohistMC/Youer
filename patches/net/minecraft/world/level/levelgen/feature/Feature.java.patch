@@ -1,0 +1,25 @@
+--- a/net/minecraft/world/level/levelgen/feature/Feature.java
++++ b/net/minecraft/world/level/levelgen/feature/Feature.java
+@@ -8,9 +_,10 @@
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.BuiltInRegistries;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
++import net.minecraft.resources.RegistryFileCodec;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.level.LevelWriter;
+ import net.minecraft.world.level.WorldGenLevel;
+@@ -19,8 +_,8 @@
+ 
+ public interface Feature {
+     Codec<Feature> DIRECT_CODEC = BuiltInRegistries.FEATURE_TYPE.byNameCodec().dispatch(Feature::codec, t -> t);
+-    Codec<Holder<Feature>> CODEC = RegistryCodecs.holder(Registries.FEATURE, DIRECT_CODEC);
+-    Codec<HolderSet<Feature>> LIST_CODEC = RegistryCodecs.holderSet(Registries.FEATURE, DIRECT_CODEC);
++    Codec<Holder<Feature>> CODEC = RegistryFileCodec.create(Registries.FEATURE, DIRECT_CODEC);
++    Codec<HolderSet<Feature>> LIST_CODEC = RegistryCodecs.homogeneousList(Registries.FEATURE, DIRECT_CODEC);
+ 
+     MapCodec<? extends Feature> codec();
+ 

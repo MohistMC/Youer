@@ -8,18 +8,19 @@
  import com.mojang.datafixers.DataFixer;
  import com.mojang.logging.LogUtils;
  import it.unimi.dsi.fastutil.longs.LongSet;
-@@ -15,8 +_,10 @@
+@@ -15,9 +_,10 @@
  import java.util.concurrent.CompletableFuture;
  import java.util.concurrent.CompletionStage;
  import java.util.concurrent.Executor;
 +import java.util.concurrent.atomic.AtomicBoolean;
  import java.util.function.BooleanSupplier;
  import java.util.function.Consumer;
+-import java.util.function.Predicate;
 +import java.util.function.Supplier;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.SectionPos;
  import net.minecraft.network.protocol.Packet;
-@@ -55,7 +_,7 @@
+@@ -56,7 +_,7 @@
  
  import net.neoforged.neoforge.common.extensions.IServerChunkCacheExtension;
  
@@ -28,7 +29,7 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      private final DistanceManager distanceManager;
      public final ServerLevel level;
-@@ -64,9 +_,10 @@
+@@ -65,9 +_,10 @@
      public final ServerChunkCache.MainThreadExecutor mainThreadProcessor;
      public final ChunkMap chunkMap;
      private final SavedDataStorage savedDataStorage;
@@ -40,7 +41,7 @@
      private static final int CACHE_SIZE = 4;
      private final long[] lastChunkPos = new long[4];
      private final @Nullable ChunkStatus[] lastChunkStatus = new ChunkStatus[4];
-@@ -75,7 +_,115 @@
+@@ -76,7 +_,115 @@
      private final Set<ChunkHolder> chunkHoldersToBroadcast = new ReferenceOpenHashSet<>();
      @VisibleForDebug
      private NaturalSpawner.@Nullable SpawnState lastSpawnState;
@@ -157,7 +158,7 @@
      public ServerChunkCache(
          ServerLevel level,
          LevelStorageSource.LevelStorageAccess levelStorage,
-@@ -86,7 +_,9 @@
+@@ -87,7 +_,9 @@
          int viewDistance,
          int simulationDistance,
          boolean syncWrites,
@@ -168,7 +169,7 @@
      ) {
          this.level = level;
          this.mainThreadProcessor = new ServerChunkCache.MainThreadExecutor(level);
-@@ -99,7 +_,9 @@
+@@ -100,7 +_,9 @@
              LOGGER.error("Failed to create dimension data storage directory", e);
          }
  
@@ -179,7 +180,7 @@
          this.ticketStorage = this.savedDataStorage.computeIfAbsent(TicketStorage.TYPE);
          this.chunkMap = new ChunkMap(
              level,
-@@ -111,6 +_,7 @@
+@@ -112,6 +_,7 @@
              this,
              generator,
              chunkStatusListener,
@@ -187,7 +188,7 @@
              this.ticketStorage,
              viewDistance,
              syncWrites
-@@ -121,6 +_,57 @@
+@@ -122,6 +_,57 @@
          this.clearCache();
      }
  
@@ -245,7 +246,7 @@
      public ThreadedLevelLightEngine getLightEngine() {
          return this.lightEngine;
      }
-@@ -143,65 +_,41 @@
+@@ -144,65 +_,41 @@
  
      @Override
      public @Nullable ChunkAccess getChunk(int x, int z, ChunkStatus targetStatus, boolean loadOrGenerate) {
@@ -341,7 +342,7 @@
      }
  
      private void clearCache() {
-@@ -227,45 +_,62 @@
+@@ -228,45 +_,62 @@
      }
  
      private CompletableFuture<ChunkResult<ChunkAccess>> getChunkFutureMainThread(int x, int z, ChunkStatus targetStatus, boolean loadOrGenerate) {
@@ -430,7 +431,7 @@
      }
  
      public Level getLevel() {
-@@ -277,50 +_,61 @@
+@@ -278,50 +_,61 @@
      }
  
      public boolean runDistanceManagerUpdates() {
@@ -513,7 +514,7 @@
              this.tickChunks();
              this.chunkMap.tick();
          }
-@@ -338,7 +_,7 @@
+@@ -339,7 +_,7 @@
          if (!this.level.isDebug()) {
              ProfilerFiller profiler = Profiler.get();
              profiler.push("pollingChunks");
@@ -522,7 +523,7 @@
                  profiler.push("tickingChunks");
                  this.tickChunks(profiler, timeDiff);
                  profiler.pop();
-@@ -347,13 +_,47 @@
+@@ -348,13 +_,47 @@
              this.broadcastChangedChunks(profiler);
              profiler.pop();
          }
@@ -571,7 +572,7 @@
              if (chunk != null) {
                  chunkHolder.broadcastChanges(chunk);
              }
-@@ -366,14 +_,30 @@
+@@ -367,14 +_,30 @@
      private void tickChunks(ProfilerFiller profiler, long timeDiff) {
          profiler.push("naturalSpawnCount");
          int chunkCount = this.distanceManager.getNaturalSpawnChunkCount();
@@ -608,7 +609,7 @@
          } else {
              spawningCategories = List.of();
          }
-@@ -384,18 +_,21 @@
+@@ -385,18 +_,21 @@
              profiler.popPush("filteringSpawningChunks");
              this.chunkMap.collectSpawningChunks(spawningChunks);
              profiler.popPush("shuffleSpawningChunks");
@@ -633,7 +634,7 @@
          if (doMobSpawning) {
              profiler.popPush("customSpawners");
              this.level.tickCustomSpawners(this.spawnEnemies);
-@@ -407,22 +_,25 @@
+@@ -408,22 +_,25 @@
      private void tickSpawningChunk(LevelChunk chunk, long timeDiff, List<MobCategory> spawningCategories, NaturalSpawner.SpawnState spawnCookie) {
          ChunkPos chunkPos = chunk.getPos();
          chunk.incrementInhabitedTime(timeDiff);
@@ -664,7 +665,7 @@
      }
  
      @Override
-@@ -480,19 +_,11 @@
+@@ -481,19 +_,11 @@
      }
  
      public CompletableFuture<?> addTicketAndLoadWithRadius(TicketType type, ChunkPos pos, int radius) {
@@ -689,7 +690,15 @@
      }
  
      public void addTicketWithRadius(TicketType type, ChunkPos pos, int radius) {
-@@ -546,13 +_,25 @@
+@@ -543,21 +_,29 @@
+         this.chunkMap.sendToTrackingPlayers(entity, packet);
+     }
+ 
+-    public void sendToTrackingPlayersFiltered(Entity entity, Packet<? super ClientGamePacketListener> packet, Predicate<ServerPlayer> targetPredicate) {
+-        this.chunkMap.sendToTrackingPlayersFiltered(entity, packet, targetPredicate);
+-    }
+-
+     public void setViewDistance(int newDistance) {
          this.chunkMap.setServerViewDistance(newDistance);
      }
  
@@ -715,7 +724,7 @@
      }
  
      public String getChunkDebugData(ChunkPos pos) {
-@@ -618,13 +_,13 @@
+@@ -623,13 +_,13 @@
          }
  
          @Override

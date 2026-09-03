@@ -1,0 +1,56 @@
+--- a/net/minecraft/network/protocol/game/ServerboundAcceptTeleportationPacket.java
++++ b/net/minecraft/network/protocol/game/ServerboundAcceptTeleportationPacket.java
+@@ -1,27 +_,27 @@
+ package net.minecraft.network.protocol.game;
+ 
+ import net.minecraft.network.FriendlyByteBuf;
+-import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.PacketType;
+ 
+-public record ServerboundAcceptTeleportationPacket(int id, double x, double y, double z, float yRot, float xRot) implements Packet<ServerGamePacketListener> {
+-    public static final StreamCodec<FriendlyByteBuf, ServerboundAcceptTeleportationPacket> STREAM_CODEC = StreamCodec.composite(
+-        ByteBufCodecs.VAR_INT,
+-        ServerboundAcceptTeleportationPacket::id,
+-        ByteBufCodecs.DOUBLE,
+-        ServerboundAcceptTeleportationPacket::x,
+-        ByteBufCodecs.DOUBLE,
+-        ServerboundAcceptTeleportationPacket::y,
+-        ByteBufCodecs.DOUBLE,
+-        ServerboundAcceptTeleportationPacket::z,
+-        ByteBufCodecs.FLOAT,
+-        ServerboundAcceptTeleportationPacket::yRot,
+-        ByteBufCodecs.FLOAT,
+-        ServerboundAcceptTeleportationPacket::xRot,
+-        ServerboundAcceptTeleportationPacket::new
++public class ServerboundAcceptTeleportationPacket implements Packet<ServerGamePacketListener> {
++    public static final StreamCodec<FriendlyByteBuf, ServerboundAcceptTeleportationPacket> STREAM_CODEC = Packet.codec(
++        ServerboundAcceptTeleportationPacket::write, ServerboundAcceptTeleportationPacket::new
+     );
++    private final int id;
++
++    public ServerboundAcceptTeleportationPacket(int id) {
++        this.id = id;
++    }
++
++    private ServerboundAcceptTeleportationPacket(FriendlyByteBuf input) {
++        this.id = input.readVarInt();
++    }
++
++    private void write(FriendlyByteBuf output) {
++        output.writeVarInt(this.id);
++    }
+ 
+     @Override
+     public PacketType<ServerboundAcceptTeleportationPacket> type() {
+@@ -30,5 +_,9 @@
+ 
+     public void handle(ServerGamePacketListener listener) {
+         listener.handleAcceptTeleportPacket(this);
++    }
++
++    public int getId() {
++        return this.id;
+     }
+ }

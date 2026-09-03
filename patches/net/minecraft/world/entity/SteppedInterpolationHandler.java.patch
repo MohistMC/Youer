@@ -1,0 +1,41 @@
+--- a/net/minecraft/world/entity/SteppedInterpolationHandler.java
++++ b/net/minecraft/world/entity/SteppedInterpolationHandler.java
+@@ -7,15 +_,18 @@
+ import net.minecraft.util.Mth;
+ import net.minecraft.world.phys.Vec3;
+ 
+-public class SteppedInterpolationHandler extends AbstractInterpolationHandler {
++public class SteppedInterpolationHandler extends InterpolationHandler {
+     private final SteppedInterpolationHandler.InterpolationData interpolationData = new SteppedInterpolationHandler.InterpolationData();
++    private final SteppedInterpolationTracker interpolationTracker;
+ 
+-    private SteppedInterpolationHandler(Entity entity) {
+-        super(entity, entity.getType().updateInterval());
++    public SteppedInterpolationHandler(Entity entity) {
++        super(entity);
++        this.interpolationTracker = new SteppedInterpolationTracker(entity);
+     }
+ 
+-    public static InterpolationHandler create(Entity entity) {
+-        return entity.level().isClientSide() ? new SteppedInterpolationHandler(entity) : new SteppedInterpolationTracker(entity);
++    @Override
++    public InterpolationTracker interpolationTracker() {
++        return this.interpolationTracker;
+     }
+ 
+     @Override
+@@ -46,6 +_,14 @@
+         this.entity.setRot(target.yRot(), target.xRot());
+         float tick = this.entity.level().getRelativeTickSpeed();
+         this.interpolationData.advance(tick, this.interpolationSteps);
++    }
++
++    @Override
++    public void applyPredictedMovement(Vec3 delta) {
++        super.applyPredictedMovement(delta);
++        if (!this.entity.level().isClientSide()) {
++            this.interpolationTracker.applyPredictedMovement(delta);
++        }
+     }
+ 
+     @Override

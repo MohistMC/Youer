@@ -1,17 +1,13 @@
 --- a/net/minecraft/world/entity/monster/zombie/Drowned.java
 +++ b/net/minecraft/world/entity/monster/zombie/Drowned.java
-@@ -1,10 +_,8 @@
+@@ -1,6 +_,5 @@
  package net.minecraft.world.entity.monster.zombie;
  
 -import com.google.common.annotations.VisibleForTesting;
  import java.util.EnumSet;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Holder;
--import net.minecraft.core.component.DataComponents;
- import net.minecraft.server.level.ServerLevel;
- import net.minecraft.sounds.SoundEvent;
- import net.minecraft.sounds.SoundEvents;
-@@ -73,7 +_,6 @@
+@@ -72,7 +_,6 @@
          .withEyeHeight(0.775F)
          .withAttachments(EntityAttachments.builder().attach(EntityAttachment.VEHICLE, 0.0F, 0.1875F, 0.0F));
      private boolean searchingForLand;
@@ -19,7 +15,7 @@
  
      public Drowned(EntityType<? extends Drowned> type, Level level) {
          super(type, level);
-@@ -81,6 +_,74 @@
+@@ -80,6 +_,74 @@
          this.setPathfindingMalus(PathType.WATER, 0.0F);
      }
  
@@ -94,7 +90,7 @@
      public static AttributeSupplier.Builder createAttributes() {
          return Zombie.createAttributes().add(Attributes.STEP_HEIGHT, 1.0);
      }
-@@ -97,10 +_,23 @@
+@@ -96,10 +_,23 @@
          this.goalSelector.addGoal(2, new Drowned.DrownedAttackGoal(this, 1.0, false));
          this.goalSelector.addGoal(5, new Drowned.DrownedGoToBeachGoal(this, 1.0));
          this.goalSelector.addGoal(6, new Drowned.DrownedSwimUpGoal(this, 1.0, this.level().getSeaLevel()));
@@ -119,7 +115,7 @@
          this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, IronGolem.class, true));
          this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Axolotl.class, true, false));
          this.targetSelector.addGoal(5, new NearestAttackableTargetGoal<>(this, Turtle.class, 10, true, false, Turtle.BABY_ON_LAND_SELECTOR));
-@@ -239,6 +_,7 @@
+@@ -238,6 +_,7 @@
  
          LivingEntity target = this.getTarget();
          return target != null && target.isInWater();
@@ -127,36 +123,7 @@
      }
  
      @Override
-@@ -279,28 +_,6 @@
-         return false;
-     }
- 
--    private boolean shouldDoRangedAttack() {
--        if (!this.getMainHandItem().is(Items.TRIDENT)) {
--            return false;
--        }
--
--        if (this.hasTargetInRangedDistance()) {
--            return true;
--        }
--
--        LivingEntity target = this.getTarget();
--        if (target == null || !target.isAlive()) {
--            return false;
--        }
--
--        if (this.isWithinMeleeAttackRange(target)) {
--            return false;
--        }
--
--        Path path = this.navigation.getPath() != null ? this.navigation.getPath() : this.navigation.createPath(target, 0);
--        return path != null && path.getTarget().equals(target.blockPosition()) && !path.canReach();
--    }
--
-     @Override
-     public void performRangedAttack(LivingEntity target, float power) {
-         ItemStack mainHandItem = this.getMainHandItem();
-@@ -312,7 +_,7 @@
+@@ -289,21 +_,11 @@
          double distanceToTarget = Math.sqrt(xd * xd + zd * zd);
          if (this.level() instanceof ServerLevel serverLevel) {
              Projectile.spawnProjectileUsingShoot(
@@ -165,10 +132,10 @@
              );
          }
  
-@@ -320,16 +_,6 @@
-     }
- 
-     @Override
+         this.playSound(SoundEvents.DROWNED_SHOOT, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));
+-    }
+-
+-    @Override
 -    public float rangedAttackUncertainty(Level level) {
 -        return this.rangedAttackUncertainty < 0.0F ? RangedAttackMob.super.rangedAttackUncertainty(level) : this.rangedAttackUncertainty;
 -    }
@@ -176,54 +143,6 @@
 -    @VisibleForTesting
 -    public void setRangedAttackUncertainty(float rangedAttackUncertainty) {
 -        this.rangedAttackUncertainty = rangedAttackUncertainty;
--    }
--
--    @Override
-     public TagKey<Item> getPreferredWeaponType() {
-         return ItemTags.DROWNED_PREFERRED_WEAPONS;
-     }
-@@ -365,28 +_,12 @@
- 
-         @Override
-         public boolean canUse() {
--            return super.canUse() && this.drowned.okTarget(this.drowned.getTarget()) && !this.drowned.shouldDoRangedAttack();
-+            return super.canUse() && this.drowned.okTarget(this.drowned.getTarget());
-         }
- 
-         @Override
-         public boolean canContinueToUse() {
--            return super.canContinueToUse() && this.drowned.okTarget(this.drowned.getTarget()) && !this.drowned.shouldDoRangedAttack();
--        }
--
--        @Override
--        public void start() {
--            super.start();
--            if (this.drowned.getMainHandItem().has(DataComponents.WEAPON)) {
--                this.drowned.startUsingItem(InteractionHand.MAIN_HAND);
--            }
--        }
--
--        @Override
--        public void stop() {
--            super.stop();
--            if (this.drowned.getMainHandItem().has(DataComponents.WEAPON)) {
--                this.drowned.stopUsingItem();
--            }
-+            return super.canContinueToUse() && this.drowned.okTarget(this.drowned.getTarget());
-         }
      }
  
-@@ -589,12 +_,7 @@
- 
-         @Override
-         public boolean canUse() {
--            return super.canUse() && this.drowned.shouldDoRangedAttack();
--        }
--
--        @Override
--        public boolean canContinueToUse() {
--            return super.canContinueToUse() && this.drowned.shouldDoRangedAttack();
-+            return super.canUse() && this.drowned.getMainHandItem().is(Items.TRIDENT);
-         }
- 
-         @Override
+     @Override

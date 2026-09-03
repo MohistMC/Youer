@@ -54,9 +54,6 @@ import net.minecraft.world.level.block.HalfTransparentBlock;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.LadderBlock;
 import net.minecraft.world.level.block.LeavesBlock;
-import net.minecraft.world.level.block.ObserverBlock;
-import net.minecraft.world.level.block.RedStoneWireBlock;
-import net.minecraft.world.level.block.RepeaterBlock;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.TrapDoorBlock;
@@ -77,7 +74,9 @@ import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
 import net.neoforged.neoforge.common.DataMapHooks;
 import net.neoforged.neoforge.common.ItemAbilities;
 import net.neoforged.neoforge.common.ItemAbility;
+import net.neoforged.neoforge.common.Tags;
 import net.neoforged.neoforge.common.enums.BubbleColumnDirection;
+import net.neoforged.neoforge.common.util.BlockRelocability;
 import net.neoforged.neoforge.common.world.AuxiliaryLightManager;
 import net.neoforged.neoforge.event.EventHooks;
 import net.neoforged.neoforge.model.data.ModelData;
@@ -244,10 +243,10 @@ public interface IBlockExtension {
     }
 
     /**
-     * Called when a block is removed by {@link PushReaction#DESTROY}. This is responsible for
+     * Called when a block is removed by {@link PushReaction#POPPED}. This is responsible for
      * actually destroying the block, and the block is intact at time of call.
      * <p>
-     * Will only be called if {@link BlockState#getPistonPushReaction} returns {@link PushReaction#DESTROY}.
+     * Will only be called if {@link BlockState#getPistonPushReaction} returns {@link PushReaction#POPPED}.
      * <p>
      * Note: When used in multiplayer, this is called on both client and
      * server sides!
@@ -439,10 +438,10 @@ public interface IBlockExtension {
      * @param placeFunction Function to set blocks in the level for the tree, use this instead of the level directly
      * @param randomSource  The random source
      * @param pos           Position of the block to be set to dirt
-     * @param config        Configuration of the trunk placer. Consider azalea trees, which should place rooted dirt instead of regular dirt.
+     * @param tree          Configuration of the trunk placer. Consider azalea trees, which should place rooted dirt instead of regular dirt.
      * @return True to ignore vanilla behaviour
      */
-    default boolean onTreeGrow(BlockState state, WorldGenLevel level, BiConsumer<BlockPos, BlockState> placeFunction, RandomSource randomSource, BlockPos pos, TreeFeature config) {
+    default boolean onTreeGrow(BlockState state, WorldGenLevel level, BiConsumer<BlockPos, BlockState> placeFunction, RandomSource randomSource, BlockPos pos, TreeFeature tree) {
         return false;
     }
 
@@ -460,33 +459,6 @@ public interface IBlockExtension {
             return state.getValue(FarmlandBlock.MOISTURE) > 0;
 
         return false;
-    }
-
-    /**
-     * Determines if this block can be used as the frame of a conduit.
-     *
-     * @param level   The current level
-     * @param pos     Block position in level
-     * @param conduit Conduit position in level
-     * @return True, to support the conduit, and make it active with this block.
-     */
-    default boolean isConduitFrame(BlockState state, LevelReader level, BlockPos pos, BlockPos conduit) {
-        return state.getBlock() == Blocks.PRISMARINE ||
-                state.getBlock() == Blocks.PRISMARINE_BRICKS ||
-                state.getBlock() == Blocks.SEA_LANTERN ||
-                state.getBlock() == Blocks.DARK_PRISMARINE;
-    }
-
-    /**
-     * Determines if this block can be used as part of a frame of a nether portal.
-     *
-     * @param state The current state
-     * @param level The current level
-     * @param pos   Block position in level
-     * @return True, to support being part of a nether portal frame, false otherwise.
-     */
-    default boolean isPortalFrame(BlockState state, BlockGetter level, BlockPos pos) {
-        return state.is(Blocks.OBSIDIAN) || (org.purpurmc.purpur.PurpurConfig.cryingObsidianValidForPortalFrame && state.is(Blocks.CRYING_OBSIDIAN)); // Purpur - Crying obsidian valid for portal frames
     }
 
     /**
@@ -814,15 +786,11 @@ public interface IBlockExtension {
         if (!itemStack.canPerformAction(itemAbility))
             return null;
 
-        if (ItemAbilities.AXE_STRIP == itemAbility) {
-            return AxeItem.getAxeStrippingState(state);
-        } else if (ItemAbilities.AXE_SCRAPE == itemAbility) {
+        if (ItemAbilities.AXE_SCRAPE == itemAbility) {
             return WeatheringCopper.getPrevious(state).orElse(null);
         } else if (ItemAbilities.AXE_WAX_OFF == itemAbility) {
             Block waxOffBlock = DataMapHooks.getBlockUnwaxed(state.getBlock());
             return Optional.ofNullable(waxOffBlock).map(block -> block.withPropertiesOf(state)).orElse(null);
-        } else if (ItemAbilities.SHOVEL_FLATTEN == itemAbility) {
-            return ShovelItem.getShovelPathingState(state);
         } else if (ItemAbilities.HOE_TILL == itemAbility) {
             // Logic copied from HoeItem#TILLABLES; needs to be kept in sync during updating
             Block block = state.getBlock();
@@ -868,48 +836,6 @@ public interface IBlockExtension {
      */
     default boolean isScaffolding(BlockState state, LevelReader level, BlockPos pos, LivingEntity entity) {
         return state.is(Blocks.SCAFFOLDING);
-    }
-
-    /**
-     * Whether redstone dust should visually connect to this block on a given side
-     * <p>
-     * The default implementation is identical to
-     * {@code RedStoneWireBlock#shouldConnectTo(BlockState, Direction)}
-     *
-     * <p>
-     * {@link RedStoneWireBlock} updates its visual connection when
-     * {@link BlockState#updateShape(Direction, BlockState, LevelAccessor, BlockPos, BlockPos)}
-     * is called, this callback is used during the evaluation of its new shape.
-     *
-     * @param state     The current state
-     * @param level     The level
-     * @param pos       The block position in level
-     * @param direction The coming direction of the redstone dust connection (with respect to the block at pos)
-     * @return True if redstone dust should visually connect on the side passed
-     *         <p>
-     *         If the return value is evaluated based on level and pos (e.g. from BlockEntity), then the implementation of
-     *         this block should notify its neighbors to update their shapes when necessary. Consider using
-     *         {@link BlockState#updateNeighbourShapes(LevelAccessor, BlockPos, int, int)} or
-     *         {@link BlockState#updateShape(Direction, BlockState, LevelAccessor, BlockPos, BlockPos)}.
-     *         <p>
-     *         Example:
-     *         <p>
-     *         1. {@code yourBlockState.updateNeighbourShapes(level, yourBlockPos, UPDATE_ALL);}
-     *         <p>
-     *         2. {@code neighborState.updateShape(fromDirection, stateOfYourBlock, level, neighborBlockPos, yourBlockPos)},
-     *         where {@code fromDirection} is defined from the neighbor block's point of view.
-     */
-    default boolean canConnectRedstone(BlockState state, BlockGetter level, BlockPos pos, @Nullable Direction direction) {
-        if (state.is(Blocks.REDSTONE_WIRE)) {
-            return true;
-        } else if (state.is(Blocks.REPEATER)) {
-            Direction facing = state.getValue(RepeaterBlock.FACING);
-            return facing == direction || facing.getOpposite() == direction;
-        } else if (state.is(Blocks.OBSERVER)) {
-            return direction == state.getValue(ObserverBlock.FACING);
-        } else {
-            return state.isSignalSource() && direction != null;
-        }
     }
 
     /**
@@ -1085,5 +1011,26 @@ public interface IBlockExtension {
     /// @return This blocks bounce restitution for the given state and position
     default float getBounceRestitution(Level level, BlockPos pos, BlockState blockState, Entity entity) {
         return self().getBounceRestitution();
+    }
+
+    /// Declares whether a block may be relocated and under what circumstances.
+    /// "Relocation" here means a region of blocks being cut or copied,
+    /// and pasted somewhere else, with a translation and possibly a rotation or mirror,
+    /// also copying any blockentity data to the new position(s).
+    ///
+    /// A multiblock which is relocatable if and only if the entire multiblock is being relocated
+    /// (e.g. a bed, a door, a 3x3 machine) may override this method to define such behavior.
+    ///
+    /// Blocks which may never be relocated should be added to
+    /// {@link Tags.Blocks#RELOCATION_NOT_SUPPORTED}, in which case this method does not need to be overridden.
+    ///
+    /// @param level LevelReader which the block is being relocated from
+    /// @param pos BlockPos which the block is being relocated from
+    /// @param state BlockState of the block being relocated
+    /// @return BlockRelocability declaring whether the block may be relocated
+    default BlockRelocability getRelocability(LevelReader level, BlockPos pos, BlockState state) {
+        return state.is(Tags.Blocks.RELOCATION_NOT_SUPPORTED)
+                ? BlockRelocability.No.INSTANCE
+                : BlockRelocability.Yes.INSTANCE;
     }
 }

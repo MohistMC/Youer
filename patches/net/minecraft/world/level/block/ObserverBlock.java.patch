@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/block/ObserverBlock.java
 +++ b/net/minecraft/world/level/block/ObserverBlock.java
-@@ -43,8 +_,18 @@
+@@ -16,7 +_,6 @@
+ import net.minecraft.world.level.block.state.properties.BooleanProperty;
+ import net.minecraft.world.level.redstone.ExperimentalRedstoneUtils;
+ import net.minecraft.world.level.redstone.Orientation;
+-import org.jspecify.annotations.Nullable;
+ 
+ public class ObserverBlock extends DirectionalBlock {
+     public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
+@@ -44,8 +_,18 @@
      @Override
      protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
          if (state.getValue(POWERED)) {
@@ -19,7 +27,7 @@
              level.setBlock(pos, state.setValue(POWERED, true), 2);
              level.scheduleTick(pos, this, 2);
          }
-@@ -64,7 +_,8 @@
+@@ -65,7 +_,8 @@
          RandomSource random
      ) {
          if (state.getValue(FACING) == directionToNeighbour && !state.getValue(POWERED)) {
@@ -29,3 +37,15 @@
          }
  
          return super.updateShape(state, level, ticks, pos, directionToNeighbour, neighbourPos, neighbourState, random);
+@@ -88,11 +_,6 @@
+     @Override
+     protected boolean isSignalSource(BlockState state) {
+         return true;
+-    }
+-
+-    @Override
+-    protected boolean shouldRedstoneWireConnectTo(BlockState state, BlockGetter level, BlockPos pos, @Nullable Direction direction) {
+-        return direction == state.getValue(FACING);
+     }
+ 
+     @Override

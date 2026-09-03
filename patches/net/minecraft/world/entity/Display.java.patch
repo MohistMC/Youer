@@ -1,0 +1,57 @@
+--- a/net/minecraft/world/entity/Display.java
++++ b/net/minecraft/world/entity/Display.java
+@@ -104,6 +_,7 @@
+     private boolean updateStartTick;
+     private boolean updateInterpolationDuration;
+     private Display.@Nullable RenderState renderState;
++    private final LinearInterpolationHandler interpolation = new LinearInterpolationHandler(this, 0);
+ 
+     public Display(EntityType<?> type, Level level) {
+         super(type, level);
+@@ -122,8 +_,8 @@
+             this.updateStartTick = true;
+         }
+ 
+-        if (DATA_POS_ROT_INTERPOLATION_DURATION_ID.equals(accessor) && this.interpolationHandler instanceof LinearInterpolationHandler interpolation) {
+-            interpolation.setInterpolationLength(this.getPosRotInterpolationDuration());
++        if (DATA_POS_ROT_INTERPOLATION_DURATION_ID.equals(accessor)) {
++            this.interpolation.setInterpolationLength(this.getPosRotInterpolationDuration());
+         }
+ 
+         if (DATA_TRANSFORMATION_INTERPOLATION_DURATION_ID.equals(accessor)) {
+@@ -178,12 +_,14 @@
+ 
+                 this.updateRenderSubState(shouldInterpolate, this.lastProgress);
+             }
++
++            this.interpolation.interpolate();
+         }
+     }
+ 
+     @Override
+-    protected InterpolationHandler createInterpolationHandler() {
+-        return LinearInterpolationHandler.create(this, 0);
++    public InterpolationHandler getInterpolation() {
++        return this.interpolation;
+     }
+ 
+     protected abstract void updateRenderSubState(boolean shouldInterpolate, float progress);
+@@ -246,16 +_,8 @@
+         output.storeNullable("brightness", Brightness.CODEC, this.getBrightnessOverride());
+     }
+ 
+-    @Override
+-    public AABB getInterpolatedBoundingBox(float partialTicks) {
+-        return this.xOld == this.getX() && this.yOld == this.getY() && this.zOld == this.getZ()
+-            ? this.cullingBoundingBox
+-            : this.cullingBoundingBox
+-                .move(
+-                    Mth.lerp(partialTicks, this.xOld, this.getX()) - this.getX(),
+-                    Mth.lerp(partialTicks, this.yOld, this.getY()) - this.getY(),
+-                    Mth.lerp(partialTicks, this.zOld, this.getZ()) - this.getZ()
+-                );
++    public AABB getBoundingBoxForCulling() {
++        return this.cullingBoundingBox;
+     }
+ 
+     public boolean affectedByCulling() {

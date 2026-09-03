@@ -1,0 +1,46 @@
+--- a/net/minecraft/client/resources/sounds/AbstractSoundInstance.java
++++ b/net/minecraft/client/resources/sounds/AbstractSoundInstance.java
+@@ -13,7 +_,6 @@
+ @OnlyIn(Dist.CLIENT)
+ public abstract class AbstractSoundInstance implements SoundInstance {
+     protected @Nullable Sound sound;
+-    protected @Nullable WeighedSoundEvents soundEvent;
+     protected final SoundSource source;
+     protected final Identifier identifier;
+     protected float volume = 1.0F;
+@@ -43,30 +_,25 @@
+     }
+ 
+     @Override
+-    public @Nullable WeighedSoundEvents getOrResolve(SoundManager soundManager) {
++    public @Nullable WeighedSoundEvents resolve(SoundManager soundManager) {
+         if (this.identifier.equals(SoundManager.INTENTIONALLY_EMPTY_SOUND_LOCATION)) {
+             this.sound = SoundManager.INTENTIONALLY_EMPTY_SOUND;
+             return SoundManager.INTENTIONALLY_EMPTY_SOUND_EVENT;
+         }
+ 
+-        this.soundEvent = soundManager.getSoundEvent(this.identifier);
+-        if (this.soundEvent == null) {
++        WeighedSoundEvents soundEvent = soundManager.getSoundEvent(this.identifier);
++        if (soundEvent == null) {
+             this.sound = SoundManager.EMPTY_SOUND;
+         } else {
+-            this.sound = this.soundEvent.getSound(this.random);
++            this.sound = soundEvent.getSound(this.random);
+         }
+ 
+-        return this.soundEvent;
++        return soundEvent;
+     }
+ 
+     @Override
+     public @Nullable Sound getSound() {
+         return this.sound;
+-    }
+-
+-    @Override
+-    public @Nullable WeighedSoundEvents getSoundEvent() {
+-        return this.soundEvent;
+     }
+ 
+     @Override

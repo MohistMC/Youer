@@ -1,0 +1,21 @@
+--- a/net/minecraft/advancements/predicates/FluidPredicate.java
++++ b/net/minecraft/advancements/predicates/FluidPredicate.java
+@@ -5,8 +_,8 @@
+ import java.util.Optional;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.world.level.material.Fluid;
+ import net.minecraft.world.level.material.FluidState;
+@@ -14,7 +_,7 @@
+ public record FluidPredicate(Optional<HolderSet<Fluid>> fluids, Optional<StatePropertiesPredicate> properties) {
+     public static final Codec<FluidPredicate> CODEC = RecordCodecBuilder.create(
+         i -> i.group(
+-                RegistryCodecs.holderSet(Registries.FLUID).optionalFieldOf("fluids").forGetter(FluidPredicate::fluids),
++                RegistryCodecs.homogeneousList(Registries.FLUID).optionalFieldOf("fluids").forGetter(FluidPredicate::fluids),
+                 StatePropertiesPredicate.CODEC.optionalFieldOf("state").forGetter(FluidPredicate::properties)
+             )
+             .apply(i, FluidPredicate::new)

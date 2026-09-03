@@ -1,0 +1,127 @@
+--- /dev/null
++++ b/net/minecraft/world/item/component/BlockTransformerMappings.java
+@@ -1,0 +_,124 @@
++package net.minecraft.world.item.component;
++
++import com.google.common.collect.ImmutableList;
++import com.google.common.collect.ImmutableList.Builder;
++import java.util.List;
++import java.util.Set;
++import java.util.Map.Entry;
++import net.minecraft.core.Direction;
++import net.minecraft.core.Holder;
++import net.minecraft.core.component.BlockTransformer;
++import net.minecraft.sounds.SoundEvent;
++import net.minecraft.sounds.SoundEvents;
++import net.minecraft.tags.BlockTags;
++import net.minecraft.world.item.HoneycombItem;
++import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.Blocks;
++import net.minecraft.world.level.block.CopperChestBlock;
++import net.minecraft.world.level.block.DoorBlock;
++import net.minecraft.world.level.block.WeatheringCopper;
++import net.minecraft.world.level.levelgen.blockpredicates.BlockPredicate;
++import net.minecraft.world.level.levelgen.feature.stateproviders.CopyPropertiesProvider;
++import net.minecraft.world.level.storage.loot.BuiltInLootTables;
++
++public class BlockTransformerMappings {
++    public static final BlockTransformer SHOVEL = new BlockTransformer(
++        List.of(
++            BlockTransformer.BlockTransformData.builder(
++                    BlockPredicate.allOf(BlockPredicate.matchesTag(BlockTags.TURNS_INTO_DIRT_PATH), BlockPredicate.matchesTag(Direction.UP, BlockTags.AIR)),
++                    Blocks.DIRT_PATH
++                )
++                .sound(SoundEvents.SHOVEL_FLATTEN)
++                .disallowedFaces(List.of(Direction.DOWN))
++                .build()
++        )
++    );
++    private static final List<BlockTransformer.BlockTransformData> AXE_STRIPPABLES = ImmutableList.<BlockTransformer.BlockTransformData>builder()
++        .add(getStrippableBlockData(Blocks.OAK_WOOD, Blocks.STRIPPED_OAK_WOOD))
++        .add(getStrippableBlockData(Blocks.OAK_LOG, Blocks.STRIPPED_OAK_LOG))
++        .add(getStrippableBlockData(Blocks.DARK_OAK_WOOD, Blocks.STRIPPED_DARK_OAK_WOOD))
++        .add(getStrippableBlockData(Blocks.DARK_OAK_LOG, Blocks.STRIPPED_DARK_OAK_LOG))
++        .add(getStrippableBlockData(Blocks.PALE_OAK_WOOD, Blocks.STRIPPED_PALE_OAK_WOOD))
++        .add(getStrippableBlockData(Blocks.PALE_OAK_LOG, Blocks.STRIPPED_PALE_OAK_LOG))
++        .add(getStrippableBlockData(Blocks.POPLAR_WOOD, Blocks.STRIPPED_POPLAR_WOOD))
++        .add(getStrippableBlockData(Blocks.POPLAR_LOG, Blocks.STRIPPED_POPLAR_LOG))
++        .add(getStrippableBlockData(Blocks.ACACIA_WOOD, Blocks.STRIPPED_ACACIA_WOOD))
++        .add(getStrippableBlockData(Blocks.ACACIA_LOG, Blocks.STRIPPED_ACACIA_LOG))
++        .add(getStrippableBlockData(Blocks.CHERRY_WOOD, Blocks.STRIPPED_CHERRY_WOOD))
++        .add(getStrippableBlockData(Blocks.CHERRY_LOG, Blocks.STRIPPED_CHERRY_LOG))
++        .add(getStrippableBlockData(Blocks.BIRCH_WOOD, Blocks.STRIPPED_BIRCH_WOOD))
++        .add(getStrippableBlockData(Blocks.BIRCH_LOG, Blocks.STRIPPED_BIRCH_LOG))
++        .add(getStrippableBlockData(Blocks.JUNGLE_WOOD, Blocks.STRIPPED_JUNGLE_WOOD))
++        .add(getStrippableBlockData(Blocks.JUNGLE_LOG, Blocks.STRIPPED_JUNGLE_LOG))
++        .add(getStrippableBlockData(Blocks.SPRUCE_WOOD, Blocks.STRIPPED_SPRUCE_WOOD))
++        .add(getStrippableBlockData(Blocks.SPRUCE_LOG, Blocks.STRIPPED_SPRUCE_LOG))
++        .add(getStrippableBlockData(Blocks.WARPED_STEM, Blocks.STRIPPED_WARPED_STEM))
++        .add(getStrippableBlockData(Blocks.WARPED_HYPHAE, Blocks.STRIPPED_WARPED_HYPHAE))
++        .add(getStrippableBlockData(Blocks.CRIMSON_STEM, Blocks.STRIPPED_CRIMSON_STEM))
++        .add(getStrippableBlockData(Blocks.CRIMSON_HYPHAE, Blocks.STRIPPED_CRIMSON_HYPHAE))
++        .add(getStrippableBlockData(Blocks.MANGROVE_WOOD, Blocks.STRIPPED_MANGROVE_WOOD))
++        .add(getStrippableBlockData(Blocks.MANGROVE_LOG, Blocks.STRIPPED_MANGROVE_LOG))
++        .add(getStrippableBlockData(Blocks.BAMBOO_BLOCK, Blocks.STRIPPED_BAMBOO_BLOCK))
++        .build();
++    public static final BlockTransformer AXE = new BlockTransformer(
++        ImmutableList.<BlockTransformer.BlockTransformData>builder()
++            .addAll(AXE_STRIPPABLES)
++            .addAll(axe(WeatheringCopper.PREVIOUS_BY_BLOCK.get().entrySet(), SoundEvents.AXE_SCRAPE, BlockTransformer.TransformParticle.SCRAPE))
++            .addAll(axe(HoneycombItem.WAX_OFF_BY_BLOCK.get().entrySet(), SoundEvents.AXE_WAX_OFF, BlockTransformer.TransformParticle.WAX_OFF))
++            .build()
++    );
++    private static final BlockTransformer.BlockTransformData FARMLAND = BlockTransformer.BlockTransformData.builder(
++            BlockPredicate.allOf(BlockPredicate.matchesTag(BlockTags.TURNS_INTO_FARMLAND), BlockPredicate.matchesTag(Direction.UP, BlockTags.AIR)),
++            Blocks.FARMLAND
++        )
++        .sound(SoundEvents.HOE_TILL)
++        .disallowedFaces(List.of(Direction.DOWN))
++        .build();
++    private static final BlockTransformer.BlockTransformData HOE_COARSE_DIRT = BlockTransformer.BlockTransformData.builder(
++            BlockPredicate.allOf(BlockPredicate.matchesBlocks(Blocks.COARSE_DIRT), BlockPredicate.matchesTag(Direction.UP, BlockTags.AIR)), Blocks.DIRT
++        )
++        .sound(SoundEvents.HOE_TILL)
++        .disallowedFaces(List.of(Direction.DOWN))
++        .build();
++    private static final BlockTransformer.BlockTransformData HOE_ROOTED_DIRT = BlockTransformer.BlockTransformData.builder(
++            BlockPredicate.matchesBlocks(Blocks.ROOTED_DIRT), Blocks.DIRT
++        )
++        .sound(SoundEvents.HOE_TILL)
++        .loot(BuiltInLootTables.TILL_ROOTED_DIRT)
++        .dropStrategy(BlockTransformer.DropStrategy.CLICKED_FACE)
++        .build();
++    public static BlockTransformer HOE = new BlockTransformer(
++        ImmutableList.<BlockTransformer.BlockTransformData>builder().add(FARMLAND).add(HOE_COARSE_DIRT).add(HOE_ROOTED_DIRT).build()
++    );
++
++    private static BlockTransformer.BlockTransformData getStrippableBlockData(Block fromBlock, Block toBlock) {
++        return BlockTransformer.BlockTransformData.builder(BlockPredicate.matchesBlocks(fromBlock), new CopyPropertiesProvider(toBlock))
++            .sound(SoundEvents.AXE_STRIP)
++            .build();
++    }
++
++    private static List<BlockTransformer.BlockTransformData> axe(
++        Set<Entry<Block, Block>> blocks, Holder<SoundEvent> sound, BlockTransformer.TransformParticle particle
++    ) {
++        Builder<BlockTransformer.BlockTransformData> transforms = ImmutableList.builder();
++
++        for (Entry<Block, Block> entry : blocks) {
++            BlockTransformer.BlockTransformData.Builder builder = BlockTransformer.BlockTransformData.builder(
++                    BlockPredicate.matchesBlocks(entry.getKey()), new CopyPropertiesProvider(entry.getValue())
++                )
++                .sound(sound)
++                .particle(particle);
++            if (entry.getKey() instanceof DoorBlock) {
++                builder.updateFromNeighbors(false);
++            }
++
++            if (entry.getKey() instanceof CopperChestBlock) {
++                builder.transformType(BlockTransformer.TransformType.COPPER_CHEST).updateFromNeighbors(false);
++            }
++
++            transforms.add(builder.build());
++        }
++
++        return transforms.build();
++    }
++}

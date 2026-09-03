@@ -1,0 +1,187 @@
+--- a/com/mojang/renderpearl/backend/opengl/GlRenderPass.java
++++ b/com/mojang/renderpearl/backend/opengl/GlRenderPass.java
+@@ -4,16 +_,19 @@
+ import com.mojang.renderpearl.api.buffers.GpuBuffer;
+ import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
+ import com.mojang.renderpearl.api.commands.GpuQueryPool;
++import com.mojang.renderpearl.api.commands.RenderPass;
++import com.mojang.renderpearl.api.pipeline.CompiledRenderPipeline;
+ import com.mojang.renderpearl.api.pipeline.IndexType;
+-import com.mojang.renderpearl.backend.api.BackendRenderPipeline;
++import com.mojang.renderpearl.api.textures.GpuSampler;
++import com.mojang.renderpearl.api.textures.GpuTextureView;
+ import com.mojang.renderpearl.backend.api.RenderPassBackend;
+-import it.unimi.dsi.fastutil.booleans.BooleanArrayList;
+-import it.unimi.dsi.fastutil.booleans.BooleanList;
+-import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
+-import it.unimi.dsi.fastutil.objects.ReferenceList;
+-import java.nio.ByteBuffer;
+ import java.nio.IntBuffer;
++import java.util.Collection;
++import java.util.HashMap;
++import java.util.HashSet;
++import java.util.Set;
+ import java.util.function.Supplier;
++import net.minecraft.SharedConstants;
+ import net.neoforged.api.distmarker.Dist;
+ import net.neoforged.api.distmarker.OnlyIn;
+ import org.jspecify.annotations.Nullable;
+@@ -21,32 +_,35 @@
+ 
+ @OnlyIn(Dist.CLIENT)
+ class GlRenderPass implements RenderPassBackend {
++    public static final boolean VALIDATION = SharedConstants.IS_RUNNING_IN_IDE;
+     private final GlCommandEncoder encoder;
+     private final GlDevice device;
++    private final boolean hasDepthTexture;
+     private final ScissorState defaultScissorState;
+     protected @Nullable GlRenderPipeline pipeline;
+     protected final @Nullable GpuBufferSlice[] vertexBuffers = new GpuBufferSlice[16];
+     protected boolean vertexBufferDirty = true;
+     protected @Nullable GpuBuffer indexBuffer;
+     protected IndexType indexType = IndexType.INT;
+-    protected boolean indexBufferDirty = false;
+     private final ScissorState scissorState = new ScissorState();
+-    protected boolean scissorStateDirty = true;
+-    protected final ReferenceList<Object> uniforms = new ReferenceArrayList<>();
+-    protected final BooleanList dirtyUniforms = new BooleanArrayList();
+-    protected boolean anyUniformDirty = false;
+-    protected @Nullable GpuBufferSlice pushConstants;
+-    protected boolean pushConstantsDirty = false;
++    protected final HashMap<String, GpuBufferSlice> uniforms = new HashMap<>();
++    protected final HashMap<String, GlRenderPass.TextureViewAndSampler> samplers = new HashMap<>();
++    protected final Set<String> dirtyUniforms = new HashSet<>();
+     protected final int colorAttachmentCount;
+ 
+-    public GlRenderPass(GlCommandEncoder encoder, GlDevice device, int colorAttachmentCount, ScissorState defaultScissorState) {
++    public GlRenderPass(GlCommandEncoder encoder, GlDevice device, boolean hasDepthTexture, int colorAttachmentCount, ScissorState defaultScissorState) {
+         this.encoder = encoder;
+         this.device = device;
++        this.hasDepthTexture = hasDepthTexture;
+         this.colorAttachmentCount = colorAttachmentCount;
+         this.defaultScissorState = defaultScissorState;
+         this.scissorState.setFrom(defaultScissorState);
+     }
+ 
++    public boolean hasDepthTexture() {
++        return this.hasDepthTexture;
++    }
++
+     @Override
+     public void pushDebugGroup(Supplier<String> label) {
+         this.device.debugLabels().pushDebugGroup(label);
+@@ -58,52 +_,50 @@
+     }
+ 
+     @Override
+-    public void setPipeline(BackendRenderPipeline pipeline) {
++    public void setPipeline(CompiledRenderPipeline pipeline) {
+         if (!(pipeline instanceof GlRenderPipeline glRenderPipeline)) {
+             throw new IllegalArgumentException("Pipeline must be instance of GlRenderPipeline");
+         } else {
+             if (this.pipeline == null || this.pipeline != pipeline) {
+-                this.uniforms.clear();
+-                this.uniforms.size(glRenderPipeline.program().uniformCount());
+-                this.dirtyUniforms.clear();
+-                this.dirtyUniforms.size(glRenderPipeline.program().uniformCount());
+-
+-                for (int i = 0; i < this.dirtyUniforms.size(); i++) {
+-                    this.dirtyUniforms.set(i, true);
+-                }
+-
+-                this.anyUniformDirty = true;
++                this.dirtyUniforms.addAll(this.uniforms.keySet());
++                this.dirtyUniforms.addAll(this.samplers.keySet());
+             }
+ 
+             this.pipeline = glRenderPipeline;
+-            this.vertexBufferDirty = true;
+-            this.indexBufferDirty = this.indexBuffer != null;
+-        }
+-    }
+-
+-    @Override
+-    public void setUniform(int index, @Nullable Object value) {
+-        this.uniforms.set(index, value);
+-        this.dirtyUniforms.set(index, true);
+-        this.anyUniformDirty = true;
+-    }
+-
+-    @Override
+-    public void pushConstants(ByteBuffer value) {
+-        this.pushConstants = this.encoder.transientMemory().uploadGpu(value, this.device.getDeviceInfo().limits().minUniformOffsetAlignment(), 128);
+-        this.pushConstantsDirty = true;
++        }
++    }
++
++    @Override
++    public void bindTexture(String name, @Nullable GpuTextureView textureView, @Nullable GpuSampler sampler) {
++        if (sampler == null) {
++            this.samplers.remove(name);
++        } else {
++            this.samplers.put(name, new GlRenderPass.TextureViewAndSampler((GlTextureView)textureView, (GlSampler)sampler));
++        }
++
++        this.dirtyUniforms.add(name);
++    }
++
++    @Override
++    public void setUniform(String name, GpuBuffer value) {
++        this.uniforms.put(name, value.slice());
++        this.dirtyUniforms.add(name);
++    }
++
++    @Override
++    public void setUniform(String name, GpuBufferSlice value) {
++        this.uniforms.put(name, value);
++        this.dirtyUniforms.add(name);
+     }
+ 
+     @Override
+     public void enableScissor(int x, int y, int width, int height) {
+         this.scissorState.enable(x, y, width, height);
+-        this.scissorStateDirty = true;
+     }
+ 
+     @Override
+     public void disableScissor() {
+         this.scissorState.setFrom(this.defaultScissorState);
+-        this.scissorStateDirty = true;
+     }
+ 
+     public boolean isScissorEnabled() {
+@@ -140,7 +_,6 @@
+     public void setIndexBuffer(@Nullable GpuBuffer indexBuffer, IndexType indexType) {
+         this.indexBuffer = indexBuffer;
+         this.indexType = indexType;
+-        this.indexBufferDirty = true;
+     }
+ 
+     @Override
+@@ -164,6 +_,17 @@
+     }
+ 
+     @Override
++    public <T> void drawMultipleIndexed(
++        Collection<RenderPass.Draw<T>> draws,
++        @Nullable GpuBuffer defaultIndexBuffer,
++        @Nullable IndexType defaultIndexType,
++        Collection<String> dynamicUniforms,
++        T uniformArgument
++    ) {
++        this.encoder.executeDrawMultiple(this, draws, defaultIndexBuffer, defaultIndexType, dynamicUniforms, uniformArgument);
++    }
++
++    @Override
+     public void draw(int vertexCount, int instanceCount, int firstVertex, int firstInstance) {
+         this.encoder.executeDraw(this, firstVertex, 0, vertexCount, null, instanceCount, firstInstance);
+     }
+@@ -186,5 +_,8 @@
+     @Override
+     public void writeTimestamp(GpuQueryPool pool, int index) {
+         ((GlQueryPool)pool).writeTimestamp(index);
++    }
++
++    protected record TextureViewAndSampler(GlTextureView view, GlSampler sampler) {
+     }
+ }

@@ -15,7 +15,7 @@ import net.neoforged.neoforge.transfer.CombinedResourceHandler;
 // combines multiple IItemHandlerModifiable into one interface
 @Deprecated(since = "1.21.9", forRemoval = true)
 public class CombinedInvWrapper implements IItemHandlerModifiable {
-    public final IItemHandlerModifiable[] itemHandler; // the handlers
+    protected final IItemHandlerModifiable[] itemHandler; // the handlers
     protected final int[] baseIndex; // index-offsets of the different handlers
     protected final int slotCount; // number of total slots
 
@@ -43,7 +43,7 @@ public class CombinedInvWrapper implements IItemHandlerModifiable {
         return -1;
     }
 
-    public IItemHandlerModifiable getHandlerFromIndex(int index) {
+    protected IItemHandlerModifiable getHandlerFromIndex(int index) {
         if (index < 0 || index >= itemHandler.length) {
             return (IItemHandlerModifiable) EmptyItemHandler.INSTANCE;
         }

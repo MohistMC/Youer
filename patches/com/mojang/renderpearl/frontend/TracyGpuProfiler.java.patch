@@ -1,0 +1,58 @@
+--- a/com/mojang/renderpearl/frontend/TracyGpuProfiler.java
++++ b/com/mojang/renderpearl/frontend/TracyGpuProfiler.java
+@@ -12,23 +_,15 @@
+ @OnlyIn(Dist.CLIENT)
+ public class TracyGpuProfiler {
+     private static final int MAX_QUERIES = 1024;
+-    private static final long TIME_BETWEEN_CALIBRATION = 5000000000L;
+     private final GpuQueryPool queries;
+     private final GpuContext context;
+     private int head = 0;
+     private int tail = 0;
+-    private final double period;
+-    private final FrontendGpuDevice device;
+-    private long calibrationOffset;
+-    private long lastCalibrationTime;
+ 
+     public TracyGpuProfiler(FrontendGpuDevice device) {
+         this.queries = device.createTimestampQueryPool(1024);
+-        this.context = TracyClient.createGpuContext(GpuApi.OPENGL, System.nanoTime(), 1.0F);
+-        this.period = device.getDeviceInfo().timestampPeriod();
+-        this.device = device;
+-        this.lastCalibrationTime = System.nanoTime();
+-        this.calibrationOffset = device.getTimestampCalibrationOffset();
++        float period = device.getDeviceInfo().timestampPeriod();
++        this.context = TracyClient.createGpuContext(GpuApi.OPENGL, device.getTimestampNow(), period);
+     }
+ 
+     public void close() {
+@@ -48,11 +_,6 @@
+     }
+ 
+     public void endFrame() {
+-        if (System.nanoTime() - this.lastCalibrationTime > 5000000000L) {
+-            this.calibrationOffset = this.device.getTimestampCalibrationOffset();
+-            this.lastCalibrationTime = System.nanoTime();
+-        }
+-
+         if (this.head < this.tail) {
+             OptionalLong[] timestamps = this.queries.getValues(this.tail, 1024 - this.tail);
+ 
+@@ -62,7 +_,7 @@
+                     return;
+                 }
+ 
+-                this.context.submitQueryTimestamp(this.tail, (long)(timestamp.getAsLong() * this.period) + this.calibrationOffset);
++                this.context.submitQueryTimestamp(this.tail, timestamp.getAsLong());
+                 this.tail = (this.tail + 1) % 1024;
+             }
+         }
+@@ -76,7 +_,7 @@
+                     return;
+                 }
+ 
+-                this.context.submitQueryTimestamp(this.tail, (long)(timestamp.getAsLong() * this.period) + this.calibrationOffset);
++                this.context.submitQueryTimestamp(this.tail, timestamp.getAsLong());
+                 this.tail = (this.tail + 1) % 1024;
+             }
+         }

@@ -1,0 +1,31 @@
+--- a/com/mojang/blaze3d/platform/Monitor.java
++++ b/com/mojang/blaze3d/platform/Monitor.java
+@@ -21,7 +_,7 @@
+ import org.slf4j.Logger;
+ 
+ @OnlyIn(Dist.CLIENT)
+-public record Monitor(String name, int id, List<VideoMode> videoModes, VideoMode currentMode, int x, int y, int w, int h) {
++public record Monitor(String name, int id, List<VideoMode> videoModes, VideoMode currentMode, int x, int y) {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private static final HexFormat HEX_FORMAT = HexFormat.of().withUpperCase();
+ 
+@@ -57,7 +_,7 @@
+                     LOGGER.warn("Failed to query current video mode of monitor {}: {}", name, SDLError.SDL_GetError());
+                     return null;
+                 } else {
+-                    return new Monitor(name, id, videoModes.build(), new VideoMode(currentMode), var14.x(), var14.y(), var14.w(), var14.h());
++                    return new Monitor(name, id, videoModes.build(), new VideoMode(currentMode), var14.x(), var14.y());
+                 }
+             }
+         }
+@@ -66,6 +_,10 @@
+     private static String queryMonitorName(int id) {
+         String monitorName = Objects.requireNonNullElse(SDLVideo.SDL_GetDisplayName(id), "unknown");
+         return monitorName + "[0x" + HEX_FORMAT.toHexDigits(id) + "]";
++    }
++
++    public VideoMode getPreferredVideoMode() {
++        return this.videoModes.isEmpty() ? this.currentMode : this.videoModes.getFirst();
+     }
+ 
+     public VideoMode getPreferredVideoMode(Optional<VideoMode> expectedMode) {

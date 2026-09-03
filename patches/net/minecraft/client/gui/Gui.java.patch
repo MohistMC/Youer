@@ -1,0 +1,79 @@
+--- a/net/minecraft/client/gui/Gui.java
++++ b/net/minecraft/client/gui/Gui.java
+@@ -5,9 +_,6 @@
+ import com.mojang.authlib.minecraft.BanDetails;
+ import com.mojang.authlib.services.ProfileActionType;
+ import com.mojang.authlib.services.ProfileResult;
+-import com.mojang.jtracy.Section;
+-import com.mojang.jtracy.SectionCategory;
+-import com.mojang.jtracy.TracyClient;
+ import com.mojang.logging.LogUtils;
+ import java.util.ArrayList;
+ import java.util.List;
+@@ -69,13 +_,11 @@
+ @OnlyIn(Dist.CLIENT)
+ public class Gui {
+     private static final Logger LOGGER = LogUtils.getLogger();
+-    private static final SectionCategory TRACY_CURRENT_SCREEN = TracyClient.createSectionCategory("Current Screen");
+     private static final Component SOCIAL_INTERACTIONS_NOT_AVAILABLE = Component.translatable("multiplayer.socialInteractions.not_available");
+     public static final Component SAVING_LEVEL = Component.translatable("menu.savingLevel");
+     private final Minecraft minecraft;
+     public final Hud hud;
+     private final GuiRenderState guiRenderState;
+-    private @Nullable Section screenTracySection;
+     private @Nullable Screen screen;
+     private @Nullable Overlay overlay;
+     private boolean clientLevelTeardownInProgress;
+@@ -116,7 +_,13 @@
+         }
+ 
+         if (this.screen != null) {
+-            this.screen.tick();
++            try {
++                this.screen.tick();
++            } catch (Throwable t) {
++                CrashReport report = CrashReport.forThrowable(t, "Ticking screen");
++                this.screen.fillCrashDetails(report);
++                throw new ReportedException(report);
++            }
+         }
+ 
+         profiler.pop();
+@@ -223,11 +_,6 @@
+             LOGGER.error("setScreen called from non-game thread");
+         }
+ 
+-        if (this.screenTracySection != null) {
+-            this.screenTracySection.close();
+-            this.screenTracySection = null;
+-        }
+-
+         if (this.screen != null) {
+             this.screen.clearFocus();
+             this.minecraft.textInputManager().stopTextInput();
+@@ -257,8 +_,6 @@
+         this.screen = screen;
+         if (this.screen != null) {
+             this.screen.added();
+-            String name = this.screen.getTitle().getString();
+-            this.screenTracySection = TRACY_CURRENT_SCREEN.enterSection(name.isBlank() ? this.screen.getClass().getSimpleName() : name);
+         }
+ 
+         if (screen != null) {
+@@ -275,7 +_,6 @@
+             this.minecraft.mouseHandler.grabMouse();
+         }
+ 
+-        this.minecraft.mouseHandler.resyncMousePosition();
+         this.minecraft.updateTitle();
+     }
+ 
+@@ -362,7 +_,7 @@
+     }
+ 
+     public void openChatAndAddText(ChatComponent.ChatMethod chatMethod, String text) {
+-        this.openChatScreen(chatMethod);
++        this.openChatScreen(ChatComponent.ChatMethod.COMMAND);
+         if (this.screen instanceof ChatScreen chatScreen) {
+             chatScreen.insertText(text, false);
+         }

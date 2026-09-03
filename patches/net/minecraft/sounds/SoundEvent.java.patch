@@ -1,0 +1,24 @@
+--- a/net/minecraft/sounds/SoundEvent.java
++++ b/net/minecraft/sounds/SoundEvent.java
+@@ -6,11 +_,11 @@
+ import java.util.Optional;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.network.RegistryFriendlyByteBuf;
+ import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.resources.Identifier;
++import net.minecraft.resources.RegistryFileCodec;
+ 
+ public record SoundEvent(Identifier location, Optional<Float> fixedRange) {
+     public static final Codec<SoundEvent> DIRECT_CODEC = RecordCodecBuilder.create(
+@@ -20,7 +_,7 @@
+             )
+             .apply(i, SoundEvent::create)
+     );
+-    public static final Codec<Holder<SoundEvent>> CODEC = RegistryCodecs.holder(Registries.SOUND_EVENT, DIRECT_CODEC);
++    public static final Codec<Holder<SoundEvent>> CODEC = RegistryFileCodec.create(Registries.SOUND_EVENT, DIRECT_CODEC);
+     public static final StreamCodec<ByteBuf, SoundEvent> DIRECT_STREAM_CODEC = StreamCodec.composite(
+         Identifier.STREAM_CODEC, SoundEvent::location, ByteBufCodecs.FLOAT.apply(ByteBufCodecs::optional), SoundEvent::fixedRange, SoundEvent::create
+     );

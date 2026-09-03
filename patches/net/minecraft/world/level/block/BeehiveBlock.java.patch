@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/BeehiveBlock.java
 +++ b/net/minecraft/world/level/block/BeehiveBlock.java
-@@ -2,13 +_,11 @@
+@@ -2,20 +_,17 @@
  
  import java.util.List;
  import java.util.function.BiConsumer;
@@ -14,27 +14,37 @@
  import net.minecraft.sounds.SoundEvents;
  import net.minecraft.sounds.SoundSource;
  import net.minecraft.stats.Stats;
-@@ -81,8 +_,8 @@
+ import net.minecraft.tags.BlockTags;
+ import net.minecraft.tags.EnchantmentTags;
+ import net.minecraft.util.Mth;
+-import net.minecraft.util.Prediction;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.util.Util;
+ import net.minecraft.world.Containers;
+@@ -82,18 +_,16 @@
      }
  
      @Override
--    public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith) {
+-    public void playerDestroy(
+-        ServerLevel level, ServerPlayer player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith
+-    ) {
 -        super.playerDestroy(level, player, pos, state, blockEntity, destroyedWith);
+-        if (blockEntity instanceof BeehiveBlockEntity beehiveBlockEntity) {
 +    public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith,  boolean includeDrops, boolean dropExp) {
 +        super.playerDestroy(level, player, pos, state, blockEntity, destroyedWith, includeDrops, dropExp); // Paper - fix drops not preventing stats/food exhaustion
-         if (!level.isClientSide() && blockEntity instanceof BeehiveBlockEntity beehiveBlockEntity) {
++        if (!level.isClientSide() && blockEntity instanceof BeehiveBlockEntity beehiveBlockEntity) {
              if (!EnchantmentHelper.hasTag(destroyedWith, EnchantmentTags.PREVENTS_BEE_SPAWNS_WHEN_MINING)) {
                  beehiveBlockEntity.emptyAllLivingFromHive(player, state, BeehiveBlockEntity.BeeReleaseStatus.EMERGENCY);
-@@ -90,7 +_,7 @@
+                 Containers.updateNeighboursAfterDestroy(state, level, pos);
                  this.angerNearbyBees(level, pos);
              }
  
--            CriteriaTriggers.BEE_NEST_DESTROYED.trigger((ServerPlayer)player, state, destroyedWith, beehiveBlockEntity.getOccupantCount());
+-            CriteriaTriggers.BEE_NEST_DESTROYED.trigger(player, state, destroyedWith, beehiveBlockEntity.getOccupantCount());
 +            // CriteriaTriggers.BEE_NEST_DESTROYED.trigger((ServerPlayer)player, state, destroyedWith, beehiveBlockEntity.getOccupantCount()); // Paper - Trigger bee_nest_destroyed trigger in the correct place; moved until after items are dropped
          }
      }
  
-@@ -112,6 +_,7 @@
+@@ -115,6 +_,7 @@
              for (Bee bee : beesToAnger) {
                  if (bee.getTarget() == null) {
                      Player angerTarget = Util.getRandom(playersToBeAngryAt, level.getRandom());
@@ -42,7 +52,16 @@
                      bee.setTarget(angerTarget);
                  }
              }
-@@ -134,8 +_,20 @@
+@@ -125,7 +_,7 @@
+         ServerLevel level, ItemStack tool, BlockState blockState, @Nullable BlockEntity blockEntity, @Nullable Entity entity, BlockPos pos
+     ) {
+         dropFromBlockInteractLootTable(
+-            level, BuiltInLootTables.HARVEST_BEEHIVE, pos, blockState, blockEntity, tool, entity, (serverLevel, stack) -> popResource(serverLevel, pos, stack)
++            level, BuiltInLootTables.HARVEST_BEEHIVE, blockState, blockEntity, tool, entity, (serverLevel, stack) -> popResource(serverLevel, pos, stack)
+         );
+     }
+ 
+@@ -137,8 +_,20 @@
          boolean hiveEmptied = false;
          if (honeyLevel >= 5) {
              Item item = itemStack.getItem();
@@ -65,7 +84,16 @@
                  level.playSound(null, player.getX(), player.getY(), player.getZ(), SoundEvents.BEEHIVE_SHEAR, SoundSource.BLOCKS, 1.0F, 1.0F);
                  itemStack.hurtAndBreak(1, player, hand.asEquipmentSlot());
                  hiveEmptied = true;
-@@ -189,7 +_,7 @@
+@@ -149,7 +_,7 @@
+                 if (itemStack.isEmpty()) {
+                     player.setItemInHand(hand, new ItemStack(Items.HONEY_BOTTLE));
+                 } else if (!player.getInventory().add(new ItemStack(Items.HONEY_BOTTLE))) {
+-                    player.drop(new ItemStack(Items.HONEY_BOTTLE), false, Prediction.PREDICTED);
++                    player.drop(new ItemStack(Items.HONEY_BOTTLE), false);
+                 }
+ 
+                 hiveEmptied = true;
+@@ -192,7 +_,7 @@
      }
  
      public void resetHoneyLevel(Level level, BlockState state, BlockPos pos) {

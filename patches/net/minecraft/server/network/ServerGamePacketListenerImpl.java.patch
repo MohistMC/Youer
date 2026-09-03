@@ -23,7 +23,7 @@
  import java.util.Collections;
  import java.util.EnumSet;
  import java.util.HashMap;
-@@ -20,10 +_,13 @@
+@@ -20,9 +_,11 @@
  import java.util.Set;
  import java.util.concurrent.CancellationException;
  import java.util.concurrent.CompletableFuture;
@@ -33,11 +33,9 @@
  import java.util.function.Consumer;
 +import java.util.function.Function;
  import java.util.stream.Collectors;
-+import java.util.stream.Stream;
+ import java.util.stream.Stream;
  import net.minecraft.ChatFormatting;
- import net.minecraft.advancements.AdvancementHolder;
- import net.minecraft.advancements.triggers.CriteriaTriggers;
-@@ -34,7 +_,6 @@
+@@ -35,7 +_,6 @@
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
  import net.minecraft.core.Holder;
@@ -45,7 +43,7 @@
  import net.minecraft.core.Registry;
  import net.minecraft.core.Vec3i;
  import net.minecraft.core.component.DataComponents;
-@@ -52,6 +_,7 @@
+@@ -53,6 +_,7 @@
  import net.minecraft.network.chat.LastSeenMessagesValidator;
  import net.minecraft.network.chat.MessageSignature;
  import net.minecraft.network.chat.MessageSignatureCache;
@@ -53,7 +51,7 @@
  import net.minecraft.network.chat.PlayerChatMessage;
  import net.minecraft.network.chat.RemoteChatSession;
  import net.minecraft.network.chat.SignableCommand;
-@@ -65,6 +_,7 @@
+@@ -66,6 +_,7 @@
  import net.minecraft.network.protocol.game.ClientboundBlockChangedAckPacket;
  import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
  import net.minecraft.network.protocol.game.ClientboundCommandSuggestionsPacket;
@@ -61,7 +59,7 @@
  import net.minecraft.network.protocol.game.ClientboundDisguisedChatPacket;
  import net.minecraft.network.protocol.game.ClientboundGameRuleValuesPacket;
  import net.minecraft.network.protocol.game.ClientboundMoveVehiclePacket;
-@@ -72,6 +_,8 @@
+@@ -73,6 +_,8 @@
  import net.minecraft.network.protocol.game.ClientboundPlayerChatPacket;
  import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
  import net.minecraft.network.protocol.game.ClientboundPlayerPositionPacket;
@@ -70,7 +68,31 @@
  import net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket;
  import net.minecraft.network.protocol.game.ClientboundStartConfigurationPacket;
  import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
-@@ -159,15 +_,18 @@
+@@ -116,7 +_,6 @@
+ import net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket;
+ import net.minecraft.network.protocol.game.ServerboundPlayerInputPacket;
+ import net.minecraft.network.protocol.game.ServerboundPlayerLoadedPacket;
+-import net.minecraft.network.protocol.game.ServerboundPunchPacket;
+ import net.minecraft.network.protocol.game.ServerboundRecipeBookChangeSettingsPacket;
+ import net.minecraft.network.protocol.game.ServerboundRecipeBookSeenRecipePacket;
+ import net.minecraft.network.protocol.game.ServerboundRenameItemPacket;
+@@ -134,6 +_,7 @@
+ import net.minecraft.network.protocol.game.ServerboundSetTestBlockPacket;
+ import net.minecraft.network.protocol.game.ServerboundSignUpdatePacket;
+ import net.minecraft.network.protocol.game.ServerboundSpectatorActionPacket;
++import net.minecraft.network.protocol.game.ServerboundSwingPacket;
+ import net.minecraft.network.protocol.game.ServerboundTeleportToEntityPacket;
+ import net.minecraft.network.protocol.game.ServerboundTestInstanceBlockActionPacket;
+ import net.minecraft.network.protocol.game.ServerboundUseItemOnPacket;
+@@ -151,7 +_,6 @@
+ import net.minecraft.server.players.PlayerList;
+ import net.minecraft.util.FutureChain;
+ import net.minecraft.util.Mth;
+-import net.minecraft.util.Prediction;
+ import net.minecraft.util.ProblemReporter;
+ import net.minecraft.util.SignatureValidator;
+ import net.minecraft.util.StringUtil;
+@@ -161,15 +_,18 @@
  import net.minecraft.world.InteractionResult;
  import net.minecraft.world.effect.MobEffects;
  import net.minecraft.world.entity.Avatar;
@@ -89,7 +111,7 @@
  import net.minecraft.world.entity.item.ItemEntity;
  import net.minecraft.world.entity.player.ChatVisiblity;
  import net.minecraft.world.entity.player.Inventory;
-@@ -175,11 +_,14 @@
+@@ -177,23 +_,26 @@
  import net.minecraft.world.entity.player.ProfilePublicKey;
  import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
  import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
@@ -104,7 +126,12 @@
  import net.minecraft.world.item.BlockItem;
  import net.minecraft.world.item.BucketItem;
  import net.minecraft.world.item.Item;
-@@ -191,6 +_,7 @@
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.Items;
+ import net.minecraft.world.item.component.PiercingWeapon;
+-import net.minecraft.world.item.component.SwingAnimation;
+ import net.minecraft.world.item.component.WritableBookContent;
+ import net.minecraft.world.item.component.WrittenBookContent;
  import net.minecraft.world.item.crafting.RecipeHolder;
  import net.minecraft.world.item.crafting.RecipeManager;
  import net.minecraft.world.level.BaseCommandBlock;
@@ -112,7 +139,7 @@
  import net.minecraft.world.level.GameType;
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.LevelReader;
-@@ -212,10 +_,55 @@
+@@ -215,10 +_,55 @@
  import net.minecraft.world.level.storage.TagValueOutput;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.BlockHitResult;
@@ -168,15 +195,20 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -233,6 +_,7 @@
+@@ -234,11 +_,9 @@
+     private static final int MAXIMUM_FLYING_TICKS = 80;
+     private static final int ATTACK_INDICATOR_TOLERANCE_TICKS = 5;
      public static final int CLIENT_LOADED_TIMEOUT_TIME = 60;
+-    private static final int MIN_SUPPORTED_BLOCKS_RESEND_TICKS = 200;
+-    private static final int MAX_DISTANCE_TO_VALID_POSITION = 1;
+-    private static final int INVALID_POSITION_CORRECTION_MAX_INTERVAL_TICKS = 20;
      private static final Component CHAT_VALIDATION_FAILED = Component.translatable("multiplayer.disconnect.chat_validation_failed");
      private static final Component INVALID_COMMAND_SIGNATURE = Component.translatable("chat.disabled.invalid_command_signature").withStyle(ChatFormatting.RED);
 +    private static final int MAX_COMMAND_SUGGESTIONS = 1000;
      public ServerPlayer player;
      public final PlayerChunkSender chunkSender;
      private int tickCount;
-@@ -240,6 +_,8 @@
+@@ -246,6 +_,8 @@
      private final TickThrottler dropSpamThrottler = new TickThrottler(20, 1480);
      private final TickThrottler chatSpamThrottler;
      private final TickThrottler commandSpamThrottler;
@@ -185,10 +217,11 @@
      private double firstGoodX;
      private double firstGoodY;
      private double firstGoodZ;
-@@ -263,7 +_,23 @@
+@@ -269,8 +_,23 @@
      private int receivedMovePacketCount;
      private int knownMovePacketCount;
      private boolean receivedMovementThisTick;
+-    private boolean receivedPositionThisTick;
 +    // CraftBukkit start - add fields
 +    private int lastTick = MinecraftServer.currentTick;
 +    private int allowedPlayerTicks = 1;
@@ -209,18 +242,20 @@
      private SignedMessageChain.Decoder signedMessageDecoder;
      private final LastSeenMessagesValidator lastSeenMessages = new LastSeenMessagesValidator(20);
      private int nextChatIndex;
-@@ -272,7 +_,9 @@
+@@ -279,9 +_,9 @@
      private boolean waitingForSwitchToConfig;
      private boolean waitingForRespawn;
      private int clientLoadedTimeoutTimer;
+-    private int lastSupportedBlocksSend;
 -    private final ServerCommandSuggestionsProvider commandSuggestionsProvider;
+-    private int vehiclePositionLastResetAt;
 +    private static final int MAX_SIGN_LINE_LENGTH = Integer.getInteger("Paper.maxSignLength", 80); // Paper - Limit client sign length
 +    private final io.papermc.paper.event.packet.ClientTickEndEvent tickEndEvent; // Paper - add client tick end event
 +    public final io.papermc.paper.connection.PaperPlayerGameConnection playerGameConnection; // Paper
  
      public ServerGamePacketListenerImpl(MinecraftServer server, Connection connection, ServerPlayer player, CommonListenerCookie cookie) {
          super(server, connection, cookie);
-@@ -284,9 +_,36 @@
+@@ -293,9 +_,36 @@
          player.connection = this;
          player.getTextFilter().join();
          this.signedMessageDecoder = SignedMessageChain.Decoder.unsigned(player.getUUID(), server::enforceSecureProfile);
@@ -260,7 +295,7 @@
  
      @Override
      public void tick() {
-@@ -300,12 +_,19 @@
+@@ -309,12 +_,19 @@
              this.chatSpamThrottler.tick();
              this.commandSpamThrottler.tick();
              this.dropSpamThrottler.tick();
@@ -282,7 +317,7 @@
              }
          }
      }
-@@ -321,8 +_,8 @@
+@@ -330,8 +_,8 @@
          this.knownMovePacketCount = this.receivedMovePacketCount;
          if (this.clientIsFloating && !this.player.isSleeping() && !this.player.isPassenger() && !this.player.isDeadOrDying()) {
              if (++this.aboveGroundTickCount > this.getMaximumFlyingTicks(this.player)) {
@@ -293,7 +328,7 @@
                  return true;
              }
          } else {
-@@ -340,8 +_,8 @@
+@@ -349,8 +_,8 @@
              this.vehicleLastGoodZ = this.lastVehicle.getZ();
              if (this.clientVehicleIsFloating && this.lastVehicle.getControllingPassenger() == this.player) {
                  if (++this.aboveGroundVehicleTickCount > this.getMaximumFlyingTicks(this.lastVehicle)) {
@@ -304,7 +339,7 @@
                      return true;
                  }
              } else {
-@@ -354,6 +_,12 @@
+@@ -363,6 +_,12 @@
              this.aboveGroundVehicleTickCount = 0;
          }
  
@@ -317,7 +352,7 @@
          return false;
      }
  
-@@ -420,11 +_,36 @@
+@@ -429,11 +_,36 @@
      @Override
      public void handlePlayerInput(ServerboundPlayerInputPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
@@ -356,7 +391,7 @@
      }
  
      private static boolean containsInvalidValues(double x, double y, double z, float yRot, float xRot) {
-@@ -442,28 +_,82 @@
+@@ -451,28 +_,82 @@
      @Override
      public void handleMoveVehicle(ServerboundMoveVehiclePacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
@@ -448,7 +483,7 @@
                      LOGGER.warn(
                          "{} (vehicle of {}) moved too quickly! {},{},{}", vehicle.getPlainTextName(), this.player.getPlainTextName(), xDist, yDist, zDist
                      );
-@@ -481,6 +_,7 @@
+@@ -490,6 +_,7 @@
                  }
  
                  vehicle.move(MoverType.PLAYER, new Vec3(xDist, yDist, zDist));
@@ -456,7 +491,7 @@
                  double oyDist = yDist;
                  xDist = targetX - vehicle.getX();
                  yDist = targetY - vehicle.getY();
-@@ -491,25 +_,90 @@
+@@ -500,25 +_,90 @@
                  zDist = targetZ - vehicle.getZ();
                  movedDist = xDist * xDist + yDist * yDist + zDist * zDist;
                  boolean fail = false;
@@ -549,10 +584,22 @@
                  this.clientVehicleIsFloating = oyDist >= -0.03125
                      && !vehicleRestsOnSomething
                      && !this.server.allowFlight()
-@@ -523,9 +_,50 @@
+@@ -528,29 +_,63 @@
+                 this.vehicleLastGoodX = vehicle.getX();
+                 this.vehicleLastGoodY = vehicle.getY();
+                 this.vehicleLastGoodZ = vehicle.getZ();
+-            } else if (vehicle != this.player
+-                && vehicle.getControllingPassenger() != this.player
+-                && (this.tickCount - this.vehiclePositionLastResetAt > 20 || vehicle.distanceToSqr(movingToPos) > Mth.square(1))) {
+-                LOGGER.warn(
+-                    "{} was expected to be controlling vehicle {} but was not. Resetting vehicle position.", this.player.getPlainTextName(), vehicle.getName()
+-                );
+-                this.send(ClientboundMoveVehiclePacket.fromEntity(vehicle));
+-                this.vehiclePositionLastResetAt = this.tickCount;
+             }
          }
-     }
- 
++    }
++
 +    private void resyncPlayerWithVehicle(Entity vehicle) {
 +        Vec3 oldPos = this.player.position();
 +        float yRot = this.player.getYRot();
@@ -568,8 +615,8 @@
 +        this.player.xo = oldPos.x;
 +        this.player.yo = oldPos.y;
 +        this.player.zo = oldPos.z;
-+    }
-+
+     }
+ 
      private boolean noBlocksAround(Entity entity) {
 -        AABB box = entity.getBoundingBox().inflate(0.0625).expandTowards(0.0, -0.55, 0.0);
 -        return entity.level().findBlocksIn(box).filterState(BlockBehaviour.BlockStateBase::isAir).allMatched();
@@ -602,20 +649,23 @@
      }
  
      @Override
-@@ -533,7 +_,8 @@
+     public void handleAcceptTeleportPacket(ServerboundAcceptTeleportationPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
-         if (packet.getId() == this.awaitingTeleport) {
-             if (this.awaitingPositionFromClient == null) {
+-        if (packet.id() == this.awaitingTeleport) {
+-            if (this.awaitingPositionFromClient == null || containsInvalidValues(packet.x(), packet.y(), packet.z(), packet.yRot(), packet.xRot())) {
 -                this.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_movement"));
++        if (packet.getId() == this.awaitingTeleport) {
++            if (this.awaitingPositionFromClient == null) {
 +                ServerGamePacketListenerImpl.LOGGER.warn("Disconnected on accept teleport packet. Was not expecting position data from client at this time"); // Purpur - Add more logger output for invalid movement kicks
 +                this.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_movement"), org.bukkit.event.player.PlayerKickEvent.Cause.INVALID_PLAYER_MOVEMENT); // Paper - kick event cause
                  return;
              }
  
-@@ -550,13 +_,14 @@
+@@ -567,14 +_,14 @@
              this.lastGoodZ = this.awaitingPositionFromClient.z;
              this.player.hasChangedDimension();
              this.awaitingPositionFromClient = null;
+-            this.handlePlayerPositionChange(packet.x(), packet.y(), packet.z(), packet.yRot(), packet.xRot(), false, false);
 +            this.player.level().getChunkSource().move(this.player); // CraftBukkit
          }
      }
@@ -628,7 +678,7 @@
      }
  
      @Override
-@@ -577,6 +_,7 @@
+@@ -595,6 +_,7 @@
      @Override
      public void handleRecipeBookChangeSettingsPacket(ServerboundRecipeBookChangeSettingsPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
@@ -636,7 +686,7 @@
          this.player.getRecipeBook().setBookSetting(packet.getBookType(), packet.isOpen(), packet.isFiltering());
      }
  
-@@ -592,18 +_,111 @@
+@@ -610,18 +_,111 @@
          }
      }
  
@@ -753,7 +803,7 @@
              this.player.sendSystemMessage(Component.translatable("advMode.notAllowed"));
          } else {
              BaseCommandBlock commandBlock = null;
-@@ -664,7 +_,7 @@
+@@ -682,7 +_,7 @@
      @Override
      public void handleSetCommandMinecart(ServerboundSetCommandMinecartPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
@@ -762,7 +812,7 @@
              this.player.sendSystemMessage(Component.translatable("advMode.notAllowed"));
          } else {
              BaseCommandBlock commandBlock = packet.getCommandBlock(this.player.level());
-@@ -698,13 +_,13 @@
+@@ -716,13 +_,13 @@
              if (level.isLoaded(pos)) {
                  BlockState blockState = level.getBlockState(pos);
                  boolean includeData = this.player.hasInfiniteMaterials() && packet.includeData();
@@ -779,7 +829,7 @@
                  }
              }
          }
-@@ -731,7 +_,7 @@
+@@ -749,7 +_,7 @@
          if (entity != null && this.player.isWithinEntityInteractionRange(entity, 3.0)) {
              ItemStack itemStack = entity.getPickResult();
              if (itemStack != null && !itemStack.isEmpty()) {
@@ -788,7 +838,7 @@
              }
  
              if (packet.includeData() && this.player.canUseGameMasterBlocks() && entity instanceof Avatar avatar) {
-@@ -740,22 +_,35 @@
+@@ -758,22 +_,35 @@
          }
      }
  
@@ -830,7 +880,7 @@
          }
      }
  
-@@ -782,7 +_,7 @@
+@@ -800,7 +_,7 @@
              }
  
              if (!menu.updateEffects(packet.primary(), packet.secondary())) {
@@ -839,7 +889,7 @@
                  LOGGER.warn("Player {} tried to set invalid beacon effects", this.player);
              }
          }
-@@ -791,7 +_,7 @@
+@@ -809,7 +_,7 @@
      @Override
      public void handleSetGameRule(ServerboundSetGameRulePacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
@@ -848,7 +898,7 @@
              LOGGER.warn("Player {} tried to set game rule values without required permissions", this.player.getGameProfile().name());
          } else {
              GameRules gameRules = this.player.level().getGameRules();
-@@ -809,7 +_,7 @@
+@@ -827,7 +_,7 @@
  
      private <T> void setGameRuleValue(GameRules gameRules, GameRule<T> rule, String value) {
          rule.deserialize(value).result().ifPresent(parsedValue -> {
@@ -857,7 +907,7 @@
              this.broadcastGameRuleChangeToOperators(rule, (T)parsedValue);
          });
      }
-@@ -968,6 +_,13 @@
+@@ -986,6 +_,13 @@
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
          int selection = packet.getItem();
          if (this.player.containerMenu instanceof MerchantMenu menu) {
@@ -871,7 +921,7 @@
              if (!menu.stillValid(this.player)) {
                  LOGGER.debug("Player {} interacted with invalid menu {}", this.player, menu);
                  return;
-@@ -980,37 +_,106 @@
+@@ -998,37 +_,106 @@
  
      @Override
      public void handleEditBook(ServerboundEditBookPacket packet) {
@@ -984,7 +1034,7 @@
          }
      }
  
-@@ -1018,6 +_,16 @@
+@@ -1036,6 +_,16 @@
          return this.player.isTextFilteringEnabled() ? Filterable.passThrough(text.filteredOrEmpty()) : Filterable.from(text);
      }
  
@@ -1001,7 +1051,7 @@
      @Override
      public void handleEntityTagQuery(ServerboundEntityTagQueryPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
-@@ -1057,11 +_,19 @@
+@@ -1075,169 +_,329 @@
      @Override
      public void handleMovePlayer(ServerboundMovePlayerPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
@@ -1017,29 +1067,107 @@
 +            // Purpur end - Add more logger output for invalid movement kicks
              this.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_movement"));
          } else {
-             ServerLevel level = this.player.level();
+-            if (packet.hasPosition()) {
+-                if (this.receivedPositionThisTick) {
+-                    this.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_movement"));
+-                    return;
+-                }
+-
+-                this.receivedPositionThisTick = true;
+-            }
+-
 -            if (!this.player.wonGame) {
++            ServerLevel level = this.player.level();
 +            if (!this.player.wonGame && !this.player.isImmobile()) { // CraftBukkit
                  if (this.tickCount == 0) {
                      this.resetPosition();
                  }
-@@ -1078,7 +_,12 @@
-                         if (this.player.isPassenger()) {
-                             this.player.absSnapTo(this.player.getX(), this.player.getY(), this.player.getZ(), targetYRot, targetXRot);
-                             this.player.level().getChunkSource().move(this.player);
+ 
+                 if (this.hasClientLoaded()) {
+-                    float requestedYRot = packet.getYRot(this.player.getYRot());
+-                    float requestedXRot = packet.getXRot(this.player.getXRot());
++                    float targetYRot = Mth.wrapDegrees(packet.getYRot(this.player.getYRot()));
++                    float targetXRot = Mth.wrapDegrees(packet.getXRot(this.player.getXRot()));
+                     if (this.updateAwaitingTeleport()) {
+-                        this.player.absSnapRotationTo(Mth.wrapDegrees(requestedYRot), Mth.wrapDegrees(requestedXRot));
++                        this.player.absSnapRotationTo(targetYRot, targetXRot);
+                     } else {
+-                        this.handlePlayerPositionChange(
+-                            packet.getX(this.player.getX()),
+-                            packet.getY(this.player.getY()),
+-                            packet.getZ(this.player.getZ()),
+-                            requestedYRot,
+-                            requestedXRot,
+-                            packet.isOnGround(),
+-                            packet.horizontalCollision()
+-                        );
+-                    }
+-                }
+-            }
+-        }
+-    }
+-
+-    private void handlePlayerPositionChange(
+-        double requestedX, double requestedY, double requestedZ, float requestedYRot, float requestedXRot, boolean isOnGround, boolean horizontalCollision
+-    ) {
+-        double targetX = clampHorizontal(requestedX);
+-        double targetY = clampVertical(requestedY);
+-        double targetZ = clampHorizontal(requestedZ);
+-        float targetYRot = Mth.wrapDegrees(requestedYRot);
+-        float targetXRot = Mth.wrapDegrees(requestedXRot);
+-        if (this.player.isPassenger()) {
+-            this.player.absSnapTo(this.player.getX(), this.player.getY(), this.player.getZ(), targetYRot, targetXRot);
+-            this.player.level().getChunkSource().move(this.player);
+-        } else {
+-            double startX = this.player.getX();
+-            double startY = this.player.getY();
+-            double startZ = this.player.getZ();
+-            double xDist = targetX - this.firstGoodX;
+-            double yDist = targetY - this.firstGoodY;
+-            double zDist = targetZ - this.firstGoodZ;
+-            double expectedDist = this.player.getDeltaMovement().lengthSqr();
+-            double movedDist = xDist * xDist + yDist * yDist + zDist * zDist;
+-            if (this.player.isSleeping()) {
+-                if (movedDist > 1.0) {
+-                    this.teleport(this.player.getX(), this.player.getY(), this.player.getZ(), targetYRot, targetXRot);
+-                }
+-            } else {
+-                boolean isFallFlying = this.player.isFallFlying();
+-                ServerLevel level = this.player.level();
+-                if (level.tickRateManager().runsNormally()) {
+-                    this.receivedMovePacketCount++;
+-                    int deltaPackets = this.receivedMovePacketCount - this.knownMovePacketCount;
+-                    if (deltaPackets > 5) {
+-                        LOGGER.debug("{} is sending move packets too frequently ({} packets since last tick)", this.player.getPlainTextName(), deltaPackets);
+-                        deltaPackets = 1;
+-                    }
+-
+-                    if (this.shouldCheckPlayerMovement(isFallFlying)) {
+-                        float metersPerTick = isFallFlying ? 300.0F : 100.0F;
+-                        if (movedDist - expectedDist > metersPerTick * deltaPackets) {
+-                            LOGGER.warn("{} moved too quickly! {},{},{}", this.player.getPlainTextName(), xDist, yDist, zDist);
+-                            this.teleport(this.player.getX(), this.player.getY(), this.player.getZ(), this.player.getYRot(), this.player.getXRot());
+-                            return;
++                        double targetX = clampHorizontal(packet.getX(this.player.getX()));
++                        double targetY = clampVertical(packet.getY(this.player.getY()));
++                        double targetZ = clampHorizontal(packet.getZ(this.player.getZ()));
++                        if (this.player.isPassenger()) {
++                            this.player.absSnapTo(this.player.getX(), this.player.getY(), this.player.getZ(), targetYRot, targetXRot);
++                            this.player.level().getChunkSource().move(this.player);
 +                            this.allowedPlayerTicks = 20; // CraftBukkit
-                         } else {
++                        } else {
 +                            // CraftBukkit - Make sure the move is valid but then reset it for plugins to modify
 +                            float startYRot = this.player.getYRot();
 +                            float startXRot = this.player.getXRot();
 +                            // CraftBukkit end
-                             double startX = this.player.getX();
-                             double startY = this.player.getY();
-                             double startZ = this.player.getZ();
-@@ -1087,6 +_,16 @@
-                             double zDist = targetZ - this.firstGoodZ;
-                             double expectedDist = this.player.getDeltaMovement().lengthSqr();
-                             double movedDist = xDist * xDist + yDist * yDist + zDist * zDist;
++                            double startX = this.player.getX();
++                            double startY = this.player.getY();
++                            double startZ = this.player.getZ();
++                            double xDist = targetX - this.firstGoodX;
++                            double yDist = targetY - this.firstGoodY;
++                            double zDist = targetZ - this.firstGoodZ;
++                            double expectedDist = this.player.getDeltaMovement().lengthSqr();
++                            double movedDist = xDist * xDist + yDist * yDist + zDist * zDist;
 +                            // Paper start - fix large move vectors killing the server
 +                            double currDeltaX = targetX - startX;
 +                            double currDeltaY = targetY - startY;
@@ -1050,14 +1178,15 @@
 +                            double otherFieldZ = targetZ - this.lastGoodZ;
 +                            movedDist = Math.max(movedDist, (otherFieldX * otherFieldX + otherFieldY * otherFieldY + otherFieldZ * otherFieldZ) - 1);
 +                            // Paper end - fix large move vectors killing the server
-                             if (this.player.isSleeping()) {
-                                 if (movedDist > 1.0) {
-                                     this.teleport(this.player.getX(), this.player.getY(), this.player.getZ(), targetYRot, targetXRot);
-@@ -1096,38 +_,98 @@
-                                 if (level.tickRateManager().runsNormally()) {
-                                     this.receivedMovePacketCount++;
-                                     int deltaPackets = this.receivedMovePacketCount - this.knownMovePacketCount;
--                                    if (deltaPackets > 5) {
++                            if (this.player.isSleeping()) {
++                                if (movedDist > 1.0) {
++                                    this.teleport(this.player.getX(), this.player.getY(), this.player.getZ(), targetYRot, targetXRot);
++                                }
++                            } else {
++                                boolean isFallFlying = this.player.isFallFlying();
++                                if (level.tickRateManager().runsNormally()) {
++                                    this.receivedMovePacketCount++;
++                                    int deltaPackets = this.receivedMovePacketCount - this.knownMovePacketCount;
 +                                    // CraftBukkit start - handle custom speeds and skipped ticks
 +                                    this.allowedPlayerTicks += (System.currentTimeMillis() / 50) - this.lastTick;
 +                                    this.allowedPlayerTicks = Math.max(this.allowedPlayerTicks, 1);
@@ -1065,16 +1194,13 @@
 +
 +                                    if (deltaPackets > Math.max(this.allowedPlayerTicks, 5)) {
 +                                        // CraftBukkit end
-                                         LOGGER.debug(
--                                            "{} is sending move packets too frequently ({} packets since last tick)",
--                                            this.player.getPlainTextName(),
--                                            deltaPackets
++                                        LOGGER.debug(
 +                                                "{} is sending move packets too frequently ({} packets since last tick)",
 +                                                this.player.getPlainTextName(),
 +                                                deltaPackets
-                                         );
-                                         deltaPackets = 1;
-                                     }
++                                        );
++                                        deltaPackets = 1;
++                                    }
 +                                    // CraftBukkit start - handle custom speeds and skipped ticks
 +                                    if (packet.hasRotation() || movedDist > 0) {
 +                                        this.allowedPlayerTicks -= 1;
@@ -1099,15 +1225,9 @@
 +                                        // Paper end - Add fail move event
 +                                    }
 +                                    // Paper end - Prevent moving into unloaded chunks
- 
-                                     if (this.shouldCheckPlayerMovement(isFallFlying)) {
-                                         float metersPerTick = isFallFlying ? 300.0F : 100.0F;
--                                        if (movedDist - expectedDist > metersPerTick * deltaPackets) {
--                                            LOGGER.warn("{} moved too quickly! {},{},{}", this.player.getPlainTextName(), xDist, yDist, zDist);
--                                            this.teleport(
--                                                this.player.getX(), this.player.getY(), this.player.getZ(), this.player.getYRot(), this.player.getXRot()
--                                            );
--                                            return;
++
++                                    if (this.shouldCheckPlayerMovement(isFallFlying)) {
++                                        float metersPerTick = isFallFlying ? 300.0F : 100.0F;
 +                                        if (movedDist - expectedDist > Math.max(metersPerTick, Mth.square(org.spigotmc.SpigotConfig.movedTooQuicklyMultiplier * (float) deltaPackets * speed))) {
 +                                            // CraftBukkit end
 +                                            // Paper start - Add fail move event
@@ -1123,21 +1243,16 @@
 +                                                return;
 +                                            }
 +                                            // Paper end - Add fail move event
-                                         }
-                                     }
-                                 }
- 
--                                AABB oldAABB = this.player.getBoundingBox();
--                                xDist = targetX - this.lastGoodX;
--                                yDist = targetY - this.lastGoodY;
--                                zDist = targetZ - this.lastGoodZ;
++                                        }
++                                    }
++                                }
++
 +                                AABB oldAABB = this.player.getBoundingBox(); // Paper - diff on change, should be old AABB
 +                                xDist = targetX - this.lastGoodX; // Paper - diff on change, used for checking large move vectors above
 +                                yDist = targetY - this.lastGoodY; // Paper - diff on change, used for checking large move vectors above
 +                                zDist = targetZ - this.lastGoodZ; // Paper - diff on change, used for checking large move vectors above
-                                 boolean movedUpwards = yDist > 0.0;
-                                 if (this.player.onGround() && !packet.isOnGround() && movedUpwards) {
--                                    this.player.jumpFromGround();
++                                boolean movedUpwards = yDist > 0.0;
++                                if (this.player.onGround() && !packet.isOnGround() && movedUpwards) {
 +                                    // Paper start - Add PlayerJumpEvent
 +                                    org.bukkit.entity.Player player = this.getCraftPlayer();
 +                                    Location from = new Location(player.getWorld(), this.lastPosX, this.lastPosY, this.lastPosZ, this.lastYRot, this.lastXRot); // Get the Players previous Event location.
@@ -1153,10 +1268,10 @@
 +                                        return;
 +                                    }
 +                                    // Paper end - Add PlayerJumpEvent
-                                 }
- 
-                                 boolean playerStandsOnSomething = this.player.verticalCollisionBelow;
-                                 this.player.move(MoverType.PLAYER, new Vec3(xDist, yDist, zDist));
++                                }
++
++                                boolean playerStandsOnSomething = this.player.verticalCollisionBelow;
++                                this.player.move(MoverType.PLAYER, new Vec3(xDist, yDist, zDist));
 +                                this.player.onGround = packet.isOnGround(); // CraftBukkit - SPIGOT-5810, SPIGOT-5835, SPIGOT-6828: reset by this.player.move
 +                                final boolean didCollide = targetX != this.player.getX() || targetY != this.player.getY() || targetZ != this.player.getZ(); // Paper - needed here as the difference in Y can be reset - also note: this is only a guess at whether collisions took place, floating point errors can make this true when it shouldn't be...
 +                                // Paper start - prevent position desync
@@ -1164,29 +1279,17 @@
 +                                    return; // ... thanks Mojang for letting move calls teleport across dimensions.
 +                                }
 +                                // Paper end - prevent position desync
-                                 double oyDist = yDist;
-                                 xDist = targetX - this.player.getX();
-                                 yDist = targetY - this.player.getY();
-@@ -1137,28 +_,107 @@
- 
-                                 zDist = targetZ - this.player.getZ();
-                                 movedDist = xDist * xDist + yDist * yDist + zDist * zDist;
--                                boolean fail = false;
++                                double oyDist = yDist;
++                                xDist = targetX - this.player.getX();
++                                yDist = targetY - this.player.getY();
++                                if (yDist > -0.5 || yDist < 0.5) {
++                                    yDist = 0.0;
++                                }
++
++                                zDist = targetZ - this.player.getZ();
++                                movedDist = xDist * xDist + yDist * yDist + zDist * zDist;
 +                                boolean movedWrongly = false; // Paper - Add fail move event; rename
-                                 if (!this.player.isChangingDimension()
--                                    && movedDist > 0.0625
--                                    && !this.player.isSleeping()
--                                    && !this.player.isCreative()
--                                    && !this.player.isSpectator()
--                                    && !this.player.isInPostImpulseGraceTime()) {
--                                    fail = true;
--                                    LOGGER.warn("{} moved wrongly!", this.player.getPlainTextName());
--                                }
--
--                                if (this.player.noPhysics
--                                    || this.player.isSleeping()
--                                    || (!fail || !level.noCollision(this.player, oldAABB))
--                                        && !this.isEntityCollidingWithAnythingNew(level, this.player, oldAABB, targetX, targetY, targetZ)) {
++                                if (!this.player.isChangingDimension()
 +                                        && movedDist > org.spigotmc.SpigotConfig.movedWronglyThreshold // Spigot
 +                                        && !this.player.isSleeping()
 +                                        && !this.player.isCreative()
@@ -1279,21 +1382,35 @@
 +                                        }
 +                                    }
 +                                    // Paper end
-                                     this.player.absSnapTo(targetX, targetY, targetZ, targetYRot, targetXRot);
-                                     boolean isAutoSpinAttack = this.player.isAutoSpinAttack();
-                                     this.clientIsFloating = oyDist >= -0.03125
-                                         && !playerStandsOnSomething
-                                         && !this.player.isSpectator()
-                                         && !this.server.allowFlight()
--                                        && !this.player.getAbilities().mayfly
++                                    this.player.absSnapTo(targetX, targetY, targetZ, targetYRot, targetXRot);
++                                    boolean isAutoSpinAttack = this.player.isAutoSpinAttack();
++                                    this.clientIsFloating = oyDist >= -0.03125
++                                        && !playerStandsOnSomething
++                                        && !this.player.isSpectator()
++                                        && !this.server.allowFlight()
 +                                        && !this.player.mayFly()
-                                         && !this.player.hasEffect(MobEffects.LEVITATION)
-                                         && !isFallFlying
-                                         && !isAutoSpinAttack
-@@ -1181,12 +_,19 @@
-                                         this.player.tryResetCurrentImpulseContext();
-                                     }
- 
++                                        && !this.player.hasEffect(MobEffects.LEVITATION)
++                                        && !isFallFlying
++                                        && !isAutoSpinAttack
++                                        && this.noBlocksAround(this.player);
++                                    this.player.level().getChunkSource().move(this.player);
++                                    Vec3 clientDeltaMovement = new Vec3(this.player.getX() - startX, this.player.getY() - startY, this.player.getZ() - startZ);
++                                    this.player.setOnGroundWithMovement(packet.isOnGround(), packet.horizontalCollision(), clientDeltaMovement);
++                                    this.player.doCheckFallDamage(clientDeltaMovement.x, clientDeltaMovement.y, clientDeltaMovement.z, packet.isOnGround());
++                                    this.handlePlayerKnownMovement(clientDeltaMovement);
++                                    if (movedUpwards) {
++                                        this.player.resetFallDistance();
++                                    }
++
++                                    if (packet.isOnGround()
++                                        || this.player.hasLandedInLiquid()
++                                        || this.player.onClimbable()
++                                        || this.player.isSpectator()
++                                        || isFallFlying
++                                        || isAutoSpinAttack) {
++                                        this.player.tryResetCurrentImpulseContext();
++                                    }
++
 +                                    // Purpur start - Dont run with scissors!
 +                                    if (this.player.level().purpurConfig.dontRunWithScissors && this.player.isSprinting() && !(this.player.level().purpurConfig.ignoreScissorsInWater && this.player.isInWater()) && !(this.player.level().purpurConfig.ignoreScissorsInLava && this.player.isInLava()) && (isScissors(this.player.getItemInHand(InteractionHand.MAIN_HAND)) || isScissors(this.player.getItemInHand(InteractionHand.OFF_HAND))) && (int) (Math.random() * 10) == 0) {
 +                                        this.player.hurtServer(this.player.level(), this.player.damageSources().scissors(), (float) this.player.level().purpurConfig.scissorsRunningDamage);
@@ -1301,20 +1418,104 @@
 +                                    }
 +                                    // Purpur end - Dont run with scissors!
 +
-                                     this.player.checkMovementStatistics(this.player.getX() - startX, this.player.getY() - startY, this.player.getZ() - startZ);
-                                     this.lastGoodX = this.player.getX();
-                                     this.lastGoodY = this.player.getY();
-                                     this.lastGoodZ = this.player.getZ();
-                                 } else {
--                                    this.teleport(startX, startY, startZ, targetYRot, targetXRot);
++                                    this.player.checkMovementStatistics(this.player.getX() - startX, this.player.getY() - startY, this.player.getZ() - startZ);
++                                    this.lastGoodX = this.player.getX();
++                                    this.lastGoodY = this.player.getY();
++                                    this.lastGoodZ = this.player.getZ();
++                                } else {
 +                                    this.internalTeleport(startX, startY, startZ, targetYRot, targetXRot);
-                                     this.player
-                                         .doCheckFallDamage(
-                                             this.player.getX() - startX, this.player.getY() - startY, this.player.getZ() - startZ, packet.isOnGround()
-@@ -1201,6 +_,17 @@
++                                    this.player
++                                        .doCheckFallDamage(
++                                            this.player.getX() - startX, this.player.getY() - startY, this.player.getZ() - startZ, packet.isOnGround()
++                                        );
++                                    this.player.removeLatestMovementRecording();
++                                }
++                            }
+                         }
+                     }
+                 }
+-
+-                AABB oldAABB = this.player.getBoundingBox();
+-                xDist = targetX - this.lastGoodX;
+-                yDist = targetY - this.lastGoodY;
+-                zDist = targetZ - this.lastGoodZ;
+-                boolean movedUpwards = yDist > 0.0;
+-                if (this.player.onGround() && !isOnGround && movedUpwards) {
+-                    this.player.jumpFromGround();
+-                }
+-
+-                boolean playerStandsOnSomething = this.player.verticalCollisionBelow;
+-                if (isOnGround && !playerStandsOnSomething) {
+-                    this.forceSendPlayerSupportBlocks();
+-                }
+-
+-                this.player.move(MoverType.PLAYER, new Vec3(xDist, yDist, zDist));
+-                double oyDist = yDist;
+-                xDist = targetX - this.player.getX();
+-                yDist = targetY - this.player.getY();
+-                if (yDist > -0.5 || yDist < 0.5) {
+-                    yDist = 0.0;
+-                }
+-
+-                zDist = targetZ - this.player.getZ();
+-                movedDist = xDist * xDist + yDist * yDist + zDist * zDist;
+-                boolean fail = false;
+-                if (!this.player.isChangingDimension()
+-                    && movedDist > 0.0625
+-                    && !this.player.isSleeping()
+-                    && !this.player.isCreative()
+-                    && !this.player.isSpectator()
+-                    && !this.player.isInPostImpulseGraceTime()) {
+-                    fail = true;
+-                    LOGGER.warn("{} moved wrongly!", this.player.getPlainTextName());
+-                }
+-
+-                if (this.player.noPhysics
+-                    || this.player.isSleeping()
+-                    || (!fail || !level.noCollision(this.player, oldAABB))
+-                        && !this.isEntityCollidingWithAnythingNew(level, this.player, oldAABB, targetX, targetY, targetZ)) {
+-                    this.player.absSnapTo(targetX, targetY, targetZ, targetYRot, targetXRot);
+-                    boolean isAutoSpinAttack = this.player.isAutoSpinAttack();
+-                    this.clientIsFloating = oyDist >= -0.03125
+-                        && !playerStandsOnSomething
+-                        && !this.player.isSpectator()
+-                        && !this.server.allowFlight()
+-                        && !this.player.getAbilities().mayfly
+-                        && !this.player.hasEffect(MobEffects.LEVITATION)
+-                        && !isFallFlying
+-                        && !isAutoSpinAttack
+-                        && this.noBlocksAround(this.player);
+-                    this.player.level().getChunkSource().move(this.player);
+-                    Vec3 clientDeltaMovement = new Vec3(this.player.getX() - startX, this.player.getY() - startY, this.player.getZ() - startZ);
+-                    this.player.setOnGroundWithMovement(isOnGround, horizontalCollision, clientDeltaMovement);
+-                    this.player.doCheckFallDamage(clientDeltaMovement.x, clientDeltaMovement.y, clientDeltaMovement.z, isOnGround);
+-                    this.handlePlayerKnownMovement(clientDeltaMovement);
+-                    if (movedUpwards) {
+-                        this.player.resetFallDistance();
+-                    }
+-
+-                    if (isOnGround
+-                        || this.player.hasLandedInLiquid()
+-                        || this.player.onClimbable()
+-                        || this.player.isSpectator()
+-                        || isFallFlying
+-                        || isAutoSpinAttack) {
+-                        this.player.tryResetCurrentImpulseContext();
+-                    }
+-
+-                    this.player.checkMovementStatistics(this.player.getX() - startX, this.player.getY() - startY, this.player.getZ() - startZ);
+-                    this.lastGoodX = this.player.getX();
+-                    this.lastGoodY = this.player.getY();
+-                    this.lastGoodZ = this.player.getZ();
+-                } else {
+-                    this.teleport(startX, startY, startZ, targetYRot, targetXRot);
+-                    this.player.doCheckFallDamage(this.player.getX() - startX, this.player.getY() - startY, this.player.getZ() - startZ, isOnGround);
+-                    this.player.removeLatestMovementRecording();
+-                }
+             }
          }
      }
- 
++
 +    // Purpur start - Dont run with scissors!
 +    public boolean isScissors(ItemStack stack) {
 +        if (!stack.is(Items.SHEARS)) return false;
@@ -1325,12 +1526,41 @@
 +        return stack.getOrDefault(DataComponents.CUSTOM_MODEL_DATA, net.minecraft.world.item.component.CustomModelData.EMPTY).equals(net.minecraft.world.item.component.CustomModelData.EMPTY);
 +    }
 +    // Purpur end - Dont run with scissors!
-+
+ 
      private boolean shouldCheckPlayerMovement(boolean isFallFlying) {
          if (this.isSingleplayerOwner()) {
-             return false;
-@@ -1216,7 +_,7 @@
+@@ -1252,37 +_,9 @@
+         return !gameRules.get(GameRules.PLAYER_MOVEMENT_CHECK) ? false : !isFallFlying || gameRules.get(GameRules.ELYTRA_MOVEMENT_CHECK);
+     }
  
+-    private void forceSendPlayerSupportBlocks() {
+-        if (this.tickCount >= this.lastSupportedBlocksSend + 200) {
+-            this.lastSupportedBlocksSend = this.tickCount;
+-            LOGGER.info("Player {} standing on air - force-sending blocks below", this.player.getPlainTextName());
+-            AABB box = this.player.getBoundingBox();
+-            double justBelow = box.minY - 1.0E-5F;
+-            Stream.of(
+-                    new Vec3(box.minX, justBelow, box.minZ),
+-                    new Vec3(box.maxX, justBelow, box.minZ),
+-                    new Vec3(box.minX, justBelow, box.maxZ),
+-                    new Vec3(box.maxX, justBelow, box.maxZ)
+-                )
+-                .map(BlockPos::containing)
+-                .distinct()
+-                .forEach(blockPos -> {
+-                    ServerLevel level = this.player.level();
+-                    this.send(new ClientboundBlockUpdatePacket(level, blockPos));
+-                    BlockEntity blockEntity = level.getBlockEntity(blockPos);
+-                    if (blockEntity != null) {
+-                        Packet<?> packet = blockEntity.getUpdatePacket();
+-                        if (packet != null) {
+-                            this.send(packet);
+-                        }
+-                    }
+-                });
+-        }
+-    }
+-
      private boolean updateAwaitingTeleport() {
          if (this.awaitingPositionFromClient != null) {
 -            if (this.tickCount - this.awaitingTeleportTime > 20) {
@@ -1338,7 +1568,7 @@
                  this.awaitingTeleportTime = this.tickCount;
                  this.teleport(
                      this.awaitingPositionFromClient.x,
-@@ -1226,6 +_,7 @@
+@@ -1292,6 +_,7 @@
                      this.player.getXRot()
                  );
              }
@@ -1346,7 +1576,7 @@
  
              return true;
          } else {
-@@ -1234,6 +_,34 @@
+@@ -1300,6 +_,34 @@
          }
      }
  
@@ -1381,7 +1611,7 @@
      private boolean isEntityCollidingWithAnythingNew(LevelReader level, Entity entity, AABB oldAABB, double newX, double newY, double newZ) {
          AABB newAABB = entity.getBoundingBox().move(newX - entity.getX(), newY - entity.getY(), newZ - entity.getZ());
          Iterable<VoxelShape> newCollisions = level.getPreMoveCollisions(entity, newAABB.deflate(1.0E-5F), oldAABB.getBottomCenter());
-@@ -1249,10 +_,77 @@
+@@ -1315,10 +_,77 @@
      }
  
      public void teleport(double x, double y, double z, float yRot, float xRot) {
@@ -1460,7 +1690,7 @@
          this.awaitingTeleportTime = this.tickCount;
          if (++this.awaitingTeleport == Integer.MAX_VALUE) {
              this.awaitingTeleport = 0;
-@@ -1260,12 +_,20 @@
+@@ -1326,12 +_,20 @@
  
          this.player.teleportSetPosition(destination, relatives);
          this.awaitingPositionFromClient = this.player.position();
@@ -1481,7 +1711,7 @@
          if (this.hasClientLoaded()) {
              BlockPos pos = packet.getPos();
              this.player.resetLastActionTime();
-@@ -1289,33 +_,97 @@
+@@ -1355,33 +_,97 @@
                      }
                  case SWAP_ITEM_WITH_OFFHAND:
                      if (!this.player.isSpectator()) {
@@ -1582,7 +1812,7 @@
                      return;
                  default:
                      throw new IllegalArgumentException("Invalid player action");
-@@ -1333,17 +_,43 @@
+@@ -1399,17 +_,43 @@
              && !player.getCooldowns().isOnCooldown(itemStack);
      }
  
@@ -1611,13 +1841,15 @@
 +        if (this.player.isImmobile()) return; // CraftBukkit
 +        if (!checkLimit(packet.timestamp)) return; // Spigot - check limit
          if (this.hasClientLoaded()) {
--            this.ackBlockChangesUpTo(packet.getSequence());
+-            this.ackBlockChangesUpTo(packet.sequence());
 +            this.player.connection.ackBlockChangesUpTo = packet.getSequence();
              ServerLevel level = this.player.level();
-             InteractionHand hand = packet.getHand();
+-            InteractionHand hand = packet.hand();
++            InteractionHand hand = packet.getHand();
              ItemStack itemStack = this.player.getItemInHand(hand);
              if (itemStack.isItemEnabled(level.enabledFeatures())) {
-                 BlockHitResult blockHit = packet.getHitResult();
+-                BlockHitResult blockHit = packet.hitResult();
++                BlockHitResult blockHit = packet.getHitResult();
                  Vec3 location = blockHit.getLocation();
 +                // Paper start - improve distance check
 +                if (!location.isFinite()) {
@@ -1627,10 +1859,11 @@
                  BlockPos pos = blockHit.getBlockPos();
                  if (this.player.isWithinBlockInteractionRange(pos, 1.0)) {
                      Vec3 distance = location.subtract(Vec3.atCenterOf(pos));
-@@ -1358,21 +_,25 @@
+@@ -1424,23 +_,26 @@
                          } else if (pos.getY() < minY) {
                              this.player.sendBuildLimitMessage(false, minY);
                          } else {
+-                            SwingAnimation swingAnimation = itemStack.getInteractAnimation();
 -                            if (this.server.isUnderSpawnProtection(level, pos, this.player)) {
 +                            // Paper start - Allow using signs inside spawn protection
 +                            final boolean passthroughSignInteraction = (level.paperConfig().spawn.allowUsingSignsInsideSpawnProtection && level.getBlockState(pos).getBlock() instanceof net.minecraft.world.level.block.SignBlock);
@@ -1653,20 +1886,27 @@
 +                                        && pos.getY() >= maxY
 +                                        && wasBlockPlacementAttempt(this.player, itemStack)) {
                                      this.player.sendBuildLimitMessage(true, maxY);
-                                 } else if (interactionResult instanceof InteractionResult.Success success
--                                    && success.swingSource() == InteractionResult.SwingSource.SERVER) {
+-                                } else if (interactionResult instanceof InteractionResult.Success success && success.shouldSwing()) {
+-                                    this.player
+-                                        .swingAndResetAttackStrength(hand, swingAnimation, success.swingSource() != InteractionResult.SwingSource.PREDICTED);
++                                } else if (interactionResult instanceof InteractionResult.Success success
 +                                        && success.swingSource() == InteractionResult.SwingSource.SERVER) {
-                                     this.player.swing(hand, true);
++                                    this.player.swing(hand, true);
                                  }
  
-@@ -1383,23 +_,28 @@
+                                 if (!interactionResult.consumesAction() && wasBlockPlacementAttempt(this.player, itemStack)) {
+@@ -1449,24 +_,29 @@
+                                     } else if (direction == Direction.DOWN && pos.getY() <= minY) {
                                          this.player.sendBuildLimitMessage(false, minY);
                                      }
-                                 } else if (interactionResult instanceof InteractionResult.Success success
--                                    && success.swingSource() == InteractionResult.SwingSource.SERVER) {
+-                                } else if (interactionResult instanceof InteractionResult.Success success && success.shouldSwing()) {
+-                                    this.player
+-                                        .swingAndResetAttackStrength(hand, swingAnimation, success.swingSource() != InteractionResult.SwingSource.PREDICTED);
+-                                }
++                                } else if (interactionResult instanceof InteractionResult.Success success
 +                                        && success.swingSource() == InteractionResult.SwingSource.SERVER) {
-                                     this.player.swing(hand, true);
-                                 }
++                                    this.player.swing(hand, true);
++                                }
 +                                // Paper start - Fix inventory desync; MC-99075
 +                                // From level.mayInteract(this.player, pos)
 +                            } else if (this.server.isUnderSpawnProtection(level, pos, player)) {
@@ -1697,19 +1937,32 @@
                      }
                  }
              }
-@@ -1409,6 +_,8 @@
+@@ -1476,22 +_,62 @@
      @Override
      public void handleUseItem(ServerboundUseItemPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
 +        if (this.player.isImmobile()) return; // CraftBukkit
 +        if (!checkLimit(packet.timestamp)) return; // Spigot - check limit
          if (this.hasClientLoaded()) {
-             this.ackBlockChangesUpTo(packet.getSequence());
+-            this.ackBlockChangesUpTo(packet.sequence());
++            this.ackBlockChangesUpTo(packet.getSequence());
              ServerLevel level = this.player.level();
-@@ -1422,6 +_,44 @@
+-            InteractionHand hand = packet.hand();
++            InteractionHand hand = packet.getHand();
+             ItemStack itemStack = this.player.getItemInHand(hand);
+             this.player.resetLastActionTime();
+             if (!itemStack.isEmpty() && itemStack.isItemEnabled(level.enabledFeatures())) {
+-                SwingAnimation swingAnimation = itemStack.getInteractAnimation();
+-                float targetYRot = Mth.wrapDegrees(packet.yRot());
+-                float targetXRot = Mth.wrapDegrees(packet.xRot());
++                float targetYRot = Mth.wrapDegrees(packet.getYRot());
++                float targetXRot = Mth.wrapDegrees(packet.getXRot());
+                 if (targetXRot != this.player.getXRot() || targetYRot != this.player.getYRot()) {
                      this.player.absSnapRotationTo(targetYRot, targetXRot);
                  }
  
+-                if (this.player.gameMode.useItem(this.player, level, itemStack, hand) instanceof InteractionResult.Success success && success.shouldSwing()) {
+-                    this.player.swingAndResetAttackStrength(hand, swingAnimation, success.swingSource() != InteractionResult.SwingSource.PREDICTED);
 +                // CraftBukkit start
 +                // Raytrace to look for 'rogue armswings'
 +                Vec3 from = this.player.getEyePosition();
@@ -1748,10 +2001,13 @@
 +                    return;
 +                }
 +                // CraftBukkit end
-                 if (this.player.gameMode.useItem(this.player, level, itemStack, hand) instanceof InteractionResult.Success success
-                     && success.swingSource() == InteractionResult.SwingSource.SERVER) {
-                     this.player.swing(hand, true);
-@@ -1437,7 +_,7 @@
++                if (this.player.gameMode.useItem(this.player, level, itemStack, hand) instanceof InteractionResult.Success success
++                    && success.swingSource() == InteractionResult.SwingSource.SERVER) {
++                    this.player.swing(hand, true);
+                 }
+             }
+         }
+@@ -1504,7 +_,7 @@
              for (ServerLevel level : this.server.getAllLevels()) {
                  Entity entity = packet.getEntity(level);
                  if (entity != null) {
@@ -1760,7 +2016,7 @@
                      return;
                  }
              }
-@@ -1455,18 +_,36 @@
+@@ -1522,18 +_,36 @@
      @Override
      public void onDisconnect(DisconnectionDetails details) {
          LOGGER.info("{} lost connection: {}", this.player.getPlainTextName(), details.reason().getString());
@@ -1799,7 +2055,7 @@
          this.player.getTextFilter().leave();
      }
  
-@@ -1481,7 +_,17 @@
+@@ -1548,7 +_,17 @@
      @Override
      public void handleSetCarriedItem(ServerboundSetCarriedItemPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
@@ -1817,7 +2073,7 @@
              if (this.player.getInventory().getSelectedSlot() != packet.getSlot() && this.player.getUsedItemHand() == InteractionHand.MAIN_HAND) {
                  this.player.stopUsingItem();
              }
-@@ -1495,6 +_,12 @@
+@@ -1562,6 +_,12 @@
  
      @Override
      public void handleChat(ServerboundChatPacket packet) {
@@ -1830,7 +2086,7 @@
          Optional<LastSeenMessages> unpackedLastSeen = this.unpackAndApplyLastSeen(packet.lastSeenMessages());
          if (!unpackedLastSeen.isEmpty()) {
              this.tryHandleChat(packet.message(), false, () -> {
-@@ -1506,25 +_,45 @@
+@@ -1573,25 +_,45 @@
                      return;
                  }
  
@@ -1883,7 +2139,7 @@
          ParseResults<CommandSourceStack> parsed = this.parseCommand(command);
          if (this.server.enforceSecureProfile() && SignableCommand.hasSignableArguments(parsed)) {
              LOGGER.error(
-@@ -1541,26 +_,55 @@
+@@ -1608,26 +_,55 @@
          Optional<LastSeenMessages> unpackedLastSeen = this.unpackAndApplyLastSeen(packet.lastSeenMessages());
          if (!unpackedLastSeen.isEmpty()) {
              this.tryHandleChat(packet.command(), true, () -> {
@@ -1942,7 +2198,7 @@
      }
  
      private void handleMessageDecodeFailure(SignedMessageChain.DecodeException e) {
-@@ -1624,14 +_,20 @@
+@@ -1691,14 +_,20 @@
          return commands.parse(command, this.player.createCommandSourceStack());
      }
  
@@ -1966,7 +2222,7 @@
          }
      }
  
-@@ -1642,7 +_,7 @@
+@@ -1709,7 +_,7 @@
                  LastSeenMessages result = this.lastSeenMessages.applyUpdate(update);
                  var10000 = Optional.of(result);
              } catch (LastSeenMessagesValidator.ValidationException e) {
@@ -1975,7 +2231,7 @@
                  this.disconnect(CHAT_VALIDATION_FAILED);
                  return Optional.empty();
              }
-@@ -1661,31 +_,96 @@
+@@ -1728,31 +_,96 @@
          return false;
      }
  
@@ -2016,7 +2272,8 @@
 +
      private PlayerChatMessage getSignedMessage(ServerboundChatPacket packet, LastSeenMessages lastSeenMessages) throws SignedMessageChain.DecodeException {
          SignedMessageBody body = new SignedMessageBody(packet.message(), packet.timeStamp(), packet.salt(), lastSeenMessages);
-         return this.signedMessageDecoder.unpack(packet.signature(), body);
+-        return this.signedMessageDecoder.unpack(packet.signature().orElse(null), body);
++        return this.signedMessageDecoder.unpack(packet.signature(), body);
      }
  
      private void broadcastChatMessage(PlayerChatMessage message) {
@@ -2091,7 +2348,7 @@
      }
  
      @Override
-@@ -1694,7 +_,7 @@
+@@ -1761,25 +_,65 @@
              try {
                  this.lastSeenMessages.applyOffset(packet.offset());
              } catch (LastSeenMessagesValidator.ValidationException e) {
@@ -2100,12 +2357,17 @@
                  this.disconnect(CHAT_VALIDATION_FAILED);
              }
          }
-@@ -1703,7 +_,34 @@
+     }
+ 
      @Override
-     public void handleAnimate(ServerboundSwingPacket packet) {
+-    public void handlePunch(ServerboundPunchPacket packet) {
++    public void handleAnimate(ServerboundSwingPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
 +        if (this.player.isImmobile()) return; // CraftBukkit
          this.player.resetLastActionTime();
+-        SwingAnimation swingAnimation = this.player.getItemInHand(InteractionHand.MAIN_HAND).getAttackAnimation();
+-        this.player.swing(InteractionHand.MAIN_HAND, swingAnimation, false);
+-        this.player.resetAttackStrengthTicker();
 +        // CraftBukkit start - Raytrace to look for 'rogue armswings'
 +        Location origin = CraftLocation.toBukkit(this.player.getEyePosition(), this.player.level(), this.player.getYRot(), this.player.getXRot());
 +        double maxRange = Math.max(this.player.blockInteractionRange(), this.player.entityInteractionRange()); // todo flawed
@@ -2132,10 +2394,10 @@
 +
 +        if (event.isCancelled()) return;
 +        // CraftBukkit end
-         this.player.swing(packet.getHand());
++        this.player.swing(packet.getHand());
      }
  
-@@ -1711,6 +_,21 @@
+     @Override
      public void handlePlayerCommand(ServerboundPlayerCommandPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
          if (this.hasClientLoaded()) {
@@ -2157,7 +2419,7 @@
              this.player.resetLastActionTime();
              switch (packet.getAction()) {
                  case START_SPRINTING:
-@@ -1755,29 +_,38 @@
+@@ -1824,29 +_,38 @@
      }
  
      public void sendPlayerChatMessage(PlayerChatMessage message, ChatType.Bound chatType) {
@@ -2166,9 +2428,9 @@
 -                this.nextChatIndex++,
 -                message.link().sender(),
 -                message.link().index(),
--                message.signature(),
+-                Optional.ofNullable(message.signature()),
 -                message.signedBody().pack(this.messageSignatureCache),
--                message.unsignedContent(),
+-                Optional.ofNullable(message.unsignedContent()),
 -                message.filterMask(),
 -                chatType
 -            )
@@ -2218,7 +2480,7 @@
              }
          }
      }
-@@ -1790,6 +_,17 @@
+@@ -1859,6 +_,17 @@
          return this.connection.getRemoteAddress();
      }
  
@@ -2236,7 +2498,7 @@
      public void switchToConfig() {
          this.waitingForSwitchToConfig = true;
          this.removePlayerFromWorld();
-@@ -1805,20 +_,28 @@
+@@ -1874,20 +_,28 @@
      @Override
      public void handleAttack(ServerboundAttackPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
@@ -2268,7 +2530,7 @@
                              LOGGER.warn("Player {} tried to attack an invalid entity", this.player.getPlainTextName());
                          } else if (mainHandItem.isItemEnabled(level.enabledFeatures())) {
                              if (!this.player.cannotAttackWithItem(mainHandItem, 5)) {
-@@ -1828,15 +_,29 @@
+@@ -1897,15 +_,29 @@
                      }
                  }
              }
@@ -2298,7 +2560,7 @@
              this.player.resetLastActionTime();
              this.player.setShiftKeyDown(packet.usingSecondaryAction());
              if (target != null && level.getWorldBorder().isWithinBounds(target.blockPosition())) {
-@@ -1847,7 +_,63 @@
+@@ -1916,17 +_,78 @@
                      ItemStack tool = this.player.getItemInHand(hand);
                      if (tool.isItemEnabled(level.enabledFeatures())) {
                          ItemStack usedItemStack = tool.copy();
@@ -2362,8 +2624,13 @@
 +                        if (interactionResult instanceof InteractionResult.Success success) {
                              ItemStack awardedForStack = success.wasItemInteraction() ? usedItemStack : ItemStack.EMPTY;
                              CriteriaTriggers.PLAYER_INTERACTED_WITH_ENTITY.trigger(this.player, awardedForStack, target);
-                             if (success.swingSource() == InteractionResult.SwingSource.SERVER) {
-@@ -1857,6 +_,12 @@
+-                            if (success.shouldSwing()) {
+-                                SwingAnimation swingAnimation = usedItemStack.getInteractAnimation();
+-                                this.player.swingAndResetAttackStrength(hand, swingAnimation, success.swingSource() != InteractionResult.SwingSource.PREDICTED);
++                            if (success.swingSource() == InteractionResult.SwingSource.SERVER) {
++                                this.player.swing(hand, true);
+                             }
+                         }
                      }
                  }
              }
@@ -2376,7 +2643,7 @@
          }
      }
  
-@@ -1869,7 +_,7 @@
+@@ -1939,7 +_,7 @@
                  ServerLevel level = this.player.level();
                  Entity target = level.getEntityOrPart(packet.spectateEntityId().getAsInt());
                  if (target != null && level.getWorldBorder().isWithinBounds(target.blockPosition())) {
@@ -2385,7 +2652,7 @@
                          if (target.isPickable()) {
                              this.player.setCamera(target);
                          }
-@@ -1888,7 +_,7 @@
+@@ -1958,7 +_,7 @@
              case PERFORM_RESPAWN:
                  if (this.player.wonGame) {
                      this.player.wonGame = false;
@@ -2394,7 +2661,7 @@
                      this.resetPosition();
                      this.restartClientLoadTimerAfterRespawn();
                      CriteriaTriggers.CHANGED_DIMENSION.trigger(this.player, Level.END, Level.OVERWORLD);
-@@ -1897,11 +_,11 @@
+@@ -1967,11 +_,11 @@
                          return;
                      }
  
@@ -2408,7 +2675,7 @@
                      }
                  }
                  break;
-@@ -1930,16 +_,27 @@
+@@ -2000,16 +_,27 @@
  
      @Override
      public void handleContainerClose(ServerboundContainerClosePacket packet) {
@@ -2438,7 +2705,7 @@
                  this.player.containerMenu.sendAllDataToRemote();
              } else if (!this.player.containerMenu.stillValid(this.player)) {
                  LOGGER.debug("Player {} interacted with invalid menu {}", this.player, this.player.containerMenu);
-@@ -1955,7 +_,299 @@
+@@ -2025,7 +_,299 @@
                  } else {
                      boolean fullResyncNeeded = packet.stateId() != this.player.containerMenu.getStateId();
                      this.player.containerMenu.suppressRemoteUpdates();
@@ -2739,7 +3006,7 @@
  
                      for (Entry<HashedStack> e : Int2ObjectMaps.fastIterable(packet.changedSlots())) {
                          this.player.containerMenu.setRemoteSlotUnsafe(e.getIntKey(), e.getValue());
-@@ -1968,6 +_,8 @@
+@@ -2038,6 +_,8 @@
                      } else {
                          this.player.containerMenu.broadcastChanges();
                      }
@@ -2748,7 +3015,7 @@
                  }
              }
          }
-@@ -1975,6 +_,14 @@
+@@ -2045,6 +_,14 @@
  
      @Override
      public void handlePlaceRecipe(ServerboundPlaceRecipePacket packet) {
@@ -2763,7 +3030,7 @@
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
          this.player.resetLastActionTime();
          if (!this.player.isSpectator() && this.player.containerMenu.containerId == packet.containerId()) {
-@@ -1991,9 +_,44 @@
+@@ -2061,9 +_,44 @@
                                  return;
                              }
  
@@ -2809,7 +3076,7 @@
                              if (postPlaceAction == RecipeBookMenu.PostPlaceAction.PLACE_GHOST_RECIPE) {
                                  this.send(new ClientboundPlaceGhostRecipePacket(this.player.containerMenu.containerId, displayInfo.display().display()));
                              }
-@@ -2007,6 +_,7 @@
+@@ -2077,6 +_,7 @@
      @Override
      public void handleContainerButtonClick(ServerboundContainerButtonClickPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
@@ -2817,7 +3084,7 @@
          this.player.resetLastActionTime();
          if (this.player.containerMenu.containerId == packet.containerId() && !this.player.isSpectator()) {
              if (!this.player.containerMenu.stillValid(this.player)) {
-@@ -2016,6 +_,7 @@
+@@ -2086,6 +_,7 @@
                  if (clickAccepted) {
                      this.player.containerMenu.broadcastChanges();
                  }
@@ -2825,7 +3092,7 @@
              }
          }
      }
-@@ -2032,10 +_,48 @@
+@@ -2102,14 +_,52 @@
  
              boolean validSlot = packet.slotNum() >= 1 && packet.slotNum() <= 45;
              boolean validData = itemStack.isEmpty() || itemStack.getCount() <= itemStack.getMaxStackSize();
@@ -2874,7 +3141,12 @@
              } else if (drop && validData) {
                  if (this.dropSpamThrottler.isUnderThreshold()) {
                      this.dropSpamThrottler.increment();
-@@ -2049,34 +_,77 @@
+-                    this.player.drop(itemStack, true, Prediction.PREDICTED);
++                    this.player.drop(itemStack, true);
+                 } else {
+                     LOGGER.warn("Player {} was dropping items too fast in creative mode, ignoring.", this.player.getPlainTextName());
+                 }
+@@ -2119,34 +_,77 @@
  
      @Override
      public void handleSignUpdate(ServerboundSignUpdatePacket packet) {
@@ -2956,7 +3228,7 @@
          if (this.player.isModelPartShown(PlayerModelPart.HAT) != wasHatShown) {
              this.server.getPlayerList().broadcastAll(new ClientboundPlayerInfoUpdatePacket(ClientboundPlayerInfoUpdatePacket.Action.UPDATE_HAT, this.player));
          }
-@@ -2092,21 +_,21 @@
+@@ -2162,21 +_,21 @@
                  packet.difficulty().getDisplayName()
              );
          } else {
@@ -2981,7 +3253,7 @@
          }
      }
  
-@@ -2137,8 +_,8 @@
+@@ -2207,8 +_,8 @@
  
                      this.resetPlayerChatState(newChatSession.validate(this.player.getGameProfile(), profileKeySignatureValidator));
                  } catch (ProfilePublicKey.ValidationException e) {
@@ -2992,7 +3264,7 @@
                  }
              }
          }
-@@ -2150,11 +_,13 @@
+@@ -2220,11 +_,13 @@
              throw new IllegalStateException("Client acknowledged config, but none was requested");
          }
  
@@ -3010,7 +3282,7 @@
      }
  
      @Override
-@@ -2171,27 +_,32 @@
+@@ -2241,33 +_,37 @@
  
      private void resetPlayerChatState(RemoteChatSession chatSession) {
          this.chatSession = chatSession;
@@ -3043,7 +3315,13 @@
          if (!this.receivedMovementThisTick) {
              this.player.setKnownMovement(Vec3.ZERO);
          }
-@@ -2214,11 +_,6 @@
+ 
+         this.receivedMovementThisTick = false;
+-        this.receivedPositionThisTick = false;
+     }
+ 
+     private void handlePlayerKnownMovement(Vec3 movement) {
+@@ -2285,11 +_,6 @@
      }
  
      @Override
@@ -3055,7 +3333,7 @@
      public ServerPlayer getPlayer() {
          return this.player;
      }
-@@ -2228,12 +_,23 @@
+@@ -2299,12 +_,23 @@
      }
  
      public void tickClientLoadTimeout() {
@@ -3083,7 +3361,7 @@
          this.clientLoadedTimeoutTimer = 0;
      }
  
-@@ -2245,4 +_,80 @@
+@@ -2316,4 +_,80 @@
          this.waitingForRespawn = false;
          this.clientLoadedTimeoutTimer = 60;
      }

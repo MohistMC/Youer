@@ -1,0 +1,28 @@
+--- a/com/mojang/renderpearl/api/buffers/GpuBuffer.java
++++ b/com/mojang/renderpearl/api/buffers/GpuBuffer.java
+@@ -1,6 +_,5 @@
+ package com.mojang.renderpearl.api.buffers;
+ 
+-import com.mojang.renderpearl.util.UncheckedAutoCloseable;
+ import java.lang.annotation.ElementType;
+ import java.lang.annotation.Retention;
+ import java.lang.annotation.RetentionPolicy;
+@@ -9,7 +_,7 @@
+ import net.neoforged.api.distmarker.OnlyIn;
+ 
+ @OnlyIn(Dist.CLIENT)
+-public interface GpuBuffer extends UncheckedAutoCloseable {
++public interface GpuBuffer extends AutoCloseable {
+     int USAGE_MAP_READ = 1;
+     int USAGE_MAP_WRITE = 2;
+     int USAGE_HINT_CLIENT_STORAGE = 4;
+@@ -26,6 +_,9 @@
+     @GpuBuffer.Usage int usage();
+ 
+     boolean isClosed();
++
++    @Override
++    void close();
+ 
+     default GpuBufferSlice slice(long offset, long length) {
+         if (offset >= 0L && length >= 0L && offset + length <= this.size()) {

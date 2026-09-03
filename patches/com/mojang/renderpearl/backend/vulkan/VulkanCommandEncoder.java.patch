@@ -1,0 +1,87 @@
+--- a/com/mojang/renderpearl/backend/vulkan/VulkanCommandEncoder.java
++++ b/com/mojang/renderpearl/backend/vulkan/VulkanCommandEncoder.java
+@@ -59,7 +_,6 @@
+     private VulkanQueue.Submission submissionBuilder;
+     private final DestructionQueue<Destroyable> destroyQueue = new DestructionQueue<>(2, Destroyable::destroy);
+     private final VulkanCommandPool[] commandPools = new VulkanCommandPool[2];
+-    private @Nullable VkCommandBuffer currentInitCommandBuffer;
+     private @Nullable VkCommandBuffer currentCommandBuffer;
+     private @Nullable VulkanRenderPass currentRenderPass;
+ 
+@@ -134,39 +_,22 @@
+         }
+ 
+         this.currentCommandBuffer = this.allocateAndBeginTransientCommandBuffer();
++        this.submissionBuilder.executeCommands(this.currentCommandBuffer);
+         return this.currentCommandBuffer;
+     }
+ 
+-    VkCommandBuffer objectInitCommandBuffer() {
+-        if (this.currentInitCommandBuffer != null) {
+-            return this.currentInitCommandBuffer;
+-        }
+-
+-        this.currentInitCommandBuffer = this.allocateAndBeginTransientCommandBuffer();
+-        return this.currentInitCommandBuffer;
++    VkCommandBuffer textureInitCommandBuffer() {
++        return this.commandBuffer();
+     }
+ 
+     private void endCommandBuffer() {
+-        if (this.currentCommandBuffer != null || this.currentInitCommandBuffer != null) {
++        if (this.currentCommandBuffer != null) {
+             if (this.currentRenderPass != null) {
+                 throw new IllegalStateException("Cannot end command buffer while inside RenderPass");
+             }
+ 
+-            if (this.currentInitCommandBuffer != null) {
+-                try (MemoryStack stack = MemoryStack.stackPush()) {
+-                    memoryBarrier(this.currentInitCommandBuffer, stack);
+-                }
+-
+-                VulkanUtils.crashIfFailure(this.device, VK12.vkEndCommandBuffer(this.currentInitCommandBuffer), "Failed to end VkCommandBuffer");
+-                this.submissionBuilder.executeCommands(this.currentInitCommandBuffer);
+-                this.currentInitCommandBuffer = null;
+-            }
+-
+-            if (this.currentCommandBuffer != null) {
+-                VulkanUtils.crashIfFailure(this.device, VK12.vkEndCommandBuffer(this.currentCommandBuffer), "Failed to end VkCommandBuffer");
+-                this.submissionBuilder.executeCommands(this.currentCommandBuffer);
+-                this.currentCommandBuffer = null;
+-            }
++            VulkanUtils.crashIfFailure(this.device, VK12.vkEndCommandBuffer(this.currentCommandBuffer), "Failed to end VkCommandBuffer");
++            this.currentCommandBuffer = null;
+         }
+     }
+ 
+@@ -388,26 +_,18 @@
+ 
+     @Override
+     public void clearColorAndDepthTextures(
+-        GpuTexture colorTexture,
+-        Vector4fc clearColor,
+-        GpuTexture depthTexture,
+-        double clearDepth,
+-        int regionX,
+-        int regionY,
+-        int regionWidth,
+-        int regionHeight,
+-        int mipLevel
++        GpuTexture colorTexture, Vector4fc clearColor, GpuTexture depthTexture, double clearDepth, int regionX, int regionY, int regionWidth, int regionHeight
+     ) {
+         try (
+-            GpuTextureView colorTextureView = this.device.createTextureView(colorTexture, mipLevel, 1);
+-            GpuTextureView depthTextureView = this.device.createTextureView(depthTexture, mipLevel, 1);
++            GpuTextureView colorTextureView = this.device.createTextureView(colorTexture);
++            GpuTextureView depthTextureView = this.device.createTextureView(depthTexture);
+             MemoryStack stack = MemoryStack.stackPush();
+         ) {
+             this.createRenderPass(
+                 RenderPassDescriptor.builder(() -> "ClearColorDepthTextures")
+                     .withColorAttachment(colorTextureView)
+                     .withDepthAttachment(depthTextureView)
+-                    .withRenderArea(new RenderPass.RenderArea(0, 0, colorTexture.getWidth(mipLevel), colorTexture.getHeight(mipLevel)))
++                    .withRenderArea(new RenderPass.RenderArea(0, 0, colorTexture.getWidth(0), colorTexture.getHeight(0)))
+                     .build()
+             );
+             assert this.currentRenderPass != null;

@@ -8,7 +8,7 @@
  import java.util.stream.Stream;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
-@@ -52,6 +_,7 @@
+@@ -52,11 +_,11 @@
  import org.slf4j.Logger;
  
  public class EntityType<T extends Entity> implements EntityTypeTest<Entity, T>, FeatureElement {
@@ -16,7 +16,12 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      private final Holder.Reference<EntityType<?>> builtInRegistryHolder = BuiltInRegistries.ENTITY_TYPE.createIntrusiveHolder(this);
      public static final Codec<EntityType<?>> CODEC = BuiltInRegistries.ENTITY_TYPE.byNameCodec();
-@@ -68,16 +_,37 @@
+     public static final StreamCodec<RegistryFriendlyByteBuf, EntityType<?>> STREAM_CODEC = ByteBufCodecs.registry(Registries.ENTITY_TYPE);
+-    public static final int NO_UPDATE_INTERVAL = Integer.MAX_VALUE;
+     private final EntityType.EntityFactory<T> factory;
+     private final MobCategory category;
+     private final TagKey<Block> immuneTo;
+@@ -69,16 +_,37 @@
      private final String descriptionId;
      private @Nullable Component description;
      private final Optional<ResourceKey<LootTable>> lootTable;
@@ -55,7 +60,7 @@
      public EntityType(
          EntityType.EntityFactory<T> factory,
          MobCategory category,
-@@ -93,8 +_,31 @@
+@@ -94,8 +_,31 @@
          String descriptionId,
          Optional<ResourceKey<LootTable>> lootTable,
          FeatureFlagSet requiredFeatures,
@@ -89,7 +94,7 @@
      ) {
          this.factory = factory;
          this.category = category;
-@@ -111,26 +_,28 @@
+@@ -112,26 +_,28 @@
          this.lootTable = lootTable;
          this.requiredFeatures = requiredFeatures;
          this.allowedInPeaceful = allowedInPeaceful;
@@ -134,7 +139,7 @@
      }
  
      public static <T extends Entity> PostSpawnProcessor<T> createDefaultStackConfig(Level level, ItemStack itemStack, @Nullable LivingEntity user) {
-@@ -151,24 +_,52 @@
+@@ -152,24 +_,52 @@
          PostSpawnProcessor<T> initialConfig, Level level, ItemStack itemStack, @Nullable LivingEntity user
      ) {
          TypedEntityData<EntityType<?>> entityData = itemStack.get(DataComponents.ENTITY_DATA);
@@ -200,7 +205,7 @@
              if (entity instanceof Mob mob) {
                  mob.playAmbientSound();
              }
-@@ -203,6 +_,13 @@
+@@ -204,6 +_,13 @@
              mob.yHeadRot = mob.getYRot();
              mob.yBodyRot = mob.getYRot();
              mob.finalizeSpawn(level, level.getCurrentDifficultyAt(mob.blockPosition()), spawnReason, null);
@@ -214,7 +219,7 @@
          }
  
          if (postSpawnConfig != null) {
-@@ -229,6 +_,13 @@
+@@ -230,6 +_,13 @@
                  if (level.isClientSide()
                      || !entity.getType().onlyOpCanSetNbt()
                      || user instanceof Player player && server.getPlayerList().isOp(player.nameAndId())) {
@@ -228,7 +233,7 @@
                      entityData.loadInto(entity);
                  }
              }
-@@ -255,6 +_,16 @@
+@@ -256,6 +_,16 @@
          return this.category;
      }
  
@@ -245,7 +250,7 @@
      public String getDescriptionId() {
          return this.descriptionId;
      }
-@@ -307,10 +_,29 @@
+@@ -308,10 +_,29 @@
      }
  
      public static Optional<Entity> create(ValueInput input, Level level, EntitySpawnRequest request) {
@@ -277,7 +282,7 @@
          );
      }
  
-@@ -320,10 +_,6 @@
+@@ -321,10 +_,6 @@
          return entity;
      }
  
@@ -288,7 +293,7 @@
      public AABB getSpawnAABB(double x, double y, double z) {
          float halfWidth = this.spawnDimensionsScale * this.getWidth() / 2.0F;
          float height = this.spawnDimensionsScale * this.getHeight();
-@@ -390,7 +_,18 @@
+@@ -391,7 +_,18 @@
      }
  
      public static Stream<Entity> loadEntitiesRecursive(ValueInput.ValueInputList entities, Level level, EntitySpawnReason reason) {
@@ -307,3 +312,25 @@
              output.accept(entity);
              return entity;
          }));
+@@ -423,10 +_,6 @@
+         return this.updateInterval;
+     }
+ 
+-    public boolean hasUpdateInterval() {
+-        return this.updateInterval != Integer.MAX_VALUE;
+-    }
+-
+     public boolean trackDeltas() {
+         return this.trackDeltas;
+     }
+@@ -574,10 +_,6 @@
+         public EntityType.Builder<T> updateInterval(int updateInterval) {
+             this.updateInterval = updateInterval;
+             return this;
+-        }
+-
+-        public EntityType.Builder<T> noUpdateInterval() {
+-            return this.updateInterval(Integer.MAX_VALUE);
+         }
+ 
+         public EntityType.Builder<T> requiredFeatures(FeatureFlag... flags) {

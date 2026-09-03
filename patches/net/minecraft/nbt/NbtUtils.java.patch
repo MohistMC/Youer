@@ -1,0 +1,384 @@
+--- a/net/minecraft/nbt/NbtUtils.java
++++ b/net/minecraft/nbt/NbtUtils.java
+@@ -2,16 +_,20 @@
+ 
+ import com.google.common.annotations.VisibleForTesting;
+ import com.google.common.base.Splitter;
++import com.google.common.base.Strings;
+ import com.google.common.collect.Comparators;
+ import com.google.common.collect.ImmutableMap;
++import com.google.common.collect.Lists;
+ import com.mojang.brigadier.exceptions.CommandSyntaxException;
+ import com.mojang.logging.LogUtils;
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.Dynamic;
+ import it.unimi.dsi.fastutil.objects.Object2IntMap;
+ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
++import java.util.Collections;
+ import java.util.Comparator;
+ import java.util.List;
++import java.util.Locale;
+ import java.util.Map;
+ import java.util.Optional;
+ import java.util.Map.Entry;
+@@ -30,6 +_,7 @@
+ import net.minecraft.world.level.block.state.StateDefinition;
+ import net.minecraft.world.level.block.state.StateHolder;
+ import net.minecraft.world.level.block.state.properties.Property;
++import net.minecraft.world.level.material.FluidState;
+ import net.minecraft.world.level.storage.ValueOutput;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+@@ -50,10 +_,8 @@
+     private static final Splitter COMMA_SPLITTER = Splitter.on(",");
+     private static final Splitter COLON_SPLITTER = Splitter.on(':').limit(2);
+     private static final Logger LOGGER = LogUtils.getLogger();
++    private static final int INDENT = 2;
+     private static final int NOT_FOUND = -1;
+-    private static final int BLOCK_STATE_ID_PROPERTIES_RENAME_VERSION = 5006;
+-    public static final String LEGACY_BLOCK_STATE_ID_TAG = "Name";
+-    public static final String LEGACY_BLOCKSTATE_PROPERTY_TAG = "Properties";
+ 
+     private NbtUtils() {
+     }
+@@ -122,14 +_,14 @@
+     }
+ 
+     public static BlockState readBlockState(HolderGetter<Block> blocks, CompoundTag tag) {
+-        Optional<? extends Holder<Block>> blockHolder = tag.read("id", BLOCK_NAME_CODEC).flatMap(blocks::get);
++        Optional<? extends Holder<Block>> blockHolder = tag.read("Name", BLOCK_NAME_CODEC).flatMap(blocks::get);
+         if (blockHolder.isEmpty()) {
+             return Blocks.AIR.defaultBlockState();
+         }
+ 
+         Block block = blockHolder.get().value();
+         BlockState result = block.defaultBlockState();
+-        Optional<CompoundTag> properties = tag.getCompound("properties");
++        Optional<CompoundTag> properties = tag.getCompound("Properties");
+         if (properties.isPresent()) {
+             StateDefinition<Block, BlockState> definition = block.getStateDefinition();
+ 
+@@ -160,15 +_,202 @@
+         if (!state.isSingletonState()) {
+             CompoundTag properties = new CompoundTag();
+             state.getValues().forEach(value -> properties.putString(value.property().getName(), value.valueName()));
+-            tag.put("properties", properties);
++            tag.put("Properties", properties);
+         }
+     }
+ 
+     public static CompoundTag writeBlockState(BlockState state) {
+         CompoundTag tag = new CompoundTag();
+-        tag.putString("id", BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString());
+-        writeStateProperties(state, tag);
+-        return tag;
++        tag.putString("Name", BuiltInRegistries.BLOCK.getKey(state.getBlock()).toString());
++        writeStateProperties(state, tag);
++        return tag;
++    }
++
++    public static CompoundTag writeFluidState(FluidState state) {
++        CompoundTag tag = new CompoundTag();
++        tag.putString("Name", BuiltInRegistries.FLUID.getKey(state.getType()).toString());
++        writeStateProperties(state, tag);
++        return tag;
++    }
++
++    public static String prettyPrint(Tag tag, boolean withBinaryBlobs) {
++        return prettyPrint(new StringBuilder(), tag, 0, withBinaryBlobs).toString();
++    }
++
++    public static StringBuilder prettyPrint(StringBuilder builder, Tag input, int indent, boolean withBinaryBlobs) {
++        return switch (input) {
++            case PrimitiveTag primitive -> builder.append(primitive);
++            case EndTag ignored -> builder;
++            case ByteArrayTag tag -> {
++                byte[] array = tag.getAsByteArray();
++                int length = array.length;
++                indent(indent, builder).append("byte[").append(length).append("] {\n");
++                if (withBinaryBlobs) {
++                    indent(indent + 1, builder);
++
++                    for (int i = 0; i < array.length; i++) {
++                        if (i != 0) {
++                            builder.append(',');
++                        }
++
++                        if (i % 16 == 0 && i / 16 > 0) {
++                            builder.append('\n');
++                            if (i < array.length) {
++                                indent(indent + 1, builder);
++                            }
++                        } else if (i != 0) {
++                            builder.append(' ');
++                        }
++
++                        builder.append(String.format(Locale.ROOT, "0x%02X", array[i] & 255));
++                    }
++                } else {
++                    indent(indent + 1, builder).append(" // Skipped, supply withBinaryBlobs true");
++                }
++
++                builder.append('\n');
++                indent(indent, builder).append('}');
++                yield builder;
++            }
++            case ListTag tag -> {
++                int size = tag.size();
++                indent(indent, builder).append("list").append("[").append(size).append("] [");
++                if (size != 0) {
++                    builder.append('\n');
++                }
++
++                for (int i = 0; i < size; i++) {
++                    if (i != 0) {
++                        builder.append(",\n");
++                    }
++
++                    indent(indent + 1, builder);
++                    prettyPrint(builder, tag.get(i), indent + 1, withBinaryBlobs);
++                }
++
++                if (size != 0) {
++                    builder.append('\n');
++                }
++
++                indent(indent, builder).append(']');
++                yield builder;
++            }
++            case IntArrayTag tag -> {
++                int[] array = tag.getAsIntArray();
++                int size = 0;
++
++                for (int i : array) {
++                    size = Math.max(size, String.format(Locale.ROOT, "%X", i).length());
++                }
++
++                int length = array.length;
++                indent(indent, builder).append("int[").append(length).append("] {\n");
++                if (withBinaryBlobs) {
++                    indent(indent + 1, builder);
++
++                    for (int i = 0; i < array.length; i++) {
++                        if (i != 0) {
++                            builder.append(',');
++                        }
++
++                        if (i % 16 == 0 && i / 16 > 0) {
++                            builder.append('\n');
++                            if (i < array.length) {
++                                indent(indent + 1, builder);
++                            }
++                        } else if (i != 0) {
++                            builder.append(' ');
++                        }
++
++                        builder.append(String.format(Locale.ROOT, "0x%0" + size + "X", array[i]));
++                    }
++                } else {
++                    indent(indent + 1, builder).append(" // Skipped, supply withBinaryBlobs true");
++                }
++
++                builder.append('\n');
++                indent(indent, builder).append('}');
++                yield builder;
++            }
++            case CompoundTag tag -> {
++                List<String> keys = Lists.newArrayList(tag.keySet());
++                Collections.sort(keys);
++                indent(indent, builder).append('{');
++                if (builder.length() - builder.lastIndexOf("\n") > 2 * (indent + 1)) {
++                    builder.append('\n');
++                    indent(indent + 1, builder);
++                }
++
++                int paddingLength = keys.stream().mapToInt(String::length).max().orElse(0);
++                String padding = Strings.repeat(" ", paddingLength);
++
++                for (int i = 0; i < keys.size(); i++) {
++                    if (i != 0) {
++                        builder.append(",\n");
++                    }
++
++                    String key = keys.get(i);
++                    indent(indent + 1, builder).append('"').append(key).append('"').append(padding, 0, padding.length() - key.length()).append(": ");
++                    prettyPrint(builder, tag.get(key), indent + 1, withBinaryBlobs);
++                }
++
++                if (!keys.isEmpty()) {
++                    builder.append('\n');
++                }
++
++                indent(indent, builder).append('}');
++                yield builder;
++            }
++            case LongArrayTag tag -> {
++                long[] array = tag.getAsLongArray();
++                long size = 0L;
++
++                for (long i : array) {
++                    size = Math.max(size, String.format(Locale.ROOT, "%X", i).length());
++                }
++
++                long length = array.length;
++                indent(indent, builder).append("long[").append(length).append("] {\n");
++                if (withBinaryBlobs) {
++                    indent(indent + 1, builder);
++
++                    for (int i = 0; i < array.length; i++) {
++                        if (i != 0) {
++                            builder.append(',');
++                        }
++
++                        if (i % 16 == 0 && i / 16 > 0) {
++                            builder.append('\n');
++                            if (i < array.length) {
++                                indent(indent + 1, builder);
++                            }
++                        } else if (i != 0) {
++                            builder.append(' ');
++                        }
++
++                        builder.append(String.format(Locale.ROOT, "0x%0" + size + "X", array[i]));
++                    }
++                } else {
++                    indent(indent + 1, builder).append(" // Skipped, supply withBinaryBlobs true");
++                }
++
++                builder.append('\n');
++                indent(indent, builder).append('}');
++                yield builder;
++            }
++            default -> throw new MatchException(null, null);
++        };
++    }
++
++    private static StringBuilder indent(int indent, StringBuilder builder) {
++        int index = builder.lastIndexOf("\n") + 1;
++        int len = builder.length() - index;
++
++        for (int i = 0; i < 2 * indent - len; i++) {
++            builder.append(' ');
++        }
++
++        return builder;
+     }
+ 
+     public static Component toPrettyComponent(Tag tag) {
+@@ -185,7 +_,6 @@
+ 
+     @VisibleForTesting
+     static CompoundTag packStructureTemplate(CompoundTag snbt) {
+-        int templateVersion = getDataVersion(snbt);
+         Optional<ListTag> palettes = snbt.getList("palettes");
+         ListTag palette;
+         if (palettes.isPresent()) {
+@@ -194,10 +_,7 @@
+             palette = snbt.getListOrEmpty("palette");
+         }
+ 
+-        ListTag deflatedPalette = palette.compoundStream()
+-            .map(compound -> packBlockState(compound, templateVersion))
+-            .map(StringTag::valueOf)
+-            .collect(Collectors.toCollection(ListTag::new));
++        ListTag deflatedPalette = palette.compoundStream().map(NbtUtils::packBlockState).map(StringTag::valueOf).collect(Collectors.toCollection(ListTag::new));
+         snbt.put("palette", deflatedPalette);
+         if (palettes.isPresent()) {
+             ListTag newPalettes = new ListTag();
+@@ -205,7 +_,7 @@
+                 CompoundTag newPalette = new CompoundTag();
+ 
+                 for (int i = 0; i < oldPalette.size(); i++) {
+-                    newPalette.putString(deflatedPalette.getString(i).orElseThrow(), packBlockState(oldPalette.getCompound(i).orElseThrow(), templateVersion));
++                    newPalette.putString(deflatedPalette.getString(i).orElseThrow(), packBlockState(oldPalette.getCompound(i).orElseThrow()));
+                 }
+ 
+                 newPalettes.add(newPalette);
+@@ -235,11 +_,10 @@
+ 
+     @VisibleForTesting
+     static CompoundTag unpackStructureTemplate(CompoundTag template) {
+-        int templateVersion = getDataVersion(template);
+         ListTag packedPalette = template.getListOrEmpty("palette");
+         Map<String, Tag> palette = packedPalette.stream()
+             .flatMap(tag -> tag.asString().stream())
+-            .collect(ImmutableMap.toImmutableMap(Function.identity(), compound -> unpackBlockState(compound, templateVersion)));
++            .collect(ImmutableMap.toImmutableMap(Function.identity(), NbtUtils::unpackBlockState));
+         Optional<ListTag> oldPalettes = template.getList("palettes");
+         if (oldPalettes.isPresent()) {
+             template.put(
+@@ -250,7 +_,7 @@
+                         oldPalette -> palette.keySet()
+                             .stream()
+                             .map(key -> oldPalette.getString(key).orElseThrow())
+-                            .map(compound -> unpackBlockState(compound, templateVersion))
++                            .map(NbtUtils::unpackBlockState)
+                             .collect(Collectors.toCollection(ListTag::new))
+                     )
+                     .collect(Collectors.toCollection(ListTag::new))
+@@ -290,19 +_,9 @@
+     }
+ 
+     @VisibleForTesting
+-    static String packBlockState(CompoundTag compound, int version) {
+-        String idTag;
+-        String propertiesTag;
+-        if (version >= 5006) {
+-            idTag = "id";
+-            propertiesTag = "properties";
+-        } else {
+-            idTag = "Name";
+-            propertiesTag = "Properties";
+-        }
+-
+-        StringBuilder builder = new StringBuilder(compound.getString(idTag).orElseThrow());
+-        compound.getCompound(propertiesTag)
++    static String packBlockState(CompoundTag compound) {
++        StringBuilder builder = new StringBuilder(compound.getString("Name").orElseThrow());
++        compound.getCompound("Properties")
+             .ifPresent(
+                 properties -> {
+                     String keyValues = properties.entrySet()
+@@ -317,13 +_,13 @@
+     }
+ 
+     @VisibleForTesting
+-    static CompoundTag unpackBlockState(String compound, int version) {
++    static CompoundTag unpackBlockState(String compound) {
+         CompoundTag tag = new CompoundTag();
+         int openIndex = compound.indexOf(123);
+-        CompoundTag properties = new CompoundTag();
+         String name;
+         if (openIndex >= 0) {
+             name = compound.substring(0, openIndex);
++            CompoundTag properties = new CompoundTag();
+             if (openIndex + 2 <= compound.length()) {
+                 String values = compound.substring(openIndex + 1, compound.indexOf(125, openIndex));
+                 COMMA_SPLITTER.split(values).forEach(keyValue -> {
+@@ -334,23 +_,13 @@
+                         LOGGER.error("Something went wrong parsing: '{}' -- incorrect gamedata!", compound);
+                     }
+                 });
+-            }
+-        } else {
+-            name = compound;
+-        }
+-
+-        if (version >= 5006) {
+-            tag.putString("id", name);
+-            if (!properties.isEmpty()) {
+-                tag.put("properties", properties);
+-            }
+-        } else {
+-            tag.putString("Name", name);
+-            if (!properties.isEmpty()) {
+                 tag.put("Properties", properties);
+             }
++        } else {
++            name = compound;
+         }
+ 
++        tag.putString("Name", name);
+         return tag;
+     }
+ 

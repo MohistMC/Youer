@@ -1,0 +1,30 @@
+--- a/net/minecraft/client/renderer/entity/FishingHookRenderer.java
++++ b/net/minecraft/client/renderer/entity/FishingHookRenderer.java
+@@ -30,15 +_,15 @@
+         super(context);
+     }
+ 
+-    public boolean shouldRender(FishingHook entity, Frustum culler, double camX, double camY, double camZ, float partialTicks) {
+-        return super.shouldRender(entity, culler, camX, camY, camZ, partialTicks) && entity.getPlayerOwner() != null;
++    public boolean shouldRender(FishingHook entity, Frustum culler, double camX, double camY, double camZ) {
++        return super.shouldRender(entity, culler, camX, camY, camZ) && entity.getPlayerOwner() != null;
+     }
+ 
+     public void submit(FishingHookRenderState state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera) {
+         poseStack.pushPose();
+         poseStack.pushPose();
+         poseStack.scale(0.5F, 0.5F, 0.5F);
+-        poseStack.rotate(camera.orientation);
++        poseStack.mulPose(camera.orientation);
+         submitNodeCollector.submitCustomGeometry(poseStack, RENDER_TYPE, (pose, buffer) -> {
+             vertex(buffer, pose, state.lightCoords, 0.0F, 0, 0, 1);
+             vertex(buffer, pose, state.lightCoords, 1.0F, 0, 1, 1);
+@@ -131,7 +_,7 @@
+         if (owner == null) {
+             state.lineOriginOffset = Vec3.ZERO;
+         } else {
+-            float swing = owner.getSwingAnimation(partialTicks);
++            float swing = owner.getAttackAnim(partialTicks);
+             float swing2 = Mth.sin(Mth.sqrt(swing) * (float) Math.PI);
+             Vec3 playerPos = this.getPlayerHandPos(owner, swing2, partialTicks);
+             Vec3 hookPos = entity.getPosition(partialTicks).add(0.0, 0.25, 0.0);

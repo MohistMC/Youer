@@ -1,0 +1,34 @@
+--- a/net/minecraft/world/item/trading/TradeCost.java
++++ b/net/minecraft/world/item/trading/TradeCost.java
+@@ -10,24 +_,25 @@
+ import net.minecraft.world.level.storage.loot.LootContext;
+ import net.minecraft.world.level.storage.loot.Validatable;
+ import net.minecraft.world.level.storage.loot.ValidationContext;
+-import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProvider;
+-import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProviders;
++import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
++import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
++import net.minecraft.world.level.storage.loot.providers.number.NumberProviders;
+ 
+-public record TradeCost(Holder<Item> item, Holder<ContextIntProvider> count, DataComponentExactPredicate components) implements Validatable {
++public record TradeCost(Holder<Item> item, Holder<NumberProvider> count, DataComponentExactPredicate components) implements Validatable {
+     public static final Codec<TradeCost> CODEC = RecordCodecBuilder.create(
+         i -> i.group(
+                 Item.CODEC.fieldOf("id").forGetter(TradeCost::item),
+-                ContextIntProviders.CODEC.optionalFieldOf("count", ContextIntProviders.exactly(1)).forGetter(TradeCost::count),
++                NumberProviders.CODEC.optionalFieldOf("count", ConstantValue.exactly(1.0F)).forGetter(TradeCost::count),
+                 DataComponentExactPredicate.CODEC.optionalFieldOf("components", DataComponentExactPredicate.EMPTY).forGetter(TradeCost::components)
+             )
+             .apply(i, TradeCost::new)
+     );
+ 
+     public TradeCost(ItemLike item, int count) {
+-        this(item.asItem().builtInRegistryHolder(), ContextIntProviders.exactly(count), DataComponentExactPredicate.EMPTY);
++        this(item.asItem().builtInRegistryHolder(), ConstantValue.exactly(count), DataComponentExactPredicate.EMPTY);
+     }
+ 
+-    public TradeCost(ItemLike item, Holder<ContextIntProvider> count) {
++    public TradeCost(ItemLike item, Holder<NumberProvider> count) {
+         this(item.asItem().builtInRegistryHolder(), count, DataComponentExactPredicate.EMPTY);
+     }
+ 

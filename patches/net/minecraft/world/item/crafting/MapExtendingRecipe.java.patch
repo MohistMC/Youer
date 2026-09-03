@@ -1,0 +1,75 @@
+--- a/net/minecraft/world/item/crafting/MapExtendingRecipe.java
++++ b/net/minecraft/world/item/crafting/MapExtendingRecipe.java
+@@ -7,6 +_,7 @@
+ import net.minecraft.network.RegistryFriendlyByteBuf;
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.world.item.ItemStack;
++import net.minecraft.world.item.ItemStackTemplate;
+ import net.minecraft.world.item.MapItem;
+ import net.minecraft.world.item.component.MapPostProcessing;
+ import net.minecraft.world.level.Level;
+@@ -17,7 +_,7 @@
+         i -> i.group(
+                 Ingredient.CODEC.fieldOf("map").forGetter(o -> o.map),
+                 Ingredient.CODEC.fieldOf("material").forGetter(o -> o.material),
+-                TransmuteResult.CODEC.fieldOf("result").forGetter(o -> o.result)
++                ItemStackTemplate.CODEC.fieldOf("result").forGetter(o -> o.result)
+             )
+             .apply(i, MapExtendingRecipe::new)
+     );
+@@ -26,7 +_,7 @@
+         o -> o.map,
+         Ingredient.CONTENTS_STREAM_CODEC,
+         o -> o.material,
+-        TransmuteResult.STREAM_CODEC,
++        ItemStackTemplate.STREAM_CODEC,
+         o -> o.result,
+         MapExtendingRecipe::new
+     );
+@@ -34,9 +_,9 @@
+     private final ShapedRecipePattern pattern;
+     private final Ingredient map;
+     private final Ingredient material;
+-    private final TransmuteResult result;
++    private final ItemStackTemplate result;
+ 
+-    public MapExtendingRecipe(Ingredient map, Ingredient material, TransmuteResult result) {
++    public MapExtendingRecipe(Ingredient map, Ingredient material, ItemStackTemplate result) {
+         this.map = map;
+         this.material = material;
+         this.result = result;
+@@ -46,20 +_,24 @@
+     public boolean matches(CraftingInput input, Level level) {
+         if (!this.pattern.matches(input)) {
+             return false;
+-        }
+-
+-        ItemStack map = findFilledMap(input);
+-        if (map.isEmpty()) {
+-            return false;
+-        }
+-
+-        MapItemSavedData data = MapItem.getSavedData(map, level);
+-        return data == null ? false : data.scale < 4;
++        } else {
++            ItemStack map = findFilledMap(input);
++            if (map.isEmpty()) {
++                return false;
++            } else {
++                MapItemSavedData data = MapItem.getSavedData(map, level);
++                if (data == null) {
++                    return false;
++                } else {
++                    return data.isExplorationMap() ? false : data.scale < 4;
++                }
++            }
++        }
+     }
+ 
+     public ItemStack assemble(CraftingInput input) {
+         ItemStack sourceMap = findFilledMap(input);
+-        ItemStack map = TransmuteRecipe.createWithOriginalComponents(this.result.resolve(sourceMap.typeHolder()), sourceMap);
++        ItemStack map = TransmuteRecipe.createWithOriginalComponents(this.result, sourceMap);
+         map.set(DataComponents.MAP_POST_PROCESSING, MapPostProcessing.SCALE);
+         return map;
+     }

@@ -1,0 +1,21 @@
+--- a/net/minecraft/world/item/component/DamageResistant.java
++++ b/net/minecraft/world/item/component/DamageResistant.java
+@@ -3,8 +_,8 @@
+ import com.mojang.serialization.Codec;
+ import com.mojang.serialization.codecs.RecordCodecBuilder;
+ import net.minecraft.core.HolderSet;
++import net.minecraft.core.RegistryCodecs;
+ import net.minecraft.core.registries.Registries;
+-import net.minecraft.core.registries.codec.RegistryCodecs;
+ import net.minecraft.network.RegistryFriendlyByteBuf;
+ import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+@@ -13,7 +_,7 @@
+ 
+ public record DamageResistant(HolderSet<DamageType> types) {
+     public static final Codec<DamageResistant> CODEC = RecordCodecBuilder.create(
+-        i -> i.group(RegistryCodecs.holderSet(Registries.DAMAGE_TYPE).fieldOf("types").forGetter(DamageResistant::types)).apply(i, DamageResistant::new)
++        i -> i.group(RegistryCodecs.homogeneousList(Registries.DAMAGE_TYPE).fieldOf("types").forGetter(DamageResistant::types)).apply(i, DamageResistant::new)
+     );
+     public static final StreamCodec<RegistryFriendlyByteBuf, DamageResistant> STREAM_CODEC = StreamCodec.composite(
+         ByteBufCodecs.holderSet(Registries.DAMAGE_TYPE), DamageResistant::types, DamageResistant::new

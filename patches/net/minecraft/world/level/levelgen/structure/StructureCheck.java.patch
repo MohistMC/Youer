@@ -1,14 +1,33 @@
 --- a/net/minecraft/world/level/levelgen/structure/StructureCheck.java
 +++ b/net/minecraft/world/level/levelgen/structure/StructureCheck.java
-@@ -31,6 +_,7 @@
+@@ -6,8 +_,6 @@
+ import it.unimi.dsi.fastutil.longs.Long2BooleanOpenHashMap;
+ import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+ import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+-import it.unimi.dsi.fastutil.longs.LongSet;
+ import it.unimi.dsi.fastutil.objects.Object2IntMap;
+ import it.unimi.dsi.fastutil.objects.Object2IntMaps;
+ import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
+@@ -30,12 +_,11 @@
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.LevelHeightAccessor;
+ import net.minecraft.world.level.biome.BiomeSource;
+-import net.minecraft.world.level.biome.Climate;
  import net.minecraft.world.level.chunk.ChunkGenerator;
  import net.minecraft.world.level.chunk.storage.ChunkScanAccess;
  import net.minecraft.world.level.chunk.storage.SimpleRegionStorage;
 +import net.minecraft.world.level.dimension.LevelStem;
  import net.minecraft.world.level.levelgen.RandomState;
+-import net.minecraft.world.level.levelgen.densityfunction.SamplerContext;
  import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
  import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
-@@ -43,21 +_,25 @@
+ import org.jspecify.annotations.Nullable;
+@@ -44,27 +_,28 @@
+ public class StructureCheck {
+     private static final Logger LOGGER = LogUtils.getLogger();
+     private static final int NO_STRUCTURE = -1;
+-    private static final int MAX_CHUNKS_WITHOUT_STORED_STARTS = 131072;
      private final ChunkScanAccess storageAccess;
      private final RegistryAccess registryAccess;
      private final StructureTemplateManager structureTemplateManager;
@@ -17,11 +36,13 @@
      private final ChunkGenerator chunkGenerator;
      private final RandomState randomState;
      private final LevelHeightAccessor heightAccessor;
+-    private final Climate.Sampler climateSampler;
      private final BiomeSource biomeSource;
      private final long seed;
      private final DataFixer fixerUpper;
 -    private final Long2ObjectMap<Object2IntMap<Structure>> loadedChunks = new Long2ObjectOpenHashMap<>();
 -    private final Map<Structure, Long2BooleanMap> featureChecks = new HashMap<>();
+-    private final LongSet chunksWithoutStartsInStorage = new LongOpenHashSet();
 -
 +    // Paper start - rewrite chunk system
 +    // make sure to purge entries from the maps to prevent memory leaks
@@ -39,7 +60,12 @@
          ChunkGenerator chunkGenerator,
          RandomState randomState,
          LevelHeightAccessor heightAccessor,
-@@ -77,9 +_,23 @@
+@@ -80,38 +_,45 @@
+         this.randomState = randomState;
+         this.heightAccessor = heightAccessor;
+         this.biomeSource = biomeSource;
+-        this.climateSampler = randomState.createClimateSampler(SamplerContext.builder().enableCaches().build());
+         this.seed = seed;
          this.fixerUpper = fixerUpper;
      }
  
@@ -64,8 +90,21 @@
          if (cachedResult != null) {
              return this.checkStructureInfo(cachedResult, structure, requireUnreferenced);
          }
-@@ -89,13 +_,15 @@
-             return storageCheckResult;
+ 
+-        if (!this.chunksWithoutStartsInStorage.contains(posKey)) {
+-            StructureCheckResult storageCheckResult = this.tryLoadFromStorage(pos, structure, requireUnreferenced);
+-            if (storageCheckResult != null) {
+-                return storageCheckResult;
+-            }
+-
+-            if (this.chunksWithoutStartsInStorage.size() >= 131072) {
+-                this.chunksWithoutStartsInStorage.clear();
+-            }
+-
+-            this.chunksWithoutStartsInStorage.add(posKey);
++        StructureCheckResult storageCheckResult = this.tryLoadFromStorage(pos, structure, requireUnreferenced, posKey);
++        if (storageCheckResult != null) {
++            return storageCheckResult;
          }
  
 -        if (!placement.applyAdditionalChunkRestrictions(pos.x(), pos.z(), this.seed)) {
@@ -84,7 +123,24 @@
          return !isFeatureChunk ? StructureCheckResult.START_NOT_PRESENT : StructureCheckResult.CHUNK_LOAD_NEEDED;
      }
  
-@@ -138,7 +_,7 @@
+@@ -121,7 +_,6 @@
+                     this.registryAccess,
+                     this.chunkGenerator,
+                     this.biomeSource,
+-                    this.climateSampler,
+                     this.randomState,
+                     this.structureTemplateManager,
+                     this.seed,
+@@ -133,7 +_,7 @@
+             .isPresent();
+     }
+ 
+-    private @Nullable StructureCheckResult tryLoadFromStorage(ChunkPos pos, Structure structure, boolean requireUnreferenced) {
++    private @Nullable StructureCheckResult tryLoadFromStorage(ChunkPos pos, Structure structure, boolean requireUnreferenced, long posKey) {
+         CollectFields collectFields = new CollectFields(
+             new FieldSelector(IntTag.TYPE, "DataVersion"),
+             new FieldSelector("Level", "Structures", CompoundTag.TYPE, "Starts"),
+@@ -155,7 +_,7 @@
  
              CompoundTag fixedChunkTag;
              try {
@@ -93,12 +149,22 @@
              } catch (Exception e) {
                  LOGGER.warn("Failed to partially datafix chunk {}", pos, e);
                  return StructureCheckResult.CHUNK_LOAD_NEEDED;
-@@ -208,15 +_,25 @@
+@@ -166,7 +_,7 @@
+                 return null;
+             }
+ 
+-            this.storeFullResults(pos.pack(), knownStarts);
++            this.storeFullResults(posKey, knownStarts);
+             return this.checkStructureInfo(knownStarts, structure, requireUnreferenced);
+         } else {
+             return null;
+@@ -225,21 +_,28 @@
      }
  
      private void storeFullResults(long posKey, Object2IntMap<Structure> starts) {
 -        this.loadedChunks.put(posKey, deduplicateEmptyMap(starts));
 -        this.featureChecks.values().forEach(m -> m.remove(posKey));
+-        this.chunksWithoutStartsInStorage.remove(posKey);
 +        // Paper start - rewrite chunk system
 +        this.loadedChunksSafe.put(posKey, deduplicateEmptyMap(starts));
 +        // once we insert into loadedChunks, we don't really need to be very careful about removing everything
@@ -111,7 +177,8 @@
      }
  
      public void incrementReference(ChunkPos chunkPos, Structure structure) {
--        this.loadedChunks.compute(chunkPos.pack(), (key, counts) -> {
+-        long posKey = chunkPos.pack();
+-        this.loadedChunks.compute(posKey, (key, counts) -> {
 -            if (counts == null || counts.isEmpty()) {
 +        this.loadedChunksSafe.compute(chunkPos.pack(), (key, counts) -> { // Paper start - rewrite chunk system
 +            if (counts == null) {
@@ -123,3 +190,7 @@
  
              counts.computeInt(structure, (k, value) -> value == null ? 1 : value + 1);
              return counts;
+         });
+-        this.chunksWithoutStartsInStorage.remove(posKey);
+     }
+ }

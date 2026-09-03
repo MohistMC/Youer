@@ -16,11 +16,10 @@
  import org.jspecify.annotations.Nullable;
  
  public class ExperienceOrb extends Entity {
-@@ -42,14 +_,59 @@
+@@ -42,13 +_,59 @@
      private int health = 5;
      public int count = 1;
      private @Nullable Player followingPlayer;
--    private final InterpolationHandler interpolation = new LinearInterpolationHandler(this);
 -
 -    public ExperienceOrb(Level level, double x, double y, double z, int value) {
 -        this(level, new Vec3(x, y, z), Vec3.ZERO, value);
@@ -83,7 +82,15 @@
          this.setPos(pos);
          if (!level.isClientSide()) {
              this.setYRot(this.random.nextFloat() * 360.0F);
-@@ -136,7 +_,8 @@
+@@ -99,6 +_,7 @@
+ 
+     @Override
+     public void tick() {
++        this.interpolation.interpolate();
+         if (this.firstTick && this.level().isClientSide()) {
+             this.firstTick = false;
+         } else {
+@@ -134,7 +_,8 @@
              this.applyEffectsFromBlocks();
              float friction = this.getAirDrag();
              if (this.onGround()) {
@@ -93,7 +100,7 @@
              }
  
              this.setDeltaMovement(this.getDeltaMovement().scale(friction));
-@@ -146,7 +_,7 @@
+@@ -144,7 +_,7 @@
  
              this.age++;
              if (this.age >= 6000) {
@@ -102,7 +109,7 @@
              }
          }
      }
-@@ -157,8 +_,9 @@
+@@ -155,8 +_,9 @@
      }
  
      private void followNearbyPlayer() {
@@ -113,7 +120,7 @@
              if (nearestPlayer != null && !nearestPlayer.isSpectator() && !nearestPlayer.isDeadOrDying()) {
                  this.followingPlayer = nearestPlayer;
              } else {
-@@ -166,7 +_,22 @@
+@@ -164,7 +_,22 @@
              }
          }
  
@@ -137,7 +144,7 @@
              Vec3 delta = new Vec3(
                  this.followingPlayer.getX() - this.getX(),
                  this.followingPlayer.getY() + this.followingPlayer.getEyeHeight() / 2.0 - this.getY(),
-@@ -196,11 +_,16 @@
+@@ -194,11 +_,16 @@
      }
  
      public static void awardWithDirection(ServerLevel level, Vec3 pos, Vec3 roughDirection, int amount) {
@@ -155,7 +162,7 @@
              }
          }
      }
-@@ -230,7 +_,7 @@
+@@ -228,7 +_,7 @@
      private void merge(ExperienceOrb orb) {
          this.count = this.count + orb.count;
          this.age = Math.min(this.age, orb.age);
@@ -164,7 +171,7 @@
      }
  
      private void setUnderwaterMovement() {
-@@ -256,7 +_,7 @@
+@@ -254,7 +_,7 @@
          this.markHurt();
          this.health = (int)(this.health - damage);
          if (this.health <= 0) {
@@ -173,7 +180,7 @@
          }
  
          return true;
-@@ -282,31 +_,44 @@
+@@ -280,31 +_,44 @@
      public void playerTouch(Player player) {
          if (player instanceof ServerPlayer serverPlayer) {
              if (player.takeXpDelay == 0) {
@@ -223,7 +230,7 @@
                      return this.repairPlayerItems(player, remaining);
                  }
              }
-@@ -351,6 +_,24 @@
+@@ -349,6 +_,24 @@
      }
  
      public static int getExperienceValue(int maxValue) {
@@ -248,14 +255,18 @@
          if (maxValue >= 2477) {
              return 2477;
          } else if (maxValue >= 1237) {
-@@ -387,10 +_,5 @@
+@@ -383,12 +_,7 @@
+     }
+ 
      @Override
-     public InterpolationHandler getInterpolation() {
-         return this.interpolation;
+-    protected InterpolationHandler createInterpolationHandler() {
+-        return LinearInterpolationHandler.create(this);
 -    }
 -
 -    @Override
 -    public MoveSimulationType getMoveSimulationType() {
 -        return MoveSimulationType.SERVER_AND_CLIENT;
++    public InterpolationHandler getInterpolation() {
++        return this.interpolation;
      }
  }

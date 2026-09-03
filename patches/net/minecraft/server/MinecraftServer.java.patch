@@ -1786,7 +1786,7 @@
          this.motd = motd;
      }
  
-@@ -1386,16 +_,20 @@
+@@ -1386,23 +_,27 @@
          int count = 0;
  
          for (ServerPlayer player : this.getPlayerList().getPlayers()) {
@@ -1810,6 +1810,14 @@
      }
  
      public boolean isReady() {
+         return this.isReady;
+     }
+ 
+-    public boolean publishServer(MinecraftServer.MultiplayerScope scope, boolean allowCommands, int port) {
++    public boolean publishServer(MinecraftServer.MultiplayerScope scope, @Nullable GameType gameMode, boolean allowCommands, int port) {
+         return false;
+     }
+ 
 @@ -1462,7 +_,7 @@
      @Override
      public void executeIfPossible(Runnable command) {
@@ -1943,7 +1951,21 @@
                  }
              }
          }
-@@ -1689,12 +_,12 @@
+@@ -1676,17 +_,25 @@
+     public CommandSourceStack createCommandSourceStack() {
+         ServerLevel level = this.findRespawnDimension();
+         return new CommandSourceStack(
+-            this, Vec3.atLowerCornerOf(this.getRespawnData().pos()), Vec2.ZERO, level, LevelBasedPermissionSet.OWNER, Component.literal("Server"), this
++            this,
++            Vec3.atLowerCornerOf(this.getRespawnData().pos()),
++            Vec2.ZERO,
++            level,
++            LevelBasedPermissionSet.OWNER,
++            "Server",
++            Component.literal("Server"),
++            this,
++            null
+         );
      }
  
      public ServerLevel findRespawnDimension() {
@@ -1958,7 +1980,7 @@
      public void setRespawnData(LevelData.RespawnData respawnData) {
          ServerLevelData levelData = this.worldData.overworldData();
          LevelData.RespawnData oldRespawnData = levelData.getRespawnData();
-@@ -1762,17 +_,20 @@
+@@ -1754,17 +_,20 @@
          return this.randomSequences;
      }
  
@@ -1984,7 +2006,24 @@
      }
  
      public boolean isEnforceWhitelist() {
-@@ -1826,6 +_,31 @@
+@@ -1802,7 +_,15 @@
+     public LevelBasedPermissionSet getProfilePermissions(NameAndId nameAndId) {
+         if (this.getPlayerList().isOp(nameAndId)) {
+             ServerOpListEntry opListEntry = this.getPlayerList().getOps().get(nameAndId);
+-            return opListEntry != null ? opListEntry.permissions() : this.operatorUserPermissions();
++            if (opListEntry != null) {
++                return opListEntry.permissions();
++            } else if (this.isSingleplayerOwner(nameAndId)) {
++                return LevelBasedPermissionSet.OWNER;
++            } else if (this.isSingleplayer()) {
++                return this.getPlayerList().isAllowCommandsForAllPlayers() ? LevelBasedPermissionSet.OWNER : LevelBasedPermissionSet.ALL;
++            } else {
++                return this.operatorUserPermissions();
++            }
+         } else {
+             return LevelBasedPermissionSet.ALL;
+         }
+@@ -1810,6 +_,31 @@
  
      public abstract boolean isSingleplayerOwner(NameAndId nameAndId);
  
@@ -2016,7 +2055,7 @@
      public void dumpServerProperties(Path path) throws IOException {
      }
  
-@@ -1863,7 +_,7 @@
+@@ -1847,7 +_,7 @@
      private void dumpGameRules(Path path) throws IOException {
          try (Writer output = Files.newBufferedWriter(path)) {
              final List<String> entries = Lists.newArrayList();
@@ -2025,7 +2064,7 @@
              gameRules.visitGameRuleTypes(new GameRuleTypeVisitor() {
                  @Override
                  public <T> void visit(GameRule<T> gameRule) {
-@@ -1920,7 +_,25 @@
+@@ -1904,7 +_,25 @@
          }
      }
  
@@ -2051,7 +2090,16 @@
          if (this.willStartRecordingMetrics) {
              this.metricsRecorder = ActiveMetricsRecorder.createStarted(
                  new ServerMetricsSamplersProvider(Util.timeSource(), this.isDedicatedServer()),
-@@ -1985,6 +_,10 @@
+@@ -1961,7 +_,7 @@
+         return true;
+     }
+ 
+-    public StructureTemplateManager getStructureTemplateManager() {
++    public StructureTemplateManager getStructureManager() {
+         return this.structureTemplateManager;
+     }
+ 
+@@ -1969,6 +_,10 @@
          return this.worldData;
      }
  
@@ -2062,7 +2110,21 @@
      public RegistryAccess.Frozen registryAccess() {
          return this.registries.compositeAccess();
      }
-@@ -2041,27 +_,41 @@
+@@ -1993,13 +_,6 @@
+         return null;
+     }
+ 
+-    public boolean forceGameMode() {
+-        return false;
+-    }
+-
+-    public void setForceGameMode(boolean forceGameMode) {
+-    }
+-
+     public ResourceManager getResourceManager() {
+         return this.resources.resourceManager;
+     }
+@@ -2032,27 +_,41 @@
  
      public void logChatMessage(Component message, ChatType.Bound chatType, @Nullable String tag) {
          String decoratedMessage = chatType.decorate(message).getString();
@@ -2108,7 +2170,7 @@
      }
  
      public boolean setAutoSave(boolean enable) {
-@@ -2087,12 +_,14 @@
+@@ -2078,12 +_,14 @@
          return false;
      }
  
@@ -2126,7 +2188,7 @@
                  player.connection.send(new ClientboundEntityEventPacket(player, event));
              }
          } else if (rule == GameRules.LIMITED_CRAFTING || rule == GameRules.IMMEDIATE_RESPAWN) {
-@@ -2100,21 +_,23 @@
+@@ -2091,21 +_,23 @@
                  ? ClientboundGameEventPacket.LIMITED_CRAFTING
                  : ClientboundGameEventPacket.IMMEDIATE_RESPAWN;
              ClientboundGameEventPacket packet = new ClientboundGameEventPacket(eventType, (Boolean)value ? 1.0F : 0.0F);
@@ -2161,7 +2223,7 @@
      }
  
      @Deprecated
-@@ -2126,12 +_,14 @@
+@@ -2117,12 +_,14 @@
          return this.savedDataStorage;
      }
  
@@ -2178,7 +2240,7 @@
      }
  
      public boolean acceptsTransfers() {
-@@ -2195,6 +_,14 @@
+@@ -2186,6 +_,14 @@
          this.suppressedExceptions.addEntry("packet/" + packetType, throwable);
      }
  
@@ -2193,7 +2255,7 @@
      public ServerLinks serverLinks() {
          return ServerLinks.EMPTY;
      }
-@@ -2290,4 +_,53 @@
+@@ -2281,4 +_,53 @@
              };
          }
      }

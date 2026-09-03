@@ -1,0 +1,57 @@
+--- /dev/null
++++ b/net/minecraft/world/level/storage/loot/providers/number/Sum.java
+@@ -1,0 +_,54 @@
++package net.minecraft.world.level.storage.loot.providers.number;
++
++import com.mojang.serialization.MapCodec;
++import com.mojang.serialization.codecs.RecordCodecBuilder;
++import net.minecraft.core.Holder;
++import net.minecraft.core.HolderSet;
++import net.minecraft.util.Mth;
++import net.minecraft.world.level.storage.loot.LootContext;
++import net.minecraft.world.level.storage.loot.Validatable;
++import net.minecraft.world.level.storage.loot.ValidationContext;
++
++public record Sum(HolderSet<NumberProvider> summands) implements NumberProvider {
++    public static final MapCodec<Sum> MAP_CODEC = RecordCodecBuilder.mapCodec(
++        i -> i.group(NumberProviders.LIST_CODEC.fieldOf("summands").forGetter(Sum::summands)).apply(i, Sum::new)
++    );
++
++    @SafeVarargs
++    public static Holder<NumberProvider> sum(Holder<NumberProvider>... summands) {
++        return Holder.direct(new Sum(HolderSet.direct(summands)));
++    }
++
++    @Override
++    public MapCodec<Sum> codec() {
++        return MAP_CODEC;
++    }
++
++    @Override
++    public int getInt(LootContext context) {
++        float value = 0.0F;
++
++        for (Holder<NumberProvider> provider : this.summands) {
++            value += provider.value().getFloat(context);
++        }
++
++        return Mth.floor(value);
++    }
++
++    @Override
++    public float getFloat(LootContext context) {
++        float value = 0.0F;
++
++        for (Holder<NumberProvider> provider : this.summands) {
++            value += provider.value().getFloat(context);
++        }
++
++        return value;
++    }
++
++    @Override
++    public void validate(ValidationContext context) {
++        NumberProvider.super.validate(context);
++        Validatable.validateHolderSet(context, "summands", this.summands);
++    }
++}

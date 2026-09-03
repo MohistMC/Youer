@@ -1,0 +1,410 @@
+--- a/com/mojang/renderpearl/backend/vulkan/VulkanRenderPipeline.java
++++ b/com/mojang/renderpearl/backend/vulkan/VulkanRenderPipeline.java
+@@ -1,22 +_,18 @@
+ package com.mojang.renderpearl.backend.vulkan;
+ 
+-import com.mojang.renderpearl.api.pipeline.BindGroupLayout;
+ import com.mojang.renderpearl.api.pipeline.BlendFunction;
+ import com.mojang.renderpearl.api.pipeline.ColorTargetState;
+-import com.mojang.renderpearl.api.pipeline.DepthStencilState;
+-import com.mojang.renderpearl.backend.api.BackendRenderPipeline;
+-import it.unimi.dsi.fastutil.longs.LongArrayList;
+-import it.unimi.dsi.fastutil.longs.LongList;
++import com.mojang.renderpearl.api.pipeline.CompiledRenderPipeline;
++import com.mojang.renderpearl.api.pipeline.RenderPipeline;
++import com.mojang.renderpearl.api.vertex.VertexFormat;
++import com.mojang.renderpearl.api.vertex.VertexFormatElement;
+ import java.nio.ByteBuffer;
+ import java.nio.IntBuffer;
+ import java.nio.LongBuffer;
+-import java.util.List;
+ import net.neoforged.api.distmarker.Dist;
+ import net.neoforged.api.distmarker.OnlyIn;
+ import org.lwjgl.system.MemoryStack;
+ import org.lwjgl.vulkan.VK12;
+-import org.lwjgl.vulkan.VkDescriptorSetLayoutBinding;
+-import org.lwjgl.vulkan.VkDescriptorSetLayoutCreateInfo;
+ import org.lwjgl.vulkan.VkGraphicsPipelineCreateInfo;
+ import org.lwjgl.vulkan.VkPipelineColorBlendAttachmentState;
+ import org.lwjgl.vulkan.VkPipelineColorBlendStateCreateInfo;
+@@ -31,40 +_,41 @@
+ import org.lwjgl.vulkan.VkPipelineVertexInputDivisorStateCreateInfoEXT;
+ import org.lwjgl.vulkan.VkPipelineVertexInputStateCreateInfo;
+ import org.lwjgl.vulkan.VkPipelineViewportStateCreateInfo;
+-import org.lwjgl.vulkan.VkPushConstantRange;
+-import org.lwjgl.vulkan.VkShaderModuleCreateInfo;
+ import org.lwjgl.vulkan.VkVertexInputAttributeDescription;
+ import org.lwjgl.vulkan.VkVertexInputBindingDescription;
+ import org.lwjgl.vulkan.VkVertexInputBindingDivisorDescriptionEXT;
+-import org.lwjgl.vulkan.VkDescriptorSetLayoutBinding.Buffer;
++import org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo.Buffer;
+ 
+ @OnlyIn(Dist.CLIENT)
+-public final class VulkanRenderPipeline implements BackendRenderPipeline, Destroyable {
++public final class VulkanRenderPipeline implements CompiledRenderPipeline, Destroyable {
+     private final VulkanDevice device;
++    private final RenderPipeline info;
+     private final long withDepthPipeline;
+     private final long withoutDepthPipeline;
+     private final long pipelineLayout;
+-    private final long descriptorSetLayout;
+-    private final LongList shaderModules;
+-    private final List<BindGroupLayout.UniformDescription> uniforms;
++    private final VulkanBindGroupLayout layout;
++    private final long vertexModule;
++    private final long fragmentModule;
+     private boolean closed;
+ 
+     public VulkanRenderPipeline(
+         VulkanDevice device,
++        RenderPipeline info,
+         long withDepthPipeline,
+         long withoutDepthPipeline,
+         long pipelineLayout,
+-        long descriptorSetLayout,
+-        LongList shaderModules,
+-        List<BindGroupLayout.UniformDescription> uniforms
++        VulkanBindGroupLayout layout,
++        long vertexModule,
++        long fragmentModule
+     ) {
++        this.info = info;
+         this.device = device;
+         this.withDepthPipeline = withDepthPipeline;
+         this.withoutDepthPipeline = withoutDepthPipeline;
+         this.pipelineLayout = pipelineLayout;
+-        this.descriptorSetLayout = descriptorSetLayout;
+-        this.shaderModules = shaderModules;
+-        this.uniforms = uniforms;
++        this.layout = layout;
++        this.vertexModule = vertexModule;
++        this.fragmentModule = fragmentModule;
+     }
+ 
+     @Override
+@@ -80,129 +_,76 @@
+         }
+     }
+ 
+-    public static VulkanRenderPipeline compile(VulkanDevice device, BackendRenderPipeline.CreateInfo pipelineCreateInfo) {
+-        long descriptorSetLayout;
+-        try (MemoryStack stack = MemoryStack.stackPush()) {
+-            int descriptorCount = pipelineCreateInfo.uniforms().size();
+-            Buffer bindings = VkDescriptorSetLayoutBinding.calloc(descriptorCount, stack);
+-
+-            for (int i = 0; i < descriptorCount; i++) {
+-                VkDescriptorSetLayoutBinding binding = VkDescriptorSetLayoutBinding.calloc(stack);
+-
+-                binding.descriptorType(switch (pipelineCreateInfo.uniforms().get(i).type()) {
+-                    case UNIFORM_BUFFER -> 6;
+-                    case COMBINED_IMAGE_SAMPLER -> 1;
+-                    case TEXEL_BUFFER -> 4;
+-                });
+-                binding.descriptorCount(1);
+-                binding.binding(i);
+-                binding.stageFlags(17);
+-                bindings.put(binding);
+-            }
+-
+-            bindings.flip();
+-            VkDescriptorSetLayoutCreateInfo setCreateInfo = VkDescriptorSetLayoutCreateInfo.calloc(stack).sType$Default();
+-            setCreateInfo.flags(1);
+-            setCreateInfo.pBindings(bindings);
+-            LongBuffer pointer = stack.callocLong(1);
+-            VulkanUtils.crashIfFailure(
+-                device,
+-                VK12.vkCreateDescriptorSetLayout(device.vkDevice(), setCreateInfo, null, pointer),
+-                "Can't create descriptor set layout for " + pipelineCreateInfo.name()
+-            );
+-            descriptorSetLayout = pointer.get(0);
+-        }
+-
++    public static VulkanRenderPipeline compile(
++        VulkanDevice device, VulkanBindGroupLayout layout, RenderPipeline pipeline, long vertexModule, long fragmentModule
++    ) {
+         long pipelineLayout;
+         try (MemoryStack stack = MemoryStack.stackPush()) {
+-            VkPipelineLayoutCreateInfo createInfo = VkPipelineLayoutCreateInfo.calloc(stack).sType$Default();
+-            if (pipelineCreateInfo.pushConstantsSize() != 0) {
+-                org.lwjgl.vulkan.VkPushConstantRange.Buffer range = VkPushConstantRange.calloc(1, stack);
+-                range.stageFlags(Integer.MAX_VALUE);
+-                range.offset(0);
+-                range.size(pipelineCreateInfo.pushConstantsSize());
+-                createInfo.pPushConstantRanges(range);
+-            }
+-
+-            createInfo.pSetLayouts(stack.longs(descriptorSetLayout));
++            VkPipelineLayoutCreateInfo createInfo = VkPipelineLayoutCreateInfo.calloc(stack).sType$Default().pSetLayouts(stack.longs(layout.handle()));
+             LongBuffer pointer = stack.callocLong(1);
+             VulkanUtils.crashIfFailure(
+-                device, VK12.vkCreatePipelineLayout(device.vkDevice(), createInfo, null, pointer), "Can't create pipeline for " + pipelineCreateInfo.name()
++                device, VK12.vkCreatePipelineLayout(device.vkDevice(), createInfo, null, pointer), "Can't create pipeline for " + pipeline.getLocation()
+             );
+             pipelineLayout = pointer.get(0);
+-            device.instance().debug().setObjectName(device.vkDevice(), 17, pipelineLayout, () -> "Pipeline layout for " + pipelineCreateInfo.name());
++            device.instance().debug().setObjectName(device.vkDevice(), 17, pipelineLayout, () -> "Pipeline layout for " + pipeline.getLocation());
+         }
+ 
+-        LongList compiledShaderModules = new LongArrayList();
+-
+         try (MemoryStack stack = MemoryStack.stackPush()) {
+-            org.lwjgl.vulkan.VkPipelineShaderStageCreateInfo.Buffer shaderStages = VkPipelineShaderStageCreateInfo.calloc(
+-                pipelineCreateInfo.shaders().size(), stack
++            Buffer shaderStages = VkPipelineShaderStageCreateInfo.calloc(2, stack);
++            ByteBuffer nameMain = stack.UTF8("main");
++            VkPipelineShaderStageCreateInfo vertexStage = VkPipelineShaderStageCreateInfo.calloc(stack)
++                .sType$Default()
++                .stage(1)
++                .module(vertexModule)
++                .pName(nameMain);
++            VkPipelineShaderStageCreateInfo fragmentStage = VkPipelineShaderStageCreateInfo.calloc(stack)
++                .sType$Default()
++                .stage(16)
++                .module(fragmentModule)
++                .pName(nameMain);
++            shaderStages.put(vertexStage).put(fragmentStage).flip();
++            VertexFormat[] vertexBindings = pipeline.getVertexFormatBindings();
++            org.lwjgl.vulkan.VkVertexInputAttributeDescription.Buffer vertexAttributeDescriptions = VkVertexInputAttributeDescription.calloc(
++                vertexBindings.length, stack
+             );
+-
+-            for (BackendRenderPipeline.CreateInfo.Shader shader : pipelineCreateInfo.shaders()) {
+-                long module;
+-                try (MemoryStack vertexInputDivisorState = stack.push()) {
+-                    VkShaderModuleCreateInfo info = VkShaderModuleCreateInfo.calloc(stack).sType$Default().pCode(shader.module().spv());
+-                    LongBuffer pointer = stack.callocLong(1);
+-                    VulkanUtils.crashIfFailure(
+-                        device,
+-                        VK12.vkCreateShaderModule(device.vkDevice(), info, null, pointer),
+-                        "Can't compile " + shader.name() + " (" + shader.module().type() + ") for pipeline " + pipelineCreateInfo.name()
+-                    );
+-                    device.instance().debug().setObjectName(device.vkDevice(), 15, pointer.get(0), pipelineCreateInfo::name);
+-                    module = pointer.get(0);
+-                    compiledShaderModules.add(module);
+-                }
+-
+-                ByteBuffer entryPoint = stack.UTF8(shader.entryPoint());
+-                VkPipelineShaderStageCreateInfo stage = VkPipelineShaderStageCreateInfo.calloc(stack)
+-                    .sType$Default()
+-                    .stage(VulkanConst.toVk(shader.module().type()))
+-                    .module(module)
+-                    .pName(entryPoint);
+-                shaderStages.put(stage);
+-            }
+-
+-            shaderStages.flip();
+-            List<BackendRenderPipeline.CreateInfo.VertexBuffer> vertexBindings = pipelineCreateInfo.vertexBuffers();
+             org.lwjgl.vulkan.VkVertexInputBindingDescription.Buffer vertexBindingDescriptions = VkVertexInputBindingDescription.calloc(
+-                vertexBindings.size(), stack
++                vertexBindings.length, stack
+             );
+             org.lwjgl.vulkan.VkVertexInputBindingDivisorDescriptionEXT.Buffer vertexBindingDivisorDescriptions = VkVertexInputBindingDivisorDescriptionEXT.calloc(
+-                vertexBindings.size(), stack
++                vertexBindings.length, stack
+             );
+-
+-            for (BackendRenderPipeline.CreateInfo.VertexBuffer vertexBinding : vertexBindings) {
+-                VkVertexInputBindingDescription bindingDescription = VkVertexInputBindingDescription.calloc(stack)
+-                    .binding(vertexBinding.bufferSlot())
+-                    .stride(vertexBinding.stride())
+-                    .inputRate(vertexBinding.stepRate() > 0 ? 1 : 0);
+-                vertexBindingDescriptions.put(bindingDescription);
+-                if (vertexBinding.stepRate() > 0) {
+-                    VkVertexInputBindingDivisorDescriptionEXT divisorBinding = VkVertexInputBindingDivisorDescriptionEXT.calloc(stack)
+-                        .binding(vertexBinding.bufferSlot())
+-                        .divisor(vertexBinding.stepRate());
+-                    vertexBindingDivisorDescriptions.put(divisorBinding);
++            int attribLocation = 0;
++
++            for (int i = 0; i < vertexBindings.length; i++) {
++                VertexFormat bindings = vertexBindings[i];
++                if (bindings != null) {
++                    VkVertexInputBindingDescription bindingDescription = VkVertexInputBindingDescription.calloc(stack)
++                        .binding(i)
++                        .stride(bindings.getVertexSize())
++                        .inputRate(bindings.getStepRate() > 0 ? 1 : 0);
++                    vertexBindingDescriptions.put(bindingDescription);
++                    if (bindings.getStepRate() > 0) {
++                        VkVertexInputBindingDivisorDescriptionEXT divisorBinding = VkVertexInputBindingDivisorDescriptionEXT.calloc(stack)
++                            .binding(i)
++                            .divisor(bindings.getStepRate());
++                        vertexBindingDivisorDescriptions.put(divisorBinding);
++                    }
++
++                    for (VertexFormatElement element : bindings.getElements()) {
++                        VkVertexInputAttributeDescription attributeDescription = VkVertexInputAttributeDescription.calloc(stack)
++                            .location(attribLocation)
++                            .binding(i)
++                            .offset(element.offset())
++                            .format(VulkanConst.toVk(element.format()));
++                        vertexAttributeDescriptions.put(attributeDescription);
++                        attribLocation++;
++                    }
+                 }
+             }
+ 
++            vertexAttributeDescriptions.flip();
+             vertexBindingDescriptions.flip();
+             vertexBindingDivisorDescriptions.flip();
+-            org.lwjgl.vulkan.VkVertexInputAttributeDescription.Buffer vertexAttributeDescriptions = VkVertexInputAttributeDescription.calloc(
+-                pipelineCreateInfo.attribBindings().size(), stack
+-            );
+-
+-            for (BackendRenderPipeline.CreateInfo.AttribBinding attribBinding : pipelineCreateInfo.attribBindings()) {
+-                VkVertexInputAttributeDescription attributeDescription = VkVertexInputAttributeDescription.calloc(stack)
+-                    .location(attribBinding.location())
+-                    .binding(attribBinding.bufferSlot())
+-                    .offset(attribBinding.offset())
+-                    .format(VulkanConst.toVk(attribBinding.format()));
+-                vertexAttributeDescriptions.put(attributeDescription);
+-            }
+-
+-            vertexAttributeDescriptions.flip();
+             VkPipelineVertexInputDivisorStateCreateInfoEXT vertexInputDivisorState = VkPipelineVertexInputDivisorStateCreateInfoEXT.calloc(stack)
+                 .sType$Default()
+                 .pVertexBindingDivisors(vertexBindingDivisorDescriptions);
+@@ -216,27 +_,28 @@
+ 
+             VkPipelineInputAssemblyStateCreateInfo inputAssemblyState = VkPipelineInputAssemblyStateCreateInfo.calloc(stack)
+                 .sType$Default()
+-                .topology(VulkanConst.toVk(pipelineCreateInfo.primitiveTopology()));
++                .topology(VulkanConst.toVk(pipeline.getPrimitiveTopology()));
+             VkPipelineRasterizationStateCreateInfo rasterizationState = VkPipelineRasterizationStateCreateInfo.calloc(stack)
+                 .sType$Default()
+-                .polygonMode(VulkanConst.toVk(pipelineCreateInfo.polygonMode()))
+-                .cullMode(pipelineCreateInfo.cull() ? 2 : 0)
++                .polygonMode(VulkanConst.toVk(pipeline.getPolygonMode()))
++                .cullMode(pipeline.isCull() ? 2 : 0)
+                 .frontFace(1)
+                 .lineWidth(1.0F);
+-            VkPipelineDepthStencilStateCreateInfo vkDepthStencilState = VkPipelineDepthStencilStateCreateInfo.calloc(stack).sType$Default();
+-            DepthStencilState depthStencilState = pipelineCreateInfo.depthStencilState();
+-            if (depthStencilState != null) {
+-                rasterizationState.depthBiasEnable(depthStencilState.depthBiasConstant() != 0.0F || depthStencilState.depthBiasScaleFactor() != 0.0F);
+-                rasterizationState.depthBiasConstantFactor(depthStencilState.depthBiasConstant());
+-                rasterizationState.depthBiasSlopeFactor(depthStencilState.depthBiasScaleFactor());
+-                vkDepthStencilState.depthTestEnable(true);
+-                vkDepthStencilState.depthWriteEnable(depthStencilState.writeDepth());
+-                vkDepthStencilState.depthCompareOp(VulkanConst.toVk(depthStencilState.depthTest()));
++            VkPipelineDepthStencilStateCreateInfo depthStencilState = VkPipelineDepthStencilStateCreateInfo.calloc(stack).sType$Default();
++            if (pipeline.getDepthStencilState() != null) {
++                rasterizationState.depthBiasEnable(
++                    pipeline.getDepthStencilState().depthBiasConstant() != 0.0F && pipeline.getDepthStencilState().depthBiasScaleFactor() != 0.0F
++                );
++                rasterizationState.depthBiasConstantFactor(pipeline.getDepthStencilState().depthBiasConstant());
++                rasterizationState.depthBiasSlopeFactor(pipeline.getDepthStencilState().depthBiasScaleFactor());
++                depthStencilState.depthTestEnable(true);
++                depthStencilState.depthWriteEnable(pipeline.getDepthStencilState().writeDepth());
++                depthStencilState.depthCompareOp(VulkanConst.toVk(pipeline.getDepthStencilState().depthTest()));
+             }
+ 
+-            List<ColorTargetState> colorTargetStates = pipelineCreateInfo.colorTargetStates();
++            ColorTargetState[] colorTargetStates = pipeline.getColorTargetStates();
+             org.lwjgl.vulkan.VkPipelineColorBlendAttachmentState.Buffer blendAttachments = VkPipelineColorBlendAttachmentState.calloc(
+-                colorTargetStates.size(), stack
++                colorTargetStates.length, stack
+             );
+ 
+             for (ColorTargetState colorTargetState : colorTargetStates) {
+@@ -259,10 +_,10 @@
+                 .sampleShadingEnable(false);
+             VkPipelineDynamicStateCreateInfo dynamicStateInfo = VkPipelineDynamicStateCreateInfo.calloc(stack).sType$Default().pDynamicStates(stack.ints(1, 0));
+             VkPipelineRenderingCreateInfoKHR renderingInfo = VkPipelineRenderingCreateInfoKHR.calloc(stack).sType$Default();
+-            IntBuffer colorAttachmentFormats = stack.mallocInt(colorTargetStates.size());
++            IntBuffer colorAttachmentFormats = stack.mallocInt(colorTargetStates.length);
+ 
+-            for (int i = 0; i < colorTargetStates.size(); i++) {
+-                ColorTargetState colorTargetState = colorTargetStates.get(i);
++            for (int i = 0; i < colorTargetStates.length; i++) {
++                ColorTargetState colorTargetState = colorTargetStates[i];
+                 colorAttachmentFormats.put(i, colorTargetState != null ? VulkanConst.toVk(colorTargetState.format()) : 0);
+             }
+ 
+@@ -275,7 +_,7 @@
+                 .pVertexInputState(vertexInputState)
+                 .pInputAssemblyState(inputAssemblyState)
+                 .pRasterizationState(rasterizationState)
+-                .pDepthStencilState(vkDepthStencilState)
++                .pDepthStencilState(depthStencilState)
+                 .pColorBlendState(colorBlendState)
+                 .pViewportState(viewportState)
+                 .pMultisampleState(multisampleState)
+@@ -284,27 +_,25 @@
+                 .pNext(renderingInfo);
+             LongBuffer pointer = stack.callocLong(1);
+             VulkanUtils.crashIfFailure(
+-                device, VK12.vkCreateGraphicsPipelines(device.vkDevice(), 0L, createInfo, null, pointer), "Can't compile pipeline " + pipelineCreateInfo.name()
++                device, VK12.vkCreateGraphicsPipelines(device.vkDevice(), 0L, createInfo, null, pointer), "Can't compile pipeline " + pipeline.getLocation()
+             );
+             long withDepthPipeline = pointer.get(0);
+-            device.instance().debug().setObjectName(device.vkDevice(), 19, withDepthPipeline, () -> "Pipeline " + pipelineCreateInfo.name());
++            device.instance().debug().setObjectName(device.vkDevice(), 19, withDepthPipeline, () -> "Pipeline " + pipeline.getLocation());
+             long withoutDepthPipeline;
+-            if (depthStencilState == null) {
++            if (pipeline.getDepthStencilState() == null) {
+                 renderingInfo.depthAttachmentFormat(0);
+                 VulkanUtils.crashIfFailure(
+                     device,
+                     VK12.vkCreateGraphicsPipelines(device.vkDevice(), 0L, createInfo, null, pointer),
+-                    "Can't compile pipeline " + pipelineCreateInfo.name()
++                    "Can't compile pipeline " + pipeline.getLocation()
+                 );
+                 withoutDepthPipeline = pointer.get(0);
+-                device.instance().debug().setObjectName(device.vkDevice(), 19, withoutDepthPipeline, () -> "Pipeline " + pipelineCreateInfo.name());
++                device.instance().debug().setObjectName(device.vkDevice(), 19, withoutDepthPipeline, () -> "Pipeline " + pipeline.getLocation());
+             } else {
+                 withoutDepthPipeline = 0L;
+             }
+ 
+-            return new VulkanRenderPipeline(
+-                device, withDepthPipeline, withoutDepthPipeline, pipelineLayout, descriptorSetLayout, compiledShaderModules, pipelineCreateInfo.uniforms()
+-            );
++            return new VulkanRenderPipeline(device, pipeline, withDepthPipeline, withoutDepthPipeline, pipelineLayout, layout, vertexModule, fragmentModule);
+         }
+     }
+ 
+@@ -314,11 +_,9 @@
+             VK12.vkDestroyPipeline(this.device.vkDevice(), this.withoutDepthPipeline, null);
+             VK12.vkDestroyPipeline(this.device.vkDevice(), this.withDepthPipeline, null);
+             VK12.vkDestroyPipelineLayout(this.device.vkDevice(), this.pipelineLayout, null);
+-            VK12.vkDestroyDescriptorSetLayout(this.device.vkDevice(), this.descriptorSetLayout, null);
+-
+-            for (int i = 0; i < this.shaderModules.size(); i++) {
+-                VK12.vkDestroyShaderModule(this.device.vkDevice(), this.shaderModules.getLong(i), null);
+-            }
++            VK12.vkDestroyDescriptorSetLayout(this.device.vkDevice(), this.layout.handle(), null);
++            VK12.vkDestroyShaderModule(this.device.vkDevice(), this.vertexModule, null);
++            VK12.vkDestroyShaderModule(this.device.vkDevice(), this.fragmentModule, null);
+         }
+     }
+ 
+@@ -332,6 +_,11 @@
+             .srcColorBlendFactor(VulkanConst.toVk(blendFunction.color().sourceFactor()));
+     }
+ 
++    @Override
++    public RenderPipeline info() {
++        return this.info;
++    }
++
+     public VulkanDevice device() {
+         return this.device;
+     }
+@@ -348,7 +_,15 @@
+         return this.pipelineLayout;
+     }
+ 
+-    public List<BindGroupLayout.UniformDescription> uniforms() {
+-        return this.uniforms;
++    public VulkanBindGroupLayout layout() {
++        return this.layout;
++    }
++
++    public long vertexModule() {
++        return this.vertexModule;
++    }
++
++    public long fragmentModule() {
++        return this.fragmentModule;
+     }
+ }

@@ -1,0 +1,31 @@
+--- a/net/minecraft/network/protocol/common/ClientboundPostEffectsPacket.java
++++ b/net/minecraft/network/protocol/common/ClientboundPostEffectsPacket.java
+@@ -1,17 +_,24 @@
+ package net.minecraft.network.protocol.common;
+ 
+-import io.netty.buffer.ByteBuf;
+ import java.util.List;
+-import net.minecraft.network.codec.ByteBufCodecs;
++import net.minecraft.network.FriendlyByteBuf;
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.PacketType;
+ import net.minecraft.resources.Identifier;
+ 
+ public record ClientboundPostEffectsPacket(List<Identifier> postEffects) implements Packet<ClientCommonPacketListener> {
+-    public static final StreamCodec<ByteBuf, ClientboundPostEffectsPacket> STREAM_CODEC = StreamCodec.composite(
+-        Identifier.STREAM_CODEC.apply(ByteBufCodecs.list()), ClientboundPostEffectsPacket::postEffects, ClientboundPostEffectsPacket::new
++    public static final StreamCodec<FriendlyByteBuf, ClientboundPostEffectsPacket> STREAM_CODEC = Packet.codec(
++        ClientboundPostEffectsPacket::write, ClientboundPostEffectsPacket::new
+     );
++
++    public ClientboundPostEffectsPacket(FriendlyByteBuf input) {
++        this(input.readList(FriendlyByteBuf::readIdentifier));
++    }
++
++    private void write(FriendlyByteBuf output) {
++        output.writeCollection(this.postEffects, FriendlyByteBuf::writeIdentifier);
++    }
+ 
+     @Override
+     public PacketType<ClientboundPostEffectsPacket> type() {

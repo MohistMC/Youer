@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 public class ItemStackHandler implements IItemHandler, IItemHandlerModifiable, ValueIOSerializable {
     private static final Logger LOGGER = LoggerFactory.getLogger(ItemStackHandler.class);
 
-    public NonNullList<ItemStack> stacks;
+    protected NonNullList<ItemStack> stacks;
 
     public ItemStackHandler() {
         this(1);

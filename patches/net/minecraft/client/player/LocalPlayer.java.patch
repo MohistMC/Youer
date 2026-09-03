@@ -1,0 +1,177 @@
+--- a/net/minecraft/client/player/LocalPlayer.java
++++ b/net/minecraft/client/player/LocalPlayer.java
+@@ -44,9 +_,11 @@
+ import net.minecraft.network.protocol.game.ServerboundMovePlayerPacket;
+ import net.minecraft.network.protocol.game.ServerboundMoveVehiclePacket;
+ import net.minecraft.network.protocol.game.ServerboundPlayerAbilitiesPacket;
++import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
+ import net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket;
+ import net.minecraft.network.protocol.game.ServerboundPlayerInputPacket;
+ import net.minecraft.network.protocol.game.ServerboundRecipeBookSeenRecipePacket;
++import net.minecraft.network.protocol.game.ServerboundSwingPacket;
+ import net.minecraft.network.syncher.EntityDataAccessor;
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.server.dialog.Dialog;
+@@ -117,8 +_,6 @@
+     private static final float WATER_VISION_QUICK_PERCENT = 0.6F;
+     private static final double SUFFOCATING_COLLISION_CHECK_SCALE = 0.35;
+     private static final double MINOR_COLLISION_ANGLE_THRESHOLD_RADIAN = 0.13962634F;
+-    private static final float PORTAL_SPINNING_SPEED = 20.0F;
+-    private static final float NAUSEA_SPINNING_SPEED = 7.0F;
+     public final ClientPacketListener connection;
+     private final StatsCounter stats;
+     private final ClientRecipeBook recipeBook;
+@@ -152,10 +_,6 @@
+     private float jumpRidingScale;
+     public float portalEffectIntensity;
+     public float oPortalEffectIntensity;
+-    private float spinningEffectTime;
+-    private float spinningEffectSpeed;
+-    private final ItemActivation itemActivation;
+-    private final FirstPersonHandsAndItems firstPersonHandsAndItems = new FirstPersonHandsAndItems();
+     private boolean startedUsingItem;
+     private @Nullable InteractionHand usingItemHand;
+     private boolean handsBusy;
+@@ -174,8 +_,7 @@
+         ClientRecipeBook recipeBook,
+         Input lastSentInput,
+         boolean wasSprinting,
+-        ChatAbilities chatAbilities,
+-        ItemActivation itemActivation
++        ChatAbilities chatAbilities
+     ) {
+         super(level, connection.getLocalGameProfile());
+         this.minecraft = minecraft;
+@@ -188,7 +_,6 @@
+         this.ambientSoundHandlers.add(new BubbleColumnAmbientSoundHandler(this));
+         this.ambientSoundHandlers.add(new BiomeAmbientSoundsHandler(this, minecraft.getSoundManager()));
+         this.chatAbilities = chatAbilities;
+-        this.itemActivation = itemActivation;
+     }
+ 
+     @Override
+@@ -226,8 +_,13 @@
+     }
+ 
+     @Override
++    public float getViewXRot(float a) {
++        return this.getXRot();
++    }
++
++    @Override
+     public float getViewYRot(float a) {
+-        return this.getYRot(a);
++        return this.isPassenger() ? super.getViewYRot(a) : this.getYRot();
+     }
+ 
+     @Override
+@@ -235,7 +_,6 @@
+         if (this.connection.hasClientLoaded()) {
+             this.dropSpamThrottler.tick();
+             super.tick();
+-            this.firstPersonHandsAndItems.tick(this);
+ 
+             for (AmbientSoundHandler soundHandler : this.ambientSoundHandlers) {
+                 soundHandler.tick();
+@@ -243,26 +_,6 @@
+         }
+     }
+ 
+-    public void displayItemActivation(ItemStack itemStack) {
+-        this.itemActivation.activate(itemStack, this.random);
+-    }
+-
+-    public void resetItemActivation() {
+-        this.itemActivation.reset();
+-    }
+-
+-    public ItemActivation itemActivation() {
+-        return this.itemActivation;
+-    }
+-
+-    public void itemUsed(InteractionHand hand) {
+-        this.firstPersonHandsAndItems.itemUsed(hand);
+-    }
+-
+-    public FirstPersonHandsAndItems firstPersonHandsAndItems() {
+-        return this.firstPersonHandsAndItems;
+-    }
+-
+     public void sendChanges() {
+         if (this.connection.hasClientLoaded()) {
+             if (!this.lastSentInput.equals(this.input.keyPresses)) {
+@@ -344,6 +_,21 @@
+         }
+     }
+ 
++    public boolean drop(boolean all) {
++        ServerboundPlayerActionPacket.Action action = all
++            ? ServerboundPlayerActionPacket.Action.DROP_ALL_ITEMS
++            : ServerboundPlayerActionPacket.Action.DROP_ITEM;
++        ItemStack prediction = this.getInventory().removeFromSelected(all);
++        this.connection.send(new ServerboundPlayerActionPacket(action, BlockPos.ZERO, Direction.DOWN));
++        return !prediction.isEmpty();
++    }
++
++    @Override
++    public void swing(InteractionHand hand) {
++        super.swing(hand);
++        this.connection.send(new ServerboundSwingPacket(hand));
++    }
++
+     public void respawn() {
+         this.connection.send(new ServerboundClientCommandPacket(ServerboundClientCommandPacket.Action.PERFORM_RESPAWN));
+         KeyMapping.resetToggleKeys();
+@@ -366,11 +_,11 @@
+             if (dmg <= 0.0F) {
+                 this.setHealth(newHealth);
+                 if (dmg < 0.0F) {
+-                    this.damageCooldownTime = 10;
++                    this.invulnerableTime = 10;
+                 }
+             } else {
+                 this.lastHurt = dmg;
+-                this.damageCooldownTime = 20;
++                this.invulnerableTime = 20;
+                 this.setHealth(newHealth);
+                 this.hurtDuration = 10;
+                 this.hurtTime = this.hurtDuration;
+@@ -792,7 +_,6 @@
+             this.processPortalCooldown();
+         }
+ 
+-        this.tickSpinningEffect();
+         boolean wasJumping = this.input.keyPresses.jump();
+         boolean wasShiftKeyDown = this.input.keyPresses.shift();
+         boolean hasForwardImpulse = this.input.hasForwardImpulse();
+@@ -811,7 +_,7 @@
+             this.input.makeJump();
+         }
+ 
+-        if (!this.noPhysics && !this.isPassenger()) {
++        if (!this.noPhysics) {
+             this.moveTowardsClosestSpace(this.getX() - this.getBbWidth() * 0.35, this.getZ() + this.getBbWidth() * 0.35);
+             this.moveTowardsClosestSpace(this.getX() - this.getBbWidth() * 0.35, this.getZ() - this.getBbWidth() * 0.35);
+             this.moveTowardsClosestSpace(this.getX() + this.getBbWidth() * 0.35, this.getZ() - this.getBbWidth() * 0.35);
+@@ -984,21 +_,6 @@
+         }
+ 
+         this.portalEffectIntensity = Mth.clamp(this.portalEffectIntensity + step, 0.0F, 1.0F);
+-    }
+-
+-    private void tickSpinningEffect() {
+-        float portalIntensity = this.portalEffectIntensity;
+-        float nauseaIntensity = this.getEffectBlendFactor(MobEffects.NAUSEA, 1.0F);
+-        if (!(portalIntensity > 0.0F) && !(nauseaIntensity > 0.0F)) {
+-            this.spinningEffectSpeed = 0.0F;
+-        } else {
+-            this.spinningEffectSpeed = (portalIntensity * 20.0F + nauseaIntensity * 7.0F) / (portalIntensity + nauseaIntensity);
+-            this.spinningEffectTime = this.spinningEffectTime + this.spinningEffectSpeed;
+-        }
+-    }
+-
+-    public float getSpinningEffectAngle(float partialTick) {
+-        return this.spinningEffectTime + partialTick * this.spinningEffectSpeed;
+     }
+ 
+     @Override

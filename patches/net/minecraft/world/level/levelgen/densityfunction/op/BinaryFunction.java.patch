@@ -1,0 +1,408 @@
+--- a/net/minecraft/world/level/levelgen/densityfunction/op/BinaryFunction.java
++++ /dev/null
+@@ -1,405 +_,0 @@
+-package net.minecraft.world.level.levelgen.densityfunction.op;
+-
+-import com.mojang.logging.LogUtils;
+-import com.mojang.serialization.MapCodec;
+-import com.mojang.serialization.codecs.RecordCodecBuilder;
+-import net.minecraft.util.Interval;
+-import net.minecraft.world.level.levelgen.densityfunction.DensityBuffer;
+-import net.minecraft.world.level.levelgen.densityfunction.DensityFunction;
+-import net.minecraft.world.level.levelgen.densityfunction.DensitySampler;
+-import net.minecraft.world.level.levelgen.densityfunction.DensityVolume;
+-import net.minecraft.world.level.levelgen.densityfunction.DfRewriteRule;
+-import net.minecraft.world.level.levelgen.densityfunction.SamplerContext;
+-import net.minecraft.world.level.levelgen.densityfunction.ScopedDensityBuffer;
+-import net.minecraft.world.level.levelgen.densityfunction.generator.ConstantFunction;
+-import org.slf4j.Logger;
+-
+-public record BinaryFunction(BinaryFunction.Type type, DensityFunction left, DensityFunction right) implements DensityFunction {
+-    private static final Logger LOGGER = LogUtils.getLogger();
+-
+-    @Override
+-    public DensitySampler compileSampler(DensityFunction.CompileContext context) {
+-        DensitySampler left = this.left.compileSampler(context);
+-        DensitySampler right = this.right.compileSampler(context);
+-
+-        return (DensitySampler)(switch (this.type) {
+-            case ADD -> {
+-                if (this.left instanceof ConstantFunction(float leftValue)) {
+-                    yield new BinaryFunction.ConstAddSampler(right, leftValue);
+-                } else {
+-                    if (this.right instanceof ConstantFunction(float rightValue)) {
+-                        yield new BinaryFunction.ConstAddSampler(left, rightValue);
+-                    }
+-
+-                    yield new BinaryFunction.AddSampler(left, right);
+-                }
+-            }
+-            case SUB -> {
+-                if (this.left instanceof ConstantFunction(float leftValue)) {
+-                    yield new BinaryFunction.ConstSubSampler(leftValue, right);
+-                } else {
+-                    if (this.right instanceof ConstantFunction(float rightValue)) {
+-                        yield new BinaryFunction.ConstAddSampler(left, -rightValue);
+-                    }
+-
+-                    yield new BinaryFunction.SubSampler(left, right);
+-                }
+-            }
+-            case MUL -> {
+-                if (this.left instanceof ConstantFunction(float leftValue)) {
+-                    yield new BinaryFunction.ConstMulSampler(right, leftValue);
+-                } else {
+-                    if (this.right instanceof ConstantFunction(float rightValue)) {
+-                        yield new BinaryFunction.ConstMulSampler(left, rightValue);
+-                    }
+-
+-                    yield new BinaryFunction.MulSampler(left, right);
+-                }
+-            }
+-            case DIV -> {
+-                if (this.left instanceof ConstantFunction(float leftValue)) {
+-                    yield new BinaryFunction.ConstDivSampler(leftValue, right);
+-                } else {
+-                    if (this.right instanceof ConstantFunction(float rightValue)) {
+-                        yield new BinaryFunction.ConstMulSampler(left, 1.0F / rightValue);
+-                    }
+-
+-                    yield new BinaryFunction.DivSampler(left, right);
+-                }
+-            }
+-            case MIN -> {
+-                Interval leftRange = this.left.range();
+-                Interval rightRange = this.right.range();
+-                if (leftRange.max() < rightRange.min()) {
+-                    this.warnNonIntersecting();
+-                    yield left;
+-                } else if (rightRange.max() < leftRange.min()) {
+-                    this.warnNonIntersecting();
+-                    yield right;
+-                } else {
+-                    yield this.left instanceof ConstantFunction(float leftValue)
+-                        ? new BinaryFunction.ConstMinSampler(right, leftValue)
+-                        : (
+-                            this.right instanceof ConstantFunction(float rightValue)
+-                                ? new BinaryFunction.ConstMinSampler(left, rightValue)
+-                                : new BinaryFunction.MinSampler(left, right, rightRange.min())
+-                        );
+-                }
+-            }
+-            case MAX -> {
+-                Interval leftRange = this.left.range();
+-                Interval rightRange = this.right.range();
+-                if (leftRange.min() > rightRange.max()) {
+-                    this.warnNonIntersecting();
+-                    yield left;
+-                } else if (rightRange.min() > leftRange.max()) {
+-                    this.warnNonIntersecting();
+-                    yield right;
+-                } else {
+-                    yield this.left instanceof ConstantFunction(float leftValue)
+-                        ? new BinaryFunction.ConstMaxSampler(right, leftValue)
+-                        : (
+-                            this.right instanceof ConstantFunction(float rightValue)
+-                                ? new BinaryFunction.ConstMaxSampler(left, rightValue)
+-                                : new BinaryFunction.MaxSampler(left, right, rightRange.max())
+-                        );
+-                }
+-            }
+-        });
+-    }
+-
+-    private void warnNonIntersecting() {
+-        LOGGER.warn(
+-            "Compiling a {} function between two non-overlapping inputs: {} ({}) and {} ({})",
+-            this.type,
+-            this.left,
+-            this.left.range(),
+-            this.right,
+-            this.right.range()
+-        );
+-    }
+-
+-    @Override
+-    public DensityFunction rewriteChildren(DfRewriteRule rule) {
+-        DensityFunction left = rule.rewrite(this.left);
+-        DensityFunction right = rule.rewrite(this.right);
+-        return left == this.left && this.right == right ? this : new BinaryFunction(this.type, left, right);
+-    }
+-
+-    @Override
+-    public Interval range() {
+-        Interval left = this.left.range();
+-        Interval right = this.right.range();
+-
+-        return switch (this.type) {
+-            case ADD -> Interval.add(left, right);
+-            case SUB -> Interval.sub(left, right);
+-            case MUL -> Interval.mul(left, right);
+-            case DIV -> Interval.div(left, right);
+-            case MIN -> Interval.min(left, right);
+-            case MAX -> Interval.max(left, right);
+-        };
+-    }
+-
+-    @Override
+-    public @DensityFunction.Axes int domainAxes() {
+-        return this.left.domainAxes() | this.right.domainAxes();
+-    }
+-
+-    @Override
+-    public MapCodec<BinaryFunction> codec() {
+-        return this.type().codec;
+-    }
+-
+-    public record AddSampler(DensitySampler left, DensitySampler right) implements DensitySampler {
+-        @Override
+-        public void sampleVolume(SamplerContext context, DensityBuffer outputBuffer, DensityVolume volume) {
+-            this.left.sampleVolume(context, outputBuffer, volume);
+-
+-            try (ScopedDensityBuffer rightBuffer = context.acquireBuffer(volume)) {
+-                this.right.sampleVolume(context, rightBuffer, volume);
+-
+-                for (int i = 0; i < outputBuffer.size(); i++) {
+-                    outputBuffer.addTo(i, rightBuffer.get(i));
+-                }
+-            }
+-        }
+-
+-        @Override
+-        public float sampleValue(SamplerContext context, int blockX, int blockY, int blockZ) {
+-            return this.left.sampleValue(context, blockX, blockY, blockZ) + this.right.sampleValue(context, blockX, blockY, blockZ);
+-        }
+-    }
+-
+-    public record ConstAddSampler(DensitySampler left, float right) implements DensitySampler {
+-        @Override
+-        public void sampleVolume(SamplerContext context, DensityBuffer outputBuffer, DensityVolume volume) {
+-            this.left.sampleVolume(context, outputBuffer, volume);
+-
+-            for (int i = 0; i < outputBuffer.size(); i++) {
+-                outputBuffer.addTo(i, this.right);
+-            }
+-        }
+-
+-        @Override
+-        public float sampleValue(SamplerContext context, int blockX, int blockY, int blockZ) {
+-            return this.left.sampleValue(context, blockX, blockY, blockZ) + this.right;
+-        }
+-    }
+-
+-    public record ConstDivSampler(float left, DensitySampler right) implements DensitySampler {
+-        @Override
+-        public void sampleVolume(SamplerContext context, DensityBuffer outputBuffer, DensityVolume volume) {
+-            this.right.sampleVolume(context, outputBuffer, volume);
+-
+-            for (int i = 0; i < outputBuffer.size(); i++) {
+-                outputBuffer.set(i, this.left / outputBuffer.get(i));
+-            }
+-        }
+-
+-        @Override
+-        public float sampleValue(SamplerContext context, int blockX, int blockY, int blockZ) {
+-            return this.left / this.right.sampleValue(context, blockX, blockY, blockZ);
+-        }
+-    }
+-
+-    public record ConstMaxSampler(DensitySampler left, float right) implements DensitySampler {
+-        @Override
+-        public void sampleVolume(SamplerContext context, DensityBuffer outputBuffer, DensityVolume volume) {
+-            this.left.sampleVolume(context, outputBuffer, volume);
+-
+-            for (int i = 0; i < outputBuffer.size(); i++) {
+-                if (this.right > outputBuffer.get(i)) {
+-                    outputBuffer.set(i, this.right);
+-                }
+-            }
+-        }
+-
+-        @Override
+-        public float sampleValue(SamplerContext context, int blockX, int blockY, int blockZ) {
+-            return Math.max(this.left.sampleValue(context, blockX, blockY, blockZ), this.right);
+-        }
+-    }
+-
+-    public record ConstMinSampler(DensitySampler left, float right) implements DensitySampler {
+-        @Override
+-        public void sampleVolume(SamplerContext context, DensityBuffer outputBuffer, DensityVolume volume) {
+-            this.left.sampleVolume(context, outputBuffer, volume);
+-
+-            for (int i = 0; i < outputBuffer.size(); i++) {
+-                if (this.right < outputBuffer.get(i)) {
+-                    outputBuffer.set(i, this.right);
+-                }
+-            }
+-        }
+-
+-        @Override
+-        public float sampleValue(SamplerContext context, int blockX, int blockY, int blockZ) {
+-            return Math.min(this.left.sampleValue(context, blockX, blockY, blockZ), this.right);
+-        }
+-    }
+-
+-    public record ConstMulSampler(DensitySampler left, float right) implements DensitySampler {
+-        @Override
+-        public void sampleVolume(SamplerContext context, DensityBuffer outputBuffer, DensityVolume volume) {
+-            this.left.sampleVolume(context, outputBuffer, volume);
+-
+-            for (int i = 0; i < outputBuffer.size(); i++) {
+-                outputBuffer.set(i, outputBuffer.get(i) * this.right);
+-            }
+-        }
+-
+-        @Override
+-        public float sampleValue(SamplerContext context, int blockX, int blockY, int blockZ) {
+-            return this.left.sampleValue(context, blockX, blockY, blockZ) * this.right;
+-        }
+-    }
+-
+-    public record ConstSubSampler(float left, DensitySampler right) implements DensitySampler {
+-        @Override
+-        public void sampleVolume(SamplerContext context, DensityBuffer outputBuffer, DensityVolume volume) {
+-            this.right.sampleVolume(context, outputBuffer, volume);
+-
+-            for (int i = 0; i < outputBuffer.size(); i++) {
+-                outputBuffer.set(i, this.left - outputBuffer.get(i));
+-            }
+-        }
+-
+-        @Override
+-        public float sampleValue(SamplerContext context, int blockX, int blockY, int blockZ) {
+-            return this.left - this.right.sampleValue(context, blockX, blockY, blockZ);
+-        }
+-    }
+-
+-    public record DivSampler(DensitySampler left, DensitySampler right) implements DensitySampler {
+-        @Override
+-        public void sampleVolume(SamplerContext context, DensityBuffer outputBuffer, DensityVolume volume) {
+-            this.left.sampleVolume(context, outputBuffer, volume);
+-
+-            try (ScopedDensityBuffer rightBuffer = context.acquireBuffer(volume)) {
+-                this.right.sampleVolume(context, rightBuffer, volume);
+-
+-                for (int i = 0; i < outputBuffer.size(); i++) {
+-                    outputBuffer.set(i, outputBuffer.get(i) / rightBuffer.get(i));
+-                }
+-            }
+-        }
+-
+-        @Override
+-        public float sampleValue(SamplerContext context, int blockX, int blockY, int blockZ) {
+-            float left = this.left.sampleValue(context, blockX, blockY, blockZ);
+-            return left == 0.0F ? 0.0F : left / this.right.sampleValue(context, blockX, blockY, blockZ);
+-        }
+-    }
+-
+-    public record MaxSampler(DensitySampler left, DensitySampler right, float rightMaxValue) implements DensitySampler {
+-        @Override
+-        public void sampleVolume(SamplerContext context, DensityBuffer outputBuffer, DensityVolume volume) {
+-            this.left.sampleVolume(context, outputBuffer, volume);
+-
+-            try (ScopedDensityBuffer rightBuffer = context.acquireBuffer(volume)) {
+-                this.right.sampleVolume(context, rightBuffer, volume);
+-
+-                for (int i = 0; i < outputBuffer.size(); i++) {
+-                    float rightValue = rightBuffer.get(i);
+-                    if (rightValue > outputBuffer.get(i)) {
+-                        outputBuffer.set(i, rightValue);
+-                    }
+-                }
+-            }
+-        }
+-
+-        @Override
+-        public float sampleValue(SamplerContext context, int blockX, int blockY, int blockZ) {
+-            float left = this.left.sampleValue(context, blockX, blockY, blockZ);
+-            return left >= this.rightMaxValue ? left : Math.max(left, this.right.sampleValue(context, blockX, blockY, blockZ));
+-        }
+-    }
+-
+-    public record MinSampler(DensitySampler left, DensitySampler right, float rightMinValue) implements DensitySampler {
+-        @Override
+-        public void sampleVolume(SamplerContext context, DensityBuffer outputBuffer, DensityVolume volume) {
+-            this.left.sampleVolume(context, outputBuffer, volume);
+-
+-            try (ScopedDensityBuffer rightBuffer = context.acquireBuffer(volume)) {
+-                this.right.sampleVolume(context, rightBuffer, volume);
+-
+-                for (int i = 0; i < outputBuffer.size(); i++) {
+-                    float rightValue = rightBuffer.get(i);
+-                    if (rightValue < outputBuffer.get(i)) {
+-                        outputBuffer.set(i, rightValue);
+-                    }
+-                }
+-            }
+-        }
+-
+-        @Override
+-        public float sampleValue(SamplerContext context, int blockX, int blockY, int blockZ) {
+-            float left = this.left.sampleValue(context, blockX, blockY, blockZ);
+-            return left <= this.rightMinValue ? left : Math.min(left, this.right.sampleValue(context, blockX, blockY, blockZ));
+-        }
+-    }
+-
+-    public record MulSampler(DensitySampler left, DensitySampler right) implements DensitySampler {
+-        @Override
+-        public void sampleVolume(SamplerContext context, DensityBuffer outputBuffer, DensityVolume volume) {
+-            this.left.sampleVolume(context, outputBuffer, volume);
+-
+-            try (ScopedDensityBuffer rightBuffer = context.acquireBuffer(volume)) {
+-                this.right.sampleVolume(context, rightBuffer, volume);
+-
+-                for (int i = 0; i < outputBuffer.size(); i++) {
+-                    outputBuffer.set(i, outputBuffer.get(i) * rightBuffer.get(i));
+-                }
+-            }
+-        }
+-
+-        @Override
+-        public float sampleValue(SamplerContext context, int blockX, int blockY, int blockZ) {
+-            float left = this.left.sampleValue(context, blockX, blockY, blockZ);
+-            return left == 0.0F ? 0.0F : left * this.right.sampleValue(context, blockX, blockY, blockZ);
+-        }
+-    }
+-
+-    public record SubSampler(DensitySampler left, DensitySampler right) implements DensitySampler {
+-        @Override
+-        public void sampleVolume(SamplerContext context, DensityBuffer outputBuffer, DensityVolume volume) {
+-            this.left.sampleVolume(context, outputBuffer, volume);
+-
+-            try (ScopedDensityBuffer rightBuffer = context.acquireBuffer(volume)) {
+-                this.right.sampleVolume(context, rightBuffer, volume);
+-
+-                for (int i = 0; i < outputBuffer.size(); i++) {
+-                    outputBuffer.addTo(i, -rightBuffer.get(i));
+-                }
+-            }
+-        }
+-
+-        @Override
+-        public float sampleValue(SamplerContext context, int blockX, int blockY, int blockZ) {
+-            return this.left.sampleValue(context, blockX, blockY, blockZ) - this.right.sampleValue(context, blockX, blockY, blockZ);
+-        }
+-    }
+-
+-    public enum Type {
+-        ADD("add"),
+-        SUB("sub"),
+-        MUL("mul"),
+-        DIV("div"),
+-        MIN("min"),
+-        MAX("max");
+-
+-        public final String id;
+-        public final MapCodec<BinaryFunction> codec = RecordCodecBuilder.mapCodec(
+-            i -> i.group(
+-                    DensityFunction.CODEC.fieldOf("left").forGetter(BinaryFunction::left),
+-                    DensityFunction.CODEC.fieldOf("right").forGetter(BinaryFunction::right)
+-                )
+-                .apply(i, (left, right) -> new BinaryFunction(this, left, right))
+-        );
+-
+-        Type(String id) {
+-            this.id = id;
+-        }
+-    }
+-}

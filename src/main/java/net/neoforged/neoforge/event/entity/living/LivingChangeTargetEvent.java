@@ -11,7 +11,6 @@ import net.minecraft.world.entity.ai.behavior.StartAttacking;
 import net.neoforged.bus.api.ICancellableEvent;
 import net.neoforged.neoforge.common.CommonHooks;
 import net.neoforged.neoforge.common.NeoForge;
-import org.bukkit.event.entity.EntityTargetEvent;
 import org.jspecify.annotations.Nullable;
 
 /**
@@ -37,36 +36,13 @@ public class LivingChangeTargetEvent extends LivingEvent implements ICancellable
     private final LivingEntity originalAboutToBeSetTarget;
     @Nullable
     private LivingEntity newAboutToBeSetTarget;
-    // Youer start
-    private EntityTargetEvent.TargetReason reason;
-    private boolean fireCBEvent;
 
     public LivingChangeTargetEvent(LivingEntity entity, @Nullable LivingEntity aboutToBeSetTarget, ILivingTargetType targetType) {
         super(entity);
         this.originalAboutToBeSetTarget = aboutToBeSetTarget;
         this.newAboutToBeSetTarget = aboutToBeSetTarget;
         this.targetType = targetType;
-        this.reason = EntityTargetEvent.TargetReason.UNKNOWN;
-        this.fireCBEvent = true;
     }
-
-    public EntityTargetEvent.TargetReason getReason() {
-        return reason;
-    }
-
-    public void setReason(EntityTargetEvent.TargetReason reason) {
-        this.reason = reason;
-    }
-
-    public boolean isFireCBEvent() {
-        return fireCBEvent;
-    }
-
-    public void setfireCBEvent(boolean cancel) {
-        this.fireCBEvent = cancel;
-    }
-
-    // Youer end
 
     /**
      * {@return the new target that this entity will begin to track.}

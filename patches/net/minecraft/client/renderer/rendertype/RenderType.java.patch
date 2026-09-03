@@ -1,0 +1,31 @@
+--- a/net/minecraft/client/renderer/rendertype/RenderType.java
++++ b/net/minecraft/client/renderer/rendertype/RenderType.java
+@@ -8,7 +_,6 @@
+ import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+ import com.mojang.renderpearl.api.vertex.VertexFormat;
+ import java.util.List;
+-import java.util.Objects;
+ import java.util.Optional;
+ import java.util.function.Consumer;
+ import net.minecraft.client.Minecraft;
+@@ -31,8 +_,7 @@
+         this.name = name;
+         this.state = state;
+         this.outline = state.outlineProperty == RenderSetup.OutlineProperty.AFFECTS_OUTLINE
+-            ? Optional.ofNullable(state.textures.get(Objects.requireNonNullElse(state.outlineTextureName, "Sampler0")))
+-                .map(texture -> RenderTypes.OUTLINE.apply(texture.location(), state.pipeline.isCull()))
++            ? state.textures.values().stream().findFirst().map(texture -> RenderTypes.OUTLINE.apply(texture.location(), state.pipeline.isCull()))
+             : Optional.empty();
+         this.hasBlending = this.calculateHasBlending();
+     }
+@@ -51,7 +_,9 @@
+     }
+ 
+     private boolean calculateHasBlending() {
+-        for (ColorTargetState colorTargetState : this.state.pipeline.getColorTargetStates()) {
++        ColorTargetState[] colorTargetStates = this.state.pipeline.getColorTargetStates();
++
++        for (ColorTargetState colorTargetState : colorTargetStates) {
+             if (colorTargetState != null && colorTargetState.blendFunction().isPresent()) {
+                 return true;
+             }

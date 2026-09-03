@@ -1,18 +1,70 @@
 --- a/net/minecraft/network/protocol/game/ServerboundUseItemOnPacket.java
 +++ b/net/minecraft/network/protocol/game/ServerboundUseItemOnPacket.java
-@@ -14,6 +_,7 @@
-     private final BlockHitResult blockHit;
-     private final InteractionHand hand;
-     private final int sequence;
+@@ -1,23 +_,39 @@
+ package net.minecraft.network.protocol.game;
+ 
+ import net.minecraft.network.FriendlyByteBuf;
+-import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.PacketType;
+ import net.minecraft.world.InteractionHand;
+ import net.minecraft.world.phys.BlockHitResult;
+ 
+-public record ServerboundUseItemOnPacket(InteractionHand hand, BlockHitResult hitResult, int sequence) implements Packet<ServerGamePacketListener> {
+-    public static final StreamCodec<FriendlyByteBuf, ServerboundUseItemOnPacket> STREAM_CODEC = StreamCodec.composite(
+-        InteractionHand.STREAM_CODEC,
+-        ServerboundUseItemOnPacket::hand,
+-        BlockHitResult.STREAM_CODEC,
+-        ServerboundUseItemOnPacket::hitResult,
+-        ByteBufCodecs.VAR_INT,
+-        ServerboundUseItemOnPacket::sequence,
+-        ServerboundUseItemOnPacket::new
++public class ServerboundUseItemOnPacket implements Packet<ServerGamePacketListener> {
++    public static final StreamCodec<FriendlyByteBuf, ServerboundUseItemOnPacket> STREAM_CODEC = Packet.codec(
++        ServerboundUseItemOnPacket::write, ServerboundUseItemOnPacket::new
+     );
++    private final BlockHitResult blockHit;
++    private final InteractionHand hand;
++    private final int sequence;
 +    public long timestamp; // Spigot
- 
-     public ServerboundUseItemOnPacket(InteractionHand hand, BlockHitResult blockHit, int sequence) {
-         this.hand = hand;
-@@ -22,6 +_,7 @@
-     }
- 
-     private ServerboundUseItemOnPacket(FriendlyByteBuf input) {
++
++    public ServerboundUseItemOnPacket(InteractionHand hand, BlockHitResult blockHit, int sequence) {
++        this.hand = hand;
++        this.blockHit = blockHit;
++        this.sequence = sequence;
++    }
++
++    private ServerboundUseItemOnPacket(FriendlyByteBuf input) {
 +        this.timestamp = System.currentTimeMillis(); // Spigot
-         this.hand = input.readEnum(InteractionHand.class);
-         this.blockHit = input.readBlockHitResult();
-         this.sequence = input.readVarInt();
++        this.hand = input.readEnum(InteractionHand.class);
++        this.blockHit = input.readBlockHitResult();
++        this.sequence = input.readVarInt();
++    }
++
++    private void write(FriendlyByteBuf output) {
++        output.writeEnum(this.hand);
++        output.writeBlockHitResult(this.blockHit);
++        output.writeVarInt(this.sequence);
++    }
+ 
+     @Override
+     public PacketType<ServerboundUseItemOnPacket> type() {
+@@ -26,5 +_,17 @@
+ 
+     public void handle(ServerGamePacketListener listener) {
+         listener.handleUseItemOn(this);
++    }
++
++    public InteractionHand getHand() {
++        return this.hand;
++    }
++
++    public BlockHitResult getHitResult() {
++        return this.blockHit;
++    }
++
++    public int getSequence() {
++        return this.sequence;
+     }
+ }

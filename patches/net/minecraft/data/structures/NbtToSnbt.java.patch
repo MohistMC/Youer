@@ -1,0 +1,35 @@
+--- a/net/minecraft/data/structures/NbtToSnbt.java
++++ b/net/minecraft/data/structures/NbtToSnbt.java
+@@ -18,14 +_,11 @@
+ import net.minecraft.data.CachedOutput;
+ import net.minecraft.data.DataProvider;
+ import net.minecraft.data.PackOutput;
+-import net.minecraft.nbt.CompoundTag;
+ import net.minecraft.nbt.NbtAccounter;
+ import net.minecraft.nbt.NbtIo;
+ import net.minecraft.nbt.NbtUtils;
+ import net.minecraft.util.FastBufferedInputStream;
+ import net.minecraft.util.Util;
+-import net.minecraft.util.datafix.DataFixTypes;
+-import net.minecraft.util.datafix.DataFixers;
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
+@@ -86,16 +_,7 @@
+             InputStream input = new FastBufferedInputStream(rawInput);
+         ) {
+             Path resultPath = output.resolve(name + ".snbt");
+-            CompoundTag structure = NbtIo.readCompressed(input, NbtAccounter.unlimitedHeap());
+-            writeSnbt(
+-                cache,
+-                resultPath,
+-                NbtUtils.structureToSnbt(
+-                    NbtUtils.addCurrentDataVersion(
+-                        DataFixTypes.STRUCTURE.updateToCurrentVersion(DataFixers.getDataFixer(), structure, NbtUtils.getDataVersion(structure))
+-                    )
+-                )
+-            );
++            writeSnbt(cache, resultPath, NbtUtils.structureToSnbt(NbtIo.readCompressed(input, NbtAccounter.unlimitedHeap())));
+             LOGGER.info("Converted {} from NBT to SNBT", name);
+             return resultPath;
+         } catch (IOException e) {

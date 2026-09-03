@@ -33,6 +33,7 @@ import net.minecraft.server.packs.FeatureFlagsMetadataSection;
 import net.minecraft.server.packs.FilePackResources;
 import net.minecraft.server.packs.OverlayMetadataSection;
 import net.minecraft.server.packs.PackLocationInfo;
+import net.minecraft.server.packs.PackMetadataResources;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PackSelectionConfig;
 import net.minecraft.server.packs.PackType;
@@ -105,7 +106,7 @@ public class ResourcePackLoader {
                 continue;
             }
             var modFileInfo = modFile.getModFileInfo();
-            final String name = "mod/" + e.getKey().getModInfos().stream().map(IModInfo::getModId).collect(Collectors.joining(","));
+            final String name = getPackName(modFile);
             final String version = e.getKey().getModInfos().stream().map(IModInfo::getVersion).map(ArtifactVersion::toString).collect(Collectors.joining(","));
             final String packName = e.getKey().getFileName();
 
@@ -196,7 +197,7 @@ public class ResourcePackLoader {
 
     private static Pack.Metadata readMeta(PackType type, PackLocationInfo location, Pack.ResourcesSupplier resources) throws IOException {
         final PackFormat currentVersion = SharedConstants.getCurrentVersion().packVersion(type);
-        try (final PackResources primaryResources = resources.openPrimary(location)) {
+        try (final PackMetadataResources primaryResources = resources.openMetadata(location)) {
             PackMetadataSection metadata;
             try {
                 metadata = primaryResources.getMetadataSection(metadataTypeForPackType(type));
@@ -267,10 +268,14 @@ public class ResourcePackLoader {
                 .filter(packType == PackType.CLIENT_RESOURCES ? IModFileInfo::showAsResourcePack : IModFileInfo::showAsDataPack)
                 .map(IModFileInfo::getFile)
                 .filter(ResourcePackLoader::hasResourcePack)
-                .map(mf -> "mod/" + mf.getModInfos().stream().map(IModInfo::getModId).collect(Collectors.joining()))
+                .map(ResourcePackLoader::getPackName)
                 .toList());
         ids.add(packType == PackType.CLIENT_RESOURCES ? MOD_RESOURCES_ID : MOD_DATA_ID);
         return ids;
+    }
+
+    public static String getPackName(IModFile mf) {
+        return "mod/" + mf.getModInfos().stream().map(IModInfo::getModId).collect(Collectors.joining(","));
     }
 
     private static boolean hasResourcePack(IModFile mf) {

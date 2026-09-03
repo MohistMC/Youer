@@ -1,0 +1,40 @@
+--- /dev/null
++++ b/net/minecraft/world/level/storage/loot/providers/number/WeightedListValue.java
+@@ -1,0 +_,37 @@
++package net.minecraft.world.level.storage.loot.providers.number;
++
++import com.mojang.serialization.MapCodec;
++import com.mojang.serialization.codecs.RecordCodecBuilder;
++import net.minecraft.core.Holder;
++import net.minecraft.util.random.Weighted;
++import net.minecraft.util.random.WeightedList;
++import net.minecraft.world.level.storage.loot.LootContext;
++import net.minecraft.world.level.storage.loot.Validatable;
++import net.minecraft.world.level.storage.loot.ValidationContext;
++
++public record WeightedListValue(WeightedList<Holder<NumberProvider>> distribution) implements NumberProvider {
++    public static final MapCodec<WeightedListValue> MAP_CODEC = RecordCodecBuilder.mapCodec(
++        i -> i.group(WeightedList.nonEmptyCodec(NumberProviders.CODEC).fieldOf("distribution").forGetter(c -> c.distribution)).apply(i, WeightedListValue::new)
++    );
++
++    @Override
++    public int getInt(LootContext context) {
++        return this.distribution.getRandomOrThrow(context.getRandom()).value().getInt(context);
++    }
++
++    @Override
++    public float getFloat(LootContext context) {
++        return this.distribution.getRandomOrThrow(context.getRandom()).value().getFloat(context);
++    }
++
++    @Override
++    public MapCodec<WeightedListValue> codec() {
++        return MAP_CODEC;
++    }
++
++    @Override
++    public void validate(ValidationContext context) {
++        NumberProvider.super.validate(context);
++        Validatable.validateHolder(context, "distribution", this.distribution.unwrap().stream().map(Weighted::value).toList());
++    }
++}

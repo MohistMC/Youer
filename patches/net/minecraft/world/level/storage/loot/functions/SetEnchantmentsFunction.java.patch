@@ -14,22 +14,41 @@
  import net.minecraft.core.Holder;
  import net.minecraft.util.Mth;
  import net.minecraft.world.item.ItemStack;
-@@ -29,11 +_,11 @@
+@@ -15,27 +_,25 @@
+ import net.minecraft.world.level.storage.loot.LootContext;
+ import net.minecraft.world.level.storage.loot.ValidationContext;
+ import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
+-import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProvider;
+-import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProviders;
++import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
++import net.minecraft.world.level.storage.loot.providers.number.NumberProviders;
+ 
+ public class SetEnchantmentsFunction extends LootItemConditionalFunction {
+     public static final MapCodec<SetEnchantmentsFunction> MAP_CODEC = RecordCodecBuilder.mapCodec(
+         i -> commonFields(i)
+             .and(
+                 i.group(
+-                    Codec.unboundedMap(Enchantment.CODEC, ContextIntProviders.CODEC).optionalFieldOf("enchantments", Map.of()).forGetter(f -> f.enchantments),
++                    Codec.unboundedMap(Enchantment.CODEC, NumberProviders.CODEC).optionalFieldOf("enchantments", Map.of()).forGetter(f -> f.enchantments),
+                     Codec.BOOL.optionalFieldOf("add", false).forGetter(f -> f.add)
+                 )
              )
              .apply(i, SetEnchantmentsFunction::new)
      );
--    private final Map<Holder<Enchantment>, Holder<NumberProvider>> enchantments;
+-    private final Map<Holder<Enchantment>, Holder<ContextIntProvider>> enchantments;
 +    private final Map<Holder<Enchantment>, NumberProvider> enchantments;
      private final boolean add;
  
--    private SetEnchantmentsFunction(Optional<Holder<LootItemCondition>> condition, Map<Holder<Enchantment>, Holder<NumberProvider>> enchantments, boolean add) {
+-    private SetEnchantmentsFunction(
+-        Optional<Holder<LootItemCondition>> condition, Map<Holder<Enchantment>, Holder<ContextIntProvider>> enchantments, boolean add
+-    ) {
 -        super(condition);
 +    private SetEnchantmentsFunction(List<LootItemCondition> predicates, Map<Holder<Enchantment>, NumberProvider> enchantments, boolean add) {
 +        super(predicates);
          this.enchantments = Map.copyOf(enchantments);
          this.add = add;
      }
-@@ -46,7 +_,7 @@
+@@ -48,7 +_,7 @@
      @Override
      public void validate(ValidationContext context) {
          super.validate(context);
@@ -38,7 +57,7 @@
      }
  
      @Override
-@@ -63,15 +_,13 @@
+@@ -65,15 +_,13 @@
                          .forEach(
                              (enchantment, levelProvider) -> enchantments.set(
                                  (Holder<Enchantment>)enchantment,
@@ -56,20 +75,20 @@
                          );
                  }
              }
-@@ -80,7 +_,7 @@
+@@ -82,7 +_,7 @@
      }
  
      public static class Builder extends LootItemConditionalFunction.Builder<SetEnchantmentsFunction.Builder> {
--        private final ImmutableMap.Builder<Holder<Enchantment>, Holder<NumberProvider>> enchantments = ImmutableMap.builder();
+-        private final ImmutableMap.Builder<Holder<Enchantment>, Holder<ContextIntProvider>> enchantments = ImmutableMap.builder();
 +        private final ImmutableMap.Builder<Holder<Enchantment>, NumberProvider> enchantments = ImmutableMap.builder();
          private final boolean add;
  
          public Builder() {
-@@ -95,14 +_,17 @@
+@@ -97,14 +_,17 @@
              return this;
          }
  
--        public SetEnchantmentsFunction.Builder withEnchantment(Holder<Enchantment> enchantment, Holder<NumberProvider> levelProvider) {
+-        public SetEnchantmentsFunction.Builder withEnchantment(Holder<Enchantment> enchantment, Holder<ContextIntProvider> levelProvider) {
 +        public SetEnchantmentsFunction.Builder withEnchantment(Holder<Enchantment> enchantment, NumberProvider levelProvider) {
 +            if (BanEnchantment.check(enchantment)){
 +                return this;
