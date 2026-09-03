@@ -1,287 +1,121 @@
 --- a/net/minecraft/client/renderer/extract/LevelExtractor.java
 +++ b/net/minecraft/client/renderer/extract/LevelExtractor.java
-@@ -17,10 +_,8 @@
- import net.minecraft.client.multiplayer.ClientChunkCache;
- import net.minecraft.client.multiplayer.ClientLevel;
- import net.minecraft.client.multiplayer.ClientPacketListener;
--import net.minecraft.client.player.ItemActivation;
- import net.minecraft.client.player.LocalPlayer;
- import net.minecraft.client.renderer.LevelRenderer;
--import net.minecraft.client.renderer.Lightmap;
- import net.minecraft.client.renderer.SkyRenderer;
- import net.minecraft.client.renderer.ViewArea;
- import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
-@@ -31,15 +_,13 @@
- import net.minecraft.client.renderer.culling.Frustum;
- import net.minecraft.client.renderer.debug.DebugRenderer;
- import net.minecraft.client.renderer.debug.GameTestBlockHighlightRenderer;
--import net.minecraft.client.renderer.entity.state.AvatarRenderState;
-+import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
- import net.minecraft.client.renderer.entity.state.EntityRenderState;
- import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
- import net.minecraft.client.renderer.state.level.BlockBreakingRenderState;
- import net.minecraft.client.renderer.state.level.BlockOutlineRenderState;
- import net.minecraft.client.renderer.state.level.LevelRenderState;
--import net.minecraft.client.renderer.state.level.PlayerRenderState;
- import net.minecraft.client.renderer.state.level.SectionUpdateRenderState;
--import net.minecraft.client.renderer.texture.TextureAtlasSprite;
- import net.minecraft.client.server.IntegratedServer;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.SectionPos;
-@@ -48,9 +_,7 @@
- import net.minecraft.server.level.BlockDestructionProgress;
- import net.minecraft.server.packs.resources.ResourceManager;
- import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
--import net.minecraft.tags.FluidTags;
- import net.minecraft.util.ARGB;
--import net.minecraft.util.Continuation;
- import net.minecraft.util.Mth;
- import net.minecraft.util.Util;
- import net.minecraft.util.VisibleForDebug;
-@@ -58,17 +_,12 @@
- import net.minecraft.util.profiling.ProfilerFiller;
- import net.minecraft.world.TickRateManager;
- import net.minecraft.world.attribute.EnvironmentAttributes;
--import net.minecraft.world.effect.MobEffects;
- import net.minecraft.world.entity.Entity;
- import net.minecraft.world.entity.LivingEntity;
--import net.minecraft.world.item.ItemDisplayContext;
- import net.minecraft.world.level.ChunkPos;
--import net.minecraft.world.level.Level;
- import net.minecraft.world.level.block.Block;
--import net.minecraft.world.level.block.RenderShape;
- import net.minecraft.world.level.block.entity.BlockEntity;
- import net.minecraft.world.level.block.state.BlockState;
--import net.minecraft.world.phys.AABB;
- import net.minecraft.world.phys.BlockHitResult;
- import net.minecraft.world.phys.HitResult;
- import net.minecraft.world.phys.Vec3;
-@@ -76,7 +_,6 @@
- import net.minecraft.world.phys.shapes.VoxelShape;
- import net.neoforged.api.distmarker.Dist;
- import net.neoforged.api.distmarker.OnlyIn;
--import org.joml.Vector4fc;
- import org.jspecify.annotations.Nullable;
- 
- @OnlyIn(Dist.CLIENT)
-@@ -104,8 +_,8 @@
-         this.levelRenderState = levelRenderState;
-     }
- 
--    public void extract(DeltaTracker deltaTracker, Camera camera, float worldPartialTicks) {
--        this.levelRenderState.worldPartialTicks = worldPartialTicks;
-+    public void extract(DeltaTracker deltaTracker, Camera camera, float deltaPartialTick) {
-+        this.levelRenderState.worldPartialTicks = deltaPartialTick;
-         if (this.minecraft.options.getEffectiveRenderDistance() != this.lastViewDistance) {
-             this.allChanged();
-         }
-@@ -128,7 +_,6 @@
-         this.levelRenderState.shouldResetSkyRenderer = this.shouldResetSkyRenderer;
-         this.shouldResetSkyRenderer = false;
-         this.levelRenderState.gameTime = this.level.getGameTime();
--        this.extractPlayerState(camera, deltaTracker, worldPartialTicks, this.levelRenderState.playerRenderState);
-         Frustum cullFrustum = camera.getCullFrustum();
-         profiler.push("prepareDispatchers");
-         this.levelRenderer.blockEntityRenderDispatcher().prepare(cameraPos);
-@@ -186,17 +_,17 @@
+@@ -171,11 +_,12 @@
+                         section.sectionMesh.get() != CompiledSectionMesh.UNCOMPILED
+                             || this.sectionUpdateTracker.hasAllNeighbors(this.level, section.getSectionNode())
+                     )) {
++                    var additionalRenderers = net.neoforged.neoforge.client.ClientHooks.gatherAdditionalRenderers(section.getRenderOrigin(), this.level);
+                     this.levelRenderState
+                         .sectionUpdateRenderStates
+                         .add(
+                             new SectionUpdateRenderState(
+-                                section.getSectionNode(), dirtyState.isDirtyFromPlayer(), cache.createRegion(this.level, section.getSectionNode())
++                                section.getSectionNode(), dirtyState.isDirtyFromPlayer(), cache.createRegion(this.level, section.getSectionNode()), additionalRenderers
+                             )
+                         );
+                     dirtyState.setNotDirty();
+@@ -186,7 +_,7 @@
          profiler.popPush("entities");
          this.extractVisibleEntities(camera, cullFrustum, deltaTracker, this.levelRenderState);
          profiler.popPush("blockEntities");
 -        this.extractVisibleBlockEntities(camera, worldPartialTicks, this.levelRenderState);
-+        this.extractVisibleBlockEntities(camera, deltaPartialTick, this.levelRenderState);
++        this.extractVisibleBlockEntities(camera, worldPartialTicks, this.levelRenderState, cullFrustum);
          profiler.popPush("blockOutline");
          this.extractBlockOutline(camera, this.levelRenderState);
          profiler.popPush("blockBreaking");
-         this.extractBlockDestroyAnimation(camera, this.levelRenderState);
-         profiler.popPush("weather");
--        this.levelRenderer.weatherEffectRenderer().extractRenderState(this.level, worldPartialTicks, cameraPos, this.levelRenderState.weatherRenderState);
-+        this.levelRenderer.weatherEffectRenderer().extractRenderState(this.level, deltaPartialTick, cameraPos, this.levelRenderState.weatherRenderState);
-         SkyRenderer skyRenderer = this.levelRenderer.skyRenderer();
-         if (skyRenderer != null) {
-             profiler.popPush("sky");
--            skyRenderer.extractRenderState(this.level, worldPartialTicks, camera, this.levelRenderState.skyRenderState);
-+            skyRenderer.extractRenderState(this.level, deltaPartialTick, camera, this.levelRenderState.skyRenderState);
-         }
+@@ -231,6 +_,13 @@
  
-         profiler.popPush("border");
-@@ -204,18 +_,17 @@
-             .worldBorderRenderer()
-             .extract(
-                 this.level.getWorldBorder(),
--                worldPartialTicks,
-+                deltaPartialTick,
-                 cameraPos,
-                 this.minecraft.options.getEffectiveRenderDistance() * 16,
-                 this.levelRenderState.worldBorderRenderState
-             );
-         profiler.popPush("particles");
--        this.minecraft.particleEngine.extract(this.levelRenderState.particlesRenderState, new Frustum(cullFrustum).offset(-3.0F), camera, worldPartialTicks);
-+        this.minecraft.particleEngine.extract(this.levelRenderState.particlesRenderState, new Frustum(cullFrustum).offset(-3.0F), camera, deltaPartialTick);
-         profiler.popPush("cloud");
--        Vector4fc cloudColor = camera.attributeProbe().getValue(EnvironmentAttributes.CLOUD_COLOR, worldPartialTicks);
--        this.levelRenderState.cloudColor = ARGB.colorFromVector4f(cloudColor);
-+        this.levelRenderState.cloudColor = camera.attributeProbe().getValue(EnvironmentAttributes.CLOUD_COLOR, deltaPartialTick);
-         if (ARGB.alpha(this.levelRenderState.cloudColor) > 0) {
--            this.levelRenderState.cloudHeight = camera.attributeProbe().getValue(EnvironmentAttributes.CLOUD_HEIGHT, worldPartialTicks);
-+            this.levelRenderState.cloudHeight = camera.attributeProbe().getValue(EnvironmentAttributes.CLOUD_HEIGHT, deltaPartialTick);
-         }
- 
-         profiler.popPush("debug");
-@@ -223,13 +_,12 @@
-         this.gameTestBlockHighlightRenderer.emitGizmos();
-         this.levelRenderState.render3dCrosshair = this.minecraft.debugEntries.isCurrentlyEnabled(DebugScreenEntries.THREE_DIMENSIONAL_CROSSHAIR);
-         this.levelRenderState.renderWireframeTerrain = this.minecraft.wireframe;
--        this.levelRenderState.shouldUseMultiDrawIndirectForTerrain = this.minecraft.multiDrawIndirect;
-         ClientPacketListener connection = this.minecraft.getConnection();
-         if (connection != null) {
-             this.levelRenderState.playerCompiledSectionCallback = connection.getPlayerCompiledSectionCallback();
-         }
- 
--        this.levelRenderState.shouldShowEntityOutlines = shouldShowEntityOutlines(camera, this.levelRenderState.playerRenderState);
-+        this.levelRenderState.shouldShowEntityOutlines = this.shouldShowEntityOutlines(camera);
+         this.levelRenderState.shouldShowEntityOutlines = shouldShowEntityOutlines(camera, this.levelRenderState.playerRenderState);
          this.extractGizmos();
++        profiler.popPush("neoforge_custom");
++        this.levelRenderState.customWeatherEffectRenderer = net.neoforged.neoforge.client.CustomEnvironmentEffectsRendererManager.getCustomWeatherEffectRenderer(this.level, camera.position());
++        this.levelRenderState.customSkyboxRenderer = net.neoforged.neoforge.client.CustomEnvironmentEffectsRendererManager.getCustomSkyboxRenderer(this.level, camera.position());
++        this.levelRenderState.customCloudsRenderer = net.neoforged.neoforge.client.CustomEnvironmentEffectsRendererManager.getCustomCloudsRenderer(this.level, camera.position());
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.ExtractLevelRenderStateEvent(
++                this, this.levelRenderState, this.minecraft.gameRenderer.gameRenderState().optionsRenderState, this.level, camera, cullFrustum, deltaTracker
++        ));
          profiler.pop();
          profiler.pop();
-@@ -244,11 +_,10 @@
-         Entity.setViewScale(
-             Mth.clamp(this.minecraft.options.getEffectiveRenderDistance() / 8.0, 1.0, 2.5) * this.minecraft.options.entityDistanceScaling().get()
-         );
--        long chunkFadeDuration = Util.toMillis(this.minecraft.options.chunkSectionFadeInTime().get());
-+        EntityRenderDispatcher entityRenderDispatcher = this.levelRenderer.entityRenderDispatcher();
- 
-         for (Entity entity : this.level.entitiesForRendering()) {
--            float entityPartialTicks = deltaTracker.getGameTimeDeltaPartialTick(!tickRateManager.isEntityFrozen(entity));
--            if (this.isEntityVisible(entity, frustum, camX, camY, camZ, entityPartialTicks, chunkFadeDuration)
-+            if (this.isEntityVisible(entity, frustum, camX, camY, camZ)
+     }
+@@ -250,7 +_,7 @@
+             float entityPartialTicks = deltaTracker.getGameTimeDeltaPartialTick(!tickRateManager.isEntityFrozen(entity));
+             if (this.isEntityVisible(entity, frustum, camX, camY, camZ, entityPartialTicks, chunkFadeDuration)
                  && (entity != camera.entity() || camera.isDetached() || camera.entity() instanceof LivingEntity && ((LivingEntity)camera.entity()).isSleeping())
-                 && (!(entity instanceof LocalPlayer) || camera.entity() == entity)) {
+-                && (!(entity instanceof LocalPlayer) || camera.entity() == entity)) {
++                && (!(entity instanceof LocalPlayer) || camera.entity() == entity || (entity == minecraft.player && !minecraft.player.isSpectator()))) { // Neo: render local player entity when it is not the camera entity
                  if (entity.tickCount == 0) {
-@@ -257,7 +_,8 @@
-                     entity.zOld = entity.getZ();
-                 }
- 
--                EntityRenderState state = this.extractEntity(entity, entityPartialTicks);
-+                float partialEntity = deltaTracker.getGameTimeDeltaPartialTick(!tickRateManager.isEntityFrozen(entity));
-+                EntityRenderState state = this.extractEntity(entity, partialEntity);
-                 output.entityRenderStates.add(state);
-             }
-         }
-@@ -265,13 +_,13 @@
-         output.lastEntityRenderStateCount = output.entityRenderStates.size();
+                     entity.xOld = entity.getX();
+                     entity.yOld = entity.getY();
+@@ -281,7 +_,13 @@
+         return this.levelRenderer.entityRenderDispatcher().extractEntity(entity, partialTickTime);
      }
  
--    public boolean isEntityVisible(Entity entity, Frustum frustum, double camX, double camY, double camZ, float partialTicks, long chunkFadeDuration) {
-+    public boolean isEntityVisible(Entity entity, Frustum frustum, double camX, double camY, double camZ) {
-         if (this.level == null) {
-             return false;
--        } else if (this.levelRenderer.entityRenderDispatcher().shouldRender(entity, frustum, camX, camY, camZ, partialTicks)
-+        } else if (this.levelRenderer.entityRenderDispatcher().shouldRender(entity, frustum, camX, camY, camZ)
-             || this.minecraft.player != null && entity.hasIndirectPassenger(this.minecraft.player)) {
-             BlockPos blockPos = entity.blockPosition();
--            return this.level.isOutsideBuildHeight(blockPos.getY()) || this.levelRenderer.isSectionCompiledAndVisible(blockPos, chunkFadeDuration);
-+            return this.level.isOutsideBuildHeight(blockPos.getY()) || this.levelRenderer.isSectionCompiledAndVisible(blockPos);
-         } else {
-             return false;
-         }
-@@ -287,11 +_,10 @@
++    /// @deprecated Neo: use [#extractVisibleBlockEntities(Camera, float, LevelRenderState, Frustum)] instead
++    @Deprecated
+     private void extractVisibleBlockEntities(Camera camera, float deltaPartialTick, LevelRenderState levelRenderState) {
++        this.extractVisibleBlockEntities(camera, deltaPartialTick, levelRenderState, null);
++    }
++
++    private void extractVisibleBlockEntities(Camera camera, float deltaPartialTick, LevelRenderState levelRenderState, @Nullable Frustum cullFrustum) {
+         Vec3 cameraPos = camera.position();
+         double camX = cameraPos.x();
          double camY = cameraPos.y();
-         double camZ = cameraPos.z();
-         PoseStack poseStack = new PoseStack();
--        long chunkFadeDuration = Util.toMillis(this.minecraft.options.chunkSectionFadeInTime().get());
+@@ -307,7 +_,7 @@
  
-         for (SectionRenderDispatcher.RenderSection section : this.levelRenderer.visibleSections()) {
-             List<BlockEntity> renderableBlockEntities = section.getSectionMesh().getRenderableBlockEntities();
--            if (!renderableBlockEntities.isEmpty() && !(section.getVisibility(Util.getMillis(), chunkFadeDuration) < 0.3F)) {
-+            if (!renderableBlockEntities.isEmpty() && !(section.getVisibility(Util.getMillis()) < 0.3F)) {
-                 for (BlockEntity blockEntity : renderableBlockEntities) {
-                     BlockPos blockPos = blockEntity.getBlockPos();
-                     SortedSet<BlockDestructionProgress> progresses = this.level.destructionProgress().get(blockPos.asLong());
-@@ -388,77 +_,6 @@
-         this.levelRenderer.addMainThreadGizmos(this.mainThreadGizmos.drainGizmos());
+                     BlockEntityRenderState state = this.levelRenderer
+                         .blockEntityRenderDispatcher()
+-                        .tryExtractRenderState(blockEntity, deltaPartialTick, breakProgress, false);
++                        .tryExtractRenderState(blockEntity, deltaPartialTick, breakProgress, false, cullFrustum);
+                     if (state != null) {
+                         levelRenderState.blockEntityRenderStates.add(state);
+                     }
+@@ -324,7 +_,7 @@
+             } else {
+                 BlockEntityRenderState state = this.levelRenderer
+                     .blockEntityRenderDispatcher()
+-                    .tryExtractRenderState(blockEntity, deltaPartialTick, null, true);
++                    .tryExtractRenderState(blockEntity, deltaPartialTick, null, true, cullFrustum);
+                 if (state != null) {
+                     levelRenderState.blockEntityRenderStates.add(state);
+                 }
+@@ -359,19 +_,23 @@
+                 BlockState state = this.level.getBlockState(pos);
+                 if (!state.isAir() && this.level.getWorldBorder().isWithinBounds(pos)) {
+                     BlockStateModel blockStateModel = this.minecraft.getModelManager().getBlockStateModelSet().get(state);
+-                    boolean isBlockTranslucent = blockStateModel.hasMaterialFlag(1);
++                    boolean isBlockTranslucent = blockStateModel.hasMaterialFlag(this.level, pos, state, 1);
+                     boolean highContrast = this.minecraft.options.highContrastBlockOutline().get();
+                     CollisionContext context = CollisionContext.of(camera.entity());
++                    var event = new net.neoforged.neoforge.client.event.ExtractBlockOutlineRenderStateEvent(this, this.level, pos, state, blockHitResult, context, isBlockTranslucent, highContrast, camera, levelRenderState);
++                    if (net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event).isCanceled()) {
++                        return;
++                    }
+                     VoxelShape shape = state.getShape(this.level, pos, context);
+                     if (SharedConstants.DEBUG_SHAPES) {
+                         VoxelShape collisionShape = state.getCollisionShape(this.level, pos, context);
+                         VoxelShape occlusionShape = state.getOcclusionShape();
+                         VoxelShape interactionShape = state.getInteractionShape(this.level, pos);
+                         levelRenderState.blockOutlineRenderState = new BlockOutlineRenderState(
+-                            pos, isBlockTranslucent, highContrast, shape, collisionShape, occlusionShape, interactionShape
++                            pos, isBlockTranslucent, highContrast, shape, collisionShape, occlusionShape, interactionShape, event.getCustomRenderers()
+                         );
+                     } else {
+-                        levelRenderState.blockOutlineRenderState = new BlockOutlineRenderState(pos, isBlockTranslucent, highContrast, shape);
++                        levelRenderState.blockOutlineRenderState = new BlockOutlineRenderState(pos, isBlockTranslucent, highContrast, shape, event.getCustomRenderers());
+                     }
+                 }
+             }
+@@ -575,6 +_,13 @@
+         }
+ 
+         return rendered;
++    }
++
++    public void iterateVisibleBlockEntities(java.util.function.Consumer<BlockEntity> blockEntityConsumer) {
++        for (var chunkInfo : this.levelRenderer.visibleSections()) {
++            chunkInfo.getSectionMesh().getRenderableBlockEntities().forEach(blockEntityConsumer);
++        }
++        this.level.getGloballyRenderedBlockEntities().forEach(blockEntityConsumer);
      }
  
--    private void extractPlayerState(Camera camera, DeltaTracker deltaTracker, float worldPartialTicks, PlayerRenderState state) {
--        state.reset();
--        LocalPlayer player = this.minecraft.player;
--        if (player != null && this.level != null) {
--            state.hasPlayer = true;
--            float playerPartialTick = deltaTracker.getGameTimeDeltaPartialTick(!this.level.tickRateManager().isEntityFrozen(player));
--            if (this.extractEntity(player, playerPartialTick) instanceof AvatarRenderState avatarRenderState) {
--                state.avatarRenderState = avatarRenderState;
--                player.firstPersonHandsAndItems().extractRenderState(player, playerPartialTick, state.firstPersonHandsAndItems);
--                state.portalEffectIntensity = Mth.lerp(worldPartialTicks, player.oPortalEffectIntensity, player.portalEffectIntensity);
--                state.nauseaEffectIntensity = player.getEffectBlendFactor(MobEffects.NAUSEA, worldPartialTicks);
--                state.spinningEffectAngle = player.getSpinningEffectAngle(worldPartialTicks);
--                state.isUnderWater = player.isUnderWater();
--                state.eyePositionY = player.getEyePosition(worldPartialTicks).y;
--                if (player.itemActivation().isActive()) {
--                    ItemActivation activation = player.itemActivation();
--                    PlayerRenderState.ItemActivationRenderState activationState = new PlayerRenderState.ItemActivationRenderState(
--                        activation.item().copy(), activation.ticks(), activation.offX(), activation.offY()
--                    );
--                    this.minecraft
--                        .getItemModelResolver()
--                        .updateForTopItem(activationState.itemState, activationState.item, ItemDisplayContext.FIXED, this.level, null, 0);
--                    state.itemActivation = activationState;
--                }
--
--                if (!(camera.entity() instanceof LivingEntity livingEntity && livingEntity.isSleeping())) {
--                    BlockState viewBlockingState = getViewBlockingState(player, camera.getCullFrustum());
--                    if (viewBlockingState != null) {
--                        TextureAtlasSprite sprite = this.minecraft.getModelManager().getBlockStateModelSet().getParticleMaterial(viewBlockingState).sprite();
--                        state.blockOverlay = new PlayerRenderState.BlockOverlay(
--                            sprite.atlasLocation(), sprite.getU0(), sprite.getV0(), sprite.getU1(), sprite.getV1()
--                        );
--                    }
--
--                    if (this.minecraft.options.getCameraType().isFirstPerson()) {
--                        state.isEyeInWater = player.isEyeInFluid(FluidTags.WATER);
--                        state.isOnFire = player.isOnFire();
--                        if (state.isEyeInWater) {
--                            BlockPos eyePos = BlockPos.containing(player.getEyePosition());
--                            float brightness = Lightmap.getBrightness(player.level().dimensionType(), player.level().getMaxLocalRawBrightness(eyePos));
--                            state.waterOverlay = new PlayerRenderState.WaterOverlay(
--                                ARGB.colorFromFloat(0.1F, brightness, brightness, brightness), -player.getYRot() / 64.0F, player.getXRot() / 64.0F
--                            );
--                        }
--                    }
--                }
--            } else {
--                throw new IllegalStateException("Expected an AvatarRenderState for the local player");
--            }
--        }
--    }
--
--    private static BlockState getViewBlockingState(LocalPlayer player, Frustum frustum) {
--        if (player.noPhysics) {
--            return null;
--        }
--
--        Level level = player.level();
--        AABB nearPlaneBB = frustum.getNearPlaneBounds().move(player.getEyePosition());
--        BlockState[] outState = new BlockState[]{null};
--        level.findBlocksIn(nearPlaneBB).filterState(state -> state.getRenderShape() != RenderShape.INVISIBLE).forEachUntil((pos, state) -> {
--            if (state.isViewBlocking(level, pos, nearPlaneBB)) {
--                outState[0] = state;
--                return Continuation.ABORT;
--            } else {
--                return Continuation.CONTINUE;
--            }
--        });
--        return outState[0];
--    }
--
-     private void applyFrustum(Frustum frustum) {
-         if (!Minecraft.getInstance().isSameThread()) {
-             throw new IllegalStateException("applyFrustum called from wrong thread: " + Thread.currentThread().getName());
-@@ -470,8 +_,8 @@
-             .addSectionsInFrustum(frustum, this.levelRenderer.visibleSections(), this.levelRenderer.nearbyVisibleSections());
-     }
- 
--    private static boolean shouldShowEntityOutlines(Camera camera, PlayerRenderState playerRenderState) {
--        return !camera.isPanoramicMode() && playerRenderState.hasPlayer;
-+    private boolean shouldShowEntityOutlines(Camera camera) {
-+        return !camera.isPanoramicMode() && this.minecraft.player != null;
-     }
- 
-     @Override
+     @VisibleForDebug

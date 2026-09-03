@@ -1,180 +1,47 @@
 --- a/net/minecraft/client/gui/screens/advancements/AdvancementTab.java
 +++ b/net/minecraft/client/gui/screens/advancements/AdvancementTab.java
-@@ -3,17 +_,19 @@
- import com.google.common.collect.Maps;
- import com.mojang.blaze3d.platform.cursor.CursorTypes;
- import java.util.Map;
-+import java.util.Optional;
- import net.minecraft.advancements.AdvancementHolder;
- import net.minecraft.advancements.AdvancementNode;
- import net.minecraft.advancements.DisplayInfo;
- import net.minecraft.client.Minecraft;
- import net.minecraft.client.gui.GuiGraphicsExtractor;
- import net.minecraft.client.renderer.RenderPipelines;
-+import net.minecraft.client.renderer.texture.TextureManager;
-+import net.minecraft.core.ClientAsset;
- import net.minecraft.network.chat.Component;
- import net.minecraft.resources.Identifier;
- import net.minecraft.util.Mth;
- import net.minecraft.world.item.ItemStack;
--import net.minecraft.world.item.ItemStackTemplate;
- import net.neoforged.api.distmarker.Dist;
- import net.neoforged.api.distmarker.OnlyIn;
- import org.jspecify.annotations.Nullable;
-@@ -24,7 +_,8 @@
-     private final AdvancementsScreen screen;
-     private final AdvancementTabType type;
-     private final int index;
--    private final Identifier background;
-+    private final AdvancementNode rootNode;
-+    private final DisplayInfo display;
-     private final ItemStack icon;
-     private final Component title;
-     private final AdvancementWidget root;
-@@ -39,35 +_,17 @@
+@@ -38,6 +_,7 @@
+     private float fade;
      private boolean centered;
      private @Nullable AdvancementWidget hovered;
++    private int page;
  
--    public AdvancementTab(
--        Minecraft minecraft,
--        AdvancementsScreen screen,
--        AdvancementTabType type,
--        int index,
--        AdvancementWidget root,
--        ItemStackTemplate icon,
--        Component title,
--        Identifier background
--    ) {
-+    public AdvancementTab(Minecraft minecraft, AdvancementsScreen screen, AdvancementTabType type, int index, AdvancementNode rootNode, DisplayInfo display) {
-         this.minecraft = minecraft;
-         this.screen = screen;
-         this.type = type;
-         this.index = index;
--        this.background = background;
--        this.icon = icon.create();
--        this.title = title;
--        this.root = root;
--        this.addWidget(root);
--    }
--
--    public void copyPosition(AdvancementTab source) {
--        this.scrollX = source.scrollX;
--        this.scrollY = source.scrollY;
--        this.minX = source.minX;
--        this.minY = source.minY;
--        this.maxX = source.maxX;
--        this.maxY = source.maxY;
--        this.centered = source.centered;
-+        this.rootNode = rootNode;
-+        this.display = display;
-+        this.icon = display.getIcon().create();
-+        this.title = display.getTitle();
-+        this.root = new AdvancementWidget(this, minecraft, rootNode, display);
-+        this.addWidget(this.root, rootNode.holder());
+     public AdvancementTab(
+         Minecraft minecraft,
+@@ -60,6 +_,25 @@
+         this.addWidget(root);
      }
  
-     public AdvancementTabType getType() {
-@@ -78,14 +_,18 @@
-         return this.index;
-     }
- 
--    public AdvancementHolder getRootAdvancement() {
--        return this.root.getAdvancement();
-+    public AdvancementNode getRootNode() {
-+        return this.rootNode;
-     }
- 
-     public Component getTitle() {
-         return this.title;
-     }
- 
-+    public DisplayInfo getDisplay() {
-+        return this.display;
++    public AdvancementTab(
++        Minecraft minecraft,
++        AdvancementsScreen screen,
++        AdvancementTabType type,
++        int index,
++        int page,
++        AdvancementWidget root,
++        ItemStackTemplate icon,
++        Component title,
++        Identifier background
++    ) {
++        this(minecraft, screen, type, index, root, icon, title, background);
++        this.page = page;
 +    }
 +
-     public void tick(int relativeMouseX, int relativeMouseY) {
-         boolean hovering = false;
-         if (relativeMouseX > 0 && relativeMouseX < 234 && relativeMouseY > 0 && relativeMouseY < 113) {
-@@ -134,6 +_,7 @@
-         graphics.enableScissor(windowLeft, windowTop, windowLeft + 234, windowTop + 113);
-         graphics.pose().pushMatrix();
-         graphics.pose().translate(windowLeft, windowTop);
-+        Identifier background = this.display.getBackground().map(ClientAsset.ResourceTexture::texturePath).orElse(TextureManager.INTENTIONAL_MISSING_TEXTURE);
-         int intScrollX = Mth.floor(this.scrollX);
-         int intScrollY = Mth.floor(this.scrollY);
-         int left = intScrollX % 16;
-@@ -141,7 +_,7 @@
- 
-         for (int x = -1; x <= 15; x++) {
-             for (int y = -1; y <= 8; y++) {
--                graphics.blit(RenderPipelines.GUI_TEXTURED, this.background, left + 16 * x, top + 16 * y, 0.0F, 0.0F, 16, 16, 16, 16);
-+                graphics.blit(RenderPipelines.GUI_TEXTURED, background, left + 16 * x, top + 16 * y, 0.0F, 0.0F, 16, 16, 16, 16);
-             }
-         }
- 
-@@ -157,7 +_,7 @@
-         if (this.hovered != null) {
-             int intScrollX = Mth.floor(this.scrollX);
-             int intScrollY = Mth.floor(this.scrollY);
--            this.hovered.extractHover(graphics, intScrollX, intScrollY, this.fade, xo, yo, this.screen.width);
-+            this.hovered.extractHover(graphics, intScrollX, intScrollY, this.fade, xo, yo);
-         }
-     }
- 
-@@ -166,21 +_,14 @@
-     }
- 
-     public static @Nullable AdvancementTab create(Minecraft minecraft, AdvancementsScreen screen, int index, AdvancementNode root) {
--        AdvancementWidget rootWidget = AdvancementWidget.createWidget(minecraft, root);
--        if (rootWidget == null) {
--            return null;
--        }
--
--        DisplayInfo rootDisplay = rootWidget.getDisplay();
--        if (rootDisplay.background().isEmpty()) {
--            return null;
--        }
--
--        Identifier background = rootDisplay.background().get().texturePath();
-+        Optional<DisplayInfo> display = root.advancement().display();
-+        if (display.isEmpty()) {
-+            return null;
-+        }
++    public int getPage() {
++        return page;
++    }
++
+     public void copyPosition(AdvancementTab source) {
+         this.scrollX = source.scrollX;
+         this.scrollY = source.scrollY;
+@@ -179,8 +_,8 @@
+         Identifier background = rootDisplay.background().get().texturePath();
  
          for (AdvancementTabType type : AdvancementTabType.values()) {
-             if (index < type.getMax()) {
+-            if (index < type.getMax()) {
 -                return new AdvancementTab(minecraft, screen, type, index, rootWidget, rootDisplay.icon(), rootDisplay.title(), background);
-+                return new AdvancementTab(minecraft, screen, type, index, root, display.get());
++            if ((index % AdvancementTabType.MAX_TABS) < type.getMax()) {
++                return new AdvancementTab(minecraft, screen, type, index % AdvancementTabType.MAX_TABS, index / AdvancementTabType.MAX_TABS, rootWidget, rootDisplay.icon(), rootDisplay.title(), background);
              }
  
              index -= type.getMax();
-@@ -208,14 +_,15 @@
-     }
- 
-     public void addAdvancement(AdvancementNode node) {
--        AdvancementWidget widget = AdvancementWidget.createWidget(this.minecraft, node);
--        if (widget != null) {
--            this.addWidget(widget);
-+        Optional<DisplayInfo> display = node.advancement().display();
-+        if (!display.isEmpty()) {
-+            AdvancementWidget widget = new AdvancementWidget(this, this.minecraft, node, display.get());
-+            this.addWidget(widget, node.holder());
-         }
-     }
- 
--    private void addWidget(AdvancementWidget widget) {
--        this.widgets.put(widget.getAdvancement(), widget);
-+    private void addWidget(AdvancementWidget widget, AdvancementHolder advancement) {
-+        this.widgets.put(advancement, widget);
-         int x0 = widget.getX();
-         int x1 = x0 + 28;
-         int y0 = widget.getY();
-@@ -226,7 +_,7 @@
-         this.maxY = Math.max(this.maxY, y1);
- 
-         for (AdvancementWidget other : this.widgets.values()) {
--            other.attachToParent(this);
-+            other.attachToParent();
-         }
-     }
- 

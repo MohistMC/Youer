@@ -1,278 +1,47 @@
 --- a/com/mojang/renderpearl/api/pipeline/RenderPipeline.java
 +++ b/com/mojang/renderpearl/api/pipeline/RenderPipeline.java
-@@ -2,14 +_,10 @@
- 
- import com.mojang.renderpearl.api.vertex.VertexFormat;
- import it.unimi.dsi.fastutil.objects.ObjectOpenHashSet;
--import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
--import it.unimi.dsi.fastutil.objects.ReferenceLists;
- import java.util.Arrays;
- import java.util.Collection;
- import java.util.Collections;
--import java.util.EnumMap;
- import java.util.List;
--import java.util.Map;
- import java.util.Optional;
- import java.util.Set;
- import java.util.Map.Entry;
-@@ -24,45 +_,45 @@
- @OnlyIn(Dist.CLIENT)
- public class RenderPipeline {
-     private final Identifier location;
--    private final Map<ShaderType, Identifier> shaders;
-+    private final Identifier vertexShader;
-+    private final Identifier fragmentShader;
-     private final ShaderDefines shaderDefines;
-     private final List<BindGroupLayout> bindGroupLayouts;
-     private final @Nullable DepthStencilState depthStencilState;
-     private final PolygonMode polygonMode;
-     private final boolean cull;
--    private final List<@Nullable ColorTargetState> colorTargetStates;
--    private final List<@Nullable VertexFormat> vertexFormatPerBuffer;
-+    private final @Nullable ColorTargetState[] colorTargetStates;
-+    private final @Nullable VertexFormat[] vertexFormatPerBuffer = new VertexFormat[16];
-     private final PrimitiveTopology primitiveTopology;
--    private final int pushConstantSize;
-     private final int sortKey;
-     private static int sortKeySeed;
- 
-     protected RenderPipeline(
-         Identifier location,
--        Map<ShaderType, Identifier> shaders,
-+        Identifier vertexShader,
-+        Identifier fragmentShader,
-         ShaderDefines shaderDefines,
--        Collection<BindGroupLayout> bindGroupLayouts,
-+        List<BindGroupLayout> bindGroupLayouts,
-         @Nullable ColorTargetState[] colorTargetStates,
-         @Nullable DepthStencilState depthStencilState,
-         PolygonMode polygonMode,
-         boolean cull,
-         @Nullable VertexFormat[] vertexFormatPerBuffer,
-         PrimitiveTopology primitiveTopology,
--        int pushConstantSize,
-         int sortKey
-     ) {
-         this.location = location;
--        this.shaders = Collections.unmodifiableMap(new EnumMap<>(shaders));
-+        this.vertexShader = vertexShader;
-+        this.fragmentShader = fragmentShader;
-         this.shaderDefines = shaderDefines;
--        this.bindGroupLayouts = List.copyOf(bindGroupLayouts);
-+        this.bindGroupLayouts = bindGroupLayouts;
-         this.depthStencilState = depthStencilState;
-         this.polygonMode = polygonMode;
-         this.cull = cull;
--        this.colorTargetStates = ReferenceLists.unmodifiable(new ReferenceArrayList<>(colorTargetStates));
--        this.vertexFormatPerBuffer = ReferenceLists.unmodifiable(new ReferenceArrayList<>(vertexFormatPerBuffer));
-+        this.colorTargetStates = colorTargetStates;
-         this.primitiveTopology = primitiveTopology;
--        this.pushConstantSize = pushConstantSize;
-         this.sortKey = sortKey;
-+        System.arraycopy(vertexFormatPerBuffer, 0, this.vertexFormatPerBuffer, 0, this.vertexFormatPerBuffer.length);
+@@ -130,6 +_,44 @@
+         return this.pushConstantSize;
      }
  
-     public int getSortKey() {
-@@ -86,7 +_,7 @@
-         return this.cull;
-     }
- 
--    public List<@Nullable ColorTargetState> getColorTargetStates() {
-+    public @Nullable ColorTargetState[] getColorTargetStates() {
-         return this.colorTargetStates;
-     }
- 
-@@ -98,20 +_,24 @@
-         return this.location;
-     }
- 
--    public List<@Nullable VertexFormat> getVertexFormatBindings() {
-+    public @Nullable VertexFormat[] getVertexFormatBindings() {
-         return this.vertexFormatPerBuffer;
-     }
- 
-     public @Nullable VertexFormat getVertexFormatBinding(int bindingIndex) {
--        return this.vertexFormatPerBuffer.get(bindingIndex);
-+        return this.vertexFormatPerBuffer[bindingIndex];
-     }
- 
-     public PrimitiveTopology getPrimitiveTopology() {
-         return this.primitiveTopology;
-     }
- 
--    public Map<ShaderType, Identifier> getShaders() {
--        return this.shaders;
-+    public Identifier getVertexShader() {
-+        return this.vertexShader;
++    /// Neo: Create a [RenderPipeline.Builder] from this [RenderPipeline] to adjust its configuration and
++    /// build a new, modified [RenderPipeline] from it
++    public RenderPipeline.Builder toBuilder() {
++        RenderPipeline.Builder builder = new RenderPipeline.Builder();
++        builder.location = Optional.of(this.location);
++        builder.shaders.putAll(this.shaders);
++        if (!this.shaderDefines.isEmpty()) {
++            ShaderDefines.Builder defBuilder = ShaderDefines.builder();
++            for (Entry<String, String> entry : this.shaderDefines.values().entrySet()) {
++                defBuilder.define(entry.getKey(), entry.getValue());
++            }
++            for (String flag : this.shaderDefines.flags()) {
++                defBuilder.define(flag);
++            }
++            builder.definesBuilder = Optional.of(defBuilder);
++        }
++        if (!this.bindGroupLayouts.isEmpty()) {
++            builder.bindGroupLayouts = Optional.of(new ObjectOpenHashSet<>(this.bindGroupLayouts));
++        }
++        builder.depthStencilState = Optional.ofNullable(this.depthStencilState);
++        builder.polygonMode = Optional.of(this.polygonMode);
++        builder.cull = Optional.of(this.cull);
++        for (int i = 0; i < builder.colorTargetStates.length && i < this.colorTargetStates.size(); i++) {
++            builder.colorTargetStates[i] = this.colorTargetStates.get(i);
++        }
++        for (int i = 0; i < this.colorTargetStates.size(); i++) {
++            if (this.colorTargetStates.get(i) != null) {
++                builder.activeColorTargetStateCount = i + 1;
++            }
++        }
++        for (int i = 0; i < builder.vertexFormatPerBuffer.length && i < this.vertexFormatPerBuffer.size(); i++) {
++            builder.vertexFormatPerBuffer[i] = this.vertexFormatPerBuffer.get(i);
++        }
++        builder.primitiveTopology = Optional.of(this.primitiveTopology);
++        builder.pushConstantSize = this.pushConstantSize;
++        return builder;
 +    }
 +
-+    public Identifier getFragmentShader() {
-+        return this.fragmentShader;
-     }
- 
-     public ShaderDefines getShaderDefines() {
-@@ -126,10 +_,6 @@
-         return this.depthStencilState != null;
-     }
- 
--    public int pushConstantSize() {
--        return this.pushConstantSize;
--    }
--
      public static RenderPipeline.Builder builder(RenderPipeline.Snippet... snippets) {
          RenderPipeline.Builder builder = new RenderPipeline.Builder();
  
-@@ -143,7 +_,8 @@
-     public static class Builder {
-         private static int nextPipelineSortKey;
-         private Optional<Identifier> location = Optional.empty();
--        private final Map<ShaderType, Identifier> shaders = new EnumMap<>(ShaderType.class);
-+        private Optional<Identifier> fragmentShader = Optional.empty();
-+        private Optional<Identifier> vertexShader = Optional.empty();
-         private Optional<ShaderDefines.Builder> definesBuilder = Optional.empty();
-         private Optional<Set<BindGroupLayout>> bindGroupLayouts = Optional.empty();
-         private Optional<DepthStencilState> depthStencilState = Optional.empty();
-@@ -153,7 +_,6 @@
-         private int activeColorTargetStateCount;
-         private final @Nullable VertexFormat[] vertexFormatPerBuffer = new VertexFormat[16];
-         private Optional<PrimitiveTopology> primitiveTopology = Optional.empty();
--        private int pushConstantSize = 0;
- 
-         private Builder() {
-         }
-@@ -169,20 +_,22 @@
-         }
- 
-         public RenderPipeline.Builder withFragmentShader(String fragmentShader) {
--            return this.withFragmentShader(Identifier.withDefaultNamespace(fragmentShader));
-+            this.fragmentShader = Optional.of(Identifier.withDefaultNamespace(fragmentShader));
-+            return this;
-         }
- 
-         public RenderPipeline.Builder withFragmentShader(Identifier fragmentShader) {
--            this.shaders.put(ShaderType.FRAGMENT, fragmentShader);
-+            this.fragmentShader = Optional.of(fragmentShader);
-             return this;
-         }
- 
-         public RenderPipeline.Builder withVertexShader(String vertexShader) {
--            return this.withVertexShader(Identifier.withDefaultNamespace(vertexShader));
-+            this.vertexShader = Optional.of(Identifier.withDefaultNamespace(vertexShader));
-+            return this;
-         }
- 
-         public RenderPipeline.Builder withVertexShader(Identifier vertexShader) {
--            this.shaders.put(ShaderType.VERTEX, vertexShader);
-+            this.vertexShader = Optional.of(vertexShader);
-             return this;
-         }
- 
-@@ -277,13 +_,15 @@
-             return this;
-         }
- 
--        public RenderPipeline.Builder withPushConstantSize(int pushConstantSize) {
--            this.pushConstantSize = pushConstantSize;
--            return this;
--        }
--
--        public RenderPipeline.Builder withSnippet(RenderPipeline.Snippet snippet) {
--            this.shaders.putAll(snippet.shaders);
-+        private void withSnippet(RenderPipeline.Snippet snippet) {
-+            if (snippet.vertexShader.isPresent()) {
-+                this.vertexShader = snippet.vertexShader;
-+            }
-+
-+            if (snippet.fragmentShader.isPresent()) {
-+                this.fragmentShader = snippet.fragmentShader;
-+            }
-+
-             if (snippet.shaderDefines.isPresent()) {
-                 if (this.definesBuilder.isEmpty()) {
-                     this.definesBuilder = Optional.of(ShaderDefines.builder());
-@@ -337,14 +_,12 @@
-             if (snippet.polygonMode.isPresent()) {
-                 this.polygonMode = snippet.polygonMode;
-             }
--
--            this.pushConstantSize = Math.max(this.pushConstantSize, snippet.pushConstantSize);
--            return this;
-         }
- 
-         public RenderPipeline.Snippet buildSnippet() {
-             return new RenderPipeline.Snippet(
--                Collections.unmodifiableMap(new EnumMap<>(this.shaders)),
-+                this.vertexShader,
-+                this.fragmentShader,
-                 this.definesBuilder.map(ShaderDefines.Builder::build),
-                 this.bindGroupLayouts.map(List::copyOf),
-                 this.colorTargetStates,
-@@ -353,8 +_,7 @@
-                 this.polygonMode,
-                 this.cull,
-                 this.vertexFormatPerBuffer,
--                this.primitiveTopology,
--                this.pushConstantSize
-+                this.primitiveTopology
-             );
-         }
- 
-@@ -363,11 +_,11 @@
-                 throw new IllegalStateException("Missing location");
-             }
- 
--            if (!this.shaders.containsKey(ShaderType.VERTEX)) {
-+            if (this.vertexShader.isEmpty()) {
-                 throw new IllegalStateException("Missing vertex shader");
-             }
- 
--            if (!this.shaders.containsKey(ShaderType.FRAGMENT)) {
-+            if (this.fragmentShader.isEmpty()) {
-                 throw new IllegalStateException("Missing fragment shader");
-             }
- 
-@@ -406,21 +_,19 @@
- 
-             if (boundVertexAttribCount > 16) {
-                 throw new IllegalStateException("Binding more than 16 vertex attributes is not supported");
--            } else if (this.pushConstantSize > 128) {
--                throw new IllegalStateException("Maximum push constant size is 128 bytes");
-             } else {
-                 return new RenderPipeline(
-                     this.location.get(),
--                    this.shaders,
-+                    this.vertexShader.get(),
-+                    this.fragmentShader.get(),
-                     this.definesBuilder.orElse(ShaderDefines.builder()).build(),
--                    this.bindGroupLayouts.orElse(Collections.emptySet()),
-+                    List.copyOf(this.bindGroupLayouts.orElse(Collections.emptySet())),
-                     activeColorTargetStates,
-                     this.depthStencilState.orElse(null),
-                     this.polygonMode.orElse(PolygonMode.FILL),
-                     this.cull.orElse(true),
-                     this.vertexFormatPerBuffer,
-                     this.primitiveTopology.get(),
--                    this.pushConstantSize,
-                     nextPipelineSortKey++
-                 );
-             }
-@@ -428,7 +_,8 @@
-     }
- 
-     public record Snippet(
--        Map<ShaderType, Identifier> shaders,
-+        Optional<Identifier> vertexShader,
-+        Optional<Identifier> fragmentShader,
-         Optional<ShaderDefines> shaderDefines,
-         Optional<List<BindGroupLayout>> bindGroupLayouts,
-         @Nullable ColorTargetState[] colorTargetStates,
-@@ -437,8 +_,7 @@
-         Optional<PolygonMode> polygonMode,
-         Optional<Boolean> cull,
-         @Nullable VertexFormat[] vertexFormatPerBuffer,
--        Optional<PrimitiveTopology> vertexFormatMode,
--        int pushConstantSize
-+        Optional<PrimitiveTopology> vertexFormatMode
-     ) {
-     }
- }

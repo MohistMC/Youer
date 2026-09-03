@@ -203,8 +203,16 @@
      public static final String TAG_CUSTOM_NAME = "CustomName";
      public static final int INVALID_ENTITY_ID = 0;
      public static final int CONTENTS_SLOT_INDEX = 0;
-@@ -209,8 +_,9 @@
-     private static final double LAVA_SLOW_FLOW_SCALE = 0.0023333333333333335;
+@@ -204,13 +_,14 @@
+     public static final int FREEZE_HURT_FREQUENCY = 40;
+     public static final int BASE_SAFE_FALL_DISTANCE = 3;
+     private static final AABB INITIAL_AABB = new AABB(0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+-    public static final double WATER_FLOW_SCALE = 0.014;
+-    public static final double LAVA_FAST_FLOW_SCALE = 0.007;
+-    public static final double LAVA_SLOW_FLOW_SCALE = 0.0023333333333333335;
++    private static final double WATER_FLOW_SCALE = 0.014;
++    private static final double LAVA_FAST_FLOW_SCALE = 0.007;
++    private static final double LAVA_SLOW_FLOW_SCALE = 0.0023333333333333335;
      private static final int MAX_BLOCK_ITERATIONS_ALONG_TRAVEL_PER_TICK = 16;
      private static final double MAX_MOVEMENT_RESETTING_TRACE_DISTANCE = 8.0;
 -    private static final Set<TagKey<Fluid>> FLUIDS_WITH_CURRENT = Set.of(FluidTags.WATER, FluidTags.LAVA);
@@ -237,13 +245,14 @@
      public double zOld;
 +    public float maxUpStep; // Purpur - Add option to set armorstand step height
      public boolean noPhysics;
--    public final RandomSource random = RandomSource.create();
+-    protected final RandomSource random = RandomSource.create();
 +    public final RandomSource random; // Paper - Share random for entities to make them more random // Purpur - Add toggle for RNG manipulation
      public int tickCount;
      private int remainingFireTicks;
 -    private final EntityFluidInteraction fluidInteraction = new EntityFluidInteraction(FLUIDS_WITH_CURRENT);
+-    protected boolean wasTouchingWater;
 +    private final EntityFluidInteraction fluidInteraction = new EntityFluidInteraction(Set.of(FluidTags.WATER, FluidTags.LAVA));
-     public boolean wasTouchingWater;
++    public boolean wasTouchingWater;
      protected boolean wasEyeInWater;
 -    private int invulnerableTime;
 +    public int invulnerableTime;
@@ -256,18 +265,23 @@
      public boolean syncPosition;
 -    public boolean syncVelocity;
      public @Nullable PortalProcessor portalProcess;
-     public int portalCooldown;
+-    private int portalCooldown;
 -    private boolean permanentlyInvulnerable;
 -    protected UUID uuid = Mth.createInsecureUUID(this.random);
 -    protected String stringUUID = this.uuid.toString();
++    public int portalCooldown;
 +    private boolean invulnerable;
 +    protected UUID uuid; // Purpur - Add toggle for RNG manipulation
 +    protected String stringUUID; // Purpur - Add toggle for RNG manipulation
      private boolean hasGlowingTag;
      private final Set<String> tags = Sets.newHashSet();
      private final double[] pistonDeltas = new double[]{0.0, 0.0, 0.0};
-@@ -299,23 +_,249 @@
-     public boolean hasVisualFire;
+@@ -296,26 +_,252 @@
+     private boolean onGroundNoBlocks = false;
+     private float crystalSoundIntensity;
+     private int lastCrystalSoundPlayTick;
+-    private boolean hasVisualFire;
++    public boolean hasVisualFire;
      private Vec3 lastKnownSpeed = Vec3.ZERO;
      private @Nullable Vec3 lastKnownPosition;
 +    public net.kyori.adventure.util.TriState visualFire = net.kyori.adventure.util.TriState.NOT_SET; // Paper - improve visual fire API
@@ -1029,6 +1043,15 @@
      private double getBlockBounciness(Block onBlock) {
          float blockBounciness = onBlock.getBounceRestitution();
          if (!(this instanceof LivingEntity)) {
+@@ -1011,7 +_,7 @@
+         }
+     }
+ 
+-    protected boolean isAffectedByBlocks() {
++    public boolean isAffectedByBlocks() {
+         return !this.isRemoved() && !this.noPhysics;
+     }
+ 
 @@ -1091,16 +_,14 @@
      }
  
@@ -2072,7 +2095,7 @@
          }
      }
  
--    public final boolean doTeamsAllowDamage(Entity other) {
+-    public boolean doTeamsAllowDamage(Entity other) {
 -        Team team = this.getTeam();
 -        Team otherTeam = other.getTeam();
 -        if (team == null) {
@@ -2817,6 +2840,15 @@
          return newEntity != null;
      }
  
+@@ -3450,7 +_,7 @@
+         }
+     }
+ 
+-    private void teleportPassengers() {
++    public void teleportPassengers() {
+         this.getSelfAndPassengers().forEach(entity -> {
+             for (Entity passenger : entity.passengers) {
+                 entity.positionRider(passenger, Entity::snapTo);
 @@ -3489,6 +_,8 @@
          EntityDimensions oldDim = this.dimensions;
          Pose pose = this.getPose();

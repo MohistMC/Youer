@@ -1,0 +1,1069 @@
+/*
+ * Copyright (c) Forge Development LLC and contributors
+ * SPDX-License-Identifier: LGPL-2.1-only
+ */
+
+package net.neoforged.neoforge.client;
+
+import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Lists;
+import com.google.common.collect.MultimapBuilder;
+import com.mojang.blaze3d.framegraph.FrameGraphBuilder;
+import com.mojang.blaze3d.pipeline.MainTarget;
+import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.platform.Window;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
+import com.mojang.datafixers.util.Either;
+import com.mojang.renderpearl.api.GpuFormat;
+import it.unimi.dsi.fastutil.floats.FloatComparators;
+import it.unimi.dsi.fastutil.objects.Object2BooleanMap;
+import it.unimi.dsi.fastutil.objects.Object2BooleanMaps;
+import it.unimi.dsi.fastutil.objects.Object2BooleanOpenHashMap;
+import it.unimi.dsi.fastutil.objects.ObjectIterator;
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.SequencedMap;
+import java.util.Set;
+import java.util.Stack;
+import java.util.UUID;
+import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+import joptsimple.ArgumentAcceptingOptionSpec;
+import joptsimple.ValueConverter;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.Camera;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.MouseHandler;
+import net.minecraft.client.Options;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.Hud;
+import net.minecraft.client.gui.components.LerpingBossEvent;
+import net.minecraft.client.gui.components.debug.DebugEntryCategory;
+import net.minecraft.client.gui.components.debug.DebugScreenEntries;
+import net.minecraft.client.gui.components.toasts.Toast;
+import net.minecraft.client.gui.screens.MenuScreens;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.TitleScreen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.client.gui.screens.inventory.EffectsInInventory;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
+import net.minecraft.client.input.CharacterEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
+import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.client.model.Model;
+import net.minecraft.client.model.geom.EntityModelSet;
+import net.minecraft.client.model.geom.ModelLayerLocation;
+import net.minecraft.client.model.geom.ModelPart;
+import net.minecraft.client.model.geom.builders.LayerDefinition;
+import net.minecraft.client.model.object.skull.SkullModelBase;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.multiplayer.ClientPacketListener;
+import net.minecraft.client.multiplayer.MultiPlayerGameMode;
+import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.client.particle.ParticleResources;
+import net.minecraft.client.player.ClientInput;
+import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.LevelTargetBundle;
+import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.block.FluidModel;
+import net.minecraft.client.renderer.block.ModelBlockRenderer;
+import net.minecraft.client.renderer.blockentity.SkullBlockRenderer;
+import net.minecraft.client.renderer.chunk.ChunkSectionLayer;
+import net.minecraft.client.renderer.chunk.RenderSectionRegion;
+import net.minecraft.client.renderer.fog.FogData;
+import net.minecraft.client.renderer.fog.environment.FogEnvironment;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
+import net.minecraft.client.renderer.state.level.PlayerRenderState;
+import net.minecraft.client.renderer.texture.SpriteLoader;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.language.I18n;
+import net.minecraft.client.resources.model.EquipmentClientInfo;
+import net.minecraft.client.resources.model.ModelBakery;
+import net.minecraft.client.resources.model.ModelManager;
+import net.minecraft.client.resources.model.sprite.AtlasManager;
+import net.minecraft.client.resources.model.sprite.MaterialBaker;
+import net.minecraft.client.resources.model.sprite.SpriteGetter;
+import net.minecraft.client.resources.sounds.SoundInstance;
+import net.minecraft.client.sounds.SoundEngine;
+import net.minecraft.commands.SharedSuggestionProvider;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.locale.Language;
+import net.minecraft.network.Connection;
+import net.minecraft.network.chat.ChatType;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FormattedText;
+import net.minecraft.network.chat.PlayerChatMessage;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.metadata.MetadataSectionType;
+import net.minecraft.server.packs.resources.ReloadableResourceManager;
+import net.minecraft.sounds.Music;
+import net.minecraft.util.ARGB;
+import net.minecraft.util.profiling.ProfilerFiller;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.HumanoidArm;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.inventory.tooltip.TooltipComponent;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.RecipeMap;
+import net.minecraft.world.level.GameType;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.SkullBlock;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.material.Fluid;
+import net.minecraft.world.level.material.FluidState;
+import net.minecraft.world.level.material.Fluids;
+import net.minecraft.world.level.material.FogType;
+import net.neoforged.bus.api.Event;
+import net.neoforged.fml.ModLoader;
+import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.neoforge.client.config.NeoForgeClientConfig;
+import net.neoforged.neoforge.client.entity.animation.json.AnimationTypeManager;
+import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
+import net.neoforged.neoforge.client.event.AddSectionGeometryEvent;
+import net.neoforged.neoforge.client.event.CalculateDetachedCameraDistanceEvent;
+import net.neoforged.neoforge.client.event.CalculatePlayerTurnEvent;
+import net.neoforged.neoforge.client.event.ClientChatEvent;
+import net.neoforged.neoforge.client.event.ClientChatReceivedEvent;
+import net.neoforged.neoforge.client.event.ClientPauseChangeEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerChangeGameTypeEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.ClientResourceLoadFinishedEvent;
+import net.neoforged.neoforge.client.event.ClientTickEvent;
+import net.neoforged.neoforge.client.event.ComputeFovModifierEvent;
+import net.neoforged.neoforge.client.event.ConfigureMainRenderTargetEvent;
+import net.neoforged.neoforge.client.event.CustomizeGuiOverlayEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.FrameGraphSetupEvent;
+import net.neoforged.neoforge.client.event.GatherEffectScreenTooltipsEvent;
+import net.neoforged.neoforge.client.event.InitializeClientRegistriesEvent;
+import net.neoforged.neoforge.client.event.InputEvent;
+import net.neoforged.neoforge.client.event.ModelEvent;
+import net.neoforged.neoforge.client.event.MovementInputUpdateEvent;
+import net.neoforged.neoforge.client.event.PlayerHeartTypeEvent;
+import net.neoforged.neoforge.client.event.RegisterFluidModelsEvent;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
+import net.neoforged.neoforge.client.event.RegisterPictureInPictureRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterTextureAtlasesEvent;
+import net.neoforged.neoforge.client.event.RenderArmEvent;
+import net.neoforged.neoforge.client.event.RenderBlockScreenEffectEvent;
+import net.neoforged.neoforge.client.event.RenderFrameEvent;
+import net.neoforged.neoforge.client.event.RenderHandEvent;
+import net.neoforged.neoforge.client.event.RenderTooltipEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
+import net.neoforged.neoforge.client.event.ScreenshotEvent;
+import net.neoforged.neoforge.client.event.SelectMusicEvent;
+import net.neoforged.neoforge.client.event.TextureAtlasStitchedEvent;
+import net.neoforged.neoforge.client.event.ToastAddEvent;
+import net.neoforged.neoforge.client.event.ViewportEvent;
+import net.neoforged.neoforge.client.event.WindowResizeEvent;
+import net.neoforged.neoforge.client.event.sound.PlaySoundEvent;
+import net.neoforged.neoforge.client.extensions.common.ClientExtensionsManager;
+import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
+import net.neoforged.neoforge.client.extensions.common.IClientItemExtensions;
+import net.neoforged.neoforge.client.extensions.common.IClientMobEffectExtensions;
+import net.neoforged.neoforge.client.gamerules.GameRuleEntryFactoryManager;
+import net.neoforged.neoforge.client.gui.ClientTooltipComponentManager;
+import net.neoforged.neoforge.client.gui.PictureInPictureRendererRegistration;
+import net.neoforged.neoforge.client.gui.map.MapDecorationRendererManager;
+import net.neoforged.neoforge.client.model.block.BlockStateModelHooks;
+import net.neoforged.neoforge.client.pipeline.PipelineModifiers;
+import net.neoforged.neoforge.client.renderstate.BaseRenderState;
+import net.neoforged.neoforge.client.renderstate.RegisterRenderStateModifiersEvent;
+import net.neoforged.neoforge.common.CommonHooks;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.common.NeoForgeBuildType;
+import net.neoforged.neoforge.common.NeoForgeMod;
+import net.neoforged.neoforge.common.NeoForgeVersion;
+import net.neoforged.neoforge.internal.BrandingControl;
+import net.neoforged.neoforge.internal.NeoForgeVersionCheck;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.Marker;
+import org.apache.logging.log4j.MarkerManager;
+import org.jetbrains.annotations.ApiStatus;
+import org.joml.Matrix4fc;
+import org.joml.Vector2ic;
+import org.joml.Vector4f;
+import org.jspecify.annotations.Nullable;
+
+/**
+ * Class for various client-side-only hooks.
+ */
+public class ClientHooks {
+    private static final Logger LOGGER = LogManager.getLogger();
+    private static final Marker CLIENTHOOKS = MarkerManager.getMarker("CLIENTHOOKS");
+
+    //private static final Identifier ITEM_GLINT = Identifier.withDefaultNamespace("textures/misc/enchanted_item_glint.png");
+
+    /**
+     * Called by {@link Hud.HeartType#forPlayer} to allow for modification of the displayed heart type in the
+     * health bar.
+     *
+     * @param player    The local {@link Player}
+     * @param heartType The {@link Hud.HeartType} which would be displayed by vanilla
+     * @return The heart type which should be displayed
+     */
+    public static Hud.HeartType firePlayerHeartTypeEvent(Player player, Hud.HeartType heartType) {
+        return NeoForge.EVENT_BUS.post(new PlayerHeartTypeEvent(player, heartType)).getType();
+    }
+
+    public static Identifier getArmorTexture(ItemStack armor, EquipmentClientInfo.LayerType type, EquipmentClientInfo.Layer layer, Identifier _default) {
+        Identifier result = IClientItemExtensions.of(armor).getArmorTexture(armor, type, layer, _default);
+        return result != null ? result : _default;
+    }
+
+    public static boolean onClientPauseChangePre(boolean pause) {
+        var event = NeoForge.EVENT_BUS.post(new ClientPauseChangeEvent.Pre(pause));
+        return event.isCanceled();
+    }
+
+    public static void onClientPauseChangePost(boolean pause) {
+        NeoForge.EVENT_BUS.post(new ClientPauseChangeEvent.Post(pause));
+    }
+
+    public static boolean renderSpecificFirstPersonHand(InteractionHand hand, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, int packedLight, float partialTick, float interpPitch, float swingProgress, float equipProgress, ItemStack stack) {
+        return NeoForge.EVENT_BUS.post(new RenderHandEvent(hand, poseStack, submitNodeCollector, packedLight, partialTick, interpPitch, swingProgress, equipProgress, stack)).isCanceled();
+    }
+
+    public static boolean renderSpecificFirstPersonArm(
+            PoseStack poseStack,
+            SubmitNodeCollector submitNodeCollector,
+            int lightCoords,
+            Identifier skinTexture,
+            boolean hasSleeve,
+            PlayerRenderState renderState,
+            HumanoidArm arm,
+            ModelPart armPart) {
+        return NeoForge.EVENT_BUS.post(new RenderArmEvent(poseStack, submitNodeCollector, lightCoords, skinTexture, hasSleeve, renderState, arm, armPart)).isCanceled();
+    }
+
+    public static void onTextureAtlasStitched(TextureAtlas atlas) {
+        ModLoader.postEvent(new TextureAtlasStitchedEvent(atlas));
+    }
+
+    /** Copies humanoid model properties from the original model to another, used for armor models */
+    public static void copyModelProperties(HumanoidModel<?> original, HumanoidModel<?> replacement) {
+        copyModelPartProperties(original.head, replacement.head);
+        copyModelPartProperties(original.hat, replacement.hat);
+        copyModelPartProperties(original.body, replacement.body);
+        copyModelPartProperties(original.rightArm, replacement.rightArm);
+        copyModelPartProperties(original.leftArm, replacement.leftArm);
+        copyModelPartProperties(original.rightLeg, replacement.rightLeg);
+        copyModelPartProperties(original.leftLeg, replacement.leftLeg);
+    }
+
+    private static void copyModelPartProperties(ModelPart original, ModelPart replacement) {
+        replacement.visible = original.visible;
+        replacement.x = original.x;
+        replacement.y = original.y;
+        replacement.z = original.z;
+        replacement.xRot = original.xRot;
+        replacement.yRot = original.yRot;
+        replacement.zRot = original.zRot;
+        replacement.xScale = original.xScale;
+        replacement.yScale = original.yScale;
+        replacement.zScale = original.zScale;
+    }
+
+    //This properly moves the domain, if provided, to the front of the string before concatenating
+    public static String fixDomain(String base, String complex) {
+        int idx = complex.indexOf(':');
+        if (idx == -1) {
+            return base + complex;
+        }
+
+        String name = complex.substring(idx + 1, complex.length());
+        if (idx > 1) {
+            String domain = complex.substring(0, idx);
+            return domain + ':' + base + name;
+        } else {
+            return base + name;
+        }
+    }
+
+    public static float getFieldOfViewModifier(Player entity, float fovModifier, float fovScale) {
+        ComputeFovModifierEvent fovModifierEvent = new ComputeFovModifierEvent(entity, fovModifier, fovScale);
+        NeoForge.EVENT_BUS.post(fovModifierEvent);
+        return fovModifierEvent.getNewFovModifier();
+    }
+
+    public static float getFieldOfView(GameRenderer renderer, Camera camera, float partialTick, float fov) {
+        ViewportEvent.ComputeFov event = new ViewportEvent.ComputeFov(renderer, camera, partialTick, fov);
+        NeoForge.EVENT_BUS.post(event);
+        return event.getFOV();
+    }
+
+    public static CalculatePlayerTurnEvent getTurnPlayerValues(double mouseSensitivity, boolean cinematicCameraEnabled) {
+        var event = new CalculatePlayerTurnEvent(mouseSensitivity, cinematicCameraEnabled);
+        NeoForge.EVENT_BUS.post(event);
+        return event;
+    }
+
+    public static float getDetachedCameraDistance(Camera camera, boolean flipped, float entityScale, float entityDistance, float vehicleEntityScale, float vehicleDistance) {
+        var event = new CalculateDetachedCameraDistanceEvent(camera, flipped, entityScale, entityDistance, vehicleEntityScale, vehicleDistance);
+        NeoForge.EVENT_BUS.post(event);
+        return event.getDistance();
+    }
+
+    public static void renderMainMenu(TitleScreen gui, GuiGraphicsExtractor guiGraphics, Font font, int width, int height, int alpha) {
+        switch (NeoForgeVersion.getBuildType()) {
+            case NeoForgeBuildType.PULL_REQUEST -> {
+                guiGraphics.centeredText(font, Component.translatable("loadwarning.neoforge.prbuild"), width / 2, 4 + (font.lineHeight + 1) / 2, ARGB.color(alpha, 0xFFFFFF));
+            }
+            case NeoForgeBuildType.BETA -> {
+                // Render a warning at the top of the screen
+                Component line = Component.translatable("neoforge.update.beta.1", ChatFormatting.RED.toString(), ChatFormatting.RESET.toString()).withStyle(ChatFormatting.RED);
+                guiGraphics.centeredText(font, line, width / 2, 4 + (0 * (font.lineHeight + 1)), ARGB.color(alpha, 0xFFFFFF));
+                line = Component.translatable("neoforge.update.beta.2");
+                guiGraphics.centeredText(font, line, width / 2, 4 + (1 * (font.lineHeight + 1)), ARGB.color(alpha, 0xFFFFFF));
+            }
+        }
+
+        BrandingControl.setForgeStatusLine(switch (NeoForgeVersionCheck.getStatus()) {
+            // case FAILED -> " Version check failed";
+            // case UP_TO_DATE -> "Forge up to date";
+            // case AHEAD -> "Using non-recommended Forge build, issues may arise.";
+            case OUTDATED, BETA_OUTDATED -> I18n.get("neoforge.update.newversion", NeoForgeVersionCheck.getTarget());
+            default -> null;
+        });
+    }
+
+    @Nullable
+    public static SoundInstance playSound(SoundEngine manager, SoundInstance sound) {
+        PlaySoundEvent e = new PlaySoundEvent(manager, sound);
+        NeoForge.EVENT_BUS.post(e);
+        return e.getSound();
+    }
+
+    @Nullable
+    public static Music selectMusic(Music situational, @Nullable SoundInstance playing) {
+        SelectMusicEvent e = new SelectMusicEvent(situational, playing);
+        NeoForge.EVENT_BUS.post(e);
+        return e.getMusic();
+    }
+
+    public static void extractScreen(Screen screen, Stack<Screen> backgroundLayers, GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
+        for (Screen layer : backgroundLayers) {
+            // Prevent the background layers from thinking the mouse is over their controls and showing them as highlighted.
+            extractScreenInternal(layer, guiGraphics, Integer.MAX_VALUE, Integer.MAX_VALUE, partialTick);
+            guiGraphics.nextStratum();
+        }
+        extractScreenInternal(screen, guiGraphics, mouseX, mouseY, partialTick);
+    }
+
+    private static void extractScreenInternal(Screen screen, GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
+        if (!NeoForge.EVENT_BUS.post(new ScreenEvent.Render.Pre(screen, guiGraphics, mouseX, mouseY, partialTick)).isCanceled()) {
+            screen.extractRenderStateWithTooltipAndSubtitles(guiGraphics, mouseX, mouseY, partialTick);
+        }
+        NeoForge.EVENT_BUS.post(new ScreenEvent.Render.Post(screen, guiGraphics, mouseX, mouseY, partialTick));
+    }
+
+    public static void getFogColor(Camera camera, float partialTick, ClientLevel level, int renderDistance, float darkenWorldAmount, float fogRed, float fogGreen, float fogBlue, Vector4f dest) {
+        // Modify fog color depending on the fluid
+        FluidState state = level.getFluidState(camera.blockPosition());
+        dest.set(fogRed, fogGreen, fogBlue, 1F);
+        if (camera.position().y < (double) ((float) camera.blockPosition().getY() + state.getHeight(level, camera.blockPosition())))
+            IClientFluidTypeExtensions.of(state).modifyFogColor(camera, partialTick, level, renderDistance, darkenWorldAmount, dest);
+
+        ViewportEvent.ComputeFogColor event = new ViewportEvent.ComputeFogColor(camera, partialTick, dest);
+        NeoForge.EVENT_BUS.post(event);
+    }
+
+    public static void onSetupFog(@Nullable FogEnvironment environment, FogType type, Camera camera, float partialTick, float renderDistance, FogData fogData) {
+        // Modify fog rendering depending on the fluid
+        FluidState state = camera.entity().level().getFluidState(camera.blockPosition());
+        if (camera.position().y < (double) ((float) camera.blockPosition().getY() + state.getHeight(camera.entity().level(), camera.blockPosition())))
+            IClientFluidTypeExtensions.of(state).modifyFogRender(camera, environment, renderDistance, partialTick, fogData);
+
+        NeoForge.EVENT_BUS.post(new ViewportEvent.RenderFog(environment, type, camera, partialTick, fogData));
+    }
+
+    public static void onModifyBakingResult(ModelBakery.BakingResult bakingResult, SpriteLoader.Preparations spriteLoaderPreparations, ModelBakery modelBakery) {
+        Function<Identifier, TextureAtlasSprite> textureGetter = location -> {
+            TextureAtlasSprite sprite = spriteLoaderPreparations.getSprite(location);
+            if (sprite != null) {
+                return sprite;
+            }
+            LOGGER.warn("Failed to retrieve texture '{}' from the block atlas", location, new Throwable());
+            return spriteLoaderPreparations.missing();
+        };
+        ModLoader.postEvent(new ModelEvent.ModifyBakingResult(bakingResult, textureGetter, modelBakery));
+    }
+
+    public static void onModelBake(ModelManager modelManager, ModelBakery.BakingResult bakingResult, ModelBakery modelBakery) {
+        ModLoader.postEvent(new ModelEvent.BakingCompleted(modelManager, bakingResult, modelBakery));
+    }
+
+    public static boolean loadEntityShader(@Nullable Entity entity, GameRenderer gameRenderer) {
+        if (entity != null) {
+            Identifier shader = EntitySpectatorShaderManager.get(entity.getType());
+            if (shader != null) {
+                gameRenderer.setSpectatedEntityPostEffect(shader);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static int slotMainHand = 0;
+
+    public static boolean shouldCauseReequipAnimation(ItemStack from, ItemStack to, int slot) {
+        boolean fromInvalid = from.isEmpty();
+        boolean toInvalid = to.isEmpty();
+
+        if (fromInvalid && toInvalid) return false;
+        if (fromInvalid || toInvalid) return true;
+
+        boolean changed = false;
+        if (slot != -1) {
+            changed = slot != slotMainHand;
+            slotMainHand = slot;
+        }
+        return from.getItem().shouldCauseReequipAnimation(from, to, changed);
+    }
+
+    public static CustomizeGuiOverlayEvent.BossEventProgress onCustomizeBossEventProgress(GuiGraphicsExtractor guiGraphics, Window window, LerpingBossEvent bossInfo, int x, int y, int increment) {
+        CustomizeGuiOverlayEvent.BossEventProgress evt = new CustomizeGuiOverlayEvent.BossEventProgress(window, guiGraphics,
+                Minecraft.getInstance().getDeltaTracker(), bossInfo, x, y, increment);
+        NeoForge.EVENT_BUS.post(evt);
+        return evt;
+    }
+
+    public static ScreenshotEvent onScreenshot(NativeImage image, File screenshotFile) {
+        ScreenshotEvent event = new ScreenshotEvent(image, screenshotFile);
+        NeoForge.EVENT_BUS.post(event);
+        return event;
+    }
+
+    public static void onClientChangeGameType(PlayerInfo info, GameType currentGameMode, GameType newGameMode) {
+        if (currentGameMode != newGameMode) {
+            ClientPlayerChangeGameTypeEvent evt = new ClientPlayerChangeGameTypeEvent(info, currentGameMode, newGameMode);
+            NeoForge.EVENT_BUS.post(evt);
+        }
+    }
+
+    public static void onMovementInputUpdate(Player player, ClientInput movementInput) {
+        NeoForge.EVENT_BUS.post(new MovementInputUpdateEvent(player, movementInput));
+    }
+
+    public static boolean onScreenMouseClickedPre(Screen guiScreen, MouseButtonEvent mouseEvent, boolean doubleClick) {
+        var event = new ScreenEvent.MouseButtonPressed.Pre(guiScreen, mouseEvent, doubleClick);
+        return NeoForge.EVENT_BUS.post(event).isCanceled();
+    }
+
+    public static boolean onScreenMouseClickedPost(Screen guiScreen, MouseButtonEvent mouseEvent, boolean doubleClick, boolean handled) {
+        var event = new ScreenEvent.MouseButtonPressed.Post(guiScreen, mouseEvent, doubleClick, handled);
+        NeoForge.EVENT_BUS.post(event);
+        return event.getClickResult();
+    }
+
+    public static boolean onScreenMouseReleasedPre(Screen guiScreen, MouseButtonEvent mouseEvent) {
+        var event = new ScreenEvent.MouseButtonReleased.Pre(guiScreen, mouseEvent);
+        return NeoForge.EVENT_BUS.post(event).isCanceled();
+    }
+
+    public static boolean onScreenMouseReleasedPost(Screen guiScreen, MouseButtonEvent mouseEvent, boolean handled) {
+        var event = new ScreenEvent.MouseButtonReleased.Post(guiScreen, mouseEvent, handled);
+        NeoForge.EVENT_BUS.post(event);
+        return event.getReleaseResult();
+    }
+
+    public static boolean onScreenMouseDragPre(Screen guiScreen, MouseButtonEvent mouseEvent, double dragX, double dragY) {
+        var event = new ScreenEvent.MouseDragged.Pre(guiScreen, mouseEvent, dragX, dragY);
+        return NeoForge.EVENT_BUS.post(event).isCanceled();
+    }
+
+    public static void onScreenMouseDragPost(Screen guiScreen, MouseButtonEvent mouseEvent, double dragX, double dragY) {
+        Event event = new ScreenEvent.MouseDragged.Post(guiScreen, mouseEvent, dragX, dragY);
+        NeoForge.EVENT_BUS.post(event);
+    }
+
+    public static boolean onScreenMouseScrollPre(MouseHandler mouseHelper, Screen guiScreen, double scrollDeltaX, double scrollDeltaY) {
+        Window mainWindow = guiScreen.getMinecraft().getWindow();
+        double mouseX = mouseHelper.xpos() * (double) mainWindow.getGuiScaledWidth() / (double) mainWindow.getScreenWidth();
+        double mouseY = mouseHelper.ypos() * (double) mainWindow.getGuiScaledHeight() / (double) mainWindow.getScreenHeight();
+        var event = new ScreenEvent.MouseScrolled.Pre(guiScreen, mouseX, mouseY, scrollDeltaX, scrollDeltaY);
+        return NeoForge.EVENT_BUS.post(event).isCanceled();
+    }
+
+    public static void onScreenMouseScrollPost(MouseHandler mouseHelper, Screen guiScreen, double scrollDeltaX, double scrollDeltaY) {
+        Window mainWindow = guiScreen.getMinecraft().getWindow();
+        double mouseX = mouseHelper.xpos() * (double) mainWindow.getGuiScaledWidth() / (double) mainWindow.getScreenWidth();
+        double mouseY = mouseHelper.ypos() * (double) mainWindow.getGuiScaledHeight() / (double) mainWindow.getScreenHeight();
+        Event event = new ScreenEvent.MouseScrolled.Post(guiScreen, mouseX, mouseY, scrollDeltaX, scrollDeltaY);
+        NeoForge.EVENT_BUS.post(event);
+    }
+
+    public static boolean onScreenKeyPressedPre(Screen guiScreen, KeyEvent keyEvent) {
+        var event = new ScreenEvent.KeyPressed.Pre(guiScreen, keyEvent);
+        return NeoForge.EVENT_BUS.post(event).isCanceled();
+    }
+
+    public static boolean onScreenKeyPressedPost(Screen guiScreen, KeyEvent keyEvent) {
+        var event = new ScreenEvent.KeyPressed.Post(guiScreen, keyEvent);
+        return NeoForge.EVENT_BUS.post(event).isCanceled();
+    }
+
+    public static boolean onScreenKeyReleasedPre(Screen guiScreen, KeyEvent keyEvent) {
+        var event = new ScreenEvent.KeyReleased.Pre(guiScreen, keyEvent);
+        return NeoForge.EVENT_BUS.post(event).isCanceled();
+    }
+
+    public static boolean onScreenKeyReleasedPost(Screen guiScreen, KeyEvent keyEvent) {
+        var event = new ScreenEvent.KeyReleased.Post(guiScreen, keyEvent);
+        return NeoForge.EVENT_BUS.post(event).isCanceled();
+    }
+
+    public static boolean onScreenCharTypedPre(Screen guiScreen, CharacterEvent charEvent) {
+        var event = new ScreenEvent.CharacterTyped.Pre(guiScreen, charEvent);
+        return NeoForge.EVENT_BUS.post(event).isCanceled();
+    }
+
+    public static void onScreenCharTypedPost(Screen guiScreen, CharacterEvent charEvent) {
+        Event event = new ScreenEvent.CharacterTyped.Post(guiScreen, charEvent);
+        NeoForge.EVENT_BUS.post(event);
+    }
+
+    public static boolean onMouseButtonPre(MouseButtonInfo mouseButtonInfo, int action) {
+        return NeoForge.EVENT_BUS.post(new InputEvent.MouseButton.Pre(mouseButtonInfo, action)).isCanceled();
+    }
+
+    public static void onMouseButtonPost(MouseButtonInfo mouseButtonInfo, int action) {
+        NeoForge.EVENT_BUS.post(new InputEvent.MouseButton.Post(mouseButtonInfo, action));
+    }
+
+    public static boolean onMouseScroll(MouseHandler mouseHelper, double scrollDeltaX, double scrollDeltaY, Vector2ic acummulatedScroll) {
+        var event = new InputEvent.MouseScrollingEvent(scrollDeltaX, scrollDeltaY, acummulatedScroll, mouseHelper.isLeftPressed(), mouseHelper.isMiddlePressed(), mouseHelper.isRightPressed(), mouseHelper.xpos(), mouseHelper.ypos());
+        return NeoForge.EVENT_BUS.post(event).isCanceled();
+    }
+
+    public static void onKeyInput(KeyEvent keyEvent, int action) {
+        NeoForge.EVENT_BUS.post(new InputEvent.Key(keyEvent, action));
+    }
+
+    public static InputEvent.InteractionKeyMappingTriggered onClickInput(int button, KeyMapping keyBinding, InteractionHand hand) {
+        InputEvent.InteractionKeyMappingTriggered event = new InputEvent.InteractionKeyMappingTriggered(button, keyBinding, hand);
+        NeoForge.EVENT_BUS.post(event);
+        return event;
+    }
+
+    public static boolean shouldRenderEffect(MobEffectInstance effectInstance) {
+        return IClientMobEffectExtensions.of(effectInstance).isVisibleInInventory(effectInstance);
+    }
+
+    private static final Map<ModelLayerLocation, Supplier<LayerDefinition>> layerDefinitions = new HashMap<>();
+
+    public static void registerLayerDefinition(ModelLayerLocation layerLocation, Supplier<LayerDefinition> supplier) {
+        layerDefinitions.put(layerLocation, supplier);
+    }
+
+    public static void loadLayerDefinitions(ImmutableMap.Builder<ModelLayerLocation, LayerDefinition> builder) {
+        layerDefinitions.forEach((k, v) -> builder.put(k, v.get()));
+    }
+
+    private static final Map<SkullBlock.Type, Function<EntityModelSet, SkullModelBase>> skullModelsByType = new HashMap<>();
+
+    @Nullable
+    public static SkullModelBase getModdedSkullModel(EntityModelSet modelSet, SkullBlock.Type type) {
+        return skullModelsByType.getOrDefault(type, set -> null).apply(modelSet);
+    }
+
+    private static final Identifier ICON_SHEET = Identifier.fromNamespaceAndPath(NeoForgeMod.MOD_ID, "textures/gui/icons.png");
+
+    public static void firePlayerLogin(MultiPlayerGameMode pc, LocalPlayer player, Connection networkManager) {
+        NeoForge.EVENT_BUS.post(new ClientPlayerNetworkEvent.LoggingIn(pc, player, networkManager));
+    }
+
+    public static void firePlayerLogout(@Nullable MultiPlayerGameMode pc, @Nullable LocalPlayer player) {
+        NeoForge.EVENT_BUS.post(new ClientPlayerNetworkEvent.LoggingOut(pc, player, player != null ? player.connection != null ? player.connection.getConnection() : null : null));
+    }
+
+    public static void firePlayerRespawn(MultiPlayerGameMode pc, LocalPlayer oldPlayer, LocalPlayer newPlayer, Connection networkManager) {
+        NeoForge.EVENT_BUS.post(new ClientPlayerNetworkEvent.Clone(pc, oldPlayer, newPlayer, networkManager));
+    }
+
+    public static void onRegisterParticleProviders(ParticleResources particleResources) {
+        ModLoader.postEvent(new RegisterParticleProvidersEvent(particleResources));
+    }
+
+    @ApiStatus.Internal
+    public static void onRegisterKeyMappings(Options options, List<KeyMapping.Category> categories) {
+        RegisterKeyMappingsEvent event = new RegisterKeyMappingsEvent(options);
+        ModLoader.postEvent(event);
+        event.sortAndStoreCategories(categories);
+    }
+
+    @Nullable
+    public static Component onClientChat(ChatType.Bound boundChatType, Component message, UUID sender) {
+        ClientChatReceivedEvent event = new ClientChatReceivedEvent(boundChatType, message, sender);
+        return NeoForge.EVENT_BUS.post(event).isCanceled() ? null : event.getMessage();
+    }
+
+    @Nullable
+    public static Component onClientPlayerChat(ChatType.Bound boundChatType, Component message, PlayerChatMessage playerChatMessage, UUID sender) {
+        ClientChatReceivedEvent.Player event = new ClientChatReceivedEvent.Player(boundChatType, message, playerChatMessage, sender);
+        return NeoForge.EVENT_BUS.post(event).isCanceled() ? null : event.getMessage();
+    }
+
+    @Nullable
+    public static Component onClientSystemChat(Component message, boolean overlay) {
+        ClientChatReceivedEvent.System event = new ClientChatReceivedEvent.System(message, overlay);
+        return NeoForge.EVENT_BUS.post(event).isCanceled() ? null : event.getMessage();
+    }
+
+    public static String onClientSendMessage(String message) {
+        ClientChatEvent event = new ClientChatEvent(message);
+        return NeoForge.EVENT_BUS.post(event).isCanceled() ? "" : event.getMessage();
+    }
+
+    @ApiStatus.Internal
+    public static void handleUpdateRecipes(ClientPacketListener packetListener) {
+        if (!packetListener.getConnectionType().isNeoForge()) {
+            // Notify client mods that they're connected to a Vanilla server, which will never give them recipe data
+            NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.RecipesReceivedEvent(Set.of(), RecipeMap.EMPTY));
+        }
+    }
+
+    public static Font getTooltipFont(ItemStack stack, Font fallbackFont) {
+        Font stackFont = IClientItemExtensions.of(stack).getFont(stack, IClientItemExtensions.FontContext.TOOLTIP);
+        return stackFont == null ? fallbackFont : stackFont;
+    }
+
+    public static RenderTooltipEvent.Pre onRenderTooltipPre(ItemStack stack, GuiGraphicsExtractor graphics, int x, int y, int screenWidth, int screenHeight, List<ClientTooltipComponent> components, Font fallbackFont, ClientTooltipPositioner positioner) {
+        var preEvent = new RenderTooltipEvent.Pre(stack, graphics, x, y, screenWidth, screenHeight, getTooltipFont(stack, fallbackFont), components, positioner);
+        NeoForge.EVENT_BUS.post(preEvent);
+        return preEvent;
+    }
+
+    public static RenderTooltipEvent.Texture onRenderTooltipTexture(ItemStack stack, GuiGraphicsExtractor graphics, int x, int y, Font font, List<ClientTooltipComponent> components, @Nullable Identifier texture) {
+        return NeoForge.EVENT_BUS.post(new RenderTooltipEvent.Texture(stack, graphics, x, y, font, components, texture));
+    }
+
+    public static List<ClientTooltipComponent> gatherTooltipComponents(ItemStack stack, List<? extends FormattedText> textElements, int mouseX, int screenWidth, int screenHeight, Font fallbackFont) {
+        return gatherTooltipComponents(stack, textElements, Optional.empty(), mouseX, screenWidth, screenHeight, fallbackFont);
+    }
+
+    public static List<ClientTooltipComponent> gatherTooltipComponents(ItemStack stack, List<? extends FormattedText> textElements, Optional<TooltipComponent> itemComponent, int mouseX, int screenWidth, int screenHeight, Font fallbackFont) {
+        List<Either<FormattedText, TooltipComponent>> elements = textElements.stream()
+                .map((Function<FormattedText, Either<FormattedText, TooltipComponent>>) Either::left)
+                .collect(Collectors.toCollection(ArrayList::new));
+        itemComponent.ifPresent(c -> elements.add(elements.isEmpty() ? 0 : 1, Either.right(c)));
+        return gatherTooltipComponentsFromElements(stack, elements, mouseX, screenWidth, screenHeight, fallbackFont);
+    }
+
+    public static List<ClientTooltipComponent> gatherTooltipComponentsFromElements(ItemStack stack, List<Either<FormattedText, TooltipComponent>> elements, int mouseX, int screenWidth, int screenHeight, Font fallbackFont) {
+        Font font = getTooltipFont(stack, fallbackFont);
+
+        var event = new RenderTooltipEvent.GatherComponents(stack, screenWidth, screenHeight, elements, -1);
+        NeoForge.EVENT_BUS.post(event);
+        if (event.isCanceled()) return List.of();
+
+        // text wrapping
+        int tooltipTextWidth = event.getTooltipElements().stream()
+                .mapToInt(either -> either.map(font::width, component -> 0))
+                .max()
+                .orElse(0);
+
+        boolean needsWrap = false;
+
+        int tooltipX = mouseX + 12;
+        if (tooltipX + tooltipTextWidth + 4 > screenWidth) {
+            tooltipX = mouseX - 16 - tooltipTextWidth;
+            if (tooltipX < 4) // if the tooltip doesn't fit on the screen
+            {
+                if (mouseX > screenWidth / 2)
+                    tooltipTextWidth = mouseX - 12 - 8;
+                else
+                    tooltipTextWidth = screenWidth - 16 - mouseX;
+                needsWrap = true;
+            }
+        }
+
+        if (event.getMaxWidth() > 0 && tooltipTextWidth > event.getMaxWidth()) {
+            tooltipTextWidth = event.getMaxWidth();
+            needsWrap = true;
+        }
+
+        int tooltipTextWidthF = tooltipTextWidth;
+        if (needsWrap) {
+            return event.getTooltipElements().stream()
+                    .flatMap(either -> either.map(
+                            text -> splitLine(text, font, tooltipTextWidthF),
+                            component -> Stream.of(ClientTooltipComponent.create(component))))
+                    .toList();
+        }
+        return event.getTooltipElements().stream()
+                .map(either -> either.map(
+                        text -> ClientTooltipComponent.create(text instanceof Component ? ((Component) text).getVisualOrderText() : Language.getInstance().getVisualOrder(text)),
+                        ClientTooltipComponent::create))
+                .toList();
+    }
+
+    private static Stream<ClientTooltipComponent> splitLine(FormattedText text, Font font, int maxWidth) {
+        if (text instanceof Component component && component.getString().isEmpty()) {
+            return Stream.of(component.getVisualOrderText()).map(ClientTooltipComponent::create);
+        }
+        return font.split(text, maxWidth).stream().map(ClientTooltipComponent::create);
+    }
+
+    public static ScreenEvent.RenderInventoryMobEffects onScreenPotionSize(Screen screen, int availableSpace, boolean compact, int horizontalOffset) {
+        final ScreenEvent.RenderInventoryMobEffects event = new ScreenEvent.RenderInventoryMobEffects(screen, availableSpace, compact, horizontalOffset);
+        NeoForge.EVENT_BUS.post(event);
+        return event;
+    }
+
+    public static boolean onToastAdd(Toast toast) {
+        return NeoForge.EVENT_BUS.post(new ToastAddEvent(toast)).isCanceled();
+    }
+
+    public static boolean renderFireOverlay(Player player, PoseStack poseStack, SpriteGetter sprites, SubmitNodeCollector submitNodeCollector) {
+        return renderBlockOverlay(player, poseStack, RenderBlockScreenEffectEvent.OverlayType.FIRE, Blocks.FIRE.defaultBlockState(), player.blockPosition(), sprites, submitNodeCollector);
+    }
+
+    public static boolean renderWaterOverlay(Player player, PoseStack poseStack, SpriteGetter sprites, SubmitNodeCollector submitNodeCollector) {
+        return renderBlockOverlay(player, poseStack, RenderBlockScreenEffectEvent.OverlayType.WATER, Blocks.WATER.defaultBlockState(), player.blockPosition(), sprites, submitNodeCollector);
+    }
+
+    public static boolean renderBlockOverlay(Player player, PoseStack poseStack, RenderBlockScreenEffectEvent.OverlayType type, BlockState block, BlockPos pos, SpriteGetter sprites, SubmitNodeCollector submitNodeCollector) {
+        return NeoForge.EVENT_BUS.post(new RenderBlockScreenEffectEvent(player, poseStack, type, block, pos, sprites, submitNodeCollector)).isCanceled();
+    }
+
+    public static List<AddSectionGeometryEvent.AdditionalSectionRenderer> gatherAdditionalRenderers(
+            BlockPos sectionOrigin, Level level) {
+        final var event = new AddSectionGeometryEvent(sectionOrigin, level);
+        NeoForge.EVENT_BUS.post(event);
+        return event.getAdditionalRenderers();
+    }
+
+    public static void addAdditionalGeometry(
+            List<AddSectionGeometryEvent.AdditionalSectionRenderer> additionalRenderers,
+            Function<ChunkSectionLayer, VertexConsumer> getOrCreateBuilder,
+            RenderSectionRegion region,
+            ModelBlockRenderer blockRenderer) {
+        if (additionalRenderers.isEmpty()) {
+            return;
+        }
+        final var context = new AddSectionGeometryEvent.SectionRenderingContext(getOrCreateBuilder, region, blockRenderer);
+        for (final var renderer : additionalRenderers) {
+            renderer.render(context);
+        }
+    }
+
+    // Make sure the below methods are only ever called once (by forge).
+    private static boolean initializedClientHooks = false;
+    private static boolean initializedClientRegistries = false;
+
+    // Runs during Minecraft construction, before initial resource loading.
+    @ApiStatus.Internal
+    public static void initClientHooks(Minecraft mc, ReloadableResourceManager resourceManager) {
+        if (initializedClientHooks) {
+            throw new IllegalStateException("Client hooks initialized more than once");
+        }
+        initializedClientHooks = true;
+
+        ClientExtensionsManager.init();
+        MenuScreens.init();
+        initClientRegistries();
+
+        var rlEvent = new AddClientReloadListenersEvent(resourceManager);
+        ModLoader.postEvent(rlEvent);
+        resourceManager.updateListenersFrom(rlEvent);
+
+        ModLoader.postEvent(new EntityRenderersEvent.RegisterLayerDefinitions());
+        ModLoader.postEvent(new EntityRenderersEvent.CreateSkullModels(skullModelsByType, SkullBlockRenderer.SKIN_BY_TYPE));
+        ModLoader.postEvent(new EntityRenderersEvent.RegisterRenderers());
+        ModLoader.postEvent(new RegisterRenderStateModifiersEvent());
+        ClientTooltipComponentManager.init();
+        EntitySpectatorShaderManager.init();
+        RecipeBookManager.init();
+        mc.gui.hud.initModdedOverlays();
+        CustomEnvironmentEffectsRendererManager.init();
+        ColorResolverManager.init();
+        ItemDecoratorHandler.init();
+        PresetEditorManager.init();
+        MapDecorationRendererManager.init();
+        DimensionTransitionScreenManager.init();
+        RenderPipelines.registerCustomPipelines();
+        PipelineModifiers.init();
+        GameRuleEntryFactoryManager.register();
+    }
+
+    // Runs during Minecraft construction, before initial resource loading and during datagen startup
+    public static void initClientRegistries() {
+        if (initializedClientRegistries) {
+            throw new IllegalStateException("Client registries initialized more than once");
+        }
+        initializedClientRegistries = true;
+
+        AnimationTypeManager.init();
+        BlockStateModelHooks.init();
+
+        ModLoader.postEvent(new InitializeClientRegistriesEvent());
+    }
+
+    /**
+     * Fires {@link RenderFrameEvent.Pre}. Called just before {@link GameRenderer#render(DeltaTracker, boolean)} in {@link Minecraft#runTick(boolean)}.
+     * <p>
+     * Fired before the profiler section for "gameRenderer" is started.
+     *
+     * @param partialTick The current partial tick
+     */
+    public static void fireRenderFramePre(DeltaTracker partialTick) {
+        NeoForge.EVENT_BUS.post(new RenderFrameEvent.Pre(partialTick));
+    }
+
+    /**
+     * Fires {@link RenderFrameEvent.Post}. Called just after {@link GameRenderer#render(DeltaTracker, boolean)} in {@link Minecraft#runTick(boolean)}.
+     * <p>
+     * Fired after the profiler section for "gameRenderer" is ended.
+     *
+     * @param partialTick The current partial tick
+     */
+    public static void fireRenderFramePost(DeltaTracker partialTick) {
+        NeoForge.EVENT_BUS.post(new RenderFrameEvent.Post(partialTick));
+        RenderSystem.ensurePipelineModifiersEmpty();
+    }
+
+    /**
+     * Fires {@link ClientResourceLoadFinishedEvent}.
+     */
+    public static void fireResourceLoadFinishedEvent(boolean initial) {
+        NeoForge.EVENT_BUS.post(new ClientResourceLoadFinishedEvent(initial));
+    }
+
+    /**
+     * Fires {@link ClientTickEvent.Pre}. Called from the head of {@link Minecraft#tick()}.
+     */
+    public static void fireClientTickPre() {
+        NeoForge.EVENT_BUS.post(new ClientTickEvent.Pre());
+    }
+
+    /**
+     * Fires {@link ClientTickEvent.Post}. Called from the tail of {@link Minecraft#tick()}.
+     */
+    public static void fireClientTickPost() {
+        NeoForge.EVENT_BUS.post(new ClientTickEvent.Post());
+    }
+
+    public static void fireWindowResize(Window window) {
+        NeoForge.EVENT_BUS.post(new WindowResizeEvent(window));
+    }
+
+    /**
+     * Fires the {@link GatherEffectScreenTooltipsEvent} and returns the resulting tooltip lines.
+     * <p>
+     * Called from {@link EffectsInInventory#renderText(GuiGraphicsExtractor, Component, Component, Font, int, int, int, int, int, int, MobEffectInstance)} just before {@link GuiGraphicsExtractor#setTooltipForNextFrame(Font, List, Optional, int, int)} is called.
+     *
+     * @param screen     The screen rendering the tooltip.
+     * @param effectInst The effect instance whose tooltip is being rendered.
+     * @param tooltip    An immutable list containing the existing tooltip lines, which consist of the name and the duration.
+     * @return The new tooltip lines, modified by the event.
+     */
+    public static List<Component> getEffectTooltip(AbstractContainerScreen<?> screen, MobEffectInstance effectInst, List<Component> tooltip) {
+        var event = new GatherEffectScreenTooltipsEvent(screen, effectInst, tooltip);
+        NeoForge.EVENT_BUS.post(event);
+        return event.getTooltip();
+    }
+
+    public static void reloadRenderer() {
+        Minecraft.getInstance().levelExtractor.allChanged();
+    }
+
+    public static List<AtlasManager.AtlasConfig> gatherTextureAtlases(List<AtlasManager.AtlasConfig> vanillaAtlases) {
+        SequencedMap<Identifier, AtlasManager.AtlasConfig> atlasMap = new LinkedHashMap<>(vanillaAtlases.size());
+        vanillaAtlases.forEach(atlas -> atlasMap.put(atlas.definitionLocation(), atlas));
+        ModLoader.postEvent(new RegisterTextureAtlasesEvent(atlasMap));
+        return List.copyOf(atlasMap.values());
+    }
+
+    @ApiStatus.Internal
+    public static FrameGraphSetupEvent fireFrameGraphSetup(FrameGraphBuilder builder, LevelTargetBundle targets, CameraRenderState cameraState, Matrix4fc modelViewMatrix, ProfilerFiller profiler) {
+        return NeoForge.EVENT_BUS.post(new FrameGraphSetupEvent(builder, targets, cameraState, modelViewMatrix, profiler));
+    }
+
+    @ApiStatus.Internal
+    public static MainTarget instantiateMainTarget(int width, int height) {
+        var e = ModLoader.postEventWithReturn(new ConfigureMainRenderTargetEvent());
+        return new MainTarget(width, height, e.isStencilEnabled() ? getStencilFormat() : GpuFormat.D32_FLOAT);
+    }
+
+    @ApiStatus.Internal
+    public static GpuFormat getStencilFormat() {
+        var reducedPrecision = NeoForgeClientConfig.INSTANCE.reducedDepthStencilFormat.getAsBoolean();
+        return reducedPrecision ? GpuFormat.D24_UNORM_S8_UINT : GpuFormat.D32_FLOAT_S8_UINT;
+    }
+
+    private static final HashSet<MetadataSectionType<?>> DEFAULT_METADATA_SECTION_TYPES = new HashSet<>();
+
+    @ApiStatus.Internal
+    public static Set<MetadataSectionType<?>> getSpriteDefaultMetadataSectionTypes(Set<MetadataSectionType<?>> vanillaTypes) {
+        DEFAULT_METADATA_SECTION_TYPES.addAll(vanillaTypes);
+        return Collections.unmodifiableSet(DEFAULT_METADATA_SECTION_TYPES);
+    }
+
+    public static List<PictureInPictureRendererRegistration<?>> gatherPictureInPictureRenderers(
+            List<PictureInPictureRendererRegistration<?>> vanillaRenderers) {
+        vanillaRenderers = new ArrayList<>(vanillaRenderers);
+        ModLoader.postEvent(new RegisterPictureInPictureRenderersEvent(vanillaRenderers));
+        return List.copyOf(vanillaRenderers);
+    }
+
+    @ApiStatus.Internal
+    public static ValueConverter<String> convertUsername() {
+        return new ValueConverter<String>() {
+            @Override
+            public String convert(String value) {
+                if (FMLEnvironment.isProduction()) return value;
+                // Replace '#' placeholders with random numbers in dev
+                Matcher m = Pattern.compile("#+").matcher(value);
+                var replaced = new StringBuilder();
+                while (m.find()) {
+                    m.appendReplacement(replaced, getRandomNumbers(m.group().length()));
+                }
+                m.appendTail(replaced);
+                return replaced.toString();
+            }
+
+            @Override
+            public Class<? extends String> valueType() {
+                return String.class;
+            }
+
+            @Override
+            public String valuePattern() {
+                return null;
+            }
+
+            private static String getRandomNumbers(int length) {
+                // Generate a time-based random number, to mimic how n.m.client.Main works
+                return Long.toString(System.nanoTime() % (int) Math.pow(10, length));
+            }
+        };
+    }
+
+    @ApiStatus.Internal
+    public static <T> ArgumentAcceptingOptionSpec<T> optionalInDev(ArgumentAcceptingOptionSpec<T> option, T defaultValue) {
+        if (FMLEnvironment.isProduction()) return option.required();
+        return option.defaultsTo(defaultValue);
+    }
+
+    @ApiStatus.Internal
+    public static void updateDebugScreenEntriesForSearch(String searchText, Consumer<DebugEntryCategory> addCategory, Consumer<Identifier> addEntry) {
+        var byCategory = MultimapBuilder.hashKeys().arrayListValues().<DebugEntryCategory, Identifier>build();
+
+        // filter out to match search text
+        // - blank/empty string, accept everything
+        // - accept entries whose namespace/path match given text
+        DebugScreenEntries.allEntries().forEach((id, value) -> {
+            if (isValidDebugEntryForSearch(searchText, id)) {
+                byCategory.put(value.category(), id);
+            }
+        });
+
+        // sort categories by the 'sortKey'
+        var sortedCategories = Lists.newArrayList(byCategory.keySet());
+        sortedCategories.sort((a, b) -> FloatComparators.NATURAL_COMPARATOR.compare(a.sortKey(), b.sortKey()));
+
+        sortedCategories.forEach(category -> {
+            // add category label to screen
+            addCategory.accept(category);
+
+            // sort entries by their ids (vanilla first)
+            var entries = byCategory.get(category);
+            entries.sort(CommonHooks.CMP_BY_NAMESPACE_VANILLA_FIRST);
+            // add entry to screen
+            entries.forEach(addEntry);
+        });
+    }
+
+    private static boolean isValidDebugEntryForSearch(String searchText, Identifier id) {
+        if (searchText.isBlank()) {
+            // no search provided, accept everything
+            return true;
+        } else if (StringUtils.contains(searchText, Identifier.NAMESPACE_SEPARATOR)) {
+            // search text contains ':' separator, accept all whose full id match
+            return SharedSuggestionProvider.matchesSubStr(searchText, id.toString());
+        } else {
+            // default, accept all whose namespace or path match
+            return SharedSuggestionProvider.matchesSubStr(searchText, id.getNamespace()) || SharedSuggestionProvider.matchesSubStr(searchText, id.getPath());
+        }
+    }
+
+    public static Map<Fluid, FluidModel> gatherFluidModels(Map<Fluid, FluidModel> models, MaterialBaker materials) {
+        models = new HashMap<>(models);
+        ModLoader.postEvent(new RegisterFluidModelsEvent(models, materials));
+        for (Fluid fluid : BuiltInRegistries.FLUID) {
+            if (fluid != Fluids.EMPTY && !models.containsKey(fluid)) {
+                LOGGER.warn("Missing FluidModel for fluid '{}'", fluid);
+            }
+        }
+        return Map.copyOf(models);
+    }
+
+    @Nullable
+    @ApiStatus.Internal
+    public static Object2BooleanMap<ModelPart> updateModelVisibility(Model<?> model, Object state) {
+        if (!(state instanceof BaseRenderState baseRenderState)) {
+            return null;
+        }
+        Object2BooleanMap<ModelPart> previousVisibility = null;
+        Object2BooleanMap<String> renderData = baseRenderState.getModelPartVisibility();
+        if (renderData != null) {
+            ModelPart root = model.root();
+            for (ObjectIterator<Object2BooleanMap.Entry<String>> iterator = Object2BooleanMaps.fastIterator(renderData); iterator.hasNext();) {
+                Object2BooleanMap.Entry<String> entry = iterator.next();
+                String modelPart = entry.getKey();
+                if (root.hasChild(modelPart)) {
+                    ModelPart child = root.getChild(modelPart);
+                    boolean desiredVisibility = entry.getBooleanValue();
+                    if (child.visible != desiredVisibility) {
+                        if (previousVisibility == null) {//Lazy init the map in case there are no parts with different visibilities
+                            previousVisibility = new Object2BooleanOpenHashMap<>();
+                        }
+                        previousVisibility.put(child, child.visible);
+                        child.visible = desiredVisibility;
+                    }
+                }
+            }
+        }
+        return previousVisibility;
+    }
+
+    public static void resetVisibility(@Nullable Object2BooleanMap<ModelPart> previousVisibility) {
+        if (previousVisibility != null) {
+            for (ObjectIterator<Object2BooleanMap.Entry<ModelPart>> iterator = Object2BooleanMaps.fastIterator(previousVisibility); iterator.hasNext();) {
+                Object2BooleanMap.Entry<ModelPart> entry = iterator.next();
+                entry.getKey().visible = entry.getBooleanValue();
+            }
+        }
+    }
+}

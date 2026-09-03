@@ -1,73 +1,48 @@
 --- a/com/mojang/blaze3d/systems/RenderSystem.java
 +++ b/com/mojang/blaze3d/systems/RenderSystem.java
-@@ -22,7 +_,7 @@
- import java.util.concurrent.atomic.AtomicLong;
- import java.util.function.IntConsumer;
- import net.minecraft.SharedConstants;
--import net.minecraft.client.renderer.DynamicGpuData;
-+import net.minecraft.client.renderer.DynamicUniforms;
- import net.minecraft.util.ArrayListDeque;
- import net.minecraft.util.Mth;
- import net.minecraft.util.TimeSource;
-@@ -78,7 +_,7 @@
-     private static final ArrayListDeque<RenderSystem.GpuAsyncTask> PENDING_FENCES = new ArrayListDeque<>();
-     public static boolean isRenderingLevel = false;
-     private static @Nullable GpuBuffer globalSettingsUniform;
--    private static @Nullable DynamicGpuData dynamicGpuData;
-+    private static @Nullable DynamicUniforms dynamicUniforms;
-     private static final ScissorState scissorStateForRenderTypeDraws = new ScissorState();
+@@ -83,6 +_,7 @@
      private static final SamplerCache samplerCache = new SamplerCache();
      private static @Nullable PipelineCache fallbackPipelineCache;
-@@ -208,11 +_,9 @@
-         SDLInit.SDL_SetAppMetadataProperty("SDL.app.metadata.url", "https://www.minecraft.net");
-         SDLInit.SDL_SetAppMetadataProperty("SDL.app.metadata.type", "game");
-         SDLHints.SDL_SetHint("SDL_NO_SIGNAL_HANDLERS", "1");
--        SDLHints.SDL_SetHint("SDL_VIDEO_MINIMIZE_ON_FOCUS_LOSS", "0");
--        SDLHints.SDL_SetHint("SDL_QUIT_ON_LAST_WINDOW_CLOSE", "0");
-+        SDLHints.SDL_SetHint("SDL_VIDEO_MAC_FULLSCREEN_SPACES", "1");
-         SDLHints.SDL_SetHint("SDL_MOUSE_FOCUS_CLICKTHROUGH", "1");
--        SDLHints.SDL_SetHint("SDL_ENABLE_SCREEN_KEYBOARD", "0");
--        SDLHints.SDL_SetHint("SDL_IME_IMPLEMENTED_UI", "composition, candidates");
-+        SDLHints.SDL_SetHint("SDL_IME_IMPLEMENTED_UI", "composition");
-         if (!SDLInit.SDL_Init(32)) {
-             throw new IllegalStateException("Unable to initialize SDL: " + SDLError.SDL_GetError());
-         } else {
-@@ -226,7 +_,7 @@
-         }
+     private static @Nullable PipelineCache currentPipelineCache;
++    private static final net.neoforged.neoforge.client.pipeline.PipelineModifierStack PIPELINE_MODIFIERS = new net.neoforged.neoforge.client.pipeline.PipelineModifierStack();
  
-         DEVICE = device;
--        dynamicGpuData = new DynamicGpuData();
-+        dynamicUniforms = new DynamicUniforms();
-         samplerCache.initialize();
+     public static SamplerCache getSamplerCache() {
+         return samplerCache;
+@@ -103,6 +_,8 @@
      }
  
-@@ -243,8 +_,8 @@
-         sharedSequentialQuad.close();
-         sharedSequentialLines.close();
-         samplerCache.close();
--        if (dynamicGpuData != null) {
--            dynamicGpuData.close();
-+        if (dynamicUniforms != null) {
-+            dynamicUniforms.close();
-         }
- 
-         if (DEVICE != null) {
-@@ -355,15 +_,11 @@
-         return DEVICE;
+     public static @Nullable CompiledRenderPipeline getCompiledPipelineNullable(RenderPipeline pipeline) {
++        pipeline = PIPELINE_MODIFIERS.apply(pipeline);
++
+         if (currentPipelineCache != null) {
+             CompiledRenderPipeline cachedPipeline = currentPipelineCache.get(pipeline);
+             if (cachedPipeline != null) {
+@@ -491,5 +_,28 @@
      }
  
--    public static boolean isWireframeAvailable() {
--        return getDevice().getDeviceInfo().features().wireframeFillMode();
--    }
--
--    public static DynamicGpuData getDynamicUniforms() {
--        if (dynamicGpuData == null) {
-+    public static DynamicUniforms getDynamicUniforms() {
-+        if (dynamicUniforms == null) {
-             throw new IllegalStateException("Can't getDynamicUniforms() before device was initialized");
-         } else {
--            return dynamicGpuData;
-+            return dynamicUniforms;
-         }
+     private record GpuAsyncTask(Runnable callback, GpuFence fence) {
++    }
++
++    /// Neo: Push the provided [net.neoforged.neoforge.client.pipeline.PipelineModifier] to be applied to subsequent rendering.
++    ///
++    /// Must be paired with a corresponding [#popPipelineModifier()] call after flushing the used buffers
++    public static void pushPipelineModifier(net.minecraft.resources.ResourceKey<net.neoforged.neoforge.client.pipeline.PipelineModifier> modifier) {
++        PIPELINE_MODIFIERS.push(modifier);
++    }
++
++    /// Neo: Pop the last [net.neoforged.neoforge.client.pipeline.PipelineModifier] off the modifier stack
++    public static void popPipelineModifier() {
++        PIPELINE_MODIFIERS.pop();
++    }
++
++    /// Neo: Run the provided [Runnable] with the provided [net.neoforged.neoforge.client.pipeline.PipelineModifier] applied
++    /// to the pipelines used by the rendering done in the [Runnable]
++    public static void renderWithPipelineModifier(net.minecraft.resources.ResourceKey<net.neoforged.neoforge.client.pipeline.PipelineModifier> modifier, Runnable renderTask) {
++        PIPELINE_MODIFIERS.renderWithModifier(modifier, renderTask);
++    }
++
++    @org.jetbrains.annotations.ApiStatus.Internal
++    public static void ensurePipelineModifiersEmpty() {
++        PIPELINE_MODIFIERS.ensureEmpty();
      }
- 
+ }

@@ -1,74 +1,15 @@
 --- a/net/minecraft/client/gui/screens/worldselection/AbstractGameRulesScreen.java
 +++ b/net/minecraft/client/gui/screens/worldselection/AbstractGameRulesScreen.java
-@@ -21,12 +_,13 @@
- import net.minecraft.client.gui.components.ContainerObjectSelectionList;
- import net.minecraft.client.gui.components.CycleButton;
- import net.minecraft.client.gui.components.EditBox;
--import net.minecraft.client.gui.components.FocusableTextWidget;
- import net.minecraft.client.gui.components.StringWidget;
- import net.minecraft.client.gui.components.events.GuiEventListener;
- import net.minecraft.client.gui.layouts.HeaderAndFooterLayout;
- import net.minecraft.client.gui.layouts.LinearLayout;
- import net.minecraft.client.gui.narration.NarratableEntry;
-+import net.minecraft.client.gui.narration.NarratedElementType;
-+import net.minecraft.client.gui.narration.NarrationElementOutput;
- import net.minecraft.client.gui.screens.Screen;
- import net.minecraft.network.chat.CommonComponents;
- import net.minecraft.network.chat.Component;
-@@ -154,30 +_,36 @@
-     }
+@@ -286,6 +_,12 @@
+                             this.addEntry(gameRule, (x$0, x$1, x$2, x$3) -> AbstractGameRulesScreen.this.new IntegerRuleEntry(x$0, x$1, x$2, x$3));
+                         }
  
-     public class CategoryRuleEntry extends AbstractGameRulesScreen.RuleEntry {
--        private final FocusableTextWidget widget;
-+        private final Component label;
- 
-         public CategoryRuleEntry(Component label) {
-             super(null);
--            this.widget = FocusableTextWidget.builder(label, AbstractGameRulesScreen.this.minecraft.font)
--                .alwaysShowBorder(false)
--                .backgroundFill(FocusableTextWidget.BackgroundFill.ON_FOCUS)
--                .build();
-+            this.label = label;
-         }
- 
-         @Override
-         public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float a) {
--            this.widget.setPosition(this.getContentXMiddle() - this.widget.getWidth() / 2, this.getContentYMiddle() - this.widget.getHeight() / 2);
--            this.widget.extractRenderState(graphics, mouseX, mouseY, a);
-+            graphics.centeredText(AbstractGameRulesScreen.this.minecraft.font, this.label, this.getContentXMiddle(), this.getContentY() + 5, -1);
-         }
- 
-         @Override
-         public List<? extends GuiEventListener> children() {
--            return List.of(this.widget);
-+            return ImmutableList.of();
-         }
- 
-         @Override
-         public List<? extends NarratableEntry> narratables() {
--            return List.of(this.widget);
-+            return ImmutableList.of(new NarratableEntry() {
-+                @Override
-+                public NarratableEntry.NarrationPriority narrationPriority() {
-+                    return NarratableEntry.NarrationPriority.HOVERED;
-+                }
++                        @Override
++                        public <T> void visit(GameRule<T> gameRule) {
++                            // Neo: Append custom entries for none bool/int game rules
++                            net.neoforged.neoforge.client.gamerules.GameRuleEntryFactoryManager.appendGameRuleEntry(AbstractGameRulesScreen.this, gameRule, this::addEntry);
++                        }
 +
-+                @Override
-+                public void updateNarration(NarrationElementOutput output) {
-+                    output.add(NarratedElementType.TITLE, CategoryRuleEntry.this.label);
-+                }
-+            });
-         }
-     }
- 
-@@ -323,9 +_,7 @@
-                 .forEach(
-                     e -> {
-                         this.addEntry(
--                            AbstractGameRulesScreen.this.new CategoryRuleEntry(
--                                e.getKey().label().withStyle(ChatFormatting.BOLD, ChatFormatting.YELLOW, ChatFormatting.UNDERLINE)
--                            )
-+                            AbstractGameRulesScreen.this.new CategoryRuleEntry(e.getKey().label().withStyle(ChatFormatting.BOLD, ChatFormatting.YELLOW))
-                         );
-                         e.getValue()
-                             .entrySet()
+                         private <T> void addEntry(GameRule<T> gameRule, AbstractGameRulesScreen.EntryFactory<T> factory) {
+                             Component readableName = Component.translatable(gameRule.getDescriptionId());
+                             String descriptionKey = gameRule.getDescriptionId() + ".description";

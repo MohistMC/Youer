@@ -54,7 +54,8 @@
 -    private final ChunkTaskDispatcher lightTaskDispatcher;
 +    // Paper - rewrite chunk system
      private final ChunkStatusUpdateListener chunkStatusListener;
-     public final ChunkMap.DistanceManager distanceManager;
+-    private final ChunkMap.DistanceManager distanceManager;
++    public final ChunkMap.DistanceManager distanceManager;
 +    private final String storageName;
      private final PlayerMap playerMap = new PlayerMap();
      public final Int2ObjectMap<ChunkMap.TrackedEntity> entityMap = new Int2ObjectOpenHashMap<>();
@@ -1150,7 +1151,7 @@
              if (!wasIgnored) {
                  this.distanceManager.removePlayer(oldSection, player);
              }
-@@ -1086,65 +_,63 @@
+@@ -1086,47 +_,29 @@
                  this.playerMap.unIgnorePlayer(player);
              }
  
@@ -1209,12 +1210,11 @@
      }
  
      public boolean hasEntityWithId(int id) {
-         return this.entityMap.containsKey(id);
+@@ -1134,17 +_,33 @@
      }
  
--    public void addEntity(Entity entity) {
+     protected void addEntity(Entity entity) {
 -        if (!(entity instanceof EnderDragonPart)) {
-+    protected void addEntity(Entity entity) {
 +        org.spigotmc.AsyncCatcher.catchOp("entity track"); // Spigot
 +        // Paper start - ignore and warn about illegal addEntity calls instead of crashing server
 +        if (!entity.valid || entity.level() != this.level || this.entityMap.containsKey(entity.getId())) {

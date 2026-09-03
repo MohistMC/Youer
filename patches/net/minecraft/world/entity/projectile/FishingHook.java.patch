@@ -13,7 +13,7 @@
  import net.minecraft.world.entity.MoverType;
  import net.minecraft.world.entity.item.ItemEntity;
  import net.minecraft.world.entity.player.Player;
-@@ -51,6 +_,12 @@
+@@ -51,13 +_,19 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -26,12 +26,21 @@
  public class FishingHook extends Projectile {
      private static final Logger LOGGER = LogUtils.getLogger();
      private final RandomSource syncronizedRandom = RandomSource.create();
+     private boolean biting;
+     public int outOfWaterTime;
+     private static final int MAX_OUT_OF_WATER_TIME = 10;
+-    private static final EntityDataAccessor<Integer> DATA_HOOKED_ENTITY = SynchedEntityData.defineId(FishingHook.class, EntityDataSerializers.INT);
++    public static final EntityDataAccessor<Integer> DATA_HOOKED_ENTITY = SynchedEntityData.defineId(FishingHook.class, EntityDataSerializers.INT);
+     private static final EntityDataAccessor<Boolean> DATA_BITING = SynchedEntityData.defineId(FishingHook.class, EntityDataSerializers.BOOLEAN);
+     private int life;
+     private int nibble;
 @@ -65,16 +_,32 @@
      public int timeUntilHooked;
      public float fishAngle;
      private boolean openWater = true;
 -    private static final float GRAVITY = 0.03F;
-     public @Nullable Entity hookedIn;
+-    private @Nullable Entity hookedIn;
++    public @Nullable Entity hookedIn;
      public FishingHook.FishHookState currentState = FishingHook.FishHookState.FLYING;
      private final int luck;
      private final int lureSpeed;

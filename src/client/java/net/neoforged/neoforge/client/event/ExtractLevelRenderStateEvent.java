@@ -1,0 +1,108 @@
+/*
+ * Copyright (c) NeoForged and contributors
+ * SPDX-License-Identifier: LGPL-2.1-only
+ */
+
+package net.neoforged.neoforge.client.event;
+
+import net.minecraft.client.Camera;
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.culling.Frustum;
+import net.minecraft.client.renderer.extract.LevelExtractor;
+import net.minecraft.client.renderer.state.OptionsRenderState;
+import net.minecraft.client.renderer.state.level.LevelRenderState;
+import net.minecraft.util.context.ContextKey;
+import net.neoforged.bus.api.Event;
+import net.neoforged.bus.api.ICancellableEvent;
+import net.neoforged.fml.LogicalSide;
+import net.neoforged.neoforge.client.CustomEnvironmentEffectsRendererManager;
+import net.neoforged.neoforge.common.NeoForge;
+import org.jetbrains.annotations.ApiStatus;
+
+/**
+ * Fired when the {@link LevelRenderer} extracts level render state, after all vanilla states have been extracted.
+ * Use this event to extract custom render state for use in {@link RenderLevelStageEvent} or {@linkplain CustomEnvironmentEffectsRendererManager custom environmental effects}.
+ * Custom data can be stored on and retrieved from the provided {@link LevelRenderState} via {@link LevelRenderState#setRenderData(ContextKey, Object)}
+ * and {@link LevelRenderState#getRenderData(ContextKey)} respectively.
+ * <p>
+ * This event is not {@linkplain ICancellableEvent cancellable}.
+ * <p>
+ * This event is fired on the {@linkplain NeoForge#EVENT_BUS main game event bus},
+ * only on the {@linkplain LogicalSide#CLIENT logical client}.
+ */
+public final class ExtractLevelRenderStateEvent extends Event {
+    private final LevelExtractor levelExtractor;
+    private final LevelRenderState renderState;
+    private final OptionsRenderState optionsRenderState;
+    private final ClientLevel level;
+    private final Camera camera;
+    private final Frustum frustum;
+    private final DeltaTracker deltaTracker;
+
+    @ApiStatus.Internal
+    public ExtractLevelRenderStateEvent(
+            LevelExtractor levelExtractor,
+            LevelRenderState renderState,
+            OptionsRenderState optionsRenderState,
+            ClientLevel level,
+            Camera camera,
+            Frustum frustum,
+            DeltaTracker deltaTracker) {
+        this.levelExtractor = levelExtractor;
+        this.renderState = renderState;
+        this.optionsRenderState = optionsRenderState;
+        this.level = level;
+        this.camera = camera;
+        this.frustum = frustum;
+        this.deltaTracker = deltaTracker;
+    }
+
+    /**
+     * {@return the {@link LevelExtractor} performing the extraction}
+     */
+    public LevelExtractor getLevelExtractor() {
+        return levelExtractor;
+    }
+
+    /**
+     * {@return the {@link LevelRenderState} being extracted to}
+     */
+    public LevelRenderState getRenderState() {
+        return renderState;
+    }
+
+    /// {@return the options render state}
+    public OptionsRenderState getOptionsRenderState() {
+        return optionsRenderState;
+    }
+
+    /**
+     * {@return the {@link ClientLevel} whose state is being extracted}
+     */
+    public ClientLevel getLevel() {
+        return level;
+    }
+
+    /**
+     * {@return the {@link Camera} from which the world is being observed}
+     */
+    public Camera getCamera() {
+        return camera;
+    }
+
+    /**
+     * {@return the active {@link Frustum} used for culling}
+     */
+    public Frustum getFrustum() {
+        return frustum;
+    }
+
+    /**
+     * {@return the {@link DeltaTracker} providing partial tick and delta ticks}
+     */
+    public DeltaTracker getDeltaTracker() {
+        return deltaTracker;
+    }
+}

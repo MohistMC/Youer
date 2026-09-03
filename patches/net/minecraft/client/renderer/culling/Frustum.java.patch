@@ -1,27 +1,11 @@
 --- a/net/minecraft/client/renderer/culling/Frustum.java
 +++ b/net/minecraft/client/renderer/culling/Frustum.java
-@@ -7,7 +_,6 @@
- import org.joml.FrustumIntersection;
- import org.joml.Matrix4f;
- import org.joml.Matrix4fc;
--import org.joml.Vector3f;
- import org.joml.Vector4f;
- 
- @OnlyIn(Dist.CLIENT)
-@@ -125,16 +_,6 @@
-         }
- 
-         return frustumPoints;
--    }
--
--    public AABB getNearPlaneBounds() {
--        Matrix4f clipToWorldMatrix = this.matrix.invert(new Matrix4f());
--        AABB.Builder builder = new AABB.Builder();
--        builder.include(clipToWorldMatrix.transformProject(new Vector3f(-1.0F, -1.0F, -1.0F)));
--        builder.include(clipToWorldMatrix.transformProject(new Vector3f(1.0F, -1.0F, -1.0F)));
--        builder.include(clipToWorldMatrix.transformProject(new Vector3f(1.0F, 1.0F, -1.0F)));
--        builder.include(clipToWorldMatrix.transformProject(new Vector3f(-1.0F, 1.0F, -1.0F)));
--        return builder.build();
+@@ -84,6 +_,8 @@
      }
  
-     public double getCamX() {
+     public boolean isVisible(AABB bb) {
++        // FORGE: exit early for infinite bounds, these would otherwise fail in the intersection test at certain camera angles (GH-9321)
++        if (bb.isInfinite()) return true;
+         int intersectionResult = this.cubeInFrustum(bb.minX, bb.minY, bb.minZ, bb.maxX, bb.maxY, bb.maxZ);
+         return intersectionResult == -2 || intersectionResult == -1;
+     }

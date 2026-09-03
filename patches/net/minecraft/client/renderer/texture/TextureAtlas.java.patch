@@ -1,11 +1,21 @@
 --- a/net/minecraft/client/renderer/texture/TextureAtlas.java
 +++ b/net/minecraft/client/renderer/texture/TextureAtlas.java
-@@ -187,7 +_,7 @@
-                     renderPass.setPipeline(RenderSystem.getCompiledPipeline(RenderPipelines.ANIMATE_SPRITE_BLIT));
+@@ -145,6 +_,8 @@
+                 LOGGER.warn("Failed to dump atlas contents to {}", dumpDir);
+             }
+         }
++
++        net.neoforged.neoforge.client.ClientHooks.onTextureAtlasStitched(this);
+     }
  
-                     for (int i = 0; i < staticSprites.size(); i++) {
--                        renderPass.setUniform("Sprite", scratchTextures.get(i)[level], sampler);
-+                        renderPass.bindTexture("Sprite", scratchTextures.get(i)[level], sampler);
-                         renderPass.setUniform("SpriteAnimationInfo", ubo.slice(i * uboBlockSize + level * spriteUboSize, SpriteContents.UBO_SIZE));
-                         renderPass.draw(6, 1, 0, 0);
-                     }
+     private void uploadInitialContents() {
+@@ -324,5 +_,9 @@
+ 
+     int getHeight() {
+         return this.height;
++    }
++
++    public Map<Identifier, TextureAtlasSprite> getTextures() {
++        return java.util.Collections.unmodifiableMap(texturesByName);
+     }
+ }

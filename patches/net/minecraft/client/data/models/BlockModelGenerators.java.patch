@@ -1,21 +1,19 @@
 --- a/net/minecraft/client/data/models/BlockModelGenerators.java
 +++ b/net/minecraft/client/data/models/BlockModelGenerators.java
-@@ -3640,8 +_,8 @@
-         Identifier head = ModelLocationUtils.getModelLocation(strawBed, "_head");
-         Identifier foot = ModelLocationUtils.getModelLocation(strawBed, "_foot");
-         this.blockStateOutput.accept(createStrawBed(strawBed, plainVariant(head), plainVariant(foot)));
--        Transformation headTransformation = new Transformation(new Vector3f(1.0F, 0.0F, 1.0F), new Quaternionf().rotationY((float) Math.PI), null, null);
--        Transformation footTransformation = new Transformation(new Vector3f(1.0F, 0.0F, 2.0F), new Quaternionf().rotationY((float) Math.PI), null, null);
-+        Transformation headTransformation = new Transformation(new Vector3f(0.85F, 0.0F, 0.6F), new Quaternionf().rotationY((float) Math.PI), null, null);
-+        Transformation footTransformation = new Transformation(new Vector3f(0.85F, 0.0F, 1.6F), new Quaternionf().rotationY((float) Math.PI), null, null);
-         ItemModel.Unbaked itemModelHead = ItemModelUtils.plainModel(head, headTransformation);
-         ItemModel.Unbaked itemModelFoot = ItemModelUtils.plainModel(foot, footTransformation);
-         this.itemModelOutput.accept(strawBed.asItem(), ItemModelUtils.composite(itemModelHead, itemModelFoot));
-@@ -3937,6 +_,7 @@
-         this.createParticleOnlyBlock(Blocks.END_GATEWAY, Blocks.OBSIDIAN);
-         this.createTrivialCube(Blocks.AZALEA_LEAVES);
-         this.createTrivialCube(Blocks.FLOWERING_AZALEA_LEAVES);
-+        Blocks.CONCRETE.forEach(this::createTrivialCube);
-         this.createColoredBlockWithRandomRotations(TexturedModel.CUBE, Blocks.CONCRETE_POWDER.asList());
-         this.createTrivialCube(Blocks.POTENT_SULFUR);
-         this.createTrivialCube(Blocks.TERRACOTTA);
+@@ -4623,4 +_,16 @@
+             return this;
+         }
+     }
++
++    /**
++     * Neo: create a {@link BlockModelGenerators.BlockFamilyProvider} which re-uses the existing model of the given full
++     * block instead of creating a model and blockstate file for it. Intended for use cases where the full block is
++     * separately generated or otherwise exists such as when a dummy {@link BlockFamily} is used to create additional
++     * variants for existing vanilla block families
++     */
++    public BlockModelGenerators.BlockFamilyProvider familyWithExistingFullBlock(Block fullBlock) {
++        var provider = new BlockModelGenerators.BlockFamilyProvider(TextureMapping.cube(fullBlock));
++        provider.fullBlock = BlockModelGenerators.plainModel(ModelLocationUtils.getModelLocation(fullBlock));
++        return provider;
++    }
+ }

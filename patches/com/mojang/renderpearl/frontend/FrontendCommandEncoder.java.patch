@@ -1,95 +1,69 @@
 --- a/com/mojang/renderpearl/frontend/FrontendCommandEncoder.java
 +++ b/com/mojang/renderpearl/frontend/FrontendCommandEncoder.java
-@@ -200,12 +_,7 @@
+@@ -288,6 +_,16 @@
+     }
+ 
+     @Override
++    public void clearStencilTexture(GpuTexture texture, int value) {
++        if (this.isInRenderPass) {
++            throw new IllegalStateException("Close the existing render pass before creating a new one!");
++        }
++
++        this.verifyStencilTexture(texture);
++        this.backend.clearStencilTexture(texture, value);
++    }
++
++    @Override
+     public void writeToBuffer(GpuBufferSlice destination, ByteBuffer data) {
+         if (this.isInRenderPass) {
+             throw new IllegalStateException("Close the existing render pass before performing additional commands");
+@@ -743,6 +_,24 @@
+                 throw new UnsupportedOperationException("Textures with multiple depths or layers are not yet supported for copying");
              }
  
-             return new FrontendRenderPass(
--                this.backend.createRenderPass(descriptor),
--                this.device,
--                descriptor.colorAttachments(),
--                descriptor.depthAttachment() != null,
--                this::submitRenderPass,
--                renderArea
-+                this.backend.createRenderPass(descriptor), this.device, descriptor.colorAttachments(), this::submitRenderPass, renderArea
-             );
++            final var sourceFormat = source.getFormat();
++            final var destFormat = destination.getFormat();
++            if (sourceFormat.hasDepthAspect() || sourceFormat.hasStencilAspect()) {
++                if (sourceFormat != destFormat) {
++                    throw new IllegalArgumentException(
++                            "When copying depth or stencil data, the source and destination texture formats must be identical. Source: "
++                                    + sourceFormat + ", Destination: " + destFormat
++                    );
++                }
++            }
++
++            if (sourceFormat.hasColorAspect() != destFormat.hasColorAspect()) {
++                throw new IllegalArgumentException(
++                        "Source and destination texture formats must have consistent color aspects. Source: "
++                                + sourceFormat + ", Destination: " + destFormat
++                );
++            }
++
+             this.backend.copyTextureToTexture(source, destination, mipLevel, destX, destY, sourceX, sourceY, width, height);
          } else {
              throw new IllegalArgumentException(
-@@ -244,24 +_,12 @@
+@@ -810,6 +_,24 @@
  
-         this.verifyColorTexture(colorTexture);
-         this.verifyDepthTexture(depthTexture);
--        if (colorTexture.getMipLevels() != depthTexture.getMipLevels()) {
--            throw new IllegalArgumentException("Both textures must have the same mip count");
--        }
--
-         this.backend.clearColorAndDepthTextures(colorTexture, clearColor, depthTexture, clearDepth);
-     }
- 
-     @Override
-     public void clearColorAndDepthTextures(
--        GpuTexture colorTexture,
--        Vector4fc clearColor,
--        GpuTexture depthTexture,
--        double clearDepth,
--        int regionX,
--        int regionY,
--        int regionWidth,
--        int regionHeight,
--        int mipLevel
-+        GpuTexture colorTexture, Vector4fc clearColor, GpuTexture depthTexture, double clearDepth, int regionX, int regionY, int regionWidth, int regionHeight
-     ) {
-         if (this.isInRenderPass) {
-             throw new IllegalStateException("Close the existing render pass before creating a new one!");
-@@ -269,12 +_,8 @@
- 
-         this.verifyColorTexture(colorTexture);
-         this.verifyDepthTexture(depthTexture);
--        if (colorTexture.getMipLevels() != depthTexture.getMipLevels()) {
--            throw new IllegalArgumentException("Both textures must have the same mip count");
--        }
--
--        this.verifyRegion(colorTexture, regionX, regionY, regionWidth, regionHeight, mipLevel);
--        this.backend.clearColorAndDepthTextures(colorTexture, clearColor, depthTexture, clearDepth, regionX, regionY, regionWidth, regionHeight, mipLevel);
-+        this.verifyRegion(colorTexture, regionX, regionY, regionWidth, regionHeight);
-+        this.backend.clearColorAndDepthTextures(colorTexture, clearColor, depthTexture, clearDepth, regionX, regionY, regionWidth, regionHeight);
-     }
- 
-     @Override
-@@ -813,16 +_,12 @@
+         if (depthTexture.getDepthOrLayers() > 1) {
+             throw new UnsupportedOperationException("Clearing a texture with multiple layers or depths is not yet supported");
++        }
++    }
++
++    private void verifyStencilTexture(GpuTexture stencilTexture) {
++        if (!stencilTexture.getFormat().hasStencilAspect()) {
++            throw new IllegalStateException("Trying to clear stencil in a texture that has no stencil component!");
++        }
++
++        if (stencilTexture.isClosed()) {
++            throw new IllegalStateException("Stencil texture is closed");
++        }
++
++        if ((stencilTexture.usage() & GpuTexture.USAGE_RENDER_ATTACHMENT) == 0) {
++            throw new IllegalStateException("Stencil texture must have USAGE_RENDER_ATTACHMENT");
++        }
++
++        if ((stencilTexture.usage() & GpuTexture.USAGE_COPY_DST) == 0) {
++            throw new IllegalStateException("Stencil texture must have USAGE_COPY_DST");
          }
      }
  
--    private void verifyRegion(GpuTexture colorTexture, int regionX, int regionY, int regionWidth, int regionHeight, int mipLevel) {
--        if (mipLevel >= colorTexture.getMipLevels()) {
--            throw new IllegalArgumentException("Mip level " + mipLevel + " out of range for texture with " + colorTexture.getMipLevels() + " mips");
--        }
--
--        if (regionX < 0 || regionX >= colorTexture.getWidth(mipLevel)) {
-+    private void verifyRegion(GpuTexture colorTexture, int regionX, int regionY, int regionWidth, int regionHeight) {
-+        if (regionX < 0 || regionX >= colorTexture.getWidth(0)) {
-             throw new IllegalArgumentException("regionX should not be outside of the texture");
-         }
- 
--        if (regionY < 0 || regionY >= colorTexture.getHeight(mipLevel)) {
-+        if (regionY < 0 || regionY >= colorTexture.getHeight(0)) {
-             throw new IllegalArgumentException("regionY should not be outside of the texture");
-         }
- 
-@@ -830,7 +_,7 @@
-             throw new IllegalArgumentException("regionWidth should be greater than 0");
-         }
- 
--        if (regionX + regionWidth > colorTexture.getWidth(mipLevel)) {
-+        if (regionX + regionWidth > colorTexture.getWidth(0)) {
-             throw new IllegalArgumentException("regionWidth + regionX should be less than the texture width");
-         }
- 
-@@ -838,7 +_,7 @@
-             throw new IllegalArgumentException("regionHeight should be greater than 0");
-         }
- 
--        if (regionY + regionHeight > colorTexture.getHeight(mipLevel)) {
-+        if (regionY + regionHeight > colorTexture.getHeight(0)) {
-             throw new IllegalArgumentException("regionWidth + regionX should be less than the texture height");
-         }
-     }

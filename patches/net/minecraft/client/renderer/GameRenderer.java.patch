@@ -1,440 +1,57 @@
 --- a/net/minecraft/client/renderer/GameRenderer.java
 +++ b/net/minecraft/client/renderer/GameRenderer.java
-@@ -21,22 +_,18 @@
- import com.mojang.renderpearl.api.commands.RenderPassDescriptor;
- import com.mojang.renderpearl.api.device.GpuDevice;
- import com.mojang.renderpearl.api.pipeline.ShaderSource;
--import com.mojang.renderpearl.api.pipeline.ShaderType;
- import com.mojang.renderpearl.api.textures.FilterMode;
- import com.mojang.renderpearl.api.textures.GpuSampler;
- import com.mojang.renderpearl.api.textures.GpuTexture;
- import com.mojang.renderpearl.api.textures.GpuTextureView;
- import java.io.IOException;
-+import java.io.Reader;
- import java.nio.file.Files;
- import java.nio.file.Path;
- import java.util.ArrayList;
--import java.util.Collections;
--import java.util.HashSet;
- import java.util.List;
--import java.util.Map;
- import java.util.Optional;
- import java.util.OptionalDouble;
--import java.util.Set;
- import net.minecraft.client.Camera;
- import net.minecraft.client.DeltaTracker;
- import net.minecraft.client.Minecraft;
-@@ -54,12 +_,10 @@
- import net.minecraft.client.player.LocalPlayer;
- import net.minecraft.client.renderer.feature.FeatureRenderDispatcher;
- import net.minecraft.client.renderer.fog.FogRenderer;
--import net.minecraft.client.renderer.item.ItemModelResolver;
- import net.minecraft.client.renderer.state.GameRenderState;
- import net.minecraft.client.renderer.state.OptionsRenderState;
- import net.minecraft.client.renderer.state.WindowRenderState;
- import net.minecraft.client.renderer.state.level.CameraRenderState;
--import net.minecraft.client.renderer.state.level.PlayerRenderState;
- import net.minecraft.client.renderer.texture.OverlayTexture;
- import net.minecraft.client.renderer.texture.TextureManager;
- import net.minecraft.client.resources.model.ModelManager;
-@@ -67,10 +_,12 @@
- import net.minecraft.client.server.IntegratedServer;
- import net.minecraft.core.BlockPos;
- import net.minecraft.resources.Identifier;
--import net.minecraft.server.packs.resources.ResourceManager;
-+import net.minecraft.server.packs.resources.PreparableReloadListener;
- import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
-+import net.minecraft.server.packs.resources.ResourceProvider;
- import net.minecraft.util.CommonLinks;
- import net.minecraft.util.Mth;
-+import net.minecraft.util.RandomSource;
- import net.minecraft.util.Util;
- import net.minecraft.util.VisibleForDebug;
- import net.minecraft.util.profiling.Profiler;
-@@ -80,7 +_,7 @@
- import net.minecraft.world.entity.Entity;
- import net.minecraft.world.entity.LivingEntity;
- import net.minecraft.world.entity.monster.Creeper;
--import net.minecraft.world.entity.monster.Enderman;
-+import net.minecraft.world.entity.monster.EnderMan;
- import net.minecraft.world.entity.monster.spider.Spider;
- import net.minecraft.world.entity.player.Player;
- import net.minecraft.world.item.ItemStack;
-@@ -93,6 +_,7 @@
- import net.minecraft.world.waypoints.TrackedWaypoint;
- import net.neoforged.api.distmarker.Dist;
- import net.neoforged.api.distmarker.OnlyIn;
-+import org.apache.commons.io.IOUtils;
- import org.joml.Matrix4f;
- import org.joml.Matrix4fStack;
- import org.joml.Vector3f;
-@@ -100,19 +_,24 @@
- import org.slf4j.Logger;
- 
- @OnlyIn(Dist.CLIENT)
--public class GameRenderer implements AutoCloseable, TrackedWaypoint.Projector, ResourceManagerReloadListener {
-+public class GameRenderer implements AutoCloseable, TrackedWaypoint.Projector {
-     private static final Identifier BLUR_POST_CHAIN_ID = Identifier.withDefaultNamespace("blur");
-     public static Identifier END_OF_FRAME_POST_EFFECT = Identifier.withDefaultNamespace("end_of_frame");
-     public static final int MAX_BLUR_RADIUS = 10;
-     private static final Logger LOGGER = LogUtils.getLogger();
-+    private static final float PORTAL_SPINNING_SPEED = 20.0F;
-+    private static final float NAUSEA_SPINNING_SPEED = 7.0F;
-     private final Minecraft minecraft;
-     private final GameRenderState gameRenderState = new GameRenderState();
--    public final FirstPersonHandsAndItemsRenderer firstPersonHandsAndItemsRenderer;
-+    private final RandomSource random = RandomSource.create();
-+    public final ItemInHandRenderer itemInHandRenderer;
-     private final ScreenEffectRenderer screenEffectRenderer;
-     private final DebugCrosshairRenderer debugCrosshairRenderer;
-     private final RenderBuffers renderBuffers;
-     private final RenderTarget mainRenderTarget;
-     private final RenderTarget hud3DTarget;
-+    private float spinningEffectTime;
-+    private float spinningEffectSpeed;
-     private float bossOverlayWorldDarkening;
-     private float bossOverlayWorldDarkeningO;
-     private boolean renderBlockOutline = true;
-@@ -142,11 +_,9 @@
-     private final List<Identifier> failedPostEffects = new ArrayList<>();
-     private volatile boolean shouldResetFailedPostEffects;
- 
--    public GameRenderer(
--        Minecraft minecraft, FirstPersonHandsAndItemsRenderer firstPersonHandsAndItemsRenderer, ModelManager modelManager, ItemModelResolver itemModelResolver
--    ) {
-+    public GameRenderer(Minecraft minecraft, ItemInHandRenderer itemInHandRenderer, ModelManager modelManager) {
-         this.minecraft = minecraft;
--        this.firstPersonHandsAndItemsRenderer = firstPersonHandsAndItemsRenderer;
-+        this.itemInHandRenderer = itemInHandRenderer;
-         this.lightmapRenderStateExtractor = new LightmapRenderStateExtractor(this, minecraft);
- 
-         try {
-@@ -173,7 +_,7 @@
-                 new GuiProfilerChartRenderer()
-             )
+@@ -165,18 +_,18 @@
+         this.guiRenderer = new GuiRenderer(
+             this.gameRenderState.guiRenderState,
+             this.featureRenderDispatcher,
+-            List.of(
+-                new GuiEntityRenderer(minecraft.getEntityRenderDispatcher()),
+-                new GuiSkinRenderer(),
+-                new GuiBookModelRenderer(),
+-                new GuiBannerResultRenderer(atlasManager),
+-                new GuiProfilerChartRenderer()
+-            )
++            net.neoforged.neoforge.client.ClientHooks.gatherPictureInPictureRenderers(List.of(
++                new net.neoforged.neoforge.client.gui.PictureInPictureRendererRegistration<>(net.minecraft.client.renderer.state.gui.pip.GuiEntityRenderState.class, () -> new GuiEntityRenderer(minecraft.getEntityRenderDispatcher())),
++                new net.neoforged.neoforge.client.gui.PictureInPictureRendererRegistration<>(net.minecraft.client.renderer.state.gui.pip.GuiSkinRenderState.class, GuiSkinRenderer::new),
++                new net.neoforged.neoforge.client.gui.PictureInPictureRendererRegistration<>(net.minecraft.client.renderer.state.gui.pip.GuiBookModelRenderState.class, GuiBookModelRenderer::new),
++                new net.neoforged.neoforge.client.gui.PictureInPictureRendererRegistration<>(net.minecraft.client.renderer.state.gui.pip.GuiBannerResultRenderState.class, () -> new GuiBannerResultRenderer(atlasManager)),
++                new net.neoforged.neoforge.client.gui.PictureInPictureRendererRegistration<>(net.minecraft.client.renderer.state.gui.pip.GuiProfilerChartRenderState.class, GuiProfilerChartRenderer::new)
++            ))
          );
--        this.screenEffectRenderer = new ScreenEffectRenderer(this, atlasManager);
-+        this.screenEffectRenderer = new ScreenEffectRenderer(minecraft, atlasManager);
+         this.screenEffectRenderer = new ScreenEffectRenderer(this, atlasManager);
          this.debugCrosshairRenderer = new DebugCrosshairRenderer();
-         this.mainRenderTarget = new MainTarget(minecraft.getWindow().getWidth(), minecraft.getWindow().getHeight());
+-        this.mainRenderTarget = new MainTarget(minecraft.getWindow().getWidth(), minecraft.getWindow().getHeight());
          this.hud3DTarget = new TextureTarget("hud_3d_depth", minecraft.getWindow().getWidth(), minecraft.getWindow().getHeight(), null, GpuFormat.D32_FLOAT);
-@@ -231,7 +_,7 @@
-             case Spider ignored:
-                 this.setSpectatedEntityPostEffect(Identifier.withDefaultNamespace("spider"));
-                 break;
--            case Enderman ignored:
-+            case EnderMan ignored:
-                 this.setSpectatedEntityPostEffect(Identifier.withDefaultNamespace("invert"));
++        this.mainRenderTarget = net.neoforged.neoforge.client.ClientHooks.instantiateMainTarget(minecraft.getWindow().getWidth(), minecraft.getWindow().getHeight());
+     }
+ 
+     @Override
+@@ -236,6 +_,7 @@
                  break;
              case null:
-@@ -252,30 +_,16 @@
+             default:
++                if (!net.neoforged.neoforge.client.ClientHooks.loadEntityShader(cameraEntity, this))
+                 this.clearSpectatedEntityPostEffect();
          }
      }
+@@ -348,6 +_,9 @@
+                 return;
+             }
  
--    public static void preloadUiShader(ResourceManager resourceManager) {
-+    public void preloadUiShader(ResourceProvider resourceProvider) {
-         GpuDevice device = RenderSystem.getDevice();
--        final Map<Identifier, ShaderSource.CachedIncludeSource> includes = ShaderManager.listAllIncludes(resourceManager);
--        ShaderSource shaderSource = new ShaderSource() {
--            @Override
--            public @Nullable String getShader(Identifier id, ShaderType type) {
--                Identifier location = type.idConverter().idToFile(id);
--
--                try {
--                    return resourceManager.getResourceOrThrow(location).readAllAsString();
--                } catch (Exception exception) {
--                    GameRenderer.LOGGER.error("Couldn't preload shader {}", location, exception);
--                    return null;
--                }
--            }
--
--            @Override
--            public ShaderSource.@Nullable CachedIncludeSource getInclude(Identifier id) {
--                return includes.get(id);
--            }
--
--            @Override
--            public void close() {
--                includes.values().forEach(ShaderSource.CachedIncludeSource::close);
-+        ShaderSource shaderSource = (id, type) -> {
-+            Identifier location = type.idConverter().idToFile(id);
++            // Neo: Prevent screen shake if the damage type is marked as "forge:no_flinch"
++            if (cameraState.entityRenderState.preventFlinch) return;
 +
-+            try (Reader reader = resourceProvider.getResourceOrThrow(location).openAsReader()) {
-+                return IOUtils.toString(reader);
-+            } catch (IOException exception) {
-+                LOGGER.error("Couldn't preload {} shader {}", type, id, exception);
-+                return null;
-             }
-         };
-         RenderSystem.setFallbackPipelineCache(new PipelineCache(device, shaderSource));
-@@ -294,6 +_,16 @@
-         }
- 
-         this.mainCamera.tick();
-+        this.itemInHandRenderer.tick();
-+        float portalIntensity = player.portalEffectIntensity;
-+        float nauseaIntensity = player.getEffectBlendFactor(MobEffects.NAUSEA, 1.0F);
-+        if (!(portalIntensity > 0.0F) && !(nauseaIntensity > 0.0F)) {
-+            this.spinningEffectSpeed = 0.0F;
-+        } else {
-+            this.spinningEffectSpeed = (portalIntensity * 20.0F + nauseaIntensity * 7.0F) / (portalIntensity + nauseaIntensity);
-+            this.spinningEffectTime = this.spinningEffectTime + this.spinningEffectSpeed;
-+        }
-+
-         if (this.minecraft.level.tickRateManager().runsNormally()) {
-             this.bossOverlayWorldDarkeningO = this.bossOverlayWorldDarkening;
-             if (this.minecraft.gui.hud.getBossOverlay().shouldDarkenScreen()) {
-@@ -305,9 +_,7 @@
-                 this.bossOverlayWorldDarkening -= 0.0125F;
-             }
- 
--            if (player != null) {
--                player.itemActivation().tick();
--            }
-+            this.screenEffectRenderer.tick();
-         }
-     }
- 
-@@ -324,9 +_,8 @@
-         return this.appliedPostEffects.stream().map(PostChain::id).toList();
-     }
- 
--    @Override
--    public void onResourceManagerReload(ResourceManager resourceManager) {
--        this.shouldResetFailedPostEffects = true;
-+    public PreparableReloadListener createReloadListener() {
-+        return (ResourceManagerReloadListener)var1 -> this.shouldResetFailedPostEffects = true;
-     }
- 
-     public void resize(int width, int height) {
-@@ -341,7 +_,7 @@
-             float hurt = cameraState.entityRenderState.hurtTime;
-             if (cameraState.entityRenderState.isDeadOrDying) {
-                 float duration = Math.min(cameraState.entityRenderState.deathTime, 20.0F);
--                poseStack.rotateDegrees(Axis.ZP, 40.0F - 8000.0F / (duration + 200.0F));
-+                poseStack.mulPose(Axis.ZP.rotationDegrees(40.0F - 8000.0F / (duration + 200.0F)));
-             }
- 
-             if (hurt < 0.0F) {
-@@ -351,10 +_,10 @@
              hurt /= cameraState.entityRenderState.hurtDuration;
              hurt = Mth.sin(hurt * hurt * hurt * hurt * (float) Math.PI);
              float rr = cameraState.entityRenderState.hurtDir;
--            poseStack.rotateDegrees(Axis.YP, -rr);
-+            poseStack.mulPose(Axis.YP.rotationDegrees(-rr));
-             float tiltAmount = (float)(-hurt * 14.0 * this.gameRenderState.optionsRenderState.damageTiltStrength);
--            poseStack.rotateDegrees(Axis.ZP, tiltAmount);
--            poseStack.rotateDegrees(Axis.YP, rr);
-+            poseStack.mulPose(Axis.ZP.rotationDegrees(tiltAmount));
-+            poseStack.mulPose(Axis.YP.rotationDegrees(rr));
-         }
-     }
- 
-@@ -367,15 +_,14 @@
-                 -Math.abs(Mth.cos(backwardsInterpolatedWalkDistance * (float) Math.PI) * bob),
-                 0.0F
-             );
--            poseStack.rotateDegrees(Axis.ZP, Mth.sin(backwardsInterpolatedWalkDistance * (float) Math.PI) * bob * 3.0F);
--            poseStack.rotateDegrees(Axis.XP, Math.abs(Mth.cos(backwardsInterpolatedWalkDistance * (float) Math.PI - 0.2F) * bob) * 5.0F);
-+            poseStack.mulPose(Axis.ZP.rotationDegrees(Mth.sin(backwardsInterpolatedWalkDistance * (float) Math.PI) * bob * 3.0F));
-+            poseStack.mulPose(Axis.XP.rotationDegrees(Math.abs(Mth.cos(backwardsInterpolatedWalkDistance * (float) Math.PI - 0.2F) * bob) * 5.0F));
-         }
-     }
- 
--    private void renderItemInHand(CameraRenderState cameraState, PlayerRenderState playerState, GpuTextureView depthTextureView) {
-+    private void renderItemInHand(CameraRenderState cameraState, GpuTextureView depthTextureView) {
-         if (!cameraState.isPanoramicMode) {
--            if (playerState.hasPlayer
--                && this.gameRenderState.optionsRenderState.cameraType.isFirstPerson()
-+            if (this.gameRenderState.optionsRenderState.cameraType.isFirstPerson()
-                 && !cameraState.entityRenderState.isSleeping
-                 && !this.gameRenderState.guiRenderState.isHudHidden
-                 && this.minecraft.gameMode.getPlayerMode() != GameType.SPECTATOR) {
-@@ -389,16 +_,14 @@
-                     this.bobView(cameraState, poseStack);
-                 }
- 
--                if (playerState.firstPersonHandsAndItems != null) {
--                    this.firstPersonHandsAndItemsRenderer
--                        .submitHandsWithItems(
--                            cameraState.cameraEntityPartialTicks,
--                            poseStack,
--                            this.handAndScreenSubmitNodeStorage,
--                            playerState,
--                            playerState.firstPersonHandsAndItems
--                        );
--                }
-+                this.itemInHandRenderer
-+                    .submitHandsWithItems(
-+                        cameraState.cameraEntityPartialTicks,
-+                        poseStack,
-+                        this.handAndScreenSubmitNodeStorage,
-+                        this.minecraft.player,
-+                        this.minecraft.getEntityRenderDispatcher().getPackedLightCoords(this.minecraft.player, cameraState.cameraEntityPartialTicks)
-+                    );
- 
-                 try (
-                     FeatureRenderDispatcher.PreparedFrame frame = this.featureRenderDispatcher.prepareFrame(this.handAndScreenSubmitNodeStorage);
-@@ -449,13 +_,11 @@
-             this.lightmapRenderStateExtractor.extract(this.gameRenderState.lightmapRenderState, 1.0F);
-             this.extractCamera(deltaTracker, worldPartialTicks);
-             this.minecraft.levelExtractor.extract(deltaTracker, this.mainCamera, worldPartialTicks);
--        } else {
--            this.gameRenderState.levelRenderState.playerRenderState.reset();
-         }
- 
-         this.minecraft.gui.extractRenderState(deltaTracker, this.gameRenderState.shouldRenderLevel, resourcesLoaded);
-         this.gameRenderState.requestedPostEffects.clear();
--        if (this.gameRenderState.levelRenderState.playerRenderState.hasPlayer) {
-+        if (this.minecraft.player != null) {
-             for (Identifier postEffect : this.requestedPostEffects) {
-                 if (!this.failedPostEffects.contains(postEffect)) {
-                     this.gameRenderState.requestedPostEffects.add(postEffect);
-@@ -491,7 +_,7 @@
-                 this.gameRenderState.optionsRenderState.textureFiltering == TextureFilteringMethod.RGSS
-             );
-         if (this.gameRenderState.shouldRenderLevel) {
--            this.preparePostEffects(this.gameRenderState.requestedPostEffects);
-+            this.preparePostEffects();
-             this.lightmap.render(this.gameRenderState.lightmapRenderState);
-             profiler.push("world");
-             this.renderLevel();
-@@ -499,8 +_,6 @@
-             this.minecraft.levelRenderer.blitEntityOutline();
-             this.applyPostEffects();
-             profiler.pop();
--        } else {
--            this.preparePostEffects(Collections.emptyList());
-         }
- 
-         this.fogRenderer.endFrame();
-@@ -517,35 +_,24 @@
-         profiler.pop();
-     }
- 
--    private void preparePostEffects(List<Identifier> requestedPostEffects) {
--        Set<PostChain> previousPostEffects = new HashSet<>(this.appliedPostEffects);
-+    private void preparePostEffects() {
-         this.appliedPostEffects.clear();
-         if (this.shouldResetFailedPostEffects) {
-             this.failedPostEffects.clear();
-             this.shouldResetFailedPostEffects = false;
-         }
- 
--        for (Identifier postEffect : requestedPostEffects) {
-+        for (Identifier postEffect : this.gameRenderState.requestedPostEffects) {
-             try {
--                ShaderManager shaderManager = this.minecraft.getShaderManager();
--                if (!shaderManager.isPostEffectValid(postEffect, LevelTargetBundle.MAIN_TARGETS)) {
--                    this.failedPostEffects.add(postEffect);
--                } else {
--                    PostChain postChain = shaderManager.getPostChain(postEffect, LevelTargetBundle.MAIN_TARGETS);
--                    if (postChain != null) {
--                        this.appliedPostEffects.add(postChain);
--                        previousPostEffects.remove(postChain);
--                    }
-+                PostChain postChain = this.minecraft.getShaderManager().getPostChain(postEffect, LevelTargetBundle.MAIN_TARGETS);
-+                if (postChain != null) {
-+                    this.appliedPostEffects.add(postChain);
-                 }
-             } catch (RuntimeException e) {
-                 LOGGER.warn("Failed to load post effect {}", postEffect, e);
-                 this.failedPostEffects.add(postEffect);
-             }
-         }
--
--        for (PostChain postEffect : previousPostEffects) {
--            postEffect.closePersistentTargets();
--        }
-     }
- 
-     private void applyPostEffects() {
-@@ -633,7 +_,7 @@
-     }
- 
-     public void renderLevel() {
--        PlayerRenderState playerState = this.gameRenderState.levelRenderState.playerRenderState;
-+        LocalPlayer player = this.minecraft.player;
-         ProfilerFiller profiler = Profiler.get();
-         boolean renderOutline = this.shouldRenderBlockOutline();
-         OptionsRenderState optionsState = this.gameRenderState.optionsRenderState;
-@@ -649,14 +_,14 @@
-         projectionMatrix.mul(bobStack.last().pose());
-         float worldPartialTicks = this.gameRenderState.levelRenderState.worldPartialTicks;
-         float screenEffectScale = optionsState.screenEffectScale;
--        float portalIntensity = playerState.portalEffectIntensity;
--        float nauseaIntensity = playerState.nauseaEffectIntensity;
-+        float portalIntensity = Mth.lerp(worldPartialTicks, player.oPortalEffectIntensity, player.portalEffectIntensity);
-+        float nauseaIntensity = player.getEffectBlendFactor(MobEffects.NAUSEA, worldPartialTicks);
-         float spinningEffectIntensity = Math.max(portalIntensity, nauseaIntensity) * (screenEffectScale * screenEffectScale);
-         if (spinningEffectIntensity > 0.0F) {
-             float skew = 5.0F / (spinningEffectIntensity * spinningEffectIntensity + 5.0F) - spinningEffectIntensity * 0.04F;
-             skew *= skew;
-             Vector3f axis = new Vector3f(0.0F, Mth.SQRT_OF_TWO / 2.0F, Mth.SQRT_OF_TWO / 2.0F);
--            float angle = playerState.spinningEffectAngle * (float) (Math.PI / 180.0);
-+            float angle = (this.spinningEffectTime + worldPartialTicks * this.spinningEffectSpeed) * (float) (Math.PI / 180.0);
-             projectionMatrix.rotate(angle, axis);
-             projectionMatrix.scale(1.0F / skew, 1.0F, 1.0F);
-             projectionMatrix.rotate(-angle, axis);
-@@ -672,12 +_,13 @@
+@@ -672,6 +_,9 @@
          this.minecraft
              .levelRenderer
              .render(this.resourcePool, renderOutline, cameraState, terrainFog, cameraState.fogData.color, !shouldCreateBossFog, consistentDepthRequired);
--        this.render3dHud(cameraState, playerState, optionsState, consistentDepthRequired);
-+        this.render3dHud(cameraState, optionsState, consistentDepthRequired);
++        profiler.popPush("neoforge_render_after_level");
++        LevelRenderer levelRenderer = this.minecraft.levelRenderer;
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.RenderLevelStageEvent.AfterLevel(levelRenderer, levelRenderer.levelRenderState, null, cameraState.viewRotationMatrix, levelRenderer.visibleSections()));
+         this.render3dHud(cameraState, playerState, optionsState, consistentDepthRequired);
      }
  
--    private void render3dHud(CameraRenderState cameraState, PlayerRenderState playerState, OptionsRenderState optionsState, boolean consistentDepthRequired) {
-+    private void render3dHud(CameraRenderState cameraState, OptionsRenderState optionsState, boolean consistentDepthRequired) {
-         ProfilerFiller profiler = Profiler.get();
-         profiler.popPush("hand");
-+        boolean isSleeping = cameraState.entityRenderState.isSleeping;
-         this.hudProjection
-             .setupPerspective(
-                 0.05F, cameraState.depthFar, cameraState.hudFov, this.gameRenderState.windowRenderState.width, this.gameRenderState.windowRenderState.height
-@@ -686,14 +_,14 @@
-         GpuTexture depthTexture = consistentDepthRequired ? this.hud3DTarget.getDepthTexture() : this.mainRenderTarget.getDepthTexture();
-         GpuTextureView depthTextureView = consistentDepthRequired ? this.hud3DTarget.getDepthTextureView() : this.mainRenderTarget.getDepthTextureView();
-         RenderSystem.getDevice().createCommandEncoder().clearDepthTexture(depthTexture, 0.0);
--        this.renderItemInHand(cameraState, playerState, depthTextureView);
-+        this.renderItemInHand(cameraState, depthTextureView);
-         profiler.popPush("screenEffects");
-         this.screenEffectRenderer
-             .submit(
-+                optionsState.cameraType.isFirstPerson(),
-+                isSleeping,
-                 this.gameRenderState.levelRenderState.worldPartialTicks,
-                 this.handAndScreenSubmitNodeStorage,
--                playerState,
--                cameraState,
-                 this.gameRenderState.guiRenderState.isHudHidden
-             );
- 
-@@ -731,7 +_,7 @@
-         GpuSampler nearestSampler = RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST);
- 
-         try (RenderPass renderPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(integrateDepthDescriptor)) {
--            renderPass.setUniform("InSampler", this.hud3DTarget.getDepthTextureView(), nearestSampler);
-+            renderPass.bindTexture("InSampler", this.hud3DTarget.getDepthTextureView(), nearestSampler);
-             renderPass.setPipeline(RenderSystem.getCompiledPipeline(RenderPipelines.INTEGRATE_DEPTH));
-             renderPass.draw(3, 1, 0, 0);
-         }
-@@ -788,13 +_,14 @@
-     }
- 
-     public void resetData() {
--        if (this.minecraft.player != null) {
--            this.minecraft.player.resetItemActivation();
--        }
--
-+        this.screenEffectRenderer.resetItemActivation();
-         this.minecraft.getMapTextureManager().resetData();
-         this.mainCamera.reset();
-         this.hasWorldScreenshot = false;
-+    }
-+
-+    public void displayItemActivation(ItemStack itemStack) {
-+        this.screenEffectRenderer.displayItemActivation(itemStack, this.random);
-     }
- 
-     public float bossOverlayWorldDarkening(float a) {

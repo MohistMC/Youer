@@ -1,58 +1,13 @@
 --- a/net/minecraft/client/renderer/blockentity/ConduitRenderer.java
 +++ b/net/minecraft/client/renderer/blockentity/ConduitRenderer.java
-@@ -1,7 +_,6 @@
- package net.minecraft.client.renderer.blockentity;
- 
- import com.mojang.blaze3d.vertex.PoseStack;
--import com.mojang.math.Axis;
- import com.mojang.math.Transformation;
- import net.minecraft.client.model.geom.ModelLayers;
- import net.minecraft.client.model.geom.ModelPart;
-@@ -109,7 +_,7 @@
-         if (!state.isActive) {
-             poseStack.pushPose();
-             poseStack.translate(0.5F, 0.5F, 0.5F);
--            poseStack.rotateDegrees(Axis.YP, state.activeRotation);
-+            poseStack.mulPose(new Quaternionf().rotationY(state.activeRotation * (float) (Math.PI / 180.0)));
-             RenderType shellRenderType = SHELL_TEXTURE.renderType(RenderTypes::entitySolid);
-             submitNodeCollector.submitModelPart(
-                 this.shell, poseStack, shellRenderType, state.lightCoords, OverlayTexture.NO_OVERLAY, this.sprites.get(SHELL_TEXTURE), -1
-@@ -127,7 +_,7 @@
-             poseStack.pushPose();
-             poseStack.translate(0.5F, 0.3F + hh * 0.2F, 0.5F);
-             Vector3f axis = new Vector3f(0.5F, 1.0F, 0.5F).normalize();
--            poseStack.rotate(new Quaternionf().rotationAxis(rotation * (float) (Math.PI / 180.0), axis));
-+            poseStack.mulPose(new Quaternionf().rotationAxis(rotation * (float) (Math.PI / 180.0), axis));
-             RenderType cageRenderType = ACTIVE_SHELL_TEXTURE.renderType(RenderTypes::entityCutout);
-             submitNodeCollector.submitModelPart(
-                 this.cage, poseStack, cageRenderType, state.lightCoords, OverlayTexture.NO_OVERLAY, this.sprites.get(ACTIVE_SHELL_TEXTURE), -1
-@@ -141,9 +_,9 @@
-             poseStack.pushPose();
-             poseStack.translate(0.5F, 0.5F, 0.5F);
-             if (state.animationPhase == 1) {
--                poseStack.rotate(Axis.XP, (float) (Math.PI / 2));
-+                poseStack.mulPose(new Quaternionf().rotationX((float) (Math.PI / 2)));
-             } else if (state.animationPhase == 2) {
--                poseStack.rotate(Axis.ZP, (float) (Math.PI / 2));
-+                poseStack.mulPose(new Quaternionf().rotationZ((float) (Math.PI / 2)));
-             }
- 
-             SpriteId windSpriteId = state.animationPhase == 1 ? VERTICAL_WIND_TEXTURE : WIND_TEXTURE;
-@@ -154,14 +_,14 @@
-             poseStack.pushPose();
-             poseStack.translate(0.5F, 0.5F, 0.5F);
-             poseStack.scale(0.875F, 0.875F, 0.875F);
--            poseStack.rotate(new Quaternionf().rotationXYZ((float) Math.PI, 0.0F, (float) Math.PI));
-+            poseStack.mulPose(new Quaternionf().rotationXYZ((float) Math.PI, 0.0F, (float) Math.PI));
-             submitNodeCollector.submitModelPart(this.wind, poseStack, windRenderType, state.lightCoords, OverlayTexture.NO_OVERLAY, windSprite);
+@@ -171,4 +_,10 @@
              poseStack.popPose();
-             poseStack.pushPose();
-             poseStack.translate(0.5F, 0.3F + hh * 0.2F, 0.5F);
-             poseStack.scale(0.5F, 0.5F, 0.5F);
--            poseStack.rotate(camera.orientation);
--            poseStack.rotate(new Quaternionf().rotationZ((float) Math.PI).rotateY((float) Math.PI));
-+            poseStack.mulPose(camera.orientation);
-+            poseStack.mulPose(new Quaternionf().rotationZ((float) Math.PI).rotateY((float) Math.PI));
-             float scale = 1.3333334F;
-             poseStack.scale(1.3333334F, 1.3333334F, 1.3333334F);
-             SpriteId eyeSprite = state.isHunting ? OPEN_EYE_TEXTURE : CLOSED_EYE_TEXTURE;
+         }
+     }
++
++    @Override
++    public net.minecraft.world.phys.AABB getRenderBoundingBox(ConduitBlockEntity blockEntity) {
++        net.minecraft.core.BlockPos pos = blockEntity.getBlockPos();
++        return new net.minecraft.world.phys.AABB(pos.getX(), pos.getY() - .25, pos.getZ(), pos.getX() + 1.0, pos.getY() + 1.25, pos.getZ() + 1.0);
++    }
+ }

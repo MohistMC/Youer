@@ -1,0 +1,36 @@
+--- a/net/minecraft/client/gui/components/Button.java
++++ b/net/minecraft/client/gui/components/Button.java
+@@ -31,6 +_,11 @@
+         this.createNarration = createNarration;
+     }
+ 
++    protected Button(Builder builder) {
++        this(builder.x, builder.y, builder.width, builder.height, builder.message, builder.onPress, builder.createNarration);
++        setTooltip(builder.tooltip); // Forge: Make use of the Builder tooltip
++    }
++
+     @Override
+     public void onPress(InputWithModifiers input) {
+         this.onPress.onPress(this);
+@@ -97,6 +_,10 @@
+             button.setTooltip(this.tooltip);
+             return button;
+         }
++
++        public Button build(java.util.function.Function<Builder, Button> builder) {
++            return builder.apply(this);
++        }
+     }
+ 
+     public interface CreateNarration {
+@@ -110,6 +_,10 @@
+     public static class Plain extends Button {
+         protected Plain(int x, int y, int width, int height, Component message, Button.OnPress onPress, Button.CreateNarration createNarration) {
+             super(x, y, width, height, message, onPress, createNarration);
++        }
++
++        protected Plain(Builder builder) {
++            super(builder);
+         }
+ 
+         @Override

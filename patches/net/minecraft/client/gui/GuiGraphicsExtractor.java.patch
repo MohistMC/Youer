@@ -1,23 +1,191 @@
 --- a/net/minecraft/client/gui/GuiGraphicsExtractor.java
 +++ b/net/minecraft/client/gui/GuiGraphicsExtractor.java
-@@ -272,17 +_,15 @@
-         this.text(font, text, x - font.width(text) / 2, y, color);
-     }
+@@ -102,6 +_,7 @@
+     private @Nullable Style hoveredTextStyle;
+     private @Nullable Style clickableTextStyle;
+     private @Nullable Renderable preeditOverlay;
++    private ItemStack tooltipStack = ItemStack.EMPTY;
  
--    public int textWithWordWrap(Font font, FormattedText string, int x, int y, int width, int col) {
--        return this.textWithWordWrap(font, string, x, y, width, col, true);
-+    public void textWithWordWrap(Font font, FormattedText string, int x, int y, int width, int col) {
-+        this.textWithWordWrap(font, string, x, y, width, col, true);
-     }
- 
--    public int textWithWordWrap(Font font, FormattedText string, int x, int y, int width, int col, boolean dropShadow) {
-+    public void textWithWordWrap(Font font, FormattedText string, int x, int y, int width, int col, boolean dropShadow) {
-         for (FormattedCharSequence line : font.split(string, width)) {
-             this.text(font, line, x, y, col, dropShadow);
-             y += 9;
+     private GuiGraphicsExtractor(Minecraft minecraft, Matrix3x2fStack pose, GuiRenderState guiRenderState, int mouseX, int mouseY) {
+         this.minecraft = minecraft;
+@@ -879,6 +_,7 @@
+             this.itemCooldown(itemStack, x, y);
+             this.itemCount(font, itemStack, x, y, countText);
+             this.pose.popMatrix();
++            net.neoforged.neoforge.client.ItemDecoratorHandler.of(itemStack).render(this, font, itemStack, x, y);
          }
--
--        return y;
      }
  
-     public void textWithBackdrop(Font font, Component str, int textX, int textY, int textWidth, int textColor) {
+@@ -1020,9 +_,34 @@
+     }
+ 
+     public void setTooltipForNextFrame(Font font, ItemStack itemStack, int xo, int yo) {
++        this.tooltipStack = itemStack;
+         this.setTooltipForNextFrame(
+             font, Screen.getTooltipFromItem(this.minecraft, itemStack), itemStack.getTooltipImage(), xo, yo, itemStack.get(DataComponents.TOOLTIP_STYLE), true
+         );
++        this.tooltipStack = ItemStack.EMPTY;
++    }
++
++    public void setTooltipForNextFrame(Font font, List<Component> texts, Optional<TooltipComponent> optionalImage, ItemStack stack, int mouseX, int mouseY) {
++        setTooltipForNextFrame(font, texts, optionalImage, stack, mouseX, mouseY, null);
++    }
++
++    public void setTooltipForNextFrame(Font font, List<Component> texts, Optional<TooltipComponent> optionalImage, ItemStack stack, int mouseX, int mouseY, @Nullable Identifier style) {
++        this.setTooltipForNextFrame(font, texts, optionalImage, stack, mouseX, mouseY, style, false);
++    }
++
++    public void setTooltipForNextFrame(
++        Font font,
++        List<Component> texts,
++        Optional<TooltipComponent> optionalImage,
++        ItemStack stack,
++        int mouseX,
++        int mouseY,
++        @Nullable Identifier style,
++        boolean extraSpaceAfterFirstLine
++    ) {
++        this.tooltipStack = stack;
++        this.setTooltipForNextFrame(font, texts, optionalImage, mouseX, mouseY, style, extraSpaceAfterFirstLine);
++        this.tooltipStack = ItemStack.EMPTY;
+     }
+ 
+     public void setTooltipForNextFrame(Font font, List<Component> texts, Optional<TooltipComponent> optionalImage, int xo, int yo) {
+@@ -1042,11 +_,7 @@
+         @Nullable Identifier style,
+         boolean extraSpaceAfterFirstLine
+     ) {
+-        List<ClientTooltipComponent> components = texts.stream()
+-            .map(Component::getVisualOrderText)
+-            .map(ClientTooltipComponent::create)
+-            .collect(Util.toMutableList());
+-        optionalImage.ifPresent(image -> components.add(components.isEmpty() ? 0 : 1, ClientTooltipComponent.create(image)));
++        List<ClientTooltipComponent> components = net.neoforged.neoforge.client.ClientHooks.gatherTooltipComponents(this.tooltipStack, texts, optionalImage, xo, guiWidth(), guiHeight(), font);
+         this.setTooltipForNextFrameInternal(font, components, xo, yo, DefaultTooltipPositioner.INSTANCE, style, false, extraSpaceAfterFirstLine);
+     }
+ 
+@@ -1074,13 +_,14 @@
+     }
+ 
+     public void setComponentTooltipForNextFrame(Font font, List<Component> lines, int xo, int yo) {
+-        this.setComponentTooltipForNextFrame(font, lines, xo, yo, null);
++        this.setComponentTooltipForNextFrame(font, lines, xo, yo, (Identifier) null);
+     }
+ 
+     public void setComponentTooltipForNextFrame(Font font, List<Component> lines, int xo, int yo, @Nullable Identifier style) {
++        List<ClientTooltipComponent> components = net.neoforged.neoforge.client.ClientHooks.gatherTooltipComponents(this.tooltipStack, lines, xo, guiWidth(), guiHeight(), font);
+         this.setTooltipForNextFrameInternal(
+             font,
+-            lines.stream().map(Component::getVisualOrderText).map(ClientTooltipComponent::create).toList(),
++            components,
+             xo,
+             yo,
+             DefaultTooltipPositioner.INSTANCE,
+@@ -1089,6 +_,28 @@
+         );
+     }
+ 
++    public void setComponentTooltipForNextFrame(Font font, List<? extends FormattedText> tooltips, int mouseX, int mouseY, ItemStack stack) {
++        setComponentTooltipForNextFrame(font, tooltips, mouseX, mouseY, stack, null);
++    }
++
++    public void setComponentTooltipForNextFrame(Font font, List<? extends FormattedText> tooltips, int mouseX, int mouseY, ItemStack stack, @Nullable Identifier backgroundTexture) {
++        this.tooltipStack = stack;
++        List<ClientTooltipComponent> components = net.neoforged.neoforge.client.ClientHooks.gatherTooltipComponents(stack, tooltips, mouseX, guiWidth(), guiHeight(), font);
++        this.setTooltipForNextFrameInternal(font, components, mouseX, mouseY, DefaultTooltipPositioner.INSTANCE, backgroundTexture, false);
++        this.tooltipStack = ItemStack.EMPTY;
++    }
++
++    public void setComponentTooltipFromElementsForNextFrame(Font font, List<com.mojang.datafixers.util.Either<FormattedText, TooltipComponent>> elements, int mouseX, int mouseY, ItemStack stack) {
++        setComponentTooltipFromElementsForNextFrame(font, elements, mouseX, mouseY, stack, null);
++    }
++
++    public void setComponentTooltipFromElementsForNextFrame(Font font, List<com.mojang.datafixers.util.Either<FormattedText, TooltipComponent>> elements, int mouseX, int mouseY, ItemStack stack, @Nullable Identifier backgroundTexture) {
++        this.tooltipStack = stack;
++        List<ClientTooltipComponent> components = net.neoforged.neoforge.client.ClientHooks.gatherTooltipComponentsFromElements(stack, elements, mouseX, guiWidth(), guiHeight(), font);
++        this.setTooltipForNextFrameInternal(font, components, mouseX, mouseY, DefaultTooltipPositioner.INSTANCE, backgroundTexture, false);
++        this.tooltipStack = ItemStack.EMPTY;
++    }
++
+     public void setTooltipForNextFrame(Font font, List<? extends FormattedCharSequence> lines, int xo, int yo) {
+         this.setTooltipForNextFrame(font, lines, xo, yo, null);
+     }
+@@ -1125,7 +_,8 @@
+     ) {
+         if (!lines.isEmpty()) {
+             if (this.deferredTooltip == null || replaceExisting) {
+-                this.deferredTooltip = () -> this.tooltip(font, lines, xo, yo, positioner, style, extraSpaceAfterFirstLine);
++                ItemStack capturedTooltipStack = this.tooltipStack;
++                this.deferredTooltip = () -> this.tooltip(font, lines, xo, yo, positioner, style, extraSpaceAfterFirstLine, capturedTooltipStack);
+             }
+         }
+     }
+@@ -1139,6 +_,26 @@
+         @Nullable Identifier style,
+         boolean extraSpaceAfterFirstLine
+     ) {
++        this.tooltip(font, lines, xo, yo, positioner, style, extraSpaceAfterFirstLine, ItemStack.EMPTY);
++    }
++
++    public void tooltip(
++            Font font,
++            List<ClientTooltipComponent> lines,
++            int xo,
++            int yo,
++            ClientTooltipPositioner positioner,
++            @Nullable Identifier style,
++            boolean extraSpaceAfterFirstLine,
++            ItemStack tooltipStack
++    ) {
++        var preEvent = net.neoforged.neoforge.client.ClientHooks.onRenderTooltipPre(tooltipStack, this, xo, yo, guiWidth(), guiHeight(), lines, font, positioner);
++        if (preEvent.isCanceled()) return;
++
++        font = preEvent.getFont();
++        xo = preEvent.getX();
++        yo = preEvent.getY();
++
+         int textWidth = 0;
+         int tempHeight = extraSpaceAfterFirstLine && lines.size() != 1 ? 0 : -2;
+ 
+@@ -1157,7 +_,8 @@
+         int x = positionedTooltip.x();
+         int y = positionedTooltip.y();
+         this.pose.pushMatrix();
+-        TooltipRenderUtil.extractTooltipBackground(this, x, y, w, h, style);
++        var textureEvent = net.neoforged.neoforge.client.ClientHooks.onRenderTooltipTexture(tooltipStack, this, x, y, preEvent.getFont(), lines, style);
++        TooltipRenderUtil.extractTooltipBackground(this, x, y, textWidth, tempHeight, textureEvent.getTexture());
+         int localY = y;
+ 
+         for (int i = 0; i < lines.size(); i++) {
+@@ -1219,6 +_,31 @@
+                 default:
+             }
+         }
++    }
++
++    /**
++     * Neo: Submit a custom {@link net.minecraft.client.renderer.state.gui.GuiElementRenderState} for rendering
++     */
++    public void submitGuiElementRenderState(net.minecraft.client.renderer.state.gui.GuiElementRenderState renderState) {
++        this.guiRenderState.addGuiElement(renderState);
++    }
++
++    /**
++     * Neo: Submit a custom {@link net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState} for rendering
++     *
++     * @see net.neoforged.neoforge.client.event.RegisterPictureInPictureRenderersEvent
++     */
++    public void submitPictureInPictureRenderState(net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState renderState) {
++        this.guiRenderState.addPicturesInPictureState(renderState);
++    }
++
++    /**
++     * Neo: Returns the top-most scissor rectangle, if present, for use with custom {@link net.minecraft.client.renderer.state.gui.GuiElementRenderState}s
++     * and {@link net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState}s
++     */
++    @Nullable
++    public ScreenRectangle peekScissorStack() {
++        return this.scissorStack.peek();
+     }
+ 
+     public TextureAtlasSprite getSprite(SpriteId sprite) {

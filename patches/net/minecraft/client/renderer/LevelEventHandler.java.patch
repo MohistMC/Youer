@@ -1,84 +1,13 @@
 --- a/net/minecraft/client/renderer/LevelEventHandler.java
 +++ b/net/minecraft/client/renderer/LevelEventHandler.java
-@@ -23,13 +_,11 @@
- import net.minecraft.sounds.SoundEvent;
- import net.minecraft.sounds.SoundEvents;
- import net.minecraft.sounds.SoundSource;
--import net.minecraft.util.BlockUtil;
- import net.minecraft.util.Mth;
- import net.minecraft.util.ParticleUtils;
- import net.minecraft.util.RandomSource;
- import net.minecraft.util.valueproviders.IntProvider;
- import net.minecraft.util.valueproviders.UniformInt;
--import net.minecraft.world.entity.EntityTypes;
- import net.minecraft.world.entity.LivingEntity;
- import net.minecraft.world.item.BoneMealItem;
- import net.minecraft.world.item.Items;
-@@ -418,34 +_,20 @@
-                 this.level.addDestroyBlockEffect(pos, Block.stateById(data));
+@@ -311,8 +_,8 @@
                  break;
-             case 2015: {
--                BlockPos toPos = BlockUtil.unpackDifferenceInPosition(pos, data, 16, 8, 16);
--                this.singleBlockTeleportationParticles(pos, random, toPos);
--                break;
--            }
--            case 2016: {
--                BlockPos toPos = BlockUtil.unpackDifferenceInPosition(pos, data, 8, 8, 8);
--                this.singleBlockTeleportationParticles(pos, random, toPos);
--                break;
--            }
--            case 2017: {
--                BlockPos toPos = BlockUtil.unpackDifferenceInPosition(pos, data, 127, 127, 127);
--                this.singleBlockTeleportationParticles(pos, random, toPos);
--                break;
--            }
--            case 2018: {
--                float bbWidth = EntityTypes.ENDERMAN.getWidth();
--                float bbHeight = EntityTypes.ENDERMAN.getHeight();
--                BlockPos toPos = BlockUtil.unpackDifferenceInPosition(pos, data, 127, 127, 127);
-+                int xDiff = (data >> 16 & 0xFF) - 16;
-+                int yDiff = (data >> 8 & 0xFF) - 8;
-+                int zDiff = (data & 0xFF) - 16;
-+                BlockPos toPos = pos.offset(xDiff, yDiff, zDiff);
- 
--                for (int particle = 0; particle < 128; particle++) {
--                    double randomDistance = random.nextDouble();
--                    float velocityX = (random.nextFloat() - 0.5F) * 0.2F;
--                    float velocityY = (random.nextFloat() - 0.5F) * 0.2F;
--                    float velocityZ = (random.nextFloat() - 0.5F) * 0.2F;
--                    double x = Mth.lerp(randomDistance, toPos.getX(), pos.getX()) + (random.nextDouble() - 0.5) * bbWidth * 2.0;
--                    double y = Mth.lerp(randomDistance, toPos.getY(), pos.getY()) + random.nextDouble() * bbHeight;
--                    double z = Mth.lerp(randomDistance, toPos.getZ(), pos.getZ()) + (random.nextDouble() - 0.5) * bbWidth * 2.0;
--                    this.level.addParticle(ParticleTypes.PORTAL, x, y, z, velocityX, velocityY, velocityZ);
-+                for (int j = 0; j < 128; j++) {
-+                    double d = random.nextDouble();
-+                    float xa = (random.nextFloat() - 0.5F) * 0.2F;
-+                    float ya = (random.nextFloat() - 0.5F) * 0.2F;
-+                    float za = (random.nextFloat() - 0.5F) * 0.2F;
-+                    double x = Mth.lerp(d, toPos.getX(), pos.getX()) + (random.nextDouble() - 0.5) + 0.5;
-+                    double y = Mth.lerp(d, toPos.getY(), pos.getY()) + random.nextDouble() - 0.5;
-+                    double z = Mth.lerp(d, toPos.getZ(), pos.getZ()) + (random.nextDouble() - 0.5) + 0.5;
-+                    this.level.addParticle(ParticleTypes.PORTAL, x, y, z, xa, ya, za);
-                 }
-                 break;
-             }
-@@ -659,19 +_,6 @@
-                         pos, SoundEvents.TRIAL_SPAWNER_SPAWN_ITEM, SoundSource.BLOCKS, 1.0F, (random.nextFloat() - random.nextFloat()) * 0.2F + 1.0F, true
-                     );
-                 TrialSpawner.addSpawnParticles(this.level, pos, random, TrialSpawner.FlameParticle.decode(data).particleType);
--        }
--    }
--
--    private void singleBlockTeleportationParticles(BlockPos pos, RandomSource random, BlockPos toPos) {
--        for (int particle = 0; particle < 128; particle++) {
--            double randomDistance = random.nextDouble();
--            float velocityX = (random.nextFloat() - 0.5F) * 0.2F;
--            float velocityY = (random.nextFloat() - 0.5F) * 0.2F;
--            float velocityZ = (random.nextFloat() - 0.5F) * 0.2F;
--            double x = Mth.lerp(randomDistance, toPos.getX(), pos.getX()) + (random.nextDouble() - 0.5) + 0.5;
--            double y = Mth.lerp(randomDistance, toPos.getY(), pos.getY()) + random.nextDouble() - 0.5;
--            double z = Mth.lerp(randomDistance, toPos.getZ(), pos.getZ()) + (random.nextDouble() - 0.5) + 0.5;
--            this.level.addParticle(ParticleTypes.PORTAL, x, y, z, velocityX, velocityY, velocityZ);
-         }
-     }
- 
+             case 2001:
+                 BlockState blockState = Block.stateById(data);
+-                if (!blockState.isAir()) {
+-                    SoundType soundType = blockState.getSoundType();
++                if (!blockState.isAir() && !net.neoforged.neoforge.client.extensions.common.IClientBlockExtensions.of(blockState).playBreakSound(blockState, this.level, pos)) {
++                    SoundType soundType = blockState.getSoundType(this.level, pos, null);
+                     this.level
+                         .playLocalSound(
+                             pos, soundType.getBreakSound(), SoundSource.BLOCKS, (soundType.getVolume() + 1.0F) / 2.0F, soundType.getPitch() * 0.8F, false

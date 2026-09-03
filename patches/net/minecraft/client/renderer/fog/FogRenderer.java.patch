@@ -1,60 +1,31 @@
 --- a/net/minecraft/client/renderer/fog/FogRenderer.java
 +++ b/net/minecraft/client/renderer/fog/FogRenderer.java
-@@ -22,6 +_,7 @@
- import net.minecraft.client.renderer.fog.environment.LavaFogEnvironment;
- import net.minecraft.client.renderer.fog.environment.PowderedSnowFogEnvironment;
- import net.minecraft.client.renderer.fog.environment.WaterFogEnvironment;
-+import net.minecraft.util.ARGB;
- import net.minecraft.util.Mth;
- import net.minecraft.world.effect.MobEffects;
- import net.minecraft.world.entity.Entity;
-@@ -29,7 +_,6 @@
- import net.minecraft.world.level.material.FogType;
- import net.neoforged.api.distmarker.Dist;
- import net.neoforged.api.distmarker.OnlyIn;
--import org.joml.Vector3fc;
- import org.joml.Vector4f;
- import org.lwjgl.system.MemoryStack;
- 
-@@ -106,7 +_,7 @@
-             throw new IllegalStateException("No color source environment found");
+@@ -152,7 +_,7 @@
+             fogBlue = Mth.lerp(brightenFactor, fogBlue, fogBlue * targetScale);
          }
  
--        Vector3fc color = colorSourceEnvironment.getBaseColor(level, camera, renderDistance, partialTicks);
-+        int color = colorSourceEnvironment.getBaseColor(level, camera, renderDistance, partialTicks);
-         float voidDarknessOnsetRange = level.getLevelData().voidDarknessOnsetRange();
-         float darkness = Mth.clamp((voidDarknessOnsetRange + level.getMinY() - (float)camera.position().y) / voidDarknessOnsetRange, 0.0F, 1.0F);
-         if (darknessModifyingEnvironment != null) {
-@@ -114,9 +_,9 @@
-             darkness = darknessModifyingEnvironment.getModifiedDarkness(livingEntity, darkness, partialTicks);
-         }
+-        dest.set(fogRed, fogGreen, fogBlue, 1.0F);
++        net.neoforged.neoforge.client.ClientHooks.getFogColor(camera, partialTicks, level, renderDistance, darkenWorldAmount, fogRed, fogGreen, fogBlue, dest);
+     }
  
--        float fogRed = color.x();
--        float fogGreen = color.y();
--        float fogBlue = color.z();
-+        float fogRed = ARGB.redFloat(color);
-+        float fogGreen = ARGB.greenFloat(color);
-+        float fogBlue = ARGB.blueFloat(color);
-         if (darkness > 0.0F && fogType != FogType.LAVA && fogType != FogType.POWDER_SNOW) {
-             float brightness = Mth.square(1.0F - darkness);
-             fogRed *= brightness;
-@@ -146,10 +_,15 @@
-         }
+     public static boolean toggleFog() {
+@@ -167,9 +_,11 @@
+         FogData fog = new FogData();
+         this.computeFogColor(camera, partialTickTime, level, renderDistanceInChunks, darkenWorldAmount, fog.color);
  
-         if (fogRed != 0.0F && fogGreen != 0.0F && fogBlue != 0.0F) {
--            float targetScale = 1.0F / Math.max(fogRed, Math.max(fogGreen, fogBlue));
--            fogRed = Mth.lerp(brightenFactor, fogRed, fogRed * targetScale);
--            fogGreen = Mth.lerp(brightenFactor, fogGreen, fogGreen * targetScale);
--            fogBlue = Mth.lerp(brightenFactor, fogBlue, fogBlue * targetScale);
-+            float maxColor = Math.max(fogRed, Math.max(fogGreen, fogBlue));
-+            float targetScale = 1.0F / Math.clamp(maxColor, 0.07F, 1.0F);
-+            float targetScaleMax = 1.0F / maxColor;
-+            float scale = maxColor != fogRed ? targetScale : targetScaleMax;
-+            fogRed = Mth.lerp(brightenFactor, fogRed, fogRed * scale);
-+            scale = maxColor != fogGreen ? targetScale : targetScaleMax;
-+            fogGreen = Mth.lerp(brightenFactor, fogGreen, fogGreen * scale);
-+            scale = maxColor != fogBlue ? targetScale : targetScaleMax;
-+            fogBlue = Mth.lerp(brightenFactor, fogBlue, fogBlue * scale);
++        FogEnvironment chosenEnvironment = null;
+         for (FogEnvironment fogEnvironment : FOG_ENVIRONMENTS) {
+             if (fogEnvironment.isApplicable(fogType, entity)) {
+                 fogEnvironment.setupFog(fog, camera, level, renderDistanceInBlocks, deltaTracker);
++                chosenEnvironment = fogEnvironment;
+                 break;
+             }
          }
+@@ -177,6 +_,7 @@
+         float renderDistanceFogSpan = Mth.clamp(renderDistanceInBlocks / 10.0F, 4.0F, 64.0F);
+         fog.renderDistanceStart = renderDistanceInBlocks - renderDistanceFogSpan;
+         fog.renderDistanceEnd = renderDistanceInBlocks;
++        net.neoforged.neoforge.client.ClientHooks.onSetupFog(chosenEnvironment, fogType, camera, partialTickTime, renderDistanceInChunks, fog);
+         return fog;
+     }
  
-         dest.set(fogRed, fogGreen, fogBlue, 1.0F);

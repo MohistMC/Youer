@@ -130,7 +130,8 @@
 +    public static final Predicate<LivingEntity> PLAYER_NOT_WEARING_DISGUISE_ITEM = livingEntity -> PLAYER_NOT_WEARING_DISGUISE_ITEM_FOR_TARGET.test(livingEntity, null);
      private final AttributeMap attributes;
      public CombatTracker combatTracker = new CombatTracker(this);
-     public final Map<Holder<MobEffect>, MobEffectInstance> activeEffects = Maps.newHashMap();
+-    private final Map<Holder<MobEffect>, MobEffectInstance> activeEffects = Maps.newHashMap();
++    public final Map<Holder<MobEffect>, MobEffectInstance> activeEffects = Maps.newHashMap();
      private final Map<EquipmentSlot, ItemStack> lastEquipmentItems = Util.makeEnumMap(EquipmentSlot.class, slot -> ItemStack.EMPTY);
 -    private final LivingEntity.SwingState swingState = new LivingEntity.SwingState();
 +    public boolean swinging;
@@ -148,13 +149,15 @@
      protected int attackStrengthTicker;
      protected int itemSwapTicker;
      public final WalkAnimationState walkAnimation = new WalkAnimationState();
-@@ -250,9 +_,10 @@
+@@ -249,15 +_,16 @@
+     protected boolean dead;
      protected int noActionTime;
      public float lastHurt;
-     public boolean jumping;
+-    protected boolean jumping;
 -    public float xxa;
 -    public float yya;
 -    public float zza;
++    public boolean jumping;
 +    public float xxa; public float getStrafeMot() { return xxa; } public void setStrafeMot(float strafe) { xxa = strafe; } // Purpur - OBFHELPER
 +    public float yya; public float getVerticalMot() { return yya; } public void setVerticalMot(float vertical) { yya = vertical; } // Purpur - OBFHELPER
 +    public float zza; public float getForwardMot() { return zza; } public void setForwardMot(float forward) { zza = forward; } // Purpur - OBFHELPER
@@ -162,6 +165,12 @@
      protected double lerpYHeadRot;
      protected int lerpHeadSteps;
      public boolean effectsDirty = true;
+     public @Nullable EntityReference<LivingEntity> lastHurtByMob;
+-    private int lastHurtByMobTimestamp;
++    public int lastHurtByMobTimestamp;
+     private @Nullable LivingEntity lastHurtMob;
+     private int lastHurtMobTimestamp;
+     private float speed;
 @@ -282,14 +_,42 @@
      private final EnumMap<EquipmentSlot, Reference2ObjectMap<Enchantment, Set<EnchantmentLocationBasedEffect>>> activeLocationDependentEnchantments = new EnumMap<>(
          EquipmentSlot.class
@@ -319,7 +328,9 @@
 +        this.xRotO = this.getXRot();
          profiler.pop();
      }
-+
+ 
+-    public boolean shouldTakeDrowningDamage() {
+-        return this.getAirSupply() <= -20;
 +    // DivineMC start - Lag Compensation
 +    private void lagCompensation() {
 +        if (this.level().isClientSide()) return;
@@ -329,9 +340,8 @@
 +        }
 +    }
 +    // DivineMC end - Lag Compensation
- 
-     protected boolean shouldTakeDrowningDamage() {
--        return this.getAirSupply() <= -20;
++
++    protected boolean shouldTakeDrowningDamage() {
 +        return this.getAirSupply() <= -this.level().purpurConfig.drowningDamageInterval; // Purpur - Drowning Settings
      }
  

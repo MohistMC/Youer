@@ -1,5 +1,16 @@
 --- a/net/minecraft/world/item/ItemCooldowns.java
 +++ b/net/minecraft/world/item/ItemCooldowns.java
+@@ -11,8 +_,8 @@
+ import net.minecraft.world.item.component.UseCooldown;
+ 
+ public class ItemCooldowns {
+-    private final Map<Identifier, ItemCooldowns.CooldownInstance> cooldowns = Maps.newHashMap();
+-    private int tickCount;
++    public final Map<Identifier, ItemCooldowns.CooldownInstance> cooldowns = Maps.newHashMap();
++    public int tickCount;
+ 
+     public boolean isOnCooldown(ItemStack item) {
+         return this.getCooldownPercent(item, 0.0F) > 0.0F;
 @@ -56,6 +_,13 @@
      }
  
@@ -14,10 +25,14 @@
          this.cooldowns.put(cooldownGroup, new ItemCooldowns.CooldownInstance(this.tickCount, this.tickCount + time));
          this.onCooldownStarted(cooldownGroup, time);
      }
-@@ -73,4 +_,14 @@
- 
-     public record CooldownInstance(int startTime, int endTime) {
+@@ -71,6 +_,16 @@
+     protected void onCooldownEnded(Identifier cooldownGroup) {
      }
+ 
+-    private record CooldownInstance(int startTime, int endTime) {
+-    }
++    public record CooldownInstance(int startTime, int endTime) {
++    }
 +
 +    // Paper start - util
 +    public int getRemainingCooldown(final Identifier cooldownGroup) {

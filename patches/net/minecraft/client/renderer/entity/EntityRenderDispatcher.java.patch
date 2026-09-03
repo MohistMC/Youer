@@ -1,97 +1,26 @@
 --- a/net/minecraft/client/renderer/entity/EntityRenderDispatcher.java
 +++ b/net/minecraft/client/renderer/entity/EntityRenderDispatcher.java
-@@ -8,12 +_,14 @@
- import net.minecraft.CrashReportCategory;
- import net.minecraft.ReportedException;
- import net.minecraft.client.Camera;
-+import net.minecraft.client.Minecraft;
- import net.minecraft.client.Options;
- import net.minecraft.client.entity.ClientAvatarEntity;
- import net.minecraft.client.entity.ClientMannequin;
- import net.minecraft.client.gui.Font;
- import net.minecraft.client.model.geom.EntityModelSet;
- import net.minecraft.client.player.AbstractClientPlayer;
-+import net.minecraft.client.renderer.ItemInHandRenderer;
- import net.minecraft.client.renderer.MapRenderer;
- import net.minecraft.client.renderer.PlayerSkinRenderCache;
- import net.minecraft.client.renderer.SubmitNodeCollector;
-@@ -52,6 +_,7 @@
-     private final BlockModelResolver blockModelResolver;
-     private final ItemModelResolver itemModelResolver;
-     private final MapRenderer mapRenderer;
-+    private final ItemInHandRenderer itemInHandRenderer;
-     private final AtlasManager atlasManager;
-     private final Font font;
-     public final Options options;
-@@ -65,6 +_,7 @@
-     }
- 
-     public EntityRenderDispatcher(
-+        Minecraft minecraft,
-         TextureManager textureManager,
-         BlockModelResolver blockModelResolver,
-         ItemModelResolver itemModelResolver,
-@@ -83,6 +_,7 @@
-         this.mapRenderer = mapRenderer;
-         this.atlasManager = atlasManager;
-         this.playerSkinRenderCache = playerSkinRenderCache;
-+        this.itemInHandRenderer = new ItemInHandRenderer(minecraft, this, itemModelResolver);
-         this.font = font;
-         this.options = options;
-         this.entityModels = entityModels;
-@@ -98,21 +_,24 @@
-         });
-     }
- 
-+    public AvatarRenderer<AbstractClientPlayer> getPlayerRenderer(AbstractClientPlayer player) {
-+        return this.getAvatarRenderer(this.playerRenderers, player);
-+    }
-+
-     private <T extends Avatar & ClientAvatarEntity> AvatarRenderer<T> getAvatarRenderer(Map<PlayerModelType, AvatarRenderer<T>> renderers, T entity) {
-         PlayerModelType model = entity.getSkin().model();
-         AvatarRenderer<T> playerRenderer = renderers.get(model);
-         return playerRenderer != null ? playerRenderer : renderers.get(PlayerModelType.WIDE);
-     }
- 
--    public AvatarRenderer<?> getRenderer(AvatarRenderState state) {
--        AvatarRenderer<AbstractClientPlayer> playerRenderer = this.playerRenderers.get(state.skin.model());
--        return playerRenderer != null ? playerRenderer : this.playerRenderers.get(PlayerModelType.WIDE);
--    }
--
-     public <S extends EntityRenderState> EntityRenderer<?, ? super S> getRenderer(S entityRenderState) {
--        return entityRenderState instanceof AvatarRenderState avatarRenderState
--            ? (EntityRenderer<?, ? super S>)this.getRenderer(avatarRenderState)
--            : (EntityRenderer)this.renderers.get(entityRenderState.entityType);
-+        if (entityRenderState instanceof AvatarRenderState player) {
-+            PlayerModelType model = player.skin.model();
-+            EntityRenderer<? extends Avatar, ?> playerRenderer = (EntityRenderer<? extends Avatar, ?>)this.playerRenderers.get(model);
-+            return (EntityRenderer<?, ? super S>)(playerRenderer != null ? playerRenderer : (EntityRenderer)this.playerRenderers.get(PlayerModelType.WIDE));
-+        } else {
-+            return (EntityRenderer<?, ? super S>)this.renderers.get(entityRenderState.entityType);
-+        }
-     }
- 
-     public void prepare(Camera camera, Entity crosshairPickEntity) {
-@@ -120,9 +_,9 @@
-         this.crosshairPickEntity = crosshairPickEntity;
-     }
- 
--    public <E extends Entity> boolean shouldRender(E entity, Frustum culler, double camX, double camY, double camZ, float partialTicks) {
-+    public <E extends Entity> boolean shouldRender(E entity, Frustum culler, double camX, double camY, double camZ) {
-         EntityRenderer<? super E, ?> renderer = this.getRenderer(entity);
--        return renderer.shouldRender(entity, culler, camX, camY, camZ, partialTicks);
-+        return renderer.shouldRender(entity, culler, camX, camY, camZ);
-     }
- 
-     public <E extends Entity> EntityRenderState extractEntity(E entity, float partialTicks) {
-@@ -191,6 +_,10 @@
- 
-     public double distanceToSqr(Entity entity) {
+@@ -193,6 +_,14 @@
          return this.camera.position().distanceToSqr(entity.position());
-+    }
-+
-+    public ItemInHandRenderer getItemInHandRenderer() {
-+        return this.itemInHandRenderer;
      }
  
++    public Map<PlayerModelType, EntityRenderer<? extends Avatar, ?>> getPlayerRenderers() {
++        return java.util.Collections.unmodifiableMap(playerRenderers);
++    }
++
++    public Map<PlayerModelType, EntityRenderer<? extends Avatar, ?>> getMannequinRenderers() {
++        return java.util.Collections.unmodifiableMap(mannequinRenderers);
++    }
++
      @Override
+     public void onResourceManagerReload(ResourceManager resourceManager) {
+         EntityRendererProvider.Context context = new EntityRendererProvider.Context(
+@@ -211,5 +_,8 @@
+         this.renderers = EntityRenderers.createEntityRenderers(context);
+         this.playerRenderers = EntityRenderers.createAvatarRenderers(context);
+         this.mannequinRenderers = EntityRenderers.createAvatarRenderers(context);
++        net.neoforged.fml.ModLoader.postEvent(new net.neoforged.neoforge.client.event.EntityRenderersEvent.AddLayers(
++                renderers, playerRenderers, mannequinRenderers, context
++        ));
+     }
+ }

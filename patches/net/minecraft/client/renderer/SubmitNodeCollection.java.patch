@@ -1,163 +1,53 @@
 --- a/net/minecraft/client/renderer/SubmitNodeCollection.java
 +++ b/net/minecraft/client/renderer/SubmitNodeCollection.java
-@@ -19,6 +_,7 @@
- import net.minecraft.client.renderer.feature.LeashFeatureRenderer;
- import net.minecraft.client.renderer.feature.ModelFeatureRenderer;
- import net.minecraft.client.renderer.feature.MovingBlockFeatureRenderer;
-+import net.minecraft.client.renderer.feature.NameTagFeatureRenderer;
- import net.minecraft.client.renderer.feature.QuadParticleFeatureRenderer;
- import net.minecraft.client.renderer.feature.ShadowFeatureRenderer;
- import net.minecraft.client.renderer.feature.ShapeOutlineFeatureRenderer;
-@@ -56,10 +_,10 @@
-     public final SimpleFeatureRenderPhase waterMask = new SimpleFeatureRenderPhase();
-     public final SimpleFeatureRenderPhase outline = new SimpleFeatureRenderPhase();
-     public final SimpleFeatureRenderPhase alwaysOnTopGizmos = new SimpleFeatureRenderPhase();
--    public final TranslucentFeatureRenderPhase seeThrough;
-     public final SimpleFeatureRenderPhase oitTranslucent = new SimpleFeatureRenderPhase();
-     public final SimpleFeatureRenderPhase shadows;
-     public final SimpleFeatureRenderPhase nameTags;
-+    public final FeatureRenderPhase<? super TranslucentSubmit> seeThroughNameTags;
-     public final SimpleFeatureRenderPhase texts;
-     public final SimpleFeatureRenderPhase shapeOutlines;
-     public final FeatureRenderPhase<? super TranslucentSubmit> translucentBlocksAndItems;
-@@ -70,11 +_,11 @@
-     public final SimpleFeatureRenderPhase translucentGizmos;
-     private final List<FeatureRenderPhase<?>> allPhases;
- 
--    public SubmitNodeCollection(boolean useImprovedTransparency, TranslucentFeatureRenderPhase seeThrough) {
--        this.seeThrough = seeThrough;
-+    public SubmitNodeCollection(boolean useImprovedTransparency) {
-         if (useImprovedTransparency) {
-             this.shadows = this.oitTranslucent;
-             this.nameTags = this.oitTranslucent;
-+            this.seeThroughNameTags = this.oitTranslucent;
-             this.texts = this.oitTranslucent;
-             this.shapeOutlines = this.oitTranslucent;
-             this.translucentBlocksAndItems = this.oitTranslucent;
-@@ -87,6 +_,7 @@
-         } else {
-             this.shadows = new SimpleFeatureRenderPhase();
-             this.nameTags = new SimpleFeatureRenderPhase();
-+            this.seeThroughNameTags = new TranslucentFeatureRenderPhase();
-             this.texts = new SimpleFeatureRenderPhase();
-             this.shapeOutlines = new SimpleFeatureRenderPhase();
-             this.translucentBlocksAndItems = new TranslucentFeatureRenderPhase();
-@@ -99,6 +_,7 @@
-                 this.solid,
-                 this.shadows,
-                 this.nameTags,
-+                this.seeThroughNameTags,
-                 this.texts,
-                 this.shapeOutlines,
-                 this.translucentBlocksAndItems,
-@@ -128,48 +_,39 @@
-             Minecraft minecraft = Minecraft.getInstance();
-             poseStack.pushPose();
-             poseStack.translate(nameTagAttachment.x, nameTagAttachment.y + 0.5, nameTagAttachment.z);
--            poseStack.rotate(camera.orientation);
-+            poseStack.mulPose(camera.orientation);
-             poseStack.scale(0.025F, -0.025F, 0.025F);
-             Matrix4f pose = new Matrix4f(poseStack.last().pose());
-             float x = -minecraft.font.width(name) / 2.0F;
--            float backgroundAlpha = minecraft.gameRenderer.gameRenderState().optionsRenderState.getBackgroundOpacity(0.25F);
--            int backgroundColor = ARGB.color(backgroundAlpha, -16777216);
--            float textAlpha = Math.max((backgroundAlpha + 0.75F) * 0.5F, 0.5F);
--            int textColor = ARGB.color(textAlpha, -1);
--            FormattedCharSequence visualOrderName = name.getVisualOrderText();
-+            int backgroundColor = ARGB.color(minecraft.gameRenderer.gameRenderState().optionsRenderState.getBackgroundOpacity(0.25F), -16777216);
-             if (seeThrough) {
-                 this.submitNameTagPart(
--                    nameTag(pose, x, offset, visualOrderName, LightCoordsUtil.lightCoordsWithEmission(lightCoords, 2), -1, 0, Font.DisplayMode.NORMAL)
-+                    new NameTagFeatureRenderer.Submit(
-+                        pose, x, offset, name, LightCoordsUtil.lightCoordsWithEmission(lightCoords, 2), -1, 0, Font.DisplayMode.NORMAL
-+                    )
-                 );
--                this.seeThrough.submit(nameTag(pose, x, offset, visualOrderName, lightCoords, textColor, backgroundColor, Font.DisplayMode.SEE_THROUGH));
-+                this.seeThroughNameTags
-+                    .submit(new NameTagFeatureRenderer.Submit(pose, x, offset, name, lightCoords, -2130706433, backgroundColor, Font.DisplayMode.SEE_THROUGH));
-             } else {
--                this.submitNameTagPart(nameTag(pose, x, offset, visualOrderName, lightCoords, textColor, backgroundColor, Font.DisplayMode.NORMAL));
-+                this.submitNameTagPart(
-+                    new NameTagFeatureRenderer.Submit(pose, x, offset, name, lightCoords, -2130706433, backgroundColor, Font.DisplayMode.NORMAL)
-+                );
-             }
- 
-             poseStack.popPose();
-         }
-     }
- 
--    private static TextFeatureRenderer.Submit nameTag(
--        Matrix4f pose, float x, float y, FormattedCharSequence name, int lightCoords, int color, int backgroundColor, Font.DisplayMode displayMode
--    ) {
--        TextFeatureRenderer.Content content = new TextFeatureRenderer.Content.Text(x, y, name, false, color, backgroundColor, 0);
--        return new TextFeatureRenderer.Submit(pose, displayMode, lightCoords, content);
--    }
--
--    private void submitNameTagPart(TextFeatureRenderer.Submit nameTag) {
--        if (canRenderAsSolid(nameTag.content())) {
-+    private void submitNameTagPart(NameTagFeatureRenderer.Submit nameTag) {
-+        if (shouldRenderTextAsSolid(nameTag.color(), nameTag.backgroundColor())) {
-             this.solid.submit(nameTag);
-         } else {
-             this.nameTags.submit(nameTag);
-         }
-     }
- 
--    private static boolean canRenderAsSolid(TextFeatureRenderer.Content content) {
--        return content instanceof TextFeatureRenderer.Content.Text text
--            && ARGB.alpha(text.color()) == 255
--            && ARGB.alpha(text.backgroundColor()) == 0
--            && RenderSystem.isRenderingLevel;
-+    private static boolean shouldRenderTextAsSolid(int color, int backgroundColor) {
-+        return ARGB.alpha(color) == 255 && ARGB.alpha(backgroundColor) == 0 && RenderSystem.isRenderingLevel;
-     }
- 
-     @Override
-@@ -185,21 +_,10 @@
-         int backgroundColor,
-         int outlineColor
-     ) {
--        this.submitTextPart(
--            poseStack, displayMode, lightCoords, new TextFeatureRenderer.Content.Text(x, y, string, dropShadow, color, backgroundColor, outlineColor)
-+        TextFeatureRenderer.Submit submit = new TextFeatureRenderer.Submit(
-+            new Matrix4f(poseStack.last().pose()), x, y, string, dropShadow, displayMode, lightCoords, color, backgroundColor, outlineColor
-         );
--    }
--
--    @Override
--    public void submitTextBackground(PoseStack poseStack, float x0, float y0, float x1, float y1, int color, Font.DisplayMode displayMode, int lightCoords) {
--        this.submitTextPart(poseStack, displayMode, lightCoords, new TextFeatureRenderer.Content.StandaloneBackground(x0, y0, x1, y1, color));
--    }
--
--    private void submitTextPart(PoseStack poseStack, Font.DisplayMode displayMode, int lightCoords, TextFeatureRenderer.Content content) {
--        TextFeatureRenderer.Submit submit = new TextFeatureRenderer.Submit(new Matrix4f(poseStack.last().pose()), displayMode, lightCoords, content);
--        if (displayMode == Font.DisplayMode.SEE_THROUGH) {
--            this.seeThrough.submit(submit);
--        } else if (canRenderAsSolid(content)) {
-+        if (displayMode != Font.DisplayMode.SEE_THROUGH && shouldRenderTextAsSolid(color, backgroundColor)) {
-             this.solid.submit(submit);
-         } else {
-             this.texts.submit(submit);
-@@ -287,19 +_,16 @@
- 
+@@ -288,7 +_,7 @@
      @Override
      public void submitMovingBlock(PoseStack poseStack, MovingBlockRenderState movingBlockRenderState, int outlineColor) {
-+        MovingBlockFeatureRenderer.Submit submit = new MovingBlockFeatureRenderer.Submit(new Matrix4f(poseStack.last().pose()), movingBlockRenderState, 0);
          BlockStateModel model = Minecraft.getInstance().getModelManager().getBlockStateModelSet().get(movingBlockRenderState.blockState);
 -        boolean isTranslucent = model.hasMaterialFlag(1);
--        MovingBlockFeatureRenderer.Submit submit = new MovingBlockFeatureRenderer.Submit(
--            new Matrix4f(poseStack.last().pose()), movingBlockRenderState, 0, isTranslucent
--        );
--        if (isTranslucent) {
-+        if (model.hasMaterialFlag(1)) {
-             this.translucentBlocksAndItems.submit(submit);
-         } else {
-             this.solid.submit(submit);
-         }
- 
-         if (outlineColor != 0) {
--            this.outline.submit(new MovingBlockFeatureRenderer.Submit(new Matrix4f(poseStack.last().pose()), movingBlockRenderState, outlineColor, false));
-+            this.outline.submit(new MovingBlockFeatureRenderer.Submit(new Matrix4f(poseStack.last().pose()), movingBlockRenderState, outlineColor));
++        boolean isTranslucent = model.hasMaterialFlag(movingBlockRenderState, movingBlockRenderState.blockPos, movingBlockRenderState.blockState, 1);
+         MovingBlockFeatureRenderer.Submit submit = new MovingBlockFeatureRenderer.Submit(
+             new Matrix4f(poseStack.last().pose()), movingBlockRenderState, 0, isTranslucent
+         );
+@@ -338,6 +_,27 @@
          }
      }
  
++    @Override
++    public void submitMultiLayerBlockModel(
++            PoseStack poseStack,
++            List<BlockStateModelPart> modelParts,
++            boolean translucent,
++            int[] tintLayers,
++            int lightCoords,
++            int overlayCoords,
++            int outlineColor
++    ) {
++        PoseStack.Pose pose = poseStack.last().copy();
++        var submit = new net.neoforged.neoforge.client.submit.ExtendedBlockModelFeatureRenderer.Submit(
++                pose, modelParts, translucent, tintLayers, lightCoords, overlayCoords, -1
++        );
++        if (translucent) {
++            this.translucentBlocksAndItems.submit(submit);
++        } else {
++            this.solid.submit(submit);
++        }
++    }
++
+     private static @Nullable RenderType getOutlineRenderType(RenderType renderType) {
+         if (renderType.isOutline()) {
+             return renderType;
+@@ -438,6 +_,13 @@
+         } else {
+             this.translucentGizmos.submit(submit);
+         }
++    }
++
++    @Override
++    public <T extends net.minecraft.client.renderer.feature.submit.SubmitNode, S extends T> void submitSpecial(
++        net.neoforged.neoforge.client.submit.RenderPhaseKey<T> phaseKey, S submitNode
++    ) {
++        phaseKey.resolve(this).submit(submitNode);
+     }
+ 
+     public List<FeatureRenderPhase<?>> allPhases() {

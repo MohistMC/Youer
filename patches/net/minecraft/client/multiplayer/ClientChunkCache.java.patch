@@ -1,121 +1,18 @@
 --- a/net/minecraft/client/multiplayer/ClientChunkCache.java
 +++ b/net/minecraft/client/multiplayer/ClientChunkCache.java
-@@ -5,8 +_,10 @@
- import java.io.FileOutputStream;
- import java.io.IOException;
- import java.nio.charset.StandardCharsets;
-+import java.util.Map;
- import java.util.concurrent.atomic.AtomicReferenceArray;
- import java.util.function.BooleanSupplier;
-+import java.util.function.Consumer;
- import net.minecraft.client.Minecraft;
- import net.minecraft.core.SectionPos;
- import net.minecraft.core.registries.Registries;
-@@ -21,6 +_,7 @@
- import net.minecraft.world.level.chunk.LevelChunk;
- import net.minecraft.world.level.chunk.LevelChunkSection;
- import net.minecraft.world.level.chunk.status.ChunkStatus;
-+import net.minecraft.world.level.levelgen.Heightmap;
- import net.minecraft.world.level.lighting.LevelLightEngine;
- import net.neoforged.api.distmarker.Dist;
- import net.neoforged.api.distmarker.OnlyIn;
-@@ -96,7 +_,13 @@
+@@ -61,6 +_,7 @@
+             int index = this.storage.getIndex(pos.x(), pos.z());
+             LevelChunk currentChunk = this.storage.getChunk(index);
+             if (isValidChunk(currentChunk, pos.x(), pos.z())) {
++                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.ChunkEvent.Unload(currentChunk));
+                 this.storage.drop(index, currentChunk);
+             }
          }
+@@ -115,6 +_,7 @@
+         }
+ 
+         this.level.onChunkLoaded(pos);
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.level.ChunkEvent.Load(chunk, false));
+         return chunk;
      }
  
--    public @Nullable LevelChunk replaceWithPacketData(int chunkX, int chunkZ, ClientboundLevelChunkPacketData chunkData) {
-+    public @Nullable LevelChunk replaceWithPacketData(
-+        int chunkX,
-+        int chunkZ,
-+        FriendlyByteBuf readBuffer,
-+        Map<Heightmap.Types, long[]> heightmaps,
-+        Consumer<ClientboundLevelChunkPacketData.BlockEntityTagOutput> blockEntities
-+    ) {
-         if (!this.storage.inRange(chunkX, chunkZ)) {
-             LOGGER.warn("Ignoring chunk since it's not in the view range: {}, {}", chunkX, chunkZ);
-             return null;
-@@ -107,10 +_,10 @@
-         ChunkPos pos = new ChunkPos(chunkX, chunkZ);
-         if (!isValidChunk(chunk, chunkX, chunkZ)) {
-             chunk = new LevelChunk(this.level, pos);
--            chunk.replaceWithPacketData(chunkX, chunkZ, chunkData);
-+            chunk.replaceWithPacketData(readBuffer, heightmaps, blockEntities);
-             this.storage.replace(index, chunk);
-         } else {
--            chunk.replaceWithPacketData(chunkX, chunkZ, chunkData);
-+            chunk.replaceWithPacketData(readBuffer, heightmaps, blockEntities);
-             this.storage.refreshEmptySections(chunk);
-         }
- 
-@@ -255,39 +_,34 @@
-             if (this.inRange(sectionX, sectionZ)) {
-                 long sectionNode = SectionPos.asLong(sectionX, sectionY, sectionZ);
-                 if (empty) {
--                    this.markSectionEmpty(sectionNode);
-+                    this.addedEmptySections[this.updatingSetsIndex].add(sectionNode);
-                 } else {
--                    this.markSectionNotEmpty(sectionNode);
-+                    this.removedEmptySections[this.updatingSetsIndex].add(sectionNode);
-                 }
-             }
-         }
- 
-         private void onChunkRemoved(LevelChunk chunk) {
-             ChunkPos chunkPos = chunk.getPos();
--            long chunkNode = chunkPos.pack();
--            this.addedLoadedChunks[this.updatingSetsIndex].remove(chunkNode);
--            this.removedLoadedChunks[this.updatingSetsIndex].add(chunkNode);
-+            this.removedLoadedChunks[this.updatingSetsIndex].add(chunkPos.pack());
-             LevelChunkSection[] sections = chunk.getSections();
- 
-             for (int sectionIndex = 0; sectionIndex < sections.length; sectionIndex++) {
--                this.markSectionEmpty(SectionPos.asLong(chunkPos.x(), chunk.getSectionYFromSectionIndex(sectionIndex), chunkPos.z()));
-+                this.removedEmptySections[this.updatingSetsIndex]
-+                    .add(SectionPos.asLong(chunkPos.x(), chunk.getSectionYFromSectionIndex(sectionIndex), chunkPos.z()));
-             }
-         }
- 
-         private void onChunkAdded(LevelChunk chunk) {
-             ChunkPos chunkPos = chunk.getPos();
--            long chunkNode = chunkPos.pack();
--            this.removedLoadedChunks[this.updatingSetsIndex].remove(chunkNode);
--            this.addedLoadedChunks[this.updatingSetsIndex].add(chunkNode);
-+            this.addedLoadedChunks[this.updatingSetsIndex].add(chunkPos.pack());
-             LevelChunkSection[] sections = chunk.getSections();
- 
-             for (int sectionIndex = 0; sectionIndex < sections.length; sectionIndex++) {
-                 LevelChunkSection section = sections[sectionIndex];
--                long sectionNode = SectionPos.asLong(chunkPos.x(), chunk.getSectionYFromSectionIndex(sectionIndex), chunkPos.z());
-                 if (section.hasOnlyAir()) {
--                    this.markSectionEmpty(sectionNode);
--                } else {
--                    this.markSectionNotEmpty(sectionNode);
-+                    this.addedEmptySections[this.updatingSetsIndex]
-+                        .add(SectionPos.asLong(chunkPos.x(), chunk.getSectionYFromSectionIndex(sectionIndex), chunkPos.z()));
-                 }
-             }
-         }
-@@ -300,21 +_,11 @@
-                 LevelChunkSection section = sections[sectionIndex];
-                 long sectionNode = SectionPos.asLong(chunkPos.x(), chunk.getSectionYFromSectionIndex(sectionIndex), chunkPos.z());
-                 if (section.hasOnlyAir()) {
--                    this.markSectionEmpty(sectionNode);
-+                    this.addedEmptySections[this.updatingSetsIndex].add(sectionNode);
-                 } else {
--                    this.markSectionNotEmpty(sectionNode);
-+                    this.removedEmptySections[this.updatingSetsIndex].add(sectionNode);
-                 }
-             }
--        }
--
--        private void markSectionEmpty(long sectionNode) {
--            this.removedEmptySections[this.updatingSetsIndex].remove(sectionNode);
--            this.addedEmptySections[this.updatingSetsIndex].add(sectionNode);
--        }
--
--        private void markSectionNotEmpty(long sectionNode) {
--            this.addedEmptySections[this.updatingSetsIndex].remove(sectionNode);
--            this.removedEmptySections[this.updatingSetsIndex].add(sectionNode);
-         }
- 
-         private boolean inRange(int chunkX, int chunkZ) {

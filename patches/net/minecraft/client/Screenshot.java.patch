@@ -1,0 +1,34 @@
+--- a/net/minecraft/client/Screenshot.java
++++ b/net/minecraft/client/Screenshot.java
+@@ -51,15 +_,26 @@
+                     file = new File(picDir, forceName);
+                 }
+ 
++                net.neoforged.neoforge.client.event.ScreenshotEvent event = net.neoforged.neoforge.client.ClientHooks.onScreenshot(image, file);
++                if (event.isCanceled()) {
++                    callback.accept(event.getCancelMessage());
++                    return;
++                }
++                final File screenshotFile = event.getScreenshotFile();
++
+                 Util.ioPool()
+                     .execute(
+                         () -> {
+                             try (image) {
+-                                image.writeToFile(file);
+-                                Component component = Component.literal(file.getName())
+-                                    .withStyle(ChatFormatting.UNDERLINE)
+-                                    .withStyle(s -> s.withClickEvent(new ClickEvent.OpenFile(file.getAbsoluteFile())));
+-                                callback.accept(Component.translatable("screenshot.success", component));
++                                image.writeToFile(screenshotFile);
++                                if (event.getResultMessage() != null) {
++                                    callback.accept(event.getResultMessage());
++                                } else {
++                                    Component component = Component.literal(screenshotFile.getName())
++                                        .withStyle(ChatFormatting.UNDERLINE)
++                                        .withStyle(s -> s.withClickEvent(new ClickEvent.OpenFile(screenshotFile.getAbsoluteFile())));
++                                    callback.accept(Component.translatable("screenshot.success", component));
++                                }
+                             } catch (Exception e) {
+                                 LOGGER.warn("Couldn't save screenshot", e);
+                                 callback.accept(Component.translatable("screenshot.failure", e.getMessage()));

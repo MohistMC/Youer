@@ -1,34 +1,88 @@
 --- a/net/minecraft/client/gui/screens/Screen.java
 +++ b/net/minecraft/client/gui/screens/Screen.java
-@@ -10,6 +_,8 @@
- import java.util.Objects;
- import java.util.concurrent.Executor;
- import java.util.concurrent.TimeUnit;
-+import net.minecraft.CrashReport;
-+import net.minecraft.CrashReportCategory;
- import net.minecraft.SharedConstants;
- import net.minecraft.client.Minecraft;
- import net.minecraft.client.NarratorStatus;
-@@ -446,6 +_,11 @@
-         this.repositionElements();
+@@ -107,8 +_,12 @@
+     public final void extractRenderStateWithTooltipAndSubtitles(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+         graphics.nextStratum();
+         this.extractBackground(graphics, mouseX, mouseY, a);
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.ScreenEvent.Render.Background(this, graphics, mouseX, mouseY, a));
+         graphics.nextStratum();
+         this.extractRenderState(graphics, mouseX, mouseY, a);
++        if (!(this instanceof net.minecraft.client.gui.screens.inventory.AbstractContainerScreen<?>)) {
++            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.ScreenEvent.Render.Foreground(this, graphics, mouseX, mouseY, a));
++        }
+         graphics.extractDeferredElements(mouseX, mouseY, a);
      }
  
-+    public void fillCrashDetails(CrashReport report) {
-+        CrashReportCategory category = report.addCategory("Affected screen", 1);
-+        category.setDetail("Screen name", () -> this.getClass().getCanonicalName());
+@@ -201,7 +_,7 @@
+     }
+ 
+     public void onClose() {
+-        this.minecraft.gui.setScreen(null);
++        this.minecraft.gui.popScreenLayer();
+     }
+ 
+     protected <T extends GuiEventListener & Renderable & NarratableEntry> T addRenderableWidget(T widget) {
+@@ -244,9 +_,9 @@
+ 
+     public static List<Component> getTooltipFromItem(Minecraft minecraft, ItemStack itemStack) {
+         return itemStack.getTooltipLines(
+-            Item.TooltipContext.of(minecraft.level),
++            Item.TooltipContext.of(minecraft.level, minecraft.player),
+             minecraft.player,
+-            minecraft.options.advancedItemTooltips ? TooltipFlag.Default.ADVANCED : TooltipFlag.Default.NORMAL
++            net.neoforged.neoforge.client.ClientTooltipFlag.of(minecraft.options.advancedItemTooltips ? TooltipFlag.Default.ADVANCED : TooltipFlag.Default.NORMAL)
+         );
+     }
+ 
+@@ -332,8 +_,11 @@
+         this.width = width;
+         this.height = height;
+         if (!this.initialized) {
++            if (!net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.ScreenEvent.Init.Pre(this, this.children, this::addEventWidget, this::removeWidget)).isCanceled()) {
+             this.init();
+             this.setInitialFocus();
++            }
++            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.ScreenEvent.Init.Post(this, this.children, this::addEventWidget, this::removeWidget));
+         } else {
+             this.repositionElements();
+         }
+@@ -350,8 +_,11 @@
+     protected void rebuildWidgets() {
+         this.clearWidgets();
+         this.clearFocus();
++        if (!net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.ScreenEvent.Init.Pre(this, this.children, this::addEventWidget, this::removeWidget)).isCanceled()) {
+         this.init();
+         this.setInitialFocus();
++        }
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.ScreenEvent.Init.Post(this, this.children, this::addEventWidget, this::removeWidget));
+     }
+ 
+     protected void fadeWidgets(float widgetFade) {
+@@ -466,6 +_,10 @@
+     public void onFilesDrop(List<Path> files) {
+     }
+ 
++    public Minecraft getMinecraft() {
++        return this.minecraft;
 +    }
 +
-     protected boolean isValidCharacterForName(String currentName, int newChar, int cursorPos) {
-         int colonPos = currentName.indexOf(58);
-         int slashPos = currentName.indexOf(47);
-@@ -480,10 +_,6 @@
+     private void scheduleNarration(long delay, boolean ignoreSuppression, NarrationTrigger narrationTrigger) {
+         this.nextNarrationTime = Util.getMillis() + delay;
+         this.nextNarrationTriggeredBy = narrationTrigger;
+@@ -618,6 +_,16 @@
  
-     private void setNarrationSuppressTime(long narrationSuppressTime) {
-         this.narrationSuppressTime = narrationSuppressTime;
--    }
--
--    public void scheduleNarration() {
--        this.scheduleNarration(0L, true, NarrationTrigger.SYSTEM);
+     public @Nullable Music getBackgroundMusic() {
+         return null;
++    }
++
++    private void addEventWidget(GuiEventListener listener) {
++        if (listener instanceof Renderable r) {
++            this.renderables.add(r);
++        }
++        if (listener instanceof NarratableEntry ne) {
++            this.narratables.add(ne);
++        }
++        children.add(listener);
      }
  
-     public void afterMouseMove() {
+     public record NarratableSearchResult(NarratableEntry entry, int index, NarratableEntry.NarrationPriority priority) {

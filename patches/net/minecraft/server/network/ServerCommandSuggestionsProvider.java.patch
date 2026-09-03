@@ -19,7 +19,7 @@
      private static final int MIN_INTERVAL_TICKS = 1;
      private final ServerPlayer player;
      private final AtomicReference<ServerCommandSuggestionsProvider.@Nullable Request> lastRequest = new AtomicReference<>();
-@@ -37,23 +_,16 @@
+@@ -37,29 +_,22 @@
              ServerCommandSuggestionsProvider.Request request = this.lastRequest.getAndSet(null);
              if (request != null) {
                  this.hasBudget = false;
@@ -52,3 +52,10 @@
                  }
              }
          }
+     }
+ 
+-    public static Suggestions limitSuggestionCount(Suggestions suggestions) {
++    private static Suggestions limitSuggestionCount(Suggestions suggestions) {
+         return suggestions.getList().size() <= 1000 ? suggestions : new Suggestions(suggestions.getRange(), suggestions.getList().subList(0, 1000));
+     }
+ 

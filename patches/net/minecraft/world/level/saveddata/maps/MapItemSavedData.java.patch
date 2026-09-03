@@ -122,11 +122,13 @@
      }
  
      private byte calculateRotation(@Nullable LevelAccessor level, double yRot) {
-@@ -346,7 +_,12 @@
+@@ -345,15 +_,20 @@
+         return holdingPlayer == null ? null : holdingPlayer.nextUpdatePacket(id);
      }
  
-     public void setColorsDirty(int x, int y) {
+-    private void setColorsDirty(int x, int y) {
 -        this.setDirty();
++    public void setColorsDirty(int x, int y) {
 +        // Paper start - Fix unnecessary map data saves
 +        this.setColorsDirty(x, y, true);
 +    }
@@ -136,6 +138,14 @@
  
          for (MapItemSavedData.HoldingPlayer holdingPlayer : this.carriedBy) {
              holdingPlayer.markColorsDirty(x, y);
+         }
+     }
+ 
+-    private void setDecorationsDirty() {
++    public void setDecorationsDirty() {
+         this.carriedBy.forEach(MapItemSavedData.HoldingPlayer::markDecorationsDirty);
+     }
+ 
 @@ -387,7 +_,7 @@
                  return true;
              }

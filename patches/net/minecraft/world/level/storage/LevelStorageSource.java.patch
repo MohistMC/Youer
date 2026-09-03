@@ -1,14 +1,5 @@
 --- a/net/minecraft/world/level/storage/LevelStorageSource.java
 +++ b/net/minecraft/world/level/storage/LevelStorageSource.java
-@@ -95,7 +_,7 @@
-     public static final String ALLOWED_SYMLINKS_CONFIG_NAME = "allowed_symlinks.txt";
-     private static final int DISK_SPACE_WARNING_THRESHOLD = 67108864;
-     private static final Component LOAD_FOLDER_ACCESS_MESSAGE = Component.translatable("selectWorld.load_folder_access");
--    public final Path baseDir;
-+    private final Path baseDir;
-     private final Path backupDir;
-     private final DataFixer fixerUpper;
-     private final DirectoryValidator worldDirValidator;
 @@ -145,13 +_,14 @@
          WorldDataConfiguration dataConfiguration,
          Registry<LevelStem> datapackDimensions,
@@ -55,6 +46,15 @@
          if (!validationResults.isEmpty()) {
              throw new ContentValidationException(levelPath, validationResults);
          } else {
+@@ -455,7 +_,7 @@
+ 
+     public class LevelStorageAccess implements AutoCloseable {
+         private DirectoryLock lock;
+-        private final LevelStorageSource.LevelDirectory levelDirectory;
++        public final LevelStorageSource.LevelDirectory levelDirectory;
+         private final String levelId;
+         private final Map<LevelResource, Path> resources = Maps.newHashMap();
+ 
 @@ -525,6 +_,19 @@
              }
          }

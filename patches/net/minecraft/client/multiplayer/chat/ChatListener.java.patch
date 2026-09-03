@@ -1,16 +1,50 @@
 --- a/net/minecraft/client/multiplayer/chat/ChatListener.java
 +++ b/net/minecraft/client/multiplayer/chat/ChatListener.java
-@@ -82,8 +_,12 @@
-         return this.delayedMessageQueue.removeIf(message -> signature.equals(message.signature()));
+@@ -138,7 +_,9 @@
+             LocalPlayer receiver = this.minecraft.player;
+             if (receiver != null && receiver.chatAbilities().canReceivePlayerMessages()) {
+                 Component decoratedMessage = boundChatType.decorate(message);
+-                this.minecraft.gui.hud.getChat().addPlayerMessage(decoratedMessage, null, GuiMessageTag.system());
++                Component forgeComponent = net.neoforged.neoforge.client.ClientHooks.onClientChat(boundChatType, decoratedMessage, Util.NIL_UUID);
++                if (forgeComponent == null) return false;
++                this.minecraft.gui.hud.getChat().addPlayerMessage(forgeComponent, null, GuiMessageTag.system());
+                 this.narrateChatMessage(boundChatType, message);
+                 this.logSystemMessage(decoratedMessage, received);
+                 this.previousMessageTime = Util.getMillis();
+@@ -168,12 +_,16 @@
+                 MessageSignature signature = message.signature();
+                 FilterMask filterMask = message.filterMask();
+                 if (filterMask.isEmpty()) {
+-                    this.minecraft.gui.hud.getChat().addPlayerMessage(decoratedMessage, signature, tag);
++                    Component forgeComponent = net.neoforged.neoforge.client.ClientHooks.onClientPlayerChat(boundChatType, decoratedMessage, message, message.sender());
++                    if (forgeComponent == null) return false;
++                    this.minecraft.gui.hud.getChat().addPlayerMessage(forgeComponent, signature, tag);
+                     this.narrateChatMessage(boundChatType, message.decoratedContent());
+                 } else {
+                     Component filteredContent = filterMask.applyWithFormatting(message.signedContent());
+                     if (filteredContent != null) {
+-                        this.minecraft.gui.hud.getChat().addPlayerMessage(boundChatType.decorate(filteredContent), signature, tag);
++                        Component forgeComponent = net.neoforged.neoforge.client.ClientHooks.onClientPlayerChat(boundChatType, boundChatType.decorate(filteredContent), message, message.sender());
++                        if (forgeComponent == null) return false;
++                        this.minecraft.gui.hud.getChat().addPlayerMessage(forgeComponent, signature, tag);
+                         this.narrateChatMessage(boundChatType, filteredContent);
+                     }
+                 }
+@@ -210,6 +_,8 @@
+     public void handleSystemMessage(Component message, boolean remote) {
+         UUID guessedUUID = this.guessChatUUID(message);
+         if (!this.minecraft.options.hideMatchedNames().get() || !this.minecraft.isBlocked(guessedUUID)) {
++            message = net.neoforged.neoforge.client.ClientHooks.onClientSystemChat(message, false);
++            if (message == null) return;
+             if (guessedUUID == Util.NIL_UUID || !this.minecraft.isFriendOnlyRestricted(guessedUUID)) {
+                 LocalPlayer receiver = this.minecraft.player;
+                 if (receiver != null && receiver.chatAbilities().canReceiveSystemMessages()) {
+@@ -227,6 +_,8 @@
      }
  
-+    private boolean willDelayMessages() {
-+        return this.messageDelay > 0L && Util.getMillis() < this.previousMessageTime + this.messageDelay;
-+    }
-+
-     private void handleMessage(@Nullable MessageSignature signature, BooleanSupplier handler) {
--        if (this.messageDelay > 0L) {
-+        if (this.willDelayMessages()) {
-             this.delayedMessageQueue.add(new ChatListener.Message(signature, handler));
-         } else {
-             handler.getAsBoolean();
+     public void handleOverlay(Component message) {
++        message = net.neoforged.neoforge.client.ClientHooks.onClientSystemChat(message, true);
++        if (message == null) return;
+         this.minecraft.gui.hud.setOverlayMessage(message, false);
+         this.minecraft.getNarrator().saySystemQueued(message);
+     }

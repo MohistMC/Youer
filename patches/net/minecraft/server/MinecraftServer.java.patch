@@ -158,8 +158,12 @@
      private static final int OVERLOADED_TICKS_THRESHOLD = 20;
      private static final long OVERLOADED_WARNING_INTERVAL_NANOS = 10L * TimeUtil.NANOSECONDS_PER_SECOND;
      private static final int OVERLOADED_TICKS_WARNING_INTERVAL = 100;
-@@ -215,7 +_,7 @@
-     public final PlayerDataStorage playerDataStorage;
+@@ -212,10 +_,10 @@
+     public static final NameAndId ANONYMOUS_PLAYER_PROFILE = new NameAndId(Util.NIL_UUID, "Anonymous Player");
+     public static final String SERVER_THREAD_NAME = "Server thread";
+     public LevelStorageSource.LevelStorageAccess storageSource;
+-    protected final PlayerDataStorage playerDataStorage;
++    public final PlayerDataStorage playerDataStorage;
      private final SavedDataStorage savedDataStorage;
      private final List<Runnable> tickables = Lists.newArrayList();
 -    private final GameRules gameRules;
@@ -167,7 +171,7 @@
      private MetricsRecorder metricsRecorder = InactiveMetricsRecorder.INSTANCE;
      private Consumer<ProfileResults> onMetricsRecordingStopped = results -> this.stopRecordingMetrics();
      private Consumer<Path> onMetricsRecordingFinished = ignored -> {};
-@@ -223,7 +_,7 @@
+@@ -223,24 +_,25 @@
      private MinecraftServer.@Nullable TimeProfiler debugCommandProfiler;
      private boolean debugCommandProfilerDelayStart;
      private ServerConnectionListener connection;
@@ -176,7 +180,11 @@
      private @Nullable ServerStatus status;
      private ServerStatus.@Nullable Favicon statusIcon;
      private final RandomSource random = RandomSource.create();
-@@ -234,13 +_,14 @@
+-    private final DataFixer fixerUpper;
++    public final DataFixer fixerUpper;
+     private String localIp;
+     private int port = -1;
+     private final LayeredRegistryAccess<RegistryLayer> registries;
      private Map<ResourceKey<Level>, ServerLevel> levels = Maps.newLinkedHashMap();
      private PlayerList playerList;
      private volatile boolean running = true;
@@ -192,7 +200,16 @@
      private int playerIdleTimeout;
      private final long[] tickTimesNanos = new long[100];
      private long aggregatedTickTimesNanos = 0L;
-@@ -268,7 +_,7 @@
+@@ -253,7 +_,7 @@
+     private final NotificationManager notificationManager;
+     private final ServerActivityMonitor serverActivityMonitor;
+     private long lastServerStatus;
+-    private final Thread serverThread;
++    public final Thread serverThread;
+     private long lastTickNanos = Util.getNanos();
+     private long taskExecutionStartNanos = Util.getNanos();
+     private long idleTimeNanos;
+@@ -268,30 +_,239 @@
      private @Nullable CommandStorage commandStorage;
      private final CustomBossEvents customBossEvents;
      private final RandomSequences randomSequences;
@@ -201,7 +218,14 @@
      private final ServerFunctionManager functionManager;
      private boolean enforceWhitelist;
      private boolean usingWhitelist;
-@@ -281,17 +_,226 @@
+     private float smoothedTickTimeMillis;
+-    private final Executor executor;
++    public final Executor executor;
+     private @Nullable String serverId;
+-    private MinecraftServer.ReloadableResources resources;
++    public MinecraftServer.ReloadableResources resources;
+     private final StructureTemplateManager structureTemplateManager;
+     private final ServerTickRateManager tickRateManager;
      private final ServerDebugSubscribers debugSubscribers = new ServerDebugSubscribers(this);
      protected WorldData worldData;
      private LevelData.RespawnData effectiveRespawnData = LevelData.RespawnData.DEFAULT;
@@ -1317,7 +1341,7 @@
          } finally {
              this.waitingForNextTick = false;
          }
-@@ -861,35 +_,59 @@
+@@ -861,38 +_,62 @@
          }
      }
  
@@ -1381,7 +1405,11 @@
 +        return ret; // Paper - force execution of all worlds, do not just bias the first
      }
  
-     public void doRunTask(TickTask task) {
+-    protected void doRunTask(TickTask task) {
++    public void doRunTask(TickTask task) {
+         Profiler.get().incrementCounter("runTask");
+         super.doRunTask(task);
+     }
 @@ -940,10 +_,12 @@
      }
  

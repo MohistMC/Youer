@@ -1,39 +1,39 @@
 --- a/net/minecraft/client/data/models/EquipmentAssetProvider.java
 +++ b/net/minecraft/client/data/models/EquipmentAssetProvider.java
-@@ -42,24 +_,27 @@
-         );
-         consumer.accept(EquipmentAssets.CHAINMAIL, onlyHumanoid("chainmail").build());
+@@ -27,6 +_,10 @@
+         this.pathProvider = output.createPathProvider(PackOutput.Target.RESOURCE_PACK, "equipment");
+     }
+ 
++    protected void registerModels(BiConsumer<ResourceKey<EquipmentAsset>, EquipmentClientInfo> output) {
++        bootstrap(output);
++    }
++
+     private static void bootstrap(BiConsumer<ResourceKey<EquipmentAsset>, EquipmentClientInfo> consumer) {
          consumer.accept(
--            EquipmentAssets.COPPER, humanoidAndMountArmor("copper").replaceTrimPalette(TrimMaterials.COPPER, TrimMaterials.Palette.COPPER_DARKER.id()).build()
--        );
--        consumer.accept(
--            EquipmentAssets.IRON, humanoidAndMountArmor("iron").replaceTrimPalette(TrimMaterials.IRON, TrimMaterials.Palette.IRON_DARKER.id()).build()
--        );
--        consumer.accept(
--            EquipmentAssets.GOLD, humanoidAndMountArmor("gold").replaceTrimPalette(TrimMaterials.GOLD, TrimMaterials.Palette.GOLD_DARKER.id()).build()
-+            EquipmentAssets.COPPER,
-+            humanoidAndMountArmor("copper").replaceTrimPalette(TrimMaterials.Palette.COPPER.id(), TrimMaterials.Palette.COPPER_DARKER.id()).build()
-+        );
-+        consumer.accept(
-+            EquipmentAssets.IRON,
-+            humanoidAndMountArmor("iron").replaceTrimPalette(TrimMaterials.Palette.IRON.id(), TrimMaterials.Palette.IRON_DARKER.id()).build()
-+        );
-+        consumer.accept(
-+            EquipmentAssets.GOLD,
-+            humanoidAndMountArmor("gold").replaceTrimPalette(TrimMaterials.Palette.GOLD.id(), TrimMaterials.Palette.GOLD_DARKER.id()).build()
-         );
-         consumer.accept(
-             EquipmentAssets.DIAMOND,
--            humanoidAndMountArmor("diamond").replaceTrimPalette(TrimMaterials.DIAMOND, TrimMaterials.Palette.DIAMOND_DARKER.id()).build()
-+            humanoidAndMountArmor("diamond").replaceTrimPalette(TrimMaterials.Palette.DIAMOND.id(), TrimMaterials.Palette.DIAMOND_DARKER.id()).build()
-         );
-         consumer.accept(
-             EquipmentAssets.TURTLE_SCUTE, EquipmentClientInfo.builder().addMainHumanoidLayer(Identifier.withDefaultNamespace("turtle_scute"), false).build()
-         );
-         consumer.accept(
-             EquipmentAssets.NETHERITE,
--            humanoidAndMountArmor("netherite").replaceTrimPalette(TrimMaterials.NETHERITE, TrimMaterials.Palette.NETHERITE_DARKER.id()).build()
-+            humanoidAndMountArmor("netherite").replaceTrimPalette(TrimMaterials.Palette.NETHERITE.id(), TrimMaterials.Palette.NETHERITE_DARKER.id()).build()
-         );
-         consumer.accept(
-             EquipmentAssets.ARMADILLO_SCUTE,
+             EquipmentAssets.LEATHER,
+@@ -140,20 +_,20 @@
+     }
+ 
+     private static EquipmentClientInfo.Builder onlyHumanoid(String name) {
+-        return EquipmentClientInfo.builder().addHumanoidLayers(Identifier.withDefaultNamespace(name));
++        return EquipmentClientInfo.builder().addHumanoidLayers(Identifier.parse(name));
+     }
+ 
+     private static EquipmentClientInfo.Builder humanoidAndMountArmor(String name) {
+         return EquipmentClientInfo.builder()
+-            .addHumanoidLayers(Identifier.withDefaultNamespace(name))
+-            .addLayers(EquipmentClientInfo.LayerType.HORSE_BODY, EquipmentClientInfo.Layer.leatherDyeable(Identifier.withDefaultNamespace(name), false))
+-            .addLayers(EquipmentClientInfo.LayerType.NAUTILUS_BODY, EquipmentClientInfo.Layer.leatherDyeable(Identifier.withDefaultNamespace(name), false));
++            .addHumanoidLayers(Identifier.parse(name))
++            .addLayers(EquipmentClientInfo.LayerType.HORSE_BODY, EquipmentClientInfo.Layer.leatherDyeable(Identifier.parse(name), false))
++            .addLayers(EquipmentClientInfo.LayerType.NAUTILUS_BODY, EquipmentClientInfo.Layer.leatherDyeable(Identifier.parse(name), false));
+     }
+ 
+     @Override
+     public CompletableFuture<?> run(CachedOutput cache) {
+         Map<ResourceKey<EquipmentAsset>, EquipmentClientInfo> equipmentAssets = new HashMap<>();
+-        bootstrap((id, asset) -> {
++        registerModels((id, asset) -> {
+             if (equipmentAssets.putIfAbsent(id, asset) != null) {
+                 throw new IllegalStateException("Tried to register equipment asset twice for id: " + id);
+             }

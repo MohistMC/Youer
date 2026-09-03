@@ -1,11 +1,18 @@
 --- a/net/minecraft/client/gui/screens/LoadingOverlay.java
 +++ b/net/minecraft/client/gui/screens/LoadingOverlay.java
-@@ -194,7 +_,7 @@
+@@ -157,6 +_,7 @@
+     @Override
+     public void tick() {
+         if (this.fadeOutStart == -1L && this.reload.isDone() && this.isReadyToFadeOut()) {
++            this.fadeOutStart = Util.getMillis(); // Neo: Moved up to guard against inf loops caused by callback
+             try {
+                 this.reload.checkExceptions();
+                 this.onFinish.accept(Optional.empty());
+@@ -164,7 +_,6 @@
+                 this.onFinish.accept(Optional.of(t));
+             }
  
-         @Override
-         public TextureContents loadContents(ResourceManager resourceManager) throws IOException {
--            ResourceProvider vanillaProvider = Minecraft.getInstance().getVanillaPackResources().asResourceManager();
-+            ResourceProvider vanillaProvider = Minecraft.getInstance().getVanillaPackResources().asProvider();
- 
-             try (InputStream resource = vanillaProvider.open(LoadingOverlay.MOJANG_STUDIOS_LOGO_LOCATION)) {
-                 return new TextureContents(NativeImage.read(resource), new TextureMetadataSection(true, true, MipmapStrategy.MEAN, 0.0F));
+-            this.fadeOutStart = Util.getMillis();
+             if (this.minecraft.gui.screen() != null) {
+                 Window window = this.minecraft.getWindow();
+                 this.minecraft.gui.screen().init(window.getGuiScaledWidth(), window.getGuiScaledHeight());

@@ -1,62 +1,28 @@
 --- a/com/mojang/renderpearl/backend/opengl/FrameBufferCache.java
 +++ b/com/mojang/renderpearl/backend/opengl/FrameBufferCache.java
-@@ -14,20 +_,15 @@
-     private final Object2IntMap<FrameBufferCache.CacheKey> cache = new Object2IntOpenHashMap<>();
+@@ -51,7 +_,7 @@
+         }
  
-     public int getFbo(DirectStateAccess dsa, List<@Nullable FrameBufferAttachment> colorTextures, @Nullable FrameBufferAttachment depthTexture) {
--        return this.getFbo(dsa, colorTextures, depthTexture, 0);
--    }
--
--    public int getFbo(DirectStateAccess dsa, List<@Nullable FrameBufferAttachment> colorTextures, @Nullable FrameBufferAttachment depthTexture, int mipOffset) {
--        FrameBufferCache.CacheKey cacheKey = new FrameBufferCache.CacheKey(colorTextures, depthTexture, mipOffset);
--        return this.cache.computeIfAbsent(cacheKey, var6 -> this.createFbo(cacheKey, dsa, colorTextures, depthTexture, mipOffset));
-+        FrameBufferCache.CacheKey cacheKey = new FrameBufferCache.CacheKey(colorTextures, depthTexture);
-+        return this.cache.computeIfAbsent(cacheKey, var5 -> this.createFbo(cacheKey, dsa, colorTextures, depthTexture));
+         dsa.bindFrameBufferTextures(
+-            fbo, colorIds, mipLevels, depthAttachment == null ? 0 : depthAttachment.glId(), depthAttachment == null ? 0 : depthAttachment.fboMipLevel(), 0
++            fbo, colorIds, mipLevels, depthAttachment == null ? 0 : depthAttachment.glId(), depthAttachment == null ? 0 : depthAttachment.fboMipLevel(), 0, depthAttachment != null && depthAttachment.hasStencilAspect()
+         );
+         return fbo;
      }
+@@ -76,7 +_,7 @@
  
-     private int createFbo(
-         FrameBufferCache.CacheKey key,
-         DirectStateAccess dsa,
-         List<@Nullable FrameBufferAttachment> colorAttachments,
--        @Nullable FrameBufferAttachment depthAttachment,
--        int mipOffset
-+        @Nullable FrameBufferAttachment depthAttachment
-     ) {
-         int fbo = dsa.createFrameBufferObject();
-         int colorAttachmentCount = colorAttachments.size();
-@@ -38,7 +_,7 @@
-             FrameBufferAttachment attachment = colorAttachments.get(i);
-             if (attachment != null) {
-                 colorIds[i] = attachment.glId();
--                mipLevels[i] = attachment.fboMipLevel() + mipOffset;
-+                mipLevels[i] = attachment.fboMipLevel();
-                 attachment.addAssociatedFbo(key);
-             } else {
-                 colorIds[i] = 0;
-@@ -74,7 +_,7 @@
-         private final int hash;
-         public final List<@Nullable FrameBufferAttachment> associatedAttachments;
- 
--        public CacheKey(List<@Nullable FrameBufferAttachment> colorAttachments, @Nullable FrameBufferAttachment depthAttachment, int mipOffset) {
-+        public CacheKey(List<@Nullable FrameBufferAttachment> colorAttachments, @Nullable FrameBufferAttachment depthAttachment) {
+         public CacheKey(List<@Nullable FrameBufferAttachment> colorAttachments, @Nullable FrameBufferAttachment depthAttachment, int mipOffset) {
              int colorAttachmentCount = colorAttachments.size();
-             this.data = new int[(colorAttachmentCount + (depthAttachment != null ? 1 : 0)) * 2];
+-            this.data = new int[(colorAttachmentCount + (depthAttachment != null ? 1 : 0)) * 2];
++            this.data = new int[(colorAttachmentCount * 2) + (depthAttachment != null ? 3 : 0)];
  
-@@ -82,7 +_,7 @@
+             for (int i = 0; i < colorAttachmentCount; i++) {
                  FrameBufferAttachment attachment = colorAttachments.get(i);
-                 if (attachment != null) {
-                     this.data[i * 2] = attachment.glId();
--                    this.data[i * 2 + 1] = attachment.fboMipLevel() + mipOffset;
-+                    this.data[i * 2 + 1] = attachment.fboMipLevel();
-                 } else {
-                     this.data[i * 2] = 0;
-                     this.data[i * 2 + 1] = 0;
-@@ -92,7 +_,7 @@
-             this.associatedAttachments = new ArrayList<>(colorAttachments);
+@@ -93,6 +_,7 @@
              if (depthAttachment != null) {
                  this.data[colorAttachmentCount * 2] = depthAttachment.glId();
--                this.data[colorAttachmentCount * 2 + 1] = depthAttachment.fboMipLevel() + mipOffset;
-+                this.data[colorAttachmentCount * 2 + 1] = depthAttachment.fboMipLevel();
+                 this.data[colorAttachmentCount * 2 + 1] = depthAttachment.fboMipLevel() + mipOffset;
++                this.data[colorAttachmentCount * 2 + 2] = depthAttachment.hasStencilAspect() ? 1 : 0;
                  this.associatedAttachments.add(depthAttachment);
              }
  

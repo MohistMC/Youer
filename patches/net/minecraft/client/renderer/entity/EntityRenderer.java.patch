@@ -1,40 +1,48 @@
 --- a/net/minecraft/client/renderer/entity/EntityRenderer.java
 +++ b/net/minecraft/client/renderer/entity/EntityRenderer.java
-@@ -61,7 +_,7 @@
-         return entity.isOnFire() ? 15 : entity.level().getBrightness(LightLayer.BLOCK, blockPos);
+@@ -129,11 +_,15 @@
+     ) {
+         poseStack.pushPose();
+         if (state.scoreText != null) {
++            var event = new net.neoforged.neoforge.client.event.RenderNameTagEvent.DoRender(state, state.scoreText, this, poseStack, submitNodeCollector, camera, state.partialTick);
++            if (!net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event).isCanceled())
+             submitNodeCollector.submitNameTag(poseStack, state.nameTagAttachment, offset, state.scoreText, !state.isDiscrete, state.lightCoords, camera);
+             poseStack.translate(0.0F, 9.0F * 1.15F * 0.025F, 0.0F);
+         }
+ 
+         if (state.nameTag != null) {
++            var event = new net.neoforged.neoforge.client.event.RenderNameTagEvent.DoRender(state, state.nameTag, this, poseStack, submitNodeCollector, camera, state.partialTick);
++            if (!net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event).isCanceled())
+             submitNodeCollector.submitNameTag(poseStack, state.nameTagAttachment, offset, state.nameTag, !state.isDiscrete, state.lightCoords, camera);
+         }
+ 
+@@ -158,6 +_,7 @@
+         S state = this.createRenderState();
+         this.extractRenderState(entity, state, partialTicks);
+         this.finalizeRenderState(entity, state);
++        net.neoforged.neoforge.client.renderstate.RenderStateExtensions.onUpdateEntityRenderState(this, entity, state);
+         return state;
      }
  
--    public boolean shouldRender(T entity, Frustum culler, double camX, double camY, double camZ, float partialTicks) {
-+    public boolean shouldRender(T entity, Frustum culler, double camX, double camY, double camZ) {
-         if (!entity.shouldRender(camX, camY, camZ)) {
-             return false;
-         }
-@@ -70,7 +_,7 @@
-             return true;
-         }
- 
--        AABB boundingBox = this.getBoundingBoxForCulling(entity, partialTicks).inflate(0.5);
-+        AABB boundingBox = this.getBoundingBoxForCulling(entity).inflate(0.5);
-         if (boundingBox.hasNaN() || boundingBox.getSize() == 0.0) {
-             boundingBox = new AABB(entity.getX() - 2.0, entity.getY() - 2.0, entity.getZ() - 2.0, entity.getX() + 2.0, entity.getY() + 2.0, entity.getZ() + 2.0);
-         }
-@@ -82,7 +_,7 @@
-         if (entity instanceof Leashable leashable) {
-             Entity leashHolder = leashable.getLeashHolder();
-             if (leashHolder != null) {
--                AABB leasherBox = this.entityRenderDispatcher.getRenderer(leashHolder).getBoundingBoxForCulling(leashHolder, partialTicks);
-+                AABB leasherBox = this.entityRenderDispatcher.getRenderer(leashHolder).getBoundingBoxForCulling(leashHolder);
-                 return culler.isVisible(leasherBox) || culler.isVisible(boundingBox.minmax(leasherBox));
-             }
-         }
-@@ -90,8 +_,8 @@
-         return false;
-     }
- 
--    protected AABB getBoundingBoxForCulling(T entity, float partialTicks) {
--        return entity.getInterpolatedBoundingBox(partialTicks);
-+    protected AABB getBoundingBoxForCulling(T entity) {
-+        return entity.getBoundingBox();
-     }
- 
-     protected boolean affectedByCulling(T entity) {
+@@ -167,6 +_,7 @@
+         state.y = Mth.lerp(partialTicks, entity.yOld, entity.getY());
+         state.z = Mth.lerp(partialTicks, entity.zOld, entity.getZ());
+         state.isInvisible = entity.isInvisible();
++        state.partialTick = partialTicks;
+         state.ageInTicks = entity.tickCount + partialTicks;
+         state.boundingBoxWidth = entity.getBbWidth();
+         state.boundingBoxHeight = entity.getBbHeight();
+@@ -252,9 +_,11 @@
+     protected final void extractNameTags(T entity, S state, float partialTicks, double nameTagDistance, double belowNameDistance) {
+         if (this.entityRenderDispatcher.camera != null) {
+             state.distanceToCameraSq = this.entityRenderDispatcher.distanceToSqr(entity);
+-            boolean shouldShowName = state.distanceToCameraSq < Mth.square(nameTagDistance) && this.shouldShowName(entity, state.distanceToCameraSq);
++            var event = new net.neoforged.neoforge.client.event.RenderNameTagEvent.CanRender(entity, state, this.getNameTag(entity), this, partialTicks);
++            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event);
++            boolean shouldShowName = event.canRender().isTrue() || (event.canRender().isDefault() && state.distanceToCameraSq < Mth.square(nameTagDistance) && this.shouldShowName(entity, state.distanceToCameraSq));
+             if (shouldShowName) {
+-                state.nameTag = this.getNameTag(entity);
++                state.nameTag = event.getContent();
+                 state.nameTagAttachment = entity.getAttachments().getNullable(EntityAttachment.NAME_TAG, 0, entity.getYRot(partialTicks));
+             } else {
+                 state.nameTag = null;

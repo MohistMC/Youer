@@ -1,751 +1,133 @@
 --- a/net/minecraft/client/renderer/LevelRenderer.java
 +++ b/net/minecraft/client/renderer/LevelRenderer.java
-@@ -14,10 +_,6 @@
- import com.mojang.renderpearl.api.buffers.GpuBufferSlice;
- import com.mojang.renderpearl.api.commands.RenderPass;
- import com.mojang.renderpearl.api.commands.RenderPassDescriptor;
--import com.mojang.renderpearl.api.device.DeviceFeatures;
--import com.mojang.renderpearl.api.device.DeviceInfo;
--import com.mojang.renderpearl.api.device.DeviceLimits;
--import com.mojang.renderpearl.api.device.HintsAndWorkarounds;
- import com.mojang.renderpearl.api.pipeline.IndexType;
- import com.mojang.renderpearl.api.pipeline.PrimitiveTopology;
- import com.mojang.renderpearl.api.textures.AddressMode;
-@@ -28,11 +_,10 @@
- import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
- import it.unimi.dsi.fastutil.longs.LongCollection;
- import it.unimi.dsi.fastutil.objects.ObjectArrayList;
--import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
-+import it.unimi.dsi.fastutil.objects.ObjectListIterator;
- import java.util.ArrayList;
- import java.util.EnumMap;
- import java.util.List;
--import java.util.Map;
- import java.util.Optional;
- import java.util.OptionalDouble;
- import net.minecraft.SharedConstants;
-@@ -61,6 +_,7 @@
- import net.minecraft.client.renderer.gizmos.DrawableGizmoPrimitives;
- import net.minecraft.client.renderer.oit.OitRenderPassProvider;
- import net.minecraft.client.renderer.oit.OitStage;
-+import net.minecraft.client.renderer.rendertype.OutputTarget;
- import net.minecraft.client.renderer.rendertype.RenderType;
- import net.minecraft.client.renderer.rendertype.RenderTypes;
- import net.minecraft.client.renderer.state.OptionsRenderState;
-@@ -80,6 +_,7 @@
- import net.minecraft.gizmos.SimpleGizmoCollector;
- import net.minecraft.resources.Identifier;
- import net.minecraft.util.ARGB;
-+import net.minecraft.util.Mth;
- import net.minecraft.util.RandomSource;
- import net.minecraft.util.Util;
- import net.minecraft.util.profiling.Profiler;
-@@ -135,8 +_,6 @@
-     private int translucencyResortIterationIndex;
-     private @Nullable GpuSampler chunkLayerSampler;
-     private boolean currentFrameRendersEntityOutline;
--    private final boolean multiDrawIndirectAvailable;
--    private boolean usingMultiDrawIndirectForTerrain;
-     private final SimpleGizmoCollector renderThreadGizmos = new SimpleGizmoCollector();
-     private LevelRenderer.FinalizedGizmos finalizedGizmos = new LevelRenderer.FinalizedGizmos(new DrawableGizmoPrimitives(), new DrawableGizmoPrimitives());
- 
-@@ -163,14 +_,6 @@
-         this.levelRenderState = gameRenderer.gameRenderState().levelRenderState;
-         this.optionsRenderState = gameRenderer.gameRenderState().optionsRenderState;
-         this.entityOutlineTarget = new TextureTarget("Entity Outline", width, height, GpuFormat.RGBA8_UNORM, null);
--        DeviceInfo deviceInfo = RenderSystem.getDevice().getDeviceInfo();
--        DeviceFeatures deviceFeatures = deviceInfo.features();
--        DeviceLimits deviceLimits = deviceInfo.limits();
--        HintsAndWorkarounds hintsAndWorkarounds = deviceInfo.hintsAndWorkarounds();
--        this.multiDrawIndirectAvailable = deviceLimits.maxDrawIndirectDrawCount() > 0
--            && deviceFeatures.nonZeroFirstInstance()
--            && !hintsAndWorkarounds.multiDrawIndirectHasKnownIssues();
--        this.usingMultiDrawIndirectForTerrain = this.multiDrawIndirectAvailable;
-     }
- 
-     public void render(
-@@ -201,9 +_,6 @@
-         int screenWidth = this.gameRenderer.mainRenderTarget().width;
-         int screenHeight = this.gameRenderer.mainRenderTarget().height;
-         RenderTargetDescriptor extraDepthTargetDescriptor = new RenderTargetDescriptor(
--            screenWidth, screenHeight, null, new RenderTargetDescriptor.TextureProperties(null, GpuFormat.D32_FLOAT)
--        );
--        RenderTargetDescriptor extraDepthTargetDescriptorCleared = new RenderTargetDescriptor(
-             screenWidth, screenHeight, null, RenderTargetDescriptor.TextureProperties.DEFAULT_DEPTH
-         );
-         if (this.gameRenderer.useImprovedTransparency()) {
-@@ -211,10 +_,7 @@
-                 screenWidth, screenHeight, new RenderTargetDescriptor.TextureProperties(DEPTH_BOUNDS_CLEAR_COLOR, GpuFormat.RGBA32_FLOAT), null
-             );
-             this.targets.depthBounds = frame.createInternal("depth_bounds", depthBoundsTargetDescriptor);
--            RenderTargetDescriptor depthBoundsCulledTargetDescriptor = new RenderTargetDescriptor(
--                screenWidth, screenHeight, new RenderTargetDescriptor.TextureProperties(null, GpuFormat.RGBA32_FLOAT), null
--            );
--            this.targets.depthBoundsCulled = frame.createInternal("depth_bounds_culled", depthBoundsCulledTargetDescriptor);
-+            this.targets.depthBoundsCopy = frame.createInternal("depth_bounds_copy", depthBoundsTargetDescriptor);
-             RenderTargetDescriptor transmittanceTargetDescriptor = new RenderTargetDescriptor(
-                 screenWidth, screenHeight, new RenderTargetDescriptor.TextureProperties(ZERO_CLEAR_COLOR, GpuFormat.RGBA16_FLOAT), null
-             );
-@@ -232,7 +_,7 @@
+@@ -235,6 +_,8 @@
+             this.targets.alwaysOnTopDepth = frame.createInternal("always_on_top_depth", extraDepthTargetDescriptorCleared);
          }
  
-         if (this.frameHasAlwaysOnTopGizmos() && consistentDepthRequired) {
--            this.targets.alwaysOnTopDepth = frame.createInternal("always_on_top_depth", extraDepthTargetDescriptorCleared);
-+            this.targets.alwaysOnTopDepth = frame.createInternal("always_on_top_depth", extraDepthTargetDescriptor);
-         }
- 
++        net.neoforged.neoforge.client.ClientHooks.fireFrameGraphSetup(frame, this.targets, cameraState, cameraState.viewRotationMatrix, profiler);
++
          this.targets.entityOutline = frame.importExternal("entity_outline", this.entityOutlineTarget);
-@@ -252,21 +_,11 @@
-             this.addSkyPass(frame, cameraState, terrainFog);
+         FramePass clearPass = frame.addPass("clear");
+         this.targets.main = clearPass.readsAndWrites(this.targets.main);
+@@ -328,6 +_,8 @@
+             this.submitBlockOutline(poseStack, this.submitNodeStorage, levelRenderState);
          }
  
--        Matrix4fc terrainMatrix = new Matrix4f(this.levelRenderState.cameraRenderState.viewRotationMatrix);
--        this.usingMultiDrawIndirectForTerrain = this.multiDrawIndirectAvailable && this.levelRenderState.shouldUseMultiDrawIndirectForTerrain;
--        ChunkSectionsToRender chunkSectionsToRender;
--        if (this.usingMultiDrawIndirectForTerrain) {
--            chunkSectionsToRender = this.prepareChunkRendersIndirect(terrainMatrix, !this.gameRenderer.useImprovedTransparency());
--        } else {
--            chunkSectionsToRender = this.prepareChunkRenders(terrainMatrix, !this.gameRenderer.useImprovedTransparency());
--        }
--
-+        ChunkSectionsToRender chunkSectionsToRender = this.prepareChunkRenders(this.levelRenderState.cameraRenderState.viewRotationMatrix);
-         this.addMainPass(frame, featureFrame, terrainFog, chunkSectionsToRender, consistentDepthRequired);
--        if (this.currentFrameRendersEntityOutline) {
--            PostChain entityOutlineChain = this.shaderManager.getPostChain(ENTITY_OUTLINE_POST_CHAIN_ID, LevelTargetBundle.OUTLINE_TARGETS);
--            if (entityOutlineChain != null) {
--                entityOutlineChain.addToFrame(frame, screenWidth, screenHeight, this.targets);
--            }
-+        PostChain entityOutlineChain = this.shaderManager.getPostChain(ENTITY_OUTLINE_POST_CHAIN_ID, LevelTargetBundle.OUTLINE_TARGETS);
-+        if (this.currentFrameRendersEntityOutline && entityOutlineChain != null) {
-+            entityOutlineChain.addToFrame(frame, screenWidth, screenHeight, this.targets);
-         }
- 
-         profiler.popPush("executeFrameGraph");
-@@ -305,11 +_,8 @@
-         this.sectionOcclusionGraph.update(cameraState, this.optionsRenderState.fov, this.levelRenderState.chunkLoadingRenderState);
-         profiler.pop();
-         Runnable playerCompiledSectionCallback = this.levelRenderState.playerCompiledSectionCallback;
--        if (playerCompiledSectionCallback != null) {
--            long chunkFadeDuration = Util.toMillis(this.optionsRenderState.chunkSectionFadeInTime);
--            if (this.isSectionCompiledAndVisible(this.levelRenderState.cameraRenderState.blockPos, chunkFadeDuration)) {
--                playerCompiledSectionCallback.run();
--            }
-+        if (playerCompiledSectionCallback != null && this.isSectionCompiledAndVisible(this.levelRenderState.cameraRenderState.blockPos)) {
-+            playerCompiledSectionCallback.run();
-         }
- 
-         RenderSystem.isRenderingLevel = false;
-@@ -365,7 +_,29 @@
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.SubmitCustomGeometryEvent(levelRenderState, this.submitNodeStorage, poseStack, this.visibleSections));
++
+         this.finalizeGizmoCollection();
+         this.finalizedGizmos.standardPrimitives().submit(submitNodeCollector, levelRenderState.cameraRenderState, false);
+         this.finalizedGizmos.alwaysOnTopPrimitives().submit(submitNodeCollector, levelRenderState.cameraRenderState, true);
+@@ -365,7 +_,14 @@
              if (state.skybox != DimensionType.Skybox.NONE) {
                  FramePass pass = frame.addPass("sky");
                  this.targets.main = pass.readsAndWrites(this.targets.main);
 -                pass.executes(() -> this.skyRenderer.render(skyFog, state));
-+                pass.executes(
-+                    () -> {
-+                        RenderSystem.setShaderFog(skyFog);
-+                        if (state.skybox == DimensionType.Skybox.END) {
-+                            this.skyRenderer.renderEndSky();
-+                            if (state.endFlashIntensity > 1.0E-5F) {
-+                                PoseStack poseStack = new PoseStack();
-+                                this.skyRenderer.renderEndFlash(poseStack, state.endFlashIntensity, state.endFlashXAngle, state.endFlashYAngle);
-+                            }
-+                        } else {
-+                            PoseStack poseStack = new PoseStack();
-+                            this.skyRenderer.renderSkyDisc(state.skyColor);
-+                            this.skyRenderer.renderSunriseAndSunset(poseStack, state.sunAngle, state.sunriseAndSunsetColor);
-+                            this.skyRenderer
-+                                .renderSunMoonAndStars(
-+                                    poseStack, state.sunAngle, state.moonAngle, state.starAngle, state.moonPhase, state.rainBrightness, state.starBrightness
-+                                );
-+                            if (state.shouldRenderDarkDisc) {
-+                                this.skyRenderer.renderDarkDisc();
-+                            }
-+                        }
++                pass.executes(() -> {
++                    if (this.levelRenderState.customSkyboxRenderer == null || !this.levelRenderState.customSkyboxRenderer.renderSky(levelRenderState, state, cameraState.viewRotationMatrix, () -> RenderSystem.setShaderFog(skyFog))) {
++                        this.skyRenderer.render(skyFog, state);
 +                    }
-+                );
++                    Profiler.get().push("neoforge_render_after_sky");
++                    net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.RenderLevelStageEvent.AfterSky(this, this.levelRenderState, null, cameraState.viewRotationMatrix, this.visibleSections));
++                    Profiler.get().pop();
++                });
              }
          }
      }
-@@ -382,7 +_,7 @@
-         boolean useImprovedTransparency = this.gameRenderer.useImprovedTransparency();
-         if (useImprovedTransparency) {
-             this.targets.depthBounds = pass.readsAndWrites(this.targets.depthBounds);
--            this.targets.depthBoundsCulled = pass.readsAndWrites(this.targets.depthBoundsCulled);
-+            this.targets.depthBoundsCopy = pass.readsAndWrites(this.targets.depthBoundsCopy);
- 
-             for (int i = 0; i < OIT_TRANSMITTANCE_TARGET_COUNT; i++) {
-                 this.targets.transmittance.set(i, pass.readsAndWrites(this.targets.transmittance.get(i)));
-@@ -449,10 +_,6 @@
-                 }
- 
-                 this.executeOutline(featureFrame);
--                if (featureFrame.hasAnySeeThrough()) {
--                    this.executeSeeThrough(featureFrame, mainTarget);
--                }
--
-                 if (hasAlwaysOnTopGizmos) {
-                     this.executeAlwaysOnTop(featureFrame, mainTarget, consistentDepthRequired);
-                 }
-@@ -460,17 +_,6 @@
+@@ -508,8 +_,12 @@
+         chunkSectionsToRender.renderGroup(
+             ChunkSectionLayerGroup.OPAQUE, renderPass, this.chunkLayerSampler, blockAtlas, this.levelRenderState.renderWireframeTerrain
          );
-     }
- 
--    private void executeSeeThrough(FeatureRenderDispatcher.PreparedFrame featureFrame, RenderTarget mainTarget) {
--        RenderPassDescriptor descriptor = RenderPassDescriptor.builder(() -> "See through features")
--            .withColorAttachment(mainTarget.getColorTextureView())
--            .build();
--
--        try (RenderPass renderPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(descriptor)) {
--            RenderSystem.bindDefaultUniforms(renderPass);
--            featureFrame.executeSeeThrough(renderPass);
--        }
--    }
--
-     private void executeAlwaysOnTop(FeatureRenderDispatcher.PreparedFrame featureFrame, RenderTarget mainTarget, boolean consistentDepthRequired) {
-         GpuTextureView depthTextureView = consistentDepthRequired
-             ? this.targets.alwaysOnTopDepth.get().getDepthTextureView()
-@@ -490,7 +_,7 @@
-             GpuSampler nearestSampler = RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST);
- 
-             try (RenderPass renderPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(integrateDepthDescriptor)) {
--                renderPass.setUniform("InSampler", depthTextureView, nearestSampler);
-+                renderPass.bindTexture("InSampler", depthTextureView, nearestSampler);
-                 renderPass.setPipeline(RenderSystem.getCompiledPipeline(RenderPipelines.INTEGRATE_DEPTH));
-                 renderPass.draw(3, 1, 0, 0);
-             }
-@@ -504,10 +_,7 @@
-     private void executeSolid(ChunkSectionsToRender chunkSectionsToRender, FeatureRenderDispatcher.PreparedFrame featureFrame, RenderPass renderPass) {
-         ProfilerFiller profiler = Profiler.get();
-         profiler.push("solidTerrain");
--        GpuTextureView blockAtlas = this.textureManager.getTexture(TextureAtlas.LOCATION_BLOCKS).getTextureView();
--        chunkSectionsToRender.renderGroup(
--            ChunkSectionLayerGroup.OPAQUE, renderPass, this.chunkLayerSampler, blockAtlas, this.levelRenderState.renderWireframeTerrain
--        );
-+        chunkSectionsToRender.renderGroup(ChunkSectionLayerGroup.OPAQUE, renderPass, this.chunkLayerSampler, this.levelRenderState.renderWireframeTerrain);
++        profiler.popPush("neoforge_render_after_opaque_blocks");
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.RenderLevelStageEvent.AfterOpaqueBlocks(this, this.levelRenderState, null, this.levelRenderState.cameraRenderState.viewRotationMatrix, this.visibleSections, renderPass));
          profiler.popPush("renderSolidFeatures");
          featureFrame.executeSolid(renderPass);
++        profiler.popPush("neoforge_render_after_opaque_features");
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.RenderLevelStageEvent.AfterOpaqueFeatures(this, this.levelRenderState, null, this.levelRenderState.cameraRenderState.viewRotationMatrix, this.visibleSections, renderPass));
          profiler.pop();
-@@ -543,30 +_,21 @@
-         boolean shouldRenderClouds = cloudStatus != CloudStatus.OFF && ARGB.alpha(this.levelRenderState.cloudColor) > 0;
-         int renderDistance = this.optionsRenderState.renderDistance * 16;
-         CameraRenderState cameraState = this.levelRenderState.cameraRenderState;
--        GpuTextureView mainDepthTextureView = this.gameRenderer.mainRenderTarget().getDepthTextureView();
-+        RenderTarget depthBoundsTarget = OutputTarget.DEPTH_BOUNDS_TARGET.getRenderTarget();
-+        RenderTarget accumulateTarget = OutputTarget.ACCUMULATE_TARGET.getRenderTarget();
-+        GpuTextureView depthTextureView = this.gameRenderer.mainRenderTarget().getDepthTextureView();
-         RenderTarget mainTarget = this.targets.main.get();
-         if (frameHasWaterMask) {
-             this.executeOitWaterMask(featureFrame, mainTarget);
-         }
+     }
  
--        GpuTextureView depthBoundsTargetView = this.targets.depthBounds.get().getColorTextureView();
--        GpuTextureView depthBoundsCulledTargetView = this.targets.depthBoundsCulled.get().getColorTextureView();
--        GpuTextureView accumulateTargetView = this.targets.accumulate.get().getColorTextureView();
--        GpuTextureView[] transmittanceTargetViews = new GpuTextureView[OIT_TRANSMITTANCE_TARGET_COUNT];
--
--        for (int i = 0; i < OIT_TRANSMITTANCE_TARGET_COUNT; i++) {
--            transmittanceTargetViews[i] = this.targets.transmittance.get(i).get().getColorTextureView();
--        }
--
--        OitRenderPassProvider.Parameters params = new OitRenderPassProvider.Parameters(
--            depthBoundsTargetView, transmittanceTargetViews, accumulateTargetView, mainDepthTextureView
--        );
-+        GpuTextureView depthBoundsTargetView = depthBoundsTarget.getColorTextureView();
-+        GpuTextureView accumulateTargetView = accumulateTarget.getColorTextureView();
-+        OitRenderPassProvider.Parameters params = new OitRenderPassProvider.Parameters(depthBoundsTargetView, accumulateTargetView, depthTextureView);
-         OitRenderPassProvider.Parameters cloudParams;
-         if (shouldRenderClouds) {
-             GpuTextureView cloudDepthTextureView = this.targets.oitCloudDepth.get().getDepthTextureView();
--            cloudParams = new OitRenderPassProvider.Parameters(
--                depthBoundsCulledTargetView, transmittanceTargetViews, accumulateTargetView, cloudDepthTextureView
--            );
-+            cloudParams = new OitRenderPassProvider.Parameters(depthBoundsTargetView, accumulateTargetView, cloudDepthTextureView);
-         } else {
-             cloudParams = null;
-         }
-@@ -574,15 +_,13 @@
-         OitRenderPassProvider.Parameters terrainParams;
-         if (frameHasWaterMask) {
-             GpuTextureView terrainDepthTextureView = this.targets.oitTerrainWithWaterPatchDepth.get().getDepthTextureView();
--            terrainParams = new OitRenderPassProvider.Parameters(depthBoundsTargetView, transmittanceTargetViews, accumulateTargetView, terrainDepthTextureView);
-+            terrainParams = new OitRenderPassProvider.Parameters(depthBoundsTargetView, accumulateTargetView, terrainDepthTextureView);
-         } else {
-             terrainParams = params;
-         }
+@@ -534,6 +_,7 @@
+         this.worldBorderRenderer
+             .prepare(this.levelRenderState.worldBorderRenderState, cameraState.pos, renderDistance, this.levelRenderState.cameraRenderState.depthFar);
+         this.weatherEffectRenderer.prepare(cameraState.pos, this.levelRenderState.weatherRenderState);
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.PrepareRenderBuffersEvent(this, this.levelRenderState, this.optionsRenderState));
+         RenderSystem.resizeAllAutoStorageIndexBuffers();
+     }
  
--        GpuTextureView blockAtlas = this.textureManager.getTexture(TextureAtlas.LOCATION_BLOCKS).getTextureView();
--
-         for (OitStage stage : OitStage.values()) {
--            chunkSectionsToRender.renderOit(this.chunkLayerSampler, stage, terrainParams, blockAtlas, this.gameRenderer.lightmap());
-+            chunkSectionsToRender.renderOit(this.chunkLayerSampler, stage, terrainParams, this.gameRenderer.lightmap());
- 
-             try (RenderPass renderPass = OitRenderPassProvider.createRenderPass(stage, () -> "Features, World Border, Weather", params)) {
+@@ -588,6 +_,8 @@
                  featureFrame.executeOit(stage, renderPass);
-@@ -592,12 +_,14 @@
+                 this.worldBorderRenderer.renderOit(this.levelRenderState.worldBorderRenderState, cameraState.pos, renderDistance, stage, renderPass);
+                 this.weatherEffectRenderer.renderOit(stage, this.levelRenderState.weatherRenderState, renderPass);
++
++                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.RenderLevelStageEvent.OitTranslucent(this, this.levelRenderState, stage, null, this.levelRenderState.cameraRenderState.viewRotationMatrix, this.visibleSections, renderPass));
+             }
  
              if (stage == OitStage.DEPTH_BOUNDS) {
-                 this.executeDepthBoundsCull();
--                params.setDepthBoundsTargetView(depthBoundsCulledTargetView);
--                terrainParams.setDepthBoundsTargetView(depthBoundsCulledTargetView);
-             }
- 
-             if (shouldRenderClouds) {
--                this.cloudRenderer.renderOit(cloudStatus, stage, mainDepthTextureView, cloudParams);
-+                if (stage == OitStage.DEPTH_BOUNDS) {
-+                    this.targets.oitCloudDepth.get().copyDepthFrom(mainTarget);
-+                }
-+
-+                this.cloudRenderer.renderOit(cloudStatus, stage, cloudParams);
-             }
- 
-             if (stage == OitStage.DEPTH_BOUNDS && frameHasWaterMask) {
-@@ -614,13 +_,13 @@
-                     () -> "OIT Composite", renderTarget.getColorTextureView(), Optional.empty(), renderTarget.getDepthTextureView(), OptionalDouble.empty()
-                 )) {
-             RenderSystem.bindDefaultUniforms(renderPass);
--            renderPass.setUniform("Sampler0", accumulateTargetView, nearestSampler);
-+            renderPass.bindTexture("Sampler0", accumulateTargetView, nearestSampler);
- 
-             for (int i = 0; i < OIT_TRANSMITTANCE_TARGET_COUNT; i++) {
--                renderPass.setUniform("Coeff" + i, this.targets.transmittance.get(i).get().getColorTextureView(), nearestSampler);
-+                renderPass.bindTexture("Coeff" + i, OutputTarget.TRANSMITTANCE_TARGETS[i].getRenderTarget().getColorTextureView(), nearestSampler);
-             }
- 
--            renderPass.setUniform("DepthBoundsSampler", depthBoundsTargetView, nearestSampler);
-+            renderPass.bindTexture("DepthBoundsSampler", depthBoundsTargetView, nearestSampler);
-             renderPass.setPipeline(RenderSystem.getCompiledPipeline(RenderPipelines.OIT_COMPOSITE));
-             renderPass.draw(3, 1, 0, 0);
-         }
-@@ -628,38 +_,33 @@
- 
-     private void executeDepthBoundsCull() {
-         GpuSampler nearestSampler = RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST);
--        RenderTarget depthBoundsTarget = this.targets.depthBounds.get();
--        RenderTarget depthBoundsCulledTarget = this.targets.depthBoundsCulled.get();
-+        RenderTarget depthBoundsTarget = this.depthBoundsTarget();
-+        RenderTarget depthBoundsCopyTarget = this.depthBoundsCopyTarget();
-+        depthBoundsCopyTarget.copyColorFrom(depthBoundsTarget);
- 
-         try (RenderPass renderPass = RenderSystem.getDevice()
-                 .createCommandEncoder()
-                 .createRenderPass(
-                     () -> "OIT cull Depth Bounds",
--                    depthBoundsCulledTarget.getColorTextureView(),
-+                    depthBoundsTarget.getColorTextureView(),
-                     Optional.empty(),
-                     this.gameRenderer.mainRenderTarget().getDepthTextureView(),
-                     OptionalDouble.empty()
-                 )) {
-             RenderSystem.bindDefaultUniforms(renderPass);
--            renderPass.setPipeline(RenderSystem.getCompiledPipeline(RenderPipelines.BLIT_DEPTH_BOUNDS));
--            renderPass.setUniform("InSampler", depthBoundsTarget.getColorTextureView(), nearestSampler);
--            renderPass.draw(3, 1, 0, 0);
--            renderPass.setUniform("DepthBoundsSampler", depthBoundsTarget.getColorTextureView(), nearestSampler);
-+            renderPass.bindTexture("DepthBoundsSampler", depthBoundsCopyTarget.getColorTextureView(), nearestSampler);
-             renderPass.setPipeline(RenderSystem.getCompiledPipeline(RenderPipelines.OIT_DEPTH_BOUNDS_CULL));
-             renderPass.draw(3, 1, 0, 0);
-         }
-     }
- 
-     private void executeOitWaterMask(FeatureRenderDispatcher.PreparedFrame featureFrame, RenderTarget mainTarget) {
--        GpuSampler nearestSampler = RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST);
-         RenderTarget terrainTarget = this.targets.oitTerrainWithWaterPatchDepth.get();
-+        terrainTarget.copyDepthFrom(mainTarget);
-         RenderPassDescriptor descriptor = RenderPassDescriptor.builder(() -> "Water mask").withDepthAttachment(terrainTarget.getDepthTextureView()).build();
- 
-         try (RenderPass renderPass = RenderSystem.getDevice().createCommandEncoder().createRenderPass(descriptor)) {
-             RenderSystem.bindDefaultUniforms(renderPass);
--            renderPass.setPipeline(RenderSystem.getCompiledPipeline(RenderPipelines.BLIT_DEPTH));
--            renderPass.setUniform("InSampler", mainTarget.getDepthTextureView(), nearestSampler);
--            renderPass.draw(3, 1, 0, 0);
-             featureFrame.executeWaterMask(renderPass);
-         }
-     }
-@@ -674,11 +_,8 @@
+@@ -673,20 +_,30 @@
+         int renderDistance = this.optionsRenderState.renderDistance * 16;
          profiler.push("renderTranslucentFeatures");
          featureFrame.executeTranslucent(renderPass);
++        profiler.popPush("neoforge_render_after_translucent_features");
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.RenderLevelStageEvent.AfterTranslucentFeatures(this, this.levelRenderState, null, this.levelRenderState.cameraRenderState.viewRotationMatrix, this.visibleSections, renderPass));
          profiler.pop();
--        GpuTextureView blockAtlas = this.textureManager.getTexture(TextureAtlas.LOCATION_BLOCKS).getTextureView();
+         GpuTextureView blockAtlas = this.textureManager.getTexture(TextureAtlas.LOCATION_BLOCKS).getTextureView();
          profiler.push("translucentTerrain");
--        chunkSectionsToRender.renderGroup(
--            ChunkSectionLayerGroup.TRANSLUCENT, renderPass, this.chunkLayerSampler, blockAtlas, this.levelRenderState.renderWireframeTerrain
--        );
-+        chunkSectionsToRender.renderGroup(ChunkSectionLayerGroup.TRANSLUCENT, renderPass, this.chunkLayerSampler, this.levelRenderState.renderWireframeTerrain);
+         chunkSectionsToRender.renderGroup(
+             ChunkSectionLayerGroup.TRANSLUCENT, renderPass, this.chunkLayerSampler, blockAtlas, this.levelRenderState.renderWireframeTerrain
+         );
++        profiler.popPush("neoforge_render_after_translucent_blocks");
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.RenderLevelStageEvent.AfterTranslucentBlocks(this, this.levelRenderState, null, this.levelRenderState.cameraRenderState.viewRotationMatrix, this.visibleSections, renderPass));
          profiler.pop();
          featureFrame.executeTranslucentAfterTerrain(renderPass);
++        profiler.push("neoforge_render_after_translucent_particles");
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.RenderLevelStageEvent.AfterTranslucentParticles(this, this.levelRenderState, null, this.levelRenderState.cameraRenderState.viewRotationMatrix, this.visibleSections, renderPass));
++        profiler.pop();
          if (shouldRenderClouds) {
-@@ -703,42 +_,56 @@
-         }
-     }
- 
--    private int extractSectionDrawGroups(
--        boolean respectTranslucentOrder,
--        List<DynamicGpuData.ChunkSectionInfo> sectionInfos,
--        Map<ChunkSectionLayer, List<LevelRenderer.ChunkDrawGroup>> drawGroups
--    ) {
-+    public ChunkSectionsToRender prepareChunkRenders(Matrix4fc modelViewMatrix) {
-+        ObjectListIterator<SectionRenderDispatcher.RenderSection> iterator = this.visibleSections.listIterator(0);
-+        EnumMap<ChunkSectionLayer, Int2ObjectOpenHashMap<List<RenderPass.Draw<GpuBufferSlice[]>>>> drawGroups = new EnumMap<>(ChunkSectionLayer.class);
-         int largestIndexCount = 0;
--        Int2ObjectOpenHashMap<LevelRenderer.ChunkDrawGroup> drawGroupCache = new Int2ObjectOpenHashMap<>();
-+
-+        for (ChunkSectionLayer layer : ChunkSectionLayer.values()) {
-+            drawGroups.put(layer, new Int2ObjectOpenHashMap<>());
-+        }
-+
-+        List<DynamicUniforms.ChunkSectionInfo> sectionInfos = new ArrayList<>();
-+        GpuTextureView blockAtlas = this.textureManager.getTexture(TextureAtlas.LOCATION_BLOCKS).getTextureView();
-+        int textureAtlasWidth = blockAtlas.getWidth(0);
-+        int textureAtlasHeight = blockAtlas.getHeight(0);
-         if (this.sectionRenderDispatcher != null) {
-             this.sectionRenderDispatcher.lock();
--            long fadeDuration = Util.toMillis(this.optionsRenderState.chunkSectionFadeInTime);
--            long now = Util.getMillis();
--            int lastTransparentGroupHash = 0;
- 
-             try {
--                for (SectionRenderDispatcher.RenderSection section : this.visibleSections) {
-+                while (iterator.hasNext()) {
-+                    SectionRenderDispatcher.RenderSection section = iterator.next();
-                     SectionMesh sectionMesh = section.getSectionMesh();
-                     BlockPos renderOffset = section.getRenderOrigin();
--                    int sectionInfoDataIndex = -1;
-+                    long now = Util.getMillis();
-+                    int uboIndex = -1;
- 
-                     for (ChunkSectionLayer layer : ChunkSectionLayer.values()) {
-                         SectionMesh.SectionDraw draw = sectionMesh.getSectionDraw(layer);
-                         SectionRenderDispatcher.RenderSectionBufferSlice slice = this.sectionRenderDispatcher.getRenderSectionSlice(sectionMesh, layer);
-                         if (slice != null && draw != null && (!draw.hasCustomIndexBuffer() || slice.indexBuffer() != null)) {
--                            if (sectionInfoDataIndex == -1) {
--                                sectionInfoDataIndex = sectionInfos.size();
-+                            if (uboIndex == -1) {
-+                                uboIndex = sectionInfos.size();
-                                 sectionInfos.add(
--                                    new DynamicGpuData.ChunkSectionInfo(
--                                        renderOffset.getX(), renderOffset.getY(), renderOffset.getZ(), section.getVisibility(now, fadeDuration)
-+                                    new DynamicUniforms.ChunkSectionInfo(
-+                                        new Matrix4f(modelViewMatrix),
-+                                        renderOffset.getX(),
-+                                        renderOffset.getY(),
-+                                        renderOffset.getZ(),
-+                                        section.getVisibility(now),
-+                                        textureAtlasWidth,
-+                                        textureAtlasHeight
-                                     )
-                                 );
-                             }
- 
-                             int combinedHash = 173;
--                            VertexFormat vertexFormat = layer.pipeline(false).getVertexFormatBinding(0);
-+                            VertexFormat vertexFormat = layer.pipeline().getVertexFormatBinding(0);
-                             GpuBuffer vertexBuffer = slice.vertexBuffer();
--                            combinedHash = 31 * combinedHash + vertexBuffer.hashCode();
-+                            if (layer != ChunkSectionLayer.TRANSLUCENT) {
-+                                combinedHash = 31 * combinedHash + vertexBuffer.hashCode();
-+                            }
-+
-                             int firstIndex = 0;
-                             GpuBuffer indexBuffer;
-                             IndexType indexType;
-@@ -752,32 +_,29 @@
-                             } else {
-                                 indexBuffer = slice.indexBuffer();
-                                 indexType = draw.indexType();
--                                combinedHash = 31 * combinedHash + indexBuffer.hashCode();
--                                combinedHash = 31 * combinedHash + indexType.hashCode();
-+                                if (layer != ChunkSectionLayer.TRANSLUCENT) {
-+                                    combinedHash = 31 * combinedHash + indexBuffer.hashCode();
-+                                    combinedHash = 31 * combinedHash + indexType.hashCode();
-+                                }
-+
-                                 firstIndex = (int)(slice.indexBufferOffset() / indexType.bytes);
-                             }
- 
-+                            int finalUboIndex = uboIndex;
-                             int baseVertex = (int)(slice.vertexBufferOffset() / vertexFormat.getVertexSize());
--                            LevelRenderer.ChunkDrawGroup drawGroup = null;
--                            if (layer.translucent() && respectTranslucentOrder) {
--                                if (combinedHash == lastTransparentGroupHash) {
--                                    drawGroup = drawGroups.get(layer).getLast();
--                                }
--
--                                lastTransparentGroupHash = combinedHash;
--                            } else {
--                                drawGroup = drawGroupCache.getOrDefault(combinedHash, null);
--                            }
--
--                            if (drawGroup == null) {
--                                drawGroup = new LevelRenderer.ChunkDrawGroup(
--                                    vertexBuffer.slice(), indexBuffer != null ? indexBuffer.slice() : null, indexType, new ArrayList<>()
--                                );
--                                drawGroupCache.put(combinedHash, drawGroup);
--                                drawGroups.get(layer).add(drawGroup);
--                            }
--
--                            drawGroup.draws.add(new DynamicGpuData.IndexedDraw(draw.indexCount(), 1, firstIndex, baseVertex, sectionInfoDataIndex));
-+                            List<RenderPass.Draw<GpuBufferSlice[]>> draws = drawGroups.get(layer).computeIfAbsent(combinedHash, var0 -> new ArrayList<>());
-+                            draws.add(
-+                                new RenderPass.Draw<>(
-+                                    0,
-+                                    vertexBuffer,
-+                                    indexBuffer,
-+                                    indexType,
-+                                    firstIndex,
-+                                    draw.indexCount(),
-+                                    baseVertex,
-+                                    (sectionUbos, uploader) -> uploader.upload("ChunkSection", sectionUbos[finalUboIndex])
-+                                )
-+                            );
-                         }
-                     }
-                 }
-@@ -786,133 +_,21 @@
-             }
+             this.cloudRenderer.render(cloudStatus, renderPass);
          }
  
--        return largestIndexCount;
--    }
--
--    public ChunkSectionsToRender prepareChunkRenders(Matrix4fc modelViewMatrix, boolean respectTranslucentOrder) {
--        Map<ChunkSectionLayer, List<LevelRenderer.ChunkDrawGroup>> drawGroups = Util.makeEnumMap(ChunkSectionLayer.class, var0 -> new ReferenceArrayList<>());
--        List<DynamicGpuData.ChunkSectionInfo> sectionInfos = new ArrayList<>();
--        GpuTextureView blockAtlas = this.textureManager.getTexture(TextureAtlas.LOCATION_BLOCKS).getTextureView();
--        int textureAtlasWidth = blockAtlas.getWidth(0);
--        int textureAtlasHeight = blockAtlas.getHeight(0);
--        int largestIndexCount = this.extractSectionDrawGroups(respectTranslucentOrder, sectionInfos, drawGroups);
--        Map<ChunkSectionLayer, List<RenderPass.Draw<GpuBufferSlice[]>>> flattenDraws = Util.makeEnumMap(
--            ChunkSectionLayer.class, layerx -> new ReferenceArrayList<>()
--        );
--
--        for (ChunkSectionLayer layer : ChunkSectionLayer.values()) {
--            List<LevelRenderer.ChunkDrawGroup> sortedDrawGroups = drawGroups.get(layer);
--            if (layer.translucent() && respectTranslucentOrder) {
--                sortedDrawGroups = sortedDrawGroups.reversed();
--            }
--
--            for (LevelRenderer.ChunkDrawGroup drawGroup : sortedDrawGroups) {
--                List<RenderPass.Draw<GpuBufferSlice[]>> dest = flattenDraws.get(layer);
--                List<DynamicGpuData.IndexedDraw> sortedDraws = drawGroup.draws;
--                if (layer.translucent() && respectTranslucentOrder) {
--                    sortedDraws = sortedDraws.reversed();
--                }
--
--                for (DynamicGpuData.IndexedDraw draw : sortedDraws) {
--                    int sectionInfoDataIndex = draw.baseInstance();
--                    GpuBuffer indexBuffer = drawGroup.indexBuffer == null ? null : drawGroup.indexBuffer().buffer();
--                    dest.add(
--                        new RenderPass.Draw<>(
--                            0,
--                            drawGroup.vertexBuffer.buffer(),
--                            indexBuffer,
--                            drawGroup.indexType,
--                            draw.firstIndex(),
--                            draw.indexCount(),
--                            draw.baseVertex(),
--                            (sectionUbos, uploader) -> uploader.setUniform("ChunkSection", sectionUbos[sectionInfoDataIndex])
--                        )
--                    );
--                }
--            }
--        }
--
--        GpuBufferSlice terrainTransformUbo = RenderSystem.getDynamicUniforms().writeTerrainTransform(modelViewMatrix, textureAtlasWidth, textureAtlasHeight);
--        GpuBufferSlice[] chunkSectionInfos = RenderSystem.getDynamicUniforms().writeChunkSections(sectionInfos.toArray(new DynamicGpuData.ChunkSectionInfo[0]));
--        RenderSystem.AutoStorageIndexBuffer autoIndices = RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS);
--        if (largestIndexCount != 0) {
--            autoIndices.requestIndexCount(largestIndexCount);
--        }
--
--        return new ChunkSectionsToRender.DrawSeparate(terrainTransformUbo, flattenDraws, largestIndexCount, chunkSectionInfos);
--    }
--
--    public ChunkSectionsToRender prepareChunkRendersIndirect(Matrix4fc modelViewMatrix, boolean respectTranslucentOrder) {
--        EnumMap<ChunkSectionLayer, List<LevelRenderer.ChunkDrawGroup>> drawGroups = new EnumMap<>(ChunkSectionLayer.class);
--
--        for (ChunkSectionLayer layer : ChunkSectionLayer.values()) {
--            drawGroups.put(layer, new ReferenceArrayList<>());
--        }
--
--        List<DynamicGpuData.ChunkSectionInfo> sectionInfos = new ArrayList<>();
--        GpuTextureView blockAtlas = this.textureManager.getTexture(TextureAtlas.LOCATION_BLOCKS).getTextureView();
--        int textureAtlasWidth = blockAtlas.getWidth(0);
--        int textureAtlasHeight = blockAtlas.getHeight(0);
--        int largestIndexCount = this.extractSectionDrawGroups(respectTranslucentOrder, sectionInfos, drawGroups);
--        EnumMap<ChunkSectionLayer, List<ChunkSectionsToRender.GpuMultiDrawIndexedIndirect>> indirectDraws = new EnumMap<>(ChunkSectionLayer.class);
--
--        for (ChunkSectionLayer layer : ChunkSectionLayer.values()) {
--            indirectDraws.put(layer, new ArrayList<>());
--        }
--
--        List<List<DynamicGpuData.IndexedDraw>> batchedDraws = new ArrayList<>();
--
--        for (ChunkSectionLayer layer : ChunkSectionLayer.values()) {
--            List<LevelRenderer.ChunkDrawGroup> sortedDrawGroups = drawGroups.get(layer);
--            if (layer.translucent() && respectTranslucentOrder) {
--                sortedDrawGroups = sortedDrawGroups.reversed();
--            }
--
--            for (LevelRenderer.ChunkDrawGroup chunkDrawGroup : sortedDrawGroups) {
--                List<DynamicGpuData.IndexedDraw> sortedDraws = chunkDrawGroup.draws;
--                if (layer.translucent() && respectTranslucentOrder) {
--                    sortedDraws = sortedDraws.reversed();
--                }
--
--                batchedDraws.add(sortedDraws);
--            }
--        }
--
--        GpuBufferSlice[] indirectBufferSlices = RenderSystem.getDynamicUniforms().writeChunkSectionCommands(batchedDraws);
--        int index = 0;
--
--        for (ChunkSectionLayer layer : ChunkSectionLayer.values()) {
--            List<LevelRenderer.ChunkDrawGroup> sortedDrawGroups = drawGroups.get(layer);
--            if (layer.translucent() && respectTranslucentOrder) {
--                sortedDrawGroups = sortedDrawGroups.reversed();
--            }
--
--            for (LevelRenderer.ChunkDrawGroup chunkDrawGroup : sortedDrawGroups) {
--                List<DynamicGpuData.IndexedDraw> draws = chunkDrawGroup.draws;
--                GpuBufferSlice indirectBuffer = indirectBufferSlices[index++];
--                indirectDraws.get(layer)
--                    .add(
--                        new ChunkSectionsToRender.GpuMultiDrawIndexedIndirect(
--                            chunkDrawGroup.vertexBuffer, chunkDrawGroup.indexBuffer, chunkDrawGroup.indexType, indirectBuffer, draws.size()
--                        )
--                    );
--            }
--        }
--
--        GpuBufferSlice terrainTransformUbo = RenderSystem.getDynamicUniforms().writeTerrainTransform(modelViewMatrix, textureAtlasWidth, textureAtlasHeight);
--        GpuBufferSlice chunkSectionInfos = RenderSystem.getDynamicUniforms().writeChunkSectionsInstanced(sectionInfos);
--        RenderSystem.AutoStorageIndexBuffer autoIndices = RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS);
--        if (largestIndexCount != 0) {
--            autoIndices.requestIndexCount(largestIndexCount);
--        }
--
--        return new ChunkSectionsToRender.DrawIndirect(terrainTransformUbo, indirectDraws, largestIndexCount, chunkSectionInfos);
-+        GpuBufferSlice[] chunkSectionInfos = RenderSystem.getDynamicUniforms()
-+            .writeChunkSections(sectionInfos.toArray(new DynamicUniforms.ChunkSectionInfo[0]));
-+        RenderSystem.AutoStorageIndexBuffer autoIndices = RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS);
-+        if (largestIndexCount != 0) {
-+            autoIndices.requestIndexCount(largestIndexCount);
-+        }
-+
-+        return new ChunkSectionsToRender(blockAtlas, drawGroups, largestIndexCount, chunkSectionInfos);
+         Vec3 cameraPos = this.levelRenderState.cameraRenderState.pos;
+         this.weatherEffectRenderer.render(this.levelRenderState.weatherRenderState, renderPass);
++        profiler.push("neoforge_render_after_weather");
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.RenderLevelStageEvent.AfterWeather(this, this.levelRenderState, null, this.levelRenderState.cameraRenderState.viewRotationMatrix, this.visibleSections, renderPass));
++        profiler.pop();
+         this.worldBorderRenderer.render(this.levelRenderState.worldBorderRenderState, renderPass, cameraPos, renderDistance);
      }
  
-     private void compileSections(CameraRenderState camera) {
-         ProfilerFiller profiler = Profiler.get();
-         profiler.push("populateSectionsToCompile");
-         BlockPos cameraPosition = camera.blockPos;
-+        long fadeDuration = Mth.floor(this.optionsRenderState.chunkSectionFadeInTime * 1000.0);
- 
-         for (SectionUpdateRenderState state : this.levelRenderState.sectionUpdateRenderStates) {
-             BlockPos center = SectionPos.of(state.sectionNode()).center();
-@@ -926,6 +_,13 @@
-             }
- 
+@@ -928,10 +_,10 @@
              SectionRenderDispatcher.RenderSection section = this.viewArea.getRenderSection(state.sectionNode());
-+            if (!isNearby && !section.wasPreviouslyEmpty()) {
-+                section.setFadeDuration(fadeDuration);
-+            } else {
-+                section.setFadeDuration(0L);
-+            }
-+
-+            section.setWasPreviouslyEmpty(false);
              if (rebuildSync) {
                  profiler.push("compileSectionSynchronously");
-                 section.compileSync(state.region());
-@@ -1010,19 +_,10 @@
+-                section.compileSync(state.region());
++                section.compileSync(state.region(), state.additionalRenderers());
+                 profiler.pop();
+             } else {
+-                section.compileAsync(state.region());
++                section.compileAsync(state.region(), state.additionalRenderers());
              }
- 
-             int outlineColor = state.highContrast() ? -11010079 : ARGB.black(102);
--            RenderType blockOutlineRenderType;
--            if (state.highContrast()) {
--                blockOutlineRenderType = RenderTypes.linesDepthBias();
--            } else if (this.gameRenderer.useImprovedTransparency()) {
--                blockOutlineRenderType = RenderTypes.linesTranslucentNoDepthWrite();
--            } else {
--                blockOutlineRenderType = RenderTypes.linesTranslucent();
--            }
--
-             this.submitHitOutline(
-                 poseStack,
-                 submitNodeCollector,
--                blockOutlineRenderType,
-+                state.highContrast() ? RenderTypes.linesDepthBias() : RenderTypes.linesTranslucent(),
-                 state,
-                 outlineColor,
-                 this.gameRenderer.gameRenderState().windowRenderState.appropriateLineWidth,
-@@ -1196,14 +_,14 @@
-         return this.sectionRenderDispatcher == null || this.sectionRenderDispatcher.isQueueEmpty();
-     }
- 
--    public boolean isSectionCompiledAndVisible(BlockPos blockPos, long chunkFadeDuration) {
-+    public boolean isSectionCompiledAndVisible(BlockPos blockPos) {
-         if (this.viewArea == null) {
-             return false;
          }
  
-         SectionRenderDispatcher.RenderSection renderSection = this.viewArea.getRenderSectionAt(blockPos);
-         return renderSection != null && renderSection.sectionMesh.get() != CompiledSectionMesh.UNCOMPILED
--            ? renderSection.getVisibility(Util.getMillis(), chunkFadeDuration) >= 0.3F
-+            ? renderSection.getVisibility(Util.getMillis()) >= 0.3F
-             : false;
-     }
- 
-@@ -1219,6 +_,30 @@
-         return this.blockEntityRenderDispatcher;
-     }
- 
-+    public @Nullable RenderTarget entityOutlineTarget() {
-+        return this.targets.entityOutline != null ? this.targets.entityOutline.get() : null;
-+    }
-+
-+    public @Nullable RenderTarget terrainDepthTarget() {
-+        return this.targets.oitTerrainWithWaterPatchDepth != null ? this.targets.oitTerrainWithWaterPatchDepth.get() : null;
-+    }
-+
-+    public @Nullable RenderTarget depthBoundsTarget() {
-+        return this.targets.depthBounds != null ? this.targets.depthBounds.get() : null;
-+    }
-+
-+    public @Nullable RenderTarget depthBoundsCopyTarget() {
-+        return this.targets.depthBoundsCopy != null ? this.targets.depthBoundsCopy.get() : null;
-+    }
-+
-+    public @Nullable RenderTarget transmittanceTarget(int index) {
-+        return this.targets.transmittance.get(index).get() != null ? this.targets.transmittance.get(index).get() : null;
-+    }
-+
-+    public @Nullable RenderTarget accumulateTarget() {
-+        return this.targets.accumulate != null ? this.targets.accumulate.get() : null;
-+    }
-+
-     public CloudRenderer cloudRenderer() {
-         return this.cloudRenderer;
-     }
-@@ -1259,10 +_,6 @@
-         return Gizmos.withCollector(this.renderThreadGizmos);
-     }
- 
--    public boolean isChunkRenderingUsingMultiDrawIndirect() {
--        return this.usingMultiDrawIndirectForTerrain;
--    }
--
-     private void finalizeGizmoCollection() {
-         DrawableGizmoPrimitives standardPrimitives = new DrawableGizmoPrimitives();
-         DrawableGizmoPrimitives alwaysOnTopPrimitives = new DrawableGizmoPrimitives();
-@@ -1277,11 +_,6 @@
- 
-     public void addMainThreadGizmos(List<SimpleGizmoCollector.GizmoInstance> mainThreadGizmos) {
-         this.renderThreadGizmos.addTemporaryGizmos(mainThreadGizmos);
--    }
--
--    private record ChunkDrawGroup(
--        GpuBufferSlice vertexBuffer, @Nullable GpuBufferSlice indexBuffer, @Nullable IndexType indexType, List<DynamicGpuData.IndexedDraw> draws
--    ) {
-     }
- 
-     private record FinalizedGizmos(DrawableGizmoPrimitives standardPrimitives, DrawableGizmoPrimitives alwaysOnTopPrimitives) {
+@@ -989,7 +_,7 @@
+                     poseStack.translate(state.blockState().getOffset(pos));
+                     BlockStateModel model = this.modelManager.getBlockStateModelSet().get(state.blockState());
+                     random.setSeed(state.blockState().getSeed(pos));
+-                    model.collectParts(random, parts);
++                    model.collectParts(net.minecraft.client.renderer.block.BlockAndTintGetter.EMPTY, BlockPos.ZERO, state.blockState(), random, parts);
+                     submitNodeCollector.submitBreakingBlockModel(poseStack, List.copyOf(parts), state.progress(), model.hasMaterialFlag(1));
+                     parts.clear();
+                     poseStack.popPose();
+@@ -1001,6 +_,13 @@
+     private void submitBlockOutline(PoseStack poseStack, SubmitNodeCollector submitNodeCollector, LevelRenderState levelRenderState) {
+         BlockOutlineRenderState state = levelRenderState.blockOutlineRenderState;
+         if (state != null) {
++            boolean cancel = false;
++            for (net.neoforged.neoforge.client.CustomBlockOutlineRenderer customRenderer : state.customRenderers()) {
++                cancel |= customRenderer.render(state, submitNodeCollector, poseStack, levelRenderState);
++            }
++            if (cancel) {
++                return;
++            }
+             Vec3 cameraPos = levelRenderState.cameraRenderState.pos;
+             BlockPos pos = state.pos();
+             poseStack.pushPose();

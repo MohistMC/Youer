@@ -98,7 +98,7 @@
      public static final int MAX_HEALTH = 20;
      public static final int SLEEP_DURATION = 100;
      public static final int WAKE_UP_DURATION = 10;
-@@ -151,7 +_,7 @@
+@@ -151,13 +_,13 @@
      private static final int DEFAULT_SCORE = 0;
      public static final float CREATIVE_ENTITY_INTERACTION_RANGE_MODIFIER_VALUE = 2.0F;
      private final Inventory inventory;
@@ -107,6 +107,13 @@
      public final InventoryMenu inventoryMenu;
      public AbstractContainerMenu containerMenu;
      protected FoodData foodData = new FoodData();
+     protected int jumpTriggerTime;
+     public int takeXpDelay;
+-    private int sleepCounter = 0;
++    public int sleepCounter = 0;
+     protected boolean wasUnderwater;
+     private final Abilities abilities = new Abilities();
+     public int experienceLevel = 0;
 @@ -171,9 +_,48 @@
      private ItemStack lastItemInMainHand = ItemStack.EMPTY;
      private final ItemCooldowns cooldowns = this.createItemCooldowns();
@@ -232,10 +239,12 @@
      }
  
      private boolean isEquipped(Item item) {
-@@ -345,6 +_,10 @@
+@@ -344,7 +_,11 @@
+         return new ItemCooldowns();
      }
  
-     protected void updatePlayerPose() {
+-    public void updatePlayerPose() {
++    protected void updatePlayerPose() {
 +        if (forcedPose != null) {
 +            this.setPose(forcedPose);
 +            return;
@@ -243,7 +252,13 @@
          if (this.canPlayerFitWithinBlocksAndEntitiesWhen(Pose.SWIMMING)) {
              Pose desiredPose = this.getDesiredPose();
              Pose actualPose;
-@@ -414,7 +_,7 @@
+@@ -409,12 +_,12 @@
+     }
+ 
+     @Override
+-    protected int getFireImmuneTicks() {
++    public int getFireImmuneTicks() {
+         return 20;
      }
  
      @Override
@@ -304,6 +319,15 @@
                      orbs.add(entity);
                  } else if (!entity.isRemoved()) {
                      this.touch(entity);
+@@ -490,7 +_,7 @@
+     public void handleShoulderEntities() {
+     }
+ 
+-    public void removeEntitiesOnShoulder() {
++    protected void removeEntitiesOnShoulder() {
+     }
+ 
+     private void touch(Entity entity) {
 @@ -527,6 +_,7 @@
  
      @Override

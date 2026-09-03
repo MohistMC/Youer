@@ -1,0 +1,91 @@
+/*
+ * Copyright (c) Forge Development LLC and contributors
+ * SPDX-License-Identifier: LGPL-2.1-only
+ */
+
+package net.neoforged.neoforge.client.event;
+
+import net.minecraft.client.DeltaTracker;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.resources.Identifier;
+import net.neoforged.bus.api.Event;
+import net.neoforged.bus.api.ICancellableEvent;
+import net.neoforged.fml.LogicalSide;
+import net.neoforged.neoforge.client.gui.GuiLayer;
+import net.neoforged.neoforge.common.NeoForge;
+import org.jetbrains.annotations.ApiStatus;
+
+/**
+ * Fired when a GUI layer is rendered to the screen.
+ * See the two subclasses for listening to the two possible phases.
+ *
+ * <p>A layer that is not normally active (for example because the player pressed F1) cannot be forced to render.
+ * In such cases, this event will however still fire.
+ *
+ * @see Pre
+ * @see Post
+ */
+public abstract class RenderGuiLayerEvent extends Event {
+    private final GuiGraphicsExtractor guiGraphics;
+    private final DeltaTracker partialTick;
+    private final Identifier name;
+    private final GuiLayer layer;
+
+    @ApiStatus.Internal
+    protected RenderGuiLayerEvent(GuiGraphicsExtractor guiGraphics, DeltaTracker partialTick, Identifier name, GuiLayer layer) {
+        this.guiGraphics = guiGraphics;
+        this.partialTick = partialTick;
+        this.name = name;
+        this.layer = layer;
+    }
+
+    public GuiGraphicsExtractor getGuiGraphics() {
+        return guiGraphics;
+    }
+
+    public DeltaTracker getPartialTick() {
+        return partialTick;
+    }
+
+    public Identifier getName() {
+        return name;
+    }
+
+    public GuiLayer getLayer() {
+        return layer;
+    }
+
+    /**
+     * Fired <b>before</b> a GUI layer is rendered to the screen.
+     *
+     * <p>This event is {@linkplain ICancellableEvent cancellable}, and does not {@linkplain HasResult have a result}.
+     * If this event is cancelled, then the layer will not be rendered, and the corresponding {@link Post} event will
+     * not be fired.</p>
+     *
+     * <p>This event is fired on the {@linkplain NeoForge#EVENT_BUS main Forge event bus},
+     * only on the {@linkplain LogicalSide#CLIENT logical client}.</p>
+     *
+     * @see Post
+     */
+    public static class Pre extends RenderGuiLayerEvent implements ICancellableEvent {
+        @ApiStatus.Internal
+        public Pre(GuiGraphicsExtractor guiGraphics, DeltaTracker partialTick, Identifier name, GuiLayer layer) {
+            super(guiGraphics, partialTick, name, layer);
+        }
+    }
+
+    /**
+     * Fired <b>after</b> a GUI layer is rendered to the screen, if the corresponding {@link Pre} is not cancelled.
+     *
+     * <p>This event is not {@linkplain ICancellableEvent cancellable}, and does not {@linkplain HasResult have a result}.</p>
+     *
+     * <p>This event is fired on the {@linkplain NeoForge#EVENT_BUS main Forge event bus},
+     * only on the {@linkplain LogicalSide#CLIENT logical client}.</p>
+     */
+    public static class Post extends RenderGuiLayerEvent {
+        @ApiStatus.Internal
+        public Post(GuiGraphicsExtractor guiGraphics, DeltaTracker partialTick, Identifier name, GuiLayer layer) {
+            super(guiGraphics, partialTick, name, layer);
+        }
+    }
+}

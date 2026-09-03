@@ -1,59 +1,11 @@
 --- a/com/mojang/renderpearl/api/commands/RenderPass.java
 +++ b/com/mojang/renderpearl/api/commands/RenderPass.java
-@@ -6,8 +_,6 @@
- import com.mojang.renderpearl.api.pipeline.IndexType;
- import com.mojang.renderpearl.api.textures.GpuSampler;
- import com.mojang.renderpearl.api.textures.GpuTextureView;
--import com.mojang.renderpearl.util.UncheckedAutoCloseable;
--import java.nio.ByteBuffer;
- import java.nio.IntBuffer;
- import java.util.Collection;
- import java.util.function.BiConsumer;
-@@ -18,10 +_,8 @@
- import org.lwjgl.PointerBuffer;
+@@ -39,6 +_,8 @@
  
- @OnlyIn(Dist.CLIENT)
--public interface RenderPass extends UncheckedAutoCloseable {
-+public interface RenderPass extends AutoCloseable {
-     int MAX_VERTEX_BUFFERS = 16;
--    int INDIRECT_DRAW_SIZE = 16;
--    int INDIRECT_INDEXED_DRAW_SIZE = 20;
+     void pushConstants(ByteBuffer value);
  
-     void pushDebugGroup(Supplier<String> label);
- 
-@@ -31,14 +_,12 @@
- 
-     void setPipeline(CompiledRenderPipeline pipeline);
- 
--    void setUniform(String name, @Nullable GpuTextureView textureView, @Nullable GpuSampler sampler);
-+    void bindTexture(String name, @Nullable GpuTextureView textureView, @Nullable GpuSampler sampler);
- 
-     void setUniform(String name, GpuBuffer value);
- 
-     void setUniform(String name, GpuBufferSlice value);
- 
--    void pushConstants(ByteBuffer value);
--
++    void setViewport(int x, int y, int width, int height);
++
      void enableScissor(int x, int y, int width, int height);
  
      void disableScissor();
-@@ -71,6 +_,9 @@
- 
-     void drawIndirect(GpuBufferSlice commands, final int drawCount);
- 
-+    @Override
-+    void close();
-+
-     record Draw<T>(
-         int slot,
-         GpuBuffer vertexBuffer,
-@@ -93,8 +_,6 @@
-     }
- 
-     interface UniformUploader {
--        void setUniform(String name, GpuBufferSlice buffer);
--
--        void pushConstants(ByteBuffer buffer);
-+        void upload(String name, GpuBufferSlice buffer);
-     }
- }

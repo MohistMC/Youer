@@ -1,14 +1,13 @@
 --- a/net/minecraft/client/renderer/blockentity/SpawnerRenderer.java
 +++ b/net/minecraft/client/renderer/blockentity/SpawnerRenderer.java
-@@ -60,9 +_,9 @@
-     ) {
-         poseStack.pushPose();
-         poseStack.translate(0.5F, 0.4F, 0.5F);
--        poseStack.rotateDegrees(Axis.YP, spin);
-+        poseStack.mulPose(Axis.YP.rotationDegrees(spin));
-         poseStack.translate(0.0F, -0.2F, 0.0F);
--        poseStack.rotateDegrees(Axis.XP, -30.0F);
-+        poseStack.mulPose(Axis.XP.rotationDegrees(-30.0F));
-         poseStack.scale(scale, scale, scale);
+@@ -67,4 +_,10 @@
          entityRenderer.submit(displayEntity, camera, 0.0, 0.0, 0.0, poseStack, submitNodeCollector);
          poseStack.popPose();
+     }
++
++    @Override
++    public net.minecraft.world.phys.AABB getRenderBoundingBox(SpawnerBlockEntity blockEntity) {
++        net.minecraft.core.BlockPos pos = blockEntity.getBlockPos();
++        return new net.minecraft.world.phys.AABB(pos.getX() - 1.0, pos.getY() - 1.0, pos.getZ() - 1.0, pos.getX() + 2.0, pos.getY() + 2.0, pos.getZ() + 2.0);
++    }
+ }

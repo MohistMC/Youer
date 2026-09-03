@@ -1,67 +1,38 @@
 --- a/net/minecraft/client/renderer/entity/player/AvatarRenderer.java
 +++ b/net/minecraft/client/renderer/entity/player/AvatarRenderer.java
-@@ -27,7 +_,9 @@
- import net.minecraft.client.renderer.rendertype.RenderTypes;
- import net.minecraft.client.renderer.state.level.CameraRenderState;
- import net.minecraft.client.renderer.texture.OverlayTexture;
-+import net.minecraft.core.component.DataComponents;
- import net.minecraft.resources.Identifier;
-+import net.minecraft.tags.ItemTags;
- import net.minecraft.util.Mth;
- import net.minecraft.world.InteractionHand;
- import net.minecraft.world.entity.Avatar;
-@@ -39,6 +_,8 @@
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.item.ItemUseAnimation;
- import net.minecraft.world.item.Items;
-+import net.minecraft.world.item.SwingAnimationType;
-+import net.minecraft.world.item.component.SwingAnimation;
- import net.minecraft.world.phys.Vec3;
- import net.neoforged.api.distmarker.Dist;
- import net.neoforged.api.distmarker.OnlyIn;
-@@ -94,7 +_,7 @@
-             return HumanoidModel.ArmPose.EMPTY;
-         }
- 
--        if (!avatar.isSwinging() && itemInHand.is(Items.CROSSBOW) && CrossbowItem.isCharged(itemInHand)) {
-+        if (!avatar.swinging && itemInHand.is(Items.CROSSBOW) && CrossbowItem.isCharged(itemInHand)) {
-             return HumanoidModel.ArmPose.CROSSBOW_HOLD;
-         }
- 
-@@ -133,9 +_,12 @@
-             }
-         }
- 
--        return HumanoidMobRenderer.usesSpearPose(itemInHand, hand.asArm(avatar.getMainArm()), avatar)
--            ? HumanoidModel.ArmPose.SPEAR
--            : HumanoidModel.ArmPose.ITEM;
-+        SwingAnimation attack = itemInHand.get(DataComponents.SWING_ANIMATION);
-+        if (attack != null && attack.type() == SwingAnimationType.STAB && avatar.swinging) {
-+            return HumanoidModel.ArmPose.SPEAR;
-+        } else {
-+            return itemInHand.is(ItemTags.SPEARS) ? HumanoidModel.ArmPose.SPEAR : HumanoidModel.ArmPose.ITEM;
-+        }
+@@ -90,6 +_,12 @@
      }
  
-     public Identifier getTextureLocation(AvatarRenderState state) {
-@@ -257,17 +_,17 @@
-             super.setupRotations(state, poseStack, bodyRot, entityScale);
-             float scale = state.fallFlyingScale();
-             if (!state.isAutoSpinAttack) {
--                poseStack.rotateDegrees(Axis.XP, scale * (-90.0F - xRot));
-+                poseStack.mulPose(Axis.XP.rotationDegrees(scale * (-90.0F - xRot)));
-             }
+     private static HumanoidModel.ArmPose getArmPose(Avatar avatar, ItemStack itemInHand, InteractionHand hand) {
++        var extensions = net.neoforged.neoforge.client.extensions.common.IClientItemExtensions.of(itemInHand);
++        var armPose = extensions.getArmPose(avatar, hand, itemInHand);
++        if (armPose != null) {
++            return armPose;
++        }
++
+         if (itemInHand.isEmpty()) {
+             return HumanoidModel.ArmPose.EMPTY;
+         }
+@@ -147,6 +_,13 @@
+         poseStack.scale(0.9375F, 0.9375F, 0.9375F);
+     }
  
-             if (state.shouldApplyFlyingYRot) {
--                poseStack.rotate(Axis.YP, state.flyingYRot);
-+                poseStack.mulPose(Axis.YP.rotation(state.flyingYRot));
++    @Override
++    public void submit(AvatarRenderState state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera) {
++        if (net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.RenderPlayerEvent.Pre<>(state, this, state.partialTick, poseStack, submitNodeCollector)).isCanceled()) return;
++        super.submit(state, poseStack, submitNodeCollector, camera);
++        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.client.event.RenderPlayerEvent.Post<>(state, this, state.partialTick, poseStack, submitNodeCollector));
++    }
++
+     protected void submitNameDisplay(AvatarRenderState state, PoseStack poseStack, SubmitNodeCollector submitNodeCollector, CameraRenderState camera) {
+         poseStack.pushPose();
+         int offset = state.showExtraEars ? -10 : 0;
+@@ -183,7 +_,7 @@
+         state.heldOnHead.clear();
+         if (state.isUsingItem) {
+             ItemStack useItem = entity.getItemInHand(state.useItemHand);
+-            if (useItem.is(Items.SPYGLASS)) {
++            if (useItem.canPerformAction(net.neoforged.neoforge.common.ItemAbilities.SPYGLASS_SCOPE)) {
+                 this.itemModelResolver.updateForLiving(state.heldOnHead, useItem, ItemDisplayContext.HEAD, entity);
              }
-         } else if (swimAmount > 0.0F) {
-             super.setupRotations(state, poseStack, bodyRot, entityScale);
-             float targetXRot = state.isInWater ? -90.0F - xRot : -90.0F;
-             float xAngle = Mth.lerp(swimAmount, 0.0F, targetXRot);
--            poseStack.rotateDegrees(Axis.XP, xAngle);
-+            poseStack.mulPose(Axis.XP.rotationDegrees(xAngle));
-             if (state.isVisuallySwimming) {
-                 poseStack.translate(0.0F, -1.0F, 0.3F);
-             }
+         }
