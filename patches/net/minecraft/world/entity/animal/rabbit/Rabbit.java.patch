@@ -1,13 +1,5 @@
 --- a/net/minecraft/world/entity/animal/rabbit/Rabbit.java
 +++ b/net/minecraft/world/entity/animal/rabbit/Rabbit.java
-@@ -32,7 +_,6 @@
- import net.minecraft.world.entity.AgeableMob;
- import net.minecraft.world.entity.AnimationState;
- import net.minecraft.world.entity.EntityDimensions;
--import net.minecraft.world.entity.EntityEvent;
- import net.minecraft.world.entity.EntitySpawnReason;
- import net.minecraft.world.entity.EntityType;
- import net.minecraft.world.entity.EntityTypes;
 @@ -109,15 +_,44 @@
      private int jumpDelayTicks;
      public int moreCarrotTicks = 0;
@@ -81,15 +73,15 @@
          Holder<Biome> biome = level.getBiome(pos);
          int randomVal = level.getRandom().nextInt(100);
          if (biome.is(BiomeTags.SPAWNS_WHITE_RABBITS)) {
-@@ -442,7 +_,7 @@
+@@ -433,7 +_,7 @@
+         }
      }
  
-     @Override
--    public void handleEntityEvent(@EntityEvent.Value byte id) {
-+    public void handleEntityEvent(byte id) {
-         if (id == 1) {
-             this.spawnSprintParticle();
-             this.jumpDuration = 15;
+-    public static boolean checkRabbitSpawnRules(EntityType<Rabbit> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random) {
++    public static boolean checkRabbitSpawnRules(EntityType<? extends Rabbit> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random) {
+         return level.getBlockState(pos.below()).is(BlockTags.RABBITS_SPAWNABLE_ON) && isBrightEnoughToSpawn(level, pos);
+     }
+ 
 @@ -600,7 +_,7 @@
          @Override
          public boolean canUse() {

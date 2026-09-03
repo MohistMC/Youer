@@ -29,37 +29,12 @@
          if (shouldProgressGrowth) {
              this.grow(level, state, pos, 1);
          }
-@@ -143,9 +_,9 @@
+@@ -143,7 +_,7 @@
          int updatedAge = Math.min(lowerState.getValue(AGE) + increase, 4);
          if (this.canGrow(level, lowerPos, lowerState, updatedAge)) {
              BlockState newLowerState = lowerState.setValue(AGE, updatedAge);
 -            level.setBlock(lowerPos, newLowerState, 2);
 +            if (!org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(level, lowerPos, newLowerState, Block.UPDATE_CLIENTS)) return; // Paper
              if (isDouble(updatedAge)) {
--                level.setBlockAndUpdate(lowerPos.above(), newLowerState.setValue(HALF, DoubleBlockHalf.UPPER));
-+                level.setBlock(lowerPos.above(), newLowerState.setValue(HALF, DoubleBlockHalf.UPPER), 3);
+                 level.setBlockAndUpdate(lowerPos.above(), newLowerState.setValue(HALF, DoubleBlockHalf.UPPER));
              }
-         }
-     }
-@@ -189,18 +_,18 @@
-     }
- 
-     @Override
--    public boolean isValidBonemealTarget(LevelReader level, BlockPos pos, BlockState state, BonemealSource source) {
-+    public boolean isValidBonemealTarget(LevelReader level, BlockPos pos, BlockState state) {
-         PitcherCropBlock.PosAndState lowerHalf = this.getLowerHalf(level, pos, state);
-         return lowerHalf == null ? false : this.canGrow(level, lowerHalf.pos, lowerHalf.state, lowerHalf.state.getValue(AGE) + 1);
-     }
- 
-     @Override
--    public boolean isBonemealSuccess(Level level, RandomSource random, BlockPos pos, BlockState state, BonemealSource source) {
-+    public boolean isBonemealSuccess(Level level, RandomSource random, BlockPos pos, BlockState state) {
-         return true;
-     }
- 
-     @Override
--    public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state, BonemealSource source) {
-+    public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state) {
-         PitcherCropBlock.PosAndState lowerHalf = this.getLowerHalf(level, pos, state);
-         if (lowerHalf != null) {
-             this.grow(level, lowerHalf.state, lowerHalf.pos, 1);

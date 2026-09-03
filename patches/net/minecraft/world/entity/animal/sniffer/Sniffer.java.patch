@@ -40,15 +40,6 @@
      @Override
      protected void defineSynchedData(SynchedEntityData.Builder entityData) {
          super.defineSynchedData(entityData);
-@@ -129,7 +_,7 @@
-     }
- 
-     public boolean isTempted() {
--        return this.brain.getMemory(MemoryModuleType.TEMPTING_PLAYER).isPresent();
-+        return this.brain.getMemory(MemoryModuleType.IS_TEMPTED).orElse(false);
-     }
- 
-     public boolean canSniff() {
 @@ -287,6 +_,13 @@
              BlockPos head = this.getHeadBlock();
              this.dropFromGiftLootTable(level, BuiltInLootTables.SNIFFER_DIGGING, (l, itemStack) -> {
@@ -63,15 +54,12 @@
                  entity.setDefaultPickUpDelay();
                  l.addFreshEntity(entity);
              });
-@@ -306,7 +_,10 @@
+@@ -306,7 +_,7 @@
                  }
  
                  if (this.tickCount % 10 == 0) {
 -                    this.level().playLocalSound(this, stateBelow.getSoundType().getHitSound(), this.getSoundSource(), 0.5F, 0.5F);
-+                    this.level()
-+                        .playLocalSound(
-+                            this.getX(), this.getY(), this.getZ(), stateBelow.getSoundType(level(), head.below(), this).getHitSound(), this.getSoundSource(), 0.5F, 0.5F, false
-+                        );
++                    this.level().playLocalSound(this, stateBelow.getSoundType(level(), head.below(), this).getHitSound(), this.getSoundSource(), 0.5F, 0.5F);
                  }
              }
          }
@@ -95,12 +83,3 @@
      }
  
      @Override
-@@ -389,7 +_,7 @@
- 
-     private void playSearchingSound() {
-         if (this.level().isClientSide() && this.tickCount % 20 == 0) {
--            this.level().playLocalSound(this, SoundEvents.SNIFFER_SEARCHING, this.getSoundSource(), 1.0F, 1.0F);
-+            this.level().playLocalSound(this.getX(), this.getY(), this.getZ(), SoundEvents.SNIFFER_SEARCHING, this.getSoundSource(), 1.0F, 1.0F, false);
-         }
-     }
- 

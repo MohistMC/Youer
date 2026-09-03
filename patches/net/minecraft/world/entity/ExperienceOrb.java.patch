@@ -82,14 +82,15 @@
          this.setPos(pos);
          if (!level.isClientSide()) {
              this.setYRot(this.random.nextFloat() * 360.0F);
-@@ -99,6 +_,7 @@
- 
-     @Override
-     public void tick() {
-+        this.interpolation.interpolate();
-         if (this.firstTick && this.level().isClientSide()) {
-             this.firstTick = false;
+@@ -104,7 +_,7 @@
          } else {
+             super.tick();
+             boolean colliding = !this.level().noCollision(this.getBoundingBox());
+-            if (this.isEyeInFluid(FluidTags.WATER)) {
++            if (this.getFluidInteraction().isEyeInFluidMatching(this, (_, type, _) -> type.getIsWaterLike())) {
+                 this.setUnderwaterMovement();
+             } else if (!colliding) {
+                 this.applyGravity();
 @@ -134,7 +_,8 @@
              this.applyEffectsFromBlocks();
              float friction = this.getAirDrag();
@@ -255,18 +256,3 @@
          if (maxValue >= 2477) {
              return 2477;
          } else if (maxValue >= 1237) {
-@@ -383,12 +_,7 @@
-     }
- 
-     @Override
--    protected InterpolationHandler createInterpolationHandler() {
--        return LinearInterpolationHandler.create(this);
--    }
--
--    @Override
--    public MoveSimulationType getMoveSimulationType() {
--        return MoveSimulationType.SERVER_AND_CLIENT;
-+    public InterpolationHandler getInterpolation() {
-+        return this.interpolation;
-     }
- }

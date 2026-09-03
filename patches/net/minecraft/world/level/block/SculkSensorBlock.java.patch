@@ -1,22 +1,5 @@
 --- a/net/minecraft/world/level/block/SculkSensorBlock.java
 +++ b/net/minecraft/world/level/block/SculkSensorBlock.java
-@@ -10,7 +_,6 @@
- import net.minecraft.tags.BlockTags;
- import net.minecraft.util.RandomSource;
- import net.minecraft.util.Util;
--import net.minecraft.util.valueproviders.ConstantInt;
- import net.minecraft.world.entity.Entity;
- import net.minecraft.world.entity.EntityTypes;
- import net.minecraft.world.item.ItemStack;
-@@ -77,7 +_,7 @@
-     protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
-         if (getPhase(state) != SculkSensorPhase.ACTIVE) {
-             if (getPhase(state) == SculkSensorPhase.COOLDOWN) {
--                level.setBlockAndUpdate(pos, state.setValue(PHASE, SculkSensorPhase.INACTIVE));
-+                level.setBlock(pos, state.setValue(PHASE, SculkSensorPhase.INACTIVE), 3);
-                 if (!state.getValue(WATERLOGGED)) {
-                     level.playSound(null, pos, SoundEvents.SCULK_CLICKING_STOP, SoundSource.BLOCKS, 1.0F, level.getRandom().nextFloat() * 0.2F + 0.8F);
-                 }
 @@ -95,6 +_,18 @@
              && level.getBlockEntity(pos) instanceof SculkSensorBlockEntity sculkSensor
              && level instanceof ServerLevel serverLevel
@@ -57,21 +40,19 @@
          level.scheduleTick(pos, state.getBlock(), 10);
          updateNeighbours(level, pos, state);
      }
-@@ -197,7 +_,13 @@
+@@ -197,6 +_,12 @@
      }
  
      public void activate(@Nullable Entity sourceEntity, Level level, BlockPos pos, BlockState state, int calculatedPower, int vibrationFrequency) {
--        level.setBlockAndUpdate(pos, state.setValue(PHASE, SculkSensorPhase.ACTIVE).setValue(POWER, calculatedPower));
 +        // Paper start - Call BlockRedstoneEvent
 +        calculatedPower = org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(level, pos, state.getValue(POWER), calculatedPower).getNewCurrent();
 +        if (calculatedPower == 0) {
 +            return;
 +        }
 +        // Paper end - Call BlockRedstoneEvent
-+        level.setBlock(pos, state.setValue(PHASE, SculkSensorPhase.ACTIVE).setValue(POWER, calculatedPower), 3);
+         level.setBlockAndUpdate(pos, state.setValue(PHASE, SculkSensorPhase.ACTIVE).setValue(POWER, calculatedPower));
          level.scheduleTick(pos, state.getBlock(), this.getActiveTicks());
          updateNeighbours(level, pos, state);
-         tryResonateVibration(sourceEntity, level, pos, vibrationFrequency);
 @@ -274,8 +_,13 @@
      @Override
      protected void spawnAfterBreak(BlockState state, ServerLevel level, BlockPos pos, ItemStack tool, boolean dropExperience) {

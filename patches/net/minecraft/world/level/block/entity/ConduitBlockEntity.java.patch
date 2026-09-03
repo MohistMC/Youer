@@ -1,13 +1,5 @@
 --- a/net/minecraft/world/level/block/entity/ConduitBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/ConduitBlockEntity.java
-@@ -12,7 +_,6 @@
- import net.minecraft.sounds.SoundEvent;
- import net.minecraft.sounds.SoundEvents;
- import net.minecraft.sounds.SoundSource;
--import net.minecraft.tags.BlockTags;
- import net.minecraft.util.Mth;
- import net.minecraft.util.RandomSource;
- import net.minecraft.util.Util;
 @@ -24,6 +_,8 @@
  import net.minecraft.world.entity.monster.Enemy;
  import net.minecraft.world.entity.player.Player;
@@ -17,24 +9,6 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
-@@ -38,6 +_,7 @@
-     private static final int MIN_ACTIVE_SIZE = 16;
-     public static final int MIN_KILL_SIZE = 42;
-     private static final int KILL_RANGE = 8;
-+    private static final Block[] VALID_BLOCKS = new Block[]{Blocks.PRISMARINE, Blocks.PRISMARINE_BRICKS, Blocks.SEA_LANTERN, Blocks.DARK_PRISMARINE};
-     public int tickCount;
-     private float activeRotation;
-     private boolean isActive;
-@@ -147,7 +_,8 @@
-                      {
-                         BlockPos testPos = worldPosition.offset(ox, oy, oz);
-                         BlockState testBlock = level.getBlockState(testPos);
--                        if (testBlock.is(BlockTags.CONDUIT_EFFECT_BLOCK)) {
-+
-+                        if (testBlock.isConduitFrame(level, testPos, worldPosition)) {
-                             effectBlocks.add(testPos);
-                         }
-                     }
 @@ -159,30 +_,53 @@
      }
  

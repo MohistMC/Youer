@@ -1,31 +1,6 @@
 --- a/net/minecraft/world/entity/InsideBlockEffectApplier.java
 +++ b/net/minecraft/world/entity/InsideBlockEffectApplier.java
-@@ -11,15 +_,15 @@
- public interface InsideBlockEffectApplier {
-     InsideBlockEffectApplier NOOP = new InsideBlockEffectApplier() {
-         @Override
--        public void apply(InsideBlockEffectType type) {
--        }
--
--        @Override
--        public void runBefore(InsideBlockEffectType type, Consumer<Entity> effect) {
--        }
--
--        @Override
--        public void runAfter(InsideBlockEffectType type, Consumer<Entity> effect) {
-+        public void apply(final InsideBlockEffectType type) {
-+        }
-+
-+        @Override
-+        public void runBefore(final InsideBlockEffectType type, final Consumer<Entity> effect) {
-+        }
-+
-+        @Override
-+        public void runAfter(final InsideBlockEffectType type, final Consumer<Entity> effect) {
-         }
-     };
- 
-@@ -32,24 +_,25 @@
+@@ -32,17 +_,18 @@
      class StepBasedCollector implements InsideBlockEffectApplier {
          private static final InsideBlockEffectType[] APPLY_ORDER = InsideBlockEffectType.values();
          private static final int NO_STEP = -1;
@@ -48,14 +23,6 @@
              if (this.lastStep != step) {
                  this.lastStep = step;
                  this.flushStep();
-             }
-         }
- 
--        public void applyAndClear(Entity entity) {
-+        public void applyAndClear(final Entity entity) {
-             this.flushStep();
- 
-             for (Consumer<Entity> effect : this.finalEffects) {
 @@ -69,8 +_,8 @@
                  List<Consumer<Entity>> beforeEffects = this.beforeEffectsInStep.get(type);
                  this.finalEffects.addAll(beforeEffects);
@@ -67,7 +34,7 @@
                  }
  
                  List<Consumer<Entity>> afterEffects = this.afterEffectsInStep.get(type);
-@@ -80,18 +_,37 @@
+@@ -80,8 +_,8 @@
          }
  
          @Override
@@ -78,14 +45,8 @@
          }
  
          @Override
--        public void runBefore(InsideBlockEffectType type, Consumer<Entity> effect) {
-+        public void runBefore(final InsideBlockEffectType type, final Consumer<Entity> effect) {
-             this.beforeEffectsInStep.get(type).add(effect);
-         }
- 
-         @Override
--        public void runAfter(InsideBlockEffectType type, Consumer<Entity> effect) {
-+        public void runAfter(final InsideBlockEffectType type, final Consumer<Entity> effect) {
+@@ -93,5 +_,24 @@
+         public void runAfter(InsideBlockEffectType type, Consumer<Entity> effect) {
              this.afterEffectsInStep.get(type).add(effect);
          }
 +

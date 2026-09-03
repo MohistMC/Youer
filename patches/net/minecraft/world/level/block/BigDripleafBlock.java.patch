@@ -13,13 +13,7 @@
  public class BigDripleafBlock extends HorizontalDirectionalBlock implements SimpleWaterloggedBlock, BonemealableBlock {
      private static final BooleanProperty WATERLOGGED = BlockStateProperties.WATERLOGGED;
      private static final EnumProperty<Tilt> TILT = BlockStateProperties.TILT;
-@@ -115,12 +_,12 @@
- 
-     protected static boolean place(LevelAccessor level, BlockPos pos, FluidState fluidState, Direction facing) {
-         BlockState newState = Blocks.BIG_DRIPLEAF.defaultBlockState().setValue(WATERLOGGED, fluidState.isSourceOfType(Fluids.WATER)).setValue(FACING, facing);
--        return level.setBlockAndUpdate(pos, newState);
-+        return level.setBlock(pos, newState, 3);
-     }
+@@ -120,7 +_,7 @@
  
      @Override
      protected void onProjectileHit(Level level, BlockState state, BlockHitResult blockHit, Projectile projectile) {
@@ -37,27 +31,6 @@
          return belowState.is(this) || belowState.is(Blocks.BIG_DRIPLEAF_STEM) || belowState.is(BlockTags.SUPPORTS_BIG_DRIPLEAF);
      }
  
-@@ -160,17 +_,17 @@
-     }
- 
-     @Override
--    public boolean isValidBonemealTarget(LevelReader level, BlockPos pos, BlockState state, BonemealSource source) {
-+    public boolean isValidBonemealTarget(LevelReader level, BlockPos pos, BlockState state) {
-         return canGrowInto(level, pos.above());
-     }
- 
-     @Override
--    public boolean isBonemealSuccess(Level level, RandomSource random, BlockPos pos, BlockState state, BonemealSource source) {
-+    public boolean isBonemealSuccess(Level level, RandomSource random, BlockPos pos, BlockState state) {
-         return true;
-     }
- 
-     @Override
--    public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state, BonemealSource source) {
-+    public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state) {
-         BlockPos abovePos = pos.above();
-         if (canPlaceAt(level, abovePos)) {
-             Direction facing = state.getValue(FACING);
 @@ -181,9 +_,23 @@
  
      @Override

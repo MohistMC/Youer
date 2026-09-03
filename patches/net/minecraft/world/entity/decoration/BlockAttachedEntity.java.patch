@@ -1,11 +1,6 @@
 --- a/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
 +++ b/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
-@@ -12,19 +_,26 @@
- import net.minecraft.world.entity.player.Player;
- import net.minecraft.world.level.Explosion;
- import net.minecraft.world.level.Level;
--import net.minecraft.world.level.gameevent.GameEvent;
- import net.minecraft.world.level.gamerules.GameRules;
+@@ -17,6 +_,16 @@
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.Vec3;
@@ -22,11 +17,10 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
- public abstract class BlockAttachedEntity extends Entity {
--    public static final String TAG_BLOCK_POS = "block_pos";
+@@ -25,6 +_,7 @@
      private static final Logger LOGGER = LogUtils.getLogger();
--    private static final int CHECK_INTERVAL = 100;
--    private int ticksSinceLastCheck;
+     private static final int CHECK_INTERVAL = 100;
+     private int ticksSinceLastCheck;
 +    private int checkInterval; { this.checkInterval = this.getId() % this.level().spigotConfig.hangingTickFrequency; } // Paper - Perf: offset item frame ticking
      protected BlockPos pos;
  
@@ -73,27 +67,6 @@
      public abstract boolean survives();
  
      @Override
-@@ -73,20 +_,6 @@
-     }
- 
-     @Override
--    public void kill(ServerLevel level) {
--        this.kill(level, this);
--    }
--
--    public void kill(ServerLevel level, @Nullable Entity attributedTo) {
--        this.onKilled();
--        this.remove(Entity.RemovalReason.KILLED);
--        this.gameEvent(GameEvent.ENTITY_DIE, attributedTo != null ? attributedTo : this);
--    }
--
--    protected void onKilled() {
--    }
--
--    @Override
-     public boolean hurtClient(DamageSource source) {
-         return !this.isInvulnerableToBase(source);
-     }
 @@ -95,19 +_,33 @@
      public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
          if (this.isInvulnerableToBase(source)) {

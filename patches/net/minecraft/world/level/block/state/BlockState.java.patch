@@ -7,18 +7,10 @@
  import com.mojang.serialization.Codec;
  import net.minecraft.core.registries.BuiltInRegistries;
  import net.minecraft.world.level.block.Block;
-@@ -9,13 +_,18 @@
- import net.neoforged.neoforge.common.extensions.IBlockStateExtension;
- 
- public class BlockState extends BlockBehaviour.BlockStateBase implements IBlockStateExtension {
--    public static final Codec<BlockState> FULL_CODEC = codec(BuiltInRegistries.BLOCK.byNameCodec(), Block::defaultBlockState, Block::getStateDefinition)
--        .stable();
--    private static final Codec<Either<Block, BlockState>> CONSTANT_OR_DISPATCH_CODEC = Codec.either(BuiltInRegistries.BLOCK.byNameCodec(), FULL_CODEC);
--    public static final Codec<BlockState> CODEC = CONSTANT_OR_DISPATCH_CODEC.xmap(
--        either -> either.map(Block::defaultBlockState, f -> (BlockState)f),
--        state -> state == state.getBlock().defaultBlockState() ? Either.left(state.getBlock()) : Either.right(state)
--    );
-+    public static final Codec<BlockState> CODEC = codec(BuiltInRegistries.BLOCK.byNameCodec(), Block::defaultBlockState, Block::getStateDefinition).stable();
+@@ -16,6 +_,17 @@
+         either -> either.map(Block::defaultBlockState, f -> (BlockState)f),
+         state -> state == state.getBlock().defaultBlockState() ? Either.left(state.getBlock()) : Either.right(state)
+     );
 +
 +    // Paper start - optimise getType calls
 +    org.bukkit.@org.jspecify.annotations.Nullable Material cachedMaterial;

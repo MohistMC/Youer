@@ -1,13 +1,5 @@
 --- a/net/minecraft/world/level/block/TripWireBlock.java
 +++ b/net/minecraft/world/level/block/TripWireBlock.java
-@@ -9,7 +_,6 @@
- import net.minecraft.world.entity.Entity;
- import net.minecraft.world.entity.InsideBlockEffectApplier;
- import net.minecraft.world.entity.player.Player;
--import net.minecraft.world.item.Items;
- import net.minecraft.world.item.context.BlockPlaceContext;
- import net.minecraft.world.level.BlockGetter;
- import net.minecraft.world.level.Level;
 @@ -61,6 +_,7 @@
  
      @Override
@@ -75,10 +67,11 @@
          if (level.getBlockState(pos).getValue(POWERED)) {
              this.checkPressed(level, pos);
          }
-@@ -169,16 +_,49 @@
+@@ -168,6 +_,39 @@
+                 }
              }
          }
- 
++
 +        // CraftBukkit start - Call interact even when triggering connected tripwire
 +        if (wasPressed != shouldBePressed && shouldBePressed && state.getValue(TripWireBlock.ATTACHED)) {
 +            org.bukkit.plugin.PluginManager manager = level.getCraftServer().getPluginManager();
@@ -111,19 +104,6 @@
 +            }
 +        }
 +        // CraftBukkit end
-+
+ 
          if (shouldBePressed != wasPressed) {
              state = state.setValue(POWERED, shouldBePressed);
--            level.setBlockAndUpdate(pos, state);
-+            level.setBlock(pos, state, 3);
-             this.updateSource(level, pos, state);
-         }
- 
-         if (shouldBePressed) {
-             level.scheduleTick(pos, this, 10);
-         } else if (wasPressed) {
--            level.scheduleTick(pos, this, 1);
-+            level.scheduleTick(pos, this, 0);
-         }
-     }
- 

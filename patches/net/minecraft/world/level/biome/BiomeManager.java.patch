@@ -1,51 +1,11 @@
 --- a/net/minecraft/world/level/biome/BiomeManager.java
 +++ b/net/minecraft/world/level/biome/BiomeManager.java
-@@ -12,10 +_,10 @@
-     private static final int ZOOM_BITS = 2;
-     private static final int ZOOM = 4;
-     private static final int ZOOM_MASK = 3;
--    private final BiomeResolver noiseBiomeSource;
-+    private final BiomeManager.NoiseBiomeSource noiseBiomeSource;
-     private final long biomeZoomSeed;
- 
--    public BiomeManager(BiomeResolver noiseBiomeSource, long seed) {
-+    public BiomeManager(BiomeManager.NoiseBiomeSource noiseBiomeSource, long seed) {
-         this.noiseBiomeSource = noiseBiomeSource;
-         this.biomeZoomSeed = seed;
-     }
-@@ -24,18 +_,14 @@
-         return Hashing.sha256().hashLong(seed).asLong();
-     }
- 
--    public BiomeManager withDifferentSource(BiomeResolver biomeSource) {
-+    public BiomeManager withDifferentSource(BiomeManager.NoiseBiomeSource biomeSource) {
-         return new BiomeManager(biomeSource, this.biomeZoomSeed);
-     }
- 
-     public Holder<Biome> getBiome(BlockPos pos) {
--        return this.getBiome(pos.getX(), pos.getY(), pos.getZ());
--    }
--
--    public Holder<Biome> getBiome(int x, int y, int z) {
--        int absX = x - 2;
--        int absY = y - 2;
--        int absZ = z - 2;
-+        int absX = pos.getX() - 2;
-+        int absY = pos.getY() - 2;
-+        int absZ = pos.getZ() - 2;
-         int parentX = absX >> 2;
-         int parentY = absY >> 2;
-         int parentZ = absZ >> 2;
-@@ -103,7 +_,10 @@
+@@ -103,7 +_,6 @@
      }
  
      private static double getFiddle(long rval) {
 -        double uniform = Math.floorMod(rval >> 24, 1024) / 1024.0;
 -        return (uniform - 0.5) * 0.9;
 +        return (double)(((rval >> 24) & (1024 - 1)) - (1024/2)) * (0.9 / 1024.0); // Paper - avoid floorMod, fp division, and fp subtraction
-+    }
-+
-+    public interface NoiseBiomeSource {
-+        Holder<Biome> getNoiseBiome(final int quartX, final int quartY, final int quartZ);
      }
  }

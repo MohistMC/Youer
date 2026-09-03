@@ -1,34 +1,25 @@
 --- a/net/minecraft/world/level/block/FlowerPotBlock.java
 +++ b/net/minecraft/world/level/block/FlowerPotBlock.java
-@@ -7,7 +_,6 @@
- import net.minecraft.server.level.ServerLevel;
- import net.minecraft.sounds.SoundSource;
- import net.minecraft.stats.Stats;
--import net.minecraft.util.Prediction;
- import net.minecraft.util.RandomSource;
- import net.minecraft.world.InteractionHand;
- import net.minecraft.world.InteractionResult;
-@@ -30,12 +_,34 @@
+@@ -30,12 +_,33 @@
  public class FlowerPotBlock extends Block {
      private static final Map<Block, Block> POTTED_BY_CONTENT = Maps.newHashMap();
      private static final VoxelShape SHAPE = Block.column(6.0, 0.0, 6.0);
-+    /** Neo: Field accesses are redirected to {@link #getPotted()} with a coremod. */
++    /// Neo: Field accesses are redirected to [#getPotted()] with a coremod.
      private final Block potted;
  
-+    @Deprecated // Mods should use the constructor below
++    /// @deprecated Neo: use [#FlowerPotBlock()] instead
++    @Deprecated
      public FlowerPotBlock(Block potted, BlockBehaviour.Properties properties) {
 +        this(Blocks.FLOWER_POT == null ? null : () -> (FlowerPotBlock) Blocks.FLOWER_POT, () -> potted, properties);
 +        if (Blocks.FLOWER_POT != null) {
-+            ((FlowerPotBlock)Blocks.FLOWER_POT).addPlant(net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(potted), () -> this);
++            ((FlowerPotBlock) Blocks.FLOWER_POT).addPlant(net.minecraft.core.registries.BuiltInRegistries.BLOCK.getKey(potted), () -> this);
 +        }
 +    }
 +
-+    /**
-+     * For mod use, eliminates the need to extend this class, and prevents modded
-+     * flower pots from altering vanilla behavior.
-+     *
-+     * @param emptyPot The empty pot for this pot, or null for self.
-+     */
++    /// For mod use, eliminates the need to extend this class, and prevents modded
++    /// flower pots from altering vanilla behavior.
++    ///
++    /// @param emptyPot The empty pot for this pot, or null for self.
 +    public FlowerPotBlock(java.util.function.@org.jspecify.annotations.Nullable Supplier<FlowerPotBlock> emptyPot, java.util.function.Supplier<? extends Block> potted, BlockBehaviour.Properties properties) {
          super(properties);
 -        this.potted = potted;
@@ -90,8 +81,7 @@
 +        }
 +        // Paper end - Add PlayerFlowerPotManipulateEvent
          if (!player.addItem(plant)) {
--            player.drop(plant, false, Prediction.PREDICTED);
-+            player.drop(plant, false);
+             player.drop(plant, false, Prediction.PREDICTED);
          }
  
 -        level.setBlockAndUpdate(pos, Blocks.FLOWER_POT.defaultBlockState());

@@ -1,11 +1,6 @@
 --- a/net/minecraft/world/level/block/entity/CreakingHeartBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/CreakingHeartBlockEntity.java
-@@ -17,11 +_,11 @@
- import net.minecraft.util.RandomSource;
- import net.minecraft.util.SpawnUtil;
- import net.minecraft.util.Util;
--import net.minecraft.world.Difficulty;
- import net.minecraft.world.attribute.EnvironmentAttributes;
+@@ -22,6 +_,7 @@
  import net.minecraft.world.damagesource.DamageSource;
  import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.EntitySpawnReason;
@@ -24,24 +19,7 @@
                              if (player != null) {
                                  Creaking creaking = spawnProtector(serverLevel, entity);
                                  if (creaking != null) {
-@@ -138,19 +_,19 @@
-     private static BlockState updateCreakingState(Level level, BlockState state, BlockPos pos, CreakingHeartBlockEntity entity) {
-         if (!CreakingHeartBlock.hasRequiredLogs(state, level, pos) && entity.creakingInfo == null) {
-             return state.setValue(CreakingHeartBlock.STATE, CreakingHeartState.UPROOTED);
-+        } else {
-+            CreakingHeartState heartState = level.environmentAttributes().getValue(EnvironmentAttributes.CREAKING_ACTIVE, pos)
-+                ? CreakingHeartState.AWAKE
-+                : CreakingHeartState.DORMANT;
-+            return state.setValue(CreakingHeartBlock.STATE, heartState);
-         }
--
--        CreakingHeartState heartState = level.environmentAttributes().getValue(EnvironmentAttributes.CREAKING_ACTIVE, pos)
--            ? CreakingHeartState.AWAKE
--            : CreakingHeartState.DORMANT;
--        return state.setValue(CreakingHeartBlock.STATE, heartState);
-     }
- 
-     private double distanceToCreaking() {
+@@ -150,7 +_,7 @@
          return this.getCreakingProtector().map(creaking -> Math.sqrt(creaking.distanceToSqr(Vec3.atBottomCenterOf(this.getBlockPos())))).orElse(0.0);
      }
  
@@ -50,7 +28,7 @@
          this.creakingInfo = null;
          this.setChanged();
      }
-@@ -166,51 +_,51 @@
+@@ -166,7 +_,7 @@
          this.setChanged();
      }
  
@@ -58,49 +36,8 @@
 +    private Optional<Creaking> getCreakingProtector() {
          if (this.creakingInfo == null) {
              return NO_CREAKING;
--        }
-+        } else {
-+            if (this.creakingInfo.left().isPresent()) {
-+                Creaking creaking = this.creakingInfo.left().get();
-+                if (!creaking.isRemoved()) {
-+                    return Optional.of(creaking);
-+                }
- 
--        if (this.creakingInfo.left().isPresent()) {
--            Creaking creaking = this.creakingInfo.left().get();
--            if (!creaking.isRemoved()) {
--                return Optional.of(creaking);
-+                this.setCreakingInfo(creaking.getUUID());
-             }
- 
--            this.setCreakingInfo(creaking.getUUID());
--        }
-+            if (this.level instanceof ServerLevel serverLevel && this.creakingInfo.right().isPresent()) {
-+                UUID uuid = this.creakingInfo.right().get();
-+                if (serverLevel.getEntity(uuid) instanceof Creaking resolvedCreaking) {
-+                    this.setCreakingInfo(resolvedCreaking);
-+                    return Optional.of(resolvedCreaking);
-+                } else {
-+                    if (this.ticksExisted >= 30L) {
-+                        this.clearCreakingInfo();
-+                    }
- 
--        if (this.level instanceof ServerLevel serverLevel && this.creakingInfo.right().isPresent()) {
--            UUID uuid = this.creakingInfo.right().get();
--            if (serverLevel.getEntity(uuid) instanceof Creaking resolvedCreaking) {
--                this.setCreakingInfo(resolvedCreaking);
--                return Optional.of(resolvedCreaking);
-+                    return NO_CREAKING;
-+                }
-             } else {
--                if (this.ticksExisted >= 30L) {
--                    this.clearCreakingInfo();
--                }
--
-                 return NO_CREAKING;
-             }
--        } else {
--            return NO_CREAKING;
+         }
+@@ -197,7 +_,7 @@
          }
      }
  
@@ -109,43 +46,7 @@
          BlockPos pos = entity.getBlockPos();
          Optional<Creaking> spawnedMob = SpawnUtil.trySpawnMob(
              EntityTypes.CREAKING, EntitySpawnReason.SPAWNER, level, pos, 5, 16, 8, SpawnUtil.Strategy.ON_TOP_OF_COLLIDER_NO_LEAVES, true
-         );
-         if (spawnedMob.isEmpty()) {
-             return null;
-+        } else {
-+            Creaking spawnedCreaking = spawnedMob.get();
-+            level.gameEvent(spawnedCreaking, GameEvent.ENTITY_PLACE, spawnedCreaking.position());
-+            level.broadcastEntityEvent(spawnedCreaking, (byte)60);
-+            spawnedCreaking.setTransient(pos);
-+            return spawnedCreaking;
-         }
--
--        Creaking spawnedCreaking = spawnedMob.get();
--        level.gameEvent(spawnedCreaking, GameEvent.ENTITY_PLACE, spawnedCreaking.position());
--        level.broadcastEntityEvent(spawnedCreaking, (byte)60);
--        spawnedCreaking.setTransient(pos);
--        return spawnedCreaking;
-     }
- 
-     public ClientboundBlockEntityDataPacket getUpdatePacket() {
-@@ -223,8 +_,7 @@
-     }
- 
-     public void creakingHurt() {
--        Optional<Creaking> creaking = this.getCreakingProtector();
--        if (!creaking.isEmpty()) {
-+        if (this.getCreakingProtector().orElse(null) instanceof Creaking creaking) {
-             if (this.level instanceof ServerLevel serverLevel) {
-                 if (this.emitter <= 0) {
-                     this.emitParticles(serverLevel, 20, false);
-@@ -240,13 +_,13 @@
-                     }
- 
-                     this.emitter = 100;
--                    this.emitterTarget = creaking.get().getBoundingBox().getCenter();
-+                    this.emitterTarget = creaking.getBoundingBox().getCenter();
-                 }
-             }
+@@ -246,7 +_,7 @@
          }
      }
  
@@ -154,75 +55,3 @@
          RandomSource random = level.getRandom();
          Mutable<BlockPos> placedResin = new MutableObject<>(null);
          BlockPos.breadthFirstTraversal(this.worldPosition, 2, 64, (pos, acceptor) -> {
-@@ -259,38 +_,37 @@
-         }, pos -> {
-             if (!level.getBlockState(pos).is(BlockTags.PALE_OAK_LOGS)) {
-                 return BlockPos.TraversalNodeStatus.ACCEPT;
--            }
--
--            for (Direction dir : Util.shuffledCopy(Direction.values(), random)) {
--                BlockPos neightbourPos = pos.relative(dir);
--                BlockState neighbourState = level.getBlockState(neightbourPos);
--                Direction opposite = dir.getOpposite();
--                if (neighbourState.isAir()) {
--                    neighbourState = Blocks.RESIN_CLUMP.defaultBlockState();
--                } else if (neighbourState.is(Blocks.WATER) && neighbourState.getFluidState().isSource()) {
--                    neighbourState = Blocks.RESIN_CLUMP.defaultBlockState().setValue(MultifaceBlock.WATERLOGGED, true);
--                }
--
--                if (neighbourState.is(Blocks.RESIN_CLUMP) && !MultifaceBlock.hasFace(neighbourState, opposite)) {
--                    level.setBlockAndUpdate(neightbourPos, neighbourState.setValue(MultifaceBlock.getFaceProperty(opposite), true));
--                    placedResin.setValue(neightbourPos);
--                    return BlockPos.TraversalNodeStatus.STOP;
--                }
--            }
--
--            return BlockPos.TraversalNodeStatus.ACCEPT;
-+            } else {
-+                for (Direction dir : Util.shuffledCopy(Direction.values(), random)) {
-+                    BlockPos neightbourPos = pos.relative(dir);
-+                    BlockState neighbourState = level.getBlockState(neightbourPos);
-+                    Direction opposite = dir.getOpposite();
-+                    if (neighbourState.isAir()) {
-+                        neighbourState = Blocks.RESIN_CLUMP.defaultBlockState();
-+                    } else if (neighbourState.is(Blocks.WATER) && neighbourState.getFluidState().isSource()) {
-+                        neighbourState = Blocks.RESIN_CLUMP.defaultBlockState().setValue(MultifaceBlock.WATERLOGGED, true);
-+                    }
-+
-+                    if (neighbourState.is(Blocks.RESIN_CLUMP) && !MultifaceBlock.hasFace(neighbourState, opposite)) {
-+                        level.setBlockAndUpdate(neightbourPos, neighbourState.setValue(MultifaceBlock.getFaceProperty(opposite), true));
-+                        placedResin.setValue(neightbourPos);
-+                        return BlockPos.TraversalNodeStatus.STOP;
-+                    }
-+                }
-+
-+                return BlockPos.TraversalNodeStatus.ACCEPT;
-+            }
-         });
-         return Optional.ofNullable(placedResin.get());
-     }
- 
-     private void emitParticles(ServerLevel serverLevel, int count, boolean towardsCreaking) {
--        Optional<Creaking> creaking = this.getCreakingProtector();
--        if (!creaking.isEmpty()) {
-+        if (this.getCreakingProtector().orElse(null) instanceof Creaking creaking) {
-             int color = towardsCreaking ? 16545810 : 6250335;
-             RandomSource random = serverLevel.getRandom();
- 
-             for (double i = 0.0; i < count; i++) {
--                AABB box = creaking.get().getBoundingBox();
-+                AABB box = creaking.getBoundingBox();
-                 Vec3 source = box.getMinPosition()
-                     .add(random.nextDouble() * box.getXsize(), random.nextDouble() * box.getYsize(), random.nextDouble() * box.getZsize());
-                 Vec3 destination = Vec3.atLowerCornerOf(this.getBlockPos()).add(random.nextDouble(), random.nextDouble(), random.nextDouble());
-@@ -312,9 +_,7 @@
-     }
- 
-     public void removeProtector(@Nullable DamageSource damageSource) {
--        Optional<Creaking> creakingProtector = this.getCreakingProtector();
--        if (creakingProtector.isPresent()) {
--            Creaking creaking = creakingProtector.get();
-+        if (this.getCreakingProtector().orElse(null) instanceof Creaking creaking) {
-             if (damageSource == null) {
-                 creaking.tearDown();
-             } else {

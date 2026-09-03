@@ -7,14 +7,6 @@
  import java.util.Objects;
  import java.util.UUID;
  import net.minecraft.core.BlockPos;
-@@ -20,7 +_,6 @@
- import net.minecraft.world.entity.EntityType;
- import net.minecraft.world.entity.EntityTypes;
- import net.minecraft.world.entity.Mob;
--import net.minecraft.world.entity.MoveSimulationType;
- import net.minecraft.world.entity.MoverType;
- import net.minecraft.world.entity.SlotAccess;
- import net.minecraft.world.entity.TraceableEntity;
 @@ -37,6 +_,14 @@
  import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
@@ -129,6 +121,17 @@
          } else {
              super.tick();
              if (this.pickupDelay > 0 && this.pickupDelay != 32767) {
+@@ -120,6 +_,10 @@
+             this.yo = this.getY();
+             this.zo = this.getZ();
+             Vec3 oldMovement = this.getDeltaMovement();
++            net.neoforged.neoforge.fluids.FluidType fluidType = this.getMaxHeightFluidType();
++            if (!fluidType.isAir() && !fluidType.isVanilla() && this.getFluidTypeHeight(fluidType) > FLOAT_HEIGHT) {
++                fluidType.setItemMovement(this);
++            } else
+             if (this.isInWater() && this.getFluidHeight(FluidTags.WATER) > 0.1F) {
+                 this.setUnderwaterMovement();
+             } else if (this.isInLava() && this.getFluidHeight(FluidTags.LAVA) > 0.1F) {
 @@ -144,8 +_,12 @@
                  this.applyEffectsFromBlocks();
                  float airDrag = this.getAirDrag();
@@ -181,15 +184,7 @@
              }
          }
      }
-@@ -196,16 +_,27 @@
-         this.setFluidMovement(0.95F);
-     }
- 
--    public void setFluidMovement(double multiplier) {
-+    private void setFluidMovement(double multiplier) {
-         Vec3 movement = this.getDeltaMovement();
-         this.setDeltaMovement(movement.x * multiplier, movement.y + (movement.y < 0.06F ? 5.0E-4F : 0.0F), movement.z * multiplier);
-     }
+@@ -203,9 +_,20 @@
  
      private void mergeWithNeighbours() {
          if (this.isMergable()) {
@@ -479,14 +474,3 @@
      }
  
      public static float getSpin(float ageInTicks, float bobOffset) {
-@@ -439,10 +_,5 @@
-     @Override
-     public @Nullable SlotAccess getSlot(int slot) {
-         return slot == 0 ? SlotAccess.of(this::getItem, this::setItem) : super.getSlot(slot);
--    }
--
--    @Override
--    public MoveSimulationType getMoveSimulationType() {
--        return MoveSimulationType.SERVER_AND_CLIENT;
-     }
- }

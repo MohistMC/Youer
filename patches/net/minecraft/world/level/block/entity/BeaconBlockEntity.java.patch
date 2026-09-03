@@ -287,20 +287,12 @@
      }
  
      public void setCustomName(@Nullable Component name) {
-@@ -343,12 +_,12 @@
+@@ -343,7 +_,7 @@
  
      @Override
      public @Nullable AbstractContainerMenu createMenu(int containerId, Inventory inventory, Player player) {
 -        if (this.lockKey.canUnlock(player)) {
 +        if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockLockCheckEvent(this, this.lockKey, this.getDisplayName(), player)) { // Paper - Call BlockLockCheckEvent
              return new BeaconMenu(containerId, inventory, this.dataAccess, ContainerLevelAccess.create(this.level, this.getBlockPos()));
-+        } else {
-+            BaseContainerBlockEntity.sendChestLockedNotifications(this.getBlockPos().getCenter(), player, this.getDisplayName());
-+            return null;
          }
--
--        BaseContainerBlockEntity.sendChestLockedNotifications(Vec3.atCenterOf(this.getBlockPos()), player, this.getDisplayName());
--        return null;
-     }
  
-     @Override

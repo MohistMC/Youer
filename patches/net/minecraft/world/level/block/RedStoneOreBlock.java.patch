@@ -37,7 +37,7 @@
          }
  
          super.stepOn(level, pos, onState, entity);
-@@ -50,18 +_,23 @@
+@@ -50,17 +_,22 @@
          if (level.isClientSide()) {
              spawnParticles(level, pos);
          } else {
@@ -56,30 +56,27 @@
 +    private static void interact(BlockState state, Level level, BlockPos pos, Entity entity) { // CraftBukkit - add Entity
          spawnParticles(level, pos);
          if (!state.getValue(LIT)) {
--            level.setBlockAndUpdate(pos, state.setValue(LIT, true));
 +            // CraftBukkit start
 +            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(entity, pos, state.setValue(RedStoneOreBlock.LIT, true))) {
 +                return;
 +            }
 +            // CraftBukkit end
-+            level.setBlock(pos, state.setValue(LIT, true), 3);
+             level.setBlockAndUpdate(pos, state.setValue(LIT, true));
          }
      }
- 
-@@ -73,16 +_,26 @@
+@@ -73,6 +_,11 @@
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
          if (state.getValue(LIT)) {
--            level.setBlockAndUpdate(pos, state.setValue(LIT, false));
 +            // CraftBukkit start
 +            if (CraftEventFactory.callBlockFadeEvent(level, pos, state.setValue(LIT, false)).isCancelled()) {
 +                return;
 +            }
 +            // CraftBukkit end
-+            level.setBlock(pos, state.setValue(LIT, false), 3);
+             level.setBlockAndUpdate(pos, state.setValue(LIT, false));
          }
      }
- 
+@@ -80,9 +_,14 @@
      @Override
      protected void spawnAfterBreak(BlockState state, ServerLevel level, BlockPos pos, ItemStack tool, boolean dropExperience) {
          super.spawnAfterBreak(state, level, pos, tool, dropExperience);

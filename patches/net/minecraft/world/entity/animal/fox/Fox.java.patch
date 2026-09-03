@@ -8,14 +8,6 @@
  import net.minecraft.tags.ItemTags;
  import net.minecraft.util.ByIdMap;
  import net.minecraft.util.Mth;
-@@ -40,7 +_,6 @@
- import net.minecraft.world.entity.EntityAttachment;
- import net.minecraft.world.entity.EntityAttachments;
- import net.minecraft.world.entity.EntityDimensions;
--import net.minecraft.world.entity.EntityEvent;
- import net.minecraft.world.entity.EntityReference;
- import net.minecraft.world.entity.EntitySelector;
- import net.minecraft.world.entity.EntitySpawnReason;
 @@ -106,6 +_,10 @@
  import net.minecraft.world.phys.Vec3;
  import org.jspecify.annotations.Nullable;
@@ -70,15 +62,15 @@
      @Override
      protected void defineSynchedData(SynchedEntityData.Builder entityData) {
          super.defineSynchedData(entityData);
-@@ -286,7 +_,7 @@
+@@ -331,7 +_,7 @@
+         return baby;
      }
  
-     @Override
--    public void handleEntityEvent(@EntityEvent.Value byte id) {
-+    public void handleEntityEvent(byte id) {
-         if (id == 45) {
-             ItemStack mouthItem = this.getItemBySlot(EquipmentSlot.MAINHAND);
-             if (!mouthItem.isEmpty()) {
+-    public static boolean checkFoxSpawnRules(EntityType<Fox> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random) {
++    public static boolean checkFoxSpawnRules(EntityType<? extends Fox> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random) {
+         return level.getBlockState(pos.below()).is(BlockTags.FOXES_SPAWNABLE_ON) && isBrightEnoughToSpawn(level, pos);
+     }
+ 
 @@ -365,6 +_,11 @@
      }
  
@@ -310,7 +302,7 @@
          @Override
          public boolean canUse() {
 -            return Fox.this.isInFluidDeeperThan(0.25, this.fluid) || Fox.this.isInLava();
-+            return Fox.this.isInWater() && Fox.this.getFluidHeight(FluidTags.WATER) > 0.25 || Fox.this.isInLava();
++            return Fox.this.isInFluidDeeperThan(0.25, this.fluid) || Fox.this.isInLava() || Fox.this.getFluidInteraction().isInFluidMatching(Fox.this, (entity, fluidType, height) -> entity.canSwimInFluidType(fluidType) && height > 0.25D);
          }
      }
  

@@ -1,22 +1,13 @@
 --- a/net/minecraft/world/level/block/MushroomBlock.java
 +++ b/net/minecraft/world/level/block/MushroomBlock.java
-@@ -36,12 +_,20 @@
+@@ -36,12 +_,13 @@
  
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
 -        if (random.nextInt(25) == 0) {
--            if (!this.canSpread(level, pos)) {
--                return;
 +        if (random.nextFloat() < (level.spigotConfig.mushroomModifier / (100.0F * 25))) { // Spigot - SPIGOT-7159: Better modifier resolution
-+            int max = 5;
-+            int r = 4;
-+
-+            for (BlockPos blockPos : BlockPos.betweenClosed(pos.offset(-4, -1, -4), pos.offset(4, 1, 4))) {
-+                if (level.getBlockState(blockPos).is(this)) {
-+                    if (--max <= 0) {
-+                        return;
-+                    }
-+                }
+             if (!this.canSpread(level, pos)) {
+                 return;
              }
  
              BlockPos offset = pos.offset(random.nextInt(3) - 1, random.nextInt(2) - random.nextInt(2), random.nextInt(3) - 1);
@@ -24,7 +15,7 @@
  
              for (int i = 0; i < 4; i++) {
                  if (level.isEmptyBlock(offset) && state.canSurvive(level, offset)) {
-@@ -52,15 +_,9 @@
+@@ -52,7 +_,7 @@
              }
  
              if (level.isEmptyBlock(offset) && state.canSurvive(level, offset)) {
@@ -32,15 +23,7 @@
 +                org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockSpreadEvent(level, sourcePos, offset, state, Block.UPDATE_CLIENTS); // CraftBukkit // Paper - Use correct source for mushroom block spread event
              }
          }
--    }
--
--    private boolean canSpread(ServerLevel level, BlockPos pos) {
--        BlockPos minPos = pos.offset(-4, -1, -4);
--        BlockPos maxPos = pos.offset(4, 1, 4);
--        return level.findBlocksIn(minPos, maxPos).filterState(state -> state.is(this)).atMostMatched(4);
      }
- 
-     @Override
 @@ -72,16 +_,26 @@
      protected boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
          BlockPos belowPos = pos.below();
@@ -69,27 +52,3 @@
          if (feature.get().value().place(level, level.getChunkSource().getGenerator(), random, pos)) {
              return true;
          }
-@@ -91,7 +_,7 @@
-     }
- 
-     @Override
--    public boolean isValidBonemealTarget(LevelReader level, BlockPos pos, BlockState state, BonemealSource source) {
-+    public boolean isValidBonemealTarget(LevelReader level, BlockPos pos, BlockState state) {
-         if (level instanceof ServerLevel serverLevel) {
-             Optional<? extends Holder<Feature>> featureHolder = serverLevel.registryAccess().lookupOrThrow(Registries.FEATURE).get(this.feature);
-             if (featureHolder.isPresent()) {
-@@ -111,12 +_,12 @@
-     }
- 
-     @Override
--    public boolean isBonemealSuccess(Level level, RandomSource random, BlockPos pos, BlockState state, BonemealSource source) {
-+    public boolean isBonemealSuccess(Level level, RandomSource random, BlockPos pos, BlockState state) {
-         return random.nextFloat() < 0.4;
-     }
- 
-     @Override
--    public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state, BonemealSource source) {
-+    public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state) {
-         this.growMushroom(level, pos, state, random);
-     }
- }

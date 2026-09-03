@@ -224,7 +224,7 @@
                  }
  
                  this.wasRiding = false;
-@@ -203,60 +_,35 @@
+@@ -203,11 +_,31 @@
              }
  
              this.entity.needsSync = false;
@@ -258,55 +258,6 @@
              this.synchronizer.sendToTrackingPlayersAndSelf(new ClientboundSetEntityMotionPacket(this.entity));
          }
      }
- 
--    private @Nullable MovementPacket<ClientGamePacketListener> createMovePacket(
--        PositionPath position, byte yRotn, byte xRotn, boolean shouldSendPosition, boolean shouldSendRotation
--    ) {
--        if (this.entity.getRequiresPrecisePosition() || this.teleportDelay > 400 || this.wasRiding || this.wasOnGround != this.entity.onGround()) {
--            this.wasOnGround = this.entity.onGround();
--            this.teleportDelay = 0;
--            return ClientboundEntityPositionSyncPacket.of(this.entity, position);
--        }
--
--        if (shouldSendPosition) {
--            VecDelta encodedDelta = this.positionCodec.tryEncode(position);
--            if (encodedDelta == null || this.isFullPrecisionEncodingRequired(position.endPosition(), encodedDelta)) {
--                return ClientboundEntityPositionSyncPacket.of(this.entity, position);
--            } else {
--                return shouldSendRotation
--                    ? new ClientboundMoveEntityPacket.PosRot(this.entity.getId(), encodedDelta, yRotn, xRotn, this.entity.onGround())
--                    : new ClientboundMoveEntityPacket.Pos(this.entity.getId(), encodedDelta, this.entity.onGround());
--            }
--        } else {
--            return shouldSendRotation ? new ClientboundMoveEntityPacket.Rot(this.entity.getId(), yRotn, xRotn, this.entity.onGround()) : null;
--        }
--    }
--
--    private boolean isFullPrecisionEncodingRequired(Vec3 pos, VecDelta delta) {
--        if (this.entity instanceof ItemEntity) {
--            if (this.entity.verticalCollision
--                && (
--                    delta.hasDeltaX() && VecDeltaCodec.encodingPrecisionLoss(pos.x) != 0.0
--                        || delta.hasDeltaZ() && VecDeltaCodec.encodingPrecisionLoss(pos.z) != 0.0
--                )) {
--                return true;
--            }
--
--            if (this.entity.horizontalCollision
--                && (
--                    delta.hasDeltaX() && VecDeltaCodec.encodingPrecisionLoss(pos.z) != 0.0
--                        || delta.hasDeltaZ() && VecDeltaCodec.encodingPrecisionLoss(pos.x) != 0.0
--                )) {
--                return true;
--            }
--        }
--
--        return false;
--    }
--
-     private void handleMinecartPosRot(NewMinecartBehavior newMinecartBehavior, byte yRotn, byte xRotn, boolean shouldSendRotation) {
-         this.sendDirtyEntityData();
-         if (newMinecartBehavior.lerpSteps.isEmpty()) {
 @@ -291,6 +_,7 @@
      public void removePairing(ServerPlayer player) {
          this.entity.stopSeenByPlayer(player);

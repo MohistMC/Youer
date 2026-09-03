@@ -1,15 +1,6 @@
 --- a/net/minecraft/world/entity/animal/feline/Cat.java
 +++ b/net/minecraft/world/entity/animal/feline/Cat.java
-@@ -39,7 +_,7 @@
- import net.minecraft.world.entity.ai.attributes.Attributes;
- import net.minecraft.world.entity.ai.goal.AvoidEntityGoal;
- import net.minecraft.world.entity.ai.goal.BreedGoal;
--import net.minecraft.world.entity.ai.goal.CatLieOnBlockGoal;
-+import net.minecraft.world.entity.ai.goal.CatLieOnBedGoal;
- import net.minecraft.world.entity.ai.goal.CatSitOnBlockGoal;
- import net.minecraft.world.entity.ai.goal.FloatGoal;
- import net.minecraft.world.entity.ai.goal.FollowOwnerGoal;
-@@ -96,20 +_,75 @@
+@@ -96,15 +_,70 @@
      private float relaxStateOneAmount;
      private float relaxStateOneAmountO;
  
@@ -80,12 +71,6 @@
          this.goalSelector.addGoal(1, new TamableAnimal.TamableAnimalPanicGoal(1.5));
          this.goalSelector.addGoal(2, new SitWhenOrderedToGoal(this));
          this.goalSelector.addGoal(3, new Cat.CatRelaxOnOwnerGoal(this));
-         this.goalSelector.addGoal(4, this.temptGoal);
--        this.goalSelector.addGoal(5, new CatLieOnBlockGoal(this, 1.1, 8));
-+        this.goalSelector.addGoal(5, new CatLieOnBedGoal(this, 1.1, 8));
-         this.goalSelector.addGoal(6, new FollowOwnerGoal(this, 1.0, 10.0F, 5.0F));
-         this.goalSelector.addGoal(7, new CatSitOnBlockGoal(this, 0.8));
-         this.goalSelector.addGoal(8, new LeapAtTargetGoal(this, 0.3F));
 @@ -117,6 +_,7 @@
          this.goalSelector.addGoal(10, new BreedGoal(this, 0.8));
          this.goalSelector.addGoal(11, new WaterAvoidingRandomStrollGoal(this, 0.8, 1.0000001E-5F));
@@ -122,29 +107,7 @@
              this.tame(player);
              this.setOrderedToSit(true);
              this.level().broadcastEntityEvent(this, (byte)7);
-@@ -551,7 +_,7 @@
- 
-                 BlockPos ownerPos = this.ownerPlayer.blockPosition();
-                 BlockState ownerPosState = this.cat.level().getBlockState(ownerPos);
--                if (ownerPosState.is(BlockTags.CATS_CAN_LIE_ON)) {
-+                if (ownerPosState.is(BlockTags.BEDS)) {
-                     this.goalPos = ownerPosState.getOptionalValue(BedBlock.FACING)
-                         .map(bedDir -> ownerPos.relative(bedDir.getOpposite()))
-                         .orElseGet(ownerPos::immutable);
-@@ -609,27 +_,30 @@
-             BlockPos.MutableBlockPos catPos = new BlockPos.MutableBlockPos();
-             catPos.set(this.cat.isLeashed() ? this.cat.getLeashHolder().blockPosition() : this.cat.blockPosition());
-             this.cat
--                .randomTeleport(
--                    catPos.getX() + random.nextInt(11) - 5,
--                    catPos.getY() + random.nextInt(5) - 2,
--                    catPos.getZ() + random.nextInt(11) - 5,
--                    false,
--                    BlockTags.CAT_DOES_NOT_TELEPORT_TO
--                );
-+                .randomTeleport(catPos.getX() + random.nextInt(11) - 5, catPos.getY() + random.nextInt(5) - 2, catPos.getZ() + random.nextInt(11) - 5, false);
-             catPos.set(this.cat.blockPosition());
-             this.cat
+@@ -621,15 +_,24 @@
                  .dropFromGiftLootTable(
                      getServerLevel(this.cat),
                      BuiltInLootTables.CAT_MORNING_GIFT,

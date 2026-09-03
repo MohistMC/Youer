@@ -1,13 +1,5 @@
 --- a/net/minecraft/world/entity/decoration/ArmorStand.java
 +++ b/net/minecraft/world/entity/decoration/ArmorStand.java
-@@ -20,7 +_,6 @@
- import net.minecraft.world.damagesource.DamageSource;
- import net.minecraft.world.entity.Entity;
- import net.minecraft.world.entity.EntityDimensions;
--import net.minecraft.world.entity.EntityEvent;
- import net.minecraft.world.entity.EntityType;
- import net.minecraft.world.entity.EntityTypes;
- import net.minecraft.world.entity.EquipmentSlot;
 @@ -49,6 +_,14 @@
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.AABB;
@@ -374,24 +366,6 @@
      }
  
      @Override
-@@ -471,7 +_,7 @@
- 
-     @Override
-     public PushReaction getPistonPushReaction() {
--        return this.isMarker() ? PushReaction.IGNORE_ENTITY : super.getPistonPushReaction();
-+        return this.isMarker() ? PushReaction.IGNORE : super.getPistonPushReaction();
-     }
- 
-     @Override
-@@ -643,7 +_,7 @@
-             BlockPos probePos = this.blockPosition();
-             int brightestLight = Integer.MIN_VALUE;
- 
--            for (BlockPos pos : BlockPos.betweenClosed(box)) {
-+            for (BlockPos pos : BlockPos.betweenClosed(BlockPos.containing(box.minX, box.minY, box.minZ), BlockPos.containing(box.maxX, box.maxY, box.maxZ))) {
-                 int blockBrightness = Math.max(this.level().getBrightness(LightLayer.BLOCK, pos), this.level().getBrightness(LightLayer.SKY, pos));
-                 if (blockBrightness == 15) {
-                     return Vec3.atCenterOf(pos);
 @@ -707,4 +_,28 @@
                  .apply(i, ArmorStand.ArmorStandPose::new)
          );

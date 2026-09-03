@@ -1,45 +1,6 @@
 --- a/net/minecraft/world/level/block/ComposterBlock.java
 +++ b/net/minecraft/world/level/block/ComposterBlock.java
-@@ -1,15 +_,14 @@
- package net.minecraft.world.level.block;
- 
--import java.util.Optional;
-+import it.unimi.dsi.fastutil.objects.Object2FloatMap;
-+import it.unimi.dsi.fastutil.objects.Object2FloatOpenHashMap;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Direction;
--import net.minecraft.core.component.DataComponents;
- import net.minecraft.core.particles.ParticleTypes;
- import net.minecraft.server.level.ServerLevel;
- import net.minecraft.sounds.SoundEvents;
- import net.minecraft.sounds.SoundSource;
- import net.minecraft.stats.Stats;
--import net.minecraft.util.Mth;
- import net.minecraft.util.RandomSource;
- import net.minecraft.util.Util;
- import net.minecraft.world.InteractionHand;
-@@ -22,8 +_,8 @@
- import net.minecraft.world.entity.player.Player;
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.item.Items;
--import net.minecraft.world.item.component.Compostable;
- import net.minecraft.world.level.BlockGetter;
-+import net.minecraft.world.level.ItemLike;
- import net.minecraft.world.level.Level;
- import net.minecraft.world.level.LevelAccessor;
- import net.minecraft.world.level.block.state.BlockBehaviour;
-@@ -33,10 +_,6 @@
- import net.minecraft.world.level.block.state.properties.IntegerProperty;
- import net.minecraft.world.level.gameevent.GameEvent;
- import net.minecraft.world.level.pathfinder.PathComputationType;
--import net.minecraft.world.level.storage.loot.LootContext;
--import net.minecraft.world.level.storage.loot.LootParams;
--import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
--import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
- import net.minecraft.world.phys.BlockHitResult;
- import net.minecraft.world.phys.Vec3;
- import net.minecraft.world.phys.shapes.BooleanOp;
-@@ -45,11 +_,18 @@
+@@ -45,6 +_,10 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import org.jspecify.annotations.Nullable;
  
@@ -50,149 +11,6 @@
  public class ComposterBlock extends Block implements WorldlyContainerHolder {
      public static final int READY = 8;
      public static final int MIN_LEVEL = 0;
-     public static final int MAX_LEVEL = 7;
-     public static final IntegerProperty LEVEL = BlockStateProperties.LEVEL_COMPOSTER;
-+    /** @deprecated Neo: Use the {@link net.neoforged.neoforge.registries.datamaps.builtin.NeoForgeDataMaps#COMPOSTABLES compostable} data map instead */
-+    @Deprecated
-+    public static final Object2FloatMap<ItemLike> COMPOSTABLES = new Object2FloatOpenHashMap<>();
-     private static final int HOLE_WIDTH = 12;
-     private static final VoxelShape[] SHAPES = Util.make(
-         () -> {
-@@ -61,6 +_,134 @@
-         }
-     );
- 
-+    public static void bootStrap() {
-+        COMPOSTABLES.defaultReturnValue(-1.0F);
-+        float low = 0.3F;
-+        float lowMid = 0.5F;
-+        float mid = 0.65F;
-+        float midHigh = 0.85F;
-+        float high = 1.0F;
-+        add(0.3F, Items.JUNGLE_LEAVES);
-+        add(0.3F, Items.OAK_LEAVES);
-+        add(0.3F, Items.SPRUCE_LEAVES);
-+        add(0.3F, Items.DARK_OAK_LEAVES);
-+        add(0.3F, Items.PALE_OAK_LEAVES);
-+        add(0.3F, Items.ACACIA_LEAVES);
-+        add(0.3F, Items.CHERRY_LEAVES);
-+        add(0.3F, Items.BIRCH_LEAVES);
-+        add(0.3F, Items.AZALEA_LEAVES);
-+        add(0.3F, Items.MANGROVE_LEAVES);
-+        add(0.3F, Items.OAK_SAPLING);
-+        add(0.3F, Items.SPRUCE_SAPLING);
-+        add(0.3F, Items.BIRCH_SAPLING);
-+        add(0.3F, Items.JUNGLE_SAPLING);
-+        add(0.3F, Items.ACACIA_SAPLING);
-+        add(0.3F, Items.CHERRY_SAPLING);
-+        add(0.3F, Items.DARK_OAK_SAPLING);
-+        add(0.3F, Items.PALE_OAK_SAPLING);
-+        add(0.3F, Items.MANGROVE_PROPAGULE);
-+        add(0.3F, Items.BEETROOT_SEEDS);
-+        add(0.3F, Items.DRIED_KELP);
-+        add(0.3F, Items.SHORT_GRASS);
-+        add(0.3F, Items.KELP);
-+        add(0.3F, Items.MELON_SEEDS);
-+        add(0.3F, Items.PUMPKIN_SEEDS);
-+        add(0.3F, Items.SEAGRASS);
-+        add(0.3F, Items.SWEET_BERRIES);
-+        add(0.3F, Items.GLOW_BERRIES);
-+        add(0.3F, Items.WHEAT_SEEDS);
-+        add(0.3F, Items.MOSS_CARPET);
-+        add(0.3F, Items.PALE_MOSS_CARPET);
-+        add(0.3F, Items.PALE_HANGING_MOSS);
-+        add(0.3F, Items.PINK_PETALS);
-+        add(0.3F, Items.WILDFLOWERS);
-+        add(0.3F, Items.LEAF_LITTER);
-+        add(0.3F, Items.SMALL_DRIPLEAF);
-+        add(0.3F, Items.HANGING_ROOTS);
-+        add(0.3F, Items.MANGROVE_ROOTS);
-+        add(0.3F, Items.TORCHFLOWER_SEEDS);
-+        add(0.3F, Items.PITCHER_POD);
-+        add(0.3F, Items.FIREFLY_BUSH);
-+        add(0.3F, Items.BUSH);
-+        add(0.3F, Items.CACTUS_FLOWER);
-+        add(0.3F, Items.DRY_SHORT_GRASS);
-+        add(0.3F, Items.DRY_TALL_GRASS);
-+        add(0.5F, Items.DRIED_KELP_BLOCK);
-+        add(0.5F, Items.TALL_GRASS);
-+        add(0.5F, Items.FLOWERING_AZALEA_LEAVES);
-+        add(0.5F, Items.CACTUS);
-+        add(0.5F, Items.SUGAR_CANE);
-+        add(0.5F, Items.VINE);
-+        add(0.5F, Items.NETHER_SPROUTS);
-+        add(0.5F, Items.WEEPING_VINES);
-+        add(0.5F, Items.TWISTING_VINES);
-+        add(0.5F, Items.MELON_SLICE);
-+        add(0.5F, Items.GLOW_LICHEN);
-+        add(0.65F, Items.SEA_PICKLE);
-+        add(0.65F, Items.LILY_PAD);
-+        add(0.65F, Items.PUMPKIN);
-+        add(0.65F, Items.CARVED_PUMPKIN);
-+        add(0.65F, Items.MELON);
-+        add(0.65F, Items.APPLE);
-+        add(0.65F, Items.BEETROOT);
-+        add(0.65F, Items.CARROT);
-+        add(0.65F, Items.COCOA_BEANS);
-+        add(0.65F, Items.POTATO);
-+        add(0.65F, Items.WHEAT);
-+        add(0.65F, Items.BROWN_MUSHROOM);
-+        add(0.65F, Items.RED_MUSHROOM);
-+        add(0.65F, Items.MUSHROOM_STEM);
-+        add(0.65F, Items.CRIMSON_FUNGUS);
-+        add(0.65F, Items.WARPED_FUNGUS);
-+        add(0.65F, Items.NETHER_WART);
-+        add(0.65F, Items.CRIMSON_ROOTS);
-+        add(0.65F, Items.WARPED_ROOTS);
-+        add(0.65F, Items.SHROOMLIGHT);
-+        add(0.65F, Items.DANDELION);
-+        add(0.65F, Items.POPPY);
-+        add(0.65F, Items.BLUE_ORCHID);
-+        add(0.65F, Items.ALLIUM);
-+        add(0.65F, Items.AZURE_BLUET);
-+        add(0.65F, Items.RED_TULIP);
-+        add(0.65F, Items.ORANGE_TULIP);
-+        add(0.65F, Items.WHITE_TULIP);
-+        add(0.65F, Items.PINK_TULIP);
-+        add(0.65F, Items.OXEYE_DAISY);
-+        add(0.65F, Items.CORNFLOWER);
-+        add(0.65F, Items.LILY_OF_THE_VALLEY);
-+        add(0.65F, Items.WITHER_ROSE);
-+        add(0.65F, Items.OPEN_EYEBLOSSOM);
-+        add(0.65F, Items.CLOSED_EYEBLOSSOM);
-+        add(0.65F, Items.FERN);
-+        add(0.65F, Items.SUNFLOWER);
-+        add(0.65F, Items.LILAC);
-+        add(0.65F, Items.ROSE_BUSH);
-+        add(0.65F, Items.PEONY);
-+        add(0.65F, Items.LARGE_FERN);
-+        add(0.65F, Items.SPORE_BLOSSOM);
-+        add(0.65F, Items.AZALEA);
-+        add(0.65F, Items.MOSS_BLOCK);
-+        add(0.65F, Items.PALE_MOSS_BLOCK);
-+        add(0.65F, Items.BIG_DRIPLEAF);
-+        add(0.85F, Items.HAY_BLOCK);
-+        add(0.85F, Items.BROWN_MUSHROOM_BLOCK);
-+        add(0.85F, Items.RED_MUSHROOM_BLOCK);
-+        add(0.85F, Items.NETHER_WART_BLOCK);
-+        add(0.85F, Items.WARPED_WART_BLOCK);
-+        add(0.85F, Items.FLOWERING_AZALEA);
-+        add(0.85F, Items.BREAD);
-+        add(0.85F, Items.BAKED_POTATO);
-+        add(0.85F, Items.COOKIE);
-+        add(0.85F, Items.TORCHFLOWER);
-+        add(0.85F, Items.PITCHER_PLANT);
-+        add(1.0F, Items.CAKE);
-+        add(1.0F, Items.PUMPKIN_PIE);
-+    }
-+
-+    private static void add(float value, ItemLike item) {
-+        COMPOSTABLES.put(item.asItem(), value);
-+    }
-+
-     public ComposterBlock(BlockBehaviour.Properties properties) {
-         super(properties);
-         this.registerDefaultState(this.stateDefinition.any().setValue(LEVEL, 0));
 @@ -111,6 +_,15 @@
          if (state.getValue(LEVEL) == 7) {
              level.scheduleTick(pos, state.getBlock(), 20);
@@ -453,7 +271,7 @@
          }
  
          @Override
-@@ -342,8 +_,21 @@
+@@ -342,8 +_,15 @@
  
          @Override
          public void setChanged() {
@@ -469,11 +287,5 @@
 +            }
 +            // CraftBukkit end
          }
-+    }
-+
-+    public static float getValue(ItemStack item) {
-+        var value = item.getData(net.neoforged.neoforge.registries.datamaps.builtin.NeoForgeDataMaps.COMPOSTABLES);
-+        if (value != null) return value.chance();
-+        return -1f;
      }
  }

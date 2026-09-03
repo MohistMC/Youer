@@ -1,284 +1,209 @@
 --- a/net/minecraft/world/entity/EntityFluidInteraction.java
 +++ b/net/minecraft/world/entity/EntityFluidInteraction.java
-@@ -1,15 +_,12 @@
- package net.minecraft.world.entity;
- 
- import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
--import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
--import it.unimi.dsi.fastutil.objects.Reference2ObjectMaps;
--import it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry;
--import java.util.ArrayList;
--import java.util.List;
-+import java.util.Map;
- import java.util.Set;
-+import java.util.Map.Entry;
- import net.minecraft.core.BlockPos;
--import net.minecraft.core.Holder;
- import net.minecraft.core.SectionPos;
-+import net.minecraft.tags.FluidTags;
- import net.minecraft.tags.TagKey;
- import net.minecraft.util.Mth;
- import net.minecraft.world.entity.player.Player;
-@@ -25,82 +_,76 @@
- import org.jspecify.annotations.Nullable;
+@@ -26,17 +_,18 @@
  
  public class EntityFluidInteraction {
--    private final List<EntityFluidInteraction.Tracker> fluidTrackers = new ArrayList<>();
+     private final List<EntityFluidInteraction.Tracker> fluidTrackers = new ArrayList<>();
 -    private final Reference2ObjectMap<TagKey<Fluid>, EntityFluidInteraction.CurrentAccumulator> currentAccumulators = new Reference2ObjectArrayMap<>();
-+    private final Map<TagKey<Fluid>, EntityFluidInteraction.Tracker> trackerByFluid = new Reference2ObjectArrayMap<>();
++    private final Reference2ObjectMap<net.neoforged.neoforge.fluids.FluidType, EntityFluidInteraction.CurrentAccumulator> currentAccumulators = new Reference2ObjectArrayMap<>();
  
--    public EntityFluidInteraction(Set<TagKey<Fluid>> fluidsWithCurrent) {
--        for (TagKey<Fluid> fluid : fluidsWithCurrent) {
+     public EntityFluidInteraction(Set<TagKey<Fluid>> fluidsWithCurrent) {
+         for (TagKey<Fluid> fluid : fluidsWithCurrent) {
 -            this.currentAccumulators.put(fluid, new EntityFluidInteraction.CurrentAccumulator());
-+    public EntityFluidInteraction(Set<TagKey<Fluid>> fluids) {
-+        for (TagKey<Fluid> fluid : fluids) {
-+            this.trackerByFluid.put(fluid, new EntityFluidInteraction.Tracker());
++            // Neo: Handle tracked fluids more generically
++            //this.currentAccumulators.put(fluid, new EntityFluidInteraction.CurrentAccumulator());
          }
      }
  
--    public boolean update(Entity entity, boolean ignoreCurrent) {
--        this.fluidTrackers.removeIf(EntityFluidInteraction.Tracker::reset);
+     public boolean update(Entity entity, boolean ignoreCurrent) {
+         this.fluidTrackers.removeIf(EntityFluidInteraction.Tracker::reset);
 -        this.currentAccumulators.values().forEach(EntityFluidInteraction.CurrentAccumulator::reset);
-+    public void update(Entity entity, boolean ignoreCurrent) {
-+        this.trackerByFluid.values().forEach(EntityFluidInteraction.Tracker::reset);
++        this.currentAccumulators.values().removeIf(EntityFluidInteraction.CurrentAccumulator::resetAndCheckUnused);
          AABB box = entity.getFluidInteractionBox();
--        if (box == null) {
--            return false;
--        }
--
--        int x0 = Mth.floor(box.minX);
--        int y0 = Mth.floor(box.minY);
--        int z0 = Mth.floor(box.minZ);
--        int x1 = Mth.ceil(box.maxX) - 1;
--        int y1 = Mth.ceil(box.maxY) - 1;
--        int z1 = Mth.ceil(box.maxZ) - 1;
--        if (!hasFluidAndLoaded(entity.level(), x0 - 1, y0, z0 - 1, x1 + 1, y1, z1 + 1)) {
--            return false;
--        }
--
--        double entityY = entity.getBoundingBox().minY;
--        int eyeBlockX = entity.getBlockX();
--        double eyeY = entity.getEyeY();
--        int eyeBlockZ = entity.getBlockZ();
--        Holder<Fluid> lastFluidType = null;
--        EntityFluidInteraction.Tracker tracker = null;
--        EntityFluidInteraction.CurrentAccumulator current = null;
--        BlockGetter level = entity.level();
--        BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
--
--        for (int x = x0; x <= x1; x++) {
--            for (int y = y0; y <= y1; y++) {
--                for (int z = z0; z <= z1; z++) {
--                    mutablePos.set(x, y, z);
--                    FluidState fluidState = level.getFluidState(mutablePos);
--                    if (!fluidState.isEmpty()) {
--                        double fluidBottom = mutablePos.getY();
--                        double fluidTop = fluidBottom + fluidState.getHeight(level, mutablePos);
--                        if (!(fluidTop < box.minY)) {
--                            Holder<Fluid> fluidType = fluidState.typeHolder();
--                            if (fluidType != lastFluidType) {
--                                lastFluidType = fluidType;
--                                tracker = this.getOrCreateTrackerFor(fluidType);
--                                if (!ignoreCurrent) {
--                                    current = this.getCurrentAccumulatorFor(fluidType);
--                                }
--                            }
--
--                            if (x == eyeBlockX && z == eyeBlockZ && eyeY >= fluidBottom && eyeY <= fluidTop) {
--                                tracker.eyesInside = true;
--                            }
--
--                            tracker.height = Math.max(fluidTop - entityY, tracker.height);
--                            if (current != null) {
--                                Vec3 flow = fluidState.getFlow(level, mutablePos);
--                                current.height = Math.max(tracker.height, current.height);
--                                if (current.height < 0.4) {
--                                    flow = flow.scale(current.height);
--                                }
--
--                                current.accumulate(flow);
-+        if (box != null) {
-+            int x0 = Mth.floor(box.minX);
-+            int y0 = Mth.floor(box.minY);
-+            int z0 = Mth.floor(box.minZ);
-+            int x1 = Mth.ceil(box.maxX) - 1;
-+            int y1 = Mth.ceil(box.maxY) - 1;
-+            int z1 = Mth.ceil(box.maxZ) - 1;
-+            if (hasFluidAndLoaded(entity.level(), x0 - 1, y0, z0 - 1, x1 + 1, y1, z1 + 1)) {
-+                double entityY = entity.getBoundingBox().minY;
-+                int eyeBlockX = entity.getBlockX();
-+                double eyeY = entity.getEyeY();
-+                int eyeBlockZ = entity.getBlockZ();
-+                Fluid lastFluidType = null;
-+                EntityFluidInteraction.Tracker tracker = null;
-+                BlockGetter level = entity.level();
-+                BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
-+
-+                for (int x = x0; x <= x1; x++) {
-+                    for (int y = y0; y <= y1; y++) {
-+                        for (int z = z0; z <= z1; z++) {
-+                            mutablePos.set(x, y, z);
-+                            FluidState fluidState = level.getFluidState(mutablePos);
-+                            if (!fluidState.isEmpty()) {
-+                                double fluidBottom = mutablePos.getY();
-+                                double fluidTop = fluidBottom + fluidState.getHeight(level, mutablePos);
-+                                if (!(fluidTop < box.minY)) {
-+                                    Fluid fluidType = fluidState.getType();
-+                                    if (fluidType != lastFluidType) {
-+                                        lastFluidType = fluidType;
-+                                        tracker = this.getTrackerFor(fluidType);
-+                                    }
-+
-+                                    if (tracker != null) {
-+                                        if (x == eyeBlockX && z == eyeBlockZ && eyeY >= fluidBottom && eyeY <= fluidTop) {
-+                                            tracker.eyesInside = true;
-+                                        }
-+
-+                                        tracker.height = Math.max(fluidTop - entityY, tracker.height);
-+                                        if (!ignoreCurrent) {
-+                                            Vec3 flow = fluidState.getFlow(level, mutablePos);
-+                                            if (tracker.height < 0.4) {
-+                                                flow = flow.scale(tracker.height);
-+                                            }
-+
-+                                            tracker.accumulateCurrent(flow);
-+                                        }
-+                                    }
-+                                    // CraftBukkit start - store last lava contact location
-+                                    if (fluidType.is(FluidTags.LAVA)) {
-+                                        entity.lastLavaContact = mutablePos.immutable();
-+                                    }
-+                                    // CraftBukkit end
-+                                }
-                             }
-                         }
-                     }
-                 }
-             }
-         }
--
--        return lastFluidType != null;
+         if (box == null) {
+             return false;
+@@ -86,6 +_,7 @@
+ 
+                             tracker.height = Math.max(fluidTop - entityY, tracker.height);
+                             if (current != null) {
++                                current.idleTicks = 0; // Neo: reset idle counter
+                                 Vec3 flow = fluidState.getFlow(level, mutablePos);
+                                 current.height = Math.max(tracker.height, current.height);
+                                 if (current.height < 0.4) {
+@@ -145,23 +_,39 @@
+         return tracker;
      }
  
-     private static boolean hasFluidAndLoaded(Level level, int x0, int y0, int z0, int x1, int y1, int z1) {
-@@ -133,21 +_,10 @@
-         return hasFluid;
-     }
- 
--    private EntityFluidInteraction.Tracker getOrCreateTrackerFor(Holder<Fluid> fluidType) {
--        for (EntityFluidInteraction.Tracker tracker : this.fluidTrackers) {
--            if (tracker.fluidType.equals(fluidType)) {
--                return tracker;
--            }
--        }
--
--        EntityFluidInteraction.Tracker tracker = new EntityFluidInteraction.Tracker(fluidType);
--        this.fluidTrackers.add(tracker);
--        return tracker;
--    }
--
--    private EntityFluidInteraction.@Nullable CurrentAccumulator getCurrentAccumulatorFor(Holder<Fluid> fluid) {
++    /// @deprecated Neo: use [#getCurrentAccumulatorFor(net.neoforged.neoforge.fluids.FluidType)] instead
++    @Deprecated
+     private EntityFluidInteraction.@Nullable CurrentAccumulator getCurrentAccumulatorFor(Holder<Fluid> fluid) {
 -        for (Entry<TagKey<Fluid>, EntityFluidInteraction.CurrentAccumulator> entry : Reference2ObjectMaps.fastIterable(this.currentAccumulators)) {
 -            if (fluid.is(entry.getKey())) {
-+    private EntityFluidInteraction.@Nullable Tracker getTrackerFor(Fluid fluid) {
-+        for (Entry<TagKey<Fluid>, EntityFluidInteraction.Tracker> entry : this.trackerByFluid.entrySet()) {
-+            TagKey<Fluid> tag = entry.getKey();
-+            if (fluid.is(tag)) {
-                 return entry.getValue();
-             }
-         }
-@@ -156,22 +_,15 @@
-     }
- 
+-                return entry.getValue();
+-            }
+-        }
+-
+-        return null;
+-    }
+-
++        return this.getCurrentAccumulatorFor(fluid.value().getFluidType());
++    }
++
++    private EntityFluidInteraction.CurrentAccumulator getCurrentAccumulatorFor(net.neoforged.neoforge.fluids.FluidType fluid) {
++        return this.currentAccumulators.computeIfAbsent(fluid, _ -> new CurrentAccumulator());
++    }
++
++    /// @deprecated Neo: use [#applyCurrentTo(net.neoforged.neoforge.fluids.FluidType, Entity, double)] instead
++    @Deprecated
      public void applyCurrentTo(TagKey<Fluid> fluid, Entity entity, double scale) {
--        EntityFluidInteraction.CurrentAccumulator current = this.currentAccumulators.get(fluid);
--        if (current != null) {
--            current.applyTo(entity, scale);
-+        EntityFluidInteraction.Tracker tracker = this.trackerByFluid.get(fluid);
-+        if (tracker != null) {
-+            tracker.applyCurrentTo(entity, scale);
++        this.applyCurrentTo(getFluidTypeByTag(fluid), entity, scale);
++    }
++
++    public void applyCurrentTo(net.neoforged.neoforge.fluids.FluidType fluid, Entity entity, double scale) {
+         EntityFluidInteraction.CurrentAccumulator current = this.currentAccumulators.get(fluid);
+         if (current != null) {
+             current.applyTo(entity, scale);
          }
      }
  
++    public void applyCurrentTo(Entity entity) {
++        for (var entry : this.currentAccumulators.entrySet()) {
++            if (entry.getValue().height > 0D) {
++                entry.getValue().applyTo(entity, entity.getFluidMotionScale(entry.getKey()));
++            }
++        }
++    }
++
++    /// @deprecated Neo: use [#getFluidHeight(net.neoforged.neoforge.fluids.FluidType)] instead
++    @Deprecated
      public double getFluidHeight(TagKey<Fluid> fluid) {
--        double height = 0.0;
--
--        for (EntityFluidInteraction.Tracker tracker : this.fluidTrackers) {
--            if (tracker.height > height && tracker.fluidType.is(fluid)) {
--                height = tracker.height;
--            }
--        }
--
--        return height;
-+        EntityFluidInteraction.Tracker tracker = this.trackerByFluid.get(fluid);
-+        return tracker != null ? tracker.height : 0.0;
+         double height = 0.0;
+ 
+@@ -174,10 +_,70 @@
+         return height;
      }
  
++    public double getFluidHeight(net.neoforged.neoforge.fluids.FluidType fluid) {
++        double height = 0.0;
++
++        for (EntityFluidInteraction.Tracker tracker : this.fluidTrackers) {
++            if (tracker.height > height && tracker.fluidType.value().getFluidType() == fluid) {
++                height = tracker.height;
++            }
++        }
++
++        return height;
++    }
++
++    public <E extends Entity> double getMaxFluidHeightMatching(E entity, net.neoforged.neoforge.fluids.InFluidPredicate<E> predicate) {
++        double maxHeight = 0D;
++        for (Tracker tracker : this.fluidTrackers) {
++            if (tracker.height > maxHeight && predicate.test(entity, tracker.fluidType.value().getFluidType(), tracker.height)) {
++                maxHeight = tracker.height;
++            }
++        }
++        return maxHeight;
++    }
++
++    public net.neoforged.neoforge.fluids.FluidType getMaxHeightFluidType() {
++        double maxHeight = 0D;
++        var maxHeightType = net.neoforged.neoforge.common.NeoForgeMod.EMPTY_TYPE.value();
++        for (Tracker tracker : this.fluidTrackers) {
++            if (tracker.height > maxHeight) {
++                maxHeight = tracker.height;
++                maxHeightType = tracker.fluidType.value().getFluidType();
++            }
++        }
++        return maxHeightType;
++    }
++
++    /// @deprecated Neo: use [#isInFluid(net.neoforged.neoforge.fluids.FluidType)] instead
++    @Deprecated
      public boolean isInFluid(TagKey<Fluid> fluid) {
-@@ -179,32 +_,29 @@
+         return this.getFluidHeight(fluid) > 0.0;
      }
  
++    public boolean isInFluid(net.neoforged.neoforge.fluids.FluidType fluid) {
++        return this.getFluidHeight(fluid) > 0.0;
++    }
++
++    public boolean isInAnyFluid() {
++        for (Tracker tracker : this.fluidTrackers) {
++            if (tracker.height > 0D) {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    public <E extends Entity> boolean isInFluidMatching(E entity, net.neoforged.neoforge.fluids.InFluidPredicate<E> predicate) {
++        for (Tracker tracker : this.fluidTrackers) {
++            if (tracker.height > 0D && predicate.test(entity, tracker.fluidType.value().getFluidType(), tracker.height)) {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    /// @deprecated Neo: use [#isEyeInFluid(net.neoforged.neoforge.fluids.FluidType)] instead
++    @Deprecated
      public boolean isEyeInFluid(TagKey<Fluid> fluid) {
--        for (EntityFluidInteraction.Tracker tracker : this.fluidTrackers) {
--            if (tracker.eyesInside && tracker.fluidType.is(fluid)) {
--                return true;
--            }
--        }
--
--        return false;
-+        EntityFluidInteraction.Tracker tracker = this.trackerByFluid.get(fluid);
-+        return tracker != null && tracker.eyesInside;
+         for (EntityFluidInteraction.Tracker tracker : this.fluidTrackers) {
+             if (tracker.eyesInside && tracker.fluidType.is(fluid)) {
+@@ -188,10 +_,56 @@
+         return false;
      }
  
--    private static class CurrentAccumulator {
-+    private static class Tracker {
++    public boolean isEyeInFluid(net.neoforged.neoforge.fluids.FluidType fluid) {
++        for (EntityFluidInteraction.Tracker tracker : this.fluidTrackers) {
++            if (tracker.eyesInside && tracker.fluidType.value().getFluidType() == fluid) {
++                return true;
++            }
++        }
++
++        return false;
++    }
++
++    public <E extends Entity> boolean isEyeInFluidMatching(E entity, net.neoforged.neoforge.fluids.InFluidPredicate<E> predicate) {
++        for (Tracker tracker : this.fluidTrackers) {
++            if (tracker.eyesInside && predicate.test(entity, tracker.fluidType.value().getFluidType(), tracker.height)) {
++                return true;
++            }
++        }
++        return false;
++    }
++
++    public net.neoforged.neoforge.fluids.FluidType getFirstEyeInFluid() {
++        for (Tracker tracker : this.fluidTrackers) {
++            if (tracker.eyesInside) {
++                return tracker.fluidType.value().getFluidType();
++            }
++        }
++        return net.neoforged.neoforge.common.NeoForgeMod.EMPTY_TYPE.value();
++    }
++
++    static net.neoforged.neoforge.fluids.FluidType getFluidTypeByTag(TagKey<Fluid> fluidTag) {
++        if (fluidTag == net.minecraft.tags.FluidTags.WATER) {
++            return net.neoforged.neoforge.common.NeoForgeMod.WATER_TYPE.value();
++        } else if (fluidTag == net.minecraft.tags.FluidTags.LAVA) {
++            return net.neoforged.neoforge.common.NeoForgeMod.LAVA_TYPE.value();
++        } else {
++            throw new IllegalArgumentException("Cannot look up tracker by tag for non-vanilla fluid: " + fluidTag);
++        }
++    }
++
+     private static class CurrentAccumulator {
          private double height;
-+        private boolean eyesInside;
          private Vec3 accumulatedCurrent = Vec3.ZERO;
          private int currentCount;
++        // Neo: used to GC unused trackers
++        private int idleTicks = 0;
++
++        public boolean resetAndCheckUnused() {
++            this.reset();
++            this.idleTicks++;
++            return this.idleTicks > 20;
++        }
  
          public void reset() {
              this.height = 0.0;
-+            this.eyesInside = false;
-             this.accumulatedCurrent = Vec3.ZERO;
-             this.currentCount = 0;
-         }
- 
--        public void accumulate(Vec3 flow) {
-+        public void accumulateCurrent(Vec3 flow) {
-             this.accumulatedCurrent = this.accumulatedCurrent.add(flow);
-             this.currentCount++;
-         }
- 
--        public void applyTo(Entity entity, double scale) {
-+        public void applyCurrentTo(Entity entity, double scale) {
-             if (this.currentCount != 0 && !(this.accumulatedCurrent.lengthSqr() < 1.0E-5F)) {
-                 Vec3 impulse;
-                 if (!(entity instanceof Player)) {
-@@ -222,26 +_,6 @@
- 
-                 entity.addDeltaMovement(impulse);
-             }
--        }
--    }
--
--    private static class Tracker {
--        private final Holder<Fluid> fluidType;
--        private double height;
--        private boolean eyesInside;
--
--        public Tracker(Holder<Fluid> fluidType) {
--            this.fluidType = fluidType;
--        }
--
--        public boolean reset() {
--            if (this.height == 0.0 && !this.eyesInside) {
--                return true;
--            }
--
--            this.height = 0.0;
--            this.eyesInside = false;
--            return false;
-         }
-     }
- }

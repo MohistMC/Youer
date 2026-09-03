@@ -1,11 +1,7 @@
 --- a/net/minecraft/world/level/block/SaplingBlock.java
 +++ b/net/minecraft/world/level/block/SaplingBlock.java
-@@ -17,10 +_,9 @@
- 
- public class SaplingBlock extends VegetationBlock implements BonemealableBlock {
-     public static final IntegerProperty STAGE = BlockStateProperties.STAGE;
--    public static final int BRIGHTNESS_FOR_SAPLING_GROWTH = 9;
--    public static final int TICK_CHANCE_FOR_SAPLING_GROWTH = 7;
+@@ -21,6 +_,7 @@
+     public static final int TICK_CHANCE_FOR_SAPLING_GROWTH = 7;
      private static final VoxelShape SHAPE = Block.column(12.0, 0.0, 12.0);
      protected final TreeGrower treeGrower;
 +    public static org.bukkit.@org.jspecify.annotations.Nullable TreeType treeType; // CraftBukkit
@@ -22,19 +18,11 @@
              this.advanceTree(level, pos, state, random);
          }
      }
-@@ -44,17 +_,46 @@
+@@ -44,7 +_,40 @@
          if (state.getValue(STAGE) == 0) {
              level.setBlock(pos, state.cycle(STAGE), 260);
          } else {
 -            this.treeGrower.growTree(level, level.getChunkSource().getGenerator(), pos, state, random);
--        }
--    }
--
--    @Override
--    public boolean isValidBonemealTarget(LevelReader level, BlockPos pos, BlockState state, BonemealSource source) {
--        if (level instanceof ServerLevel serverLevel) {
--            if (!this.treeGrower.canGrow(serverLevel, pos, state)) {
--                return false;
 +            // CraftBukkit start
 +            if (level.captureTreeGeneration) {
 +                this.treeGrower.growTree(level, level.getChunkSource().getGenerator(), pos, state, random);
@@ -67,29 +55,8 @@
 +                        }
 +                    }
 +                }
-             }
++            }
 +            // CraftBukkit end
-+        }
-+    }
- 
-+    @Override
-+    public boolean isValidBonemealTarget(LevelReader level, BlockPos pos, BlockState state) {
-+        if (level instanceof ServerLevel serverLevel) {
-             int heightOffset = this.treeGrower.getMinimumHeight(serverLevel).orElse(0);
-             return level.isInsideBuildHeight(pos.above(heightOffset));
-         } else {
-@@ -63,12 +_,12 @@
-     }
- 
-     @Override
--    public boolean isBonemealSuccess(Level level, RandomSource random, BlockPos pos, BlockState state, BonemealSource source) {
-+    public boolean isBonemealSuccess(Level level, RandomSource random, BlockPos pos, BlockState state) {
-         return level.getRandom().nextFloat() < 0.45;
-     }
- 
-     @Override
--    public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state, BonemealSource source) {
-+    public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state) {
-         this.advanceTree(level, pos, state, random);
+         }
      }
  

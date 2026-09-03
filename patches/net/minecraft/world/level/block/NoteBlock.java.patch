@@ -44,19 +44,17 @@
              level.blockEvent(pos, this, 0, 0);
              level.gameEvent(source, GameEvent.NOTE_BLOCK_PLAY, pos);
          }
-@@ -108,8 +_,10 @@
+@@ -108,7 +_,9 @@
      @Override
      protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
          if (!level.isClientSide()) {
 -            state = state.cycle(NOTE);
--            level.setBlockAndUpdate(pos, state);
 +            int _new = net.neoforged.neoforge.common.CommonHooks.onNoteChange(level, pos, state, state.getValue(NOTE), state.cycle(NOTE).getValue(NOTE));
 +            if (_new == -1) return InteractionResult.FAIL;
 +            if (!io.papermc.paper.configuration.GlobalConfiguration.get().blockUpdates.disableNoteblockUpdates) state = state.setValue(NOTE, _new); // Paper - prevent noteblock note from updating
-+            level.setBlock(pos, state, 3);
+             level.setBlockAndUpdate(pos, state);
              this.playNote(player, state, level, pos);
              player.awardStat(Stats.TUNE_NOTEBLOCK);
-         }
 @@ -131,10 +_,17 @@
  
      @Override

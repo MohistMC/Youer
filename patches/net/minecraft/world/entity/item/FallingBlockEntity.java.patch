@@ -1,13 +1,5 @@
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -27,7 +_,6 @@
- import net.minecraft.world.entity.EntitySelector;
- import net.minecraft.world.entity.EntityType;
- import net.minecraft.world.entity.EntityTypes;
--import net.minecraft.world.entity.MoveSimulationType;
- import net.minecraft.world.entity.MoverType;
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.item.context.DirectionalPlaceContext;
 @@ -52,6 +_,8 @@
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.HitResult;
@@ -42,11 +34,10 @@
              pos.getZ() + 0.5,
              state.hasProperty(BlockStateProperties.WATERLOGGED) ? state.setValue(BlockStateProperties.WATERLOGGED, false) : state
          );
--        level.setBlockAndUpdate(pos, state.getFluidState().createLegacyBlock());
--        level.addFreshEntity(entity);
 +        if (!CraftEventFactory.callEntityChangeBlockEvent(entity, pos, state.getFluidState().createLegacyBlock())) return entity; // CraftBukkit
 +
-+        level.setBlock(pos, state.getFluidState().createLegacyBlock(), 3);
+         level.setBlockAndUpdate(pos, state.getFluidState().createLegacyBlock());
+-        level.addFreshEntity(entity);
 +        level.addFreshEntity(entity, spawnReason); // CraftBukkit
          return entity;
      }
@@ -129,17 +120,7 @@
                                      if (block instanceof Fallable fallable) {
                                          fallable.onLand(this.level(), pos, this.blockState, currentState, this);
                                      }
-@@ -218,35 +_,37 @@
-                                                 CompoundTag merged = output.buildResult();
-                                                 this.blockData.forEach((name, tag) -> merged.put(name, tag.copy()));
-                                                 blockEntity.loadWithComponents(TagValueInput.create(reporter, registryAccess, merged));
--                                            } catch (Exception e) {
--                                                LOGGER.error("Failed to load block entity from falling block", e);
-+                                            } catch (Exception var19) {
-+                                                LOGGER.error("Failed to load block entity from falling block", (Throwable)var19);
-                                             }
- 
-                                             blockEntity.setChanged();
+@@ -226,19 +_,19 @@
                                          }
                                      }
                                  } else if (this.dropItem && serverLevel.getGameRules().get(GameRules.ENTITY_DROPS)) {
@@ -162,12 +143,10 @@
                              this.callOnBrokenAfterFall(block, pos);
                          }
                      }
-                 }
-             }
+@@ -247,6 +_,9 @@
  
--            this.setDeltaMovement(this.getDeltaMovement().scale(this.getAirDrag()));
--            this.setRequiresPrecisePosition(this.horizontalCollision || this.verticalCollision);
-+            this.setDeltaMovement(this.getDeltaMovement().scale(0.98));
+             this.setDeltaMovement(this.getDeltaMovement().scale(this.getAirDrag()));
+             this.setRequiresPrecisePosition(this.horizontalCollision || this.verticalCollision);
 +            if (isAlive() && block instanceof net.neoforged.neoforge.common.extensions.IFallableExtension feblock) {
 +                feblock.fallingTick(level(), blockPosition(), this);
 +            }
@@ -193,17 +172,12 @@
      }
  
      public void setHurtsEntities(float damagePerDistance, int damageMax) {
-@@ -367,12 +_,7 @@
+@@ -367,7 +_,7 @@
          ResourceKey<Level> oldDimension = this.level().dimension();
          boolean fromOrToEnd = (oldDimension == Level.END || newDimension == Level.END) && oldDimension != newDimension;
          Entity newEntity = super.teleport(transition);
 -        this.forceTickAfterTeleportToDuplicate = newEntity != null && fromOrToEnd;
 +        this.forceTickAfterTeleportToDuplicate = newEntity != null && fromOrToEnd && io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowUnsafeEndPortalTeleportation; // Paper
          return newEntity;
--    }
--
--    @Override
--    public MoveSimulationType getMoveSimulationType() {
--        return MoveSimulationType.SERVER_AND_CLIENT;
      }
- }
+ 

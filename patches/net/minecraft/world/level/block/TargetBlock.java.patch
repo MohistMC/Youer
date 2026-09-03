@@ -42,31 +42,28 @@
          return redstoneStrength;
      }
  
-@@ -70,14 +_,25 @@
+@@ -70,6 +_,11 @@
      }
  
      private static void setOutputPower(LevelAccessor level, BlockState state, int outputStrength, BlockPos pos, int duration) {
--        level.setBlockAndUpdate(pos, state.setValue(OUTPUT_POWER, outputStrength));
 +        // Paper start - Call BlockRedstoneEvent
 +        if (state.getValue(OUTPUT_POWER) != outputStrength) {
 +            outputStrength = org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(level, pos, state.getValue(OUTPUT_POWER), outputStrength).getNewCurrent();
 +        }
 +        // Paper end - Call BlockRedstoneEvent
-+        level.setBlock(pos, state.setValue(OUTPUT_POWER, outputStrength), 3);
+         level.setBlockAndUpdate(pos, state.setValue(OUTPUT_POWER, outputStrength));
          level.scheduleTick(pos, state.getBlock(), duration);
      }
- 
+@@ -77,6 +_,12 @@
      @Override
      protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
          if (state.getValue(OUTPUT_POWER) != 0) {
--            level.setBlockAndUpdate(pos, state.setValue(OUTPUT_POWER, 0));
 +            // Paper start - Call BlockRedstoneEvent
 +            org.bukkit.event.block.BlockRedstoneEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callRedstoneChange(level, pos, state.getValue(OUTPUT_POWER), 0);
 +            if (event.getNewCurrent() > 0) {
 +                return;
 +            }
 +            // Paper end - Call BlockRedstoneEvent
-+            level.setBlock(pos, state.setValue(OUTPUT_POWER, 0), 3);
+             level.setBlockAndUpdate(pos, state.setValue(OUTPUT_POWER, 0));
          }
      }
- 

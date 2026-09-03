@@ -1,13 +1,5 @@
 --- a/net/minecraft/world/level/block/BaseFireBlock.java
 +++ b/net/minecraft/world/level/block/BaseFireBlock.java
-@@ -20,7 +_,6 @@
- import net.minecraft.world.level.portal.PortalShape;
- import net.minecraft.world.phys.shapes.CollisionContext;
- import net.minecraft.world.phys.shapes.VoxelShape;
--import org.jspecify.annotations.Nullable;
- 
- public abstract class BaseFireBlock extends Block {
-     private static final int SECONDS_ON_FIRE = 8;
 @@ -126,12 +_,13 @@
  
      @Override
@@ -23,7 +15,7 @@
          if (!entity.fireImmune()) {
              if (entity.getRemainingFireTicks() < 0) {
                  entity.setRemainingFireTicks(entity.getRemainingFireTicks() + 1);
-@@ -141,34 +_,46 @@
+@@ -141,30 +_,42 @@
              }
  
              if (entity.getRemainingFireTicks() >= 0) {
@@ -71,15 +63,11 @@
      }
  
      @Override
--    public void spawnDestroyByEntityParticles(Level level, @Nullable Entity entity, BlockPos pos, BlockState state) {
-+    protected void spawnDestroyParticles(Level level, Player player, BlockPos pos, BlockState state) {
-     }
+@@ -179,6 +_,14 @@
  
-     @Override
-@@ -180,6 +_,14 @@
          return super.playerWillDestroy(level, pos, state, player);
      }
- 
++
 +    // CraftBukkit start
 +    protected void fireExtinguished(net.minecraft.world.level.LevelAccessor world, BlockPos position) {
 +        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, position, Blocks.AIR.defaultBlockState()).isCancelled()) {
@@ -87,37 +75,6 @@
 +        }
 +    }
 +    // CraftBukkit end
-+
+ 
      public static boolean canBePlacedAt(Level level, BlockPos pos, Direction forwardDirection) {
          BlockState state = level.getBlockState(pos);
-         return !state.isAir() ? false : getState(level, pos).canSurvive(level, pos) || isPortal(level, pos, forwardDirection);
-@@ -191,17 +_,22 @@
-         }
- 
-         BlockPos.MutableBlockPos testPos = pos.mutable();
-+        boolean hasObsidian = false;
- 
-         for (Direction face : Direction.values()) {
--            BlockState state = level.getBlockState(testPos.set(pos).move(face));
--            if (PortalShape.FRAME.test(state)) {
--                Direction.Axis preferredAxis = forwardDirection.getAxis().isHorizontal()
--                    ? forwardDirection.getCounterClockWise().getAxis()
--                    : Direction.Plane.HORIZONTAL.getRandomAxis(level.getRandom());
--                return PortalShape.findEmptyPortalShape(level, pos, preferredAxis).isPresent();
-+            if (level.getBlockState(testPos.set(pos).move(face)).isPortalFrame(level, testPos)) {
-+                hasObsidian = true;
-+                break;
-             }
-         }
- 
--        return false;
-+        if (!hasObsidian) {
-+            return false;
-+        }
-+
-+        Direction.Axis preferredAxis = forwardDirection.getAxis().isHorizontal()
-+            ? forwardDirection.getCounterClockWise().getAxis()
-+            : Direction.Plane.HORIZONTAL.getRandomAxis(level.getRandom());
-+        return PortalShape.findEmptyPortalShape(level, pos, preferredAxis).isPresent();
-     }
- }

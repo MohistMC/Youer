@@ -55,7 +55,7 @@
              if (BaseRailBlock.isRail(this.level, east.above())) {
                  shape = RailShape.ASCENDING_EAST;
              }
-@@ -201,8 +_,12 @@
+@@ -201,6 +_,10 @@
              shape = RailShape.NORTH_SOUTH;
          }
  
@@ -64,11 +64,8 @@
 +            return;
 +        }
          this.state = this.state.setValue(this.block.getShapeProperty(), shape);
--        this.level.setBlockAndUpdate(this.pos, this.state);
-+        this.level.setBlock(this.pos, this.state, 3);
+         this.level.setBlockAndUpdate(this.pos, this.state);
      }
- 
-     private boolean hasNeighborRail(BlockPos railPos) {
 @@ -303,7 +_,7 @@
              }
          }
@@ -87,7 +84,7 @@
              if (BaseRailBlock.isRail(this.level, east.above())) {
                  shape = RailShape.ASCENDING_EAST;
              }
-@@ -323,18 +_,23 @@
+@@ -323,7 +_,7 @@
              }
          }
  
@@ -96,11 +93,10 @@
              shape = defaultShape;
          }
  
-         this.updateConnections(shape);
+@@ -331,10 +_,15 @@
          this.state = this.state.setValue(this.block.getShapeProperty(), shape);
          if (first || this.level.getBlockState(this.pos) != this.state) {
--            this.level.setBlockAndUpdate(this.pos, this.state);
-+            this.level.setBlock(this.pos, this.state, 3);
+             this.level.setBlockAndUpdate(this.pos, this.state);
 +            // Paper start - Fix some rails connecting improperly
 +            if (!this.isValid()) {
 +                return this;

@@ -1,40 +1,5 @@
 --- a/net/minecraft/world/level/storage/loot/functions/EnchantRandomlyFunction.java
 +++ b/net/minecraft/world/level/storage/loot/functions/EnchantRandomlyFunction.java
-@@ -10,11 +_,11 @@
- import java.util.function.Function;
- import java.util.stream.Stream;
- import net.minecraft.core.Holder;
--import net.minecraft.core.HolderGetter;
-+import net.minecraft.core.HolderLookup;
- import net.minecraft.core.HolderSet;
-+import net.minecraft.core.RegistryCodecs;
- import net.minecraft.core.component.DataComponents;
- import net.minecraft.core.registries.Registries;
--import net.minecraft.core.registries.codec.RegistryCodecs;
- import net.minecraft.tags.EnchantmentTags;
- import net.minecraft.util.Mth;
- import net.minecraft.util.RandomSource;
-@@ -34,7 +_,7 @@
-         i -> commonFields(i)
-             .and(
-                 i.group(
--                    RegistryCodecs.holderSet(Registries.ENCHANTMENT).optionalFieldOf("options").forGetter(f -> f.options),
-+                    RegistryCodecs.homogeneousList(Registries.ENCHANTMENT).optionalFieldOf("options").forGetter(f -> f.options),
-                     Codec.BOOL.optionalFieldOf("only_compatible", true).forGetter(f -> f.onlyCompatible),
-                     Codec.BOOL.optionalFieldOf("include_additional_cost_component", false).forGetter(f -> f.includeAdditionalCostComponent)
-                 )
-@@ -46,9 +_,9 @@
-     private final boolean includeAdditionalCostComponent;
- 
-     private EnchantRandomlyFunction(
--        Optional<Holder<LootItemCondition>> condition, Optional<HolderSet<Enchantment>> options, boolean onlyCompatible, boolean includeAdditionalCostComponent
-+        List<LootItemCondition> predicates, Optional<HolderSet<Enchantment>> options, boolean onlyCompatible, boolean includeAdditionalCostComponent
-     ) {
--        super(condition);
-+        super(predicates);
-         this.options = options;
-         this.onlyCompatible = onlyCompatible;
-         this.includeAdditionalCostComponent = includeAdditionalCostComponent;
 @@ -72,7 +_,7 @@
          Stream<Holder<Enchantment>> compatibleEnchantmentsStream = this.options
              .map(HolderSet::stream)
@@ -44,23 +9,3 @@
          List<Holder<Enchantment>> compatibleEnchantments = compatibleEnchantmentsStream.toList();
          Optional<Holder<Enchantment>> enchantment = Util.getRandomSafe(compatibleEnchantments, random);
          if (enchantment.isEmpty()) {
-@@ -102,8 +_,8 @@
-         return new EnchantRandomlyFunction.Builder();
-     }
- 
--    public static EnchantRandomlyFunction.Builder randomApplicableEnchantment(HolderGetter<Enchantment> enchantments) {
--        return randomEnchantment().withOneOf(enchantments.getOrThrow(EnchantmentTags.ON_RANDOM_LOOT));
-+    public static EnchantRandomlyFunction.Builder randomApplicableEnchantment(HolderLookup.Provider registries) {
-+        return randomEnchantment().withOneOf(registries.lookupOrThrow(Registries.ENCHANTMENT).getOrThrow(EnchantmentTags.ON_RANDOM_LOOT));
-     }
- 
-     public static class Builder extends LootItemConditionalFunction.Builder<EnchantRandomlyFunction.Builder> {
-@@ -142,7 +_,7 @@
- 
-         @Override
-         public LootItemFunction build() {
--            return new EnchantRandomlyFunction(this.getCondition(), this.options, this.onlyCompatible, this.includeAdditionalCostComponent);
-+            return new EnchantRandomlyFunction(this.getConditions(), this.options, this.onlyCompatible, this.includeAdditionalCostComponent);
-         }
-     }
- }

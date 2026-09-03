@@ -1,42 +1,8 @@
 --- a/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/AbstractFurnaceBlockEntity.java
-@@ -6,17 +_,15 @@
- import it.unimi.dsi.fastutil.objects.Reference2IntMap.Entry;
- import java.util.List;
- import java.util.Map;
-+import java.util.Objects;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Direction;
- import net.minecraft.core.NonNullList;
--import net.minecraft.core.component.DataComponents;
- import net.minecraft.resources.ResourceKey;
- import net.minecraft.server.level.ServerLevel;
- import net.minecraft.server.level.ServerPlayer;
--import net.minecraft.tags.ItemTags;
- import net.minecraft.util.Mth;
- import net.minecraft.world.ContainerHelper;
--import net.minecraft.world.Containers;
- import net.minecraft.world.WorldlyContainer;
- import net.minecraft.world.entity.ExperienceOrb;
- import net.minecraft.world.entity.player.Player;
-@@ -28,20 +_,29 @@
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.item.ItemStackTemplate;
- import net.minecraft.world.item.Items;
--import net.minecraft.world.item.component.CookingFuel;
- import net.minecraft.world.item.crafting.AbstractCookingRecipe;
- import net.minecraft.world.item.crafting.Recipe;
- import net.minecraft.world.item.crafting.RecipeHolder;
- import net.minecraft.world.item.crafting.RecipeManager;
- import net.minecraft.world.item.crafting.RecipeType;
- import net.minecraft.world.item.crafting.SingleRecipeInput;
-+import net.minecraft.world.level.Level;
- import net.minecraft.world.level.block.AbstractFurnaceBlock;
- import net.minecraft.world.level.block.state.BlockState;
- import net.minecraft.world.level.storage.ValueInput;
- import net.minecraft.world.level.storage.ValueOutput;
--import net.minecraft.world.level.storage.loot.providers.number.floats.ResolvableFloat;
--import net.minecraft.world.level.storage.loot.providers.number.ints.ResolvableInt;
+@@ -42,6 +_,17 @@
+ import net.minecraft.world.level.storage.loot.providers.number.floats.ResolvableFloat;
+ import net.minecraft.world.level.storage.loot.providers.number.ints.ResolvableInt;
  import net.minecraft.world.phys.Vec3;
 +import org.bukkit.craftbukkit.block.CraftBlock;
 +import org.bukkit.craftbukkit.entity.CraftHumanEntity;
@@ -52,25 +18,15 @@
  import org.jspecify.annotations.Nullable;
  
  public abstract class AbstractFurnaceBlockEntity extends BaseContainerBlockEntity implements WorldlyContainer, StackedContentsCompatible, RecipeCraftingHolder {
-@@ -59,25 +_,28 @@
-     public static final int BURN_TIME_STANDARD = 200;
-     public static final int BURN_COOL_SPEED = 2;
-     private static final Codec<Map<ResourceKey<Recipe<?>>, Integer>> RECIPES_USED_CODEC = Codec.unboundedMap(Recipe.KEY_CODEC, Codec.INT);
--    private static final int DEFAULT_COOKING_TIMER = 0;
--    private static final int DEFAULT_COOKING_TOTAL_TIME = 0;
--    private static final int DEFAULT_LIT_TIME_REMAINING = 0;
--    private static final int DEFAULT_LIT_TOTAL_TIME = 0;
--    private static final float DEFAULT_SPEED_MULTIPLIER = 1.0F;
-+    private static final short DEFAULT_COOKING_TIMER = 0;
-+    private static final short DEFAULT_COOKING_TOTAL_TIME = 0;
-+    private static final short DEFAULT_LIT_TIME_REMAINING = 0;
-+    private static final short DEFAULT_LIT_TOTAL_TIME = 0;
+@@ -67,17 +_,22 @@
      protected NonNullList<ItemStack> items = NonNullList.withSize(3, ItemStack.EMPTY);
      public int litTimeRemaining;
      private int litTotalTime;
-     public int cookingTimer;
-     public int cookingTotalTime;
--    private float speedMultiplier = 1.0F;
+-    public int cookingTimer;
+-    public int cookingTotalTime;
++    private int cookingTimer;
++    private int cookingTotalTime;
+     private float speedMultiplier = 1.0F;
      protected final ContainerData dataAccess = new ContainerData() {
          @Override
          public int get(int dataId) {
@@ -88,7 +44,7 @@
                  case 2:
                      return AbstractFurnaceBlockEntity.this.cookingTimer;
                  case 3:
-@@ -110,37 +_,70 @@
+@@ -110,14 +_,47 @@
          }
      };
      public final Reference2IntOpenHashMap<ResourceKey<Recipe<?>>> recipesUsed = new Reference2IntOpenHashMap<>();
@@ -138,39 +94,14 @@
  
      @Override
      protected void loadAdditional(ValueInput input) {
-         super.loadAdditional(input);
-         this.items = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
-         ContainerHelper.loadAllItems(input, this.items);
--        this.cookingTimer = input.getIntOr("cooking_time_spent", 0);
--        this.cookingTotalTime = input.getIntOr("cooking_total_time", 0);
--        this.litTimeRemaining = input.getIntOr("lit_time_remaining", 0);
--        this.litTotalTime = input.getIntOr("lit_total_time", 0);
--        this.speedMultiplier = input.getFloatOr("speed_multiplier", 1.0F);
-+        this.cookingTimer = input.getShortOr("cooking_time_spent", (short)0);
-+        this.cookingTotalTime = input.getShortOr("cooking_total_time", (short)0);
-+        this.litTimeRemaining = input.getShortOr("lit_time_remaining", (short)0);
-+        this.litTotalTime = input.getShortOr("lit_total_time", (short)0);
+@@ -131,6 +_,7 @@
+         this.speedMultiplier = input.getFloatOr("speed_multiplier", 1.0F);
          this.recipesUsed.clear();
          this.recipesUsed.putAll(input.read("RecipesUsed", RECIPES_USED_CODEC).orElse(Map.of()));
 +        this.cookSpeedMultiplier = input.getDoubleOr("Paper.CookSpeedMultiplier", 1); // Paper - cook speed multiplier API
      }
  
      @Override
-     protected void saveAdditional(ValueOutput output) {
-         super.saveAdditional(output);
--        output.putInt("cooking_time_spent", this.cookingTimer);
--        output.putInt("cooking_total_time", this.cookingTotalTime);
--        output.putInt("lit_time_remaining", this.litTimeRemaining);
--        output.putInt("lit_total_time", this.litTotalTime);
--        output.putFloat("speed_multiplier", this.speedMultiplier);
-+        output.putShort("cooking_time_spent", (short)this.cookingTimer);
-+        output.putShort("cooking_total_time", (short)this.cookingTotalTime);
-+        output.putShort("lit_time_remaining", (short)this.litTimeRemaining);
-+        output.putShort("lit_total_time", (short)this.litTotalTime);
-+        output.putDouble("Paper.CookSpeedMultiplier", this.cookSpeedMultiplier); // Paper - cook speed multiplier API
-         ContainerHelper.saveAllItems(output, this.items);
-         output.store("RecipesUsed", RECIPES_USED_CODEC, this.recipesUsed);
-     }
 @@ -159,6 +_,21 @@
          }
  
@@ -257,7 +188,7 @@
                                  changed = true;
                              }
                          } else {
-@@ -221,22 +_,18 @@
+@@ -221,11 +_,13 @@
          if (changed) {
              setChanged(level, pos, state);
          }
@@ -265,29 +196,14 @@
 +        if (usedLavaFromUnderneath) entity.items.set(1, ItemStack.EMPTY); // Purpur - Furnace uses lava from underneath
      }
  
--    private static void consumeFuel(ServerLevel level, BlockPos pos, NonNullList<ItemStack> items, ItemStack fuel) {
-+    private static void consumeFuel(NonNullList<ItemStack> items, ItemStack fuel) {
+     private static void consumeFuel(ServerLevel level, BlockPos pos, NonNullList<ItemStack> items, ItemStack fuel) {
          Item fuelItem = fuel.getItem();
 -        ItemStackTemplate remainder = fuelItem.getCraftingRemainder();
--        ItemStack newFuel = fuel;
-+        // Neo: Query the crafting remainder prior to stack mutation (shrink) in order to grab the correct value
 +        ItemStackTemplate remainder = fuel.getCraftingRemainder();
+         ItemStack newFuel = fuel;
          fuel.shrink(1);
--        if (remainder != null) {
--            if (fuel.isEmpty()) {
--                newFuel = remainder.create();
--            } else {
--                Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), remainder.create());
--            }
-+        if (fuel.isEmpty()) {
-+            items.set(1, remainder != null ? remainder.create() : ItemStack.EMPTY);
-         }
--
--        items.set(1, newFuel);
-     }
- 
-     private static boolean canBurn(NonNullList<ItemStack> items, int maxStackSize, ItemStack burnResult) {
-@@ -254,42 +_,69 @@
+         if (remainder != null) {
+@@ -254,27 +_,56 @@
          return resultCount <= maxResultCount;
      }
  
@@ -341,25 +257,23 @@
 -
 -    public float getSpeedMultiplier(ServerLevel level, ItemStack fuelItem) {
 -        return ResolvableFloat.getFromItem(fuelItem, DataComponents.COOKING_FUEL, CookingFuel::speedMultiplier, this.getLootContext(level), 1.0F);
--    }
--
--    private static int getTotalCookTime(RecipeHolder<? extends AbstractCookingRecipe> recipe, AbstractFurnaceBlockEntity entity) {
--        int cookingTotalTime = recipe.value().cookingTime();
--        return entity.speedMultiplier > 0.0F ? (int)Math.ceil(cookingTotalTime / entity.speedMultiplier) : cookingTotalTime;
--    }
--
--    public static int getTotalCookTime(ServerLevel level, AbstractFurnaceBlockEntity entity) {
 +        return true; // CraftBukkit
 +    }
 +
-+    protected int getBurnDuration(FuelValues fuelValues, ItemStack itemStack) {
-+        return itemStack.getBurnTime(this.recipeType, fuelValues);
++    protected int getBurnDuration(ServerLevel level, ItemStack fuelItem) {
++        return ResolvableInt.getFromItem(fuelItem, DataComponents.COOKING_FUEL, CookingFuel::burnTime, this.getLootContext(level, fuelItem), 0);
 +    }
 +
-+    private static int getTotalCookTime(ServerLevel level, AbstractFurnaceBlockEntity entity) {
-+        return getTotalCookTime(level, entity, entity.recipeType, entity.cookSpeedMultiplier);
-+    }
-+
++    protected float getSpeedMultiplier(ServerLevel level, ItemStack fuelItem) {
++        return ResolvableFloat.getFromItem(fuelItem, DataComponents.COOKING_FUEL, CookingFuel::speedMultiplier, this.getLootContext(level, fuelItem), 1.0F);
+     }
+ 
+     private static int getTotalCookTime(RecipeHolder<? extends AbstractCookingRecipe> recipe, AbstractFurnaceBlockEntity entity) {
+@@ -282,14 +_,17 @@
+         return entity.speedMultiplier > 0.0F ? (int)Math.ceil(cookingTotalTime / entity.speedMultiplier) : cookingTotalTime;
+     }
+ 
+-    public static int getTotalCookTime(ServerLevel level, AbstractFurnaceBlockEntity entity) {
 +    public static int getTotalCookTime(final @Nullable ServerLevel level, final AbstractFurnaceBlockEntity entity, final RecipeType<? extends AbstractCookingRecipe> recipeType, final double cookSpeedMultiplier) { // Paper - cook speed multiplier API
          SingleRecipeInput input = new SingleRecipeInput(entity.getItem(0));
 -        return entity.quickCheck
@@ -379,15 +293,6 @@
      @Override
      public int[] getSlotsForFace(Direction direction) {
          if (direction == Direction.DOWN) {
-@@ -306,7 +_,7 @@
- 
-     @Override
-     public boolean canTakeItemThroughFace(int slot, ItemStack itemStack, Direction direction) {
--        return direction == Direction.DOWN && slot == 1 ? itemStack.is(ItemTags.FURNACE_FUEL_BOTTOM_TAKEABLE) : true;
-+        return direction == Direction.DOWN && slot == 1 ? itemStack.is(Items.WATER_BUCKET) || itemStack.is(Items.BUCKET) : true;
-     }
- 
-     @Override
 @@ -326,17 +_,57 @@
  
      @Override
@@ -448,15 +353,6 @@
      @Override
      public boolean canPlaceItem(int slot, ItemStack itemStack) {
          if (slot == 2) {
-@@ -348,7 +_,7 @@
-         }
- 
-         ItemStack fuelSlot = this.items.get(1);
--        return itemStack.has(DataComponents.COOKING_FUEL) || itemStack.is(Items.BUCKET) && !fuelSlot.is(Items.BUCKET);
-+        return itemStack.getBurnTime(this.recipeType, this.level.fuelValues()) > 0 || itemStack.is(Items.BUCKET) && !fuelSlot.is(Items.BUCKET);
-     }
- 
-     @Override
 @@ -368,8 +_,8 @@
      public void awardUsedRecipes(Player player, List<ItemStack> itemStacks) {
      }

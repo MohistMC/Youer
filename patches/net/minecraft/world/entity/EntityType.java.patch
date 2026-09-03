@@ -8,7 +8,7 @@
  import java.util.stream.Stream;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
-@@ -52,11 +_,11 @@
+@@ -52,6 +_,7 @@
  import org.slf4j.Logger;
  
  public class EntityType<T extends Entity> implements EntityTypeTest<Entity, T>, FeatureElement {
@@ -16,11 +16,6 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      private final Holder.Reference<EntityType<?>> builtInRegistryHolder = BuiltInRegistries.ENTITY_TYPE.createIntrusiveHolder(this);
      public static final Codec<EntityType<?>> CODEC = BuiltInRegistries.ENTITY_TYPE.byNameCodec();
-     public static final StreamCodec<RegistryFriendlyByteBuf, EntityType<?>> STREAM_CODEC = ByteBufCodecs.registry(Registries.ENTITY_TYPE);
--    public static final int NO_UPDATE_INTERVAL = Integer.MAX_VALUE;
-     private final EntityType.EntityFactory<T> factory;
-     private final MobCategory category;
-     private final TagKey<Block> immuneTo;
 @@ -69,16 +_,37 @@
      private final String descriptionId;
      private @Nullable Component description;
@@ -282,17 +277,6 @@
          );
      }
  
-@@ -321,10 +_,6 @@
-         return entity;
-     }
- 
--    public AABB getSpawnAABB(Vec3 at) {
--        return this.getSpawnAABB(at.x, at.y, at.z);
--    }
--
-     public AABB getSpawnAABB(double x, double y, double z) {
-         float halfWidth = this.spawnDimensionsScale * this.getWidth() / 2.0F;
-         float height = this.spawnDimensionsScale * this.getHeight();
 @@ -391,7 +_,18 @@
      }
  
@@ -312,25 +296,94 @@
              output.accept(entity);
              return entity;
          }));
-@@ -423,10 +_,6 @@
+@@ -416,14 +_,26 @@
+     }
+ 
+     public int clientTrackingRange() {
++        return trackingRangeSupplier.applyAsInt(this);
++    }
++
++    private int defaultTrackingRangeSupplier() {
+         return this.clientTrackingRange;
+     }
+ 
+     public int updateInterval() {
++        return updateIntervalSupplier.applyAsInt(this);
++    }
++
++    private int defaultUpdateIntervalSupplier() {
          return this.updateInterval;
      }
  
--    public boolean hasUpdateInterval() {
--        return this.updateInterval != Integer.MAX_VALUE;
--    }
--
-     public boolean trackDeltas() {
-         return this.trackDeltas;
+     public boolean hasUpdateInterval() {
++        return this.trackDeltasSupplier.test(this);
++    }
++
++    private boolean defaultTrackDeltasSupplier() {
+         return this.updateInterval != Integer.MAX_VALUE;
      }
-@@ -574,10 +_,6 @@
-         public EntityType.Builder<T> updateInterval(int updateInterval) {
-             this.updateInterval = updateInterval;
+ 
+@@ -450,9 +_,12 @@
+     }
+ 
+     public boolean onlyOpCanSetNbt() {
++        if (onlyOpCanSetNbt) return true;
+         return EntityTypes.OP_ONLY_CUSTOM_DATA.contains(this);
+     }
+ 
++    public Stream<net.minecraft.tags.TagKey<EntityType<?>>> getTags() {return this.builtInRegistryHolder().tags();}
++
+     public static class Builder<T extends Entity> {
+         private final EntityType.EntityFactory<T> factory;
+         private final MobCategory category;
+@@ -473,6 +_,10 @@
+         private final DependantName<EntityType<?>, String> descriptionId = id -> Util.makeDescriptionId("entity", id.identifier());
+         private boolean allowedInPeaceful = true;
+         private boolean trackDeltas = true;
++        private java.util.function.Predicate<EntityType<?>> velocityUpdateSupplier = EntityType::defaultTrackDeltasSupplier;
++        private java.util.function.ToIntFunction<EntityType<?>> trackingRangeSupplier = EntityType::defaultTrackingRangeSupplier;
++        private java.util.function.ToIntFunction<EntityType<?>> updateIntervalSupplier = EntityType::defaultUpdateIntervalSupplier;
++        private boolean onlyOpCanSetNbt = false;
+ 
+         private Builder(EntityType.EntityFactory<T> factory, MobCategory category) {
+             this.factory = factory;
+@@ -600,6 +_,26 @@
              return this;
--        }
--
--        public EntityType.Builder<T> noUpdateInterval() {
--            return this.updateInterval(Integer.MAX_VALUE);
          }
  
-         public EntityType.Builder<T> requiredFeatures(FeatureFlag... flags) {
++        public EntityType.Builder<T> setUpdateInterval(int interval) {
++            this.updateIntervalSupplier = t->interval;
++            return this;
++        }
++
++        public EntityType.Builder<T> setTrackingRange(int range) {
++            this.trackingRangeSupplier = t->range;
++            return this;
++        }
++
++        public EntityType.Builder<T> setShouldReceiveVelocityUpdates(boolean value) {
++            this.velocityUpdateSupplier = t->value;
++            return this;
++        }
++
++        public EntityType.Builder<T> setOnlyOpCanSetNbt(boolean onlyOpCanSetNbt) {
++            this.onlyOpCanSetNbt = onlyOpCanSetNbt;
++            return this;
++        }
++
+         public EntityType<T> build(ResourceKey<EntityType<?>> name) {
+             if (this.serialize) {
+                 Util.fetchChoiceType(References.ENTITY_TREE, name.identifier().toString());
+@@ -621,7 +_,11 @@
+                 this.lootTable.get(name),
+                 this.requiredFeatures,
+                 this.allowedInPeaceful,
+-                this.trackDeltas
++                this.trackDeltas,
++                this.velocityUpdateSupplier,
++                this.trackingRangeSupplier,
++                this.updateIntervalSupplier,
++                this.onlyOpCanSetNbt
+             );
+         }
+     }

@@ -1,12 +1,10 @@
 --- a/net/minecraft/world/level/block/PoweredRailBlock.java
 +++ b/net/minecraft/world/level/block/PoweredRailBlock.java
-@@ -15,13 +_,27 @@
+@@ -15,13 +_,25 @@
      public static final EnumProperty<RailShape> SHAPE = BlockStateProperties.RAIL_SHAPE_STRAIGHT;
      public static final BooleanProperty POWERED = BlockStateProperties.POWERED;
  
-+    /**
-+     * Neo: {@code true} for an activator rail, {@code false} for powered rail
-+     */
++    /// Neo: `true` for an activator rail, `false` for powered rail
 +    private final boolean isActivator;
 +
      public PoweredRailBlock(BlockBehaviour.Properties properties) {
@@ -64,13 +62,12 @@
              || this.findPoweredRailSignal(level, pos, state, true, 0)
              || this.findPoweredRailSignal(level, pos, state, false, 0);
          if (shouldPower != isPowered) {
--            level.setBlockAndUpdate(pos, state.setValue(POWERED, shouldPower));
 +            // Paper start - Call BlockRedstoneEvent
 +            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBinaryRedstoneChange(level, pos, shouldPower)) {
 +                return;
 +            }
 +            // Paper end - Call BlockRedstoneEvent
-+            level.setBlock(pos, state.setValue(POWERED, shouldPower), 3);
+             level.setBlockAndUpdate(pos, state.setValue(POWERED, shouldPower));
              level.updateNeighborsAt(pos.below(), this);
 -            if (state.getValue(SHAPE).isSlope()) {
 +            if (((BaseRailBlock)state.getBlock()).getRailDirection(state, level, pos, null).isSlope()) {

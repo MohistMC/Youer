@@ -1,14 +1,5 @@
 --- a/net/minecraft/world/level/block/SmallDripleafBlock.java
 +++ b/net/minecraft/world/level/block/SmallDripleafBlock.java
-@@ -63,7 +_,7 @@
-             BlockState blockState = DoublePlantBlock.copyWaterloggedFrom(
-                 level, abovePos, this.defaultBlockState().setValue(HALF, DoubleBlockHalf.UPPER).setValue(FACING, state.getValue(FACING))
-             );
--            level.setBlockAndUpdate(abovePos, blockState);
-+            level.setBlock(abovePos, blockState, 3);
-         }
-     }
- 
 @@ -80,6 +_,8 @@
  
          BlockPos belowPos = pos.below();
@@ -16,42 +7,5 @@
 +        var soilDecision = belowState.canSustainPlant(level, belowPos, Direction.UP, state);
 +        if (!soilDecision.isDefault()) return soilDecision.isTrue();
          return this.mayPlaceOn(belowState, level, belowPos);
-     }
- 
-@@ -107,24 +_,24 @@
-     }
- 
-     @Override
--    public boolean isValidBonemealTarget(LevelReader level, BlockPos pos, BlockState state, BonemealSource source) {
--        return true;
--    }
--
--    @Override
--    public boolean isBonemealSuccess(Level level, RandomSource random, BlockPos pos, BlockState state, BonemealSource source) {
--        return true;
--    }
--
--    @Override
--    public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state, BonemealSource source) {
-+    public boolean isValidBonemealTarget(LevelReader level, BlockPos pos, BlockState state) {
-+        return true;
-+    }
-+
-+    @Override
-+    public boolean isBonemealSuccess(Level level, RandomSource random, BlockPos pos, BlockState state) {
-+        return true;
-+    }
-+
-+    @Override
-+    public void performBonemeal(ServerLevel level, RandomSource random, BlockPos pos, BlockState state) {
-         if (state.getValue(DoublePlantBlock.HALF) == DoubleBlockHalf.LOWER) {
-             BlockPos above = pos.above();
-             level.setBlock(above, level.getFluidState(above).createLegacyBlock(), 18);
-             BigDripleafBlock.placeWithRandomHeight(level, random, pos, state.getValue(FACING));
-         } else {
-             BlockPos belowPos = pos.below();
--            this.performBonemeal(level, random, belowPos, level.getBlockState(belowPos), source);
-+            this.performBonemeal(level, random, belowPos, level.getBlockState(belowPos));
-         }
      }
  

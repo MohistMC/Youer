@@ -1,20 +1,9 @@
 --- a/net/minecraft/server/advancements/AdvancementVisibilityEvaluator.java
 +++ b/net/minecraft/server/advancements/AdvancementVisibilityEvaluator.java
-@@ -18,7 +_,7 @@
-         } else if (isDone) {
-             return AdvancementVisibilityEvaluator.VisibilityRule.SHOW;
-         } else {
--            return display.get().hidden() ? AdvancementVisibilityEvaluator.VisibilityRule.HIDE : AdvancementVisibilityEvaluator.VisibilityRule.NO_CHANGE;
-+            return display.get().isHidden() ? AdvancementVisibilityEvaluator.VisibilityRule.HIDE : AdvancementVisibilityEvaluator.VisibilityRule.NO_CHANGE;
-         }
+@@ -69,6 +_,15 @@
+         evaluateVisibility(root, visibilityStack, isDone, output);
      }
  
-@@ -67,6 +_,15 @@
-         }
- 
-         evaluateVisibility(root, visibilityStack, isDone, output);
-+    }
-+
 +    public static boolean isVisible(AdvancementNode advancement, Predicate<AdvancementNode> test) {
 +        Stack<AdvancementVisibilityEvaluator.VisibilityRule> stack = new ObjectArrayList<>();
 +
@@ -22,6 +11,8 @@
 +            stack.push(AdvancementVisibilityEvaluator.VisibilityRule.NO_CHANGE);
 +        }
 +        return evaluateVisibility(advancement.root(), stack, test, (adv, visible) -> {});
-     }
- 
++    }
++
      @FunctionalInterface
+     public interface Output {
+         void accept(AdvancementNode advancement, boolean visible);

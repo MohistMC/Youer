@@ -1,26 +1,5 @@
 --- a/net/minecraft/world/level/block/BeehiveBlock.java
 +++ b/net/minecraft/world/level/block/BeehiveBlock.java
-@@ -2,20 +_,17 @@
- 
- import java.util.List;
- import java.util.function.BiConsumer;
--import net.minecraft.advancements.triggers.CriteriaTriggers;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Direction;
- import net.minecraft.core.component.DataComponents;
- import net.minecraft.core.particles.ParticleTypes;
- import net.minecraft.server.level.ServerLevel;
--import net.minecraft.server.level.ServerPlayer;
- import net.minecraft.sounds.SoundEvents;
- import net.minecraft.sounds.SoundSource;
- import net.minecraft.stats.Stats;
- import net.minecraft.tags.BlockTags;
- import net.minecraft.tags.EnchantmentTags;
- import net.minecraft.util.Mth;
--import net.minecraft.util.Prediction;
- import net.minecraft.util.RandomSource;
- import net.minecraft.util.Util;
- import net.minecraft.world.Containers;
 @@ -82,18 +_,16 @@
      }
  
@@ -52,15 +31,6 @@
                      bee.setTarget(angerTarget);
                  }
              }
-@@ -125,7 +_,7 @@
-         ServerLevel level, ItemStack tool, BlockState blockState, @Nullable BlockEntity blockEntity, @Nullable Entity entity, BlockPos pos
-     ) {
-         dropFromBlockInteractLootTable(
--            level, BuiltInLootTables.HARVEST_BEEHIVE, pos, blockState, blockEntity, tool, entity, (serverLevel, stack) -> popResource(serverLevel, pos, stack)
-+            level, BuiltInLootTables.HARVEST_BEEHIVE, blockState, blockEntity, tool, entity, (serverLevel, stack) -> popResource(serverLevel, pos, stack)
-         );
-     }
- 
 @@ -137,8 +_,20 @@
          boolean hiveEmptied = false;
          if (honeyLevel >= 5) {
@@ -93,12 +63,3 @@
                  }
  
                  hiveEmptied = true;
-@@ -192,7 +_,7 @@
-     }
- 
-     public void resetHoneyLevel(Level level, BlockState state, BlockPos pos) {
--        level.setBlockAndUpdate(pos, state.setValue(HONEY_LEVEL, 0));
-+        level.setBlock(pos, state.setValue(HONEY_LEVEL, 0), 3);
-     }
- 
-     @Override

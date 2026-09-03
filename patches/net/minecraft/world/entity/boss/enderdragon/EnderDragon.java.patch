@@ -1,13 +1,5 @@
 --- a/net/minecraft/world/entity/boss/enderdragon/EnderDragon.java
 +++ b/net/minecraft/world/entity/boss/enderdragon/EnderDragon.java
-@@ -25,7 +_,6 @@
- import net.minecraft.world.entity.ExperienceOrb;
- import net.minecraft.world.entity.LivingEntity;
- import net.minecraft.world.entity.Mob;
--import net.minecraft.world.entity.MoveSimulationType;
- import net.minecraft.world.entity.MoverType;
- import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
- import net.minecraft.world.entity.ai.attributes.Attributes;
 @@ -42,6 +_,7 @@
  import net.minecraft.world.level.gameevent.GameEvent;
  import net.minecraft.world.level.gamerules.GameRules;
@@ -185,23 +177,6 @@
                          double xdd = targetLocation.x - this.getX();
                          double ydd = targetLocation.y - this.getY();
                          double zdd = targetLocation.z - this.getZ();
-@@ -255,6 +_,7 @@
-                         this.setDeltaMovement(this.getDeltaMovement().multiply(slide, 0.91F, slide));
-                     }
-                 } else {
-+                    this.interpolation.interpolate();
-                     this.phaseManager.getCurrentPhase().doClientTick();
-                 }
- 
-@@ -278,7 +_,7 @@
-                 this.tickPart(this.body, ss1 * 0.5F, 0.0, -cc1 * 0.5F);
-                 this.tickPart(this.wing1, cc1 * 4.5F, 2.0, ss1 * 4.5F);
-                 this.tickPart(this.wing2, cc1 * -4.5F, 2.0, ss1 * -4.5F);
--                if (this.level() instanceof ServerLevel serverLevel && !this.wasHurtRecently()) {
-+                if (this.level() instanceof ServerLevel serverLevel && this.hurtTime == 0) {
-                     this.knockBack(
-                         serverLevel,
-                         serverLevel.getEntities(
 @@ -365,7 +_,14 @@
              if (this.nearestCrystal.isRemoved()) {
                  this.nearestCrystal = null;
@@ -231,15 +206,6 @@
                      DamageSource damageSource = this.damageSources().mobAttack(this);
                      entity.hurtServer(serverLevel, damageSource, 5.0F);
                      EnchantmentHelper.doPostAttackEffects(serverLevel, entity, damageSource);
-@@ -409,7 +_,7 @@
- 
-     private void hurt(ServerLevel level, List<Entity> entities) {
-         for (Entity target : entities) {
--            if (target instanceof LivingEntity && this.doTeamsAllowDamage(target)) {
-+            if (target instanceof LivingEntity) {
-                 DamageSource damageSource = this.damageSources().mobAttack(this);
-                 target.hurtServer(level, damageSource, 10.0F);
-                 EnchantmentHelper.doPostAttackEffects(level, target, damageSource);
 @@ -430,6 +_,9 @@
          int z1 = Mth.floor(bb.maxZ);
          boolean hitWall = false;
@@ -325,15 +291,6 @@
          if (destroyedBlock) {
              BlockPos randomPos = new BlockPos(
                  x0 + this.random.nextInt(x1 - x0 + 1), y0 + this.random.nextInt(y1 - y0 + 1), z0 + this.random.nextInt(z1 - z0 + 1)
-@@ -463,7 +_,7 @@
-         }
- 
-         damage = this.phaseManager.getCurrentPhase().onHurt(source, damage);
--        if (part != this.head && part != this.neck) {
-+        if (part != this.head) {
-             damage = damage / 4.0F + Math.min(damage, 1.0F);
-         }
- 
 @@ -504,15 +_,20 @@
      }
  
@@ -460,16 +417,7 @@
      }
  
      @Override
-@@ -799,7 +_,7 @@
-         EnderDragonPhase<? extends DragonPhaseInstance> phase = phaseInstance.getPhase();
-         Vec3 result;
-         if (phase == EnderDragonPhase.LANDING || phase == EnderDragonPhase.TAKEOFF) {
--            BlockPos egg = this.level().getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, EnderDragonFight.getPodiumLocation(this.fightOrigin));
-+            BlockPos egg = this.level().getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, getPodiumLocation(this.fightOrigin));
-             float dist = Math.max((float)Math.sqrt(egg.distToCenterSqr(this.position())) / 4.0F, 1.0F);
-             float yOffset = 6.0F / dist;
-             float xRotOld = this.getXRot();
-@@ -852,13 +_,18 @@
+@@ -852,19 +_,34 @@
          return this.dragonFight;
      }
  
@@ -490,10 +438,12 @@
          return false;
      }
  
-@@ -868,6 +_,16 @@
-     }
- 
      @Override
+     public boolean canUsePortal(boolean ignorePassenger) {
+         return false;
++    }
++
++    @Override
 +    public boolean isMultipartEntity() {
 +        return true;
 +    }
@@ -501,20 +451,6 @@
 +    @Override
 +    public net.neoforged.neoforge.entity.PartEntity<?>[] getParts() {
 +        return this.subEntities;
-+    }
-+
-+    @Override
-     public void recreateFromPacket(ClientboundAddEntityPacket packet) {
-         super.recreateFromPacket(packet);
-         EnderDragonPart[] subEntities = this.getSubEntities();
-@@ -885,10 +_,5 @@
-     @Override
-     protected float sanitizeScale(float scale) {
-         return 1.0F;
--    }
--
--    @Override
--    public MoveSimulationType getMoveSimulationType() {
--        return this.isDeadOrDying() ? MoveSimulationType.SERVER_AND_CLIENT : super.getMoveSimulationType();
      }
- }
+ 
+     @Override
