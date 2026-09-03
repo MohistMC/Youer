@@ -1,13 +1,6 @@
 --- a/net/minecraft/advancements/AdvancementHolder.java
 +++ b/net/minecraft/advancements/AdvancementHolder.java
-@@ -1,16 +_,20 @@
- package net.minecraft.advancements;
- 
-+import java.util.List;
- import net.minecraft.core.registries.Registries;
- import net.minecraft.data.worldgen.BootstrapContext;
- import net.minecraft.network.RegistryFriendlyByteBuf;
-+import net.minecraft.network.codec.ByteBufCodecs;
+@@ -6,6 +_,7 @@
  import net.minecraft.network.codec.StreamCodec;
  import net.minecraft.resources.Identifier;
  import net.minecraft.resources.ResourceKey;
@@ -15,12 +8,19 @@
  
  public record AdvancementHolder(Identifier id, Advancement value) {
      public static final StreamCodec<RegistryFriendlyByteBuf, AdvancementHolder> STREAM_CODEC = StreamCodec.composite(
-         Identifier.STREAM_CODEC, AdvancementHolder::id, Advancement.STREAM_CODEC, AdvancementHolder::value, AdvancementHolder::new
+@@ -13,7 +_,11 @@
      );
-+    public static final StreamCodec<RegistryFriendlyByteBuf, List<AdvancementHolder>> LIST_STREAM_CODEC = STREAM_CODEC.apply(ByteBufCodecs.list());
  
      public void register(BootstrapContext<Advancement> output) {
-         output.register(ResourceKey.create(Registries.ADVANCEMENT, this.id), this.value);
+-        output.register(ResourceKey.create(Registries.ADVANCEMENT, this.id), this.value);
++        this.register(output, new net.neoforged.neoforge.common.conditions.ICondition[0]);
++    }
++
++    public void register(BootstrapContext<Advancement> output, net.neoforged.neoforge.common.conditions.ICondition... conditions) {
++        output.register(ResourceKey.create(Registries.ADVANCEMENT, this.id), this.value, conditions);
+     }
+ 
+     @Override
 @@ -30,4 +_,10 @@
      public String toString() {
          return this.id.toString();

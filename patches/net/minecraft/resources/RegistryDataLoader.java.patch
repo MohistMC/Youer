@@ -1,119 +1,19 @@
 --- a/net/minecraft/resources/RegistryDataLoader.java
 +++ b/net/minecraft/resources/RegistryDataLoader.java
-@@ -21,13 +_,10 @@
- import net.minecraft.CrashReport;
- import net.minecraft.CrashReportCategory;
- import net.minecraft.ReportedException;
--import net.minecraft.advancements.Advancement;
--import net.minecraft.core.HolderGetter;
- import net.minecraft.core.HolderLookup;
- import net.minecraft.core.Registry;
- import net.minecraft.core.RegistryAccess;
- import net.minecraft.core.RegistrySynchronization;
--import net.minecraft.core.component.BlockTransformer;
- import net.minecraft.core.registries.Registries;
- import net.minecraft.gametest.framework.GameTestInstance;
- import net.minecraft.gametest.framework.TestEnvironmentDefinition;
-@@ -54,12 +_,10 @@
- import net.minecraft.world.entity.decoration.painting.PaintingVariant;
- import net.minecraft.world.item.Instrument;
- import net.minecraft.world.item.JukeboxSong;
--import net.minecraft.world.item.crafting.Recipe;
- import net.minecraft.world.item.enchantment.Enchantment;
- import net.minecraft.world.item.enchantment.providers.EnchantmentProvider;
- import net.minecraft.world.item.equipment.trim.TrimMaterial;
- import net.minecraft.world.item.equipment.trim.TrimPattern;
--import net.minecraft.world.item.slot.SlotSources;
- import net.minecraft.world.item.trading.TradeSet;
- import net.minecraft.world.item.trading.VillagerTrade;
- import net.minecraft.world.level.biome.Biome;
-@@ -69,14 +_,12 @@
- import net.minecraft.world.level.block.entity.trialspawner.TrialSpawnerConfig;
- import net.minecraft.world.level.dimension.DimensionType;
- import net.minecraft.world.level.dimension.LevelStem;
-+import net.minecraft.world.level.levelgen.DensityFunctions;
- import net.minecraft.world.level.levelgen.NoiseGeneratorSettings;
-+import net.minecraft.world.level.levelgen.SurfaceRules;
- import net.minecraft.world.level.levelgen.carver.WorldCarver;
--import net.minecraft.world.level.levelgen.densityfunction.DensityFunctions;
- import net.minecraft.world.level.levelgen.feature.Feature;
--import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider;
- import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorPreset;
--import net.minecraft.world.level.levelgen.material.condition.MaterialCondition;
--import net.minecraft.world.level.levelgen.material.rule.MaterialRule;
- import net.minecraft.world.level.levelgen.placement.PlacedFeature;
- import net.minecraft.world.level.levelgen.presets.WorldPreset;
- import net.minecraft.world.level.levelgen.structure.Structure;
-@@ -84,18 +_,13 @@
- import net.minecraft.world.level.levelgen.structure.pools.StructureTemplatePool;
- import net.minecraft.world.level.levelgen.structure.templatesystem.StructureProcessorType;
- import net.minecraft.world.level.levelgen.synth.NormalNoise;
--import net.minecraft.world.level.storage.loot.LootTable;
--import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
--import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
--import net.minecraft.world.level.storage.loot.providers.number.floats.ContextFloatProviders;
--import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProviders;
- import net.minecraft.world.timeline.Timeline;
- import org.slf4j.Logger;
- 
- public class RegistryDataLoader {
-     private static final Logger LOGGER = LogUtils.getLogger();
-     private static final Comparator<ResourceKey<?>> ERROR_KEY_COMPARATOR = Comparator.<ResourceKey<?>, Identifier>comparing(ResourceKey::registry).thenComparing(ResourceKey::identifier);
--    public static final List<RegistryDataLoader.RegistryData<?>> WORLD_REGISTRIES = List.of(
-+    public static final List<RegistryDataLoader.RegistryData<?>> WORLDGEN_REGISTRIES = List.of(
-         new RegistryDataLoader.RegistryData<>(Registries.DIMENSION_TYPE, DimensionType.DIRECT_CODEC),
-         new RegistryDataLoader.RegistryData<>(Registries.BIOME, Biome.DIRECT_CODEC),
-         new RegistryDataLoader.RegistryData<>(Registries.CHAT_TYPE, ChatType.DIRECT_CODEC),
-@@ -107,10 +_,10 @@
-         new RegistryDataLoader.RegistryData<>(Registries.PROCESSOR_LIST, StructureProcessorType.DIRECT_CODEC),
-         new RegistryDataLoader.RegistryData<>(Registries.TEMPLATE_POOL, StructureTemplatePool.DIRECT_CODEC),
-         new RegistryDataLoader.RegistryData<>(Registries.NOISE_SETTINGS, NoiseGeneratorSettings.DIRECT_CODEC),
--        new RegistryDataLoader.RegistryData<>(Registries.NOISE, NormalNoise.DIRECT_CODEC),
-+        new RegistryDataLoader.RegistryData<>(Registries.NOISE, NormalNoise.NoiseParameters.DIRECT_CODEC),
-         new RegistryDataLoader.RegistryData<>(Registries.DENSITY_FUNCTION, DensityFunctions.DIRECT_CODEC),
--        new RegistryDataLoader.RegistryData<>(Registries.MATERIAL_RULE, MaterialRule.DIRECT_CODEC),
--        new RegistryDataLoader.RegistryData<>(Registries.MATERIAL_CONDITION, MaterialCondition.DIRECT_CODEC),
-+        new RegistryDataLoader.RegistryData<>(Registries.MATERIAL_RULE, SurfaceRules.RuleSource.DIRECT_CODEC),
-+        new RegistryDataLoader.RegistryData<>(Registries.MATERIAL_CONDITION, SurfaceRules.ConditionSource.DIRECT_CODEC),
-         new RegistryDataLoader.RegistryData<>(Registries.WORLD_PRESET, WorldPreset.DIRECT_CODEC),
-         new RegistryDataLoader.RegistryData<>(Registries.FLAT_LEVEL_GENERATOR_PRESET, FlatLevelGeneratorPreset.DIRECT_CODEC),
-         new RegistryDataLoader.RegistryData<>(Registries.TRIM_PATTERN, TrimPattern.DIRECT_CODEC),
-@@ -144,24 +_,12 @@
-         new RegistryDataLoader.RegistryData<>(Registries.TIMELINE, Timeline.DIRECT_CODEC, Timeline::validateRegistry),
-         new RegistryDataLoader.RegistryData<>(Registries.VILLAGER_TRADE, VillagerTrade.CODEC),
-         new RegistryDataLoader.RegistryData<>(Registries.TRADE_SET, TradeSet.CODEC),
--        new RegistryDataLoader.RegistryData<>(Registries.DECORATED_POT_PATTERN, DecoratedPotPattern.CODEC),
--        new RegistryDataLoader.RegistryData<>(Registries.BLOCK_TRANSFORMER, BlockTransformer.DIRECT_CODEC),
--        new RegistryDataLoader.RegistryData<>(Registries.BLOCK_STATE_PROVIDER, BlockStateProvider.DIRECT_CODEC)
-+        new RegistryDataLoader.RegistryData<>(Registries.DECORATED_POT_PATTERN, DecoratedPotPattern.CODEC)
+@@ -161,7 +_,7 @@
+         new RegistryDataLoader.RegistryData<>(Registries.ADVANCEMENT, Advancement.CODEC),
+         new RegistryDataLoader.RegistryData<>(Registries.RECIPE, Recipe.DIRECT_CODEC)
      );
-     public static final List<RegistryDataLoader.RegistryData<?>> DIMENSION_REGISTRIES = List.of(
-         new RegistryDataLoader.RegistryData<>(Registries.LEVEL_STEM, LevelStem.CODEC)
-     );
--    public static final List<RegistryDataLoader.RegistryData<?>> RELOADABLE_REGISTRIES = List.of(
--        new RegistryDataLoader.RegistryData<>(Registries.LOOT_TABLE, LootTable.DIRECT_CODEC),
--        new RegistryDataLoader.RegistryData<>(Registries.PREDICATE, LootItemCondition.DIRECT_CODEC),
--        new RegistryDataLoader.RegistryData<>(Registries.CONTEXT_FLOAT_PROVIDER, ContextFloatProviders.DIRECT_CODEC),
--        new RegistryDataLoader.RegistryData<>(Registries.CONTEXT_INT_PROVIDER, ContextIntProviders.DIRECT_CODEC),
--        new RegistryDataLoader.RegistryData<>(Registries.ITEM_MODIFIER, LootItemFunctions.TYPED_CODEC),
--        new RegistryDataLoader.RegistryData<>(Registries.SLOT_SOURCE, SlotSources.TYPED_CODEC),
--        new RegistryDataLoader.RegistryData<>(Registries.ADVANCEMENT, Advancement.CODEC),
--        new RegistryDataLoader.RegistryData<>(Registries.RECIPE, Recipe.DIRECT_CODEC)
--    );
 -    public static final List<RegistryDataLoader.RegistryData<?>> SYNCHRONIZED_REGISTRIES = List.of(
 +    public static final List<RegistryDataLoader.RegistryData<?>> SYNCHRONIZED_REGISTRIES = net.neoforged.neoforge.registries.DataPackRegistriesHooks.grabNetworkableRegistries(List.of(
          new RegistryDataLoader.RegistryData<>(Registries.BIOME, Biome.NETWORK_CODEC),
          new RegistryDataLoader.RegistryData<>(Registries.CHAT_TYPE, ChatType.DIRECT_CODEC),
          new RegistryDataLoader.RegistryData<>(Registries.TRIM_PATTERN, TrimPattern.DIRECT_CODEC),
-@@ -191,10 +_,8 @@
-         new RegistryDataLoader.RegistryData<>(Registries.DIALOG, Dialog.DIRECT_CODEC),
-         new RegistryDataLoader.RegistryData<>(Registries.WORLD_CLOCK, WorldClock.DIRECT_CODEC),
-         new RegistryDataLoader.RegistryData<>(Registries.TIMELINE, Timeline.NETWORK_CODEC),
--        new RegistryDataLoader.RegistryData<>(Registries.DECORATED_POT_PATTERN, DecoratedPotPattern.CODEC),
--        new RegistryDataLoader.RegistryData<>(Registries.BLOCK_TRANSFORMER, BlockTransformer.DIRECT_CODEC),
--        new RegistryDataLoader.RegistryData<>(Registries.BLOCK_STATE_PROVIDER, BlockStateProvider.DIRECT_CODEC)
+@@ -194,7 +_,7 @@
+         new RegistryDataLoader.RegistryData<>(Registries.DECORATED_POT_PATTERN, DecoratedPotPattern.CODEC),
+         new RegistryDataLoader.RegistryData<>(Registries.BLOCK_TRANSFORMER, BlockTransformer.DIRECT_CODEC),
+         new RegistryDataLoader.RegistryData<>(Registries.BLOCK_STATE_PROVIDER, BlockStateProvider.DIRECT_CODEC)
 -    );
-+        new RegistryDataLoader.RegistryData<>(Registries.DECORATED_POT_PATTERN, DecoratedPotPattern.CODEC)
 +    )); // Neo: Keep the list so custom registries can be added later
  
      public static CompletableFuture<RegistryAccess.Frozen> load(
@@ -162,42 +62,6 @@
                                  List<RegistryLoadTask<?>> frozenRegistries = loadTasks.stream().filter(task -> task.freezeRegistry(loadingErrors)).toList();
                                  if (!loadingErrors.isEmpty()) {
                                      throw logErrors(loadingErrors);
-@@ -275,15 +_,29 @@
-     private static RegistryOps.RegistryInfoLookup createContext(
-         List<HolderLookup.RegistryLookup<?>> contextRegistries, List<RegistryLoadTask<?>> newRegistriesAndLoaders
-     ) {
--        final Map<ResourceKey<? extends Registry<?>>, HolderGetter<?>> result = new HashMap<>();
--        contextRegistries.forEach(e -> result.put(e.key(), e));
--        newRegistriesAndLoaders.forEach(e -> result.put(e.registryKey(), e.concurrentRegistrationGetter));
-+        final Map<ResourceKey<? extends Registry<?>>, RegistryOps.RegistryInfo<?>> result = new HashMap<>();
-+        contextRegistries.forEach(e -> result.put(e.key(), createInfoForContextRegistry((HolderLookup.RegistryLookup<?>)e)));
-+        newRegistriesAndLoaders.forEach(e -> result.put(e.registryKey(), e.createRegistryInfo()));
-+        // this creates a HolderLookup.Provider to be used exclusively to obtain real instances of values to pre-populate builders
-+        // for the Registry Modification API. This concatenates the context registry lookups and the empty registries about to be filled.
-+        final HolderLookup.Provider providerForBuilders = HolderLookup.Provider.create(java.util.stream.Stream.concat(contextRegistries.stream(), newRegistriesAndLoaders.stream().map(t -> t.registry))); // Paper - add method to get the value for pre-filling builders in the reg mod API
-         return new RegistryOps.RegistryInfoLookup() {
-             @Override
--            public <T> Optional<HolderGetter<T>> lookup(ResourceKey<? extends Registry<? extends T>> key) {
--                return Optional.ofNullable((HolderGetter<T>)result.get(key));
--            }
-+            public <T> Optional<RegistryOps.RegistryInfo<T>> lookup(ResourceKey<? extends Registry<? extends T>> key) {
-+                return Optional.ofNullable((RegistryOps.RegistryInfo<T>)result.get(key));
-+            }
-+
-+            // Paper start - add method to get the value for pre-filling builders in the reg mod API
-+            @Override
-+            public HolderLookup.Provider lookupForValueCopyViaBuilders() {
-+                return providerForBuilders;
-+            }
-+            // Paper end - add method to get the value for pre-filling builders in the reg mod API
-         };
-+    }
-+
-+    private static <T> RegistryOps.RegistryInfo<T> createInfoForContextRegistry(HolderLookup.RegistryLookup<T> lookup) {
-+        return new RegistryOps.RegistryInfo<>(lookup, lookup, lookup.registryLifecycle());
-     }
- 
-     private static ReportedException logErrors(Map<ResourceKey<?>, Exception> loadingErrors) {
 @@ -340,7 +_,11 @@
      public record NetworkedRegistryData(List<RegistrySynchronization.PackedRegistryEntry> elements, TagNetworkSerialization.NetworkPayload tags) {
      }

@@ -1,26 +1,5 @@
 --- a/net/minecraft/advancements/predicates/LocationPredicate.java
 +++ b/net/minecraft/advancements/predicates/LocationPredicate.java
-@@ -6,8 +_,8 @@
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Holder;
- import net.minecraft.core.HolderSet;
-+import net.minecraft.core.RegistryCodecs;
- import net.minecraft.core.registries.Registries;
--import net.minecraft.core.registries.codec.RegistryCodecs;
- import net.minecraft.resources.ResourceKey;
- import net.minecraft.server.level.ServerLevel;
- import net.minecraft.world.level.Level;
-@@ -29,8 +_,8 @@
-     public static final Codec<LocationPredicate> CODEC = RecordCodecBuilder.create(
-         i -> i.group(
-                 LocationPredicate.PositionPredicate.CODEC.optionalFieldOf("position").forGetter(LocationPredicate::position),
--                RegistryCodecs.holderSet(Registries.BIOME).optionalFieldOf("biomes").forGetter(LocationPredicate::biomes),
--                RegistryCodecs.holderSet(Registries.STRUCTURE).optionalFieldOf("structures").forGetter(LocationPredicate::structures),
-+                RegistryCodecs.homogeneousList(Registries.BIOME).optionalFieldOf("biomes").forGetter(LocationPredicate::biomes),
-+                RegistryCodecs.homogeneousList(Registries.STRUCTURE).optionalFieldOf("structures").forGetter(LocationPredicate::structures),
-                 ResourceKey.codec(Registries.DIMENSION).optionalFieldOf("dimension").forGetter(LocationPredicate::dimension),
-                 Codec.BOOL.optionalFieldOf("smokey").forGetter(LocationPredicate::smokey),
-                 LightPredicate.CODEC.optionalFieldOf("light").forGetter(LocationPredicate::light),
 @@ -46,7 +_,7 @@
              return false;
          }

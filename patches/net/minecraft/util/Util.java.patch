@@ -1,6 +1,6 @@
 --- a/net/minecraft/util/Util.java
 +++ b/net/minecraft/util/Util.java
-@@ -104,14 +_,29 @@
+@@ -104,9 +_,25 @@
      private static final int DEFAULT_MAX_THREADS = 255;
      private static final int DEFAULT_SAFE_FILE_OPERATION_RETRIES = 10;
      private static final String MAX_THREADS_SYSTEM_PROPERTY = "max.bg.threads";
@@ -28,11 +28,6 @@
      private static final DateTimeFormatter FILENAME_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH.mm.ss", Locale.ROOT);
      public static final int LINEAR_LOOKUP_THRESHOLD = 8;
      private static final Set<String> ALLOWED_UNTRUSTED_LINK_PROTOCOLS = Set.of("http", "https");
-     public static final long NANOS_PER_MILLI = 1000000L;
--    public static final long MILLIS_PER_SECOND = 1000L;
-     private static TimeSource.NanoTimeSource timeSource = System::nanoTime;
-     private static final TimeSource.NanoTimeSource INDIRECT_TIME_SOURCE = () -> timeSource.getAsLong();
-     public static final Ticker TICKER = new Ticker() {
 @@ -148,6 +_,8 @@
          escaper.addEscape('\\', "\\\\");
      }).build();
@@ -42,7 +37,7 @@
  
      public static <K, V> Collector<Entry<? extends K, ? extends V>, ?, Map<K, V>> toMap() {
          return Collectors.toMap(Entry::getKey, Entry::getValue);
-@@ -183,24 +_,21 @@
+@@ -183,7 +_,7 @@
      }
  
      public static long getNanos() {
@@ -51,14 +46,7 @@
      }
  
      public static long getEpochMillis() {
-         return Instant.now().toEpochMilli();
-     }
- 
--    public static long toMillis(double seconds) {
--        return Mth.floor(seconds * 1000.0);
--    }
--
-     public static String getFilenameFormattedDateTime() {
+@@ -198,9 +_,10 @@
          return FILENAME_DATE_TIME_FORMATTER.format(ZonedDateTime.now());
      }
  
@@ -146,14 +134,27 @@
                  throw e;
              }
          }
-@@ -556,10 +_,6 @@
-     public static boolean isAarch64() {
-         String arch = System.getProperty("os.arch").toLowerCase(Locale.ROOT);
-         return arch.equals("aarch64");
--    }
--
--    public static boolean isAppleSiliconMac(String renderer) {
--        return renderer.startsWith("Apple");
+@@ -745,20 +_,20 @@
+ 
+     public static void logAndPauseIfInIde(String message) {
+         LOGGER.error("{}", message);
+-        if (SharedConstants.IS_RUNNING_IN_IDE) {
++        if (SharedConstants.IS_RUNNING_WITH_JDWP) {
+             doPause(message);
+         }
      }
  
-     public static URI parseAndValidateUntrustedUri(String uri) throws URISyntaxException {
+     public static void logAndPauseIfInIde(String message, Throwable throwable) {
+         LOGGER.error("{}", message, throwable);
+-        if (SharedConstants.IS_RUNNING_IN_IDE) {
++        if (SharedConstants.IS_RUNNING_WITH_JDWP) {
+             doPause(message);
+         }
+     }
+ 
+     public static <T extends Throwable> T pauseInIde(T t) {
+-        if (SharedConstants.IS_RUNNING_IN_IDE) {
++        if (SharedConstants.IS_RUNNING_WITH_JDWP) {
+             LOGGER.error("Trying to throw a fatal exception, pausing in IDE", t);
+             doPause(t.getMessage());
+         }

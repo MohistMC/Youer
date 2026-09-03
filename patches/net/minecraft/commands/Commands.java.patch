@@ -8,14 +8,6 @@
  import com.mojang.brigadier.CommandDispatcher;
  import com.mojang.brigadier.ParseResults;
  import com.mojang.brigadier.StringReader;
-@@ -53,7 +_,6 @@
- import net.minecraft.server.commands.ChaseCommand;
- import net.minecraft.server.commands.ClearInventoryCommands;
- import net.minecraft.server.commands.CloneCommands;
--import net.minecraft.server.commands.ComputeCommand;
- import net.minecraft.server.commands.DamageCommand;
- import net.minecraft.server.commands.DataPackCommand;
- import net.minecraft.server.commands.DeOpCommands;
 @@ -159,6 +_,7 @@
  import org.slf4j.Logger;
  
@@ -32,7 +24,7 @@
              Predicate<CommandSourceStack> requirement = node.getRequirement();
              return !requirement.test(this.noPermissionSource);
          }
-@@ -190,15 +_,19 @@
+@@ -190,6 +_,11 @@
      private final CommandDispatcher<CommandSourceStack> dispatcher = new CommandDispatcher<>();
  
      public Commands(Commands.CommandSelection commandSelection, CommandBuildContext context) {
@@ -44,16 +36,6 @@
          AdvancementCommands.register(this.dispatcher);
          AttributeCommand.register(this.dispatcher, context);
          ExecuteCommand.register(this.dispatcher, context);
-         BossBarCommands.register(this.dispatcher, context);
-         ClearInventoryCommands.register(this.dispatcher, context);
-         CloneCommands.register(this.dispatcher, context);
--        ComputeCommand.register(this.dispatcher, context);
-         DamageCommand.register(this.dispatcher, context);
--        DataCommands.register(this.dispatcher, context);
-+        DataCommands.register(this.dispatcher);
-         DataPackCommand.register(this.dispatcher, context);
-         DebugCommand.register(this.dispatcher);
-         DefaultGameModeCommands.register(this.dispatcher);
 @@ -265,11 +_,11 @@
              JfrCommand.register(this.dispatcher);
          }
@@ -324,7 +306,7 @@
                  if (builder.getRedirect() != null) {
                      builder.redirect(converted.get(builder.getRedirect()));
                  }
-@@ -434,12 +_,11 @@
+@@ -434,7 +_,7 @@
                  converted.put(child, node);
                  target.addChild(node);
                  if (!child.getChildren().isEmpty()) {
@@ -333,11 +315,6 @@
                  }
              }
          }
-     }
--
-     public static LiteralArgumentBuilder<CommandSourceStack> literal(String literal) {
-         return LiteralArgumentBuilder.literal(literal);
-     }
 @@ -547,7 +_,7 @@
      }
  

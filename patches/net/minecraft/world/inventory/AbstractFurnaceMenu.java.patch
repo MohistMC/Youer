@@ -1,13 +1,5 @@
 --- a/net/minecraft/world/inventory/AbstractFurnaceMenu.java
 +++ b/net/minecraft/world/inventory/AbstractFurnaceMenu.java
-@@ -1,7 +_,6 @@
- package net.minecraft.world.inventory;
- 
- import java.util.List;
--import net.minecraft.core.component.DataComponents;
- import net.minecraft.recipebook.ServerPlaceRecipe;
- import net.minecraft.resources.ResourceKey;
- import net.minecraft.server.level.ServerLevel;
 @@ -33,6 +_,21 @@
      protected final Level level;
      private final RecipePropertySet acceptedInputs;
@@ -61,18 +53,3 @@
                      }
                  } else if (this.isFuel(stack)) {
                      if (!this.moveItemStackTo(stack, 1, 2, false)) {
-@@ -134,7 +_,13 @@
-     }
- 
-     protected boolean isFuel(ItemStack itemStack) {
--        return itemStack.has(DataComponents.COOKING_FUEL);
-+        var recipeType = switch (recipeBookType) {
-+            case SMOKER -> net.minecraft.world.item.crafting.RecipeType.SMOKING;
-+            case FURNACE -> net.minecraft.world.item.crafting.RecipeType.SMELTING;
-+            case BLAST_FURNACE -> net.minecraft.world.item.crafting.RecipeType.BLASTING;
-+            default -> null;
-+        };
-+        return itemStack.getBurnTime(recipeType, this.level.fuelValues()) > 0;
-     }
- 
-     public float getBurnProgress() {

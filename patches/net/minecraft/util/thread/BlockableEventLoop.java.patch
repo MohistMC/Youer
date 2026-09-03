@@ -64,10 +64,11 @@
      }
  
      @CheckReturnValue
-@@ -88,6 +_,14 @@
+@@ -87,6 +_,14 @@
+             runnable.run();
          }
      }
- 
++
 +    // Paper start
 +    public void scheduleOnMain(Runnable runnable) {
 +        // postToMainThread does not work the same as older versions of mc
@@ -75,18 +76,6 @@
 +        this.schedule(this.wrapRunnable(runnable));
 +    }
 +    // Paper end
-+
+ 
      @Override
      public void schedule(R r) {
-         this.pendingRunnables.add(r);
-@@ -160,7 +_,9 @@
-             task.run();
-         } catch (Exception e) {
-             LOGGER.error(LogUtils.FATAL_MARKER, "Error executing task on {}", this.name(), e);
--            throw e;
-+            if (isNonRecoverable(e)) {
-+                throw e;
-+            }
-         }
-     }
- 

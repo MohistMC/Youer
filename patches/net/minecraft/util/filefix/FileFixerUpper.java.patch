@@ -9,56 +9,14 @@
      private static final Gson GSON = new Gson().newBuilder().setPrettyPrinting().create();
      private static final String FILE_FIX_DIRECTORY_NAME = "filefix";
      private static final String NEW_WORLD_TEMP_NAME = "new_world";
-@@ -80,8 +_,8 @@
+@@ -80,6 +_,7 @@
      public Dynamic<?> fix(LevelStorageSource.LevelStorageAccess worldAccess, Dynamic<?> levelDataTag, UpgradeProgress upgradeProgress, int toVersion) throws FileFixException {
          int loadedVersion = NbtUtils.getDataVersion(levelDataTag);
          if (this.requiresFileFixing(loadedVersion)) {
 +            if (!io.papermc.paper.world.migration.WorldFolderMigration.didInitialLoad) io.papermc.paper.world.migration.WorldFolderMigration.warnAndDelayStartupMigration(); // Paper
              LOGGER.info("Starting upgrade for world \"{}\"", worldAccess.getLevelId());
--            upgradeProgress.notifications().worldUpgradeStarted();
+             upgradeProgress.notifications().worldUpgradeStarted();
              Path worldFolder = worldAccess.getLevelDirectory().path();
-             Path fileFixDirectory = worldFolder.resolve("filefix");
-             Path tempWorld = fileFixDirectory.resolve("new_world");
-@@ -90,19 +_,14 @@
-             try {
-                 moves = this.startOrContinueFileFixing(upgradeProgress, toVersion, worldFolder, tempWorld, fileFixDirectory, loadedVersion);
-             } catch (IOException e) {
--                upgradeProgress.notifications().worldUpgradeFailed("The world upgrade failed during file fixing");
-                 throw new AbortedFileFixException(e);
-             }
- 
-             try {
--                swapInFixedWorld(worldAccess, moves, fileFixDirectory, tempWorld, upgradeProgress);
-+                swapInFixedWorld(worldAccess, moves, fileFixDirectory, tempWorld);
-             } catch (AbortedFileFixException e) {
-                 if (e.notRevertedMoves().isEmpty()) {
-                     cleanup(fileFixDirectory);
--                    upgradeProgress.notifications().worldUpgradeFailed("The world upgrade failed while swapping in the file-fixed world");
--                } else {
--                    upgradeProgress.notifications()
--                        .worldUpgradeFailed("The world upgrade failed while swapping in the file-fixed world and some moves were not reverted");
-                 }
- 
-                 throw e;
-@@ -111,7 +_,6 @@
-             try {
-                 levelDataTag = worldAccess.getUnfixedDataTag(false);
-             } catch (IOException e) {
--                upgradeProgress.notifications().worldUpgradeFailed("The world upgrade failed while reading level.dat");
-                 throw new UncheckedIOException(e);
-             }
- 
-@@ -247,9 +_,7 @@
-     }
- 
-     @VisibleForTesting
--    protected static void swapInFixedWorld(
--        LevelStorageSource.LevelStorageAccess worldAccess, List<FileMove> moves, Path fileFixDirectory, Path tempWorld, UpgradeProgress upgradeProgress
--    ) throws FileFixException {
-+    protected static void swapInFixedWorld(LevelStorageSource.LevelStorageAccess worldAccess, List<FileMove> moves, Path fileFixDirectory, Path tempWorld) throws FileFixException {
-         Path worldFolder = worldAccess.getLevelDirectory().path();
-         Path savesDirectory = worldFolder.getParent();
-         String worldName = worldFolder.getFileName().toString();
 @@ -305,7 +_,7 @@
                      try {
                          Files.deleteIfExists(movesFile);
@@ -79,11 +37,3 @@
                      }
                  }
  
-@@ -376,7 +_,6 @@
-         }
- 
-         LOGGER.info("Upgrade done for world \"{}\"", worldAccess.getLevelId());
--        upgradeProgress.notifications().worldUpgradeFinished();
-     }
- 
-     private static void writeMoves(List<FileMove> moves, Path fromDirectory, Path toDirectory, Path filePath) throws IOException {

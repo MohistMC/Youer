@@ -8,7 +8,7 @@
  import com.mojang.logging.LogUtils;
  import it.unimi.dsi.fastutil.ints.IntArrayList;
  import it.unimi.dsi.fastutil.ints.IntList;
-@@ -20,9 +_,10 @@
+@@ -20,6 +_,8 @@
  import net.minecraft.core.NonNullList;
  import net.minecraft.core.registries.BuiltInRegistries;
  import net.minecraft.network.HashedStack;
@@ -16,11 +16,8 @@
 +import net.minecraft.resources.Identifier;
  import net.minecraft.server.level.ServerPlayer;
  import net.minecraft.util.Mth;
--import net.minecraft.util.Prediction;
- import net.minecraft.world.Container;
- import net.minecraft.world.entity.Entity;
- import net.minecraft.world.entity.SlotAccess;
-@@ -33,14 +_,15 @@
+ import net.minecraft.util.Prediction;
+@@ -33,6 +_,9 @@
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.level.block.Block;
  import net.minecraft.world.level.block.entity.BlockEntity;
@@ -30,14 +27,6 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
- public abstract class AbstractContainerMenu {
-     private static final Logger LOGGER = LogUtils.getLogger();
-     public static final int SLOT_CLICKED_OUTSIDE = -999;
--    public static final int CONTAINER_CLICK_PRIMARY = 0;
--    public static final int CONTAINER_CLICK_SECONDARY = 1;
-     public static final int QUICKCRAFT_TYPE_CHARITABLE = 0;
-     public static final int QUICKCRAFT_TYPE_GREEDY = 1;
-     public static final int QUICKCRAFT_TYPE_CLONE = 2;
 @@ -66,6 +_,56 @@
      private final List<ContainerListener> containerListeners = Lists.newArrayList();
      private @Nullable ContainerSynchronizer synchronizer;
@@ -257,24 +246,6 @@
              ItemStack source = inventory.getItem(buttonNum);
              Slot target = this.slots.get(slotIndex);
              ItemStack targetItemStack = target.getItem();
-@@ -499,7 +_,7 @@
-                         target.setByPlayer(source.split(maxStackSize));
-                         target.onTake(player, targetItemStack);
-                         if (!inventory.add(targetItemStack)) {
--                            player.drop(targetItemStack, true, Prediction.PREDICTED);
-+                            player.drop(targetItemStack, true);
-                         }
-                     } else {
-                         inventory.setItem(buttonNum, targetItemStack);
-@@ -521,7 +_,7 @@
-             }
- 
-             ItemStack itemStack = slot.safeTake(amount, Integer.MAX_VALUE, player);
--            player.drop(itemStack, true, Prediction.PREDICTED);
-+            player.drop(itemStack, true);
-             player.handleCreativeModeItemDrop(itemStack);
-             if (buttonNum == 1) {
-                 while (!itemStack.isEmpty() && ItemStack.isSameItem(slot.getItem(), itemStack)) {
 @@ -530,7 +_,11 @@
                      }
  
@@ -288,33 +259,21 @@
                      player.handleCreativeModeItemDrop(itemStack);
                  }
              }
-@@ -560,19 +_,13 @@
-         }
+@@ -573,6 +_,13 @@
      }
  
--    private static boolean isContainerClickButton(int buttonNum) {
--        return buttonNum == 0 || buttonNum == 1;
--    }
--
--    private static ClickAction getClickAction(int buttonNum) {
--        return switch (buttonNum) {
--            case 0 -> ClickAction.PRIMARY;
--            case 1 -> ClickAction.SECONDARY;
--            default -> throw new IllegalArgumentException("Not a container click button: " + buttonNum);
--        };
--    }
--
      private boolean tryItemClickBehaviourOverride(Player player, ClickAction clickAction, Slot slot, ItemStack clicked, ItemStack carried) {
-+        // Neo: Fire the ItemStackedOnOtherEvent, and return true if it was cancelled (meaning the event was handled). Returning true will trigger the container to stop processing further logic.
++        // Neo: Fire the ItemStackedOnOtherEvent, and return the event's cancel result if it was cancelled. Returning true will trigger the container to stop processing further logic.
 +        // The first parameter to onItemStackedOn is the "carried" (under-mouse) item, which is the second ItemStack parameter to this method.
-+        if (net.neoforged.neoforge.common.CommonHooks.onItemStackedOn(carried, clicked, slot, clickAction, player, createCarriedSlotAccess())) {
-+            return true;
++        var event = net.neoforged.neoforge.common.CommonHooks.onItemStackedOn(carried, clicked, slot, clickAction, player, createCarriedSlotAccess());
++        if (event.isCanceled()) {
++            return event.getCancellationResult();
 +        }
 +
          FeatureFlagSet enabledFeatures = player.level().enabledFeatures();
          return carried.isItemEnabled(enabledFeatures) && carried.overrideStackedOnOther(slot, clickAction, player)
              ? true
-@@ -602,20 +_,20 @@
+@@ -602,8 +_,9 @@
          if (player instanceof ServerPlayer) {
              ItemStack carried = this.getCarried();
              if (!carried.isEmpty()) {
@@ -325,24 +284,6 @@
              }
          }
      }
- 
-     private static void dropOrPlaceInInventory(Player player, ItemStack carried) {
--        if (player instanceof ServerPlayer serverPlayer) {
--            boolean playerRemovedNotChangingDimension = serverPlayer.isRemoved() && serverPlayer.getRemovalReason() != Entity.RemovalReason.CHANGED_DIMENSION;
--            if (!playerRemovedNotChangingDimension && !serverPlayer.hasDisconnected()) {
--                serverPlayer.getInventory().placeItemBackInInventory(carried, Prediction.SERVER_ONLY);
--            } else {
--                serverPlayer.drop(carried, false, Prediction.SERVER_ONLY);
--            }
-+        boolean playerRemovedNotChangingDimension = !player.isAlive() && player.getRemovalReason() != Entity.RemovalReason.CHANGED_DIMENSION;
-+        boolean serverPlayerHasDisconnected = player instanceof ServerPlayer serverPlayer && serverPlayer.hasDisconnected();
-+        if (playerRemovedNotChangingDimension || serverPlayerHasDisconnected) {
-+            player.drop(carried, false);
-+        } else if (player instanceof ServerPlayer) {
-+            player.getInventory().placeItemBackInInventory(carried);
-         }
-     }
- 
 @@ -650,6 +_,14 @@
      public abstract boolean stillValid(Player player);
  

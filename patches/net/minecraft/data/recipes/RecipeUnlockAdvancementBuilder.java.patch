@@ -1,14 +1,6 @@
 --- a/net/minecraft/data/recipes/RecipeUnlockAdvancementBuilder.java
 +++ b/net/minecraft/data/recipes/RecipeUnlockAdvancementBuilder.java
-@@ -8,7 +_,6 @@
- import net.minecraft.advancements.AdvancementRewards;
- import net.minecraft.advancements.triggers.Criterion;
- import net.minecraft.advancements.triggers.RecipeUnlockedTrigger;
--import net.minecraft.core.registries.Registries;
- import net.minecraft.resources.ResourceKey;
- import net.minecraft.world.item.crafting.Recipe;
- 
-@@ -20,15 +_,19 @@
+@@ -20,6 +_,10 @@
      }
  
      public AdvancementHolder build(RecipeOutput output, ResourceKey<Recipe<?>> id, RecipeCategory category) {
@@ -19,10 +11,7 @@
          if (this.criteria.isEmpty()) {
              throw new IllegalStateException("No way of obtaining recipe " + id.identifier());
          }
- 
-         Advancement.Builder advancement = output.advancement()
--            .addCriterion("has_the_recipe", RecipeUnlockedTrigger.unlocked(output.lookup(Registries.RECIPE).getOrThrow(id)))
-+            .addCriterion("has_the_recipe", RecipeUnlockedTrigger.unlocked(id))
+@@ -29,6 +_,6 @@
              .rewards(AdvancementRewards.Builder.recipe(id))
              .requirements(AdvancementRequirements.Strategy.OR);
          this.criteria.forEach(advancement::addCriterion);

@@ -18,40 +18,9 @@
  import org.jspecify.annotations.Nullable;
  
  public class BlockItem extends Item {
-@@ -40,25 +_,15 @@
-     @Override
-     public InteractionResult useOn(UseOnContext context) {
-         InteractionResult placeResult = this.place(new BlockPlaceContext(context));
--        if (placeResult.consumesAction()) {
--            return placeResult;
--        } else {
--            InteractionResult result = super.useOn(context);
--            if (result.consumesAction()) {
--                return result;
--            } else {
--                return context.getItemInHand().has(DataComponents.CONSUMABLE)
--                    ? super.use(context.getLevel(), context.getPlayer(), context.getHand())
--                    : placeResult;
--            }
--        }
-+        return !placeResult.consumesAction() && context.getItemInHand().has(DataComponents.CONSUMABLE)
-+            ? super.use(context.getLevel(), context.getPlayer(), context.getHand())
-+            : placeResult;
-     }
+@@ -69,40 +_,72 @@
+         }
  
-     public InteractionResult place(BlockPlaceContext placeContext) {
-         if (!this.getBlock().isEnabled(placeContext.getLevel().enabledFeatures())) {
-             return InteractionResult.FAIL;
-         }
--
-         if (!placeContext.canPlace()) {
-             return InteractionResult.FAIL;
-         }
-@@ -67,42 +_,73 @@
-         if (updatedPlaceContext == null) {
-             return InteractionResult.FAIL;
-         }
--
          BlockState placementState = this.getPlacementState(updatedPlaceContext);
 +        final org.bukkit.block.BlockState previousState = org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(updatedPlaceContext.getLevel(), updatedPlaceContext.getClickedPos()); // Paper - Reset placed block on exception
          if (placementState == null) {

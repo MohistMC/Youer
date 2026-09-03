@@ -8,7 +8,7 @@
  import net.minecraft.core.Registry;
  import net.minecraft.util.ExtraCodecs;
  
-@@ -34,12 +_,21 @@
+@@ -34,6 +_,11 @@
          this.lookupProvider = lookupProvider;
      }
  
@@ -20,81 +20,28 @@
      public <U> RegistryOps<U> withParent(DynamicOps<U> parent) {
          return (RegistryOps<U>)(parent == this.delegate ? this : new RegistryOps<>(parent, this.lookupProvider));
      }
- 
-+    public <E> Optional<HolderOwner<E>> owner(ResourceKey<? extends Registry<? extends E>> registryKey) {
-+        return this.lookupProvider.lookup(registryKey).map(RegistryOps.RegistryInfo::owner);
-+    }
-+
-     public <E> Optional<HolderGetter<E>> getter(ResourceKey<? extends Registry<? extends E>> registryKey) {
--        return this.lookupProvider.lookup(registryKey);
-+        return this.lookupProvider.lookup(registryKey).map(RegistryOps.RegistryInfo::getter);
+@@ -71,6 +_,20 @@
+             .forGetter(var0 -> null);
      }
  
-     @Override
-@@ -64,11 +_,25 @@
-                 ops -> ops instanceof RegistryOps<?> registryOps
-                     ? registryOps.lookupProvider
-                         .lookup(registryKey)
--                        .map(r -> DataResult.success((HolderGetter<E>)r, Lifecycle.stable()))
-+                        .map(r -> DataResult.success(r.getter(), r.elementsLifecycle()))
-                         .orElseGet(() -> DataResult.error(() -> "Unknown registry: " + registryKey))
-                     : DataResult.error(() -> "Not a registry ops")
-             )
--            .forGetter(var0 -> null);
-+            .forGetter(e -> null);
-+    }
-+
 +    public static <E> com.mojang.serialization.MapCodec<HolderLookup.RegistryLookup<E>> retrieveRegistryLookup(ResourceKey<? extends Registry<? extends E>> resourceKey) {
 +        return ExtraCodecs.retrieveContext(ops -> {
 +            if (!(ops instanceof RegistryOps<?> registryOps))
 +                return DataResult.error(() -> "Not a registry ops");
 +
 +            return registryOps.lookupProvider.lookup(resourceKey).map(registryInfo -> {
-+                if (!(registryInfo.owner() instanceof HolderLookup.RegistryLookup<E> registryLookup))
++                if (!(registryInfo instanceof HolderLookup.RegistryLookup<E> registryLookup))
 +                    return DataResult.<HolderLookup.RegistryLookup<E>>error(() -> "Found holder getter but was not a registry lookup for " + resourceKey);
 +
-+                return DataResult.success(registryLookup, registryInfo.elementsLifecycle());
++                return DataResult.success(registryLookup, registryLookup.registryLifecycle());
 +            }).orElseGet(() -> DataResult.error(() -> "Unknown registry: " + resourceKey));
 +        });
-     }
- 
-     public static <E, O> RecordCodecBuilder<O, Holder.Reference<E>> retrieveElement(ResourceKey<E> key) {
-@@ -77,25 +_,29 @@
-                 ops -> ops instanceof RegistryOps<?> registryOps
-                     ? registryOps.lookupProvider
-                         .lookup(registryKey)
--                        .flatMap(r -> r.get(key))
-+                        .flatMap(r -> r.getter().get(key))
-                         .map(DataResult::success)
-                         .orElseGet(() -> DataResult.error(() -> "Can't find value: " + key))
-                     : DataResult.error(() -> "Not a registry ops")
-             )
--            .forGetter(var0 -> null);
-+            .forGetter(e -> null);
-     }
- 
-     public static final class HolderLookupAdapter implements RegistryOps.RegistryInfoLookup {
-         public final HolderLookup.Provider lookupProvider;
--        private final Map<ResourceKey<? extends Registry<?>>, Optional<? extends HolderGetter<?>>> lookups = new ConcurrentHashMap<>();
-+        private final Map<ResourceKey<? extends Registry<?>>, Optional<? extends RegistryOps.RegistryInfo<?>>> lookups = new ConcurrentHashMap<>();
- 
-         public HolderLookupAdapter(HolderLookup.Provider lookupProvider) {
-             this.lookupProvider = lookupProvider;
-         }
- 
-         @Override
--        public <E> Optional<HolderGetter<E>> lookup(ResourceKey<? extends Registry<? extends E>> registryKey) {
--            return (Optional<HolderGetter<E>>)this.lookups.computeIfAbsent(registryKey, this.lookupProvider::lookup);
-+        public <E> Optional<RegistryOps.RegistryInfo<E>> lookup(ResourceKey<? extends Registry<? extends E>> registryKey) {
-+            return (Optional<RegistryOps.RegistryInfo<E>>)this.lookups.computeIfAbsent(registryKey, this::createLookup);
-+        }
++    }
 +
-+        private Optional<RegistryOps.RegistryInfo<Object>> createLookup(ResourceKey<? extends Registry<?>> key) {
-+            return this.lookupProvider.lookup(key).map(RegistryOps.RegistryInfo::fromRegistryLookup);
-         }
- 
-         @Override
-@@ -107,9 +_,24 @@
+     public static <E, O> RecordCodecBuilder<O, Holder.Reference<E>> retrieveElement(ResourceKey<E> key) {
+         ResourceKey<? extends Registry<E>> registryKey = ResourceKey.createRegistryKey(key.registry());
+         return ExtraCodecs.retrieveContext(
+@@ -107,6 +_,13 @@
          public int hashCode() {
              return this.lookupProvider.hashCode();
          }
@@ -105,18 +52,6 @@
 +            return this.lookupProvider;
 +        }
 +        // Paper end - add method to get the value for pre-filling builders in the reg mod API
-+    }
-+
-+    public record RegistryInfo<T>(HolderOwner<T> owner, HolderGetter<T> getter, Lifecycle elementsLifecycle) {
-+        public static <T> RegistryOps.RegistryInfo<T> fromRegistryLookup(HolderLookup.RegistryLookup<T> registry) {
-+            return new RegistryOps.RegistryInfo<>(registry, registry, registry.registryLifecycle());
-+        }
      }
  
      public interface RegistryInfoLookup {
--        <T> Optional<HolderGetter<T>> lookup(ResourceKey<? extends Registry<? extends T>> registryKey);
-+        <T> Optional<RegistryOps.RegistryInfo<T>> lookup(ResourceKey<? extends Registry<? extends T>> registryKey);
-+
-+        HolderLookup.Provider lookupForValueCopyViaBuilders(); // Paper - add method to get the value for pre-filling builders in the reg mod API
-     }
- }

@@ -99,21 +99,6 @@
      }
  
      public static long getFlatIndex(long neighborBlockNode) {
-@@ -117,6 +_,14 @@
-         return x == 0 && y == 0 && z == 0 ? this : new BlockPos(this.getX() + x, this.getY() + y, this.getZ() + z);
-     }
- 
-+    public Vec3 getCenter() {
-+        return Vec3.atCenterOf(this);
-+    }
-+
-+    public Vec3 getBottomCenter() {
-+        return Vec3.atBottomCenterOf(this);
-+    }
-+
-     public BlockPos offset(Vec3i vec) {
-         return this.offset(vec.getX(), vec.getY(), vec.getZ());
-     }
 @@ -134,55 +_,72 @@
      }
  
@@ -200,70 +185,6 @@
      }
  
      public BlockPos relative(Direction direction, int steps) {
-@@ -252,6 +_,11 @@
-         );
-     }
- 
-+    @Deprecated
-+    public static Stream<BlockPos> squareOutSouthEast(BlockPos from) {
-+        return Stream.of(from, from.south(), from.east(), from.south().east());
-+    }
-+
-     public static Iterable<BlockPos> randomBetweenClosed(RandomSource random, int limit, int minX, int minY, int minZ, int maxX, int maxY, int maxZ) {
-         int width = maxX - minX + 1;
-         int height = maxY - minY + 1;
-@@ -272,19 +_,8 @@
-         };
-     }
- 
--    public static Iterable<BlockPos> withinManhattan(BlockPos origin, int reach) {
--        return manhattanOrdered(origin, reach, reach, reach, reach);
--    }
--
--    public static Iterable<BlockPos> withinClippedManhattan(BlockPos origin, int reachX, int reachY, int reachZ) {
--        return manhattanOrdered(origin, reachX, reachY, reachZ, Math.max(Math.max(reachX, reachY), reachZ));
--    }
--
--    public static Iterable<BlockPos> withinBoxByManhattanDistance(BlockPos origin, int reachX, int reachY, int reachZ) {
--        return manhattanOrdered(origin, reachX, reachY, reachZ, reachX + reachY + reachZ);
--    }
--
--    private static Iterable<BlockPos> manhattanOrdered(BlockPos origin, int reachX, int reachY, int reachZ, int maxDepth) {
-+    public static Iterable<BlockPos> withinManhattan(BlockPos origin, int reachX, int reachY, int reachZ) {
-+        int maxDepth = reachX + reachY + reachZ;
-         int originX = origin.getX();
-         int originY = origin.getY();
-         int originZ = origin.getZ();
-@@ -297,7 +_,7 @@
-             private int y;
-             private boolean zMirror;
- 
--            protected @Nullable BlockPos computeNext() {
-+            protected BlockPos computeNext() {
-                 if (this.zMirror) {
-                     this.zMirror = false;
-                     this.cursor.setZ(originZ - (this.cursor.getZ() - originZ));
-@@ -336,6 +_,20 @@
-         };
-     }
- 
-+    public static Optional<BlockPos> findClosestMatch(BlockPos startPos, int horizontalSearchRadius, int verticalSearchRadius, Predicate<BlockPos> predicate) {
-+        for (BlockPos blockPos : withinManhattan(startPos, horizontalSearchRadius, verticalSearchRadius, horizontalSearchRadius)) {
-+            if (predicate.test(blockPos)) {
-+                return Optional.of(blockPos);
-+            }
-+        }
-+
-+        return Optional.empty();
-+    }
-+
-+    public static Stream<BlockPos> withinManhattanStream(BlockPos origin, int reachX, int reachY, int reachZ) {
-+        return StreamSupport.stream(withinManhattan(origin, reachX, reachY, reachZ).spliterator(), false);
-+    }
-+
-     public static Iterable<BlockPos> betweenClosed(AABB box) {
-         BlockPos startPos = containing(box.minX, box.minY, box.minZ);
-         BlockPos endPos = containing(box.maxX, box.maxY, box.maxZ);
 @@ -629,9 +_,9 @@
          }
  
