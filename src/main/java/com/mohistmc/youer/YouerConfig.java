@@ -426,7 +426,6 @@ public class YouerConfig {
         return yml.getString("youer.lang", Locale.getDefault().toString()).contains("CN");
     }
 
-
     public static String getMessage_require_neoforge() {
         return ColorAPI.string(message_require_neoforge.formatted(NeoForgeVersion.getVersion()));
     }

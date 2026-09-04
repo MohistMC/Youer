@@ -245,13 +245,15 @@
              }
          });
      }
-@@ -509,6 +_,11 @@
+@@ -509,6 +_,13 @@
  
      public void setLoaded(boolean p_62914_) {
          this.loaded = p_62914_;
 +        // Youer start - announce chunk status to the entity manager
-+        if (this.level instanceof ServerLevel) {
-+            ((ServerLevel) this.level).entityManager.updateChunkStatus(this.getPos(), p_62914_ ? FullChunkStatus.FULL : FullChunkStatus.INACCESSIBLE);
++        if (this.level instanceof ServerLevel serverLevel) {
++            serverLevel.getServer().execute(() ->
++                    serverLevel.entityManager.updateChunkStatus(this.getPos(), p_62914_ ? FullChunkStatus.FULL : FullChunkStatus.INACCESSIBLE)
++            );
 +        }
 +        // Youer end - announce chunk status to the entity manager
      }
