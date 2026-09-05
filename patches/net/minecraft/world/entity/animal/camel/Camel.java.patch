@@ -62,42 +62,6 @@
      @Override
      public SoundEvent getAmbientSound() {
          return SoundEvents.CAMEL_AMBIENT;
-@@ -381,19 +_,22 @@
-         if (player.isSecondaryUseActive() && !this.isBaby()) {
-             this.openCustomInventoryScreen(player);
-             return InteractionResult.SUCCESS;
--        } else {
--            InteractionResult interactionResult = itemStack.interactLivingEntity(player, this, hand);
--            if (interactionResult.consumesAction()) {
--                return interactionResult;
--            } else if (this.isFood(itemStack)) {
--                return this.fedFood(player, itemStack);
--            } else if (this.getPassengers().size() < 2 && !this.isBaby()) {
--                this.doPlayerRide(player);
--                return InteractionResult.CONSUME;
--            } else {
--                return this.isBaby() && player.isHolding(Items.GOLDEN_DANDELION) ? super.mobInteract(player, hand) : InteractionResult.FAIL;
--            }
--        }
-+        }
-+
-+        InteractionResult interactionResult = itemStack.interactLivingEntity(player, this, hand);
-+        if (interactionResult.consumesAction()) {
-+            return interactionResult;
-+        }
-+
-+        if (this.isFood(itemStack)) {
-+            return this.fedFood(player, itemStack);
-+        }
-+
-+        if (this.getPassengers().size() < 2 && !this.isBaby()) {
-+            this.doPlayerRide(player);
-+        }
-+
-+        return this.isBaby() && player.isHolding(Items.GOLDEN_DANDELION) ? super.mobInteract(player, hand) : InteractionResult.CONSUME;
-     }
- 
-     @Override
 @@ -421,12 +_,12 @@
  
          boolean couldHeal = this.getHealth() < this.getMaxHealth();

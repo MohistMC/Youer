@@ -16,7 +16,7 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      private final Holder.Reference<EntityType<?>> builtInRegistryHolder = BuiltInRegistries.ENTITY_TYPE.createIntrusiveHolder(this);
      public static final Codec<EntityType<?>> CODEC = BuiltInRegistries.ENTITY_TYPE.byNameCodec();
-@@ -69,16 +_,37 @@
+@@ -69,16 +_,38 @@
      private final String descriptionId;
      private @Nullable Component description;
      private final Optional<ResourceKey<LootTable>> lootTable;
@@ -52,18 +52,15 @@
 +    }
 +    // Purpur end
 +
++
      public EntityType(
          EntityType.EntityFactory<T> factory,
          MobCategory category,
-@@ -94,8 +_,31 @@
-         String descriptionId,
-         Optional<ResourceKey<LootTable>> lootTable,
-         FeatureFlagSet requiredFeatures,
--        boolean allowedInPeaceful,
--        boolean trackDeltas
-+        boolean allowedInPeaceful
-+    ) {
-+        this(factory, category, serialize, summon, fireImmune, canSpawnFarFromPlayer, immuneTo, dimensions, spawnDimensionsScale, clientTrackingRange, updateInterval, descriptionId, lootTable, requiredFeatures, allowedInPeaceful, EntityType::defaultTrackDeltasSupplier, EntityType::defaultTrackingRangeSupplier, EntityType::defaultUpdateIntervalSupplier, false);
+@@ -97,6 +_,31 @@
+         boolean allowedInPeaceful,
+         boolean trackDeltas
+     ) {
++        this(factory, category, serialize, summon, fireImmune, canSpawnFarFromPlayer, immuneTo, dimensions, spawnDimensionsScale, clientTrackingRange, updateInterval, descriptionId, lootTable, requiredFeatures, allowedInPeaceful, trackDeltas, EntityType::defaultTrackDeltasSupplier, EntityType::defaultTrackingRangeSupplier, EntityType::defaultUpdateIntervalSupplier, false);
 +    }
 +
 +    public EntityType(
@@ -82,18 +79,19 @@
 +            Optional<ResourceKey<LootTable>> lootTable,
 +            FeatureFlagSet requiredFeatures,
 +            boolean allowedInPeaceful,
++            boolean trackDeltas,
 +            final java.util.function.Predicate<EntityType<?>> trackDeltasSupplier,
 +            final java.util.function.ToIntFunction<EntityType<?>> trackingRangeSupplier,
 +            final java.util.function.ToIntFunction<EntityType<?>> updateIntervalSupplier,
 +            boolean onlyOpCanSetNbt
-     ) {
++    ) {
          this.factory = factory;
          this.category = category;
-@@ -112,26 +_,28 @@
-         this.lootTable = lootTable;
+         this.canSpawnFarFromPlayer = canSpawnFarFromPlayer;
+@@ -113,25 +_,28 @@
          this.requiredFeatures = requiredFeatures;
          this.allowedInPeaceful = allowedInPeaceful;
--        this.trackDeltas = trackDeltas;
+         this.trackDeltas = trackDeltas;
 -    }
 -
 -    public @Nullable T spawn(

@@ -150,23 +150,17 @@
      }
  
      @Override
-@@ -89,23 +_,38 @@
-     public final boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
-         if (this.isInvulnerableToBase(source)) {
+@@ -94,13 +_,29 @@
+         if (source.getEntity() instanceof EnderDragon) {
              return false;
--        }
--
--        if (source.getEntity() instanceof EnderDragon) {
-+        } else if (source.getEntity() instanceof EnderDragon) {
-             return false;
--        }
+         }
 -
 -        if (!this.isRemoved()) {
 -            this.remove(Entity.RemovalReason.KILLED);
 -            if (!source.is(DamageTypeTags.IS_EXPLOSION)) {
 -                DamageSource damageSource = source.getEntity() != null ? this.damageSources().explosion(this, source.getEntity()) : null;
 -                level.explode(this, damageSource, null, this.getX(), this.getY(), this.getZ(), 6.0F, false, Level.ExplosionInteraction.BLOCK);
-+        } else {
+-            }
 +            if (!this.isRemoved()) {
 +                // CraftBukkit start - All non-living entities need this
 +                if (CraftEventFactory.handleNonLivingEntityDamageEvent(this, source, damage, false)) {
@@ -190,15 +184,6 @@
 +                    this.remove(Entity.RemovalReason.KILLED, EntityRemoveEvent.Cause.DEATH); // CraftBukkit - add Bukkit remove cause
 +                }
 +                // CraftBukkit end
-+
-+                this.onDestroyedBy(level, source);
-             }
  
--            this.onDestroyedBy(level, source);
-+            return true;
+             this.onDestroyedBy(level, source);
          }
--
--        return true;
-     }
- 
-     @Override

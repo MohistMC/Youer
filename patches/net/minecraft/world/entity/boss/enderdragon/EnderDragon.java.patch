@@ -193,19 +193,15 @@
              }
          }
  
-@@ -395,10 +_,8 @@
+@@ -395,7 +_,7 @@
                  double xd = entity.getX() - xm;
                  double zd = entity.getZ() - zm;
                  double dd = Math.max(xd * xd + zd * zd, 0.1);
 -                entity.push(xd / dd * 4.0, 0.2F, zd / dd * 4.0);
--                if (!this.phaseManager.getCurrentPhase().isSitting()
--                    && livingTarget.getLastHurtByMobTimestamp() < entity.tickCount - 2
--                    && this.doTeamsAllowDamage(livingTarget)) {
 +                entity.push(xd / dd * 4.0, 0.2F, zd / dd * 4.0, this); // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
-+                if (!this.phaseManager.getCurrentPhase().isSitting() && livingTarget.getLastHurtByMobTimestamp() < entity.tickCount - 2) {
-                     DamageSource damageSource = this.damageSources().mobAttack(this);
-                     entity.hurtServer(serverLevel, damageSource, 5.0F);
-                     EnchantmentHelper.doPostAttackEffects(serverLevel, entity, damageSource);
+                 if (!this.phaseManager.getCurrentPhase().isSitting()
+                     && livingTarget.getLastHurtByMobTimestamp() < entity.tickCount - 2
+                     && this.doTeamsAllowDamage(livingTarget)) {
 @@ -430,6 +_,9 @@
          int z1 = Mth.floor(bb.maxZ);
          boolean hitWall = false;

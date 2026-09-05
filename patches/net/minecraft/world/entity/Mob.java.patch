@@ -23,14 +23,6 @@
  import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
  import net.minecraft.world.item.Item;
  import net.minecraft.world.item.ItemStack;
-@@ -69,7 +_,6 @@
- import net.minecraft.world.item.SpawnEggItem;
- import net.minecraft.world.item.component.AttackRange;
- import net.minecraft.world.item.component.ItemAttributeModifiers;
--import net.minecraft.world.item.component.SwingAnimation;
- import net.minecraft.world.item.component.UseRemainder;
- import net.minecraft.world.item.enchantment.Enchantment;
- import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
 @@ -95,6 +_,16 @@
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
@@ -169,15 +161,6 @@
  
      @Override
      protected void playHurtSound(DamageSource source) {
-@@ -332,7 +_,7 @@
-     }
- 
-     @Override
--    public void handleEntityEvent(@EntityEvent.Value byte id) {
-+    public void handleEntityEvent(byte id) {
-         if (id == 20) {
-             this.spawnAnim();
-         } else {
 @@ -346,6 +_,12 @@
          if (!this.level().isClientSide() && this.tickCount % 5 == 0) {
              this.updateControlFlags();
@@ -499,15 +482,6 @@
          ProfilerFiller profiler = Profiler.get();
          profiler.push("sensing");
          this.sensing.tick();
-@@ -761,7 +_,7 @@
-         return 75;
-     }
- 
--    public void clampHeadRotationToBody() {
-+    protected void clampHeadRotationToBody() {
-         float limit = this.getMaxHeadYRot();
-         float headYRot = this.getYHeadRot();
-         float delta = Mth.wrapDegrees(this.yBodyRot - headYRot);
 @@ -882,15 +_,76 @@
              public boolean stillValid(Player player) {
                  return player.getVehicle() == Mob.this || player.isWithinEntityInteractionRange(Mob.this, 4.0);
@@ -794,45 +768,33 @@
                  );
                  return new DebugGoalInfo(goalInfo);
              }
-@@ -1473,12 +_,92 @@
-         return 1.0F;
+@@ -1481,4 +_,88 @@
+     public void swing(InteractionHand hand, SwingAnimation animation) {
+         this.swing(hand, animation, false);
      }
- 
--    public void swingForAttack(InteractionHand hand) {
--        SwingAnimation swingAnimation = this.getItemInHand(hand).getAttackAnimation();
--        this.swing(hand, swingAnimation, false);
--    }
--
--    public void swing(InteractionHand hand, SwingAnimation animation) {
--        this.swing(hand, animation, false);
--    }
-+    /**
-+     * Returns the type of spawn that created this mob, if applicable.
-+     * If it could not be determined, this will return null.
-+     * <p>
-+     * This is set via {@link Mob#finalizeSpawn}, so you should not call this from within that method, instead using the parameter.
-+     */
++
++    /// {@return the type of spawn that created this mob, if applicable}
++    /// If it could not be determined, this will return null.
++    ///
++    /// This is set via [Mob#finalizeSpawn], so you should not call this from within that method, instead using the parameter.
 +    @Nullable
 +    public final EntitySpawnReason getSpawnType() {
 +        return this.spawnType;
 +    }
 +
-+    /**
-+     * This method exists so that spawns can be cancelled from the {@link net.neoforged.neoforge.event.entity.living.FinalizeSpawnEvent FinalizeSpawnEvent}
-+     * without needing to hook up an additional handler for the {@link net.neoforged.neoforge.event.entity.EntityJoinLevelEvent EntityJoinLevelEvent}.
-+     * @return if this mob will be blocked from spawning during {@link Level#addFreshEntity(Entity)}
-+     * @apiNote Not public-facing API.
-+     */
++    /// This method exists so that spawns can be canceled from the [`FinalizeSpawnEvent`][net.neoforged.neoforge.event.entity.living.FinalizeSpawnEvent]
++    /// without needing to hook up an additional handler for the [`EntityJoinLevelEvent`][net.neoforged.neoforge.event.entity.EntityJoinLevelEvent].
++    /// @return if this mob will be blocked from spawning during [Level#addFreshEntity(Entity)]
++    /// @apiNote Not public-facing API.
 +    @org.jetbrains.annotations.ApiStatus.Internal
 +    public final boolean isSpawnCancelled() {
 +        return this.spawnCancelled;
 +    }
 +
-+    /**
-+     * Marks this mob as being disallowed to spawn during {@link Level#addFreshEntity(Entity)}.<p>
-+     * @throws UnsupportedOperationException if this entity has already been {@link Entity#isAddedToLevel()} added to the level.
-+     * @apiNote Not public-facing API.
-+     */
++    /// Marks this mob as being disallowed to spawn during [Level#addFreshEntity(Entity)].
++    ///
++    /// @throws UnsupportedOperationException if this entity has already been [Entity#isAddedToLevel()] added to the level.
++    /// @apiNote Not public-facing API.
 +    @org.jetbrains.annotations.ApiStatus.Internal
 +    public final void setSpawnCancelled(boolean cancel) {
 +        if (this.isAddedToLevel()) {

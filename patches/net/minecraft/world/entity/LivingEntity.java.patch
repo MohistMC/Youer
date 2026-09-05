@@ -9,7 +9,7 @@
  import com.mojang.datafixers.util.Pair;
  import com.mojang.logging.LogUtils;
  import it.unimi.dsi.fastutil.doubles.DoubleDoubleImmutablePair;
-@@ -12,17 +_,20 @@
+@@ -12,9 +_,11 @@
  import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
  import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
  import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
@@ -21,8 +21,7 @@
  import java.util.Iterator;
  import java.util.List;
  import java.util.Map;
- import java.util.Optional;
--import java.util.OptionalDouble;
+@@ -23,6 +_,8 @@
  import java.util.Set;
  import java.util.UUID;
  import java.util.Map.Entry;
@@ -31,56 +30,14 @@
  import java.util.function.BiConsumer;
  import java.util.function.Consumer;
  import java.util.function.Function;
-@@ -38,10 +_,10 @@
- import net.minecraft.core.particles.ParticleOptions;
- import net.minecraft.core.particles.ParticleTypes;
- import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
-+import net.minecraft.network.protocol.game.ClientboundAnimatePacket;
- import net.minecraft.network.protocol.game.ClientboundEntityEventPacket;
- import net.minecraft.network.protocol.game.ClientboundRemoveMobEffectPacket;
- import net.minecraft.network.protocol.game.ClientboundSetEquipmentPacket;
--import net.minecraft.network.protocol.game.ClientboundSwingAnimationPacket;
- import net.minecraft.network.protocol.game.ClientboundTakeItemEntityPacket;
- import net.minecraft.network.protocol.game.ClientboundUpdateMobEffectPacket;
- import net.minecraft.network.syncher.EntityDataAccessor;
-@@ -65,7 +_,6 @@
- import net.minecraft.tags.TagKey;
- import net.minecraft.util.BlockUtil;
- import net.minecraft.util.Mth;
--import net.minecraft.util.Prediction;
- import net.minecraft.util.Util;
- import net.minecraft.util.profiling.Profiler;
- import net.minecraft.util.profiling.ProfilerFiller;
-@@ -100,10 +_,9 @@
+@@ -100,6 +_,7 @@
  import net.minecraft.world.item.Items;
  import net.minecraft.world.item.component.AttackRange;
  import net.minecraft.world.item.component.BlocksAttacks;
 +import net.minecraft.world.item.component.Consumable;
  import net.minecraft.world.item.component.DeathProtection;
  import net.minecraft.world.item.component.KineticWeapon;
--import net.minecraft.world.item.component.MobVisibility;
--import net.minecraft.world.item.component.SwingAnimation;
- import net.minecraft.world.item.component.Weapon;
- import net.minecraft.world.item.enchantment.Enchantment;
- import net.minecraft.world.item.enchantment.EnchantmentHelper;
-@@ -111,9 +_,7 @@
- import net.minecraft.world.item.equipment.Equippable;
- import net.minecraft.world.level.ClipContext;
- import net.minecraft.world.level.Level;
--import net.minecraft.world.level.block.AbstractBedBlock;
- import net.minecraft.world.level.block.BedBlock;
--import net.minecraft.world.level.block.Block;
- import net.minecraft.world.level.block.Blocks;
- import net.minecraft.world.level.block.HoneyBlock;
- import net.minecraft.world.level.block.LadderBlock;
-@@ -121,7 +_,6 @@
- import net.minecraft.world.level.block.SoundType;
- import net.minecraft.world.level.block.TrapDoorBlock;
- import net.minecraft.world.level.block.state.BlockState;
--import net.minecraft.world.level.border.WorldBorder;
- import net.minecraft.world.level.gameevent.GameEvent;
- import net.minecraft.world.level.gamerules.GameRules;
- import net.minecraft.world.level.material.Fluid;
+ import net.minecraft.world.item.component.MobVisibility;
 @@ -137,8 +_,20 @@
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.phys.shapes.Shapes;
@@ -102,15 +59,6 @@
  import org.jetbrains.annotations.Contract;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
-@@ -175,7 +_,7 @@
-     private static final int FREE_FALL_EVENTS_PER_ELYTRA_BREAK = 2;
-     public static final float BASE_JUMP_POWER = 0.42F;
-     protected static final float DEFAULT_KNOCKBACK = 0.4F;
--    protected static final int DAMAGE_COOLDOWN_DURATION = 20;
-+    protected static final int INVULNERABLE_DURATION = 20;
-     protected static final int HURT_DURATION_TICKS = 10;
-     private static final double CLIMBING_VERTICAL_SPEED = 0.2;
-     private static final float SWIM_AMOUNT_PER_TICK = 0.09F;
 @@ -216,7 +_,8 @@
      public static final float ELYTRA_VERTICAL_AIR_DRAG = 0.98F;
      public static final float BASE_SWIM_SPEED = 0.02F;
@@ -121,7 +69,7 @@
          if (livingEntity instanceof Player player) {
              ItemStack helmet = player.getItemBySlot(EquipmentSlot.HEAD);
              return !helmet.is(ItemTags.GAZE_DISGUISE_EQUIPMENT);
-@@ -224,18 +_,24 @@
+@@ -224,9 +_,12 @@
              return true;
          }
      };
@@ -133,22 +81,8 @@
 -    private final Map<Holder<MobEffect>, MobEffectInstance> activeEffects = Maps.newHashMap();
 +    public final Map<Holder<MobEffect>, MobEffectInstance> activeEffects = Maps.newHashMap();
      private final Map<EquipmentSlot, ItemStack> lastEquipmentItems = Util.makeEnumMap(EquipmentSlot.class, slot -> ItemStack.EMPTY);
--    private final LivingEntity.SwingState swingState = new LivingEntity.SwingState();
-+    public boolean swinging;
+     private final LivingEntity.SwingState swingState = new LivingEntity.SwingState();
      private boolean discardFriction = false;
-+    public @Nullable InteractionHand swingingArm;
-+    public int swingTime;
-     public int removeArrowTime;
-     public int removeStingerTime;
-     public int hurtTime;
-     public int hurtDuration;
-     public int deathTime;
--    public int damageCooldownTime;
-+    public float oAttackAnim;
-+    public float attackAnim;
-     protected int attackStrengthTicker;
-     protected int itemSwapTicker;
-     public final WalkAnimationState walkAnimation = new WalkAnimationState();
 @@ -249,15 +_,16 @@
      protected boolean dead;
      protected int noActionTime;
@@ -230,7 +164,7 @@
              .add(Attributes.FRICTION_MODIFIER)
              .add(Attributes.NAME_TAG_DISTANCE)
 +            .add(net.neoforged.neoforge.common.NeoForgeMod.SWIM_SPEED)
-+            .add(net.neoforged.neoforge.common.NeoForgeMod.NAMETAG_DISTANCE)
++            .add(net.neoforged.neoforge.common.NeoForgeMod.GLIDING_FLIGHT)
              .add(Attributes.BELOW_NAME_DISTANCE);
      }
 +    public boolean shouldSendAttribute(Attribute attribute) { return true; } // Purpur - Ridables
@@ -267,23 +201,7 @@
      public boolean canBreatheUnderwater() {
          return this.is(EntityTypeTags.CAN_BREATHE_UNDER_WATER);
      }
-@@ -410,13 +_,9 @@
- 
-     @Override
-     public void baseTick() {
--        this.swingState.tick();
-+        this.oAttackAnim = this.attackAnim;
-         if (this.firstTick) {
--            this.getSleepingPos().ifPresent(bedPosition -> {
--                if (!this.setPosToBed(bedPosition)) {
--                    this.stopSleeping();
--                }
--            });
-+            this.getSleepingPos().ifPresent(this::setPosToBed);
-         }
- 
-         if (this.level() instanceof ServerLevel serverLevel) {
-@@ -435,6 +_,12 @@
+@@ -435,11 +_,20 @@
                  if (dist < 0.0) {
                      double damagePerBlock = level.getWorldBorder().getDamagePerBlock();
                      if (damagePerBlock > 0.0) {
@@ -296,6 +214,14 @@
                          this.hurtServer(level, this.damageSources().outOfBorder(), Math.max(1, Mth.floor(-dist * damagePerBlock)));
                      }
                  }
+             }
+ 
++            int airSupply = this.getAirSupply();
++            net.neoforged.neoforge.common.CommonHooks.onLivingBreathe(this, level, airSupply - decreaseAirSupply(airSupply), increaseAirSupply(airSupply) - airSupply);
++            if (false) // Neo: Handled in CommonHooks#onLivingBreathe(LivingEntity, int, int)
+             if (this.isEyeInFluid(FluidTags.WATER)
+                 && !level.getBlockState(BlockPos.containing(this.getX(), this.getEyeY(), this.getZ())).is(Blocks.BUBBLE_COLUMN)) {
+                 boolean canDrownInWater = !this.canBreatheUnderwater()
 @@ -450,7 +_,7 @@
                      if (this.shouldTakeDrowningDamage()) {
                          this.setAirSupply(0);
@@ -305,18 +231,7 @@
                      }
                  } else if (this.getAirSupply() < this.getMaxAirSupply() && MobEffectUtil.shouldEffectsRefillAirsupply(this)) {
                      this.setAirSupply(this.increaseAirSupply(this.getAirSupply()));
-@@ -474,8 +_,8 @@
-             this.hurtTime--;
-         }
- 
--        if (this.damageCooldownTime > 0 && !(this instanceof ServerPlayer)) {
--            this.damageCooldownTime--;
-+        if (this.invulnerableTime > 0 && !(this instanceof ServerPlayer)) {
-+            this.invulnerableTime--;
-         }
- 
-         if (this.isDeadOrDying() && this.level().shouldTickDeath(this)) {
-@@ -501,14 +_,27 @@
+@@ -501,14 +_,25 @@
              }
          }
  
@@ -324,8 +239,6 @@
          this.tickEffects();
          this.yHeadRotO = this.yHeadRot;
          this.yBodyRotO = this.yBodyRot;
-+        this.yRotO = this.getYRot();
-+        this.xRotO = this.getXRot();
          profiler.pop();
      }
  
@@ -382,7 +295,7 @@
                      this.level()
                          .playSeededSound(
                              null,
-@@ -722,13 +_,19 @@
+@@ -722,11 +_,18 @@
  
      @Override
      public void remove(Entity.RemovalReason reason) {
@@ -400,10 +313,8 @@
 -        super.remove(reason);
 +        super.remove(reason, cause); // CraftBukkit
          this.brain.clearMemories();
--        this.getCombatTracker().recheckStatus();
+         this.getCombatTracker().recheckStatus();
      }
- 
-     @Override
 @@ -744,11 +_,17 @@
              effect.onMobRemoved(level, this, reason);
          }
@@ -548,10 +459,8 @@
 +            if (this.position().distanceToSqr(sleepingPos.getX(), sleepingPos.getY(), sleepingPos.getZ()) < Mth.square(16)) { // Paper - The sleeping pos will always also set the actual pos, so a desync suggests something is wrong
              this.setSleepingPos(sleepingPos);
              this.entityData.set(DATA_POSE, Pose.SLEEPING);
--            if (!this.firstTick && !this.setPosToBed(sleepingPos)) {
--                this.stopSleeping();
-+            if (!this.firstTick) {
-+                this.setPosToBed(sleepingPos);
+             if (!this.firstTick && !this.setPosToBed(sleepingPos)) {
+                 this.stopSleeping();
              }
 +            } // Paper - The sleeping pos will always also set the actual pos, so a desync suggests something is wrong
          }, this::clearSleepingPos);
@@ -615,16 +524,7 @@
              .toList();
          this.entityData.set(DATA_EFFECT_PARTICLES, visibleEffectParticles);
          this.entityData.set(DATA_EFFECT_AMBIENCE_ID, areAllEffectsAmbient(this.activeEffects.values()));
-@@ -914,7 +_,7 @@
-         }
-     }
- 
--    public double getVisibilityPercent(ServerLevel serverLevel, @Nullable Entity targetingEntity) {
-+    public double getVisibilityPercent(@Nullable Entity targetingEntity) {
-         double visibilityPercent = 1.0;
-         if (this.isDiscrete()) {
-             visibilityPercent *= 0.8;
-@@ -930,19 +_,36 @@
+@@ -930,18 +_,35 @@
          }
  
          if (targetingEntity != null) {
@@ -664,12 +564,10 @@
          }
 +        // Purpur end - Configurable mob blindness
  
--        return Mth.clamp(visibilityPercent, 0.0, 10.0);
 +        visibilityPercent = net.neoforged.neoforge.common.CommonHooks.getEntityVisibilityMultiplier(this, targetingEntity, visibilityPercent);
-+        return visibilityPercent;
+         return Mth.clamp(visibilityPercent, 0.0, 10.0);
      }
  
-     public boolean canAttack(LivingEntity target) {
 @@ -971,19 +_,33 @@
          this.entityData.set(DATA_EFFECT_PARTICLES, List.of());
      }
@@ -2788,253 +2686,24 @@
      public boolean isSuppressingSlidingDownLadder() {
          return this.isShiftKeyDown();
      }
-@@ -3646,66 +_,99 @@
-         return this.fallFlyTicks;
+@@ -3650,7 +_,17 @@
+         return this.randomTeleport(xx, yy, zz, showParticles, state -> state.is(avoidanceTag));
      }
  
--    public boolean randomTeleport(double xx, double yy, double zz, boolean showParticles, TagKey<Block> avoidanceTag) {
--        return this.randomTeleport(xx, yy, zz, showParticles, state -> state.is(avoidanceTag));
--    }
--
--    public boolean randomTeleport(double xx, double yy, double zz, boolean showParticles, Predicate<BlockState> isInvalidPosition) {
-+    public boolean randomTeleport(double xx, double yy, double zz, boolean showParticles) {
-+        return randomTeleport(xx, yy, zz, showParticles, ItemStack.EMPTY);
++    // Neo: Add overload with the consumed item causing the random teleport
++    public boolean randomTeleport(double xx, double yy, double zz, boolean showParticles, TagKey<Block> avoidanceTag, ItemStack consumedStack) {
++        return this.randomTeleport(xx, yy, zz, showParticles, state -> state.is(avoidanceTag), consumedStack);
++    }
++
+     public boolean randomTeleport(double xx, double yy, double zz, boolean showParticles, Predicate<BlockState> isInvalidPosition) {
++        return this.randomTeleport(xx, yy, zz, showParticles, isInvalidPosition, ItemStack.EMPTY);
 +    }
 +
 +    // Neo: Add overload with the consumed item causing the random teleport
-+    public boolean randomTeleport(double xx, double yy, double zz, boolean showParticles, ItemStack consumedStack) {
-+        return randomTeleport(xx, yy, zz, showParticles, consumedStack, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN).orElse(false);
-+    }
-+
-+    public Optional<Boolean> randomTeleport(double xx, double yy, double zz, boolean showParticles, ItemStack consumedStack, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
-+        // CraftBukkit end
-+        double xo = this.getX();
-+        double yo = this.getY();
-+        double zo = this.getZ();
++    public boolean randomTeleport(double xx, double yy, double zz, boolean showParticles, Predicate<BlockState> isInvalidPosition, ItemStack consumedStack) {
          double y = yy;
-+        boolean ok = false;
-+        BlockPos pos = BlockPos.containing(xx, y, zz);
          Level level = this.level();
--        WorldBorder worldBorder = level.getWorldBorder();
--        Vec3 clamped = worldBorder.clampVec3ToBound(xx, y, zz);
--        BlockPos.MutableBlockPos pos = BlockPos.containing(clamped).mutable();
-+        // Neo: Store whether we actually did a teleport to the target, to avoid teleporting the entity back to its original position if it didn't teleport away
-+        boolean teleported = false;
-         if (level.hasChunkAt(pos)) {
--            while (pos.getY() > level.getMinY()) {
--                pos.move(Direction.DOWN);
--                BlockState state = level.getBlockState(pos);
--                if (state.is(BlockTags.ENTITIES_CAN_TELEPORT_TO)) {
--                    return this.checkPositionAndTeleport(clamped.x, y, clamped.z, showParticles, isInvalidPosition, state, level);
--                }
--
--                y--;
--            }
--        }
--
--        return false;
--    }
--
--    private boolean checkPositionAndTeleport(
--        double xx, double y, double zz, boolean showParticles, Predicate<BlockState> isInvalidPosition, BlockState state, Level level
--    ) {
--        if (isInvalidPosition.test(state)) {
--            return false;
--        }
--
--        AABB aabb = this.makeBoundingBox(new Vec3(xx, y, zz));
--        if (level.noCollision(aabb) && !level.containsAnyLiquid(aabb)) {
--            boolean hasInvalidPosition = level.findBlocksIn(aabb).filterState(isInvalidPosition).anyMatched();
--            if (hasInvalidPosition) {
--                return false;
--            }
--
--            if (this.canRandomlyTeleportTo(xx, y, zz)) {
--                this.teleportTo(xx, y, zz);
--                if (showParticles) {
--                    level.broadcastEntityEvent(this, (byte)46);
--                }
--
--                if (this instanceof PathfinderMob pathfinderMob) {
--                    pathfinderMob.getNavigation().stop();
--                }
--
--                return true;
--            } else {
--                return false;
--            }
--        } else {
--            return false;
--        }
--    }
--
--    public boolean canRandomlyTeleportTo(double x, double y, double z) {
--        return true;
-+            boolean landed = false;
-+
-+            while (!landed && pos.getY() > level.getMinY()) {
-+                BlockPos below = pos.below();
-+                BlockState state = level.getBlockState(below);
-+                if (state.blocksMotion()) {
-+                    landed = true;
-+                } else {
-+                    y--;
-+                    pos = below;
-+                }
-+            }
-+
-+            if (landed) {
-+                // Neo: Fire event for either item consumption or EnderMan teleport, to get the actual final position being teleported to
-+                net.neoforged.neoforge.event.entity.EntityTeleportEvent event = null;
-+                if (!consumedStack.isEmpty()) {
-+                    event = net.neoforged.neoforge.event.EventHooks.onItemConsumptionTeleport(this, consumedStack, xx, y, zz);
-+                } else if (this instanceof net.minecraft.world.entity.monster.EnderMan) {
-+                    event = net.neoforged.neoforge.event.EventHooks.onEnderTeleport(this, xx, y, zz);
-+                }
-+                if (event != null) {
-+                    xx = event.getTargetX();
-+                    y = event.getTargetY();
-+                    zz = event.getTargetZ();
-+                }
-+                if (event == null || !event.isCanceled()) {
-+                    teleported = true;
-+                    // CraftBukkit start - Teleport event
-+                    // first set position, to check if the place to teleport is valid
-+                    this.setPos(xx, y, zz);
-+                    if (level.noCollision(this) && !level.containsAnyLiquid(this.getBoundingBox())) {
-+                        ok = true;
-+                    }
-+                    // now revert and call event if the teleport place is valid
-+                    this.setPos(xo, yo, zo);
-+
-+                    if (ok) {
-+                        if (!(this instanceof ServerPlayer)) {
-+                            org.bukkit.event.entity.EntityTeleportEvent teleport = new org.bukkit.event.entity.EntityTeleportEvent(this.getBukkitEntity(), new Location(this.level().getWorld(), xo, yo, zo), new Location(this.level().getWorld(), xx, y, zz));
-+                            this.level().getCraftServer().getPluginManager().callEvent(teleport);
-+                            if (!teleport.isCancelled() && teleport.getTo() != null) { // Paper
-+                                Location to = teleport.getTo();
-+                                this.teleportTo(to.getX(), to.getY(), to.getZ());
-+                            } else {
-+                                return Optional.empty();
-+                            }
-+                        } else {
-+                            // player teleport event is called in the underlining code
-+                            if (!((ServerPlayer) this).connection.teleport(xx, y, zz, this.getYRot(), this.getXRot(), cause)) {
-+                                return Optional.empty();
-+                            }
-+                        }
-+                    }
-+                    // CraftBukkit end
-+                }
-+            }
-+        }
-+
-+        if (!ok) {
-+            return Optional.of(false); // CraftBukkit
-+        }
-+
-+        if (showParticles) {
-+            level.broadcastEntityEvent(this, (byte)46);
-+        }
-+
-+        if (this instanceof PathfinderMob pathfinderMob) {
-+            pathfinderMob.getNavigation().stop();
-+        }
-+
-+        return Optional.of(true); // CraftBukkit
-     }
- 
-     public boolean isAffectedByPotions() {
-@@ -3767,65 +_,40 @@
-         return this.getSleepingPos().isPresent();
-     }
- 
--    public boolean startSleeping(BlockPos bedPosition) {
-+    public void startSleeping(BlockPos bedPosition) {
-+        if (this.isPassenger()) {
-+            this.stopRiding();
-+        }
-+
-         BlockState blockState = this.level().getBlockState(bedPosition);
--        if (blockState.getBlock() instanceof AbstractBedBlock bedBlock) {
--            OptionalDouble sleepHeight = bedBlock.getSleepHeight(blockState, this.level(), bedPosition);
--            if (sleepHeight.isEmpty()) {
--                return false;
--            }
--
--            if (this.isPassenger()) {
--                this.stopRiding();
--            }
--
--            this.setPosToBed(sleepHeight.getAsDouble(), bedPosition);
--            this.level().setBlockAndUpdate(bedPosition, blockState.setValue(BedBlock.OCCUPIED, true));
--            this.setPose(Pose.SLEEPING);
--            this.setSleepingPos(bedPosition);
--            this.setDeltaMovement(Vec3.ZERO);
--            this.needsSync = true;
--            return true;
--        } else {
--            return false;
--        }
--    }
--
--    private boolean setPosToBed(BlockPos bedPosition) {
--        BlockState state = this.level().getBlockState(bedPosition);
--        if (state.getBlock() instanceof AbstractBedBlock bedBlock) {
--            OptionalDouble sleepHeight = bedBlock.getSleepHeight(state, this.level(), bedPosition);
--            if (sleepHeight.isEmpty()) {
--                return false;
--            }
--
--            this.setPosToBed(sleepHeight.getAsDouble(), bedPosition);
--            return true;
--        } else {
--            return false;
--        }
--    }
--
--    private void setPosToBed(double sleepHeight, BlockPos bedPosition) {
--        double adjustHeight = 0.125;
--        this.setPos(bedPosition.getX() + 0.5, bedPosition.getY() + sleepHeight + 0.125, bedPosition.getZ() + 0.5);
-+        if (blockState.isBed(level(), bedPosition, this)) {
-+            blockState.setBedOccupied(level(), bedPosition, this, true);
-+        }
-+
-+        this.setPose(Pose.SLEEPING);
-+        this.setPosToBed(bedPosition);
-+        this.setSleepingPos(bedPosition);
-+        this.setDeltaMovement(Vec3.ZERO);
-+        this.needsSync = true;
-+    }
-+
-+    private void setPosToBed(BlockPos bedPosition) {
-+        this.setPos(bedPosition.getX() + 0.5, bedPosition.getY() + 0.6875, bedPosition.getZ() + 0.5);
-     }
- 
-     private boolean checkBedExists() {
--        return this.getSleepingPos().map(bedPosition -> {
--            BlockState state = this.level().getBlockState(bedPosition);
--            return state.getBlock() instanceof AbstractBedBlock bedBlock && bedBlock.getSleepHeight(state, this.level(), bedPosition).isPresent();
--        }).orElse(false);
-+        // Neo: Overwrite the vanilla instanceof BedBlock check with isBed and fire the CanContinueSleepingEvent.
-+        boolean hasBed = this.getSleepingPos().map(pos -> this.level().getBlockState(pos).isBed(this.level(), pos, this)).orElse(false);
-+        return net.neoforged.neoforge.event.EventHooks.canEntityContinueSleeping(this, hasBed ? null : Player.BedSleepingProblem.OTHER_PROBLEM);
-     }
- 
-     public void stopSleeping() {
-         this.getSleepingPos().filter(this.level()::hasChunkAt).ifPresent(bedPosition -> {
-             BlockState state = this.level().getBlockState(bedPosition);
--            if (state.getBlock() instanceof AbstractBedBlock bedBlock) {
-+            if (state.isBed(level(), bedPosition, this)) {
-                 Direction facing = state.getValue(BedBlock.FACING);
--                this.level().setBlockAndUpdate(bedPosition, state.setValue(BedBlock.OCCUPIED, false));
--                bedBlock.onStopSleeping(this.level(), bedPosition);
--                Vec3 standUp = AbstractBedBlock.findStandUpPosition(this.getType(), this.level(), bedPosition, facing, this.getYRot()).orElseGet(() -> {
-+                state.setBedOccupied(level(), bedPosition, this, false);
-+                Vec3 standUp = BedBlock.findStandUpPosition(this.getType(), this.level(), bedPosition, facing, this.getYRot()).orElseGet(() -> {
-                     BlockPos above = bedPosition.above();
-                     return new Vec3(above.getX() + 0.5, above.getY() + 0.1, above.getZ() + 0.5);
-                 });
+         WorldBorder worldBorder = level.getWorldBorder();
 @@ -3844,7 +_,9 @@
  
      public @Nullable Direction getBedOrientation() {
@@ -3055,22 +2724,10 @@
      }
  
 -    public static @EntityEvent.Value byte entityEventForEquipmentBreak(EquipmentSlot equipmentSlot) {
-+    public static byte entityEventForEquipmentBreak(EquipmentSlot equipmentSlot) {
++    private static @EntityEvent.Value byte entityEventForEquipmentBreak(EquipmentSlot equipmentSlot) {
          return switch (equipmentSlot) {
              case MAINHAND -> 47;
              case OFFHAND -> 48;
-@@ -3869,9 +_,9 @@
-         };
-     }
- 
--    public void onEquippedItemBroken(ItemStack brokenItem, EquipmentSlot inSlot) {
-+    public void onEquippedItemBroken(Item brokenItem, EquipmentSlot inSlot) {
-         this.level().broadcastEntityEvent(this, entityEventForEquipmentBreak(inSlot));
--        this.stopLocationBasedEffects(brokenItem, inSlot, this.attributes);
-+        this.stopLocationBasedEffects(this.getItemBySlot(inSlot), inSlot, this.attributes);
-     }
- 
-     private void stopLocationBasedEffects(ItemStack previous, EquipmentSlot inSlot, AttributeMap attributes) {
 @@ -3905,6 +_,8 @@
      }
  
@@ -3093,105 +2750,12 @@
      private static SlotAccess createEquipmentSlotAccess(LivingEntity entity, EquipmentSlot equipmentSlot) {
          return equipmentSlot != EquipmentSlot.HEAD && equipmentSlot != EquipmentSlot.MAINHAND && equipmentSlot != EquipmentSlot.OFFHAND
              ? SlotAccess.forEquipmentSlot(entity, equipmentSlot, stack -> stack.isEmpty() || entity.getEquipmentSlotForItem(stack) == equipmentSlot)
-@@ -4074,59 +_,49 @@
-     public record Fallsounds(SoundEvent small, SoundEvent big) {
+@@ -4026,6 +_,8 @@
      }
  
--    public record SwingDescription(InteractionHand hand, SwingAnimation animation, int durationTicks) {
--    }
--
--    public static class SwingState {
--        private LivingEntity.@Nullable SwingDescription currentSwing;
--        private int ticks;
--        private float oldAnimation;
--        private float animation;
--
--        public boolean startIfAble(InteractionHand hand, SwingAnimation animation, int durationTicks) {
--            if (this.currentSwing != null && this.ticks <= this.currentSwing.durationTicks / 2 && this.ticks > 0) {
--                return false;
--            }
--
--            this.start(hand, animation, durationTicks);
--            return true;
--        }
--
--        private void start(InteractionHand hand, SwingAnimation animation, int durationTicks) {
--            LivingEntity.SwingDescription oldSwing = this.currentSwing;
--            this.currentSwing = new LivingEntity.SwingDescription(hand, animation, durationTicks);
--            if (!this.currentSwing.equals(oldSwing)) {
--                this.oldAnimation = 0.0F;
--                this.animation = 0.0F;
--            }
--
--            this.ticks = 0;
--        }
--
--        public void tick() {
--            this.oldAnimation = this.animation;
--            if (this.currentSwing != null) {
--                if (this.currentSwing.durationTicks > 0) {
--                    this.animation = Math.min((float)this.ticks / this.currentSwing.durationTicks, 1.0F);
--                }
--
--                if (this.ticks++ > this.currentSwing.durationTicks) {
--                    this.currentSwing = null;
--                    this.animation = 0.0F;
--                }
-+    public float calculateItemBlocking(DamageSource source, float damage) {
-+        // CraftBukkit end
-+        if (damage <= 0.0F) {
-+            return 0.0F;
-+        }
-+        ItemStack itemstack = this.getItemBlockingWith();
-+
-+        if (itemstack == null) {
-+            return 0.0F;
-+        }
-+        BlocksAttacks blocksattacks = (BlocksAttacks) itemstack.get(DataComponents.BLOCKS_ATTACKS);
-+
-+        if (blocksattacks != null && !(Boolean) blocksattacks.bypassedBy().map((holderset) -> {
-+            return holderset.contains(source.typeHolder());
-+        }).orElse(false)) {
-+            Entity entity = source.getDirectEntity();
-+
-+            if (entity instanceof AbstractArrow) {
-+                AbstractArrow abstractarrow = (AbstractArrow) entity;
-+
-+                if (abstractarrow.getPierceLevel() > 0) {
-+                    return 0.0F;
-+                }
-+            }
-+
-+            Vec3 vec3 = source.getSourcePosition();
-+            double d0;
-+
-+            if (vec3 != null) {
-+                Vec3 vec31 = this.calculateViewVector(0.0F, this.getYHeadRot());
-+                Vec3 vec32 = vec3.subtract(this.position());
-+
-+                vec32 = (new Vec3(vec32.x, 0.0D, vec32.z)).normalize();
-+                d0 = Math.acos(vec32.dot(vec31));
-             } else {
--                this.animation = 0.0F;
-+                d0 = (double) (float) Math.PI;
-             }
--        }
--
--        public float getAnimation(float partialTicks) {
--            return this.animation >= this.oldAnimation
--                ? Mth.lerp(partialTicks, this.oldAnimation, this.animation)
--                : Mth.lerp(partialTicks, this.oldAnimation, this.animation + 1.0F);
--        }
--
--        public boolean isSwinging() {
--            return this.currentSwing != null;
--        }
-+
-+            float f1 = blocksattacks.resolveBlockedDamage(source, damage, d0);
-+
-+            // CraftBukkit start
-+            return f1;
-+        }
-+        return 0.0F;
-     }
- }
+     public static boolean canGlideUsing(ItemStack itemStack, EquipmentSlot slot) {
++        // Neo: Check if the item has the gliding flight attribute
++        if (itemStack.getAttributeModifiers().compute(net.neoforged.neoforge.common.NeoForgeMod.GLIDING_FLIGHT, 0, slot) > 0) return true;
+         if (!itemStack.has(DataComponents.GLIDER)) {
+             return false;
+         }
