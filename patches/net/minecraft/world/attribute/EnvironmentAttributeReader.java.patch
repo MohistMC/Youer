@@ -1,0 +1,15 @@
+--- a/net/minecraft/world/attribute/EnvironmentAttributeReader.java
++++ b/net/minecraft/world/attribute/EnvironmentAttributeReader.java
+@@ -32,11 +_,6 @@
+     <Value> Value getValue(EnvironmentAttribute<Value> attribute, Vec3 pos, @Nullable SpatialAttributeInterpolator biomeInterpolator);
+ 
+     default <Value> Value getValue(LootContext context, EnvironmentAttribute<Value> attribute) {
+-        if (attribute.isPositional()) {
+-            Vec3 position = context.getOptional(LootContextParams.ORIGIN);
+-            return position != null ? this.getValue(attribute, position) : attribute.defaultValue();
+-        } else {
+-            return this.getDimensionValue(attribute);
+-        }
++        return attribute.isPositional() ? this.getValue(attribute, context.getParameter(LootContextParams.ORIGIN)) : this.getDimensionValue(attribute);
+     }
+ }

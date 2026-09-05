@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/ChestBlock.java
 +++ b/net/minecraft/world/level/block/ChestBlock.java
-@@ -78,12 +_,14 @@
+@@ -78,26 +_,25 @@
              return Optional.empty();
          }
      };
@@ -19,7 +19,23 @@
                      if (first.canOpen(player) && second.canOpen(player)) {
                          first.unpackLootTable(inventory.player);
                          second.unpackLootTable(inventory.player);
-@@ -102,10 +_,10 @@
+                         return ChestMenu.sixRows(containerId, inventory, container);
+-                    }
+-
+-                    if (!player.isSpectator()) {
++                    } else {
+                         Direction connectedDirection = ChestBlock.getConnectedDirection(first.getBlockState());
+                         Vec3 firstCenter = Vec3.atCenterOf(first.getBlockPos());
+                         Vec3 centerBetweenChests = firstCenter.add(connectedDirection.getStepX() / 2.0, 0.0, connectedDirection.getStepZ() / 2.0);
+                         BaseContainerBlockEntity.sendChestLockedNotifications(centerBetweenChests, player, this.getDisplayName());
++                        return null;
+                     }
+-
+-                    return null;
+                 }
+ 
+                 @Override
+@@ -105,10 +_,10 @@
                      if (first.hasCustomName()) {
                          return first.getDisplayName();
                      } else {
@@ -32,7 +48,7 @@
          }
  
          public Optional<MenuProvider> acceptSingle(ChestBlockEntity single) {
-@@ -239,8 +_,7 @@
+@@ -242,8 +_,7 @@
      protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
          if (level instanceof ServerLevel serverLevel) {
              MenuProvider menuProvider = this.getMenuProvider(state, level, pos);
@@ -42,7 +58,7 @@
                  player.awardStat(this.getOpenChestStat());
                  PiglinAi.angerNearbyPiglins(serverLevel, player, true);
              }
-@@ -279,7 +_,13 @@
+@@ -282,7 +_,13 @@
  
      @Override
      public @Nullable MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
@@ -57,7 +73,7 @@
      }
  
      public static DoubleBlockCombiner.Combiner<ChestBlockEntity, Float2FloatFunction> opennessCombiner(LidBlockEntity entity) {
-@@ -312,12 +_,18 @@
+@@ -315,12 +_,18 @@
          return isBlockedChestByBlock(level, pos) || isCatSittingOnChest(level, pos);
      }
  
@@ -77,7 +93,7 @@
          List<Cat> cats = level.getEntitiesOfClass(Cat.class, new AABB(pos.getX(), pos.getY() + 1, pos.getZ(), pos.getX() + 1, pos.getY() + 2, pos.getZ() + 1));
          if (!cats.isEmpty()) {
              for (Cat cat : cats) {
-@@ -347,7 +_,8 @@
+@@ -350,7 +_,8 @@
  
      @Override
      protected BlockState mirror(BlockState state, Mirror mirror) {

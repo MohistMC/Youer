@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/level/block/SnowLayerBlock.java
 +++ b/net/minecraft/world/level/block/SnowLayerBlock.java
-@@ -69,6 +_,7 @@
+@@ -15,7 +_,6 @@
+ import net.minecraft.world.level.block.state.StateDefinition;
+ import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+ import net.minecraft.world.level.block.state.properties.IntegerProperty;
+-import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.level.pathfinder.PathComputationType;
+ import net.minecraft.world.phys.shapes.CollisionContext;
+ import net.minecraft.world.phys.shapes.VoxelShape;
+@@ -70,6 +_,7 @@
      @Override
      protected boolean canSurvive(BlockState state, LevelReader level, BlockPos pos) {
          BlockState belowState = level.getBlockState(pos.below());
@@ -8,7 +16,7 @@
          if (belowState.is(BlockTags.CANNOT_SUPPORT_SNOW_LAYER)) {
              return false;
          } else {
-@@ -97,6 +_,11 @@
+@@ -98,9 +_,13 @@
      @Override
      protected void randomTick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
          if (level.getBrightness(LightLayer.BLOCK, pos) > 11) {
@@ -19,4 +27,7 @@
 +            // CraftBukkit end
              dropResources(state, level, pos);
              level.removeBlock(pos, false);
+-            level.gameEvent(GameEvent.BLOCK_DESTROY, pos, GameEvent.Context.of(state));
          }
+     }
+ 

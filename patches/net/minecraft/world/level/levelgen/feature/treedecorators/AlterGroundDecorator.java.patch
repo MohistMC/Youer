@@ -1,29 +1,10 @@
 --- a/net/minecraft/world/level/levelgen/feature/treedecorators/AlterGroundDecorator.java
 +++ b/net/minecraft/world/level/levelgen/feature/treedecorators/AlterGroundDecorator.java
-@@ -3,16 +_,15 @@
- import com.mojang.serialization.MapCodec;
- import java.util.List;
- import net.minecraft.core.BlockPos;
--import net.minecraft.core.Holder;
- import net.minecraft.world.level.block.state.BlockState;
- import net.minecraft.world.level.levelgen.feature.TreeFeature;
- import net.minecraft.world.level.levelgen.feature.stateproviders.BlockStateProvider;
- 
- public class AlterGroundDecorator extends TreeDecorator {
-     public static final MapCodec<AlterGroundDecorator> CODEC = BlockStateProvider.CODEC.fieldOf("provider").xmap(AlterGroundDecorator::new, d -> d.provider);
--    private final Holder<BlockStateProvider> provider;
-+    private final BlockStateProvider provider;
- 
--    public AlterGroundDecorator(Holder<BlockStateProvider> provider) {
-+    public AlterGroundDecorator(BlockStateProvider provider) {
-         this.provider = provider;
-     }
- 
 @@ -25,19 +_,20 @@
      public void place(TreeDecorator.Context context) {
          List<BlockPos> blockPositions = TreeFeature.getLowestTrunkOrRootOfTree(context);
          if (!blockPositions.isEmpty()) {
-+            var eventProvider = net.neoforged.neoforge.event.EventHooks.alterGround(context, blockPositions, this.provider::getOptionalState);
++            var eventProvider = net.neoforged.neoforge.event.EventHooks.alterGround(context, blockPositions, this.provider.value()::getOptionalState);
              int minY = blockPositions.getFirst().getY();
              blockPositions.stream().filter(pos -> pos.getY() == minY).forEach(pos -> {
 -                this.placeCircle(context, pos.west().north());
@@ -49,7 +30,7 @@
      }
  
      private void placeCircle(TreeDecorator.Context context, BlockPos pos) {
-+        placeCircle(context, pos, this.provider::getOptionalState);
++        placeCircle(context, pos, this.provider.value()::getOptionalState);
 +    }
 +
 +    private void placeCircle(TreeDecorator.Context context, BlockPos pos, net.neoforged.neoforge.event.level.AlterGroundEvent.StateProvider eventProvider) {
@@ -64,7 +45,7 @@
      }
  
      private void placeBlockAt(TreeDecorator.Context context, BlockPos pos) {
-+        placeBlockAt(context, pos, this.provider::getOptionalState);
++        placeBlockAt(context, pos, this.provider.value()::getOptionalState);
 +    }
 +
 +    private void placeBlockAt(TreeDecorator.Context context, BlockPos pos, net.neoforged.neoforge.event.level.AlterGroundEvent.StateProvider eventProvider) {

@@ -1,15 +1,15 @@
 --- a/net/minecraft/world/item/BucketItem.java
 +++ b/net/minecraft/world/item/BucketItem.java
-@@ -4,6 +_,8 @@
+@@ -4,7 +_,7 @@
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
  import net.minecraft.core.particles.ParticleTypes;
+-import net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket;
 +import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
-+import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.ServerLevel;
  import net.minecraft.server.level.ServerPlayer;
  import net.minecraft.sounds.SoundEvent;
- import net.minecraft.sounds.SoundEvents;
-@@ -29,12 +_,20 @@
+@@ -31,12 +_,20 @@
  import net.minecraft.world.level.material.Fluids;
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.HitResult;
@@ -31,7 +31,7 @@
          super(properties);
          this.content = content;
      }
-@@ -56,8 +_,9 @@
+@@ -58,8 +_,9 @@
          BlockPos directionOffsetPos = pos.relative(direction);
          if (level.mayInteract(player, pos) && player.mayUseItemAt(directionOffsetPos, direction, itemStack)) {
              BlockState clicked = level.getBlockState(pos);
@@ -43,7 +43,7 @@
                  this.checkExtraContent(player, level, itemStack, placePos);
                  if (player instanceof ServerPlayer serverPlayer && this.content != Fluids.EMPTY) {
                      CriteriaTriggers.PLACED_BLOCK.trigger(serverPlayer, placePos, itemStack);
-@@ -70,12 +_,22 @@
+@@ -72,12 +_,22 @@
                  if (this.content == Fluids.EMPTY) {
                      BlockState blockState = level.getBlockState(pos);
                      if (blockState.getBlock() instanceof BucketPickup bucketPickupBlock) {
@@ -68,7 +68,7 @@
                              if (!level.isClientSide()) {
                                  CriteriaTriggers.FILLED_BUCKET.trigger((ServerPlayer)player, taken);
                              }
-@@ -97,6 +_,13 @@
+@@ -99,6 +_,13 @@
      }
  
      public static ItemStack getEmptySuccessItem(ItemStack itemStack, Player player) {
@@ -82,7 +82,7 @@
          return !player.hasInfiniteMaterials() ? new ItemStack(Items.BUCKET) : itemStack;
      }
  
-@@ -105,7 +_,20 @@
+@@ -107,7 +_,20 @@
      }
  
      @Override
@@ -103,13 +103,43 @@
          if (!(this.content instanceof FlowingFluid flowingFluid)) {
              return false;
          } else {
-@@ -115,12 +_,29 @@
+@@ -117,47 +_,69 @@
              boolean shiftKeyDown = user != null && user.isShiftKeyDown();
              boolean placeLiquid = mayReplace
                  || block instanceof LiquidBlockContainer container && container.canPlaceLiquid(user, level, pos, blockState, this.content);
 +            // TODO: The stack is only used as a parameter in the vaporization check. What if the fluidType is different? And should the rest of the method be made stack-aware as well?
 +            var containedFluidStack = containerItem != null ? FluidUtil.getFirstStackContained(containerItem) : FluidStack.EMPTY;
              boolean canPlaceFluidInsideBlock = blockState.isAir() || placeLiquid && (!shiftKeyDown || hitResult == null);
+-            if (canPlaceFluidInsideBlock) {
+-                if (level.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, pos) && this.content.is(FluidTags.WATER)) {
+-                    int x = pos.getX();
+-                    int y = pos.getY();
+-                    int z = pos.getZ();
+-                    RandomSource random = level.getRandom();
+-                    level.playSound(user, pos, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.5F, 2.6F + (random.nextFloat() - random.nextFloat()) * 0.8F);
+-                    if (level instanceof ServerLevel serverLevel) {
+-                        serverLevel.sendParticles(
+-                            ParticleTypes.LARGE_SMOKE, x, y, z, 8, 1.0, 1.0, 1.0, 0.0, ClientboundLevelParticlesPacket.RandomizationType.ALTERNATIVE
+-                        );
+-                    }
+-
+-                    return true;
+-                } else if (block instanceof LiquidBlockContainer container && this.content == Fluids.WATER) {
+-                    container.placeLiquid(level, pos, blockState, flowingFluid.getSource(false));
+-                    this.playEmptySound(user, level, pos);
+-                    return true;
+-                } else {
+-                    if (!level.isClientSide() && mayReplace && !blockState.liquid()) {
+-                        level.destroyBlock(pos, true);
+-                    }
+-
+-                    if (!level.setBlock(pos, this.content.defaultFluidState().createLegacyBlock(), 11) && !blockState.getFluidState().isSource()) {
+-                        return false;
+-                    }
+-
+-                    this.playEmptySound(user, level, pos);
+-                    return true;
+-                }
 +            // CraftBukkit start
 +            if (canPlaceFluidInsideBlock && user instanceof Player player) {
 +                org.bukkit.event.player.PlayerBucketEmptyEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerBucketEmptyEvent(level, player, pos, emptyContents$clicked, emptyContents$direction, containerItem, emptyContents$interactionhand);
@@ -120,11 +150,7 @@
 +                itemLeftInHandAfterPlayerBucketEmptyEvent = event.getItemStack() != null ? event.getItemStack().equals(org.bukkit.craftbukkit.inventory.CraftItemStack.asNewCraftStack(net.minecraft.world.item.Items.BUCKET)) ? null : org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItemStack()) : ItemStack.EMPTY; // Paper - Fix PlayerBucketEmptyEvent result itemstack
 +            }
 +            // CraftBukkit end
-             if (!canPlaceFluidInsideBlock) {
--                return hitResult != null && this.emptyContents(user, level, hitResult.getBlockPos().relative(hitResult.getDirection()), null);
--            }
--
--            if (level.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, pos) && this.content.is(FluidTags.WATER)) {
++            if (!canPlaceFluidInsideBlock) {
 +                return hitResult != null && this.emptyContents(user, level, hitResult.getBlockPos().relative(hitResult.getDirection()), null, containerItem);
 +            }
 +
@@ -134,19 +160,35 @@
 +            }
 +
 +            if ((level.environmentAttributes().getValue(EnvironmentAttributes.WATER_EVAPORATES, pos) || (level.isTheEnd() && !org.purpurmc.purpur.PurpurConfig.allowWaterPlacementInTheEnd)) && this.content.is(FluidTags.WATER)) { // Purpur - Add allow water in end world option
-                 int x = pos.getX();
-                 int y = pos.getY();
-                 int z = pos.getZ();
-@@ -132,7 +_,7 @@
-                 }
- 
-                 return true;
--            } else if (block instanceof LiquidBlockContainer container && this.content == Fluids.WATER) {
++                int x = pos.getX();
++                int y = pos.getY();
++                int z = pos.getZ();
++                RandomSource random = level.getRandom();
++                level.playSound(user, pos, SoundEvents.FIRE_EXTINGUISH, SoundSource.BLOCKS, 0.5F, 2.6F + (random.nextFloat() - random.nextFloat()) * 0.8F);
++
++                for (int i = 0; i < 8; i++) {
++                    level.addParticle(ParticleTypes.LARGE_SMOKE, x + random.nextFloat(), y + random.nextFloat(), z + random.nextFloat(), 0.0, 0.0, 0.0);
++                }
++
++                return true;
 +            } else if (block instanceof LiquidBlockContainer container && container.canPlaceLiquid(user, level, pos, blockState, content)) {
-                 container.placeLiquid(level, pos, blockState, flowingFluid.getSource(false));
-                 this.playEmptySound(user, level, pos);
-                 return true;
-@@ -152,9 +_,15 @@
++                container.placeLiquid(level, pos, blockState, flowingFluid.getSource(false));
++                this.playEmptySound(user, level, pos);
++                return true;
+             } else {
+-                return hitResult != null && this.emptyContents(user, level, hitResult.getBlockPos().relative(hitResult.getDirection()), null);
++                if (!level.isClientSide() && mayReplace && !blockState.liquid()) {
++                    level.destroyBlock(pos, true);
++                }
++
++                if (!level.setBlock(pos, this.content.defaultFluidState().createLegacyBlock(), 11) && !blockState.getFluidState().isSource()) {
++                    return false;
++                }
++
++                this.playEmptySound(user, level, pos);
++                return true;
+             }
+         }
      }
  
      protected void playEmptySound(@Nullable LivingEntity user, LevelAccessor level, BlockPos pos) {

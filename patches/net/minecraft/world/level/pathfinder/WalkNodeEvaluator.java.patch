@@ -1,44 +1,5 @@
 --- a/net/minecraft/world/level/pathfinder/WalkNodeEvaluator.java
 +++ b/net/minecraft/world/level/pathfinder/WalkNodeEvaluator.java
-@@ -22,6 +_,7 @@
- import net.minecraft.world.level.block.LeavesBlock;
- import net.minecraft.world.level.block.state.BlockState;
- import net.minecraft.world.level.material.FluidState;
-+import net.minecraft.world.level.material.Fluids;
- import net.minecraft.world.phys.AABB;
- import net.minecraft.world.phys.Vec3;
- import net.minecraft.world.phys.shapes.VoxelShape;
-@@ -54,12 +_,15 @@
-         int startY = this.mob.getBlockY();
-         BlockState blockState = this.currentContext.getBlockState(reusablePos.set(this.mob.getX(), startY, this.mob.getZ()));
-         if (!this.mob.canStandOnFluid(blockState.getFluidState())) {
--            if (this.canFloat() && this.mob.isInFloatableFluid()) {
--                while (blockState.getFluidState().is(FluidTags.ENTITY_FLOATABLE)) {
-+            if (this.canFloat() && this.mob.isInWater()) {
-+                while (true) {
-+                    if (!blockState.is(Blocks.WATER) && blockState.getFluidState() != Fluids.WATER.getSource(false)) {
-+                        startY--;
-+                        break;
-+                    }
-+
-                     blockState = this.currentContext.getBlockState(reusablePos.set(this.mob.getX(), ++startY, this.mob.getZ()));
-                 }
--
--                startY--;
-             } else if (this.mob.onGround()) {
-                 startY = Mth.floor(this.mob.getY() + 0.5);
-             } else {
-@@ -209,9 +_,7 @@
- 
-     protected double getFloorLevel(BlockPos pos) {
-         BlockGetter level = this.currentContext.level();
--        return (this.canFloat() || this.isAmphibious()) && level.getFluidState(pos).is(FluidTags.ENTITY_FLOATABLE)
--            ? pos.getY() + 0.5
--            : getFloorLevel(level, pos);
-+        return (this.canFloat() || this.isAmphibious()) && level.getFluidState(pos).is(FluidTags.WATER) ? pos.getY() + 0.5 : getFloorLevel(level, pos);
-     }
- 
-     public static double getFloorLevel(BlockGetter level, BlockPos pos) {
 @@ -246,7 +_,7 @@
              if ((best == null || best.costMalus < 0.0F)
                  && jumpSize > 0

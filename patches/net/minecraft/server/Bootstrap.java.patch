@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/Bootstrap.java
 +++ b/net/minecraft/server/Bootstrap.java
-@@ -25,6 +_,7 @@
+@@ -25,12 +_,12 @@
  import net.minecraft.world.flag.FeatureFlags;
  import net.minecraft.world.item.CreativeModeTabs;
  import net.minecraft.world.item.Item;
@@ -8,7 +8,13 @@
  import net.minecraft.world.level.block.FireBlock;
  import net.minecraft.world.level.block.state.BlockBehaviour;
  import net.minecraft.world.level.gamerules.GameRule;
-@@ -43,11 +_,13 @@
+ import net.minecraft.world.level.gamerules.GameRuleTypeVisitor;
+ import net.minecraft.world.level.gamerules.GameRules;
+-import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
+ import org.slf4j.Logger;
+ 
+ @SuppressForbidden(reason = "System.out setup")
+@@ -44,11 +_,13 @@
          if (!isBootstrapped) {
              isBootstrapped = true;
              Instant start = Instant.now();
@@ -22,7 +28,7 @@
              if (EntityType.getKey(EntityTypes.PLAYER) == null) {
                  throw new IllegalStateException("Failed loading EntityTypes");
              }
-@@ -55,8 +_,14 @@
+@@ -56,9 +_,14 @@
              EntitySelectorOptions.bootStrap();
              DispenseItemBehavior.bootStrap();
              CauldronInteractions.bootStrap();
@@ -33,12 +39,13 @@
 +            });
 +            // Paper end
              CreativeModeTabs.validate();
+-            LootContextParamSets.validate();
 +            net.neoforged.neoforge.registries.GameData.vanillaSnapshot();
 +            if (false) // skip redirectOutputToLog, Forge already redirects stdout and stderr output to log so that they print with more context
              wrapStreams();
              bootstrapDuration.set(Duration.between(start, Instant.now()).toMillis());
          }
-@@ -119,7 +_,6 @@
+@@ -121,7 +_,6 @@
              Commands.validate();
          }
  

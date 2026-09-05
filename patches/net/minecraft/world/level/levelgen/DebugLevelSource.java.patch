@@ -1,56 +1,6 @@
 --- a/net/minecraft/world/level/levelgen/DebugLevelSource.java
 +++ b/net/minecraft/world/level/levelgen/DebugLevelSource.java
-@@ -3,7 +_,6 @@
- import com.mojang.serialization.MapCodec;
- import com.mojang.serialization.codecs.RecordCodecBuilder;
- import java.util.List;
--import java.util.Set;
- import java.util.concurrent.CompletableFuture;
- import java.util.stream.Collectors;
- import java.util.stream.StreamSupport;
-@@ -25,10 +_,10 @@
- import net.minecraft.world.level.biome.FixedBiomeSource;
- import net.minecraft.world.level.block.Blocks;
- import net.minecraft.world.level.block.state.BlockState;
-+import net.minecraft.world.level.chunk.CarvingMask;
- import net.minecraft.world.level.chunk.ChunkAccess;
- import net.minecraft.world.level.chunk.ChunkGenerator;
- import net.minecraft.world.level.levelgen.blending.Blender;
--import net.minecraft.world.level.levelgen.densityfunction.SamplerContext;
- import org.jspecify.annotations.Nullable;
- 
- public class DebugLevelSource extends ChunkGenerator {
-@@ -56,6 +_,10 @@
-     }
- 
-     @Override
-+    public void buildSurface(WorldGenRegion level, StructureManager structureManager, RandomState randomState, ChunkAccess protoChunk) {
-+    }
-+
-+    @Override
-     public void applyBiomeDecoration(WorldGenLevel level, ChunkAccess chunk, StructureManager structureManager) {
-         BlockPos.MutableBlockPos blockPos = new BlockPos.MutableBlockPos();
-         ChunkPos centerPos = chunk.getPos();
-@@ -74,16 +_,8 @@
-     }
- 
-     @Override
--    public CompletableFuture<ChunkAccess> buildTerrain(
--        ChunkAccess chunk,
--        Blender blender,
--        RandomState randomState,
--        StructureManager structureManager,
--        BiomeManager biomeManager,
--        @Nullable WorldGenRegion carverBiomeRegion,
--        Set<Holder<Biome>> possibleBiomes
--    ) {
--        return CompletableFuture.completedFuture(chunk);
-+    public CompletableFuture<ChunkAccess> fillFromNoise(Blender blender, RandomState randomState, StructureManager structureManager, ChunkAccess centerChunk) {
-+        return CompletableFuture.completedFuture(centerChunk);
-     }
- 
-     @Override
-@@ -91,13 +_,19 @@
+@@ -91,6 +_,12 @@
          return 0;
      }
  
@@ -63,30 +13,3 @@
      @Override
      public NoiseColumn getBaseColumn(int x, int z, LevelHeightAccessor heightAccessor, RandomState randomState) {
          return new NoiseColumn(0, new BlockState[0]);
-     }
- 
-     @Override
--    public void addDebugScreenInfo(List<String> result, RandomState randomState, BlockPos feetPos, SamplerContext samplerContext) {
-+    public void addDebugScreenInfo(List<String> result, RandomState randomState, BlockPos feetPos) {
-     }
- 
-     public static BlockState getBlockStateFor(int worldX, int worldZ) {
-@@ -114,6 +_,18 @@
-         }
- 
-         return state;
-+    }
-+
-+    @Override
-+    public void applyCarvers(
-+        WorldGenRegion region,
-+        long seed,
-+        RandomState randomState,
-+        BiomeManager biomeManager,
-+        StructureManager structureManager,
-+        ChunkAccess chunk,
-+        CarvingMask.@Nullable Filter filter
-+    ) {
-     }
- 
-     @Override

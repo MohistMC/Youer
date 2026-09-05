@@ -1,32 +1,19 @@
 --- a/net/minecraft/world/level/levelgen/structure/placement/AbstractSpreadingStructurePlacement.java
 +++ b/net/minecraft/world/level/levelgen/structure/placement/AbstractSpreadingStructurePlacement.java
-@@ -10,7 +_,7 @@
- import net.minecraft.core.Holder;
- import net.minecraft.core.Vec3i;
- import net.minecraft.core.registries.Registries;
--import net.minecraft.core.registries.codec.RegistryCodecs;
-+import net.minecraft.resources.RegistryFileCodec;
- import net.minecraft.util.ExtraCodecs;
- import net.minecraft.util.StringRepresentable;
- import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
-@@ -22,9 +_,9 @@
+@@ -20,11 +_,11 @@
+ 
+ public abstract class AbstractSpreadingStructurePlacement implements StructurePlacement {
      private static final int HIGHLY_ARBITRARY_RANDOM_SALT = 10387320;
-     public final Vec3i locateOffset;
-     public final AbstractSpreadingStructurePlacement.FrequencyReductionMethod frequencyReductionMethod;
+-    public final Vec3i locateOffset;
+-    public final AbstractSpreadingStructurePlacement.FrequencyReductionMethod frequencyReductionMethod;
 -    public final float frequency;
-+    private final float frequency;
-     public final int salt;
+-    public final int salt;
 -    public final Optional<AbstractSpreadingStructurePlacement.ExclusionZone> exclusionZone;
++    private final Vec3i locateOffset;
++    private final AbstractSpreadingStructurePlacement.FrequencyReductionMethod frequencyReductionMethod;
++    private final float frequency;
++    private final int salt;
 +    private final Optional<AbstractSpreadingStructurePlacement.ExclusionZone> exclusionZone;
  
      protected static <S extends AbstractSpreadingStructurePlacement> P5<Mu<S>, Vec3i, AbstractSpreadingStructurePlacement.FrequencyReductionMethod, Float, Integer, Optional<AbstractSpreadingStructurePlacement.ExclusionZone>> placementCodec(
          Instance<S> i
-@@ -129,7 +_,7 @@
-     public record ExclusionZone(Holder<StructureSet> otherSet, int chunkCount) {
-         public static final Codec<AbstractSpreadingStructurePlacement.ExclusionZone> CODEC = RecordCodecBuilder.create(
-             i -> i.group(
--                    RegistryCodecs.holder(Registries.STRUCTURE_SET, StructureSet.DIRECT_CODEC, false)
-+                    RegistryFileCodec.create(Registries.STRUCTURE_SET, StructureSet.DIRECT_CODEC, false)
-                         .fieldOf("other_set")
-                         .forGetter(AbstractSpreadingStructurePlacement.ExclusionZone::otherSet),
-                     Codec.intRange(1, 16).fieldOf("chunk_count").forGetter(AbstractSpreadingStructurePlacement.ExclusionZone::chunkCount)

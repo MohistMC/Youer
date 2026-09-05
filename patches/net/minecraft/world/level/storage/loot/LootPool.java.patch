@@ -1,117 +1,36 @@
 --- a/net/minecraft/world/level/storage/loot/LootPool.java
 +++ b/net/minecraft/world/level/storage/loot/LootPool.java
-@@ -5,56 +_,62 @@
- import com.mojang.serialization.Codec;
- import com.mojang.serialization.codecs.RecordCodecBuilder;
- import java.util.List;
--import java.util.Optional;
-+import java.util.function.BiFunction;
- import java.util.function.Consumer;
--import net.minecraft.core.Holder;
-+import java.util.function.Predicate;
- import net.minecraft.util.Mth;
- import net.minecraft.util.RandomSource;
-+import net.minecraft.util.Util;
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.level.storage.loot.entries.LootPoolEntries;
- import net.minecraft.world.level.storage.loot.entries.LootPoolEntry;
- import net.minecraft.world.level.storage.loot.entries.LootPoolEntryContainer;
--import net.minecraft.world.level.storage.loot.entries.UniformContainerBase;
-+import net.minecraft.world.level.storage.loot.entries.LootPoolSingletonContainer;
- import net.minecraft.world.level.storage.loot.functions.FunctionUserBuilder;
- import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
- import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
- import net.minecraft.world.level.storage.loot.predicates.ConditionUserBuilder;
- import net.minecraft.world.level.storage.loot.predicates.LootItemCondition;
--import net.minecraft.world.level.storage.loot.providers.number.floats.ContextFloatProvider;
--import net.minecraft.world.level.storage.loot.providers.number.floats.ContextFloatProviders;
--import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProvider;
--import net.minecraft.world.level.storage.loot.providers.number.ints.ContextIntProviders;
-+import net.minecraft.world.level.storage.loot.providers.number.ConstantValue;
-+import net.minecraft.world.level.storage.loot.providers.number.NumberProvider;
-+import net.minecraft.world.level.storage.loot.providers.number.NumberProviders;
- import org.apache.commons.lang3.mutable.MutableInt;
- 
- public class LootPool implements Validatable {
-     public static final Codec<LootPool> CODEC = RecordCodecBuilder.create(
-         i -> i.group(
-                 LootPoolEntries.CODEC.listOf().fieldOf("entries").forGetter(p -> p.entries),
--                LootItemCondition.CODEC.optionalFieldOf("condition").forGetter(p -> p.condition),
--                LootItemFunctions.CODEC.optionalFieldOf("modifier").forGetter(p -> p.modifier),
--                ContextIntProviders.CODEC.fieldOf("rolls").forGetter(p -> p.rolls),
+@@ -33,7 +_,8 @@
+                 LootItemCondition.CODEC.optionalFieldOf("condition").forGetter(p -> p.condition),
+                 LootItemFunctions.CODEC.optionalFieldOf("modifier").forGetter(p -> p.modifier),
+                 ContextIntProviders.CODEC.fieldOf("rolls").forGetter(p -> p.rolls),
 -                ContextFloatProviders.CODEC.optionalFieldOf("bonus_rolls", ContextFloatProviders.exactly(0.0F)).forGetter(p -> p.bonusRolls)
-+                LootItemCondition.DIRECT_CODEC.listOf().optionalFieldOf("conditions", List.of()).forGetter(p -> p.conditions),
-+                LootItemFunctions.ROOT_CODEC.listOf().optionalFieldOf("functions", List.of()).forGetter(p -> p.functions),
-+                NumberProviders.DIRECT_CODEC.fieldOf("rolls").forGetter(p -> p.rolls),
-+                NumberProviders.DIRECT_CODEC.optionalFieldOf("bonus_rolls", ConstantValue.exactly(0.0F)).forGetter(p -> p.bonusRolls)
++                ContextFloatProviders.CODEC.optionalFieldOf("bonus_rolls", ContextFloatProviders.exactly(0.0F)).forGetter(p -> p.bonusRolls),
++                Codec.STRING.optionalFieldOf("name").forGetter(pool -> java.util.Optional.ofNullable(pool.name).filter(name -> !name.startsWith("custom#")))
              )
              .apply(i, LootPool::new)
      );
-     private final List<LootPoolEntryContainer> entries;
--    private final Optional<Holder<LootItemCondition>> condition;
--    private final Optional<Holder<LootItemFunction>> modifier;
--    private Holder<ContextIntProvider> rolls;
--    private Holder<ContextFloatProvider> bonusRolls;
-+    private final List<LootItemCondition> conditions;
-+    private final Predicate<LootContext> compositeCondition;
-+    private final List<LootItemFunction> functions;
-+    private final BiFunction<ItemStack, LootContext, ItemStack> compositeFunction;
-+    private NumberProvider rolls;
-+    private NumberProvider bonusRolls;
- 
-     private LootPool(
-         List<LootPoolEntryContainer> entries,
--        Optional<Holder<LootItemCondition>> condition,
--        Optional<Holder<LootItemFunction>> modifier,
--        Holder<ContextIntProvider> rolls,
+@@ -48,13 +_,15 @@
+         Optional<Holder<LootItemCondition>> condition,
+         Optional<Holder<LootItemFunction>> modifier,
+         Holder<ContextIntProvider> rolls,
 -        Holder<ContextFloatProvider> bonusRolls
-+        List<LootItemCondition> conditions,
-+        List<LootItemFunction> functions,
-+        NumberProvider rolls,
-+        NumberProvider bonusRolls,
++        Holder<ContextFloatProvider> bonusRolls,
 +        java.util.Optional<String> name
      ) {
          this.entries = entries;
--        this.condition = condition;
--        this.modifier = modifier;
-+        this.conditions = conditions;
-+        this.compositeCondition = Util.allOf(conditions);
-+        this.functions = functions;
-+        this.compositeFunction = LootItemFunctions.compose(functions);
+         this.condition = condition;
+         this.modifier = modifier;
          this.rolls = rolls;
          this.bonusRolls = bonusRolls;
 +        this.name = name.orElse(null);
      }
  
      private void addRandomItem(Consumer<ItemStack> result, LootContext context) {
-@@ -91,9 +_,9 @@
+@@ -110,6 +_,57 @@
+         Validatable.validateHolder(output, "bonus_rolls", this.bonusRolls);
      }
  
-     public void addRandomItems(Consumer<ItemStack> result, LootContext context) {
--        if (!this.condition.isPresent() || this.condition.get().value().test(context)) {
--            Consumer<ItemStack> decoratedConsumer = LootItemFunction.decorate(this.modifier, result, context);
--            int count = this.rolls.value().getInt(context) + Mth.floor(this.bonusRolls.value().getFloat(context) * context.getLuck());
-+        if (this.compositeCondition.test(context)) {
-+            Consumer<ItemStack> decoratedConsumer = LootItemFunction.decorate(this.compositeFunction, result, context);
-+            int count = this.rolls.getInt(context) + Mth.floor(this.bonusRolls.getFloat(context) * context.getLuck());
- 
-             for (int i = 0; i < count; i++) {
-                 this.addRandomItem(decoratedConsumer, context);
-@@ -103,11 +_,62 @@
- 
-     @Override
-     public void validate(ValidationContext output) {
--        Validatable.validateHolder(output, "condition", this.condition);
--        Validatable.validateHolder(output, "modifier", this.modifier);
-+        Validatable.validate(output, "conditions", this.conditions);
-+        Validatable.validate(output, "functions", this.functions);
-         Validatable.validate(output, "entries", this.entries);
--        Validatable.validateHolder(output, "rolls", this.rolls);
--        Validatable.validateHolder(output, "bonus_rolls", this.bonusRolls);
-+        Validatable.validate(output, "rolls", this.rolls);
-+        Validatable.validate(output, "bonus_rolls", this.bonusRolls);
-+    }
-+
 +    // Neo: Implement LootPool freezing to prevent manipulation outside of Neo APIs
 +    private boolean isFrozen = false;
 +
@@ -144,99 +63,55 @@
 +        this.name = name;
 +    }
 +
-+    // Neo: Add getters and settings for changing the rolls for this pool
-+    public NumberProvider getRolls() {
++    // Neo: Add getters and setters for changing the rolls for this pool
++    public Holder<ContextIntProvider> getRolls() {
 +        return this.rolls;
 +    }
 +
-+    public NumberProvider getBonusRolls() {
++    public Holder<ContextFloatProvider> getBonusRolls() {
 +        return this.bonusRolls;
 +    }
 +
-+    public void setRolls (NumberProvider v) {
++    public void setRolls(Holder<ContextIntProvider> v) {
 +        checkFrozen();
 +        this.rolls = v;
 +    }
 +
-+    public void setBonusRolls (NumberProvider v) {
++    public void setBonusRolls(Holder<ContextFloatProvider> v) {
 +        checkFrozen();
 +        this.bonusRolls = v;
-     }
- 
++    }
++
      public static LootPool.Builder lootPool() {
-@@ -116,12 +_,14 @@
- 
-     public static class Builder implements FunctionUserBuilder<LootPool.Builder>, ConditionUserBuilder<LootPool.Builder> {
-         private final ImmutableList.Builder<LootPoolEntryContainer> entries = ImmutableList.builder();
--        private final ImmutableList.Builder<Holder<LootItemCondition>> conditions = ImmutableList.builder();
--        private final ImmutableList.Builder<Holder<LootItemFunction>> functions = ImmutableList.builder();
--        private Holder<ContextIntProvider> rolls = ContextIntProviders.exactly(1);
--        private Holder<ContextFloatProvider> bonusRolls = ContextFloatProviders.exactly(0.0F);
-+        private final ImmutableList.Builder<LootItemCondition> conditions = ImmutableList.builder();
-+        private final ImmutableList.Builder<LootItemFunction> functions = ImmutableList.builder();
-+        private NumberProvider rolls = ConstantValue.exactly(1.0F);
-+        private NumberProvider bonusRolls = ConstantValue.exactly(0.0F);
+         return new LootPool.Builder();
+     }
+@@ -120,6 +_,8 @@
+         private final ImmutableList.Builder<Holder<LootItemFunction>> functions = ImmutableList.builder();
+         private Holder<ContextIntProvider> rolls = ContextIntProviders.exactly(1);
+         private Holder<ContextFloatProvider> bonusRolls = ContextFloatProviders.exactly(0.0F);
 +        @org.jspecify.annotations.Nullable
 +        private String name;
  
--        public LootPool.Builder setRolls(Holder<ContextIntProvider> rolls) {
-+        public LootPool.Builder setRolls(NumberProvider rolls) {
+         public LootPool.Builder setRolls(Holder<ContextIntProvider> rolls) {
              this.rolls = rolls;
-             return this;
-         }
-@@ -130,7 +_,7 @@
-             return this;
-         }
- 
--        public LootPool.Builder setBonusRolls(Holder<ContextFloatProvider> bonusRolls) {
-+        public LootPool.Builder setBonusRolls(NumberProvider bonusRolls) {
-             this.bonusRolls = bonusRolls;
-             return this;
-         }
-@@ -140,7 +_,7 @@
+@@ -158,13 +_,19 @@
              return this;
          }
  
--        public LootPool.Builder addAll(List<? extends UniformContainerBase.Builder<?>> entries) {
-+        public LootPool.Builder addAll(List<? extends LootPoolSingletonContainer.Builder<?>> entries) {
-             for (LootPoolEntryContainer.Builder<?> entry : entries) {
-                 this.add(entry);
-             }
-@@ -148,24 +_,23 @@
-             return this;
-         }
- 
--        public LootPool.Builder when(Holder<LootItemCondition> condition) {
--            this.conditions.add(condition);
--            return this;
--        }
--
--        public LootPool.Builder apply(Holder<LootItemFunction> function) {
--            this.functions.add(function);
-+        public LootPool.Builder when(LootItemCondition.Builder condition) {
-+            this.conditions.add(condition.build());
-+            return this;
-+        }
-+
-+        public LootPool.Builder apply(LootItemFunction.Builder function) {
-+            this.functions.add(function.build());
-+            return this;
-+        }
-+
 +        public LootPool.Builder name(String name) {
 +            this.name = name;
-             return this;
-         }
- 
++            return this;
++        }
++
          public LootPool build() {
--            return new LootPool(
--                this.entries.build(),
--                ConditionUserBuilder.buildCondition(this.conditions.build()),
--                FunctionUserBuilder.buildFunction(this.functions.build()),
--                this.rolls,
+             return new LootPool(
+                 this.entries.build(),
+                 ConditionUserBuilder.buildCondition(this.conditions.build()),
+                 FunctionUserBuilder.buildFunction(this.functions.build()),
+                 this.rolls,
 -                this.bonusRolls
--            );
-+            return new LootPool(this.entries.build(), this.conditions.build(), this.functions.build(), this.rolls, this.bonusRolls, java.util.Optional.ofNullable(this.name));
++                this.bonusRolls,
++                java.util.Optional.ofNullable(this.name)
+             );
          }
      }
- }

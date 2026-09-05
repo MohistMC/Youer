@@ -1,21 +1,5 @@
 --- a/net/minecraft/world/level/storage/loot/LootTable.java
 +++ b/net/minecraft/world/level/storage/loot/LootTable.java
-@@ -9,12 +_,13 @@
- import java.util.Iterator;
- import java.util.List;
- import java.util.Optional;
-+import java.util.concurrent.atomic.AtomicBoolean;
-+import java.util.function.BiFunction;
- import java.util.function.Consumer;
- import net.minecraft.core.Holder;
--import net.minecraft.core.HolderSet;
- import net.minecraft.core.registries.Registries;
--import net.minecraft.core.registries.codec.RegistryCodecs;
- import net.minecraft.resources.Identifier;
-+import net.minecraft.resources.RegistryFileCodec;
- import net.minecraft.resources.ResourceKey;
- import net.minecraft.server.level.ServerLevel;
- import net.minecraft.util.Mth;
 @@ -27,6 +_,10 @@
  import net.minecraft.world.level.storage.loot.functions.LootItemFunction;
  import net.minecraft.world.level.storage.loot.functions.LootItemFunctions;
@@ -27,42 +11,33 @@
  import org.slf4j.Logger;
  
  public class LootTable implements Validatable {
-@@ -39,31 +_,36 @@
+@@ -39,7 +_,7 @@
              i -> i.group(
                      LootContextParamSets.CODEC.lenientOptionalFieldOf("type", DEFAULT_PARAM_SET).forGetter(t -> t.paramSet),
                      Identifier.CODEC.optionalFieldOf("random_sequence").forGetter(t -> t.randomSequence),
 -                    LootPool.CODEC.listOf().optionalFieldOf("pools", List.of()).forGetter(t -> t.pools),
--                    LootItemFunctions.CODEC.optionalFieldOf("modifier").forGetter(t -> t.modifier)
 +                    net.neoforged.neoforge.common.CommonHooks.lootPoolsCodec(LootPool::setName).optionalFieldOf("pools", List.of()).forGetter(t -> t.pools),
-+                    net.neoforged.neoforge.common.conditions.ConditionalOps.decodeListWithElementConditions(LootItemFunctions.ROOT_CODEC).optionalFieldOf("functions", List.of()).forGetter(t -> t.functions)
+                     LootItemFunctions.CODEC.optionalFieldOf("modifier").forGetter(t -> t.modifier)
                  )
                  .apply(i, LootTable::new)
-         )
-     );
--    public static final Codec<Holder<LootTable>> CODEC = RegistryCodecs.holder(Registries.LOOT_TABLE, DIRECT_CODEC);
--    public static final Codec<HolderSet<LootTable>> LIST_CODEC = RegistryCodecs.holderSet(Registries.LOOT_TABLE, DIRECT_CODEC);
--    public static final LootTable EMPTY = new LootTable(LootContextParamSets.EMPTY, Optional.empty(), List.of(), Optional.empty());
-+    public static final Codec<Optional<net.neoforged.neoforge.common.conditions.WithConditions<LootTable>>> CONDITIONAL_DIRECT_CODEC =
-+            net.neoforged.neoforge.common.conditions.ConditionalOps.createConditionalCodecWithConditions(DIRECT_CODEC);
-+    public static final Codec<Holder<LootTable>> CODEC = RegistryFileCodec.create(Registries.LOOT_TABLE, DIRECT_CODEC);
-+    public static final LootTable EMPTY = new LootTable(LootContextParamSets.EMPTY, Optional.empty(), List.of(), List.of());
-     private final ContextKeySet paramSet;
+@@ -52,18 +_,24 @@
      private final Optional<Identifier> randomSequence;
      private final List<LootPool> pools;
--    private final Optional<Holder<LootItemFunction>> modifier;
-+    private final List<LootItemFunction> functions;
-+    private final BiFunction<ItemStack, LootContext, ItemStack> compositeFunction;
-+    public CraftLootTable craftLootTable; // CraftBukkit
- 
+     private final Optional<Holder<LootItemFunction>> modifier;
+-
 -    private LootTable(ContextKeySet paramSet, Optional<Identifier> randomSequence, List<LootPool> pools, Optional<Holder<LootItemFunction>> modifier) {
-+    private LootTable(ContextKeySet paramSet, Optional<Identifier> randomSequence, List<LootPool> pools, List<LootItemFunction> functions) {
++    // Neo: Linking the LootTable to its ID for easier retrieval
++    @org.jspecify.annotations.Nullable
++    private Identifier lootTableId;
++
++    public CraftLootTable craftLootTable; // CraftBukkit
++
++ 	private LootTable(ContextKeySet paramSet, Optional<Identifier> randomSequence, List<LootPool> pools, Optional<Holder<LootItemFunction>> modifier) {
          this.paramSet = paramSet;
          this.randomSequence = randomSequence;
 -        this.pools = pools;
--        this.modifier = modifier;
 +        this.pools = Lists.newArrayList(pools);
-+        this.functions = functions;
-+        this.compositeFunction = LootItemFunctions.compose(functions);
+         this.modifier = modifier;
      }
  
      public static Consumer<ItemStack> createStackSplitter(ServerLevel level, Consumer<ItemStack> output) {
@@ -74,7 +49,7 @@
                      output.accept(result);
                  } else {
                      int count = result.getCount();
-@@ -78,14 +_,16 @@
+@@ -78,10 +_,12 @@
          };
      }
  
@@ -87,11 +62,6 @@
      public void getRandomItemsRaw(LootContext context, Consumer<ItemStack> output) {
          LootContext.VisitedEntry<?> breadcrumb = LootContext.createVisitedEntry(this);
          if (context.pushVisitedElement(breadcrumb)) {
--            Consumer<ItemStack> decoratedOutput = LootItemFunction.decorate(this.modifier, output, context);
-+            Consumer<ItemStack> decoratedOutput = LootItemFunction.decorate(this.compositeFunction, output, context);
- 
-             for (LootPool pool : this.pools) {
-                 pool.addRandomItems(decoratedOutput, context);
 @@ -98,18 +_,15 @@
      }
  
@@ -124,23 +94,17 @@
          return result;
      }
  
-@@ -137,13 +_,26 @@
-     @Override
-     public void validate(ValidationContext context) {
-         Validatable.validate(context, "pools", this.pools);
--        Validatable.validateHolder(context, "modifier", this.modifier);
-+        Validatable.validate(context, "functions", this.functions);
+@@ -141,9 +_,22 @@
      }
  
      public void fill(Container container, LootParams params, long optionalRandomSeed) {
--        LootContext context = new LootContext.Builder(params).withOptionalRandomSeed(optionalRandomSeed).create(this.randomSequence);
 +        // CraftBukkit start
 +        this.fill(container, params, optionalRandomSeed == 0L ? null : RandomSource.create(optionalRandomSeed), false);
 +    }
 +
 +    public void fill(Container container, LootParams params, RandomSource randomSource, boolean plugin) {
 +        // CraftBukkit end
-+        LootContext context = new LootContext.Builder(params).withOptionalRandomSource(randomSource).create(this.randomSequence);
+         LootContext context = new LootContext.Builder(params).withOptionalRandomSeed(optionalRandomSeed).create(this.randomSequence);
          ObjectArrayList<ItemStack> itemStacks = this.getRandomItems(context);
          RandomSource random = context.getRandom();
 +        // CraftBukkit start
@@ -153,7 +117,7 @@
          List<Integer> availableSlots = this.getAvailableSlots(container, random);
          this.shuffleAndSplitItems(itemStacks, availableSlots.size(), random);
  
-@@ -213,11 +_,68 @@
+@@ -213,11 +_,67 @@
          return new LootTable.Builder();
      }
  
@@ -174,16 +138,15 @@
 +            throw new RuntimeException("Attempted to modify LootTable after being finalized!");
 +    }
 +
-+    // Neo: Linking the LootTable to its ID for easier retrieval
-+    private Identifier lootTableId;
-+
-+    public void setLootTableId(final Identifier id) {
-+        if (this.lootTableId != null) throw new IllegalStateException("Attempted to rename loot table from '" + this.lootTableId + "' to '" + id + "': this is not supported");
++    void setLootTableId(final Identifier id) {
++        if (this.lootTableId != null && !this.lootTableId.equals(id)) {
++            throw new IllegalStateException("Attempted to rename loot table from '" + this.lootTableId + "' to '" + id + "': this is not supported");
++        }
 +        this.lootTableId = java.util.Objects.requireNonNull(id);
 +    }
 +
 +    public Identifier getLootTableId() {
-+        return this.lootTableId;
++        return java.util.Objects.requireNonNull(this.lootTableId, "ID not set");
 +    }
 +
 +    // Neo: Retrieve LootPools by name
@@ -215,31 +178,17 @@
 +
      public static class Builder implements FunctionUserBuilder<LootTable.Builder> {
          private final ImmutableList.Builder<LootPool> pools = ImmutableList.builder();
--        private final ImmutableList.Builder<Holder<LootItemFunction>> functions = ImmutableList.builder();
-+        private final ImmutableList.Builder<LootItemFunction> functions = ImmutableList.builder();
+         private final ImmutableList.Builder<Holder<LootItemFunction>> functions = ImmutableList.builder();
          private ContextKeySet paramSet = LootTable.DEFAULT_PARAM_SET;
          private Optional<Identifier> randomSequence = Optional.empty();
 +        private final List<net.neoforged.neoforge.common.conditions.ICondition> conditions = new java.util.ArrayList<>();
  
          public LootTable.Builder withPool(LootPool.Builder pool) {
              this.pools.add(pool.build());
-@@ -234,8 +_,8 @@
-             return this;
-         }
- 
--        public LootTable.Builder apply(Holder<LootItemFunction> function) {
--            this.functions.add(function);
-+        public LootTable.Builder apply(LootItemFunction.Builder function) {
-+            this.functions.add(function.build());
-             return this;
-         }
- 
-@@ -244,7 +_,21 @@
-         }
+@@ -245,6 +_,20 @@
  
          public LootTable build() {
--            return new LootTable(this.paramSet, this.randomSequence, this.pools.build(), FunctionUserBuilder.buildFunction(this.functions.build()));
-+            return new LootTable(this.paramSet, this.randomSequence, this.pools.build(), this.functions.build());
+             return new LootTable(this.paramSet, this.randomSequence, this.pools.build(), FunctionUserBuilder.buildFunction(this.functions.build()));
 +        }
 +
 +        public LootTable.Builder withCondition(net.neoforged.neoforge.common.conditions.ICondition condition) {

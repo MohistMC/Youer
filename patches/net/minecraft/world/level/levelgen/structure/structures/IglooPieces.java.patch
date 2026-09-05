@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/levelgen/structure/structures/IglooPieces.java
 +++ b/net/minecraft/world/level/levelgen/structure/structures/IglooPieces.java
-@@ -13,15 +_,16 @@
+@@ -13,11 +_,13 @@
  import net.minecraft.world.level.block.Blocks;
  import net.minecraft.world.level.block.Mirror;
  import net.minecraft.world.level.block.Rotation;
@@ -14,37 +14,6 @@
  import net.minecraft.world.level.levelgen.structure.TemplateStructurePiece;
  import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
  import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
--import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
- import net.minecraft.world.level.levelgen.structure.templatesystem.BlockIgnoreProcessor;
- import net.minecraft.world.level.levelgen.structure.templatesystem.LiquidSettings;
- import net.minecraft.world.level.levelgen.structure.templatesystem.StructurePlaceSettings;
-@@ -42,18 +_,22 @@
-     );
- 
-     public static void addPieces(
--        StructureTemplateManager structureTemplateManager, BlockPos position, Rotation rotation, StructurePiecesBuilder builder, RandomSource random
-+        StructureTemplateManager structureTemplateManager,
-+        BlockPos position,
-+        Rotation rotation,
-+        StructurePieceAccessor structurePieceAccessor,
-+        RandomSource random
-     ) {
-         if (random.nextDouble() < 0.5) {
-             int depth = random.nextInt(8) + 4;
--            builder.addPiece(new IglooPieces.IglooPiece(structureTemplateManager, STRUCTURE_LOCATION_LABORATORY, position, rotation, depth * 3));
-+            structurePieceAccessor.addPiece(new IglooPieces.IglooPiece(structureTemplateManager, STRUCTURE_LOCATION_LABORATORY, position, rotation, depth * 3));
- 
-             for (int i = 0; i < depth - 1; i++) {
--                builder.addPiece(new IglooPieces.IglooPiece(structureTemplateManager, STRUCTURE_LOCATION_LADDER, position, rotation, i * 3));
-+                structurePieceAccessor.addPiece(new IglooPieces.IglooPiece(structureTemplateManager, STRUCTURE_LOCATION_LADDER, position, rotation, i * 3));
-             }
-         }
- 
--        builder.addPiece(new IglooPieces.IglooPiece(structureTemplateManager, STRUCTURE_LOCATION_IGLOO, position, rotation, 0));
-+        structurePieceAccessor.addPiece(new IglooPieces.IglooPiece(structureTemplateManager, STRUCTURE_LOCATION_IGLOO, position, rotation, 0));
-     }
- 
-     public static class IglooPiece extends TemplateStructurePiece {
 @@ -101,9 +_,15 @@
          protected void handleDataMarker(String markerId, BlockPos position, ServerLevelAccessor level, RandomSource random, BoundingBox chunkBB) {
              if ("chest".equals(markerId)) {

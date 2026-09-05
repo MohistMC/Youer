@@ -20,7 +20,7 @@
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.SectionPos;
  import net.minecraft.network.protocol.Packet;
-@@ -56,18 +_,19 @@
+@@ -56,17 +_,19 @@
  
  import net.neoforged.neoforge.common.extensions.IServerChunkCacheExtension;
  
@@ -37,13 +37,13 @@
      private final SavedDataStorage savedDataStorage;
 -    private final TicketStorage ticketStorage;
 +    public final TicketStorage ticketStorage;
-     private long lastInhabitedUpdate;
++    private long lastInhabitedUpdate;
      public boolean spawnEnemies = true;
 +    public boolean spawnFriendlies = true; // Paper - add back spawnFriendlies field
      private static final int CACHE_SIZE = 4;
      private final long[] lastChunkPos = new long[4];
      private final @Nullable ChunkStatus[] lastChunkStatus = new ChunkStatus[4];
-@@ -76,7 +_,115 @@
+@@ -75,7 +_,115 @@
      private final Set<ChunkHolder> chunkHoldersToBroadcast = new ReferenceOpenHashSet<>();
      @VisibleForDebug
      private NaturalSpawner.@Nullable SpawnState lastSpawnState;
@@ -160,7 +160,7 @@
      public ServerChunkCache(
          ServerLevel level,
          LevelStorageSource.LevelStorageAccess levelStorage,
-@@ -87,7 +_,9 @@
+@@ -86,7 +_,9 @@
          int viewDistance,
          int simulationDistance,
          boolean syncWrites,
@@ -171,7 +171,7 @@
      ) {
          this.level = level;
          this.mainThreadProcessor = new ServerChunkCache.MainThreadExecutor(level);
-@@ -100,7 +_,9 @@
+@@ -99,7 +_,9 @@
              LOGGER.error("Failed to create dimension data storage directory", e);
          }
  
@@ -182,7 +182,7 @@
          this.ticketStorage = this.savedDataStorage.computeIfAbsent(TicketStorage.TYPE);
          this.chunkMap = new ChunkMap(
              level,
-@@ -112,6 +_,7 @@
+@@ -111,6 +_,7 @@
              this,
              generator,
              chunkStatusListener,
@@ -190,7 +190,7 @@
              this.ticketStorage,
              viewDistance,
              syncWrites
-@@ -122,6 +_,57 @@
+@@ -121,6 +_,57 @@
          this.clearCache();
      }
  
@@ -248,7 +248,7 @@
      public ThreadedLevelLightEngine getLightEngine() {
          return this.lightEngine;
      }
-@@ -144,65 +_,41 @@
+@@ -143,65 +_,41 @@
  
      @Override
      public @Nullable ChunkAccess getChunk(int x, int z, ChunkStatus targetStatus, boolean loadOrGenerate) {
@@ -344,7 +344,7 @@
      }
  
      private void clearCache() {
-@@ -228,45 +_,62 @@
+@@ -227,45 +_,62 @@
      }
  
      private CompletableFuture<ChunkResult<ChunkAccess>> getChunkFutureMainThread(int x, int z, ChunkStatus targetStatus, boolean loadOrGenerate) {
@@ -433,7 +433,7 @@
      }
  
      public Level getLevel() {
-@@ -278,50 +_,61 @@
+@@ -277,50 +_,61 @@
      }
  
      public boolean runDistanceManagerUpdates() {
@@ -516,16 +516,24 @@
              this.tickChunks();
              this.chunkMap.tick();
          }
-@@ -339,7 +_,7 @@
+@@ -332,25 +_,62 @@
+     }
+ 
+     private void tickChunks() {
++        long time = this.level.getGameTime();
++        long timeDiff = time - this.lastInhabitedUpdate;
++        this.lastInhabitedUpdate = time;
          if (!this.level.isDebug()) {
              ProfilerFiller profiler = Profiler.get();
              profiler.push("pollingChunks");
 -            if (this.level.tickRateManager().runsNormally()) {
 +            if (this.level.tickRateManager().runsNormally() && this.level.paperConfig().unsupportedSettings.ticking.chunks) { // Paper - option to disable ticking
                  profiler.push("tickingChunks");
-                 this.tickChunks(profiler, timeDiff);
+-                this.tickChunks(profiler);
++                this.tickChunks(profiler, timeDiff);
                  profiler.pop();
-@@ -348,13 +_,47 @@
+             }
+ 
              this.broadcastChangedChunks(profiler);
              profiler.pop();
          }
@@ -574,8 +582,12 @@
              if (chunk != null) {
                  chunkHolder.broadcastChanges(chunk);
              }
-@@ -367,14 +_,30 @@
-     private void tickChunks(ProfilerFiller profiler, long timeDiff) {
+@@ -360,17 +_,33 @@
+         profiler.pop();
+     }
+ 
+-    private void tickChunks(ProfilerFiller profiler) {
++    private void tickChunks(ProfilerFiller profiler, long timeDiff) {
          profiler.push("naturalSpawnCount");
          int chunkCount = this.distanceManager.getNaturalSpawnChunkCount();
 -        NaturalSpawner.SpawnState spawnCookie = NaturalSpawner.createState(chunkCount, this.level, this::getFullChunk, new LocalMobCapCalculator(this.chunkMap));
@@ -611,7 +623,7 @@
          } else {
              spawningCategories = List.of();
          }
-@@ -385,18 +_,21 @@
+@@ -381,18 +_,21 @@
              profiler.popPush("filteringSpawningChunks");
              this.chunkMap.collectSpawningChunks(spawningChunks);
              profiler.popPush("shuffleSpawningChunks");
@@ -623,7 +635,7 @@
              profiler.popPush("tickSpawningChunks");
  
              for (LevelChunk chunk : spawningChunks) {
--                this.tickSpawningChunk(chunk, timeDiff, spawningCategories, spawnCookie);
+-                this.tickSpawningChunk(chunk, spawningCategories, spawnCookie);
 +                this.tickSpawningChunk(chunk, timeDiff, spawningCategories, this.lastSpawnState); // Pufferfish - Async mob spawning
              }
          } finally {
@@ -636,11 +648,16 @@
          if (doMobSpawning) {
              profiler.popPush("customSpawners");
              this.level.tickCustomSpawners(this.spawnEnemies);
-@@ -408,22 +_,25 @@
-     private void tickSpawningChunk(LevelChunk chunk, long timeDiff, List<MobCategory> spawningCategories, NaturalSpawner.SpawnState spawnCookie) {
+@@ -401,25 +_,28 @@
+         profiler.pop();
+     }
+ 
+-    private void tickSpawningChunk(LevelChunk chunk, List<MobCategory> spawningCategories, NaturalSpawner.SpawnState spawnCookie) {
++    private void tickSpawningChunk(LevelChunk chunk, long timeDiff, List<MobCategory> spawningCategories, NaturalSpawner.SpawnState spawnCookie) {
          ChunkPos chunkPos = chunk.getPos();
-         chunk.incrementInhabitedTime(timeDiff);
+-        chunk.incrementInhabitedTime();
 -        if (this.distanceManager.inEntityTickingRange(chunkPos.pack())) {
++        chunk.incrementInhabitedTime(timeDiff);
 +        if (true) { // Paper - rewrite chunk system
              this.level.tickThunder(chunk);
          }
@@ -667,7 +684,7 @@
      }
  
      @Override
-@@ -481,19 +_,11 @@
+@@ -477,19 +_,11 @@
      }
  
      public CompletableFuture<?> addTicketAndLoadWithRadius(TicketType type, ChunkPos pos, int radius) {
@@ -692,7 +709,7 @@
      }
  
      public void addTicketWithRadius(TicketType type, ChunkPos pos, int radius) {
-@@ -543,21 +_,29 @@
+@@ -539,21 +_,29 @@
          this.chunkMap.sendToTrackingPlayers(entity, packet);
      }
  
@@ -726,7 +743,7 @@
      }
  
      public String getChunkDebugData(ChunkPos pos) {
-@@ -623,13 +_,13 @@
+@@ -619,13 +_,13 @@
          }
  
          @Override

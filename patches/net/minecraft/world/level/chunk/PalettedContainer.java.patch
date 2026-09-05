@@ -386,7 +386,7 @@
          if (this.data.palette.getSize() == 1) {
              output.accept(this.data.palette.valueFor(0), this.data.storage.getSize());
          } else {
-@@ -317,36 +_,67 @@
+@@ -317,8 +_,45 @@
          void accept(final T entry, final int count);
      }
  
@@ -430,38 +430,16 @@
 +        }
 +        // Paper end - optimise palette reads
 +
-+        public void copyFrom(final Palette<T> oldPalette, final BitStorage oldStorage) {
++		public void copyFrom(Palette<T> oldPalette, BitStorage oldStorage) {
              PaletteResize<T> dummyResizer = PaletteResize.noResizeExpected();
--            if (oldPalette.getSize() == 1) {
--                T value = oldPalette.valueFor(0);
--                this.storage.fill(this.palette.idFor(value, dummyResizer));
--            } else {
--                int lastOldId = -1;
--                int newId = -1;
--
--                for (int i = 0; i < oldStorage.getSize(); i++) {
--                    int oldId = oldStorage.get(i);
--                    if (oldId != lastOldId) {
--                        T value = oldPalette.valueFor(oldId);
--                        newId = this.palette.idFor(value, dummyResizer);
--                        lastOldId = oldId;
--                    }
--
--                    this.storage.set(i, newId);
--                }
-+
-+            for (int i = 0; i < oldStorage.getSize(); i++) {
-+                T value = oldPalette.valueFor(oldStorage.get(i));
-+                this.storage.set(i, this.palette.idFor(value, dummyResizer));
-             }
-         }
- 
--        public int getSerializedSize(IdMap<T> globalMap) {
-+        public int getSerializedSize(final IdMap<T> globalMap) {
+             if (oldPalette.getSize() == 1) {
+                 T value = oldPalette.valueFor(0);
+@@ -344,9 +_,17 @@
              return 1 + this.palette.getSerializedSize(globalMap) + this.storage.getRaw().length * 8;
          }
  
 -        public void write(FriendlyByteBuf buffer, IdMap<T> globalMap) {
++
 +        public void write(final FriendlyByteBuf buffer, final IdMap<T> globalMap, final io.papermc.paper.antixray.@Nullable ChunkPacketInfo<T> chunkPacketInfo, final int chunkSectionIndex) { // Paper - Anti-Xray - Add chunk packet info
              buffer.writeByte(this.storage.getBits());
              this.palette.write(buffer, globalMap);

@@ -9,20 +9,7 @@
      public static final int MAX_STRUCTURE_DISTANCE = 8;
      private static final EnumSet<Heightmap.Types> WORLDGEN_HEIGHTMAPS = EnumSet.of(Heightmap.Types.OCEAN_FLOOR_WG, Heightmap.Types.WORLD_SURFACE_WG);
      public static final EnumSet<Heightmap.Types> FINAL_HEIGHTMAPS = EnumSet.of(
-@@ -22,8 +_,10 @@
-     public static final ChunkStatus STRUCTURE_STARTS = register("structure_starts", EMPTY, WORLDGEN_HEIGHTMAPS, ChunkType.PROTOCHUNK);
-     public static final ChunkStatus STRUCTURE_REFERENCES = register("structure_references", STRUCTURE_STARTS, WORLDGEN_HEIGHTMAPS, ChunkType.PROTOCHUNK);
-     public static final ChunkStatus BIOMES = register("biomes", STRUCTURE_REFERENCES, WORLDGEN_HEIGHTMAPS, ChunkType.PROTOCHUNK);
--    public static final ChunkStatus TERRAIN = register("terrain", BIOMES, FINAL_HEIGHTMAPS, ChunkType.PROTOCHUNK);
--    public static final ChunkStatus FEATURES = register("features", TERRAIN, FINAL_HEIGHTMAPS, ChunkType.PROTOCHUNK);
-+    public static final ChunkStatus NOISE = register("noise", BIOMES, WORLDGEN_HEIGHTMAPS, ChunkType.PROTOCHUNK);
-+    public static final ChunkStatus SURFACE = register("surface", NOISE, WORLDGEN_HEIGHTMAPS, ChunkType.PROTOCHUNK);
-+    public static final ChunkStatus CARVERS = register("carvers", SURFACE, FINAL_HEIGHTMAPS, ChunkType.PROTOCHUNK);
-+    public static final ChunkStatus FEATURES = register("features", CARVERS, FINAL_HEIGHTMAPS, ChunkType.PROTOCHUNK);
-     public static final ChunkStatus INITIALIZE_LIGHT = register("initialize_light", FEATURES, FINAL_HEIGHTMAPS, ChunkType.PROTOCHUNK);
-     public static final ChunkStatus LIGHT = register("light", INITIALIZE_LIGHT, FINAL_HEIGHTMAPS, ChunkType.PROTOCHUNK);
-     public static final ChunkStatus SPAWN = register("spawn", LIGHT, FINAL_HEIGHTMAPS, ChunkType.PROTOCHUNK);
-@@ -51,12 +_,82 @@
+@@ -51,8 +_,71 @@
          return list;
      }
  
@@ -94,31 +81,3 @@
          this.parent = parent == null ? this : parent;
          this.chunkType = chunkType;
          this.heightmapsAfter = heightmapsAfter;
-         this.index = parent == null ? 0 : parent.getIndex() + 1;
-+
-+        EnumSet<Heightmap.Types> chunkSaveHeightmaps = EnumSet.copyOf(this.heightmapsAfter);
-+        if (this.chunkType != ChunkType.LEVELCHUNK) {
-+            chunkSaveHeightmaps.add(Heightmap.Types.WORLD_SURFACE_WG);
-+            chunkSaveHeightmaps.add(Heightmap.Types.OCEAN_FLOOR_WG);
-+        }
-+        this.chunkSaveHeightmaps = chunkSaveHeightmaps;
-     }
- 
-     public int getIndex() {
-@@ -107,4 +_,16 @@
-     public String getName() {
-         return BuiltInRegistries.CHUNK_STATUS.getKey(this).toString();
-     }
-+
-+    /**
-+     * Neo: Internal use only.
-+     * Patch to fix [MC-308222](https://report.bugs.mojang.com/servicedesk/customer/portal/2/MC-308222)
-+     * intended for loading a non-fully generated chunk from disk to keep worldgen heightmap data for
-+     * structures and features to heightmap snap properly again.
-+     * @return A set of the chunk status's heightmaps alongside _WG heightmaps for worldgen-only chunk statuses
-+     */
-+    public EnumSet<Heightmap.Types> getChunkSaveHeightmaps() {
-+        return this.chunkSaveHeightmaps;
-+    }
-+    private final EnumSet<Heightmap.Types> chunkSaveHeightmaps;
- }

@@ -62,11 +62,16 @@
              if (level.dimension() == data.dimension) {
                  int scale = 1 << data.scale;
                  int centerX = data.centerX;
-@@ -211,7 +_,7 @@
+@@ -207,12 +_,11 @@
+                 boolean[] isBiomeWatery = new boolean[16384];
+                 int unscaledStartX = centerX / scale - 64;
+                 int unscaledStartZ = centerZ / scale - 64;
+-                int biomeSampleY = level.getSeaLevel();
+                 BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
  
                  for (int row = 0; row < 128; row++) {
                      for (int column = 0; column < 128; column++) {
--                        Holder<Biome> biome = level.getBiome(pos.set((unscaledStartX + column) * scale, 0, (unscaledStartZ + row) * scale));
+-                        Holder<Biome> biome = level.getBiome(pos.set((unscaledStartX + column) * scale, biomeSampleY, (unscaledStartZ + row) * scale));
 +                        Holder<Biome> biome = level.getUncachedNoiseBiome(net.minecraft.core.QuartPos.fromBlock((unscaledStartX + column) * scale), net.minecraft.core.QuartPos.fromBlock(0), net.minecraft.core.QuartPos.fromBlock((unscaledStartZ + row) * scale)); // Paper - Perf: Use seed based lookup for treasure maps
                          isBiomeWatery[row * 128 + column] = biome.is(BiomeTags.WATER_ON_MAP_OUTLINES);
                      }

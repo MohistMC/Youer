@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/entity/animal/cow/MushroomCow.java
 +++ b/net/minecraft/world/entity/animal/cow/MushroomCow.java
-@@ -53,6 +_,7 @@
+@@ -13,7 +_,6 @@
+ import net.minecraft.core.particles.SpellParticleOption;
+ import net.minecraft.network.codec.ByteBufCodecs;
+ import net.minecraft.network.codec.StreamCodec;
+-import net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket;
+ import net.minecraft.network.syncher.EntityDataAccessor;
+ import net.minecraft.network.syncher.EntityDataSerializers;
+ import net.minecraft.network.syncher.SynchedEntityData;
+@@ -54,6 +_,7 @@
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.level.storage.loot.BuiltInLootTables;
@@ -8,7 +16,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class MushroomCow extends AbstractCow implements Shearable {
-@@ -69,13 +_,58 @@
+@@ -70,13 +_,58 @@
          super(type, level);
      }
  
@@ -68,7 +76,7 @@
      ) {
          return level.getBlockState(pos.below()).is(BlockTags.MOOSHROOMS_SPAWNABLE_ON) && isBrightEnoughToSpawn(level, pos);
      }
-@@ -124,7 +_,13 @@
+@@ -125,7 +_,13 @@
              return InteractionResult.SUCCESS;
          } else if (itemStack.is(Items.SHEARS) && this.readyForShearing()) {
              if (this.level() instanceof ServerLevel level) {
@@ -83,7 +91,72 @@
                  this.gameEvent(GameEvent.SHEAR, player);
                  itemStack.hurtAndBreak(1, player, hand.asEquipmentSlot());
              }
-@@ -179,11 +_,26 @@
+@@ -138,40 +_,33 @@
+             }
+ 
+             if (this.stewEffects != null) {
+-                if (this.level() instanceof ServerLevel level) {
+-                    level.sendParticles(
+-                        ParticleTypes.SMOKE,
+-                        this.getX(),
+-                        this.getY(0.5),
+-                        this.getZ(),
+-                        2,
+-                        0.5,
+-                        0.0,
+-                        0.5,
+-                        0.0,
+-                        0.2,
+-                        0.0,
+-                        ClientboundLevelParticlesPacket.RandomizationType.ALTERNATIVE_WITH_SPEED
+-                    );
++                for (int i = 0; i < 2; i++) {
++                    this.level()
++                        .addParticle(
++                            ParticleTypes.SMOKE,
++                            this.getX() + this.random.nextDouble() / 2.0,
++                            this.getY(0.5),
++                            this.getZ() + this.random.nextDouble() / 2.0,
++                            0.0,
++                            this.random.nextDouble() / 5.0,
++                            0.0
++                        );
+                 }
+             } else {
+                 itemStack.consume(1, player);
+-                if (this.level() instanceof ServerLevel level) {
+-                    SpellParticleOption particle = SpellParticleOption.create(ParticleTypes.EFFECT, -1, 1.0F);
+-                    level.sendParticles(
+-                        particle,
+-                        this.getX(),
+-                        this.getY(0.5),
+-                        this.getZ(),
+-                        4,
+-                        0.5,
+-                        0.0,
+-                        0.5,
+-                        0.0,
+-                        0.2,
+-                        0.0,
+-                        ClientboundLevelParticlesPacket.RandomizationType.ALTERNATIVE_WITH_SPEED
+-                    );
++                SpellParticleOption particle = SpellParticleOption.create(ParticleTypes.EFFECT, -1, 1.0F);
++
++                for (int i = 0; i < 4; i++) {
++                    this.level()
++                        .addParticle(
++                            particle,
++                            this.getX() + this.random.nextDouble() / 2.0,
++                            this.getY(0.5),
++                            this.getZ() + this.random.nextDouble() / 2.0,
++                            0.0,
++                            this.random.nextDouble() / 5.0,
++                            0.0
++                        );
+                 }
+ 
+                 this.stewEffects = effectsFromItemStack.get();
+@@ -187,11 +_,26 @@
      @Override
      public void shear(ServerLevel level, SoundSource soundSource, ItemStack tool) {
          level.playSound(null, this, SoundEvents.MOOSHROOM_SHEAR, soundSource, 1.0F, 1.0F);

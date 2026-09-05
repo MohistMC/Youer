@@ -29,58 +29,6 @@
      public Vec3i getSize() {
          return this.size;
      }
-@@ -109,20 +_,24 @@
-             this.size = size;
- 
-             try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(LOGGER)) {
--                level.findBlocksIn(minCorner, maxCorner).filterState(state -> !ignoreBlocks.contains(state.getBlock())).forEach((pos, state) -> {
-+                for (BlockPos pos : BlockPos.betweenClosed(minCorner, maxCorner)) {
-                     BlockPos relativePos = pos.subtract(minCorner);
--                    BlockEntity blockEntity = level.getBlockEntity(pos);
--                    StructureTemplate.StructureBlockInfo info;
--                    if (blockEntity != null) {
--                        TagValueOutput output = TagValueOutput.createWithContext(reporter, level.registryAccess());
--                        blockEntity.saveWithId(output);
--                        info = new StructureTemplate.StructureBlockInfo(relativePos, state, output.buildResult());
--                    } else {
--                        info = new StructureTemplate.StructureBlockInfo(relativePos, state, null);
-+                    BlockState blockState = level.getBlockState(pos);
-+                    if (!ignoreBlocks.stream().anyMatch(blockState::is)) {
-+                        BlockEntity blockEntity = level.getBlockEntity(pos);
-+                        StructureTemplate.StructureBlockInfo info;
-+                        if (blockEntity != null) {
-+                            TagValueOutput output = TagValueOutput.createWithContext(reporter, level.registryAccess());
-+                            blockEntity.saveWithId(output);
-+                            info = new StructureTemplate.StructureBlockInfo(relativePos, blockState, output.buildResult());
-+                        } else {
-+                            info = new StructureTemplate.StructureBlockInfo(relativePos, blockState, null);
-+                        }
-+
-+                        addToLists(info, fullBlockList, blockEntitiesList, otherBlocksList);
-                     }
-+                }
- 
--                    addToLists(info, fullBlockList, blockEntitiesList, otherBlocksList);
--                });
-                 List<StructureTemplate.StructureBlockInfo> blockInfoList = buildInfoList(fullBlockList, blockEntitiesList, otherBlocksList);
-                 this.palettes.clear();
-                 this.palettes.add(new StructureTemplate.Palette(blockInfoList));
-@@ -201,7 +_,14 @@
-         List<StructureTemplate.JigsawBlockInfo> result = new ArrayList<>(jigsaws.size());
- 
-         for (StructureTemplate.JigsawBlockInfo jigsaw : jigsaws) {
--            result.add(jigsaw.withInfo(calculateRelativePosition(settings, jigsaw.pos).offset(position), jigsaw.state.rotate(settings.getRotation())));
-+            StructureTemplate.StructureBlockInfo blockInfo = jigsaw.info;
-+            result.add(
-+                jigsaw.withInfo(
-+                    new StructureTemplate.StructureBlockInfo(
-+                        calculateRelativePosition(settings, blockInfo.pos()).offset(position), blockInfo.state.rotate(settings.getRotation()), net.neoforged.neoforge.common.CommonHooks.captureStructureRotation(blockInfo.nbt, rotation)
-+                    )
-+                )
-+            );
-         }
- 
-         return result;
 @@ -217,7 +_,7 @@
          for (StructureTemplate.StructureBlockInfo blockInfo : settings.getRandomPalette(this.palettes, position).blocks(block)) {
              BlockPos blockPos = absolute ? calculateRelativePosition(settings, blockInfo.pos).offset(position) : blockInfo.pos;
@@ -226,7 +174,7 @@
                  }
  
                  if (processedBlockInfo != null) {
-@@ -464,39 +_,43 @@
+@@ -464,22 +_,30 @@
          return processedBlockInfoList;
      }
  
@@ -263,8 +211,8 @@
 +
 +    private void addEntitiesToWorld(ServerLevelAccessor level, BlockPos position, StructurePlaceSettings placementIn, ProblemReporter problemReporter) {
 +        for(StructureTemplate.StructureEntityInfo entityInfo : processEntityInfos(this, level, position, placementIn, this.entityInfoList)) {
-+            BlockPos blockpos = entityInfo.blockPos; // FORGE: Position will have already been transformed by processEntityInfos
-+            if (placementIn.getBoundingBox() == null || placementIn.getBoundingBox().isInside(blockpos)) {
++            BlockPos blockPos = entityInfo.blockPos; // FORGE: Position will have already been transformed by processEntityInfos
++            if (placementIn.getBoundingBox() == null || placementIn.getBoundingBox().isInside(blockPos)) {
                  CompoundTag tag = entityInfo.nbt.copy();
 -                Vec3 relativePos = transform(entityInfo.pos, mirror, rotation, pivot);
 -                Vec3 pos = relativePos.add(position.getX(), position.getY(), position.getZ());
@@ -272,13 +220,9 @@
                  ListTag posTag = new ListTag();
                  posTag.add(DoubleTag.valueOf(pos.x));
                  posTag.add(DoubleTag.valueOf(pos.y));
-                 posTag.add(DoubleTag.valueOf(pos.z));
-                 tag.put("Pos", posTag);
-                 tag.remove("UUID");
--                if (tag.contains("block_pos")) {
--                    tag.store("block_pos", BlockPos.CODEC, blockPos);
--                }
--
+@@ -491,12 +_,12 @@
+                 }
+ 
                  createEntityIgnoreException(problemReporter, level, tag).ifPresent(entity -> {
 -                    float yRot = entity.rotate(rotation);
 -                    yRot += entity.mirror(mirror) - entity.getYRot();
@@ -292,27 +236,6 @@
                          mob.finalizeSpawn(level, level.getCurrentDifficultyAt(BlockPos.containing(pos)), EntitySpawnReason.STRUCTURE, null);
                      }
  
-@@ -507,13 +_,13 @@
-     }
- 
-     private static Optional<Entity> createEntityIgnoreException(ProblemReporter reporter, ServerLevelAccessor level, CompoundTag tag) {
--        try {
--            return EntityType.create(
--                TagValueInput.create(reporter, level.registryAccess(), tag), level.getLevel(), new EntitySpawnRequest(EntitySpawnReason.STRUCTURE, false)
--            );
--        } catch (Exception ignored) {
--            return Optional.empty();
--        }
-+        // CraftBukkit start
-+        // try {
-+            return EntityType.create(TagValueInput.create(reporter, level.registryAccess(), tag), level.getLevel(), new EntitySpawnRequest(EntitySpawnReason.STRUCTURE, false));
-+        // } catch (Exception exception) {
-+            // return Optional.empty();
-+        // }
-+        // CraftBukkit end
-     }
- 
-     public Vec3i getSize(Rotation rotation) {
 @@ -686,6 +_,11 @@
  
          tag.put("entities", entityList);
@@ -337,59 +260,7 @@
      }
  
      private void loadPalette(HolderGetter<Block> blockLookup, ListTag paletteList, ListTag blockList) {
-@@ -764,20 +_,18 @@
-     }
- 
-     public record JigsawBlockInfo(
--        BlockPos pos,
--        BlockState state,
-+        StructureTemplate.StructureBlockInfo info,
-         JigsawBlockEntity.JointType jointType,
--        @Nullable Identifier name,
-+        Identifier name,
-         ResourceKey<StructureTemplatePool> pool,
-         Identifier target,
-         int placementPriority,
-         int selectionPriority
-     ) {
--        public static StructureTemplate.JigsawBlockInfo parse(StructureTemplate.StructureBlockInfo info) {
-+        public static StructureTemplate.JigsawBlockInfo of(StructureTemplate.StructureBlockInfo info) {
-             CompoundTag nbt = Objects.requireNonNull(info.nbt(), () -> info + " nbt was null");
-             return new StructureTemplate.JigsawBlockInfo(
--                info.pos(),
--                info.state(),
-+                info,
-                 StructureTemplate.getJointType(nbt, info.state()),
-                 nbt.read("name", Identifier.CODEC).orElse(JigsawBlockEntity.EMPTY_ID),
-                 nbt.read("pool", JigsawBlockEntity.POOL_CODEC).orElse(Pools.EMPTY),
-@@ -791,27 +_,28 @@
-         public String toString() {
-             return String.format(
-                 Locale.ROOT,
--                "<JigsawBlockInfo | %s | %s | name: %s | pool: %s | target: %s | placement: %d | selection: %d>",
--                this.pos,
--                this.state,
-+                "<JigsawBlockInfo | %s | %s | name: %s | pool: %s | target: %s | placement: %d | selection: %d | %s>",
-+                this.info.pos,
-+                this.info.state,
-                 this.name,
-                 this.pool.identifier(),
-                 this.target,
-                 this.placementPriority,
--                this.selectionPriority
-+                this.selectionPriority,
-+                this.info.nbt
-             );
-         }
- 
--        public StructureTemplate.JigsawBlockInfo withInfo(BlockPos pos, BlockState state) {
-+        public StructureTemplate.JigsawBlockInfo withInfo(StructureTemplate.StructureBlockInfo info) {
-             return new StructureTemplate.JigsawBlockInfo(
--                pos, state, this.jointType, this.name, this.pool, this.target, this.placementPriority, this.selectionPriority
-+                info, this.jointType, this.name, this.pool, this.target, this.placementPriority, this.selectionPriority
-             );
-         }
-     }
+@@ -811,7 +_,7 @@
  
      public static final class Palette {
          private final List<StructureTemplate.StructureBlockInfo> blocks;
@@ -398,12 +269,3 @@
          private @Nullable List<StructureTemplate.JigsawBlockInfo> cachedJigsaws;
  
          private Palette(List<StructureTemplate.StructureBlockInfo> blocks) {
-@@ -820,7 +_,7 @@
- 
-         public List<StructureTemplate.JigsawBlockInfo> jigsaws() {
-             if (this.cachedJigsaws == null) {
--                this.cachedJigsaws = this.blocks(Blocks.JIGSAW).stream().map(StructureTemplate.JigsawBlockInfo::parse).toList();
-+                this.cachedJigsaws = this.blocks(Blocks.JIGSAW).stream().map(StructureTemplate.JigsawBlockInfo::of).toList();
-             }
- 
-             return this.cachedJigsaws;

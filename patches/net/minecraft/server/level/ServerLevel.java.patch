@@ -1862,7 +1862,7 @@
      }
  
      private Explosion.BlockInteraction getDestroyType(GameRule<Boolean> gameRule) {
-@@ -1293,8 +_,8 @@
+@@ -1293,54 +_,14 @@
          return this.portalForcer;
      }
  
@@ -1873,10 +1873,108 @@
      }
  
      public <T extends ParticleOptions> int sendParticles(
-@@ -1316,13 +_,49 @@
+         T particle, double x, double y, double z, int count, double xDist, double yDist, double zDist, double speed
+     ) {
+-        return this.sendParticles(particle, false, false, x, y, z, count, xDist, yDist, zDist, speed, ClientboundLevelParticlesPacket.RandomizationType.DEFAULT);
+-    }
+-
+-    public <T extends ParticleOptions> int sendParticles(
+-        T particle,
+-        double x,
+-        double y,
+-        double z,
+-        int count,
+-        double xDist,
+-        double yDist,
+-        double zDist,
+-        double speed,
+-        ClientboundLevelParticlesPacket.RandomizationType randomizationType
+-    ) {
+-        return this.sendParticles(particle, false, false, x, y, z, count, xDist, yDist, zDist, speed, randomizationType);
+-    }
+-
+-    public <T extends ParticleOptions> int sendParticles(
+-        T particle, double x, double y, double z, int count, double xDist, double yDist, double zDist, double xSpeed, double ySpeed, double zSpeed
+-    ) {
+-        return this.sendParticles(
+-            particle, false, false, x, y, z, count, xDist, yDist, zDist, xSpeed, ySpeed, zSpeed, ClientboundLevelParticlesPacket.RandomizationType.DEFAULT
+-        );
+-    }
+-
+-    public <T extends ParticleOptions> int sendParticles(
+-        T particle,
+-        double x,
+-        double y,
+-        double z,
+-        int count,
+-        double xDist,
+-        double yDist,
+-        double zDist,
+-        double xSpeed,
+-        double ySpeed,
+-        double zSpeed,
+-        ClientboundLevelParticlesPacket.RandomizationType randomizationType
+-    ) {
+-        return this.sendParticles(particle, false, false, x, y, z, count, xDist, yDist, zDist, xSpeed, ySpeed, zSpeed, randomizationType);
++        return this.sendParticles(particle, false, false, x, y, z, count, xDist, yDist, zDist, speed);
+     }
+ 
+     public <T extends ParticleOptions> int sendParticles(
+@@ -1356,77 +_,49 @@
          double zDist,
          double speed
      ) {
+-        return this.sendParticles(
+-            particle,
+-            overrideLimiter,
+-            alwaysShow,
+-            x,
+-            y,
+-            z,
+-            count,
+-            xDist,
+-            yDist,
+-            zDist,
+-            speed,
+-            speed,
+-            speed,
+-            ClientboundLevelParticlesPacket.RandomizationType.DEFAULT
+-        );
+-    }
+-
+-    public <T extends ParticleOptions> int sendParticles(
+-        T particle,
+-        boolean overrideLimiter,
+-        boolean alwaysShow,
+-        double x,
+-        double y,
+-        double z,
+-        int count,
+-        double xDist,
+-        double yDist,
+-        double zDist,
+-        double speed,
+-        ClientboundLevelParticlesPacket.RandomizationType randomizationType
+-    ) {
+-        return this.sendParticles(particle, overrideLimiter, alwaysShow, x, y, z, count, xDist, yDist, zDist, speed, speed, speed, randomizationType);
+-    }
+-
+-    public <T extends ParticleOptions> int sendParticles(
+-        T particle,
+-        boolean overrideLimiter,
+-        boolean alwaysShow,
+-        double x,
+-        double y,
+-        double z,
+-        int count,
+-        double xDist,
+-        double yDist,
+-        double zDist,
+-        double xSpeed,
+-        double ySpeed,
+-        double zSpeed,
+-        ClientboundLevelParticlesPacket.RandomizationType randomizationType
+-    ) {
 +        // Paper start - visibility api support
 +        return this.sendParticlesSource(null, particle, overrideLimiter, alwaysShow, x, y, z, count, xDist, yDist, zDist, speed);
 +    }
@@ -1913,7 +2011,21 @@
 +    ) {
 +        // Paper end - visibility api support
          ClientboundLevelParticlesPacket packet = new ClientboundLevelParticlesPacket(
-             particle, overrideLimiter, alwaysShow, x, y, z, (float)xDist, (float)yDist, (float)zDist, (float)speed, count
+-            particle,
+-            overrideLimiter,
+-            alwaysShow,
+-            x,
+-            y,
+-            z,
+-            (float)xDist,
+-            (float)yDist,
+-            (float)zDist,
+-            (float)xSpeed,
+-            (float)ySpeed,
+-            (float)zSpeed,
+-            count,
+-            randomizationType
++            particle, overrideLimiter, alwaysShow, x, y, z, (float)xDist, (float)yDist, (float)zDist, (float)speed, count
          );
          int result = 0;
  
@@ -1925,7 +2037,7 @@
              if (this.sendParticles(player, overrideLimiter, x, y, z, packet)) {
                  result++;
              }
-@@ -1401,19 +_,19 @@
+@@ -1505,19 +_,19 @@
      }
  
      @Override
@@ -1950,7 +2062,7 @@
          return result != null ? result.getFirst() : null;
      }
  
-@@ -1424,7 +_,7 @@
+@@ -1528,7 +_,7 @@
              .getGenerator()
              .getBiomeSource()
              .findClosestBiome3d(
@@ -1959,7 +2071,7 @@
              );
      }
  
-@@ -1455,10 +_,36 @@
+@@ -1559,10 +_,36 @@
  
      @Override
      public @Nullable MapItemSavedData getMapData(MapId id) {
@@ -1997,7 +2109,7 @@
          this.getServer().getDataStorage().set(MapItemSavedData.type(id), data);
      }
  
-@@ -1468,7 +_,20 @@
+@@ -1572,7 +_,20 @@
  
      @Override
      public void setRespawnData(LevelData.RespawnData respawnData) {
@@ -2019,7 +2131,7 @@
      }
  
      @Override
-@@ -1505,6 +_,11 @@
+@@ -1609,6 +_,11 @@
                  this.debugSynchronizers.dropPoi(immutable);
              }));
              newType.ifPresent(poiType -> this.getServer().execute(() -> {
@@ -2031,7 +2143,7 @@
                  PoiRecord record = this.getPoiManager().add(immutable, (Holder<PoiType>)poiType);
                  if (record != null) {
                      this.debugSynchronizers.registerPoi(record);
-@@ -1561,7 +_,7 @@
+@@ -1665,7 +_,7 @@
                  }
              }
  
@@ -2040,7 +2152,7 @@
              output.write(String.format(Locale.ROOT, "block_entity_tickers: %d\n", this.blockEntityTickers.size()));
              output.write(String.format(Locale.ROOT, "block_ticks: %d\n", this.getBlockTicks().count()));
              output.write(String.format(Locale.ROOT, "fluid_ticks: %d\n", this.getFluidTicks().count()));
-@@ -1579,13 +_,13 @@
+@@ -1683,13 +_,13 @@
          Path chunks = rootDir.resolve("chunks.csv");
  
          try (Writer output = Files.newBufferedWriter(chunks)) {
@@ -2056,7 +2168,7 @@
          }
  
          Path entities = rootDir.resolve("entities.csv");
-@@ -1653,12 +_,13 @@
+@@ -1757,12 +_,13 @@
      }
  
      public boolean isFlat() {
@@ -2072,7 +2184,7 @@
      }
  
      public @Nullable EnderDragonFight getDragonFight() {
-@@ -1666,7 +_,7 @@
+@@ -1770,7 +_,7 @@
      }
  
      public WeatherData getWeatherData() {
@@ -2081,7 +2193,7 @@
      }
  
      @Override
-@@ -1680,8 +_,8 @@
+@@ -1784,8 +_,8 @@
              Locale.ROOT,
              "players: %s, entities: %s [%s], block_entities: %d [%s], block_ticks: %d, fluid_ticks: %d, chunk_source: %s",
              this.players.size(),
@@ -2092,7 +2204,7 @@
              this.blockEntityTickers.size(),
              getTypeCount(this.blockEntityTickers, TickingBlockEntity::getType),
              this.getBlockTicks().count(),
-@@ -1713,15 +_,26 @@
+@@ -1817,15 +_,26 @@
  
      @Override
      public LevelEntityGetter<Entity> getEntities() {
@@ -2128,7 +2240,7 @@
      }
  
      public void startTickingChunk(LevelChunk levelChunk) {
-@@ -1738,8 +_,8 @@
+@@ -1842,8 +_,8 @@
  
      public void waitForEntities(ChunkPos centerChunk, int radius) {
          List<ChunkPos> chunks = ChunkPos.rangeClosed(centerChunk, radius).toList();
@@ -2139,7 +2251,7 @@
  
              for (ChunkPos chunk : chunks) {
                  if (!this.areEntitiesLoaded(chunk.pack())) {
-@@ -1758,29 +_,41 @@
+@@ -1862,29 +_,41 @@
      @Override
      public void close() throws IOException {
          super.close();
@@ -2194,7 +2306,7 @@
  
      public boolean anyPlayerCloseEnoughForSpawning(BlockPos pos) {
          return this.anyPlayerCloseEnoughForSpawning(ChunkPos.containing(pos));
-@@ -1796,7 +_,10 @@
+@@ -1900,7 +_,10 @@
      }
  
      public boolean canSpawnEntitiesInChunk(ChunkPos pos) {
@@ -2206,7 +2318,7 @@
      }
  
      @Override
-@@ -1804,15 +_,47 @@
+@@ -1908,15 +_,47 @@
          return this.server.getWorldData().enabledFeatures();
      }
  
@@ -2257,7 +2369,7 @@
          category.setDetail(
              "Server weather",
              () -> String.format(
-@@ -1842,8 +_,15 @@
+@@ -1946,8 +_,15 @@
          return this.debugSynchronizers;
      }
  
@@ -2274,7 +2386,7 @@
      }
  
      public boolean isPvpAllowed() {
-@@ -1863,6 +_,7 @@
+@@ -1967,6 +_,7 @@
              if (entity instanceof WaypointTransmitter waypoint && waypoint.isTransmittingWaypoint()) {
                  ServerLevel.this.getWaypointManager().trackWaypoint(waypoint);
              }
@@ -2282,7 +2394,7 @@
          }
  
          public void onDestroyed(Entity entity) {
-@@ -1874,15 +_,22 @@
+@@ -1978,15 +_,22 @@
          }
  
          public void onTickingStart(Entity entity) {
@@ -2306,7 +2418,7 @@
              if (entity instanceof ServerPlayer player) {
                  ServerLevel.this.players.add(player);
                  if (player.isReceivingWaypoints()) {
-@@ -1897,7 +_,7 @@
+@@ -2001,7 +_,7 @@
              }
  
              if (entity instanceof Mob mob) {
@@ -2315,7 +2427,7 @@
                      String message = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
                          "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
-@@ -1907,16 +_,58 @@
+@@ -2011,16 +_,58 @@
                  ServerLevel.this.navigatingMobs.add(mob);
              }
  
@@ -2376,7 +2488,7 @@
              ServerLevel.this.getChunkSource().removeEntity(entity);
              if (entity instanceof ServerPlayer player) {
                  ServerLevel.this.players.remove(player);
-@@ -1925,28 +_,93 @@
+@@ -2029,28 +_,93 @@
              }
  
              if (entity instanceof Mob mob) {

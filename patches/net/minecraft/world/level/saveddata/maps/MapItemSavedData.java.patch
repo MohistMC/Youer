@@ -103,25 +103,6 @@
      }
  
      public static MapItemSavedData createFresh(
-@@ -246,6 +_,9 @@
-     public static void addTargetDecoration(ItemStack itemStack, BlockPos position, String key, Holder<MapDecorationType> decorationType) {
-         MapDecorations.Entry newDecoration = new MapDecorations.Entry(decorationType, position.getX(), position.getZ(), 180.0F);
-         itemStack.update(DataComponents.MAP_DECORATIONS, MapDecorations.EMPTY, decorations -> decorations.withDecoration(key, newDecoration));
-+        if (decorationType.value().hasMapColor()) {
-+            itemStack.set(DataComponents.MAP_COLOR, new MapItemColor(decorationType.value().mapColor()));
-+        }
-     }
- 
-     public void addDecoration(
-@@ -303,7 +_,7 @@
-         }
- 
-         Holder<MapDecorationType> outsideMapDecorationType = this.decorationTypeForPlayerOutsideMap(xDeltaFromCenter, yDeltaFromCenter);
--        return outsideMapDecorationType == null ? null : Pair.of(outsideMapDecorationType, this.calculateRotation(level, yRot));
-+        return outsideMapDecorationType == null ? null : Pair.of(outsideMapDecorationType, (byte)0);
-     }
- 
-     private byte calculateRotation(@Nullable LevelAccessor level, double yRot) {
 @@ -345,15 +_,20 @@
          return holdingPlayer == null ? null : holdingPlayer.nextUpdatePacket(id);
      }
@@ -155,23 +136,6 @@
                  this.bannerMarkers.put(banner.getId(), banner);
                  this.addDecoration(banner.getDecoration(), level, banner.getId(), xPos, zPos, 180.0, banner.name().orElse(null));
                  this.setDirty();
-@@ -439,6 +_,16 @@
-         this.setColorsDirty(x, y);
-     }
- 
-+    public boolean isExplorationMap() {
-+        for (MapDecoration decoration : this.decorations.values()) {
-+            if (decoration.type().value().explorationMapElement()) {
-+                return true;
-+            }
-+        }
-+
-+        return false;
-+    }
-+
-     public void addClientSideDecorations(List<MapDecoration> decorations) {
-         this.decorations.clear();
-         this.trackedDecorationCount = 0;
 @@ -479,7 +_,7 @@
              this.player = player;
          }

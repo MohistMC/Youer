@@ -343,7 +343,7 @@
              }
          }
  
-@@ -513,13 +_,99 @@
+@@ -513,6 +_,92 @@
          }
      }
  
@@ -436,22 +436,8 @@
      public boolean isEmpty() {
          return false;
      }
- 
--    public void replaceWithPacketData(int chunkX, int chunkZ, ClientboundLevelChunkPacketData chunkData) {
--        FriendlyByteBuf buffer = chunkData.getReadBuffer();
--        Map<Heightmap.Types, long[]> heightmaps = chunkData.getHeightmaps();
-+    public void replaceWithPacketData(
-+        FriendlyByteBuf buffer, Map<Heightmap.Types, long[]> heightmaps, Consumer<ClientboundLevelChunkPacketData.BlockEntityTagOutput> blockEntities
-+    ) {
-         this.clearAllBlockEntities();
- 
-         for (LevelChunkSection section : this.sections) {
-@@ -530,10 +_,10 @@
-         this.initializeLightSources();
- 
-         try (ProblemReporter.ScopedCollector reporter = new ProblemReporter.ScopedCollector(this.problemPath(), LOGGER)) {
--            chunkData.forEachBlockEntityTag(chunkX, chunkZ, (pos, type, tag) -> {
-+            blockEntities.accept((pos, type, tag) -> {
+@@ -533,7 +_,7 @@
+             chunkData.forEachBlockEntityTag(chunkX, chunkZ, (pos, type, tag) -> {
                  BlockEntity blockEntity = this.getBlockEntity(pos, LevelChunk.EntityCreationType.IMMEDIATE);
                  if (blockEntity != null && tag != null && blockEntity.getType() == type) {
 -                    blockEntity.loadWithComponents(TagValueInput.create(reporter.forChild(blockEntity.problemPath()), this.level.registryAccess(), tag));

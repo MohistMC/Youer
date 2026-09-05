@@ -62,7 +62,43 @@
      @Override
      public SoundEvent getAmbientSound() {
          return SoundEvents.CAMEL_AMBIENT;
-@@ -424,12 +_,12 @@
+@@ -381,19 +_,22 @@
+         if (player.isSecondaryUseActive() && !this.isBaby()) {
+             this.openCustomInventoryScreen(player);
+             return InteractionResult.SUCCESS;
+-        } else {
+-            InteractionResult interactionResult = itemStack.interactLivingEntity(player, this, hand);
+-            if (interactionResult.consumesAction()) {
+-                return interactionResult;
+-            } else if (this.isFood(itemStack)) {
+-                return this.fedFood(player, itemStack);
+-            } else if (this.getPassengers().size() < 2 && !this.isBaby()) {
+-                this.doPlayerRide(player);
+-                return InteractionResult.CONSUME;
+-            } else {
+-                return this.isBaby() && player.isHolding(Items.GOLDEN_DANDELION) ? super.mobInteract(player, hand) : InteractionResult.FAIL;
+-            }
+-        }
++        }
++
++        InteractionResult interactionResult = itemStack.interactLivingEntity(player, this, hand);
++        if (interactionResult.consumesAction()) {
++            return interactionResult;
++        }
++
++        if (this.isFood(itemStack)) {
++            return this.fedFood(player, itemStack);
++        }
++
++        if (this.getPassengers().size() < 2 && !this.isBaby()) {
++            this.doPlayerRide(player);
++        }
++
++        return this.isBaby() && player.isHolding(Items.GOLDEN_DANDELION) ? super.mobInteract(player, hand) : InteractionResult.CONSUME;
+     }
+ 
+     @Override
+@@ -421,12 +_,12 @@
  
          boolean couldHeal = this.getHealth() < this.getMaxHealth();
          if (couldHeal) {
@@ -77,7 +113,7 @@
          }
  
          boolean couldAgeUp = this.canAgeUp();
-@@ -585,7 +_,7 @@
+@@ -582,7 +_,7 @@
      }
  
      public void sitDown() {
@@ -86,7 +122,7 @@
              this.makeSound(this.getSitDownSound());
              this.setPose(Pose.SITTING);
              this.gameEvent(GameEvent.ENTITY_ACTION);
-@@ -594,7 +_,7 @@
+@@ -591,7 +_,7 @@
      }
  
      public void standUp() {
@@ -95,7 +131,7 @@
              this.makeSound(this.getStandUpSound());
              this.setPose(Pose.STANDING);
              this.gameEvent(GameEvent.ENTITY_ACTION);
-@@ -611,6 +_,7 @@
+@@ -608,6 +_,7 @@
      }
  
      public void standUpInstantly() {

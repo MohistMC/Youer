@@ -1,21 +1,5 @@
 --- a/net/minecraft/world/level/storage/PrimaryLevelData.java
 +++ b/net/minecraft/world/level/storage/PrimaryLevelData.java
-@@ -6,7 +_,6 @@
- import com.mojang.serialization.Dynamic;
- import com.mojang.serialization.Lifecycle;
- import java.util.HashSet;
--import java.util.List;
- import java.util.Set;
- import java.util.UUID;
- import java.util.stream.Collectors;
-@@ -14,7 +_,6 @@
- import net.minecraft.SharedConstants;
- import net.minecraft.core.UUIDUtil;
- import net.minecraft.nbt.CompoundTag;
--import net.minecraft.nbt.IntTag;
- import net.minecraft.nbt.ListTag;
- import net.minecraft.nbt.NbtUtils;
- import net.minecraft.nbt.StringTag;
 @@ -24,6 +_,7 @@
  import net.minecraft.world.level.LevelHeightAccessor;
  import net.minecraft.world.level.LevelSettings;
@@ -33,43 +17,14 @@
      private long gameTime;
      private final @Nullable UUID singlePlayerUUID;
      private final int version;
-@@ -44,7 +_,7 @@
-     private final Set<String> knownServerBrands;
+@@ -45,6 +_,7 @@
      private boolean wasModded;
      private final Set<String> removedFeatureFlags;
--    private List<Integer> versionHistory;
+     private List<Integer> versionHistory;
 +    private boolean confirmedExperimentalWarning = false;
  
      private PrimaryLevelData(
          @Nullable UUID singlePlayerUUID,
-@@ -57,8 +_,7 @@
-         Set<String> removedFeatureFlags,
-         LevelSettings settings,
-         PrimaryLevelData.SpecialWorldProperty specialWorldProperty,
--        Lifecycle worldGenSettingsLifecycle,
--        List<Integer> versionHistory
-+        Lifecycle worldGenSettingsLifecycle
-     ) {
-         this.wasModded = wasModded;
-         this.respawnData = respawnData;
-@@ -71,7 +_,6 @@
-         this.settings = settings;
-         this.specialWorldProperty = specialWorldProperty;
-         this.worldGenSettingsLifecycle = worldGenSettingsLifecycle;
--        this.versionHistory = versionHistory;
-     }
- 
-     public PrimaryLevelData(LevelSettings levelSettings, PrimaryLevelData.SpecialWorldProperty specialWorldProperty, Lifecycle lifecycle) {
-@@ -86,8 +_,7 @@
-             new HashSet<>(),
-             levelSettings.copy(),
-             specialWorldProperty,
--            lifecycle,
--            List.of()
-+            lifecycle
-         );
-     }
- 
 @@ -96,7 +_,7 @@
      ) {
          long gameTime = input.get("Time").asLong(0L);
@@ -79,7 +34,7 @@
              input.get("singleplayer_uuid").flatMap(UUIDUtil.CODEC::parse).result().orElse(null),
              input.get("WasModded").asBoolean(false),
              input.get("spawn").read(LevelData.RespawnData.CODEC).result().orElse(LevelData.RespawnData.DEFAULT),
-@@ -104,12 +_,21 @@
+@@ -104,12 +_,22 @@
              levelVersion.levelDataVersion(),
              input.get("initialized").asBoolean(true),
              input.get("ServerBrands").asStream().flatMap(b -> b.asString().result().stream()).collect(Collectors.toCollection(Sets::newLinkedHashSet)),
@@ -88,10 +43,9 @@
 +            updateRemovedFeatureFlags(input.get("removed_features").asStream().flatMap(b -> b.asString().result().stream()), input.get("enabled_features").asStream().flatMap(features -> features.asString().result().stream())).collect(Collectors.toSet()),
              settings,
              specialWorldProperty,
--            worldGenSettingsLifecycle,
--            input.get("version_history").orElseEmptyList().asList(d -> d.asInt(-1))
+             worldGenSettingsLifecycle,
+             input.get("version_history").orElseEmptyList().asList(d -> d.asInt(-1))
 -        );
-+            worldGenSettingsLifecycle
 +        ).withConfirmedWarning(worldGenSettingsLifecycle != Lifecycle.stable() && input.get("confirmedExperimentalSettings").asBoolean(false));
 +        // Neo:
 +        result.setDayTimeFraction(input.get("neoDayTimeFraction").asFloat(0f));
@@ -105,11 +59,7 @@
      }
  
      @Override
-@@ -131,10 +_,10 @@
-         }
- 
-         writeVersionTag(tag);
--        this.writeVersionHistory(tag);
+@@ -135,6 +_,7 @@
          NbtUtils.addCurrentDataVersion(tag);
          tag.putInt("GameType", this.settings.gameType().getId());
          tag.store("spawn", LevelData.RespawnData.CODEC, this.respawnData);
@@ -130,24 +80,6 @@
      }
  
      public static void writeLastPlayed(CompoundTag tag) {
-@@ -175,17 +_,6 @@
-         return tag.set("Version", worldVersion);
-     }
- 
--    public void writeVersionHistory(CompoundTag tag) {
--        ListTag list = new ListTag();
--        this.versionHistory.stream().map(IntTag::valueOf).forEach(list::add);
--        int currentVersion = SharedConstants.getCurrentVersion().dataVersion().version();
--        if (this.versionHistory.isEmpty() || this.versionHistory.getLast() != currentVersion) {
--            list.add(IntTag.valueOf(currentVersion));
--        }
--
--        tag.put("version_history", list);
--    }
--
-     private static ListTag stringCollectionToTag(Set<String> values) {
-         ListTag result = new ListTag();
-         values.stream().map(StringTag::valueOf).forEach(result::add);
 @@ -344,10 +_,66 @@
          return this.settings.copy();
      }

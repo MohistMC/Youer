@@ -1,36 +1,17 @@
 --- a/net/minecraft/world/level/storage/loot/parameters/LootContextParamSets.java
 +++ b/net/minecraft/world/level/storage/loot/parameters/LootContextParamSets.java
-@@ -19,7 +_,7 @@
-             REGISTRY.inverse()::get
-         );
-     public static final ContextKeySet EMPTY = register("empty", builder -> {});
+@@ -34,8 +_,9 @@
+             .required(LootContextParams.TARGET_ENTITY)
+             .required(LootContextParams.ENCHANTMENT_ACTIVE)
+             .required(LootContextParams.ENCHANTMENT_LEVEL)
++            .required(net.neoforged.neoforge.common.loot.NeoForgeLootContextParams.QUERIED_STACK)
+     );
 -    public static final ContextKeySet CHEST = register("chest", builder -> builder.required(LootContextParams.ORIGIN).optional(LootContextParams.THIS_ENTITY));
-+    public static final ContextKeySet CHEST = register("chest", builder -> builder.required(LootContextParams.ORIGIN).optional(LootContextParams.THIS_ENTITY).optional(LootContextParams.ATTACKING_ENTITY)); //Forge: Chest minecarts can have killer entities
++    public static final ContextKeySet CHEST = register("chest", builder -> builder.required(LootContextParams.ORIGIN).optional(LootContextParams.THIS_ENTITY).optional(LootContextParams.ATTACKING_ENTITY)); //Neo: Chest minecarts can have killer entities
      public static final ContextKeySet COMMAND = register(
          "command", builder -> builder.required(LootContextParams.ORIGIN).optional(LootContextParams.THIS_ENTITY)
      );
-@@ -27,20 +_,6 @@
-         "command_slot_source",
-         builder -> builder.required(LootContextParams.ORIGIN).required(LootContextParams.CONTAINER).optional(LootContextParams.THIS_ENTITY)
-     );
--    public static final ContextKeySet COMMAND_COMPUTE_DEFAULT = register(
--        "command_compute_default", builder -> builder.optional(LootContextParams.THIS_ENTITY).required(LootContextParams.ORIGIN)
--    );
--    public static final ContextKeySet COMMAND_COMPUTE_POSITION = register(
--        "command_compute_position",
--        builder -> builder.optional(LootContextParams.THIS_ENTITY)
--            .required(LootContextParams.ORIGIN)
--            .required(LootContextParams.BLOCK_STATE)
--            .optional(LootContextParams.BLOCK_ENTITY)
--    );
--    public static final ContextKeySet COMMAND_COMPUTE_ENTITY = register(
--        "command_compute_entity",
--        builder -> builder.optional(LootContextParams.THIS_ENTITY).required(LootContextParams.ORIGIN).required(LootContextParams.TARGET_ENTITY)
--    );
-     public static final ContextKeySet SELECTOR = register(
-         "selector", builder -> builder.required(LootContextParams.ORIGIN).required(LootContextParams.THIS_ENTITY)
-     );
-@@ -51,7 +_,7 @@
+@@ -67,7 +_,7 @@
              .required(LootContextParams.ADDITIONAL_COST_COMPONENT_ALLOWED)
      );
      public static final ContextKeySet FISHING = register(
@@ -39,29 +20,11 @@
      );
      public static final ContextKeySet ENTITY = register(
          "entity",
-@@ -85,7 +_,6 @@
-             .required(LootContextParams.ORIGIN)
-             .required(LootContextParams.TOOL)
+@@ -136,6 +_,7 @@
              .required(LootContextParams.BLOCK_STATE)
--            .optional(LootContextParams.BLOCK_ENTITY)
-     );
-     public static final ContextKeySet BLOCK_USE = register(
-         "block_use", builder -> builder.required(LootContextParams.THIS_ENTITY).required(LootContextParams.ORIGIN).required(LootContextParams.BLOCK_STATE)
-@@ -124,17 +_,9 @@
-     public static final ContextKeySet BLOCK_INTERACT = register(
-         "block_interact",
-         builder -> builder.required(LootContextParams.BLOCK_STATE)
--            .required(LootContextParams.ORIGIN)
-             .optional(LootContextParams.BLOCK_ENTITY)
-             .optional(LootContextParams.INTERACTING_ENTITY)
-             .optional(LootContextParams.TOOL)
--    );
--    public static final ContextKeySet CONTAINER_PROCESS = register(
--        "container_process",
--        builder -> builder.required(LootContextParams.BLOCK_ENTITY)
--            .required(LootContextParams.BLOCK_STATE)
--            .required(LootContextParams.CONTAINER)
--            .required(LootContextParams.ORIGIN)
+             .required(LootContextParams.CONTAINER)
+             .required(LootContextParams.ORIGIN)
++            .optional(net.neoforged.neoforge.common.loot.NeoForgeLootContextParams.QUERIED_STACK) // Neo: add the stack whose data is being queried with the context (i.e. fuel item in a furnace)
      );
      public static final ContextKeySet ENCHANTED_DAMAGE = register(
          "enchanted_damage",

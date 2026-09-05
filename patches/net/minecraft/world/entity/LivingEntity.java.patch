@@ -2215,16 +2215,20 @@
              for (Entry<EquipmentSlot, ItemStack> entry : changedItems.entrySet()) {
                  EquipmentSlot slot = entry.getKey();
                  ItemStack current = entry.getValue();
-@@ -2990,7 +_,7 @@
+@@ -2990,11 +_,7 @@
              itemsToSend.add(Pair.of(slot, newItemToStore));
              this.lastEquipmentItems.put(slot, newItemToStore);
          });
--        ((ServerLevel)this.level()).getChunkSource().sendToTrackingPlayers(this, new ClientboundSetEquipmentPacket(this.getId(), itemsToSend));
+-        this.updatePlayersWithNewEquipment((ServerLevel)this.level(), itemsToSend);
+-    }
+-
+-    private void updatePlayersWithNewEquipment(ServerLevel level, List<Pair<EquipmentSlot, ItemStack>> itemsToSend) {
+-        level.getChunkSource().sendToTrackingPlayers(this, new ClientboundSetEquipmentPacket(this.getId(), itemsToSend));
 +        ((ServerLevel)this.level()).getChunkSource().sendToTrackingPlayers(this, new ClientboundSetEquipmentPacket(this.getId(), itemsToSend, true)); // Paper - data sanitization
      }
  
      protected void tickHeadTurn(float yBodyRotT) {
-@@ -3012,7 +_,9 @@
+@@ -3016,7 +_,9 @@
              this.noJumpDelay--;
          }
  
@@ -2235,7 +2239,7 @@
              this.setDeltaMovement(this.getDeltaMovement().scale(0.98));
          }
  
-@@ -3074,14 +_,16 @@
+@@ -3078,14 +_,16 @@
              if (!inWaterAndHasFluidHeight || this.onGround() && !(fluidHeight > fluidJumpThreshold)) {
                  if (!this.isInLava() || this.onGround() && this.isInShallowFluid(FluidTags.LAVA)) {
                      if ((this.onGround() || inWaterAndHasFluidHeight && fluidHeight <= fluidJumpThreshold) && this.noJumpDelay == 0) {
@@ -2254,7 +2258,7 @@
              }
          } else {
              this.noJumpDelay = 0;
-@@ -3116,7 +_,7 @@
+@@ -3120,7 +_,7 @@
          profiler.pop();
          if (this.level() instanceof ServerLevel serverLevel) {
              profiler.push("freezing");
@@ -2263,7 +2267,7 @@
                  this.setTicksFrozen(Math.max(0, this.getTicksFrozen() - 2));
              }
  
-@@ -3137,9 +_,70 @@
+@@ -3141,9 +_,70 @@
  
          this.pushEntities();
          profiler.pop();
@@ -2334,7 +2338,7 @@
      }
  
      protected void applyInput() {
-@@ -3159,6 +_,7 @@
+@@ -3163,6 +_,7 @@
          this.checkFallDistanceAccumulation();
          if (!this.level().isClientSide()) {
              if (!this.canGlide()) {
@@ -2342,7 +2346,7 @@
                  this.setSharedFlag(7, false);
                  return;
              }
-@@ -3169,7 +_,16 @@
+@@ -3173,7 +_,16 @@
                  if (freeFallInterval % 2 == 0) {
                      List<EquipmentSlot> slotsWithGliders = EquipmentSlot.VALUES.stream().filter(slot -> canGlideUsing(this.getItemBySlot(slot), slot)).toList();
                      EquipmentSlot slotToDamage = Util.getRandom(slotsWithGliders, this.random);
@@ -2360,7 +2364,7 @@
                  }
  
                  this.gameEvent(GameEvent.ELYTRA_GLIDE);
-@@ -3195,10 +_,25 @@
+@@ -3199,10 +_,25 @@
      }
  
      protected void pushEntities() {
@@ -2387,7 +2391,7 @@
                  if (maxCramming > 0 && pushableEntities.size() > maxCramming - 1 && this.random.nextInt(4) == 0) {
                      int count = 0;
  
-@@ -3214,7 +_,16 @@
+@@ -3218,7 +_,16 @@
                  }
              }
  
@@ -2404,7 +2408,7 @@
                  this.doPush(entity);
              }
          }
-@@ -3223,16 +_,32 @@
+@@ -3227,16 +_,32 @@
      protected void checkAutoSpinAttack(AABB old, AABB current) {
          AABB minmax = old.minmax(current);
          List<Entity> entities = this.level().getEntities(this, minmax);
@@ -2438,7 +2442,7 @@
              this.autoSpinAttackTicks = 0;
          }
  
-@@ -3255,10 +_,10 @@
+@@ -3259,10 +_,10 @@
      }
  
      @Override
@@ -2452,7 +2456,7 @@
              this.dismountVehicle(oldVehicle);
          }
      }
-@@ -3270,8 +_,8 @@
+@@ -3274,8 +_,8 @@
      }
  
      @Override
@@ -2463,7 +2467,7 @@
      }
  
      @Override
-@@ -3285,7 +_,7 @@
+@@ -3289,7 +_,7 @@
      }
  
      public void onItemPickup(ItemEntity entity) {
@@ -2472,7 +2476,7 @@
              CriteriaTriggers.THROWN_ITEM_PICKED_UP_BY_ENTITY.trigger(serverPlayer, entity.getItem(), this);
          }
      }
-@@ -3296,7 +_,7 @@
+@@ -3300,7 +_,7 @@
              && (entity instanceof ItemEntity || entity instanceof AbstractArrow || entity instanceof ExperienceOrb)) {
              ((ServerLevel)this.level())
                  .getChunkSource()
@@ -2481,7 +2485,7 @@
          }
      }
  
-@@ -3311,7 +_,8 @@
+@@ -3315,7 +_,8 @@
  
          Vec3 from = new Vec3(this.getX(), this.getEyeY(), this.getZ());
          Vec3 to = new Vec3(target.getX(), eyeHeight, target.getZ());
@@ -2491,7 +2495,7 @@
              ? false
              : this.level().clip(new ClipContext(from, to, blockCollidingContext, fluidCollidingContext, this)).getType() == HitResult.Type.MISS;
      }
-@@ -3321,29 +_,38 @@
+@@ -3325,29 +_,38 @@
          return a == 1.0F ? this.yHeadRot : Mth.rotLerp(a, this.yHeadRotO, this.yHeadRot);
      }
  
@@ -2545,7 +2549,7 @@
  
      @Override
      public float getYHeadRot() {
-@@ -3374,7 +_,7 @@
+@@ -3378,7 +_,7 @@
      }
  
      public final void setAbsorptionAmount(float absorptionAmount) {
@@ -2554,7 +2558,7 @@
      }
  
      protected void internalSetAbsorptionAmount(float absorptionAmount) {
-@@ -3401,10 +_,22 @@
+@@ -3405,10 +_,22 @@
          return (this.entityData.get(DATA_LIVING_ENTITY_FLAGS) & 2) > 0 ? InteractionHand.OFF_HAND : InteractionHand.MAIN_HAND;
      }
  
@@ -2579,7 +2583,7 @@
                  this.updateUsingItem(this.useItem);
              } else {
                  this.stopUsingItem();
-@@ -3412,7 +_,7 @@
+@@ -3416,7 +_,7 @@
          }
      }
  
@@ -2588,7 +2592,7 @@
          if (itemStack.isEmpty()) {
              return null;
          }
-@@ -3447,8 +_,16 @@
+@@ -3451,8 +_,16 @@
      }
  
      protected void updateUsingItem(ItemStack useItem) {
@@ -2606,7 +2610,7 @@
              this.completeUsingItem();
          }
      }
-@@ -3474,10 +_,21 @@
+@@ -3478,12 +_,22 @@
      }
  
      public void startUsingItem(InteractionHand hand) {
@@ -2628,9 +2632,11 @@
 +            this.useItemRemaining = this.totalEatTimeTicks = duration;
 +            this.eatStartTime = System.nanoTime();
              if (!this.level().isClientSide()) {
+-                this.updatePlayersWithNewEquipment((ServerLevel)this.level(), List.of(Pair.of(hand.asEquipmentSlot(), this.useItem)));
                  this.setLivingEntityFlag(1, true);
                  this.setLivingEntityFlag(2, hand == InteractionHand.OFF_HAND);
-@@ -3504,7 +_,10 @@
+                 this.useItem.causeUseVibration(this, GameEvent.ITEM_INTERACT_START);
+@@ -3509,7 +_,10 @@
                  }
              } else if (!this.isUsingItem() && !this.useItem.isEmpty()) {
                  this.useItem = ItemStack.EMPTY;
@@ -2642,7 +2648,7 @@
              }
          }
      }
-@@ -3547,9 +_,44 @@
+@@ -3552,9 +_,44 @@
                  this.releaseUsingItem();
              } else {
                  if (!this.useItem.isEmpty() && this.isUsingItem()) {
@@ -2688,7 +2694,7 @@
                      }
  
                      this.stopUsingItem();
-@@ -3581,7 +_,12 @@
+@@ -3586,7 +_,12 @@
          ItemStack itemInUsedHand = this.getItemInHand(this.getUsedItemHand());
          if (!this.useItem.isEmpty() && ItemStack.isSameItem(itemInUsedHand, this.useItem)) {
              this.useItem = itemInUsedHand;
@@ -2701,7 +2707,7 @@
              if (this.useItem.useOnRelease()) {
                  this.updatingUsingItem();
              }
-@@ -3591,6 +_,7 @@
+@@ -3596,6 +_,7 @@
      }
  
      public void stopUsingItem() {
@@ -2709,7 +2715,7 @@
          if (!this.level().isClientSide()) {
              boolean wasUsingItem = this.isUsingItem();
              this.recentKineticEnemies = null;
-@@ -3601,7 +_,10 @@
+@@ -3606,7 +_,10 @@
          }
  
          this.useItem = ItemStack.EMPTY;
@@ -2721,7 +2727,7 @@
      }
  
      public boolean isBlocking() {
-@@ -3624,6 +_,60 @@
+@@ -3629,6 +_,60 @@
          return null;
      }
  
@@ -2782,7 +2788,7 @@
      public boolean isSuppressingSlidingDownLadder() {
          return this.isShiftKeyDown();
      }
-@@ -3641,66 +_,99 @@
+@@ -3646,66 +_,99 @@
          return this.fallFlyTicks;
      }
  
@@ -2939,7 +2945,7 @@
      }
  
      public boolean isAffectedByPotions() {
-@@ -3762,65 +_,40 @@
+@@ -3767,65 +_,40 @@
          return this.getSleepingPos().isPresent();
      }
  
@@ -3029,7 +3035,7 @@
                      BlockPos above = bedPosition.above();
                      return new Vec3(above.getX() + 0.5, above.getY() + 0.1, above.getZ() + 0.5);
                  });
-@@ -3839,7 +_,9 @@
+@@ -3844,7 +_,9 @@
  
      public @Nullable Direction getBedOrientation() {
          BlockPos bedPos = this.getSleepingPos().orElse(null);
@@ -3040,7 +3046,7 @@
      }
  
      @Override
-@@ -3848,10 +_,10 @@
+@@ -3853,10 +_,10 @@
      }
  
      public ItemStack getProjectile(ItemStack heldWeapon) {
@@ -3053,7 +3059,7 @@
          return switch (equipmentSlot) {
              case MAINHAND -> 47;
              case OFFHAND -> 48;
-@@ -3864,9 +_,9 @@
+@@ -3869,9 +_,9 @@
          };
      }
  
@@ -3065,7 +3071,7 @@
      }
  
      private void stopLocationBasedEffects(ItemStack previous, EquipmentSlot inSlot, AttributeMap attributes) {
-@@ -3900,6 +_,8 @@
+@@ -3905,6 +_,8 @@
      }
  
      public EquipmentSlot getEquipmentSlotForItem(ItemStack itemStack) {
@@ -3074,7 +3080,7 @@
          Equippable equippable = itemStack.get(DataComponents.EQUIPPABLE);
          return equippable != null && this.canUseSlot(equippable.slot()) ? equippable.slot() : EquipmentSlot.MAINHAND;
      }
-@@ -3911,6 +_,12 @@
+@@ -3916,6 +_,12 @@
              : slot == equippable.slot() && this.canUseSlot(equippable.slot()) && equippable.canBeEquippedBy(this.typeHolder());
      }
  
@@ -3087,7 +3093,7 @@
      private static SlotAccess createEquipmentSlotAccess(LivingEntity entity, EquipmentSlot equipmentSlot) {
          return equipmentSlot != EquipmentSlot.HEAD && equipmentSlot != EquipmentSlot.MAINHAND && equipmentSlot != EquipmentSlot.OFFHAND
              ? SlotAccess.forEquipmentSlot(entity, equipmentSlot, stack -> stack.isEmpty() || entity.getEquipmentSlotForItem(stack) == equipmentSlot)
-@@ -4069,59 +_,49 @@
+@@ -4074,59 +_,49 @@
      public record Fallsounds(SoundEvent small, SoundEvent big) {
      }
  

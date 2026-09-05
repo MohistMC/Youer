@@ -96,43 +96,6 @@
      public TickContainerAccess<Block> getBlockTicks() {
          return this.allowWrites ? this.wrapped.getBlockTicks() : BlackholeTickAccess.emptyContainer();
      }
-@@ -228,6 +_,24 @@
-         return this.wrapped.getBlendingData();
-     }
- 
-+    @Override
-+    public CarvingMask getCarvingMask() {
-+        if (this.allowWrites) {
-+            return super.getCarvingMask();
-+        } else {
-+            throw (UnsupportedOperationException)Util.pauseInIde(new UnsupportedOperationException("Meaningless in this context"));
-+        }
-+    }
-+
-+    @Override
-+    public CarvingMask getOrCreateCarvingMask() {
-+        if (this.allowWrites) {
-+            return super.getOrCreateCarvingMask();
-+        } else {
-+            throw (UnsupportedOperationException)Util.pauseInIde(new UnsupportedOperationException("Meaningless in this context"));
-+        }
-+    }
-+
-     public LevelChunk getWrapped() {
-         return this.wrapped;
-     }
-@@ -243,9 +_,9 @@
-     }
- 
-     @Override
--    public void fillBiomesFromNoise(BiomeResolver biomeResolver) {
-+    public void fillBiomesFromNoise(BiomeResolver biomeResolver, Climate.Sampler sampler) {
-         if (this.allowWrites) {
--            this.wrapped.fillBiomesFromNoise(biomeResolver);
-+            this.wrapped.fillBiomesFromNoise(biomeResolver, sampler);
-         }
-     }
- 
 @@ -257,5 +_,10 @@
      @Override
      public ChunkSkyLightSources getSkyLightSources() {

@@ -1,32 +1,6 @@
 --- a/net/minecraft/world/level/levelgen/FlatLevelSource.java
 +++ b/net/minecraft/world/level/levelgen/FlatLevelSource.java
-@@ -3,7 +_,6 @@
- import com.mojang.serialization.MapCodec;
- import com.mojang.serialization.codecs.RecordCodecBuilder;
- import java.util.List;
--import java.util.Set;
- import java.util.concurrent.CompletableFuture;
- import java.util.stream.Stream;
- import net.minecraft.core.BlockPos;
-@@ -15,7 +_,6 @@
- import net.minecraft.world.level.LevelHeightAccessor;
- import net.minecraft.world.level.NoiseColumn;
- import net.minecraft.world.level.StructureManager;
--import net.minecraft.world.level.biome.Biome;
- import net.minecraft.world.level.biome.BiomeManager;
- import net.minecraft.world.level.biome.FixedBiomeSource;
- import net.minecraft.world.level.block.Blocks;
-@@ -24,29 +_,35 @@
- import net.minecraft.world.level.chunk.ChunkGenerator;
- import net.minecraft.world.level.chunk.ChunkGeneratorStructureState;
- import net.minecraft.world.level.levelgen.blending.Blender;
--import net.minecraft.world.level.levelgen.densityfunction.SamplerContext;
- import net.minecraft.world.level.levelgen.flat.FlatLevelGeneratorSettings;
- import net.minecraft.world.level.levelgen.structure.StructureSet;
--import org.jspecify.annotations.Nullable;
- 
- public class FlatLevelSource extends ChunkGenerator {
-     public static final MapCodec<FlatLevelSource> CODEC = RecordCodecBuilder.mapCodec(
+@@ -34,19 +_,27 @@
          i -> i.group(FlatLevelGeneratorSettings.CODEC.fieldOf("settings").forGetter(FlatLevelSource::settings)).apply(i, i.stable(FlatLevelSource::new))
      );
      private final FlatLevelGeneratorSettings settings;
@@ -54,74 +28,6 @@
              .orElseGet(() -> structureSets.listElements().map(e -> (Holder<StructureSet>)e));
 -        return ChunkGeneratorStructureState.createForFlat(randomState, levelSeed, this.getOrigin(randomState), this.biomeSource, structures);
 +        return ChunkGeneratorStructureState.createForFlat(randomState, levelSeed, this.biomeSource, structures, conf); // Spigot
-     }
- 
-     @Override
-@@ -59,33 +_,29 @@
-     }
- 
-     @Override
-+    public void buildSurface(WorldGenRegion level, StructureManager structureManager, RandomState randomState, ChunkAccess protoChunk) {
-+    }
-+
-+    @Override
-     public int getSpawnHeight(LevelHeightAccessor heightAccessor) {
-         return heightAccessor.getMinY() + Math.min(heightAccessor.getHeight(), this.settings.getLayers().size());
-     }
- 
-     @Override
--    public CompletableFuture<ChunkAccess> buildTerrain(
--        ChunkAccess chunk,
--        Blender blender,
--        RandomState randomState,
--        StructureManager structureManager,
--        BiomeManager biomeManager,
--        @Nullable WorldGenRegion carverBiomeRegion,
--        Set<Holder<Biome>> possibleBiomes
--    ) {
-+    public CompletableFuture<ChunkAccess> fillFromNoise(Blender blender, RandomState randomState, StructureManager structureManager, ChunkAccess centerChunk) {
-         List<BlockState> layers = this.settings.getLayers();
-         BlockPos.MutableBlockPos blockPos = new BlockPos.MutableBlockPos();
--        Heightmap oceanFloor = chunk.getOrCreateHeightmapUnprimed(Heightmap.Types.OCEAN_FLOOR_WG);
--        Heightmap worldSurface = chunk.getOrCreateHeightmapUnprimed(Heightmap.Types.WORLD_SURFACE_WG);
-+        Heightmap oceanFloor = centerChunk.getOrCreateHeightmapUnprimed(Heightmap.Types.OCEAN_FLOOR_WG);
-+        Heightmap worldSurface = centerChunk.getOrCreateHeightmapUnprimed(Heightmap.Types.WORLD_SURFACE_WG);
- 
--        for (int layerIndex = 0; layerIndex < Math.min(chunk.getHeight(), layers.size()); layerIndex++) {
-+        for (int layerIndex = 0; layerIndex < Math.min(centerChunk.getHeight(), layers.size()); layerIndex++) {
-             BlockState blockState = layers.get(layerIndex);
-             if (blockState != null) {
--                int y = chunk.getMinY() + layerIndex;
-+                int y = centerChunk.getMinY() + layerIndex;
- 
-                 for (int x = 0; x < 16; x++) {
-                     for (int z = 0; z < 16; z++) {
--                        chunk.setBlockState(blockPos.set(x, y, z), blockState);
-+                        centerChunk.setBlockState(blockPos.set(x, y, z), blockState);
-                         oceanFloor.update(x, y, z, blockState);
-                         worldSurface.update(x, y, z, blockState);
-                     }
-@@ -93,7 +_,7 @@
-             }
-         }
- 
--        return CompletableFuture.completedFuture(chunk);
-+        return CompletableFuture.completedFuture(centerChunk);
-     }
- 
-     @Override
-@@ -124,7 +_,13 @@
-     }
- 
-     @Override
--    public void addDebugScreenInfo(List<String> result, RandomState randomState, BlockPos feetPos, SamplerContext samplerContext) {
-+    public void addDebugScreenInfo(List<String> result, RandomState randomState, BlockPos feetPos) {
-+    }
-+
-+    @Override
-+    public void applyCarvers(
-+        WorldGenRegion region, long seed, RandomState randomState, BiomeManager biomeManager, StructureManager structureManager, ChunkAccess chunk
-+    ) {
      }
  
      @Override

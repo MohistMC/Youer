@@ -1,34 +1,10 @@
 --- a/net/minecraft/world/level/levelgen/structure/Structure.java
 +++ b/net/minecraft/world/level/levelgen/structure/Structure.java
-@@ -15,9 +_,10 @@
- import net.minecraft.core.HolderSet;
- import net.minecraft.core.QuartPos;
- import net.minecraft.core.RegistryAccess;
-+import net.minecraft.core.RegistryCodecs;
- import net.minecraft.core.registries.BuiltInRegistries;
- import net.minecraft.core.registries.Registries;
--import net.minecraft.core.registries.codec.RegistryCodecs;
-+import net.minecraft.resources.RegistryFileCodec;
- import net.minecraft.resources.ResourceKey;
- import net.minecraft.util.RandomSource;
- import net.minecraft.util.StringRepresentable;
-@@ -30,9 +_,7 @@
- import net.minecraft.world.level.StructureManager;
- import net.minecraft.world.level.WorldGenLevel;
- import net.minecraft.world.level.biome.Biome;
--import net.minecraft.world.level.biome.BiomeResolver;
- import net.minecraft.world.level.biome.BiomeSource;
--import net.minecraft.world.level.biome.Climate;
- import net.minecraft.world.level.block.Rotation;
- import net.minecraft.world.level.chunk.ChunkGenerator;
- import net.minecraft.world.level.levelgen.GenerationStep;
-@@ -46,11 +_,12 @@
- 
+@@ -47,10 +_,11 @@
  public abstract class Structure {
      public static final Codec<Structure> DIRECT_CODEC = BuiltInRegistries.STRUCTURE_TYPE.byNameCodec().dispatch(Structure::type, StructureType::codec);
--    public static final Codec<Holder<Structure>> CODEC = RegistryCodecs.holder(Registries.STRUCTURE, DIRECT_CODEC);
+     public static final Codec<Holder<Structure>> CODEC = RegistryCodecs.holder(Registries.STRUCTURE, DIRECT_CODEC);
 -    protected final Structure.StructureSettings settings;
-+    public static final Codec<Holder<Structure>> CODEC = RegistryFileCodec.create(Registries.STRUCTURE, DIRECT_CODEC);
 +    /** Neo: Field accesses are redirected to {@link #getModifiedStructureSettings()} with a coremod. */
 +    private final Structure.StructureSettings settings;
  
@@ -46,95 +22,11 @@
      }
  
      public HolderSet<Biome> biomes() {
-@@ -87,7 +_,6 @@
-         RegistryAccess registryAccess,
-         ChunkGenerator chunkGenerator,
-         BiomeSource biomeSource,
--        Climate.Sampler climateSampler,
-         RandomState randomState,
-         StructureTemplateManager structureTemplateManager,
-         long seed,
-@@ -98,16 +_,7 @@
-     ) {
-         ProfiledDuration profiled = JvmProfiler.INSTANCE.onStructureGenerate(sourceChunkPos, dimension, selected);
-         Structure.GenerationContext context = new Structure.GenerationContext(
--            registryAccess,
--            chunkGenerator,
--            biomeSource,
--            climateSampler,
--            randomState,
--            structureTemplateManager,
--            seed,
--            sourceChunkPos,
--            heightAccessor,
--            validBiome
-+            registryAccess, chunkGenerator, biomeSource, randomState, structureTemplateManager, seed, sourceChunkPos, heightAccessor, validBiome
-         );
-         Optional<Structure.GenerationStub> generation = this.findValidGenerationPoint(context);
-         if (generation.isPresent()) {
-@@ -132,12 +_,6 @@
-     protected static Optional<Structure.GenerationStub> onTopOfChunkCenter(
-         Structure.GenerationContext context, Heightmap.Types heightmap, Consumer<StructurePiecesBuilder> generator
-     ) {
--        return !context.couldValidBiomeExistOnTopOfChunkCenter() ? Optional.empty() : onTopOfChunkCenterWithoutBiomeCheck(context, heightmap, generator);
--    }
--
--    protected static Optional<Structure.GenerationStub> onTopOfChunkCenterWithoutBiomeCheck(
--        Structure.GenerationContext context, Heightmap.Types heightmap, Consumer<StructurePiecesBuilder> generator
--    ) {
-         ChunkPos chunkPos = context.chunkPos();
-         int blockX = chunkPos.getMiddleBlockX();
-         int blockZ = chunkPos.getMiddleBlockZ();
-@@ -145,6 +_,21 @@
-         return Optional.of(new Structure.GenerationStub(new BlockPos(blockX, blockY, blockZ), generator));
-     }
- 
-+    private static boolean isValidBiome(Structure.GenerationStub stub, Structure.GenerationContext context) {
-+        BlockPos startPos = stub.position();
-+        return context.validBiome
-+            .test(
-+                context.chunkGenerator
-+                    .getBiomeSource()
-+                    .getNoiseBiome(
-+                        QuartPos.fromBlock(startPos.getX()),
-+                        QuartPos.fromBlock(startPos.getY()),
-+                        QuartPos.fromBlock(startPos.getZ()),
-+                        context.randomState.sampler()
-+                    )
-+            );
-+    }
-+
-     public void afterPlace(
-         WorldGenLevel level,
-         StructureManager structureManager,
-@@ -186,7 +_,7 @@
-     }
- 
-     @Deprecated
--    protected BlockPos getLowestYIn5by5Box(Structure.GenerationContext context, int blockX, int blockZ, Rotation rotation) {
-+    protected BlockPos getLowestYIn5by5BoxOffset7Blocks(Structure.GenerationContext context, Rotation rotation) {
-         int offsetX = 5;
-         int offsetZ = 5;
-         if (rotation == Rotation.CLOCKWISE_90) {
-@@ -198,23 +_,43 @@
-             offsetZ = -5;
-         }
- 
-+        ChunkPos chunkPos = context.chunkPos();
-+        int blockX = chunkPos.getBlockX(7);
-+        int blockZ = chunkPos.getBlockZ(7);
-         return new BlockPos(blockX, getLowestY(context, blockX, blockZ, offsetX, offsetZ), blockZ);
-     }
- 
-     protected abstract Optional<Structure.GenerationStub> findGenerationPoint(final Structure.GenerationContext context);
- 
-     public Optional<Structure.GenerationStub> findValidGenerationPoint(Structure.GenerationContext context) {
--        return this.findGenerationPoint(context).filter(context::isValidBiome);
-+        return this.findGenerationPoint(context).filter(generation -> isValidBiome(generation, context));
+@@ -208,6 +_,25 @@
      }
  
      public abstract StructureType<?> type();
- 
++
 +    // Neo: Grant ability to modify Structures in specific ways such as adding new natural mob spawns to structures
 +    private final net.neoforged.neoforge.common.world.ModifiableStructureInfo modifiableStructureInfo;
 +
@@ -153,80 +45,6 @@
 +    public StructureSettings getModifiedStructureSettings() {
 +        return this.modifiableStructureInfo().get().structureSettings();
 +    }
-+
+ 
      public record GenerationContext(
          RegistryAccess registryAccess,
-         ChunkGenerator chunkGenerator,
-         BiomeSource biomeSource,
--        Climate.Sampler climateSampler,
--        BiomeResolver biomeResolver,
-         RandomState randomState,
-         StructureTemplateManager structureTemplateManager,
-         WorldgenRandom random,
-@@ -227,7 +_,6 @@
-             RegistryAccess registryAccess,
-             ChunkGenerator chunkGenerator,
-             BiomeSource biomeSource,
--            Climate.Sampler climateSampler,
-             RandomState randomState,
-             StructureTemplateManager structureTemplateManager,
-             long seed,
-@@ -239,8 +_,6 @@
-                 registryAccess,
-                 chunkGenerator,
-                 biomeSource,
--                climateSampler,
--                biomeSource.createResolver(climateSampler),
-                 randomState,
-                 structureTemplateManager,
-                 makeRandom(seed, chunkPos),
-@@ -256,40 +_,6 @@
-             random.setLargeFeatureSeed(seed, chunkPos.x(), chunkPos.z());
-             return random;
-         }
--
--        public boolean isValidBiome(Structure.GenerationStub stub) {
--            BlockPos startPos = stub.position();
--            return this.validBiome
--                .test(
--                    this.biomeResolver
--                        .getNoiseBiome(QuartPos.fromBlock(startPos.getX()), QuartPos.fromBlock(startPos.getY()), QuartPos.fromBlock(startPos.getZ()))
--                );
--        }
--
--        public boolean couldStructureExistInColumn(int blockX, int blockZ, int minBlockY, int maxBlockY) {
--            int quartX = QuartPos.fromBlock(blockX);
--            int quartZ = QuartPos.fromBlock(blockZ);
--            int minQuartY = QuartPos.fromBlock(minBlockY);
--            int maxQuartY = QuartPos.fromBlock(maxBlockY);
--            BiomeResolver columnResolver = this.biomeSource
--                .createResolverForChunk(this.climateSampler, quartX, minQuartY, quartZ, 1, maxQuartY - minQuartY + 1, 1);
--
--            for (int quartY = minQuartY; quartY <= maxQuartY; quartY++) {
--                if (this.validBiome.test(columnResolver.getNoiseBiome(quartX, quartY, quartZ))) {
--                    return true;
--                }
--            }
--
--            return false;
--        }
--
--        public boolean couldValidBiomeExistInTerrainColumn(int blockX, int blockZ) {
--            return this.couldStructureExistInColumn(blockX, blockZ, this.heightAccessor.getMinY() - 1, this.heightAccessor.getMaxY());
--        }
--
--        public boolean couldValidBiomeExistOnTopOfChunkCenter() {
--            return this.couldValidBiomeExistInTerrainColumn(this.chunkPos.getMiddleBlockX(), this.chunkPos.getMiddleBlockZ());
--        }
-     }
- 
-     public record GenerationStub(BlockPos position, Either<Consumer<StructurePiecesBuilder>, StructurePiecesBuilder> generator) {
-@@ -314,7 +_,7 @@
-         );
-         public static final MapCodec<Structure.StructureSettings> CODEC = RecordCodecBuilder.mapCodec(
-             i -> i.group(
--                    RegistryCodecs.holderSet(Registries.BIOME).fieldOf("biomes").forGetter(Structure.StructureSettings::biomes),
-+                    RegistryCodecs.homogeneousList(Registries.BIOME).fieldOf("biomes").forGetter(Structure.StructureSettings::biomes),
-                     Codec.simpleMap(MobCategory.CODEC, StructureSpawnOverride.CODEC, StringRepresentable.keys(MobCategory.values()))
-                         .fieldOf("spawn_overrides")
-                         .forGetter(Structure.StructureSettings::spawnOverrides),

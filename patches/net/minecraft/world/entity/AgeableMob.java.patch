@@ -12,11 +12,10 @@
              setAgeLocked(this, this::isAgeLocked, player, itemInHand, mob -> this.setAgeLockedData());
              return InteractionResult.SUCCESS;
          } else {
-@@ -189,6 +_,21 @@
- 
+@@ -190,32 +_,42 @@
          super.onSyncedDataUpdated(accessor);
      }
-+
+ 
 +    // Paper start - EAR 2
 +    @Override
 +    public void inactiveTick() {
@@ -31,6 +30,61 @@
 +        }
 +    }
 +    // Paper end - EAR 2
- 
++
      @Override
      public void aiStep() {
+         super.aiStep();
+-        Level level = this.level();
+-        if (level instanceof ServerLevel serverLevel) {
++        if (this.level().isClientSide()) {
+             if (this.forcedAgeTimer > 0) {
+                 if (this.forcedAgeTimer % 4 == 0) {
+-                    serverLevel.sendParticles(
+-                        ParticleTypes.HAPPY_VILLAGER, this.getRandomX(1.0), this.getRandomY() + 0.5, this.getRandomZ(1.0), 1, 0.0, 0.0, 0.0, 0.0
+-                    );
++                    this.level().addParticle(ParticleTypes.HAPPY_VILLAGER, this.getRandomX(1.0), this.getRandomY() + 0.5, this.getRandomZ(1.0), 0.0, 0.0, 0.0);
+                 }
+ 
+                 this.forcedAgeTimer--;
+             }
+-
+-            if (this.isAlive()) {
+-                int age = this.getAge();
+-                if (this.canAgeUp()) {
+-                    this.setAge(++age);
+-                } else if (age > 0) {
+-                    this.setAge(--age);
+-                }
++        } else if (this.isAlive()) {
++            int age = this.getAge();
++            if (this.canAgeUp()) {
++                this.setAge(++age);
++            } else if (age > 0) {
++                this.setAge(--age);
+             }
+         }
+ 
+-        this.ageLockParticleTimer = makeAgeLockedParticle(level, this, this.ageLockParticleTimer, this.isAgeLocked());
++        this.ageLockParticleTimer = makeAgeLockedParticle(this.level(), this, this.ageLockParticleTimer, this.isAgeLocked());
+     }
+ 
+     public boolean canAgeUp() {
+@@ -224,16 +_,14 @@
+ 
+     public static int makeAgeLockedParticle(Level level, Mob mob, int ageLockParticleTimer, boolean isAgeLocked) {
+         if (ageLockParticleTimer > 0) {
+-            if (ageLockParticleTimer % 2 == 0 && level instanceof ServerLevel serverLevel) {
++            if (level.isClientSide() && ageLockParticleTimer % 2 == 0) {
+                 float yParticleOffset = isAgeLocked ? 0.2F : 0.0F;
+                 Vec3 spawnPosition = new Vec3(mob.getRandomX(1.0), mob.getRandomY(0.2) + mob.getBbHeight() + yParticleOffset, mob.getRandomZ(1.0));
+-                serverLevel.sendParticles(
++                level.addParticle(
+                     isAgeLocked ? ParticleTypes.PAUSE_MOB_GROWTH : ParticleTypes.RESET_MOB_GROWTH,
+                     spawnPosition.x,
+                     spawnPosition.y,
+                     spawnPosition.z,
+-                    1,
+-                    0.0,
+                     0.0,
+                     0.0,
+                     0.0

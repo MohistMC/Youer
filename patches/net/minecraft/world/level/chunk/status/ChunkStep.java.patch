@@ -1,21 +1,12 @@
 --- a/net/minecraft/world/level/chunk/status/ChunkStep.java
 +++ b/net/minecraft/world/level/chunk/status/ChunkStep.java
-@@ -5,37 +_,70 @@
- import java.util.concurrent.CompletableFuture;
- import net.minecraft.server.level.GenerationChunkHolder;
- import net.minecraft.util.StaticCache2D;
--import net.minecraft.util.profiling.Profiler;
--import net.minecraft.util.profiling.Zone;
- import net.minecraft.util.profiling.jfr.JvmProfiler;
- import net.minecraft.util.profiling.jfr.callback.ProfiledDuration;
- import net.minecraft.world.level.chunk.ChunkAccess;
+@@ -13,9 +_,50 @@
  import net.minecraft.world.level.chunk.ProtoChunk;
  import org.jspecify.annotations.Nullable;
  
 -public record ChunkStep(
 -    ChunkStatus targetStatus, ChunkDependencies directDependencies, ChunkDependencies accumulatedDependencies, int blockStateWriteRadius, ChunkStatusTask task
 -) {
--    public int getAccumulatedRadiusOf(ChunkStatus status) {
 +// Paper start - rewrite chunk system - convert record to class
 +public final class ChunkStep implements ca.spottedleaf.moonrise.patches.chunk_system.status.ChunkSystemChunkStep { // Paper - rewrite chunk system
 +    private final ChunkStatus targetStatus;
@@ -60,37 +51,14 @@
 +
 +    // Paper end - rewrite chunk system - convert record to class
 +
-+    public int getAccumulatedRadiusOf(final ChunkStatus status) {
+     public int getAccumulatedRadiusOf(ChunkStatus status) {
          return status == this.targetStatus ? 0 : this.accumulatedDependencies.getRadiusOf(status);
      }
+@@ -46,6 +_,55 @@
  
--    public CompletableFuture<ChunkAccess> apply(WorldGenContext context, StaticCache2D<GenerationChunkHolder> cache, ChunkAccess chunk) {
-+    public CompletableFuture<ChunkAccess> apply(final WorldGenContext context, final StaticCache2D<GenerationChunkHolder> cache, final ChunkAccess chunk) {
-         if (chunk.getPersistedStatus().isBefore(this.targetStatus)) {
--            String stepName = this.targetStatus.getName();
--
--            try (Zone var5 = Profiler.get().zone(stepName)) {
--                ProfiledDuration profiledDuration = JvmProfiler.INSTANCE.onChunkGenerate(chunk.getPos(), context.level().dimension(), stepName);
--                return this.task
--                    .doWork(context, this, cache, chunk)
--                    .thenApply(newCenterChunk -> this.completeChunkGeneration(newCenterChunk, profiledDuration));
--            }
-+            ProfiledDuration profiledDuration = JvmProfiler.INSTANCE.onChunkGenerate(chunk.getPos(), context.level().dimension(), this.targetStatus.getName());
-+            return this.task.doWork(context, this, cache, chunk).thenApply(newCenterChunk -> this.completeChunkGeneration(newCenterChunk, profiledDuration));
-         } else {
-             return this.task.doWork(context, this, cache, chunk);
-         }
-     }
- 
--    private ChunkAccess completeChunkGeneration(ChunkAccess newCenterChunk, @Nullable ProfiledDuration profiledDuration) {
-+    private ChunkAccess completeChunkGeneration(final ChunkAccess newCenterChunk, final @Nullable ProfiledDuration profiledDuration) {
-         if (newCenterChunk instanceof ProtoChunk protochunk && protochunk.getPersistedStatus().isBefore(this.targetStatus)) {
-             protochunk.setPersistedStatus(this.targetStatus);
-         }
-@@ -47,6 +_,55 @@
          return newCenterChunk;
      }
- 
++
 +    // Paper start - rewrite chunk system - convert record to class
 +    public ChunkStatus targetStatus() {
 +        return targetStatus;
@@ -139,74 +107,6 @@
 +                "task=" + task + ']';
 +    }
 +    // Paper end - rewrite chunk system - convert record to class
-+
+ 
      public static class Builder {
          private final ChunkStatus status;
-         private final @Nullable ChunkStep parent;
-@@ -54,7 +_,7 @@
-         private int blockStateWriteRadius = -1;
-         private ChunkStatusTask task = ChunkStatusTasks::passThrough;
- 
--        protected Builder(ChunkStatus status) {
-+        protected Builder(final ChunkStatus status) {
-             if (status.getParent() != status) {
-                 throw new IllegalArgumentException("Not starting with the first status: " + status);
-             }
-@@ -64,7 +_,7 @@
-             this.directDependenciesByRadius = new ChunkStatus[0];
-         }
- 
--        protected Builder(ChunkStatus status, ChunkStep parent) {
-+        protected Builder(final ChunkStatus status, final ChunkStep parent) {
-             if (parent.targetStatus.getIndex() != status.getIndex() - 1) {
-                 throw new IllegalArgumentException("Out of order status: " + status);
-             }
-@@ -74,7 +_,7 @@
-             this.directDependenciesByRadius = new ChunkStatus[]{parent.targetStatus};
-         }
- 
--        public ChunkStep.Builder addRequirement(ChunkStatus status, int radius) {
-+        public ChunkStep.Builder addRequirement(final ChunkStatus status, final int radius) {
-             if (status.isOrAfter(this.status)) {
-                 throw new IllegalArgumentException("Status " + status + " can not be required by " + this.status);
-             }
-@@ -93,23 +_,23 @@
-             return this;
-         }
- 
--        public ChunkStep.Builder blockStateWriteRadius(int radius) {
-+        public ChunkStep.Builder blockStateWriteRadius(final int radius) {
-             this.blockStateWriteRadius = radius;
-             return this;
-         }
- 
--        public ChunkStep.Builder setTask(ChunkStatusTask task) {
-+        public ChunkStep.Builder setTask(final ChunkStatusTask task) {
-             this.task = task;
-             return this;
-         }
- 
-         public ChunkStep build() {
-             return new ChunkStep(
--                this.status,
--                new ChunkDependencies(ImmutableList.copyOf(this.directDependenciesByRadius)),
--                new ChunkDependencies(ImmutableList.copyOf(this.buildAccumulatedDependencies())),
--                this.blockStateWriteRadius,
--                this.task
-+                    this.status,
-+                    new ChunkDependencies(ImmutableList.copyOf(this.directDependenciesByRadius)),
-+                    new ChunkDependencies(ImmutableList.copyOf(this.buildAccumulatedDependencies())),
-+                    this.blockStateWriteRadius,
-+                    this.task
-             );
-         }
- 
-@@ -136,7 +_,7 @@
-             return accumulatedDependencies;
-         }
- 
--        private int getRadiusOfParent(ChunkStatus status) {
-+        private int getRadiusOfParent(final ChunkStatus status) {
-             for (int i = this.directDependenciesByRadius.length - 1; i >= 0; i--) {
-                 if (this.directDependenciesByRadius[i].isOrAfter(status)) {
-                     return i;

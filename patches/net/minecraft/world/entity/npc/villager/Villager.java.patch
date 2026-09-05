@@ -8,15 +8,16 @@
  import net.minecraft.world.entity.EntitySpawnReason;
  import net.minecraft.world.entity.EntityType;
  import net.minecraft.world.entity.EntityTypes;
-@@ -79,7 +_,6 @@
+@@ -79,8 +_,6 @@
  import net.minecraft.world.entity.player.Player;
  import net.minecraft.world.entity.raid.Raid;
  import net.minecraft.world.entity.schedule.Activity;
 -import net.minecraft.world.food.VillagerFood;
+-import net.minecraft.world.inventory.MerchantMenu;
  import net.minecraft.world.item.Item;
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.item.Items;
-@@ -92,14 +_,18 @@
+@@ -93,14 +_,18 @@
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.timeline.Timelines;
@@ -35,7 +36,7 @@
      private static final int MAX_GOSSIP_TOPICS = 10;
      private static final int GOSSIP_COOLDOWN = 1200;
      private static final int GOSSIP_DECAY_INTERVAL = 24000;
-@@ -113,16 +_,20 @@
+@@ -114,16 +_,20 @@
      private static final int DEFAULT_LAST_RESTOCK = 0;
      private static final int DEFAULT_LAST_GOSSIP_DECAY = 0;
      private static final int DEFAULT_RESTOCKS_TODAY = 0;
@@ -57,7 +58,7 @@
      private static final Brain.Provider<Villager> BRAIN_PROVIDER = Brain.<Villager>provider(
          List.of(
              SensorType.NEAREST_LIVING_ENTITIES,
-@@ -144,7 +_,7 @@
+@@ -145,7 +_,7 @@
                  activities.add(
                      ActivityData.create(
                          Activity.WORK,
@@ -66,7 +67,7 @@
                          ImmutableSet.of(Pair.of(MemoryModuleType.JOB_SITE, MemoryStatus.VALUE_PRESENT))
                      )
                  );
-@@ -177,6 +_,8 @@
+@@ -178,6 +_,8 @@
          MemoryModuleType.MEETING_POINT,
          (villager, poiType) -> poiType.is(PoiTypes.MEETING)
      );
@@ -75,7 +76,7 @@
  
      public Villager(EntityType<? extends Villager> entityType, Level level) {
          super(entityType, level);
-@@ -186,6 +_,110 @@
+@@ -187,6 +_,110 @@
          this.setCanPickUpLoot(true);
      }
  
@@ -186,7 +187,7 @@
      @Override
      public Brain<Villager> getBrain() {
          return (Brain<Villager>) super.getBrain();
-@@ -224,32 +_,88 @@
+@@ -225,32 +_,88 @@
      }
  
      public static AttributeSupplier.Builder createAttributes() {
@@ -280,7 +281,7 @@
          super.customServerAiStep(level);
      }
  
-@@ -266,7 +_,7 @@
+@@ -267,7 +_,7 @@
      @Override
      public InteractionResult mobInteract(Player player, InteractionHand hand) {
          ItemStack itemStack = player.getItemInHand(hand);
@@ -289,7 +290,7 @@
              return super.mobInteract(player, hand);
          }
  
-@@ -289,6 +_,9 @@
+@@ -290,6 +_,9 @@
                  return InteractionResult.CONSUME;
              }
  
@@ -299,7 +300,7 @@
              this.startTrading(player);
          }
  
-@@ -317,6 +_,12 @@
+@@ -318,6 +_,12 @@
          }
      }
  
@@ -312,7 +313,7 @@
      private void resetSpecialPrices() {
          if (!this.level().isClientSide()) {
              for (MerchantOffer offer : this.getOffers()) {
-@@ -339,7 +_,13 @@
+@@ -340,7 +_,13 @@
          this.updateDemand();
  
          for (MerchantOffer offer : this.getOffers()) {
@@ -327,7 +328,7 @@
          }
  
          this.resendOffersToTradingPlayer();
-@@ -400,7 +_,13 @@
+@@ -401,7 +_,13 @@
          int missedUpdates = 2 - this.numberOfRestocksToday;
          if (missedUpdates > 0) {
              for (MerchantOffer offer : this.getOffers()) {
@@ -342,7 +343,7 @@
              }
          }
  
-@@ -413,23 +_,27 @@
+@@ -414,34 +_,28 @@
  
      public void updateDemand() {
          for (MerchantOffer offer : this.getOffers()) {
@@ -357,6 +358,7 @@
          int reputation = this.getPlayerReputation(player);
 -        MobEffectInstance heroOfTheVillage = player.getEffect(MobEffects.HERO_OF_THE_VILLAGE);
 -        double heroModifier = heroOfTheVillage == null ? 0.0 : 0.3F + 0.0625F * heroOfTheVillage.getAmplifier();
+-        boolean offersChanged = false;
 -
 -        for (MerchantOffer offer : this.getOffers()) {
 -            if (reputation != 0) {
@@ -364,6 +366,7 @@
 +            for (MerchantOffer offer : this.getOffers()) {
 +                if (offer.ignoreDiscounts) continue; // Paper - Add ignore discounts API
                  offer.addToSpecialPriceDiff(-Mth.floor(reputation * offer.getPriceMultiplier()));
+-                offersChanged = true;
              }
 -
 -            if (heroModifier > 0.0) {
@@ -379,9 +382,18 @@
 +                double modifier = 0.3 + 0.0625 * amplifier;
 +                int costReduction = (int)Math.floor(modifier * offer.getBaseCostA().getCount());
                  offer.addToSpecialPriceDiff(-Math.max(costReduction, 1));
+-                offersChanged = true;
+-            }
+-        }
+-
+-        if (offersChanged) {
+-            Player tradingPlayer = this.getTradingPlayer();
+-            if (tradingPlayer != null && tradingPlayer.containerMenu instanceof MerchantMenu menu) {
+-                menu.updateSellItem();
              }
          }
-@@ -459,6 +_,9 @@
+     }
+@@ -470,6 +_,9 @@
          output.putLong("LastRestock", this.lastRestockGameTime);
          output.putLong("LastGossipDecay", this.lastGossipDecayTime);
          output.putInt("RestocksToday", this.numberOfRestocksToday);
@@ -391,7 +403,7 @@
      }
  
      @Override
-@@ -477,17 +_,12 @@
+@@ -488,17 +_,12 @@
          this.villagerXp = input.getIntOr("Xp", 0);
          this.lastRestockGameTime = input.getLongOr("LastRestock", 0L);
          this.lastGossipDecayTime = input.getLongOr("LastGossipDecay", 0L);
@@ -414,7 +426,7 @@
      }
  
      @Override
-@@ -549,16 +_,13 @@
+@@ -560,23 +_,20 @@
          this.villagerXp = this.villagerXp + offer.getXp();
          this.lastTradedPlayer = this.getTradingPlayer();
          if (this.shouldIncreaseLevel()) {
@@ -434,7 +446,16 @@
          }
      }
  
-@@ -576,7 +_,7 @@
+     @Override
+     public void setLastHurtByMob(@Nullable LivingEntity hurtBy) {
+-        if (hurtBy != null && this.level() instanceof ServerLevel serverLevel) {
+-            serverLevel.onReputationEvent(ReputationEventType.VILLAGER_HURT, hurtBy, this);
++        if (hurtBy != null && this.level() instanceof ServerLevel) {
++            ((ServerLevel)this.level()).onReputationEvent(ReputationEventType.VILLAGER_HURT, hurtBy, this);
+             if (this.isAlive() && hurtBy instanceof Player) {
+                 this.level().broadcastEntityEvent(this, (byte)13);
+             }
+@@ -587,7 +_,7 @@
  
      @Override
      public void die(DamageSource source) {
@@ -443,7 +464,7 @@
          Entity murderer = source.getEntity();
          if (murderer != null) {
              this.tellWitnessesThatIWasMurdered(murderer);
-@@ -624,7 +_,7 @@
+@@ -635,7 +_,7 @@
  
      @Override
      public boolean canBreed() {
@@ -452,7 +473,7 @@
      }
  
      private boolean hungry() {
-@@ -632,24 +_,22 @@
+@@ -643,24 +_,22 @@
      }
  
      private void eatUntilFull() {
@@ -488,7 +509,7 @@
                  }
              }
          }
-@@ -677,7 +_,7 @@
+@@ -688,7 +_,7 @@
          return VillagerData.canLevelUp(currentLevel) && this.villagerXp >= VillagerData.getMaxXpPerLevel(currentLevel);
      }
  
@@ -497,7 +518,7 @@
          this.setVillagerData(this.getVillagerData().withLevel(this.getVillagerData().level() + 1));
          this.updateTrades(level);
      }
-@@ -688,7 +_,7 @@
+@@ -699,7 +_,7 @@
      }
  
      @Override
@@ -506,7 +527,7 @@
          if (id == 12) {
              this.addParticlesAroundSelf(ParticleTypes.HEART);
          } else if (id == 13) {
-@@ -711,6 +_,10 @@
+@@ -722,6 +_,10 @@
          }
  
          this.finalizeVillagerType(level, this.blockPosition());
@@ -517,7 +538,7 @@
          return super.finalizeSpawn(level, difficulty, spawnReason, groupData);
      }
  
-@@ -733,13 +_,21 @@
+@@ -744,13 +_,21 @@
  
      @Override
      public void thunderHit(ServerLevel level, LightningBolt lightningBolt) {
@@ -542,7 +563,7 @@
              if (witch == null) {
                  super.thunderHit(level, lightningBolt);
              }
-@@ -756,11 +_,10 @@
+@@ -767,11 +_,10 @@
      @Override
      public boolean wantsToPickUp(ServerLevel level, ItemStack itemStack) {
          Item item = itemStack.getItem();
@@ -558,7 +579,7 @@
              && this.getInventory().canAddItem(itemStack);
      }
  
-@@ -774,53 +_,41 @@
+@@ -785,53 +_,41 @@
  
      private int countFoodPointsInInventory() {
          SimpleContainer inventory = this.getInventory();
@@ -625,7 +646,7 @@
          }
      }
  
-@@ -835,6 +_,7 @@
+@@ -846,6 +_,7 @@
      }
  
      public void spawnGolemIfNeeded(ServerLevel level, long timestamp, int villagersNeededToAgree) {
@@ -633,7 +654,7 @@
          if (this.wantsToSpawnGolem(timestamp)) {
              AABB villagerSearchBox = this.getBoundingBox().inflate(10.0, 10.0, 10.0);
              List<Villager> nearbyVillagers = level.getEntitiesOfClass(Villager.class, villagerSearchBox);
-@@ -843,7 +_,7 @@
+@@ -854,7 +_,7 @@
                  .limit(5L)
                  .toList();
              if (nearbyVillagersThatWantAGolem.size() >= villagersNeededToAgree) {
@@ -642,7 +663,7 @@
                          EntityTypes.IRON_GOLEM,
                          EntitySpawnReason.MOB_SUMMONED,
                          level,
-@@ -852,9 +_,11 @@
+@@ -863,9 +_,11 @@
                          8,
                          6,
                          SpawnUtil.Strategy.LEGACY_IRON_GOLEM,
@@ -656,7 +677,7 @@
                      nearbyVillagers.forEach(GolemSensor::golemDetected);
                  }
              }
-@@ -876,12 +_,6 @@
+@@ -887,12 +_,6 @@
              this.gossips.add(source.getUUID(), GossipType.MINOR_NEGATIVE, 25);
          } else if (type == ReputationEventType.VILLAGER_KILLED) {
              this.gossips.add(source.getUUID(), GossipType.MAJOR_NEGATIVE, 25);

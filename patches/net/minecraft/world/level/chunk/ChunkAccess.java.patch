@@ -178,36 +178,6 @@
      public @Nullable BlockState setBlockState(BlockPos pos, BlockState state) {
          return this.setBlockState(pos, state, 3);
      }
-@@ -220,24 +_,24 @@
- 
-     @Override
-     public LongSet getReferencesForStructure(Structure structure) {
--        return this.structureReferences.getOrDefault(structure, EMPTY_REFERENCE_SET);
-+        return this.structuresRefences.getOrDefault(structure, EMPTY_REFERENCE_SET);
-     }
- 
-     @Override
-     public void addReferenceForStructure(Structure structure, long reference) {
--        this.structureReferences.computeIfAbsent(structure, k -> new LongOpenHashSet()).add(reference);
-+        this.structuresRefences.computeIfAbsent(structure, k -> new LongOpenHashSet()).add(reference);
-         this.markUnsaved();
-     }
- 
-     @Override
-     public Map<Structure, LongSet> getAllReferences() {
--        return Collections.unmodifiableMap(this.structureReferences);
-+        return Collections.unmodifiableMap(this.structuresRefences);
-     }
- 
-     @Override
-     public void setAllReferences(Map<Structure, LongSet> data) {
--        this.structureReferences.clear();
--        this.structureReferences.putAll(data);
-+        this.structuresRefences.clear();
-+        this.structuresRefences.putAll(data);
-         this.markUnsaved();
-     }
- 
 @@ -266,6 +_,7 @@
      public boolean tryMarkSaved() {
          if (this.unsaved) {
@@ -225,62 +195,32 @@
      }
  
      public abstract ChunkStatus getPersistedStatus();
-@@ -318,21 +_,32 @@
+@@ -318,10 +_,14 @@
  
      @Override
      public final void findBlockLightSources(BiConsumer<BlockPos, BlockState> consumer) {
 -        this.findBlocks(state -> state.getLightEmission() != 0, consumer);
-+        this.findBlocks(p_284897_ -> p_284897_.hasDynamicLightEmission() || p_284897_.getLightEmission(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO) != 0, (p_284897_, pos) -> p_284897_.getLightEmission(this, pos) != 0, consumer);
++        this.findBlocks(state -> state.hasDynamicLightEmission() || state.getLightEmission(net.minecraft.world.level.EmptyBlockGetter.INSTANCE, BlockPos.ZERO) != 0, (state, pos) -> state.getLightEmission(this, pos) != 0, consumer);
      }
  
      public void findBlocks(Predicate<BlockState> predicate, BiConsumer<BlockPos, BlockState> consumer) {
--        BlockStateConsumer blockStateConsumer = (pos, state) -> {
--            consumer.accept(pos, state);
--            return Continuation.CONTINUE;
--        };
--        int max = 15;
-+        findBlocks(predicate, (state, pos) -> predicate.test(state), consumer);
++        findBlocks(predicate, (state, _) -> predicate.test(state), consumer);
 +    }
 +
 +    public void findBlocks(Predicate<BlockState> predicate, java.util.function.BiPredicate<BlockState, BlockPos> fineFilter, BiConsumer<BlockPos, BlockState> consumer) {
-+        BlockPos.MutableBlockPos mutablePos = new BlockPos.MutableBlockPos();
- 
-         for (int sectionY = this.getMinSectionY(); sectionY <= this.getMaxSectionY(); sectionY++) {
+         BlockStateConsumer blockStateConsumer = (pos, state) -> {
+             consumer.accept(pos, state);
+             return Continuation.CONTINUE;
+@@ -332,7 +_,7 @@
              LevelChunkSection section = this.getSection(this.getSectionIndexFromSectionY(sectionY));
              if (section.maybeHas(predicate)) {
                  BlockPos origin = SectionPos.of(this.chunkPos, sectionY).origin();
 -                BlockScanUtils.findBlocksInSection(section, origin, 0, 0, 0, 15, 15, 15, predicate, blockStateConsumer);
-+
-+                for (int y = 0; y < 16; y++) {
-+                    for (int z = 0; z < 16; z++) {
-+                        for (int x = 0; x < 16; x++) {
-+                            BlockState state = section.getBlockState(x, y, z);
-+                            mutablePos.setWithOffset(origin, x, y, z);
-+                            if (fineFilter.test(state, mutablePos)) {
-+                                consumer.accept(mutablePos, state);
-+                            }
-+                        }
-+                    }
-+                }
++                BlockScanUtils.findBlocksInSection(section, origin, 0, 0, 0, 15, 15, 15, fineFilter, blockStateConsumer);
              }
          }
      }
-@@ -406,6 +_,14 @@
-         return this.levelHeightAccessor.getHeight();
-     }
- 
-+    public NoiseChunk getOrCreateNoiseChunk(Function<ChunkAccess, NoiseChunk> factory) {
-+        if (this.noiseChunk == null) {
-+            this.noiseChunk = factory.apply(this);
-+        }
-+
-+        return this.noiseChunk;
-+    }
-+
-     @Deprecated
-     public BiomeGenerationSettings carverBiome(Supplier<BiomeGenerationSettings> source) {
-         if (this.carverBiomeSettings == null) {
-@@ -417,21 +_,42 @@
+@@ -417,6 +_,26 @@
  
      @Override
      public Holder<Biome> getNoiseBiome(int quartX, int quartY, int quartZ) {
@@ -307,41 +247,14 @@
          try {
              int quartMinY = QuartPos.fromBlock(this.getMinY());
              int quartMaxY = quartMinY + QuartPos.fromBlock(this.getHeight()) - 1;
-             int clampedQuartY = Mth.clamp(quartY, quartMinY, quartMaxY);
-             int sectionIndex = this.getSectionIndex(QuartPos.toBlock(clampedQuartY));
--            return this.sections[sectionIndex].getNoiseBiome(quartX & 3, clampedQuartY & 3, quartZ & 3);
--        } catch (Throwable t) {
--            CrashReport report = CrashReport.forThrowable(t, "Getting biome");
--            CrashReportCategory category = report.addCategory("Biome being got");
-+            this.sections[sectionIndex].setNoiseBiome(quartX & 3, clampedQuartY & 3, quartZ & 3, biome);
-+        } catch (Throwable throwable) {
-+            CrashReport report = CrashReport.forThrowable(throwable, "Setting biome");
-+            CrashReportCategory category = report.addCategory("Biome being set");
-             category.setDetail("Location", () -> CrashReportCategory.formatLocation(this, quartX, quartY, quartZ));
+@@ -430,6 +_,7 @@
              throw new ReportedException(report);
          }
      }
 +    // CraftBukkit end
  
--    public void fillBiomesFromNoise(BiomeResolver biomeResolver) {
-+    public void fillBiomesFromNoise(BiomeResolver biomeResolver, Climate.Sampler sampler) {
+     public void fillBiomesFromNoise(BiomeResolver biomeResolver) {
          ChunkPos pos = this.getPos();
-         int quartMinX = QuartPos.fromBlock(pos.getMinBlockX());
-         int quartMinZ = QuartPos.fromBlock(pos.getMinBlockZ());
-@@ -440,8 +_,12 @@
-         for (int sectionY = heightAccessor.getMinSectionY(); sectionY <= heightAccessor.getMaxSectionY(); sectionY++) {
-             LevelChunkSection section = this.getSection(this.getSectionIndexFromSectionY(sectionY));
-             int quartMinY = QuartPos.fromSection(sectionY);
--            section.fillBiomesFromNoise(biomeResolver, quartMinX, quartMinY, quartMinZ);
-+            section.fillBiomesFromNoise(biomeResolver, sampler, quartMinX, quartMinY, quartMinZ);
-         }
-+    }
-+
-+    public boolean hasAnyStructureReferences() {
-+        return !this.getAllReferences().isEmpty();
-     }
- 
-     public @Nullable BelowZeroRetrogen getBelowZeroRetrogen() {
 @@ -457,13 +_,90 @@
      }
  

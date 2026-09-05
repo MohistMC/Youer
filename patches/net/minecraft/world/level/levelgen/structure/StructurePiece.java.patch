@@ -1,21 +1,14 @@
 --- a/net/minecraft/world/level/levelgen/structure/StructurePiece.java
 +++ b/net/minecraft/world/level/levelgen/structure/StructurePiece.java
-@@ -22,6 +_,7 @@
- import net.minecraft.world.level.block.HorizontalDirectionalBlock;
- import net.minecraft.world.level.block.Mirror;
- import net.minecraft.world.level.block.Rotation;
-+import net.minecraft.world.level.block.entity.BlockEntity;
- import net.minecraft.world.level.block.entity.ChestBlockEntity;
- import net.minecraft.world.level.block.entity.DispenserBlockEntity;
- import net.minecraft.world.level.block.state.BlockState;
-@@ -29,7 +_,6 @@
- import net.minecraft.world.level.levelgen.Heightmap;
- import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceSerializationContext;
- import net.minecraft.world.level.levelgen.structure.pieces.StructurePieceType;
--import net.minecraft.world.level.levelgen.structure.pieces.StructurePiecesBuilder;
- import net.minecraft.world.level.material.FluidState;
- import net.minecraft.world.level.storage.loot.LootTable;
- import org.jspecify.annotations.Nullable;
+@@ -42,7 +_,7 @@
+     private Rotation rotation;
+     protected int genDepth;
+     private final StructurePieceType type;
+-    public static final Set<Block> SHAPE_CHECK_BLOCKS = ImmutableSet.<Block>builder()
++    private static final Set<Block> SHAPE_CHECK_BLOCKS = ImmutableSet.<Block>builder()
+         .add(Blocks.NETHER_BRICK_FENCE)
+         .add(Blocks.TORCH)
+         .add(Blocks.WALL_TORCH)
 @@ -80,6 +_,9 @@
      }
  
@@ -26,15 +19,6 @@
          CompoundTag tag = new CompoundTag();
          tag.putString("id", BuiltInRegistries.STRUCTURE_PIECE.getKey(this.getType()).toString());
          tag.store("BB", BoundingBox.CODEC, this.boundingBox);
-@@ -92,7 +_,7 @@
- 
-     protected abstract void addAdditionalSaveData(StructurePieceSerializationContext context, CompoundTag tag);
- 
--    public void addChildren(StructurePiece startPiece, StructurePiecesBuilder builder, RandomSource random) {
-+    public void addChildren(StructurePiece startPiece, StructurePieceAccessor structurePieceAccessor, RandomSource random) {
-     }
- 
-     public abstract void postProcess(
 @@ -176,6 +_,11 @@
                  }
  

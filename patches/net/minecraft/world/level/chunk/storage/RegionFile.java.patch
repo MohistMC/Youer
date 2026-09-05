@@ -697,7 +697,7 @@
          int offset = this.getOffset(pos);
          if (offset == 0) {
              return false;
-@@ -258,11 +_,12 @@
+@@ -258,6 +_,7 @@
  
              return true;
          } catch (IOException e) {
@@ -705,30 +705,6 @@
              return false;
          }
      }
- 
--    public DataOutputStream getChunkDataOutputStream(ChunkPos pos) throws IOException {
-+    public DataOutputStream getChunkDataOutputStream(final ChunkPos pos) throws IOException {
-         return new DataOutputStream(this.version.wrap(new RegionFile.ChunkBuffer(pos)));
-     }
- 
-@@ -270,7 +_,7 @@
-         this.file.force(true);
-     }
- 
--    public void clear(ChunkPos pos) throws IOException {
-+    public void clear(final ChunkPos pos) throws IOException {
-         int offsetIndex = getOffsetIndex(pos);
-         int offset = this.offsets.get(offsetIndex);
-         if (offset != 0) {
-@@ -282,7 +_,7 @@
-         }
-     }
- 
--    protected synchronized void write(ChunkPos pos, ByteBuffer data) throws IOException {
-+    protected synchronized void write(final ChunkPos pos, final ByteBuffer data) throws IOException {
-         int offsetIndex = getOffsetIndex(pos);
-         int offset = this.offsets.get(offsetIndex);
-         int sectorNumber = getSectorNumber(offset);
 @@ -315,19 +_,29 @@
      }
  
@@ -761,25 +737,6 @@
          }
  
          return () -> Files.move(tmpPath, path, StandardCopyOption.REPLACE_EXISTING);
-@@ -338,15 +_,15 @@
-         this.file.write(this.header, 0L);
-     }
- 
--    private int getOffset(ChunkPos pos) {
-+    private int getOffset(final ChunkPos pos) {
-         return this.offsets.get(getOffsetIndex(pos));
-     }
- 
--    public boolean hasChunk(ChunkPos pos) {
-+    public boolean hasChunk(final ChunkPos pos) {
-         return this.getOffset(pos) != 0;
-     }
- 
--    private static int getOffsetIndex(ChunkPos pos) {
-+    private static int getOffsetIndex(final ChunkPos pos) {
-         return pos.getRegionLocalX() + pos.getRegionLocalZ() * 32;
-     }
- 
 @@ -373,10 +_,29 @@
          }
      }
