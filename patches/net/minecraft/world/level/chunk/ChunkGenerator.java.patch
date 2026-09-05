@@ -173,6 +173,20 @@
      public abstract int getGenDepth();
  
      public WeightedRandomList<MobSpawnSettings.SpawnerData> getMobsAt(
+@@ -444,11 +_,12 @@
+                 Predicate<StructureStart> predicate = structurespawnoverride.boundingBox() == StructureSpawnOverride.BoundingBoxType.PIECE
+                     ? p_223065_ -> p_223135_.structureHasPieceAt(p_223137_, p_223065_)
+                     : p_223130_ -> p_223130_.getBoundingBox().isInside(p_223137_);
++                // Youer - non-blocking spawn lookup gated by YouerConfig.nonblocking_structure_spawn_lookup
+                 p_223135_.fillStartsForStructure(structure, entry.getValue(), p_223220_ -> {
+                     if (mutableboolean.isFalse() && predicate.test(p_223220_)) {
+                         mutableboolean.setTrue();
+                     }
+-                });
++                }, !com.mohistmc.youer.YouerConfig.nonblocking_structure_spawn_lookup);
+                 if (mutableboolean.isTrue()) {
+                     return structurespawnoverride.spawns();
+                 }
 @@ -479,7 +_,8 @@
                          }
                      }

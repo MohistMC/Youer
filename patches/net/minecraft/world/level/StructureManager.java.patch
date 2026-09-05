@@ -1,0 +1,50 @@
+--- a/net/minecraft/world/level/StructureManager.java
++++ b/net/minecraft/world/level/StructureManager.java
+@@ -16,6 +_,7 @@
+ import net.minecraft.core.RegistryAccess;
+ import net.minecraft.core.SectionPos;
+ import net.minecraft.core.registries.Registries;
++import net.minecraft.server.level.ServerLevel;
+ import net.minecraft.server.level.WorldGenRegion;
+ import net.minecraft.tags.TagKey;
+ import net.minecraft.world.level.chunk.StructureAccess;
+@@ -69,16 +_,34 @@
+     }
+ 
+     public void fillStartsForStructure(Structure p_220481_, LongSet p_220482_, Consumer<StructureStart> p_220483_) {
+-        for (long i : p_220482_) {
++        this.fillStartsForStructure(p_220481_, p_220482_, p_220483_, true);
++    }
++
++    // Youer start - non-blocking structure start lookup for mob spawning
++    // allowLoad=false skips unloaded structure-start chunks so spawning never blocks the server thread
++    public void fillStartsForStructure(Structure structure, LongSet positions, Consumer<StructureStart> consumer, boolean allowLoad) {
++        for (long i : positions) {
+             SectionPos sectionpos = SectionPos.of(new ChunkPos(i), this.level.getMinSection());
+-            StructureStart structurestart = this.getStartForStructure(
+-                sectionpos, p_220481_, this.level.getChunk(sectionpos.x(), sectionpos.z(), ChunkStatus.STRUCTURE_STARTS)
+-            );
++            StructureAccess structureaccess = allowLoad
++                ? this.level.getChunk(sectionpos.x(), sectionpos.z(), ChunkStatus.STRUCTURE_STARTS)
++                : this.getStructureAccessIfLoaded(sectionpos);
++            if (structureaccess == null) {
++                continue;
++            }
++
++            StructureStart structurestart = this.getStartForStructure(sectionpos, structure, structureaccess);
+             if (structurestart != null && structurestart.isValid()) {
+-                p_220483_.accept(structurestart);
++                consumer.accept(structurestart);
+             }
+         }
+     }
++
++    @Nullable
++    private StructureAccess getStructureAccessIfLoaded(SectionPos p_220513_) {
++        // FULL chunks already hold their structure starts/references
++        return this.level instanceof ServerLevel serverlevel ? serverlevel.getChunkIfLoaded(p_220513_.x(), p_220513_.z()) : null;
++    }
++    // Youer end - non-blocking structure start lookup for mob spawning
+ 
+     @Nullable
+     public StructureStart getStartForStructure(SectionPos p_220513_, Structure p_220514_, StructureAccess p_220515_) {

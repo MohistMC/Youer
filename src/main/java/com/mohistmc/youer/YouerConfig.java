@@ -157,6 +157,8 @@ public class YouerConfig {
     public static boolean no_damage_particle;
     public static boolean spawnForChunk;
     public static boolean spawnForNatural;
+    // When true, mob spawning only consults already-loaded structure-start chunks (no blocking chunk load)
+    public static boolean nonblocking_structure_spawn_lookup;
     public static boolean NoRaining;
     public static boolean SkyLight15;
     public static boolean disable_skullblock_skin;
@@ -405,6 +407,7 @@ public class YouerConfig {
 
         spawnForChunk = getBoolean("entity.spawnForChunk", true);
         spawnForNatural = getBoolean("entity.spawnForNatural", true);
+        nonblocking_structure_spawn_lookup = getBoolean("entity.nonblocking_structure_spawn_lookup", true);
         NoRaining = getBoolean("event.NoRaining", false);
         SkyLight15 = getBoolean("SkyLight15", false);
         disable_skullblock_skin = getBoolean("disable_skullblock_skin", false);

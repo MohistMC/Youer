@@ -17,6 +17,7 @@
 
 package com.mohistmc.youer.eventhandler.dispatcher;
 
+import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -37,6 +38,9 @@ public class WorldEventDispatcher {
     @SubscribeEvent
     public void onChunkLoad(ChunkEvent.Load event) {
         if (event.getChunk() instanceof LevelChunk levelChunk) {
+            if (levelChunk.level instanceof ServerLevel serverLevel) {
+                serverLevel.entityManager.updateChunkStatus(levelChunk.getPos(), FullChunkStatus.FULL); // ensure entities valid before Citizens' ChunkLoadEvent handler
+            }
             levelChunk.loadCallback();
         }
     }

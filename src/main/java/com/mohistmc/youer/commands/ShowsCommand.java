@@ -206,7 +206,7 @@ public class ShowsCommand extends Command {
                 var serverLevel = WorldAPI.getServerLevel(player.getWorld());
                 Map<Material, Map<String, Integer>> blockEntityChunkCount = new HashMap<>();
                 Map<Material, Integer> collect = new HashMap<>();
-                for (TickingBlockEntity blockEntityTicker : serverLevel.blockEntityTickers) {
+                for (TickingBlockEntity blockEntityTicker : new ArrayList<>(serverLevel.blockEntityTickers)) {
                     BlockPos pos = blockEntityTicker.getPos();
                     if (pos == null) continue;
                     Block block = CraftBlock.at(serverLevel, pos);
