@@ -1,12 +1,10 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.types.Types;
-import ca.spottedleaf.dataconverter.types.json.JsonMapType;
-import ca.spottedleaf.dataconverter.types.json.JsonTypeUtil;
 import ca.spottedleaf.dataconverter.types.nbt.NBTMapType;
 import com.google.common.base.Splitter;
 import com.google.common.collect.ImmutableMap;
@@ -19,7 +17,6 @@ import com.mojang.serialization.DynamicOps;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.nbt.Tag;
-import net.minecraft.util.GsonHelper;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;

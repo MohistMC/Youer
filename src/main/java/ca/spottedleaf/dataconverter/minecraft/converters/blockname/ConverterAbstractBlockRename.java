@@ -1,9 +1,9 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.blockname;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.converters.helpers.ConverterAbstractStringValueTypeRename;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.converter.types.MapType;
 import java.util.function.Function;
 
 public final class ConverterAbstractBlockRename {

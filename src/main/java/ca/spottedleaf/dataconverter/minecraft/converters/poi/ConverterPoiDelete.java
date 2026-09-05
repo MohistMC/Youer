@@ -1,9 +1,9 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.poi;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
 import java.util.function.Predicate;
 
 public final class ConverterPoiDelete extends DataConverter<MapType, MapType> {

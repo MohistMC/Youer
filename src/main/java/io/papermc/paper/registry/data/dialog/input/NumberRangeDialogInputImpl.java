@@ -21,7 +21,7 @@ public record NumberRangeDialogInputImpl(
     @Nullable Float step
 ) implements NumberRangeDialogInput {
 
-    public static final class BuilderImpl implements Builder {
+    public static final class BuilderImpl implements NumberRangeDialogInput.Builder {
 
         private final String key;
         private final Component label;

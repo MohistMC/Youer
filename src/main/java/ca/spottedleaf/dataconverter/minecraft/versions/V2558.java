@@ -1,11 +1,10 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.converters.options.ConverterAbstractOptionsRename;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.Types;
+import ca.spottedleaf.converter.types.MapType;
 import com.google.common.collect.ImmutableMap;
 import java.util.HashMap;
 
@@ -23,11 +22,7 @@ public final class V2558 {
         MCTypeRegistry.WORLD_GEN_SETTINGS.addStructureConverter(new DataConverter<>(VERSION) {
             @Override
             public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
-                MapType dimensions = data.getMap("dimensions");
-                if (dimensions == null) {
-                    dimensions = Types.NBT.createEmptyMap();
-                    data.setMap("dimensions", dimensions);
-                }
+                final MapType dimensions = data.getOrCreateMap("dimensions");
 
                 if (dimensions.isEmpty()) {
                     data.setMap("dimensions", recreateSettings(data));
@@ -41,7 +36,7 @@ public final class V2558 {
     private static MapType recreateSettings(final MapType data) {
         final long seed = data.getLong("seed");
 
-        return V2550.vanillaLevels(seed, V2550.defaultOverworld(seed), false);
+        return V2550.vanillaLevels(data.getTypeUtil(), seed, V2550.defaultOverworld(data.getTypeUtil(), seed), false);
     }
 
     private V2558() {}

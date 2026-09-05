@@ -1,13 +1,14 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataWalker;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
-import ca.spottedleaf.dataconverter.minecraft.converters.helpers.RenameHelper;
+import ca.spottedleaf.converter.util.RenameHelper;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
 
 public final class V2842 {
 
@@ -47,30 +48,33 @@ public final class V2842 {
             }
         });
 
-        MCTypeRegistry.CHUNK.addStructureWalker(VERSION, (final MapType data, final long fromVersion, final long toVersion) -> {
-            WalkerUtils.convertList(MCTypeRegistry.ENTITY, data, "entities", fromVersion, toVersion);
-            WalkerUtils.convertList(MCTypeRegistry.TILE_ENTITY, data, "block_entities", fromVersion, toVersion);
+        MCTypeRegistry.CHUNK.addStructureWalker(VERSION, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                WalkerUtils.convertList(MCTypeRegistry.ENTITY, data, "entities", fromVersion, toVersion);
+                WalkerUtils.convertList(MCTypeRegistry.TILE_ENTITY, data, "block_entities", fromVersion, toVersion);
 
-            final ListType blockTicks = data.getList("block_ticks", ObjectType.MAP);
-            if (blockTicks != null) {
-                for (int i = 0, len = blockTicks.size(); i < len; ++i) {
-                    WalkerUtils.convert(MCTypeRegistry.BLOCK_NAME, blockTicks.getMap(i), "i", fromVersion, toVersion);
+                final ListType blockTicks = data.getList("block_ticks", ObjectType.MAP);
+                if (blockTicks != null) {
+                    for (int i = 0, len = blockTicks.size(); i < len; ++i) {
+                        WalkerUtils.convert(MCTypeRegistry.BLOCK_NAME, blockTicks.getMap(i), "i", fromVersion, toVersion);
+                    }
                 }
-            }
 
-            final ListType sections = data.getList("sections", ObjectType.MAP);
-            if (sections != null) {
-                for (int i = 0, len = sections.size(); i < len; ++i) {
-                    final MapType section = sections.getMap(i);
+                final ListType sections = data.getList("sections", ObjectType.MAP);
+                if (sections != null) {
+                    for (int i = 0, len = sections.size(); i < len; ++i) {
+                        final MapType section = sections.getMap(i);
 
-                    WalkerUtils.convertList(MCTypeRegistry.BIOME, section.getMap("biomes"), "palette", fromVersion, toVersion);
-                    WalkerUtils.convertList(MCTypeRegistry.BLOCK_STATE, section.getMap("block_states"), "palette", fromVersion, toVersion);
+                        WalkerUtils.convertList(MCTypeRegistry.BIOME, section.getMap("biomes"), "palette", fromVersion, toVersion);
+                        WalkerUtils.convertList(MCTypeRegistry.BLOCK_STATE, section.getMap("block_states"), "palette", fromVersion, toVersion);
+                    }
                 }
+
+                WalkerUtils.convertValues(MCTypeRegistry.STRUCTURE_FEATURE, data.getMap("structures"), "starts", fromVersion, toVersion);
+
+                return null;
             }
-
-            WalkerUtils.convertValues(MCTypeRegistry.STRUCTURE_FEATURE, data.getMap("structures"), "starts", fromVersion, toVersion);
-
-            return null;
         });
     }
 

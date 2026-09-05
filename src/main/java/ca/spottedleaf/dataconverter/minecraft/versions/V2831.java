@@ -1,33 +1,39 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataWalker;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.Types;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.types.TypeUtil;
 
 public final class V2831 {
 
     private static final int VERSION = MCVersions.V1_17_1 + 101;
 
     public static void register() {
-        MCTypeRegistry.UNTAGGED_SPAWNER.addStructureWalker(VERSION, (final MapType root, final long fromVersion, final long toVersion) -> {
-            WalkerUtils.convertListPath(MCTypeRegistry.ENTITY, root, "SpawnPotentials", "data", "entity", fromVersion, toVersion);
+        MCTypeRegistry.UNTAGGED_SPAWNER.addStructureWalker(VERSION, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType root, final long fromVersion, final long toVersion) {
+                WalkerUtils.convertListPath(MCTypeRegistry.ENTITY, root, "SpawnPotentials", "data", "entity", fromVersion, toVersion);
 
-            WalkerUtils.convert(MCTypeRegistry.ENTITY, root.getMap("SpawnData"), "entity", fromVersion, toVersion);
+                WalkerUtils.convert(MCTypeRegistry.ENTITY, root.getMap("SpawnData"), "entity", fromVersion, toVersion);
 
-            return null;
+                return null;
+            }
         });
 
         MCTypeRegistry.UNTAGGED_SPAWNER.addStructureConverter(new DataConverter<>(VERSION) {
             @Override
             public MapType convert(final MapType root, final long sourceVersion, final long toVersion) {
+                final TypeUtil<?> typeUtil = root.getTypeUtil();
+
                 final MapType spawnData = root.getMap("SpawnData");
                 if (spawnData != null) {
-                    final MapType wrapped = Types.NBT.createEmptyMap();
+                    final MapType wrapped = typeUtil.createEmptyMap();
                     root.setMap("SpawnData", wrapped);
 
                     wrapped.setMap("entity", spawnData);
@@ -48,7 +54,7 @@ public final class V2831 {
                         spawnPotential.remove("Weight");
                         spawnPotential.setInt("weight", weight);
 
-                        final MapType data = Types.NBT.createEmptyMap();
+                        final MapType data = typeUtil.createEmptyMap();
                         spawnPotential.setMap("data", data);
 
                         data.setMap("entity", entity);

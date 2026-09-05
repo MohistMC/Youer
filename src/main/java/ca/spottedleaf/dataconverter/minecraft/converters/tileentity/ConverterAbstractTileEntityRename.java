@@ -1,8 +1,8 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.tileentity;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.converter.types.MapType;
 import java.util.function.Function;
 
 public final class ConverterAbstractTileEntityRename {

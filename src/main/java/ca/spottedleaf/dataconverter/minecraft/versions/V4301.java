@@ -1,11 +1,12 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataWalker;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
 
 public final class V4301 {
 
@@ -51,7 +52,7 @@ public final class V4301 {
 
             @Override
             public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
-                final MapType equipment = data.getTypeUtil().createEmptyMap();
+                final MapType equipment = data.createEmptyMap();
 
                 setIfNonNull(equipment, "body", filterItem(data.getMap("body_armor_item")));
                 setIfNonNull(equipment, "saddle", filterItem(data.getMap("saddle")));
@@ -72,20 +73,23 @@ public final class V4301 {
             }
         });
 
-        MCTypeRegistry.ENTITY_EQUIPMENT.addStructureWalker(VERSION, (final MapType data, final long fromVersion, final long toVersion) -> {
-            final MapType equipment = data.getMap("equipment");
-            if (equipment != null) {
-                WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, equipment, "mainhand", fromVersion, toVersion);
-                WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, equipment, "offhand", fromVersion, toVersion);
-                WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, equipment, "feet", fromVersion, toVersion);
-                WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, equipment, "legs", fromVersion, toVersion);
-                WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, equipment, "chest", fromVersion, toVersion);
-                WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, equipment, "head", fromVersion, toVersion);
-                WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, equipment, "body", fromVersion, toVersion);
-                WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, equipment, "saddle", fromVersion, toVersion);
-            }
+        MCTypeRegistry.ENTITY_EQUIPMENT.addStructureWalker(VERSION, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                final MapType equipment = data.getMap("equipment");
+                if (equipment != null) {
+                    WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, equipment, "mainhand", fromVersion, toVersion);
+                    WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, equipment, "offhand", fromVersion, toVersion);
+                    WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, equipment, "feet", fromVersion, toVersion);
+                    WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, equipment, "legs", fromVersion, toVersion);
+                    WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, equipment, "chest", fromVersion, toVersion);
+                    WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, equipment, "head", fromVersion, toVersion);
+                    WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, equipment, "body", fromVersion, toVersion);
+                    WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, equipment, "saddle", fromVersion, toVersion);
+                }
 
-            return null;
+                return null;
+            }
         });
     }
 

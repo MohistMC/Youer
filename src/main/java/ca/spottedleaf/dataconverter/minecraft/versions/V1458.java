@@ -1,13 +1,14 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataWalker;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.util.ComponentUtils;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.DataWalkerTypePaths;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
 import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItemLists;
-import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.converter.types.MapType;
 
 public final class V1458 {
 
@@ -93,36 +94,42 @@ public final class V1458 {
             }
         });
 
-        MCTypeRegistry.ENTITY.addStructureWalker(VERSION, (final MapType data, final long fromVersion, final long toVersion) -> {
-            WalkerUtils.convertList(MCTypeRegistry.ENTITY, data, "Passengers", fromVersion, toVersion);
-            WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, data, "CustomName", fromVersion, toVersion);
+        MCTypeRegistry.ENTITY.addStructureWalker(VERSION, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                WalkerUtils.convertList(MCTypeRegistry.ENTITY, data, "Passengers", fromVersion, toVersion);
+                WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, data, "CustomName", fromVersion, toVersion);
 
-            return MCTypeRegistry.ENTITY_EQUIPMENT.convert(data, fromVersion, toVersion);
+                return MCTypeRegistry.ENTITY_EQUIPMENT.convert(data, fromVersion, toVersion);
+            }
         });
 
         // Note: This is not present in Vanilla, but since we have the converter from CB it makes sense that we
         //       would walk the CustomName field for Player if we are converting it
-        MCTypeRegistry.PLAYER.addStructureWalker(VERSION, (final MapType data, final long fromVersion, final long toVersion) -> {
-            WalkerUtils.convert(MCTypeRegistry.ENTITY, data.getMap("RootVehicle"), "Entity", fromVersion, toVersion);
+        MCTypeRegistry.PLAYER.addStructureWalker(VERSION, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                WalkerUtils.convert(MCTypeRegistry.ENTITY, data.getMap("RootVehicle"), "Entity", fromVersion, toVersion);
 
-            WalkerUtils.convertList(MCTypeRegistry.ENTITY, data, "ender_pearls", fromVersion, toVersion);
+                WalkerUtils.convertList(MCTypeRegistry.ENTITY, data, "ender_pearls", fromVersion, toVersion);
 
-            WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, data, "Inventory", fromVersion, toVersion);
-            WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, data, "EnderItems", fromVersion, toVersion);
+                WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, data, "Inventory", fromVersion, toVersion);
+                WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, data, "EnderItems", fromVersion, toVersion);
 
-            WalkerUtils.convert(MCTypeRegistry.ENTITY, data, "ShoulderEntityLeft", fromVersion, toVersion);
-            WalkerUtils.convert(MCTypeRegistry.ENTITY, data, "ShoulderEntityRight", fromVersion, toVersion);
+                WalkerUtils.convert(MCTypeRegistry.ENTITY, data, "ShoulderEntityLeft", fromVersion, toVersion);
+                WalkerUtils.convert(MCTypeRegistry.ENTITY, data, "ShoulderEntityRight", fromVersion, toVersion);
 
-            final MapType recipeBook = data.getMap("recipeBook");
-            if (recipeBook != null) {
-                WalkerUtils.convertList(MCTypeRegistry.RECIPE, recipeBook, "recipes", fromVersion, toVersion);
-                WalkerUtils.convertList(MCTypeRegistry.RECIPE, recipeBook, "toBeDisplayed", fromVersion, toVersion);
+                final MapType recipeBook = data.getMap("recipeBook");
+                if (recipeBook != null) {
+                    WalkerUtils.convertList(MCTypeRegistry.RECIPE, recipeBook, "recipes", fromVersion, toVersion);
+                    WalkerUtils.convertList(MCTypeRegistry.RECIPE, recipeBook, "toBeDisplayed", fromVersion, toVersion);
+                }
+
+                // "From CB"
+                WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, data, "CustomName", fromVersion, toVersion);
+
+                return null;
             }
-
-            // "From CB"
-            WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, data, "CustomName", fromVersion, toVersion);
-
-            return null;
         });
 
         named(VERSION, "minecraft:beacon");

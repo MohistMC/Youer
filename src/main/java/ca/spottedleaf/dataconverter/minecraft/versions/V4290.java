@@ -1,13 +1,14 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataWalker;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.TypeUtil;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.types.TypeUtil;
 import ca.spottedleaf.dataconverter.types.Types;
 import ca.spottedleaf.dataconverter.types.nbt.NBTMapType;
 import com.google.gson.JsonElement;
@@ -262,49 +263,52 @@ public final class V4290 {
         });
 
         // step 1
-        MCTypeRegistry.TEXT_COMPONENT.addStructureWalker(VERSION, 1, (final Object input, final long fromVersion, final long toVersion) -> {
-            if (input instanceof ListType listType) {
-                WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, listType, fromVersion, toVersion);
-            } else if (input instanceof MapType root) {
-                WalkerUtils.convertList(MCTypeRegistry.TEXT_COMPONENT, root, "extra", fromVersion, toVersion);
-                WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, root, "separator", fromVersion, toVersion);
+        MCTypeRegistry.TEXT_COMPONENT.addStructureWalker(VERSION, 1, new DataWalker<>() {
+            @Override
+            public Object walk(final Object input, final long fromVersion, final long toVersion) {
+                if (input instanceof ListType listType) {
+                    WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, listType, fromVersion, toVersion);
+                } else if (input instanceof MapType root) {
+                    WalkerUtils.convertList(MCTypeRegistry.TEXT_COMPONENT, root, "extra", fromVersion, toVersion);
+                    WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, root, "separator", fromVersion, toVersion);
 
-                final MapType clickEvent = root.getMap("clickEvent");
-                if (clickEvent != null) {
-                    switch (clickEvent.getString("action", "")) {
-                        case "run_command":
-                        case "suggest_command": {
-                            WalkerUtils.convert(MCTypeRegistry.DATACONVERTER_CUSTOM_TYPE_COMMAND, clickEvent, "value", fromVersion, toVersion);
-                            break;
-                        }
-                    }
-                }
-
-                final MapType hoverEvent = root.getMap("hoverEvent");
-                if (hoverEvent != null) {
-                    switch (hoverEvent.getString("action", "")) {
-                        case "show_text": {
-                            WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, hoverEvent, "contents", fromVersion, toVersion);
-                            break;
-                        }
-                        case "show_item": {
-                            if (hoverEvent.hasKey("contents", ObjectType.STRING)) {
-                                WalkerUtils.convert(MCTypeRegistry.ITEM_NAME, hoverEvent, "contents", fromVersion, toVersion);
-                            } else {
-                                WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, hoverEvent, "contents", fromVersion, toVersion);
+                    final MapType clickEvent = root.getMap("clickEvent");
+                    if (clickEvent != null) {
+                        switch (clickEvent.getString("action", "")) {
+                            case "run_command":
+                            case "suggest_command": {
+                                WalkerUtils.convert(MCTypeRegistry.DATACONVERTER_CUSTOM_TYPE_COMMAND, clickEvent, "value", fromVersion, toVersion);
+                                break;
                             }
-                            break;
                         }
-                        case "show_entity": {
-                            WalkerUtils.convert(MCTypeRegistry.ENTITY_NAME, hoverEvent, "type", fromVersion, toVersion);
-                            WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, hoverEvent, "name", fromVersion, toVersion);
-                            break;
-                        }
-                        // default: do nothing
                     }
-                }
-            } // else: should only be string
-            return null;
+
+                    final MapType hoverEvent = root.getMap("hoverEvent");
+                    if (hoverEvent != null) {
+                        switch (hoverEvent.getString("action", "")) {
+                            case "show_text": {
+                                WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, hoverEvent, "contents", fromVersion, toVersion);
+                                break;
+                            }
+                            case "show_item": {
+                                if (hoverEvent.hasKey("contents", ObjectType.STRING)) {
+                                    WalkerUtils.convert(MCTypeRegistry.ITEM_NAME, hoverEvent, "contents", fromVersion, toVersion);
+                                } else {
+                                    WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, hoverEvent, "contents", fromVersion, toVersion);
+                                }
+                                break;
+                            }
+                            case "show_entity": {
+                                WalkerUtils.convert(MCTypeRegistry.ENTITY_NAME, hoverEvent, "type", fromVersion, toVersion);
+                                WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, hoverEvent, "name", fromVersion, toVersion);
+                                break;
+                            }
+                            // default: do nothing
+                        }
+                    }
+                } // else: should only be string
+                return null;
+            }
         });
     }
 

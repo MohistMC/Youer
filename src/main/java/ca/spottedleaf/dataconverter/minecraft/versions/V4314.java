@@ -1,13 +1,12 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
-import ca.spottedleaf.dataconverter.minecraft.converters.helpers.CopyHelper;
-import ca.spottedleaf.dataconverter.minecraft.converters.helpers.RenameHelper;
+import ca.spottedleaf.converter.util.RenameHelper;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.TypeUtil;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.TypeUtil;
 
 public final class V4314 {
 
@@ -41,9 +40,9 @@ public final class V4314 {
 
                     respawn.setInts("pos", V4309.makeBlockPosition(spawnX, spawnY, spawnZ));
 
-                    CopyHelper.move(root, "SpawnAngle", respawn, "angle");
-                    CopyHelper.move(root, "SpawnDimension", respawn, "dimension");
-                    CopyHelper.move(root, "SpawnForced", respawn, "forced");
+                    RenameHelper.move(root, "SpawnAngle", respawn, "angle");
+                    RenameHelper.move(root, "SpawnDimension", respawn, "dimension");
+                    RenameHelper.move(root, "SpawnForced", respawn, "forced");
                 }
 
                 final MapType netherPos = root.getMap("enteredNetherPosition");

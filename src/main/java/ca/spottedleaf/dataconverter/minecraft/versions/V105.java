@@ -1,12 +1,12 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperSpawnEggNameV105;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.Types;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.TypeUtil;
 
 public final class V105 {
 
@@ -16,9 +16,10 @@ public final class V105 {
         MCTypeRegistry.ITEM_STACK.addConverterForId("minecraft:spawn_egg", new DataConverter<>(VERSION) {
             @Override
             public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
+                final TypeUtil<?> typeUtil = data.getTypeUtil();
                 MapType tag = data.getMap("tag");
                 if (tag == null) {
-                    tag = Types.NBT.createEmptyMap();
+                    tag = typeUtil.createEmptyMap();
                 }
 
                 final short damage = data.getShort("Damage");
@@ -28,7 +29,7 @@ public final class V105 {
 
                 MapType entityTag = tag.getMap("EntityTag");
                 if (entityTag == null) {
-                    entityTag = Types.NBT.createEmptyMap();
+                    entityTag = typeUtil.createEmptyMap();
                 }
 
                 if (!entityTag.hasKey("id", ObjectType.STRING)) {

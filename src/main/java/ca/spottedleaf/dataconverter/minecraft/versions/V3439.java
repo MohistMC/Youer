@@ -1,12 +1,13 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataWalker;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.util.ComponentUtils;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
 
 public final class V3439 {
 
@@ -22,11 +23,14 @@ public final class V3439 {
     }
 
     static void registerSign(final int version, final String id) {
-        MCTypeRegistry.TILE_ENTITY.addWalker(version, id, (final MapType data, final long fromVersion, final long toVersion) -> {
-            handleSignText(data.getMap("front_text"), fromVersion, toVersion);
-            handleSignText(data.getMap("back_text"), fromVersion, toVersion);
+        MCTypeRegistry.TILE_ENTITY.addWalker(version, id, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                handleSignText(data.getMap("front_text"), fromVersion, toVersion);
+                handleSignText(data.getMap("back_text"), fromVersion, toVersion);
 
-            return null;
+                return null;
+            }
         });
     }
 
@@ -39,7 +43,7 @@ public final class V3439 {
                     return null;
                 }
 
-                final ListType ret = root.getTypeUtil().createEmptyList();
+                final ListType ret = root.createEmptyList();
 
                 ret.addString(root.getString(prefix.concat("1"), ComponentUtils.EMPTY));
                 ret.addString(root.getString(prefix.concat("2"), ComponentUtils.EMPTY));
@@ -52,7 +56,7 @@ public final class V3439 {
             @Override
             public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
                 // front text
-                final MapType frontText = data.getTypeUtil().createEmptyMap();
+                final MapType frontText = data.createEmptyMap();
                 data.setMap("front_text", frontText);
 
                 final ListType frontMessages = migrateToList(data, "Text");
@@ -70,7 +74,7 @@ public final class V3439 {
                     }
 
                     if (frontFilteredMessages == null) {
-                        frontFilteredMessages = data.getTypeUtil().createEmptyList();
+                        frontFilteredMessages = data.createEmptyList();
                         for (int k = 0; k < i; ++k) {
                             frontFilteredMessages.addString(frontMessages.getString(k));
                         }
@@ -88,10 +92,10 @@ public final class V3439 {
                 frontText.setBoolean("_filtered_correct", true);
 
                 // back text
-                final MapType backText = data.getTypeUtil().createEmptyMap();
+                final MapType backText = data.createEmptyMap();
                 data.setMap("back_text", backText);
 
-                final ListType blankMessages = data.getTypeUtil().createEmptyList();
+                final ListType blankMessages = data.createEmptyList();
                 backText.setList("messages", blankMessages);
 
                 for (int i = 0; i < 4; ++i) {

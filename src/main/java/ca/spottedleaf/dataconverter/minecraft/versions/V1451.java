@@ -1,7 +1,8 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
-import ca.spottedleaf.dataconverter.converters.datatypes.DataHook;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataHook;
+import ca.spottedleaf.converter.datatypes.DataWalker;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.converters.chunk.ConverterFlattenChunk;
 import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperBlockFlatteningV1450;
@@ -16,10 +17,9 @@ import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItemLi
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
 import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItems;
 import ca.spottedleaf.dataconverter.minecraft.walkers.tile_entity.DataWalkerTileEntities;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.Types;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
 import com.google.common.base.Splitter;
 import net.minecraft.resources.Identifier;
 import net.minecraft.util.datafix.fixes.BlockStateData;
@@ -46,32 +46,35 @@ public final class V1451 {
         // V1
         MCTypeRegistry.CHUNK.addStructureConverter(new ConverterFlattenChunk());
 
-        MCTypeRegistry.CHUNK.addStructureWalker(VERSION, 1, (final MapType data, final long fromVersion, final long toVersion) -> {
-            final MapType level = data.getMap("Level");
-            if (level == null) {
+        MCTypeRegistry.CHUNK.addStructureWalker(VERSION, 1, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                final MapType level = data.getMap("Level");
+                if (level == null) {
+                    return null;
+                }
+
+                WalkerUtils.convertList(MCTypeRegistry.ENTITY, level, "Entities", fromVersion, toVersion);
+                WalkerUtils.convertList(MCTypeRegistry.TILE_ENTITY, level, "TileEntities", fromVersion, toVersion);
+
+                final ListType tileTicks = level.getList("TileTicks", ObjectType.MAP);
+                if (tileTicks != null) {
+                    for (int i = 0, len = tileTicks.size(); i < len; ++i) {
+                        final MapType tileTick = tileTicks.getMap(i);
+                        WalkerUtils.convert(MCTypeRegistry.BLOCK_NAME, tileTick, "i", fromVersion, toVersion);
+                    }
+                }
+
+                final ListType sections = level.getList("Sections", ObjectType.MAP);
+                if (sections != null) {
+                    for (int i = 0, len = sections.size(); i < len; ++i) {
+                        final MapType section = sections.getMap(i);
+                        WalkerUtils.convertList(MCTypeRegistry.BLOCK_STATE, section, "Palette", fromVersion, toVersion);
+                    }
+                }
+
                 return null;
             }
-
-            WalkerUtils.convertList(MCTypeRegistry.ENTITY, level, "Entities", fromVersion, toVersion);
-            WalkerUtils.convertList(MCTypeRegistry.TILE_ENTITY, level, "TileEntities", fromVersion, toVersion);
-
-            final ListType tileTicks = level.getList("TileTicks", ObjectType.MAP);
-            if (tileTicks != null) {
-                for (int i = 0, len = tileTicks.size(); i < len; ++i) {
-                    final MapType tileTick = tileTicks.getMap(i);
-                    WalkerUtils.convert(MCTypeRegistry.BLOCK_NAME, tileTick, "i", fromVersion, toVersion);
-                }
-            }
-
-            final ListType sections = level.getList("Sections", ObjectType.MAP);
-            if (sections != null) {
-                for (int i = 0, len = sections.size(); i < len; ++i) {
-                    final MapType section = sections.getMap(i);
-                    WalkerUtils.convertList(MCTypeRegistry.BLOCK_STATE, section, "Palette", fromVersion, toVersion);
-                }
-            }
-
-            return null;
         });
 
         // V2
@@ -97,11 +100,7 @@ public final class V1451 {
         MCTypeRegistry.ITEM_STACK.addConverterForId("minecraft:filled_map", new DataConverter<>(VERSION, 3) {
             @Override
             public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
-                MapType tag = data.getMap("tag");
-                if (tag == null) {
-                    tag = Types.NBT.createEmptyMap();
-                    data.setMap("tag", tag);
-                }
+                final MapType tag = data.getOrCreateMap("tag");
 
                 if (!tag.hasKey("map", ObjectType.NUMBER)) { // This if is from CB. as usual, no documentation from CB. I'm guessing it just wants to avoid possibly overwriting it. seems fine.
                     tag.setInt("map", data.getInt("Damage"));
@@ -126,8 +125,11 @@ public final class V1451 {
         MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:hopper_minecart", new DataWalkerItemLists("Items"));
         MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:minecart", new DataWalkerTypePaths<>(MCTypeRegistry.BLOCK_STATE, "DisplayState"));
         MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:spawner_minecart", new DataWalkerTypePaths<>(MCTypeRegistry.BLOCK_STATE, "DisplayState"));
-        MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:spawner_minecart", (final MapType data, final long fromVersion, final long toVersion) -> {
-            return MCTypeRegistry.UNTAGGED_SPAWNER.convert(data, fromVersion, toVersion);
+        MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:spawner_minecart", new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                return MCTypeRegistry.UNTAGGED_SPAWNER.convert(data, fromVersion, toVersion);
+            }
         });
         MCTypeRegistry.ENTITY.addWalker(VERSION, 3, "minecraft:tnt_minecart", new DataWalkerTypePaths<>(MCTypeRegistry.BLOCK_STATE, "DisplayState"));
 
@@ -278,7 +280,7 @@ public final class V1451 {
                     return null;
                 }
 
-                final MapType recordItem = Types.NBT.createEmptyMap();
+                final MapType recordItem = data.createEmptyMap();
                 data.setMap("RecordItem", recordItem);
 
                 recordItem.setString("id", newItemId);
@@ -288,24 +290,27 @@ public final class V1451 {
             }
         });
 
-        MCTypeRegistry.STATS.addStructureWalker(VERSION, 6, (final MapType data, final long fromVersion, final long toVersion) -> {
-            final MapType stats = data.getMap("stats");
-            if (stats == null) {
+        MCTypeRegistry.STATS.addStructureWalker(VERSION, 6, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                final MapType stats = data.getMap("stats");
+                if (stats == null) {
+                    return null;
+                }
+
+                WalkerUtils.convertKeys(MCTypeRegistry.BLOCK_NAME, stats, "minecraft:mined", fromVersion, toVersion);
+
+                WalkerUtils.convertKeys(MCTypeRegistry.ITEM_NAME, stats, "minecraft:crafted", fromVersion, toVersion);
+                WalkerUtils.convertKeys(MCTypeRegistry.ITEM_NAME, stats, "minecraft:used", fromVersion, toVersion);
+                WalkerUtils.convertKeys(MCTypeRegistry.ITEM_NAME, stats, "minecraft:broken", fromVersion, toVersion);
+                WalkerUtils.convertKeys(MCTypeRegistry.ITEM_NAME, stats, "minecraft:picked_up", fromVersion, toVersion);
+                WalkerUtils.convertKeys(MCTypeRegistry.ITEM_NAME, stats, "minecraft:dropped", fromVersion, toVersion);
+
+                WalkerUtils.convertKeys(MCTypeRegistry.ENTITY_NAME, stats, "minecraft:killed", fromVersion, toVersion);
+                WalkerUtils.convertKeys(MCTypeRegistry.ENTITY_NAME, stats, "minecraft:killed_by", fromVersion, toVersion);
+
                 return null;
             }
-
-            WalkerUtils.convertKeys(MCTypeRegistry.BLOCK_NAME, stats, "minecraft:mined", fromVersion, toVersion);
-
-            WalkerUtils.convertKeys(MCTypeRegistry.ITEM_NAME, stats, "minecraft:crafted", fromVersion, toVersion);
-            WalkerUtils.convertKeys(MCTypeRegistry.ITEM_NAME, stats, "minecraft:used", fromVersion, toVersion);
-            WalkerUtils.convertKeys(MCTypeRegistry.ITEM_NAME, stats, "minecraft:broken", fromVersion, toVersion);
-            WalkerUtils.convertKeys(MCTypeRegistry.ITEM_NAME, stats, "minecraft:picked_up", fromVersion, toVersion);
-            WalkerUtils.convertKeys(MCTypeRegistry.ITEM_NAME, stats, "minecraft:dropped", fromVersion, toVersion);
-
-            WalkerUtils.convertKeys(MCTypeRegistry.ENTITY_NAME, stats, "minecraft:killed", fromVersion, toVersion);
-            WalkerUtils.convertKeys(MCTypeRegistry.ENTITY_NAME, stats, "minecraft:killed_by", fromVersion, toVersion);
-
-            return null;
         });
 
         MCTypeRegistry.OBJECTIVE.addStructureHook(VERSION, 6, new DataHook<>() {
@@ -336,7 +341,7 @@ public final class V1451 {
                 }
 
                 if (type != null && id != null) {
-                    final MapType criteriaType = Types.NBT.createEmptyMap();
+                    final MapType criteriaType = data.createEmptyMap();
                     data.setMap("CriteriaType", criteriaType);
 
                     criteriaType.setString("type", type);
@@ -377,43 +382,46 @@ public final class V1451 {
             }
         });
 
-        MCTypeRegistry.OBJECTIVE.addStructureWalker(VERSION, 6, (final MapType data, final long fromVersion, final long toVersion) -> {
-            WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, data, "DisplayName", fromVersion, toVersion);
+        MCTypeRegistry.OBJECTIVE.addStructureWalker(VERSION, 6, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, data, "DisplayName", fromVersion, toVersion);
 
-            final MapType criteriaType = data.getMap("CriteriaType");
-            if (criteriaType == null) {
+                final MapType criteriaType = data.getMap("CriteriaType");
+                if (criteriaType == null) {
+                    return null;
+                }
+
+                final String type = criteriaType.getString("type");
+
+                if (type == null) {
+                    return null;
+                }
+
+                switch (type) {
+                    case "minecraft:mined": {
+                        WalkerUtils.convert(MCTypeRegistry.BLOCK_NAME, criteriaType, "id", fromVersion, toVersion);
+                        break;
+                    }
+
+                    case "minecraft:crafted":
+                    case "minecraft:used":
+                    case "minecraft:broken":
+                    case "minecraft:picked_up":
+                    case "minecraft:dropped": {
+                        WalkerUtils.convert(MCTypeRegistry.ITEM_NAME, criteriaType, "id", fromVersion, toVersion);
+                        break;
+                    }
+
+                    case "minecraft:killed":
+                    case "minecraft:killed_by": {
+                        WalkerUtils.convert(MCTypeRegistry.ENTITY_NAME, criteriaType, "id", fromVersion, toVersion);
+                        break;
+                    }
+                }
+
                 return null;
             }
-
-            final String type = criteriaType.getString("type");
-
-            if (type == null) {
-                return null;
-            }
-
-            switch (type) {
-                case "minecraft:mined": {
-                    WalkerUtils.convert(MCTypeRegistry.BLOCK_NAME, criteriaType, "id", fromVersion, toVersion);
-                    break;
-                }
-
-                case "minecraft:crafted":
-                case "minecraft:used":
-                case "minecraft:broken":
-                case "minecraft:picked_up":
-                case "minecraft:dropped": {
-                    WalkerUtils.convert(MCTypeRegistry.ITEM_NAME, criteriaType, "id", fromVersion, toVersion);
-                    break;
-                }
-
-                case "minecraft:killed":
-                case "minecraft:killed_by": {
-                    WalkerUtils.convert(MCTypeRegistry.ENTITY_NAME, criteriaType, "id", fromVersion, toVersion);
-                    break;
-                }
-            }
-
-            return null;
         });
 
 
@@ -492,25 +500,28 @@ public final class V1451 {
             }
         });
 
-        MCTypeRegistry.STRUCTURE_FEATURE.addStructureWalker(VERSION, 7, (final MapType data, final long fromVersion, final long toVersion) -> {
-            final ListType list = data.getListUnchecked("Children");
-            if (list == null) {
-                return null;
-            }
-
-            for (int i = 0, len = list.size(); i < len; ++i) {
-                final MapType child = list.getMap(i, null);
-                if (child == null) {
-                    continue;
+        MCTypeRegistry.STRUCTURE_FEATURE.addStructureWalker(VERSION, 7, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                final ListType list = data.getListUnchecked("Children");
+                if (list == null) {
+                    return null;
                 }
 
-                WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CA", fromVersion, toVersion);
-                WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CB", fromVersion, toVersion);
-                WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CC", fromVersion, toVersion);
-                WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CD", fromVersion, toVersion);
-            }
+                for (int i = 0, len = list.size(); i < len; ++i) {
+                    final MapType child = list.getMap(i, null);
+                    if (child == null) {
+                        continue;
+                    }
 
-            return null;
+                    WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CA", fromVersion, toVersion);
+                    WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CB", fromVersion, toVersion);
+                    WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CC", fromVersion, toVersion);
+                    WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CD", fromVersion, toVersion);
+                }
+
+                return null;
+            }
         });
     }
 

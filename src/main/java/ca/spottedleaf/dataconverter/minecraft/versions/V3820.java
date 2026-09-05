@@ -1,11 +1,11 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.converters.itemstack.ConverterItemStackToDataComponents;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.DataWalkerTypePaths;
-import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.converter.types.MapType;
 
 public final class V3820 {
 
@@ -63,7 +63,7 @@ public final class V3820 {
                 oldTarget.remove("pos");
                 oldTarget.remove("dimension");
 
-                final MapType target = oldTarget.getTypeUtil().createEmptyMap();
+                final MapType target = oldTarget.createEmptyMap();
                 oldTarget.setMap("target", target);
 
                 target.setGeneric("pos", pos);

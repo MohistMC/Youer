@@ -1,12 +1,13 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataWalker;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
 
 public final class V3807 {
 
@@ -35,12 +36,15 @@ public final class V3807 {
 
     public static void register() {
         // Step 0
-        MCTypeRegistry.TILE_ENTITY.addWalker(VERSION, "minecraft:vault", (final MapType root, final long fromVersion, final long toVersion) -> {
-            WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, root.getMap("config"), "key_item", fromVersion, toVersion);
-            WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, root.getMap("server_data"), "items_to_eject", fromVersion, toVersion);
-            WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, root.getMap("shared_data"), "display_item", fromVersion, toVersion);
+        MCTypeRegistry.TILE_ENTITY.addWalker(VERSION, "minecraft:vault", new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType root, final long fromVersion, final long toVersion) {
+                WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, root.getMap("config"), "key_item", fromVersion, toVersion);
+                WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, root.getMap("server_data"), "items_to_eject", fromVersion, toVersion);
+                WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, root.getMap("shared_data"), "display_item", fromVersion, toVersion);
 
-            return null;
+                return null;
+            }
         });
 
         // Step 1

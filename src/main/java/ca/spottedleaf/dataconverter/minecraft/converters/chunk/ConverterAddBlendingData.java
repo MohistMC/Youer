@@ -1,8 +1,8 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.chunk;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.Types;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.TypeUtil;
 import ca.spottedleaf.dataconverter.util.NamespaceUtil;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -27,8 +27,8 @@ public final class ConverterAddBlendingData extends DataConverter<MapType, MapTy
         super(toVersion, versionStep);
     }
 
-    private static MapType createBlendingData(final int height, final int minY) {
-        final MapType ret = Types.NBT.createEmptyMap();
+    private static MapType createBlendingData(final TypeUtil<?> typeUtil, final int height, final int minY) {
+        final MapType ret = typeUtil.createEmptyMap();
 
         ret.setInt("min_section", minY >> 4);
         ret.setInt("max_section", (minY + height) >> 4);
@@ -52,11 +52,11 @@ public final class ConverterAddBlendingData extends DataConverter<MapType, MapTy
         final MapType belowZeroRetrogen = data.getMap("below_zero_retrogen");
 
         if (!STATUSES_TO_SKIP_BLENDING.contains(status)) {
-            data.setMap("blending_data", createBlendingData(384, -64));
+            data.setMap("blending_data", createBlendingData(data.getTypeUtil(), 384, -64));
         } else if (belowZeroRetrogen != null) {
             final String realStatus = NamespaceUtil.correctNamespace(belowZeroRetrogen.getString("target_status", "empty"));
             if (!STATUSES_TO_SKIP_BLENDING.contains(realStatus)) {
-                data.setMap("blending_data", createBlendingData(256, 0));
+                data.setMap("blending_data", createBlendingData(data.getTypeUtil(), 256, 0));
             }
         }
 

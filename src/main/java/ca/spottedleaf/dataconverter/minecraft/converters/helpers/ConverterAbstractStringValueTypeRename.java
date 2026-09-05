@@ -1,6 +1,6 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.helpers;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCValueType;
 import java.util.function.Function;
 

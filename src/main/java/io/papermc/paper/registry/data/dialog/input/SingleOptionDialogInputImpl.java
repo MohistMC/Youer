@@ -12,7 +12,7 @@ import static io.papermc.paper.util.BoundChecker.requireRange;
 public record SingleOptionDialogInputImpl(
     String key,
     int width,
-    List<OptionEntry> entries,
+    List<SingleOptionDialogInput.OptionEntry> entries,
     Component label,
     boolean labelVisible
 ) implements SingleOptionDialogInput {
@@ -24,7 +24,7 @@ public record SingleOptionDialogInputImpl(
     public record SingleOptionEntryImpl(String id, @Nullable Component display, boolean initial) implements OptionEntry {
     }
 
-    public static final class BuilderImpl implements Builder {
+    public static final class BuilderImpl implements SingleOptionDialogInput.Builder {
 
         private final String key;
         private int width = PlainMessage.DEFAULT_WIDTH;

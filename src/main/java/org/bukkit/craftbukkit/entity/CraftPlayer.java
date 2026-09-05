@@ -20,6 +20,7 @@ import io.papermc.paper.dialog.PaperDialog;
 import io.papermc.paper.entity.LookAnchor;
 import io.papermc.paper.entity.PaperPlayerGiveResult;
 import io.papermc.paper.entity.PlayerGiveResult;
+import io.papermc.paper.math.Angle;
 import io.papermc.paper.math.Position;
 import io.papermc.paper.util.MCUtil;
 import it.unimi.dsi.fastutil.shorts.ShortArraySet;
@@ -117,6 +118,7 @@ import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.server.players.UserWhiteListEntry;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.util.Prediction;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
@@ -131,6 +133,7 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
+import net.minecraft.world.level.block.entity.SignTextSlot;
 import net.minecraft.world.level.border.BorderChangeListener;
 import net.minecraft.world.level.saveddata.maps.MapDecoration;
 import net.minecraft.world.level.saveddata.maps.MapId;
@@ -1139,13 +1142,13 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
     private void sendSignChange0(Component[] components, Location loc, DyeColor dyeColor, boolean hasGlowingText) {
         // Paper end
         SignBlockEntity sign = new SignBlockEntity(CraftLocation.toBlockPos(loc), Blocks.OAK_SIGN.defaultBlockState());
-        SignText text = sign.getFrontText();
-        text = text.setColor(net.minecraft.world.item.DyeColor.byId(dyeColor.getWoolData()));
-        text = text.setHasGlowingText(hasGlowingText);
+        SignText text = sign.getText(SignTextSlot.FRONT);
+        SignText.Mutable mutableText = text.withColor(net.minecraft.world.item.DyeColor.byId(dyeColor.getWoolData())).withGlowingText(hasGlowingText).asMutable();
+
         for (int i = 0; i < components.length; i++) {
-            text = text.setMessage(i, components[i]);
+            mutableText = mutableText.setLine(i, components[i]);
         }
-        sign.setText(text, true);
+        sign.setText(mutableText.asImmutable(), SignTextSlot.FRONT);
 
         this.getHandle().connection.send(new ClientboundBlockEntityDataPacket(sign.getBlockPos(), sign.getType(), sign.getUpdateTag(this.getHandle().registryAccess())));
     }
@@ -1376,6 +1379,13 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
 
     @Override
     public void setRotation(float yaw, float pitch) {
+        if (this.getHandle().connection == null) return;
+
+        super.setRotation(yaw, pitch);
+    }
+
+    @Override
+    public void setRotation(@NonNull Angle yaw, @NonNull Angle pitch) {
         if (this.getHandle().connection == null) return;
 
         super.setRotation(yaw, pitch);
@@ -2550,6 +2560,16 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
     }
     // Paper end - flying fall damage
 
+
+    @Override
+    public void resetFlyingTicks() {
+        if (getHandle().connection == null) {
+            return;
+        }
+
+        getHandle().connection.resetFlyingTicks();
+    }
+
     @Override
     public void setFlySpeed(float value) {
         this.validateSpeed(value);
@@ -2850,7 +2870,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
     public void openVirtualSign(Position block, Side side) {
         if (this.getHandle().connection == null) return;
 
-        this.getHandle().connection.send(new ClientboundOpenSignEditorPacket(MCUtil.toBlockPos(block), side == Side.FRONT));
+        this.getHandle().connection.send(new ClientboundOpenSignEditorPacket(MCUtil.toBlockPos(block), CraftSign.toNms(side)));
     }
 
     @Override
@@ -3363,7 +3383,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
             leftovers.add(CraftItemStack.asBukkitCopy(nmsStack)); // Insert copy to avoid mutation to the dropped item from affecting leftovers
             if (!dropIfFull) continue;
 
-            final ItemEntity entity = handle.drop(nmsStack, false, true);
+            final ItemEntity entity = handle.drop(nmsStack, true, Prediction.PREDICTED);
             if (entity != null) drops.add((Item) entity.getBukkitEntity());
         }
 
@@ -3481,6 +3501,12 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
     @Override
     public void knockback(final double strength, final double directionX, final double directionZ) {
         super.knockback(strength, directionX, directionZ);
-        this.entity.hurtMarked = true;
+        this.entity.syncVelocity = true;
+    }
+
+    @Override
+    public void unsetFixedPose() {
+        this.getHandle().fixedPose = false;
+        this.getHandle().updatePlayerPose();
     }
 }

@@ -18,7 +18,9 @@ import net.minecraft.network.protocol.game.ClientboundOpenScreenPacket;
 import net.minecraft.network.protocol.game.ServerboundContainerClosePacket;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.util.Prediction;
 import net.minecraft.world.MenuProvider;
+import net.minecraft.world.attribute.BedRule;
 import net.minecraft.world.entity.HumanoidArm;
 import net.minecraft.world.entity.animal.equine.AbstractHorse;
 import net.minecraft.world.entity.animal.nautilus.AbstractNautilus;
@@ -33,6 +35,7 @@ import net.minecraft.world.inventory.MerchantMenu;
 import net.minecraft.world.item.ItemCooldowns;
 import net.minecraft.world.item.crafting.RecipeHolder;
 import net.minecraft.world.item.crafting.RecipeManager;
+import net.minecraft.world.level.block.AbstractBedBlock;
 import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.BlockEntity;
@@ -198,11 +201,12 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
 
         BlockPos pos = CraftLocation.toBlockPos(location);
         BlockState state = this.getHandle().level().getBlockState(pos);
-        if (!(state.getBlock() instanceof BedBlock)) {
+        if (!(state.getBlock() instanceof AbstractBedBlock bedBlock)) {
             return false;
         }
+        final BedRule dimensionValue = bedBlock.getBedRule(this.getHandle().level(), pos);
 
-        if (this.getHandle().startSleepInBed(pos, force).left().isPresent()) {
+        if (this.getHandle().startSleepInBed(bedBlock, state,dimensionValue, pos).left().isPresent()) {
             return false;
         }
 
@@ -516,17 +520,18 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
         net.minecraft.world.item.trading.Merchant mcMerchant;
         Component name;
         int level = 1; // note: using level 0 with active 'is-regular-villager'-flag allows hiding the name suffix
-        if (merchant instanceof CraftAbstractVillager) {
-            mcMerchant = ((CraftAbstractVillager) merchant).getHandle();
-            name = ((CraftAbstractVillager) merchant).getHandle().getDisplayName();
-            if (merchant instanceof CraftVillager) {
-                level = ((CraftVillager) merchant).getHandle().getVillagerData().level();
+        if (merchant instanceof CraftAbstractVillager craftAbstractVillager) {
+            mcMerchant = craftAbstractVillager.getHandle();
+            name = craftAbstractVillager.getHandle().getDisplayName();
+            if (merchant instanceof CraftVillager craftVillager) {
+                level = craftVillager.getHandle().getVillagerData().level();
+                craftVillager.getHandle().updateSpecialPrices(this.getHandle()); // update villager prices before opening menu to player
             }
-        } else if (merchant instanceof CraftMerchantCustom) {
-            mcMerchant = ((CraftMerchantCustom) merchant).getMerchant();
-            name = ((CraftMerchantCustom) merchant).getMerchant().getScoreboardDisplayName();
+        } else if (merchant instanceof CraftMerchantCustom craftMerchantCustom) {
+            mcMerchant = craftMerchantCustom.getMerchant();
+            name = craftMerchantCustom.getMerchant().getScoreboardDisplayName();
         } else {
-            throw new IllegalArgumentException("Can't open merchant " + merchant.toString());
+            throw new IllegalArgumentException("Can't open merchant " + merchant);
         }
 
         mcMerchant.setTradingPlayer(this.getHandle());
@@ -708,7 +713,10 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
 
     @Override
     public int undiscoverRecipes(Collection<NamespacedKey> recipes) {
-        return this.getHandle().resetRecipes(this.bukkitKeysToMinecraftRecipes(recipes));
+        if (this.getHandle() instanceof ServerPlayer player) {
+            return player.resetRecipes(this.bukkitKeysToMinecraftRecipes(recipes));
+        }
+        return 0;
     }
 
     @Override
@@ -796,21 +804,19 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
         return internalDropItemFromInventory(this.inventory.getItem(slot), amount, throwRandomly, entityOperation);
     }
 
-    @Nullable
-    private Item internalDropItemFromInventory(final ItemStack originalItemStack, final int amount, final boolean throwRandomly, final @Nullable Consumer<Item> entityOperation) {
+    private @Nullable Item internalDropItemFromInventory(final ItemStack originalItemStack, final int amount, final boolean throwRandomly, final @Nullable Consumer<Item> entityOperation) {
         if (originalItemStack == null || originalItemStack.isEmpty() || amount <= 0) return null;
 
         final net.minecraft.world.item.ItemStack nmsItemStack = CraftItemStack.unwrap(originalItemStack);
         final net.minecraft.world.item.ItemStack dropContent = nmsItemStack.split(amount);
 
         // This will return the itemstack back to its original amount in case events fail
-        final ItemEntity droppedEntity = this.getHandle().drop(dropContent, throwRandomly, true, true, entityOperation);
+        final ItemEntity droppedEntity = this.getHandle().drop(dropContent, true, Prediction.PREDICTED, throwRandomly, true, entityOperation);
         return droppedEntity == null ? null : (Item) droppedEntity.getBukkitEntity();
     }
 
     @Override
-    @Nullable
-    public Item dropItem(final ItemStack itemStack, final boolean throwRandomly, final @Nullable Consumer<Item> entityOperation) {
+    public @Nullable Item dropItem(final ItemStack itemStack, final boolean throwRandomly, final @Nullable Consumer<Item> entityOperation) {
         // This method implementation differs from the previous dropItem implementations, as it does not source
         // its itemstack from the players inventory. As such, we cannot reuse #internalDropItemFromInventory.
         Preconditions.checkArgument(itemStack != null, "Cannot drop a null itemstack");
@@ -819,7 +825,7 @@ public class CraftHumanEntity extends CraftLivingEntity implements HumanEntity {
         final net.minecraft.world.item.ItemStack nmsItemStack = CraftItemStack.asNMSCopy(itemStack);
 
         // Do *not* call the event here, the item is not in the player inventory, they are not dropping it / do not need recovering logic (which would be a dupe).
-        final ItemEntity droppedEntity = this.getHandle().drop(nmsItemStack, throwRandomly, true, false, entityOperation);
+        final ItemEntity droppedEntity = this.getHandle().drop(nmsItemStack, true, Prediction.PREDICTED, throwRandomly, false, entityOperation);
         return droppedEntity == null ? null : (Item) droppedEntity.getBukkitEntity();
     }
 

@@ -1,12 +1,12 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.util.ComponentUtils;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
 
 public final class V3564 {
 
@@ -51,7 +51,7 @@ public final class V3564 {
                 // should treat null here as empty list
                 final ListType messages = text.getList("messages", ObjectType.STRING);
 
-                final ListType newFilteredList = filteredMessages.getTypeUtil().createEmptyList();
+                final ListType newFilteredList = filteredMessages.createEmptyList();
                 boolean newFilteredIsEmpty = true;
 
                 for (int i = 0, len = filteredMessages.size(); i < len; ++i) {

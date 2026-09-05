@@ -10,7 +10,6 @@ import java.util.function.Consumer;
 import net.kyori.adventure.key.Key;
 import net.kyori.adventure.key.KeyPattern;
 import net.kyori.adventure.text.Component;
-import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
 
@@ -23,7 +22,6 @@ public abstract class MusicInstrument implements Keyed, net.kyori.adventure.tran
      * @param value a consumer for the builder factory
      * @return the created music instrument
      */
-    @ApiStatus.Experimental
     public static MusicInstrument create(final Consumer<RegistryBuilderFactory<MusicInstrument, ? extends InstrumentRegistryEntry.Builder>> value) {
         return InlinedRegistryBuilderProvider.instance().createInstrument(value);
     }
@@ -87,6 +85,13 @@ public abstract class MusicInstrument implements Keyed, net.kyori.adventure.tran
      * @return the range of the sound
      */
     public abstract float getRange();
+
+    /**
+     * Gets the durability damage to this instrument.
+     *
+     * @return the durability damage to this instrument
+     */
+    public abstract float getDurabilityDamage();
 
     /**
      * Gets the description of this instrument as displayed to the client.

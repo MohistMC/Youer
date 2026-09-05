@@ -1,9 +1,9 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.converter.types.MapType;
 
 public final class V3459 {
 
@@ -24,7 +24,7 @@ public final class V3459 {
 
                 final MapType endData = dimensionData.getMap("1");
                 if (endData != null) {
-                    final MapType dragonFight = endData.<String>getMap("DragonFight", endData.getTypeUtil().createEmptyMap()).copy();
+                    final MapType dragonFight = endData.getMap("DragonFight", endData.createEmptyMap()).copy();
                     V3807.flattenBlockPos(dragonFight, "ExitPortalLocation");
                     data.setMap("DragonFight", dragonFight);
                 }

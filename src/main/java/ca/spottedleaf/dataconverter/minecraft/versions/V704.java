@@ -1,26 +1,15 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.common.map.longs.Long2ObjectArraySortedMap;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataWalker;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.hooks.DataHookEnforceNamespacedID;
-import ca.spottedleaf.dataconverter.minecraft.walkers.generic.DataWalkerTypePaths;
-import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItemLists;
-import ca.spottedleaf.dataconverter.minecraft.walkers.item_name.DataWalkerItemNames;
-import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItems;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.util.Long2ObjectArraySortedMap;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.types.MapType;
 import com.mojang.logging.LogUtils;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.world.item.BlockItem;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.EntityBlock;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityType;
 import org.slf4j.Logger;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -362,101 +351,104 @@ public final class V704 {
             MCTypeRegistry.TILE_ENTITY.copyWalkers(VERSION, oldId, newId);
         }
 
-        MCTypeRegistry.ITEM_STACK.addStructureWalker(VERSION, (final MapType data, final long fromVersion, final long toVersion) -> {
-            WalkerUtils.convert(MCTypeRegistry.ITEM_NAME, data, "id", fromVersion, toVersion);
+        MCTypeRegistry.ITEM_STACK.addStructureWalker(VERSION, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                WalkerUtils.convert(MCTypeRegistry.ITEM_NAME, data, "id", fromVersion, toVersion);
 
-            final MapType tag = data.getMap("tag");
-            if (tag == null) {
+                final MapType tag = data.getMap("tag");
+                if (tag == null) {
+                    return null;
+                }
+
+                final String itemId = data.getString("id");
+
+                // only things here are in tag, if changed update if above
+
+                WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, tag, "Items", fromVersion, toVersion);
+                WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, tag, "ChargedProjectiles", fromVersion, toVersion);
+                if ("minecraft:written_book".equals(itemId)) {
+                    // These are only text component for WRITTEN books! DFU blindly will mark this as TEXT_COMPONENT.
+                    WalkerUtils.convertList(MCTypeRegistry.TEXT_COMPONENT, tag, "pages", fromVersion, toVersion);
+                    WalkerUtils.convertList(MCTypeRegistry.TEXT_COMPONENT, tag, "filtered_pages", fromVersion, toVersion);
+                }
+                // Vanilla blindly marks these as TEXT_COMPONENT even though they are only converted after the versions noted
+                // below.
+                if (toVersion >= DataConverter.encodeVersions(V1458.VERSION, 0)) {
+                    final MapType display = tag.getMap("display");
+                    if (display != null) {
+                        // only TEXT_COMPONENT in V1458
+                        WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, display, "Name", fromVersion, toVersion);
+                        if (toVersion >= DataConverter.encodeVersions(V1803.VERSION, 0)) {
+                            // only TEXT_COMPONENT in V1803
+                            WalkerUtils.convertList(MCTypeRegistry.TEXT_COMPONENT, display, "Lore", fromVersion, toVersion);
+                        }
+                    }
+                }
+
+                MapType entityTag = tag.getMap("EntityTag");
+                if (entityTag != null) {
+                    final String entityId;
+                    if (itemId != null && itemId.contains("_spawn_egg")) {
+                        // V1451 changes spawn eggs to have the sub entity id be a part of the item id, but of course Mojang never
+                        // bothered to write in logic to set the sub entity id, so we have to.
+                        // format is ALWAYS <namespace>:<id>_spawn_egg post flattening
+                        entityId = itemId.substring(0, itemId.indexOf("_spawn_egg"));
+                    } else {
+                        final Long2ObjectArraySortedMap<String> mappingByVersion = ITEM_ID_TO_ENTITY_ID.get(itemId);
+                        final String mapped = mappingByVersion == null ? null : mappingByVersion.getFloor(fromVersion);
+                        entityId = mapped == null ? entityTag.getString("id") : mapped;
+                    }
+
+                    if (entityId == null) {
+                        if (!"minecraft:air".equals(itemId)) {
+                            LOGGER.warn("Unable to resolve Entity for ItemStack (V704): " + itemId);
+                        }
+                    } else {
+                        if (!entityTag.hasKey("id", ObjectType.STRING)) {
+                            entityTag.setString("id", entityId);
+                        }
+                    }
+
+                    final MapType replace = MCTypeRegistry.ENTITY.convert(entityTag, fromVersion, toVersion);
+
+                    if (replace != null) {
+                        entityTag = replace;
+                        tag.setMap("EntityTag", entityTag);
+                    }
+                }
+
+                MapType blockEntityTag = tag.getMap("BlockEntityTag");
+                if (blockEntityTag != null) {
+                    final String entityId;
+                    if (fromVersion < DataConverter.encodeVersions(V3438.VERSION, 0) && "minecraft:suspicious_sand".equals(itemId)) {
+                        // renamed after this version, and since the id is a mapping to just string we need to special case this
+                        entityId = "minecraft:suspicious_sand";
+                    } else {
+                        entityId = ITEM_ID_TO_TILE_ENTITY_ID.get(itemId);
+                    }
+
+                    if (entityId == null) {
+                        if (!"minecraft:air".equals(itemId)) {
+                            LOGGER.warn("Unable to resolve BlockEntity for ItemStack (V704): " + itemId);
+                        }
+                    } else {
+                        if (!blockEntityTag.hasKey("id", ObjectType.STRING)) {
+                            blockEntityTag.setString("id", entityId);
+                        }
+                    }
+                    final MapType replace = MCTypeRegistry.TILE_ENTITY.convert(blockEntityTag, fromVersion, toVersion);
+                    if (replace != null) {
+                        blockEntityTag = replace;
+                        tag.setMap("BlockEntityTag", blockEntityTag);
+                    }
+                }
+
+                WalkerUtils.convertList(MCTypeRegistry.BLOCK_NAME, tag, "CanDestroy", fromVersion, toVersion);
+                WalkerUtils.convertList(MCTypeRegistry.BLOCK_NAME, tag, "CanPlaceOn", fromVersion, toVersion);
+
                 return null;
             }
-
-            final String itemId = data.getString("id");
-
-            // only things here are in tag, if changed update if above
-
-            WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, tag, "Items", fromVersion, toVersion);
-            WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, tag, "ChargedProjectiles", fromVersion, toVersion);
-            if ("minecraft:written_book".equals(itemId)) {
-                // These are only text component for WRITTEN books! DFU blindly will mark this as TEXT_COMPONENT.
-                WalkerUtils.convertList(MCTypeRegistry.TEXT_COMPONENT, tag, "pages", fromVersion, toVersion);
-                WalkerUtils.convertList(MCTypeRegistry.TEXT_COMPONENT, tag, "filtered_pages", fromVersion, toVersion);
-            }
-            // Vanilla blindly marks these as TEXT_COMPONENT even though they are only converted after the versions noted
-            // below.
-            if (toVersion >= DataConverter.encodeVersions(V1458.VERSION, 0)) {
-                final MapType display = tag.getMap("display");
-                if (display != null) {
-                    // only TEXT_COMPONENT in V1458
-                    WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, display, "Name", fromVersion, toVersion);
-                    if (toVersion >= DataConverter.encodeVersions(V1803.VERSION, 0)) {
-                        // only TEXT_COMPONENT in V1803
-                        WalkerUtils.convertList(MCTypeRegistry.TEXT_COMPONENT, display, "Lore", fromVersion, toVersion);
-                    }
-                }
-            }
-
-            MapType entityTag = tag.getMap("EntityTag");
-            if (entityTag != null) {
-                final String entityId;
-                if (itemId != null && itemId.contains("_spawn_egg")) {
-                    // V1451 changes spawn eggs to have the sub entity id be a part of the item id, but of course Mojang never
-                    // bothered to write in logic to set the sub entity id, so we have to.
-                    // format is ALWAYS <namespace>:<id>_spawn_egg post flattening
-                    entityId = itemId.substring(0, itemId.indexOf("_spawn_egg"));
-                } else {
-                    final Long2ObjectArraySortedMap<String> mappingByVersion = ITEM_ID_TO_ENTITY_ID.get(itemId);
-                    final String mapped = mappingByVersion == null ? null : mappingByVersion.getFloor(fromVersion);
-                    entityId = mapped == null ? entityTag.getString("id") : mapped;
-                }
-
-                if (entityId == null) {
-                    if (!"minecraft:air".equals(itemId)) {
-                        LOGGER.warn("Unable to resolve Entity for ItemStack (V704): " + itemId);
-                    }
-                } else {
-                    if (!entityTag.hasKey("id", ObjectType.STRING)) {
-                        entityTag.setString("id", entityId);
-                    }
-                }
-
-                final MapType replace = MCTypeRegistry.ENTITY.convert(entityTag, fromVersion, toVersion);
-
-                if (replace != null) {
-                    entityTag = replace;
-                    tag.setMap("EntityTag", entityTag);
-                }
-            }
-
-            MapType blockEntityTag = tag.getMap("BlockEntityTag");
-            if (blockEntityTag != null) {
-                final String entityId;
-                if (fromVersion < DataConverter.encodeVersions(V3438.VERSION, 0) && "minecraft:suspicious_sand".equals(itemId)) {
-                    // renamed after this version, and since the id is a mapping to just string we need to special case this
-                    entityId = "minecraft:suspicious_sand";
-                } else {
-                    entityId = ITEM_ID_TO_TILE_ENTITY_ID.get(itemId);
-                }
-
-                if (entityId == null) {
-                    if (!"minecraft:air".equals(itemId)) {
-                        LOGGER.warn("Unable to resolve BlockEntity for ItemStack (V704): " + itemId);
-                    }
-                } else {
-                    if (!blockEntityTag.hasKey("id", ObjectType.STRING)) {
-                        blockEntityTag.setString("id", entityId);
-                    }
-                }
-                final MapType replace = MCTypeRegistry.TILE_ENTITY.convert(blockEntityTag, fromVersion, toVersion);
-                if (replace != null) {
-                    blockEntityTag = replace;
-                    tag.setMap("BlockEntityTag", blockEntityTag);
-                }
-            }
-
-            WalkerUtils.convertList(MCTypeRegistry.BLOCK_NAME, tag, "CanDestroy", fromVersion, toVersion);
-            WalkerUtils.convertList(MCTypeRegistry.BLOCK_NAME, tag, "CanPlaceOn", fromVersion, toVersion);
-
-            return null;
         });
 
         // Enforce namespace for ids

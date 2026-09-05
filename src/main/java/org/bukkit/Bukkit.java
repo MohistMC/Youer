@@ -2158,7 +2158,6 @@ public final class Bukkit {
      * @return the server's links
      */
     @NotNull
-    @ApiStatus.Experimental
     public static ServerLinks getServerLinks() {
         return server.getServerLinks();
     }

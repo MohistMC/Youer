@@ -13,7 +13,6 @@ import org.jspecify.annotations.NullMarked;
  * Effect that occurs when consuming an item.
  */
 @NullMarked
-@ApiStatus.Experimental
 @ApiStatus.NonExtendable
 public interface ConsumeEffect {
 
@@ -75,7 +74,6 @@ public interface ConsumeEffect {
     /**
      * Represents a consumable effect that randomly teleports the entity on consumption.
      */
-    @ApiStatus.Experimental
     @ApiStatus.NonExtendable
     interface TeleportRandomly extends ConsumeEffect {
 
@@ -85,12 +83,18 @@ public interface ConsumeEffect {
          * @return teleportation diameter
          */
         float diameter();
+
+        /**
+         * If the teleport need to show a particle trail into the direction of the teleportation.
+         *
+         * @return true if the particle trail should be shown
+         */
+        boolean directionalParticles();
     }
 
     /**
      * Represents a consumable effect that removes status effects on consumption.
      */
-    @ApiStatus.Experimental
     @ApiStatus.NonExtendable
     interface RemoveStatusEffects extends ConsumeEffect {
 
@@ -105,7 +109,6 @@ public interface ConsumeEffect {
     /**
      * Represents a consumable effect that plays a sound on consumption.
      */
-    @ApiStatus.Experimental
     @ApiStatus.NonExtendable
     interface PlaySound extends ConsumeEffect {
 
@@ -120,7 +123,6 @@ public interface ConsumeEffect {
     /**
      * Represents a consumable effect that clears all effects on consumption.
      */
-    @ApiStatus.Experimental
     @ApiStatus.NonExtendable
     interface ClearAllStatusEffects extends ConsumeEffect {
 
@@ -129,7 +131,6 @@ public interface ConsumeEffect {
     /**
      * Represents a consumable effect that applies potion effects based on a probability on consumption.
      */
-    @ApiStatus.Experimental
     @ApiStatus.NonExtendable
     interface ApplyStatusEffects extends ConsumeEffect {
 

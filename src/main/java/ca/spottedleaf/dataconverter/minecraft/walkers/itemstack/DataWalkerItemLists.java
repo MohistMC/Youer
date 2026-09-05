@@ -2,7 +2,7 @@ package ca.spottedleaf.dataconverter.minecraft.walkers.itemstack;
 
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.DataWalkerListPaths;
-import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.converter.types.MapType;
 
 public class DataWalkerItemLists extends DataWalkerListPaths<MapType, MapType> {
 

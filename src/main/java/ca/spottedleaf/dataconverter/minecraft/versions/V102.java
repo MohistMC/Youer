@@ -1,12 +1,11 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperItemNameV102;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.Types;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.types.MapType;
 import com.mojang.logging.LogUtils;
 import org.slf4j.Logger;
 
@@ -63,11 +62,7 @@ public final class V102 {
                 if (damage != 0) {
                     data.setShort("Damage", (short)0);
                 }
-                MapType tag = data.getMap("tag");
-                if (tag == null) {
-                    tag = Types.NBT.createEmptyMap();
-                    data.setMap("tag", tag);
-                }
+                final MapType tag = data.getOrCreateMap("tag");
 
                 if (!tag.hasKey("Potion", ObjectType.STRING)) {
                     final String converted = HelperItemNameV102.getPotionNameFromId(damage);

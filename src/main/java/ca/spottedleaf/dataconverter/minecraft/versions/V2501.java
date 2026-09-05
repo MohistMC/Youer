@@ -1,25 +1,28 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataWalker;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.Types;
+import ca.spottedleaf.converter.types.MapType;
 
 public final class V2501 {
 
     private static final int VERSION = MCVersions.V1_15_2 + 271;
 
     private static void registerFurnace(final String id) {
-        MCTypeRegistry.TILE_ENTITY.addWalker(VERSION, id, (data, fromVersion, toVersion) -> {
-            WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, data, "Items", fromVersion, toVersion);
+        MCTypeRegistry.TILE_ENTITY.addWalker(VERSION, id, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                WalkerUtils.convertList(MCTypeRegistry.ITEM_STACK, data, "Items", fromVersion, toVersion);
 
-            WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, data, "CustomName", fromVersion, toVersion);
+                WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, data, "CustomName", fromVersion, toVersion);
 
-            WalkerUtils.convertKeys(MCTypeRegistry.RECIPE, data, "RecipesUsed", fromVersion, toVersion);
+                WalkerUtils.convertKeys(MCTypeRegistry.RECIPE, data, "RecipesUsed", fromVersion, toVersion);
 
-            return null;
+                return null;
+            }
         });
     }
 
@@ -34,7 +37,7 @@ public final class V2501 {
                     return null;
                 }
 
-                final MapType newRecipes = Types.NBT.createEmptyMap();
+                final MapType newRecipes = data.createEmptyMap();
                 data.setMap("RecipesUsed", newRecipes);
 
                 for (int i = 0; i < recipesUsedSize; ++i) {

@@ -1,12 +1,11 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.Types;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
 import com.google.common.collect.Sets;
 import java.util.Set;
 import java.util.UUID;
@@ -221,7 +220,7 @@ public final class V2514 {
             return;
         }
 
-        final ListType newUUIDs = Types.NBT.createEmptyList();
+        final ListType newUUIDs = data.createEmptyList();
         data.remove("TrustedUUIDs");
         data.setList("Trusted", newUUIDs);
 
@@ -498,7 +497,7 @@ public final class V2514 {
                             continue;
                         }
 
-                        final ListType newPlayers = Types.NBT.createEmptyList();
+                        final ListType newPlayers = players.createEmptyList();
                         customBossEvent.setList("Players", newPlayers);
 
                         for (int i = 0, len = players.size(); i < len; ++i) {
@@ -536,7 +535,7 @@ public final class V2514 {
                         continue;
                     }
 
-                    final ListType newHeros = Types.NBT.createEmptyList();
+                    final ListType newHeros = heros.createEmptyList();
                     raid.setList("HeroesOfTheVillage", newHeros);
 
                     for (int k = 0, klen = heros.size(); k < klen; ++k) {

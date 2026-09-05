@@ -1,13 +1,13 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataWalker;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.Types;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
 
 public final class V1466 {
 
@@ -66,10 +66,10 @@ public final class V1466 {
                 // ProtoChunks have their own dedicated tick list, so we must convert the TileTicks to that.
                 final ListType ticks = level.getList("TileTicks", ObjectType.MAP);
                 if (ticks != null) {
-                    final ListType sections = Types.NBT.createEmptyList();
+                    final ListType sections = level.createEmptyList();
                     final ListType[] sectionAccess = new ListType[16];
                     for (int i = 0; i < sectionAccess.length; ++i) {
-                        sections.addList(sectionAccess[i] = Types.NBT.createEmptyList());
+                        sections.addList(sectionAccess[i] = level.createEmptyList());
                     }
                     level.setList("ToBeTicked", sections);
 
@@ -90,51 +90,57 @@ public final class V1466 {
         });
 
 
-        MCTypeRegistry.CHUNK.addStructureWalker(VERSION, (final MapType data, final long fromVersion, final long toVersion) -> {
-            final MapType level = data.getMap("Level");
-            if (level == null) {
+        MCTypeRegistry.CHUNK.addStructureWalker(VERSION, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                final MapType level = data.getMap("Level");
+                if (level == null) {
+                    return null;
+                }
+
+                WalkerUtils.convertList(MCTypeRegistry.ENTITY, level, "Entities", fromVersion, toVersion);
+                WalkerUtils.convertList(MCTypeRegistry.TILE_ENTITY, level, "TileEntities", fromVersion, toVersion);
+
+                final ListType tileTicks = level.getList("TileTicks", ObjectType.MAP);
+                if (tileTicks != null) {
+                    for (int i = 0, len = tileTicks.size(); i < len; ++i) {
+                        final MapType tileTick = tileTicks.getMap(i);
+                        WalkerUtils.convert(MCTypeRegistry.BLOCK_NAME, tileTick, "i", fromVersion, toVersion);
+                    }
+                }
+
+                final ListType sections = level.getList("Sections", ObjectType.MAP);
+                if (sections != null) {
+                    for (int i = 0, len = sections.size(); i < len; ++i) {
+                        final MapType section = sections.getMap(i);
+                        WalkerUtils.convertList(MCTypeRegistry.BLOCK_STATE, section, "Palette", fromVersion, toVersion);
+                    }
+                }
+
+                WalkerUtils.convertValues(MCTypeRegistry.STRUCTURE_FEATURE, level.getMap("Structures"), "Starts", fromVersion, toVersion);
+
                 return null;
             }
-
-            WalkerUtils.convertList(MCTypeRegistry.ENTITY, level, "Entities", fromVersion, toVersion);
-            WalkerUtils.convertList(MCTypeRegistry.TILE_ENTITY, level, "TileEntities", fromVersion, toVersion);
-
-            final ListType tileTicks = level.getList("TileTicks", ObjectType.MAP);
-            if (tileTicks != null) {
-                for (int i = 0, len = tileTicks.size(); i < len; ++i) {
-                    final MapType tileTick = tileTicks.getMap(i);
-                    WalkerUtils.convert(MCTypeRegistry.BLOCK_NAME, tileTick, "i", fromVersion, toVersion);
-                }
-            }
-
-            final ListType sections = level.getList("Sections", ObjectType.MAP);
-            if (sections != null) {
-                for (int i = 0, len = sections.size(); i < len; ++i) {
-                    final MapType section = sections.getMap(i);
-                    WalkerUtils.convertList(MCTypeRegistry.BLOCK_STATE, section, "Palette", fromVersion, toVersion);
-                }
-            }
-
-            WalkerUtils.convertValues(MCTypeRegistry.STRUCTURE_FEATURE, level.getMap("Structures"), "Starts", fromVersion, toVersion);
-
-            return null;
         });
-        MCTypeRegistry.STRUCTURE_FEATURE.addStructureWalker(VERSION, (final MapType data, final long fromVersion, final long toVersion) -> {
-            final ListType list = data.getList("Children", ObjectType.MAP);
-            if (list != null) {
-                for (int i = 0, len = list.size(); i < len; ++i) {
-                    final MapType child = list.getMap(i);
+        MCTypeRegistry.STRUCTURE_FEATURE.addStructureWalker(VERSION, new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType data, final long fromVersion, final long toVersion) {
+                final ListType list = data.getList("Children", ObjectType.MAP);
+                if (list != null) {
+                    for (int i = 0, len = list.size(); i < len; ++i) {
+                        final MapType child = list.getMap(i);
 
-                    WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CA", fromVersion, toVersion);
-                    WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CB", fromVersion, toVersion);
-                    WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CC", fromVersion, toVersion);
-                    WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CD", fromVersion, toVersion);
+                        WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CA", fromVersion, toVersion);
+                        WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CB", fromVersion, toVersion);
+                        WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CC", fromVersion, toVersion);
+                        WalkerUtils.convert(MCTypeRegistry.BLOCK_STATE, child, "CD", fromVersion, toVersion);
+                    }
                 }
+
+                WalkerUtils.convert(MCTypeRegistry.BIOME, data, "biome", fromVersion, toVersion);
+
+                return null;
             }
-
-            WalkerUtils.convert(MCTypeRegistry.BIOME, data, "biome", fromVersion, toVersion);
-
-            return null;
         });
     }
 

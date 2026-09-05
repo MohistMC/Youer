@@ -1,12 +1,11 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.Types;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
 import net.minecraft.util.Mth;
 
 public final class V1955 {
@@ -26,11 +25,7 @@ public final class V1955 {
     }
 
     private static void addLevel(final MapType data, final int level) {
-        MapType villagerData = data.getMap("VillagerData");
-        if (villagerData == null) {
-            villagerData = Types.NBT.createEmptyMap();
-            data.setMap("VillagerData", villagerData);
-        }
+        final MapType villagerData = data.getOrCreateMap("VillagerData");
         villagerData.setInt("level", level);
     }
 

@@ -1,11 +1,11 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItemLists;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.Types;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.TypeUtil;
 
 public final class V2505 {
 
@@ -25,10 +25,12 @@ public final class V2505 {
                     return null;
                 }
 
+                final TypeUtil<?> typeUtil = memories.getTypeUtil();
+
                 for (final String key : memories.keys()) {
                     final Object value = memories.getGeneric(key);
 
-                    final MapType wrapped = Types.NBT.createEmptyMap();
+                    final MapType wrapped = typeUtil.createEmptyMap();
                     wrapped.setGeneric("value", value);
 
                     memories.setMap(key, wrapped);

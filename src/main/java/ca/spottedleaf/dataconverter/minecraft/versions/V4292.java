@@ -1,14 +1,14 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataWalker;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
-import ca.spottedleaf.dataconverter.minecraft.converters.helpers.CopyHelper;
-import ca.spottedleaf.dataconverter.minecraft.converters.helpers.RenameHelper;
+import ca.spottedleaf.converter.util.RenameHelper;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
 import java.net.URI;
 
 public final class V4292 {
@@ -76,9 +76,9 @@ public final class V4292 {
                                 final MapType contents = hoverEvent.getOrCreateMap("contents");
                                 hoverEvent.remove("contents");
 
-                                CopyHelper.move(contents, "id", hoverEvent, "id");
-                                CopyHelper.move(contents, "count", hoverEvent, "count");
-                                CopyHelper.move(contents, "components", hoverEvent, "components");
+                                RenameHelper.move(contents, "id", hoverEvent, "id");
+                                RenameHelper.move(contents, "count", hoverEvent, "count");
+                                RenameHelper.move(contents, "components", hoverEvent, "components");
                             }
                             break;
                         }
@@ -86,9 +86,9 @@ public final class V4292 {
                             final MapType contents = hoverEvent.getOrCreateMap("contents");
                             hoverEvent.remove("contents");
 
-                            CopyHelper.move(contents, "id", hoverEvent, "uuid");
-                            CopyHelper.move(contents, "type", hoverEvent, "id");
-                            CopyHelper.move(contents, "name", hoverEvent, "name");
+                            RenameHelper.move(contents, "id", hoverEvent, "uuid");
+                            RenameHelper.move(contents, "type", hoverEvent, "id");
+                            RenameHelper.move(contents, "name", hoverEvent, "name");
 
                             break;
                         }
@@ -142,37 +142,40 @@ public final class V4292 {
             }
         });
 
-        MCTypeRegistry.TEXT_COMPONENT.addStructureWalker(VERSION, (final Object input, final long fromVersion, final long toVersion) -> {
-            if (input instanceof ListType listType) {
-                WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, listType, fromVersion, toVersion);
-            } else if (input instanceof MapType root) {
-                WalkerUtils.convertList(MCTypeRegistry.TEXT_COMPONENT, root, "extra", fromVersion, toVersion);
-                WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, root, "separator", fromVersion, toVersion);
+        MCTypeRegistry.TEXT_COMPONENT.addStructureWalker(VERSION, new DataWalker<>() {
+            @Override
+            public Object walk(final Object input, final long fromVersion, final long toVersion) {
+                if (input instanceof ListType listType) {
+                    WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, listType, fromVersion, toVersion);
+                } else if (input instanceof MapType root) {
+                    WalkerUtils.convertList(MCTypeRegistry.TEXT_COMPONENT, root, "extra", fromVersion, toVersion);
+                    WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, root, "separator", fromVersion, toVersion);
 
 
-                WalkerUtils.convert(MCTypeRegistry.DATACONVERTER_CUSTOM_TYPE_COMMAND, root.getMap("clickEvent"), "command", fromVersion, toVersion);
+                    WalkerUtils.convert(MCTypeRegistry.DATACONVERTER_CUSTOM_TYPE_COMMAND, root.getMap("clickEvent"), "command", fromVersion, toVersion);
 
-                final MapType hoverEvent = root.getMap("hover_event");
-                if (hoverEvent != null) {
-                    switch (hoverEvent.getString("action", "")) {
-                        case "show_text": {
-                            WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, hoverEvent, "value", fromVersion, toVersion);
-                            break;
+                    final MapType hoverEvent = root.getMap("hover_event");
+                    if (hoverEvent != null) {
+                        switch (hoverEvent.getString("action", "")) {
+                            case "show_text": {
+                                WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, hoverEvent, "value", fromVersion, toVersion);
+                                break;
+                            }
+                            case "show_item": {
+                                WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, root, "hover_event", fromVersion, toVersion);
+                                break;
+                            }
+                            case "show_entity": {
+                                WalkerUtils.convert(MCTypeRegistry.ENTITY_NAME, hoverEvent, "id", fromVersion, toVersion);
+                                WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, hoverEvent, "name", fromVersion, toVersion);
+                                break;
+                            }
+                            // default: do nothing
                         }
-                        case "show_item": {
-                            WalkerUtils.convert(MCTypeRegistry.ITEM_STACK, root, "hover_event", fromVersion, toVersion);
-                            break;
-                        }
-                        case "show_entity": {
-                            WalkerUtils.convert(MCTypeRegistry.ENTITY_NAME, hoverEvent, "id", fromVersion, toVersion);
-                            WalkerUtils.convert(MCTypeRegistry.TEXT_COMPONENT, hoverEvent, "name", fromVersion, toVersion);
-                            break;
-                        }
-                        // default: do nothing
                     }
-                }
-            } // else: should only be string
-            return null;
+                } // else: should only be string
+                return null;
+            }
         });
     }
 

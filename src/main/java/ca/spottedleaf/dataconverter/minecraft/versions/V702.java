@@ -1,10 +1,11 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.datatypes.DataWalker;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
-import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.converter.types.MapType;
 
 public final class V702 {
 
@@ -40,9 +41,12 @@ public final class V702 {
             }
         });
 
-        MCTypeRegistry.ENTITY.addWalker(VERSION, "ZombieVillager", (final MapType root, final long fromVersion, final long toVersion) -> {
-            WalkerUtils.convertList(MCTypeRegistry.VILLAGER_TRADE, root.getMap("Offers"), "Recipes", fromVersion, toVersion);
-            return null;
+        MCTypeRegistry.ENTITY.addWalker(VERSION, "ZombieVillager", new DataWalker<>() {
+            @Override
+            public MapType walk(final MapType root, final long fromVersion, final long toVersion) {
+                WalkerUtils.convertList(MCTypeRegistry.VILLAGER_TRADE, root.getMap("Offers"), "Recipes", fromVersion, toVersion);
+                return null;
+            }
         });
         //registerMob("Husk"); // is now simple in 1.21.5
     }

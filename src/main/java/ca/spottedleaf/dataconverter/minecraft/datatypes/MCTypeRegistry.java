@@ -397,7 +397,7 @@ public final class MCTypeRegistry {
         V4885.register();
         V4888.register();
         V4892.register();
-        // TODO V4899 is re-enabling spectator chunk loading on singleplayer hardcore worlds
+        // V4899: Same as for V4766
     }
 
     private MCTypeRegistry() {}

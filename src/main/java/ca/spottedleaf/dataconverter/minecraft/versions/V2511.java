@@ -1,11 +1,10 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItems;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.Types;
+import ca.spottedleaf.converter.types.MapType;
 
 public final class V2511 {
 
@@ -47,7 +46,7 @@ public final class V2511 {
                 final MapType potion = data.getMap("Potion");
                 data.remove("Potion");
 
-                data.setMap("Item", potion == null ? Types.NBT.createEmptyMap() : potion);
+                data.setMap("Item", potion == null ? data.createEmptyMap() : potion);
 
                 return null;
             }

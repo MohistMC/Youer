@@ -1,11 +1,11 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
 import com.google.common.collect.ImmutableMap;
 import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
@@ -126,7 +126,7 @@ public final class V2970 {
                 final MapType references = structures.getMap("References");
 
                 if (starts != null) {
-                    final MapType newStarts = data.getTypeUtil().createEmptyMap();
+                    final MapType newStarts = data.createEmptyMap();
                     structures.setMap("starts", newStarts);
 
                     for (final String key : starts.keys()) {
@@ -149,7 +149,7 @@ public final class V2970 {
 
                 // This TRULY is a guess, no idea what biomes the referent has.
                 if (references != null) {
-                    final MapType newReferences = data.getTypeUtil().createEmptyMap();
+                    final MapType newReferences = data.createEmptyMap();
                     structures.setMap("References", newReferences);
                     for (final String key : references.keys()) {
                         final long[] value = references.getLongs(key);

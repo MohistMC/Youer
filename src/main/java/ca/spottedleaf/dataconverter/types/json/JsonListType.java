@@ -1,16 +1,18 @@
 package ca.spottedleaf.dataconverter.types.json;
 
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.TypeUtil;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
 import ca.spottedleaf.dataconverter.types.Types;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.Objects;
 
-public final class JsonListType implements ListType {
+public final class JsonListType extends ListType {
 
     final JsonArray array;
     final boolean compressed;
@@ -26,7 +28,7 @@ public final class JsonListType implements ListType {
     }
 
     @Override
-    public TypeUtil<JsonElement> getTypeUtil() {
+    public JsonTypeUtil getTypeUtil() {
         return this.compressed ? Types.JSON_COMPRESSED : Types.JSON;
     }
 
@@ -56,12 +58,22 @@ public final class JsonListType implements ListType {
                 '}';
     }
 
+    @Override
+    public JsonListType createEmptyList() {
+        return new JsonListType(this.compressed);
+    }
+
+    @Override
+    public JsonMapType createEmptyMap() {
+        return new JsonMapType(this.compressed);
+    }
+
     public JsonArray getJson() {
         return this.array;
     }
 
     @Override
-    public ListType copy() {
+    public JsonListType copy() {
         return new JsonListType(this.array.deepCopy(), this.compressed);
     }
 
@@ -76,13 +88,30 @@ public final class JsonListType implements ListType {
     }
 
     @Override
+    public boolean isEmpty() {
+        return this.array.isEmpty();
+    }
+
+    @Override
     public void remove(final int index) {
         this.array.remove(index);
     }
 
     @Override
+    public Object getGenericAndRemove(final int index) {
+        return Types.JSON.baseToGeneric(this.array.remove(index));
+    }
+
+    @Override
     public Object getGeneric(final int index) {
         return Types.JSON.baseToGeneric(this.array.get(index));
+    }
+
+    @Override
+    public void setGeneric(final int index, final Object to) {
+        final JsonElement element = this.getTypeUtil().genericToBase(Objects.requireNonNull(to));
+
+        this.array.set(index, element);
     }
 
     @Override
@@ -110,6 +139,68 @@ public final class JsonListType implements ListType {
     public Number getNumber(final int index, final Number dfl) {
         final Number ret = this.getNumber(index);
         return ret == null ? dfl : ret;
+    }
+
+    @Override
+    public BigInteger getBigInteger(final int index) {
+        return this.getBigInteger(index, null);
+    }
+
+    @Override
+    public BigInteger getBigInteger(final int index, final BigInteger dfl) {
+        final JsonElement element = this.array.get(index);
+        if (element instanceof JsonPrimitive) {
+            final JsonPrimitive primitive = (JsonPrimitive)element;
+            if (primitive.isNumber()) {
+                return primitive.getAsBigDecimal().toBigInteger();
+            } else if (primitive.isBoolean()) {
+                return primitive.getAsBoolean() ? BigInteger.ONE : BigInteger.ZERO;
+            } else if (this.compressed && primitive.isString()) {
+                try {
+                    return BigInteger.valueOf((long)Integer.parseInt(primitive.getAsString()));
+                } catch (final NumberFormatException ex) {
+                    return null;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    @Override
+    public void setBigInteger(final int index, final BigInteger to) {
+        this.array.set(index, new JsonPrimitive(to));
+    }
+
+    @Override
+    public BigDecimal getBigDecimal(final int index) {
+        return this.getBigDecimal(index, null);
+    }
+
+    @Override
+    public BigDecimal getBigDecimal(final int index, final BigDecimal dfl) {
+        final JsonElement element = this.array.get(index);
+        if (element instanceof JsonPrimitive) {
+            final JsonPrimitive primitive = (JsonPrimitive)element;
+            if (primitive.isNumber()) {
+                return primitive.getAsBigDecimal();
+            } else if (primitive.isBoolean()) {
+                return primitive.getAsBoolean() ? BigDecimal.ONE : BigDecimal.ZERO;
+            } else if (this.compressed && primitive.isString()) {
+                try {
+                    return BigDecimal.valueOf((long)Integer.parseInt(primitive.getAsString()));
+                } catch (final NumberFormatException ex) {
+                    return null;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    @Override
+    public void setBigDecimal(final int index, final BigDecimal to) {
+        this.array.set(index, new JsonPrimitive(to));
     }
 
     @Override
@@ -298,7 +389,7 @@ public final class JsonListType implements ListType {
     }
 
     @Override
-    public ListType getList(final int index) {
+    public JsonListType getList(final int index) {
         final JsonElement element = this.array.get(index);
         if (element instanceof JsonArray) {
             return new JsonListType((JsonArray)element, this.compressed);
@@ -307,9 +398,9 @@ public final class JsonListType implements ListType {
     }
 
     @Override
-    public ListType getList(final int index, final ListType dfl) {
-        final ListType ret = this.getList(index);
-        return ret == null ? dfl : ret;
+    public JsonListType getList(final int index, final ListType dfl) {
+        final JsonListType ret = this.getList(index);
+        return ret == null ? (JsonListType)dfl : ret;
     }
 
     @Override
@@ -318,7 +409,7 @@ public final class JsonListType implements ListType {
     }
 
     @Override
-    public MapType getMap(final int index) {
+    public JsonMapType getMap(final int index) {
         final JsonElement element = this.array.get(index);
         if (element instanceof JsonObject) {
             return new JsonMapType((JsonObject)element, this.compressed);
@@ -327,9 +418,9 @@ public final class JsonListType implements ListType {
     }
 
     @Override
-    public MapType getMap(final int index, final MapType dfl) {
-        final MapType ret = this.getMap(index);
-        return ret == null ? dfl : ret;
+    public JsonMapType getMap(final int index, final MapType dfl) {
+        final JsonMapType ret = this.getMap(index);
+        return ret == null ? (JsonMapType)dfl : ret;
     }
 
     @Override
@@ -359,6 +450,35 @@ public final class JsonListType implements ListType {
     @Override
     public void setString(final int index, final String to) {
         this.array.set(index, new JsonPrimitive(to));
+    }
+
+    @Override
+    public void addGeneric(final Object value) {
+        final JsonElement element = this.getTypeUtil().genericToBase(Objects.requireNonNull(value));
+
+        this.array.add(element);
+    }
+
+    @Override
+    public void addBigInteger(final BigInteger i) {
+        this.array.add(Objects.requireNonNull(i));
+    }
+
+    @Override
+    public void addBigInteger(final int index, final BigInteger i) {
+        // doesn't implement any methods for adding at index...
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void addBigDecimal(final BigDecimal d) {
+        this.array.add(Objects.requireNonNull(d));
+    }
+
+    @Override
+    public void addBigDecimal(final int index, final BigDecimal d) {
+        // doesn't implement any methods for adding at index...
+        throw new UnsupportedOperationException();
     }
 
     @Override

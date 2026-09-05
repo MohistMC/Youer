@@ -1,5 +1,6 @@
 package io.papermc.paper.datacomponent;
 
+import io.papermc.paper.annotation.MinecraftVersionDependent;
 import io.papermc.paper.datacomponent.item.AttackRange;
 import io.papermc.paper.datacomponent.item.BannerPatternLayers;
 import io.papermc.paper.datacomponent.item.BlockItemDataProperties;
@@ -80,7 +81,6 @@ import org.bukkit.inventory.meta.trim.TrimMaterial;
 import org.checkerframework.checker.index.qual.NonNegative;
 import org.checkerframework.checker.index.qual.Positive;
 import org.checkerframework.common.value.qual.IntRange;
-import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.NullMarked;
 
 /**
@@ -88,7 +88,7 @@ import org.jspecify.annotations.NullMarked;
  * and {@link org.bukkit.inventory.ItemType ItemTypes} can have.
  */
 @NullMarked
-@ApiStatus.Experimental
+@MinecraftVersionDependent
 public final class DataComponentTypes {
 
     /**
@@ -223,7 +223,8 @@ public final class DataComponentTypes {
     public static final DataComponentType.Valued<PiercingWeapon> PIERCING_WEAPON = valued("piercing_weapon");
     public static final DataComponentType.Valued<KineticWeapon> KINETIC_WEAPON = valued("kinetic_weapon");
     public static final DataComponentType.Valued<AttackRange> ATTACK_RANGE = valued("attack_range");
-    public static final DataComponentType.Valued<SwingAnimation> SWING_ANIMATION = valued("swing_animation");
+    public static final DataComponentType.Valued<SwingAnimation> ATTACK_ANIMATION = valued("attack_animation");
+    public static final DataComponentType.Valued<SwingAnimation> INTERACT_ANIMATION = valued("interact_animation");
     /**
      * Stores list of enchantments and their levels for an Enchanted Book.
      * Unlike {@link #ENCHANTMENTS}, the effects provided by enchantments
@@ -243,10 +244,6 @@ public final class DataComponentTypes {
      * Represents a color applied to a dyeable item.
      */
     public static final DataComponentType.Valued<DyedItemColor> DYED_COLOR = valued("dyed_color");
-    /**
-     * Represents the tint of the decorations on the {@link org.bukkit.inventory.ItemType#FILLED_MAP} item.
-     */
-    public static final DataComponentType.Valued<MapItemColor> MAP_COLOR = valued("map_color");
     /**
      * References the shared map state holding map contents and markers for a {@link org.bukkit.inventory.ItemType#FILLED_MAP}.
      */

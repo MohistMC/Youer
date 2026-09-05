@@ -48,7 +48,7 @@ public final class CraftProfileProperty {
 
     static {
         try {
-            PUBLIC_KEYS = MinecraftServicesDiscoveryService.create(Proxy.NO_PROXY).getServicesKeySet();
+            PUBLIC_KEYS = MinecraftServicesDiscoveryService.create(Proxy.NO_PROXY).getServicesKeySet(); // TODO - snapshot
         } catch (Exception e) {
             throw new Error("Could not load yggdrasil_session_pubkey.der! This indicates a bug.");
         }

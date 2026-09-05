@@ -1,13 +1,13 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
-import ca.spottedleaf.dataconverter.converters.DataConverter;
+import ca.spottedleaf.common.util.IntegerUtil;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.types.ListType;
-import ca.spottedleaf.dataconverter.types.MapType;
-import ca.spottedleaf.dataconverter.types.ObjectType;
-import ca.spottedleaf.dataconverter.types.Types;
-import ca.spottedleaf.dataconverter.util.IntegerUtil;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.types.TypeUtil;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -80,17 +80,19 @@ public final class V2841 {
                 level.remove("LiquidsToBeTicked");
                 level.remove("ToBeTicked");
 
-                level.setList("fluid_ticks", migrateTickList(fluidTicks, false, sectionBlocks, sectionX, minSection, sectionZ));
-                level.setList("TileTicks", migrateTickList(blockTicks, true, sectionBlocks, sectionX, minSection, sectionZ));
+                final TypeUtil<?> typeUtil = level.getTypeUtil();
+
+                level.setList("fluid_ticks", migrateTickList(typeUtil, fluidTicks, false, sectionBlocks, sectionX, minSection, sectionZ));
+                level.setList("TileTicks", migrateTickList(typeUtil, blockTicks, true, sectionBlocks, sectionX, minSection, sectionZ));
 
                 return null;
             }
         });
     }
 
-    public static ListType migrateTickList(final ListType ticks, final boolean blockTicks, final Int2ObjectOpenHashMap<SimplePaletteReader> sectionBlocks,
+    public static ListType migrateTickList(final TypeUtil<?> typeUtil, final ListType ticks, final boolean blockTicks, final Int2ObjectOpenHashMap<SimplePaletteReader> sectionBlocks,
                                            final int sectionX, final int minSection, final int sectionZ) {
-        final ListType ret = Types.NBT.createEmptyList();
+        final ListType ret = typeUtil.createEmptyList();
 
         if (ticks == null) {
             return ret;
@@ -106,19 +108,19 @@ public final class V2841 {
                 final MapType blockState = palette == null ? null : palette.getState(localIndex);
                 final String subjectId = blockTicks ? getBlockId(blockState) : getLiquidId(blockState);
 
-                ret.addMap(createNewTick(subjectId, localIndex, sectionX, sectionY, sectionZ));
+                ret.addMap(createNewTick(typeUtil, subjectId, localIndex, sectionX, sectionY, sectionZ));
             }
         }
 
         return ret;
     }
 
-    public static MapType createNewTick(final String subjectId, final int localIndex, final int sectionX, final int sectionY, final int sectionZ) {
+    public static MapType createNewTick(final TypeUtil<?> typeUtil, final String subjectId, final int localIndex, final int sectionX, final int sectionY, final int sectionZ) {
         final int newX = (localIndex & 15) + (sectionX << 4);
         final int newZ = ((localIndex >> 4) & 15) + (sectionZ << 4);
         final int newY = ((localIndex >> 8) & 15) + (sectionY << 4);
 
-        final MapType ret = Types.NBT.createEmptyMap();
+        final MapType ret = typeUtil.createEmptyMap();
 
         ret.setString("i", subjectId);
         ret.setInt("x", newX);

@@ -1,6 +1,6 @@
 package ca.spottedleaf.dataconverter.util;
 
-import ca.spottedleaf.dataconverter.types.MapType;
+import ca.spottedleaf.converter.types.MapType;
 import net.minecraft.resources.Identifier;
 
 public final class NamespaceUtil {
