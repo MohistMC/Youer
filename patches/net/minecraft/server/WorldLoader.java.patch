@@ -1,33 +1,16 @@
 --- a/net/minecraft/server/WorldLoader.java
 +++ b/net/minecraft/server/WorldLoader.java
-@@ -35,15 +_,15 @@
+@@ -35,11 +_,11 @@
                      CloseableResourceManager resources = packsAndResourceManager.getSecond();
                      LayeredRegistryAccess<RegistryLayer> initialLayers = RegistryLayer.createRegistryAccess();
                      List<Registry.PendingTags<?>> staticLayerTags = TagLoader.loadTagsForExistingRegistries(
 -                        resources, initialLayers.getLayer(RegistryLayer.STATIC)
 +                        resources, initialLayers.getLayer(RegistryLayer.STATIC), io.papermc.paper.plugin.lifecycle.event.registrar.ReloadableRegistrarEvent.Cause.INITIAL // Paper - tag lifecycle - add cause
                      );
--                    RegistryAccess.Frozen worldLoadContext = initialLayers.getAccessForLoading(RegistryLayer.WORLD);
--                    List<HolderLookup.RegistryLookup<?>> worldContextRegistries = TagLoader.buildUpdatedLookups(worldLoadContext, staticLayerTags);
+                     RegistryAccess.Frozen worldLoadContext = initialLayers.getAccessForLoading(RegistryLayer.WORLD);
+                     List<HolderLookup.RegistryLookup<?>> worldContextRegistries = TagLoader.buildUpdatedLookups(worldLoadContext, staticLayerTags);
 -                    return RegistryDataLoader.load(resources, worldContextRegistries, RegistryDataLoader.WORLD_REGISTRIES, backgroundExecutor)
-+                    RegistryAccess.Frozen worldgenLoadContext = initialLayers.getAccessForLoading(RegistryLayer.WORLDGEN);
-+                    List<HolderLookup.RegistryLookup<?>> worldgenContextRegistries = TagLoader.buildUpdatedLookups(worldgenLoadContext, staticLayerTags);
-+                    return RegistryDataLoader.load(resources, worldgenContextRegistries, net.neoforged.neoforge.registries.DataPackRegistriesHooks.getDataPackRegistries(), backgroundExecutor)
++                    return RegistryDataLoader.load(resources, worldContextRegistries, net.neoforged.neoforge.registries.DataPackRegistriesHooks.getDataPackRegistries(), backgroundExecutor)
                          .thenComposeAsync(
--                            loadedWorldRegistries -> {
-+                            loadedWorldgenRegistries -> {
+                             loadedWorldRegistries -> {
                                  List<HolderLookup.RegistryLookup<?>> dimensionContextRegistries = Stream.concat(
--                                        worldContextRegistries.stream(), loadedWorldRegistries.listRegistries()
-+                                        worldgenContextRegistries.stream(), loadedWorldgenRegistries.listRegistries()
-                                     )
-                                     .toList();
-                                 return RegistryDataLoader.load(
-@@ -59,7 +_,7 @@
-                                                 )
-                                             );
-                                             LayeredRegistryAccess<RegistryLayer> resourcesLoadContext = initialLayers.replaceFrom(
--                                                RegistryLayer.WORLD, loadedWorldRegistries, worldDataAndRegistries.finalDimensions
-+                                                RegistryLayer.WORLDGEN, loadedWorldgenRegistries, worldDataAndRegistries.finalDimensions
-                                             );
-                                             return ReloadableServerResources.loadResources(
-                                                     resources,

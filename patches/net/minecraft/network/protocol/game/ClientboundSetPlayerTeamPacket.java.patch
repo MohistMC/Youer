@@ -1,92 +1,18 @@
 --- a/net/minecraft/network/protocol/game/ClientboundSetPlayerTeamPacket.java
 +++ b/net/minecraft/network/protocol/game/ClientboundSetPlayerTeamPacket.java
-@@ -1,9 +_,9 @@
- package net.minecraft.network.protocol.game;
- 
--import io.netty.buffer.ByteBuf;
-+import com.google.common.collect.ImmutableList;
- import java.util.Collection;
--import java.util.List;
- import java.util.Optional;
-+import net.minecraft.network.FriendlyByteBuf;
- import net.minecraft.network.RegistryFriendlyByteBuf;
- import net.minecraft.network.chat.Component;
- import net.minecraft.network.chat.ComponentSerialization;
-@@ -17,7 +_,6 @@
- import org.jspecify.annotations.Nullable;
- 
- public class ClientboundSetPlayerTeamPacket implements Packet<ClientGamePacketListener> {
--    private static final StreamCodec<ByteBuf, List<String>> PLAYER_LIST_STREAM_CODEC = ByteBufCodecs.STRING_UTF8.apply(ByteBufCodecs.list());
-     public static final StreamCodec<RegistryFriendlyByteBuf, ClientboundSetPlayerTeamPacket> STREAM_CODEC = Packet.codec(
-         ClientboundSetPlayerTeamPacket::write, ClientboundSetPlayerTeamPacket::new
-     );
-@@ -28,31 +_,40 @@
-     private static final int METHOD_LEAVE = 4;
-     private final int method;
-     private final String name;
--    private final List<String> players;
-+    private final Collection<String> players;
-     private final Optional<ClientboundSetPlayerTeamPacket.Parameters> parameters;
- 
-     private ClientboundSetPlayerTeamPacket(String name, int method, Optional<ClientboundSetPlayerTeamPacket.Parameters> parameters, Collection<String> players) {
-         this.name = name;
-         this.method = method;
-         this.parameters = parameters;
--        this.players = List.copyOf(players);
-+        this.players = ImmutableList.copyOf(players);
-     }
- 
-     public static ClientboundSetPlayerTeamPacket createAddOrModifyPacket(PlayerTeam team, boolean createNew) {
-         return new ClientboundSetPlayerTeamPacket(
--            team.getName(), createNew ? 0 : 2, Optional.of(new ClientboundSetPlayerTeamPacket.Parameters(team)), createNew ? team.getPlayers() : List.of()
-+            team.getName(),
-+            createNew ? 0 : 2,
-+            Optional.of(new ClientboundSetPlayerTeamPacket.Parameters(team)),
-+            createNew ? team.getPlayers() : ImmutableList.of()
+@@ -54,6 +_,12 @@
          );
      }
  
-     public static ClientboundSetPlayerTeamPacket createRemovePacket(PlayerTeam team) {
--        return new ClientboundSetPlayerTeamPacket(team.getName(), 1, Optional.empty(), List.of());
-+        return new ClientboundSetPlayerTeamPacket(team.getName(), 1, Optional.empty(), ImmutableList.of());
-     }
- 
-     public static ClientboundSetPlayerTeamPacket createPlayerPacket(PlayerTeam team, String player, ClientboundSetPlayerTeamPacket.Action action) {
-         return new ClientboundSetPlayerTeamPacket(
--            team.getName(), action == ClientboundSetPlayerTeamPacket.Action.ADD ? 3 : 4, Optional.empty(), List.of(player)
-+            team.getName(), action == ClientboundSetPlayerTeamPacket.Action.ADD ? 3 : 4, Optional.empty(), ImmutableList.of(player)
-         );
-     }
-+
 +    // Paper start - Multiple Entries with Scoreboards
 +    public static ClientboundSetPlayerTeamPacket createMultiplePlayerPacket(PlayerTeam team, Collection<String> players, ClientboundSetPlayerTeamPacket.Action action) {
 +        return new ClientboundSetPlayerTeamPacket(team.getName(), action == ClientboundSetPlayerTeamPacket.Action.ADD ? METHOD_JOIN : METHOD_LEAVE, Optional.empty(), players);
 +    }
 +    // Paper end - Multiple Entries with Scoreboards
- 
++
      private ClientboundSetPlayerTeamPacket(RegistryFriendlyByteBuf input) {
          this.name = input.readUtf();
-@@ -64,9 +_,9 @@
-         }
- 
-         if (shouldHavePlayerList(this.method)) {
--            this.players = PLAYER_LIST_STREAM_CODEC.decode(input);
-+            this.players = input.readList(FriendlyByteBuf::readUtf);
-         } else {
--            this.players = List.of();
-+            this.players = ImmutableList.of();
-         }
-     }
- 
-@@ -79,7 +_,7 @@
-         }
- 
-         if (shouldHavePlayerList(this.method)) {
--            PLAYER_LIST_STREAM_CODEC.encode(output, this.players);
-+            output.writeCollection(this.players, FriendlyByteBuf::writeUtf);
-         }
-     }
- 
+         this.method = input.readByte();
 @@ -171,5 +_,12 @@
                  team.packOptions()
              );

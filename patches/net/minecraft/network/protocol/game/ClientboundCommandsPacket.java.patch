@@ -9,50 +9,14 @@
  import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
  import it.unimi.dsi.fastutil.ints.IntSet;
  import it.unimi.dsi.fastutil.ints.IntSets;
-@@ -22,19 +_,16 @@
- import net.minecraft.commands.synchronization.ArgumentTypeInfos;
- import net.minecraft.core.registries.BuiltInRegistries;
- import net.minecraft.network.FriendlyByteBuf;
--import net.minecraft.network.codec.ByteBufCodecs;
- import net.minecraft.network.codec.StreamCodec;
- import net.minecraft.network.protocol.Packet;
+@@ -28,6 +_,7 @@
  import net.minecraft.network.protocol.PacketType;
  import net.minecraft.resources.Identifier;
  import org.jspecify.annotations.Nullable;
 +import org.spigotmc.SpigotConfig;
  
  public class ClientboundCommandsPacket implements Packet<ClientGamePacketListener> {
--    private static final StreamCodec<FriendlyByteBuf, ClientboundCommandsPacket.Entry> ENTRY_STREAM_CODEC = StreamCodec.of(
--        (output, entry) -> entry.write(output), ClientboundCommandsPacket::readNode
--    );
--    public static final StreamCodec<FriendlyByteBuf, ClientboundCommandsPacket> STREAM_CODEC = StreamCodec.composite(
--        ENTRY_STREAM_CODEC.apply(ByteBufCodecs.list()), p -> p.entries, ByteBufCodecs.VAR_INT, p -> p.rootIndex, ClientboundCommandsPacket::new
-+    public static final StreamCodec<FriendlyByteBuf, ClientboundCommandsPacket> STREAM_CODEC = Packet.codec(
-+        ClientboundCommandsPacket::write, ClientboundCommandsPacket::new
-     );
-     private static final byte MASK_TYPE = 3;
-     private static final byte FLAG_EXECUTABLE = 4;
-@@ -53,12 +_,17 @@
-         this.rootIndex = nodeToId.getInt(root);
-     }
- 
--    private ClientboundCommandsPacket(List<ClientboundCommandsPacket.Entry> entries, int rootIndex) {
--        this.entries = entries;
--        this.rootIndex = rootIndex;
-+    private ClientboundCommandsPacket(FriendlyByteBuf input) {
-+        this.entries = input.readList(ClientboundCommandsPacket::readNode);
-+        this.rootIndex = input.readVarInt();
-         validateEntries(this.entries);
-     }
- 
-+    private void write(FriendlyByteBuf output) {
-+        output.writeCollection(this.entries, (buffer, entry) -> entry.write(buffer));
-+        output.writeVarInt(this.rootIndex);
-+    }
-+
-     private static void validateEntries(List<ClientboundCommandsPacket.Entry> entries, BiPredicate<ClientboundCommandsPacket.Entry, IntSet> validator) {
-         IntSet elementsToCheck = new IntOpenHashSet(IntSets.fromTo(0, entries.size()));
- 
+     private static final StreamCodec<FriendlyByteBuf, ClientboundCommandsPacket.Entry> ENTRY_STREAM_CODEC = StreamCodec.of(
 @@ -220,8 +_,20 @@
          private static <A extends ArgumentType<?>, T extends ArgumentTypeInfo.Template<A>> void serializeCap(
              FriendlyByteBuf output, ArgumentTypeInfo<A, T> info, ArgumentTypeInfo.Template<A> argumentType

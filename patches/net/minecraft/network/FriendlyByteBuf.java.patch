@@ -75,7 +75,7 @@
          this.source = source;
      }
  
-@@ -91,8 +_,89 @@
+@@ -91,8 +_,13 @@
      }
  
      public <T> void writeJsonWithCodec(Codec<T> codec, T value) {
@@ -87,98 +87,9 @@
          DataResult<JsonElement> result = codec.encodeStart(JsonOps.INSTANCE, value);
 -        this.writeUtf(GSON.toJson(result.getOrThrow(error -> new EncoderException("Failed to encode: " + error + " " + value))));
 +        this.writeUtf(GSON.toJson(result.getOrThrow(error -> new EncoderException("Failed to encode: " + error + " " + value))), maxLength); // Paper - Adventure; add max length parameter
-+    }
-+
-+    public static <T> IntFunction<T> limitValue(IntFunction<T> original, int limit) {
-+        return value -> {
-+            if (value > limit) {
-+                throw new DecoderException("Value " + value + " is larger than limit " + limit);
-+            } else {
-+                return original.apply(value);
-+            }
-+        };
-+    }
-+
-+    public <T, C extends Collection<T>> C readCollection(IntFunction<C> ctor, StreamDecoder<? super FriendlyByteBuf, T> elementDecoder) {
-+        int count = this.readVarInt();
-+        C result = (C)ctor.apply(Math.min(count, net.minecraft.network.codec.ByteBufCodecs.MAX_INITIAL_COLLECTION_SIZE));
-+
-+        for (int i = 0; i < count; i++) {
-+            result.add(elementDecoder.decode(this));
-+        }
-+
-+        return result;
-+    }
-+
-+    public <T> void writeCollection(Collection<T> collection, StreamEncoder<? super FriendlyByteBuf, T> encoder) {
-+        this.writeVarInt(collection.size());
-+
-+        for (T element : collection) {
-+            encoder.encode(this, element);
-+        }
-+    }
-+
-+    public <T> List<T> readList(StreamDecoder<? super FriendlyByteBuf, T> elementDecoder) {
-+        return this.readCollection(Lists::newArrayListWithCapacity, elementDecoder);
-+    }
-+
-+    public IntList readIntIdList() {
-+        int count = this.readVarInt();
-+        IntList result = new IntArrayList();
-+
-+        for (int i = 0; i < count; i++) {
-+            result.add(this.readVarInt());
-+        }
-+
-+        return result;
-+    }
-+
-+    public void writeIntIdList(IntList ids) {
-+        this.writeVarInt(ids.size());
-+        ids.forEach(this::writeVarInt);
-+    }
-+
-+    public <K, V, M extends Map<K, V>> M readMap(
-+        IntFunction<M> ctor, StreamDecoder<? super FriendlyByteBuf, K> keyDecoder, StreamDecoder<? super FriendlyByteBuf, V> valueDecoder
-+    ) {
-+        int count = this.readVarInt();
-+        M result = (M)ctor.apply(Math.min(count, net.minecraft.network.codec.ByteBufCodecs.MAX_INITIAL_COLLECTION_SIZE));
-+
-+        for (int i = 0; i < count; i++) {
-+            K key = keyDecoder.decode(this);
-+            V value = valueDecoder.decode(this);
-+            result.put(key, value);
-+        }
-+
-+        return result;
-+    }
-+
-+    public <K, V> Map<K, V> readMap(StreamDecoder<? super FriendlyByteBuf, K> keyDecoder, StreamDecoder<? super FriendlyByteBuf, V> valueDecoder) {
-+        return this.readMap(Maps::newHashMapWithExpectedSize, keyDecoder, valueDecoder);
-+    }
-+
-+    public <K, V> void writeMap(Map<K, V> map, StreamEncoder<? super FriendlyByteBuf, K> keyEncoder, StreamEncoder<? super FriendlyByteBuf, V> valueEncoder) {
-+        this.writeVarInt(map.size());
-+        map.forEach((k, v) -> {
-+            keyEncoder.encode(this, (K)k);
-+            valueEncoder.encode(this, (V)v);
-+        });
      }
  
      public void readWithCount(Consumer<FriendlyByteBuf> reader) {
-@@ -369,12 +_,10 @@
-         output.writeFloat(value.w());
-     }
- 
--    @Deprecated
-     public <T extends Enum<T>> T readEnum(Class<T> clazz) {
-         return clazz.getEnumConstants()[this.readVarInt()];
-     }
- 
--    @Deprecated
-     public FriendlyByteBuf writeEnum(Enum<?> value) {
-         return this.writeVarInt(value.ordinal());
-     }
 @@ -437,7 +_,7 @@
  
          try {
@@ -188,100 +99,6 @@
              throw new EncoderException(e);
          }
      }
-@@ -490,6 +_,10 @@
-     }
- 
-     public FriendlyByteBuf writeIdentifier(Identifier identifier) {
-+        if (identifier.getNamespace().equals("minecraft")) {
-+            this.writeUtf(identifier.getPath());
-+            return this;
-+        }
-         this.writeUtf(identifier.toString());
-         return this;
-     }
-@@ -508,6 +_,52 @@
-         return ResourceKey.createRegistryKey(id);
-     }
- 
-+    public Instant readInstant() {
-+        return Instant.ofEpochMilli(this.readLong());
-+    }
-+
-+    public void writeInstant(Instant value) {
-+        this.writeLong(value.toEpochMilli());
-+    }
-+
-+    public PublicKey readPublicKey() {
-+        try {
-+            return Crypt.byteToPublicKey(this.readByteArray(512));
-+        } catch (CryptException e) {
-+            throw new DecoderException("Malformed public key bytes", e);
-+        }
-+    }
-+
-+    public FriendlyByteBuf writePublicKey(PublicKey publicKey) {
-+        this.writeByteArray(publicKey.getEncoded());
-+        return this;
-+    }
-+
-+    public BlockHitResult readBlockHitResult() {
-+        BlockPos pos = this.readBlockPos();
-+        Direction face = this.readEnum(Direction.class);
-+        float clickX = this.readFloat();
-+        float clickY = this.readFloat();
-+        float clickZ = this.readFloat();
-+        boolean inside = this.readBoolean();
-+        boolean worldBorder = this.readBoolean();
-+        return new BlockHitResult(
-+            new Vec3((double)pos.getX() + clickX, (double)pos.getY() + clickY, (double)pos.getZ() + clickZ), face, pos, inside, worldBorder
-+        );
-+    }
-+
-+    public void writeBlockHitResult(BlockHitResult blockHit) {
-+        BlockPos blockPos = blockHit.getBlockPos();
-+        this.writeBlockPos(blockPos);
-+        this.writeEnum(blockHit.getDirection());
-+        Vec3 location = blockHit.getLocation();
-+        this.writeFloat((float)(location.x - blockPos.getX()));
-+        this.writeFloat((float)(location.y - blockPos.getY()));
-+        this.writeFloat((float)(location.z - blockPos.getZ()));
-+        this.writeBoolean(blockHit.isInside());
-+        this.writeBoolean(blockHit.isWorldBorderHit());
-+    }
-+
-     public BitSet readBitSet() {
-         return BitSet.valueOf(this.readLongArray());
-     }
-@@ -517,26 +_,18 @@
-     }
- 
-     public BitSet readFixedBitSet(int size) {
--        return readFixedBitSet(this, size);
--    }
--
--    public void writeFixedBitSet(BitSet bitSet, int size) {
--        writeFixedBitSet(this, bitSet, size);
--    }
--
--    public static BitSet readFixedBitSet(ByteBuf input, int size) {
-         byte[] bytes = new byte[Mth.positiveCeilDiv(size, 8)];
--        input.readBytes(bytes);
-+        this.readBytes(bytes);
-         return BitSet.valueOf(bytes);
-     }
- 
--    public static void writeFixedBitSet(ByteBuf output, BitSet bitSet, int size) {
-+    public void writeFixedBitSet(BitSet bitSet, int size) {
-         if (bitSet.length() > size) {
-             throw new EncoderException("BitSet is larger than expected size (" + bitSet.length() + ">" + size + ")");
-         }
- 
-         byte[] bytes = bitSet.toByteArray();
--        output.writeBytes(Arrays.copyOf(bytes, Mth.positiveCeilDiv(size, 8)));
-+        this.writeBytes(Arrays.copyOf(bytes, Mth.positiveCeilDiv(size, 8)));
-     }
- 
-     public static int readContainerId(ByteBuf input) {
 @@ -1483,5 +_,10 @@
      @Override
      public boolean release(int decrement) {

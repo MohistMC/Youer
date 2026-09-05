@@ -37,7 +37,7 @@
  import net.minecraft.world.level.storage.loot.ValidationContextSource;
  import org.slf4j.Logger;
  
-@@ -34,15 +_,50 @@
+@@ -34,8 +_,43 @@
              context.getAccessForLoading(RegistryLayer.RELOADABLE), updatedContextTags
          );
          HolderLookup.Provider loadingContextWithTags = HolderLookup.Provider.create(contextRegistriesWithTags.stream());
@@ -83,37 +83,3 @@
      }
  
      private static ReloadableServerRegistries.LoadResult createAndValidateFullContext(
--        LayeredRegistryAccess<RegistryLayer> contextLayers, HolderLookup.Provider contextLookupWithUpdatedTags, RegistryAccess.Frozen reloadableRegistries
-+        LayeredRegistryAccess<RegistryLayer> contextLayers, HolderLookup.Provider contextLookupWithUpdatedTags, List<WritableRegistry<?>> newRegistries
-     ) {
--        LayeredRegistryAccess<RegistryLayer> fullLayers = contextLayers.replaceFrom(RegistryLayer.RELOADABLE, reloadableRegistries);
--        HolderLookup.Provider fullLookupWithUpdatedTags = concatenateLookups(contextLookupWithUpdatedTags, reloadableRegistries);
-+        LayeredRegistryAccess<RegistryLayer> fullLayers = createUpdatedRegistries(contextLayers, newRegistries);
-+        HolderLookup.Provider fullLookupWithUpdatedTags = concatenateLookups(contextLookupWithUpdatedTags, fullLayers.getLayer(RegistryLayer.RELOADABLE));
-         validateLootRegistries(fullLookupWithUpdatedTags);
-         return new ReloadableServerRegistries.LoadResult(fullLayers, fullLookupWithUpdatedTags);
-     }
-@@ -54,11 +_,19 @@
-     private static void validateLootRegistries(HolderLookup.Provider fullContextWithNewTags) {
-         ProblemReporter.Collector problems = new ProblemReporter.Collector();
-         ValidationContextSource contextSource = new ValidationContextSource(problems, fullContextWithNewTags);
--        LootDataType.values().forEach(lootDataType -> lootDataType.runValidation(contextSource, fullContextWithNewTags));
-+        LootDataType.values().forEach(lootDataType -> validateRegistry(contextSource, (LootDataType<?>)lootDataType, fullContextWithNewTags));
-         problems.forEach((id, problem) -> LOGGER.warn("Found loot table element validation problem in {}: {}", id, problem.description()));
--        if (problems.hasFatalProblems()) {
--            throw new IllegalStateException("Found loot table validation problems");
--        }
-+    }
-+
-+    private static LayeredRegistryAccess<RegistryLayer> createUpdatedRegistries(
-+        LayeredRegistryAccess<RegistryLayer> context, List<WritableRegistry<?>> registries
-+    ) {
-+        return context.replaceFrom(RegistryLayer.RELOADABLE, new RegistryAccess.ImmutableRegistryAccess(registries).freeze());
-+    }
-+
-+    private static <T extends Validatable> void validateRegistry(ValidationContextSource contextSource, LootDataType<T> type, HolderLookup.Provider registries) {
-+        HolderLookup<T> registry = registries.lookupOrThrow(type.registryKey());
-+        type.runValidation(contextSource, registry);
-     }
- 
-     public static class Holder {

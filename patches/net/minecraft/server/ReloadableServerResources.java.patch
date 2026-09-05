@@ -8,7 +8,7 @@
  import net.minecraft.core.LayeredRegistryAccess;
  import net.minecraft.core.Registry;
  import net.minecraft.core.component.DataComponentInitializers;
-@@ -23,28 +_,40 @@
+@@ -23,12 +_,17 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final CompletableFuture<Unit> DATA_RELOAD_INITIAL_TASK = CompletableFuture.completedFuture(Unit.INSTANCE);
      private final ReloadableServerRegistries.Holder fullRegistryHolder;
@@ -26,43 +26,26 @@
 +    private final java.util.Map<net.neoforged.neoforge.resource.ListenerKey<?>, PreparableReloadListener> retainedListeners = new java.util.IdentityHashMap<>();
  
      private ReloadableServerResources(
--        ReloadableServerRegistries.LoadResult loadingContext,
-+        LayeredRegistryAccess<RegistryLayer> fullLayers,
-+        HolderLookup.Provider loadingContext,
-         FeatureFlagSet enabledFeatures,
-         Commands.CommandSelection commandSelection,
-         List<Registry.PendingTags<?>> postponedTags,
-         PermissionSet functionCompilationPermissions,
-         List<DataComponentInitializers.PendingComponents<?>> newComponents
-     ) {
--        this.fullRegistryHolder = new ReloadableServerRegistries.Holder(loadingContext.layers().compositeAccess());
-+        this.fullRegistryHolder = new ReloadableServerRegistries.Holder(fullLayers.compositeAccess());
-         this.postponedTags = postponedTags;
+         ReloadableServerRegistries.LoadResult loadingContext,
+@@ -43,8 +_,14 @@
          this.newComponents = newComponents;
--        this.recipes = new RecipeManager(loadingContext.lookupWithUpdatedTags());
--        this.commands = new Commands(commandSelection, CommandBuildContext.simple(loadingContext.lookupWithUpdatedTags(), enabledFeatures));
--        this.advancements = new ServerAdvancementManager(loadingContext.lookupWithUpdatedTags());
-+        this.recipes = new RecipeManager(loadingContext);
-+        this.commands = new Commands(commandSelection, CommandBuildContext.simple(loadingContext, enabledFeatures));
+         this.recipes = new RecipeManager(loadingContext.lookupWithUpdatedTags());
+         this.commands = new Commands(commandSelection, CommandBuildContext.simple(loadingContext.lookupWithUpdatedTags(), enabledFeatures));
 +        io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setDispatcher(this.commands, CommandBuildContext.simple(loadingContext, enabledFeatures)); // Paper - Brigadier Command API
 +        io.papermc.paper.command.PaperCommands.registerCommands(); // Paper
-+        this.advancements = new ServerAdvancementManager(loadingContext);
+         this.advancements = new ServerAdvancementManager(loadingContext.lookupWithUpdatedTags());
          this.functionLibrary = new ServerFunctionLibrary(functionCompilationPermissions, this.commands.getDispatcher());
 +        // Neo: Store registries and create context object
-+        this.registryAccess = fullLayers.compositeAccess();
-+        this.loadingContext = loadingContext;
++        this.registryAccess = loadingContext.layers().compositeAccess();
++        this.loadingContext = loadingContext.lookupWithUpdatedTags();
 +        this.context = new net.neoforged.neoforge.common.conditions.ConditionContext(this.postponedTags, registryAccess, enabledFeatures);
      }
  
      public ServerFunctionLibrary getFunctionLibrary() {
-@@ -68,7 +_,33 @@
+@@ -71,6 +_,29 @@
+         return List.of(this.functionLibrary);
      }
  
-     public List<PreparableReloadListener> listeners() {
--        return List.of(this.functionLibrary);
-+        return List.of(this.recipes, this.functionLibrary, this.advancements);
-+    }
-+
 +    /// {@return the reload listener registered with the provided key}
 +    @SuppressWarnings("unchecked")
 +    public <T extends PreparableReloadListener> T getListener(net.neoforged.neoforge.resource.ListenerKey<T> key) {
@@ -73,33 +56,23 @@
 +        return (T) listener;
 +    }
 +
-+    /**
-+     * Exposes the current condition context for usage in other reload listeners.<br>
-+     * This is not useful outside the reloading stage.
-+     * @return The condition context for the currently active reload.
-+     */
++    /// Exposes the current condition context for usage in other reload listeners.
++    ///
++    /// This is not useful outside the reloading stage.
++    /// @return The condition context for the currently active reload.
 +    public net.neoforged.neoforge.common.conditions.ICondition.IContext getConditionContext() {
 +        return this.context;
 +    }
 +
-+    /**
-+      * {@return the lookup provider access for the currently active reload}
-+      */
-+    public HolderLookup.Provider getRegistryLookup() {
++    /// {@return the lookup provider access for the currently active reload}
++    public net.minecraft.core.HolderLookup.Provider getRegistryLookup() {
 +        return this.loadingContext;
-     }
- 
++    }
++
      public static CompletableFuture<ReloadableServerResources> loadResources(
-@@ -89,22 +_,52 @@
-                     .thenCompose(
-                         pendingComponents -> {
-                             ReloadableServerResources result = new ReloadableServerResources(
--                                fullRegistries,
-+                                fullRegistries.layers(),
-+                                fullRegistries.lookupWithUpdatedTags(),
-                                 enabledFeatures,
-                                 commandSelection,
-                                 updatedContextTags,
+         ResourceManager resourceManager,
+         LayeredRegistryAccess<RegistryLayer> contextLayers,
+@@ -96,15 +_,44 @@
                                  functionCompilationPermissions,
                                  (List<DataComponentInitializers.PendingComponents<?>>)pendingComponents
                              );

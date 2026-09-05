@@ -1,6 +1,6 @@
 --- a/net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket.java
 +++ b/net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket.java
-@@ -3,13 +_,11 @@
+@@ -3,7 +_,6 @@
  import com.google.common.base.MoreObjects;
  import com.mojang.authlib.GameProfile;
  import com.mojang.authlib.properties.PropertyMap;
@@ -8,20 +8,6 @@
  import java.util.Collection;
  import java.util.EnumSet;
  import java.util.List;
- import java.util.Objects;
- import java.util.UUID;
--import java.util.function.IntFunction;
- import net.minecraft.Optionull;
- import net.minecraft.network.FriendlyByteBuf;
- import net.minecraft.network.RegistryFriendlyByteBuf;
-@@ -21,7 +_,6 @@
- import net.minecraft.network.protocol.Packet;
- import net.minecraft.network.protocol.PacketType;
- import net.minecraft.server.level.ServerPlayer;
--import net.minecraft.util.ByIdMap;
- import net.minecraft.world.entity.player.PlayerModelPart;
- import net.minecraft.world.level.GameType;
- import org.jspecify.annotations.Nullable;
 @@ -43,6 +_,18 @@
          this.entries = List.of(new ClientboundPlayerInfoUpdatePacket.Entry(player));
      }
@@ -41,7 +27,7 @@
      public static ClientboundPlayerInfoUpdatePacket createPlayerInitializing(Collection<ServerPlayer> players) {
          EnumSet<ClientboundPlayerInfoUpdatePacket.Action> actions = EnumSet.of(
              ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER,
-@@ -57,34 +_,69 @@
+@@ -57,25 +_,46 @@
          return new ClientboundPlayerInfoUpdatePacket(actions, players);
      }
  
@@ -107,83 +93,6 @@
  
      private ClientboundPlayerInfoUpdatePacket(RegistryFriendlyByteBuf input) {
          this.actions = input.readEnumSet(ClientboundPlayerInfoUpdatePacket.Action.class);
--        this.entries = entryCodec(this.actions).apply(ByteBufCodecs.list()).decode(input);
-+        this.entries = input.readList(buf -> {
-+            ClientboundPlayerInfoUpdatePacket.EntryBuilder builder = new ClientboundPlayerInfoUpdatePacket.EntryBuilder(buf.readUUID());
-+
-+            for (ClientboundPlayerInfoUpdatePacket.Action action : this.actions) {
-+                action.reader.read(builder, (RegistryFriendlyByteBuf)buf);
-+            }
-+
-+            return builder.build();
-+        });
-     }
- 
-     private void write(RegistryFriendlyByteBuf output) {
-         output.writeEnumSet(this.actions, ClientboundPlayerInfoUpdatePacket.Action.class);
--        entryCodec(this.actions).apply(ByteBufCodecs.list()).encode(output, this.entries);
-+        output.writeCollection(this.entries, (buf, entry) -> {
-+            buf.writeUUID(entry.profileId());
-+
-+            for (ClientboundPlayerInfoUpdatePacket.Action action : this.actions) {
-+                action.writer.write((RegistryFriendlyByteBuf)buf, entry);
-+            }
-+        });
-     }
- 
-     @Override
-@@ -114,7 +_,7 @@
-     }
- 
-     public enum Action {
--        ADD_PLAYER(0, (entry, input) -> {
-+        ADD_PLAYER((entry, input) -> {
-             String name = ByteBufCodecs.PLAYER_NAME.decode(input);
-             PropertyMap properties = ByteBufCodecs.GAME_PROFILE_PROPERTIES.decode(input);
-             entry.profile = new GameProfile(entry.profileId, name, properties);
-@@ -124,33 +_,23 @@
-             ByteBufCodecs.GAME_PROFILE_PROPERTIES.encode(output, profile.properties());
-         }),
-         INITIALIZE_CHAT(
--            1,
--            (entry, input) -> entry.chatSession = input.readNullable(RemoteChatSession.Data.STREAM_CODEC),
--            (output, entry) -> output.writeNullable(entry.chatSession, RemoteChatSession.Data.STREAM_CODEC)
--        ),
--        UPDATE_GAME_MODE(
--            2, (entry, input) -> entry.gameMode = GameType.STREAM_CODEC.decode(input), (output, entry) -> GameType.STREAM_CODEC.encode(output, entry.gameMode)
--        ),
--        UPDATE_LISTED(3, (entry, input) -> entry.listed = input.readBoolean(), (output, entry) -> output.writeBoolean(entry.listed())),
--        UPDATE_LATENCY(4, (entry, input) -> entry.latency = input.readVarInt(), (output, entry) -> output.writeVarInt(entry.latency())),
-+            (entry, input) -> entry.chatSession = input.readNullable(RemoteChatSession.Data::read),
-+            (output, entry) -> output.writeNullable(entry.chatSession, RemoteChatSession.Data::write)
-+        ),
-+        UPDATE_GAME_MODE((entry, input) -> entry.gameMode = GameType.byId(input.readVarInt()), (output, entry) -> output.writeVarInt(entry.gameMode().getId())),
-+        UPDATE_LISTED((entry, input) -> entry.listed = input.readBoolean(), (output, entry) -> output.writeBoolean(entry.listed())),
-+        UPDATE_LATENCY((entry, input) -> entry.latency = input.readVarInt(), (output, entry) -> output.writeVarInt(entry.latency())),
-         UPDATE_DISPLAY_NAME(
--            5,
-             (entry, input) -> entry.displayName = FriendlyByteBuf.readNullable(input, ComponentSerialization.TRUSTED_STREAM_CODEC),
-             (output, entry) -> FriendlyByteBuf.writeNullable(output, entry.displayName(), ComponentSerialization.TRUSTED_STREAM_CODEC)
-         ),
--        UPDATE_LIST_ORDER(6, (entry, input) -> entry.listOrder = input.readVarInt(), (output, entry) -> output.writeVarInt(entry.listOrder)),
--        UPDATE_HAT(7, (entry, input) -> entry.showHat = input.readBoolean(), (output, entry) -> output.writeBoolean(entry.showHat));
-+        UPDATE_LIST_ORDER((entry, input) -> entry.listOrder = input.readVarInt(), (output, entry) -> output.writeVarInt(entry.listOrder)),
-+        UPDATE_HAT((entry, input) -> entry.showHat = input.readBoolean(), (output, entry) -> output.writeBoolean(entry.showHat));
- 
--        private final int id;
-         private final ClientboundPlayerInfoUpdatePacket.Action.Reader reader;
-         private final ClientboundPlayerInfoUpdatePacket.Action.Writer writer;
--        private static final IntFunction<ClientboundPlayerInfoUpdatePacket.Action> BY_ID = ByIdMap.continuous(
--            a -> a.id, values(), ByIdMap.OutOfBoundsStrategy.ZERO
--        );
--        public static final StreamCodec<ByteBuf, ClientboundPlayerInfoUpdatePacket.Action> STREAM_CODEC = ByteBufCodecs.idMapper(BY_ID, a -> a.id);
- 
--        Action(int id, ClientboundPlayerInfoUpdatePacket.Action.Reader reader, ClientboundPlayerInfoUpdatePacket.Action.Writer writer) {
--            this.id = id;
-+        Action(ClientboundPlayerInfoUpdatePacket.Action.Reader reader, ClientboundPlayerInfoUpdatePacket.Action.Writer writer) {
-             this.reader = reader;
-             this.writer = writer;
-         }
 @@ -176,10 +_,15 @@
          RemoteChatSession.@Nullable Data chatSession
      ) {
