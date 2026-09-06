@@ -1,22 +1,5 @@
 --- a/net/minecraft/world/entity/npc/villager/Villager.java
 +++ b/net/minecraft/world/entity/npc/villager/Villager.java
-@@ -46,7 +_,6 @@
- import net.minecraft.world.entity.ConversionParams;
- import net.minecraft.world.entity.Entity;
- import net.minecraft.world.entity.EntityDimensions;
--import net.minecraft.world.entity.EntityEvent;
- import net.minecraft.world.entity.EntitySpawnReason;
- import net.minecraft.world.entity.EntityType;
- import net.minecraft.world.entity.EntityTypes;
-@@ -79,8 +_,6 @@
- import net.minecraft.world.entity.player.Player;
- import net.minecraft.world.entity.raid.Raid;
- import net.minecraft.world.entity.schedule.Activity;
--import net.minecraft.world.food.VillagerFood;
--import net.minecraft.world.inventory.MerchantMenu;
- import net.minecraft.world.item.Item;
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.item.Items;
 @@ -93,14 +_,18 @@
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.AABB;
@@ -187,7 +170,7 @@
      @Override
      public Brain<Villager> getBrain() {
          return (Brain<Villager>) super.getBrain();
-@@ -225,32 +_,88 @@
+@@ -225,22 +_,77 @@
      }
  
      public static AttributeSupplier.Builder createAttributes() {
@@ -269,11 +252,7 @@
              Raid raid = level.getRaidAt(this.blockPosition());
              if (raid != null && raid.isActive() && !raid.isOver()) {
                  level.broadcastEntityEvent(this, (byte)42);
-             }
-         }
- 
--        if ((this.offers == null || this.offers.isEmpty()) && this.isTrading()) {
-+        if (this.getVillagerData().profession().is(VillagerProfession.NONE) && this.isTrading()) {
+@@ -251,6 +_,7 @@
              this.stopTrading();
          }
  
@@ -300,19 +279,6 @@
              this.startTrading(player);
          }
  
-@@ -318,6 +_,12 @@
-         }
-     }
- 
-+    @Override
-+    protected void stopTrading() {
-+        super.stopTrading();
-+        this.resetSpecialPrices();
-+    }
-+
-     private void resetSpecialPrices() {
-         if (!this.level().isClientSide()) {
-             for (MerchantOffer offer : this.getOffers()) {
 @@ -340,7 +_,13 @@
          this.updateDemand();
  
@@ -352,9 +318,8 @@
          }
      }
  
--    public void updateSpecialPrices(Player player) {
+     public void updateSpecialPrices(Player player) {
 -        this.resetSpecialPrices();
-+    private void updateSpecialPrices(Player player) {
          int reputation = this.getPlayerReputation(player);
 -        MobEffectInstance heroOfTheVillage = player.getEffect(MobEffects.HERO_OF_THE_VILLAGE);
 -        double heroModifier = heroOfTheVillage == null ? 0.0 : 0.3F + 0.0625F * heroOfTheVillage.getAmplifier();
@@ -393,51 +358,7 @@
              }
          }
      }
-@@ -470,6 +_,9 @@
-         output.putLong("LastRestock", this.lastRestockGameTime);
-         output.putLong("LastGossipDecay", this.lastGossipDecayTime);
-         output.putInt("RestocksToday", this.numberOfRestocksToday);
-+        if (this.assignProfessionWhenSpawned) {
-+            output.putBoolean("AssignProfessionWhenSpawned", true);
-+        }
-     }
- 
-     @Override
-@@ -488,17 +_,12 @@
-         this.villagerXp = input.getIntOr("Xp", 0);
-         this.lastRestockGameTime = input.getLongOr("LastRestock", 0L);
-         this.lastGossipDecayTime = input.getLongOr("LastGossipDecay", 0L);
-+        if (this.level() instanceof ServerLevel) {
-+            this.refreshBrain((ServerLevel)this.level());
-+        }
-+
-         this.numberOfRestocksToday = input.getIntOr("RestocksToday", 0);
--        if (this.level() instanceof ServerLevel serverLevel) {
--            this.refreshBrain(serverLevel);
--        }
--    }
--
--    @Override
--    public void postDataManipulated() {
--        if (this.isTrading()) {
--            this.resendOffersToTradingPlayer();
--        }
-+        this.assignProfessionWhenSpawned = input.getBooleanOr("AssignProfessionWhenSpawned", false);
-     }
- 
-     @Override
-@@ -560,23 +_,20 @@
-         this.villagerXp = this.villagerXp + offer.getXp();
-         this.lastTradedPlayer = this.getTradingPlayer();
-         if (this.shouldIncreaseLevel()) {
--            if (this.level() instanceof ServerLevel serverLevel) {
--                this.increaseMerchantCareer(serverLevel);
--                this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 0));
--            }
--
-+            this.updateMerchantTimer = 40;
-+            this.increaseProfessionLevelOnUpdate = true;
-             popXp += 5;
+@@ -569,7 +_,7 @@
          }
  
          if (offer.shouldRewardExp()) {
@@ -446,15 +367,6 @@
          }
      }
  
-     @Override
-     public void setLastHurtByMob(@Nullable LivingEntity hurtBy) {
--        if (hurtBy != null && this.level() instanceof ServerLevel serverLevel) {
--            serverLevel.onReputationEvent(ReputationEventType.VILLAGER_HURT, hurtBy, this);
-+        if (hurtBy != null && this.level() instanceof ServerLevel) {
-+            ((ServerLevel)this.level()).onReputationEvent(ReputationEventType.VILLAGER_HURT, hurtBy, this);
-             if (this.isAlive() && hurtBy instanceof Player) {
-                 this.level().broadcastEntityEvent(this, (byte)13);
-             }
 @@ -587,7 +_,7 @@
  
      @Override
@@ -473,42 +385,6 @@
      }
  
      private boolean hungry() {
-@@ -643,24 +_,22 @@
-     }
- 
-     private void eatUntilFull() {
--        if (this.hungry()) {
-+        if (this.hungry() && this.countFoodPointsInInventory() != 0) {
-             for (int slot = 0; slot < this.getInventory().getContainerSize(); slot++) {
-                 ItemStack itemStack = this.getInventory().getItem(slot);
--                VillagerFood villagerFood = itemStack.get(DataComponents.VILLAGER_FOOD);
--                if (villagerFood != null) {
--                    int itemCount = itemStack.getCount();
--                    int toRemove = 0;
-+                if (!itemStack.isEmpty()) {
-+                    Integer value = FOOD_POINTS.get(itemStack.getItem());
-+                    if (value != null) {
-+                        int itemCount = itemStack.getCount();
- 
--                    for (int count = itemCount; count > 0; count--) {
--                        this.foodLevel = this.foodLevel + villagerFood.nutrition();
--                        toRemove++;
--                        if (!this.hungry()) {
--                            this.getInventory().removeItem(slot, toRemove);
--                            return;
-+                        for (int count = itemCount; count > 0; count--) {
-+                            this.foodLevel = this.foodLevel + value;
-+                            this.getInventory().removeItem(slot, 1);
-+                            if (!this.hungry()) {
-+                                return;
-+                            }
-                         }
-                     }
--
--                    this.getInventory().removeItem(slot, toRemove);
-                 }
-             }
-         }
 @@ -688,7 +_,7 @@
          return VillagerData.canLevelUp(currentLevel) && this.villagerXp >= VillagerData.getMaxXpPerLevel(currentLevel);
      }
@@ -518,26 +394,6 @@
          this.setVillagerData(this.getVillagerData().withLevel(this.getVillagerData().level() + 1));
          this.updateTrades(level);
      }
-@@ -699,7 +_,7 @@
-     }
- 
-     @Override
--    public void handleEntityEvent(@EntityEvent.Value byte id) {
-+    public void handleEntityEvent(byte id) {
-         if (id == 12) {
-             this.addParticlesAroundSelf(ParticleTypes.HEART);
-         } else if (id == 13) {
-@@ -722,6 +_,10 @@
-         }
- 
-         this.finalizeVillagerType(level, this.blockPosition());
-+        if (spawnReason == EntitySpawnReason.STRUCTURE) {
-+            this.assignProfessionWhenSpawned = true;
-+        }
-+
-         return super.finalizeSpawn(level, difficulty, spawnReason, groupData);
-     }
- 
 @@ -744,13 +_,21 @@
  
      @Override
@@ -563,37 +419,22 @@
              if (witch == null) {
                  super.thunderHit(level, lightningBolt);
              }
-@@ -767,11 +_,10 @@
+@@ -767,10 +_,14 @@
      @Override
      public boolean wantsToPickUp(ServerLevel level, ItemStack itemStack) {
          Item item = itemStack.getItem();
--        return (
--                itemStack.is(ItemTags.VILLAGER_PICKS_UP)
--                    || itemStack.has(DataComponents.VILLAGER_FOOD)
--                    || this.getVillagerData().profession().value().requestedItems().contains(item)
--            )
 +        // Neo: Allow Farmer Villagers to pick up SpecialPlantable items.
 +        boolean isFarmerDesiredSeed = (itemStack.getItem() instanceof net.neoforged.neoforge.common.SpecialPlantable specialPlantable && specialPlantable.villagerCanPlantItem(this))
 +                && this.getVillagerData().profession().value().secondaryPoi().stream().anyMatch(secondaryPoi -> secondaryPoi.defaultBlockState().is(net.neoforged.neoforge.common.Tags.Blocks.VILLAGER_FARMLANDS));
-+        return (itemStack.is(ItemTags.VILLAGER_PICKS_UP) || this.getVillagerData().profession().value().requestedItems().contains(item) || isFarmerDesiredSeed)
+         return (
+                 itemStack.is(ItemTags.VILLAGER_PICKS_UP)
+                     || itemStack.has(DataComponents.VILLAGER_FOOD)
+                     || this.getVillagerData().profession().value().requestedItems().contains(item)
++                    || isFarmerDesiredSeed
+             )
              && this.getInventory().canAddItem(itemStack);
      }
- 
-@@ -785,53 +_,41 @@
- 
-     private int countFoodPointsInInventory() {
-         SimpleContainer inventory = this.getInventory();
--        int points = 0;
--
--        for (ItemStack item : inventory.getItems()) {
--            VillagerFood villagerFood = item.get(DataComponents.VILLAGER_FOOD);
--            if (villagerFood != null) {
--                points += item.count() * villagerFood.nutrition();
--            }
--        }
--
--        return points;
-+        return FOOD_POINTS.entrySet().stream().mapToInt(entry -> inventory.countItem(entry.getKey()) * entry.getValue()).sum();
+@@ -798,26 +_,28 @@
      }
  
      public boolean hasFarmSeeds() {
@@ -631,21 +472,6 @@
      }
  
      public void gossip(ServerLevel level, Villager target, long timestamp) {
-         if ((timestamp < this.lastGossipTime || timestamp >= this.lastGossipTime + 1200L)
-             && (timestamp < target.lastGossipTime || timestamp >= target.lastGossipTime + 1200L)) {
--            int newGossip = this.gossips.transferFrom(target.gossips, this.random, 10);
-+            this.gossips.transferFrom(target.gossips, this.random, 10);
-             this.lastGossipTime = timestamp;
-             target.lastGossipTime = timestamp;
-             this.spawnGolemIfNeeded(level, timestamp, 5);
--            Player tradingPlayer = this.getTradingPlayer();
--            if (tradingPlayer != null && newGossip > 0) {
--                this.updateSpecialPrices(tradingPlayer);
--                this.resendOffersToTradingPlayer();
--            }
-         }
-     }
- 
 @@ -846,6 +_,7 @@
      }
  
@@ -654,15 +480,6 @@
          if (this.wantsToSpawnGolem(timestamp)) {
              AABB villagerSearchBox = this.getBoundingBox().inflate(10.0, 10.0, 10.0);
              List<Villager> nearbyVillagers = level.getEntitiesOfClass(Villager.class, villagerSearchBox);
-@@ -854,7 +_,7 @@
-                 .limit(5L)
-                 .toList();
-             if (nearbyVillagersThatWantAGolem.size() >= villagersNeededToAgree) {
--                if (!SpawnUtil.trySpawnMob(
-+                if (!SpawnUtil.trySpawnMob( // Paper - Set Golem Last Seen to stop it from spawning another one - switch to isPresent
-                         EntityTypes.IRON_GOLEM,
-                         EntitySpawnReason.MOB_SUMMONED,
-                         level,
 @@ -863,9 +_,11 @@
                          8,
                          6,
@@ -677,16 +494,3 @@
                      nearbyVillagers.forEach(GolemSensor::golemDetected);
                  }
              }
-@@ -887,12 +_,6 @@
-             this.gossips.add(source.getUUID(), GossipType.MINOR_NEGATIVE, 25);
-         } else if (type == ReputationEventType.VILLAGER_KILLED) {
-             this.gossips.add(source.getUUID(), GossipType.MAJOR_NEGATIVE, 25);
--        }
--
--        Player tradingPlayer = this.getTradingPlayer();
--        if (tradingPlayer != null && tradingPlayer.getUUID().equals(source.getUUID())) {
--            this.updateSpecialPrices(tradingPlayer);
--            this.resendOffersToTradingPlayer();
-         }
-     }
- 

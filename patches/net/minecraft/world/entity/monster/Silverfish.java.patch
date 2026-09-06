@@ -43,6 +43,15 @@
      @Override
      protected void registerGoals() {
          this.friendsGoal = new Silverfish.SilverfishWakeUpFriendsGoal(this);
+@@ -109,7 +_,7 @@
+     }
+ 
+     public static boolean checkSilverfishSpawnRules(
+-        EntityType<Silverfish> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random
++        EntityType<? extends Silverfish> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random
+     ) {
+         if (!checkAnyLightMonsterSpawnRules(type, level, spawnReason, pos, random)) {
+             return false;
 @@ -119,7 +_,7 @@
              return true;
          }
@@ -78,7 +87,7 @@
                  }
              }
          }
-@@ -212,10 +_,16 @@
+@@ -212,7 +_,13 @@
                              BlockPos testPos = basePos.offset(xOff, yOff, zOff);
                              BlockState blockState = level.getBlockState(testPos);
                              if (blockState.getBlock() instanceof InfestedBlock infestedBlock) {
@@ -92,8 +101,4 @@
 +                                if (net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(level), this.silverfish)) {
                                      level.destroyBlock(testPos, true, this.silverfish);
                                  } else {
--                                    level.setBlockAndUpdate(testPos, infestedBlock.hostStateByInfested(level.getBlockState(testPos)));
-+                                    level.setBlock(testPos, infestedBlock.hostStateByInfested(level.getBlockState(testPos)), 3);
-                                 }
- 
-                                 if (random.nextBoolean()) {
+                                     level.setBlockAndUpdate(testPos, infestedBlock.hostStateByInfested(level.getBlockState(testPos)));

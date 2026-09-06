@@ -204,14 +204,7 @@
                  }
  
                  this.resetQuickCraft();
-@@ -402,15 +_,18 @@
-             }
-         } else if (this.quickcraftStatus != 0) {
-             this.resetQuickCraft();
--        } else if ((containerInput == ContainerInput.PICKUP || containerInput == ContainerInput.QUICK_MOVE) && isContainerClickButton(buttonNum)) {
--            ClickAction clickAction = getClickAction(buttonNum);
-+        } else if ((containerInput == ContainerInput.PICKUP || containerInput == ContainerInput.QUICK_MOVE) && (buttonNum == 0 || buttonNum == 1)) {
-+            ClickAction clickAction = buttonNum == 0 ? ClickAction.PRIMARY : ClickAction.SECONDARY;
+@@ -407,8 +_,11 @@
              if (slotIndex == -999) {
                  if (!this.getCarried().isEmpty()) {
                      if (clickAction == ClickAction.PRIMARY) {
@@ -219,14 +212,11 @@
 +                        // CraftBukkit start
 +                        ItemStack carried = this.getCarried();
                          this.setCarried(ItemStack.EMPTY);
-+                        player.drop(carried, true);
++                        player.drop(carried, true, Prediction.PREDICTED);
 +                        // CraftBukkit start
                      } else {
--                        player.drop(this.getCarried().split(1), true, Prediction.PREDICTED);
-+                        player.drop(this.getCarried().split(1), true);
+                         player.drop(this.getCarried().split(1), true, Prediction.PREDICTED);
                      }
-                 }
-             } else if (containerInput == ContainerInput.QUICK_MOVE) {
 @@ -470,8 +_,18 @@
                  }
  

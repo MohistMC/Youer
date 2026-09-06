@@ -142,6 +142,9 @@ public enum Particle implements Keyed {
     SHRIEK("shriek", Integer.class),
     CHERRY_LEAVES("cherry_leaves"),
     PALE_OAK_LEAVES("pale_oak_leaves"),
+    RED_POPLAR_LEAVES("red_poplar_leaves"),
+    ORANGE_POPLAR_LEAVES("orange_poplar_leaves"),
+    YELLOW_POPLAR_LEAVES("yellow_poplar_leaves"),
     /**
      * Uses {@link Color} as DataType
      */

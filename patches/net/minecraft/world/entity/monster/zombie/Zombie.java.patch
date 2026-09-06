@@ -8,11 +8,7 @@
  import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.EntityAttachment;
  import net.minecraft.world.entity.EntityAttachments;
-@@ -64,16 +_,22 @@
- import net.minecraft.world.level.LevelAccessor;
- import net.minecraft.world.level.ServerLevelAccessor;
- import net.minecraft.world.level.block.Blocks;
--import net.minecraft.world.level.block.LevelEvent;
+@@ -68,12 +_,19 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
@@ -173,15 +169,6 @@
          this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, IronGolem.class, true));
          this.targetSelector.addGoal(5, new NearestAttackableTargetGoal<>(this, Turtle.class, 10, true, false, Turtle.BABY_ON_LAND_SELECTOR));
      }
-@@ -158,7 +_,7 @@
-     }
- 
-     public boolean isUnderWaterConverting() {
--        return this.drowningTracker.isConverting();
-+        return this.getEntityData().get(DATA_DROWNED_CONVERSION_ID);
-     }
- 
-     public boolean canBreakDoors() {
 @@ -188,12 +_,17 @@
      }
  
@@ -349,43 +336,7 @@
              }
          }
  
-@@ -343,14 +_,6 @@
-         return SoundEvents.ZOMBIE_STEP;
-     }
- 
--    protected @LevelEvent.Value int getConversionSound() {
--        return 1040;
--    }
--
--    protected EntityType<? extends Zombie> convertsToWhenDrowning() {
--        return EntityTypes.DROWNED;
--    }
--
-     @Override
-     protected void playStepSound(BlockPos pos, BlockState blockState) {
-         this.playSound(this.getStepSound(), 0.15F, 1.0F);
-@@ -385,7 +_,8 @@
-         super.addAdditionalSaveData(output);
-         output.putBoolean("IsBaby", this.isBaby());
-         output.putBoolean("CanBreakDoors", this.canBreakDoors());
--        this.drowningTracker.addAdditionalSaveData(output);
-+        output.putInt("InWaterTime", this.isInWater() ? this.inWaterTime : -1);
-+        output.putInt("DrownedConversionTime", this.isUnderWaterConverting() ? this.conversionTime : -1);
-     }
- 
-     @Override
-@@ -393,14 +_,21 @@
-         super.readAdditionalSaveData(input);
-         this.setBaby(input.getBooleanOr("IsBaby", false));
-         this.setCanBreakDoors(input.getBooleanOr("CanBreakDoors", false));
--        this.drowningTracker.readAdditionalSaveData(input);
-+        this.inWaterTime = input.getIntOr("InWaterTime", 0);
-+        int conversionTime = input.getIntOr("DrownedConversionTime", -1);
-+        if (conversionTime != -1) {
-+            this.startUnderWaterConversion(conversionTime);
-+        } else {
-+            this.getEntityData().set(DATA_DROWNED_CONVERSION_ID, false);
-+        }
+@@ -397,10 +_,11 @@
      }
  
      @Override
@@ -462,7 +413,7 @@
              this.setItemSlot(EquipmentSlot.HEAD, new ItemStack(random.nextFloat() < 0.1F ? Blocks.JACK_O_LANTERN : Blocks.CARVED_PUMPKIN));
              this.setDropChance(EquipmentSlot.HEAD, 0.0F);
          }
-@@ -488,18 +_,18 @@
+@@ -488,7 +_,7 @@
      protected void onOffspringSpawnedFromEgg(Player spawner, Mob offspring) {
          if (this.level() instanceof ServerLevel serverLevel) {
              float difficultyModifier = serverLevel.getCurrentDifficultyAt(offspring.blockPosition()).getSpecialMultiplier();
@@ -471,16 +422,3 @@
          }
      }
  
-     @VisibleForTesting
-     public void setInWaterTime(int inWaterTime) {
--        this.drowningTracker.setAfflictionTime(inWaterTime);
-+        this.inWaterTime = inWaterTime;
-     }
- 
-     @VisibleForTesting
-     public void setConversionTime(int conversionTime) {
--        this.drowningTracker.setConversionTime(conversionTime);
-+        this.conversionTime = conversionTime;
-     }
- 
-     public static boolean getSpawnAsBabyOdds(RandomSource random) {

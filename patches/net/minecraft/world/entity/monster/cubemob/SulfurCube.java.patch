@@ -74,15 +74,24 @@
      @Override
      public boolean fromBucket() {
          return this.entityData.get(FROM_BUCKET);
-@@ -219,7 +_,7 @@
+@@ -185,7 +_,7 @@
+         super.travelInFluid(input);
+         if (this.hasBodyItem() && this.floatsInLiquids) {
+             float vibeAmount = 0.2F * Mth.sin(this.tickCount * 0.4F);
+-            double immersion = this.getFluidHeight(this.isInWater() ? FluidTags.WATER : FluidTags.LAVA) - this.getFluidJumpThreshold() + vibeAmount;
++            double immersion = this.getFluidHeight(getMaxHeightFluidType()) - this.getFluidJumpThreshold() + vibeAmount;
+             if (immersion > 0.0) {
+                 this.setDeltaMovement(this.getDeltaMovement().add(0.0, Math.min(1.0, immersion) * 0.04F, 0.0));
+             }
+@@ -224,7 +_,7 @@
      }
  
-     @Override
--    protected boolean canDealDamage() {
-+    protected boolean isDealsDamage() {
-         return false;
+     public static boolean checkSulfurCubeSpawnRules(
+-        EntityType<SulfurCube> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random
++        EntityType<? extends SulfurCube> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random
+     ) {
+         return true;
      }
- 
 @@ -295,13 +_,34 @@
  
          if (!this.explosionData.isEmpty()) {
@@ -144,21 +153,19 @@
              }
          }
      }
-@@ -340,7 +_,13 @@
+@@ -340,6 +_,12 @@
              && !this.isPrimed()) {
              int fuse = this.explosionData.get().fuse();
              int fuseTime = imminent ? PrimedTnt.getRandomShortFuse(fuse, this.getRandom()) : fuse;
--            this.setPermanentlyInvulnerable(true);
 +            // Paper start - call EntityIgniteEvent
 +            fuseTime = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityIgniteEvent(this, fuseTime);
 +            if (fuseTime == PrimedTnt.NO_FUSE) {
 +                return false;
 +            }
 +            // Paper end - call EntityIgniteEvent
-+            this.setInvulnerable(true);
+             this.setPermanentlyInvulnerable(true);
              this.setFuse(fuseTime);
              this.entityData.set(MAX_FUSE, fuseTime);
-             this.makeSound(SoundEvents.TNT_PRIMED);
 @@ -455,7 +_,15 @@
                  if (heldItem.is(Items.SHEARS) && this.readyForShearing()) {
                      if (this.level() instanceof ServerLevel level) {
@@ -176,18 +183,6 @@
                          this.gameEvent(GameEvent.SHEAR, player);
                          heldItem.hurtAndBreak(1, player, hand.asEquipmentSlot());
                          CriteriaTriggers.PLAYER_SHEARED_EQUIPMENT.trigger((ServerPlayer)player, itemStackToShear, this);
-@@ -524,8 +_,9 @@
-     private void applyContactDamage(Entity entity) {
-         if (this.level() instanceof ServerLevel serverLevel) {
-             for (SulfurCubeArchetype.ContactDamage damage : this.contactDamages) {
--                Entity damageSource = !damage.attributeToSource() && !(entity instanceof Player) ? null : this;
--                entity.hurtServer(serverLevel, new DamageSource(damage.damageType(), damageSource), damage.amount().sample(this.getRandom()));
-+                entity.hurtServer(
-+                    serverLevel, new DamageSource(damage.damageType(), damage.attributeToSource() ? this : null).eventEntityDamager(this).knownCause(org.bukkit.event.entity.EntityDamageEvent.DamageCause.CONTACT), damage.amount().sample(this.getRandom()) // Paper - add damager for EntityDamageEvent
-+                );
-             }
-         }
-     }
 @@ -555,12 +_,12 @@
      }
  
@@ -271,22 +266,6 @@
          }
      }
  
-@@ -914,13 +_,13 @@
-     }
- 
-     @Override
--    protected void setCubeMobHealth(int actualSize) {
-+    protected void setcubeMobHealth(int actualSize) {
-         this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(4 * actualSize);
-     }
- 
-     @Override
-     public boolean isInvulnerableToPiercingWeapon() {
--        return super.isInvulnerableToPiercingWeapon() && !this.isPrimed();
-+        return this.isInvulnerable() && !this.isPrimed();
-     }
- 
-     @Override
 @@ -1008,7 +_,7 @@
          }
  

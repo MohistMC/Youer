@@ -45,7 +45,7 @@
          if (this.level() instanceof ServerLevel serverLevel) {
              Entity owner = this.getOwner();
 -            if (!(owner instanceof Mob) || serverLevel.getGameRules().get(GameRules.MOB_GRIEFING)) {
-+            if (isIncendiary || net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverLevel, owner)) {
++            if (!(owner instanceof Mob) || net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverLevel, owner)) {
                  BlockPos pos = hitResult.getBlockPos().relative(hitResult.getDirection());
 -                if (this.level().isEmptyBlock(pos)) {
 +                if (this.level().isEmptyBlock(pos) && !org.bukkit.craftbukkit.event.CraftEventFactory.callBlockIgniteEvent(this.level(), pos, this).isCancelled()) { // CraftBukkit

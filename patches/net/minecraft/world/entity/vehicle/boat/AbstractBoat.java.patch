@@ -1,28 +1,5 @@
 --- a/net/minecraft/world/entity/vehicle/boat/AbstractBoat.java
 +++ b/net/minecraft/world/entity/vehicle/boat/AbstractBoat.java
-@@ -21,14 +_,11 @@
- import net.minecraft.world.InteractionResult;
- import net.minecraft.world.entity.Entity;
- import net.minecraft.world.entity.EntityDimensions;
--import net.minecraft.world.entity.EntityEvent;
- import net.minecraft.world.entity.EntitySelector;
- import net.minecraft.world.entity.EntityType;
- import net.minecraft.world.entity.InterpolationHandler;
- import net.minecraft.world.entity.Leashable;
--import net.minecraft.world.entity.LinearInterpolationHandler;
- import net.minecraft.world.entity.LivingEntity;
--import net.minecraft.world.entity.Mob;
- import net.minecraft.world.entity.MoverType;
- import net.minecraft.world.entity.Pose;
- import net.minecraft.world.entity.animal.Animal;
-@@ -66,6 +_,7 @@
-     private final float[] paddlePositions = new float[2];
-     private float outOfControlTicks;
-     private float deltaRotation;
-+    private final InterpolationHandler interpolation = new InterpolationHandler(this, 3);
-     private boolean inputLeft;
-     private boolean inputRight;
-     private boolean inputUp;
 @@ -83,6 +_,15 @@
      private Leashable.@Nullable LeashData leashData;
      private final Supplier<Item> dropItem;
@@ -79,34 +56,10 @@
              super.push(entity);
          }
      }
-@@ -201,8 +_,8 @@
-     }
- 
-     @Override
--    protected InterpolationHandler createInterpolationHandler() {
--        return LinearInterpolationHandler.create(this, 3);
-+    public InterpolationHandler getInterpolation() {
-+        return this.interpolation;
-     }
- 
-     @Override
-@@ -233,6 +_,7 @@
+@@ -250,6 +_,18 @@
+             this.deltaRotation = 0.0F;
          }
  
-         super.tick();
-+        this.interpolation.interpolate();
-         if (this.isLocalInstanceAuthoritative()) {
-             if (!(this.getFirstPassenger() instanceof Player)) {
-                 this.setPaddleState(false, false);
-@@ -247,9 +_,20 @@
-             this.move(MoverType.SELF, this.getDeltaMovement());
-         } else {
-             this.setDeltaMovement(Vec3.ZERO);
--            this.deltaRotation = 0.0F;
--        }
--
-+        }
-+
 +        // CraftBukkit start
 +        org.bukkit.Location to = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(this.position(), this.level(), this.getYRot(), this.getXRot());
 +        org.bukkit.entity.Vehicle vehicle = (org.bukkit.entity.Vehicle) this.getBukkitEntity();
@@ -122,52 +75,6 @@
          this.applyEffectsFromBlocks();
          this.applyEffectsFromBlocks();
          this.tickBubbleColumn();
-@@ -328,14 +_,13 @@
-                 int diff = 60 - bubbleTime - 1;
-                 if (diff > 0 && bubbleTime == 0) {
-                     this.setBubbleTime(0);
-+                    Vec3 movement = this.getDeltaMovement();
-                     if (this.bubbleColumnDirectionIsDown) {
-+                        this.setDeltaMovement(movement.add(0.0, -0.7, 0.0));
-                         this.ejectPassengers();
--                        this.level().broadcastEntityEvent(this, (byte)71);
-                     } else {
--                        this.level().broadcastEntityEvent(this, (byte)72);
-+                        this.setDeltaMovement(movement.x, this.hasPassenger(e -> e instanceof Player) ? 2.7 : 0.6, movement.z);
-                     }
--
--                    this.handleBubbleColumnEffect(this.bubbleColumnDirectionIsDown);
-                 }
- 
-                 this.isAboveBubbleColumn = false;
-@@ -343,27 +_,6 @@
-         }
-     }
- 
--    @Override
--    public void handleEntityEvent(@EntityEvent.Value byte id) {
--        super.handleEntityEvent(id);
--        if (id == 71) {
--            this.handleBubbleColumnEffect(true);
--        } else if (id == 72) {
--            this.handleBubbleColumnEffect(false);
--        }
--    }
--
--    protected void handleBubbleColumnEffect(boolean dragDown) {
--        if (this.canSimulateMovement()) {
--            Vec3 movement = this.getDeltaMovement();
--            if (dragDown) {
--                this.setDeltaMovement(movement.add(0.0, -0.7, 0.0));
--            } else {
--                this.setDeltaMovement(movement.x, 0.6, movement.z);
--            }
--        }
--    }
--
-     protected @Nullable SoundEvent getPaddleSound() {
-         return switch (this.getStatus()) {
-             case IN_WATER, UNDER_WATER, UNDER_FLOWING_WATER -> SoundEvents.BOAT_PADDLE_WATER;
 @@ -417,6 +_,7 @@
              float friction = this.getGroundFriction();
              if (friction > 0.0F) {
@@ -221,67 +128,6 @@
                  this.setDeltaMovement(this.getDeltaMovement().multiply(1.0, 0.0, 1.0));
                  this.lastYd = 0.0;
              }
-@@ -657,12 +_,14 @@
-     protected void positionRider(Entity passenger, Entity.MoveFunction moveFunction) {
-         super.positionRider(passenger, moveFunction);
-         if (!passenger.is(EntityTypeTags.CAN_TURN_IN_BOATS)) {
--            if (passenger.isLocalInstanceAuthoritative()) {
--                passenger.setYRot(passenger.getYRot() + this.deltaRotation);
--                passenger.setYHeadRot(passenger.getYHeadRot() + this.deltaRotation);
--            }
--
-+            passenger.setYRot(passenger.getYRot() + this.deltaRotation);
-+            passenger.setYHeadRot(passenger.getYHeadRot() + this.deltaRotation);
-             this.clampRotation(passenger);
-+            if (passenger instanceof Animal animal && this.getPassengers().size() == this.getMaxPassengers()) {
-+                int rotationOffset = passenger.getId() % 2 == 0 ? 90 : 270;
-+                passenger.setYBodyRot(animal.yBodyRot + rotationOffset);
-+                passenger.setYHeadRot(passenger.getYHeadRot() + rotationOffset);
-+            }
-         }
-     }
- 
-@@ -698,32 +_,18 @@
-         return super.getDismountLocationForPassenger(passenger);
-     }
- 
--    protected float clampRotation(Entity passenger) {
--        float passengerBodyYRot = this.calculatePassengerBodyYRot(passenger);
--        passenger.setYBodyRot(passengerBodyYRot);
--        if (passenger instanceof Mob mob) {
--            passenger.setYRot(passengerBodyYRot);
--            mob.clampHeadRotationToBody();
--            return Mth.wrapDegrees(passengerBodyYRot - passenger.getYRot());
--        } else {
--            float delta = Mth.wrapDegrees(passenger.getYRot() - passengerBodyYRot);
--            float maxHeadRotation = 105.0F;
--            float targetDelta = Mth.clamp(delta, -105.0F, 105.0F);
--            passenger.setYRot(passenger.getYRot() + targetDelta - delta);
--            return targetDelta - delta;
--        }
--    }
--
--    private float calculatePassengerBodyYRot(Entity passenger) {
--        return passenger instanceof Animal && this.getPassengers().size() == this.getMaxPassengers()
--            ? this.getYRot() + (passenger.getId() % 2 == 0 ? 90.0F : 270.0F)
--            : this.getYRot();
-+    protected void clampRotation(Entity passenger) {
-+        passenger.setYBodyRot(this.getYRot());
-+        float delta = Mth.wrapDegrees(passenger.getYRot() - this.getYRot());
-+        float targetDelta = Mth.clamp(delta, -105.0F, 105.0F);
-+        passenger.yRotO += targetDelta - delta;
-+        passenger.setYRot(passenger.getYRot() + targetDelta - delta);
-+        passenger.setYHeadRot(passenger.getYRot());
-     }
- 
-     @Override
-     public void onPassengerTurned(Entity passenger) {
--        float yDelta = this.clampRotation(passenger);
--        passenger.yRotO += yDelta;
-+        this.clampRotation(passenger);
-     }
- 
-     @Override
 @@ -749,12 +_,20 @@
      }
  
@@ -315,15 +161,15 @@
                  this.fallDistance -= (float)ya;
              }
          }
-@@ -796,7 +_,7 @@
+@@ -787,7 +_,7 @@
  
      @Override
-     public @Nullable LivingEntity getControllingPassenger() {
--        return this.getFirstPassenger() instanceof Player passenger ? passenger : super.getControllingPassenger();
-+        return this.getFirstPassenger() instanceof LivingEntity passenger ? passenger : super.getControllingPassenger();
+     protected boolean canAddPassenger(Entity passenger) {
+-        return this.getPassengers().size() < this.getMaxPassengers() && !this.isEyeInFluid(FluidTags.WATER);
++        return this.getPassengers().size() < this.getMaxPassengers() && !this.getFluidInteraction().isEyeInFluidMatching(this, (entity, type, _) -> entity.canBoatInFluid(type));
      }
  
-     public void setInput(boolean left, boolean right, boolean up, boolean down) {
+     protected int getMaxPassengers() {
 @@ -818,7 +_,13 @@
  
      @Override

@@ -1,11 +1,6 @@
 --- a/net/minecraft/world/entity/projectile/Projectile.java
 +++ b/net/minecraft/world/entity/projectile/Projectile.java
-@@ -20,11 +_,11 @@
- import net.minecraft.world.entity.EntitySelector;
- import net.minecraft.world.entity.EntityType;
- import net.minecraft.world.entity.LivingEntity;
--import net.minecraft.world.entity.MoveSimulationType;
- import net.minecraft.world.entity.TraceableEntity;
+@@ -25,6 +_,7 @@
  import net.minecraft.world.entity.player.Player;
  import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
  import net.minecraft.world.item.AdventureModePredicate;
@@ -13,16 +8,13 @@
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.item.enchantment.EnchantmentHelper;
  import net.minecraft.world.level.GameType;
-@@ -45,16 +_,13 @@
- public abstract class Projectile extends Entity implements TraceableEntity {
-     private static final boolean DEFAULT_LEFT_OWNER = false;
-     private static final boolean DEFAULT_HAS_BEEN_SHOT = false;
--    private static final String TAG_OWNER = "Owner";
--    private static final String TAG_LEFT_OWNER = "LeftOwner";
--    private static final String TAG_HAS_BEEN_SHOT = "HasBeenShot";
--    private static final String TAG_CAN_BREAK = "can_break";
+@@ -49,12 +_,14 @@
+     private static final String TAG_LEFT_OWNER = "LeftOwner";
+     private static final String TAG_HAS_BEEN_SHOT = "HasBeenShot";
+     private static final String TAG_CAN_BREAK = "can_break";
 -    public @Nullable EntityReference<Entity> owner;
-+    protected @Nullable EntityReference<Entity> owner;
++    @Nullable
++    public EntityReference<Entity> owner;
      private @Nullable AdventureModePredicate canBreak;
      public boolean leftOwner = false;
      private boolean leftOwnerChecked;
@@ -32,17 +24,7 @@
  
      protected Projectile(EntityType<? extends Projectile> type, Level level) {
          super(type, level);
-@@ -101,9 +_,6 @@
-         }
- 
-         output.putBoolean("HasBeenShot", this.hasBeenShot);
--        if (this.canBreak != null) {
--            output.store("can_break", AdventureModePredicate.CODEC, this.canBreak);
--        }
-     }
- 
-     protected boolean ownedBy(Entity entity) {
-@@ -113,9 +_,11 @@
+@@ -113,6 +_,9 @@
      @Override
      protected void readAdditionalSaveData(ValueInput input) {
          this.setOwner(EntityReference.read(input, "Owner"));
@@ -51,10 +33,7 @@
 +        // Paper end - Reset pearls when they stop being ticked; Don't store shooter name for pearls to block enderpearl travel exploit
          this.leftOwner = input.getBooleanOr("LeftOwner", false);
          this.hasBeenShot = input.getBooleanOr("HasBeenShot", false);
--        this.canBreak = input.read("can_break", AdventureModePredicate.CODEC).orElse(null);
-     }
- 
-     @Override
+         this.canBreak = input.read("can_break", AdventureModePredicate.CODEC).orElse(null);
 @@ -186,7 +_,14 @@
          float zd = Mth.cos(yRot * (float) (Math.PI / 180.0)) * Mth.cos(xRot * (float) (Math.PI / 180.0));
          this.shoot(xd, yd, zd, pow, uncertainty);
@@ -216,7 +195,7 @@
  
      public void applyOnProjectileSpawned(ServerLevel serverLevel, ItemStack pickupItemStack) {
          EnchantmentHelper.onProjectileSpawned(serverLevel, pickupItemStack, this, item -> {});
-@@ -265,28 +_,34 @@
+@@ -265,6 +_,17 @@
          }
      }
  
@@ -232,80 +211,9 @@
 +    // CraftBukkit end
 +
      protected ProjectileDeflection hitTargetOrDeflectSelf(HitResult hitResult) {
--        if (hitResult instanceof EntityHitResult entityHitResult) {
-+        if (hitResult.getType() == HitResult.Type.ENTITY) {
-+            EntityHitResult entityHitResult = (EntityHitResult)hitResult;
+         if (hitResult instanceof EntityHitResult entityHitResult) {
              Entity entity = entityHitResult.getEntity();
-             ProjectileDeflection deflection = entity.deflection(this);
-             if (deflection != ProjectileDeflection.NONE) {
--                if (entity != this.lastDeflectedBy && this.deflect(deflection, entity, this.owner, false, 1.0)) {
-+                if (entity != this.lastDeflectedBy && this.deflect(deflection, entity, this.owner, false)) {
-                     this.lastDeflectedBy = entity;
-                 }
- 
-                 return deflection;
-             }
--        } else if (hitResult instanceof BlockHitResult blockHitResult) {
--            if (!blockHitResult.isWorldBorderHit()) {
--                BlockState collidedWith = this.level().getBlockState(blockHitResult.getBlockPos());
--                if (collidedWith.isAir()) {
--                    return ProjectileDeflection.NONE;
--                }
--            } else if (this.shouldBounceOnWorldBorder()) {
--                ProjectileDeflection deflection = ProjectileDeflection.REVERSE;
--                if (this.deflect(deflection, null, this.owner, false, 0.2)) {
--                    return deflection;
--                }
-+        } else if (this.shouldBounceOnWorldBorder() && hitResult instanceof BlockHitResult blockHit && blockHit.isWorldBorderHit()) {
-+            ProjectileDeflection deflection = ProjectileDeflection.REVERSE;
-+            if (this.deflect(deflection, null, this.owner, false)) {
-+                this.setDeltaMovement(this.getDeltaMovement().scale(0.2));
-+                return deflection;
-             }
-         }
- 
-@@ -298,11 +_,9 @@
-         return false;
-     }
- 
--    public boolean deflect(
--        ProjectileDeflection deflection, @Nullable Entity deflectingEntity, @Nullable EntityReference<Entity> newOwner, boolean byAttack, Vec3 power
--    ) {
-+    public boolean deflect(ProjectileDeflection deflection, @Nullable Entity deflectingEntity, @Nullable EntityReference<Entity> newOwner, boolean byAttack) {
-+        deflection.deflect(this, deflectingEntity, this.random);
-         if (!this.level().isClientSide()) {
--            deflection.deflect(this, deflectingEntity, this.random, power);
-             this.setOwner(newOwner);
-             this.onDeflection(byAttack);
-         }
-@@ -310,16 +_,10 @@
-         return true;
-     }
- 
--    public boolean deflect(
--        ProjectileDeflection deflection, @Nullable Entity deflectingEntity, @Nullable EntityReference<Entity> newOwner, boolean byAttack, double power
--    ) {
--        return this.deflect(deflection, deflectingEntity, newOwner, byAttack, new Vec3(power, power, power));
--    }
--
-     protected void onDeflection(boolean byAttack) {
-     }
- 
--    protected void onItemBreak(ItemStack item) {
-+    protected void onItemBreak(Item item) {
-     }
- 
-     protected void onHit(HitResult hitResult) {
-@@ -328,7 +_,7 @@
-             EntityHitResult entityHitResult = (EntityHitResult)hitResult;
-             Entity entityHit = entityHitResult.getEntity();
-             if (entityHit.is(EntityTypeTags.REDIRECTABLE_PROJECTILE) && entityHit instanceof Projectile projectile) {
--                this.onRedirectProjectile(projectile);
-+                projectile.deflect(ProjectileDeflection.AIM_DEFLECT, this.getOwner(), this.owner, true);
-             }
- 
-             this.onHitEntity(entityHitResult);
-@@ -345,13 +_,20 @@
+@@ -345,6 +_,11 @@
      }
  
      protected void onHitBlock(BlockHitResult hitResult) {
@@ -317,18 +225,19 @@
          BlockState state = this.level().getBlockState(hitResult.getBlockPos());
          state.onProjectileHit(this.level(), state, hitResult, this);
      }
+@@ -353,12 +_,27 @@
+         hitProjectile.deflect(ProjectileDeflection.AIM_DEFLECT, this.getOwner(), this.owner, true, 1.0);
+     }
  
--    protected void onRedirectProjectile(Projectile hitProjectile) {
--        hitProjectile.deflect(ProjectileDeflection.AIM_DEFLECT, this.getOwner(), this.owner, true, 1.0);
 +    // Paper start
 +    public boolean canHitEntityPublic(final Entity target) {
 +        return this.canHitEntity(target);
-     }
++    }
 +    // Paper end
- 
++
      protected boolean canHitEntity(Entity entity) {
          if (!entity.canBeHitByProjectile()) {
-@@ -359,6 +_,15 @@
+             return false;
          }
  
          Entity owner = this.getOwner();
@@ -359,7 +268,7 @@
  
          return Mth.lerp(0.2F, rotO, rot);
      }
-@@ -399,13 +_,13 @@
+@@ -399,7 +_,7 @@
      @Override
      public boolean mayInteract(ServerLevel level, BlockPos pos) {
          Entity owner = this.getOwner();
@@ -368,21 +277,3 @@
      }
  
      public boolean mayBreak(ServerLevel level, BlockPos pos) {
-         return this.is(EntityTypeTags.IMPACT_PROJECTILES)
-             && level.getGameRules().get(GameRules.PROJECTILES_CAN_BREAK_BLOCKS)
--            && this.canBreakBlockInAdventureMode(level, new BlockInWorld(level, pos, false));
-+            && this.canBreakBlockInAdventureMode(new BlockInWorld(level, pos, false));
-     }
- 
-     @Override
-@@ -439,8 +_,8 @@
-     }
- 
-     @Override
--    public MoveSimulationType getMoveSimulationType() {
--        return MoveSimulationType.SERVER_AND_CLIENT;
-+    public boolean canSimulateMovement() {
-+        return true;
-     }
- 
-     @FunctionalInterface

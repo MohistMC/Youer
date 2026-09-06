@@ -2,10 +2,12 @@ package org.bukkit.inventory;
 
 import org.bukkit.Keyed;
 import org.bukkit.NamespacedKey;
+import org.jspecify.annotations.NullMarked;
 
 /**
  * Represents a recipe that is applicable to brewing stands.
  */
+@NullMarked
 public class BrewingRecipe implements Recipe, Keyed {
 
     private final NamespacedKey key;

@@ -49,12 +49,8 @@
                      }
  
                      return dispensed;
-@@ -98,11 +_,36 @@
-                     BlockPos pos = source.pos().relative(source.state().getValue(DispenserBlock.FACING));
- 
-                     for (AbstractChestedHorse abstractChestedHorse : source.level()
--                        .getEntitiesOfClass(AbstractChestedHorse.class, new AABB(pos), entity -> entity.isAlive() && !entity.hasChest())) {
-+                            .getEntitiesOfClass(AbstractChestedHorse.class, new AABB(pos), entity -> entity.isAlive() && !entity.hasChest())) {
+@@ -101,8 +_,33 @@
+                         .getEntitiesOfClass(AbstractChestedHorse.class, new AABB(pos), entity -> entity.isAlive() && !entity.hasChest())) {
                          if (abstractChestedHorse.isTamed()) {
                              SlotAccess slot = abstractChestedHorse.getSlot(499);
 -                            if (slot != null && slot.set(dispensed)) {
@@ -269,7 +265,7 @@
                  this.setSuccess(true);
                  return dispensed;
              }
-@@ -228,9 +_,18 @@
+@@ -228,6 +_,13 @@
                      Level level = source.level();
                      Direction direction = source.state().getValue(DispenserBlock.FACING);
                      BlockPos target = source.pos().relative(direction);
@@ -281,15 +277,8 @@
 +                    }
 +                    // Paper end - Call BlockDispenseEvent
                      if (level.isEmptyBlock(target) && WitherSkullBlock.canSpawnMob(level, target, dispensed)) {
--                        level.setBlockAndUpdate(
--                            target, Blocks.WITHER_SKELETON_SKULL.defaultBlockState().setValue(SkullBlock.ROTATION, RotationSegment.convertToSegment(direction))
-+                        level.setBlock(
-+                            target,
-+                            Blocks.WITHER_SKELETON_SKULL.defaultBlockState().setValue(SkullBlock.ROTATION, RotationSegment.convertToSegment(direction)),
-+                            3
-                         );
-                         level.gameEvent(null, GameEvent.BLOCK_PLACE, target);
-                         if (level.getBlockEntity(target) instanceof SkullBlockEntity skullBlockEntity) {
+                         level.setBlockAndUpdate(
+                             target, Blocks.WITHER_SKELETON_SKULL.defaultBlockState().setValue(SkullBlock.ROTATION, RotationSegment.convertToSegment(direction))
 @@ -240,7 +_,7 @@
                          dispensed.shrink(1);
                          this.setSuccess(true);
@@ -299,7 +288,7 @@
                      }
  
                      return dispensed;
-@@ -253,16 +_,23 @@
+@@ -253,6 +_,13 @@
                  Level level = source.level();
                  BlockPos target = source.pos().relative(source.state().getValue(DispenserBlock.FACING));
                  CarvedPumpkinBlock pumpkinBlock = (CarvedPumpkinBlock)Blocks.CARVED_PUMPKIN;
@@ -312,11 +301,8 @@
 +                // Paper end - Call BlockDispenseEvent
                  if (level.isEmptyBlock(target) && pumpkinBlock.canSpawnGolem(level, target)) {
                      if (!level.isClientSide()) {
--                        level.setBlockAndUpdate(target, pumpkinBlock.defaultBlockState());
-+                        level.setBlock(target, pumpkinBlock.defaultBlockState(), 3);
-                         level.gameEvent(null, GameEvent.BLOCK_PLACE, target);
-                     }
- 
+                         level.setBlockAndUpdate(target, pumpkinBlock.defaultBlockState());
+@@ -262,7 +_,7 @@
                      dispensed.shrink(1);
                      this.setSuccess(true);
                  } else {
@@ -399,12 +385,7 @@
                      dispensed.shrink(1);
                      this.setSuccess(true);
                      return dispensed;
-@@ -379,10 +_,16 @@
-                     ServerLevel level = source.level();
-                     BlockPos pos = source.pos();
-                     BlockPos target = source.pos().relative(source.state().getValue(DispenserBlock.FACING));
--                    if (!level.getBlockState(target).is(BlockTags.CONVERTIBLE_TO_MUD)) {
-+                    if (!level.getBlockState(target).is(BlockTags.CONVERTABLE_TO_MUD)) {
+@@ -383,6 +_,12 @@
                          return this.defaultDispenseItemBehavior.dispense(source, dispensed);
                      }
  

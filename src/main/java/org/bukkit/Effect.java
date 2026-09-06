@@ -263,6 +263,8 @@ public enum Effect {
     CRAFTER_FAIL(1050, Type.SOUND),
     WIND_CHARGE_SHOOT(1051, Type.SOUND),
     SULFUR_SPIKE_LAND(1052, Type.SOUND),
+    SPELL_POTION_SPLASH(1053, Type.SOUND),
+    INSTANT_POTION_SPLASH(1054, Type.SOUND),
     /**
      * The sound played / particles shown when a composter is being attempted to
      * fill.
@@ -312,10 +314,10 @@ public enum Effect {
     @Deprecated(since = "26.2", forRemoval = true)
     STEP_SOUND(2001, Type.SOUND, BlockData.class, Material.class), // block data is more correct, but the impl of the methods will still work with Material
     /**
-     * Block breaking.
+     * Block breaking with sound.
      * {@link BlockData} param is the block being broken.
      */
-    DESTROY_BLOCK(2001, Type.VISUAL, BlockData.class),
+    DESTROY_BLOCK_WITH_SOUND(2001, Type.VISUAL, BlockData.class),
     /**
      * Visual effect of a splash potion breaking.
      * {@link Color} param is the color of the potion.
@@ -364,6 +366,36 @@ public enum Effect {
      * {@link Integer} param is relative to the number of particles.
      */
     SMASH_ATTACK(2013, Type.VISUAL, Integer.class),
+    /**
+     * Block breaking.
+     * {@link BlockData} param is the block being broken.
+     */
+    DESTROY_BLOCK(2014, Type.VISUAL, BlockData.class),
+    /**
+     * The particles shown when an ender dragon teleports its egg.
+     */
+    ENDER_DRAGON_EGG_TELEPORT(2015, Type.VISUAL, Integer.class),
+    /**
+     * The particles shown when a shulker teleports.
+     */
+    SHULKER_TELEPORT(2016, Type.VISUAL, Integer.class),
+    /**
+     * The particles shown when a player consumes an effect that teleports them.
+     */
+    CONSUME_EFFECT_TELEPORT(2017, Type.VISUAL, Integer.class),
+    /**
+     * The particles shown when an enderman teleports.
+     * {@link Integer} param is relative to the number of particles.
+     */
+    ENDERMAN_TELEPORT(2018, Type.VISUAL, Integer.class),
+    /**
+     * The particles shown when a block is being destroyed.
+     */
+    DESTROY_PROGRESS(2019, Type.VISUAL, BlockFace.class),
+    /**
+     * The particles shown when a block is being destroyed, with sound.
+     */
+    DESTROY_PROGRESS_WITH_SOUND(2020, Type.VISUAL, BlockFace.class),
     /**
      * The sound/particles caused by an end gateway spawning.
      */

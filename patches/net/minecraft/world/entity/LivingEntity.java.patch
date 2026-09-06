@@ -242,8 +242,6 @@
          profiler.pop();
      }
  
--    public boolean shouldTakeDrowningDamage() {
--        return this.getAirSupply() <= -20;
 +    // DivineMC start - Lag Compensation
 +    private void lagCompensation() {
 +        if (this.level().isClientSide()) return;
@@ -254,7 +252,8 @@
 +    }
 +    // DivineMC end - Lag Compensation
 +
-+    protected boolean shouldTakeDrowningDamage() {
+     public boolean shouldTakeDrowningDamage() {
+-        return this.getAirSupply() <= -20;
 +        return this.getAirSupply() <= -this.level().purpurConfig.drowningDamageInterval; // Purpur - Drowning Settings
      }
  
@@ -2481,12 +2480,13 @@
                  this.updateUsingItem(this.useItem);
              } else {
                  this.stopUsingItem();
-@@ -3416,7 +_,7 @@
+@@ -3416,7 +_,8 @@
          }
      }
  
 -    public @Nullable ItemEntity createItemStackToDrop(ItemStack itemStack, boolean randomly, boolean thrownFromHand) {
-+    private @Nullable ItemEntity createItemStackToDrop(ItemStack itemStack, boolean randomly, boolean thrownFromHand) {
++    @Nullable
++    public ItemEntity createItemStackToDrop(ItemStack itemStack, boolean randomly, boolean thrownFromHand) {
          if (itemStack.isEmpty()) {
              return null;
          }

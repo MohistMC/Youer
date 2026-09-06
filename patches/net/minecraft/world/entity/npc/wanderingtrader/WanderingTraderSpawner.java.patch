@@ -108,20 +108,3 @@
              if (wanderingTraderSpawnType.isSpawnPositionOk(level, spawnPos, EntityTypes.WANDERING_TRADER)) {
                  spawnPosition = spawnPos;
                  break;
-@@ -137,8 +_,13 @@
-         return spawnPosition;
-     }
- 
--    private boolean hasEnoughSpace(LevelReader level, BlockPos spawnPos) {
--        return !level.findBlocksIn(spawnPos, spawnPos.offset(1, 2, 1))
--            .forEachUntil((pos, state) -> Continuation.continueIf(state.getCollisionShape(level, pos).isEmpty()));
-+    private boolean hasEnoughSpace(BlockGetter level, BlockPos spawnPos) {
-+        for (BlockPos pos : BlockPos.betweenClosed(spawnPos, spawnPos.offset(1, 2, 1))) {
-+            if (!level.getBlockState(pos).getCollisionShape(level, pos).isEmpty()) {
-+                return false;
-+            }
-+        }
-+
-+        return true;
-     }
- }

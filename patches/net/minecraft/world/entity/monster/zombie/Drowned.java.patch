@@ -1,20 +1,5 @@
 --- a/net/minecraft/world/entity/monster/zombie/Drowned.java
 +++ b/net/minecraft/world/entity/monster/zombie/Drowned.java
-@@ -1,6 +_,5 @@
- package net.minecraft.world.entity.monster.zombie;
- 
--import com.google.common.annotations.VisibleForTesting;
- import java.util.EnumSet;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Holder;
-@@ -72,7 +_,6 @@
-         .withEyeHeight(0.775F)
-         .withAttachments(EntityAttachments.builder().attach(EntityAttachment.VEHICLE, 0.0F, 0.1875F, 0.0F));
-     private boolean searchingForLand;
--    private float rangedAttackUncertainty = -1.0F;
- 
-     public Drowned(EntityType<? extends Drowned> type, Level level) {
-         super(type, level);
 @@ -80,6 +_,74 @@
          this.setPathfindingMalus(PathType.WATER, 0.0F);
      }
@@ -115,34 +100,12 @@
          this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, IronGolem.class, true));
          this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Axolotl.class, true, false));
          this.targetSelector.addGoal(5, new NearestAttackableTargetGoal<>(this, Turtle.class, 10, true, false, Turtle.BABY_ON_LAND_SELECTOR));
-@@ -238,6 +_,7 @@
- 
-         LivingEntity target = this.getTarget();
-         return target != null && target.isInWater();
-+ 
+@@ -137,7 +_,7 @@
      }
  
-     @Override
-@@ -289,21 +_,11 @@
-         double distanceToTarget = Math.sqrt(xd * xd + zd * zd);
-         if (this.level() instanceof ServerLevel serverLevel) {
-             Projectile.spawnProjectileUsingShoot(
--                trident, serverLevel, tridentItemStack, xd, yd + distanceToTarget * 0.2F, zd, 1.6F, this.rangedAttackUncertainty(serverLevel)
-+                trident, serverLevel, tridentItemStack, xd, yd + distanceToTarget * 0.2F, zd, 1.6F, 14 - this.level().getDifficulty().getId() * 4
-             );
-         }
- 
-         this.playSound(SoundEvents.DROWNED_SHOOT, 1.0F, 1.0F / (this.getRandom().nextFloat() * 0.4F + 0.8F));
--    }
--
--    @Override
--    public float rangedAttackUncertainty(Level level) {
--        return this.rangedAttackUncertainty < 0.0F ? RangedAttackMob.super.rangedAttackUncertainty(level) : this.rangedAttackUncertainty;
--    }
--
--    @VisibleForTesting
--    public void setRangedAttackUncertainty(float rangedAttackUncertainty) {
--        this.rangedAttackUncertainty = rangedAttackUncertainty;
-     }
- 
-     @Override
+     public static boolean checkDrownedSpawnRules(
+-        EntityType<Drowned> type, ServerLevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random
++        EntityType<? extends Drowned> type, ServerLevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random
+     ) {
+         if (!level.getFluidState(pos.below()).is(FluidTags.WATER) && !EntitySpawnReason.isSpawner(spawnReason)) {
+             return false;

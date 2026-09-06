@@ -1,13 +1,5 @@
 --- a/net/minecraft/world/entity/monster/Ravager.java
 +++ b/net/minecraft/world/entity/monster/Ravager.java
-@@ -11,7 +_,6 @@
- import net.minecraft.util.Mth;
- import net.minecraft.world.damagesource.DamageSource;
- import net.minecraft.world.entity.Entity;
--import net.minecraft.world.entity.EntityEvent;
- import net.minecraft.world.entity.EntityType;
- import net.minecraft.world.entity.EntityTypes;
- import net.minecraft.world.entity.LivingEntity;
 @@ -71,10 +_,33 @@
          this.setPathfindingMalus(PathType.LEAVES, 0.0F);
      }
@@ -73,14 +65,7 @@
                  }
              }
  
-@@ -217,15 +_,15 @@
-                 this.strongKnockback(defender);
-             }
- 
--            defender.syncVelocity = true;
-+            defender.hurtMarked = true;
-         }
-     }
+@@ -223,9 +_,9 @@
  
      private void roar() {
          if (this.isAlive() && this.level() instanceof ServerLevel level) {
@@ -92,7 +77,7 @@
                  if (!(entity instanceof AbstractIllager)) {
                      entity.hurtServer(level, this.damageSources().mobAttack(this), 6.0F);
                  }
-@@ -250,11 +_,11 @@
+@@ -250,7 +_,7 @@
          double xd = entity.getX() - this.getX();
          double zd = entity.getZ() - this.getZ();
          double dd = Math.max(xd * xd + zd * zd, 0.001);
@@ -101,8 +86,3 @@
      }
  
      @Override
--    public void handleEntityEvent(@EntityEvent.Value byte id) {
-+    public void handleEntityEvent(byte id) {
-         if (id == 4) {
-             this.attackTick = 10;
-             this.playSound(SoundEvents.RAVAGER_ATTACK, 1.0F, 1.0F);

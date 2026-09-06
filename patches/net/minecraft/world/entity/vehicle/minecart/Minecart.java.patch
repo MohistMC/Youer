@@ -1,20 +1,22 @@
 --- a/net/minecraft/world/entity/vehicle/minecart/Minecart.java
 +++ b/net/minecraft/world/entity/vehicle/minecart/Minecart.java
-@@ -23,9 +_,15 @@
+@@ -23,6 +_,10 @@
  
      @Override
      public InteractionResult interact(Player player, InteractionHand hand, Vec3 location) {
--        if (!player.isSecondaryUseActive() && !this.isVehicle()) {
 +        InteractionResult ret = super.interact(player, hand, location);
-+        if (ret.consumesAction()) return ret;
-+        if (!player.isSecondaryUseActive() && !this.isVehicle() && (this.level().isClientSide() || player.startRiding(this))) {
++        if (ret.consumesAction()) {
++            return ret;
++        }
+         if (!player.isSecondaryUseActive() && !this.isVehicle()) {
              this.playerRotationOffset = this.rotationOffset;
--            return !this.level().isClientSide() && player.startRiding(this) ? InteractionResult.SUCCESS_SERVER : InteractionResult.CONSUME;
-+            if (!this.level().isClientSide()) {
-+                return player.startRiding(this) ? InteractionResult.CONSUME : InteractionResult.PASS;
-+            } else {
-+                return InteractionResult.SUCCESS;
-+            }
-         } else {
-             return InteractionResult.PASS;
-         }
+             return !this.level().isClientSide() && player.startRiding(this) ? InteractionResult.SUCCESS_SERVER : InteractionResult.CONSUME;
+@@ -32,7 +_,7 @@
+     }
+ 
+     @Override
+-    public Item getDropItem() {
++    protected Item getDropItem() {
+         return Items.MINECART;
+     }
+ 

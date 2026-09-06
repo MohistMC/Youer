@@ -1,23 +1,11 @@
 --- a/net/minecraft/world/level/LevelReader.java
 +++ b/net/minecraft/world/level/LevelReader.java
-@@ -15,11 +_,7 @@
- import net.minecraft.world.flag.FeatureFlagSet;
- import net.minecraft.world.level.biome.Biome;
- import net.minecraft.world.level.biome.BiomeManager;
--import net.minecraft.world.level.biome.BiomeResolver;
- import net.minecraft.world.level.block.state.BlockState;
--import net.minecraft.world.level.blockscan.BlockMatcher;
--import net.minecraft.world.level.blockscan.BoxBlockMatcher;
--import net.minecraft.world.level.blockscan.OrderedBlockMatcher;
- import net.minecraft.world.level.chunk.ChunkAccess;
- import net.minecraft.world.level.chunk.status.ChunkStatus;
- import net.minecraft.world.level.dimension.DimensionType;
-@@ -29,9 +_,22 @@
+@@ -29,8 +_,21 @@
  
  import net.neoforged.neoforge.common.extensions.ILevelReaderExtension;
  
 -public interface LevelReader extends BlockAndLightGetter, CollisionGetter, SignalGetter, BiomeResolver, ILevelReaderExtension {
-+public interface LevelReader extends BlockAndLightGetter, CollisionGetter, SignalGetter, BiomeManager.NoiseBiomeSource, ILevelReaderExtension, ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevelReader { // Paper - rewrite chunk system
++public interface LevelReader extends BlockAndLightGetter, CollisionGetter, SignalGetter, BiomeResolver, ILevelReaderExtension, ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevelReader { // Paper - rewrite chunk system
 +    // Paper start - rewrite chunk system
 +    @Override
 +    public default ChunkAccess moonrise$syncLoadNonFull(final int chunkX, final int chunkZ, final ChunkStatus status) {
@@ -29,71 +17,9 @@
 +    // Paper end - rewrite chunk system
 +
      @Nullable ChunkAccess getChunk(final int chunkX, final int chunkZ, final ChunkStatus targetStatus, final boolean loadOrGenerate);
- 
++
 +    @Nullable ChunkAccess getChunkIfLoadedImmediately(int x, int z); // Paper - ifLoaded api (we need this since current impl blocks if the chunk is loading)
 +    default @Nullable ChunkAccess getChunkIfLoadedImmediately(BlockPos pos) { return this.getChunkIfLoadedImmediately(pos.getX() >> 4, pos.getZ() >> 4); }
-+
+ 
      @Deprecated
      boolean hasChunk(int chunkX, int chunkZ);
- 
-@@ -144,7 +_,26 @@
-     }
- 
-     default boolean containsAnyLiquid(AABB box) {
--        return this.findBlocksIn(box).filterState(state -> !state.getFluidState().isEmpty()).anyMatched();
-+        int x0 = Mth.floor(box.minX);
-+        int x1 = Mth.ceil(box.maxX);
-+        int y0 = Mth.floor(box.minY);
-+        int y1 = Mth.ceil(box.maxY);
-+        int z0 = Mth.floor(box.minZ);
-+        int z1 = Mth.ceil(box.maxZ);
-+        BlockPos.MutableBlockPos pos = new BlockPos.MutableBlockPos();
-+
-+        for (int x = x0; x < x1; x++) {
-+            for (int y = y0; y < y1; y++) {
-+                for (int z = z0; z < z1; z++) {
-+                    BlockState blockState = this.getBlockState(pos.set(x, y, z));
-+                    if (!blockState.getFluidState().isEmpty()) {
-+                        return true;
-+                    }
-+                }
-+            }
-+        }
-+
-+        return false;
-     }
- 
-     default int getMaxLocalRawBrightness(BlockPos pos) {
-@@ -158,31 +_,7 @@
-     }
- 
-     default int getEffectiveSkyBrightness(BlockPos pos) {
--        return Math.max(this.getBrightness(LightLayer.SKY, pos) - this.getSkyDarken(), 0);
--    }
--
--    default BlockMatcher findBlocksIn(AABB box) {
--        return this.findBlocksIn(BlockPos.containing(box.getMinPosition()), BlockPos.containing(box.getMaxPosition()));
--    }
--
--    default BlockMatcher findBlocksIn(BlockPos from, BlockPos to) {
--        return new BoxBlockMatcher(this, from, to);
--    }
--
--    default OrderedBlockMatcher findBlocksIn(Iterable<BlockPos> positions) {
--        return new OrderedBlockMatcher(this, positions);
--    }
--
--    default OrderedBlockMatcher findBlocksInBoxByManhattanDistance(BlockPos origin, int range) {
--        return this.findBlocksIn(BlockPos.withinBoxByManhattanDistance(origin, range, range, range));
--    }
--
--    default OrderedBlockMatcher findBlocksInBoxByManhattanDistance(BlockPos origin, int rangeXZ, int rangeY) {
--        return this.findBlocksIn(BlockPos.withinBoxByManhattanDistance(origin, rangeXZ, rangeY, rangeXZ));
--    }
--
--    default OrderedBlockMatcher findBlocksInManhattan(BlockPos origin, int range) {
--        return this.findBlocksIn(BlockPos.withinManhattan(origin, range));
-+        return this.getBrightness(LightLayer.SKY, pos) - this.getSkyDarken();
-     }
- 
-     @Deprecated

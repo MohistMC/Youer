@@ -27,7 +27,6 @@ import io.papermc.paper.datacomponent.item.KineticWeapon;
 import io.papermc.paper.datacomponent.item.LodestoneTracker;
 import io.papermc.paper.datacomponent.item.MapDecorations;
 import io.papermc.paper.datacomponent.item.MapId;
-import io.papermc.paper.datacomponent.item.MapItemColor;
 import io.papermc.paper.datacomponent.item.OminousBottleAmplifier;
 import io.papermc.paper.datacomponent.item.PiercingWeapon;
 import io.papermc.paper.datacomponent.item.PotDecorations;

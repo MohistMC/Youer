@@ -122,10 +122,12 @@
      }
  
      protected ItemStack addToInventory(ItemStack itemStack) {
-@@ -166,6 +_,11 @@
+@@ -165,7 +_,12 @@
+         return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 16.0).add(Attributes.MOVEMENT_SPEED, 0.35F).add(Attributes.ATTACK_DAMAGE, 5.0);
      }
  
-     public static boolean checkPiglinSpawnRules(EntityType<Piglin> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random) {
+-    public static boolean checkPiglinSpawnRules(EntityType<Piglin> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random) {
++    public static boolean checkPiglinSpawnRules(EntityType<? extends Piglin> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random) {
 +        // Purpur start - Config to disable hostile mob spawn on ice
 +        if (canSpawnInBlueAndPackedIce(level, pos)) {
 +            return false;
@@ -134,18 +136,6 @@
          return !level.getBlockState(pos.below()).is(Blocks.NETHER_WART_BLOCK);
      }
  
-@@ -189,6 +_,11 @@
-     }
- 
-     @Override
-+    public boolean removeWhenFarAway(double distSqr) {
-+        return !this.isPersistenceRequired();
-+    }
-+
-+    @Override
-     protected void populateDefaultEquipmentSlots(RandomSource random, DifficultyInstance difficulty) {
-         if (this.isAdult()) {
-             this.maybeWearArmor(EquipmentSlot.HEAD, new ItemStack(Items.GOLDEN_HELMET), random);
 @@ -316,7 +_,7 @@
          } else if (this.isChargingCrossbow()) {
              return PiglinArmPose.CROSSBOW_CHARGE;

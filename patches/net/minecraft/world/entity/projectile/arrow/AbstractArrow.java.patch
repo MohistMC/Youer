@@ -82,6 +82,15 @@
          if (this.isInGround() && movement.lengthSqr() > 0.0) {
              this.setInGround(false);
          }
+@@ -184,7 +_,7 @@
+             this.shakeTime--;
+         }
+ 
+-        if (this.isInWaterOrRain()) {
++        if (this.isInWaterOrRain() || this.getFluidInteraction().isInFluidMatching(this, (entity, type, _) -> entity.canFluidExtinguish(type))) {
+             this.clearFire();
+         }
+ 
 @@ -206,6 +_,10 @@
                  this.setSharedFlagOnFire(this.getRemainingFireTicks() > 0);
              }
@@ -120,7 +129,7 @@
              if (!this.isAlive() || deflection != ProjectileDeflection.NONE) {
                  return deflection;
              }
-@@ -331,20 +_,37 @@
+@@ -331,6 +_,19 @@
          }
      }
  
@@ -140,14 +149,7 @@
      @Override
      protected double getDefaultGravity() {
          return 0.05;
-     }
- 
-     private boolean shouldFall() {
--        return this.isInGround() && this.level().noCollision(new AABB(this.position(), this.position()).inflate(0.06));
-+        return this.isInGround() && this.level().noCollision(new AABB(this.position(), this.position()).inflate(0.06)); // Paper - getAttachedBlocks api; diff on change
-     }
- 
-     private void startFalling() {
+@@ -344,7 +_,11 @@
          this.setInGround(false);
          Vec3 deltaMovement = this.getDeltaMovement();
          this.setDeltaMovement(deltaMovement.multiply(this.random.nextFloat() * 0.2F, this.random.nextFloat() * 0.2F, this.random.nextFloat() * 0.2F));
@@ -229,21 +231,16 @@
              if (entity instanceof LivingEntity mob) {
                  if (!this.level().isClientSide() && this.getPierceLevel() <= 0) {
                      mob.setArrowCount(mob.getArrowCount() + 1);
-@@ -486,17 +_,18 @@
+@@ -486,7 +_,7 @@
  
              this.playSound(this.soundEvent, 1.0F, 1.2F / (this.random.nextFloat() * 0.2F + 0.9F));
              if (this.getPierceLevel() <= 0) {
 -                this.discard();
 +                this.discard(EntityRemoveEvent.Cause.HIT); // CraftBukkit - add Bukkit remove cause
              }
--        } else if (entity.projectileReceivesSideEffectsOnHit(false)) {
-+        } else {
+         } else if (entity.projectileReceivesSideEffectsOnHit(false)) {
              entity.setRemainingFireTicks(remainingFireTicks);
--            this.deflect(ProjectileDeflection.REVERSE, entity, this.owner, false, 0.2);
-+            this.deflect(ProjectileDeflection.REVERSE, entity, this.owner, false);
-+            this.setDeltaMovement(this.getDeltaMovement().scale(0.2));
-             if (this.level() instanceof ServerLevel level && this.getDeltaMovement().lengthSqr() < 1.0E-7) {
-                 if (this.pickup == AbstractArrow.Pickup.ALLOWED) {
+@@ -496,7 +_,7 @@
                      this.spawnAtLocation(level, this.getPickupItem(), 0.1F);
                  }
  
@@ -274,15 +271,6 @@
      protected SoundEvent getDefaultHitGroundSoundEvent() {
          return SoundEvents.ARROW_HIT;
      }
-@@ -575,7 +_,7 @@
- 
-     protected Collection<EntityHitResult> findHitEntities(Vec3 from, Vec3 to) {
-         return ProjectileUtil.getManyEntityHitResult(
--            this.level(), this, from, to, this.getBoundingBox().expandTowards(this.getDeltaMovement()).inflate(1.0), this::canHitEntity, false, false
-+            this.level(), this, from, to, this.getBoundingBox().expandTowards(this.getDeltaMovement()).inflate(1.0), this::canHitEntity, false
-         );
-     }
- 
 @@ -609,7 +_,7 @@
          this.lastState = input.read("inBlockState", BlockState.CODEC).orElse(null);
          this.shakeTime = input.getByteOr("shake", (byte)0) & 255;

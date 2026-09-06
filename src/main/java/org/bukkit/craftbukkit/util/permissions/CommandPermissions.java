@@ -23,7 +23,9 @@ public final class CommandPermissions {
         DefaultPermissions.registerPermission(CommandPermissions.PREFIX + "kick", "Allows the user to kick players", PermissionDefault.OP, commands);
         DefaultPermissions.registerPermission(CommandPermissions.PREFIX + "stop", "Allows the user to stop the server", PermissionDefault.OP, commands);
         DefaultPermissions.registerPermission(CommandPermissions.PREFIX + "list", "Allows the user to list all online players", PermissionDefault.OP, commands);
-        // Purpur start - Gamemode extra permissions
+        DefaultPermissions.registerPermission(CommandPermissions.PREFIX + "gamemode", "Allows the user to change the gamemode of another player", PermissionDefault.OP, commands);
+
+		// Purpur start - Gamemode extra permissions
         Permission gamemodeVanilla = DefaultPermissions.registerPermission(PREFIX + "gamemode", "Allows the user to change the gamemode", PermissionDefault.OP, commands);
         for (net.minecraft.world.level.GameType gametype : net.minecraft.world.level.GameType.values()) {
             Permission gamemodeSelf = DefaultPermissions.registerPermission(PREFIX + "gamemode." + gametype.getName(), "Allows the user to set " + gametype.getName() + " gamemode for self", PermissionDefault.OP);
@@ -108,7 +110,8 @@ public final class CommandPermissions {
         DefaultPermissions.registerPermission(CommandPermissions.PREFIX + "whitelist", "Allows the user to manage the server whitelist", PermissionDefault.OP, commands);
         DefaultPermissions.registerPermission(CommandPermissions.PREFIX + "worldborder", "Allows the user to manage the world border", PermissionDefault.OP, commands);
         DefaultPermissions.registerPermission(CommandPermissions.PREFIX + "stopwatch", "Allows the user to use the /stopwatch command", PermissionDefault.OP, commands);
-        // Paper end
+        DefaultPermissions.registerPermission(CommandPermissions.PREFIX + "compute", "Allows the user to use the /compute command", PermissionDefault.OP, commands);
+        DefaultPermissions.registerPermission(CommandPermissions.PREFIX + "posteffect", "Allows the user to use the /posteffect command", PermissionDefault.OP, commands);
 
         DefaultPermissions.registerPermission("minecraft.admin.command_feedback", "Receive command broadcasts when sendCommandFeedback is true", PermissionDefault.OP, commands);
 

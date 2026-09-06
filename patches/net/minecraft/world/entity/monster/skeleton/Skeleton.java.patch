@@ -9,22 +9,7 @@
  import net.minecraft.world.entity.EntityType;
  import net.minecraft.world.entity.EntityTypes;
  import net.minecraft.world.level.Level;
-@@ -15,47 +_,141 @@
- import net.minecraft.world.level.storage.ValueOutput;
- 
- public class Skeleton extends AbstractSkeleton {
--    private static final EntityDataAccessor<Boolean> DATA_STRAY_CONVERSION_ID = SynchedEntityData.defineId(Skeleton.class, EntityDataSerializers.BOOLEAN);
--    public final ConversionTracker<AbstractSkeleton> freezingTracker = new ConversionTracker<>(
--        this, DATA_STRAY_CONVERSION_ID, () -> EntityTypes.STRAY, () -> 1048, () -> this.isInPowderSnow, "FreezingTime", 140, "StrayConversionTime", 300, null
--    );
-+    private static final int TOTAL_CONVERSION_TIME = 300;
-+    public static final EntityDataAccessor<Boolean> DATA_STRAY_CONVERSION_ID = SynchedEntityData.defineId(Skeleton.class, EntityDataSerializers.BOOLEAN);
-+    public static final String CONVERSION_TAG = "StrayConversionTime";
-+    private static final int NOT_CONVERTING = -1;
-+    public int inPowderSnowTime;
-+    public int conversionTime;
- 
-     public Skeleton(EntityType<? extends Skeleton> type, Level level) {
+@@ -24,20 +_,91 @@
          super(type, level);
      }
  
@@ -118,32 +103,10 @@
          super.tick();
      }
  
-     @Override
-     protected void addAdditionalSaveData(ValueOutput output) {
-         super.addAdditionalSaveData(output);
--        this.freezingTracker.addAdditionalSaveData(output);
-+        output.putInt("StrayConversionTime", this.isFreezeConverting() ? this.conversionTime : -1);
+@@ -58,6 +_,21 @@
+         this.freezingTracker.startConversion(time);
      }
  
-     @Override
-     protected void readAdditionalSaveData(ValueInput input) {
-         super.readAdditionalSaveData(input);
--        this.freezingTracker.readAdditionalSaveData(input);
-+        int conversionTime = input.getIntOr("StrayConversionTime", -1);
-+        if (conversionTime != -1) {
-+            this.startFreezeConversion(conversionTime);
-+        } else {
-+            this.setFreezeConverting(false);
-+        }
-     }
- 
-     @VisibleForTesting
-     public void startFreezeConversion(int time) {
--        this.freezingTracker.startConversion(time);
-+        this.conversionTime = time;
-+        this.setFreezeConverting(true);
-+    }
-+
 +    protected void doFreezeConversion() {
 +        if (!net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, EntityTypes.STRAY, (timer) -> this.conversionTime = timer)) return;
 +        Stray converted = this.convertTo(EntityTypes.STRAY, ConversionParams.single(this, true, true), stray -> { // CraftBukkit
@@ -157,9 +120,11 @@
 +            ((org.bukkit.entity.Skeleton) getBukkitEntity()).setConversionTime(-1); // CraftBukkit - SPIGOT-7997: End conversion to stop event spam
 +        }
 +        // CraftBukkit end
-     }
- 
++    }
++
      @Override
+     public boolean canFreeze() {
+         return false;
 @@ -82,4 +_,64 @@
      protected SoundEvent getStepSound() {
          return SoundEvents.SKELETON_STEP;
