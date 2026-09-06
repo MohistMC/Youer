@@ -84,7 +84,7 @@ public class MenuCommand extends Command {
         return true;
     }
 
-    private MenuConfig loadMenuConfig(String fileName) {
+    public static MenuConfig loadMenuConfig(String fileName) {
         try {
             File menuFolder = new File("youer-config/menu");
             File menuFile = new File(menuFolder, fileName + ".yml");
@@ -117,19 +117,18 @@ public class MenuCommand extends Command {
         }
     }
 
-    private MenuSettings parseMenuSettings(YamlConfiguration config) {
+    private static MenuSettings parseMenuSettings(YamlConfiguration config) {
         MenuSettings settings = new MenuSettings();
 
         settings.setName(config.getString("menu-settings.name"));
         settings.setRows(config.getInt("menu-settings.rows", 0));
-        settings.setAutoRefresh(config.contains("menu-settings.auto-refresh") ?
-                config.getInt("menu-settings.auto-refresh") : null);
         settings.setOpenActions(config.getStringList("menu-settings.open-actions"));
+        settings.setOpenWithItem(config.getString("menu-settings.open-with-item"));
 
         return settings;
     }
 
-    private Map<String, Icon> parseIcons(YamlConfiguration config) {
+    private static Map<String, Icon> parseIcons(YamlConfiguration config) {
         Map<String, Icon> icons = new HashMap<>();
 
         Set<String> keys = config.getKeys(false);

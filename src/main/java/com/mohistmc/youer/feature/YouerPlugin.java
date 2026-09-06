@@ -20,6 +20,7 @@ import com.mohistmc.youer.feature.entityclear.EntityClearTrash;
 import com.mohistmc.youer.feature.entitylimits.EntityLimitsCommands;
 import com.mohistmc.youer.feature.item.ItemsConfig;
 import com.mohistmc.youer.feature.menu.MenuCommand;
+import com.mohistmc.youer.feature.menu.MenuListener;
 import com.mohistmc.youer.feature.tpa.TpaCommands;
 import com.mohistmc.youer.feature.tpa.TpacceptCommands;
 import com.mohistmc.youer.feature.tpa.TpadenyCommands;
@@ -42,6 +43,7 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
 /**
@@ -133,6 +135,11 @@ public class YouerPlugin {
         }
         if (event instanceof PlayerDeathEvent event1) {
             BackCommands.hooktDeath(event1);
+        }
+        if (event instanceof PlayerInteractEvent event1) {
+            if (CommandsConfig.INSTANCE.enable("menus.enable")) {
+                MenuListener.onPlayerInteract(event1);
+            }
         }
         // Persist world border and game rule changes for custom worlds
         if (event instanceof WorldBorderBoundsChangeEvent event1) {

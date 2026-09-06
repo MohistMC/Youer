@@ -7,6 +7,6 @@ import lombok.Data;
 public class MenuSettings {
     private String name;
     private int rows;
-    private Integer autoRefresh;
     private List<String> openActions;
+    private String openWithItem;
 }
