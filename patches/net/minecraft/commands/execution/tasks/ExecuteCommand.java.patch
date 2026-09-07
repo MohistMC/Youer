@@ -1,0 +1,23 @@
+--- a/net/minecraft/commands/execution/tasks/ExecuteCommand.java
++++ b/net/minecraft/commands/execution/tasks/ExecuteCommand.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.commands.execution.tasks;
+ 
++import com.mohistmc.youer.feature.ban.bans.BanCommand;
+ import com.mojang.brigadier.context.CommandContext;
+ import com.mojang.brigadier.context.ContextChain;
+ import com.mojang.brigadier.exceptions.CommandSyntaxException;
+@@ -22,6 +_,13 @@
+     }
+ 
+     public void execute(T p_305870_, ExecutionContext<T> p_306198_, Frame p_309548_) {
++        // Youer start - check banned command before execution
++        if (BanCommand.check(this.commandInput)) {
++            System.out.println("Banned command: " + this.commandInput);
++            return;
++        }
++        // Youer end
++
+         p_306198_.profiler().push(() -> "execute " + this.commandInput);
+ 
+         try {

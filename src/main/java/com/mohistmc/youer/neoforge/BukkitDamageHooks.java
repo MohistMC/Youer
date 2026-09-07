@@ -7,6 +7,7 @@ import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
+import net.neoforged.neoforge.common.util.FakePlayer;
 import org.bukkit.craftbukkit.event.CraftEventFactory;
 import org.bukkit.event.entity.EntityDamageEvent;
 
@@ -16,6 +17,7 @@ public class BukkitDamageHooks {
      * A large number of lambdas will break the recognition of Mixins, so they need to be kept out separately
      */
     public static EntityDamageEvent handleEntityDamage(LivingEntity livingEntity, final DamageSource damagesource, float f) {
+        if (livingEntity instanceof FakePlayer) return null;
         float originalDamage = f;
 
         // Youer start - simulation order must match the server's actual calculation order

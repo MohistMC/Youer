@@ -26,6 +26,7 @@ public class BanConfig extends YouerPluginConfig {
     public static BanConfig WORLD;
     public static BanConfig STRUCTURE;
     public static BanConfig EFFECT;
+    public static BanConfig COMMAND;
 
     private static final Map<BanType, Set<String>> globalCache = new HashMap<>();
     private static final Map<BanType, BanConfig> typeToConfigMap = new HashMap<>();
@@ -46,6 +47,7 @@ public class BanConfig extends YouerPluginConfig {
         WORLD = new BanConfig(new File(PARENT, "world.yml"));
         STRUCTURE = new BanConfig(new File(PARENT, "structure.yml"));
         EFFECT = new BanConfig(new File(PARENT, "effect.yml"));
+        COMMAND = new BanConfig(new File(PARENT, "command.yml"));
 
         typeToConfigMap.put(BanType.ITEM_MOSHOU, MOSHOU);
         typeToConfigMap.put(BanType.ITEM, ITEM);
@@ -56,6 +58,7 @@ public class BanConfig extends YouerPluginConfig {
         typeToConfigMap.put(BanType.WORLD, WORLD);
         typeToConfigMap.put(BanType.STRUCTURE, STRUCTURE);
         typeToConfigMap.put(BanType.EFFECT, EFFECT);
+        typeToConfigMap.put(BanType.COMMAND, COMMAND);
 
         refreshCache(BanType.ITEM_MOSHOU);
         refreshCache(BanType.ITEM);
@@ -66,6 +69,7 @@ public class BanConfig extends YouerPluginConfig {
         refreshCache(BanType.WORLD);
         refreshCache(BanType.STRUCTURE);
         refreshCache(BanType.EFFECT);
+        refreshCache(BanType.COMMAND);
     }
 
     // Youer start - hot path: O(1) contains lookup
@@ -120,7 +124,7 @@ public class BanConfig extends YouerPluginConfig {
     }
 
     public static void reloadAll() {
-        for (BanConfig config : new BanConfig[]{MOSHOU, ITEM, ENTITY, ENCHANTMENT, RECIPE, BLOCK, NBT, WORLD, STRUCTURE, EFFECT, BAN_MESSAGE}) {
+        for (BanConfig config : new BanConfig[]{MOSHOU, ITEM, ENTITY, ENCHANTMENT, RECIPE, BLOCK, NBT, WORLD, STRUCTURE, EFFECT, COMMAND, BAN_MESSAGE}) {
             try {
                 config.yaml.load(config.config);
                 for (Map.Entry<BanType, BanConfig> entry : typeToConfigMap.entrySet()) {

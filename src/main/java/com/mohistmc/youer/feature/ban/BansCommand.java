@@ -37,7 +37,7 @@ import org.jetbrains.annotations.NotNull;
 public class BansCommand extends Command {
 
     private final List<String> params = Arrays.asList("add", "show", "setmessage", "reload");
-    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe", "block", "nbt", "world", "structure", "effect");
+    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe", "block", "nbt", "world", "structure", "effect", "command");
 
     public BansCommand(String name) {
         super(name);
@@ -307,6 +307,39 @@ public class BansCommand extends Command {
                         sender.sendMessage(ChatColor.GREEN + I18n.as("banscmd.add.nbt.success").formatted(nbt));
                         return true;
                     }
+                    case "command" -> {
+                        if (!YouerConfig.ban_command_enable) {
+                            sender.sendMessage(ChatColor.RED + check);
+                            return false;
+                        }
+                        if (args.length < 3) {
+                            sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
+                            return false;
+                        }
+                        String commandName = args[2].toLowerCase(Locale.ENGLISH);
+                        // Strip leading slash if present
+                        if (commandName.startsWith("/")) {
+                            commandName = commandName.substring(1);
+                        }
+                        // Strip minecraft: prefix for consistency
+                        if (commandName.startsWith("minecraft:")) {
+                            commandName = commandName.substring(10);
+                        }
+                        // Prevent banning the bans command itself
+                        if (commandName.equals("bans") || commandName.equals("youer:bans")) {
+                            sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.command.self"));
+                            return false;
+                        }
+                        List<String> old = BanConfig.getListByType(BanType.COMMAND);
+                        if (old.contains(commandName)) {
+                            sender.sendMessage(ChatColor.YELLOW + I18n.as("banscmd.add.command.exists").formatted(commandName));
+                            return false;
+                        }
+                        old.add(commandName);
+                        BanUtils.saveToYaml(player, com.mohistmc.youer.feature.ban.ClickType.ADD, old, BanType.COMMAND);
+                        sender.sendMessage(ChatColor.GREEN + I18n.as("banscmd.add.command.success").formatted(commandName));
+                        return true;
+                    }
                     default -> {
                         sender.sendMessage(ChatColor.RED + I18n.as("banscmd.usage.prefix") + usageMessage);
                         return false;
@@ -548,6 +581,28 @@ public class BansCommand extends Command {
                                     if (type.isRightClick()) {
                                         old.remove(s);
                                         BanUtils.saveToYaml(u, com.mohistmc.youer.feature.ban.ClickType.REMOVE, old, BanType.STRUCTURE);
+                                        wh.removeItem(this);
+                                        wh.openGUI(player);
+                                    }
+                                }
+                            });
+                        }
+                        wh.openGUI(player);
+                        return true;
+                    }
+                    case "command" -> {
+                        DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.command"));
+                        List<String> old = BanConfig.getListByType(BanType.COMMAND);
+                        for (String s : BanConfig.getListByType(BanType.COMMAND)) {
+                            wh.addItem(new GUIItem(new ItemStackFactory(Material.COMMAND_BLOCK)
+                                    .setDisplayName("/" + s)
+                                    .addLore("§e" + I18n.as("banscmd.show.lore"))
+                                    .build()) {
+                                @Override
+                                public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
+                                    if (type.isRightClick()) {
+                                        old.remove(s);
+                                        BanUtils.saveToYaml(u, com.mohistmc.youer.feature.ban.ClickType.REMOVE, old, BanType.COMMAND);
                                         wh.removeItem(this);
                                         wh.openGUI(player);
                                     }

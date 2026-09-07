@@ -782,7 +782,7 @@
          this.entityData.set(DATA_HEALTH_ID, Mth.clamp(p_21154_, 0.0F, this.getMaxHealth()));
      }
  
-@@ -1079,63 +_,147 @@
+@@ -1079,63 +_,149 @@
          return this.getHealth() <= 0.0F;
      }
  
@@ -825,12 +825,14 @@
 +
 +            // Youer start
 +            bukkitEntityDamageEvent = BukkitDamageHooks.handleEntityDamage(this, p_21016_, p_21017_); // Transmits the mod's modified damage value to the Bukkit event
-+            if (bukkitEntityDamageEvent == null || bukkitEntityDamageEvent.isCancelled()) {
-+                this.damageContainers.pop();
-+                return false;
++            if (bukkitEntityDamageEvent != null) {
++                if (bukkitEntityDamageEvent.isCancelled()) {
++                    this.damageContainers.pop();
++                    return false;
++                }
++                damageContainers.peek().setNewDamage((float) bukkitEntityDamageEvent.getDamage());
++                p_21017_ = (float) bukkitEntityDamageEvent.getDamage();
 +            }
-+            damageContainers.peek().setNewDamage((float) bukkitEntityDamageEvent.getDamage());
-+            p_21017_ = (float) bukkitEntityDamageEvent.getDamage();
 +            // Youer end
 +
              float f = p_21017_;
