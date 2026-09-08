@@ -1,34 +1,5 @@
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -51,7 +_,6 @@
- import net.minecraft.network.chat.RemoteChatSession;
- import net.minecraft.network.chat.ResolutionContext;
- import net.minecraft.network.protocol.Packet;
--import net.minecraft.network.protocol.common.ClientboundPostEffectsPacket;
- import net.minecraft.network.protocol.common.ClientboundShowDialogPacket;
- import net.minecraft.network.protocol.game.ClientboundAnimatePacket;
- import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
-@@ -91,12 +_,10 @@
- import net.minecraft.resources.ResourceKey;
- import net.minecraft.server.MinecraftServer;
- import net.minecraft.server.PlayerAdvancements;
--import net.minecraft.server.dedicated.DedicatedServer;
- import net.minecraft.server.dialog.Dialog;
- import net.minecraft.server.network.ServerGamePacketListenerImpl;
- import net.minecraft.server.network.TextFilter;
- import net.minecraft.server.permissions.PermissionSet;
--import net.minecraft.server.permissions.Permissions;
- import net.minecraft.server.players.PlayerList;
- import net.minecraft.server.waypoints.ServerWaypointManager;
- import net.minecraft.stats.ServerRecipeBook;
-@@ -106,7 +_,6 @@
- import net.minecraft.tags.FluidTags;
- import net.minecraft.util.HashOps;
- import net.minecraft.util.Mth;
--import net.minecraft.util.Prediction;
- import net.minecraft.util.ProblemReporter;
- import net.minecraft.util.Unit;
- import net.minecraft.util.Util;
 @@ -118,6 +_,8 @@
  import net.minecraft.world.InteractionHand;
  import net.minecraft.world.MenuProvider;
@@ -46,7 +17,7 @@
  import net.minecraft.world.entity.LivingEntity;
  import net.minecraft.world.entity.Mob;
  import net.minecraft.world.entity.NeutralMob;
-@@ -156,37 +_,41 @@
+@@ -156,14 +_,17 @@
  import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
  import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
  import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
@@ -64,8 +35,7 @@
  import net.minecraft.world.item.ItemCooldowns;
  import net.minecraft.world.item.ItemStack;
  import net.minecraft.world.item.MapItem;
- import net.minecraft.world.item.ServerItemCooldowns;
--import net.minecraft.world.item.component.SwingAnimation;
+@@ -172,6 +_,7 @@
  import net.minecraft.world.item.component.WrittenBookContent;
  import net.minecraft.world.item.crafting.Recipe;
  import net.minecraft.world.item.crafting.RecipeHolder;
@@ -73,19 +43,9 @@
  import net.minecraft.world.item.enchantment.EnchantmentHelper;
  import net.minecraft.world.item.trading.MerchantOffers;
  import net.minecraft.world.level.ChunkPos;
- import net.minecraft.world.level.GameType;
- import net.minecraft.world.level.Level;
- import net.minecraft.world.level.biome.BiomeManager;
--import net.minecraft.world.level.block.AbstractBedBlock;
-+import net.minecraft.world.level.block.BedBlock;
- import net.minecraft.world.level.block.Block;
-+import net.minecraft.world.level.block.ChestBlock;
- import net.minecraft.world.level.block.HorizontalDirectionalBlock;
- import net.minecraft.world.level.block.RespawnAnchorBlock;
- import net.minecraft.world.level.block.entity.BlockEntity;
- import net.minecraft.world.level.block.entity.CommandBlockEntity;
+@@ -187,6 +_,7 @@
  import net.minecraft.world.level.block.entity.SignBlockEntity;
--import net.minecraft.world.level.block.entity.SignTextSlot;
+ import net.minecraft.world.level.block.entity.SignTextSlot;
  import net.minecraft.world.level.block.state.BlockState;
 +import net.minecraft.world.level.dimension.LevelStem;
  import net.minecraft.world.level.gameevent.GameEvent;
@@ -155,14 +115,6 @@
      private @Nullable Vec3 startingToFallPosition;
      private @Nullable Vec3 enteredNetherPosition;
      private @Nullable Vec3 enteredLavaOnVehiclePosition;
-@@ -277,7 +_,6 @@
-     private Vec3 lastKnownClientMovement = Vec3.ZERO;
-     private Input lastClientInput = Input.EMPTY;
-     private final Set<ThrownEnderpearl> enderPearls = new HashSet<>();
--    private boolean postEffectsDirty = true;
-     private long timeEntitySatOnShoulder;
-     private CompoundTag shoulderEntityLeft = new CompoundTag();
-     private CompoundTag shoulderEntityRight = new CompoundTag();
 @@ -306,6 +_,13 @@
              }
          }
@@ -351,7 +303,7 @@
          if (this.isSleeping()) {
              this.stopSleeping();
          }
-@@ -408,13 +_,29 @@
+@@ -408,13 +_,30 @@
          this.respawnConfig = input.read("respawn", ServerPlayer.RespawnConfig.CODEC).orElse(null);
          this.spawnExtraParticlesOnFall = input.getBooleanOr("spawn_extra_particles_on_fall", false);
          this.raidOmenPosition = input.read("raid_omen_position", BlockPos.CODEC).orElse(null);
@@ -362,6 +314,7 @@
 +        this.compassBar = input.getBooleanOr("Purpur.CompassBar", false); // Purpur - Add compass command
 +        this.ramBar = input.getBooleanOr("Purpur.RamBar", false); // Purpur - Implement rambar command
 +        this.loadGameTypes(input); // Paper - Expand PlayerGameModeChangeEvent
++		input.read("post_effects", Codec.list(Identifier.CODEC)).ifPresent(this.postEffects::addAll);
          this.setShoulderEntityLeft(input.read("ShoulderEntityLeft", CompoundTag.CODEC).orElseGet(CompoundTag::new));
          this.setShoulderEntityRight(input.read("ShoulderEntityRight", CompoundTag.CODEC).orElseGet(CompoundTag::new));
      }
@@ -384,14 +337,6 @@
      @Override
      protected void addAdditionalSaveData(ValueOutput output) {
          super.addAdditionalSaveData(output);
-@@ -430,7 +_,6 @@
-         output.putBoolean("spawn_extra_particles_on_fall", this.spawnExtraParticlesOnFall);
-         output.storeNullable("raid_omen_position", BlockPos.CODEC, this.raidOmenPosition);
-         this.saveEnderPearls(output);
--        output.store("post_effects", Codec.list(Identifier.CODEC), this.postEffects);
-         if (!this.getShoulderEntityLeft().isEmpty()) {
-             output.store("ShoulderEntityLeft", CompoundTag.CODEC, this.getShoulderEntityLeft());
-         }
 @@ -438,12 +_,27 @@
          if (!this.getShoulderEntityRight().isEmpty()) {
              output.store("ShoulderEntityRight", CompoundTag.CODEC, this.getShoulderEntityRight());
@@ -471,7 +416,7 @@
      }
  
      public void initInventoryMenu() {
-@@ -585,16 +_,30 @@
+@@ -585,6 +_,11 @@
  
      @Override
      public void tick() {
@@ -483,10 +428,8 @@
          this.connection.tickClientLoadTimeout();
          this.gameMode.tick();
          this.wardenSpawnTracker.tick();
--        if (this.damageCooldownTime > 0) {
--            this.damageCooldownTime--;
-+        if (this.invulnerableTime > 0) {
-+            this.invulnerableTime--;
+@@ -592,9 +_,18 @@
+             this.damageCooldownTime--;
          }
  
 -        this.containerMenu.broadcastChanges();
@@ -507,12 +450,10 @@
              this.containerMenu = this.inventoryMenu;
          }
  
-@@ -620,9 +_,15 @@
-         this.trackEnteredOrExitedLavaOnVehicle();
-         this.updatePlayerAttributes();
-         this.advancements.flushDirty(this, true);
--        if (this.postEffectsDirty) {
--            this.sendPostEffects();
+@@ -623,6 +_,15 @@
+         if (this.postEffectsDirty) {
+             this.sendPostEffects();
+         }
 +
 +        // Purpur start - Ridables
 +        if (this.level().purpurConfig.useNightVisionWhenRiding && this.getVehicle() != null && this.getVehicle().getRider() == this && this.level().getGameTime() % 100 == 0) { // 5 seconds
@@ -520,7 +461,7 @@
 +            if (nightVision == null || nightVision.getDuration() <= 300) { // 15 seconds
 +                this.addEffect(new MobEffectInstance(MobEffects.NIGHT_VISION, 400, 0)); // 20 seconds
 +            }
-         }
++        }
 +        // Purpur end - Ridables
      }
  
@@ -549,8 +490,8 @@
 +                        // TODO 26.1: It's debatable whether this should advance in a dimension with no clock BUT in Vanilla it does!
 +                        this.awardStat(Stats.TIME_SINCE_REST);
 +                    } else {
-+                        var speed = level().clockManager().getRate(defaultClock.get());
-+                        var fullTicks = (int) speed;
++                        float speed = level().clockManager().getInstance(defaultClock.get()).rate();
++                        int fullTicks = (int) speed;
 +                        partialTimeSinceRestTick += speed;
 +                        if (partialTimeSinceRestTick >= 1) {
 +                            partialTimeSinceRestTick = 0;
@@ -1083,52 +1024,7 @@
      }
  
      public boolean isReceivingWaypoints() {
-@@ -1052,44 +_,6 @@
-         super.onAttributeUpdated(attribute);
-     }
- 
--    public void sendPostEffects() {
--        this.postEffectsDirty = false;
--        this.connection.send(new ClientboundPostEffectsPacket(this.postEffects));
--    }
--
--    public boolean addPostEffect(Identifier postEffect) {
--        if (this.postEffects.contains(postEffect)) {
--            return false;
--        }
--
--        this.postEffects.add(postEffect);
--        this.postEffectsDirty = true;
--        return true;
--    }
--
--    public boolean clearPostEffects() {
--        if (this.postEffects.isEmpty()) {
--            return false;
--        }
--
--        this.postEffects.clear();
--        this.postEffectsDirty = true;
--        return true;
--    }
--
--    public List<Identifier> getPostEffects() {
--        return this.postEffects;
--    }
--
--    public boolean removePostEffect(Identifier postEffect) {
--        if (this.postEffects.remove(postEffect)) {
--            this.postEffectsDirty = true;
--            return true;
--        } else {
--            return false;
--        }
--    }
--
-     public static Optional<ServerPlayer.RespawnPosAngle> findRespawnAndUseSpawnBlock(
-         ServerLevel level, ServerPlayer.RespawnConfig respawnConfig, boolean consumeSpawnBlock
-     ) {
-@@ -1101,28 +_,27 @@
+@@ -1101,17 +_,20 @@
          BlockState blockState = level.getBlockState(pos);
          Block block = blockState.getBlock();
          if (block instanceof RespawnAnchorBlock && (forced || blockState.getValue(RespawnAnchorBlock.CHARGE) > 0) && RespawnAnchorBlock.canSetSpawn(level, pos)
@@ -1154,11 +1050,9 @@
 +        } else if (!forced) {
 +            return blockState.getRespawnPosition(EntityTypes.PLAYER, level, pos, yaw);
          } else {
--            if (!forced) {
--                return Optional.empty();
--            }
--
-             boolean freeBottom = block.isPossibleToRespawnInThis(blockState);
+             if (!forced) {
+                 return Optional.empty();
+@@ -1121,8 +_,8 @@
              BlockState topState = level.getBlockState(pos.above());
              boolean freeTop = topState.getBlock().isPossibleToRespawnInThis(topState);
              return freeBottom && freeTop
@@ -1286,7 +1180,7 @@
          return this;
      }
  
-@@ -1204,23 +_,34 @@
+@@ -1204,14 +_,29 @@
      public void triggerDimensionChangeTriggers(ServerLevel oldLevel) {
          ResourceKey<Level> oldKey = oldLevel.dimension();
          ResourceKey<Level> newKey = this.level().dimension();
@@ -1319,17 +1213,7 @@
      }
  
      @Override
-     public boolean broadcastToPlayer(ServerPlayer player) {
--        if (player.isSpectator()) {
--            return this.getCamera() == this;
--        } else {
--            return this.isSpectator() ? false : super.broadcastToPlayer(player);
--        }
-+        return player.isSpectator() ? this.getCamera() == this : !this.isSpectator() && super.broadcastToPlayer(player);
-     }
- 
-     @Override
-@@ -1229,77 +_,157 @@
+@@ -1229,12 +_,80 @@
          this.containerMenu.broadcastChanges();
      }
  
@@ -1343,34 +1227,6 @@
          if (!this.isSleeping() && this.isAlive()) {
 -            boolean canSleep = rule.canSleep(this.level());
 -            boolean canSetSpawn = rule.canSetSpawn(this.level());
--            if (!this.bedInRange(pos, direction)) {
--                return Either.left(Player.BedSleepingProblem.TOO_FAR_AWAY);
--            }
--
--            if (this.bedBlocked(pos, direction)) {
--                return Either.left(Player.BedSleepingProblem.OBSTRUCTED);
--            }
--
--            if (canSetSpawn) {
--                this.setRespawnPosition(
--                    new ServerPlayer.RespawnConfig(LevelData.RespawnData.of(this.level().dimension(), pos, this.getYRot(), this.getXRot()), false), true
--                );
--            }
--
--            if (!canSleep) {
--                return Either.left(rule.asProblem());
--            }
--
--            if (!this.isCreative()) {
--                double hRange = 8.0;
--                double vRange = 5.0;
--                Vec3 bedCenter = Vec3.atBottomCenterOf(pos);
--                List<Monster> monsters = this.level()
--                    .getEntitiesOfClass(
--                        Monster.class,
--                        new AABB(bedCenter.x() - 8.0, bedCenter.y() - 5.0, bedCenter.z() - 8.0, bedCenter.x() + 8.0, bedCenter.y() + 5.0, bedCenter.z() + 8.0),
--                        monster -> monster.isPreventingPlayerRest(this.level(), this)
--                    );
 +            BedRule rule = this.level().environmentAttributes().getValue(EnvironmentAttributes.BED_RULE, pos);
 +            boolean canSleep = rule.canSleep(this.level());
 +            boolean canSetSpawn = rule.canSetSpawn(this.level());
@@ -1440,36 +1296,10 @@
 +                return Either.left(rule.asProblem());
 +            }
 +
-+            if (!this.bedInRange(pos, direction)) {
-+                return Either.left(Player.BedSleepingProblem.TOO_FAR_AWAY);
-+            }
-+
-+            if (this.bedBlocked(pos, direction)) {
-+                return Either.left(Player.BedSleepingProblem.OBSTRUCTED);
-+            }
-+
-+            if (canSetSpawn) {
-+                this.setRespawnPosition(
-+                        new ServerPlayer.RespawnConfig(LevelData.RespawnData.of(this.level().dimension(), pos, this.getYRot(), this.getXRot()), false), true
-+                );
-+            }
-+
-+            if (!canSleep) {
-+                return Either.left(rule.asProblem());
-+            }
-+
-+            if (!this.isCreative()) {
-+                double hRange = 8.0;
-+                double vRange = 5.0;
-+                Vec3 bedCenter = Vec3.atBottomCenterOf(pos);
-+                List<Monster> monsters = this.level()
-+                        .getEntitiesOfClass(
-+                                Monster.class,
-+                                new AABB(bedCenter.x() - 8.0, bedCenter.y() - 5.0, bedCenter.z() - 8.0, bedCenter.x() + 8.0, bedCenter.y() + 5.0, bedCenter.z() + 8.0),
-+                                monster -> monster.isPreventingPlayerRest(this.level(), this)
-+                        );
-                 if (!monsters.isEmpty()) {
-                     return Either.left(Player.BedSleepingProblem.NOT_SAFE);
+             if (!this.bedInRange(pos, direction)) {
+                 return Either.left(Player.BedSleepingProblem.TOO_FAR_AWAY);
+             }
+@@ -1268,14 +_,35 @@
                  }
              }
  
@@ -1511,26 +1341,7 @@
              }
  
              this.level().updateSleepingPlayerList();
-             return result;
--        } else {
--            return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
-         }
-     }
- 
-     @Override
--    public boolean startSleeping(BlockPos bedPosition) {
--        if (!super.startSleeping(bedPosition)) {
--            return false;
--        }
--
-+    public void startSleeping(BlockPos bedPosition) {
-         this.resetStat(Stats.CUSTOM.get(Stats.TIME_SINCE_REST));
--        if (this.connection != null) {
--            this.connection.teleport(this.getX(), this.getY(), this.getZ(), this.getYRot(), this.getXRot());
--        }
--
--        return true;
-+        super.startSleeping(bedPosition);
+@@ -1300,6 +_,7 @@
      }
  
      private boolean bedInRange(BlockPos pos, Direction direction) {
@@ -1569,19 +1380,6 @@
 +        return (super.isInvulnerableTo(level, source) || this.isChangingDimension() && !source.is(DamageTypes.ENDER_PEARL) || !this.connection.hasClientLoaded())
 +                || (!this.level().paperConfig().collisions.allowPlayerCrammingDamage && source.is(DamageTypes.CRAMMING));
 +        // Paper end - disable player cramming
-     }
- 
-     @Override
-@@ -1368,9 +_,10 @@
-     }
- 
-     @Override
--    public void openTextEdit(SignBlockEntity sign, SignTextSlot slot) {
-+    public void openTextEdit(SignBlockEntity sign, boolean isFrontText) {
-+        if (level().purpurConfig.signAllowColors) this.connection.send(sign.getTranslatedUpdatePacket(textFilteringEnabled, isFrontText)); // Purpur - Signs allow color codes
-         this.connection.send(new ClientboundBlockUpdatePacket(this.level(), sign.getBlockPos()));
--        this.connection.send(new ClientboundOpenSignEditorPacket(sign.getBlockPos(), slot));
-+        this.connection.send(new ClientboundOpenSignEditorPacket(sign.getBlockPos(), isFrontText));
      }
  
      @Override
@@ -2233,7 +2031,7 @@
      }
  
      public boolean isChangingDimension() {
-@@ -2011,11 +_,61 @@
+@@ -2011,11 +_,52 @@
      }
  
      public void setRespawnPosition(ServerPlayer.@Nullable RespawnConfig respawnConfig, boolean showMessage) {
@@ -2253,15 +2051,6 @@
 +            spawnLoc.setYaw(respawnConfig.respawnData().yaw());
 +            spawnLoc.setPitch(respawnConfig.respawnData().pitch());
 +        }
-+        org.bukkit.event.player.PlayerSpawnChangeEvent dumbEvent = new org.bukkit.event.player.PlayerSpawnChangeEvent(
-+                this.getBukkitEntity(),
-+                spawnLoc,
-+                respawnConfig != null && respawnConfig.forced(),
-+                cause == com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.PLAYER_RESPAWN
-+                        ? org.bukkit.event.player.PlayerSpawnChangeEvent.Cause.RESET
-+                        : org.bukkit.event.player.PlayerSpawnChangeEvent.Cause.valueOf(cause.name())
-+        );
-+        dumbEvent.callEvent();
 +
 +        com.destroystokyo.paper.event.player.PlayerSetSpawnEvent event = new com.destroystokyo.paper.event.player.PlayerSetSpawnEvent(
 +                this.getBukkitEntity(),
@@ -2395,23 +2184,6 @@
      }
  
      public TextFilter getTextFilter() {
-@@ -2062,12 +_,12 @@
-     }
- 
-     private GameType calculateGameModeForNewPlayer(@Nullable GameType loadedGameType) {
-+        if (isFakePlayer()) return GameType.SURVIVAL; // Neo: Always default fake players to survival
-         GameType forcedGameType = this.server.getForcedGameType();
--        if (forcedGameType == null
--            || !(this.server instanceof DedicatedServer) && this.server.getProfilePermissions(this.nameAndId()).hasPermission(Permissions.COMMANDS_GAMEMASTER)) {
--            return loadedGameType != null ? loadedGameType : this.server.getDefaultGameType();
--        } else {
-+        if (forcedGameType != null) {
-             return forcedGameType;
-+        } else {
-+            return loadedGameType != null ? loadedGameType : this.server.getDefaultGameType();
-         }
-     }
- 
 @@ -2097,8 +_,10 @@
          super.updateUsingItem(useItem);
      }
@@ -2424,35 +2196,6 @@
          ItemStack removed = inventory.removeFromSelected(all);
          this.containerMenu
              .findSlot(inventory, inventory.getSelectedSlot())
-@@ -2107,14 +_,13 @@
-             this.stopUsingItem();
-         }
- 
--        this.drop(removed, true, Prediction.PREDICTED);
--        this.resetAttackStrengthTicker();
-+        return net.neoforged.neoforge.common.CommonHooks.onPlayerTossEvent(this, removed, false, true) != null; // Paper - add back success return
-     }
- 
-     @Override
-     public void handleExtraItemsCreatedOnUse(ItemStack extraItems) {
-         if (!this.getInventory().add(extraItems)) {
--            this.drop(extraItems, false, Prediction.PREDICTED);
-+            this.drop(extraItems, false);
-         }
-     }
- 
-@@ -2122,8 +_,9 @@
-         return this.allowsListing;
-     }
- 
--    public WardenSpawnTracker getWardenSpawnTracker() {
--        return this.wardenSpawnTracker;
-+    @Override
-+    public Optional<WardenSpawnTracker> getWardenSpawnTracker() {
-+        return Optional.of(this.wardenSpawnTracker);
-     }
- 
-     public void setSpawnExtraParticlesOnFall(boolean toggle) {
 @@ -2170,9 +_,9 @@
      }
  
@@ -2465,41 +2208,6 @@
          if (oldVehicle instanceof LivingEntity livingEntity) {
              for (MobEffectInstance effect : livingEntity.getActiveEffects()) {
                  this.connection.send(new ClientboundRemoveMobEffectPacket(oldVehicle.getId(), effect.getEffect()));
-@@ -2190,7 +_,7 @@
-             level.dimension(),
-             BiomeManager.obfuscateSeed(level.getSeed()),
-             this.gameMode.getGameModeForPlayer(),
--            Optional.ofNullable(this.gameMode.getPreviousGameModeForPlayer()),
-+            this.gameMode.getPreviousGameModeForPlayer(),
-             level.isDebug(),
-             level.isFlat(),
-             this.getLastDeathLocation(),
-@@ -2233,9 +_,9 @@
-     }
- 
-     @Override
--    public void onEquippedItemBroken(ItemStack brokenItem, EquipmentSlot inSlot) {
-+    public void onEquippedItemBroken(Item brokenItem, EquipmentSlot inSlot) {
-         super.onEquippedItemBroken(brokenItem, inSlot);
--        this.awardStat(Stats.ITEM_BROKEN.get(brokenItem.getItem()));
-+        this.awardStat(Stats.ITEM_BROKEN.get(brokenItem));
-     }
- 
-     public Input getLastClientInput() {
-@@ -2306,13 +_,6 @@
-         return !this.server.debugSubscribers().hasRequiredPermissions(this) ? Set.of() : this.requestedDebugSubscriptions;
-     }
- 
--    @Override
--    public void swingAndResetAttackStrength(InteractionHand hand, SwingAnimation animation, boolean sendToSwingingEntity) {
--        if (this.swing(hand, animation, sendToSwingingEntity)) {
--            this.resetAttackStrengthTicker();
--        }
--    }
--
-     public record RespawnConfig(LevelData.RespawnData respawnData, boolean forced) {
-         public static final Codec<ServerPlayer.RespawnConfig> CODEC = RecordCodecBuilder.create(
-             i -> i.group(
 @@ -2331,9 +_,11 @@
          }
      }

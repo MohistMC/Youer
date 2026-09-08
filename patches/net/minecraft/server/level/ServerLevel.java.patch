@@ -18,7 +18,7 @@
  import java.util.concurrent.atomic.AtomicInteger;
  import java.util.function.BooleanSupplier;
  import java.util.function.Function;
-@@ -56,19 +_,22 @@
+@@ -56,19 +_,23 @@
  import net.minecraft.network.protocol.game.ClientboundLevelParticlesPacket;
  import net.minecraft.network.protocol.game.ClientboundSoundEntityPacket;
  import net.minecraft.network.protocol.game.ClientboundSoundPacket;
@@ -33,8 +33,8 @@
  import net.minecraft.sounds.SoundSource;
  import net.minecraft.tags.BlockTags;
  import net.minecraft.tags.TagKey;
--import net.minecraft.util.Continuation;
 +import net.minecraft.util.AbortableIterationConsumer;
+ import net.minecraft.util.Continuation;
  import net.minecraft.util.CsvOutput;
  import net.minecraft.util.Mth;
  import net.minecraft.util.ProgressListener;
@@ -52,69 +52,22 @@
  import net.minecraft.world.TickRateManager;
  import net.minecraft.world.attribute.EnvironmentAttributeSystem;
  import net.minecraft.world.attribute.EnvironmentAttributes;
-@@ -87,7 +_,6 @@
- import net.minecraft.world.clock.WorldClock;
- import net.minecraft.world.damagesource.DamageSource;
- import net.minecraft.world.entity.Entity;
--import net.minecraft.world.entity.EntityEvent;
- import net.minecraft.world.entity.EntitySpawnReason;
- import net.minecraft.world.entity.EntityTypes;
- import net.minecraft.world.entity.LightningBolt;
-@@ -103,11 +_,12 @@
- import net.minecraft.world.entity.ai.village.poi.PoiTypes;
+@@ -104,6 +_,7 @@
  import net.minecraft.world.entity.animal.equine.SkeletonHorse;
  import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
--import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
+ import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
 +import net.minecraft.world.entity.npc.villager.Villager;
  import net.minecraft.world.entity.player.Player;
  import net.minecraft.world.entity.raid.Raid;
  import net.minecraft.world.entity.raid.Raids;
- import net.minecraft.world.flag.FeatureFlagSet;
-+import net.minecraft.world.item.alchemy.PotionBrewing;
- import net.minecraft.world.item.crafting.RecipeManager;
- import net.minecraft.world.level.BlockEventData;
- import net.minecraft.world.level.ChunkPos;
-@@ -121,12 +_,11 @@
- import net.minecraft.world.level.StructureManager;
- import net.minecraft.world.level.WorldGenLevel;
- import net.minecraft.world.level.biome.Biome;
--import net.minecraft.world.level.biome.BiomeResolver;
- import net.minecraft.world.level.block.Block;
- import net.minecraft.world.level.block.Blocks;
--import net.minecraft.world.level.block.LevelEvent;
+@@ -127,6 +_,7 @@
+ import net.minecraft.world.level.block.LevelEvent;
  import net.minecraft.world.level.block.SnowLayerBlock;
  import net.minecraft.world.level.block.entity.BlockEntity;
 +import net.minecraft.world.level.block.entity.FuelValues;
  import net.minecraft.world.level.block.entity.TickingBlockEntity;
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.border.WorldBorder;
-@@ -135,18 +_,14 @@
- import net.minecraft.world.level.chunk.LevelChunk;
- import net.minecraft.world.level.chunk.LevelChunkSection;
- import net.minecraft.world.level.chunk.status.ChunkStatus;
--import net.minecraft.world.level.chunk.storage.EntityStorage;
- import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
--import net.minecraft.world.level.chunk.storage.SimpleRegionStorage;
- import net.minecraft.world.level.dimension.DimensionType;
- import net.minecraft.world.level.dimension.LevelStem;
- import net.minecraft.world.level.dimension.end.EnderDragonFight;
--import net.minecraft.world.level.entity.EntityPersistentStorage;
- import net.minecraft.world.level.entity.EntityTickList;
- import net.minecraft.world.level.entity.EntityTypeTest;
- import net.minecraft.world.level.entity.LevelCallback;
- import net.minecraft.world.level.entity.LevelEntityGetter;
--import net.minecraft.world.level.entity.PersistentEntitySectionManager;
- import net.minecraft.world.level.gameevent.DynamicGameEventListener;
- import net.minecraft.world.level.gameevent.GameEvent;
- import net.minecraft.world.level.gameevent.GameEventDispatcher;
-@@ -172,7 +_,6 @@
- import net.minecraft.world.level.storage.LevelData;
- import net.minecraft.world.level.storage.LevelStorageSource;
- import net.minecraft.world.level.storage.SavedDataStorage;
--import net.minecraft.world.level.storage.ServerLevelData;
- import net.minecraft.world.phys.AABB;
- import net.minecraft.world.phys.Vec3;
- import net.minecraft.world.phys.shapes.BooleanOp;
 @@ -180,10 +_,13 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
  import net.minecraft.world.ticks.LevelTicks;
@@ -147,12 +100,12 @@
      private final GameEventDispatcher gameEventDispatcher;
      public boolean noSave;
      private final SleepStatus sleepStatus;
-@@ -217,61 +_,514 @@
+@@ -217,45 +_,497 @@
      private boolean handlingTick;
      private final List<CustomSpawner> customSpawners;
      private @Nullable EnderDragonFight dragonFight;
 -    private final Int2ObjectMap<EnderDragonPart> dragonParts = new Int2ObjectOpenHashMap<>();
--    private final BiomeResolver uncachedBiomeResolver;
+     private final BiomeResolver uncachedBiomeResolver;
 +    final Int2ObjectMap<net.neoforged.neoforge.entity.PartEntity<?>> dragonParts = new Int2ObjectOpenHashMap<>();
      private final StructureManager structureManager;
      private final StructureCheck structureCheck;
@@ -670,9 +623,8 @@
          this.chunkSource = new ServerChunkCache(
              this,
              levelStorage,
-             fixerUpper,
--            server.getStructureTemplateManager(),
-+            server.getStructureManager(),
+@@ -263,15 +_,17 @@
+             server.getStructureTemplateManager(),
              executor,
              generator,
 -            server.getPlayerList().getViewDistance(),
@@ -704,9 +656,8 @@
          this.structureCheck = new StructureCheck(
              this.chunkSource.chunkScanner(),
              this.registryAccess(),
--            server.getStructureTemplateManager(),
+             server.getStructureTemplateManager(),
 -            dimension,
-+            server.getStructureManager(),
 +            getTypeKey(),
              generator,
              this.chunkSource.randomState(),
@@ -749,19 +700,6 @@
  
      @Override
      public int getNextEntityId() {
-@@ -327,11 +_,7 @@
- 
-     @Override
-     public Holder<Biome> getUncachedNoiseBiome(int quartX, int quartY, int quartZ) {
--        return this.uncachedBiomeResolver.getNoiseBiome(quartX, quartY, quartZ);
--    }
--
--    public BiomeResolver uncachedBiomeResolver() {
--        return this.uncachedBiomeResolver;
-+        return this.getChunkSource().getGenerator().getBiomeSource().getNoiseBiome(quartX, quartY, quartZ, this.getChunkSource().randomState().sampler());
-     }
- 
-     public StructureManager structureManager() {
 @@ -339,7 +_,7 @@
      }
  
@@ -883,12 +821,7 @@
          profiler.pop();
          profiler.push("debugSynchronizers");
          if (this.debugSynchronizers.hasAnySubscriberFor(DebugSubscriptions.NEIGHBOR_UPDATES)) {
-@@ -473,12 +_,14 @@
- 
-         this.debugSynchronizers.tick(this.server.debugSubscribers());
-         profiler.pop();
--        this.chunkSource.randomState().garbageCollect();
-     }
+@@ -478,7 +_,10 @@
  
      @Override
      public boolean shouldTickBlocksAt(long chunkPos) {
@@ -1422,20 +1355,6 @@
      }
  
      private void saveLevelData(boolean sync) {
-@@ -924,11 +_,11 @@
-             if (selector.test(entity)) {
-                 result.add(entity);
-                 if (result.size() >= maxResults) {
--                    return Continuation.ABORT;
-+                    return AbortableIterationConsumer.Continuation.ABORT;
-                 }
-             }
- 
--            return Continuation.CONTINUE;
-+            return AbortableIterationConsumer.Continuation.CONTINUE;
-         });
-     }
- 
 @@ -960,20 +_,48 @@
          return players.isEmpty() ? null : players.get(this.random.nextInt(players.size()));
      }
@@ -1780,7 +1699,7 @@
          this.getChunkSource().sendToTrackingPlayersAndSelf(entity, new ClientboundEntityEventPacket(entity, event));
      }
  
-@@ -1208,31 +_,74 @@
+@@ -1208,18 +_,65 @@
          WeightedList<ExplosionParticleInfo> blockParticles,
          Holder<SoundEvent> explosionSound
      ) {
@@ -1847,228 +1766,21 @@
          ParticleOptions explosionParticle = explosion.isSmall() ? smallExplosionParticles : largeExplosionParticles;
  
          for (ServerPlayer player : this.players) {
-             if (player.distanceToSqr(center) < 4096.0) {
-                 Optional<Vec3> playerKnockback = Optional.ofNullable(explosion.getHitPlayers().get(player));
--                player.connection
--                    .send(
--                        new ClientboundExplodePacket(
--                            center, r, blockCount, playerKnockback, explosionParticle, explosionSound, blockParticles, source == null || !source.isSilent()
--                        )
--                    );
-+                player.connection.send(new ClientboundExplodePacket(center, r, blockCount, playerKnockback, explosionParticle, explosionSound, blockParticles));
+@@ -1233,6 +_,7 @@
+                     );
              }
          }
 +        return explosion; // CraftBukkit
      }
  
      private Explosion.BlockInteraction getDestroyType(GameRule<Boolean> gameRule) {
-@@ -1293,54 +_,14 @@
-         return this.portalForcer;
-     }
- 
--    public StructureTemplateManager getStructureTemplateManager() {
--        return this.server.getStructureTemplateManager();
-+    public StructureTemplateManager getStructureManager() {
-+        return this.server.getStructureManager();
-     }
- 
-     public <T extends ParticleOptions> int sendParticles(
-         T particle, double x, double y, double z, int count, double xDist, double yDist, double zDist, double speed
-     ) {
--        return this.sendParticles(particle, false, false, x, y, z, count, xDist, yDist, zDist, speed, ClientboundLevelParticlesPacket.RandomizationType.DEFAULT);
--    }
--
--    public <T extends ParticleOptions> int sendParticles(
--        T particle,
--        double x,
--        double y,
--        double z,
--        int count,
--        double xDist,
--        double yDist,
--        double zDist,
--        double speed,
--        ClientboundLevelParticlesPacket.RandomizationType randomizationType
--    ) {
--        return this.sendParticles(particle, false, false, x, y, z, count, xDist, yDist, zDist, speed, randomizationType);
--    }
--
--    public <T extends ParticleOptions> int sendParticles(
--        T particle, double x, double y, double z, int count, double xDist, double yDist, double zDist, double xSpeed, double ySpeed, double zSpeed
--    ) {
--        return this.sendParticles(
--            particle, false, false, x, y, z, count, xDist, yDist, zDist, xSpeed, ySpeed, zSpeed, ClientboundLevelParticlesPacket.RandomizationType.DEFAULT
--        );
--    }
--
--    public <T extends ParticleOptions> int sendParticles(
--        T particle,
--        double x,
--        double y,
--        double z,
--        int count,
--        double xDist,
--        double yDist,
--        double zDist,
--        double xSpeed,
--        double ySpeed,
--        double zSpeed,
--        ClientboundLevelParticlesPacket.RandomizationType randomizationType
--    ) {
--        return this.sendParticles(particle, false, false, x, y, z, count, xDist, yDist, zDist, xSpeed, ySpeed, zSpeed, randomizationType);
-+        return this.sendParticles(particle, false, false, x, y, z, count, xDist, yDist, zDist, speed);
-     }
- 
-     public <T extends ParticleOptions> int sendParticles(
-@@ -1356,77 +_,49 @@
-         double zDist,
-         double speed
-     ) {
--        return this.sendParticles(
--            particle,
--            overrideLimiter,
--            alwaysShow,
--            x,
--            y,
--            z,
--            count,
--            xDist,
--            yDist,
--            zDist,
--            speed,
--            speed,
--            speed,
--            ClientboundLevelParticlesPacket.RandomizationType.DEFAULT
--        );
--    }
--
--    public <T extends ParticleOptions> int sendParticles(
--        T particle,
--        boolean overrideLimiter,
--        boolean alwaysShow,
--        double x,
--        double y,
--        double z,
--        int count,
--        double xDist,
--        double yDist,
--        double zDist,
--        double speed,
--        ClientboundLevelParticlesPacket.RandomizationType randomizationType
--    ) {
--        return this.sendParticles(particle, overrideLimiter, alwaysShow, x, y, z, count, xDist, yDist, zDist, speed, speed, speed, randomizationType);
--    }
--
--    public <T extends ParticleOptions> int sendParticles(
--        T particle,
--        boolean overrideLimiter,
--        boolean alwaysShow,
--        double x,
--        double y,
--        double z,
--        int count,
--        double xDist,
--        double yDist,
--        double zDist,
--        double xSpeed,
--        double ySpeed,
--        double zSpeed,
--        ClientboundLevelParticlesPacket.RandomizationType randomizationType
--    ) {
-+        // Paper start - visibility api support
-+        return this.sendParticlesSource(null, particle, overrideLimiter, alwaysShow, x, y, z, count, xDist, yDist, zDist, speed);
-+    }
-+    public <T extends ParticleOptions> int sendParticlesSource(
-+            @Nullable Entity sender,
-+            T options,
-+            boolean overrideLimiter,
-+            boolean alwaysShow,
-+            double x,
-+            double y,
-+            double z,
-+            int count,
-+            double xDist,
-+            double yDist,
-+            double zDist,
-+            double speed
-+    ) {
-+        return sendParticlesSource(this.players, sender, options, overrideLimiter, alwaysShow, x, y, z, count, xDist, yDist, zDist, speed);
-+    }
-+    public <T extends ParticleOptions> int sendParticlesSource(
-+            List<ServerPlayer> receivers,
-+            @Nullable Entity sender,
-+            T particle,
-+            boolean overrideLimiter,
-+            boolean alwaysShow,
-+            double x,
-+            double y,
-+            double z,
-+            int count,
-+            double xDist,
-+            double yDist,
-+            double zDist,
-+            double speed
-+    ) {
-+        // Paper end - visibility api support
-         ClientboundLevelParticlesPacket packet = new ClientboundLevelParticlesPacket(
--            particle,
--            overrideLimiter,
--            alwaysShow,
--            x,
--            y,
--            z,
--            (float)xDist,
--            (float)yDist,
--            (float)zDist,
--            (float)xSpeed,
--            (float)ySpeed,
--            (float)zSpeed,
--            count,
--            randomizationType
-+            particle, overrideLimiter, alwaysShow, x, y, z, (float)xDist, (float)yDist, (float)zDist, (float)speed, count
-         );
-         int result = 0;
- 
--        for (int i = 0; i < this.players.size(); i++) {
--            ServerPlayer player = this.players.get(i);
-+        for (int i = 0; i < receivers.size(); i++) { // Paper - particle API
-+            ServerPlayer player = receivers.get(i); // Paper - particle API
-+            if (sender != null && !player.getBukkitEntity().canSee(sender.getBukkitEntity())) continue; // CraftBukkit
-             if (this.sendParticles(player, overrideLimiter, x, y, z, packet)) {
-                 result++;
-             }
-@@ -1505,19 +_,19 @@
+@@ -1505,7 +_,7 @@
      }
  
      @Override
 -    public Collection<EnderDragonPart> dragonParts() {
 +    public Collection<net.neoforged.neoforge.entity.PartEntity<?>> dragonParts() {
          return this.dragonParts.values();
-     }
- 
-     public @Nullable BlockPos findNearestMapStructure(TagKey<Structure> structureTag, BlockPos origin, int maxSearchRadius, boolean createReference) {
-         Optional<HolderSet.Named<Structure>> tag = this.registryAccess().lookupOrThrow(Registries.STRUCTURE).get(structureTag);
--        return tag.isEmpty() ? null : this.findNearestMapStructure(tag.get(), origin, maxSearchRadius, createReference);
--    }
-+        if (tag.isEmpty()) {
-+            return null;
-+        }
- 
--    public @Nullable BlockPos findNearestMapStructure(HolderSet<Structure> structureTag, BlockPos origin, int maxSearchRadius, boolean createReference) {
-         Pair<BlockPos, Holder<Structure>> result = this.getChunkSource()
-             .getGenerator()
--            .findNearestMapStructure(this, structureTag, origin, maxSearchRadius, createReference);
-+            .findNearestMapStructure(this, tag.get(), origin, maxSearchRadius, createReference);
-         return result != null ? result.getFirst() : null;
-     }
- 
-@@ -1528,7 +_,7 @@
-             .getGenerator()
-             .getBiomeSource()
-             .findClosestBiome3d(
--                origin, maxSearchRadius, sampleResolutionHorizontal, sampleResolutionVertical, biomeTest, this.getChunkSource().randomState(), this
-+                origin, maxSearchRadius, sampleResolutionHorizontal, sampleResolutionVertical, biomeTest, this.getChunkSource().randomState().sampler(), this
-             );
      }
  
 @@ -1559,10 +_,36 @@
@@ -2318,20 +2030,9 @@
      }
  
      @Override
-@@ -1908,15 +_,47 @@
-         return this.server.getWorldData().enabledFeatures();
+@@ -1909,14 +_,36 @@
      }
  
-+    @Override
-+    public PotionBrewing potionBrewing() {
-+        return this.server.potionBrewing();
-+    }
-+
-+    @Override
-+    public FuelValues fuelValues() {
-+        return this.server.fuelValues();
-+    }
-+
      public GameRules getGameRules() {
 -        return this.server.getGameRules();
 -    }

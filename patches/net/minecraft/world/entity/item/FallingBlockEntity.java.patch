@@ -1,6 +1,14 @@
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -52,6 +_,8 @@
+@@ -11,7 +_,6 @@
+ import net.minecraft.network.protocol.Packet;
+ import net.minecraft.network.protocol.game.ClientGamePacketListener;
+ import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
+-import net.minecraft.network.protocol.game.ClientboundAddTransientBlockPacket;
+ import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
+ import net.minecraft.network.syncher.EntityDataAccessor;
+ import net.minecraft.network.syncher.EntityDataSerializers;
+@@ -53,6 +_,8 @@
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.HitResult;
  import net.minecraft.world.phys.Vec3;
@@ -9,7 +17,7 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -73,6 +_,7 @@
+@@ -74,6 +_,7 @@
      public @Nullable CompoundTag blockData;
      public boolean forceTickAfterTeleportToDuplicate;
      protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
@@ -17,7 +25,7 @@
  
      public FallingBlockEntity(EntityType<? extends FallingBlockEntity> type, Level level) {
          super(type, level);
-@@ -91,6 +_,12 @@
+@@ -92,6 +_,12 @@
      }
  
      public static FallingBlockEntity fall(Level level, BlockPos pos, BlockState state) {
@@ -30,7 +38,7 @@
          FallingBlockEntity entity = new FallingBlockEntity(
              level,
              pos.getX() + 0.5,
-@@ -98,11 +_,15 @@
+@@ -99,11 +_,15 @@
              pos.getZ() + 0.5,
              state.hasProperty(BlockStateProperties.WATERLOGGED) ? state.setValue(BlockStateProperties.WATERLOGGED, false) : state
          );
@@ -47,7 +55,7 @@
      @Override
      public boolean isAttackable() {
          return false;
-@@ -148,18 +_,27 @@
+@@ -149,18 +_,27 @@
      @Override
      public void tick() {
          if (this.blockState.isAir()) {
@@ -77,7 +85,7 @@
                  double moveVec = this.getDeltaMovement().lengthSqr();
                  if (isConcrete && moveVec > 1.0) {
                      BlockHitResult clip = this.level()
-@@ -168,19 +_,19 @@
+@@ -169,19 +_,19 @@
                                  new Vec3(this.xo, this.yo, this.zo), this.position(), ClipContext.Block.COLLIDER, ClipContext.Fluid.SOURCE_ONLY, this
                              )
                          );
@@ -100,7 +108,7 @@
                      }
                  } else {
                      BlockState currentState = this.level().getBlockState(pos);
-@@ -197,11 +_,17 @@
+@@ -198,14 +_,17 @@
                                      this.blockState = this.blockState.setValue(BlockStateProperties.WATERLOGGED, true);
                                  }
  
@@ -115,12 +123,15 @@
                                      serverLevel.getChunkSource()
                                          .chunkMap
                                          .sendToTrackingPlayers(this, new ClientboundBlockUpdatePacket(pos, this.level().getBlockState(pos)));
+-                                    serverLevel.getChunkSource()
+-                                        .chunkMap
+-                                        .sendToTrackingPlayers(this, new ClientboundAddTransientBlockPacket(pos, this.level().getBlockState(pos)));
 -                                    this.discard();
 +                                    this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
                                      if (block instanceof Fallable fallable) {
                                          fallable.onLand(this.level(), pos, this.blockState, currentState, this);
                                      }
-@@ -226,19 +_,19 @@
+@@ -230,19 +_,19 @@
                                          }
                                      }
                                  } else if (this.dropItem && serverLevel.getGameRules().get(GameRules.ENTITY_DROPS)) {
@@ -143,7 +154,7 @@
                              this.callOnBrokenAfterFall(block, pos);
                          }
                      }
-@@ -247,6 +_,9 @@
+@@ -251,6 +_,9 @@
  
              this.setDeltaMovement(this.getDeltaMovement().scale(this.getAirDrag()));
              this.setRequiresPrecisePosition(this.horizontalCollision || this.verticalCollision);
@@ -153,7 +164,7 @@
          }
      }
  
-@@ -299,6 +_,7 @@
+@@ -303,6 +_,7 @@
          }
  
          output.putBoolean("CancelDrop", this.cancelDrop);
@@ -161,7 +172,7 @@
      }
  
      @Override
-@@ -310,8 +_,9 @@
+@@ -314,8 +_,9 @@
          this.fallDamagePerDistance = input.getFloatOr("FallHurtAmount", 0.0F);
          this.fallDamageMax = input.getIntOr("FallHurtMax", 40);
          this.dropItem = input.getBooleanOr("DropItem", true);
@@ -172,7 +183,7 @@
      }
  
      public void setHurtsEntities(float damagePerDistance, int damageMax) {
-@@ -367,7 +_,7 @@
+@@ -371,7 +_,7 @@
          ResourceKey<Level> oldDimension = this.level().dimension();
          boolean fromOrToEnd = (oldDimension == Level.END || newDimension == Level.END) && oldDimension != newDimension;
          Entity newEntity = super.teleport(transition);

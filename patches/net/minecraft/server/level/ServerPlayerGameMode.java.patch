@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/ServerPlayerGameMode.java
 +++ b/net/minecraft/server/level/ServerPlayerGameMode.java
-@@ -1,14 +_,14 @@
+@@ -1,5 +_,7 @@
  package net.minecraft.server.level;
  
 +import com.mohistmc.youer.feature.ban.bans.BanBlock;
@@ -8,26 +8,16 @@
  import com.mojang.logging.LogUtils;
  import java.util.List;
  import java.util.Objects;
--import net.minecraft.ChatFormatting;
- import net.minecraft.SharedConstants;
- import net.minecraft.advancements.triggers.CriteriaTriggers;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Direction;
--import net.minecraft.network.chat.Component;
- import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
- import net.minecraft.network.protocol.game.ClientboundPlayerInfoUpdatePacket;
- import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
-@@ -24,44 +_,65 @@
+@@ -24,6 +_,8 @@
  import net.minecraft.world.level.GameType;
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.Block;
 +import net.minecraft.world.level.block.Blocks;
 +import net.minecraft.world.level.block.CakeBlock;
  import net.minecraft.world.level.block.GameMasterBlock;
--import net.minecraft.world.level.block.Portal;
+ import net.minecraft.world.level.block.Portal;
  import net.minecraft.world.level.block.entity.BlockEntity;
- import net.minecraft.world.level.block.state.BlockState;
--import net.minecraft.world.level.portal.TeleportTransition;
+@@ -32,13 +_,15 @@
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.phys.shapes.VoxelShape;
@@ -44,12 +34,7 @@
      protected final ServerPlayer player;
      private GameType gameModeForPlayer = GameType.DEFAULT_MODE;
      private @Nullable GameType previousGameModeForPlayer;
-     private boolean isDestroyingBlock;
-     private int destroyProgressStart;
-     private BlockPos destroyPos = BlockPos.ZERO;
--    private Direction destroyDirection = Direction.DOWN;
-     private int gameTicks;
-     public boolean hasDelayedDestroy;
+@@ -51,17 +_,37 @@
      private BlockPos delayedDestroyPos = BlockPos.ZERO;
      private int delayedTickStart;
      private int lastSentState = -1;
@@ -169,7 +154,7 @@
          float destroyProgress = blockState.getDestroyProgress(this.player, this.player.level(), delayedDestroyPos) * (ticksSpentDestroying + 1);
          int state = (int)(destroyProgress * 10.0F);
          if (state != this.lastSentState) {
-@@ -161,7 +_,12 @@
+@@ -161,6 +_,10 @@
      }
  
      public void handleBlockBreakAction(BlockPos pos, ServerboundPlayerActionPacket.Action action, Direction direction, int maxY, int sequence) {
@@ -178,11 +163,9 @@
 +            return;
 +        }
          if (!this.player.isWithinBlockInteractionRange(pos, 1.0)) {
-+            if (true) return; // Paper - Don't allow digging into unloaded chunks; Don't notify if unreasonably far away
-             this.debugLogging(pos, false, sequence, "too far");
-         } else if (pos.getY() > maxY) {
-             this.player.connection.send(new ClientboundBlockUpdatePacket(pos, this.level.getBlockState(pos)));
-@@ -175,16 +_,35 @@
+             if (this.isDestroyingBlock && action == ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK) {
+                 this.abortDestroyBlock(pos, sequence);
+@@ -179,16 +_,35 @@
                  }
  
                  if (!this.level.mayInteract(this.player, pos)) {
@@ -220,7 +203,7 @@
                  if (this.player.blockActionRestricted(this.level, pos, this.gameModeForPlayer)) {
                      this.player.connection.send(new ClientboundBlockUpdatePacket(pos, this.level.getBlockState(pos)));
                      this.debugLogging(pos, false, sequence, "block action restricted");
-@@ -194,7 +_,7 @@
+@@ -198,7 +_,7 @@
                  this.destroyProgressStart = this.gameTicks;
                  float progress = 1.0F;
                  BlockState blockState = this.level.getBlockState(pos);
@@ -229,7 +212,7 @@
                      EnchantmentHelper.onHitBlock(
                          this.level,
                          this.player.getMainHandItem(),
-@@ -205,10 +_,28 @@
+@@ -209,10 +_,28 @@
                          blockState,
                          item -> this.player.onEquippedItemBroken(item, EquipmentSlot.MAINHAND)
                      );
@@ -258,52 +241,7 @@
                  if (!blockState.isAir() && progress >= 1.0F) {
                      this.destroyAndAck(pos, sequence, "insta mine");
                  } else {
-@@ -219,14 +_,11 @@
- 
-                     this.isDestroyingBlock = true;
-                     this.destroyPos = pos.immutable();
--                    this.destroyDirection = direction;
-                     int state = (int)(progress * 10.0F);
-                     this.level.destroyBlockProgress(this.player.getId(), pos, state);
-                     this.debugLogging(pos, true, sequence, "actual start of destroying");
-                     this.lastSentState = state;
-                 }
--            } else if (action == ServerboundPlayerActionPacket.Action.CHANGE_DESTROY_DIRECTION) {
--                this.destroyDirection = direction;
-             } else if (action == ServerboundPlayerActionPacket.Action.STOP_DESTROY_BLOCK) {
-                 if (pos.equals(this.destroyPos)) {
-                     int ticksSpentDestroying = this.gameTicks - this.destroyProgressStart;
-@@ -252,16 +_,25 @@
-                 this.debugLogging(pos, true, sequence, "stopped destroying");
-             } else if (action == ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK) {
-                 this.isDestroyingBlock = false;
--                if (!Objects.equals(this.destroyPos, pos)) {
--                    LOGGER.warn("Mismatch in destroy block pos: {} {}", this.destroyPos, pos);
--                    this.level.destroyBlockProgress(this.player.getId(), this.destroyPos, -1);
--                    this.debugLogging(pos, true, sequence, "aborted mismatched destroying");
-+                // Paper start - Don't allow digging into unloaded chunks
-+                if (!Objects.equals(this.destroyPos, pos) && !BlockPos.ZERO.equals(this.destroyPos)) { // Paper
-+                    ServerPlayerGameMode.LOGGER.debug("Mismatch in destroy block pos: {} {}", this.destroyPos, pos); // CraftBukkit - SPIGOT-5457 sent by client when interact event cancelled
-+                    BlockState destroyState = this.level.getBlockStateIfLoaded(this.destroyPos); // Don't load unloaded chunks for stale records here
-+                    if (destroyState != null) {
-+                        this.level.destroyBlockProgress(this.player.getId(), this.destroyPos, -1);
-+                        this.debugLogging(pos, true, sequence, "aborted mismatched destroying");
-+                    }
-+                    this.destroyPos = BlockPos.ZERO;
-+                    // Paper end - Don't allow digging into unloaded chunks
-                 }
- 
-                 this.level.destroyBlockProgress(this.player.getId(), pos, -1);
-                 this.debugLogging(pos, true, sequence, "aborted destroying");
-+
-+                org.bukkit.craftbukkit.event.CraftEventFactory.callBlockDamageAbortEvent(this.player, pos, this.player.getInventory().getSelectedItem()); // CraftBukkit
-             }
-         }
-+        this.level.chunkPacketBlockController.onPlayerLeftClickBlock(this.level, pos, action, direction, maxY, sequence); // Paper - Anti-Xray
-     }
- 
-     public void destroyAndAck(BlockPos pos, int sequence, String exitId) {
-@@ -274,8 +_,12 @@
+@@ -282,8 +_,12 @@
      }
  
      public boolean destroyBlock(BlockPos pos) {
@@ -317,7 +255,7 @@
              return false;
          }
  
-@@ -291,28 +_,44 @@
+@@ -299,28 +_,44 @@
          }
  
          BlockState adjustedState = block.playerWillDestroy(this.level, pos, state, this.player);
@@ -371,7 +309,7 @@
      }
  
      public InteractionResult useItem(ServerPlayer player, Level level, ItemStack itemStack, InteractionHand hand) {
-@@ -324,8 +_,12 @@
+@@ -332,8 +_,12 @@
              return InteractionResult.PASS;
          }
  
@@ -384,7 +322,7 @@
          InteractionResult result = itemStack.use(level, player, hand);
          ItemStack resultStack;
          if (result instanceof InteractionResult.Success success) {
-@@ -354,48 +_,75 @@
+@@ -362,48 +_,75 @@
          }
  
          if (!player.isUsingItem()) {
@@ -483,7 +421,7 @@
                  InteractionResult itemUse = state.useItemOn(player.getItemInHand(hand), level, player, hand, hitResult);
                  if (itemUse.consumesAction()) {
                      CriteriaTriggers.ITEM_USED_ON_BLOCK.trigger(player, pos, usedItemStack);
-@@ -411,29 +_,28 @@
+@@ -419,29 +_,28 @@
                  }
              }
  
@@ -525,7 +463,7 @@
                  return InteractionResult.PASS;
              }
          }
-@@ -442,4 +_,30 @@
+@@ -450,4 +_,30 @@
      public void setLevel(ServerLevel newLevel) {
          this.level = newLevel;
      }
