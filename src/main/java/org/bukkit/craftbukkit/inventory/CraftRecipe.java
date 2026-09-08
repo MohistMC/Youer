@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.inventory;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.bukkit.inventory.YouerSpecialIngredient;
 import io.papermc.paper.registry.RegistryKey;
 import io.papermc.paper.registry.data.util.Conversions;
 import io.papermc.paper.registry.set.PaperRegistrySets;
@@ -54,7 +55,7 @@ public interface CraftRecipe extends Recipe {
             throw new IllegalArgumentException("Unknown recipe stack instance " + bukkit);
         }
 
-        if (requireNotEmpty) {
+        if (stack.isVanilla() && requireNotEmpty) {
             Preconditions.checkArgument(!stack.isEmpty(), "Recipe requires at least one non-air choice");
         }
 
@@ -66,6 +67,10 @@ public interface CraftRecipe extends Recipe {
     }
 
     static RecipeChoice toChoice(Ingredient ingredient) {
+
+        if (!ingredient.isVanilla()) {
+            return new YouerSpecialIngredient(ingredient);
+        }
         if (ingredient.isEmpty()) {
             return RecipeChoice.empty(); // Paper - null breaks API contracts
         }

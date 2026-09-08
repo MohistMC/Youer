@@ -12,7 +12,7 @@ import org.jetbrains.annotations.NotNull;
  * @author Mgazul by MohistMC
  * @date 2023/7/20 23:18:51
  */
-public record MohistSpecialIngredient(Ingredient ingredient) implements RecipeChoice {
+public record YouerSpecialIngredient(Ingredient ingredient) implements RecipeChoice {
 
     @NotNull
     @Override
@@ -40,7 +40,7 @@ public record MohistSpecialIngredient(Ingredient ingredient) implements RecipeCh
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        MohistSpecialIngredient that = (MohistSpecialIngredient) o;
+        YouerSpecialIngredient that = (YouerSpecialIngredient) o;
         return Objects.equals(ingredient, that.ingredient);
     }
 
