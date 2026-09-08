@@ -1,24 +1,5 @@
 --- a/net/minecraft/world/item/component/BlocksAttacks.java
 +++ b/net/minecraft/world/item/component/BlocksAttacks.java
-@@ -7,8 +_,8 @@
- import java.util.Optional;
- import net.minecraft.core.Holder;
- import net.minecraft.core.HolderSet;
-+import net.minecraft.core.RegistryCodecs;
- import net.minecraft.core.registries.Registries;
--import net.minecraft.core.registries.codec.RegistryCodecs;
- import net.minecraft.network.RegistryFriendlyByteBuf;
- import net.minecraft.network.codec.ByteBufCodecs;
- import net.minecraft.network.codec.StreamCodec;
-@@ -45,7 +_,7 @@
-                 BlocksAttacks.ItemDamageFunction.CODEC
-                     .optionalFieldOf("item_damage", BlocksAttacks.ItemDamageFunction.DEFAULT)
-                     .forGetter(BlocksAttacks::itemDamage),
--                RegistryCodecs.holderSet(Registries.DAMAGE_TYPE).optionalFieldOf("bypassed_by").forGetter(BlocksAttacks::bypassedBy),
-+                RegistryCodecs.homogeneousList(Registries.DAMAGE_TYPE).optionalFieldOf("bypassed_by").forGetter(BlocksAttacks::bypassedBy),
-                 SoundEvent.CODEC.optionalFieldOf("block_sound").forGetter(BlocksAttacks::blockSound),
-                 SoundEvent.CODEC.optionalFieldOf("disabled_sound").forGetter(BlocksAttacks::disableSound)
-             )
 @@ -85,11 +_,15 @@
              );
      }
@@ -37,7 +18,7 @@
              }
  
              user.stopUsingItem();
-@@ -110,14 +_,22 @@
+@@ -110,14 +_,23 @@
      }
  
      public void hurtBlockingItem(Level level, ItemStack item, LivingEntity user, InteractionHand hand, float damage) {
@@ -55,20 +36,12 @@
 -                item.hurtAndBreak(itemDamage, user, hand.asEquipmentSlot());
 +            int itemDamage = fixedDamage < 0 ? this.itemDamage.apply(damage) : fixedDamage;
 +            if (itemDamage > 0 && level instanceof ServerLevel serverLevel) {
++                ItemStack original = item.copy();
 +                item.hurtAndBreak(itemDamage, serverLevel, user, it -> {
 +                    user.onEquippedItemBroken(it, hand.asEquipmentSlot());
-+                    net.neoforged.neoforge.event.EventHooks.onPlayerDestroyItem(player, player.getUseItem(), hand);
++                    net.neoforged.neoforge.event.EventHooks.onPlayerDestroyItem(player, original, hand);
 +                    player.stopUsingItem(); // Neo: Fix MC-168573 ("After breaking a shield, the player's off-hand can't finish using some items")
 +                });
              }
          }
      }
-@@ -147,7 +_,7 @@
-                     ExtraCodecs.POSITIVE_FLOAT
-                         .optionalFieldOf("horizontal_blocking_angle", 90.0F)
-                         .forGetter(BlocksAttacks.DamageReduction::horizontalBlockingAngle),
--                    RegistryCodecs.holderSet(Registries.DAMAGE_TYPE).optionalFieldOf("type").forGetter(BlocksAttacks.DamageReduction::type),
-+                    RegistryCodecs.homogeneousList(Registries.DAMAGE_TYPE).optionalFieldOf("type").forGetter(BlocksAttacks.DamageReduction::type),
-                     Codec.FLOAT.fieldOf("base").forGetter(BlocksAttacks.DamageReduction::base),
-                     Codec.FLOAT.fieldOf("factor").forGetter(BlocksAttacks.DamageReduction::factor)
-                 )

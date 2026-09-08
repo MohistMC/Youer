@@ -64,7 +64,7 @@
  import net.minecraft.world.level.levelgen.Heightmap;
  import net.minecraft.world.level.material.Fluid;
  import net.minecraft.world.level.material.FluidState;
-@@ -152,14 +_,43 @@
+@@ -152,6 +_,35 @@
  import net.minecraft.world.scores.Scoreboard;
  import net.minecraft.world.scores.Team;
  import net.minecraft.world.waypoints.WaypointTransmitter;
@@ -98,10 +98,9 @@
 +import org.bukkit.event.vehicle.VehicleExitEvent;
 +import org.bukkit.plugin.PluginManager;
  import org.jetbrains.annotations.Contract;
--import org.joml.Quaternionf;
+ import org.joml.Quaternionf;
  import org.jspecify.annotations.Nullable;
- import org.slf4j.Logger;
- 
+@@ -160,6 +_,7 @@
  import net.neoforged.neoforge.common.extensions.IEntityExtension;
  
  public abstract class Entity
@@ -205,14 +204,6 @@
      public double xo;
      public double yo;
      public double zo;
-@@ -236,6 +_,7 @@
-     public boolean verticalCollision;
-     public boolean verticalCollisionBelow;
-     public boolean minorHorizontalCollision;
-+    public boolean hurtMarked;
-     protected Vec3 stuckSpeedMultiplier = Vec3.ZERO;
-     private Entity.@Nullable RemovalReason removalReason;
-     public static final float DEFAULT_BB_WIDTH = 0.6F;
 @@ -247,14 +_,15 @@
      public double xOld;
      public double yOld;
@@ -232,11 +223,9 @@
      protected boolean firstTick = true;
      protected final SynchedEntityData entityData;
      protected static final EntityDataAccessor<Byte> DATA_SHARED_FLAGS_ID = SynchedEntityData.defineId(Entity.class, EntityDataSerializers.BYTE);
-@@ -278,12 +_,11 @@
-     private final VecDeltaCodec packetPositionCodec = new VecDeltaCodec();
-     public boolean needsSync;
+@@ -280,10 +_,10 @@
      public boolean syncPosition;
--    public boolean syncVelocity;
+     public boolean syncVelocity;
      public @Nullable PortalProcessor portalProcess;
 -    private int portalCooldown;
 +    public int portalCooldown;
@@ -1380,7 +1369,7 @@
          return true;
      }
  
-@@ -2106,27 +_,66 @@
+@@ -2106,15 +_,36 @@
          return this.isPassenger() ? false : this.saveAsPassenger(output);
      }
  
@@ -1422,15 +1411,10 @@
              output.store("Rotation", Vec2.CODEC, new Vec2(this.getYRot(), this.getXRot()));
              output.putDouble("fall_distance", this.fallDistance);
              output.putShort("Fire", (short)this.remainingFireTicks);
-             output.putShort("Air", (short)this.getAirSupply());
-             output.putBoolean("OnGround", this.onGround());
--            output.putBoolean("Invulnerable", this.permanentlyInvulnerable);
-+            output.putBoolean("Invulnerable", this.invulnerable);
-             output.putInt("PortalCooldown", this.portalCooldown);
--            if (this.invulnerableTime > 0) {
--                output.putInt("invulnerable_time", this.invulnerableTime);
--            }
--
+@@ -2126,7 +_,29 @@
+                 output.putInt("invulnerable_time", this.invulnerableTime);
+             }
+ 
 -            output.store("UUID", UUIDUtil.CODEC, this.getUUID());
 +            // CraftBukkit start - selectively save uuid and world
 +            if (includeAll) {
@@ -2331,9 +2315,8 @@
  
      public final boolean isInvulnerableToBase(DamageSource source) {
 -        return this.isRemoved()
--            || this.isInvulnerable() && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY) && !source.isCreativePlayer()
 +        boolean isVanillaInvulnerable = this.isRemoved()
-+            || this.invulnerable && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY) && !source.isCreativePlayer()
+             || this.isInvulnerable() && !source.is(DamageTypeTags.BYPASSES_INVULNERABILITY) && !source.isCreativePlayer()
              || source.is(DamageTypeTags.IS_FIRE) && this.fireImmune()
              || source.is(DamageTypeTags.IS_FALL) && this.is(EntityTypeTags.FALL_DAMAGE_IMMUNE);
 +        return net.neoforged.neoforge.common.CommonHooks.isEntityInvulnerableTo(this, source, isVanillaInvulnerable);
@@ -2439,14 +2422,6 @@
  
          for (Entity newPassenger : newPassengers) {
              newPassenger.startRiding(newEntity, true, false);
-@@ -3210,6 +_,7 @@
-         this.teleportSpectators(transition, oldLevel);
-         profiler.pop();
-         return newEntity;
-+
-     }
- 
-     protected void teleportSpectators(TeleportTransition transition, ServerLevel oldLevel) {
 @@ -3295,9 +_,17 @@
      }
  

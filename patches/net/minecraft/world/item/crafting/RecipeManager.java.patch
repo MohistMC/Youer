@@ -36,88 +36,25 @@
  import net.minecraft.world.flag.FeatureFlagSet;
  import net.minecraft.world.item.crafting.display.RecipeDisplay;
  import net.minecraft.world.item.crafting.display.RecipeDisplayEntry;
-@@ -24,7 +_,7 @@
- import org.jspecify.annotations.Nullable;
- import org.slf4j.Logger;
- 
--public class RecipeManager implements RecipeAccess {
-+public class RecipeManager extends SimplePreparableReloadListener<RecipeMap> implements RecipeAccess {
-     private static final Logger LOGGER = LogUtils.getLogger();
-     private static final Map<ResourceKey<RecipePropertySet>, RecipeManager.IngredientExtractor> RECIPE_PROPERTY_SETS = Map.of(
-         RecipePropertySet.SMITHING_ADDITION,
-@@ -40,26 +_,66 @@
-         RecipePropertySet.SMOKER_INPUT,
-         forSingleInput(RecipeType.SMOKING),
-         RecipePropertySet.CAMPFIRE_INPUT,
--        forSingleInput(RecipeType.CAMPFIRE_COOKING),
--        RecipePropertySet.BREWING_INPUTS,
--        recipe -> recipe instanceof BrewingRecipe brewingRecipe ? Optional.of(brewingRecipe.getInput().ingredient()) : Optional.empty(),
--        RecipePropertySet.BREWING_REAGENTS,
--        recipe -> recipe instanceof BrewingRecipe brewingRecipe ? Optional.of(brewingRecipe.getReagent().ingredient()) : Optional.empty()
-+        forSingleInput(RecipeType.CAMPFIRE_COOKING)
+@@ -46,12 +_,13 @@
+         RecipePropertySet.BREWING_REAGENTS,
+         recipe -> recipe instanceof BrewingRecipe brewingRecipe ? Optional.of(brewingRecipe.getReagent().ingredient()) : Optional.empty()
      );
 -    public RecipeMap recipes;
-+    private static final FileToIdConverter RECIPE_LISTER = FileToIdConverter.registry(Registries.RECIPE);
-+    private final HolderLookup.Provider registries;
-+    public RecipeMap recipes = RecipeMap.EMPTY;
++    private final RecipeMap recipes;
      private Map<ResourceKey<RecipePropertySet>, RecipePropertySet> propertySets = Map.of();
      private SelectableRecipe.SingleInputSet<StonecutterRecipe> stonecutterRecipes = SelectableRecipe.SingleInputSet.empty();
      private List<RecipeManager.ServerDisplayInfo> allDisplays = List.of();
      private Map<ResourceKey<Recipe<?>>, List<RecipeManager.ServerDisplayInfo>> recipeToDisplay = Map.of();
--    private final Collection<RecipeHolder<?>> learnableRecipes;
+     private final Collection<RecipeHolder<?>> learnableRecipes;
 +    private Object2IntMap<ResourceKey<net.minecraft.world.item.crafting.Recipe<?>>> recipePriorities = it.unimi.dsi.fastutil.objects.Object2IntMaps.emptyMap(); // Neo: recipe priorities set from RecipePriorityManager.
  
      public RecipeManager(HolderLookup.Provider registries) {
--        HolderLookup.RegistryLookup<Recipe<?>> recipeRegistries = registries.lookupOrThrow(Registries.RECIPE);
--        this.recipes = RecipeMap.create(recipeRegistries);
--        this.learnableRecipes = this.recipes.values().stream().filter(r -> !r.value().isSpecial()).collect(Collectors.toUnmodifiableList());
-+        this.registries = registries;
-+    }
-+
-+    protected RecipeMap prepare(ResourceManager manager, ProfilerFiller profiler) {
-+        SortedMap<Identifier, Recipe<?>> recipes = new TreeMap<>();
-+        // Neo: add condition context and post recipe JSON modification event
-+        var conditionalOps = new net.neoforged.neoforge.common.conditions.ConditionalOps<>(this.registries.createSerializationContext(JsonOps.INSTANCE), getContext());
-+        SimpleJsonResourceReloadListener.scanDirectoryWithModifier(
-+            manager, RECIPE_LISTER, conditionalOps, Recipe.CODEC, recipes, recipeJsons -> {
-+                var event = new net.neoforged.neoforge.event.ModifyRecipeJsonsEvent(conditionalOps, recipeJsons);
-+                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event);
-+            }
-+        );
-+        List<RecipeHolder<?>> recipeHolders = new ArrayList<>(recipes.size());
-+        recipes.forEach((id, recipe) -> {
-+            ResourceKey<Recipe<?>> key = ResourceKey.create(Registries.RECIPE, id);
-+            RecipeHolder<?> holder = new RecipeHolder<>(key, recipe);
-+            recipeHolders.add(holder);
-+        });
-+        return RecipeMap.create(recipeHolders);
-+    }
-+
-+    protected void apply(RecipeMap recipes, ResourceManager manager, ProfilerFiller profiler) {
-+        this.recipes = recipes;
-+        LOGGER.info("Loaded {} recipes", recipes.values().size());
-+    }
-+
-+    // CraftBukkit start
-+    public void addRecipe(RecipeHolder<?> irecipe) {
-+        org.spigotmc.AsyncCatcher.catchOp("Recipe Add"); // Spigot
-+        this.recipes.addRecipe(irecipe);
-+        finalizeRecipeLoading();
-+    }
-+
-+    private FeatureFlagSet featureflagset;
-+
-+    public void finalizeRecipeLoading() {
-+        if (featureflagset != null) {
-+            finalizeRecipeLoading(featureflagset);
-+
-+            MinecraftServer.getServer().getPlayerList().reloadRecipes();
-+        }
+         HolderLookup.RegistryLookup<Recipe<?>> recipeRegistries = registries.lookupOrThrow(Registries.RECIPE);
+@@ -60,6 +_,7 @@
      }
  
      public void finalizeRecipeLoading(FeatureFlagSet enabledFlags) {
-+        this.featureflagset = enabledFlags;
-+        // CraftBukkit end
 +        this.recipes.order(this.recipePriorities); // Neo: order recipes by priority.
          List<SelectableRecipe.SingleInputEntry<StonecutterRecipe>> stonecutterRecipes = new ArrayList<>();
          List<RecipeManager.IngredientCollector> propertySetCollectors = RECIPE_PROPERTY_SETS.entrySet()
@@ -134,27 +71,10 @@
      }
  
      public Optional<RecipeHolder<?>> byKey(ResourceKey<Recipe<?>> recipeId) {
-@@ -150,10 +_,6 @@
-         return this.recipes.values();
-     }
- 
--    public Collection<RecipeHolder<?>> getLearnableRecipes() {
--        return this.learnableRecipes;
--    }
--
-     public RecipeManager.@Nullable ServerDisplayInfo getRecipeFromDisplay(RecipeDisplayId id) {
-         int index = id.index();
-         return index >= 0 && index < this.allDisplays.size() ? this.allDisplays.get(index) : null;
-@@ -166,6 +_,28 @@
+@@ -166,6 +_,22 @@
          }
      }
  
-+    @VisibleForTesting
-+    protected static RecipeHolder<?> fromJson(ResourceKey<Recipe<?>> id, JsonObject object, HolderLookup.Provider registries) {
-+        Recipe<?> recipe = Recipe.CODEC.parse(registries.createSerializationContext(JsonOps.INSTANCE), object).getOrThrow(JsonParseException::new);
-+        return new RecipeHolder<>(id, recipe);
-+    }
-+
 +    // CraftBukkit start
 +    public boolean removeRecipe(ResourceKey<Recipe<?>> mcKey) {
 +        boolean removed = this.recipes.removeRecipe(mcKey);

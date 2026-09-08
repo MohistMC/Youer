@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/crafting/RecipeMap.java
 +++ b/net/minecraft/world/item/crafting/RecipeMap.java
-@@ -2,35 +_,82 @@
+@@ -2,20 +_,23 @@
  
  import com.google.common.collect.ImmutableMap;
  import com.google.common.collect.ImmutableMultimap;
@@ -19,30 +19,22 @@
  import org.jspecify.annotations.Nullable;
  
  public class RecipeMap {
--    public static final RecipeMap EMPTY = new RecipeMap(ImmutableMultimap.of(), Map.of());
+     public static final RecipeMap EMPTY = new RecipeMap(ImmutableMultimap.of(), Map.of());
 -    public final Multimap<RecipeType<?>, RecipeHolder<?>> byType;
 -    public final Map<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey;
-+    public static final RecipeMap EMPTY = new RecipeMap(ImmutableMultimap.of(), Maps.newLinkedHashMap());
 +    public Multimap<RecipeType<?>, RecipeHolder<?>> byType;
 +    public final LinkedHashMap<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey;
  
--    private RecipeMap(Multimap<RecipeType<?>, RecipeHolder<?>> byType, Map<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey) {
-+    private RecipeMap(Multimap<RecipeType<?>, RecipeHolder<?>> byType, LinkedHashMap<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey) {
+     private RecipeMap(Multimap<RecipeType<?>, RecipeHolder<?>> byType, Map<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey) {
          this.byType = byType;
-         this.byKey = byKey;
+@@ -33,6 +_,61 @@
+         return new RecipeMap(byType.build(), byKey.build());
      }
  
--    public static RecipeMap create(HolderLookup<Recipe<?>> recipes) {
-+    public static RecipeMap create(Iterable<RecipeHolder<?>> recipes) {
-         Builder<RecipeType<?>, RecipeHolder<?>> byType = ImmutableMultimap.builder();
-         com.google.common.collect.ImmutableMap.Builder<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey = ImmutableMap.builder();
--        recipes.listElements().forEach(recipe -> {
--            RecipeHolder<? extends Recipe<?>> legacyRecipeHolder = new RecipeHolder<>(recipe.key(), recipe.value());
--            byType.put(recipe.value().getType(), legacyRecipeHolder);
--            byKey.put(recipe.key(), legacyRecipeHolder);
--        });
--        return new RecipeMap(byType.build(), byKey.build());
-+
++    /// Neo: add factory method for RecipeMap holding recipes synced to the client
++    public static RecipeMap createClient(java.util.List<RecipeHolder<?>> recipes) {
++        Builder<RecipeType<?>, RecipeHolder<?>> byType = ImmutableMultimap.builder();
++        com.google.common.collect.ImmutableMap.Builder<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey = ImmutableMap.builder();
 +        for (RecipeHolder<?> recipe : recipes) {
 +            byType.put(recipe.value().getType(), recipe);
 +            byKey.put(recipe.id(), recipe);
@@ -92,9 +84,11 @@
 +        }
 +
 +        this.byType = ImmutableMultimap.copyOf(finalBuilder);
-     }
- 
++    }
++
      public <I extends RecipeInput, T extends Recipe<I>> Collection<RecipeHolder<T>> byType(RecipeType<T> type) {
+         return (Collection<RecipeHolder<T>>)(Collection<?>)this.byType.get(type);
+     }
 @@ -48,4 +_,24 @@
      public <I extends RecipeInput, T extends Recipe<I>> Stream<RecipeHolder<T>> getRecipesFor(RecipeType<T> type, I container, Level level) {
          return container.isEmpty() ? Stream.empty() : this.byType(type).stream().filter(r -> r.value().matches(container, level));

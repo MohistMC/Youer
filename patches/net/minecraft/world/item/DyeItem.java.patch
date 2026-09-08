@@ -1,10 +1,9 @@
 --- a/net/minecraft/world/item/DyeItem.java
 +++ b/net/minecraft/world/item/DyeItem.java
-@@ -10,7 +_,7 @@
- import net.minecraft.world.entity.player.Player;
+@@ -11,6 +_,7 @@
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.entity.SignBlockEntity;
--import net.minecraft.world.level.block.entity.SignTextSlot;
+ import net.minecraft.world.level.block.entity.SignTextSlot;
 +import org.bukkit.event.entity.SheepDyeWoolEvent;
  
  public class DyeItem extends Item implements SignApplicator {
@@ -28,15 +27,3 @@
                      itemStack.shrink(1);
                  }
  
-@@ -36,9 +_,9 @@
-     }
- 
-     @Override
--    public boolean tryApplyToSign(Level level, SignBlockEntity sign, SignTextSlot slot, ItemStack item, Player player) {
-+    public boolean tryApplyToSign(Level level, SignBlockEntity sign, boolean isFrontText, ItemStack item, Player player) {
-         DyeColor dye = item.get(DataComponents.DYE);
--        if (dye != null && sign.updateText(text -> text.withColor(dye), slot)) {
-+        if (dye != null && sign.updateText(text -> text.setColor(dye), isFrontText)) {
-             level.playSound(null, sign.getBlockPos(), SoundEvents.DYE_USE, SoundSource.BLOCKS, 1.0F, 1.0F);
-             return true;
-         } else {

@@ -8,88 +8,30 @@
  
  public class HangingEntityItem extends Item {
      private static final Component TOOLTIP_RANDOM_VARIANT = Component.translatable("painting.random").withStyle(ChatFormatting.GRAY);
-@@ -40,39 +_,53 @@
-         ItemStack itemInHand = context.getItemInHand();
-         if (player != null && !this.mayPlace(player, clickedFace, itemInHand, blockPos)) {
-             return InteractionResult.FAIL;
--        }
--
--        Level level = context.getLevel();
--        HangingEntity entity;
--        if (this.type == EntityTypes.PAINTING) {
--            Optional<Painting> painting = Painting.create(level, blockPos, clickedFace);
--            if (painting.isEmpty()) {
--                return InteractionResult.CONSUME;
--            }
--
--            entity = painting.get();
--        } else if (this.type == EntityTypes.ITEM_FRAME) {
--            entity = new ItemFrame(level, blockPos, clickedFace);
-         } else {
--            if (this.type != EntityTypes.GLOW_ITEM_FRAME) {
-+            Level level = context.getLevel();
-+            HangingEntity entity;
-+            if (this.type == EntityTypes.PAINTING) {
-+                Optional<Painting> painting = Painting.create(level, blockPos, clickedFace);
-+                if (painting.isEmpty()) {
-+                    return InteractionResult.CONSUME;
-+                }
-+
-+                entity = painting.get();
-+            } else if (this.type == EntityTypes.ITEM_FRAME) {
-+                entity = new ItemFrame(level, blockPos, clickedFace);
-+            } else {
-+                if (this.type != EntityTypes.GLOW_ITEM_FRAME) {
-+                    return InteractionResult.SUCCESS;
-+                }
-+
-+                entity = new GlowItemFrame(level, blockPos, clickedFace);
-+            }
-+
-+            EntityType.<HangingEntity>appendDefaultStackConfig(entity1 -> {if (!level.purpurConfig.persistentDroppableEntityDisplayNames) entity1.setCustomName(null);}, level, itemInHand, player).apply(entity); // Purpur - Apply display names from item forms of entities to entities and vice versa
-+            if (entity.survives()) {
-+                if (!level.isClientSide()) {
-+                    // CraftBukkit start - fire HangingPlaceEvent
-+                    org.bukkit.entity.Player bukkitPlayer = player == null ? null : (org.bukkit.entity.Player) player.getBukkitEntity();
-+                    org.bukkit.block.Block blockClicked = org.bukkit.craftbukkit.block.CraftBlock.at(level, blockPos);
-+                    org.bukkit.block.BlockFace blockFace = org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(clickedFace);
-+                    org.bukkit.inventory.EquipmentSlot hand = org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(context.getHand());
-+
-+                    org.bukkit.event.hanging.HangingPlaceEvent event = new org.bukkit.event.hanging.HangingPlaceEvent((org.bukkit.entity.Hanging) entity.getBukkitEntity(), bukkitPlayer, blockClicked, blockFace, hand, org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(itemInHand));
-+                    level.getCraftServer().getPluginManager().callEvent(event);
-+
-+                    if (event.isCancelled()) {
-+                        if (player != null) player.containerMenu.sendAllDataToRemote(); // Paper - Fix inventory desync
-+                        return InteractionResult.FAIL;
-+                    }
-+                    // CraftBukkit end
-+                    entity.playPlacementSound();
-+                    level.gameEvent(player, GameEvent.ENTITY_PLACE, entity.position());
-+                    level.addFreshEntity(entity);
-+                }
-+
-+                itemInHand.shrink(1);
-                 return InteractionResult.SUCCESS;
--            }
--
--            entity = new GlowItemFrame(level, blockPos, clickedFace);
--        }
--
--        EntityType.<HangingEntity>createDefaultStackConfig(level, itemInHand, player).apply(entity);
--        if (entity.survives()) {
--            if (!level.isClientSide()) {
--                entity.playPlacementSound();
--                level.gameEvent(player, GameEvent.ENTITY_PLACE, entity.position());
--                level.addFreshEntity(entity);
--            }
--
--            itemInHand.shrink(1);
--            return InteractionResult.SUCCESS;
--        } else {
--            return InteractionResult.CONSUME;
-+            } else {
-+                return InteractionResult.CONSUME;
-+            }
+@@ -61,9 +_,25 @@
+             entity = new GlowItemFrame(level, blockPos, clickedFace);
          }
-     }
  
+-        EntityType.<HangingEntity>createDefaultStackConfig(level, itemInHand, player).apply(entity);
++        EntityType.<HangingEntity>appendDefaultStackConfig(entity1 -> {
++            if (!level.purpurConfig.persistentDroppableEntityDisplayNames) entity1.setCustomName(null);
++        }, level, itemInHand, player).apply(entity); // Purpur - Apply display names from item forms of entities to entities and vice versa
+         if (entity.survives()) {
+             if (!level.isClientSide()) {
++                // CraftBukkit start - fire HangingPlaceEvent
++                org.bukkit.entity.Player bukkitPlayer = player == null ? null : (org.bukkit.entity.Player) player.getBukkitEntity();
++                org.bukkit.block.Block blockClicked = org.bukkit.craftbukkit.block.CraftBlock.at(level, blockPos);
++                org.bukkit.block.BlockFace blockFace = org.bukkit.craftbukkit.block.CraftBlock.notchToBlockFace(clickedFace);
++                org.bukkit.inventory.EquipmentSlot hand = org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(context.getHand());
++
++                org.bukkit.event.hanging.HangingPlaceEvent event = new org.bukkit.event.hanging.HangingPlaceEvent((org.bukkit.entity.Hanging) entity.getBukkitEntity(), bukkitPlayer, blockClicked, blockFace, hand, org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(itemInHand));
++                level.getCraftServer().getPluginManager().callEvent(event);
++
++                if (event.isCancelled()) {
++                    if (player != null) player.containerMenu.sendAllDataToRemote(); // Paper - Fix inventory desync
++                    return InteractionResult.FAIL;
++                }
++                // CraftBukkit end
+                 entity.playPlacementSound();
+                 level.gameEvent(player, GameEvent.ENTITY_PLACE, entity.position());
+                 level.addFreshEntity(entity);

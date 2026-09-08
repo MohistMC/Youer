@@ -1,37 +1,12 @@
 --- a/net/minecraft/world/item/crafting/Recipe.java
 +++ b/net/minecraft/world/item/crafting/Recipe.java
-@@ -1,15 +_,13 @@
+@@ -1,5 +_,6 @@
  package net.minecraft.world.item.crafting;
  
 +import com.mohistmc.youer.neoforge.ModSpecialRecipe;
  import com.mojang.serialization.Codec;
  import com.mojang.serialization.MapCodec;
  import com.mojang.serialization.codecs.RecordCodecBuilder;
- import java.util.List;
- import java.util.function.BiFunction;
--import net.minecraft.core.Holder;
--import net.minecraft.core.HolderSet;
- import net.minecraft.core.registries.BuiltInRegistries;
- import net.minecraft.core.registries.Registries;
--import net.minecraft.core.registries.codec.RegistryCodecs;
- import net.minecraft.network.RegistryFriendlyByteBuf;
- import net.minecraft.network.codec.ByteBufCodecs;
- import net.minecraft.network.codec.StreamCodec;
-@@ -19,12 +_,11 @@
- import net.minecraft.world.level.Level;
- 
- public interface Recipe<T extends RecipeInput> {
--    Codec<Recipe<?>> DIRECT_CODEC = BuiltInRegistries.RECIPE_SERIALIZER.byNameCodec().dispatch(Recipe::getSerializer, RecipeSerializer::codec);
-+    Codec<Recipe<?>> CODEC = BuiltInRegistries.RECIPE_SERIALIZER.byNameCodec().dispatch(Recipe::getSerializer, RecipeSerializer::codec);
-     Codec<ResourceKey<Recipe<?>>> KEY_CODEC = ResourceKey.codec(Registries.RECIPE);
-+    Codec<java.util.Optional<net.neoforged.neoforge.common.conditions.WithConditions<Recipe<?>>>> CONDITIONAL_CODEC = net.neoforged.neoforge.common.conditions.ConditionalOps.createConditionalCodecWithConditions(CODEC);
-     StreamCodec<RegistryFriendlyByteBuf, Recipe<?>> STREAM_CODEC = ByteBufCodecs.registry(Registries.RECIPE_SERIALIZER)
-         .dispatch(Recipe::getSerializer, RecipeSerializer::streamCodec);
--    Codec<Holder<Recipe<?>>> CODEC = RegistryCodecs.holder(Registries.RECIPE, DIRECT_CODEC);
--    Codec<HolderSet<Recipe<?>>> LIST_CODEC = RegistryCodecs.holderSet(Registries.RECIPE, DIRECT_CODEC);
- 
-     boolean matches(T input, Level level);
- 
 @@ -49,6 +_,10 @@
      }
  

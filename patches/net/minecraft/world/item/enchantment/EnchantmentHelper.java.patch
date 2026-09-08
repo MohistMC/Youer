@@ -74,33 +74,6 @@
              if (itemEnchantments != null && !itemEnchantments.isEmpty()) {
                  EnchantedItemInUse itemInUse = new EnchantedItemInUse(piece, slot, owner);
  
-@@ -219,7 +_,7 @@
-     }
- 
-     public static void doPostAttackEffectsWithItemSourceOnBreak(
--        ServerLevel serverLevel, Entity victim, DamageSource damageSource, @Nullable ItemStack source, @Nullable Consumer<ItemStack> attackerlessOnBreak
-+        ServerLevel serverLevel, Entity victim, DamageSource damageSource, @Nullable ItemStack source, @Nullable Consumer<Item> attackerlessOnBreak
-     ) {
-         if (victim instanceof LivingEntity livingVictim) {
-             runIterationOnEquipment(
-@@ -298,7 +_,7 @@
-         return Math.max(0, modifiedAmount.intValue());
-     }
- 
--    public static void onProjectileSpawned(ServerLevel serverLevel, ItemStack weapon, Projectile projectileEntity, Consumer<ItemStack> onBreak) {
-+    public static void onProjectileSpawned(ServerLevel serverLevel, ItemStack weapon, Projectile projectileEntity, Consumer<Item> onBreak) {
-         LivingEntity owner = projectileEntity.getOwner() instanceof LivingEntity le ? le : null;
-         EnchantedItemInUse item = new EnchantedItemInUse(weapon, null, owner, onBreak);
-         runIterationOnItem(weapon, (enchantment, level) -> enchantment.value().onProjectileSpawned(serverLevel, level, item, projectileEntity));
-@@ -312,7 +_,7 @@
-         @Nullable EquipmentSlot slot,
-         Vec3 hitLocation,
-         BlockState hitBlock,
--        Consumer<ItemStack> onBreak
-+        Consumer<Item> onBreak
-     ) {
-         EnchantedItemInUse item = new EnchantedItemInUse(weapon, slot, owner, onBreak);
-         runIterationOnItem(weapon, (enchantment, level) -> enchantment.value().onHitBlock(serverLevel, level, item, entity, hitLocation, hitBlock));
 @@ -338,7 +_,12 @@
                              if (filteredEffect.enchanted() == EnchantmentTarget.VICTIM
                                  && filteredEffect.affected() == EnchantmentTarget.VICTIM
