@@ -1,14 +1,15 @@
 --- a/net/minecraft/world/level/block/BushBlock.java
 +++ b/net/minecraft/world/level/block/BushBlock.java
-@@ -10,6 +_,7 @@
+@@ -10,6 +_,8 @@
  import net.minecraft.world.level.block.state.BlockBehaviour;
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.pathfinder.PathComputationType;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.spigotmc.AsyncCatcher;
  
  public abstract class BushBlock extends Block {
      protected BushBlock(BlockBehaviour.Properties p_51021_) {
-@@ -20,20 +_,28 @@
+@@ -20,20 +_,32 @@
      protected abstract MapCodec<? extends BushBlock> codec();
  
      protected boolean mayPlaceOn(BlockState p_51042_, BlockGetter p_51043_, BlockPos p_51044_) {
@@ -23,7 +24,11 @@
 -            : super.updateShape(p_51032_, p_51033_, p_51034_, p_51035_, p_51036_, p_51037_);
 +        // CraftBukkit start
 +        if (!p_51032_.canSurvive(p_51035_, p_51036_)) {
-+            if (!(p_51035_ instanceof net.minecraft.server.level.ServerLevel && ((net.minecraft.server.level.ServerLevel) p_51035_).hasPhysicsEvent) || !org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPhysicsEvent(p_51035_, p_51036_).isCancelled()) { // Paper
++            if (!AsyncCatcher.catchAsync()) {
++                if (!(p_51035_ instanceof net.minecraft.server.level.ServerLevel && ((net.minecraft.server.level.ServerLevel) p_51035_).hasPhysicsEvent) || !org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPhysicsEvent(p_51035_, p_51036_).isCancelled()) { // Paper
++                    return Blocks.AIR.defaultBlockState();
++                }
++            } else {
 +                return Blocks.AIR.defaultBlockState();
 +            }
 +        }
