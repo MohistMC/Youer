@@ -21,10 +21,10 @@ public class WorldManage {
         ConfigByWorlds.loadWorlds();
         ConfigByWorlds.addWorld(Bukkit.getUnsafe().getMainLevelName(), false);
         if (Bukkit.getAllowNether()) {
-            ConfigByWorlds.addWorld("DIM1", false);
+            ConfigByWorlds.addWorld("DIM-1", false);
         }
         if (Bukkit.getAllowEnd()) {
-            ConfigByWorlds.addWorld("DIM-1", false);
+            ConfigByWorlds.addWorld("DIM1", false);
         }
     }
 
