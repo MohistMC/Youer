@@ -68,7 +68,7 @@ public interface CraftRecipe extends Recipe {
 
     static RecipeChoice toChoice(Ingredient ingredient) {
 
-        if (!ingredient.isVanilla()) {
+        if (ingredient.isCustom() || !ingredient.isVanilla()) {
             return new YouerSpecialIngredient(ingredient);
         }
         if (ingredient.isEmpty()) {
