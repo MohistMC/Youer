@@ -1,13 +1,5 @@
 --- a/net/minecraft/world/entity/monster/zombie/Zombie.java
 +++ b/net/minecraft/world/entity/monster/zombie/Zombie.java
-@@ -21,7 +_,6 @@
- import net.minecraft.world.DifficultyInstance;
- import net.minecraft.world.damagesource.DamageSource;
- import net.minecraft.world.entity.ConversionParams;
--import net.minecraft.world.entity.ConversionTracker;
- import net.minecraft.world.entity.Entity;
- import net.minecraft.world.entity.EntityAttachment;
- import net.minecraft.world.entity.EntityAttachments;
 @@ -68,12 +_,19 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.storage.ValueInput;
@@ -30,7 +22,7 @@
      );
      private static final Identifier REINFORCEMENT_CALLER_CHARGE_ID = Identifier.withDefaultNamespace("reinforcement_caller_charge");
      private static final AttributeModifier ZOMBIE_REINFORCEMENT_CALLEE_CHARGE = new AttributeModifier(
-@@ -83,11 +_,12 @@
+@@ -83,7 +_,7 @@
      private static final Identifier ZOMBIE_RANDOM_SPAWN_BONUS_ID = Identifier.withDefaultNamespace("zombie_random_spawn_bonus");
      private static final EntityDataAccessor<Boolean> DATA_BABY_ID = SynchedEntityData.defineId(Zombie.class, EntityDataSerializers.BOOLEAN);
      private static final EntityDataAccessor<Integer> DATA_SPECIAL_TYPE_ID = SynchedEntityData.defineId(Zombie.class, EntityDataSerializers.INT);
@@ -39,36 +31,21 @@
      public static final float ZOMBIE_LEADER_CHANCE = 0.05F;
      public static final int REINFORCEMENT_ATTEMPTS = 50;
      public static final int REINFORCEMENT_RANGE_MAX = 40;
-     public static final int REINFORCEMENT_RANGE_MIN = 7;
-+    private static final int NOT_CONVERTING = -1;
-     private static final EntityDimensions BABY_DIMENSIONS = EntityDimensions.scalable(0.49F, 0.98F)
-         .withEyeHeight(0.775F)
-         .withAttachments(EntityAttachments.builder().attach(EntityAttachment.VEHICLE, 0.0F, 0.1875F, 0.0F));
-@@ -95,34 +_,86 @@
+@@ -95,9 +_,9 @@
      public static final Predicate<Difficulty> DOOR_BREAKING_PREDICATE = d -> d == Difficulty.HARD;
      private static final boolean DEFAULT_BABY = false;
      private static final boolean DEFAULT_CAN_BREAK_DOORS = false;
 -    private final BreakDoorGoal breakDoorGoal = new BreakDoorGoal(this, DOOR_BREAKING_PREDICATE);
-+    private static final int DEFAULT_IN_WATER_TIME = 0;
 +    private final BreakDoorGoal breakDoorGoal; // Paper - move down
      private boolean canBreakDoors = false;
 -    public final ConversionTracker<Zombie> drowningTracker = new ConversionTracker<>(
--        this,
--        DATA_DROWNED_CONVERSION_ID,
--        this::convertsToWhenDrowning,
--        this::getConversionSound,
--        () -> this.isEyeInFluid(FluidTags.WATER),
--        "InWaterTime",
--        600,
--        "DrownedConversionTime",
--        300,
--        (converted, serverLevel) -> converted.handleAttributes(
--            serverLevel.getCurrentDifficultyAt(converted.blockPosition()).getSpecialMultiplier(), EntitySpawnReason.CONVERSION
--        )
--    );
-+    private int inWaterTime = 0;
-+    public int conversionTime;
-+    //private boolean shouldBurnInDay = true; // Paper - Add more Zombie API // Purpur - implemented in LivingEntity - API for any mob to burn daylight
++    private final ConversionTracker<Zombie> drowningTracker = new ConversionTracker<>(
+         this,
+         DATA_DROWNED_CONVERSION_ID,
+         this::convertsToWhenDrowning,
+@@ -112,17 +_,79 @@
+         )
+     );
  
 -    public Zombie(EntityType<? extends Zombie> type, Level level) {
 +    public Zombie(final EntityType<? extends Zombie> type, final Level level) {
@@ -189,54 +166,10 @@
      }
  
      @Override
-@@ -223,19 +_,75 @@
+@@ -229,13 +_,34 @@
+         }
+     }
  
-     @Override
-     public void tick() {
-+        if (this.level() instanceof ServerLevel serverLevel && this.isAlive() && !this.isNoAi()) {
-+            if (this.isUnderWaterConverting()) {
-+                this.conversionTime--;
-+                if (this.conversionTime < 0) {
-+                    this.doUnderWaterConversion(serverLevel);
-+                }
-+            } else if (this.convertsInWater()) {
-+                if (this.isEyeInFluid(FluidTags.WATER)) {
-+                    this.inWaterTime++;
-+                    if (this.inWaterTime >= 600) {
-+                        this.startUnderWaterConversion(300);
-+                    }
-+                } else {
-+                    this.inWaterTime = -1;
-+                }
-+            }
-+        }
-+
-         super.tick();
--        if (this.convertsInWater()) {
--            this.drowningTracker.tick();
--        }
-+    }
-+
-+    // Paper start - Add more Zombie API
-+    public void stopDrowning() {
-+        this.conversionTime = -1;
-+        this.getEntityData().set(DATA_DROWNED_CONVERSION_ID, false);
-+    }
-+    // Paper end - Add more Zombie API
-+
-+    public void startUnderWaterConversion(int time) {
-+        this.conversionTime = time;
-+        this.getEntityData().set(DATA_DROWNED_CONVERSION_ID, true);
-+    }
-+
-+    protected void doUnderWaterConversion(ServerLevel level) {
-+        if (!net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, EntityTypes.DROWNED, (timer) -> this.conversionTime = timer)) return;
-+        this.convertToZombieType(level, EntityTypes.DROWNED);
-+        if (!this.isSilent()) {
-+            level.levelEvent(null, 1040, this.blockPosition(), 0);
-+        }
-+    }
-+
 +    protected void convertToZombieType(ServerLevel level, EntityType<? extends Zombie> zombieType) {
 +        // CraftBukkit start
 +        Zombie converted = this.convertTo(
@@ -251,8 +184,8 @@
 +            ((org.bukkit.entity.Zombie) getBukkitEntity()).setConversionTime(-1); // CraftBukkit - SPIGOT-5208: End conversion to stop event spam
 +        }
 +        // CraftBukkit end
-     }
- 
++    }
++
      @VisibleForTesting
 -    public boolean convertVillagerToZombieVillager(ServerLevel level, Villager villager) {
 +    public boolean convertVillagerToZombieVillager(final ServerLevel level, final Villager villager) {

@@ -41,7 +41,7 @@
          recipe -> recipe instanceof BrewingRecipe brewingRecipe ? Optional.of(brewingRecipe.getReagent().ingredient()) : Optional.empty()
      );
 -    public RecipeMap recipes;
-+    private final RecipeMap recipes;
++    public final RecipeMap recipes;
      private Map<ResourceKey<RecipePropertySet>, RecipePropertySet> propertySets = Map.of();
      private SelectableRecipe.SingleInputSet<StonecutterRecipe> stonecutterRecipes = SelectableRecipe.SingleInputSet.empty();
      private List<RecipeManager.ServerDisplayInfo> allDisplays = List.of();
@@ -51,9 +51,27 @@
  
      public RecipeManager(HolderLookup.Provider registries) {
          HolderLookup.RegistryLookup<Recipe<?>> recipeRegistries = registries.lookupOrThrow(Registries.RECIPE);
-@@ -60,6 +_,7 @@
+@@ -59,7 +_,25 @@
+         this.learnableRecipes = this.recipes.values().stream().filter(r -> !r.value().isSpecial()).collect(Collectors.toUnmodifiableList());
      }
  
++    // CraftBukkit start
++    public void addRecipe(RecipeHolder<?> holder) {
++        org.spigotmc.AsyncCatcher.catchOp("Recipe Add"); // Spigot
++        this.recipes.addRecipe(holder);
++        this.finalizeRecipeLoading();
++    }
++
++    private FeatureFlagSet enabledFlags;
++
++    public void finalizeRecipeLoading() {
++        if (this.enabledFlags != null) {
++            this.finalizeRecipeLoading(this.enabledFlags);
++
++            net.minecraft.server.MinecraftServer.getServer().getPlayerList().reloadResources();
++        }
++    }
++
      public void finalizeRecipeLoading(FeatureFlagSet enabledFlags) {
 +        this.recipes.order(this.recipePriorities); // Neo: order recipes by priority.
          List<SelectableRecipe.SingleInputEntry<StonecutterRecipe>> stonecutterRecipes = new ArrayList<>();

@@ -1,18 +1,16 @@
 --- a/net/minecraft/world/level/StructureManager.java
 +++ b/net/minecraft/world/level/StructureManager.java
-@@ -47,8 +_,14 @@
-         }
+@@ -48,7 +_,13 @@
      }
  
--    public List<StructureStart> startsForStructure(int sectionX, int sectionZ, Predicate<Structure> matcher) {
+     public List<StructureStart> startsForStructure(int sectionX, int sectionZ, Predicate<Structure> matcher) {
 -        Map<Structure, LongSet> allReferences = this.level.getChunk(sectionX, sectionZ, ChunkStatus.STRUCTURE_REFERENCES).getAllReferences();
-+    public List<StructureStart> startsForStructure(ChunkPos pos, Predicate<Structure> matcher) {
 +        // Paper start - Fix swamp hut cat generation deadlock
-+        return this.startsForStructure(pos, matcher, null);
++        return this.startsForStructure(sectionX, sectionZ, matcher, this.level);
 +    }
 +
-+    public List<StructureStart> startsForStructure(final ChunkPos pos, final Predicate<Structure> matcher, final @Nullable ServerLevelAccessor levelAccessor) {
-+        Map<Structure, LongSet> allReferences = (levelAccessor == null ? this.level : levelAccessor).getChunk(pos.x(), pos.z(), ChunkStatus.STRUCTURE_REFERENCES).getAllReferences();
++    public List<StructureStart> startsForStructure(int sectionX, int sectionZ, final Predicate<Structure> matcher, final @Nullable LevelAccessor levelAccessor) {
++        Map<Structure, LongSet> allReferences = (levelAccessor == null ? this.level : levelAccessor).getChunk(sectionX, sectionZ, ChunkStatus.STRUCTURE_REFERENCES).getAllReferences();
 +        // Paper end - Fix swamp hut cat generation deadlock
          Builder<StructureStart> result = ImmutableList.builder();
  

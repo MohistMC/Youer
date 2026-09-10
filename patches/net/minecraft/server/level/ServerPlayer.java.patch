@@ -43,6 +43,14 @@
  import net.minecraft.world.item.enchantment.EnchantmentHelper;
  import net.minecraft.world.item.trading.MerchantOffers;
  import net.minecraft.world.level.ChunkPos;
+@@ -179,6 +_,7 @@
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.biome.BiomeManager;
+ import net.minecraft.world.level.block.AbstractBedBlock;
++import net.minecraft.world.level.block.BedBlock;
+ import net.minecraft.world.level.block.Block;
+ import net.minecraft.world.level.block.HorizontalDirectionalBlock;
+ import net.minecraft.world.level.block.RespawnAnchorBlock;
 @@ -187,6 +_,7 @@
  import net.minecraft.world.level.block.entity.SignBlockEntity;
  import net.minecraft.world.level.block.entity.SignTextSlot;
@@ -1213,117 +1221,8 @@
      }
  
      @Override
-@@ -1229,12 +_,80 @@
-         this.containerMenu.broadcastChanges();
-     }
- 
--    @Override
--    public Either<Player.BedSleepingProblem, Unit> startSleepInBed(AbstractBedBlock bedBlock, BlockState bedBlockState, BedRule rule, BlockPos pos) {
--        Direction direction = bedBlockState.getValue(HorizontalDirectionalBlock.FACING);
-+    // CraftBukkit start - moved bed result checks from below into separate method
-+    private Either<Player.BedSleepingProblem, Unit> getBedResult(final BlockPos pos, final Direction direction) {
-+        BedRule bedRule = this.level().environmentAttributes().getValue(EnvironmentAttributes.BED_RULE, pos);
-+        if (bedRule.explodes()) return Either.left(Player.BedSleepingProblem.EXPLOSION);
-         if (!this.isSleeping() && this.isAlive()) {
--            boolean canSleep = rule.canSleep(this.level());
--            boolean canSetSpawn = rule.canSetSpawn(this.level());
-+            BedRule rule = this.level().environmentAttributes().getValue(EnvironmentAttributes.BED_RULE, pos);
-+            boolean canSleep = rule.canSleep(this.level());
-+            boolean canSetSpawn = rule.canSetSpawn(this.level());
-+            if (!canSetSpawn && !canSleep) {
-+                return Either.left(rule.asProblem());
-+            }
-+
-+            if (!this.bedInRange(pos, direction)) {
-+                return Either.left(Player.BedSleepingProblem.TOO_FAR_AWAY);
-+            }
-+
-+            if (this.bedBlocked(pos, direction)) {
-+                return Either.left(Player.BedSleepingProblem.OBSTRUCTED);
-+            }
-+
-+            if (canSetSpawn) {
-+                this.setRespawnPosition(
-+                        new ServerPlayer.RespawnConfig(LevelData.RespawnData.of(this.level().dimension(), pos, this.getYRot(), this.getXRot()), false), true, com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.BED // Paper - Add PlayerSetSpawnEvent
-+                );
-+            }
-+
-+            if (!canSleep) {
-+                return Either.left(rule.asProblem());
-+            }
-+
-+            if (!this.isCreative()) {
-+                double hRange = 8.0;
-+                double vRange = 5.0;
-+                Vec3 bedCenter = Vec3.atBottomCenterOf(pos);
-+                List<Monster> monsters = this.level()
-+                        .getEntitiesOfClass(
-+                                Monster.class,
-+                                new AABB(bedCenter.x() - 8.0, bedCenter.y() - 5.0, bedCenter.z() - 8.0, bedCenter.x() + 8.0, bedCenter.y() + 5.0, bedCenter.z() + 8.0),
-+                                monster -> monster.isPreventingPlayerRest(this.level(), this)
-+                        );
-+                if (!this.level().purpurConfig.playerSleepNearMonsters && !monsters.isEmpty()) { // Purpur - Config to ignore nearby mobs when sleeping
-+                    return Either.left(Player.BedSleepingProblem.NOT_SAFE);
-+                }
-+            }
-+
-+            // CraftBukkit start
-+            return Either.right(Unit.INSTANCE);
-+        } else {
-+            return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
-+        }
-+    }
-+
-+    @Override
-+    public Either<Player.BedSleepingProblem, Unit> startSleepInBed(BlockPos pos) {
-+        // Neo: Encapsulate the vanilla check logic to supply to the CanPlayerSleepEvent
-+        var vanillaResult = ((java.util.function.Supplier<Either<BedSleepingProblem, Unit>>) () -> {
-+            // Guard against modded beds that may not have the FACING property.
-+            // We just return success (Unit) here. Modders will need to implement conditions in the CanPlayerSleepEvent
-+            if (!this.level().getBlockState(pos).hasProperty(HorizontalDirectionalBlock.FACING)) {
-+                return Either.right(Unit.INSTANCE);
-+            }
-+
-+            // Start vanilla code
-+            Direction direction = this.level().getBlockState(pos).getValue(HorizontalDirectionalBlock.FACING);
-+            if (this.isSleeping() || !this.isAlive()) {
-+                return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
-+            }
-+            BedRule rule = this.level().environmentAttributes().getValue(EnvironmentAttributes.BED_RULE, pos);
-+            boolean canSleep = rule.canSleep(this.level());
-+            boolean canSetSpawn = rule.canSetSpawn(this.level());
-+            if (!canSetSpawn && !canSleep) {
-+                return Either.left(rule.asProblem());
-+            }
-+
-             if (!this.bedInRange(pos, direction)) {
-                 return Either.left(Player.BedSleepingProblem.TOO_FAR_AWAY);
-             }
-@@ -1268,14 +_,35 @@
+@@ -1275,7 +_,17 @@
                  }
-             }
- 
--            Either<Player.BedSleepingProblem, Unit> result = super.startSleepInBed(bedBlock, bedBlockState, rule, pos).ifRight(unit -> {
--                this.awardStat(bedBlock.getSleptInBedStatType());
--                if (canSetSpawn) {
--                    CriteriaTriggers.SLEPT_IN_BED.trigger(this);
--                }
-+            // End vanilla code
-+
-+            return Either.right(Unit.INSTANCE);
-+        }).get();
-+
-+        // Neo: Fire the event, and return the error if one exists
-+        vanillaResult = net.neoforged.neoforge.event.EventHooks.canPlayerStartSleeping(this, pos, vanillaResult);
-+        if (vanillaResult.left().isPresent()) {
-+            return vanillaResult;
-+        }
-+
-+        {
-+            // Neo: Continue with the vanilla code to start sleeping
-+            Either<Player.BedSleepingProblem, Unit> result = super.startSleepInBed(pos).ifRight(unit -> {
-+                this.awardStat(Stats.SLEEP_IN_BED);
-+                CriteriaTriggers.SLEPT_IN_BED.trigger(this);
              });
              if (!this.level().canSleepThroughNights()) {
 -                this.sendOverlayMessage(Component.translatable("sleep.not_possible"));
@@ -1362,8 +1261,7 @@
 +        }
 +        // CraftBukkit end
          if (this.isSleeping()) {
--            this.level().getChunkSource().sendToTrackingPlayersAndSelf(this, new ClientboundAnimatePacket(this, 0));
-+            this.level().getChunkSource().sendToTrackingPlayersAndSelf(this, new ClientboundAnimatePacket(this, 2));
+             this.level().getChunkSource().sendToTrackingPlayersAndSelf(this, new ClientboundAnimatePacket(this, 0));
          }
  
          super.stopSleepInBed(forcefulWakeUp, updateLevelList);
@@ -1383,7 +1281,7 @@
      }
  
      @Override
-@@ -1382,29 +_,89 @@
+@@ -1382,18 +_,32 @@
          this.containerCounter = this.containerCounter % 100 + 1;
      }
  
@@ -1401,96 +1299,78 @@
 +    public OptionalInt openMenu(@Nullable MenuProvider provider, java.util.function.@Nullable Consumer<net.minecraft.network.RegistryFriendlyByteBuf> extraDataWriter) {
          if (provider == null) {
              return OptionalInt.empty();
--        }
--
--        if (this.containerMenu != this.inventoryMenu) {
--            this.closeContainer();
--        }
--
--        this.nextContainerCounter();
--        AbstractContainerMenu menu = provider.createMenu(this.containerCounter, this.getInventory(), this);
--        if (menu == null) {
--            if (this.isSpectator()) {
--                this.sendOverlayMessage(Component.translatable("container.spectatorCantOpen").withStyle(ChatFormatting.RED));
--            }
--
--            return OptionalInt.empty();
+         }
+ 
+         if (this.containerMenu != this.inventoryMenu) {
++            if (provider.shouldTriggerClientSideContainerClosingOnOpen())
+             this.closeContainer();
++            else
++                this.doCloseContainer();
+         }
+ 
+         this.nextContainerCounter();
+         AbstractContainerMenu menu = provider.createMenu(this.containerCounter, this.getInventory(), this);
++        Component title = null; // Paper - Add titleOverride to InventoryOpenEvent
+         if (menu == null) {
+             if (this.isSpectator()) {
+                 this.sendOverlayMessage(Component.translatable("container.spectatorCantOpen").withStyle(ChatFormatting.RED));
+@@ -1401,9 +_,55 @@
+ 
+             return OptionalInt.empty();
          } else {
 -            this.connection.send(new ClientboundOpenScreenPacket(menu.containerId, menu.getType(), provider.getDisplayName()));
--            this.initMenu(menu);
--            this.containerMenu = menu;
--            return OptionalInt.of(this.containerCounter);
-+            if (this.containerMenu != this.inventoryMenu) {
-+                if (provider.shouldTriggerClientSideContainerClosingOnOpen())
-+                this.closeContainer();
-+                else
-+                    this.doCloseContainer();
-+            }
-+
-+            this.nextContainerCounter();
-+            AbstractContainerMenu menu = provider.createMenu(this.containerCounter, this.getInventory(), this);
-+            Component title = null; // Paper - Add titleOverride to InventoryOpenEvent
-+            if (menu == null) {
-+                if (this.isSpectator()) {
-+                    this.sendOverlayMessage(Component.translatable("container.spectatorCantOpen").withStyle(ChatFormatting.RED));
-+                }
-+
-+                return OptionalInt.empty();
-+            } else {
-+                // Neo: Support sending additional arbitrary data to menu factories on the client-side
-+                menu.setTitle(provider.getDisplayName());
-+                AbstractContainerMenu finalMenu = menu;
-+                var extraData = net.neoforged.neoforge.common.util.FriendlyByteBufUtil.writeCustomData(
-+                        buffer -> {
-+                            provider.writeClientSideData(finalMenu, buffer);
-+                            if (extraDataWriter != null) {
-+                                extraDataWriter.accept(buffer);
-+                            }
-+                        },
-+                        registryAccess()
-+                );
-+                if (extraData.length != 0) {
-+                    this.connection.send(
-+                            new net.neoforged.neoforge.network.payload.AdvancedOpenScreenPayload(
-+                                    menu.containerId,
-+                                    menu.getType(),
-+                                    provider.getDisplayName(),
-+                                    extraData
-+                            )
-+                    );
-+                } else {
-+                    menu.setTitle(provider.getDisplayName());
-+                    menu.containerOwner = this;
-+                    boolean cancelled = false;
-+                    // Paper start - Add titleOverride to InventoryOpenEvent
-+                    final com.mojang.datafixers.util.Pair<net.kyori.adventure.text.Component, AbstractContainerMenu> result = org.bukkit.craftbukkit.event.CraftEventFactory.callInventoryOpenEventWithTitle(this, menu, cancelled);
-+                    menu = result.getSecond();
-+                    title = io.papermc.paper.adventure.PaperAdventure.asVanilla(result.getFirst());
-+                    // Paper end - Add titleOverride to InventoryOpenEvent
-+                    if (menu == null && !cancelled) { // Let pre-cancelled events fall through
-+                        // SPIGOT-5263 - close chest if cancelled
-+                        if (provider instanceof Container container) {
-+                            container.stopOpen(this);
-+                        } else if (provider instanceof org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest.Provider doubleChestProvider) {
-+                            // SPIGOT-5355 - double chests too :(
-+                            doubleChestProvider.container.stopOpen(this);
-+                            // Paper start - Fix InventoryOpenEvent cancellation
-+                        } else if (!this.enderChestInventory.isActiveChest(null)) {
-+                            this.enderChestInventory.stopOpen(this);
-+                            // Paper end - Fix InventoryOpenEvent cancellation
++            // Neo: Support sending additional arbitrary data to menu factories on the client-side
++            menu.setTitle(provider.getDisplayName());
++            AbstractContainerMenu finalMenu = menu;
++            var extraData = net.neoforged.neoforge.common.util.FriendlyByteBufUtil.writeCustomData(
++                    buffer -> {
++                        provider.writeClientSideData(finalMenu, buffer);
++                        if (extraDataWriter != null) {
++                            extraDataWriter.accept(buffer);
 +                        }
-+                        return OptionalInt.empty();
++                    },
++                    registryAccess()
++            );
++            if (extraData.length != 0) {
++                this.connection.send(
++                        new net.neoforged.neoforge.network.payload.AdvancedOpenScreenPayload(
++                                menu.containerId,
++                                menu.getType(),
++                                provider.getDisplayName(),
++                                extraData
++                        )
++                );
++            } else {
++                menu.setTitle(provider.getDisplayName());
++                menu.containerOwner = this;
++                boolean cancelled = false;
++                // Paper start - Add titleOverride to InventoryOpenEvent
++                final com.mojang.datafixers.util.Pair<net.kyori.adventure.text.Component, AbstractContainerMenu> result = org.bukkit.craftbukkit.event.CraftEventFactory.callInventoryOpenEventWithTitle(this, menu, cancelled);
++                menu = result.getSecond();
++                title = io.papermc.paper.adventure.PaperAdventure.asVanilla(result.getFirst());
++                // Paper end - Add titleOverride to InventoryOpenEvent
++                if (menu == null && !cancelled) { // Let pre-cancelled events fall through
++                    // SPIGOT-5263 - close chest if cancelled
++                    if (provider instanceof Container container) {
++                        container.stopOpen(this);
++                    } else if (provider instanceof org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest.Provider doubleChestProvider) {
++                        // SPIGOT-5355 - double chests too :(
++                        doubleChestProvider.container.stopOpen(this);
++                        // Paper start - Fix InventoryOpenEvent cancellation
++                    } else if (!this.enderChestInventory.isActiveChest(null)) {
++                        this.enderChestInventory.stopOpen(this);
++                        // Paper end - Fix InventoryOpenEvent cancellation
 +                    }
-+                    this.connection.send(new ClientboundOpenScreenPacket(menu.containerId, menu.getType(), java.util.Objects.requireNonNullElseGet(title, menu::getTitle))); // Paper - Add titleOverride to InventoryOpenEven
++                    return OptionalInt.empty();
 +                }
-+                this.initMenu(menu);
-+                this.containerMenu = menu;
-+                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.PlayerContainerEvent.Open(this, this.containerMenu));
-+                return OptionalInt.of(this.containerCounter);
++                this.connection.send(new ClientboundOpenScreenPacket(menu.containerId, menu.getType(), java.util.Objects.requireNonNullElseGet(title, menu::getTitle))); // Paper - Add titleOverride to InventoryOpenEven
 +            }
+             this.initMenu(menu);
+             this.containerMenu = menu;
++            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.PlayerContainerEvent.Open(this, this.containerMenu));
+             return OptionalInt.of(this.containerCounter);
          }
      }
- 
 @@ -1415,27 +_,49 @@
  
      @Override
@@ -1769,21 +1649,6 @@
          if (success) {
              this.setYHeadRot(relatives.contains(Relative.Y_ROT) ? this.getYHeadRot() + newYRot : newYRot);
              this.connection.resetFlyingTicks();
-@@ -1762,12 +_,12 @@
- 
-     @Override
-     public void crit(Entity entity) {
--        this.level().getChunkSource().sendToTrackingPlayersAndSelf(this, new ClientboundAnimatePacket(entity, 1));
-+        this.level().getChunkSource().sendToTrackingPlayersAndSelf(this, new ClientboundAnimatePacket(entity, 4));
-     }
- 
-     @Override
-     public void magicCrit(Entity entity) {
--        this.level().getChunkSource().sendToTrackingPlayersAndSelf(this, new ClientboundAnimatePacket(entity, 2));
-+        this.level().getChunkSource().sendToTrackingPlayersAndSelf(this, new ClientboundAnimatePacket(entity, 5));
-     }
- 
-     @Override
 @@ -1783,11 +_,18 @@
      }
  

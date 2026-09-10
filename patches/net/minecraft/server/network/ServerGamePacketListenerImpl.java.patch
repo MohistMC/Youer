@@ -68,22 +68,6 @@
  import net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket;
  import net.minecraft.network.protocol.game.ClientboundStartConfigurationPacket;
  import net.minecraft.network.protocol.game.ClientboundSystemChatPacket;
-@@ -116,7 +_,6 @@
- import net.minecraft.network.protocol.game.ServerboundPlayerCommandPacket;
- import net.minecraft.network.protocol.game.ServerboundPlayerInputPacket;
- import net.minecraft.network.protocol.game.ServerboundPlayerLoadedPacket;
--import net.minecraft.network.protocol.game.ServerboundPunchPacket;
- import net.minecraft.network.protocol.game.ServerboundRecipeBookChangeSettingsPacket;
- import net.minecraft.network.protocol.game.ServerboundRecipeBookSeenRecipePacket;
- import net.minecraft.network.protocol.game.ServerboundRenameItemPacket;
-@@ -134,6 +_,7 @@
- import net.minecraft.network.protocol.game.ServerboundSetTestBlockPacket;
- import net.minecraft.network.protocol.game.ServerboundSignUpdatePacket;
- import net.minecraft.network.protocol.game.ServerboundSpectatorActionPacket;
-+import net.minecraft.network.protocol.game.ServerboundSwingPacket;
- import net.minecraft.network.protocol.game.ServerboundTeleportToEntityPacket;
- import net.minecraft.network.protocol.game.ServerboundTestInstanceBlockActionPacket;
- import net.minecraft.network.protocol.game.ServerboundUseItemOnPacket;
 @@ -151,7 +_,6 @@
  import net.minecraft.server.players.PlayerList;
  import net.minecraft.util.FutureChain;
@@ -111,7 +95,7 @@
  import net.minecraft.world.entity.item.ItemEntity;
  import net.minecraft.world.entity.player.ChatVisiblity;
  import net.minecraft.world.entity.player.Inventory;
-@@ -177,23 +_,26 @@
+@@ -177,11 +_,14 @@
  import net.minecraft.world.entity.player.ProfilePublicKey;
  import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
  import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
@@ -126,12 +110,7 @@
  import net.minecraft.world.item.BlockItem;
  import net.minecraft.world.item.BucketItem;
  import net.minecraft.world.item.Item;
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.item.Items;
- import net.minecraft.world.item.component.PiercingWeapon;
--import net.minecraft.world.item.component.SwingAnimation;
- import net.minecraft.world.item.component.WritableBookContent;
- import net.minecraft.world.item.component.WrittenBookContent;
+@@ -194,6 +_,7 @@
  import net.minecraft.world.item.crafting.RecipeHolder;
  import net.minecraft.world.item.crafting.RecipeManager;
  import net.minecraft.world.level.BaseCommandBlock;
@@ -2349,7 +2328,7 @@
      }
  
      @Override
-@@ -1762,25 +_,65 @@
+@@ -1762,7 +_,7 @@
              try {
                  this.lastSeenMessages.applyOffset(packet.offset());
              } catch (LastSeenMessagesValidator.ValidationException e) {
@@ -2358,17 +2337,12 @@
                  this.disconnect(CHAT_VALIDATION_FAILED);
              }
          }
-     }
- 
+@@ -1771,7 +_,32 @@
      @Override
--    public void handlePunch(ServerboundPunchPacket packet) {
-+    public void handleAnimate(ServerboundSwingPacket packet) {
+     public void handlePunch(ServerboundPunchPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
 +        if (this.player.isImmobile()) return; // CraftBukkit
          this.player.resetLastActionTime();
--        SwingAnimation swingAnimation = this.player.getItemInHand(InteractionHand.MAIN_HAND).getAttackAnimation();
--        this.player.swing(InteractionHand.MAIN_HAND, swingAnimation, false);
--        this.player.resetAttackStrengthTicker();
 +        // CraftBukkit start - Raytrace to look for 'rogue armswings'
 +        Location origin = CraftLocation.toBukkit(this.player.getEyePosition(), this.player.level(), this.player.getYRot(), this.player.getXRot());
 +        double maxRange = Math.max(this.player.blockInteractionRange(), this.player.entityInteractionRange()); // todo flawed
@@ -2390,15 +2364,13 @@
 +        } // Paper end - Call interact event
 +
 +        // Arm swing animation
-+        io.papermc.paper.event.player.PlayerArmSwingEvent event = new io.papermc.paper.event.player.PlayerArmSwingEvent(this.getCraftPlayer(), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(packet.getHand())); // Paper - Add PlayerArmSwingEvent
-+        this.cserver.getPluginManager().callEvent(event);
-+
-+        if (event.isCancelled()) return;
++        io.papermc.paper.event.player.PlayerArmSwingEvent event = new io.papermc.paper.event.player.PlayerArmSwingEvent(this.getCraftPlayer(), org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(InteractionHand.MAIN_HAND)); // Paper - Add PlayerArmSwingEvent
++        if (!event.callEvent()) return;
 +        // CraftBukkit end
-+        this.player.swing(packet.getHand());
-     }
- 
-     @Override
+         SwingAnimation swingAnimation = this.player.getItemInHand(InteractionHand.MAIN_HAND).getAttackAnimation();
+         this.player.swing(InteractionHand.MAIN_HAND, swingAnimation, false);
+         this.player.resetAttackStrengthTicker();
+@@ -1781,6 +_,21 @@
      public void handlePlayerCommand(ServerboundPlayerCommandPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
          if (this.hasClientLoaded()) {

@@ -1,6 +1,8 @@
 package io.papermc.paper.datacomponent.item;
 
 import java.util.Optional;
+import java.util.function.Function;
+import net.minecraft.world.item.ItemStackTemplate;
 import org.bukkit.craftbukkit.inventory.CraftItemType;
 import org.bukkit.craftbukkit.util.Handleable;
 import org.bukkit.inventory.ItemType;
@@ -72,11 +74,13 @@ public record PaperPotDecorations(
                 return new PaperPotDecorations(net.minecraft.world.level.block.entity.PotDecorations.EMPTY);
             }
 
+            final Function<ItemType, ItemStackTemplate> itemTypeToTemplate = itemType -> new ItemStackTemplate(CraftItemType.bukkitToMinecraftNew(itemType));
+
             return new PaperPotDecorations(new net.minecraft.world.level.block.entity.PotDecorations(
-                Optional.ofNullable(this.back).map(CraftItemType::bukkitToMinecraftNew),
-                Optional.ofNullable(this.left).map(CraftItemType::bukkitToMinecraftNew),
-                Optional.ofNullable(this.right).map(CraftItemType::bukkitToMinecraftNew),
-                Optional.ofNullable(this.front).map(CraftItemType::bukkitToMinecraftNew)
+                    Optional.ofNullable(this.back).map(itemTypeToTemplate),
+                    Optional.ofNullable(this.left).map(itemTypeToTemplate),
+                    Optional.ofNullable(this.right).map(itemTypeToTemplate),
+                    Optional.ofNullable(this.front).map(itemTypeToTemplate)
             ));
         }
     }

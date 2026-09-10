@@ -80,7 +80,7 @@
          int minY = Math.max(level.getMinY(), pos.getY() - 21);
  
          while (pos.getY() > minY && isEmpty(level.getBlockState(pos.below()))) {
-@@ -85,65 +_,68 @@
+@@ -85,16 +_,16 @@
          }
  
          Direction leftDir = rightDir.getOpposite();
@@ -101,20 +101,16 @@
          BlockPos.MutableBlockPos blockPos = new BlockPos.MutableBlockPos();
  
          for (int width = 0; width <= 21; width++) {
-             blockPos.set(pos).move(direction, width);
+@@ -102,6 +_,7 @@
              BlockState blockState = level.getBlockState(blockPos);
              if (!isEmpty(blockState)) {
--                if (FRAME.test(blockState)) {
-+                if (FRAME.test(blockState, level, blockPos)) {
-+                    blocks.setBlock(blockPos, blockState, 18); // CraftBukkit - lower left / right
+                 if (FRAME.test(blockState)) {
++                    blocks.setBlock(blockPos, blockState, Block.UPDATE_CLIENTS | Block.UPDATE_KNOWN_SHAPE); // CraftBukkit - lower left / right
                      return width;
                  }
                  break;
-             }
- 
-             BlockState belowState = level.getBlockState(blockPos.move(Direction.DOWN));
--            if (!FRAME.test(belowState)) {
-+            if (!FRAME.test(belowState, level, blockPos)) {
+@@ -111,30 +_,32 @@
+             if (!FRAME.test(belowState)) {
                  break;
              }
 +            blocks.setBlock(blockPos, belowState, 18); // CraftBukkit - bottom row
@@ -136,8 +132,7 @@
 +    private static boolean hasTopFrame(BlockGetter level, BlockPos bottomLeft, Direction rightDir, BlockPos.MutableBlockPos pos, int width, int height, BlockStateListPopulator blocks) { // CraftBukkit
          for (int i = 0; i < width; i++) {
              BlockPos.MutableBlockPos framePos = pos.set(bottomLeft).move(Direction.UP, height).move(rightDir, i);
--            if (!FRAME.test(level.getBlockState(framePos))) {
-+            if (!FRAME.test(level.getBlockState(framePos), level, framePos)) {
+             if (!FRAME.test(level.getBlockState(framePos))) {
                  return false;
              }
 +            blocks.setBlock(framePos, level.getBlockState(framePos), 18); // CraftBukkit - upper row
@@ -152,17 +147,6 @@
      ) {
          for (int height = 0; height < 21; height++) {
              pos.set(bottomLeft).move(Direction.UP, height).move(rightDir, -1);
--            if (!FRAME.test(level.getBlockState(pos))) {
-+            if (!FRAME.test(level.getBlockState(pos), level, pos)) {
-                 return height;
-             }
- 
-             pos.set(bottomLeft).move(Direction.UP, height).move(rightDir, width);
--            if (!FRAME.test(level.getBlockState(pos))) {
-+            if (!FRAME.test(level.getBlockState(pos), level, pos)) {
-                 return height;
-             }
- 
 @@ -158,6 +_,10 @@
                      portalBlockCount.increment();
                  }

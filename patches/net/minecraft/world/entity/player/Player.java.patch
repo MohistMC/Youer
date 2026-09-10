@@ -191,12 +191,10 @@
      }
  
      private boolean isEquipped(Item item) {
-@@ -344,7 +_,11 @@
-         return new ItemCooldowns();
+@@ -345,6 +_,10 @@
      }
  
--    public void updatePlayerPose() {
-+    protected void updatePlayerPose() {
+     public void updatePlayerPose() {
 +        if (forcedPose != null) {
 +            this.setPose(forcedPose);
 +            return;
@@ -623,11 +621,10 @@
 +            // Paper end - Configurable sprint interruption on attack
          }
  
--        if (entity instanceof ServerPlayer serverPlayer && entity.syncVelocity) {
+         if (entity instanceof ServerPlayer serverPlayer && entity.syncVelocity) {
 -            serverPlayer.connection.send(new ClientboundSetEntityMotionPacket(entity));
 -            entity.syncVelocity = false;
 -            entity.setDeltaMovement(oldMovement);
-+        if (entity instanceof ServerPlayer serverPlayer && entity.hurtMarked) {
 +            // CraftBukkit start - Add Velocity Event
 +            boolean cancelled = false;
 +            org.bukkit.entity.Player player = (org.bukkit.entity.Player) entity.getBukkitEntity();
@@ -644,7 +641,7 @@
 +
 +            if (!cancelled) {
 +                serverPlayer.connection.send(new ClientboundSetEntityMotionPacket(entity));
-+                entity.hurtMarked = false;
++                entity.syncVelocity = false;
 +                entity.setDeltaMovement(oldMovement);
 +            }
 +            // CraftBukkit end
@@ -733,24 +730,7 @@
          this.inventoryMenu.removed(this);
          if (this.hasContainerOpen()) {
              this.doCloseContainer();
-@@ -1300,16 +_,20 @@
-         return true;
-     }
- 
--    public Either<Player.BedSleepingProblem, Unit> startSleepInBed(AbstractBedBlock bedBlock, BlockState bedBlockState, BedRule rule, BlockPos pos) {
--        if (!this.startSleeping(pos)) {
--            return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
--        }
-+    public Either<Player.BedSleepingProblem, Unit> startSleepInBed(BlockPos pos) {
-+        // CraftBukkit start
-+        return this.startSleepInBed(pos, false);
-+    }
- 
-+    public Either<Player.BedSleepingProblem, Unit> startSleepInBed(final BlockPos pos, final boolean force) {
-+        // CraftBukkit end
-+        this.startSleeping(pos);
-         this.sleepCounter = 0;
-         return Either.right(Unit.INSTANCE);
+@@ -1310,6 +_,7 @@
      }
  
      public void stopSleepInBed(boolean forcefulWakeUp, boolean updateLevelList) {

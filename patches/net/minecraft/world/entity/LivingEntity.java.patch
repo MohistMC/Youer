@@ -340,72 +340,67 @@
          if (this.lastHurtByPlayer != null) {
              this.lastHurtByPlayer.store(output, "last_hurt_by_player");
              output.putInt("last_hurt_by_player_memory_time", this.lastHurtByPlayerMemoryTime);
-@@ -782,27 +_,74 @@
+@@ -782,18 +_,55 @@
          }
      }
  
 -    public @Nullable ItemEntity drop(ItemStack itemStack, boolean thrownFromHand, Prediction prediction) {
 +    // Paper start - Extend dropItem API
-+    public final @Nullable ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand) {
-+        return this.drop(itemStack, randomly, thrownFromHand, true, null);
++    public final @Nullable ItemEntity drop(final ItemStack itemStack, final boolean thrownFromHand, final Prediction prediction) {
++        return this.drop(itemStack, thrownFromHand, prediction, true, null);
 +    }
-+    public @Nullable ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand, final boolean callEvent, final java.util.function.@Nullable Consumer<org.bukkit.entity.Item> entityOperation) {
++
++    public @Nullable ItemEntity drop(final ItemStack itemStack, final boolean thrownFromHand, final Prediction prediction, final boolean callEvent, final java.util.function.@Nullable Consumer<org.bukkit.entity.Item> entityOperation) {
++        return this.drop(itemStack, thrownFromHand, prediction, false, callEvent, entityOperation);
++    }
++
++    public @Nullable ItemEntity drop(final ItemStack itemStack, final boolean thrownFromHand, final Prediction prediction, final boolean randomly, final boolean callEvent, final java.util.function.@Nullable Consumer<org.bukkit.entity.Item> entityOperation) {
 +        // Paper end - Extend dropItem API
          if (itemStack.isEmpty()) {
              return null;
--        }
+         }
 -
 -        this.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, prediction != Prediction.PREDICTED);
--        if (this.level().isClientSide()) {
-+        } else if (this.level().isClientSide()) {
+         if (this.level().isClientSide()) {
 +            this.swing(InteractionHand.MAIN_HAND);
              return null;
--        }
--
+         }
+ 
 -        ItemEntity entity = this.createItemStackToDrop(itemStack, false, thrownFromHand);
--        if (entity != null) {
--            this.level().addFreshEntity(entity);
--        }
--
--        return entity;
-+        } else {
-+            ItemEntity entity = this.createItemStackToDrop(itemStack, randomly, thrownFromHand);
-+            if (entity != null) {
-+                if (captureDrops() != null) {
-+                    captureDrops().add(entity);
-+                } else {
-+                    // CraftBukkit start - fire PlayerDropItemEvent
-+                    if (callEvent && this instanceof ServerPlayer) {
-+                        org.bukkit.entity.Player player = (org.bukkit.entity.Player) this.getBukkitEntity();
-+                        org.bukkit.entity.Item drop = (org.bukkit.entity.Item) entity.getBukkitEntity();
++        ItemEntity entity = this.createItemStackToDrop(itemStack, randomly, thrownFromHand);
+         if (entity != null) {
++            if (captureDrops() != null) {
++                captureDrops().add(entity);
++            }
++            // CraftBukkit start - fire PlayerDropItemEvent
++            if (callEvent && this instanceof ServerPlayer) {
++                org.bukkit.entity.Player player = (org.bukkit.entity.Player) this.getBukkitEntity();
++                org.bukkit.entity.Item drop = (org.bukkit.entity.Item) entity.getBukkitEntity();
 +
-+                        PlayerDropItemEvent event = new PlayerDropItemEvent(player, drop);
-+                        this.level().getCraftServer().getPluginManager().callEvent(event);
++                PlayerDropItemEvent event = new PlayerDropItemEvent(player, drop);
++                this.level().getCraftServer().getPluginManager().callEvent(event);
 +
-+                        if (event.isCancelled()) {
-+                            org.bukkit.inventory.ItemStack cur = player.getInventory().getItemInHand();
-+                            if (thrownFromHand && (cur == null || cur.getAmount() == 0)) {
-+                                // The complete stack was dropped
-+                                player.getInventory().setItemInHand(drop.getItemStack());
-+                            } else if (thrownFromHand && cur.isSimilar(drop.getItemStack()) && cur.getAmount() < cur.getMaxStackSize() && drop.getItemStack().getAmount() == 1) {
-+                                // Only one item is dropped
-+                                cur.setAmount(cur.getAmount() + 1);
-+                                player.getInventory().setItemInHand(cur);
-+                            } else {
-+                                // Fallback
-+                                player.getInventory().addItem(drop.getItemStack());
-+                            }
-+                            return null;
-+                        }
++                if (event.isCancelled()) {
++                    org.bukkit.inventory.ItemStack cur = player.getInventory().getItemInHand();
++                    if (thrownFromHand && (cur == null || cur.getAmount() == 0)) {
++                        // The complete stack was dropped
++                        player.getInventory().setItemInHand(drop.getItemStack());
++                    } else if (thrownFromHand && cur.isSimilar(drop.getItemStack()) && cur.getAmount() < cur.getMaxStackSize() && drop.getItemStack().getAmount() == 1) {
++                        // Only one item is dropped
++                        cur.setAmount(cur.getAmount() + 1);
++                        player.getInventory().setItemInHand(cur);
++                    } else {
++                        // Fallback
++                        player.getInventory().addItem(drop.getItemStack());
 +                    }
-+                    // CraftBukkit end
-+                    this.level().addFreshEntity(entity);
++                    return null;
 +                }
 +            }
-+
-+            return entity;
-+        }
-     }
++            // CraftBukkit end
+             this.level().addFreshEntity(entity);
+         }
+ 
+@@ -802,7 +_,22 @@
  
      @Override
      protected void readAdditionalSaveData(ValueInput input) {
@@ -1659,58 +1654,18 @@
  
      public final int getStingerCount() {
          return this.entityData.get(DATA_STINGER_COUNT_ID);
-@@ -2001,8 +_,10 @@
-         this.entityData.set(DATA_STINGER_COUNT_ID, count);
+@@ -2018,6 +_,10 @@
      }
  
--    private int getModifiedSwingDuration(SwingAnimation animation) {
--        int swingDuration = animation.duration();
-+    public int getCurrentSwingDuration() {
-+        InteractionHand hand = this.swingingArm != null ? this.swingingArm : InteractionHand.MAIN_HAND;
-+        ItemStack handStack = this.getItemInHand(hand);
-+        int swingDuration = handStack.getSwingAnimation().duration();
-         if (MobEffectUtil.hasDigSpeed(this)) {
-             return swingDuration - (1 + MobEffectUtil.getDigSpeedAmplification(this));
-         } else {
-@@ -2012,33 +_,33 @@
-         }
-     }
- 
--    @Deprecated
--    public void swingAndResetAttackStrength(InteractionHand hand, SwingAnimation animation, boolean sendToSwingingEntity) {
--        this.swing(hand, animation, sendToSwingingEntity);
-+    public void swing(InteractionHand hand) {
-+        this.swing(hand, false);
-     }
- 
--    public boolean swing(InteractionHand hand, SwingAnimation animation, boolean sendToSwingingEntity) {
--        if (this.swingState.startIfAble(hand, animation, this.getModifiedSwingDuration(animation))) {
--            if (this.level() instanceof ServerLevel serverLevel) {
--                ClientboundSwingAnimationPacket packet = new ClientboundSwingAnimationPacket(this, hand, animation);
--                ServerChunkCache chunkSource = serverLevel.getChunkSource();
-+    public void swing(InteractionHand hand, boolean sendToSwingingEntity) {
+     public boolean swing(InteractionHand hand, SwingAnimation animation, boolean sendToSwingingEntity) {
 +        ItemStack stack = this.getItemInHand(hand);
-+        if (!stack.isEmpty() && stack.onEntitySwing(this, hand)) return;
-+        if (!this.swinging || this.swingTime >= this.getCurrentSwingDuration() / 2 || this.swingTime < 0) {
-+            this.swingTime = -1;
-+            this.swinging = true;
-+            this.swingingArm = hand;
-+            if (this.level() instanceof ServerLevel) {
-+                ClientboundAnimatePacket packet = new ClientboundAnimatePacket(this, hand == InteractionHand.MAIN_HAND ? 0 : 3);
-+                ServerChunkCache chunkSource = ((ServerLevel)this.level()).getChunkSource();
-                 if (sendToSwingingEntity) {
-                     chunkSource.sendToTrackingPlayersAndSelf(this, packet);
-                 } else {
-                     chunkSource.sendToTrackingPlayers(this, packet);
-                 }
-             }
--
--            return true;
--        } else {
--            return false;
-         }
-     }
- 
++        if (!stack.isEmpty() && stack.onEntitySwing(this, hand)) {
++            return true;
++        }
+         if (this.swingState.startIfAble(hand, animation, this.getModifiedSwingDuration(animation))) {
+             if (this.level() instanceof ServerLevel serverLevel) {
+                 ClientboundSwingAnimationPacket packet = new ClientboundSwingAnimationPacket(this, hand, animation);
+@@ -2038,7 +_,7 @@
      @Override
      public void handleDamageEvent(DamageSource source) {
          this.walkAnimation.setSpeed(1.5F);
@@ -1728,7 +1683,7 @@
          switch (id) {
              case 2:
                  this.onKineticHit();
-@@ -2161,13 +_,30 @@
+@@ -2161,13 +_,15 @@
  
      private void swapHandItems() {
          ItemStack tmp = this.getItemBySlot(EquipmentSlot.OFFHAND);
@@ -1744,50 +1699,21 @@
      protected void onBelowWorld() {
 -        this.hurt(this.damageSources().fellOutOfWorld(), 4.0F);
 +        this.hurt(this.damageSources().fellOutOfWorld(), this.level().getWorld().getVoidDamageAmount()); // Paper - use configured void damage amount
-+    }
-+
-+    protected void updateSwingTime() {
-+        int currentSwingDuration = this.getCurrentSwingDuration();
-+        if (this.swinging) {
-+            this.swingTime++;
-+            if (this.swingTime >= currentSwingDuration) {
-+                this.swingTime = 0;
-+                this.swinging = false;
-+            }
-+        } else {
-+            this.swingTime = 0;
-+        }
-+
-+        this.attackAnim = (float)this.swingTime / currentSwingDuration;
      }
  
      @Override
-@@ -2179,6 +_,13 @@
-         return this.getAttributes().getInstance(attribute);
-     }
- 
-+    public void safeSetAttribute(Holder<Attribute> attribute, double value) {
-+        var attributeInstance = this.getAttribute(attribute);
-+        if (attributeInstance != null) {
-+            attributeInstance.setBaseValue(value);
-+        }
-+    }
-+
-     public double getAttributeValue(Holder<Attribute> attribute) {
-         return this.getAttributes().getValue(attribute);
-     }
 @@ -2264,7 +_,13 @@
      }
  
      public void setItemSlot(EquipmentSlot slot, ItemStack itemStack) {
 -        this.onEquipItem(slot, this.equipment.set(slot, itemStack), itemStack);
-+        // Paper start
-+        this.setItemSlot(slot, itemStack, false);
++        setItemSlot(slot, itemStack, false);
 +    }
-+
-+    public void setItemSlot(final EquipmentSlot slot, final ItemStack itemStack, final boolean silent) {
-+        this.onEquipItem(slot, this.equipment.set(slot, itemStack), itemStack, silent);
-+        // Paper end
++    /** Neo: Passing {@code true} for {@code insideTransaction} sets the item without side-effects (calling {@link #onEquipItem}).
++     * Callers are responsible for performing the deferred side-effects, when the active transaction commits. */
++    public void setItemSlot(EquipmentSlot slot, ItemStack itemStack, boolean insideTransaction) {
++        var oldStack = this.equipment.set(slot, itemStack);
++        if (!insideTransaction) this.onEquipItem(slot, oldStack, itemStack);
      }
  
      public float getArmorCoverPercentage() {

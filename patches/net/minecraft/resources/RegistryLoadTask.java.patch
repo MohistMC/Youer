@@ -28,15 +28,11 @@
      }
  
      protected ResourceKey<? extends Registry<T>> registryKey() {
-@@ -55,12 +_,22 @@
+@@ -55,12 +_,18 @@
  
      public abstract CompletableFuture<?> load(RegistryOps.RegistryInfoLookup context, Executor executor);
  
 -    protected void registerElements(Stream<RegistryLoadTask.PendingRegistration<T>> elements) {
-+    public RegistryOps.RegistryInfo<?> createRegistryInfo() {
-+        return new RegistryOps.RegistryInfo<>(this.registry, this.concurrentRegistrationGetter, this.registry.registryLifecycle());
-+    }
-+
 +    protected void registerElements(final Stream<RegistryLoadTask.PendingRegistration<T>> elements, final io.papermc.paper.registry.data.util.Conversions conversions) { // Paper - pass conversions
          synchronized (this.registryWriteLock) {
              elements.forEach(

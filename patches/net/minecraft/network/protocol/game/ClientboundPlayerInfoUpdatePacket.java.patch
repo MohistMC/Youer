@@ -1,13 +1,5 @@
 --- a/net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket.java
 +++ b/net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket.java
-@@ -3,7 +_,6 @@
- import com.google.common.base.MoreObjects;
- import com.mojang.authlib.GameProfile;
- import com.mojang.authlib.properties.PropertyMap;
--import io.netty.buffer.ByteBuf;
- import java.util.Collection;
- import java.util.EnumSet;
- import java.util.List;
 @@ -43,6 +_,18 @@
          this.entries = List.of(new ClientboundPlayerInfoUpdatePacket.Entry(player));
      }
@@ -27,29 +19,11 @@
      public static ClientboundPlayerInfoUpdatePacket createPlayerInitializing(Collection<ServerPlayer> players) {
          EnumSet<ClientboundPlayerInfoUpdatePacket.Action> actions = EnumSet.of(
              ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER,
-@@ -57,25 +_,46 @@
+@@ -57,7 +_,48 @@
          return new ClientboundPlayerInfoUpdatePacket(actions, players);
      }
  
 -    private static StreamCodec<RegistryFriendlyByteBuf, ClientboundPlayerInfoUpdatePacket.Entry> entryCodec(
--        EnumSet<ClientboundPlayerInfoUpdatePacket.Action> actions
--    ) {
--        return StreamCodec.of((output, entry) -> {
--            output.writeUUID(entry.profileId());
--
--            for (ClientboundPlayerInfoUpdatePacket.Action action : actions) {
--                action.writer.write(output, entry);
--            }
--        }, input -> {
--            ClientboundPlayerInfoUpdatePacket.EntryBuilder builder = new ClientboundPlayerInfoUpdatePacket.EntryBuilder(input.readUUID());
--
--            for (ClientboundPlayerInfoUpdatePacket.Action action : actions) {
--                action.reader.read(builder, input);
--            }
--
--            return builder.build();
--        });
--    }
 +    // Paper start - Add Listing API for Player
 +    public static ClientboundPlayerInfoUpdatePacket createPlayerInitializing(Collection<ServerPlayer> players, ServerPlayer forPlayer) {
 +        final EnumSet<ClientboundPlayerInfoUpdatePacket.Action> enumSet = EnumSet.of(
@@ -90,9 +64,11 @@
 +        return new ClientboundPlayerInfoUpdatePacket(enumSet, new ClientboundPlayerInfoUpdatePacket.Entry(playerInfoId, listed));
 +    }
 +    // Paper end - Add Listing API for Player
- 
-     private ClientboundPlayerInfoUpdatePacket(RegistryFriendlyByteBuf input) {
-         this.actions = input.readEnumSet(ClientboundPlayerInfoUpdatePacket.Action.class);
++	
++	private static StreamCodec<RegistryFriendlyByteBuf, ClientboundPlayerInfoUpdatePacket.Entry> entryCodec(
+         EnumSet<ClientboundPlayerInfoUpdatePacket.Action> actions
+     ) {
+         return StreamCodec.of((output, entry) -> {
 @@ -176,10 +_,15 @@
          RemoteChatSession.@Nullable Data chatSession
      ) {

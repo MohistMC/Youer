@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.DecoratedPotBlockEntity;
 import net.minecraft.world.level.block.entity.PotDecorations;
@@ -18,6 +19,7 @@ import org.bukkit.block.DecoratedPot;
 import org.bukkit.craftbukkit.inventory.CraftInventoryDecoratedPot;
 import org.bukkit.craftbukkit.inventory.CraftItemType;
 import org.bukkit.inventory.DecoratedPotInventory;
+import org.bukkit.inventory.ItemType;
 import org.jetbrains.annotations.NotNull;
 
 public class CraftDecoratedPot extends CraftBlockEntityState<DecoratedPotBlockEntity> implements DecoratedPot {
@@ -76,8 +78,10 @@ public class CraftDecoratedPot extends CraftBlockEntityState<DecoratedPotBlockEn
         Preconditions.checkArgument(face != null, "face must not be null");
         Preconditions.checkArgument(sherd == null || sherd == Material.BRICK || Tag.ITEMS_DECORATED_POT_SHERDS.isTagged(sherd), "sherd is not a valid sherd material: %s", sherd);
 
-        Optional<Item> sherdItem = (sherd != null) ? Optional.of(CraftItemType.bukkitToMinecraft(sherd)) : Optional.of(Items.BRICK);
-        PotDecorations decorations = this.getSnapshot().getDecorations();
+        final Optional<ItemStackTemplate> sherdItem = Optional.ofNullable(sherd != null ? sherd.asItemType() : ItemType.BRICK)
+                .map(CraftItemType::bukkitToMinecraftNew)
+                .map(ItemStackTemplate::new);
+        final PotDecorations decorations = this.getSnapshot().getDecorations();
 
         switch (face) {
             case BACK -> this.getSnapshot().decorations = new PotDecorations(sherdItem, decorations.left(), decorations.right(), decorations.front());
@@ -93,15 +97,14 @@ public class CraftDecoratedPot extends CraftBlockEntityState<DecoratedPotBlockEn
         Preconditions.checkArgument(face != null, "face must not be null");
 
         PotDecorations decorations = this.getSnapshot().getDecorations();
-        Optional<Item> sherdItem = switch (face) {
+        Optional<ItemStackTemplate> sherdItem = switch (face) {
             case BACK -> decorations.back();
             case LEFT -> decorations.left();
             case RIGHT -> decorations.right();
             case FRONT -> decorations.front();
-            default -> throw new IllegalArgumentException("Unexpected value: " + face);
         };
 
-        return CraftItemType.minecraftToBukkit(sherdItem.orElse(Items.BRICK));
+        return sherdItem.map(CraftItemType::minecraftToBukkitNew).map(ItemType::asMaterial).orElse(Material.BRICK);
     }
 
     @Override
@@ -109,16 +112,16 @@ public class CraftDecoratedPot extends CraftBlockEntityState<DecoratedPotBlockEn
         PotDecorations decorations = this.getSnapshot().getDecorations();
 
         Map<Side, Material> sherds = new EnumMap<>(Side.class);
-        sherds.put(Side.BACK, CraftItemType.minecraftToBukkit(decorations.back().orElse(Items.BRICK)));
-        sherds.put(Side.LEFT, CraftItemType.minecraftToBukkit(decorations.left().orElse(Items.BRICK)));
-        sherds.put(Side.RIGHT, CraftItemType.minecraftToBukkit(decorations.right().orElse(Items.BRICK)));
-        sherds.put(Side.FRONT, CraftItemType.minecraftToBukkit(decorations.front().orElse(Items.BRICK)));
+        sherds.put(Side.BACK, decorations.back().map(CraftItemType::minecraftToBukkitNew).map(ItemType::asMaterial).orElse(Material.BRICK));
+        sherds.put(Side.LEFT, decorations.left().map(CraftItemType::minecraftToBukkitNew).map(ItemType::asMaterial).orElse(Material.BRICK));
+        sherds.put(Side.RIGHT, decorations.right().map(CraftItemType::minecraftToBukkitNew).map(ItemType::asMaterial).orElse(Material.BRICK));
+        sherds.put(Side.FRONT, decorations.front().map(CraftItemType::minecraftToBukkitNew).map(ItemType::asMaterial).orElse(Material.BRICK));
         return sherds;
     }
 
     @Override
     public List<Material> getShards() {
-        return this.getSnapshot().getDecorations().ordered().stream().map(CraftItemType::minecraftToBukkit).collect(Collectors.toUnmodifiableList());
+        return List.copyOf(this.getSherds().values());
     }
 
     @Override

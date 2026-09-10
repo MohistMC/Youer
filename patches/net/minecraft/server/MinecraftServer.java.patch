@@ -86,27 +86,7 @@
  import net.minecraft.world.Difficulty;
  import net.minecraft.world.RandomSequences;
  import net.minecraft.world.Stopwatches;
-@@ -145,6 +_,7 @@
- import net.minecraft.world.entity.player.Player;
- import net.minecraft.world.flag.FeatureFlagSet;
- import net.minecraft.world.flag.FeatureFlags;
-+import net.minecraft.world.item.alchemy.PotionBrewing;
- import net.minecraft.world.item.crafting.RecipeManager;
- import net.minecraft.world.level.ChunkPos;
- import net.minecraft.world.level.CustomSpawner;
-@@ -156,9 +_,11 @@
- import net.minecraft.world.level.WorldDataConfiguration;
- import net.minecraft.world.level.biome.BiomeManager;
- import net.minecraft.world.level.block.Block;
-+import net.minecraft.world.level.block.entity.FuelValues;
- import net.minecraft.world.level.chunk.status.ChunkStatus;
- import net.minecraft.world.level.chunk.storage.ChunkIOErrorReporter;
- import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
-+import net.minecraft.world.level.dimension.DimensionType;
- import net.minecraft.world.level.dimension.LevelStem;
- import net.minecraft.world.level.gamerules.GameRule;
- import net.minecraft.world.level.gamerules.GameRuleMap;
-@@ -167,32 +_,49 @@
+@@ -167,32 +_,40 @@
  import net.minecraft.world.level.levelgen.Heightmap;
  import net.minecraft.world.level.levelgen.PatrolSpawner;
  import net.minecraft.world.level.levelgen.PhantomSpawner;
@@ -133,15 +113,6 @@
  import net.minecraft.world.phys.Vec2;
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.scores.ScoreboardSaveData;
-+import org.bukkit.Bukkit;
-+import org.bukkit.craftbukkit.CraftRegistry;
-+import org.bukkit.craftbukkit.CraftServer;
-+import org.bukkit.craftbukkit.event.CraftEventFactory;
-+import org.bukkit.craftbukkit.util.CraftLocation;
-+import org.bukkit.event.server.ServerLoadEvent;
-+import org.bukkit.event.world.SpawnChangeEvent;
-+import org.jline.terminal.Terminal;
-+import org.jline.terminal.TerminalBuilder;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -209,7 +180,7 @@
      private long lastTickNanos = Util.getNanos();
      private long taskExecutionStartNanos = Util.getNanos();
      private long idleTimeNanos;
-@@ -268,30 +_,239 @@
+@@ -268,14 +_,14 @@
      private @Nullable CommandStorage commandStorage;
      private final CustomBossEvents customBossEvents;
      private final RandomSequences randomSequences;
@@ -227,12 +198,7 @@
      private final StructureTemplateManager structureTemplateManager;
      private final ServerTickRateManager tickRateManager;
      private final ServerDebugSubscribers debugSubscribers = new ServerDebugSubscribers(this);
-     protected WorldData worldData;
-     private LevelData.RespawnData effectiveRespawnData = LevelData.RespawnData.DEFAULT;
-+    public PotionBrewing potionBrewing;
-+    private FuelValues fuelValues;
-     private int emptyTicks;
-     private volatile boolean isSaving;
+@@ -286,12 +_,219 @@
      private final SuppressedExceptionCollector suppressedExceptions = new SuppressedExceptionCollector();
      private final DiscontinuousFrame tickFrame;
      private final PacketProcessor packetProcessor;
@@ -465,7 +431,7 @@
          Thread serverThread,
          LevelStorageSource.LevelStorageAccess storageSource,
          PackRepository packRepository,
-@@ -317,35 +_,36 @@
+@@ -317,28 +_,27 @@
          NotificationManager notificationManager
      ) {
          super("Server", propagatesCrashes);
@@ -501,15 +467,6 @@
          this.fixerUpper = fixerUpper;
          this.functionManager = new ServerFunctionManager(this, this.resources.managers.getFunctionLibrary());
          HolderGetter<Block> blockLookup = this.registries.compositeAccess().lookupOrThrow(Registries.BLOCK).filterFeatures(this.worldData.enabledFeatures());
-         this.structureTemplateManager = new StructureTemplateManager(worldStem.resourceManager(), storageSource, fixerUpper, blockLookup);
-         this.serverThread = serverThread;
-         this.executor = Util.backgroundExecutor();
-+        this.potionBrewing = PotionBrewing.bootstrap(this.worldData.enabledFeatures(), this.registryAccess());
-         this.resources.managers.getRecipeManager().finalizeRecipeLoading(this.worldData.enabledFeatures());
-+        this.fuelValues = net.neoforged.neoforge.common.DataMapHooks.populateFuelValues(this.registries.compositeAccess(), this.worldData.enabledFeatures());
-         this.tickFrame = TracyClient.createDiscontinuousFrame("Server Tick");
-         this.notificationManager = notificationManager;
-         this.serverActivityMonitor = new ServerActivityMonitor(notificationManager, 30);
 @@ -353,7 +_,14 @@
          this.clockManager = this.getDataStorage().computeIfAbsent(ServerClockManager.TYPE);
          this.clockManager.init(this);
@@ -746,9 +703,8 @@
              levelData.setSpawn(LevelData.RespawnData.of(level.dimension(), BlockPos.ZERO.above(80), 0.0F, 0.0F));
          } else {
              ServerChunkCache chunkSource = level.getChunkSource();
--            ChunkPos spawnChunk = chunkSource.getGenerator().getOrigin(chunkSource.randomState());
 +            if (net.neoforged.neoforge.event.EventHooks.onCreateWorldSpawn(level, levelData)) return;
-+            ChunkPos spawnChunk = ChunkPos.containing(chunkSource.randomState().sampler().findSpawnPosition());
+             ChunkPos spawnChunk = chunkSource.getGenerator().getOrigin(chunkSource.randomState());
 +
 +            // CraftBukkit start
 +            if (level.generator != null) {
@@ -837,7 +793,7 @@
          boolean result = false;
  
          for (ServerLevel level : this.getAllLevels()) {
-@@ -587,10 +_,28 @@
+@@ -587,10 +_,12 @@
                  LOGGER.info("Saving chunks for level '{}'/{}", level, level.dimension().identifier());
              }
  
@@ -848,32 +804,26 @@
  
 +        // Paper - move to saveGlobalData()
 +
-+        if (flush) {
-+            for (ServerLevel level : this.getAllLevels()) {
-+                String storageName = level.getChunkSource().chunkMap.getStorageName();
-+                LOGGER.info("ThreadedAnvilChunkStorage ({}): All chunks are saved", LEGACY_WORLD_NAMES_FOR_REALMS_LOG.getOrDefault(storageName, storageName));
-+            }
-+
-+            LOGGER.info("ThreadedAnvilChunkStorage: All dimensions are saved");
-+        }
-+
-+        return result;
-+    }
+         GameProfile singleplayerProfile = this.getSingleplayerProfile();
+         this.storageSource.saveDataTag(this.worldData, singleplayerProfile == null ? null : singleplayerProfile.id());
+         if (flush) {
+@@ -601,6 +_,20 @@
+ 
+         return result;
+     }
 +
 +    // Paper start - split out global level data
 +    public void saveGlobalData(final boolean flush) {
 +        this.scoreboard.storeToSaveDataIfDirty(this.getDataStorage().computeIfAbsent(ScoreboardSaveData.TYPE));
 +
-         GameProfile singleplayerProfile = this.getSingleplayerProfile();
-         this.storageSource.saveDataTag(this.worldData, singleplayerProfile == null ? null : singleplayerProfile.id());
-         if (flush) {
-@@ -598,9 +_,8 @@
-         } else {
-             this.savedDataStorage.scheduleSave();
-         }
--
--        return result;
-     }
++        GameProfile singleplayerProfile = this.getSingleplayerProfile();
++        this.storageSource.saveDataTag(this.worldData, singleplayerProfile == null ? null : singleplayerProfile.id());
++        if (flush) {
++            this.savedDataStorage.saveAndJoin();
++        } else {
++            this.savedDataStorage.scheduleSave();
++        }
++    }
 +    // Paper end - split out global level data
  
      public boolean saveEverything(boolean silent, boolean flush, boolean force) {
@@ -1889,7 +1839,7 @@
                      return ReloadableServerResources.loadResources(
                              resources,
                              this.registries,
-@@ -1531,15 +_,36 @@
+@@ -1531,15 +_,34 @@
              .thenAcceptAsync(newResources -> {
                  this.resources.close();
                  this.resources = newResources;
@@ -1901,7 +1851,6 @@
                  this.resources.managers.updateComponentsAndStaticRegistryTags();
                  this.resources.managers.getRecipeManager().finalizeRecipeLoading(this.worldData.enabledFeatures());
 -                this.getPlayerList().saveAll();
-+                this.potionBrewing = this.potionBrewing.reload(this.worldData.enabledFeatures()); // Paper - Custom Potion Mixes
 +                if (Thread.currentThread() != this.serverThread) return; // Paper
 +                // Paper start - we don't need to save everything, just advancements
 +                // this.getPlayerList().saveAll();
@@ -1912,7 +1861,6 @@
                  this.getPlayerList().reloadResources();
                  this.functionManager.replaceLibrary(this.resources.managers.getFunctionLibrary());
                  this.structureTemplateManager.onResourceManagerReload(this.resources.resourceManager);
-+                this.fuelValues = net.neoforged.neoforge.common.DataMapHooks.populateFuelValues(this.registries.compositeAccess(), this.worldData.enabledFeatures());
 +                org.bukkit.craftbukkit.block.data.CraftBlockData.reloadCache(); // Paper - cache block data strings; they can be defined by datapacks so refresh it here
 +                // Paper start - brigadier command API
 +                io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setValid(); // reset invalid state for event fire below
@@ -1979,21 +1927,7 @@
                  }
              }
          }
-@@ -1676,17 +_,25 @@
-     public CommandSourceStack createCommandSourceStack() {
-         ServerLevel level = this.findRespawnDimension();
-         return new CommandSourceStack(
--            this, Vec3.atLowerCornerOf(this.getRespawnData().pos()), Vec2.ZERO, level, LevelBasedPermissionSet.OWNER, Component.literal("Server"), this
-+            this,
-+            Vec3.atLowerCornerOf(this.getRespawnData().pos()),
-+            Vec2.ZERO,
-+            level,
-+            LevelBasedPermissionSet.OWNER,
-+            "Server",
-+            Component.literal("Server"),
-+            this,
-+            null
-         );
+@@ -1681,12 +_,12 @@
      }
  
      public ServerLevel findRespawnDimension() {
