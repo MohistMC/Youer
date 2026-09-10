@@ -215,14 +215,16 @@
                  this.partialTick = this.partialTick + this.rate;
                  int fullTicks = Mth.floor(this.partialTick);
                  this.partialTick -= fullTicks;
-@@ -171,10 +_,21 @@
+@@ -171,10 +_,22 @@
              return new ClockState(this.totalTicks, this.partialTick, this.rate, this.paused);
          }
  
 -        public ClockNetworkState packNetworkState(MinecraftServer server) {
 -            boolean advanceTime = server.getGlobalGameRules().get(GameRules.ADVANCE_TIME);
+-            boolean paused = this.paused || !advanceTime;
 +        public ClockNetworkState packNetworkState(final boolean advanceTime) { // Paper - per-world time
-             boolean paused = this.paused || !advanceTime;
++             // Neo: Use the corrected pause value
++            boolean paused = !this.ticking(advanceTime);
              return new ClockNetworkState(this.totalTicks, this.partialTick, paused ? 0.0F : this.rate);
 +        }
 +

@@ -67,7 +67,10 @@ public interface ILivingEntityExtension extends IEntityExtension {
      * @param movementVector the velocity of how the entity wants to move
      * @param gravity        the gravity to apply to the entity
      * @return {@code true} if custom movement logic is performed, {@code false} otherwise
+     *
+     * @deprecated Use {@link #moveInFluid(FluidType, Vec3, double)} instead
      */
+    @Deprecated(forRemoval = true, since = "26.2")
     default boolean moveInFluid(FluidState state, Vec3 movementVector, double gravity) {
         return moveInFluid(state.getFluidType(), movementVector, gravity);
     }

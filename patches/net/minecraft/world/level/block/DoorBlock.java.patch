@@ -26,12 +26,9 @@
  
          state = state.cycle(OPEN);
          level.setBlock(pos, state, 10);
-@@ -222,8 +_,13 @@
-     @Override
-     protected void neighborChanged(BlockState state, Level level, BlockPos pos, Block block, @Nullable Orientation orientation, boolean movedByPiston) {
+@@ -224,6 +_,11 @@
          boolean signal = level.hasNeighborSignal(pos)
--            || level.hasNeighborSignal(pos.relative(state.getValue(HALF) == DoubleBlockHalf.LOWER ? Direction.UP : Direction.DOWN));
-+                || level.hasNeighborSignal(pos.relative(state.getValue(HALF) == DoubleBlockHalf.LOWER ? Direction.UP : Direction.DOWN));
+             || level.hasNeighborSignal(pos.relative(state.getValue(HALF) == DoubleBlockHalf.LOWER ? Direction.UP : Direction.DOWN));
          if (!this.defaultBlockState().is(block) && signal != state.getValue(POWERED)) {
 +            // Paper start - Call BlockRedstoneEvent
 +            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBinaryRedstoneChange(level, pos, signal)) {

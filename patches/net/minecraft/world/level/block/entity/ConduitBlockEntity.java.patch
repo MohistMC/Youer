@@ -76,22 +76,12 @@
          }
  
          if (!Objects.equals(newDestroyTarget, entity.destroyTarget)) {
-@@ -201,25 +_,29 @@
-     ) {
-         if (!isActive) {
-             return null;
--        }
--
--        if (target == null) {
-+        } else if (target == null) {
-             return selectNewTarget(level, pos);
-+        } else {
-+            LivingEntity targetEntity = EntityReference.getLivingEntity(target, level);
-+            return targetEntity != null && targetEntity.isAlive() && pos.closerThan(targetEntity.blockPosition(), level.purpurConfig.conduitDamageDistance) ? target : null;
+@@ -208,18 +_,24 @@
          }
--
--        LivingEntity targetEntity = EntityReference.getLivingEntity(target, level);
+ 
+         LivingEntity targetEntity = EntityReference.getLivingEntity(target, level);
 -        return targetEntity != null && targetEntity.isAlive() && pos.closerThan(targetEntity.blockPosition(), 8.0) ? target : null;
++        return targetEntity != null && targetEntity.isAlive() && pos.closerThan(targetEntity.blockPosition(), level.purpurConfig.conduitDamageDistance) ? target : null;   
      }
  
      private static @Nullable EntityReference<LivingEntity> selectNewTarget(ServerLevel level, BlockPos pos) {

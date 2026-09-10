@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/BucketItem.java
 +++ b/net/minecraft/world/item/BucketItem.java
-@@ -29,12 +_,17 @@
+@@ -29,9 +_,14 @@
  import net.minecraft.world.level.material.Fluids;
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.HitResult;
@@ -14,11 +14,7 @@
 +    private static @Nullable ItemStack itemLeftInHandAfterPlayerBucketEmptyEvent = null; // Paper - Fix PlayerBucketEmptyEvent result itemstack
      public final Fluid content;
  
--    public BucketItem(Fluid content, Item.Properties properties) {
-+    public BucketItem(Fluid content, Properties properties) {
-         super(properties);
-         this.content = content;
-     }
+     public BucketItem(Fluid content, Item.Properties properties) {
 @@ -56,8 +_,9 @@
          BlockPos directionOffsetPos = pos.relative(direction);
          if (level.mayInteract(player, pos) && player.mayUseItemAt(directionOffsetPos, direction, itemStack)) {
@@ -96,7 +92,7 @@
              boolean placeLiquid = mayReplace
                  || block instanceof LiquidBlockContainer container && container.canPlaceLiquid(user, level, pos, blockState, this.content);
 +            // TODO: The stack is only used as a parameter in the vaporization check. What if the fluidType is different? And should the rest of the method be made stack-aware as well?
-+            var containedFluidStack = containerItem != null ? FluidUtil.getFirstStackContained(containerItem) : FluidStack.EMPTY;
++            var containedFluidStack = containerItem != null ? net.neoforged.neoforge.transfer.fluid.FluidUtil.getFirstStackContained(containerItem) : net.neoforged.neoforge.fluids.FluidStack.EMPTY;
              boolean canPlaceFluidInsideBlock = blockState.isAir() || placeLiquid && (!shiftKeyDown || hitResult == null);
 +            // CraftBukkit start
 +            if (canPlaceFluidInsideBlock && user instanceof Player player) {
@@ -139,7 +135,7 @@
  
      protected void playEmptySound(@Nullable LivingEntity user, LevelAccessor level, BlockPos pos) {
 -        SoundEvent soundEvent = this.content.is(FluidTags.LAVA) ? SoundEvents.BUCKET_EMPTY_LAVA : SoundEvents.BUCKET_EMPTY;
-+        SoundEvent soundEvent = this.content.getFluidType().getSound(user, level, pos, SoundActions.BUCKET_EMPTY);
++        SoundEvent soundEvent = this.content.getFluidType().getSound(user, level, pos, net.neoforged.neoforge.common.SoundActions.BUCKET_EMPTY);
 +        if(soundEvent == null) soundEvent = this.content.is(FluidTags.LAVA) ? SoundEvents.BUCKET_EMPTY_LAVA : SoundEvents.BUCKET_EMPTY;
          level.playSound(user, pos, soundEvent, SoundSource.BLOCKS, 1.0F, 1.0F);
          level.gameEvent(user, GameEvent.FLUID_PLACE, pos);

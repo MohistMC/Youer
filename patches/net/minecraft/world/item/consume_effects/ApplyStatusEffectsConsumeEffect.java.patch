@@ -8,7 +8,7 @@
  
  public record ApplyStatusEffectsConsumeEffect(List<MobEffectInstance> effects, float probability) implements ConsumeEffect {
      public static final MapCodec<ApplyStatusEffectsConsumeEffect> CODEC = RecordCodecBuilder.mapCodec(
-@@ -46,19 +_,19 @@
+@@ -46,7 +_,7 @@
      }
  
      @Override
@@ -16,25 +16,13 @@
 +    public boolean apply(Level level, ItemStack stack, LivingEntity user, EntityPotionEffectEvent.Cause cause) { // CraftBukkit
          if (user.getRandom().nextFloat() >= this.probability) {
              return false;
--        }
--
--        boolean anyApplied = false;
--
--        for (MobEffectInstance effect : this.effects) {
--            if (user.addEffect(new MobEffectInstance(effect))) {
--                anyApplied = true;
-+        } else {
-+            boolean anyApplied = false;
-+
-+            for (MobEffectInstance effect : this.effects) {
-+                if (user.addEffect(new MobEffectInstance(effect), cause)) {
-+                    anyApplied = true;
-+                }
-             }
--        }
+         }
+@@ -54,7 +_,7 @@
+         boolean anyApplied = false;
  
--        return anyApplied;
-+            return anyApplied;
-+        }
-     }
- }
+         for (MobEffectInstance effect : this.effects) {
+-            if (user.addEffect(new MobEffectInstance(effect))) {
++            if (user.addEffect(new MobEffectInstance(effect), cause)) {
+                 anyApplied = true;
+             }
+         }

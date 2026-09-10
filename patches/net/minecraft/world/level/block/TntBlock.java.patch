@@ -55,54 +55,21 @@
      private static boolean prime(Level level, BlockPos pos, @Nullable LivingEntity source) {
          if (level instanceof ServerLevel serverLevel && serverLevel.getGameRules().get(GameRules.TNT_EXPLODES)) {
              PrimedTnt tnt = new PrimedTnt(level, pos.getX() + 0.5, pos.getY(), pos.getZ() + 0.5, source);
-@@ -100,24 +_,29 @@
-     ) {
+@@ -101,8 +_,12 @@
          if (!itemStack.is(Items.FLINT_AND_STEEL) && !itemStack.is(Items.FIRE_CHARGE)) {
              return super.useItemOn(itemStack, state, level, pos, player, hand, hitResult);
--        }
+         }
 -
 -        if (prime(level, pos, player)) {
--            level.setBlock(pos, Blocks.AIR.defaultBlockState(), 11);
--            Item item = itemStack.getItem();
--            if (itemStack.is(Items.FLINT_AND_STEEL)) {
--                itemStack.hurtAndBreak(1, player, hand.asEquipmentSlot());
--            } else {
--                itemStack.consume(1, player);
--            }
--
--            player.awardStat(Stats.ITEM_USED.get(item));
--        } else if (level instanceof ServerLevel serverLevel && !serverLevel.getGameRules().get(GameRules.TNT_EXPLODES)) {
--            player.sendOverlayMessage(Component.translatable("block.minecraft.tnt.disabled"));
--            return InteractionResult.PASS;
--        }
--
--        return InteractionResult.SUCCESS;
-+        } else {
-+            // CraftBukkit start - TNTPrimeEvent
-+            if (!CraftEventFactory.callTNTPrimeEvent(level, pos, PrimeCause.PLAYER, player, null)) {
-+                return InteractionResult.CONSUME;
-+            }
-+            // CraftBukkit end
-+            if (onCaughtFire(state, level, pos, hitResult.getDirection(), player)) {
-+                level.setBlock(pos, Blocks.AIR.defaultBlockState(), 11);
-+                Item item = itemStack.getItem();
-+                if (itemStack.is(Items.FLINT_AND_STEEL)) {
-+                    itemStack.hurtAndBreak(1, player, hand.asEquipmentSlot());
-+                } else {
-+                    itemStack.consume(1, player);
-+                }
-+
-+                player.awardStat(Stats.ITEM_USED.get(item));
-+            } else if (level instanceof ServerLevel serverLevel && !serverLevel.getGameRules().get(GameRules.TNT_EXPLODES)) {
-+                player.sendOverlayMessage(Component.translatable("block.minecraft.tnt.disabled"));
-+                return InteractionResult.PASS;
-+            }
-+
-+            return InteractionResult.SUCCESS;
++        // CraftBukkit start - TNTPrimeEvent
++        if (!CraftEventFactory.callTNTPrimeEvent(level, pos, PrimeCause.PLAYER, player, null)) {
++            return InteractionResult.CONSUME;
 +        }
-     }
- 
-     @Override
++        // CraftBukkit end
++        if (onCaughtFire(state, level, pos, hitResult.getDirection(), player)) {
+             level.setBlock(pos, Blocks.AIR.defaultBlockState(), 11);
+             Item item = itemStack.getItem();
+             if (itemStack.is(Items.FLINT_AND_STEEL)) {
 @@ -127,7 +_,9 @@
              Entity owner = projectile.getOwner();
              if (projectile.isOnFire()

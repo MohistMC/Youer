@@ -303,7 +303,10 @@ public class FluidType {
      * @param movementVector the velocity of how the entity wants to move
      * @param gravity        the gravity to apply to the entity
      * @return {@code true} if custom movement logic is performed, {@code false} otherwise
+     *
+     * @deprecated Use {@link #move(LivingEntity, Vec3, double)} instead
      */
+    @Deprecated(forRemoval = true, since = "26.2")
     public boolean move(FluidState state, LivingEntity entity, Vec3 movementVector, double gravity) {
         return move(entity, movementVector, gravity);
     }
