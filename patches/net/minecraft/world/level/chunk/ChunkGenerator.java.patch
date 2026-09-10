@@ -25,16 +25,13 @@
 -    public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> structureSets, RandomState randomState, long legacyLevelSeed) {
 -        return ChunkGeneratorStructureState.createForNormal(randomState, legacyLevelSeed, this.getOrigin(randomState), this.biomeSource, structureSets);
 +    public ChunkGeneratorStructureState createState(HolderLookup<StructureSet> structureSets, RandomState randomState, long legacyLevelSeed, org.spigotmc.SpigotWorldConfig conf) { // Spigot
-+        return ChunkGeneratorStructureState.createForNormal(randomState, legacyLevelSeed, this.biomeSource, structureSets, conf); // Spigot
++        return ChunkGeneratorStructureState.createForNormal(randomState, legacyLevelSeed, this.getOrigin(randomState), this.biomeSource, structureSets, conf); // Spigot
      }
  
      public Optional<Identifier> getTypeNameForDataFixer() {
-@@ -126,9 +_,9 @@
- 
-     public CompletableFuture<ChunkAccess> createBiomes(RandomState randomState, Blender blender, StructureManager structureManager, ChunkAccess protoChunk) {
+@@ -128,7 +_,7 @@
          return CompletableFuture.supplyAsync(() -> {
--            this.doCreateBiomes(blender, randomState, protoChunk);
-+            protoChunk.fillBiomesFromNoise(this.biomeSource, randomState.sampler());
+             this.doCreateBiomes(blender, randomState, protoChunk);
              return protoChunk;
 -        }, Util.backgroundExecutor().forName("createBiomes"));
 +        }, Runnable::run); // Paper - rewrite chunk system
@@ -95,17 +92,15 @@
                      int sectorX = chunkOriginX + spacing * x;
                      int sectorZ = chunkOriginZ + spacing * z;
                      ChunkPos chunkTarget = config.getPotentialStructureChunk(seed, sectorX, sectorZ);
-@@ -327,8 +_,8 @@
+@@ -327,7 +_,7 @@
                      return Pair.of(config.getLocatePos(chunkTarget), structure);
                  }
  
 -                ChunkAccess chunk = level.getChunk(chunkTarget.x(), chunkTarget.z(), ChunkStatus.STRUCTURE_STARTS);
--                StructureStart start = structureManager.getStartForStructure(structure.value(), chunk);
 +                ChunkAccess chunk = ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevelReader)level).moonrise$syncLoadNonFull(chunkTarget.x(), chunkTarget.z(), ChunkStatus.STRUCTURE_STARTS); // Paper - rewrite chunk system
-+                StructureStart start = structureManager.getStartForStructure(SectionPos.bottomOf(chunk), structure.value(), chunk);
+                 StructureStart start = structureManager.getStartForStructure(structure.value(), chunk);
                  if (start != null && start.isValid() && (!createReference || tryAddReference(structureManager, start))) {
                      return Pair.of(config.getLocatePos(start.getChunkPos()), structure);
-                 }
 @@ -347,7 +_,7 @@
          }
      }
@@ -167,17 +162,6 @@
      private static BoundingBox getWritableArea(ChunkAccess chunk) {
          ChunkPos chunkPos = chunk.getPos();
          int targetBlockX = chunkPos.getMinBlockX();
-@@ -461,6 +_,10 @@
-         return new BoundingBox(targetBlockX, minY, targetBlockZ, targetBlockX + 15, maxY, targetBlockZ + 15);
-     }
- 
-+    public abstract void buildSurface(
-+        final WorldGenRegion level, final StructureManager structureManager, final RandomState randomState, ChunkAccess protoChunk
-+    );
-+
-     public abstract void spawnOriginalMobs(WorldGenRegion worldGenRegion);
- 
-     public int getSpawnHeight(LevelHeightAccessor heightAccessor) {
 @@ -523,7 +_,7 @@
                              }
                          }
@@ -187,11 +171,10 @@
                              if (structures.size() == 1) {
                                  this.tryGenerateStructure(
                                      structures.get(0),
-@@ -619,7 +_,15 @@
+@@ -619,6 +_,14 @@
              biomePredicate
          );
          if (start.isValid()) {
--            structureManager.setStartForStructure(structure, start, centerChunk);
 +            // CraftBukkit start
 +            BoundingBox box = start.getBoundingBox();
 +            org.bukkit.event.world.AsyncStructureSpawnEvent event = new org.bukkit.event.world.AsyncStructureSpawnEvent(structureManager.level.getMinecraftWorld().getWorld(), org.bukkit.craftbukkit.generator.structure.CraftStructure.minecraftToBukkit(structure), new org.bukkit.util.BoundingBox(box.minX(), box.minY(), box.minZ(), box.maxX(), box.maxY(), box.maxZ()), sourceChunkPos.x(), sourceChunkPos.z());
@@ -200,7 +183,6 @@
 +                return true;
 +            }
 +            // CraftBukkit end
-+            structureManager.setStartForStructure(sectionPos, structure, start, centerChunk);
+             structureManager.setStartForStructure(structure, start, centerChunk);
              return true;
          } else {
-             return false;

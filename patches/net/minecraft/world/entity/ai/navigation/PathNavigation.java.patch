@@ -63,48 +63,6 @@
          ProfilerFiller profiler = Profiler.get();
          profiler.push("pathfind");
          BlockPos fromPos = above ? this.mob.blockPosition().above() : this.mob.blockPosition();
-@@ -170,6 +_,11 @@
-         return path;
-     }
- 
-+    // Paper start - Perf: Optimise pathfinding
-+    private int lastFailure = 0;
-+    private int pathfindFailures = 0;
-+    // Paper end - Perf: Optimise pathfinding
-+
-     public boolean moveTo(double x, double y, double z, double speedModifier) {
-         return this.moveTo(this.createPath(x, y, z, 1), speedModifier);
-     }
-@@ -179,12 +_,23 @@
-     }
- 
-     public boolean moveTo(Entity target, double speedModifier) {
--        return this.moveTo(target, 1, speedModifier);
--    }
--
--    public boolean moveTo(Entity target, int reachRange, double speedModifier) {
--        Path newPath = this.createPath(target, reachRange);
--        return newPath != null && this.moveTo(newPath, speedModifier);
-+        // Paper start - Perf: Optimise pathfinding
-+        if (this.pathfindFailures > 10 && this.path == null && net.minecraft.server.MinecraftServer.currentTick < this.lastFailure + 40) {
-+            return false;
-+        }
-+        // Paper end - Perf: Optimise pathfinding
-+        Path newPath = this.createPath(target, 1);
-+        // Paper start - Perf: Optimise pathfinding
-+        if (newPath != null && this.moveTo(newPath, speedModifier)) {
-+            this.lastFailure = 0;
-+            this.pathfindFailures = 0;
-+            return true;
-+        } else {
-+            this.pathfindFailures++;
-+            this.lastFailure = net.minecraft.server.MinecraftServer.currentTick;
-+            return false;
-+        }
-+        // Paper end - Perf: Optimise pathfinding
-     }
- 
-     public boolean moveTo(@Nullable Path newPath, double speedModifier) {
 @@ -250,12 +_,12 @@
          Vec3 mobPos = this.getTempMobPos();
          this.maxDistanceToWaypoint = this.mob.getBbWidth() > 0.75F ? this.mob.getBbWidth() / 2.0F : 0.75F - this.mob.getBbWidth() / 2.0F;

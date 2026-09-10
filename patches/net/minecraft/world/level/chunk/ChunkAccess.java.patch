@@ -50,8 +50,7 @@
 -    protected ChunkSkyLightSources skyLightSources;
 +    // Paper - rewrite chunk system
      private final Map<Structure, StructureStart> structureStarts = Maps.newHashMap();
--    private final Map<Structure, LongSet> structureReferences = Maps.newHashMap();
-+    private final Map<Structure, LongSet> structuresRefences = Maps.newHashMap();
+     private final Map<Structure, LongSet> structureReferences = Maps.newHashMap();
      protected final Map<BlockPos, CompoundTag> pendingBlockEntities = Maps.newHashMap();
      public final Map<BlockPos, BlockEntity> blockEntities = new Object2ObjectOpenHashMap<>();
      protected final LevelHeightAccessor levelHeightAccessor;
@@ -210,41 +209,29 @@
              }
          }
      }
-@@ -417,6 +_,26 @@
- 
-     @Override
-     public Holder<Biome> getNoiseBiome(int quartX, int quartY, int quartZ) {
-+        // Paper start - get block chunk optimisation
-+        int sectionY = (quartY >> 2) - this.minSection;
-+        int rel = quartY & 3;
-+
-+        final LevelChunkSection[] sections = this.sections;
-+
-+        if (sectionY < 0) {
-+            sectionY = 0;
-+            rel = 0;
-+        } else if (sectionY >= sections.length) {
-+            sectionY = sections.length - 1;
-+            rel = 3;
-+        }
-+
-+        return sections[sectionY].getNoiseBiome(quartX & 3, rel, quartZ & 3);
-+        // Paper end - get block chunk optimisation
-+    }
-+
-+    // CraftBukkit start
-+    public void setNoiseBiome(int quartX, int quartY, int quartZ, Holder<Biome> biome) {
-         try {
-             int quartMinY = QuartPos.fromBlock(this.getMinY());
-             int quartMaxY = quartMinY + QuartPos.fromBlock(this.getHeight()) - 1;
-@@ -430,6 +_,7 @@
-             throw new ReportedException(report);
+@@ -431,6 +_,22 @@
          }
      }
-+    // CraftBukkit end
  
++    // CraftBukkit start
++    public void setNoiseBiome(int quartX, int quartY, int quartZ, Holder<Biome> biome) {
++        try {
++            int quartMinY = QuartPos.fromBlock(this.getMinY());
++            int quartMaxY = quartMinY + QuartPos.fromBlock(this.getHeight()) - 1;
++            int clampedQuartY = Mth.clamp(quartY, quartMinY, quartMaxY);
++            int sectionIndex = this.getSectionIndex(QuartPos.toBlock(clampedQuartY));
++            this.sections[sectionIndex].setNoiseBiome(quartX & 3, clampedQuartY & 3, quartZ & 3, biome);
++        } catch (Throwable throwable) {
++            CrashReport report = CrashReport.forThrowable(throwable, "Setting biome");
++            CrashReportCategory category = report.addCategory("Biome being set");
++            category.setDetail("Location", () -> CrashReportCategory.formatLocation(this, quartX, quartY, quartZ));
++            throw new ReportedException(report);
++        }
++    }
++    // CraftBukkit end
      public void fillBiomesFromNoise(BiomeResolver biomeResolver) {
          ChunkPos pos = this.getPos();
+         int quartMinX = QuartPos.fromBlock(pos.getMinBlockX());
 @@ -457,13 +_,90 @@
      }
  

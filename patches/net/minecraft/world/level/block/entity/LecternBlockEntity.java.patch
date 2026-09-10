@@ -108,7 +108,7 @@
          }
      }
  
-@@ -183,13 +_,51 @@
+@@ -183,12 +_,41 @@
          return book;
      }
  
@@ -142,29 +142,16 @@
 +    // CraftBukkit end
 +
      private CommandSourceStack createCommandSourceStack(@Nullable Player player, ServerLevel level) {
-+        String textName;
-+        Component displayName;
-+        if (player == null) {
-+            textName = "Lectern";
-+            displayName = Component.literal("Lectern");
-+        } else {
-+            textName = player.getPlainTextName();
-+            displayName = player.getDisplayName();
-+        }
-+
          Vec3 pos = Vec3.atCenterOf(this.worldPosition);
--        return player != null
+         return player != null
 -            ? new CommandSourceStack(CommandSource.NULL, pos, Vec2.ZERO, level, LevelBasedPermissionSet.GAMEMASTER, level.getServer(), player)
--            : new CommandSourceStack(
++            ? new CommandSourceStack(this.commandSource, pos, Vec2.ZERO, level, LevelBasedPermissionSet.GAMEMASTER, level.getServer(), player) // CraftBukkit - commandSource
+             : new CommandSourceStack(
 -                CommandSource.NULL, pos, Vec2.ZERO, level, LevelBasedPermissionSet.GAMEMASTER, Component.literal("Lectern"), level.getServer()
--            );
-+        // CraftBukkit - commandSource
-+        return new CommandSourceStack(
-+            commandSource, pos, Vec2.ZERO, level, LevelBasedPermissionSet.GAMEMASTER, textName, displayName, level.getServer(), player
-+        );
++                this.commandSource, pos, Vec2.ZERO, level, LevelBasedPermissionSet.GAMEMASTER, Component.literal("Lectern"), level.getServer() // CraftBukkit - commandSource
+             );
      }
  
-     @Override
 @@ -219,6 +_,7 @@
          if (state.getValue(LecternBlock.HAS_BOOK) && this.level != null) {
              Direction direction = state.getValue(LecternBlock.FACING);

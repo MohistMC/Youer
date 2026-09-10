@@ -284,17 +284,8 @@
      protected EquipmentSlot sunProtectionSlot() {
          return EquipmentSlot.HEAD;
      }
-@@ -489,25 +_,22 @@
-             ItemStack sunBlocker = this.getItemBySlot(slot);
-             if (!sunBlocker.isEmpty()) {
-                 if (sunBlocker.isDamageableItem()) {
--                    sunBlocker.hurtAndBreak(this.random.nextInt(2), this, slot);
-+                    Item sunBlockerItem = sunBlocker.getItem();
-+                    sunBlocker.setDamageValue(sunBlocker.getDamageValue() + this.random.nextInt(2));
-+                    if (sunBlocker.getDamageValue() >= sunBlocker.getMaxDamage()) {
-+                        this.onEquippedItemBroken(sunBlockerItem, slot);
-+                        this.setItemSlot(slot, ItemStack.EMPTY);
-+                    }
+@@ -492,22 +_,14 @@
+                     sunBlocker.hurtAndBreak(this.random.nextInt(2), this, slot);
                  }
              } else {
 +                if (getRider() == null || !this.isControllable()) // Purpur - Ridables

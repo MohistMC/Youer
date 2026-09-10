@@ -15,7 +15,7 @@
          Builder<StructureStart> result = ImmutableList.builder();
  
          for (Entry<Structure, LongSet> entry : allReferences.entrySet()) {
-@@ -125,14 +_,30 @@
+@@ -125,19 +_,33 @@
      }
  
      public StructureStart getStructureWithPieceAt(BlockPos blockPos, HolderSet<Structure> structures) {
@@ -29,10 +29,6 @@
      }
  
      public StructureStart getStructureWithPieceAt(BlockPos blockPos, Predicate<Holder<Structure>> predicate) {
--        int sectionX = SectionPos.blockToSectionCoord(blockPos.getX());
--        int sectionZ = SectionPos.blockToSectionCoord(blockPos.getZ());
--
--        for (StructureStart structureStart : this.startsForStructure(sectionX, sectionZ, this.matching(predicate))) {
 +        // Paper start - Fix swamp hut cat generation deadlock
 +        return this.getStructureWithPieceAt(blockPos, predicate, null);
 +    }
@@ -43,11 +39,16 @@
 +
 +    public StructureStart getStructureWithPieceAt(BlockPos blockPos, Predicate<Holder<Structure>> predicate, final @Nullable ServerLevelAccessor levelAccessor) {
 +        // Paper end - Fix swamp hut cat generation deadlock
-+        Registry<Structure> structures = this.registryAccess().lookupOrThrow(Registries.STRUCTURE);
-+
-+        for (StructureStart structureStart : this.startsForStructure(
-+            ChunkPos.containing(blockPos), s -> structures.get(structures.getId(s)).map(predicate::test).orElse(false), levelAccessor // Paper - Fix swamp hut cat generation deadlock
-+        )) {
+         int sectionX = SectionPos.blockToSectionCoord(blockPos.getX());
+         int sectionZ = SectionPos.blockToSectionCoord(blockPos.getZ());
+ 
+-        for (StructureStart structureStart : this.startsForStructure(sectionX, sectionZ, this.matching(predicate))) {
++        for (StructureStart structureStart : this.startsForStructure(sectionX, sectionZ, this.matching(predicate), levelAccessor)) { // Paper - Fix swamp hut cat generation deadlock
              if (this.structureHasPieceAt(blockPos, structureStart)) {
                  return structureStart;
              }
+         }
+-
+         return StructureStart.INVALID_START;
+     }
+ 

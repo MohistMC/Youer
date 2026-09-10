@@ -79,15 +79,11 @@
          }
  
          if (buffer.writerIndex() != buffer.capacity()) {
-@@ -128,9 +_,8 @@
+@@ -128,6 +_,7 @@
              CompoundTag tag = blockEntity.getUpdateTag(blockEntity.getLevel().registryAccess());
              BlockPos pos = blockEntity.getBlockPos();
              int xz = SectionPos.sectionRelative(pos.getX()) << 4 | SectionPos.sectionRelative(pos.getZ());
--            return new ClientboundLevelChunkPacketData.BlockEntityInfo(
--                (byte)xz, (short)pos.getY(), blockEntity.getType(), tag.isEmpty() ? Optional.empty() : Optional.of(tag)
--            );
 +            blockEntity.sanitizeSentNbt(tag); // Paper - Sanitize sent data
-+            return new ClientboundLevelChunkPacketData.BlockEntityInfo(xz, pos.getY(), blockEntity.getType(), tag.isEmpty() ? null : tag);
-         }
-     }
- 
+             return new ClientboundLevelChunkPacketData.BlockEntityInfo(
+                 (byte)xz, (short)pos.getY(), blockEntity.getType(), tag.isEmpty() ? Optional.empty() : Optional.of(tag)
+             );

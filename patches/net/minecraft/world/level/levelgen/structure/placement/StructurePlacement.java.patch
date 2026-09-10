@@ -1,0 +1,17 @@
+--- a/net/minecraft/world/level/levelgen/structure/placement/StructurePlacement.java
++++ b/net/minecraft/world/level/levelgen/structure/placement/StructurePlacement.java
+@@ -11,7 +_,13 @@
+ public interface StructurePlacement {
+     Codec<StructurePlacement> CODEC = BuiltInRegistries.STRUCTURE_PLACEMENT.byNameCodec().dispatch(StructurePlacement::codec, c -> c);
+ 
+-    boolean isStructureChunk(ChunkGeneratorStructureState state, int sourceX, int sourceZ);
++    // Paper start - Add missing structure set seed configs
++    @Deprecated @io.papermc.paper.annotation.DoNotUse
++    default boolean isStructureChunk(ChunkGeneratorStructureState state, int sourceX, int sourceZ) {
++        return isStructureChunk(state, sourceX, sourceZ, null);
++    }
++    boolean isStructureChunk(ChunkGeneratorStructureState state, int sourceX, int sourceZ, final net.minecraft.resources.@org.jspecify.annotations.Nullable ResourceKey<net.minecraft.world.level.levelgen.structure.StructureSet> structureSetKey);
++    // Paper end - Add missing structure set seed configs
+ 
+     default boolean applyAdditionalChunkRestrictions(int sourceX, int sourceZ, long levelSeed) {
+         return true;

@@ -562,7 +562,7 @@
          return Mth.clamp(visibilityPercent, 0.0, 10.0);
      }
  
-@@ -971,19 +_,33 @@
+@@ -971,6 +_,10 @@
          this.entityData.set(DATA_EFFECT_PARTICLES, List.of());
      }
  
@@ -573,30 +573,27 @@
      public boolean removeAllEffects() {
          if (this.level().isClientSide()) {
              return false;
--        }
--
--        if (this.activeEffects.isEmpty()) {
-+        } else if (this.activeEffects.isEmpty()) {
+@@ -980,10 +_,23 @@
              return false;
-+        } else {
-+            Map<Holder<MobEffect>, MobEffectInstance> map = new java.util.HashMap<>(this.activeEffects.size());
-+            for (Map.Entry<Holder<MobEffect>, MobEffectInstance> entry : this.activeEffects.entrySet()) {
-+                if (removeAllEffects$cause.get() == EntityPotionEffectEvent.Cause.MILK && !this.level().purpurConfig.milkClearsBeneficialEffects && entry.getValue().getEffect().value().isBeneficial()) continue; // Purpur - Milk Keeps Beneficial Effects
-+                EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, entry.getValue(), null, removeAllEffects$cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN), EntityPotionEffectEvent.Action.CLEARED);
-+                if (!event.isCancelled() && !net.neoforged.neoforge.event.EventHooks.onEffectRemoved(this, entry.getValue())) {
-+                    map.put(entry.getKey(), entry.getValue());
-+                }
-+            }
-+            map.keySet().forEach(this.activeEffects::remove);
-+            this.onEffectsRemoved(map.values());
-+            return true;
          }
-+    }
  
 -        Map<Holder<MobEffect>, MobEffectInstance> copy = Maps.newHashMap(this.activeEffects);
 -        this.activeEffects.clear();
 -        this.onEffectsRemoved(copy.values());
--        return true;
++        Map<Holder<MobEffect>, MobEffectInstance> map = new java.util.HashMap<>(this.activeEffects.size());
++        for (Map.Entry<Holder<MobEffect>, MobEffectInstance> entry : this.activeEffects.entrySet()) {
++            if (removeAllEffects$cause.get() == EntityPotionEffectEvent.Cause.MILK && !this.level().purpurConfig.milkClearsBeneficialEffects && entry.getValue().getEffect().value().isBeneficial())
++                continue; // Purpur - Milk Keeps Beneficial Effects
++            EntityPotionEffectEvent event = CraftEventFactory.callEntityPotionEffectChangeEvent(this, entry.getValue(), null, removeAllEffects$cause.getAndSet(EntityPotionEffectEvent.Cause.UNKNOWN), EntityPotionEffectEvent.Action.CLEARED);
++            if (!event.isCancelled() && !net.neoforged.neoforge.event.EventHooks.onEffectRemoved(this, entry.getValue())) {
++                map.put(entry.getKey(), entry.getValue());
++            }
++        }
++        map.keySet().forEach(this.activeEffects::remove);
++        this.onEffectsRemoved(map.values());
+         return true;
++    }
++
 +    public boolean removeAllEffects(EntityPotionEffectEvent.Cause cause) {
 +        removeAllEffects$cause(cause);
 +        return removeAllEffects();
@@ -910,15 +907,15 @@
              this.hurtHelmet(source, damage);
              damage *= 0.75F;
          }
-@@ -1216,20 +_,30 @@
+@@ -1216,27 +_,38 @@
          if (Float.isNaN(damage) || Float.isInfinite(damage)) {
              damage = Float.MAX_VALUE;
          }
 +        this.damageContainers.peek().setNewDamage(damage); // Update container with vanilla changes
  
-         boolean tookFullDamage = true;
--        if (this.damageCooldownTime > 10.0F && !source.is(DamageTypeTags.BYPASSES_COOLDOWN)) {
-+        if (this.invulnerableTime > 10.0F && !source.is(DamageTypeTags.BYPASSES_COOLDOWN)) {
+-        boolean tookFullDamage = true;
++        boolean performSideEffects = true; // Neo: Rename local variable to be more clear on its behavior
+         if (this.damageCooldownTime > 10.0F && !source.is(DamageTypeTags.BYPASSES_COOLDOWN)) {
              if (damage <= this.lastHurt) {
 +                // Neo: Pop the container when vanilla would abort the incoming damage due to the invulnerability ticks.
 +                this.damageContainers.pop();
@@ -926,36 +923,42 @@
              }
 +
 +            // If we are going to do damage despite invulnerability (due to the damage being higher than prior), we need to setup the container differently.
-+            this.damageContainers.peek().setPostAttackInvulnerabilityTicks(this.invulnerableTime);
++            this.damageContainers.peek().setShouldCauseSideEffects(false);
++            this.damageContainers.peek().setPostAttackInvulnerabilityTicks(this.getInvulnerableTime());
 +            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.INVULNERABILITY, this.lastHurt);
  
              this.actuallyHurt(level, source, damage - this.lastHurt);
 -            this.lastHurt = damage;
+-            tookFullDamage = false;
 +            // lastHurt, in both blocks, needs to always be set to the value of `damage` since it is pre-reduction. Using a post reduction value invalidates iframes.
 +            // Since we're in the "damage while invuln is active" block, we need to make sure we don't reduce the lastHurt amount.
 +            this.lastHurt = java.lang.Math.max(this.lastHurt, damage);
-+            this.invulnerableTime = this.damageContainers.peek().getPostAttackInvulnerabilityTicks();
-             tookFullDamage = false;
++            this.setInvulnerableTime(this.damageContainers.peek().getPostAttackInvulnerabilityTicks());
          } else {
 -            this.lastHurt = damage;
 -            this.damageCooldownTime = 20;
              this.actuallyHurt(level, source, damage);
 +            this.lastHurt = damage;
-+            this.invulnerableTime = this.damageContainers.peek().getPostAttackInvulnerabilityTicks();
++            this.setInvulnerableTime(this.damageContainers.peek().getPostAttackInvulnerabilityTicks());
              this.hurtDuration = 10;
              this.hurtTime = this.hurtDuration;
          }
-@@ -1248,8 +_,7 @@
-                 this.markHurt();
-             }
++        performSideEffects = this.damageContainers.peek().shouldCauseSideEffects();
  
--            boolean fullyBlocked = blocked && damage <= 0.0F;
--            if (!source.is(DamageTypeTags.NO_KNOCKBACK) && !fullyBlocked) {
-+            if (!source.is(DamageTypeTags.NO_KNOCKBACK)) {
-                 this.dealDefaultKnockback(source, damage, blocked);
-             }
-         }
-@@ -1261,14 +_,17 @@
+         this.resolveMobResponsibleForDamage(source);
+         this.resolvePlayerResponsibleForDamage(source);
+-        if (tookFullDamage) {
++        if (performSideEffects) {
+             BlocksAttacks blocksAttacks = itemInUse.get(DataComponents.BLOCKS_ATTACKS);
+             if (blocked && blocksAttacks != null) {
+                 blocksAttacks.onBlocked(level, this);
+@@ -1256,14 +_,17 @@
+ 
+         if (this.isDeadOrDying()) {
+             if (!this.checkTotemDeathProtection(source)) {
+-                if (tookFullDamage) {
++                if (performSideEffects) {
+                     this.makeSound(this.getDeathSound());
                      this.playSecondaryHurtSound(source);
                  }
  
@@ -964,16 +967,11 @@
                  this.die(source);
 +                this.silentDeath = true; // Paper
              }
-         } else if (tookFullDamage) {
+-        } else if (tookFullDamage) {
++        } else if (performSideEffects) {
              this.playHurtSound(source);
              this.playSecondaryHurtSound(source);
          }
- 
--        boolean success = !blocked || damage > 0.0F;
-+        boolean success = !blocked; // CraftBukkit - Ensure to return false if damage is blocked
-         if (success) {
-             this.lastDamageSource = source;
-             this.lastDamageStamp = this.level().getGameTime();
 @@ -1289,6 +_,10 @@
              CriteriaTriggers.PLAYER_HURT_ENTITY.trigger(sourcePlayer, this, source, originalDamage, damage, blocked);
          }
@@ -1003,7 +1001,7 @@
          if (!blocked) {
              this.indicateDamage(xd, zd);
          }
-@@ -1321,14 +_,14 @@
+@@ -1321,7 +_,7 @@
          }
  
          BlocksAttacks blocksAttacks = blockingWith.get(DataComponents.BLOCKS_ATTACKS);
@@ -1012,24 +1010,15 @@
              if (source.getDirectEntity() instanceof AbstractArrow abstractArrow && abstractArrow.getPierceLevel() > 0) {
                  return 0.0F;
              } else {
-                 Vec3 sourcePosition = source.getSourcePosition();
-                 double angle;
-                 if (sourcePosition != null) {
--                    Vec3 viewVector = calculateViewVector(0.0F, this.getYHeadRot());
-+                    Vec3 viewVector = this.calculateViewVector(0.0F, this.getYHeadRot());
-                     Vec3 vectorTo = sourcePosition.subtract(this.position());
-                     vectorTo = new Vec3(vectorTo.x, 0.0, vectorTo.z).normalize();
-                     angle = Math.acos(vectorTo.dot(viewVector));
-@@ -1337,9 +_,26 @@
+@@ -1337,7 +_,26 @@
                  }
  
                  float damageBlocked = blocksAttacks.resolveBlockedDamage(source, damage, angle);
 -                blocksAttacks.hurtBlockingItem(this.level(), blockingWith, this, this.getUsedItemHand(), damageBlocked);
--                if (damageBlocked > 0.0F && !source.is(DamageTypeTags.IS_PROJECTILE) && source.getDirectEntity() instanceof LivingEntity livingEntity) {
--                    this.blockUsingItem(level, livingEntity, source, damage, damageBlocked >= damage);
++                var damageContainer = this.damageContainers.empty() ? new net.neoforged.neoforge.common.damagesource.DamageContainer(source, damage) : this.damageContainers.peek();
++                var ev = net.neoforged.neoforge.common.CommonHooks.onDamageBlock(this, damageContainer, damageBlocked, !blocksAttacks.bypassedBy().map(t -> t.contains(source.typeHolder())).orElse(false));
 +
-+                var ev = net.neoforged.neoforge.common.CommonHooks.onDamageBlock(this, this.damageContainers.peek(), damageBlocked, !blocksAttacks.bypassedBy().map(t -> t.contains(source.typeHolder())).orElse(false));
-+                // Youer start
++				// Youer start
 +                float bukkit = -(float) bukkitEntityDamageEvent.getDamage(EntityDamageEvent.DamageModifier.BLOCKING);
 +                if (ev.getBlockedDamage() == ev.getOriginalBlockedDamage()) {
 +                    if (bukkit > 0.0F) {
@@ -1041,15 +1030,14 @@
 +                }
 +                // Youer end
 +                if (!ev.getBlocked()) return 0.0F;
-+                damageBlocked = ev.getBlockedDamage();
-+                this.damageContainers.peek().setBlockedDamage(ev);
-+                blocksAttacks.hurtBlockingItem(this.level(), blockingWith, this, this.getUsedItemHand(), damageBlocked, ev.shieldDamage());
 +
-+                if (damageBlocked > 0.0F && !source.is(DamageTypeTags.IS_PROJECTILE) && source.getDirectEntity() instanceof LivingEntity livingEntity && livingEntity.distanceToSqr(this) <= Mth.square(200.0)) { // Paper - Fix shield disable inconsistency & Check distance in entity interactions
-+                    this.blockUsingItem(level, livingEntity, source, damage);
++                damageBlocked = ev.getBlockedDamage();
++                damageContainer.setBlockedDamage(ev);
++                blocksAttacks.hurtBlockingItem(this.level(), blockingWith, this, this.getUsedItemHand(), ev.shieldDamage());
++
+                 if (damageBlocked > 0.0F && !source.is(DamageTypeTags.IS_PROJECTILE) && source.getDirectEntity() instanceof LivingEntity livingEntity) {
+                     this.blockUsingItem(level, livingEntity, source, damage, damageBlocked >= damage);
                  }
- 
-                 return damageBlocked;
 @@ -1349,6 +_,59 @@
          }
      }
@@ -1125,12 +1113,10 @@
              } else {
                  this.lastHurtByPlayer = null;
                  this.lastHurtByPlayerMemoryTime = 0;
-@@ -1380,9 +_,17 @@
-         return EntityReference.getPlayer(this.lastHurtByPlayer, this.level());
+@@ -1384,6 +_,18 @@
+         attacker.blockedByItem(this, source, damage, fullyBlocked);
      }
  
--    protected void blockUsingItem(ServerLevel level, LivingEntity attacker, DamageSource source, float damage, boolean fullyBlocked) {
--        attacker.blockedByItem(this, source, damage, fullyBlocked);
 +    // Paper start - only call damage event when actuallyHurt will be called - move out amount computation logic
 +    private float computeAmountFromEntityDamageEvent(final EntityDamageEvent event) {
 +        // Taken from hurtServer()'s craftbukkit diff.
@@ -1140,11 +1126,12 @@
 +        amount += (float) event.getDamage(EntityDamageEvent.DamageModifier.FREEZING);
 +        amount += (float) event.getDamage(EntityDamageEvent.DamageModifier.HARD_HAT);
 +        return amount;
-     }
++    }
 +    // Paper end - only call damage event when actuallyHurt will be called - move out amount computation logic
- 
++
      protected void blockedByItem(LivingEntity defender, DamageSource source, float damage, boolean fullyBlocked) {
          if (!fullyBlocked) {
+             defender.knockback(0.5, defender.getX() - this.getX(), defender.getZ() - this.getZ(), source, damage);
 @@ -1398,18 +_,45 @@
          ItemStack protectionItem = null;
          DeathProtection protection = null;

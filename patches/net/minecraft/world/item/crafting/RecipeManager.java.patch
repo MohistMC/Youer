@@ -36,14 +36,7 @@
  import net.minecraft.world.flag.FeatureFlagSet;
  import net.minecraft.world.item.crafting.display.RecipeDisplay;
  import net.minecraft.world.item.crafting.display.RecipeDisplayEntry;
-@@ -46,12 +_,13 @@
-         RecipePropertySet.BREWING_REAGENTS,
-         recipe -> recipe instanceof BrewingRecipe brewingRecipe ? Optional.of(brewingRecipe.getReagent().ingredient()) : Optional.empty()
-     );
--    public RecipeMap recipes;
-+    public final RecipeMap recipes;
-     private Map<ResourceKey<RecipePropertySet>, RecipePropertySet> propertySets = Map.of();
-     private SelectableRecipe.SingleInputSet<StonecutterRecipe> stonecutterRecipes = SelectableRecipe.SingleInputSet.empty();
+@@ -52,6 +_,7 @@
      private List<RecipeManager.ServerDisplayInfo> allDisplays = List.of();
      private Map<ResourceKey<Recipe<?>>, List<RecipeManager.ServerDisplayInfo>> recipeToDisplay = Map.of();
      private final Collection<RecipeHolder<?>> learnableRecipes;
@@ -94,18 +87,18 @@
      }
  
 +    // CraftBukkit start
-+    public boolean removeRecipe(ResourceKey<Recipe<?>> mcKey) {
-+        boolean removed = this.recipes.removeRecipe(mcKey);
++    public boolean removeRecipe(ResourceKey<Recipe<?>> id) {
++        boolean removed = this.recipes.removeRecipe(id);
 +        if (removed) {
-+            finalizeRecipeLoading();
++            this.finalizeRecipeLoading();
 +        }
 +
 +        return removed;
 +    }
 +
 +    public void clearRecipes() {
-+        this.recipes = RecipeMap.create(Collections.emptyList());
-+        finalizeRecipeLoading();
++        this.recipes = RecipeMap.createEmpty();
++        this.finalizeRecipeLoading();
 +    }
 +    // CraftBukkit end
 +

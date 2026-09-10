@@ -41,23 +41,6 @@
      @Override
      protected void defineSynchedData(SynchedEntityData.Builder entityData) {
          super.defineSynchedData(entityData);
-@@ -81,14 +_,14 @@
-         this.entityData.set(ID_SIZE, actualSize);
-         this.reapplyPosition();
-         this.refreshDimensions();
--        this.setCubeMobHealth(actualSize);
-+        this.setcubeMobHealth(actualSize);
-         this.getAttribute(Attributes.MOVEMENT_SPEED).setBaseValue(0.2F + 0.1F * actualSize);
-         if (updateHealth) {
-             this.setHealth(this.getMaxHealth());
-         }
-     }
- 
--    protected void setCubeMobHealth(int actualSize) {
-+    protected void setcubeMobHealth(int actualSize) {
-         this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(actualSize * actualSize);
-     }
- 
 @@ -101,6 +_,7 @@
          super.addAdditionalSaveData(output);
          output.putInt("Size", this.getSize() - 1);
@@ -147,22 +130,7 @@
      }
  
      protected void setUpSplitCube(AbstractCubeMob cubeMob, int halfSize, float xd, float zd) {
-@@ -219,24 +_,20 @@
-     @Override
-     public void push(Entity entity) {
-         super.push(entity);
--        if (entity instanceof IronGolem && this.canDealDamage()) {
-+        if (entity instanceof IronGolem && this.isDealsDamage()) {
-             this.dealDamage((LivingEntity)entity);
-         }
-     }
- 
-     @Override
-     public void playerTouch(Player player) {
--        if (this.canDealDamage()) {
-+        if (this.isDealsDamage()) {
-             this.dealDamage(player);
-         }
+@@ -232,11 +_,7 @@
      }
  
      protected void dealDamage(LivingEntity target) {
@@ -175,15 +143,6 @@
              DamageSource damageSource = this.damageSources().mobAttack(this);
              if (target.hurtServer(level, damageSource, this.getAttackDamage())) {
                  this.playSound(SoundEvents.SLIME_ATTACK, 1.0F, (this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 1.0F);
-@@ -250,7 +_,7 @@
-         return new Vec3(0.0, dimensions.height() - 0.015625 * this.getSize() * scale, 0.0);
-     }
- 
--    protected boolean canDealDamage() {
-+    protected boolean isDealsDamage() {
-         return !this.isTiny() && this.isEffectiveAi();
-     }
- 
 @@ -263,11 +_,31 @@
          return this.getType().getDimensions().scale(this.getSize());
      }
@@ -282,12 +241,8 @@
          }
  
          @Override
-@@ -376,9 +_,16 @@
-             }
- 
-             if (this.cubeMob.getMoveControl() instanceof AbstractCubeMob.CubeMobMoveControl cubeMobMoveControl) {
--                cubeMobMoveControl.setDirection(this.cubeMob.getYRot(), this.cubeMob.canDealDamage());
-+                cubeMobMoveControl.setDirection(this.cubeMob.getYRot(), this.cubeMob.isDealsDamage());
+@@ -379,6 +_,13 @@
+                 cubeMobMoveControl.setDirection(this.cubeMob.getYRot(), this.cubeMob.canDealDamage());
              }
          }
 +
