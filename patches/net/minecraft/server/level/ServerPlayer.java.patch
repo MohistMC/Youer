@@ -759,7 +759,7 @@
 +        if (!keepInventory) {
 +            for (ItemStack item : this.getInventory()) {
 +                if (!item.isEmpty() && !EnchantmentHelper.has(item, EnchantmentEffectComponents.PREVENT_EQUIPMENT_DROP)) {
-+                    loot.add(new DefaultDrop(item, stack -> this.drop(stack, true, false, false, null))); // Paper - Restore vanilla drops behavior; drop function taken from Inventory#dropAll (don't fire drop event)
++                    loot.add(new DefaultDrop(item, stack -> this.drop(stack, false, net.minecraft.util.Prediction.PREDICTED, true, false, null))); // Paper - Restore vanilla drops behavior; drop function taken from Inventory#dropAll (don't fire drop event)
 +                }
 +            }
 +        }
@@ -926,7 +926,7 @@
      }
  
      @Override
-@@ -1016,22 +_,99 @@
+@@ -1016,22 +_,88 @@
          return this.level().isPvpAllowed();
      }
  
@@ -1013,18 +1013,7 @@
 +        location = respawnEvent.getRespawnLocation();
 +
 +        return new RespawnResult(
-+                new TeleportTransition(
-+                        ((org.bukkit.craftbukkit.CraftWorld) location.getWorld()).getHandle(),
-+                        org.bukkit.craftbukkit.util.CraftLocation.toVec3(location),
-+                        teleportTransition.deltaMovement(),
-+                        location.getYaw(),
-+                        location.getPitch(),
-+                        teleportTransition.missingRespawnBlock(),
-+                        teleportTransition.asPassenger(),
-+                        teleportTransition.relatives(),
-+                        teleportTransition.postTeleportTransition(),
-+                        teleportTransition.cause()
-+                ),
++                teleportTransition.withChangedLocation(location),
 +                isBedSpawn,
 +                isAnchorSpawn
 +        );
@@ -1083,7 +1072,7 @@
          if (this.isRemoved()) {
              return null;
          }
-@@ -1147,13 +_,48 @@
+@@ -1147,13 +_,38 @@
  
          ServerLevel newLevel = transition.newLevel();
          ServerLevel oldLevel = this.level();
@@ -1110,17 +1099,7 @@
 +        }
 +        if (!newExit.equals(exit)) {
 +            newLevel = ((org.bukkit.craftbukkit.CraftWorld) newExit.getWorld()).getHandle();
-+            transition = new TeleportTransition(
-+                    newLevel,
-+                    org.bukkit.craftbukkit.util.CraftLocation.toVec3(newExit),
-+                    Vec3.ZERO,
-+                    newExit.getYaw(),
-+                    newExit.getPitch(),
-+                    transition.missingRespawnBlock(),
-+                    transition.asPassenger(),
-+                    Set.of(),
-+                    transition.postTeleportTransition(),
-+                    transition.cause());
++            transition = transition.withChangedLocation(newExit).withVelocity(Vec3.ZERO).withRelatives(Set.of());
 +        }
 +        // CraftBukkit end
          if (!transition.asPassenger()) {
@@ -1681,25 +1660,10 @@
      }
  
      @Override
-@@ -1816,8 +_,32 @@
+@@ -1819,6 +_,20 @@
+         return new CommandSourceStack(this.commandSource(), this.position(), this.getRotationVector(), this.level(), this.permissions(), this.server, this);
      }
  
-     public CommandSourceStack createCommandSourceStack() {
--        return new CommandSourceStack(this.commandSource(), this.position(), this.getRotationVector(), this.level(), this.permissions(), this.server, this);
--    }
-+        return new CommandSourceStack(
-+            this.commandSource(),
-+            this.position(),
-+            this.getRotationVector(),
-+            this.level(),
-+            this.permissions(),
-+            this.getPlainTextName(),
-+            this.getDisplayName(),
-+            this.server,
-+            this
-+        );
-+    }
-+
 +    // Purpur start - Component related conveniences
 +    public void sendMiniMessage(@Nullable String message) {
 +        if (message != null && !message.isEmpty()) {
@@ -1713,9 +1677,10 @@
 +        }
 +    }
 +    // Purpur end - Component related conveniences
- 
++
      @Override
      public void sendSystemMessage(Component message) {
+         this.sendSystemMessage(message, false);
 @@ -1861,8 +_,13 @@
      }
  
@@ -1868,7 +1833,7 @@
              }
  
              if (newCamera != null) {
-@@ -1983,11 +_,25 @@
+@@ -1983,11 +_,19 @@
      }
  
      public @Nullable Component getTabListDisplayName() {
@@ -1887,16 +1852,10 @@
      public int getTabListOrder() {
 -        return 0;
 +        return listOrder; // CraftBukkit
-+    }
-+
-+    @Override
-+    public void swing(InteractionHand hand) {
-+        super.swing(hand);
-+        this.resetAttackStrengthTicker();
      }
  
      public boolean isChangingDimension() {
-@@ -2011,11 +_,52 @@
+@@ -2011,11 +_,61 @@
      }
  
      public void setRespawnPosition(ServerPlayer.@Nullable RespawnConfig respawnConfig, boolean showMessage) {
@@ -1916,6 +1875,15 @@
 +            spawnLoc.setYaw(respawnConfig.respawnData().yaw());
 +            spawnLoc.setPitch(respawnConfig.respawnData().pitch());
 +        }
++        org.bukkit.event.player.PlayerSpawnChangeEvent dumbEvent = new org.bukkit.event.player.PlayerSpawnChangeEvent(
++                this.getBukkitEntity(),
++                spawnLoc,
++                respawnConfig != null && respawnConfig.forced(),
++                cause == com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.PLAYER_RESPAWN
++                        ? org.bukkit.event.player.PlayerSpawnChangeEvent.Cause.RESET
++                        : org.bukkit.event.player.PlayerSpawnChangeEvent.Cause.valueOf(cause.name())
++        );
++        dumbEvent.callEvent();
 +
 +        com.destroystokyo.paper.event.player.PlayerSetSpawnEvent event = new com.destroystokyo.paper.event.player.PlayerSetSpawnEvent(
 +                this.getBukkitEntity(),
@@ -1957,8 +1925,8 @@
      @Override
 -    public @Nullable ItemEntity drop(ItemStack itemStack, boolean thrownFromHand, Prediction prediction) {
 -        ItemEntity entity = super.drop(itemStack, thrownFromHand, prediction);
-+    public ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand, final boolean callEvent, final java.util.function.@Nullable Consumer<org.bukkit.entity.Item> entityOperation) { // Paper - Extend dropItem API
-+        ItemEntity entity = super.drop(itemStack, randomly, thrownFromHand, callEvent, entityOperation); // Paper - Extend dropItem API
++    public ItemEntity drop(ItemStack itemStack, boolean thrownFromHand, Prediction prediction, boolean callEvent, final java.util.function.@Nullable Consumer<org.bukkit.entity.Item> entityOperation) { // Paper - Extend dropItem API
++        ItemEntity entity = super.drop(itemStack, thrownFromHand, prediction, callEvent, entityOperation); // Paper - Extend dropItem API
 +        ItemStack droppedItemStack = entity != null ? entity.getItem() : ItemStack.EMPTY; // Paper - move up
          if (thrownFromHand) {
 -            ItemStack droppedItemStack = entity != null ? entity.getItem() : ItemStack.EMPTY;
@@ -2061,6 +2029,17 @@
          ItemStack removed = inventory.removeFromSelected(all);
          this.containerMenu
              .findSlot(inventory, inventory.getSelectedSlot())
+@@ -2107,8 +_,9 @@
+             this.stopUsingItem();
+         }
+ 
+-        this.drop(removed, true, Prediction.PREDICTED);
++        boolean ret = this.drop(removed, true, Prediction.PREDICTED) != null; // Paper - add back success return
+         this.resetAttackStrengthTicker();
++        return ret; // Paper - return, keep order
+     }
+ 
+     @Override
 @@ -2170,9 +_,9 @@
      }
  
@@ -2088,7 +2067,7 @@
          }
  
          private static float calculateLookAtYaw(Vec3 position, BlockPos lookAtBlockPos) {
-@@ -2353,4 +_,196 @@
+@@ -2353,4 +_,195 @@
          );
          public static final ServerPlayer.SavedPosition EMPTY = new ServerPlayer.SavedPosition(Optional.empty(), Optional.empty(), Optional.empty());
      }
@@ -2248,9 +2227,8 @@
 +                    to.getYaw(),
 +                    to.getPitch(),
 +                    net.minecraft.world.entity.Relative.ALL,
-+                    TeleportTransition.DO_NOTHING,
-+                    org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN
-+            ));
++                    TeleportTransition.DO_NOTHING
++            ).withCause(org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN));
 +        }
 +    }
 +    // Purpur end - Add option to teleport to spawn if outside world border

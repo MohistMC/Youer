@@ -1,5 +1,13 @@
 --- a/net/minecraft/world/level/block/NetherWartBlock.java
 +++ b/net/minecraft/world/level/block/NetherWartBlock.java
+@@ -2,6 +_,7 @@
+ 
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.server.level.ServerLevel;
++import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.tags.BlockTags;
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.world.item.ItemStack;
 @@ -16,7 +_,7 @@
  import net.minecraft.world.phys.shapes.CollisionContext;
  import net.minecraft.world.phys.shapes.VoxelShape;
@@ -29,28 +37,28 @@
 +
 +    // Purpur start - Ability for hoe to replant nether warts
 +    @Override
-+    public void playerDestroy(net.minecraft.world.level.Level world, net.minecraft.world.entity.player.Player player, BlockPos pos, BlockState state, @javax.annotation.Nullable net.minecraft.world.level.block.entity.BlockEntity blockEntity, ItemStack itemInHand, boolean includeDrops, boolean dropExp) {
-+        if (world.purpurConfig.hoeReplantsNetherWarts && itemInHand.getItem() instanceof net.minecraft.world.item.HoeItem) {
-+            super.playerDestroyAndReplant(world, player, pos, state, blockEntity, itemInHand, Items.NETHER_WART);
++    public void playerDestroy(final ServerLevel level, final net.minecraft.server.level.ServerPlayer player, final BlockPos pos, final BlockState state, final net.minecraft.world.level.block.entity.BlockEntity blockEntity, final ItemStack destroyedWith, boolean includeDrops, boolean dropExp) {
++        if (level.purpurConfig.hoeReplantsNetherWarts && destroyedWith.is(net.minecraft.tags.ItemTags.HOES)) {
++            super.playerDestroyAndReplant(level, player, pos, state, blockEntity, destroyedWith, Items.NETHER_WART);
 +        } else {
-+            super.playerDestroy(world, player, pos, state, blockEntity, itemInHand, includeDrops, dropExp);
++            super.playerDestroy(level, player, pos, state, blockEntity, destroyedWith, includeDrops, dropExp);
 +        }
 +    }
 +    // Purpur end - Ability for hoe to replant nether warts
 +
 +    // Purpur start - bonemealable netherwart
 +    @Override
-+    public boolean isValidBonemealTarget(final net.minecraft.world.level.LevelReader world, final BlockPos pos, final BlockState state) {
++    public boolean isValidBonemealTarget(final net.minecraft.world.level.LevelReader world, final BlockPos pos, final BlockState state, BonemealSource source) {
 +        return ((net.minecraft.world.level.Level) world).purpurConfig.netherWartAffectedByBonemeal && state.getValue(NetherWartBlock.AGE) < 3;
 +    }
 +
 +    @Override
-+    public boolean isBonemealSuccess(net.minecraft.world.level.Level world, RandomSource random, BlockPos pos, BlockState state) {
++    public boolean isBonemealSuccess(net.minecraft.world.level.Level world, RandomSource random, BlockPos pos, BlockState state, BonemealSource source) {
 +        return true;
 +    }
 +
 +    @Override
-+    public void performBonemeal(ServerLevel world, RandomSource random, BlockPos pos, BlockState state) {
++    public void performBonemeal(ServerLevel world, RandomSource random, BlockPos pos, BlockState state, BonemealSource source) {
 +        int i = Math.min(3, state.getValue(NetherWartBlock.AGE) + 1);
 +        state = state.setValue(NetherWartBlock.AGE, i);
 +        org.bukkit.craftbukkit.event.CraftEventFactory.handleBlockGrowEvent(world, pos, state, 2); // CraftBukkit

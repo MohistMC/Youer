@@ -83,7 +83,7 @@
      private final Map<EquipmentSlot, ItemStack> lastEquipmentItems = Util.makeEnumMap(EquipmentSlot.class, slot -> ItemStack.EMPTY);
      private final LivingEntity.SwingState swingState = new LivingEntity.SwingState();
      private boolean discardFriction = false;
-@@ -249,15 +_,16 @@
+@@ -249,15 +_,15 @@
      protected boolean dead;
      protected int noActionTime;
      public float lastHurt;
@@ -95,7 +95,6 @@
 +    public float xxa; public float getStrafeMot() { return xxa; } public void setStrafeMot(float strafe) { xxa = strafe; } // Purpur - OBFHELPER
 +    public float yya; public float getVerticalMot() { return yya; } public void setVerticalMot(float vertical) { yya = vertical; } // Purpur - OBFHELPER
 +    public float zza; public float getForwardMot() { return zza; } public void setForwardMot(float forward) { zza = forward; } // Purpur - OBFHELPER
-+    protected final InterpolationHandler interpolation = new InterpolationHandler(this);
      protected double lerpYHeadRot;
      protected int lerpHeadSteps;
      public boolean effectsDirty = true;
@@ -131,7 +130,7 @@
 +    public org.bukkit.craftbukkit.entity.CraftLivingEntity getBukkitLivingEntity() { return (org.bukkit.craftbukkit.entity.CraftLivingEntity) super.getBukkitEntity(); } // Paper
 +    public boolean silentDeath = true; // Paper - mark entity as dying silently for cancellable death event
 +    public net.kyori.adventure.util.TriState frictionState = net.kyori.adventure.util.TriState.NOT_SET; // Paper - Friction API
-+    public int invulnerableDuration = LivingEntity.INVULNERABLE_DURATION; // Paper - configurable invulnerable duration
++    public int invulnerableDuration = LivingEntity.DAMAGE_COOLDOWN_DURATION; // Paper - configurable invulnerable duration
 +    protected boolean shouldBurnInDay = false; public boolean shouldBurnInDay() { return this.shouldBurnInDay; } public void setShouldBurnInDay(boolean shouldBurnInDay) { this.shouldBurnInDay = shouldBurnInDay; } // Purpur - API for any mob to burn daylight
 +    // CraftBukkit end
 +
@@ -340,7 +339,7 @@
          if (this.lastHurtByPlayer != null) {
              this.lastHurtByPlayer.store(output, "last_hurt_by_player");
              output.putInt("last_hurt_by_player_memory_time", this.lastHurtByPlayerMemoryTime);
-@@ -782,18 +_,55 @@
+@@ -782,7 +_,17 @@
          }
      }
  
@@ -359,10 +358,7 @@
          if (itemStack.isEmpty()) {
              return null;
          }
--
--        this.swing(InteractionHand.MAIN_HAND, SwingAnimation.DEFAULT, prediction != Prediction.PREDICTED);
-         if (this.level().isClientSide()) {
-+            this.swing(InteractionHand.MAIN_HAND);
+@@ -792,8 +_,36 @@
              return null;
          }
  
@@ -1089,8 +1085,8 @@
 +        if (blocksAttacks == null) return;
 +
 +        blocksAttacks.hurtBlockingItem(this.level(), blockingWith, this, this.getUsedItemHand(), damageBlocked);
-+        if (damageBlocked > 0.0F && !source.is(DamageTypeTags.IS_PROJECTILE) && source.getDirectEntity() instanceof LivingEntity livingEntity) {
-+            this.blockUsingItem(level, livingEntity, source, damage);
++        if (damageBlocked > 0.0F && !source.is(DamageTypeTags.IS_PROJECTILE) && source.getDirectEntity() instanceof LivingEntity livingEntity && livingEntity.distanceToSqr(this) <= Mth.square(200.0)) { // Paper - Fix shield disable inconsistency & Check distance in entity interactions
++            this.blockUsingItem(level, livingEntity, source, damage, damageBlocked >= damage);
 +        }
 +    }
 +    // Paper end - copied from above split by relevant part
@@ -1757,7 +1753,7 @@
              )
              : 1.0F;
          Vec3 movement = this.handleRelativeFrictionAndCalculateMovement(input, blockFriction);
-@@ -2472,17 +_,24 @@
+@@ -2472,7 +_,15 @@
          return computeModifiedFriction(this.omnidirectionalAirMover() ? 0.91F : 0.98F, (float)this.getAttributeValue(Attributes.AIR_DRAG_MODIFIER));
      }
  
@@ -1773,17 +1769,6 @@
          boolean isFalling = this.getDeltaMovement().y <= 0.0;
          double oldY = this.getY();
          double baseGravity = this.getEffectiveGravity();
-         if (this.isInWater()) {
-             this.travelInWater(input, baseGravity, isFalling, oldY);
-+            this.floatInWaterWhileRidden();
-         } else {
-             this.travelInLava(input, baseGravity, isFalling, oldY);
-         }
--
--        this.floatInLiquidWhileRidden(FluidTags.ENTITY_FLOATABLE);
-     }
- 
-     protected void travelInWater(Vec3 input, double baseGravity, boolean isFalling, double oldY) {
 @@ -2502,6 +_,7 @@
              slowDown = 0.96F;
          }
@@ -1997,7 +1982,7 @@
                  this.setTicksFrozen(Math.max(0, this.getTicksFrozen() - 2));
              }
  
-@@ -3140,9 +_,70 @@
+@@ -3140,6 +_,37 @@
  
          this.pushEntities();
          profiler.pop();
@@ -2035,39 +2020,6 @@
          if (this.level() instanceof ServerLevel serverLevel && this.isSensitiveToWater() && this.isInWaterOrRain()) {
              this.hurtServer(serverLevel, this.damageSources().drown(), 1.0F);
          }
-+        // Purpur start - copied from Mob - API for any mob to burn daylight
-+        if (this.isAlive()) {
-+            boolean flag = this.shouldBurnInDay() && this.isSunBurnTick(); // Paper - shouldBurnInDay API // Purpur - use shouldBurnInDay() method to handle Phantoms properly - API for any mob to burn daylight
-+            if (flag) {
-+                EquipmentSlot equipmentSlot = this.sunProtectionSlot();
-+                ItemStack itemBySlot = this.getItemBySlot(equipmentSlot);
-+                if (!itemBySlot.isEmpty()) {
-+                    if (itemBySlot.isDamageableItem()) {
-+                        Item item = itemBySlot.getItem();
-+                        itemBySlot.setDamageValue(itemBySlot.getDamageValue() + this.random.nextInt(2));
-+                        if (itemBySlot.getDamageValue() >= itemBySlot.getMaxDamage()) {
-+                            this.onEquippedItemBroken(item, equipmentSlot);
-+                            this.setItemSlot(equipmentSlot, ItemStack.EMPTY);
-+                        }
-+                    }
-+
-+                    flag = false;
-+                }
-+
-+                if (flag) {
-+                    if (getRider() == null || !this.isControllable()) // Purpur - ignore mobs which are uncontrollable or without rider - API for any mob to burn daylight
-+                        this.igniteForSeconds(8.0F);
-+                }
-+            }
-+        }
-+    }
-+
-+    protected EquipmentSlot sunProtectionSlot() {
-+        return net.minecraft.world.entity.EquipmentSlot.HEAD;
-+        // Purpur end - copied from Mob - API for any mob to burn daylight
-     }
- 
-     protected void applyInput() {
 @@ -3162,6 +_,7 @@
          this.checkFallDistanceAccumulation();
          if (!this.level().isClientSide()) {
@@ -2522,7 +2474,7 @@
      }
  
      @Override
-@@ -3852,10 +_,10 @@
+@@ -3852,7 +_,7 @@
      }
  
      public ItemStack getProjectile(ItemStack heldWeapon) {
@@ -2530,11 +2482,7 @@
 +        return net.neoforged.neoforge.common.CommonHooks.getProjectile(this, heldWeapon, ItemStack.EMPTY);
      }
  
--    public static @EntityEvent.Value byte entityEventForEquipmentBreak(EquipmentSlot equipmentSlot) {
-+    private static @EntityEvent.Value byte entityEventForEquipmentBreak(EquipmentSlot equipmentSlot) {
-         return switch (equipmentSlot) {
-             case MAINHAND -> 47;
-             case OFFHAND -> 48;
+     public static @EntityEvent.Value byte entityEventForEquipmentBreak(EquipmentSlot equipmentSlot) {
 @@ -3904,6 +_,8 @@
      }
  

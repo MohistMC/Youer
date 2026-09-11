@@ -15,7 +15,7 @@
  import net.minecraft.core.HolderSet;
  import net.minecraft.core.Registry;
  import net.minecraft.resources.RegistryOps;
-@@ -32,13 +_,33 @@
+@@ -32,13 +_,23 @@
      }
  
      public <V> RegistryOps<V> createSerializationContext(DynamicOps<V> parent) {
@@ -28,19 +28,9 @@
 +            parent,
 +            new RegistryOps.RegistryInfoLookup() {
 +                @Override
-+                public <T> Optional<RegistryOps.RegistryInfo<T>> lookup(ResourceKey<? extends Registry<? extends T>> registryKey) {
-+                    return PlaceholderLookupProvider.this.context
-+                        .lookup(registryKey)
-+                        .map(RegistryOps.RegistryInfo::fromRegistryLookup)
-+                        .or(
-+                            () -> Optional.of(
-+                                new RegistryOps.RegistryInfo<>(
-+                                    PlaceholderLookupProvider.this.lookup.castAsOwner(),
-+                                    PlaceholderLookupProvider.this.lookup.castAsLookup(),
-+                                    Lifecycle.experimental()
-+                                )
-+                            )
-+                        );
++                public <T> Optional<HolderGetter<T>> lookup(ResourceKey<? extends Registry<? extends T>> registryKey) {
++                    Optional<HolderGetter<T>> result = PlaceholderLookupProvider.this.context.lookup(registryKey).map(e -> (HolderGetter<T>)e);
++                    return result.or(() -> Optional.of(PlaceholderLookupProvider.this.lookup.castAsLookup()));
 +                }
 +
 +                // Paper start add method to get the value for pre-filling builders in the reg mod API

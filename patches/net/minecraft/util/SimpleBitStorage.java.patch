@@ -1,6 +1,6 @@
 --- a/net/minecraft/util/SimpleBitStorage.java
 +++ b/net/minecraft/util/SimpleBitStorage.java
-@@ -205,10 +_,24 @@
+@@ -205,8 +_,8 @@
      private final long mask;
      private final int size;
      private final int valuesPerLong;
@@ -10,23 +10,7 @@
 +    private final int divideAdd; private final long divideAddUnsigned; // Paper - Perf: Optimize SimpleBitStorage
      private final int divideShift;
  
-+    // Paper start - optimise bitstorage read/write operations
-+    private static final int[] BETTER_MAGIC = new int[33];
-+    static {
-+        // 20 bits of precision
-+        // since index is always [0, 4095] (i.e 12 bits), multiplication by a magic value here (20 bits)
-+        // fits exactly in an int and allows us to use integer arithmetic
-+        for (int bits = 1; bits < BETTER_MAGIC.length; ++bits) {
-+            BETTER_MAGIC[bits] = (int)ca.spottedleaf.common.util.IntegerUtil.getUnsignedDivisorMagic(64L / bits, 20);
-+        }
-+    }
-+    private final int magic;
-+    private final int mulBits;
-+    // Paper end - optimise bitstorage read/write operations
-+
      public SimpleBitStorage(int bits, int size, int[] values) {
-         this(bits, size);
-         int outputIndex = 0;
 @@ -249,8 +_,8 @@
          this.mask = (1L << bits) - 1L;
          this.valuesPerLong = (char)(64 / bits);
@@ -38,121 +22,55 @@
          this.divideShift = MAGIC[row + 2];
          int requiredLength = (size + this.valuesPerLong - 1) / this.valuesPerLong;
          if (data != null) {
-@@ -262,57 +_,66 @@
-         } else {
-             this.data = new long[requiredLength];
-         }
-+        // Paper start - optimise bitstorage read/write operations
-+        this.magic = BETTER_MAGIC[this.bits];
-+        this.mulBits = (64 / this.bits) * this.bits;
-+        if (this.size > 4096) {
-+            throw new IllegalStateException("Size > 4096 not supported");
-+        }
-+        // Paper end - optimise bitstorage read/write operations
+@@ -265,15 +_,11 @@
      }
  
      private int cellIndex(int bitIndex) {
 -        long mul = Integer.toUnsignedLong(this.divideMul);
 -        long add = Integer.toUnsignedLong(this.divideAdd);
 -        return (int)(bitIndex * mul + add >> 32 >> this.divideShift);
--    }
--
--    @Override
--    public int getAndSet(int index, int value) {
--        Validate.inclusiveBetween(0L, this.size - 1, index);
--        Validate.inclusiveBetween(0L, this.mask, value);
--        int cellIndex = this.cellIndex(index);
--        long cellValue = this.data[cellIndex];
--        int bitIndex = (index - cellIndex * this.valuesPerLong) * this.bits;
--        int oldValue = (int)(cellValue >> bitIndex & this.mask);
--        this.data[cellIndex] = cellValue & ~(this.mask << bitIndex) | (value & this.mask) << bitIndex;
--        return oldValue;
--    }
--
--    @Override
--    public void set(int index, int value) {
--        Validate.inclusiveBetween(0L, this.size - 1, index);
--        Validate.inclusiveBetween(0L, this.mask, value);
--        int cellIndex = this.cellIndex(index);
--        long cellValue = this.data[cellIndex];
--        int bitIndex = (index - cellIndex * this.valuesPerLong) * this.bits;
--        this.data[cellIndex] = cellValue & ~(this.mask << bitIndex) | (value & this.mask) << bitIndex;
--    }
--
--    @Override
--    public void fill(int value) {
--        Validate.inclusiveBetween(0L, this.mask, value);
--        long cellValue = value & this.mask;
--        int offset = this.bits;
--
--        do {
--            cellValue |= cellValue << offset;
--            offset <<= 1;
--        } while (offset < 64);
--
--        Arrays.fill(this.data, cellValue);
--    }
--
--    @Override
--    public int get(int index) {
--        Validate.inclusiveBetween(0L, this.size - 1, index);
--        int cellIndex = this.cellIndex(index);
--        long cellValue = this.data[cellIndex];
--        int bitIndex = (index - cellIndex * this.valuesPerLong) * this.bits;
--        return (int)(cellValue >> bitIndex & this.mask);
 +        return (int)(bitIndex * this.divideMulUnsigned + this.divideAddUnsigned >> 32 >> this.divideShift); // Paper - Perf: Optimize SimpleBitStorage
-+    }
-+
-+    @Override
-+    public final int getAndSet(final int index, final int value) { // Paper - Perf: Optimize SimpleBitStorage
-+        // Paper start - optimise bitstorage read/write operations
-+        final int full = this.magic * index; // 20 bits of magic + 12 bits of index = barely int
-+        final int divQ = full >>> 20;
-+        final int divR = (full & 0xFFFFF) * this.mulBits >>> 20;
-+
-+        final long[] dataArray = this.data;
-+
-+        final long data = dataArray[divQ];
-+        final long mask = this.mask;
-+
-+        final long write = data & ~(mask << divR) | ((long)value & mask) << divR;
-+
-+        dataArray[divQ] = write;
-+
-+        return (int)(data >>> divR & mask);
-+        // Paper end - optimise bitstorage read/write operations
-+    }
-+
-+    @Override
-+    public final void set(final int index, final int value) { // Paper - Perf: Optimize SimpleBitStorage
-+        // Paper start - optimise bitstorage read/write operations
-+        final int full = this.magic * index; // 20 bits of magic + 12 bits of index = barely int
-+        final int divQ = full >>> 20;
-+        final int divR = (full & 0xFFFFF) * this.mulBits >>> 20;
-+
-+        final long[] dataArray = this.data;
-+
-+        final long data = dataArray[divQ];
-+        final long mask = this.mask;
-+
-+        final long write = data & ~(mask << divR) | ((long)value & mask) << divR;
-+
-+        dataArray[divQ] = write;
-+        // Paper end - optimise bitstorage read/write operations
-+    }
-+
-+    @Override
-+    public final int get(final int index) { // Paper - Perf: Optimize SimpleBitStorage
-+        // Paper start - optimise bitstorage read/write operations
-+        final int full = this.magic * index; // 20 bits of magic + 12 bits of index = barely int
-+        final int divQ = full >>> 20;
-+        final int divR = (full & 0xFFFFF) * this.mulBits >>> 20;
-+
-+        return (int)(this.data[divQ] >>> divR & this.mask);
-+        // Paper end - optimise bitstorage read/write operations
      }
  
      @Override
+-    public int getAndSet(int index, int value) {
+-        Validate.inclusiveBetween(0L, this.size - 1, index);
+-        Validate.inclusiveBetween(0L, this.mask, value);
++    public final int getAndSet(final int index, final int value) { // Paper - Perf: Optimize SimpleBitStorage
+         int cellIndex = this.cellIndex(index);
+         long cellValue = this.data[cellIndex];
+         int bitIndex = (index - cellIndex * this.valuesPerLong) * this.bits;
+@@ -283,9 +_,7 @@
+     }
+ 
+     @Override
+-    public void set(int index, int value) {
+-        Validate.inclusiveBetween(0L, this.size - 1, index);
+-        Validate.inclusiveBetween(0L, this.mask, value);
++    public final void set(final int index, final int value) { // Paper - Perf: Optimize SimpleBitStorage
+         int cellIndex = this.cellIndex(index);
+         long cellValue = this.data[cellIndex];
+         int bitIndex = (index - cellIndex * this.valuesPerLong) * this.bits;
+@@ -293,7 +_,7 @@
+     }
+ 
+     @Override
+-    public void fill(int value) {
++    public final void fill(final int value) { // Paper - Perf: Optimize SimpleBitStorage
+         Validate.inclusiveBetween(0L, this.mask, value);
+         long cellValue = value & this.mask;
+         int offset = this.bits;
+@@ -307,8 +_,8 @@
+     }
+ 
+     @Override
+-    public int get(int index) {
+-        Validate.inclusiveBetween(0L, this.size - 1, index);
++    public final int get(final int index) { // Paper - Perf: Optimize SimpleBitStorage
++        //Validate.inclusiveBetween(0L, this.size - 1, index); // Paper - Perf: Optimize SimpleBitStorage
+         int cellIndex = this.cellIndex(index);
+         long cellValue = this.data[cellIndex];
+         int bitIndex = (index - cellIndex * this.valuesPerLong) * this.bits;
 @@ -376,6 +_,67 @@
      public BitStorage copy() {
          return new SimpleBitStorage(this.bits, this.size, (long[])this.data.clone());

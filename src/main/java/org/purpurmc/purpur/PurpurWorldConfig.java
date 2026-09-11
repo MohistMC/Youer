@@ -18,6 +18,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.FrogspawnBlock;
 import net.minecraft.world.level.block.state.properties.Tilt;
 import org.apache.commons.lang3.BooleanUtils;
 import org.bukkit.Bukkit;
@@ -26,11 +27,6 @@ import org.bukkit.World;
 import org.bukkit.configuration.ConfigurationSection;
 import java.util.List;
 import java.util.Map;
-import org.purpurmc.purpur.tool.Flattenable;
-import org.purpurmc.purpur.tool.Strippable;
-import org.purpurmc.purpur.tool.Tillable;
-import org.purpurmc.purpur.tool.Waxable;
-import org.purpurmc.purpur.tool.Weatherable;
 
 import static org.purpurmc.purpur.PurpurConfig.log;
 
@@ -486,7 +482,7 @@ public class PurpurWorldConfig {
     public boolean playerSleepNearMonsters = false;
     public boolean playersSkipNight = true;
     public double playerCriticalDamageMultiplier = 1.5D;
-    public int playerBurpDelay = 10;
+    public int playerBurpDelay = 0;
     public boolean playerBurpWhenFull = false;
     public boolean playerRidableInWater = false;
     public boolean playerRemoveBindingWithWeakness = false;
@@ -498,6 +494,10 @@ public class PurpurWorldConfig {
             boolean oldVal = getBoolean("gameplay-mechanics.player.idle-timeout.mods-target", idleTimeoutTargetPlayer);
             set("gameplay-mechanics.player.idle-timeout.mods-target", null);
             set("gameplay-mechanics.player.idle-timeout.mobs-target", oldVal);
+        }
+        if (PurpurConfig.version < 49) {
+            int oldVal = getInt("gameplay-mechanics.player.burp-delay", playerBurpDelay);
+            if (oldVal == 10) set("gameplay-mechanics.player.burp-delay", 0);
         }
         idleTimeoutKick = System.getenv("PURPUR_FORCE_IDLE_KICK") == null ? getBoolean("gameplay-mechanics.player.idle-timeout.kick-if-idle", idleTimeoutKick) : Boolean.parseBoolean(System.getenv("PURPUR_FORCE_IDLE_KICK"));
         idleTimeoutTickNearbyEntities = getBoolean("gameplay-mechanics.player.idle-timeout.tick-nearby-entities", idleTimeoutTickNearbyEntities);
@@ -562,6 +562,7 @@ public class PurpurWorldConfig {
     public double throwablePotionProjectileOffset = 1.0D;
     public double tridentProjectileOffset = 1.0D;
     public double snowballProjectileOffset = 1.0D;
+    public double windChargeProjectileOffset = 1.0D;
     private void projectileOffsetSettings() {
         bowProjectileOffset = getDouble("gameplay-mechanics.projectile-offset.bow", bowProjectileOffset);
         crossbowProjectileOffset = getDouble("gameplay-mechanics.projectile-offset.crossbow", crossbowProjectileOffset);
@@ -570,6 +571,7 @@ public class PurpurWorldConfig {
         throwablePotionProjectileOffset = getDouble("gameplay-mechanics.projectile-offset.throwable-potion", throwablePotionProjectileOffset);
         tridentProjectileOffset = getDouble("gameplay-mechanics.projectile-offset.trident", tridentProjectileOffset);
         snowballProjectileOffset = getDouble("gameplay-mechanics.projectile-offset.snowball", snowballProjectileOffset);
+        windChargeProjectileOffset = getDouble("gameplay-mechanics.projectile-offset.wind-charge", windChargeProjectileOffset);
     }
 
     public int snowballDamage = -1;
@@ -577,377 +579,9 @@ public class PurpurWorldConfig {
         snowballDamage = getInt("gameplay-mechanics.projectile-damage.snowball", snowballDamage);
     }
 
-    public Map<Block, Strippable> axeStrippables = new HashMap<>();
-    public Map<Block, Waxable> axeWaxables = new HashMap<>();
-    public Map<Block, Weatherable> axeWeatherables = new HashMap<>();
-    public Map<Block, Tillable> hoeTillables = new HashMap<>();
-    public Map<Block, Flattenable> shovelFlattenables = new HashMap<>();
     public boolean hoeReplantsCrops = false;
     public boolean hoeReplantsNetherWarts = false;
     private void toolSettings() {
-        axeStrippables.clear();
-        axeWaxables.clear();
-        axeWeatherables.clear();
-        hoeTillables.clear();
-        shovelFlattenables.clear();
-        if (PurpurConfig.version < 18) {
-            ConfigurationSection section = PurpurConfig.config.getConfigurationSection("world-settings." + worldName + ".tools.hoe.tilling");
-            if (section != null) {
-                PurpurConfig.config.set("world-settings." + worldName + ".tools.hoe.tillables", section);
-                PurpurConfig.config.set("world-settings." + worldName + ".tools.hoe.tilling", null);
-            }
-            section = PurpurConfig.config.getConfigurationSection("world-settings.default.tools.hoe.tilling");
-            if (section != null) {
-                PurpurConfig.config.set("world-settings.default.tools.hoe.tillables", section);
-                PurpurConfig.config.set("world-settings.default.tools.hoe.tilling", null);
-            }
-        }
-        if (PurpurConfig.version < 29) {
-            PurpurConfig.config.set("world-settings.default.tools.axe.strippables.minecraft:mangrove_log", Map.of("into", "minecraft:stripped_mangrove_log", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.strippables.minecraft:mangrove_wood", Map.of("into", "minecraft:stripped_mangrove_wood", "drops", new HashMap<String, Double>()));
-        }
-        if (PurpurConfig.version < 32) {
-            PurpurConfig.config.set("world-settings.default.tools.axe.strippables.minecraft:cherry_log", Map.of("into", "minecraft:stripped_cherry_log", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.strippables.minecraft:cherry_wood", Map.of("into", "minecraft:stripped_cherry_wood", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.strippables.minecraft:bamboo_block", Map.of("into", "minecraft:stripped_bamboo_block", "drops", new HashMap<String, Double>()));
-        }
-        if (PurpurConfig.version < 33) {
-            getList("gameplay-mechanics.shovel-turns-block-to-grass-path", new ArrayList<String>(){{
-                add("minecraft:coarse_dirt");
-                add("minecraft:dirt");
-                add("minecraft:grass_block");
-                add("minecraft:mycelium");
-                add("minecraft:podzol");
-                add("minecraft:rooted_dirt");
-            }}).forEach(key -> {
-                PurpurConfig.config.set("world-settings.default.tools.shovel.flattenables." + key.toString(), Map.of("into", "minecraft:dirt_path", "drops", new HashMap<String, Double>()));
-            });
-            set("gameplay-mechanics.shovel-turns-block-to-grass-path", null);
-        }
-        if (PurpurConfig.version < 34) {
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_chiseled_copper", Map.of("into", "minecraft:chiseled_copper", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_exposed_chiseled_copper", Map.of("into", "minecraft:exposed_chiseled_copper", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_weathered_chiseled_copper", Map.of("into", "minecraft:weathered_chiseled_copper", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_oxidized_chiseled_copper", Map.of("into", "minecraft:oxidized_chiseled_copper", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_copper_door", Map.of("into", "minecraft:copper_door", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_exposed_copper_door", Map.of("into", "minecraft:exposed_copper_door", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_weathered_copper_door", Map.of("into", "minecraft:weathered_copper_door", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_oxidized_copper_door", Map.of("into", "minecraft:oxidized_copper_door", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_copper_trapdoor", Map.of("into", "minecraft:copper_trapdoor", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_exposed_copper_trapdoor", Map.of("into", "minecraft:exposed_copper_trapdoor", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_weathered_copper_trapdoor", Map.of("into", "minecraft:weathered_copper_trapdoor", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_oxidized_copper_trapdoor", Map.of("into", "minecraft:oxidized_copper_trapdoor", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_copper_grate", Map.of("into", "minecraft:copper_grate", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_exposed_copper_grate", Map.of("into", "minecraft:exposed_copper_grate", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_weathered_copper_grate", Map.of("into", "minecraft:weathered_copper_grate", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_oxidized_copper_grate", Map.of("into", "minecraft:oxidized_copper_grate", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_copper_bulb", Map.of("into", "minecraft:copper_bulb", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_exposed_copper_bulb", Map.of("into", "minecraft:exposed_copper_bulb", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_weathered_copper_bulb", Map.of("into", "minecraft:weathered_copper_bulb", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_oxidized_copper_bulb", Map.of("into", "minecraft:oxidized_copper_bulb", "drops", new HashMap<String, Double>()));
-
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:exposed_chiseled_copper", Map.of("into", "minecraft:chiseled_copper", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:weathered_chiseled_copper", Map.of("into", "minecraft:exposed_chiseled_copper", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:oxidized_chiseled_copper", Map.of("into", "minecraft:weathered_chiseled_copper", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:oxidized_cut_copper_stairs", Map.of("into", "minecraft:weathered_cut_copper_stairs", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:exposed_copper_door", Map.of("into", "minecraft:copper_door", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:weathered_copper_door", Map.of("into", "minecraft:exposed_copper_door", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:oxidized_copper_door", Map.of("into", "minecraft:weathered_copper_door", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:exposed_copper_trapdoor", Map.of("into", "minecraft:copper_trapdoor", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:weathered_copper_trapdoor", Map.of("into", "minecraft:exposed_copper_trapdoor", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:oxidized_copper_trapdoor", Map.of("into", "minecraft:weathered_copper_trapdoor", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:exposed_copper_grate", Map.of("into", "minecraft:copper_grate", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:weathered_copper_grate", Map.of("into", "minecraft:exposed_copper_grate", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:oxidized_copper_grate", Map.of("into", "minecraft:weathered_copper_grate", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:exposed_copper_bulb", Map.of("into", "minecraft:copper_bulb", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:weathered_copper_bulb", Map.of("into", "minecraft:exposed_copper_bulb", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:oxidized_copper_bulb", Map.of("into", "minecraft:weathered_copper_bulb", "drops", new HashMap<String, Double>()));
-        }
-        if (PurpurConfig.version < 39) {
-            PurpurConfig.config.set("world-settings.default.tools.axe.strippables.minecraft:pale_oak_wood", Map.of("into", "minecraft:stripped_pale_oak_wood", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.strippables.minecraft:pale_oak_log", Map.of("into", "minecraft:stripped_pale_oak_log", "drops", new HashMap<String, Double>()));
-        }
-        if (PurpurConfig.version < 44) {
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_copper_chest", Map.of("into", "minecraft:copper_chest", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_exposed_copper_chest", Map.of("into", "minecraft:exposed_copper_chest", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_weathered_copper_chest", Map.of("into", "minecraft:weathered_copper_chest", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_oxidized_copper_chest", Map.of("into", "minecraft:oxidized_copper_chest", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_copper_golem_statue", Map.of("into", "minecraft:copper_golem_statue", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_exposed_copper_golem_statue", Map.of("into", "minecraft:exposed_copper_golem_statue", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_weathered_copper_golem_statue", Map.of("into", "minecraft:weathered_copper_golem_statue", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_oxidized_copper_golem_statue", Map.of("into", "minecraft:oxidized_copper_golem_statue", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_lightning_rod", Map.of("into", "minecraft:lightning_rod", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_exposed_lightning_rod", Map.of("into", "minecraft:exposed_lightning_rod", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_weathered_lightning_rod", Map.of("into", "minecraft:weathered_lightning_rod", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_oxidized_lightning_rod", Map.of("into", "minecraft:oxidized_lightning_rod", "drops", new HashMap<String, Double>()));
-
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:exposed_copper_chest", Map.of("into", "minecraft:copper_chest", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:weathered_copper_chest", Map.of("into", "minecraft:exposed_copper_chest", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:oxidized_copper_chest", Map.of("into", "minecraft:weathered_copper_chest", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:exposed_copper_golem_statue", Map.of("into", "minecraft:copper_golem_statue", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:weathered_copper_golem_statue", Map.of("into", "minecraft:exposed_copper_golem_statue", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:oxidized_copper_golem_statue", Map.of("into", "minecraft:weathered_copper_golem_statue", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:exposed_lightning_rod", Map.of("into", "minecraft:lightning_rod", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:weathered_lightning_rod", Map.of("into", "minecraft:exposed_lightning_rod", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:oxidized_lightning_rod", Map.of("into", "minecraft:weathered_lightning_rod", "drops", new HashMap<String, Double>()));
-        }
-        if (PurpurConfig.version < 45) {
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_copper_bars", Map.of("into", "minecraft:copper_bars", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_exposed_copper_bars", Map.of("into", "minecraft:exposed_copper_bars", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_weathered_copper_bars", Map.of("into", "minecraft:weathered_copper_bars", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_oxidized_copper_bars", Map.of("into", "minecraft:oxidized_copper_bars", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_copper_chain", Map.of("into", "minecraft:copper_chain", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_exposed_copper_chain", Map.of("into", "minecraft:exposed_copper_chain", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_weathered_copper_chain", Map.of("into", "minecraft:weathered_copper_chain", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_oxidized_copper_chain", Map.of("into", "minecraft:oxidized_copper_chain", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_copper_lantern", Map.of("into", "minecraft:copper_lantern", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_exposed_copper_lantern", Map.of("into", "minecraft:exposed_copper_lantern", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_weathered_copper_lantern", Map.of("into", "minecraft:weathered_copper_lantern", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.waxables.minecraft:waxed_oxidized_copper_lantern", Map.of("into", "minecraft:oxidized_copper_lantern", "drops", new HashMap<String, Double>()));
-
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:exposed_copper_bars", Map.of("into", "minecraft:copper_bars", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:weathered_copper_bars", Map.of("into", "minecraft:exposed_copper_bars", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:oxidized_copper_bars", Map.of("into", "minecraft:weathered_copper_bars", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:exposed_copper_chain", Map.of("into", "minecraft:copper_chain", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:weathered_copper_chain", Map.of("into", "minecraft:exposed_copper_chain", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:oxidized_copper_chain", Map.of("into", "minecraft:weathered_copper_chain", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:exposed_copper_lantern", Map.of("into", "minecraft:copper_lantern", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:weathered_copper_lantern", Map.of("into", "minecraft:exposed_copper_lantern", "drops", new HashMap<String, Double>()));
-            PurpurConfig.config.set("world-settings.default.tools.axe.weatherables.minecraft:oxidized_copper_lantern", Map.of("into", "minecraft:weathered_copper_lantern", "drops", new HashMap<String, Double>()));
-        }
-        getMap("tools.axe.strippables", Map.ofEntries(
-                Map.entry("minecraft:oak_wood", Map.of("into", "minecraft:stripped_oak_wood", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:oak_log", Map.of("into", "minecraft:stripped_oak_log", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:dark_oak_wood", Map.of("into", "minecraft:stripped_dark_oak_wood", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:dark_oak_log", Map.of("into", "minecraft:stripped_dark_oak_log", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:pale_oak_wood", Map.of("into", "minecraft:stripped_pale_oak_wood", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:pale_oak_log", Map.of("into", "minecraft:stripped_pale_oak_log", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:acacia_wood", Map.of("into", "minecraft:stripped_acacia_wood", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:acacia_log", Map.of("into", "minecraft:stripped_acacia_log", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:cherry_wood", Map.of("into", "minecraft:stripped_cherry_wood", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:cherry_log", Map.of("into", "minecraft:stripped_cherry_log", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:birch_wood", Map.of("into", "minecraft:stripped_birch_wood", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:birch_log", Map.of("into", "minecraft:stripped_birch_log", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:jungle_wood", Map.of("into", "minecraft:stripped_jungle_wood", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:jungle_log", Map.of("into", "minecraft:stripped_jungle_log", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:spruce_wood", Map.of("into", "minecraft:stripped_spruce_wood", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:spruce_log", Map.of("into", "minecraft:stripped_spruce_log", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:warped_stem", Map.of("into", "minecraft:stripped_warped_stem", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:warped_hyphae", Map.of("into", "minecraft:stripped_warped_hyphae", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:crimson_stem", Map.of("into", "minecraft:stripped_crimson_stem", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:crimson_hyphae", Map.of("into", "minecraft:stripped_crimson_hyphae", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:mangrove_wood", Map.of("into", "minecraft:stripped_mangrove_wood", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:mangrove_log", Map.of("into", "minecraft:stripped_mangrove_log", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:bamboo_block", Map.of("into", "minecraft:stripped_bamboo_block", "drops", new HashMap<String, Double>()))
-            )
-        ).forEach((blockId, obj) -> {
-            Block block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(blockId));
-            if (block == Blocks.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid block for `tools.axe.strippables`: " + blockId); return; }
-            if (!(obj instanceof Map<?, ?> map)) { PurpurConfig.log(Level.SEVERE, "Invalid yaml for `tools.axe.strippables." + blockId + "`"); return; }
-            String intoId = (String) map.get("into");
-            Block into = BuiltInRegistries.BLOCK.getValue(Identifier.parse(intoId));
-            if (into == Blocks.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid block for `tools.axe.strippables." + blockId + ".into`: " + intoId); return; }
-            Object dropsObj = map.get("drops");
-            if (!(dropsObj instanceof Map<?, ?> dropsMap)) { PurpurConfig.log(Level.SEVERE, "Invalid yaml for `tools.axe.strippables." + blockId + ".drops`"); return; }
-            Map<Item, Double> drops = new HashMap<>();
-            dropsMap.forEach((itemId, chance) -> {
-                Item item = BuiltInRegistries.ITEM.getValue(Identifier.parse(itemId.toString()));
-                if (item == Items.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid item for `tools.axe.strippables." + blockId + ".drops`: " + itemId); return; }
-                drops.put(item, (double) chance);
-            });
-            axeStrippables.put(block, new Strippable(into, drops));
-        });
-        getMap("tools.axe.waxables", Map.ofEntries(
-                Map.entry("minecraft:waxed_copper_block", Map.of("into", "minecraft:copper_block", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_exposed_copper", Map.of("into", "minecraft:exposed_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_weathered_copper", Map.of("into", "minecraft:weathered_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_oxidized_copper", Map.of("into", "minecraft:oxidized_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_cut_copper", Map.of("into", "minecraft:cut_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_exposed_cut_copper", Map.of("into", "minecraft:exposed_cut_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_weathered_cut_copper", Map.of("into", "minecraft:weathered_cut_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_oxidized_cut_copper", Map.of("into", "minecraft:oxidized_cut_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_cut_copper_slab", Map.of("into", "minecraft:cut_copper_slab", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_exposed_cut_copper_slab", Map.of("into", "minecraft:exposed_cut_copper_slab", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_weathered_cut_copper_slab", Map.of("into", "minecraft:weathered_cut_copper_slab", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_oxidized_cut_copper_slab", Map.of("into", "minecraft:oxidized_cut_copper_slab", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_cut_copper_stairs", Map.of("into", "minecraft:cut_copper_stairs", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_exposed_cut_copper_stairs", Map.of("into", "minecraft:exposed_cut_copper_stairs", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_weathered_cut_copper_stairs", Map.of("into", "minecraft:weathered_cut_copper_stairs", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_oxidized_cut_copper_stairs", Map.of("into", "minecraft:oxidized_cut_copper_stairs", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_chiseled_copper", Map.of("into", "minecraft:chiseled_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_exposed_chiseled_copper", Map.of("into", "minecraft:exposed_chiseled_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_weathered_chiseled_copper", Map.of("into", "minecraft:weathered_chiseled_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_oxidized_chiseled_copper", Map.of("into", "minecraft:oxidized_chiseled_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_copper_door", Map.of("into", "minecraft:copper_door", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_exposed_copper_door", Map.of("into", "minecraft:exposed_copper_door", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_weathered_copper_door", Map.of("into", "minecraft:weathered_copper_door", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_oxidized_copper_door", Map.of("into", "minecraft:oxidized_copper_door", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_copper_trapdoor", Map.of("into", "minecraft:copper_trapdoor", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_exposed_copper_trapdoor", Map.of("into", "minecraft:exposed_copper_trapdoor", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_weathered_copper_trapdoor", Map.of("into", "minecraft:weathered_copper_trapdoor", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_oxidized_copper_trapdoor", Map.of("into", "minecraft:oxidized_copper_trapdoor", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_copper_grate", Map.of("into", "minecraft:copper_grate", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_exposed_copper_grate", Map.of("into", "minecraft:exposed_copper_grate", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_weathered_copper_grate", Map.of("into", "minecraft:weathered_copper_grate", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_oxidized_copper_grate", Map.of("into", "minecraft:oxidized_copper_grate", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_copper_bulb", Map.of("into", "minecraft:copper_bulb", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_exposed_copper_bulb", Map.of("into", "minecraft:exposed_copper_bulb", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_weathered_copper_bulb", Map.of("into", "minecraft:weathered_copper_bulb", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_oxidized_copper_bulb", Map.of("into", "minecraft:oxidized_copper_bulb", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_copper_chest", Map.of("into", "minecraft:copper_chest", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_exposed_copper_chest", Map.of("into", "minecraft:exposed_copper_chest", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_weathered_copper_chest", Map.of("into", "minecraft:weathered_copper_chest", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_oxidized_copper_chest", Map.of("into", "minecraft:oxidized_copper_chest", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_copper_golem_statue", Map.of("into", "minecraft:copper_golem_statue", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_exposed_copper_golem_statue", Map.of("into", "minecraft:exposed_copper_golem_statue", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_weathered_copper_golem_statue", Map.of("into", "minecraft:weathered_copper_golem_statue", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_oxidized_copper_golem_statue", Map.of("into", "minecraft:oxidized_copper_golem_statue", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_lightning_rod", Map.of("into", "minecraft:lightning_rod", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_exposed_lightning_rod", Map.of("into", "minecraft:exposed_lightning_rod", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_weathered_lightning_rod", Map.of("into", "minecraft:weathered_lightning_rod", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_oxidized_lightning_rod", Map.of("into", "minecraft:oxidized_lightning_rod", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_copper_bars", Map.of("into", "minecraft:copper_bars", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_exposed_copper_bars", Map.of("into", "minecraft:exposed_copper_bars", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_weathered_copper_bars", Map.of("into", "minecraft:weathered_copper_bars", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_oxidized_copper_bars", Map.of("into", "minecraft:oxidized_copper_bars", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_copper_chain", Map.of("into", "minecraft:copper_chain", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_exposed_copper_chain", Map.of("into", "minecraft:exposed_copper_chain", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_weathered_copper_chain", Map.of("into", "minecraft:weathered_copper_chain", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_oxidized_copper_chain", Map.of("into", "minecraft:oxidized_copper_chain", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_copper_lantern", Map.of("into", "minecraft:copper_lantern", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_exposed_copper_lantern", Map.of("into", "minecraft:exposed_copper_lantern", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_weathered_copper_lantern", Map.of("into", "minecraft:weathered_copper_lantern", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:waxed_oxidized_copper_lantern", Map.of("into", "minecraft:oxidized_copper_lantern", "drops", new HashMap<String, Double>())))
-        ).forEach((blockId, obj) -> {
-            Block block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(blockId));
-            if (block == Blocks.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid block for `tools.axe.waxables`: " + blockId); return; }
-            if (!(obj instanceof Map<?, ?> map)) { PurpurConfig.log(Level.SEVERE, "Invalid yaml for `tools.axe.waxables." + blockId + "`"); return; }
-            String intoId = (String) map.get("into");
-            Block into = BuiltInRegistries.BLOCK.getValue(Identifier.parse(intoId));
-            if (into == Blocks.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid block for `tools.axe.waxables." + blockId + ".into`: " + intoId); return; }
-            Object dropsObj = map.get("drops");
-            if (!(dropsObj instanceof Map<?, ?> dropsMap)) { PurpurConfig.log(Level.SEVERE, "Invalid yaml for `tools.axe.waxables." + blockId + ".drops`"); return; }
-            Map<Item, Double> drops = new HashMap<>();
-            dropsMap.forEach((itemId, chance) -> {
-                Item item = BuiltInRegistries.ITEM.getValue(Identifier.parse(itemId.toString()));
-                if (item == Items.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid item for `tools.axe.waxables." + blockId + ".drops`: " + itemId); return; }
-                drops.put(item, (double) chance);
-            });
-            axeWaxables.put(block, new Waxable(into, drops));
-        });
-        getMap("tools.axe.weatherables", Map.ofEntries(
-                Map.entry("minecraft:exposed_copper", Map.of("into", "minecraft:copper_block", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:weathered_copper", Map.of("into", "minecraft:exposed_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:oxidized_copper", Map.of("into", "minecraft:weathered_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:exposed_cut_copper", Map.of("into", "minecraft:cut_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:weathered_cut_copper", Map.of("into", "minecraft:exposed_cut_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:oxidized_cut_copper", Map.of("into", "minecraft:weathered_cut_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:exposed_chiseled_copper", Map.of("into", "minecraft:chiseled_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:weathered_chiseled_copper", Map.of("into", "minecraft:exposed_chiseled_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:oxidized_chiseled_copper", Map.of("into", "minecraft:weathered_chiseled_copper", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:exposed_cut_copper_slab", Map.of("into", "minecraft:cut_copper_slab", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:weathered_cut_copper_slab", Map.of("into", "minecraft:exposed_cut_copper_slab", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:oxidized_cut_copper_slab", Map.of("into", "minecraft:weathered_cut_copper_slab", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:exposed_cut_copper_stairs", Map.of("into", "minecraft:cut_copper_stairs", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:weathered_cut_copper_stairs", Map.of("into", "minecraft:exposed_cut_copper_stairs", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:oxidized_cut_copper_stairs", Map.of("into", "minecraft:weathered_cut_copper_stairs", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:exposed_copper_door", Map.of("into", "minecraft:copper_door", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:weathered_copper_door", Map.of("into", "minecraft:exposed_copper_door", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:oxidized_copper_door", Map.of("into", "minecraft:weathered_copper_door", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:exposed_copper_trapdoor", Map.of("into", "minecraft:copper_trapdoor", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:weathered_copper_trapdoor", Map.of("into", "minecraft:exposed_copper_trapdoor", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:oxidized_copper_trapdoor", Map.of("into", "minecraft:weathered_copper_trapdoor", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:exposed_copper_grate", Map.of("into", "minecraft:copper_grate", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:weathered_copper_grate", Map.of("into", "minecraft:exposed_copper_grate", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:oxidized_copper_grate", Map.of("into", "minecraft:weathered_copper_grate", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:exposed_copper_bulb", Map.of("into", "minecraft:copper_bulb", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:weathered_copper_bulb", Map.of("into", "minecraft:exposed_copper_bulb", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:oxidized_copper_bulb", Map.of("into", "minecraft:weathered_copper_bulb", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:exposed_copper_chest", Map.of("into", "minecraft:copper_chest", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:weathered_copper_chest", Map.of("into", "minecraft:exposed_copper_chest", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:oxidized_copper_chest", Map.of("into", "minecraft:weathered_copper_chest", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:exposed_copper_golem_statue", Map.of("into", "minecraft:copper_golem_statue", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:weathered_copper_golem_statue", Map.of("into", "minecraft:exposed_copper_golem_statue", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:oxidized_copper_golem_statue", Map.of("into", "minecraft:weathered_copper_golem_statue", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:exposed_lightning_rod", Map.of("into", "minecraft:lightning_rod", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:weathered_lightning_rod", Map.of("into", "minecraft:exposed_lightning_rod", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:oxidized_lightning_rod", Map.of("into", "minecraft:weathered_lightning_rod", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:exposed_copper_bars", Map.of("into", "minecraft:copper_bars", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:weathered_copper_bars", Map.of("into", "minecraft:exposed_copper_bars", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:oxidized_copper_bars", Map.of("into", "minecraft:weathered_copper_bars", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:exposed_copper_chain", Map.of("into", "minecraft:copper_chain", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:weathered_copper_chain", Map.of("into", "minecraft:exposed_copper_chain", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:oxidized_copper_chain", Map.of("into", "minecraft:weathered_copper_chain", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:exposed_copper_lantern", Map.of("into", "minecraft:copper_lantern", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:weathered_copper_lantern", Map.of("into", "minecraft:exposed_copper_lantern", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:oxidized_copper_lantern", Map.of("into", "minecraft:weathered_copper_lantern", "drops", new HashMap<String, Double>())))
-        ).forEach((blockId, obj) -> {
-            Block block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(blockId));
-            if (block == Blocks.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid block for `tools.axe.weatherables`: " + blockId); return; }
-            if (!(obj instanceof Map<?, ?> map)) { PurpurConfig.log(Level.SEVERE, "Invalid yaml for `tools.axe.weatherables." + blockId + "`"); return; }
-            String intoId = (String) map.get("into");
-            Block into = BuiltInRegistries.BLOCK.getValue(Identifier.parse(intoId));
-            if (into == Blocks.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid block for `tools.axe.weatherables." + blockId + ".into`: " + intoId); return; }
-            Object dropsObj = map.get("drops");
-            if (!(dropsObj instanceof Map<?, ?> dropsMap)) { PurpurConfig.log(Level.SEVERE, "Invalid yaml for `tools.axe.weatherables." + blockId + ".drops`"); return; }
-            Map<Item, Double> drops = new HashMap<>();
-            dropsMap.forEach((itemId, chance) -> {
-                Item item = BuiltInRegistries.ITEM.getValue(Identifier.parse(itemId.toString()));
-                if (item == Items.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid item for `tools.axe.weatherables." + blockId + ".drops`: " + itemId); return; }
-                drops.put(item, (double) chance);
-            });
-            axeWeatherables.put(block, new Weatherable(into, drops));
-        });
-        getMap("tools.hoe.tillables", Map.ofEntries(
-                Map.entry("minecraft:grass_block", Map.of("condition", "air_above", "into", "minecraft:farmland", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:dirt_path", Map.of("condition", "air_above", "into", "minecraft:farmland", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:dirt", Map.of("condition", "air_above", "into", "minecraft:farmland", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:coarse_dirt", Map.of("condition", "air_above", "into", "minecraft:dirt", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:rooted_dirt", Map.of("condition", "always", "into", "minecraft:dirt", "drops", Map.of("minecraft:hanging_roots", 1.0D))))
-        ).forEach((blockId, obj) -> {
-            Block block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(blockId));
-            if (block == Blocks.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid block for `tools.hoe.tillables`: " + blockId); return; }
-            if (!(obj instanceof Map<?, ?> map)) { PurpurConfig.log(Level.SEVERE, "Invalid yaml for `tools.hoe.tillables." + blockId + "`"); return; }
-            String conditionId = (String) map.get("condition");
-            Tillable.Condition condition = Tillable.Condition.get(conditionId);
-            if (condition == null) { PurpurConfig.log(Level.SEVERE, "Invalid condition for `tools.hoe.tillables." + blockId + ".condition`: " + conditionId); return; }
-            String intoId = (String) map.get("into");
-            Block into = BuiltInRegistries.BLOCK.getValue(Identifier.parse(intoId));
-            if (into == Blocks.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid block for `tools.hoe.tillables." + blockId + ".into`: " + intoId); return; }
-            Object dropsObj = map.get("drops");
-            if (!(dropsObj instanceof Map<?, ?> dropsMap)) { PurpurConfig.log(Level.SEVERE, "Invalid yaml for `tools.hoe.tillables." + blockId + ".drops`"); return; }
-            Map<Item, Double> drops = new HashMap<>();
-            dropsMap.forEach((itemId, chance) -> {
-                Item item = BuiltInRegistries.ITEM.getValue(Identifier.parse(itemId.toString()));
-                if (item == Items.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid item for `tools.hoe.tillables." + blockId + ".drops`: " + itemId); return; }
-                drops.put(item, (double) chance);
-            });
-            hoeTillables.put(block, new Tillable(condition, into, drops));
-        });
-        getMap("tools.shovel.flattenables", Map.ofEntries(
-                Map.entry("minecraft:grass_block", Map.of("into", "minecraft:dirt_path", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:dirt", Map.of("into", "minecraft:dirt_path", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:podzol", Map.of("into", "minecraft:dirt_path", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:coarse_dirt", Map.of("into", "minecraft:dirt_path", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:mycelium", Map.of("into", "minecraft:dirt_path", "drops", new HashMap<String, Double>())),
-                Map.entry("minecraft:rooted_dirt", Map.of("into", "minecraft:dirt_path", "drops", new HashMap<String, Double>())))
-        ).forEach((blockId, obj) -> {
-            Block block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(blockId));
-            if (block == Blocks.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid block for `tools.shovel.flattenables`: " + blockId); return; }
-            if (!(obj instanceof Map<?, ?> map)) { PurpurConfig.log(Level.SEVERE, "Invalid yaml for `tools.shovel.flattenables." + blockId + "`"); return; }
-            String intoId = (String) map.get("into");
-            Block into = BuiltInRegistries.BLOCK.getValue(Identifier.parse(intoId));
-            if (into == Blocks.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid block for `tools.shovel.flattenables." + blockId + ".into`: " + intoId); return; }
-            Object dropsObj = map.get("drops");
-            if (!(dropsObj instanceof Map<?, ?> dropsMap)) { PurpurConfig.log(Level.SEVERE, "Invalid yaml for `tools.shovel.flattenables." + blockId + ".drops`"); return; }
-            Map<Item, Double> drops = new HashMap<>();
-            dropsMap.forEach((itemId, chance) -> {
-                Item item = BuiltInRegistries.ITEM.getValue(Identifier.parse(itemId.toString()));
-                if (item == Items.AIR) { PurpurConfig.log(Level.SEVERE, "Invalid item for `tools.shovel.flattenables." + blockId + ".drops`: " + itemId); return; }
-                drops.put(item, (double) chance);
-            });
-            shovelFlattenables.put(block, new Flattenable(into, drops));
-        });
         hoeReplantsCrops = getBoolean("tools.hoe.replant-crops", hoeReplantsCrops);
         hoeReplantsNetherWarts = getBoolean("tools.hoe.replant-nether-warts", hoeReplantsNetherWarts);
     }
@@ -1317,13 +951,24 @@ public class PurpurWorldConfig {
     public double armadilloMaxHealth = 12.0D;
     public double armadilloScale = 1.0D;
     public int armadilloBreedingTicks = 6000;
+    public double armadilloBreedingChance = 0.0D;
+    public int armadilloBreedingMinOffspring = 1;
+    public int armadilloBreedingMaxOffspring = 1;
     private void armadilloSettings() {
         armadilloRidable = getBoolean("mobs.armadillo.ridable", armadilloRidable);
         armadilloRidableInWater = getBoolean("mobs.armadillo.ridable-in-water", armadilloRidableInWater);
         armadilloControllable = getBoolean("mobs.armadillo.controllable", armadilloControllable);
         armadilloMaxHealth = getDouble("mobs.armadillo.attributes.max_health", armadilloMaxHealth);
         armadilloScale = Mth.clamp(getDouble("mobs.armadillo.attributes.scale", armadilloScale), 0.0625D, 16.0D);
-        armadilloBreedingTicks = getInt("mobs.armadillo.breeding-delay-ticks", armadilloBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.armadillo.breeding-delay-ticks", armadilloBreedingTicks);
+            set("mobs.armadillo.breeding-delay-ticks", null);
+            set("mobs.armadillo.breeding.cooldown-in-ticks", oldValue);
+        }
+        armadilloBreedingTicks = getInt("mobs.armadillo.breeding.cooldown-in-ticks", armadilloBreedingTicks);
+        armadilloBreedingChance = getDouble("mobs.armadillo.breeding.offspring.chance", armadilloBreedingChance);
+        armadilloBreedingMinOffspring = getInt("mobs.armadillo.breeding.offspring.min", armadilloBreedingMinOffspring);
+        armadilloBreedingMaxOffspring = getInt("mobs.armadillo.breeding.offspring.max", armadilloBreedingMaxOffspring);
     }
 
     public boolean axolotlRidable = false;
@@ -1333,14 +978,25 @@ public class PurpurWorldConfig {
     public int axolotlBreedingTicks = 6000;
     public boolean axolotlTakeDamageFromWater = false;
     public boolean axolotlAlwaysDropExp = false;
+    public double axolotlBreedingChance = 0.0D;
+    public int axolotlBreedingMaxOffspring = 1;
+    public int axolotlBreedingMinOffspring = 1;
     private void axolotlSettings() {
         axolotlRidable = getBoolean("mobs.axolotl.ridable", axolotlRidable);
         axolotlControllable = getBoolean("mobs.axolotl.controllable", axolotlControllable);
         axolotlMaxHealth = getDouble("mobs.axolotl.attributes.max_health", axolotlMaxHealth);
         axolotlScale = Mth.clamp(getDouble("mobs.axolotl.attributes.scale", axolotlScale), 0.0625D, 16.0D);
-        axolotlBreedingTicks = getInt("mobs.axolotl.breeding-delay-ticks", axolotlBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.axolotl.breeding-delay-ticks", axolotlBreedingTicks);
+            set("mobs.axolotl.breeding-delay-ticks", null);
+            set("mobs.axolotl.breeding.cooldown-in-ticks", oldValue);
+        }
+        axolotlBreedingTicks = getInt("mobs.axolotl.breeding.cooldown-in-ticks", axolotlBreedingTicks);
         axolotlTakeDamageFromWater = getBoolean("mobs.axolotl.takes-damage-from-water", axolotlTakeDamageFromWater);
         axolotlAlwaysDropExp = getBoolean("mobs.axolotl.always-drop-exp", axolotlAlwaysDropExp);
+        axolotlBreedingChance = getDouble("mobs.axolotl.breeding.offspring.chance", axolotlBreedingChance);
+        axolotlBreedingMinOffspring = getInt("mobs.axolotl.breeding.offspring.min", axolotlBreedingMinOffspring);
+        axolotlBreedingMaxOffspring = getInt("mobs.axolotl.breeding.offspring.max", axolotlBreedingMaxOffspring);
     }
 
     public boolean batRidable = false;
@@ -1394,6 +1050,9 @@ public class PurpurWorldConfig {
     public boolean beeCanWorkInRain = false;
     public boolean beeAlwaysDropExp = false;
     public boolean beeDiesAfterSting = true;
+    public double beeBreedingChance = 0.0D;
+    public int beeBreedingMinOffspring = 1;
+    public int beeBreedingMaxOffspring = 1;
     private void beeSettings() {
         beeRidable = getBoolean("mobs.bee.ridable", beeRidable);
         beeRidableInWater = getBoolean("mobs.bee.ridable-in-water", beeRidableInWater);
@@ -1406,7 +1065,12 @@ public class PurpurWorldConfig {
         }
         beeMaxHealth = getDouble("mobs.bee.attributes.max_health", beeMaxHealth);
         beeScale = Mth.clamp(getDouble("mobs.bee.attributes.scale", beeScale), 0.0625D, 16.0D);
-        beeBreedingTicks = getInt("mobs.bee.breeding-delay-ticks", beeBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.bee.breeding-delay-ticks", beeBreedingTicks);
+            set("mobs.bee.breeding-delay-ticks", null);
+            set("mobs.bee.breeding.cooldown-in-ticks", oldValue);
+        }
+        beeBreedingTicks = getInt("mobs.bee.breeding.cooldown-in-ticks", beeBreedingTicks);
         if (PurpurConfig.version < 40) {
             set("mobs.bee.takes-damage-from-water", false);
         }
@@ -1416,6 +1080,9 @@ public class PurpurWorldConfig {
         beeCanInstantlyStartDrowning = getBoolean("mobs.bee.can-instantly-start-drowning", beeCanInstantlyStartDrowning);
         beeAlwaysDropExp = getBoolean("mobs.bee.always-drop-exp", beeAlwaysDropExp);
         beeDiesAfterSting = getBoolean("mobs.bee.dies-after-sting", beeDiesAfterSting);
+        beeBreedingChance = getDouble("mobs.bee.breeding.offspring.chance", beeBreedingChance);
+        beeBreedingMinOffspring = getInt("mobs.bee.breeding.offspring.min", beeBreedingMinOffspring);
+        beeBreedingMaxOffspring = getInt("mobs.bee.breeding.offspring.max", beeBreedingMaxOffspring);
     }
 
     public boolean blazeRidable = false;
@@ -1482,6 +1149,9 @@ public class PurpurWorldConfig {
     public double camelMovementSpeedMin = 0.09D;
     public double camelMovementSpeedMax = 0.09D;
     public int camelBreedingTicks = 6000;
+    public double camelBreedingChance = 0.0D;
+    public int camelBreedingMinOffspring = 1;
+    public int camelBreedingMaxOffspring = 1;
     private void camelSettings() {
         camelRidableInWater = getBoolean("mobs.camel.ridable-in-water", camelRidableInWater);
         camelMaxHealthMin = getDouble("mobs.camel.attributes.max_health.min", camelMaxHealthMin);
@@ -1490,7 +1160,15 @@ public class PurpurWorldConfig {
         camelJumpStrengthMax = getDouble("mobs.camel.attributes.jump_strength.max", camelJumpStrengthMax);
         camelMovementSpeedMin = getDouble("mobs.camel.attributes.movement_speed.min", camelMovementSpeedMin);
         camelMovementSpeedMax = getDouble("mobs.camel.attributes.movement_speed.max", camelMovementSpeedMax);
-        camelBreedingTicks = getInt("mobs.camel.breeding-delay-ticks", camelBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.camel.breeding-delay-ticks", camelBreedingTicks);
+            set("mobs.camel.breeding-delay-ticks", null);
+            set("mobs.camel.breeding.cooldown-in-ticks", oldValue);
+        }
+        camelBreedingTicks = getInt("mobs.camel.breeding.cooldown-in-ticks", camelBreedingTicks);
+        camelBreedingChance = getDouble("mobs.camel.breeding.offspring.chance", camelBreedingChance);
+        camelBreedingMinOffspring = getInt("mobs.camel.breeding.offspring.min", camelBreedingMinOffspring);
+        camelBreedingMaxOffspring = getInt("mobs.camel.breeding.offspring.max", camelBreedingMaxOffspring);
     }
 
     public boolean camelHuskRidableInWater = false;
@@ -1524,6 +1202,9 @@ public class PurpurWorldConfig {
     public DyeColor catDefaultCollarColor = DyeColor.RED;
     public boolean catTakeDamageFromWater = false;
     public boolean catAlwaysDropExp = false;
+    public double catBreedingChance = 0.0D;
+    public int catBreedingMinOffspring = 1;
+    public int catBreedingMaxOffspring = 1;
     private void catSettings() {
         catRidable = getBoolean("mobs.cat.ridable", catRidable);
         catRidableInWater = getBoolean("mobs.cat.ridable-in-water", catRidableInWater);
@@ -1538,7 +1219,12 @@ public class PurpurWorldConfig {
         catSpawnDelay = getInt("mobs.cat.spawn-delay", catSpawnDelay);
         catSpawnSwampHutScanRange = getInt("mobs.cat.scan-range-for-other-cats.swamp-hut", catSpawnSwampHutScanRange);
         catSpawnVillageScanRange = getInt("mobs.cat.scan-range-for-other-cats.village", catSpawnVillageScanRange);
-        catBreedingTicks = getInt("mobs.cat.breeding-delay-ticks", catBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.cat.breeding-delay-ticks", catBreedingTicks);
+            set("mobs.cat.breeding-delay-ticks", null);
+            set("mobs.cat.breeding.cooldown-in-ticks", oldValue);
+        }
+        catBreedingTicks = getInt("mobs.cat.breeding.cooldown-in-ticks", catBreedingTicks);
         try {
             catDefaultCollarColor = DyeColor.valueOf(getString("mobs.cat.default-collar-color", catDefaultCollarColor.name()));
         } catch (IllegalArgumentException ignore) {
@@ -1546,6 +1232,9 @@ public class PurpurWorldConfig {
         }
         catTakeDamageFromWater = getBoolean("mobs.cat.takes-damage-from-water", catTakeDamageFromWater);
         catAlwaysDropExp = getBoolean("mobs.cat.always-drop-exp", catAlwaysDropExp);
+        catBreedingChance = getDouble("mobs.cat.breeding.offspring.chance", catBreedingChance);
+        catBreedingMinOffspring = getInt("mobs.cat.breeding.offspring.min", catBreedingMinOffspring);
+        catBreedingMaxOffspring = getInt("mobs.cat.breeding.offspring.max", catBreedingMaxOffspring);
     }
 
     public boolean caveSpiderRidable = false;
@@ -1579,6 +1268,9 @@ public class PurpurWorldConfig {
     public int chickenBreedingTicks = 6000;
     public boolean chickenTakeDamageFromWater = false;
     public boolean chickenAlwaysDropExp = false;
+    public double chickenBreedingChance = 0.0D;
+    public int chickenBreedingMinOffspring = 1;
+    public int chickenBreedingMaxOffspring = 1;
     private void chickenSettings() {
         chickenRidable = getBoolean("mobs.chicken.ridable", chickenRidable);
         chickenRidableInWater = getBoolean("mobs.chicken.ridable-in-water", chickenRidableInWater);
@@ -1591,9 +1283,17 @@ public class PurpurWorldConfig {
         chickenMaxHealth = getDouble("mobs.chicken.attributes.max_health", chickenMaxHealth);
         chickenScale = Mth.clamp(getDouble("mobs.chicken.attributes.scale", chickenScale), 0.0625D, 16.0D);
         chickenRetaliate = getBoolean("mobs.chicken.retaliate", chickenRetaliate);
-        chickenBreedingTicks = getInt("mobs.chicken.breeding-delay-ticks", chickenBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.chicken.breeding-delay-ticks", chickenBreedingTicks);
+            set("mobs.chicken.breeding-delay-ticks", null);
+            set("mobs.chicken.breeding.cooldown-in-ticks", oldValue);
+        }
+        chickenBreedingTicks = getInt("mobs.chicken.breeding.cooldown-in-ticks", chickenBreedingTicks);
         chickenTakeDamageFromWater = getBoolean("mobs.chicken.takes-damage-from-water", chickenTakeDamageFromWater);
         chickenAlwaysDropExp = getBoolean("mobs.chicken.always-drop-exp", chickenAlwaysDropExp);
+        chickenBreedingChance = getDouble("mobs.chicken.breeding.offspring.chance", chickenBreedingChance);
+        chickenBreedingMinOffspring = getInt("mobs.chicken.breeding.offspring.min", chickenBreedingMinOffspring);
+        chickenBreedingMaxOffspring = getInt("mobs.chicken.breeding.offspring.max", chickenBreedingMaxOffspring);
     }
 
     public boolean codRidable = false;
@@ -1654,6 +1354,9 @@ public class PurpurWorldConfig {
     public double cowNaturallyAggressiveToPlayersChance = 0.0D;
     public double cowNaturallyAggressiveToPlayersDamage = 2.0D;
     public boolean cowAlwaysDropExp = false;
+    public double cowBreedingChance = 0.0D;
+    public int cowBreedingMinOffspring = 1;
+    public int cowBreedingMaxOffspring = 1;
     private void cowSettings() {
         if (PurpurConfig.version < 22) {
             double oldValue = getDouble("mobs.cow.naturally-aggressive-to-players-chance", cowNaturallyAggressiveToPlayersChance);
@@ -1671,11 +1374,19 @@ public class PurpurWorldConfig {
         cowMaxHealth = getDouble("mobs.cow.attributes.max_health", cowMaxHealth);
         cowScale = Mth.clamp(getDouble("mobs.cow.attributes.scale", cowScale), 0.0625D, 16.0D);
         cowFeedMushrooms = getInt("mobs.cow.feed-mushrooms-for-mooshroom", cowFeedMushrooms);
-        cowBreedingTicks = getInt("mobs.cow.breeding-delay-ticks", cowBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.cow.breeding-delay-ticks", cowBreedingTicks);
+            set("mobs.cow.breeding-delay-ticks", null);
+            set("mobs.cow.breeding.cooldown-in-ticks", oldValue);
+        }
+        cowBreedingTicks = getInt("mobs.cow.breeding.cooldown-in-ticks", cowBreedingTicks);
         cowTakeDamageFromWater = getBoolean("mobs.cow.takes-damage-from-water", cowTakeDamageFromWater);
         cowNaturallyAggressiveToPlayersChance = getDouble("mobs.cow.naturally-aggressive-to-players.chance", cowNaturallyAggressiveToPlayersChance);
         cowNaturallyAggressiveToPlayersDamage = getDouble("mobs.cow.naturally-aggressive-to-players.damage", cowNaturallyAggressiveToPlayersDamage);
         cowAlwaysDropExp = getBoolean("mobs.cow.always-drop-exp", cowAlwaysDropExp);
+        cowBreedingChance = getDouble("mobs.cow.breeding.offspring.chance", cowBreedingChance);
+        cowBreedingMinOffspring = getInt("mobs.cow.breeding.offspring.min", cowBreedingMinOffspring);
+        cowBreedingMaxOffspring = getInt("mobs.cow.breeding.offspring.max", cowBreedingMaxOffspring);
     }
 
     public boolean creakingRidable = false;
@@ -1772,6 +1483,9 @@ public class PurpurWorldConfig {
     public int donkeyBreedingTicks = 6000;
     public boolean donkeyTakeDamageFromWater = false;
     public boolean donkeyAlwaysDropExp = false;
+    public double donkeyBreedingChance = 0.0D;
+    public int donkeyBreedingMinOffspring = 1;
+    public int donkeyBreedingMaxOffspring = 1;
     private void donkeySettings() {
         donkeyRidableInWater = getBoolean("mobs.donkey.ridable-in-water", donkeyRidableInWater);
         if (PurpurConfig.version < 10) {
@@ -1787,9 +1501,17 @@ public class PurpurWorldConfig {
         donkeyJumpStrengthMax = getDouble("mobs.donkey.attributes.jump_strength.max", donkeyJumpStrengthMax);
         donkeyMovementSpeedMin = getDouble("mobs.donkey.attributes.movement_speed.min", donkeyMovementSpeedMin);
         donkeyMovementSpeedMax = getDouble("mobs.donkey.attributes.movement_speed.max", donkeyMovementSpeedMax);
-        donkeyBreedingTicks = getInt("mobs.donkey.breeding-delay-ticks", donkeyBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.donkey.breeding-delay-ticks", donkeyBreedingTicks);
+            set("mobs.donkey.breeding-delay-ticks", null);
+            set("mobs.donkey.breeding.cooldown-in-ticks", oldValue);
+        }
+        donkeyBreedingTicks = getInt("mobs.donkey.breeding.cooldown-in-ticks", donkeyBreedingTicks);
         donkeyTakeDamageFromWater = getBoolean("mobs.donkey.takes-damage-from-water", donkeyTakeDamageFromWater);
         donkeyAlwaysDropExp = getBoolean("mobs.donkey.always-drop-exp", donkeyAlwaysDropExp);
+        donkeyBreedingChance = getDouble("mobs.donkey.breeding.offspring.chance", donkeyBreedingChance);
+        donkeyBreedingMinOffspring = getInt("mobs.donkey.breeding.offspring.min", donkeyBreedingMinOffspring);
+        donkeyBreedingMaxOffspring = getInt("mobs.donkey.breeding.offspring.max", donkeyBreedingMaxOffspring);
     }
 
     public boolean drownedRidable = false;
@@ -1993,6 +1715,9 @@ public class PurpurWorldConfig {
     public boolean foxTakeDamageFromWater = false;
     public boolean foxAlwaysDropExp = false;
     public Boolean foxCanPickUpLoot = null;
+    public double foxBreedingChance = 0.0D;
+    public int foxBreedingMinOffspring = 1;
+    public int foxBreedingMaxOffspring = 1;
     private void foxSettings() {
         foxRidable = getBoolean("mobs.fox.ridable", foxRidable);
         foxRidableInWater = getBoolean("mobs.fox.ridable-in-water", foxRidableInWater);
@@ -2005,7 +1730,12 @@ public class PurpurWorldConfig {
         foxMaxHealth = getDouble("mobs.fox.attributes.max_health", foxMaxHealth);
         foxScale = Mth.clamp(getDouble("mobs.fox.attributes.scale", foxScale), 0.0625D, 16.0D);
         foxTypeChangesWithTulips = getBoolean("mobs.fox.tulips-change-type", foxTypeChangesWithTulips);
-        foxBreedingTicks = getInt("mobs.fox.breeding-delay-ticks", foxBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.fox.breeding-delay-ticks", foxBreedingTicks);
+            set("mobs.fox.breeding-delay-ticks", null);
+            set("mobs.fox.breeding.cooldown-in-ticks", oldValue);
+        }
+        foxBreedingTicks = getInt("mobs.fox.breeding.cooldown-in-ticks", foxBreedingTicks);
         if (PurpurConfig.version < 43) {
             boolean oldVal = getBoolean("mobs.fox.bypass-mob-griefing", false);
             set("mobs.fox.bypass-mob-griefing", null);
@@ -2015,6 +1745,9 @@ public class PurpurWorldConfig {
         foxTakeDamageFromWater = getBoolean("mobs.fox.takes-damage-from-water", foxTakeDamageFromWater);
         foxAlwaysDropExp = getBoolean("mobs.fox.always-drop-exp", foxAlwaysDropExp);
         foxCanPickUpLoot = getBooleanOrDefault("mobs.fox.can-pick-up-loot", foxCanPickUpLoot);
+        foxBreedingChance = getDouble("mobs.fox.breeding.offspring.chance", foxBreedingChance);
+        foxBreedingMinOffspring = getInt("mobs.fox.breeding.offspring.min", foxBreedingMinOffspring);
+        foxBreedingMaxOffspring = getInt("mobs.fox.breeding.offspring.max", foxBreedingMaxOffspring);
     }
 
     public boolean frogRidable = false;
@@ -2022,12 +1755,23 @@ public class PurpurWorldConfig {
     public boolean frogControllable = true;
     public float frogRidableJumpHeight = 0.65F;
     public int frogBreedingTicks = 6000;
+    public double frogBreedingChance = 1.0D;
+    public int frogBreedingMinOffspring = FrogspawnBlock.MIN_TADPOLES_SPAWN;
+    public int frogBreedingMaxOffspring = FrogspawnBlock.MAX_TADPOLES_SPAWN;
     private void frogSettings() {
         frogRidable = getBoolean("mobs.frog.ridable", frogRidable);
         frogRidableInWater = getBoolean("mobs.frog.ridable-in-water", frogRidableInWater);
         frogControllable = getBoolean("mobs.frog.controllable", frogControllable);
         frogRidableJumpHeight = (float) getDouble("mobs.frog.ridable-jump-height", frogRidableJumpHeight);
-        frogBreedingTicks = getInt("mobs.frog.breeding-delay-ticks", frogBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.frog.breeding-delay-ticks", frogBreedingTicks);
+            set("mobs.frog.breeding-delay-ticks", null);
+            set("mobs.frog.breeding.cooldown-in-ticks", oldValue);
+        }
+        frogBreedingTicks = getInt("mobs.frog.breeding.cooldown-in-ticks", frogBreedingTicks);
+        frogBreedingChance = getDouble("mobs.frog.breeding.offspring.chance", frogBreedingChance);
+        frogBreedingMinOffspring = getInt("mobs.frog.breeding.offspring.min", frogBreedingMinOffspring);
+        frogBreedingMaxOffspring = getInt("mobs.frog.breeding.offspring.max", frogBreedingMaxOffspring);
     }
 
     public boolean ghastRidable = false;
@@ -2117,15 +1861,26 @@ public class PurpurWorldConfig {
     public int goatBreedingTicks = 6000;
     public boolean goatTakeDamageFromWater = false;
     public boolean goatAlwaysDropExp = false;
+    public double goatBreedingChance = 0.0D;
+    public int goatBreedingMinOffspring = 1;
+    public int goatBreedingMaxOffspring = 1;
     private void goatSettings() {
         goatRidable = getBoolean("mobs.goat.ridable", goatRidable);
         goatRidableInWater = getBoolean("mobs.goat.ridable-in-water", goatRidableInWater);
         goatControllable = getBoolean("mobs.goat.controllable", goatControllable);
         goatMaxHealth = getDouble("mobs.goat.attributes.max_health", goatMaxHealth);
         goatScale = Mth.clamp(getDouble("mobs.goat.attributes.scale", goatScale), 0.0625D, 16.0D);
-        goatBreedingTicks = getInt("mobs.goat.breeding-delay-ticks", goatBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.goat.breeding-delay-ticks", goatBreedingTicks);
+            set("mobs.goat.breeding-delay-ticks", null);
+            set("mobs.goat.breeding.cooldown-in-ticks", oldValue);
+        }
+        goatBreedingTicks = getInt("mobs.goat.breeding.cooldown-in-ticks", goatBreedingTicks);
         goatTakeDamageFromWater = getBoolean("mobs.goat.takes-damage-from-water", goatTakeDamageFromWater);
         goatAlwaysDropExp = getBoolean("mobs.goat.always-drop-exp", goatAlwaysDropExp);
+        goatBreedingChance = getDouble("mobs.goat.breeding.offspring.chance", goatBreedingChance);
+        goatBreedingMinOffspring = getInt("mobs.goat.breeding.offspring.min", goatBreedingMinOffspring);
+        goatBreedingMaxOffspring = getInt("mobs.goat.breeding.offspring.max", goatBreedingMaxOffspring);
     }
 
     public boolean guardianRidable = false;
@@ -2186,6 +1941,9 @@ public class PurpurWorldConfig {
     public int hoglinBreedingTicks = 6000;
     public boolean hoglinTakeDamageFromWater = false;
     public boolean hoglinAlwaysDropExp = false;
+    public double hoglinBreedingChance = 0.0D;
+    public int hoglinBreedingMinOffspring = 1;
+    public int hoglinBreedingMaxOffspring = 1;
     private void hoglinSettings() {
         hoglinRidable = getBoolean("mobs.hoglin.ridable", hoglinRidable);
         hoglinRidableInWater = getBoolean("mobs.hoglin.ridable-in-water", hoglinRidableInWater);
@@ -2197,9 +1955,17 @@ public class PurpurWorldConfig {
         }
         hoglinMaxHealth = getDouble("mobs.hoglin.attributes.max_health", hoglinMaxHealth);
         hoglinScale = Mth.clamp(getDouble("mobs.hoglin.attributes.scale", hoglinScale), 0.0625D, 16.0D);
-        hoglinBreedingTicks = getInt("mobs.hoglin.breeding-delay-ticks", hoglinBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.hoglin.breeding-delay-ticks", hoglinBreedingTicks);
+            set("mobs.hoglin.breeding-delay-ticks", null);
+            set("mobs.hoglin.breeding.cooldown-in-ticks", oldValue);
+        }
+        hoglinBreedingTicks = getInt("mobs.hoglin.breeding.cooldown-in-ticks", hoglinBreedingTicks);
         hoglinTakeDamageFromWater = getBoolean("mobs.hoglin.takes-damage-from-water", hoglinTakeDamageFromWater);
         hoglinAlwaysDropExp = getBoolean("mobs.hoglin.always-drop-exp", hoglinAlwaysDropExp);
+        hoglinBreedingChance = getDouble("mobs.hoglin.breeding.offspring.chance", hoglinBreedingChance);
+        hoglinBreedingMinOffspring = getInt("mobs.hoglin.breeding.offspring.min", hoglinBreedingMinOffspring);
+        hoglinBreedingMaxOffspring = getInt("mobs.hoglin.breeding.offspring.max", hoglinBreedingMaxOffspring);
     }
 
     public boolean horseRidableInWater = false;
@@ -2212,6 +1978,9 @@ public class PurpurWorldConfig {
     public int horseBreedingTicks = 6000;
     public boolean horseTakeDamageFromWater = false;
     public boolean horseAlwaysDropExp = false;
+    public double horseBreedingChance = 0.0D;
+    public int horseBreedingMinOffspring = 1;
+    public int horseBreedingMaxOffspring = 1;
     private void horseSettings() {
         horseRidableInWater = getBoolean("mobs.horse.ridable-in-water", horseRidableInWater);
         if (PurpurConfig.version < 10) {
@@ -2227,9 +1996,17 @@ public class PurpurWorldConfig {
         horseJumpStrengthMax = getDouble("mobs.horse.attributes.jump_strength.max", horseJumpStrengthMax);
         horseMovementSpeedMin = getDouble("mobs.horse.attributes.movement_speed.min", horseMovementSpeedMin);
         horseMovementSpeedMax = getDouble("mobs.horse.attributes.movement_speed.max", horseMovementSpeedMax);
-        horseBreedingTicks = getInt("mobs.horse.breeding-delay-ticks", horseBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.horse.breeding-delay-ticks", horseBreedingTicks);
+            set("mobs.horse.breeding-delay-ticks", null);
+            set("mobs.horse.breeding.cooldown-in-ticks", oldValue);
+        }
+        horseBreedingTicks = getInt("mobs.horse.breeding.cooldown-in-ticks", horseBreedingTicks);
         horseTakeDamageFromWater = getBoolean("mobs.horse.takes-damage-from-water", horseTakeDamageFromWater);
         horseAlwaysDropExp = getBoolean("mobs.horse.always-drop-exp", horseAlwaysDropExp);
+        horseBreedingChance = getDouble("mobs.horse.breeding.offspring.chance", horseBreedingChance);
+        horseBreedingMinOffspring = getInt("mobs.horse.breeding.offspring.min", horseBreedingMinOffspring);
+        horseBreedingMaxOffspring = getInt("mobs.horse.breeding.offspring.max", horseBreedingMaxOffspring);
     }
 
     public boolean huskRidable = false;
@@ -2273,6 +2050,7 @@ public class PurpurWorldConfig {
     public double illusionerScale = 1.0D;
     public boolean illusionerTakeDamageFromWater = false;
     public boolean illusionerAlwaysDropExp = false;
+    public boolean illusionerSpawnInRaids = false;
     private void illusionerSettings() {
         illusionerRidable = getBoolean("mobs.illusioner.ridable", illusionerRidable);
         illusionerRidableInWater = getBoolean("mobs.illusioner.ridable-in-water", illusionerRidableInWater);
@@ -2292,6 +2070,7 @@ public class PurpurWorldConfig {
         illusionerScale = Mth.clamp(getDouble("mobs.illusioner.attributes.scale", illusionerScale), 0.0625D, 16.0D);
         illusionerTakeDamageFromWater = getBoolean("mobs.illusioner.takes-damage-from-water", illusionerTakeDamageFromWater);
         illusionerAlwaysDropExp = getBoolean("mobs.illusioner.always-drop-exp", illusionerAlwaysDropExp);
+        illusionerSpawnInRaids = getBoolean("mobs.illusioner.spawn-in-raids", illusionerSpawnInRaids);
     }
 
     public boolean ironGolemRidable = false;
@@ -2335,6 +2114,9 @@ public class PurpurWorldConfig {
     public boolean llamaTakeDamageFromWater = false;
     public boolean llamaJoinCaravans = true;
     public boolean llamaAlwaysDropExp = false;
+    public double llamaBreedingChance = 0.0D;
+    public int llamaBreedingMinOffspring = 1;
+    public int llamaBreedingMaxOffspring = 1;
     private void llamaSettings() {
         llamaRidable = getBoolean("mobs.llama.ridable", llamaRidable);
         llamaRidableInWater = getBoolean("mobs.llama.ridable-in-water", llamaRidableInWater);
@@ -2352,10 +2134,18 @@ public class PurpurWorldConfig {
         llamaJumpStrengthMax = getDouble("mobs.llama.attributes.jump_strength.max", llamaJumpStrengthMax);
         llamaMovementSpeedMin = getDouble("mobs.llama.attributes.movement_speed.min", llamaMovementSpeedMin);
         llamaMovementSpeedMax = getDouble("mobs.llama.attributes.movement_speed.max", llamaMovementSpeedMax);
-        llamaBreedingTicks = getInt("mobs.llama.breeding-delay-ticks", llamaBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.llama.breeding-delay-ticks", llamaBreedingTicks);
+            set("mobs.llama.breeding-delay-ticks", null);
+            set("mobs.llama.breeding.cooldown-in-ticks", oldValue);
+        }
+        llamaBreedingTicks = getInt("mobs.llama.breeding.cooldown-in-ticks", llamaBreedingTicks);
         llamaTakeDamageFromWater = getBoolean("mobs.llama.takes-damage-from-water", llamaTakeDamageFromWater);
         llamaJoinCaravans = getBoolean("mobs.llama.join-caravans", llamaJoinCaravans);
         llamaAlwaysDropExp = getBoolean("mobs.llama.always-drop-exp", llamaAlwaysDropExp);
+        llamaBreedingChance = getDouble("mobs.llama.breeding.offspring.chance", llamaBreedingChance);
+        llamaBreedingMinOffspring = getInt("mobs.llama.breeding.offspring.min", llamaBreedingMinOffspring);
+        llamaBreedingMaxOffspring = getInt("mobs.llama.breeding.offspring.max", llamaBreedingMaxOffspring);
     }
 
     public boolean magmaCubeRidable = false;
@@ -2392,6 +2182,9 @@ public class PurpurWorldConfig {
     public int mooshroomBreedingTicks = 6000;
     public boolean mooshroomTakeDamageFromWater = false;
     public boolean mooshroomAlwaysDropExp = false;
+    public double mooshroomBreedingChance = 0.0D;
+    public int mooshroomBreedingMinOffspring = 1;
+    public int mooshroomBreedingMaxOffspring = 1;
     private void mooshroomSettings() {
         mooshroomRidable = getBoolean("mobs.mooshroom.ridable", mooshroomRidable);
         mooshroomRidableInWater = getBoolean("mobs.mooshroom.ridable-in-water", mooshroomRidableInWater);
@@ -2403,9 +2196,17 @@ public class PurpurWorldConfig {
         }
         mooshroomMaxHealth = getDouble("mobs.mooshroom.attributes.max_health", mooshroomMaxHealth);
         mooshroomScale = Mth.clamp(getDouble("mobs.mooshroom.attributes.scale", mooshroomScale), 0.0625D, 16.0D);
-        mooshroomBreedingTicks = getInt("mobs.mooshroom.breeding-delay-ticks", mooshroomBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.mooshroom.breeding-delay-ticks", mooshroomBreedingTicks);
+            set("mobs.mooshroom.breeding-delay-ticks", null);
+            set("mobs.mooshroom.breeding.cooldown-in-ticks", oldValue);
+        }
+        mooshroomBreedingTicks = getInt("mobs.mooshroom.breeding.cooldown-in-ticks", mooshroomBreedingTicks);
         mooshroomTakeDamageFromWater = getBoolean("mobs.mooshroom.takes-damage-from-water", mooshroomTakeDamageFromWater);
         mooshroomAlwaysDropExp = getBoolean("mobs.mooshroom.always-drop-exp", mooshroomAlwaysDropExp);
+        mooshroomBreedingChance = getDouble("mobs.mooshroom.breeding.offspring.chance", mooshroomBreedingChance);
+        mooshroomBreedingMinOffspring = getInt("mobs.mooshroom.breeding.offspring.min", mooshroomBreedingMinOffspring);
+        mooshroomBreedingMaxOffspring = getInt("mobs.mooshroom.breeding.offspring.max", mooshroomBreedingMaxOffspring);
     }
 
     public boolean muleRidableInWater = false;
@@ -2433,7 +2234,12 @@ public class PurpurWorldConfig {
         muleJumpStrengthMax = getDouble("mobs.mule.attributes.jump_strength.max", muleJumpStrengthMax);
         muleMovementSpeedMin = getDouble("mobs.mule.attributes.movement_speed.min", muleMovementSpeedMin);
         muleMovementSpeedMax = getDouble("mobs.mule.attributes.movement_speed.max", muleMovementSpeedMax);
-        muleBreedingTicks = getInt("mobs.mule.breeding-delay-ticks", muleBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.mule.breeding-delay-ticks", muleBreedingTicks);
+            set("mobs.mule.breeding-delay-ticks", null);
+            set("mobs.mule.breeding.cooldown-in-ticks", oldValue);
+        }
+        muleBreedingTicks = getInt("mobs.mule.breeding.cooldown-in-ticks", muleBreedingTicks);
         muleTakeDamageFromWater = getBoolean("mobs.mule.takes-damage-from-water", muleTakeDamageFromWater);
         muleAlwaysDropExp = getBoolean("mobs.mule.always-drop-exp", muleAlwaysDropExp);
     }
@@ -2445,14 +2251,25 @@ public class PurpurWorldConfig {
     public double nautilusScale = 1.0D;
     public int nautilusBreedingTicks = 6000;
     public boolean nautilusAlwaysDropExp = false;
+    public double nautilusBreedingChance = 0.0D;
+    public int nautilusBreedingMinOffspring = 1;
+    public int nautilusBreedingMaxOffspring = 1;
     private void nautilusSettings() {
         nautilusMaxHealth = getDouble("mobs.nautilus.attributes.max_health", nautilusMaxHealth);
         nautilusMovementSpeed = getDouble("mobs.nautilus.attributes.movement_speed", nautilusMovementSpeed);
         nautilusAttackDamage = getDouble("mobs.nautilus.attributes.attack_damage", nautilusAttackDamage);
         nautilusKnockbackResistance = getDouble("mobs.nautilus.attributes.knockback_resistance", nautilusKnockbackResistance);
         nautilusScale = Mth.clamp(getDouble("mobs.nautilus.attributes.scale", nautilusScale), 0.0625D, 16.0D);
-        nautilusBreedingTicks = getInt("mobs.nautilus.breeding-delay-ticks", nautilusBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.nautilus.breeding-delay-ticks", nautilusBreedingTicks);
+            set("mobs.nautilus.breeding-delay-ticks", null);
+            set("mobs.nautilus.breeding.cooldown-in-ticks", oldValue);
+        }
+        nautilusBreedingTicks = getInt("mobs.nautilus.breeding.cooldown-in-ticks", nautilusBreedingTicks);
         nautilusAlwaysDropExp = getBoolean("mobs.nautilus.always-drop-exp", nautilusAlwaysDropExp);
+        nautilusBreedingChance = getDouble("mobs.nautilus.breeding.offspring.chance", nautilusBreedingChance);
+        nautilusBreedingMinOffspring = getInt("mobs.nautilus.breeding.offspring.min", nautilusBreedingMinOffspring);
+        nautilusBreedingMaxOffspring = getInt("mobs.nautilus.breeding.offspring.max", nautilusBreedingMaxOffspring);
     }
 
     public boolean ocelotRidable = false;
@@ -2464,6 +2281,9 @@ public class PurpurWorldConfig {
     public boolean ocelotTakeDamageFromWater = false;
     public boolean ocelotAlwaysDropExp = false;
     public boolean ocelotSpawnUnderSeaLevel = false;
+    public double ocelotBreedingChance = 0.0D;
+    public int ocelotBreedingMinOffspring = 1;
+    public int ocelotBreedingMaxOffspring = 1;
     private void ocelotSettings() {
         ocelotRidable = getBoolean("mobs.ocelot.ridable", ocelotRidable);
         ocelotRidableInWater = getBoolean("mobs.ocelot.ridable-in-water", ocelotRidableInWater);
@@ -2475,10 +2295,18 @@ public class PurpurWorldConfig {
         }
         ocelotMaxHealth = getDouble("mobs.ocelot.attributes.max_health", ocelotMaxHealth);
         ocelotScale = Mth.clamp(getDouble("mobs.ocelot.attributes.scale", ocelotScale), 0.0625D, 16.0D);
-        ocelotBreedingTicks = getInt("mobs.ocelot.breeding-delay-ticks", ocelotBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.ocelot.breeding-delay-ticks", ocelotBreedingTicks);
+            set("mobs.ocelot.breeding-delay-ticks", null);
+            set("mobs.ocelot.breeding.cooldown-in-ticks", oldValue);
+        }
+        ocelotBreedingTicks = getInt("mobs.ocelot.breeding.cooldown-in-ticks", ocelotBreedingTicks);
         ocelotTakeDamageFromWater = getBoolean("mobs.ocelot.takes-damage-from-water", ocelotTakeDamageFromWater);
         ocelotAlwaysDropExp = getBoolean("mobs.ocelot.always-drop-exp", ocelotAlwaysDropExp);
         ocelotSpawnUnderSeaLevel = getBoolean("mobs.ocelot.spawn-below-sea-level", ocelotSpawnUnderSeaLevel);
+        ocelotBreedingChance = getDouble("mobs.ocelot.breeding.offspring.chance", ocelotBreedingChance);
+        ocelotBreedingMinOffspring = getInt("mobs.ocelot.breeding.offspring.min", ocelotBreedingMinOffspring);
+        ocelotBreedingMaxOffspring = getInt("mobs.ocelot.breeding.offspring.max", ocelotBreedingMaxOffspring);
     }
 
     public boolean pandaRidable = false;
@@ -2489,6 +2317,9 @@ public class PurpurWorldConfig {
     public int pandaBreedingTicks = 6000;
     public boolean pandaTakeDamageFromWater = false;
     public boolean pandaAlwaysDropExp = false;
+    public double pandaBreedingChance = 0.0D;
+    public int pandaBreedingMinOffspring = 1;
+    public int pandaBreedingMaxOffspring = 1;
     private void pandaSettings() {
         pandaRidable = getBoolean("mobs.panda.ridable", pandaRidable);
         pandaRidableInWater = getBoolean("mobs.panda.ridable-in-water", pandaRidableInWater);
@@ -2500,9 +2331,17 @@ public class PurpurWorldConfig {
         }
         pandaMaxHealth = getDouble("mobs.panda.attributes.max_health", pandaMaxHealth);
         pandaScale = Mth.clamp(getDouble("mobs.panda.attributes.scale", pandaScale), 0.0625D, 16.0D);
-        pandaBreedingTicks = getInt("mobs.panda.breeding-delay-ticks", pandaBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.panda.breeding-delay-ticks", pandaBreedingTicks);
+            set("mobs.panda.breeding-delay-ticks", null);
+            set("mobs.panda.breeding.cooldown-in-ticks", oldValue);
+        }
+        pandaBreedingTicks = getInt("mobs.panda.breeding.cooldown-in-ticks", pandaBreedingTicks);
         pandaTakeDamageFromWater = getBoolean("mobs.panda.takes-damage-from-water", pandaTakeDamageFromWater);
         pandaAlwaysDropExp = getBoolean("mobs.panda.always-drop-exp", pandaAlwaysDropExp);
+        pandaBreedingChance = getDouble("mobs.panda.breeding.offspring.chance", pandaBreedingChance);
+        pandaBreedingMinOffspring = getInt("mobs.panda.breeding.offspring.min", pandaBreedingMinOffspring);
+        pandaBreedingMaxOffspring = getInt("mobs.panda.breeding.offspring.max", pandaBreedingMaxOffspring);
     }
 
     public boolean parchedRidable = false;
@@ -2632,6 +2471,9 @@ public class PurpurWorldConfig {
     public int pigBreedingTicks = 6000;
     public boolean pigTakeDamageFromWater = false;
     public boolean pigAlwaysDropExp = false;
+    public double pigBreedingChance = 0.0D;
+    public int pigBreedingMinOffspring = 1;
+    public int pigBreedingMaxOffspring = 1;
     private void pigSettings() {
         pigRidable = getBoolean("mobs.pig.ridable", pigRidable);
         pigRidableInWater = getBoolean("mobs.pig.ridable-in-water", pigRidableInWater);
@@ -2644,9 +2486,17 @@ public class PurpurWorldConfig {
         pigMaxHealth = getDouble("mobs.pig.attributes.max_health", pigMaxHealth);
         pigScale = Mth.clamp(getDouble("mobs.pig.attributes.scale", pigScale), 0.0625D, 16.0D);
         pigGiveSaddleBack = getBoolean("mobs.pig.give-saddle-back", pigGiveSaddleBack);
-        pigBreedingTicks = getInt("mobs.pig.breeding-delay-ticks", pigBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.pig.breeding-delay-ticks", pigBreedingTicks);
+            set("mobs.pig.breeding-delay-ticks", null);
+            set("mobs.pig.breeding.cooldown-in-ticks", oldValue);
+        }
+        pigBreedingTicks = getInt("mobs.pig.breeding.cooldown-in-ticks", pigBreedingTicks);
         pigTakeDamageFromWater = getBoolean("mobs.pig.takes-damage-from-water", pigTakeDamageFromWater);
         pigAlwaysDropExp = getBoolean("mobs.pig.always-drop-exp", pigAlwaysDropExp);
+        pigBreedingChance = getDouble("mobs.pig.breeding.offspring.chance", pigBreedingChance);
+        pigBreedingMinOffspring = getInt("mobs.pig.breeding.offspring.min", pigBreedingMinOffspring);
+        pigBreedingMaxOffspring = getInt("mobs.pig.breeding.offspring.max", pigBreedingMaxOffspring);
     }
 
     public boolean piglinRidable = false;
@@ -2771,7 +2621,12 @@ public class PurpurWorldConfig {
         polarBearBreedableItemString = getString("mobs.polar_bear.breedable-item", polarBearBreedableItemString);
         Item item = BuiltInRegistries.ITEM.getValue(Identifier.parse(polarBearBreedableItemString));
         if (item != Items.AIR) polarBearBreedableItem = item;
-        polarBearBreedingTicks = getInt("mobs.polar_bear.breeding-delay-ticks", polarBearBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.polar_bear.breeding-delay-ticks", polarBearBreedingTicks);
+            set("mobs.polar_bear.breeding-delay-ticks", null);
+            set("mobs.polar_bear.breeding.cooldown-in-ticks", oldValue);
+        }
+        polarBearBreedingTicks = getInt("mobs.polar_bear.breeding.cooldown-in-ticks", polarBearBreedingTicks);
         polarBearTakeDamageFromWater = getBoolean("mobs.polar_bear.takes-damage-from-water", polarBearTakeDamageFromWater);
         polarBearAlwaysDropExp = getBoolean("mobs.polar_bear.always-drop-exp", polarBearAlwaysDropExp);
     }
@@ -2807,6 +2662,9 @@ public class PurpurWorldConfig {
     public Boolean rabbitMobGriefingOverride = null;
     public boolean rabbitTakeDamageFromWater = false;
     public boolean rabbitAlwaysDropExp = false;
+    public double rabbitBreedingChance = 0.0D;
+    public int rabbitBreedingMinOffspring = 1;
+    public int rabbitBreedingMaxOffspring = 1;
     private void rabbitSettings() {
         rabbitRidable = getBoolean("mobs.rabbit.ridable", rabbitRidable);
         rabbitRidableInWater = getBoolean("mobs.rabbit.ridable-in-water", rabbitRidableInWater);
@@ -2820,7 +2678,12 @@ public class PurpurWorldConfig {
         rabbitScale = Mth.clamp(getDouble("mobs.rabbit.attributes.scale", rabbitScale), 0.0625D, 16.0D);
         rabbitNaturalToast = getDouble("mobs.rabbit.spawn-toast-chance", rabbitNaturalToast);
         rabbitNaturalKiller = getDouble("mobs.rabbit.spawn-killer-rabbit-chance", rabbitNaturalKiller);
-        rabbitBreedingTicks = getInt("mobs.rabbit.breeding-delay-ticks", rabbitBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.rabbit.breeding-delay-ticks", rabbitBreedingTicks);
+            set("mobs.rabbit.breeding-delay-ticks", null);
+            set("mobs.rabbit.breeding.cooldown-in-ticks", oldValue);
+        }
+        rabbitBreedingTicks = getInt("mobs.rabbit.breeding.cooldown-in-ticks", rabbitBreedingTicks);
         if (PurpurConfig.version < 43) {
             boolean oldVal = getBoolean("mobs.rabbit.bypass-mob-griefing", false);
             set("mobs.rabbit.bypass-mob-griefing", null);
@@ -2829,6 +2692,9 @@ public class PurpurWorldConfig {
         rabbitMobGriefingOverride = getBooleanOrDefault("mobs.rabbit.mob-griefing-override", rabbitMobGriefingOverride);
         rabbitTakeDamageFromWater = getBoolean("mobs.rabbit.takes-damage-from-water", rabbitTakeDamageFromWater);
         rabbitAlwaysDropExp = getBoolean("mobs.rabbit.always-drop-exp", rabbitAlwaysDropExp);
+        rabbitBreedingChance = getDouble("mobs.rabbit.breeding.offspring.chance", rabbitBreedingChance);
+        rabbitBreedingMinOffspring = getInt("mobs.rabbit.breeding.offspring.min", rabbitBreedingMinOffspring);
+        rabbitBreedingMaxOffspring = getInt("mobs.rabbit.breeding.offspring.max", rabbitBreedingMaxOffspring);
     }
 
     public boolean ravagerRidable = false;
@@ -2860,28 +2726,28 @@ public class PurpurWorldConfig {
         ravagerMobGriefingOverride = getBooleanOrDefault("mobs.ravager.mob-griefing-override", ravagerMobGriefingOverride);
         ravagerTakeDamageFromWater = getBoolean("mobs.ravager.takes-damage-from-water", ravagerTakeDamageFromWater);
         List<String> defaultRavagerGriefableBlocks = List.of(
-            "minecraft:oak_leaves",
-            "minecraft:spruce_leaves",
-            "minecraft:birch_leaves",
-            "minecraft:jungle_leaves",
-            "minecraft:acacia_leaves",
-            "minecraft:cherry_leaves",
-            "minecraft:dark_oak_leaves",
-            "minecraft:pale_oak_leaves",
-            "minecraft:mangrove_leaves",
-            "minecraft:azalea_leaves",
-            "minecraft:flowering_azalea_leaves",
-            "minecraft:wheat",
-            "minecraft:carrots",
-            "minecraft:potatoes",
-            "minecraft:torchflower_crop",
-            "minecraft:pitcher_crop",
-            "minecraft:beetroots"
+                "minecraft:oak_leaves",
+                "minecraft:spruce_leaves",
+                "minecraft:birch_leaves",
+                "minecraft:jungle_leaves",
+                "minecraft:acacia_leaves",
+                "minecraft:cherry_leaves",
+                "minecraft:dark_oak_leaves",
+                "minecraft:pale_oak_leaves",
+                "minecraft:mangrove_leaves",
+                "minecraft:azalea_leaves",
+                "minecraft:flowering_azalea_leaves",
+                "minecraft:wheat",
+                "minecraft:carrots",
+                "minecraft:potatoes",
+                "minecraft:torchflower_crop",
+                "minecraft:pitcher_crop",
+                "minecraft:beetroots"
         );
         if (PurpurConfig.version < 41) {
             Set<String> set = new HashSet<>();
             getList("mobs.ravager.griefable-blocks", defaultRavagerGriefableBlocks)
-                .forEach(key -> set.add(key.toString()));
+                    .forEach(key -> set.add(key.toString()));
             set.add("minecraft:cherry_leaves");
             set.add("minecraft:pale_oak_leaves");
             set.add("minecraft:mangrove_leaves");
@@ -2930,6 +2796,9 @@ public class PurpurWorldConfig {
     public Boolean sheepMobGriefingOverride = null;
     public boolean sheepTakeDamageFromWater = false;
     public boolean sheepAlwaysDropExp = false;
+    public double sheepBreedingChance = 0.0D;
+    public int sheepBreedingMinOffspring = 1;
+    public int sheepBreedingMaxOffspring = 1;
     private void sheepSettings() {
         sheepRidable = getBoolean("mobs.sheep.ridable", sheepRidable);
         sheepRidableInWater = getBoolean("mobs.sheep.ridable-in-water", sheepRidableInWater);
@@ -2941,7 +2810,12 @@ public class PurpurWorldConfig {
         }
         sheepMaxHealth = getDouble("mobs.sheep.attributes.max_health", sheepMaxHealth);
         sheepScale = Mth.clamp(getDouble("mobs.sheep.attributes.scale", sheepScale), 0.0625D, 16.0D);
-        sheepBreedingTicks = getInt("mobs.sheep.breeding-delay-ticks", sheepBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.sheep.breeding-delay-ticks", sheepBreedingTicks);
+            set("mobs.sheep.breeding-delay-ticks", null);
+            set("mobs.sheep.breeding.cooldown-in-ticks", oldValue);
+        }
+        sheepBreedingTicks = getInt("mobs.sheep.breeding.cooldown-in-ticks", sheepBreedingTicks);
         if (PurpurConfig.version < 43) {
             boolean oldVal = getBoolean("mobs.sheep.bypass-mob-griefing", false);
             set("mobs.sheep.bypass-mob-griefing", null);
@@ -2950,6 +2824,9 @@ public class PurpurWorldConfig {
         sheepMobGriefingOverride = getBooleanOrDefault("mobs.sheep.mob-griefing-override", sheepMobGriefingOverride);
         sheepTakeDamageFromWater = getBoolean("mobs.sheep.takes-damage-from-water", sheepTakeDamageFromWater);
         sheepAlwaysDropExp = getBoolean("mobs.sheep.always-drop-exp", sheepAlwaysDropExp);
+        sheepBreedingChance = getDouble("mobs.sheep.breeding.offspring.chance", sheepBreedingChance);
+        sheepBreedingMinOffspring = getInt("mobs.sheep.breeding.offspring.min", sheepBreedingMinOffspring);
+        sheepBreedingMaxOffspring = getInt("mobs.sheep.breeding.offspring.max", sheepBreedingMaxOffspring);
     }
 
     public boolean shulkerRidable = false;
@@ -3171,7 +3048,12 @@ public class PurpurWorldConfig {
         snifferControllable = getBoolean("mobs.sniffer.controllable", snifferControllable);
         snifferMaxHealth = getDouble("mobs.sniffer.attributes.max_health", snifferMaxHealth);
         snifferScale = Mth.clamp(getDouble("mobs.sniffer.attributes.scale", snifferScale), 0.0625D, 16.0D);
-        snifferBreedingTicks = getInt("mobs.sniffer.breeding-delay-ticks", snifferBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.sniffer.breeding-delay-ticks", snifferBreedingTicks);
+            set("mobs.sniffer.breeding-delay-ticks", null);
+            set("mobs.sniffer.breeding.cooldown-in-ticks", oldValue);
+        }
+        snifferBreedingTicks = getInt("mobs.sniffer.breeding.cooldown-in-ticks", snifferBreedingTicks);
     }
 
     public boolean squidRidable = false;
@@ -3255,6 +3137,9 @@ public class PurpurWorldConfig {
     public boolean striderGiveSaddleBack = false;
     public boolean striderTakeDamageFromWater = true;
     public boolean striderAlwaysDropExp = false;
+    public double striderBreedingChance = 0.0D;
+    public int striderBreedingMinOffspring = 1;
+    public int striderBreedingMaxOffspring = 1;
     private void striderSettings() {
         striderRidable = getBoolean("mobs.strider.ridable", striderRidable);
         striderRidableInWater = getBoolean("mobs.strider.ridable-in-water", striderRidableInWater);
@@ -3266,10 +3151,18 @@ public class PurpurWorldConfig {
         }
         striderMaxHealth = getDouble("mobs.strider.attributes.max_health", striderMaxHealth);
         striderScale = Mth.clamp(getDouble("mobs.strider.attributes.scale", striderScale), 0.0625D, 16.0D);
-        striderBreedingTicks = getInt("mobs.strider.breeding-delay-ticks", striderBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.strider.breeding-delay-ticks", striderBreedingTicks);
+            set("mobs.strider.breeding-delay-ticks", null);
+            set("mobs.strider.breeding.cooldown-in-ticks", oldValue);
+        }
+        striderBreedingTicks = getInt("mobs.strider.breeding.cooldown-in-ticks", striderBreedingTicks);
         striderGiveSaddleBack = getBoolean("mobs.strider.give-saddle-back", striderGiveSaddleBack);
         striderTakeDamageFromWater = getBoolean("mobs.strider.takes-damage-from-water", striderTakeDamageFromWater);
         striderAlwaysDropExp = getBoolean("mobs.strider.always-drop-exp", striderAlwaysDropExp);
+        striderBreedingChance = getDouble("mobs.strider.breeding.offspring.chance", striderBreedingChance);
+        striderBreedingMinOffspring = getInt("mobs.strider.breeding.offspring.min", striderBreedingMinOffspring);
+        striderBreedingMaxOffspring = getInt("mobs.strider.breeding.offspring.max", striderBreedingMaxOffspring);
     }
 
     public boolean sulfurCubeRidable = false;
@@ -3306,6 +3199,9 @@ public class PurpurWorldConfig {
     public int traderLlamaBreedingTicks = 6000;
     public boolean traderLlamaTakeDamageFromWater = false;
     public boolean traderLlamaAlwaysDropExp = false;
+    public double traderLlamaBreedingChance = 0.0D;
+    public int traderLlamaBreedingMinOffspring = 1;
+    public int traderLlamaBreedingMaxOffspring = 1;
     private void traderLlamaSettings() {
         traderLlamaRidable = getBoolean("mobs.trader_llama.ridable", traderLlamaRidable);
         traderLlamaRidableInWater = getBoolean("mobs.trader_llama.ridable-in-water", traderLlamaRidableInWater);
@@ -3323,9 +3219,17 @@ public class PurpurWorldConfig {
         traderLlamaJumpStrengthMax = getDouble("mobs.trader_llama.attributes.jump_strength.max", traderLlamaJumpStrengthMax);
         traderLlamaMovementSpeedMin = getDouble("mobs.trader_llama.attributes.movement_speed.min", traderLlamaMovementSpeedMin);
         traderLlamaMovementSpeedMax = getDouble("mobs.trader_llama.attributes.movement_speed.max", traderLlamaMovementSpeedMax);
-        traderLlamaBreedingTicks = getInt("mobs.trader_llama.breeding-delay-ticks", traderLlamaBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.trader_llama.breeding-delay-ticks", traderLlamaBreedingTicks);
+            set("mobs.trader_llama.breeding-delay-ticks", null);
+            set("mobs.trader_llama.breeding.cooldown-in-ticks", oldValue);
+        }
+        traderLlamaBreedingTicks = getInt("mobs.trader_llama.breeding.cooldown-in-ticks", traderLlamaBreedingTicks);
         traderLlamaTakeDamageFromWater = getBoolean("mobs.trader_llama.takes-damage-from-water", traderLlamaTakeDamageFromWater);
         traderLlamaAlwaysDropExp = getBoolean("mobs.trader_llama.always-drop-exp", traderLlamaAlwaysDropExp);
+        traderLlamaBreedingChance = getDouble("mobs.trader_llama.breeding.offspring.chance", traderLlamaBreedingChance);
+        traderLlamaBreedingMinOffspring = getInt("mobs.trader_llama.breeding.offspring.min", traderLlamaBreedingMinOffspring);
+        traderLlamaBreedingMaxOffspring = getInt("mobs.trader_llama.breeding.offspring.max", traderLlamaBreedingMaxOffspring);
     }
 
     public boolean tropicalFishRidable = false;
@@ -3356,6 +3260,9 @@ public class PurpurWorldConfig {
     public int turtleBreedingTicks = 6000;
     public boolean turtleTakeDamageFromWater = false;
     public boolean turtleAlwaysDropExp = false;
+    public double turtleBreedingChance = 0.0D;
+    public int turtleBreedingMinOffspring = 1;
+    public int turtleBreedingMaxOffspring = 1;
     private void turtleSettings() {
         turtleRidable = getBoolean("mobs.turtle.ridable", turtleRidable);
         turtleRidableInWater = getBoolean("mobs.turtle.ridable-in-water", turtleRidableInWater);
@@ -3367,9 +3274,17 @@ public class PurpurWorldConfig {
         }
         turtleMaxHealth = getDouble("mobs.turtle.attributes.max_health", turtleMaxHealth);
         turtleScale = Mth.clamp(getDouble("mobs.turtle.attributes.scale", turtleScale), 0.0625D, 16.0D);
-        turtleBreedingTicks = getInt("mobs.turtle.breeding-delay-ticks", turtleBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.turtle.breeding-delay-ticks", turtleBreedingTicks);
+            set("mobs.turtle.breeding-delay-ticks", null);
+            set("mobs.turtle.breeding.cooldown-in-ticks", oldValue);
+        }
+        turtleBreedingTicks = getInt("mobs.turtle.breeding.cooldown-in-ticks", turtleBreedingTicks);
         turtleTakeDamageFromWater = getBoolean("mobs.turtle.takes-damage-from-water", turtleTakeDamageFromWater);
         turtleAlwaysDropExp = getBoolean("mobs.turtle.always-drop-exp", turtleAlwaysDropExp);
+        turtleBreedingChance = getDouble("mobs.turtle.breeding.offspring.chance", turtleBreedingChance);
+        turtleBreedingMinOffspring = getInt("mobs.turtle.breeding.offspring.min", turtleBreedingMinOffspring);
+        turtleBreedingMaxOffspring = getInt("mobs.turtle.breeding.offspring.max", turtleBreedingMaxOffspring);
     }
 
     public boolean vexRidable = false;
@@ -3422,6 +3337,9 @@ public class PurpurWorldConfig {
     public int villagerAcquirePoiSearchRadius = AcquirePoi.SCAN_RANGE;
     public int villagerNearestBedSensorSearchRadius = AcquirePoi.SCAN_RANGE;
     public Boolean villagerCanPickUpLoot = null;
+    public double villagerBreedingChance = 0.0D;
+    public int villagerBreedingMinOffspring = 1;
+    public int villagerBreedingMaxOffspring = 1;
     private void villagerSettings() {
         villagerRidable = getBoolean("mobs.villager.ridable", villagerRidable);
         villagerRidableInWater = getBoolean("mobs.villager.ridable-in-water", villagerRidableInWater);
@@ -3437,7 +3355,12 @@ public class PurpurWorldConfig {
         villagerTemptRange = getDouble("mobs.villager.attributes.tempt_range", villagerTemptRange);
         villagerCanBeLeashed = getBoolean("mobs.villager.can-be-leashed", villagerCanBeLeashed);
         villagerCanBreed = getBoolean("mobs.villager.can-breed", villagerCanBreed);
-        villagerBreedingTicks = getInt("mobs.villager.breeding-delay-ticks", villagerBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.villager.breeding-delay-ticks", villagerBreedingTicks);
+            set("mobs.villager.breeding-delay-ticks", null);
+            set("mobs.villager.breeding.cooldown-in-ticks", oldValue);
+        }
+        villagerBreedingTicks = getInt("mobs.villager.breeding.cooldown-in-ticks", villagerBreedingTicks);
         villagerClericsFarmWarts = getBoolean("mobs.villager.clerics-farm-warts", villagerClericsFarmWarts);
         villagerClericFarmersThrowWarts = getBoolean("mobs.villager.cleric-wart-farmers-throw-warts-at-villagers", villagerClericFarmersThrowWarts);
         if (PurpurConfig.version < 43) {
@@ -3468,6 +3391,9 @@ public class PurpurWorldConfig {
         villagerAcquirePoiSearchRadius = getInt("mobs.villager.search-radius.acquire-poi", villagerAcquirePoiSearchRadius);
         villagerNearestBedSensorSearchRadius = getInt("mobs.villager.search-radius.nearest-bed-sensor", villagerNearestBedSensorSearchRadius);
         villagerCanPickUpLoot = getBooleanOrDefault("mobs.villager.can-pick-up-loot", villagerCanPickUpLoot);
+        villagerBreedingChance = getDouble("mobs.villager.breeding.offspring.chance", villagerBreedingChance);
+        villagerBreedingMinOffspring = getInt("mobs.villager.breeding.offspring.min", villagerBreedingMinOffspring);
+        villagerBreedingMaxOffspring = getInt("mobs.villager.breeding.offspring.max", villagerBreedingMaxOffspring);
     }
 
     public boolean vindicatorRidable = false;
@@ -3641,6 +3567,9 @@ public class PurpurWorldConfig {
     public int wolfBreedingTicks = 6000;
     public boolean wolfTakeDamageFromWater = false;
     public boolean wolfAlwaysDropExp = false;
+    public double wolfBreedingChance = 0.0D;
+    public int wolfBreedingMinOffspring = 1;
+    public int wolfBreedingMaxOffspring = 1;
     private void wolfSettings() {
         wolfRidable = getBoolean("mobs.wolf.ridable", wolfRidable);
         wolfRidableInWater = getBoolean("mobs.wolf.ridable-in-water", wolfRidableInWater);
@@ -3659,9 +3588,17 @@ public class PurpurWorldConfig {
         }
         wolfMilkCuresRabies = getBoolean("mobs.wolf.milk-cures-rabid-wolves", wolfMilkCuresRabies);
         wolfNaturalRabid = getDouble("mobs.wolf.spawn-rabid-chance", wolfNaturalRabid);
-        wolfBreedingTicks = getInt("mobs.wolf.breeding-delay-ticks", wolfBreedingTicks);
+        if (PurpurConfig.version < 49) {
+            int oldValue = getInt("mobs.wolf.breeding-delay-ticks", wolfBreedingTicks);
+            set("mobs.wolf.breeding-delay-ticks", null);
+            set("mobs.wolf.breeding.cooldown-in-ticks", oldValue);
+        }
+        wolfBreedingTicks = getInt("mobs.wolf.breeding.cooldown-in-ticks", wolfBreedingTicks);
         wolfTakeDamageFromWater = getBoolean("mobs.wolf.takes-damage-from-water", wolfTakeDamageFromWater);
         wolfAlwaysDropExp = getBoolean("mobs.wolf.always-drop-exp", wolfAlwaysDropExp);
+        wolfBreedingChance = getDouble("mobs.wolf.breeding.offspring.chance", wolfBreedingChance);
+        wolfBreedingMinOffspring = getInt("mobs.wolf.breeding.offspring.min", wolfBreedingMinOffspring);
+        wolfBreedingMaxOffspring = getInt("mobs.wolf.breeding.offspring.max", wolfBreedingMaxOffspring);
     }
 
     public boolean zoglinRidable = false;
@@ -3860,24 +3797,10 @@ public class PurpurWorldConfig {
     public int conduitDistance = 16;
     public double conduitDamageDistance = 8;
     public float conduitDamageAmount = 4;
-    public Block[] conduitBlocks;
     private void conduitSettings() {
         conduitDistance = getInt("blocks.conduit.effect-distance", conduitDistance);
         conduitDamageDistance = getDouble("blocks.conduit.mob-damage.distance", conduitDamageDistance);
         conduitDamageAmount = (float) getDouble("blocks.conduit.mob-damage.damage-amount", conduitDamageAmount);
-        List<Block> conduitBlockList = new ArrayList<>();
-        getList("blocks.conduit.valid-ring-blocks", new ArrayList<String>(){{
-            add("minecraft:prismarine");
-            add("minecraft:prismarine_bricks");
-            add("minecraft:sea_lantern");
-            add("minecraft:dark_prismarine");
-        }}).forEach(key -> {
-            Block block = BuiltInRegistries.BLOCK.getValue(Identifier.parse(key.toString()));
-            if (!block.defaultBlockState().isAir()) {
-                conduitBlockList.add(block);
-            }
-        });
-        conduitBlocks = conduitBlockList.toArray(Block[]::new);
     }
 
     public float cauldronRainChance = 0.05F;
@@ -3896,5 +3819,10 @@ public class PurpurWorldConfig {
     private void shearsCanDefuseTntSettings() {
         shearsCanDefuseTntChance = (float) getDouble("gameplay-mechanics.item.shears.defuse-tnt-chance", 0.00D);
         shearsCanDefuseTnt = shearsCanDefuseTntChance > 0.00F;
+    }
+
+    public boolean leavesInstantDecay = false;
+    private void leavesSettings() {
+        leavesInstantDecay = getBoolean("blocks.leaves.instant-decay", leavesInstantDecay);
     }
 }

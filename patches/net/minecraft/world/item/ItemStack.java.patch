@@ -207,7 +207,7 @@
              return 0;
          } else {
              return amount > 0 ? EnchantmentHelper.processDurabilityChange(level, this, amount) : amount;
-@@ -467,15 +_,30 @@
+@@ -467,13 +_,28 @@
      }
  
      private void applyDamage(int newDamage, @Nullable ServerPlayer player, Consumer<ItemStack> onBreak) {
@@ -223,8 +223,7 @@
  
          this.setDamageValue(newDamage);
          if (this.isBroken()) {
--            ItemStack broken = this.copy();
-+            Item item = this.getItem();
+             ItemStack broken = this.copy();
 +            // CraftBukkit start - Check for item breaking
 +            if (this.count == 1 && player instanceof ServerPlayer serverplayer) {
 +                org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerItemBreakEvent(serverplayer, this);
@@ -237,11 +236,8 @@
 +            }
 +            // Purpur end - Implement elytra settings
              this.shrink(1);
--            onBreak.accept(broken);
-+            onBreak.accept(item);
+             onBreak.accept(broken);
          }
-     }
- 
 @@ -486,7 +_,25 @@
                  return;
              }

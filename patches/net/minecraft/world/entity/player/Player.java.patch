@@ -568,10 +568,9 @@
 +    private boolean deflectProjectile(Entity entity, final java.util.function.BooleanSupplier callEvent) { // Paper - damage events
          if (entity.is(EntityTypeTags.REDIRECTABLE_PROJECTILE)
              && entity instanceof Projectile projectile
--            && projectile.deflect(ProjectileDeflection.AIM_DEFLECT, this, EntityReference.of(this), true, 1.0)) {
--            this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.PLAYER_ATTACK_NODAMAGE, this.getSoundSource());
 +            && callEvent.getAsBoolean() // Paper - damage events
-+            && projectile.deflect(ProjectileDeflection.AIM_DEFLECT, this, EntityReference.of(this), true)) {
+             && projectile.deflect(ProjectileDeflection.AIM_DEFLECT, this, EntityReference.of(this), true, 1.0)) {
+-            this.level().playSound(null, this.getX(), this.getY(), this.getZ(), SoundEvents.PLAYER_ATTACK_NODAMAGE, this.getSoundSource());
 +            this.makeSound(SoundEvents.PLAYER_ATTACK_NODAMAGE); // Paper - Use makeSound to avoid duplicating client-side sound for source player
              return true;
          } else {

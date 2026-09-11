@@ -8,14 +8,14 @@
  import com.mojang.datafixers.DataFixer;
  import com.mojang.logging.LogUtils;
  import it.unimi.dsi.fastutil.longs.LongSet;
-@@ -15,9 +_,10 @@
+@@ -15,9 +_,11 @@
  import java.util.concurrent.CompletableFuture;
  import java.util.concurrent.CompletionStage;
  import java.util.concurrent.Executor;
 +import java.util.concurrent.atomic.AtomicBoolean;
  import java.util.function.BooleanSupplier;
  import java.util.function.Consumer;
--import java.util.function.Predicate;
+ import java.util.function.Predicate;
 +import java.util.function.Supplier;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.SectionPos;
@@ -709,15 +709,18 @@
      }
  
      public void addTicketWithRadius(TicketType type, ChunkPos pos, int radius) {
-@@ -539,21 +_,29 @@
+@@ -539,7 +_,9 @@
          this.chunkMap.sendToTrackingPlayers(entity, packet);
      }
  
 -    public void sendToTrackingPlayersFiltered(Entity entity, Packet<? super ClientGamePacketListener> packet, Predicate<ServerPlayer> targetPredicate) {
--        this.chunkMap.sendToTrackingPlayersFiltered(entity, packet, targetPredicate);
--    }
--
-     public void setViewDistance(int newDistance) {
++    public void sendToTrackingPlayersFiltered(
++            final Entity entity, final Packet<? super ClientGamePacketListener> packet, final Predicate<ServerPlayer> targetPredicate
++    ) {
+         this.chunkMap.sendToTrackingPlayersFiltered(entity, packet, targetPredicate);
+     }
+ 
+@@ -547,13 +_,25 @@
          this.chunkMap.setServerViewDistance(newDistance);
      }
  

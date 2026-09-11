@@ -138,7 +138,7 @@
          private static final Direction[] DIRECTIONS = Direction.values();
          private static final VoxelShape[] EMPTY_OCCLUSION_SHAPES = Util.make(new VoxelShape[DIRECTIONS.length], s -> Arrays.fill(s, Shapes.empty()));
          private static final VoxelShape[] FULL_BLOCK_OCCLUSION_SHAPES = Util.make(new VoxelShape[DIRECTIONS.length], s -> Arrays.fill(s, Shapes.block()));
-@@ -419,12 +_,12 @@
+@@ -419,7 +_,7 @@
          private boolean legacySolid;
          private final PushReaction pushReaction;
          private final MapColor mapColor;
@@ -147,12 +147,6 @@
          private final boolean requiresCorrectToolForDrops;
          private final boolean canOcclude;
          private final BlockBehaviour.StatePredicate isRedstoneConductor;
-         private final BlockBehaviour.StatePredicate isSuffocating;
--        private final BlockBehaviour.StateArgumentPredicate<AABB> isViewBlocking;
-+        private final BlockBehaviour.StatePredicate isViewBlocking;
-         private final BlockBehaviour.PostProcess postProcess;
-         private final Predicate<BlockState> emissiveRendering;
-         private final BlockBehaviour.@Nullable OffsetFunction offsetFunction;
 @@ -440,6 +_,76 @@
          private boolean propagatesSkylightDown;
          private int lightDampening;
@@ -391,7 +385,7 @@
 -            return this.pushReaction;
 +            PushReaction reaction = getBlock().getPistonPushReaction(asState());
 +            if (reaction != null) return reaction;
-+            return !this.isDestroyable() ? PushReaction.BLOCK : this.pushReaction; // Paper - Protect Bedrock and End Portal/Frames from being destroyed
++            return !this.isDestroyable() ? PushReaction.IMMOVEABLE : this.pushReaction; // Paper - Protect Bedrock and End Portal/Frames from being destroyed
          }
  
          public boolean isSolidRender() {

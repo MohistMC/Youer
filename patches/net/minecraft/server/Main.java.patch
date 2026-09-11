@@ -323,7 +323,7 @@
 +                                    try {
 +                                        io.papermc.paper.world.migration.WorldFolderMigration.migrateStartupWorld(
 +                                                access,
-+                                                context.datapackWorldgen(),
++                                                context.datapackWorldRegistries(),
 +                                                levelName,
 +                                                LevelStem.OVERWORLD,
 +                                                Registries.levelStemToLevel(LevelStem.OVERWORLD)
@@ -389,32 +389,16 @@
          DedicatedServerSettings settings, WorldLoader.DataLoadContext context, Registry<LevelStem> datapackDimensions, boolean demoMode, boolean bonusChest
      ) {
          LevelSettings createLevelSettings;
-@@ -251,7 +_,7 @@
-         if (demoMode) {
-             createLevelSettings = MinecraftServer.DEMO_SETTINGS;
-             worldOptions = WorldOptions.DEMO_OPTIONS;
--            dimensions = WorldPresets.createNormalWorldDimensions(context.datapackWorldRegistries());
-+            dimensions = WorldPresets.createNormalWorldDimensions(context.datapackWorldgen());
-         } else {
-             DedicatedServerProperties properties = settings.getProperties();
-             createLevelSettings = new LevelSettings(
-@@ -262,11 +_,14 @@
-                 context.dataConfiguration()
-             );
-             worldOptions = bonusChest ? properties.worldOptions.withBonusChest(true) : properties.worldOptions;
--            dimensions = properties.createDimensions(context.datapackWorldRegistries());
-+            dimensions = properties.createDimensions(context.datapackWorldgen());
+@@ -265,6 +_,9 @@
+             dimensions = properties.createDimensions(context.datapackWorldRegistries());
          }
  
 +        // Neo: Do a write-read-cycle to inject modded dimensions on first start of a dedicated server into its generated world dimensions list.
-+        var registryOps = net.minecraft.resources.RegistryOps.create(net.minecraft.nbt.NbtOps.INSTANCE, context.datapackWorldgen());
++        var registryOps = net.minecraft.resources.RegistryOps.create(net.minecraft.nbt.NbtOps.INSTANCE, context.datapackWorldRegistries());
 +        dimensions = WorldDimensions.CODEC.encoder().encodeStart(registryOps, dimensions).flatMap((writtenPayloadWithModdedDimensions) -> WorldDimensions.CODEC.decoder().parse(registryOps, writtenPayloadWithModdedDimensions)).resultOrPartial(LOGGER::error).orElse(dimensions);
          WorldDimensions.Complete finalDimensions = dimensions.bake(datapackDimensions);
--        Lifecycle lifecycle = finalDimensions.lifecycle().add(context.datapackWorldRegistries().allRegistriesLifecycle());
-+        Lifecycle lifecycle = finalDimensions.lifecycle().add(context.datapackWorldgen().allRegistriesLifecycle());
+         Lifecycle lifecycle = finalDimensions.lifecycle().add(context.datapackWorldRegistries().allRegistriesLifecycle());
          PrimaryLevelData primaryLevelData = new PrimaryLevelData(createLevelSettings, finalDimensions.specialWorldProperty(), lifecycle);
-         return new WorldLoader.DataLoadOutput<>(
-             new LevelDataAndDimensions.WorldDataAndGenSettings(primaryLevelData, new WorldGenSettings(worldOptions, dimensions)),
 @@ -309,7 +_,8 @@
          RegistryAccess registryAccess,
          boolean recreateRegionFiles

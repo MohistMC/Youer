@@ -1496,22 +1496,6 @@ public final class CraftServer implements Server {
         return true;
     }
 
-    // Purpur start - Added the ability to add combustible items
-    @Override
-    public void addFuel(org.bukkit.Material material, int burnTime) {
-        Preconditions.checkArgument(burnTime > 0, "BurnTime must be greater than 0");
-
-        net.minecraft.world.item.ItemStack itemStack = net.minecraft.world.item.ItemStack.fromBukkitCopy(new ItemStack(material));
-        MinecraftServer.getServer().fuelValues().values.put(itemStack.getItem(), burnTime);
-    }
-
-    @Override
-    public void removeFuel(org.bukkit.Material material) {
-        net.minecraft.world.item.ItemStack itemStack = net.minecraft.world.item.ItemStack.fromBukkitCopy(new ItemStack(material));
-        MinecraftServer.getServer().fuelValues().values.keySet().removeIf(itemStack::is);
-    }
-    // Purpur end - Added the ability to add combustible items
-
     // Purpur start - Debug Marker API
     @Override
     public void sendBlockHighlight(Location location, int duration) {

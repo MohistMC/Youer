@@ -752,7 +752,7 @@
 +                    adjustment.apply(this.server.clockManager(), defaultClock.get());
 +                }
 +                // Paper start - per-world time
-+                long currentTime = this.clockManager().getTotalTicks(defaultClock.get());
++                long currentTime = this.clockManager().getInstance(defaultClock.get()).totalTicks();
 +                long delta = this.clockManager().getTotalTicksToTimeMarker(defaultClock.get(), ClockTimeMarkers.WAKE_UP_FROM_SLEEP).orElse(0L) - currentTime;
 +                event = new org.bukkit.event.world.TimeSkipEvent(
 +                        this.getWorld(),
@@ -1801,6 +1801,256 @@
      }
  
      private Explosion.BlockInteraction getDestroyType(GameRule<Boolean> gameRule) {
+@@ -1300,7 +_,24 @@
+     public <T extends ParticleOptions> int sendParticles(
+         T particle, double x, double y, double z, int count, double xDist, double yDist, double zDist, double speed
+     ) {
+-        return this.sendParticles(particle, false, false, x, y, z, count, xDist, yDist, zDist, speed, ClientboundLevelParticlesPacket.RandomizationType.DEFAULT);
++        // Paper start - visibility API
++        return this.sendParticlesSource(null, particle, x, y, z, count, xDist, yDist, zDist, speed);
++    }
++
++    public <T extends ParticleOptions> int sendParticlesSource(
++            final @Nullable Entity sender,
++            final T particle,
++            final double x,
++            final double y,
++            final double z,
++            final int count,
++            final double xDist,
++            final double yDist,
++            final double zDist,
++            final double speed
++    ) {
++        return this.sendParticlesSource(sender, particle, false, false, x, y, z, count, xDist, yDist, zDist, speed, ClientboundLevelParticlesPacket.RandomizationType.DEFAULT);
++        // Paper end - visibility API
+     }
+ 
+     public <T extends ParticleOptions> int sendParticles(
+@@ -1315,15 +_,52 @@
+         double speed,
+         ClientboundLevelParticlesPacket.RandomizationType randomizationType
+     ) {
+-        return this.sendParticles(particle, false, false, x, y, z, count, xDist, yDist, zDist, speed, randomizationType);
++        // Paper start - visibility API
++        return this.sendParticlesSource(null, particle, x, y, z, count, xDist, yDist, zDist, speed, randomizationType);
++    }
++
++    public <T extends ParticleOptions> int sendParticlesSource(
++            final @Nullable Entity sender,
++            final T particle,
++            final double x,
++            final double y,
++            final double z,
++            final int count,
++            final double xDist,
++            final double yDist,
++            final double zDist,
++            final double speed,
++            final ClientboundLevelParticlesPacket.RandomizationType randomizationType
++    ) {
++        return this.sendParticlesSource(sender, particle, false, false, x, y, z, count, xDist, yDist, zDist, speed, randomizationType);
++        // Paper end - visibility API
+     }
+ 
+     public <T extends ParticleOptions> int sendParticles(
+         T particle, double x, double y, double z, int count, double xDist, double yDist, double zDist, double xSpeed, double ySpeed, double zSpeed
+     ) {
+-        return this.sendParticles(
+-            particle, false, false, x, y, z, count, xDist, yDist, zDist, xSpeed, ySpeed, zSpeed, ClientboundLevelParticlesPacket.RandomizationType.DEFAULT
++        // Paper start - visibility API
++        return this.sendParticlesSource(null, particle, x, y, z, count, xDist, yDist, zDist, xSpeed, ySpeed, zSpeed);
++    }
++
++    public <T extends ParticleOptions> int sendParticlesSource(
++            final @Nullable Entity sender,
++            final T particle,
++            final double x,
++            final double y,
++            final double z,
++            final int count,
++            final double xDist,
++            final double yDist,
++            final double zDist,
++            final double xSpeed,
++            final double ySpeed,
++            final double zSpeed
++    ) {
++        return this.sendParticlesSource(
++                sender, particle, false, false, x, y, z, count, xDist, yDist, zDist, xSpeed, ySpeed, zSpeed, ClientboundLevelParticlesPacket.RandomizationType.DEFAULT
+         );
++        // Paper end - visibility API
+     }
+ 
+     public <T extends ParticleOptions> int sendParticles(
+@@ -1340,7 +_,27 @@
+         double zSpeed,
+         ClientboundLevelParticlesPacket.RandomizationType randomizationType
+     ) {
+-        return this.sendParticles(particle, false, false, x, y, z, count, xDist, yDist, zDist, xSpeed, ySpeed, zSpeed, randomizationType);
++        // Paper start - visibility API
++        return this.sendParticlesSource(null, particle, x, y, z, count, xDist, yDist, zDist, xSpeed, ySpeed, zSpeed, randomizationType);
++    }
++
++    public <T extends ParticleOptions> int sendParticlesSource(
++            final @Nullable Entity sender,
++            final T particle,
++            final double x,
++            final double y,
++            final double z,
++            final int count,
++            final double xDist,
++            final double yDist,
++            final double zDist,
++            final double xSpeed,
++            final double ySpeed,
++            final double zSpeed,
++            final ClientboundLevelParticlesPacket.RandomizationType randomizationType
++    ) {
++        return this.sendParticlesSource(sender, particle, false, false, x, y, z, count, xDist, yDist, zDist, xSpeed, ySpeed, zSpeed, randomizationType);
++        // Paper end - visibility API
+     }
+ 
+     public <T extends ParticleOptions> int sendParticles(
+@@ -1356,7 +_,27 @@
+         double zDist,
+         double speed
+     ) {
+-        return this.sendParticles(
++        // Paper start - visibility API
++        return this.sendParticlesSource(null, particle, overrideLimiter, alwaysShow, x, y, z, count, xDist, yDist, zDist, speed);
++    }
++
++    public <T extends ParticleOptions> int sendParticlesSource(
++            final @Nullable Entity sender,
++            final T particle,
++            final boolean overrideLimiter,
++            final boolean alwaysShow,
++            final double x,
++            final double y,
++            final double z,
++            final int count,
++            final double xDist,
++            final double yDist,
++            final double zDist,
++            final double speed
++    ) {
++        return this.sendParticlesSource(
++                sender,
++                // Paper end - visibility API
+             particle,
+             overrideLimiter,
+             alwaysShow,
+@@ -1388,7 +_,27 @@
+         double speed,
+         ClientboundLevelParticlesPacket.RandomizationType randomizationType
+     ) {
+-        return this.sendParticles(particle, overrideLimiter, alwaysShow, x, y, z, count, xDist, yDist, zDist, speed, speed, speed, randomizationType);
++        // Paper start - visibility API
++        return this.sendParticlesSource(null, particle, overrideLimiter, alwaysShow, x, y, z, count, xDist, yDist, zDist, speed, randomizationType);
++    }
++
++    public <T extends ParticleOptions> int sendParticlesSource(
++            final @Nullable Entity sender,
++            final T particle,
++            final boolean overrideLimiter,
++            final boolean alwaysShow,
++            final double x,
++            final double y,
++            final double z,
++            final int count,
++            final double xDist,
++            final double yDist,
++            final double zDist,
++            final double speed,
++            final ClientboundLevelParticlesPacket.RandomizationType randomizationType
++    ) {
++        return this.sendParticlesSource(sender, particle, overrideLimiter, alwaysShow, x, y, z, count, xDist, yDist, zDist, speed, speed, speed, randomizationType);
++        // Paper end - visibility API
+     }
+ 
+     public <T extends ParticleOptions> int sendParticles(
+@@ -1407,6 +_,68 @@
+         double zSpeed,
+         ClientboundLevelParticlesPacket.RandomizationType randomizationType
+     ) {
++        // Paper start - visibility api
++        return this.sendParticlesSource(null, particle, overrideLimiter, alwaysShow, x, y, z, count, xDist, yDist, zDist, xSpeed, ySpeed, zSpeed, randomizationType);
++    }
++
++    public <T extends ParticleOptions> int sendParticlesSource(
++            final @Nullable Entity sender,
++            final T particle,
++            final boolean overrideLimiter,
++            final boolean alwaysShow,
++            final double x,
++            final double y,
++            final double z,
++            final int count,
++            final double xDist,
++            final double yDist,
++            final double zDist,
++            final double xSpeed,
++            final double ySpeed,
++            final double zSpeed,
++            final ClientboundLevelParticlesPacket.RandomizationType randomizationType
++    ) {
++        return this.sendParticlesSource(this.players, sender, particle, overrideLimiter, alwaysShow, x, y, z, count, xDist, yDist, zDist, xSpeed, ySpeed, zSpeed, randomizationType);
++    }
++
++    public <T extends ParticleOptions> int sendParticlesSource(
++            final List<ServerPlayer> receivers,
++            final @Nullable Entity sender,
++            final T particle,
++            final boolean overrideLimiter,
++            final boolean alwaysShow,
++            final double x,
++            final double y,
++            final double z,
++            final int count,
++            final double xDist,
++            final double yDist,
++            final double zDist,
++            final double speed,
++            final ClientboundLevelParticlesPacket.RandomizationType randomizationType
++    ) {
++        return this.sendParticlesSource(receivers, sender, particle, overrideLimiter, alwaysShow, x, y, z, count, xDist, yDist, zDist, speed, speed, speed, randomizationType);
++    }
++
++    public <T extends ParticleOptions> int sendParticlesSource(
++            final List<ServerPlayer> receivers,
++            final @Nullable Entity sender,
++            final T particle,
++            final boolean overrideLimiter,
++            final boolean alwaysShow,
++            final double x,
++            final double y,
++            final double z,
++            final int count,
++            final double xDist,
++            final double yDist,
++            final double zDist,
++            final double xSpeed,
++            final double ySpeed,
++            final double zSpeed,
++            final ClientboundLevelParticlesPacket.RandomizationType randomizationType
++    ) {
++        // Paper end - visibility api
+         ClientboundLevelParticlesPacket packet = new ClientboundLevelParticlesPacket(
+             particle,
+             overrideLimiter,
+@@ -1425,8 +_,9 @@
+         );
+         int result = 0;
+ 
+-        for (int i = 0; i < this.players.size(); i++) {
+-            ServerPlayer player = this.players.get(i);
++        for (int i = 0; i < receivers.size(); i++) { // Paper - particle API
++            ServerPlayer player = receivers.get(i); // Paper - particle API
++            if (sender != null && !player.getBukkitEntity().canSee(sender.getBukkitEntity())) continue; // CraftBukkit
+             if (this.sendParticles(player, overrideLimiter, x, y, z, packet)) {
+                 result++;
+             }
 @@ -1505,7 +_,7 @@
      }
  

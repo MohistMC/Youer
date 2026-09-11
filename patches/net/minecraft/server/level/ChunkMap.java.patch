@@ -8,14 +8,6 @@
  import java.util.stream.Stream;
  import net.minecraft.CrashReport;
  import net.minecraft.CrashReportCategory;
-@@ -73,7 +_,6 @@
- import net.minecraft.util.thread.ConsecutiveExecutor;
- import net.minecraft.world.entity.Entity;
- import net.minecraft.world.entity.EntityType;
--import net.minecraft.world.entity.UpdateInterval;
- import net.minecraft.world.entity.ai.village.poi.PoiManager;
- import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
- import net.minecraft.world.level.ChunkPos;
 @@ -95,14 +_,17 @@
  import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
  import net.minecraft.world.level.chunk.storage.SerializableChunkData;
@@ -106,7 +98,7 @@
          TicketStorage ticketStorage,
          int serverViewDistance,
          boolean syncWrites
-@@ -173,25 +_,32 @@
+@@ -173,10 +_,17 @@
              DataFixTypes.CHUNK
          );
          Path storageFolder = levelStorage.getDimensionPath(level.dimension());
@@ -125,8 +117,7 @@
              this.randomState = RandomState.create(registryAccess.lookupOrThrow(Registries.NOISE), levelSeed, noiseGenerator.generatorSettings().value());
          } else {
              this.randomState = RandomState.create(
--                registryAccess.lookupOrThrow(Registries.NOISE), levelSeed, false, Blocks.STONE.defaultBlockState(), 63, NoiseRouterData.none()
-+                registryAccess.lookupOrThrow(Registries.NOISE), levelSeed, false, Blocks.STONE.defaultBlockState(), 63, NoiseRouterData.none(), List.of()
+@@ -184,14 +_,14 @@
              );
          }
  
@@ -1198,7 +1189,7 @@
      }
  
      public boolean hasEntityWithId(int id) {
-@@ -1137,17 +_,33 @@
+@@ -1137,9 +_,19 @@
      }
  
      protected void addEntity(Entity entity) {
@@ -1217,19 +1208,17 @@
              int range = type.clientTrackingRange() * 16;
 +            range = org.spigotmc.TrackingRange.getEntityTrackingRange(entity, range); // Spigot
              if (range != 0) {
-+                int updateInterval = type.updateInterval();
                  if (this.entityMap.containsKey(entity.getId())) {
                      throw (IllegalStateException)Util.pauseInIde(new IllegalStateException("Entity is already tracked!"));
-                 }
- 
--                UpdateInterval updateInterval = type.hasUpdateInterval() ? UpdateInterval.periodic(type.updateInterval()) : UpdateInterval.NEVER;
+@@ -1148,6 +_,12 @@
+                 UpdateInterval updateInterval = type.hasUpdateInterval() ? UpdateInterval.periodic(type.updateInterval()) : UpdateInterval.NEVER;
                  ChunkMap.TrackedEntity trackedEntity = new ChunkMap.TrackedEntity(entity, range, updateInterval, type.trackDeltas());
                  this.entityMap.put(entity.getId(), trackedEntity);
 +                // Paper start - optimise entity tracker
 +                if (((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity)entity).moonrise$getTrackedEntity() != null) {
 +                    throw new IllegalStateException("Entity is already tracked");
 +                }
-+                ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity)entity).moonrise$setTrackedEntity(trackedEntity);
++                entity.moonrise$setTrackedEntity(trackedEntity);
 +                // Paper end - optimise entity tracker
                  trackedEntity.updatePlayers(this.level.players());
                  if (entity instanceof ServerPlayer player) {
@@ -1262,8 +1251,8 @@
 +            if (tracker == null) {
 +                continue;
 +            }
-+            ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$tick(((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkData().nearbyPlayers);
-+            if (((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerTrackedEntity)tracker).moonrise$hasPlayers()
++            tracker.moonrise$tick(((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkData().nearbyPlayers);
++            if (tracker.moonrise$hasPlayers()
 +                    || ((ca.spottedleaf.moonrise.patches.chunk_system.entity.ChunkSystemEntity)entity).moonrise$getChunkStatus().isOrAfter(FullChunkStatus.ENTITY_TICKING)) {
 +                tracker.serverEntity.sendChanges();
 +            }
@@ -1362,9 +1351,6 @@
          private final int range;
          private SectionPos lastSectionPos;
 -        public final Set<ServerPlayerConnection> seenBy = Sets.newIdentityHashSet();
--
--        public TrackedEntity(Entity entity, int range, UpdateInterval updateInterval, boolean trackDelta) {
--            this.serverEntity = new ServerEntity(ChunkMap.this.level, entity, updateInterval, trackDelta, this);
 +        public final Set<ServerPlayerConnection> seenBy = new it.unimi.dsi.fastutil.objects.ReferenceOpenHashSet<>(); // Paper - Perf: optimise map impl
 +
 +        // Paper start - optimise entity tracker
@@ -1449,8 +1435,9 @@
 +            return !this.seenBy.isEmpty();
 +        }
 +        // Paper end - optimise entity tracker
-+
-+        public TrackedEntity(Entity entity, int range, int updateInterval, boolean trackDelta) {
+ 
+         public TrackedEntity(Entity entity, int range, UpdateInterval updateInterval, boolean trackDelta) {
+-            this.serverEntity = new ServerEntity(ChunkMap.this.level, entity, updateInterval, trackDelta, this);
 +            this.serverEntity = new ServerEntity(ChunkMap.this.level, entity, updateInterval, trackDelta, this, seenBy); // CraftBukkit
              this.entity = entity;
              this.range = range;

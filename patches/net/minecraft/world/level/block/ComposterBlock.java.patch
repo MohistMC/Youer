@@ -27,84 +27,31 @@
      }
  
      @Override
-@@ -120,12 +_,27 @@
-         int fillLevel = state.getValue(LEVEL);
+@@ -121,8 +_,13 @@
          Compostable compostable = itemStack.get(DataComponents.COMPOSTABLE);
          if (fillLevel < 8 && compostable != null) {
--            if (fillLevel < 7 && level instanceof ServerLevel serverLevel) {
+             if (fillLevel < 7 && level instanceof ServerLevel serverLevel) {
 -                BlockState newState = addLayer(player, state, serverLevel, pos, compostable);
 -                level.levelEvent(1500, pos, state != newState ? 1 : 0);
--                player.awardStat(Stats.ITEM_USED.get(itemStack.getItem()));
--                itemStack.consume(1, player);
--            }
-+            // Purpur start - sneak to bulk process composter
-+            BlockState newState = process(fillLevel, player, state, level, pos, itemStack);
-+            if (newState == null) {
-+                return InteractionResult.PASS;
-+            }
-+            if (level.purpurConfig.composterBulkProcess && player.isShiftKeyDown()) {
-+                BlockState oldState;
-+                int oldCount, newCount, oldLevel, newLevel;
-+                do {
-+                    oldState = newState;
-+                    oldCount = itemStack.getCount();
-+                    oldLevel = oldState.getValue(ComposterBlock.LEVEL);
-+                    newState = process(oldLevel, player, oldState, level, pos, itemStack);
-+                    if (newState == null) {
-+                        return InteractionResult.PASS;
-+                    }
-+                    newCount = itemStack.getCount();
-+                    newLevel = newState.getValue(ComposterBlock.LEVEL);
-+                } while (newCount > 0 && (newCount != oldCount || newLevel != oldLevel));
-+            }
-+            // Purpur end - Sneak to bulk process composter
- 
-             return InteractionResult.SUCCESS;
-         } else {
-@@ -133,6 +_,25 @@
-         }
-     }
- 
-+    // Purpur start - sneak to bulk process composter
-+    private static @Nullable BlockState process(int fillLevel, Player player, BlockState state, Level level, BlockPos pos, ItemStack itemStack) {
-+        if (fillLevel < 7 && !level.isClientSide()) {
-+            BlockState newState = ComposterBlock.addLayer(player, state, level, pos, itemStack);
-+            // Paper start - handle cancelled events
-+            if (newState == null) {
-+                return null;
-+            }
-+            // Paper end
-+
-+            level.levelEvent(LevelEvent.COMPOSTER_FILL, pos, state != newState ? 1 : 0);
-+            player.awardStat(Stats.ITEM_USED.get(itemStack.getItem()));
-+            itemStack.consume(1, player);
-+            return newState;
-+        }
-+        return state;
-+    }
-+    // Purpur end - Sneak to bulk process composter
-+
-     @Override
-     protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
-         int fillLevel = state.getValue(LEVEL);
-@@ -148,7 +_,19 @@
++                // Paper start - compost events
++                BlockState newState = addLayer(player, state, serverLevel, pos, compostable, itemStack);
++                if (newState == null) {
++                    return InteractionResult.PASS;
++                }
++                // Paper end - compost events
++                level.levelEvent(LevelEvent.COMPOSTER_FILL, pos, state != newState ? 1 : 0);
+                 player.awardStat(Stats.ITEM_USED.get(itemStack.getItem()));
+                 itemStack.consume(1, player);
+             }
+@@ -148,7 +_,10 @@
          int fillLevel = state.getValue(LEVEL);
          Compostable compostable = itemStack.get(DataComponents.COMPOSTABLE);
          if (fillLevel < 7 && compostable != null) {
 -            BlockState newState = addLayer(sourceEntity, state, level, pos, compostable);
-+            // CraftBukkit start
-+            double rand = level.getRandom().nextDouble();
-+            BlockState newState = null; // Paper
-+            if (false && (state == newState || !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(sourceEntity, pos, newState))) { // Paper - move event call into addItem
-+                return state;
-+            }
-+            newState = ComposterBlock.addLayer(sourceEntity, state, level, pos, itemStack, rand);
-+            // Paper start - handle cancelled events
-+            if (newState == null) {
-+                return state;
-+            }
-+            // Paper end
-+            // CraftBukkit end
++            // Paper - call compost events
++            BlockState newState = addLayer(sourceEntity, state, level, pos, compostable, itemStack);
++            if (newState == null) return state;
++            // Paper - call compost events
              itemStack.shrink(1);
              return newState;
          } else {
@@ -123,7 +70,7 @@
          if (!level.isClientSide()) {
              Vec3 itemPos = Vec3.atLowerCornerWithOffset(pos, 0.5, 1.01, 0.5).offsetRandomXZ(level.getRandom(), 0.7F);
              ItemEntity entity = new ItemEntity(level, itemPos.x(), itemPos.y(), itemPos.z(), new ItemStack(Items.BONE_MEAL));
-@@ -171,41 +_,59 @@
+@@ -171,22 +_,36 @@
  
      private static BlockState empty(@Nullable Entity sourceEntity, BlockState state, LevelAccessor level, BlockPos pos) {
          BlockState newState = state.setValue(LEVEL, 0);
@@ -134,69 +81,41 @@
      }
  
 -    private static BlockState addLayer(@Nullable Entity sourceEntity, BlockState state, ServerLevel level, BlockPos pos, Compostable compostable) {
-+    @Nullable // Paper
-+    private static BlockState addLayer(@Nullable Entity sourceEntity, BlockState state, LevelAccessor level, BlockPos pos, ItemStack itemStack) {
-+        // CraftBukkit start
-+        return addLayer(sourceEntity, state, level, pos, itemStack, level.getRandom().nextDouble());
-+    }
-+    @Nullable // Paper - make it nullable
-+    private static BlockState addLayer(@Nullable Entity sourceEntity, BlockState state, LevelAccessor level, BlockPos pos, ItemStack itemStack, double rand) {
++    @Nullable
++    private static BlockState addLayer(@Nullable Entity sourceEntity, BlockState state, ServerLevel level, BlockPos pos, Compostable compostable, ItemStack addedStack) {
 +        // CraftBukkit end
          int fillLevel = state.getValue(LEVEL);
--        LootContext lootContext = new LootContext.Builder(
--                new LootParams.Builder(level)
+         LootContext lootContext = new LootContext.Builder(
+                 new LootParams.Builder(level)
 -                    .withParameter(LootContextParams.BLOCK_STATE, state)
 -                    .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(pos))
 -                    .withOptionalParameter(LootContextParams.INTERACTING_ENTITY, sourceEntity)
 -                    .create(LootContextParamSets.BLOCK_INTERACT)
 -            )
 -            .create(Optional.empty());
--        int layersToAdd = compostable.layers().get(lootContext, 0);
--        if (layersToAdd > 0) {
--            int newLevel = Mth.clamp(fillLevel + layersToAdd, 0, 7);
--            BlockState newState = state.setValue(LEVEL, newLevel);
--            level.setBlockAndUpdate(pos, newState);
--            level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(sourceEntity, newState));
--            if (newLevel == 7) {
--                level.scheduleTick(pos, state.getBlock(), 20);
--            }
--
--            return newState;
-+        float chance = COMPOSTABLES.getFloat(itemStack.getItem());
++                        .withParameter(LootContextParams.BLOCK_STATE, state)
++                        .withParameter(LootContextParams.ORIGIN, Vec3.atCenterOf(pos))
++                        .withOptionalParameter(LootContextParams.INTERACTING_ENTITY, sourceEntity)
++                        .create(LootContextParamSets.BLOCK_INTERACT)
++        )
++                .create(Optional.empty());
+         int layersToAdd = compostable.layers().get(lootContext, 0);
 +        // Paper start - Add CompostItemEvent and EntityCompostItemEvent
-+        boolean willRaiseLevel = !((fillLevel != 0 || chance <= 0.0F) && rand >= (double) chance);
 +        final io.papermc.paper.event.block.CompostItemEvent event;
 +        if (sourceEntity == null) {
-+            event = new io.papermc.paper.event.block.CompostItemEvent(org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), itemStack.getBukkitStack(), willRaiseLevel);
-         } else {
-+            event = new io.papermc.paper.event.entity.EntityCompostItemEvent(sourceEntity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), itemStack.getBukkitStack(), willRaiseLevel);
++            event = new io.papermc.paper.event.block.CompostItemEvent(org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), addedStack.getBukkitStack(), layersToAdd);
++        } else {
++            event = new io.papermc.paper.event.entity.EntityCompostItemEvent(sourceEntity.getBukkitEntity(), org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), addedStack.getBukkitStack(), layersToAdd);
 +        }
 +        if (!event.callEvent()) { // check for cancellation of entity event (non entity event can't be cancelled cause of hoppers)
 +            return null;
 +        }
-+        willRaiseLevel = event.willRaiseLevel();
-+
-+        if (!willRaiseLevel) {
-+            // Paper end - Add CompostItemEvent and EntityCompostItemEvent
-             return state;
-         }
-+
-+        int newLevel = fillLevel + 1;
-+        BlockState newState = state.setValue(LEVEL, newLevel);
-+        // Paper start - move the EntityChangeBlockEvent here to avoid conflict later for the compost events
-+        if (sourceEntity != null && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(sourceEntity, pos, newState)) {
-+            return null;
-+        }
-+        // Paper end
-+        level.setBlock(pos, newState, 3);
-+        level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(sourceEntity, newState));
-+        if (newLevel == 7) {
-+            level.scheduleTick(pos, state.getBlock(), 20);
-+        }
-+
-+        return newState;
-     }
- 
++        layersToAdd = event.getLevelsToRaise();
++        // Paper end - Add CompostItemEvent and EntityCompostItemEvent
+         if (layersToAdd > 0) {
+             int newLevel = Mth.clamp(fillLevel + layersToAdd, 0, 7);
+             BlockState newState = state.setValue(LEVEL, newLevel);
+@@ -205,7 +_,7 @@
      @Override
      protected void tick(BlockState state, ServerLevel level, BlockPos pos, RandomSource random) {
          if (state.getValue(LEVEL) == 7) {
@@ -230,33 +149,22 @@
              this.state = state;
              this.level = level;
              this.pos = pos;
-@@ -286,7 +_,7 @@
- 
-         @Override
-         public boolean canPlaceItemThroughFace(int slot, ItemStack itemStack, @Nullable Direction direction) {
--            return !this.changed && direction == Direction.UP && itemStack.has(DataComponents.COMPOSTABLE);
-+            return !this.changed && direction == Direction.UP && addLayer(itemStack) > 0f;
-         }
- 
-         @Override
-@@ -297,10 +_,14 @@
-         @Override
-         public void setChanged() {
-             ItemStack contents = this.getItem(0);
--            Compostable compostable = contents.get(DataComponents.COMPOSTABLE);
--            if (!contents.isEmpty() && compostable != null && this.level instanceof ServerLevel serverLevel) {
-+            if (!contents.isEmpty()) {
+@@ -300,8 +_,13 @@
+             Compostable compostable = contents.get(DataComponents.COMPOSTABLE);
+             if (!contents.isEmpty() && compostable != null && this.level instanceof ServerLevel serverLevel) {
                  this.changed = true;
 -                BlockState newState = ComposterBlock.addLayer(null, this.state, serverLevel, this.pos, compostable);
-+                BlockState newState = ComposterBlock.addLayer(null, this.state, this.level, this.pos, contents);
+-                this.level.levelEvent(1500, this.pos, newState != this.state ? 1 : 0);
 +                // Paper start - Add CompostItemEvent and EntityCompostItemEvent
++                BlockState newState = ComposterBlock.addLayer(null, this.state, serverLevel, this.pos, compostable, contents);
 +                if (newState == null) {
 +                    return;
 +                }
 +                // Paper end - Add CompostItemEvent and EntityCompostItemEvent
-                 this.level.levelEvent(1500, this.pos, newState != this.state ? 1 : 0);
++                this.level.levelEvent(LevelEvent.COMPOSTER_FILL, this.pos, newState != this.state ? 1 : 0);
                  this.removeItemNoUpdate(0);
              }
+         }
 @@ -318,6 +_,7 @@
              this.state = state;
              this.level = level;

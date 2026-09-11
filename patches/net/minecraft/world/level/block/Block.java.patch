@@ -211,21 +211,27 @@
      public float getExplosionResistance() {
          return this.explosionResistance;
      }
-@@ -439,16 +_,31 @@
+@@ -439,16 +_,39 @@
          return this.defaultBlockState();
      }
  
--    public void playerDestroy(
--        ServerLevel level, ServerPlayer player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith
--    ) {
 +    // Paper start - fix drops not preventing stats/food exhaustion
 +    @Deprecated @io.papermc.paper.annotation.DoNotUse
-+    public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith) {
++    public void playerDestroy(final ServerLevel level, final ServerPlayer player, final BlockPos pos, final BlockState state, final @Nullable BlockEntity blockEntity, final ItemStack destroyedWith) {
 +        playerDestroy(level, player, pos, state, blockEntity, destroyedWith, true, true);
 +    }
 +    // Paper end - fix drops not preventing stats/food exhaustion
 +
-+    public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith, final boolean includeDrops, final boolean dropExp) { // Paper - fix drops not preventing stats/food exhaustion
+     public void playerDestroy(
+-        ServerLevel level, ServerPlayer player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith
++            final ServerLevel level,
++            final ServerPlayer player,
++            final BlockPos pos,
++            final BlockState state,
++            final @Nullable BlockEntity blockEntity,
++            final ItemStack destroyedWith
++            , final boolean includeDrops, final boolean dropExp // Paper - fix drops not preventing stats/food exhaustion
+     ) {
          player.awardStat(Stats.BLOCK_MINED.get(this));
 -        player.causeFoodExhaustion(0.005F);
 -        dropResources(state, level, pos, blockEntity, player, destroyedWith);

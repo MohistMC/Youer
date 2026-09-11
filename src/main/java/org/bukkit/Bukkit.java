@@ -3042,27 +3042,6 @@ public final class Bukkit {
     }
     // Purpur end - Lagging threshold
 
-    // Purpur start - Added the ability to add combustible items
-    /**
-     * Add an Item as fuel for furnaces
-     *
-     * @param material The material that will be the fuel
-     * @param burnTime The time (in ticks) this item will burn for
-     */
-    public static void addFuel(@NotNull Material material, int burnTime) {
-        server.addFuel(material, burnTime);
-    }
-
-    /**
-     * Remove an item as fuel for furnaces
-     *
-     * @param material The material that will no longer be a fuel
-     */
-    public static void removeFuel(@NotNull Material material) {
-        server.removeFuel(material);
-    }
-    // Purpur end - Added the ability to add combustible items
-
     // Purpur start - Debug Marker API
     /**
      * Creates debug block highlight on specified block location and show it to all players on the server.

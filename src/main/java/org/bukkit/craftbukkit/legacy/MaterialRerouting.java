@@ -704,16 +704,6 @@ public class MaterialRerouting {
     // Paper end
     // Purpur start - Adopt MaterialRerouting
     // Method added post 1.13, no-op (https://github.com/PurpurMC/Purpur/pull/570)
-    public static void addFuel(Server server, Material material, int burnTime) {
-        server.addFuel(material, burnTime);
-    }
-
-    // Method added post 1.13, no-op (https://github.com/PurpurMC/Purpur/pull/570)
-    public static void removeFuel(Server server, Material material) {
-        server.removeFuel(material);
-    }
-
-    // Method added post 1.13, no-op (https://github.com/PurpurMC/Purpur/pull/570)
     @RerouteStatic("org/bukkit/Bukkit")
     public static void addFuel(Material material, int burnTime) {
         Bukkit.addFuel(material, burnTime);
