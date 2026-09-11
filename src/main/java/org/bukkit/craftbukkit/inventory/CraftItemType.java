@@ -63,6 +63,7 @@ public class CraftItemType<M extends ItemMeta> extends HolderableBase<Item> impl
     public static ItemType minecraftToBukkitNew(ItemStackTemplate minecraft) {
         return minecraftHolderToBukkitNew(minecraft.item());
     }
+
     public static ItemType minecraftToBukkitNew(Item minecraft) {
         return CraftRegistry.minecraftToBukkit(minecraft, Registries.ITEM);
     }

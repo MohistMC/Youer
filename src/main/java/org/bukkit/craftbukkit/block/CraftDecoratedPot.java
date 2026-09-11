@@ -5,10 +5,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.stream.Collectors;
-import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStackTemplate;
-import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.entity.DecoratedPotBlockEntity;
 import net.minecraft.world.level.block.entity.PotDecorations;
 import org.bukkit.Location;
@@ -46,7 +43,6 @@ public class CraftDecoratedPot extends CraftBlockEntityState<DecoratedPotBlockEn
         return new CraftInventoryDecoratedPot(this.getBlockEntity());
     }
 
-    // Paper start - expose loot table
     @Override
     public void setLootTable(final org.bukkit.loot.LootTable table) {
         this.setLootTable(table, this.getSeed());
@@ -71,7 +67,6 @@ public class CraftDecoratedPot extends CraftBlockEntityState<DecoratedPotBlockEn
     public long getSeed() {
         return this.getSnapshot().getLootTableSeed();
     }
-    // Paper end - expose loot table
 
     @Override
     public void setSherd(Side face, Material sherd) {
@@ -79,8 +74,8 @@ public class CraftDecoratedPot extends CraftBlockEntityState<DecoratedPotBlockEn
         Preconditions.checkArgument(sherd == null || sherd == Material.BRICK || Tag.ITEMS_DECORATED_POT_SHERDS.isTagged(sherd), "sherd is not a valid sherd material: %s", sherd);
 
         final Optional<ItemStackTemplate> sherdItem = Optional.ofNullable(sherd != null ? sherd.asItemType() : ItemType.BRICK)
-                .map(CraftItemType::bukkitToMinecraftNew)
-                .map(ItemStackTemplate::new);
+            .map(CraftItemType::bukkitToMinecraftNew)
+            .map(ItemStackTemplate::new);
         final PotDecorations decorations = this.getSnapshot().getDecorations();
 
         switch (face) {

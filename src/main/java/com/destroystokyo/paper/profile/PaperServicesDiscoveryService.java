@@ -27,15 +27,15 @@ public class PaperServicesDiscoveryService extends MinecraftServicesDiscoverySer
     }
 
     public static PaperServicesDiscoveryService create(
-            final Proxy proxy,
-            final boolean servicesKeySetEnabled,
-            final Environment environment
+        final Proxy proxy,
+        final boolean servicesKeySetEnabled,
+        final Environment environment
     ) {
         LOGGER.info("Environment: {}", environment);
         return new PaperServicesDiscoveryService(
-                proxy,
-                servicesKeySetEnabled,
-                createDiscoverySupplier(proxy, environment)
+            proxy,
+            servicesKeySetEnabled,
+            createDiscoverySupplier(proxy, environment)
         );
     }
 

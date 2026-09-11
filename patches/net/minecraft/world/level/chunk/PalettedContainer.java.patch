@@ -46,7 +46,7 @@
 -        Codec<T> elementCodec, Strategy<T> strategy, T defaultValue, PalettedContainerRO.Unpacker<T, C> unpacker
 +            final Codec<T> elementCodec, final Strategy<T> strategy, final T defaultValue, final PalettedContainerRO.Unpacker<T, C> unpacker
      ) {
-         return RecordCodecBuilder.<PalettedContainerRO.PackedData>create(
+-        return RecordCodecBuilder.<PalettedContainerRO.PackedData<T>>create(
 -                i -> i.group(
 -                        elementCodec.mapResult(ExtraCodecs.orElsePartial(defaultValue))
 -                            .listOf()
@@ -58,6 +58,7 @@
 -            )
 -            .comapFlatMap(
 -                discData -> unpacker.read(strategy, (PalettedContainerRO.PackedData<T>)discData), palettedContainer -> palettedContainer.pack(strategy)
++        return RecordCodecBuilder.<PalettedContainerRO.PackedData>create(
 +                        i -> i.group(
 +                                        elementCodec.mapResult(ExtraCodecs.orElsePartial(defaultValue))
 +                                                .listOf()

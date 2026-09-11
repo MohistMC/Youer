@@ -77,10 +77,10 @@ public record PaperPotDecorations(
             final Function<ItemType, ItemStackTemplate> itemTypeToTemplate = itemType -> new ItemStackTemplate(CraftItemType.bukkitToMinecraftNew(itemType));
 
             return new PaperPotDecorations(new net.minecraft.world.level.block.entity.PotDecorations(
-                    Optional.ofNullable(this.back).map(itemTypeToTemplate),
-                    Optional.ofNullable(this.left).map(itemTypeToTemplate),
-                    Optional.ofNullable(this.right).map(itemTypeToTemplate),
-                    Optional.ofNullable(this.front).map(itemTypeToTemplate)
+                Optional.ofNullable(this.back).map(itemTypeToTemplate),
+                Optional.ofNullable(this.left).map(itemTypeToTemplate),
+                Optional.ofNullable(this.right).map(itemTypeToTemplate),
+                Optional.ofNullable(this.front).map(itemTypeToTemplate)
             ));
         }
     }

@@ -10,6 +10,7 @@ import java.util.EnumSet;
 import java.util.List;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -61,6 +62,8 @@ public abstract class BlockEvent extends Event {
         private final BlockSnapshot blockSnapshot;
         private final BlockState placedBlock;
         private final BlockState placedAgainst;
+        private Direction placeEventDirection = null;
+        private InteractionHand placeEventHand = InteractionHand.MAIN_HAND;
 
         public EntityPlaceEvent(BlockSnapshot blockSnapshot, BlockState placedAgainst, @Nullable Entity entity) {
             super(blockSnapshot.getLevel(), blockSnapshot.getPos(), !(entity instanceof Player) ? blockSnapshot.getState() : blockSnapshot.getCurrentState());
@@ -90,6 +93,20 @@ public abstract class BlockEvent extends Event {
         public BlockState getPlacedAgainst() {
             return placedAgainst;
         }
+        // Youer start
+        public void setPlaceEventDirection(Direction placeEventDirection) {
+            this.placeEventDirection = placeEventDirection;
+        }
+        public Direction getPlaceEventDirection() {
+            return placeEventDirection;
+        }
+        public void setPlaceEventHand(InteractionHand placeEventHand) {
+            this.placeEventHand = placeEventHand;
+        }
+        public InteractionHand getPlaceEventHand() {
+            return placeEventHand;
+        }
+        // Youer end
     }
 
     /**
