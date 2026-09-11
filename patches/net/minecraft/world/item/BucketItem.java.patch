@@ -73,21 +73,19 @@
                      this.checkExtraContent(p_40704_, p_40703_, itemstack, blockpos2);
                      if (p_40704_ instanceof ServerPlayer) {
                          CriteriaTriggers.PLACED_BLOCK.trigger((ServerPlayer)p_40704_, blockpos2, itemstack);
-@@ -89,7 +_,29 @@
+@@ -89,7 +_,27 @@
          }
      }
  
 +    // Youer start
 +    public ItemStack dummyFluid(BucketPickup bucketpickup, Player player, BlockPos blockpos, BlockState blockstate) {
 +        if (player != null && player.level() instanceof ServerLevel serverLevel) {
-+            // Only check if fluid exists, avoiding double pickup side effects
 +            var fluidState = serverLevel.getFluidState(blockpos);
 +            if (!fluidState.isEmpty()) {
 +                return new ItemStack(fluidState.getType().getBucket());
 +            }
-+            return ItemStack.EMPTY;
 +        }
-+        // Fallback to DummyGeneratorAccess for non-fluid blocks (e.g. cauldrons)
++        // powder snow/cauldron: get item via dummy access, no side effects
 +        return bucketpickup.pickupBlock(player, DummyGeneratorAccess.INSTANCE, blockpos, blockstate);
 +    }
 +    // Youer end
