@@ -46,7 +46,7 @@ public class PaperTrimMaterialRegistryEntry implements TrimMaterialRegistryEntry
 
         @Override
         public Builder paletteId(final Key paletteId) {
-            this.paletteId = PaperAdventure.asVanilla(asConfigured(paletteId, "paletteId"));
+            this.paletteId = PaperAdventure.asVanilla(asArgument(paletteId, "paletteId"));
             return this;
         }
 

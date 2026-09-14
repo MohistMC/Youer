@@ -91,7 +91,7 @@ public class CraftMetaMap extends CraftMetaItem implements MapMeta {
     }
 
     boolean isMapEmpty() {
-        return !(this.hasMapId() || this.hasScaling() | this.hasLocationName());
+        return !(this.hasMapId() || this.hasScaling());
     }
 
     @Override
@@ -138,21 +138,6 @@ public class CraftMetaMap extends CraftMetaItem implements MapMeta {
     @Override
     public void setScaling(boolean scaling) {
         this.scaling = scaling ? CraftMetaMap.SCALING_TRUE : CraftMetaMap.SCALING_FALSE;
-    }
-
-    @Override
-    public boolean hasLocationName() {
-        return this.hasLocalizedName(); // SPIGOT-6308
-    }
-
-    @Override
-    public String getLocationName() {
-        return this.getLocalizedName(); // SPIGOT-6308
-    }
-
-    @Override
-    public void setLocationName(String name) {
-        this.setLocalizedName(name); // SPIGOT-6308
     }
 
     @Override

@@ -495,7 +495,7 @@ public class CraftMetaItem implements ItemMeta, Damageable, Repairable, BlockDat
             this.rarity = ItemRarity.valueOf(rarity.name());
         });
         getOrEmpty(patch, CraftMetaItem.USE_REMAINDER).ifPresent((useRemainder) -> {
-            this.useRemainder = CraftItemStack.asCraftMirror(useRemainder.convertInto().create());
+            this.useRemainder = CraftItemStack.asBukkitCopy(useRemainder.convertInto());
         });
         getOrEmpty(patch, CraftMetaItem.USE_COOLDOWN).ifPresent((useCooldown) -> {
             this.useCooldown = new CraftUseCooldownComponent(useCooldown);

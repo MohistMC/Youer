@@ -380,8 +380,27 @@ public class SpigotWorldConfig {
         this.mineshaftSeed = this.getSeed("seed-mineshaft", Integer::parseInt);
         this.strongholdSeed = this.getSeed("seed-stronghold", Long::parseLong);
         this.abandonedCampSeed = this.getInt("seed-abandonedcamp", 91231127);
-        this.log("Custom Map Seeds:  Village: " + this.villageSeed + " Desert: " + this.desertSeed + " Igloo: " + this.iglooSeed + " Jungle: " + this.jungleSeed + " Swamp: " + this.swampSeed + " Monument: " + this.monumentSeed
-            + " Ocean: " + this.oceanSeed + " Shipwreck: " + this.shipwreckSeed + " End City: " + this.endCitySeed + " Slime: " + this.slimeSeed + " Nether: " + this.netherSeed + " Mansion: " + this.mansionSeed + " Fossil: " + this.fossilSeed + " Portal: " + this.portalSeed + " Ancient City: " + this.ancientCitySeed + " Trail Ruins: " + this.trailRuinsSeed + " Trial Chambers: " + this.trialChambersSeed + " Buried Treasure: " + this.buriedTreasureSeed + " Abandoned Camp: " + this.abandonedCampSeed);
+        this.log("Custom Map Seeds: " +
+            " Village: " + this.villageSeed +
+            " Desert: " + this.desertSeed +
+            " Igloo: " + this.iglooSeed +
+            " Jungle: " + this.jungleSeed +
+            " Swamp: " + this.swampSeed +
+            " Monument: " + this.monumentSeed +
+            " Ocean: " + this.oceanSeed +
+            " Shipwreck: " + this.shipwreckSeed +
+            " End City: " + this.endCitySeed +
+            " Slime: " + this.slimeSeed +
+            " Nether: " + this.netherSeed +
+            " Mansion: " + this.mansionSeed +
+            " Fossil: " + this.fossilSeed +
+            " Portal: " + this.portalSeed +
+            " Ancient City: " + this.ancientCitySeed +
+            " Trail Ruins: " + this.trailRuinsSeed +
+            " Trial Chambers: " + this.trialChambersSeed +
+            " Buried Treasure: " + this.buriedTreasureSeed +
+            " Abandoned Camp: " + this.abandonedCampSeed
+        );
     }
 
     public float jumpWalkExhaustion;

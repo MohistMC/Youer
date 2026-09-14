@@ -1466,27 +1466,23 @@ public final class CraftServer implements Server {
 
     @Override
     public boolean addRecipe(Recipe recipe, boolean resendRecipes) {
-        CraftRecipe toAdd;
-        if (recipe instanceof CraftRecipe) {
-            toAdd = (CraftRecipe) recipe;
-        } else {
-            toAdd = switch (recipe) {
-                case final ShapedRecipe r -> CraftShapedRecipe.fromBukkitRecipe(r);
-                case final ShapelessRecipe r -> CraftShapelessRecipe.fromBukkitRecipe(r);
-                case final FurnaceRecipe r -> CraftFurnaceRecipe.fromBukkitRecipe(r);
-                case final BlastingRecipe r -> CraftBlastingRecipe.fromBukkitRecipe(r);
-                case final CampfireRecipe r -> CraftCampfireRecipe.fromBukkitRecipe(r);
-                case final SmokingRecipe r -> CraftSmokingRecipe.fromBukkitRecipe(r);
-                case final StonecuttingRecipe r -> CraftStonecuttingRecipe.fromBukkitRecipe(r);
-                case final SmithingTransformRecipe r -> CraftSmithingTransformRecipe.fromBukkitRecipe(r);
-                case final SmithingTrimRecipe r -> CraftSmithingTrimRecipe.fromBukkitRecipe(r);
-                case final TransmuteRecipe r -> CraftTransmuteRecipe.fromBukkitRecipe(r);
-                case final BrewingRecipe r -> CraftBrewingRecipe.fromBukkitRecipe(r);
-                case final ComplexRecipe _ -> throw new UnsupportedOperationException("Cannot add custom complex recipe");
-                case null, default -> null;
-            };
-            if (toAdd == null) return false;
-        }
+        CraftRecipe toAdd = switch (recipe) {
+            case final CraftRecipe r -> r;
+            case final ShapedRecipe r -> CraftShapedRecipe.fromBukkitRecipe(r);
+            case final ShapelessRecipe r -> CraftShapelessRecipe.fromBukkitRecipe(r);
+            case final FurnaceRecipe r -> CraftFurnaceRecipe.fromBukkitRecipe(r);
+            case final BlastingRecipe r -> CraftBlastingRecipe.fromBukkitRecipe(r);
+            case final CampfireRecipe r -> CraftCampfireRecipe.fromBukkitRecipe(r);
+            case final SmokingRecipe r -> CraftSmokingRecipe.fromBukkitRecipe(r);
+            case final StonecuttingRecipe r -> CraftStonecuttingRecipe.fromBukkitRecipe(r);
+            case final SmithingTransformRecipe r -> CraftSmithingTransformRecipe.fromBukkitRecipe(r);
+            case final SmithingTrimRecipe r -> CraftSmithingTrimRecipe.fromBukkitRecipe(r);
+            case final TransmuteRecipe r -> CraftTransmuteRecipe.fromBukkitRecipe(r);
+            case final BrewingRecipe r -> CraftBrewingRecipe.fromBukkitRecipe(r);
+            case final ComplexRecipe _ -> throw new UnsupportedOperationException("Cannot add custom complex recipe");
+            case null, default -> null;
+        };
+        if (toAdd == null) return false;
         toAdd.addToRecipeManager();
         // Paper start - API for updating recipes on clients
         if (true || resendRecipes) { // Always needs to be resent now... TODO

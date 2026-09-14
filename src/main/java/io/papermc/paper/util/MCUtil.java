@@ -288,9 +288,9 @@ public final class MCUtil {
         final int dataVersion = NbtUtils.getDataVersion(tag, 0);
         tag = PlatformHooks.get().convertNBT(References.ITEM_STACK, DataFixers.getDataFixer(), tag, dataVersion, CraftMagicNumbers.INSTANCE.getDataVersion());
         if (tag.getStringOr("id", "minecraft:air").equals("minecraft:air")) {
-            return CraftItemStack.asCraftMirror(ItemStack.EMPTY);
+            return CraftItemStack.asBukkitMirror(ItemStack.EMPTY);
         }
-        return CraftItemStack.asCraftMirror(ItemStack.CODEC.parse(
+        return CraftItemStack.asBukkitMirror(ItemStack.CODEC.parse(
             CraftRegistry.getMinecraftRegistry().createSerializationContext(NbtOps.INSTANCE), tag
         ).getOrThrow());
     }

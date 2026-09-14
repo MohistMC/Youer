@@ -100,7 +100,9 @@ public interface MapMeta extends ItemMeta {
      * actually an alias for {@link ItemMeta#hasLocalizedName()}.
      */
     @Deprecated(since = "1.19.4")
-    boolean hasLocationName();
+    default boolean hasLocationName() {
+        return this.hasLocalizedName(); // SPIGOT-6308
+    }
 
     /**
      * Gets the location name that is set.
@@ -114,7 +116,9 @@ public interface MapMeta extends ItemMeta {
      */
     @Deprecated(since = "1.19.4")
     @Nullable
-    String getLocationName();
+    default String getLocationName() {
+        return this.getLocalizedName(); // SPIGOT-6308
+    }
 
     /**
      * Sets the location name.
@@ -124,7 +128,9 @@ public interface MapMeta extends ItemMeta {
      * actually an alias for {@link ItemMeta#setLocalizedName(String)}.
      */
     @Deprecated(since = "1.19.4")
-    void setLocationName(@Nullable String name);
+    default void setLocationName(@Nullable String name) {
+        this.setLocalizedName(name); // SPIGOT-6308
+    }
 
     /**
      * Checks for existence of a map color.

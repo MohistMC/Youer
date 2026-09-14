@@ -331,25 +331,15 @@ public final class CraftMagicNumbers implements UnsafeValues {
             allAdvancements.put(id, holder);
             newEntries.add(new AdvancementEntry(holder, element));
         }
+        if (newEntries.isEmpty()) return List.of();
+
         manager.advancements = allAdvancements.build();
 
         final AdvancementTree tree = manager.tree();
         tree.addAll(newEntries.stream().map(AdvancementEntry::advancement).toList());
+        tree.repositionNodes();
 
-        // recalculate advancement position
-        final Set<AdvancementNode> roots = new HashSet<>();
-        for (final AdvancementEntry entry : newEntries) {
-            final AdvancementNode node = Objects.requireNonNull(tree.get(entry.id()));
-            roots.add(node.root());
-        }
-
-        for (final AdvancementNode root : roots) {
-            if (root.holder().value().display().isPresent()) {
-                TreeNodePosition.run(root);
-            }
-        }
-
-        boolean shouldSave = persist && !newEntries.isEmpty();
+        boolean shouldSave = persist;
         if (shouldSave) {
             shouldSave = DynamicBuiltinPacks.BUKKIT.createIfNeeded(DynamicBuiltinPack.LevelPathAccess.SERVER);
         }
@@ -369,9 +359,7 @@ public final class CraftMagicNumbers implements UnsafeValues {
             deserializedAdvancements.add(entry.advancement().toBukkit());
         }
 
-        if (!deserializedAdvancements.isEmpty()) {
-            MinecraftServer.getServer().getPlayerList().reloadAdvancementData();
-        }
+        MinecraftServer.getServer().getPlayerList().reloadAdvancementData();
         return deserializedAdvancements;
     }
 
@@ -543,7 +531,7 @@ public final class CraftMagicNumbers implements UnsafeValues {
         final int currentVersion = this.getDataVersion();
         data = (com.google.gson.JsonObject) MinecraftServer.getServer().getFixerUpper().update(References.ITEM_STACK, new Dynamic<>(com.mojang.serialization.JsonOps.INSTANCE, data), dataVersion, currentVersion).getValue();
         com.mojang.serialization.DynamicOps<com.google.gson.JsonElement> ops = CraftRegistry.getMinecraftRegistry().createSerializationContext(com.mojang.serialization.JsonOps.INSTANCE);
-        return CraftItemStack.asCraftMirror(net.minecraft.world.item.ItemStack.CODEC.parse(ops, data).getOrThrow(IllegalArgumentException::new));
+        return CraftItemStack.asBukkitMirror(net.minecraft.world.item.ItemStack.CODEC.parse(ops, data).getOrThrow(IllegalArgumentException::new));
     }
 
     @Override

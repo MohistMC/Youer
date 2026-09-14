@@ -6,19 +6,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
-import net.minecraft.util.Util;
 import net.minecraft.core.component.DataComponentType;
 import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.component.Removed;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.RandomSource;
+import net.minecraft.util.Util;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.component.LodestoneTracker;
 import net.minecraft.world.item.enchantment.ItemEnchantments;
 import org.jspecify.annotations.NullMarked;
-import org.jspecify.annotations.Nullable;
 
 @NullMarked
 public final class ItemComponentSanitizer {
@@ -95,7 +94,7 @@ public final class ItemComponentSanitizer {
         final ItemStack targetItemstack = obfuscationSession.context().itemStack();
 
         return switch (GlobalConfiguration.get().anticheat.obfuscation.items.binding.getAssetObfuscation(targetItemstack).patchStrategy().get(key)) {
-            case final ItemObfuscationBinding.BoundObfuscationConfiguration.MutationType.Drop _ -> null;
+            case final ItemObfuscationBinding.BoundObfuscationConfiguration.MutationType.Drop _ -> Removed.INSTANCE;
             case final ItemObfuscationBinding.BoundObfuscationConfiguration.MutationType.Sanitize sanitize -> sanitize.sanitizer().apply(value);
             case null -> value;
         };

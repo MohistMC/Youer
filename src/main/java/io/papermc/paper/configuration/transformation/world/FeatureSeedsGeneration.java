@@ -57,7 +57,7 @@ public final class FeatureSeedsGeneration implements TransformAction {
         if (counter.get() > 0) {
             LOGGER.info("Generated {} random feature seeds for {}", counter.get(), this.worldKey);
             featureNode.raw(null);
-            featureNode.set(new TypeToken<>() {}, features);
+            featureNode.set(new TypeToken<Reference2LongMap<Holder<Feature>>>() {}, features);
         }
         return null;
     }

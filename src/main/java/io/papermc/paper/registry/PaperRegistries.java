@@ -15,6 +15,7 @@ import io.papermc.paper.registry.data.PaperCatTypeRegistryEntry;
 import io.papermc.paper.registry.data.PaperChickenVariantRegistryEntry;
 import io.papermc.paper.registry.data.PaperCowVariantRegistryEntry;
 import io.papermc.paper.registry.data.PaperDamageTypeRegistryEntry;
+import io.papermc.paper.registry.data.PaperDecoratedPotPatternRegistryEntry;
 import io.papermc.paper.registry.data.PaperEnchantmentRegistryEntry;
 import io.papermc.paper.registry.data.PaperFrogVariantRegistryEntry;
 import io.papermc.paper.registry.data.PaperGameEventRegistryEntry;
@@ -22,7 +23,6 @@ import io.papermc.paper.registry.data.PaperInstrumentRegistryEntry;
 import io.papermc.paper.registry.data.PaperJukeboxSongRegistryEntry;
 import io.papermc.paper.registry.data.PaperPaintingVariantRegistryEntry;
 import io.papermc.paper.registry.data.PaperPigVariantRegistryEntry;
-import io.papermc.paper.registry.data.PaperPotPatternRegistryEntry;
 import io.papermc.paper.registry.data.PaperSoundEventRegistryEntry;
 import io.papermc.paper.registry.data.PaperSulfurCubeArchetypeRegistryEntry;
 import io.papermc.paper.registry.data.PaperTrimMaterialRegistryEntry;
@@ -144,7 +144,7 @@ public final class PaperRegistries {
             start(Registries.ENCHANTMENT, RegistryKey.ENCHANTMENT).craft(Enchantment.class, CraftEnchantment::new).serializationUpdater(FieldRename.ENCHANTMENT_RENAME).writable(PaperEnchantmentRegistryEntry.PaperBuilder::new).delayed(),
             start(Registries.JUKEBOX_SONG, RegistryKey.JUKEBOX_SONG).craft(JukeboxSong.class, CraftJukeboxSong::new).writable(PaperJukeboxSongRegistryEntry.PaperBuilder::new).delayed(),
             start(Registries.BANNER_PATTERN, RegistryKey.BANNER_PATTERN).craft(PatternType.class, CraftPatternType::new, true).writable(PaperBannerPatternRegistryEntry.PaperBuilder::new).delayed(),
-            start(Registries.DECORATED_POT_PATTERN, RegistryKey.DECORATED_POT_PATTERN).craft(PotPatternType.class, PaperPotPatternType::new).writable(PaperPotPatternRegistryEntry.PaperBuilder::new),
+            start(Registries.DECORATED_POT_PATTERN, RegistryKey.DECORATED_POT_PATTERN).craft(PotPatternType.class, PaperPotPatternType::new).writable(PaperDecoratedPotPatternRegistryEntry.PaperBuilder::new),
             start(Registries.PAINTING_VARIANT, RegistryKey.PAINTING_VARIANT).craft(Art.class, CraftArt::new).writable(PaperPaintingVariantRegistryEntry.PaperBuilder::new).delayed(),
             start(Registries.INSTRUMENT, RegistryKey.INSTRUMENT).craft(MusicInstrument.class, CraftMusicInstrument::new, true).writable(PaperInstrumentRegistryEntry.PaperBuilder::new).delayed(),
             start(Registries.CAT_VARIANT, RegistryKey.CAT_VARIANT).craft(Cat.Type.class, CraftCat.CraftType::new).writable(PaperCatTypeRegistryEntry.PaperBuilder::new).delayed(),

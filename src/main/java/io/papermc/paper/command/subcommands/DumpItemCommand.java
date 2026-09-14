@@ -69,7 +69,7 @@ public final class DumpItemCommand implements PaperSubcommand {
 
         final Set<DataComponentType<?>> remainingComponents = Collections.newSetFromMap(new IdentityHashMap<>());
         final DataComponentPatch patch = item.getComponentsPatch();
-        remainingComponents.addAll(patch.map.keySet().stream().toList());
+        remainingComponents.addAll(patch.map.keySet());
         final DataComponentMap prototype = item.getPrototype();
         if (includeAllComponents) {
             remainingComponents.addAll(prototype.keySet());

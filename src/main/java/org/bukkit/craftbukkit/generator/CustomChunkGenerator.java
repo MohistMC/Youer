@@ -276,13 +276,13 @@ public class CustomChunkGenerator extends InternalChunkGenerator {
             future = this.delegate.buildTerrain(chunk, blender, randomState, structureManager, biomeManager, carverBiomeRegion, possibleBiomes);
         }
 
-        Function<ChunkAccess, ChunkAccess> work = chunkAccess -> {
-            CraftChunkData chunkData = new CraftChunkData(this.world.getWorld(), chunkAccess);
+        Function<ChunkAccess, ChunkAccess> work = c -> {
+            CraftChunkData chunkData = new CraftChunkData(this.world.getWorld(), c);
             random.setLargeFeatureWithSalt(INITIAL_SEED, x, z, 0);
 
             this.generator.generateNoise(this.world.getWorld(), new RandomSourceWrapper.RandomWrapper(random), x, z, chunkData);
             chunkData.breakLink();
-            return chunkAccess;
+            return c;
         };
 
         return future == null ? CompletableFuture.supplyAsync(() -> work.apply(chunk), io.papermc.paper.FeatureHooks.getWorldgenExecutor()) : future.thenApply(work); // Paper - chunk system

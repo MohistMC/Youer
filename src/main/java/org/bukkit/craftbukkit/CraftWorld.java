@@ -275,7 +275,9 @@ public class CraftWorld extends CraftRegionAccessor implements World {
         return new BiomeProvider() {
             @Override
             public Biome getBiome(final org.bukkit.generator.WorldInfo worldInfo, final int x, final int y, final int z) {
-                return CraftBiome.minecraftHolderToBukkit(resolver.getNoiseBiome(x >> 2, y >> 2, z >> 2));
+                return CraftBiome.minecraftHolderToBukkit(resolver.getNoiseBiome(
+                    QuartPos.fromBlock(x), QuartPos.fromBlock(y), QuartPos.fromBlock(z))
+                );
             }
 
             @Override
@@ -1746,27 +1748,22 @@ public class CraftWorld extends CraftRegionAccessor implements World {
     }
 
     @Override
-    public <T> void spawnParticle(Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, T data) {
-        this.spawnParticle(particle, x, y, z, count, offsetX, offsetY, offsetZ, extra, data, false);
-    }
-
-    @Override
-    public <T> void spawnParticle(Particle particle, List<Player> receivers, Player sender, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, T data, boolean force) {
+    public <T> void spawnParticle(Particle particle, List<Player> receivers, Player sender, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double speedX, double speedY, double speedZ, T data, boolean force, Particle.RandomizationType randomizationType) {
         data = CraftParticle.convertLegacy(data);
         if (data != null) {
             Preconditions.checkArgument(particle.getDataType().isInstance(data), "data (%s) should be %s", data.getClass(), particle.getDataType());
         }
         this.getHandle().sendParticlesSource(
-            receivers == null ? this.getHandle().players() : Lists.transform(receivers, player -> ((CraftPlayer) player).getHandle()), // Paper -  Particle API
-            sender != null ? ((CraftPlayer) sender).getHandle() : null, // Sender // Paper - Particle API
-            CraftParticle.createParticleParam(particle, data), // Particle
+            receivers == null ? this.getHandle().players() : Lists.transform(receivers, player -> ((CraftPlayer) player).getHandle()),
+            sender != null ? ((CraftPlayer) sender).getHandle() : null,
+            CraftParticle.createParticleParam(particle, data),
             force,
             false,
-            x, y, z, // Position
-            count, // Count
-            offsetX, offsetY, offsetZ, // Random offset
-            extra, // Speed?
-            ClientboundLevelParticlesPacket.RandomizationType.DEFAULT
+            x, y, z,
+            count,
+            offsetX, offsetY, offsetZ,
+            speedX, speedY, speedZ,
+            ClientboundLevelParticlesPacket.RandomizationType.valueOf(randomizationType.name())
         );
 
     }
@@ -2002,7 +1999,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public Collection<GeneratedStructure> getStructures(int x, int z) {
-        return this.getStructures(x, z, struct -> true);
+        return this.getStructures(x, z, _ -> true);
     }
 
     @Override

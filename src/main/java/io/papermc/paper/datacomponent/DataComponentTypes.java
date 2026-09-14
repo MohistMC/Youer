@@ -300,7 +300,6 @@ public final class DataComponentTypes {
      * Holds the instrument type used by a Goat Horn.
      */
     public static final DataComponentType.Valued<MusicInstrument> INSTRUMENT = valued("instrument");
-    // this is a either holder, but due to legacy item loading
     public static final DataComponentType.Valued<TrimMaterial> PROVIDES_TRIM_MATERIAL = valued("provides_trim_material");
     /**
      * Controls the amplifier amount for an Ominous Bottle's Bad Omen effect.

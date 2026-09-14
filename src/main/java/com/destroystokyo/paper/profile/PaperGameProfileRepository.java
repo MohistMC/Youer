@@ -39,7 +39,6 @@ public class PaperGameProfileRepository extends MinecraftServicesProfileReposito
         }
     }
 
-
     @Override
     public Optional<NameAndId> findProfileByName(final String name) {
         PreLookupProfileEvent event = new PreLookupProfileEvent(name);

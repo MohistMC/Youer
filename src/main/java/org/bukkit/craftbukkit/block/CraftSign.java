@@ -173,20 +173,18 @@ public class CraftSign<T extends SignBlockEntity> extends CraftBlockEntityState<
         Preconditions.checkArgument(sign.isPlaced(), "Sign must be placed");
         Preconditions.checkArgument(sign.getWorld() == player.getWorld(), "Sign must be in same world as Player");
 
-        // Paper start - Add PlayerOpenSignEvent
-        io.papermc.paper.event.player.PlayerOpenSignEvent event = new io.papermc.paper.event.player.PlayerOpenSignEvent((Player) player, sign, side, io.papermc.paper.event.player.PlayerOpenSignEvent.Cause.PLUGIN);
+        io.papermc.paper.event.player.PlayerOpenSignEvent event = new io.papermc.paper.event.player.PlayerOpenSignEvent(player, sign, side, io.papermc.paper.event.player.PlayerOpenSignEvent.Cause.PLUGIN);
         if (!event.callEvent()) return;
         if (PlayerSignOpenEvent.getHandlerList().getRegisteredListeners().length > 0) {
-            // Paper end - Add PlayerOpenSignEvent
-        if (!CraftEventFactory.callPlayerSignOpenEvent(player, sign, side, PlayerSignOpenEvent.Cause.PLUGIN)) {
-            return;
+            if (!CraftEventFactory.callPlayerSignOpenEvent(player, sign, side, PlayerSignOpenEvent.Cause.PLUGIN)) {
+                return;
+            }
         }
-        } // Paper - Add PlayerOpenSignEvent
 
         SignBlockEntity blockEntity = ((CraftSign<?>) sign).getBlockEntity();
         blockEntity.setAllowedPlayerEditor(player.getUniqueId());
 
-        ((CraftPlayer) player).getHandle().openTextEdit(blockEntity, toNms(side));
+        ((CraftPlayer) player).getHandle().openTextEdit(blockEntity, CraftSignSide.toVanilla(side));
     }
 
     // Paper start
@@ -219,7 +217,7 @@ public class CraftSign<T extends SignBlockEntity> extends CraftBlockEntityState<
     @Override
     public Side getInteractableSideFor(final double x, final double z) {
         this.requirePlaced();
-        return fromNms(this.getSnapshot().getSlotPlayerIsFacing(x, z));
+        return CraftSignSide.fromVanilla(this.getSnapshot().getSlotPlayerIsFacing(x, z));
     }
     // Paper end - More Sign Block API
 
@@ -247,13 +245,5 @@ public class CraftSign<T extends SignBlockEntity> extends CraftBlockEntityState<
 
     private static String revertComponent(Component component) {
         return CraftChatMessage.fromComponent(component);
-    }
-
-    public static SignTextSlot toNms(Side side) {
-        return side == Side.FRONT ? SignTextSlot.FRONT : SignTextSlot.BACK;
-    }
-
-    public static Side fromNms(SignTextSlot slot) {
-        return slot == SignTextSlot.FRONT ? Side.FRONT : Side.BACK;
     }
 }

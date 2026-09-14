@@ -52,16 +52,12 @@ public class CraftItemType<M extends ItemMeta> extends HolderableBase<Item> impl
 
     private final Supplier<CraftItemMetas.ItemMetaData<M>> itemMetaData;
 
-    public static Material minecraftToBukkit(Item item) {
-        return CraftMagicNumbers.getMaterial(item);
+    public static Material minecraftToBukkit(Item minecraft) {
+        return CraftMagicNumbers.getMaterial(minecraft);
     }
 
-    public static Item bukkitToMinecraft(Material material) {
-        return CraftMagicNumbers.getItem(material);
-    }
-
-    public static ItemType minecraftToBukkitNew(ItemStackTemplate minecraft) {
-        return minecraftHolderToBukkitNew(minecraft.item());
+    public static Item bukkitToMinecraft(Material bukkit) {
+        return CraftMagicNumbers.getItem(bukkit);
     }
 
     public static ItemType minecraftToBukkitNew(Item minecraft) {
@@ -116,7 +112,7 @@ public class CraftItemType<M extends ItemMeta> extends HolderableBase<Item> impl
     @Override
     public ItemStack createItemStack(final int amount, final @Nullable Consumer<? super M> metaConfigurator) {
         final net.minecraft.world.item.ItemStack stack = new net.minecraft.world.item.ItemStack(this.getHandle(), amount);
-        final CraftItemStack mirror = CraftItemStack.asCraftMirror(stack);
+        final ItemStack mirror = CraftItemStack.asBukkitMirror(stack);
         if (metaConfigurator != null) {
             mirror.editMeta(this.getItemMetaClass(), metaConfigurator);
         }
@@ -180,18 +176,17 @@ public class CraftItemType<M extends ItemMeta> extends HolderableBase<Item> impl
 
     @Override
     public int getBurnDuration() {
-        final net.minecraft.world.item.ItemStack stack = new net.minecraft.world.item.ItemStack(this.getHandle());
-        if (!stack.has(DataComponents.COOKING_FUEL)) {
+        if (!this.isFuel()) {
             return 0;
         }
 
-        final ServerLevel serverLevel = ((CraftWorld) Bukkit.getWorlds().getFirst()).getHandle();
+        final ServerLevel level = ((CraftWorld) Bukkit.getWorlds().getFirst()).getHandle();
         final LootContext lootContext = new LootContext.Builder(
-            new LootParams.Builder(serverLevel).create(LootContextParamSets.EMPTY)
+            new LootParams.Builder(level).create(LootContextParamSets.EMPTY)
         ).create(Optional.empty());
 
         // TODO - snapshot - this in theory return the negative case (block is not blast furnace or smoker) because need pass a block in the LootContext
-        return ResolvableInt.getFromItem(stack, DataComponents.COOKING_FUEL, CookingFuel::burnTime, lootContext, 0);
+        return ResolvableInt.getFromItem(new net.minecraft.world.item.ItemStack(this.getHandle()), DataComponents.COOKING_FUEL, CookingFuel::burnTime, lootContext, 0);
     }
 
     @Override
@@ -201,24 +196,21 @@ public class CraftItemType<M extends ItemMeta> extends HolderableBase<Item> impl
 
     @Override
     public float getCompostChance() {
+        Preconditions.checkArgument(this.isCompostable(), "The item type " + this.getKey() + " is not compostable");
         // TODO - snapshot - this cover vanilla but custom ones can break this.. maybe better deprecate this...
-        final net.minecraft.world.item.ItemStack stack = new net.minecraft.world.item.ItemStack(this.getHandle());
-        Compostable compostable = stack.get(DataComponents.COMPOSTABLE);
-        Preconditions.checkArgument(compostable != null, "The item type " + this.getKey() + " is not compostable");
+        Compostable compostable = this.getHandle().components().get(DataComponents.COMPOSTABLE);
         if (compostable.layers() instanceof ResolvableInt.Constant) {
             // Constant (ex: [minecraft:compostable={layers:10}]) case it's the 100% of cases add layers to the composter.
             return 1;
         } else if (compostable.layers() instanceof ResolvableInt.Reference reference) {
-            final ServerLevel serverLevel = ((CraftWorld) Bukkit.getWorlds().getFirst()).getHandle();
+            final ServerLevel level = ((CraftWorld) Bukkit.getWorlds().getFirst()).getHandle();
             final LootContext lootContext = new LootContext.Builder(
-                new LootParams.Builder(serverLevel).create(LootContextParamSets.EMPTY)
+                new LootParams.Builder(level).create(LootContextParamSets.EMPTY)
             ).create(Optional.empty());
 
             return reference.getProvider(lootContext)
                 .map(contextIntProvider -> {
-                    if (contextIntProvider instanceof WeightedListValue(
-                        net.minecraft.util.random.WeightedList<Holder<ContextIntProvider>> distribution
-                    )) {
+                    if (contextIntProvider instanceof WeightedListValue(net.minecraft.util.random.WeightedList<Holder<ContextIntProvider>> distribution)) {
                         return distribution.unwrap().stream().mapToInt(Weighted::weight).max().orElse(0);
                     } else {
                         return 1;

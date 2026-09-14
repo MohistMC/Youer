@@ -17,14 +17,13 @@
      private final ChunkGenerator chunkGenerator;
      private final RandomState randomState;
      private final LevelHeightAccessor heightAccessor;
-@@ -56,15 +_,18 @@
+@@ -56,15 +_,19 @@
      private final BiomeSource biomeSource;
      private final long seed;
      private final DataFixer fixerUpper;
 -    private final Long2ObjectMap<Object2IntMap<Structure>> loadedChunks = new Long2ObjectOpenHashMap<>();
 -    private final Map<Structure, Long2BooleanMap> featureChecks = new HashMap<>();
 -    private final LongSet chunksWithoutStartsInStorage = new LongOpenHashSet();
--
 +    // Paper start - rewrite chunk system
 +    // make sure to purge entries from the maps to prevent memory leaks
 +    private static final int CHUNK_TOTAL_LIMIT = 50 * (2 * 100 + 1) * (2 * 100 + 1); // cache 50 structure lookups
@@ -32,6 +31,7 @@
 +    private final ca.spottedleaf.moonrise.common.map.SynchronisedLong2ObjectMap<it.unimi.dsi.fastutil.objects.Object2IntMap<Structure>> loadedChunksSafe = new ca.spottedleaf.moonrise.common.map.SynchronisedLong2ObjectMap<>(CHUNK_TOTAL_LIMIT);
 +    private final java.util.concurrent.ConcurrentHashMap<Structure, ca.spottedleaf.moonrise.common.map.SynchronisedLong2BooleanMap> featureChecksSafe = new java.util.concurrent.ConcurrentHashMap<>();
 +    // Paper end - rewrite chunk system
+ 
      public StructureCheck(
          ChunkScanAccess storageAccess,
          RegistryAccess registryAccess,
@@ -41,12 +41,7 @@
          ChunkGenerator chunkGenerator,
          RandomState randomState,
          LevelHeightAccessor heightAccessor,
-@@ -80,38 +_,45 @@
-         this.randomState = randomState;
-         this.heightAccessor = heightAccessor;
-         this.biomeSource = biomeSource;
--        this.climateSampler = randomState.createClimateSampler(SamplerContext.builder().enableCaches().build());
-         this.seed = seed;
+@@ -85,33 +_,41 @@
          this.fixerUpper = fixerUpper;
      }
  
@@ -104,14 +99,6 @@
          return !isFeatureChunk ? StructureCheckResult.START_NOT_PRESENT : StructureCheckResult.CHUNK_LOAD_NEEDED;
      }
  
-@@ -121,7 +_,6 @@
-                     this.registryAccess,
-                     this.chunkGenerator,
-                     this.biomeSource,
--                    this.climateSampler,
-                     this.randomState,
-                     this.structureTemplateManager,
-                     this.seed,
 @@ -133,7 +_,7 @@
              .isPresent();
      }

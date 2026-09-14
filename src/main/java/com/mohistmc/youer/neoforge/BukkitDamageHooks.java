@@ -34,7 +34,7 @@ public class BukkitDamageHooks {
         float hardHatModifier = hardHat.apply((double) f).floatValue();
         f += hardHatModifier;
 
-        com.google.common.base.Function<Double, Double> blocking = f6 -> -((double) livingEntity.calculateItemBlocking(damagesource, f6.floatValue()));
+        com.google.common.base.Function<Double, Double> blocking = f6 -> -((double) livingEntity.resolveBlockedDamage(damagesource, f6.floatValue()));
         float blockingModifier = blocking.apply((double) f).floatValue();
         f += blockingModifier;
 

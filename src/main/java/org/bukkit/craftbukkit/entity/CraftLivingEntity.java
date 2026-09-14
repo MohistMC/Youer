@@ -334,7 +334,7 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
     @Override
     public ItemStack getItemInUse() {
         net.minecraft.world.item.ItemStack item = this.getHandle().getUseItem();
-        return item.isEmpty() ? null : CraftItemStack.asCraftMirror(item);
+        return item.isEmpty() ? null : CraftItemStack.asBukkitMirror(item);
     }
 
     @Override
@@ -977,7 +977,7 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
 
     @Override
     public ItemStack getActiveItem() {
-        return this.getHandle().getUseItem().asBukkitMirror();
+        return CraftItemStack.asBukkitMirror(this.getHandle().getUseItem());
     }
 
     @Override
@@ -1073,7 +1073,7 @@ public class CraftLivingEntity extends CraftEntity implements LivingEntity {
             nmsStack = craftItemStack.handle;
         } else {
             nmsStack = CraftItemStack.asNMSCopy(stack);
-            stack = CraftItemStack.asCraftMirror(nmsStack); // mirror to capture changes in hurt logic & events
+            stack = CraftItemStack.asBukkitMirror(nmsStack); // mirror to capture changes in hurt logic & events
         }
         this.damageItemStack0(nmsStack, amount, null);
         return stack;

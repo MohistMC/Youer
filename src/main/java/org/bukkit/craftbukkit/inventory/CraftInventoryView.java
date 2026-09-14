@@ -76,7 +76,7 @@ public class CraftInventoryView<T extends AbstractContainerMenu, I extends Inven
         if (slot < 0) {
             return null;
         }
-        return CraftItemStack.asCraftMirror(this.container.getSlot(slot).getItem());
+        return CraftItemStack.asBukkitMirror(this.container.getSlot(slot).getItem());
     }
 
     @Override

@@ -45,11 +45,11 @@ public record OptionallyFlatBedrockCondition(Identifier randomName, VerticalAnch
 
     @Override
     public ConditionEvaluator compile(final MaterialRuleContext ruleContext) {
-        boolean hasFlatBedrock = ruleContext.context.level().paperConfig().environment.generateFlatBedrock;
+        final boolean hasFlatBedrock = ruleContext.context.level().paperConfig().environment.generateFlatBedrock;
         final int tempTrueAtAndBelowY = ruleContext.resolveAnchorY(this.trueAtAndBelow);
         final int tempFalseAtAndAboveY = ruleContext.resolveAnchorY(this.falseAtAndAbove);
 
-        int flatYLevel = this.isRoof ? Math.max(tempFalseAtAndAboveY, tempTrueAtAndBelowY) - 1 : Math.min(tempFalseAtAndAboveY, tempTrueAtAndBelowY);
+        final int flatYLevel = this.isRoof ? Math.max(tempFalseAtAndAboveY, tempTrueAtAndBelowY) - 1 : Math.min(tempFalseAtAndAboveY, tempTrueAtAndBelowY);
         final int trueAtAndBelowY = hasFlatBedrock ? flatYLevel : tempTrueAtAndBelowY;
         final int falseAtAndAboveY = hasFlatBedrock ? flatYLevel : tempFalseAtAndAboveY;
 
@@ -57,7 +57,7 @@ public record OptionallyFlatBedrockCondition(Identifier randomName, VerticalAnch
         return new MaterialRuleContext.LazyYCondition(ruleContext) {
             @Override
             protected boolean compute() {
-                int blockY = this.context.blockY();
+                final int blockY = this.context.blockY();
                 if (blockY <= trueAtAndBelowY) {
                     return true;
                 }
@@ -66,8 +66,8 @@ public record OptionallyFlatBedrockCondition(Identifier randomName, VerticalAnch
                     return false;
                 }
 
-                double probability = Mth.map(blockY, trueAtAndBelowY, falseAtAndAboveY, 1.0, 0.0);
-                RandomSource random = randomFactory.at(this.context.blockX(), blockY, this.context.blockZ());
+                final double probability = Mth.map(blockY, trueAtAndBelowY, falseAtAndAboveY, 1.0, 0.0);
+                final RandomSource random = randomFactory.at(this.context.blockX(), blockY, this.context.blockZ());
                 return random.nextFloat() < probability;
             }
         };

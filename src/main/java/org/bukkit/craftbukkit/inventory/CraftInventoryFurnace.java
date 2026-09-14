@@ -44,7 +44,7 @@ public class CraftInventoryFurnace extends CraftInventory implements FurnaceInve
 
     @Override
     public boolean isFuel(ItemStack stack) {
-        return stack != null && !stack.isEmpty() && CraftItemStack.asNMSCopy(stack).has(DataComponents.COOKING_FUEL); // TODO - snapshot - replace with Paper DataComponents
+        return stack != null && !stack.isEmpty() && CraftItemStack.asNMSCopy(stack).has(DataComponents.COOKING_FUEL);
     }
 
     @Override

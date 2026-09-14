@@ -175,7 +175,6 @@ public class CraftBlockType<B extends @NonNull BlockData> extends HolderableBase
 
     @Override
     public boolean isSolid() {
-        // TODO - snapshot - if datapacks can change this maybe consider deprecate this or improvement the javadocs
         return this.getHandle().defaultBlockState().is(BlockTags.BLOCKS_MOTION);
     }
 

@@ -365,11 +365,11 @@ public final class PaperAdventure {
         for (final Map.Entry<DataComponentType<?>, Object> entry : patch.map.entrySet()) {
             if (entry.getKey().isTransient()) continue;
             @Subst("key:value") final String typeKey = requireNonNull(BuiltInRegistries.DATA_COMPONENT_TYPE.getKey(entry.getKey())).toString();
-            final Object entryValue = entry.getValue();
-            if (Removed.isRemoved(entryValue)) {
-                   map.put(Key.key(typeKey), DataComponentValue.removed());
+            final Object patchedValue = entry.getValue();
+            if (Removed.isRemoved(patchedValue)) {
+                map.put(Key.key(typeKey), DataComponentValue.removed());
             } else {
-                map.put(Key.key(typeKey), new DataComponentValueImpl(entry.getKey().codec(), entryValue));
+                map.put(Key.key(typeKey), new DataComponentValueImpl(entry.getKey().codec(), patchedValue));
             }
         }
         return map;

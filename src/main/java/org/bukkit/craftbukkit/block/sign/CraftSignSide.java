@@ -4,7 +4,9 @@ import com.mohistmc.youer.api.ColorAPI;
 import java.util.List;
 import net.kyori.adventure.text.Component;
 import net.minecraft.world.level.block.entity.SignText;
+import net.minecraft.world.level.block.entity.SignTextSlot;
 import org.bukkit.DyeColor;
+import org.bukkit.block.sign.Side;
 import org.bukkit.block.sign.SignSide;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -104,5 +106,19 @@ public class CraftSignSide implements SignSide {
         }
 
         return this.signText;
+    }
+
+    public static Side fromVanilla(SignTextSlot slot) {
+        return switch (slot) {
+            case FRONT -> Side.FRONT;
+            case BACK -> Side.BACK;
+        };
+    }
+
+    public static SignTextSlot toVanilla(Side side) {
+        return switch (side) {
+            case FRONT -> SignTextSlot.FRONT;
+            case BACK -> SignTextSlot.BACK;
+        };
     }
 }

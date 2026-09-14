@@ -54,6 +54,21 @@
      public static void spawnCategoryForChunk(
          MobCategory mobCategory, ServerLevel level, LevelChunk chunk, NaturalSpawner.SpawnPredicate extraTest, NaturalSpawner.AfterSpawnCallback spawnCallback
      ) {
+@@ -183,7 +_,13 @@
+                                 max = currentSpawnData.count().sample(level.random);
+                             }
+ 
+-                            if (isValidSpawnPostitionForType(level, mobCategory, structureManager, generator, currentSpawnData, pos, nearestPlayerDistanceSqr)
++                            // Paper start - PreCreatureSpawnEvent
++                            PreSpawnStatus doSpawning = isValidSpawnPostitionForType(level, mobCategory, structureManager, generator, currentSpawnData, pos, nearestPlayerDistanceSqr);
++                            if (doSpawning == PreSpawnStatus.ABORT) {
++                                return;
++                            }
++                            if (doSpawning == PreSpawnStatus.SUCCESS
++                            // Paper end - PreCreatureSpawnEvent
+                                 && extraTest.test(currentSpawnData.type(), level, pos, chunk)) {
+                                 Mob mob = getMobForSpawn(level, currentSpawnData.type());
+                                 if (mob == null) {
 @@ -199,7 +_,7 @@
                                      groupSize++;
                                      level.addFreshEntityWithPassengers(mob);

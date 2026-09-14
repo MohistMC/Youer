@@ -191,6 +191,7 @@ import org.bukkit.craftbukkit.block.CraftBlockEntityState;
 import org.bukkit.craftbukkit.block.CraftBlockState;
 import org.bukkit.craftbukkit.block.CraftSign;
 import org.bukkit.craftbukkit.block.data.CraftBlockData;
+import org.bukkit.craftbukkit.block.sign.CraftSignSide;
 import org.bukkit.craftbukkit.conversations.ConversationTracker;
 import org.bukkit.craftbukkit.event.CraftEventFactory;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -1095,7 +1096,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
 
     // Paper start
     @Override
-    public void sendSignChange(Location loc, @Nullable List<? extends net.kyori.adventure.text.Component> lines, DyeColor dyeColor, boolean hasGlowingText) {
+    public void sendSignChange(Location loc, @Nullable List<? extends net.kyori.adventure.text.Component> lines, DyeColor color, boolean hasGlowingText) {
         if (getHandle().connection == null) {
             return;
         }
@@ -1103,47 +1104,39 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
             lines = new java.util.ArrayList<>(4);
         }
         Preconditions.checkArgument(loc != null, "Location cannot be null");
-        Preconditions.checkArgument(dyeColor != null, "DyeColor cannot be null");
+        Preconditions.checkArgument(color != null, "DyeColor cannot be null");
         if (lines.size() < 4) {
             throw new IllegalArgumentException("Must have at least 4 lines");
         }
         Component[] components = CraftSign.sanitizeLines(lines);
-        this.sendSignChange0(components, loc, dyeColor, hasGlowingText);
+        this.sendSignChange0(components, loc, color, hasGlowingText);
     }
     // Paper end
 
     @Override
-    public void sendSignChange(Location loc, @Nullable String @Nullable [] lines) {
-        this.sendSignChange(loc, lines, DyeColor.BLACK);
-    }
-
-    @Override
-    public void sendSignChange(Location loc, @Nullable String @Nullable [] lines, DyeColor dyeColor) {
-        this.sendSignChange(loc, lines, dyeColor, false);
-    }
-
-    @Override
-    public void sendSignChange(Location loc, @Nullable String @Nullable [] lines, DyeColor dyeColor, boolean hasGlowingText) {
+    public void sendSignChange(Location loc, @Nullable String @Nullable [] lines, DyeColor color, boolean hasGlowingText) {
         Preconditions.checkArgument(loc != null, "Location cannot be null");
-        Preconditions.checkArgument(dyeColor != null, "DyeColor cannot be null");
+        Preconditions.checkArgument(color != null, "DyeColor cannot be null");
+        Preconditions.checkArgument(lines == null || lines.length >= SignText.LINES, "Must have at least %s lines (%s)", SignText.LINES, lines.length);
+        if (this.getHandle().connection == null) return;
 
         if (lines == null) {
-            lines = new String[4];
+            lines = new String[SignText.LINES];
         }
-        Preconditions.checkArgument(lines.length >= 4, "Must have at least 4 lines (%s)", lines.length);
-
-        if (this.getHandle().connection == null) return;
 
         Component[] components = CraftSign.sanitizeLines(lines);
         // Paper start - adventure
-        this.sendSignChange0(components, loc, dyeColor, hasGlowingText);
+        this.sendSignChange0(components, loc, color, hasGlowingText);
     }
 
-    private void sendSignChange0(Component[] components, Location loc, DyeColor dyeColor, boolean hasGlowingText) {
+    private void sendSignChange0(Component[] components, Location loc, DyeColor color, boolean hasGlowingText) {
         // Paper end
         SignBlockEntity sign = new SignBlockEntity(CraftLocation.toBlockPos(loc), Blocks.OAK_SIGN.defaultBlockState());
         SignText text = sign.getText(SignTextSlot.FRONT);
-        SignText.Mutable mutableText = text.withColor(net.minecraft.world.item.DyeColor.byId(dyeColor.getWoolData())).withGlowingText(hasGlowingText).asMutable();
+        SignText.Mutable mutableText = text.asMutable();
+
+        mutableText.setColor(net.minecraft.world.item.DyeColor.byId(color.getWoolData()));
+        mutableText.setTextGlowing(hasGlowingText);
 
         for (int i = 0; i < components.length; i++) {
             mutableText = mutableText.setLine(i, components[i]);
@@ -2801,8 +2794,17 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
     }
 
     @Override
-    public <T> void spawnParticle(Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, T data, boolean force) {
-        ClientboundLevelParticlesPacket packet = new ClientboundLevelParticlesPacket(CraftParticle.createParticleParam(particle, data), force, false, x, y, z, (float) offsetX, (float) offsetY, (float) offsetZ, (float) extra, count); // Paper - fix x/y/z precision loss
+    public <T> void spawnParticle(Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double speedX, double speedY, double speedZ, T data, boolean force, Particle.RandomizationType randomizationType) {
+        ClientboundLevelParticlesPacket packet = new ClientboundLevelParticlesPacket(
+            CraftParticle.createParticleParam(particle, data),
+            force,
+            false,
+            x, y, z,
+            (float) offsetX, (float) offsetY, (float) offsetZ,
+            (float) speedX, (float) speedY, (float) speedZ,
+            count,
+            ClientboundLevelParticlesPacket.RandomizationType.valueOf(randomizationType.name())
+        );
         this.getHandle().connection.send(packet);
     }
 
