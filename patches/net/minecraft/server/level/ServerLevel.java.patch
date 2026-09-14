@@ -399,12 +399,16 @@
      }
  
      @Override
-@@ -332,20 +_,36 @@
+@@ -332,20 +_,40 @@
          TickRateManager tickratemanager = this.tickRateManager();
          boolean flag = tickratemanager.runsNormally();
          if (flag) {
-+            PulseGrasp.setLevel(this.dimension().location().toString());
-+            PulseGrasp.recordChunkStats(this.getChunkSource().getLoadedChunksCount(), this.getChunkSource().getActiveChunksCount());
++            // Youer start - Do not calculate the number of blocks when not sampling.
++            if (PulseGrasp.isGrasping()) {
++                PulseGrasp.setLevel(this.dimension().location().toString());
++                PulseGrasp.recordChunkStats(this.getChunkSource().getLoadedChunksCount(), this.getChunkSource().getActiveChunksCount());
++            }
++            // Youer end
 +            PulseGrasp.feelPulse("world_border");
              profilerfiller.push("world border");
              this.getWorldBorder().tick();
