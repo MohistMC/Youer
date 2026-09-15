@@ -443,20 +443,23 @@ public class CommonHooks {
     }
 
     @Nullable
-    public static ItemEntity onPlayerTossEvent(Player player, ItemStack item, boolean dropAround, Prediction prediction) {
+    public static ItemEntity onPlayerTossEvent(Player player, ItemStack item, boolean thrownFromHand, Prediction prediction) {
         player.captureDrops(Lists.newArrayList());
-        ItemEntity ret = player.drop(item, dropAround, prediction);
+        ItemEntity ret = player.dropWithoutEvent(item, thrownFromHand, prediction);
         player.captureDrops(null);
 
-        if (ret == null)
+        if (ret == null) {
             return null;
+        }
 
         ItemTossEvent event = new ItemTossEvent(ret, player);
-        if (NeoForge.EVENT_BUS.post(event).isCanceled())
+        if (NeoForge.EVENT_BUS.post(event).isCanceled()) {
             return null;
+        }
 
-        if (!player.level().isClientSide())
+        if (!player.level().isClientSide()) {
             player.level().addFreshEntity(event.getEntity());
+        }
         return event.getEntity();
     }
 
@@ -1883,5 +1886,22 @@ public class CommonHooks {
                 entriesStreamCodec.encode(output, modifiers);
             }
         };
+    }
+
+    /// {@return the translation key for this dimension}.
+    /// Used when looking up the matching translation.
+    ///
+    /// @see Level#TRANSLATION_PREFIX
+    /// @see Level#getDescriptionKey()
+    public static String getDimensionDescriptionKey(ResourceKey<Level> dimensionKey) {
+        return dimensionKey.identifier().toLanguageKey(Level.TRANSLATION_PREFIX);
+    }
+
+    /// {@return the translated description of this dimension, with a fallback to the registry name}
+    ///
+    /// @see CommonHooks#getDimensionDescriptionKey(ResourceKey)
+    /// @see Level#getDescription()
+    public static Component getDimensionDescription(ResourceKey<Level> dimensionKey) {
+        return Component.translatableWithFallback(getDimensionDescriptionKey(dimensionKey), dimensionKey.identifier().toString());
     }
 }

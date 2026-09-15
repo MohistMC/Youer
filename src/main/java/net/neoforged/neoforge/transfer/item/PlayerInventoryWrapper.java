@@ -7,7 +7,6 @@ package net.neoforged.neoforge.transfer.item;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
-
 import net.minecraft.util.Prediction;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.EquipmentSlot;
@@ -188,8 +187,7 @@ public final class PlayerInventoryWrapper extends VanillaContainerWrapper {
         // Drop in the world on the server side (will be synced by the game with the client).
         // Dropping items is server-side only because it involves randomness.
         if (!inventory.player.level().isClientSide()) {
-            // FIXME: the hardcoded prediction is problematic
-            droppedItems.addDrop(resource, amount, dropAround, Prediction.PREDICTED, transaction);
+            droppedItems.addDrop(resource, amount, dropAround, Prediction.SERVER_ONLY, transaction);
         }
     }
 

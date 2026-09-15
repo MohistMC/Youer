@@ -35,7 +35,7 @@ public interface ModDisplayInfo extends IExtensionPoint {
     /// {@return the credits} This is displayed if it is not [an empty component][Component#empty()].
     Component credits();
 
-    /// {@return the mod authors} This is displayed if it is not [an empty component][Component#empty()].
+    /// {@return the mod description} This is displayed if it is not [an empty component][Component#empty()].
     Component description();
 
     /// {@return the mod license} This is always displayed, even if [empty][Component#empty()].
@@ -53,6 +53,11 @@ public interface ModDisplayInfo extends IExtensionPoint {
     /// The icon is rendered as a square with sides of {@value ModListScreen#ICON_SIZE} pixels.
     @Nullable
     ImageResource icon(); // rendered as a square
+
+    /// {@return whether linear filtering should be used when scaling the icon}
+    default boolean iconBlur() {
+        return false;
+    }
 
     /// {@return the URL for the mod homepage, or `null`} If `null`, the homepage button is disabled.
     @Nullable

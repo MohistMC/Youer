@@ -262,8 +262,6 @@ public abstract class BlockEvent extends Event {
 
     /**
      * Fired when a block is right-clicked by a tool to change its state.
-     * For example: Used to determine if {@link ItemAbilities#AXE_STRIP an axe can strip},
-     * {@link ItemAbilities#SHOVEL_FLATTEN a shovel can path}, or {@link ItemAbilities#HOE_TILL a hoe can till}.
      * <p>
      * Care must be taken to ensure level-modifying events are only performed if {@link #isSimulated()} returns {@code false}.
      * <p>

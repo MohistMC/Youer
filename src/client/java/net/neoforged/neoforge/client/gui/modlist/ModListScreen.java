@@ -9,8 +9,11 @@ import static net.minecraft.network.chat.Component.translatable;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableList.Builder;
+import com.mojang.blaze3d.Blaze3D;
 import com.mojang.blaze3d.platform.NativeImage;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.logging.LogUtils;
+import com.mojang.renderpearl.api.textures.FilterMode;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
@@ -57,6 +60,7 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.HoverEvent;
+import net.minecraft.network.chat.Style;
 import net.minecraft.network.chat.TextColor;
 import net.minecraft.network.chat.contents.PlainTextContents;
 import net.minecraft.resources.Identifier;
@@ -64,7 +68,6 @@ import net.minecraft.server.packs.resources.IoSupplier;
 import net.minecraft.util.ARGB;
 import net.minecraft.util.CommonLinks;
 import net.minecraft.util.SpecialDates;
-import net.minecraft.util.Util;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.ModList;
 import net.neoforged.fml.VersionChecker;
@@ -188,7 +191,7 @@ public class ModListScreen extends Screen {
         footer.spacing(4).defaultCellSetting().paddingTop(5);
 
         footer.addChild(Button.builder(Component.translatable("neoforge.screen.mods.button.open_folder"),
-                _ -> Util.getPlatform().openPath(modsFolder)).build());
+                _ -> Blaze3D.openPath(modsFolder)).build());
         footer.addChild(Button.builder(CommonComponents.GUI_BACK, _ -> ModListScreen.this.onClose()).build());
 
         // Content
@@ -284,7 +287,7 @@ public class ModListScreen extends Screen {
     private record ImageData(Identifier sprite, int width, int height) {}
 
     @Nullable
-    private ImageData loadImage(String type, String modId, ImageResource imageResource) {
+    private ImageData loadImage(String type, String modId, ImageResource imageResource, boolean blurred) {
         final IoSupplier<InputStream> resource = imageResource.get(this.minecraft.getResourceManager());
 
         if (resource == null) {
@@ -302,7 +305,13 @@ public class ModListScreen extends Screen {
 
         final TextureManager textureManager = this.minecraft.getTextureManager();
         final Identifier sprite = Identifier.fromNamespaceAndPath(NeoForgeMod.MOD_ID, "mod/" + type + "/" + modId);
-        textureManager.register(sprite, new DynamicTexture(sprite::toString, image));
+        textureManager.register(sprite, new DynamicTexture(sprite::toString, image) {
+            @Override
+            public void upload() {
+                sampler = RenderSystem.getSamplerCache().getClampToEdge(blurred ? FilterMode.LINEAR : FilterMode.NEAREST);
+                super.upload();
+            }
+        });
 
         return new ImageData(sprite, image.getWidth(), image.getHeight());
     }
@@ -359,7 +368,7 @@ public class ModListScreen extends Screen {
                 this.checkResult = checkResult;
                 this.displayInfo = displayInfo;
                 if (displayInfo.icon() != null) {
-                    this.iconData = ModListScreen.this.loadImage("icon", displayInfo.id(), Objects.requireNonNull(displayInfo.icon()));
+                    this.iconData = ModListScreen.this.loadImage("icon", displayInfo.id(), Objects.requireNonNull(displayInfo.icon()), displayInfo.iconBlur());
                 } else {
                     this.iconData = null;
                 }
@@ -377,7 +386,7 @@ public class ModListScreen extends Screen {
                 int textLeft = left + 2;
 
                 if (iconData != null) {
-                    graphics.blit(RenderPipelines.GUI_TEXTURED, iconData.sprite, left, top, 0.0F, 0.0F, ICON_SIZE, ICON_SIZE, ICON_SIZE, ICON_SIZE);
+                    graphics.blit(iconData.sprite, left, top, left + ICON_SIZE, top + ICON_SIZE, 0.0F, 1.0F, 0.0F, 1.0F);
                     textLeft += ICON_SIZE + 4;
                 }
                 int maxTextWidth = getRowWidth() - textLeft + left - 4;
@@ -469,12 +478,7 @@ public class ModListScreen extends Screen {
                     .build()
                     .setCentered(true),
                     contentLayout.newCellSettings().paddingVertical(3));
-            this.newerVersionWidget.setComponentClickHandler(style -> {
-                ClickEvent clickEvent = style.getClickEvent();
-                if (clickEvent != null) {
-                    defaultHandleClickEvent(clickEvent, ModListScreen.this.minecraft, ModListScreen.this);
-                }
-            });
+            this.newerVersionWidget.setComponentClickHandler(this::handleClickEvent);
             this.newerVersionButton = contentLayout.addChild(Button.builder(translatable("neoforge.screen.mods.button.changelog"),
                     _ -> {
                         if (this.selected != null && this.selected.checkResult != null) {
@@ -546,13 +550,19 @@ public class ModListScreen extends Screen {
                     .maxWidth(width)
                     .build()
                     .setCentered(false));
-            widget.setComponentClickHandler(style -> {
-                ClickEvent clickEvent = style.getClickEvent();
-                if (clickEvent != null) {
-                    defaultHandleClickEvent(clickEvent, ModListScreen.this.minecraft, ModListScreen.this);
-                }
-            });
+            widget.setComponentClickHandler(this::handleClickEvent);
             return widget;
+        }
+
+        private void handleClickEvent(Style style) {
+            ClickEvent event = style.getClickEvent();
+            if (event == null) return;
+            switch (event) {
+                case ClickEvent.OpenUrl(URI uri) -> ConfirmLinkScreen.confirmLinkNow(ModListScreen.this, uri);
+                case ClickEvent.OpenFile openFile -> Blaze3D.openPath(openFile.file().toPath());
+                case ClickEvent.CopyToClipboard(String value) -> minecraft.keyboardHandler.setClipboard(value);
+                default -> LOGGER.error("Unable to handle click event ‘{}’", event);
+            }
         }
 
         public LinearLayout getMainLayout() {
@@ -631,10 +641,10 @@ public class ModListScreen extends Screen {
                     int bannerWidth = (int) (LogoRenderer.LOGO_TEXTURE_WIDTH * scaleFactor);
                     this.bannerWidget.useMinecraftLogo(bannerWidth);
                 } else {
-                    this.bannerData = loadImage("banner", displayInfo.id(), bannerResource);
+                    this.bannerData = loadImage("banner", displayInfo.id(), bannerResource, false);
                     if (this.bannerData != null) {
-                        float widthScaleFactor = Math.min(1F, (float) this.width / this.bannerData.width());
-                        float heightScaleFactor = Math.min(1F, (float) BANNER_HEIGHT / this.bannerData.height());
+                        float widthScaleFactor = (float) this.width / this.bannerData.width();
+                        float heightScaleFactor = (float) BANNER_HEIGHT / this.bannerData.height();
                         float scaleFactor = Math.min(widthScaleFactor, heightScaleFactor);
                         int bannerWidth = (int) (this.bannerData.width() * scaleFactor);
                         int bannerHeight = (int) (this.bannerData.height() * scaleFactor);

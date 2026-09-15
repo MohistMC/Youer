@@ -40,7 +40,6 @@ import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.SignalGetter;
 import net.minecraft.world.level.WorldGenLevel;
 import net.minecraft.world.level.block.BeaconBeamBlock;
-import net.minecraft.world.level.block.BedBlock;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.CampfireBlock;
@@ -51,13 +50,11 @@ import net.minecraft.world.level.block.FenceGateBlock;
 import net.minecraft.world.level.block.FireBlock;
 import net.minecraft.world.level.block.GrowingPlantHeadBlock;
 import net.minecraft.world.level.block.HalfTransparentBlock;
-import net.minecraft.world.level.block.HorizontalDirectionalBlock;
 import net.minecraft.world.level.block.LadderBlock;
 import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.Rotation;
 import net.minecraft.world.level.block.SoundType;
 import net.minecraft.world.level.block.TrapDoorBlock;
-import net.minecraft.world.level.block.WeatheringCopper;
 import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
@@ -71,7 +68,6 @@ import net.minecraft.world.level.pathfinder.PathType;
 import net.minecraft.world.level.pathfinder.WalkNodeEvaluator;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.neoforge.capabilities.BlockCapabilityCache;
-import net.neoforged.neoforge.common.DataMapHooks;
 import net.neoforged.neoforge.common.ItemAbilities;
 import net.neoforged.neoforge.common.ItemAbility;
 import net.neoforged.neoforge.common.Tags;
@@ -263,24 +259,6 @@ public interface IBlockExtension {
     }
 
     /**
-     * Determines if this block is classified as a bed, replacing <code>instanceof BedBlock</code> checks.
-     * <p>
-     * If true, players may sleep in it, though the block must manually put the player to sleep
-     * by calling {@link Player#startSleepInBed} from {@link BlockBehaviour#useWithoutItem} or similar.
-     * <p>
-     * If you want players to be able to respawn at your bed, you also need to override {@link #getRespawnPosition}.
-     *
-     * @param state   The current state
-     * @param level   The current level
-     * @param pos     Block position in level
-     * @param sleeper The sleeping entity.
-     * @return True to treat this as a bed
-     */
-    default boolean isBed(BlockState state, BlockGetter level, BlockPos pos, LivingEntity sleeper) {
-        return self() instanceof BedBlock;
-    }
-
-    /**
      * Returns the position that the entity is moved to upon respawning at this block.
      *
      * @param state       The current state
@@ -292,31 +270,6 @@ public interface IBlockExtension {
      */
     default Optional<ServerPlayer.RespawnPosAngle> getRespawnPosition(BlockState state, EntityType<?> type, LevelReader levelReader, BlockPos pos, float orientation) {
         return Optional.empty();
-    }
-
-    /**
-     * Called when a user either starts or stops sleeping in the bed.
-     *
-     * @param level    The current level
-     * @param pos      Block position in level
-     * @param sleeper  The sleeper or camera entity, null in some cases.
-     * @param occupied True if we are occupying the bed, or false if they are stopping use of the bed
-     */
-    default void setBedOccupied(BlockState state, Level level, BlockPos pos, LivingEntity sleeper, boolean occupied) {
-        level.setBlock(pos, state.setValue(BedBlock.OCCUPIED, occupied), 3);
-    }
-
-    /**
-     * Returns the direction of the block. Same values that
-     * are returned by BlockDirectional. Called every frame tick for every living entity. Be VERY fast.
-     *
-     * @param state The current state
-     * @param level The current level
-     * @param pos   Block position in level
-     * @return Bed direction
-     */
-    default Direction getBedDirection(BlockState state, LevelReader level, BlockPos pos) {
-        return state.getValue(HorizontalDirectionalBlock.FACING);
     }
 
     /**
@@ -667,14 +620,15 @@ public interface IBlockExtension {
      * <p>
      * The return value determines whether a flint-and-steel in a dispenser was used successfully and should be damaged
      *
-     * @param state     The current state
-     * @param level     The current level
-     * @param pos       Block position in level
-     * @param direction The direction that the fire is coming from
-     * @param igniter   The entity that lit the fire
+     * @param state        The current state
+     * @param level        The current level
+     * @param pos          Block position in level
+     * @param direction    The direction that the fire is coming from
+     * @param igniter      The entity that lit the fire
+     * @param ignitionItem The item that was used to light the fire
      * @return whether the block was successfully set on fire (i.e. TNT is allowed to explode and was primed)
      */
-    default boolean onCaughtFire(BlockState state, Level level, BlockPos pos, @Nullable Direction direction, @Nullable LivingEntity igniter) {
+    default boolean onCaughtFire(BlockState state, Level level, BlockPos pos, @Nullable Direction direction, @Nullable LivingEntity igniter, ItemStack ignitionItem) {
         return true;
     }
 
@@ -770,8 +724,6 @@ public interface IBlockExtension {
 
     /**
      * Returns the state that this block should transform into when right-clicked by a tool.
-     * For example: Used to determine if {@link ItemAbilities#AXE_STRIP an axe can strip},
-     * {@link ItemAbilities#SHOVEL_FLATTEN a shovel can path}, or {@link ItemAbilities#HOE_TILL a hoe can till}.
      * Returns {@code null} if nothing should happen.
      *
      * @param state       The current state
@@ -783,42 +735,20 @@ public interface IBlockExtension {
     @Nullable
     default BlockState getToolModifiedState(BlockState state, UseOnContext context, ItemAbility itemAbility, boolean simulate) {
         ItemStack itemStack = context.getItemInHand();
-        if (!itemStack.canPerformAction(itemAbility))
+        if (!itemStack.canPerformAction(itemAbility)) {
             return null;
+        }
 
-        if (ItemAbilities.AXE_SCRAPE == itemAbility) {
-            return WeatheringCopper.getPrevious(state).orElse(null);
-        } else if (ItemAbilities.AXE_WAX_OFF == itemAbility) {
-            Block waxOffBlock = DataMapHooks.getBlockUnwaxed(state.getBlock());
-            return Optional.ofNullable(waxOffBlock).map(block -> block.withPropertiesOf(state)).orElse(null);
-        } else if (ItemAbilities.HOE_TILL == itemAbility) {
-            // Logic copied from HoeItem#TILLABLES; needs to be kept in sync during updating
-            Block block = state.getBlock();
-            if (block == Blocks.ROOTED_DIRT) {
-                if (!simulate && !context.getLevel().isClientSide()) {
-                    Block.popResourceFromFace(context.getLevel(), context.getClickedPos(), context.getClickedFace(), new ItemStack(Items.HANGING_ROOTS));
-                }
-                return Blocks.DIRT.defaultBlockState();
-            } else if ((block == Blocks.GRASS_BLOCK || block == Blocks.DIRT_PATH || block == Blocks.DIRT || block == Blocks.COARSE_DIRT) &&
-                    context.getLevel().getBlockState(context.getClickedPos().above()).isAir()) {
-                        return block == Blocks.COARSE_DIRT ? Blocks.DIRT.defaultBlockState() : Blocks.FARMLAND.defaultBlockState();
-                    }
-        } else if (ItemAbilities.SHEARS_TRIM == itemAbility) {
+        if (ItemAbilities.SHEARS_TRIM == itemAbility) {
             if (state.getBlock() instanceof GrowingPlantHeadBlock growingPlant && !growingPlant.isMaxAge(state)) {
-                if (!simulate)
-                    context.getLevel().playSound(context.getPlayer(), context.getClickedPos(), SoundEvents.GROWING_PLANT_CROP, SoundSource.BLOCKS, 1.0F, 1.0F);
-                return growingPlant.getMaxAgeState(state);
-            }
-        } else if (ItemAbilities.SHOVEL_DOUSE == itemAbility) {
-            if (state.getBlock() instanceof CampfireBlock && state.getValue(CampfireBlock.LIT)) {
                 if (!simulate) {
-                    CampfireBlock.douse(context.getPlayer(), context.getLevel(), context.getClickedPos(), state);
+                    context.getLevel().playSound(context.getPlayer(), context.getClickedPos(), SoundEvents.GROWING_PLANT_CROP, SoundSource.BLOCKS, 1.0F, 1.0F);
                 }
-                return state.setValue(CampfireBlock.LIT, Boolean.valueOf(false));
+                return growingPlant.getMaxAgeState(state);
             }
         } else if (ItemAbilities.FIRESTARTER_LIGHT == itemAbility) {
             if (CampfireBlock.canLight(state) || CandleBlock.canLight(state) || CandleCakeBlock.canLight(state)) {
-                return state.setValue(BlockStateProperties.LIT, Boolean.valueOf(true));
+                return state.setValue(BlockStateProperties.LIT, true);
             }
         }
 
@@ -892,15 +822,14 @@ public interface IBlockExtension {
      * <li>A coral can live</li>
      * </ul>
      *
-     * @param state    the state of the block being hydrated
-     * @param getter   the getter which can get the block
-     * @param pos      the position of the block being hydrated
-     * @param fluid    the state of the fluid
-     * @param fluidPos the position of the fluid
+     * @param state  the state of the block being hydrated
+     * @param getter the getter which can get the block
+     * @param pos    the position of the block being hydrated
+     * @param fluid  the state of the fluid
      * @return {@code true} if the block can be hydrated, {@code false} otherwise
      */
-    default boolean canBeHydrated(BlockState state, BlockGetter getter, BlockPos pos, FluidState fluid, BlockPos fluidPos) {
-        return fluid.canHydrate(getter, fluidPos, state, pos);
+    default boolean canBeHydrated(BlockState state, BlockGetter getter, BlockPos pos, FluidState fluid) {
+        return fluid.canHydrate(getter, state, pos);
     }
 
     /**
