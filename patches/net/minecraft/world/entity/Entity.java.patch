@@ -722,12 +722,15 @@
          this.updateFluidInteraction();
          this.updateSwimming();
          if (this.level() instanceof ServerLevel serverLevel) {
-@@ -569,7 +_,11 @@
+@@ -569,7 +_,14 @@
          }
  
          if (this.isInLava()) {
 -            this.fallDistance *= 0.5;
 +            this.fallDistance *= this.getFluidFallDistanceModifier(net.neoforged.neoforge.common.NeoForgeMod.LAVA_TYPE.value());
++        } else if (!this.isInWater()) {
++            this.fallDistance *= this.fluidInteraction.getFallDistanceModifier(this);
++
 +            // CraftBukkit start
 +        } else {
 +            this.lastLavaContact = null;
@@ -1210,9 +1213,10 @@
      }
  
      protected boolean updateFluidInteraction() {
-         boolean inAnyFluid = this.fluidInteraction.update(this, !this.isPushedByFluid());
+-        boolean inAnyFluid = this.fluidInteraction.update(this, !this.isPushedByFluid());
 -        boolean inWater = this.fluidInteraction.isInFluid(FluidTags.WATER);
 -        boolean inLava = this.fluidInteraction.isInFluid(FluidTags.LAVA);
++        boolean inAnyFluid = this.fluidInteraction.update(this, this::isPushedByFluid);
 +        boolean inWater = this.fluidInteraction.isInFluidMatching(this, (_, type, _) -> type.getIsWaterLike());
          if (inWater) {
              this.resetFallDistance();
@@ -1281,14 +1285,9 @@
      }
  
      public void snapTo(Vec3 pos) {
-@@ -1939,13 +_,25 @@
-         }
+@@ -1944,8 +_,24 @@
      }
  
--    public void pushFromExplosion(Vec3 impulse) {
--        this.push(impulse);
--    }
--
      public void push(double xa, double ya, double za) {
 +        // Paper start - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
 +        this.push(xa, ya, za, null);
@@ -1623,7 +1622,7 @@
 +
 +    public record DefaultDrop(Item item, org.bukkit.inventory.ItemStack stack, java.util.function.@Nullable Consumer<ItemStack> dropConsumer) {
 +        public DefaultDrop(final ItemStack stack, final java.util.function.Consumer<ItemStack> dropConsumer) {
-+            this(stack.getItem(), org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(stack), dropConsumer);
++            this(stack.getItem(), org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(stack), dropConsumer);
 +        }
 +
 +        public void runConsumer(final java.util.function.Consumer<org.bukkit.inventory.ItemStack> fallback) {
@@ -1918,7 +1917,7 @@
          if (this.isPassenger()) {
              this.getVehicle().positionRider(this);
          }
-@@ -2478,15 +_,13 @@
+@@ -2478,15 +_,14 @@
      }
  
      public boolean startRiding(Entity entityToRide, boolean force, boolean sendEventAndTriggers) {
@@ -1926,7 +1925,7 @@
 +        if (entityToRide == this.vehicle || entityToRide.level != this.level) { // Paper - Ensure entity passenger world matches ridden entity (bad plugins)
              return false;
          }
--
+ 
          if (!entityToRide.couldAcceptPassenger()) {
              return false;
          }
@@ -2266,12 +2265,9 @@
      }
  
      public boolean is(Entity other) {
-@@ -3078,36 +_,41 @@
-     public String toString() {
-         String levelId = this.level() == null ? "~NULL~" : this.level().toString();
+@@ -3080,34 +_,39 @@
          return this.removalReason != null
--            ? String.format(
-+                ? String.format(
+             ? String.format(
                  Locale.ROOT,
 -                "%s['%s'/%d, l='%s', x=%.2f, y=%.2f, z=%.2f, removed=%s]",
 +                "%s['%s'/%d, uuid='%s', l='%s', x=%.2f, y=%.2f, z=%.2f, cpos=%s, tl=%d, v=%b, removed=%s]", // Paper - add more info
@@ -2285,10 +2281,8 @@
                  this.getZ(),
 +                this.chunkPosition(), this.tickCount, this.valid, // Paper - add more info
                  this.removalReason
--            )
--            : String.format(
-+        )
-+                : String.format(
+             )
+             : String.format(
                  Locale.ROOT,
 -                "%s['%s'/%d, l='%s', x=%.2f, y=%.2f, z=%.2f]",
 +                "%s['%s'/%d, uuid='%s', l='%s', x=%.2f, y=%.2f, z=%.2f, cpos=%s, tl=%d, v=%b]", // Paper - add more info
@@ -2825,7 +2819,7 @@
      }
  
      @Override
-@@ -4096,6 +_,90 @@
+@@ -4096,6 +_,93 @@
          return true;
      }
  
@@ -2861,10 +2855,13 @@
 +    // Neo: Set the default behavior for trampling on Farmland
 +    @Override
 +    public boolean canTrample(ServerLevel level, BlockState state, BlockPos pos, double fallDistance) {
-+        return (level.purpurConfig.farmlandTrampleHeight >= 0D ? fallDistance >= level.purpurConfig.farmlandTrampleHeight : level.getRandom().nextFloat() < fallDistance - 0.5)
-+             && this instanceof LivingEntity
-+             && (this instanceof Player || net.neoforged.neoforge.event.EventHooks.canEntityGrief(level, this))
-+             && this.getBbWidth() * this.getBbWidth() * this.getBbHeight() > 0.512F;
++        if (level.getRandom().nextFloat() < fallDistance - .5F && this instanceof LivingEntity) {
++            boolean canTrample = this instanceof Player player
++                                 ? !level.getServer().isUnderSpawnProtection(level, pos, player)
++                                 : net.neoforged.neoforge.event.EventHooks.canEntityGrief(level, this);
++            return canTrample && this.getBbWidth() * this.getBbWidth() * this.getBbHeight() > 0.512F;
++        }
++        return false;
 +    }
 +
 +    /**

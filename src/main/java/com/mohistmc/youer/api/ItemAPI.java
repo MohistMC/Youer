@@ -108,7 +108,7 @@ public class ItemAPI {
             }
             var getMaterial = SpawnEggItem.byId(entitytype);
             if (getMaterial.isPresent()) {
-                return getMaterial.get().value().getDefaultInstance().getBukkitStack().getType();
+                return CraftItemStack.asBukkitCopy(getMaterial.get().value().getDefaultInstance()).getType();
             } else {
                 var key = net.minecraft.world.entity.EntityType.getKey(entitytype);
                 if (BuiltInRegistries.ITEM.get(key).isEmpty()) {
@@ -140,7 +140,7 @@ public class ItemAPI {
 
     public static Material get(Identifier key) {
         var item = BuiltInRegistries.ITEM.get(key);
-        return item.map(i -> i.value().getDefaultInstance().asBukkitCopy().getType()).orElse(Material.AIR);
+        return item.map(i -> CraftItemStack.asBukkitCopy(i.value().getDefaultInstance()).getType()).orElse(Material.AIR);
     }
 
     /**

@@ -274,7 +274,6 @@ public interface RecipeChoice extends Predicate<ItemStack>, Cloneable {
     final class ExactChoice implements RecipeChoice {
 
         private List<ItemStack> choices;
-        private Predicate<ItemStack> predicate; // Purpur - Add predicate to recipe's ExactChoice ingredient
 
         /**
          * @deprecated Use {@link RecipeChoice#exactChoice(ItemStack, ItemStack...)} instead
@@ -335,7 +334,6 @@ public interface RecipeChoice extends Predicate<ItemStack>, Cloneable {
 
         @Override
         public boolean test(ItemStack t) {
-            if (predicate != null) return predicate.test(t); // Purpur - Add predicate to recipe's ExactChoice ingredient
             for (ItemStack match : choices) {
                 if (t.isSimilar(match)) {
                     return true;
@@ -344,17 +342,6 @@ public interface RecipeChoice extends Predicate<ItemStack>, Cloneable {
 
             return false;
         }
-
-        // Purpur start - Add predicate to recipe's ExactChoice ingredient
-        @org.jetbrains.annotations.Nullable
-        public Predicate<ItemStack> getPredicate() {
-            return predicate;
-        }
-
-        public void setPredicate(@org.jetbrains.annotations.Nullable Predicate<ItemStack> predicate) {
-            this.predicate = predicate;
-        }
-        // Purpur end - Add predicate to recipe's ExactChoice ingredient
 
         @Override
         public int hashCode() {

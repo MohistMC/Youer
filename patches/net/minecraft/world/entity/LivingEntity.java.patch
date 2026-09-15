@@ -38,7 +38,7 @@
  import net.minecraft.world.item.component.DeathProtection;
  import net.minecraft.world.item.component.KineticWeapon;
  import net.minecraft.world.item.component.MobVisibility;
-@@ -137,8 +_,20 @@
+@@ -137,8 +_,21 @@
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.phys.shapes.Shapes;
  import net.minecraft.world.phys.shapes.VoxelShape;
@@ -50,6 +50,7 @@
 +import org.bukkit.craftbukkit.attribute.CraftAttributeMap;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
 +import org.bukkit.event.entity.ArrowBodyCountChangeEvent;
 +import org.bukkit.event.entity.EntityDamageEvent;
 +import org.bukkit.event.entity.EntityPotionEffectEvent;
@@ -343,9 +344,8 @@
          }
      }
  
--    public @Nullable ItemEntity drop(ItemStack itemStack, boolean thrownFromHand, Prediction prediction) {
 +    // Paper start - Extend dropItem API
-+    public final @Nullable ItemEntity drop(final ItemStack itemStack, final boolean thrownFromHand, final Prediction prediction) {
+     public @Nullable ItemEntity drop(ItemStack itemStack, boolean thrownFromHand, Prediction prediction) {
 +        return this.drop(itemStack, thrownFromHand, prediction, true, null);
 +    }
 +
@@ -920,7 +920,7 @@
 +
 +            // If we are going to do damage despite invulnerability (due to the damage being higher than prior), we need to setup the container differently.
 +            this.damageContainers.peek().setShouldCauseSideEffects(false);
-+            this.damageContainers.peek().setPostAttackInvulnerabilityTicks(this.getInvulnerableTime());
++            this.damageContainers.peek().setPostAttackInvulnerabilityTicks(this.damageCooldownTime);
 +            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.INVULNERABILITY, this.lastHurt);
  
              this.actuallyHurt(level, source, damage - this.lastHurt);
@@ -929,13 +929,13 @@
 +            // lastHurt, in both blocks, needs to always be set to the value of `damage` since it is pre-reduction. Using a post reduction value invalidates iframes.
 +            // Since we're in the "damage while invuln is active" block, we need to make sure we don't reduce the lastHurt amount.
 +            this.lastHurt = java.lang.Math.max(this.lastHurt, damage);
-+            this.setInvulnerableTime(this.damageContainers.peek().getPostAttackInvulnerabilityTicks());
++            this.damageCooldownTime = this.damageContainers.peek().getPostAttackInvulnerabilityTicks();
          } else {
 -            this.lastHurt = damage;
 -            this.damageCooldownTime = 20;
              this.actuallyHurt(level, source, damage);
 +            this.lastHurt = damage;
-+            this.setInvulnerableTime(this.damageContainers.peek().getPostAttackInvulnerabilityTicks());
++            this.damageCooldownTime = this.damageContainers.peek().getPostAttackInvulnerabilityTicks();
              this.hurtDuration = 10;
              this.hurtTime = this.hurtDuration;
          }
@@ -1029,7 +1029,7 @@
 +
 +                damageBlocked = ev.getBlockedDamage();
 +                damageContainer.setBlockedDamage(ev);
-+                blocksAttacks.hurtBlockingItem(this.level(), blockingWith, this, this.getUsedItemHand(), ev.shieldDamage());
++                blocksAttacks.hurtBlockingItem(this.level(), blockingWith, this, this.getUsedItemHand(), damageBlocked, ev.shieldDamage());
 +
                  if (damageBlocked > 0.0F && !source.is(DamageTypeTags.IS_PROJECTILE) && source.getDirectEntity() instanceof LivingEntity livingEntity) {
                      this.blockUsingItem(level, livingEntity, source, damage, damageBlocked >= damage);
@@ -1560,7 +1560,7 @@
 +            // Youer end
 +            // Neo (ImplNote): Keep this in-sync with the equivalent patches in Player#actuallyHurt.
 +            // Neo: Primary damage pipeline hooks. Compute the armor and enchantment reductions against the "original" damage, and then fire LivingDamageEvent.Pre
-+            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ARMOR, this.damageContainers.peek().getNewDamage() - armorAbsorb);
++            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.ARMOR, this.damageContainers.peek().getNewDamage() - this.getDamageAfterArmorAbsorb(source, this.damageContainers.peek().getNewDamage()));
 +            this.getDamageAfterMagicAbsorb(source, this.damageContainers.peek().getNewDamage());
 +
 +            // LivingDamageEvent.Pre is then able to mutate the container to change the reductions and change the "real" damage that will be inflicted.
@@ -1719,7 +1719,7 @@
  
      protected boolean shouldTravelInFluid(FluidState fluidState) {
 -        return this.isInLiquid() && this.isAffectedByFluids() && !this.canStandOnFluid(fluidState);
-+        return (this.isInWater() || this.isInLava() || this.isInFluidType(fluidState)) && this.isAffectedByFluids() && !this.canStandOnFluid(fluidState);
++        return (this.isInLiquid() || this.isInFluidType(fluidState)) && this.isAffectedByFluids() && !this.canStandOnFluid(fluidState);
      }
  
      protected void travelFlying(Vec3 input, float speed) {
@@ -1753,7 +1753,7 @@
              )
              : 1.0F;
          Vec3 movement = this.handleRelativeFrictionAndCalculateMovement(input, blockFriction);
-@@ -2472,7 +_,15 @@
+@@ -2472,10 +_,19 @@
          return computeModifiedFriction(this.omnidirectionalAirMover() ? 0.91F : 0.98F, (float)this.getAttributeValue(Attributes.AIR_DRAG_MODIFIER));
      }
  
@@ -1769,6 +1769,10 @@
          boolean isFalling = this.getDeltaMovement().y <= 0.0;
          double oldY = this.getY();
          double baseGravity = this.getEffectiveGravity();
++        if (!this.getFluidInteraction().isInFluidMatching(this, (entity, type, _) -> !type.isVanilla() && entity.moveInFluid(type, input, baseGravity)))
+         if (this.isInWater()) {
+             this.travelInWater(input, baseGravity, isFalling, oldY);
+         } else {
 @@ -2502,6 +_,7 @@
              slowDown = 0.96F;
          }
@@ -2028,9 +2032,12 @@
                  this.setSharedFlag(7, false);
                  return;
              }
-@@ -3172,7 +_,16 @@
+@@ -3171,8 +_,20 @@
+                 int freeFallInterval = checkFallFlyTicks / 10;
                  if (freeFallInterval % 2 == 0) {
                      List<EquipmentSlot> slotsWithGliders = EquipmentSlot.VALUES.stream().filter(slot -> canGlideUsing(this.getItemBySlot(slot), slot)).toList();
++                    //  Neo: If the list is empty, we probably have something else adding the gliding flight attribute (directly to the entity or otherwise)
++                    if (!slotsWithGliders.isEmpty()) {
                      EquipmentSlot slotToDamage = Util.getRandom(slotsWithGliders, this.random);
 -                    this.getItemBySlot(slotToDamage).hurtAndBreak(1, this, slotToDamage);
 +                    // Purpur start - Implement elytra settings
@@ -2043,6 +2050,7 @@
 +                    }
 +                    this.getItemBySlot(slotToDamage).hurtAndBreak(damage, this, slotToDamage);
 +                    // Purpur end - Implement elytra settings
++					}
                  }
  
                  this.gameEvent(GameEvent.ELYTRA_GLIDE);
@@ -2355,7 +2363,7 @@
          ItemStack itemInUsedHand = this.getItemInHand(this.getUsedItemHand());
          if (!this.useItem.isEmpty() && ItemStack.isSameItem(itemInUsedHand, this.useItem)) {
              this.useItem = itemInUsedHand;
-+            if (this instanceof ServerPlayer) new io.papermc.paper.event.player.PlayerStopUsingItemEvent((org.bukkit.entity.Player) getBukkitEntity(), useItem.asBukkitMirror(), getTicksUsingItem()).callEvent(); // Paper - Add PlayerStopUsingItemEvent
++            if (this instanceof ServerPlayer) new io.papermc.paper.event.player.PlayerStopUsingItemEvent((org.bukkit.entity.Player) getBukkitEntity(), CraftItemStack.asBukkitMirror(this.useItem), getTicksUsingItem()).callEvent(); // Paper - Add PlayerStopUsingItemEvent
 +            if (!net.neoforged.neoforge.event.EventHooks.onUseItemStop(this, useItem, this.getUseItemRemainingTicks())) {
 +            ItemStack copy = this instanceof Player ? useItem.copy() : null;
              this.useItem.releaseUsing(this.level(), this, this.getUseItemRemainingTicks());
@@ -2463,17 +2471,71 @@
          double y = yy;
          Level level = this.level();
          WorldBorder worldBorder = level.getWorldBorder();
-@@ -3843,7 +_,9 @@
+@@ -3660,7 +_,8 @@
+                 pos.move(Direction.DOWN);
+                 BlockState state = level.getBlockState(pos);
+                 if (state.is(BlockTags.ENTITIES_CAN_TELEPORT_TO)) {
+-                    return this.checkPositionAndTeleport(clamped.x, y, clamped.z, showParticles, isInvalidPosition, state, level);
++                    // Neo: Pass in the consumed item causing the random teleport
++                    return this.checkPositionAndTeleport(clamped.x, y, clamped.z, showParticles, isInvalidPosition, state, level, consumedStack);
+                 }
  
-     public @Nullable Direction getBedOrientation() {
-         BlockPos bedPos = this.getSleepingPos().orElse(null);
--        return bedPos != null ? BedBlock.getBedOrientation(this.level(), bedPos) : null;
-+        if (bedPos == null) return null;
-+        BlockState state = this.level().getBlockState(bedPos);
-+        return !state.isBed(level(), bedPos, this) ? null : state.getBedDirection(level(), bedPos);
+                 y--;
+@@ -3670,8 +_,15 @@
+         return false;
      }
  
-     @Override
+-    private boolean checkPositionAndTeleport(
+-        double xx, double y, double zz, boolean showParticles, Predicate<BlockState> isInvalidPosition, BlockState state, Level level
++    // Neo: Add overload with the consumed item causing the random teleport
++    private boolean checkPositionAndTeleport(
++            double xx, double y, double zz, boolean showParticles, Predicate<BlockState> isInvalidPosition, BlockState state, Level level
++    ) {
++        return checkPositionAndTeleport(xx, y, zz, showParticles, isInvalidPosition, state, level, ItemStack.EMPTY);
++    }
++
++    private boolean checkPositionAndTeleport(
++        double xx, double y, double zz, boolean showParticles, Predicate<BlockState> isInvalidPosition, BlockState state, Level level, ItemStack consumedStack
+     ) {
+         if (isInvalidPosition.test(state)) {
+             return false;
+@@ -3685,6 +_,22 @@
+             }
+ 
+             if (this.canRandomlyTeleportTo(xx, y, zz)) {
++                // Neo: Fire event for either item consumption or EnderMan teleport, to get the actual final position being teleported to
++                net.neoforged.neoforge.event.entity.EntityTeleportEvent event = null;
++                if (!consumedStack.isEmpty()) {
++                    event = net.neoforged.neoforge.event.EventHooks.onItemConsumptionTeleport(this, consumedStack, xx, y, zz);
++                } else if (this instanceof net.minecraft.world.entity.monster.Enderman) {
++                    event = net.neoforged.neoforge.event.EventHooks.onEnderTeleport(this, xx, y, zz);
++                }
++                if (event != null) {
++                    if (event.isCanceled()) {
++                        return false;
++                    }
++                    xx = event.getTargetX();
++                    y = event.getTargetY();
++                    zz = event.getTargetZ();
++                }
++
+                 this.teleportTo(xx, y, zz);
+                 if (showParticles) {
+                     level.broadcastEntityEvent(this, (byte)46);
+@@ -3811,10 +_,12 @@
+     }
+ 
+     private boolean checkBedExists() {
+-        return this.getSleepingPos().map(bedPosition -> {
++        // Neo: Fire the CanContinueSleepingEvent.
++        boolean hasBed = this.getSleepingPos().map(bedPosition -> {
+             BlockState state = this.level().getBlockState(bedPosition);
+             return state.getBlock() instanceof AbstractBedBlock bedBlock && bedBlock.getSleepHeight(state, this.level(), bedPosition).isPresent();
+         }).orElse(false);
++        return net.neoforged.neoforge.event.EventHooks.canEntityContinueSleeping(this, hasBed ? null : Player.BedSleepingProblem.OTHER_PROBLEM);
+     }
+ 
+     public void stopSleeping() {
 @@ -3852,7 +_,7 @@
      }
  
@@ -2514,3 +2576,17 @@
          if (!itemStack.has(DataComponents.GLIDER)) {
              return false;
          }
+@@ -4069,6 +_,13 @@
+     public DamageSource createDamageSource() {
+         return this.damageSources().mobAttack(this);
+     }
++
++    // Paper start
++    @Override
++    public org.bukkit.craftbukkit.entity.CraftLivingEntity getBukkitEntity() {
++        return (org.bukkit.craftbukkit.entity.CraftLivingEntity) super.getBukkitEntity();
++    }
++    // Paper end
+ 
+     public record Fallsounds(SoundEvent small, SoundEvent big) {
+     }

@@ -22,16 +22,11 @@
              level.setBlock(pos, this.deadBlock.defaultBlockState(), 2);
          }
      }
-@@ -48,9 +_,11 @@
+@@ -48,6 +_,7 @@
      }
  
      protected boolean scanForWater(BlockGetter level, BlockPos blockPos) {
 +        if (!((net.minecraft.world.level.LevelAccessor) level).getMinecraftWorld().purpurConfig.coralDieOutsideWater) return true; // Purpur - Config to not let coral die
-+        BlockState state = level.getBlockState(blockPos);
          for (Direction direction : Direction.values()) {
              FluidState fluidState = level.getFluidState(blockPos.relative(direction));
--            if (fluidState.is(FluidTags.WATER)) {
-+            if (state.canBeHydrated(level, blockPos, fluidState, blockPos.relative(direction))) {
-                 return true;
-             }
-         }
+             if (fluidState.is(FluidTags.WATER)) {

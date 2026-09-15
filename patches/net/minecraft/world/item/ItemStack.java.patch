@@ -172,7 +172,7 @@
 -        if (newAmount != 0) {
 +        // CraftBukkit start
 +        if (player instanceof ServerPlayer serverplayer) {
-+            PlayerItemDamageEvent event = new PlayerItemDamageEvent(serverplayer.getBukkitEntity(), CraftItemStack.asCraftMirror(this), newAmount);
++            PlayerItemDamageEvent event = new PlayerItemDamageEvent(serverplayer.getBukkitEntity(), CraftItemStack.asBukkitMirror(this), newAmount);
 +            event.getPlayer().getServer().getPluginManager().callEvent(event);
 +
 +            if (newAmount != event.getDamage() || event.isCancelled()) {
@@ -249,7 +249,7 @@
 +            if (newDamage - this.getDamageValue() > 0) {
 +                org.bukkit.event.player.PlayerItemDamageEvent event = new org.bukkit.event.player.PlayerItemDamageEvent(
 +                        serverPlayer.getBukkitEntity(),
-+                        org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(this),
++                        org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(this),
 +                        newDamage - this.getDamageValue(),
 +                        amount
 +                );
@@ -359,32 +359,6 @@
      public <T> @Nullable T set(DataComponentType<T> type, @Nullable T value) {
          return this.components.set(type, value);
      }
-@@ -806,6 +_,25 @@
-         this.components.setAll(components);
-     }
- 
-+    // Paper start - (this is just a good no conflict location)
-+    public org.bukkit.inventory.ItemStack asBukkitMirror() {
-+        return CraftItemStack.asCraftMirror(this);
-+    }
-+    public org.bukkit.inventory.ItemStack asBukkitCopy() {
-+        return CraftItemStack.asCraftMirror(this.copy());
-+    }
-+    public static ItemStack fromBukkitCopy(org.bukkit.inventory.ItemStack itemstack) {
-+        return CraftItemStack.asNMSCopy(itemstack);
-+    }
-+    private CraftItemStack bukkitStack;
-+    public org.bukkit.inventory.ItemStack getBukkitStack() {
-+        if (bukkitStack == null || bukkitStack.handle != this) {
-+            bukkitStack = CraftItemStack.asCraftMirror(this);
-+        }
-+        return bukkitStack;
-+    }
-+    // Paper end
-+
-     public Component getHoverName() {
-         Component customName = this.getCustomName();
-         return customName != null ? customName : this.getItemName();
 @@ -833,7 +_,7 @@
      }
  
@@ -451,7 +425,7 @@
      private void addAttributeTooltips(Consumer<Component> consumer, TooltipDisplay display, @Nullable Player player) {
          if (display.shows(DataComponents.ATTRIBUTE_MODIFIERS)) {
              for (EquipmentSlotGroup slot : EquipmentSlotGroup.values()) {
-@@ -1009,22 +_,65 @@
+@@ -1009,22 +_,64 @@
          return !this.getOrDefault(DataComponents.ENCHANTMENTS, ItemEnchantments.EMPTY).isEmpty();
      }
  
@@ -504,7 +478,6 @@
 +    // CraftBukkit start
 +    @Deprecated
 +    public void setItem(Item item) {
-+        this.bukkitStack = null;
 +        this.item = item.builtInRegistryHolder();
 +        // Paper start - change base component prototype
 +        final DataComponentPatch patch = this.getComponentsPatch();

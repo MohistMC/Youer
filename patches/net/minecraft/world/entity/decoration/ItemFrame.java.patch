@@ -73,9 +73,9 @@
 +                // CraftBukkit end
 +                // Paper start - Add PlayerItemFrameChangeEvent
 +                if (source.getEntity() instanceof Player player) {
-+                    var event = new io.papermc.paper.event.player.PlayerItemFrameChangeEvent((org.bukkit.entity.Player) player.getBukkitEntity(), (org.bukkit.entity.ItemFrame) this.getBukkitEntity(), this.getItem().asBukkitCopy(), io.papermc.paper.event.player.PlayerItemFrameChangeEvent.ItemFrameChangeAction.REMOVE);
++                    var event = new io.papermc.paper.event.player.PlayerItemFrameChangeEvent((org.bukkit.entity.Player) player.getBukkitEntity(), (org.bukkit.entity.ItemFrame) this.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(this.getItem()), io.papermc.paper.event.player.PlayerItemFrameChangeEvent.ItemFrameChangeAction.REMOVE);
 +                    if (!event.callEvent()) return true; // return true here because you aren't cancelling the damage, just the change
-+                    this.setItem(ItemStack.fromBukkitCopy(event.getItemStack()), false);
++                    this.setItem(org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItemStack()), false);
 +                }
 +                // Paper end - Add PlayerItemFrameChangeEvent
                  this.dropItem(level, source.getEntity(), false);
@@ -152,11 +152,11 @@
  
 -                    this.setItem(itemStack);
 +                    // Paper start - Add PlayerItemFrameChangeEvent
-+                    io.papermc.paper.event.player.PlayerItemFrameChangeEvent event = new io.papermc.paper.event.player.PlayerItemFrameChangeEvent((org.bukkit.entity.Player) player.getBukkitEntity(), (org.bukkit.entity.ItemFrame) this.getBukkitEntity(), itemStack.asBukkitCopy(), io.papermc.paper.event.player.PlayerItemFrameChangeEvent.ItemFrameChangeAction.PLACE);
++                    io.papermc.paper.event.player.PlayerItemFrameChangeEvent event = new io.papermc.paper.event.player.PlayerItemFrameChangeEvent((org.bukkit.entity.Player) player.getBukkitEntity(), (org.bukkit.entity.ItemFrame) this.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(itemStack), io.papermc.paper.event.player.PlayerItemFrameChangeEvent.ItemFrameChangeAction.PLACE);
 +                    if (!event.callEvent()) {
 +                        return InteractionResult.FAIL;
 +                    }
-+                    this.setItem(ItemStack.fromBukkitCopy(event.getItemStack()));
++                    this.setItem(org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItemStack()));
 +                    // Paper end - Add PlayerItemFrameChangeEvent
                      this.gameEvent(GameEvent.BLOCK_CHANGE, player);
                      itemStack.consume(1, player);
@@ -166,11 +166,11 @@
                  }
              } else {
 +                // Paper start - Add PlayerItemFrameChangeEvent
-+                io.papermc.paper.event.player.PlayerItemFrameChangeEvent event = new io.papermc.paper.event.player.PlayerItemFrameChangeEvent((org.bukkit.entity.Player) player.getBukkitEntity(), (org.bukkit.entity.ItemFrame) this.getBukkitEntity(), this.getItem().asBukkitCopy(), io.papermc.paper.event.player.PlayerItemFrameChangeEvent.ItemFrameChangeAction.ROTATE);
++                io.papermc.paper.event.player.PlayerItemFrameChangeEvent event = new io.papermc.paper.event.player.PlayerItemFrameChangeEvent((org.bukkit.entity.Player) player.getBukkitEntity(), (org.bukkit.entity.ItemFrame) this.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(this.getItem()), io.papermc.paper.event.player.PlayerItemFrameChangeEvent.ItemFrameChangeAction.ROTATE);
 +                if (!event.callEvent()) {
 +                    return InteractionResult.FAIL;
 +                }
-+                setItem(ItemStack.fromBukkitCopy(event.getItemStack()), false, false);
++                setItem(org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getItemStack()), false, false);
 +                // Paper end - Add PlayerItemFrameChangeEvent
                  this.playSound(this.getRotateItemSound(), 1.0F, 1.0F);
                  this.setRotation(this.getRotation() + 1);

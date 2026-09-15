@@ -1,13 +1,5 @@
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -11,7 +_,6 @@
- import net.minecraft.network.protocol.Packet;
- import net.minecraft.network.protocol.game.ClientGamePacketListener;
- import net.minecraft.network.protocol.game.ClientboundAddEntityPacket;
--import net.minecraft.network.protocol.game.ClientboundAddTransientBlockPacket;
- import net.minecraft.network.protocol.game.ClientboundBlockUpdatePacket;
- import net.minecraft.network.syncher.EntityDataAccessor;
- import net.minecraft.network.syncher.EntityDataSerializers;
 @@ -53,6 +_,8 @@
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.HitResult;
@@ -81,7 +73,7 @@
                  BlockPos pos = this.blockPosition();
                  boolean isConcrete = this.blockState.getBlock() instanceof ConcretePowderBlock;
 -                boolean isStuckInWater = isConcrete && this.level().getFluidState(pos).is(FluidTags.WATER);
-+                boolean isStuckInWater = isConcrete && this.blockState.canBeHydrated(this.level(), pos, this.level().getFluidState(pos), pos);
++                boolean isStuckInWater = isConcrete && this.blockState.canBeHydrated(this.level(), pos, this.level().getFluidState(pos));
                  double moveVec = this.getDeltaMovement().lengthSqr();
                  if (isConcrete && moveVec > 1.0) {
                      BlockHitResult clip = this.level()
@@ -90,7 +82,7 @@
                              )
                          );
 -                    if (clip.getType() != HitResult.Type.MISS && this.level().getFluidState(clip.getBlockPos()).is(FluidTags.WATER)) {
-+                    if (clip.getType() != HitResult.Type.MISS && this.blockState.canBeHydrated(this.level(), pos, this.level().getFluidState(clip.getBlockPos()), clip.getBlockPos())) {
++                    if (clip.getType() != HitResult.Type.MISS && this.blockState.canBeHydrated(this.level(), pos, this.level().getFluidState(clip.getBlockPos()))) {
                          pos = clip.getBlockPos();
                          isStuckInWater = true;
                      }
@@ -108,24 +100,23 @@
                      }
                  } else {
                      BlockState currentState = this.level().getBlockState(pos);
-@@ -198,14 +_,17 @@
+@@ -198,6 +_,12 @@
                                      this.blockState = this.blockState.setValue(BlockStateProperties.WATERLOGGED, true);
                                  }
  
--                                if (this.level().setBlockAndUpdate(pos, this.blockState)) {
 +                                // CraftBukkit start
 +                                if (!CraftEventFactory.callEntityChangeBlockEvent(this, pos, this.blockState)) {
 +                                    this.discard(EntityRemoveEvent.Cause.DESPAWN); // SPIGOT-6586 called before the event in previous versions
 +                                    return;
 +                                }
 +                                // CraftBukkit end
-+                                if (this.level().setBlock(pos, this.blockState, 3)) {
+                                 if (this.level().setBlockAndUpdate(pos, this.blockState)) {
                                      serverLevel.getChunkSource()
                                          .chunkMap
-                                         .sendToTrackingPlayers(this, new ClientboundBlockUpdatePacket(pos, this.level().getBlockState(pos)));
--                                    serverLevel.getChunkSource()
--                                        .chunkMap
--                                        .sendToTrackingPlayers(this, new ClientboundAddTransientBlockPacket(pos, this.level().getBlockState(pos)));
+@@ -205,7 +_,7 @@
+                                     serverLevel.getChunkSource()
+                                         .chunkMap
+                                         .sendToTrackingPlayers(this, new ClientboundAddTransientBlockPacket(pos, this.level().getBlockState(pos)));
 -                                    this.discard();
 +                                    this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
                                      if (block instanceof Fallable fallable) {

@@ -77,7 +77,7 @@
  
              this.hasPreviouslyKilledDragon = true;
              this.dragonKilled = true;
-@@ -427,26 +_,39 @@
+@@ -427,14 +_,26 @@
          this.setDirty();
      }
  
@@ -105,21 +105,7 @@
      }
  
      public void spawnNewGateway(BlockPos pos) {
-         this.level.levelEvent(3000, pos, 0);
-         this.level
-             .registryAccess()
--            .lookup(Registries.FEATURE)
-+            .lookup(Registries.CONFIGURED_FEATURE)
-             .flatMap(registry -> registry.get(EndFeatures.END_GATEWAY_DELAYED))
-             .ifPresent(endGateway -> endGateway.value().place(this.level, this.level.getChunkSource().getGenerator(), RandomSource.create(), pos));
-     }
- 
-     public void spawnExitPortal(boolean activated) {
-+        EndPodiumFeature feature = new EndPodiumFeature(activated);
-         if (this.exitPortalLocation == null) {
-             this.exitPortalLocation = this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, getPodiumLocation(this.origin)).below();
- 
-@@ -457,9 +_,14 @@
+@@ -457,6 +_,12 @@
              this.exitPortalLocation = this.exitPortalLocation.atY(Math.max(this.level.getMinY() + 1, this.exitPortalLocation.getY()));
              this.setDirty();
          }
@@ -130,12 +116,8 @@
 +        }
 +        // Paper end - Prevent "softlocked" exit portal generation
  
--        Holder.Reference<Feature> feature = this.level.registryAccess().getOrThrow(activated ? EndFeatures.END_PODIUM_ACTIVE : EndFeatures.END_PODIUM_INACTIVE);
--        if (feature.value().place(this.level, this.level.getChunkSource().getGenerator(), RandomSource.create(), this.exitPortalLocation)) {
-+        if (feature.place(FeatureConfiguration.NONE, this.level, this.level.getChunkSource().getGenerator(), RandomSource.create(), this.exitPortalLocation)) {
-             int chunkRadius = Mth.positiveCeilDiv(4, 16);
-             this.level.getChunkSource().chunkMap.waitForLightBeforeSending(ChunkPos.containing(this.exitPortalLocation), chunkRadius);
-         }
+         Holder.Reference<Feature> feature = this.level.registryAccess().getOrThrow(activated ? EndFeatures.END_PODIUM_ACTIVE : EndFeatures.END_PODIUM_INACTIVE);
+         if (feature.value().place(this.level, this.level.getChunkSource().getGenerator(), RandomSource.create(), this.exitPortalLocation)) {
 @@ -475,6 +_,7 @@
              dragon.snapTo(this.origin.getX(), 128 + this.origin.getY(), this.origin.getZ(), this.level.getRandom().nextFloat() * 360.0F, 0.0F);
              this.level.addFreshEntity(dragon);

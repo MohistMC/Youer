@@ -18,7 +18,7 @@ public record MohistSpecialIngredient(Ingredient ingredient) implements RecipeCh
     @Override
     public ItemStack getItemStack() {
         var items = ingredient.items().findFirst();
-        return items.isPresent() ? CraftItemStack.asCraftMirror(items.get().value().getDefaultInstance()) : new ItemStack(Material.AIR, 0); // TODO
+        return items.isPresent() ? CraftItemStack.asBukkitMirror(items.get().value().getDefaultInstance()) : new ItemStack(Material.AIR, 0); // TODO
     }
 
     @NotNull

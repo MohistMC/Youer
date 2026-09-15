@@ -1,5 +1,21 @@
 --- a/net/minecraft/world/entity/monster/Enderman.java
 +++ b/net/minecraft/world/entity/monster/Enderman.java
+@@ -124,7 +_,6 @@
+ 
+     @Override
+     public void setTarget(@Nullable LivingEntity target) {
+-        super.setTarget(target);
+         AttributeInstance movementSpeed = this.getAttribute(Attributes.MOVEMENT_SPEED);
+         if (target == null) {
+             this.targetChangeTime = 0;
+@@ -138,6 +_,7 @@
+                 movementSpeed.addTransientModifier(SPEED_MODIFIER_ATTACKING);
+             }
+         }
++        super.setTarget(target); //Forge: Moved down to allow event handlers to write data manager values.
+     }
+ 
+     @Override
 @@ -210,7 +_,7 @@
      }
  
@@ -9,25 +25,13 @@
      }
  
      @Override
-@@ -318,17 +_,17 @@
-     }
- 
-     @Override
--    protected SoundEvent getAmbientSound() {
-+    public SoundEvent getAmbientSound() {
-         return this.isCreepy() ? SoundEvents.ENDERMAN_SCREAM : SoundEvents.ENDERMAN_AMBIENT;
+@@ -323,7 +_,7 @@
      }
  
      @Override
 -    protected SoundEvent getHurtSound(DamageSource source) {
 +    public SoundEvent getHurtSound(DamageSource source) {
          return SoundEvents.ENDERMAN_HURT;
-     }
- 
-     @Override
--    protected SoundEvent getDeathSound() {
-+    public SoundEvent getDeathSound() {
-         return SoundEvents.ENDERMAN_DEATH;
      }
  
 @@ -413,6 +_,16 @@

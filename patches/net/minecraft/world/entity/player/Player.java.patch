@@ -729,6 +729,20 @@
          this.inventoryMenu.removed(this);
          if (this.hasContainerOpen()) {
              this.doCloseContainer();
+@@ -1301,6 +_,13 @@
+     }
+ 
+     public Either<Player.BedSleepingProblem, Unit> startSleepInBed(AbstractBedBlock bedBlock, BlockState bedBlockState, BedRule rule, BlockPos pos) {
++        // CraftBukkit start
++        return this.startSleepInBed(bedBlock, bedBlockState, rule, pos, false);
++    }
++
++    public Either<Player.BedSleepingProblem, Unit> startSleepInBed(AbstractBedBlock bedBlock, BlockState bedBlockState, BedRule rule, BlockPos pos, boolean force // Paper - add force
++    ) {
++        // CraftBukkit end
+         if (!this.startSleeping(pos)) {
+             return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
+         }
 @@ -1310,6 +_,7 @@
      }
  
@@ -989,8 +1003,8 @@
 +        if (!(this instanceof final ServerPlayer serverPlayer)) return true;
 +        final boolean notCancelled = new com.destroystokyo.paper.event.player.PlayerReadyArrowEvent(
 +                serverPlayer.getBukkitEntity(),
-+                org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(bow),
-+                org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemstack)
++                org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(bow),
++                org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(itemstack)
 +        ).callEvent();
 +        if (!notCancelled) cancelled.setValue(true);
 +        return notCancelled;
@@ -1038,7 +1052,7 @@
      }
  
      @Override
-@@ -2022,5 +_,42 @@
+@@ -2022,5 +_,54 @@
          public static final Player.BedSleepingProblem OBSTRUCTED = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.obstructed"));
          public static final Player.BedSleepingProblem OTHER_PROBLEM = new Player.BedSleepingProblem(null);
          public static final Player.BedSleepingProblem NOT_SAFE = new Player.BedSleepingProblem(Component.translatable("block.minecraft.bed.not_safe"));
@@ -1079,5 +1093,17 @@
 +    @Nullable
 +    public Pose getForcedPose() {
 +        return this.forcedPose;
++    }
++
++    @Override
++    public net.minecraft.world.entity.item.@Nullable ItemEntity drop(ItemStack itemStack, boolean thrownFromHand, net.minecraft.util.Prediction prediction) {
++        return net.neoforged.neoforge.common.CommonHooks.onPlayerTossEvent(this, itemStack, thrownFromHand, prediction);
++    }
++
++    /// Neo: internal, expose super implementation for ItemTossEvent
++    @org.jetbrains.annotations.ApiStatus.Internal
++    public net.minecraft.world.entity.item.@Nullable ItemEntity dropWithoutEvent(ItemStack itemStack, boolean thrownFromHand, net.minecraft.util.Prediction prediction) {
++        return super.drop(itemStack, thrownFromHand, prediction);
      }
  }
++

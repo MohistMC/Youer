@@ -130,19 +130,6 @@
      }
  
      protected void setUpSplitCube(AbstractCubeMob cubeMob, int halfSize, float xd, float zd) {
-@@ -232,11 +_,7 @@
-     }
- 
-     protected void dealDamage(LivingEntity target) {
--        if (this.level() instanceof ServerLevel level
--            && this.isAlive()
--            && this.doTeamsAllowDamage(target)
--            && this.isWithinMeleeAttackRange(target)
--            && this.hasLineOfSight(target)) {
-+        if (this.level() instanceof ServerLevel level && this.isAlive() && this.isWithinMeleeAttackRange(target) && this.hasLineOfSight(target)) {
-             DamageSource damageSource = this.damageSources().mobAttack(this);
-             if (target.hurtServer(level, damageSource, this.getAttackDamage())) {
-                 this.playSound(SoundEvents.SLIME_ATTACK, 1.0F, (this.random.nextFloat() - this.random.nextFloat()) * 0.2F + 1.0F);
 @@ -263,11 +_,31 @@
          return this.getType().getDimensions().scale(this.getSize());
      }
@@ -260,7 +247,7 @@
          @Override
          public boolean canUse() {
 -            return this.cubeMob.isInLiquid() && this.cubeMob.getMoveControl() instanceof AbstractCubeMob.CubeMobMoveControl;
-+            return (this.cubeMob.isInWater() || this.cubeMob.isInLava()) && this.cubeMob.getMoveControl() instanceof AbstractCubeMob.CubeMobMoveControl && this.cubeMob.canWander && new com.destroystokyo.paper.event.entity.SlimeSwimEvent((org.bukkit.entity.AbstractCubeMob) this.cubeMob.getBukkitEntity()).callEvent(); // Paper - Slime pathfinder events
++            return this.cubeMob.isInLiquid() && this.cubeMob.getMoveControl() instanceof AbstractCubeMob.CubeMobMoveControl && this.cubeMob.canWander && new com.destroystokyo.paper.event.entity.SlimeSwimEvent((org.bukkit.entity.AbstractCubeMob) this.cubeMob.getBukkitEntity()).callEvent(); // Paper - Slime pathfinder events
          }
  
          @Override
@@ -273,17 +260,15 @@
          }
  
          @Override
-@@ -498,8 +_,8 @@
+@@ -498,7 +_,7 @@
  
          @Override
          public boolean canUse() {
 -            return this.cubeMob.getTarget() == null
--                && (this.cubeMob.onGround() || this.cubeMob.isInLiquid() || this.cubeMob.hasEffect(MobEffects.LEVITATION))
 +            return this.cubeMob.getTarget() == null && this.cubeMob.canWander // Paper - Slime pathfinder events
-+                && (this.cubeMob.onGround() || this.cubeMob.isInWater() || this.cubeMob.isInLava() || this.cubeMob.hasEffect(MobEffects.LEVITATION))
+                 && (this.cubeMob.onGround() || this.cubeMob.isInLiquid() || this.cubeMob.hasEffect(MobEffects.LEVITATION))
                  && this.cubeMob.getMoveControl() instanceof AbstractCubeMob.CubeMobMoveControl;
          }
- 
 @@ -508,6 +_,11 @@
              if (--this.nextRandomizeTime <= 0) {
                  this.nextRandomizeTime = this.adjustedTickDelay(40 + this.cubeMob.getRandom().nextInt(60));
