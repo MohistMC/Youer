@@ -96,6 +96,8 @@ public class MaterialTags {
 
     /**
      * Covers all colors of concrete.
+     *
+     * @deprecated in favour of {@link Tag#CONCRETE}
      */
     @Deprecated(since = "26.2")
     public static final MaterialSetTag CONCRETES = replacedBy(Tag.CONCRETE, "concretes");

@@ -1,5 +1,13 @@
 --- a/net/minecraft/util/Util.java
 +++ b/net/minecraft/util/Util.java
+@@ -29,6 +_,7 @@
+ import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
+ import it.unimi.dsi.fastutil.objects.ReferenceImmutableList;
+ import it.unimi.dsi.fastutil.objects.ReferenceList;
++import java.io.File;
+ import java.io.IOException;
+ import java.lang.management.ManagementFactory;
+ import java.lang.management.ThreadInfo;
 @@ -103,9 +_,25 @@
      private static final int DEFAULT_MAX_THREADS = 255;
      private static final int DEFAULT_SAFE_FILE_OPERATION_RETRIES = 10;
@@ -28,7 +36,7 @@
      private static final DateTimeFormatter FILENAME_DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd_HH.mm.ss", Locale.ROOT);
      public static final int LINEAR_LOOKUP_THRESHOLD = 8;
      private static final Set<String> ALLOWED_UNTRUSTED_LINK_PROTOCOLS = Set.of("http", "https");
-@@ -146,6 +_,8 @@
+@@ -147,6 +_,8 @@
          escaper.addEscape('\\', "\\\\");
      }).build();
      private static Consumer<String> thePauser = msg -> {};
@@ -37,7 +45,7 @@
  
      public static <K, V> Collector<Entry<? extends K, ? extends V>, ?, Map<K, V>> toMap() {
          return Collectors.toMap(Entry::getKey, Entry::getValue);
-@@ -181,7 +_,7 @@
+@@ -182,7 +_,7 @@
      }
  
      public static long getNanos() {
@@ -46,7 +54,7 @@
      }
  
      public static long getEpochMillis() {
-@@ -192,9 +_,10 @@
+@@ -197,9 +_,10 @@
          return FILENAME_DATE_TIME_FORMATTER.format(ZonedDateTime.now());
      }
  
@@ -59,7 +67,7 @@
          if (threads <= 0) {
              executor = MoreExecutors.newDirectExecutorService();
          } else {
-@@ -209,7 +_,7 @@
+@@ -214,7 +_,7 @@
                      }
  
                      @Override
@@ -68,7 +76,7 @@
                          if (exception != null) {
                              Util.LOGGER.warn("{} died", this.getName(), exception);
                          } else {
-@@ -219,16 +_,30 @@
+@@ -224,16 +_,30 @@
                          super.onTermination(exception);
                      }
                  };
@@ -101,7 +109,7 @@
      }
  
      private static int getMaxThreads() {
-@@ -278,6 +_,21 @@
+@@ -283,6 +_,21 @@
          }));
      }
  
@@ -123,7 +131,7 @@
      public static void throwAsRuntime(Throwable throwable) {
          throw throwable instanceof RuntimeException runtimeException ? runtimeException : new RuntimeException(throwable);
      }
-@@ -313,8 +_,8 @@
+@@ -318,8 +_,8 @@
                  .getSchema(DataFixUtils.makeKey(SharedConstants.getCurrentVersion().dataVersion().version()))
                  .getChoiceType(reference, name);
          } catch (IllegalArgumentException e) {
@@ -134,10 +142,10 @@
                  throw e;
              }
          }
-@@ -735,20 +_,20 @@
+@@ -744,20 +_,20 @@
  
      public static void logAndPauseIfInIde(String message) {
-         LOGGER.error(message);
+         LOGGER.error("{}", message);
 -        if (SharedConstants.IS_RUNNING_IN_IDE) {
 +        if (SharedConstants.IS_RUNNING_WITH_JDWP) {
              doPause(message);
@@ -145,7 +153,7 @@
      }
  
      public static void logAndPauseIfInIde(String message, Throwable throwable) {
-         LOGGER.error(message, throwable);
+         LOGGER.error("{}", message, throwable);
 -        if (SharedConstants.IS_RUNNING_IN_IDE) {
 +        if (SharedConstants.IS_RUNNING_WITH_JDWP) {
              doPause(message);

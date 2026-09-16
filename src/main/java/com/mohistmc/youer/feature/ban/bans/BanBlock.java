@@ -5,6 +5,7 @@ import com.mohistmc.youer.feature.ban.BanConfig;
 import com.mohistmc.youer.feature.ban.BanType;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.inventory.ItemStack;
 
 /**
@@ -19,7 +20,7 @@ public class BanBlock {
         var list = BanConfig.getListByType(BanType.BLOCK);
         if (list.isEmpty()) return false;
         Block block = p_46606_.getBlock();
-        ItemStack bukkitBlock = block.asItem().getDefaultInstance().getBukkitStack();
+        ItemStack bukkitBlock = CraftItemStack.asBukkitCopy(block.asItem().getDefaultInstance());
         return list.contains(bukkitBlock.getType().key().asString());
     }
 }

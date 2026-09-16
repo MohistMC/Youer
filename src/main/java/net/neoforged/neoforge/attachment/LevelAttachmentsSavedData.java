@@ -7,6 +7,7 @@ package net.neoforged.neoforge.attachment;
 
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.DataResult;
+import java.util.Objects;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.level.ServerLevel;
@@ -29,46 +30,37 @@ public class LevelAttachmentsSavedData extends SavedData {
     public static void init(ServerLevel level) {
         // Querying the attachment a single time is enough to initialize it,
         // and make sure it gets saved when the level is saved.
-        var data = level.getDataStorage().computeIfAbsent(TYPE);
-        if (data.level == null) {
-            data.level = level;
-        }
+        level.getDataStorage().computeIfAbsent(TYPE);
     }
 
     private static Codec<LevelAttachmentsSavedData> makeCodec(@Nullable ServerLevel level) {
         return CompoundTag.CODEC.flatXmap(tag -> {
             var data = new LevelAttachmentsSavedData(level);
-            if (level != null) {
-                ProblemReporter.Collector reporter = new ProblemReporter.Collector();
-                // Note: Side effect here, keep an eye on this
-                data.level.deserializeAttachments(TagValueInput.create(reporter, data.level.registryAccess(), tag));
-                if (!reporter.isEmpty()) {
-                    return DataResult.error(() -> "Deserialisation error in level attachments: " + reporter.getReport());
-                }
-            }
-            return DataResult.success(data);
+            ProblemReporter.Collector reporter = new ProblemReporter.Collector();
+            // Note: Side effect here, keep an eye on this
+            data.level.deserializeAttachments(TagValueInput.create(reporter, data.level.registryAccess(), tag));
+            return !reporter.isEmpty()
+                    ? DataResult.error(() -> "Deserialisation error in level attachments: " + reporter.getReport())
+                    : DataResult.success(data);
         }, data -> {
-            if (data.level != null) {
-                ProblemReporter.Collector reporter = new ProblemReporter.Collector();
-                var tag = TagValueOutput.createWithContext(reporter, data.level.registryAccess());
-                data.level.serializeAttachments(tag);
-                if (!reporter.isEmpty()) {
-                    return DataResult.error(() -> "Serialisation error in level attachments: " + reporter.getReport());
-                }
-                return DataResult.success(tag.buildResult());
-            }
-            return DataResult.success(new CompoundTag());
+            ProblemReporter.Collector reporter = new ProblemReporter.Collector();
+            var tag = TagValueOutput.createWithContext(reporter, data.level.registryAccess());
+            data.level.serializeAttachments(tag);
+            return !reporter.isEmpty()
+                    ? DataResult.error(() -> "Serialisation error in level attachments: " + reporter.getReport())
+                    : DataResult.success(tag.buildResult());
         });
     }
 
-    private @Nullable ServerLevel level;
+    private final ServerLevel level;
 
     public LevelAttachmentsSavedData(@Nullable ServerLevel level) {
-        this.level = level;
+        this.level = Objects.requireNonNull(level, "level");
     }
 
     @Override
     public boolean isDirty() {
-        return this.level != null;
+        // Always re-save
+        return true;
     }
 }

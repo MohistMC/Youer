@@ -1,20 +1,23 @@
 --- a/net/minecraft/world/level/block/entity/BeaconBlockEntity.java
 +++ b/net/minecraft/world/level/block/entity/BeaconBlockEntity.java
-@@ -39,14 +_,12 @@
- import net.minecraft.world.inventory.ContainerData;
- import net.minecraft.world.inventory.ContainerLevelAccess;
- import net.minecraft.world.level.Level;
--import net.minecraft.world.level.block.BeaconBeamBlock;
- import net.minecraft.world.level.block.Blocks;
- import net.minecraft.world.level.block.state.BlockState;
- import net.minecraft.world.level.levelgen.Heightmap;
- import net.minecraft.world.level.storage.ValueInput;
+@@ -47,6 +_,8 @@
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.AABB;
--import net.minecraft.world.phys.Vec3;
+ import net.minecraft.world.phys.Vec3;
++import org.bukkit.craftbukkit.potion.CraftPotionUtil;
++import org.bukkit.potion.PotionEffect;
  import org.jspecify.annotations.Nullable;
  
  public class BeaconBlockEntity extends BlockEntity implements MenuProvider, Nameable, BeaconBeamOwner {
+@@ -73,7 +_,7 @@
+     private int lastCheckY;
+     public @Nullable Holder<MobEffect> primaryPower;
+     public @Nullable Holder<MobEffect> secondaryPower;
+-    private @Nullable Component name;
++    public @Nullable Component name;
+     public LockCode lockKey = LockCode.NO_LOCK;
+     private final ContainerData dataAccess = new ContainerData() {
+         @Override
 @@ -109,6 +_,61 @@
              return 3;
          }
@@ -284,20 +287,12 @@
      }
  
      public void setCustomName(@Nullable Component name) {
-@@ -343,12 +_,12 @@
+@@ -343,7 +_,7 @@
  
      @Override
      public @Nullable AbstractContainerMenu createMenu(int containerId, Inventory inventory, Player player) {
 -        if (this.lockKey.canUnlock(player)) {
 +        if (org.bukkit.craftbukkit.event.CraftEventFactory.callBlockLockCheckEvent(this, this.lockKey, this.getDisplayName(), player)) { // Paper - Call BlockLockCheckEvent
              return new BeaconMenu(containerId, inventory, this.dataAccess, ContainerLevelAccess.create(this.level, this.getBlockPos()));
-+        } else {
-+            BaseContainerBlockEntity.sendChestLockedNotifications(this.getBlockPos().getCenter(), player, this.getDisplayName());
-+            return null;
          }
--
--        BaseContainerBlockEntity.sendChestLockedNotifications(Vec3.atCenterOf(this.getBlockPos()), player, this.getDisplayName());
--        return null;
-     }
  
-     @Override

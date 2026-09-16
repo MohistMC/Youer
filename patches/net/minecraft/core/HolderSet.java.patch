@@ -9,10 +9,12 @@
                  throw new UnsupportedOperationException("Tag " + this.key() + " can't be dereferenced during construction");
              }
          };
-@@ -166,6 +_,7 @@
+@@ -166,6 +_,9 @@
          private final HolderOwner<T> owner;
          private final TagKey<T> key;
          private @Nullable List<Holder<T>> contents;
++        // Neo: Keep a list of invalidation callbacks so they can be run when tags rebind
++        private final List<Runnable> invalidationCallbacks = new java.util.ArrayList<>();
 +        private @Nullable Set<io.papermc.paper.registry.TypedKey<?>> typedKeys; // Paper - cache typed key set for constant contains calls
  
          Named(HolderOwner<T> owner, TagKey<T> key) {
@@ -30,14 +32,14 @@
          public TagKey<T> key() {
 @@ -218,5 +_,25 @@
          public boolean canSerializeIn(HolderOwner<T> context) {
-             return this.owner.canSerializeIn(context);
+             return context.canSerialize(this.owner);
          }
-+        // FORGE: Keep a list of invalidation callbacks so they can be run when tags rebind
-+        private List<Runnable> invalidationCallbacks = new java.util.ArrayList<>();
++
 +        @Override
 +        public void addInvalidationListener(Runnable runnable) {
 +            invalidationCallbacks.add(runnable);
 +        }
++
 +        @Override
 +        public boolean isImmediatelyResolvable() {
 +            return false;

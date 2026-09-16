@@ -1,22 +1,14 @@
 --- a/net/minecraft/world/entity/monster/Shulker.java
 +++ b/net/minecraft/world/entity/monster/Shulker.java
-@@ -1,6 +_,7 @@
- package net.minecraft.world.entity.monster;
- 
- import java.util.EnumSet;
-+import java.util.Objects;
- import java.util.Optional;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Direction;
-@@ -19,6 +_,7 @@
- import net.minecraft.sounds.SoundSource;
- import net.minecraft.tags.DamageTypeTags;
- import net.minecraft.util.Mth;
-+import net.minecraft.util.Util;
- import net.minecraft.world.Difficulty;
- import net.minecraft.world.DifficultyInstance;
- import net.minecraft.world.damagesource.DamageSource;
-@@ -80,7 +_,7 @@
+@@ -75,14 +_,14 @@
+     private static final int TELEPORT_STEPS = 6;
+     private static final byte NO_COLOR = 16;
+     private static final byte DEFAULT_COLOR = 16;
+-    public static final int MAX_TELEPORT_DISTANCE = 8;
++    private static final int MAX_TELEPORT_DISTANCE = 8;
+     private static final int OTHER_SHULKER_SCAN_RADIUS = 8;
+     private static final int OTHER_SHULKER_LIMIT = 5;
+     private static final float PEEK_PER_TICK = 0.05F;
      private static final byte DEFAULT_PEEK = 0;
      private static final Direction DEFAULT_ATTACH_FACE = Direction.DOWN;
      private static final Vector3fc FORWARD = Direction.SOUTH.getUnitVec3f();
@@ -25,7 +17,7 @@
      private float currentPeekAmountO;
      private float currentPeekAmount;
      private @Nullable BlockPos clientOldAttachPosition;
-@@ -93,12 +_,69 @@
+@@ -95,12 +_,69 @@
          this.lookControl = new Shulker.ShulkerLookControl(this);
      }
  
@@ -95,7 +87,7 @@
          this.targetSelector.addGoal(1, new HurtByTargetGoal(this, this.getClass()).setAlertOthers());
          this.targetSelector.addGoal(2, new Shulker.ShulkerNearestAttackGoal(this));
          this.targetSelector.addGoal(3, new Shulker.ShulkerDefenseAttackGoal(this));
-@@ -288,8 +_,10 @@
+@@ -290,8 +_,10 @@
      }
  
      @Override
@@ -108,28 +100,21 @@
          if (this.level().isClientSide()) {
              this.clientOldAttachPosition = this.blockPosition();
          }
-@@ -401,6 +_,20 @@
-                     && this.level().noCollision(this, new AABB(target).deflate(1.0E-6))) {
+@@ -403,6 +_,13 @@
+                     && level.getWorldBorder().isWithinBounds(target)
+                     && level.noCollision(this, new AABB(target).deflate(1.0E-6))) {
                      Direction attachmentDirection = this.findAttachableSurface(target);
-                     if (attachmentDirection != null) {
-+                        // CraftBukkit start
-+                        org.bukkit.event.entity.EntityTeleportEvent teleportEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTeleportEvent(this, target.getX(), target.getY(), target.getZ());
-+                        if (teleportEvent.isCancelled() || teleportEvent.getTo() == null) { // Paper
-+                            return false;
-+                        } else {
-+                            target = org.bukkit.craftbukkit.util.CraftLocation.toBlockPos(teleportEvent.getTo());
-+                        }
-+                        // CraftBukkit end
++                    if (attachmentDirection != null) {
 +                        net.neoforged.neoforge.event.entity.EntityTeleportEvent.EnderEntity event = net.neoforged.neoforge.event.EventHooks.onEnderTeleport(this, target.getX(), target.getY(), target.getZ());
-+                        if (event.isCanceled()) attachmentDirection = null;
++                        if (event.isCanceled()) {
++                            attachmentDirection = null;
++                        }
 +                        target = BlockPos.containing(event.getTargetX(), event.getTargetY(), event.getTargetZ());
 +                    }
-+
-+                    if (attachmentDirection != null) {
+                     if (attachmentDirection != null
+                         && !this.level().getBlockState(target.relative(attachmentDirection)).is(BlockTags.SHULKER_DOES_NOT_TELEPORT_TO)) {
                          this.unRide();
-                         this.setAttachFace(attachmentDirection);
-                         this.playSound(SoundEvents.SHULKER_TELEPORT, 1.0F, 1.0F);
-@@ -456,15 +_,30 @@
+@@ -462,15 +_,30 @@
      private void hitByShulkerBullet() {
          Vec3 oldPosition = this.position();
          AABB oldAabb = this.getBoundingBox();
@@ -165,7 +150,7 @@
                  }
              }
          }
-@@ -562,7 +_,7 @@
+@@ -568,7 +_,7 @@
      }
  
      public Optional<DyeColor> getVariant() {

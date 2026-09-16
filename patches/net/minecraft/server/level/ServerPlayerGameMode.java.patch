@@ -8,15 +8,16 @@
  import com.mojang.logging.LogUtils;
  import java.util.List;
  import java.util.Objects;
-@@ -22,12 +_,16 @@
+@@ -24,6 +_,8 @@
  import net.minecraft.world.level.GameType;
  import net.minecraft.world.level.Level;
  import net.minecraft.world.level.block.Block;
 +import net.minecraft.world.level.block.Blocks;
 +import net.minecraft.world.level.block.CakeBlock;
  import net.minecraft.world.level.block.GameMasterBlock;
+ import net.minecraft.world.level.block.Portal;
  import net.minecraft.world.level.block.entity.BlockEntity;
- import net.minecraft.world.level.block.state.BlockState;
+@@ -32,13 +_,15 @@
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.phys.shapes.VoxelShape;
@@ -25,12 +26,15 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -42,21 +_,41 @@
-     private int destroyProgressStart;
-     private BlockPos destroyPos = BlockPos.ZERO;
-     private int gameTicks;
--    private boolean hasDelayedDestroy;
-+    public boolean hasDelayedDestroy;
+ public class ServerPlayerGameMode {
+     private static final double FLIGHT_DISABLE_RANGE = 1.0;
+     private static final Logger LOGGER = LogUtils.getLogger();
+-    protected ServerLevel level;
++    public ServerLevel level;
+     protected final ServerPlayer player;
+     private GameType gameModeForPlayer = GameType.DEFAULT_MODE;
+     private @Nullable GameType previousGameModeForPlayer;
+@@ -51,17 +_,37 @@
      private BlockPos delayedDestroyPos = BlockPos.ZERO;
      private int delayedTickStart;
      private int lastSentState = -1;
@@ -71,7 +75,7 @@
          Abilities abilities = this.player.getAbilities();
          this.setGameModeForPlayer(gameModeForPlayer, this.gameModeForPlayer);
          if (abilities.flying && gameModeForPlayer != GameType.SPECTATOR && this.isInRangeOfGround()) {
-@@ -67,20 +_,23 @@
+@@ -72,20 +_,23 @@
          this.level
              .getServer()
              .getPlayerList()
@@ -97,7 +101,7 @@
      }
  
      private boolean isInRangeOfGround() {
-@@ -105,10 +_,11 @@
+@@ -110,10 +_,11 @@
      }
  
      public void tick() {
@@ -112,7 +116,7 @@
                  this.hasDelayedDestroy = false;
              } else {
                  float destroyProgress = this.incrementDestroyProgress(blockState, this.delayedDestroyPos, this.delayedTickStart);
-@@ -118,7 +_,13 @@
+@@ -123,27 +_,25 @@
                  }
              }
          } else if (this.isDestroyingBlock) {
@@ -127,7 +131,30 @@
              if (blockState.isAir()) {
                  this.level.destroyBlockProgress(this.player.getId(), this.destroyPos, -1);
                  this.lastSentState = -1;
-@@ -148,7 +_,12 @@
+                 this.isDestroyingBlock = false;
+             } else {
+-                int ticksSpentDestroying = this.gameTicks - this.destroyProgressStart;
+-                int event;
+-                if (ticksSpentDestroying % 4 == 0) {
+-                    event = 2020;
+-                } else {
+-                    event = 2019;
+-                }
+-
+-                this.incrementDestroyProgress(blockState, this.destroyPos, ticksSpentDestroying);
+-                this.level.levelEvent(null, event, this.destroyPos, this.destroyDirection.ordinal());
++                this.incrementDestroyProgress(blockState, this.destroyPos, this.destroyProgressStart);
+             }
+         }
+     }
+ 
+-    private float incrementDestroyProgress(BlockState blockState, BlockPos delayedDestroyPos, int ticksSpentDestroying) {
++    private float incrementDestroyProgress(BlockState blockState, BlockPos delayedDestroyPos, int destroyStartTick) {
++        int ticksSpentDestroying = this.gameTicks - destroyStartTick;
+         float destroyProgress = blockState.getDestroyProgress(this.player, this.player.level(), delayedDestroyPos) * (ticksSpentDestroying + 1);
+         int state = (int)(destroyProgress * 10.0F);
+         if (state != this.lastSentState) {
+@@ -161,6 +_,10 @@
      }
  
      public void handleBlockBreakAction(BlockPos pos, ServerboundPlayerActionPacket.Action action, Direction direction, int maxY, int sequence) {
@@ -136,11 +163,9 @@
 +            return;
 +        }
          if (!this.player.isWithinBlockInteractionRange(pos, 1.0)) {
-+            if (true) return; // Paper - Don't allow digging into unloaded chunks; Don't notify if unreasonably far away
-             this.debugLogging(pos, false, sequence, "too far");
-         } else if (pos.getY() > maxY) {
-             this.player.connection.send(new ClientboundBlockUpdatePacket(pos, this.level.getBlockState(pos)));
-@@ -162,16 +_,35 @@
+             if (this.isDestroyingBlock && action == ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK) {
+                 this.abortDestroyBlock(pos, sequence);
+@@ -179,16 +_,35 @@
                  }
  
                  if (!this.level.mayInteract(this.player, pos)) {
@@ -178,7 +203,7 @@
                  if (this.player.blockActionRestricted(this.level, pos, this.gameModeForPlayer)) {
                      this.player.connection.send(new ClientboundBlockUpdatePacket(pos, this.level.getBlockState(pos)));
                      this.debugLogging(pos, false, sequence, "block action restricted");
-@@ -181,7 +_,7 @@
+@@ -198,7 +_,7 @@
                  this.destroyProgressStart = this.gameTicks;
                  float progress = 1.0F;
                  BlockState blockState = this.level.getBlockState(pos);
@@ -187,7 +212,7 @@
                      EnchantmentHelper.onHitBlock(
                          this.level,
                          this.player.getMainHandItem(),
-@@ -192,10 +_,28 @@
+@@ -209,10 +_,28 @@
                          blockState,
                          item -> this.player.onEquippedItemBroken(item, EquipmentSlot.MAINHAND)
                      );
@@ -216,37 +241,7 @@
                  if (!blockState.isAir() && progress >= 1.0F) {
                      this.destroyAndAck(pos, sequence, "insta mine");
                  } else {
-@@ -236,16 +_,25 @@
-                 this.debugLogging(pos, true, sequence, "stopped destroying");
-             } else if (action == ServerboundPlayerActionPacket.Action.ABORT_DESTROY_BLOCK) {
-                 this.isDestroyingBlock = false;
--                if (!Objects.equals(this.destroyPos, pos)) {
--                    LOGGER.warn("Mismatch in destroy block pos: {} {}", this.destroyPos, pos);
--                    this.level.destroyBlockProgress(this.player.getId(), this.destroyPos, -1);
--                    this.debugLogging(pos, true, sequence, "aborted mismatched destroying");
-+                // Paper start - Don't allow digging into unloaded chunks
-+                if (!Objects.equals(this.destroyPos, pos) && !BlockPos.ZERO.equals(this.destroyPos)) { // Paper
-+                    ServerPlayerGameMode.LOGGER.debug("Mismatch in destroy block pos: {} {}", this.destroyPos, pos); // CraftBukkit - SPIGOT-5457 sent by client when interact event cancelled
-+                    BlockState destroyState = this.level.getBlockStateIfLoaded(this.destroyPos); // Don't load unloaded chunks for stale records here
-+                    if (destroyState != null) {
-+                        this.level.destroyBlockProgress(this.player.getId(), this.destroyPos, -1);
-+                        this.debugLogging(pos, true, sequence, "aborted mismatched destroying");
-+                    }
-+                    this.destroyPos = BlockPos.ZERO;
-+                    // Paper end - Don't allow digging into unloaded chunks
-                 }
- 
-                 this.level.destroyBlockProgress(this.player.getId(), pos, -1);
-                 this.debugLogging(pos, true, sequence, "aborted destroying");
-+
-+                org.bukkit.craftbukkit.event.CraftEventFactory.callBlockDamageAbortEvent(this.player, pos, this.player.getInventory().getSelectedItem()); // CraftBukkit
-             }
-         }
-+        this.level.chunkPacketBlockController.onPlayerLeftClickBlock(this.level, pos, action, direction, maxY, sequence); // Paper - Anti-Xray
-     }
- 
-     public void destroyAndAck(BlockPos pos, int sequence, String exitId) {
-@@ -258,8 +_,12 @@
+@@ -282,8 +_,12 @@
      }
  
      public boolean destroyBlock(BlockPos pos) {
@@ -260,7 +255,7 @@
              return false;
          }
  
-@@ -275,28 +_,44 @@
+@@ -299,28 +_,44 @@
          }
  
          BlockState adjustedState = block.playerWillDestroy(this.level, pos, state, this.player);
@@ -314,7 +309,7 @@
      }
  
      public InteractionResult useItem(ServerPlayer player, Level level, ItemStack itemStack, InteractionHand hand) {
-@@ -308,8 +_,12 @@
+@@ -332,8 +_,12 @@
              return InteractionResult.PASS;
          }
  
@@ -327,7 +322,7 @@
          InteractionResult result = itemStack.use(level, player, hand);
          ItemStack resultStack;
          if (result instanceof InteractionResult.Success success) {
-@@ -338,32 +_,75 @@
+@@ -362,48 +_,75 @@
          }
  
          if (!player.isUsingItem()) {
@@ -390,6 +385,22 @@
 -            if (menuProvider != null) {
 -                player.openMenu(menuProvider);
 -                return InteractionResult.CONSUME;
+-            }
+-
+-            if (state.getBlock() instanceof Portal portal) {
+-                ServerLevel serverLevel = player.level();
+-                TeleportTransition teleportTransition = portal.getPortalDestination(serverLevel, player, pos);
+-                if (teleportTransition != null) {
+-                    if (player.getCamera() != player) {
+-                        player.setCamera(player);
+-                    }
+-
+-                    player.teleportToPortalDestination(serverLevel, teleportTransition);
+-                } else {
+-                    player.sendOverlayMessage(Component.translatable("spectator.cannot_teleport").withStyle(ChatFormatting.RED));
+-                }
+-
+-                return InteractionResult.CONSUME;
 +            if (menuProvider != null && player.openMenu(menuProvider).isPresent()) { // Paper - Fix InventoryOpenEvent cancellation
 +                return InteractionResult.SUCCESS;
              } else {
@@ -410,20 +421,39 @@
                  InteractionResult itemUse = state.useItemOn(player.getItemInHand(hand), level, player, hand, hitResult);
                  if (itemUse.consumesAction()) {
                      CriteriaTriggers.ITEM_USED_ON_BLOCK.trigger(player, pos, usedItemStack);
-@@ -379,8 +_,8 @@
+@@ -419,29 +_,28 @@
                  }
              }
  
 -            if (!itemStack.isEmpty() && !player.getCooldowns().isOnCooldown(itemStack)) {
 -                UseOnContext context = new UseOnContext(player, hand, hitResult);
+-                InteractionResult result;
 +            if (event.getUseItem().isTrue() || (!itemStack.isEmpty() && !this.interactResult)) { // add !interactResult SPIGOT-764
 +                if (event.getUseItem().isFalse()) return InteractionResult.PASS;
-                 InteractionResult success;
++                InteractionResult success;
                  if (player.hasInfiniteMaterials()) {
                      int count = itemStack.getCount();
-@@ -396,6 +_,11 @@
+-                    result = itemStack.useOn(context);
++                    success = itemStack.useOn(context);
+                     itemStack.setCount(count);
+                 } else {
+-                    result = itemStack.useOn(context);
+-                    if (result instanceof InteractionResult.Success success) {
+-                        ItemStack resultItemStack = Objects.requireNonNullElseGet(success.heldItemTransformedTo(), () -> player.getItemInHand(hand));
+-                        if (resultItemStack != itemStack) {
+-                            player.setItemInHand(hand, resultItemStack);
+-                        }
+-                    }
++                    success = itemStack.useOn(context);
+                 }
  
-                 return success;
+-                if (result.consumesAction()) {
++                if (success.consumesAction()) {
+                     CriteriaTriggers.ITEM_USED_ON_BLOCK.trigger(player, pos, usedItemStack);
+                 }
+ 
+-                return result;
++                return success;
              } else {
 +                // Paper start - Properly cancel usable items; Cancel only if cancelled + if the interact result is different from default response
 +                if (this.interactResult && this.interactResult != cancelledItem) {
@@ -433,7 +463,7 @@
                  return InteractionResult.PASS;
              }
          }
-@@ -404,4 +_,30 @@
+@@ -450,4 +_,30 @@
      public void setLevel(ServerLevel newLevel) {
          this.level = newLevel;
      }

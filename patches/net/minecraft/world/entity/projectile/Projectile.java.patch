@@ -1,6 +1,22 @@
 --- a/net/minecraft/world/entity/projectile/Projectile.java
 +++ b/net/minecraft/world/entity/projectile/Projectile.java
-@@ -44,6 +_,7 @@
+@@ -25,6 +_,7 @@
+ import net.minecraft.world.entity.player.Player;
+ import net.minecraft.world.entity.projectile.arrow.AbstractArrow;
+ import net.minecraft.world.item.AdventureModePredicate;
++import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.enchantment.EnchantmentHelper;
+ import net.minecraft.world.level.GameType;
+@@ -49,12 +_,14 @@
+     private static final String TAG_LEFT_OWNER = "LeftOwner";
+     private static final String TAG_HAS_BEEN_SHOT = "HasBeenShot";
+     private static final String TAG_CAN_BREAK = "can_break";
+-    public @Nullable EntityReference<Entity> owner;
++    @Nullable
++    public EntityReference<Entity> owner;
+     private @Nullable AdventureModePredicate canBreak;
+     public boolean leftOwner = false;
      private boolean leftOwnerChecked;
      public boolean hasBeenShot = false;
      private @Nullable Entity lastDeflectedBy;
@@ -8,7 +24,7 @@
  
      protected Projectile(EntityType<? extends Projectile> type, Level level) {
          super(type, level);
-@@ -83,6 +_,9 @@
+@@ -113,6 +_,9 @@
      @Override
      protected void readAdditionalSaveData(ValueInput input) {
          this.setOwner(EntityReference.read(input, "Owner"));
@@ -17,8 +33,8 @@
 +        // Paper end - Reset pearls when they stop being ticked; Don't store shooter name for pearls to block enderpearl travel exploit
          this.leftOwner = input.getBooleanOr("LeftOwner", false);
          this.hasBeenShot = input.getBooleanOr("HasBeenShot", false);
-     }
-@@ -155,7 +_,14 @@
+         this.canBreak = input.read("can_break", AdventureModePredicate.CODEC).orElse(null);
+@@ -186,7 +_,14 @@
          float zd = Mth.cos(yRot * (float) (Math.PI / 180.0)) * Mth.cos(xRot * (float) (Math.PI / 180.0));
          this.shoot(xd, yd, zd, pow, uncertainty);
          Vec3 sourceMovement = source.getKnownMovement();
@@ -33,7 +49,16 @@
      }
  
      @Override
-@@ -173,48 +_,126 @@
+@@ -206,19 +_,38 @@
+     public boolean canBreakBlockInAdventureMode(ServerLevel level, BlockInWorld blockInWorld) {
+         Entity owner = this.getOwner();
+         GameType worldGameMode = level.getServer().getDefaultGameType();
+-        return (owner != null || worldGameMode == GameType.ADVENTURE) && !(owner instanceof Player player && player.gameMode() != GameType.ADVENTURE)
+-            ? this.canBreak != null && this.canBreak.test(blockInWorld)
+-            : true;
++        return owner == null && worldGameMode != GameType.ADVENTURE
++                || owner instanceof Player player && player.gameMode() != GameType.ADVENTURE
++                || this.canBreak != null && this.canBreak.test(blockInWorld);
      }
  
      public static <T extends Projectile> T spawnProjectileFromRotation(
@@ -44,32 +69,6 @@
 -            serverLevel,
 -            itemStack,
 -            projectile -> projectile.shootFromRotation(source, source.getXRot(), source.getYRot(), yOffset, pow, uncertainty)
--        );
--    }
--
--    public static <T extends Projectile> T spawnProjectileUsingShoot(
--        Projectile.ProjectileFactory<T> creator,
--        ServerLevel serverLevel,
--        ItemStack itemStack,
--        LivingEntity source,
--        double targetX,
--        double targetY,
--        double targetZ,
--        float pow,
--        float uncertainty
--    ) {
--        return spawnProjectile(
--            creator.create(serverLevel, source, itemStack), serverLevel, itemStack, projectile -> projectile.shoot(targetX, targetY, targetZ, pow, uncertainty)
--        );
--    }
--
--    public static <T extends Projectile> T spawnProjectileUsingShoot(
--        T projectile, ServerLevel serverLevel, ItemStack itemStack, double targetX, double targetY, double targetZ, float pow, float uncertainty
--    ) {
--        return spawnProjectile(projectile, serverLevel, itemStack, i -> projectile.shoot(targetX, targetY, targetZ, pow, uncertainty));
--    }
--
--    public static <T extends Projectile> T spawnProjectile(T projectile, ServerLevel serverLevel, ItemStack itemStack) {
 +            final Projectile.ProjectileFactory<T> creator,
 +            final ServerLevel serverLevel,
 +            final ItemStack itemStack,
@@ -96,26 +95,19 @@
 +                serverLevel,
 +                itemStack,
 +                projectile -> projectile.shootFromRotation(source, source.getXRot(), source.getYRot(), yOffset, pow, uncertainty)
-+        );
-+    }
-+
-+    public static <T extends Projectile> T spawnProjectileUsingShoot(
-+            final Projectile.ProjectileFactory<T> creator,
-+            final ServerLevel serverLevel,
-+            final ItemStack itemStack,
-+            final LivingEntity source,
-+            final double targetX,
-+            final double targetY,
-+            final double targetZ,
-+            final float pow,
-+            final float uncertainty
-+    ) {
-+        return spawnProjectile(
-+                creator.create(serverLevel, source, itemStack), serverLevel, itemStack, projectile -> projectile.shoot(targetX, targetY, targetZ, pow, uncertainty)
-+        );
-+    }
-+
-+    public static <T extends Projectile> T spawnProjectileUsingShoot(
+         );
+     }
+ 
+@@ -239,21 +_,80 @@
+     }
+ 
+     public static <T extends Projectile> T spawnProjectileUsingShoot(
+-        T projectile, ServerLevel serverLevel, ItemStack itemStack, double targetX, double targetY, double targetZ, float pow, float uncertainty
+-    ) {
+-        return spawnProjectile(projectile, serverLevel, itemStack, i -> projectile.shoot(targetX, targetY, targetZ, pow, uncertainty));
+-    }
+-
+-    public static <T extends Projectile> T spawnProjectile(T projectile, ServerLevel serverLevel, ItemStack itemStack) {
 +            final T projectile,
 +            final ServerLevel serverLevel,
 +            final ItemStack itemStack,
@@ -199,7 +191,7 @@
  
      public void applyOnProjectileSpawned(ServerLevel serverLevel, ItemStack pickupItemStack) {
          EnchantmentHelper.onProjectileSpawned(serverLevel, pickupItemStack, this, item -> {});
-@@ -226,6 +_,17 @@
+@@ -265,6 +_,17 @@
          }
      }
  
@@ -215,9 +207,9 @@
 +    // CraftBukkit end
 +
      protected ProjectileDeflection hitTargetOrDeflectSelf(HitResult hitResult) {
-         if (hitResult.getType() == HitResult.Type.ENTITY) {
-             EntityHitResult entityHitResult = (EntityHitResult)hitResult;
-@@ -293,16 +_,36 @@
+         if (hitResult instanceof EntityHitResult entityHitResult) {
+             Entity entity = entityHitResult.getEntity();
+@@ -345,6 +_,11 @@
      }
  
      protected void onHitBlock(BlockHitResult hitResult) {
@@ -228,6 +220,9 @@
 +        // CraftBukkit end
          BlockState state = this.level().getBlockState(hitResult.getBlockPos());
          state.onProjectileHit(this.level(), state, hitResult, this);
+     }
+@@ -353,12 +_,27 @@
+         hitProjectile.deflect(ProjectileDeflection.AIM_DEFLECT, this.getOwner(), this.owner, true, 1.0);
      }
  
 +    // Paper start
@@ -254,7 +249,7 @@
          return owner == null || this.leftOwner || !owner.isPassengerOfSameVehicle(entity);
      }
  
-@@ -314,13 +_,7 @@
+@@ -370,13 +_,7 @@
      }
  
      protected static float lerpRotation(float rotO, float rot) {
@@ -269,7 +264,7 @@
  
          return Mth.lerp(0.2F, rotO, rot);
      }
-@@ -343,7 +_,7 @@
+@@ -399,7 +_,7 @@
      @Override
      public boolean mayInteract(ServerLevel level, BlockPos pos) {
          Entity owner = this.getOwner();
@@ -277,4 +272,4 @@
 +        return owner instanceof Player ? owner.mayInteract(level, pos) : owner == null || net.neoforged.neoforge.event.EventHooks.canEntityGrief(level, owner);
      }
  
-     public boolean mayBreak(ServerLevel level) {
+     public boolean mayBreak(ServerLevel level, BlockPos pos) {

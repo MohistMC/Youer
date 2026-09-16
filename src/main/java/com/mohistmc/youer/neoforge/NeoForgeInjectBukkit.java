@@ -16,29 +16,23 @@ import java.util.Map.Entry;
 import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.Identifier;
 import net.minecraft.resources.ResourceKey;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.stats.StatType;
 import net.minecraft.stats.Stats;
-import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.alchemy.Potion;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.minecraft.world.level.block.grower.TreeGrower;
 import net.minecraft.world.level.dimension.LevelStem;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
 import org.bukkit.Statistic;
-import org.bukkit.TreeType;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.CraftStatistic;
-import org.bukkit.craftbukkit.potion.CraftPotionUtil;
 import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 import org.bukkit.craftbukkit.util.CraftSpawnCategory;
 import org.bukkit.entity.Entity;
@@ -68,21 +62,16 @@ public class NeoForgeInjectBukkit {
     private static final BiMap<Identifier, Statistic> STATISTICS = HashBiMap.create(CraftStatistic.statistics);
     public static Map<MobCategory, SpawnCategory> spawnCategoryMap = new HashMap<>();
     public static Map<SpawnCategory, MobCategory> CategoryspawnMap = new HashMap<>();
-    public static Map<String, TreeType> treeTypeByGrowerName = new HashMap<>();
 
 
     public static void init() {
         addEnumMaterialInItems();
         addEnumEffectAndPotion();
-        addEnumMobEffect();
         addEnumMaterialsInBlocks();
         addEnumEntity();
-        // addEnumParticle();
         addStatistic();
         loadSpawnCategory();
         addPose();
-        addEnumTreeType();
-        addEnumEnvironment(MinecraftServer.getServer().registryAccess().lookupOrThrow(Registries.LEVEL_STEM));
         reloadBukkitRegistries();
     }
 
@@ -94,14 +83,16 @@ public class NeoForgeInjectBukkit {
 
     public static void addEnumMaterialInItems() {
         var registry = BuiltInRegistries.ITEM;
+        List<String> materials = new ArrayList<>(Arrays.stream(Material.values())
+                .map(Enum::name)
+                .toList());
         for (Item item : registry) {
             Identifier resourceLocation = registry.getKey(item);
             boolean isMod = isMods(resourceLocation);
             String materialName = getMaterialName(resourceLocation, isMod);
 
-            if (isMod || CraftMagicNumbers.getMaterial(item) == null) {
+            if (isMod || !materials.contains(materialName)) {
                 int id = Item.getId(item);
-                int maxStackSize = item.getDefaultInstance().getMaxStackSize();
 
                 Material material = Material.addMaterial(materialName, id, false, true, resourceLocation);
 
@@ -112,6 +103,7 @@ public class NeoForgeInjectBukkit {
                 }
             }
         }
+        materials.clear();
     }
 
     public static void addEnumMaterialsInBlocks() {
@@ -124,10 +116,10 @@ public class NeoForgeInjectBukkit {
             boolean isMod = isMods(resourceLocation);
             String materialName = getMaterialName(resourceLocation, isMod);
 
+            // 检查是否需要添加材料
             if (isMod || !materials.contains(materialName)) {
                 int id = Item.getId(block.asItem());
                 Item item = Item.byId(id);
-                int maxStackSize = item.getDefaultInstance().getMaxStackSize();
 
                 Material material = Material.addMaterial(materialName, id, true, false, resourceLocation);
                 if (material != null) {
@@ -163,24 +155,9 @@ public class NeoForgeInjectBukkit {
                     } catch (Exception e) {
                         PotionType potionType = MohistDynamEnum.addEnum(PotionType.class, name, List.of(String.class), List.of(resourceLocation.toString()));
                         if (potionType != null) {
-                            CraftPotionUtil.mods.put(resourceLocation, potionType);
                             debug("Save-PotionType:{} - {}", name, potionType.name());
                         }
                     }
-                }
-            }
-        }
-    }
-
-    public static void addEnumMobEffect() {
-        var registry = BuiltInRegistries.MOB_EFFECT;
-        for (MobEffect effect : registry) {
-            Identifier resourceLocation = registry.getKey(effect);
-            if (resourceLocation != null && isMods(resourceLocation)) {
-                NamespacedKey key = NamespacedKey.fromString(resourceLocation.toString());
-                if (key != null) {
-                    org.bukkit.Registry.MOB_EFFECT.get(key);
-                    debug("Save-MobEffect:{}", key);
                 }
             }
         }
@@ -316,20 +293,6 @@ public class NeoForgeInjectBukkit {
         }
     }
 
-    public static void addEnumTreeType() {
-        for (Map.Entry<String, TreeGrower> entry : TreeGrower.getGrowers().entrySet()) {
-            String name = entry.getKey();
-            if (!name.contains(":")) continue;
-
-            String enumName = MohistDynamEnum.normalizeName(name);
-            TreeType treeType = MohistDynamEnum.addEnum(TreeType.class, enumName);
-            if (treeType != null) {
-                treeTypeByGrowerName.put(name, treeType);
-                debug("Registered forge TreeGrower {} as TreeType(Bukkit) {}", name, treeType);
-            }
-        }
-    }
-
     public static boolean isMods(Identifier resourceLocation) {
         return resourceLocation != null && !resourceLocation.getNamespace().equals(NamespacedKey.MINECRAFT);
     }
@@ -346,10 +309,10 @@ public class NeoForgeInjectBukkit {
     }
 
     public static void debug(String message, Object p0) {
-        if (DEBUG) Youer.LOGGER.info(message, p0);
+        if (DEBUG) Youer.LOGGER.debug(message, p0);
     }
 
     public static void debug(String message, Object p0, Object p1) {
-        if (DEBUG) Youer.LOGGER.info(message, p0, p1);
+        if (DEBUG) Youer.LOGGER.debug(message, p0, p1);
     }
 }

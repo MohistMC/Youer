@@ -6,7 +6,7 @@ import net.minecraft.commands.functions.StringTemplate;
 
 public record BooleanDialogInputImpl(String key, Component label, boolean initial, String onTrue, String onFalse) implements BooleanDialogInput {
 
-    public static final class BuilderImpl implements Builder {
+    public static final class BuilderImpl implements BooleanDialogInput.Builder {
 
         private final String key;
         private final Component label;
@@ -21,19 +21,19 @@ public record BooleanDialogInputImpl(String key, Component label, boolean initia
         }
 
         @Override
-        public Builder initial(final boolean initial) {
+        public BooleanDialogInput.Builder initial(final boolean initial) {
             this.initial = initial;
             return this;
         }
 
         @Override
-        public Builder onTrue(final String onTrue) {
+        public BooleanDialogInput.Builder onTrue(final String onTrue) {
             this.onTrue = onTrue;
             return this;
         }
 
         @Override
-        public Builder onFalse(final String onFalse) {
+        public BooleanDialogInput.Builder onFalse(final String onFalse) {
             this.onFalse = onFalse;
             return this;
         }

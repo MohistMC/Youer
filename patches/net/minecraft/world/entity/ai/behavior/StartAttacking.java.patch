@@ -15,56 +15,29 @@
  
  public class StartAttacking {
      public static <E extends Mob> BehaviorControl<E> create(StartAttacking.TargetFinder<E> targetFinderFunction) {
-@@ -20,21 +_,37 @@
-                 .apply(i, (attackTarget, cantReachSince) -> (level, body, timestamp) -> {
-                     if (!canAttackPredicate.test(level, body)) {
+@@ -31,8 +_,23 @@
+                     if (!body.canAttack(targetEntity)) {
                          return false;
--                    }
--
--                    Optional<? extends LivingEntity> target = targetFinderFunction.get(level, body);
--                    if (target.isEmpty()) {
--                        return false;
--                    }
--
--                    LivingEntity targetEntity = target.get();
--                    if (!body.canAttack(targetEntity)) {
--                        return false;
--                    }
+                     }
 -
 -                    attackTarget.set(targetEntity);
--                    cantReachSince.erase();
--                    return true;
-+                    } else {
-+                        Optional<? extends LivingEntity> target = targetFinderFunction.get(level, body);
-+                        if (target.isEmpty()) {
-+                            return false;
-+                        } else {
-+                            LivingEntity targetEntity = target.get();
-+                            if (!body.canAttack(targetEntity)) {
-+                                return false;
-+                            } else {
-+                                // CraftBukkit start
-+                                EntityTargetEvent event = CraftEventFactory.callEntityTargetLivingEvent(body, targetEntity, (targetEntity instanceof ServerPlayer) ? EntityTargetEvent.TargetReason.CLOSEST_PLAYER : EntityTargetEvent.TargetReason.CLOSEST_ENTITY);
-+                                if (event.isCancelled()) {
-+                                    return false;
-+                                }
-+                                if (event.getTarget() == null) {
-+                                    attackTarget.erase();
-+                                    return true;
-+                                }
-+                                targetEntity = ((CraftLivingEntity) event.getTarget()).getHandle();
-+                                // CraftBukkit end
-+
-+                                net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent changeTargetEvent = net.neoforged.neoforge.common.CommonHooks.onLivingChangeTarget(body, targetEntity, net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent.LivingTargetType.BEHAVIOR_TARGET);
-+                                if (changeTargetEvent.isCanceled() || changeTargetEvent.getNewAboutToBeSetTarget() == null)
-+                                    return false;
-+
-+                                attackTarget.set(changeTargetEvent.getNewAboutToBeSetTarget());
-+                                cantReachSince.erase();
-+                                return true;
-+                            }
-+                        }
++                    // CraftBukkit start
++                    EntityTargetEvent event = CraftEventFactory.callEntityTargetLivingEvent(body, targetEntity, (targetEntity instanceof ServerPlayer) ? EntityTargetEvent.TargetReason.CLOSEST_PLAYER : EntityTargetEvent.TargetReason.CLOSEST_ENTITY);
++                    if (event.isCancelled()) {
++                        return false;
 +                    }
++                    if (event.getTarget() == null) {
++                        attackTarget.erase();
++                        return true;
++                    }
++                    targetEntity = ((CraftLivingEntity) event.getTarget()).getHandle();
++                    // CraftBukkit end
++
++                    net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent changeTargetEvent = net.neoforged.neoforge.common.CommonHooks.onLivingChangeTarget(body, targetEntity, net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent.LivingTargetType.BEHAVIOR_TARGET);
++                    if (changeTargetEvent.isCanceled() || changeTargetEvent.getNewAboutToBeSetTarget() == null)
++                        return false;
++
++                    attackTarget.set(changeTargetEvent.getNewAboutToBeSetTarget());
+                     cantReachSince.erase();
+                     return true;
                  })
-         );
-     }

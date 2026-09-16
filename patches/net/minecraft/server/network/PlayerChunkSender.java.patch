@@ -17,11 +17,10 @@
      }
  
 -    private static void sendChunk(ServerGamePacketListenerImpl connection, ServerLevel level, LevelChunk chunk) {
--        connection.send(new ClientboundLevelChunkWithLightPacket(chunk, level.getLightEngine(), null, null));
 +    public static void sendChunk(ServerGamePacketListenerImpl connection, ServerLevel level, LevelChunk chunk) {
 +        // Paper start - Anti-Xray
 +        final boolean shouldModify = level.chunkPacketBlockController.shouldModify(connection.player, chunk);
-+        connection.send(new ClientboundLevelChunkWithLightPacket(chunk, level.getLightEngine(), null, null, shouldModify));
+         connection.send(new ClientboundLevelChunkWithLightPacket(chunk, level.getLightEngine(), null, null));
 +        // Paper end - Anti-Xray
 +        // Paper start - PlayerChunkLoadEvent
 +        if (io.papermc.paper.event.packet.PlayerChunkLoadEvent.getHandlerList().getRegisteredListeners().length > 0) {

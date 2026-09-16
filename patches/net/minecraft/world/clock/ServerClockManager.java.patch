@@ -1,11 +1,19 @@
 --- a/net/minecraft/world/clock/ServerClockManager.java
 +++ b/net/minecraft/world/clock/ServerClockManager.java
+@@ -19,6 +_,7 @@
+ import net.minecraft.world.level.gamerules.GameRules;
+ import net.minecraft.world.level.saveddata.SavedData;
+ import net.minecraft.world.level.saveddata.SavedDataType;
++import org.apache.commons.lang3.mutable.MutableBoolean;
+ import org.apache.commons.lang3.mutable.MutableObject;
+ 
+ public class ServerClockManager extends SavedData implements ClockManager {
 @@ -30,6 +_,7 @@
      );
      private final PackedClockStates packedClockStates;
      private MinecraftServer server;
 +    private @org.jspecify.annotations.Nullable ServerLevel level; // Paper - per-world time
-     private final Map<Holder<WorldClock>, ServerClockManager.ClockInstance> clocks = new HashMap<>();
+     private final Map<Holder<WorldClock>, ServerClockManager.ServerClockInstance> clocks = new HashMap<>();
  
      private ServerClockManager(PackedClockStates packedClockStates) {
 @@ -37,11 +_,17 @@
@@ -22,8 +30,8 @@
          server.registryAccess()
              .lookupOrThrow(Registries.WORLD_CLOCK)
              .listElements()
--            .forEach(definition -> this.clocks.put(definition, new ServerClockManager.ClockInstance()));
-+            .forEach(definition -> this.clocks.put(definition, new ServerClockManager.ClockInstance(definition)));
+-            .forEach(definition -> this.clocks.put(definition, new ServerClockManager.ServerClockInstance()));
++            .forEach(definition -> this.clocks.put(definition, new ServerClockManager.ServerClockInstance(definition)));
          server.registryAccess()
              .lookupOrThrow(Registries.TIMELINE)
              .listElements()
@@ -39,7 +47,7 @@
 +        // Neo: Custom ticking logic to move the advance time check to be per clock rather than global
 +        this.clocks.forEach(((worldClockHolder, clockInstance) -> { // Purpur start - Configurable daylight cycle
 +            ServerLevel l = level != null ? level : server.overworld();
-+            float incrementTicks = 12000F / (l.isBrightOutside() ? l.purpurConfig.daytimeTicks : l.purpurConfig.nighttimeTicks);
++            int incrementTicks = 12000 / (l.isBrightOutside() ? l.purpurConfig.daytimeTicks : l.purpurConfig.nighttimeTicks);
 +            float rate = clockInstance.rate;
 +            clockInstance.rate *= incrementTicks;
 +            clockInstance.tick(advanceTime);
@@ -47,29 +55,29 @@
 +            this.broadcastUpdates(worldClockHolder, clockInstance);
 +        })); // Purpur end - Configurable daylight cycle
          if (advanceTime) {
--            this.clocks.values().forEach(ServerClockManager.ClockInstance::tick);
+-            this.clocks.values().forEach(ServerClockManager.ServerClockInstance::tick);
              this.setDirty();
          }
      }
-@@ -97,7 +_,16 @@
-         return set.booleanValue();
+@@ -101,7 +_,16 @@
+         return result.get();
      }
  
 -    public void addTicks(Holder<WorldClock> clock, int ticks) {
 +    // Paper start - time skip event
 +    public java.util.OptionalLong getTotalTicksToTimeMarker(final Holder<WorldClock> clock, final ResourceKey<ClockTimeMarker> timeMarkerId) {
-+        final ServerClockManager.ClockInstance instance = this.getInstance(clock);
++        final ServerClockManager.ServerClockInstance instance = this.getInstance(clock);
 +        final ClockTimeMarker timeMarker = instance.timeMarkers.get(timeMarkerId);
 +
 +        return timeMarker != null ? java.util.OptionalLong.of(timeMarker.resolveTimeToMoveTo(instance.totalTicks)) : java.util.OptionalLong.empty();
 +    }
 +    // Paper end - time skip event
 +
-+    public void addTicks(final Holder<WorldClock> clock, final long ticks) { // Paper
++    public void addTicks(Holder<WorldClock> clock, final long ticks) { // Paper
          this.modifyClock(clock, instance -> instance.totalTicks = Math.max(instance.totalTicks + ticks, 0L));
      }
  
-@@ -105,6 +_,21 @@
+@@ -109,6 +_,21 @@
          this.modifyClock(clock, instance -> instance.paused = paused);
      }
  
@@ -91,9 +99,9 @@
      public void setRate(Holder<WorldClock> clock, float rate) {
          this.modifyClock(clock, instance -> instance.rate = rate);
      }
-@@ -112,13 +_,26 @@
-     private void modifyClock(Holder<WorldClock> clock, Consumer<? super ServerClockManager.ClockInstance> action) {
-         ServerClockManager.ClockInstance instance = this.getInstance(clock);
+@@ -116,22 +_,62 @@
+     private void modifyClock(Holder<WorldClock> clock, Consumer<? super ServerClockManager.ServerClockInstance> action) {
+         ServerClockManager.ServerClockInstance instance = this.getInstance(clock);
          action.accept(instance);
 -        Map<Holder<WorldClock>, ClockNetworkState> updates = Map.of(clock, instance.packNetworkState(this.server));
 -        this.server.getPlayerList().broadcastAll(new ClientboundSetTimePacket(this.getGameTime(), updates));
@@ -111,26 +119,8 @@
 +            }
          }
 +        // Paper end - per-world time
-+    }
-+
-+    /**
-+     * Returns the current ratio between game ticks and clock ticks. This value cannot be 0 or negative.
-+     * The default is 1.
-+     */
-+    public float getRate(Holder<WorldClock> definition) {
-+        return getInstance(definition).rate;
      }
  
-     @Override
-@@ -126,13 +_,53 @@
-         return this.getInstance(definition).totalTicks;
-     }
- 
-+    @Override
-+    public float getPartialTick(Holder<WorldClock> definition) {
-+        return this.getInstance(definition).partialTick;
-+    }
-+
      public ClientboundSetTimePacket createFullSyncPacket() {
 -        return new ClientboundSetTimePacket(this.getGameTime(), Util.mapValues(this.clocks, clock -> clock.packNetworkState(this.server)));
 +        // Paper start - per-player time
@@ -150,7 +140,7 @@
 +    }
 +
 +    // Paper start - per-world time; per-player time
-+    private void broadcastUpdates(final Holder<WorldClock> clock, final ServerClockManager.ClockInstance instance) {
++    private void broadcastUpdates(final Holder<WorldClock> clock, final ServerClockManager.ServerClockInstance instance) {
 +        for (final net.minecraft.server.level.ServerPlayer player : this.level != null ? this.level.players() : this.server.getPlayerList().getPlayers()) {
 +            final var packet = new net.minecraft.network.protocol.game.ClientboundSetTimePacket(
 +                    this.getGameTime(),
@@ -162,7 +152,7 @@
 +
 +    private ClockNetworkState packNetworkState(
 +            final Holder<WorldClock> clock,
-+            final ServerClockManager.ClockInstance instance,
++            final ServerClockManager.ServerClockInstance instance,
 +            final net.minecraft.server.level.ServerPlayer player
 +    ) {
 +        if (player != null && player.level().dimensionType().defaultClock().filter(clock::equals).isPresent()) {
@@ -178,26 +168,26 @@
 +    // Paper end - per-world time; per-player time
  
      public boolean isAtTimeMarker(Holder<WorldClock> clock, ResourceKey<ClockTimeMarker> timeMarkerId) {
-         ServerClockManager.ClockInstance clockInstance = this.getInstance(clock);
-@@ -150,6 +_,17 @@
+         ServerClockManager.ServerClockInstance clockInstance = this.getInstance(clock);
+@@ -155,6 +_,17 @@
          private float partialTick;
          private float rate = 1.0F;
          private boolean paused;
 +        private final @org.jspecify.annotations.Nullable Holder<WorldClock> holder;
 +
-+        public ClockInstance(Holder<WorldClock> holder) {
++        public ServerClockInstance(Holder<WorldClock> holder) {
 +            this.holder = holder;
 +        }
 +
-+        /// @deprecated Neo: Use [#ClockInstance(Holder)] instead
++        /// @deprecated Neo: Use [#ServerClockInstance(Holder)] instead
 +        @Deprecated
-+        public ClockInstance() {
++        public ServerClockInstance() {
 +            holder = null;
 +        }
  
          public void loadFrom(ClockState state) {
              this.totalTicks = state.totalTicks();
-@@ -158,8 +_,16 @@
+@@ -163,8 +_,16 @@
              this.paused = state.paused();
          }
  
@@ -215,7 +205,7 @@
                  this.partialTick = this.partialTick + this.rate;
                  int fullTicks = Mth.floor(this.partialTick);
                  this.partialTick -= fullTicks;
-@@ -171,10 +_,22 @@
+@@ -196,10 +_,22 @@
              return new ClockState(this.totalTicks, this.partialTick, this.rate, this.paused);
          }
  
@@ -223,7 +213,7 @@
 -            boolean advanceTime = server.getGlobalGameRules().get(GameRules.ADVANCE_TIME);
 -            boolean paused = this.paused || !advanceTime;
 +        public ClockNetworkState packNetworkState(final boolean advanceTime) { // Paper - per-world time
-+             // Neo: Use the corrected pause value
++            // Neo: Use the corrected pause value
 +            boolean paused = !this.ticking(advanceTime);
              return new ClockNetworkState(this.totalTicks, this.partialTick, paused ? 0.0F : this.rate);
 +        }

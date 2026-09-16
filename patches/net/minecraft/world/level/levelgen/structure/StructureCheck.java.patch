@@ -1,19 +1,29 @@
 --- a/net/minecraft/world/level/levelgen/structure/StructureCheck.java
 +++ b/net/minecraft/world/level/levelgen/structure/StructureCheck.java
-@@ -31,6 +_,7 @@
+@@ -34,6 +_,7 @@
  import net.minecraft.world.level.chunk.ChunkGenerator;
  import net.minecraft.world.level.chunk.storage.ChunkScanAccess;
  import net.minecraft.world.level.chunk.storage.SimpleRegionStorage;
 +import net.minecraft.world.level.dimension.LevelStem;
  import net.minecraft.world.level.levelgen.RandomState;
+ import net.minecraft.world.level.levelgen.densityfunction.SamplerContext;
  import net.minecraft.world.level.levelgen.structure.placement.StructurePlacement;
- import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
-@@ -50,10 +_,20 @@
+@@ -48,7 +_,7 @@
+     private final ChunkScanAccess storageAccess;
+     private final RegistryAccess registryAccess;
+     private final StructureTemplateManager structureTemplateManager;
+-    private final ResourceKey<Level> dimension;
++    private final ResourceKey<net.minecraft.world.level.dimension.LevelStem> dimension; // Paper - fix missing CB diff
+     private final ChunkGenerator chunkGenerator;
+     private final RandomState randomState;
+     private final LevelHeightAccessor heightAccessor;
+@@ -56,15 +_,19 @@
      private final BiomeSource biomeSource;
      private final long seed;
      private final DataFixer fixerUpper;
 -    private final Long2ObjectMap<Object2IntMap<Structure>> loadedChunks = new Long2ObjectOpenHashMap<>();
 -    private final Map<Structure, Long2BooleanMap> featureChecks = new HashMap<>();
+-    private final LongSet chunksWithoutStartsInStorage = new LongOpenHashSet();
 +    // Paper start - rewrite chunk system
 +    // make sure to purge entries from the maps to prevent memory leaks
 +    private static final int CHUNK_TOTAL_LIMIT = 50 * (2 * 100 + 1) * (2 * 100 + 1); // cache 50 structure lookups
@@ -21,24 +31,20 @@
 +    private final ca.spottedleaf.moonrise.common.map.SynchronisedLong2ObjectMap<it.unimi.dsi.fastutil.objects.Object2IntMap<Structure>> loadedChunksSafe = new ca.spottedleaf.moonrise.common.map.SynchronisedLong2ObjectMap<>(CHUNK_TOTAL_LIMIT);
 +    private final java.util.concurrent.ConcurrentHashMap<Structure, ca.spottedleaf.moonrise.common.map.SynchronisedLong2BooleanMap> featureChecksSafe = new java.util.concurrent.ConcurrentHashMap<>();
 +    // Paper end - rewrite chunk system
-+
-+    // Paper start - also store level stem
-+    private final ResourceKey<net.minecraft.world.level.dimension.LevelStem> levelStem;
  
      public StructureCheck(
-+        final ResourceKey<net.minecraft.world.level.dimension.LevelStem> levelStem,
-+        // Paper end - also store level stem
          ChunkScanAccess storageAccess,
          RegistryAccess registryAccess,
          StructureTemplateManager structureTemplateManager,
-@@ -75,11 +_,26 @@
-         this.biomeSource = biomeSource;
-         this.seed = seed;
+-        ResourceKey<Level> dimension,
++        ResourceKey<net.minecraft.world.level.dimension.LevelStem> dimension, // Paper - fix missing CB diff
+         ChunkGenerator chunkGenerator,
+         RandomState randomState,
+         LevelHeightAccessor heightAccessor,
+@@ -85,33 +_,41 @@
          this.fixerUpper = fixerUpper;
--    }
-+        this.levelStem = levelStem; // Paper - also store level stem
-+    }
-+
+     }
+ 
 +    // Paper start - add missing structure salt configs
 +    @Nullable
 +    private Integer getSaltOverride(Structure type) {
@@ -52,7 +58,7 @@
 +        return null;
 +    }
 +    // Paper end - add missing structure seed configs
- 
++
      public StructureCheckResult checkStart(ChunkPos pos, Structure structure, StructurePlacement placement, boolean requireUnreferenced) {
          long posKey = pos.pack();
 -        Object2IntMap<Structure> cachedResult = this.loadedChunks.get(posKey);
@@ -60,8 +66,21 @@
          if (cachedResult != null) {
              return this.checkStructureInfo(cachedResult, structure, requireUnreferenced);
          }
-@@ -89,13 +_,15 @@
-             return storageCheckResult;
+ 
+-        if (!this.chunksWithoutStartsInStorage.contains(posKey)) {
+-            StructureCheckResult storageCheckResult = this.tryLoadFromStorage(pos, structure, requireUnreferenced);
+-            if (storageCheckResult != null) {
+-                return storageCheckResult;
+-            }
+-
+-            if (this.chunksWithoutStartsInStorage.size() >= 131072) {
+-                this.chunksWithoutStartsInStorage.clear();
+-            }
+-
+-            this.chunksWithoutStartsInStorage.add(posKey);
++        StructureCheckResult storageCheckResult = this.tryLoadFromStorage(pos, structure, requireUnreferenced, posKey);
++        if (storageCheckResult != null) {
++            return storageCheckResult;
          }
  
 -        if (!placement.applyAdditionalChunkRestrictions(pos.x(), pos.z(), this.seed)) {
@@ -80,27 +99,31 @@
          return !isFeatureChunk ? StructureCheckResult.START_NOT_PRESENT : StructureCheckResult.CHUNK_LOAD_NEEDED;
      }
  
-@@ -133,12 +_,12 @@
-         if (collectFields.getResult() instanceof CompoundTag chunkTag) {
-             int version = NbtUtils.getDataVersion(chunkTag);
-             SimpleRegionStorage.injectDatafixingContext(
--                chunkTag, ChunkMap.getChunkDataFixContextTag(this.dimension, this.chunkGenerator.getTypeNameForDataFixer())
-+                chunkTag, ChunkMap.getChunkDataFixContextTag(this.dimension, this.chunkGenerator.getTypeNameForDataFixer(), this.levelStem) // Paper - pass level stem
-             );
+@@ -133,7 +_,7 @@
+             .isPresent();
+     }
  
-             CompoundTag fixedChunkTag;
-             try {
--                fixedChunkTag = DataFixTypes.CHUNK.updateToCurrentVersion(this.fixerUpper, chunkTag, version);
-+                fixedChunkTag = ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.CHUNK, chunkTag, version, ca.spottedleaf.dataconverter.minecraft.util.Version.getCurrentVersion()); // Paper - replace chunk converter
-             } catch (Exception e) {
-                 LOGGER.warn("Failed to partially datafix chunk {}", pos, e);
-                 return StructureCheckResult.CHUNK_LOAD_NEEDED;
-@@ -208,15 +_,25 @@
+-    private @Nullable StructureCheckResult tryLoadFromStorage(ChunkPos pos, Structure structure, boolean requireUnreferenced) {
++    private @Nullable StructureCheckResult tryLoadFromStorage(ChunkPos pos, Structure structure, boolean requireUnreferenced, long posKey) {
+         CollectFields collectFields = new CollectFields(
+             new FieldSelector(IntTag.TYPE, "DataVersion"),
+             new FieldSelector("Level", "Structures", CompoundTag.TYPE, "Starts"),
+@@ -166,7 +_,7 @@
+                 return null;
+             }
+ 
+-            this.storeFullResults(pos.pack(), knownStarts);
++            this.storeFullResults(posKey, knownStarts);
+             return this.checkStructureInfo(knownStarts, structure, requireUnreferenced);
+         } else {
+             return null;
+@@ -225,21 +_,28 @@
      }
  
      private void storeFullResults(long posKey, Object2IntMap<Structure> starts) {
 -        this.loadedChunks.put(posKey, deduplicateEmptyMap(starts));
 -        this.featureChecks.values().forEach(m -> m.remove(posKey));
+-        this.chunksWithoutStartsInStorage.remove(posKey);
 +        // Paper start - rewrite chunk system
 +        this.loadedChunksSafe.put(posKey, deduplicateEmptyMap(starts));
 +        // once we insert into loadedChunks, we don't really need to be very careful about removing everything
@@ -113,7 +136,8 @@
      }
  
      public void incrementReference(ChunkPos chunkPos, Structure structure) {
--        this.loadedChunks.compute(chunkPos.pack(), (key, counts) -> {
+-        long posKey = chunkPos.pack();
+-        this.loadedChunks.compute(posKey, (key, counts) -> {
 -            if (counts == null || counts.isEmpty()) {
 +        this.loadedChunksSafe.compute(chunkPos.pack(), (key, counts) -> { // Paper start - rewrite chunk system
 +            if (counts == null) {
@@ -125,3 +149,7 @@
  
              counts.computeInt(structure, (k, value) -> value == null ? 1 : value + 1);
              return counts;
+         });
+-        this.chunksWithoutStartsInStorage.remove(posKey);
+     }
+ }

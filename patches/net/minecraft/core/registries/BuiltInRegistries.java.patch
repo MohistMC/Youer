@@ -1,7 +1,7 @@
 --- a/net/minecraft/core/registries/BuiltInRegistries.java
 +++ b/net/minecraft/core/registries/BuiltInRegistries.java
-@@ -365,6 +_,11 @@
-     public static final Registry<MapCodec<? extends SlotSource>> SLOT_SOURCE_TYPE = registerSimple(Registries.SLOT_SOURCE_TYPE, SlotSources::bootstrap);
+@@ -367,6 +_,11 @@
+     public static final Registry<ContextKeySet> CONTEXT_KEY_SET = registerSimple(Registries.CONTEXT_KEY_SET, LootContextParamSets::bootstrap);
      public static final Registry<Consumer<GameTestHelper>> TEST_FUNCTION = registerSimple(Registries.TEST_FUNCTION, BuiltinTestFunctions::bootstrap);
      public static final Registry<? extends Registry<?>> REGISTRY = WRITABLE_REGISTRY;
 +    // Paper start - add built-in registry conversions
@@ -12,7 +12,7 @@
  
      private static <T> Registry<T> registerSimple(ResourceKey<? extends Registry<T>> name, BuiltInRegistries.RegistryBootstrap<T> loader) {
          return internalRegister(name, new MappedRegistry<>(name, Lifecycle.stable(), false), loader);
-@@ -390,6 +_,7 @@
+@@ -392,6 +_,7 @@
          ResourceKey<? extends Registry<T>> name, R registry, BuiltInRegistries.RegistryBootstrap<T> loader
      ) {
          Bootstrap.checkBootstrapCalled(() -> "registry " + name.identifier());
@@ -20,7 +20,7 @@
          Identifier key = name.identifier();
          LOADERS.put(key, () -> loader.run(registry));
          WRITABLE_REGISTRY.register((ResourceKey)name, registry, RegistrationInfo.BUILT_IN);
-@@ -397,16 +_,41 @@
+@@ -399,16 +_,34 @@
      }
  
      public static void bootStrap() {
@@ -32,13 +32,6 @@
 +        REGISTRY.freeze(); // Paper - freeze main registry early
          createContents();
 +        runnable.run(); // Paper
-+        // Paper start - unfreeze root registry to allow mod registrations during freeze() callbacks
-+        // The early freeze above protects createContents() from unwanted root registry modification.
-+        // However, mods like Create use mixins that fire at the HEAD of the private freeze() method
-+        // to register new sub-registries to the root registry. Without unfreezing here, these mod
-+        // registrations fail because the root registry is already frozen.
-+        ((MappedRegistry)REGISTRY).unfreeze(false);
-+        // Paper end
          freeze();
          validate(REGISTRY);
      }
@@ -62,7 +55,7 @@
          });
      }
  
-@@ -415,6 +_,7 @@
+@@ -417,6 +_,7 @@
  
          for (Registry<?> registry : REGISTRY) {
              bindBootstrappedTagsToEmpty(registry);
@@ -70,7 +63,7 @@
              registry.freeze();
          }
      }
-@@ -438,6 +_,10 @@
+@@ -440,6 +_,10 @@
  
      private static void bindBootstrappedTagsToEmpty(Registry<?> registry) {
          ((MappedRegistry)registry).bindAllTagsToEmpty();

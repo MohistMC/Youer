@@ -1,103 +1,24 @@
 --- a/net/minecraft/world/level/block/grower/TreeGrower.java
 +++ b/net/minecraft/world/level/block/grower/TreeGrower.java
-@@ -128,10 +_,14 @@
-         ResourceKey<ConfiguredFeature<?, ?>> megaFeatureKey = this.getConfiguredMegaFeature(random);
+@@ -114,6 +_,11 @@
+         ResourceKey<Feature> megaFeatureKey = this.getConfiguredMegaFeature(random);
          if (megaFeatureKey != null) {
-             Holder<ConfiguredFeature<?, ?>> featureHolder = level.registryAccess()
--                .lookupOrThrow(Registries.CONFIGURED_FEATURE)
--                .get(megaFeatureKey)
--                .orElse(null);
-+                    .lookupOrThrow(Registries.CONFIGURED_FEATURE)
-+                    .get(megaFeatureKey)
-+                    .orElse(null);
+             Holder<Feature> featureHolder = level.registryAccess().lookupOrThrow(Registries.FEATURE).get(megaFeatureKey).orElse(null);
 +            var event = net.neoforged.neoforge.event.EventHooks.fireBlockGrowFeature(level, random, pos, featureHolder);
 +            featureHolder = event.getFeature();
-+            if (event.isCanceled()) return false;
++            if (event.isCanceled()) {
++                return false;
++            }
              if (featureHolder != null) {
-+                setTreeType(featureHolder); // CraftBukkit
-                 for (int dx = 0; dx >= -1; dx--) {
-                     for (int dz = 0; dz >= -1; dz--) {
-                         if (isTwoByTwoSapling(state, level, pos, dx, dz)) {
-@@ -162,10 +_,13 @@
+                 Optional<TreeGrower.TwoByTwoSaplingPos> twoByTwoSaplingPos = findTwoByTwoSaplingPos(level, state, pos);
+                 if (twoByTwoSaplingPos.isPresent()) {
+@@ -138,6 +_,9 @@
          }
  
-         Holder<ConfiguredFeature<?, ?>> featureHolder = level.registryAccess().lookupOrThrow(Registries.CONFIGURED_FEATURE).get(featureKey).orElse(null);
+         Holder<Feature> featureHolder = level.registryAccess().lookupOrThrow(Registries.FEATURE).get(featureKey).orElse(null);
 +        var event = net.neoforged.neoforge.event.EventHooks.fireBlockGrowFeature(level, random, pos, featureHolder);
-+        featureHolder = event.getFeature();
 +        if (event.isCanceled()) return false;
++        featureHolder = event.getFeature();
          if (featureHolder == null) {
              return false;
          }
--
-+        setTreeType(featureHolder); // CraftBukkit
-         ConfiguredFeature<?, ?> feature = featureHolder.value();
-         BlockState emptyBlock = level.getFluidState(pos).createLegacyBlock();
-         level.setBlock(pos, emptyBlock, 260);
-@@ -210,4 +_,67 @@
-             ? OptionalInt.of(treeConfig.trunkPlacer.getBaseHeight())
-             : OptionalInt.empty();
-     }
-+
-+    // CraftBukkit start
-+    public static Map<String, TreeGrower> getGrowers() {
-+        return GROWERS;
-+    }
-+
-+    private void setTreeType(Holder<ConfiguredFeature<?, ?>> feature) {
-+        org.bukkit.TreeType treeType;
-+        if (feature.is(TreeFeatures.OAK) || feature.is(TreeFeatures.OAK_BEES_005)) {
-+            treeType = org.bukkit.TreeType.TREE;
-+        } else if (feature.is(TreeFeatures.HUGE_RED_MUSHROOM)) {
-+            treeType = org.bukkit.TreeType.RED_MUSHROOM;
-+        } else if (feature.is(TreeFeatures.HUGE_BROWN_MUSHROOM)) {
-+            treeType = org.bukkit.TreeType.BROWN_MUSHROOM;
-+        } else if (feature.is(TreeFeatures.JUNGLE_TREE)) {
-+            treeType = org.bukkit.TreeType.COCOA_TREE;
-+        } else if (feature.is(TreeFeatures.JUNGLE_TREE_NO_VINE)) {
-+            treeType = org.bukkit.TreeType.SMALL_JUNGLE;
-+        } else if (feature.is(TreeFeatures.PINE)) {
-+            treeType = org.bukkit.TreeType.TALL_REDWOOD;
-+        } else if (feature.is(TreeFeatures.SPRUCE)) {
-+            treeType = org.bukkit.TreeType.REDWOOD;
-+        } else if (feature.is(TreeFeatures.ACACIA)) {
-+            treeType = org.bukkit.TreeType.ACACIA;
-+        } else if (feature.is(TreeFeatures.BIRCH) || feature.is(TreeFeatures.BIRCH_BEES_005)) {
-+            treeType = org.bukkit.TreeType.BIRCH;
-+        } else if (feature.is(TreeFeatures.SUPER_BIRCH_BEES_0002)) {
-+            treeType = org.bukkit.TreeType.TALL_BIRCH;
-+        } else if (feature.is(TreeFeatures.SWAMP_OAK)) {
-+            treeType = org.bukkit.TreeType.SWAMP;
-+        } else if (feature.is(TreeFeatures.FANCY_OAK) || feature.is(TreeFeatures.FANCY_OAK_BEES_005)) {
-+            treeType = org.bukkit.TreeType.BIG_TREE;
-+        } else if (feature.is(TreeFeatures.JUNGLE_BUSH)) {
-+            treeType = org.bukkit.TreeType.JUNGLE_BUSH;
-+        } else if (feature.is(TreeFeatures.DARK_OAK)) {
-+            treeType = org.bukkit.TreeType.DARK_OAK;
-+        } else if (feature.is(TreeFeatures.MEGA_SPRUCE)) {
-+            treeType = org.bukkit.TreeType.MEGA_REDWOOD;
-+        } else if (feature.is(TreeFeatures.MEGA_PINE)) {
-+            treeType = org.bukkit.TreeType.MEGA_PINE;
-+        } else if (feature.is(TreeFeatures.MEGA_JUNGLE_TREE)) {
-+            treeType = org.bukkit.TreeType.JUNGLE;
-+        } else if (feature.is(TreeFeatures.AZALEA_TREE)) {
-+            treeType = org.bukkit.TreeType.AZALEA;
-+        } else if (feature.is(TreeFeatures.MANGROVE)) {
-+            treeType = org.bukkit.TreeType.MANGROVE;
-+        } else if (feature.is(TreeFeatures.TALL_MANGROVE)) {
-+            treeType = org.bukkit.TreeType.TALL_MANGROVE;
-+        } else if (feature.is(TreeFeatures.CHERRY) || feature.is(TreeFeatures.CHERRY_BEES_005)) {
-+            treeType = org.bukkit.TreeType.CHERRY;
-+        } else if (feature.is(TreeFeatures.PALE_OAK) || feature.is(TreeFeatures.PALE_OAK_BONEMEAL)) {
-+            treeType = org.bukkit.TreeType.PALE_OAK;
-+        } else if (feature.is(TreeFeatures.PALE_OAK_CREAKING)) {
-+            treeType = org.bukkit.TreeType.PALE_OAK_CREAKING;
-+        } else {
-+            treeType = com.mohistmc.youer.neoforge.NeoForgeInjectBukkit.treeTypeByGrowerName.get(this.name);
-+            if (treeType == null) {
-+                treeType = org.bukkit.TreeType.CUSTOM;
-+            }
-+        }
-+        net.minecraft.world.level.block.SaplingBlock.treeType = treeType;
-+    }
-+    // CraftBukkit end
- }

@@ -27,28 +27,30 @@
  import java.util.function.Function;
  import java.util.function.Predicate;
  import net.minecraft.ChatFormatting;
-@@ -49,12 +_,10 @@
- import net.minecraft.network.protocol.game.ClientboundSetBorderSizePacket;
- import net.minecraft.network.protocol.game.ClientboundSetBorderWarningDelayPacket;
- import net.minecraft.network.protocol.game.ClientboundSetBorderWarningDistancePacket;
--import net.minecraft.network.protocol.game.ClientboundSetChunkCacheRadiusPacket;
- import net.minecraft.network.protocol.game.ClientboundSetDefaultSpawnPositionPacket;
- import net.minecraft.network.protocol.game.ClientboundSetExperiencePacket;
- import net.minecraft.network.protocol.game.ClientboundSetHeldSlotPacket;
- import net.minecraft.network.protocol.game.ClientboundSetPlayerTeamPacket;
--import net.minecraft.network.protocol.game.ClientboundSetSimulationDistancePacket;
- import net.minecraft.network.protocol.game.ClientboundSoundPacket;
- import net.minecraft.network.protocol.game.ClientboundUpdateMobEffectPacket;
+@@ -60,19 +_,20 @@
  import net.minecraft.network.protocol.game.ClientboundUpdateRecipesPacket;
-@@ -65,6 +_,7 @@
+ import net.minecraft.network.protocol.game.GameProtocols;
+ import net.minecraft.network.protocol.status.ServerStatus;
+-import net.minecraft.resources.Identifier;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.server.MinecraftServer;
  import net.minecraft.server.PlayerAdvancements;
  import net.minecraft.server.RegistryLayer;
  import net.minecraft.server.ServerScoreboard;
 +import net.minecraft.server.dedicated.DedicatedServer;
++import net.minecraft.server.level.ClientInformation;
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.server.level.ServerPlayer;
  import net.minecraft.server.network.CommonListenerCookie;
-@@ -79,6 +_,7 @@
+ import net.minecraft.server.network.ServerGamePacketListenerImpl;
++import net.minecraft.server.network.ServerLoginPacketListenerImpl;
+ import net.minecraft.server.notifications.NotificationService;
+ import net.minecraft.server.permissions.LevelBasedPermissionSet;
+-import net.minecraft.server.permissions.PermissionLevel;
+ import net.minecraft.sounds.SoundEvents;
+ import net.minecraft.sounds.SoundSource;
+ import net.minecraft.stats.ServerStatsCounter;
+@@ -81,6 +_,7 @@
  import net.minecraft.util.FileUtil;
  import net.minecraft.world.effect.MobEffectInstance;
  import net.minecraft.world.entity.Entity;
@@ -56,22 +58,34 @@
  import net.minecraft.world.entity.LivingEntity;
  import net.minecraft.world.entity.player.Player;
  import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
-@@ -98,6 +_,8 @@
+@@ -100,6 +_,19 @@
  import net.minecraft.world.scores.Objective;
  import net.minecraft.world.scores.PlayerTeam;
  import net.minecraft.world.scores.Team;
++import org.bukkit.Location;
 +import org.bukkit.craftbukkit.CraftServer;
++import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
++import org.bukkit.craftbukkit.util.CraftChatMessage;
++import org.bukkit.craftbukkit.util.CraftLocation;
++import org.bukkit.event.entity.EntityRemoveEvent;
++import org.bukkit.event.player.PlayerChangedWorldEvent;
++import org.bukkit.event.player.PlayerJoinEvent;
++import org.bukkit.event.player.PlayerLoginEvent;
++import org.bukkit.event.player.PlayerQuitEvent;
 +import org.bukkit.event.player.PlayerRespawnEvent;
++import org.bukkit.event.player.PlayerSpawnChangeEvent;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -114,24 +_,35 @@
+@@ -116,24 +_,35 @@
      private static final int SEND_PLAYER_INFO_INTERVAL = 600;
      private static final SimpleDateFormat BAN_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd 'at' HH:mm:ss z", Locale.ROOT);
      private final MinecraftServer server;
--    public final List<ServerPlayer> players = Lists.newArrayList();
+-    private final List<ServerPlayer> players = Lists.newArrayList();
 +    public final List<ServerPlayer> players = new java.util.concurrent.CopyOnWriteArrayList(); // CraftBukkit - ArrayList -> CopyOnWriteArrayList: Iterator safety
      private final Map<UUID, ServerPlayer> playersByUUID = Maps.newHashMap();
+-    private final Map<NameAndId, PermissionLevel> playerPermissions = Maps.newHashMap();
      private final UserBanList bans;
      private final IpBanList ipBans;
      private final ServerOpList ops;
@@ -86,7 +100,7 @@
      private final LayeredRegistryAccess<RegistryLayer> registries;
      private int viewDistance;
      private int simulationDistance;
-     private boolean allowCommandsForAllPlayers;
++    private boolean allowCommandsForAllPlayers;
      private int sendAllPlayerInfoIn;
 +    private final List<ServerPlayer> playersView = java.util.Collections.unmodifiableList(players);
 +
@@ -104,7 +118,7 @@
          this.server = server;
          this.registries = registries;
          this.playerIo = playerIo;
-@@ -141,27 +_,24 @@
+@@ -143,27 +_,24 @@
          this.ipBans = new IpBanList(IPBANLIST_FILE, notificationService);
      }
  
@@ -139,7 +153,7 @@
          );
          playerConnection.suspendFlushing();
          GameRules gameRules = level.getGameRules();
-@@ -174,8 +_,8 @@
+@@ -176,8 +_,8 @@
                  levelData.isHardcore(),
                  this.server.levelKeys(),
                  this.getMaxPlayers(),
@@ -150,7 +164,7 @@
                  reducedDebugInfo,
                  !immediateRespawn,
                  doLimitedCrafting,
-@@ -184,13 +_,16 @@
+@@ -186,13 +_,16 @@
                  this.server.enforceSecureProfile()
              )
          );
@@ -167,7 +181,7 @@
          this.sendPlayerPermissionLevel(player);
          player.getStats().markAllDirty();
          player.getRecipeBook().sendInitialRecipeBook(player);
-@@ -203,24 +_,133 @@
+@@ -205,25 +_,133 @@
              component = Component.translatable("multiplayer.player.joined.renamed", player.getDisplayName(), oldName);
          }
  
@@ -265,6 +279,7 @@
 +        level = player.level(); // CraftBukkit - Update in case join event changed it
 +        // CraftBukkit end
          this.sendActivePlayerEffects(player);
+-        player.sendPostEffects();
 +        // Paper - move loading pearls / parent vehicle up
          player.initInventoryMenu();
          this.server.notificationManager().playerJoined(player);
@@ -298,14 +313,14 @@
 +                    .getOrThrow(net.minecraft.world.level.biome.Biomes.PLAINS);
 +            player.connection.send(new net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket(
 +                    new net.minecraft.world.level.chunk.EmptyLevelChunk(level, player.chunkPosition(), plains),
-+                    level.getLightEngine(), (java.util.BitSet)null, (java.util.BitSet) null, true) // Paper - Anti-Xray
++                    level.getLightEngine(), (java.util.BitSet)null, (java.util.BitSet) null)
 +            );
 +        }
 +        // Paper end - Send empty chunk
      }
  
      public void updateEntireScoreboard(ServerScoreboard scoreboard, ServerPlayer player) {
-@@ -242,6 +_,15 @@
+@@ -245,6 +_,15 @@
          }
      }
  
@@ -321,7 +336,7 @@
      public void addWorldborderListener(ServerLevel level) {
          level.getWorldBorder().addListener(new BorderChangeListener() {
              @Override
-@@ -290,64 +_,151 @@
+@@ -293,64 +_,151 @@
      }
  
      protected void save(ServerPlayer player) {
@@ -341,9 +356,13 @@
          }
      }
  
-+    public net.kyori.adventure.text.@Nullable Component quitMessage;
-+    public net.kyori.adventure.text.@Nullable Component remove$leaveMessage;
-     public void remove(ServerPlayer player) {
+-    public void remove(ServerPlayer player) {
++    public net.kyori.adventure.text.@Nullable Component remove(ServerPlayer player) {
++        // Paper start - Fix kick event leave message not being sent
++        return this.remove(player, net.kyori.adventure.text.Component.translatable("multiplayer.player.left", net.kyori.adventure.text.format.NamedTextColor.YELLOW, io.papermc.paper.configuration.GlobalConfiguration.get().messages.useDisplayNameInQuitMessage ? player.getBukkitEntity().displayName() : io.papermc.paper.adventure.PaperAdventure.asAdventure(player.getDisplayName())));
++    }
++    public net.kyori.adventure.text.@Nullable Component remove(final ServerPlayer player, final net.kyori.adventure.text.Component leaveMessage) {
++        // Paper end - Fix kick event leave message not being sent
 +        org.purpurmc.purpur.task.BossBarTask.removeFromAll(player.getBukkitEntity()); // Purpur - Implement TPSBar
 +        net.neoforged.neoforge.event.EventHooks.firePlayerLoggedOut(player);
          ServerLevel level = player.level();
@@ -353,11 +372,8 @@
 +        if (player.containerMenu != player.inventoryMenu) {
 +            player.closeContainer(org.bukkit.event.inventory.InventoryCloseEvent.Reason.DISCONNECT); // Paper - Inventory close reason
 +        }
-+        if (remove$leaveMessage == null) {
-+            remove$leaveMessage = net.kyori.adventure.text.Component.translatable("multiplayer.player.left", net.kyori.adventure.text.format.NamedTextColor.YELLOW, io.papermc.paper.configuration.GlobalConfiguration.get().messages.useDisplayNameInQuitMessage ? player.getBukkitEntity().displayName() : io.papermc.paper.adventure.PaperAdventure.asAdventure(player.getDisplayName()));
-+        }
-+        org.bukkit.event.player.PlayerQuitEvent playerQuitEvent = new org.bukkit.event.player.PlayerQuitEvent(player.getBukkitEntity(), remove$leaveMessage, player.quitReason); // Paper - Adventure & Add API for quit reason
-+        remove$leaveMessage = null; // Youer
++
++        org.bukkit.event.player.PlayerQuitEvent playerQuitEvent = new org.bukkit.event.player.PlayerQuitEvent(player.getBukkitEntity(), leaveMessage, player.quitReason); // Paper - Adventure & Add API for quit reason
 +        this.cserver.getPluginManager().callEvent(playerQuitEvent);
 +        player.getBukkitEntity().disconnect();
 +
@@ -377,7 +393,7 @@
 +        if (!player.containerMenu.getCarried().isEmpty()) {
 +            net.minecraft.world.item.ItemStack carried = player.containerMenu.getCarried();
 +            player.containerMenu.setCarried(net.minecraft.world.item.ItemStack.EMPTY);
-+            player.drop(carried, false);
++            player.drop(carried, false, net.minecraft.util.Prediction.PREDICTED); // TODO - snapshot
 +        }
 +        // Paper end - Drop carried item when player has disconnected
          this.save(player);
@@ -434,6 +450,9 @@
 -        this.broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(player.getUUID())));
 -    }
 -
+-    public @Nullable Component canPlayerLogin(SocketAddress address, NameAndId nameAndId) {
+-        if (this.bans.isBanned(nameAndId)) {
+-            UserBanListEntry ban = this.bans.get(nameAndId);
 +        // CraftBukkit start
 +        // this.broadcastAll(new ClientboundPlayerInfoRemovePacket(List.of(player.getUUID())));
 +        ClientboundPlayerInfoRemovePacket packet = new ClientboundPlayerInfoRemovePacket(List.of(player.getUUID()));
@@ -449,7 +468,7 @@
 +        // This removes the scoreboard (and player reference) for the specific player in the manager
 +        this.cserver.getScoreboardManager().removePlayer(player.getBukkitEntity());
 +        // CraftBukkit end
-+        quitMessage = playerQuitEvent.quitMessage(); // Paper - Adventure
++        return playerQuitEvent.quitMessage(); // Paper - Adventure
 +    }
 +
 +    // Paper start - PlayerLoginEvent
@@ -462,9 +481,7 @@
 +    }
 +    // Paper end - PlayerLoginEvent
 +    public LoginResult canPlayerLogin$LoginResult;  // Paper - PlayerLoginEvent
-     public @Nullable Component canPlayerLogin(SocketAddress address, NameAndId nameAndId) {
--        if (this.bans.isBanned(nameAndId)) {
--            UserBanListEntry ban = this.bans.get(nameAndId);
++    public Component canPlayerLogin(SocketAddress address, NameAndId nameAndId) { // Paper - PlayerLoginEvent
 +        LoginResult whitelistEventResult; // Paper
 +        // Paper start - Fix MC-158900
 +        UserBanListEntry ban1;
@@ -485,7 +502,7 @@
                  return Component.translatable("multiplayer.disconnect.not_whitelisted");
              }
  
-@@ -358,20 +_,23 @@
+@@ -361,20 +_,23 @@
                      reason.append(Component.translatable("multiplayer.disconnect.banned_ip.expiration", BAN_DATE_FORMAT.format(ban.getExpires())));
                  }
  
@@ -513,7 +530,7 @@
                  dupes.add(player);
              }
          }
-@@ -382,23 +_,32 @@
+@@ -385,32 +_,37 @@
          }
  
          for (ServerPlayer player : dupes) {
@@ -549,7 +566,16 @@
              player.copyRespawnPosition(serverPlayer);
          }
  
-@@ -416,6 +_,8 @@
+         for (String tag : serverPlayer.entityTags()) {
+             player.addTag(tag);
+-        }
+-
+-        for (Identifier postEffect : serverPlayer.getPostEffects()) {
+-            player.addPostEffect(postEffect);
+         }
+ 
+         Vec3 pos = respawnInfo.position();
+@@ -423,19 +_,23 @@
          ServerLevel playerLevel = player.level();
          LevelData levelData = playerLevel.getLevelData();
          player.connection.send(new ClientboundRespawnPacket(player.createCommonSpawnInfo(playerLevel), dataToKeep));
@@ -558,7 +584,10 @@
          player.connection.teleport(player.getX(), player.getY(), player.getZ(), player.getYRot(), player.getXRot());
          player.connection.send(new ClientboundSetDefaultSpawnPositionPacket(level.getRespawnData()));
          player.connection.send(new ClientboundChangeDifficultyPacket(levelData.getDifficulty(), levelData.isDifficultyLocked()));
-@@ -425,9 +_,12 @@
+         player.connection.send(new ClientboundSetExperiencePacket(player.experienceProgress, player.totalExperience, player.experienceLevel));
+         this.sendActivePlayerEffects(player);
+-        player.sendPostEffects();
+         this.sendLevelInfo(player, level);
          this.sendPlayerPermissionLevel(player);
          level.addRespawnedPlayer(player);
          this.players.add(player);
@@ -571,7 +600,7 @@
          ServerPlayer.RespawnConfig respawnConfig = player.getRespawnConfig();
          if (!keepAllPlayerData && respawnConfig != null) {
              LevelData.RespawnData respawnData = respawnConfig.respawnData();
-@@ -456,34 +_,196 @@
+@@ -464,34 +_,196 @@
          return player;
      }
  
@@ -771,7 +800,7 @@
      public void broadcastAll(Packet<?> packet, ResourceKey<Level> dimension) {
          for (ServerPlayer player : this.players) {
              if (player.level().dimension() == dimension) {
-@@ -541,6 +_,7 @@
+@@ -549,6 +_,7 @@
      }
  
      public void op(NameAndId nameAndId, Optional<LevelBasedPermissionSet> permissions, Optional<Boolean> canBypassPlayerLimit) {
@@ -779,7 +808,7 @@
          this.ops
              .add(
                  new ServerOpListEntry(
-@@ -554,6 +_,7 @@
+@@ -562,6 +_,7 @@
      }
  
      public void deop(NameAndId nameAndId) {
@@ -787,7 +816,7 @@
          if (this.ops.remove(nameAndId)) {
              ServerPlayer player = this.getPlayer(nameAndId.id());
              if (player != null) {
-@@ -562,21 +_,88 @@
+@@ -570,21 +_,88 @@
          }
      }
  
@@ -885,7 +914,13 @@
      public boolean isWhiteListed(NameAndId nameAndId) {
          return !this.isUsingWhitelist() || this.ops.contains(nameAndId) || this.whitelist.contains(nameAndId);
      }
-@@ -590,21 +_,19 @@
+@@ -593,26 +_,24 @@
+         if (this.ops.contains(nameAndId)) {
+             return true;
+         } else {
+-            return this.server.isSingleplayerOwner(nameAndId) ? this.server.getWorldData().isAllowCommands() : false;
++            return this.server.isSingleplayerOwner(nameAndId) ? this.server.getWorldData().isAllowCommands() : this.allowCommandsForAllPlayers;
+         }
      }
  
      public @Nullable ServerPlayer getPlayerByName(String name) {
@@ -915,7 +950,7 @@
              if (player != except && player.level().dimension() == dimension) {
                  double xd = x - player.getX();
                  double yd = y - player.getY();
-@@ -617,9 +_,25 @@
+@@ -625,9 +_,25 @@
      }
  
      public void saveAll() {
@@ -944,7 +979,7 @@
      }
  
      public UserWhiteList getWhiteList() {
-@@ -644,22 +_,37 @@
+@@ -652,22 +_,37 @@
      public void sendLevelInfo(ServerPlayer player, ServerLevel level) {
          WorldBorder worldBorder = level.getWorldBorder();
          player.connection.send(new ClientboundInitializeBorderPacket(worldBorder));
@@ -987,9 +1022,14 @@
      }
  
      public int getPlayerCount() {
-@@ -703,9 +_,26 @@
+@@ -706,10 +_,31 @@
+         return this.server;
      }
  
++    public void setAllowCommandsForAllPlayers(boolean allowCommands) {
++        this.allowCommandsForAllPlayers = allowCommands;
++    }
++
      public void removeAll() {
 -        for (int i = 0; i < this.players.size(); i++) {
 -            this.players.get(i).connection.disconnect(Component.translatable("multiplayer.disconnect.server_shutdown"));
@@ -1017,7 +1057,7 @@
      }
  
      public void broadcastSystemMessage(Component message, boolean overlay) {
-@@ -728,20 +_,39 @@
+@@ -732,20 +_,39 @@
      }
  
      public void broadcastChatMessage(PlayerChatMessage message, ServerPlayer sender, ChatType.Bound chatType) {
@@ -1061,7 +1101,7 @@
              wasFullyFiltered |= filtered && message.isFullyFiltered();
          }
  
-@@ -754,13 +_,21 @@
+@@ -758,13 +_,21 @@
          return message.hasSignature() && !message.hasExpiredServer(Instant.now());
      }
  
@@ -1089,16 +1129,9 @@
  
      private Path locateStatsFile(GameProfile gameProfile) {
          Path statFolder = this.server.getWorldPath(LevelResource.PLAYER_STATS_DIR);
-@@ -786,12 +_,18 @@
-     }
+@@ -791,20 +_,22 @@
  
      public PlayerAdvancements getPlayerAdvancements(ServerPlayer player) {
-+        // Neo: return a no-op PlayerAdvancements for fake players to avoid leaking CriteriaTrigger entries (#1487)
-+        if (player.isFakePlayer()) {
-+            Path path = this.server.getWorldPath(LevelResource.PLAYER_ADVANCEMENTS_DIR).resolve("_fake.json");
-+            return new net.neoforged.neoforge.common.util.FakePlayer.FakePlayerAdvancements(
-+                    this.server.getFixerUpper(), this, this.server.getAdvancements(), path, player);
-+        }
          UUID uuid = player.getUUID();
 -        PlayerAdvancements result = this.advancements.get(uuid);
 +        PlayerAdvancements result = player.getAdvancements(); // CraftBukkit
@@ -1109,8 +1142,12 @@
 +            // this.advancements.put(uuid, result); // CraftBukkit
          }
  
-         result.setPlayer(player);
-@@ -800,7 +_,7 @@
+-        result.setPlayer(player);
++        // Forge: don't overwrite active player with a fake one.
++        if (!(player instanceof net.neoforged.neoforge.common.util.FakePlayer))
++            result.setPlayer(player);
+         return result;
+     }
  
      public void setViewDistance(int viewDistance) {
          this.viewDistance = viewDistance;
@@ -1119,7 +1156,7 @@
  
          for (ServerLevel level : this.server.getAllLevels()) {
              level.getChunkSource().setViewDistance(viewDistance);
-@@ -809,7 +_,7 @@
+@@ -813,7 +_,7 @@
  
      public void setSimulationDistance(int simulationDistance) {
          this.simulationDistance = simulationDistance;
@@ -1128,7 +1165,7 @@
  
          for (ServerLevel level : this.server.getAllLevels()) {
              level.getChunkSource().setSimulationDistance(simulationDistance);
-@@ -817,7 +_,7 @@
+@@ -821,7 +_,7 @@
      }
  
      public List<ServerPlayer> getPlayers() {
@@ -1137,7 +1174,7 @@
      }
  
      public Map<UUID, ServerPlayer> getPlayersByUUID() {
-@@ -843,23 +_,45 @@
+@@ -847,19 +_,45 @@
      }
  
      public void reloadResources() {
@@ -1183,10 +1220,10 @@
 +            net.neoforged.neoforge.common.CommonHooks.sendRecipes(serverplayer, dataSyncEvent.getRecipeTypesToSend(), recipemanager.recipeMap());
          }
 +
-     }
- 
-     public boolean isAllowCommandsForAllPlayers() {
-         return this.allowCommandsForAllPlayers;
++    }
++
++    public boolean isAllowCommandsForAllPlayers() {
++        return this.allowCommandsForAllPlayers;
 +    }
 +
 +    public PlayerDataStorage getPlayerIo() {

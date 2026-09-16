@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/ButtonBlock.java
 +++ b/net/minecraft/world/level/block/ButtonBlock.java
-@@ -90,6 +_,11 @@
+@@ -74,6 +_,11 @@
              return InteractionResult.CONSUME;
          }
  
@@ -12,7 +12,7 @@
          this.press(state, level, pos, player);
          return InteractionResult.SUCCESS;
      }
-@@ -97,7 +_,9 @@
+@@ -81,7 +_,9 @@
      @Override
      protected void onExplosionHit(BlockState state, ServerLevel level, BlockPos pos, Explosion explosion, BiConsumer<ItemStack, BlockPos> onHit) {
          if (explosion.canTriggerBlocks() && !state.getValue(POWERED)) {
@@ -23,7 +23,7 @@
          }
  
          super.onExplosionHit(state, level, pos, explosion, onHit);
-@@ -150,6 +_,7 @@
+@@ -134,6 +_,7 @@
  
      @Override
      protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
@@ -31,7 +31,7 @@
          if (!level.isClientSide() && this.type.canButtonBeActivatedByArrows() && !state.getValue(POWERED)) {
              this.checkPressed(state, level, pos);
          }
-@@ -161,7 +_,21 @@
+@@ -145,7 +_,21 @@
              : null;
          boolean shouldBePressed = firstArrow != null;
          boolean wasPressed = state.getValue(POWERED);
@@ -50,6 +50,6 @@
 +                return;
 +            }
 +            // Paper end - Call BlockRedstoneEvent
-             level.setBlock(pos, state.setValue(POWERED, shouldBePressed), 3);
+             level.setBlockAndUpdate(pos, state.setValue(POWERED, shouldBePressed));
              this.updateNeighbours(state, level, pos);
              this.playSound(null, level, pos, shouldBePressed);

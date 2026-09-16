@@ -123,9 +123,7 @@ public final class ChunkTaskScheduler {
         ((ChunkSystemChunkStatus)ChunkStatus.STRUCTURE_STARTS).moonrise$setWriteRadius(0);
         ((ChunkSystemChunkStatus)ChunkStatus.STRUCTURE_REFERENCES).moonrise$setWriteRadius(0);
         ((ChunkSystemChunkStatus)ChunkStatus.BIOMES).moonrise$setWriteRadius(0);
-        ((ChunkSystemChunkStatus)ChunkStatus.NOISE).moonrise$setWriteRadius(0);
-        ((ChunkSystemChunkStatus)ChunkStatus.SURFACE).moonrise$setWriteRadius(0);
-        ((ChunkSystemChunkStatus)ChunkStatus.CARVERS).moonrise$setWriteRadius(0);
+        ((ChunkSystemChunkStatus)ChunkStatus.TERRAIN).moonrise$setWriteRadius(0);
         ((ChunkSystemChunkStatus)ChunkStatus.FEATURES).moonrise$setWriteRadius(1);
         ((ChunkSystemChunkStatus)ChunkStatus.INITIALIZE_LIGHT).moonrise$setWriteRadius(0);
         ((ChunkSystemChunkStatus)ChunkStatus.LIGHT).moonrise$setWriteRadius(2);
@@ -135,9 +133,7 @@ public final class ChunkTaskScheduler {
         ((ChunkSystemChunkStatus)ChunkStatus.EMPTY).moonrise$setEmptyLoadStatus(true);
         ((ChunkSystemChunkStatus)ChunkStatus.STRUCTURE_REFERENCES).moonrise$setEmptyLoadStatus(true);
         ((ChunkSystemChunkStatus)ChunkStatus.BIOMES).moonrise$setEmptyLoadStatus(true);
-        ((ChunkSystemChunkStatus)ChunkStatus.NOISE).moonrise$setEmptyLoadStatus(true);
-        ((ChunkSystemChunkStatus)ChunkStatus.SURFACE).moonrise$setEmptyLoadStatus(true);
-        ((ChunkSystemChunkStatus)ChunkStatus.CARVERS).moonrise$setEmptyLoadStatus(true);
+        ((ChunkSystemChunkStatus)ChunkStatus.TERRAIN).moonrise$setEmptyLoadStatus(true);
         ((ChunkSystemChunkStatus)ChunkStatus.FEATURES).moonrise$setEmptyLoadStatus(true);
         ((ChunkSystemChunkStatus)ChunkStatus.SPAWN).moonrise$setEmptyLoadStatus(true);
 
@@ -162,15 +158,8 @@ public final class ChunkTaskScheduler {
                 // Safe. Mojang runs it in parallel as well.
                 ChunkStatus.BIOMES,
 
-                // Safe. Mojang runs it in parallel as well.
-                ChunkStatus.NOISE,
-
-                // Parallel safe. Only touches the target chunk. Biome retrieval is now noise based, which is
-                // completely thread-safe.
-                ChunkStatus.SURFACE,
-
-                // No global state is modified in the carvers. It only touches the specified chunk. So it is parallel safe.
-                ChunkStatus.CARVERS,
+                // TERRAIN: writes only its own chunk (radius 0), reads biomes and structure starts from neighbours.
+                ChunkStatus.TERRAIN,
 
                 // FEATURES is not parallel safe. It writes to neighbours.
 

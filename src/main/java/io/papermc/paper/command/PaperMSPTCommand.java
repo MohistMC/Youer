@@ -33,9 +33,9 @@ public class PaperMSPTCommand {
         final PaperMSPTCommand command = new PaperMSPTCommand();
 
         return Commands.literal("mspt")
-                .requires(source -> source.getSender().hasPermission("bukkit.command.mspt"))
-                .executes(command::execute)
-                .build();
+            .requires(source -> source.getSender().hasPermission("bukkit.command.mspt"))
+            .executes(command::execute)
+            .build();
     }
 
     private int execute(CommandContext<CommandSourceStack> context) {
@@ -48,33 +48,33 @@ public class PaperMSPTCommand {
         times.addAll(eval(server.tickTimes1m));
 
         sender.sendMessage(text().content("Server tick times ").color(GOLD)
-                .append(text().color(YELLOW)
-                        .append(
-                                text("("),
-                                text("avg", GRAY),
-                                text("/"),
-                                text("min", GRAY),
-                                text("/"),
-                                text("max", GRAY),
-                                text(")")
-                        )
-                ).append(
-                        text(" from last 5s"),
-                        text(",", GRAY),
-                        text(" 10s"),
-                        text(",", GRAY),
-                        text(" 1m"),
-                        text(":", YELLOW)
+            .append(text().color(YELLOW)
+                .append(
+                    text("("),
+                    text("avg", GRAY),
+                    text("/"),
+                    text("min", GRAY),
+                    text("/"),
+                    text("max", GRAY),
+                    text(")")
                 )
+            ).append(
+                text(" from last 5s"),
+                text(",", GRAY),
+                text(" 10s"),
+                text(",", GRAY),
+                text(" 1m"),
+                text(":", YELLOW)
+            )
         );
         sender.sendMessage(text().content("◴ ").color(GOLD)
-                .append(text().color(GRAY)
-                        .append(
-                                times.get(0), SLASH, times.get(1), SLASH, times.get(2), text(", ", YELLOW),
-                                times.get(3), SLASH, times.get(4), SLASH, times.get(5), text(", ", YELLOW),
-                                times.get(6), SLASH, times.get(7), SLASH, times.get(8)
-                        )
+            .append(text().color(GRAY)
+                .append(
+                    times.get(0), SLASH, times.get(1), SLASH, times.get(2), text(", ", YELLOW),
+                    times.get(3), SLASH, times.get(4), SLASH, times.get(5), text(", ", YELLOW),
+                    times.get(6), SLASH, times.get(7), SLASH, times.get(8)
                 )
+            )
         );
         return Command.SINGLE_SUCCESS;
     }

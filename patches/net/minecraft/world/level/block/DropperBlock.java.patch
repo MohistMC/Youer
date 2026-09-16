@@ -1,14 +1,15 @@
 --- a/net/minecraft/world/level/block/DropperBlock.java
 +++ b/net/minecraft/world/level/block/DropperBlock.java
-@@ -8,7 +_,6 @@
- import net.minecraft.core.dispenser.DefaultDispenseItemBehavior;
- import net.minecraft.core.dispenser.DispenseItemBehavior;
- import net.minecraft.server.level.ServerLevel;
--import net.minecraft.world.Container;
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.level.Level;
- import net.minecraft.world.level.block.entity.BlockEntity;
-@@ -53,22 +_,51 @@
+@@ -38,7 +_,7 @@
+     }
+ 
+     @Override
+-    protected void dispenseFrom(ServerLevel level, BlockState state, BlockPos pos) {
++    public void dispenseFrom(ServerLevel level, BlockState state, BlockPos pos) {
+         DispenserBlockEntity blockEntity = level.getBlockEntity(pos, BlockEntityTypes.DROPPER).orElse(null);
+         if (blockEntity == null) {
+             LOGGER.warn("Ignoring dispensing attempt for Dropper without matching block entity at {}", pos);
+@@ -46,22 +_,51 @@
              BlockSource source = new BlockSource(level, pos, state, blockEntity);
              int slot = blockEntity.getRandomSlot(level.getRandom());
              if (slot < 0) {
@@ -33,7 +34,7 @@
 -                            remaining.shrink(1);
 +                        if (into.container() != null) {
 +                            // CraftBukkit start - Fire event when pushing items into other inventories
-+                            org.bukkit.craftbukkit.inventory.CraftItemStack oitemstack = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(itemStack.copyWithCount(1));
++                            org.bukkit.inventory.ItemStack oitemstack = org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(itemStack.copyWithCount(1));
 +
 +                            org.bukkit.inventory.Inventory destinationInventory;
 +                            // Have to special case large chests as they work oddly

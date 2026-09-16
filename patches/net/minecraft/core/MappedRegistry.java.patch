@@ -1,6 +1,6 @@
 --- a/net/minecraft/core/MappedRegistry.java
 +++ b/net/minecraft/core/MappedRegistry.java
-@@ -30,26 +_,47 @@
+@@ -30,7 +_,7 @@
  import net.minecraft.util.Util;
  import org.jspecify.annotations.Nullable;
  
@@ -8,19 +8,8 @@
 +public class MappedRegistry<T> extends net.neoforged.neoforge.registries.BaseMappedRegistry<T> implements WritableRegistry<T> {
      private final ResourceKey<? extends Registry<T>> key;
      private final ObjectList<Holder.Reference<T>> byId = new ObjectArrayList<>(256);
--    private final Reference2IntMap<T> toId = Util.make(new Reference2IntOpenHashMap<>(), t -> t.defaultReturnValue(-1));
--    private final Map<Identifier, Holder.Reference<T>> byLocation = new HashMap<>();
--    private final Map<ResourceKey<T>, Holder.Reference<T>> byKey = new HashMap<>();
--    private final Map<T, Holder.Reference<T>> byValue = new IdentityHashMap<>();
--    private final Map<ResourceKey<T>, RegistrationInfo> registrationInfos = new IdentityHashMap<>();
-+    private final Reference2IntMap<T> toId = Util.make(new Reference2IntOpenHashMap<>(2048), t -> t.defaultReturnValue(-1)); // Paper - Perf: Use bigger expected size to reduce collisions
-+    private final Map<Identifier, Holder.Reference<T>> byLocation = new HashMap<>(2048); // Paper - Perf: Use bigger expected size to reduce collisions
-+    private final Map<ResourceKey<T>, Holder.Reference<T>> byKey = new HashMap<>(2048); // Paper - Perf: Use bigger expected size to reduce collisions
-+    private final Map<T, Holder.Reference<T>> byValue = new IdentityHashMap<>(2048); // Paper - Perf: Use bigger expected size to reduce collisions
-+    private final Map<ResourceKey<T>, RegistrationInfo> registrationInfos = new IdentityHashMap<>(2048); // Paper - Perf: Use bigger expected size to reduce collisions
-     private Lifecycle registryLifecycle;
-     private final Map<TagKey<T>, HolderSet.Named<T>> frozenTags = new IdentityHashMap<>();
-     private MappedRegistry.TagSet<T> allTags = MappedRegistry.TagSet.unbound();
+     private final Reference2IntMap<T> toId = Util.make(new Reference2IntOpenHashMap<>(), t -> t.defaultReturnValue(-1));
+@@ -44,12 +_,33 @@
      private @Nullable DataComponentLookup<T> componentLookup;
      private boolean frozen;
      private @Nullable Map<T, Holder.Reference<T>> unregisteredIntrusiveHolders;
@@ -180,7 +169,7 @@
          }
  
          List<Identifier> unboundTags = this.frozenTags
-@@ -443,6 +_,12 @@
+@@ -448,6 +_,12 @@
                  return patchedHolder;
              }
  
@@ -193,7 +182,7 @@
              @Override
              public void apply() {
                  pendingTags.forEach((id, tag) -> {
-@@ -455,6 +_,55 @@
+@@ -460,6 +_,55 @@
          };
      }
  
@@ -249,7 +238,7 @@
      private interface TagSet<T> {
          static <T> MappedRegistry.TagSet<T> unbound() {
              return new MappedRegistry.TagSet<T>() {
-@@ -512,4 +_,13 @@
+@@ -517,4 +_,13 @@
  
          Stream<HolderSet.Named<T>> getTags();
      }

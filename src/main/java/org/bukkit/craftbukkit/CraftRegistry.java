@@ -85,27 +85,7 @@ public class CraftRegistry<B extends Keyed, M> implements Registry<B> {
                 yield ((CraftRegistry<B, M>) bukkitRegistry).createBukkit(direct);
             }
             case final Holder.Reference<M> reference -> bukkitRegistry.get(CraftNamespacedKey.fromResourceKey(reference.key()));
-            // Youer start - convert DeferredHolder / other non-standard holders
-            default -> {
-                final Optional<ResourceKey<M>> key = minecraft.unwrapKey();
-                if (key.isPresent()) {
-                    final B mirrored = bukkitRegistry.get(CraftNamespacedKey.fromResourceKey(key.get()));
-                    if (mirrored != null) {
-                        yield mirrored;
-                    }
-                    // DeferredHolder is not a Holder.Reference; resolve its value from the NMS registry by key
-                    M value = null;
-                    try {
-                        value = CraftRegistry.getMinecraftRegistry(registryKey).get(key.get()).map(Holder.Reference::value).orElse(null);
-                    } catch (final RuntimeException ignored) {
-                    }
-                    if (value != null && bukkitRegistry instanceof final CraftRegistry<?, ?> craftRegistry && craftRegistry.supportsDirectHolders()) {
-                        yield ((CraftRegistry<B, M>) craftRegistry).createBukkit(Holder.direct(value));
-                    }
-                }
-                throw new IllegalArgumentException("Unknown holder: " + minecraft);
-            }
-            // Youer end
+            default -> throw new IllegalArgumentException("Unknown holder: " + minecraft);
         };
         Preconditions.checkArgument(bukkit != null);
 
@@ -297,7 +277,7 @@ public class CraftRegistry<B extends Keyed, M> implements Registry<B> {
     @Override
     public String toString() {
         return "CraftRegistry{" +
-                "minecraftRegistry=" + minecraftRegistry.key() +
-                '}';
+            "minecraftRegistry=" + minecraftRegistry.key() +
+            '}';
     }
 }

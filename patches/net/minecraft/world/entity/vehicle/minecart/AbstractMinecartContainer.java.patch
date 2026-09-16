@@ -7,7 +7,7 @@
  import net.minecraft.core.NonNullList;
  import net.minecraft.resources.ResourceKey;
  import net.minecraft.server.level.ServerLevel;
-@@ -20,13 +_,68 @@
+@@ -20,12 +_,67 @@
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.level.storage.loot.LootTable;
  import net.minecraft.world.phys.Vec3;
@@ -20,10 +20,12 @@
  
  public abstract class AbstractMinecartContainer extends AbstractMinecart implements ContainerEntity {
 -    private NonNullList<ItemStack> itemStacks = NonNullList.withSize(36, ItemStack.EMPTY);
+-    private @Nullable ResourceKey<LootTable> lootTable;
+-    private long lootTableSeed;
 +    private NonNullList<ItemStack> itemStacks = NonNullList.withSize(this.getContainerSize(), ItemStack.EMPTY);
-     public @Nullable ResourceKey<LootTable> lootTable;
-     public long lootTableSeed;
- 
++    public @Nullable ResourceKey<LootTable> lootTable;
++    public long lootTableSeed;
++
 +    private final com.destroystokyo.paper.loottable.PaperLootableInventoryData lootableData = new com.destroystokyo.paper.loottable.PaperLootableInventoryData(); // Paper - LootTable API
 +
 +    // Paper start - LootTable API
@@ -73,10 +75,9 @@
 +        return getBukkitEntity().getLocation();
 +    }
 +    // CraftBukkit end
-+
+ 
      protected AbstractMinecartContainer(EntityType<?> type, Level level) {
          super(type, level);
-     }
 @@ -73,11 +_,18 @@
  
      @Override

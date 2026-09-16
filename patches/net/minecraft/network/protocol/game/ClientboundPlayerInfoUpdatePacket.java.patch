@@ -1,6 +1,6 @@
 --- a/net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket.java
 +++ b/net/minecraft/network/protocol/game/ClientboundPlayerInfoUpdatePacket.java
-@@ -40,6 +_,18 @@
+@@ -43,6 +_,18 @@
          this.entries = List.of(new ClientboundPlayerInfoUpdatePacket.Entry(player));
      }
  
@@ -19,10 +19,11 @@
      public static ClientboundPlayerInfoUpdatePacket createPlayerInitializing(Collection<ServerPlayer> players) {
          EnumSet<ClientboundPlayerInfoUpdatePacket.Action> actions = EnumSet.of(
              ClientboundPlayerInfoUpdatePacket.Action.ADD_PLAYER,
-@@ -54,6 +_,47 @@
+@@ -57,7 +_,48 @@
          return new ClientboundPlayerInfoUpdatePacket(actions, players);
      }
  
+-    private static StreamCodec<RegistryFriendlyByteBuf, ClientboundPlayerInfoUpdatePacket.Entry> entryCodec(
 +    // Paper start - Add Listing API for Player
 +    public static ClientboundPlayerInfoUpdatePacket createPlayerInitializing(Collection<ServerPlayer> players, ServerPlayer forPlayer) {
 +        final EnumSet<ClientboundPlayerInfoUpdatePacket.Action> enumSet = EnumSet.of(
@@ -63,11 +64,12 @@
 +        return new ClientboundPlayerInfoUpdatePacket(enumSet, new ClientboundPlayerInfoUpdatePacket.Entry(playerInfoId, listed));
 +    }
 +    // Paper end - Add Listing API for Player
-+
-     private ClientboundPlayerInfoUpdatePacket(RegistryFriendlyByteBuf input) {
-         this.actions = input.readEnumSet(ClientboundPlayerInfoUpdatePacket.Action.class);
-         this.entries = input.readList(buf -> {
-@@ -157,10 +_,15 @@
++	
++	private static StreamCodec<RegistryFriendlyByteBuf, ClientboundPlayerInfoUpdatePacket.Entry> entryCodec(
+         EnumSet<ClientboundPlayerInfoUpdatePacket.Action> actions
+     ) {
+         return StreamCodec.of((output, entry) -> {
+@@ -176,10 +_,15 @@
          RemoteChatSession.@Nullable Data chatSession
      ) {
          private Entry(ServerPlayer player) {
@@ -84,7 +86,7 @@
                  player.connection.latency(),
                  player.gameMode(),
                  player.getTabListDisplayName(),
-@@ -169,6 +_,11 @@
+@@ -188,6 +_,11 @@
                  Optionull.map(player.getChatSession(), RemoteChatSession::asData)
              );
          }

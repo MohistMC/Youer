@@ -25,12 +25,13 @@ import io.papermc.paper.math.Position;
 import io.papermc.paper.util.MCUtil;
 import it.unimi.dsi.fastutil.shorts.ShortArraySet;
 import it.unimi.dsi.fastutil.shorts.ShortSet;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.charset.StandardCharsets;
-import com.mohistmc.youer.YouerConfig;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -47,6 +48,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.WeakHashMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import net.kyori.adventure.dialog.DialogLike;
 import net.kyori.adventure.identity.Identity;
@@ -106,7 +109,6 @@ import net.minecraft.network.protocol.game.ClientboundTabListPacket;
 import net.minecraft.network.protocol.game.ClientboundUpdateAttributesPacket;
 import net.minecraft.network.protocol.game.ClientboundUpdateMobEffectPacket;
 import net.minecraft.resources.Identifier;
-import net.minecraft.network.ConnectionProtocol;
 import net.minecraft.server.PlayerAdvancements;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerLevel;
@@ -116,6 +118,7 @@ import net.minecraft.server.permissions.LevelBasedPermissionSet;
 import net.minecraft.server.permissions.PermissionLevel;
 import net.minecraft.server.players.UserWhiteListEntry;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.util.Prediction;
 import net.minecraft.util.ProblemReporter;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
@@ -130,6 +133,7 @@ import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.entity.SignText;
+import net.minecraft.world.level.block.entity.SignTextSlot;
 import net.minecraft.world.level.border.BorderChangeListener;
 import net.minecraft.world.level.saveddata.maps.MapDecoration;
 import net.minecraft.world.level.saveddata.maps.MapId;
@@ -138,9 +142,6 @@ import net.minecraft.world.level.storage.LevelData;
 import net.minecraft.world.level.storage.TagValueInput;
 import net.minecraft.world.level.storage.ValueInput;
 import net.minecraft.world.level.storage.ValueOutput;
-import net.neoforged.neoforge.network.PacketDistributor;
-import net.neoforged.neoforge.network.payload.MinecraftRegisterPayload;
-import net.neoforged.neoforge.network.registration.NetworkRegistry;
 import org.bukkit.BanEntry;
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
@@ -190,6 +191,7 @@ import org.bukkit.craftbukkit.block.CraftBlockEntityState;
 import org.bukkit.craftbukkit.block.CraftBlockState;
 import org.bukkit.craftbukkit.block.CraftSign;
 import org.bukkit.craftbukkit.block.data.CraftBlockData;
+import org.bukkit.craftbukkit.block.sign.CraftSignSide;
 import org.bukkit.craftbukkit.conversations.ConversationTracker;
 import org.bukkit.craftbukkit.event.CraftEventFactory;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
@@ -1094,7 +1096,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
 
     // Paper start
     @Override
-    public void sendSignChange(Location loc, @Nullable List<? extends net.kyori.adventure.text.Component> lines, DyeColor dyeColor, boolean hasGlowingText) {
+    public void sendSignChange(Location loc, @Nullable List<? extends net.kyori.adventure.text.Component> lines, DyeColor color, boolean hasGlowingText) {
         if (getHandle().connection == null) {
             return;
         }
@@ -1102,52 +1104,44 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
             lines = new java.util.ArrayList<>(4);
         }
         Preconditions.checkArgument(loc != null, "Location cannot be null");
-        Preconditions.checkArgument(dyeColor != null, "DyeColor cannot be null");
+        Preconditions.checkArgument(color != null, "DyeColor cannot be null");
         if (lines.size() < 4) {
             throw new IllegalArgumentException("Must have at least 4 lines");
         }
         Component[] components = CraftSign.sanitizeLines(lines);
-        this.sendSignChange0(components, loc, dyeColor, hasGlowingText);
+        this.sendSignChange0(components, loc, color, hasGlowingText);
     }
     // Paper end
 
     @Override
-    public void sendSignChange(Location loc, @Nullable String @Nullable [] lines) {
-        this.sendSignChange(loc, lines, DyeColor.BLACK);
-    }
-
-    @Override
-    public void sendSignChange(Location loc, @Nullable String @Nullable [] lines, DyeColor dyeColor) {
-        this.sendSignChange(loc, lines, dyeColor, false);
-    }
-
-    @Override
-    public void sendSignChange(Location loc, @Nullable String @Nullable [] lines, DyeColor dyeColor, boolean hasGlowingText) {
+    public void sendSignChange(Location loc, @Nullable String @Nullable [] lines, DyeColor color, boolean hasGlowingText) {
         Preconditions.checkArgument(loc != null, "Location cannot be null");
-        Preconditions.checkArgument(dyeColor != null, "DyeColor cannot be null");
+        Preconditions.checkArgument(color != null, "DyeColor cannot be null");
+        Preconditions.checkArgument(lines == null || lines.length >= SignText.LINES, "Must have at least %s lines (%s)", SignText.LINES, lines.length);
+        if (this.getHandle().connection == null) return;
 
         if (lines == null) {
-            lines = new String[4];
+            lines = new String[SignText.LINES];
         }
-        Preconditions.checkArgument(lines.length >= 4, "Must have at least 4 lines (%s)", lines.length);
-
-        if (this.getHandle().connection == null) return;
 
         Component[] components = CraftSign.sanitizeLines(lines);
         // Paper start - adventure
-        this.sendSignChange0(components, loc, dyeColor, hasGlowingText);
+        this.sendSignChange0(components, loc, color, hasGlowingText);
     }
 
-    private void sendSignChange0(Component[] components, Location loc, DyeColor dyeColor, boolean hasGlowingText) {
+    private void sendSignChange0(Component[] components, Location loc, DyeColor color, boolean hasGlowingText) {
         // Paper end
         SignBlockEntity sign = new SignBlockEntity(CraftLocation.toBlockPos(loc), Blocks.OAK_SIGN.defaultBlockState());
-        SignText text = sign.getFrontText();
-        text = text.setColor(net.minecraft.world.item.DyeColor.byId(dyeColor.getWoolData()));
-        text = text.setHasGlowingText(hasGlowingText);
+        SignText text = sign.getText(SignTextSlot.FRONT);
+        SignText.Mutable mutableText = text.asMutable();
+
+        mutableText.setColor(net.minecraft.world.item.DyeColor.byId(color.getWoolData()));
+        mutableText.setTextGlowing(hasGlowingText);
+
         for (int i = 0; i < components.length; i++) {
-            text = text.setMessage(i, components[i]);
+            mutableText = mutableText.setLine(i, components[i]);
         }
-        sign.setText(text, true);
+        sign.setText(mutableText.asImmutable(), SignTextSlot.FRONT);
 
         this.getHandle().connection.send(new ClientboundBlockEntityDataPacket(sign.getBlockPos(), sign.getType(), sign.getUpdateTag(this.getHandle().registryAccess())));
     }
@@ -2306,20 +2300,18 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
 
     @Override
     public void sendPluginMessage(Plugin source, String channel, byte[] message) {
-        if (YouerConfig.pluginchannel_debug) System.out.println("Plugin message from " + channel + ": " + new String(message, StandardCharsets.UTF_8));
         StandardMessenger.validatePluginMessage(this.server.getMessenger(), source, channel, message);
         if (this.getHandle().connection == null) return;
 
-        Identifier id = Identifier.parse(StandardMessenger.validateAndCorrectChannel(channel));
-        // Accept channels the client declared via vanilla minecraft:register (pluginMessagerChannels) or channels
-        // negotiated by a NeoForge modded client (ChannelAttributes).
-        if (this.channels().contains(channel) || NetworkRegistry.hasChannel(this.getHandle().connection.getConnection(), ConnectionProtocol.PLAY, id)) {
-            ((StandardMessenger) this.server.getMessenger()).sendCustomPayload(source, this, id, message);
+        if (this.channels().contains(channel)) {
+            Identifier id = Identifier.parse(StandardMessenger.validateAndCorrectChannel(channel));
+            this.sendCustomPayload(id, message);
         }
     }
 
     private void sendCustomPayload(Identifier id, byte[] message) {
-        ((StandardMessenger) this.server.getMessenger()).sendCustomPayload(null, this, id, message);
+        ClientboundCustomPayloadPacket packet = new ClientboundCustomPayloadPacket(new DiscardedPayload(id, message));
+        //this.getHandle().connection.send(packet);
     }
 
     @Override
@@ -2468,11 +2460,18 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
         Set<String> listening = this.server.getMessenger().getIncomingChannels();
 
         if (!listening.isEmpty()) {
-            Set<Identifier> newChannels = new HashSet<>();
+            ByteArrayOutputStream stream = new ByteArrayOutputStream();
+
             for (String channel : listening) {
-                newChannels.add(Identifier.parse(channel));
+                try {
+                    stream.write(channel.getBytes(StandardCharsets.UTF_8));
+                    stream.write((byte) 0);
+                } catch (IOException ex) {
+                    Logger.getLogger(CraftPlayer.class.getName()).log(Level.SEVERE, "Could not send Plugin Channel REGISTER to " + this.getName(), ex);
+                }
             }
-            PacketDistributor.sendToPlayer(this.getHandle(), new MinecraftRegisterPayload(newChannels));
+
+            this.sendCustomPayload(ServerGamePacketListenerImpl.CUSTOM_REGISTER, stream.toByteArray());
         }
     }
 
@@ -2553,6 +2552,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
         return getHandle().flyingFallDamage;
     }
     // Paper end - flying fall damage
+
 
     @Override
     public void resetFlyingTicks() {
@@ -2794,8 +2794,17 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
     }
 
     @Override
-    public <T> void spawnParticle(Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double extra, T data, boolean force) {
-        ClientboundLevelParticlesPacket packet = new ClientboundLevelParticlesPacket(CraftParticle.createParticleParam(particle, data), force, false, x, y, z, (float) offsetX, (float) offsetY, (float) offsetZ, (float) extra, count); // Paper - fix x/y/z precision loss
+    public <T> void spawnParticle(Particle particle, double x, double y, double z, int count, double offsetX, double offsetY, double offsetZ, double speedX, double speedY, double speedZ, T data, boolean force, Particle.RandomizationType randomizationType) {
+        ClientboundLevelParticlesPacket packet = new ClientboundLevelParticlesPacket(
+            CraftParticle.createParticleParam(particle, data),
+            force,
+            false,
+            x, y, z,
+            (float) offsetX, (float) offsetY, (float) offsetZ,
+            (float) speedX, (float) speedY, (float) speedZ,
+            count,
+            ClientboundLevelParticlesPacket.RandomizationType.valueOf(randomizationType.name())
+        );
         this.getHandle().connection.send(packet);
     }
 
@@ -2863,7 +2872,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
     public void openVirtualSign(Position block, Side side) {
         if (this.getHandle().connection == null) return;
 
-        this.getHandle().connection.send(new ClientboundOpenSignEditorPacket(MCUtil.toBlockPos(block), side == Side.FRONT));
+        this.getHandle().connection.send(new ClientboundOpenSignEditorPacket(MCUtil.toBlockPos(block), CraftSignSide.toVanilla(side)));
     }
 
     @Override
@@ -3376,7 +3385,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
             leftovers.add(CraftItemStack.asBukkitCopy(nmsStack)); // Insert copy to avoid mutation to the dropped item from affecting leftovers
             if (!dropIfFull) continue;
 
-            final ItemEntity entity = handle.drop(nmsStack, false, true);
+            final ItemEntity entity = handle.drop(nmsStack, true, Prediction.PREDICTED);
             if (entity != null) drops.add((Item) entity.getBukkitEntity());
         }
 
@@ -3494,7 +3503,7 @@ public class CraftPlayer extends CraftHumanEntity implements Player, PluginMessa
     @Override
     public void knockback(final double strength, final double directionX, final double directionZ) {
         super.knockback(strength, directionX, directionZ);
-        this.entity.hurtMarked = true;
+        this.entity.syncVelocity = true;
     }
 
     @Override

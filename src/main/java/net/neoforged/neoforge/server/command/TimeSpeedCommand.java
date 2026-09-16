@@ -12,7 +12,6 @@ import com.mojang.brigadier.builder.ArgumentBuilder;
 import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.commands.Commands;
 import net.minecraft.network.chat.Component;
-import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.gamerules.GameRules;
 
 class TimeSpeedCommand {
@@ -41,7 +40,7 @@ class TimeSpeedCommand {
             return Command.SINGLE_SUCCESS;
         }
 
-        final float speed = clockManager.getRate(defaultClock);
+        final float speed = clockManager.getInstance(defaultClock).rate();
         if (speed == 1) {
             source.sendSuccess(() -> CommandUtils.makeTranslatableWithFallback("commands.neoforge.timespeed.query.default", levelName(source)), true);
         } else {
@@ -62,10 +61,10 @@ class TimeSpeedCommand {
         var gameRules = source.getLevel().getGameRules();
         final var advanceTime = gameRules.get(GameRules.ADVANCE_TIME);
         if (!advanceTime && speed > 0) {
-            gameRules.set(GameRules.ADVANCE_TIME, true, (ServerLevel) null);
+            gameRules.set(GameRules.ADVANCE_TIME, true, null);
             source.sendSuccess(() -> CommandUtils.makeTranslatableWithFallback("commands.gamerule.set", GameRules.ADVANCE_TIME.id(), gameRules.getAsString(GameRules.ADVANCE_TIME)), true);
         } else if (advanceTime && speed == 0) {
-            gameRules.set(GameRules.ADVANCE_TIME, false, (ServerLevel) null);
+            gameRules.set(GameRules.ADVANCE_TIME, false, null);
             source.sendSuccess(() -> CommandUtils.makeTranslatableWithFallback("commands.gamerule.set", GameRules.ADVANCE_TIME.id(), gameRules.getAsString(GameRules.ADVANCE_TIME)), true);
             return Command.SINGLE_SUCCESS;
         }

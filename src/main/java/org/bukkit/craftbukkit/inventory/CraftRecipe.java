@@ -1,7 +1,6 @@
 package org.bukkit.craftbukkit.inventory;
 
 import com.google.common.base.Preconditions;
-import com.mohistmc.youer.bukkit.inventory.YouerSpecialIngredient;
 import io.papermc.paper.registry.RegistryKey;
 import io.papermc.paper.registry.data.util.Conversions;
 import io.papermc.paper.registry.set.PaperRegistrySets;
@@ -13,7 +12,6 @@ import java.util.Optional;
 import java.util.function.Predicate;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.crafting.Ingredient;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.ItemType;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.RecipeChoice;
@@ -43,7 +41,6 @@ public interface CraftRecipe extends Recipe {
             stack = Ingredient.of(((RecipeChoice.MaterialChoice) bukkit).getChoices().stream().map(CraftItemType::bukkitToMinecraft));
         } else if (bukkit instanceof RecipeChoice.ExactChoice) {
             stack = Ingredient.ofStacks(((RecipeChoice.ExactChoice) bukkit).getChoices().stream().map(CraftItemStack::asNMSCopy).toList());
-            stack.predicate = ((RecipeChoice.ExactChoice) bukkit).getPredicate(); // Purpur - Add predicate to recipe's ExactChoice ingredient
             // Paper start - support "empty" choices - legacy method that spigot might incorrectly call
             // Their impl of Ingredient.of() will error, ingredients need at least one entry.
             // Callers running into this exception may have passed an incorrect empty() recipe choice to a non-empty slot or
@@ -55,7 +52,7 @@ public interface CraftRecipe extends Recipe {
             throw new IllegalArgumentException("Unknown recipe stack instance " + bukkit);
         }
 
-        if (stack.isVanilla() && requireNotEmpty) {
+        if (requireNotEmpty) {
             Preconditions.checkArgument(!stack.isEmpty(), "Recipe requires at least one non-air choice");
         }
 
@@ -67,17 +64,13 @@ public interface CraftRecipe extends Recipe {
     }
 
     static RecipeChoice toChoice(Ingredient ingredient) {
-
-        if (ingredient.isCustom() || !ingredient.isVanilla()) {
-            return new YouerSpecialIngredient(ingredient);
-        }
         if (ingredient.isEmpty()) {
             return RecipeChoice.empty(); // Paper - null breaks API contracts
         }
 
         if (ingredient.stackPredicate != null) {
             net.minecraft.world.item.ItemStack stack = ingredient.itemStacks().iterator().next();
-            Predicate<ItemStack> predicate = bukkitStack -> ingredient.stackPredicate.test(CraftItemStack.asNMSCopy(bukkitStack));
+            Predicate<org.bukkit.inventory.ItemStack> predicate = bukkitStack -> ingredient.stackPredicate.test(CraftItemStack.asNMSCopy(bukkitStack));
             return RecipeChoice.predicateChoice(predicate, CraftItemStack.asBukkitCopy(stack));
         }
 
@@ -90,9 +83,6 @@ public interface CraftRecipe extends Recipe {
             return RecipeChoice.exactChoice(choices);
         } else {
             final RegistryKeySet<ItemType> itemTypes = PaperRegistrySets.convertToApi(RegistryKey.ITEM, ingredient.values);
-            if (itemTypes.isEmpty()) {
-                return RecipeChoice.empty();
-            }
             return RecipeChoice.itemType(itemTypes);
         }
     }

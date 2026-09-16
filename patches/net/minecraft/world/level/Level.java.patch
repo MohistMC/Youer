@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/Level.java
 +++ b/net/minecraft/world/level/Level.java
-@@ -1,20 +_,23 @@
+@@ -1,14 +_,20 @@
  package net.minecraft.world.level;
  
  import com.google.common.collect.Lists;
@@ -10,7 +10,8 @@
  import com.mojang.serialization.Codec;
  import java.io.IOException;
  import java.util.Collection;
--import java.util.Iterator;
++import java.util.HashMap;
+ import java.util.Iterator;
  import java.util.List;
  import java.util.Locale;
 +import java.util.Map;
@@ -20,13 +21,7 @@
  import java.util.function.Consumer;
  import java.util.function.Predicate;
  import java.util.stream.Collectors;
- import net.minecraft.CrashReport;
- import net.minecraft.CrashReportCategory;
--import net.minecraft.ReportedException;
- import net.minecraft.core.BlockPos;
- import net.minecraft.core.Direction;
- import net.minecraft.core.Holder;
-@@ -30,6 +_,7 @@
+@@ -30,9 +_,11 @@
  import net.minecraft.resources.ResourceKey;
  import net.minecraft.server.MinecraftServer;
  import net.minecraft.server.level.FullChunkStatus;
@@ -34,40 +29,71 @@
  import net.minecraft.sounds.SoundEvent;
  import net.minecraft.sounds.SoundEvents;
  import net.minecraft.sounds.SoundSource;
-@@ -61,6 +_,7 @@
- import net.minecraft.world.level.block.BaseFireBlock;
++import net.minecraft.util.AbortableIterationConsumer;
+ import net.minecraft.util.Continuation;
+ import net.minecraft.util.Mth;
+ import net.minecraft.util.RandomSource;
+@@ -48,7 +_,6 @@
+ import net.minecraft.world.damagesource.DamageSource;
+ import net.minecraft.world.damagesource.DamageSources;
+ import net.minecraft.world.entity.Entity;
+-import net.minecraft.world.entity.EntityEvent;
+ import net.minecraft.world.entity.EntitySelector;
+ import net.minecraft.world.entity.boss.enderdragon.EnderDragon;
+ import net.minecraft.world.entity.boss.enderdragon.EnderDragonPart;
+@@ -58,6 +_,7 @@
+ import net.minecraft.world.item.crafting.RecipeAccess;
+ import net.minecraft.world.level.biome.Biome;
+ import net.minecraft.world.level.biome.BiomeManager;
++import net.minecraft.world.level.block.BaseFireBlock;
  import net.minecraft.world.level.block.Block;
  import net.minecraft.world.level.block.Blocks;
-+import net.minecraft.world.level.block.LevelEvent;
- import net.minecraft.world.level.block.entity.BlockEntity;
- import net.minecraft.world.level.block.entity.FuelValues;
- import net.minecraft.world.level.block.entity.TickingBlockEntity;
-@@ -86,13 +_,21 @@
+ import net.minecraft.world.level.block.LevelEvent;
+@@ -70,6 +_,7 @@
+ import net.minecraft.world.level.chunk.PalettedContainerFactory;
+ import net.minecraft.world.level.chunk.status.ChunkStatus;
+ import net.minecraft.world.level.dimension.DimensionType;
++import net.minecraft.world.level.dimension.LevelStem;
+ import net.minecraft.world.level.entity.EntityTypeTest;
+ import net.minecraft.world.level.entity.LevelEntityGetter;
+ import net.minecraft.world.level.gameevent.GameEvent;
+@@ -85,13 +_,25 @@
  import net.minecraft.world.level.storage.WritableLevelData;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
 +import net.minecraft.world.phys.shapes.VoxelShape;
  import net.minecraft.world.scores.Scoreboard;
-+import net.neoforged.neoforge.common.extensions.ILevelExtension;
  import org.apache.commons.lang3.mutable.MutableBoolean;
 +import org.bukkit.Bukkit;
 +import org.bukkit.Location;
 +import org.bukkit.craftbukkit.CraftServer;
 +import org.bukkit.craftbukkit.CraftWorld;
++import org.bukkit.craftbukkit.block.CapturedBlockState;
 +import org.bukkit.craftbukkit.block.CraftBlockState;
 +import org.bukkit.craftbukkit.block.data.CraftBlockData;
 +import org.bukkit.craftbukkit.util.CraftNamespacedKey;
++import org.bukkit.craftbukkit.util.CraftSpawnCategory;
 +import org.bukkit.entity.SpawnCategory;
++import org.bukkit.event.block.BlockPhysicsEvent;
  import org.jspecify.annotations.Nullable;
  
--import net.neoforged.neoforge.common.extensions.ILevelExtension;
--
+ import net.neoforged.neoforge.common.extensions.ILevelExtension;
+ 
 -public abstract class Level implements LevelAccessor, AutoCloseable, ILevelExtension {
 +public abstract class Level extends net.neoforged.neoforge.attachment.AttachmentHolder implements LevelAccessor, AutoCloseable, ILevelExtension, ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemLevel, ca.spottedleaf.moonrise.patches.chunk_system.world.ChunkSystemEntityGetter { // Paper - rewrite chunk system // Paper - optimise collisions
      public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registries.DIMENSION);
      public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registries.DIMENSION, Identifier.withDefaultNamespace("overworld"));
      public static final ResourceKey<Level> NETHER = ResourceKey.create(Registries.DIMENSION, Identifier.withDefaultNamespace("the_nether"));
-@@ -121,7 +_,7 @@
+@@ -111,7 +_,7 @@
+     protected final CollectingNeighborUpdater neighborUpdater;
+     private final List<TickingBlockEntity> pendingBlockEntityTickers = Lists.newArrayList();
+     private boolean tickingBlockEntities;
+-    protected final Thread thread;
++    public final Thread thread;
+     private final boolean isDebug;
+     private int skyDarken;
+     protected int randValue = RandomSource.createThreadLocalInstance().nextInt();
+@@ -120,11 +_,11 @@
      public float rainLevel;
      public float oThunderLevel;
      public float thunderLevel;
@@ -76,7 +102,12 @@
      @Deprecated
      private final RandomSource soundSeedGenerator = RandomSource.createThreadSafe();
      private final Holder<DimensionType> dimensionTypeRegistration;
-@@ -133,6 +_,734 @@
+-    protected final WritableLevelData levelData;
++    public final WritableLevelData levelData;
+     private final boolean isClientSide;
+     private final BiomeManager biomeManager;
+     private final ResourceKey<Level> dimension;
+@@ -132,6 +_,734 @@
      private final DamageSources damageSources;
      private final PalettedContainerFactory palettedContainerFactory;
      private long subTickCount;
@@ -204,7 +235,7 @@
 +    }
 +
 +    @Override
-+    public <T extends Entity> List<T> getEntitiesOfClass(final Class<T> entityClass, final AABB boundingBox, final Predicate<? super T> predicate) {
++    public final <T extends Entity> List<T> getEntitiesOfClass(final Class<T> entityClass, final AABB boundingBox, final Predicate<? super T> predicate) {
 +        Profiler.get().incrementCounter("getEntities");
 +        final List<T> ret = new java.util.ArrayList<>();
 +
@@ -811,7 +842,7 @@
  
      protected Level(
          WritableLevelData levelData,
-@@ -143,7 +_,37 @@
+@@ -142,7 +_,37 @@
          boolean isDebug,
          long biomeZoomSeed,
          int maxChainedNeighborUpdates
@@ -838,7 +869,7 @@
 +        this.purpurConfig = new org.purpurmc.purpur.PurpurWorldConfig(bukkitName, environment, worldKey); // Purpur - Purpur config files
 +        this.playerBreedingCooldowns = this.getNewBreedingCooldownCache(); // Purpur - Add adjustable breeding cooldown to config
 +        this.generator = generator;
-+        this.world = this instanceof ServerLevel ? new CraftWorld((ServerLevel) this, worldKey, biomeProvider, environment) : null; // Paper - ABI compat: allow mods extending Level directly (CraftWorld requires a ServerLevel)
++        this.world = new CraftWorld((ServerLevel) this, worldKey, biomeProvider, environment);
 +
 +        for (SpawnCategory spawnCategory : SpawnCategory.values()) {
 +            if (org.bukkit.craftbukkit.util.CraftSpawnCategory.isValidForLimits(spawnCategory)) {
@@ -849,50 +880,13 @@
          this.levelData = levelData;
          this.dimensionTypeRegistration = dimensionTypeRegistration;
          this.dimension = dimension;
-@@ -155,12 +_,90 @@
+@@ -154,12 +_,54 @@
          this.registryAccess = registryAccess;
          this.palettedContainerFactory = PalettedContainerFactory.create(registryAccess);
          this.damageSources = new DamageSources(registryAccess);
--    }
 +        this.entityLookup = new ca.spottedleaf.moonrise.patches.chunk_system.level.entity.dfl.DefaultEntityLookup(this); // Paper - rewrite chunk system
 +        this.chunkPacketBlockController = this.paperConfig().anticheat.antiXray.enabled ? new io.papermc.paper.antixray.ChunkPacketBlockControllerAntiXray(this, executor) : io.papermc.paper.antixray.ChunkPacketBlockController.NO_OPERATION_INSTANCE; // Paper - Anti-Xray
-+    }
-+
-+    // Paper start - ABI compat: restore the vanilla constructor signature for mods calling the original
-+    protected Level(
-+        WritableLevelData levelData,
-+        ResourceKey<Level> dimension,
-+        RegistryAccess registryAccess,
-+        Holder<DimensionType> dimensionTypeRegistration,
-+        boolean isClientSide,
-+        boolean isDebug,
-+        long biomeZoomSeed,
-+        int maxChainedNeighborUpdates
-+    ) {
-+        this(levelData, dimension, registryAccess, dimensionTypeRegistration, isClientSide, isDebug, biomeZoomSeed, maxChainedNeighborUpdates,
-+            "default", // Paper - bukkitName
-+            null, // Paper - generator
-+            null, // Paper - biomeProvider
-+            org.bukkit.World.Environment.NORMAL, // Paper - environment
-+            (spigotConfig) -> {
-+                final net.minecraft.server.MinecraftServer server = net.minecraft.server.MinecraftServer.getServer();
-+                if (server == null) {
-+                    throw new IllegalStateException("MinecraftServer is not initialized while creating a Level");
-+                }
-+                return server.paperConfigurations.createWorldConfig(
-+                    io.papermc.paper.configuration.PaperConfigurations.createWorldContextMap(
-+                        server.storageSource.getDimensionPath(dimension),
-+                        dimension.identifier(),
-+                        spigotConfig,
-+                        server.registryAccess(),
-+                        server.overworld().getGameRules() // NeoForge: MinecraftServer.getGameRules() is unsupported (per-level game rules); use the overworld's
-+                    )
-+                );
-+            }, // Paper - paperWorldConfigCreator
-+            net.minecraft.server.MinecraftServer.getServer() != null ? net.minecraft.server.MinecraftServer.getServer().executor : java.util.concurrent.ForkJoinPool.commonPool() // Paper - executor
-+        );
-+    }
-+    // Paper end - ABI compat: restore the vanilla constructor signature for mods calling the original
+     }
  
      public int getNextEntityId() {
          return 0;
@@ -941,7 +935,7 @@
      @Override
      public boolean isClientSide() {
          return this.isClientSide;
-@@ -171,8 +_,15 @@
+@@ -170,8 +_,15 @@
          return null;
      }
  
@@ -958,7 +952,7 @@
      }
  
      public boolean isInValidBounds(BlockPos pos) {
-@@ -202,8 +_,72 @@
+@@ -201,8 +_,72 @@
      }
  
      public LevelChunk getChunk(int chunkX, int chunkZ) {
@@ -1033,7 +1027,7 @@
  
      @Override
      public @Nullable ChunkAccess getChunk(int chunkX, int chunkZ, ChunkStatus status, boolean loadOrGenerate) {
-@@ -222,6 +_,38 @@
+@@ -216,6 +_,38 @@
  
      @Override
      public boolean setBlock(BlockPos pos, BlockState blockState, @Block.UpdateFlags int updateFlags, int updateLimit) {
@@ -1072,7 +1066,7 @@
          if (!this.isInValidBounds(pos)) {
              return false;
          }
-@@ -232,11 +_,58 @@
+@@ -226,11 +_,58 @@
  
          LevelChunk chunk = this.getChunkAt(pos);
          Block block = blockState.getBlock();
@@ -1118,7 +1112,7 @@
 +            try {
 +                this.markAndNotifyBlock(pos, chunk, oldState, blockState, updateFlags, updateLimit);
 +            } catch (StackOverflowError ex) {
-+                lastPhysicsProblem = new BlockPos(pos);
++                lastPhysicsProblem = pos.immutable();
 +            }
 +            // Spigot end
 +        }
@@ -1132,7 +1126,7 @@
          BlockState newState = this.getBlockState(pos);
          if (newState == blockState) {
              if (oldState != newState) {
-@@ -259,15 +_,66 @@
+@@ -253,15 +_,66 @@
              if ((updateFlags & 16) == 0 && updateLimit > 0) {
                  int neighbourUpdateFlags = updateFlags & -34;
                  oldState.updateIndirectNeighbourShapes(this, pos, neighbourUpdateFlags, updateLimit - 1);
@@ -1205,12 +1199,12 @@
  
      public void updatePOIOnBlockStateChange(BlockPos pos, BlockState oldState, BlockState newState) {
      }
-@@ -286,13 +_,31 @@
+@@ -279,13 +_,34 @@
+             return false;
          }
  
-         FluidState fluidState = this.getFluidState(pos);
--        if (!(blockState.getBlock() instanceof BaseFireBlock)) {
--            this.levelEvent(2001, pos, Block.getId(blockState));
+-        blockState.getBlock().spawnDestroyParticles(this, pos, blockState);
++        FluidState fluidState = this.getFluidState(pos);
 +        // Paper start - BlockDestroyEvent; while the above removeBlock method looks very similar
 +        // they are NOT used with same intent and the above should not fire this event. The above method is more of a BlockSetToAirEvent,
 +        // it doesn't imply destruction of a block that plays a sound effect / drops an item.
@@ -1230,8 +1224,8 @@
 +        // Paper end - BlockDestroyEvent
 +        if (playEffect && !(blockState.getBlock() instanceof BaseFireBlock)) { // Paper - BlockDestroyEvent
 +            this.levelEvent(LevelEvent.PARTICLES_DESTROY_BLOCK, pos, Block.getId(effectType)); // Paper - BlockDestroyEvent
-         }
- 
++        }
++
          if (dropResources) {
              BlockEntity blockEntity = blockState.hasBlockEntity() ? this.getBlockEntity(pos) : null;
 -            Block.dropResources(blockState, this, pos, blockEntity, breaker, ItemStack.EMPTY);
@@ -1239,8 +1233,11 @@
 +            blockState.getBlock().popExperience((ServerLevel) this, pos, xp, breaker); // Paper - Properly handle xp dropping; custom amount
          }
  
+-        FluidState fluidState = this.getFluidState(pos);
          boolean destroyed = this.setBlock(pos, fluidState.createLegacyBlock(), 3, updateLimit);
-@@ -306,7 +_,15 @@
+         if (destroyed) {
+             this.gameEvent(GameEvent.BLOCK_DESTROY, pos, GameEvent.Context.of(breaker, blockState));
+@@ -297,12 +_,25 @@
      public void addDestroyBlockEffect(BlockPos pos, BlockState blockState) {
      }
  
@@ -1250,13 +1247,15 @@
 +        callEvent.set(call);
 +    }
 +    public BlockState youer$defaultBlockState;
-     public boolean setBlockAndUpdate(BlockPos pos, BlockState blockState) {
++    public boolean setBlockAndUpdate(BlockPos pos, BlockState blockState) {
 +        youer$defaultBlockState = blockState;
 +        if (callEvent.getAndSet(false)) return false;
-         return this.setBlock(pos, blockState, 3);
-     }
++        return this.setBlock(pos, blockState, 3);
++    }
++
+     public abstract void sendBlockUpdated(BlockPos pos, BlockState old, BlockState current, @Block.UpdateFlags int updateFlags);
  
-@@ -316,6 +_,7 @@
+     public void setBlocksDirty(BlockPos pos, BlockState oldState, BlockState newState) {
      }
  
      public void updateNeighborsAt(BlockPos pos, Block sourceBlock, @Nullable Orientation orientation) {
@@ -1264,7 +1263,7 @@
      }
  
      public void updateNeighborsAtExceptFromFacing(BlockPos pos, Block blockObject, Direction skipDirection, @Nullable Orientation orientation) {
-@@ -357,11 +_,19 @@
+@@ -344,11 +_,19 @@
  
      @Override
      public BlockState getBlockState(BlockPos pos) {
@@ -1285,7 +1284,7 @@
          return chunk.getBlockState(pos);
      }
  
-@@ -461,9 +_,18 @@
+@@ -452,9 +_,18 @@
      }
  
      public void addBlockEntityTicker(TickingBlockEntity ticker) {
@@ -1304,7 +1303,7 @@
      public void tickBlockEntities() {
          this.tickingBlockEntities = true;
          if (!this.pendingBlockEntityTickers.isEmpty()) {
-@@ -471,31 +_,62 @@
+@@ -462,31 +_,62 @@
              this.pendingBlockEntityTickers.clear();
          }
  
@@ -1377,7 +1376,7 @@
  
      public boolean shouldTickDeath(Entity entity) {
          return true;
-@@ -619,10 +_,16 @@
+@@ -610,10 +_,16 @@
  
      @Override
      public @Nullable BlockEntity getBlockEntity(BlockPos pos) {
@@ -1395,7 +1394,7 @@
                  ? null
                  : this.getChunkAt(pos).getBlockEntity(pos, LevelChunk.EntityCreationType.IMMEDIATE);
          }
-@@ -631,6 +_,12 @@
+@@ -622,6 +_,12 @@
      public void setBlockEntity(BlockEntity blockEntity) {
          BlockPos pos = blockEntity.getBlockPos();
          if (this.isInValidBounds(pos)) {
@@ -1408,7 +1407,7 @@
              this.getChunkAt(pos).addAndRegisterBlockEntity(blockEntity);
          }
      }
-@@ -639,6 +_,7 @@
+@@ -630,6 +_,7 @@
          if (this.isInValidBounds(pos)) {
              this.getChunkAt(pos).removeBlockEntity(pos);
          }
@@ -1416,7 +1415,7 @@
      }
  
      public boolean isLoaded(BlockPos pos) {
-@@ -697,58 +_,118 @@
+@@ -688,58 +_,118 @@
      @Override
      public List<Entity> getEntities(@Nullable Entity except, AABB bb, Predicate<? super Entity> selector) {
          Profiler.get().incrementCounter("getEntities");
@@ -1470,7 +1469,7 @@
 -            if (selector.test(e)) {
 -                output.add(e);
 -                if (output.size() >= maxResults) {
--                    return AbortableIterationConsumer.Continuation.ABORT;
+-                    return Continuation.ABORT;
 -                }
 -            }
 -
@@ -1480,13 +1479,13 @@
 -                    if (castSubPart != null && selector.test(castSubPart)) {
 -                        output.add(castSubPart);
 -                        if (output.size() >= maxResults) {
--                            return AbortableIterationConsumer.Continuation.ABORT;
+-                            return Continuation.ABORT;
 -                        }
 -                    }
 -                }
 -            }
 -
--            return AbortableIterationConsumer.Continuation.CONTINUE;
+-            return Continuation.CONTINUE;
 -        });
 -    }
 +
@@ -1575,29 +1574,7 @@
  
      public <T extends Entity> boolean hasEntities(EntityTypeTest<Entity, T> type, AABB bb, Predicate<? super T> selector) {
          Profiler.get().incrementCounter("hasEntities");
-@@ -759,6 +_,7 @@
-                 return AbortableIterationConsumer.Continuation.ABORT;
-             }
- 
-+            if (false)
-             if (e instanceof EnderDragon enderDragon) {
-                 for (EnderDragonPart subEntity : enderDragon.getSubEntities()) {
-                     T castSubPart = type.tryCast(subEntity);
-@@ -771,6 +_,13 @@
- 
-             return AbortableIterationConsumer.Continuation.CONTINUE;
-         });
-+        for (net.neoforged.neoforge.entity.PartEntity<?> p : this.dragonParts()) {
-+            T t = type.tryCast(p);
-+            if (t != null && t.getBoundingBox().intersects(bb) && selector.test(t)) {
-+                hasEntities.setTrue();
-+                break;
-+            }
-+        }
-         return hasEntities.isTrue();
-     }
- 
-@@ -792,7 +_,7 @@
+@@ -783,7 +_,7 @@
          return this.getPlayerByUUID(uuid);
      }
  
@@ -1606,7 +1583,25 @@
  
      public void blockEntityChanged(BlockPos pos) {
          if (this.hasChunkAt(pos)) {
-@@ -920,17 +_,20 @@
+@@ -810,7 +_,7 @@
+         return true;
+     }
+ 
+-    public void broadcastEntityEvent(Entity entity, @EntityEvent.Value byte event) {
++    public void broadcastEntityEvent(Entity entity, byte event) {
+     }
+ 
+     public void broadcastDamageEvent(Entity entity, DamageSource source) {
+@@ -886,7 +_,7 @@
+ 
+     public abstract @Nullable MapItemSavedData getMapData(MapId id);
+ 
+-    public void globalLevelEvent(@LevelEvent.Value int type, BlockPos pos, int data) {
++    public void globalLevelEvent(int type, BlockPos pos, int data) {
+     }
+ 
+     public CrashReportCategory fillReportDetails(CrashReport report) {
+@@ -915,17 +_,20 @@
  
      public abstract Scoreboard getScoreboard();
  
@@ -1632,7 +1627,7 @@
                          this.neighborChanged(state, relativePos, changedBlock, null, false);
                      }
                  }
-@@ -995,6 +_,18 @@
+@@ -990,6 +_,18 @@
          return this.biomeManager;
      }
  
@@ -1651,7 +1646,7 @@
      public final boolean isDebug() {
          return this.isDebug;
      }
-@@ -1031,12 +_,24 @@
+@@ -1022,12 +_,24 @@
          return this.palettedContainerFactory;
      }
  
@@ -1677,7 +1672,7 @@
  
          public static final Codec<Level.ExplosionInteraction> CODEC = StringRepresentable.fromEnum(Level.ExplosionInteraction::values);
          private final String id;
-@@ -1050,4 +_,20 @@
+@@ -1041,4 +_,20 @@
              return this.id;
          }
      }

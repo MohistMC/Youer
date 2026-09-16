@@ -1,7 +1,6 @@
 package ca.spottedleaf.moonrise.patches.chunk_system.level.entity.server;
 
 import ca.spottedleaf.moonrise.common.PlatformHooks;
-import ca.spottedleaf.moonrise.common.list.ReferenceList;
 import ca.spottedleaf.moonrise.common.util.CoordinateUtils;
 import ca.spottedleaf.moonrise.common.util.TickThread;
 import ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel;
@@ -108,10 +107,12 @@ public final class ServerEntityLookup extends EntityLookup {
 
     @Override
     protected void entityStartLoaded(final Entity entity) {
+
     }
 
     @Override
     protected void entityEndLoaded(final Entity entity) {
+
     }
 
     @Override

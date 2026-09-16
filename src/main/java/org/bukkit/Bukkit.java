@@ -1377,11 +1377,7 @@ public final class Bukkit {
      * Sets the radius, in blocks, around each worlds spawn point to protect.
      *
      * @param value new spawn radius, or 0 if none
-     * @deprecated has not functioned for a long time as the spawn radius is defined by the server.properties file.
-     * There is no API replacement for this method. It is generally recommended to implement "protection"-like behaviour
-     * via events or third-party plugin APIs.
      */
-    @Deprecated(since = "1.21.4", forRemoval = true)
     public static void setSpawnRadius(int value) {
         server.setSpawnRadius(value);
     }
@@ -3041,27 +3037,6 @@ public final class Bukkit {
         return server.isLagging();
     }
     // Purpur end - Lagging threshold
-
-    // Purpur start - Added the ability to add combustible items
-    /**
-     * Add an Item as fuel for furnaces
-     *
-     * @param material The material that will be the fuel
-     * @param burnTime The time (in ticks) this item will burn for
-     */
-    public static void addFuel(@NotNull Material material, int burnTime) {
-        server.addFuel(material, burnTime);
-    }
-
-    /**
-     * Remove an item as fuel for furnaces
-     *
-     * @param material The material that will no longer be a fuel
-     */
-    public static void removeFuel(@NotNull Material material) {
-        server.removeFuel(material);
-    }
-    // Purpur end - Added the ability to add combustible items
 
     // Purpur start - Debug Marker API
     /**

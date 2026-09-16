@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/storage/PrimaryLevelData.java
 +++ b/net/minecraft/world/level/storage/PrimaryLevelData.java
-@@ -22,6 +_,7 @@
+@@ -24,6 +_,7 @@
  import net.minecraft.world.level.LevelHeightAccessor;
  import net.minecraft.world.level.LevelSettings;
  import net.minecraft.world.level.WorldDataConfiguration;
@@ -8,7 +8,7 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -35,6 +_,8 @@
+@@ -37,6 +_,8 @@
      private final PrimaryLevelData.SpecialWorldProperty specialWorldProperty;
      private final Lifecycle worldGenSettingsLifecycle;
      private LevelData.RespawnData respawnData;
@@ -17,15 +17,15 @@
      private long gameTime;
      private final @Nullable UUID singlePlayerUUID;
      private final int version;
-@@ -42,6 +_,7 @@
-     private final Set<String> knownServerBrands;
+@@ -45,6 +_,7 @@
      private boolean wasModded;
      private final Set<String> removedFeatureFlags;
+     private List<Integer> versionHistory;
 +    private boolean confirmedExperimentalWarning = false;
  
      private PrimaryLevelData(
          @Nullable UUID singlePlayerUUID,
-@@ -90,7 +_,7 @@
+@@ -96,7 +_,7 @@
      ) {
          long gameTime = input.get("Time").asLong(0L);
          LevelVersion levelVersion = LevelVersion.parse(input);
@@ -34,7 +34,7 @@
              input.get("singleplayer_uuid").flatMap(UUIDUtil.CODEC::parse).result().orElse(null),
              input.get("WasModded").asBoolean(false),
              input.get("spawn").read(LevelData.RespawnData.CODEC).result().orElse(LevelData.RespawnData.DEFAULT),
-@@ -98,11 +_,21 @@
+@@ -104,12 +_,22 @@
              levelVersion.levelDataVersion(),
              input.get("initialized").asBoolean(true),
              input.get("ServerBrands").asStream().flatMap(b -> b.asString().result().stream()).collect(Collectors.toCollection(Sets::newLinkedHashSet)),
@@ -43,7 +43,8 @@
 +            updateRemovedFeatureFlags(input.get("removed_features").asStream().flatMap(b -> b.asString().result().stream()), input.get("enabled_features").asStream().flatMap(features -> features.asString().result().stream())).collect(Collectors.toSet()),
              settings,
              specialWorldProperty,
-             worldGenSettingsLifecycle
+             worldGenSettingsLifecycle,
+             input.get("version_history").orElseEmptyList().asList(d -> d.asInt(-1))
 -        );
 +        ).withConfirmedWarning(worldGenSettingsLifecycle != Lifecycle.stable() && input.get("confirmedExperimentalSettings").asBoolean(false));
 +        // Neo:
@@ -58,7 +59,7 @@
      }
  
      @Override
-@@ -127,6 +_,7 @@
+@@ -135,6 +_,7 @@
          NbtUtils.addCurrentDataVersion(tag);
          tag.putInt("GameType", this.settings.gameType().getId());
          tag.store("spawn", LevelData.RespawnData.CODEC, this.respawnData);
@@ -66,7 +67,7 @@
          tag.putLong("Time", this.gameTime);
          writeLastPlayed(tag);
          tag.putString("LevelName", this.settings.levelName());
-@@ -139,6 +_,12 @@
+@@ -147,6 +_,12 @@
          }
  
          tag.store(WorldDataConfiguration.MAP_CODEC, this.settings.dataConfiguration());
@@ -79,7 +80,7 @@
      }
  
      public static void writeLastPlayed(CompoundTag tag) {
-@@ -325,10 +_,66 @@
+@@ -344,10 +_,66 @@
          return this.settings.copy();
      }
  

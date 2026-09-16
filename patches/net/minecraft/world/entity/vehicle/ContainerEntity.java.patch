@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/vehicle/ContainerEntity.java
 +++ b/net/minecraft/world/entity/vehicle/ContainerEntity.java
-@@ -58,12 +_,12 @@
+@@ -58,6 +_,7 @@
      default void addChestVehicleSaveData(ValueOutput output) {
          if (this.getContainerLootTable() != null) {
              output.putString("LootTable", this.getContainerLootTable().identifier().toString());
@@ -8,13 +8,6 @@
              if (this.getContainerLootTableSeed() != 0L) {
                  output.putLong("LootTableSeed", this.getContainerLootTableSeed());
              }
--        } else {
--            ContainerHelper.saveAllItems(output, this.getItemStacks());
-         }
-+        ContainerHelper.saveAllItems(output, this.getItemStacks()); // Paper - always save the items, table may still remain
-     }
- 
-     default void readChestVehicleSaveData(ValueInput input) {
 @@ -71,7 +_,12 @@
          ResourceKey<LootTable> lootTable = input.read("LootTable", LootTable.KEY_CODEC).orElse(null);
          this.setContainerLootTable(lootTable);

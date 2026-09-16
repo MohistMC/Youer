@@ -1,11 +1,13 @@
 --- a/net/minecraft/world/entity/monster/zombie/Zombie.java
 +++ b/net/minecraft/world/entity/monster/zombie/Zombie.java
-@@ -66,12 +_,17 @@
+@@ -68,12 +_,19 @@
  import net.minecraft.world.level.block.state.BlockState;
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
++import net.minecraft.server.MinecraftServer;
 +import org.bukkit.event.entity.CreatureSpawnEvent;
 +import org.bukkit.event.entity.EntityCombustByEntityEvent;
++import org.bukkit.event.entity.EntityTargetEvent;
 +import org.bukkit.event.entity.EntityTransformEvent;
  import org.jspecify.annotations.Nullable;
  
@@ -20,16 +22,27 @@
      );
      private static final Identifier REINFORCEMENT_CALLER_CHARGE_ID = Identifier.withDefaultNamespace("reinforcement_caller_charge");
      private static final AttributeModifier ZOMBIE_REINFORCEMENT_CALLEE_CHARGE = new AttributeModifier(
-@@ -95,22 +_,85 @@
+@@ -83,7 +_,7 @@
+     private static final Identifier ZOMBIE_RANDOM_SPAWN_BONUS_ID = Identifier.withDefaultNamespace("zombie_random_spawn_bonus");
+     private static final EntityDataAccessor<Boolean> DATA_BABY_ID = SynchedEntityData.defineId(Zombie.class, EntityDataSerializers.BOOLEAN);
+     private static final EntityDataAccessor<Integer> DATA_SPECIAL_TYPE_ID = SynchedEntityData.defineId(Zombie.class, EntityDataSerializers.INT);
+-    private static final EntityDataAccessor<Boolean> DATA_DROWNED_CONVERSION_ID = SynchedEntityData.defineId(Zombie.class, EntityDataSerializers.BOOLEAN);
++    public static final EntityDataAccessor<Boolean> DATA_DROWNED_CONVERSION_ID = SynchedEntityData.defineId(Zombie.class, EntityDataSerializers.BOOLEAN);
+     public static final float ZOMBIE_LEADER_CHANCE = 0.05F;
+     public static final int REINFORCEMENT_ATTEMPTS = 50;
+     public static final int REINFORCEMENT_RANGE_MAX = 40;
+@@ -95,7 +_,7 @@
+     public static final Predicate<Difficulty> DOOR_BREAKING_PREDICATE = d -> d == Difficulty.HARD;
      private static final boolean DEFAULT_BABY = false;
      private static final boolean DEFAULT_CAN_BREAK_DOORS = false;
-     private static final int DEFAULT_IN_WATER_TIME = 0;
 -    private final BreakDoorGoal breakDoorGoal = new BreakDoorGoal(this, DOOR_BREAKING_PREDICATE);
 +    private final BreakDoorGoal breakDoorGoal; // Paper - move down
      private boolean canBreakDoors = false;
-     private int inWaterTime = 0;
-     public int conversionTime;
-+    //private boolean shouldBurnInDay = true; // Paper - Add more Zombie API // Purpur - implemented in LivingEntity - API for any mob to burn daylight
+     public final ConversionTracker<Zombie> drowningTracker = new ConversionTracker<>(
+         this,
+@@ -112,17 +_,79 @@
+         )
+     );
  
 -    public Zombie(EntityType<? extends Zombie> type, Level level) {
 +    public Zombie(final EntityType<? extends Zombie> type, final Level level) {
@@ -109,7 +122,7 @@
          this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));
          this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
          this.addBehaviourGoals();
-@@ -123,7 +_,19 @@
+@@ -135,7 +_,19 @@
          this.goalSelector.addGoal(7, new WaterAvoidingRandomStrollGoal(this, 1.0));
          this.targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers(ZombifiedPiglin.class));
          this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
@@ -130,7 +143,7 @@
          this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, IronGolem.class, true));
          this.targetSelector.addGoal(5, new NearestAttackableTargetGoal<>(this, Turtle.class, 10, true, false, Turtle.BABY_ON_LAND_SELECTOR));
      }
-@@ -176,12 +_,17 @@
+@@ -188,12 +_,17 @@
      }
  
      @Override
@@ -150,49 +163,15 @@
      }
  
      @Override
-@@ -218,7 +_,7 @@
-                     this.doUnderWaterConversion(serverLevel);
-                 }
-             } else if (this.convertsInWater()) {
--                if (this.isEyeInFluid(FluidTags.WATER)) {
-+                if (this.getFluidInteraction().isEyeInFluidMatching(this, (_, type, _) -> type.getIsWaterLike())) {
-                     this.inWaterTime++;
-                     if (this.inWaterTime >= 600) {
-                         this.startUnderWaterConversion(300);
-@@ -232,12 +_,20 @@
-         super.tick();
+@@ -229,13 +_,34 @@
+         }
      }
  
-+    // Paper start - Add more Zombie API
-+    public void stopDrowning() {
-+        this.conversionTime = -1;
-+        this.getEntityData().set(DATA_DROWNED_CONVERSION_ID, false);
-+    }
-+    // Paper end - Add more Zombie API
-+
-     public void startUnderWaterConversion(int time) {
-         this.conversionTime = time;
-         this.getEntityData().set(DATA_DROWNED_CONVERSION_ID, true);
-     }
- 
-     protected void doUnderWaterConversion(ServerLevel level) {
-+        if (!net.neoforged.neoforge.event.EventHooks.canLivingConvert(this, EntityTypes.DROWNED, (timer) -> this.conversionTime = timer)) return;
-         this.convertToZombieType(level, EntityTypes.DROWNED);
-         if (!this.isSilent()) {
-             level.levelEvent(null, 1040, this.blockPosition(), 0);
-@@ -245,22 +_,33 @@
-     }
- 
-     protected void convertToZombieType(ServerLevel level, EntityType<? extends Zombie> zombieType) {
--        this.convertTo(
++    protected void convertToZombieType(ServerLevel level, EntityType<? extends Zombie> zombieType) {
 +        // CraftBukkit start
 +        Zombie converted = this.convertTo(
-             zombieType,
-             ConversionParams.single(this, true, true),
--            newZombie -> newZombie.handleAttributes(
--                level.getCurrentDifficultyAt(newZombie.blockPosition()).getSpecialMultiplier(), EntitySpawnReason.CONVERSION
--            )
--        );
++            zombieType,
++            ConversionParams.single(this, true, true),
 +            newZombie -> {
 +                newZombie.handleAttributes(level.getCurrentDifficultyAt(newZombie.blockPosition()).getSpecialMultiplier(), EntitySpawnReason.CONVERSION);
 +                net.neoforged.neoforge.event.EventHooks.onLivingConvert(this, newZombie);
@@ -202,8 +181,8 @@
 +            ((org.bukkit.entity.Zombie) getBukkitEntity()).setConversionTime(-1); // CraftBukkit - SPIGOT-5208: End conversion to stop event spam
 +        }
 +        // CraftBukkit end
-     }
- 
++    }
++
      @VisibleForTesting
 -    public boolean convertVillagerToZombieVillager(ServerLevel level, Villager villager) {
 +    public boolean convertVillagerToZombieVillager(final ServerLevel level, final Villager villager) {
@@ -221,7 +200,7 @@
                  zombie.finalizeSpawn(
                      level, level.getCurrentDifficultyAt(zombie.blockPosition()), EntitySpawnReason.CONVERSION, new Zombie.ZombieGroupData(false, true)
                  );
-@@ -268,17 +_,25 @@
+@@ -243,17 +_,25 @@
                  zombie.setGossips(villager.getGossips().copy());
                  zombie.setTradeOffers(villager.getOffers().copy());
                  zombie.setVillagerXp(villager.getVillagerXp());
@@ -254,7 +233,7 @@
  
      @Override
      public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
-@@ -312,13 +_,13 @@
+@@ -287,13 +_,13 @@
                  if (SpawnPlacements.isSpawnPositionOk(type, level, spawnPos)
                      && SpawnPlacements.checkSpawnRules(type, level, EntitySpawnReason.REINFORCEMENT, spawnPos, level.getRandom())) {
                      reinforcement.setPos(xt, yt, zt);
@@ -271,7 +250,7 @@
                          AttributeInstance attribute = this.getAttribute(Attributes.SPAWN_REINFORCEMENTS_CHANCE);
                          AttributeModifier modifier = attribute.getModifier(REINFORCEMENT_CALLER_CHARGE_ID);
                          double existingAmount = modifier != null ? modifier.amount() : 0.0;
-@@ -342,7 +_,14 @@
+@@ -317,7 +_,14 @@
          if (result) {
              float difficulty = level.getCurrentDifficultyAt(this.blockPosition()).getEffectiveDifficulty();
              if (this.getMainHandItem().isEmpty() && this.isOnFire() && this.random.nextFloat() < difficulty * 0.3F) {
@@ -287,7 +266,7 @@
              }
          }
  
-@@ -421,10 +_,11 @@
+@@ -397,10 +_,11 @@
      }
  
      @Override
@@ -302,7 +281,7 @@
                  return perished;
              }
  
-@@ -459,7 +_,7 @@
+@@ -435,7 +_,7 @@
          groupData = super.finalizeSpawn(level, difficulty, spawnReason, groupData);
          float difficultyModifier = difficulty.getSpecialMultiplier();
          if (spawnReason != EntitySpawnReason.CONVERSION) {
@@ -311,7 +290,7 @@
          }
  
          if (groupData == null) {
-@@ -467,27 +_,27 @@
+@@ -443,27 +_,27 @@
          }
  
          if (groupData instanceof Zombie.ZombieGroupData zombieData) {
@@ -355,7 +334,7 @@
                      }
                  }
              }
-@@ -499,7 +_,7 @@
+@@ -475,7 +_,7 @@
              }
          }
  
@@ -364,7 +343,7 @@
              this.setItemSlot(EquipmentSlot.HEAD, new ItemStack(random.nextFloat() < 0.1F ? Blocks.JACK_O_LANTERN : Blocks.CARVED_PUMPKIN));
              this.setDropChance(EquipmentSlot.HEAD, 0.0F);
          }
-@@ -512,7 +_,7 @@
+@@ -488,7 +_,7 @@
      protected void onOffspringSpawnedFromEgg(Player spawner, Mob offspring) {
          if (this.level() instanceof ServerLevel serverLevel) {
              float difficultyModifier = serverLevel.getCurrentDifficultyAt(offspring.blockPosition()).getSpecialMultiplier();

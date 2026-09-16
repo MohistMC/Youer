@@ -1,35 +1,6 @@
 --- a/net/minecraft/core/component/DataComponentPatch.java
 +++ b/net/minecraft/core/component/DataComponentPatch.java
-@@ -104,6 +_,11 @@
-                     output.writeVarInt(0);
-                     output.writeVarInt(0);
-                 } else {
-+                    // Paper start - data sanitization for items
-+                    final io.papermc.paper.util.sanitizer.ItemObfuscationSession itemObfuscationSession = patch.map.isEmpty()
-+                            ? null // Avoid thread local lookup of current session if it won't be needed anyway.
-+                            : io.papermc.paper.util.sanitizer.ItemObfuscationSession.currentSession();
-+                    // Paper end - data sanitization for items
-                     int positiveCount = 0;
-                     int negativeCount = 0;
- 
-@@ -111,7 +_,7 @@
-                         patch.map
-                     )) {
-                         if (entry.getValue().isPresent()) {
--                            positiveCount++;
-+                            if (!io.papermc.paper.util.sanitizer.ItemComponentSanitizer.shouldDrop(itemObfuscationSession, entry.getKey())) positiveCount++; // Paper - data sanitization for items
-                         } else {
-                             negativeCount++;
-                         }
-@@ -124,6 +_,7 @@
-                         patch.map
-                     )) {
-                         Optional<?> value = entry.getValue();
-+                        value = io.papermc.paper.util.sanitizer.ItemComponentSanitizer.override(itemObfuscationSession, entry.getKey(), entry.getValue()); // Paper - data sanitization for items
-                         if (value.isPresent()) {
-                             DataComponentType<?> type = entry.getKey();
-                             DataComponentType.STREAM_CODEC.encode(output, type);
-@@ -143,7 +_,13 @@
+@@ -130,7 +_,13 @@
              }
  
              private <T> void encodeComponent(RegistryFriendlyByteBuf output, DataComponentType<T> type, Object value) {
@@ -44,22 +15,31 @@
              }
          };
      }
-@@ -156,6 +_,14 @@
+@@ -143,6 +_,23 @@
          return new DataComponentPatch.Builder();
      }
  
-+    /**
-+     * {@return the patch stored for the given component type, null if no patch is stored}
-+     */
-+    @SuppressWarnings("unchecked")
-+    public <T> @Nullable Optional<T> getPatch(DataComponentType<? extends T> type) {
-+        return (Optional<T>) this.map.get(type);
++    public boolean isPatched(DataComponentType<?> type) {
++        return this.map.containsKey(type);
++    }
++
++    /// {@return the patch stored for the given component type, null if no patch is stored}
++    public <T> @Nullable T getPatch(DataComponentType<? extends T> type) {
++        Object value = this.map.get(type);
++        if (value == null) {
++            throw new IllegalStateException("DataComponentType " + type + " is not patched");
++        }
++        return (T) Removed.removedToNull(value);
++    }
++
++    public Set<DataComponentType<?>> keySet(){
++        return this.map.keySet();
 +    }
 +
      public <T> @Nullable T get(DataComponentGetter prototype, DataComponentType<? extends T> type) {
          return getFromPatchAndPrototype(this.map, prototype, type);
      }
-@@ -254,7 +_,44 @@
+@@ -237,7 +_,44 @@
          private Builder() {
          }
  
@@ -101,6 +81,6 @@
 +
          public <T> DataComponentPatch.Builder set(DataComponentType<T> type, T value) {
 +            net.neoforged.neoforge.common.CommonHooks.validateComponent(value);
-             this.map.put(type, Optional.of(value));
+             this.map.put(type, value);
              return this;
          }

@@ -46,7 +46,7 @@
 -        Codec<T> elementCodec, Strategy<T> strategy, T defaultValue, PalettedContainerRO.Unpacker<T, C> unpacker
 +            final Codec<T> elementCodec, final Strategy<T> strategy, final T defaultValue, final PalettedContainerRO.Unpacker<T, C> unpacker
      ) {
-         return RecordCodecBuilder.<PalettedContainerRO.PackedData>create(
+-        return RecordCodecBuilder.<PalettedContainerRO.PackedData<T>>create(
 -                i -> i.group(
 -                        elementCodec.mapResult(ExtraCodecs.orElsePartial(defaultValue))
 -                            .listOf()
@@ -58,6 +58,7 @@
 -            )
 -            .comapFlatMap(
 -                discData -> unpacker.read(strategy, (PalettedContainerRO.PackedData<T>)discData), palettedContainer -> palettedContainer.pack(strategy)
++        return RecordCodecBuilder.<PalettedContainerRO.PackedData>create(
 +                        i -> i.group(
 +                                        elementCodec.mapResult(ExtraCodecs.orElsePartial(defaultValue))
 +                                                .listOf()
@@ -430,20 +431,16 @@
 +        }
 +        // Paper end - optimise palette reads
 +
-+        public void copyFrom(final Palette<T> oldPalette, final BitStorage oldStorage) {
++		public void copyFrom(Palette<T> oldPalette, BitStorage oldStorage) {
              PaletteResize<T> dummyResizer = PaletteResize.noResizeExpected();
- 
-             for (int i = 0; i < oldStorage.getSize(); i++) {
-@@ -327,13 +_,20 @@
-             }
-         }
- 
--        public int getSerializedSize(IdMap<T> globalMap) {
-+        public int getSerializedSize(final IdMap<T> globalMap) {
+             if (oldPalette.getSize() == 1) {
+                 T value = oldPalette.valueFor(0);
+@@ -344,9 +_,17 @@
              return 1 + this.palette.getSerializedSize(globalMap) + this.storage.getRaw().length * 8;
          }
  
 -        public void write(FriendlyByteBuf buffer, IdMap<T> globalMap) {
++
 +        public void write(final FriendlyByteBuf buffer, final IdMap<T> globalMap, final io.papermc.paper.antixray.@Nullable ChunkPacketInfo<T> chunkPacketInfo, final int chunkSectionIndex) { // Paper - Anti-Xray - Add chunk packet info
              buffer.writeByte(this.storage.getBits());
              this.palette.write(buffer, globalMap);

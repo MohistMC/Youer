@@ -5,7 +5,6 @@
 
 package net.neoforged.neoforge.server;
 
-import com.mohistmc.youer.YouerConfig;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Locale;
@@ -47,14 +46,7 @@ public class LanguageHook {
     }
 
     private static void loadLanguage(String langName, MinecraftServer server) {
-        String langFile = String.format(Locale.ROOT, "lang/%s.json", "en_us");
-        String langFile_youer = String.format(Locale.ROOT, "lang/%s.json", langName);
-
-        boolean isEnglish = "en_us".equals(langName);
-
-        Map<String, String> enUsTranslations = I18nManager.loadTranslations("en_us");
-        Map<String, String> targetTranslations = isEnglish ? enUsTranslations : I18nManager.loadTranslations(langName);
-
+        String langFile = String.format(Locale.ROOT, "lang/%s.json", langName);
         // noinspection resource
         ResourceManager resourceManager = server.getServerResources().resourceManager();
         // We cannot use the resource manager itself, because it is specifically scoped to data packs
@@ -66,26 +58,16 @@ public class LanguageHook {
         int loaded = 0;
         for (String namespace : clientResources.getNamespaces()) {
             try {
-                modTable.putAll(enUsTranslations);
-                Identifier enUsLangResource = Identifier.fromNamespaceAndPath(namespace, langFile);
-                for (Resource resource : clientResources.getResourceStack(enUsLangResource)) {
+                modTable.putAll(I18nManager.loadTranslations(langName));
+                Identifier langResource = Identifier.fromNamespaceAndPath(namespace, langFile);
+                for (Resource resource : clientResources.getResourceStack(langResource)) {
                     try (InputStream stream = resource.open()) {
                         Language.loadFromJson(stream, (key, value) -> modTable.put(key, value), (key, value) -> modComponentTable.put(key, value));
                     }
                 }
-
-                if (!isEnglish) {
-                    modTable.putAll(targetTranslations);
-                    Identifier langResource = Identifier.fromNamespaceAndPath(namespace, langFile_youer);
-                    for (Resource resource : clientResources.getResourceStack(langResource)) {
-                        try (InputStream stream = resource.open()) {
-                            Language.loadFromJson(stream, (key, value) -> modTable.put(key, value), (key, value) -> modComponentTable.put(key, value));
-                        }
-                    }
-                }
                 loaded++;
             } catch (Exception exception) {
-                LOGGER.warn("Failed to load language files for namespace {}: {}", namespace, exception.getMessage());
+                LOGGER.warn("Skipped language file: {}:{}", namespace, langFile, exception);
             }
         }
         LOGGER.debug("Loaded {} language files for {}", loaded, langName);
@@ -94,33 +76,22 @@ public class LanguageHook {
     public static void loadBuiltinLanguages() {
         modTable = new HashMap<>(5000);
         final ClassLoader classLoader = Thread.currentThread().getContextClassLoader();
-        String langName = YouerConfig.youer_lang().toLowerCase();
-        try (InputStream input = classLoader.getResourceAsStream("assets/minecraft/lang/%s.json".formatted(YouerConfig.youer_lang().toLowerCase()))) {
+
+        try (InputStream input = classLoader.getResourceAsStream("assets/minecraft/lang/en_us.json")) {
             assert input != null;
             Language.loadFromJson(input, (key, value) -> modTable.put(key, value), (key, value) -> modComponentTable.put(key, value));
         } catch (Exception exception) {
-            try (InputStream input = classLoader.getResourceAsStream("assets/minecraft/lang/en_us.json")) {
-                assert input != null;
-                Language.loadFromJson(input, (key, value) -> modTable.put(key, value), (key, value) -> modComponentTable.put(key, value));
-            } catch (Exception exception1) {
-                LOGGER.warn("Failed to load built-in language file for Minecraft", exception1);
-            }
+            LOGGER.warn("Failed to load built-in language file for Minecraft", exception);
         }
 
-        try (InputStream input = classLoader.getResourceAsStream("assets/neoforge/lang/%s.json".formatted(YouerConfig.youer_lang().toLowerCase()))) {
+        try (InputStream input = classLoader.getResourceAsStream("assets/neoforge/lang/en_us.json")) {
             assert input != null;
             Language.loadFromJson(input, (key, value) -> modTable.put(key, value), (key, value) -> modComponentTable.put(key, value));
         } catch (Exception exception) {
-            try (InputStream input = classLoader.getResourceAsStream("assets/neoforge/lang/en_us.json")) {
-                assert input != null;
-                Language.loadFromJson(input, (key, value) -> modTable.put(key, value), (key, value) -> modComponentTable.put(key, value));
-                langName = "en_us";
-            } catch (Exception exception1) {
-                LOGGER.warn("Failed to load built-in language file for NeoForge", exception1);
-            }
+            LOGGER.warn("Failed to load built-in language file for NeoForge", exception);
         }
 
-        modTable.putAll(I18nManager.loadTranslations(langName));
+        modTable.putAll(I18nManager.loadTranslations("en_us"));
 
         defaultLanguageTable.putAll(modTable);
         I18nManager.injectTranslations(modTable);
@@ -129,7 +100,7 @@ public class LanguageHook {
     static void loadModLanguages(MinecraftServer server) {
         modTable = new HashMap<>(5000);
         modComponentTable = new HashMap<>();
-        loadLanguage(YouerConfig.youer_lang().toLowerCase(), server);
+        loadLanguage("en_us", server);
         defaultLanguageTable.putAll(modTable);
         defaultLanguageComponentTable.putAll(modComponentTable);
         I18nManager.injectTranslations(modTable);

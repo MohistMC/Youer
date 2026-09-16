@@ -3,8 +3,6 @@ package ca.spottedleaf.moonrise.paper;
 import ca.spottedleaf.moonrise.common.PlatformHooks;
 import ca.spottedleaf.moonrise.common.util.CoordinateUtils;
 import ca.spottedleaf.moonrise.paper.util.BaseChunkSystemHooks;
-import com.mohistmc.youer.api.ServerAPI;
-import com.mohistmc.youer.compat.architectury.MixinChunkMap;
 import com.mojang.datafixers.DSL;
 import com.mojang.datafixers.DataFixer;
 import com.mojang.serialization.Dynamic;
@@ -31,7 +29,6 @@ import net.minecraft.world.level.entity.EntityTypeTest;
 import net.minecraft.world.phys.AABB;
 import java.util.List;
 import java.util.function.Predicate;
-import net.neoforged.bus.api.Event;
 import net.neoforged.neoforge.common.CommonHooks;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.entity.PartEntity;
@@ -78,6 +75,7 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
 
     @Override
     public void chunkFullStatusComplete(final LevelChunk newChunk, final ProtoChunk original) {
+
     }
 
     @Override
@@ -248,11 +246,6 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
     @Override
     public CompoundTag convertNBT(final DSL.TypeReference type, final DataFixer dataFixer, final CompoundTag nbt,
                                   final int fromVersion, final int toVersion) {
-        // Paper start - optimise data conversion
-        if (true) {
-            return ca.spottedleaf.dataconverter.util.ConvertUtil.convertTag(type, dataFixer, nbt, fromVersion, toVersion);
-        }
-        // Paper end - optimise data conversion
         return (CompoundTag)dataFixer.update(
             type, new Dynamic<>(NbtOps.INSTANCE, nbt), fromVersion, toVersion
         ).getValue();
@@ -265,11 +258,7 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
 
     @Override
     public void mainChunkLoad(final ChunkAccess chunk, final SerializableChunkData chunkData) {
-        Event event = new ChunkDataEvent.Load(chunk, chunkData);
-        if (ServerAPI.hasMod("architectury")) {
-            event = MixinChunkMap.modifyProtoChunkLevel(event, chunk.getLevel());
-        }
-        NeoForge.EVENT_BUS.post(event);
+        NeoForge.EVENT_BUS.post(new ChunkDataEvent.Load(chunk, chunkData));
     }
 
     @Override

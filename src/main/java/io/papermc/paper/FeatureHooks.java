@@ -1,8 +1,6 @@
 package io.papermc.paper;
 
 import io.papermc.paper.command.PaperSubcommand;
-import io.papermc.paper.command.subcommands.ChunkDebugCommand;
-import io.papermc.paper.command.subcommands.FixLightCommand;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
@@ -42,8 +40,7 @@ public final class FeatureHooks {
     }
 
     public static void registerPaperCommands(final Map<Set<String>, PaperSubcommand> commands) {
-        commands.put(Set.of("fixlight"), new FixLightCommand()); // Paper - rewrite chunk system
-        commands.put(Set.of("debug", "chunkinfo", "holderinfo"), new ChunkDebugCommand());  // Paper - rewrite chunk system
+
     }
 
     public static LevelChunkSection createSection(final PalettedContainerFactory palettedContainerFactory, final Level level, final ChunkPos chunkPos, final int chunkSection) {
@@ -51,16 +48,11 @@ public final class FeatureHooks {
     }
 
     public static void sendChunkRefreshPackets(final List<ServerPlayer> playersInRange, final LevelChunk chunk) {
-        // Paper start - Anti-Xray
-        final Map<Object, ClientboundLevelChunkWithLightPacket> refreshPackets = new HashMap<>();
+        final ClientboundLevelChunkWithLightPacket refreshPacket = new ClientboundLevelChunkWithLightPacket(chunk, chunk.getLevel().getLightEngine(), null, null);
         for (final ServerPlayer player : playersInRange) {
             if (player.connection == null) continue;
 
-            final Boolean shouldModify = chunk.getLevel().chunkPacketBlockController.shouldModify(player, chunk);
-            player.connection.send(refreshPackets.computeIfAbsent(shouldModify, s -> { // Use connection to prevent creating firing event
-                return new ClientboundLevelChunkWithLightPacket(chunk, chunk.getLevel().getLightEngine(), null, null, (Boolean) s);
-            }));
-            // Paper end - Anti-Xray
+            player.connection.send(refreshPacket);
         }
     }
 
@@ -210,4 +202,5 @@ public final class FeatureHooks {
         }
         // Paper end - add explicit flush method
     }
+
 }

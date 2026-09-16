@@ -79,7 +79,7 @@ public final class CraftBlockStates {
         }
     }
 
-    private static final Map<Material, BlockStateFactory<?>> FACTORIES = new IdentityHashMap<>();
+    private static final Map<Material, BlockStateFactory<?>> FACTORIES = new HashMap<>();
     private static final BlockStateFactory<?> DEFAULT_FACTORY = new BlockStateFactory<>(CraftBlockState.class) {
         @Override
         public CraftBlockState createBlockState(World world, BlockPos pos, net.minecraft.world.level.block.state.BlockState state, BlockEntity blockEntity) {

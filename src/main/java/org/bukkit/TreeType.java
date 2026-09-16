@@ -110,7 +110,7 @@ public enum TreeType {
      */
     PALE_OAK_CREAKING,
     /**
-     * Custom tree
+     * Poplar tree
      */
-    CUSTOM
+    POPLAR,
 }

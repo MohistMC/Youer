@@ -1,7 +1,7 @@
 --- a/net/minecraft/world/level/block/Blocks.java
 +++ b/net/minecraft/world/level/block/Blocks.java
-@@ -705,7 +_,7 @@
-             .pushReaction(PushReaction.DESTROY)
+@@ -802,7 +_,7 @@
+             .pushReaction(PushReaction.POPPED)
      );
      public static final Block POWERED_RAIL = register(
 -        BlockItemIds.POWERED_RAIL, PoweredRailBlock::new, BlockBehaviour.Properties.of().noCollision().strength(0.7F).sound(SoundType.METAL)
@@ -9,46 +9,13 @@
      );
      public static final Block DETECTOR_RAIL = register(
          BlockItemIds.DETECTOR_RAIL, DetectorRailBlock::new, BlockBehaviour.Properties.of().noCollision().strength(0.7F).sound(SoundType.METAL)
-@@ -5519,6 +_,7 @@
-             .mapColor(MapColor.PLANT)
-             .forceSolidOff()
-             .instabreak()
-+            .randomTicks() // Purpur - Chance for azalea blocks to grow into trees naturally
-             .sound(SoundType.AZALEA)
-             .noOcclusion()
-             .pushReaction(PushReaction.DESTROY)
-@@ -5529,6 +_,7 @@
-         BlockBehaviour.Properties.of()
-             .mapColor(MapColor.PLANT)
-             .forceSolidOff()
-+            .randomTicks() // Purpur - Chance for azalea blocks to grow into trees naturally
-             .instabreak()
-             .sound(SoundType.FLOWERING_AZALEA)
-             .noOcclusion()
-@@ -5993,11 +_,24 @@
-     }
- 
-     static {
-+        // Paper start - Perf: Optimize block state cache initialization
-+        // initCache of the first state of every block runs directly (to make sure Blocks is always called here) before the rest are put off-thread
-+        final java.util.List<BlockState> statesToInit = new java.util.ArrayList<>();
-         for (Block block : BuiltInRegistries.BLOCK) {
-+            boolean first = true;
-             for (BlockState state : block.getStateDefinition().getPossibleStates()) {
--                Block.BLOCK_STATE_REGISTRY.add(state);
--                state.initCache();
-+                // Neo: comment out, it's done in NeoForgeRegistryCallbacks
-+                //Block.BLOCK_STATE_REGISTRY.add(blockstate);
-+                if (first) {
-+                    first = false;
-+                    state.initCache();
-+                } else {
-+                    statesToInit.add(state);
-+                }
+@@ -5936,7 +_,8 @@
+         SolidDebugger.runAndDump(() -> {
+             for (Block block : BuiltInRegistries.BLOCK) {
+                 for (BlockState state : block.getStateDefinition().getPossibleStates()) {
+-                    Block.BLOCK_STATE_REGISTRY.add(state);
++                    // Neo: comment out, it's done in NeoForgeRegistryCallbacks
++                    //Block.BLOCK_STATE_REGISTRY.add(blockstate);
+                     state.initCache();
+                 }
              }
-         }
-+        // Make sure this stays as a method reference, else the synthetic lambda method makes this blow up
-+        statesToInit.parallelStream().forEach(BlockBehaviour.BlockStateBase::initCache);
-+        // Paper end - Perf: Optimize block state cache initialization
-     }
- }

@@ -8,7 +8,24 @@
  import java.util.function.Predicate;
  import net.minecraft.advancements.triggers.CriteriaTriggers;
  import net.minecraft.core.BlockPos;
-@@ -154,6 +_,12 @@
+@@ -57,6 +_,7 @@
+ import net.minecraft.world.level.chunk.LevelChunk;
+ import net.minecraft.world.level.chunk.status.ChunkStatus;
+ import net.minecraft.world.level.levelgen.Heightmap;
++import net.minecraft.world.level.levelgen.feature.EndPodiumFeature;
+ import net.minecraft.world.level.levelgen.feature.EndSpikeFeature;
+ import net.minecraft.world.level.levelgen.feature.Feature;
+ import net.minecraft.world.level.saveddata.SavedData;
+@@ -97,7 +_,7 @@
+     private boolean dragonKilled;
+     public boolean hasPreviouslyKilledDragon;
+     private boolean skipArenaLoadedCheck = false;
+-    private @Nullable UUID dragonUUID;
++    public @Nullable UUID dragonUUID;
+     private boolean needsStateScanning;
+     public @Nullable BlockPos exitPortalLocation;
+     public @Nullable DragonRespawnStage respawnStage;
+@@ -159,6 +_,12 @@
          );
          this.dragonEvent.setPlayBossMusic(true).setCreateWorldFog(true);
          this.validPlayer = EntitySelector.ENTITY_STILL_ALIVE.and(EntitySelector.withinDistance(origin.getX(), 128 + origin.getY(), origin.getZ(), 192.0));
@@ -21,7 +38,7 @@
          if (this.gateways.isEmpty()) {
              ObjectArrayList<Integer> newGateways = new ObjectArrayList<>(ContiguousSet.create(Range.closedOpen(0, 20), DiscreteDomain.integers()));
              Util.shuffle(newGateways, RandomSource.createThreadLocalInstance(seed));
-@@ -240,9 +_,9 @@
+@@ -245,9 +_,9 @@
              this.dragonUUID = dragon.getUUID();
              LOGGER.info("Found that there's a dragon still alive ({})", dragon);
              this.dragonKilled = false;
@@ -33,19 +50,18 @@
                  this.dragonUUID = null;
              }
          }
-@@ -402,13 +_,20 @@
+@@ -407,12 +_,20 @@
              this.dragonEvent.setVisible(false);
              this.spawnExitPortal(true);
              this.spawnNewGateway();
 -            if (!this.hasPreviouslyKilledDragon) {
 -                this.level
 -                    .setBlockAndUpdate(
--                        this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, EndPodiumFeature.getLocation(this.origin)),
--                        Blocks.DRAGON_EGG.defaultBlockState()
+-                        this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, getPodiumLocation(this.origin)), Blocks.DRAGON_EGG.defaultBlockState()
 -                    );
 -            }
 +            // Paper start - Add DragonEggFormEvent
-+            BlockPos eggPosition = this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, EndPodiumFeature.getLocation(this.origin));
++            BlockPos eggPosition = this.level.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, getPodiumLocation(this.origin));
 +            org.bukkit.craftbukkit.block.CraftBlockState eggState = org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(this.level, eggPosition);
 +            eggState.setBlock(Blocks.DRAGON_EGG.defaultBlockState());
 +            io.papermc.paper.event.block.DragonEggFormEvent eggEvent = new io.papermc.paper.event.block.DragonEggFormEvent(
@@ -61,7 +77,7 @@
  
              this.hasPreviouslyKilledDragon = true;
              this.dragonKilled = true;
-@@ -423,14 +_,26 @@
+@@ -427,14 +_,26 @@
          this.setDirty();
      }
  
@@ -89,7 +105,7 @@
      }
  
      public void spawnNewGateway(BlockPos pos) {
-@@ -454,6 +_,12 @@
+@@ -457,6 +_,12 @@
              this.exitPortalLocation = this.exitPortalLocation.atY(Math.max(this.level.getMinY() + 1, this.exitPortalLocation.getY()));
              this.setDirty();
          }
@@ -100,9 +116,9 @@
 +        }
 +        // Paper end - Prevent "softlocked" exit portal generation
  
-         if (feature.place(FeatureConfiguration.NONE, this.level, this.level.getChunkSource().getGenerator(), RandomSource.create(), this.exitPortalLocation)) {
-             int chunkRadius = Mth.positiveCeilDiv(4, 16);
-@@ -471,6 +_,7 @@
+         Holder.Reference<Feature> feature = this.level.registryAccess().getOrThrow(activated ? EndFeatures.END_PODIUM_ACTIVE : EndFeatures.END_PODIUM_INACTIVE);
+         if (feature.value().place(this.level, this.level.getChunkSource().getGenerator(), RandomSource.create(), this.exitPortalLocation)) {
+@@ -475,6 +_,7 @@
              dragon.snapTo(this.origin.getX(), 128 + this.origin.getY(), this.origin.getZ(), this.level.getRandom().nextFloat() * 360.0F, 0.0F);
              this.level.addFreshEntity(dragon);
              this.dragonUUID = dragon.getUUID();
@@ -110,7 +126,7 @@
              this.setDirty();
          }
  
-@@ -483,6 +_,10 @@
+@@ -487,6 +_,10 @@
              this.ticksSinceDragonSeen = 0;
              if (dragon.hasCustomName()) {
                  this.dragonEvent.setName(dragon.getDisplayName());
@@ -121,7 +137,7 @@
              }
          }
      }
-@@ -515,7 +_,13 @@
+@@ -519,7 +_,13 @@
          return this.hasPreviouslyKilledDragon;
      }
  
@@ -136,7 +152,7 @@
          if (this.dragonKilled && this.respawnStage == null) {
              BlockPos location = this.exitPortalLocation;
              if (location == null) {
-@@ -530,6 +_,20 @@
+@@ -534,6 +_,20 @@
  
                  location = this.exitPortalLocation;
              }
@@ -157,7 +173,7 @@
  
              List<EndCrystal> crystals = Lists.newArrayList();
              BlockPos center = location.above(1);
-@@ -537,18 +_,19 @@
+@@ -541,18 +_,19 @@
              for (Direction direction : Direction.Plane.HORIZONTAL) {
                  List<EndCrystal> found = this.level.getEntitiesOfClass(EndCrystal.class, new AABB(center.relative(direction, 3)));
                  if (found.isEmpty()) {
@@ -180,7 +196,7 @@
          if (this.dragonKilled && this.respawnStage == null) {
              for (BlockPattern.BlockPatternMatch portal = this.findExitPortal(); portal != null; portal = this.findExitPortal()) {
                  for (int x = 0; x < this.exitPortalPattern.getWidth(); x++) {
-@@ -568,7 +_,9 @@
+@@ -572,7 +_,9 @@
              this.spawnExitPortal(false);
              this.respawnCrystals = crystals.stream().map(EntityReference::of).toList();
              this.setDirty();
@@ -190,7 +206,7 @@
      }
  
      public void resetSpikeCrystals() {
-@@ -578,6 +_,14 @@
+@@ -582,6 +_,14 @@
                  crystal.setBeamTarget(null);
              }
          }

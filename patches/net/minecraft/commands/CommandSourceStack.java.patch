@@ -8,6 +8,21 @@
  import java.util.Collection;
  import java.util.Objects;
  import java.util.Optional;
+@@ -19,12 +_,14 @@
+ import java.util.function.Supplier;
+ import java.util.stream.Stream;
+ import net.minecraft.ChatFormatting;
++import net.minecraft.advancements.AdvancementHolder;
+ import net.minecraft.commands.arguments.EntityAnchorArgument;
+ import net.minecraft.commands.execution.TraceCallbacks;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.Registry;
+ import net.minecraft.core.RegistryAccess;
+ import net.minecraft.core.registries.BuiltInRegistries;
++import net.minecraft.core.registries.Registries;
+ import net.minecraft.network.chat.ChatType;
+ import net.minecraft.network.chat.CommonComponents;
+ import net.minecraft.network.chat.Component;
 @@ -35,7 +_,9 @@
  import net.minecraft.server.MinecraftServer;
  import net.minecraft.server.level.ServerLevel;
@@ -27,15 +42,19 @@
      public static final SimpleCommandExceptionType ERROR_NOT_PLAYER = new SimpleCommandExceptionType(Component.translatable("permissions.requires.player"));
      public static final SimpleCommandExceptionType ERROR_NOT_ENTITY = new SimpleCommandExceptionType(Component.translatable("permissions.requires.entity"));
      public final CommandSource source;
-@@ -67,6 +_,7 @@
+@@ -66,8 +_,9 @@
      private final Vec2 rotation;
      private final CommandSigningContext signingContext;
      private final TaskChainer chatMessageChainer;
+-
+-    public CommandSourceStack(
 +    public boolean bypassSelectorPermissions = false; // Paper - add bypass for selector permissions
- 
-     public CommandSourceStack(
-         CommandSource source,
-@@ -192,6 +_,30 @@
++    
++	public CommandSourceStack(
+         CommandSource source, Vec3 position, Vec2 rotation, ServerLevel level, PermissionSet permissions, MinecraftServer server, Entity entity
+     ) {
+         this(source, position, rotation, level, permissions, CommandSourceStack.NamesProvider.FOR_ENTITY, server, entity);
+@@ -196,6 +_,29 @@
              );
      }
  
@@ -50,8 +69,7 @@
 +                new Vec2(location.getPitch(), location.getYaw()),
 +                ((org.bukkit.craftbukkit.CraftWorld) location.getWorld()).getHandle(),
 +                this.permissions,
-+                this.textName,
-+                this.displayName,
++                this.namesProvider,
 +                this.server,
 +                this.entity,
 +                this.silent,
@@ -66,7 +84,7 @@
      public CommandSourceStack withRotation(Vec2 rotation) {
          return this.rotation.equals(rotation)
              ? this
-@@ -380,6 +_,45 @@
+@@ -377,6 +_,45 @@
          return this.permissions;
      }
  
@@ -112,7 +130,7 @@
      public Vec3 getPosition() {
          return this.worldPosition;
      }
-@@ -463,6 +_,30 @@
+@@ -460,6 +_,30 @@
          }
      }
  
@@ -143,7 +161,7 @@
      public void sendSuccess(Supplier<Component> messageSupplier, boolean broadcast) {
          boolean shouldSendSystemMessage = this.source.acceptsSuccess() && !this.silent;
          boolean shouldBroadcast = broadcast && this.source.shouldInformAdmins() && !this.silent;
-@@ -483,20 +_,25 @@
+@@ -480,20 +_,25 @@
          GameRules gameRules = this.level.getGameRules();
          if (gameRules.get(GameRules.SEND_COMMAND_FEEDBACK)) {
              for (ServerPlayer player : this.server.getPlayerList().getPlayers()) {
@@ -172,7 +190,7 @@
          }
      }
  
-@@ -507,7 +_,7 @@
+@@ -504,7 +_,7 @@
  
      @Override
      public Collection<String> getOnlinePlayerNames() {
@@ -181,9 +199,9 @@
      }
  
      @Override
-@@ -582,4 +_,16 @@
-     public boolean isSilent() {
-         return this.silent;
+@@ -613,4 +_,16 @@
+             };
+         }
      }
 +
 +    // Paper start

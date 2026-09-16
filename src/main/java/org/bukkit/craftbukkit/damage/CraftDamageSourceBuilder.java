@@ -1,12 +1,12 @@
 package org.bukkit.craftbukkit.damage;
 
 import com.google.common.base.Preconditions;
-import java.util.function.Consumer;
 import net.kyori.adventure.pointer.Pointers;
 import org.bukkit.Location;
 import org.bukkit.damage.DamageSource;
 import org.bukkit.damage.DamageType;
 import org.bukkit.entity.Entity;
+import java.util.function.Consumer;
 
 public class CraftDamageSourceBuilder implements DamageSource.Builder {
 

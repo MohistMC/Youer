@@ -1,6 +1,11 @@
 --- a/net/minecraft/world/entity/animal/turtle/Turtle.java
 +++ b/net/minecraft/world/entity/animal/turtle/Turtle.java
-@@ -78,6 +_,13 @@
+@@ -74,10 +_,17 @@
+     private static final boolean DEFAULT_HAS_EGG = false;
+     private int layEggCounter;
+     public static final TargetingConditions.Selector BABY_ON_LAND_SELECTOR = (target, level) -> target.isBaby() && !target.isInWater();
+-    private BlockPos homePos = BlockPos.ZERO;
++    public BlockPos homePos = BlockPos.ZERO;
      private @Nullable BlockPos travelPos;
      public boolean goingHome;
  
@@ -127,7 +132,7 @@
                      BlockPos eggPos = this.blockPos.above();
 -                    BlockState eggState = Blocks.TURTLE_EGG.defaultBlockState().setValue(TurtleEggBlock.EGGS, this.turtle.random.nextInt(4) + 1);
 +                    BlockState eggState = Blocks.TURTLE_EGG.defaultBlockState().setValue(TurtleEggBlock.EGGS, layEggEvent.getEggCount()); // Paper
-                     level.setBlock(eggPos, eggState, 3);
+                     level.setBlockAndUpdate(eggPos, eggState);
                      level.gameEvent(GameEvent.BLOCK_PLACE, eggPos, GameEvent.Context.of(this.turtle, eggState));
 +                    } // CraftBukkit
                      this.turtle.setHasEgg(false);

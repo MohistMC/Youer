@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/inventory/AbstractFurnaceMenu.java
 +++ b/net/minecraft/world/inventory/AbstractFurnaceMenu.java
-@@ -32,6 +_,21 @@
+@@ -33,6 +_,21 @@
      protected final Level level;
      private final RecipePropertySet acceptedInputs;
      private final RecipeBookType recipeBookType;
@@ -22,7 +22,7 @@
  
      protected AbstractFurnaceMenu(
          MenuType<?> menuType, ResourceKey<RecipePropertySet> allowedInputs, RecipeBookType recipeBookType, int containerId, Inventory inventory
-@@ -59,6 +_,7 @@
+@@ -60,6 +_,7 @@
          this.addSlot(new Slot(container, 0, 56, 17));
          this.addSlot(new FurnaceFuelSlot(this, container, 1, 56, 53));
          this.addSlot(new FurnaceResultSlot(inventory.player, container, 2, 116, 35));
@@ -30,7 +30,7 @@
          this.addStandardInventorySlots(inventory, 8, 84);
          this.addDataSlots(data);
      }
-@@ -76,6 +_,7 @@
+@@ -77,6 +_,7 @@
  
      @Override
      public boolean stillValid(Player player) {
@@ -38,7 +38,7 @@
          return this.container.stillValid(player);
      }
  
-@@ -95,7 +_,13 @@
+@@ -96,7 +_,13 @@
              } else if (slotIndex != 1 && slotIndex != 0) {
                  if (this.canSmelt(stack)) {
                      if (!this.moveItemStackTo(stack, 0, 1, false)) {
@@ -53,18 +53,3 @@
                      }
                  } else if (this.isFuel(stack)) {
                      if (!this.moveItemStackTo(stack, 1, 2, false)) {
-@@ -133,7 +_,13 @@
-     }
- 
-     protected boolean isFuel(ItemStack itemStack) {
--        return this.level.fuelValues().isFuel(itemStack);
-+        var recipeType = switch (recipeBookType) {
-+            case SMOKER -> net.minecraft.world.item.crafting.RecipeType.SMOKING;
-+            case FURNACE -> net.minecraft.world.item.crafting.RecipeType.SMELTING;
-+            case BLAST_FURNACE -> net.minecraft.world.item.crafting.RecipeType.BLASTING;
-+            default -> null;
-+        };
-+        return itemStack.getBurnTime(recipeType, this.level.fuelValues()) > 0;
-     }
- 
-     public float getBurnProgress() {

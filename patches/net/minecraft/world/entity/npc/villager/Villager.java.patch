@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/npc/villager/Villager.java
 +++ b/net/minecraft/world/entity/npc/villager/Villager.java
-@@ -90,8 +_,11 @@
+@@ -93,8 +_,11 @@
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.timeline.Timelines;
@@ -12,8 +12,8 @@
  
  public class Villager extends AbstractVillager implements VillagerDataHolder, ReputationEventHandler {
      private static final Logger LOGGER = LogUtils.getLogger();
-@@ -118,7 +_,7 @@
-     private boolean increaseProfessionLevelOnUpdate;
+@@ -117,7 +_,7 @@
+     private static final EntityDimensions BABY_DIMENSIONS = EntityDimensions.scalable(0.49F, 0.98F).withEyeHeight(0.63F);
      private @Nullable Player lastTradedPlayer;
      private int foodLevel = 0;
 -    private final GossipContainer gossips = new GossipContainer();
@@ -21,7 +21,7 @@
      private long lastGossipTime;
      private long lastGossipDecayTime = 0L;
      private int villagerXp = 0;
-@@ -147,7 +_,7 @@
+@@ -145,7 +_,7 @@
                  activities.add(
                      ActivityData.create(
                          Activity.WORK,
@@ -30,7 +30,7 @@
                          ImmutableSet.of(Pair.of(MemoryModuleType.JOB_SITE, MemoryStatus.VALUE_PRESENT))
                      )
                  );
-@@ -180,6 +_,8 @@
+@@ -178,6 +_,8 @@
          MemoryModuleType.MEETING_POINT,
          (villager, poiType) -> poiType.is(PoiTypes.MEETING)
      );
@@ -39,7 +39,7 @@
  
      public Villager(EntityType<? extends Villager> entityType, Level level) {
          super(entityType, level);
-@@ -189,6 +_,110 @@
+@@ -187,6 +_,110 @@
          this.setCanPickUpLoot(true);
      }
  
@@ -120,9 +120,9 @@
 +    // Purpur start - Configurable entity base attributes
 +    @Override
 +    public void initAttributes() {
-+        this.safeSetAttribute(Attributes.MAX_HEALTH, this.level().purpurConfig.villagerMaxHealth);
-+        this.safeSetAttribute(Attributes.SCALE, this.level().purpurConfig.villagerScale);
-+        this.safeSetAttribute(Attributes.TEMPT_RANGE, this.level().purpurConfig.villagerTemptRange); // Purpur - Villagers follow emerald blocks
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.villagerMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.villagerScale);
++        this.getAttribute(Attributes.TEMPT_RANGE).setBaseValue(this.level().purpurConfig.villagerTemptRange); // Purpur - Villagers follow emerald blocks
 +    }
 +    // Purpur end - Configurable entity base attributes
 +
@@ -150,18 +150,15 @@
      @Override
      public Brain<Villager> getBrain() {
          return (Brain<Villager>) super.getBrain();
-@@ -227,18 +_,53 @@
+@@ -225,14 +_,49 @@
      }
  
      public static AttributeSupplier.Builder createAttributes() {
 -        return Mob.createMobAttributes().add(Attributes.MOVEMENT_SPEED, 0.5);
+-    }
 +        return Mob.createMobAttributes().add(Attributes.MOVEMENT_SPEED, 0.5).add(Attributes.TEMPT_RANGE, 10.0D); // Purpur - Villagers follow emerald blocks
-     }
- 
-     public boolean assignProfessionWhenSpawned() {
-         return this.assignProfessionWhenSpawned;
-     }
- 
++    }
++
 +    // Paper start - EAR 2
 +    @Override
 +    public void inactiveTick() {
@@ -180,7 +177,7 @@
 +        super.inactiveTick();
 +    }
 +    // Paper end - EAR 2
-+
+ 
      @Override
      protected void customServerAiStep(ServerLevel level) {
 +        // Paper start - EAR 2
@@ -204,18 +201,9 @@
 +        else if (this.isLobotomized && shouldRestock(level)) restock();
 +        // Purpur end - Lobotomize stuck villagers
          profiler.pop();
-         if (this.assignProfessionWhenSpawned) {
-             this.assignProfessionWhenSpawned = false;
-@@ -252,7 +_,7 @@
-                     this.increaseProfessionLevelOnUpdate = false;
-                 }
- 
--                this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 0));
-+                this.addEffect(new MobEffectInstance(MobEffects.REGENERATION, 200, 0), org.bukkit.event.entity.EntityPotionEffectEvent.Cause.VILLAGER_TRADE); // CraftBukkit
-             }
-         }
- 
-@@ -262,7 +_,7 @@
+         if (this.lastTradedPlayer != null) {
+             level.onReputationEvent(ReputationEventType.TRADE, this.lastTradedPlayer, this);
+@@ -240,7 +_,7 @@
              this.lastTradedPlayer = null;
          }
  
@@ -224,7 +212,7 @@
              Raid raid = level.getRaidAt(this.blockPosition());
              if (raid != null && raid.isActive() && !raid.isOver()) {
                  level.broadcastEntityEvent(this, (byte)42);
-@@ -273,6 +_,7 @@
+@@ -251,6 +_,7 @@
              this.stopTrading();
          }
  
@@ -232,7 +220,7 @@
          super.customServerAiStep(level);
      }
  
-@@ -289,7 +_,7 @@
+@@ -267,7 +_,7 @@
      @Override
      public InteractionResult mobInteract(Player player, InteractionHand hand) {
          ItemStack itemStack = player.getItemInHand(hand);
@@ -241,7 +229,7 @@
              return super.mobInteract(player, hand);
          }
  
-@@ -312,6 +_,9 @@
+@@ -290,6 +_,9 @@
                  return InteractionResult.CONSUME;
              }
  
@@ -251,7 +239,7 @@
              this.startTrading(player);
          }
  
-@@ -368,7 +_,13 @@
+@@ -340,7 +_,13 @@
          this.updateDemand();
  
          for (MerchantOffer offer : this.getOffers()) {
@@ -265,8 +253,8 @@
 +            // CraftBukkit end
          }
  
-         this.resendOffersToTradingPlayer();
-@@ -429,7 +_,13 @@
+         Player tradingPlayer = this.getTradingPlayer();
+@@ -390,7 +_,13 @@
          int missedUpdates = 2 - this.numberOfRestocksToday;
          if (missedUpdates > 0) {
              for (MerchantOffer offer : this.getOffers()) {
@@ -281,7 +269,7 @@
              }
          }
  
-@@ -442,7 +_,7 @@
+@@ -406,7 +_,7 @@
  
      public void updateDemand() {
          for (MerchantOffer offer : this.getOffers()) {
@@ -290,23 +278,7 @@
          }
      }
  
-@@ -450,6 +_,7 @@
-         int reputation = this.getPlayerReputation(player);
-         if (reputation != 0) {
-             for (MerchantOffer offer : this.getOffers()) {
-+                if (offer.ignoreDiscounts) continue; // Paper - Add ignore discounts API
-                 offer.addToSpecialPriceDiff(-Mth.floor(reputation * offer.getPriceMultiplier()));
-             }
-         }
-@@ -459,6 +_,7 @@
-             int amplifier = effect.getAmplifier();
- 
-             for (MerchantOffer offer : this.getOffers()) {
-+                if (offer.ignoreDiscounts) continue; // Paper - Add ignore discounts API
-                 double modifier = 0.3 + 0.0625 * amplifier;
-                 int costReduction = (int)Math.floor(modifier * offer.getBaseCostA().getCount());
-                 offer.addToSpecialPriceDiff(-Math.max(costReduction, 1));
-@@ -584,7 +_,7 @@
+@@ -569,7 +_,7 @@
          }
  
          if (offer.shouldRewardExp()) {
@@ -315,7 +287,7 @@
          }
      }
  
-@@ -602,7 +_,7 @@
+@@ -587,7 +_,7 @@
  
      @Override
      public void die(DamageSource source) {
@@ -324,7 +296,7 @@
          Entity murderer = source.getEntity();
          if (murderer != null) {
              this.tellWitnessesThatIWasMurdered(murderer);
-@@ -650,7 +_,7 @@
+@@ -635,7 +_,7 @@
  
      @Override
      public boolean canBreed() {
@@ -333,7 +305,7 @@
      }
  
      private boolean hungry() {
-@@ -701,7 +_,7 @@
+@@ -688,7 +_,7 @@
          return VillagerData.canLevelUp(currentLevel) && this.villagerXp >= VillagerData.getMaxXpPerLevel(currentLevel);
      }
  
@@ -342,7 +314,7 @@
          this.setVillagerData(this.getVillagerData().withLevel(this.getVillagerData().level() + 1));
          this.updateTrades(level);
      }
-@@ -761,13 +_,21 @@
+@@ -744,13 +_,21 @@
  
      @Override
      public void thunderHit(ServerLevel level, LightningBolt lightningBolt) {
@@ -367,19 +339,22 @@
              if (witch == null) {
                  super.thunderHit(level, lightningBolt);
              }
-@@ -784,7 +_,10 @@
+@@ -767,10 +_,14 @@
      @Override
      public boolean wantsToPickUp(ServerLevel level, ItemStack itemStack) {
          Item item = itemStack.getItem();
--        return (itemStack.is(ItemTags.VILLAGER_PICKS_UP) || this.getVillagerData().profession().value().requestedItems().contains(item))
 +        // Neo: Allow Farmer Villagers to pick up SpecialPlantable items.
 +        boolean isFarmerDesiredSeed = (itemStack.getItem() instanceof net.neoforged.neoforge.common.SpecialPlantable specialPlantable && specialPlantable.villagerCanPlantItem(this))
 +                && this.getVillagerData().profession().value().secondaryPoi().stream().anyMatch(secondaryPoi -> secondaryPoi.defaultBlockState().is(net.neoforged.neoforge.common.Tags.Blocks.VILLAGER_FARMLANDS));
-+        return (itemStack.is(ItemTags.VILLAGER_PICKS_UP) || this.getVillagerData().profession().value().requestedItems().contains(item) || isFarmerDesiredSeed)
+         return (
+                 itemStack.is(ItemTags.VILLAGER_PICKS_UP)
+                     || itemStack.has(DataComponents.VILLAGER_FOOD)
+                     || this.getVillagerData().profession().value().requestedItems().contains(item)
++                    || isFarmerDesiredSeed
+             )
              && this.getInventory().canAddItem(itemStack);
      }
- 
-@@ -802,20 +_,28 @@
+@@ -798,16 +_,22 @@
      }
  
      public boolean hasFarmSeeds() {
@@ -405,13 +380,15 @@
              if (SharedConstants.DEBUG_UNLOCK_ALL_TRADES && data.level() < 5) {
                  this.increaseMerchantCareer(level);
              }
-+            return true; // Paper - More vanilla friendly methods to update trades
+@@ -817,6 +_,7 @@
+                 this.updateSpecialPrices(tradingPlayer);
+             }
          }
 +        return false; // Paper - More vanilla friendly methods to update trades
      }
  
      public void gossip(ServerLevel level, Villager target, long timestamp) {
-@@ -839,6 +_,7 @@
+@@ -844,6 +_,7 @@
      }
  
      public void spawnGolemIfNeeded(ServerLevel level, long timestamp, int villagersNeededToAgree) {
@@ -419,16 +396,7 @@
          if (this.wantsToSpawnGolem(timestamp)) {
              AABB villagerSearchBox = this.getBoundingBox().inflate(10.0, 10.0, 10.0);
              List<Villager> nearbyVillagers = level.getEntitiesOfClass(Villager.class, villagerSearchBox);
-@@ -847,7 +_,7 @@
-                 .limit(5L)
-                 .toList();
-             if (nearbyVillagersThatWantAGolem.size() >= villagersNeededToAgree) {
--                if (!SpawnUtil.trySpawnMob(
-+                if (!SpawnUtil.trySpawnMob( // Paper - Set Golem Last Seen to stop it from spawning another one - switch to isPresent
-                         EntityTypes.IRON_GOLEM,
-                         EntitySpawnReason.MOB_SUMMONED,
-                         level,
-@@ -856,9 +_,11 @@
+@@ -861,9 +_,11 @@
                          8,
                          6,
                          SpawnUtil.Strategy.LEGACY_IRON_GOLEM,

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/BaseFireBlock.java
 +++ b/net/minecraft/world/level/block/BaseFireBlock.java
-@@ -129,12 +_,13 @@
+@@ -126,12 +_,13 @@
  
      @Override
      protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity, InsideBlockEffectApplier effectApplier, boolean isPrecise) {
@@ -15,7 +15,7 @@
          if (!entity.fireImmune()) {
              if (entity.getRemainingFireTicks() < 0) {
                  entity.setRemainingFireTicks(entity.getRemainingFireTicks() + 1);
-@@ -144,30 +_,42 @@
+@@ -141,30 +_,42 @@
              }
  
              if (entity.getRemainingFireTicks() >= 0) {
@@ -63,10 +63,11 @@
      }
  
      @Override
-@@ -183,6 +_,14 @@
+@@ -179,6 +_,14 @@
+ 
          return super.playerWillDestroy(level, pos, state, player);
      }
- 
++
 +    // CraftBukkit start
 +    protected void fireExtinguished(net.minecraft.world.level.LevelAccessor world, BlockPos position) {
 +        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callBlockFadeEvent(world, position, Blocks.AIR.defaultBlockState()).isCancelled()) {
@@ -74,16 +75,6 @@
 +        }
 +    }
 +    // CraftBukkit end
-+
+ 
      public static boolean canBePlacedAt(Level level, BlockPos pos, Direction forwardDirection) {
          BlockState state = level.getBlockState(pos);
-         return !state.isAir() ? false : getState(level, pos).canSurvive(level, pos) || isPortal(level, pos, forwardDirection);
-@@ -197,7 +_,7 @@
-         boolean hasObsidian = false;
- 
-         for (Direction face : Direction.values()) {
--            if (level.getBlockState(testPos.set(pos).move(face)).is(Blocks.OBSIDIAN)) {
-+            if (level.getBlockState(testPos.set(pos).move(face)).isPortalFrame(level, testPos)) {
-                 hasObsidian = true;
-                 break;
-             }

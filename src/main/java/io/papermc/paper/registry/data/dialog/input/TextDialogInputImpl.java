@@ -19,7 +19,7 @@ public record TextDialogInputImpl(
     boolean labelVisible,
     String initial,
     int maxLength,
-    @Nullable MultilineOptions multiline
+    TextDialogInput.@Nullable MultilineOptions multiline
 ) implements TextDialogInput {
 
     public record MultilineOptionsImpl(@Nullable Integer maxLines, @Nullable Integer height) implements MultilineOptions {
@@ -33,7 +33,7 @@ public record TextDialogInputImpl(
         }
     }
 
-    public static final class BuilderImpl implements Builder {
+    public static final class BuilderImpl implements TextDialogInput.Builder {
 
         private final String key;
         private int width = PlainMessage.DEFAULT_WIDTH;
@@ -41,7 +41,7 @@ public record TextDialogInputImpl(
         private boolean labelVisible = true;
         private String initial = "";
         private int maxLength = 32;
-        private @Nullable MultilineOptions multiline = null;
+        private TextDialogInput.@Nullable MultilineOptions multiline = null;
 
         public BuilderImpl(final String key, final Component label) {
             Preconditions.checkArgument(StringTemplate.isValidVariableName(key), "key must be a valid input name");
@@ -50,31 +50,31 @@ public record TextDialogInputImpl(
         }
 
         @Override
-        public Builder width(final @Range(from = 1, to = 1024) int width) {
+        public TextDialogInput.Builder width(final @Range(from = 1, to = 1024) int width) {
             this.width = requireRange(width, "width", 1, 1024);
             return this;
         }
 
         @Override
-        public Builder labelVisible(final boolean labelVisible) {
+        public TextDialogInput.Builder labelVisible(final boolean labelVisible) {
             this.labelVisible = labelVisible;
             return this;
         }
 
         @Override
-        public Builder initial(final String initial) {
+        public TextDialogInput.Builder initial(final String initial) {
             this.initial = initial;
             return this;
         }
 
         @Override
-        public Builder maxLength(final @Positive int maxLength) {
+        public TextDialogInput.Builder maxLength(final @Positive int maxLength) {
             this.maxLength = requirePositive(maxLength, "maxLength");
             return this;
         }
 
         @Override
-        public Builder multiline(final @Nullable MultilineOptions multiline) {
+        public TextDialogInput.Builder multiline(final TextDialogInput.@Nullable MultilineOptions multiline) {
             this.multiline = multiline;
             return this;
         }

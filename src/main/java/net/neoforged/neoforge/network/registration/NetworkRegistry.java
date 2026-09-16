@@ -8,9 +8,6 @@ package net.neoforged.neoforge.network.registration;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.mohistmc.youer.YouerConfig;
-import com.mohistmc.youer.api.ColorAPI;
-import com.mohistmc.youer.api.PlayerAPI;
 import com.mojang.logging.LogUtils;
 import io.netty.channel.ChannelHandlerContext;
 import java.util.ArrayList;
@@ -108,7 +105,7 @@ public class NetworkRegistry {
      * Registry of all custom payload handlers. The initial state of this map should reflect the protocols which support custom payloads.
      * TODO: Change key type to a combination of protocol + flow.
      */
-    public static final Map<ConnectionProtocol, Map<Identifier, PayloadRegistration<?>>> PAYLOAD_REGISTRATIONS = ImmutableMap.of(
+    protected static final Map<ConnectionProtocol, Map<Identifier, PayloadRegistration<?>>> PAYLOAD_REGISTRATIONS = ImmutableMap.of(
             ConnectionProtocol.CONFIGURATION, new HashMap<>(),
             ConnectionProtocol.PLAY, new HashMap<>());
     protected static final Map<ConnectionProtocol, Map<Identifier, IPayloadHandler<?>>> SERVERBOUND_HANDLERS = ImmutableMap.of(
@@ -220,77 +217,6 @@ public class NetworkRegistry {
 
         byProtocol.put(type.id(), handler);
     }
-
-    // Youer start - dynamic plugin channel registration
-    /**
-     * Dynamically registers a plugin channel payload and its handler(s) after the standard registration phase.
-     * Used by the Bukkit plugin messenger to register plugin channels as NeoForge payloads at runtime.
-     *
-     * @param type          The type of the payload.
-     * @param codec         The codec for the payload.
-     * @param serverHandler The server-side handler, or null if the payload is clientbound only.
-     * @param clientHandler The client-side handler, or null if the payload is serverbound only.
-     * @param protocols     The protocols this payload supports.
-     * @param flow          The flow of this payload. Specify {@link Optional#empty()} for both directions.
-     * @param version       The version of the payload.
-     * @param optional      If the payload is optional.
-     */
-    @SuppressWarnings({ "unchecked", "rawtypes" })
-    public static <T extends CustomPacketPayload, B extends FriendlyByteBuf> void registerDynamicPayload(
-            CustomPacketPayload.Type<T> type,
-            StreamCodec<? super B, T> codec,
-            @Nullable IPayloadHandler<T> serverHandler,
-            @Nullable IPayloadHandler<T> clientHandler,
-            List<ConnectionProtocol> protocols,
-            Optional<PacketFlow> flow,
-            String version,
-            boolean optional) {
-        PayloadRegistration<T> registration = new PayloadRegistration<>(type, (StreamCodec<? super RegistryFriendlyByteBuf, T>) codec, protocols, flow, version.strip(), optional);
-
-        for (ConnectionProtocol protocol : protocols) {
-            Map<Identifier, PayloadRegistration<?>> byProtocol = PAYLOAD_REGISTRATIONS.get(protocol);
-            if (byProtocol == null) {
-                continue;
-            }
-            byProtocol.put(type.id(), registration);
-
-            if (serverHandler != null && registration.matchesFlow(PacketFlow.SERVERBOUND)) {
-                registerHandler(SERVERBOUND_HANDLERS, protocol, PacketFlow.SERVERBOUND, type, serverHandler);
-            }
-            if (clientHandler != null && registration.matchesFlow(PacketFlow.CLIENTBOUND)) {
-                registerHandler(CLIENTBOUND_HANDLERS, protocol, PacketFlow.CLIENTBOUND, type, clientHandler);
-            }
-        }
-    }
-
-    /**
-     * Removes a previously dynamically registered plugin channel payload for the given protocol.
-     *
-     * @param protocol The protocol to deregister from.
-     * @param id       The id of the payload to deregister.
-     */
-    public static void unregisterDynamicPayload(ConnectionProtocol protocol, Identifier id) {
-        Map<Identifier, PayloadRegistration<?>> byProtocol = PAYLOAD_REGISTRATIONS.get(protocol);
-        if (byProtocol != null) {
-            byProtocol.remove(id);
-        }
-        Map<Identifier, IPayloadHandler<?>> serverbound = SERVERBOUND_HANDLERS.get(protocol);
-        if (serverbound != null) {
-            serverbound.remove(id);
-        }
-        Map<Identifier, IPayloadHandler<?>> clientbound = CLIENTBOUND_HANDLERS.get(protocol);
-        if (clientbound != null) {
-            clientbound.remove(id);
-        }
-    }
-
-    /**
-     * {@return true if the given id is a built-in NeoForge payload}
-     */
-    public static boolean isBuiltinPayload(Identifier id) {
-        return BUILTIN_PAYLOADS.containsKey(id);
-    }
-    // Youer end - dynamic plugin channel registration
 
     /**
      * Attempts to retrieve the {@link StreamCodec} for a non-vanilla payload.
@@ -416,29 +342,14 @@ public class NetworkRegistry {
     public static void initializeNeoForgeConnection(ServerConfigurationPacketListener listener, Map<ConnectionProtocol, Set<ModdedNetworkQueryComponent>> clientChannels) {
         ChannelAttributes.setPayloadSetup(listener.getConnection(), NetworkPayloadSetup.empty());
         ChannelAttributes.setConnectionType(listener.getConnection(), listener.getConnectionType());
-        var address = listener.getConnection().address;
+
         Map<ConnectionProtocol, NegotiationResult> results = new IdentityHashMap<>();
 
         for (ConnectionProtocol protocol : PAYLOAD_REGISTRATIONS.keySet()) {
-            var client =  clientChannels.getOrDefault(protocol, Collections.emptySet()).stream().map(NegotiableNetworkComponent::new).toList();
             NegotiationResult negotiationResult = NetworkComponentNegotiator.negotiate(
                     PAYLOAD_REGISTRATIONS.get(protocol).values().stream().map(NegotiableNetworkComponent::new).toList(),
                     clientChannels.getOrDefault(protocol, Collections.emptySet()).stream().map(NegotiableNetworkComponent::new).toList());
 
-            client.forEach(c -> {
-                var modid = c.id().getNamespace();
-                if (YouerConfig.player_modlist_blacklist_enable && YouerConfig.player_modlist_blacklist.contains(modid)) {
-                    Map<Identifier, Component> failureReasons = new HashMap<>();
-                    var res = YouerConfig.player_modlist_blacklist_use_real_feedback ? c.id() : Identifier.fromNamespaceAndPath("youer", "check");
-                    failureReasons.put(res, ColorAPI.vanilla(YouerConfig.player_modlist_blacklist_failurereasons));
-                    NegotiationResult negotiationResult1 = new NegotiationResult(List.of(), false, failureReasons);
-                    listener.send(new ModdedNetworkSetupFailedPayload(negotiationResult1.failureReasons()));
-                    PlayerAPI.modlist.remove(address);
-                    listener.disconnect(ColorAPI.vanilla(YouerConfig.player_modlist_blacklist_failurereasons));
-                    return;
-                }
-                PlayerAPI.addMod(address, modid);
-            });
             // Negotiation failed. Disconnect the client.
             if (!negotiationResult.success()) {
                 if (!negotiationResult.failureReasons().isEmpty()) {

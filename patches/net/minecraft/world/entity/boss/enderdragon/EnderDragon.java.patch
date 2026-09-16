@@ -1,12 +1,25 @@
 --- a/net/minecraft/world/entity/boss/enderdragon/EnderDragon.java
 +++ b/net/minecraft/world/entity/boss/enderdragon/EnderDragon.java
-@@ -52,6 +_,16 @@
+@@ -42,6 +_,7 @@
+ import net.minecraft.world.level.gameevent.GameEvent;
+ import net.minecraft.world.level.gamerules.GameRules;
+ import net.minecraft.world.level.levelgen.Heightmap;
++import net.minecraft.world.level.levelgen.feature.EndPodiumFeature;
+ import net.minecraft.world.level.pathfinder.BinaryHeap;
+ import net.minecraft.world.level.pathfinder.Node;
+ import net.minecraft.world.level.pathfinder.Path;
+@@ -52,6 +_,21 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
 +// CraftBukkit start
++import net.minecraft.world.item.ItemStack;
 +import net.minecraft.world.level.Explosion;
 +import net.minecraft.world.level.ServerExplosion;
++import net.minecraft.world.level.block.Block;
++import net.minecraft.world.level.block.entity.BlockEntity;
++import net.minecraft.world.level.storage.loot.LootParams;
++import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
 +import org.bukkit.craftbukkit.block.CraftBlock;
 +import org.bukkit.event.entity.EntityExplodeEvent;
 +import org.bukkit.event.entity.EntityRegainHealthEvent;
@@ -17,6 +30,15 @@
  public class EnderDragon extends Mob implements Enemy {
      private static final Logger LOGGER = LogUtils.getLogger();
      public static final EntityDataAccessor<Integer> DATA_PHASE = SynchedEntityData.defineId(EnderDragon.class, EntityDataSerializers.INT);
+@@ -64,7 +_,7 @@
+     private static final String SITTING_DAMAGE_RECEIVED_KEY = "sitting_damage_received";
+     private static final int DEFAULT_DEATH_TIME = 0;
+     public final DragonFlightHistory flightHistory = new DragonFlightHistory();
+-    private final EnderDragonPart[] subEntities;
++    public final EnderDragonPart[] subEntities;
+     public final EnderDragonPart head;
+     private final EnderDragonPart neck;
+     private final EnderDragonPart body;
 @@ -87,6 +_,10 @@
      private final Node[] nodes = new Node[24];
      private final int[] nodeAdjacency = new int[24];
@@ -113,7 +135,7 @@
 +    // Paper start - Allow changing the EnderDragon podium
 +    public BlockPos getPodium() {
 +        if (this.podium == null) {
-+            return EndPodiumFeature.getLocation(this.getFightOrigin());
++            return EnderDragonFight.getPodiumLocation(this.getFightOrigin());
 +        }
 +        return this.podium;
 +    }
@@ -155,7 +177,7 @@
                          double xdd = targetLocation.x - this.getX();
                          double ydd = targetLocation.y - this.getY();
                          double zdd = targetLocation.z - this.getZ();
-@@ -366,7 +_,14 @@
+@@ -365,7 +_,14 @@
              if (this.nearestCrystal.isRemoved()) {
                  this.nearestCrystal = null;
              } else if (this.tickCount % 10 == 0 && this.getHealth() < this.getMaxHealth()) {
@@ -171,16 +193,16 @@
              }
          }
  
-@@ -396,7 +_,7 @@
+@@ -395,7 +_,7 @@
                  double xd = entity.getX() - xm;
                  double zd = entity.getZ() - zm;
                  double dd = Math.max(xd * xd + zd * zd, 0.1);
 -                entity.push(xd / dd * 4.0, 0.2F, zd / dd * 4.0);
 +                entity.push(xd / dd * 4.0, 0.2F, zd / dd * 4.0, this); // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
-                 if (!this.phaseManager.getCurrentPhase().isSitting() && livingTarget.getLastHurtByMobTimestamp() < entity.tickCount - 2) {
-                     DamageSource damageSource = this.damageSources().mobAttack(this);
-                     entity.hurtServer(serverLevel, damageSource, 5.0F);
-@@ -429,6 +_,9 @@
+                 if (!this.phaseManager.getCurrentPhase().isSitting()
+                     && livingTarget.getLastHurtByMobTimestamp() < entity.tickCount - 2
+                     && this.doTeamsAllowDamage(livingTarget)) {
+@@ -430,6 +_,9 @@
          int z1 = Mth.floor(bb.maxZ);
          boolean hitWall = false;
          boolean destroyedBlock = false;
@@ -190,7 +212,7 @@
  
          for (int x = x0; x <= x1; x++) {
              for (int y = y0; y <= y1; y++) {
-@@ -436,8 +_,12 @@
+@@ -437,8 +_,12 @@
                      BlockPos blockPos = new BlockPos(x, y, z);
                      BlockState state = level.getBlockState(blockPos);
                      if (!state.isAir() && !state.is(BlockTags.DRAGON_TRANSPARENT)) {
@@ -205,7 +227,7 @@
                          } else {
                              hitWall = true;
                          }
-@@ -446,6 +_,59 @@
+@@ -447,6 +_,59 @@
              }
          }
  
@@ -265,14 +287,14 @@
          if (destroyedBlock) {
              BlockPos randomPos = new BlockPos(
                  x0 + this.random.nextInt(x1 - x0 + 1), y0 + this.random.nextInt(y1 - y0 + 1), z0 + this.random.nextInt(z1 - z0 + 1)
-@@ -503,15 +_,20 @@
+@@ -504,15 +_,20 @@
      }
  
      @Override
--    public void knockback(double power, double xd, double zd, DamageSource source, float damage) {
+-    public void knockback(double power, double xd, double zd, DamageSource source, float damage, boolean comesFromEffect) {
 +    public void knockback(final double power, final double xd, final double zd, final DamageSource source, final float damage, final boolean comesFromEffect, @Nullable final Entity attacker, final io.papermc.paper.event.entity.EntityKnockbackEvent.Cause eventCause) { // Paper - knockback events
          if (!this.phaseManager.getCurrentPhase().isSitting()) {
--            super.knockback(power, xd, zd, source, damage);
+-            super.knockback(power, xd, zd, source, damage, comesFromEffect);
 +            super.knockback(power, xd, zd, source, damage, comesFromEffect, attacker, eventCause); // Paper - knockback events
          }
      }
@@ -289,7 +311,7 @@
          this.gameEvent(GameEvent.ENTITY_DIE);
          if (this.dragonFight != null) {
              this.dragonFight.updateDragon(this);
-@@ -534,17 +_,38 @@
+@@ -535,17 +_,38 @@
          }
  
          int xpCount = 500;
@@ -332,7 +354,7 @@
              }
          }
  
-@@ -557,19 +_,39 @@
+@@ -558,19 +_,39 @@
          }
  
          if (this.dragonDeathTime >= 200 && this.level() instanceof ServerLevel level) {
@@ -375,7 +397,7 @@
      public int findClosestNode() {
          if (this.nodes[0] == null) {
              for (int i = 0; i < 24; i++) {
-@@ -750,6 +_,7 @@
+@@ -751,6 +_,7 @@
          output.putInt("DragonPhase", this.phaseManager.getCurrentPhase().getPhase().getId());
          output.putInt("DragonDeathTime", this.dragonDeathTime);
          output.putFloat("sitting_damage_received", this.sittingDamageReceived);
@@ -383,7 +405,7 @@
      }
  
      @Override
-@@ -758,6 +_,7 @@
+@@ -759,6 +_,7 @@
          input.getInt("DragonPhase").ifPresent(phaseId -> this.phaseManager.setPhase(EnderDragonPhase.getById(phaseId)));
          this.dragonDeathTime = input.getIntOr("DragonDeathTime", 0);
          this.sittingDamageReceived = input.getFloatOr("sitting_damage_received", 0.0F);
@@ -391,7 +413,7 @@
      }
  
      @Override
-@@ -851,19 +_,34 @@
+@@ -852,19 +_,34 @@
          return this.dragonFight;
      }
  

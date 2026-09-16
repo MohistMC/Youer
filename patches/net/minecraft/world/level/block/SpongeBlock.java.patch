@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/SpongeBlock.java
 +++ b/net/minecraft/world/level/block/SpongeBlock.java
-@@ -50,7 +_,9 @@
+@@ -43,7 +_,9 @@
      }
  
      private boolean removeWaterBreadthFirstSearch(Level level, BlockPos startPos) {
@@ -11,7 +11,7 @@
              for (Direction direction : ALL_DIRECTIONS) {
                  consumer.accept(pos.relative(direction));
              }
-@@ -58,28 +_,68 @@
+@@ -51,28 +_,68 @@
              if (pos.equals(startPos)) {
                  return BlockPos.TraversalNodeStatus.ACCEPT;
              } else {
@@ -22,14 +22,14 @@
 +                BlockState blockState = blockList.getBlockState(pos);
 +                FluidState fluidState = blockList.getFluidState(pos);
 +                // CraftBukkit end
-+                if (!spongeState.canBeHydrated(level, startPos, fluidState, pos) && (!level.purpurConfig.spongeAbsorbsLava || !fluidState.is(FluidTags.LAVA)) && (!level.purpurConfig.spongeAbsorbsWaterFromMud || !blockState.is(Blocks.MUD))) { // Purpur - Option for sponges to work on lava and mud
++                if (!spongeState.canBeHydrated(level, startPos, fluidState) && (!level.purpurConfig.spongeAbsorbsLava || !fluidState.is(FluidTags.LAVA)) && (!level.purpurConfig.spongeAbsorbsWaterFromMud || !blockState.is(Blocks.MUD))) { // Purpur - Option for sponges to work on lava and mud
                      return BlockPos.TraversalNodeStatus.SKIP;
 -                } else if (state.getBlock() instanceof BucketPickup bucketPickup && !bucketPickup.pickupBlock(null, level, pos, state).isEmpty()) {
 +                } else if (blockState.getBlock() instanceof BucketPickup bucketPickup && !bucketPickup.pickupBlock(null, blockList, pos, blockState).isEmpty()) { // CraftBukkit
                      return BlockPos.TraversalNodeStatus.ACCEPT;
                  } else {
 -                    if (state.getBlock() instanceof LiquidBlock) {
--                        level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+-                        level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
 +                    if (blockState.getBlock() instanceof LiquidBlock) {
 +                        blockList.setBlock(pos, Blocks.AIR.defaultBlockState(), Block.UPDATE_ALL); // CraftBukkit
 +                        // Purpur start - Option for sponges to work on lava and mud
@@ -44,7 +44,7 @@
  
 -                        BlockEntity blockEntity = state.hasBlockEntity() ? level.getBlockEntity(pos) : null;
 -                        dropResources(state, level, pos, blockEntity);
--                        level.setBlock(pos, Blocks.AIR.defaultBlockState(), 3);
+-                        level.setBlockAndUpdate(pos, Blocks.AIR.defaultBlockState());
 +                        // CraftBukkit start
 +                        // BlockEntity blockEntity = state.hasBlockEntity() ? level.getBlockEntity(pos) : null;
 +                        // dropResources(state, level, pos, blockEntity);

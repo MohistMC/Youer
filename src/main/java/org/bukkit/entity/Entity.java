@@ -1,12 +1,12 @@
 package org.bukkit.entity;
 
-import io.papermc.paper.entity.RemovalReason;
-import io.papermc.paper.math.Angle;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import io.papermc.paper.datacomponent.DataComponentView;
 import io.papermc.paper.entity.LookAnchor;
+import io.papermc.paper.entity.RemovalReason;
+import io.papermc.paper.math.Angle;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.event.HoverEventSource;
 import net.kyori.adventure.util.TriState;

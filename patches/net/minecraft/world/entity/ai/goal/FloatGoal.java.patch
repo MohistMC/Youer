@@ -1,9 +1,10 @@
 --- a/net/minecraft/world/entity/ai/goal/FloatGoal.java
 +++ b/net/minecraft/world/entity/ai/goal/FloatGoal.java
-@@ -9,13 +_,14 @@
- 
-     public FloatGoal(Mob mob) {
+@@ -17,13 +_,15 @@
+     public FloatGoal(Mob mob, TagKey<Fluid> fluid) {
          this.mob = mob;
+         this.fluid = fluid;
++
 +        if (mob.level().paperConfig().entities.behavior.spawnerNerfedMobsShouldJump) mob.goalFloat = this; // Paper - Allow nerfed mobs to jump and float
          this.setFlags(EnumSet.of(Goal.Flag.JUMP));
          mob.getNavigation().setCanFloat(true);
@@ -11,7 +12,7 @@
  
      @Override
      public boolean canUse() {
--        return this.mob.isInWater() && this.mob.getFluidHeight(FluidTags.WATER) > this.mob.getFluidJumpThreshold() || this.mob.isInLava();
+-        return this.mob.isInFluidDeeperThan(this.mob.getFluidJumpThreshold(), this.fluid) || this.mob.isInLava();
 +        return this.mob.isInWater() && this.mob.getFluidHeight(FluidTags.WATER) > this.mob.getFluidJumpThreshold() || this.mob.isInLava() || this.mob.getFluidInteraction().isInFluidMatching(this.mob, (entity, fluidType, height) -> entity.canSwimInFluidType(fluidType) && height > entity.getFluidJumpThreshold());
      }
  

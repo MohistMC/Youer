@@ -1,7 +1,6 @@
 package org.bukkit.craftbukkit;
 
 import ca.spottedleaf.common.time.TickData;
-import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
@@ -10,7 +9,6 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.MapMaker;
 import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
-import com.mohistmc.youer.util.ProxyUtils;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.serialization.JsonOps;
@@ -167,6 +165,7 @@ import org.bukkit.craftbukkit.generator.CraftWorldInfo;
 import org.bukkit.craftbukkit.generator.OldCraftChunkData;
 import org.bukkit.craftbukkit.help.SimpleHelpMap;
 import org.bukkit.craftbukkit.inventory.CraftBlastingRecipe;
+import org.bukkit.craftbukkit.inventory.CraftBrewingRecipe;
 import org.bukkit.craftbukkit.inventory.CraftCampfireRecipe;
 import org.bukkit.craftbukkit.inventory.CraftFurnaceRecipe;
 import org.bukkit.craftbukkit.inventory.CraftItemCraftResult;
@@ -222,6 +221,7 @@ import org.bukkit.generator.ChunkGenerator;
 import org.bukkit.generator.WorldInfo;
 import org.bukkit.help.HelpMap;
 import org.bukkit.inventory.BlastingRecipe;
+import org.bukkit.inventory.BrewingRecipe;
 import org.bukkit.inventory.CampfireRecipe;
 import org.bukkit.inventory.ComplexRecipe;
 import org.bukkit.inventory.FurnaceRecipe;
@@ -403,7 +403,7 @@ public final class CraftServer implements Server {
         this.playerList = (DedicatedPlayerList) playerList;
         this.playerView = MCUtil.transformUnmodifiable(playerList.getPlayers(), ServerPlayer::getBukkitEntity);
         this.serverVersion = io.papermc.paper.ServerBuildInfo.buildInfo().asString(io.papermc.paper.ServerBuildInfo.StringRepresentation.VERSION_SIMPLE); // Paper - improve version
-        this.structureManager = new CraftStructureManager(console.getStructureManager(), console.registryAccess());
+        this.structureManager = new CraftStructureManager(console.getStructureTemplateManager(), console.registryAccess());
         this.serverTickManager = new CraftServerTickManager(console.tickRateManager());
         this.serverLinks = new CraftServerLinks(console);
 
@@ -437,29 +437,6 @@ public final class CraftServer implements Server {
 
         NeoForgeInjectBukkit.init();
 
-        initConfig(); // Youer
-
-        this.overrideAllCommandBlockCommands = this.commandsConfiguration.getStringList("command-block-overrides").contains("*");
-        this.ignoreVanillaPermissions = this.commandsConfiguration.getBoolean("ignore-vanilla-permissions");
-        this.overrideSpawnLimits();
-        console.autosavePeriod = this.configuration.getInt("ticks-per.autosave");
-        this.warningState = WarningState.value(this.configuration.getString("settings.deprecated-verbose"));
-        TicketType.PLUGIN_TYPE_TIMEOUT = this.configuration.getInt("chunk-gc.period-in-ticks");
-        this.minimumAPI = ApiVersion.getOrCreateVersion(this.configuration.getString("settings.minimum-api"));
-        this.loadIcon();
-        this.loadCompatibilities();
-        CraftMagicNumbers.INSTANCE.getCommodore().updateReroute(activeCompatibilities::contains);
-
-        // Set map color cache
-        if (this.configuration.getBoolean("settings.use-map-color-cache")) {
-            MapPalette.setMapColorCache(new CraftMapColorCache(this.logger));
-        }
-        this.potionBrewer = new io.papermc.paper.potion.PaperPotionBrewer(console); // Paper - custom potion mixes
-        datapackManager = new io.papermc.paper.datapack.PaperDatapackManager(console.getPackRepository()); // Paper
-    }
-
-    // Youer start
-    public void initConfig() {
         this.configuration = YamlConfiguration.loadConfiguration(this.getConfigFile());
         this.configuration.options().copyDefaults(true);
         YamlConfiguration configurationDefaults = YamlConfiguration.loadConfiguration(new InputStreamReader(this.getClass().getClassLoader().getResourceAsStream("configurations/bukkit.yml"), StandardCharsets.UTF_8));
@@ -503,8 +480,24 @@ public final class CraftServer implements Server {
         }
 
         this.saveCommandsConfig();
+        this.overrideAllCommandBlockCommands = this.commandsConfiguration.getStringList("command-block-overrides").contains("*");
+        this.ignoreVanillaPermissions = this.commandsConfiguration.getBoolean("ignore-vanilla-permissions");
+        this.overrideSpawnLimits();
+        console.autosavePeriod = this.configuration.getInt("ticks-per.autosave");
+        this.warningState = WarningState.value(this.configuration.getString("settings.deprecated-verbose"));
+        TicketType.PLUGIN_TYPE_TIMEOUT = this.configuration.getInt("chunk-gc.period-in-ticks");
+        this.minimumAPI = ApiVersion.getOrCreateVersion(this.configuration.getString("settings.minimum-api"));
+        this.loadIcon();
+        this.loadCompatibilities();
+        CraftMagicNumbers.INSTANCE.getCommodore().updateReroute(activeCompatibilities::contains);
+
+        // Set map color cache
+        if (this.configuration.getBoolean("settings.use-map-color-cache")) {
+            MapPalette.setMapColorCache(new CraftMapColorCache(this.logger));
+        }
+        this.potionBrewer = new io.papermc.paper.potion.PaperPotionBrewer(console); // Paper - custom potion mixes
+        datapackManager = new io.papermc.paper.datapack.PaperDatapackManager(console.getPackRepository()); // Paper
     }
-    // Youer end
 
     public boolean getCommandBlockOverride(String command) {
         return this.overrideAllCommandBlockCommands || this.commandsConfiguration.getStringList("command-block-overrides").contains(command);
@@ -893,7 +886,7 @@ public final class CraftServer implements Server {
     @Override
     public long getConnectionThrottle() {
         // Spigot start - Automatically set connection throttle for bungee configurations
-        if (ProxyUtils.useProxy()) { // Paper - Add Velocity IP Forwarding Support
+        if (org.spigotmc.SpigotConfig.bungee || io.papermc.paper.configuration.GlobalConfiguration.get().proxies.velocity.enabled) { // Paper - Add Velocity IP Forwarding Support
             return -1;
         } else {
             return this.configuration.getInt("settings.connection-throttle");
@@ -1142,7 +1135,7 @@ public final class CraftServer implements Server {
         }
     }
 
-    public void loadCustomPermissions() {
+    private void loadCustomPermissions() {
         File file = new File(this.configuration.getString("settings.permissions-file"));
         if (!file.isFile()) {
             return;
@@ -1473,36 +1466,23 @@ public final class CraftServer implements Server {
 
     @Override
     public boolean addRecipe(Recipe recipe, boolean resendRecipes) {
-        CraftRecipe toAdd;
-        if (recipe instanceof CraftRecipe) {
-            toAdd = (CraftRecipe) recipe;
-        } else {
-            if (recipe instanceof ShapedRecipe) {
-                toAdd = CraftShapedRecipe.fromBukkitRecipe((ShapedRecipe) recipe);
-            } else if (recipe instanceof ShapelessRecipe) {
-                toAdd = CraftShapelessRecipe.fromBukkitRecipe((ShapelessRecipe) recipe);
-            } else if (recipe instanceof FurnaceRecipe) {
-                toAdd = CraftFurnaceRecipe.fromBukkitRecipe((FurnaceRecipe) recipe);
-            } else if (recipe instanceof BlastingRecipe) {
-                toAdd = CraftBlastingRecipe.fromBukkitRecipe((BlastingRecipe) recipe);
-            } else if (recipe instanceof CampfireRecipe) {
-                toAdd = CraftCampfireRecipe.fromBukkitRecipe((CampfireRecipe) recipe);
-            } else if (recipe instanceof SmokingRecipe) {
-                toAdd = CraftSmokingRecipe.fromBukkitRecipe((SmokingRecipe) recipe);
-            } else if (recipe instanceof StonecuttingRecipe) {
-                toAdd = CraftStonecuttingRecipe.fromBukkitRecipe((StonecuttingRecipe) recipe);
-            } else if (recipe instanceof SmithingTransformRecipe) {
-                toAdd = CraftSmithingTransformRecipe.fromBukkitRecipe((SmithingTransformRecipe) recipe);
-            } else if (recipe instanceof SmithingTrimRecipe) {
-                toAdd = CraftSmithingTrimRecipe.fromBukkitRecipe((SmithingTrimRecipe) recipe);
-            } else if (recipe instanceof TransmuteRecipe) {
-                toAdd = CraftTransmuteRecipe.fromBukkitRecipe((TransmuteRecipe) recipe);
-            } else if (recipe instanceof ComplexRecipe) {
-                throw new UnsupportedOperationException("Cannot add custom complex recipe");
-            } else {
-                return false;
-            }
-        }
+        CraftRecipe toAdd = switch (recipe) {
+            case final CraftRecipe r -> r;
+            case final ShapedRecipe r -> CraftShapedRecipe.fromBukkitRecipe(r);
+            case final ShapelessRecipe r -> CraftShapelessRecipe.fromBukkitRecipe(r);
+            case final FurnaceRecipe r -> CraftFurnaceRecipe.fromBukkitRecipe(r);
+            case final BlastingRecipe r -> CraftBlastingRecipe.fromBukkitRecipe(r);
+            case final CampfireRecipe r -> CraftCampfireRecipe.fromBukkitRecipe(r);
+            case final SmokingRecipe r -> CraftSmokingRecipe.fromBukkitRecipe(r);
+            case final StonecuttingRecipe r -> CraftStonecuttingRecipe.fromBukkitRecipe(r);
+            case final SmithingTransformRecipe r -> CraftSmithingTransformRecipe.fromBukkitRecipe(r);
+            case final SmithingTrimRecipe r -> CraftSmithingTrimRecipe.fromBukkitRecipe(r);
+            case final TransmuteRecipe r -> CraftTransmuteRecipe.fromBukkitRecipe(r);
+            case final BrewingRecipe r -> CraftBrewingRecipe.fromBukkitRecipe(r);
+            case final ComplexRecipe _ -> throw new UnsupportedOperationException("Cannot add custom complex recipe");
+            case null, default -> null;
+        };
+        if (toAdd == null) return false;
         toAdd.addToRecipeManager();
         // Paper start - API for updating recipes on clients
         if (true || resendRecipes) { // Always needs to be resent now... TODO
@@ -1511,22 +1491,6 @@ public final class CraftServer implements Server {
         // Paper end - API for updating recipes on clients
         return true;
     }
-
-    // Purpur start - Added the ability to add combustible items
-    @Override
-    public void addFuel(org.bukkit.Material material, int burnTime) {
-        Preconditions.checkArgument(burnTime > 0, "BurnTime must be greater than 0");
-
-        net.minecraft.world.item.ItemStack itemStack = net.minecraft.world.item.ItemStack.fromBukkitCopy(new ItemStack(material));
-        MinecraftServer.getServer().fuelValues().values.put(itemStack.getItem(), burnTime);
-    }
-
-    @Override
-    public void removeFuel(org.bukkit.Material material) {
-        net.minecraft.world.item.ItemStack itemStack = net.minecraft.world.item.ItemStack.fromBukkitCopy(new ItemStack(material));
-        MinecraftServer.getServer().fuelValues().values.keySet().removeIf(itemStack::is);
-    }
-    // Purpur end - Added the ability to add combustible items
 
     // Purpur start - Debug Marker API
     @Override

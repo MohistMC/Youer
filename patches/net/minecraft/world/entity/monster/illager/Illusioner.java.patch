@@ -21,7 +21,7 @@
      @Override
      protected void registerGoals() {
          super.registerGoals();
-@@ -173,8 +_,9 @@
+@@ -173,18 +_,33 @@
      }
  
      @Override
@@ -32,14 +32,17 @@
 +        ItemStack bowItem = this.getItemInHand(hand); // Paper - call EntityShootBowEvent
          ItemStack projectile = this.getProjectile(bowItem);
          AbstractArrow arrow = ProjectileUtil.getMobArrow(this, projectile, power, bowItem);
++        if (bowItem.getItem() instanceof net.minecraft.world.item.BowItem bowItemItem)
++            arrow = bowItemItem.customArrow(arrow, projectile, bowItem);
          double xd = target.getX() - this.getX();
-@@ -182,9 +_,21 @@
+         double yd = target.getY(0.3333333333333333) - arrow.getY();
          double zd = target.getZ() - this.getZ();
          double distanceToTarget = Math.sqrt(xd * xd + zd * zd);
          if (this.level() instanceof ServerLevel serverLevel) {
 -            Projectile.spawnProjectileUsingShoot(
+-                arrow, serverLevel, projectile, xd, yd + distanceToTarget * 0.2F, zd, 1.6F, this.rangedAttackUncertainty(serverLevel)
 +            Projectile.Delayed<AbstractArrow> delayedEntity = Projectile.spawnProjectileUsingShootDelayed( // Paper - delayed
-                 arrow, serverLevel, projectile, xd, yd + distanceToTarget * 0.2F, zd, 1.6F, 14 - serverLevel.getDifficulty().getId() * 4
++                arrow, serverLevel, projectile, xd, yd + distanceToTarget * 0.2F, zd, 1.6F, 14 - serverLevel.getDifficulty().getId() * 4
              );
 +
 +            // Paper start - call EntityShootBowEvent

@@ -1,6 +1,6 @@
 --- a/net/minecraft/resources/ResourceManagerRegistryLoadTask.java
 +++ b/net/minecraft/resources/ResourceManagerRegistryLoadTask.java
-@@ -26,21 +_,32 @@
+@@ -26,21 +_,33 @@
          return new RegistrationInfo(knownPack, lifecycle);
      });
      private final ResourceManager resourceManager;
@@ -30,7 +30,8 @@
              .thenCompose(
                  registryResources -> {
 -                    RegistryOps<JsonElement> ops = RegistryOps.create(JsonOps.INSTANCE, context);
-+                    RegistryOps<JsonElement> ops = new net.neoforged.neoforge.common.conditions.ConditionalOps<>(RegistryOps.create(JsonOps.INSTANCE, context), net.neoforged.neoforge.common.conditions.ICondition.IContext.TAGS_INVALID);
++                    var conditionContext = new net.neoforged.neoforge.common.conditions.ConditionContext(pendingTags, context, net.minecraft.world.flag.FeatureFlags.VANILLA_SET);
++                    RegistryOps<JsonElement> ops = new net.neoforged.neoforge.common.conditions.ConditionalOps<>(RegistryOps.create(JsonOps.INSTANCE, context), conditionContext);
                      return ParallelMapTransform.schedule(
                          (Map<Identifier, Resource>)registryResources,
                          (resourceId, thunk) -> {

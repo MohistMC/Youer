@@ -1,6 +1,20 @@
 --- a/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
 +++ b/net/minecraft/world/level/block/piston/PistonMovingBlockEntity.java
-@@ -38,7 +_,7 @@
+@@ -1,11 +_,13 @@
+ package net.minecraft.world.level.block.piston;
+ 
++import java.util.Iterator;
+ import java.util.List;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.Direction;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.nbt.CompoundTag;
++import net.minecraft.server.level.ServerPlayer;
+ import net.minecraft.util.Mth;
+ import net.minecraft.world.entity.Entity;
+ import net.minecraft.world.entity.MoverType;
+@@ -36,7 +_,7 @@
      private static final boolean DEFAULT_EXTENDING = false;
      private static final boolean DEFAULT_SOURCE = false;
      private BlockState movedState = DEFAULT_BLOCK_STATE;
@@ -9,32 +23,12 @@
      private boolean extending = false;
      private boolean isSourcePiston = false;
      private static final ThreadLocal<Direction> NOCLIP = ThreadLocal.withInitial(() -> null);
-@@ -121,7 +_,7 @@
+@@ -119,7 +_,7 @@
              List<Entity> entities = level.getEntities(null, PistonMath.getMovementArea(aabb, movement, deltaProgress).minmax(aabb));
              if (!entities.isEmpty()) {
                  List<AABB> shapeAabbs = shape.toAabbs();
 -                boolean causeBounce = self.movedState.is(Blocks.SLIME_BLOCK);
 +                boolean causeBounce = self.movedState.isSlimeBlock(); //TODO: is this patch really needed the logic of the original seems sound revisit later
-                 Iterator var12 = entities.iterator();
  
-                 while (true) {
-@@ -154,6 +_,10 @@
-                                 }
- 
-                                 entity.setDeltaMovement(dx, dy, dz);
-+                                // Paper - EAR items stuck in slime pushed by a piston
-+                                entity.activatedTick = Math.max(entity.activatedTick, net.minecraft.server.MinecraftServer.currentTick + 10);
-+                                entity.activatedImmunityTick = Math.max(entity.activatedImmunityTick, net.minecraft.server.MinecraftServer.currentTick + 10);
-+                                // Paper end
-                                 break;
-                             }
-                         }
-@@ -314,7 +_,7 @@
-                 if (level.getBlockState(pos).is(Blocks.MOVING_PISTON)) {
-                     BlockState newState = Block.updateFromNeighbourShapes(entity.movedState, level, pos);
-                     if (newState.isAir()) {
--                        level.setBlock(pos, entity.movedState, 340);
-+                        level.setBlock(pos, entity.movedState, Block.UPDATE_NONE | Block.UPDATE_MOVE_BY_PISTON | Block.UPDATE_KNOWN_SHAPE | (io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowPistonDuplication ? 0 : Block.UPDATE_CLIENTS)); // Paper - fix a variety of piston desync dupes; force notify (flag 2), it's possible the set type by the piston block (which doesn't notify) set this block to air
-                         Block.updateOrDestroy(entity.movedState, newState, level, pos, 3);
-                     } else {
-                         if (newState.hasProperty(BlockStateProperties.WATERLOGGED) && newState.getValue(BlockStateProperties.WATERLOGGED)) {
+                 for (Entity entity : entities) {
+                     if (entity.getPistonPushReaction() != PushReaction.IGNORE_ENTITY) {

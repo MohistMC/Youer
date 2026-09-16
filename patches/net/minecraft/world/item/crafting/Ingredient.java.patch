@@ -8,7 +8,7 @@
  import java.util.Objects;
  import java.util.Optional;
  import java.util.function.Predicate;
-@@ -21,20 +_,47 @@
+@@ -21,20 +_,48 @@
  import net.minecraft.world.item.Items;
  import net.minecraft.world.item.crafting.display.SlotDisplay;
  import net.minecraft.world.level.ItemLike;
@@ -34,10 +34,11 @@
      public final HolderSet<Item> values;
 +    private net.neoforged.neoforge.common.crafting.@org.jspecify.annotations.Nullable ICustomIngredient customIngredient = null;
 +    private java.util.@org.jspecify.annotations.Nullable List<Holder<Item>> customIngredientValues; // Paper - Improve exact choice recipe ingredients
++
 +    public java.util.function.@org.jspecify.annotations.Nullable Predicate<ItemStack> stackPredicate; // Paper - add PredicateChoice
++
 +    // CraftBukkit start
 +    private java.util.@org.jspecify.annotations.Nullable Set<ItemStack> itemStacks; // Paper - Improve exact choice recipe ingredients
-+    public Predicate<org.bukkit.inventory.ItemStack> predicate; // Purpur - Add predicate to recipe's ExactChoice ingredient
 +
 +    public boolean isExact() {
 +        return this.itemStacks != null;
@@ -63,7 +64,7 @@
          values.unwrap().ifRight(directValues -> {
              if (directValues.isEmpty()) {
                  throw new UnsupportedOperationException("Ingredients can't be empty");
-@@ -47,35 +_,134 @@
+@@ -47,35 +_,121 @@
          this.values = values;
      }
  
@@ -102,14 +103,15 @@
 +        // Paper end - add PredicateChoice
 +        // CraftBukkit start
 +        if (this.isExact()) {
-+            return this.itemStacks.contains(input); // Paper - Improve exact choice recipe ingredients (hashing FTW!)
++            for (ItemStack item : this.itemStacks()) {
++                if (item.getItem() == input.getItem() && ItemStack.isSameItemSameComponents(input, item)) {
++                    return true;
++                }
++            }
++
++            return false;
 +        }
 +        // CraftBukkit end
-+        // Purpur start - Add predicate to recipe's ExactChoice ingredient
-+        if (predicate != null) {
-+            return predicate.test(input.asBukkitCopy());
-+        }
-+        // Purpur end - Add predicate to recipe's ExactChoice ingredient
          return input.is(this.values);
      }
  
@@ -118,6 +120,7 @@
 +    // Paper start - Improve exact choice recipe ingredients
 +    public boolean acceptsItem(io.papermc.paper.inventory.recipe.ItemOrExact itemOrExact) {
 +        return switch (itemOrExact) {
++            // 将 customIngredient 的判断合并到第一个 case，使用 when 守卫条件
 +            case io.papermc.paper.inventory.recipe.ItemOrExact.Item(final Holder<Item> item)
 +                    when this.customIngredient != null
 +                    -> updateCustomIngredientValues().contains(item);
@@ -125,18 +128,8 @@
 +            case io.papermc.paper.inventory.recipe.ItemOrExact.Item(final Holder<Item> item)
 +                    -> !this.isExact() && this.values.contains(item);
 +
-+            case io.papermc.paper.inventory.recipe.ItemOrExact.Exact(final ItemStack exact) -> {
-+                if (this.stackPredicate != null) {
-+                    yield this.stackPredicate.test(exact);
-+                }
-+                if (this.isExact()) {
-+                    yield this.itemStacks.contains(exact);
-+                }
-+                // A plain, usable item can be routed to the Exact pool because it also matched a
-+                // predicate/exact ingredient in the same recipe; a regular ingredient must still be
-+                // able to draw from that shared pool (the picker's per-key count keeps it double-count free).
-+                yield net.minecraft.world.entity.player.Inventory.isUsableForCrafting(exact) && exact.is(this.values);
-+            }
++            case io.papermc.paper.inventory.recipe.ItemOrExact.Exact(final ItemStack exact)
++                    -> this.isExact() && this.itemStacks.contains(exact);
 +        };
      }
 +    // Paper end - Improve exact choice recipe ingredients
@@ -144,7 +137,7 @@
      @Override
      public boolean equals(Object o) {
 -        return o instanceof Ingredient other ? Objects.equals(this.values, other.values) : false;
-+        return o instanceof Ingredient ingredient && java.util.Objects.equals(this.customIngredient, ingredient.customIngredient) && Objects.equals(this.values, ingredient.values) && Objects.equals(this.itemStacks, ingredient.itemStacks); // CraftBukkit
++        return o instanceof Ingredient other && Objects.equals(this.values, other.values) && Objects.equals(this.itemStacks, other.itemStacks); // CraftBukkit
      }
  
      @Override
@@ -181,11 +174,6 @@
 +        return this.customIngredient == null || this.customIngredient.isSimple();
 +    }
 +
-+    private final boolean isVanilla = this.getClass() == Ingredient.class;
-+    public boolean isVanilla() {
-+        return isVanilla;
-+    }
-+
 +    public net.neoforged.neoforge.common.crafting.@org.jspecify.annotations.Nullable ICustomIngredient getCustomIngredient() {
 +        return this.customIngredient;
 +    }
@@ -202,18 +190,13 @@
      }
  
      public static Ingredient of(ItemLike itemLike) {
-@@ -95,6 +_,14 @@
+@@ -95,6 +_,9 @@
      }
  
      public SlotDisplay display() {
 +        if (this.customIngredient != null) {
 +            return this.customIngredient.display();
 +        }
-+        // Paper start - show exact ingredients in recipe book
-+        if (this.isExact()) {
-+            return new SlotDisplay.Composite(this.itemStacks().stream().map(ItemStackTemplate::fromNonEmptyStack).<SlotDisplay>map(SlotDisplay.ItemStackSlotDisplay::new).toList());
-+        }
-+        // Paper end - show exact ingredients in recipe book
-         return (SlotDisplay)this.values
-             .unwrap()
-             .map(SlotDisplay.TagSlotDisplay::new, l -> new SlotDisplay.Composite(l.stream().map(Ingredient::displayForSingleItem).toList()));
+         return new SlotDisplay.TagSlotDisplay(this.values);
+     }
+ 

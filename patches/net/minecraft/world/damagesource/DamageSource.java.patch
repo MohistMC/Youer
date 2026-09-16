@@ -11,9 +11,9 @@
 +    private org.bukkit.block.@Nullable Block eventBlockDamager; // Relevant block set. damageSourcePosition is only used for bad respawn point explosion or custom damage
 +    private org.bukkit.block.@Nullable BlockState fromBlockSnapshot; // Captured block snapshot when the eventBlockDamager is not relevant (e.g. for bad respawn point explosions the block is already removed)
 +    private boolean critical; // Supports arrows and sweeping damage
-+    private final net.kyori.adventure.pointer.Pointers damageContext;
 +    private boolean scissors = false; // Purpur - Dont run with scissors!
 +    private boolean stonecutter = false; // Purpur - Stonecutter damage
++    private final net.kyori.adventure.pointer.Pointers damageContext;
 +
 +    public DamageSource knownCause(final org.bukkit.event.entity.EntityDamageEvent.DamageCause cause) {
 +        final DamageSource damageSource = this.copy();
@@ -110,7 +110,7 @@
 +
 +    // Cloning the instance lets us return unique instances of DamageSource without affecting constants defined in DamageSources
 +    private DamageSource copy() {
-+        final DamageSource damageSource = new DamageSource(this.type, this.directEntity, this.causingEntity, this.damageSourcePosition, this.damageContext);
++        final DamageSource damageSource = new DamageSource(this.type, this.directEntity, this.causingEntity, this.damageSourcePosition);
 +        damageSource.knownCause = this.knownCause;
 +        damageSource.eventEntityDamager = this.eventEntityDamager;
 +        damageSource.eventBlockDamager = this.eventBlockDamager;
@@ -125,12 +125,13 @@
      @Override
      public String toString() {
          return "DamageSource (" + this.type().msgId() + ")";
-@@ -31,15 +_,22 @@
+@@ -31,12 +_,22 @@
          return this.causingEntity == this.directEntity;
      }
  
 -    public DamageSource(Holder<DamageType> type, @Nullable Entity directEntity, @Nullable Entity causingEntity, @Nullable Vec3 damageSourcePosition) {
-+    public DamageSource(Holder<DamageType> type, @Nullable Entity directEntity, @Nullable Entity causingEntity, @Nullable Vec3 damageSourcePosition, final net.kyori.adventure.pointer.Pointers damageContext) { // Paper - Add damage context
++    public DamageSource(Holder<DamageType> type, @Nullable Entity directEntity, @Nullable Entity causingEntity, @Nullable Vec3 damageSourcePosition, final net.kyori.adventure.pointer.Pointers damageContext // Paper - Add damage context
++    ) {
          this.type = type;
          this.causingEntity = causingEntity;
          this.directEntity = directEntity;
@@ -140,17 +141,15 @@
 +        this.damageContext = damageContext;
 +    }
 +
-+    public DamageSource(Holder<DamageType> type, @Nullable Entity directEntity, @Nullable Entity causingEntity, @Nullable Vec3 damageSourcePosition) {
++    public DamageSource(
++        Holder<DamageType> type, final @Nullable Entity directEntity, final @Nullable Entity causingEntity, final @Nullable Vec3 damageSourcePosition
++    ) {
 +        this(type, directEntity, causingEntity, damageSourcePosition, net.kyori.adventure.pointer.Pointers.empty());
 +    }
 +    // Paper end - Add damage context
  
      public DamageSource(Holder<DamageType> type, @Nullable Entity directEntity, @Nullable Entity causingEntity) {
--        this(type, directEntity, causingEntity, null);
-+        this(type, directEntity, causingEntity, null, net.kyori.adventure.pointer.Pointers.empty());
-     }
- 
-     public DamageSource(Holder<DamageType> type, Vec3 damageSourcePosition) {
+         this(type, directEntity, causingEntity, null);
 @@ -77,16 +_,29 @@
          } else {
              Component name = this.causingEntity == null ? this.directEntity.getDisplayName() : this.causingEntity.getDisplayName();

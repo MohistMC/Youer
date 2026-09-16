@@ -1,5 +1,16 @@
 --- a/net/minecraft/world/item/crafting/SmithingTransformRecipe.java
 +++ b/net/minecraft/world/item/crafting/SmithingTransformRecipe.java
+@@ -12,6 +_,10 @@
+ import net.minecraft.world.item.crafting.display.RecipeDisplay;
+ import net.minecraft.world.item.crafting.display.SlotDisplay;
+ import net.minecraft.world.item.crafting.display.SmithingRecipeDisplay;
++import org.bukkit.NamespacedKey;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.craftbukkit.inventory.CraftRecipe;
++import org.bukkit.craftbukkit.inventory.CraftSmithingTransformRecipe;
+ 
+ public class SmithingTransformRecipe extends SimpleSmithingRecipe {
+     public static final MapCodec<SmithingTransformRecipe> MAP_CODEC = RecordCodecBuilder.mapCodec(
 @@ -42,11 +_,26 @@
      private final Ingredient base;
      private final Optional<Ingredient> addition;
@@ -44,7 +55,7 @@
 +    // CraftBukkit start
 +    @Override
 +    public org.bukkit.inventory.Recipe toBukkitRecipe(org.bukkit.NamespacedKey id) {
-+        org.bukkit.craftbukkit.inventory.CraftItemStack result = org.bukkit.craftbukkit.inventory.CraftItemStack.asCraftMirror(this.result.create());
++        org.bukkit.inventory.ItemStack result = org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitCopy(this.result);
 +
 +        return new org.bukkit.craftbukkit.inventory.CraftSmithingTransformRecipe(id, result, org.bukkit.craftbukkit.inventory.CraftRecipe.toChoice(this.template), org.bukkit.craftbukkit.inventory.CraftRecipe.toChoice(this.base), org.bukkit.craftbukkit.inventory.CraftRecipe.toChoice(this.addition), this.copyDataComponents);
 +    }

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/DoublePlantBlock.java
 +++ b/net/minecraft/world/level/block/DoublePlantBlock.java
-@@ -80,6 +_,7 @@
+@@ -75,6 +_,7 @@
          }
  
          BlockState belowState = level.getBlockState(pos.below());
@@ -8,13 +8,15 @@
          return belowState.is(this) && belowState.getValue(HALF) == DoubleBlockHalf.LOWER;
      }
  
-@@ -107,11 +_,16 @@
+@@ -102,13 +_,16 @@
      }
  
      @Override
--    public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith) {
+-    public void playerDestroy(
+-        ServerLevel level, ServerPlayer player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith
+-    ) {
 -        super.playerDestroy(level, player, pos, Blocks.AIR.defaultBlockState(), blockEntity, destroyedWith);
-+    public void playerDestroy(Level level, Player player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith, boolean includeDrops, boolean dropExp) { // Paper - fix drops not preventing stats/food exhaustion
++    public void playerDestroy(ServerLevel level, ServerPlayer player, BlockPos pos, BlockState state, @Nullable BlockEntity blockEntity, ItemStack destroyedWith, boolean includeDrops, boolean dropExp) { // Paper - fix drops not preventing stats/food exhaustion
 +        super.playerDestroy(level, player, pos, Blocks.AIR.defaultBlockState(), blockEntity, destroyedWith, includeDrops, dropExp); // Paper - fix drops not preventing stats/food exhaustion;
      }
  
@@ -27,7 +29,7 @@
          DoubleBlockHalf part = state.getValue(HALF);
          if (part == DoubleBlockHalf.UPPER) {
              BlockPos bottomPos = pos.below();
-@@ -132,5 +_,21 @@
+@@ -129,5 +_,21 @@
      @Override
      protected long getSeed(BlockState state, BlockPos pos) {
          return Mth.getSeed(pos.getX(), pos.below(state.getValue(HALF) == DoubleBlockHalf.LOWER ? 0 : 1).getY(), pos.getZ());

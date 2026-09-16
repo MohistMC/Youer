@@ -218,7 +218,7 @@ dependencies {
     // Paper start
     libraries "ca.spottedleaf:leafpile:1.2.0"
     libraries "org.spongepowered:configurate-yaml:4.2.0"
-    libraries 'org.joml:joml:1.10.8'
+    libraries 'org.joml:joml:1.10.9'
     libraries "org.jspecify:jspecify:1.0.0"
     libraries "net.md-5:bungeecord-chat:1.21-R0.2-deprecated+build.21"
     libraries("net.kyori:adventure-api:5.2.0")
@@ -239,16 +239,14 @@ dependencies {
     libraries("com.velocitypowered:velocity-native:4.1.0") {
         exclude group: 'io.netty'
     }
+    libraries("me.lucko:spark-api:0.1-20240720.200737-2")
+    libraries("me.lucko:spark-paper:1.10.152")
     // Paper end
     // Purpur
     libraries("org.mozilla:rhino-runtime:1.7.14") // Purpur
     libraries("org.mozilla:rhino-engine:1.7.14") // Purpur
     libraries("dev.omega24:upnp4j:1.0") // Purpur
     libraries 'io.sentry:sentry:8.25.0'
-
-    // compat
-    implementation "maven.modrinth:lhGA9TYQ:LKQeKupY" // Architectury v21.0.4 for 26.2
-    implementation "maven.modrinth:l6YH9Als:DdMsOH3O" // 1.10.173-neoforge
 }
 
 // Select runtimeElements rather than universalJar from the main source set
@@ -278,6 +276,7 @@ neoDev {
         gameTestServer {
             type = "gameTestServer"
             loadedMods = [commonMod, neoDev.mods."neoforge-coremods"]
+            systemProperty("eventbus.checkTypesOnDispatch", "true")
         }
         data {
             // We perform client and server datagen in a single clientData run to avoid
@@ -292,13 +291,12 @@ neoDev {
     }
 }
 
-
 generateAccessTransformers {
     // Make all render pipeline snippet fields public
     fieldGroup(
             'render pipeline snippets', PUBLIC,
             named('net/minecraft/client/renderer/RenderPipelines'),
-            fieldsOfType(named('com/mojang/blaze3d/pipeline/RenderPipeline$Snippet'))
+            fieldsOfType(named('com/mojang/renderpearl/api/pipeline/RenderPipeline$Snippet'))
     )
 
     // Make all block constructors public so they can be used by mods
@@ -399,11 +397,9 @@ tasks.withType(Javadoc.class).configureEach {
 Map<String, String> placeholders = [
         'version' : project.version.toString(),
         'youer_version' : gradleutils.gitInfo.abbreviatedId,
-        'paper_version' : 'bd0c804a19-#117',
-        'purpur_version' : '48bcd91aa-#2622',
         'neoform_version' : project.neoform_version,
         'minecraft_version' : project.minecraft_version,
-        'build_type' : 'STABLE'
+        'build_type' : 'BETA'
 ]
 
 // Generates the neoforge.mods.toml and version.properties, so they contain fully realized version numbers

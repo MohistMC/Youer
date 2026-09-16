@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/MinecraftServer.java
 +++ b/net/minecraft/server/MinecraftServer.java
-@@ -5,6 +_,11 @@
+@@ -5,17 +_,26 @@
  import com.google.common.collect.Lists;
  import com.google.common.collect.Maps;
  import com.google.common.collect.Sets;
@@ -12,7 +12,22 @@
  import com.mojang.authlib.GameProfile;
  import com.mojang.datafixers.DataFixer;
  import com.mojang.jtracy.DiscontinuousFrame;
-@@ -30,12 +_,14 @@
+ import com.mojang.jtracy.TracyClient;
+ import com.mojang.logging.LogUtils;
++import com.mojang.serialization.Dynamic;
++import com.mojang.serialization.Lifecycle;
+ import it.unimi.dsi.fastutil.objects.ObjectArrayList;
+ import it.unimi.dsi.fastutil.objects.ObjectArraySet;
+ import java.io.File;
+ import java.io.IOException;
+ import java.io.Writer;
++import java.lang.management.ManagementFactory;
+ import java.lang.management.ThreadInfo;
++import java.lang.management.ThreadMXBean;
+ import java.net.Proxy;
+ import java.nio.file.FileStore;
+ import java.nio.file.Files;
+@@ -30,12 +_,16 @@
  import java.util.Map;
  import java.util.Objects;
  import java.util.Optional;
@@ -21,38 +36,83 @@
  import java.util.UUID;
  import java.util.Map.Entry;
  import java.util.concurrent.CompletableFuture;
-+import java.util.concurrent.ConcurrentHashMap;
  import java.util.concurrent.Executor;
--import java.util.concurrent.RejectedExecutionException;
 +import java.util.concurrent.ExecutorService;
++import java.util.concurrent.Executors;
+ import java.util.concurrent.RejectedExecutionException;
++import java.util.concurrent.atomic.AtomicBoolean;
  import java.util.concurrent.atomic.AtomicReference;
  import java.util.concurrent.locks.LockSupport;
  import java.util.function.BooleanSupplier;
-@@ -139,6 +_,7 @@
- import net.minecraft.world.clock.ClockTimeMarkers;
- import net.minecraft.world.clock.ServerClockManager;
- import net.minecraft.world.clock.WorldClocks;
-+import net.minecraft.world.entity.Entity;
- import net.minecraft.world.entity.ai.village.VillageSiege;
- import net.minecraft.world.entity.npc.CatSpawner;
- import net.minecraft.world.entity.npc.wanderingtrader.WanderingTraderSpawner;
-@@ -163,7 +_,6 @@
- import net.minecraft.world.level.chunk.storage.RegionStorageInfo;
- import net.minecraft.world.level.dimension.LevelStem;
- import net.minecraft.world.level.gamerules.GameRule;
--import net.minecraft.world.level.gamerules.GameRuleMap;
- import net.minecraft.world.level.gamerules.GameRuleTypeVisitor;
- import net.minecraft.world.level.gamerules.GameRules;
+@@ -43,6 +_,7 @@
+ import java.util.function.Function;
+ import java.util.function.Supplier;
+ import java.util.stream.Collectors;
++import joptsimple.OptionSet;
+ import net.minecraft.CrashReport;
+ import net.minecraft.CrashReportCategory;
+ import net.minecraft.ReportType;
+@@ -61,6 +_,8 @@
+ import net.minecraft.core.registries.Registries;
+ import net.minecraft.data.worldgen.features.MiscOverworldFeatures;
+ import net.minecraft.gametest.framework.GameTestTicker;
++import net.minecraft.nbt.NbtException;
++import net.minecraft.nbt.ReportedNbtException;
+ import net.minecraft.nbt.Tag;
+ import net.minecraft.network.PacketProcessor;
+ import net.minecraft.network.chat.ChatDecorator;
+@@ -76,6 +_,8 @@
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.resources.ResourceKey;
+ import net.minecraft.server.bossevents.CustomBossEvents;
++import net.minecraft.server.dedicated.DedicatedServer;
++import net.minecraft.server.dedicated.DedicatedServerProperties;
+ import net.minecraft.server.level.ChunkLoadCounter;
+ import net.minecraft.server.level.ChunkMap;
+ import net.minecraft.server.level.DemoMode;
+@@ -115,6 +_,7 @@
+ import net.minecraft.util.RandomSource;
+ import net.minecraft.util.TimeUtil;
+ import net.minecraft.util.Util;
++import net.minecraft.util.datafix.DataFixers;
+ import net.minecraft.util.debug.ServerDebugSubscribers;
+ import net.minecraft.util.debugchart.SampleLogger;
+ import net.minecraft.util.debugchart.TpsDebugDimensions;
+@@ -133,6 +_,7 @@
+ import net.minecraft.util.profiling.metrics.profiling.ServerMetricsSamplersProvider;
+ import net.minecraft.util.profiling.metrics.storage.MetricsPersister;
+ import net.minecraft.util.thread.ReentrantBlockableEventLoop;
++import net.minecraft.util.worldupdate.UpgradeProgress;
+ import net.minecraft.world.Difficulty;
+ import net.minecraft.world.RandomSequences;
+ import net.minecraft.world.Stopwatches;
+@@ -167,32 +_,40 @@
  import net.minecraft.world.level.levelgen.Heightmap;
-@@ -174,7 +_,6 @@
+ import net.minecraft.world.level.levelgen.PatrolSpawner;
+ import net.minecraft.world.level.levelgen.PhantomSpawner;
++import net.minecraft.world.level.levelgen.WorldDimensions;
+ import net.minecraft.world.level.levelgen.WorldGenSettings;
+ import net.minecraft.world.level.levelgen.WorldOptions;
++import net.minecraft.world.level.levelgen.presets.WorldPresets;
  import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
  import net.minecraft.world.level.saveddata.WeatherData;
  import net.minecraft.world.level.storage.CommandStorage;
--import net.minecraft.world.level.storage.DerivedLevelData;
+ import net.minecraft.world.level.storage.DerivedLevelData;
  import net.minecraft.world.level.storage.LevelData;
++import net.minecraft.world.level.storage.LevelDataAndDimensions;
  import net.minecraft.world.level.storage.LevelResource;
  import net.minecraft.world.level.storage.LevelStorageSource;
-@@ -189,12 +_,14 @@
++import net.minecraft.world.level.storage.LevelSummary;
+ import net.minecraft.world.level.storage.PlayerDataStorage;
++import net.minecraft.world.level.storage.PrimaryLevelData;
+ import net.minecraft.world.level.storage.SavedDataStorage;
+ import net.minecraft.world.level.storage.ServerLevelData;
+ import net.minecraft.world.level.storage.WorldData;
+ import net.minecraft.world.level.timers.TimerQueue;
++import net.minecraft.world.level.validation.ContentValidationException;
+ import net.minecraft.world.phys.Vec2;
+ import net.minecraft.world.phys.Vec3;
+ import net.minecraft.world.scores.ScoreboardSaveData;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -69,8 +129,12 @@
      private static final int OVERLOADED_TICKS_THRESHOLD = 20;
      private static final long OVERLOADED_WARNING_INTERVAL_NANOS = 10L * TimeUtil.NANOSECONDS_PER_SECOND;
      private static final int OVERLOADED_TICKS_WARNING_INTERVAL = 100;
-@@ -218,7 +_,7 @@
-     public final PlayerDataStorage playerDataStorage;
+@@ -212,10 +_,10 @@
+     public static final NameAndId ANONYMOUS_PLAYER_PROFILE = new NameAndId(Util.NIL_UUID, "Anonymous Player");
+     public static final String SERVER_THREAD_NAME = "Server thread";
+     public LevelStorageSource.LevelStorageAccess storageSource;
+-    protected final PlayerDataStorage playerDataStorage;
++    public final PlayerDataStorage playerDataStorage;
      private final SavedDataStorage savedDataStorage;
      private final List<Runnable> tickables = Lists.newArrayList();
 -    private final GameRules gameRules;
@@ -78,7 +142,7 @@
      private MetricsRecorder metricsRecorder = InactiveMetricsRecorder.INSTANCE;
      private Consumer<ProfileResults> onMetricsRecordingStopped = results -> this.stopRecordingMetrics();
      private Consumer<Path> onMetricsRecordingFinished = ignored -> {};
-@@ -226,7 +_,7 @@
+@@ -223,24 +_,25 @@
      private MinecraftServer.@Nullable TimeProfiler debugCommandProfiler;
      private boolean debugCommandProfilerDelayStart;
      private ServerConnectionListener connection;
@@ -87,11 +151,12 @@
      private @Nullable ServerStatus status;
      private ServerStatus.@Nullable Favicon statusIcon;
      private final RandomSource random = RandomSource.create();
-@@ -235,15 +_,17 @@
+-    private final DataFixer fixerUpper;
++    public final DataFixer fixerUpper;
+     private String localIp;
      private int port = -1;
      private final LayeredRegistryAccess<RegistryLayer> registries;
      private Map<ResourceKey<Level>, ServerLevel> levels = Maps.newLinkedHashMap();
-+    private final Map<UUID, Entity> globalEntityCache = new ConcurrentHashMap<>();
      private PlayerList playerList;
      private volatile boolean running = true;
 +    private volatile boolean isRestarting = false; // Paper - flag to signify we're attempting to restart
@@ -106,7 +171,16 @@
      private int playerIdleTimeout;
      private final long[] tickTimesNanos = new long[100];
      private long aggregatedTickTimesNanos = 0L;
-@@ -271,7 +_,7 @@
+@@ -253,7 +_,7 @@
+     private final NotificationManager notificationManager;
+     private final ServerActivityMonitor serverActivityMonitor;
+     private long lastServerStatus;
+-    private final Thread serverThread;
++    public final Thread serverThread;
+     private long lastTickNanos = Util.getNanos();
+     private long taskExecutionStartNanos = Util.getNanos();
+     private long idleTimeNanos;
+@@ -268,14 +_,14 @@
      private @Nullable CommandStorage commandStorage;
      private final CustomBossEvents customBossEvents;
      private final RandomSequences randomSequences;
@@ -115,7 +189,16 @@
      private final ServerFunctionManager functionManager;
      private boolean enforceWhitelist;
      private boolean usingWhitelist;
-@@ -291,12 +_,219 @@
+     private float smoothedTickTimeMillis;
+-    private final Executor executor;
++    public final Executor executor;
+     private @Nullable String serverId;
+-    private MinecraftServer.ReloadableResources resources;
++    public MinecraftServer.ReloadableResources resources;
+     private final StructureTemplateManager structureTemplateManager;
+     private final ServerTickRateManager tickRateManager;
+     private final ServerDebugSubscribers debugSubscribers = new ServerDebugSubscribers(this);
+@@ -286,12 +_,218 @@
      private final SuppressedExceptionCollector suppressedExceptions = new SuppressedExceptionCollector();
      private final DiscontinuousFrame tickFrame;
      private final PacketProcessor packetProcessor;
@@ -330,14 +413,13 @@
 +    // Paper end - rewrite chunk system
 +
      public static <S extends MinecraftServer> S spin(Function<Thread, S> factory) {
-+        ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.init(); // Paper - rewrite data converter system
          AtomicReference<S> serverReference = new AtomicReference<>();
 -        Thread thread = new Thread(() -> serverReference.get().runServer(), "Server thread");
 +        Thread thread = new ca.spottedleaf.moonrise.common.util.TickThread(net.neoforged.fml.util.thread.SidedThreadGroups.SERVER, () -> serverReference.get().runServer(), "Server thread");
          thread.setUncaughtExceptionHandler((t, e) -> LOGGER.error("Uncaught exception in server thread", e));
          if (Runtime.getRuntime().availableProcessors() > 4) {
              thread.setPriority(8);
-@@ -309,6 +_,10 @@
+@@ -304,6 +_,10 @@
      }
  
      public MinecraftServer(
@@ -348,7 +430,7 @@
          Thread serverThread,
          LevelStorageSource.LevelStorageAccess storageSource,
          PackRepository packRepository,
-@@ -322,37 +_,36 @@
+@@ -317,28 +_,27 @@
          NotificationManager notificationManager
      ) {
          super("Server", propagatesCrashes);
@@ -384,18 +466,7 @@
          this.fixerUpper = fixerUpper;
          this.functionManager = new ServerFunctionManager(this, this.resources.managers.getFunctionLibrary());
          HolderGetter<Block> blockLookup = this.registries.compositeAccess().lookupOrThrow(Registries.BLOCK).filterFeatures(this.worldData.enabledFeatures());
-         this.structureTemplateManager = new StructureTemplateManager(worldStem.resourceManager(), storageSource, fixerUpper, blockLookup);
-         this.serverThread = serverThread;
-         this.executor = Util.backgroundExecutor();
--        this.potionBrewing = PotionBrewing.bootstrap(this.worldData.enabledFeatures());
-+        this.potionBrewing = PotionBrewing.bootstrap(this.worldData.enabledFeatures(), this.registryAccess());
-         this.resources.managers.getRecipeManager().finalizeRecipeLoading(this.worldData.enabledFeatures());
--        this.fuelValues = FuelValues.vanillaBurnTimes(this.registries.compositeAccess(), this.worldData.enabledFeatures());
-+        this.fuelValues = net.neoforged.neoforge.common.DataMapHooks.populateFuelValues(this.registries.compositeAccess(), this.worldData.enabledFeatures());
-         this.tickFrame = TracyClient.createDiscontinuousFrame("Server Tick");
-         this.notificationManager = notificationManager;
-         this.serverActivityMonitor = new ServerActivityMonitor(notificationManager, 30);
-@@ -360,7 +_,14 @@
+@@ -353,7 +_,14 @@
          this.clockManager = this.getDataStorage().computeIfAbsent(ServerClockManager.TYPE);
          this.clockManager.init(this);
          this.customBossEvents = this.savedDataStorage.computeIfAbsent(CustomBossEvents.TYPE);
@@ -411,7 +482,13 @@
      }
  
      protected abstract boolean initServer() throws IOException;
-@@ -398,10 +_,10 @@
+@@ -386,15 +_,15 @@
+         };
+     }
+ 
+-    protected void loadLevel() {
++    protected void loadLevel() { // CraftBukkit
+         boolean startedWorldLoadProfiling = !JvmProfiler.INSTANCE.isRunning()
              && SharedConstants.DEBUG_JFR_PROFILING_ENABLE_LEVEL_LOADING
              && JvmProfiler.INSTANCE.start(Environment.from(this));
          ProfiledDuration profiledDuration = JvmProfiler.INSTANCE.onWorldLoadedStarted();
@@ -426,7 +503,7 @@
          if (profiledDuration != null) {
              profiledDuration.finish(true);
          }
-@@ -415,33 +_,150 @@
+@@ -408,33 +_,150 @@
          }
      }
  
@@ -594,7 +671,7 @@
                  }
              } catch (Throwable t) {
                  CrashReport report = CrashReport.forThrowable(t, "Exception initializing level");
-@@ -458,25 +_,7 @@
+@@ -451,25 +_,7 @@
          }
  
          GlobalPos focusPos = this.selectLevelLoadFocusPos();
@@ -621,12 +698,12 @@
      }
  
      private static void setInitialSpawn(
-@@ -488,7 +_,25 @@
+@@ -481,7 +_,25 @@
              levelData.setSpawn(LevelData.RespawnData.of(level.dimension(), BlockPos.ZERO.above(80), 0.0F, 0.0F));
          } else {
              ServerChunkCache chunkSource = level.getChunkSource();
 +            if (net.neoforged.neoforge.event.EventHooks.onCreateWorldSpawn(level, levelData)) return;
-             ChunkPos spawnChunk = ChunkPos.containing(chunkSource.randomState().sampler().findSpawnPosition());
+             ChunkPos spawnChunk = chunkSource.getGenerator().getOrigin(chunkSource.randomState());
 +
 +            // CraftBukkit start
 +            if (level.generator != null) {
@@ -647,7 +724,7 @@
              levelLoadListener.start(LevelLoadListener.Stage.PREPARE_GLOBAL_SPAWN, 0);
              levelLoadListener.updateFocus(level.dimension(), spawnChunk);
              int height = chunkSource.getGenerator().getSpawnHeight(level);
-@@ -533,19 +_,22 @@
+@@ -526,19 +_,22 @@
          }
      }
  
@@ -675,7 +752,7 @@
              chunkLoadCounter.track(level, () -> {
                  TicketStorage savedTickets = level.getDataStorage().get(TicketStorage.TYPE);
                  if (savedTickets != null) {
-@@ -554,17 +_,19 @@
+@@ -547,17 +_,19 @@
              });
          }
  
@@ -701,7 +778,7 @@
      }
  
      protected GlobalPos selectLevelLoadFocusPos() {
-@@ -586,7 +_,12 @@
+@@ -579,7 +_,12 @@
      public abstract boolean shouldRconBroadcast();
  
      public boolean saveAllChunks(boolean silent, boolean flush, boolean force) {
@@ -715,7 +792,7 @@
          boolean result = false;
  
          for (ServerLevel level : this.getAllLevels()) {
-@@ -594,10 +_,28 @@
+@@ -587,10 +_,12 @@
                  LOGGER.info("Saving chunks for level '{}'/{}", level, level.dimension().identifier());
              }
  
@@ -726,46 +803,31 @@
  
 +        // Paper - move to saveGlobalData()
 +
-+        if (flush) {
-+            for (ServerLevel level : this.getAllLevels()) {
-+                String storageName = level.getChunkSource().chunkMap.getStorageName();
-+                LOGGER.info("ThreadedAnvilChunkStorage ({}): All chunks are saved", LEGACY_WORLD_NAMES_FOR_REALMS_LOG.getOrDefault(storageName, storageName));
-+            }
-+
-+            LOGGER.info("ThreadedAnvilChunkStorage: All dimensions are saved");
-+        }
-+
-+        return result;
-+    }
+         GameProfile singleplayerProfile = this.getSingleplayerProfile();
+         this.storageSource.saveDataTag(this.worldData, singleplayerProfile == null ? null : singleplayerProfile.id());
+         if (flush) {
+@@ -601,6 +_,20 @@
+ 
+         return result;
+     }
 +
 +    // Paper start - split out global level data
 +    public void saveGlobalData(final boolean flush) {
 +        this.scoreboard.storeToSaveDataIfDirty(this.getDataStorage().computeIfAbsent(ScoreboardSaveData.TYPE));
 +
-         GameProfile singleplayerProfile = this.getSingleplayerProfile();
-         this.storageSource.saveDataTag(this.worldData, singleplayerProfile == null ? null : singleplayerProfile.id());
-         if (flush) {
-@@ -605,18 +_,8 @@
-         } else {
-             this.savedDataStorage.scheduleSave();
-         }
--
--        if (flush) {
--            for (ServerLevel level : this.getAllLevels()) {
--                String storageName = level.getChunkSource().chunkMap.getStorageName();
--                LOGGER.info("ThreadedAnvilChunkStorage ({}): All chunks are saved", LEGACY_WORLD_NAMES_FOR_REALMS_LOG.getOrDefault(storageName, storageName));
--            }
--
--            LOGGER.info("ThreadedAnvilChunkStorage: All dimensions are saved");
--        }
--
--        return result;
-     }
++        GameProfile singleplayerProfile = this.getSingleplayerProfile();
++        this.storageSource.saveDataTag(this.worldData, singleplayerProfile == null ? null : singleplayerProfile.id());
++        if (flush) {
++            this.savedDataStorage.saveAndJoin();
++        } else {
++            this.savedDataStorage.scheduleSave();
++        }
++    }
 +    // Paper end - split out global level data
  
      public boolean saveEverything(boolean silent, boolean flush, boolean force) {
          try {
-@@ -635,19 +_,57 @@
+@@ -619,19 +_,57 @@
          this.stopServer();
      }
  
@@ -820,11 +882,11 @@
              this.playerList.saveAll();
 -            this.playerList.removeAll();
 +            this.playerList.removeAll(this.isRestarting); // Paper
-+            this.getConnection().handleAllDisconnections(); // Paper
++            try { Thread.sleep(100); } catch (InterruptedException ex) {} // CraftBukkit - SPIGOT-625 - give server at least a chance to send packets
          }
  
          LOGGER.info("Saving worlds");
-@@ -658,7 +_,7 @@
+@@ -642,7 +_,7 @@
              }
          }
  
@@ -833,7 +895,7 @@
              this.nextTickTimeNanos = Util.getNanos() + TimeUtil.NANOSECONDS_PER_MILLISECOND;
  
              for (ServerLevel level : this.getAllLevels()) {
-@@ -669,17 +_,15 @@
+@@ -653,17 +_,15 @@
              this.waitUntilNextTick();
          }
  
@@ -859,7 +921,7 @@
  
          this.isSaving = false;
          this.savedDataStorage.close();
-@@ -690,6 +_,30 @@
+@@ -674,6 +_,30 @@
          } catch (IOException e) {
              LOGGER.error("Failed to unlock level {}", this.storageSource.getLevelId(), e);
          }
@@ -890,7 +952,7 @@
      }
  
      public String getLocalIp() {
-@@ -705,6 +_,16 @@
+@@ -689,6 +_,16 @@
      }
  
      public void halt(boolean wait) {
@@ -907,7 +969,7 @@
          this.running = false;
          if (wait) {
              try {
-@@ -715,37 +_,232 @@
+@@ -699,37 +_,232 @@
          }
      }
  
@@ -1129,7 +1191,7 @@
 +                    final long ticksBehind = Math.max(1L, this.tickSchedule.getPeriodsAhead(thisTickNanos, tickStart));
 +                    final long catchup = (long)Math.max(
 +                            1,
-+                            org.purpurmc.purpur.PurpurConfig.tpsCatchup ? io.papermc.paper.configuration.GlobalConfiguration.get().misc.catchupTicks.or(5) : 1 // Purpur - Configurable TPS Catchup
++                            org.purpurmc.purpur.PurpurConfig.tpsCatchup ? 5 : 1 //ConfigHolder.getConfig().tickLoop.catchupTicks.getOrDefault(MoonriseConfig.TickLoop.DEFAULT_CATCHUP_TICKS).intValue() // Purpur - Configurable TPS Catchup
 +                    );
 +
 +                    lagging = getTPS()[0] < org.purpurmc.purpur.PurpurConfig.laggingThreshold; // Purpur - Lagging threshold
@@ -1154,7 +1216,7 @@
  
                  boolean sprinting = thisTickNanos == 0L;
                  if (this.debugCommandProfilerDelayStart) {
-@@ -753,7 +_,7 @@
+@@ -737,7 +_,7 @@
                      this.debugCommandProfiler = new MinecraftServer.TimeProfiler(Util.getNanos(), this.tickCount);
                  }
  
@@ -1163,7 +1225,7 @@
  
                  try (Profiler.Scope ignored = Profiler.use(this.createProfiler())) {
                      this.processPacketsAndTick(sprinting);
-@@ -762,7 +_,7 @@
+@@ -746,7 +_,7 @@
                      this.mayHaveDelayedTasks = true;
                      this.delayedTasksMaxNextTickTimeNanos = Math.max(Util.getNanos() + thisTickNanos, this.nextTickTimeNanos);
                      this.startMeasuringTaskExecutionTime();
@@ -1172,7 +1234,7 @@
                      this.finishMeasuringTaskExecutionTime();
                      if (sprinting) {
                          this.tickRateManager.endTickWork();
-@@ -777,6 +_,8 @@
+@@ -761,6 +_,8 @@
                  this.isReady = true;
                  JvmProfiler.INSTANCE.onServerTick(this.smoothedTickTimeMillis);
              }
@@ -1181,7 +1243,7 @@
          } catch (Throwable t) {
              LOGGER.error("Encountered an unexpected exception", t);
              CrashReport report = constructOrExtractCrashReport(t);
-@@ -788,6 +_,7 @@
+@@ -772,6 +_,7 @@
                  LOGGER.error("We were unable to save this crash report to disk.");
              }
  
@@ -1189,7 +1251,7 @@
              this.onServerCrash(report);
          } finally {
              try {
-@@ -795,8 +_,6 @@
+@@ -779,8 +_,6 @@
                  this.stopServer();
              } catch (Throwable t) {
                  LOGGER.error("Exception stopping the server", t);
@@ -1198,7 +1260,7 @@
              }
          }
      }
-@@ -848,7 +_,14 @@
+@@ -832,7 +_,14 @@
      }
  
      private boolean haveTime() {
@@ -1214,7 +1276,7 @@
      }
  
      public NotificationManager notificationManager() {
-@@ -856,11 +_,11 @@
+@@ -840,11 +_,11 @@
      }
  
      protected void waitUntilNextTick() {
@@ -1228,7 +1290,7 @@
          } finally {
              this.waitingForNextTick = false;
          }
-@@ -877,35 +_,59 @@
+@@ -861,38 +_,62 @@
          }
      }
  
@@ -1292,8 +1354,12 @@
 +        return ret; // Paper - force execution of all worlds, do not just bias the first
      }
  
-     public void doRunTask(TickTask task) {
-@@ -956,10 +_,12 @@
+-    protected void doRunTask(TickTask task) {
++    public void doRunTask(TickTask task) {
+         Profiler.get().incrementCounter("runTask");
+         super.doRunTask(task);
+     }
+@@ -940,10 +_,12 @@
      }
  
      protected void tickServer(BooleanSupplier haveTime) {
@@ -1307,7 +1373,7 @@
                  this.emptyTicks++;
              } else {
                  this.emptyTicks = 0;
-@@ -971,25 +_,67 @@
+@@ -955,25 +_,67 @@
                      this.autoSave();
                  }
  
@@ -1378,7 +1444,7 @@
          profiler.push("tallying");
          long tickTime = Util.getNanos() - nano;
          int tickIndex = this.tickCount % 100;
-@@ -999,22 +_,30 @@
+@@ -983,22 +_,30 @@
          this.smoothedTickTimeMillis = this.smoothedTickTimeMillis * 0.8F + (float)tickTime / (float)TimeUtil.NANOSECONDS_PER_MILLISECOND * 0.19999999F;
          this.logTickMethodTime(nano);
          profiler.pop();
@@ -1413,7 +1479,7 @@
          LOGGER.debug("Autosave started");
          ProfilerFiller profiler = Profiler.get();
          profiler.push("save");
-@@ -1029,6 +_,16 @@
+@@ -1013,6 +_,16 @@
          }
      }
  
@@ -1430,7 +1496,7 @@
      private int computeNextAutosaveInterval() {
          float ticksPerSecond;
          if (this.tickRateManager.isSprinting()) {
-@@ -1056,11 +_,12 @@
+@@ -1040,11 +_,12 @@
      private ServerStatus buildServerStatus() {
          ServerStatus.Players players = this.buildPlayerStatus();
          return new ServerStatus(
@@ -1445,7 +1511,7 @@
          );
      }
  
-@@ -1071,7 +_,7 @@
+@@ -1055,7 +_,7 @@
              return new ServerStatus.Players(maxPlayers, players.size(), List.of());
          }
  
@@ -1454,7 +1520,7 @@
          ObjectArrayList<NameAndId> sample = new ObjectArrayList<>(sampleSize);
          int offset = Mth.nextInt(this.random, 0, players.size() - sampleSize);
  
-@@ -1084,15 +_,39 @@
+@@ -1068,15 +_,39 @@
          return new ServerStatus.Players(maxPlayers, players.size(), sample);
      }
  
@@ -1495,7 +1561,7 @@
              profiler.pop();
          }
  
-@@ -1102,13 +_,27 @@
+@@ -1086,13 +_,27 @@
              profiler.pop();
          }
  
@@ -1524,7 +1590,7 @@
              try {
                  level.tick(haveTime);
              } catch (Throwable t) {
-@@ -1116,10 +_,15 @@
+@@ -1100,10 +_,15 @@
                  level.fillReportDetails(report);
                  throw new ReportedException(report);
              }
@@ -1540,7 +1606,7 @@
  
          profiler.popPush("connection");
          this.tickConnection();
-@@ -1127,8 +_,8 @@
+@@ -1111,8 +_,8 @@
          this.playerList.tick();
          profiler.popPush("debugSubscribers");
          this.debugSubscribers.tick();
@@ -1550,7 +1616,7 @@
              GameTestTicker.SINGLETON.tick();
          }
  
-@@ -1149,9 +_,12 @@
+@@ -1133,9 +_,12 @@
          this.serverActivityMonitor.tick();
      }
  
@@ -1565,7 +1631,7 @@
          this.effectiveRespawnData = respawnLevel.getWorldBorderAdjustedRespawnData(respawnData);
      }
  
-@@ -1160,9 +_,16 @@
+@@ -1144,9 +_,16 @@
      }
  
      public void forceGameTimeSynchronization() {
@@ -1583,32 +1649,10 @@
          profiler.pop();
      }
  
-@@ -1190,6 +_,47 @@
+@@ -1174,6 +_,24 @@
          return this.levels.get(dimension);
      }
  
-+    // Youer start - global entity cache for cross-dimension lookups
-+    public void addEntityToGlobalCache(Entity entity) {
-+        if (entity != null) {
-+            this.globalEntityCache.put(entity.getUUID(), entity);
-+        }
-+    }
-+
-+    public void removeEntityFromGlobalCache(Entity entity) {
-+        if (entity != null) {
-+            this.globalEntityCache.remove(entity.getUUID());
-+        }
-+    }
-+
-+    public @Nullable Entity getEntityFromGlobalCache(UUID uuid) {
-+        return this.globalEntityCache.get(uuid);
-+    }
-+
-+    public void clearEntityCacheForLevel(ServerLevel level) {
-+        this.globalEntityCache.values().removeIf(e -> e.level() == level);
-+    }
-+    // Youer end - global entity cache for cross-dimension lookups
-+
 +    // CraftBukkit start
 +    public void addLevel(ServerLevel level) {
 +        Map<ResourceKey<Level>, ServerLevel> oldLevels = this.levels;
@@ -1624,14 +1668,13 @@
 +        newLevels.remove(level.dimension());
 +        this.levels = Collections.unmodifiableMap(newLevels);
 +        this.markWorldsDirty();
-+        this.clearEntityCacheForLevel(level); // Youer - clean up entity cache for removed level
 +    }
 +    // CraftBukkit end
 +
      public Set<ResourceKey<Level>> levelKeys() {
          return this.levels.keySet();
      }
-@@ -1213,11 +_,11 @@
+@@ -1197,11 +_,11 @@
      }
  
      public String getServerModName() {
@@ -1645,7 +1688,7 @@
      }
  
      public SystemReport fillSystemReport(SystemReport systemReport) {
-@@ -1235,7 +_,7 @@
+@@ -1219,7 +_,7 @@
              () -> FeatureFlags.REGISTRY.toNames(this.worldData.enabledFeatures()).stream().map(Identifier::toString).collect(Collectors.joining(", "))
          );
          systemReport.setDetail("World Generation", () -> this.worldData.worldGenSettingsLifecycle().toString());
@@ -1654,16 +1697,16 @@
          systemReport.setDetail("Suppressed Exceptions", this.suppressedExceptions::dump);
          if (this.serverId != null) {
              systemReport.setDetail("Server Id", () -> this.serverId);
-@@ -1252,7 +_,7 @@
+@@ -1236,7 +_,7 @@
  
      @Override
      public void sendSystemMessage(Component message) {
--        LOGGER.info(message.getString());
+-        LOGGER.info("System chat: {}", message.getString());
 +        LOGGER.info(io.papermc.paper.adventure.PaperAdventure.ANSI_SERIALIZER.serialize(io.papermc.paper.adventure.PaperAdventure.asAdventure(message))); // Paper - Log message with colors
      }
  
      public KeyPair getKeyPair() {
-@@ -1289,11 +_,17 @@
+@@ -1273,11 +_,17 @@
          }
      }
  
@@ -1686,7 +1729,7 @@
          }
      }
  
-@@ -1309,6 +_,11 @@
+@@ -1293,6 +_,11 @@
  
      public void setDifficultyLocked(boolean locked) {
          this.worldData.setDifficultyLocked(locked);
@@ -1698,7 +1741,7 @@
          this.getPlayerList().getPlayers().forEach(this::sendDifficultyUpdate);
      }
  
-@@ -1369,10 +_,20 @@
+@@ -1353,10 +_,20 @@
  
      @Override
      public String getMotd() {
@@ -1720,7 +1763,7 @@
          this.motd = motd;
      }
  
-@@ -1402,16 +_,20 @@
+@@ -1386,16 +_,20 @@
          int count = 0;
  
          for (ServerPlayer player : this.getPlayerList().getPlayers()) {
@@ -1744,7 +1787,7 @@
      }
  
      public boolean isReady() {
-@@ -1478,7 +_,7 @@
+@@ -1462,7 +_,7 @@
      @Override
      public void executeIfPossible(Runnable command) {
          if (this.isStopped()) {
@@ -1753,7 +1796,7 @@
          }
  
          super.executeIfPossible(command);
-@@ -1513,11 +_,20 @@
+@@ -1497,19 +_,28 @@
          return this.functionManager;
      }
  
@@ -1771,13 +1814,14 @@
 -                () -> packsToEnable.stream()
 -                    .map(this.packRepository::getPack)
 -                    .filter(Objects::nonNull)
+-                    .flatMap(Pack::open)
 +                () -> this.packRepository
 +                    .rebuildSelected(packsToEnable, false)
 +                    .stream()
-                     .map(Pack::open)
++                    .map(Pack::open)
                      .collect(ImmutableList.toImmutableList()),
                  this
-@@ -1525,7 +_,7 @@
+             )
              .thenCompose(
                  packsToLoad -> {
                      CloseableResourceManager resources = new MultiPackResourceManager(PackType.SERVER_DATA, packsToLoad);
@@ -1786,7 +1830,7 @@
                      return ReloadableServerResources.loadResources(
                              resources,
                              this.registries,
-@@ -1547,16 +_,36 @@
+@@ -1531,15 +_,34 @@
              .thenAcceptAsync(newResources -> {
                  this.resources.close();
                  this.resources = newResources;
@@ -1798,7 +1842,6 @@
                  this.resources.managers.updateComponentsAndStaticRegistryTags();
                  this.resources.managers.getRecipeManager().finalizeRecipeLoading(this.worldData.enabledFeatures());
 -                this.getPlayerList().saveAll();
-+                this.potionBrewing = this.potionBrewing.reload(this.worldData.enabledFeatures()); // Paper - Custom Potion Mixes
 +                if (Thread.currentThread() != this.serverThread) return; // Paper
 +                // Paper start - we don't need to save everything, just advancements
 +                // this.getPlayerList().saveAll();
@@ -1809,8 +1852,6 @@
                  this.getPlayerList().reloadResources();
                  this.functionManager.replaceLibrary(this.resources.managers.getFunctionLibrary());
                  this.structureTemplateManager.onResourceManagerReload(this.resources.resourceManager);
--                this.fuelValues = FuelValues.vanillaBurnTimes(this.registries.compositeAccess(), this.worldData.enabledFeatures());
-+                this.fuelValues = net.neoforged.neoforge.common.DataMapHooks.populateFuelValues(this.registries.compositeAccess(), this.worldData.enabledFeatures());
 +                org.bukkit.craftbukkit.block.data.CraftBlockData.reloadCache(); // Paper - cache block data strings; they can be defined by datapacks so refresh it here
 +                // Paper start - brigadier command API
 +                io.papermc.paper.command.brigadier.PaperCommands.INSTANCE.setValid(); // reset invalid state for event fire below
@@ -1826,7 +1867,7 @@
              }, this);
          if (this.isSameThread()) {
              this.managedBlock(result::isDone);
-@@ -1571,9 +_,11 @@
+@@ -1554,9 +_,11 @@
          DataPackConfig dataPackConfig = initialDataConfig.dataPacks();
          FeatureFlagSet forcedFeatures = initMode ? FeatureFlagSet.of() : initialDataConfig.enabledFeatures();
          FeatureFlagSet allowedFeatures = initMode ? FeatureFlags.REGISTRY.allFlags() : initialDataConfig.enabledFeatures();
@@ -1840,7 +1881,7 @@
          }
  
          Set<String> selected = Sets.newLinkedHashSet();
-@@ -1620,13 +_,15 @@
+@@ -1603,13 +_,15 @@
              selected.add("vanilla");
          }
  
@@ -1857,7 +1898,7 @@
          enableForcedFeaturePacks(packRepository, forcedFeatures);
          DataPackConfig packConfig = getSelectedPacks(packRepository, disableInactive);
          FeatureFlagSet packRequestedFeatures = packRepository.getRequestedFeatureFlags().join(forcedFeatures);
-@@ -1658,7 +_,7 @@
+@@ -1641,7 +_,7 @@
                  }
              }
  
@@ -1866,7 +1907,7 @@
          }
      }
  
-@@ -1675,8 +_,8 @@
+@@ -1658,8 +_,8 @@
              UserWhiteList whiteList = playerList.getWhiteList();
  
              for (ServerPlayer player : Lists.newArrayList(playerList.getPlayers())) {
@@ -1877,7 +1918,7 @@
                  }
              }
          }
-@@ -1706,12 +_,12 @@
+@@ -1681,12 +_,12 @@
      }
  
      public ServerLevel findRespawnDimension() {
@@ -1892,7 +1933,7 @@
      public void setRespawnData(LevelData.RespawnData respawnData) {
          ServerLevelData levelData = this.worldData.overworldData();
          LevelData.RespawnData oldRespawnData = levelData.getRespawnData();
-@@ -1779,17 +_,20 @@
+@@ -1754,17 +_,20 @@
          return this.randomSequences;
      }
  
@@ -1918,7 +1959,24 @@
      }
  
      public boolean isEnforceWhitelist() {
-@@ -1843,6 +_,31 @@
+@@ -1802,7 +_,15 @@
+     public LevelBasedPermissionSet getProfilePermissions(NameAndId nameAndId) {
+         if (this.getPlayerList().isOp(nameAndId)) {
+             ServerOpListEntry opListEntry = this.getPlayerList().getOps().get(nameAndId);
+-            return opListEntry != null ? opListEntry.permissions() : this.operatorUserPermissions();
++            if (opListEntry != null) {
++                return opListEntry.permissions();
++            } else if (this.isSingleplayerOwner(nameAndId)) {
++                return LevelBasedPermissionSet.OWNER;
++            } else if (this.isSingleplayer()) {
++                return this.getPlayerList().isAllowCommandsForAllPlayers() ? LevelBasedPermissionSet.OWNER : LevelBasedPermissionSet.ALL;
++            } else {
++                return this.operatorUserPermissions();
++            }
+         } else {
+             return LevelBasedPermissionSet.ALL;
+         }
+@@ -1810,6 +_,31 @@
  
      public abstract boolean isSingleplayerOwner(NameAndId nameAndId);
  
@@ -1950,7 +2008,7 @@
      public void dumpServerProperties(Path path) throws IOException {
      }
  
-@@ -1880,7 +_,7 @@
+@@ -1847,7 +_,7 @@
      private void dumpGameRules(Path path) throws IOException {
          try (Writer output = Files.newBufferedWriter(path)) {
              final List<String> entries = Lists.newArrayList();
@@ -1959,7 +2017,7 @@
              gameRules.visitGameRuleTypes(new GameRuleTypeVisitor() {
                  @Override
                  public <T> void visit(GameRule<T> gameRule) {
-@@ -1937,7 +_,25 @@
+@@ -1904,7 +_,25 @@
          }
      }
  
@@ -1985,7 +2043,7 @@
          if (this.willStartRecordingMetrics) {
              this.metricsRecorder = ActiveMetricsRecorder.createStarted(
                  new ServerMetricsSamplersProvider(Util.timeSource(), this.isDedicatedServer()),
-@@ -2002,6 +_,10 @@
+@@ -1969,6 +_,10 @@
          return this.worldData;
      }
  
@@ -1996,7 +2054,7 @@
      public RegistryAccess.Frozen registryAccess() {
          return this.registries.compositeAccess();
      }
-@@ -2058,27 +_,41 @@
+@@ -2032,27 +_,41 @@
  
      public void logChatMessage(Component message, ChatType.Bound chatType, @Nullable String tag) {
          String decoratedMessage = chatType.decorate(message).getString();
@@ -2042,7 +2100,7 @@
      }
  
      public boolean setAutoSave(boolean enable) {
-@@ -2104,12 +_,14 @@
+@@ -2078,12 +_,14 @@
          return false;
      }
  
@@ -2060,7 +2118,7 @@
                  player.connection.send(new ClientboundEntityEventPacket(player, event));
              }
          } else if (rule == GameRules.LIMITED_CRAFTING || rule == GameRules.IMMEDIATE_RESPAWN) {
-@@ -2117,21 +_,23 @@
+@@ -2091,21 +_,23 @@
                  ? ClientboundGameEventPacket.LIMITED_CRAFTING
                  : ClientboundGameEventPacket.IMMEDIATE_RESPAWN;
              ClientboundGameEventPacket packet = new ClientboundGameEventPacket(eventType, (Boolean)value ? 1.0F : 0.0F);
@@ -2095,26 +2153,24 @@
      }
  
      @Deprecated
-@@ -2143,12 +_,16 @@
+@@ -2117,12 +_,14 @@
          return this.savedDataStorage;
      }
  
 +    @Deprecated(forRemoval = true) @io.papermc.paper.annotation.DoNotUse
      public TimerQueue<MinecraftServer> getScheduledEvents() {
 -        return this.scheduledEvents;
-+        // throw new UnsupportedOperationException("Use ServerLevel.getScheduledEvents() instead"); // Paper
-+        return this.overworld().scheduledEvents; // Youer
++        throw new UnsupportedOperationException("Use ServerLevel.getScheduledEvents() instead"); // Paper
      }
  
 +    @Deprecated(forRemoval = true) @io.papermc.paper.annotation.DoNotUse // Paper
      public GameRules getGameRules() {
 -        return this.gameRules;
-+        // throw new UnsupportedOperationException("Use ServerLevel.getGameRules() instead"); // Paper
-+        return this.overworld().getGameRules(); // Youer
++        throw new UnsupportedOperationException("Use ServerLevel.getGameRules() instead"); // Paper
      }
  
      public boolean acceptsTransfers() {
-@@ -2315,4 +_,53 @@
+@@ -2281,4 +_,53 @@
              };
          }
      }

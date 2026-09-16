@@ -1,12 +1,13 @@
 --- a/net/minecraft/world/item/crafting/RecipeManager.java
 +++ b/net/minecraft/world/item/crafting/RecipeManager.java
-@@ -3,12 +_,14 @@
- import com.google.common.annotations.VisibleForTesting;
- import com.google.gson.JsonObject;
- import com.google.gson.JsonParseException;
-+import com.mohistmc.youer.feature.ban.bans.BanRecipe;
+@@ -1,21 +_,35 @@
+ package net.minecraft.world.item.crafting;
+ 
++import com.google.common.annotations.VisibleForTesting;
++import com.google.gson.JsonObject;
++import com.google.gson.JsonParseException;
  import com.mojang.logging.LogUtils;
- import com.mojang.serialization.JsonOps;
++import com.mojang.serialization.JsonOps;
  import it.unimi.dsi.fastutil.objects.Object2IntMap;
  import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
  import java.util.ArrayList;
@@ -15,78 +16,61 @@
  import java.util.IdentityHashMap;
  import java.util.List;
  import java.util.Map;
-@@ -23,6 +_,7 @@
- import net.minecraft.resources.FileToIdConverter;
- import net.minecraft.resources.Identifier;
+ import java.util.Optional;
+ import java.util.OptionalInt;
++import java.util.SortedMap;
++import java.util.TreeMap;
+ import java.util.function.Consumer;
+ import java.util.stream.Collectors;
+ import net.minecraft.core.HolderLookup;
+ import net.minecraft.core.registries.Registries;
++import net.minecraft.resources.FileToIdConverter;
++import net.minecraft.resources.Identifier;
  import net.minecraft.resources.ResourceKey;
 +import net.minecraft.server.MinecraftServer;
  import net.minecraft.server.level.ServerLevel;
- import net.minecraft.server.packs.resources.ResourceManager;
- import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
-@@ -61,6 +_,7 @@
-     private SelectableRecipe.SingleInputSet<StonecutterRecipe> stonecutterRecipes = SelectableRecipe.SingleInputSet.empty();
++import net.minecraft.server.packs.resources.ResourceManager;
++import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
++import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
++import net.minecraft.util.profiling.ProfilerFiller;
+ import net.minecraft.world.flag.FeatureFlagSet;
+ import net.minecraft.world.item.crafting.display.RecipeDisplay;
+ import net.minecraft.world.item.crafting.display.RecipeDisplayEntry;
+@@ -52,6 +_,7 @@
      private List<RecipeManager.ServerDisplayInfo> allDisplays = List.of();
      private Map<ResourceKey<Recipe<?>>, List<RecipeManager.ServerDisplayInfo>> recipeToDisplay = Map.of();
+     private final Collection<RecipeHolder<?>> learnableRecipes;
 +    private Object2IntMap<ResourceKey<net.minecraft.world.item.crafting.Recipe<?>>> recipePriorities = it.unimi.dsi.fastutil.objects.Object2IntMaps.emptyMap(); // Neo: recipe priorities set from RecipePriorityManager.
  
      public RecipeManager(HolderLookup.Provider registries) {
-         this.registries = registries;
-@@ -68,14 +_,21 @@
- 
-     protected RecipeMap prepare(ResourceManager manager, ProfilerFiller profiler) {
-         SortedMap<Identifier, Recipe<?>> recipes = new TreeMap<>();
--        SimpleJsonResourceReloadListener.scanDirectory(
--            manager, RECIPE_LISTER, this.registries.createSerializationContext(JsonOps.INSTANCE), Recipe.CODEC, recipes
-+        // Neo: add condition context and post recipe JSON modification event
-+        var conditionalOps = new net.neoforged.neoforge.common.conditions.ConditionalOps<>(this.registries.createSerializationContext(JsonOps.INSTANCE), getContext());
-+        SimpleJsonResourceReloadListener.scanDirectoryWithModifier(
-+            manager, RECIPE_LISTER, conditionalOps, Recipe.CODEC, recipes, recipeJsons -> {
-+                var event = new net.neoforged.neoforge.event.ModifyRecipeJsonsEvent(conditionalOps, recipeJsons);
-+                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event);
-+            }
-         );
-         List<RecipeHolder<?>> recipeHolders = new ArrayList<>(recipes.size());
-         recipes.forEach((id, recipe) -> {
--            ResourceKey<Recipe<?>> key = ResourceKey.create(Registries.RECIPE, id);
--            RecipeHolder<?> holder = new RecipeHolder<>(key, recipe);
--            recipeHolders.add(holder);
-+            if (!BanRecipe.checkBan(id)) {
-+                ResourceKey<Recipe<?>> key = ResourceKey.create(Registries.RECIPE, id);
-+                RecipeHolder<?> holder = new RecipeHolder<>(key, recipe);
-+                recipeHolders.add(holder);
-+            }
-         });
-         return RecipeMap.create(recipeHolders);
-     }
-@@ -85,7 +_,27 @@
-         LOGGER.info("Loaded {} recipes", recipes.values().size());
+         HolderLookup.RegistryLookup<Recipe<?>> recipeRegistries = registries.lookupOrThrow(Registries.RECIPE);
+@@ -59,7 +_,25 @@
+         this.learnableRecipes = this.recipes.values().stream().filter(r -> !r.value().isSpecial()).collect(Collectors.toUnmodifiableList());
      }
  
 +    // CraftBukkit start
-+    public void addRecipe(RecipeHolder<?> irecipe) {
++    public void addRecipe(RecipeHolder<?> holder) {
 +        org.spigotmc.AsyncCatcher.catchOp("Recipe Add"); // Spigot
-+        this.recipes.addRecipe(irecipe);
-+        finalizeRecipeLoading();
++        this.recipes.addRecipe(holder);
++        this.finalizeRecipeLoading();
 +    }
 +
-+    private FeatureFlagSet featureflagset;
++    private FeatureFlagSet enabledFlags;
 +
 +    public void finalizeRecipeLoading() {
-+        if (featureflagset != null) {
-+            finalizeRecipeLoading(featureflagset);
++        if (this.enabledFlags != null) {
++            this.finalizeRecipeLoading(this.enabledFlags);
 +
-+            MinecraftServer.getServer().getPlayerList().reloadRecipes();
++            net.minecraft.server.MinecraftServer.getServer().getPlayerList().reloadResources();
 +        }
 +    }
 +
      public void finalizeRecipeLoading(FeatureFlagSet enabledFlags) {
-+        this.featureflagset = enabledFlags;
-+        // CraftBukkit end
 +        this.recipes.order(this.recipePriorities); // Neo: order recipes by priority.
          List<SelectableRecipe.SingleInputEntry<StonecutterRecipe>> stonecutterRecipes = new ArrayList<>();
          List<RecipeManager.IngredientCollector> propertySetCollectors = RECIPE_PROPERTY_SETS.entrySet()
              .stream()
-@@ -142,7 +_,10 @@
+@@ -116,7 +_,10 @@
      }
  
      public <I extends RecipeInput, T extends Recipe<I>> Optional<RecipeHolder<T>> getRecipeFor(RecipeType<T> type, I input, Level level) {
@@ -98,30 +82,30 @@
      }
  
      public Optional<RecipeHolder<?>> byKey(ResourceKey<Recipe<?>> recipeId) {
-@@ -194,6 +_,22 @@
-         return new RecipeHolder<>(id, recipe);
+@@ -166,6 +_,22 @@
+         }
      }
  
 +    // CraftBukkit start
-+    public boolean removeRecipe(ResourceKey<Recipe<?>> mcKey) {
-+        boolean removed = this.recipes.removeRecipe(mcKey);
++    public boolean removeRecipe(ResourceKey<Recipe<?>> id) {
++        boolean removed = this.recipes.removeRecipe(id);
 +        if (removed) {
-+            finalizeRecipeLoading();
++            this.finalizeRecipeLoading();
 +        }
 +
 +        return removed;
 +    }
 +
 +    public void clearRecipes() {
-+        this.recipes = RecipeMap.create(Collections.emptyList());
-+        finalizeRecipeLoading();
++        this.recipes = RecipeMap.createEmpty();
++        this.finalizeRecipeLoading();
 +    }
 +    // CraftBukkit end
 +
      public static <I extends RecipeInput, T extends Recipe<I>> RecipeManager.CachedCheck<I, T> createCheck(RecipeType<T> type) {
          return new RecipeManager.CachedCheck<I, T>() {
              private @Nullable ResourceKey<Recipe<?>> lastRecipe;
-@@ -250,6 +_,16 @@
+@@ -222,6 +_,16 @@
          return recipe -> recipe.getType() == type && recipe instanceof SingleItemRecipe singleItemRecipe
              ? Optional.of(singleItemRecipe.input())
              : Optional.empty();

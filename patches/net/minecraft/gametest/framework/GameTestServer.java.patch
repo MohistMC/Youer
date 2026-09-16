@@ -6,8 +6,8 @@
      private @Nullable MultipleTestTracker testTracker;
 +    // Neo: disable mob spawning and weather cycling when running game tests, same as for the ephemeral test server
 +    private static final GameRules TEST_GAME_RULES = Util.make(new GameRules(ENABLED_FEATURES), rules -> {
-+        rules.set(GameRules.SPAWN_MOBS, false, (ServerLevel) null);
-+        rules.set(GameRules.ADVANCE_WEATHER, false, (ServerLevel) null);
++        rules.set(GameRules.SPAWN_MOBS, false, null);
++        rules.set(GameRules.ADVANCE_WEATHER, false, null);
 +    });
  
      public static GameTestServer create(
@@ -27,7 +27,7 @@
              Proxy.NO_PROXY,
              DataFixers.getDataFixer(),
              NO_SERVICES,
-@@ -174,12 +_,22 @@
+@@ -174,20 +_,31 @@
  
      @Override
      protected boolean initServer() {
@@ -43,15 +43,37 @@
          Gizmos.withCollector(GizmoCollector.NOOP);
 +        net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerAboutToStart(this);
          this.loadLevel();
+-        this.testBatches = this.evaluateTestsToRun(this);
 +        // Paper end
-         ServerLevel level = this.overworld();
-         this.testBatches = this.evaluateTestsToRun(level);
++        ServerLevel level = this.overworld();
++        this.testBatches = this.evaluateTestsToRun(level);
          LOGGER.info("Started game test server");
 +        net.neoforged.neoforge.server.ServerLifecycleHooks.handleServerStarting(this);
          return true;
      }
  
-@@ -258,8 +_,14 @@
+-    private List<GameTestBatch> evaluateTestsToRun(MinecraftServer server) {
+-        Registry<GameTestInstance> testRegistry = server.registryAccess().lookupOrThrow(Registries.TEST_INSTANCE);
++    private List<GameTestBatch> evaluateTestsToRun(ServerLevel level) {
++        Registry<GameTestInstance> testRegistry = level.registryAccess().lookupOrThrow(Registries.TEST_INSTANCE);
+         Collection<Holder.Reference<GameTestInstance>> tests;
+         GameTestBatchFactory.TestDecorator decorator;
+         if (this.testSelection.isPresent()) {
+-            tests = getTestsForSelection(server.registryAccess(), this.testSelection.get()).filter(test -> !test.value().manualOnly()).toList();
++            tests = getTestsForSelection(level.registryAccess(), this.testSelection.get()).filter(test -> !test.value().manualOnly()).toList();
+             if (tests.isEmpty()) {
+                 LOGGER.warn("Test selection matcher ({}) found no tests", this.testSelection.get());
+                 System.exit(-1);
+@@ -210,7 +_,7 @@
+             decorator = GameTestBatchFactory.DIRECT;
+         }
+ 
+-        return GameTestBatchFactory.divideIntoBatches(tests, decorator, server);
++        return GameTestBatchFactory.divideIntoBatches(tests, decorator, level.getServer());
+     }
+ 
+     private static Stream<GameTestInfo> rotateAndMultiply(Holder.Reference<GameTestInstance> test, ServerLevel level) {
+@@ -257,8 +_,14 @@
              GlobalTestReporter.finish();
              LOGGER.info("========= {} GAME TESTS COMPLETE IN {} ======================", this.testTracker.getTotalCount(), this.stopwatch.stop());
              if (this.testTracker.hasFailedRequired()) {
@@ -67,7 +89,7 @@
              } else {
                  LOGGER.info("All {} required tests passed :)", this.testTracker.getTotalCount());
              }
-@@ -275,11 +_,11 @@
+@@ -274,11 +_,11 @@
  
      private static void logFailedTest(GameTestInfo testInfo) {
          if (testInfo.getRotation() != Rotation.NONE) {
@@ -81,7 +103,7 @@
          }
      }
  
-@@ -392,6 +_,13 @@
+@@ -391,6 +_,13 @@
          return false;
      }
  
@@ -95,7 +117,7 @@
      @Override
      public boolean isSingleplayerOwner(NameAndId nameAndId) {
          return false;
-@@ -439,5 +_,16 @@
+@@ -438,5 +_,16 @@
          @Override
          public void save() {
          }

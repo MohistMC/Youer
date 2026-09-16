@@ -1,16 +1,31 @@
 --- a/net/minecraft/util/PlaceholderLookupProvider.java
 +++ b/net/minecraft/util/PlaceholderLookupProvider.java
-@@ -52,6 +_,13 @@
-                             )
-                         );
-                 }
-+
-+                // Paper start add method to get the value for pre-filling builders in the reg mod API
-+                @Override
-+                public HolderLookup.Provider lookupForValueCopyViaBuilders() {
-+                    return PlaceholderLookupProvider.this.context;
-+                }
-+                // Paper end - add method to get the value for pre-filling builders in the reg mod API
+@@ -4,12 +_,14 @@
+ import com.mojang.serialization.DataResult;
+ import com.mojang.serialization.DynamicOps;
+ import com.mojang.serialization.JavaOps;
++import com.mojang.serialization.Lifecycle;
+ import java.util.HashMap;
+ import java.util.Map;
+ import java.util.Optional;
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderGetter;
+ import net.minecraft.core.HolderLookup;
++import net.minecraft.core.HolderOwner;
+ import net.minecraft.core.HolderSet;
+ import net.minecraft.core.Registry;
+ import net.minecraft.resources.RegistryOps;
+@@ -38,6 +_,13 @@
+                 Optional<HolderGetter<T>> result = PlaceholderLookupProvider.this.context.lookup(registryKey).map(e -> (HolderGetter<T>)e);
+                 return result.or(() -> Optional.of(PlaceholderLookupProvider.this.lookup.castAsLookup()));
              }
-         );
++
++            // Paper start add method to get the value for pre-filling builders in the reg mod API
++            @Override
++            public HolderLookup.Provider lookupForValueCopyViaBuilders() {
++                return PlaceholderLookupProvider.this.context;
++            }
++            // Paper end - add method to get the value for pre-filling builders in the reg mod API
+         });
      }
+ 

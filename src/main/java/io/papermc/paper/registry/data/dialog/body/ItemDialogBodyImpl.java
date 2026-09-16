@@ -11,7 +11,7 @@ public record ItemDialogBodyImpl(
     ItemStack item, @Nullable PlainMessageDialogBody description, boolean showDecorations, boolean showTooltip, int width, int height
 ) implements ItemDialogBody {
 
-    public static final class BuilderImpl implements Builder {
+    public static final class BuilderImpl implements ItemDialogBody.Builder {
 
         private final ItemStack item;
         private @Nullable PlainMessageDialogBody description;
@@ -26,31 +26,31 @@ public record ItemDialogBodyImpl(
         }
 
         @Override
-        public Builder description(final @Nullable PlainMessageDialogBody description) {
+        public ItemDialogBody.Builder description(final @Nullable PlainMessageDialogBody description) {
             this.description = description;
             return this;
         }
 
         @Override
-        public Builder showDecorations(final boolean showDecorations) {
+        public ItemDialogBody.Builder showDecorations(final boolean showDecorations) {
             this.showDecorations = showDecorations;
             return this;
         }
 
         @Override
-        public Builder showTooltip(final boolean showTooltip) {
+        public ItemDialogBody.Builder showTooltip(final boolean showTooltip) {
             this.showTooltip = showTooltip;
             return this;
         }
 
         @Override
-        public Builder width(final @Range(from = 1, to = 256) int width) {
+        public ItemDialogBody.Builder width(final @Range(from = 1, to = 256) int width) {
             this.width = requireRange(width, "width", 1, 256);
             return this;
         }
 
         @Override
-        public Builder height(final @Range(from = 1, to = 256) int height) {
+        public ItemDialogBody.Builder height(final @Range(from = 1, to = 256) int height) {
             this.height = requireRange(height, "height", 1, 256);
             return this;
         }

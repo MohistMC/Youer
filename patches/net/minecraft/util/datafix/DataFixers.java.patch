@@ -1,18 +1,22 @@
 --- a/net/minecraft/util/datafix/DataFixers.java
 +++ b/net/minecraft/util/datafix/DataFixers.java
-@@ -554,6 +_,20 @@
+@@ -569,6 +_,24 @@
          Schema v1456 = fixerUpper.addSchema(1456, SAME_NAMESPACED);
          fixerUpper.addFixer(new EntityItemFrameDirectionFix(v1456, false));
          Schema v1458 = fixerUpper.addSchema(1458, V1458::new);
 +        // CraftBukkit start
-+        fixerUpper.addFixer(new com.mojang.datafixers.DataFix(v1458, false) {
++        // API allows setting player custom names, so we need to convert them.
++        // This does *not* handle upgrades in any other version, but generally those shouldn't need conversion.
++        fixerUpper.addFixer(new DataFix(v1458, false) {
 +            @Override
-+            protected com.mojang.datafixers.TypeRewriteRule makeRule() {
-+                return this.fixTypeEverywhereTyped("Player CustomName", this.getInputSchema().getType(References.PLAYER), (typed) -> {
-+                    return typed.update(DSL.remainderFinder(), (dynamic) -> {
-+                        String s = dynamic.get("CustomName").asString("");
-+
-+                        return s.isEmpty() ? dynamic.remove("CustomName") : dynamic.set("CustomName", LegacyComponentDataFixUtils.createPlainTextComponent(dynamic.getOps(), s));
++            protected TypeRewriteRule makeRule() {
++                return this.fixTypeEverywhereTyped("Player CustomName", this.getInputSchema().getType(References.PLAYER), typed -> {
++                    return typed.update(DSL.remainderFinder(), dynamic -> {
++                        final String customName = dynamic.get("CustomName").asString("");
++                        if (customName.isEmpty()) {
++                            return dynamic.remove("CustomName");
++                        }
++                        return dynamic.set("CustomName", LegacyComponentDataFixUtils.createPlainTextComponent(dynamic.getOps(), customName));
 +                    });
 +                });
 +            }
@@ -21,7 +25,7 @@
          fixerUpper.addFixer(new EntityCustomNameToComponentFix(v1458));
          fixerUpper.addFixer(new ItemCustomNameToComponentFix(v1458));
          fixerUpper.addFixer(new BlockEntityCustomNameToComponentFix(v1458));
-@@ -1377,10 +_,35 @@
+@@ -1394,10 +_,35 @@
          Schema v3800 = fixerUpper.addSchema(3800, SAME_NAMESPACED);
          UnaryOperator<String> scuteRenamer = createRenamer(Map.of("minecraft:scute", "minecraft:turtle_scute"));
          fixerUpper.addFixer(ItemRenameFix.create(v3800, "Rename scute item to turtle_scute", scuteRenamer));
@@ -57,7 +61,7 @@
          Schema v3807 = fixerUpper.addSchema(3807, V3807::new);
          fixerUpper.addFixer(new AddNewChoices(v3807, "Added Vault", References.BLOCK_ENTITY));
          Schema v3807_1 = fixerUpper.addSchema(3807, 1, SAME_NAMESPACED);
-@@ -1403,6 +_,18 @@
+@@ -1420,6 +_,18 @@
                  v3814, "Rename jump strength attribute", createRenamer("minecraft:horse.jump_strength", "minecraft:generic.jump_strength")
              )
          );

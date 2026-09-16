@@ -109,7 +109,7 @@
                          boolean pickedUp = entity.startRiding(this.minecart);
                          if (pickedUp) {
                              return true;
-@@ -541,6 +_,16 @@
+@@ -541,15 +_,33 @@
                          || entity instanceof AbstractMinecart
                          || this.minecart.isVehicle()
                          || entity.isPassenger()) {
@@ -126,18 +126,23 @@
                          entity.push(this.minecart);
                          pushed = true;
                      }
-@@ -549,6 +_,14 @@
+                 }
+             }
          } else {
-             for (Entity entity : this.level().getEntities(this.minecart, hitbox)) {
-                 if (!this.minecart.hasPassenger(entity) && entity.isPushable() && entity instanceof AbstractMinecart) {
+-            for (Entity entity : this.level().getEntities(this.minecart, hitbox)) {
+-                if (!this.minecart.hasPassenger(entity) && entity.isPushable() && entity instanceof AbstractMinecart) {
+-                    entity.push(this.minecart);
++            for (Entity entityx : this.level().getEntities(this.minecart, hitbox)) {
++                if (!this.minecart.hasPassenger(entityx) && entityx.isPushable() && entityx instanceof AbstractMinecart) {
 +                    // CraftBukkit start
-+                    VehicleEntityCollisionEvent collisionEvent = new VehicleEntityCollisionEvent((Vehicle) this.minecart.getBukkitEntity(), entity.getBukkitEntity());
++                    VehicleEntityCollisionEvent collisionEvent = new VehicleEntityCollisionEvent((Vehicle) this.minecart.getBukkitEntity(), entityx.getBukkitEntity());
 +                    this.level().getCraftServer().getPluginManager().callEvent(collisionEvent);
 +
 +                    if (collisionEvent.isCancelled()) {
 +                        continue;
 +                    }
 +                    // CraftBukkit end
-                     entity.push(this.minecart);
++                    entityx.push(this.minecart);
                      pushed = true;
                  }
+             }

@@ -1,14 +1,13 @@
 --- a/net/minecraft/world/entity/monster/zombie/ZombieVillager.java
 +++ b/net/minecraft/world/entity/monster/zombie/ZombieVillager.java
-@@ -29,6 +_,7 @@
- import net.minecraft.world.entity.EntityAttachment;
- import net.minecraft.world.entity.EntityAttachments;
- import net.minecraft.world.entity.EntityDimensions;
-+import net.minecraft.world.entity.EntityEvent;
- import net.minecraft.world.entity.EntitySpawnReason;
- import net.minecraft.world.entity.EntityType;
- import net.minecraft.world.entity.EntityTypes;
-@@ -58,6 +_,12 @@
+@@ -53,11 +_,19 @@
+ import net.minecraft.world.item.trading.MerchantOffers;
+ import net.minecraft.world.level.Level;
+ import net.minecraft.world.level.ServerLevelAccessor;
++import net.minecraft.world.level.block.BedBlock;
++import net.minecraft.world.level.block.Blocks;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  import org.jspecify.annotations.Nullable;
  
@@ -133,10 +132,12 @@
                  }
  
                  return InteractionResult.SUCCESS_SERVER;
-@@ -194,12 +_,20 @@
+@@ -193,13 +_,21 @@
+         return this.getEntityData().get(DATA_CONVERTING_ID);
      }
  
-     public void startConverting(@Nullable UUID player, int time) {
+-    private void startConverting(@Nullable UUID player, int time) {
++    public void startConverting(@Nullable UUID player, int time) {
 +        // Paper start - missing entity behaviour api - converting without entity event
 +        this.startConverting(player, time, true);
 +    }
@@ -157,6 +158,15 @@
      }
  
      @Override
+@@ -208,7 +_,7 @@
+     }
+ 
+     @Override
+-    public void handleEntityEvent(@EntityEvent.Value byte id) {
++    public void handleEntityEvent(byte id) {
+         if (id == 16) {
+             if (!this.isSilent()) {
+                 this.level()
 @@ -229,7 +_,8 @@
      }
  

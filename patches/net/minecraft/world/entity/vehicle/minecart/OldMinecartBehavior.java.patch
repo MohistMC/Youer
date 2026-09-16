@@ -12,7 +12,7 @@
  public class OldMinecartBehavior extends MinecartBehavior {
      private static final double MINECART_RIDABLE_THRESHOLD = 0.01;
      private static final double MAX_SPEED_IN_WATER = 0.2;
-@@ -62,7 +_,7 @@
+@@ -56,7 +_,7 @@
              this.minecart.setOnRails(onRails);
              if (onRails) {
                  this.moveAlongTrack(level);
@@ -21,7 +21,7 @@
                      this.minecart.activateMinecart(level, var11.getX(), var11.getY(), var11.getZ(), state.getValue(PoweredRailBlock.POWERED));
                  }
              } else {
-@@ -112,7 +_,7 @@
+@@ -104,7 +_,7 @@
          y = pos.getY();
          boolean powerTrack = false;
          boolean haltTrack = false;
@@ -30,7 +30,7 @@
              powerTrack = state.getValue(PoweredRailBlock.POWERED);
              haltTrack = !powerTrack;
          }
-@@ -123,7 +_,7 @@
+@@ -115,7 +_,7 @@
          }
  
          Vec3 movement = this.getDeltaMovement();
@@ -39,7 +39,7 @@
          switch (shape) {
              case ASCENDING_EAST:
                  this.setDeltaMovement(movement.add(-slideSpeed, 0.0, 0.0));
-@@ -242,8 +_,8 @@
+@@ -234,8 +_,8 @@
              Vec3 vec3 = this.getDeltaMovement();
              double speedLength = vec3.horizontalDistance();
              if (speedLength > 0.01) {
@@ -50,7 +50,7 @@
              } else {
                  Vec3 deltaMovement = this.getDeltaMovement();
                  double dx = deltaMovement.x;
-@@ -279,9 +_,10 @@
+@@ -271,9 +_,10 @@
              yt--;
          }
  
@@ -63,7 +63,7 @@
              y = yt;
              if (shape.isSlope()) {
                  y = yt + 1;
-@@ -317,9 +_,10 @@
+@@ -309,9 +_,10 @@
              yt--;
          }
  
@@ -76,7 +76,7 @@
              Pair<Vec3i, Vec3i> exits = AbstractMinecart.exits(shape);
              Vec3i exit0 = exits.getFirst();
              Vec3i exit1 = exits.getSecond();
-@@ -375,8 +_,26 @@
+@@ -367,16 +_,42 @@
                          && !(entity instanceof AbstractMinecart)
                          && !this.minecart.isVehicle()
                          && !entity.isPassenger()) {
@@ -103,22 +103,26 @@
                          entity.push(this.minecart);
                      }
                  }
-@@ -384,6 +_,14 @@
+             }
          } else {
-             for (Entity entity : this.level().getEntities(this.minecart, hitbox)) {
-                 if (!this.minecart.hasPassenger(entity) && entity.isPushable() && entity instanceof AbstractMinecart) {
+-            for (Entity entity : this.level().getEntities(this.minecart, hitbox)) {
+-                if (!this.minecart.hasPassenger(entity) && entity.isPushable() && entity instanceof AbstractMinecart) {
+-                    entity.push(this.minecart);
++            for (Entity entityx : this.level().getEntities(this.minecart, hitbox)) {
++                if (!this.minecart.hasPassenger(entityx) && entityx.isPushable() && entityx instanceof AbstractMinecart) {
 +                    // CraftBukkit start
-+                    VehicleEntityCollisionEvent collisionEvent = new VehicleEntityCollisionEvent((Vehicle) this.minecart.getBukkitEntity(), entity.getBukkitEntity());
++                    VehicleEntityCollisionEvent collisionEvent = new VehicleEntityCollisionEvent((Vehicle) this.minecart.getBukkitEntity(), entityx.getBukkitEntity());
 +                    this.level().getCraftServer().getPluginManager().callEvent(collisionEvent);
 +
 +                    if (collisionEvent.isCancelled()) {
 +                        continue;
 +                    }
 +                    // CraftBukkit end
-                     entity.push(this.minecart);
++                    entityx.push(this.minecart);
                  }
              }
-@@ -406,11 +_,18 @@
+         }
+@@ -398,11 +_,18 @@
  
      @Override
      public double getMaxSpeed(ServerLevel level) {

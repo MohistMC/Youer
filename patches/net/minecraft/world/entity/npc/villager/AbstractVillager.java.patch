@@ -1,10 +1,13 @@
 --- a/net/minecraft/world/entity/npc/villager/AbstractVillager.java
 +++ b/net/minecraft/world/entity/npc/villager/AbstractVillager.java
-@@ -49,15 +_,17 @@
+@@ -49,15 +_,20 @@
  import net.minecraft.world.level.storage.loot.parameters.LootContextParamSets;
  import net.minecraft.world.level.storage.loot.parameters.LootContextParams;
  import net.minecraft.world.phys.Vec3;
++import org.bukkit.Bukkit;
 +import org.bukkit.craftbukkit.inventory.CraftMerchant;
++import org.bukkit.craftbukkit.inventory.CraftMerchantRecipe;
++import org.bukkit.event.entity.VillagerAcquireTradeEvent;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -90,11 +93,11 @@
 -            int numberOfOffers = tradeSet.calculateNumberOfTrades(lootContext);
 +            int numberOfOffers = offerCount != -1 ? offerCount : tradeSet.calculateNumberOfTrades(lootContext); // Paper - More vanilla friendly methods to update trades
              if (tradeSet.allowDuplicates()) {
--                addOffersFromItemListings(lootContext, offers, tradeSet.getTrades(), numberOfOffers);
-+                addOffersFromItemListings(lootContext, offers, tradeSet.getTrades(), numberOfOffers, this);
+-                addOffersFromItemListings(lootContext, offers, tradeSet.trades(), numberOfOffers);
++                addOffersFromItemListings(lootContext, offers, tradeSet.trades(), numberOfOffers, this);
              } else {
--                addOffersFromItemListingsWithoutDuplicates(lootContext, offers, tradeSet.getTrades(), numberOfOffers);
-+                addOffersFromItemListingsWithoutDuplicates(lootContext, offers, tradeSet.getTrades(), numberOfOffers, this);
+-                addOffersFromItemListingsWithoutDuplicates(lootContext, offers, tradeSet.trades(), numberOfOffers);
++                addOffersFromItemListingsWithoutDuplicates(lootContext, offers, tradeSet.trades(), numberOfOffers, this);
              }
          }
      }

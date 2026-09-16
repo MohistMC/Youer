@@ -1,34 +1,39 @@
 --- a/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
 +++ b/net/minecraft/world/entity/decoration/BlockAttachedEntity.java
-@@ -12,16 +_,20 @@
- import net.minecraft.world.entity.player.Player;
- import net.minecraft.world.level.Explosion;
- import net.minecraft.world.level.Level;
-+import net.minecraft.world.level.block.state.BlockState;
- import net.minecraft.world.level.gamerules.GameRules;
+@@ -17,6 +_,16 @@
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.Vec3;
++
++// CraftBukkit start
++import net.minecraft.tags.DamageTypeTags;
++import net.minecraft.world.level.block.state.BlockState;
 +import org.bukkit.entity.Hanging;
 +import org.bukkit.event.entity.EntityRemoveEvent;
++import org.bukkit.event.hanging.HangingBreakByEntityEvent;
 +import org.bukkit.event.hanging.HangingBreakEvent;
++// CraftBukkit end
++
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
- public abstract class BlockAttachedEntity extends Entity {
+@@ -25,6 +_,7 @@
      private static final Logger LOGGER = LogUtils.getLogger();
--    private int checkInterval;
+     private static final int CHECK_INTERVAL = 100;
+     private int ticksSinceLastCheck;
 +    private int checkInterval; { this.checkInterval = this.getId() % this.level().spigotConfig.hangingTickFrequency; } // Paper - Perf: offset item frame ticking
      protected BlockPos pos;
  
      protected BlockAttachedEntity(EntityType<? extends BlockAttachedEntity> type, Level level) {
-@@ -39,10 +_,28 @@
+@@ -42,11 +_,28 @@
      public void tick() {
          if (this.level() instanceof ServerLevel level) {
              this.checkBelowWorld();
--            if (this.checkInterval++ == 100) {
+-            if (this.ticksSinceLastCheck++ >= 100) {
+-                this.ticksSinceLastCheck = 0;
+-                this.tickAtCheckInterval();
 +            if (this.checkInterval++ == this.level().spigotConfig.hangingTickFrequency) { // Spigot
-                 this.checkInterval = 0;
++                this.checkInterval = 0;
                  if (!this.isRemoved() && !this.survives()) {
 -                    this.discard();
 +                    // CraftBukkit start - fire break events
@@ -53,10 +58,11 @@
                      this.dropItem(level, null);
                  }
              }
-@@ -81,6 +_,22 @@
+@@ -102,7 +_,23 @@
          }
  
          if (!this.isRemoved()) {
+-            this.kill(level, source.getEntity());
 +            // CraftBukkit start - fire break events
 +            Entity damager = source.getDirectEntity();
 +            final org.bukkit.event.hanging.HangingBreakEvent event;
@@ -73,10 +79,11 @@
 +            }
 +            // CraftBukkit end
 +
-             this.kill(level);
++            this.kill(level);
              this.markHurt();
              this.dropItem(level, source.getEntity());
-@@ -102,14 +_,24 @@
+         }
+@@ -123,14 +_,24 @@
      @Override
      public void move(MoverType moverType, Vec3 delta) {
          if (this.level() instanceof ServerLevel level && !this.isRemoved() && delta.lengthSqr() > 0.0) {
@@ -103,7 +110,7 @@
              this.kill(level);
              this.dropItem(level, null);
          }
-@@ -155,4 +_,13 @@
+@@ -176,4 +_,13 @@
      @Override
      public void refreshDimensions() {
      }

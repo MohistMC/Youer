@@ -10,7 +10,7 @@ import static io.papermc.paper.util.BoundChecker.requireRange;
 
 public record ActionButtonImpl(Component label, @Nullable Component tooltip, int width, @Nullable DialogAction action) implements ActionButton {
 
-    public static final class BuilderImpl implements Builder {
+    public static final class BuilderImpl implements ActionButton.Builder {
 
         private final Component label;
         private @Nullable Component tooltip;

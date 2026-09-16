@@ -8,15 +8,19 @@
  import com.mojang.datafixers.DataFixer;
  import com.mojang.logging.LogUtils;
  import it.unimi.dsi.fastutil.longs.LongSet;
-@@ -15,6 +_,7 @@
+@@ -15,9 +_,11 @@
  import java.util.concurrent.CompletableFuture;
  import java.util.concurrent.CompletionStage;
  import java.util.concurrent.Executor;
 +import java.util.concurrent.atomic.AtomicBoolean;
  import java.util.function.BooleanSupplier;
  import java.util.function.Consumer;
- import java.util.function.Supplier;
-@@ -56,7 +_,7 @@
+ import java.util.function.Predicate;
++import java.util.function.Supplier;
+ import net.minecraft.core.BlockPos;
+ import net.minecraft.core.SectionPos;
+ import net.minecraft.network.protocol.Packet;
+@@ -56,17 +_,19 @@
  
  import net.neoforged.neoforge.common.extensions.IServerChunkCacheExtension;
  
@@ -25,19 +29,21 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      private final DistanceManager distanceManager;
      public final ServerLevel level;
-@@ -65,9 +_,10 @@
+-    private final Thread mainThread;
++    public final Thread mainThread;
+     private final ThreadedLevelLightEngine lightEngine;
      public final ServerChunkCache.MainThreadExecutor mainThreadProcessor;
      public final ChunkMap chunkMap;
      private final SavedDataStorage savedDataStorage;
 -    private final TicketStorage ticketStorage;
 +    public final TicketStorage ticketStorage;
-     private long lastInhabitedUpdate;
++    private long lastInhabitedUpdate;
      public boolean spawnEnemies = true;
 +    public boolean spawnFriendlies = true; // Paper - add back spawnFriendlies field
      private static final int CACHE_SIZE = 4;
      private final long[] lastChunkPos = new long[4];
      private final @Nullable ChunkStatus[] lastChunkStatus = new ChunkStatus[4];
-@@ -76,7 +_,115 @@
+@@ -75,7 +_,115 @@
      private final Set<ChunkHolder> chunkHoldersToBroadcast = new ReferenceOpenHashSet<>();
      @VisibleForDebug
      private NaturalSpawner.@Nullable SpawnState lastSpawnState;
@@ -154,15 +160,18 @@
      public ServerChunkCache(
          ServerLevel level,
          LevelStorageSource.LevelStorageAccess levelStorage,
-@@ -89,6 +_,7 @@
+@@ -86,7 +_,9 @@
+         int viewDistance,
+         int simulationDistance,
          boolean syncWrites,
-         ChunkStatusUpdateListener chunkStatusListener,
-         Supplier<SavedDataStorage> overworldDataStorage
+-        ChunkStatusUpdateListener chunkStatusListener
++        ChunkStatusUpdateListener chunkStatusListener,
++        Supplier<SavedDataStorage> overworldDataStorage
 +        , final SavedDataStorage savedDataStorage // Paper - initialize SavedDataStorage earlier
      ) {
          this.level = level;
          this.mainThreadProcessor = new ServerChunkCache.MainThreadExecutor(level);
-@@ -101,7 +_,9 @@
+@@ -99,7 +_,9 @@
              LOGGER.error("Failed to create dimension data storage directory", e);
          }
  
@@ -173,7 +182,15 @@
          this.ticketStorage = this.savedDataStorage.computeIfAbsent(TicketStorage.TYPE);
          this.chunkMap = new ChunkMap(
              level,
-@@ -124,6 +_,57 @@
+@@ -111,6 +_,7 @@
+             this,
+             generator,
+             chunkStatusListener,
++            overworldDataStorage,
+             this.ticketStorage,
+             viewDistance,
+             syncWrites
+@@ -121,6 +_,57 @@
          this.clearCache();
      }
  
@@ -231,7 +248,7 @@
      public ThreadedLevelLightEngine getLightEngine() {
          return this.lightEngine;
      }
-@@ -146,65 +_,41 @@
+@@ -143,65 +_,41 @@
  
      @Override
      public @Nullable ChunkAccess getChunk(int x, int z, ChunkStatus targetStatus, boolean loadOrGenerate) {
@@ -327,7 +344,7 @@
      }
  
      private void clearCache() {
-@@ -230,45 +_,62 @@
+@@ -227,45 +_,62 @@
      }
  
      private CompletableFuture<ChunkResult<ChunkAccess>> getChunkFutureMainThread(int x, int z, ChunkStatus targetStatus, boolean loadOrGenerate) {
@@ -416,7 +433,7 @@
      }
  
      public Level getLevel() {
-@@ -280,50 +_,61 @@
+@@ -277,50 +_,61 @@
      }
  
      public boolean runDistanceManagerUpdates() {
@@ -499,56 +516,22 @@
              this.tickChunks();
              this.chunkMap.tick();
          }
-@@ -341,7 +_,7 @@
+@@ -332,10 +_,13 @@
+     }
+ 
+     private void tickChunks() {
++        long time = this.level.getGameTime();
++        long timeDiff = time - this.lastInhabitedUpdate;
++        this.lastInhabitedUpdate = time;
          if (!this.level.isDebug()) {
              ProfilerFiller profiler = Profiler.get();
              profiler.push("pollingChunks");
 -            if (this.level.tickRateManager().runsNormally()) {
 +            if (this.level.tickRateManager().runsNormally() && this.level.paperConfig().unsupportedSettings.ticking.chunks) { // Paper - option to disable ticking
                  profiler.push("tickingChunks");
-                 this.tickChunks(profiler, timeDiff);
+                 this.tickChunks(profiler);
                  profiler.pop();
-@@ -350,13 +_,47 @@
-             this.broadcastChangedChunks(profiler);
-             profiler.pop();
-         }
-+        // Pufferfish start - Optimize mob spawning
-+        if (true) {
-+            for (ServerPlayer player : this.level.players()) {
-+                // Paper start - per player mob spawning backoff
-+                for (int j = 0; j < ServerPlayer.MOBCATEGORY_TOTAL_ENUMS; j++) {
-+                    player.mobCounts[j] = 0;
-+
-+                    int newBackoff = player.mobBackoffCounts[j] - 1; // TODO make configurable bleed // TODO use nonlinear algorithm?
-+                    if (newBackoff < 0) {
-+                        newBackoff = 0;
-+                    }
-+                    player.mobBackoffCounts[j] = newBackoff;
-+                }
-+                // Paper end - per player mob spawning backoff
-+            }
-+            if (this.pufferfish$firstRunSpawnCounts) {
-+                this.pufferfish$firstRunSpawnCounts = false;
-+                this.pufferfish$spawnCountsReady.set(true);
-+            }
-+            if (this.pufferfish$spawnCountsReady.getAndSet(false)) {
-+                net.minecraft.server.MinecraftServer.getServer().pufferfish$mobSpawnExecutor.submit(() -> {
-+                    int mapped = this.distanceManager.getNaturalSpawnChunkCount();
-+                    ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet.Iterator<Entity> objectiterator =
-+                            this.level.entityTickList.entities.iterator(ca.spottedleaf.moonrise.common.list.IteratorSafeOrderedReferenceSet.ITERATOR_FLAG_SEE_ADDITIONS);
-+                    try {
-+                        IterableWrapper<Entity> wrappedIterator = new IterableWrapper<>(objectiterator);
-+                        this.lastSpawnState = NaturalSpawner.createState(mapped, wrappedIterator, this::getFullChunk, null, true);
-+                    } finally {
-+                        objectiterator.finishedIterating();
-+                    }
-+                    this.pufferfish$spawnCountsReady.set(true);
-+                });
-+            }
-+        } // Pufferfish end - Optimize mob spawning
-     }
- 
-     private void broadcastChangedChunks(ProfilerFiller profiler) {
+@@ -350,7 +_,7 @@
          profiler.push("broadcast");
  
          for (ChunkHolder chunkHolder : this.chunkHoldersToBroadcast) {
@@ -557,25 +540,11 @@
              if (chunk != null) {
                  chunkHolder.broadcastChanges(chunk);
              }
-@@ -369,16 +_,30 @@
-     private void tickChunks(ProfilerFiller profiler, long timeDiff) {
-         profiler.push("naturalSpawnCount");
+@@ -365,12 +_,20 @@
          int chunkCount = this.distanceManager.getNaturalSpawnChunkCount();
--        NaturalSpawner.SpawnState spawnCookie = NaturalSpawner.createState(
--            chunkCount, this.level.getAllEntities(), this::getFullChunk, new LocalMobCapCalculator(this.chunkMap)
--        );
--        this.lastSpawnState = spawnCookie;
+         NaturalSpawner.SpawnState spawnCookie = NaturalSpawner.createState(chunkCount, this.level, this::getFullChunk, new LocalMobCapCalculator(this.chunkMap));
+         this.lastSpawnState = spawnCookie;
 -        boolean doMobSpawning = this.level.getGameRules().get(GameRules.SPAWN_MOBS);
-+        // Paper start - Optional per player mob spawns
-+        NaturalSpawner.SpawnState spawnCookie;
-+        if ((!this.spawnFriendlies && !this.spawnEnemies) || !this.level.paperConfig().entities.spawning.perPlayerMobSpawns) {
-+            // Pufferfish start - async mob spawning
-+            this.lastSpawnState = NaturalSpawner.createState(chunkCount, this.level.getAllEntities(), this::getFullChunk, !this.level.paperConfig().entities.spawning.perPlayerMobSpawns ? new LocalMobCapCalculator(this.chunkMap) : null, false);
-+            this.pufferfish$spawnCountsReady.set(true);
-+            // Pufferfish end - async mob spawning
-+        }
-+        // Paper end - Optional per player mob spawns
-+        // this.lastSpawnState = spawnCookie; // Pufferfish - this is managed asynchronously
 +        boolean doMobSpawning = this.level.getGameRules().get(GameRules.SPAWN_MOBS) && !this.level.players().isEmpty(); // CraftBukkit
          int tickSpeed = this.level.getGameRules().get(GameRules.RANDOM_TICK_SPEED);
          List<MobCategory> spawningCategories;
@@ -592,11 +561,11 @@
 +            }
 +            // Paper end - PlayerNaturallySpawnCreaturesEvent
 +            boolean spawnPersistent = this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) != 0L && this.level.getGameTime() % this.level.ticksPerSpawnCategory.getLong(org.bukkit.entity.SpawnCategory.ANIMAL) == 0L; // CraftBukkit
-+            spawningCategories = NaturalSpawner.getFilteredSpawningCategories(this.lastSpawnState, this.spawnFriendlies, this.spawnEnemies, spawnPersistent, this.level); // CraftBukkit  // Pufferfish - Async mob spawning
++            spawningCategories = NaturalSpawner.getFilteredSpawningCategories(spawnCookie, this.spawnFriendlies, this.spawnEnemies, spawnPersistent, this.level); // CraftBukkit
          } else {
              spawningCategories = List.of();
          }
-@@ -389,18 +_,21 @@
+@@ -381,7 +_,10 @@
              profiler.popPush("filteringSpawningChunks");
              this.chunkMap.collectSpawningChunks(spawningChunks);
              profiler.popPush("shuffleSpawningChunks");
@@ -608,11 +577,7 @@
              profiler.popPush("tickSpawningChunks");
  
              for (LevelChunk chunk : spawningChunks) {
--                this.tickSpawningChunk(chunk, timeDiff, spawningCategories, spawnCookie);
-+                this.tickSpawningChunk(chunk, timeDiff, spawningCategories, this.lastSpawnState); // Pufferfish - Async mob spawning
-             }
-         } finally {
-             spawningChunks.clear();
+@@ -392,7 +_,7 @@
          }
  
          profiler.popPush("tickTickingChunks");
@@ -621,10 +586,10 @@
          if (doMobSpawning) {
              profiler.popPush("customSpawners");
              this.level.tickCustomSpawners(this.spawnEnemies);
-@@ -412,22 +_,25 @@
-     private void tickSpawningChunk(LevelChunk chunk, long timeDiff, List<MobCategory> spawningCategories, NaturalSpawner.SpawnState spawnCookie) {
+@@ -404,22 +_,25 @@
+     private void tickSpawningChunk(LevelChunk chunk, List<MobCategory> spawningCategories, NaturalSpawner.SpawnState spawnCookie) {
          ChunkPos chunkPos = chunk.getPos();
-         chunk.incrementInhabitedTime(timeDiff);
+         chunk.incrementInhabitedTime();
 -        if (this.distanceManager.inEntityTickingRange(chunkPos.pack())) {
 +        if (true) { // Paper - rewrite chunk system
              this.level.tickThunder(chunk);
@@ -652,7 +617,7 @@
      }
  
      @Override
-@@ -485,19 +_,11 @@
+@@ -477,19 +_,11 @@
      }
  
      public CompletableFuture<?> addTicketAndLoadWithRadius(TicketType type, ChunkPos pos, int radius) {
@@ -677,7 +642,18 @@
      }
  
      public void addTicketWithRadius(TicketType type, ChunkPos pos, int radius) {
-@@ -551,13 +_,25 @@
+@@ -539,7 +_,9 @@
+         this.chunkMap.sendToTrackingPlayers(entity, packet);
+     }
+ 
+-    public void sendToTrackingPlayersFiltered(Entity entity, Packet<? super ClientGamePacketListener> packet, Predicate<ServerPlayer> targetPredicate) {
++    public void sendToTrackingPlayersFiltered(
++            final Entity entity, final Packet<? super ClientGamePacketListener> packet, final Predicate<ServerPlayer> targetPredicate
++    ) {
+         this.chunkMap.sendToTrackingPlayersFiltered(entity, packet, targetPredicate);
+     }
+ 
+@@ -547,13 +_,25 @@
          this.chunkMap.setServerViewDistance(newDistance);
      }
  
@@ -703,7 +679,7 @@
      }
  
      public String getChunkDebugData(ChunkPos pos) {
-@@ -623,13 +_,13 @@
+@@ -619,13 +_,13 @@
          }
  
          @Override

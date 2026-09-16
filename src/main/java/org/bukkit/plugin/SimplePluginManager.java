@@ -61,7 +61,6 @@ public final class SimplePluginManager implements PluginManager {
     public final Map<Boolean, Map<Permissible, Boolean>> defSubs = new HashMap<Boolean, Map<Permissible, Boolean>>();
     public PluginManager paperPluginManager;
     // Paper end
-    private boolean useTimings = false;
 
     public SimplePluginManager(@NotNull Server instance, @NotNull SimpleCommandMap commandMap) {
         server = instance;

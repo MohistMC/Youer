@@ -18,7 +18,7 @@ public record DialogListTypeImpl(
     int buttonWidth
 ) implements DialogListType {
 
-    public static final class BuilderImpl implements Builder {
+    public static final class BuilderImpl implements DialogListType.Builder {
 
         private final RegistrySet<Dialog> dialogs;
         private @Nullable ActionButton exitAction;
@@ -30,19 +30,19 @@ public record DialogListTypeImpl(
         }
 
         @Override
-        public Builder exitAction(final @Nullable ActionButton exitAction) {
+        public DialogListType.Builder exitAction(final @Nullable ActionButton exitAction) {
             this.exitAction = exitAction;
             return this;
         }
 
         @Override
-        public Builder columns(final @Positive int columns) {
+        public DialogListType.Builder columns(final @Positive int columns) {
             this.columns = requirePositive(columns, "columns");
             return this;
         }
 
         @Override
-        public Builder buttonWidth(final @Range(from = 1, to = 1024) int buttonWidth) {
+        public DialogListType.Builder buttonWidth(final @Range(from = 1, to = 1024) int buttonWidth) {
             this.buttonWidth = requireRange(buttonWidth, "buttonWidth", 1, 1024);
             return this;
         }

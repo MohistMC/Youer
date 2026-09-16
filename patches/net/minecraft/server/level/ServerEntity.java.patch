@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/ServerEntity.java
 +++ b/net/minecraft/server/level/ServerEntity.java
-@@ -65,12 +_,14 @@
+@@ -72,12 +_,14 @@
      private Vec3 lastSentMovement;
      private int tickCount;
      private int teleportDelay;
@@ -11,13 +11,13 @@
      private @Nullable List<SynchedEntityData.DataValue<?>> trackedDataValues;
 +    private final Set<net.minecraft.server.network.ServerPlayerConnection> trackedPlayers; // Paper
  
--    public ServerEntity(ServerLevel level, Entity entity, int updateInterval, boolean trackDelta, ServerEntity.Synchronizer synchronizer) {
-+    public ServerEntity(ServerLevel level, Entity entity, int updateInterval, boolean trackDelta, ServerEntity.Synchronizer synchronizer, Set<net.minecraft.server.network.ServerPlayerConnection> trackedPlayers) {
+-    public ServerEntity(ServerLevel level, Entity entity, UpdateInterval updateInterval, boolean trackDelta, ServerEntity.Synchronizer synchronizer) {
++    public ServerEntity(ServerLevel level, Entity entity, UpdateInterval updateInterval, boolean trackDelta, ServerEntity.Synchronizer synchronizer, Set<net.minecraft.server.network.ServerPlayerConnection> trackedPlayers) {
 +        this.trackedPlayers = trackedPlayers; // Paper
          this.level = level;
          this.synchronizer = synchronizer;
          this.entity = entity;
-@@ -85,24 +_,42 @@
+@@ -93,7 +_,19 @@
          this.trackedDataValues = entity.getEntityData().getNonDefaultValues();
      }
  
@@ -37,86 +37,19 @@
          this.entity.updateDataBeforeSync();
          List<Entity> passengers = this.entity.getPassengers();
          if (!passengers.equals(this.lastPassengers)) {
-             this.synchronizer
-                 .sendToTrackingPlayersFiltered(
-                     new ClientboundSetPassengersPacket(this.entity), player -> passengers.contains(player) == this.lastPassengers.contains(player)
--                );
-+            );
-+            // Paper start - Allow riding players
-+            if (this.entity instanceof ServerPlayer player) {
-+                player.connection.send(new ClientboundSetPassengersPacket(this.entity));
-+            }
-+            // Paper end - Allow riding players
-             this.lastPassengers = passengers;
-         }
+@@ -103,9 +_,9 @@
  
--        if (this.entity instanceof ItemFrame frame && this.tickCount % 10 == 0) {
-+        if (!this.trackedPlayers.isEmpty() && this.entity instanceof ItemFrame frame /*&& this.tickCount % 10 == 0*/) { // CraftBukkit - moved tickCount below // Paper - Perf: Only tick item frames if players can see it
+         if (this.entity instanceof ItemFrame frame && this.tickCount % 10 == 0) {
              ItemStack itemStack = frame.getItem();
 -            if (itemStack.getItem() instanceof MapItem) {
-+            if (this.level.paperConfig().maps.itemFrameCursorUpdateInterval > 0 && this.tickCount % this.level.paperConfig().maps.itemFrameCursorUpdateInterval == 0 && itemStack.getItem() instanceof MapItem) { // CraftBukkit - Moved this.tickCounter % 10 logic here so item frames do not enter the other blocks // Paper - Make item frame map cursor update interval configurable
++            if (true) {
                  MapId id = itemStack.get(DataComponents.MAP_ID);
 -                MapItemSavedData data = MapItem.getSavedData(id, this.level);
 +                MapItemSavedData data = MapItem.getSavedData(itemStack, this.level);
                  if (data != null) {
--                    for (ServerPlayer player : this.level.players()) {
-+                    for (net.minecraft.server.network.ServerPlayerConnection connection : this.trackedPlayers) { // CraftBukkit
-+                        ServerPlayer player = connection.getPlayer(); // CraftBukkit
+                     for (ServerPlayer player : this.level.players()) {
                          data.tickCarriedBy(player, itemStack, frame);
-                         Packet<?> packet = data.getUpdatePacket(id, player);
-                         if (packet != null) {
-@@ -120,7 +_,7 @@
-             this.entity.syncPosition = false;
-         }
- 
--        if (this.tickCount % this.updateInterval == 0 || this.entity.needsSync || this.entity.getEntityData().isDirty()) {
-+        if (this.forceStateResync || this.tickCount % this.updateInterval == 0 || this.entity.needsSync || this.entity.getEntityData().isDirty()) { // Paper - fix desync when a player is added to the tracker
-             byte yRotn = Mth.packDegrees(this.entity.getYRot());
-             byte xRotn = Mth.packDegrees(this.entity.getXRot());
-             boolean shouldSendRotation = Math.abs(yRotn - this.lastSentYRot) >= 1 || Math.abs(xRotn - this.lastSentXRot) >= 1;
-@@ -139,7 +_,13 @@
-             } else {
-                 this.teleportDelay++;
-                 Vec3 currentPosition = this.entity.trackingPosition();
--                boolean positionChanged = this.positionCodec.delta(currentPosition).lengthSqr() >= 7.6293945E-6F;
-+                // Paper start - reduce allocation of Vec3D here
-+                Vec3 base = this.positionCodec.base;
-+                double vec3_dx = currentPosition.x - base.x;
-+                double vec3_dy = currentPosition.y - base.y;
-+                double vec3_dz = currentPosition.z - base.z;
-+                boolean positionChanged = (vec3_dx * vec3_dx + vec3_dy * vec3_dy + vec3_dz * vec3_dz) >= 7.62939453125E-6D;
-+                // Paper end - reduce allocation of Vec3D here
-                 Packet<ClientGamePacketListener> packet = null;
-                 boolean pos = positionChanged || this.tickCount % 60 == 0;
-                 boolean sentPosition = false;
-@@ -148,7 +_,7 @@
-                 long ya = this.positionCodec.encodeY(currentPosition);
-                 long za = this.positionCodec.encodeZ(currentPosition);
-                 boolean deltaTooBig = xa < -32768L || xa > 32767L || ya < -32768L || ya > 32767L || za < -32768L || za > 32767L;
--                if (this.entity.getRequiresPrecisePosition()
-+                if (this.forceStateResync || this.entity.getRequiresPrecisePosition() // Paper - fix desync when a player is added to the tracker
-                     || deltaTooBig
-                     || this.teleportDelay > 400
-                     || this.wasRiding
-@@ -174,7 +_,8 @@
- 
-                 if (this.entity.needsSync || this.trackDelta || this.entity instanceof LivingEntity livingEntity && livingEntity.isFallFlying()) {
-                     Vec3 movement = this.entity.getDeltaMovement();
--                    double diff = movement.distanceToSqr(this.lastSentMovement);
-+                    if (movement != this.lastSentMovement) { // SparklyPaper start - skip distanceToSqr call in ServerEntity#sendChanges if the delta movement hasn't changed
-+                        double diff = movement.distanceToSqr(this.lastSentMovement);
-                     if (diff > 1.0E-7 || diff > 0.0 && movement.lengthSqr() == 0.0) {
-                         this.lastSentMovement = movement;
-                         if (this.entity instanceof AbstractHurtingProjectile projectile) {
-@@ -191,6 +_,7 @@
-                             this.synchronizer.sendToTrackingPlayers(new ClientboundSetEntityMotionPacket(this.entity.getId(), this.lastSentMovement));
-                         }
-                     }
-+                    } // SparklyPaper end
-                 }
- 
-                 if (packet != null) {
-@@ -217,10 +_,30 @@
+@@ -203,10 +_,30 @@
              }
  
              this.entity.needsSync = false;
@@ -124,7 +57,7 @@
          }
  
          this.tickCount++;
-         if (this.entity.hurtMarked) {
+         if (this.entity.syncVelocity) {
 +            // CraftBukkit start - Create PlayerVelocity event
 +            boolean cancelled = false;
 +
@@ -144,10 +77,10 @@
 +                return;
 +            }
 +            // CraftBukkit end
-             this.entity.hurtMarked = false;
+             this.entity.syncVelocity = false;
              this.synchronizer.sendToTrackingPlayersAndSelf(new ClientboundSetEntityMotionPacket(this.entity));
          }
-@@ -260,6 +_,7 @@
+@@ -291,6 +_,7 @@
      public void removePairing(ServerPlayer player) {
          this.entity.stopSeenByPlayer(player);
          player.connection.send(new ClientboundRemoveEntitiesPacket(this.entity.getId()));
@@ -155,7 +88,7 @@
      }
  
      public void addPairing(ServerPlayer player) {
-@@ -267,22 +_,32 @@
+@@ -298,22 +_,32 @@
          this.sendPairingData(player, packets::add);
          player.connection.send(new ClientboundBundlePacket(packets));
          this.entity.startSeenByPlayer(player);
@@ -190,7 +123,7 @@
              if (!attributes.isEmpty()) {
                  broadcast.accept(new ClientboundUpdateAttributesPacket(this.entity.getId(), attributes));
              }
-@@ -299,8 +_,9 @@
+@@ -330,8 +_,9 @@
              }
  
              if (!slots.isEmpty()) {
@@ -201,7 +134,7 @@
          }
  
          if (!this.entity.getPassengers().isEmpty()) {
-@@ -314,6 +_,8 @@
+@@ -345,6 +_,8 @@
          if (this.entity instanceof Leashable leashable && leashable.isLeashed()) {
              broadcast.accept(new ClientboundSetEntityLinkPacket(this.entity, leashable.getLeashHolder()));
          }
@@ -210,7 +143,7 @@
      }
  
      public Vec3 getPositionBase() {
-@@ -347,6 +_,11 @@
+@@ -378,6 +_,11 @@
          if (this.entity instanceof LivingEntity livingEntity) {
              Set<AttributeInstance> attributes = livingEntity.getAttributes().getAttributesToSync();
              if (!attributes.isEmpty()) {

@@ -26,7 +26,31 @@
  
      public BeehiveBlockEntity(BlockPos worldPosition, BlockState blockState) {
          super(BlockEntityTypes.BEEHIVE, worldPosition, blockState);
-@@ -119,16 +_,17 @@
+@@ -101,12 +_,17 @@
+     }
+ 
+     public boolean isFireNearby() {
+-        return this.level == null
+-            ? false
+-            : this.level
+-                .findBlocksIn(this.worldPosition.offset(-1, -1, -1), this.worldPosition.offset(1, 1, 1))
+-                .filterState(state -> state.getBlock() instanceof FireBlock)
+-                .anyMatched();
++        if (this.level == null) {
++            return false;
++        }
++
++        for (BlockPos pos : BlockPos.betweenClosed(this.worldPosition.offset(-1, -1, -1), this.worldPosition.offset(1, 1, 1))) {
++            if (this.level.getBlockState(pos).getBlock() instanceof FireBlock) {
++                return true;
++            }
++        }
++
++        return false;
+     }
+ 
+     public boolean isEmpty() {
+@@ -114,16 +_,17 @@
      }
  
      public boolean isFull() {
@@ -46,7 +70,7 @@
                      } else {
                          bee.setStayOutOfHiveCountdown(400);
                      }
-@@ -138,23 +_,57 @@
+@@ -133,23 +_,57 @@
      }
  
      private List<Entity> releaseAllOccupants(BlockState state, BeehiveBlockEntity.BeeReleaseStatus releaseStatus) {
@@ -115,7 +139,7 @@
      public static int getHoneyLevel(BlockState blockState) {
          return blockState.getValue(BeehiveBlock.HONEY_LEVEL);
      }
-@@ -165,7 +_,17 @@
+@@ -160,7 +_,17 @@
      }
  
      public void addOccupant(Bee bee) {
@@ -134,7 +158,7 @@
              bee.stopRiding();
              bee.ejectPassengers();
              bee.dropLeash();
-@@ -176,11 +_,21 @@
+@@ -171,11 +_,21 @@
                  }
  
                  BlockPos blockPos = this.getBlockPos();
@@ -158,7 +182,7 @@
              super.setChanged();
          }
      }
-@@ -189,6 +_,12 @@
+@@ -184,6 +_,12 @@
          this.stored.add(new BeehiveBlockEntity.BeeData(occupant));
      }
  
@@ -171,7 +195,7 @@
      private static boolean releaseOccupant(
          Level level,
          BlockPos blockPos,
-@@ -196,10 +_,11 @@
+@@ -191,10 +_,11 @@
          BeehiveBlockEntity.Occupant beeData,
          @Nullable List<Entity> spawned,
          BeehiveBlockEntity.BeeReleaseStatus releaseStatus,
@@ -186,7 +210,7 @@
              return false;
          }
  
-@@ -212,6 +_,18 @@
+@@ -207,6 +_,18 @@
  
          Entity entity = beeData.createEntity(level, blockPos);
          if (entity != null) {
@@ -205,7 +229,7 @@
              if (entity instanceof Bee bee) {
                  RandomSource random = level.getRandom();
                  if (savedFlowerPos != null && !bee.hasSavedFlowerPos() && random.nextFloat() < 0.9F) {
-@@ -228,7 +_,13 @@
+@@ -223,7 +_,13 @@
                                  levelIncrease--;
                              }
  
@@ -220,7 +244,7 @@
                          }
                      }
                  }
-@@ -237,17 +_,19 @@
+@@ -232,17 +_,19 @@
                      spawned.add(bee);
                  }
  
@@ -241,7 +265,7 @@
          } else {
              return false;
          }
-@@ -271,6 +_,11 @@
+@@ -266,6 +_,11 @@
                      changed = true;
                      iterator.remove();
                  }
@@ -253,7 +277,7 @@
              }
          }
  
-@@ -292,9 +_,10 @@
+@@ -287,9 +_,10 @@
      @Override
      protected void loadAdditional(ValueInput input) {
          super.loadAdditional(input);
@@ -265,7 +289,7 @@
      }
  
      @Override
-@@ -302,12 +_,13 @@
+@@ -297,12 +_,13 @@
          super.saveAdditional(output);
          output.store("bees", BeehiveBlockEntity.Occupant.LIST_CODEC, this.getBees());
          output.storeNullable("flower_pos", BlockPos.CODEC, this.savedFlowerPos);
@@ -280,7 +304,7 @@
          List<BeehiveBlockEntity.Occupant> bees = components.getOrDefault(DataComponents.BEES, Bees.EMPTY).bees();
          bees.forEach(this::storeBee);
      }
-@@ -333,17 +_,20 @@
+@@ -328,17 +_,20 @@
          registration.register(DebugSubscriptions.BEE_HIVES, () -> DebugHiveInfo.pack(this));
      }
  

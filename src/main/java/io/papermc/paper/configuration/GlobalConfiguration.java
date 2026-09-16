@@ -97,6 +97,13 @@ public class GlobalConfiguration extends ConfigurationPart {
         public boolean useDisplayNameInQuitMessage = false;
     }
 
+    public Spark spark;
+
+    public class Spark extends ConfigurationPart {
+        public boolean enabled = true;
+        public boolean enableImmediately = false;
+    }
+
     public Proxies proxies;
 
     public class Proxies extends ConfigurationPart {

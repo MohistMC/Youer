@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/goat/Goat.java
 +++ b/net/minecraft/world/entity/animal/goat/Goat.java
-@@ -52,6 +_,9 @@
+@@ -53,6 +_,9 @@
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.Vec3;
@@ -10,7 +10,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class Goat extends Animal {
-@@ -87,6 +_,20 @@
+@@ -88,6 +_,20 @@
      private boolean isLoweringHead;
      private int lowerHeadTick;
  
@@ -31,7 +31,7 @@
      public Goat(EntityType<? extends Goat> type, Level level) {
          super(type, level);
          this.getNavigation().setCanFloat(true);
-@@ -94,6 +_,13 @@
+@@ -95,6 +_,13 @@
          this.setPathfindingMalus(PathType.ON_TOP_OF_POWDER_SNOW, -1.0F);
      }
  
@@ -45,7 +45,7 @@
      public ItemStack createHorn() {
          RandomSource random = RandomSource.createThreadLocalInstance(this.getUUID().hashCode());
          TagKey<Instrument> key = this.isScreamingGoat() ? InstrumentTags.SCREAMING_GOAT_HORNS : InstrumentTags.REGULAR_GOAT_HORNS;
-@@ -217,18 +_,25 @@
+@@ -218,8 +_,15 @@
      public InteractionResult mobInteract(Player player, InteractionHand hand) {
          ItemStack heldItem = player.getItemInHand(hand);
          if (heldItem.is(Items.BUCKET) && !this.isBaby()) {
@@ -61,26 +61,8 @@
 +            ItemStack bucketOrMilkBucket = ItemUtils.createFilledResult(heldItem, player, CraftItemStack.asNMSCopy(event.getItemStack())); // CraftBukkit
              player.setItemInHand(hand, bucketOrMilkBucket);
              return InteractionResult.SUCCESS;
--        }
--
--        InteractionResult interactionResult = super.mobInteract(player, hand);
--        if (interactionResult.consumesAction() && this.isFood(heldItem)) {
--            this.playEatingSound();
--        }
--
--        return interactionResult;
-+        } else {
-+            InteractionResult interactionResult = super.mobInteract(player, hand);
-+            if (interactionResult.consumesAction() && this.isFood(heldItem)) {
-+                this.playEatingSound();
-+            }
-+
-+            return interactionResult;
-+        }
-     }
- 
-     @Override
-@@ -357,4 +_,16 @@
+         }
+@@ -358,4 +_,16 @@
      ) {
          return level.getBlockState(pos.below()).is(BlockTags.GOATS_SPAWNABLE_ON) && isBrightEnoughToSpawn(level, pos);
      }

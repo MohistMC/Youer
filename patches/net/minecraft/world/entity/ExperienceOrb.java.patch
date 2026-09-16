@@ -1,14 +1,5 @@
 --- a/net/minecraft/world/entity/ExperienceOrb.java
 +++ b/net/minecraft/world/entity/ExperienceOrb.java
-@@ -2,6 +_,8 @@
- 
- import java.util.List;
- import java.util.Optional;
-+import java.util.concurrent.atomic.AtomicBoolean;
-+import java.util.concurrent.atomic.AtomicInteger;
- import net.minecraft.core.BlockPos;
- import net.minecraft.network.syncher.EntityDataAccessor;
- import net.minecraft.network.syncher.EntityDataSerializers;
 @@ -25,6 +_,15 @@
  import net.minecraft.world.phys.Vec3;
  import net.minecraft.world.phys.shapes.Shapes;
@@ -25,10 +16,10 @@
  import org.jspecify.annotations.Nullable;
  
  public class ExperienceOrb extends Entity {
-@@ -43,13 +_,58 @@
+@@ -42,13 +_,58 @@
+     private int health = 5;
      public int count = 1;
      private @Nullable Player followingPlayer;
-     private final InterpolationHandler interpolation = new InterpolationHandler(this);
 -
 -    public ExperienceOrb(Level level, double x, double y, double z, int value) {
 -        this(level, new Vec3(x, y, z), Vec3.ZERO, value);
@@ -90,7 +81,7 @@
          this.setPos(pos);
          if (!level.isClientSide()) {
              this.setYRot(this.random.nextFloat() * 360.0F);
-@@ -106,7 +_,7 @@
+@@ -104,7 +_,7 @@
          } else {
              super.tick();
              boolean colliding = !this.level().noCollision(this.getBoundingBox());
@@ -99,7 +90,7 @@
                  this.setUnderwaterMovement();
              } else if (!colliding) {
                  this.applyGravity();
-@@ -136,7 +_,8 @@
+@@ -134,7 +_,8 @@
              this.applyEffectsFromBlocks();
              float friction = this.getAirDrag();
              if (this.onGround()) {
@@ -109,7 +100,7 @@
              }
  
              this.setDeltaMovement(this.getDeltaMovement().scale(friction));
-@@ -146,7 +_,7 @@
+@@ -144,7 +_,7 @@
  
              this.age++;
              if (this.age >= 6000) {
@@ -118,7 +109,7 @@
              }
          }
      }
-@@ -157,8 +_,9 @@
+@@ -155,8 +_,9 @@
      }
  
      private void followNearbyPlayer() {
@@ -129,7 +120,7 @@
              if (nearestPlayer != null && !nearestPlayer.isSpectator() && !nearestPlayer.isDeadOrDying()) {
                  this.followingPlayer = nearestPlayer;
              } else {
-@@ -166,7 +_,22 @@
+@@ -164,7 +_,22 @@
              }
          }
  
@@ -153,18 +144,7 @@
              Vec3 delta = new Vec3(
                  this.followingPlayer.getX() - this.getX(),
                  this.followingPlayer.getY() + this.followingPlayer.getEyeHeight() / 2.0 - this.getY(),
-@@ -191,16 +_,27 @@
-         }
-     }
- 
-+    public static AtomicBoolean fake_award = new AtomicBoolean(false);
-+    public static AtomicInteger fake_award_amount = new AtomicInteger(0);
-     public static void award(ServerLevel level, Vec3 pos, int amount) {
-+        if (fake_award.getAndSet(false)) {
-+            fake_award_amount.set(amount);
-+            return;
-+        }
-         awardWithDirection(level, pos, Vec3.ZERO, amount);
+@@ -194,11 +_,16 @@
      }
  
      public static void awardWithDirection(ServerLevel level, Vec3 pos, Vec3 roughDirection, int amount) {
@@ -182,7 +162,7 @@
              }
          }
      }
-@@ -230,7 +_,7 @@
+@@ -228,7 +_,7 @@
      private void merge(ExperienceOrb orb) {
          this.count = this.count + orb.count;
          this.age = Math.min(this.age, orb.age);
@@ -191,7 +171,7 @@
      }
  
      private void setUnderwaterMovement() {
-@@ -256,7 +_,7 @@
+@@ -254,7 +_,7 @@
          this.markHurt();
          this.health = (int)(this.health - damage);
          if (this.health <= 0) {
@@ -200,7 +180,7 @@
          }
  
          return true;
-@@ -282,31 +_,44 @@
+@@ -280,31 +_,44 @@
      public void playerTouch(Player player) {
          if (player instanceof ServerPlayer serverPlayer) {
              if (player.takeXpDelay == 0) {
@@ -250,7 +230,7 @@
                      return this.repairPlayerItems(player, remaining);
                  }
              }
-@@ -351,6 +_,24 @@
+@@ -349,6 +_,24 @@
      }
  
      public static int getExperienceValue(int maxValue) {

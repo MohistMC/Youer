@@ -1,6 +1,14 @@
 --- a/net/minecraft/resources/RegistryOps.java
 +++ b/net/minecraft/resources/RegistryOps.java
-@@ -35,6 +_,11 @@
+@@ -11,6 +_,7 @@
+ import net.minecraft.core.Holder;
+ import net.minecraft.core.HolderGetter;
+ import net.minecraft.core.HolderLookup;
++import net.minecraft.core.HolderOwner;
+ import net.minecraft.core.Registry;
+ import net.minecraft.util.ExtraCodecs;
+ 
+@@ -34,6 +_,11 @@
          this.lookupProvider = lookupProvider;
      }
  
@@ -12,8 +20,8 @@
      public <U> RegistryOps<U> withParent(DynamicOps<U> parent) {
          return (RegistryOps<U>)(parent == this.delegate ? this : new RegistryOps<>(parent, this.lookupProvider));
      }
-@@ -76,6 +_,20 @@
-             .forGetter(e -> null);
+@@ -71,6 +_,20 @@
+             .forGetter(var0 -> null);
      }
  
 +    public static <E> com.mojang.serialization.MapCodec<HolderLookup.RegistryLookup<E>> retrieveRegistryLookup(ResourceKey<? extends Registry<? extends E>> resourceKey) {
@@ -22,10 +30,10 @@
 +                return DataResult.error(() -> "Not a registry ops");
 +
 +            return registryOps.lookupProvider.lookup(resourceKey).map(registryInfo -> {
-+                if (!(registryInfo.owner() instanceof HolderLookup.RegistryLookup<E> registryLookup))
++                if (!(registryInfo instanceof HolderLookup.RegistryLookup<E> registryLookup))
 +                    return DataResult.<HolderLookup.RegistryLookup<E>>error(() -> "Found holder getter but was not a registry lookup for " + resourceKey);
 +
-+                return DataResult.success(registryLookup, registryInfo.elementsLifecycle());
++                return DataResult.success(registryLookup, registryLookup.registryLifecycle());
 +            }).orElseGet(() -> DataResult.error(() -> "Unknown registry: " + resourceKey));
 +        });
 +    }
@@ -33,7 +41,7 @@
      public static <E, O> RecordCodecBuilder<O, Holder.Reference<E>> retrieveElement(ResourceKey<E> key) {
          ResourceKey<? extends Registry<E>> registryKey = ResourceKey.createRegistryKey(key.registry());
          return ExtraCodecs.retrieveContext(
-@@ -116,6 +_,13 @@
+@@ -107,9 +_,18 @@
          public int hashCode() {
              return this.lookupProvider.hashCode();
          }
@@ -46,11 +54,8 @@
 +        // Paper end - add method to get the value for pre-filling builders in the reg mod API
      }
  
-     public record RegistryInfo<T>(HolderOwner<T> owner, HolderGetter<T> getter, Lifecycle elementsLifecycle) {
-@@ -126,5 +_,7 @@
- 
      public interface RegistryInfoLookup {
-         <T> Optional<RegistryOps.RegistryInfo<T>> lookup(ResourceKey<? extends Registry<? extends T>> registryKey);
+         <T> Optional<HolderGetter<T>> lookup(ResourceKey<? extends Registry<? extends T>> registryKey);
 +
 +        HolderLookup.Provider lookupForValueCopyViaBuilders(); // Paper - add method to get the value for pre-filling builders in the reg mod API
      }

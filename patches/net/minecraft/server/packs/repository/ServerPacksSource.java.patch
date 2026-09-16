@@ -1,6 +1,14 @@
 --- a/net/minecraft/server/packs/repository/ServerPacksSource.java
 +++ b/net/minecraft/server/packs/repository/ServerPacksSource.java
-@@ -48,7 +_,7 @@
+@@ -8,6 +_,7 @@
+ import net.minecraft.resources.Identifier;
+ import net.minecraft.server.packs.FeatureFlagsMetadataSection;
+ import net.minecraft.server.packs.PackLocationInfo;
++import net.minecraft.server.packs.PackResources;
+ import net.minecraft.server.packs.PackSelectionConfig;
+ import net.minecraft.server.packs.PackType;
+ import net.minecraft.server.packs.VanillaPackResources;
+@@ -47,7 +_,7 @@
      public static VanillaPackResources createVanillaPackSource() {
          return new VanillaPackResourcesBuilder()
              .setMetadata(BUILT_IN_METADATA)
@@ -9,7 +17,7 @@
              .applyDevelopmentConfig()
              .pushJarResources()
              .build(VANILLA_PACK_INFO);
-@@ -66,15 +_,30 @@
+@@ -65,15 +_,30 @@
  
      @Override
      protected @Nullable Pack createBuiltinPack(String id, Pack.ResourcesSupplier resources, Component name) {
@@ -30,7 +38,7 @@
  
      public static PackRepository createPackRepository(Path datapackDir, DirectoryValidator validator) {
 -        return new PackRepository(new ServerPacksSource(validator), new FolderRepositorySource(datapackDir, PackType.SERVER_DATA, PackSource.WORLD, validator));
-+        final PackRepository packRepository = new PackRepository(new ServerPacksSource(validator), new FolderRepositorySource(datapackDir, PackType.SERVER_DATA, PackSource.WORLD, validator)).validate(validator);
++        final PackRepository packRepository = new PackRepository(validator, new ServerPacksSource(validator), new FolderRepositorySource(datapackDir, PackType.SERVER_DATA, PackSource.WORLD, validator));
 +        net.neoforged.neoforge.resource.ResourcePackLoader.populatePackRepository(packRepository, PackType.SERVER_DATA, false);
 +        return packRepository;
      }

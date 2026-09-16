@@ -28,7 +28,7 @@ public class PaperGameEventRegistryEntry implements GameEventRegistryEntry {
         return asConfigured(this.range, "range");
     }
 
-    public static final class PaperBuilder extends PaperGameEventRegistryEntry implements Builder,
+    public static final class PaperBuilder extends PaperGameEventRegistryEntry implements GameEventRegistryEntry.Builder,
         PaperRegistryBuilder<GameEvent, org.bukkit.GameEvent> {
 
         public PaperBuilder(
@@ -39,7 +39,7 @@ public class PaperGameEventRegistryEntry implements GameEventRegistryEntry {
         }
 
         @Override
-        public Builder range(final @NonNegative int range) {
+        public GameEventRegistryEntry.Builder range(final @NonNegative int range) {
             this.range = OptionalInt.of(requireNonNegative(range, "range"));
             return this;
         }

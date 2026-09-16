@@ -1,9 +1,11 @@
 --- a/net/minecraft/core/HolderLookup.java
 +++ b/net/minecraft/core/HolderLookup.java
-@@ -69,6 +_,8 @@
+@@ -68,7 +_,9 @@
+         }
      }
  
-     interface RegistryLookup<T> extends HolderLookup<T>, HolderOwner<T> {
+-    interface RegistryLookup<T> extends HolderLookup<T> {
++    interface RegistryLookup<T> extends HolderLookup<T>, HolderOwner<T> {
 +        Optional<T> getValueForCopying(ResourceKey<T> resourceKey); // Paper - add method to get the value for pre-filling builders in the reg mod API
 +
          ResourceKey<? extends Registry<? extends T>> key();
@@ -57,10 +59,10 @@
              @Override
              default ResourceKey<? extends Registry<? extends T>> key() {
                  return this.parent().key();
-@@ -127,6 +_,17 @@
+@@ -132,6 +_,17 @@
              @Override
-             default Stream<HolderSet.Named<T>> listTags() {
-                 return this.parent().listTags();
+             default boolean canSerialize(HolderOwner<T> owner) {
+                 return this.parent().canSerialize(owner);
 +            }
 +
 +            @Override

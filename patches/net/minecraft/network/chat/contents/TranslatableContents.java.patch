@@ -1,14 +1,14 @@
 --- a/net/minecraft/network/chat/contents/TranslatableContents.java
 +++ b/net/minecraft/network/chat/contents/TranslatableContents.java
-@@ -29,7 +_,7 @@
+@@ -52,7 +_,7 @@
+     private List<FormattedText> decomposedParts = ImmutableList.of();
+     private static final Pattern FORMAT_PATTERN = Pattern.compile("%(?:(\\d+)\\$)?([A-Za-z%]|$)");
  
- public class TranslatableContents implements ComponentContents {
-     public static final Object[] NO_ARGS = new Object[0];
--    private static final Codec<Object> PRIMITIVE_ARG_CODEC = ExtraCodecs.JAVA.validate(TranslatableContents::filterAllowedArguments);
-+    public static final Codec<Object> PRIMITIVE_ARG_CODEC = ExtraCodecs.JAVA.validate(TranslatableContents::filterAllowedArguments);
-     private static final Codec<Object> ARG_CODEC = Codec.either(PRIMITIVE_ARG_CODEC, ComponentSerialization.CODEC)
-         .xmap(
-             e -> e.map(o -> o, component -> Objects.requireNonNullElse(component.tryCollapseToString(), component)),
+-    private static DataResult<Object> filterAllowedArguments(@Nullable Object result) {
++    public static DataResult<Object> filterAllowedArguments(@Nullable Object result) {
+         return !isAllowedPrimitiveArgument(result) ? DataResult.error(() -> "This value needs to be parsed as component") : DataResult.success(result);
+     }
+ 
 @@ -76,6 +_,16 @@
          this.key = key;
          this.fallback = fallback;

@@ -1,5 +1,6 @@
 package io.papermc.paper.threadedregions.scheduler;
 
+import com.mojang.logging.LogUtils;
 import org.bukkit.plugin.IllegalPluginAccessException;
 import org.bukkit.plugin.Plugin;
 import org.slf4j.Logger;

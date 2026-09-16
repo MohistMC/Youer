@@ -24,7 +24,7 @@ public class ModSpecialRecipe extends CraftComplexRecipe {
 
     @Override
     public @NotNull ItemStack getResult() {
-        return CraftItemStack.asCraftMirror(((Recipe) this.recipe).assemble(new SingleRecipeInput(net.minecraft.world.item.ItemStack.EMPTY)));
+        return CraftItemStack.asBukkitMirror(((Recipe) this.recipe).assemble(new SingleRecipeInput(net.minecraft.world.item.ItemStack.EMPTY)));
     }
 
     @Override

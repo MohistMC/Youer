@@ -8,10 +8,16 @@
  import net.minecraft.world.InteractionHand;
  import net.minecraft.world.InteractionResult;
  import net.minecraft.world.entity.AgeableMob;
-@@ -59,6 +_,24 @@
+@@ -59,14 +_,25 @@
  
                      return InteractionResult.FAIL;
                  } else {
+-                    Player player = context.getPlayer();
+-                    TypedEntityData<EntityType<?>> entityData = itemStack.get(DataComponents.ENTITY_DATA);
+-                    if (player != null && entityData != null && level.getServer().getPlayerList().isOp(player.nameAndId())) {
+-                        spawnerHolder.setEntityData(entityData, level.getRandom());
+-                    } else {
+-                        spawnerHolder.setEntityId(type, level.getRandom());
 +                    if (level.paperConfig().entities.spawning.disableMobSpawnerSpawnEggTransformation) return InteractionResult.FAIL; // Paper - Allow disabling mob spawner spawn egg transformation
 +                    // Purpur start - PlayerSetSpawnerTypeWithEggEvent
 +                    if (spawnerHolder instanceof net.minecraft.world.level.block.entity.SpawnerBlockEntity) {
@@ -28,12 +34,14 @@
 +                            return InteractionResult.FAIL;
 +                        }
 +                        type = EntityType.getFromBukkitType(event.getEntityType());
-+                    }
+                     }
+-
 +                    // Purpur end - PlayerSetSpawnerTypeWithEggEvent
-                     spawnerHolder.setEntityId(type, level.getRandom());
++                    spawnerHolder.setEntityId(type, level.getRandom());
                      level.sendBlockUpdated(pos, blockState, blockState, 3);
                      level.gameEvent(context.getPlayer(), GameEvent.BLOCK_CHANGE, pos);
-@@ -164,6 +_,7 @@
+                     itemStack.shrink(1);
+@@ -171,6 +_,7 @@
  
          offspring.snapTo(pos.x(), pos.y(), pos.z(), 0.0F, 0.0F);
          offspring.applyComponentsFromItemStack(spawnEggStack);
@@ -41,7 +49,7 @@
          level.addFreshEntityWithPassengers(offspring);
          spawnEggStack.consume(1, player);
          return Optional.of(offspring);
-@@ -179,5 +_,25 @@
+@@ -186,5 +_,25 @@
          }
  
          return false;

@@ -1,14 +1,27 @@
 --- a/net/minecraft/advancements/AdvancementHolder.java
 +++ b/net/minecraft/advancements/AdvancementHolder.java
-@@ -5,6 +_,7 @@
- import net.minecraft.network.codec.ByteBufCodecs;
+@@ -6,6 +_,7 @@
  import net.minecraft.network.codec.StreamCodec;
  import net.minecraft.resources.Identifier;
+ import net.minecraft.resources.ResourceKey;
 +import org.bukkit.craftbukkit.advancement.CraftAdvancement;
  
  public record AdvancementHolder(Identifier id, Advancement value) {
      public static final StreamCodec<RegistryFriendlyByteBuf, AdvancementHolder> STREAM_CODEC = StreamCodec.composite(
-@@ -26,4 +_,10 @@
+@@ -13,7 +_,11 @@
+     );
+ 
+     public void register(BootstrapContext<Advancement> output) {
+-        output.register(ResourceKey.create(Registries.ADVANCEMENT, this.id), this.value);
++        this.register(output, new net.neoforged.neoforge.common.conditions.ICondition[0]);
++    }
++
++    public void register(BootstrapContext<Advancement> output, net.neoforged.neoforge.common.conditions.ICondition... conditions) {
++        output.register(ResourceKey.create(Registries.ADVANCEMENT, this.id), this.value, conditions);
+     }
+ 
+     @Override
+@@ -30,4 +_,10 @@
      public String toString() {
          return this.id.toString();
      }

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/ChestBlock.java
 +++ b/net/minecraft/world/level/block/ChestBlock.java
-@@ -90,12 +_,14 @@
+@@ -78,26 +_,25 @@
              return Optional.empty();
          }
      };
@@ -19,8 +19,28 @@
                      if (first.canOpen(player) && second.canOpen(player)) {
                          first.unpackLootTable(inventory.player);
                          second.unpackLootTable(inventory.player);
-@@ -117,7 +_,7 @@
-                         return second.hasCustomName() ? second.getDisplayName() : Component.translatable("container.chestDouble");
+                         return ChestMenu.sixRows(containerId, inventory, container);
+-                    }
+-
+-                    if (!player.isSpectator()) {
++                    } else {
+                         Direction connectedDirection = ChestBlock.getConnectedDirection(first.getBlockState());
+                         Vec3 firstCenter = Vec3.atCenterOf(first.getBlockPos());
+                         Vec3 centerBetweenChests = firstCenter.add(connectedDirection.getStepX() / 2.0, 0.0, connectedDirection.getStepZ() / 2.0);
+                         BaseContainerBlockEntity.sendChestLockedNotifications(centerBetweenChests, player, this.getDisplayName());
++                        return null;
+                     }
+-
+-                    return null;
+                 }
+ 
+                 @Override
+@@ -105,10 +_,10 @@
+                     if (first.hasCustomName()) {
+                         return first.getDisplayName();
+                     } else {
+-                        return second.hasCustomName() ? second.getDisplayName() : Component.translatable("container.chestDouble");
++                        return second.hasCustomName() ? second.getDisplayName() : Component.translatable("container.chestDouble"); // Paper - diff on change - CraftDoubleChestInventoryViewBuilder.defaultTitle
                      }
                  }
 -            });
@@ -28,7 +48,7 @@
          }
  
          public Optional<MenuProvider> acceptSingle(ChestBlockEntity single) {
-@@ -256,8 +_,7 @@
+@@ -242,8 +_,7 @@
      protected InteractionResult useWithoutItem(BlockState state, Level level, BlockPos pos, Player player, BlockHitResult hitResult) {
          if (level instanceof ServerLevel serverLevel) {
              MenuProvider menuProvider = this.getMenuProvider(state, level, pos);
@@ -38,7 +58,7 @@
                  player.awardStat(this.getOpenChestStat());
                  PiglinAi.angerNearbyPiglins(serverLevel, player, true);
              }
-@@ -296,7 +_,13 @@
+@@ -282,7 +_,13 @@
  
      @Override
      public @Nullable MenuProvider getMenuProvider(BlockState state, Level level, BlockPos pos) {
@@ -53,10 +73,12 @@
      }
  
      public static DoubleBlockCombiner.Combiner<ChestBlockEntity, Float2FloatFunction> opennessCombiner(LidBlockEntity entity) {
-@@ -330,11 +_,17 @@
+@@ -315,12 +_,18 @@
+         return isBlockedChestByBlock(level, pos) || isCatSittingOnChest(level, pos);
      }
  
-     public static boolean isBlockedChestByBlock(BlockGetter level, BlockPos pos) {
+-    private static boolean isBlockedChestByBlock(BlockGetter level, BlockPos pos) {
++    public static boolean isBlockedChestByBlock(BlockGetter level, BlockPos pos) {
 +        if (level instanceof Level level1 && level1.purpurConfig.chestOpenWithBlockOnTop) return false; // Purpur - Option for chests to open even with a solid block on top
          BlockPos above = pos.above();
          return level.getBlockState(above).isRedstoneConductor(level, above);
@@ -71,7 +93,7 @@
          List<Cat> cats = level.getEntitiesOfClass(Cat.class, new AABB(pos.getX(), pos.getY() + 1, pos.getZ(), pos.getX() + 1, pos.getY() + 2, pos.getZ() + 1));
          if (!cats.isEmpty()) {
              for (Cat cat : cats) {
-@@ -364,7 +_,8 @@
+@@ -350,7 +_,8 @@
  
      @Override
      protected BlockState mirror(BlockState state, Mirror mirror) {

@@ -2814,23 +2814,6 @@ public interface Server extends PluginMessageRecipient, net.kyori.adventure.audi
     boolean isLagging();
     // Purpur end - Lagging threshold
 
-    // Purpur start - Added the ability to add combustible items
-    /**
-     * Add an Item as fuel for furnaces
-     *
-     * @param material The material that will be the fuel
-     * @param burnTime The time (in ticks) this item will burn for
-     */
-    public void addFuel(@NotNull Material material, int burnTime);
-
-    /**
-     * Remove an item as fuel for furnaces
-     *
-     * @param material The material that will no longer be a fuel
-     */
-    public void removeFuel(@NotNull Material material);
-    // Purpur end - Added the ability to add combustible items
-
     // Purpur start - Debug Marker API
     /**
      * Creates debug block highlight on specified block location and show it to all players on the server.

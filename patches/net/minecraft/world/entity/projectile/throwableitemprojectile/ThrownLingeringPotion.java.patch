@@ -1,15 +1,15 @@
 --- a/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownLingeringPotion.java
 +++ b/net/minecraft/world/entity/projectile/throwableitemprojectile/ThrownLingeringPotion.java
-@@ -30,7 +_,7 @@
+@@ -31,7 +_,7 @@
      }
  
      @Override
 -    public void onHitAsPotion(ServerLevel level, ItemStack potionItem, HitResult hitResult) {
 +    public boolean onHitAsPotion(ServerLevel level, ItemStack potionItem, @org.jspecify.annotations.Nullable HitResult hitResult) { // Paper - More projectile API
-         AreaEffectCloud cloud = new AreaEffectCloud(this.level(), this.getX(), this.getY(), this.getZ());
-         if (this.getOwner() instanceof LivingEntity owner) {
-             cloud.setOwner(owner);
-@@ -42,6 +_,15 @@
+         AreaEffectCloud cloud;
+         if (hitResult instanceof EntityHitResult entityHitResult) {
+             cloud = new AreaEffectCloud(
+@@ -51,6 +_,15 @@
          cloud.setWaitTime(10);
          cloud.setRadiusPerTick(-cloud.getRadius() / cloud.getDuration());
          cloud.applyComponentsFromItemStack(potionItem);

@@ -25,7 +25,7 @@ import java.util.Locale;
 public class PurpurStoredBee implements StoredEntity<Bee> {
     static final Logger LOGGER = LogUtils.getLogger();
 
-    private static final CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new CraftPersistentDataTypeRegistry();
+    public static final CraftPersistentDataTypeRegistry DATA_TYPE_REGISTRY = new CraftPersistentDataTypeRegistry();
 
     private final EntityBlockStorage<Bee> blockStorage;
     private final BeehiveBlockEntity.BeeData handle;

@@ -75,7 +75,7 @@ public class PlayerSpawnPhantomsEvent extends PlayerEvent {
         if (this.getResult() == Result.ALLOW) {
             return true;
         }
-        return this.getResult() == Result.DEFAULT && (!level.dimensionType().hasSkyLight() || (!level.purpurConfig.phantomSpawnOnlyAboveSeaLevel || pos.getY() >= level.getSeaLevel()) && (!level.purpurConfig.phantomSpawnOnlyWithVisibleSky || level.canSeeSky(pos)));
+        return this.getResult() == Result.DEFAULT && (!level.dimensionType().hasSkyLight() || pos.getY() >= level.getSeaLevel() && level.canSeeSky(pos));
     }
 
     /**

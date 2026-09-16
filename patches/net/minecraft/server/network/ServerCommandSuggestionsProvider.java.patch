@@ -1,0 +1,54 @@
+--- a/net/minecraft/server/network/ServerCommandSuggestionsProvider.java
++++ b/net/minecraft/server/network/ServerCommandSuggestionsProvider.java
+@@ -4,18 +_,15 @@
+ import com.mojang.brigadier.ParseResults;
+ import com.mojang.brigadier.StringReader;
+ import com.mojang.brigadier.suggestion.Suggestions;
+-import com.mojang.logging.LogUtils;
+ import java.util.concurrent.CompletableFuture;
+ import java.util.concurrent.atomic.AtomicReference;
+ import net.minecraft.commands.CommandSourceStack;
+ import net.minecraft.server.MinecraftServer;
+ import net.minecraft.server.level.ServerPlayer;
+ import org.jspecify.annotations.Nullable;
+-import org.slf4j.Logger;
+ 
+ public class ServerCommandSuggestionsProvider {
+     private static final int MAX_COMMAND_SUGGESTIONS = 1000;
+-    private static final Logger LOGGER = LogUtils.getLogger();
+     private static final int MIN_INTERVAL_TICKS = 1;
+     private final ServerPlayer player;
+     private final AtomicReference<ServerCommandSuggestionsProvider.@Nullable Request> lastRequest = new AtomicReference<>();
+@@ -37,23 +_,16 @@
+             ServerCommandSuggestionsProvider.Request request = this.lastRequest.getAndSet(null);
+             if (request != null) {
+                 this.hasBudget = false;
+-
+-                try {
+-                    StringReader reader = new StringReader(request.command);
+-                    if (reader.canRead() && reader.peek() == '/') {
+-                        reader.skip();
+-                    }
+-
+-                    MinecraftServer server = this.player.level().getServer();
+-                    CommandDispatcher<CommandSourceStack> dispatcher = server.getCommands().getDispatcher();
+-                    ParseResults<CommandSourceStack> parse = dispatcher.parse(reader, this.player.createCommandSourceStack());
+-                    if (this.lastRequest.get() != null) {
+-                        return;
+-                    }
+-
++                StringReader reader = new StringReader(request.command);
++                if (reader.canRead() && reader.peek() == '/') {
++                    reader.skip();
++                }
++
++                MinecraftServer server = this.player.level().getServer();
++                CommandDispatcher<CommandSourceStack> dispatcher = server.getCommands().getDispatcher();
++                ParseResults<CommandSourceStack> parse = dispatcher.parse(reader, this.player.createCommandSourceStack());
++                if (this.lastRequest.get() == null) {
+                     dispatcher.getCompletionSuggestions(parse).thenAccept(suggestions -> request.future.complete(limitSuggestionCount(suggestions)));
+-                } catch (Exception e) {
+-                    LOGGER.error("Failed to resolve command suggestions for {}", this.player.getGameProfile().name(), e);
+                 }
+             }
+         }

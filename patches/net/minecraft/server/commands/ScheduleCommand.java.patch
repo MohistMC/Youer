@@ -1,14 +1,13 @@
 --- a/net/minecraft/server/commands/ScheduleCommand.java
 +++ b/net/minecraft/server/commands/ScheduleCommand.java
-@@ -32,7 +_,7 @@
-     );
-     private static final SimpleCommandExceptionType ERROR_MACRO = new SimpleCommandExceptionType(Component.translatableEscape("commands.schedule.macro"));
-     private static final SuggestionProvider<CommandSourceStack> SUGGEST_SCHEDULE = (c, p) -> SharedSuggestionProvider.suggest(
--        c.getSource().getServer().getScheduledEvents().getEventsIds(), p
-+        c.getSource().getLevel().scheduledEvents.getEventsIds(), p // Paper - Make schedule command per-world
-     );
+@@ -2,6 +_,7 @@
  
-     public static void register(CommandDispatcher<CommandSourceStack> dispatcher) {
+ import com.mojang.brigadier.CommandDispatcher;
+ import com.mojang.brigadier.arguments.IntegerArgumentType;
++import com.mojang.brigadier.arguments.StringArgumentType;
+ import com.mojang.brigadier.exceptions.CommandSyntaxException;
+ import com.mojang.brigadier.exceptions.DynamicCommandExceptionType;
+ import com.mojang.brigadier.exceptions.SimpleCommandExceptionType;
 @@ -102,7 +_,7 @@
  
          long tickTime = source.getLevel().getGameTime() + time;
@@ -18,12 +17,3 @@
          Optional<CommandFunction<CommandSourceStack>> function = callback.getSecond().left();
          if (function.isPresent()) {
              if (function.get() instanceof MacroFunction) {
-@@ -130,7 +_,7 @@
-     }
- 
-     private static int remove(CommandSourceStack source, String id) throws CommandSyntaxException {
--        int count = source.getServer().getScheduledEvents().remove(id);
-+        int count = source.getLevel().scheduledEvents.remove(id); // Paper - Make schedule command per-world
-         if (count == 0) {
-             throw ERROR_CANT_REMOVE.create(id);
-         }

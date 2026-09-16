@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/CauldronBlock.java
 +++ b/net/minecraft/world/level/block/CauldronBlock.java
-@@ -32,9 +_,9 @@
+@@ -25,9 +_,9 @@
  
      protected static boolean shouldHandlePrecipitation(Level level, Biome.Precipitation precipitation) {
          if (precipitation == Biome.Precipitation.RAIN) {
@@ -12,7 +12,7 @@
          }
      }
  
-@@ -42,10 +_,18 @@
+@@ -35,10 +_,18 @@
      public void handlePrecipitation(BlockState state, Level level, BlockPos pos, Biome.Precipitation precipitation) {
          if (shouldHandlePrecipitation(level, precipitation)) {
              if (precipitation == Biome.Precipitation.RAIN) {
@@ -33,7 +33,7 @@
                  level.gameEvent(null, GameEvent.BLOCK_CHANGE, pos);
              }
          }
-@@ -58,16 +_,25 @@
+@@ -51,14 +_,23 @@
  
      @Override
      protected void receiveStalactiteDrip(BlockState state, Level level, BlockPos pos, Fluid fluid) {
@@ -47,8 +47,7 @@
 +            }
 +            // Paper end - Call CauldronLevelChangeEvent
              level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(newState));
--            level.levelEvent(1047, pos, 0);
-+            level.levelEvent(LevelEvent.SOUND_DRIP_WATER_INTO_CAULDRON, pos, 0);
+             level.levelEvent(1047, pos, 0);
          } else if (fluid == Fluids.LAVA) {
              BlockState newState = Blocks.LAVA_CAULDRON.defaultBlockState();
 -            level.setBlockAndUpdate(pos, newState);
@@ -58,8 +57,5 @@
 +            }
 +            // Paper end - Call CauldronLevelChangeEvent
              level.gameEvent(GameEvent.BLOCK_CHANGE, pos, GameEvent.Context.of(newState));
--            level.levelEvent(1046, pos, 0);
-+            level.levelEvent(LevelEvent.SOUND_DRIP_LAVA_INTO_CAULDRON, pos, 0);
+             level.levelEvent(1046, pos, 0);
          }
-     }
- }

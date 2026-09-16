@@ -86,7 +86,7 @@ public final class PaperCodecs {
 
     public static <T> Codec<T> packMetaCodec(final MetadataSectionType<T> type) {
         return RecordCodecBuilder.create(instance -> instance.group(
-                type.codec().fieldOf(type.name()).forGetter(Function.identity())
+            type.codec().fieldOf(type.name()).forGetter(Function.identity())
         ).apply(instance, Function.identity()));
     }
 

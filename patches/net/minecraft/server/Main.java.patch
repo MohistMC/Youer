@@ -1,14 +1,13 @@
 --- a/net/minecraft/server/Main.java
 +++ b/net/minecraft/server/Main.java
-@@ -1,6 +_,6 @@
+@@ -1,5 +_,6 @@
  package net.minecraft.server;
  
--import com.mojang.authlib.yggdrasil.YggdrasilAuthenticationService;
 +import com.mohistmc.youer.Youer;
+ import com.mojang.authlib.services.MinecraftServicesDiscoveryService;
  import com.mojang.datafixers.DataFixer;
  import com.mojang.logging.LogUtils;
- import com.mojang.serialization.Dynamic;
-@@ -13,14 +_,16 @@
+@@ -13,7 +_,10 @@
  import java.nio.file.Files;
  import java.nio.file.Path;
  import java.nio.file.Paths;
@@ -19,38 +18,15 @@
  import java.util.function.BooleanSupplier;
  import joptsimple.OptionParser;
  import joptsimple.OptionSet;
- import joptsimple.OptionSpec;
- import joptsimple.util.PathConverter;
- import net.minecraft.CrashReport;
--import net.minecraft.DefaultUncaughtExceptionHandler;
- import net.minecraft.SharedConstants;
- import net.minecraft.SuppressForbidden;
- import net.minecraft.commands.Commands;
-@@ -29,22 +_,20 @@
- import net.minecraft.core.registries.Registries;
- import net.minecraft.nbt.NbtException;
- import net.minecraft.nbt.ReportedNbtException;
--import net.minecraft.network.chat.Component;
- import net.minecraft.server.dedicated.DedicatedServer;
- import net.minecraft.server.dedicated.DedicatedServerProperties;
- import net.minecraft.server.dedicated.DedicatedServerSettings;
+@@ -36,6 +_,7 @@
  import net.minecraft.server.jsonrpc.JsonRpc;
  import net.minecraft.server.jsonrpc.ManagementServer;
  import net.minecraft.server.notifications.NotificationManager;
 +import net.minecraft.server.packs.PackType;
  import net.minecraft.server.packs.repository.PackRepository;
  import net.minecraft.server.packs.repository.ServerPacksSource;
--import net.minecraft.util.Mth;
- import net.minecraft.util.Util;
- import net.minecraft.util.datafix.DataFixers;
- import net.minecraft.util.profiling.jfr.Environment;
- import net.minecraft.util.profiling.jfr.JvmProfiler;
- import net.minecraft.util.worldupdate.UpgradeProgress;
--import net.minecraft.util.worldupdate.WorldUpgrader;
- import net.minecraft.world.flag.FeatureFlags;
- import net.minecraft.world.level.LevelSettings;
- import net.minecraft.world.level.WorldDataConfiguration;
-@@ -56,21 +_,30 @@
+ import net.minecraft.util.Mth;
+@@ -56,21 +_,26 @@
  import net.minecraft.world.level.levelgen.presets.WorldPresets;
  import net.minecraft.world.level.storage.LevelDataAndDimensions;
  import net.minecraft.world.level.storage.LevelStorageSource;
@@ -72,10 +48,6 @@
 +        io.papermc.paper.log.LogManagerShutdownThread.hook(); // Paper - Improved watchdog support
 +        Youer.initI18n(); // Youer
          SharedConstants.tryDetectVersion();
-+        // Paper start - Perf: Skip data fixer schema sanity check
-+        // This is a startup sanity check for entity and block entity types and forces Vanilla datafixer building
-+        SharedConstants.CHECK_DATA_FIXER_SCHEMA = Boolean.getBoolean("paper.updatingMinecraft");
-+        // Paper end - Perf: Skip data fixer schema sanity check
          OptionParser parser = new OptionParser();
          OptionSpec<Void> nogui = parser.accepts("nogui");
 -        OptionSpec<Void> initSettings = parser.accepts("initSettings", "Initializes 'server.properties' and 'eula.txt', then quits");
@@ -83,7 +55,7 @@
          OptionSpec<Void> demo = parser.accepts("demo");
          OptionSpec<Void> bonusChest = parser.accepts("bonusChest");
          OptionSpec<Void> forceUpgrade = parser.accepts("forceUpgrade");
-@@ -86,47 +_,221 @@
+@@ -86,12 +_,109 @@
          OptionSpec<Path> pidFile = parser.accepts("pidFile").withRequiredArg().withValuesConvertedBy(new PathConverter());
          OptionSpec<String> nonOptions = parser.nonOptions();
  
@@ -194,15 +166,7 @@
  
              Path pidFilePath = options.valueOf(pidFile);
              if (pidFilePath != null) {
-                 writePidFile(pidFilePath);
-             }
- 
--            CrashReport.preload();
-+            // Paper start - Perf: Run CrashReport preload asynchronously
-+            // The actual result is discarded/irrelevant, but hardware and software info is memoized
-+            Thread.ofPlatform().daemon().name("CrashReport preload thread").start(CrashReport::preload);
-+            // Paper end - Perf: Run CrashReport preload asynchronously
-             if (options.has(jfrProfilingOption)) {
+@@ -103,30 +_,98 @@
                  JvmProfiler.INSTANCE.start(Environment.SERVER);
              }
  
@@ -216,12 +180,6 @@
 +            io.papermc.paper.plugin.PluginInitializerManager.load(options); // Paper
              Bootstrap.bootStrap();
              Bootstrap.validate();
-+            // Paper start - Perf: Init DataConverter asynchronously
-+            // Init for both of these are fairly expensive class-loading wise. Both are called again below/in MinecraftServer.spin,
-+            // so failure during class init will become visible there.
-+            Thread.ofPlatform().daemon().name("DataConverter MCTypeRegistry init thread").start(ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry::init);
-+            Thread.ofPlatform().daemon().name("DataFixers init thread").start(DataFixers::getDataFixer);
-+            // Paper end - Perf: Init DataConverter asynchronously
              Util.startTimerHackThread();
              Path settingsFile = Paths.get("server.properties");
 -            DedicatedServerSettings settings = new DedicatedServerSettings(settingsFile);
@@ -269,7 +227,7 @@
              }
  
 -            File universePath = new File(options.valueOf(universe));
--            Services services = Services.create(new YggdrasilAuthenticationService(Proxy.NO_PROXY), universePath);
+-            Services services = Services.create(MinecraftServicesDiscoveryService.create(Proxy.NO_PROXY), universePath);
 +            // Paper start - Detect headless JRE
 +            String awtException = io.papermc.paper.util.ServerEnvironment.awtDependencyCheck();
 +            if (awtException != null) {
@@ -302,7 +260,7 @@
 +                universePath = new File(bukkitConfiguration.getString("settings.world-container", "."));
 +            }
 +            // Paper end - fix SPIGOT-5824
-+            Services services = Services.create(new com.destroystokyo.paper.profile.PaperAuthenticationService(Proxy.NO_PROXY), universePath, userCacheFile, options); // Paper - pass OptionSet to load paper config files; override authentication service; fix world-container
++            Services services = Services.create(MinecraftServicesDiscoveryService.create(Proxy.NO_PROXY), universePath, userCacheFile, options); // Paper - pass OptionSet to load paper config files; override authentication service; fix world-container // TODO
              NotificationManager notificationManager = new NotificationManager();
              ManagementServer jsonRpcServer = JsonRpc.create(settings, notificationManager);
 -            String levelName = Optional.ofNullable(options.valueOf(worldName)).orElse(settings.getProperties().levelName);
@@ -314,7 +272,12 @@
              LevelStorageSource levelStorageSource = LevelStorageSource.createDefault(universePath.toPath());
              LevelStorageSource.LevelStorageAccess access = levelStorageSource.validateAndCreateAccess(levelName);
              Dynamic<?> levelDataTag;
-@@ -154,6 +_,7 @@
+@@ -150,10 +_,11 @@
+                     return;
+                 }
+ 
+-                levelDataTag = DataFixers.getFileFixer().fix(access, levelDataUnfixed, new UpgradeProgress(notificationManager));
++                levelDataTag = DataFixers.getFileFixer().fix(access, levelDataUnfixed, new UpgradeProgress());
              } else {
                  levelDataTag = null;
              }
@@ -322,15 +285,27 @@
  
              boolean safeModeEnabled = options.has(safeMode);
              if (safeModeEnabled) {
-@@ -161,6 +_,13 @@
+@@ -161,6 +_,25 @@
              }
  
              PackRepository packRepository = ServerPacksSource.createPackRepository(access);
-+            // Paper start
-+            if (!safeModeEnabled) {
-+                io.papermc.paper.datapack.DynamicBuiltinPacks.refreshAllMetadata(access);
++            // CraftBukkit start
++            File bukkitDataPackFolder = new File(access.getLevelPath(LevelResource.DATAPACK_DIR).toFile(), "bukkit");
++            if (!bukkitDataPackFolder.exists()) {
++                bukkitDataPackFolder.mkdirs();
 +            }
-+            // Paper end
++            File mcMeta = new File(bukkitDataPackFolder, "pack.mcmeta");
++            try {
++                com.google.common.io.Files.write("{\n"
++                        + "    \"pack\": {\n"
++                        + "        \"description\": \"Data pack for resources provided by Bukkit plugins\",\n"
++                        + "        \"min_format\": " + SharedConstants.getCurrentVersion().packVersion(PackType.SERVER_DATA) + ",\n"
++                        + "        \"max_format\": " + SharedConstants.getCurrentVersion().packVersion(PackType.SERVER_DATA) + "\n"
++                        + "    }\n"
++                        + "}\n", mcMeta, com.google.common.base.Charsets.UTF_8);
++            } catch (java.io.IOException ex) {
++                throw new RuntimeException("Could not initialize Bukkit datapack", ex);
++            }
 +            AtomicReference<WorldLoader.DataLoadContext> worldLoader = new AtomicReference<>();
 +            // CraftBukkit end
  
@@ -347,7 +322,7 @@
 +                                    try {
 +                                        io.papermc.paper.world.migration.WorldFolderMigration.migrateStartupWorld(
 +                                                access,
-+                                                context.datapackWorldgen(),
++                                                context.datapackWorldRegistries(),
 +                                                levelName,
 +                                                LevelStem.OVERWORLD,
 +                                                Registries.levelStemToLevel(LevelStem.OVERWORLD)
@@ -357,8 +332,8 @@
 +                                    }
 +                                    // Paper end - migrate startup world
                                      LevelDataAndDimensions worldData = LevelStorageSource.getLevelDataAndDimensions(
--                                        access, levelDataTag, context.dataConfiguration(), datapackDimensions, context.datapackWorldgen()
-+                                            access, levelDataTag, context.dataConfiguration(), datapackDimensions, context.datapackWorldgen(), net.minecraft.world.level.Level.OVERWORLD // Paper
+-                                        access, levelDataTag, context.dataConfiguration(), datapackDimensions, context.datapackWorldRegistries()
++                                            access, levelDataTag, context.dataConfiguration(), datapackDimensions, context.datapackWorldRegistries(), net.minecraft.world.level.Level.OVERWORLD // Paper
                                      );
                                      return new WorldLoader.DataLoadOutput<>(
 -                                        worldData.worldDataAndGenSettings(), worldData.dimensions().dimensionsRegistryAccess()
@@ -414,14 +389,14 @@
      ) {
          LevelSettings createLevelSettings;
 @@ -265,6 +_,9 @@
-             dimensions = properties.createDimensions(context.datapackWorldgen());
+             dimensions = properties.createDimensions(context.datapackWorldRegistries());
          }
  
 +        // Neo: Do a write-read-cycle to inject modded dimensions on first start of a dedicated server into its generated world dimensions list.
-+        var registryOps = net.minecraft.resources.RegistryOps.create(net.minecraft.nbt.NbtOps.INSTANCE, context.datapackWorldgen());
++        var registryOps = net.minecraft.resources.RegistryOps.create(net.minecraft.nbt.NbtOps.INSTANCE, context.datapackWorldRegistries());
 +        dimensions = WorldDimensions.CODEC.encoder().encodeStart(registryOps, dimensions).flatMap((writtenPayloadWithModdedDimensions) -> WorldDimensions.CODEC.decoder().parse(registryOps, writtenPayloadWithModdedDimensions)).resultOrPartial(LOGGER::error).orElse(dimensions);
          WorldDimensions.Complete finalDimensions = dimensions.bake(datapackDimensions);
-         Lifecycle lifecycle = finalDimensions.lifecycle().add(context.datapackWorldgen().allRegistriesLifecycle());
+         Lifecycle lifecycle = finalDimensions.lifecycle().add(context.datapackWorldRegistries().allRegistriesLifecycle());
          PrimaryLevelData primaryLevelData = new PrimaryLevelData(createLevelSettings, finalDimensions.specialWorldProperty(), lifecycle);
 @@ -309,7 +_,8 @@
          RegistryAccess registryAccess,
@@ -433,6 +408,15 @@
  
          try (WorldUpgrader upgrader = new WorldUpgrader(storageSource, fixerUpper, registryAccess, eraseCache, recreateRegionFiles)) {
              Component lastStatus = null;
+@@ -318,7 +_,7 @@
+                 Component status = upgrader.getStatus();
+                 if (lastStatus != status) {
+                     lastStatus = status;
+-                    LOGGER.info("{}", upgrader.getStatus().getString());
++                    LOGGER.info(upgrader.getStatus().getString());
+                 }
+ 
+                 int totalChunks = upgrader.getTotalChunks();
 @@ -336,6 +_,6 @@
                      }
                  }

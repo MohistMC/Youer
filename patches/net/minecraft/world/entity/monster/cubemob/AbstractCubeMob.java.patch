@@ -130,7 +130,7 @@
      }
  
      protected void setUpSplitCube(AbstractCubeMob cubeMob, int halfSize, float xd, float zd) {
-@@ -259,11 +_,31 @@
+@@ -263,11 +_,31 @@
          return this.getType().getDimensions().scale(this.getSize());
      }
  
@@ -162,7 +162,7 @@
      }
  
      @Override
-@@ -272,7 +_,7 @@
+@@ -276,7 +_,7 @@
      }
  
      @Override
@@ -171,7 +171,7 @@
          return 0.4F * this.getSize();
      }
  
-@@ -293,10 +_,10 @@
+@@ -297,10 +_,10 @@
      protected abstract SoundEvent getJumpSound();
  
      @Override
@@ -184,7 +184,7 @@
  
      protected abstract SoundEvent getSquishSound();
  
-@@ -336,11 +_,16 @@
+@@ -340,11 +_,16 @@
          @Override
          public boolean canUse() {
              LivingEntity target = this.cubeMob.getTarget();
@@ -206,7 +206,7 @@
          }
  
          @Override
-@@ -352,11 +_,16 @@
+@@ -356,11 +_,16 @@
          @Override
          public boolean canContinueToUse() {
              LivingEntity target = this.cubeMob.getTarget();
@@ -228,8 +228,8 @@
          }
  
          @Override
-@@ -375,6 +_,13 @@
-                 cubeMobMoveControl.setDirection(this.cubeMob.getYRot(), this.cubeMob.isDealsDamage());
+@@ -379,6 +_,13 @@
+                 cubeMobMoveControl.setDirection(this.cubeMob.getYRot(), this.cubeMob.canDealDamage());
              }
          }
 +
@@ -242,16 +242,16 @@
      }
  
      private static class CubeMobFloatGoal extends Goal {
-@@ -388,7 +_,7 @@
+@@ -392,7 +_,7 @@
  
          @Override
          public boolean canUse() {
--            return (this.cubeMob.isInWater() || this.cubeMob.isInLava()) && this.cubeMob.getMoveControl() instanceof AbstractCubeMob.CubeMobMoveControl;
-+            return (this.cubeMob.isInWater() || this.cubeMob.isInLava()) && this.cubeMob.getMoveControl() instanceof AbstractCubeMob.CubeMobMoveControl && this.cubeMob.canWander && new com.destroystokyo.paper.event.entity.SlimeSwimEvent((org.bukkit.entity.AbstractCubeMob) this.cubeMob.getBukkitEntity()).callEvent(); // Paper - Slime pathfinder events
+-            return this.cubeMob.isInLiquid() && this.cubeMob.getMoveControl() instanceof AbstractCubeMob.CubeMobMoveControl;
++            return this.cubeMob.isInLiquid() && this.cubeMob.getMoveControl() instanceof AbstractCubeMob.CubeMobMoveControl && this.cubeMob.canWander && new com.destroystokyo.paper.event.entity.SlimeSwimEvent((org.bukkit.entity.AbstractCubeMob) this.cubeMob.getBukkitEntity()).callEvent(); // Paper - Slime pathfinder events
          }
  
          @Override
-@@ -418,7 +_,7 @@
+@@ -422,7 +_,7 @@
  
          @Override
          public boolean canUse() {
@@ -260,16 +260,16 @@
          }
  
          @Override
-@@ -494,7 +_,7 @@
+@@ -498,7 +_,7 @@
  
          @Override
          public boolean canUse() {
 -            return this.cubeMob.getTarget() == null
 +            return this.cubeMob.getTarget() == null && this.cubeMob.canWander // Paper - Slime pathfinder events
-                 && (this.cubeMob.onGround() || this.cubeMob.isInWater() || this.cubeMob.isInLava() || this.cubeMob.hasEffect(MobEffects.LEVITATION))
+                 && (this.cubeMob.onGround() || this.cubeMob.isInLiquid() || this.cubeMob.hasEffect(MobEffects.LEVITATION))
                  && this.cubeMob.getMoveControl() instanceof AbstractCubeMob.CubeMobMoveControl;
          }
-@@ -504,6 +_,11 @@
+@@ -508,6 +_,11 @@
              if (--this.nextRandomizeTime <= 0) {
                  this.nextRandomizeTime = this.adjustedTickDelay(40 + this.cubeMob.getRandom().nextInt(60));
                  this.chosenDegrees = this.cubeMob.getRandom().nextInt(360);

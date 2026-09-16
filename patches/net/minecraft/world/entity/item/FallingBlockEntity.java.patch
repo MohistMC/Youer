@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/item/FallingBlockEntity.java
 +++ b/net/minecraft/world/entity/item/FallingBlockEntity.java
-@@ -51,6 +_,8 @@
+@@ -53,6 +_,8 @@
  import net.minecraft.world.phys.BlockHitResult;
  import net.minecraft.world.phys.HitResult;
  import net.minecraft.world.phys.Vec3;
@@ -9,7 +9,7 @@
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
-@@ -72,6 +_,7 @@
+@@ -74,6 +_,7 @@
      public @Nullable CompoundTag blockData;
      public boolean forceTickAfterTeleportToDuplicate;
      protected static final EntityDataAccessor<BlockPos> DATA_START_POS = SynchedEntityData.defineId(FallingBlockEntity.class, EntityDataSerializers.BLOCK_POS);
@@ -17,7 +17,7 @@
  
      public FallingBlockEntity(EntityType<? extends FallingBlockEntity> type, Level level) {
          super(type, level);
-@@ -90,6 +_,12 @@
+@@ -92,6 +_,12 @@
      }
  
      public static FallingBlockEntity fall(Level level, BlockPos pos, BlockState state) {
@@ -30,13 +30,13 @@
          FallingBlockEntity entity = new FallingBlockEntity(
              level,
              pos.getX() + 0.5,
-@@ -97,11 +_,15 @@
+@@ -99,11 +_,15 @@
              pos.getZ() + 0.5,
              state.hasProperty(BlockStateProperties.WATERLOGGED) ? state.setValue(BlockStateProperties.WATERLOGGED, false) : state
          );
 +        if (!CraftEventFactory.callEntityChangeBlockEvent(entity, pos, state.getFluidState().createLegacyBlock())) return entity; // CraftBukkit
 +
-         level.setBlock(pos, state.getFluidState().createLegacyBlock(), 3);
+         level.setBlockAndUpdate(pos, state.getFluidState().createLegacyBlock());
 -        level.addFreshEntity(entity);
 +        level.addFreshEntity(entity, spawnReason); // CraftBukkit
          return entity;
@@ -47,7 +47,7 @@
      @Override
      public boolean isAttackable() {
          return false;
-@@ -147,18 +_,27 @@
+@@ -149,18 +_,27 @@
      @Override
      public void tick() {
          if (this.blockState.isAir()) {
@@ -73,16 +73,16 @@
                  BlockPos pos = this.blockPosition();
                  boolean isConcrete = this.blockState.getBlock() instanceof ConcretePowderBlock;
 -                boolean isStuckInWater = isConcrete && this.level().getFluidState(pos).is(FluidTags.WATER);
-+                boolean isStuckInWater = isConcrete && this.blockState.canBeHydrated(this.level(), pos, this.level().getFluidState(pos), pos);
++                boolean isStuckInWater = isConcrete && this.blockState.canBeHydrated(this.level(), pos, this.level().getFluidState(pos));
                  double moveVec = this.getDeltaMovement().lengthSqr();
                  if (isConcrete && moveVec > 1.0) {
                      BlockHitResult clip = this.level()
-@@ -167,19 +_,19 @@
+@@ -169,19 +_,19 @@
                                  new Vec3(this.xo, this.yo, this.zo), this.position(), ClipContext.Block.COLLIDER, ClipContext.Fluid.SOURCE_ONLY, this
                              )
                          );
 -                    if (clip.getType() != HitResult.Type.MISS && this.level().getFluidState(clip.getBlockPos()).is(FluidTags.WATER)) {
-+                    if (clip.getType() != HitResult.Type.MISS && this.blockState.canBeHydrated(this.level(), pos, this.level().getFluidState(clip.getBlockPos()), clip.getBlockPos())) {
++                    if (clip.getType() != HitResult.Type.MISS && this.blockState.canBeHydrated(this.level(), pos, this.level().getFluidState(clip.getBlockPos()))) {
                          pos = clip.getBlockPos();
                          isStuckInWater = true;
                      }
@@ -100,7 +100,7 @@
                      }
                  } else {
                      BlockState currentState = this.level().getBlockState(pos);
-@@ -196,11 +_,17 @@
+@@ -198,6 +_,12 @@
                                      this.blockState = this.blockState.setValue(BlockStateProperties.WATERLOGGED, true);
                                  }
  
@@ -110,26 +110,19 @@
 +                                    return;
 +                                }
 +                                // CraftBukkit end
-                                 if (this.level().setBlock(pos, this.blockState, 3)) {
+                                 if (this.level().setBlockAndUpdate(pos, this.blockState)) {
                                      serverLevel.getChunkSource()
                                          .chunkMap
-                                         .sendToTrackingPlayers(this, new ClientboundBlockUpdatePacket(pos, this.level().getBlockState(pos)));
+@@ -205,7 +_,7 @@
+                                     serverLevel.getChunkSource()
+                                         .chunkMap
+                                         .sendToTrackingPlayers(this, new ClientboundAddTransientBlockPacket(pos, this.level().getBlockState(pos)));
 -                                    this.discard();
 +                                    this.discard(EntityRemoveEvent.Cause.DESPAWN); // CraftBukkit - add Bukkit remove cause
                                      if (block instanceof Fallable fallable) {
                                          fallable.onLand(this.level(), pos, this.blockState, currentState, this);
                                      }
-@@ -217,34 +_,37 @@
-                                                 CompoundTag merged = output.buildResult();
-                                                 this.blockData.forEach((name, tag) -> merged.put(name, tag.copy()));
-                                                 blockEntity.loadWithComponents(TagValueInput.create(reporter, registryAccess, merged));
--                                            } catch (Exception e) {
--                                                LOGGER.error("Failed to load block entity from falling block", e);
-+                                            } catch (Exception var19) {
-+                                                LOGGER.error("Failed to load block entity from falling block", (Throwable)var19);
-                                             }
- 
-                                             blockEntity.setChanged();
+@@ -230,19 +_,19 @@
                                          }
                                      }
                                  } else if (this.dropItem && serverLevel.getGameRules().get(GameRules.ENTITY_DROPS)) {
@@ -152,18 +145,17 @@
                              this.callOnBrokenAfterFall(block, pos);
                          }
                      }
-                 }
-             }
+@@ -251,6 +_,9 @@
  
--            this.setDeltaMovement(this.getDeltaMovement().scale(this.getAirDrag()));
-+            this.setDeltaMovement(this.getDeltaMovement().scale(0.98));
+             this.setDeltaMovement(this.getDeltaMovement().scale(this.getAirDrag()));
+             this.setRequiresPrecisePosition(this.horizontalCollision || this.verticalCollision);
 +            if (isAlive() && block instanceof net.neoforged.neoforge.common.extensions.IFallableExtension feblock) {
 +                feblock.fallingTick(level(), blockPosition(), this);
 +            }
          }
      }
  
-@@ -297,6 +_,7 @@
+@@ -303,6 +_,7 @@
          }
  
          output.putBoolean("CancelDrop", this.cancelDrop);
@@ -171,7 +163,7 @@
      }
  
      @Override
-@@ -308,8 +_,9 @@
+@@ -314,8 +_,9 @@
          this.fallDamagePerDistance = input.getFloatOr("FallHurtAmount", 0.0F);
          this.fallDamageMax = input.getIntOr("FallHurtMax", 40);
          this.dropItem = input.getBooleanOr("DropItem", true);
@@ -182,7 +174,7 @@
      }
  
      public void setHurtsEntities(float damagePerDistance, int damageMax) {
-@@ -365,7 +_,7 @@
+@@ -371,7 +_,7 @@
          ResourceKey<Level> oldDimension = this.level().dimension();
          boolean fromOrToEnd = (oldDimension == Level.END || newDimension == Level.END) && oldDimension != newDimension;
          Entity newEntity = super.teleport(transition);
@@ -190,4 +182,4 @@
 +        this.forceTickAfterTeleportToDuplicate = newEntity != null && fromOrToEnd && io.papermc.paper.configuration.GlobalConfiguration.get().unsupportedSettings.allowUnsafeEndPortalTeleportation; // Paper
          return newEntity;
      }
- }
+ 

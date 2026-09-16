@@ -10,13 +10,11 @@ import com.mohistmc.youer.api.PlayerAPI;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.feature.PacketStatistics;
 import com.mohistmc.youer.feature.WorldBackup;
-import org.purpurmc.purpur.task.PacketBarTask;
 import com.mohistmc.youer.feature.db.DatabaseMigration;
 import com.mohistmc.youer.util.I18n;
 import com.mohistmc.youer.util.MemoryUtils;
 import com.mohistmc.youer.util.TimeUtils;
 import com.mohistmc.youer.util.YouerThreadCost;
-import com.mohistmc.youer.util.YouerVersion;
 import java.io.File;
 import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
@@ -24,33 +22,25 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.TreeMap;
-import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
-import net.minecraft.network.ConnectionProtocol;
-import net.minecraft.network.protocol.PacketFlow;
-import net.neoforged.neoforge.common.NeoForgeVersion;
-import net.neoforged.neoforge.network.registration.NetworkRegistry;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.generator.WorldInfo;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
-import org.spigotmc.SpigotConfig;
 
 public class YouerCommand extends Command {
 
     private static final String[] COMMAND_LIST = {
-            "info", "mods", "playermods", "reload", "version",
-            "channels_incom", "channels_outgo", "modchannels", "speed", "printthreadcost",
+            "windows", "mods", "playermods", "reload", "version",
+            "channels_incom", "channels_outgo", "speed", "printthreadcost",
             "packetstats", "heal", "help", "cleardropitem", "memoryfix", "showp",
             "backupworld", "migratedb"
     };
@@ -136,9 +126,6 @@ public class YouerCommand extends Command {
             case "reload" -> {
                 MinecraftServer console = MinecraftServer.getServer();
                 YouerConfig.init((File) console.options.valueOf("youer-settings"));
-                ((CraftServer) Bukkit.getServer()).initConfig();
-                ((CraftServer) Bukkit.getServer()).loadCustomPermissions();
-                SpigotConfig.init((File) console.options.valueOf("spigot-settings"));
                 for (ServerLevel world : console.getAllLevels()) {
                     world.spigotConfig.init(); // TODO
                 }
@@ -148,10 +135,9 @@ public class YouerCommand extends Command {
                 return true;
             }
             case "version" -> {
-                sender.sendMessage("Youer: " + YouerVersion.getVersion());
-                sender.sendMessage("NeoForge: " + NeoForgeVersion.getVersion());
-                sender.sendMessage("Paper: " + YouerVersion.getPaperVersion());
-                sender.sendMessage("Purpur: " + YouerVersion.getPurpurVersion());
+                sender.sendMessage("Youer: " + Youer.versionInfo.youer());
+                sender.sendMessage("NeoForge: " + Youer.versionInfo.neoforge());
+                sender.sendMessage("Paper: " + Youer.versionInfo.paper());
                 return true;
             }
             case "packetstats" -> {
@@ -183,10 +169,6 @@ public class YouerCommand extends Command {
                         String durationString = TimeUtils.formatDuration(durationSeconds);
 
                         PacketStatistics.stopCollecting();
-
-                        // Stop the packet bar too — it would otherwise show stale zeros
-                        PacketBarTask.instance().stop();
-
                         sender.sendMessage(I18n.as("packetstats.report.title"));
                         sender.sendMessage(I18n.as("packetstats.total.bytes", StringUtil.formatBytes(PacketStatistics.getTotalBytesSent())));
                         sender.sendMessage(I18n.as("packetstats.total.packets", String.valueOf(PacketStatistics.getTotalPacketsSent())));
@@ -294,38 +276,9 @@ public class YouerCommand extends Command {
                 return true;
             }
 
-            case "channels_incom" -> {
-                listPluginChannels(sender, true);
-                return true;
-            }
-            case "channels_outgo" -> {
-                listPluginChannels(sender, false);
-                return true;
-            }
-            case "modchannels" -> {
-                // List every custom payload channel registered by mods through NeoForge.
-                sender.sendMessage(I18n.as("youercmd.modchannels.title"));
-                boolean any = false;
-                for (ConnectionProtocol protocol : NetworkRegistry.PAYLOAD_REGISTRATIONS.keySet()) {
-                    var registrations = NetworkRegistry.PAYLOAD_REGISTRATIONS.get(protocol);
-                    if (registrations.isEmpty()) {
-                        continue;
-                    }
-                    any = true;
-                    sender.sendMessage(I18n.as("youercmd.modchannels.protocol", protocol.toString(), registrations.size()));
-                    for (var entry : registrations.entrySet()) {
-                        var reg = entry.getValue();
-                        String flow = reg.flow()
-                                .map(f -> f == PacketFlow.SERVERBOUND ? "UPSTREAM" : "DOWNSTREAM")
-                                .orElse("BIDIRECTIONAL");
-                        sender.sendMessage(I18n.as("youercmd.modchannels.entry", entry.getKey().toString(), flow, reg.version()));
-                    }
-                }
-                if (!any) {
-                    sender.sendMessage(I18n.as("youercmd.modchannels.empty"));
-                }
-                return true;
-            }
+            case "channels_incom" -> sender.sendMessage(ServerAPI.channels_Incoming().toString());
+            case "printthreadcost" -> YouerThreadCost.dumpThreadCpuTime(sender);
+            case "channels_outgo" -> sender.sendMessage(ServerAPI.channels_Outgoing().toString());
             case "speed" -> {
                 if (sender instanceof Player p) {
                     if (args.length == 2 && p.isOp()) {
@@ -385,8 +338,7 @@ public class YouerCommand extends Command {
                 sender.sendMessage(I18n.as("youercmd.memoryfix.result", result));
                 return true;
             }
-            case "info" -> {
-                int pid = (int) ProcessHandle.current().pid();
+            case "windows" -> {
                 int playerAmount = Bukkit.getOnlinePlayers().size();
                 int maxplayerAmount = Bukkit.getMaxPlayers();
                 boolean onlineMode = Bukkit.getOnlineMode();
@@ -397,44 +349,43 @@ public class YouerCommand extends Command {
                 String osArch = System.getProperty("os.arch");
                 String osVersion = System.getProperty("os.version");
 
-                sender.sendMessage(I18n.as("youercmd.info.title"));
+                sender.sendMessage(I18n.as("youercmd.windows.title"));
 
-                sender.sendMessage(I18n.as("youercmd.info.pid", pid));
-                sender.sendMessage(I18n.as("youercmd.info.version", bukkitVersion));
-                sender.sendMessage(I18n.as("youercmd.info.players", playerAmount, maxplayerAmount));
-                sender.sendMessage(I18n.as("youercmd.info.onlineMode", onlineMode ? I18n.as("youercmd.info.enabled") : I18n.as("youercmd.info.disabled")));
-                sender.sendMessage(I18n.as("youercmd.info.javaVersion", javaVersion));
-                sender.sendMessage(I18n.as("youercmd.info.jvmUptime", getJVMUpTime()));
+                sender.sendMessage(I18n.as("youercmd.windows.version", bukkitVersion));
+                sender.sendMessage(I18n.as("youercmd.windows.players", playerAmount, maxplayerAmount));
+                sender.sendMessage(I18n.as("youercmd.windows.onlineMode", onlineMode ? I18n.as("youercmd.windows.enabled") : I18n.as("youercmd.windows.disabled")));
+                sender.sendMessage(I18n.as("youercmd.windows.javaVersion", javaVersion));
+                sender.sendMessage(I18n.as("youercmd.windows.jvmUptime", getJVMUpTime()));
 
-                sender.sendMessage(I18n.as("youercmd.info.memory",
+                sender.sendMessage(I18n.as("youercmd.windows.memory",
                         StatsUtils.BytesToMegaBytes(StatsUtils.freeMemory()),
                         StatsUtils.BytesToMegaBytes(StatsUtils.totalMemory()),
                         StatsUtils.BytesToMegaBytes(StatsUtils.maxMemory()),
-                        I18n.as("youercmd.info.disk.free"),
-                        I18n.as("youercmd.info.disk.usable"),
-                        I18n.as("youercmd.info.disk.total")));
+                        I18n.as("youercmd.windows.disk.free"),
+                        I18n.as("youercmd.windows.disk.usable"),
+                        I18n.as("youercmd.windows.disk.total")));
 
                 try {
-                    sender.sendMessage(I18n.as("youercmd.info.cpu",
+                    sender.sendMessage(I18n.as("youercmd.windows.cpu",
                             StatsUtils.LoadAverange(),
-                            I18n.as("youercmd.info.cpu.loadavg"),
+                            I18n.as("youercmd.windows.cpu.loadavg"),
                             StatsUtils.getProcessCpuLoad(),
-                            I18n.as("youercmd.info.cpu.process")));
+                            I18n.as("youercmd.windows.cpu.process")));
                 } catch (final Exception ignored) {
-                    sender.sendMessage(I18n.as("youercmd.info.cpu.unavailable_msg"));
+                    sender.sendMessage(I18n.as("youercmd.windows.cpu.unavailable_msg"));
                 }
 
-                sender.sendMessage(I18n.as("youercmd.info.disk",
+                sender.sendMessage(I18n.as("youercmd.windows.disk",
                         StatsUtils.BytesToGigaBytes(StatsUtils.freeDisk()),
                         StatsUtils.BytesToGigaBytes(StatsUtils.usableDisk()),
                         StatsUtils.BytesToGigaBytes(StatsUtils.totalDisk()),
-                        I18n.as("youercmd.info.disk.free"),
-                        I18n.as("youercmd.info.disk.usable"),
-                        I18n.as("youercmd.info.disk.total")));
+                        I18n.as("youercmd.windows.disk.free"),
+                        I18n.as("youercmd.windows.disk.usable"),
+                        I18n.as("youercmd.windows.disk.total")));
 
-                sender.sendMessage(I18n.as("youercmd.info.system", osName, osVersion, osArch));
+                sender.sendMessage(I18n.as("youercmd.windows.system", osName, osVersion, osArch));
 
-                sender.sendMessage(I18n.as("youercmd.info.separator"));
+                sender.sendMessage(I18n.as("youercmd.windows.separator"));
             }
 
             case "showp" -> {
@@ -536,25 +487,6 @@ public class YouerCommand extends Command {
         return true;
     }
 
-    private void listPluginChannels(CommandSender sender, boolean incoming) {
-        var messenger = Bukkit.getMessenger();
-        var byChannel = new TreeMap<String, TreeSet<String>>();
-        for (var plugin : Bukkit.getPluginManager().getPlugins()) {
-            var channels = incoming ? messenger.getIncomingChannels(plugin) : messenger.getOutgoingChannels(plugin);
-            for (var ch : channels) {
-                byChannel.computeIfAbsent(ch, k -> new TreeSet<>()).add(plugin.getName());
-            }
-        }
-        sender.sendMessage(I18n.as(incoming ? "youercmd.channels_incom.title" : "youercmd.channels_outgo.title"));
-        if (byChannel.isEmpty()) {
-            sender.sendMessage(I18n.as("youercmd.channels.empty"));
-            return;
-        }
-        for (var entry : byChannel.entrySet()) {
-            sender.sendMessage(I18n.as("youercmd.channels.entry", entry.getKey(), String.join(", ", entry.getValue())));
-        }
-    }
-
     public static String getJVMUpTime() {
         long uptime = ManagementFactory.getRuntimeMXBean().getUptime();
         long seconds = uptime / 1000;
@@ -582,7 +514,6 @@ public class YouerCommand extends Command {
         sender.sendMessage(I18n.as("youercmd.help.memoryfix"));
         sender.sendMessage(I18n.as("youercmd.help.channels_incom"));
         sender.sendMessage(I18n.as("youercmd.help.channels_outgo"));
-        sender.sendMessage(I18n.as("youercmd.help.modchannels"));
         sender.sendMessage(I18n.as("youercmd.help.printthreadcost"));
         sender.sendMessage(I18n.as("youercmd.help.help"));
         sender.sendMessage(I18n.as("youercmd.help.backupworld"));

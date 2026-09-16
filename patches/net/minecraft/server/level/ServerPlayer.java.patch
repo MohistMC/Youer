@@ -1,22 +1,15 @@
 --- a/net/minecraft/server/level/ServerPlayer.java
 +++ b/net/minecraft/server/level/ServerPlayer.java
-@@ -5,6 +_,7 @@
- import com.google.common.cache.LoadingCache;
- import com.google.common.hash.HashCode;
- import com.google.common.net.InetAddresses;
-+import com.mohistmc.youer.feature.KeepInventory;
- import com.mojang.authlib.GameProfile;
- import com.mojang.datafixers.util.Either;
- import com.mojang.logging.LogUtils;
-@@ -115,6 +_,7 @@
+@@ -118,6 +_,8 @@
+ import net.minecraft.world.InteractionHand;
  import net.minecraft.world.MenuProvider;
  import net.minecraft.world.attribute.BedRule;
- import net.minecraft.world.attribute.EnvironmentAttributes;
++import net.minecraft.world.attribute.EnvironmentAttributes;
 +import net.minecraft.world.damagesource.CombatTracker;
  import net.minecraft.world.damagesource.DamageSource;
  import net.minecraft.world.damagesource.DamageTypes;
  import net.minecraft.world.effect.MobEffectInstance;
-@@ -126,6 +_,7 @@
+@@ -129,6 +_,7 @@
  import net.minecraft.world.entity.EntityType;
  import net.minecraft.world.entity.EntityTypes;
  import net.minecraft.world.entity.EquipmentSlot;
@@ -24,7 +17,12 @@
  import net.minecraft.world.entity.LivingEntity;
  import net.minecraft.world.entity.Mob;
  import net.minecraft.world.entity.NeutralMob;
-@@ -157,6 +_,7 @@
+@@ -156,14 +_,17 @@
+ import net.minecraft.world.entity.projectile.throwableitemprojectile.ThrownEnderpearl;
+ import net.minecraft.world.entity.vehicle.boat.AbstractBoat;
+ import net.minecraft.world.entity.vehicle.minecart.AbstractMinecart;
++import net.minecraft.world.food.FoodData;
+ import net.minecraft.world.inventory.AbstractContainerMenu;
  import net.minecraft.world.inventory.ContainerListener;
  import net.minecraft.world.inventory.ContainerSynchronizer;
  import net.minecraft.world.inventory.HorseInventoryMenu;
@@ -32,7 +30,12 @@
  import net.minecraft.world.inventory.NautilusInventoryMenu;
  import net.minecraft.world.inventory.RemoteSlot;
  import net.minecraft.world.inventory.ResultSlot;
-@@ -169,6 +_,7 @@
+ import net.minecraft.world.inventory.Slot;
++import net.minecraft.world.item.Item;
+ import net.minecraft.world.item.ItemCooldowns;
+ import net.minecraft.world.item.ItemStack;
+ import net.minecraft.world.item.MapItem;
+@@ -172,6 +_,7 @@
  import net.minecraft.world.item.component.WrittenBookContent;
  import net.minecraft.world.item.crafting.Recipe;
  import net.minecraft.world.item.crafting.RecipeHolder;
@@ -40,29 +43,49 @@
  import net.minecraft.world.item.enchantment.EnchantmentHelper;
  import net.minecraft.world.item.trading.MerchantOffers;
  import net.minecraft.world.level.ChunkPos;
-@@ -177,12 +_,14 @@
+@@ -179,6 +_,7 @@
+ import net.minecraft.world.level.Level;
  import net.minecraft.world.level.biome.BiomeManager;
- import net.minecraft.world.level.block.BedBlock;
+ import net.minecraft.world.level.block.AbstractBedBlock;
++import net.minecraft.world.level.block.BedBlock;
  import net.minecraft.world.level.block.Block;
-+import net.minecraft.world.level.block.ChestBlock;
  import net.minecraft.world.level.block.HorizontalDirectionalBlock;
  import net.minecraft.world.level.block.RespawnAnchorBlock;
- import net.minecraft.world.level.block.entity.BlockEntity;
- import net.minecraft.world.level.block.entity.CommandBlockEntity;
+@@ -187,6 +_,7 @@
  import net.minecraft.world.level.block.entity.SignBlockEntity;
+ import net.minecraft.world.level.block.entity.SignTextSlot;
  import net.minecraft.world.level.block.state.BlockState;
 +import net.minecraft.world.level.dimension.LevelStem;
  import net.minecraft.world.level.gameevent.GameEvent;
  import net.minecraft.world.level.gamerules.GameRules;
  import net.minecraft.world.level.portal.TeleportTransition;
-@@ -202,11 +_,16 @@
+@@ -206,11 +_,35 @@
  import net.minecraft.world.scores.Team;
  import net.minecraft.world.scores.TeamColor;
  import net.minecraft.world.scores.criteria.ObjectiveCriteria;
++import net.neoforged.neoforge.event.entity.player.PlayerSetSpawnEvent;
++import org.bukkit.Bukkit;
++import org.bukkit.Location;
++import org.bukkit.WeatherType;
 +import org.bukkit.command.CommandSender;
++import org.bukkit.craftbukkit.CraftWorld;
 +import org.bukkit.craftbukkit.CraftWorldBorder;
++import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;
++import org.bukkit.craftbukkit.inventory.CraftItemStack;
++import org.bukkit.craftbukkit.scoreboard.CraftScoreboardManager;
++import org.bukkit.craftbukkit.util.CraftDimensionUtil;
++import org.bukkit.craftbukkit.util.CraftLocation;
++import org.bukkit.event.entity.CreatureSpawnEvent;
++import org.bukkit.event.player.PlayerBedLeaveEvent;
++import org.bukkit.event.player.PlayerChangedMainHandEvent;
++import org.bukkit.event.player.PlayerChangedWorldEvent;
++import org.bukkit.event.player.PlayerLocaleChangeEvent;
++import org.bukkit.event.player.PlayerPortalEvent;
++import org.bukkit.event.player.PlayerRespawnEvent;
++import org.bukkit.event.player.PlayerSpawnChangeEvent;
 +import org.bukkit.event.player.PlayerTeleportEvent;
++import org.bukkit.inventory.MainHand;
  import org.jspecify.annotations.Nullable;
  import org.slf4j.Logger;
  
@@ -73,7 +96,7 @@
      private static final int NEUTRAL_MOB_DEATH_NOTIFICATION_RADII_XZ = 32;
      private static final int NEUTRAL_MOB_DEATH_NOTIFICATION_RADII_Y = 10;
      private static final int FLY_STAT_RECORDING_SPEED = 25;
-@@ -229,7 +_,7 @@
+@@ -233,7 +_,7 @@
      private static final boolean DEFAULT_SEEN_CREDITS = false;
      private static final boolean DEFAULT_SPAWN_EXTRA_PARTICLES_ON_FALL = false;
      public ServerGamePacketListenerImpl connection;
@@ -82,7 +105,15 @@
      public final ServerPlayerGameMode gameMode;
      private final PlayerAdvancements advancements;
      private final ServerStatsCounter stats;
-@@ -255,7 +_,8 @@
+@@ -252,14 +_,15 @@
+     private boolean canChatColor = true;
+     private long lastActionTime = Util.getMillis();
+     private @Nullable Entity camera;
+-    private boolean isChangingDimension;
++    public boolean isChangingDimension;
+     public boolean seenCredits = false;
+     private final ServerRecipeBook recipeBook;
+     private @Nullable Vec3 levitationStartPos;
      private int levitationStartTime;
      private boolean disconnected;
      private int requestedViewDistance = 2;
@@ -92,7 +123,7 @@
      private @Nullable Vec3 startingToFallPosition;
      private @Nullable Vec3 enteredNetherPosition;
      private @Nullable Vec3 enteredLavaOnVehiclePosition;
-@@ -301,6 +_,13 @@
+@@ -306,6 +_,13 @@
              }
          }
  
@@ -106,7 +137,7 @@
          @Override
          public void sendSlotChange(AbstractContainerMenu container, int slotIndex, ItemStack itemStack) {
              ServerPlayer.this.connection.send(new ClientboundContainerSetSlotPacket(container.containerId, container.incrementStateId(), slotIndex, itemStack));
-@@ -317,6 +_,10 @@
+@@ -322,6 +_,10 @@
          }
  
          private void broadcastDataValue(AbstractContainerMenu container, int id, int value) {
@@ -117,7 +148,7 @@
              ServerPlayer.this.connection.send(new ClientboundContainerSetDataPacket(container.containerId, id, value));
          }
  
-@@ -336,6 +_,32 @@
+@@ -341,6 +_,32 @@
              }
          }
  
@@ -150,7 +181,7 @@
          @Override
          public void dataChanged(AbstractContainerMenu container, int id, int value) {
          }
-@@ -362,10 +_,90 @@
+@@ -367,10 +_,89 @@
          public void sendSystemMessage(Component message) {
              ServerPlayer.this.sendSystemMessage(message);
          }
@@ -207,7 +238,6 @@
 +    private boolean tpsBar = false; // Purpur - Implement TPSBar
 +    private boolean compassBar = false; // Purpur - Add compass command
 +    private boolean ramBar = false; // Purpur - Implement rambar commands
-+    private boolean packetBar = false; // Youer - Add packetbar command
 +
 +    // Paper start - rewrite chunk system
 +    private ca.spottedleaf.moonrise.patches.chunk_system.player.RegionizedPlayerChunkLoader.PlayerChunkLoaderData chunkLoader;
@@ -241,7 +271,7 @@
  
      public ServerPlayer(MinecraftServer server, ServerLevel level, GameProfile gameProfile, ClientInformation clientInformation) {
          super(level, gameProfile);
-@@ -376,14 +_,29 @@
+@@ -381,14 +_,29 @@
          this.recipeBook = new ServerRecipeBook((id, output) -> server.getRecipeManager().listDisplaysForRecipe(id, output));
          this.stats = server.getPlayerList().getPlayerStats(this);
          this.advancements = server.getPlayerList().getPlayerAdvancements(this);
@@ -273,7 +303,7 @@
          return BlockPos.containing(future.join());
      }
  
-@@ -396,6 +_,7 @@
+@@ -401,6 +_,7 @@
          this.seenCredits = input.getBooleanOr("seenCredits", false);
          input.read("recipeBook", ServerRecipeBook.Packed.CODEC)
              .ifPresent(p -> this.recipeBook.loadUntrusted(p, id -> this.server.getRecipeManager().byKey(id).isPresent()));
@@ -281,17 +311,18 @@
          if (this.isSleeping()) {
              this.stopSleeping();
          }
-@@ -403,12 +_,30 @@
+@@ -408,13 +_,30 @@
          this.respawnConfig = input.read("respawn", ServerPlayer.RespawnConfig.CODEC).orElse(null);
          this.spawnExtraParticlesOnFall = input.getBooleanOr("spawn_extra_particles_on_fall", false);
          this.raidOmenPosition = input.read("raid_omen_position", BlockPos.CODEC).orElse(null);
 -        this.gameMode
 -            .setGameModeForPlayer(this.calculateGameModeForNewPlayer(readPlayerMode(input, "playerGameType")), readPlayerMode(input, "previousPlayerGameType"));
+-        input.read("post_effects", Codec.list(Identifier.CODEC)).ifPresent(this.postEffects::addAll);
 +        this.tpsBar = input.getBooleanOr("Purpur.TPSBar", false); // Purpur - Implement TPSBar
 +        this.compassBar = input.getBooleanOr("Purpur.CompassBar", false); // Purpur - Add compass command
 +        this.ramBar = input.getBooleanOr("Purpur.RamBar", false); // Purpur - Implement rambar command
-+        this.packetBar = input.getBooleanOr("Purpur.PacketBar", false); // Youer - Add packetbar command
 +        this.loadGameTypes(input); // Paper - Expand PlayerGameModeChangeEvent
++		input.read("post_effects", Codec.list(Identifier.CODEC)).ifPresent(this.postEffects::addAll);
          this.setShoulderEntityLeft(input.read("ShoulderEntityLeft", CompoundTag.CODEC).orElseGet(CompoundTag::new));
          this.setShoulderEntityRight(input.read("ShoulderEntityRight", CompoundTag.CODEC).orElseGet(CompoundTag::new));
      }
@@ -314,7 +345,7 @@
      @Override
      protected void addAdditionalSaveData(ValueOutput output) {
          super.addAdditionalSaveData(output);
-@@ -431,12 +_,28 @@
+@@ -438,12 +_,27 @@
          if (!this.getShoulderEntityRight().isEmpty()) {
              output.store("ShoulderEntityRight", CompoundTag.CODEC, this.getShoulderEntityRight());
          }
@@ -322,7 +353,6 @@
 +        output.putBoolean("Purpur.TPSBar", this.tpsBar); // Purpur - Implement TPSBar
 +        output.putBoolean("Purpur.CompassBar", this.compassBar); // Purpur - Add compass command
 +        output.putBoolean("Purpur.RamBar", this.ramBar); // Purpur - Add rambar command
-+        output.putBoolean("Purpur.PacketBar", this.packetBar); // Youer - Add packetbar command
      }
  
      private void saveParentVehicle(ValueOutput playerOutput) {
@@ -344,7 +374,7 @@
              ValueOutput vehicleWrapper = playerOutput.child("RootVehicle");
              vehicleWrapper.store("Attach", UUIDUtil.CODEC, vehicle.getUUID());
              rootVehicle.save(vehicleWrapper.child("Entity"));
-@@ -465,10 +_,10 @@
+@@ -472,10 +_,10 @@
  
                  if (!this.isPassenger()) {
                      LOGGER.warn("Couldn't reattach entity to player");
@@ -357,7 +387,7 @@
                      }
                  }
              }
-@@ -480,6 +_,7 @@
+@@ -487,6 +_,7 @@
              ValueOutput.ValueOutputList pearlsOutput = playerOutput.childrenList("ender_pearls");
  
              for (ThrownEnderpearl enderPearl : this.enderPearls) {
@@ -365,7 +395,7 @@
                  if (enderPearl.isRemoved()) {
                      LOGGER.warn("Trying to save removed ender pearl, skipping");
                  } else {
-@@ -514,6 +_,20 @@
+@@ -521,6 +_,20 @@
          }
      }
  
@@ -386,7 +416,15 @@
      public void setExperiencePoints(int amount) {
          float limit = this.getXpNeededForNextLevel();
          float max = (limit - 1.0F) / limit;
-@@ -578,6 +_,11 @@
+@@ -555,6 +_,7 @@
+     public void initMenu(AbstractContainerMenu container) {
+         container.addSlotListener(this.containerListener);
+         container.setSynchronizer(this.containerSynchronizer);
++        container.startOpen(); // CraftBukkit - don't force startOpen until container actually opens
+     }
+ 
+     public void initInventoryMenu() {
+@@ -585,6 +_,11 @@
  
      @Override
      public void tick() {
@@ -398,8 +436,8 @@
          this.connection.tickClientLoadTimeout();
          this.gameMode.tick();
          this.wardenSpawnTracker.tick();
-@@ -585,9 +_,18 @@
-             this.invulnerableTime--;
+@@ -592,9 +_,18 @@
+             this.damageCooldownTime--;
          }
  
 -        this.containerMenu.broadcastChanges();
@@ -420,10 +458,10 @@
              this.containerMenu = this.inventoryMenu;
          }
  
-@@ -613,6 +_,15 @@
-         this.trackEnteredOrExitedLavaOnVehicle();
-         this.updatePlayerAttributes();
-         this.advancements.flushDirty(this, true);
+@@ -623,6 +_,15 @@
+         if (this.postEffectsDirty) {
+             this.sendPostEffects();
+         }
 +
 +        // Purpur start - Ridables
 +        if (this.level().purpurConfig.useNightVisionWhenRiding && this.getVehicle() != null && this.getVehicle().getRider() == this && this.level().getGameTime() % 100 == 0) { // 5 seconds
@@ -436,7 +474,7 @@
      }
  
      private void updatePlayerAttributes() {
-@@ -646,10 +_,10 @@
+@@ -656,10 +_,10 @@
  
      public void doTick() {
          try {
@@ -449,7 +487,7 @@
                      this.containerMenu = this.inventoryMenu;
                  }
  
-@@ -665,7 +_,26 @@
+@@ -675,7 +_,26 @@
                  }
  
                  if (!this.isSleeping()) {
@@ -460,8 +498,8 @@
 +                        // TODO 26.1: It's debatable whether this should advance in a dimension with no clock BUT in Vanilla it does!
 +                        this.awardStat(Stats.TIME_SINCE_REST);
 +                    } else {
-+                        var speed = level().clockManager().getRate(defaultClock.get());
-+                        var fullTicks = (int) speed;
++                        float speed = level().clockManager().getInstance(defaultClock.get()).rate();
++                        int fullTicks = (int) speed;
 +                        partialTimeSinceRestTick += speed;
 +                        if (partialTimeSinceRestTick >= 1) {
 +                            partialTimeSinceRestTick = 0;
@@ -477,7 +515,7 @@
                  }
              }
  
-@@ -679,7 +_,7 @@
+@@ -689,7 +_,7 @@
              if (this.getHealth() != this.lastSentHealth
                  || this.lastSentFood != this.foodData.getFoodLevel()
                  || this.foodData.getSaturationLevel() == 0.0F != this.lastFoodSaturationZero) {
@@ -486,7 +524,7 @@
                  this.lastSentHealth = this.getHealth();
                  this.lastSentFood = this.foodData.getFoodLevel();
                  this.lastFoodSaturationZero = this.foodData.getSaturationLevel() == 0.0F;
-@@ -710,6 +_,12 @@
+@@ -720,6 +_,12 @@
                  this.updateScoreForCriteria(ObjectiveCriteria.EXPERIENCE, Mth.ceil(this.lastRecordedExperience));
              }
  
@@ -499,7 +537,7 @@
              if (this.experienceLevel != this.lastRecordedLevel) {
                  this.lastRecordedLevel = this.experienceLevel;
                  this.updateScoreForCriteria(ObjectiveCriteria.LEVEL, Mth.ceil(this.lastRecordedLevel));
-@@ -720,9 +_,29 @@
+@@ -730,9 +_,29 @@
                  this.connection.send(new ClientboundSetExperiencePacket(this.experienceProgress, this.totalExperience, this.experienceLevel));
              }
  
@@ -529,7 +567,7 @@
          } catch (Throwable t) {
              CrashReport report = CrashReport.forThrowable(t, "Ticking player");
              CrashReportCategory category = report.addCategory("Player being ticked");
-@@ -733,7 +_,7 @@
+@@ -743,7 +_,7 @@
  
      private void synchronizeSpecialItemUpdates(ItemStack itemStack) {
          MapId mapId = itemStack.get(DataComponents.MAP_ID);
@@ -538,7 +576,7 @@
          if (data != null) {
              Packet<?> packet = data.getUpdatePacket(mapId, this);
              if (packet != null) {
-@@ -747,7 +_,7 @@
+@@ -757,7 +_,7 @@
          if (this.level().getDifficulty() == Difficulty.PEACEFUL && this.level().getGameRules().get(GameRules.NATURAL_HEALTH_REGENERATION)) {
              if (this.tickCount % 20 == 0) {
                  if (this.getHealth() < this.getMaxHealth()) {
@@ -547,7 +585,7 @@
                  }
  
                  float saturation = this.foodData.getSaturationLevel();
-@@ -767,7 +_,8 @@
+@@ -777,7 +_,8 @@
          this.playShoulderEntityAmbientSound(this.getShoulderEntityLeft());
          this.playShoulderEntityAmbientSound(this.getShoulderEntityRight());
          if (this.fallDistance > 0.5 || this.isInWater() || this.getAbilities().flying || this.isSleeping() || this.isInPowderSnow) {
@@ -557,7 +595,7 @@
          }
      }
  
-@@ -811,32 +_,61 @@
+@@ -821,32 +_,61 @@
      @Override
      public void removeEntitiesOnShoulder() {
          if (this.timeEntitySatOnShoulder + 20L < this.level().getGameTime()) {
@@ -634,7 +672,7 @@
      }
  
      @Override
-@@ -879,29 +_,113 @@
+@@ -889,29 +_,114 @@
          this.level().getScoreboard().forAllObjectives(criteria, this, score -> score.set(value));
      }
  
@@ -648,7 +686,7 @@
 +            return false;
 +        }
 +
-+        final org.bukkit.inventory.ItemStack bukkitStack = item.getBukkitStack();
++        final org.bukkit.inventory.ItemStack bukkitStack = org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(item);
 +        final java.util.Iterator<org.bukkit.inventory.ItemStack> iterator = itemsToKeep.iterator();
 +        while (iterator.hasNext()) {
 +            final org.bukkit.inventory.ItemStack itemStack = iterator.next();
@@ -661,6 +699,7 @@
 +        return false;
 +    }
 +    // Paper end - PlayerDeathEvent#getItemsToKeep
++
 +    // Paper start - Expand PlayerDeathEvent API
 +    private void sendClientboundPlayerCombatKillPacket(boolean displayMessage, Component deathMessage) {
 +        if (displayMessage && deathMessage != CommonComponents.EMPTY) {
@@ -716,12 +755,12 @@
 +            return;
 +        }
 +        List<DefaultDrop> loot = new java.util.ArrayList<>(this.getInventory().getContainerSize()); // Paper - Restore vanilla drops behavior
-+        boolean keepInventory = KeepInventory.inventory(this) || this.level().getGameRules().get(GameRules.KEEP_INVENTORY) || this.isSpectator();
++        boolean keepInventory = this.level().getGameRules().get(GameRules.KEEP_INVENTORY) || this.isSpectator();
 +
 +        if (!keepInventory) {
 +            for (ItemStack item : this.getInventory()) {
 +                if (!item.isEmpty() && !EnchantmentHelper.has(item, EnchantmentEffectComponents.PREVENT_EQUIPMENT_DROP)) {
-+                    loot.add(new DefaultDrop(item, stack -> this.drop(stack, true, false, false, null))); // Paper - Restore vanilla drops behavior; drop function taken from Inventory#dropAll (don't fire drop event)
++                    loot.add(new DefaultDrop(item, stack -> this.drop(stack, false, net.minecraft.util.Prediction.PREDICTED, true, false, null))); // Paper - Restore vanilla drops behavior; drop function taken from Inventory#dropAll (don't fire drop event)
 +                }
 +            }
 +        }
@@ -767,7 +806,7 @@
              if (team == null || team.getDeathMessageVisibility() == Team.Visibility.ALWAYS) {
                  this.server.getPlayerList().broadcastSystemMessage(deathMessage, false);
              } else if (team.getDeathMessageVisibility() == Team.Visibility.HIDE_FOR_OTHER_TEAMS) {
-@@ -910,7 +_,7 @@
+@@ -920,7 +_,7 @@
                  this.server.getPlayerList().broadcastSystemToAllExceptTeam(this, deathMessage);
              }
          } else {
@@ -776,7 +815,7 @@
          }
  
          this.removeEntitiesOnShoulder();
-@@ -918,11 +_,35 @@
+@@ -928,11 +_,35 @@
              this.tellNeutralMobsThatIDied();
          }
  
@@ -815,7 +854,7 @@
          LivingEntity killer = this.getKillCredit();
          if (killer != null) {
              this.awardStat(Stats.ENTITY_KILLED_BY.get(killer.getType()));
-@@ -956,10 +_,10 @@
+@@ -966,10 +_,10 @@
          if (victim != this) {
              super.awardKillScore(victim, killingBlow);
              Scoreboard scoreboard = this.level().getScoreboard();
@@ -828,7 +867,7 @@
              } else {
                  this.awardStat(Stats.MOB_KILLS);
              }
-@@ -972,11 +_,11 @@
+@@ -982,11 +_,11 @@
  
      private void handleTeamKill(ScoreHolder source, ScoreHolder target, Map<TeamColor, ObjectiveCriteria> criteriaByTeam) {
          Scoreboard scoreboard = this.level().getScoreboard();
@@ -842,7 +881,7 @@
              }
          }
      }
-@@ -985,16 +_,35 @@
+@@ -995,16 +_,35 @@
      public boolean hurtServer(ServerLevel level, DamageSource source, float damage) {
          if (this.isInvulnerableTo(level, source)) {
              return false;
@@ -888,7 +927,7 @@
      }
  
      @Override
-@@ -1006,22 +_,88 @@
+@@ -1016,22 +_,88 @@
          return this.level().isPvpAllowed();
      }
  
@@ -983,7 +1022,7 @@
      }
  
      public boolean isReceivingWaypoints() {
-@@ -1053,30 +_,27 @@
+@@ -1101,17 +_,20 @@
          BlockState blockState = level.getBlockState(pos);
          Block block = blockState.getBlock();
          if (block instanceof RespawnAnchorBlock && (forced || blockState.getValue(RespawnAnchorBlock.CHARGE) > 0) && RespawnAnchorBlock.canSetSpawn(level, pos)
@@ -993,12 +1032,15 @@
 +            Runnable consumeAnchorCharge = null; // Paper - Fix SPIGOT-5989 (don't use charge until after respawn event)
              Optional<Vec3> standUpPosition = RespawnAnchorBlock.findStandUpPosition(EntityTypes.PLAYER, level, pos);
              if (!forced && consumeSpawnBlock && standUpPosition.isPresent()) {
--                level.setBlock(pos, blockState.setValue(RespawnAnchorBlock.CHARGE, blockState.getValue(RespawnAnchorBlock.CHARGE) - 1), 3);
+-                level.setBlockAndUpdate(pos, blockState.setValue(RespawnAnchorBlock.CHARGE, blockState.getValue(RespawnAnchorBlock.CHARGE) - 1));
 +                consumeAnchorCharge = () -> level.setBlock(pos, blockState.setValue(RespawnAnchorBlock.CHARGE, blockState.getValue(RespawnAnchorBlock.CHARGE) - 1), Block.UPDATE_ALL); // Paper - Fix SPIGOT-5989 (don't use charge until after respawn event)
              }
 +            final Runnable finalConsumeAnchorCharge = consumeAnchorCharge; // Paper - Fix SPIGOT-5989
  
 -            return standUpPosition.map(p -> ServerPlayer.RespawnPosAngle.of(p, pos, 0.0F));
+-        } else if (block instanceof AbstractBedBlock abstractBedBlock && abstractBedBlock.getBedRule(level, pos).canSetSpawn(level)) {
+-            return AbstractBedBlock.findStandUpPosition(EntityTypes.PLAYER, level, pos, blockState.getValue(AbstractBedBlock.FACING), yaw)
+-                .map(p -> ServerPlayer.RespawnPosAngle.of(p, pos, 0.0F));
 +            return standUpPosition.map(p -> ServerPlayer.RespawnPosAngle.of(p, pos, 0.0F, false, true, finalConsumeAnchorCharge)); // Paper - Fix SPIGOT-5989 (don't use charge until after respawn event)
 +        } else if (block instanceof BedBlock && level.environmentAttributes().getValue(EnvironmentAttributes.BED_RULE, pos).canSetSpawn(level)) {
 +            return BedBlock.findStandUpPosition(EntityTypes.PLAYER, level, pos, blockState.getValue(BedBlock.FACING), yaw)
@@ -1006,16 +1048,9 @@
 +        } else if (!forced) {
 +            return blockState.getRespawnPosition(EntityTypes.PLAYER, level, pos, yaw);
          } else {
--            if (block instanceof BedBlock && level.environmentAttributes().getValue(EnvironmentAttributes.BED_RULE, pos).canSetSpawn(level)) {
--                return BedBlock.findStandUpPosition(EntityTypes.PLAYER, level, pos, blockState.getValue(BedBlock.FACING), yaw)
--                    .map(p -> ServerPlayer.RespawnPosAngle.of(p, pos, 0.0F));
--            }
--
--            if (!forced) {
--                return Optional.empty();
--            }
--
-             boolean freeBottom = block.isPossibleToRespawnInThis(blockState);
+             if (!forced) {
+                 return Optional.empty();
+@@ -1121,8 +_,8 @@
              BlockState topState = level.getBlockState(pos.above());
              boolean freeTop = topState.getBlock().isPossibleToRespawnInThis(topState);
              return freeBottom && freeTop
@@ -1026,7 +1061,7 @@
          }
      }
  
-@@ -1090,7 +_,11 @@
+@@ -1136,7 +_,11 @@
          }
      }
  
@@ -1038,7 +1073,7 @@
          if (this.isRemoved()) {
              return null;
          }
-@@ -1101,13 +_,38 @@
+@@ -1147,13 +_,38 @@
  
          ServerLevel newLevel = transition.newLevel();
          ServerLevel oldLevel = this.level();
@@ -1078,7 +1113,7 @@
              this.connection.resetPosition();
              transition.postTeleportTransition().onTransition(this);
              return this;
-@@ -1115,22 +_,24 @@
+@@ -1161,22 +_,24 @@
  
          this.isChangingDimension = true;
          LevelData levelData = newLevel.getLevelData();
@@ -1107,10 +1142,11 @@
          this.connection.resetPosition();
          newLevel.addDuringTeleport(this);
          profiler.pop();
-@@ -1140,11 +_,24 @@
+@@ -1186,12 +_,24 @@
          playerList.sendLevelInfo(this, newLevel);
          playerList.sendAllPlayerInfo(this);
          playerList.sendActivePlayerEffects(this);
+-        this.sendPostEffects();
 +        // TODO 1.21: Play custom teleport sound
          transition.postTeleportTransition().onTransition(this);
          this.lastSentExp = -1;
@@ -1132,7 +1168,7 @@
          return this;
      }
  
-@@ -1157,23 +_,34 @@
+@@ -1204,14 +_,29 @@
      public void triggerDimensionChangeTriggers(ServerLevel oldLevel) {
          ResourceKey<Level> oldKey = oldLevel.dimension();
          ResourceKey<Level> newKey = this.level().dimension();
@@ -1165,153 +1201,8 @@
      }
  
      @Override
-     public boolean broadcastToPlayer(ServerPlayer player) {
--        if (player.isSpectator()) {
--            return this.getCamera() == this;
--        } else {
--            return this.isSpectator() ? false : super.broadcastToPlayer(player);
--        }
-+        return player.isSpectator() ? this.getCamera() == this : !this.isSpectator() && super.broadcastToPlayer(player);
-     }
- 
-     @Override
-@@ -1182,9 +_,10 @@
-         this.containerMenu.broadcastChanges();
-     }
- 
--    @Override
--    public Either<Player.BedSleepingProblem, Unit> startSleepInBed(BlockPos pos) {
--        Direction direction = this.level().getBlockState(pos).getValue(HorizontalDirectionalBlock.FACING);
-+    // CraftBukkit start - moved bed result checks from below into separate method
-+    private Either<Player.BedSleepingProblem, Unit> getBedResult(final BlockPos pos, final Direction direction) {
-+        BedRule bedRule = this.level().environmentAttributes().getValue(EnvironmentAttributes.BED_RULE, pos);
-+        if (bedRule.explodes()) return Either.left(Player.BedSleepingProblem.EXPLOSION);
-         if (!this.isSleeping() && this.isAlive()) {
-             BedRule rule = this.level().environmentAttributes().getValue(EnvironmentAttributes.BED_RULE, pos);
-             boolean canSleep = rule.canSleep(this.level());
-@@ -1203,41 +_,124 @@
- 
-             if (canSetSpawn) {
-                 this.setRespawnPosition(
--                    new ServerPlayer.RespawnConfig(LevelData.RespawnData.of(this.level().dimension(), pos, this.getYRot(), this.getXRot()), false), true
--                );
--            }
--
--            if (!canSleep) {
--                return Either.left(rule.asProblem());
--            }
--
--            if (!this.isCreative()) {
--                double hRange = 8.0;
--                double vRange = 5.0;
--                Vec3 bedCenter = Vec3.atBottomCenterOf(pos);
--                List<Monster> monsters = this.level()
--                    .getEntitiesOfClass(
--                        Monster.class,
--                        new AABB(bedCenter.x() - 8.0, bedCenter.y() - 5.0, bedCenter.z() - 8.0, bedCenter.x() + 8.0, bedCenter.y() + 5.0, bedCenter.z() + 8.0),
--                        monster -> monster.isPreventingPlayerRest(this.level(), this)
--                    );
-+                        new ServerPlayer.RespawnConfig(LevelData.RespawnData.of(this.level().dimension(), pos, this.getYRot(), this.getXRot()), false), true, com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.BED // Paper - Add PlayerSetSpawnEvent
-+                );
-+            }
-+
-+            if (!canSleep) {
-+                return Either.left(rule.asProblem());
-+            }
-+
-+            if (!this.isCreative()) {
-+                double hRange = 8.0;
-+                double vRange = 5.0;
-+                Vec3 bedCenter = Vec3.atBottomCenterOf(pos);
-+                List<Monster> monsters = this.level()
-+                        .getEntitiesOfClass(
-+                                Monster.class,
-+                                new AABB(bedCenter.x() - 8.0, bedCenter.y() - 5.0, bedCenter.z() - 8.0, bedCenter.x() + 8.0, bedCenter.y() + 5.0, bedCenter.z() + 8.0),
-+                                monster -> monster.isPreventingPlayerRest(this.level(), this)
-+                        );
-+                if (!this.level().purpurConfig.playerSleepNearMonsters && !monsters.isEmpty()) { // Purpur - Config to ignore nearby mobs when sleeping
-+                    return Either.left(Player.BedSleepingProblem.NOT_SAFE);
-+                }
-+            }
-+
-+            // CraftBukkit start
-+            return Either.right(Unit.INSTANCE);
-+        } else {
-+            return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
-+        }
-+    }
-+
-+    @Override
-+    public Either<Player.BedSleepingProblem, Unit> startSleepInBed(BlockPos pos) {
-+        // Neo: Encapsulate the vanilla check logic to supply to the CanPlayerSleepEvent
-+        var vanillaResult = ((java.util.function.Supplier<Either<BedSleepingProblem, Unit>>) () -> {
-+            // Guard against modded beds that may not have the FACING property.
-+            // We just return success (Unit) here. Modders will need to implement conditions in the CanPlayerSleepEvent
-+            if (!this.level().getBlockState(pos).hasProperty(HorizontalDirectionalBlock.FACING)) {
-+                return Either.right(Unit.INSTANCE);
-+            }
-+
-+            // Start vanilla code
-+            Direction direction = this.level().getBlockState(pos).getValue(HorizontalDirectionalBlock.FACING);
-+            if (this.isSleeping() || !this.isAlive()) {
-+                return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
-+            }
-+            BedRule rule = this.level().environmentAttributes().getValue(EnvironmentAttributes.BED_RULE, pos);
-+            boolean canSleep = rule.canSleep(this.level());
-+            boolean canSetSpawn = rule.canSetSpawn(this.level());
-+            if (!canSetSpawn && !canSleep) {
-+                return Either.left(rule.asProblem());
-+            }
-+
-+            if (!this.bedInRange(pos, direction)) {
-+                return Either.left(Player.BedSleepingProblem.TOO_FAR_AWAY);
-+            }
-+
-+            if (this.bedBlocked(pos, direction)) {
-+                return Either.left(Player.BedSleepingProblem.OBSTRUCTED);
-+            }
-+
-+            if (canSetSpawn) {
-+                this.setRespawnPosition(
-+                        new ServerPlayer.RespawnConfig(LevelData.RespawnData.of(this.level().dimension(), pos, this.getYRot(), this.getXRot()), false), true
-+                );
-+            }
-+
-+            if (!canSleep) {
-+                return Either.left(rule.asProblem());
-+            }
-+
-+            if (!this.isCreative()) {
-+                double hRange = 8.0;
-+                double vRange = 5.0;
-+                Vec3 bedCenter = Vec3.atBottomCenterOf(pos);
-+                List<Monster> monsters = this.level()
-+                        .getEntitiesOfClass(
-+                                Monster.class,
-+                                new AABB(bedCenter.x() - 8.0, bedCenter.y() - 5.0, bedCenter.z() - 8.0, bedCenter.x() + 8.0, bedCenter.y() + 5.0, bedCenter.z() + 8.0),
-+                                monster -> monster.isPreventingPlayerRest(this.level(), this)
-+                        );
-                 if (!monsters.isEmpty()) {
-                     return Either.left(Player.BedSleepingProblem.NOT_SAFE);
+@@ -1275,7 +_,17 @@
                  }
-             }
- 
-+            // End vanilla code
-+
-+            return Either.right(Unit.INSTANCE);
-+        }).get();
-+
-+        // Neo: Fire the event, and return the error if one exists
-+        vanillaResult = net.neoforged.neoforge.event.EventHooks.canPlayerStartSleeping(this, pos, vanillaResult);
-+        if (vanillaResult.left().isPresent()) {
-+            return vanillaResult;
-+        }
-+
-+        {
-+            // Neo: Continue with the vanilla code to start sleeping
-             Either<Player.BedSleepingProblem, Unit> result = super.startSleepInBed(pos).ifRight(unit -> {
-                 this.awardStat(Stats.SLEEP_IN_BED);
-                 CriteriaTriggers.SLEPT_IN_BED.trigger(this);
              });
              if (!this.level().canSleepThroughNights()) {
 -                this.sendOverlayMessage(Component.translatable("sleep.not_possible"));
@@ -1329,13 +1220,7 @@
              }
  
              this.level().updateSleepingPlayerList();
-             return result;
--        } else {
--            return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
-         }
-     }
- 
-@@ -1248,6 +_,7 @@
+@@ -1300,6 +_,7 @@
      }
  
      private boolean bedInRange(BlockPos pos, Direction direction) {
@@ -1343,7 +1228,7 @@
          return this.isReachableBedBlock(pos) || this.isReachableBedBlock(pos.relative(direction.getOpposite()));
      }
  
-@@ -1265,19 +_,30 @@
+@@ -1317,19 +_,30 @@
  
      @Override
      public void stopSleepInBed(boolean forcefulWakeUp, boolean updateLevelList) {
@@ -1356,7 +1241,7 @@
 +        }
 +        // CraftBukkit end
          if (this.isSleeping()) {
-             this.level().getChunkSource().sendToTrackingPlayersAndSelf(this, new ClientboundAnimatePacket(this, 2));
+             this.level().getChunkSource().sendToTrackingPlayersAndSelf(this, new ClientboundAnimatePacket(this, 0));
          }
  
          super.stopSleepInBed(forcefulWakeUp, updateLevelList);
@@ -1376,15 +1261,7 @@
      }
  
      @Override
-@@ -1317,6 +_,7 @@
- 
-     @Override
-     public void openTextEdit(SignBlockEntity sign, boolean isFrontText) {
-+        if (level().purpurConfig.signAllowColors) this.connection.send(sign.getTranslatedUpdatePacket(textFilteringEnabled, isFrontText)); // Purpur - Signs allow color codes
-         this.connection.send(new ClientboundBlockUpdatePacket(this.level(), sign.getBlockPos()));
-         this.connection.send(new ClientboundOpenSignEditorPacket(sign.getBlockPos(), isFrontText));
-     }
-@@ -1330,29 +_,89 @@
+@@ -1382,18 +_,32 @@
          this.containerCounter = this.containerCounter % 100 + 1;
      }
  
@@ -1402,97 +1279,79 @@
 +    public OptionalInt openMenu(@Nullable MenuProvider provider, java.util.function.@Nullable Consumer<net.minecraft.network.RegistryFriendlyByteBuf> extraDataWriter) {
          if (provider == null) {
              return OptionalInt.empty();
--        }
--
--        if (this.containerMenu != this.inventoryMenu) {
--            this.closeContainer();
--        }
--
--        this.nextContainerCounter();
--        AbstractContainerMenu menu = provider.createMenu(this.containerCounter, this.getInventory(), this);
--        if (menu == null) {
--            if (this.isSpectator()) {
--                this.sendOverlayMessage(Component.translatable("container.spectatorCantOpen").withStyle(ChatFormatting.RED));
--            }
--
--            return OptionalInt.empty();
+         }
+ 
+         if (this.containerMenu != this.inventoryMenu) {
++            if (provider.shouldTriggerClientSideContainerClosingOnOpen())
+             this.closeContainer();
++            else
++                this.doCloseContainer();
+         }
+ 
+         this.nextContainerCounter();
+         AbstractContainerMenu menu = provider.createMenu(this.containerCounter, this.getInventory(), this);
++        Component title = null; // Paper - Add titleOverride to InventoryOpenEvent
+         if (menu == null) {
+             if (this.isSpectator()) {
+                 this.sendOverlayMessage(Component.translatable("container.spectatorCantOpen").withStyle(ChatFormatting.RED));
+@@ -1401,9 +_,55 @@
+ 
+             return OptionalInt.empty();
          } else {
 -            this.connection.send(new ClientboundOpenScreenPacket(menu.containerId, menu.getType(), provider.getDisplayName()));
--            this.initMenu(menu);
--            this.containerMenu = menu;
--            return OptionalInt.of(this.containerCounter);
-+            if (this.containerMenu != this.inventoryMenu) {
-+                if (provider.shouldTriggerClientSideContainerClosingOnOpen())
-+                this.closeContainer();
-+                else
-+                    this.doCloseContainer();
-+            }
-+
-+            this.nextContainerCounter();
-+            AbstractContainerMenu menu = provider.createMenu(this.containerCounter, this.getInventory(), this);
-+            Component title = null; // Paper - Add titleOverride to InventoryOpenEvent
-+            if (menu == null) {
-+                if (this.isSpectator()) {
-+                    this.sendOverlayMessage(Component.translatable("container.spectatorCantOpen").withStyle(ChatFormatting.RED));
-+                }
-+
-+                return OptionalInt.empty();
-+            } else {
-+                // Neo: Support sending additional arbitrary data to menu factories on the client-side
-+                menu.setTitle(provider.getDisplayName());
-+                AbstractContainerMenu finalMenu = menu;
-+                var extraData = net.neoforged.neoforge.common.util.FriendlyByteBufUtil.writeCustomData(
-+                        buffer -> {
-+                            provider.writeClientSideData(finalMenu, buffer);
-+                            if (extraDataWriter != null) {
-+                                extraDataWriter.accept(buffer);
-+                            }
-+                        },
-+                        registryAccess()
-+                );
-+                if (extraData.length != 0) {
-+                    this.connection.send(
-+                            new net.neoforged.neoforge.network.payload.AdvancedOpenScreenPayload(
-+                                    menu.containerId,
-+                                    menu.getType(),
-+                                    provider.getDisplayName(),
-+                                    extraData
-+                            )
-+                    );
-+                } else {
-+                    menu.setTitle(provider.getDisplayName());
-+                    menu.containerOwner = this;
-+                    boolean cancelled = false;
-+                    // Paper start - Add titleOverride to InventoryOpenEvent
-+                    final com.mojang.datafixers.util.Pair<net.kyori.adventure.text.Component, AbstractContainerMenu> result = org.bukkit.craftbukkit.event.CraftEventFactory.callInventoryOpenEventWithTitle(this, menu, cancelled);
-+                    menu = result.getSecond();
-+                    title = io.papermc.paper.adventure.PaperAdventure.asVanilla(result.getFirst());
-+                    // Paper end - Add titleOverride to InventoryOpenEvent
-+                    if (menu == null && !cancelled) { // Let pre-cancelled events fall through
-+                        // SPIGOT-5263 - close chest if cancelled
-+                        if (provider instanceof Container container) {
-+                            container.stopOpen(this);
-+                        } else if (provider instanceof org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest.Provider doubleChestProvider) {
-+                            // SPIGOT-5355 - double chests too :(
-+                            doubleChestProvider.container.stopOpen(this);
-+                            // Paper start - Fix InventoryOpenEvent cancellation
-+                        } else if (!this.enderChestInventory.isActiveChest(null)) {
-+                            this.enderChestInventory.stopOpen(this);
-+                            // Paper end - Fix InventoryOpenEvent cancellation
++            // Neo: Support sending additional arbitrary data to menu factories on the client-side
++            menu.setTitle(provider.getDisplayName());
++            AbstractContainerMenu finalMenu = menu;
++            var extraData = net.neoforged.neoforge.common.util.FriendlyByteBufUtil.writeCustomData(
++                    buffer -> {
++                        provider.writeClientSideData(finalMenu, buffer);
++                        if (extraDataWriter != null) {
++                            extraDataWriter.accept(buffer);
 +                        }
-+                        return OptionalInt.empty();
++                    },
++                    registryAccess()
++            );
++            if (extraData.length != 0) {
++                this.connection.send(
++                        new net.neoforged.neoforge.network.payload.AdvancedOpenScreenPayload(
++                                menu.containerId,
++                                menu.getType(),
++                                provider.getDisplayName(),
++                                extraData
++                        )
++                );
++            } else {
++                menu.setTitle(provider.getDisplayName());
++                menu.containerOwner = this;
++                boolean cancelled = false;
++                // Paper start - Add titleOverride to InventoryOpenEvent
++                final com.mojang.datafixers.util.Pair<net.kyori.adventure.text.Component, AbstractContainerMenu> result = org.bukkit.craftbukkit.event.CraftEventFactory.callInventoryOpenEventWithTitle(this, menu, cancelled);
++                menu = result.getSecond();
++                title = io.papermc.paper.adventure.PaperAdventure.asVanilla(result.getFirst());
++                // Paper end - Add titleOverride to InventoryOpenEvent
++                if (menu == null && !cancelled) { // Let pre-cancelled events fall through
++                    // SPIGOT-5263 - close chest if cancelled
++                    if (provider instanceof Container container) {
++                        container.stopOpen(this);
++                    } else if (provider instanceof org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest.Provider doubleChestProvider) {
++                        // SPIGOT-5355 - double chests too :(
++                        doubleChestProvider.container.stopOpen(this);
++                        // Paper start - Fix InventoryOpenEvent cancellation
++                    } else if (!this.enderChestInventory.isActiveChest(null)) {
++                        this.enderChestInventory.stopOpen(this);
++                        // Paper end - Fix InventoryOpenEvent cancellation
 +                    }
-+                    this.connection.send(new ClientboundOpenScreenPacket(menu.containerId, menu.getType(), java.util.Objects.requireNonNullElseGet(title, menu::getTitle))); // Paper - Add titleOverride to InventoryOpenEven
++                    return OptionalInt.empty();
 +                }
-+                this.initMenu(menu);
-+                this.containerMenu = menu;
-+                net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.PlayerContainerEvent.Open(this, this.containerMenu));
-+                return OptionalInt.of(this.containerCounter);
++                this.connection.send(new ClientboundOpenScreenPacket(menu.containerId, menu.getType(), java.util.Objects.requireNonNullElseGet(title, menu::getTitle))); // Paper - Add titleOverride to InventoryOpenEven
 +            }
+             this.initMenu(menu);
+             this.containerMenu = menu;
++            net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.PlayerContainerEvent.Open(this, this.containerMenu));
+             return OptionalInt.of(this.containerCounter);
          }
      }
- 
-@@ -1363,28 +_,51 @@
+@@ -1415,27 +_,49 @@
  
      @Override
      public void openHorseInventory(AbstractHorse horse, Container container) {
@@ -1550,11 +1409,9 @@
 -        this.containerMenu = new NautilusInventoryMenu(this.containerCounter, this.getInventory(), container, nautilus, inventoryColumns);
 +        this.containerMenu = abstractcontainermenu; // CraftBukkit
          this.initMenu(this.containerMenu);
-+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.entity.player.PlayerContainerEvent.Open(this, this.containerMenu));
      }
  
-     @Override
-@@ -1405,14 +_,35 @@
+@@ -1457,14 +_,35 @@
  
      @Override
      public void closeContainer() {
@@ -1590,7 +1447,7 @@
          this.containerMenu = this.inventoryMenu;
      }
  
-@@ -1504,13 +_,13 @@
+@@ -1556,13 +_,13 @@
      @Override
      public void awardStat(Stat<?> stat, int count) {
          this.stats.increment(this, stat, count);
@@ -1606,7 +1463,7 @@
      }
  
      @Override
-@@ -1541,9 +_,9 @@
+@@ -1591,9 +_,9 @@
          super.jumpFromGround();
          this.awardStat(Stats.JUMP);
          if (this.isSprinting()) {
@@ -1618,7 +1475,7 @@
          }
      }
  
-@@ -1558,6 +_,13 @@
+@@ -1608,6 +_,13 @@
      public void disconnect() {
          this.disconnected = true;
          this.ejectPassengers();
@@ -1632,7 +1489,7 @@
          if (this.isSleeping()) {
              this.stopSleepInBed(true, false);
          }
-@@ -1569,7 +_,28 @@
+@@ -1619,10 +_,31 @@
  
      public void resetSentInfo() {
          this.lastSentHealth = -1.0E8F;
@@ -1661,8 +1518,12 @@
 +    // Purpur end - Component related conveniences
  
      @Override
-     public void completeUsingItem() {
-@@ -1598,18 +_,18 @@
+-    protected void completeUsingItem() {
++    public void completeUsingItem() {
+         if (!this.useItem.isEmpty() && this.isUsingItem()) {
+             this.connection.send(new ClientboundEntityEventPacket(this, (byte)9));
+             super.completeUsingItem();
+@@ -1648,18 +_,18 @@
          this.onUpdateAbilities();
          this.getAttributes().assignBaseValues(oldPlayer.getAttributes());
          if (restoreAll) {
@@ -1684,7 +1545,7 @@
              if (this.level().getGameRules().get(GameRules.KEEP_INVENTORY) || oldPlayer.isSpectator()) {
                  this.transferInventoryXpAndScore(oldPlayer);
              }
-@@ -1621,7 +_,7 @@
+@@ -1671,7 +_,7 @@
          this.lastSentExp = -1;
          this.lastSentHealth = -1.0F;
          this.lastSentFood = -1;
@@ -1693,7 +1554,7 @@
          this.seenCredits = oldPlayer.seenCredits;
          this.enteredNetherPosition = oldPlayer.enteredNetherPosition;
          this.currentExplosionImpactPos = oldPlayer.currentExplosionImpactPos;
-@@ -1632,6 +_,15 @@
+@@ -1682,6 +_,15 @@
          this.setShoulderEntityRight(oldPlayer.getShoulderEntityRight());
          this.setLastDeathLocation(oldPlayer.getLastDeathLocation());
          this.waypointIcon().copyFrom(oldPlayer.waypointIcon());
@@ -1709,7 +1570,7 @@
      }
  
      private void transferInventoryXpAndScore(Player oldPlayer) {
-@@ -1675,9 +_,23 @@
+@@ -1725,9 +_,23 @@
          CriteriaTriggers.EFFECTS_CHANGED.trigger(this, null);
      }
  
@@ -1734,7 +1595,7 @@
      }
  
      @Override
-@@ -1686,7 +_,7 @@
+@@ -1736,7 +_,7 @@
      }
  
      @Override
@@ -1743,7 +1604,7 @@
          if (this.isSleeping()) {
              this.stopSleepInBed(true, true);
          }
-@@ -1695,7 +_,7 @@
+@@ -1745,7 +_,7 @@
              this.setCamera(this);
          }
  
@@ -1752,7 +1613,7 @@
          if (success) {
              this.setYHeadRot(relatives.contains(Relative.Y_ROT) ? this.getYHeadRot() + newYRot : newYRot);
              this.connection.resetFlyingTicks();
-@@ -1733,11 +_,18 @@
+@@ -1783,11 +_,18 @@
      }
  
      public boolean setGameMode(GameType mode) {
@@ -1775,7 +1636,7 @@
          this.connection.send(new ClientboundGameEventPacket(ClientboundGameEventPacket.CHANGE_GAME_MODE, mode.getId()));
          if (mode == GameType.SPECTATOR) {
              this.removeEntitiesOnShoulder();
-@@ -1753,7 +_,7 @@
+@@ -1803,7 +_,7 @@
  
          this.onUpdateAbilities();
          this.updateEffectVisibility();
@@ -1784,8 +1645,8 @@
      }
  
      @Override
-@@ -1779,6 +_,20 @@
-         );
+@@ -1819,6 +_,20 @@
+         return new CommandSourceStack(this.commandSource(), this.position(), this.getRotationVector(), this.level(), this.permissions(), this.server, this);
      }
  
 +    // Purpur start - Component related conveniences
@@ -1805,7 +1666,7 @@
      @Override
      public void sendSystemMessage(Component message) {
          this.sendSystemMessage(message, false);
-@@ -1821,8 +_,13 @@
+@@ -1861,8 +_,13 @@
      }
  
      public void sendChatMessage(OutgoingChatMessage message, boolean filtered, ChatType.Bound chatType) {
@@ -1820,7 +1681,7 @@
          }
      }
  
-@@ -1833,6 +_,40 @@
+@@ -1873,6 +_,40 @@
      }
  
      public void updateOptions(ClientInformation information) {
@@ -1861,7 +1722,7 @@
          this.language = information.language();
          this.requestedViewDistance = information.viewDistance();
          this.chatVisibility = information.chatVisibility();
-@@ -1890,7 +_,67 @@
+@@ -1930,7 +_,67 @@
  
      public void resetLastActionTime() {
          this.lastActionTime = Util.getMillis();
@@ -1930,7 +1791,7 @@
  
      public ServerStatsCounter getStats() {
          return this.stats;
-@@ -1917,9 +_,25 @@
+@@ -1957,9 +_,25 @@
      public void setCamera(@Nullable Entity newCamera) {
          Entity oldCamera = this.getCamera();
          this.camera = newCamera == null ? this : newCamera;
@@ -1957,7 +1818,7 @@
              }
  
              if (newCamera != null) {
-@@ -1943,11 +_,19 @@
+@@ -1983,11 +_,19 @@
      }
  
      public @Nullable Component getTabListDisplayName() {
@@ -1978,8 +1839,8 @@
 +        return listOrder; // CraftBukkit
      }
  
-     @Override
-@@ -1977,11 +_,61 @@
+     public boolean isChangingDimension() {
+@@ -2011,11 +_,61 @@
      }
  
      public void setRespawnPosition(ServerPlayer.@Nullable RespawnConfig respawnConfig, boolean showMessage) {
@@ -2043,10 +1904,14 @@
      }
  
      public SectionPos getLastSectionPos() {
-@@ -2003,15 +_,91 @@
+@@ -2035,17 +_,93 @@
+     }
+ 
      @Override
-     public ItemEntity drop(ItemStack itemStack, boolean randomly, boolean thrownFromHand) {
-         ItemEntity entity = super.drop(itemStack, randomly, thrownFromHand);
+-    public @Nullable ItemEntity drop(ItemStack itemStack, boolean thrownFromHand, Prediction prediction) {
+-        ItemEntity entity = super.drop(itemStack, thrownFromHand, prediction);
++    public ItemEntity drop(ItemStack itemStack, boolean thrownFromHand, Prediction prediction, boolean callEvent, final java.util.function.@Nullable Consumer<org.bukkit.entity.Item> entityOperation) { // Paper - Extend dropItem API
++        ItemEntity entity = super.drop(itemStack, thrownFromHand, prediction, callEvent, entityOperation); // Paper - Extend dropItem API
 +        ItemStack droppedItemStack = entity != null ? entity.getItem() : ItemStack.EMPTY; // Paper - move up
          if (thrownFromHand) {
 -            ItemStack droppedItemStack = entity != null ? entity.getItem() : ItemStack.EMPTY;
@@ -2137,15 +2002,7 @@
      }
  
      public TextFilter getTextFilter() {
-@@ -2028,6 +_,7 @@
-     }
- 
-     private GameType calculateGameModeForNewPlayer(@Nullable GameType loadedGameType) {
-+        if (isFakePlayer()) return GameType.SURVIVAL; // Neo: Always default fake players to survival
-         GameType forcedGameType = this.server.getForcedGameType();
-         if (forcedGameType != null) {
-             return forcedGameType;
-@@ -2062,8 +_,10 @@
+@@ -2097,8 +_,10 @@
          super.updateUsingItem(useItem);
      }
  
@@ -2157,16 +2014,18 @@
          ItemStack removed = inventory.removeFromSelected(all);
          this.containerMenu
              .findSlot(inventory, inventory.getSelectedSlot())
-@@ -2072,7 +_,7 @@
+@@ -2107,8 +_,9 @@
              this.stopUsingItem();
          }
  
--        this.drop(removed, false, true);
-+        return net.neoforged.neoforge.common.CommonHooks.onPlayerTossEvent(this, removed, false, true) != null; // Paper - add back success return
+-        this.drop(removed, true, Prediction.PREDICTED);
++        boolean ret = this.drop(removed, true, Prediction.PREDICTED) != null; // Paper - add back success return
+         this.resetAttackStrengthTicker();
++        return ret; // Paper - return, keep order
      }
  
      @Override
-@@ -2135,9 +_,9 @@
+@@ -2170,9 +_,9 @@
      }
  
      @Override
@@ -2178,7 +2037,7 @@
          if (oldVehicle instanceof LivingEntity livingEntity) {
              for (MobEffectInstance effect : livingEntity.getActiveEffects()) {
                  this.connection.send(new ClientboundRemoveMobEffectPacket(oldVehicle.getId(), effect.getEffect()));
-@@ -2289,9 +_,11 @@
+@@ -2331,9 +_,11 @@
          }
      }
  
@@ -2193,7 +2052,7 @@
          }
  
          private static float calculateLookAtYaw(Vec3 position, BlockPos lookAtBlockPos) {
-@@ -2311,4 +_,206 @@
+@@ -2353,4 +_,195 @@
          );
          public static final ServerPlayer.SavedPosition EMPTY = new ServerPlayer.SavedPosition(Optional.empty(), Optional.empty(), Optional.empty());
      }
@@ -2353,9 +2212,8 @@
 +                    to.getYaw(),
 +                    to.getPitch(),
 +                    net.minecraft.world.entity.Relative.ALL,
-+                    TeleportTransition.DO_NOTHING).withCause(
-+                    org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN
-+            ));
++                    TeleportTransition.DO_NOTHING
++            ).withCause(org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN));
 +        }
 +    }
 +    // Purpur end - Add option to teleport to spawn if outside world border
@@ -2389,14 +2247,4 @@
 +        this.ramBar = ramBar;
 +    }
 +    // Purpur end - Add rambar command
-+
-+    // Youer start - Add packetbar command
-+    public boolean packetBar() {
-+        return this.packetBar;
-+    }
-+
-+    public void packetBar(boolean packetBar) {
-+        this.packetBar = packetBar;
-+    }
-+    // Youer end - Add packetbar command
  }

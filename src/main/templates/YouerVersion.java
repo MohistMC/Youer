@@ -9,12 +9,4 @@ public class YouerVersion {
     public static String getVersion() {
         return "${youer_version}";
     }
-
-    public static String getPaperVersion() {
-        return "${paper_version}";
-    }
-
-    public static String getPurpurVersion() {
-        return "${purpur_version}";
-    }
 }
