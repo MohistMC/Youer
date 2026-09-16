@@ -693,16 +693,23 @@ public class BansCommand extends Command {
         if (args.length == 3 && args[0].equals("add") && args[1].equals("recipe") && (sender.isOp() || testPermission(sender))) {
             return BanRecipe.CACHE.stream()
                     .map(ResourceLocation::toString)
-                    .toList();
+                    .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
+                    .limit(50)
+                    .collect(Collectors.toList());
         }
 
         if (args.length == 3 && args[0].equals("add") && args[1].equals("world") && (sender.isOp() || testPermission(sender))) {
             return BanWorld.CACHE.stream()
                     .map(ResourceLocation::toString)
-                    .toList();
+                    .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
+                    .limit(50)
+                    .collect(Collectors.toList());
         }
         if (args.length == 3 && args[0].equals("add") && args[1].equals("structure") && (sender.isOp() || testPermission(sender))) {
-            return BuiltInRegistries.STRUCTURE_TYPE.keySet().stream().map(ResourceLocation::toString).toList();
+            return BuiltInRegistries.STRUCTURE_TYPE.keySet().stream().map(ResourceLocation::toString)
+                    .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
+                    .limit(50)
+                    .collect(Collectors.toList());
         }
 
         if (args.length == 3 && args[0].equals("add") && args[1].equals("effect") && (sender.isOp() || testPermission(sender))) {

@@ -10,6 +10,7 @@ import com.mohistmc.youer.util.I18n;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.UseOnContext;
+import net.neoforged.neoforge.common.util.FakePlayer;
 import org.bukkit.craftbukkit.entity.CraftHumanEntity;
 
 /**
@@ -26,6 +27,7 @@ public class BanItem {
 
     public static boolean check(net.minecraft.world.entity.player.Player player, ItemStack itemStack) {
         if (player == null) return false;
+        if (player instanceof FakePlayer) return false;
         if (player.getBukkitEntity().isOp()) return false;
         if (checkMoShou(player, itemStack)) {
             player.containerMenu.sendAllDataToRemote();
@@ -49,6 +51,7 @@ public class BanItem {
     public static boolean check(net.minecraft.world.entity.player.Player player) {
         ItemStack main = player.getMainHandItem();
         ItemStack off = player.getOffhandItem();
+        if (player instanceof FakePlayer) return false;
         if (player.getBukkitEntity().isOp()) return false;
         if (checkMoShou(main)) {
             if (player.getBukkitEntity().hasPermission(moshou_permission + main.asBukkitCopy().getType().name())) {
@@ -108,6 +111,7 @@ public class BanItem {
 
     public static boolean checkMoShou(net.minecraft.world.entity.player.Player player, ItemStack itemStack) {
         if (itemStack == null) return false;
+        if (player instanceof FakePlayer) return false;
         CraftHumanEntity bukkitPlayer = player.getBukkitEntity();
         if (bukkitPlayer.isOp()) return false;
         String permission = moshou_permission + itemStack.getBukkitStack().getType().name().toLowerCase();
@@ -121,6 +125,7 @@ public class BanItem {
      */
     public static boolean checkClickedItem(net.minecraft.server.level.ServerPlayer player, ItemStack clicked) {
         if (clicked == null || clicked.isEmpty()) return false;
+        if (player instanceof FakePlayer) return false;
         if (player.getBukkitEntity().isOp()) return false;
         GUI gui = GuiListener.openGUI.get(player.getBukkitEntity());
         if (gui != null && I18n.as("banscmd.show.item-moshou").equals(gui.tempName)) {
