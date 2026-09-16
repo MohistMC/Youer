@@ -6,7 +6,7 @@ import org.bukkit.craftbukkit.entity.CraftFish;
 
 /**
  * @author Mgazul
- * @date 2026/4/11 23:36
+ * {@code @date} 2026/4/11 23:36
  */
 public class YouerModsSchoolingFish extends CraftFish {
 

@@ -87,7 +87,7 @@ public class BlockEventDispatcher {
                 for (BlockSnapshot snapshot : event.getReplacedBlockSnapshots()) {
                     placedBlocks.add(MohistBlockSnapshot.fromBlockSnapshot(snapshot, true).getState());
                 }
-                BlockPlaceEvent placeEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockMultiPlaceEvent(serverLevel, serverPlayer, hand, placedBlocks,  event.getPos());
+                BlockPlaceEvent placeEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockMultiPlaceEvent(serverLevel, serverPlayer, hand, placedBlocks, event.getPos());
                 Bukkit.getPluginManager().callEvent(placeEvent);
                 if (event.isCanceled()) {
                     placeEvent.setCancelled(true);

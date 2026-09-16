@@ -64,10 +64,10 @@ public class ItemsCommand extends Command {
         }
         player.sendMessage(I18n.as("items.info.itemflags", itemStack.getItemFlags()));
         player.sendMessage(
-                ColorAPI.adventure(I18n.as("items.info.itemcomponent", I18n.as("items.info.component_click")))
-                        .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
-                                ColorAPI.adventure(I18n.as("items.info.component_click"))))
-                        .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/infos item-component"))
+            ColorAPI.adventure(I18n.as("items.info.itemcomponent", I18n.as("items.info.component_click")))
+                .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                    ColorAPI.adventure(I18n.as("items.info.component_click"))))
+                .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/infos item-component"))
         );
 
         player.sendMessage(I18n.as("items.info.amount", itemStack.getAmount()));
@@ -88,7 +88,7 @@ public class ItemsCommand extends Command {
             if (itemStack.getItemMeta().hasEnchants()) {
                 player.sendMessage(I18n.as("items.info.enchants"));
                 itemStack.getItemMeta().getEnchants().forEach((enchant, level) ->
-                        player.sendMessage("  " + enchant.getKey().toString() + " - " + level));
+                    player.sendMessage("  " + enchant.getKey().toString() + " - " + level));
             }
         } else {
             player.sendMessage(I18n.as("items.info.hasitemmeta", false));
@@ -96,8 +96,8 @@ public class ItemsCommand extends Command {
 
         if (itemStack.getType().getMaxDurability() > 0) {
             player.sendMessage(I18n.as("items.info.durability",
-                    itemStack.getType().getMaxDurability() - itemStack.getDurability(),
-                    itemStack.getType().getMaxDurability()));
+                itemStack.getType().getMaxDurability() - itemStack.getDurability(),
+                itemStack.getType().getMaxDurability()));
         }
         var base64 = ItemAPI.base64(itemStack);
         if (base64 != null) {
@@ -142,13 +142,13 @@ public class ItemsCommand extends Command {
                     if (args.length == 2) {
                         if (args[1].isEmpty()) {
                             return org.bukkit.Bukkit.getOnlinePlayers().stream()
-                                    .map(org.bukkit.entity.Player::getName)
-                                    .collect(Collectors.toList());
+                                .map(org.bukkit.entity.Player::getName)
+                                .collect(Collectors.toList());
                         } else {
                             return org.bukkit.Bukkit.getOnlinePlayers().stream()
-                                    .map(org.bukkit.entity.Player::getName)
-                                    .filter(name -> name.toLowerCase().startsWith(args[1].toLowerCase()))
-                                    .collect(Collectors.toList());
+                                .map(org.bukkit.entity.Player::getName)
+                                .filter(name -> name.toLowerCase().startsWith(args[1].toLowerCase()))
+                                .collect(Collectors.toList());
                         }
                     } else if (args.length == 3) {
                         return ItemsConfig.INSTANCE.getItemStrings();
@@ -181,8 +181,8 @@ public class ItemsCommand extends Command {
                 }
             }
         } else if (args.length == 3 && args[0].equals("lore") &&
-                (args[1].equals("set") || args[1].equals("remove")) &&
-                sender instanceof Player player) {
+            (args[1].equals("set") || args[1].equals("remove")) &&
+            sender instanceof Player player) {
             ItemStack itemStack = player.getInventory().getItemInMainHand();
             if (itemStack != null && itemStack.hasItemMeta() && itemStack.getItemMeta().hasLore()) {
                 List<String> loreLines = itemStack.getItemMeta().getLore();
@@ -193,7 +193,7 @@ public class ItemsCommand extends Command {
                 }
             }
         } else if (args.length == 4 && args[0].equals("lore") &&
-                args[1].equals("set") && sender instanceof Player player) {
+            args[1].equals("set") && sender instanceof Player player) {
             try {
                 int line = Integer.parseInt(args[2]);
                 ItemStack itemStack = player.getInventory().getItemInMainHand();
@@ -287,8 +287,8 @@ public class ItemsCommand extends Command {
                         }
 
                         List<String> currentLore = itemStack.hasItemMeta() && itemStack.getItemMeta().hasLore()
-                                ? new ArrayList<>(itemStack.getItemMeta().getLore())
-                                : new ArrayList<>();
+                            ? new ArrayList<>(itemStack.getItemMeta().getLore())
+                            : new ArrayList<>();
 
                         // Check if the second parameter is a number (line number)
                         int insertLine = -1;
@@ -344,8 +344,8 @@ public class ItemsCommand extends Command {
 
                             String loreText = String.join(" ", Arrays.copyOfRange(args, 3, args.length));
                             List<String> currentLore = itemStack.hasItemMeta() && itemStack.getItemMeta().hasLore()
-                                    ? new ArrayList<>(itemStack.getItemMeta().getLore())
-                                    : new ArrayList<>();
+                                ? new ArrayList<>(itemStack.getItemMeta().getLore())
+                                : new ArrayList<>();
 
                             // If the specified line exceeds the current lore length, extend the list
                             while (currentLore.size() <= line) {

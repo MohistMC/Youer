@@ -4,19 +4,19 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 public class TPSCalculator {
-    public Long lastTickNanos;
-    public Long currentTickNanos;
-    private double allMissedTicks = 0;
-    private final List<Double> tpsHistory = new CopyOnWriteArrayList<>();
-    private static final int historyLimit = 40;
-
     public static final int MAX_TPS = 20;
     public static final int FULL_TICK = 50;
+    private static final int historyLimit = 40;
     private static final long FULL_TICK_NANOS = 50_000_000L;
     private static final double MIN_TPS = 1.0;
     private static final double MAX_ACCUMULATED_MISSED = 5.0;
+    private final List<Double> tpsHistory = new CopyOnWriteArrayList<>();
+    public Long lastTickNanos;
+    public Long currentTickNanos;
+    private double allMissedTicks = 0;
 
-    public TPSCalculator() {}
+    public TPSCalculator() {
+    }
 
     public void doTick() {
         if (currentTickNanos != null) {

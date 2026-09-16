@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * @author Mgazul
- * @date 2026/6/22 21:10
+ * {@code @date} 2026/6/22 21:10
  */
 public class LogUtils {
 

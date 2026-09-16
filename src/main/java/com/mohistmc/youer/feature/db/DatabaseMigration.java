@@ -16,8 +16,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2026/07/03
+ * @author Mgazul
+ * {@code @date} 2026/07/03
  * <p>
  * Migrates data between SQLite and MySQL for individual feature tables.
  * Each table can be migrated independently while the server is running.
@@ -60,20 +60,19 @@ public class DatabaseMigration {
         MODULE_DISPLAY.put("bans.nbt", "bans (NBT)");
     }
 
-    /** All known module names (for tab-complete / validation). */
+    /**
+     * All known module names (for tab-complete / validation).
+     */
     public static Set<String> getModuleNames() {
         return MODULE_TABLES.keySet();
     }
 
-    /** Human-readable display name for a module. */
+    /**
+     * Human-readable display name for a module.
+     */
     public static String getDisplayName(String module) {
         return MODULE_DISPLAY.getOrDefault(module, module);
     }
-
-    /**
-     * Result of a single migration operation.
-     */
-    public record MigrationResult(boolean success, String message, int rows) {}
 
     /**
      * Migrate one module's data from its current database type to the target type.
@@ -108,7 +107,7 @@ public class DatabaseMigration {
 
         if (current.equals(target)) {
             return new MigrationResult(false,
-                    "Source and target are both " + current + " for " + getDisplayName(module), 0);
+                "Source and target are both " + current + " for " + getDisplayName(module), 0);
         }
 
         // Validate both connections are reachable before starting
@@ -119,11 +118,11 @@ public class DatabaseMigration {
 
         try {
             Connection srcConn = current.equals("mysql")
-                    ? DatabaseManager.getMysqlConnection()
-                    : DatabaseManager.getSqliteConnection();
+                ? DatabaseManager.getMysqlConnection()
+                : DatabaseManager.getSqliteConnection();
             Connection tgtConn = target.equals("mysql")
-                    ? DatabaseManager.getMysqlConnection()
-                    : DatabaseManager.getSqliteConnection();
+                ? DatabaseManager.getMysqlConnection()
+                : DatabaseManager.getSqliteConnection();
 
             String srcTable = tableName(module, baseTable, current);
             String tgtTable = tableName(module, baseTable, target);
@@ -161,11 +160,9 @@ public class DatabaseMigration {
         } catch (Exception e) {
             String detail = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
             return new MigrationResult(false,
-                    "Failed to connect to " + dbType + " (" + label + "): " + detail, 0);
+                "Failed to connect to " + dbType + " (" + label + "): " + detail, 0);
         }
     }
-
-    // ── helpers ──────────────────────────────────────────────────────────
 
     private static String tableName(String module, String baseTable, String dbType) {
         if (dbType.equals("mysql")) {
@@ -174,31 +171,33 @@ public class DatabaseMigration {
         return baseTable;
     }
 
+    // ── helpers ──────────────────────────────────────────────────────────
+
     private static void createTargetTable(String baseTable, Connection conn,
-                                           String tgtTable, boolean isMysql) throws SQLException {
+                                          String tgtTable, boolean isMysql) throws SQLException {
         String ddl;
         switch (baseTable) {
             case "items" -> ddl = isMysql
-                    ? "CREATE TABLE IF NOT EXISTS " + tgtTable + " (name VARCHAR(255) PRIMARY KEY, data MEDIUMBLOB NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
-                    : "CREATE TABLE IF NOT EXISTS " + tgtTable + " (name TEXT PRIMARY KEY, data BLOB NOT NULL)";
+                ? "CREATE TABLE IF NOT EXISTS " + tgtTable + " (name VARCHAR(255) PRIMARY KEY, data MEDIUMBLOB NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+                : "CREATE TABLE IF NOT EXISTS " + tgtTable + " (name TEXT PRIMARY KEY, data BLOB NOT NULL)";
             case "warps" -> ddl = isMysql
-                    ? "CREATE TABLE IF NOT EXISTS " + tgtTable + " (name VARCHAR(255) PRIMARY KEY, world VARCHAR(255) NOT NULL, x DOUBLE NOT NULL, y DOUBLE NOT NULL, z DOUBLE NOT NULL, pitch FLOAT NOT NULL, yaw FLOAT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
-                    : "CREATE TABLE IF NOT EXISTS " + tgtTable + " (name TEXT PRIMARY KEY, world TEXT NOT NULL, x REAL NOT NULL, y REAL NOT NULL, z REAL NOT NULL, pitch REAL NOT NULL, yaw REAL NOT NULL)";
+                ? "CREATE TABLE IF NOT EXISTS " + tgtTable + " (name VARCHAR(255) PRIMARY KEY, world VARCHAR(255) NOT NULL, x DOUBLE NOT NULL, y DOUBLE NOT NULL, z DOUBLE NOT NULL, pitch FLOAT NOT NULL, yaw FLOAT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+                : "CREATE TABLE IF NOT EXISTS " + tgtTable + " (name TEXT PRIMARY KEY, world TEXT NOT NULL, x REAL NOT NULL, y REAL NOT NULL, z REAL NOT NULL, pitch REAL NOT NULL, yaw REAL NOT NULL)";
             case "entity_limits" -> ddl = isMysql
-                    ? "CREATE TABLE IF NOT EXISTS " + tgtTable + " (world VARCHAR(255) NOT NULL, entity_type VARCHAR(255) NOT NULL, limit_count INT NOT NULL, PRIMARY KEY (world, entity_type)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
-                    : "CREATE TABLE IF NOT EXISTS " + tgtTable + " (world TEXT NOT NULL, entity_type TEXT NOT NULL, limit_count INT NOT NULL, PRIMARY KEY (world, entity_type))";
+                ? "CREATE TABLE IF NOT EXISTS " + tgtTable + " (world VARCHAR(255) NOT NULL, entity_type VARCHAR(255) NOT NULL, limit_count INT NOT NULL, PRIMARY KEY (world, entity_type)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+                : "CREATE TABLE IF NOT EXISTS " + tgtTable + " (world TEXT NOT NULL, entity_type TEXT NOT NULL, limit_count INT NOT NULL, PRIMARY KEY (world, entity_type))";
             case "back" -> ddl = isMysql
-                    ? "CREATE TABLE IF NOT EXISTS " + tgtTable + " (player_uuid VARCHAR(36) PRIMARY KEY, world VARCHAR(255) NOT NULL, x DOUBLE NOT NULL, y DOUBLE NOT NULL, z DOUBLE NOT NULL, pitch FLOAT NOT NULL, yaw FLOAT NOT NULL, back_type VARCHAR(64) NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
-                    : "CREATE TABLE IF NOT EXISTS " + tgtTable + " (player_uuid TEXT PRIMARY KEY, world TEXT NOT NULL, x REAL NOT NULL, y REAL NOT NULL, z REAL NOT NULL, pitch REAL NOT NULL, yaw REAL NOT NULL, back_type TEXT NOT NULL)";
+                ? "CREATE TABLE IF NOT EXISTS " + tgtTable + " (player_uuid VARCHAR(36) PRIMARY KEY, world VARCHAR(255) NOT NULL, x DOUBLE NOT NULL, y DOUBLE NOT NULL, z DOUBLE NOT NULL, pitch FLOAT NOT NULL, yaw FLOAT NOT NULL, back_type VARCHAR(64) NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+                : "CREATE TABLE IF NOT EXISTS " + tgtTable + " (player_uuid TEXT PRIMARY KEY, world TEXT NOT NULL, x REAL NOT NULL, y REAL NOT NULL, z REAL NOT NULL, pitch REAL NOT NULL, yaw REAL NOT NULL, back_type TEXT NOT NULL)";
             case "ban_nbt" -> ddl = isMysql
-                    ? "CREATE TABLE IF NOT EXISTS " + tgtTable + " (item_type VARCHAR(255) NOT NULL, nbt_tag VARCHAR(255) NOT NULL, PRIMARY KEY (item_type, nbt_tag)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
-                    : "CREATE TABLE IF NOT EXISTS " + tgtTable + " (item_type TEXT NOT NULL, nbt_tag TEXT NOT NULL, PRIMARY KEY (item_type, nbt_tag))";
+                ? "CREATE TABLE IF NOT EXISTS " + tgtTable + " (item_type VARCHAR(255) NOT NULL, nbt_tag VARCHAR(255) NOT NULL, PRIMARY KEY (item_type, nbt_tag)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+                : "CREATE TABLE IF NOT EXISTS " + tgtTable + " (item_type TEXT NOT NULL, nbt_tag TEXT NOT NULL, PRIMARY KEY (item_type, nbt_tag))";
             default ->
                 // ban_item, ban_item_moshou, ban_entity, ban_enchantment,
                 // ban_recipe, ban_block, ban_world
                 ddl = isMysql
-                        ? "CREATE TABLE IF NOT EXISTS " + tgtTable + " (value VARCHAR(255) PRIMARY KEY, message TEXT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
-                        : "CREATE TABLE IF NOT EXISTS " + tgtTable + " (value TEXT PRIMARY KEY, message TEXT NOT NULL DEFAULT '')";
+                    ? "CREATE TABLE IF NOT EXISTS " + tgtTable + " (value VARCHAR(255) PRIMARY KEY, message TEXT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+                    : "CREATE TABLE IF NOT EXISTS " + tgtTable + " (value TEXT PRIMARY KEY, message TEXT NOT NULL DEFAULT '')";
         }
 
         try (Statement stmt = conn.createStatement()) {
@@ -211,7 +210,7 @@ public class DatabaseMigration {
      * Works for any schema — uses ResultSetMetaData for column discovery.
      */
     private static int transferData(Connection src, Connection tgt,
-                                     String srcTable, String tgtTable) throws SQLException {
+                                    String srcTable, String tgtTable) throws SQLException {
         // ── read all rows from source ──
         List<Object[]> rows = new ArrayList<>();
         List<Boolean> isBlob = new ArrayList<>();
@@ -267,5 +266,11 @@ public class DatabaseMigration {
         }
 
         return rows.size();
+    }
+
+    /**
+     * Result of a single migration operation.
+     */
+    public record MigrationResult(boolean success, String message, int rows) {
     }
 }

@@ -18,8 +18,8 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/9/12 16:27:32
+ * @author Mgazul
+ * {@code @date} 2023/9/12 16:27:32
  */
 public class WarpsCommands extends Command {
 
@@ -89,9 +89,9 @@ public class WarpsCommands extends Command {
                 DemoGUI wh = new DemoGUI(I18n.as("warpscommands.prefix"));
                 for (String w : WarpsConfig.INSTANCE.getAllWarpNames()) {
                     wh.addItem(new GUIItem(new ItemStackFactory(Material.BAMBOO_SIGN)
-                            .setDisplayName("§f" + w)
-                            .setLore(List.of(I18n.as("warpscommands.gui.click"), "§f" + WarpsConfig.INSTANCE.get(w).asString()))
-                            .build()) {
+                        .setDisplayName("§f" + w)
+                        .setLore(List.of(I18n.as("warpscommands.gui.click"), "§f" + WarpsConfig.INSTANCE.get(w).asString()))
+                        .build()) {
                         @Override
                         public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                             u.teleport(WarpsConfig.INSTANCE.get(w));
@@ -143,12 +143,11 @@ public class WarpsCommands extends Command {
                     list.add(param);
                 }
             }
-        }
-        else if (args.length == 2) {
+        } else if (args.length == 2) {
             String subCommand = args[0].toLowerCase();
 
             if ((subCommand.equals("del") && sender.hasPermission("youer.command.warps.del")) ||
-                    (subCommand.equals("tp") && sender.hasPermission("youer.command.warps.tp"))) {
+                (subCommand.equals("tp") && sender.hasPermission("youer.command.warps.tp"))) {
 
                 for (String warpName : WarpsConfig.INSTANCE.getAllWarpNames()) {
                     if (warpName.toLowerCase().startsWith(args[1].toLowerCase())) {

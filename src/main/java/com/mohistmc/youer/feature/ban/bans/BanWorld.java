@@ -13,7 +13,7 @@ import org.bukkit.entity.Player;
 
 /**
  * @author Mgazul
- * @date 2026/2/10 22:32
+ * {@code @date} 2026/2/10 22:32
  */
 public class BanWorld {
 

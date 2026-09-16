@@ -7,8 +7,8 @@ import org.bukkit.GameRule;
 import org.bukkit.entity.Player;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/7/24 2:54:00
+ * @author Mgazul
+ * {@code @date} 2023/7/24 2:54:00
  */
 public class KeepInventory {
 

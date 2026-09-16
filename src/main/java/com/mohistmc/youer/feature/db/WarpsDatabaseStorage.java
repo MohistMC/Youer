@@ -14,9 +14,9 @@ import org.bukkit.Location;
 import org.bukkit.World;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2026/07/02
- *
+ * @author Mgazul
+ * {@code @date} 2026/07/02
+ * <p>
  * Database-backed storage for warps.
  * Table: warps (name, world, x, y, z, pitch, yaw)
  */
@@ -28,21 +28,25 @@ public class WarpsDatabaseStorage {
 
     public WarpsDatabaseStorage() {
         this.tableName = DatabaseConfig.isMysql(MODULE)
-                ? DatabaseConfig.getMysqlTablePrefix() + "_warps" : "warps";
+            ? DatabaseConfig.getMysqlTablePrefix() + "_warps" : "warps";
+    }
+
+    private static boolean isMysql(Connection conn) throws SQLException {
+        return conn.getMetaData().getURL().contains("mysql");
     }
 
     public void init() {
         Connection conn = DatabaseManager.getConnection(MODULE);
         try (Statement stmt = conn.createStatement()) {
             String ddl = "CREATE TABLE IF NOT EXISTS " + tableName + " ("
-                    + "name TEXT PRIMARY KEY, world TEXT NOT NULL, "
-                    + "x REAL NOT NULL, y REAL NOT NULL, z REAL NOT NULL, "
-                    + "pitch REAL NOT NULL, yaw REAL NOT NULL)";
+                + "name TEXT PRIMARY KEY, world TEXT NOT NULL, "
+                + "x REAL NOT NULL, y REAL NOT NULL, z REAL NOT NULL, "
+                + "pitch REAL NOT NULL, yaw REAL NOT NULL)";
             if (isMysql(conn)) {
                 ddl = "CREATE TABLE IF NOT EXISTS " + tableName + " ("
-                        + "name VARCHAR(255) PRIMARY KEY, world VARCHAR(255) NOT NULL, "
-                        + "x DOUBLE NOT NULL, y DOUBLE NOT NULL, z DOUBLE NOT NULL, "
-                        + "pitch FLOAT NOT NULL, yaw FLOAT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+                    + "name VARCHAR(255) PRIMARY KEY, world VARCHAR(255) NOT NULL, "
+                    + "x DOUBLE NOT NULL, y DOUBLE NOT NULL, z DOUBLE NOT NULL, "
+                    + "pitch FLOAT NOT NULL, yaw FLOAT NOT NULL) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
             }
             stmt.executeUpdate(ddl);
         } catch (SQLException e) {
@@ -53,7 +57,7 @@ public class WarpsDatabaseStorage {
     public void set(String name, Location loc) {
         Connection conn = DatabaseManager.getConnection(MODULE);
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT OR REPLACE INTO " + tableName + " (name, world, x, y, z, pitch, yaw) VALUES (?, ?, ?, ?, ?, ?, ?)")) {
+            "INSERT OR REPLACE INTO " + tableName + " (name, world, x, y, z, pitch, yaw) VALUES (?, ?, ?, ?, ?, ?, ?)")) {
             ps.setString(1, name);
             ps.setString(2, loc.getWorld().getName());
             ps.setDouble(3, loc.getX());
@@ -70,15 +74,15 @@ public class WarpsDatabaseStorage {
     public Location get(String name) {
         Connection conn = DatabaseManager.getConnection(MODULE);
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT world, x, y, z, pitch, yaw FROM " + tableName + " WHERE name = ?")) {
+            "SELECT world, x, y, z, pitch, yaw FROM " + tableName + " WHERE name = ?")) {
             ps.setString(1, name);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     World world = Bukkit.getWorld(rs.getString("world"));
                     if (world == null) return null;
                     return new Location(world,
-                            rs.getDouble("x"), rs.getDouble("y"), rs.getDouble("z"),
-                            rs.getFloat("yaw"), rs.getFloat("pitch"));
+                        rs.getDouble("x"), rs.getDouble("y"), rs.getDouble("z"),
+                        rs.getFloat("yaw"), rs.getFloat("pitch"));
                 }
             }
         } catch (SQLException e) {
@@ -90,7 +94,7 @@ public class WarpsDatabaseStorage {
     public void remove(String name) {
         Connection conn = DatabaseManager.getConnection(MODULE);
         try (PreparedStatement ps = conn.prepareStatement(
-                "DELETE FROM " + tableName + " WHERE name = ?")) {
+            "DELETE FROM " + tableName + " WHERE name = ?")) {
             ps.setString(1, name);
             ps.executeUpdate();
         } catch (SQLException e) {
@@ -101,7 +105,7 @@ public class WarpsDatabaseStorage {
     public boolean has(String name) {
         Connection conn = DatabaseManager.getConnection(MODULE);
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT 1 FROM " + tableName + " WHERE name = ?")) {
+            "SELECT 1 FROM " + tableName + " WHERE name = ?")) {
             ps.setString(1, name);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
@@ -121,9 +125,5 @@ public class WarpsDatabaseStorage {
             LOGGER.warn("[Youer-DB] Failed to get warp names: {}", e.getMessage());
         }
         return names;
-    }
-
-    private static boolean isMysql(Connection conn) throws SQLException {
-        return conn.getMetaData().getURL().contains("mysql");
     }
 }

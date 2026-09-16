@@ -32,6 +32,13 @@ public class WorldlyContainerWrapper implements ResourceHandler<ItemResource> {
         this.side = side;
     }
 
+    /**
+     * Returns the worldly container wrapped by this handler.
+     */
+    public WorldlyContainer getContainer() {
+        return container;
+    }
+
     private int convertSlot(int slot) {
         if (slot < 0) {
             throw new IndexOutOfBoundsException("Cannot access container with negative slot index: " + slot);

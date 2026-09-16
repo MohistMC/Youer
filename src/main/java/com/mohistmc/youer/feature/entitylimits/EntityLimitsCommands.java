@@ -31,15 +31,15 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Mgazul
- * @date 2025/10/2 21:50
+ * {@code @date} 2025/10/2 21:50
  */
 public class EntityLimitsCommands extends Command {
+
+    private final List<String> params = List.of("add");
 
     public EntityLimitsCommands(@NotNull String name) {
         super(name);
     }
-
-    private final List<String> params = List.of("add");
 
     @Override
     public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) {
@@ -66,25 +66,25 @@ public class EntityLimitsCommands extends Command {
             if (EntityLimitsConfig.INSTANCE.hasWorld(world.getName())) {
                 DemoGUI wh = new DemoGUI(I18n.as("entitylimits.gui.title"));
                 Map<EntityType<?>, Integer> collect =
-                        StreamSupport.stream(WorldAPI.getServerLevel(player.getWorld()).getAllEntities().spliterator(), false)
-                                .collect(Collectors.toMap(
-                                        net.minecraft.world.entity.Entity::getType,
-                                        entity -> 1,
-                                        Integer::sum
-                                ));
+                    StreamSupport.stream(WorldAPI.getServerLevel(player.getWorld()).getAllEntities().spliterator(), false)
+                        .collect(Collectors.toMap(
+                            net.minecraft.world.entity.Entity::getType,
+                            entity -> 1,
+                            Integer::sum
+                        ));
 
                 Map<EntityType<?>, Map<String, Integer>> entityChunkCount = new HashMap<>();
 
                 StreamSupport.stream(WorldAPI.getServerLevel(player.getWorld()).getAllEntities().spliterator(), false)
-                        .forEach(entity -> {
-                            EntityType<?> type = entity.getType();
-                            long chunkX = entity.blockPosition().getX() >> 4;
-                            long chunkZ = entity.blockPosition().getZ() >> 4;
-                            String chunkKey = chunkX + "," + chunkZ;
+                    .forEach(entity -> {
+                        EntityType<?> type = entity.getType();
+                        long chunkX = entity.blockPosition().getX() >> 4;
+                        long chunkZ = entity.blockPosition().getZ() >> 4;
+                        String chunkKey = chunkX + "," + chunkZ;
 
-                            entityChunkCount.computeIfAbsent(type, k -> new HashMap<>())
-                                    .merge(chunkKey, 1, Integer::sum);
-                        });
+                        entityChunkCount.computeIfAbsent(type, k -> new HashMap<>())
+                            .merge(chunkKey, 1, Integer::sum);
+                    });
 
                 List<Map.Entry<EntityType<?>, Integer>> infoIds = new ArrayList<>(collect.entrySet());
                 infoIds.sort((o1, o2) -> {
@@ -121,9 +121,9 @@ public class EntityLimitsCommands extends Command {
                     }
                     int count = collect.getOrDefault(type, 0);
                     wh.addItem(new GUIItem(new ItemStackFactory(ItemAPI.getEggMaterial(type))
-                            .addLore(I18n.as("entitylimits.gui.limit").formatted(s.getEntityLimit(), count >= s.getEntityLimit() ? I18n.as("entitylimits.gui.exceeded") : I18n.as("entitylimits.gui.notreached")))
-                            .addLore(I18n.as("entitylimits.gui.topchunk").formatted(finalTopChunk))
-                            .build()) {
+                        .addLore(I18n.as("entitylimits.gui.limit").formatted(s.getEntityLimit(), count >= s.getEntityLimit() ? I18n.as("entitylimits.gui.exceeded") : I18n.as("entitylimits.gui.notreached")))
+                        .addLore(I18n.as("entitylimits.gui.topchunk").formatted(finalTopChunk))
+                        .build()) {
                         @Override
                         public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                         }

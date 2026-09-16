@@ -8,9 +8,9 @@ import java.util.Locale;
 import org.bukkit.configuration.file.YamlConfiguration;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2026/07/01
- *
+ * @author Mgazul
+ * {@code @date} 2026/07/01
+ * <p>
  * Reads youer-config/database.yml and provides modular database type switches.
  * Each feature can independently choose "sqlite" (default) or "mysql".
  */
@@ -31,9 +31,9 @@ public class DatabaseConfig {
 
         // Load defaults from template in resources (preserves comments)
         YamlConfiguration defaults = YamlConfiguration.loadConfiguration(
-                new InputStreamReader(
-                        DatabaseConfig.class.getClassLoader().getResourceAsStream("configurations/database.yml"),
-                        StandardCharsets.UTF_8));
+            new InputStreamReader(
+                DatabaseConfig.class.getClassLoader().getResourceAsStream("configurations/database.yml"),
+                StandardCharsets.UTF_8));
         yaml.setDefaults(defaults);
         yaml.options().copyDefaults(true);
 
@@ -64,12 +64,16 @@ public class DatabaseConfig {
         return type.toLowerCase(Locale.ROOT);
     }
 
-    /** @return true if the given feature uses MySQL */
+    /**
+     * @return true if the given feature uses MySQL
+     */
     public static boolean isMysql(String feature) {
         return "mysql".equals(getDatabaseType(feature));
     }
 
-    /** @return true if the given feature uses SQLite */
+    /**
+     * @return true if the given feature uses SQLite
+     */
     public static boolean isSqlite(String feature) {
         return "sqlite".equals(getDatabaseType(feature));
     }
@@ -78,7 +82,7 @@ public class DatabaseConfig {
 
     public static String getMysqlUrl() {
         return yaml.getString("database.mysql.jdbc-url",
-                "jdbc:mysql://127.0.0.1:3306/minecraft?useSSL=false&allowPublicKeyRetrieval=true");
+            "jdbc:mysql://127.0.0.1:3306/minecraft?useSSL=false&allowPublicKeyRetrieval=true");
     }
 
     public static String getMysqlUsername() {

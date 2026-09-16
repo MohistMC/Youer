@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Mgazul
- * @date 2025/11/23 01:45
+ * {@code @date} 2025/11/23 01:45
  */
 public class VanishCommand extends BukkitCommand {
 
@@ -21,7 +21,7 @@ public class VanishCommand extends BukkitCommand {
         this.usageMessage = "/vanish";
         this.setPermission("youer.command.vanish");
     }
-    
+
     @Override
     public boolean execute(@NotNull CommandSender sender, @NotNull String label, String[] args) {
         if (!(sender instanceof Player p)) {
@@ -46,8 +46,7 @@ public class VanishCommand extends BukkitCommand {
                     VanishCommand.vanished.remove(p2);
                     p2.sendMessage("&2Incognito mode is turned off");
                     return true;
-                }
-                else {
+                } else {
                     p.sendMessage("&cThe player is not online");
                 }
             }

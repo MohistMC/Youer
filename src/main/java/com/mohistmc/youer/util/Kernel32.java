@@ -12,8 +12,8 @@ public interface Kernel32 extends Library {
 
     // Set the process working set size
     boolean SetProcessWorkingSetSize(
-            Pointer hProcess,
-            int dwMinimumWorkingSetSize,
-            int dwMaximumWorkingSetSize
+        Pointer hProcess,
+        int dwMinimumWorkingSetSize,
+        int dwMaximumWorkingSetSize
     );
 }

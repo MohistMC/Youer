@@ -158,7 +158,9 @@ public final class ChunkTaskScheduler {
                 // Safe. Mojang runs it in parallel as well.
                 ChunkStatus.BIOMES,
 
-                // TERRAIN: writes only its own chunk (radius 0), reads biomes and structure starts from neighbours.
+                // Safe. Mojang runs it in parallel as well. Only modifies the target chunk: the noise fill and
+                // carving mask are applied to the target chunk, and surface building only reads the biome data
+                // of its neighbours, which is stable at the required BIOMES/STRUCTURE_STARTS statuses.
                 ChunkStatus.TERRAIN,
 
                 // FEATURES is not parallel safe. It writes to neighbours.

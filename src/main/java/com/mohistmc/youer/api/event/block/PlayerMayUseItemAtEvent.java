@@ -10,7 +10,7 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Mgazul
- * @date 2025/11/6 15:21
+ * {@code @date} 2025/11/6 15:21
  */
 public class PlayerMayUseItemAtEvent extends PlayerEvent implements Cancellable {
 

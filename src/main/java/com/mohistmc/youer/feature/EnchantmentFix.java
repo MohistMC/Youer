@@ -10,8 +10,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/7/13 11:36:40
+ * @author Mgazul
+ * {@code @date} 2023/7/13 11:36:40
  */
 public class EnchantmentFix {
 

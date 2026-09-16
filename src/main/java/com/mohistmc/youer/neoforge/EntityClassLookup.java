@@ -306,7 +306,7 @@ import org.bukkit.craftbukkit.entity.CraftZombieNautilus;
 
 /**
  * @author Mgazul
- * @date 2026/4/11 23:51
+ * {@code @date} 2026/4/11 23:51
  */
 public class EntityClassLookup {
 

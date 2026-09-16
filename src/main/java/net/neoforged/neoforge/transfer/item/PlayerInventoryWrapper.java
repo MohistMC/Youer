@@ -53,6 +53,13 @@ public final class PlayerInventoryWrapper extends VanillaContainerWrapper {
         this.inventory = inventory;
     }
 
+    /**
+     * Returns the player inventory wrapped by this handler.
+     */
+    public Inventory getInventory() {
+        return inventory;
+    }
+
     @Override
     void resize() {
         // We currently limit the player wrapper to main + armor + offhand. This can be changed later if needed.

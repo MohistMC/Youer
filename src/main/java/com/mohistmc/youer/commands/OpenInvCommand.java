@@ -12,9 +12,11 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Mgazul
- * @date 2025/11/23 02:14
+ * {@code @date} 2025/11/23 02:14
  */
 public class OpenInvCommand extends BukkitCommand {
+
+    private final List<String> params = Arrays.asList("enderchest", "inventory");
 
     public OpenInvCommand(String name) {
         super(name);
@@ -22,9 +24,6 @@ public class OpenInvCommand extends BukkitCommand {
         this.usageMessage = "/openinv";
         this.setPermission("youer.command.openinv");
     }
-
-    private final List<String> params = Arrays.asList("enderchest", "inventory");
-
 
     @Override
     public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) {

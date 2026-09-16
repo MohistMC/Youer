@@ -2,7 +2,7 @@ package com.mohistmc.youer.feature.entitylimits;
 
 /**
  * @author Mgazul
- * @date 2025/10/2 21:22
+ * {@code @date} 2025/10/2 21:22
  */
 public class EntityLimits {
 

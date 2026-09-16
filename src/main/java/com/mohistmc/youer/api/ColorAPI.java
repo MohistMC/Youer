@@ -39,6 +39,7 @@ public class ColorAPI {
         .character('§')
         .hexColors()
         .build();
+    private static final char ANSI_ESC = 0x1B;
 
     private static String processText(String text) {
         if (text == null || text.isEmpty()) {
@@ -98,8 +99,6 @@ public class ColorAPI {
         appendAnsi(sb, component);
         return sb.toString();
     }
-
-    private static final char ANSI_ESC = 0x1B;
 
     private static void appendAnsi(StringBuilder sb, Component component) {
         final TextColor color = component.style().color();

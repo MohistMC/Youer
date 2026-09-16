@@ -39,10 +39,10 @@ import org.jetbrains.annotations.NotNull;
 public class YouerCommand extends Command {
 
     private static final String[] COMMAND_LIST = {
-            "windows", "mods", "playermods", "reload", "version",
-            "channels_incom", "channels_outgo", "speed", "printthreadcost",
-            "packetstats", "heal", "help", "cleardropitem", "memoryfix", "showp",
-            "backupworld", "migratedb"
+        "windows", "mods", "playermods", "reload", "version",
+        "channels_incom", "channels_outgo", "speed", "printthreadcost",
+        "packetstats", "heal", "help", "cleardropitem", "memoryfix", "showp",
+        "backupworld", "migratedb"
     };
 
     private final List<String> params = Arrays.asList(COMMAND_LIST);
@@ -52,6 +52,45 @@ public class YouerCommand extends Command {
         this.description = "Youer related commands";
         this.usageMessage = "/youer [" + String.join("|", COMMAND_LIST) + "]";
         this.setPermission("youer.command.youer");
+    }
+
+    public static String getJVMUpTime() {
+        long uptime = ManagementFactory.getRuntimeMXBean().getUptime();
+        long seconds = uptime / 1000;
+        long minutes = seconds / 60;
+        long hours = minutes / 60;
+        long days = hours / 24;
+
+        return String.format("%d %s %d %s %d %s %d %s",
+            days, I18n.as("youercmd.time.days"),
+            hours % 24, I18n.as("youercmd.time.hours"),
+            minutes % 60, I18n.as("youercmd.time.minutes"),
+            seconds % 60, I18n.as("youercmd.time.seconds"));
+    }
+
+    private static void migrateAll(CommandSender sender, String target) {
+        int totalSucceeded = 0;
+        int totalRows = 0;
+        int totalCount = 0;
+
+        for (String module : DatabaseMigration.getModuleNames()) {
+            sender.sendMessage(I18n.as("migratedb.starting",
+                DatabaseMigration.getDisplayName(module), target));
+            DatabaseMigration.MigrationResult result = DatabaseMigration.migrate(module, target);
+            totalCount++;
+            if (result.success()) {
+                totalSucceeded++;
+                totalRows += result.rows();
+                sender.sendMessage(I18n.as("migratedb.success",
+                    DatabaseMigration.getDisplayName(module), result.rows()));
+            } else {
+                sender.sendMessage(I18n.as("migratedb.fail",
+                    DatabaseMigration.getDisplayName(module), result.message()));
+            }
+        }
+
+        sender.sendMessage(I18n.as("migratedb.all.complete",
+            totalSucceeded, totalCount, totalRows));
     }
 
     @Override
@@ -68,8 +107,8 @@ public class YouerCommand extends Command {
                 return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
             } else if (args.length == 2 && args[0].equalsIgnoreCase("packetstats")) {
                 return Stream.of("start", "stop", "status")
-                        .filter(param -> param.toLowerCase().startsWith(args[1].toLowerCase()))
-                        .toList();
+                    .filter(param -> param.toLowerCase().startsWith(args[1].toLowerCase()))
+                    .toList();
             } else if (args.length == 2 && (args[0].equalsIgnoreCase("heal") || args[0].equalsIgnoreCase("showp"))) {
                 return Bukkit.getOnlinePlayers().stream().map(Player::getName).toList();
             } else if (args.length == 2 && args[0].equalsIgnoreCase("cleardropitem")) {
@@ -78,13 +117,13 @@ public class YouerCommand extends Command {
                 List<String> mods = new ArrayList<>(DatabaseMigration.getModuleNames());
                 mods.add("all");
                 return mods.stream()
-                        .filter(m -> m.toLowerCase().startsWith(args[1].toLowerCase()))
-                        .sorted()
-                        .toList();
+                    .filter(m -> m.toLowerCase().startsWith(args[1].toLowerCase()))
+                    .sorted()
+                    .toList();
             } else if (args.length == 3 && args[0].equalsIgnoreCase("migratedb")) {
                 return Stream.of("sqlite", "mysql")
-                        .filter(t -> t.startsWith(args[2].toLowerCase()))
-                        .toList();
+                    .filter(t -> t.startsWith(args[2].toLowerCase()))
+                    .toList();
             }
         }
 
@@ -181,10 +220,10 @@ public class YouerCommand extends Command {
                             sender.sendMessage(I18n.as("packetstats.by.type.title", String.valueOf(bytesByPacketType.size())));
 
                             List<Map.Entry<String, Long>> top10 = bytesByPacketType.entrySet().stream()
-                                    .filter(entry -> entry.getValue() > 0 && PacketStatistics.getPacketsByPacketType().getOrDefault(entry.getKey(), 0L) > 0)
-                                    .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                                    .limit(10)
-                                    .toList();
+                                .filter(entry -> entry.getValue() > 0 && PacketStatistics.getPacketsByPacketType().getOrDefault(entry.getKey(), 0L) > 0)
+                                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                                .limit(10)
+                                .toList();
 
                             for (int i = 0; i < top10.size(); i++) {
                                 Map.Entry<String, Long> entry = top10.get(i);
@@ -202,12 +241,12 @@ public class YouerCommand extends Command {
                                 };
 
                                 sender.sendMessage(rankColor + String.format("%2d", i + 1) + ". " +
-                                        "#碧色" + packetType + "#灰色: " +
-                                        "#aqua" + StringUtil.formatBytes(bytes) +
-                                        "#灰色 (" + "#鹅黄" + packets + "#dark_gray" + "p" + "#灰色) " +
-                                        "#dark_aqua" + "| " +
-                                        "#aqua" + StringUtil.formatBytes(bytesPerSecond) + "/s " +
-                                        "#灰色(" + "#鹅黄" + packetsPerSecond + "#dark_gray" + "p" + "#灰色/s)");
+                                    "#碧色" + packetType + "#灰色: " +
+                                    "#aqua" + StringUtil.formatBytes(bytes) +
+                                    "#灰色 (" + "#鹅黄" + packets + "#dark_gray" + "p" + "#灰色) " +
+                                    "#dark_aqua" + "| " +
+                                    "#aqua" + StringUtil.formatBytes(bytesPerSecond) + "/s " +
+                                    "#灰色(" + "#鹅黄" + packetsPerSecond + "#dark_gray" + "p" + "#灰色/s)");
                             }
 
                             if (bytesByPacketType.size() > 10) {
@@ -230,8 +269,8 @@ public class YouerCommand extends Command {
                         if (PacketStatistics.isCollecting()) {
                             sender.sendMessage(I18n.as("packetstats.status.running"));
                             sender.sendMessage(I18n.as("packetstats.status.collected",
-                                    StringUtil.formatBytes(PacketStatistics.getTotalBytesSent()),
-                                    PacketStatistics.getTotalPacketsSent()));
+                                StringUtil.formatBytes(PacketStatistics.getTotalBytesSent()),
+                                PacketStatistics.getTotalPacketsSent()));
                         } else {
                             sender.sendMessage(I18n.as("packetstats.status.not.running"));
                         }
@@ -358,30 +397,30 @@ public class YouerCommand extends Command {
                 sender.sendMessage(I18n.as("youercmd.windows.jvmUptime", getJVMUpTime()));
 
                 sender.sendMessage(I18n.as("youercmd.windows.memory",
-                        StatsUtils.BytesToMegaBytes(StatsUtils.freeMemory()),
-                        StatsUtils.BytesToMegaBytes(StatsUtils.totalMemory()),
-                        StatsUtils.BytesToMegaBytes(StatsUtils.maxMemory()),
-                        I18n.as("youercmd.windows.disk.free"),
-                        I18n.as("youercmd.windows.disk.usable"),
-                        I18n.as("youercmd.windows.disk.total")));
+                    StatsUtils.BytesToMegaBytes(StatsUtils.freeMemory()),
+                    StatsUtils.BytesToMegaBytes(StatsUtils.totalMemory()),
+                    StatsUtils.BytesToMegaBytes(StatsUtils.maxMemory()),
+                    I18n.as("youercmd.windows.disk.free"),
+                    I18n.as("youercmd.windows.disk.usable"),
+                    I18n.as("youercmd.windows.disk.total")));
 
                 try {
                     sender.sendMessage(I18n.as("youercmd.windows.cpu",
-                            StatsUtils.LoadAverange(),
-                            I18n.as("youercmd.windows.cpu.loadavg"),
-                            StatsUtils.getProcessCpuLoad(),
-                            I18n.as("youercmd.windows.cpu.process")));
+                        StatsUtils.LoadAverange(),
+                        I18n.as("youercmd.windows.cpu.loadavg"),
+                        StatsUtils.getProcessCpuLoad(),
+                        I18n.as("youercmd.windows.cpu.process")));
                 } catch (final Exception ignored) {
                     sender.sendMessage(I18n.as("youercmd.windows.cpu.unavailable_msg"));
                 }
 
                 sender.sendMessage(I18n.as("youercmd.windows.disk",
-                        StatsUtils.BytesToGigaBytes(StatsUtils.freeDisk()),
-                        StatsUtils.BytesToGigaBytes(StatsUtils.usableDisk()),
-                        StatsUtils.BytesToGigaBytes(StatsUtils.totalDisk()),
-                        I18n.as("youercmd.windows.disk.free"),
-                        I18n.as("youercmd.windows.disk.usable"),
-                        I18n.as("youercmd.windows.disk.total")));
+                    StatsUtils.BytesToGigaBytes(StatsUtils.freeDisk()),
+                    StatsUtils.BytesToGigaBytes(StatsUtils.usableDisk()),
+                    StatsUtils.BytesToGigaBytes(StatsUtils.totalDisk()),
+                    I18n.as("youercmd.windows.disk.free"),
+                    I18n.as("youercmd.windows.disk.usable"),
+                    I18n.as("youercmd.windows.disk.total")));
 
                 sender.sendMessage(I18n.as("youercmd.windows.system", osName, osVersion, osArch));
 
@@ -411,20 +450,20 @@ public class YouerCommand extends Command {
 
                         org.bukkit.Location loc = p2.getLocation();
                         sender.sendMessage(I18n.as("youercmd.showp.location",
-                                p2.getWorld().getName(),
-                                String.valueOf(loc.getBlockX()),
-                                String.valueOf(loc.getBlockY()),
-                                String.valueOf(loc.getBlockZ())));
+                            p2.getWorld().getName(),
+                            String.valueOf(loc.getBlockX()),
+                            String.valueOf(loc.getBlockY()),
+                            String.valueOf(loc.getBlockZ())));
 
                         org.bukkit.OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(p2.getUniqueId());
                         if (offlinePlayer.getLastPlayed() > 0 && offlinePlayer.hasPlayedBefore()) {
                             org.bukkit.Location lastPlayedLocation = offlinePlayer.getLocation();
                             if (lastPlayedLocation != null) {
                                 sender.sendMessage(I18n.as("youercmd.showp.lastLocation",
-                                        lastPlayedLocation.getWorld().getName(),
-                                        String.valueOf(lastPlayedLocation.getBlockX()),
-                                        String.valueOf(lastPlayedLocation.getBlockY()),
-                                        String.valueOf(lastPlayedLocation.getBlockZ())));
+                                    lastPlayedLocation.getWorld().getName(),
+                                    String.valueOf(lastPlayedLocation.getBlockX()),
+                                    String.valueOf(lastPlayedLocation.getBlockY()),
+                                    String.valueOf(lastPlayedLocation.getBlockZ())));
                             }
                         }
 
@@ -466,14 +505,14 @@ public class YouerCommand extends Command {
                         migrateAll(sender, target);
                     } else {
                         sender.sendMessage(I18n.as("migratedb.starting",
-                                DatabaseMigration.getDisplayName(module), target));
+                            DatabaseMigration.getDisplayName(module), target));
                         DatabaseMigration.MigrationResult result = DatabaseMigration.migrate(module, target);
                         if (result.success()) {
                             sender.sendMessage(I18n.as("migratedb.success",
-                                    DatabaseMigration.getDisplayName(module), result.rows()));
+                                DatabaseMigration.getDisplayName(module), result.rows()));
                         } else {
                             sender.sendMessage(I18n.as("migratedb.fail",
-                                    DatabaseMigration.getDisplayName(module), result.message()));
+                                DatabaseMigration.getDisplayName(module), result.message()));
                         }
                     }
                 }, "DB-Migration-" + module).start();
@@ -485,20 +524,6 @@ public class YouerCommand extends Command {
         }
 
         return true;
-    }
-
-    public static String getJVMUpTime() {
-        long uptime = ManagementFactory.getRuntimeMXBean().getUptime();
-        long seconds = uptime / 1000;
-        long minutes = seconds / 60;
-        long hours = minutes / 60;
-        long days = hours / 24;
-
-        return String.format("%d %s %d %s %d %s %d %s",
-                days, I18n.as("youercmd.time.days"),
-                hours % 24, I18n.as("youercmd.time.hours"),
-                minutes % 60, I18n.as("youercmd.time.minutes"),
-                seconds % 60, I18n.as("youercmd.time.seconds"));
     }
 
     private void showHelp(CommandSender sender) {
@@ -518,30 +543,5 @@ public class YouerCommand extends Command {
         sender.sendMessage(I18n.as("youercmd.help.help"));
         sender.sendMessage(I18n.as("youercmd.help.backupworld"));
         sender.sendMessage(I18n.as("youercmd.help.migratedb"));
-    }
-
-    private static void migrateAll(CommandSender sender, String target) {
-        int totalSucceeded = 0;
-        int totalRows = 0;
-        int totalCount = 0;
-
-        for (String module : DatabaseMigration.getModuleNames()) {
-            sender.sendMessage(I18n.as("migratedb.starting",
-                    DatabaseMigration.getDisplayName(module), target));
-            DatabaseMigration.MigrationResult result = DatabaseMigration.migrate(module, target);
-            totalCount++;
-            if (result.success()) {
-                totalSucceeded++;
-                totalRows += result.rows();
-                sender.sendMessage(I18n.as("migratedb.success",
-                        DatabaseMigration.getDisplayName(module), result.rows()));
-            } else {
-                sender.sendMessage(I18n.as("migratedb.fail",
-                        DatabaseMigration.getDisplayName(module), result.message()));
-            }
-        }
-
-        sender.sendMessage(I18n.as("migratedb.all.complete",
-                totalSucceeded, totalCount, totalRows));
     }
 }

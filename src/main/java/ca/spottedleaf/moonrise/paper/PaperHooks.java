@@ -234,11 +234,6 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
     }
 
     @Override
-    public boolean configFixMC159283() {
-        return io.papermc.paper.configuration.GlobalConfiguration.get().misc.fixFarEndTerrainGeneration;
-    }
-
-    @Override
     public boolean forceNoSave(final ChunkAccess chunk) {
         return chunk instanceof LevelChunk levelChunk && levelChunk.mustNotSave;
     }

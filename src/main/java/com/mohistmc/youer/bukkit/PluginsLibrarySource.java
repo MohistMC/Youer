@@ -3,8 +3,8 @@ package com.mohistmc.youer.bukkit;
 import com.mohistmc.youer.Youer;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/10/8 19:16:34
+ * @author Mgazul
+ * {@code @date} 2023/10/8 19:16:34
  */
 public enum PluginsLibrarySource {
 

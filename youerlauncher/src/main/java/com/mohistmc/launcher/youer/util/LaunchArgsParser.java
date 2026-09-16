@@ -86,11 +86,6 @@ public class LaunchArgsParser {
         });
     }
 
-    public enum ModuleDirectiveType {
-        OPEN,
-        EXPORT
-    }
-
     private static void export(Module module, String pkg, Module to) {
         JarLoader.inst.redefineModule(module, Set.of(), Map.of(pkg, Set.of(to)), Map.of(), Set.of(), Map.of());
     }
@@ -136,8 +131,13 @@ public class LaunchArgsParser {
 
     public static void loadModules(String modulePath) {
         Arrays.stream(modulePath.split(File.pathSeparator))
-                .map(Paths::get)
-                .forEach(JarLoader::loadJar);
+            .map(Paths::get)
+            .forEach(JarLoader::loadJar);
+    }
+
+    public enum ModuleDirectiveType {
+        OPEN,
+        EXPORT
     }
 
     private record ModuleDirectiveData(String module, String packages, String target) {

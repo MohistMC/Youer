@@ -44,11 +44,11 @@ public class MenuSettings {
     @Override
     public String toString() {
         return "MenuSettings{" +
-                "name='" + name + '\'' +
-                ", rows=" + rows +
-                ", autoRefresh=" + autoRefresh +
-                ", openActions=" + openActions +
-                '}';
+            "name='" + name + '\'' +
+            ", rows=" + rows +
+            ", autoRefresh=" + autoRefresh +
+            ", openActions=" + openActions +
+            '}';
     }
 
     @Override
@@ -57,9 +57,9 @@ public class MenuSettings {
         if (o == null || getClass() != o.getClass()) return false;
         MenuSettings that = (MenuSettings) o;
         return rows == that.rows &&
-                Objects.equals(name, that.name) &&
-                Objects.equals(autoRefresh, that.autoRefresh) &&
-                Objects.equals(openActions, that.openActions);
+            Objects.equals(name, that.name) &&
+            Objects.equals(autoRefresh, that.autoRefresh) &&
+            Objects.equals(openActions, that.openActions);
     }
 
     @Override

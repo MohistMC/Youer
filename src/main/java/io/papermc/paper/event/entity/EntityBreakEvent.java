@@ -7,6 +7,7 @@ import org.bukkit.event.entity.EntityEvent;
 import org.jetbrains.annotations.ApiStatus;
 import org.jspecify.annotations.NullMarked;
 
+// todo javadocs
 @NullMarked
 public class EntityBreakEvent extends EntityEvent implements Cancellable {
 

@@ -6,7 +6,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
 /**
- * @author Mgazul by MohistMC
+ * @author Mgazul
  * <p>
  * Player back-location storage backed by SQLite database.
  * Always uses SQLite (not configurable) — simple structured data, no Zstd needed.
@@ -28,11 +28,11 @@ public class BackConfig {
     public void saveLocation(Player player, Location location, BackType backType) {
         if (!CommandsConfig.INSTANCE.enable("back.enable")) return;
         storage.saveLocation(
-                player.getUniqueId().toString(),
-                location.getWorld().getName(),
-                location.getX(), location.getY(), location.getZ(),
-                location.getPitch(), location.getYaw(),
-                backType.name()
+            player.getUniqueId().toString(),
+            location.getWorld().getName(),
+            location.getX(), location.getY(), location.getZ(),
+            location.getPitch(), location.getYaw(),
+            backType.name()
         );
     }
 

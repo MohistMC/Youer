@@ -9,8 +9,8 @@ import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.inventory.ItemStack;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2025/11/1 19:00:23
+ * @author Mgazul
+ * {@code @date} 2025/11/1 19:00:23
  */
 public class BanBlock {
 

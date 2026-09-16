@@ -23,7 +23,7 @@ public class CraftRedstoneWire extends CraftBlockData implements RedstoneWire {
     private static final IntegerProperty POWER = RedstoneWireBlock.POWER;
 
     private static final Map<BlockFace, EnumProperty<RedstoneSide>> PROPERTY_BY_DIRECTION = RedstoneWireBlock.PROPERTY_BY_DIRECTION.entrySet().stream()
-            .collect(Collectors.toMap(entry -> CraftBlock.notchToBlockFace(entry.getKey()), entry -> entry.getValue()));
+        .collect(Collectors.toMap(entry -> CraftBlock.notchToBlockFace(entry.getKey()), entry -> entry.getValue()));
 
     public CraftRedstoneWire(BlockState state) {
         super(state);

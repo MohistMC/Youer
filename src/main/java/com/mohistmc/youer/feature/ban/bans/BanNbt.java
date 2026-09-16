@@ -6,7 +6,7 @@ import org.bukkit.inventory.ItemStack;
 
 /**
  * @author Mgazul
- * @date 2025/12/21 22:13
+ * {@code @date} 2025/12/21 22:13
  */
 public class BanNbt {
 

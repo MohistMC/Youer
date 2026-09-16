@@ -10,7 +10,7 @@ import java.util.Set;
 import org.bukkit.entity.HumanEntity;
 
 /**
- * @author Mgazul by MohistMC
+ * @author Mgazul
  * <p>
  * Ban configuration storage backed by database — 8 independent tables.
  * Each can be independently set to sqlite/mysql via database.yml features.bans.<type>.
@@ -18,6 +18,8 @@ import org.bukkit.entity.HumanEntity;
  */
 public class BanConfig {
 
+    private static final Map<BanType, List<String>> globalCache = new HashMap<>();
+    private static final Map<BanType, BanConfig> typeToConfigMap = new HashMap<>();
     public static BanConfig ITEM_MOSHOU;
     public static BanConfig ITEM;
     public static BanConfig ENTITY;
@@ -26,11 +28,7 @@ public class BanConfig {
     public static BanConfig BLOCK;
     public static BanConfig NBT;
     public static BanConfig WORLD;
-
     private static BanDatabaseStorage storage;
-    private static final Map<BanType, List<String>> globalCache = new HashMap<>();
-    private static final Map<BanType, BanConfig> typeToConfigMap = new HashMap<>();
-
     private final BanType banType;
 
     public BanConfig(BanType banType) {
@@ -70,6 +68,23 @@ public class BanConfig {
         globalCache.put(type, list != null ? new ArrayList<>(list) : new ArrayList<>());
     }
 
+    public static void saveToYaml(HumanEntity player, ClickType clickType, List<String> list, BanType banType) {
+        switch (banType) {
+            case ITEM -> BanConfig.ITEM.put(banType.key, list);
+            case ENTITY -> BanConfig.ENTITY.put(banType.key, list);
+            case ENCHANTMENT -> BanConfig.ENCHANTMENT.put(banType.key, list);
+            case ITEM_MOSHOU -> BanConfig.ITEM_MOSHOU.put(banType.key, list);
+            case RECIPE -> BanConfig.RECIPE.put(banType.key, list);
+            case BLOCK -> BanConfig.BLOCK.put(banType.key, list);
+            case WORLD -> BanConfig.WORLD.put(banType.key, list);
+        }
+        if (clickType == ClickType.ADD) {
+            player.sendMessage(I18n.as(banType.i18n_key_add));
+        } else if (clickType == ClickType.REMOVE) {
+            player.sendMessage(I18n.as(banType.i18n_key_remove));
+        }
+    }
+
     @SuppressWarnings("unchecked")
     public void put(String key, Object v) {
         if (banType != null && v instanceof List<?>) {
@@ -91,14 +106,14 @@ public class BanConfig {
         return storage.getMessage(banType, key);
     }
 
+    // === NBT methods ===
+
     public void setMessage(String key, String message) {
         if (banType == null) {
             return;
         }
         storage.setMessage(banType, key, message);
     }
-
-    // === NBT methods ===
 
     public Set<String> getAllNbtKeys() {
         return storage.getNbtKeys();
@@ -120,26 +135,11 @@ public class BanConfig {
         storage.clearNbt(key);
     }
 
-    /** @deprecated Database doesn't need file reload. */
+    /**
+     * @deprecated Database doesn't need file reload.
+     */
     @Deprecated
     public void reload() {
         for (BanType type : typeToConfigMap.keySet()) refreshCache(type);
-    }
-
-    public static void saveToYaml(HumanEntity player, ClickType clickType, List<String> list, BanType banType) {
-        switch (banType) {
-            case ITEM -> BanConfig.ITEM.put(banType.key, list);
-            case ENTITY -> BanConfig.ENTITY.put(banType.key, list);
-            case ENCHANTMENT -> BanConfig.ENCHANTMENT.put(banType.key, list);
-            case ITEM_MOSHOU -> BanConfig.ITEM_MOSHOU.put(banType.key, list);
-            case RECIPE -> BanConfig.RECIPE.put(banType.key, list);
-            case BLOCK -> BanConfig.BLOCK.put(banType.key, list);
-            case WORLD -> BanConfig.WORLD.put(banType.key, list);
-        }
-        if (clickType == ClickType.ADD) {
-            player.sendMessage(I18n.as(banType.i18n_key_add));
-        } else if (clickType == ClickType.REMOVE) {
-            player.sendMessage(I18n.as(banType.i18n_key_remove));
-        }
     }
 }

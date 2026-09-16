@@ -31,8 +31,8 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/8/1 20:00:00
+ * @author Mgazul
+ * {@code @date} 2023/8/1 20:00:00
  */
 public class ShowsCommand extends Command {
 
@@ -88,8 +88,8 @@ public class ShowsCommand extends Command {
                 }
 
                 wh.setItem(47, new GUIItem(new ItemStackFactory(Material.REDSTONE)
-                        .setDisplayName(I18n.as("shows.sound.stopall"))
-                        .build()) {
+                    .setDisplayName(I18n.as("shows.sound.stopall"))
+                    .build()) {
                     @Override
                     public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                         u.stopAllSounds();
@@ -100,8 +100,8 @@ public class ShowsCommand extends Command {
                     List<Sound> sounds = entry.getValue();
 
                     wh.addItem(new GUIItem(new ItemStackFactory(Material.CHEST)
-                            .setDisplayName("§b" + namespace + " §7(" + sounds.size() + ")")
-                            .build()) {
+                        .setDisplayName("§b" + namespace + " §7(" + sounds.size() + ")")
+                        .build()) {
                         @Override
                         public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                             openSoundCategoryGUI(u, namespace, sounds);
@@ -114,26 +114,26 @@ public class ShowsCommand extends Command {
             case "entitys" -> {
 
                 Map<net.minecraft.world.entity.EntityType<?>, Integer> collect =
-                        StreamSupport.stream(WorldAPI.getServerLevel(player.getWorld()).getAllEntities().spliterator(), false)
-                                .collect(Collectors.toMap(
-                                        net.minecraft.world.entity.Entity::getType,
-                                        entity -> 1,
-                                        Integer::sum
-                                ));
+                    StreamSupport.stream(WorldAPI.getServerLevel(player.getWorld()).getAllEntities().spliterator(), false)
+                        .collect(Collectors.toMap(
+                            net.minecraft.world.entity.Entity::getType,
+                            entity -> 1,
+                            Integer::sum
+                        ));
 
                 Map<net.minecraft.world.entity.EntityType<?>, Map<String, Integer>> entityChunkCount = new HashMap<>();
 
                 StreamSupport.stream(WorldAPI.getServerLevel(player.getWorld()).getAllEntities().spliterator(), false)
-                        .forEach(entity -> {
-                            net.minecraft.world.entity.EntityType<?> type = entity.getType();
-                            var v = entity.getBukkitEntity().getLocation();
-                            long chunkX = (long) v.x() >> 4;
-                            long chunkZ = (long) v.z() >> 4;
-                            String chunkKey = chunkX + "," + chunkZ;
+                    .forEach(entity -> {
+                        net.minecraft.world.entity.EntityType<?> type = entity.getType();
+                        var v = entity.getBukkitEntity().getLocation();
+                        long chunkX = (long) v.x() >> 4;
+                        long chunkZ = (long) v.z() >> 4;
+                        String chunkKey = chunkX + "," + chunkZ;
 
-                            entityChunkCount.computeIfAbsent(type, k -> new HashMap<>())
-                                    .merge(chunkKey, 1, Integer::sum);
-                        });
+                        entityChunkCount.computeIfAbsent(type, k -> new HashMap<>())
+                            .merge(chunkKey, 1, Integer::sum);
+                    });
 
                 List<Map.Entry<net.minecraft.world.entity.EntityType<?>, Integer>> infoIds = new ArrayList<>(collect.entrySet());
                 infoIds.sort((o1, o2) -> {
@@ -166,16 +166,16 @@ public class ShowsCommand extends Command {
                     String finalTopChunk = topChunk;
                     int finalMaxCount = maxCount;
                     wh.addItem(new GUIItem(new ItemStackFactory(ItemAPI.getEggMaterial(s.getKey()))
-                                       .setLore(List.of(
-                                               "§7====================",
-                                               I18n.as("shows.entitys.item.name", s.getValue()),
-                                               I18n.as("shows.entitys.item.entity", EntityType.getKey(s.getKey())),
-                                               I18n.as("shows.entitys.item.chunk", finalTopChunk, finalMaxCount),
-                                               "",
-                                               I18n.as("shows.entitys.item.click"),
-                                               "§7===================="
-                                       ))
-                                       .build()) {
+                                   .setLore(List.of(
+                                       "§7====================",
+                                       I18n.as("shows.entitys.item.name", s.getValue()),
+                                       I18n.as("shows.entitys.item.entity", EntityType.getKey(s.getKey())),
+                                       I18n.as("shows.entitys.item.chunk", finalTopChunk, finalMaxCount),
+                                       "",
+                                       I18n.as("shows.entitys.item.click"),
+                                       "§7===================="
+                                   ))
+                                   .build()) {
                                    @Override
                                    public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                                        if (!finalTopChunk.isEmpty()) {
@@ -217,7 +217,7 @@ public class ShowsCommand extends Command {
                     long chunkZ = (long) v.z() >> 4;
                     String chunkKey = chunkX + "," + chunkZ;
                     blockEntityChunkCount.computeIfAbsent(material, k -> new HashMap<>())
-                            .merge(chunkKey, 1, Integer::sum);
+                        .merge(chunkKey, 1, Integer::sum);
                 }
 
                 List<Map.Entry<Material, Integer>> infoIds = new ArrayList<>(collect.entrySet());
@@ -252,16 +252,16 @@ public class ShowsCommand extends Command {
                     int finalMaxCount = maxCount;
 
                     wh.addItem(new GUIItem(new ItemStackFactory(s.getKey())
-                                       .setLore(List.of(
-                                               "§7====================",
-                                               I18n.as("shows.entitys.item.name", s.getValue()),
-                                               I18n.as("shows.blockentitys.item.entity", s.getKey()),
-                                               I18n.as("shows.entitys.item.chunk", finalTopChunk, finalMaxCount),
-                                               "",
-                                               I18n.as("shows.entitys.item.click"),
-                                               "§7===================="
-                                       ))
-                                       .build()) {
+                                   .setLore(List.of(
+                                       "§7====================",
+                                       I18n.as("shows.entitys.item.name", s.getValue()),
+                                       I18n.as("shows.blockentitys.item.entity", s.getKey()),
+                                       I18n.as("shows.entitys.item.chunk", finalTopChunk, finalMaxCount),
+                                       "",
+                                       I18n.as("shows.entitys.item.click"),
+                                       "§7===================="
+                                   ))
+                                   .build()) {
                                    @Override
                                    public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                                        if (!finalTopChunk.isEmpty()) {
@@ -297,8 +297,8 @@ public class ShowsCommand extends Command {
         DemoGUI categoryGUI = new DemoGUI(I18n.as("shows.sound.category.title", namespace));
 
         categoryGUI.setItem(47, new GUIItem(new ItemStackFactory(Material.ARROW)
-                .setDisplayName(I18n.as("shows.sound.back"))
-                .build()) {
+            .setDisplayName(I18n.as("shows.sound.back"))
+            .build()) {
             @Override
             public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                 execute(u, "shows", new String[]{"sound"});
@@ -307,8 +307,8 @@ public class ShowsCommand extends Command {
 
         for (Sound s : sounds) {
             categoryGUI.addItem(new GUIItem(new ItemStackFactory(Material.NOTE_BLOCK)
-                    .setDisplayName(s.name())
-                    .build()) {
+                .setDisplayName(s.name())
+                .build()) {
                 @Override
                 public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                     if (type == ClickType.LEFT) {

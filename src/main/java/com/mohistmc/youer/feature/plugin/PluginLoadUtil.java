@@ -16,15 +16,15 @@ public final class PluginLoadUtil {
 
     private static final Logger LOGGER = LogUtils.getClassLogger();
 
+    private PluginLoadUtil() {
+    }
+
     private static void logProgress(String msg) {
         if (PluginHotReloadUtil.isReloading()) {
             LOGGER.debug(msg);
         } else {
             LOGGER.info(msg);
         }
-    }
-
-    private PluginLoadUtil() {
     }
 
     /**
@@ -45,8 +45,10 @@ public final class PluginLoadUtil {
 
     public static Plugin loadPlugin(File jarFile) {
         if (jarFile == null) throw new IllegalArgumentException("jarFile must not be null");
-        if (!jarFile.exists()) throw new IllegalArgumentException(I18n.as("plugin.loadutil.notexists", jarFile.getAbsolutePath()));
-        if (!jarFile.getName().endsWith(".jar")) throw new IllegalArgumentException(I18n.as("plugin.loadutil.notjar", jarFile.getAbsolutePath()));
+        if (!jarFile.exists())
+            throw new IllegalArgumentException(I18n.as("plugin.loadutil.notexists", jarFile.getAbsolutePath()));
+        if (!jarFile.getName().endsWith(".jar"))
+            throw new IllegalArgumentException(I18n.as("plugin.loadutil.notjar", jarFile.getAbsolutePath()));
 
         // Pre-check: if a plugin with the same name is already loaded, refuse
         String name = detectPluginName(jarFile);

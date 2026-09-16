@@ -28,8 +28,8 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/7/27 5:33:43
+ * @author Mgazul
+ * {@code @date} 2023/7/27 5:33:43
  */
 public class BansCommand extends Command {
 
@@ -218,16 +218,16 @@ public class BansCommand extends Command {
                 }
                 switch (args[1]) {
                     case "item" -> showBanList(player, BanType.ITEM, BanConfig.ITEM,
-                            "banscmd.show.item", s -> new ItemStackFactory(Material.matchMaterial(s)));
+                        "banscmd.show.item", s -> new ItemStackFactory(Material.matchMaterial(s)));
                     case "item-moshou" -> showBanList(player, BanType.ITEM_MOSHOU, BanConfig.ITEM_MOSHOU,
-                            "banscmd.show.item-moshou", s -> new ItemStackFactory(Material.matchMaterial(s)));
+                        "banscmd.show.item-moshou", s -> new ItemStackFactory(Material.matchMaterial(s)));
                     case "entity" -> showBanList(player, BanType.ENTITY, BanConfig.ENTITY,
-                            "banscmd.show.entity", s -> new ItemStackFactory(ItemAPI.getEggMaterial(EntityAPI.getType(s))));
+                        "banscmd.show.entity", s -> new ItemStackFactory(ItemAPI.getEggMaterial(EntityAPI.getType(s))));
                     case "enchantment" -> showBanList(player, BanType.ENCHANTMENT, BanConfig.ENCHANTMENT,
-                            "banscmd.show.enchantment", s -> new ItemStackFactory(Material.ENCHANTED_BOOK)
+                        "banscmd.show.enchantment", s -> new ItemStackFactory(Material.ENCHANTED_BOOK)
                             .setEnchantment(ItemAPI.getEnchantmentByKey(s)));
                     case "recipe" -> showBanList(player, BanType.RECIPE, BanConfig.RECIPE,
-                            "banscmd.show.recipe", s -> new ItemStackFactory(Material.KNOWLEDGE_BOOK));
+                        "banscmd.show.recipe", s -> new ItemStackFactory(Material.KNOWLEDGE_BOOK));
                     case "block" -> {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.block"));
                         List<String> old = BanConfig.getListByType(BanType.BLOCK);
@@ -235,21 +235,21 @@ public class BansCommand extends Command {
                             Material m = Material.matchMaterial(s);
                             if (m == null || m.isAir()) continue;
                             addBanItem(wh, old, BanType.BLOCK, BanConfig.BLOCK, s, player,
-                                    new ItemStackFactory(m.isItem() ? m : Material.STRUCTURE_VOID));
+                                new ItemStackFactory(m.isItem() ? m : Material.STRUCTURE_VOID));
                         }
                         wh.openGUI(player);
                     }
                     case "world" -> showBanList(player, BanType.WORLD, BanConfig.WORLD,
-                            "banscmd.show.world", s -> new ItemStackFactory(Material.GRASS_BLOCK));
+                        "banscmd.show.world", s -> new ItemStackFactory(Material.GRASS_BLOCK));
                     case "nbt" -> {
                         DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.nbt"));
                         for (String s : BanConfig.NBT.getAllNbtKeys()) {
                             Material m = Material.matchMaterial(s);
                             if (m == null || m.isAir()) continue;
                             wh.addItem(new GUIItem(new ItemStackFactory(m)
-                                    .setDisplayName(s)
-                                    .addLore("§e" + I18n.as("banscmd.show.nbt.lore"))
-                                    .build()) {
+                                .setDisplayName(s)
+                                .addLore("§e" + I18n.as("banscmd.show.nbt.lore"))
+                                .build()) {
                                 @Override
                                 public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                                     if (type.isRightClick()) {
@@ -287,8 +287,8 @@ public class BansCommand extends Command {
                         }
                         if (BanItem.check(itemStack) || BanItem.checkMoShou(itemStack)) {
                             String result = Arrays.stream(args)
-                                    .skip(2)
-                                    .collect(Collectors.joining(" "));
+                                .skip(2)
+                                .collect(Collectors.joining(" "));
                             BanConfig.ITEM.setMessage(itemStack.getType().getKey().asString(), result);
                         } else {
                             sender.sendMessage(I18n.as("banscmd.setmessage.notbanned"));
@@ -309,8 +309,8 @@ public class BansCommand extends Command {
                         }
                         if (BanItem.check(itemStack) || BanItem.checkMoShou(itemStack)) {
                             String result = Arrays.stream(args)
-                                    .skip(2)
-                                    .collect(Collectors.joining(" "));
+                                .skip(2)
+                                .collect(Collectors.joining(" "));
                             BanConfig.ITEM_MOSHOU.setMessage(itemStack.getType().getKey().asString(), result);
                         } else {
                             sender.sendMessage(I18n.as("banscmd.setmessage.notbanned"));
@@ -479,23 +479,23 @@ public class BansCommand extends Command {
         }
         if (args.length == 3 && args[0].equals("add") && args[1].equals("recipe") && (sender.isOp() || testPermission(sender))) {
             return BanRecipe.CACHE.stream()
-                    .map(Identifier::toString)
-                    .toList();
+                .map(Identifier::toString)
+                .toList();
         }
 
         if (args.length == 3 && args[0].equals("add") && args[1].equals("world") && (sender.isOp() || testPermission(sender))) {
             return BanWorld.CACHE.stream()
-                    .map(Identifier::toString)
-                    .toList();
+                .map(Identifier::toString)
+                .toList();
         }
 
         if (args.length == 3 && args[0].equals("add") && args[1].equals("block") && (sender.isOp() || testPermission(sender))) {
             return java.util.Arrays.stream(Material.values())
-                    .filter(m -> m.isBlock() && !m.isAir() && !m.isLegacy())
-                    .map(m -> m.getKey().asString())
-                    .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
-                    .limit(50)
-                    .collect(Collectors.toList());
+                .filter(m -> m.isBlock() && !m.isAir() && !m.isLegacy())
+                .map(m -> m.getKey().asString())
+                .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
+                .limit(50)
+                .collect(Collectors.toList());
         }
 
         return list;

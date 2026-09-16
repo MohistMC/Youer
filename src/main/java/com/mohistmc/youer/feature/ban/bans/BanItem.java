@@ -11,8 +11,8 @@ import org.bukkit.craftbukkit.entity.CraftHumanEntity;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/7/27 2:54:23
+ * @author Mgazul
+ * {@code @date} 2023/7/27 2:54:23
  */
 public class BanItem {
 

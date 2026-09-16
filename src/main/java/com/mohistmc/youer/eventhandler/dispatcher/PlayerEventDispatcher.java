@@ -32,7 +32,7 @@ public class PlayerEventDispatcher {
         Either<net.minecraft.world.entity.player.Player.BedSleepingProblem, Unit> nmsBedResult = event.getProblem() != null ? Either.left(event.getProblem()) : Either.right(Unit.INSTANCE);
         //var cbedResult = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerBedEnterEvent(serverPlayer, blockposition, nmsBedResult);
         //if (cbedResult.left().isPresent()) {
-         //   event.setProblem(cbedResult.left().get());
+        //   event.setProblem(cbedResult.left().get());
         //}
     }
 }

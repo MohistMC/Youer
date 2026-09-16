@@ -25,6 +25,14 @@ import org.slf4j.Logger;
 public final class PluginUnloadUtil {
 
     private static final Logger LOGGER = LogUtils.getClassLogger();
+    private static final Object REF_LOCK = new Object();
+    private static Field instanceManagerField;
+    private static Object paperInstanceManager;
+    private static Field pluginsListField;
+    private static Field lookupNamesField;
+    private static Field dependencyTreeField;
+    private static volatile boolean reflectionReady = false;
+    private static boolean reflectionAttempted = false;
 
     private static void logProgress(String msg) {
         if (PluginHotReloadUtil.isReloading()) {
@@ -33,15 +41,6 @@ public final class PluginUnloadUtil {
             LOGGER.info(msg);
         }
     }
-
-    private static Field instanceManagerField;
-    private static Object paperInstanceManager;
-    private static Field pluginsListField;
-    private static Field lookupNamesField;
-    private static Field dependencyTreeField;
-    private static final Object REF_LOCK = new Object();
-    private static volatile boolean reflectionReady = false;
-    private static boolean reflectionAttempted = false;
 
     private static boolean ensureReflection() {
         if (reflectionReady) return true;

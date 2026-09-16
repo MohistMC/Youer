@@ -1,8 +1,8 @@
 package com.mohistmc.youer.feature.ban;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/7/27 15:10:13
+ * @author Mgazul
+ * {@code @date} 2023/7/27 15:10:13
  */
 public enum BanType {
     ITEM("ITEMS", "bans.add.item", "bans.remove.item"),

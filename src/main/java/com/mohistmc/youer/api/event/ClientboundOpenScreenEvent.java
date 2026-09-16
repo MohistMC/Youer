@@ -9,7 +9,7 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Mgazul
- * @date 2025/11/1 17:47
+ * {@code @date} 2025/11/1 17:47
  */
 public class ClientboundOpenScreenEvent extends Event implements Cancellable {
 

@@ -4,7 +4,7 @@ import com.mohistmc.youer.feature.config.YouerPluginConfig;
 
 /**
  * @author Mgazul
- * @date 2025/11/23 01:28
+ * {@code @date} 2025/11/23 01:28
  */
 public class CommandsConfig extends YouerPluginConfig {
 

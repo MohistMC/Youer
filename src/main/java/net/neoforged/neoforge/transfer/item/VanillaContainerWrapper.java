@@ -80,6 +80,13 @@ public class VanillaContainerWrapper implements ResourceHandler<ItemResource> {
     final List<SlotWrapper> slotWrappers = new ArrayList<>();
     private final RootCommitJournal setChangedJournal;
 
+    /**
+     * Returns the vanilla container wrapped by this handler.
+     */
+    public Container getContainer() {
+        return container;
+    }
+
     VanillaContainerWrapper(Container container) {
         this.container = container;
         this.setChangedJournal = new RootCommitJournal(this::onRootCommit);

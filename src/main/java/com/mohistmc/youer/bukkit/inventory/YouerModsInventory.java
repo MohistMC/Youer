@@ -13,8 +13,8 @@ import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.InventoryHolder;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/7/10 22:30:10
+ * @author Mgazul
+ * {@code @date} 2023/7/10 22:30:10
  */
 public class YouerModsInventory implements Container {
 

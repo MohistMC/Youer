@@ -8,8 +8,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.bukkit.World;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/5/25 21:28:44
+ * @author Mgazul
+ * {@code @date} 2023/5/25 21:28:44
  */
 public class Level2LevelStem {
 

@@ -113,16 +113,16 @@ public class LibrariesDownloadQueue {
                 String entryPrefix = jarConnection.getEntryName();
 
                 jarFile.stream()
-                        .filter(entry -> !entry.isDirectory())
-                        .filter(entry -> entry.getName().startsWith(entryPrefix))
-                        .filter(LibrariesDownloadQueue::isTargetFile)
-                        .forEach(entry -> {
-                            String line = entry.getName().substring(entryPrefix.length());
-                            InputStream is = Main.class.getClassLoader().getResourceAsStream(entry.getName());
-                            Libraries libraries = new Libraries(line, SHA256.as(is), entry.getSize());
-                            allLibraries.add(libraries);
-                            debug("Find the resource: " + libraries);
-                        });
+                    .filter(entry -> !entry.isDirectory())
+                    .filter(entry -> entry.getName().startsWith(entryPrefix))
+                    .filter(LibrariesDownloadQueue::isTargetFile)
+                    .forEach(entry -> {
+                        String line = entry.getName().substring(entryPrefix.length());
+                        InputStream is = Main.class.getClassLoader().getResourceAsStream(entry.getName());
+                        Libraries libraries = new Libraries(line, SHA256.as(is), entry.getSize());
+                        allLibraries.add(libraries);
+                        debug("Find the resource: " + libraries);
+                    });
             }
         }
     }

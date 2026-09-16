@@ -22,16 +22,13 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.world.Container;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.entity.BlockEntity;
-import net.neoforged.neoforge.items.IItemHandler;
-import net.neoforged.neoforge.items.IItemHandlerModifiable;
-import net.neoforged.neoforge.items.ItemStackHandler;
-import net.neoforged.neoforge.items.SlotItemHandler;
-import net.neoforged.neoforge.items.wrapper.InvWrapper;
-import net.neoforged.neoforge.items.wrapper.PlayerArmorInvWrapper;
-import net.neoforged.neoforge.items.wrapper.PlayerInvWrapper;
-import net.neoforged.neoforge.items.wrapper.PlayerMainInvWrapper;
-import net.neoforged.neoforge.items.wrapper.RangedWrapper;
-import net.neoforged.neoforge.items.wrapper.SidedInvWrapper;
+import net.neoforged.neoforge.transfer.DelegatingResourceHandler;
+import net.neoforged.neoforge.transfer.ResourceHandler;
+import net.neoforged.neoforge.transfer.item.ItemResource;
+import net.neoforged.neoforge.transfer.item.PlayerInventoryWrapper;
+import net.neoforged.neoforge.transfer.item.ResourceHandlerSlot;
+import net.neoforged.neoforge.transfer.item.VanillaContainerWrapper;
+import net.neoforged.neoforge.transfer.item.WorldlyContainerWrapper;
 import org.bukkit.craftbukkit.block.CraftBlock;
 import org.bukkit.craftbukkit.block.CraftBlockEntityState;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
@@ -40,7 +37,7 @@ import org.bukkit.inventory.InventoryHolder;
 
 /**
  * @author Mgazul
- * @date 2020/4/10 13:39
+ * {@code @date} 2020/4/10 13:39
  */
 public class InventoryOwner {
 
@@ -82,64 +79,52 @@ public class InventoryOwner {
     }
 
     @Nullable
-    public static InventoryHolder get(IItemHandler handler) {
-        switch (handler) {
-            case null -> {
-                return null;
-            }
-            case ItemStackHandler itemStackHandler -> {
-                return new CraftCustomInventory(itemStackHandler);
-            }
-            case SlotItemHandler slotItemHandler -> {
-                return new CraftCustomInventory(slotItemHandler.container);
-            }
-            case InvWrapper invWrapper -> {
-                return new CraftCustomInventory(invWrapper.getInv());
-            }
-            case SidedInvWrapper sidedInvWrapper -> {
-                return new CraftCustomInventory(sidedInvWrapper.inv);
-            }
-            case PlayerInvWrapper playerInvWrapper -> {
-                IItemHandlerModifiable[] piw = playerInvWrapper.itemHandler;
-                for (IItemHandlerModifiable itemHandler : piw) {
-                    if (itemHandler instanceof PlayerMainInvWrapper) {
-                        return new CraftCustomInventory(((PlayerMainInvWrapper) itemHandler).getInventoryPlayer());
-                    }
-                    if (itemHandler instanceof PlayerArmorInvWrapper) {
-                        return new CraftCustomInventory(((PlayerArmorInvWrapper) itemHandler).getInventoryPlayer());
-                    }
-                }
-            }
-            default -> {
-            }
+    public static InventoryHolder get(ResourceHandler<ItemResource> handler) {
+        if (handler == null) {
+            return null;
+        }
+        if (handler instanceof PlayerInventoryWrapper playerInvWrapper) {
+            return new CraftCustomInventory(playerInvWrapper.getInventory());
+        }
+        if (handler instanceof VanillaContainerWrapper containerWrapper) {
+            return new CraftCustomInventory(containerWrapper.getContainer());
+        }
+        if (handler instanceof WorldlyContainerWrapper containerWrapper) {
+            return new CraftCustomInventory(containerWrapper.getContainer());
+        }
+        if (handler instanceof ResourceHandlerSlot slot) {
+            return get(slot.getResourceHandler());
+        }
+        // Generic fallback: wrap the handler into a Bukkit inventory.
+        return new CraftCustomInventory(new YouerIItemHandlerInventory(handler, null));
+    }
+
+    public static Container getContainer(ResourceHandler<?> handler) {
+        if (handler == null) {
+            return null;
+        }
+        if (handler instanceof VanillaContainerWrapper wrapper) {
+            return wrapper.getContainer();
+        }
+        if (handler instanceof WorldlyContainerWrapper wrapper) {
+            return wrapper.getContainer();
+        }
+        if (handler instanceof ResourceHandlerSlot slot) {
+            return getContainer(slot.getResourceHandler());
+        }
+        if (handler instanceof DelegatingResourceHandler<?> delegating) {
+            return getContainer(delegating.getDelegate());
         }
         return null;
     }
 
-    public static Container getContainer(IItemHandler handler) {
-        return switch (handler) {
-            case InvWrapper inv -> inv.getInv();
-            case SidedInvWrapper sidedInv -> sidedInv.inv;
-            case SlotItemHandler slotInv -> slotInv.container;
-            case RangedWrapper ranged -> {
-                handler = ranged.compose;
-                yield getContainer(handler);
-            }
-            case PlayerInvWrapper player -> {
-                handler = player.getHandlerFromIndex(0);
-                yield getContainer(handler);
-            }
-            case null, default -> null;
-        };
-    }
-
     @Nullable
-    public static Inventory inventoryFromForge(IItemHandler handler) {
+    public static Inventory inventoryFromForge(ResourceHandler<ItemResource> handler) {
         InventoryHolder holder = get(handler);
         return holder != null ? holder.getInventory() : null;
     }
 
-    public static Inventory getOwnerInventory(Object nmsOwner, IItemHandler handler) {
+    public static Inventory getOwnerInventory(Object nmsOwner, ResourceHandler<ItemResource> handler) {
         Container nms = getContainer(handler);
         if (nms != null) {
             final var inventory = nms.getOwnerInventory();

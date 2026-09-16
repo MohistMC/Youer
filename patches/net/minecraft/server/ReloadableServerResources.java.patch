@@ -21,7 +21,7 @@
      private final List<DataComponentInitializers.PendingComponents<?>> newComponents;
 +    // Neo: Store registries and condition context object
 +    private final net.minecraft.core.RegistryAccess registryAccess;
-+    private final HolderLookup.Provider loadingContext;
++    private final net.minecraft.core.HolderLookup.Provider loadingContext;
 +    private final net.neoforged.neoforge.common.conditions.ConditionContext context;
 +    private final java.util.Map<net.neoforged.neoforge.resource.ListenerKey<?>, PreparableReloadListener> retainedListeners = new java.util.IdentityHashMap<>();
  
@@ -38,7 +38,7 @@
 +        // Neo: Store registries and create context object
 +        this.registryAccess = loadingContext.layers().compositeAccess();
 +        this.loadingContext = loadingContext.lookupWithUpdatedTags();
-+        this.context = new net.neoforged.neoforge.common.conditions.ConditionContext(this.postponedTags, registryAccess, enabledFeatures);
++        this.context = new net.neoforged.neoforge.common.conditions.ConditionContext(this.postponedTags, this.loadingContext, enabledFeatures);
      }
  
      public ServerFunctionLibrary getFunctionLibrary() {
@@ -78,7 +78,7 @@
                              );
 +
 +                            // Neo: Fire the AddServerReloadListenersEvent and use the resulting listeners instead of the vanilla listener list.
-+                            List<PreparableReloadListener> listeners = net.neoforged.neoforge.event.EventHooks.onResourceReload(result, fullRegistries.layers().compositeAccess(), result.retainedListeners);
++                            List<PreparableReloadListener> listeners = net.neoforged.neoforge.event.EventHooks.onResourceReload(result, result.retainedListeners);
 +
 +                            // Neo: Inject the ConditionContext and RegistryLookup to any resource listener that requests it.
 +                            for (PreparableReloadListener rl : listeners) {

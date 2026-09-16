@@ -1,5 +1,5 @@
 <div align="center">
-  <h1 align="center">Youer 26.2</h1>
+  <h1 align="center">Youer 26.3</h1>
   <h3 align="center">Minecraft NeoForge Hybrid server implementing the Paper/Purpur API</h3>
 
   <p align="center">
@@ -7,13 +7,13 @@
       <img alt="GitHub Stars" src="https://img.shields.io/github/stars/MohistMC/Youer?logo=github&color=181717&style=flat-square">
     </a>
     <a href="https://neoforged.net/">
-      <img alt="NeoForge" src="https://img.shields.io/badge/NeoForge-26.2-FF8B00?style=flat-square">
+      <img alt="NeoForge" src="https://img.shields.io/badge/NeoForge-26.3-FF8B00?style=flat-square">
     </a>
     <a href="https://www.azul.com/downloads/?version=java-25-lts#zulu">
-      <img alt="JDK" src="https://img.shields.io/badge/JDK-25.0.1-007396?logo=java&logoColor=white&style=flat-square">
+      <img alt="JDK" src="https://img.shields.io/badge/JDK-25.0.4-007396?logo=java&logoColor=white&style=flat-square">
     </a>
     <a href="https://docs.gradle.org/9.6.0/release-notes.html">
-      <img alt="Gradle" src="https://img.shields.io/badge/Gradle-9.6.0-02303A?logo=gradle&logoColor=white&style=flat-square">
+      <img alt="Gradle" src="https://img.shields.io/badge/Gradle-9.7.0-02303A?logo=gradle&logoColor=white&style=flat-square">
     </a>
     <a href="https://discord.gg/mohistmc">
       <img alt="Discord" src="https://img.shields.io/discord/311256119005937665?color=5865F2&logo=discord&logoColor=white&style=flat-square">
@@ -30,9 +30,9 @@
 ## 📊 Progress Status
 
 ✅ **Core Integration**
-- [x] NeoForge ([87addb084](https://github.com/neoforged/NeoForge/commit/87addb084))
-- [x] Paper ([3a3d1c00fa](https://github.com/PaperMC/Paper/commit/3a3d1c00fa))
-- [x] PurPur ([803bf624](https://github.com/PurpurMC/Purpur/commit/803bf624))
+- [x] NeoForge ([a449ecc89](https://github.com/neoforged/NeoForge/commit/a449ecc89))
+- [x] Paper ([c5c8f6cbbf](https://github.com/PaperMC/Paper/commit/c5c8f6cbbf))
+- [x] PurPur ([183dd5830](https://github.com/PurpurMC/Purpur/commit/183dd5830))
 
 🔄 **Compatible Progress**
 
@@ -43,8 +43,8 @@
 
 ## ⚙️ Technical Stack
 
-| Component   | Source                                                              | Purpose                      | Status |
-|-------------|---------------------------------------------------------------------|------------------------------|--------|
-| NeoForge    | [GitHub](https://github.com/neoforged/NeoForge.git)                 | Mod support                  | ✅      |
-| Paper       | [GitHub](https://github.com/PaperMC/Paper.git)                      | Plugin support               | ✅      |
-| PurPur      | [GitHub](https://github.com/PurpurMC/Purpur.git)                    | Plugin support               | ✅      |
+| Component | Source                                              | Purpose        | Status |
+|-----------|-----------------------------------------------------|----------------|--------|
+| NeoForge  | [GitHub](https://github.com/neoforged/NeoForge.git) | Mod support    | ✅     |
+| Paper     | [GitHub](https://github.com/PaperMC/Paper.git)      | Plugin support | ✅     |
+| PurPur    | [GitHub](https://github.com/PurpurMC/Purpur.git)    | Plugin support | ✅     |

@@ -1,10 +1,10 @@
 package com.mohistmc.youer.feature;
 
+import com.github.luben.zstd.ZstdOutputStream;
 import com.mohistmc.tools.NamedThreadFactory;
 import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.util.I18n;
-import com.github.luben.zstd.ZstdOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -85,9 +85,9 @@ public class WorldBackup {
             try (OutputStream fos = Files.newOutputStream(zip.toPath());
                  ZipOutputStream zos = new ZipOutputStream(fos)) {
                 Files.walk(worldPath)
-                        .filter(p -> !p.equals(worldPath))
-                        .filter(p -> !p.getFileName().toString().equals("session.lock"))
-                        .forEach(p -> addToZip(worldPath, p, zos));
+                    .filter(p -> !p.equals(worldPath))
+                    .filter(p -> !p.getFileName().toString().equals("session.lock"))
+                    .forEach(p -> addToZip(worldPath, p, zos));
             }
         }
 
@@ -114,9 +114,9 @@ public class WorldBackup {
 
     private static void writeTarArchive(Path baseDir, OutputStream os) throws IOException {
         try (var stream = Files.walk(baseDir)
-                .filter(p -> !p.equals(baseDir))
-                .filter(p -> !p.getFileName().toString().equals("session.lock"))
-                .sorted()) {
+            .filter(p -> !p.equals(baseDir))
+            .filter(p -> !p.getFileName().toString().equals("session.lock"))
+            .sorted()) {
             var list = stream.toList();
             for (Path file : list) {
                 writeTarEntry(baseDir, file, os);

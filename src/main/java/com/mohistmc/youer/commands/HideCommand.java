@@ -1,4 +1,3 @@
-
 package com.mohistmc.youer.commands;
 
 import com.mohistmc.youer.util.I18n;

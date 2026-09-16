@@ -20,9 +20,11 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Mgazul
- * @date 2026/01/07 01:30
+ * {@code @date} 2026/01/07 01:30
  */
 public class DeepseekCommand extends BukkitCommand {
+
+    private final List<String> params = Arrays.asList("history", "clearall", "clear");
 
     public DeepseekCommand(String name) {
         super(name);
@@ -66,9 +68,9 @@ public class DeepseekCommand extends BukkitCommand {
                 DemoGUI wh = new DemoGUI(I18n.as("deepseek.history.title", DeepSeek.getConversationHistory().size()));
                 for (Map.Entry<UUID, List<ChatRequest.Message>> msg : DeepSeek.getConversationHistory().entrySet()) {
                     wh.addItem(new GUIItem(new ItemStackFactory(Material.PLAYER_HEAD)
-                            .setLore(List.of(I18n.as("deepseek.history.lore", DeepSeek.getHistorySize(msg.getKey()))))
-                            .player(Bukkit.getPlayer(msg.getKey()))
-                            .buildHead()));
+                        .setLore(List.of(I18n.as("deepseek.history.lore", DeepSeek.getHistorySize(msg.getKey()))))
+                        .player(Bukkit.getPlayer(msg.getKey()))
+                        .buildHead()));
                 }
                 wh.openGUI(player);
             }
@@ -76,8 +78,6 @@ public class DeepseekCommand extends BukkitCommand {
         }
         return true;
     }
-
-    private final List<String> params = Arrays.asList("history", "clearall", "clear");
 
     @Override
     public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) {

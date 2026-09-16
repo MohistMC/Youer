@@ -36,7 +36,7 @@ public class PlayerAPI {
      * Add mod IDs to the player's mod list
      *
      * @param player object
-     * @param modId The mod ID to be added
+     * @param modId  The mod ID to be added
      */
     public static void addMod(SocketAddress player, String modId) {
         modlist.computeIfAbsent(player, k -> new LinkedHashSet<>()).add(modId);
@@ -56,10 +56,10 @@ public class PlayerAPI {
 
     public static void sendMessageByCopy(Player player, String des, String info) {
         player.sendMessage(
-                ColorAPI.adventure(des)
-                        .clickEvent(net.kyori.adventure.text.event.ClickEvent.copyToClipboard(info))
-                        .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
-                                ColorAPI.adventure("§c" + I18n.as("itemscmd.copy"))))
+            ColorAPI.adventure(des)
+                .clickEvent(net.kyori.adventure.text.event.ClickEvent.copyToClipboard(info))
+                .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                    ColorAPI.adventure("§c" + I18n.as("itemscmd.copy"))))
         );
     }
 }

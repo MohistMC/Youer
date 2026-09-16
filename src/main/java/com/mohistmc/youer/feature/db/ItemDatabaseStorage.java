@@ -14,14 +14,14 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2026/07/01
- *
+ * @author Mgazul
+ * {@code @date} 2026/07/01
+ * <p>
  * Database-backed storage for saved items.
  * Both SQLite and MySQL store Zstd-compressed binary data:
  * - SQLite: BLOB column
  * - MySQL:  MEDIUMBLOB column
- *
+ * <p>
  * Table: "items" (SQLite) or "youer_items" (MySQL)
  */
 public class ItemDatabaseStorage {
@@ -46,16 +46,16 @@ public class ItemDatabaseStorage {
             if (isMysql) {
                 stmt.executeUpdate(
                     "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
-                    "name VARCHAR(255) PRIMARY KEY, " +
-                    "data MEDIUMBLOB NOT NULL" +
-                    ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+                        "name VARCHAR(255) PRIMARY KEY, " +
+                        "data MEDIUMBLOB NOT NULL" +
+                        ") ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
                 );
             } else {
                 stmt.executeUpdate(
                     "CREATE TABLE IF NOT EXISTS " + tableName + " (" +
-                    "name TEXT PRIMARY KEY, " +
-                    "data BLOB NOT NULL" +
-                    ")"
+                        "name TEXT PRIMARY KEY, " +
+                        "data BLOB NOT NULL" +
+                        ")"
                 );
             }
         } catch (SQLException e) {
@@ -73,9 +73,9 @@ public class ItemDatabaseStorage {
         Connection conn = DatabaseManager.getConnection(MODULE);
 
         try (PreparedStatement ps = conn.prepareStatement(
-                isMysql
-                    ? "REPLACE INTO " + tableName + " (name, data) VALUES (?, ?)"
-                    : "INSERT OR REPLACE INTO " + tableName + " (name, data) VALUES (?, ?)")) {
+            isMysql
+                ? "REPLACE INTO " + tableName + " (name, data) VALUES (?, ?)"
+                : "INSERT OR REPLACE INTO " + tableName + " (name, data) VALUES (?, ?)")) {
             ps.setString(1, key);
             ps.setBytes(2, compressed);
             ps.executeUpdate();
@@ -93,7 +93,7 @@ public class ItemDatabaseStorage {
     public ItemStack get(String key) {
         Connection conn = DatabaseManager.getConnection(MODULE);
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT data FROM " + tableName + " WHERE name = ?")) {
+            "SELECT data FROM " + tableName + " WHERE name = ?")) {
             ps.setString(1, key);
 
             try (ResultSet rs = ps.executeQuery()) {
@@ -120,7 +120,7 @@ public class ItemDatabaseStorage {
     public void remove(String key) {
         Connection conn = DatabaseManager.getConnection(MODULE);
         try (PreparedStatement ps = conn.prepareStatement(
-                "DELETE FROM " + tableName + " WHERE name = ?")) {
+            "DELETE FROM " + tableName + " WHERE name = ?")) {
             ps.setString(1, key);
             ps.executeUpdate();
         } catch (SQLException e) {

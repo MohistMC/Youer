@@ -14,9 +14,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2026/07/01
- *
+ * @author Mgazul
+ * {@code @date} 2026/07/01
+ * <p>
  * Database-backed storage for bans — 8 independent tables, all with message column.
  * Each can be independently set to sqlite/mysql via database.yml features.bans.<type>.
  */
@@ -24,23 +24,57 @@ public class BanDatabaseStorage {
 
     private static final Logger LOGGER = LogManager.getLogger("Youer-DB");
 
-    private static final String ITEM        = "bans.item";
+    private static final String ITEM = "bans.item";
     private static final String ITEM_MOSHOU = "bans.item_moshou";
-    private static final String ENTITY      = "bans.entity";
+    private static final String ENTITY = "bans.entity";
     private static final String ENCHANTMENT = "bans.enchantment";
-    private static final String RECIPE      = "bans.recipe";
-    private static final String BLOCK       = "bans.block";
-    private static final String WORLD       = "bans.world";
-    private static final String NBT         = "bans.nbt";
+    private static final String RECIPE = "bans.recipe";
+    private static final String BLOCK = "bans.block";
+    private static final String WORLD = "bans.world";
+    private static final String NBT = "bans.nbt";
+
+    private static String tableName(String module, String baseName) {
+        return DatabaseConfig.isMysql(module) ? DatabaseConfig.getMysqlTablePrefix() + "_" + baseName : baseName;
+    }
+
+    private static boolean isMysql(Connection conn) throws SQLException {
+        return conn.getMetaData().getURL().contains("mysql");
+    }
+
+    private static String moduleFor(BanType type) {
+        return switch (type) {
+            case ITEM -> ITEM;
+            case ITEM_MOSHOU -> ITEM_MOSHOU;
+            case ENTITY -> ENTITY;
+            case ENCHANTMENT -> ENCHANTMENT;
+            case RECIPE -> RECIPE;
+            case BLOCK -> BLOCK;
+            case WORLD -> WORLD;
+        };
+    }
+
+    // === Helpers ===
+
+    private static String tableBase(BanType type) {
+        return switch (type) {
+            case ITEM -> "ban_item";
+            case ITEM_MOSHOU -> "ban_item_moshou";
+            case ENTITY -> "ban_entity";
+            case ENCHANTMENT -> "ban_enchantment";
+            case RECIPE -> "ban_recipe";
+            case BLOCK -> "ban_block";
+            case WORLD -> "ban_world";
+        };
+    }
 
     public void init() {
-        initListTable(ITEM,        "ban_item");
+        initListTable(ITEM, "ban_item");
         initListTable(ITEM_MOSHOU, "ban_item_moshou");
-        initListTable(ENTITY,      "ban_entity");
+        initListTable(ENTITY, "ban_entity");
         initListTable(ENCHANTMENT, "ban_enchantment");
-        initListTable(RECIPE,      "ban_recipe");
-        initListTable(BLOCK,       "ban_block");
-        initListTable(WORLD,       "ban_world");
+        initListTable(RECIPE, "ban_recipe");
+        initListTable(BLOCK, "ban_block");
+        initListTable(WORLD, "ban_world");
         initNbtTable();
     }
 
@@ -68,40 +102,6 @@ public class BanDatabaseStorage {
         } catch (SQLException e) {
             throw new RuntimeException("[Youer-DB] Failed to init ban_nbt", e);
         }
-    }
-
-    // === Helpers ===
-
-    private static String tableName(String module, String baseName) {
-        return DatabaseConfig.isMysql(module) ? DatabaseConfig.getMysqlTablePrefix() + "_" + baseName : baseName;
-    }
-
-    private static boolean isMysql(Connection conn) throws SQLException {
-        return conn.getMetaData().getURL().contains("mysql");
-    }
-
-    private static String moduleFor(BanType type) {
-        return switch (type) {
-            case ITEM        -> ITEM;
-            case ITEM_MOSHOU -> ITEM_MOSHOU;
-            case ENTITY      -> ENTITY;
-            case ENCHANTMENT -> ENCHANTMENT;
-            case RECIPE      -> RECIPE;
-            case BLOCK       -> BLOCK;
-            case WORLD       -> WORLD;
-        };
-    }
-
-    private static String tableBase(BanType type) {
-        return switch (type) {
-            case ITEM        -> "ban_item";
-            case ITEM_MOSHOU -> "ban_item_moshou";
-            case ENTITY      -> "ban_entity";
-            case ENCHANTMENT -> "ban_enchantment";
-            case RECIPE      -> "ban_recipe";
-            case BLOCK       -> "ban_block";
-            case WORLD       -> "ban_world";
-        };
     }
 
     // === Ban list operations ===
@@ -160,7 +160,7 @@ public class BanDatabaseStorage {
         String table = tableName(module, tableBase(type));
         Connection conn = DatabaseManager.getConnection(module);
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT 1 FROM " + table + " WHERE value = ?")) {
+            "SELECT 1 FROM " + table + " WHERE value = ?")) {
             ps.setString(1, value);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
@@ -177,7 +177,7 @@ public class BanDatabaseStorage {
         String table = tableName(module, tableBase(type));
         Connection conn = DatabaseManager.getConnection(module);
         try (PreparedStatement ps = conn.prepareStatement(
-                "UPDATE " + table + " SET message = ? WHERE value = ?")) {
+            "UPDATE " + table + " SET message = ? WHERE value = ?")) {
             ps.setString(1, message);
             ps.setString(2, key);
             ps.executeUpdate();
@@ -191,7 +191,7 @@ public class BanDatabaseStorage {
         String table = tableName(module, tableBase(type));
         Connection conn = DatabaseManager.getConnection(module);
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT message FROM " + table + " WHERE value = ?")) {
+            "SELECT message FROM " + table + " WHERE value = ?")) {
             ps.setString(1, key);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -225,7 +225,7 @@ public class BanDatabaseStorage {
         String table = tableName(NBT, "ban_nbt");
         Connection conn = DatabaseManager.getConnection(NBT);
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT nbt_tag FROM " + table + " WHERE item_type = ?")) {
+            "SELECT nbt_tag FROM " + table + " WHERE item_type = ?")) {
             ps.setString(1, itemType);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) list.add(rs.getString("nbt_tag"));
@@ -240,7 +240,7 @@ public class BanDatabaseStorage {
         String table = tableName(NBT, "ban_nbt");
         Connection conn = DatabaseManager.getConnection(NBT);
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT 1 FROM " + table + " WHERE item_type = ?")) {
+            "SELECT 1 FROM " + table + " WHERE item_type = ?")) {
             ps.setString(1, itemType);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
@@ -254,7 +254,7 @@ public class BanDatabaseStorage {
         String table = tableName(NBT, "ban_nbt");
         Connection conn = DatabaseManager.getConnection(NBT);
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT OR IGNORE INTO " + table + " (item_type, nbt_tag) VALUES (?, ?)")) {
+            "INSERT OR IGNORE INTO " + table + " (item_type, nbt_tag) VALUES (?, ?)")) {
             ps.setString(1, itemType);
             ps.setString(2, nbtTag);
             ps.executeUpdate();
@@ -267,7 +267,7 @@ public class BanDatabaseStorage {
         String table = tableName(NBT, "ban_nbt");
         Connection conn = DatabaseManager.getConnection(NBT);
         try (PreparedStatement ps = conn.prepareStatement(
-                "DELETE FROM " + table + " WHERE item_type = ? AND nbt_tag = ?")) {
+            "DELETE FROM " + table + " WHERE item_type = ? AND nbt_tag = ?")) {
             ps.setString(1, itemType);
             ps.setString(2, nbtTag);
             ps.executeUpdate();
@@ -280,7 +280,7 @@ public class BanDatabaseStorage {
         String table = tableName(NBT, "ban_nbt");
         Connection conn = DatabaseManager.getConnection(NBT);
         try (PreparedStatement ps = conn.prepareStatement(
-                "DELETE FROM " + table + " WHERE item_type = ?")) {
+            "DELETE FROM " + table + " WHERE item_type = ?")) {
             ps.setString(1, itemType);
             ps.executeUpdate();
         } catch (SQLException e) {

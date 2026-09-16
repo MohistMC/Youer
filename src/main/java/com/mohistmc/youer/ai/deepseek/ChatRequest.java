@@ -157,6 +157,54 @@ public class ChatRequest {
         this.top_logprobs = top_logprobs;
     }
 
+    @Override
+    public String toString() {
+        return "ChatRequest{" +
+            "messages=" + messages +
+            ", model='" + model + '\'' +
+            ", frequency_penalty=" + frequency_penalty +
+            ", max_tokens=" + max_tokens +
+            ", presence_penalty=" + presence_penalty +
+            ", response_format=" + response_format +
+            ", stop='" + stop + '\'' +
+            ", stream=" + stream +
+            ", stream_options=" + stream_options +
+            ", temperature=" + temperature +
+            ", top_p=" + top_p +
+            ", tools=" + tools +
+            ", tool_choice='" + tool_choice + '\'' +
+            ", logprobs=" + logprobs +
+            ", top_logprobs=" + top_logprobs +
+            '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ChatRequest that = (ChatRequest) o;
+        return Double.compare(that.frequency_penalty, frequency_penalty) == 0 &&
+            max_tokens == that.max_tokens &&
+            Double.compare(that.presence_penalty, presence_penalty) == 0 &&
+            stream == that.stream &&
+            Double.compare(that.temperature, temperature) == 0 &&
+            Double.compare(that.top_p, top_p) == 0 &&
+            logprobs == that.logprobs &&
+            Objects.equals(messages, that.messages) &&
+            Objects.equals(model, that.model) &&
+            Objects.equals(response_format, that.response_format) &&
+            Objects.equals(stop, that.stop) &&
+            Objects.equals(stream_options, that.stream_options) &&
+            Objects.equals(tools, that.tools) &&
+            Objects.equals(tool_choice, that.tool_choice) &&
+            Objects.equals(top_logprobs, that.top_logprobs);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(messages, model, frequency_penalty, max_tokens, presence_penalty, response_format, stop, stream, stream_options, temperature, top_p, tools, tool_choice, logprobs, top_logprobs);
+    }
+
     public static class Message {
         @ToJson
         private String content;
@@ -182,9 +230,9 @@ public class ChatRequest {
         @Override
         public String toString() {
             return "Message{" +
-                    "content='" + content + '\'' +
-                    ", role='" + role + '\'' +
-                    '}';
+                "content='" + content + '\'' +
+                ", role='" + role + '\'' +
+                '}';
         }
 
         @Override
@@ -193,7 +241,7 @@ public class ChatRequest {
             if (o == null || getClass() != o.getClass()) return false;
             Message message = (Message) o;
             return Objects.equals(content, message.content) &&
-                    Objects.equals(role, message.role);
+                Objects.equals(role, message.role);
         }
 
         @Override
@@ -217,8 +265,8 @@ public class ChatRequest {
         @Override
         public String toString() {
             return "ResponseFormat{" +
-                    "type='" + type + '\'' +
-                    '}';
+                "type='" + type + '\'' +
+                '}';
         }
 
         @Override
@@ -233,53 +281,5 @@ public class ChatRequest {
         public int hashCode() {
             return Objects.hash(type);
         }
-    }
-
-    @Override
-    public String toString() {
-        return "ChatRequest{" +
-                "messages=" + messages +
-                ", model='" + model + '\'' +
-                ", frequency_penalty=" + frequency_penalty +
-                ", max_tokens=" + max_tokens +
-                ", presence_penalty=" + presence_penalty +
-                ", response_format=" + response_format +
-                ", stop='" + stop + '\'' +
-                ", stream=" + stream +
-                ", stream_options=" + stream_options +
-                ", temperature=" + temperature +
-                ", top_p=" + top_p +
-                ", tools=" + tools +
-                ", tool_choice='" + tool_choice + '\'' +
-                ", logprobs=" + logprobs +
-                ", top_logprobs=" + top_logprobs +
-                '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ChatRequest that = (ChatRequest) o;
-        return Double.compare(that.frequency_penalty, frequency_penalty) == 0 &&
-                max_tokens == that.max_tokens &&
-                Double.compare(that.presence_penalty, presence_penalty) == 0 &&
-                stream == that.stream &&
-                Double.compare(that.temperature, temperature) == 0 &&
-                Double.compare(that.top_p, top_p) == 0 &&
-                logprobs == that.logprobs &&
-                Objects.equals(messages, that.messages) &&
-                Objects.equals(model, that.model) &&
-                Objects.equals(response_format, that.response_format) &&
-                Objects.equals(stop, that.stop) &&
-                Objects.equals(stream_options, that.stream_options) &&
-                Objects.equals(tools, that.tools) &&
-                Objects.equals(tool_choice, that.tool_choice) &&
-                Objects.equals(top_logprobs, that.top_logprobs);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(messages, model, frequency_penalty, max_tokens, presence_penalty, response_format, stop, stream, stream_options, temperature, top_p, tools, tool_choice, logprobs, top_logprobs);
     }
 }

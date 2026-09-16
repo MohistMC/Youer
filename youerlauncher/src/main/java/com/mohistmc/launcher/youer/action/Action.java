@@ -79,6 +79,28 @@ public class Action {
         install();
     }
 
+    public static void cleanMinecraftJars() {
+        String librariesPath = "libraries";
+        File librariesDir = new File(librariesPath);
+
+        if (!librariesDir.exists() || !librariesDir.isDirectory()) {
+            return;
+        }
+
+        File[] files = librariesDir.listFiles();
+        if (files == null) {
+            return;
+        }
+
+        for (File file : files) {
+            if (file.isFile() &&
+                file.getName().toLowerCase().endsWith(".jar") &&
+                file.getName().toLowerCase().startsWith("minecraft")) {
+                file.delete();
+            }
+        }
+    }
+
     public void install() throws Exception {
 
         List<InstallationTask> tasks = new ArrayList<>();
@@ -91,13 +113,13 @@ public class Action {
         }
         cleanMinecraftJars();
         tasks.add(new ConsoleToolTask(
-                "net.neoforged.installertools.ConsoleTool",
-                "--task", "PROCESS_MINECRAFT_JAR",
-                "--no-mod-manifest",
-                "--input", MINECRAFT_JAR.getAbsolutePath(),
-                "--output", PATCHED.getAbsolutePath(),
-                "--extract-libraries-to", LIBRARIES,
-                "--apply-patches", BINPATCH.getAbsolutePath()
+            "net.neoforged.installertools.ConsoleTool",
+            "--task", "PROCESS_MINECRAFT_JAR",
+            "--no-mod-manifest",
+            "--input", MINECRAFT_JAR.getAbsolutePath(),
+            "--output", PATCHED.getAbsolutePath(),
+            "--extract-libraries-to", LIBRARIES,
+            "--apply-patches", BINPATCH.getAbsolutePath()
         ));
 
         mute();
@@ -185,11 +207,11 @@ public class Action {
 
         List<String> forgeArgs = new ArrayList<>();
         for (String arg : DataParser.launchArgs.stream().filter(s ->
-                        s.startsWith("--launchTarget")
-                                || s.startsWith("--fml.neoForgeVersion")
-                                || s.startsWith("--fml.mcVersion")
-                                || s.startsWith("--fml.neoFormVersion"))
-                .toList()) {
+                s.startsWith("--launchTarget")
+                    || s.startsWith("--fml.neoForgeVersion")
+                    || s.startsWith("--fml.mcVersion")
+                    || s.startsWith("--fml.neoFormVersion"))
+            .toList()) {
             forgeArgs.add(arg.split(" ")[0]);
             forgeArgs.add(arg.split(" ")[1]);
         }
@@ -225,28 +247,6 @@ public class Action {
         @Override
         public void execute() throws Exception {
             run(mainClass, args);
-        }
-    }
-
-    public static void cleanMinecraftJars() {
-        String librariesPath = "libraries";
-        File librariesDir = new File(librariesPath);
-
-        if (!librariesDir.exists() || !librariesDir.isDirectory()) {
-            return;
-        }
-
-        File[] files = librariesDir.listFiles();
-        if (files == null) {
-            return;
-        }
-
-        for (File file : files) {
-            if (file.isFile() &&
-                    file.getName().toLowerCase().endsWith(".jar") &&
-                    file.getName().toLowerCase().startsWith("minecraft")) {
-                file.delete();
-            }
         }
     }
 }

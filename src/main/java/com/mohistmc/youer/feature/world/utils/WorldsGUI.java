@@ -24,8 +24,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/6/14 14:57:28
+ * @author Mgazul
+ * {@code @date} 2023/6/14 14:57:28
  */
 public class WorldsGUI {
 
@@ -70,9 +70,9 @@ public class WorldsGUI {
             }
             Material material = flat ? Material.GREEN_CARPET : getMaterial(w);
             wh.addItem(new GUIItem(new ItemStackFactory(material)
-                               .setDisplayName("§7>> §6" + w.getName())
-                               .setLore(infoLore)
-                               .build()) {
+                           .setDisplayName("§7>> §6" + w.getName())
+                           .setLore(infoLore)
+                           .build()) {
                            @Override
                            public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                                ItemMeta itemMeta = itemStack.getItemMeta();

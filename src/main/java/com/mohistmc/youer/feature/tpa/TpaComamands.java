@@ -36,16 +36,16 @@ public class TpaComamands extends Command {
             }
             a.sendMessage(I18n.as("tpacommands.sent", player.getName()));
             a.sendMessage(
-                    ColorAPI.adventure(I18n.as("tpacommands.click.accept"))
-                            .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
-                                    ColorAPI.adventure(I18n.as("tpacommands.hover.accept"))))
-                            .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/tpaccept"))
+                ColorAPI.adventure(I18n.as("tpacommands.click.accept"))
+                    .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                        ColorAPI.adventure(I18n.as("tpacommands.hover.accept"))))
+                    .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/tpaccept"))
             );
             a.sendMessage(
-                    ColorAPI.adventure(I18n.as("tpacommands.click.deny"))
-                            .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
-                                    ColorAPI.adventure(I18n.as("tpacommands.hover.reject"))))
-                            .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/tpadeny"))
+                ColorAPI.adventure(I18n.as("tpacommands.click.deny"))
+                    .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                        ColorAPI.adventure(I18n.as("tpacommands.hover.reject"))))
+                    .clickEvent(net.kyori.adventure.text.event.ClickEvent.runCommand("/tpadeny"))
             );
             player.sendMessage(I18n.as("tpacommands.successfully"));
             tpa.remove(a);

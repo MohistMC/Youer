@@ -11,8 +11,8 @@ import net.neoforged.neoforge.common.util.FakePlayer;
 import org.bukkit.NamespacedKey;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/7/27 13:35:20
+ * @author Mgazul
+ * {@code @date} 2023/7/27 13:35:20
  */
 public class BanEntity {
 

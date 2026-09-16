@@ -160,8 +160,8 @@ public class AutoDeleteMods {
         boolean deleted = tryDeleteFile(modFile);
         if (deleted) {
             System.out.println(I18n.as("update.deleting",
-                    modFile.getName(),
-                    reason.getDisplayText()
+                modFile.getName(),
+                reason.getDisplayText()
             ));
         } else {
             System.err.println(I18n.as("update.delete.failed", modFile.getName()));

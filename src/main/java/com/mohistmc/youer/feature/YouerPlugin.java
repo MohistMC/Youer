@@ -35,8 +35,8 @@ import org.bukkit.event.inventory.PrepareAnvilEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/6/14 14:46:34
+ * @author Mgazul
+ * {@code @date} 2023/6/14 14:46:34
  */
 public class YouerPlugin {
 

@@ -11,8 +11,8 @@ import org.bukkit.craftbukkit.enchantments.CraftEnchantment;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/7/27 15:30:06
+ * @author Mgazul
+ * {@code @date} 2023/7/27 15:30:06
  */
 public class EnchantmentAPI {
 

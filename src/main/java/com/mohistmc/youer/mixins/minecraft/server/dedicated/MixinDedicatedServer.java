@@ -8,13 +8,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * @author Mgazul
- * @date 2026/1/21 16:49
+ * {@code @date} 2026/1/21 16:49
  */
 @Mixin(DedicatedServer.class)
 public class MixinDedicatedServer {
 
     @Inject(method = "showGui", at = @At("HEAD"), cancellable = true)
     private void youer$disableGui(CallbackInfo ci) {
-      ci.cancel();
+        ci.cancel();
     }
 }

@@ -53,9 +53,9 @@ import org.spigotmc.SpigotConfig;
 public class Metrics {
 
     public static final ScheduledExecutorService METRICS = Executors.newScheduledThreadPool(1,
-            Thread.ofVirtual()
-                    .name("Metrics", 0)
-                    .factory());
+        Thread.ofVirtual()
+            .name("Metrics", 0)
+            .factory());
     private final String name;
     private final String serverUUID;
     private final List<CustomChart> charts = new ArrayList<>();
@@ -280,11 +280,11 @@ public class Metrics {
                 config.addDefault("logFailedRequests", false);
 
                 config.options().header(
-                        """
-                                bStats collects some data for plugin authors like how many servers are using their plugins.
-                                To honor their work, you should not disable it.
-                                This has nearly no effect on the server performance!
-                                Check out https://bStats.org/ to learn more :)"""
+                    """
+                        bStats collects some data for plugin authors like how many servers are using their plugins.
+                        To honor their work, you should not disable it.
+                        This has nearly no effect on the server performance!
+                        Check out https://bStats.org/ to learn more :)"""
                 ).copyDefaults(true);
                 try {
                     config.save(configFile);

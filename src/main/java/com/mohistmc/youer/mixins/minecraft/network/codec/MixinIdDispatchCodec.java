@@ -14,7 +14,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
  * @author Mgazul
- * @date 2026/1/21 19:40
+ * {@code @date} 2026/1/21 19:40
  */
 @Mixin(IdDispatchCodec.class)
 public class MixinIdDispatchCodec {

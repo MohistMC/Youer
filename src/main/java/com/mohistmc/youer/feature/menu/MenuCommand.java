@@ -123,7 +123,7 @@ public class MenuCommand extends Command {
         settings.setName(config.getString("menu-settings.name"));
         settings.setRows(config.getInt("menu-settings.rows", 0));
         settings.setAutoRefresh(config.contains("menu-settings.auto-refresh") ?
-                config.getInt("menu-settings.auto-refresh") : null);
+            config.getInt("menu-settings.auto-refresh") : null);
         settings.setOpenActions(config.getStringList("menu-settings.open-actions"));
 
         return settings;
@@ -149,19 +149,19 @@ public class MenuCommand extends Command {
                 icon.setLore(config.getStringList(key + ".LORE"));
                 icon.setActions(config.getStringList(key + ".ACTIONS"));
                 icon.setDurability(config.contains(key + ".DURABILITY") ?
-                        config.getInt(key + ".DURABILITY") : null);
+                    config.getInt(key + ".DURABILITY") : null);
                 icon.setEnchantments(config.getStringList(key + ".ENCHANTMENTS"));
                 icon.setAmount(config.contains(key + ".AMOUNT") ?
-                        config.getInt(key + ".AMOUNT") : null);
+                    config.getInt(key + ".AMOUNT") : null);
                 icon.setRequiredItems(config.getStringList(key + ".REQUIRED-ITEMS"));
                 icon.setKeepOpen(config.getBoolean(key + ".KEEP-OPEN", false));
                 icon.setDisplay_permission(config.getString(key + ".DISPLAY-PERMISSION"));
                 icon.setUse_permission(config.getString(key + ".USE-PERMISSION"));
                 icon.setCustomModelData(config.contains(key + ".CUSTOMMODELDATA") ?
-                        config.getInt(key + ".CUSTOMMODELDATA") : null);
+                    config.getInt(key + ".CUSTOMMODELDATA") : null);
                 icon.setHideTooltip(config.getBoolean(key + ".HIDE-TOOLTIP", false));
                 icon.setItemFlags(config.getStringList(key + ".ITEMFLAG").stream()
-                        .map(ItemFlag::valueOf).collect(Collectors.toList()));
+                    .map(ItemFlag::valueOf).collect(Collectors.toList()));
                 icon.setBase64(config.getString(key + ".BASE64"));
                 icons.put(key, icon);
             }

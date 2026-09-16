@@ -5,8 +5,8 @@ import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.entity.CraftGolem;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/9/13 3:26:33
+ * @author Mgazul
+ * {@code @date} 2023/9/13 3:26:33
  */
 public class YouerModsGolem extends CraftGolem {
 

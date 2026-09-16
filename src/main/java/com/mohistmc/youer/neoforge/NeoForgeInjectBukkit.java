@@ -44,22 +44,20 @@ import org.bukkit.potion.PotionType;
 public class NeoForgeInjectBukkit {
 
     public static final boolean DEBUG = Boolean.getBoolean("youer.debug");
-    public static BiMap<ResourceKey<LevelStem>, World.Environment> environment =
-            HashBiMap.create(ImmutableMap.<ResourceKey<LevelStem>, World.Environment>builder()
-                    .put(LevelStem.OVERWORLD, World.Environment.NORMAL)
-                    .put(LevelStem.NETHER, World.Environment.NETHER)
-                    .put(LevelStem.END, World.Environment.THE_END)
-                    .build());
-
-    public static BiMap<World.Environment, ResourceKey<LevelStem>> environment0 =
-            HashBiMap.create(ImmutableMap.<World.Environment, ResourceKey<LevelStem>>builder()
-                    .put(World.Environment.NORMAL, LevelStem.OVERWORLD)
-                    .put(World.Environment.NETHER, LevelStem.NETHER)
-                    .put(World.Environment.THE_END, LevelStem.END)
-                    .build());
-
-    public static Map<Villager.Profession, Identifier> profession = new HashMap<>();
     private static final BiMap<Identifier, Statistic> STATISTICS = HashBiMap.create(CraftStatistic.statistics);
+    public static BiMap<ResourceKey<LevelStem>, World.Environment> environment =
+        HashBiMap.create(ImmutableMap.<ResourceKey<LevelStem>, World.Environment>builder()
+            .put(LevelStem.OVERWORLD, World.Environment.NORMAL)
+            .put(LevelStem.NETHER, World.Environment.NETHER)
+            .put(LevelStem.END, World.Environment.THE_END)
+            .build());
+    public static BiMap<World.Environment, ResourceKey<LevelStem>> environment0 =
+        HashBiMap.create(ImmutableMap.<World.Environment, ResourceKey<LevelStem>>builder()
+            .put(World.Environment.NORMAL, LevelStem.OVERWORLD)
+            .put(World.Environment.NETHER, LevelStem.NETHER)
+            .put(World.Environment.THE_END, LevelStem.END)
+            .build());
+    public static Map<Villager.Profession, Identifier> profession = new HashMap<>();
     public static Map<MobCategory, SpawnCategory> spawnCategoryMap = new HashMap<>();
     public static Map<SpawnCategory, MobCategory> CategoryspawnMap = new HashMap<>();
 
@@ -77,15 +75,15 @@ public class NeoForgeInjectBukkit {
 
     private static String getMaterialName(Identifier resourceLocation, boolean isMod) {
         return isMod ?
-                MohistDynamEnum.normalizeName(resourceLocation.toString()) :
-                MohistDynamEnum.normalizeName(resourceLocation.getPath());
+            MohistDynamEnum.normalizeName(resourceLocation.toString()) :
+            MohistDynamEnum.normalizeName(resourceLocation.getPath());
     }
 
     public static void addEnumMaterialInItems() {
         var registry = BuiltInRegistries.ITEM;
         List<String> materials = new ArrayList<>(Arrays.stream(Material.values())
-                .map(Enum::name)
-                .toList());
+            .map(Enum::name)
+            .toList());
         for (Item item : registry) {
             Identifier resourceLocation = registry.getKey(item);
             boolean isMod = isMods(resourceLocation);
@@ -109,8 +107,8 @@ public class NeoForgeInjectBukkit {
     public static void addEnumMaterialsInBlocks() {
         var registry = BuiltInRegistries.BLOCK;
         List<String> materials = new ArrayList<>(Arrays.stream(Material.values())
-                .map(Enum::name)
-                .toList());
+            .map(Enum::name)
+            .toList());
         for (Block block : registry) {
             Identifier resourceLocation = registry.getKey(block);
             boolean isMod = isMods(resourceLocation);
@@ -198,8 +196,8 @@ public class NeoForgeInjectBukkit {
     public static void addEnumEntity() {
         var registry = BuiltInRegistries.ENTITY_TYPE;
         List<String> entityTypeNames = Arrays.stream(EntityType.values())
-                .map(Enum::name)
-                .toList();
+            .map(Enum::name)
+            .toList();
         for (net.minecraft.world.entity.EntityType<?> entity : registry) {
             Identifier resourceLocation = registry.getKey(entity);
             if (resourceLocation == null) continue;
@@ -208,8 +206,8 @@ public class NeoForgeInjectBukkit {
             if (isMod) {
                 int typeId = entityName.hashCode();
                 EntityType bukkitType = MohistDynamEnum.addEnum(EntityType.class, entityName,
-                        List.of(String.class, Class.class, Integer.TYPE, Boolean.TYPE),
-                        List.of(entityName.toLowerCase(), Entity.class, typeId, false));
+                    List.of(String.class, Class.class, Integer.TYPE, Boolean.TYPE),
+                    List.of(entityName.toLowerCase(), Entity.class, typeId, false));
 
                 if (bukkitType != null) {
                     bukkitType.hookForgeEntity(resourceLocation, entity);
@@ -219,8 +217,8 @@ public class NeoForgeInjectBukkit {
                 if (!entityTypeNames.contains(entityName)) {
                     int typeId = entityName.hashCode();
                     EntityType bukkitType = MohistDynamEnum.addEnum(EntityType.class, entityName,
-                            List.of(String.class, Class.class, Integer.TYPE, Boolean.TYPE),
-                            List.of(entityName.toLowerCase(), Entity.class, typeId, false));
+                        List.of(String.class, Class.class, Integer.TYPE, Boolean.TYPE),
+                        List.of(entityName.toLowerCase(), Entity.class, typeId, false));
 
                     if (bukkitType != null) {
                         bukkitType.hookForgeEntity(resourceLocation, entity);

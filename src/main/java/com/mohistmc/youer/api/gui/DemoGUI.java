@@ -23,17 +23,17 @@ public class DemoGUI {
 
         for (int i = 36; i < 46; i++) {
             this.gui.setItem(i, new GUIItem(new ItemStackFactory(Material.GRAY_STAINED_GLASS_PANE)
-                    .hideTooltip()
-                    .build()));
+                .hideTooltip()
+                .build()));
         }
 
         this.gui.setItem(new GUIItem(new ItemStackFactory(Material.GRAY_STAINED_GLASS_PANE)
-                .hideTooltip()
-                .build()), 47, 48, 49, 50);
+            .hideTooltip()
+            .build()), 47, 48, 49, 50);
 
         this.gui.setItem(46, new GUIItem(new ItemStackFactory(Material.BARRIER)
-                .setDisplayName(I18n.as("demogui.close"))
-                .build()) {
+            .setDisplayName(I18n.as("demogui.close"))
+            .build()) {
             @Override
             public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                 if (!type.isShiftClick() && type.isLeftClick()) {
@@ -117,12 +117,12 @@ public class DemoGUI {
 
         if (this.pageChoose == 0) {
             gui.setItem(51, new GUIItem(new ItemStackFactory(Material.RED_STAINED_GLASS_PANE)
-                    .setDisplayName(I18n.as("demogui.homepage"))
-                    .build()));
+                .setDisplayName(I18n.as("demogui.homepage"))
+                .build()));
         } else {
             gui.setItem(51, new GUIItem(new ItemStackFactory(Material.RED_STAINED_GLASS_PANE)
-                    .setDisplayName(I18n.as("demogui.ppage"))
-                    .build()) {
+                .setDisplayName(I18n.as("demogui.ppage"))
+                .build()) {
                 @Override
                 public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                     DemoGUI.this.pageChoose--;
@@ -132,13 +132,13 @@ public class DemoGUI {
         }
 
         gui.setItem(52, new GUIItem(new ItemStackFactory(Material.PAPER, pageChoose + 1)
-                .setDisplayName(I18n.as("demogui.nowpage", (pageChoose + 1)))
-                .build()));
+            .setDisplayName(I18n.as("demogui.nowpage", (pageChoose + 1)))
+            .build()));
 
         if (this.pageChoose < page - 1) {
             gui.setItem(53, new GUIItem(new ItemStackFactory(Material.LIME_STAINED_GLASS_PANE)
-                    .setDisplayName(I18n.as("demogui.npage"))
-                    .build()) {
+                .setDisplayName(I18n.as("demogui.npage"))
+                .build()) {
                 @Override
                 public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
                     DemoGUI.this.pageChoose++;
@@ -147,8 +147,8 @@ public class DemoGUI {
             });
         } else {
             gui.setItem(53, new GUIItem(new ItemStackFactory(Material.LIME_STAINED_GLASS_PANE)
-                    .setDisplayName(I18n.as("demogui.lastpage"))
-                    .build()));
+                .setDisplayName(I18n.as("demogui.lastpage"))
+                .build()));
         }
 
         return this.gui;

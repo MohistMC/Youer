@@ -1,6 +1,8 @@
 package io.papermc.paper;
 
 import io.papermc.paper.command.PaperSubcommand;
+import io.papermc.paper.command.subcommands.ChunkDebugCommand;
+import io.papermc.paper.command.subcommands.FixLightCommand;
 import it.unimi.dsi.fastutil.longs.LongIterator;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
@@ -40,7 +42,8 @@ public final class FeatureHooks {
     }
 
     public static void registerPaperCommands(final Map<Set<String>, PaperSubcommand> commands) {
-
+        commands.put(Set.of("fixlight"), new FixLightCommand()); // Paper - rewrite chunk system
+        commands.put(Set.of("debug", "chunkinfo", "holderinfo"), new ChunkDebugCommand());  // Paper - rewrite chunk system
     }
 
     public static LevelChunkSection createSection(final PalettedContainerFactory palettedContainerFactory, final Level level, final ChunkPos chunkPos, final int chunkSection) {
@@ -187,20 +190,6 @@ public final class FeatureHooks {
     }
 
     public static void flushAsyncAppenders() {
-        // Paper start - add explicit flush method
-        if (!(org.apache.logging.log4j.LogManager.getContext(false) instanceof org.apache.logging.log4j.core.LoggerContext context)) {
-            return;
-        }
-
-        for (final org.apache.logging.log4j.core.Appender appender : context.getConfiguration().getAppenders().values()) {
-            if (appender instanceof org.apache.logging.log4j.core.appender.AsyncAppender asyncAppender) {
-                final boolean flushed = asyncAppender.flush(100, java.util.concurrent.TimeUnit.MILLISECONDS);
-                if (!flushed) {
-                    net.minecraft.server.MinecraftServer.LOGGER.warn("Failed to flush log messages before plugin unload.");
-                }
-            }
-        }
-        // Paper end - add explicit flush method
     }
 
 }

@@ -33,7 +33,7 @@ public class MenuGUI {
             }
 
             ItemStackFactory itemFactory = new ItemStackFactory(material)
-                    .setDisplayName(icon.getName() != null ? icon.getName() : "Unnamed Item");
+                .setDisplayName(icon.getName() != null ? icon.getName() : "Unnamed Item");
             itemFactory.player(player);
             if (icon.getLore() != null && !icon.getLore().isEmpty()) {
                 List<String> lore = icon.getLore();

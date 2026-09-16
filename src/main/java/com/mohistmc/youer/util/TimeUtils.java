@@ -10,7 +10,7 @@ public class TimeUtils {
             long remainingSeconds = seconds % 60;
             if (remainingSeconds > 0) {
                 return I18n.as("time.unit.minute", String.valueOf(minutes)) + " " +
-                        I18n.as("time.unit.second", String.valueOf(remainingSeconds));
+                    I18n.as("time.unit.second", String.valueOf(remainingSeconds));
             } else {
                 return I18n.as("time.unit.minute", String.valueOf(minutes));
             }

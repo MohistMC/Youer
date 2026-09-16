@@ -10,9 +10,9 @@ import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2026/07/01
- *
+ * @author Mgazul
+ * {@code @date} 2026/07/01
+ * <p>
  * Manages database connections for all feature modules.
  * - SQLite: single shared file youer-config/database/youer.db, each module uses its own table
  * - MySQL: shared connection, differentiated by table names
@@ -100,15 +100,15 @@ public class DatabaseManager {
         try {
             String url = DatabaseConfig.getMysqlUrl();
             mysqlConnection = DriverManager.getConnection(
-                    url,
-                    DatabaseConfig.getMysqlUsername(),
-                    DatabaseConfig.getMysqlPassword()
+                url,
+                DatabaseConfig.getMysqlUsername(),
+                DatabaseConfig.getMysqlPassword()
             );
             LOGGER.info("[Youer-DB] MySQL connection opened: " + url);
             return mysqlConnection;
         } catch (SQLException e) {
             throw new RuntimeException("[Youer-DB] Failed to open MySQL connection: " +
-                    DatabaseConfig.getMysqlUrl(), e);
+                DatabaseConfig.getMysqlUrl(), e);
         }
     }
 

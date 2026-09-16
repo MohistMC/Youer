@@ -14,8 +14,8 @@ import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.generator.ChunkGenerator;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/6/14 14:49:40
+ * @author Mgazul
+ * {@code @date} 2023/6/14 14:49:40
  */
 public class WorldAPI {
 
@@ -53,11 +53,11 @@ public class WorldAPI {
 
     public static class FlatGenerator extends ChunkGenerator {
         private static final Material[] DEFAULT_FLAT_LAYERS = {
-                Material.BEDROCK,
-                Material.DIRT,
-                Material.DIRT,
-                Material.DIRT,
-                Material.GRASS_BLOCK
+            Material.BEDROCK,
+            Material.DIRT,
+            Material.DIRT,
+            Material.DIRT,
+            Material.GRASS_BLOCK
         };
 
         public ChunkData generateChunkData(World world, Random random, int x, int z, BiomeGrid biome) {

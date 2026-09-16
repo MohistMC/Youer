@@ -11,7 +11,7 @@ import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Mgazul
- * @date 2025/11/23 01:37
+ * {@code @date} 2025/11/23 01:37
  */
 public class HatCommand extends BukkitCommand {
 

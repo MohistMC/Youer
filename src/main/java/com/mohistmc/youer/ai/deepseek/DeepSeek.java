@@ -20,9 +20,9 @@ import org.bukkit.entity.Player;
 
 public class DeepSeek {
 
-    public static Logger LOGGER = LogManager.getLogger(DeepSeek.class);
     // Store conversation history for each player
     private static final Map<UUID, List<ChatRequest.Message>> conversationHistory = new HashMap<>();
+    public static Logger LOGGER = LogManager.getLogger(DeepSeek.class);
 
     public static boolean init(Player player, String msg) {
         if (YouerConfig.deepseek_enable && player.hasPermission("youer.ai.deepseek")) {
@@ -46,30 +46,30 @@ public class DeepSeek {
 
     private static void handleCommand(Player player, String message, boolean isBroadcast) {
         CompletableFuture.supplyAsync(() -> chatWithMemory(player, message))
-                .thenAccept(reply -> {
-                    if (reply != null) {
-                        if (isBroadcast) {
-                            Bukkit.broadcastMessage(YouerConfig.deepseek_chatformat.formatted(reply));
-                        } else {
-                            player.sendMessage(YouerConfig.deepseek_chatformat.formatted(reply));
-                        }
-                        // Update history
-                        updateHistory(player.getUniqueId(), message, reply);
+            .thenAccept(reply -> {
+                if (reply != null) {
+                    if (isBroadcast) {
+                        Bukkit.broadcastMessage(YouerConfig.deepseek_chatformat.formatted(reply));
+                    } else {
+                        player.sendMessage(YouerConfig.deepseek_chatformat.formatted(reply));
                     }
-                })
-                .exceptionally(throwable -> {
-                    player.sendMessage(YouerConfig.deepseek_chatformat.formatted(Youer.i18n.as("deepseek.error.throwable")));
-                    Throwable cause = throwable;
-                    while (cause.getCause() != null && cause != cause.getCause()) {
-                        cause = cause.getCause();
-                    }
-                    String errorMsg = cause.getMessage();
-                    if (errorMsg == null || errorMsg.isEmpty()) {
-                        errorMsg = cause.toString();
-                    }
-                    LOGGER.error(errorMsg);
-                    return null;
-                });
+                    // Update history
+                    updateHistory(player.getUniqueId(), message, reply);
+                }
+            })
+            .exceptionally(throwable -> {
+                player.sendMessage(YouerConfig.deepseek_chatformat.formatted(Youer.i18n.as("deepseek.error.throwable")));
+                Throwable cause = throwable;
+                while (cause.getCause() != null && cause != cause.getCause()) {
+                    cause = cause.getCause();
+                }
+                String errorMsg = cause.getMessage();
+                if (errorMsg == null || errorMsg.isEmpty()) {
+                    errorMsg = cause.toString();
+                }
+                LOGGER.error(errorMsg);
+                return null;
+            });
     }
 
     /**
@@ -130,11 +130,11 @@ public class DeepSeek {
         request.setMessages(messages);
 
         HttpResponse<String> response = Unirest.post(YouerConfig.deepseek_baseUrl)
-                .header("Content-Type", "application/json")
-                .header("Accept", "application/json")
-                .header("Authorization", "Bearer %s".formatted(YouerConfig.deepseek_apikey))
-                .body(Json.readBean(request).toString())
-                .asString();
+            .header("Content-Type", "application/json")
+            .header("Accept", "application/json")
+            .header("Authorization", "Bearer %s".formatted(YouerConfig.deepseek_apikey))
+            .body(Json.readBean(request).toString())
+            .asString();
 
         if (!response.isSuccess()) {
             String errorBody = response.getBody();
@@ -221,8 +221,8 @@ public class DeepSeek {
      */
     public static int getAllHistorySize() {
         return conversationHistory.values().stream()
-                .mapToInt(List::size)
-                .sum();
+            .mapToInt(List::size)
+            .sum();
     }
 
     public static Map<UUID, List<ChatRequest.Message>> getConversationHistory() {

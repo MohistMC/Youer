@@ -10,8 +10,8 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/7/27 15:18:21
+ * @author Mgazul
+ * {@code @date} 2023/7/27 15:18:21
  */
 public class BanEnchantment {
 

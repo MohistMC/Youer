@@ -2,10 +2,10 @@ package com.mohistmc.youer.feature;
 
 import com.mohistmc.tools.NamedThreadFactory;
 import com.mohistmc.youer.YouerConfig;
+import java.util.Set;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.Set;
 import net.minecraft.server.MinecraftServer;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
@@ -14,8 +14,8 @@ import org.bukkit.entity.Item;
 import org.bukkit.entity.Monster;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/7/25 23:56:03
+ * @author Mgazul
+ * {@code @date} 2023/7/25 23:56:03
  */
 public class EntityClear {
 

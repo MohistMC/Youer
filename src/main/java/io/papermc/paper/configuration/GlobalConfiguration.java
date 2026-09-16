@@ -7,6 +7,10 @@ import io.papermc.paper.configuration.type.number.DoubleOr;
 import io.papermc.paper.configuration.type.number.IntOr;
 import io.papermc.paper.util.sanitizer.ItemObfuscationBinding;
 import io.papermc.paper.util.sanitizer.OversizedItemComponentSanitizer;
+import java.util.Map;
+import java.util.Objects;
+import java.util.OptionalInt;
+import java.util.Set;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.minecraft.core.component.DataComponents;
@@ -20,11 +24,6 @@ import org.spongepowered.configurate.objectmapping.meta.Comment;
 import org.spongepowered.configurate.objectmapping.meta.PostProcess;
 import org.spongepowered.configurate.objectmapping.meta.Required;
 import org.spongepowered.configurate.objectmapping.meta.Setting;
-
-import java.util.Map;
-import java.util.Objects;
-import java.util.OptionalInt;
-import java.util.Set;
 
 @SuppressWarnings({"CanBeFinal", "FieldCanBeLocal", "FieldMayBeFinal", "NotNullFieldNotInitialized", "InnerClassMayBeStatic"})
 public class GlobalConfiguration extends ConfigurationPart {

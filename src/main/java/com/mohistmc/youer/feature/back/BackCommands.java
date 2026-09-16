@@ -31,7 +31,7 @@ public class BackCommands extends Command {
             if (BackConfig.INSTANCE.has(player.getUniqueId().toString())) {
                 player.teleport(BackConfig.INSTANCE.getLocation(player));
                 player.sendMessage(I18n.as("backcommands.success",
-                        BackConfig.INSTANCE.getBackType(player).isTeleport() ? I18n.as("backcommands.backtype.teleport") : I18n.as("backcommands.backtype.death")));
+                    BackConfig.INSTANCE.getBackType(player).isTeleport() ? I18n.as("backcommands.backtype.teleport") : I18n.as("backcommands.backtype.death")));
             } else {
                 sender.sendMessage(I18n.as("backcommands.none"));
             }

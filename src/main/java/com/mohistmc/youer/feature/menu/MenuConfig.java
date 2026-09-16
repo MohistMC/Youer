@@ -26,9 +26,9 @@ public class MenuConfig {
     @Override
     public String toString() {
         return "MenuConfig{" +
-                "menuSettings=" + menuSettings +
-                ", icons=" + icons +
-                '}';
+            "menuSettings=" + menuSettings +
+            ", icons=" + icons +
+            '}';
     }
 
     @Override
@@ -37,7 +37,7 @@ public class MenuConfig {
         if (o == null || getClass() != o.getClass()) return false;
         MenuConfig that = (MenuConfig) o;
         return Objects.equals(menuSettings, that.menuSettings) &&
-                Objects.equals(icons, that.icons);
+            Objects.equals(icons, that.icons);
     }
 
     @Override

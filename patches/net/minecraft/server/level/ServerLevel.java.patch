@@ -672,7 +672,7 @@
          }
  
          this.raids = this.getDataStorage().computeIfAbsent(Raids.TYPE);
-@@ -279,14 +_,13 @@
+@@ -279,10 +_,10 @@
              levelData.setGameType(server.getDefaultGameType());
          }
  
@@ -681,14 +681,10 @@
 -        long seed = options.seed();
 +        long seed = seedOverride.orElse(options.seed()); // NeoForge: use the seed override here too
          this.structureCheck = new StructureCheck(
++            getTypeKey(), // Paper - pass level stem
              this.chunkSource.chunkScanner(),
              this.registryAccess(),
              server.getStructureTemplateManager(),
--            dimension,
-+            getTypeKey(),
-             generator,
-             this.chunkSource.randomState(),
-             this,
 @@ -302,11 +_,35 @@
  
          this.sleepStatus = new SleepStatus();

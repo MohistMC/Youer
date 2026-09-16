@@ -5,8 +5,8 @@ import net.neoforged.neoforge.common.util.BlockSnapshot;
 import org.bukkit.craftbukkit.block.CraftBlock;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/7/25 19:54:50
+ * @author Mgazul
+ * {@code @date} 2023/7/25 19:54:50
  */
 public class MohistBlockSnapshot extends CraftBlock {
 

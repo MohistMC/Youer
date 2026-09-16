@@ -12,14 +12,14 @@ import org.slf4j.Logger;
 
 public final class PluginHotReloadUtil {
 
-    private static final Logger LOGGER = LogUtils.getClassLogger();
     static final ThreadLocal<Boolean> RELOADING = ThreadLocal.withInitial(() -> false);
+    private static final Logger LOGGER = LogUtils.getClassLogger();
+
+    private PluginHotReloadUtil() {
+    }
 
     static boolean isReloading() {
         return RELOADING.get();
-    }
-
-    private PluginHotReloadUtil() {
     }
 
     public static Plugin[] getPlugins() {

@@ -2,20 +2,18 @@ package com.mohistmc.youer.feature.plugin;
 
 import com.mohistmc.youer.util.I18n;
 import java.io.File;
-import java.io.FileFilter;
 import java.util.ArrayList;
 import java.util.List;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 public class PluginHotReloadCommand extends Command {
 
     private static final String[] COMMANDS = {
-            "reload", "load", "unload", "list"
+        "reload", "load", "unload", "list"
     };
 
     public PluginHotReloadCommand(String name) {
@@ -23,6 +21,14 @@ public class PluginHotReloadCommand extends Command {
         this.description = I18n.as("plugin.description");
         this.usageMessage = "/" + name + " reload <plugin> [newJar] | load <jarPath> | unload <plugin> | list";
         this.setPermission("youer.command.plugin");
+    }
+
+    private static File resolveJar(String path) {
+        File file = new File(path);
+        if (file.exists()) return file;
+        // auto-resolve relative path against plugins folder
+        File pluginsFolder = Bukkit.getServer().getPluginsFolder();
+        return new File(pluginsFolder, path);
     }
 
     @Override
@@ -118,14 +124,6 @@ public class PluginHotReloadCommand extends Command {
                 plugin.getName(),
                 plugin.getPluginMeta().getVersion()));
         }
-    }
-
-    private static File resolveJar(String path) {
-        File file = new File(path);
-        if (file.exists()) return file;
-        // auto-resolve relative path against plugins folder
-        File pluginsFolder = Bukkit.getServer().getPluginsFolder();
-        return new File(pluginsFolder, path);
     }
 
     @Override

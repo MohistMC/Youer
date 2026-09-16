@@ -123,12 +123,12 @@ public class PacketStatistics {
     // Access methods for statistics by packet type
     public static Map<String, Long> getBytesByPacketType() {
         return bytesByPacketType.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().get()));
+            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().get()));
     }
 
     public static Map<String, Long> getPacketsByPacketType() {
         return packetsByPacketType.entrySet().stream()
-                .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().get()));
+            .collect(Collectors.toMap(Map.Entry::getKey, e -> e.getValue().get()));
     }
 
     public static long getBytesPerSecondByPacketType(String packetType) {
@@ -178,22 +178,22 @@ public class PacketStatistics {
         Map<String, Long> bytesByPacketType = PacketStatistics.getBytesByPacketType();
 
         bytesByPacketType.entrySet().stream()
-                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                .forEach(entry -> {
-                    String packetType = entry.getKey();
-                    long bytes = entry.getValue();
-                    long packets = PacketStatistics.getPacketsByPacketType().getOrDefault(packetType, 0L);
-                    long bytesPerSecond = PacketStatistics.getBytesPerSecondByPacketType(packetType);
-                    long packetsPerSecond = PacketStatistics.getPacketsPerSecondByPacketType(packetType);
+            .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+            .forEach(entry -> {
+                String packetType = entry.getKey();
+                long bytes = entry.getValue();
+                long packets = PacketStatistics.getPacketsByPacketType().getOrDefault(packetType, 0L);
+                long bytesPerSecond = PacketStatistics.getBytesPerSecondByPacketType(packetType);
+                long packetsPerSecond = PacketStatistics.getPacketsPerSecondByPacketType(packetType);
 
-                    com.google.gson.JsonObject packetStats = new com.google.gson.JsonObject();
-                    packetStats.addProperty("bytes", bytes);
-                    packetStats.addProperty("packets", packets);
-                    packetStats.addProperty("bytesPerSecond", bytesPerSecond);
-                    packetStats.addProperty("packetsPerSecond", packetsPerSecond);
+                com.google.gson.JsonObject packetStats = new com.google.gson.JsonObject();
+                packetStats.addProperty("bytes", bytes);
+                packetStats.addProperty("packets", packets);
+                packetStats.addProperty("bytesPerSecond", bytesPerSecond);
+                packetStats.addProperty("packetsPerSecond", packetsPerSecond);
 
-                    packetTypes.add(packetType, packetStats);
-                });
+                packetTypes.add(packetType, packetStats);
+            });
 
         root.add("packetTypes", packetTypes);
 

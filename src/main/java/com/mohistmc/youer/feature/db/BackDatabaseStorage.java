@@ -12,9 +12,9 @@ import org.bukkit.Location;
 import org.bukkit.World;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2026/07/01
- *
+ * @author Mgazul
+ * {@code @date} 2026/07/01
+ * <p>
  * SQLite-only storage for player back locations (teleport/death).
  * Simple structured data — no Zstd needed, stored as normal columns.
  */
@@ -27,15 +27,15 @@ public class BackDatabaseStorage {
         try (Statement stmt = conn.createStatement()) {
             stmt.executeUpdate(
                 "CREATE TABLE IF NOT EXISTS back (" +
-                "player_uuid TEXT PRIMARY KEY, " +
-                "world TEXT NOT NULL, " +
-                "x REAL NOT NULL, " +
-                "y REAL NOT NULL, " +
-                "z REAL NOT NULL, " +
-                "pitch REAL NOT NULL, " +
-                "yaw REAL NOT NULL, " +
-                "back_type TEXT NOT NULL" +
-                ")"
+                    "player_uuid TEXT PRIMARY KEY, " +
+                    "world TEXT NOT NULL, " +
+                    "x REAL NOT NULL, " +
+                    "y REAL NOT NULL, " +
+                    "z REAL NOT NULL, " +
+                    "pitch REAL NOT NULL, " +
+                    "yaw REAL NOT NULL, " +
+                    "back_type TEXT NOT NULL" +
+                    ")"
             );
             LOGGER.info("[Youer-DB] Back location table ready (SQLite)");
         } catch (SQLException e) {
@@ -47,7 +47,7 @@ public class BackDatabaseStorage {
                              float pitch, float yaw, String backType) {
         Connection conn = DatabaseManager.getSqliteConnection();
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT OR REPLACE INTO back (player_uuid, world, x, y, z, pitch, yaw, back_type) " +
+            "INSERT OR REPLACE INTO back (player_uuid, world, x, y, z, pitch, yaw, back_type) " +
                 "VALUES (?, ?, ?, ?, ?, ?, ?, ?)")) {
             ps.setString(1, uuid);
             ps.setString(2, worldName);
@@ -66,15 +66,15 @@ public class BackDatabaseStorage {
     public Location getLocation(String uuid) {
         Connection conn = DatabaseManager.getSqliteConnection();
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT world, x, y, z, pitch, yaw FROM back WHERE player_uuid = ?")) {
+            "SELECT world, x, y, z, pitch, yaw FROM back WHERE player_uuid = ?")) {
             ps.setString(1, uuid);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
                     World world = Bukkit.getWorld(rs.getString("world"));
                     if (world == null) return null;
                     return new Location(world,
-                            rs.getDouble("x"), rs.getDouble("y"), rs.getDouble("z"),
-                            rs.getFloat("yaw"), rs.getFloat("pitch"));
+                        rs.getDouble("x"), rs.getDouble("y"), rs.getDouble("z"),
+                        rs.getFloat("yaw"), rs.getFloat("pitch"));
                 }
             }
         } catch (SQLException e) {
@@ -86,7 +86,7 @@ public class BackDatabaseStorage {
     public String getBackType(String uuid) {
         Connection conn = DatabaseManager.getSqliteConnection();
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT back_type FROM back WHERE player_uuid = ?")) {
+            "SELECT back_type FROM back WHERE player_uuid = ?")) {
             ps.setString(1, uuid);
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
@@ -102,7 +102,7 @@ public class BackDatabaseStorage {
     public boolean has(String uuid) {
         Connection conn = DatabaseManager.getSqliteConnection();
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT 1 FROM back WHERE player_uuid = ?")) {
+            "SELECT 1 FROM back WHERE player_uuid = ?")) {
             ps.setString(1, uuid);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();

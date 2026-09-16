@@ -72,6 +72,38 @@ public class ChatCompletion {
         this.usage = usage;
     }
 
+    @Override
+    public String toString() {
+        return "ChatCompletion{" +
+            "id='" + id + '\'' +
+            ", choices=" + Arrays.toString(choices) +
+            ", created=" + created +
+            ", model='" + model + '\'' +
+            ", object='" + object + '\'' +
+            ", usage=" + usage +
+            '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ChatCompletion that = (ChatCompletion) o;
+        return created == that.created &&
+            Objects.equals(id, that.id) &&
+            Arrays.equals(choices, that.choices) &&
+            Objects.equals(model, that.model) &&
+            Objects.equals(object, that.object) &&
+            Objects.equals(usage, that.usage);
+    }
+
+    @Override
+    public int hashCode() {
+        int result = Objects.hash(id, created, model, object, usage);
+        result = 31 * result + Arrays.hashCode(choices);
+        return result;
+    }
+
     public static class Choice {
 
         @ToJson
@@ -110,10 +142,10 @@ public class ChatCompletion {
         @Override
         public String toString() {
             return "Choice{" +
-                    "finish_reason='" + finish_reason + '\'' +
-                    ", index=" + index +
-                    ", message=" + message +
-                    '}';
+                "finish_reason='" + finish_reason + '\'' +
+                ", index=" + index +
+                ", message=" + message +
+                '}';
         }
 
         @Override
@@ -122,8 +154,8 @@ public class ChatCompletion {
             if (o == null || getClass() != o.getClass()) return false;
             Choice choice = (Choice) o;
             return index == choice.index &&
-                    Objects.equals(finish_reason, choice.finish_reason) &&
-                    Objects.equals(message, choice.message);
+                Objects.equals(finish_reason, choice.finish_reason) &&
+                Objects.equals(message, choice.message);
         }
 
         @Override
@@ -158,9 +190,9 @@ public class ChatCompletion {
             @Override
             public String toString() {
                 return "Message{" +
-                        "content='" + content + '\'' +
-                        ", role='" + role + '\'' +
-                        '}';
+                    "content='" + content + '\'' +
+                    ", role='" + role + '\'' +
+                    '}';
             }
 
             @Override
@@ -169,7 +201,7 @@ public class ChatCompletion {
                 if (o == null || getClass() != o.getClass()) return false;
                 Message message = (Message) o;
                 return Objects.equals(content, message.content) &&
-                        Objects.equals(role, message.role);
+                    Objects.equals(role, message.role);
             }
 
             @Override
@@ -217,10 +249,10 @@ public class ChatCompletion {
         @Override
         public String toString() {
             return "Usage{" +
-                    "completion_tokens=" + completion_tokens +
-                    ", prompt_tokens=" + prompt_tokens +
-                    ", total_tokens=" + total_tokens +
-                    '}';
+                "completion_tokens=" + completion_tokens +
+                ", prompt_tokens=" + prompt_tokens +
+                ", total_tokens=" + total_tokens +
+                '}';
         }
 
         @Override
@@ -229,45 +261,13 @@ public class ChatCompletion {
             if (o == null || getClass() != o.getClass()) return false;
             Usage usage = (Usage) o;
             return completion_tokens == usage.completion_tokens &&
-                    prompt_tokens == usage.prompt_tokens &&
-                    total_tokens == usage.total_tokens;
+                prompt_tokens == usage.prompt_tokens &&
+                total_tokens == usage.total_tokens;
         }
 
         @Override
         public int hashCode() {
             return Objects.hash(completion_tokens, prompt_tokens, total_tokens);
         }
-    }
-
-    @Override
-    public String toString() {
-        return "ChatCompletion{" +
-                "id='" + id + '\'' +
-                ", choices=" + Arrays.toString(choices) +
-                ", created=" + created +
-                ", model='" + model + '\'' +
-                ", object='" + object + '\'' +
-                ", usage=" + usage +
-                '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        ChatCompletion that = (ChatCompletion) o;
-        return created == that.created &&
-                Objects.equals(id, that.id) &&
-                Arrays.equals(choices, that.choices) &&
-                Objects.equals(model, that.model) &&
-                Objects.equals(object, that.object) &&
-                Objects.equals(usage, that.usage);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = Objects.hash(id, created, model, object, usage);
-        result = 31 * result + Arrays.hashCode(choices);
-        return result;
     }
 }

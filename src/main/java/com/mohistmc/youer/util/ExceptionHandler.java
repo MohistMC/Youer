@@ -5,7 +5,12 @@ import java.lang.management.ThreadInfo;
 import java.lang.management.ThreadMXBean;
 import java.net.BindException;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ConcurrentModificationException;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import org.apache.logging.log4j.LogManager;
@@ -14,17 +19,30 @@ import org.apache.logging.log4j.Logger;
 public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
 
     private static final Logger LOGGER = LogManager.getLogger();
-    private static ExceptionHandler INSTANCE;
-    private final Map<Class<? extends Throwable>, Consumer<Throwable>> exceptionHandlers = new HashMap<>();
-
     // ========== 线程堆栈采样器 (每100ms全量采样，环形缓冲区) ==========
     private static final int SAMPLE_SIZE = 30;
     private static final long SAMPLE_INTERVAL_MS = 100;
     private static final ThreadInfo[][] SAMPLE_RING = new ThreadInfo[SAMPLE_SIZE][];
     private static final AtomicInteger sampleIndex = new AtomicInteger(0);
+    private static ExceptionHandler INSTANCE;
     private static volatile boolean samplerStarted = false;
+    private final Map<Class<? extends Throwable>, Consumer<Throwable>> exceptionHandlers = new HashMap<>();
 
-     private static void ensureSamplerStarted() {
+    public ExceptionHandler() {
+        exceptionHandlers.put(OutOfMemoryError.class, this::handleOutOfMemoryError);
+        exceptionHandlers.put(ClassNotFoundException.class, this::handleClassNotFoundException);
+        exceptionHandlers.put(NoClassDefFoundError.class, this::handleNoClassDefFoundError);
+        exceptionHandlers.put(BindException.class, this::handleBindException);
+        exceptionHandlers.put(NullPointerException.class, this::handleNullPointerException);
+        exceptionHandlers.put(SQLException.class, this::handleSQLException);
+        exceptionHandlers.put(ConcurrentModificationException.class, this::handleConcurrentModificationException);
+        // 包装现存线程的自定义 handler，使我们的 CME 检测也能触发
+        Thread.setDefaultUncaughtExceptionHandler(this);
+        INSTANCE = this;
+        wrapExistingThreadHandlers();
+    }
+
+    private static void ensureSamplerStarted() {
         if (samplerStarted) return;
         synchronized (ExceptionHandler.class) {
             if (samplerStarted) return;
@@ -50,20 +68,6 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
         }
     }
 
-    public ExceptionHandler() {
-        exceptionHandlers.put(OutOfMemoryError.class, this::handleOutOfMemoryError);
-        exceptionHandlers.put(ClassNotFoundException.class, this::handleClassNotFoundException);
-        exceptionHandlers.put(NoClassDefFoundError.class, this::handleNoClassDefFoundError);
-        exceptionHandlers.put(BindException.class, this::handleBindException);
-        exceptionHandlers.put(NullPointerException.class, this::handleNullPointerException);
-        exceptionHandlers.put(SQLException.class, this::handleSQLException);
-        exceptionHandlers.put(ConcurrentModificationException.class, this::handleConcurrentModificationException);
-        // 包装现存线程的自定义 handler，使我们的 CME 检测也能触发
-        Thread.setDefaultUncaughtExceptionHandler(this);
-        INSTANCE = this;
-        wrapExistingThreadHandlers();
-    }
-
     /**
      * 遍历所有现存线程，将它们的自定义 UncaughtExceptionHandler 包一层，
      * 使 CME 异常也能被我们的处理器捕获
@@ -86,7 +90,40 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
         }
     }
 
-     @Override
+    /**
+     * 在异常链中查找指定类型的异常（递归遍历 Cause）
+     */
+    private static <T extends Throwable> T findCauseOfType(Throwable e, Class<T> type) {
+        if (e == null) return null;
+        if (type.isInstance(e)) return type.cast(e);
+        return findCauseOfType(e.getCause(), type);
+    }
+
+    /**
+     * 静态便捷方法：检查异常链中是否有 CME，有则触发分析。
+     * 可在 try-catch 或框架的异常处理器中手动调用。
+     */
+    public static void onException(Throwable e) {
+        if (INSTANCE == null) return;
+        Throwable cme = findCauseOfType(e, ConcurrentModificationException.class);
+        if (cme != null) {
+            ensureSamplerStarted();
+            ThreadInfo[] snapshot = ManagementFactory.getThreadMXBean().dumpAllThreads(false, false);
+            LOGGER.error("========== [手动调用] 检测到 CME ==========");
+            LOGGER.error("外层异常: " + e.getClass().getName() + ": " + e.getMessage());
+            INSTANCE.printCMEAnalysis(cme, snapshot);
+        }
+    }
+
+    private static boolean isInternalJavaClass(String className) {
+        return className.startsWith("java.") || className.startsWith("javax.") ||
+            className.startsWith("org.w3c.dom.") || className.startsWith("org.xml.") ||
+            className.startsWith("com.sun.") || className.startsWith("sun.") ||
+            className.startsWith("javafx.") ||
+            className.startsWith("jdk.internal.") || className.startsWith("jdk.jfr.");
+    }
+
+    @Override
     public void uncaughtException(Thread t, Throwable e) {
         // 先检查异常本身或其 Cause 链中是否有 CME
         Throwable cme = findCauseOfType(e, ConcurrentModificationException.class);
@@ -113,31 +150,6 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
             LOGGER.error("-------- 相关代码位置 (按调用顺序) --------");
             printAllRelevantFrames(e);
             LOGGER.error("========================================");
-        }
-    }
-
-   /**
-     * 在异常链中查找指定类型的异常（递归遍历 Cause）
-     */
-    private static <T extends Throwable> T findCauseOfType(Throwable e, Class<T> type) {
-        if (e == null) return null;
-        if (type.isInstance(e)) return type.cast(e);
-        return findCauseOfType(e.getCause(), type);
-    }
-
-    /**
-     * 静态便捷方法：检查异常链中是否有 CME，有则触发分析。
-     * 可在 try-catch 或框架的异常处理器中手动调用。
-     */
-     public static void onException(Throwable e) {
-        if (INSTANCE == null) return;
-        Throwable cme = findCauseOfType(e, ConcurrentModificationException.class);
-        if (cme != null) {
-            ensureSamplerStarted();
-            ThreadInfo[] snapshot = ManagementFactory.getThreadMXBean().dumpAllThreads(false, false);
-            LOGGER.error("========== [手动调用] 检测到 CME ==========");
-            LOGGER.error("外层异常: " + e.getClass().getName() + ": " + e.getMessage());
-            INSTANCE.printCMEAnalysis(cme, snapshot);
         }
     }
 
@@ -226,7 +238,7 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
             for (StackTraceElement element : cursor.getStackTrace()) {
                 if (!isInternalJavaClass(element.getClassName()) && printedJars.add(element.getClassName())) {
                     LOGGER.error("  -> " + element.getClassName() + "." + element.getMethodName()
-                            + "(" + element.getFileName() + ":" + element.getLineNumber() + ")");
+                        + "(" + element.getFileName() + ":" + element.getLineNumber() + ")");
                     printJarLocation(element.getClassName(), "     来源: ");
                 }
             }
@@ -250,14 +262,6 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
         }
     }
 
-    private static boolean isInternalJavaClass(String className) {
-        return className.startsWith("java.") || className.startsWith("javax.") ||
-                className.startsWith("org.w3c.dom.") || className.startsWith("org.xml.") ||
-                className.startsWith("com.sun.") || className.startsWith("sun.") ||
-                className.startsWith("javafx.") ||
-                className.startsWith("jdk.internal.") || className.startsWith("jdk.jfr.");
-    }
-    
     private void handleOutOfMemoryError(Throwable e) {
         Runtime runtime = Runtime.getRuntime();
         long maxMemory = runtime.maxMemory() / (1024 * 1024);
@@ -310,7 +314,7 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
      * 增强版 ConcurrentModificationException 处理
      * 打印当前所有线程堆栈，帮助定位并发修改的源头
      */
-      private void handleConcurrentModificationException(Throwable e) {
+    private void handleConcurrentModificationException(Throwable e) {
         ensureSamplerStarted();
         ThreadInfo[] snapshot = ManagementFactory.getThreadMXBean().dumpAllThreads(false, false);
         printCMEAnalysis(e, snapshot);
@@ -346,15 +350,15 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
                     String cn = ste.getClassName();
                     if (!isInternalJavaClass(cn)) hasUserCode = true;
                     if (cn.startsWith("java.util.") && (ste.getMethodName().equals("put") || ste.getMethodName().equals("putVal")
-                            || ste.getMethodName().equals("remove") || ste.getMethodName().equals("add")
-                            || ste.getMethodName().equals("clear") || ste.getMethodName().equals("resize"))) {
+                        || ste.getMethodName().equals("remove") || ste.getMethodName().equals("add")
+                        || ste.getMethodName().equals("clear") || ste.getMethodName().equals("resize"))) {
                         hasWriteOp = true;
                     }
                 }
                 if (!hasWriteOp && !hasUserCode) continue;
 
                 String tag = hasWriteOp ? " <-- 含有集合写入操作" : "";
-               LOGGER.error("\n  [~" + (i * SAMPLE_INTERVAL_MS) + "ms前] 线程: {} (状态: {}){}", info.getThreadName(), info.getThreadState(), tag);
+                LOGGER.error("\n  [~" + (i * SAMPLE_INTERVAL_MS) + "ms前] 线程: {} (状态: {}){}", info.getThreadName(), info.getThreadState(), tag);
                 for (StackTraceElement ste : info.getStackTrace()) {
                     if (isInternalJavaClass(ste.getClassName())) continue;
                     LOGGER.error("    at {}.{}({}:{})", ste.getClassName(), ste.getMethodName(), ste.getFileName(), ste.getLineNumber());
@@ -387,12 +391,12 @@ public class ExceptionHandler implements Thread.UncaughtExceptionHandler {
                 String cn = ste.getClassName();
                 String methodSuffix = "";
                 if (cn.startsWith("java.util.") && (ste.getMethodName().equals("put") || ste.getMethodName().equals("putVal")
-                        || ste.getMethodName().equals("remove") || ste.getMethodName().equals("add")
-                        || ste.getMethodName().equals("clear") || ste.getMethodName().equals("resize"))) {
+                    || ste.getMethodName().equals("remove") || ste.getMethodName().equals("add")
+                    || ste.getMethodName().equals("clear") || ste.getMethodName().equals("resize"))) {
                     methodSuffix = " <-- 集合写入操作";
                 }
 
-               LOGGER.error("  -> {}.{}({}:{}){}", cn, ste.getMethodName(), ste.getFileName(), ste.getLineNumber(), methodSuffix);
+                LOGGER.error("  -> {}.{}({}:{}){}", cn, ste.getMethodName(), ste.getFileName(), ste.getLineNumber(), methodSuffix);
             }
         }
     }

@@ -9,8 +9,8 @@ import org.bukkit.World;
 
 /**
  * @author Mgazul
- * @date 2025/10/2 21:30
- *
+ * {@code @date} 2025/10/2 21:30
+ * <p>
  * Entity spawn limits backed by database.
  */
 public class EntityLimitsConfig {
@@ -49,8 +49,8 @@ public class EntityLimitsConfig {
         if (limit < 0) return false;
 
         long entitySize = StreamSupport.stream(WorldAPI.getServerLevel(world).getAllEntities().spliterator(), false)
-                .filter(e -> e.getType() == entity.getType())
-                .count();
+            .filter(e -> e.getType() == entity.getType())
+            .count();
         return entitySize >= limit;
     }
 }

@@ -11,9 +11,9 @@ import com.mohistmc.youer.commands.YouerCommand;
 import com.mohistmc.youer.feature.YouerPlugin;
 import com.mohistmc.youer.feature.ban.BansCommand;
 import com.mohistmc.youer.feature.entitylimits.EntityLimitsConfig;
-import gg.pufferfish.pufferfish.simd.SIMDDetection;
 import com.mohistmc.youer.util.I18n;
 import com.mohistmc.youer.util.YamlUtils;
+import gg.pufferfish.pufferfish.simd.SIMDDetection;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
@@ -36,21 +36,21 @@ import org.bukkit.configuration.file.YamlConfiguration;
 public class YouerConfig {
 
     private static final List<String> HEADER = Arrays.asList("""
-            This is the main configuration file for Youer.
-            As you can see, there's tons to configure. Some options may impact gameplay, so use
-            with caution, and make sure you know what each option does before configuring.
-            For a reference for any variable inside this file, check out the Youer wiki at
-            - [English Documentation](https://mohistmc.com/youer/docs)
-            - [中文文档](https://www.mohistmc.cn/docs/youer)
-            
-            If you need help with the configuration or have any questions related to Spigot,
-            join us at the Discord or drop by our forums and leave a post.
-            
-            Discord: https://discord.gg/mohistmc
-            Forums: https://mohistmc.com/
-            Forums (中文): https://www.mohistmc.cn/
-            
-            """.split("\\n"));
+        This is the main configuration file for Youer.
+        As you can see, there's tons to configure. Some options may impact gameplay, so use
+        with caution, and make sure you know what each option does before configuring.
+        For a reference for any variable inside this file, check out the Youer wiki at
+        - [English Documentation](https://mohistmc.com/youer/docs)
+        - [中文文档](https://www.mohistmc.cn/docs/youer)
+        
+        If you need help with the configuration or have any questions related to Spigot,
+        join us at the Discord or drop by our forums and leave a post.
+        
+        Discord: https://discord.gg/mohistmc
+        Forums: https://mohistmc.com/
+        Forums (中文): https://www.mohistmc.cn/
+        
+        """.split("\\n"));
     /*========================================================================*/
     public static YamlConfiguration config;
     public static File youeryml = new File("youer-config", "youer.yml");

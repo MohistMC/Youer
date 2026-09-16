@@ -12,9 +12,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2026/07/02
- *
+ * @author Mgazul
+ * {@code @date} 2026/07/02
+ * <p>
  * Database-backed storage for entity spawn limits per world.
  * Table: entity_limits (world, entity_type, limit)
  */
@@ -26,19 +26,23 @@ public class EntityLimitsDatabaseStorage {
 
     public EntityLimitsDatabaseStorage() {
         this.tableName = DatabaseConfig.isMysql(MODULE)
-                ? DatabaseConfig.getMysqlTablePrefix() + "_entity_limits" : "entity_limits";
+            ? DatabaseConfig.getMysqlTablePrefix() + "_entity_limits" : "entity_limits";
+    }
+
+    private static boolean isMysql(Connection conn) throws SQLException {
+        return conn.getMetaData().getURL().contains("mysql");
     }
 
     public void init() {
         Connection conn = DatabaseManager.getConnection(MODULE);
         try (Statement stmt = conn.createStatement()) {
             String ddl = "CREATE TABLE IF NOT EXISTS " + tableName + " ("
-                    + "world TEXT NOT NULL, entity_type TEXT NOT NULL, limit_count INT NOT NULL, "
-                    + "PRIMARY KEY (world, entity_type))";
+                + "world TEXT NOT NULL, entity_type TEXT NOT NULL, limit_count INT NOT NULL, "
+                + "PRIMARY KEY (world, entity_type))";
             if (isMysql(conn)) {
                 ddl = "CREATE TABLE IF NOT EXISTS " + tableName + " ("
-                        + "world VARCHAR(255) NOT NULL, entity_type VARCHAR(255) NOT NULL, limit_count INT NOT NULL, "
-                        + "PRIMARY KEY (world, entity_type)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+                    + "world VARCHAR(255) NOT NULL, entity_type VARCHAR(255) NOT NULL, limit_count INT NOT NULL, "
+                    + "PRIMARY KEY (world, entity_type)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
             }
             stmt.executeUpdate(ddl);
         } catch (SQLException e) {
@@ -49,7 +53,7 @@ public class EntityLimitsDatabaseStorage {
     public boolean hasWorld(String worldName) {
         Connection conn = DatabaseManager.getConnection(MODULE);
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT 1 FROM " + tableName + " WHERE world = ?")) {
+            "SELECT 1 FROM " + tableName + " WHERE world = ?")) {
             ps.setString(1, worldName);
             try (ResultSet rs = ps.executeQuery()) {
                 return rs.next();
@@ -66,7 +70,7 @@ public class EntityLimitsDatabaseStorage {
              ResultSet rs = stmt.executeQuery("SELECT world, entity_type, limit_count FROM " + tableName)) {
             while (rs.next()) {
                 list.add(new EntityLimits(
-                        rs.getString("world"), rs.getString("entity_type"), rs.getInt("limit_count")));
+                    rs.getString("world"), rs.getString("entity_type"), rs.getInt("limit_count")));
             }
         } catch (SQLException e) {
             LOGGER.warn("[Youer-DB] Failed to get entity limits: {}", e.getMessage());
@@ -77,7 +81,7 @@ public class EntityLimitsDatabaseStorage {
     public void set(String worldName, String entityName, int limit) {
         Connection conn = DatabaseManager.getConnection(MODULE);
         try (PreparedStatement ps = conn.prepareStatement(
-                "INSERT OR REPLACE INTO " + tableName + " (world, entity_type, limit_count) VALUES (?, ?, ?)")) {
+            "INSERT OR REPLACE INTO " + tableName + " (world, entity_type, limit_count) VALUES (?, ?, ?)")) {
             ps.setString(1, worldName);
             ps.setString(2, entityName);
             ps.setInt(3, limit);
@@ -90,7 +94,7 @@ public class EntityLimitsDatabaseStorage {
     public void remove(String worldName, String entityName) {
         Connection conn = DatabaseManager.getConnection(MODULE);
         try (PreparedStatement ps = conn.prepareStatement(
-                "DELETE FROM " + tableName + " WHERE world = ? AND entity_type = ?")) {
+            "DELETE FROM " + tableName + " WHERE world = ? AND entity_type = ?")) {
             ps.setString(1, worldName);
             ps.setString(2, entityName);
             ps.executeUpdate();
@@ -102,7 +106,7 @@ public class EntityLimitsDatabaseStorage {
     public int getLimit(String worldName, String entityName) {
         Connection conn = DatabaseManager.getConnection(MODULE);
         try (PreparedStatement ps = conn.prepareStatement(
-                "SELECT limit_count FROM " + tableName + " WHERE world = ? AND entity_type = ?")) {
+            "SELECT limit_count FROM " + tableName + " WHERE world = ? AND entity_type = ?")) {
             ps.setString(1, worldName);
             ps.setString(2, entityName);
             try (ResultSet rs = ps.executeQuery()) {
@@ -112,9 +116,5 @@ public class EntityLimitsDatabaseStorage {
             LOGGER.warn("[Youer-DB] Failed to get entity limit: {}", e.getMessage());
         }
         return -1;
-    }
-
-    private static boolean isMysql(Connection conn) throws SQLException {
-        return conn.getMetaData().getURL().contains("mysql");
     }
 }

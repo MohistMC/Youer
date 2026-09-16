@@ -3,8 +3,8 @@ package com.mohistmc.youer.util;
 import com.mohistmc.youer.Youer;
 
 /**
- * @author Mgazul by MohistMC
- * @date 2023/9/23 6:15:26
+ * @author Mgazul
+ * {@code @date} 2023/9/23 6:15:26
  */
 public class I18n {
 

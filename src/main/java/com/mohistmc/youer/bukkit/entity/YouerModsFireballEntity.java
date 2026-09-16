@@ -6,7 +6,7 @@ import org.bukkit.craftbukkit.entity.CraftFireball;
 
 /**
  * @author Mgazul
- * @date 2025/11/7 18:00
+ * {@code @date} 2025/11/7 18:00
  */
 public class YouerModsFireballEntity extends CraftFireball {
 
