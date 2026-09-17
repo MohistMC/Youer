@@ -876,7 +876,7 @@
          }
  
 +        // Youer start
-+        bukkitEntityDamageEvent = BukkitDamageHooks.handleEntityDamage(this, source, damage); // Transmits the mod's modified damage value to the Bukkit event
++        bukkitEntityDamageEvent = BukkitDamageHooks.handleEntityDamage(this, source, damage, this.lastHurt); // Transmits the mod's modified damage value to the Bukkit event
 +        if (bukkitEntityDamageEvent == null || bukkitEntityDamageEvent.isCancelled()) {
 +            this.damageContainers.pop();
 +            return false;
@@ -1109,8 +1109,8 @@
              } else {
                  this.lastHurtByPlayer = null;
                  this.lastHurtByPlayerMemoryTime = 0;
-@@ -1384,6 +_,18 @@
-         attacker.blockedByItem(this, source, damage, fullyBlocked);
+@@ -1380,6 +_,18 @@
+         return EntityReference.getPlayer(this.lastHurtByPlayer, this.level());
      }
  
 +    // Paper start - only call damage event when actuallyHurt will be called - move out amount computation logic
@@ -1125,9 +1125,9 @@
 +    }
 +    // Paper end - only call damage event when actuallyHurt will be called - move out amount computation logic
 +
-     protected void blockedByItem(LivingEntity defender, DamageSource source, float damage, boolean fullyBlocked) {
-         if (!fullyBlocked) {
-             defender.knockback(0.5, defender.getX() - this.getX(), defender.getZ() - this.getZ(), source, damage);
+     protected void blockUsingItem(ServerLevel level, LivingEntity attacker, DamageSource source, float damage, boolean fullyBlocked) {
+         attacker.blockedByItem(this, source, damage, fullyBlocked);
+     }
 @@ -1398,18 +_,45 @@
          ItemStack protectionItem = null;
          DeathProtection protection = null;

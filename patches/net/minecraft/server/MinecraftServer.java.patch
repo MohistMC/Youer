@@ -1959,23 +1959,6 @@
      }
  
      public boolean isEnforceWhitelist() {
-@@ -1802,7 +_,15 @@
-     public LevelBasedPermissionSet getProfilePermissions(NameAndId nameAndId) {
-         if (this.getPlayerList().isOp(nameAndId)) {
-             ServerOpListEntry opListEntry = this.getPlayerList().getOps().get(nameAndId);
--            return opListEntry != null ? opListEntry.permissions() : this.operatorUserPermissions();
-+            if (opListEntry != null) {
-+                return opListEntry.permissions();
-+            } else if (this.isSingleplayerOwner(nameAndId)) {
-+                return LevelBasedPermissionSet.OWNER;
-+            } else if (this.isSingleplayer()) {
-+                return this.getPlayerList().isAllowCommandsForAllPlayers() ? LevelBasedPermissionSet.OWNER : LevelBasedPermissionSet.ALL;
-+            } else {
-+                return this.operatorUserPermissions();
-+            }
-         } else {
-             return LevelBasedPermissionSet.ALL;
-         }
 @@ -1810,6 +_,31 @@
  
      public abstract boolean isSingleplayerOwner(NameAndId nameAndId);

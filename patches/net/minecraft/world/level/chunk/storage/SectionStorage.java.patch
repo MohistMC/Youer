@@ -13,7 +13,7 @@
      private final Long2ObjectMap<Optional<R>> storage = new Long2ObjectOpenHashMap<>();
      private final LongLinkedOpenHashSet dirtyChunks = new LongLinkedOpenHashSet();
      private final Codec<P> codec;
-@@ -52,10 +_,21 @@
+@@ -52,11 +_,23 @@
      private final Function<Runnable, R> factory;
      private final RegistryAccess registryAccess;
      private final ChunkIOErrorReporter errorReporter;
@@ -22,6 +22,7 @@
      private final LongSet loadedChunks = new LongOpenHashSet();
      private final Long2ObjectMap<CompletableFuture<Optional<SectionStorage.PackedChunk<P>>>> pendingLoads = new Long2ObjectOpenHashMap<>();
      private final Object loadLock = new Object();
+ 
 +    // Paper start - rewrite chunk system
 +    private final RegionFileStorage regionStorage;
 +
@@ -33,9 +34,10 @@
 +    @Override
 +    public void moonrise$close() throws IOException {}
 +    // Paper end - rewrite chunk system
- 
++
      public SectionStorage(
          SimpleRegionStorage simpleRegionStorage,
+         Codec<P> codec,
 @@ -67,7 +_,7 @@
          ChunkIOErrorReporter errorReporter,
          LevelHeightAccessor levelHeightAccessor

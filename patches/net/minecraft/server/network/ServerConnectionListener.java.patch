@@ -1,14 +1,6 @@
 --- a/net/minecraft/server/network/ServerConnectionListener.java
 +++ b/net/minecraft/server/network/ServerConnectionListener.java
-@@ -24,14 +_,13 @@
- import java.util.Collections;
- import java.util.Iterator;
- import java.util.List;
--import java.util.Queue;
- import java.util.UUID;
--import java.util.concurrent.ConcurrentLinkedQueue;
- import java.util.concurrent.TimeUnit;
- import net.minecraft.CrashReport;
+@@ -32,6 +_,7 @@
  import net.minecraft.ReportedException;
  import net.minecraft.SharedConstants;
  import net.minecraft.network.Connection;
@@ -16,7 +8,7 @@
  import net.minecraft.network.PacketSendListener;
  import net.minecraft.network.RateKickingConnection;
  import net.minecraft.network.chat.Component;
-@@ -43,21 +_,51 @@
+@@ -43,6 +_,7 @@
  
  public class ServerConnectionListener {
      private static final Logger LOGGER = LogUtils.getLogger();
@@ -24,12 +16,7 @@
      private final MinecraftServer server;
      public volatile boolean running;
      private volatile @Nullable UUID sessionId;
-     private final List<ChannelFuture> channels = Collections.synchronizedList(Lists.newArrayList());
-     private final List<Connection> connections = Collections.synchronizedList(Lists.newArrayList());
--    private final Queue<Connection> pendingConnections = new ConcurrentLinkedQueue<>();
- 
-     public ServerConnectionListener(MinecraftServer server) {
-         this.server = server;
+@@ -55,9 +_,39 @@
          this.running = true;
      }
  
@@ -191,17 +178,3 @@
                          iterator.remove();
                          connection.handleDisconnection();
                      }
-@@ -203,13 +_,6 @@
- 
-     public MinecraftServer getServer() {
-         return this.server;
--    }
--
--    private void addPendingConnections() {
--        Connection connection;
--        while ((connection = this.pendingConnections.poll()) != null) {
--            this.connections.add(connection);
--        }
-     }
- 
-     public List<Connection> getConnections() {

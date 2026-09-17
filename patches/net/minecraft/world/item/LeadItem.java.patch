@@ -23,7 +23,7 @@
  
  public class LeadItem extends Item {
      public LeadItem(Item.Properties properties) {
-@@ -27,40 +_,58 @@
+@@ -27,14 +_,14 @@
          if (state.is(BlockTags.FENCES)) {
              Player player = context.getPlayer();
              if (!level.isClientSide() && player != null) {
@@ -40,68 +40,34 @@
          List<Leashable> entitiesToLeash = Leashable.leashableInArea(level, Vec3.atCenterOf(pos), l -> l.getLeashHolder() == player);
          if (entitiesToLeash.isEmpty()) {
              return InteractionResult.PASS;
--        }
--
--        Optional<LeashFenceKnotEntity> existingKnot = LeashFenceKnotEntity.getKnot(level, pos);
--        LeashFenceKnotEntity activeKnot = existingKnot.orElseGet(() -> LeashFenceKnotEntity.createKnot(level, pos));
--        boolean anyLeashed = false;
--
--        for (Leashable leashable : entitiesToLeash) {
--            if (leashable.canHaveALeashAttachedTo(activeKnot)) {
--                leashable.setLeashedTo(activeKnot, true);
--                anyLeashed = true;
--            }
--        }
--
--        if (anyLeashed) {
--            activeKnot.playPlacementSound();
--            level.gameEvent(GameEvent.BLOCK_ATTACH, pos, GameEvent.Context.of(player));
--            return InteractionResult.SUCCESS_SERVER;
--        }
--
--        if (existingKnot.isEmpty()) {
--            activeKnot.discard();
--        }
--
--        return InteractionResult.PASS;
--    }
-+        } else {
-+            Optional<LeashFenceKnotEntity> existingKnot = LeashFenceKnotEntity.getKnot(level, pos);
-+            LeashFenceKnotEntity activeKnot = existingKnot.orElseGet(() -> LeashFenceKnotEntity.createKnot(level, pos));
-+            // CraftBukkit start - fire HangingPlaceEvent
-+            if (existingKnot.isEmpty()) {
-+                org.bukkit.inventory.EquipmentSlot handSlot = org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(hand);
-+                org.bukkit.event.hanging.HangingPlaceEvent event = new org.bukkit.event.hanging.HangingPlaceEvent((org.bukkit.entity.Hanging) activeKnot.getBukkitEntity(), player != null ? (org.bukkit.entity.Player) player.getBukkitEntity() : null, org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), org.bukkit.block.BlockFace.SELF, handSlot);
-+                level.getCraftServer().getPluginManager().callEvent(event);
+@@ -42,10 +_,22 @@
+ 
+         Optional<LeashFenceKnotEntity> existingKnot = LeashFenceKnotEntity.getKnot(level, pos);
+         LeashFenceKnotEntity activeKnot = existingKnot.orElseGet(() -> LeashFenceKnotEntity.createKnot(level, pos));
++        // CraftBukkit start - fire HangingPlaceEvent
++        if (existingKnot.isEmpty()) {
++            org.bukkit.inventory.EquipmentSlot handSlot = org.bukkit.craftbukkit.CraftEquipmentSlot.getHand(hand);
++            org.bukkit.event.hanging.HangingPlaceEvent event = new org.bukkit.event.hanging.HangingPlaceEvent((org.bukkit.entity.Hanging) activeKnot.getBukkitEntity(), player != null ? (org.bukkit.entity.Player) player.getBukkitEntity() : null, org.bukkit.craftbukkit.block.CraftBlock.at(level, pos), org.bukkit.block.BlockFace.SELF, handSlot);
++            level.getCraftServer().getPluginManager().callEvent(event);
 +
-+                if (event.isCancelled()) {
-+                    activeKnot.discard();
-+                    return InteractionResult.PASS;
-+                }
-+            }
-+            // CraftBukkit end
-+            boolean anyLeashed = false;
-+
-+            for (Leashable leashable : entitiesToLeash) {
-+                if (leashable.canHaveALeashAttachedTo(activeKnot) && org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerLeashEntityEvent(leashable, activeKnot, player, hand)) { // Paper - leash event
-+                    leashable.setLeashedTo(activeKnot, true);
-+                    anyLeashed = true;
-+                }
-+            }
-+
-+            if (anyLeashed) {
-+                activeKnot.playPlacementSound();
-+                level.gameEvent(GameEvent.BLOCK_ATTACH, pos, GameEvent.Context.of(player));
-+                return InteractionResult.SUCCESS_SERVER;
-+            } else {
-+                if (existingKnot.isEmpty()) {
-+                    activeKnot.discard();
-+                }
-+
++            if (event.isCancelled()) {
++                activeKnot.discard();
 +                return InteractionResult.PASS;
 +            }
 +        }
-+    }
++        // CraftBukkit end
+         boolean anyLeashed = false;
+ 
+         for (Leashable leashable : entitiesToLeash) {
+-            if (leashable.canHaveALeashAttachedTo(activeKnot)) {
++            if (leashable.canHaveALeashAttachedTo(activeKnot) && org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerLeashEntityEvent(leashable, activeKnot, player, hand)) { // Paper - leash event
+                 leashable.setLeashedTo(activeKnot, true);
+                 anyLeashed = true;
+             }
+@@ -63,4 +_,10 @@
+ 
+         return InteractionResult.PASS;
+     }
 +
 +    // CraftBukkit start
 +    public static InteractionResult bindPlayerMobs(Player player, Level level, BlockPos pos) {

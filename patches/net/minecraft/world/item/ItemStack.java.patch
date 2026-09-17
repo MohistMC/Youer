@@ -155,11 +155,13 @@
      }
  
      public boolean isBroken() {
-@@ -449,17 +_,48 @@
+@@ -449,17 +_,52 @@
          return this.isDamageableItem() && this.getDamageValue() >= this.getMaxDamage() - 1;
      }
  
 -    public void hurtAndBreak(int amount, ServerLevel level, @Nullable ServerPlayer player, Consumer<ItemStack> onBreak) {
+-        int newAmount = this.processDurabilityChange(amount, level, player);
+-        if (newAmount != 0) {
 +    public void hurtAndBreak(int amount, ServerLevel level, @Nullable LivingEntity player, Consumer<ItemStack> onBreak) {
 +        // Paper start - add force boolean overload
 +        this.hurtAndBreak(amount, level, player, onBreak, false);
@@ -167,22 +169,25 @@
 +
 +    public void hurtAndBreak(int amount, ServerLevel level, @Nullable LivingEntity player, Consumer<ItemStack> onBreak, final boolean force) { // Paper - Add EntityDamageItemEvent
 +        // Paper end
-+        amount = getItem().damageItem(this, amount, player, onBreak);
-         int newAmount = this.processDurabilityChange(amount, level, player);
--        if (newAmount != 0) {
++        final int originalDamage = amount; // Paper - Expand PlayerItemDamageEvent
++        int newAmount = this.processDurabilityChange(amount, level, player, force); // Paper
 +        // CraftBukkit start
-+        if (player instanceof ServerPlayer serverplayer) {
-+            PlayerItemDamageEvent event = new PlayerItemDamageEvent(serverplayer.getBukkitEntity(), CraftItemStack.asBukkitMirror(this), newAmount);
++        if (newAmount > 0 && player instanceof final ServerPlayer serverPlayer) { // Paper - Add EntityDamageItemEvent - limit to positive damage and run for player
++            org.bukkit.event.player.PlayerItemDamageEvent event = new org.bukkit.event.player.PlayerItemDamageEvent(serverPlayer.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(this), newAmount, originalDamage); // Paper - Add EntityDamageItemEvent
 +            event.getPlayer().getServer().getPluginManager().callEvent(event);
-+
-+            if (newAmount != event.getDamage() || event.isCancelled()) {
-+                event.getPlayer().updateInventory();
-+            }
 +            if (event.isCancelled()) {
 +                return;
 +            }
 +
 +            newAmount = event.getDamage();
++            // Paper start - Add EntityDamageItemEvent
++        } else if (newAmount > 0 && player != null) {
++            io.papermc.paper.event.entity.EntityDamageItemEvent event = new io.papermc.paper.event.entity.EntityDamageItemEvent(player.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(this), newAmount);
++            if (!event.callEvent()) {
++                return;
++            }
++            newAmount = event.getDamage();
++            // Paper end - Add EntityDamageItemEvent
 +        }
 +        // CraftBukkit end
 +        if (newAmount != 0) { // Paper - Add EntityDamageItemEvent - diff on change for above event ifs.
@@ -238,7 +243,7 @@
              this.shrink(1);
              onBreak.accept(broken);
          }
-@@ -486,7 +_,25 @@
+@@ -486,7 +_,26 @@
                  return;
              }
  
@@ -262,6 +267,7 @@
 +                newDamage = Math.min(this.getDamageValue() + event.getDamage(), this.getMaxDamage() - 1);
 +            }
 +            // Paper end - Expand PlayerItemDamageEvent
++
              this.applyDamage(newDamage, serverPlayer, i -> {});
          }
      }
@@ -277,7 +283,7 @@
          if (owner.level() instanceof ServerLevel serverLevel) {
              this.hurtAndBreak(
 -                amount, serverLevel, owner instanceof ServerPlayer player ? player : null, brokenItem -> owner.onEquippedItemBroken(brokenItem, slot)
-+                    amount, serverLevel, owner, brokenItem -> {if (slot != null) owner.onEquippedItemBroken(brokenItem, slot); }, force // Paper - Add EntityDamageItemEvent & itemstack damage API - do not process entity related callbacks when damaging from API
++                amount, serverLevel, owner, brokenItem -> {if (slot != null) owner.onEquippedItemBroken(brokenItem, slot); }, force // Paper - Add EntityDamageItemEvent & itemstack damage API - do not process entity related callbacks when damaging from API
              );
          }
      }

@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/packs/repository/PackRepository.java
 +++ b/net/minecraft/server/packs/repository/PackRepository.java
-@@ -15,44 +_,73 @@
+@@ -15,15 +_,25 @@
  import net.minecraft.server.packs.PackResources;
  import net.minecraft.util.Util;
  import net.minecraft.world.flag.FeatureFlagSet;
@@ -14,19 +14,20 @@
 +    private final net.minecraft.world.level.validation.DirectoryValidator validator; // Paper - add validator
  
      public PackRepository(RepositorySource... sources) {
+-        this.sources = ImmutableSet.copyOf(sources);
 +        this.validator = new DirectoryValidator(path -> true);
-         this.sources = ImmutableSet.copyOf(sources);
-     }
- 
++        this.sources = new java.util.LinkedHashSet<>(List.of(sources)); //Neo: This needs to be a mutable set, so that we can add to it later on.
++    }
++
 +    // Paper start - add validator
 +    public PackRepository(final net.minecraft.world.level.validation.DirectoryValidator validator, final RepositorySource... sources) {
 +        this.validator = validator;
 +        // Paper end - add validator
 +        this.sources = new java.util.LinkedHashSet<>(List.of(sources)); //Neo: This needs to be a mutable set, so that we can add to it later on.
-+    }
-+
+     }
+ 
      public static String displayPackList(Collection<Pack> packs) {
-         return packs.stream().map(pack -> pack.getId() + (pack.getCompatibility().isCompatible() ? "" : " (incompatible)")).collect(Collectors.joining(", "));
+@@ -31,28 +_,47 @@
      }
  
      public void reload() {
@@ -76,7 +77,7 @@
 +        this.selected = this.rebuildSelected(packs, true); // Paper - add pendingReload flag to determine required pack loading
 +    }
 +
-+    public void setSelected(final Collection<String> packs, final boolean pendingReload) { // Paper - add pendingReload flag to determine required pack loading
++    public void setSelected(Collection<String> packs, boolean pendingReload) { // Paper - add pendingReload flag to determine required pack loading
 +        this.selected = this.rebuildSelected(packs, pendingReload); // Paper - add pendingReload flag to determine required pack loading
      }
  
@@ -87,7 +88,7 @@
  
 -    public List<Pack> rebuildSelected(Collection<String> selectedNames) {
 -        List<Pack> selectedAndPresent = this.getAvailablePacks(selectedNames).collect(Util.toMutableList());
-+    public List<Pack> rebuildSelected(Collection<String> selectedNames, final boolean pendingReload) { // Paper - add pendingReload flag to determine required pack loading
++    public List<Pack> rebuildSelected(Collection<String> selectedNames, boolean pendingReload) { // Paper - add pendingReload flag to determine required pack loading
 +        List<Pack> selectedAndPresent = net.neoforged.neoforge.resource.ResourcePackLoader.expandAndRemoveRootChildren(this.getAvailablePacks(selectedNames), this.available.values());
  
          for (Pack pack : this.available.values()) {

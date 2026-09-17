@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/MapItem.java
 +++ b/net/minecraft/world/item/MapItem.java
-@@ -58,12 +_,22 @@
+@@ -58,6 +_,16 @@
      }
  
      public static @Nullable MapItemSavedData getSavedData(ItemStack itemStack, Level level) {
@@ -17,13 +17,6 @@
          MapId id = itemStack.get(DataComponents.MAP_ID);
          return getSavedData(id, level);
      }
- 
-     public static MapId createNewSavedData(
--        ServerLevel level, int xSpawn, int zSpawn, int scale, boolean trackingPosition, boolean unlimitedTracking, ResourceKey<Level> dimension
-+            ServerLevel level, int xSpawn, int zSpawn, int scale, boolean trackingPosition, boolean unlimitedTracking, ResourceKey<Level> dimension
-     ) {
-         MapItemSavedData newData = MapItemSavedData.createFresh(xSpawn, zSpawn, (byte)scale, trackingPosition, unlimitedTracking, dimension);
-         MapId id = level.getFreeMapId();
 @@ -101,10 +_,10 @@
                              int averagingAreaMinX = (centerX / scale + imgX - 64) * scale;
                              int averagingAreaMinZ = (centerZ / scale + imgY - 64) * scale;
@@ -45,3 +38,12 @@
              if (level.dimension() == data.dimension) {
                  int scale = 1 << data.scale;
                  int centerX = data.centerX;
+@@ -212,7 +_,7 @@
+ 
+                 for (int row = 0; row < 128; row++) {
+                     for (int column = 0; column < 128; column++) {
+-                        Holder<Biome> biome = level.getBiome(pos.set((unscaledStartX + column) * scale, biomeSampleY, (unscaledStartZ + row) * scale));
++                        Holder<Biome> biome = level.getUncachedNoiseBiome(net.minecraft.core.QuartPos.fromBlock((unscaledStartX + column) * scale), net.minecraft.core.QuartPos.fromBlock(biomeSampleY), net.minecraft.core.QuartPos.fromBlock((unscaledStartZ + row) * scale)); // Paper - Perf: Use seed based lookup for treasure maps
+                         isBiomeWatery[row * 128 + column] = biome.is(BiomeTags.WATER_ON_MAP_OUTLINES);
+                     }
+                 }
