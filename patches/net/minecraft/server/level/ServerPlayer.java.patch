@@ -1909,9 +1909,8 @@
  
      @Override
 -    public @Nullable ItemEntity drop(ItemStack itemStack, boolean thrownFromHand, Prediction prediction) {
--        ItemEntity entity = super.drop(itemStack, thrownFromHand, prediction);
-+    public ItemEntity drop(ItemStack itemStack, boolean thrownFromHand, Prediction prediction, boolean callEvent, final java.util.function.@Nullable Consumer<org.bukkit.entity.Item> entityOperation) { // Paper - Extend dropItem API
-+        ItemEntity entity = super.drop(itemStack, thrownFromHand, prediction, callEvent, entityOperation); // Paper - Extend dropItem API
++    public ItemEntity drop(ItemStack itemStack, boolean thrownFromHand, Prediction prediction) {
+         ItemEntity entity = super.drop(itemStack, thrownFromHand, prediction);
 +        ItemStack droppedItemStack = entity != null ? entity.getItem() : ItemStack.EMPTY; // Paper - move up
          if (thrownFromHand) {
 -            ItemStack droppedItemStack = entity != null ? entity.getItem() : ItemStack.EMPTY;
@@ -2002,29 +2001,31 @@
      }
  
      public TextFilter getTextFilter() {
-@@ -2097,8 +_,10 @@
+@@ -2097,8 +_,14 @@
          super.updateUsingItem(useItem);
      }
  
--    public void drop(boolean all) {
-+    public boolean drop(boolean all) { // Paper - add back success return
++    public boolean dropSuccess = false;
+     public void drop(boolean all) {
          Inventory inventory = this.getInventory();
 +        ItemStack selected = inventory.getSelectedItem();
-+        if (selected.isEmpty() || !selected.onDroppedByPlayer(this)) return false;
++        if (selected.isEmpty() || !selected.onDroppedByPlayer(this)) {
++            this.dropSuccess = false;
++            return;
++        }
          ItemStack removed = inventory.removeFromSelected(all);
          this.containerMenu
              .findSlot(inventory, inventory.getSelectedSlot())
-@@ -2107,8 +_,9 @@
+@@ -2107,7 +_,8 @@
              this.stopUsingItem();
          }
  
 -        this.drop(removed, true, Prediction.PREDICTED);
-+        boolean ret = this.drop(removed, true, Prediction.PREDICTED) != null; // Paper - add back success return
++        ItemEntity entity = this.drop(removed, true, Prediction.PREDICTED);
++        this.dropSuccess = entity != null;
          this.resetAttackStrengthTicker();
-+        return ret; // Paper - return, keep order
      }
  
-     @Override
 @@ -2170,9 +_,9 @@
      }
  

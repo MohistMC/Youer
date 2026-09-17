@@ -8,6 +8,7 @@ import it.unimi.dsi.fastutil.objects.ReferenceArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import net.minecraft.world.level.block.state.StateHolder;
 import net.minecraft.world.level.block.state.properties.Property;
 
@@ -18,6 +19,13 @@ public final class ZeroCollidingReferenceStateTable<O, S> {
     private final Collection<Property<?>> properties;
 
     public ZeroCollidingReferenceStateTable(final Property<?>[] properties) {
+        // Youer start
+        if (properties == null || properties.length == 0) {
+            this.propertyToIndexer = new Int2ObjectOpenHashMap<>(0);
+            this.properties = Collections.emptyList();
+            return;
+        }
+        // Youer end
         this.propertyToIndexer = new Int2ObjectOpenHashMap<>(properties.length);
         this.properties = ReferenceArrayList.wrap(properties.clone());
 
@@ -25,19 +33,14 @@ public final class ZeroCollidingReferenceStateTable<O, S> {
 
         // important that each table sees the same property order given the same _set_ of properties,
         // as each table will calculate the index for the block state
-        Arrays.sort(sortedProperties, (final Property<?> p1, final Property<?> p2) -> {
-            return Integer.compare(
-                ((PropertyAccess<?>)p1).moonrise$getId(),
-                ((PropertyAccess<?>)p2).moonrise$getId()
-            );
-        });
+        Arrays.sort(sortedProperties, Comparator.comparingInt(Property::moonrise$getId));
 
         int currentMultiple = 1;
         for (final Property<?> property : sortedProperties) {
             final int totalValues = property.getPossibleValues().size();
 
             this.propertyToIndexer.put(
-                ((PropertyAccess<?>)property).moonrise$getId(),
+                property.moonrise$getId(),
                 new Indexer(
                     totalValues,
                     currentMultiple,
@@ -55,6 +58,11 @@ public final class ZeroCollidingReferenceStateTable<O, S> {
     }
 
     public long getIndex(final StateHolder<O, S> stateHolder, final Property<?>[] keys, final Comparable<?>[] values) {
+        // Youer start
+        if (keys == null || keys.length == 0) {
+            return 0L;
+        }
+        // Youer end
         long ret = 0L;
 
         for (int i = 0; i < keys.length; ++i) {

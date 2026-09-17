@@ -792,7 +792,7 @@
          boolean result = false;
  
          for (ServerLevel level : this.getAllLevels()) {
-@@ -587,10 +_,12 @@
+@@ -587,10 +_,17 @@
                  LOGGER.info("Saving chunks for level '{}'/{}", level, level.dimension().identifier());
              }
  
@@ -801,32 +801,26 @@
              result = true;
          }
  
-+        // Paper - move to saveGlobalData()
++        // Paper start - split out global level data
++        return result;
++    }
 +
++    public void saveGlobalData(final boolean flush) {
++        this.scoreboard.storeToSaveDataIfDirty(this.getDataStorage().computeIfAbsent(ScoreboardSaveData.TYPE));
++        // Paper end - split out global level data
          GameProfile singleplayerProfile = this.getSingleplayerProfile();
          this.storageSource.saveDataTag(this.worldData, singleplayerProfile == null ? null : singleplayerProfile.id());
          if (flush) {
-@@ -601,6 +_,20 @@
- 
-         return result;
+@@ -598,8 +_,7 @@
+         } else {
+             this.savedDataStorage.scheduleSave();
+         }
+-
+-        return result;
++        // Paper - split out global level data
      }
-+
-+    // Paper start - split out global level data
-+    public void saveGlobalData(final boolean flush) {
-+        this.scoreboard.storeToSaveDataIfDirty(this.getDataStorage().computeIfAbsent(ScoreboardSaveData.TYPE));
-+
-+        GameProfile singleplayerProfile = this.getSingleplayerProfile();
-+        this.storageSource.saveDataTag(this.worldData, singleplayerProfile == null ? null : singleplayerProfile.id());
-+        if (flush) {
-+            this.savedDataStorage.saveAndJoin();
-+        } else {
-+            this.savedDataStorage.scheduleSave();
-+        }
-+    }
-+    // Paper end - split out global level data
  
      public boolean saveEverything(boolean silent, boolean flush, boolean force) {
-         try {
 @@ -619,19 +_,57 @@
          this.stopServer();
      }
