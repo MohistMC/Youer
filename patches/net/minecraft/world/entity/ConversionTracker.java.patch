@@ -1,5 +1,22 @@
 --- a/net/minecraft/world/entity/ConversionTracker.java
 +++ b/net/minecraft/world/entity/ConversionTracker.java
+@@ -25,6 +_,16 @@
+     private final @Nullable BiConsumer<M, ServerLevel> postConversionStep;
+     public int afflictionTime = 0;
+     public int conversionTime;
++    // Paper start - add spawn and transform reasons
++    private org.bukkit.event.entity.EntityTransformEvent.TransformReason transformReason = org.bukkit.event.entity.EntityTransformEvent.TransformReason.UNKNOWN;
++    private org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason spawnReason = org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DEFAULT;
++
++    public ConversionTracker<M> setEventReasons(final org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason spawnReason, final org.bukkit.event.entity.EntityTransformEvent.TransformReason transformReason) {
++        this.spawnReason = spawnReason;
++        this.transformReason = transformReason;
++        return this;
++    }
++    // Paper end - add spawn and transform reasons
+ 
+     public ConversionTracker(
+         M mob,
 @@ -53,6 +_,7 @@
      public void tick() {
          if (this.mob.level() instanceof ServerLevel serverLevel && this.mob.isAlive() && !this.mob.isNoAi()) {
@@ -16,3 +33,19 @@
              if (this.postConversionStep != null) {
                  this.postConversionStep.accept((M)converted, serverLevel);
              }
+@@ -103,7 +_,14 @@
+             if (!converted.isSilent()) {
+                 serverLevel.levelEvent(null, this.conversionSound.get(), converted.blockPosition(), 0);
+             }
+-        });
++            // Paper start - add spawn and transform reasons
++        }, this.transformReason, this.spawnReason);
++
++        if (mob == null) {
++            // Reset conversion time to prevent event spam
++            this.conversionTime = this.totalConversionTime;
++        }
++        // Paper end - add spawn and transform reasons
+     }
+ 
+     public void startConversion(int time) {

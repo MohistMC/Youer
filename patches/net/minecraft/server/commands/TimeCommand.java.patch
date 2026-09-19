@@ -18,44 +18,31 @@
          long totalTicks = clockManager.getInstance(clock).totalTicks();
          source.sendSuccess(() -> Component.translatable("commands.time.query.absolute", clock.getRegisteredName(), totalTicks), false);
          return wrapTime(totalTicks);
-@@ -159,49 +_,69 @@
-     private static int queryTimelineTicks(CommandSourceStack source, Holder<WorldClock> clock, Holder<Timeline> timeline) throws CommandSyntaxException {
-         if (!clock.equals(timeline.value().clock())) {
+@@ -161,7 +_,7 @@
              throw ERROR_WRONG_TIMELINE_FOR_CLOCK.create(clock.getRegisteredName(), timeline.getRegisteredName());
-+        } else {
-+            ServerClockManager clockManager = source.getLevel().clockManager(); // Paper - per-world time
-+            long currentTicks = timeline.value().getCurrentTicks(clockManager);
-+            source.sendSuccess(() -> Component.translatable("commands.time.query.timeline", timeline.getRegisteredName(), currentTicks), false);
-+            return wrapTime(currentTicks);
          }
--
+ 
 -        ServerClockManager clockManager = source.getServer().clockManager();
--        long currentTicks = timeline.value().getCurrentTicks(clockManager);
--        source.sendSuccess(() -> Component.translatable("commands.time.query.timeline", timeline.getRegisteredName(), currentTicks), false);
--        return wrapTime(currentTicks);
++        ServerClockManager clockManager = source.getLevel().clockManager(); // Paper - per-world time
+         long currentTicks = timeline.value().getCurrentTicks(clockManager);
+         source.sendSuccess(() -> Component.translatable("commands.time.query.timeline", timeline.getRegisteredName(), currentTicks), false);
+         return wrapTime(currentTicks);
+@@ -172,34 +_,50 @@
+             throw ERROR_WRONG_TIMELINE_FOR_CLOCK.create(clock.getRegisteredName(), timeline.getRegisteredName());
+         }
+ 
+-        ServerClockManager clockManager = source.getServer().clockManager();
++        ServerClockManager clockManager = source.getLevel().clockManager(); // Paper - per-world time
+         long repetitions = timeline.value().getPeriodCount(clockManager);
+         source.sendSuccess(() -> Component.translatable("commands.time.query.timeline.repetitions", timeline.getRegisteredName(), repetitions), false);
+         return wrapTime(repetitions);
      }
  
-     private static int queryTimelineRepetitions(CommandSourceStack source, Holder<WorldClock> clock, Holder<Timeline> timeline) throws CommandSyntaxException {
-         if (!clock.equals(timeline.value().clock())) {
-             throw ERROR_WRONG_TIMELINE_FOR_CLOCK.create(clock.getRegisteredName(), timeline.getRegisteredName());
-+        } else {
-+            ServerClockManager clockManager = source.getLevel().clockManager(); // Paper - per-world time
-+            long repetitions = timeline.value().getPeriodCount(clockManager);
-+            source.sendSuccess(() -> Component.translatable("commands.time.query.timeline.repetitions", timeline.getRegisteredName(), repetitions), false);
-+            return wrapTime(repetitions);
-         }
--
--        ServerClockManager clockManager = source.getServer().clockManager();
--        long repetitions = timeline.value().getPeriodCount(clockManager);
--        source.sendSuccess(() -> Component.translatable("commands.time.query.timeline.repetitions", timeline.getRegisteredName(), repetitions), false);
--        return wrapTime(repetitions);
-     }
- 
--    private static int setTotalTicks(CommandSourceStack source, Holder<WorldClock> clock, int totalTicks) throws CommandSyntaxException {
+     private static int setTotalTicks(CommandSourceStack source, Holder<WorldClock> clock, int totalTicks) throws CommandSyntaxException {
 -        ServerClockManager clockManager = source.getServer().clockManager();
 -        if (clockManager.getInstance(clock).totalTicks() == totalTicks) {
 -            throw ERROR_ALREADY_AT_TIME.create(clock.getRegisteredName(), totalTicks);
-+    private static int setTotalTicks(CommandSourceStack source, Holder<WorldClock> clock, int totalTicks) {
++        // Paper start - per-world time
 +        ServerClockManager clockManager = source.getLevel().clockManager();
 +        long currentTotalTicks = clockManager.getInstance(clock).totalTicks();
 +        org.bukkit.event.world.ClockTimeSkipEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.createTimeSkipEvent(source, totalTicks - currentTotalTicks);
@@ -65,23 +52,30 @@
 +            clockManager.setTotalTicks(clock, newTotalTicks);
 +        } else {
 +            newTotalTicks = totalTicks; // just pass it through
++        }
++        if (currentTotalTicks == newTotalTicks) {
++            throw ERROR_ALREADY_AT_TIME.create(clock.getRegisteredName(), newTotalTicks);
          }
--
+ 
 -        clockManager.setTotalTicks(clock, totalTicks);
 -        source.sendSuccess(() -> Component.translatable("commands.time.set.absolute", clock.getRegisteredName(), totalTicks), true);
 -        return totalTicks;
++        clockManager.setTotalTicks(clock, newTotalTicks);
 +        source.sendSuccess(() -> Component.translatable("commands.time.set.absolute", clock.getRegisteredName(), newTotalTicks), true);
 +        return wrapTime(newTotalTicks);
++        // Paper end - per-world time
      }
  
      private static int addTime(CommandSourceStack source, Holder<WorldClock> clock, int time) {
 -        ServerClockManager clockManager = source.getServer().clockManager();
 -        clockManager.addTicks(clock, time);
++        // Paper start - per-world time
 +        ServerClockManager clockManager = source.getLevel().clockManager();
 +        org.bukkit.event.world.ClockTimeSkipEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.createTimeSkipEvent(source, time);
 +        if (event.callEvent()) {
 +            clockManager.addTicks(clock, event.getSkipAmount());
 +        }
++        // Paper end - per-world time
          long totalTicks = clockManager.getInstance(clock).totalTicks();
          source.sendSuccess(() -> Component.translatable("commands.time.set.absolute", clock.getRegisteredName(), totalTicks), true);
          return wrapTime(totalTicks);
@@ -90,29 +84,29 @@
      private static int setTimeToTimeMarker(CommandSourceStack source, Holder<WorldClock> clock, ResourceKey<ClockTimeMarker> timeMarkerId) throws CommandSyntaxException {
 -        ServerClockManager clockManager = source.getServer().clockManager();
 -        ServerClockManager.MoveResult moveResult = clockManager.moveToTimeMarker(clock, timeMarkerId);
-+        // Paper start - per-world time
-+        // TODO - snapshot - need check this later for the changes into ServerClockManager.MoveResult
-+        ServerClockManager clockManager = source.getLevel().clockManager();
-+        java.util.OptionalLong targetTime = clockManager.getTotalTicksToTimeMarker(clock, timeMarkerId);
-+        ServerClockManager.MoveResult moveResult = net.minecraft.world.clock.ServerClockManager.MoveResult.NOT_MOVED;
++        ServerClockManager clockManager = source.getLevel().clockManager(); // Paper - per-world time
++        ServerClockManager.MoveResult moveResult = moveToTimeMarker(clock, timeMarkerId, clockManager, source); // Paper - time skip event
          String clockName = clock.getRegisteredName();
          String timeMarkerName = timeMarkerId.identifier().toString();
-+        if (targetTime.isEmpty()) {
-+            throw ERROR_NO_TIME_MARKER_FOUND.create(clockName, timeMarkerName);
-+        }
-+        final long currentTime = clockManager.getInstance(clock).totalTicks();
-+        final org.bukkit.event.world.ClockTimeSkipEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.createTimeSkipEvent(source, targetTime.getAsLong() - currentTime);
-+        if (event.callEvent()) {
-+            moveResult = net.minecraft.world.clock.ServerClockManager.MoveResult.MOVED;
-+            clockManager.setTotalTicks(clock, currentTime + event.getSkipAmount());
-+        }
-+        // Paper end - per-world time
          switch (moveResult) {
-             case NO_TIME_MARKER_FOUND:
-                 throw ERROR_NO_TIME_MARKER_FOUND.create(clockName, timeMarkerName);
-@@ -215,28 +_,15 @@
+@@ -214,29 +_,30 @@
+         }
      }
  
++    // Paper start - time skip event
++    private static ServerClockManager.MoveResult moveToTimeMarker(final Holder<WorldClock> clock, final ResourceKey<ClockTimeMarker> timeMarkerId, final ServerClockManager clockManager, final CommandSourceStack source) {
++        final ServerClockManager.TimerMove timerMove = clockManager.resolveTimerMove(clock, timeMarkerId);
++        if (timerMove == null) return ServerClockManager.MoveResult.NO_TIME_MARKER_FOUND;
++
++        // We consider it an attempted move even if the marker occurs at this point in time for event calling purposes.
++        final org.bukkit.event.world.ClockTimeSkipEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.createTimeSkipEvent(source, timerMove.targetTime() - timerMove.currentTime());
++        if (!event.callEvent() || event.getSkipAmount() == 0) return ServerClockManager.MoveResult.NOT_MOVED;
++
++        clockManager.setTotalTicks(clock, timerMove.currentTime() + event.getSkipAmount());
++        return ServerClockManager.MoveResult.MOVED;
++    }
++    // Paper end - time skip event
++
      private static int setPaused(CommandSourceStack source, Holder<WorldClock> clock, boolean paused) throws CommandSyntaxException {
 -        ServerClockManager clockManager = source.getServer().clockManager();
 -        String clockName = clock.getRegisteredName();

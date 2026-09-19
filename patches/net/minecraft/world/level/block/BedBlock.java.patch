@@ -1,0 +1,19 @@
+--- a/net/minecraft/world/level/block/BedBlock.java
++++ b/net/minecraft/world/level/block/BedBlock.java
+@@ -45,6 +_,7 @@
+ 
+     @Override
+     protected InteractionResult destroyOnUse(BlockState state, Level level, BlockPos pos, Player player) {
++        org.bukkit.block.BlockState blockState = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos).getState(); // CraftBukkit - capture BlockState before remove block
+         level.removeBlock(pos, false);
+         BlockPos blockPos = pos.relative(state.getValue(FACING).getOpposite());
+         if (level.getBlockState(blockPos).is(this)) {
+@@ -52,7 +_,7 @@
+         }
+ 
+         Vec3 boomPos = Vec3.atCenterOf(pos);
+-        level.explode(null, level.damageSources().badRespawnPointExplosion(boomPos), null, boomPos, 5.0F, true, Level.ExplosionInteraction.BLOCK);
++        level.explode(null, level.damageSources().badRespawnPointExplosion(boomPos).causingBlockSnapshot(blockState), null, boomPos, 5.0F, true, Level.ExplosionInteraction.BLOCK); // CraftBukkit - add state
+         return InteractionResult.SUCCESS_SERVER;
+     }
+ 

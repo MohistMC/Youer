@@ -1,5 +1,32 @@
 --- a/net/minecraft/core/component/DataComponentPatch.java
 +++ b/net/minecraft/core/component/DataComponentPatch.java
+@@ -97,12 +_,17 @@
+                     ObjectIterable<it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<DataComponentType<?>, Object>> fastEntries = Reference2ObjectMaps.fastIterable(
+                         patch.map
+                     );
++                    // Paper start - data sanitization for items
++                    final io.papermc.paper.util.sanitizer.ItemObfuscationSession itemObfuscationSession = patch.map.isEmpty()
++                        ? null // Avoid thread local lookup of current session if it won't be needed anyway.
++                        : io.papermc.paper.util.sanitizer.ItemObfuscationSession.currentSession();
++                    // Paper end - data sanitization for items
+                     int positiveCount = 0;
+                     int negativeCount = 0;
+ 
+                     for (it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<DataComponentType<?>, Object> entry : fastEntries) {
+                         if (Removed.isNotRemoved(entry.getValue())) {
+-                            positiveCount++;
++                            if (!io.papermc.paper.util.sanitizer.ItemComponentSanitizer.shouldDrop(itemObfuscationSession, entry.getKey())) positiveCount++; // Paper - data sanitization for items
+                         } else {
+                             negativeCount++;
+                         }
+@@ -113,6 +_,7 @@
+ 
+                     for (it.unimi.dsi.fastutil.objects.Reference2ObjectMap.Entry<DataComponentType<?>, Object> entry : fastEntries) {
+                         Object value = entry.getValue();
++                        value = io.papermc.paper.util.sanitizer.ItemComponentSanitizer.override(itemObfuscationSession, entry.getKey(), value); // Paper - data sanitization for items
+                         if (Removed.isNotRemoved(value)) {
+                             DataComponentType<?> type = entry.getKey();
+                             DataComponentType.STREAM_CODEC.encode(output, type);
 @@ -130,7 +_,13 @@
              }
  

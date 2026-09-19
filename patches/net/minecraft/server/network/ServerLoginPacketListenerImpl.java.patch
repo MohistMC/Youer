@@ -186,7 +186,7 @@
              }
          }
      }
-@@ -138,7 +_,8 @@
+@@ -138,19 +_,24 @@
  
      private void verifyLoginAndFinishConnectionSetup(GameProfile profile) {
          PlayerList playerList = this.server.getPlayerList();
@@ -194,10 +194,24 @@
 +        playerList.canPlayerLogin(this.connection.getRemoteAddress(), new NameAndId(profile));
 +        Component error = org.bukkit.craftbukkit.event.CraftEventFactory.handleLoginResult(playerList.canPlayerLogin$LoginResult, this.paperLoginConnection, this.connection, profile, this.server, true); // Paper
          if (error != null) {
-             this.disconnect(error);
+-            this.disconnect(error);
++            this.disconnectAsync(error); // Paper
          } else {
-@@ -150,7 +_,7 @@
-                     );
+             if (this.server.getCompressionThreshold() >= 0 && !this.connection.isMemoryConnection()) {
+-                this.connection
+-                    .send(
+-                        new ClientboundLoginCompressionPacket(this.server.getCompressionThreshold()),
+-                        PacketSendListener.thenRun(() -> this.connection.setupCompression(this.server.getCompressionThreshold(), true))
+-                    );
++                // Paper start - Keep compression packet write and setup in the same Netty task
++                final int compressionThreshold = this.server.getCompressionThreshold();
++                this.connection.sendPacketAndScheduleNettyTask(
++                    new ClientboundLoginCompressionPacket(compressionThreshold), true,
++                    () -> {
++                        this.connection.setupCompression(compressionThreshold, true);
++                    }
++                );
++                // Paper end - Keep compression packet write and setup in the same Netty task
              }
  
 -            boolean waitForDisconnection = playerList.disconnectAllPlayersWithProfile(profile.id());

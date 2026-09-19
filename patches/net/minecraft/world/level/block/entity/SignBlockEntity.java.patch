@@ -41,6 +41,98 @@
              float signYRot = sign.getYRotationDegrees(this.getBlockState());
              float playerYRot = (float)(Mth.atan2(zd, xd) * 180.0F / (float)Math.PI) - 90.0F;
              return Mth.degreesDifferenceAbs(signYRot, playerYRot) <= 90.0F ? SignTextSlot.FRONT : SignTextSlot.BACK;
+@@ -125,11 +_,13 @@
+ 
+     public void updateSignText(Player player, SignTextSlot slot, List<FilteredText> lines) {
+         if (!this.isWaxed() && player.getUUID().equals(this.getPlayerWhoMayEdit()) && this.level != null) {
+-            this.updateText(text -> updateMessages(lines, text, player.isTextFilteringEnabled()), slot);
++            this.updateText(text -> updateMessages(lines, text, player.isTextFilteringEnabled(), player, this, slot), slot); // Paper - call SignChangeEvent
+             this.setAllowedPlayerEditor(null);
+             this.level.sendBlockUpdated(this.getBlockPos(), this.getBlockState(), this.getBlockState(), 3);
+         } else {
+             LOGGER.warn("Player {} just tried to change non-editable sign", player.getPlainTextName());
++            if (player.distanceToSqr(this.getBlockPos().getX(), this.getBlockPos().getY(), this.getBlockPos().getZ()) < Mth.square(32)) // Paper - Don't send far away sign update
++                ((net.minecraft.server.level.ServerPlayer) player).connection.send(this.getUpdatePacket()); // CraftBukkit
+         }
+     }
+ 
+@@ -144,7 +_,7 @@
+         }
+     }
+ 
+-    private static SignText updateMessages(List<FilteredText> newLines, SignText originalText, boolean shouldFilter) {
++    private static SignText updateMessages(List<FilteredText> newLines, SignText originalText, boolean shouldFilter, final Player player, final SignBlockEntity signBlockEntity, final SignTextSlot slot) { // Paper - call SignChangeEvent
+         SignText.Mutable result = originalText.asMutable();
+         List<Component> originalLines = originalText.getMessages(shouldFilter);
+ 
+@@ -152,14 +_,40 @@
+             FilteredText line = newLines.get(i);
+             Style currentTextStyle = originalLines.get(i).getStyle();
+             if (shouldFilter) {
+-                result.setLine(i, Component.literal(line.filteredOrEmpty()).setStyle(currentTextStyle));
++                result.setLine(i, Component.literal(net.minecraft.util.StringUtil.filterText(line.filteredOrEmpty())).setStyle(currentTextStyle)); // Paper - filter sign text to chat only
+             } else {
+                 result.setLine(
+-                    i, Component.literal(line.raw()).setStyle(currentTextStyle), Component.literal(line.filteredOrEmpty()).setStyle(currentTextStyle)
++                    i, Component.literal(line.raw()).setStyle(currentTextStyle), Component.literal(net.minecraft.util.StringUtil.filterText(line.filteredOrEmpty())).setStyle(currentTextStyle) // Paper - filter sign text to chat only
+                 );
+             }
+         }
+ 
++        // Paper start - call SignChangeEvent
++        org.bukkit.entity.Player apiPlayer = ((net.minecraft.server.level.ServerPlayer) player).getBukkitEntity();
++        List<net.kyori.adventure.text.Component> componentLines = new java.util.ArrayList<>();
++
++        for (int i = 0; i < newLines.size(); ++i) {
++            componentLines.add(io.papermc.paper.adventure.PaperAdventure.asAdventure(result.getLine(i, shouldFilter)));
++        }
++
++        org.bukkit.event.block.SignChangeEvent event = new org.bukkit.event.block.SignChangeEvent(
++            org.bukkit.craftbukkit.block.CraftBlock.at(signBlockEntity.getLevel(), signBlockEntity.getBlockPos()),
++            apiPlayer,
++            new java.util.ArrayList<>(componentLines),
++            org.bukkit.craftbukkit.block.sign.CraftSignSide.fromVanilla(slot)
++        );
++        if (!event.callEvent()) {
++            return originalText;
++        }
++
++        Component[] components = org.bukkit.craftbukkit.block.CraftSign.sanitizeLines(event.lines());
++        for (int i = 0; i < components.length; i++) {
++            if (!java.util.Objects.equals(componentLines.get(i), event.line(i))) {
++                result.setLine(i, components[i]);
++            }
++        }
++        // Paper end - call SignChangeEvent
++
+         return result.asImmutable();
+     }
+ 
+@@ -188,7 +_,23 @@
+             switch (event) {
+                 case ClickEvent.RunCommand command:
+                     if (this.allowOpFeatures) {
+-                        level.getServer().getCommands().performPrefixedCommand(createCommandSourceStack(player, level, pos), command.command());
++                        // Paper start - Fix commands from signs not firing command events
++                        String commandLine = command.command().startsWith("/") ? command.command() : "/" + command.command();
++                        if (org.spigotmc.SpigotConfig.logCommands) {
++                            LOGGER.info("{} issued server command: {}", player.getScoreboardName(), commandLine);
++                        }
++                        final io.papermc.paper.event.player.PlayerSignCommandPreprocessEvent bukkitEvent = new io.papermc.paper.event.player.PlayerSignCommandPreprocessEvent(
++                            (org.bukkit.entity.Player) player.getBukkitEntity(),
++                            commandLine,
++                            new org.bukkit.craftbukkit.util.LazyPlayerSet(level.getServer()),
++                            (org.bukkit.block.Sign) org.bukkit.craftbukkit.block.CraftBlock.at(this.level, this.worldPosition).getState(),
++                            org.bukkit.craftbukkit.block.sign.CraftSignSide.fromVanilla(slot)
++                        );
++                        if (!bukkitEvent.callEvent()) {
++                            return false;
++                        }
++                        level.getServer().getCommands().performPrefixedCommand(createCommandSourceStack(((org.bukkit.craftbukkit.entity.CraftPlayer) bukkitEvent.getPlayer()).getHandle(), level, pos), bukkitEvent.getMessage());
++                        // Paper end - Fix commands from signs not firing command events
+                     }
+ 
+                     hasAnyClickCommand = true;
 @@ -202,7 +_,7 @@
                      break;
                  case ClickEvent.Custom custom:
@@ -50,6 +142,55 @@
                      }
  
                      hasAnyClickCommand = true;
+@@ -219,7 +_,47 @@
+         return hasAnyClickCommand;
+     }
+ 
+-    private static CommandSourceStack createCommandSourceStack(@Nullable Player player, ServerLevel level, BlockPos pos) {
++    // Paper start - Fix commands from signs not firing command events
++    private final CommandSource commandSource = new CommandSource() {
++
++        @Override
++        public void sendSystemMessage(Component message) {}
++
++        @Override
++        public org.bukkit.command.CommandSender getBukkitSender(CommandSourceStack commandSourceStack) {
++            return commandSourceStack.getEntity() != null ? commandSourceStack.getEntity().getBukkitEntity() : new org.bukkit.craftbukkit.command.CraftBlockCommandSender(commandSourceStack, SignBlockEntity.this);
++        }
++
++        @Override
++        public boolean acceptsSuccess() {
++            return false;
++        }
++
++        @Override
++        public boolean acceptsFailure() {
++            return false;
++        }
++
++        @Override
++        public boolean shouldInformAdmins() {
++            return false;
++        }
++    };
++    private CommandSourceStack createCommandSourceStack(final @Nullable Player player, final ServerLevel level, final BlockPos pos) {
++        CommandSource commandSource = level.paperConfig().misc.showSignClickCommandFailureMsgsToPlayer ? new io.papermc.paper.commands.DelegatingCommandSource(this.commandSource) {
++            @Override
++            public void sendSystemMessage(Component message) {
++                if (player instanceof final net.minecraft.server.level.ServerPlayer serverPlayer) {
++                    serverPlayer.sendSystemMessage(message);
++                }
++            }
++
++            @Override
++            public boolean acceptsFailure() {
++                return true;
++            }
++        } : this.commandSource;
++        // Paper end - Fix commands from signs not firing command events
+         return player != null
+             ? new CommandSourceStack(CommandSource.NULL, Vec3.atCenterOf(pos), Vec2.ZERO, level, LevelBasedPermissionSet.GAMEMASTER, level.getServer(), player)
+             : new CommandSourceStack(
 @@ -241,12 +_,17 @@
      }
  

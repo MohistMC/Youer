@@ -1,96 +1,92 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license.
+
 package com.mojang.brigadier.arguments;
 
-import java.util.Arrays;
-import com.mojang.brigadier.ImmutableStringReader;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+
+import java.util.Arrays;
 import java.util.Collection;
 
-public class LongArgumentType implements ArgumentType<Long>
-{
-    private static final Collection<String> EXAMPLES;
+public class LongArgumentType implements ArgumentType<Long> {
+    private static final Collection<String> EXAMPLES = Arrays.asList("0", "123", "-123");
+
     private final long minimum;
     private final long maximum;
-    
+
     private LongArgumentType(final long minimum, final long maximum) {
         this.minimum = minimum;
         this.maximum = maximum;
     }
-    
+
     public static LongArgumentType longArg() {
         return longArg(Long.MIN_VALUE);
     }
-    
+
     public static LongArgumentType longArg(final long min) {
         return longArg(min, Long.MAX_VALUE);
     }
-    
+
     public static LongArgumentType longArg(final long min, final long max) {
         return new LongArgumentType(min, max);
     }
-    
+
     public static long getLong(final CommandContext<?> context, final String name) {
-        return context.getArgument(name, Long.TYPE);
+        return context.getArgument(name, long.class);
     }
-    
+
     public long getMinimum() {
-        return this.minimum;
+        return minimum;
     }
-    
+
     public long getMaximum() {
-        return this.maximum;
+        return maximum;
     }
-    
+
     @Override
     public Long parse(final StringReader reader) throws CommandSyntaxException {
         final int start = reader.getCursor();
         final long result = reader.readLong();
-        if (result < this.minimum) {
+        if (result < minimum) {
             reader.setCursor(start);
-            throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.longTooLow().createWithContext(reader, result, this.minimum);
+            throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.longTooLow().createWithContext(reader, result, minimum);
         }
-        if (result > this.maximum) {
+        if (result > maximum) {
             reader.setCursor(start);
-            throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.longTooHigh().createWithContext(reader, result, this.maximum);
+            throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.longTooHigh().createWithContext(reader, result, maximum);
         }
         return result;
     }
-    
+
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof LongArgumentType)) {
-            return false;
-        }
-        final LongArgumentType that = (LongArgumentType)o;
-        return this.maximum == that.maximum && this.minimum == that.minimum;
+        if (this == o) return true;
+        if (!(o instanceof LongArgumentType)) return false;
+
+        final LongArgumentType that = (LongArgumentType) o;
+        return maximum == that.maximum && minimum == that.minimum;
     }
-    
+
     @Override
     public int hashCode() {
-        return 31 * Long.hashCode(this.minimum) + Long.hashCode(this.maximum);
+        return 31 * Long.hashCode(minimum) + Long.hashCode(maximum);
     }
-    
+
     @Override
     public String toString() {
-        if (this.minimum == Long.MIN_VALUE && this.maximum == Long.MAX_VALUE) {
+        if (minimum == Long.MIN_VALUE && maximum == Long.MAX_VALUE) {
             return "longArg()";
+        } else if (maximum == Long.MAX_VALUE) {
+            return "longArg(" + minimum + ")";
+        } else {
+            return "longArg(" + minimum + ", " + maximum + ")";
         }
-        if (this.maximum == Long.MAX_VALUE) {
-            return "longArg(" + this.minimum + ")";
-        }
-        return "longArg(" + this.minimum + ", " + this.maximum + ")";
     }
-    
+
     @Override
     public Collection<String> getExamples() {
-        return LongArgumentType.EXAMPLES;
-    }
-    
-    static {
-        EXAMPLES = Arrays.asList("0", "123", "-123");
+        return EXAMPLES;
     }
 }

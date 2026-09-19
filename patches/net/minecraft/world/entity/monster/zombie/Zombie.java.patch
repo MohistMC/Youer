@@ -40,9 +40,13 @@
      private boolean canBreakDoors = false;
      public final ConversionTracker<Zombie> drowningTracker = new ConversionTracker<>(
          this,
-@@ -112,17 +_,79 @@
+@@ -110,19 +_,82 @@
+         (converted, serverLevel) -> converted.handleAttributes(
+             serverLevel.getCurrentDifficultyAt(converted.blockPosition()).getSpecialMultiplier(), EntitySpawnReason.CONVERSION
          )
-     );
+-    );
++    ).setEventReasons(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DROWNED, org.bukkit.event.entity.EntityTransformEvent.TransformReason.DROWNED); // Paper - Spawn reason for drownned
++    public boolean shouldBurnInDay = true; // Paper - Add more Zombie API
  
 -    public Zombie(EntityType<? extends Zombie> type, Level level) {
 +    public Zombie(final EntityType<? extends Zombie> type, final Level level) {
@@ -266,7 +270,19 @@
              }
          }
  
-@@ -397,10 +_,11 @@
+@@ -386,6 +_,7 @@
+         output.putBoolean("IsBaby", this.isBaby());
+         output.putBoolean("CanBreakDoors", this.canBreakDoors());
+         this.drowningTracker.addAdditionalSaveData(output);
++        output.putBoolean("Paper.ShouldBurnInDay", this.shouldBurnInDay); // Paper - Add more Zombie API
+     }
+ 
+     @Override
+@@ -394,13 +_,15 @@
+         this.setBaby(input.getBooleanOr("IsBaby", false));
+         this.setCanBreakDoors(input.getBooleanOr("CanBreakDoors", false));
+         this.drowningTracker.readAdditionalSaveData(input);
++        this.shouldBurnInDay = input.getBooleanOr("Paper.ShouldBurnInDay", true); // Paper - Add more Zombie API
      }
  
      @Override

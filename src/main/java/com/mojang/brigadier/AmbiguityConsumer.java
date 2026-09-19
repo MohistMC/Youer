@@ -1,10 +1,13 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license.
+
 package com.mojang.brigadier;
 
-import java.util.Collection;
 import com.mojang.brigadier.tree.CommandNode;
 
+import java.util.Collection;
+
 @FunctionalInterface
-public interface AmbiguityConsumer<S>
-{
-    void ambiguous(final CommandNode<S> p0, final CommandNode<S> p1, final CommandNode<S> p2, final Collection<String> p3);
+public interface AmbiguityConsumer<S> {
+    void ambiguous(final CommandNode<S> parent, final CommandNode<S> child, final CommandNode<S> sibling, final Collection<String> inputs);
 }

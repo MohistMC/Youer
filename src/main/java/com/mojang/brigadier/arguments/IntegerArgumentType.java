@@ -1,96 +1,92 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license.
+
 package com.mojang.brigadier.arguments;
 
-import java.util.Arrays;
-import com.mojang.brigadier.ImmutableStringReader;
-import com.mojang.brigadier.exceptions.CommandSyntaxException;
 import com.mojang.brigadier.StringReader;
 import com.mojang.brigadier.context.CommandContext;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
+
+import java.util.Arrays;
 import java.util.Collection;
 
-public class IntegerArgumentType implements ArgumentType<Integer>
-{
-    private static final Collection<String> EXAMPLES;
+public class IntegerArgumentType implements ArgumentType<Integer> {
+    private static final Collection<String> EXAMPLES = Arrays.asList("0", "123", "-123");
+
     private final int minimum;
     private final int maximum;
-    
+
     private IntegerArgumentType(final int minimum, final int maximum) {
         this.minimum = minimum;
         this.maximum = maximum;
     }
-    
+
     public static IntegerArgumentType integer() {
         return integer(Integer.MIN_VALUE);
     }
-    
+
     public static IntegerArgumentType integer(final int min) {
         return integer(min, Integer.MAX_VALUE);
     }
-    
+
     public static IntegerArgumentType integer(final int min, final int max) {
         return new IntegerArgumentType(min, max);
     }
-    
+
     public static int getInteger(final CommandContext<?> context, final String name) {
-        return context.getArgument(name, Integer.TYPE);
+        return context.getArgument(name, int.class);
     }
-    
+
     public int getMinimum() {
-        return this.minimum;
+        return minimum;
     }
-    
+
     public int getMaximum() {
-        return this.maximum;
+        return maximum;
     }
-    
+
     @Override
     public Integer parse(final StringReader reader) throws CommandSyntaxException {
         final int start = reader.getCursor();
         final int result = reader.readInt();
-        if (result < this.minimum) {
+        if (result < minimum) {
             reader.setCursor(start);
-            throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.integerTooLow().createWithContext(reader, result, this.minimum);
+            throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.integerTooLow().createWithContext(reader, result, minimum);
         }
-        if (result > this.maximum) {
+        if (result > maximum) {
             reader.setCursor(start);
-            throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.integerTooHigh().createWithContext(reader, result, this.maximum);
+            throw CommandSyntaxException.BUILT_IN_EXCEPTIONS.integerTooHigh().createWithContext(reader, result, maximum);
         }
         return result;
     }
-    
+
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof IntegerArgumentType)) {
-            return false;
-        }
-        final IntegerArgumentType that = (IntegerArgumentType)o;
-        return this.maximum == that.maximum && this.minimum == that.minimum;
+        if (this == o) return true;
+        if (!(o instanceof IntegerArgumentType)) return false;
+
+        final IntegerArgumentType that = (IntegerArgumentType) o;
+        return maximum == that.maximum && minimum == that.minimum;
     }
-    
+
     @Override
     public int hashCode() {
-        return 31 * this.minimum + this.maximum;
+        return 31 * minimum + maximum;
     }
-    
+
     @Override
     public String toString() {
-        if (this.minimum == Integer.MIN_VALUE && this.maximum == Integer.MAX_VALUE) {
+        if (minimum == Integer.MIN_VALUE && maximum == Integer.MAX_VALUE) {
             return "integer()";
+        } else if (maximum == Integer.MAX_VALUE) {
+            return "integer(" + minimum + ")";
+        } else {
+            return "integer(" + minimum + ", " + maximum + ")";
         }
-        if (this.maximum == Integer.MAX_VALUE) {
-            return "integer(" + this.minimum + ")";
-        }
-        return "integer(" + this.minimum + ", " + this.maximum + ")";
     }
-    
+
     @Override
     public Collection<String> getExamples() {
-        return IntegerArgumentType.EXAMPLES;
-    }
-    
-    static {
-        EXAMPLES = Arrays.asList("0", "123", "-123");
+        return EXAMPLES;
     }
 }

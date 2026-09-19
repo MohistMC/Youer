@@ -732,7 +732,7 @@
      }
  
      @Override
-@@ -370,18 +_,38 @@
+@@ -370,18 +_,39 @@
          }
  
          int percentage = this.getGameRules().get(GameRules.PLAYERS_SLEEPING_PERCENTAGE);
@@ -748,16 +748,17 @@
 +                    adjustment.apply(this.server.clockManager(), defaultClock.get());
 +                }
 +                // Paper start - per-world time
-+                long currentTime = this.clockManager().getInstance(defaultClock.get()).totalTicks();
-+                long delta = this.clockManager().getTotalTicksToTimeMarker(defaultClock.get(), ClockTimeMarkers.WAKE_UP_FROM_SLEEP).orElse(0L) - currentTime;
-+                event = new org.bukkit.event.world.TimeSkipEvent(
++                ServerClockManager.TimerMove timerMove = this.clockManager().resolveTimerMove(defaultClock.get(), ClockTimeMarkers.WAKE_UP_FROM_SLEEP);
++                if (timerMove != null) {
++                    event = new org.bukkit.event.world.TimeSkipEvent(
 +                        this.getWorld(),
 +                        org.bukkit.event.world.ClockTimeSkipEvent.SkipReason.NIGHT_SKIP,
-+                        delta
-+                );
++                        timerMove.targetTime() - timerMove.currentTime()
++                    );
 +
-+                if (event.callEvent()) {
-+                    this.clockManager().setTotalTicks(defaultClock.get(), currentTime + event.getSkipAmount());
++                    if (event.callEvent()) {
++                        this.clockManager().setTotalTicks(defaultClock.get(), timerMove.currentTime() + event.getSkipAmount());
++                    }
 +                }
 +                // Paper end - per-world time
              }

@@ -1,9 +1,59 @@
 --- a/net/minecraft/world/level/block/AbstractBedBlock.java
 +++ b/net/minecraft/world/level/block/AbstractBedBlock.java
-@@ -298,4 +_,20 @@
+@@ -92,22 +_,46 @@
+             }
+ 
+             BedRule bedRule = this.getBedRule(level, pos);
+-            if (bedRule.destroyOnUse()) {
++            if (false && bedRule.destroyOnUse()) { // CraftBukkit - moved world and biome check into Player
+                 bedRule.errorMessage().ifPresent(player::sendOverlayMessage);
+                 return this.destroyOnUse(state, level, pos, player);
+             }
+ 
+             if (state.getValue(OCCUPIED)) {
++                if (bedRule.destroyOnUse()) return this.destroyOnUse(state, level, pos, player); // Paper - check explode first
+                 if (!this.kickVillagerOutOfBed(level, pos)) {
+                     player.sendOverlayMessage(Component.translatable("block.minecraft.bed.occupied"));
+                 }
+ 
+                 return InteractionResult.SUCCESS_SERVER;
+             } else {
++                // CraftBukkit start
++                final BlockState finalState = state;
++                final BlockPos finalPos = pos;
++                // CraftBukkit end
+                 player.startSleepInBed(this, state, bedRule, pos).ifLeft(problem -> {
+-                    if (problem.message() != null) {
++                    // Paper start - PlayerBedFailEnterEvent
++                    if (false && problem.message() != null) { // Moved down
+                         player.sendOverlayMessage(problem.message());
+                     }
++                    if (problem != null) {
++                        io.papermc.paper.event.player.PlayerBedFailEnterEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerBedFailEnterEvent(player, finalPos, bedRule, problem);
++                        if (event.isCancelled()) {
++                            return;
++                        }
++                        // Paper end - PlayerBedFailEnterEvent
++                        // CraftBukkit start - handling bed explosion from below here
++                        if (event.getWillExplode()) { // Paper - PlayerBedFailEnterEvent
++                            this.destroyOnUse(finalState, level, finalPos, player);
++                        }
++                        // CraftBukkit end
++                        // Paper start - PlayerBedFailEnterEvent
++                        final net.kyori.adventure.text.Component message = event.getMessage();
++                        if (message != null) {
++                            player.sendOverlayMessage(io.papermc.paper.adventure.PaperAdventure.asVanilla(message));
++                        }
++                    }
++                    // Paper end - PlayerBedFailEnterEvent
+                 });
+                 return InteractionResult.SUCCESS_SERVER;
+             }
+@@ -297,5 +_,21 @@
+ 
      private static int[][] bedAboveStandUpOffsets(Direction forward) {
          return new int[][]{{0, 0}, {-forward.getStepX(), -forward.getStepZ()}};
-     }
++    }
 +
 +    // Neo: beds are relocatable if and only if both halves are being relocated
 +    @Override
@@ -19,5 +69,5 @@
 +        if (neighborState != expectedState)
 +            return net.neoforged.neoforge.common.util.BlockRelocability.Yes.INSTANCE;
 +        return new net.neoforged.neoforge.common.util.BlockRelocability.Multiblock(java.util.Set.of(pos, neighborPos));
-+    }
+     }
  }

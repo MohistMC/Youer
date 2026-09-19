@@ -64,7 +64,58 @@
      private final RecipeManager.CachedCheck<BrewingInput, BrewingRecipe> quickCheck = RecipeManager.createCheck(RecipeType.BREWING);
  
      public BrewingStandBlockEntity(BlockPos worldPosition, BlockState blockState) {
-@@ -229,6 +_,10 @@
+@@ -132,11 +_,22 @@
+         ItemStack fuel = items.get(4);
+         BrewingFuel brewingFuel = fuel.get(DataComponents.BREWING_FUEL);
+         if (entity.fuel <= 0 && brewingFuel != null) {
+-            entity.fuel = entity.getUses(level, brewingFuel);
++            // Paper start - call BrewingStandFuelEvent
++            org.bukkit.event.inventory.BrewingStandFuelEvent event = new org.bukkit.event.inventory.BrewingStandFuelEvent(
++                org.bukkit.craftbukkit.block.CraftBlock.at(level, pos),
++                org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(fuel),
++                entity.getUses(level, brewingFuel)
++            );
++            if (!event.callEvent()) {
++                return;
++            }
++            entity.fuel = event.getFuelPower();
++            // Paper end - call BrewingStandFuelEvent
+             entity.totalFuel = entity.fuel;
+             entity.speedMultiplier = entity.getSpeedMultiplier(level, brewingFuel);
+             ItemStackTemplate fuelRemainder = fuel.getItem().getCraftingRemainder();
+             ItemStack newFuel = fuel;
++            if (entity.fuel > 0 && event.isConsuming()) { // Paper - call BrewingStandFuelEvent
+             fuel.shrink(1);
+             if (fuelRemainder != null) {
+                 if (fuel.isEmpty()) {
+@@ -145,6 +_,7 @@
+                     Containers.dropItemStack(level, pos.getX(), pos.getY(), pos.getZ(), fuelRemainder.create());
+                 }
+             }
++            } // Paper - call BrewingStandFuelEvent
+ 
+             items.set(4, newFuel);
+             setChanged(level, pos, selfState);
+@@ -166,8 +_,16 @@
+         } else if (brewable && entity.fuel > 0) {
+             float speedMutliplier = entity.speedMultiplier > 0.0F ? entity.speedMultiplier : 1.0F;
+             entity.fuel--;
+-            entity.brewTime = (int)Math.ceil(400.0F / speedMutliplier);
+-            entity.totalBrewTime = entity.brewTime;
++            // Paper start - call BrewingStartEvent
++            org.bukkit.event.block.BrewingStartEvent event = new org.bukkit.event.block.BrewingStartEvent(
++                org.bukkit.craftbukkit.block.CraftBlock.at(level, pos),
++                org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(ingredient),
++                (int)Math.ceil(400.0F / speedMutliplier)
++            );
++            event.callEvent();
++            entity.brewTime = event.getBrewingTime();
++            entity.totalBrewTime = event.getRecipeBrewTime();
++            // Paper end - call BrewingStartEvent
+             entity.ingredient = ingredient.getItem();
+             setChanged(level, pos, selfState);
+         }
+@@ -229,14 +_,45 @@
          NonNullList<ItemStack> items = entity.getItems();
          ItemStack ingredient = items.get(3);
  
@@ -72,14 +123,43 @@
 +            return;
 +        }
 +
++        // Paper start - call BrewEvent
++        org.bukkit.inventory.InventoryHolder owner = entity.getOwner();
++        java.util.List<org.bukkit.inventory.ItemStack> brewResults = new java.util.ArrayList<>(3);
++        // Paper end - call BrewEvent
          for (int dest = 0; dest < 3; dest++) {
              ItemStack container = items.get(dest);
              BrewingInput input = new BrewingInput(container, ingredient);
-@@ -236,7 +_,8 @@
-             items.set(dest, recipe.isPresent() ? recipe.get().value().assemble(input) : container);
-         }
- 
+             Optional<RecipeHolder<BrewingRecipe>> recipe = entity.quickCheck.getRecipeFor(input, level);
+-            items.set(dest, recipe.isPresent() ? recipe.get().value().assemble(input) : container);
+-        }
+-
 -        ItemStackTemplate remainder = ingredient.getItem().getCraftingRemainder();
++            brewResults.add(dest, org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(recipe.isPresent() ? recipe.get().value().assemble(input) : container)); // Paper - call BrewEvent - store results in map first.
++        }
++
++
++        // Paper start - call BrewEvent
++        if (owner != null) {
++            org.bukkit.event.inventory.BrewEvent event = new org.bukkit.event.inventory.BrewEvent(
++                org.bukkit.craftbukkit.block.CraftBlock.at(level, pos),
++                (org.bukkit.inventory.BrewerInventory) owner.getInventory(),
++                brewResults,
++                entity.fuel
++            );
++            if (!event.callEvent()) {
++                return;
++            }
++
++            for (int dest = 0; dest < 3; dest++) {
++                if (dest < brewResults.size()) {
++                    items.set(dest, org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(brewResults.get(dest)));
++                } else {
++                    items.set(dest, ItemStack.EMPTY);
++                }
++            }
++        }
++        // Paper end - call BrewEvent
 +        net.neoforged.neoforge.event.EventHooks.onPotionBrewed(items);
 +        ItemStackTemplate remainder = ingredient.getCraftingRemainder();
          ingredient.shrink(1);

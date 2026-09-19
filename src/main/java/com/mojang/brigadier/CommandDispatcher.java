@@ -544,14 +544,10 @@ public class CommandDispatcher<S> {
         int i = 0;
         for (final CommandNode<S> node : parent.getChildren()) {
             CompletableFuture<Suggestions> future = Suggestions.empty();
-            // Paper start - Don't suggest if the requirement isn't met
-            if (parent != this.root || node.canUse(context.getSource())) {
             try {
-                future = node.listSuggestions(context.build(truncatedInput), new SuggestionsBuilder(truncatedInput, truncatedInputLowerCase, start)); // CraftBukkit
+                if (node.canUse(nodeBeforeCursor.context.getSource())) future = node.listSuggestions(nodeBeforeCursor.context.build(truncatedInput), new SuggestionsBuilder(truncatedInput, truncatedInputLowerCase, start)); // Paper - Don't suggest if the requirement isn't met
             } catch (final CommandSyntaxException ignored) {
             }
-            }
-            // Paper end - Don't suggest if the requirement isn't met
             futures[i++] = future;
         }
 

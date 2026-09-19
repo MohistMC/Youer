@@ -28,7 +28,7 @@
 -    private int inLove = 0;
 +    public int inLove = 0;
      public @Nullable EntityReference<ServerPlayer> loveCause;
-+    public ItemStack breedItem; // CraftBukkit - Add breedItem variable
++    public @Nullable ItemStack breedItem; // CraftBukkit - Add breedItem variable
 +    public int getPurpurBreedTime() {
 +        return -1;
 +    } // Purpur - Make entity breeding times configurable
@@ -48,7 +48,7 @@
                  this.playEatingSound();
                  return InteractionResult.SUCCESS_SERVER;
              }
-@@ -170,11 +_,27 @@
+@@ -170,8 +_,23 @@
          return this.inLove <= 0;
      }
  
@@ -73,11 +73,7 @@
          if (player instanceof ServerPlayer serverPlayer) {
              this.loveCause = EntityReference.of(serverPlayer);
          }
-+        this.breedItem = player.getInventory().getSelectedItem(); // CraftBukkit
- 
-         this.level().broadcastEntityEvent(this, (byte)18);
-     }
-@@ -209,27 +_,69 @@
+@@ -209,27 +_,61 @@
  
      public void spawnChildFromBreeding(ServerLevel level, Animal partner) {
          AgeableMob offspring = this.getBreedOffspring(level, partner);
@@ -93,31 +89,24 @@
 +            return;
 +        }
          if (offspring != null) {
-+            // CraftBukkit start - call EntityBreedEvent
-+            ServerPlayer breeder = Optional.ofNullable(this.getLoveCause()).or(() -> {
-+                return Optional.ofNullable(partner.getLoveCause());
-+            }).orElse(null);
-+            // Purpur start - Add adjustable breeding cooldown to config
-+            if (breeder != null && level.purpurConfig.animalBreedingCooldownSeconds > 0) {
-+                if (level.hasBreedingCooldown(breeder.getUUID(), this.getClass())) {
-+                    return;
-+                }
-+                level.addBreedingCooldown(breeder.getUUID(), this.getClass());
-+            }
              offspring.setBaby(true);
              offspring.snapTo(this.getX(), this.getY(), this.getZ(), 0.0F, 0.0F);
-+            // Purpur end - Add adjustable breeding cooldown to config
+-            this.finalizeSpawnChildFromBreeding(level, partner, offspring);
+-            level.addFreshEntityWithPassengers(offspring);
++            // CraftBukkit start - Call EntityBreedEvent
++            ServerPlayer breeder = Optional.ofNullable(this.getLoveCause()).or(() -> Optional.ofNullable(partner.getLoveCause())).orElse(null);
 +            int experience = this.getRandom().nextInt(7) + 1;
-+            EntityBreedEvent entityBreedEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityBreedEvent(offspring, this, partner, breeder, this.breedItem, experience);
++            org.bukkit.event.entity.EntityBreedEvent entityBreedEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityBreedEvent(offspring, this, partner, breeder, this.breedItem, experience);
 +            if (entityBreedEvent.isCancelled()) {
++                this.resetLove();
++                partner.resetLove();
 +                return;
 +            }
 +            experience = entityBreedEvent.getExperience();
-+            this.finalizeSpawnChildFromBreeding$counter.set(experience);
-             this.finalizeSpawnChildFromBreeding(level, partner, offspring);
--            level.addFreshEntityWithPassengers(offspring);
++
++            this.finalizeSpawnChildFromBreeding(level, partner, offspring, experience);
 +            level.addFreshEntityWithPassengers(offspring, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BREEDING);
-+            // CraftBukkit end
++            // CraftBukkit end - Call EntityBreedEvent
          }
      }
  
@@ -129,7 +118,7 @@
 -        });
 -        this.setAge(6000);
 -        partner.setAge(6000);
-+        // CraftBukkit end
++        // CraftBukkit end - Call EntityBreedEvent
 +        // Paper start - Call EntityBreedEvent
 +        ServerPlayer player = this.getLoveCause();
 +        if (player == null) player = partner.getLoveCause();

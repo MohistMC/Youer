@@ -132,7 +132,7 @@
                                      }
                                  }
                              }
-@@ -214,32 +_,46 @@
+@@ -214,31 +_,57 @@
              || level.isRainingAt(testPos.south());
      }
  
@@ -178,15 +178,21 @@
                  level.setBlockAndUpdate(pos, this.getStateWithAge(level, pos, newAge));
              } else {
 -                level.removeBlock(pos, false);
--            }
--
--            Block block = oldState.getBlock();
--            if (block instanceof TntBlock) {
--                TntBlock.prime(level, pos);
 +                if (!oldState.is(Blocks.TNT)) level.removeBlock(pos, false); // Paper - TNTPrimeEvent; We might be cancelling it below, move the setAir down
              }
+ 
+             Block block = oldState.getBlock();
+             if (block instanceof TntBlock) {
++                // Paper start - TNTPrimeEvent
++                org.bukkit.block.Block tntBlock = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
++                if (!new com.destroystokyo.paper.event.block.TNTPrimeEvent(tntBlock, com.destroystokyo.paper.event.block.TNTPrimeEvent.PrimeReason.FIRE, null).callEvent()) {
++                    return;
++                }
++                level.removeBlock(pos, false);
++                // Paper end - TNTPrimeEvent
+                 TntBlock.prime(level, pos);
+             }
          }
-     }
 @@ -251,7 +_,7 @@
  
      private boolean isValidFireLocation(BlockGetter level, BlockPos pos) {

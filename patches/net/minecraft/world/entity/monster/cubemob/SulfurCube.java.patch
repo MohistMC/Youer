@@ -183,6 +183,44 @@
                          this.gameEvent(GameEvent.SHEAR, player);
                          heldItem.hurtAndBreak(1, player, hand.asEquipmentSlot());
                          CriteriaTriggers.PLAYER_SHEARED_EQUIPMENT.trigger((ServerPlayer)player, itemStackToShear, this);
+@@ -463,12 +_,26 @@
+ 
+                     return InteractionResult.SUCCESS;
+                 } else if (isSwallowableItem(heldItem)) {
+-                    boolean itWorked = this.equipItem(heldItem);
++                    // Paper start - SulfurCubeSwallowItemEvent
++                    org.bukkit.inventory.ItemStack craftSwallowedItem = org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(this.getItemBySlot(EquipmentSlot.BODY));
++                    org.bukkit.inventory.ItemStack craftHeldItem = org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(heldItem);
++                    io.papermc.paper.event.entity.SulfurCubeSwallowItemEvent event = new io.papermc.paper.event.entity.SulfurCubeSwallowItemEvent(
++                        (org.bukkit.entity.SulfurCube) this.getBukkitEntity(), (org.bukkit.entity.Player) player.getBukkitEntity(), craftSwallowedItem, craftHeldItem
++                    );
++                    if (!event.callEvent()) {
++                        if (player instanceof final ServerPlayer serverPlayer) serverPlayer.containerMenu.forceHeldSlot(hand);
++                        return InteractionResult.PASS;
++                    }
++                    boolean result = craftHeldItem.equals(event.getNewItem());
++                    boolean itWorked = this.equipItem(result ? heldItem : org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getNewItem())); // Paper - SulfurCubeSwallowItemEvent
++                    // Paper end - SulfurCubeSwallowItemEvent
+                     if (itWorked) {
+-                        heldItem.consume(1, player);
++                        if (result) heldItem.consume(1, player); // Paper - SulfurCubeSwallowItemEvent
+                         this.gameEvent(GameEvent.ENTITY_INTERACT);
+                     }
+ 
++                    if (player instanceof final ServerPlayer serverPlayer) serverPlayer.containerMenu.forceHeldSlot(hand); // Paper - SulfurCubeSwallowItemEvent
++
+                     return itWorked ? InteractionResult.SUCCESS_SERVER : InteractionResult.PASS;
+                 } else {
+                     return Bucketable.bucketMobPickup(player, hand, this).orElse(super.mobInteract(player, hand));
+@@ -525,7 +_,7 @@
+         if (this.level() instanceof ServerLevel serverLevel) {
+             for (SulfurCubeArchetype.ContactDamage damage : this.contactDamages) {
+                 Entity damageSource = !damage.attributeToSource() && !(entity instanceof Player) ? null : this;
+-                entity.hurtServer(serverLevel, new DamageSource(damage.damageType(), damageSource), damage.amount().sample(this.getRandom()));
++                entity.hurtServer(serverLevel, new DamageSource(damage.damageType(), damageSource).eventEntityDamager(this).knownCause(org.bukkit.event.entity.EntityDamageEvent.DamageCause.CONTACT), damage.amount().sample(this.getRandom())); // Paper - add damager for EntityDamageEvent
+             }
+         }
+     }
 @@ -555,12 +_,12 @@
      }
  

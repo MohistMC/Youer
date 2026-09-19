@@ -529,7 +529,7 @@
                  }
  
                  container.setChanged();
-@@ -340,13 +_,57 @@
+@@ -340,13 +_,59 @@
  
          return itemStack;
      }
@@ -557,15 +557,16 @@
 +        // Paper start
 +        BlockPos searchPosition = blockPos.relative(self.facing);
 +        Container inventory = getContainerAt(level, searchPosition);
-+        if (org.bukkit.event.inventory.HopperInventorySearchEvent.getHandlerList().getRegisteredListeners().length == 0) return inventory;
++        if (org.bukkit.event.inventory.HopperInventorySearchEvent.getHandlerList().getRegisteredListeners().length == 0)
++            return inventory;
 +
 +        org.bukkit.craftbukkit.block.CraftBlock hopper = org.bukkit.craftbukkit.block.CraftBlock.at(level, blockPos);
 +        org.bukkit.craftbukkit.block.CraftBlock searchBlock = org.bukkit.craftbukkit.block.CraftBlock.at(level, searchPosition);
 +        return HopperBlockEntity.runHopperInventorySearchEvent(
-+                inventory,
-+                hopper,
-+                searchBlock,
-+                org.bukkit.event.inventory.HopperInventorySearchEvent.ContainerType.DESTINATION
++            inventory,
++            hopper,
++            searchBlock,
++            org.bukkit.event.inventory.HopperInventorySearchEvent.ContainerType.DESTINATION
 +        );
 +        // Paper end
      }
@@ -574,16 +575,17 @@
 -        return getContainerAt(level, pos, state, hopper.getLevelX(), hopper.getLevelY() + 1.0, hopper.getLevelZ());
 +        // Paper start
 +        final Container inventory = HopperBlockEntity.getContainerAt(level, pos, state, hopper.getLevelX(), hopper.getLevelY() + 1.0, hopper.getLevelZ());
-+        if (org.bukkit.event.inventory.HopperInventorySearchEvent.getHandlerList().getRegisteredListeners().length == 0) return inventory;
++        if (org.bukkit.event.inventory.HopperInventorySearchEvent.getHandlerList().getRegisteredListeners().length == 0)
++            return inventory;
 +
 +        final BlockPos hopperPos = BlockPos.containing(hopper.getLevelX(), hopper.getLevelY(), hopper.getLevelZ());
 +        org.bukkit.craftbukkit.block.CraftBlock hopperBlock = org.bukkit.craftbukkit.block.CraftBlock.at(level, hopperPos);
 +        org.bukkit.craftbukkit.block.CraftBlock containerBlock = org.bukkit.craftbukkit.block.CraftBlock.at(level, hopperPos.above());
 +        return HopperBlockEntity.runHopperInventorySearchEvent(
-+                inventory,
-+                hopperBlock,
-+                containerBlock,
-+                org.bukkit.event.inventory.HopperInventorySearchEvent.ContainerType.SOURCE
++            inventory,
++            hopperBlock,
++            containerBlock,
++            org.bukkit.event.inventory.HopperInventorySearchEvent.ContainerType.SOURCE
 +        );
 +        // Paper end
      }

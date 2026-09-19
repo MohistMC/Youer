@@ -51,24 +51,14 @@
      }
  
      public ItemEntity(Level level, double x, double y, double z, ItemStack itemStack, double deltaX, double deltaY, double deltaZ) {
-@@ -71,7 +_,16 @@
+@@ -71,6 +_,7 @@
          this.setPos(x, y, z);
          this.setItem(itemStack);
          this.setDeltaMovement(deltaX, deltaY, deltaZ);
--    }
 +        this.lifespan = (itemStack.getItem() == null ? LIFETIME : itemStack.getEntityLifespan(level));
-+    }
-+
-+    // Paper start - Require item entities to send their location precisely (Fixes MC-4)
-+    {
-+        if (io.papermc.paper.configuration.GlobalConfiguration.get().misc.sendFullPosForItemEntities) {
-+            this.setRequiresPrecisePosition(true);
-+        }
-+    }
-+    // Paper end - Require item entities to send their location precisely (Fixes MC-4)
+     }
  
      @Override
-     public boolean dampensVibrations() {
 @@ -106,10 +_,50 @@
          return 0.04;
      }

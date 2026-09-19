@@ -100,7 +100,7 @@
          if (this.level().isClientSide()) {
              this.clientOldAttachPosition = this.blockPosition();
          }
-@@ -403,6 +_,13 @@
+@@ -403,8 +_,23 @@
                      && level.getWorldBorder().isWithinBounds(target)
                      && level.noCollision(this, new AABB(target).deflate(1.0E-6))) {
                      Direction attachmentDirection = this.findAttachableSurface(target);
@@ -113,7 +113,17 @@
 +                    }
                      if (attachmentDirection != null
                          && !this.level().getBlockState(target.relative(attachmentDirection)).is(BlockTags.SHULKER_DOES_NOT_TELEPORT_TO)) {
++                        // CraftBukkit start
++                        org.bukkit.event.entity.EntityTeleportEvent teleportEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTeleportEvent(this, target.getX(), target.getY(), target.getZ());
++                        if (teleportEvent.isCancelled() || teleportEvent.getTo() == null) { // Paper
++                            return false;
++                        } else {
++                            target = org.bukkit.craftbukkit.util.CraftLocation.toBlockPos(teleportEvent.getTo());
++                        }
++                        // CraftBukkit end
                          this.unRide();
+                         this.setAttachFace(attachmentDirection);
+                         this.playSound(SoundEvents.SHULKER_TELEPORT, 1.0F, 1.0F);
 @@ -462,15 +_,30 @@
      private void hitByShulkerBullet() {
          Vec3 oldPosition = this.position();

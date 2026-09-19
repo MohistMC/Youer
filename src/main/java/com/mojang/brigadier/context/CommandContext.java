@@ -1,27 +1,60 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT license.
+
 package com.mojang.brigadier.context;
 
-import java.util.HashMap;
-import com.mojang.brigadier.RedirectModifier;
-import java.util.List;
-import com.mojang.brigadier.tree.CommandNode;
 import com.mojang.brigadier.Command;
+import com.mojang.brigadier.RedirectModifier;
+import com.mojang.brigadier.tree.CommandNode;
+
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
-public class CommandContext<S>
-{
-    private static final Map<Class<?>, Class<?>> PRIMITIVE_TO_WRAPPER;
+public class CommandContext<S> {
+
+    private static final Map<Class<?>, Class<?>> PRIMITIVE_TO_WRAPPER = new HashMap<>();
+
+    static {
+        PRIMITIVE_TO_WRAPPER.put(boolean.class, Boolean.class);
+        PRIMITIVE_TO_WRAPPER.put(byte.class, Byte.class);
+        PRIMITIVE_TO_WRAPPER.put(short.class, Short.class);
+        PRIMITIVE_TO_WRAPPER.put(char.class, Character.class);
+        PRIMITIVE_TO_WRAPPER.put(int.class, Integer.class);
+        PRIMITIVE_TO_WRAPPER.put(long.class, Long.class);
+        PRIMITIVE_TO_WRAPPER.put(float.class, Float.class);
+        PRIMITIVE_TO_WRAPPER.put(double.class, Double.class);
+    }
+
     private final S source;
     private final String input;
+    /**
+     * Executable part of command. Will be run only when context is last in chain.
+     */
     private final Command<S> command;
     private final Map<String, ParsedArgument<S, ?>> arguments;
     private final CommandNode<S> rootNode;
     private final List<ParsedCommandNode<S>> nodes;
     private final StringRange range;
     private final CommandContext<S> child;
+    /**
+     * Modifier of source. Will be run only when context has children (i.e. is not last in chain).
+     */
     private final RedirectModifier<S> modifier;
+    /**
+     * Special modifier for running this context and children.
+     * Only relevant if it's not last in chain.
+     * <br/>
+     *
+     * Effects:
+     * <ul>
+     *     <li>Exceptions from {@link #command} or {@link #modifier} will be ignored</li>
+     *     <li>Result of command will be number of elements run by element in chain (instead of sum of {@link #command} results</li>
+     * </ul>
+     */
     private final boolean forks;
-    
-    public CommandContext(final S source, final String input, final Map<String, ParsedArgument<S, ?>> arguments, final Command<S> command, final CommandNode<S> rootNode, final List<ParsedCommandNode<S>> nodes, final StringRange range, final CommandContext<S> child, final RedirectModifier<S> modifier, final boolean forks) {
+
+    public CommandContext(final S source, final String input, final Map<String, ParsedArgument<S, ?>> arguments, final Command<S> command, final CommandNode<S> rootNode, final List<ParsedCommandNode<S>> nodes, final StringRange range, final CommandContext<S> child, final RedirectModifier<S> modifier, boolean forks) {
         this.source = source;
         this.input = input;
         this.arguments = arguments;
@@ -33,134 +66,103 @@ public class CommandContext<S>
         this.modifier = modifier;
         this.forks = forks;
     }
-    
+
     public CommandContext<S> copyFor(final S source) {
         if (this.source == source) {
             return this;
         }
-        return new CommandContext<S>(source, this.input, this.arguments, this.command, this.rootNode, this.nodes, this.range, this.child, this.modifier, this.forks);
+        return new CommandContext<>(source, input, arguments, command, rootNode, nodes, range, child, modifier, forks);
     }
-    
+
     public CommandContext<S> getChild() {
-        return this.child;
+        return child;
     }
-    
+
     public CommandContext<S> getLastChild() {
-        CommandContext<S> result;
-        for (result = this; result.getChild() != null; result = result.getChild()) {}
+        CommandContext<S> result = this;
+        while (result.getChild() != null) {
+            result = result.getChild();
+        }
         return result;
     }
-    
+
     public Command<S> getCommand() {
-        return this.command;
+        return command;
     }
-    
+
     public S getSource() {
-        return this.source;
+        return source;
     }
-    
+
+    @SuppressWarnings("unchecked")
     public <V> V getArgument(final String name, final Class<V> clazz) {
-        final ParsedArgument<S, ?> argument = this.arguments.get(name);
+        final ParsedArgument<S, ?> argument = arguments.get(name);
+
         if (argument == null) {
             throw new IllegalArgumentException("No such argument '" + name + "' exists on this command");
         }
+
         final Object result = argument.getResult();
-        if (CommandContext.PRIMITIVE_TO_WRAPPER.getOrDefault(clazz, clazz).isAssignableFrom(result.getClass())) {
-            return (V)result;
+        if (PRIMITIVE_TO_WRAPPER.getOrDefault(clazz, clazz).isAssignableFrom(result.getClass())) {
+            return (V) result;
+        } else {
+            throw new IllegalArgumentException("Argument '" + name + "' is defined as " + result.getClass().getSimpleName() + ", not " + clazz);
         }
-        throw new IllegalArgumentException("Argument '" + name + "' is defined as " + result.getClass().getSimpleName() + ", not " + clazz);
     }
-    
+
     @Override
     public boolean equals(final Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (!(o instanceof CommandContext)) {
-            return false;
-        }
-        final CommandContext that = (CommandContext)o;
-        if (!this.arguments.equals(that.arguments)) {
-            return false;
-        }
-        if (!this.rootNode.equals(that.rootNode)) {
-            return false;
-        }
-        if (this.nodes.size() != that.nodes.size() || !this.nodes.equals(that.nodes)) {
-            return false;
-        }
-        Label_0127: {
-            if (this.command != null) {
-                if (this.command.equals(that.command)) {
-                    break Label_0127;
-                }
-            }
-            else if (that.command == null) {
-                break Label_0127;
-            }
-            return false;
-        }
-        if (!this.source.equals(that.source)) {
-            return false;
-        }
-        if (this.child != null) {
-            if (this.child.equals(that.child)) {
-                return true;
-            }
-        }
-        else if (that.child == null) {
-            return true;
-        }
-        return false;
+        if (this == o) return true;
+        if (!(o instanceof CommandContext)) return false;
+
+        final CommandContext that = (CommandContext) o;
+
+        if (!arguments.equals(that.arguments)) return false;
+        if (!rootNode.equals(that.rootNode)) return false;
+        if (nodes.size() != that.nodes.size() || !nodes.equals(that.nodes)) return false;
+        if (command != null ? !command.equals(that.command) : that.command != null) return false;
+        if (!source.equals(that.source)) return false;
+        if (child != null ? !child.equals(that.child) : that.child != null) return false;
+
+        return true;
     }
-    
+
     @Override
     public int hashCode() {
-        int result = this.source.hashCode();
-        result = 31 * result + this.arguments.hashCode();
-        result = 31 * result + ((this.command != null) ? this.command.hashCode() : 0);
-        result = 31 * result + this.rootNode.hashCode();
-        result = 31 * result + this.nodes.hashCode();
-        result = 31 * result + ((this.child != null) ? this.child.hashCode() : 0);
+        int result = source.hashCode();
+        result = 31 * result + arguments.hashCode();
+        result = 31 * result + (command != null ? command.hashCode() : 0);
+        result = 31 * result + rootNode.hashCode();
+        result = 31 * result + nodes.hashCode();
+        result = 31 * result + (child != null ? child.hashCode() : 0);
         return result;
     }
-    
+
     public RedirectModifier<S> getRedirectModifier() {
-        return this.modifier;
+        return modifier;
     }
-    
+
     public StringRange getRange() {
-        return this.range;
+        return range;
     }
-    
+
     public String getInput() {
-        return this.input;
+        return input;
     }
-    
+
     public CommandNode<S> getRootNode() {
-        return this.rootNode;
+        return rootNode;
     }
-    
+
     public List<ParsedCommandNode<S>> getNodes() {
-        return this.nodes;
+        return nodes;
     }
-    
+
     public boolean hasNodes() {
-        return !this.nodes.isEmpty();
+        return !nodes.isEmpty();
     }
-    
+
     public boolean isForked() {
-        return this.forks;
-    }
-    
-    static {
-        (PRIMITIVE_TO_WRAPPER = new HashMap<Class<?>, Class<?>>()).put(Boolean.TYPE, Boolean.class);
-        CommandContext.PRIMITIVE_TO_WRAPPER.put(Byte.TYPE, Byte.class);
-        CommandContext.PRIMITIVE_TO_WRAPPER.put(Short.TYPE, Short.class);
-        CommandContext.PRIMITIVE_TO_WRAPPER.put(Character.TYPE, Character.class);
-        CommandContext.PRIMITIVE_TO_WRAPPER.put(Integer.TYPE, Integer.class);
-        CommandContext.PRIMITIVE_TO_WRAPPER.put(Long.TYPE, Long.class);
-        CommandContext.PRIMITIVE_TO_WRAPPER.put(Float.TYPE, Float.class);
-        CommandContext.PRIMITIVE_TO_WRAPPER.put(Double.TYPE, Double.class);
+        return forks;
     }
 }

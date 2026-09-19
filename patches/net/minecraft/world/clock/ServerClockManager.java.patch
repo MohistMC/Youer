@@ -59,17 +59,25 @@
              this.setDirty();
          }
      }
-@@ -101,7 +_,16 @@
+@@ -101,7 +_,24 @@
          return result.get();
      }
  
 -    public void addTicks(Holder<WorldClock> clock, int ticks) {
 +    // Paper start - time skip event
-+    public java.util.OptionalLong getTotalTicksToTimeMarker(final Holder<WorldClock> clock, final ResourceKey<ClockTimeMarker> timeMarkerId) {
++    public record TimerMove(long currentTime, long targetTime) {
++
++    }
++
++    public @org.jspecify.annotations.Nullable TimerMove resolveTimerMove(final Holder<WorldClock> clock, final ResourceKey<ClockTimeMarker> timeMarkerId) {
 +        final ServerClockManager.ServerClockInstance instance = this.getInstance(clock);
 +        final ClockTimeMarker timeMarker = instance.timeMarkers.get(timeMarkerId);
++        if (timeMarker == null) return null;
 +
-+        return timeMarker != null ? java.util.OptionalLong.of(timeMarker.resolveTimeToMoveTo(instance.totalTicks)) : java.util.OptionalLong.empty();
++        return new TimerMove(
++            instance.totalTicks,
++            timeMarker.resolveTimeToMoveTo(instance.totalTicks)
++        );
 +    }
 +    // Paper end - time skip event
 +
@@ -143,8 +151,8 @@
 +    private void broadcastUpdates(final Holder<WorldClock> clock, final ServerClockManager.ServerClockInstance instance) {
 +        for (final net.minecraft.server.level.ServerPlayer player : this.level != null ? this.level.players() : this.server.getPlayerList().getPlayers()) {
 +            final var packet = new net.minecraft.network.protocol.game.ClientboundSetTimePacket(
-+                    this.getGameTime(),
-+                    java.util.Map.of(clock, this.packNetworkState(clock, instance, player))
++                this.getGameTime(),
++                java.util.Map.of(clock, this.packNetworkState(clock, instance, player))
 +            );
 +            player.connection.send(packet);
 +        }

@@ -59,7 +59,7 @@
              PerfCommand.register(this.dispatcher);
              SaveAllCommand.register(this.dispatcher);
              SaveOffCommand.register(this.dispatcher);
-@@ -297,13 +_,58 @@
+@@ -297,13 +_,59 @@
              StopCommand.register(this.dispatcher);
              TransferCommand.register(this.dispatcher);
              WhitelistCommand.register(this.dispatcher);
@@ -96,10 +96,10 @@
 +                // Modern behaviour that simply creates a full copy of the commands node.
 +                // Avoids plenty of issues around registering redirects *to* these nodes from the API
 +                this.dispatcher.getRoot().addChild(
-+                        io.papermc.paper.command.brigadier.PaperBrigadier.copyLiteral(
-+                                "minecraft:" + node.getName(),
-+                                (com.mojang.brigadier.tree.LiteralCommandNode<CommandSourceStack>) node
-+                        )
++                    io.papermc.paper.command.brigadier.PaperBrigadier.copyLiteral(
++                        "minecraft:" + node.getName(),
++                        (com.mojang.brigadier.tree.LiteralCommandNode<CommandSourceStack>) node
++                    )
 +                );
 +                continue;
 +            }
@@ -107,13 +107,14 @@
 +            // Legacy behaviour of creating a flattened redirecting node.
 +            // Used by CommandArgumentUpgrader
 +            CommandNode<CommandSourceStack> flattenedAliasTarget = node;
-+            while (flattenedAliasTarget.getRedirect() != null) flattenedAliasTarget = flattenedAliasTarget.getRedirect();
++            while (flattenedAliasTarget.getRedirect() != null)
++                flattenedAliasTarget = flattenedAliasTarget.getRedirect();
 +
 +            this.dispatcher.register(
-+                    com.mojang.brigadier.builder.LiteralArgumentBuilder.<CommandSourceStack>literal("minecraft:" + node.getName())
-+                            .executes(flattenedAliasTarget.getCommand())
-+                            .requires(flattenedAliasTarget.getRequirement())
-+                            .redirect(flattenedAliasTarget));
++                com.mojang.brigadier.builder.LiteralArgumentBuilder.<CommandSourceStack>literal("minecraft:" + node.getName())
++                    .executes(flattenedAliasTarget.getCommand())
++                    .requires(flattenedAliasTarget.getRequirement())
++                    .redirect(flattenedAliasTarget));
 +        }
 +        // Paper end - Brigadier Command API
          this.dispatcher.setConsumer(ExecutionCommandSource.resultConsumer());
@@ -181,8 +182,8 @@
 +                // Paper start - Add UnknownCommandEvent
 +                // sender.sendFailure(context);
 +                builder
-+                        .append(net.kyori.adventure.text.Component.newline())
-+                        .append(io.papermc.paper.adventure.PaperAdventure.asAdventure(context));
++                    .append(net.kyori.adventure.text.Component.newline())
++                    .append(io.papermc.paper.adventure.PaperAdventure.asAdventure(context));
 +            }
 +            org.bukkit.event.command.UnknownCommandEvent event = new org.bukkit.event.command.UnknownCommandEvent(sender, commandString, org.spigotmc.SpigotConfig.unknownCommandMessage.isEmpty() ? null : builder.build());
 +            org.bukkit.Bukkit.getServer().getPluginManager().callEvent(event);

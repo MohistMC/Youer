@@ -292,7 +292,7 @@
 -            LOGGER.warn("Trying to set block entity {} at position {}, but state {} does not allow it", blockEntity, pos, blockState);
 +            // Paper start - ServerExceptionEvent
 +            com.destroystokyo.paper.exception.ServerInternalException e = new com.destroystokyo.paper.exception.ServerInternalException(
-+                    "Trying to set block entity %s at position %s, but state %s does not allow it".formatted(blockEntity, pos, blockState)
++                "Trying to set block entity %s at position %s, but state %s does not allow it".formatted(blockEntity, pos, blockState)
 +            );
 +            e.printStackTrace();
 +            com.destroystokyo.paper.exception.ServerInternalException.reportInternalException(e);
@@ -469,6 +469,14 @@
          this.blockEntities.values().forEach(blockEntity -> {
              if (this.level instanceof ServerLevel serverLevel) {
                  this.addGameEventListener(blockEntity, serverLevel);
+@@ -699,6 +_,7 @@
+     }
+ 
+     private <T extends BlockEntity> void updateBlockEntityTicker(T blockEntity) {
++        if (!this.level.paperConfig().unsupportedSettings.ticking.blockEntities) return; // Paper - option to disable ticking
+         BlockState state = blockEntity.getBlockState();
+         BlockEntityTicker<T> ticker = state.getTicker(this.level, (BlockEntityType<T>)blockEntity.getType());
+         if (ticker == null) {
 @@ -724,6 +_,19 @@
          return new LevelChunk.BoundTickingBlockEntity<>(blockEntity, ticker);
      }

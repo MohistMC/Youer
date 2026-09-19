@@ -137,33 +137,26 @@
                  this.gameEvent(GameEvent.SHEAR, player);
                  itemStack.hurtAndBreak(1, player, hand);
              }
-@@ -287,21 +_,29 @@
+@@ -287,8 +_,10 @@
  
      private void turnToStatue(ServerLevel level) {
          BlockPos pos = this.blockPosition();
 -        level.setBlockAndUpdate(
 -            pos,
--            Blocks.COPPER_GOLEM_STATUE
--                .weathering()
--                .oxidized()
--                .defaultBlockState()
--                .setValue(
--                    CopperGolemStatueBlock.POSE, CopperGolemStatueBlock.Pose.values()[this.random.nextInt(0, CopperGolemStatueBlock.Pose.values().length)]
--                )
--                .setValue(CopperGolemStatueBlock.FACING, Direction.fromYRot(this.getYRot()))
--        );
 +        // Paper start - call EntityChangeBlockEvent
 +        // level.setBlock(
 +        //     pos,
 +        BlockState newState =
-+                Blocks.COPPER_GOLEM_STATUE
-+                        .weathering()
-+                        .oxidized()
-+                        .defaultBlockState()
-+                        .setValue(
-+                                CopperGolemStatueBlock.POSE, CopperGolemStatueBlock.Pose.values()[this.random.nextInt(0, CopperGolemStatueBlock.Pose.values().length)]
-+                        )
-+                        .setValue(CopperGolemStatueBlock.FACING, Direction.fromYRot(this.getYRot()));
+             Blocks.COPPER_GOLEM_STATUE
+                 .weathering()
+                 .oxidized()
+@@ -296,12 +_,18 @@
+                 .setValue(
+                     CopperGolemStatueBlock.POSE, CopperGolemStatueBlock.Pose.values()[this.random.nextInt(0, CopperGolemStatueBlock.Pose.values().length)]
+                 )
+-                .setValue(CopperGolemStatueBlock.FACING, Direction.fromYRot(this.getYRot()))
+-        );
++                .setValue(CopperGolemStatueBlock.FACING, Direction.fromYRot(this.getYRot()));
 +        //     Block.UPDATE_ALL
 +        // );
 +        if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this, pos, newState)) {

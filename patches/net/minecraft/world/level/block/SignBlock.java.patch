@@ -13,3 +13,65 @@
  import net.minecraft.server.level.ServerLevel;
  import net.minecraft.server.level.ServerPlayer;
  import net.minecraft.sounds.SoundSource;
+@@ -127,7 +_,7 @@
+                 } else if (!this.otherPlayerIsEditingSign(player, sign)
+                     && player.mayBuild()
+                     && sign.getText(textSlot).hasEditableText(player.isTextFilteringEnabled())) {
+-                    this.openTextEdit(player, sign, textSlot);
++                    this.openTextEdit(player, sign, textSlot, io.papermc.paper.event.player.PlayerOpenSignEvent.Cause.INTERACT); // Paper - Add PlayerOpenSignEvent
+                     return InteractionResult.SUCCESS_SERVER;
+                 } else {
+                     return InteractionResult.PASS;
+@@ -160,7 +_,34 @@
+         return block instanceof SignBlock signBlock ? signBlock.type() : WoodType.OAK;
+     }
+ 
++    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - Add PlayerOpenSignEvent
+     public void openTextEdit(Player player, SignBlockEntity sign, SignTextSlot slot) {
++        // Paper start - Add PlayerOpenSignEvent
++        this.openTextEdit(player, sign, slot, io.papermc.paper.event.player.PlayerOpenSignEvent.Cause.UNKNOWN);
++    }
++
++    public void openTextEdit(Player player, SignBlockEntity sign, SignTextSlot slot, io.papermc.paper.event.player.PlayerOpenSignEvent.Cause cause) {
++        org.bukkit.entity.Player bukkitPlayer = (org.bukkit.entity.Player) player.getBukkitEntity();
++        org.bukkit.block.Block bukkitBlock = org.bukkit.craftbukkit.block.CraftBlock.at(sign.getLevel(), sign.getBlockPos());
++        org.bukkit.craftbukkit.block.CraftSign<?> bukkitSign = (org.bukkit.craftbukkit.block.CraftSign<?>) org.bukkit.craftbukkit.block.CraftBlockStates.getBlockState(bukkitBlock);
++        io.papermc.paper.event.player.PlayerOpenSignEvent event = new io.papermc.paper.event.player.PlayerOpenSignEvent(
++            bukkitPlayer,
++            bukkitSign,
++            org.bukkit.craftbukkit.block.sign.CraftSignSide.fromVanilla(slot),
++            cause);
++        if (!event.callEvent()) return;
++        if (org.bukkit.event.player.PlayerSignOpenEvent.getHandlerList().getRegisteredListeners().length > 0) {
++            final org.bukkit.event.player.PlayerSignOpenEvent.Cause legacyCause = switch (cause) {
++                case PLACE -> org.bukkit.event.player.PlayerSignOpenEvent.Cause.PLACE;
++                case PLUGIN -> org.bukkit.event.player.PlayerSignOpenEvent.Cause.PLUGIN;
++                case INTERACT -> org.bukkit.event.player.PlayerSignOpenEvent.Cause.INTERACT;
++                case UNKNOWN -> org.bukkit.event.player.PlayerSignOpenEvent.Cause.UNKNOWN;
++            };
++            if (!org.bukkit.craftbukkit.event.CraftEventFactory.callPlayerSignOpenEvent(player, sign, slot, legacyCause)) {
++                // Paper end - Add PlayerOpenSignEvent
++                return;
++            }
++        } // Paper - Add PlayerOpenSignEvent
+         sign.setAllowedPlayerEditor(player.getUUID());
+         player.openTextEdit(sign, slot);
+     }
+@@ -172,7 +_,7 @@
+ 
+     @Override
+     public <T extends BlockEntity> @Nullable BlockEntityTicker<T> getTicker(Level level, BlockState blockState, BlockEntityType<T> type) {
+-        return createTickerHelper(type, BlockEntityTypes.SIGN, SignBlockEntity::tick);
++        return null; // CraftBukkit - remove unnecessary sign ticking
+     }
+ 
+     @Override
+@@ -183,7 +_,7 @@
+             && level.getBlockEntity(pos) instanceof SignBlockEntity signEntity
+             && !signEntity.isWaxed()
+             && signEntity.getText(SignTextSlot.FRONT).hasEditableText(player.isTextFilteringEnabled())) {
+-            sign.openTextEdit(player, signEntity, SignTextSlot.FRONT);
++            // sign.openTextEdit(player, signEntity, SignTextSlot.FRONT, io.papermc.paper.event.player.PlayerOpenSignEvent.Cause.PLACE); // Paper - Add PlayerOpenSignEvent - call later in ItemStack#useOn
+         }
+     }
+ }
