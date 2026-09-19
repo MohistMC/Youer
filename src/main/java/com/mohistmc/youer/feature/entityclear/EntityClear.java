@@ -27,10 +27,8 @@ import org.bukkit.inventory.ItemStack;
 public class EntityClear {
 
     public static final Logger LOGGER = LogManager.getLogger("EntityClear");
-    // 清理前的预告时间（秒）
     public static final long WARN_TIME = 30;
 
-    // 非 final — reload 时需要重建调度器以应用新的 enable/time 配置
     public static ScheduledExecutorService ENTITYCLEAR_ITEM;
     public static ScheduledExecutorService ENTITYCLEAR_MONSTER;
 
@@ -70,7 +68,6 @@ public class EntityClear {
         shutdownSchedulers();
     }
 
-    /** 重建 item/monster 调度器 — 使 reload 后新的 enable/time 配置生效 */
     private static void restartSchedulers() {
         shutdownSchedulers();
         ENTITYCLEAR_ITEM = new ScheduledThreadPoolExecutor(1, new NamedThreadFactory("EntityClear - Item"));
@@ -96,7 +93,7 @@ public class EntityClear {
                     return;
                 }
                 MinecraftServer.getServer().execute(() -> {
-                    String msg = (s <= 5 ? "§c" : "") + I18n.as("entityclear.item.warn", s);
+                    String msg = I18n.as("entityclear.item.warn", s);
                     for (Player player : Bukkit.getOnlinePlayers()) {
                         player.sendActionBar(msg);
                     }
@@ -113,7 +110,7 @@ public class EntityClear {
                     return;
                 }
                 MinecraftServer.getServer().execute(() -> {
-                    String msg = (s <= 5 ? "§c" : "") + I18n.as("entityclear.entity.warn", s);
+                    String msg = I18n.as("entityclear.entity.warn", s);
                     for (Player player : Bukkit.getOnlinePlayers()) {
                         player.sendActionBar(msg);
                     }

@@ -21,15 +21,10 @@ public class DemoGUI {
     public DemoGUI(String name) {
         this.gui = new GUI(GUIType.SIXBYNINE, name);
 
-        for (int i = 36; i < 46; i++) {
-            this.gui.setItem(i, new GUIItem(new ItemStackFactory(Material.GRAY_STAINED_GLASS_PANE)
-                    .hideTooltip()
-                    .build()));
-        }
-
+        // 第5行留空，仅第6行保留装饰与控制条
         this.gui.setItem(new GUIItem(new ItemStackFactory(Material.GRAY_STAINED_GLASS_PANE)
                 .hideTooltip()
-                .build()), 47, 48, 49, 50);
+                .build()), 45, 47, 48, 49, 50);
 
         this.gui.setItem(46, new GUIItem(new ItemStackFactory(Material.BARRIER)
                 .setDisplayName(I18n.as("demogui.close"))
@@ -130,7 +125,7 @@ public class DemoGUI {
         }
 
         gui.setItem(52, new GUIItem(new ItemStackFactory(Material.PAPER, pageChoose + 1)
-                .setDisplayName(I18n.as("demogui.nowpage", (pageChoose + 1)))
+                .setDisplayName(I18n.as("demogui.nowpage", (pageChoose + 1), page))
                 .build()));
 
         if (this.pageChoose < page - 1) {
