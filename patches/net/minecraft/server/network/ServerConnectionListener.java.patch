@@ -8,31 +8,19 @@
  import net.minecraft.network.PacketSendListener;
  import net.minecraft.network.RateKickingConnection;
  import net.minecraft.network.chat.Component;
-@@ -43,6 +_,7 @@
+@@ -42,7 +_,9 @@
+ import org.slf4j.Logger;
  
  public class ServerConnectionListener {
++    private static final boolean disableFlushConsolidation = Boolean.getBoolean("Paper.disableFlushConsolidate"); // Paper - Optimize network
      private static final Logger LOGGER = LogUtils.getLogger();
 +    private static final int READ_TIMEOUT = Integer.parseInt(System.getProperty("neoforge.readTimeout", "30"));
      private final MinecraftServer server;
      public volatile boolean running;
      private volatile @Nullable UUID sessionId;
-@@ -55,9 +_,39 @@
-         this.running = true;
+@@ -56,8 +_,25 @@
      }
  
-+    // Paper start - prevent blocking on adding a new connection while the server is ticking
-+    private final java.util.Queue<Connection> pending = new java.util.concurrent.ConcurrentLinkedQueue<>();
-+    private static final boolean disableFlushConsolidation = Boolean.getBoolean("Paper.disableFlushConsolidate"); // Paper - Optimize network
-+
-+    private final void addPending() {
-+        Connection connection;
-+        while ((connection = this.pending.poll()) != null) {
-+            this.connections.add(connection);
-+            connection.isPending = false; // Paper - Optimize network
-+        }
-+    }
-+    // Paper end - prevent blocking on adding a new connection while the server is ticking
-+
      public void startTcpServerListener(@Nullable InetAddress address, int port) throws IOException {
 +        // Paper start - Unix domain socket support
 +        if (address == null) address = new java.net.InetSocketAddress(port).getAddress();
@@ -66,11 +54,10 @@
                                      if (ServerConnectionListener.this.server.repliesToStatus()) {
                                          pipeline.addLast("legacy_query", new LegacyQueryHandler(ServerConnectionListener.this.getServer()));
                                      }
-@@ -81,7 +_,37 @@
+@@ -81,22 +_,63 @@
                                      Connection connection = rateLimitPacketsPerSecond > 0
                                          ? new RateKickingConnection(rateLimitPacketsPerSecond)
                                          : new Connection(PacketFlow.SERVERBOUND);
--                                    ServerConnectionListener.this.pendingConnections.add(connection);
 +                                    // Paper start - Add support for Proxy Protocol
 +                                    if (io.papermc.paper.configuration.GlobalConfiguration.get().proxies.proxyProtocol) {
 +                                        channel.pipeline().addAfter(HandlerNames.TIMEOUT, "haproxy-decoder", new io.netty.handler.codec.haproxy.HAProxyMessageDecoder());
@@ -100,12 +87,12 @@
 +                                        });
 +                                    }
 +                                    // Paper end - Add support for proxy protocol
-+                                    // ServerConnectionListener.this.connections.add(connection); // Paper - prevent blocking on adding a new connection while the server is ticking
-+                                    ServerConnectionListener.this.pending.add(connection); // Paper - prevent blocking on adding a new connection while the server is ticking
+                                     ServerConnectionListener.this.pendingConnections.add(connection);
                                      connection.configurePacketHandler(pipeline);
                                      connection.setListenerForServerboundHandshake(
                                          new ServerHandshakePacketListenerImpl(ServerConnectionListener.this.server, connection)
-@@ -89,14 +_,25 @@
+                                     );
++                                    io.papermc.paper.network.ChannelInitializeListenerHolder.callListeners(channel); // Paper - Add Channel initialization listeners
                                  }
                              }
                          )
