@@ -24,6 +24,7 @@ import com.mohistmc.youer.eventhandler.dispatcher.EntityEventDispatcher;
 import com.mohistmc.youer.eventhandler.dispatcher.ItemEventDispatcher;
 import com.mohistmc.youer.eventhandler.dispatcher.PlayerEventDispatcher;
 import com.mohistmc.youer.eventhandler.dispatcher.WorldEventDispatcher;
+import com.mohistmc.youer.feature.ban.bans.BanEvents;
 import net.neoforged.neoforge.common.NeoForge;
 
 public class EventDispatcherRegistry {
@@ -35,6 +36,7 @@ public class EventDispatcherRegistry {
         NeoForge.EVENT_BUS.register(new EntityEventDispatcher());
         NeoForge.EVENT_BUS.register(new BlockEventDispatcher());
         NeoForge.EVENT_BUS.register(new CommandEventDispatcher());
+        NeoForge.EVENT_BUS.register(new BanEvents());
         Youer.LOGGER.info("EventDispatcherRegistry initialized");
     }
 }

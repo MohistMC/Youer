@@ -21,7 +21,6 @@ public class DemoGUI {
     public DemoGUI(String name) {
         this.gui = new GUI(GUIType.SIXBYNINE, name);
 
-        // 第5行留空，仅第6行保留装饰与控制条
         this.gui.setItem(new GUIItem(new ItemStackFactory(Material.GRAY_STAINED_GLASS_PANE)
                 .hideTooltip()
                 .build()), 45, 47, 48, 49, 50);
@@ -92,17 +91,17 @@ public class DemoGUI {
 
 
     private GUI getGUI(List<GUIItem> items) {
-        int page = items.isEmpty() ? 1 : (items.size() + 35) / 36;
+        int page = items.isEmpty() ? 1 : (items.size() + 44) / 45;
         if (pageChoose >= page) {
             pageChoose = Math.max(0, page - 1);
         }
-        for (int i = 0; i < 36; i++) {
+        for (int i = 0; i < 45; i++) {
             gui.setItem(i, new GUIItem(new ItemStack(Material.AIR)));
         }
 
         int index = 0;
-        int start = pageChoose * 36;
-        int end = Math.min(start + 36, items.size());
+        int start = pageChoose * 45;
+        int end = Math.min(start + 45, items.size());
         for (int i = start; i < end; i++) {
             gui.setItem(index, items.get(i));
             index++;

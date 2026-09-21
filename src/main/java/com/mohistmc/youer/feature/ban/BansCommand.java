@@ -381,7 +381,6 @@ public class BansCommand extends Command {
                             Material material = Material.matchMaterial(s);
                             if (material != null && !material.isAirSafe()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
-                                        .setDisplayName(s)
                                         .addLore("§e" + I18n.as("banscmd.show.lore"))
                                         .build()) {
                                     @Override
@@ -406,7 +405,6 @@ public class BansCommand extends Command {
                             Material material = Material.matchMaterial(s);
                             if (material != null && !material.isAirSafe()) {
                                 wh.addItem(new GUIItem(new ItemStackFactory(material)
-                                        .setDisplayName(s)
                                         .addLore("§e" + I18n.as("banscmd.show.lore"))
                                         .build()) {
                                     @Override
@@ -435,7 +433,6 @@ public class BansCommand extends Command {
                                 type = null; // Wildcard (modid:*) or unknown entries cannot be parsed as ResourceLocation
                             }
                             wh.addItem(new GUIItem(new ItemStackFactory(ItemAPI.getEggMaterial(type))
-                                    .setDisplayName(s)
                                     .addLore("§e" + I18n.as("banscmd.show.lore"))
                                     .build()) {
                                 @Override
@@ -505,7 +502,6 @@ public class BansCommand extends Command {
                             if (material != null && !material.isAirSafe()) {
                                 Material displayMaterial = material.isItem() ? material : Material.STRUCTURE_VOID;
                                 wh.addItem(new GUIItem(new ItemStackFactory(displayMaterial)
-                                        .setDisplayName(s)
                                         .addLore("§e" + I18n.as("banscmd.show.lore"))
                                         .build()) {
                                     @Override
