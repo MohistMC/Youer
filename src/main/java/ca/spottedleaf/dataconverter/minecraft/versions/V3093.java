@@ -1,0 +1,24 @@
+package ca.spottedleaf.dataconverter.minecraft.versions;
+
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.dataconverter.minecraft.MCVersions;
+import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
+
+public final class V3093 {
+
+    private static final int VERSION = MCVersions.V22W17A;
+
+    public static void register() {
+        MCTypeRegistry.ENTITY.addConverterForId("minecraft:goat", new DataConverter<>(VERSION) {
+            @Override
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
+                data.setBoolean("HasLeftHorn", true);
+                data.setBoolean("HasRightHorn", true);
+                return null;
+            }
+        });
+    }
+
+    private V3093() {}
+}

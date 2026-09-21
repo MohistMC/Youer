@@ -190,6 +190,20 @@ public final class FeatureHooks {
     }
 
     public static void flushAsyncAppenders() {
+        // Paper start - add explicit flush method
+        if (!(org.apache.logging.log4j.LogManager.getContext(false) instanceof org.apache.logging.log4j.core.LoggerContext context)) {
+            return;
+        }
+
+        for (final org.apache.logging.log4j.core.Appender appender : context.getConfiguration().getAppenders().values()) {
+            if (appender instanceof org.apache.logging.log4j.core.appender.AsyncAppender asyncAppender) {
+                final boolean flushed = asyncAppender.flush(100, java.util.concurrent.TimeUnit.MILLISECONDS);
+                if (!flushed) {
+                    net.minecraft.server.MinecraftServer.LOGGER.warn("Failed to flush log messages before plugin unload.");
+                }
+            }
+        }
+        // Paper end - add explicit flush method
     }
 
 }

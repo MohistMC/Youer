@@ -241,6 +241,11 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
     @Override
     public CompoundTag convertNBT(final DSL.TypeReference type, final DataFixer dataFixer, final CompoundTag nbt,
                                   final int fromVersion, final int toVersion) {
+        // Paper start - optimise data conversion
+        if (true) {
+            return ca.spottedleaf.dataconverter.util.ConvertUtil.convertTag(type, dataFixer, nbt, fromVersion, toVersion);
+        }
+        // Paper end - optimise data conversion
         return (CompoundTag)dataFixer.update(
             type, new Dynamic<>(NbtOps.INSTANCE, nbt), fromVersion, toVersion
         ).getValue();

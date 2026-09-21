@@ -1,0 +1,69 @@
+package ca.spottedleaf.dataconverter.minecraft.versions;
+
+import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.dataconverter.minecraft.MCVersions;
+import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
+import com.google.common.collect.ImmutableMap;
+import java.util.HashMap;
+import java.util.Map;
+
+public final class V2518 {
+
+    private static final int VERSION = MCVersions.V20W12A + 3;
+
+    private static final Map<String, String> FACING_RENAMES = new HashMap<>(
+            ImmutableMap.<String, String>builder()
+                    .put("down", "down_south")
+                    .put("up", "up_north")
+                    .put("north", "north_up")
+                    .put("south", "south_up")
+                    .put("west", "west_up")
+                    .put("east", "east_up")
+                    .build()
+    );
+
+    public static void register() {
+        MCTypeRegistry.TILE_ENTITY.addConverterForId("minecraft:jigsaw", new DataConverter<>(VERSION) {
+            @Override
+            public MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
+                final String type = data.getString("attachement_type", "minecraft:empty");
+                final String pool = data.getString("target_pool", "minecraft:empty");
+                data.remove("attachement_type");
+                data.remove("target_pool");
+
+                data.setString("name", type);
+                data.setString("target", type);
+                data.setString("pool", pool);
+
+                return null;
+            }
+        });
+
+        MCTypeRegistry.BLOCK_STATE.addStructureConverter(new DataConverter<>(VERSION) {
+            @Override
+            public Object convert(final Object input, final long sourceVersion, final long toVersion) {
+                if (!(input instanceof MapType data)) {
+                    return null;
+                }
+
+                if (!"minecraft:jigsaw".equals(data.getString("Name"))) {
+                    return null;
+                }
+
+                final MapType properties = data.getMap("Properties");
+                if (properties == null) {
+                    return null;
+                }
+
+                final String facing = properties.getString("facing", "north");
+                properties.remove("facing");
+                properties.setString("orientation", FACING_RENAMES.getOrDefault(facing, facing));
+
+                return null;
+            }
+        });
+    }
+
+    private V2518() {}
+}

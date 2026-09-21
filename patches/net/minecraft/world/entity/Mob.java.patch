@@ -74,7 +74,7 @@
          this.jumpControl = new JumpControl(this);
          this.bodyRotationControl = this.createBodyControl();
          this.navigation = this.createNavigation(level);
-@@ -206,6 +_,28 @@
+@@ -206,6 +_,21 @@
          return this.lookControl;
      }
  
@@ -82,15 +82,8 @@
 +    @Override
 +    public void inactiveTick() {
 +        super.inactiveTick();
-+        // Paper start - Allow nerfed mobs to jump and float
-+        if (!this.aware) {
-+            if (this.goalFloat != null) {
-+                if (this.goalFloat.canUse()) this.goalFloat.tick();
-+                this.getJumpControl().tick();
-+            }
-+            return;
-+        }
-+        // Paper end - Allow nerfed mobs to jump and float
++        super.inactiveTick();
++        if (!this.aware) return; // Paper - Do not tick AI for inactive unaware mobs
 +        if (this.goalSelector.inactiveTick()) {
 +            this.goalSelector.tick();
 +        }

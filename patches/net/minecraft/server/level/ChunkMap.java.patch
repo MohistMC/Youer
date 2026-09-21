@@ -1212,7 +1212,7 @@
              if (range != 0) {
                  if (this.entityMap.containsKey(entity.getId())) {
                      throw (IllegalStateException)Util.pauseInIde(new IllegalStateException("Entity is already tracked!"));
-@@ -1148,6 +_,12 @@
+@@ -1148,6 +_,14 @@
                  UpdateInterval updateInterval = type.hasUpdateInterval() ? UpdateInterval.periodic(type.updateInterval()) : UpdateInterval.NEVER;
                  ChunkMap.TrackedEntity trackedEntity = new ChunkMap.TrackedEntity(entity, range, updateInterval, type.trackDeltas());
                  this.entityMap.put(entity.getId(), trackedEntity);
@@ -1220,7 +1220,9 @@
 +                if (((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity)entity).moonrise$getTrackedEntity() != null) {
 +                    throw new IllegalStateException("Entity is already tracked");
 +                }
-+                entity.moonrise$setTrackedEntity(trackedEntity);
++                ((ca.spottedleaf.moonrise.patches.entity_tracker.EntityTrackerEntity)entity).moonrise$setTrackedEntity(trackedEntity);
++                // note: the tick loop is OK when adding entities
++                this.trackerEntities.add(entity);
 +                // Paper end - optimise entity tracker
                  trackedEntity.updatePlayers(this.level.players());
                  if (entity instanceof ServerPlayer player) {

@@ -1,14 +1,70 @@
 --- a/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java
 +++ b/net/minecraft/network/protocol/game/ClientboundLevelChunkWithLightPacket.java
-@@ -24,6 +_,11 @@
+@@ -24,17 +_,50 @@
          ClientboundLevelChunkWithLightPacket::lightData,
          ClientboundLevelChunkWithLightPacket::new
      );
-+    // Paper start - Anti-Xray
-+    public void setReady(final boolean ready) {
-+        // Empty hook, updated by feature patch
+-
+-    public ClientboundLevelChunkWithLightPacket(
+-        LevelChunk levelChunk, LevelLightEngine lightEngine, @Nullable BitSet skyChangedLightSectionFilter, @Nullable BitSet blockChangedLightSectionFilter
+-    ) {
++    // Paper start - Async-Anti-Xray - Ready flag for the connection, add chunk packet info
++    @Override
++    public boolean isReady() {
++        return this.chunkData.isReady();
 +    }
-+    // Paper end - Anti-Xray
++
++    public void setReady(final boolean ready) {
++        this.chunkData.setReady(ready);
++    }
++    // Paper end - Async-Anti-Xray - Ready flag for the connection, add chunk packet info
++
++    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - Anti-Xray
++    public ClientboundLevelChunkWithLightPacket(
++        final LevelChunk levelChunk,
++        final LevelLightEngine lightEngine,
++        final @Nullable BitSet skyChangedLightSectionFilter,
++        final @Nullable BitSet blockChangedLightSectionFilter
++    ) {
++        // Paper start - Anti-Xray
++        this(levelChunk, lightEngine, skyChangedLightSectionFilter, blockChangedLightSectionFilter, true);
++    }
++    public ClientboundLevelChunkWithLightPacket(
++        final LevelChunk levelChunk,
++        final LevelLightEngine lightEngine,
++        final @Nullable BitSet skyChangedLightSectionFilter,
++        final @Nullable BitSet blockChangedLightSectionFilter,
++        final boolean modifyBlocks
++    ) {
++        // Paper end - Anti-Xray
+         ChunkPos chunkPos = levelChunk.getPos();
++        io.papermc.paper.antixray.ChunkPacketInfo<net.minecraft.world.level.block.state.BlockState> chunkPacketInfo = modifyBlocks ? levelChunk.getLevel().chunkPacketBlockController.getChunkPacketInfo(levelChunk) : null; // Paper - Anti-Xray
+         this(
+             chunkPos.x(),
+             chunkPos.z(),
+-            new ClientboundLevelChunkPacketData(levelChunk),
++            new ClientboundLevelChunkPacketData(levelChunk, chunkPacketInfo), // Paper - Anti-Xray
+             new ClientboundLightUpdatePacketData(chunkPos, lightEngine, skyChangedLightSectionFilter, blockChangedLightSectionFilter)
+         );
++        // Paper start - Anti-Xray - Modify blocks
++        if (chunkPacketInfo != null) {
++            chunkPacketInfo.setChunkPacket(this);
++            this.setReady(false);
++        }
++        levelChunk.getLevel().chunkPacketBlockController.modifyBlocks(this, chunkPacketInfo);
++        // Paper end - Anti-Xray - Modify blocks
+     }
  
-     public ClientboundLevelChunkWithLightPacket(
-         LevelChunk levelChunk, LevelLightEngine lightEngine, @Nullable BitSet skyChangedLightSectionFilter, @Nullable BitSet blockChangedLightSectionFilter
+     @Override
+@@ -45,4 +_,11 @@
+     public void handle(ClientGamePacketListener listener) {
+         listener.handleLevelChunkWithLight(this);
+     }
++
++    // Paper start - Handle oversized block entities in chunks
++    @Override
++    public java.util.List<Packet<?>> getExtraPackets() {
++        return this.chunkData.getExtraPackets();
++    }
++    // Paper end - Handle oversized block entities in chunks
+ }

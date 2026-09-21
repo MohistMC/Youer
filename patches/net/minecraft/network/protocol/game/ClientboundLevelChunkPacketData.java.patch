@@ -8,7 +8,7 @@
  import java.util.stream.Collectors;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.SectionPos;
-@@ -41,17 +_,45 @@
+@@ -41,17 +_,57 @@
      private final Map<Heightmap.Types, long[]> heightmaps;
      private final byte[] buffer;
      private final List<ClientboundLevelChunkPacketData.BlockEntityInfo> blockEntitiesData;
@@ -22,6 +22,18 @@
 +        return this.extraPackets;
 +    }
 +    // Paper end - Handle oversized block entities in chunks
++
++    // Paper start - Async-Anti-Xray - Ready flag for the connection
++    private volatile boolean ready = true;
++
++    public boolean isReady() {
++        return this.ready;
++    }
++
++    public void setReady(final boolean ready) {
++        this.ready = ready;
++    }
++    // Paper end - Async-Anti-Xray - Ready flag for the connection
 +
 +    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper - Anti-Xray - Add chunk packet info
 +    public ClientboundLevelChunkPacketData(final LevelChunk levelChunk) {

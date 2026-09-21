@@ -121,7 +121,7 @@
          CollectFields collectFields = new CollectFields(
              new FieldSelector(IntTag.TYPE, "DataVersion"),
              new FieldSelector("Level", "Structures", CompoundTag.TYPE, "Starts"),
-@@ -150,7 +_,7 @@
+@@ -150,12 +_,12 @@
          if (collectFields.getResult() instanceof CompoundTag chunkTag) {
              int version = NbtUtils.getDataVersion(chunkTag);
              SimpleRegionStorage.injectDatafixingContext(
@@ -130,6 +130,12 @@
              );
  
              CompoundTag fixedChunkTag;
+             try {
+-                fixedChunkTag = DataFixTypes.CHUNK.updateToCurrentVersion(this.fixerUpper, chunkTag, version);
++                fixedChunkTag = ca.spottedleaf.dataconverter.minecraft.MCDataConverter.convertTag(ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.CHUNK, chunkTag, version, ca.spottedleaf.dataconverter.minecraft.util.Version.getCurrentVersion()); // Paper - replace chunk converter
+             } catch (Exception e) {
+                 LOGGER.warn("Failed to partially datafix chunk {}", pos, e);
+                 return StructureCheckResult.CHUNK_LOAD_NEEDED;
 @@ -166,7 +_,7 @@
                  return null;
              }

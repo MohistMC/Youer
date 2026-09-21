@@ -34,7 +34,7 @@
      protected final ServerPlayer player;
      private GameType gameModeForPlayer = GameType.DEFAULT_MODE;
      private @Nullable GameType previousGameModeForPlayer;
-@@ -51,17 +_,37 @@
+@@ -51,17 +_,38 @@
      private BlockPos delayedDestroyPos = BlockPos.ZERO;
      private int delayedTickStart;
      private int lastSentState = -1;
@@ -44,6 +44,7 @@
      public ServerPlayerGameMode(ServerPlayer player) {
          this.player = player;
          this.level = player.level();
++        this.gameTicks = (int) this.level.getLagCompensationTick(); // Paper - lag compensate eating; start in the same clock as tick()
      }
  
 +    @Deprecated @io.papermc.paper.annotation.DoNotUse // Paper
@@ -101,7 +102,7 @@
      }
  
      private boolean isInRangeOfGround() {
-@@ -110,10 +_,11 @@
+@@ -110,40 +_,39 @@
      }
  
      public void tick() {
@@ -115,8 +116,11 @@
 +            if (blockState == null || blockState.isAir()) { // Paper - Don't allow digging into unloaded chunks
                  this.hasDelayedDestroy = false;
              } else {
-                 float destroyProgress = this.incrementDestroyProgress(blockState, this.delayedDestroyPos, this.delayedTickStart);
-@@ -123,27 +_,25 @@
+-                float destroyProgress = this.incrementDestroyProgress(blockState, this.delayedDestroyPos, this.delayedTickStart);
++                float destroyProgress = this.incrementDestroyProgress(blockState, this.delayedDestroyPos, this.gameTicks - this.delayedTickStart); // Paper - fix delayed destroy using the start tick as ticks spent destroying
+                 if (destroyProgress >= 1.0F) {
+                     this.hasDelayedDestroy = false;
+                     this.destroyBlock(this.delayedDestroyPos);
                  }
              }
          } else if (this.isDestroyingBlock) {

@@ -18,7 +18,6 @@ import net.minecraft.network.protocol.game.ServerboundPlayerActionPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.level.ServerPlayerGameMode;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.biome.Biomes;
@@ -174,9 +173,9 @@ public final class ChunkPacketBlockControllerAntiXray extends ChunkPacketBlockCo
     }
 
     @Override
-    public ChunkPacketInfoAntiXray getChunkPacketInfo(ClientboundLevelChunkWithLightPacket chunkPacket, LevelChunk chunk) {
+    public ChunkPacketInfoAntiXray getChunkPacketInfo(LevelChunk chunk) {
         // Return a new instance to collect data and objects in the right state while creating the chunk packet for thread safe access later
-        return new ChunkPacketInfoAntiXray(chunkPacket, chunk, this);
+        return new ChunkPacketInfoAntiXray(chunk, this);
     }
 
     @Override

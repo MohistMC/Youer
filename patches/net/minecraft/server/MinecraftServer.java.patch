@@ -198,7 +198,7 @@
      private final StructureTemplateManager structureTemplateManager;
      private final ServerTickRateManager tickRateManager;
      private final ServerDebugSubscribers debugSubscribers = new ServerDebugSubscribers(this);
-@@ -286,12 +_,218 @@
+@@ -286,12 +_,219 @@
      private final SuppressedExceptionCollector suppressedExceptions = new SuppressedExceptionCollector();
      private final DiscontinuousFrame tickFrame;
      private final PacketProcessor packetProcessor;
@@ -413,6 +413,7 @@
 +    // Paper end - rewrite chunk system
 +
      public static <S extends MinecraftServer> S spin(Function<Thread, S> factory) {
++        ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.init(); // Paper - rewrite data converter system
          AtomicReference<S> serverReference = new AtomicReference<>();
 -        Thread thread = new Thread(() -> serverReference.get().runServer(), "Server thread");
 +        Thread thread = new ca.spottedleaf.moonrise.common.util.TickThread(net.neoforged.fml.util.thread.SidedThreadGroups.SERVER, () -> serverReference.get().runServer(), "Server thread");

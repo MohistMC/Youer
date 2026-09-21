@@ -1230,7 +1230,7 @@
      }
  
      private void tickBlock(BlockPos pos, Block type) {
-@@ -828,34 +_,84 @@
+@@ -828,34 +_,86 @@
          if (state.is(type)) {
              state.tick(this, pos, this.random);
          }
@@ -1274,6 +1274,7 @@
 +            entity.totalEntityAge++; // Paper - age-like counter for all entities
 +            profiler.push(entity.typeHolder()::getRegisteredName);
 +            profiler.incrementCounter("tickNonPassenger");
++            entity.commonTick();
 +            final boolean isActive = io.papermc.paper.entity.activation.ActivationRange.checkIfActive(entity); // Paper - EAR 2
 +            // Neo: Permit cancellation of Entity#tick via EntityTickEvent.Pre
 +            if (isActive && !net.neoforged.neoforge.event.EventHooks.fireEntityTickPre(entity).isCanceled()) {
@@ -1307,7 +1308,7 @@
              ProfilerFiller profiler = Profiler.get();
              profiler.push(entity.typeHolder()::getRegisteredName);
              profiler.incrementCounter("tickPassenger");
--            entity.commonTick();
+             entity.commonTick();
 -            entity.rideTick();
 +            // Paper start - EAR 2
 +            if (isActive) {
@@ -2463,7 +2464,7 @@
              ServerLevel.this.getChunkSource().removeEntity(entity);
              if (entity instanceof ServerPlayer player) {
                  ServerLevel.this.players.remove(player);
-@@ -2029,28 +_,93 @@
+@@ -2029,28 +_,97 @@
              }
  
              if (entity instanceof Mob mob) {
@@ -2516,14 +2517,18 @@
 +    // Paper end - check global player list where appropriate
 +
 +    // Paper start - lag compensation
-+    private long lagCompensationTick = MinecraftServer.SERVER_INIT;
++    private long lagCompensationTick = currentLagCompensationTick();
 +
 +    public long getLagCompensationTick() {
 +        return this.lagCompensationTick;
 +    }
 +
 +    public void updateLagCompensationTick() {
-+        this.lagCompensationTick = (System.nanoTime() - MinecraftServer.SERVER_INIT) / (java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(50L));
++        this.lagCompensationTick = currentLagCompensationTick();
++    }
++
++    private static long currentLagCompensationTick() {
++        return (System.nanoTime() - MinecraftServer.SERVER_INIT) / (java.util.concurrent.TimeUnit.MILLISECONDS.toNanos(50L));
 +    }
 +    // Paper end - lag compensation
 +
