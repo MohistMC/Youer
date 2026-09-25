@@ -19,14 +19,11 @@ package com.mohistmc.youer.eventhandler.dispatcher;
 
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.event.entity.item.ItemExpireEvent;
-import org.bukkit.craftbukkit.event.CraftEventFactory;
 
 public class ItemEventDispatcher {
 
     @SubscribeEvent(receiveCanceled = true)
     public void onItemExpireEvent(ItemExpireEvent event) {
-        if (CraftEventFactory.callItemDespawnEvent(event.getEntity()).isCancelled()) {
-            event.setExtraLife(-1);
-        }
+
     }
 }
