@@ -106,27 +106,27 @@
 +                indexX = indexY;
 +                for (int x = 0; x < sizeX; ++x, indexX += incX) {
 +                    for (int zIdx = indexX, endIndex = indexX + sizeZ; zIdx < endIndex; ) {
-+                        final int firstSetZ = ca.spottedleaf.moonrise.common.util.FlatBitsetUtil.firstSet(bitset, zIdx, endIndex);
++                        final int firstSetZ = ca.spottedleaf.common.util.FlatBitsetUtil.firstSet(bitset, zIdx, endIndex);
 +
 +                        if (firstSetZ == -1) {
 +                            break;
 +                        }
 +
-+                        int lastSetZ = ca.spottedleaf.moonrise.common.util.FlatBitsetUtil.firstClear(bitset, firstSetZ, endIndex);
++                        int lastSetZ = ca.spottedleaf.common.util.FlatBitsetUtil.firstClear(bitset, firstSetZ, endIndex);
 +                        if (lastSetZ == -1) {
 +                            lastSetZ = endIndex;
 +                        }
 +
-+                        ca.spottedleaf.moonrise.common.util.FlatBitsetUtil.clearRange(bitset, firstSetZ, lastSetZ);
++                        ca.spottedleaf.common.util.FlatBitsetUtil.clearRange(bitset, firstSetZ, lastSetZ);
 +
 +                        // try to merge neighbouring on the X axis
 +                        int endX = x + 1; // exclusive
 +                        for (int neighbourIdxStart = firstSetZ + incX, neighbourIdxEnd = lastSetZ + incX;
-+                             endX < sizeX && ca.spottedleaf.moonrise.common.util.FlatBitsetUtil.isRangeSet(bitset, neighbourIdxStart, neighbourIdxEnd);
++                             endX < sizeX && ca.spottedleaf.common.util.FlatBitsetUtil.isRangeSet(bitset, neighbourIdxStart, neighbourIdxEnd);
 +                             neighbourIdxStart += incX, neighbourIdxEnd += incX) {
 +
 +                            ++endX;
-+                            ca.spottedleaf.moonrise.common.util.FlatBitsetUtil.clearRange(bitset, neighbourIdxStart, neighbourIdxEnd);
++                            ca.spottedleaf.common.util.FlatBitsetUtil.clearRange(bitset, neighbourIdxStart, neighbourIdxEnd);
 +                        }
 +
 +                        // try to merge neighbouring on the Y axis
@@ -140,7 +140,7 @@
 +                            // test the whole XZ range
 +                            for (int testX = x, start = firstSetZY, end = lastSetZY; testX < endX;
 +                                 ++testX, start += incX, end += incX) {
-+                                if (!ca.spottedleaf.moonrise.common.util.FlatBitsetUtil.isRangeSet(bitset, start, end)) {
++                                if (!ca.spottedleaf.common.util.FlatBitsetUtil.isRangeSet(bitset, start, end)) {
 +                                    break y_merge;
 +                                }
 +                            }
@@ -150,7 +150,7 @@
 +                            // passed, so we can clear it
 +                            for (int testX = x, start = firstSetZY, end = lastSetZY; testX < endX;
 +                                 ++testX, start += incX, end += incX) {
-+                                ca.spottedleaf.moonrise.common.util.FlatBitsetUtil.clearRange(bitset, start, end);
++                                ca.spottedleaf.common.util.FlatBitsetUtil.clearRange(bitset, start, end);
 +                            }
 +                        }
 +

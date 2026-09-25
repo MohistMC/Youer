@@ -1,10 +1,10 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.tileentity;
 
-import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.converter.types.ListType;
-import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
+import ca.spottedleaf.converter.types.MapType;
 
 public final class ConverterAbstractTileEntityRemove {
 

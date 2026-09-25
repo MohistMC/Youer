@@ -1,10 +1,10 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.poi;
 
 import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.converter.types.ListType;
 import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.converter.types.ObjectType;
-import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import java.util.function.Function;
 
 public final class ConverterAbstractPOIRename {

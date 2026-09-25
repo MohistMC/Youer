@@ -1,12 +1,12 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
 import ca.spottedleaf.converter.DataConverter;
-import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
+import ca.spottedleaf.converter.types.MapType;
 import com.mojang.logging.LogUtils;
-import java.util.UUID;
 import org.slf4j.Logger;
+import java.util.UUID;
 
 public final class V108 {
 

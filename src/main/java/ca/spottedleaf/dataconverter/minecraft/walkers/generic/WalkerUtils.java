@@ -1,10 +1,10 @@
 package ca.spottedleaf.dataconverter.minecraft.walkers.generic;
 
 import ca.spottedleaf.converter.datatypes.DataType;
-import ca.spottedleaf.converter.types.ListType;
-import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.converter.util.RenameHelper;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCDataType;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
 
 public final class WalkerUtils {
 

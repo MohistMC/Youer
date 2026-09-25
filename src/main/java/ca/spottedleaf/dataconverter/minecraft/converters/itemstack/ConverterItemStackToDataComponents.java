@@ -1,17 +1,17 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.itemstack;
 
+import ca.spottedleaf.converter.util.RenameHelper;
+import ca.spottedleaf.dataconverter.minecraft.util.ComponentUtils;
+import ca.spottedleaf.dataconverter.minecraft.versions.V3818;
 import ca.spottedleaf.converter.types.ListType;
 import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.converter.types.ObjectType;
 import ca.spottedleaf.converter.types.TypeUtil;
-import ca.spottedleaf.converter.util.RenameHelper;
-import ca.spottedleaf.dataconverter.minecraft.util.ComponentUtils;
-import ca.spottedleaf.dataconverter.minecraft.versions.V3818;
 import ca.spottedleaf.dataconverter.util.NamespaceUtil;
+import net.minecraft.util.Mth;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import net.minecraft.util.Mth;
 
 public final class ConverterItemStackToDataComponents {
 

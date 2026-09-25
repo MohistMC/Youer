@@ -1,10 +1,10 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
 import ca.spottedleaf.converter.DataConverter;
-import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.itemstack.DataWalkerItems;
+import ca.spottedleaf.converter.types.MapType;
 
 public final class V2511 {
 

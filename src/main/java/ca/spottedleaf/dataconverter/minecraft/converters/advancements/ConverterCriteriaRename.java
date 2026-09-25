@@ -1,8 +1,8 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.advancements;
 
 import ca.spottedleaf.converter.DataConverter;
-import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.converter.util.RenameHelper;
+import ca.spottedleaf.converter.types.MapType;
 import java.util.function.Function;
 
 public final class ConverterCriteriaRename extends DataConverter<MapType, MapType> {

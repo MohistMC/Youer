@@ -1,13 +1,13 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.chunk;
 
 import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.dataconverter.minecraft.MCVersions;
+import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperBlockFlatteningV1450;
+import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperItemNameV102;
 import ca.spottedleaf.converter.types.ListType;
 import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.converter.types.ObjectType;
 import ca.spottedleaf.converter.types.TypeUtil;
-import ca.spottedleaf.dataconverter.minecraft.MCVersions;
-import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperBlockFlatteningV1450;
-import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperItemNameV102;
 import com.mojang.datafixers.DataFixUtils;
 import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.ints.Int2ObjectLinkedOpenHashMap;
@@ -16,14 +16,14 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.objects.Reference2IntOpenHashMap;
+import net.minecraft.util.datafix.PackedBitStorage;
+import org.slf4j.Logger;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
-import net.minecraft.util.datafix.PackedBitStorage;
-import org.slf4j.Logger;
 
 import static it.unimi.dsi.fastutil.HashCommon.arraySize;
 

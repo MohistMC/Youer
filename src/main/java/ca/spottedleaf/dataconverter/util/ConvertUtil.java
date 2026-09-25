@@ -10,15 +10,15 @@ import com.mojang.logging.LogUtils;
 import com.mojang.serialization.Dynamic;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import it.unimi.dsi.fastutil.longs.LongComparator;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.NbtOps;
 import net.minecraft.util.datafix.DataFixTypes;
 import net.minecraft.util.datafix.fixes.References;
 import org.slf4j.Logger;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 public final class ConvertUtil {
 
@@ -138,25 +138,25 @@ public final class ConvertUtil {
     }
 
     private static MCDataType getDCType(final DSL.TypeReference type) {
-        if (type == References.PLAYER) {
+        if (type == net.minecraft.util.datafix.fixes.References.PLAYER) {
             return ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.PLAYER;
         }
-        if (type == References.CHUNK) {
+        if (type == net.minecraft.util.datafix.fixes.References.CHUNK) {
             return ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.CHUNK;
         }
-        if (type == References.STRUCTURE) {
+        if (type == net.minecraft.util.datafix.fixes.References.STRUCTURE) {
             return ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.STRUCTURE;
         }
-        if (type == References.POI_CHUNK) {
+        if (type == net.minecraft.util.datafix.fixes.References.POI_CHUNK) {
             return ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.POI_CHUNK;
         }
-        if (type == References.ENTITY_CHUNK) {
+        if (type == net.minecraft.util.datafix.fixes.References.ENTITY_CHUNK) {
             return ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.ENTITY_CHUNK;
         }
-        if (type == References.ITEM_STACK) {
+        if (type == net.minecraft.util.datafix.fixes.References.ITEM_STACK) {
             return ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.ITEM_STACK;
         }
-        if (type == References.ENTITY || type == References.ENTITY_TREE) {
+        if (type == net.minecraft.util.datafix.fixes.References.ENTITY || type == net.minecraft.util.datafix.fixes.References.ENTITY_TREE) {
             return ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry.ENTITY;
         }
         throw new IllegalArgumentException("Unknown type: " + type);

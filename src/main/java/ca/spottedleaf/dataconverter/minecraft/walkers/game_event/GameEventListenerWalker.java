@@ -1,9 +1,9 @@
 package ca.spottedleaf.dataconverter.minecraft.walkers.game_event;
 
 import ca.spottedleaf.converter.datatypes.DataWalker;
-import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
+import ca.spottedleaf.converter.types.MapType;
 
 public final class GameEventListenerWalker extends DataWalker<MapType> {
 

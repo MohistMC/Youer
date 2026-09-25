@@ -5,8 +5,8 @@ import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.converter.datatypes.DataHook;
 import ca.spottedleaf.converter.datatypes.DataType;
 import ca.spottedleaf.converter.datatypes.DataWalker;
-import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersionRegistry;
+import ca.spottedleaf.converter.types.MapType;
 import java.util.ArrayList;
 import java.util.List;
 

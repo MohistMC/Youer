@@ -33,6 +33,24 @@ public final class V5009 {
                 return null;
             }
         });
+
+        MCTypeRegistry.ENTITY.addStructureConverter(new DataConverter<>(VERSION) {
+            @Override
+            public @Nullable MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
+                final MapType brain = data.getMap("Brain");
+                if (brain == null) {
+                    return null;
+                }
+
+                final MapType memories = brain.getMap("memories");
+                if (memories == null) {
+                    return null;
+                }
+
+                memories.remove("minecraft:is_tempted");
+                return null;
+            }
+        });
     }
 
     private V5009() {}

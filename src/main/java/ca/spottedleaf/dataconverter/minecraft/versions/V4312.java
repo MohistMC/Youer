@@ -2,11 +2,11 @@ package ca.spottedleaf.dataconverter.minecraft.versions;
 
 import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.converter.datatypes.DataWalker;
-import ca.spottedleaf.converter.types.ListType;
-import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
+import ca.spottedleaf.converter.types.ListType;
+import ca.spottedleaf.converter.types.MapType;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.util.Map;
 

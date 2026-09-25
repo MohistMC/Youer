@@ -2,12 +2,12 @@ package ca.spottedleaf.dataconverter.minecraft.versions;
 
 import ca.spottedleaf.common.util.IntegerUtil;
 import ca.spottedleaf.converter.DataConverter;
+import ca.spottedleaf.dataconverter.minecraft.MCVersions;
+import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.converter.types.ListType;
 import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.converter.types.ObjectType;
 import ca.spottedleaf.converter.types.TypeUtil;
-import ca.spottedleaf.dataconverter.minecraft.MCVersions;
-import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap;
 import java.util.Arrays;
 import java.util.HashSet;

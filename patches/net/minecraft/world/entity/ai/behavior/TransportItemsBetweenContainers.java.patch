@@ -30,7 +30,7 @@
          return isValidTarget ? transportItemTarget : null;
      }
  
-@@ -368,7 +_,11 @@
+@@ -368,12 +_,25 @@
      }
  
      private boolean isTargetBlocked(Level level, TransportItemsBetweenContainers.TransportItemTarget target) {
@@ -43,6 +43,22 @@
      }
  
      private boolean targetHasNotChanged(Level level, TransportItemsBetweenContainers.TransportItemTarget target) {
+-        return target.blockEntity.equals(level.getBlockEntity(target.pos));
+-    }
++        // Paper start
++        return target.blockEntity.equals(level.getBlockEntity(target.pos)) && !isContainerRemoved(target.container);
++    }
++
++    private static boolean isContainerRemoved(final Container container) {
++        if (container instanceof net.minecraft.world.CompoundContainer compoundContainer) {
++            return isContainerRemoved(compoundContainer.container1) || isContainerRemoved(compoundContainer.container2);
++        }
++        return container instanceof BlockEntity blockEntity && blockEntity.isRemoved();
++    }
++    // Paper end
+ 
+     private Stream<TransportItemsBetweenContainers.TransportItemTarget> getConnectedTargets(
+         TransportItemsBetweenContainers.TransportItemTarget target, Level level
 @@ -445,7 +_,7 @@
      }
  

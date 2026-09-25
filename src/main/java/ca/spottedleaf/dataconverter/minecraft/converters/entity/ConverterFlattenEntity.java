@@ -1,11 +1,12 @@
 package ca.spottedleaf.dataconverter.minecraft.converters.entity;
 
 import ca.spottedleaf.converter.DataConverter;
-import ca.spottedleaf.converter.types.MapType;
-import ca.spottedleaf.converter.types.ObjectType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperBlockFlatteningV1450;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.ObjectType;
+
 import java.util.HashMap;
 import java.util.Map;
 

@@ -291,7 +291,7 @@
      }
  
      public static SerializableChunkData copyOf(ServerLevel level, ChunkAccess chunk) {
-@@ -325,21 +_,44 @@
+@@ -325,21 +_,46 @@
  
          ChunkPos pos = chunk.getPos();
          List<SerializableChunkData.SectionData> sectionData = new ArrayList<>();
@@ -314,15 +314,17 @@
 +        final int maxLightSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMaxLightSection(level);
 +        final int minBlockSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection(level);
 +
++        final boolean copy = !ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder.DO_NOT_COPY_SAVED_DATA.get().booleanValue();
++
 +        final LevelChunkSection[] chunkSections = chunk.getSections();
-+        final ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] blockNibbles = ((ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk) chunk).starlight$getBlockNibbles();
-+        final ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] skyNibbles = ((ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk) chunk).starlight$getSkyNibbles();
++        final ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] blockNibbles = ((ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk)chunk).starlight$getBlockNibbles();
++        final ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray[] skyNibbles = ((ca.spottedleaf.moonrise.patches.starlight.chunk.StarlightChunk)chunk).starlight$getSkyNibbles();
 +
 +        for (int lightSection = minLightSection; lightSection <= maxLightSection; ++lightSection) {
 +            final int lightSectionIdx = lightSection - minLightSection;
 +            final int blockSectionIdx = lightSection - minBlockSection;
 +
-+            final LevelChunkSection chunkSection = (blockSectionIdx >= 0 && blockSectionIdx < chunkSections.length) ? chunkSections[blockSectionIdx].copy() : null;
++            final LevelChunkSection chunkSection = (blockSectionIdx >= 0 && blockSectionIdx < chunkSections.length) ? (copy ? chunkSections[blockSectionIdx].copy() : chunkSections[blockSectionIdx]) : null;
 +            final ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray.SaveState blockNibble = blockNibbles[lightSectionIdx].getSaveState();
 +            final ca.spottedleaf.moonrise.patches.starlight.light.SWMRNibbleArray.SaveState skyNibble = skyNibbles[lightSectionIdx].getSaveState();
 +

@@ -1,12 +1,12 @@
 package ca.spottedleaf.dataconverter.minecraft.versions;
 
 import ca.spottedleaf.converter.DataConverter;
-import ca.spottedleaf.converter.types.MapType;
-import ca.spottedleaf.converter.types.ObjectType;
-import ca.spottedleaf.converter.types.TypeUtil;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
 import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperSpawnEggNameV105;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
+import ca.spottedleaf.converter.types.ObjectType;
+import ca.spottedleaf.converter.types.MapType;
+import ca.spottedleaf.converter.types.TypeUtil;
 
 public final class V105 {
 

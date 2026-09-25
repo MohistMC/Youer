@@ -2,24 +2,24 @@ package ca.spottedleaf.dataconverter.minecraft.versions;
 
 import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.converter.datatypes.DataWalker;
+import ca.spottedleaf.dataconverter.minecraft.MCVersions;
+import ca.spottedleaf.converter.util.RenameHelper;
+import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
+import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
 import ca.spottedleaf.converter.types.ListType;
 import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.converter.types.ObjectType;
 import ca.spottedleaf.converter.types.TypeUtil;
-import ca.spottedleaf.converter.util.RenameHelper;
-import ca.spottedleaf.dataconverter.minecraft.MCVersions;
-import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
-import ca.spottedleaf.dataconverter.minecraft.walkers.generic.WalkerUtils;
 import com.mojang.logging.LogUtils;
 import it.unimi.dsi.fastutil.ints.Int2IntLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.ints.IntIterator;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
+import org.apache.commons.lang3.mutable.MutableBoolean;
+import org.slf4j.Logger;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.HashSet;
 import java.util.Set;
-import org.apache.commons.lang3.mutable.MutableBoolean;
-import org.slf4j.Logger;
 
 public final class V2832 {
 

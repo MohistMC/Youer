@@ -4,9 +4,6 @@ import ca.spottedleaf.converter.types.ListType;
 import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.converter.types.ObjectType;
 import ca.spottedleaf.dataconverter.types.Types;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.Objects;
 import net.minecraft.nbt.ByteArrayTag;
 import net.minecraft.nbt.ByteTag;
 import net.minecraft.nbt.CompoundTag;
@@ -21,6 +18,9 @@ import net.minecraft.nbt.NumericTag;
 import net.minecraft.nbt.ShortTag;
 import net.minecraft.nbt.StringTag;
 import net.minecraft.nbt.Tag;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.Objects;
 
 public final class NBTListType extends ListType {
 
