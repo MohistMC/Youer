@@ -36,6 +36,45 @@ sourceSets {
             srcDirs rootProject.file('src/client/java')
         }
     }
+    // Headless boundary checks need Youer's dependency versions, not a second NeoForm runtime resolution.
+    compatibilityTest {
+        java.srcDirs rootProject.file('src/compatibilityTest/java')
+        compileClasspath = sourceSets.main.output + sourceSets.client.output + sourceSets.main.compileClasspath
+        runtimeClasspath = output + compileClasspath
+    }
+}
+
+tasks.register('checkIdentifierEncoding', JavaExec) {
+    group = 'verification'
+    description = 'Checks that network identifiers retain their namespace, optionally through a Velocity JAR.'
+    dependsOn tasks.named('compatibilityTestClasses')
+    classpath = sourceSets.compatibilityTest.runtimeClasspath
+    workingDir = layout.buildDirectory.get().asFile
+    mainClass = 'com.mohistmc.youer.network.IdentifierEncodingCheck'
+    args providers.gradleProperty('velocityJar').map { [it] }.getOrElse([])
+}
+
+tasks.register('checkModernMaterials', JavaExec) {
+    group = 'verification'
+    description = 'Checks modded material enumeration and ordinal indexing used by modern Bukkit plugins.'
+    dependsOn tasks.named('compatibilityTestClasses')
+    classpath = sourceSets.compatibilityTest.runtimeClasspath
+    workingDir = layout.buildDirectory.get().asFile
+    mainClass = 'com.mohistmc.youer.bukkit.ModernMaterialCompatibilityCheck'
+    jvmArgs '--add-opens=java.base/java.lang=ALL-UNNAMED'
+}
+
+tasks.register('checkProxyChannels', JavaExec) {
+    group = 'verification'
+    description = 'Checks optional payload advertisement after a proxy switches an already initialized client.'
+    dependsOn tasks.named('compatibilityTestClasses')
+    classpath = sourceSets.compatibilityTest.runtimeClasspath
+    workingDir = layout.buildDirectory.get().asFile
+    mainClass = 'com.mohistmc.youer.network.ProxyChannelRegistrationCheck'
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('checkIdentifierEncoding'), tasks.named('checkModernMaterials'), tasks.named('checkProxyChannels')
 }
 
 java {
