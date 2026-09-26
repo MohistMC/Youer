@@ -5,7 +5,7 @@
          new RegistryDataLoader.RegistryData<>(Registries.RECIPE, Recipe.DIRECT_CODEC)
      );
 -    public static final List<RegistryDataLoader.RegistryData<?>> SYNCHRONIZED_REGISTRIES = List.of(
-+    public static final List<RegistryDataLoader.RegistryData<?>> SYNCHRONIZED_REGISTRIES = net.neoforged.neoforge.registries.DataPackRegistriesHooks.grabNetworkableRegistries(List.of(
++    public static final List<RegistryDataLoader.RegistryData<?>> SYNCHRONIZED_REGISTRIES = net.neoforged.neoforge.registries.DataPackRegistriesHooks.captureSyncedRegistries(List.of(
          new RegistryDataLoader.RegistryData<>(Registries.BIOME, Biome.NETWORK_CODEC),
          new RegistryDataLoader.RegistryData<>(Registries.CHAT_TYPE, ChatType.DIRECT_CODEC),
          new RegistryDataLoader.RegistryData<>(Registries.TRIM_PATTERN, TrimPattern.DIRECT_CODEC),
@@ -81,10 +81,22 @@
                                  List<RegistryLoadTask<?>> frozenRegistries = loadTasks.stream().filter(task -> task.freezeRegistry(loadingErrors)).toList();
                                  if (!loadingErrors.isEmpty()) {
                                      throw logErrors(loadingErrors);
-@@ -278,11 +_,21 @@
+@@ -276,13 +_,36 @@
+         List<HolderLookup.RegistryLookup<?>> contextRegistries, List<RegistryLoadTask<?>> newRegistriesAndLoaders
+     ) {
          final Map<ResourceKey<? extends Registry<?>>, HolderGetter<?>> result = new HashMap<>();
-         contextRegistries.forEach(e -> result.put(e.key(), e));
-         newRegistriesAndLoaders.forEach(e -> result.put(e.registryKey(), e.concurrentRegistrationGetter));
+-        contextRegistries.forEach(e -> result.put(e.key(), e));
+-        newRegistriesAndLoaders.forEach(e -> result.put(e.registryKey(), e.concurrentRegistrationGetter));
++        final Map<ResourceKey<? extends Registry<?>>, HolderLookup<?>> fullLookups = new HashMap<>();
++        contextRegistries.forEach(e -> {
++            result.put(e.key(), e);
++            fullLookups.put(e.key(), e);
++        });
++        newRegistriesAndLoaders.forEach(e -> {
++            result.put(e.registryKey(), e.concurrentRegistrationGetter);
++            fullLookups.put(e.registryKey(), e.registry);
++        });
++
 +        // this creates a HolderLookup.Provider to be used exclusively to obtain real instances of values to pre-populate builders
 +        // for the Registry Modification API. This concatenates the context registry lookups and the empty registries about to be filled.
 +        final HolderLookup.Provider providerForBuilders = HolderLookup.Provider.create(java.util.stream.Stream.concat(contextRegistries.stream(), newRegistriesAndLoaders.stream().map(t -> t.registry))); // Paper - add method to get the value for pre-filling builders in the reg mod API
@@ -93,6 +105,11 @@
              public <T> Optional<HolderGetter<T>> lookup(ResourceKey<? extends Registry<? extends T>> key) {
                  return Optional.ofNullable((HolderGetter<T>)result.get(key));
              }
++
++            @Override
++            public <T> Optional<HolderLookup<T>> fullLookup(ResourceKey<? extends Registry<? extends T>> key) {
++                return Optional.ofNullable((HolderLookup<T>)fullLookups.get(key));
++            }
 +
 +            // Paper start - add method to get the value for pre-filling builders in the reg mod API
 +            @Override
