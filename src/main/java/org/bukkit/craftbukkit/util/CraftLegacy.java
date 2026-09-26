@@ -10,6 +10,9 @@ import org.bukkit.material.MaterialData;
 @Deprecated
 public final class CraftLegacy {
 
+    // Youer appends mod materials after Bukkit's fixed block of legacy constants.
+    private static final int LEGACY_MATERIAL_COUNT = (int) Arrays.stream(Material.values()).filter(Material::isLegacy).count();
+
     private CraftLegacy() {
     }
 
@@ -26,8 +29,7 @@ public final class CraftLegacy {
     }
 
     public static Material[] modern_values() {
-        Material[] values = Material.values();
-        return Arrays.copyOfRange(values, 0, Material.LEGACY_AIR.ordinal());
+        return Arrays.stream(Material.values()).filter(material -> !material.isLegacy()).toArray(Material[]::new);
     }
 
     public static int modern_ordinal(Material material) {
@@ -36,6 +38,8 @@ public final class CraftLegacy {
             throw new NoSuchFieldError("Legacy field ordinal: " + material);
         }
 
-        return material.ordinal();
+        int ordinal = material.ordinal();
+        // Match the dense index in modern_values(), including mod constants after the legacy gap.
+        return ordinal < Material.LEGACY_AIR.ordinal() ? ordinal : ordinal - LEGACY_MATERIAL_COUNT;
     }
 }

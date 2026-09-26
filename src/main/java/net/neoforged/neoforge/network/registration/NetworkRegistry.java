@@ -788,10 +788,12 @@ public class NetworkRegistry {
         nowListeningOn.add(MinecraftUnregisterPayload.ID);
         if (listener.getConnectionType().isNeoForge()) {
             nowListeningOn.add(ModdedNetworkQueryPayload.ID);
-        } else {
-            // For non-Neo connections, send the registered channels
-            nowListeningOn.addAll(getCommonPlayChannels(listener.flow()));
         }
+        // Youer: a proxy keeps the client's socket when switching backends. Some NeoForge
+        // clients only initialize its negotiated setup once, leaving the previous backend's
+        // channel table in place. Advertise optional play channels for Neo connections too;
+        // these already support ad-hoc delivery. Required channels still need negotiation.
+        nowListeningOn.addAll(getCommonPlayChannels(listener.flow()));
         listener.send(new MinecraftRegisterPayload(nowListeningOn.build()));
     }
 
