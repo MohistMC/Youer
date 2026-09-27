@@ -150,7 +150,7 @@ public class ConfigByWorlds {
         if (Bukkit.getWorld(w) != null) {
             World world = Bukkit.getWorld(w);
             String world_name = world.getName();
-            if (ConfigByWorlds.f.exists()) {
+            if (ConfigByWorlds.f.exists() && isYouer) {
                 config.set("worlds." + world_name + ".youer", isYouer);
                 if (config.getString("worlds." + world_name + ".info") == null) {
                     config.set("worlds." + world_name + ".seed", world.getSeed());
@@ -172,9 +172,6 @@ public class ConfigByWorlds {
 
     public static void initMods(ServerLevel level) {
         CraftWorld world = level.getWorld();
-        if (config.get("worlds." + world.getName() + ".youer") == null) {
-            config.set("worlds." + world.getName() + ".youer", false);
-        }
         if (world.isMods()) {
             ConfigByWorlds.addWorld(world.getName(), false);
             config.set("worlds." + world.getName() + ".ismods", world.isMods());
@@ -272,6 +269,12 @@ public class ConfigByWorlds {
                     config.set("worlds." + w + ".seed", world.getSeed());
                     init();
                     world.setKeepSpawnInMemory(config.getBoolean("worlds." + w + ".keepspawninmemory", true));
+                } else {
+                    if (!isYouer && !isMods) {
+                        config.set("worlds." + w, null);
+                        init();
+                    }
+
                 }
             }
         }

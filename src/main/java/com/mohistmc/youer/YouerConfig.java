@@ -172,6 +172,7 @@ public class YouerConfig {
     public static ModCompatibilityConfig lithostitched_compat;
     public static boolean keepSpawnLoaded;
     public static boolean no_recipeBook;
+    public static boolean command_log;
 
     public static class ModCompatibilityConfig {
         public boolean enable;
@@ -393,6 +394,7 @@ public class YouerConfig {
         no_damage_particle = getBoolean("custom.no_damage_particle", false);
         keepSpawnLoaded = getBoolean("custom.keepSpawnLoaded", true);
         no_recipeBook = getBoolean("custom.no_recipeBook", false);
+        command_log = getBoolean("custom.command_log", false);
 
         backup_world_enable = getBoolean("backup_world.enable", false);
         backup_world_interval = getInt("backup_world.interval", 3600);

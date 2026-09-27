@@ -85,6 +85,14 @@ public class DemoGUI {
         return this.pageChoose;
     }
 
+    /**
+     * Set a GUIItem on the bottom decoration bar (slots 45-53).
+     * Must be called after {@link #openGUI(Player)} to take effect.
+     */
+    public void setBottomItem(int slot, GUIItem item) {
+        this.gui.setItem(slot, item);
+    }
+
     public GUI getGUI() {
         return getGUI(this.items);
     }
@@ -151,4 +159,3 @@ public class DemoGUI {
     }
 
 }
-

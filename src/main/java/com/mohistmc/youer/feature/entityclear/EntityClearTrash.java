@@ -3,6 +3,7 @@ package com.mohistmc.youer.feature.entityclear;
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.gui.DemoGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
+import com.mohistmc.youer.api.gui.ItemStackFactory;
 import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,6 +18,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.thread.NamedThreadFactory;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
@@ -61,7 +63,44 @@ public class EntityClearTrash {
     public static void addItem(ItemStack itemStack) {
         if (itemStack == null || itemStack.isEmpty()) return;
         synchronized (trashItems) {
+            // Try to stack with existing items first
+            for (ItemStack existing : trashItems) {
+                if (existing.isSimilar(itemStack) && existing.getAmount() < existing.getMaxStackSize()) {
+                    int space = existing.getMaxStackSize() - existing.getAmount();
+                    int toAdd = Math.min(space, itemStack.getAmount());
+                    existing.setAmount(existing.getAmount() + toAdd);
+                    itemStack.setAmount(itemStack.getAmount() - toAdd);
+                    if (itemStack.getAmount() <= 0) return;
+                }
+            }
+            // Remainder that didn't fit into existing stacks
             trashItems.add(itemStack.clone());
+        }
+    }
+
+    /**
+     * Merge identical items in the list so that each type occupies as few slots as possible.
+     */
+    private static void compactItems() {
+        for (int i = 0; i < trashItems.size(); i++) {
+            ItemStack base = trashItems.get(i);
+            if (base == null || base.isEmpty()) continue;
+            int maxStack = base.getMaxStackSize();
+            if (base.getAmount() >= maxStack) continue;
+            Iterator<ItemStack> iter = trashItems.listIterator(i + 1);
+            while (iter.hasNext()) {
+                ItemStack other = iter.next();
+                if (base.isSimilar(other)) {
+                    int space = maxStack - base.getAmount();
+                    if (space <= 0) break;
+                    int toAdd = Math.min(space, other.getAmount());
+                    base.setAmount(base.getAmount() + toAdd);
+                    other.setAmount(other.getAmount() - toAdd);
+                    if (other.getAmount() <= 0) {
+                        iter.remove();
+                    }
+                }
+            }
         }
     }
 
@@ -69,7 +108,7 @@ public class EntityClearTrash {
         if (MinecraftServer.getServer().hasStopped()) return;
         MinecraftServer.getServer().execute(() -> {
             if (!YouerConfig.trash_enable) return;
-            World overworld = Bukkit.getWorlds().get(0);
+            World overworld = Bukkit.getWorlds().getFirst();
             if (overworld == null) return;
             long day = overworld.getFullTime() / 24000;
             if (lastTrashDay < 0) {
@@ -91,8 +130,11 @@ public class EntityClearTrash {
         demoGUI.clearItems();
 
         synchronized (trashItems) {
-            for (ItemStack item : trashItems) {
-                final ItemStack original = item;
+            // Compact identical items before displaying to reduce page count
+            compactItems();
+            // Reverse iteration: newest items (appended last) appear first in the GUI
+            for (int i = trashItems.size() - 1; i >= 0; i--) {
+                final ItemStack original = trashItems.get(i);
                 GUIItem guiItem = new GUIItem(original.clone()) {
                     @Override
                     public void ClickAction(ClickType type, Player p, ItemStack itemStack) {
@@ -103,8 +145,8 @@ public class EntityClearTrash {
                                     if (iter.next() == original) {
                                         iter.remove();
                                         // Give the item to the player; if inventory is full, put it back
-                                        p.getInventory().addItem(original.clone())
-                                                .values().forEach(trashItems::add);
+                                        trashItems.addAll(p.getInventory().addItem(original.clone())
+                                            .values());
                                         break;
                                     }
                                 }
@@ -118,5 +160,18 @@ public class EntityClearTrash {
         }
 
         demoGUI.openGUI(player);
+
+        // Add "Back to first page" button at slot 45 (replaces gray glass pane)
+        demoGUI.setBottomItem(45, new GUIItem(new ItemStackFactory(Material.COMPASS)
+                .setDisplayName(I18n.as("entityclear.trash.back_to_first"))
+                .build()) {
+            @Override
+            public void ClickAction(ClickType type, Player p, ItemStack itemStack) {
+                if (!type.isShiftClick() && type.isLeftClick()) {
+                    demoGUI.setPage(0);
+                    openTrash(p);
+                }
+            }
+        });
     }
 }
