@@ -37,7 +37,7 @@ import org.jetbrains.annotations.NotNull;
 public class BansCommand extends Command {
 
     private final List<String> params = Arrays.asList("add", "show", "setmessage", "reload");
-    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe", "block", "nbt", "world", "structure", "effect", "command");
+    private final List<String> params1 = Arrays.asList("item", "item-moshou", "entity", "enchantment", "recipe", "block", "nbt", "world", "structure", "effect", "command", "eat");
 
     public BansCommand(String name) {
         super(name);
@@ -170,6 +170,37 @@ public class BansCommand extends Command {
                         old.add(effectName);
                         BanUtils.saveToYaml(player, com.mohistmc.youer.feature.ban.ClickType.ADD, old, BanType.EFFECT);
                         sender.sendMessage(ChatColor.GREEN + I18n.as("banscmd.add.effect.success").formatted(effectName));
+                        return true;
+                    }
+                    case "eat" -> {
+                        if (!YouerConfig.ban_eat_enable) {
+                            sender.sendMessage(ChatColor.RED + check);
+                            return false;
+                        }
+                        if (args.length < 3) {
+                            BanSaveInventory banSaveInventory = new BanSaveInventory(BanType.EAT, I18n.as("banscmd.gui.add.eat"));
+                            Inventory inventory = banSaveInventory.getInventory();
+                            player.openInventory(inventory);
+                            BanListener.openInventory = banSaveInventory;
+                            return true;
+                        }
+                        String eatName = args[2];
+                        // 允许 modid:* 通配整个命名空间
+                        if (!eatName.matches("^[a-z0-9_.-]+:\\*$")) {
+                            Material material = Material.matchMaterial(eatName);
+                            if (material == null || material.isAirSafe()) {
+                                sender.sendMessage(ChatColor.RED + I18n.as("banscmd.add.eat.invalid").formatted(eatName));
+                                return false;
+                            }
+                        }
+                        List<String> old = BanConfig.getListByType(BanType.EAT);
+                        if (old.contains(eatName)) {
+                            sender.sendMessage(ChatColor.YELLOW + I18n.as("banscmd.add.eat.exists").formatted(eatName));
+                            return false;
+                        }
+                        old.add(eatName);
+                        BanUtils.saveToYaml(player, com.mohistmc.youer.feature.ban.ClickType.ADD, old, BanType.EAT);
+                        sender.sendMessage(ChatColor.GREEN + I18n.as("banscmd.add.eat.success").formatted(eatName));
                         return true;
                     }
                     case "item" -> {
@@ -365,6 +396,32 @@ public class BansCommand extends Command {
                                     if (type.isRightClick()) {
                                         old.remove(s);
                                         BanUtils.saveToYaml(u, com.mohistmc.youer.feature.ban.ClickType.REMOVE, old, BanType.EFFECT);
+                                        wh.removeItem(this);
+                                        wh.openGUI(player);
+                                    }
+                                }
+                            });
+                        }
+                        wh.openGUI(player);
+                        return true;
+                    }
+                    case "eat" -> {
+                        DemoGUI wh = new DemoGUI(I18n.as("banscmd.show.eat"));
+                        List<String> old = BanConfig.getListByType(BanType.EAT);
+                        for (String s : BanConfig.getListByType(BanType.EAT)) {
+                            Material material = Material.matchMaterial(s);
+                            // 通配条目（modid:*）没有对应 Material，用纸显示 id
+                            ItemStackFactory factory = (material != null && !material.isAirSafe())
+                                    ? new ItemStackFactory(material)
+                                    : new ItemStackFactory(Material.PAPER).setDisplayName(s);
+                            wh.addItem(new GUIItem(factory
+                                    .addLore("§e" + I18n.as("banscmd.show.lore"))
+                                    .build()) {
+                                @Override
+                                public void ClickAction(ClickType type, Player u, ItemStack itemStack) {
+                                    if (type.isRightClick()) {
+                                        old.remove(s);
+                                        BanUtils.saveToYaml(u, com.mohistmc.youer.feature.ban.ClickType.REMOVE, old, BanType.EAT);
                                         wh.removeItem(this);
                                         wh.openGUI(player);
                                     }
@@ -742,6 +799,14 @@ public class BansCommand extends Command {
         if (args.length == 3 && args[0].equals("add") && args[1].equals("block") && (sender.isOp() || testPermission(sender))) {
             return java.util.Arrays.stream(Material.values())
                     .filter(m -> m.isBlock() && !m.isAirSafe() && !m.isLegacy())
+                    .map(m -> m.getKey().asString())
+                    .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
+                    .limit(50)
+                    .collect(Collectors.toList());
+        }
+        if (args.length == 3 && args[0].equals("add") && args[1].equals("eat") && (sender.isOp() || testPermission(sender))) {
+            return java.util.Arrays.stream(Material.values())
+                    .filter(m -> m.isEdible() && !m.isLegacy())
                     .map(m -> m.getKey().asString())
                     .filter(name -> name.toLowerCase().startsWith(args[2].toLowerCase()))
                     .limit(50)

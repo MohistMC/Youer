@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/player/Player.java
 +++ b/net/minecraft/world/entity/player/Player.java
-@@ -3,6 +_,11 @@
+@@ -3,6 +_,12 @@
  import com.google.common.collect.ImmutableList;
  import com.google.common.collect.ImmutableMap;
  import com.google.common.collect.Lists;
@@ -8,6 +8,7 @@
 +import com.mohistmc.youer.api.event.block.PlayerMayUseItemAtEvent;
 +import com.mohistmc.youer.bukkit.inventory.InventoryOwner;
 +import com.mohistmc.youer.feature.KeepInventory;
++import com.mohistmc.youer.feature.ban.bans.BanEat;
 +import com.mohistmc.youer.feature.ban.bans.BanItem;
  import com.mojang.authlib.GameProfile;
  import com.mojang.datafixers.util.Either;
@@ -1206,6 +1207,14 @@
          this.getFoodData().eat(p_347562_);
          this.awardStat(Stats.ITEM_USED.get(p_36186_.getItem()));
          p_36185_.playSound(
+@@ -2040,6 +_,7 @@
+         }
+ 
+         ItemStack itemstack = super.eat(p_36185_, p_36186_, p_347562_);
++        if (BanEat.check(this, p_36186_)) return itemstack;
+         Optional<ItemStack> optional = p_347562_.usingConvertsTo();
+         if (optional.isPresent() && !this.hasInfiniteMaterials()) {
+             if (itemstack.isEmpty()) {
 @@ -2047,7 +_,10 @@
              }
  

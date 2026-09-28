@@ -14,7 +14,8 @@ public enum BanType {
     WORLD("WORLDS", "bans.add.world", "bans.remove.world"),
     STRUCTURE("STRUCTURE", "bans.add.structure", "bans.remove.structure"),
     EFFECT("EFFECTS", "bans.add.effect", "bans.remove.effect"),
-    COMMAND("COMMANDS", "bans.add.command", "bans.remove.command");
+    COMMAND("COMMANDS", "bans.add.command", "bans.remove.command"),
+    EAT("EATS", "bans.add.eat", "bans.remove.eat");
 
     public final String key;
     public final String i18n_key_add;

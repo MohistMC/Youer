@@ -25,6 +25,7 @@ public class BanUtils {
             case STRUCTURE -> BanConfig.STRUCTURE.put(banType.key, list);
             case EFFECT -> BanConfig.EFFECT.put(banType.key, list);
             case COMMAND -> BanConfig.COMMAND.put(banType.key, list);
+            case EAT -> BanConfig.EAT.put(banType.key, list);
         }
         if (clickType == ClickType.ADD) {
             player.sendMessage(I18n.as(banType.i18n_key_add));
