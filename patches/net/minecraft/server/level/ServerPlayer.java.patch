@@ -1221,25 +1221,139 @@
      }
  
      @Override
-@@ -1275,7 +_,17 @@
-                 }
-             });
-             if (!this.level().canSleepThroughNights()) {
--                this.sendOverlayMessage(Component.translatable("sleep.not_possible"));
-+                // Purpur start - Customizable sleeping actionbar messages
-+                Component clientMessage;
-+                if (org.purpurmc.purpur.PurpurConfig.sleepNotPossible.isBlank()) {
-+                    clientMessage = null;
-+                } else if (!org.purpurmc.purpur.PurpurConfig.sleepNotPossible.equalsIgnoreCase("default")) {
-+                    clientMessage = io.papermc.paper.adventure.PaperAdventure.asVanilla(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(org.purpurmc.purpur.PurpurConfig.sleepNotPossible));
-+                } else {
-+                    clientMessage = Component.translatable("sleep.not_possible");
-+                } if (clientMessage != null) {
-+                    this.sendOverlayMessage(clientMessage);
-+                }// Purpur end - Customizable sleeping actionbar messages
-             }
+@@ -1231,58 +_,81 @@
  
-             this.level().updateSleepingPlayerList();
+     @Override
+     public Either<Player.BedSleepingProblem, Unit> startSleepInBed(AbstractBedBlock bedBlock, BlockState bedBlockState, BedRule rule, BlockPos pos) {
+-        Direction direction = bedBlockState.getValue(HorizontalDirectionalBlock.FACING);
+-        if (!this.isSleeping() && this.isAlive()) {
+-            boolean canSleep = rule.canSleep(this.level());
+-            boolean canSetSpawn = rule.canSetSpawn(this.level());
+-            if (!this.bedInRange(pos, direction)) {
+-                return Either.left(Player.BedSleepingProblem.TOO_FAR_AWAY);
+-            }
+-
+-            if (this.bedBlocked(pos, direction)) {
+-                return Either.left(Player.BedSleepingProblem.OBSTRUCTED);
+-            }
+-
+-            if (canSetSpawn) {
+-                this.setRespawnPosition(
+-                    new ServerPlayer.RespawnConfig(LevelData.RespawnData.of(this.level().dimension(), pos, this.getYRot(), this.getXRot()), false), true
+-                );
+-            }
+-
+-            if (!canSleep) {
+-                return Either.left(rule.asProblem());
+-            }
+-
+-            if (!this.isCreative()) {
+-                double hRange = 8.0;
+-                double vRange = 5.0;
+-                Vec3 bedCenter = Vec3.atBottomCenterOf(pos);
+-                List<Monster> monsters = this.level()
+-                    .getEntitiesOfClass(
+-                        Monster.class,
+-                        new AABB(bedCenter.x() - 8.0, bedCenter.y() - 5.0, bedCenter.z() - 8.0, bedCenter.x() + 8.0, bedCenter.y() + 5.0, bedCenter.z() + 8.0),
+-                        monster -> monster.isPreventingPlayerRest(this.level(), this)
+-                    );
+-                if (!monsters.isEmpty()) {
+-                    return Either.left(Player.BedSleepingProblem.NOT_SAFE);
+-                }
+-            }
+-
+-            Either<Player.BedSleepingProblem, Unit> result = super.startSleepInBed(bedBlock, bedBlockState, rule, pos).ifRight(unit -> {
+-                this.awardStat(bedBlock.getSleptInBedStatType());
++        // Neo: Move this earlier, because it is used later on (outside the encapsulated logic)
++        boolean canSetSpawn = rule.canSetSpawn(this.level());
++
++        // Neo: Encapsulate the vanilla logic for whether the player can sleep
++        var vanillaResult = ((java.util.function.Supplier<Either<BedSleepingProblem, Unit>>) () -> {
++
++            // Neo: For bed blocks without the FACING property, assume success
++            // Mods will have to implement their own logic using the CanPlayerSleepEvent
++            if (!bedBlockState.hasProperty(HorizontalDirectionalBlock.FACING)) {
++                return Either.right(Unit.INSTANCE);
++            }
++
++            Direction direction = bedBlockState.getValue(HorizontalDirectionalBlock.FACING);
++            if (!this.isSleeping() && this.isAlive()) {
++                boolean canSleep = rule.canSleep(this.level());
++                if (!this.bedInRange(pos, direction)) {
++                    return Either.left(Player.BedSleepingProblem.TOO_FAR_AWAY);
++                }
++
++                if (this.bedBlocked(pos, direction)) {
++                    return Either.left(Player.BedSleepingProblem.OBSTRUCTED);
++                }
++
+                 if (canSetSpawn) {
+-                    CriteriaTriggers.SLEPT_IN_BED.trigger(this);
+-                }
+-            });
+-            if (!this.level().canSleepThroughNights()) {
+-                this.sendOverlayMessage(Component.translatable("sleep.not_possible"));
+-            }
+-
+-            this.level().updateSleepingPlayerList();
+-            return result;
+-        } else {
+-            return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
+-        }
++                    this.setRespawnPosition(
++                        new ServerPlayer.RespawnConfig(LevelData.RespawnData.of(this.level().dimension(), pos, this.getYRot(), this.getXRot()), false), true
++                    );
++                }
++
++                if (!canSleep) {
++                    return Either.left(rule.asProblem());
++                }
++
++                if (!this.isCreative()) {
++                    double hRange = 8.0;
++                    double vRange = 5.0;
++                    Vec3 bedCenter = Vec3.atBottomCenterOf(pos);
++                    List<Monster> monsters = this.level()
++                        .getEntitiesOfClass(
++                            Monster.class,
++                            new AABB(bedCenter.x() - 8.0, bedCenter.y() - 5.0, bedCenter.z() - 8.0, bedCenter.x() + 8.0, bedCenter.y() + 5.0, bedCenter.z() + 8.0),
++                            monster -> monster.isPreventingPlayerRest(this.level(), this)
++                        );
++                    if (!monsters.isEmpty()) {
++                        return Either.left(Player.BedSleepingProblem.NOT_SAFE);
++                    }
++                }
++
++            } else { // Neo: Moved from end of method
++                return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
++            }
++
++            return Either.right(Unit.INSTANCE); // Neo: Nothing blocks sleep
++        }).get();
++
++        // Neo: Fire the CanPlayerStartSleeping event, and return the error if it exists
++        vanillaResult = net.neoforged.neoforge.event.EventHooks.canPlayerStartSleeping(this, pos, vanillaResult);
++        if (vanillaResult.left().isPresent()) {
++            return vanillaResult;
++        }
++
++        // Neo: Continue with the vanilla code to start sleeping
++        Either<Player.BedSleepingProblem, Unit> result = super.startSleepInBed(bedBlock, bedBlockState, rule, pos).ifRight(unit -> {
++            this.awardStat(bedBlock.getSleptInBedStatType());
++            if (canSetSpawn) {
++                CriteriaTriggers.SLEPT_IN_BED.trigger(this);
++            }
++        });
++        if (!this.level().canSleepThroughNights()) {
++            this.sendOverlayMessage(Component.translatable("sleep.not_possible"));
++        }
++
++        this.level().updateSleepingPlayerList();
++        return result;
++        // Neo: The 'else' clause here attached to the first 'if'-expression is moved earlier
+     }
+ 
+     @Override
 @@ -1300,6 +_,7 @@
      }
  

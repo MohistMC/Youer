@@ -117,7 +117,6 @@ import net.minecraft.world.level.storage.loot.predicates.LootItemRandomChanceWit
 import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.fml.ModLoader;
-import net.neoforged.fml.loading.FMLEnvironment;
 import net.neoforged.neoforge.common.ItemAbility;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.common.extensions.IFluidStateExtension;
@@ -578,9 +577,9 @@ public class EventHooks {
     }
 
     public static Either<BedSleepingProblem, Unit> canPlayerStartSleeping(ServerPlayer player, BlockPos pos, Either<BedSleepingProblem, Unit> vanillaResult) {
-        CanPlayerSleepEvent event = new CanPlayerSleepEvent(player, pos, vanillaResult.left().orElse(null));
-        NeoForge.EVENT_BUS.post(event);
-        return event.getProblem() != null ? Either.left(event.getProblem()) : Either.right(Unit.INSTANCE);
+        var event = NeoForge.EVENT_BUS.post(new CanPlayerSleepEvent(player, pos, vanillaResult.left().orElse(null)));
+        var problem = event.getProblem();
+        return problem != null ? Either.left(problem) : Either.right(Unit.INSTANCE);
     }
 
     public static void onPlayerWakeup(Player player, boolean wakeImmediately, boolean updateLevel) {
@@ -1118,8 +1117,7 @@ public class EventHooks {
                 throw new IllegalArgumentException("The stack count must be 1");
 
             if (BuildCreativeModeTabContentsEvent.isParentTab(vis)) {
-                // TODO 26.3: Remove the dev-only check, so this runs in production as well
-                if (!parentEntries.add(stack) && !FMLEnvironment.isProduction())
+                if (!parentEntries.add(stack))
                     throw new IllegalArgumentException("Stack " + stack.getDisplayName().getString() + "has already been added to the tab " + tab.getDisplayName().getString() + " previously");
             }
 
