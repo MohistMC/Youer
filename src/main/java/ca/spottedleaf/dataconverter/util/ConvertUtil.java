@@ -170,7 +170,7 @@ public final class ConvertUtil {
         if (USE_DATACONVERTER) {
             final MCDataType mcDataType = getDCType(type);
 
-            return MCDataConverter.convertTag(mcDataType, input, fromVersion, toVersion);
+            return MCDataConverter.convertTag(mcDataType, type, fixer, input, fromVersion, toVersion);
         } else {
             return (CompoundTag)fixer.update(
                 type, new Dynamic<>(NbtOps.INSTANCE, input), fromVersion, toVersion

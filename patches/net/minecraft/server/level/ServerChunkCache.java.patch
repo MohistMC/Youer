@@ -349,10 +349,35 @@
      }
  
      private void clearCache() {
-@@ -227,45 +_,62 @@
+@@ -210,62 +_,94 @@
+         Arrays.fill(this.lastChunk, null);
      }
  
-     private CompletableFuture<ChunkResult<ChunkAccess>> getChunkFutureMainThread(int x, int z, ChunkStatus targetStatus, boolean loadOrGenerate) {
+-    public CompletableFuture<ChunkResult<ChunkAccess>> getChunkFuture(int x, int z, ChunkStatus targetStatus, boolean loadOrGenerate) {
+-        boolean isMainThread = Thread.currentThread() == this.mainThread;
+-        CompletableFuture<ChunkResult<ChunkAccess>> serverFuture;
+-        if (isMainThread) {
+-            serverFuture = this.getChunkFutureMainThread(x, z, targetStatus, loadOrGenerate);
+-            this.mainThreadProcessor.managedBlock(serverFuture::isDone);
++    // Paper start - rewrite chunk system
++    public CompletableFuture<ChunkResult<ChunkAccess>> getChunkFuture(final int chunkX, final int chunkZ,
++                                                                      final ChunkStatus toStatus,
++                                                                      final boolean create) {
++        if (ca.spottedleaf.moonrise.common.util.TickThread.isTickThreadFor(this.level, chunkX, chunkZ)) {
++            final CompletableFuture<ChunkResult<ChunkAccess>> ret = this.getChunkFutureInternal(chunkX, chunkZ, toStatus, create, true);
++            this.mainThreadProcessor.managedBlock(ret::isDone);
++            return ret;
+         } else {
+-            serverFuture = CompletableFuture.<CompletableFuture<ChunkResult<ChunkAccess>>>supplyAsync(
+-                    () -> this.getChunkFutureMainThread(x, z, targetStatus, loadOrGenerate), this.mainThreadProcessor
+-                )
+-                .thenCompose(chunk -> (CompletionStage<ChunkResult<ChunkAccess>>)chunk);
+-        }
+-
+-        return serverFuture;
+-    }
+-
+-    private CompletableFuture<ChunkResult<ChunkAccess>> getChunkFutureMainThread(int x, int z, ChunkStatus targetStatus, boolean loadOrGenerate) {
 -        ChunkPos pos = new ChunkPos(x, z);
 -        long key = pos.pack();
 -        int targetTicketLevel = ChunkLevel.byStatus(targetStatus);
@@ -367,7 +392,30 @@
 -                profiler.pop();
 -                if (this.chunkAbsent(chunkHolder, targetTicketLevel)) {
 -                    throw (IllegalStateException)Util.pauseInIde(new IllegalStateException("No chunk holder after ticket has been added"));
-+        // Paper start - rewrite chunk system
++            final CompletableFuture<ChunkResult<ChunkAccess>> ret = new CompletableFuture<>();
++            ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler().scheduleChunkTask(chunkX, chunkZ, () -> {
++                ServerChunkCache.this.getChunkFutureInternal(chunkX, chunkZ, toStatus, create, false).whenComplete((c, t) -> {
++                    if (t != null) {
++                        ret.completeExceptionally(t);
++                    } else {
++                        ret.complete(c);
++                    }
++                });
++            });
++            return ret;
++        }
++    }
++
++    public CompletableFuture<ChunkResult<ChunkAccess>> getChunkFutureMainThread(final int chunkX, final int chunkZ,
++                                                                                final ChunkStatus toStatus,
++                                                                                final boolean create) {
++        return this.getChunkFutureInternal(chunkX, chunkZ, toStatus, create, false);
++    }
++
++
++    private CompletableFuture<ChunkResult<ChunkAccess>> getChunkFutureInternal(
++        final int x, final int z, final ChunkStatus targetStatus, final boolean loadOrGenerate, final boolean intendingToBlock
++    ) {
 +        ca.spottedleaf.moonrise.common.util.TickThread.ensureTickThread(this.level, x, z, "Scheduling chunk load off-main");
 +
 +        final int minLevel = ChunkLevel.byStatus(targetStatus);
@@ -393,9 +441,9 @@
 +            };
 +
 +            ((ca.spottedleaf.moonrise.patches.chunk_system.level.ChunkSystemServerLevel)this.level).moonrise$getChunkTaskScheduler().scheduleChunkLoad(
-+                    x, z, targetStatus, true,
-+                    ca.spottedleaf.concurrentutil.util.Priority.HIGHER,
-+                    complete
++                x, z, targetStatus, true,
++                intendingToBlock ? ca.spottedleaf.concurrentutil.util.Priority.BLOCKING : ca.spottedleaf.concurrentutil.util.Priority.NORMAL,
++                complete
 +            );
 +
 +            return ret;
@@ -407,8 +455,8 @@
 -        return this.chunkAbsent(chunkHolder, targetTicketLevel)
 -            ? GenerationChunkHolder.UNLOADED_CHUNK_FUTURE
 -            : chunkHolder.scheduleChunkGenerationTask(targetStatus, this.chunkMap);
-+        // Paper end - rewrite chunk system
      }
++    // Paper end - rewrite chunk system
  
      private boolean chunkAbsent(@Nullable ChunkHolder chunkHolder, int targetTicketLevel) {
 -        return chunkHolder == null || chunkHolder.getTicketLevel() > targetTicketLevel;

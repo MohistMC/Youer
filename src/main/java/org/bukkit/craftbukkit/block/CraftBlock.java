@@ -439,7 +439,6 @@ public class CraftBlock implements Block {
 
     @Override
     public boolean isSolid() {
-        // TODO - snapshot - if datapacks can change this maybe consider deprecate this or improvement the javadocs
         return this.getBlockState().is(BlockTags.BLOCKS_MOTION);
     }
 

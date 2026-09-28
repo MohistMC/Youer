@@ -1235,7 +1235,7 @@
          if (entity instanceof ServerPlayer player) {
              this.updatePlayerStatus(player, false);
  
-@@ -1175,12 +_,59 @@
+@@ -1175,12 +_,93 @@
          if (trackedEntity != null) {
              trackedEntity.broadcastRemoved();
          }
@@ -1247,6 +1247,40 @@
 +        // Paper end - optimise entity tracker
 +    }
 +
++    // Paper start - rewrite chunk system
++    @Override
++    public net.minecraft.world.level.chunk.storage.ChunkScanAccess chunkScanner() {
++        return (chunkPos, streamTagVisitor) -> {
++            final CompletableFuture<Void> ret = new CompletableFuture<>();
++
++            ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.loadDataAsync(
++                ChunkMap.this.level, chunkPos.x(), chunkPos.z(), ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.RegionFileType.CHUNK_DATA,
++                (java.util.function.BiConsumer<net.minecraft.nbt.CompoundTag, Throwable> & ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.NoCopyNBTData) (final CompoundTag data, final Throwable thr) -> {
++                    if (thr != null) {
++                        ret.completeExceptionally(thr);
++                        return;
++                    }
++
++                    if (data == null) {
++                        ret.complete(null);
++                        return;
++                    }
++
++                    try {
++                        data.acceptAsRoot(streamTagVisitor);
++
++                        ret.complete(null);
++                    } catch (final Throwable thr2) {
++                        ret.completeExceptionally(thr2);
++                        LOGGER.error("Error while scanning chunk " + chunkPos + " in world '" + ca.spottedleaf.moonrise.common.util.WorldUtil.getWorldName(ChunkMap.this.level) + "':", thr2);
++                    }
++                }, false
++            );
++
++            return ret;
++        };
++    }
++    // Paper end - rewrite chunk system
 +    // Paper start - optimise entity tracker
 +    private static final Entity[] EMPTY_ENTITY_ARRAY = new Entity[0];
 +    private ca.spottedleaf.moonrise.common.list.ReferenceList<net.minecraft.world.entity.Entity> trackerEntities = new ca.spottedleaf.moonrise.common.list.ReferenceList<>(EMPTY_ENTITY_ARRAY);

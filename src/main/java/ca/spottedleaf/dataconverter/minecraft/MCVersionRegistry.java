@@ -28,6 +28,10 @@ public final class MCVersionRegistry {
     private static final LongLinkedOpenHashSet DATACONVERTER_VERSIONS = new LongLinkedOpenHashSet();
     private static final Int2ObjectLinkedOpenHashMap<IntArrayList> SUBVERSIONS = new Int2ObjectLinkedOpenHashMap<>();
     private static final LongArrayList BREAKPOINTS = new LongArrayList();
+
+    // Anything above this version will pass conversion through Vanilla fixers instead
+    private static final int MAX_IMPLEMENTED_VERSION = MCVersions.V26_3;
+
     static {
         // Note: Some of these are nameless.
         // Unless a data version is specified here, it will NOT have converters ran for it. Please add them on update!
@@ -517,6 +521,10 @@ public final class MCVersionRegistry {
 
     public static int getMaxVersion() {
         return VERSION_LIST.getInt(VERSION_LIST.size() - 1);
+    }
+
+    public static int getMaxImplementedVersion() {
+        return MAX_IMPLEMENTED_VERSION;
     }
 
     public static LongArrayList getBreakpoints() {

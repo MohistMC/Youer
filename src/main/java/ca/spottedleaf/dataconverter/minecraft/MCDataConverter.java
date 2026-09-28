@@ -7,12 +7,22 @@ import ca.spottedleaf.dataconverter.minecraft.versions.V99;
 import ca.spottedleaf.dataconverter.types.json.JsonMapType;
 import ca.spottedleaf.dataconverter.types.nbt.NBTMapType;
 import com.google.gson.JsonObject;
+import com.mojang.datafixers.DSL;
+import com.mojang.datafixers.DataFixer;
+import com.mojang.logging.LogUtils;
+import com.mojang.serialization.Dynamic;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtOps;
+import net.minecraft.util.datafix.DataFixTypes;
+import net.minecraft.util.datafix.DataFixers;
+import org.slf4j.Logger;
 
 public final class MCDataConverter {
 
     private static final LongArrayList BREAKPOINTS = MCVersionRegistry.getBreakpoints();
+    private static final Logger LOGGER = LogUtils.getLogger();
+    private static boolean warnedForPassOn;
 
     public static <T> T copy(final T type) {
         if (type instanceof CompoundTag) {
@@ -22,6 +32,47 @@ public final class MCDataConverter {
         }
 
         return type;
+    }
+
+    public static CompoundTag convertTag(final MCDataType type, final DataFixTypes vanillaType, final CompoundTag data, final int fromVersion, final int toVersion) {
+        final int maxVersion = MCVersionRegistry.getMaxImplementedVersion();
+        if (toVersion > maxVersion) {
+            warnPassOn(toVersion);
+
+            // Convert what we can first
+            final CompoundTag converted = fromVersion < maxVersion ? convertTag(type, data, fromVersion, maxVersion) : data;
+
+            // Convert the rest via Vanilla fixers
+            return vanillaType.update(DataFixers.getDataFixer(), converted, Math.max(fromVersion, maxVersion), toVersion);
+        }
+
+        return convertTag(type, data, fromVersion, toVersion);
+    }
+
+    public static CompoundTag convertTag(final MCDataType type, final DSL.TypeReference vanillaType, final DataFixer fixer, final CompoundTag data, final int fromVersion, final int toVersion) {
+        final int maxVersion = MCVersionRegistry.getMaxImplementedVersion();
+        if (toVersion > maxVersion) {
+            warnPassOn(toVersion);
+
+            // Convert what we can first
+            final CompoundTag converted = fromVersion < maxVersion ? convertTag(type, data, fromVersion, maxVersion) : data;
+
+            // Convert the rest via Vanilla fixers
+            return (CompoundTag)fixer.update(
+                vanillaType,
+                new Dynamic<>(NbtOps.INSTANCE, converted),
+                Math.max(fromVersion, maxVersion), toVersion
+            ).getValue();
+        }
+
+        return convertTag(type, data, fromVersion, toVersion);
+    }
+
+    private static void warnPassOn(final int toVersion) {
+        if (!warnedForPassOn) {
+            warnedForPassOn = true;
+            LOGGER.warn("Passing on conversion to Vanilla converters to version: {}", toVersion);
+        }
     }
 
     public static CompoundTag convertTag(final MCDataType type, final CompoundTag data, final int fromVersion, final int toVersion) {
