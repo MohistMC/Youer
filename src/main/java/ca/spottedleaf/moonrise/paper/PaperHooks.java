@@ -225,12 +225,12 @@ public final class PaperHooks extends BaseChunkSystemHooks implements PlatformHo
 
     @Override
     public int configMinChunkUnloadCount(final ServerLevel world) {
-        return 50;
+        return world.paperConfig().chunks.minChunkUnloadCount;
     }
 
     @Override
     public double configMinChunkUnloadFraction(final ServerLevel world) {
-        return 0.05;
+        return world.paperConfig().chunks.minChunkUnloadFraction;
     }
 
     @Override

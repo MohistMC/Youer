@@ -179,7 +179,7 @@ import net.neoforged.fml.i18n.MavenVersionTranslator;
 import net.neoforged.fml.loading.toposort.CyclePresentException;
 import net.neoforged.fml.loading.toposort.TopologicalSort;
 import net.neoforged.neoforge.common.conditions.ConditionalOps;
-import net.neoforged.neoforge.common.config.NeoForgeServerConfig;
+import net.neoforged.neoforge.common.config.NeoForgeSyncedConfig;
 import net.neoforged.neoforge.common.damagesource.DamageContainer;
 import net.neoforged.neoforge.common.extensions.IBlockExtension;
 import net.neoforged.neoforge.common.extensions.IEntityExtension;
@@ -417,7 +417,7 @@ public class CommonHooks {
         boolean isSpectator = (entity instanceof Player && entity.isSpectator());
         if (isSpectator)
             return Optional.empty();
-        if (!NeoForgeServerConfig.INSTANCE.fullBoundingBoxLadders.get()) {
+        if (!NeoForgeSyncedConfig.INSTANCE.fullBoundingBoxLadders.get()) {
             return state.isLadder(level, pos, entity) ? Optional.of(pos) : Optional.empty();
         } else {
             AABB bb = entity.getBoundingBox();
