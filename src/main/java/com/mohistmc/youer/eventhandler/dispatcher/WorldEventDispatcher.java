@@ -17,7 +17,6 @@
 
 package com.mohistmc.youer.eventhandler.dispatcher;
 
-import net.minecraft.server.level.FullChunkStatus;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.neoforged.bus.api.SubscribeEvent;

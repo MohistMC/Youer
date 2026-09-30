@@ -1157,7 +1157,7 @@
          return this.decorateDisplayNameComponent(mutablecomponent);
      }
  
-@@ -2004,32 +_,44 @@
+@@ -2004,32 +_,49 @@
          return ImmutableList.of(Pose.STANDING, Pose.CROUCHING, Pose.SWIMMING);
      }
  
@@ -1203,18 +1203,15 @@
  
      @Override
      public ItemStack eat(Level p_36185_, ItemStack p_36186_, FoodProperties p_347562_) {
++        if (BanEat.check(this, p_36186_)){
++            ((ServerPlayer) this).getBukkitEntity().updateInventory();
++            ((ServerPlayer) this).getBukkitEntity().updateScaledHealth();
++            return p_36186_;
++        }
 +        this.getFoodData().eat$itemstack = p_36186_; // CraftBukkit - add item to parameter // Youer
          this.getFoodData().eat(p_347562_);
          this.awardStat(Stats.ITEM_USED.get(p_36186_.getItem()));
          p_36185_.playSound(
-@@ -2040,6 +_,7 @@
-         }
- 
-         ItemStack itemstack = super.eat(p_36185_, p_36186_, p_347562_);
-+        if (BanEat.check(this, p_36186_)) return itemstack;
-         Optional<ItemStack> optional = p_347562_.usingConvertsTo();
-         if (optional.isPresent() && !this.hasInfiniteMaterials()) {
-             if (itemstack.isEmpty()) {
 @@ -2047,7 +_,10 @@
              }
  

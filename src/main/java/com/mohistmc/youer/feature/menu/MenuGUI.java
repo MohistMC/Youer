@@ -5,7 +5,6 @@ import com.mohistmc.youer.api.gui.DefaultGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.GUIType;
 import com.mohistmc.youer.api.gui.ItemStackFactory;
-import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.feature.GlobalVariableSystem;
 import java.util.List;
 import java.util.Map;

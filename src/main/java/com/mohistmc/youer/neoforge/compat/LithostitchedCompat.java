@@ -4,16 +4,20 @@ import com.google.common.base.Suppliers;
 import dev.worldgen.lithostitched.Lithostitched;
 import dev.worldgen.lithostitched.api.event.AddBiomeInjectorsEvent;
 import dev.worldgen.lithostitched.api.event.AddRegionsEvent;
+import dev.worldgen.lithostitched.api.registry.LithostitchedRegistries;
 import dev.worldgen.lithostitched.api.tag.LithostitchedBiomeSourceTags;
+import dev.worldgen.lithostitched.api.worldgen.biomeinjector.BiomeInjector;
 import dev.worldgen.lithostitched.api.worldgen.util.DensityFunctionWrapper;
 import dev.worldgen.lithostitched.impl.LithostitchedVersion;
 import dev.worldgen.lithostitched.impl.worldgen.biomeinjector.internal.InjectorBiomeSource;
+import dev.worldgen.lithostitched.impl.worldgen.biomeinjector.region.Region;
 import dev.worldgen.lithostitched.mixin.common.BiomeSourceInvoker;
 import dev.worldgen.lithostitched.mixin.common.ChunkGeneratorAccessor;
 import dev.worldgen.lithostitched.mixin.common.RandomStateAccessor;
-import dev.worldgen.lithostitched.api.registry.LithostitchedRegistries;
-import dev.worldgen.lithostitched.api.worldgen.biomeinjector.BiomeInjector;
-import dev.worldgen.lithostitched.impl.worldgen.biomeinjector.region.Region;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -27,8 +31,6 @@ import net.minecraft.world.level.dimension.LevelStem;
 import net.minecraft.world.level.levelgen.DensityFunction;
 import net.minecraft.world.level.levelgen.NoiseBasedChunkGenerator;
 import net.minecraft.world.level.levelgen.RandomState;
-
-import java.util.*;
 
 /**
  * Copy form <a href="https://github.com/Apollounknowndev/lithostitched/blob/8102667dc465377e19691e152493e0ca246f4ce6/src/common/main/java/dev/worldgen/lithostitched/impl/worldgen/biomeinjector/internal/BiomeInjectorManager.java#L33">...</a>

@@ -1,5 +1,6 @@
 package com.mohistmc.youer.commands;
 
+import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -21,11 +22,11 @@ public class VanishCommand extends BukkitCommand {
         this.usageMessage = "/vanish";
         this.setPermission("youer.command.vanish");
     }
-    
+
     @Override
     public boolean execute(@NotNull CommandSender sender, @NotNull String label, String[] args) {
         if (!(sender instanceof Player p)) {
-            sender.sendMessage("&cThe console is not available.");
+            sender.sendMessage(I18n.as("vanish.console"));
             return false;
         }
         if (args.length != 0 || !p.isOp()) {
@@ -37,18 +38,18 @@ public class VanishCommand extends BukkitCommand {
                             pl.hidePlayer(p2);
                         }
                         VanishCommand.vanished.add(p2);
-                        p2.sendMessage("&2Incognito mode is turned on");
+                        p2.sendMessage(I18n.as("vanish.on"));
                         return true;
                     }
                     for (Player pl : Bukkit.getServer().getOnlinePlayers()) {
                         pl.showPlayer(p2);
                     }
                     VanishCommand.vanished.remove(p2);
-                    p2.sendMessage("&2Incognito mode is turned off");
+                    p2.sendMessage(I18n.as("vanish.off"));
                     return true;
                 }
                 else {
-                    p.sendMessage("&cThe player is not online");
+                    p.sendMessage(I18n.as("vanish.notonline"));
                 }
             }
             return false;
@@ -58,14 +59,14 @@ public class VanishCommand extends BukkitCommand {
                 pl2.hidePlayer(p);
             }
             VanishCommand.vanished.add(p);
-            p.sendMessage("&2Incognito mode is turned on");
+            p.sendMessage(I18n.as("vanish.on"));
             return true;
         }
         for (Player pl2 : Bukkit.getServer().getOnlinePlayers()) {
             pl2.showPlayer(p);
         }
         VanishCommand.vanished.remove(p);
-        p.sendMessage("&2Incognito mode is turned off");
+        p.sendMessage(I18n.as("vanish.off"));
         return true;
     }
 }

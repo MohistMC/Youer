@@ -3,7 +3,6 @@ package com.mohistmc.youer.commands;
 import com.mohistmc.youer.feature.pulsegrasp.PulseGrasp;
 import com.mohistmc.youer.util.I18n;
 import java.util.List;
-import net.md_5.bungee.api.ChatColor;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;

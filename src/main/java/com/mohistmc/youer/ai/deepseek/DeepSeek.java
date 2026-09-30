@@ -6,7 +6,6 @@ import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;

@@ -19,6 +19,7 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.util.Waitable;
 
@@ -131,10 +132,16 @@ public final class MCUtil {
     }
 
     public static Location toLocation(Level world, double x, double y, double z) {
+        if (world == null) {
+            world = MinecraftServer.getServer().overworld();
+        }
         return new Location(world.getWorld(), x, y, z);
     }
 
     public static Location toLocation(Level world, BlockPos pos) {
+        if (world == null) {
+           world = MinecraftServer.getServer().overworld();
+        }
         return new Location(world.getWorld(), pos.getX(), pos.getY(), pos.getZ());
     }
 
