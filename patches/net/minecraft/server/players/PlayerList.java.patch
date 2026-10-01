@@ -651,7 +651,7 @@
          UUID uuid = p_295670_.getId();
          Set<ServerPlayer> set = Sets.newIdentityHashSet();
  
-@@ -434,72 +_,274 @@
+@@ -434,49 +_,84 @@
          }
  
          return !set.isEmpty();
@@ -696,7 +696,7 @@
              serverplayer.addTag(s);
          }
 +        serverplayer.spawnIn(serverlevel);
-+        serverplayer.unsetRemoved();;
++        serverplayer.unsetRemoved();
 +        serverplayer.setShiftKeyDown(false);
  
          Vec3 vec3 = dimensiontransition.pos();
@@ -744,36 +744,24 @@
          if (!p_11238_) {
              BlockPos blockpos = BlockPos.containing(dimensiontransition.pos());
              BlockState blockstate = serverlevel.getBlockState(blockpos);
-             if (blockstate.is(Blocks.RESPAWN_ANCHOR)) {
-                 serverplayer.connection
--                    .send(
--                        new ClientboundSoundPacket(
--                            SoundEvents.RESPAWN_ANCHOR_DEPLETE,
--                            SoundSource.BLOCKS,
+@@ -486,20 +_,187 @@
+                         new ClientboundSoundPacket(
+                             SoundEvents.RESPAWN_ANCHOR_DEPLETE,
+                             SoundSource.BLOCKS,
 -                            (double)blockpos.getX(),
 -                            (double)blockpos.getY(),
 -                            (double)blockpos.getZ(),
--                            1.0F,
--                            1.0F,
--                            serverlevel.getRandom().nextLong()
--                        )
--                    );
--            }
++                            (double) blockpos.getX(),
++                            (double) blockpos.getY(),
++                            (double) blockpos.getZ(),
+                             1.0F,
+                             1.0F,
+                             serverlevel.getRandom().nextLong()
+                         )
+                     );
+             }
 -        }
 -
-+                        .send(
-+                                new ClientboundSoundPacket(
-+                                        SoundEvents.RESPAWN_ANCHOR_DEPLETE,
-+                                        SoundSource.BLOCKS,
-+                                        (double)blockpos.getX(),
-+                                        (double)blockpos.getY(),
-+                                        (double)blockpos.getZ(),
-+                                        1.0F,
-+                                        1.0F,
-+                                        serverlevel.getRandom().nextLong()
-+                                )
-+                        );
-+            }
 +            // Paper start - Add PlayerPostRespawnEvent
 +            if (blockstate.is(net.minecraft.tags.BlockTags.BEDS) && !dimensiontransition.missingRespawnBlock()) {
 +                isBedSpawn = true;

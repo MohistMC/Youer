@@ -74,7 +74,7 @@ public class BukkitDamageHooks {
                     int i = (livingEntity.getEffect(MobEffects.DAMAGE_RESISTANCE).getAmplifier() + 1) * 5;
                     int j = 25 - i;
                     float f1 = f.floatValue() * (float) j;
-                    return -(f - (f1 / 25.0F));
+                    return -(f - Math.max(f1 / 25.0F, 0.0F));
                 }
                 return -0.0;
             }
