@@ -4,8 +4,8 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Suppliers;
 import com.google.common.collect.Maps;
 import com.google.common.collect.Multimap;
-import com.mohistmc.dynamicenum.MohistDynamEnum;
 import com.mohistmc.youer.api.ItemAPI;
+import com.mohistmc.youer.asm.EnumBatcher;
 import java.lang.reflect.Constructor;
 import java.util.List;
 import java.util.Locale;
@@ -5654,26 +5654,34 @@ public enum Material implements Keyed, Translatable, net.kyori.adventure.transla
         return blockType.get();
     }
 
-    public static Material addMaterial(String materialName, int id, int stack, boolean isBlock, boolean isItem, ResourceLocation resourceLocation) {
-        if (isBlock) {
-            Material material = BY_NAME.get(materialName);
-            if (material != null) {
-                material.isModBlock = true;
-            } else {
-                material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, isBlock, isItem));
-            }
-            BY_NAME.put(materialName, material);
-            material.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
-            BY_KEY.put(resourceLocation.toString(), material);
-            return material;
-        } else { // Forge Items
-            Material material = MohistDynamEnum.addEnum(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, isBlock, isItem));
-            BY_NAME.put(materialName, material);
-            material.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
-            material.isModItem = true;
-            BY_KEY.put(resourceLocation.toString(), material);
-            return material;
+    // create every missing constant in one enum grow instead of one array copy per material
+    public static void addMaterials(List<String> materialNames, List<List<Object>> args) {
+        List<Material> added = EnumBatcher.addAll(Material.class, materialNames,
+                List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), args);
+        if (added == null) {
+            return;
         }
+        for (int i = 0; i < added.size(); i++) {
+            BY_NAME.put(materialNames.get(i), added.get(i));
+        }
+    }
+
+    public static Material addMaterial(String materialName, int id, int stack, boolean isBlock, boolean isItem, ResourceLocation resourceLocation) {
+        // reuse an existing entry instead of registering a duplicate enum constant
+        Material material = BY_NAME.get(materialName);
+        if (material == null) {
+            material = EnumBatcher.add(Material.class, materialName, List.of(Integer.TYPE, Integer.TYPE, Boolean.TYPE, Boolean.TYPE), List.of(id, stack, isBlock, isItem));
+            if (material == null) return null;
+        }
+        if (isBlock) {
+            material.isModBlock = true;
+        } else {
+            material.isModItem = true;
+        }
+        BY_NAME.put(materialName, material);
+        material.key = CraftNamespacedKey.fromMinecraft(resourceLocation);
+        BY_KEY.put(resourceLocation.toString(), material);
+        return material;
     }
 
     // Purpur start

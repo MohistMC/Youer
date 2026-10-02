@@ -213,13 +213,18 @@ public class ItemsCommand extends Command {
             return false;
         }
 
-        if (!(sender instanceof Player player)) {
-            sender.sendMessage(ChatColor.RED + I18n.as("error.notplayer"));
+        if (args.length == 0) {
+            sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", usageMessage));
             return false;
         }
 
-        if (args.length == 0) {
-            sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", usageMessage));
+        // takes the target as an argument, so the console can run it too
+        if (args[0].equalsIgnoreCase("give")) {
+            return give(sender, args);
+        }
+
+        if (!(sender instanceof Player player)) {
+            sender.sendMessage(ChatColor.RED + I18n.as("error.notplayer"));
             return false;
         }
 
@@ -260,7 +265,7 @@ public class ItemsCommand extends Command {
                     sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items save <name>"));
                     return false;
                 }
-                ItemsConfig.INSTANCE.put("items." + args[1], itemStack);
+                ItemsConfig.INSTANCE.put("items." + args[1], ItemAPI.getBase64byBukkit(itemStack));
                 sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.itemSavedSuccessfully"));
                 return true;
             }
@@ -433,54 +438,6 @@ public class ItemsCommand extends Command {
                 }
                 return true;
             }
-            case "give" -> {
-                if (args.length < 3 || args.length > 4) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items give <player> <name> [amount]"));
-                    return false;
-                }
-
-                Player targetPlayer = org.bukkit.Bukkit.getPlayerExact(args[1]);
-                if (targetPlayer == null) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("youercmd.heal.playernotfound", args[1]));
-                    return false;
-                }
-
-                ItemStack itemToGive = ItemsConfig.INSTANCE.get(args[2]);
-                if (itemToGive.getType().isAir()) {
-                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.itemNotFound"));
-                    return false;
-                }
-
-                int amount = 1;
-                if (args.length == 4) {
-                    try {
-                        amount = Integer.parseInt(args[3]);
-                        if (amount <= 0) {
-                            sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.amountMustBePositive"));
-                            return false;
-                        }
-                        if (amount > itemToGive.getMaxStackSize()) {
-                            sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.amountTooLarge", itemToGive.getMaxStackSize()));
-                            return false;
-                        }
-                    } catch (NumberFormatException e) {
-                        sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.invalidAmount"));
-                        return false;
-                    }
-                }
-
-                ItemStack itemWithAmount = itemToGive.clone();
-                itemWithAmount.setAmount(amount);
-
-                if (targetPlayer.getInventory().firstEmpty() != -1) {
-                    targetPlayer.getInventory().addItem(itemWithAmount);
-                } else {
-                    targetPlayer.sendMessage(ChatColor.RED + I18n.as("itemscmd.inventoryFull"));
-                    return false;
-                }
-                sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.giveSuccess", amount, args[2], args[1]));
-                return true;
-            }
             case "remove" -> {
                 if (args.length != 2) {
                     sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items remove <name>"));
@@ -584,6 +541,60 @@ public class ItemsCommand extends Command {
                 return false;
             }
         }
+    }
+
+    /**
+     * Gives a saved item to a player, runnable from the console.
+     */
+    private boolean give(@NotNull CommandSender sender, @NotNull String[] args) {
+        if (args.length < 3 || args.length > 4) {
+            sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items give <player> <name> [amount]"));
+            return false;
+        }
+
+        Player targetPlayer = org.bukkit.Bukkit.getPlayerExact(args[1]);
+        if (targetPlayer == null) {
+            sender.sendMessage(ChatColor.RED + I18n.as("youercmd.heal.playernotfound", args[1]));
+            return false;
+        }
+
+        ItemStack itemToGive = ItemsConfig.INSTANCE.get(args[2]);
+        if (itemToGive.getType().isAir()) {
+            sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.itemNotFound"));
+            return false;
+        }
+
+        int amount = 1;
+        if (args.length == 4) {
+            try {
+                amount = Integer.parseInt(args[3]);
+                if (amount <= 0) {
+                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.amountMustBePositive"));
+                    return false;
+                }
+                if (amount > itemToGive.getMaxStackSize()) {
+                    sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.amountTooLarge", itemToGive.getMaxStackSize()));
+                    return false;
+                }
+            } catch (NumberFormatException e) {
+                sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.invalidAmount"));
+                return false;
+            }
+        }
+
+        ItemStack itemWithAmount = itemToGive.clone();
+        itemWithAmount.setAmount(amount);
+
+        if (targetPlayer.getInventory().firstEmpty() == -1) {
+            targetPlayer.sendMessage(ChatColor.RED + I18n.as("itemscmd.inventoryFull"));
+            if (sender != targetPlayer) {
+                sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.inventoryFull"));
+            }
+            return false;
+        }
+        targetPlayer.getInventory().addItem(itemWithAmount);
+        sender.sendMessage(ChatColor.GREEN + I18n.as("itemscmd.giveSuccess", amount, args[2], args[1]));
+        return true;
     }
 
     private org.bukkit.attribute.Attribute getAttributeFromString(String input) {

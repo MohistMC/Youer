@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -65,6 +66,9 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
     private final Map<String, BiMap<Field, String>> cacheFields = new ConcurrentHashMap<>();
     private final Map<String, Map.Entry<Map<Method, String>, Map<WrappedMethod, Method>>> cacheMethods = new ConcurrentHashMap<>();
     private final Map<String, Boolean> cacheRemap = new ConcurrentHashMap<>();
+    // kept so it can be unregistered from GlobalClassRepo when the plugin is unloaded
+    private final ClassLoaderRepo repo;
+    private final Set<String> runtimeClasses = ConcurrentHashMap.newKeySet();
 
     public ClassLoaderRemapper(JarMapping jarMapping, JarMapping toBukkitMapping, ClassLoader classLoader) {
         super(jarMapping);
@@ -76,7 +80,15 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
         this.generatedHandlerClass = generateReflectionHandler();
         this.generatedHandler = Type.getInternalName(generatedHandlerClass);
         this.generatedHandlerAdapter = new GeneratedHandlerAdapter(REPLACED_NAME, generatedHandler);
-        GlobalClassRepo.INSTANCE.addRepo(new ClassLoaderRepo(this.classLoader));
+        this.repo = new ClassLoaderRepo(this.classLoader);
+        GlobalClassRepo.INSTANCE.addRepo(this.repo);
+    }
+
+    // drop repo + runtime entries so an unloaded plugin's ClassLoader can be GC'd
+    public void dispose() {
+        GlobalClassRepo.INSTANCE.removeRepo(this.repo);
+        for (String name : runtimeClasses) GlobalClassRepo.runtimeRepo().remove(name);
+        runtimeClasses.clear();
     }
 
     public JarMapping toBukkitMapping() {
@@ -277,7 +289,7 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
     }
 
     public byte[] remapClassFile(byte[] in, ClassRepo repo, boolean runtime) {
-        if (runtime) GlobalClassRepo.runtimeRepo().put(in);
+        if (runtime) runtimeClasses.add(GlobalClassRepo.runtimeRepo().put(in));
         return remapClassFile(new ClassReader(in), repo);
     }
 

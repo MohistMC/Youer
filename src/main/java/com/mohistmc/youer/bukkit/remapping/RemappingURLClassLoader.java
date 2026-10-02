@@ -110,4 +110,12 @@ public class RemappingURLClassLoader extends URLClassLoader implements Remapping
         }
         return remapper;
     }
+
+    // release without lazily creating one, so unloading drops the ClassLoader reference
+    public void disposeRemapper() {
+        if (remapper != null) {
+            remapper.dispose();
+            remapper = null;
+        }
+    }
 }

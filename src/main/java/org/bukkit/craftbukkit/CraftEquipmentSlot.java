@@ -1,6 +1,6 @@
 package org.bukkit.craftbukkit;
 
-import com.mohistmc.dynamicenum.MohistDynamEnum;
+import com.mohistmc.youer.asm.EnumBatcher;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -35,7 +35,7 @@ public class CraftEquipmentSlot {
             return GROUPSS.get(nms);
         }
         if (nms.ordinal() < 0 || nms.ordinal() >= CraftEquipmentSlot.enums.length) {
-            EquipmentSlot type = MohistDynamEnum.addEnum(EquipmentSlot.class, nms.name());
+            EquipmentSlot type = EnumBatcher.add(EquipmentSlot.class, nms.name());
             type.group1 = org.bukkit.inventory.EquipmentSlotGroup.get(nms.getSerializedName(),  type);
             GROUPS.put(type, nms);
             GROUPSS.put(nms, type);

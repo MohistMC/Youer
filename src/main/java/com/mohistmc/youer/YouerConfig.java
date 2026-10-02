@@ -125,8 +125,6 @@ public class YouerConfig {
     public static boolean quit_message;
     public static boolean bukkitpermissionshandler;
     public static boolean recipe_warn;
-    public static boolean permissions_debug_console;
-    public static boolean permissions_send_player;
     public static boolean watchdog_spigot;
     public static boolean watchdog_mohist;
     public static boolean pluginchannel_debug;
@@ -368,8 +366,6 @@ public class YouerConfig {
 
         recipe_warn = getBoolean("recipe.warn", false);
 
-        permissions_debug_console = getBoolean("permissions.debug.console", false);
-        permissions_send_player = getBoolean("permissions.debug.player", false);
         pluginchannel_debug = getBoolean("pluginchannel.debug", false);
 
         deepseek_enable = getBoolean("deepseek.enable", false);

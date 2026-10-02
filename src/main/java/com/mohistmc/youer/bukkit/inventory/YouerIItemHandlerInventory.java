@@ -35,9 +35,13 @@ public class YouerIItemHandlerInventory implements Container {
     private final List<HumanEntity> transaction = new ArrayList<>();
 
     public YouerIItemHandlerInventory(@Nonnull IItemHandler delegate, @Nullable Object nmsOwner) {
+        this(delegate, nmsOwner, InventoryOwner.getContainer(delegate));
+    }
+
+    public YouerIItemHandlerInventory(@Nonnull IItemHandler delegate, @Nullable Object nmsOwner, @Nullable Container original) {
         this.nmsOwner = nmsOwner;
         this.delegate = delegate;
-        this.original = InventoryOwner.getContainer(delegate);
+        this.original = original;
     }
 
     public YouerIItemHandlerInventory(@Nonnull Pair<IItemHandler, Object> input) {

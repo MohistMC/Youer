@@ -21,6 +21,11 @@ public class PluginInheritanceProvider implements InheritanceProvider {
 
     private static final Map<String, Collection<String>> SHARED_INHERITANCE_MAP = new ConcurrentHashMap<>();
 
+    // drop cached inheritance data when a plugin is unloaded
+    public static void clear() {
+        SHARED_INHERITANCE_MAP.clear();
+    }
+
     private final ClassRepo classRepo;
 
     public PluginInheritanceProvider(ClassRepo classRepo) {

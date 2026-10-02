@@ -17,6 +17,7 @@
 
 package com.mohistmc.youer.eventhandler.dispatcher;
 
+import com.mohistmc.youer.api.WorldAPI;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -30,6 +31,7 @@ public class WorldEventDispatcher {
     @SubscribeEvent
     public void onWorldUnload(LevelEvent.Unload event) {
         if (event.getLevel() instanceof ServerLevel serverLevel) {
+            WorldAPI.removeWorldName(serverLevel.getWorld().getName());
             ((CraftServer) Bukkit.getServer()).removeWorld(serverLevel);
         }
     }

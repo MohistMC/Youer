@@ -65,8 +65,22 @@ public class SwitchTableFixer implements Implementer, Function<byte[], byte[]> {
         return arr;
     }
 
+    // switch map methods always guard with try-catch NoSuchFieldError, so skip the ASM round-trip when absent
+    private static final byte[] NO_SUCH_FIELD_ERROR = "NoSuchFieldError".getBytes(java.nio.charset.StandardCharsets.UTF_8);
+
+    private static boolean contains(byte[] data, byte[] pattern) {
+        int limit = data.length - pattern.length;
+        for (int i = 0; i <= limit; i++) {
+            int j = 0;
+            while (j < pattern.length && data[i + j] == pattern[j]) j++;
+            if (j == pattern.length) return true;
+        }
+        return false;
+    }
+
     @Override
     public byte[] apply(byte[] bytes) {
+        if (!contains(bytes, NO_SUCH_FIELD_ERROR)) return bytes;
         ClassNode node = new ClassNode();
         new ClassReader(bytes).accept(node, 0);
         processClass(node);
@@ -140,6 +154,7 @@ public class SwitchTableFixer implements Implementer, Function<byte[], byte[]> {
                 list.add(new InsnNode(Opcodes.DUP));
                 list.add(new FieldInsnNode(Opcodes.PUTSTATIC, fieldInsnNode.owner, fieldInsnNode.name, fieldInsnNode.desc));
                 method.instructions.insertBefore(last, list);
+                method.maxStack = Math.max(method.maxStack, 4); // injected insns need a bit more stack
                 Implementer.LOGGER.debug(MARKER, "Inject method in method {}:{}, switch table field is {}", node.name, method.name + method.desc, fieldInsnNode.name + fieldInsnNode.desc);
                 return true;
             }
@@ -196,6 +211,7 @@ public class SwitchTableFixer implements Implementer, Function<byte[], byte[]> {
                     list.add(new MethodInsnNode(Opcodes.INVOKESTATIC, Type.getInternalName(SwitchTableFixer.class), "fillSwitchTable2", "([ILjava/lang/Class;)[I", false));
                     list.add(new FieldInsnNode(Opcodes.PUTSTATIC, fieldInsnNode.owner, fieldInsnNode.name, fieldInsnNode.desc));
                     method.instructions.insertBefore(last, list);
+                    method.maxStack = Math.max(method.maxStack, 4); // injected insns need a bit more stack
                     Implementer.LOGGER.debug(MARKER, "Inject method in method {}:{}, switch table field is {}", node.name, method.name + method.desc, fieldInsnNode.name + fieldInsnNode.desc);
                     return true;
                 }

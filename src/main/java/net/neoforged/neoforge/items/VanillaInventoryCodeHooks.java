@@ -106,7 +106,7 @@ public class VanillaInventoryCodeHooks {
                         // CraftBukkit start - Fire event when pushing items into other inventories
                         CraftItemStack oitemstack = CraftItemStack.asCraftMirror(dispensedStack);
                         Inventory destinationInventory = InventoryOwner.getOwnerInventory(destination, itemHandler);
-                        InventoryMoveItemEvent event = new InventoryMoveItemEvent(dropper.getOwner().getInventory(), oitemstack.clone(), destinationInventory, true);
+                        InventoryMoveItemEvent event = new InventoryMoveItemEvent(dropper.getOwnerInventory(), oitemstack.clone(), destinationInventory, true);
                         Bukkit.getPluginManager().callEvent(event);
                         if (event.isCancelled()) {
                             return true;

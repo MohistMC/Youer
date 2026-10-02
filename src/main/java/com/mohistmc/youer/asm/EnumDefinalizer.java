@@ -41,14 +41,15 @@ public class EnumDefinalizer implements Implementer {
                     field.access &= ~Opcodes.ACC_FINAL;
                     Implementer.LOGGER.debug("Definalize enum class {} values field {}", node.name, field.name);
                     if (find) {
-                        throw new IllegalStateException("Duplicate static final field found for " + node.name + ": " + field.name);
+                        Implementer.LOGGER.warn("Duplicate static final field found for {}: {}", node.name, field.name);
                     } else {
                         find = true;
                     }
                 }
             }
             if (!find) {
-                throw new IllegalStateException("No static final field found for " + node.name);
+                Implementer.LOGGER.warn("No static final field found for {}", node.name);
+                return false;
             }
             return true;
         }

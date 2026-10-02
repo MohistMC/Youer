@@ -1,5 +1,6 @@
 package com.mohistmc.youer.feature.world.commands;
 
+import com.mohistmc.youer.api.WorldAPI;
 import com.mohistmc.youer.api.gui.DemoGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.ItemStackFactory;
@@ -30,7 +31,7 @@ import org.jetbrains.annotations.NotNull;
 
 public class WorldsCommands extends Command {
 
-    private final List<String> params = Arrays.asList("create", "delete", "tp", "import", "unload", "info", "addinfo", "setname", "setspawn", "gui", "difficulty", "gamemode", "maintenance");
+    private final List<String> params = Arrays.asList("create", "delete", "tp", "import", "unload", "info", "addinfo", "setdisplayname", "setspawn", "gui", "difficulty", "gamemode", "maintenance");
 
     public WorldsCommands(String name) {
         super(name);
@@ -244,9 +245,11 @@ public class WorldsCommands extends Command {
                 player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.world.info", worldByplayer.getName()));
                 return true;
             }
-            if (args.length == 2 && args[0].equalsIgnoreCase("setname")) {
-                String worldname = worldByplayer.getName();
-                ConfigByWorlds.addname(worldname, args[1]);
+            if (args.length == 2 && args[0].equalsIgnoreCase("setdisplayname")) {
+                String worldName = worldByplayer.getName();
+                ConfigByWorlds.addname(worldName, args[1]);
+                // the file is the source of truth again, drop any runtime override
+                WorldAPI.removeWorldName(worldName);
                 player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.world.worldSetupSuccess"));
                 return true;
             }
@@ -396,7 +399,7 @@ public class WorldsCommands extends Command {
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds unload <Name> " + I18n.as("worldmanage.command.unload"));
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds info " + I18n.as("worldmanage.command.info"));
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds addinfo <Name> " + I18n.as("worldmanage.command.addinfo"));
-        player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds setname <Name> " + I18n.as("worldmanage.command.setname"));
+        player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds setdisplayname <Name> " + I18n.as("worldmanage.command.setname"));
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds setspawn " + I18n.as("worldmanage.command.setspawn"));
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds gui " + I18n.as("worldmanage.command.gui"));
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds difficulty <0-3> " + I18n.as("worldmanage.command.difficulty"));

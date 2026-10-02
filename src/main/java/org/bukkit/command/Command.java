@@ -206,6 +206,10 @@ public abstract class Command {
             return true;
         }
 
+        if (permission.indexOf(';') < 0) {
+            return target.hasPermission(permission);
+        }
+
         for (String p : permission.split(";")) {
             if (target.hasPermission(p)) {
                 return true;

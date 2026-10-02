@@ -44,7 +44,7 @@ public class WorldsGUI {
                 if (config.get("worlds." + w.getName() + ".info") != null) {
                     infos = config.getString("worlds." + w.getName() + ".info", "§7-/-");
                     worldtype = config.getString("worlds." + w.getName() + ".environment");
-                    name1 = config.getString("worlds." + w.getName() + ".name", w.getName());
+                    name1 = WorldAPI.getWorldName(w);
                     difficulty = config.getString("worlds." + w.getName() + ".difficulty");
                 }
                 infoLore.add(I18n.as("worldmanage.gui.lore0") + name1);

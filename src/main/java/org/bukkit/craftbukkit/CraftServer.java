@@ -2749,7 +2749,7 @@ public final class CraftServer implements Server {
 
     @Override
     public boolean isPrimaryThread() {
-        return Thread.currentThread().equals(this.console.serverThread) || this.console.hasStopped() || !org.spigotmc.AsyncCatcher.enabled; // All bets are off if we have shut down (e.g. due to watchdog)
+        return Thread.currentThread() == this.console.serverThread || !org.spigotmc.AsyncCatcher.enabled || this.console.hasStopped(); // All bets are off if we have shut down (e.g. due to watchdog)
     }
 
     // Paper start - Adventure

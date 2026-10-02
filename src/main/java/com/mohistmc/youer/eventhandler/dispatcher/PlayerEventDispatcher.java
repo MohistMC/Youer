@@ -24,8 +24,14 @@ import net.minecraft.world.inventory.AbstractContainerMenu;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.common.util.FakePlayer;
+import com.mohistmc.youer.ai.deepseek.DeepSeek;
+import com.mohistmc.youer.api.PlayerAPI;
+import com.mohistmc.youer.feature.entityclear.EntityClearTrash;
+import com.mohistmc.youer.feature.tpa.TpaCommands;
+import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.neoforge.event.entity.player.CanPlayerSleepEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerContainerEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import org.bukkit.craftbukkit.event.CraftEventFactory;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.craftbukkit.inventory.CraftInventoryView;
@@ -59,4 +65,19 @@ public class PlayerEventDispatcher {
             event.setProblem(cbedResult.left().get());
         }
     }
+
+    // Youer start - drop per-player caches on logout so entries don't pile up
+    @SubscribeEvent
+    public void onPlayerLoggedOut(PlayerEvent.PlayerLoggedOutEvent event) {
+        if (event.getEntity() instanceof ServerPlayer serverPlayer) {
+            var conn = serverPlayer.connection;
+            if (conn != null) PlayerAPI.modlist.remove(conn.connection.getRemoteAddress());
+            var player = serverPlayer.getBukkitEntity().getPlayer();
+            TpaCommands.tpa.remove(player);
+            TpaCommands.tpa.values().removeIf(p -> p.equals(player));
+            EntityClearTrash.removeGUI(player.getUniqueId());
+            DeepSeek.clearHistory(player.getUniqueId());
+        }
+    }
+    // Youer end
 }

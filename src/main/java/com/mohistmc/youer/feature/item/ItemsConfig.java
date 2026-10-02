@@ -1,5 +1,6 @@
 package com.mohistmc.youer.feature.item;
 
+import com.mohistmc.youer.api.ItemAPI;
 import com.mohistmc.youer.feature.config.YouerPluginConfig;
 import java.io.File;
 import java.util.ArrayList;
@@ -29,7 +30,11 @@ public class ItemsConfig extends YouerPluginConfig {
         ConfigurationSection configurationSection = yaml.getConfigurationSection("items");
         if (yaml.get("items") == null || configurationSection == null) return list;
         for (String s : configurationSection.getKeys(false)) {
-            list.add(yaml.getItemStack("items." + s));
+            try {
+                list.add(yaml.getItemStack("items." + s));
+            } catch (Exception e) {
+                list.add(ItemAPI.getBukkitByBase64(yaml.getString("items." + s)));
+            }
         }
         return list;
     }

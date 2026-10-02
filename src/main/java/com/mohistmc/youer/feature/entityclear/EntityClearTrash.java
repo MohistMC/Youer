@@ -124,6 +124,11 @@ public class EntityClearTrash {
         });
     }
 
+    // drop the cached GUI so it isn't held after the player leaves
+    public static void removeGUI(UUID uuid) {
+        playerGUIs.remove(uuid);
+    }
+
     public static void openTrash(Player player) {
         DemoGUI demoGUI = playerGUIs.computeIfAbsent(player.getUniqueId(),
                 k -> new DemoGUI(I18n.as("entityclear.trash.title")));

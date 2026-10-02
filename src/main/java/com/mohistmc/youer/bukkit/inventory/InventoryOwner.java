@@ -157,6 +157,7 @@ public class InventoryOwner {
             if (inventory != null) {
                 return inventory;
             }
+            return new CraftInventory(new YouerIItemHandlerInventory(handler, nmsOwner, nms));
         }
         return new CraftInventory(new YouerIItemHandlerInventory(handler, nmsOwner));
     }

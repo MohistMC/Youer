@@ -232,7 +232,7 @@
      static class ComponentHelper {
          public static final Codec<DataComponentMap> COMPONENTS_CODEC = DataComponentMap.CODEC.optionalFieldOf("components", DataComponentMap.EMPTY).codec();
  
-@@ -320,10 +_,35 @@
+@@ -320,10 +_,55 @@
          }
      }
  
@@ -241,6 +241,26 @@
 +        return getOwner(true);
 +    }
 +    // CraftBukkit end
++
++    // Youer start - cached, getOwner() builds a block state and snapshots the whole block entity
++    private org.bukkit.inventory.Inventory craftOwnerInventory;
++
++    public org.bukkit.inventory.Inventory getCraftOwnerInventory() {
++        org.bukkit.inventory.Inventory cached = this.craftOwnerInventory;
++        if (cached == null) {
++            InventoryHolder owner = this.getOwner();
++            if (owner == null) {
++                return null;
++            }
++            cached = owner.getInventory();
++            // a chest inventory follows its neighbour pair, which can change while this block entity stays
++            if (!(cached instanceof org.bukkit.craftbukkit.inventory.CraftInventoryDoubleChest)) {
++                this.craftOwnerInventory = cached;
++            }
++        }
++        return cached;
++    }
++    // Youer end
 +
 +    public InventoryHolder getOwner(boolean useSnapshot) {
 +        // Paper end

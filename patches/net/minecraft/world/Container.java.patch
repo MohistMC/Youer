@@ -20,7 +20,7 @@
  
  public interface Container extends Clearable {
      float DEFAULT_DISTANCE_BUFFER = 4.0F;
-@@ -91,4 +_,47 @@
+@@ -91,4 +_,55 @@
              return level.getBlockEntity(blockpos) != p_272877_ ? false : p_272670_.canInteractWithBlock(blockpos, (double)p_320837_);
          }
      }
@@ -57,6 +57,14 @@
 +    }
 +
 +    default Inventory getOwnerInventory() {
++        // Youer start - a block entity caches its inventory, building the state costs a full snapshot
++        if (this instanceof BlockEntity entity) {
++            Inventory cached = entity.getCraftOwnerInventory();
++            if (cached != null) {
++                return cached;
++            }
++        }
++        // Youer end
 +        InventoryHolder owner = this.getOwner();
 +        if (owner != null) {
 +            return owner.getInventory();

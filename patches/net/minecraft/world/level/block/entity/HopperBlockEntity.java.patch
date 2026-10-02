@@ -130,12 +130,12 @@
                  boolean flag = false;
 -                if (!p_155582_.isEmpty()) {
 +                final int fullState = getFullState(p_155582_); // Paper - Perf: Optimize Hoppers
-+                if (fullState != HOPPER_EMPTY || !p_155582_.isEmpty()) { // Paper - Perf: Optimize Hoppers
++                if (fullState != HOPPER_EMPTY) { // Paper - Perf: Optimize Hoppers
                      flag = ejectItems(p_155579_, p_155580_, p_155582_);
                  }
  
 -                if (!p_155582_.inventoryFull()) {
-+                if (fullState != HOPPER_IS_FULL || flag || !p_155582_.inventoryFull()) { // Paper - Perf: Optimize Hoppers
++                if (fullState != HOPPER_IS_FULL || flag) { // Paper - Perf: Optimize Hoppers
                      flag |= p_155583_.getAsBoolean();
                  }
  
@@ -344,7 +344,7 @@
 +                }
 +            }
 +        }
-+        return true;
++        return false;
 +    }
 +    private static final java.util.function.BiPredicate<ItemStack, Integer> STACK_SIZE_TEST = (itemstack, i) -> itemstack.getCount() >= itemstack.getMaxStackSize();
 +    private static final java.util.function.BiPredicate<ItemStack, Integer> IS_EMPTY_TEST = (itemstack, i) -> itemstack.isEmpty();
@@ -444,19 +444,22 @@
          } else {
              p_59333_.setItem(itemstack1);
          }
-@@ -325,11 +_,18 @@
+@@ -325,11 +_,20 @@
              boolean flag = false;
              boolean flag1 = p_59322_.isEmpty();
              if (itemstack.isEmpty()) {
 +                // Spigot start - SPIGOT-6693, InventorySubcontainer#setItem
++                ItemStack leftover = ItemStack.EMPTY; // Paper - Make hoppers respect inventory max stack size
 +                if (!p_59323_.isEmpty() && p_59323_.getCount() > p_59322_.getMaxStackSize()) {
++                    leftover = p_59323_; // Paper - Make hoppers respect inventory max stack size
 +                    p_59323_ = p_59323_.split(p_59322_.getMaxStackSize());
 +                }
 +                // Spigot end
 +                ignoreTileUpdates = true; // Paper - Perf: Optimize Hoppers
                  p_59322_.setItem(p_59324_, p_59323_);
+-                p_59323_ = ItemStack.EMPTY;
 +                ignoreTileUpdates = false; // Paper - Perf: Optimize Hoppers
-                 p_59323_ = ItemStack.EMPTY;
++                p_59323_ = leftover; // Paper - Make hoppers respect inventory max stack size
                  flag = true;
              } else if (canMergeItems(itemstack, p_59323_)) {
 -                int i = p_59323_.getMaxStackSize() - itemstack.getCount();
@@ -515,7 +518,15 @@
      }
  
      public static List<ItemEntity> getItemsAtAndAbove(Level p_155590_, Hopper p_155591_) {
-@@ -378,15 +_,26 @@
+@@ -371,22 +_,33 @@
+     @Nullable
+     public static Container getContainerAt(Level p_59391_, BlockPos p_59392_) {
+         return getContainerAt(
+-            p_59391_, p_59392_, p_59391_.getBlockState(p_59392_), (double)p_59392_.getX() + 0.5, (double)p_59392_.getY() + 0.5, (double)p_59392_.getZ() + 0.5
++            p_59391_, p_59392_, p_59391_.getBlockState(p_59392_), (double)p_59392_.getX() + 0.5, (double)p_59392_.getY() + 0.5, (double)p_59392_.getZ() + 0.5, true
+         );
+     }
+ 
      @Nullable
      private static Container getContainerAt(Level p_59348_, BlockPos p_326114_, BlockState p_326445_, double p_59349_, double p_59350_, double p_59351_) {
          Container container = getBlockContainer(p_59348_, p_326114_, p_326445_);
@@ -543,8 +554,14 @@
          Block block = p_326108_.getBlock();
          if (block instanceof WorldlyContainerHolder) {
              return ((WorldlyContainerHolder)block).getContainer(p_326108_, p_326127_, p_326017_);
-@@ -407,12 +_,12 @@
-             (Entity)null,
+@@ -403,16 +_,16 @@
+ 
+     @Nullable
+     private static Container getEntityContainer(Level p_326325_, double p_326012_, double p_326191_, double p_326289_) {
+-        List<Entity> list = p_326325_.getEntities(
+-            (Entity)null,
++        List<Entity> list = p_326325_.getEntitiesOfClass(
++            (Class) Container.class,
              new AABB(p_326012_ - 0.5, p_326191_ - 0.5, p_326289_ - 0.5, p_326012_ + 0.5, p_326191_ + 0.5, p_326289_ + 0.5),
              EntitySelector.CONTAINER_ENTITY_SELECTOR
 -        );

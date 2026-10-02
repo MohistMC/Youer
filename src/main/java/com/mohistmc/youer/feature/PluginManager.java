@@ -76,6 +76,7 @@ public final class PluginManager {
         unregisterCommands(plugin);
         PaperPluginManagerImpl.getInstance().disablePlugin(plugin);
         removeFromInternalLists(plugin);
+        disposePluginClassLoader(plugin);
         try {
             Plugin loaded = PaperPluginManagerImpl.getInstance().loadPlugin(file);
             if (loaded == null) {
@@ -104,8 +105,18 @@ public final class PluginManager {
         unregisterCommands(plugin);
         PaperPluginManagerImpl.getInstance().disablePlugin(plugin);
         removeFromInternalLists(plugin);
+        disposePluginClassLoader(plugin);
         syncCommands();
         return I18n.as("pluginmanager.unload.success", name);
+    }
+
+    // release remapper + cached inheritance so the unloaded plugin's ClassLoader can be GC'd
+    private static void disposePluginClassLoader(Plugin plugin) {
+        ClassLoader cl = plugin.getClass().getClassLoader();
+        if (cl instanceof com.mohistmc.youer.bukkit.remapping.RemappingURLClassLoader rcl) {
+            rcl.disposeRemapper();
+        }
+        com.mohistmc.youer.bukkit.remapping.PluginInheritanceProvider.clear();
     }
 
     /**

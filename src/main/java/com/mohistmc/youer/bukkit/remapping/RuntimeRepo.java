@@ -21,10 +21,15 @@ public class RuntimeRepo implements ClassRepo {
         return map.get(internalName);
     }
 
-    public void put(byte[] bytes) {
+    public String put(byte[] bytes) {
         ClassNode node = new ClassNode();
         ClassReader reader = new ClassReader(bytes);
         reader.accept(node, ClassReader.SKIP_CODE);
         this.map.put(reader.getClassName(), node);
+        return reader.getClassName();
+    }
+
+    public void remove(String className) {
+        this.map.remove(className);
     }
 }

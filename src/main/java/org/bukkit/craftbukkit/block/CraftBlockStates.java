@@ -196,10 +196,12 @@ public final class CraftBlockStates {
     // Paper start
     private static BlockStateFactory<?> getFactory(Material material, BlockEntityType<?> type) {
         if (type != null) {
-            return CraftBlockStates.FACTORIES_BY_BLOCK_ENTITY_TYPE.getOrDefault(type, getFactory(material));
-        } else {
-            return getFactory(material);
+            BlockStateFactory<?> factory = CraftBlockStates.FACTORIES_BY_BLOCK_ENTITY_TYPE.get(type);
+            if (factory != null) {
+                return factory;
+            }
         }
+        return getFactory(material);
     }
     // Paper end
 
