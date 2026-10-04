@@ -444,22 +444,19 @@
          } else {
              p_59333_.setItem(itemstack1);
          }
-@@ -325,11 +_,20 @@
+@@ -325,11 +_,18 @@
              boolean flag = false;
              boolean flag1 = p_59322_.isEmpty();
              if (itemstack.isEmpty()) {
 +                // Spigot start - SPIGOT-6693, InventorySubcontainer#setItem
-+                ItemStack leftover = ItemStack.EMPTY; // Paper - Make hoppers respect inventory max stack size
 +                if (!p_59323_.isEmpty() && p_59323_.getCount() > p_59322_.getMaxStackSize()) {
-+                    leftover = p_59323_; // Paper - Make hoppers respect inventory max stack size
 +                    p_59323_ = p_59323_.split(p_59322_.getMaxStackSize());
 +                }
 +                // Spigot end
 +                ignoreTileUpdates = true; // Paper - Perf: Optimize Hoppers
                  p_59322_.setItem(p_59324_, p_59323_);
--                p_59323_ = ItemStack.EMPTY;
 +                ignoreTileUpdates = false; // Paper - Perf: Optimize Hoppers
-+                p_59323_ = leftover; // Paper - Make hoppers respect inventory max stack size
+                 p_59323_ = ItemStack.EMPTY;
                  flag = true;
              } else if (canMergeItems(itemstack, p_59323_)) {
 -                int i = p_59323_.getMaxStackSize() - itemstack.getCount();
@@ -554,13 +551,7 @@
          Block block = p_326108_.getBlock();
          if (block instanceof WorldlyContainerHolder) {
              return ((WorldlyContainerHolder)block).getContainer(p_326108_, p_326127_, p_326017_);
-@@ -407,12 +_,12 @@
-             (Entity)null,
-             new AABB(p_326012_ - 0.5, p_326191_ - 0.5, p_326289_ - 0.5, p_326012_ + 0.5, p_326191_ + 0.5, p_326289_ + 0.5),
-             EntitySelector.CONTAINER_ENTITY_SELECTOR
--        );
-+        );// Paper - Perf: Optimize hoppers
-         return !list.isEmpty() ? (Container)list.get(p_326325_.random.nextInt(list.size())) : null;
+@@ -412,7 +_,7 @@
      }
  
      private static boolean canMergeItems(ItemStack p_59345_, ItemStack p_59346_) {

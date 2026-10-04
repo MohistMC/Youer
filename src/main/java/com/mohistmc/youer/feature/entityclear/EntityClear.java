@@ -4,9 +4,12 @@ import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.util.I18n;
 import com.mohistmc.youer.util.YamlUtils;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.util.thread.NamedThreadFactory;
 import net.minecraft.world.entity.Mob;
@@ -206,6 +209,69 @@ public class EntityClear {
         return item ? YouerConfig.clear_item_whitelist : YouerConfig.clear_monster_whitelist;
     }
 
+    /**
+     * Worlds matching one of the patterns are skipped by the item cleaner.
+     * A pattern is a regex that only has to match the start of the world name.
+     */
+    public static boolean isWorldWhitelisted(World world, List<String> patterns) {
+        return matchesWorldPrefix(world.getName(), patterns);
+    }
+
+    // runtime-only whitelist, never written to the config
+    private static final List<Pattern> RUNTIME_WORLD_WHITELIST = new CopyOnWriteArrayList<>();
+
+    /**
+     * Adds a world whitelist entry for this run only.
+     *
+     * @param regex regex matched against the start of the world name
+     */
+    public static void addWorldWhitelist(String regex) {
+        if (regex == null || regex.isEmpty()) {
+            return;
+        }
+        try {
+            RUNTIME_WORLD_WHITELIST.add(Pattern.compile(regex));
+        } catch (PatternSyntaxException e) {
+            LOGGER.warn("Invalid world whitelist entry \"{}\": {}", regex, e.getMessage());
+        }
+    }
+
+    public static void removeWorldWhitelist(String regex) {
+        RUNTIME_WORLD_WHITELIST.removeIf(pattern -> pattern.pattern().equals(regex));
+    }
+
+    public static void clearWorldWhitelist() {
+        RUNTIME_WORLD_WHITELIST.clear();
+    }
+
+    public static List<String> getRuntimeWorldWhitelist() {
+        return RUNTIME_WORLD_WHITELIST.stream().map(Pattern::pattern).toList();
+    }
+
+    static boolean matchesWorldPrefix(String worldName, List<String> patterns) {
+        for (Pattern pattern : RUNTIME_WORLD_WHITELIST) {
+            if (pattern.matcher(worldName).lookingAt()) {
+                return true;
+            }
+        }
+        if (patterns.isEmpty()) {
+            return false;
+        }
+        for (String regex : patterns) {
+            if (regex.isEmpty()) {
+                continue;
+            }
+            try {
+                if (Pattern.compile(regex).matcher(worldName).lookingAt()) {
+                    return true;
+                }
+            } catch (PatternSyntaxException e) {
+                LOGGER.warn("Invalid world whitelist entry \"{}\": {}", regex, e.getMessage());
+            }
+        }
+        return false;
+    }
+
     public static void saveItemWhitelist(List<String> list) {
         YouerConfig.yml.set("entity.clear.item.whitelist", list);
         YamlUtils.save(YouerConfig.youeryml, YouerConfig.yml);
@@ -226,6 +292,9 @@ public class EntityClear {
             int size_stack = 0;
             long size_item = 0;
             for (World world : Bukkit.getWorlds()) {
+                if (isWorldWhitelisted(world, YouerConfig.clear_item_world_whitelist)) {
+                    continue;
+                }
                 for (Entity entity : world.getEntities()) {
                     if (entity instanceof Item item && !shouldSkipItem(item.getItemStack(), YouerConfig.clear_item_whitelist)) {
                         size_item += item.getItemStack().getAmount();

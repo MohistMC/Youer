@@ -95,6 +95,8 @@ public class YouerConfig {
     public static boolean cache_worldgen_settings;
     public static boolean clear_item;
     public static List<String> clear_item_whitelist;
+    // Worlds whose dropped items are never touched by the item cleaner, regex matched on the name prefix
+    public static List<String> clear_item_world_whitelist;
     public static int clear_item_time;
     public static boolean trash_enable;
     public static int trash_days;
@@ -330,6 +332,7 @@ public class YouerConfig {
 
         clear_item = getBoolean("entity.clear.item.enable", false);
         clear_item_whitelist = getStringList("entity.clear.item.whitelist", new ArrayList<>());
+        clear_item_world_whitelist = getStringList("entity.clear.item.world_whitelist", new ArrayList<>());
         clear_item_time = getInt("entity.clear.item.time", 1800);
         clear_item_mode = getString("entity.clear.item.mode", "whitelist");
 
