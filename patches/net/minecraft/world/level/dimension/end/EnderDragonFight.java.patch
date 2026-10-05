@@ -16,7 +16,7 @@
  import net.minecraft.world.level.levelgen.feature.EndSpikeFeature;
  import net.minecraft.world.level.levelgen.feature.Feature;
  import net.minecraft.world.level.saveddata.SavedData;
-@@ -97,7 +_,7 @@
+@@ -97,12 +_,13 @@
      private boolean dragonKilled;
      public boolean hasPreviouslyKilledDragon;
      private boolean skipArenaLoadedCheck = false;
@@ -25,6 +25,12 @@
      private boolean needsStateScanning;
      public @Nullable BlockPos exitPortalLocation;
      public @Nullable DragonRespawnStage respawnStage;
+     private int respawnTime;
+     public List<EntityReference<EndCrystal>> respawnCrystals;
++    public boolean emptyCrystalRespawnAllowed = false; // Paper - Support allowing the dragon to respawn if no crystals are found
+     public static final Codec<EnderDragonFight> CODEC = RecordCodecBuilder.create(
+         i -> i.group(
+                 ExtraCodecs.optionalAlwaysPresentFieldOf(Codec.BOOL, "needs_state_scanning", true).forGetter(fight -> fight.needsStateScanning),
 @@ -159,6 +_,12 @@
          );
          this.dragonEvent.setPlayBossMusic(true).setCreateWorldFog(true);
@@ -38,6 +44,15 @@
          if (this.gateways.isEmpty()) {
              ObjectArrayList<Integer> newGateways = new ObjectArrayList<>(ContiguousSet.create(Range.closedOpen(0, 20), DiscreteDomain.integers()));
              Util.shuffle(newGateways, RandomSource.createThreadLocalInstance(seed));
+@@ -198,7 +_,7 @@
+                     .map(e -> e.getEntity(this.level, EndCrystal.class))
+                     .filter(Objects::nonNull)
+                     .toList();
+-                if (respawnCrystals.isEmpty()) {
++                if (respawnCrystals.isEmpty() && !this.emptyCrystalRespawnAllowed) { // Paper - Support allowing the dragon to respawn if no crystals are found
+                     this.abortRespawnSequence();
+                     return;
+                 }
 @@ -245,9 +_,9 @@
              this.dragonUUID = dragon.getUUID();
              LOGGER.info("Found that there's a dragon still alive ({})", dragon);
@@ -50,6 +65,14 @@
                  this.dragonUUID = null;
              }
          }
+@@ -280,6 +_,7 @@
+         if (stage == DragonRespawnStage.END) {
+             this.respawnStage = null;
+             this.dragonKilled = false;
++            this.emptyCrystalRespawnAllowed = false; // Paper - Support allowing the dragon to respawn if no crystals are found
+             EnderDragon dragon = this.createNewDragon();
+             if (dragon != null) {
+                 for (ServerPlayer player : this.dragonEvent.getPlayers()) {
 @@ -407,12 +_,20 @@
              this.dragonEvent.setVisible(false);
              this.spawnExitPortal(true);
@@ -137,6 +160,14 @@
              }
          }
      }
+@@ -508,6 +_,7 @@
+ 
+     private void abortRespawnSequence() {
+         LOGGER.debug("Aborting respawn sequence");
++        this.emptyCrystalRespawnAllowed = false; // Paper - Support allowing the dragon to respawn if no crystals are found
+         this.respawnStage = null;
+         this.respawnTime = 0;
+         this.resetSpikeCrystals();
 @@ -519,7 +_,13 @@
          return this.hasPreviouslyKilledDragon;
      }

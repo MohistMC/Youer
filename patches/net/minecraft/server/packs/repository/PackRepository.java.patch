@@ -82,7 +82,7 @@
      }
  
      public boolean addPack(String packId) {
-@@ -79,12 +_,13 @@
+@@ -79,12 +_,14 @@
          }
      }
  
@@ -94,7 +94,8 @@
          for (Pack pack : this.available.values()) {
 -            if (pack.isRequired() && !selectedAndPresent.contains(pack)) {
 -                pack.getDefaultPosition().insert(selectedAndPresent, pack, Pack::selectionConfig, false);
-+            if (pack.isRequired() && !selectedAndPresent.contains(pack) && pendingReload) { // Paper - add pendingReload flag to determine required pack loading
++            // Paper - compare IDs without converting plugin pack titles before registries are loaded
++            if (pack.isRequired() && !selectedNames.contains(pack.getId()) && pendingReload) { // Paper - add pendingReload flag to determine required pack loading
 +                int i = pack.getDefaultPosition().insert(selectedAndPresent, pack, Pack::selectionConfig, false);
 +                selectedAndPresent.addAll(i + 1, pack.getChildren());
              }

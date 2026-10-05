@@ -1022,10 +1022,15 @@
      }
  
      public boolean isReceivingWaypoints() {
-@@ -1057,6 +_,19 @@
-         this.connection.send(new ClientboundPostEffectsPacket(this.postEffects));
-     }
+@@ -1054,8 +_,21 @@
  
+     public void sendPostEffects() {
+         this.postEffectsDirty = false;
+-        this.connection.send(new ClientboundPostEffectsPacket(this.postEffects));
+-    }
++        this.connection.send(new ClientboundPostEffectsPacket(List.copyOf(this.postEffects))); // Paper - Prevent CME race conditions
++    }
++
 +    // Paper start - Post effects API
 +    public boolean setPostEffects(final Collection<Identifier> postEffects) {
 +        if (com.google.common.collect.Iterables.elementsEqual(this.postEffects, postEffects)) {
@@ -1038,10 +1043,9 @@
 +        return true;
 +    }
 +    // Paper end - Post effects API
-+
+ 
      public boolean addPostEffect(Identifier postEffect) {
          if (this.postEffects.contains(postEffect)) {
-             return false;
 @@ -1101,17 +_,20 @@
          BlockState blockState = level.getBlockState(pos);
          Block block = blockState.getBlock();

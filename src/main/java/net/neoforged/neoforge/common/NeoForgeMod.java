@@ -53,7 +53,6 @@ import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.Items;
-import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.item.crafting.display.SlotDisplay;
 import net.minecraft.world.item.equipment.Equippable;
 import net.minecraft.world.level.BlockGetter;
@@ -616,8 +615,6 @@ public class NeoForgeMod {
         });
 
         modEventBus.register(NeoForgeDataMaps.class);
-
-        modEventBus.register(SpawnEggItem.class); // Registers dispenser behaviour for eggs
 
         if (NeoForgeVersion.getBuildType() == NeoForgeBuildType.PULL_REQUEST) {
             ModLoader.addLoadingIssue(ModLoadingIssue.warning("loadwarning.neoforge.prbuild").withAffectedMod(container.getModInfo()));

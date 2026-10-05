@@ -36,6 +36,20 @@
          Objects.requireNonNull(direction);
          super.setDirectionRaw(direction);
          if (direction.getAxis().isHorizontal()) {
+@@ -101,6 +_,13 @@
+         this.syncPacketPositionCodec(this.getX(), this.getY(), this.getZ());
+     }
+ 
++    // Paper start - MC-311788 workaround
++    @Override
++    public boolean getRequiresPrecisePosition() {
++        return true; // Fix client bug that applies stale position data on relative moves by forcing absolute positions
++    }
++    // Paper end - MC-311788 workaround
++
+     @Override
+     protected AABB calculateBoundingBox(BlockPos blockPos, Direction direction) {
+         return this.createBoundingBox(blockPos, direction, this.hasFramedMap());
 @@ -111,7 +_,12 @@
          return this.createBoundingBox(this.pos, this.getDirection(), false);
      }

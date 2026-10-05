@@ -178,7 +178,7 @@
                  setChanged(level, pos, state);
                  return true;
              }
-@@ -138,35 +_,220 @@
+@@ -138,35 +_,225 @@
          return true;
      }
  
@@ -236,7 +236,6 @@
 +        ItemStack movedItem = origItemStack;
 +        final int originalItemCount = origItemStack.getCount();
 +        final int movedItemCount = Math.min(level.spigotConfig.hopperAmount, originalItemCount);
-+        container.setChanged(); // original logic always marks source inv as changed even if no move happens.
 +        movedItem.setCount(movedItemCount);
 +
 +        if (!skipPullModeEventFire) {
@@ -266,6 +265,12 @@
 +            return true;
 +        }
 +        origItemStack.setCount(originalItemCount);
++
++        Container updatedContainer = container;
++        if (container instanceof net.minecraft.world.CompoundContainer compoundContainer) {
++            updatedContainer = i >= compoundContainer.container1.getContainerSize() ? compoundContainer.container2 : compoundContainer.container1;
++        }
++        updatedContainer.setChanged();
 +
 +        if (level.paperConfig().hopper.cooldownWhenFull) {
 +            applyCooldown(hopper);
