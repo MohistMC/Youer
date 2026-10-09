@@ -8,26 +8,20 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
-/**
- * Network packet profiler — collects statistics for all packets sent by the
- * server, aggregated by type, player, chunk, and block entity, merged with TickProfiler data.
- */
+/** Counts bytes and packets sent by the server, grouped by type, player, chunk and block entity. */
 public class PacketProfiler {
 
-    // global traffic statistics
     private final AtomicLong totalBytesSent = new AtomicLong(0);
     private final AtomicLong totalPacketsSent = new AtomicLong(0);
 
-    // per-second traffic (sliding window)
+    // current second, folded into bytesPerSecond once the second rolls over
     private final AtomicLong currentSecondBytes = new AtomicLong(0);
     private final AtomicLong currentSecondPackets = new AtomicLong(0);
     private volatile long bytesPerSecond = 0;
     private volatile long packetsPerSecond = 0;
 
-    // per-second traffic time series
     private final java.util.List<FlowSample> flowSamples = new java.util.ArrayList<>();
 
-    // per packet type statistics
     private final Map<String, AtomicLong> bytesByPacketType = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> packetsByPacketType = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> currentSecondBytesByPacketType = new ConcurrentHashMap<>();
@@ -35,30 +29,25 @@ public class PacketProfiler {
     private final Map<String, Long> bytesPerSecondByPacketType = new ConcurrentHashMap<>();
     private final Map<String, Long> packetsPerSecondByPacketType = new ConcurrentHashMap<>();
 
-    // per chunk statistics (ClientboundLevelChunkWithLightPacket)
+    // chunks come from ClientboundLevelChunkWithLightPacket
     private final Map<String, AtomicLong> chunkBytes = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> chunkPackets = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> chunkPlayers = new ConcurrentHashMap<>();
 
-    // per player statistics
     private final Map<String, AtomicLong> playerBytes = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> playerPackets = new ConcurrentHashMap<>();
     private final Map<String, Set<String>> packetTypePlayers = new ConcurrentHashMap<>();
 
-    // per block entity statistics (ClientboundBlockEntityDataPacket)
-    // by position
+    // block entities come from ClientboundBlockEntityDataPacket, tracked by position and by type
     private final Map<String, AtomicLong> bePosBytes = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> bePosPackets = new ConcurrentHashMap<>();
     private final Map<String, String> bePosTypes = new ConcurrentHashMap<>();
-    // by type
     private final Map<String, AtomicLong> beTypeBytes = new ConcurrentHashMap<>();
     private final Map<String, AtomicLong> beTypePackets = new ConcurrentHashMap<>();
 
     private volatile long lastSecond = System.currentTimeMillis() / 1000;
     private Thread updaterThread;
     private volatile boolean running = false;
-
-    // ---- Lifecycle ----
 
     void start() {
         if (running) return;
@@ -115,9 +104,8 @@ public class PacketProfiler {
         beTypePackets.clear();
     }
 
-    // ---- Update hooks (called by the PacketEncoder patch) ----
+    // called from the PacketEncoder patch
 
-    /** Update packet statistics */
     public void updatePacketStats(String packetClassName, int bytes, String playerName) {
         totalBytesSent.addAndGet(bytes);
         totalPacketsSent.incrementAndGet();
@@ -136,7 +124,6 @@ public class PacketProfiler {
         }
     }
 
-    /** Update chunk packet statistics */
     public void updateChunkPacketStats(String world, int x, int z, int bytes, String playerName) {
         String key = world + ":" + x + "," + z;
         chunkBytes.computeIfAbsent(key, k -> new AtomicLong(0)).addAndGet(bytes);
@@ -146,7 +133,6 @@ public class PacketProfiler {
         }
     }
 
-    /** Update block entity packet statistics */
     public void updateBlockEntityStats(String world, int x, int y, int z, String type, int bytes) {
         String posKey = world + ":" + x + "," + y + "," + z;
         bePosBytes.computeIfAbsent(posKey, k -> new AtomicLong(0)).addAndGet(bytes);
@@ -155,8 +141,6 @@ public class PacketProfiler {
         beTypeBytes.computeIfAbsent(type, k -> new AtomicLong(0)).addAndGet(bytes);
         beTypePackets.computeIfAbsent(type, k -> new AtomicLong(0)).incrementAndGet();
     }
-
-    // ---- Internal ----
 
     private void updateSecondlyStats() {
         long currentSecond = System.currentTimeMillis() / 1000;
@@ -179,7 +163,7 @@ public class PacketProfiler {
         }
     }
 
-    /** Flush the last second's unrolled traffic on stop */
+    /** Flush the partial second left over when the grasp stops. */
     private void flushRemainingFlow() {
         long bytes = currentSecondBytes.getAndSet(0);
         long packets = currentSecondPackets.getAndSet(0);
@@ -188,7 +172,6 @@ public class PacketProfiler {
         }
     }
 
-    /** A single per-second traffic sample */
     private static class FlowSample {
         final long timestamp;
         final long bytes;
@@ -200,8 +183,6 @@ public class PacketProfiler {
             this.packets = packets;
         }
     }
-
-    // ---- Query API ----
 
     public long getTotalBytes() { return totalBytesSent.get(); }
     public long getTotalPackets() { return totalPacketsSent.get(); }
@@ -226,8 +207,6 @@ public class PacketProfiler {
         return packetsPerSecondByPacketType.getOrDefault(packetType, 0L);
     }
 
-    // ---- JSON output ----
-
     JsonObject toJson(long totalDurationMs) {
         JsonObject root = new JsonObject();
         root.addProperty("totalBytes", totalBytesSent.get());
@@ -235,7 +214,6 @@ public class PacketProfiler {
         root.addProperty("bytesPerSecond", bytesPerSecond);
         root.addProperty("packetsPerSecond", packetsPerSecond);
 
-        // per-second traffic time series
         JsonArray flowSeries = new JsonArray();
         for (FlowSample sample : flowSamples) {
             JsonObject obj = new JsonObject();
@@ -246,7 +224,6 @@ public class PacketProfiler {
         }
         root.add("flowSeries", flowSeries);
 
-        // by packet type
         JsonObject packetTypes = new JsonObject();
         getBytesByPacketType().entrySet().stream()
                 .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
@@ -274,7 +251,6 @@ public class PacketProfiler {
                 });
         root.add("packetTypes", packetTypes);
 
-        // by player
         JsonObject playerStats = new JsonObject();
         playerBytes.forEach((name, bytes) -> {
             JsonObject entry = new JsonObject();
@@ -284,7 +260,6 @@ public class PacketProfiler {
         });
         root.add("playerStats", playerStats);
 
-        // by chunk
         JsonObject chunkStats = new JsonObject();
         chunkBytes.forEach((pos, bytes) -> {
             JsonObject chunkEntry = new JsonObject();
@@ -298,7 +273,6 @@ public class PacketProfiler {
         });
         root.add("chunkStats", chunkStats);
 
-        // by block entity (position + type)
         JsonObject blockEntityStats = new JsonObject();
         JsonObject bePositions = new JsonObject();
         bePosBytes.forEach((pos, bytes) -> {

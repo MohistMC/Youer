@@ -1060,25 +1060,34 @@
                  if (d0 * d0 + d1 * d1 + d2 * d2 < 1024.0) {
                      serverplayer.connection.send(new ClientboundBlockDestructionPacket(p_8612_, p_8613_, p_8614_));
                  }
-@@ -959,6 +_,14 @@
+@@ -959,6 +_,13 @@
          float p_263390_,
          long p_263403_
      ) {
-+        if (!AsyncCatcher.catchAsync()) {
-+            net.neoforged.neoforge.event.PlayLevelSoundEvent.AtPosition event = net.neoforged.neoforge.event.EventHooks.onPlaySoundAtPosition(this, p_263393_, p_263369_, p_263354_, p_263412_, p_263338_, p_263352_, p_263390_);
-+            if (event.isCanceled() || event.getSound() == null) return;
-+            p_263412_ = event.getSound();
-+            p_263338_ = event.getSource();
-+            p_263352_ = event.getNewVolume();
-+            p_263390_ = event.getNewPitch();
-+        }
++        if (p_263412_.value() == null) return;
++        net.neoforged.neoforge.event.PlayLevelSoundEvent.AtPosition event = net.neoforged.neoforge.event.EventHooks.onPlaySoundAtPosition(this, p_263393_, p_263369_, p_263354_, p_263412_, p_263338_, p_263352_, p_263390_);
++        if (event.isCanceled() || event.getSound() == null) return;
++        p_263412_ = event.getSound();
++        p_263338_ = event.getSource();
++        p_263352_ = event.getNewVolume();
++        p_263390_ = event.getNewPitch();
          this.server
              .getPlayerList()
              .broadcast(
-@@ -976,6 +_,12 @@
+@@ -966,7 +_,7 @@
+                 p_263393_,
+                 p_263369_,
+                 p_263354_,
+-                (double)p_263412_.value().getRange(p_263352_),
++                (double) p_263412_.value().getRange(p_263352_),
+                 this.dimension(),
+                 new ClientboundSoundPacket(p_263412_, p_263338_, p_263393_, p_263369_, p_263354_, p_263352_, p_263390_, p_263403_)
+             );
+@@ -976,6 +_,13 @@
      public void playSeededSound(
          @Nullable Player p_263545_, Entity p_263544_, Holder<SoundEvent> p_263491_, SoundSource p_263542_, float p_263530_, float p_263520_, long p_263490_
      ) {
++        if (p_263491_.value() == null) return;
 +        net.neoforged.neoforge.event.PlayLevelSoundEvent.AtEntity event = net.neoforged.neoforge.event.EventHooks.onPlaySoundAtEntity(p_263544_, p_263491_, p_263542_, p_263530_, p_263520_);
 +        if (event.isCanceled() || event.getSound() == null) return;
 +        p_263491_ = event.getSound();
@@ -1138,6 +1147,22 @@
          if (!explosion.interactsWithBlocks()) {
              explosion.clearToBlow();
          }
+@@ -1145,7 +_,14 @@
+         while (!this.blockEvents.isEmpty()) {
+             BlockEventData blockeventdata = this.blockEvents.removeFirst();
+             if (this.shouldTickBlocksAt(blockeventdata.pos())) {
+-                if (this.doBlockEvent(blockeventdata)) {
++                long pgEvent = PulseGrasp.isGrasping() ? System.nanoTime() : 0L;
++                boolean pgHandled = this.doBlockEvent(blockeventdata);
++                if (pgEvent != 0) {
++                    // the registry lookup must stay inside the guard: block events fire every tick,
++                    // and doing the lookup unconditionally would cost every server forever
++                    PulseGrasp.recordBlockEventPulse(BuiltInRegistries.BLOCK.getKey(blockeventdata.block()).toString(), pgEvent);
++                }
++                if (pgHandled) {
+                     this.server
+                         .getPlayerList()
+                         .broadcast(
 @@ -1196,14 +_,24 @@
      public <T extends ParticleOptions> int sendParticles(
          T p_8768_, double p_8769_, double p_8770_, double p_8771_, int p_8772_, double p_8773_, double p_8774_, double p_8775_, double p_8776_

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/projectile/Projectile.java
 +++ b/net/minecraft/world/entity/projectile/Projectile.java
-@@ -27,17 +_,23 @@
+@@ -27,17 +_,27 @@
  import net.minecraft.world.phys.EntityHitResult;
  import net.minecraft.world.phys.HitResult;
  import net.minecraft.world.phys.Vec3;
@@ -21,6 +21,10 @@
      @Nullable
      private Entity lastDeflectedBy;
  
++    // Youer start - hard cap on projectile lifetime, mods that never call discard keep flying forever
++    private static final int MAX_PROJECTILE_LIFE = 1200;
++    // Youer end
++
 +    // CraftBukkit start
 +    protected boolean hitCancelled = false;
 +    // CraftBukkit end
@@ -74,6 +78,19 @@
          }
  
          this.leftOwner = p_37262_.getBoolean("LeftOwner");
+@@ -114,6 +_,12 @@
+         }
+ 
+         super.tick();
++        // Youer start - force every projectile to despawn, the fishing hook stays while its owner is fishing
++        if (!this.level().isClientSide && !(this instanceof FishingHook) && this.tickCount > MAX_PROJECTILE_LIFE) {
++            this.removeReason = org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN;
++            this.discard();
++        }
++        // Youer end
+     }
+ 
+     private boolean checkLeftOwner() {
 @@ -162,8 +_,23 @@
          float f2 = Mth.cos(p_37254_ * (float) (Math.PI / 180.0)) * Mth.cos(p_37253_ * (float) (Math.PI / 180.0));
          this.shoot((double)f, (double)f1, (double)f2, p_37256_, p_37257_);

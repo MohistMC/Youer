@@ -3,15 +3,13 @@ package com.mohistmc.youer.feature.pulsegrasp;
 import java.util.Map;
 
 /**
- * Packet statistics — delegates to the PacketProfiler instance in PulseGrasp.
- * <p>
- * Backward-compatibility layer keeping static methods for the PacketEncoder patch.
- * Actual data is managed by the PulseGrasp PacketProfiler instance.
+ * Static facade kept for the PacketEncoder patch; all state lives in the
+ * PacketProfiler owned by PulseGrasp.
  */
 public class PacketStatistics {
 
     public static void startStatisticsUpdater() {
-        // no longer needs its own thread; managed by PulseGrasp
+        // no thread needed any more
     }
 
     public static boolean isCollecting() {
@@ -82,7 +80,7 @@ public class PacketStatistics {
     }
 
     public static java.nio.file.Path savePacketStatsToJson() throws java.io.IOException {
-        // no longer saved separately; output by the PulseGrasp diagnostic report
+        // folded into the PulseGrasp report, nothing to write here
         return null;
     }
 }

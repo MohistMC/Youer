@@ -5,7 +5,6 @@ import com.mohistmc.youer.eventhandler.EventDispatcherRegistry;
 import com.mohistmc.youer.feature.ban.BanConfig;
 import com.mohistmc.youer.util.VersionInfo;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.api.distmarker.OnlyIn;
@@ -40,7 +39,7 @@ public class Youer {
     }
 
     public static void initI18n() {
-        String mohist_lang = YouerConfig.yml.getString("youer.lang", Locale.getDefault().toString());
+        String mohist_lang = YouerConfig.youer_lang();
         i18n = new i18n(Youer.class.getClassLoader(), mohist_lang);
     }
 }

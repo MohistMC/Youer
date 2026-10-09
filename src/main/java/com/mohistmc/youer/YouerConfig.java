@@ -1,6 +1,7 @@
 package com.mohistmc.youer;
 
 import com.google.common.base.Throwables;
+import com.mohistmc.i18n.i18n;
 import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.commands.DumpCommand;
@@ -140,6 +141,8 @@ public class YouerConfig {
     public static String deepseek_command;
     public static String deepseek_all_command;
     public static String deepseek_chatformat;
+    /** Base URL of the online PulseGrasp report service; empty disables uploading. */
+    public static String pulsegrasp_uploadBaseUrl;
     public static boolean custom_no_villager;
     public static boolean custom_entity_tp_end;
     public static boolean custom_entity_tp_nether;
@@ -304,12 +307,13 @@ public class YouerConfig {
     }
 
     public static String youer_lang() {
-        return yml.getString("youer.lang", Locale.getDefault().toString());
+        String raw = yml.getString("youer.lang");
+        return raw == null ? i18n.normalizeLang(Locale.getDefault()) : i18n.normalizeLang(raw);
     }
 
     private static void youer() {
         show_logo = getBoolean("youer.show_logo", true);
-        youer_lang = getString("youer.lang", Locale.getDefault().toString());
+        youer_lang = i18n.normalizeLang(getString("youer.lang", Locale.getDefault().toString()));
         check_update = getBoolean("youer.check_update", true);
         watchdog_spigot = getBoolean("youer.watchdog_spigot", true);
         watchdog_mohist = getBoolean("youer.watchdog_mohist", false);
@@ -382,6 +386,8 @@ public class YouerConfig {
         deepseek_all_command = getString("deepseek.all_command", "ai-all");
         deepseek_chatformat = getString("deepseek.chatformat", "<小小墨> %s");
 
+        pulsegrasp_uploadBaseUrl = getString("pulsegrasp.upload.url", "");
+
         custom_no_villager = getBoolean("custom.no_villager", false);
         custom_entity_tp_end = getBoolean("custom.entity_tp_end", true);
         custom_entity_tp_nether = getBoolean("custom.entity_tp_nether", true);
@@ -431,7 +437,19 @@ public class YouerConfig {
     }
 
     public static boolean isCN() {
-        return yml.getString("youer.lang", Locale.getDefault().toString()).contains("CN");
+        return youer_lang().contains("CN");
+    }
+
+    /**
+     * True when the configured server language is any Chinese variant
+     * ({@code zh}, {@code zh_CN}, {@code zh_TW}, {@code zh_HK}, ...).
+     * <p>
+     * Deliberately separate from {@link #isCN()}, which matches {@code CN} only and is used to
+     * pick the mainland maven mirror — that behaviour must not change.
+     */
+    public static boolean isChinese() {
+        String lang = youer_lang().toLowerCase(Locale.ROOT).replace('-', '_');
+        return lang.equals("zh") || lang.startsWith("zh_");
     }
 
     public static String getMessage_require_neoforge() {

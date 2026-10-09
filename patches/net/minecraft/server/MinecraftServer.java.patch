@@ -863,7 +863,7 @@
                  this.nextTickTimeNanos += i;
                  this.startMetricsRecordingTick();
                  this.profiler.push("tick");
-@@ -701,6 +_,12 @@
+@@ -701,8 +_,19 @@
                  this.profiler.popPush("nextTickWait");
                  this.mayHaveDelayedTasks = true;
                  this.delayedTasksMaxNextTickTimeNanos = Math.max(Util.getNanos() + i, this.nextTickTimeNanos);
@@ -874,8 +874,15 @@
 +                }
 +                // Pufferfish end
                  this.startMeasuringTaskExecutionTime();
++                // Youer start - this wait sits outside the measured tick, which is exactly the
++                // wall-clock hole a low TPS with a healthy MSPT leaves behind
++                long pgWait = PulseGrasp.isGrasping() ? System.nanoTime() : 0L;
                  this.waitUntilNextTick();
++                PulseGrasp.recordAsyncWait(pgWait);
++                // Youer end
                  this.finishMeasuringTaskExecutionTime();
+                 if (flag) {
+                     this.tickRateManager.endTickWork();
 @@ -710,34 +_,46 @@
  
                  this.profiler.pop();
@@ -1073,7 +1080,7 @@
 +        // Paper end - Add tick times API and /mspt command
          this.profiler.pop();
 +        PulseGrasp.pulseComplete();
-+        PulseGrasp.markTick();
++        PulseGrasp.markTick(j); // Youer - pass the real measured tick time (nanos) for precise MSPT stats
 +        org.spigotmc.WatchdogThread.tick(); // Spigot
 +        EventHooks.fireServerTickPost(p_129871_, this);
      }

@@ -21,28 +21,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * Method-level sampler for PulseGrasp.
- *
- * <p>A background daemon thread periodically dumps the Server thread call stack and
- * aggregates per-method self / total sample counts. This yields a self-time breakdown
- * (which method spends the most CPU on the server thread) similar to spark, instead of
- * the coarser phase-level "meridians" produced by the injected tick pulses.
- *
- * <p>Precision &amp; clarity features:
- * <ul>
- *   <li>Method keys carry line numbers, so overloaded methods and exact hot spots are distinct.</li>
- *   <li>Frames are aggregated into a flame-graph call tree ({@link #root}), showing the call
- *       path that leads to each hot method, not just a flat list.</li>
- *   <li>Low-value infrastructure frames (JVM stdlib, common libs) are hidden so game / mod
- *       hot methods stand out.</li>
- *   <li>All sample states are tracked, so blocking (lock contention) and waiting (IO) time is
- *       reported separately from pure CPU consumption.</li>
- *   <li>Sampling interval / stack depth / top-N are configurable.</li>
- * </ul>
- *
- * <p>Only RUNNABLE samples contribute to the flame graph, so percentages reflect actual CPU
- * consumption rather than idle/waiting time. Sampling needs no source patches: it reads the
- * target thread's stack via {@link ThreadMXBean#getThreadInfo(long, int)}.
+ * Method-level sampler for PulseGrasp: a background thread periodically dumps the server
+ * thread's stack and aggregates per-method self / total sample counts, giving a self-time
+ * breakdown similar to spark rather than the coarser phase-level "meridians".
+ * <p>
+ * Only RUNNABLE samples build the flame graph, so percentages reflect CPU consumption rather
+ * than idle or waiting time. Sampling reads the target thread's stack via
+ * {@link ThreadMXBean#getThreadInfo(long, int)} — no source patches needed.
  */
 public class MethodSampler {
 
@@ -50,45 +35,41 @@ public class MethodSampler {
     private static final int DEFAULT_MAX_DEPTH = 64;
     private static final long DEFAULT_INTERVAL_MS = 25;
 
-    // Frames under these prefixes are low-value infrastructure and are hidden from the flame
-    // graph so game / mod hot methods are not drowned out.
+    // Hidden from the flame graph so game / mod hot methods are not drowned out.
     private static final Set<String> FILTER_PREFIXES = Set.of(
             "java.", "javax.", "jdk.", "sun.", "com.sun.",
             "com.google.", "org.objectweb.", "it.unimi.dsi.", "org.slf4j.",
             "kotlin.", "org.jetbrains.", "org.apache.logging.");
 
-    // className -> resolved namespace + kind. Resolving a class's origin is relatively
-    // expensive (Class.forName + ProtectionDomain + ModList lookup), so cache every class.
+    // Resolving a class's origin costs a Class.forName + ProtectionDomain + ModList lookup,
+    // so every class is cached.
     private final ConcurrentMap<String, NamespaceRef> classNamespaceCache = new ConcurrentHashMap<>();
 
-    // ---- spark-style plugin classloader reflective handles ----
-    // Bukkit/Paper load each plugin in its own PluginClassLoader which carries a reference
-    // to the plugin instance. Reading that field yields the exact plugin.yml name, which is
-    // more precise than inferring from the jar file name. All handles are resolved lazily and
-    // cached; any of them may be null if the corresponding platform class is absent.
+    // Bukkit/Paper load each plugin in its own PluginClassLoader holding a reference to the
+    // plugin instance; reading that field yields the exact plugin.yml name, which beats
+    // inferring from the jar file name. Handles resolve lazily and may be null.
     private static final Class<?> PLUGIN_CLASS_LOADER = tryLoad("org.bukkit.plugin.java.PluginClassLoader");
     private static final Field PLUGIN_FIELD = PLUGIN_CLASS_LOADER == null ? null : tryField(PLUGIN_CLASS_LOADER, "plugin");
     private static final Class<?> PAPER_PLUGIN_CLASS_LOADER = tryLoad("io.papermc.paper.plugin.entrypoint.classloader.PaperPluginClassLoader");
     private static final Field PAPER_PLUGIN_FIELD = PAPER_PLUGIN_CLASS_LOADER == null ? null : tryField(PAPER_PLUGIN_CLASS_LOADER, "loadedJavaPlugin");
 
-    // Lazily collected classloaders of all loaded Bukkit plugins, so classes defined by
-    // plugins (which live in child classloaders invisible to the server loader) can be found.
+    // Plugin classes live in child classloaders that are invisible to the server loader.
     private static volatile ClassLoader[] pluginLoaders;
     // The server tick thread's context classloader. On NeoForge this is the modlauncher
-    // TransformingClassLoader that actually loads mod classes — unlike the sampler thread's
-    // own context classloader, which cannot see them. Captured once at start().
+    // TransformingClassLoader that actually defines mod classes — unlike the sampler thread's
+    // own context loader. Captured once at start().
     private static volatile ClassLoader serverContextLoader;
 
-    // ---- configurable ----
-    private volatile long intervalMs = DEFAULT_INTERVAL_MS;
-    private volatile int maxDepth = DEFAULT_MAX_DEPTH;
-    private volatile int maxTopN = 40;
+    // Sampling is no longer configurable at runtime; these are fixed defaults.
+    private final long intervalMs = DEFAULT_INTERVAL_MS;
+    private final int maxDepth = DEFAULT_MAX_DEPTH;
+    private final int maxTopN = 40;
 
-    /** Per-thread-state sample counts, used to separate CPU vs blocked/waiting time. */
+    /** Per-thread-state sample counts, to separate CPU from blocked / waiting time. */
     private final Map<String, Integer> stateCounts = new LinkedHashMap<>();
-    /** Flat per-method aggregation (denormalised from the call tree for quick scanning). */
+    /** Flat per-method aggregation, for quick scanning. */
     private final Map<String, MethodAgg> flatStats = new HashMap<>();
-    /** Flame-graph call tree. Root's children are leaf (deepest) frames. */
+    /** Flame-graph call tree; root's children are the leaf (deepest) frames. */
     private final FrameNode root = new FrameNode("root");
 
     private Thread samplerThread;
@@ -99,26 +80,8 @@ public class MethodSampler {
     private volatile int totalSamples = 0;
     private volatile int runnableSamples = 0;
 
-    // ---- config API ----
-
-    public MethodSampler setIntervalMs(long intervalMs) {
-        this.intervalMs = intervalMs;
-        return this;
-    }
-
-    public MethodSampler setMaxDepth(int maxDepth) {
-        this.maxDepth = maxDepth;
-        return this;
-    }
-
-    public MethodSampler setMaxTopN(int maxTopN) {
-        this.maxTopN = maxTopN;
-        return this;
-    }
-
-    // ---- lifecycle ----
-
     void start(long serverThreadId) {
+        stop(); // never leave a previous sampler writing into the same maps
         this.targetThreadId = serverThreadId;
         this.running = true;
         this.flatStats.clear();
@@ -130,8 +93,7 @@ public class MethodSampler {
         this.runnableSamples = 0;
         this.totalCpuNanos = 0;
         this.startCpuNanos = TMB.getThreadCpuTime(serverThreadId);
-        // Capture the server thread's context classloader (NeoForge TransformingClassLoader)
-        // so mod classes can be found during namespace resolution.
+        // the server thread's context loader is what can actually see mod classes
         Thread serverThread = findThread(serverThreadId);
         serverContextLoader = serverThread != null ? serverThread.getContextClassLoader() : null;
         samplerThread = new Thread(this::loop, "PulseGrasp-MethodSampler");
@@ -182,42 +144,37 @@ public class MethodSampler {
         }
     }
 
-    // ---- sampling ----
-
     private void sampleOnce() {
         ThreadInfo info = TMB.getThreadInfo(targetThreadId, maxDepth);
         if (info == null) return;
         totalSamples++;
         Thread.State state = info.getThreadState();
         stateCounts.merge(state.name(), 1, Integer::sum);
-        // Only RUNNABLE samples count as CPU consumption and build the flame graph.
+        // only RUNNABLE counts as CPU consumption
         if (state != Thread.State.RUNNABLE) return;
         runnableSamples++;
 
         StackTraceElement[] raw = info.getStackTrace();
         if (raw == null || raw.length == 0) return;
 
-        // Drop low-value frames so game / mod hot paths stay connected and visible.
         List<StackTraceElement> stack = new ArrayList<>(raw.length);
         for (StackTraceElement e : raw) {
             if (!isFiltered(e)) stack.add(e);
         }
         if (stack.isEmpty()) return;
 
-        // Flat aggregation on the filtered frames.
         for (int i = 0; i < stack.size(); i++) {
             String key = keyOf(stack.get(i));
             MethodAgg agg = flatStats.computeIfAbsent(key, k -> new MethodAgg());
             agg.totalCount++;
             if (i == 0) agg.selfCount++;
-            // Store only the call path from this method upward (its own frame + callers), so
-            // sibling methods in the same chain don't all share the identical full stack.
+            // keep only the path from this frame upward, so siblings don't share one full stack
             if (agg.sampleStack == null) {
                 agg.sampleStack = stack.subList(i, stack.size()).toArray(new StackTraceElement[0]);
             }
         }
 
-        // Flame-graph trie: walk from the leaf (index 0) up to the entry point.
+        // flame-graph trie: walk from the leaf (index 0) up to the entry point
         FrameNode node = root;
         node.totalCount++;
         for (int i = 0; i < stack.size(); i++) {
@@ -239,13 +196,13 @@ public class MethodSampler {
         return false;
     }
 
-    /** Method key includes the line number so overloads and exact hot spots are distinct. */
+    /** Key includes the line number, so overloads stay distinct. */
     private static String keyOf(StackTraceElement e) {
         String loc = e.isNativeMethod() ? "(native)" : ":" + e.getLineNumber();
         return e.getClassName() + "." + e.getMethodName() + loc;
     }
 
-    /** Format a fully-qualified key as {@code SimpleClass.method:line}. */
+    /** "Class.method:line" -> "SimpleClass.method:line". */
     static String displayName(String key) {
         int lastDot = key.lastIndexOf('.');
         if (lastDot <= 0) return key;
@@ -256,8 +213,6 @@ public class MethodSampler {
         return simple + methodPart;
     }
 
-    // ---- JSON output ----
-
     JsonObject toJson() {
         JsonObject rootJson = new JsonObject();
         rootJson.addProperty("intervalMs", intervalMs);
@@ -267,9 +222,8 @@ public class MethodSampler {
         rootJson.addProperty("totalCpuMs", totalCpuNanos / 1_000_000);
         rootJson.addProperty("filteredFramesHidden", FILTER_PREFIXES.size());
 
-        // Diagnostic: how many distinct sampled classes resolved to each namespace kind.
-        // Helps tell apart "no plugin code was sampled" from "plugin code was sampled but
-        // misclassified". Logged so the operator can see it without opening the JSON.
+        // how many sampled classes resolved to each kind — tells "no plugin code sampled"
+        // apart from "plugin code sampled but misclassified"
         int[] kindCounts = new int[NamespaceKind.values().length];
         for (String key : flatStats.keySet()) {
             kindCounts[resolveNamespace(classNameOf(key)).kind.ordinal()]++;
@@ -280,7 +234,7 @@ public class MethodSampler {
                 + " unknown:" + kindCounts[NamespaceKind.UNKNOWN.ordinal()]
                 + " (runnableSamples=" + runnableSamples + ")");
 
-        // Thread-state distribution: separates pure CPU from blocking and waiting.
+        // separates pure CPU from blocking and waiting
         JsonObject state = new JsonObject();
         for (Map.Entry<String, Integer> e : stateCounts.entrySet()) {
             JsonObject entry = new JsonObject();
@@ -290,14 +244,13 @@ public class MethodSampler {
         }
         rootJson.add("state", state);
 
-        // Mod/plugin hotspot breakdown — kept as separate sections, not merged together.
+        // mods and plugins stay as separate sections, never merged
         rootJson.add("pluginHotspots", buildHotspots(NamespaceKind.PLUGIN));
         rootJson.add("modHotspots", buildHotspots(NamespaceKind.MOD));
 
-        // Flame-graph call tree.
         rootJson.add("flameTree", toJson(root, 0));
 
-        // Flat hot-method list (by self time) for quick scanning.
+        // flat hot-method list by self time
         List<Map.Entry<String, MethodAgg>> sorted = flatStats.entrySet().stream()
                 .sorted(Comparator.comparingInt(e -> -e.getValue().selfCount))
                 .limit(maxTopN)
@@ -336,7 +289,7 @@ public class MethodSampler {
         }
 
         if (!node.children.isEmpty()) {
-            // Keep the tree readable by expanding only the top hottest children.
+            // expand only the hottest children, to keep the tree readable
             List<Map.Entry<String, FrameNode>> children = node.children.entrySet().stream()
                     .sorted(Comparator.comparingInt(e -> -e.getValue().selfCount))
                     .limit(maxTopN)
@@ -368,12 +321,7 @@ public class MethodSampler {
         return sb.toString();
     }
 
-    // ---- mod/plugin hotspot breakdown ----
-
-    /**
-     * Build the per-namespace hotspot breakdown for one kind (PLUGIN or MOD). Mods and
-     * plugins are kept as separate top-level report sections instead of being merged.
-     */
+    /** Per-namespace hotspot breakdown for one kind (PLUGIN or MOD). */
     private JsonArray buildHotspots(NamespaceKind kind) {
         Map<String, ModAgg> groups = new LinkedHashMap<>();
         for (Map.Entry<String, MethodAgg> e : flatStats.entrySet()) {
@@ -385,7 +333,7 @@ public class MethodSampler {
             ModAgg ma = groups.computeIfAbsent(ref.namespace, k -> new ModAgg());
             ma.selfCount += agg.selfCount;
             ma.totalCount += agg.totalCount;
-            // Track the hot methods inside each namespace so the report shows WHY it is hot.
+            // keep the hot methods of each namespace, so the report shows why it is hot
             MethodAgg method = ma.methods.computeIfAbsent(key, k -> new MethodAgg());
             method.selfCount += agg.selfCount;
             method.totalCount += agg.totalCount;
@@ -408,7 +356,6 @@ public class MethodSampler {
             obj.addProperty("totalPercent", pct(ma.totalCount, runnableSamples));
             obj.addProperty("selfCpuMs", selfCpuMs(ma.selfCount, runnableSamples));
 
-            // Hot methods inside this namespace, each with its own captured stack trace.
             List<Map.Entry<String, MethodAgg>> top = ma.methods.entrySet().stream()
                     .sorted(Comparator.comparingInt(x -> -x.getValue().selfCount))
                     .limit(maxTopN)
@@ -433,14 +380,14 @@ public class MethodSampler {
         return array;
     }
 
-    /** Extract the fully-qualified class name from a method key ("Class.method:line"). */
+    /** "Class.method:line" -> "Class". */
     private static String classNameOf(String key) {
         int methodDot = key.lastIndexOf('.');
         if (methodDot <= 0) return key;
         return key.substring(0, methodDot);
     }
 
-    /** Map a fully-qualified class name to a categorized namespace (plugin / mod / unknown), with caching. */
+    /** Class name -> namespace, with caching. */
     private NamespaceRef resolveNamespace(String className) {
         NamespaceRef cached = classNamespaceCache.get(className);
         if (cached != null) return cached;
@@ -451,51 +398,43 @@ public class MethodSampler {
     }
 
     /**
-     * Resolve the mod/plugin behind a method. Spark-style: load the class, then
-     * <ul>
-     *   <li>if it was defined by a Bukkit/Paper PluginClassLoader, read the plugin instance
-     *       and return its exact plugin.yml name (kind PLUGIN);</li>
-     *   <li>otherwise attribute it to a NeoForge mod id / jar (kind MOD);</li>
-     * </ul>
-     * Returns null if the class cannot be located or has no attributable source.
+     * Resolve the mod / plugin behind a class: a Bukkit or Paper plugin classloader yields the
+     * exact plugin.yml name (PLUGIN), otherwise the class is attributed to a NeoForge mod id or
+     * its jar (MOD). Returns null when the class cannot be located.
      */
     private static NamespaceRef resolveFromClass(String className) {
         for (ClassLoader loader : allCandidateLoaders()) {
             try {
                 Class<?> cls = Class.forName(className, false, loader);
                 String jar = jarNameOfCodeSource(cls);
-                // 1. Read the exact plugin.yml name from the Bukkit/Paper plugin classloader.
                 String plugin = pluginNameOf(cls);
                 if (plugin != null) return new NamespaceRef(plugin, NamespaceKind.PLUGIN);
-                // 2. On hybrid (Mohist) servers a plugin class may sit in a non-standard
-                //    classloader that pluginNameOf cannot introspect. Fall back to mapping
-                //    the plugin jar base name to its plugin.yml name.
+                // On hybrid (Mohist) servers a plugin class may sit in a classloader that
+                // pluginNameOf cannot introspect, so fall back to the plugin jar's base name.
                 if (jar != null) {
                     String pluginFromJar = pluginNameOfJar(jar);
                     if (pluginFromJar != null) return new NamespaceRef(pluginFromJar, NamespaceKind.PLUGIN);
                 }
-                // 3. Otherwise attribute the class to a NeoForge mod id, or its jar.
                 String modId = modIdOf(cls);
                 if (modId != null) return new NamespaceRef(modId, NamespaceKind.MOD);
                 if (jar != null) {
-                    // getModContainerByClass only matches the @Mod main class, so map the
-                    // jar to a mod id for the majority of mod classes (spark-style).
+                    // getModContainerByClass only matches the @Mod main class, so map the jar
+                    // to a mod id for the majority of mod classes (spark-style).
                     String modIdFromJar = modIdOfJar(jar);
                     return new NamespaceRef(modIdFromJar != null ? modIdFromJar : jar, NamespaceKind.MOD);
                 }
             } catch (ClassNotFoundException | LinkageError e) {
                 // not visible to this loader — try the next one
             } catch (Throwable t) {
-                // protection-domain / class-loading edge cases: skip this loader and keep
-                // trying the remaining ones, otherwise a single failing loader would hide
-                // all plugin classes (they only resolve via the later plugin loaders).
+                // a single failing loader must not hide all plugin classes, which only
+                // resolve through the later plugin loaders
                 continue;
             }
         }
         return null;
     }
 
-    /** Exact plugin.yml name if the class was defined by a Bukkit/Paper plugin classloader. */
+    /** Exact plugin.yml name when the class was defined by a Bukkit/Paper plugin classloader. */
     private static String pluginNameOf(Class<?> cls) {
         ClassLoader loader = cls.getClassLoader();
         if (loader == null) return null;
@@ -516,7 +455,7 @@ public class MethodSampler {
         }
     }
 
-    /** Jar base name the class was loaded from, or null if it has no class source. */
+    /** Jar base name the class was loaded from, or null when it has no class source. */
     private static String jarNameOfCodeSource(Class<?> cls) {
         CodeSource cs = cls.getProtectionDomain().getCodeSource();
         if (cs == null || cs.getLocation() == null) return null;
@@ -525,9 +464,9 @@ public class MethodSampler {
     }
 
     /**
-     * Resolve the NeoForge mod id behind a class. Mirrors spark: {@code ModList.get()
-     * .getModContainerByClass(cls).map(ModContainer::getModId)}. Done purely via reflection
-     * so MethodSampler never hard-depends on the FML loader classes.
+     * Resolve the NeoForge mod id behind a class, mirroring spark:
+     * {@code ModList.get().getModContainerByClass(cls).map(ModContainer::getModId)}.
+     * Purely reflective, so MethodSampler never hard-depends on the FML loader classes.
      */
     private static String modIdOf(Class<?> cls) {
         try {
@@ -536,7 +475,7 @@ public class MethodSampler {
             if (modList == null) return null;
             Object result = modListClass.getMethod("getModContainerByClass", Class.class).invoke(modList, cls);
             if (result == null) return null;
-            // result is java.util.Optional<? extends ModContainer> — unwrap; empty means not a mod class.
+            // Optional<ModContainer> — empty means the class is not a mod class
             Object container = result.getClass().getMethod("orElse", Object.class).invoke(result, (Object) null);
             if (container == null) return null;
             return (String) container.getClass().getMethod("getModId").invoke(container);
@@ -545,8 +484,8 @@ public class MethodSampler {
         }
     }
 
-    // jarName (e.g. "goblintraders-neoforge-1.21.1-1.11.2") -> modId (e.g. "goblintraders")
-    // Built lazily from ModList.getMods() so EVERY mod class maps to a clean mod id.
+    // jar name ("goblintraders-neoforge-1.21.1-1.11.2") -> mod id ("goblintraders"),
+    // built lazily from ModList.getMods() so every mod class maps to a clean mod id.
     private static volatile Map<String, String> jarNameToModId;
 
     private static String modIdOfJar(String jarName) {
@@ -559,8 +498,7 @@ public class MethodSampler {
         }
         String id = jarNameToModId.get(jarName);
         if (id != null) return id;
-        // Try the cleaned name too — some mods have versioned jar names but the @Mod
-        // file reference may be the un-versioned counterpart.
+        // some mods ship a versioned jar name while the @Mod reference is unversioned
         String cleaned = cleanJarName(jarName);
         if (!cleaned.equals(jarName)) {
             id = jarNameToModId.get(cleaned);
@@ -568,62 +506,52 @@ public class MethodSampler {
         return id;
     }
 
-    /**
-     * Iterate over all mod containers, mapping each mod's jar file base name to its modId.
-     * Uses reflection so there is no hard dependency on FML classes.
-     */
+    /** Map every mod's jar base name to its mod id, via reflection (no hard FML dependency). */
     @SuppressWarnings("unchecked")
     private static Map<String, String> buildJarNameToModId() {
         Map<String, String> map = new HashMap<>();
         try {
             Class<?> modListClass = Class.forName("net.neoforged.fml.ModList");
-            // ModList.get() -> ModList instance
             Object modList = modListClass.getMethod("get").invoke(null);
             if (modList == null) return map;
-            // ModList.getMods() -> List<IModInfo>
             Object mods = modListClass.getMethod("getMods").invoke(modList);
             if (!(mods instanceof List)) return map;
+            // IModInfo -> getOwningFile() -> IModFileInfo -> getFile() -> IModFile
+            //          -> getFilePath() -> Path -> getFileName()
             for (Object info : (List<Object>) mods) {
                 String modId = (String) info.getClass().getMethod("getModId").invoke(info);
-                // IModInfo.getOwningFile() -> IModFileInfo (can be null)
                 Object fileInfo;
                 try {
                     fileInfo = info.getClass().getMethod("getOwningFile").invoke(info);
                 } catch (NoSuchMethodException e) {
-                    // fallback for older NeoForge: getModFileInfo()
                     fileInfo = info.getClass().getMethod("getModFileInfo").invoke(info);
                 }
                 if (fileInfo == null) continue;
-                // IModFileInfo.getFile() -> IModFile
                 Object modFile = fileInfo.getClass().getMethod("getFile").invoke(fileInfo);
                 if (modFile == null) continue;
-                // IModFile.getFilePath() -> Path
                 Object filePath = modFile.getClass().getMethod("getFilePath").invoke(modFile);
                 if (filePath == null) continue;
-                // Path.getFileName() -> Path (just the filename part)
                 Object fileName = filePath.getClass().getMethod("getFileName").invoke(filePath);
                 if (fileName == null) continue;
                 String name = fileName.toString();
-                // Strip .jar/.zip extension
                 if (name.endsWith(".jar")) name = name.substring(0, name.length() - 4);
                 else if (name.endsWith(".zip")) name = name.substring(0, name.length() - 4);
                 if (!name.isEmpty() && modId != null) {
                     map.put(name, modId);
-                    // Also index by the version-stripped name so it matches the cleaned name
-                    // produced by jarNameOfCodeSource() (e.g. "goblintraders-neoforge").
+                    // index the version-stripped name too, to match jarNameOfCodeSource()
                     String cleaned = cleanJarName(name);
                     if (!cleaned.equals(name)) map.put(cleaned, modId);
                 }
             }
         } catch (Throwable ignored) {
-            // If reflection fails, the map will be empty and we fall back to jar names.
+            // an empty map just means we fall back to raw jar names
         }
         return map;
     }
 
-    // jar base name (e.g. "essentialsx-2.20.0") -> plugin.yml name (e.g. "Essentials").
-    // Built lazily by walking every loaded Bukkit plugin, so plugin classes resolve to the
-    // exact plugin name even when their classloader cannot be introspected (Mohist hybrid).
+    // jar base name ("essentialsx-2.20.0") -> plugin.yml name ("Essentials"), built lazily by
+    // walking every loaded Bukkit plugin, so plugin classes resolve to the exact plugin name
+    // even when their classloader cannot be introspected (Mohist hybrid).
     private static volatile Map<String, String> jarNameToPluginName;
 
     private static String pluginNameOfJar(String jarName) {
@@ -644,9 +572,8 @@ public class MethodSampler {
     }
 
     /**
-     * Map each loaded plugin's jar base name to its plugin.yml name. The jar is located via
-     * the plugin's own classloader rather than the loader class, so it points at the plugin
-     * jar regardless of the loader implementation.
+     * Map each loaded plugin's jar base name to its plugin.yml name. The jar is located via the
+     * plugin's own classloader, so it points at the plugin jar regardless of loader implementation.
      */
     private static Map<String, String> buildJarNameToPluginName() {
         Map<String, String> map = new HashMap<>();
@@ -661,15 +588,14 @@ public class MethodSampler {
                 if (!cleaned.equals(jarName)) map.put(cleaned, pluginName);
             }
         } catch (Throwable ignored) {
-            // If Bukkit is unavailable, the map stays empty and plugins fall back to MOD naming.
+            // no Bukkit: plugins fall back to MOD naming
         }
         return map;
     }
 
     /** Determine the jar base name a plugin was loaded from. */
     private static String pluginJarName(org.bukkit.plugin.Plugin plugin) {
-        // Prefer the plugin.yml resource URL inside the plugin's own classloader; it reliably
-        // points into the plugin jar regardless of the loader class used by the server.
+        // prefer the plugin.yml resource URL from the plugin's own classloader
         try {
             ClassLoader loader = plugin.getClass().getClassLoader();
             if (loader != null) {
@@ -681,7 +607,6 @@ public class MethodSampler {
             }
         } catch (Throwable ignored) {
         }
-        // Fall back to JavaPlugin.getFile() when available.
         try {
             if (plugin instanceof org.bukkit.plugin.java.JavaPlugin) {
                 File file = ((org.bukkit.plugin.java.JavaPlugin) plugin).getFile();
@@ -696,13 +621,11 @@ public class MethodSampler {
         return null;
     }
 
-    /** Server loaders plus every loaded plugin's classloader (plugin classes are invisible to the server loader). */
+    /** Server loaders plus every plugin's classloader (plugin classes are invisible to the server loader). */
     private static ClassLoader[] allCandidateLoaders() {
         ClassLoader[] base = candidateClassLoaders();
         ClassLoader[] plugins = pluginLoaders();
-        // Prepend the server thread context loader — the NeoForge TransformingClassLoader
-        // that actually defines mod classes. Must come first so mod classes resolve before
-        // the (failing) app-loader attempts.
+        // the server context loader must come first: it is the one that can define mod classes
         int extra = serverContextLoader != null ? 1 : 0;
         ClassLoader[] all = new ClassLoader[base.length + plugins.length + extra];
         int idx = 0;
@@ -721,7 +644,7 @@ public class MethodSampler {
         };
     }
 
-    /** Collect the classloaders of all loaded Bukkit plugins, cached across calls. */
+    /** Collect the classloaders of all loaded plugins, cached across calls. */
     private static ClassLoader[] pluginLoaders() {
         ClassLoader[] cached = pluginLoaders;
         if (cached != null) return cached;
@@ -739,25 +662,24 @@ public class MethodSampler {
         }
     }
 
-    /** Extract the jar base name (without ".jar") from a class source location. */
+    /** Jar base name (without ".jar") from a class source location. */
     private static String jarNameOf(URL location) {
         try {
             String path = location.toURI().getPath();
             if (path == null) return null;
-            // Drop any URL fragment ("#...") that some loaders append to the location.
+            // drop any "#..." fragment some loaders append
             int hash = path.indexOf('#');
             if (hash >= 0) path = path.substring(0, hash);
-            // jar:file:/.../mod.jar!/com/x  -> keep only the jar path before "!/".
+            // jar:file:/.../mod.jar!/com/x  -> keep only the path before "!/"
             int exclamation = path.indexOf("!/");
             if (exclamation >= 0) path = path.substring(0, exclamation);
-            // Also strip a trailing "!/" if present.
             if (path.endsWith("!/")) path = path.substring(0, path.length() - 2);
             int slash = path.lastIndexOf('/');
             String name = slash >= 0 ? path.substring(slash + 1) : path;
             if (name.endsWith(".jar")) {
                 return name.substring(0, name.length() - 4);
             }
-            // unpacked / directory source — use the directory name instead
+            // unpacked / directory source — use the directory name
             return name.isEmpty() ? null : name;
         } catch (Exception e) {
             return null;
@@ -782,7 +704,7 @@ public class MethodSampler {
         }
     }
 
-    /** Strip version suffixes from a jar base name, e.g. "create-1.21.1-0.5.1" -> "create". */
+    /** Strip version suffixes, e.g. "create-1.21.1-0.5.1" -> "create". */
     private static String cleanJarName(String jarName) {
         String cleaned;
         while (!(cleaned = jarName.replaceFirst("-\\d+(\\.\\w+)*$", "")).equals(jarName)) {

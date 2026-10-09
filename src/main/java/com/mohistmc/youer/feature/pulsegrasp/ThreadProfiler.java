@@ -9,10 +9,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-/**
- * Thread CPU profiler — captures CPU time, state, and stack traces of all
- * threads at diagnostic stop, providing a JVM thread-level resource profile.
- */
+/** CPU time, state and stack of every thread, captured once at stop. */
 public class ThreadProfiler {
 
     private static final ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
@@ -24,10 +21,9 @@ public class ThreadProfiler {
         }
     }
 
-    /** Capture a CPU time snapshot of all threads */
     public JsonObject capture() {
         long[] ids = threadMXBean.getAllThreadIds();
-        // batch-fetch thread info to reduce per-thread native calls
+        // one bulk call instead of one per thread
         ThreadInfo[] infos = threadMXBean.getThreadInfo(ids, 20);
         List<ThreadCpuTime> list = new ArrayList<>(ids.length);
 
@@ -69,11 +65,9 @@ public class ThreadProfiler {
 
         list.sort(Comparator.comparingLong(t -> -t.cpuTime));
 
-        // compute totals
         long totalCpuTime = list.stream().mapToLong(t -> t.cpuTime).sum();
         long totalUserTime = list.stream().mapToLong(t -> t.userTime).sum();
 
-        // build JSON
         JsonObject root = new JsonObject();
         root.addProperty("totalThreads", list.size());
         root.addProperty("totalCpuTimeMs", totalCpuTime);
@@ -92,7 +86,7 @@ public class ThreadProfiler {
             obj.addProperty("waitedTime", t.waitedTime);
             obj.addProperty("blockedCount", t.blockedCount);
             obj.addProperty("waitedCount", t.waitedCount);
-            // always output (empty string when null, keeps front-end schema stable)
+            // emit "" rather than null so the viewer schema stays fixed
             obj.addProperty("lockInfo", t.lockInfo != null ? t.lockInfo : "");
             obj.addProperty("lockOwnerId", t.lockOwnerId);
             obj.addProperty("lockOwnerName", t.lockOwnerName != null ? t.lockOwnerName : "");
@@ -103,8 +97,6 @@ public class ThreadProfiler {
 
         return root;
     }
-
-    // ---- Internal data structure ----
 
     private static class ThreadCpuTime {
         long id;

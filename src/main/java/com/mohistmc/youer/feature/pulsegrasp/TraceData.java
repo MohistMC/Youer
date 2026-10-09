@@ -2,9 +2,7 @@ package com.mohistmc.youer.feature.pulsegrasp;
 
 import java.util.UUID;
 
-/**
- * Common interface for instance trace data.
- */
+/** Instance trace data shared by entity and block entity traces. */
 interface TraceData {
     String world();
     int x();
@@ -14,7 +12,7 @@ interface TraceData {
     int count();
 }
 
-/** Entity instance trace — keyed by UUID */
+/** Entity trace, keyed by UUID. */
 class EntityTrace implements TraceData {
     final UUID uuid;
     String world;
@@ -35,7 +33,7 @@ class EntityTrace implements TraceData {
         count++;
     }
 
-    /** Refresh entity position — called on move to keep records accurate */
+    /** Entities move, so refresh the recorded position. */
     void updatePosition(String world, int x, int y, int z) {
         this.world = world;
         this.x = x;
@@ -51,7 +49,7 @@ class EntityTrace implements TraceData {
     @Override public int count() { return count; }
 }
 
-/** Block entity instance trace — keyed by position, with registered id (e.g. minecraft:furnace) */
+/** Block entity trace, keyed by position. */
 class BlockEntityTrace implements TraceData {
     final String type;
     final String world;
@@ -80,7 +78,7 @@ class BlockEntityTrace implements TraceData {
     @Override public int count() { return count; }
 }
 
-/** A single vital-sign sample */
+/** One TPS/MSPT/ping sample. */
 class VitalSign {
     final long timestamp;
     final double tps;
@@ -95,7 +93,7 @@ class VitalSign {
     }
 }
 
-/** Chunk statistics sample (aggregated per dimension) — records total and active chunk counts */
+/** Chunk counts per dimension. */
 class ChunkStat {
     int samples;
     long totalSum;
@@ -116,17 +114,21 @@ class ChunkStat {
     }
 }
 
-/** A single system resource sample (JVM heap + process CPU usage) */
+/** One heap/CPU sample, with GC deltas for that second. */
 class SystemSample {
     final long timestamp;
     final long heapUsedBytes;
     final long heapMaxBytes;
     final double cpuPercent;
+    final long gcCount;
+    final long gcTimeMs;
 
-    SystemSample(long timestamp, long heapUsedBytes, long heapMaxBytes, double cpuPercent) {
+    SystemSample(long timestamp, long heapUsedBytes, long heapMaxBytes, double cpuPercent, long gcCount, long gcTimeMs) {
         this.timestamp = timestamp;
         this.heapUsedBytes = heapUsedBytes;
         this.heapMaxBytes = heapMaxBytes;
         this.cpuPercent = cpuPercent;
+        this.gcCount = gcCount;
+        this.gcTimeMs = gcTimeMs;
     }
 }

@@ -84,14 +84,26 @@ public class YouerConfigUtil {
         return YOUERLANG().contains("CN");
     }
 
+    /**
+     * The JVM default locale in the canonical {@code ll_CC} form used by the config and the i18n
+     * bundles (for example {@code zh_CN}).
+     */
+    public static String systemLang() {
+        return i18n.normalizeLang(Locale.getDefault());
+    }
 
     public static String YOUERLANG() {
         String key = "youer.lang";
-        if (yml.get(key) == null) {
-            yml.set(key, Locale.getDefault().toString());
+        Object value = yml.get(key);
+        String raw = value == null ? null : String.valueOf(value);
+        String lang = raw == null ? systemLang() : i18n.normalizeLang(raw);
+        if (!lang.equals(raw)) {
+            // First run, or a non-canonical value such as the "zh_CN_#Hans" that macOS used to
+            // produce. Persist the repaired value so the i18n bundle keeps resolving.
+            yml.set(key, lang);
             save();
         }
-        return yml.getString(key, Locale.getDefault().toString());
+        return lang;
     }
 
     public static boolean AutoDeleteMods() {
