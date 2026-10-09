@@ -4,7 +4,6 @@ import com.mohistmc.youer.util.I18n;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
 
 public class TpadenyCommands extends Command {
 
@@ -15,7 +14,7 @@ public class TpadenyCommands extends Command {
     }
 
     @Override
-    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
+    public boolean execute(CommandSender sender, String commandLabel, String[] args) {
         if (sender instanceof Player player) {
             if (TpaCommands.tpa.containsKey(player)) {
                 final Player a = TpaCommands.tpa.get(player);

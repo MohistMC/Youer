@@ -9,7 +9,6 @@ import org.bukkit.craftbukkit.inventory.CraftComplexRecipe;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
 
 public class ModSpecialRecipe extends CraftComplexRecipe {
 
@@ -21,7 +20,7 @@ public class ModSpecialRecipe extends CraftComplexRecipe {
     }
 
     @Override
-    public @NotNull ItemStack getResult() {
+    public ItemStack getResult() {
         return CraftItemStack.asCraftMirror(this.recipe.getResultItem(ServerAPI.getNMSServer().registryAccess()));
     }
 

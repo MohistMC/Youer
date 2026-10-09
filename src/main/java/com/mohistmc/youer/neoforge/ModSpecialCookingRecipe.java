@@ -10,7 +10,6 @@ import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.RecipeChoice;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Mgazul
@@ -26,7 +25,7 @@ public class ModSpecialCookingRecipe extends CraftFurnaceRecipe {
     }
 
     @Override
-    public @NotNull ItemStack getResult() {
+    public ItemStack getResult() {
         return CraftItemStack.asCraftMirror(this.recipe.getResultItem(ServerAPI.getNMSServer().registryAccess()));
     }
 

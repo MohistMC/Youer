@@ -15,7 +15,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Mgazul by MohistMC
@@ -32,7 +31,7 @@ public class WarpsCommands extends Command {
     }
 
     @Override
-    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
+    public boolean execute(CommandSender sender, String commandLabel, String[] args) {
         if (args.length == 0) {
             this.sendHelp(sender);
             return false;
@@ -127,7 +126,7 @@ public class WarpsCommands extends Command {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) throws IllegalArgumentException {
+    public List<String> tabComplete(CommandSender sender, String alias, String[] args) throws IllegalArgumentException {
         List<String> list = new ArrayList<>();
         if (args.length == 1) {
             for (String param : params) {

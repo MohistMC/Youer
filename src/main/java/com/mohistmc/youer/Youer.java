@@ -15,7 +15,7 @@ import net.neoforged.neoforge.internal.versions.neoforge.NeoForgeVersion;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-@Mod("youer")
+@Mod(Youer.modid)
 @OnlyIn(Dist.DEDICATED_SERVER)
 public class Youer {
     public static final String NAME = "Youer";
@@ -28,7 +28,7 @@ public class Youer {
 
     public Youer(IEventBus modEventBus, Dist dist, ModContainer container) {
         Map<String, String> arguments = new HashMap<>();
-        arguments.put("youer", version);
+        arguments.put(modid, version);
         arguments.put("bukkit", version);
         arguments.put("craftbukkit", version);
         arguments.put("spigot", version);

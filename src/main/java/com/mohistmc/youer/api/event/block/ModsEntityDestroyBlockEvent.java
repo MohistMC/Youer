@@ -6,7 +6,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.block.BlockEvent;
-import org.jetbrains.annotations.NotNull;
 
 public class ModsEntityDestroyBlockEvent extends BlockEvent implements Cancellable {
 
@@ -38,7 +37,7 @@ public class ModsEntityDestroyBlockEvent extends BlockEvent implements Cancellab
     }
 
     @Override
-    public @NotNull HandlerList getHandlers() {
+    public HandlerList getHandlers() {
         return handlers;
     }
 

@@ -23,7 +23,6 @@ import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.craftbukkit.CraftWorld;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Forces recalculation of light for all loaded chunks and resends them to clients.
@@ -46,7 +45,7 @@ public class LightFixCommand extends BukkitCommand {
     }
 
     @Override
-    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, String[] args) {
+    public boolean execute(CommandSender sender, String commandLabel, String[] args) {
         if (args.length > 0 && args[0].equalsIgnoreCase("corrupt")) {
             return corruptLight(sender, args);
         }
@@ -217,7 +216,7 @@ public class LightFixCommand extends BukkitCommand {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) {
+    public List<String> tabComplete(CommandSender sender, String alias, String[] args) {
         if (args.length == 1) {
             List<String> suggestions = new ArrayList<>();
             String prefix = args[0].toLowerCase();

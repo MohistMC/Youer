@@ -18,7 +18,6 @@
 package com.mohistmc.youer.bukkit.inventory;
 
 import java.util.concurrent.atomic.AtomicReference;
-import javax.annotation.Nullable;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.Container;
 import net.minecraft.world.level.Level;
@@ -38,6 +37,7 @@ import org.bukkit.craftbukkit.block.CraftBlockEntityState;
 import org.bukkit.craftbukkit.inventory.CraftInventory;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Mgazul

@@ -6,7 +6,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.block.BlockEvent;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Mgazul
@@ -42,7 +41,7 @@ public class PlayerMayInteractBlockEvent extends BlockEvent implements Cancellab
     }
 
     @Override
-    public @NotNull HandlerList getHandlers() {
+    public HandlerList getHandlers() {
         return handlers;
     }
 }

@@ -2,8 +2,6 @@ package com.mohistmc.youer.bukkit.inventory;
 
 import java.util.ArrayList;
 import java.util.List;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import net.minecraft.world.Container;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
@@ -16,6 +14,7 @@ import org.bukkit.craftbukkit.entity.CraftHumanEntity;
 import org.bukkit.craftbukkit.util.CraftLocation;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.inventory.InventoryHolder;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * @author Mgazul
@@ -23,7 +22,6 @@ import org.bukkit.inventory.InventoryHolder;
  */
 public class YouerIItemHandlerInventory implements Container {
 
-    @Nonnull
     private final IItemHandler delegate;
 
     @Nullable
@@ -34,17 +32,17 @@ public class YouerIItemHandlerInventory implements Container {
 
     private final List<HumanEntity> transaction = new ArrayList<>();
 
-    public YouerIItemHandlerInventory(@Nonnull IItemHandler delegate, @Nullable Object nmsOwner) {
+    public YouerIItemHandlerInventory(IItemHandler delegate, @Nullable Object nmsOwner) {
         this(delegate, nmsOwner, InventoryOwner.getContainer(delegate));
     }
 
-    public YouerIItemHandlerInventory(@Nonnull IItemHandler delegate, @Nullable Object nmsOwner, @Nullable Container original) {
+    public YouerIItemHandlerInventory(IItemHandler delegate, @Nullable Object nmsOwner, @Nullable Container original) {
         this.nmsOwner = nmsOwner;
         this.delegate = delegate;
         this.original = original;
     }
 
-    public YouerIItemHandlerInventory(@Nonnull Pair<IItemHandler, Object> input) {
+    public YouerIItemHandlerInventory(Pair<IItemHandler, Object> input) {
         this(input.getLeft(), input.getRight());
     }
     @Override

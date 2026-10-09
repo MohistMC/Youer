@@ -10,7 +10,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
 
 public class TpaCommands extends Command {
 
@@ -23,7 +22,7 @@ public class TpaCommands extends Command {
     }
 
     @Override
-    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
+    public boolean execute(CommandSender sender, String commandLabel, String[] args) {
         if (args.length != 1) {
             return false;
         }

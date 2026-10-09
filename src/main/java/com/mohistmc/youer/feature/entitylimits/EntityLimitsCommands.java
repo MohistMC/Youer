@@ -26,7 +26,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Mgazul
@@ -34,14 +33,14 @@ import org.jetbrains.annotations.NotNull;
  */
 public class EntityLimitsCommands extends Command {
 
-    public EntityLimitsCommands(@NotNull String name) {
+    public EntityLimitsCommands(String name) {
         super(name);
     }
 
     private final List<String> params = List.of("add", "chunklimit");
 
     @Override
-    public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) {
+    public List<String> tabComplete(CommandSender sender, String alias, String[] args) {
         List<String> list = new ArrayList<>();
         if (args.length == 1 && (sender.isOp())) {
             for (String param : params) {
@@ -55,7 +54,7 @@ public class EntityLimitsCommands extends Command {
     }
 
     @Override
-    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
+    public boolean execute(CommandSender sender, String commandLabel, String[] args) {
         if (!(sender instanceof Player player)) {
             sender.sendMessage(ChatColor.RED + I18n.as("error.notplayer"));
             return false;

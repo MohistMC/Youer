@@ -128,8 +128,6 @@ public class YouerConfig {
     public static boolean quit_message;
     public static boolean bukkitpermissionshandler;
     public static boolean recipe_warn;
-    public static boolean watchdog_spigot;
-    public static boolean watchdog_mohist;
     public static boolean pluginchannel_debug;
     public static boolean deepseek_enable;
     public static String deepseek_baseUrl;
@@ -315,8 +313,6 @@ public class YouerConfig {
         show_logo = getBoolean("youer.show_logo", true);
         youer_lang = i18n.normalizeLang(getString("youer.lang", Locale.getDefault().toString()));
         check_update = getBoolean("youer.check_update", true);
-        watchdog_spigot = getBoolean("youer.watchdog_spigot", true);
-        watchdog_mohist = getBoolean("youer.watchdog_mohist", false);
         maximumRepairCost = getInt("anvilfix.maximumrepaircost", 40);
         enchantment_fix = getBoolean("anvilfix.enchantment_fix", false);
         max_enchantment_level = getInt("anvilfix.max_enchantment_level", 32767);

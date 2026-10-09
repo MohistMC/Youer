@@ -18,7 +18,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Mgazul
@@ -35,7 +34,7 @@ public class EntityClearCommand extends BukkitCommand {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) {
+    public List<String> tabComplete(CommandSender sender, String alias, String[] args) {
         List<String> list = new ArrayList<>();
         if (args.length == 1) {
             // All players can see subcommands (trash is available to everyone)
@@ -103,7 +102,7 @@ public class EntityClearCommand extends BukkitCommand {
     }
 
     @Override
-    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, String[] args) {
+    public boolean execute(CommandSender sender, String commandLabel, String[] args) {
         // Trash subcommand is available to all players without permission check
         if (args.length > 0 && args[0].equalsIgnoreCase("trash")) {
             if (!(sender instanceof Player player)) {

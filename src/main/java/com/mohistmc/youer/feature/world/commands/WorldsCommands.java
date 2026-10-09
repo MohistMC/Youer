@@ -27,7 +27,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
 
 public class WorldsCommands extends Command {
 
@@ -49,7 +48,7 @@ public class WorldsCommands extends Command {
     }
 
     @Override
-    public boolean execute(@NotNull CommandSender sender, @NotNull String currentAlias, String[] args) {
+    public boolean execute(CommandSender sender, String currentAlias, String[] args) {
         if (args.length == 0) {
             this.sendHelp(sender);
             return false;
@@ -358,7 +357,7 @@ public class WorldsCommands extends Command {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) throws IllegalArgumentException {
+    public List<String> tabComplete(CommandSender sender, String alias, String[] args) throws IllegalArgumentException {
         List<String> list = new ArrayList<>();
         if (args.length == 1 && (sender.isOp() || testPermission(sender))) {
             for (String param : params) {

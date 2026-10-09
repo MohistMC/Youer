@@ -43,7 +43,6 @@ import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.EntityType;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionType;
-import org.jetbrains.annotations.NotNull;
 
 public class DumpCommand extends Command {
     private final List<String> tab_cmd = Arrays.asList("potions", "effect", "particle", "enchants", "cbcmds", "modscmds", "entitytypes", "biomes", "pattern", "worldgen", "worldtype", "material", "channels", "advancements");
@@ -56,7 +55,7 @@ public class DumpCommand extends Command {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(CommandSender sender, @NotNull String alias, String[] args) {
+    public List<String> tabComplete(CommandSender sender, String alias, String[] args) {
         List<String> list = new ArrayList<>();
         if ((sender.isOp() || testPermission(sender))) {
             if (args.length == 1) {
@@ -72,7 +71,7 @@ public class DumpCommand extends Command {
     }
 
     @Override
-    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, String[] args) {
+    public boolean execute(CommandSender sender, String commandLabel, String[] args) {
         if (!testPermission(sender)) {
             return true;
         }

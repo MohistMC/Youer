@@ -11,7 +11,6 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.enchantments.Enchantment;
-import org.jetbrains.annotations.NotNull;
 
 public class EnchantLimitCommand extends Command {
 
@@ -105,7 +104,7 @@ public class EnchantLimitCommand extends Command {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) {
+    public List<String> tabComplete(CommandSender sender, String alias, String[] args) {
         List<String> completions = new ArrayList<>();
         if (args.length == 1) {
             for (String cmd : SUBCOMMANDS) {

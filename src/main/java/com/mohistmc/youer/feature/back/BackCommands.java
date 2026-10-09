@@ -6,7 +6,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
-import org.jetbrains.annotations.NotNull;
 
 public class BackCommands extends Command {
 
@@ -26,7 +25,7 @@ public class BackCommands extends Command {
     }
 
     @Override
-    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
+    public boolean execute(CommandSender sender, String commandLabel, String[] args) {
         if (sender instanceof Player player) {
             if (BackConfig.INSTANCE.has(player.getUniqueId().toString())) {
                 player.teleport(BackConfig.INSTANCE.getLocation(player));

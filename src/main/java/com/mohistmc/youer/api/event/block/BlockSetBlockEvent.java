@@ -5,7 +5,6 @@ import org.bukkit.Location;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.block.BlockEvent;
-import org.jetbrains.annotations.NotNull;
 
 public class BlockSetBlockEvent extends BlockEvent implements Cancellable {
 
@@ -37,7 +36,7 @@ public class BlockSetBlockEvent extends BlockEvent implements Cancellable {
     }
 
     @Override
-    public @NotNull HandlerList getHandlers() {
+    public HandlerList getHandlers() {
         return handlers;
     }
 

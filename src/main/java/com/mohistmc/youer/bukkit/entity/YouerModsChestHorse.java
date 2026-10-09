@@ -5,7 +5,6 @@ import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.entity.CraftChestedHorse;
 import org.bukkit.entity.EntityCategory;
 import org.bukkit.entity.Horse;
-import org.jetbrains.annotations.NotNull;
 
 public class YouerModsChestHorse extends CraftChestedHorse {
 
@@ -24,12 +23,12 @@ public class YouerModsChestHorse extends CraftChestedHorse {
     }
 
     @Override
-    public @NotNull Horse.Variant getVariant() {
+    public Horse.Variant getVariant() {
         return Horse.Variant.MODS;
     }
 
     @Override
-    public @NotNull EntityCategory getCategory() {
+    public EntityCategory getCategory() {
         return EntityCategory.NONE;
     }
 }

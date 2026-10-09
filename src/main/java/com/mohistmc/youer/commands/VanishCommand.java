@@ -6,7 +6,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Mgazul
@@ -24,7 +23,7 @@ public class VanishCommand extends BukkitCommand {
     }
 
     @Override
-    public boolean execute(@NotNull CommandSender sender, @NotNull String label, String[] args) {
+    public boolean execute(CommandSender sender, String label, String[] args) {
         if (!(sender instanceof Player p)) {
             sender.sendMessage(I18n.as("vanish.console"));
             return false;

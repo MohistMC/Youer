@@ -4,7 +4,6 @@ import net.minecraft.world.entity.raid.Raider;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.craftbukkit.entity.CraftRaider;
 import org.bukkit.entity.EntityCategory;
-import org.jetbrains.annotations.NotNull;
 
 public class YouerModsRaider extends CraftRaider {
 
@@ -23,7 +22,7 @@ public class YouerModsRaider extends CraftRaider {
     }
 
     @Override
-    public @NotNull EntityCategory getCategory() {
+    public EntityCategory getCategory() {
         return EntityCategory.ILLAGER;
     }
 }

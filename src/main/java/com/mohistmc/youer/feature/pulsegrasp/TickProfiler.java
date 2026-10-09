@@ -2,6 +2,10 @@ package com.mohistmc.youer.feature.pulsegrasp;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
+import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
+import it.unimi.dsi.fastutil.longs.LongSet;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -12,10 +16,6 @@ import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
-import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
-import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
-import it.unimi.dsi.fastutil.longs.LongSet;
 import org.bukkit.Bukkit;
 
 /**
@@ -37,8 +37,6 @@ public class TickProfiler {
     private static final int PING_SAMPLE_INTERVAL_TICKS = 20;
     /** Bounds the vital-sign series so long sessions cannot grow forever. */
     private static final int VITALS_LIMIT = 72000;
-    /** Upper bound of each histogram bucket, in ms. */
-    private static final long[] HIST_EDGES_MS = {10, 20, 30, 40, 50, 75, 100, 150, 200, 300, 500, 1000, Long.MAX_VALUE};
 
     /** Attaches the type name to a drill-down record. */
     @FunctionalInterface
@@ -89,7 +87,6 @@ public class TickProfiler {
     private final long[] tickRing = new long[TICK_RING_SIZE];
     private int tickRingIndex;
     private int tickRingCount;
-    private final long[] histogram = new long[HIST_EDGES_MS.length];
     private int slowTickCount;
     /** Ticks we counted in each complete wall-clock second — the real TPS, measured by us. */
     private final List<Integer> ticksPerSecond = new ArrayList<>();
@@ -150,7 +147,6 @@ public class TickProfiler {
         tickRingIndex = 0;
         tickRingCount = 0;
         Arrays.fill(tickRing, 0L);
-        Arrays.fill(histogram, 0L);
         slowTickCount = 0;
         worstTicks.clear();
         ticksPerSecond.clear();
@@ -223,7 +219,6 @@ public class TickProfiler {
             tickRing[tickRingIndex] = nanos;
             tickRingIndex = (tickRingIndex + 1) % TICK_RING_SIZE;
             tickRingCount++;
-            recordHistogram(nanos);
             if (nanos >= SLOW_TICK_THRESHOLD_NANOS) slowTickCount++;
 
             if (worstTicks.size() < WORST_TICK_LIMIT
@@ -240,11 +235,7 @@ public class TickProfiler {
                         new LinkedHashMap<>(tickEntityTimes),
                         new LinkedHashMap<>(tickEntityCounts),
                         new LinkedHashMap<>(tickBlockEntityTimes),
-                        new LinkedHashMap<>(tickBlockEntityCounts),
-                        new LinkedHashMap<>(tickChunkSourceTimes),
-                        new LinkedHashMap<>(tickChunkSourceCounts),
-                        new LinkedHashMap<>(tickBlockEventTimes),
-                        new LinkedHashMap<>(tickBlockEventCounts));
+                        new LinkedHashMap<>(tickBlockEntityCounts));
                 if (worstTicks.size() >= WORST_TICK_LIMIT) worstTicks.poll();
                 worstTicks.add(snapshot);
             }
@@ -267,17 +258,6 @@ public class TickProfiler {
         long total = 0;
         for (long v : map.values()) total += v;
         return total;
-    }
-
-    private void recordHistogram(long nanos) {
-        double ms = nanos / 1_000_000.0;
-        for (int i = 0; i < HIST_EDGES_MS.length; i++) {
-            if (ms <= HIST_EDGES_MS[i]) {
-                histogram[i]++;
-                return;
-            }
-        }
-        histogram[HIST_EDGES_MS.length - 1]++;
     }
 
     private int calcAveragePing() {
@@ -501,18 +481,6 @@ public class TickProfiler {
             o.addProperty("p95Ms", fmtMs(copy[percentileIndex(n, 0.95)]));
             o.addProperty("p99Ms", fmtMs(copy[percentileIndex(n, 0.99)]));
         }
-
-        JsonArray hist = new JsonArray();
-        long lower = 0;
-        for (int i = 0; i < HIST_EDGES_MS.length; i++) {
-            long upper = HIST_EDGES_MS[i];
-            JsonObject b = new JsonObject();
-            b.addProperty("range", upper == Long.MAX_VALUE ? (">" + lower + "ms") : (lower + "-" + upper + "ms"));
-            b.addProperty("count", histogram[i]);
-            hist.add(b);
-            lower = upper;
-        }
-        o.add("histogram", hist);
         return o;
     }
 
@@ -539,10 +507,6 @@ public class TickProfiler {
             obj.add("phases", buildTimingBreakdown(t.phases, null, t.durationNanos));
             obj.add("entityTypes", buildTimingBreakdown(t.entityTimes, t.entityCounts, t.durationNanos));
             obj.add("blockEntityTypes", buildTimingBreakdown(t.blockEntityTimes, t.blockEntityCounts, t.durationNanos));
-            // the additive view of this very tick: segments + unaccounted == tickMs
-            obj.add("budget", buildBudget(t.durationNanos, 1, t.phases, null,
-                    families(t.entityTimes, t.entityCounts, t.blockEntityTimes, t.blockEntityCounts,
-                            t.chunkSourceTimes, t.chunkSourceCounts, t.blockEventTimes, t.blockEventCounts)));
             array.add(obj);
         }
         return array;
@@ -1181,16 +1145,10 @@ public class TickProfiler {
         final Map<String, Integer> entityCounts;
         final Map<String, Long> blockEntityTimes;
         final Map<String, Integer> blockEntityCounts;
-        final Map<String, Long> chunkSourceTimes;
-        final Map<String, Integer> chunkSourceCounts;
-        final Map<String, Long> blockEventTimes;
-        final Map<String, Integer> blockEventCounts;
 
         SlowTick(int tick, long timestampMs, long durationNanos, double tps, double mspt, int ping, String dimension,
                  Map<String, Long> phases, Map<String, Long> entityTimes, Map<String, Integer> entityCounts,
-                 Map<String, Long> blockEntityTimes, Map<String, Integer> blockEntityCounts,
-                 Map<String, Long> chunkSourceTimes, Map<String, Integer> chunkSourceCounts,
-                 Map<String, Long> blockEventTimes, Map<String, Integer> blockEventCounts) {
+                 Map<String, Long> blockEntityTimes, Map<String, Integer> blockEntityCounts) {
             this.tick = tick;
             this.timestampMs = timestampMs;
             this.durationNanos = durationNanos;
@@ -1203,10 +1161,6 @@ public class TickProfiler {
             this.entityCounts = entityCounts;
             this.blockEntityTimes = blockEntityTimes;
             this.blockEntityCounts = blockEntityCounts;
-            this.chunkSourceTimes = chunkSourceTimes;
-            this.chunkSourceCounts = chunkSourceCounts;
-            this.blockEventTimes = blockEventTimes;
-            this.blockEventCounts = blockEventCounts;
         }
     }
 }

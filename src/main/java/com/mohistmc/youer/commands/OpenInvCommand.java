@@ -8,7 +8,6 @@ import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Mgazul
@@ -27,7 +26,7 @@ public class OpenInvCommand extends BukkitCommand {
 
 
     @Override
-    public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) {
+    public List<String> tabComplete(CommandSender sender, String alias, String[] args) {
         List<String> list = new ArrayList<>();
         if ((sender.isOp() || testPermission(sender))) {
             if (args.length == 1) {
@@ -53,7 +52,7 @@ public class OpenInvCommand extends BukkitCommand {
     }
 
     @Override
-    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, String[] args) {
+    public boolean execute(CommandSender sender, String commandLabel, String[] args) {
         if (sender instanceof final Player player) {
             if (args.length == 2 && args[0].equalsIgnoreCase("enderchest") && player.isOp() && Bukkit.getServer().getPlayer(args[1]) != null) {
                 final Player tPlayer = Bukkit.getServer().getPlayer(args[1]);

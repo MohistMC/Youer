@@ -4,7 +4,6 @@ import lombok.Getter;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Mgazul
@@ -22,7 +21,7 @@ public class EntityClearInventory implements InventoryHolder {
     }
 
     @Override
-    public @NotNull Inventory getInventory() {
+    public Inventory getInventory() {
         return inventory;
     }
 }

@@ -25,7 +25,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.CraftServer;
 import org.bukkit.entity.Player;
-import org.jetbrains.annotations.NotNull;
 import org.spigotmc.SpigotConfig;
 
 public class YouerCommand extends Command {
@@ -47,7 +46,7 @@ public class YouerCommand extends Command {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) {
+    public List<String> tabComplete(CommandSender sender, String alias, String[] args) {
         List<String> list = new ArrayList<>();
         if ((sender.isOp() || testPermission(sender))) {
             if (args.length == 1) {
@@ -67,7 +66,7 @@ public class YouerCommand extends Command {
     }
 
     @Override
-    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, String[] args) {
+    public boolean execute(CommandSender sender, String commandLabel, String[] args) {
         if (!testPermission(sender)) {
             return true;
         }

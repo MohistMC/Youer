@@ -6,7 +6,6 @@ import com.mohistmc.youer.util.I18n;
 import java.util.List;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import org.jetbrains.annotations.NotNull;
 
 public class PulseGraspCommand extends Command {
 
@@ -63,7 +62,7 @@ public class PulseGraspCommand extends Command {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) {
+    public List<String> tabComplete(CommandSender sender, String alias, String[] args) {
         if (!YouerConfig.isChinese()) {
             return List.of(); // 非中文服务器不提示任何子命令
         }

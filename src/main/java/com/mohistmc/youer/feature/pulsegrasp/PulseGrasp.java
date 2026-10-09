@@ -719,7 +719,7 @@ public class PulseGrasp {
             verdict = "TRANSIENT_SPIKE";
             summary.append("主因倾向偶发抖动：平均 MSPT ").append(String.format("%.2f", avg))
                     .append("ms 正常，但出现 ").append(slow).append(" 次超过 50ms 的慢 tick（P99=")
-                    .append(String.format("%.2f", p99)).append("ms）。请查看 worstTicks 对应时刻的阶段/实体。");
+                    .append(String.format("%.2f", p99)).append("ms）。请查看「慢 tick 成因证据」里聚合出的阶段/实体。");
         } else if (avg < 50) {
             verdict = "HEALTHY";
             summary.append("未发现明显瓶颈：平均 MSPT ").append(String.format("%.2f", avg)).append("ms，无慢 tick。");

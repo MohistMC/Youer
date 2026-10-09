@@ -6,7 +6,6 @@ import org.bukkit.Material;
 import org.bukkit.craftbukkit.inventory.CraftItemStack;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.RecipeChoice;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Mgazul by MohistMC
@@ -14,14 +13,12 @@ import org.jetbrains.annotations.NotNull;
  */
 public record MohistSpecialIngredient(Ingredient ingredient) implements RecipeChoice {
 
-    @NotNull
     @Override
     public ItemStack getItemStack() {
         net.minecraft.world.item.ItemStack[] items = ingredient.getItems();
         return items.length > 0 ? CraftItemStack.asCraftMirror(items[0]) : new ItemStack(Material.AIR, 0);
     }
 
-    @NotNull
     @Override
     public RecipeChoice clone() {
         try {
@@ -32,7 +29,7 @@ public record MohistSpecialIngredient(Ingredient ingredient) implements RecipeCh
     }
 
     @Override
-    public boolean test(@NotNull ItemStack itemStack) {
+    public boolean test(ItemStack itemStack) {
         return ingredient.test(CraftItemStack.asNMSCopy(itemStack));
     }
 

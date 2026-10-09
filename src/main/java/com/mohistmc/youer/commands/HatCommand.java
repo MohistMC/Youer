@@ -7,7 +7,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.defaults.BukkitCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * @author Mgazul
@@ -23,7 +22,7 @@ public class HatCommand extends BukkitCommand {
     }
 
     @Override
-    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, String[] args) {
+    public boolean execute(CommandSender sender, String commandLabel, String[] args) {
         if (sender instanceof final Player player) {
             final Cooldown cooldown = new Cooldown(player.getUniqueId(), player.getName(), 10);
             if (!Cooldown.isInCooldown(player.getUniqueId(), player.getName())) {

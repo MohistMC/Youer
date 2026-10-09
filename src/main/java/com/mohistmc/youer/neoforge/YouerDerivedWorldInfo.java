@@ -30,7 +30,6 @@ import net.minecraft.world.level.storage.PrimaryLevelData;
 import net.minecraft.world.level.storage.ServerLevelData;
 import net.minecraft.world.level.storage.WorldData;
 import net.minecraft.world.level.timers.TimerQueue;
-import org.jetbrains.annotations.NotNull;
 
 public class YouerDerivedWorldInfo extends PrimaryLevelData {
 
@@ -153,7 +152,7 @@ public class YouerDerivedWorldInfo extends PrimaryLevelData {
     }
 
     @Override
-    public @NotNull String getLevelName() {
+    public String getLevelName() {
         return derivedWorldInfo.getLevelName();
     }
 
@@ -208,17 +207,17 @@ public class YouerDerivedWorldInfo extends PrimaryLevelData {
     }
 
     @Override
-    public @NotNull GameType getGameType() {
+    public GameType getGameType() {
         return derivedWorldInfo.getGameType();
     }
 
     @Override
-    public void setGameType(@NotNull GameType type) {
+    public void setGameType(GameType type) {
         derivedWorldInfo.setGameType(type);
     }
 
     @Override
-    public void setSpawn(@NotNull BlockPos spawnPoint, float angle) {
+    public void setSpawn(BlockPos spawnPoint, float angle) {
         derivedWorldInfo.setSpawn(spawnPoint, angle);
     }
 
@@ -238,22 +237,22 @@ public class YouerDerivedWorldInfo extends PrimaryLevelData {
     }
 
     @Override
-    public @NotNull GameRules getGameRules() {
+    public GameRules getGameRules() {
         return this.gameRules; // Youer - per-dimension game rules instead of the shared main world rules
     }
 
     @Override
-    public @NotNull WorldBorder.Settings getWorldBorder() {
+    public WorldBorder.Settings getWorldBorder() {
         return derivedWorldInfo.getWorldBorder();
     }
 
     @Override
-    public void setWorldBorder(@NotNull WorldBorder.Settings serializer) {
+    public void setWorldBorder(WorldBorder.Settings serializer) {
         derivedWorldInfo.setWorldBorder(serializer);
     }
 
     @Override
-    public @NotNull Difficulty getDifficulty() {
+    public Difficulty getDifficulty() {
         return derivedWorldInfo.getDifficulty();
     }
 
@@ -263,7 +262,7 @@ public class YouerDerivedWorldInfo extends PrimaryLevelData {
     }
 
     @Override
-    public @NotNull TimerQueue<MinecraftServer> getScheduledEvents() {
+    public TimerQueue<MinecraftServer> getScheduledEvents() {
         return derivedWorldInfo.getScheduledEvents();
     }
 
@@ -288,12 +287,12 @@ public class YouerDerivedWorldInfo extends PrimaryLevelData {
     }
 
     @Override
-    public void setWanderingTraderId(@NotNull UUID id) {
+    public void setWanderingTraderId(UUID id) {
         derivedWorldInfo.setWanderingTraderId(id);
     }
 
     @Override
-    public void fillCrashReportCategory(@NotNull CrashReportCategory p_164972_, @NotNull LevelHeightAccessor p_164973_) {
+    public void fillCrashReportCategory(CrashReportCategory p_164972_, LevelHeightAccessor p_164973_) {
         derivedWorldInfo.fillCrashReportCategory(p_164972_, p_164973_);
     }
 }

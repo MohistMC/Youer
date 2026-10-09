@@ -25,7 +25,7 @@ import java.util.concurrent.ConcurrentMap;
  * thread's stack and aggregates per-method self / total sample counts, giving a self-time
  * breakdown similar to spark rather than the coarser phase-level "meridians".
  * <p>
- * Only RUNNABLE samples build the flame graph, so percentages reflect CPU consumption rather
+ * Only RUNNABLE samples are counted, so percentages reflect CPU consumption rather
  * than idle or waiting time. Sampling reads the target thread's stack via
  * {@link ThreadMXBean#getThreadInfo(long, int)} — no source patches needed.
  */
@@ -35,7 +35,7 @@ public class MethodSampler {
     private static final int DEFAULT_MAX_DEPTH = 64;
     private static final long DEFAULT_INTERVAL_MS = 25;
 
-    // Hidden from the flame graph so game / mod hot methods are not drowned out.
+    // Hidden from the hot-method list so game / mod hot methods are not drowned out.
     private static final Set<String> FILTER_PREFIXES = Set.of(
             "java.", "javax.", "jdk.", "sun.", "com.sun.",
             "com.google.", "org.objectweb.", "it.unimi.dsi.", "org.slf4j.",
@@ -69,8 +69,6 @@ public class MethodSampler {
     private final Map<String, Integer> stateCounts = new LinkedHashMap<>();
     /** Flat per-method aggregation, for quick scanning. */
     private final Map<String, MethodAgg> flatStats = new HashMap<>();
-    /** Flame-graph call tree; root's children are the leaf (deepest) frames. */
-    private final FrameNode root = new FrameNode("root");
 
     private Thread samplerThread;
     private volatile boolean running;
@@ -85,9 +83,6 @@ public class MethodSampler {
         this.targetThreadId = serverThreadId;
         this.running = true;
         this.flatStats.clear();
-        this.root.children.clear();
-        this.root.totalCount = 0;
-        this.root.selfCount = 0;
         this.stateCounts.clear();
         this.totalSamples = 0;
         this.runnableSamples = 0;
@@ -173,19 +168,6 @@ public class MethodSampler {
                 agg.sampleStack = stack.subList(i, stack.size()).toArray(new StackTraceElement[0]);
             }
         }
-
-        // flame-graph trie: walk from the leaf (index 0) up to the entry point
-        FrameNode node = root;
-        node.totalCount++;
-        for (int i = 0; i < stack.size(); i++) {
-            String key = keyOf(stack.get(i));
-            node = node.children.computeIfAbsent(key, k -> new FrameNode(key));
-            node.totalCount++;
-            if (i == 0) node.selfCount++;
-            if (node.sampleStack == null) {
-                node.sampleStack = stack.subList(i, stack.size()).toArray(new StackTraceElement[0]);
-            }
-        }
     }
 
     private static boolean isFiltered(StackTraceElement e) {
@@ -248,8 +230,6 @@ public class MethodSampler {
         rootJson.add("pluginHotspots", buildHotspots(NamespaceKind.PLUGIN));
         rootJson.add("modHotspots", buildHotspots(NamespaceKind.MOD));
 
-        rootJson.add("flameTree", toJson(root, 0));
-
         // flat hot-method list by self time
         List<Map.Entry<String, MethodAgg>> sorted = flatStats.entrySet().stream()
                 .sorted(Comparator.comparingInt(e -> -e.getValue().selfCount))
@@ -274,33 +254,6 @@ public class MethodSampler {
         rootJson.add("topMethods", methods);
 
         return rootJson;
-    }
-
-    private JsonObject toJson(FrameNode node, int depth) {
-        JsonObject obj = new JsonObject();
-        obj.addProperty("name", depth == 0 ? "root" : displayName(node.key));
-        obj.addProperty("selfCount", node.selfCount);
-        obj.addProperty("totalCount", node.totalCount);
-        obj.addProperty("selfPercent", pct(node.selfCount, runnableSamples));
-        obj.addProperty("totalPercent", pct(node.totalCount, runnableSamples));
-        obj.addProperty("selfCpuMs", selfCpuMs(node.selfCount, runnableSamples));
-        if (node.sampleStack != null) {
-            obj.addProperty("sampleStack", formatStack(node.sampleStack));
-        }
-
-        if (!node.children.isEmpty()) {
-            // expand only the hottest children, to keep the tree readable
-            List<Map.Entry<String, FrameNode>> children = node.children.entrySet().stream()
-                    .sorted(Comparator.comparingInt(e -> -e.getValue().selfCount))
-                    .limit(maxTopN)
-                    .toList();
-            JsonArray childArray = new JsonArray();
-            for (Map.Entry<String, FrameNode> child : children) {
-                childArray.add(toJson(child.getValue(), depth + 1));
-            }
-            obj.add("children", childArray);
-        }
-        return obj;
     }
 
     private String selfCpuMs(int selfCount, int runnableSamples) {
@@ -739,17 +692,5 @@ public class MethodSampler {
         int selfCount;
         int totalCount;
         StackTraceElement[] sampleStack;
-    }
-
-    private static class FrameNode {
-        final String key;
-        int selfCount;
-        int totalCount;
-        StackTraceElement[] sampleStack;
-        final Map<String, FrameNode> children = new LinkedHashMap<>();
-
-        FrameNode(String key) {
-            this.key = key;
-        }
     }
 }

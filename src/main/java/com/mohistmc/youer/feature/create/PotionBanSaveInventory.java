@@ -3,7 +3,6 @@ package com.mohistmc.youer.feature.create;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
-import org.jetbrains.annotations.NotNull;
 
 /**
  * Add-GUI for /create_item_drain potionban add: players place potion items in it, recognized on close.
@@ -20,7 +19,7 @@ public class PotionBanSaveInventory implements InventoryHolder {
     }
 
     @Override
-    public @NotNull Inventory getInventory() {
+    public Inventory getInventory() {
         return inventory;
     }
 }

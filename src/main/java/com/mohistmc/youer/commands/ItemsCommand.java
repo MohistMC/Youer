@@ -37,7 +37,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemRarity;
 import org.bukkit.inventory.ItemStack;
-import org.jetbrains.annotations.NotNull;
 
 public class ItemsCommand extends Command {
 
@@ -102,7 +101,7 @@ public class ItemsCommand extends Command {
     }
 
     @Override
-    public @NotNull List<String> tabComplete(@NotNull CommandSender sender, @NotNull String alias, String[] args) {
+    public List<String> tabComplete(CommandSender sender, String alias, String[] args) {
         if (!sender.isOp() && !testPermission(sender)) {
             return new ArrayList<>();
         }
@@ -208,7 +207,7 @@ public class ItemsCommand extends Command {
     }
 
     @Override
-    public boolean execute(@NotNull CommandSender sender, @NotNull String commandLabel, @NotNull String[] args) {
+    public boolean execute(CommandSender sender, String commandLabel, String[] args) {
         if (!testPermission(sender)) {
             return false;
         }
@@ -546,7 +545,7 @@ public class ItemsCommand extends Command {
     /**
      * Gives a saved item to a player, runnable from the console.
      */
-    private boolean give(@NotNull CommandSender sender, @NotNull String[] args) {
+    private boolean give(CommandSender sender, String[] args) {
         if (args.length < 3 || args.length > 4) {
             sender.sendMessage(ChatColor.RED + I18n.as("itemscmd.usage", "/items give <player> <name> [amount]"));
             return false;
