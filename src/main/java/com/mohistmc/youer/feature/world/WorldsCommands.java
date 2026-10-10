@@ -1,12 +1,9 @@
-package com.mohistmc.youer.feature.world.commands;
+package com.mohistmc.youer.feature.world;
 
 import com.mohistmc.youer.api.WorldAPI;
 import com.mohistmc.youer.api.gui.DemoGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.ItemStackFactory;
-import com.mohistmc.youer.feature.world.WorldManage;
-import com.mohistmc.youer.feature.world.utils.ConfigByWorlds;
-import com.mohistmc.youer.feature.world.utils.WorldsGUI;
 import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import com.mohistmc.youer.util.I18n;
 import java.io.File;
@@ -30,7 +27,7 @@ import org.bukkit.inventory.ItemStack;
 
 public class WorldsCommands extends Command {
 
-    private final List<String> params = Arrays.asList("create", "delete", "tp", "import", "unload", "info", "addinfo", "setdisplayname", "setspawn", "gui", "difficulty", "gamemode", "maintenance");
+    private final List<String> params = Arrays.asList("create", "delete", "tp", "import", "unload", "info", "addinfo", "setdisplayname", "setspawn", "gui", "difficulty", "gamemode", "maintenance", "naturalspawn", "keepspawn", "spawnforchunk");
 
     public WorldsCommands(String name) {
         super(name);
@@ -47,6 +44,34 @@ public class WorldsCommands extends Command {
         player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.command.worldExists", world));
     }
 
+    private static boolean isToggle(String arg) {
+        return arg.equalsIgnoreCase("on") || arg.equalsIgnoreCase("off");
+    }
+
+    /** Resolves "[world] <on|off>" into {world, action}; either may be null. */
+    private static String[] worldAction(CommandSender sender, String[] args) {
+        String world = null;
+        String action = null;
+        if (args.length == 1) {
+            if (sender instanceof Player p) {
+                world = p.getWorld().getName();
+            }
+        } else if (args.length == 2) {
+            if (isToggle(args[1])) {
+                action = args[1];
+                if (sender instanceof Player p) {
+                    world = p.getWorld().getName();
+                }
+            } else {
+                world = args[1];
+            }
+        } else if (args.length == 3) {
+            world = args[1];
+            action = args[2];
+        }
+        return new String[]{world, action};
+    }
+
     @Override
     public boolean execute(CommandSender sender, String currentAlias, String[] args) {
         if (args.length == 0) {
@@ -54,25 +79,9 @@ public class WorldsCommands extends Command {
             return false;
         }
         if (args[0].equalsIgnoreCase("maintenance")) {
-            String worldName = null;
-            String action = null;
-            if (args.length == 1) {
-                if (sender instanceof Player p) {
-                    worldName = p.getWorld().getName();
-                }
-            } else if (args.length == 2) {
-                if (args[1].equalsIgnoreCase("on") || args[1].equalsIgnoreCase("off")) {
-                    action = args[1];
-                    if (sender instanceof Player p) {
-                        worldName = p.getWorld().getName();
-                    }
-                } else {
-                    worldName = args[1];
-                }
-            } else if (args.length == 3) {
-                worldName = args[1];
-                action = args[2];
-            }
+            String[] resolved = worldAction(sender, args);
+            String worldName = resolved[0];
+            String action = resolved[1];
             if (worldName == null) {
                 sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.maintenance.usage"));
                 return false;
@@ -83,7 +92,7 @@ public class WorldsCommands extends Command {
                 return false;
             }
             if (action == null) {
-                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.maintenance.status", worldName, I18n.as(ConfigByWorlds.isMaintenance(worldName) ? "worldcommands.maintenance.status.on" : "worldcommands.maintenance.status.off")));
+                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.maintenance.status", worldName, I18n.as(WorldConfig.isMaintenance(worldName) ? "worldcommands.maintenance.status.on" : "worldcommands.maintenance.status.off")));
                 return true;
             }
             if (action.equalsIgnoreCase("on")) {
@@ -91,23 +100,58 @@ public class WorldsCommands extends Command {
                     sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.maintenance.denyMainworld"));
                     return false;
                 }
-                ConfigByWorlds.setMaintenance(worldName, true);
+                WorldConfig.setMaintenance(worldName, true);
                 sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.maintenance.enable", worldName));
                 for (Player p : world.getPlayers()) {
                     if (!p.isOp()) {
                         p.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.maintenance.deny"));
-                        ConfigByWorlds.getSpawn(Bukkit.getUnsafe().getMainLevelName(), p);
+                        WorldConfig.getSpawn(Bukkit.getUnsafe().getMainLevelName(), p);
                     }
                 }
                 return true;
             }
             if (action.equalsIgnoreCase("off")) {
-                ConfigByWorlds.setMaintenance(worldName, false);
+                WorldConfig.setMaintenance(worldName, false);
                 sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.maintenance.disable", worldName));
                 return true;
             }
             sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.maintenance.usage"));
             return false;
+        }
+        if (args[0].equalsIgnoreCase("naturalspawn") || args[0].equalsIgnoreCase("keepspawn") || args[0].equalsIgnoreCase("spawnforchunk")) {
+            int kind = args[0].equalsIgnoreCase("naturalspawn") ? 0 : (args[0].equalsIgnoreCase("keepspawn") ? 1 : 2);
+            String key = kind == 0 ? "worldcommands.naturalspawn." : (kind == 1 ? "worldcommands.keepspawn." : "worldcommands.spawnforchunk.");
+            String[] resolved = worldAction(sender, args);
+            String worldName = resolved[0];
+            String action = resolved[1];
+            if (worldName == null) {
+                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as(key + "usage"));
+                return false;
+            }
+            World world = Bukkit.getWorld(worldName);
+            if (world == null) {
+                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.toggle.worldNotExists", worldName));
+                return false;
+            }
+            boolean current = kind == 0 ? WorldConfig.naturalSpawn(worldName)
+                    : (kind == 1 ? WorldConfig.keepspawninmemory(worldName) : WorldConfig.chunkSpawn(worldName));
+            if (action == null) {
+                sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as(key + "status", worldName,
+                        I18n.as(current ? "worldcommands.toggle.status.on" : "worldcommands.toggle.status.off")));
+                return true;
+            }
+            boolean enable = action.equalsIgnoreCase("on");
+            if (kind == 0) {
+                WorldConfig.setNaturalSpawn(worldName, enable);
+                world.setSpawnFlags(enable, enable);
+            } else if (kind == 1) {
+                WorldConfig.setKeepSpawnInMemory(worldName, enable);
+                world.setKeepSpawnInMemory(enable);
+            } else {
+                WorldConfig.setChunkSpawn(worldName, enable);
+            }
+            sender.sendMessage(I18n.as("worldmanage.prefix") + I18n.as(key + (enable ? "enable" : "disable"), worldName));
+            return true;
         }
         if (sender instanceof Player player) {
             World worldByplayer = player.getWorld();
@@ -116,7 +160,7 @@ public class WorldsCommands extends Command {
                 return true;
             }
             if (args.length == 1 && args[0].equalsIgnoreCase("addtoconfig")) {
-                ConfigByWorlds.addWorld(worldByplayer.getName(), false);
+                WorldConfig.addWorld(worldByplayer.getName(), false);
                 return true;
             }
             if (args.length == 2 && args[0].equalsIgnoreCase("create")) {
@@ -162,12 +206,12 @@ public class WorldsCommands extends Command {
                     worldNotExists(player, worldName);
                     return false;
                 }
-                ConfigByWorlds.getSpawn(worldName, player);
+                WorldConfig.getSpawn(worldName, player);
                 player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.command.teleportSpawn", worldName));
                 return true;
             }
             if (args.length == 1 && args[0].equalsIgnoreCase("spawn")) {
-                ConfigByWorlds.getSpawn(worldByplayer.getName(), player);
+                WorldConfig.getSpawn(worldByplayer.getName(), player);
                 return true;
             }
             if (args.length == 2 && args[0].equalsIgnoreCase("delete")) {
@@ -179,10 +223,10 @@ public class WorldsCommands extends Command {
                             all.teleport(MinecraftServer.getServer().overworld().world.getSpawnLocation()); // use overworld
                         }
                         try {
-                            ConfigByWorlds.removeWorld(worldName);
+                            WorldConfig.removeWorld(worldName);
                             Bukkit.unloadWorld(w, true);
                             File deleteWorld = w.getWorldFolder();
-                            WorldManage.deleteDir(deleteWorld);
+                            WorldManager.deleteDir(deleteWorld);
                             player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.world.delSuccessful"));
                             return true;
                         } catch (Exception e2) {
@@ -210,9 +254,9 @@ public class WorldsCommands extends Command {
                         if (w != null) {
                             Location location = w.getSpawnLocation();
                             player.teleport(location);
-                            ConfigByWorlds.addSpawn(location);
+                            WorldConfig.addSpawn(location);
                         }
-                        ConfigByWorlds.addWorld(worldName, true);
+                        WorldConfig.addWorld(worldName, true);
                         player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.world.loadWorldSuccessful"));
                         return true;
                     } else {
@@ -228,15 +272,15 @@ public class WorldsCommands extends Command {
                     return false;
                 }
                 for (Player all2 : world.getPlayers()) {
-                    ConfigByWorlds.getSpawn(Bukkit.getUnsafe().getMainLevelName(), all2);
+                    WorldConfig.getSpawn(Bukkit.getUnsafe().getMainLevelName(), all2);
                 }
                 Bukkit.unloadWorld(world, true);
-                ConfigByWorlds.removeWorld(worldName);
+                WorldConfig.removeWorld(worldName);
                 player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.world.worldUnload"));
                 return true;
             }
             if (args.length == 2 && args[0].equalsIgnoreCase("addinfo")) {
-                ConfigByWorlds.addInfo(worldByplayer.getName(), args[1]);
+                WorldConfig.addInfo(worldByplayer.getName(), args[1]);
                 player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.world.worldSetupSuccess"));
                 return true;
             }
@@ -246,14 +290,14 @@ public class WorldsCommands extends Command {
             }
             if (args.length == 2 && args[0].equalsIgnoreCase("setdisplayname")) {
                 String worldName = worldByplayer.getName();
-                ConfigByWorlds.addname(worldName, args[1]);
+                WorldConfig.addname(worldName, args[1]);
                 // the file is the source of truth again, drop any runtime override
                 WorldAPI.removeWorldName(worldName);
                 player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.world.worldSetupSuccess"));
                 return true;
             }
             if (args.length == 1 && args[0].equalsIgnoreCase("setspawn")) {
-                ConfigByWorlds.addSpawn(player.getLocation());
+                WorldConfig.addSpawn(player.getLocation());
                 player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.world.worldSetupSuccess"));
                 return true;
             }
@@ -264,22 +308,22 @@ public class WorldsCommands extends Command {
                         switch (difficulty) {
                             case 0 -> {
                                 player.getWorld().setDifficulty(Difficulty.PEACEFUL);
-                                ConfigByWorlds.setnandu(player, "PEACEFUL");
+                                WorldConfig.setnandu(player, "PEACEFUL");
                                 player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.world.worldSetupSuccess"));
                             }
                             case 1 -> {
                                 player.getWorld().setDifficulty(Difficulty.EASY);
-                                ConfigByWorlds.setnandu(player, "EASY");
+                                WorldConfig.setnandu(player, "EASY");
                                 player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.world.worldSetupSuccess"));
                             }
                             case 2 -> {
                                 player.getWorld().setDifficulty(Difficulty.NORMAL);
-                                ConfigByWorlds.setnandu(player, "NORMAL");
+                                WorldConfig.setnandu(player, "NORMAL");
                                 player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.world.worldSetupSuccess"));
                             }
                             case 3 -> {
                                 player.getWorld().setDifficulty(Difficulty.HARD);
-                                ConfigByWorlds.setnandu(player, "HARD");
+                                WorldConfig.setnandu(player, "HARD");
                                 player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.world.worldSetupSuccess"));
                             }
                         }
@@ -298,19 +342,19 @@ public class WorldsCommands extends Command {
                     if (gamemode >= 0 && gamemode < 4) {
                         switch (gamemode) {
                             case 0 -> {
-                                WorldManage.changeGameMode(player.getWorld(), GameMode.SURVIVAL);
+                                WorldManager.changeGameMode(player.getWorld(), GameMode.SURVIVAL);
                                 player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.world.worldSetupSuccess"));
                             }
                             case 1 -> {
-                                WorldManage.changeGameMode(player.getWorld(), GameMode.CREATIVE);
+                                WorldManager.changeGameMode(player.getWorld(), GameMode.CREATIVE);
                                 player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.world.worldSetupSuccess"));
                             }
                             case 2 -> {
-                                WorldManage.changeGameMode(player.getWorld(), GameMode.ADVENTURE);
+                                WorldManager.changeGameMode(player.getWorld(), GameMode.ADVENTURE);
                                 player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.world.worldSetupSuccess"));
                             }
                             case 3 -> {
-                                WorldManage.changeGameMode(player.getWorld(), GameMode.SPECTATOR);
+                                WorldManager.changeGameMode(player.getWorld(), GameMode.SPECTATOR);
                                 player.sendMessage(I18n.as("worldmanage.prefix") + I18n.as("worldcommands.world.worldSetupSuccess"));
                             }
                         }
@@ -339,7 +383,7 @@ public class WorldsCommands extends Command {
                         if (world == null) {
                             return false;
                         }
-                        ConfigByWorlds.getSpawn(worldName, target1);
+                        WorldConfig.getSpawn(worldName, target1);
                         return true;
                     }
                 }
@@ -375,13 +419,19 @@ public class WorldsCommands extends Command {
             list.addAll(Bukkit.getWorldsByName());
         }
 
-        if (args.length == 2 && args[0].equalsIgnoreCase("maintenance")) {
+        if (args.length == 2 && (args[0].equalsIgnoreCase("maintenance")
+                || args[0].equalsIgnoreCase("naturalspawn")
+                || args[0].equalsIgnoreCase("keepspawn")
+                || args[0].equalsIgnoreCase("spawnforchunk"))) {
             list.add("on");
             list.add("off");
             list.addAll(Bukkit.getWorldsByName());
         }
 
-        if (args.length == 3 && args[0].equalsIgnoreCase("maintenance")) {
+        if (args.length == 3 && (args[0].equalsIgnoreCase("maintenance")
+                || args[0].equalsIgnoreCase("naturalspawn")
+                || args[0].equalsIgnoreCase("keepspawn")
+                || args[0].equalsIgnoreCase("spawnforchunk"))) {
             list.add("on");
             list.add("off");
         }
@@ -404,5 +454,8 @@ public class WorldsCommands extends Command {
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds difficulty <0-3> " + I18n.as("worldmanage.command.difficulty"));
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds gamemode <0-3>" + I18n.as("worldmanage.command.gamemode"));
         player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds maintenance [world] <on|off> " + I18n.as("worldmanage.command.maintenance"));
+        player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds naturalspawn [world] <on|off> " + I18n.as("worldmanage.command.naturalspawn"));
+        player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds keepspawn [world] <on|off> " + I18n.as("worldmanage.command.keepspawn"));
+        player.sendMessage(I18n.as("worldmanage.prefix") + "/worlds spawnforchunk [world] <on|off> " + I18n.as("worldmanage.command.spawnforchunk"));
     }
 }

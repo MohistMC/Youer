@@ -279,7 +279,7 @@
          this.blockEntities.values().forEach(p_187988_ -> {
              if (this.level instanceof ServerLevel serverlevel) {
                  this.addGameEventListener(p_187988_, serverlevel);
-@@ -662,6 +_,69 @@
+@@ -662,10 +_,75 @@
          return new LevelChunk.BoundTickingBlockEntity<>(p_156376_, p_156377_);
      }
  
@@ -349,6 +349,12 @@
      class BoundTickingBlockEntity<T extends BlockEntity> implements TickingBlockEntity {
          private final T blockEntity;
          private final BlockEntityTicker<T> ticker;
+         private boolean loggedInvalidBlockState;
++        /** Youer - memoised registry key; see {@link #getType()}. */
++        private String youerCachedType;
+ 
+         BoundTickingBlockEntity(T p_156433_, BlockEntityTicker<T> p_156434_) {
+             this.blockEntity = p_156433_;
 @@ -679,20 +_,24 @@
                  if (LevelChunk.this.isTicking(blockpos)) {
                      try {
@@ -398,3 +404,18 @@
                      }
                  }
              }
+@@ -718,7 +_,13 @@
+ 
+         @Override
+         public String getType() {
+-            return BlockEntityType.getKey(this.blockEntity.getType()).toString();
++            // Youer start - the registry key cannot change for a bound ticker, and this is called
++            // once per block entity per tick
++            if (this.youerCachedType == null) {
++                this.youerCachedType = BlockEntityType.getKey(this.blockEntity.getType()).toString();
++            }
++            return this.youerCachedType;
++            // Youer end
+         }
+ 
+         @Override

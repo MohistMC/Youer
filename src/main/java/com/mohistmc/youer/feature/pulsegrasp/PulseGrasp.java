@@ -37,6 +37,8 @@ public class PulseGrasp {
     /** Action-bar refresh period, and the countdown resolution. */
     private static final long PROGRESS_INTERVAL_MS = 1_000L;
     private static final int PROGRESS_BAR_LENGTH = 10;
+    /** Counting active chunks walks every chunk, so it is sampled rather than measured each tick. */
+    private static final int CHUNK_STAT_INTERVAL_TICKS = 5;
 
     private static final PulseGrasp instance = new PulseGrasp();
 
@@ -375,6 +377,12 @@ public class PulseGrasp {
         if (instance.grasping) instance.tickProfiler.recordChunkStat(totalChunks, activeChunks);
     }
 
+    /** markTick runs before the level ticks, so every level in a tick gets the same answer. */
+    public static boolean shouldSampleChunkStats() {
+        return instance.grasping
+                && instance.tickProfiler.getTickCount() % CHUNK_STAT_INTERVAL_TICKS == 0;
+    }
+
     /**
      * Record one sub-step of the chunk source tick. {@code startNanos} is the value captured before
      * the step ran, or 0 when not sampling — so the call site stays a single guarded line and a
@@ -415,6 +423,20 @@ public class PulseGrasp {
     public static void recordChunkTicket(long chunkPos) {
         if (instance.grasping) {
             instance.tickProfiler.recordChunkTicket(chunkPos);
+        }
+    }
+
+    /** Per-chunk natural-spawn cost; {@code startNanos} is 0 when not sampling (see recordChunkSourcePulse). */
+    public static void recordNaturalSpawn(String dimension, int chunkX, int chunkZ, long startNanos) {
+        if (startNanos != 0 && instance.grasping) {
+            instance.tickProfiler.recordNaturalSpawn(dimension, chunkX, chunkZ, System.nanoTime() - startNanos);
+        }
+    }
+
+    /** Mob-cap/entity scan cost per dimension; {@code startNanos} is 0 when not sampling (see recordChunkSourcePulse). */
+    public static void recordNaturalSpawnCount(String dimension, long startNanos) {
+        if (startNanos != 0 && instance.grasping) {
+            instance.tickProfiler.recordNaturalSpawnCount(dimension, System.nanoTime() - startNanos);
         }
     }
 
@@ -731,6 +753,20 @@ public class PulseGrasp {
         }
         d.addProperty("verdict", verdict);
         d.addProperty("summary", summary.toString());
+
+        // natural-spawn evidence; the per-chunk breakdown is the naturalSpawnHeatmap section
+        double spawnMs = tickProfiler.naturalSpawnTotalNanos() / 1_000_000.0;
+        double spawnShare = durationMs > 0 ? spawnMs * 100.0 / durationMs : 0;
+        JsonObject spawner = new JsonObject();
+        spawner.addProperty("totalMs", String.format("%.2f", spawnMs));
+        spawner.addProperty("shareOfWallTimePercent", String.format("%.2f", spawnShare));
+        spawner.addProperty("perSecondMs", String.format("%.2f", durationMs > 0 ? spawnMs / (durationMs / 1000.0) : 0));
+        d.add("naturalSpawn", spawner);
+        if (spawnShare >= 10) {
+            summary.append(" 其中自然生成（spawner）占墙钟 ").append(String.format("%.1f", spawnShare))
+                    .append("%，逐区块热点见 naturalSpawnHeatmap。");
+            d.addProperty("summary", summary.toString());
+        }
         return d;
     }
 

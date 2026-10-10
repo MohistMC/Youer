@@ -1,6 +1,6 @@
 package com.mohistmc.youer.api;
 
-import com.mohistmc.youer.feature.world.utils.ConfigByWorlds;
+import com.mohistmc.youer.feature.world.WorldConfig;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,7 +38,7 @@ public class WorldAPI {
     public static String getWorldName(World world) {
         String name = world.getName();
         String override = WORLD_NAMES.get(name);
-        return override != null ? override : ConfigByWorlds.config.getString("worlds." + name + ".name", name);
+        return override != null ? override : WorldConfig.config.getString("worlds." + name + ".name", name);
     }
 
     /**

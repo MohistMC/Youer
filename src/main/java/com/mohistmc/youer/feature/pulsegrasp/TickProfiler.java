@@ -3,11 +3,13 @@ package com.mohistmc.youer.feature.pulsegrasp;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import it.unimi.dsi.fastutil.longs.Long2ObjectOpenHashMap;
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet;
 import it.unimi.dsi.fastutil.longs.LongSet;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -15,6 +17,7 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.bukkit.Bukkit;
 
@@ -52,7 +55,8 @@ public class TickProfiler {
     private final Map<String, Map<UUID, EntityTrace>> entityInstanceTraces = new HashMap<>();
     private final Map<String, Long> blockEntityMeridianTimes = new LinkedHashMap<>();
     private final Map<String, Integer> blockEntityMeridianCounts = new LinkedHashMap<>();
-    private final Map<String, Map<String, BlockEntityTrace>> blockEntityInstanceTraces = new HashMap<>();
+    /** Keyed by packed position; a string key here cost several percent of the server thread. */
+    private final Map<String, Long2ObjectMap<BlockEntityTrace>> blockEntityInstanceTraces = new HashMap<>();
     private final Map<String, Long> chunkSourceTimes = new LinkedHashMap<>();
     private final Map<String, Integer> chunkSourceCounts = new LinkedHashMap<>();
     private final Map<String, Long> blockEventTimes = new LinkedHashMap<>();
@@ -67,6 +71,17 @@ public class TickProfiler {
      */
     private final Map<String, LongSet> ticketedChunks = new LinkedHashMap<>();
 
+    /** Natural-spawn wall time per chunk (heat map source), grouped by dimension. */
+    private final Map<String, Long2ObjectMap<NaturalSpawnTrace>> naturalSpawnChunks = new LinkedHashMap<>();
+    /** Total natural-spawn wall time; kept separately so the per-chunk cap cannot under-count it. */
+    private long naturalSpawnNanosSum;
+    /** Natural-spawn wall time per dimension, carved out of chunkSource in the tick budget. */
+    private final Map<String, Long> naturalSpawnNanosByDimension = new LinkedHashMap<>();
+    /** Mob-cap/entity scan time per dimension, carved out as naturalSpawnCount. */
+    private final Map<String, Long> naturalSpawnCountNanosByDimension = new LinkedHashMap<>();
+    private final Map<String, Integer> naturalSpawnPhaseCountsByDimension = new LinkedHashMap<>();
+    private final Map<String, Integer> naturalSpawnCountPhaseCountsByDimension = new LinkedHashMap<>();
+
     // current tick only, cleared in markTick
     private final Map<String, Long> tickMeridianTimes = new HashMap<>();
     private final Map<String, Long> tickEntityTimes = new HashMap<>();
@@ -77,6 +92,8 @@ public class TickProfiler {
     private final Map<String, Integer> tickChunkSourceCounts = new HashMap<>();
     private final Map<String, Long> tickBlockEventTimes = new HashMap<>();
     private final Map<String, Integer> tickBlockEventCounts = new HashMap<>();
+    private final Map<String, Long> tickNaturalSpawnNanosByDimension = new HashMap<>();
+    private final Map<String, Long> tickNaturalSpawnCountNanosByDimension = new HashMap<>();
 
     private final java.util.ArrayDeque<VitalSign> vitalSigns = new java.util.ArrayDeque<>();
     private final Map<String, ChunkStat> chunkStats = new LinkedHashMap<>();
@@ -112,6 +129,11 @@ public class TickProfiler {
     private String currentDimension;
     private int tickCount;
 
+    /** Per-dimension key memo, so the prefix is not rebuilt for every block entity. */
+    private String keyCacheDimension;
+    private final Map<String, String> blockEntityKeyCache = new HashMap<>();
+    private final Map<String, String> entityKeyCache = new HashMap<>();
+
     void reset() {
         tickCount = 0;
         meridianTimes.clear();
@@ -139,8 +161,19 @@ public class TickProfiler {
         chunkStats.clear();
         playerTrails.clear();
         ticketedChunks.clear();
+        naturalSpawnChunks.clear();
+        naturalSpawnNanosSum = 0;
+        naturalSpawnNanosByDimension.clear();
+        naturalSpawnCountNanosByDimension.clear();
+        naturalSpawnPhaseCountsByDimension.clear();
+        naturalSpawnCountPhaseCountsByDimension.clear();
+        tickNaturalSpawnNanosByDimension.clear();
+        tickNaturalSpawnCountNanosByDimension.clear();
         currentMeridian = null;
         currentDimension = null;
+        keyCacheDimension = null;
+        blockEntityKeyCache.clear();
+        entityKeyCache.clear();
         tickNanosSum = 0;
         tickNanosMin = Long.MAX_VALUE;
         tickNanosMax = 0;
@@ -212,6 +245,13 @@ public class TickProfiler {
 
         countTickIntoSecond(now);
 
+        for (String dimension : tickNaturalSpawnNanosByDimension.keySet()) {
+            naturalSpawnPhaseCountsByDimension.merge(dimension, 1, Integer::sum);
+        }
+        for (String dimension : tickNaturalSpawnCountNanosByDimension.keySet()) {
+            naturalSpawnCountPhaseCountsByDimension.merge(dimension, 1, Integer::sum);
+        }
+
         if (nanos > 0) {
             tickNanosSum += nanos;
             if (nanos < tickNanosMin) tickNanosMin = nanos;
@@ -231,7 +271,7 @@ public class TickProfiler {
                         mspt,
                         ping,
                         currentDimension,
-                        new LinkedHashMap<>(tickMeridianTimes),
+                        carvedTickPhaseTimes(),
                         new LinkedHashMap<>(tickEntityTimes),
                         new LinkedHashMap<>(tickEntityCounts),
                         new LinkedHashMap<>(tickBlockEntityTimes),
@@ -250,6 +290,8 @@ public class TickProfiler {
         tickChunkSourceCounts.clear();
         tickBlockEventTimes.clear();
         tickBlockEventCounts.clear();
+        tickNaturalSpawnNanosByDimension.clear();
+        tickNaturalSpawnCountNanosByDimension.clear();
 
         tickCount++;
     }
@@ -315,7 +357,7 @@ public class TickProfiler {
     }
 
     public void recordEntityPulse(String entityType, long nanos, UUID uuid, String world, int x, int y, int z) {
-        String key = currentDimension != null ? currentDimension + "@@" + entityType : entityType;
+        String key = entityKeyFor(entityType);
         entityMeridianTimes.merge(key, nanos, Long::sum);
         entityMeridianCounts.merge(key, 1, Integer::sum);
         tickEntityTimes.merge(key, nanos, Long::sum);
@@ -328,16 +370,43 @@ public class TickProfiler {
     }
 
     public void recordBlockEntityPulse(String blockEntityType, long nanos, String world, int x, int y, int z) {
-        String key = currentDimension != null ? currentDimension + ":" + blockEntityType : blockEntityType;
+        String key = blockEntityKeyFor(blockEntityType);
         blockEntityMeridianTimes.merge(key, nanos, Long::sum);
         blockEntityMeridianCounts.merge(key, 1, Integer::sum);
         tickBlockEntityTimes.merge(key, nanos, Long::sum);
         tickBlockEntityCounts.merge(key, 1, Integer::sum);
-        String posKey = world + ":" + x + "," + y + "," + z;
+        long posKey = packPosition(x, y, z);
         blockEntityInstanceTraces
-                .computeIfAbsent(key, k -> new HashMap<>())
+                .computeIfAbsent(key, k -> new Long2ObjectOpenHashMap<>())
                 .computeIfAbsent(posKey, k -> new BlockEntityTrace(blockEntityType, world, x, y, z))
                 .accumulate(nanos);
+    }
+
+    private String blockEntityKeyFor(String type) {
+        return currentDimension == null ? type : cachedKey(blockEntityKeyCache, ":", type);
+    }
+
+    private String entityKeyFor(String type) {
+        return currentDimension == null ? type : cachedKey(entityKeyCache, "@@", type);
+    }
+
+    private String cachedKey(Map<String, String> cache, String separator, String type) {
+        if (currentDimension != keyCacheDimension) {
+            blockEntityKeyCache.clear();
+            entityKeyCache.clear();
+            keyCacheDimension = currentDimension;
+        }
+        String key = cache.get(type);
+        if (key == null) {
+            key = currentDimension + separator + type;
+            cache.put(type, key);
+        }
+        return key;
+    }
+
+    /** Packs a position into a long; BlockPos.asLong would pull the codec into a ~19k/tick path. */
+    private static long packPosition(int x, int y, int z) {
+        return ((long) x & 0x3FFFFFFL) | (((long) y & 0xFFFL) << 26) | (((long) z & 0x3FFFFFFL) << 38);
     }
 
     public void recordChunkStat(int totalChunks, int activeChunks) {
@@ -373,6 +442,44 @@ public class TickProfiler {
         tickChunkSourceCounts.merge(key, 1, Integer::sum);
     }
 
+    /** Accumulate natural-spawn wall time for one chunk; sessionBudget carves it out of chunkSource. */
+    public void recordNaturalSpawn(String dimension, int chunkX, int chunkZ, long nanos) {
+        if (nanos <= 0) {
+            return;
+        }
+        String dim = dimension != null ? dimension : "";
+        naturalSpawnNanosSum += nanos;
+        naturalSpawnNanosByDimension.merge(dim, nanos, Long::sum);
+        tickNaturalSpawnNanosByDimension.merge(dim, nanos, Long::sum);
+
+        Long2ObjectMap<NaturalSpawnTrace> map = naturalSpawnChunks.computeIfAbsent(dim, k -> new Long2ObjectOpenHashMap<>());
+        long key = chunkKey(chunkX, chunkZ);
+        NaturalSpawnTrace trace = map.get(key);
+        if (trace == null) {
+            if (map.size() >= MAX_NATURAL_SPAWN_CHUNKS) {
+                return;
+            }
+            trace = new NaturalSpawnTrace(chunkX, chunkZ, dim);
+            map.put(key, trace);
+        }
+        trace.accumulate(nanos);
+    }
+
+    /** Total wall time recorded for natural spawning across every chunk and dimension. */
+    public long naturalSpawnTotalNanos() {
+        return naturalSpawnNanosSum;
+    }
+
+    /** Mob-cap/entity scan time per dimension, carved out of chunkSource as naturalSpawnCount. */
+    public void recordNaturalSpawnCount(String dimension, long nanos) {
+        if (nanos <= 0) {
+            return;
+        }
+        String dim = dimension != null ? dimension : "";
+        naturalSpawnCountNanosByDimension.merge(dim, nanos, Long::sum);
+        tickNaturalSpawnCountNanosByDimension.merge(dim, nanos, Long::sum);
+    }
+
     /** One processed block event, attributed to the block type that raised it. */
     public void recordBlockEventPulse(String blockType, long nanos) {
         String key = currentDimension != null ? currentDimension + ":" + blockType : blockType;
@@ -389,19 +496,20 @@ public class TickProfiler {
 
         root.add("tickStats", buildTickStats(totalDurationMs));
         root.add("worstTicks", buildWorstTicksJson());
-        root.add("meridians", buildSortedJsonArray(meridianTimes, meridianCounts, totalDurationMs));
+        // carved times, so the phase ranking agrees with the tick budget
+        root.add("meridians", buildSortedJsonArray(carvedPhaseTimes(), carvedPhaseCounts(), totalDurationMs));
 
-        @SuppressWarnings("unchecked")
-        Map<String, Map<Object, ? extends TraceData>> entityTraces = (Map<String, Map<Object, ? extends TraceData>>) (Map<?, ?>) entityInstanceTraces;
-        root.add("entityMeridians", buildEntityJsonArray(entityMeridianTimes, entityMeridianCounts, entityTraces, totalDurationMs,
+        // the instance maps are keyed differently (UUID vs packed position) and neither key is
+        // emitted — the coordinates come from the trace — so the report only needs the values
+        root.add("entityMeridians", buildEntityJsonArray(entityMeridianTimes, entityMeridianCounts,
+                key -> entityInstanceTraces.getOrDefault(key, Map.of()).values(), totalDurationMs,
                 (obj, trace, typeName) -> {
                     obj.addProperty("uuid", ((EntityTrace) trace).uuid.toString());
                     obj.addProperty("type", typeName);
                 }));
 
-        @SuppressWarnings("unchecked")
-        Map<String, Map<Object, ? extends TraceData>> blockEntityTraces = (Map<String, Map<Object, ? extends TraceData>>) (Map<?, ?>) blockEntityInstanceTraces;
-        root.add("blockEntityMeridians", buildEntityJsonArray(blockEntityMeridianTimes, blockEntityMeridianCounts, blockEntityTraces, totalDurationMs,
+        root.add("blockEntityMeridians", buildEntityJsonArray(blockEntityMeridianTimes, blockEntityMeridianCounts,
+                key -> blockEntityInstanceTraces.getOrDefault(key, Long2ObjectMaps.emptyMap()).values(), totalDurationMs,
                 (obj, trace, typeName) -> {
                     obj.addProperty("type", ((BlockEntityTrace) trace).type);
                     obj.addProperty("world", trace.world());
@@ -420,7 +528,61 @@ public class TickProfiler {
         root.add("worldChunks", buildChunkJsonArray());
         root.add("playerTrails", buildPlayerTrailsJson(totalDurationMs));
         root.add("chunkLoads", buildChunkLoadsJson());
+        root.add("naturalSpawnHeatmap", buildNaturalSpawnHeatmapJson());
 
+        return root;
+    }
+
+    /** Per-chunk natural-spawn cost grouped by dimension, hottest first (the heat map source). */
+    private JsonObject buildNaturalSpawnHeatmapJson() {
+        JsonObject root = new JsonObject();
+        JsonArray dimensions = new JsonArray();
+        long totalNanos = 0;
+        int totalSamples = 0;
+        int totalChunks = 0;
+
+        for (Map.Entry<String, Long2ObjectMap<NaturalSpawnTrace>> entry : naturalSpawnChunks.entrySet()) {
+            Long2ObjectMap<NaturalSpawnTrace> map = entry.getValue();
+            if (map.isEmpty()) {
+                continue;
+            }
+            // hottest first — the viewer can cap the rendered cells without losing the peaks
+            List<NaturalSpawnTrace> sorted = new ArrayList<>(map.values());
+            sorted.sort((a, b) -> Long.compare(b.totalNanos, a.totalNanos));
+
+            JsonArray chunks = new JsonArray();
+            long dimNanos = 0;
+            int dimSamples = 0;
+            for (NaturalSpawnTrace t : sorted) {
+                JsonObject o = new JsonObject();
+                o.addProperty("cx", t.chunkX);
+                o.addProperty("cz", t.chunkZ);
+                o.addProperty("totalMs", fmtMs(t.totalNanos));
+                o.addProperty("count", t.count);
+                o.addProperty("avgMs", String.format("%.5f", t.totalNanos / 1_000_000.0 / Math.max(1, t.count)));
+                chunks.add(o);
+                dimNanos += t.totalNanos;
+                dimSamples += t.count;
+            }
+
+            JsonObject dim = new JsonObject();
+            dim.addProperty("dimension", entry.getKey());
+            dim.addProperty("totalMs", fmtMs(dimNanos));
+            dim.addProperty("chunkCount", map.size());
+            dim.addProperty("samples", dimSamples);
+            dim.add("chunks", chunks);
+            dimensions.add(dim);
+
+            totalNanos += dimNanos;
+            totalSamples += dimSamples;
+            totalChunks += map.size();
+        }
+
+        root.addProperty("totalMs", fmtMs(totalNanos));
+        root.addProperty("totalSamples", totalSamples);
+        root.addProperty("totalChunks", totalChunks);
+        root.addProperty("capPerDimension", MAX_NATURAL_SPAWN_CHUNKS);
+        root.add("dimensions", dimensions);
         return root;
     }
 
@@ -547,6 +709,10 @@ public class TickProfiler {
     private static final String CHUNK_SOURCE_PHASE = "chunkSource";
     /** Phase whose window contains the block event processing. */
     private static final String BLOCK_EVENT_PHASE = "blockEvents";
+    /** Natural-spawn phase; carved out of chunkSource in {@link #sessionBudget()}. */
+    private static final String SPAWNER_PHASE = "spawner";
+    /** Mob-cap/entity scan phase; carved out of chunkSource alongside {@link #SPAWNER_PHASE}. */
+    private static final String NATURAL_SPAWN_COUNT_PHASE = "naturalSpawnCount";
     /** Remainder bucket, always emitted last so the segments add up to the whole tick. */
     private static final String UNACCOUNTED = "unaccounted";
     /**
@@ -680,11 +846,93 @@ public class TickProfiler {
 
     /** The session-wide budget: the composition of an average tick. */
     JsonObject sessionBudget() {
-        return buildBudget(tickNanosSum, tickCount, meridianTimes, meridianCounts,
+        return buildBudget(tickNanosSum, tickCount, carvedPhaseTimes(), carvedPhaseCounts(),
                 families(entityMeridianTimes, entityMeridianCounts,
                         blockEntityMeridianTimes, blockEntityMeridianCounts,
                         chunkSourceTimes, chunkSourceCounts,
                         blockEventTimes, blockEventCounts));
+    }
+
+    /** Meridian times with natural spawning moved out of chunkSource into its own spawner phase. */
+    private Map<String, Long> carvedPhaseTimes() {
+        Map<String, Long> phases = new LinkedHashMap<>(meridianTimes);
+        for (Map.Entry<String, Long> e : naturalSpawnNanosByDimension.entrySet()) {
+            long spawn = e.getValue();
+            if (spawn <= 0) {
+                continue;
+            }
+            String dim = e.getKey();
+            String chunkSourceKey = dim.isEmpty() ? CHUNK_SOURCE_PHASE : dim + ":" + CHUNK_SOURCE_PHASE;
+            Long chunkSource = phases.get(chunkSourceKey);
+            if (chunkSource != null) {
+                phases.put(chunkSourceKey, Math.max(0L, chunkSource - spawn));
+            }
+            phases.merge(dim.isEmpty() ? SPAWNER_PHASE : dim + ":" + SPAWNER_PHASE, spawn, Long::sum);
+        }
+        for (Map.Entry<String, Long> e : naturalSpawnCountNanosByDimension.entrySet()) {
+            long count = e.getValue();
+            if (count <= 0) {
+                continue;
+            }
+            String dim = e.getKey();
+            String chunkSourceKey = dim.isEmpty() ? CHUNK_SOURCE_PHASE : dim + ":" + CHUNK_SOURCE_PHASE;
+            Long chunkSource = phases.get(chunkSourceKey);
+            if (chunkSource != null) {
+                phases.put(chunkSourceKey, Math.max(0L, chunkSource - count));
+            }
+            phases.merge(dim.isEmpty() ? NATURAL_SPAWN_COUNT_PHASE : dim + ":" + NATURAL_SPAWN_COUNT_PHASE, count, Long::sum);
+        }
+        return phases;
+    }
+
+    /** Phase counts matching {@link #carvedPhaseTimes()}. */
+    private Map<String, Integer> carvedPhaseCounts() {
+        Map<String, Integer> counts = new LinkedHashMap<>(meridianCounts);
+        for (Map.Entry<String, Long> e : naturalSpawnNanosByDimension.entrySet()) {
+            if (e.getValue() <= 0) {
+                continue;
+            }
+            counts.merge(e.getKey().isEmpty() ? SPAWNER_PHASE : e.getKey() + ":" + SPAWNER_PHASE, 1, Integer::sum);
+        }
+        for (Map.Entry<String, Integer> e : naturalSpawnCountPhaseCountsByDimension.entrySet()) {
+            if (e.getValue() <= 0) {
+                continue;
+            }
+            counts.merge(e.getKey().isEmpty() ? NATURAL_SPAWN_COUNT_PHASE : e.getKey() + ":" + NATURAL_SPAWN_COUNT_PHASE, e.getValue(), Integer::sum);
+        }
+        return counts;
+    }
+
+    /** Per-tick meridian times with spawner and naturalSpawnCount carved out of chunkSource. */
+    private Map<String, Long> carvedTickPhaseTimes() {
+        Map<String, Long> phases = new LinkedHashMap<>(tickMeridianTimes);
+        for (Map.Entry<String, Long> e : tickNaturalSpawnNanosByDimension.entrySet()) {
+            long spawn = e.getValue();
+            if (spawn <= 0) {
+                continue;
+            }
+            String dim = e.getKey();
+            String chunkSourceKey = dim.isEmpty() ? CHUNK_SOURCE_PHASE : dim + ":" + CHUNK_SOURCE_PHASE;
+            Long chunkSource = phases.get(chunkSourceKey);
+            if (chunkSource != null) {
+                phases.put(chunkSourceKey, Math.max(0L, chunkSource - spawn));
+            }
+            phases.merge(dim.isEmpty() ? SPAWNER_PHASE : dim + ":" + SPAWNER_PHASE, spawn, Long::sum);
+        }
+        for (Map.Entry<String, Long> e : tickNaturalSpawnCountNanosByDimension.entrySet()) {
+            long count = e.getValue();
+            if (count <= 0) {
+                continue;
+            }
+            String dim = e.getKey();
+            String chunkSourceKey = dim.isEmpty() ? CHUNK_SOURCE_PHASE : dim + ":" + CHUNK_SOURCE_PHASE;
+            Long chunkSource = phases.get(chunkSourceKey);
+            if (chunkSource != null) {
+                phases.put(chunkSourceKey, Math.max(0L, chunkSource - count));
+            }
+            phases.merge(dim.isEmpty() ? NATURAL_SPAWN_COUNT_PHASE : dim + ":" + NATURAL_SPAWN_COUNT_PHASE, count, Long::sum);
+        }
+        return phases;
     }
 
     private static JsonObject budgetRow(String name, String dimension, String label,
@@ -843,6 +1091,8 @@ public class TickProfiler {
      * real figure.
      */
     private static final int MAX_TICKET_CHUNKS = 40_000;
+    /** Cap on distinct natural-spawn chunks per dimension, to bound report size. */
+    private static final int MAX_NATURAL_SPAWN_CHUNKS = 50_000;
 
     /** A point on a player's trail; one per chunk the player entered. */
     private record TrailPoint(int tick, long timestampMs, double x, double y, double z,
@@ -1081,7 +1331,7 @@ public class TickProfiler {
     private JsonArray buildEntityJsonArray(
             Map<String, Long> times,
             Map<String, Integer> counts,
-            Map<String, Map<Object, ? extends TraceData>> instanceTraces,
+            Function<String, Collection<? extends TraceData>> instancesOf,
             long totalDurationMs,
             TypeIdentityWriter identityWriter) {
         List<Map.Entry<String, Long>> sorted = times.entrySet().stream()
@@ -1109,13 +1359,12 @@ public class TickProfiler {
 
             // emitted even when empty so the viewer schema stays fixed
             JsonArray consumers = new JsonArray();
-            Map<Object, ? extends TraceData> instances = instanceTraces.get(entry.getKey());
+            Collection<? extends TraceData> instances = instancesOf.apply(entry.getKey());
             if (instances != null && !instances.isEmpty()) {
-                instances.entrySet().stream()
-                        .sorted((a, b) -> Long.compare(b.getValue().totalNanos(), a.getValue().totalNanos()))
+                instances.stream()
+                        .sorted((a, b) -> Long.compare(b.totalNanos(), a.totalNanos()))
                         .limit(TOP_CONSUMER_LIMIT)
-                        .forEach(e -> {
-                            TraceData trace = e.getValue();
+                        .forEach(trace -> {
                             JsonObject obj = new JsonObject();
                             identityWriter.write(obj, trace, name);
                             obj.addProperty("pos", trace.x() + "," + trace.y() + "," + trace.z());

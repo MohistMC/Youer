@@ -4,8 +4,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
-import com.mohistmc.youer.Youer;
-import com.mohistmc.youer.feature.world.utils.ConfigByWorlds;
+import com.mohistmc.youer.feature.world.WorldConfig;
 import com.mojang.datafixers.util.Pair;
 import it.unimi.dsi.fastutil.longs.Long2ObjectLinkedOpenHashMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
@@ -1497,7 +1496,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
     @Override
     public boolean getKeepSpawnInMemory() {
-        return this.getGameRuleValue(GameRule.SPAWN_CHUNK_RADIUS) > 0 && ConfigByWorlds.keepspawninmemory(getName());
+        return this.getGameRuleValue(GameRule.SPAWN_CHUNK_RADIUS) > 0 && WorldConfig.keepspawninmemory(getName());
     }
 
     @Override

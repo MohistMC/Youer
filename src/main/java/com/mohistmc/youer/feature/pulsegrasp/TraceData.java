@@ -114,6 +114,26 @@ class ChunkStat {
     }
 }
 
+/** One chunk's accumulated natural-spawn cost — a single cell of the heat map. */
+class NaturalSpawnTrace {
+    final int chunkX;
+    final int chunkZ;
+    final String dimension;
+    long totalNanos;
+    int count;
+
+    NaturalSpawnTrace(int chunkX, int chunkZ, String dimension) {
+        this.chunkX = chunkX;
+        this.chunkZ = chunkZ;
+        this.dimension = dimension;
+    }
+
+    void accumulate(long nanos) {
+        totalNanos += nanos;
+        count++;
+    }
+}
+
 /** One heap/CPU sample, with GC deltas for that second. */
 class SystemSample {
     final long timestamp;

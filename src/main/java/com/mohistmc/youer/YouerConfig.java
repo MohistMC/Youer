@@ -158,8 +158,6 @@ public class YouerConfig {
     public static boolean fakeplayer_callbukkitevent = false;
     public static String message_require_neoforge;
     public static boolean no_damage_particle;
-    public static boolean spawnForChunk;
-    public static boolean spawnForNatural;
     // When true, mob spawning only consults already-loaded structure-start chunks (no blocking chunk load)
     public static boolean nonblocking_structure_spawn_lookup;
     public static boolean NoRaining;
@@ -412,8 +410,6 @@ public class YouerConfig {
         fakeplayer_callbukkitevent = getBoolean("fakeplayer.callbukkitevent", fakeplayer_callbukkitevent);
         message_require_neoforge = getString("message.require_neoforge", I18n.as("neoforge.network.negotiation.failure.vanilla.client.not_supported"));
 
-        spawnForChunk = getBoolean("entity.spawnForChunk", true);
-        spawnForNatural = getBoolean("entity.spawnForNatural", true);
         nonblocking_structure_spawn_lookup = getBoolean("entity.nonblocking_structure_spawn_lookup", true);
         NoRaining = getBoolean("event.NoRaining", false);
         SkyLight15 = getBoolean("SkyLight15", false);

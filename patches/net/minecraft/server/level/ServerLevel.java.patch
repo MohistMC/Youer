@@ -1,6 +1,6 @@
 --- a/net/minecraft/server/level/ServerLevel.java
 +++ b/net/minecraft/server/level/ServerLevel.java
-@@ -1,7 +_,18 @@
+@@ -1,7 +_,19 @@
  package net.minecraft.server.level;
  
 +import com.destroystokyo.paper.event.entity.EntityAddToWorldEvent;
@@ -10,9 +10,10 @@
 +import com.mohistmc.youer.Youer;
 +import com.mohistmc.youer.YouerConfig;
 +import com.mohistmc.youer.api.event.block.PlayerMayInteractBlockEvent;
++import com.mohistmc.youer.feature.NaturalSpawnGate;
 +import com.mohistmc.youer.feature.pulsegrasp.PulseGrasp;
 +import com.mohistmc.youer.feature.ban.bans.BanEntity;
-+import com.mohistmc.youer.feature.world.utils.ConfigByWorlds;
++import com.mohistmc.youer.feature.world.WorldConfig;
 +import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 +import com.mohistmc.youer.neoforge.YouerDerivedWorldInfo;
 +import com.mohistmc.youer.util.Level2LevelStem;
@@ -378,7 +379,7 @@
 +            public void onBorderSetDamageSafeZOne(WorldBorder pBorder, double pDamageSafeZone) { }
 +        });
 +        // CraftBukkit end
-+        ConfigByWorlds.initMods(this);
++        WorldConfig.initMods(this);
      }
  
      @Deprecated
@@ -399,14 +400,17 @@
      }
  
      @Override
-@@ -332,20 +_,40 @@
+@@ -332,20 +_,43 @@
          TickRateManager tickratemanager = this.tickRateManager();
          boolean flag = tickratemanager.runsNormally();
          if (flag) {
 +            // Youer start - Do not calculate the number of blocks when not sampling.
 +            if (PulseGrasp.isGrasping()) {
 +                PulseGrasp.setLevel(this.dimension().location().toString());
-+                PulseGrasp.recordChunkStats(this.getChunkSource().getLoadedChunksCount(), this.getChunkSource().getActiveChunksCount());
++                // counting active chunks walks every chunk, so it is sampled, not measured
++                if (PulseGrasp.shouldSampleChunkStats()) {
++                    PulseGrasp.recordChunkStats(this.getChunkSource().getLoadedChunksCount(), this.getChunkSource().getActiveChunksCount());
++                }
 +            }
 +            // Youer end
 +            PulseGrasp.feelPulse("world_border");
@@ -938,11 +942,11 @@
 +            return false;
 +        } else {
 +            if (p_8873_ instanceof Villager && YouerConfig.custom_no_villager) return false;
-+            if (!YouerConfig.spawnForChunk && p_8873_.spawnReason.equals(CreatureSpawnEvent.SpawnReason.CHUNK_GEN)) {
++            if (!WorldConfig.chunkSpawn(this.getWorld().getName()) && p_8873_.spawnReason.equals(CreatureSpawnEvent.SpawnReason.CHUNK_GEN)) {
 +                return false;
 +            }
 +
-+            if (!YouerConfig.spawnForNatural && p_8873_.spawnReason.equals(CreatureSpawnEvent.SpawnReason.NATURAL)) {
++            if (NaturalSpawnGate.check(p_8873_, this.getWorld().getName())) {
 +                return false;
 +            }
 +            if (BanEntity.check(p_8873_)) {

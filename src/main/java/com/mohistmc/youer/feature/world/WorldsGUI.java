@@ -1,10 +1,9 @@
-package com.mohistmc.youer.feature.world.utils;
+package com.mohistmc.youer.feature.world;
 
 import com.mohistmc.youer.api.WorldAPI;
 import com.mohistmc.youer.api.gui.DemoGUI;
 import com.mohistmc.youer.api.gui.GUIItem;
 import com.mohistmc.youer.api.gui.ItemStackFactory;
-import com.mohistmc.youer.feature.world.commands.WorldsCommands;
 import com.mohistmc.youer.util.I18n;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,9 +32,9 @@ public class WorldsGUI {
         DemoGUI wh = new DemoGUI(name);
         for (World w : Bukkit.getWorlds()) {
             List<String> infoLore = new ArrayList<>();
-            FileConfiguration config = ConfigByWorlds.config;
+            FileConfiguration config = WorldConfig.config;
             boolean flat = false;
-            if (ConfigByWorlds.f.exists() && config.getConfigurationSection("worlds.") != null) {
+            if (WorldConfig.f.exists() && config.getConfigurationSection("worlds.") != null) {
                 String worldtype = w.getEnvironment() == null ? "null" : w.getEnvironment().name();
                 String infos = "§7-/-";
                 String name1 = w.getName();
@@ -77,7 +76,7 @@ public class WorldsGUI {
                                if (itemMeta != null) {
                                    String worldName = w.getName();
                                    if (Bukkit.getWorld(worldName) != null) {
-                                       ConfigByWorlds.getSpawn(worldName, p);
+                                       WorldConfig.getSpawn(worldName, p);
                                    } else {
                                        WorldsCommands.worldNotExists(p, worldName);
                                    }
@@ -171,10 +170,10 @@ public class WorldsGUI {
             world.setSpawnLocation(spawnLocation);
             p.sendMessage(ChatColor.GREEN + I18n.as("worldlistener.ICL.worldCreateSuccess", worldName));
             try {
-                ConfigByWorlds.addWorld(world.getName(), true);
-                ConfigByWorlds.addSpawn(spawnLocation);
-                if (isVoid) ConfigByWorlds.aVoid(world.getName(), true);
-                if (isFlat) ConfigByWorlds.aFlat(world.getName(), true);
+                WorldConfig.addWorld(world.getName(), true);
+                WorldConfig.addSpawn(spawnLocation);
+                if (isVoid) WorldConfig.aVoid(world.getName(), true);
+                if (isFlat) WorldConfig.aFlat(world.getName(), true);
             } catch (Exception e) {
                 e.fillInStackTrace();
             }

@@ -167,9 +167,20 @@
      }
  
      private void tickChunks() {
-@@ -348,15 +_,26 @@
+@@ -342,21 +_,37 @@
+ 
+             if (this.level.tickRateManager().runsNormally()) {
+                 profilerfiller.popPush("naturalSpawnCount");
++                long pgSpawnCount = PulseGrasp.isGrasping() ? System.nanoTime() : 0L; // PulseGrasp - naturalSpawnCount
+                 int l = this.distanceManager.getNaturalSpawnChunkCount();
+                 NaturalSpawner.SpawnState naturalspawner$spawnstate = NaturalSpawner.createState(
+                     l, this.level.getAllEntities(), this::getFullChunk, new LocalMobCapCalculator(this.chunkMap)
                  );
                  this.lastSpawnState = naturalspawner$spawnstate;
++                // PulseGrasp - naturalSpawnCount: guard the costly dim.toString() until sampling is on
++                if (PulseGrasp.isGrasping()) {
++                    PulseGrasp.recordNaturalSpawnCount(this.level.dimension().location().toString(), pgSpawnCount);
++                }
                  profilerfiller.popPush("spawnAndTick");
 -                boolean flag1 = this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING);
 +                boolean flag1 = this.level.getGameRules().getBoolean(GameRules.RULE_DOMOBSPAWNING) && !this.level.players().isEmpty(); // CraftBukkit

@@ -351,6 +351,21 @@
          p_21145_.putFloat("Health", this.getHealth());
          p_21145_.putShort("HurtTime", (short)this.hurtTime);
          p_21145_.putInt("HurtByTimestamp", this.lastHurtByMobTimestamp);
+@@ -694,7 +_,13 @@
+             ListTag listtag = new ListTag();
+ 
+             for (MobEffectInstance mobeffectinstance : this.activeEffects.values()) {
+-                listtag.add(mobeffectinstance.save());
++                // Youer - skip an effect whose holder is unregistered; save() cannot encode it
++                MobEffectInstance normalizedEffect = com.mohistmc.youer.util.MobEffectFix.normalize(mobeffectinstance);
++                if (normalizedEffect == null) {
++                    LOGGER.warn("[Youer] Skipping unregistered mob effect {} while saving {}", mobeffectinstance.getEffect().value().getClass().getName(), this);
++                    continue;
++                }
++                listtag.add(normalizedEffect.save());
+             }
+ 
+             p_21145_.put("active_effects", listtag);
 @@ -708,11 +_,28 @@
          });
          DataResult<Tag> dataresult = this.brain.serializeStart(NbtOps.INSTANCE);
@@ -546,7 +561,7 @@
      }
  
      public Collection<MobEffectInstance> getActiveEffects() {
-@@ -925,22 +_,64 @@
+@@ -925,22 +_,68 @@
      }
  
      public final boolean addEffect(MobEffectInstance p_21165_) {
@@ -573,8 +588,12 @@
  
      public boolean addEffect(MobEffectInstance p_147208_, @Nullable Entity p_147209_) {
 -        if (!this.canBeAffected(p_147208_)) {
-+        // Youer start - ban effects at the lowest level, before any event machinery
++        // Youer start - ban effects, and reject an unregistered (Direct) holder, before any event machinery
 +        if (com.mohistmc.youer.feature.ban.bans.BanEffect.check(p_147208_.getEffect())) {
++            return false;
++        }
++        p_147208_ = com.mohistmc.youer.util.MobEffectFix.normalize(p_147208_);
++        if (p_147208_ == null) {
 +            return false;
 +        }
 +        // Youer end
@@ -641,11 +660,16 @@
      public boolean canBeAffected(MobEffectInstance p_21197_) {
          if (this.getType().is(EntityTypeTags.IMMUNE_TO_INFESTED)) {
              return !p_21197_.is(MobEffects.INFESTED);
-@@ -962,7 +_,7 @@
+@@ -962,7 +_,12 @@
      }
  
      public void forceAddEffect(MobEffectInstance p_147216_, @Nullable Entity p_147217_) {
 -        if (this.canBeAffected(p_147216_)) {
++        // Youer - same guard as addEffect: reject an unregistered (Direct) effect holder
++        p_147216_ = com.mohistmc.youer.util.MobEffectFix.normalize(p_147216_);
++        if (p_147216_ == null) {
++            return;
++        }
 +        if (net.neoforged.neoforge.common.CommonHooks.canMobEffectBeApplied(this, p_147216_, p_147217_)) {
              MobEffectInstance mobeffectinstance = this.activeEffects.put(p_147216_.getEffect(), p_147216_);
              if (mobeffectinstance == null) {

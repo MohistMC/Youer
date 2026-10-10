@@ -12,11 +12,11 @@ import com.mohistmc.org.yaml.snakeyaml.LoaderOptions;
 import com.mohistmc.org.yaml.snakeyaml.Yaml;
 import com.mohistmc.org.yaml.snakeyaml.constructor.SafeConstructor;
 import com.mohistmc.org.yaml.snakeyaml.error.MarkedYAMLException;
-import com.mohistmc.youer.Youer;
 import com.mohistmc.youer.YouerConfig;
 import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.api.WorldAPI;
+import com.mohistmc.youer.feature.world.WorldConfig;
 import com.mohistmc.youer.neoforge.NeoForgeInjectBukkit;
 import com.mohistmc.youer.neoforge.compat.LithostitchedCompat;
 import com.mohistmc.youer.neoforge.compat.TerraBlenderCompat;
@@ -1143,7 +1143,10 @@ public final class CraftServer implements Server {
         this.console.paperConfigurations.reloadConfigs(this.console);
         for (ServerLevel world : this.console.getAllLevels()) {
             // world.serverLevelData.setDifficulty(config.difficulty); // Paper - per level difficulty
-            world.setSpawnSettings(world.serverLevelData.getDifficulty() != Difficulty.PEACEFUL && config.spawnMonsters, config.spawnAnimals); // Paper - per level difficulty (from MinecraftServer#setDifficulty(ServerLevel, Difficulty, boolean))
+            // Youer start - a per-world opt-out has to survive a reload
+            boolean natural = WorldConfig.naturalSpawn(world.getWorld().getName());
+            world.setSpawnSettings(natural && world.serverLevelData.getDifficulty() != Difficulty.PEACEFUL && config.spawnMonsters, natural && config.spawnAnimals); // Paper - per level difficulty (from MinecraftServer#setDifficulty(ServerLevel, Difficulty, boolean))
+            // Youer end
 
             for (SpawnCategory spawnCategory : SpawnCategory.values()) {
                 if (CraftSpawnCategory.isValidForLimits(spawnCategory)) {

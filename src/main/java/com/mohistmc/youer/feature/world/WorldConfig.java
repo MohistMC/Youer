@@ -1,10 +1,14 @@
-package com.mohistmc.youer.feature.world.utils;
+package com.mohistmc.youer.feature.world;
 
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.api.WorldAPI;
 import com.mohistmc.youer.util.YamlUtils;
 import java.io.File;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -19,13 +23,92 @@ import org.bukkit.craftbukkit.CraftWorld;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
-public class ConfigByWorlds {
+public class WorldConfig {
     public static File f = new File("youer-config", "worlds.yml");
-    public static FileConfiguration config = YamlConfiguration.loadConfiguration(ConfigByWorlds.f);
+    public static FileConfiguration config;
+
+    /** Default entries for the per-world naturalspawn whitelist (worlds.yml). */
+    public static final List<String> SPAWN_FOR_NATURAL_DEFAULT_WHITELIST = List.of(
+            "minecraft:wandering_trader", "minecraft:phantom", "minecraft:warden");
+
+    /**
+     * Reads of {@code worlds.yml} never touch disk after the first load: the backing {@link #config}
+     * is a single in-memory {@link FileConfiguration} loaded once (and on {@link #reload()}). The two
+     * flags read on the spawn hot path are additionally cached per world so a spawn costs a
+     * lock-free map lookup, not a synchronized configuration walk.
+     */
+    private static final ConcurrentHashMap<String, Boolean> naturalSpawnCache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<String, Boolean> chunkSpawnCache = new ConcurrentHashMap<>();
+
+    /**
+     * Writes are coalesced: every mutation just marks the file dirty and a single flush is scheduled
+     * on the next server tick, collapsing the burst of saves that {@link #loadWorlds()} / addWorld
+     * would otherwise perform. A shutdown hook guarantees the last dirty state still hits disk.
+     */
+    private static volatile boolean dirty = false;
+    private static final AtomicBoolean flushScheduled = new AtomicBoolean(false);
+
+    static {
+        reload();
+        try {
+            Runtime.getRuntime().addShutdownHook(new Thread(WorldConfig::saveNow, "WorldConfig-flush"));
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /** Reloads the in-memory config from disk and drops all per-world caches. */
+    public static void reload() {
+        config = YamlConfiguration.loadConfiguration(f);
+        naturalSpawnCache.clear();
+        chunkSpawnCache.clear();
+    }
+
+    /**
+     * Schedules a single coalesced flush on the server's main thread next tick, collapsing the burst
+     * of saves that startup/commands would otherwise perform. Falls back to an immediate write when
+     * no server is up yet.
+     */
+    public static void markDirty() {
+        dirty = true;
+        if (flushScheduled.compareAndSet(false, true)) {
+            try {
+                MinecraftServer server = MinecraftServer.getServer();
+                if (server != null) {
+                    server.execute(WorldConfig::flush);
+                    return;
+                }
+            } catch (Throwable ignored) {
+            }
+            flushScheduled.set(false);
+            saveNow();
+        }
+    }
+
+    /** Flush entry point used by the scheduled task. */
+    public static void flush() {
+        flushScheduled.set(false);
+        if (dirty) {
+            saveNow();
+        }
+    }
+
+    /** Writes the in-memory config to disk immediately and clears the dirty flag. */
+    public static void saveNow() {
+        if (f == null || config == null) {
+            return;
+        }
+        YamlUtils.save(f, config);
+        dirty = false;
+    }
+
+    /** Persist the current in-memory config (coalesced). Kept for backward compatibility. */
+    public static void init() {
+        markDirty();
+    }
 
     public static void addInfo(String w, String info) {
         World world = Bukkit.getWorld(w);
-        if (ConfigByWorlds.f.exists() && world != null) {
+        if (f.exists() && world != null) {
             if (config.getString("worlds." + world.getName()) != null) {
                 config.set("worlds." + world.getName() + ".info", info);
             }
@@ -35,7 +118,7 @@ public class ConfigByWorlds {
 
     public static void addname(String w, String info) {
         World world = Bukkit.getWorld(w);
-        if (ConfigByWorlds.f.exists() && world != null) {
+        if (f.exists() && world != null) {
             if (config.getString("worlds." + world.getName()) != null) {
                 config.set("worlds." + world.getName() + ".name", info);
             }
@@ -45,7 +128,7 @@ public class ConfigByWorlds {
 
     public static void setnandu(Player player, String nandu) {
         World world = player.getWorld();
-        if (ConfigByWorlds.f.exists()) {
+        if (f.exists()) {
             if (config.getString("worlds." + world.getName()) != null) {
                 config.set("worlds." + world.getName() + ".difficulty", nandu);
             }
@@ -54,7 +137,7 @@ public class ConfigByWorlds {
     }
 
     public static void setGameMode(World world, String nandu) {
-        if (ConfigByWorlds.f.exists()) {
+        if (f.exists()) {
             if (config.getString("worlds." + world.getName()) != null) {
                 config.set("worlds." + world.getName() + ".gamemode", nandu);
             }
@@ -63,7 +146,7 @@ public class ConfigByWorlds {
     }
 
     public static GameMode getGameMode(World world) {
-        if (ConfigByWorlds.f.exists()) {
+        if (f.exists()) {
             if (config.getString("worlds." + world.getName()) != null) {
                 if (config.get("worlds." + world.getName() + ".gamemode") != null) {
                     return GameMode.valueOf(config.getString("worlds." + world.getName() + ".gamemode"));
@@ -150,7 +233,7 @@ public class ConfigByWorlds {
         if (Bukkit.getWorld(w) != null) {
             World world = Bukkit.getWorld(w);
             String world_name = world.getName();
-            if (ConfigByWorlds.f.exists() && isYouer) {
+            if (f.exists() && isYouer) {
                 config.set("worlds." + world_name + ".youer", isYouer);
                 if (config.getString("worlds." + world_name + ".info") == null) {
                     config.set("worlds." + world_name + ".seed", world.getSeed());
@@ -166,14 +249,10 @@ public class ConfigByWorlds {
         }
     }
 
-    public static void init() {
-        YamlUtils.save(f, config);
-    }
-
     public static void initMods(ServerLevel level) {
         CraftWorld world = level.getWorld();
         if (world.isMods()) {
-            ConfigByWorlds.addWorld(world.getName(), false);
+            addWorld(world.getName(), false);
             config.set("worlds." + world.getName() + ".ismods", world.isMods());
             config.set("worlds." + world.getName() + ".modName", world.getModid());
             config.set("worlds." + world.getName() + ".keepspawninmemory", false);
@@ -269,6 +348,8 @@ public class ConfigByWorlds {
                     config.set("worlds." + w + ".seed", world.getSeed());
                     init();
                     world.setKeepSpawnInMemory(config.getBoolean("worlds." + w + ".keepspawninmemory", true));
+                    boolean natural = naturalSpawn(w);
+                    world.setSpawnFlags(natural, natural);
                 } else {
                     if (!isYouer && !isMods) {
                         config.set("worlds." + w, null);
@@ -341,6 +422,41 @@ public class ConfigByWorlds {
 
     public static boolean keepspawninmemory(String w){
         return config.getBoolean("worlds." + w + ".keepspawninmemory", true);
+    }
+
+    public static void setKeepSpawnInMemory(String w, boolean keep) {
+        config.set("worlds." + w + ".keepspawninmemory", keep);
+        init();
+    }
+
+    public static boolean naturalSpawn(String w){
+        return naturalSpawnCache.computeIfAbsent(w, k -> config.getBoolean("worlds." + k + ".naturalspawn", true));
+    }
+
+    public static void setNaturalSpawn(String w, boolean enabled) {
+        config.set("worlds." + w + ".naturalspawn", enabled);
+        naturalSpawnCache.put(w, enabled);
+        init();
+    }
+
+    public static List<String> naturalSpawnWhitelist(String w) {
+        List<String> list = config.getStringList("worlds." + w + ".naturalspawn-whitelist");
+        return list.isEmpty() ? SPAWN_FOR_NATURAL_DEFAULT_WHITELIST : list;
+    }
+
+    public static void setNaturalSpawnWhitelist(String w, List<String> list) {
+        config.set("worlds." + w + ".naturalspawn-whitelist", list);
+        init();
+    }
+
+    public static boolean chunkSpawn(String w) {
+        return chunkSpawnCache.computeIfAbsent(w, k -> config.getBoolean("worlds." + k + ".spawnforchunk", true));
+    }
+
+    public static void setChunkSpawn(String w, boolean enabled) {
+        config.set("worlds." + w + ".spawnforchunk", enabled);
+        chunkSpawnCache.put(w, enabled);
+        init();
     }
 
     public static boolean isMaintenance(String w) {

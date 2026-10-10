@@ -1,7 +1,6 @@
 package com.mohistmc.youer.feature.world;
 
 import com.mohistmc.youer.api.PlayerAPI;
-import com.mohistmc.youer.feature.world.utils.ConfigByWorlds;
 import com.mohistmc.youer.util.I18n;
 import java.io.File;
 import java.util.Objects;
@@ -14,17 +13,17 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 
-public class WorldManage {
+public class WorldManager {
 
     public static void onEnable() {
-        ConfigByWorlds.init();
-        ConfigByWorlds.loadWorlds();
-        ConfigByWorlds.addWorld(Bukkit.getUnsafe().getMainLevelName(), false);
+        WorldConfig.init();
+        WorldConfig.loadWorlds();
+        WorldConfig.addWorld(Bukkit.getUnsafe().getMainLevelName(), false);
         if (Bukkit.getAllowNether()) {
-            ConfigByWorlds.addWorld("DIM-1", false);
+            WorldConfig.addWorld("DIM-1", false);
         }
         if (Bukkit.getAllowEnd()) {
-            ConfigByWorlds.addWorld("DIM1", false);
+            WorldConfig.addWorld("DIM1", false);
         }
     }
 
@@ -48,13 +47,13 @@ public class WorldManage {
                 player.setGameMode(gameMode);
             }
         }
-        ConfigByWorlds.setGameMode(world, gameMode.name());
+        WorldConfig.setGameMode(world, gameMode.name());
     }
 
     public static void changeGameMode(ServerPlayer serverPlayer, World world) {
         if (PlayerAPI.isOp(serverPlayer)) return;
         Player player = serverPlayer.getBukkitEntity();
-        GameMode gameMode = ConfigByWorlds.getGameMode(world);
+        GameMode gameMode = WorldConfig.getGameMode(world);
         player.setGameMode(Objects.requireNonNullElseGet(gameMode, Bukkit::getDefaultGameMode));
     }
 
@@ -64,7 +63,7 @@ public class WorldManage {
         if (player.isOp()) return;
         Location to = event.getTo();
         if (to == null || to.getWorld() == null) return;
-        if (ConfigByWorlds.isMaintenance(to.getWorld().getName())) {
+        if (WorldConfig.isMaintenance(to.getWorld().getName())) {
             event.setCancelled(true);
             player.sendMessage(I18n.as("worldcommands.maintenance.deny"));
         }
@@ -74,9 +73,9 @@ public class WorldManage {
         Player player = event.getPlayer();
         if (player.isOp()) return;
         World to = player.getWorld();
-        if (ConfigByWorlds.isMaintenance(to.getName())) {
+        if (WorldConfig.isMaintenance(to.getName())) {
             player.sendMessage(I18n.as("worldcommands.maintenance.deny"));
-            ConfigByWorlds.getSpawn(Bukkit.getUnsafe().getMainLevelName(), player);
+            WorldConfig.getSpawn(Bukkit.getUnsafe().getMainLevelName(), player);
         }
     }
 }

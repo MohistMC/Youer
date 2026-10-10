@@ -742,12 +742,12 @@
              } else if (flag && this.shouldTickBlocksAt(tickingblockentity.getPos())) {
 +                long beStart = PulseGrasp.isGrasping() ? System.nanoTime() : 0L;
                  tickingblockentity.tick();
-+                if (PulseGrasp.isGrasping()) {
++                if (beStart != 0L) {
++                    // Youer - read the position once instead of three more times
++                    BlockPos youerBePos = tickingblockentity.getPos();
 +                    PulseGrasp.recordBlockEntityPulse(tickingblockentity.getType(), System.nanoTime() - beStart,
 +                            this.dimension().location().toString(),
-+                            tickingblockentity.getPos().getX(),
-+                            tickingblockentity.getPos().getY(),
-+                            tickingblockentity.getPos().getZ());
++                            youerBePos.getX(), youerBePos.getY(), youerBePos.getZ());
 +                }
              }
          }
