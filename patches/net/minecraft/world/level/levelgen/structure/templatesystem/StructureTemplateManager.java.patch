@@ -1,0 +1,19 @@
+--- a/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplateManager.java
++++ b/net/minecraft/world/level/levelgen/structure/templatesystem/StructureTemplateManager.java
+@@ -245,8 +_,14 @@
+ 
+     public StructureTemplate readStructure(CompoundTag p_230405_) {
+         StructureTemplate structuretemplate = new StructureTemplate();
+-        int i = NbtUtils.getDataVersion(p_230405_, 500);
+-        structuretemplate.load(this.blockLookup, DataFixTypes.STRUCTURE.updateToCurrentVersion(this.fixerUpper, p_230405_, i));
++        // Youer start - a template without DataVersion used to fall back to 500, running the whole DFU cascade on the main thread
++        int currentVersion = SharedConstants.getCurrentVersion().getDataVersion().getVersion();
++        int i = p_230405_.contains("DataVersion") ? NbtUtils.getDataVersion(p_230405_, currentVersion) : currentVersion;
++        CompoundTag compoundtag = i == currentVersion
++            ? p_230405_
++            : DataFixTypes.STRUCTURE.updateToCurrentVersion(this.fixerUpper, p_230405_, i);
++        structuretemplate.load(this.blockLookup, compoundtag);
++        // Youer end
+         return structuretemplate;
+     }
+ 

@@ -49,6 +49,11 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         System.setProperty("org.jline.terminal.disableDeprecatedProviderWarning", "true");
+        // Youer start - must be set before anything can touch LogManager, otherwise log4j2 falls back to its built-in config
+        if (System.getProperty("log4j2.configurationFile") == null) {
+            System.setProperty("log4j2.configurationFile", "log4j2_youer.xml");
+        }
+        // Youer end
         mainArgs.addAll(List.of(args));
         DataParser.parseVersions();
         DataParser.parseLaunchArgs();
@@ -71,10 +76,6 @@ public class Main {
             System.out.println("+------------------------------------------------------+");
         }
 
-
-        if (System.getProperty("log4j2.configurationFile") == null) {
-            System.setProperty("log4j2.configurationFile", "log4j2_youer.xml");
-        }
 
         if (YouerConfigUtil.CHECK_LIBRARIES()) {
             DefaultLibraries.run();

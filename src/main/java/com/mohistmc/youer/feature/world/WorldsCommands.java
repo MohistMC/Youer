@@ -143,7 +143,6 @@ public class WorldsCommands extends Command {
             boolean enable = action.equalsIgnoreCase("on");
             if (kind == 0) {
                 WorldConfig.setNaturalSpawn(worldName, enable);
-                world.setSpawnFlags(enable, enable);
             } else if (kind == 1) {
                 WorldConfig.setKeepSpawnInMemory(worldName, enable);
                 world.setKeepSpawnInMemory(enable);

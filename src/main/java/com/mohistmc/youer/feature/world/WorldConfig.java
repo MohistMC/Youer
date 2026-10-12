@@ -348,8 +348,6 @@ public class WorldConfig {
                     config.set("worlds." + w + ".seed", world.getSeed());
                     init();
                     world.setKeepSpawnInMemory(config.getBoolean("worlds." + w + ".keepspawninmemory", true));
-                    boolean natural = naturalSpawn(w);
-                    world.setSpawnFlags(natural, natural);
                 } else {
                     if (!isYouer && !isMods) {
                         config.set("worlds." + w, null);

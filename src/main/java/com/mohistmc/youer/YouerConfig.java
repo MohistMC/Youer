@@ -151,6 +151,8 @@ public class YouerConfig {
     public static boolean custom_fix_cmi_tempban;
     public static boolean custom_disabled_spawner;
     public static boolean custom_disabled_sign_commands;
+    public static boolean custom_disable_drop_equipment_persistence;
+    public static boolean custom_disable_portal_collision_check;
     public static boolean player_modlist_blacklist_enable;
     public static boolean player_modlist_blacklist_use_real_feedback;
     public static String player_modlist_blacklist_failurereasons;
@@ -158,7 +160,6 @@ public class YouerConfig {
     public static boolean fakeplayer_callbukkitevent = false;
     public static String message_require_neoforge;
     public static boolean no_damage_particle;
-    // When true, mob spawning only consults already-loaded structure-start chunks (no blocking chunk load)
     public static boolean nonblocking_structure_spawn_lookup;
     public static boolean NoRaining;
     public static boolean SkyLight15;
@@ -392,6 +393,8 @@ public class YouerConfig {
         custom_fix_cmi_tempban = getBoolean("custom.fix_cmi_tempban", false);
         custom_disabled_spawner = getBoolean("custom.disabled_spawner", false);
         custom_disabled_sign_commands = getBoolean("custom.disabled_signblock_commands", true);
+        custom_disable_drop_equipment_persistence = getBoolean("custom.disable_drop_equipment_persistence", false);
+        custom_disable_portal_collision_check = getBoolean("custom.disable_portal_collision_check", false);
         no_damage_particle = getBoolean("custom.no_damage_particle", false);
         keepSpawnLoaded = getBoolean("custom.keepSpawnLoaded", true);
         no_recipeBook = getBoolean("custom.no_recipeBook", false);

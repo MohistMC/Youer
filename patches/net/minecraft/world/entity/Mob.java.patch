@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/Mob.java
 +++ b/net/minecraft/world/entity/Mob.java
-@@ -10,6 +_,8 @@
+@@ -10,8 +_,11 @@
  import java.util.Objects;
  import java.util.Optional;
  import java.util.Set;
@@ -8,7 +8,10 @@
 +import java.util.concurrent.atomic.AtomicReference;
  import java.util.function.Predicate;
  import javax.annotation.Nullable;
++import com.mohistmc.youer.YouerConfig;
  import net.minecraft.core.BlockPos;
+ import net.minecraft.core.NonNullList;
+ import net.minecraft.core.Vec3i;
 @@ -72,7 +_,6 @@
  import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
  import net.minecraft.world.item.enchantment.EnchantmentHelper;
@@ -238,6 +241,17 @@
              }
  
              ItemStack itemstack1 = equipmentslot.limit(p_255842_);
+@@ -597,7 +_,9 @@
+     protected void setItemSlotAndDropWhenKilled(EquipmentSlot p_21469_, ItemStack p_21470_) {
+         this.setItemSlot(p_21469_, p_21470_);
+         this.setGuaranteedDrop(p_21469_);
+-        this.persistenceRequired = true;
++        if (!YouerConfig.custom_disable_drop_equipment_persistence) {
++            this.persistenceRequired = true;
++        }
+     }
+ 
+     public void setGuaranteedDrop(EquipmentSlot p_21509_) {
 @@ -666,6 +_,10 @@
  
      private double getApproximateAttackDamageWithItem(ItemStack p_330413_) {
