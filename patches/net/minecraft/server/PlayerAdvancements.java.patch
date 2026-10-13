@@ -7,9 +7,11 @@
  import com.google.gson.Gson;
  import com.google.gson.GsonBuilder;
  import com.google.gson.JsonElement;
-@@ -8,20 +_,31 @@
+@@ -7,22 +_,35 @@
+ import com.google.gson.JsonParseException;
  import com.google.gson.internal.Streams;
  import com.google.gson.stream.JsonReader;
++import com.mohistmc.youer.util.MixinFix;
  import com.mojang.datafixers.DataFixer;
 +import com.mojang.datafixers.util.Pair;
  import com.mojang.logging.LogUtils;
@@ -37,25 +39,17 @@
 +import java.util.concurrent.ThreadPoolExecutor;
 +import java.util.concurrent.TimeUnit;
  import java.util.function.BiConsumer;
++import java.util.function.BiFunction;
  import javax.annotation.Nullable;
  import net.minecraft.FileUtil;
-@@ -44,13 +_,31 @@
- import net.minecraft.server.players.PlayerList;
- import net.minecraft.util.datafix.DataFixTypes;
- import net.minecraft.world.level.GameRules;
-+import org.bukkit.Bukkit;
-+import org.bukkit.event.player.PlayerAdvancementDoneEvent;
- import org.slf4j.Logger;
+ import net.minecraft.advancements.Advancement;
+@@ -48,9 +_,21 @@
  
  public class PlayerAdvancements {
      private static final Logger LOGGER = LogUtils.getLogger();
 -    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
 +    private static final Gson GSON = (new GsonBuilder()).create(); // Paper - Remove pretty printing from advancements
 +    // Youer start - Async advancement loading/saving
-+    // Dedicated scaling thread pool: parses the (potentially huge) advancement files and serializes
-+    // saves off the main thread, so multiple players logging in or an autosave don't stall the
-+    // server thread. The queue only accepts work when a worker is idle, so the pool can grow up to
-+    // the max while stays at core size otherwise.
 +    private static final ThreadPoolExecutor ASYNC_EXECUTOR = new ThreadPoolExecutor(
 +        2,
 +        Math.clamp(Runtime.getRuntime().availableProcessors(), 2, 8),
@@ -143,7 +137,7 @@
              } catch (JsonIOException | IOException ioexception) {
                  LOGGER.error("Couldn't access player advancements in {}", this.playerSavePath, ioexception);
              } catch (JsonParseException jsonparseexception) {
-@@ -124,28 +_,121 @@
+@@ -124,28 +_,122 @@
              }
          }
  
@@ -191,21 +185,22 @@
 +        this.ensureLoaded(); // Youer - never overwrite the file with data that hasn't been loaded yet
 +        if (com.mohistmc.youer.YouerConfig.async_advancement_saving) {
 +            // Youer start - Async advancement saving
-+            // Snapshot on the main thread: an O(n) deep copy, orders of magnitude cheaper than the
-+            // codec encode + Gson serialization that used to run here (the vanilla save() showed up
-+            // as ~15% of the server thread in autosave profiles). The worker thread then encodes and
-+            // writes the snapshot; it never touches live progress, which the main thread keeps
-+            // mutating via award/revoke. Saves are chained per player so the file is always written
-+            // in submission order.
 +            PlayerAdvancements.Data snapshot = this.asData();
-+            CompletableFuture<Void> pending = this.lastSave.thenRunAsync(() -> this.writeSnapshot(snapshot), ASYNC_EXECUTOR)
-+                .handle((p_135976_, p_135977_) -> {
-+                    if (p_135977_ != null) {
-+                        LOGGER.error("Couldn't save player advancements to {}", this.playerSavePath, p_135977_);
++            this.lastSave = this.lastSave.thenRunAsync(new Runnable() {
++                    @Override
++                    public void run() {
++                        PlayerAdvancements.this.writeSnapshot(snapshot);
 +                    }
-+                    return null;
++                }, ASYNC_EXECUTOR)
++                .handle(new BiFunction<Void, Throwable, Void>() {
++                    @Override
++                    public Void apply(Void p_135976_, Throwable p_135977_) {
++                        if (p_135977_ != null) {
++                            LOGGER.error("Couldn't save player advancements to {}", PlayerAdvancements.this.playerSavePath, p_135977_);
++                        }
++                        return null;
++                    }
 +                });
-+            this.lastSave = pending;
 +            // Youer end
 +        } else {
 +            // Sync fallback: keep the vanilla behaviour when the option is disabled
@@ -268,7 +263,7 @@
                  LOGGER.warn("Ignored advancement '{}' in progress file {} - it doesn't exist anymore?", p_300732_, this.playerSavePath);
              } else {
                  this.startProgress(advancementholder, p_300733_);
-@@ -159,7 +_,9 @@
+@@ -159,26 +_,43 @@
          Map<ResourceLocation, AdvancementProgress> map = new LinkedHashMap<>();
          this.progress.forEach((p_300724_, p_300725_) -> {
              if (p_300725_.hasProgress()) {
@@ -279,7 +274,11 @@
              }
          });
          return new PlayerAdvancements.Data(map);
-@@ -170,15 +_,34 @@
+     }
+ 
++    org.bukkit.event.player.PlayerAdvancementDoneEvent playerAdvancementDoneEvent;
+     public boolean award(AdvancementHolder p_300979_, String p_135990_) {
+         boolean flag = false;
          AdvancementProgress advancementprogress = this.getOrStartProgress(p_300979_);
          boolean flag1 = advancementprogress.isDone();
          if (advancementprogress.grantProgress(p_135990_)) {
@@ -295,21 +294,16 @@
 +            net.neoforged.neoforge.event.EventHooks.onAdvancementProgressedEvent(this.player, p_300979_, advancementprogress, p_135990_, net.neoforged.neoforge.event.entity.player.AdvancementEvent.AdvancementProgressEvent.ProgressType.GRANT);
              if (!flag1 && advancementprogress.isDone()) {
 +                // Paper start - Add Adventure message to PlayerAdvancementDoneEvent
-+                final net.kyori.adventure.text.Component message = p_300979_.value().display().flatMap(info -> {
-+                    return java.util.Optional.ofNullable(
-+                            info.shouldAnnounceChat() ? io.papermc.paper.adventure.PaperAdventure.asAdventure(info.getType().createAnnouncement(p_300979_, this.player)) : null
-+                    );
-+                }).orElse(null);
-+                final org.bukkit.event.player.PlayerAdvancementDoneEvent event = new org.bukkit.event.player.PlayerAdvancementDoneEvent(this.player.getBukkitEntity(), p_300979_.toBukkit(), message);
-+                this.player.level().getCraftServer().getPluginManager().callEvent(event); // CraftBukkit
++                playerAdvancementDoneEvent = new org.bukkit.event.player.PlayerAdvancementDoneEvent(this.player.getBukkitEntity(), p_300979_.toBukkit(), MixinFix.message(p_300979_, this.player));
++                this.player.level().getCraftServer().getPluginManager().callEvent(playerAdvancementDoneEvent); // CraftBukkit
 +                // Paper end
                  p_300979_.value().rewards().grant(this.player);
                  p_300979_.value().display().ifPresent(p_352686_ -> {
 -                    if (p_352686_.shouldAnnounceChat() && this.player.level().getGameRules().getBoolean(GameRules.RULE_ANNOUNCE_ADVANCEMENTS)) {
 -                        this.playerList.broadcastSystemMessage(p_352686_.getType().createAnnouncement(p_300979_, this.player), false);
 +                    // Paper start - Add Adventure message to PlayerAdvancementDoneEvent
-+                    if (event.message() != null && this.player.level().getGameRules().getBoolean(GameRules.RULE_ANNOUNCE_ADVANCEMENTS)) {
-+                        this.playerList.broadcastSystemMessage(io.papermc.paper.adventure.PaperAdventure.asVanilla(event.message()), false);
++                    if (playerAdvancementDoneEvent.message() != null && this.player.level().getGameRules().getBoolean(GameRules.RULE_ANNOUNCE_ADVANCEMENTS)) {
++                        this.playerList.broadcastSystemMessage(io.papermc.paper.adventure.PaperAdventure.asVanilla(playerAdvancementDoneEvent.message()), false);
 +                        // Paper end
                      }
 +                    net.neoforged.neoforge.event.EventHooks.onAdvancementEarnedEvent(this.player, p_300979_);
@@ -324,15 +318,11 @@
          }
  
          if (flag1 && !advancementprogress.isDone()) {
-@@ -318,8 +_,45 @@
+@@ -318,8 +_,41 @@
          );
      }
  
 +    // Youer start - Fast advancement map codec
-+    // The vanilla unboundedMap codec collects into an Object2ObjectArrayMap whose putIfAbsent does a
-+    // linear scan, i.e. O(n^2) total. For large advancement files (big modpacks can easily have tens of
-+    // thousands of entries) that dominated login time. Decode into an open hash map with a pre-allocated
-+    // capacity instead; encoding keeps using the vanilla codec (no performance requirement there).
 +    private static final Codec<Map<ResourceLocation, AdvancementProgress>> UNBOUNDED_MAP_CODEC = Codec.unboundedMap(ResourceLocation.CODEC, AdvancementProgress.CODEC);
 +    private static final Codec<Map<ResourceLocation, AdvancementProgress>> FAST_MAP_CODEC = new Codec<>() {
 +        @Override
