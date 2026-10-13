@@ -50,6 +50,11 @@ public class NeoDevPlugin implements Plugin<Project> {
 
     static String timestamp = Instant.now().toString();
 
+    private static String resolveAbbreviatedId(Project project) {
+        Object value = project.getRootProject().findProperty("gitAbbreviatedId");
+        return value != null ? String.valueOf(value) : null;
+    }
+
     @Override
     public void apply(Project project) {
         project.getPlugins().apply(MinecraftDependenciesPlugin.class);
@@ -67,7 +72,8 @@ public class NeoDevPlugin implements Plugin<Project> {
         var extension = project.getExtensions().create(NeoDevExtension.NAME, NeoDevExtension.class);
         var configurations = NeoDevConfigurations.createAndSetup(project);
 
-        var abbreviatedId = project.getProviders().gradleProperty("git.abbreviatedId");
+        var abbreviatedId = project.getProviders().gradleProperty("git.abbreviatedId")
+                .orElse(project.provider(() -> resolveAbbreviatedId(project)));
 
         /*
          * MINECRAFT SOURCES SETUP
