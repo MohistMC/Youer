@@ -148,49 +148,60 @@
      }
  
      @Override
-@@ -376,6 +_,67 @@
+@@ -376,6 +_,96 @@
      public BitStorage copy() {
          return new SimpleBitStorage(this.bits, this.size, (long[])this.data.clone());
      }
 +
 +    // Paper start - block counting
 +    @Override
-+    public final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<it.unimi.dsi.fastutil.shorts.ShortArrayList> moonrise$countEntries() {
++    public final java.util.List<ca.spottedleaf.moonrise.patches.block_counting.BlockCountingEntry> moonrise$countBlocks(final net.minecraft.world.level.chunk.Palette<net.minecraft.world.level.block.state.BlockState> palette) {
 +        final int valuesPerLong = this.valuesPerLong;
 +        final int bits = this.bits;
 +        final long mask = (1L << bits) - 1L;
 +        final int size = this.size;
 +
 +        if (bits <= 6) {
-+            final it.unimi.dsi.fastutil.shorts.ShortArrayList[] byId = new it.unimi.dsi.fastutil.shorts.ShortArrayList[1 << bits];
-+            final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<it.unimi.dsi.fastutil.shorts.ShortArrayList> ret = new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>(1 << bits);
++            final ca.spottedleaf.moonrise.patches.block_counting.BlockCountingEntry[] byPaletteId = new ca.spottedleaf.moonrise.patches.block_counting.BlockCountingEntry[1 << bits];
++            final java.util.List<ca.spottedleaf.moonrise.patches.block_counting.BlockCountingEntry> ret = new java.util.ArrayList<>(1 << 6);
 +
 +            int index = 0;
 +
 +            for (long value : this.data) {
 +                int li = 0;
 +                do {
-+                    final int paletteIdx = (int) (value & mask);
++                    final int paletteIdx = (int)(value & mask);
 +                    value >>= bits;
 +                    ++li;
 +
-+                    final it.unimi.dsi.fastutil.shorts.ShortArrayList coords = byId[paletteIdx];
-+                    if (coords != null) {
-+                        coords.add((short) index++);
-+                        continue;
++                    final ca.spottedleaf.moonrise.patches.block_counting.BlockCountingEntry ifPresent = byPaletteId[paletteIdx];
++                    if (ifPresent != null) {
++                        ++ifPresent.count;
++                        if (ifPresent.coords != null) {
++                            ifPresent.coords.add((short)index);
++                        }
 +                    } else {
-+                        final it.unimi.dsi.fastutil.shorts.ShortArrayList newCoords = new it.unimi.dsi.fastutil.shorts.ShortArrayList(64);
-+                        byId[paletteIdx] = newCoords;
-+                        newCoords.add((short) index++);
-+                        ret.put(paletteIdx, newCoords);
-+                        continue;
++                        final net.minecraft.world.level.block.state.BlockState state = palette.valueFor(paletteIdx);
++                        final it.unimi.dsi.fastutil.shorts.ShortArrayList coords;
++                        if (state.isRandomlyTicking()) {
++                            coords = new it.unimi.dsi.fastutil.shorts.ShortArrayList(64);
++                            coords.add((short)index);
++                        } else {
++                            coords = null;
++                        }
++
++                        final ca.spottedleaf.moonrise.patches.block_counting.BlockCountingEntry entry = new ca.spottedleaf.moonrise.patches.block_counting.BlockCountingEntry(1, state, coords);
++                        byPaletteId[paletteIdx] = entry;
++                        ret.add(entry);
 +                    }
++                    ++index;
 +                } while (li < valuesPerLong && index < size);
 +            }
 +
 +            return ret;
 +        } else {
-+            final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<it.unimi.dsi.fastutil.shorts.ShortArrayList> ret = new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>(
++            final java.util.List<ca.spottedleaf.moonrise.patches.block_counting.BlockCountingEntry> ret = new java.util.ArrayList<>(1 << 6);
++            final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<ca.spottedleaf.moonrise.patches.block_counting.BlockCountingEntry> byPaletteId = new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>(
 +                1 << 6
 +            );
 +
@@ -199,13 +210,31 @@
 +            for (long value : this.data) {
 +                int li = 0;
 +                do {
-+                    final int paletteIdx = (int) (value & mask);
++                    final int paletteIdx = (int)(value & mask);
 +                    value >>= bits;
 +                    ++li;
 +
-+                    ret.computeIfAbsent(paletteIdx, (final int key) -> {
-+                        return new it.unimi.dsi.fastutil.shorts.ShortArrayList(64);
-+                    }).add((short) index++);
++                    final ca.spottedleaf.moonrise.patches.block_counting.BlockCountingEntry ifPresent = byPaletteId.get(paletteIdx);
++                    if (ifPresent != null) {
++                        ++ifPresent.count;
++                        if (ifPresent.coords != null) {
++                            ifPresent.coords.add((short)index);
++                        }
++                    } else {
++                        final net.minecraft.world.level.block.state.BlockState state = palette.valueFor(paletteIdx);
++                        final it.unimi.dsi.fastutil.shorts.ShortArrayList coords;
++                        if (state.isRandomlyTicking()) {
++                            coords = new it.unimi.dsi.fastutil.shorts.ShortArrayList(64);
++                            coords.add((short)index);
++                        } else {
++                            coords = null;
++                        }
++
++                        final ca.spottedleaf.moonrise.patches.block_counting.BlockCountingEntry entry = new ca.spottedleaf.moonrise.patches.block_counting.BlockCountingEntry(1, state, coords);
++                        byPaletteId.put(paletteIdx, entry);
++                        ret.add(entry);
++                    }
++                    ++index;
 +                } while (li < valuesPerLong && index < size);
 +            }
 +

@@ -147,7 +147,7 @@
          private final boolean requiresCorrectToolForDrops;
          private final boolean canOcclude;
          private final BlockBehaviour.StatePredicate isRedstoneConductor;
-@@ -440,6 +_,76 @@
+@@ -440,8 +_,97 @@
          private boolean propagatesSkylightDown;
          private int lightDampening;
  
@@ -169,6 +169,12 @@
 +        private boolean emptyCollisionShape;
 +        private boolean emptyConstantCollisionShape;
 +        private VoxelShape constantCollisionShape;
++        private boolean isSpecialCollidingBlock;
++
++        private static boolean isSpecialCollidingBlock(final net.minecraft.world.level.block.state.BlockBehaviour.BlockStateBase block) {
++            // note: cannot reference Blocks here, as Blocks#<clinit> initialises the state caches in parallel
++            return block.hasLargeCollisionShape() || block.getBlock() instanceof net.minecraft.world.level.block.piston.MovingPistonBlock;
++        }
 +
 +        private static void initCaches(final VoxelShape shape, final boolean neighbours) {
 +            ((ca.spottedleaf.moonrise.patches.collisions.shape.CollisionVoxelShape)shape).moonrise$isFullBlock();
@@ -219,12 +225,27 @@
 +        public final VoxelShape moonrise$getConstantContextCollisionShape() {
 +            return this.constantCollisionShape;
 +        }
++
++        @Override
++        public final boolean moonrise$isSpecialCollidingBlock() {
++            return this.isSpecialCollidingBlock;
++        }
 +        // Paper end - optimise collisions
 +
++        // Paper start - optimise TypedInstance
++        private final Block blockOwner;
++        private final Holder.Reference<Block> reference;
++        // Paper end - optimise TypedInstance
          protected BlockStateBase(Block owner, Property<?>[] propertyKeys, Comparable<?>[] propertyValues) {
              super(owner, propertyKeys, propertyValues);
++            // Paper start - optimise TypedInstance
++            this.blockOwner = owner;
++            this.reference = owner.builtInRegistryHolder();
++            // Paper end - optimise TypedInstance
              BlockBehaviour.Properties properties = owner.properties;
-@@ -464,6 +_,16 @@
+             this.lightEmission = properties.lightEmission.applyAsInt(this.asState());
+             this.useShapeForLightOcclusion = owner.useShapeForLightOcclusion(this.asState());
+@@ -464,6 +_,15 @@
              this.replaceable = properties.replaceable;
          }
  
@@ -236,7 +257,6 @@
 +            return (org.bukkit.craftbukkit.block.data.CraftBlockData) this.cachedBlockData.clone();
 +        }
 +        // Paper end - Perf: impl cached craft block data, lazy load to fix issue with loading at the wrong time
-+
 +
          private boolean calculateSolid() {
              if (this.owner.properties.forceSolidOn) {
@@ -256,7 +276,7 @@
  
              this.legacySolid = this.calculateSolid();
              this.occlusionShape = this.canOcclude ? this.owner.getOcclusionShape(this.asState()) : Shapes.empty();
-@@ -506,12 +_,52 @@
+@@ -506,28 +_,107 @@
                  this.occlusionShapesByFace = new VoxelShape[DIRECTIONS.length];
  
                  for (Direction direction : DIRECTIONS) {
@@ -276,6 +296,7 @@
 +            this.isConditionallyFullOpaque = this.canOcclude & this.useShapeForLightOcclusion;
 +            // Paper end - rewrite chunk system
 +            // Paper start - optimise collisions
++            this.isSpecialCollidingBlock = isSpecialCollidingBlock(this);
 +            if (this.cache != null) {
 +                final VoxelShape collisionShape = this.cache.collisionShape;
 +                if (this.isAir()) {
@@ -310,7 +331,51 @@
          }
  
          public Block getBlock() {
-@@ -528,6 +_,12 @@
+-            return this.owner;
++            return this.blockOwner; // Paper - optimise TypedInstance
+         }
+ 
+         @Override
+         public Holder<Block> typeHolder() {
+-            return this.getBlock().builtInRegistryHolder();
+-        }
++            return this.reference; // Paper - optimise TypedInstance
++        }
++
++        // Paper start - optimise TypedInstance
++        @Override
++        public final java.util.stream.Stream<net.minecraft.tags.TagKey<Block>> tags() {
++            return this.reference.tags();
++        }
++
++        @Override
++        public final boolean is(final net.minecraft.tags.TagKey<Block> tag) {
++            return this.reference.is(tag);
++        }
++
++        @Override
++        public final boolean is(final net.minecraft.core.HolderSet<Block> set) {
++            return set.contains(this.reference);
++        }
++
++        @Override
++        public final boolean is(final Block rawType) {
++            return this.blockOwner == rawType;
++        }
++
++        @Override
++        public final boolean is(final Holder<Block> type) {
++            return this.reference == type;
++        }
++
++        @Override
++        public final boolean is(final net.minecraft.resources.ResourceKey<Block> type) {
++            return this.reference.is(type);
++        }
++        // Paper end - optimise TypedInstance
+ 
+         @Deprecated
+         public boolean isSolid() {
              return this.legacySolid;
          }
  

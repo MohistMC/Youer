@@ -1,0 +1,45 @@
+--- a/net/minecraft/world/level/levelgen/material/MaterialRuleContext.java
++++ b/net/minecraft/world/level/levelgen/material/MaterialRuleContext.java
+@@ -26,7 +_,7 @@
+ import net.minecraft.world.level.levelgen.synth.NormalNoise;
+ import org.jspecify.annotations.Nullable;
+ 
+-public final class MaterialRuleContext {
++public final class MaterialRuleContext implements ca.spottedleaf.moonrise.patches.chunk_gen.buffer_alloc.ChunkGenMaterialRuleContext { // Paper - optimise chunk generation
+     private static final int HOW_FAR_BELOW_PRELIMINARY_SURFACE_LEVEL_TO_BUILD_SURFACE = 8;
+     private final MaterialSystem system;
+     private final RandomState randomState;
+@@ -56,6 +_,21 @@
+     private int waterHeight;
+     private int stoneDepthBelow;
+     private int stoneDepthAbove;
++    // Paper start - optimise chunk generation
++    private ca.spottedleaf.moonrise.patches.chunk_gen.buffer_alloc.ThreadLocalFixedDensityBufferCache allocator;
++
++    @Override
++    public final void moonrise$setDensityBufferAllocator(final ca.spottedleaf.moonrise.patches.chunk_gen.buffer_alloc.ThreadLocalFixedDensityBufferCache allocator) {
++        this.allocator = allocator;
++    }
++
++    @Override
++    public final ca.spottedleaf.moonrise.patches.chunk_gen.buffer_alloc.ThreadLocalFixedDensityBufferCache moonrise$removeDensityBufferAllocator() {
++        final ca.spottedleaf.moonrise.patches.chunk_gen.buffer_alloc.ThreadLocalFixedDensityBufferCache ret = this.allocator;
++        this.allocator = null;
++        return ret;
++    }
++    // Paper end - optimise chunk generation
+ 
+     MaterialRuleContext(
+         MaterialSystem system,
+@@ -199,7 +_,10 @@
+     public MaterialRules.DensityGetter getDensitiesInChunk(DensityFunction function, boolean prefill) {
+         DensitySampler.Bound sampler = this.densitySamplers.get(function);
+         if (prefill) {
+-            DensityBuffer buffer = DensityBuffer.createUnpooled(this.expectedVolume.size());
++            // Paper start - optimise chunk generation
++            // The allocations here are huge (typically 16x16x(1/2 world height)), and avoidable with pooling.
++            DensityBuffer buffer = this.allocator == null ? DensityBuffer.createUnpooled(this.expectedVolume.size()) : this.allocator.allocate(this.expectedVolume.size());
++            // Paper end - optimise chunk generation
+             sampler.sampleVolume(buffer, this.expectedVolume);
+             return () -> {
+                 int index = this.expectedVolume.indexOfBlock(this.blockX, this.blockY, this.blockZ);

@@ -3,6 +3,7 @@ package ca.spottedleaf.dataconverter.minecraft.versions;
 import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
+import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperTooltipDisplay;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import ca.spottedleaf.dataconverter.util.NamespaceUtil;
 import java.util.Map;
@@ -72,6 +73,7 @@ public final class V5008 {
             @Override
             public @Nullable MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
                 data.remove("minecraft:map_color");
+                HelperTooltipDisplay.replaceHiddenComponent(data, "minecraft:map_color");
                 return null;
             }
         });

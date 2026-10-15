@@ -95,6 +95,7 @@ import net.minecraft.world.item.MapItem;
 import net.minecraft.world.item.crafting.CraftingInput;
 import net.minecraft.world.item.crafting.CraftingRecipe;
 import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.RecipeManager;
 import net.minecraft.world.item.crafting.RecipeType;
 import net.minecraft.world.item.crafting.RepairItemRecipe;
 import net.minecraft.world.level.CustomSpawner;
@@ -1467,31 +1468,34 @@ public final class CraftServer implements Server {
     }
 
     @Override
-    public boolean addRecipe(Recipe recipe, boolean resendRecipes) {
-        CraftRecipe toAdd = switch (recipe) {
-            case final CraftRecipe r -> r;
-            case final ShapedRecipe r -> CraftShapedRecipe.fromBukkitRecipe(r);
-            case final ShapelessRecipe r -> CraftShapelessRecipe.fromBukkitRecipe(r);
-            case final FurnaceRecipe r -> CraftFurnaceRecipe.fromBukkitRecipe(r);
-            case final BlastingRecipe r -> CraftBlastingRecipe.fromBukkitRecipe(r);
-            case final CampfireRecipe r -> CraftCampfireRecipe.fromBukkitRecipe(r);
-            case final SmokingRecipe r -> CraftSmokingRecipe.fromBukkitRecipe(r);
-            case final StonecuttingRecipe r -> CraftStonecuttingRecipe.fromBukkitRecipe(r);
-            case final SmithingTransformRecipe r -> CraftSmithingTransformRecipe.fromBukkitRecipe(r);
-            case final SmithingTrimRecipe r -> CraftSmithingTrimRecipe.fromBukkitRecipe(r);
-            case final TransmuteRecipe r -> CraftTransmuteRecipe.fromBukkitRecipe(r);
-            case final BrewingRecipe r -> CraftBrewingRecipe.fromBukkitRecipe(r);
-            case final ComplexRecipe _ -> throw new UnsupportedOperationException("Cannot add custom complex recipe");
-            case null, default -> null;
-        };
-        if (toAdd == null) return false;
-        toAdd.addToRecipeManager();
-        // Paper start - API for updating recipes on clients
-        if (true || resendRecipes) { // Always needs to be resent now... TODO
-            this.playerList.reloadRecipes();
+    public boolean addRecipe(Recipe recipe) {
+        final CraftRecipe craftRecipe = CraftRecipe.fromBukkitRecipe(recipe);
+        if (craftRecipe == null) {
+            return false;
         }
-        // Paper end - API for updating recipes on clients
+
+        craftRecipe.addToRecipeManager();
         return true;
+    }
+
+    @Override
+    public boolean addRecipes(Iterable<Recipe> recipes) {
+        org.spigotmc.AsyncCatcher.catchOp("Recipes Add");
+        Preconditions.checkArgument(recipes != null, "recipes cannot be null");
+        boolean anyAdded = false;
+        final RecipeManager recipeManager = this.getServer().getRecipeManager();
+        for (Recipe recipe : recipes) {
+            final CraftRecipe craftRecipe = CraftRecipe.fromBukkitRecipe(recipe);
+            if (craftRecipe != null) {
+                recipeManager.recipes.addRecipe(craftRecipe.toMinecraftRecipe());
+                anyAdded = true;
+            }
+        }
+
+        if (anyAdded) {
+            recipeManager.finalizeRecipeLoading();
+        }
+        return anyAdded;
     }
 
     // Purpur start - Debug Marker API
@@ -1701,17 +1705,34 @@ public final class CraftServer implements Server {
     }
 
     @Override
-    public boolean removeRecipe(NamespacedKey recipeKey, boolean resendRecipes) {
-        Preconditions.checkArgument(recipeKey != null, "recipeKey == null");
-
-        // Paper start - resend recipes on successful removal
+    public boolean hasRecipe(NamespacedKey recipeKey) {
+        Preconditions.checkArgument(recipeKey != null, "recipeKey cannot be null");
         final ResourceKey<net.minecraft.world.item.crafting.Recipe<?>> id = CraftNamespacedKey.toResourceKey(Registries.RECIPE, recipeKey);
-        final boolean removed = this.getServer().getRecipeManager().removeRecipe(id);
-        if (removed/* && resendRecipes*/) { // TODO Always need to resend them rn - deprecate this method?
-            this.playerList.reloadRecipes();
+        return getServer().getRecipeManager().byKey(id).isPresent();
+    }
+
+    @Override
+    public boolean removeRecipe(NamespacedKey recipeKey) {
+        Preconditions.checkArgument(recipeKey != null, "recipeKey cannot be null");
+        final ResourceKey<net.minecraft.world.item.crafting.Recipe<?>> id = CraftNamespacedKey.toResourceKey(Registries.RECIPE, recipeKey);
+        return this.getServer().getRecipeManager().removeRecipe(id);
+    }
+
+    @Override
+    public boolean removeRecipes(Iterable<NamespacedKey> recipeKeys) {
+        Preconditions.checkArgument(recipeKeys != null, "recipeKeys cannot be null");
+        boolean anyRemoved = false;
+        final RecipeManager recipeManager = this.getServer().getRecipeManager();
+        for (NamespacedKey recipeKey : recipeKeys) {
+            final ResourceKey<net.minecraft.world.item.crafting.Recipe<?>> id = CraftNamespacedKey.toResourceKey(Registries.RECIPE, recipeKey);
+            if (recipeManager.recipes.removeRecipe(id)) {
+                anyRemoved = true;
+            }
         }
-        return removed;
-        // Paper end - resend recipes on successful removal
+        if (anyRemoved) {
+            recipeManager.finalizeRecipeLoading();
+        }
+        return anyRemoved;
     }
 
     @Override

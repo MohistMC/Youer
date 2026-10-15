@@ -26,7 +26,7 @@
  import net.minecraft.world.level.levelgen.blending.BlendingData;
  import net.minecraft.world.level.levelgen.structure.Structure;
  import net.minecraft.world.level.levelgen.structure.StructureStart;
-@@ -58,27 +_,83 @@
+@@ -58,27 +_,91 @@
  
  import net.neoforged.neoforge.attachment.IAttachmentHolder;
  
@@ -110,14 +110,30 @@
 +    private final int minSection;
 +    private final int maxSection;
 +    // Paper end - get block chunk optimisation
++    // Paper start - getblock optimisations - cache world height/sections
++    private final int minY;
++    private final int height;
++    private final int maxY;
++    private final int minSectionY;
++    private final int maxSectionY;
++    private final int sectionsCount;
++    // Paper end - getblock optimisations - cache world height/sections
  
      public ChunkAccess(
          ChunkPos chunkPos,
-@@ -89,14 +_,15 @@
+@@ -89,14 +_,23 @@
          LevelChunkSection @Nullable [] sections,
          @Nullable BlendingData blendingData
      ) {
 -        this.chunkPos = chunkPos;
++        // Paper start - getblock optimisations - cache world height/sections
++        this.minY = levelHeightAccessor.getMinY();
++        this.height = levelHeightAccessor.getHeight();
++        this.maxY = this.minY + this.height - 1;
++        this.minSectionY = this.minY >> 4;
++        this.maxSectionY = this.maxY >> 4;
++        this.sectionsCount = this.maxSectionY - this.minSectionY + 1;
++        // Paper end - getblock optimisations - cache world height/sections
 +        this.locX = chunkPos.x(); this.locZ = chunkPos.z(); // Paper - reduce need for field lookups
 +        this.chunkPos = chunkPos; this.coordinateKey = ChunkPos.pack(this.locX, this.locZ); // Paper - cache long key
          this.upgradeData = upgradeData;
@@ -209,13 +225,82 @@
              }
          }
      }
+@@ -398,13 +_,65 @@
+ 
+     @Override
+     public int getMinY() {
+-        return this.levelHeightAccessor.getMinY();
++        return this.minY; // Paper - getblock optimisations - cache world height/sections
+     }
+ 
+     @Override
+     public int getHeight() {
+-        return this.levelHeightAccessor.getHeight();
+-    }
++        return this.height; // Paper - getblock optimisations - cache world height/sections
++    }
++
++    // Paper start - getblock optimisations - cache world height/sections
++    @Override
++    public int getMaxY() {
++        return this.maxY;
++    }
++
++    @Override
++    public int getSectionsCount() {
++        return this.sectionsCount;
++    }
++
++    @Override
++    public int getMinSectionY() {
++        return this.minSectionY;
++    }
++
++    @Override
++    public int getMaxSectionY() {
++        return this.maxSectionY;
++    }
++
++    @Override
++    public boolean isInsideBuildHeight(final int blockY) {
++        return blockY >= this.minY && blockY <= this.maxY;
++    }
++
++    @Override
++    public boolean isOutsideBuildHeight(final BlockPos pos) {
++        return this.isOutsideBuildHeight(pos.getY());
++    }
++
++    @Override
++    public boolean isOutsideBuildHeight(final int blockY) {
++        return blockY < this.minY || blockY > this.maxY;
++    }
++
++    @Override
++    public int getSectionIndex(final int blockY) {
++        return (blockY >> 4) - this.minSectionY;
++    }
++
++    @Override
++    public int getSectionIndexFromSectionY(final int sectionY) {
++        return sectionY - this.minSectionY;
++    }
++
++    @Override
++    public int getSectionYFromSectionIndex(final int sectionIdx) {
++        return sectionIdx + this.minSectionY;
++    }
++    // Paper end - getblock optimisations - cache world height/sections
+ 
+     @Deprecated
+     public BiomeGenerationSettings carverBiome(Supplier<BiomeGenerationSettings> source) {
 @@ -417,20 +_,40 @@
  
      @Override
      public Holder<Biome> getNoiseBiome(int quartX, int quartY, int quartZ) {
 +        // Paper start - get block chunk optimisation
-+        int sectionY = (quartY >> 2) - this.minSection;
-+        int rel = quartY & 3;
++        int sectionY = (quartY >> QuartPos.BITS) - this.minSection;
++        int rel = quartY & QuartPos.MASK;
 +
 +        final LevelChunkSection[] sections = this.sections;
 +
@@ -224,10 +309,10 @@
 +            rel = 0;
 +        } else if (sectionY >= sections.length) {
 +            sectionY = sections.length - 1;
-+            rel = 3;
++            rel = QuartPos.MASK;
 +        }
 +
-+        return sections[sectionY].getNoiseBiome(quartX & 3, rel, quartZ & 3);
++        return sections[sectionY].getNoiseBiome(quartX & QuartPos.MASK, rel, quartZ & QuartPos.MASK);
 +        // Paper end - get block chunk optimisation
 +    }
 +

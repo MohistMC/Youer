@@ -66,25 +66,32 @@
          Arrays.fill(output, 0, this.size, 0);
      }
  
-@@ -67,4 +_,22 @@
+@@ -67,4 +_,29 @@
      public BitStorage copy() {
          return this;
      }
 +
 +    // Paper start - block counting
 +    @Override
-+    public final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<it.unimi.dsi.fastutil.shorts.ShortArrayList> moonrise$countEntries() {
++    public final java.util.List<ca.spottedleaf.moonrise.patches.block_counting.BlockCountingEntry> moonrise$countBlocks(final net.minecraft.world.level.chunk.Palette<net.minecraft.world.level.block.state.BlockState> palette) {
 +        final int size = this.size;
 +
-+        final short[] raw = new short[size];
-+        for (int i = 0; i < size; ++i) {
-+            raw[i] = (short)i;
++        final net.minecraft.world.level.block.state.BlockState state = palette.valueFor(0);
++
++        final it.unimi.dsi.fastutil.shorts.ShortArrayList coordinates;
++        if (state.isRandomlyTicking()) {
++            final short[] raw = new short[size];
++            for (int i = 0; i < size; ++i) {
++                raw[i] = (short)i;
++            }
++
++            coordinates = it.unimi.dsi.fastutil.shorts.ShortArrayList.wrap(raw, size);
++        } else {
++            coordinates = null;
 +        }
 +
-+        final it.unimi.dsi.fastutil.shorts.ShortArrayList coordinates = it.unimi.dsi.fastutil.shorts.ShortArrayList.wrap(raw, size);
-+
-+        final it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<it.unimi.dsi.fastutil.shorts.ShortArrayList> ret = new it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap<>(1);
-+        ret.put(0, coordinates);
++        final java.util.List<ca.spottedleaf.moonrise.patches.block_counting.BlockCountingEntry> ret = new java.util.ArrayList<>(1);
++        ret.add(new ca.spottedleaf.moonrise.patches.block_counting.BlockCountingEntry(size, state, coordinates));
 +        return ret;
 +    }
 +    // Paper end - block counting

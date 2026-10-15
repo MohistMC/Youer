@@ -1180,6 +1180,24 @@
      }
  
      private boolean shouldPlayAmethystStepSound(BlockState affectingState) {
+@@ -1539,7 +_,7 @@
+         this.entityData.set(DATA_NO_GRAVITY, noGravity);
+     }
+ 
+-    protected double getDefaultGravity() {
++    public double getDefaultGravity() {
+         return 0.0;
+     }
+ 
+@@ -1554,7 +_,7 @@
+         }
+     }
+ 
+-    protected float getAirDrag() {
++    public float getAirDrag() {
+         return 0.98F;
+     }
+ 
 @@ -1598,7 +_,7 @@
      }
  
@@ -2202,20 +2220,20 @@
  
      public void setAirSupply(int supply) {
 -        this.entityData.set(DATA_AIR_SUPPLY_ID, supply);
-+        // CraftBukkit start
-+        org.bukkit.event.entity.EntityAirChangeEvent event = new org.bukkit.event.entity.EntityAirChangeEvent(this.getBukkitEntity(), supply);
++        // Paper start - EntityAirChangeEvent
++        int newAmount = supply;
 +        // Suppress during worldgen
-+        if (this.valid) {
-+            event.getEntity().getServer().getPluginManager().callEvent(event);
-+        }
-+        if (event.isCancelled() && this.getAirSupply() != supply) {
-+            if (this instanceof ServerPlayer player) {
-+                this.resendPossiblyDesyncedDataValues(java.util.List.of(DATA_AIR_SUPPLY_ID), player); // todo is that even needed?
++        if (this.valid && org.bukkit.event.entity.EntityAirChangeEvent.getHandlerList().hasListeners() && this.getAirSupply() != supply) {
++            final org.bukkit.event.entity.EntityAirChangeEvent event = new org.bukkit.event.entity.EntityAirChangeEvent(this.getBukkitEntity(), supply);
++            if (!event.callEvent()) {
++                return;
 +            }
-+            return;
++
++            newAmount = event.getAmount();
 +        }
-+        this.entityData.set(DATA_AIR_SUPPLY_ID, event.getAmount());
-+        // CraftBukkit end
++
++        this.entityData.set(DATA_AIR_SUPPLY_ID, newAmount);
++        // Paper end - EntityAirChangeEvent
      }
  
      public void clearFreeze() {
@@ -2223,7 +2241,7 @@
          this.setTicksFrozen(0);
      }
  
-@@ -2916,11 +_,41 @@
+@@ -2916,11 +_,37 @@
  
      public void thunderHit(ServerLevel level, LightningBolt lightningBolt) {
          this.setRemainingFireTicks(this.remainingFireTicks + 1);
@@ -2258,10 +2276,6 @@
 +            if (!hangingEvent.callEvent()) {
 +                return;
 +            }
-+        }
-+
-+        if (this.fireImmune()) {
-+            return;
 +        }
 +
 +        this.hurtServer(level, damageSource, 5.0F);
@@ -2369,7 +2383,7 @@
 +            // Paper start - gateway-specific teleport event
 +            final org.bukkit.event.entity.EntityTeleportEvent teleEvent;
 +            if (this.portalProcess != null && this.portalProcess.isSamePortal(((net.minecraft.world.level.block.EndGatewayBlock) Blocks.END_GATEWAY)) && this.level.getBlockEntity(this.portalProcess.getEntryPosition()) instanceof net.minecraft.world.level.block.entity.TheEndGatewayBlockEntity theEndGatewayBlockEntity) {
-+                teleEvent = new com.destroystokyo.paper.event.entity.EntityTeleportEndGatewayEvent(this.getBukkitEntity(), this.getBukkitEntity().getLocation(), to, new org.bukkit.craftbukkit.block.CraftEndGateway(to.getWorld(), theEndGatewayBlockEntity));
++                teleEvent = new com.destroystokyo.paper.event.entity.EntityTeleportEndGatewayEvent(this.getBukkitEntity(), this.getBukkitEntity().getLocation(), to, new org.bukkit.craftbukkit.block.CraftEndGateway(to.getWorld(), theEndGatewayBlockEntity, true));
 +                teleEvent.callEvent();
 +            } else {
 +                teleEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTeleportEvent(this, to);

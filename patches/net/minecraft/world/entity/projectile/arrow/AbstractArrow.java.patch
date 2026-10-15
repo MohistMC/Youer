@@ -102,6 +102,15 @@
              this.inGroundTime = 0;
              Vec3 originalPosition = this.position();
              if (this.isInWater()) {
+@@ -263,7 +_,7 @@
+     }
+ 
+     @Override
+-    protected float getAirDrag() {
++    public float getAirDrag() {
+         return 0.99F;
+     }
+ 
 @@ -282,11 +_,15 @@
  
              if (entitiesHit.isEmpty()) {
@@ -129,10 +138,12 @@
              if (!this.isAlive() || deflection != ProjectileDeflection.NONE) {
                  return deflection;
              }
-@@ -331,6 +_,19 @@
+@@ -331,8 +_,21 @@
          }
      }
  
+-    @Override
+-    protected double getDefaultGravity() {
 +    // Paper start - Fix cancelling ProjectileHitEvent for piercing arrows
 +    @Override
 +    public ProjectileDeflection preHitTargetOrDeflectSelf(HitResult hitResult) {
@@ -146,9 +157,11 @@
 +    }
 +    // Paper end - Fix cancelling ProjectileHitEvent for piercing arrows
 +
-     @Override
-     protected double getDefaultGravity() {
++    @Override
++    public double getDefaultGravity() {
          return 0.05;
+     }
+ 
 @@ -344,7 +_,11 @@
          this.setInGround(false);
          Vec3 deltaMovement = this.getDeltaMovement();

@@ -3,6 +3,7 @@ package ca.spottedleaf.dataconverter.minecraft.versions;
 import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
+import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperTooltipDisplay;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -17,6 +18,7 @@ public final class V5014 {
             @Override
             public @Nullable MapType convert(final MapType data, final long sourceVersion, final long toVersion) {
                 data.remove("minecraft:block_transformer");
+                HelperTooltipDisplay.replaceHiddenComponent(data, "minecraft:block_transformer");
                 return null;
             }
         });

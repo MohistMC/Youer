@@ -18,7 +18,7 @@
      private final MinecraftServer server;
      public volatile boolean running;
      private volatile @Nullable UUID sessionId;
-@@ -56,8 +_,25 @@
+@@ -56,12 +_,30 @@
      }
  
      public void startTcpServerListener(@Nullable InetAddress address, int port) throws IOException {
@@ -44,6 +44,11 @@
              this.channels
                  .add(
                      new ServerBootstrap()
+                         .channel(eventLoopGroupHolder.serverChannelCls())
++                        .childAttr(io.papermc.paper.adventure.PaperAdventure.LOCALE_ATTRIBUTE, java.util.Locale.US) // Paper - adventure
+                         .childHandler(
+                             new ChannelInitializer<Channel>() {
+                                 @Override
 @@ -71,7 +_,8 @@
                                      } catch (ChannelException var5) {
                                      }

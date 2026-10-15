@@ -31,17 +31,15 @@
  import net.minecraft.world.level.lighting.LevelLightEngine;
  import net.minecraft.world.level.material.Fluid;
  import net.minecraft.world.level.material.FluidState;
-@@ -66,8 +_,7 @@
+@@ -66,7 +_,6 @@
  
  public class WorldGenRegion implements WorldGenLevel {
      private static final Logger LOGGER = LogUtils.getLogger();
 -    private static final Identifier WORLDGEN_REGION_RANDOM = Identifier.withDefaultNamespace("worldgen_region_random");
--    private final StaticCache2D<@Nullable ChunkAccess> cache;
-+    private final StaticCache2D<GenerationChunkHolder> cache;
+     private final StaticCache2D<@Nullable ChunkAccess> cache;
      private final ChunkAccess center;
      private final ServerLevel level;
-     private final long seed;
-@@ -80,33 +_,55 @@
+@@ -80,12 +_,41 @@
      private final ChunkStep generatingStep;
      private @Nullable Supplier<String> currentlyGenerating;
      private final AtomicLong subTickCount = new AtomicLong();
@@ -84,13 +82,8 @@
 +
      public WorldGenRegion(ServerLevel level, StaticCache2D<GenerationChunkHolder> cache, ChunkStep generatingStep, ChunkAccess center) {
          this.generatingStep = generatingStep;
--        this.cache = cache.map((holder, x, z) -> {
--            int distance = center.getPos().getChessboardDistance(x, z);
--            ChunkStatus maxAllowedStatus = distance >= generatingStep.directDependencies().size() ? null : generatingStep.directDependencies().get(distance);
--            return maxAllowedStatus == null ? null : holder.getChunkIfPresentUnchecked(maxAllowedStatus);
--        });
-+        this.cache = cache;
-         this.center = center;
+         this.cache = cache.map((holder, x, z) -> {
+@@ -97,16 +_,13 @@
          this.level = level;
          this.seed = level.getSeed();
          this.levelData = level.getLevelData();
@@ -108,38 +101,54 @@
      }
  
      public boolean isOldChunkAround(ChunkPos pos, int range) {
-@@ -133,14 +_,17 @@
-         ChunkStatus maxAllowedStatus = distance >= this.generatingStep.directDependencies().size()
-             ? null
-             : this.generatingStep.directDependencies().get(distance);
--        ChunkAccess chunk;
-+        GenerationChunkHolder chunkHolder;
+@@ -122,9 +_,33 @@
+         this.currentlyGenerating = currentlyGenerating;
+     }
+ 
+-    @Override
+-    public ChunkAccess getChunk(int chunkX, int chunkZ) {
+-        return this.getChunk(chunkX, chunkZ, ChunkStatus.EMPTY);
++    // Paper start - optimise chunk generation
++    @Override
++    public ChunkAccess getChunk(final BlockPos pos) {
++        return this.getChunk(pos.getX() >> 4, pos.getZ() >> 4);
++    }
++
++    @Override
++    public ChunkAccess getChunk(final int chunkX, final int chunkZ, final ChunkStatus status) {
++        if (status == ChunkStatus.EMPTY) {
++            return this.getChunk(chunkX, chunkZ);
++        } else {
++            return this.getChunk(chunkX, chunkZ, status, true);
++        }
++    }
++    // Paper end - optimise chunk generation
++
++    @Override
++    public ChunkAccess getChunk(final int chunkX, final int chunkZ) {
++        // Paper start - optimise chunk generation
++        // We can skip the status checking logic, as it will never fail when status = EMPTY
++        final ChunkAccess ret = this.cache.get(chunkX, chunkZ);
++        if (ret != null) {
++            return ret;
++        }
++        // fall back to getChunk for error handling
++        return this.getChunk(chunkX, chunkZ, ChunkStatus.EMPTY, true);
++        // Paper end - optimise chunk generation
+     }
+ 
+     @Override
+@@ -137,7 +_,9 @@
          if (maxAllowedStatus != null) {
--            chunk = this.cache.get(chunkX, chunkZ);
--            if (chunk != null && targetStatus.isOrBefore(maxAllowedStatus)) {
+             chunk = this.cache.get(chunkX, chunkZ);
+             if (chunk != null && targetStatus.isOrBefore(maxAllowedStatus)) {
 -                return chunk;
-+            chunkHolder = this.cache.get(chunkX, chunkZ);
-+            if (targetStatus.isOrBefore(maxAllowedStatus)) {
-+                ChunkAccess chunk = chunkHolder.getChunkIfPresentUnchecked(maxAllowedStatus);
 +                if (chunk != null) {
 +                    return chunk;
 +                }
              }
          } else {
--            chunk = null;
-+            chunkHolder = null;
-         }
- 
-         CrashReport report = CrashReport.forThrowable(
-@@ -150,7 +_,7 @@
-         category.setDetail("Requested chunk", String.format(Locale.ROOT, "%d, %d", chunkX, chunkZ));
-         category.setDetail("Generating status", () -> this.generatingStep.targetStatus().getName());
-         category.setDetail("Requested status", targetStatus::getName);
--        category.setDetail("Actual status", () -> chunk == null ? "[out of cache bounds]" : chunk.getPersistedStatus().getName());
-+        category.setDetail("Actual status", () -> chunkHolder == null ? "[out of cache bounds]" : chunkHolder.getPersistedStatus().getName());
-         category.setDetail("Maximum allowed status", () -> maxAllowedStatus == null ? "null" : maxAllowedStatus.getName());
-         category.setDetail("Dependencies", this.generatingStep.directDependencies()::toString);
-         category.setDetail("Requested distance", distance);
+             chunk = null;
 @@ -164,6 +_,28 @@
          return distance < this.generatingStep.directDependencies().size();
      }

@@ -1,0 +1,127 @@
+--- a/net/minecraft/world/level/biome/Climate.java
++++ b/net/minecraft/world/level/biome/Climate.java
+@@ -158,8 +_,22 @@
+             return this.values;
+         }
+ 
++        // Paper start - optimise chunk generation
++        private static final boolean DEBUG_PARAM_LOOKUP = false;
++        // Paper end - optimise chunk generation
++
+         public T findValue(Climate.TargetPoint target) {
+-            return this.findValueIndex(target);
++            // Paper start - optimise chunk generation
++            final T moonrise = ((ca.spottedleaf.moonrise.patches.chunk_gen.climate_rtree.ChunkGenRTree<T>)this.index).moonrise$findNearest(target);
++            if (!DEBUG_PARAM_LOOKUP) {
++                return moonrise;
++            }
++            final T vanilla = this.findValueIndex(target);
++            if (vanilla != moonrise) {
++                throw new IllegalStateException();
++            }
++            return vanilla;
++            // Paper end - optimise chunk generation
+         }
+ 
+         @VisibleForTesting
+@@ -235,11 +_,66 @@
+         }
+     }
+ 
+-    protected static final class RTree<T> {
++    public static final class RTree<T> implements ca.spottedleaf.moonrise.patches.chunk_gen.climate_rtree.ChunkGenRTree<T> { // Paper - optimise chunk generation - public
+         private static final int CHILDREN_PER_NODE = 19;
+         private final Climate.RTree.Node<T> root;
+         private final ThreadLocal<Climate.RTree.@Nullable Leaf<T>> lastResult = new ThreadLocal<>();
+ 
++        // Paper start - optimise chunk generation
++        private final ThreadLocal<ca.spottedleaf.moonrise.patches.chunk_gen.climate_rtree.RTreeLeafDistance<T>> lastReturned = ThreadLocal.withInitial(() -> {
++            return new ca.spottedleaf.moonrise.patches.chunk_gen.climate_rtree.RTreeLeafDistance<>(null, Long.MAX_VALUE);
++        });
++
++        private void findNearest0(final long[] params, final ca.spottedleaf.moonrise.patches.chunk_gen.climate_rtree.RTreeLeafDistance<T> suggested, final Climate.RTree.SubTree<T> node) {
++            for (final Climate.RTree.Node<T> child : node.children) {
++                final long childDist = child.distance(params);
++                if (childDist >= suggested.distance) {
++                    continue;
++                }
++                if (child instanceof Climate.RTree.Leaf<T> leaf) {
++                    suggested.leaf = leaf;
++                    suggested.distance = childDist;
++                    continue;
++                } else {
++                    this.findNearest0(params, suggested, (Climate.RTree.SubTree<T>)child);
++                    continue;
++                }
++            }
++        }
++
++        private static void toParameterArray(final Climate.TargetPoint target, final long[] params) {
++            params[0] = target.temperature();
++            params[1] = target.humidity();
++            params[2] = target.continentalness();
++            params[3] = target.erosion();
++            params[4] = target.depth();
++            params[5] = target.weirdness();
++            params[6] = 0L;
++        }
++
++        @Override
++        public final T moonrise$findNearest(final Climate.TargetPoint target) {
++            if (this.root == null) {
++                return null;
++            }
++
++            if (this.root instanceof Climate.RTree.Leaf<T> ret) {
++                return ret.value;
++            }
++
++            final ca.spottedleaf.moonrise.patches.chunk_gen.climate_rtree.RTreeLeafDistance<T> ret = this.lastReturned.get();
++            final long[] params = ret.parameterArray;
++            toParameterArray(target, params);
++            if (ret.leaf != null) {
++                ret.distance = ret.leaf.distance(params);
++            }
++
++            this.findNearest0(params, ret, ((Climate.RTree.SubTree<T>)this.root));
++
++            return ret.leaf.value;
++        }
++        // Paper end - optimise chunk generation
++
+         private RTree(Climate.RTree.Node<T> root) {
+             this.root = root;
+         }
+@@ -389,7 +_,7 @@
+             return leaf.value;
+         }
+ 
+-        private static final class Leaf<T> extends Climate.RTree.Node<T> {
++        public static final class Leaf<T> extends Climate.RTree.Node<T> {
+             private final T value;
+ 
+             private Leaf(Climate.ParameterPoint parameterPoint, T value) {
+@@ -416,13 +_,21 @@
+             );
+ 
+             protected long distance(long[] target) {
++                // Paper start - optimise chunk generation
++                final Climate.Parameter[] params = this.parameterSpace;
++
++                if (params.length < 7 || target.length < 7) {
++                    throw new IndexOutOfBoundsException();
++                }
++
+                 long distance = 0L;
+ 
+-                for (int i = 0; i < 7; i++) {
+-                    distance += Mth.square(this.parameterSpace[i].distance(target[i]));
++                for (int i = 0; i < 7; ++i) {
++                    distance += Mth.square(params[i].distance(target[i]));
+                 }
+ 
+                 return distance;
++                // Paper end - optimise chunk generation
+             }
+ 
+             @Override

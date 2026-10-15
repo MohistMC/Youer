@@ -1,0 +1,20 @@
+--- a/net/minecraft/world/level/levelgen/structure/templatesystem/AllOfRuleTest.java
++++ b/net/minecraft/world/level/levelgen/structure/templatesystem/AllOfRuleTest.java
+@@ -9,14 +_,16 @@
+ public class AllOfRuleTest extends RuleTest {
+     public static final MapCodec<AllOfRuleTest> CODEC = RuleTest.CODEC.listOf().fieldOf("rules").xmap(AllOfRuleTest::new, t -> t.rules);
+     private final List<RuleTest> rules;
++    private final RuleTest[] rulesArray; // Paper - optimise chunk generation
+ 
+     public AllOfRuleTest(List<RuleTest> rules) {
+         this.rules = rules;
++        this.rulesArray = rules.toArray(new RuleTest[0]); // Paper - optimise chunk generation
+     }
+ 
+     @Override
+     public boolean test(BlockState blockState, BlockPos pos, RandomSource random) {
+-        for (RuleTest rule : this.rules) {
++        for (RuleTest rule : this.rulesArray) { // Paper - optimise chunk generation
+             if (!rule.test(blockState, pos, random)) {
+                 return false;
+             }

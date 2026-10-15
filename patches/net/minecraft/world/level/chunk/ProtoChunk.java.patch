@@ -1,6 +1,12 @@
 --- a/net/minecraft/world/level/chunk/ProtoChunk.java
 +++ b/net/minecraft/world/level/chunk/ProtoChunk.java
-@@ -45,6 +_,7 @@
+@@ -40,14 +_,60 @@
+ import org.jspecify.annotations.Nullable;
+ import org.slf4j.Logger;
+ 
+-public class ProtoChunk extends ChunkAccess {
++public class ProtoChunk extends ChunkAccess implements ca.spottedleaf.moonrise.patches.getblock.GetBlockChunk { // Paper - get block chunk optimisation
+     private static final Logger LOGGER = LogUtils.getLogger();
      private volatile @Nullable LevelLightEngine lightEngine;
      private volatile ChunkStatus status = ChunkStatus.EMPTY;
      private final List<CompoundTag> entities = Lists.newArrayList();
@@ -8,7 +14,66 @@
      private @Nullable BelowZeroRetrogen belowZeroRetrogen;
      private final ProtoChunkTicks<Block> blockTicks;
      private final ProtoChunkTicks<Fluid> fluidTicks;
-@@ -89,15 +_,32 @@
++    // Paper start - get block chunk optimisation
++    private static final BlockState AIR_BLOCKSTATE = Blocks.AIR.defaultBlockState();
++    private static final FluidState AIR_FLUIDSTATE = Fluids.EMPTY.defaultFluidState();
++    private static final BlockState VOID_AIR_BLOCKSTATE = Blocks.VOID_AIR.defaultBlockState();
++    private final int minSection;
++    private final int maxSection;
++
++    @Override
++    public BlockState moonrise$getBlock(final int x, final int y, final int z) {
++        final int sectionY = (y >> 4) - this.minSection;
++
++        final LevelChunkSection[] sections = this.sections;
++        if (sectionY < 0 || sectionY >= sections.length) {
++            return VOID_AIR_BLOCKSTATE;
++        }
++
++        final LevelChunkSection section = sections[sectionY];
++
++        if (!section.hasOnlyAir()) {
++            final int index = (x & 15) | ((z & 15) << 4) | ((y & 15) << (4+4));
++            return section.getStates().get(index);
++        }
++
++        return AIR_BLOCKSTATE;
++    }
++
++    @Override
++    public FluidState moonrise$getFluid(final int x, final int y, final int z) {
++        final int sectionY = (y >> 4) - this.minSection;
++
++        final LevelChunkSection[] sections = this.sections;
++        if (sectionY < 0 || sectionY >= sections.length) {
++            return AIR_FLUIDSTATE;
++        }
++
++        final LevelChunkSection section = sections[sectionY];
++
++        if (!section.hasOnlyAir()) {
++            final int index = (x & 15) | ((z & 15) << 4) | ((y & 15) << (4+4));
++            return section.getStates().get(index).getFluidState();
++        }
++
++        return AIR_FLUIDSTATE;
++    }
++    // Paper end - get block chunk optimisation
+ 
+     public ProtoChunk(
+         ChunkPos chunkPos,
+@@ -72,6 +_,10 @@
+         super(chunkPos, upgradeData, levelHeightAccessor, containerFactory, 0L, sections, blendingData);
+         this.blockTicks = blockTicks;
+         this.fluidTicks = fluidTicks;
++        // Paper start - get block chunk optimisation
++        this.minSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMinSection(levelHeightAccessor);
++        this.maxSection = ca.spottedleaf.moonrise.common.util.WorldUtil.getMaxSection(levelHeightAccessor);
++        // Paper end - get block chunk optimisation
+     }
+ 
+     @Override
+@@ -89,26 +_,32 @@
          return new ChunkAccess.PackedTicks(this.blockTicks.pack(currentTick), this.fluidTicks.pack(currentTick));
      }
  
@@ -27,19 +92,30 @@
      @Override
      public BlockState getBlockState(BlockPos pos) {
 -        int y = pos.getY();
+-        if (this.isOutsideBuildHeight(y)) {
+-            return Blocks.VOID_AIR.defaultBlockState();
+-        }
 +        // Paper start
 +        return this.getBlockState(pos.getX(), pos.getY(), pos.getZ());
 +    }
-+
+ 
+-        LevelChunkSection section = this.getSection(this.getSectionIndex(y));
+-        return section.hasOnlyAir() ? Blocks.AIR.defaultBlockState() : section.getBlockState(pos.getX() & 15, y & 15, pos.getZ() & 15);
 +    public BlockState getBlockState(final int x, final int y, final int z) {
 +        // Paper end
-         if (this.isOutsideBuildHeight(y)) {
-             return Blocks.VOID_AIR.defaultBlockState();
-         }
++        return this.moonrise$getBlock(x, y, z); // Paper - get block chunk optimisation
+     }
  
-         LevelChunkSection section = this.getSection(this.getSectionIndex(y));
--        return section.hasOnlyAir() ? Blocks.AIR.defaultBlockState() : section.getBlockState(pos.getX() & 15, y & 15, pos.getZ() & 15);
-+        return section.hasOnlyAir() ? Blocks.AIR.defaultBlockState() : section.getBlockState(x & 15, y & 15, z & 15); // Paper
+     @Override
+     public FluidState getFluidState(BlockPos pos) {
+-        int y = pos.getY();
+-        if (this.isOutsideBuildHeight(y)) {
+-            return Fluids.EMPTY.defaultFluidState();
+-        }
+-
+-        LevelChunkSection section = this.getSection(this.getSectionIndex(y));
+-        return section.hasOnlyAir() ? Fluids.EMPTY.defaultFluidState() : section.getFluidState(pos.getX() & 15, y & 15, pos.getZ() & 15);
++        return this.moonrise$getFluid(pos.getX(), pos.getY(), pos.getZ()); // Paper - get block chunk optimisation
      }
  
      @Override

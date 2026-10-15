@@ -10,6 +10,7 @@ import org.jspecify.annotations.NullMarked;
 @NullMarked
 sealed class ViewerUnawareImpl implements ChatRenderer, ChatRenderer.ViewerUnaware permits ViewerUnawareImpl.Default {
     private final ViewerUnaware unaware;
+
     ViewerUnawareImpl(final ViewerUnaware unaware) {
         this.unaware = unaware;
     }

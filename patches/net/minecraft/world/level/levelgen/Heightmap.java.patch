@@ -1,0 +1,52 @@
+--- a/net/minecraft/world/level/levelgen/Heightmap.java
++++ b/net/minecraft/world/level/levelgen/Heightmap.java
+@@ -30,6 +_,17 @@
+     private final BitStorage data;
+     private final Predicate<BlockState> isOpaque;
+     private final ChunkAccess chunk;
++    // Paper start - optimise heightmap access
++    private static final ThreadLocal<int[]> TEMP_ARRAY = ThreadLocal.withInitial(() -> {
++        return new int[16*16];
++    });
++
++    // note: as it stands, max block height is currently 4096
++    //       this will fit inside char
++    //       additionally, for normal worlds (height = 384 or 256) the number of
++    //       bytes used in the storage is 296 compared to this (512)
++    private final char[] heightmapRaw = new char[16*16];
++    // Paper end - optimise heightmap access
+ 
+     public Heightmap(ChunkAccess chunk, Heightmap.Types heightmapType) {
+         this.isOpaque = heightmapType.isOpaque();
+@@ -117,17 +_,29 @@
+     }
+ 
+     private int getFirstAvailable(int index) {
+-        return this.data.get(index) + this.chunk.getMinY();
++        return (int)this.heightmapRaw[index] + this.chunk.getMinY(); // Paper - optimise heightmap access
+     }
+ 
+     private void setHeight(int x, int z, int height) {
+-        this.data.set(getIndex(x, z), height - this.chunk.getMinY());
++        // Paper start - optimise heightmap access
++        final int index = getIndex(x, z);
++        final int value = height - this.chunk.getMinY();
++        this.data.set(index, value);
++        this.heightmapRaw[index] = (char)value;
++        // Paper end - optimise heightmap access
+     }
+ 
+     public void setRawData(ChunkAccess chunk, Heightmap.Types type, long[] data) {
+         long[] rawData = this.data.getRaw();
+         if (rawData.length == data.length) {
+             System.arraycopy(data, 0, rawData, 0, data.length);
++            // Paper start - optimise heightmap access
++            final int[] tmp = TEMP_ARRAY.get();
++            this.data.unpack(tmp);
++            for (int i = 0, len = tmp.length; i < len; ++i) {
++                this.heightmapRaw[i] = (char)tmp[i];
++            }
++            // Paper end - optimise heightmap access
+         } else {
+             LOGGER.warn("Ignoring heightmap data for chunk {}, size does not match; expected: {}, got: {}", chunk.getPos(), rawData.length, data.length);
+             primeHeightmaps(chunk, EnumSet.of(type));

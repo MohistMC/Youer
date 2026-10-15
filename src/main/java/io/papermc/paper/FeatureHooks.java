@@ -194,6 +194,123 @@ public final class FeatureHooks {
         ((ca.spottedleaf.moonrise.patches.chunk_system.player.ChunkSystemServerPlayer)player).moonrise$getViewDistanceHolder().setSendViewDistance(distance); // Paper - rewrite chunk system
     }
 
+    public static io.papermc.paper.world.chunk.ChunkGenerationState getChunkGenerationState(final net.minecraft.server.level.ServerLevel level, final int chunkX, final int chunkZ) {
+        // Paper start - rewrite chunk system
+        final io.papermc.paper.world.chunk.ChunkGenerationState loaded = getLoadedChunkGenerationState(level, chunkX, chunkZ);
+        if (loaded != null) {
+            return loaded;
+        }
+
+        // only hand the data off on the I/O thread, and classify it on the waiting thread
+        final java.util.concurrent.CompletableFuture<net.minecraft.nbt.CompoundTag> data = new java.util.concurrent.CompletableFuture<>();
+        ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.loadDataAsync(
+            level, chunkX, chunkZ,
+            ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.RegionFileType.CHUNK_DATA,
+            (java.util.function.BiConsumer<net.minecraft.nbt.CompoundTag, Throwable> & ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.NoCopyNBTData) (final net.minecraft.nbt.CompoundTag tag, final Throwable throwable) -> {
+                if (throwable != null) {
+                    data.completeExceptionally(throwable);
+                } else {
+                    data.complete(tag);
+                }
+            },
+            true, ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.getIOBlockingPriorityForCurrentThread()
+        );
+
+        final net.minecraft.nbt.CompoundTag tag;
+        try {
+            tag = data.join();
+        } catch (final java.util.concurrent.CompletionException ex) {
+            throw new RuntimeException("Failed to read chunk data at (" + chunkX + ", " + chunkZ + ")", ex.getCause());
+        }
+        return classifyChunkGenerationState(tag, chunkX, chunkZ);
+        // Paper end - rewrite chunk system
+    }
+
+    public static java.util.concurrent.CompletableFuture<io.papermc.paper.world.chunk.ChunkGenerationState> getChunkGenerationStateAsync(final net.minecraft.server.level.ServerLevel level, final int chunkX, final int chunkZ) {
+        // Paper start - rewrite chunk system
+        final io.papermc.paper.world.chunk.ChunkGenerationState loaded = getLoadedChunkGenerationState(level, chunkX, chunkZ);
+        if (loaded != null) {
+            return java.util.concurrent.CompletableFuture.completedFuture(loaded);
+        }
+
+        final java.util.concurrent.CompletableFuture<io.papermc.paper.world.chunk.ChunkGenerationState> ret = new java.util.concurrent.CompletableFuture<>();
+        ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.loadDataAsync(
+            level, chunkX, chunkZ,
+            ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.RegionFileType.CHUNK_DATA,
+            (java.util.function.BiConsumer<net.minecraft.nbt.CompoundTag, Throwable> & ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.NoCopyNBTData) (final net.minecraft.nbt.CompoundTag tag, final Throwable throwable) -> {
+                // classify and complete off of the I/O thread so that neither the classification nor callbacks stall I/O
+                level.moonrise$getChunkTaskScheduler().loadExecutor.createTask(() -> {
+                    if (throwable != null) {
+                        ret.completeExceptionally(throwable);
+                        return;
+                    }
+                    try {
+                        ret.complete(classifyChunkGenerationState(tag, chunkX, chunkZ));
+                    } catch (final Throwable thr) {
+                        ret.completeExceptionally(thr);
+                    }
+                }, ca.spottedleaf.concurrentutil.util.Priority.NORMAL).queue();
+            },
+            false, ca.spottedleaf.concurrentutil.util.Priority.NORMAL
+        );
+
+        return ret;
+        // Paper end - rewrite chunk system
+    }
+
+    // Paper start - rewrite chunk system
+    private static io.papermc.paper.world.chunk.ChunkGenerationState getLoadedChunkGenerationState(final net.minecraft.server.level.ServerLevel level, final int chunkX, final int chunkZ) {
+        final ca.spottedleaf.moonrise.patches.chunk_system.scheduling.NewChunkHolder holder = level.moonrise$getChunkTaskScheduler().chunkHolderManager.getChunkHolder(chunkX, chunkZ);
+        if (holder == null) {
+            return null;
+        }
+        final net.minecraft.world.level.chunk.ChunkAccess chunk = holder.getChunkIfPresentUnchecked(net.minecraft.world.level.chunk.status.ChunkStatus.EMPTY);
+        if (chunk == null) {
+            return null;
+        }
+        if (chunk.getPersistedStatus().isOrAfter(net.minecraft.world.level.chunk.status.ChunkStatus.FULL)) {
+            return io.papermc.paper.world.chunk.ChunkGenerationState.GENERATED;
+        }
+        return io.papermc.paper.world.chunk.ChunkGenerationState.PARTIAL;
+    }
+
+    private static io.papermc.paper.world.chunk.ChunkGenerationState classifyChunkGenerationState(final net.minecraft.nbt.CompoundTag data, final int chunkX, final int chunkZ) {
+        if (data == null) {
+            return io.papermc.paper.world.chunk.ChunkGenerationState.NOT_GENERATED;
+        }
+
+        final int dataVersion = net.minecraft.nbt.NbtUtils.getDataVersion(data, -1);
+        final int currentVersion = net.minecraft.SharedConstants.getCurrentVersion().dataVersion().version();
+        if (dataVersion > currentVersion) {
+            throw new IllegalStateException("Chunk (" + chunkX + ", " + chunkZ + ") was saved by a newer version (data version " + dataVersion + ", current " + currentVersion + ")");
+        }
+        if (dataVersion < currentVersion) {
+            // status may not be accurate before the data is upgraded, and loading will rewrite the chunk regardless
+            return io.papermc.paper.world.chunk.ChunkGenerationState.OUTDATED;
+        }
+
+        if (data.getIntOr(net.minecraft.world.level.chunk.storage.SerializableChunkData.X_POS_TAG, 0) != chunkX
+            || data.getIntOr(net.minecraft.world.level.chunk.storage.SerializableChunkData.Z_POS_TAG, 0) != chunkZ) {
+            // loading will relocate the chunk
+            return io.papermc.paper.world.chunk.ChunkGenerationState.OUTDATED;
+        }
+
+        final net.minecraft.world.level.chunk.status.ChunkStatus status = data.read("Status", net.minecraft.world.level.chunk.status.ChunkStatus.CODEC).orElse(net.minecraft.world.level.chunk.status.ChunkStatus.EMPTY);
+        final net.minecraft.world.level.levelgen.BelowZeroRetrogen retrogen = data.read("below_zero_retrogen", net.minecraft.world.level.levelgen.BelowZeroRetrogen.CODEC).orElse(null);
+        if (retrogen == null) {
+            return status.isOrAfter(net.minecraft.world.level.chunk.status.ChunkStatus.FULL)
+                ? io.papermc.paper.world.chunk.ChunkGenerationState.GENERATED
+                : io.papermc.paper.world.chunk.ChunkGenerationState.PARTIAL;
+        }
+        // upgraded pre-1.18 chunks are stored with an empty status, and their original status as the retrogen target;
+        // pre-1.18 full chunks get a target of heightmaps, later remapped to spawn
+        if (status.isOrAfter(net.minecraft.world.level.chunk.status.ChunkStatus.FULL) || retrogen.targetStatus().isOrAfter(net.minecraft.world.level.chunk.status.ChunkStatus.SPAWN)) {
+            return io.papermc.paper.world.chunk.ChunkGenerationState.OUTDATED;
+        }
+        return io.papermc.paper.world.chunk.ChunkGenerationState.PARTIAL;
+    }
+    // Paper end - rewrite chunk system
+
     public static void flushAsyncAppenders() {
         // Paper start - add explicit flush method
         if (!(org.apache.logging.log4j.LogManager.getContext(false) instanceof org.apache.logging.log4j.core.LoggerContext context)) {

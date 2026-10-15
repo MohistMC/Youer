@@ -2403,7 +2403,7 @@
                      String message = "onTrackingStart called during navigation iteration";
                      Util.logAndPauseIfInIde(
                          "onTrackingStart called during navigation iteration", new IllegalStateException("onTrackingStart called during navigation iteration")
-@@ -2011,16 +_,58 @@
+@@ -2011,16 +_,57 @@
                  ServerLevel.this.navigatingMobs.add(mob);
              }
  
@@ -2433,18 +2433,17 @@
  
          public void onTrackingEnd(Entity entity) {
 +            org.spigotmc.AsyncCatcher.catchOp("entity unregister"); // Spigot
-+            // Spigot start // TODO I don't think this is needed anymore
++            // Spigot start
 +            if (entity instanceof Player player) {
-+                for (final ServerLevel level : ServerLevel.this.getServer().getAllLevels()) {
-+                    for (final Optional<net.minecraft.world.level.saveddata.SavedData> savedData : level.getDataStorage().cache.values()) {
-+                        if (savedData.isEmpty() || !(savedData.get() instanceof MapItemSavedData map)) {
-+                            continue;
-+                        }
++                SavedDataStorage storage = getServer().getDataStorage();
++                for (final Optional<net.minecraft.world.level.saveddata.SavedData> savedData : storage.cache.values()) {
++                    if (savedData.isEmpty() || !(savedData.get() instanceof MapItemSavedData map)) {
++                        continue;
++                    }
 +
-+                        map.carriedByPlayers.remove(player);
-+                        if (map.carriedBy.removeIf(holdingPlayer -> holdingPlayer.player == player)) {
-+                            map.decorations.remove(player.getName().getString());
-+                        }
++                    net.minecraft.world.level.saveddata.maps.MapItemSavedData.HoldingPlayer holder = map.carriedByPlayers.remove(player);
++                    if (holder != null && map.carriedBy.remove(holder)) {
++                        map.decorations.remove(player.getName().getString());
 +                    }
 +                }
 +            }
@@ -2452,7 +2451,7 @@
 +            // Spigot start
 +            if (entity.getBukkitEntity() instanceof org.bukkit.inventory.InventoryHolder && (!(entity instanceof ServerPlayer) || entity.getRemovalReason() != Entity.RemovalReason.KILLED)) { // SPIGOT-6876: closeInventory clears death message
 +                // Paper start - Fix merchant inventory not closing on entity removal
-+                if (!entity.level().purpurConfig.playerVoidTrading && entity.getBukkitEntity() instanceof org.bukkit.inventory.Merchant merchant && merchant.getTrader() != null) { // Purpur - Allow void trading
++                if (entity.getBukkitEntity() instanceof org.bukkit.inventory.Merchant merchant && merchant.getTrader() != null) {
 +                    merchant.getTrader().closeInventory(org.bukkit.event.inventory.InventoryCloseEvent.Reason.UNLOADED);
 +                }
 +                // Paper end - Fix merchant inventory not closing on entity removal

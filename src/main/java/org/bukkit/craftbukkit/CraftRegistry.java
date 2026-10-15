@@ -10,7 +10,6 @@ import io.papermc.paper.registry.tag.Tag;
 import io.papermc.paper.util.Holderable;
 import io.papermc.paper.util.MCUtil;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Optional;

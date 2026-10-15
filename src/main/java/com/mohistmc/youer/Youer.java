@@ -49,5 +49,8 @@ public class Youer {
         System.setProperty("java.util.logging.manager", "io.papermc.paper.log.CustomLogManager");
         if (System.getProperty("jdk.nio.maxCachedBufferSize") == null)
             System.setProperty("jdk.nio.maxCachedBufferSize", "262144"); // Paper - cap per-thread NIO cache size; https://www.evanjones.ca/java-bytebuffer-leak.html
+        if (System.getProperty("joml.nounsafe") == null) {
+            System.setProperty("joml.nounsafe", "true");
+        }
     }
 }

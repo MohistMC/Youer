@@ -1,0 +1,28 @@
+--- a/net/minecraft/world/level/levelgen/NoiseChunk.java
++++ b/net/minecraft/world/level/levelgen/NoiseChunk.java
+@@ -26,7 +_,10 @@
+     ) {
+         this.randomState = randomState;
+         this.volume = volume;
+-        this.bufferPool = randomState.acquireDensityBufferPool();
++        // Paper start - optimise chunk generation - use thread local allocator
++        final ca.spottedleaf.moonrise.patches.chunk_gen.buffer_alloc.ThreadLocalDensityBufferArena threadLocalAllocator = ca.spottedleaf.moonrise.patches.chunk_gen.buffer_alloc.ThreadLocalDensityBufferArena.acquire();
++        this.bufferPool = threadLocalAllocator == null ? randomState.acquireDensityBufferPool() : threadLocalAllocator;
++        // Paper end - optimise chunk generation - use thread local allocator
+         ContextMap.Builder samplerUserFields = ContextMap.builder().set(Beardifier.CONTEXT_KEY, beardifier);
+         if (!blender.isEmpty()) {
+             Blender.OutputBuffer blendBuffer = blender.blendOffsetAndFactor(volume);
+@@ -61,6 +_,12 @@
+ 
+     @Override
+     public void close() {
+-        this.randomState.releaseDensityBufferPool(this.bufferPool);
++        // Paper start - optimise chunk generation - use thread local allocator
++        if (!(this.bufferPool instanceof ca.spottedleaf.moonrise.patches.chunk_gen.buffer_alloc.ThreadLocalDensityBufferArena threadLocalDensityBufferArena)) {
++            this.randomState.releaseDensityBufferPool(this.bufferPool);
++        } else {
++            ca.spottedleaf.moonrise.patches.chunk_gen.buffer_alloc.ThreadLocalDensityBufferArena.release(threadLocalDensityBufferArena);
++        }
++        // Paper end - optimise chunk generation - use thread local allocator
+     }
+ }

@@ -68,7 +68,7 @@
      }
  
      private static double getInteractionRange(PathfinderMob body) {
-@@ -487,6 +_,11 @@
+@@ -487,6 +_,18 @@
      }
  
      private static boolean matchesLeavingItemsRequirement(PathfinderMob body, Container container) {
@@ -77,6 +77,13 @@
 +            return false;
 +        }
 +        // Purpur end - copper golem can place items in barrels or shulkers option
++        // Paper start - Add event for container assessment
++        final io.papermc.paper.event.entity.ItemTransportingEntitySortEvent sortEvent = org.bukkit.craftbukkit.event.CraftEventFactory.createItemTransportingEntitySortEvent(body, container);
++        sortEvent.callEvent();
++        if (sortEvent.getResult() != org.bukkit.event.Event.Result.DEFAULT) {
++            return sortEvent.getResult() == org.bukkit.event.Event.Result.ALLOW;
++        }
++        // Paper end - Add event for container assessment
          return container.isEmpty() || hasItemMatchingHandItem(body, container);
      }
  

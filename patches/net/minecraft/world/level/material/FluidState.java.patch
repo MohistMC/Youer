@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/material/FluidState.java
 +++ b/net/minecraft/world/level/material/FluidState.java
-@@ -23,13 +_,33 @@
+@@ -23,36 +_,65 @@
  
  import net.neoforged.neoforge.common.extensions.IFluidStateExtension;
  
@@ -28,14 +28,24 @@
 +        this.isRandomlyTicking = this.getType().isRandomlyTicking();
 +    }
 +    // Paper end - fluid method optimisations
++
++    // Paper start - optimise TypedInstance
++    private final Fluid fluidOwner;
++    private final Holder.Reference<Fluid> reference;
++    // Paper end - optimise TypedInstance
  
      public FluidState(Fluid owner, Property<?>[] propertyKeys, Comparable<?>[] propertyValues) {
          super(owner, propertyKeys, propertyValues);
++        // Paper start - optimise TypedInstance
++        this.fluidOwner = owner;
++        this.reference = owner.builtInRegistryHolder();
++        // Paper end - optimise TypedInstance
 +        this.isEmpty = owner.isEmpty(); // Paper - Perf: moved from isEmpty()
      }
  
      public Fluid getType() {
-@@ -37,22 +_,22 @@
+-        return this.owner;
++        return this.fluidOwner; // Paper - optimise TypedInstance
      }
  
      public boolean isSource() {
@@ -103,10 +113,48 @@
      }
  
      public @Nullable ParticleOptions getDripParticle() {
-@@ -122,6 +_,7 @@
-         return this.getType().builtInRegistryHolder();
-     }
+@@ -119,9 +_,42 @@
  
+     @Override
+     public Holder<Fluid> typeHolder() {
+-        return this.getType().builtInRegistryHolder();
+-    }
+-
++        return this.reference; // Paper - optimise TypedInstance
++    }
++
++    // Paper start - optimise TypedInstance
++    @Override
++    public final java.util.stream.Stream<net.minecraft.tags.TagKey<Fluid>> tags() {
++        return this.reference.tags();
++    }
++
++    @Override
++    public final boolean is(final net.minecraft.tags.TagKey<Fluid> tag) {
++        return this.reference.is(tag);
++    }
++
++    @Override
++    public final boolean is(final net.minecraft.core.HolderSet<Fluid> set) {
++        return set.contains(this.reference);
++    }
++
++    @Override
++    public final boolean is(final Fluid rawType) {
++        return this.fluidOwner == rawType;
++    }
++
++    @Override
++    public final boolean is(final Holder<Fluid> type) {
++        return this.reference == type;
++    }
++
++    @Override
++    public final boolean is(final net.minecraft.resources.ResourceKey<Fluid> type) {
++        return this.reference.is(type);
++    }
++    // Paper end - optimise TypedInstance
++
 +    @Deprecated //Forge: Use more sensitive version
      public float getExplosionResistance() {
          return this.getType().getExplosionResistance();

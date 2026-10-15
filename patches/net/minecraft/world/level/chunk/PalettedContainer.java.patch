@@ -1,14 +1,15 @@
 --- a/net/minecraft/world/level/chunk/PalettedContainer.java
 +++ b/net/minecraft/world/level/chunk/PalettedContainer.java
-@@ -24,85 +_,186 @@
+@@ -24,32 +_,40 @@
  
  public class PalettedContainer<T> implements PaletteResize<T>, PalettedContainerRO<T> {
      private static final int MIN_PALETTE_BITS = 0;
 -    private volatile PalettedContainer.Data<T> data;
-+    public volatile PalettedContainer.Data<T> data; // Paper - optimise collisions - public
-     private final Strategy<T> strategy;
+-    private final Strategy<T> strategy;
 -    private final ThreadingDetector threadingDetector = new ThreadingDetector("PalettedContainer");
-+    private final T @Nullable [] presetValues; // Paper - Anti-Xray - Add preset values
++    public volatile PalettedContainer.Data<T> data; // Paper - optimise collisions - public
++    public final Strategy<T> strategy;
++    public final T @Nullable [] presetValues; // Paper - Anti-Xray - Add preset values
 +    //private final ThreadingDetector threadingDetector = new ThreadingDetector("PalettedContainer"); // Paper - unused
  
      public void acquire() {
@@ -47,59 +48,27 @@
 +            final Codec<T> elementCodec, final Strategy<T> strategy, final T defaultValue, final PalettedContainerRO.Unpacker<T, C> unpacker
      ) {
 -        return RecordCodecBuilder.<PalettedContainerRO.PackedData<T>>create(
--                i -> i.group(
--                        elementCodec.mapResult(ExtraCodecs.orElsePartial(defaultValue))
--                            .listOf()
--                            .fieldOf("palette")
--                            .forGetter(PalettedContainerRO.PackedData::paletteEntries),
--                        Codec.LONG_STREAM.lenientOptionalFieldOf("data").forGetter(PalettedContainerRO.PackedData::storage)
--                    )
--                    .apply(i, PalettedContainerRO.PackedData::new)
--            )
--            .comapFlatMap(
--                discData -> unpacker.read(strategy, (PalettedContainerRO.PackedData<T>)discData), palettedContainer -> palettedContainer.pack(strategy)
 +        return RecordCodecBuilder.<PalettedContainerRO.PackedData>create(
-+                        i -> i.group(
-+                                        elementCodec.mapResult(ExtraCodecs.orElsePartial(defaultValue))
-+                                                .listOf()
-+                                                .fieldOf("palette")
-+                                                .forGetter(PalettedContainerRO.PackedData::paletteEntries),
-+                                        Codec.LONG_STREAM.lenientOptionalFieldOf("data").forGetter(PalettedContainerRO.PackedData::storage)
-+                                )
-+                                .apply(i, PalettedContainerRO.PackedData::new)
-+                )
-+                .comapFlatMap(
-+                        discData -> unpacker.read(strategy, (PalettedContainerRO.PackedData<T>)discData), palettedContainer -> palettedContainer.pack(strategy)
-+                );
-+    }
-+
-+    // Paper start - optimise palette reads
-+    private void updateData(final PalettedContainer.Data<T> data) {
-+        if (data != null) {
-+            ((ca.spottedleaf.moonrise.patches.fast_palette.FastPaletteData<T>) (Object) data).moonrise$setPalette(
-+                ((ca.spottedleaf.moonrise.patches.fast_palette.FastPalette<T>) data.palette).moonrise$getRawPalette((ca.spottedleaf.moonrise.patches.fast_palette.FastPaletteData<T>) (Object) data)
+                 i -> i.group(
+                         elementCodec.mapResult(ExtraCodecs.orElsePartial(defaultValue))
+                             .listOf()
+@@ -60,27 +_,75 @@
+                     .apply(i, PalettedContainerRO.PackedData::new)
+             )
+             .comapFlatMap(
+-                discData -> unpacker.read(strategy, (PalettedContainerRO.PackedData<T>)discData), palettedContainer -> palettedContainer.pack(strategy)
++                discData -> unpacker.read(strategy, (PalettedContainerRO.PackedData<T>) discData), palettedContainer -> palettedContainer.pack(strategy)
              );
--    }
--
+     }
+ 
 -    private PalettedContainer(Strategy<T> strategy, Configuration dataConfiguration, BitStorage storage, Palette<T> palette) {
++    // Paper start - optimise palette reads
++    private static <T> T readPalette(final PalettedContainer.Data<T> data, final int paletteIdx) {
++        final Palette<T> palette = data.palette;
++        if (palette instanceof ca.spottedleaf.moonrise.patches.fast_palette.FastHashMapPalette<T> hashMapPalette) {
++            return hashMapPalette.valueFor(paletteIdx);
 +        }
-+    }
-+
-+    private T readPaletteSlow(final PalettedContainer.Data<T> data, final int paletteIdx) {
-+        return data.palette.valueFor(paletteIdx);
-+    }
-+
-+    private T readPalette(final PalettedContainer.Data<T> data, final int paletteIdx) {
-+        final T[] palette = ((ca.spottedleaf.moonrise.patches.fast_palette.FastPaletteData<T>)(Object)data).moonrise$getPalette();
-+        if (palette == null) {
-+            return this.readPaletteSlow(data, paletteIdx);
-+        }
-+
-+        final T ret = palette[paletteIdx];
-+        if (ret == null) {
-+            throw new IllegalArgumentException("Palette index out of bounds");
-+        }
-+        return ret;
++        return palette.valueFor(paletteIdx);
 +    }
 +    // Paper end - optimise palette reads
 +
@@ -110,12 +79,11 @@
 +        // Paper end - Anti-Xray - Add preset values
          this.strategy = strategy;
          this.data = new PalettedContainer.Data<>(dataConfiguration, storage, palette);
-+        this.updateData(this.data); // Paper - optimise palette reads
 +        // Paper start - Anti-Xray
 +        if (presetValues != null
-+                && (dataConfiguration instanceof Configuration.Simple simpleFactory && simpleFactory.factory() == Strategy.SINGLE_VALUE_PALETTE_FACTORY
-+                ? this.data.palette.valueFor(0) != defaultValue
-+                : !(dataConfiguration instanceof Configuration.Global))) {
++            && (dataConfiguration instanceof Configuration.Simple simpleFactory && simpleFactory.factory() == Strategy.SINGLE_VALUE_PALETTE_FACTORY
++            ? this.data.palette.valueFor(0) != defaultValue
++            : !(dataConfiguration instanceof Configuration.Global))) {
 +            // In 1.18 Mojang unfortunately removed code that already handled possible resize operations on read from disk for us
 +            // We readd this here but in a smarter way than it was before
 +            int maxSize = 1 << dataConfiguration.bitsInMemory();
@@ -144,7 +112,6 @@
 +        this.presetValues = presetValues; // Paper - Anti-Xray - Add preset values
          this.strategy = source.strategy;
          this.data = source.data.copy();
-+        this.updateData(this.data); // Paper - optimise palette reads
      }
  
 -    public PalettedContainer(T initialValue, Strategy<T> strategy) {
@@ -159,7 +126,6 @@
          this.strategy = strategy;
          this.data = this.createOrReuseData(null, 0);
          this.data.palette.idFor(initialValue, this);
-+        this.updateData(this.data); // Paper - optimise palette reads
      }
  
 -    private PalettedContainer.Data<T> createOrReuseData(PalettedContainer.@Nullable Data<T> oldData, int targetBits) {
@@ -167,14 +133,7 @@
          Configuration dataConfiguration = this.strategy.getConfigurationForBitCount(targetBits);
          if (oldData != null && dataConfiguration.equals(oldData.configuration())) {
              return oldData;
-         }
- 
-         BitStorage storage = dataConfiguration.bitsInMemory() == 0
--            ? new ZeroBitStorage(this.strategy.entryCount())
--            : new SimpleBitStorage(dataConfiguration.bitsInMemory(), this.strategy.entryCount());
-+                ? new ZeroBitStorage(this.strategy.entryCount())
-+                : new SimpleBitStorage(dataConfiguration.bitsInMemory(), this.strategy.entryCount());
-         Palette<T> palette = dataConfiguration.createPalette(this.strategy, List.of());
+@@ -93,16 +_,40 @@
          return new PalettedContainer.Data<>(dataConfiguration, storage, palette);
      }
  
@@ -206,7 +165,6 @@
          newData.copyFrom(oldData.palette, oldData.storage);
          this.data = newData;
 -        return newData.palette.idFor(lastAddedValue, PaletteResize.noResizeExpected());
-+        this.updateData(this.data); // Paper - optimise palette reads
 +        // Paper start - Anti-Xray
 +        this.addPresetValues();
 +        return lastAddedValue == null ? -1 : newData.palette.idFor(lastAddedValue, PaletteResize.noResizeExpected());
@@ -237,7 +195,7 @@
 +        final int paletteIdx = this.data.palette.idFor(value, this);
 +        final PalettedContainer.Data<T> data = this.data;
 +        final int prev = data.storage.getAndSet(index, paletteIdx);
-+        return this.readPalette(data, prev);
++        return readPalette(data, prev);
 +        // Paper end - optimise palette reads
      }
  
@@ -251,7 +209,7 @@
      }
  
 -    private void set(int index, T value) {
-+    private void set(final int index, final T value) {
++    public void set(final int index, final T value) {
          int id = this.data.palette.idFor(value, this);
          this.data.storage.set(index, id);
      }
@@ -268,7 +226,7 @@
 +    public T get(final int index) { // Paper - public
 +        // Paper start - optimise palette reads
 +        final PalettedContainer.Data<T> data = this.data;
-+        return this.readPalette(data, data.storage.get(index));
++        return readPalette(data, data.storage.get(index));
 +        // Paper end - optimise palette reads
      }
  
@@ -286,11 +244,10 @@
          this.acquire();
  
          try {
-@@ -164,24 +_,39 @@
+@@ -164,24 +_,38 @@
              newData.palette.read(buffer, this.strategy.globalMap());
              buffer.readFixedSizeLongArray(newData.storage.getRaw());
              this.data = newData;
-+            this.updateData(this.data); // Paper - optimise palette reads
 +            this.addPresetValues(); // Paper - Anti-Xray - Add preset values (inefficient, but this isn't used by the server)
          } finally {
              this.release();
@@ -494,60 +451,20 @@
          if (this.data.palette.getSize() == 1) {
              output.accept(this.data.palette.valueFor(0), this.data.storage.getSize());
          } else {
-@@ -317,8 +_,45 @@
+@@ -317,7 +_,7 @@
          void accept(final T entry, final int count);
      }
  
 -    private record Data<T>(Configuration configuration, BitStorage storage, Palette<T> palette) {
--        public void copyFrom(Palette<T> oldPalette, BitStorage oldStorage) {
-+    // Paper start - optimise palette reads
-+    public static final class Data<T> implements ca.spottedleaf.moonrise.patches.fast_palette.FastPaletteData<T> {
-+
-+        private final Configuration configuration;
-+        private final BitStorage storage;
-+        private final Palette<T> palette;
-+
-+        private T[] moonrise$palette;
-+
-+        public Data(final Configuration configuration, final BitStorage storage, final Palette<T> palette) {
-+            this.configuration = configuration;
-+            this.storage = storage;
-+            this.palette = palette;
-+        }
-+
-+        public Configuration configuration() {
-+            return this.configuration;
-+        }
-+
-+        public BitStorage storage() {
-+            return this.storage;
-+        }
-+
-+        public Palette<T> palette() {
-+            return this.palette;
-+        }
-+
-+        @Override
-+        public final T[] moonrise$getPalette() {
-+            return this.moonrise$palette;
-+        }
-+
-+        @Override
-+        public final void moonrise$setPalette(final T[] palette) {
-+            this.moonrise$palette = palette;
-+        }
-+        // Paper end - optimise palette reads
-+
-+		public void copyFrom(Palette<T> oldPalette, BitStorage oldStorage) {
++    public record Data<T>(Configuration configuration, BitStorage storage, Palette<T> palette) { // Paper - public
+         public void copyFrom(Palette<T> oldPalette, BitStorage oldStorage) {
              PaletteResize<T> dummyResizer = PaletteResize.noResizeExpected();
              if (oldPalette.getSize() == 1) {
-                 T value = oldPalette.valueFor(0);
-@@ -344,9 +_,17 @@
+@@ -344,9 +_,16 @@
              return 1 + this.palette.getSerializedSize(globalMap) + this.storage.getRaw().length * 8;
          }
  
 -        public void write(FriendlyByteBuf buffer, IdMap<T> globalMap) {
-+
 +        public void write(final FriendlyByteBuf buffer, final IdMap<T> globalMap, final io.papermc.paper.antixray.@Nullable ChunkPacketInfo<T> chunkPacketInfo, final int chunkSectionIndex) { // Paper - Anti-Xray - Add chunk packet info
              buffer.writeByte(this.storage.getBits());
              this.palette.write(buffer, globalMap);

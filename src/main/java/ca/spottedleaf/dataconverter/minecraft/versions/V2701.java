@@ -48,12 +48,12 @@ public final class V2701 {
                         continue;
                     }
 
-                    final String poolElement = child.getString("pool_element");
-                    if (!"minecraft:feature_pool_element".equals(poolElement)) {
+                    final MapType poolElement = child.getMap("pool_element");
+                    if (poolElement == null || !"minecraft:feature_pool_element".equals(poolElement.getString("element_type"))) {
                         continue;
                     }
 
-                    final MapType feature = child.getMap("feature");
+                    final MapType feature = poolElement.getMap("feature");
                     if (feature == null) {
                         continue;
                     }
@@ -61,7 +61,7 @@ public final class V2701 {
                     final String replacement = convertToString(feature);
 
                     if (replacement != null) {
-                        child.setString("feature", replacement);
+                        poolElement.setString("feature", replacement);
                     }
                 }
 

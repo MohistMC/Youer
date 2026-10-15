@@ -4,6 +4,7 @@ import ca.spottedleaf.converter.DataConverter;
 import ca.spottedleaf.converter.types.ListType;
 import ca.spottedleaf.converter.types.MapType;
 import ca.spottedleaf.dataconverter.minecraft.MCVersions;
+import ca.spottedleaf.dataconverter.minecraft.converters.helpers.HelperTooltipDisplay;
 import ca.spottedleaf.dataconverter.minecraft.datatypes.MCTypeRegistry;
 import org.jspecify.annotations.NullMarked;
 import org.jspecify.annotations.Nullable;
@@ -23,6 +24,7 @@ public final class V5007 {
                     data.setGeneric("minecraft:attack_animation", animation);
                     data.setGeneric("minecraft:interact_animation", animation instanceof MapType map ? map.copy() : animation instanceof ListType list ? list.copy() : animation);
                 }
+                HelperTooltipDisplay.replaceHiddenComponent(data, "minecraft:swing_animation", "minecraft:attack_animation", "minecraft:interact_animation");
                 return null;
             }
         });

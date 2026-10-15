@@ -1,0 +1,61 @@
+--- a/net/minecraft/world/level/levelgen/material/MaterialSystem.java
++++ b/net/minecraft/world/level/levelgen/material/MaterialSystem.java
+@@ -78,6 +_,16 @@
+         this.icebergSurfaceNoise = randomState.getOrCreateNoise(Noises.ICEBERG_SURFACE);
+     }
+ 
++    // Paper start - optimise chunk generation
++    private static final ThreadLocal<ca.spottedleaf.moonrise.patches.chunk_gen.buffer_alloc.ThreadLocalFixedDensityBufferCache> BUFFERS_FOR_BUILD_SURFACE = ThreadLocal.withInitial(() -> {
++        return new ca.spottedleaf.moonrise.patches.chunk_gen.buffer_alloc.ThreadLocalFixedDensityBufferCache();
++    });
++
++    private static final ThreadLocal<ca.spottedleaf.moonrise.patches.chunk_gen.buffer_alloc.ThreadLocalFixedDensityBufferCache> BUFFERS_FOR_TOP_MATERIAL = ThreadLocal.withInitial(() -> {
++        return new ca.spottedleaf.moonrise.patches.chunk_gen.buffer_alloc.ThreadLocalFixedDensityBufferCache();
++    });
++    // Paper end - optimise chunk generation
++
+     public void buildSurface(
+         RandomState randomState,
+         BiomeManager biomeManager,
+@@ -129,6 +_,7 @@
+         MaterialRuleContext context = new MaterialRuleContext(
+             this, randomState, narrowedVolume, noiseChunk.cachingSamplers(), biomeManager::getBiome, generationContext, possibleBiomes
+         );
++        context.moonrise$setDensityBufferAllocator(BUFFERS_FOR_BUILD_SURFACE.get().acquire()); // Paper - optimise chunk generation - provide a buffer allocator to significantly reduce memory allocations
+         RuleEvaluator rule = ruleSource.compile(context);
+         BlockPos.MutableBlockPos blockPos = new BlockPos.MutableBlockPos();
+ 
+@@ -191,6 +_,7 @@
+                 }
+             }
+         }
++        BUFFERS_FOR_BUILD_SURFACE.get().release(); // Paper - optimise chunk generation
+     }
+ 
+     private static int getSurfaceGradientX(ChunkAccess protoChunk, int x, int z) {
+@@ -233,6 +_,11 @@
+     ) {
+         DensityVolume volume = new DensityVolume(1, 1, 1, pos.getX(), pos.getY(), pos.getZ());
+         MaterialRuleContext context = new MaterialRuleContext(this, randomState, volume, densitySamplers, biomeGetter, worldGenerationContext, null);
++        // Paper start - optimise chunk generation - provide a buffer allocator to significantly reduce memory allocations
++        final ca.spottedleaf.moonrise.patches.chunk_gen.buffer_alloc.ThreadLocalFixedDensityBufferCache topMaterialAllocator = BUFFERS_FOR_TOP_MATERIAL.get();
++        context.moonrise$setDensityBufferAllocator(topMaterialAllocator == null ? null : topMaterialAllocator.acquire());
++        BUFFERS_FOR_TOP_MATERIAL.set(null);
++        // Paper end - optimise chunk generation
+         RuleEvaluator rule = ruleSource.compile(context);
+         int blockX = pos.getX();
+         int blockY = pos.getY();
+@@ -242,6 +_,13 @@
+         context.updateXZ(blockX, blockZ, gradientX, gradientZ);
+         context.updateY(1, 1, underFluid ? blockY + 1 : Integer.MIN_VALUE, blockY);
+         BlockState state = rule.tryApply(blockX, blockY, blockZ);
++        // Paper start - optimise chunk generation
++        final ca.spottedleaf.moonrise.patches.chunk_gen.buffer_alloc.ThreadLocalFixedDensityBufferCache allocator = context.moonrise$removeDensityBufferAllocator();
++        if (allocator != null) {
++            allocator.release();
++            BUFFERS_FOR_TOP_MATERIAL.set(allocator);
++        }
++        // Paper end - optimise chunk generation
+         return Optional.ofNullable(state);
+     }
+ 

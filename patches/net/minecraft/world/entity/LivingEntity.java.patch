@@ -9,18 +9,6 @@
  import com.mojang.datafixers.util.Pair;
  import com.mojang.logging.LogUtils;
  import it.unimi.dsi.fastutil.doubles.DoubleDoubleImmutablePair;
-@@ -12,9 +_,11 @@
- import it.unimi.dsi.fastutil.objects.Object2LongOpenHashMap;
- import it.unimi.dsi.fastutil.objects.Reference2ObjectArrayMap;
- import it.unimi.dsi.fastutil.objects.Reference2ObjectMap;
-+import java.util.ArrayList;
- import java.util.Collection;
- import java.util.ConcurrentModificationException;
- import java.util.EnumMap;
-+import java.util.HashSet;
- import java.util.Iterator;
- import java.util.List;
- import java.util.Map;
 @@ -23,6 +_,8 @@
  import java.util.Set;
  import java.util.UUID;
@@ -30,6 +18,14 @@
  import java.util.function.BiConsumer;
  import java.util.function.Consumer;
  import java.util.function.Function;
+@@ -87,7 +_,6 @@
+ import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
+ import net.minecraft.world.entity.ai.attributes.Attributes;
+ import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
+-import net.minecraft.world.entity.animal.wolf.Wolf;
+ import net.minecraft.world.entity.boss.wither.WitherBoss;
+ import net.minecraft.world.entity.item.ItemEntity;
+ import net.minecraft.world.entity.player.Player;
 @@ -100,6 +_,7 @@
  import net.minecraft.world.item.Items;
  import net.minecraft.world.item.component.AttackRange;
@@ -38,12 +34,16 @@
  import net.minecraft.world.item.component.DeathProtection;
  import net.minecraft.world.item.component.KineticWeapon;
  import net.minecraft.world.item.component.MobVisibility;
-@@ -137,8 +_,20 @@
- import net.minecraft.world.phys.Vec3;
- import net.minecraft.world.phys.shapes.Shapes;
+@@ -118,7 +_,6 @@
+ import net.minecraft.world.level.block.HoneyBlock;
+ import net.minecraft.world.level.block.LadderBlock;
+ import net.minecraft.world.level.block.PowderSnowBlock;
+-import net.minecraft.world.level.block.SoundType;
+ import net.minecraft.world.level.block.TrapDoorBlock;
+ import net.minecraft.world.level.block.state.BlockState;
+ import net.minecraft.world.level.border.WorldBorder;
+@@ -139,6 +_,16 @@
  import net.minecraft.world.phys.shapes.VoxelShape;
-+import net.minecraft.world.scores.PlayerTeam;
-+import net.minecraft.world.scores.Scoreboard;
  import net.minecraft.world.waypoints.Waypoint;
  import net.minecraft.world.waypoints.WaypointTransmitter;
 +import org.bukkit.Location;
@@ -1692,6 +1692,15 @@
      }
  
      protected float getWaterSlowDown() {
+@@ -2388,7 +_,7 @@
+     }
+ 
+     @Override
+-    protected double getDefaultGravity() {
++    public double getDefaultGravity() {
+         return this.getAttributeValue(Attributes.GRAVITY);
+     }
+ 
 @@ -2413,7 +_,7 @@
      }
  
@@ -1731,7 +1740,12 @@
              )
              : 1.0F;
          Vec3 movement = this.handleRelativeFrictionAndCalculateMovement(input, blockFriction);
-@@ -2472,10 +_,19 @@
+@@ -2468,14 +_,23 @@
+     }
+ 
+     @Override
+-    protected float getAirDrag() {
++    public float getAirDrag() {
          return computeModifiedFriction(this.omnidirectionalAirMover() ? 0.91F : 0.98F, (float)this.getAttributeValue(Attributes.AIR_DRAG_MODIFIER));
      }
  

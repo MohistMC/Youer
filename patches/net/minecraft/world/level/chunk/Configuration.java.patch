@@ -1,0 +1,16 @@
+--- a/net/minecraft/world/level/chunk/Configuration.java
++++ b/net/minecraft/world/level/chunk/Configuration.java
+@@ -31,7 +_,12 @@
+ 
+         @Override
+         public <T> Palette<T> createPalette(Strategy<T> strategy, List<T> paletteEntries) {
+-            return this.factory.create(this.bits, paletteEntries);
++            // Paper start - optimise palette reads
++            // Force use of hash palette everywhere to eliminate indirection during palette use.
++            // The hash palette will internally switch to a linear lookup under a given threshold
++            // for Palette#idFor calls, preserving linear performance.
++            return ca.spottedleaf.moonrise.patches.fast_palette.FastHashMapPalette.create(this.bits, paletteEntries);
++            // Paper end - optimise palette reads
+         }
+ 
+         @Override
