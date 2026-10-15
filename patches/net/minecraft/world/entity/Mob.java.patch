@@ -475,7 +475,7 @@
          ProfilerFiller profiler = Profiler.get();
          profiler.push("sensing");
          this.sensing.tick();
-@@ -882,15 +_,76 @@
+@@ -882,20 +_,82 @@
              public boolean stillValid(Player player) {
                  return player.getVehicle() == Mob.this || player.isWithinEntityInteractionRange(Mob.this, 4.0);
              }
@@ -552,6 +552,13 @@
              float dropChance = this.dropChances.byEquipment(slot);
              if (dropChance != 0.0F) {
                  boolean preserve = this.dropChances.isPreserved(slot);
+                 if (source.getEntity() instanceof LivingEntity livingSource && this.level() instanceof ServerLevel serverLevel) {
+-                    dropChance = EnchantmentHelper.processEquipmentDropChance(serverLevel, livingSource, source, dropChance);
++                    // Neo: pass in slot context for GetEquipmentDropChanceEvent
++                    dropChance = EnchantmentHelper.processEquipmentDropChance(serverLevel, livingSource, source, dropChance, slot);
+                 }
+ 
+                 if (!itemStack.isEmpty()
 @@ -909,7 +_,8 @@
                      }
  

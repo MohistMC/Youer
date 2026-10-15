@@ -1441,22 +1441,22 @@
 +            menu.setTitle(provider.getDisplayName());
 +            AbstractContainerMenu finalMenu = menu;
 +            var extraData = net.neoforged.neoforge.common.util.FriendlyByteBufUtil.writeCustomData(
-+                    buffer -> {
-+                        provider.writeClientSideData(finalMenu, buffer);
-+                        if (extraDataWriter != null) {
-+                            extraDataWriter.accept(buffer);
-+                        }
-+                    },
-+                    registryAccess()
++                buffer -> {
++                    provider.writeClientSideData(this, finalMenu, buffer);
++                    if (extraDataWriter != null) {
++                        extraDataWriter.accept(buffer);
++                    }
++                },
++                registryAccess()
 +            );
 +            if (extraData.length != 0) {
 +                this.connection.send(
-+                        new net.neoforged.neoforge.network.payload.AdvancedOpenScreenPayload(
-+                                menu.containerId,
-+                                menu.getType(),
-+                                provider.getDisplayName(),
-+                                extraData
-+                        )
++                    new net.neoforged.neoforge.network.payload.AdvancedOpenScreenPayload(
++                        menu.containerId,
++                        menu.getType(),
++                        provider.getDisplayName(),
++                        extraData
++                    )
 +                );
 +            } else {
 +                menu.setTitle(provider.getDisplayName());

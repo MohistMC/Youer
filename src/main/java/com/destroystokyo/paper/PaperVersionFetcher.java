@@ -54,14 +54,14 @@ public class PaperVersionFetcher implements VersionFetcher {
     @Override
     public Component getVersionMessage() {
         final Component updateMessage;
-        if (BUILD_INFO.buildNumber().isEmpty() && BUILD_INFO.gitCommit().isEmpty()) {
+        final ServerBuildInfo build = ServerBuildInfo.buildInfo();
+        if (build.buildNumber().isEmpty() && build.gitCommit().isEmpty()) {
             updateMessage = text("You are running a development version without access to version information", color(0xFF5300));
         } else {
-            updateMessage = getUpdateStatusMessage();
+            updateMessage = text("You are running the latest version", NamedTextColor.GREEN);
         }
-        final @Nullable Component history = this.getHistory();
 
-        return history != null ? Component.textOfChildren(updateMessage, Component.newline(), history) : updateMessage;
+        return updateMessage;
     }
 
     public static void getUpdateStatusStartupMessage() {
