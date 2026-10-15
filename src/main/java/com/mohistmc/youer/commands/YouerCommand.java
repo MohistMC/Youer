@@ -69,8 +69,9 @@ public class YouerCommand extends Command {
         List<String> list = new ArrayList<>();
         if ((sender.isOp() || testPermission(sender))) {
             if (args.length == 1) {
+                String prefix = args[0].toLowerCase();
                 for (String param : params) {
-                    if (param.toLowerCase().startsWith(args[0].toLowerCase())) {
+                    if (param.toLowerCase().startsWith(prefix)) {
                         list.add(param);
                     }
                 }

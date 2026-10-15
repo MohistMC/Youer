@@ -101,7 +101,9 @@ public class BukkitCommandNode extends LiteralCommandNode<CommandSourceStack> {
         public CompletableFuture<Suggestions> getSuggestions(CommandContext<CommandSourceStack> context, SuggestionsBuilder builder) throws CommandSyntaxException {
             // Paper start
             org.bukkit.command.CommandSender sender = context.getSource().getSender();
-            String[] args = builder.getRemaining().split(" ", -1); // We need the command included -- Set limit to -1, allow for trailing spaces
+            // Youer start - strip leading whitespace: "/cmd " makes getRemaining()==" ", split(" ",-1) would yield ["",""] and break args[0]/args.length based completion
+            String[] args = builder.getRemaining().stripLeading().split(" ", -1); // We need the command included -- Set limit to -1, allow for trailing spaces
+            // Youer end
 
             List<String> results = null;
             Location pos = context.getSource().getLocation();

@@ -69,12 +69,6 @@ public record ServerBuildInfoImpl(
     public @NotNull String asString(final @NotNull StringRepresentation representation) {
         final StringBuilder sb = new StringBuilder();
         sb.append(this.minecraftVersionId);
-        sb.append('-');
-        if (this.buildNumber.isPresent()) {
-            sb.append(this.buildNumber.getAsInt());
-        } else {
-            sb.append(BUILD_DEV);
-        }
         final boolean hasGitBranch = this.gitBranch.isPresent();
         final boolean hasGitCommit = this.gitCommit.isPresent();
         if (hasGitBranch || hasGitCommit) {
