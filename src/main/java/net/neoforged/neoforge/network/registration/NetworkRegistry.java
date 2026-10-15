@@ -54,6 +54,7 @@ import net.minecraft.server.network.ServerCommonPacketListenerImpl;
 import net.minecraft.server.network.ServerConfigurationPacketListenerImpl;
 import net.neoforged.fml.ModLoader;
 import net.neoforged.fml.config.ConfigTracker;
+import net.neoforged.neoforge.common.NeoForgeConfig;
 import net.neoforged.neoforge.common.extensions.ICommonPacketListener;
 import net.neoforged.neoforge.internal.versions.neoforge.NeoForgeVersion;
 import net.neoforged.neoforge.network.configuration.CheckExtensibleEnums;
@@ -145,7 +146,7 @@ public class NetworkRegistry {
 
     /**
      * Registers a new payload.
-     *
+     * 
      * @param <T>       The class of the payload.
      * @param <B>       The class of the ByteBuf. Only {@link ConnectionProtocol#PLAY play} payloads may use {@link RegistryFriendlyByteBuf}.
      * @param type      The type of the payload.
@@ -158,7 +159,7 @@ public class NetworkRegistry {
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
     public static <T extends CustomPacketPayload, B extends FriendlyByteBuf> void register(CustomPacketPayload.Type<T> type, StreamCodec<? super B, T> codec, IPayloadHandler<T> handler,
-                                                                                           List<ConnectionProtocol> protocols, Optional<PacketFlow> flow, String version, boolean optional) {
+            List<ConnectionProtocol> protocols, Optional<PacketFlow> flow, String version, boolean optional) {
         if (setup) {
             throw new UnsupportedOperationException("Cannot register payload " + type.id() + " after registration phase.");
         }
@@ -205,7 +206,7 @@ public class NetworkRegistry {
      * @param protocol The protocol of the connection.
      * @param flow     The flow of the connection.
      * @return A codec for the payload, or null if the payload should be discarded on receipt.
-     *
+     * 
      * @see {@link #hasChannel(Connection, ConnectionProtocol, ResourceLocation)} to check if a packet can be sent/received.
      * @apiNote This method must not throw exceptions, as it is called within another codec on the network thread.
      */
@@ -715,8 +716,16 @@ public class NetworkRegistry {
      * @param resourceLocations The resource locations to add.
      */
     public static void onMinecraftRegister(Connection connection, Set<ResourceLocation> resourceLocations) {
-        ChannelAttributes.getOrCreateAdHocChannels(connection).addAll(resourceLocations);
-        if (connection.getPacketListener() instanceof ServerCommonPacketListener listener) {
+        var channels = ChannelAttributes.getOrCreateAdHocChannels(connection);
+        if ((channels.size() + resourceLocations.size()) > NeoForgeConfig.COMMON.maxAdhocChannelLimit.getAsInt()) {
+            if (connection.getPacketListener() instanceof ICommonPacketListener listener) {
+                listener.disconnect(Component.translatable("neoforge.network.adhoc_channels.too_many"));
+                return;
+            }
+            throw new RuntimeException("Too many ad-hoc channels.");
+        }
+        channels.addAll(resourceLocations);
+		if (connection.getPacketListener() instanceof ServerCommonPacketListener listener) {
             ServerCommonPacketListenerImpl listener0 = (ServerCommonPacketListenerImpl) listener;
             var mcserver = listener0.getCraftServer().getServer();
             listener.getMainThreadEventLoop().executeIfPossible(() -> {
@@ -728,6 +737,7 @@ public class NetworkRegistry {
                 }
             });
         }
+
     }
 
     /**
