@@ -16,7 +16,7 @@
  import net.minecraft.world.entity.Entity;
  import net.minecraft.world.entity.EntityType;
  import net.minecraft.world.entity.ExperienceOrb;
-@@ -44,13 +_,15 @@
+@@ -44,6 +_,8 @@
  import net.minecraft.world.phys.EntityHitResult;
  import net.minecraft.world.phys.HitResult;
  import net.minecraft.world.phys.Vec3;
@@ -25,23 +25,6 @@
  import org.slf4j.Logger;
  
  public class FishingHook extends Projectile {
-     private static final Logger LOGGER = LogUtils.getLogger();
-     private final RandomSource syncronizedRandom = RandomSource.create();
-     private boolean biting;
--    private int outOfWaterTime;
-+    public int outOfWaterTime;
-     private static final int MAX_OUT_OF_WATER_TIME = 10;
-     public static final EntityDataAccessor<Integer> DATA_HOOKED_ENTITY = SynchedEntityData.defineId(FishingHook.class, EntityDataSerializers.INT);
-     private static final EntityDataAccessor<Boolean> DATA_BITING = SynchedEntityData.defineId(FishingHook.class, EntityDataSerializers.BOOLEAN);
-@@ -58,7 +_,7 @@
-     private int nibble;
-     public int timeUntilLured;
-     public int timeUntilHooked;
--    private float fishAngle;
-+    public float fishAngle;
-     private boolean openWater = true;
-     @Nullable
-     public Entity hookedIn;
 @@ -66,11 +_,27 @@
      private final int luck;
      private final int lureSpeed;
@@ -84,7 +67,7 @@
                      this.discard();
                      return;
                  }
-@@ -240,23 +_,24 @@
+@@ -240,19 +_,20 @@
      private boolean shouldStopFishing(Player p_37137_) {
          ItemStack itemstack = p_37137_.getMainHandItem();
          ItemStack itemstack1 = p_37137_.getOffhandItem();
@@ -109,11 +92,6 @@
      }
  
      @Override
--    protected boolean canHitEntity(Entity p_37135_) {
-+    public boolean canHitEntity(Entity p_37135_) {
-         return super.canHitEntity(p_37135_) || p_37135_.isAlive() && p_37135_ instanceof ItemEntity;
-     }
- 
 @@ -283,11 +_,11 @@
          ServerLevel serverlevel = (ServerLevel)this.level();
          int i = 1;
@@ -153,7 +131,7 @@
                  this.playSound(SoundEvents.FISHING_BOBBER_SPLASH, 0.25F, 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.4F);
                  double d3 = this.getY() + 0.5;
                  serverlevel.sendParticles(
-@@ -371,16 +_,36 @@
+@@ -371,14 +_,34 @@
              }
  
              if (this.timeUntilLured <= 0) {
@@ -182,19 +160,16 @@
 +            // CraftBukkit end
          }
      }
- 
--    private boolean calculateOpenWater(BlockPos p_37159_) {
++
 +    // Paper start - more projectile api - extract time until lured reset logic
 +    public void resetTimeUntilLured() {
 +        this.timeUntilLured = Mth.nextInt(this.random, this.minWaitTime, this.maxWaitTime);
 +        this.timeUntilLured -= (this.applyLure) ? (this.lureSpeed >= this.maxWaitTime ? this.timeUntilLured - 1 : this.lureSpeed ) : 0; // Paper - Fix Lure infinite loop
 +    }
 +    // Paper end - more projectile api - extract time until lured reset logic
-+
-+    public boolean calculateOpenWater(BlockPos p_37159_) {
-         FishingHook.OpenWaterType fishinghook$openwatertype = FishingHook.OpenWaterType.INVALID;
  
-         for (int i = -1; i <= 2; i++) {
+     public boolean calculateOpenWater(BlockPos p_37159_) {
+         FishingHook.OpenWaterType fishinghook$openwatertype = FishingHook.OpenWaterType.INVALID;
 @@ -437,36 +_,78 @@
      public void readAdditionalSaveData(CompoundTag p_37151_) {
      }

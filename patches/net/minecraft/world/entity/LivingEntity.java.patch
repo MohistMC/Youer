@@ -125,45 +125,21 @@
      private static final Logger LOGGER = LogUtils.getLogger();
      private static final String TAG_ACTIVE_EFFECTS = "active_effects";
      private static final ResourceLocation SPEED_MODIFIER_POWDER_SNOW_ID = ResourceLocation.withDefaultNamespace("powder_snow");
-@@ -158,7 +_,7 @@
-     private static final double MAX_LINE_OF_SIGHT_TEST_RANGE = 128.0;
-     protected static final int LIVING_ENTITY_FLAG_IS_USING = 1;
-     protected static final int LIVING_ENTITY_FLAG_OFF_HAND = 2;
--    protected static final int LIVING_ENTITY_FLAG_SPIN_ATTACK = 4;
-+    public static final int LIVING_ENTITY_FLAG_SPIN_ATTACK = 4;
-     protected static final EntityDataAccessor<Byte> DATA_LIVING_ENTITY_FLAGS = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.BYTE);
-     public static final EntityDataAccessor<Float> DATA_HEALTH_ID = SynchedEntityData.defineId(LivingEntity.class, EntityDataSerializers.FLOAT);
-     private static final EntityDataAccessor<List<ParticleOptions>> DATA_EFFECT_PARTICLES = SynchedEntityData.defineId(
-@@ -204,7 +_,7 @@
-     public float yHeadRotO;
-     @Nullable
-     public Player lastHurtByPlayer;
--    protected int lastHurtByPlayerTime;
-+    public int lastHurtByPlayerTime;
-     protected boolean dead;
-     protected int noActionTime;
-     protected float oRun;
-@@ -214,10 +_,10 @@
-     protected float rotOffs;
+@@ -215,9 +_,9 @@
      protected int deathScore;
      public float lastHurt;
--    protected boolean jumping;
+     public boolean jumping;
 -    public float xxa;
 -    public float yya;
 -    public float zza;
-+    public boolean jumping;
 +    public float xxa; public float getStrafeMot() { return xxa; } public void setStrafeMot(float strafe) { xxa = strafe; } // Purpur - OBFHELPER
 +    public float yya; public float getVerticalMot() { return yya; } public void setVerticalMot(float vertical) { yya = vertical; } // Purpur - OBFHELPER
 +    public float zza; public float getForwardMot() { return zza; } public void setForwardMot(float forward) { zza = forward; } // Purpur - OBFHELPER
      protected int lerpSteps;
      protected double lerpX;
      protected double lerpY;
-@@ -251,14 +_,49 @@
-     private float swimAmount;
-     private float swimAmountO;
-     protected Brain<?> brain;
--    private boolean skipDropExperience;
-+    public boolean skipDropExperience;
+@@ -254,11 +_,46 @@
+     public boolean skipDropExperience;
      private final Reference2ObjectMap<Enchantment, Set<EnchantmentLocationBasedEffect>> activeLocationDependentEnchantments = new Reference2ObjectArrayMap<>();
      protected float appliedScale = 1.0F;
 +    /**
@@ -1313,15 +1289,6 @@
      }
  
      public void indicateDamage(double p_270514_, double p_270826_) {
-@@ -1464,7 +_,7 @@
-     }
- 
-     @Nullable
--    protected SoundEvent getDeathSound() {
-+    public SoundEvent getDeathSound() {
-         return SoundEvents.GENERIC_DEATH;
-     }
- 
 @@ -1511,25 +_,54 @@
          return p_21202_.getEatingSound();
      }
@@ -1445,20 +1412,18 @@
          }
      }
  
--    protected float getDamageAfterArmorAbsorb(DamageSource p_21162_, float p_21163_) {
 +    public AtomicBoolean calDamageEvent = new AtomicBoolean(false);
-+    public float getDamageAfterArmorAbsorb(DamageSource p_21162_, float p_21163_) {
+     public float getDamageAfterArmorAbsorb(DamageSource p_21162_, float p_21163_) {
          if (!p_21162_.is(DamageTypeTags.BYPASSES_ARMOR)) {
 -            this.hurtArmor(p_21162_, p_21163_);
 +            if (!calDamageEvent.getAndSet(false)) this.hurtArmor(p_21162_, p_21163_);
              p_21163_ = CombatRules.getDamageAfterAbsorb(
                  this, p_21163_, p_21162_, (float)this.getArmorValue(), (float)this.getAttributeValue(Attributes.ARMOR_TOUGHNESS)
              );
-@@ -1636,7 +_,19 @@
+@@ -1636,6 +_,18 @@
          return p_21163_;
      }
  
--    protected float getDamageAfterMagicAbsorb(DamageSource p_21193_, float p_21194_) {
 +    protected float applyBukkitDamageModifier(EntityDamageEvent.DamageModifier modifier, float currentDamage) { // Youer - protected so Player.actuallyHurt can apply modifiers
 +        if (bukkitEntityDamageEvent != null && bukkitEntityDamageEvent.isApplicable(modifier)) {
 +            double baseDamage = bukkitEntityDamageEvent.getDamage();
@@ -1471,10 +1436,9 @@
 +        return currentDamage;
 +    }
 +
-+    public float getDamageAfterMagicAbsorb(DamageSource p_21193_, float p_21194_) {
+     public float getDamageAfterMagicAbsorb(DamageSource p_21193_, float p_21194_) {
          if (p_21193_.is(DamageTypeTags.BYPASSES_EFFECTS)) {
              return p_21194_;
-         } else {
 @@ -1646,8 +_,10 @@
                  float f = p_21194_ * (float)j;
                  float f1 = p_21194_;
@@ -1605,15 +1569,6 @@
      public abstract void setItemSlot(EquipmentSlot p_21036_, ItemStack p_21037_);
  
      public Iterable<ItemStack> getHandSlots() {
-@@ -2000,7 +_,7 @@
-         }
-     }
- 
--    protected float getSoundVolume() {
-+    public float getSoundVolume() {
-         return 1.0F;
-     }
- 
 @@ -2052,27 +_,43 @@
          return this.hasEffect(MobEffects.JUMP) ? 0.1F * ((float)this.getEffect(MobEffects.JUMP).getAmplifier() + 1.0F) : 0.0F;
      }
@@ -2029,15 +1984,6 @@
              this.completeUsingItem();
          }
      }
-@@ -3015,7 +_,7 @@
-         }
-     }
- 
--    protected void setLivingEntityFlag(int p_21156_, boolean p_21157_) {
-+    public void setLivingEntityFlag(int p_21156_, boolean p_21157_) {
-         int i = this.entityData.get(DATA_LIVING_ENTITY_FLAGS);
-         if (p_21157_) {
-             i |= p_21156_;
 @@ -3029,8 +_,14 @@
      public void startUsingItem(InteractionHand p_21159_) {
          ItemStack itemstack = this.getItemInHand(p_21159_);
@@ -2066,15 +2012,6 @@
              }
          }
      }
-@@ -3103,7 +_,7 @@
-         }
-     }
- 
--    protected void completeUsingItem() {
-+    public void completeUsingItem() {
-         if (!this.level().isClientSide || this.isUsingItem()) {
-             InteractionHand interactionhand = this.getUsedItemHand();
-             if (!this.useItem.equals(this.getItemInHand(interactionhand))) {
 @@ -3111,12 +_,45 @@
              } else {
                  if (!this.useItem.isEmpty() && this.isUsingItem()) {
@@ -2349,7 +2286,7 @@
          return foodproperties != null ? this.eat(p_21067_, p_21068_, foodproperties) : p_21068_;
      }
  
-@@ -3385,13 +_,14 @@
+@@ -3385,6 +_,7 @@
          if (!this.level().isClientSide()) {
              for (FoodProperties.PossibleEffect foodproperties$possibleeffect : p_335472_.effects()) {
                  if (this.random.nextFloat() < foodproperties$possibleeffect.probability()) {
@@ -2357,14 +2294,6 @@
                      this.addEffect(foodproperties$possibleeffect.effect());
                  }
              }
-         }
-     }
- 
--    private static byte entityEventForEquipmentBreak(EquipmentSlot p_21267_) {
-+    public static byte entityEventForEquipmentBreak(EquipmentSlot p_21267_) {
-         return switch (p_21267_) {
-             case MAINHAND -> 47;
-             case OFFHAND -> 48;
 @@ -3411,6 +_,38 @@
          return p_320526_ == InteractionHand.MAIN_HAND ? EquipmentSlot.MAINHAND : EquipmentSlot.OFFHAND;
      }

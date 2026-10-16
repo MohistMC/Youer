@@ -98,7 +98,7 @@
      private final Set<String> tags = Sets.newHashSet();
      private final double[] pistonDeltas = new double[]{0.0, 0.0, 0.0};
      private long pistonDeltasGameTime;
--    private EntityDimensions dimensions;
+-    public EntityDimensions dimensions;
 +    protected EntityDimensions dimensions;  // Purpur - private -> protected
      private float eyeHeight;
      public boolean isInPowderSnow;
@@ -424,12 +424,10 @@
          this.entityData.set(DATA_POSE, p_20125_);
      }
  
-@@ -379,7 +_,33 @@
-         return Mth.lengthSquared(d0, d2) < Mth.square(p_216994_) && Mth.square(d1) < Mth.square(p_216995_);
+@@ -380,6 +_,32 @@
      }
  
--    protected void setRot(float p_19916_, float p_19917_) {
-+    public void setRot(float p_19916_, float p_19917_) {
+     public void setRot(float p_19916_, float p_19917_) {
 +        // CraftBukkit start - yaw was sometimes set to NaN, so we need to set it back to 0
 +        if (Float.isNaN(p_19916_)) {
 +            p_19916_ = 0;
@@ -704,22 +702,6 @@
      }
  
      public boolean causeFallDamage(float p_146828_, float p_146829_, DamageSource p_146830_) {
-@@ -1209,13 +_,13 @@
-         return this.wasTouchingWater;
-     }
- 
--    private boolean isInRain() {
-+    public boolean isInRain() {
-         BlockPos blockpos = this.blockPosition();
-         return this.level().isRainingAt(blockpos)
-             || this.level().isRainingAt(BlockPos.containing((double)blockpos.getX(), this.getBoundingBox().maxY, (double)blockpos.getZ()));
-     }
- 
--    private boolean isInBubbleColumn() {
-+    public boolean isInBubbleColumn() {
-         return this.getInBlockState().is(Blocks.BUBBLE_COLUMN);
-     }
- 
 @@ -1241,20 +_,23 @@
  
      public void updateSwimming() {
@@ -1839,7 +1821,7 @@
      @Override
      public void setLevelCallback(EntityInLevelCallback p_146849_) {
          this.levelCallback = p_146849_;
-@@ -3451,11 +_,138 @@
+@@ -3451,6 +_,133 @@
          return true;
      }
  
@@ -1973,12 +1955,6 @@
      public Level level() {
          return this.level;
      }
- 
--    protected void setLevel(Level p_285201_) {
-+    public void setLevel(Level p_285201_) {
-         this.level = p_285201_;
-     }
- 
 @@ -3550,4 +_,54 @@
              return this.save;
          }

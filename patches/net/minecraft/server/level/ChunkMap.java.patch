@@ -117,15 +117,6 @@
                  this.write(chunkpos, compoundtag).exceptionally(p_351776_ -> {
                      this.level.getServer().reportChunkSaveFailure(p_351776_, this.storageInfo(), chunkpos);
                      return null;
-@@ -792,7 +_,7 @@
-         }
-     }
- 
--    protected void setServerViewDistance(int p_295758_) {
-+    public void setServerViewDistance(int p_295758_) {
-         int i = Mth.clamp(p_295758_, 2, 32);
-         if (i != this.serverViewDistance) {
-             this.serverViewDistance = i;
 @@ -817,9 +_,11 @@
  
      private static void markChunkPendingToSend(ServerPlayer p_295834_, LevelChunk p_296281_) {
@@ -159,9 +150,8 @@
      }
 +    // CraftBukkit end
  
--    boolean anyPlayerCloseEnoughForSpawning(ChunkPos p_183880_) {
 +    AtomicBoolean reducedRange = new AtomicBoolean(false);
-+    public boolean anyPlayerCloseEnoughForSpawning(ChunkPos p_183880_) {
+     public boolean anyPlayerCloseEnoughForSpawning(ChunkPos p_183880_) {
 +        int chunkRange = level.spigotConfig.mobSpawnRange;
 +        chunkRange = (chunkRange > level.spigotConfig.viewDistance) ? (byte) level.spigotConfig.viewDistance : chunkRange;
 +        chunkRange = (chunkRange > 8) ? 8 : chunkRange;
@@ -246,13 +236,11 @@
              this.updateChunkTracking(p_140185_);
          }
      }
-@@ -1068,8 +_,9 @@
-         return builder.build();
+@@ -1069,7 +_,8 @@
      }
  
--    protected void addEntity(Entity p_140200_) {
+     public void addEntity(Entity p_140200_) {
 -        if (!(p_140200_ instanceof EnderDragonPart)) {
-+    public void addEntity(Entity p_140200_) {
 +        if (p_140200_ instanceof ServerPlayer && ((ServerPlayer) p_140200_).supressTrackerForLogin) return; // Paper - Fire PlayerJoinEvent when Player is actually ready; Delay adding to tracker until after list packets
 +        if (!(p_140200_ instanceof net.neoforged.neoforge.entity.PartEntity)) {
              EntityType<?> entitytype = p_140200_.getType();

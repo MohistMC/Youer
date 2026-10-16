@@ -48,7 +48,7 @@
  import net.minecraft.network.protocol.login.ClientboundGameProfilePacket;
  import net.minecraft.network.protocol.login.ClientboundHelloPacket;
  import net.minecraft.network.protocol.login.ClientboundLoginCompressionPacket;
-@@ -35,30 +_,58 @@
+@@ -35,18 +_,44 @@
  import net.minecraft.network.protocol.login.ServerboundHelloPacket;
  import net.minecraft.network.protocol.login.ServerboundKeyPacket;
  import net.minecraft.network.protocol.login.ServerboundLoginAcknowledgedPacket;
@@ -89,25 +89,15 @@
 +    }
 +
      private static final AtomicInteger UNIQUE_THREAD_ID = new AtomicInteger(0);
--    static final Logger LOGGER = LogUtils.getLogger();
-+    public static final Logger LOGGER = LogUtils.getLogger();
+     public static final Logger LOGGER = LogUtils.getLogger();
 +    private static final ExecutorService authenticatorPool = Executors.newThreadPerTaskExecutor(Thread.ofVirtual().name("User Authenticator #", 0).uncaughtExceptionHandler(new DefaultUncaughtExceptionHandler(LOGGER)).factory());
      private static final int MAX_TICKS_BEFORE_LOGIN = 600;
      private final byte[] challenge;
--    final MinecraftServer server;
-+    public final MinecraftServer server;
-     public final Connection connection;
--    private volatile ServerLoginPacketListenerImpl.State state = ServerLoginPacketListenerImpl.State.HELLO;
-+    public volatile ServerLoginPacketListenerImpl.State state = ServerLoginPacketListenerImpl.State.HELLO;
-     private int tick;
-     @Nullable
-     String requestedUsername;
-     @Nullable
--    private GameProfile authenticatedProfile;
-+    public GameProfile authenticatedProfile;
+     public final MinecraftServer server;
+@@ -59,6 +_,8 @@
+     public GameProfile authenticatedProfile;
      private final String serverId = "";
--    private final boolean transferred;
-+    public final boolean transferred;
+     public final boolean transferred;
 +    private ServerPlayer player; // CraftBukkit
 +    public int velocityLoginMessageId = -1; // Paper - Velocity support
  

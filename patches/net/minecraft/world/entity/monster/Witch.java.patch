@@ -1,23 +1,5 @@
 --- a/net/minecraft/world/entity/monster/Witch.java
 +++ b/net/minecraft/world/entity/monster/Witch.java
-@@ -47,7 +_,7 @@
-         SPEED_MODIFIER_DRINKING_ID, -0.25, AttributeModifier.Operation.ADD_VALUE
-     );
-     private static final EntityDataAccessor<Boolean> DATA_USING_ITEM = SynchedEntityData.defineId(Witch.class, EntityDataSerializers.BOOLEAN);
--    private int usingTime;
-+    public int usingTime;
-     private NearestHealableRaiderTargetGoal<Raider> healRaidersGoal;
-     private NearestAttackableWitchTargetGoal<Player> attackPlayersGoal;
- 
-@@ -89,7 +_,7 @@
-     }
- 
-     @Override
--    protected SoundEvent getDeathSound() {
-+    public SoundEvent getDeathSound() {
-         return SoundEvents.WITCH_DEATH;
-     }
- 
 @@ -121,8 +_,17 @@
                      ItemStack itemstack = this.getMainHandItem();
                      this.setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
@@ -72,12 +54,8 @@
      @Override
      public SoundEvent getCelebrateSound() {
          return SoundEvents.WITCH_CELEBRATE;
-@@ -203,13 +_,16 @@
-     }
- 
-     @Override
--    protected float getDamageAfterMagicAbsorb(DamageSource p_34149_, float p_34150_) {
-+    public float getDamageAfterMagicAbsorb(DamageSource p_34149_, float p_34150_) {
+@@ -206,10 +_,13 @@
+     public float getDamageAfterMagicAbsorb(DamageSource p_34149_, float p_34150_) {
          p_34150_ = super.getDamageAfterMagicAbsorb(p_34149_, p_34150_);
          if (p_34149_.getEntity() == this) {
 +            this.damageContainers.peek().setReduction(net.neoforged.neoforge.common.damagesource.DamageContainer.Reduction.INNATE_RESISTANCE, p_34150_);

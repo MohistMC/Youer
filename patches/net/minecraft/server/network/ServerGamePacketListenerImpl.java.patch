@@ -102,12 +102,9 @@
      private int dropSpamTickCount;
      private double firstGoodX;
      private double firstGoodY;
-@@ -233,8 +_,23 @@
-     private SignedMessageChain.Decoder signedMessageDecoder;
-     private final LastSeenMessagesValidator lastSeenMessages = new LastSeenMessagesValidator(20);
+@@ -235,6 +_,21 @@
      private final MessageSignatureCache messageSignatureCache = MessageSignatureCache.createDefault();
--    private final FutureChain chatMessageChain;
-+    public final FutureChain chatMessageChain;
+     public final FutureChain chatMessageChain;
      private boolean waitingForSwitchToConfig;
 +    // CraftBukkit start - add fields and methods
 +    private int lastTick = MinecraftServer.currentTick;
@@ -204,15 +201,6 @@
 +            this.player.resetLastActionTime(); // CraftBukkit - SPIGOT-854
 +            this.disconnect(Component.translatable("multiplayer.disconnect.idling"), org.bukkit.event.player.PlayerKickEvent.Cause.IDLING); // Paper - kick event cause
          }
-     }
- 
-@@ -359,7 +_,7 @@
-         });
-     }
- 
--    private CompletableFuture<FilteredText> filterTextPacket(String p_243213_) {
-+    public CompletableFuture<FilteredText> filterTextPacket(String p_243213_) {
-         return this.filterTextPacket(p_243213_, TextFilter::processStreamMessage);
      }
  
 @@ -385,15 +_,33 @@
@@ -1368,7 +1356,7 @@
          ParseResults<CommandSourceStack> parseresults = this.parseCommand(p_338482_);
          if (this.server.enforceSecureProfile() && SignableCommand.hasSignableArguments(parseresults)) {
              LOGGER.error(
-@@ -1265,29 +_,56 @@
+@@ -1265,26 +_,53 @@
          Optional<LastSeenMessages> optional = this.unpackAndApplyLastSeen(p_338604_.lastSeenMessages());
          if (!optional.isEmpty()) {
              this.tryHandleChat(p_338604_.command(), () -> {
@@ -1424,11 +1412,7 @@
 +        this.server.getCommands().performCommand(parseresults, command); // CraftBukkit
      }
  
--    private void handleMessageDecodeFailure(SignedMessageChain.DecodeException p_252068_) {
-+    public void handleMessageDecodeFailure(SignedMessageChain.DecodeException p_252068_) {
-         LOGGER.warn("Failed to update secure chat state for {}: '{}'", this.player.getGameProfile().getName(), p_252068_.getComponent().getString());
-         this.player.sendSystemMessage(p_252068_.getComponent().copy().withStyle(ChatFormatting.RED));
-     }
+     public void handleMessageDecodeFailure(SignedMessageChain.DecodeException p_252068_) {
 @@ -1348,14 +_,20 @@
          return commanddispatcher.parse(p_242938_, this.player.createCommandSourceStack());
      }
@@ -1454,7 +1438,7 @@
          }
      }
  
-@@ -1364,14 +_,14 @@
+@@ -1364,7 +_,7 @@
              Optional<LastSeenMessages> optional = this.lastSeenMessages.applyUpdate(p_249673_);
              if (optional.isEmpty()) {
                  LOGGER.warn("Failed to validate message acknowledgements from {}", this.player.getName().getString());
@@ -1463,14 +1447,6 @@
              }
  
              return optional;
-         }
-     }
- 
--    private static boolean isChatMessageIllegal(String p_215215_) {
-+    public static boolean isChatMessageIllegal(String p_215215_) {
-         for (int i = 0; i < p_215215_.length(); i++) {
-             if (!StringUtil.isAllowedChatCharacter(p_215215_.charAt(i))) {
-                 return true;
 @@ -1381,23 +_,161 @@
          return false;
      }
@@ -1591,10 +1567,9 @@
          return this.signedMessageDecoder.unpack(p_251061_.signature(), signedmessagebody);
      }
  
--    private void broadcastChatMessage(PlayerChatMessage p_243277_) {
+     public void broadcastChatMessage(PlayerChatMessage p_243277_) {
 -        this.server.getPlayerList().broadcastChatMessage(p_243277_, this.player, ChatType.bind(ChatType.CHAT, this.player));
 -        this.detectRateSpam();
-+    public void broadcastChatMessage(PlayerChatMessage p_243277_) {
 +        // CraftBukkit start
 +        String s = p_243277_.signedContent();
 +        if (s.isEmpty()) {
