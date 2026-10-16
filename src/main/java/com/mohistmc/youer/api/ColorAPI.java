@@ -372,7 +372,7 @@ public class ColorAPI {
         }
 
         return text
-                .replaceAll("<gradient(?:[:]#?[0-9A-Fa-f]{6}|[:][\\w\\u4e00-\\u9fa5]+)+>(.*?)</gradient>", "$2")
+                .replaceAll("<gradient(?:[:]#?[0-9A-Fa-f]{6}|[:][\\w\\u4e00-\\u9fa5]+)+>(.*?)</gradient>", "$1")
                 .replaceAll("<(#?[0-9A-Fa-f]{6}|[a-zA-Z_\\u4e00-\\u9fa5]+)>(.*?)</\\1>", "$2")
                 .replaceAll("&#([0-9A-Fa-f]{6})", "")
                 .replaceAll("&([0-9a-fk-orA-FK-OR])", "")
