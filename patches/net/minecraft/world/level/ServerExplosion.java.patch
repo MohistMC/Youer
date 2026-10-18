@@ -557,7 +557,7 @@
              this.level.getBlockState(pos).onExplosionHit(this.level, pos, this, (stackx, position) -> addOrAppendStack(stacks, stackx, position));
          }
  
-@@ -227,12 +_,41 @@
+@@ -227,15 +_,44 @@
      private void createFire(List<BlockPos> targetBlocks) {
          for (BlockPos pos : targetBlocks) {
              if (this.level.random.nextInt(3) == 0 && this.level.getBlockState(pos).isAir() && this.level.getBlockState(pos.below()).isSolidRender()) {
@@ -599,7 +599,11 @@
 +        // Purpur end - Add PreExplodeEvents
          this.level.gameEvent(this.source, GameEvent.EXPLODE, this.center);
          List<BlockPos> toBlow = this.calculateExplodedPositions();
-         this.hurtEntities();
+-        this.hurtEntities();
++        this.hurtEntities(toBlow);
+         if (this.interactsWithBlocks()) {
+             ProfilerFiller profiler = Profiler.get();
+             profiler.push("explosion_blocks");
 @@ -247,6 +_,13 @@
              this.createFire(toBlow);
          }
