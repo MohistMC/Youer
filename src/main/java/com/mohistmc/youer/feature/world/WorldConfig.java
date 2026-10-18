@@ -13,6 +13,7 @@ import net.minecraft.server.level.ServerLevel;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
@@ -109,9 +110,7 @@ public class WorldConfig {
     public static void addInfo(String w, String info) {
         World world = Bukkit.getWorld(w);
         if (f.exists() && world != null) {
-            if (config.getString("worlds." + world.getName()) != null) {
-                config.set("worlds." + world.getName() + ".info", info);
-            }
+            config.set("worlds." + world.getName() + ".info", info);
             init();
         }
     }
@@ -119,28 +118,22 @@ public class WorldConfig {
     public static void addname(String w, String info) {
         World world = Bukkit.getWorld(w);
         if (f.exists() && world != null) {
-            if (config.getString("worlds." + world.getName()) != null) {
-                config.set("worlds." + world.getName() + ".name", info);
-            }
+            config.set("worlds." + world.getName() + ".name", info);
             init();
         }
     }
 
     public static void setnandu(Player player, String nandu) {
         World world = player.getWorld();
-        if (f.exists()) {
-            if (config.getString("worlds." + world.getName()) != null) {
-                config.set("worlds." + world.getName() + ".difficulty", nandu);
-            }
+        if (f.exists() && world != null) {
+            config.set("worlds." + world.getName() + ".difficulty", nandu);
             init();
         }
     }
 
     public static void setGameMode(World world, String nandu) {
         if (f.exists()) {
-            if (config.getString("worlds." + world.getName()) != null) {
-                config.set("worlds." + world.getName() + ".gamemode", nandu);
-            }
+            config.set("worlds." + world.getName() + ".gamemode", nandu);
             init();
         }
     }
@@ -374,13 +367,11 @@ public class WorldConfig {
     public static void addSpawn(Location location) {
         World world = location.getWorld();
         if (f.exists() && world != null) {
-            if (config.getString("worlds." + world.getName()) != null) {
-                config.set("worlds." + world.getName() + ".spawn.x", location.getX());
-                config.set("worlds." + world.getName() + ".spawn.y", location.getY());
-                config.set("worlds." + world.getName() + ".spawn.z", location.getZ());
-                config.set("worlds." + world.getName() + ".spawn.yaw", location.getYaw());
-                config.set("worlds." + world.getName() + ".spawn.pitch", location.getPitch());
-            }
+            config.set("worlds." + world.getName() + ".spawn.x", location.getX());
+            config.set("worlds." + world.getName() + ".spawn.y", location.getY());
+            config.set("worlds." + world.getName() + ".spawn.z", location.getZ());
+            config.set("worlds." + world.getName() + ".spawn.yaw", location.getYaw());
+            config.set("worlds." + world.getName() + ".spawn.pitch", location.getPitch());
             init();
         }
     }
@@ -396,10 +387,22 @@ public class WorldConfig {
                 double pitch = config.getDouble("worlds." + world.getName() + ".spawn.pitch");
                 player.teleport(new Location(world, x, y, z, (float) yaw, (float) pitch));
             } else {
-                Location defaultSpawn = new Location(world, 0, world.getHighestBlockYAt(0, 0), 0);
-                player.teleport(defaultSpawn, PlayerTeleportEvent.TeleportCause.YOUER);
+                player.teleport(defaultSpawn(world), PlayerTeleportEvent.TeleportCause.YOUER);
             }
         }
+    }
+
+    private static Location defaultSpawn(World world) {
+        int x = 0, z = 0;
+        int y = world.getMaxHeight() - 1;
+        while (y > world.getMinHeight()) {
+            Material type = world.getBlockAt(x, y, z).getType();
+            if (type != Material.BEDROCK && type != Material.AIR && type != Material.CAVE_AIR && type != Material.VOID_AIR) {
+                break;
+            }
+            y--;
+        }
+        return new Location(world, x + 0.5, Math.max(y + 1, world.getMinHeight() + 1), z + 0.5);
     }
 
     public static void youer(String w, boolean isYouer) {
