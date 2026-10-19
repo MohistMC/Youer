@@ -330,7 +330,7 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
             if (field != null) {
                 return field.getName();
             }
-            String runtime = ReobfTiny.INSTANCE.runtimeFieldName(internalName, bukkitName);
+            String runtime = ReobfTiny.INSTANCE.runtimeFieldName(cl, bukkitName);
             return runtime == null ? bukkitName : runtime;
         } else return bukkitName;
     }
@@ -342,7 +342,7 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
             if (field != null) {
                 return field.getName();
             }
-            String runtime = ReobfTiny.INSTANCE.runtimeFieldName(internalName, bukkitName);
+            String runtime = ReobfTiny.INSTANCE.runtimeFieldName(cl, bukkitName);
             return runtime == null ? bukkitName : runtime;
         } else return bukkitName;
     }

@@ -5,6 +5,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -125,6 +126,37 @@ public final class ReobfTiny {
 
     public String runtimeFieldName(String owner, String pluginName) {
         return runtimeFields.get(owner + "/" + pluginName);
+    }
+
+    /**
+     * The runtime field a plugin asks for, accepting the casing and legacy names plugins use.
+     */
+    public String runtimeFieldName(Class<?> clazz, String pluginName) {
+        if (clazz == null || !clazz.getName().startsWith("net.minecraft.")) return null;
+        try {
+            for (Field field : clazz.getDeclaredFields()) {
+                if (field.getName().equals(pluginName)) return pluginName;
+            }
+            for (Field field : clazz.getDeclaredFields()) {
+                if (field.getName().equalsIgnoreCase(pluginName)) return field.getName();
+            }
+            if ("CRAFTER".equals(pluginName)) {
+                for (Field field : clazz.getDeclaredFields()) {
+                    if ("CRAFTER_3x3".equals(field.getName())) return field.getName();
+                }
+            }
+        } catch (Throwable ignored) {
+        }
+        return runtimeFieldName(clazz.getName().replace('.', '/'), pluginName);
+    }
+
+    /**
+     * The runtime class a plugin names by its spigot name.
+     */
+    public String runtimeClassName(String pluginClassName) {
+        if (pluginClassName == null || !pluginClassName.startsWith("net.minecraft.")) return null;
+        String runtime = runtimeClassOf(pluginClassName.replace('.', '/'));
+        return runtime == null ? null : runtime.replace('/', '.');
     }
 
     /**

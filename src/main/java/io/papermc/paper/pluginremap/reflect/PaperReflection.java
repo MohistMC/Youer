@@ -1,5 +1,6 @@
 package io.papermc.paper.pluginremap.reflect;
 
+import com.mohistmc.youer.bukkit.remapping.ReobfTiny;
 import com.mojang.logging.LogUtils;
 import io.papermc.paper.util.MappingEnvironment;
 import io.papermc.paper.util.ObfHelper;
@@ -52,7 +53,11 @@ public final class PaperReflection extends AbstractDefaultRulesReflectionProxy i
     @Override
     protected String mapClassName(final String name) {
         final ObfHelper.@Nullable ClassMapping mapping = this.mappingsByObfName.get(name);
-        return mapping != null ? mapping.mojangName() : removeCraftBukkitRelocation(name);
+        if (mapping != null) {
+            return mapping.mojangName();
+        }
+        final @Nullable String runtime = ReobfTiny.INSTANCE.runtimeClassName(name);
+        return runtime != null ? runtime : removeCraftBukkitRelocation(name);
     }
 
     @Override
@@ -72,6 +77,10 @@ public final class PaperReflection extends AbstractDefaultRulesReflectionProxy i
 
     @Override
     protected String mapDeclaredFieldName(final Class<?> clazz, final String name) {
+        final @Nullable String runtime = ReobfTiny.INSTANCE.runtimeFieldName(clazz, name);
+        if (runtime != null) {
+            return runtime;
+        }
         final ObfHelper.@Nullable ClassMapping mapping = this.mappingsByMojangName.get(clazz.getName());
         if (mapping == null) {
             return name;
@@ -81,6 +90,10 @@ public final class PaperReflection extends AbstractDefaultRulesReflectionProxy i
 
     @Override
     protected String mapFieldName(final Class<?> clazz, final String name) {
+        final @Nullable String runtime = ReobfTiny.INSTANCE.runtimeFieldName(clazz, name);
+        if (runtime != null) {
+            return runtime;
+        }
         final @Nullable String mapped = this.findMappedFieldName(clazz, name);
         return mapped != null ? mapped : name;
     }
