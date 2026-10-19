@@ -16,6 +16,14 @@
  import org.slf4j.Logger;
  import org.slf4j.Marker;
  import org.slf4j.MarkerFactory;
+@@ -87,6 +_,7 @@
+     private final PacketFlow receiving;
+     private volatile boolean sendLoginDisconnect = true;
+     private final Queue<Consumer<Connection>> pendingActions = Queues.newConcurrentLinkedQueue();
++    private final Queue<Runnable> pendingProtocolPackets = Queues.newConcurrentLinkedQueue(); // Youer - packets sent while switching protocols
+     public Channel channel;
+     public SocketAddress address;
+     @Nullable
 @@ -107,7 +_,48 @@
      private volatile DisconnectionDetails delayedDisconnect;
      @Nullable
@@ -237,6 +245,47 @@
                  );
              }
  
+@@ -262,8 +_,27 @@
+             syncAfterConfigurationChange(
+                 this.channel.writeAndFlush(unconfiguredpipelinehandler$outboundconfigurationtask.andThen(p_319527_ -> this.sendLoginDisconnect = flag))
+             );
+-        }
+-    }
++            this.flushPendingProtocolPackets(); // Youer
++        }
++    }
++
++    // Youer start - flush packets deferred during a protocol switch
++    private void flushPendingProtocolPackets() {
++        if (this.pendingProtocolPackets.isEmpty() || this.channel == null || !this.channel.isOpen()) {
++            return;
++        }
++        this.channel.eventLoop().execute(() -> {
++            int size = this.pendingProtocolPackets.size();
++            for (int i = 0; i < size; i++) {
++                Runnable runnable = this.pendingProtocolPackets.poll();
++                if (runnable == null) {
++                    return;
++                }
++                runnable.run();
++            }
++        });
++    }
++    // Youer end
+ 
+     public void setListenerForServerboundHandshake(PacketListener p_294829_) {
+         if (this.packetListener != null) {
+@@ -344,6 +_,10 @@
+     }
+ 
+     private void doSendPacket(Packet<?> p_243260_, @Nullable PacketSendListener p_243290_, boolean p_294125_) {
++        if (this.channel.pipeline().get("outbound_config") != null) { // Youer - defer until the next protocol is set up
++            this.pendingProtocolPackets.add(() -> this.doSendPacket(p_243260_, p_243290_, p_294125_));
++            return;
++        }
+         ChannelFuture channelfuture = p_294125_ ? this.channel.writeAndFlush(p_243260_) : this.channel.write(p_243260_);
+         if (p_243290_ != null) {
+             channelfuture.addListener(p_243167_ -> {
 @@ -389,10 +_,26 @@
          }
      }
@@ -367,7 +416,7 @@
          } else {
              if (this.channel.pipeline().get("decompress") instanceof CompressionDecoder) {
                  this.channel.pipeline().remove("decompress");
-@@ -607,13 +_,14 @@
+@@ -607,15 +_,17 @@
              if (this.channel.pipeline().get("compress") instanceof CompressionEncoder) {
                  this.channel.pipeline().remove("compress");
              }
@@ -382,7 +431,10 @@
 +                // LOGGER.warn("handleDisconnection() called twice");
              } else {
                  this.disconnectionHandled = true;
++                this.pendingProtocolPackets.clear(); // Youer
                  PacketListener packetlistener = this.getPacketListener();
+                 PacketListener packetlistener1 = packetlistener != null ? packetlistener : this.disconnectListener;
+                 if (packetlistener1 != null) {
 @@ -624,6 +_,26 @@
                      );
                      packetlistener1.onDisconnect(disconnectiondetails);
