@@ -1,19 +1,5 @@
 --- a/net/minecraft/world/item/crafting/RecipeMap.java
 +++ b/net/minecraft/world/item/crafting/RecipeMap.java
-@@ -2,9 +_,13 @@
- 
- import com.google.common.collect.ImmutableMap;
- import com.google.common.collect.ImmutableMultimap;
-+import com.google.common.collect.LinkedHashMultimap;
-+import com.google.common.collect.Maps;
- import com.google.common.collect.Multimap;
- import com.google.common.collect.ImmutableMultimap.Builder;
- import java.util.Collection;
-+import java.util.Iterator;
-+import java.util.LinkedHashMap;
- import java.util.Map;
- import java.util.stream.Stream;
- import net.minecraft.core.HolderLookup;
 @@ -14,7 +_,7 @@
  
  public class RecipeMap {
@@ -23,10 +9,12 @@
      public final Map<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey;
  
      private RecipeMap(Multimap<RecipeType<?>, RecipeHolder<?>> byType, Map<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey) {
-@@ -33,6 +_,66 @@
+@@ -31,6 +_,75 @@
+             byKey.put(recipe.key(), legacyRecipeHolder);
+         });
          return new RecipeMap(byType.build(), byKey.build());
-     }
- 
++    }
++
 +    /// Neo: add factory method for RecipeMap holding recipes synced to the client
 +    public static RecipeMap createClient(java.util.List<RecipeHolder<?>> recipes) {
 +        Builder<RecipeType<?>, RecipeHolder<?>> byType = ImmutableMultimap.builder();
@@ -47,6 +35,10 @@
 +    public void addRecipe(RecipeHolder<?> holder) {
 +        holder = holder.asRuntimeAddedRecipe(); // Mark recipes holder as added during runtime
 +        Collection<RecipeHolder<?>> recipes = this.byType.get(holder.value().getType());
++        if (recipes instanceof com.google.common.collect.ImmutableCollection) {
++            this.byType = com.google.common.collect.LinkedHashMultimap.create(this.byType);
++            recipes = this.byType.get(holder.value().getType());
++        }
 +
 +        if (this.byKey.containsKey(holder.id())) {
 +            throw new IllegalStateException("Duplicate recipe ignored with ID " + holder.id());
@@ -63,6 +55,11 @@
 +        if (remove == null) {
 +            return false;
 +        }
++        // CraftBukkit start - defensive: ensure byType is mutable before attempting remove
++        if (this.byType instanceof com.google.common.collect.ImmutableMultimap) {
++            this.byType = com.google.common.collect.LinkedHashMultimap.create(this.byType);
++        }
++        // CraftBukkit end
 +        final Collection<? extends RecipeHolder<?>> recipes = this.byType(remove.value().getType());
 +        return recipes.remove(remove);
 +    }
@@ -85,33 +82,6 @@
 +        }
 +
 +        this.byType = ImmutableMultimap.copyOf(finalBuilder);
-+    }
-+
+     }
+ 
      public <I extends RecipeInput, T extends Recipe<I>> Collection<RecipeHolder<T>> byType(RecipeType<T> type) {
-         return (Collection<RecipeHolder<T>>)(Collection<?>)this.byType.get(type);
-     }
-@@ -48,4 +_,24 @@
-     public <I extends RecipeInput, T extends Recipe<I>> Stream<RecipeHolder<T>> getRecipesFor(RecipeType<T> type, I container, Level level) {
-         return container.isEmpty() ? Stream.empty() : this.byType(type).stream().filter(r -> r.value().matches(container, level));
-     }
-+
-+    // DivineMC start - Carpet-Fixes - Remove streams to be faster
-+    public <I extends RecipeInput, T extends Recipe<I>> java.util.List<RecipeHolder<T>> getRecipesForList(RecipeType<T> type, I input, Level world) {
-+        java.util.List<RecipeHolder<T>> list;
-+
-+        if (input.isEmpty()) {
-+            return java.util.List.of();
-+        } else {
-+            list = new java.util.ArrayList<>();
-+        }
-+
-+        for (RecipeHolder<T> recipeholder : this.byType(type)) {
-+            if (recipeholder.value().matches(input, world)) {
-+                list.add(recipeholder);
-+            }
-+        }
-+
-+        return list;
-+    }
-+    // DivineMC end - Carpet-Fixes - Remove streams to be faster
- }

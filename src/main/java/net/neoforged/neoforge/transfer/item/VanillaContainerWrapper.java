@@ -85,6 +85,7 @@ public class VanillaContainerWrapper implements ResourceHandler<ItemResource> {
         }
         return new VanillaContainerWrapper(container);
     }
+
     private final Container container;
     int size;
     final List<SlotWrapper> slotWrappers = new ArrayList<>();
