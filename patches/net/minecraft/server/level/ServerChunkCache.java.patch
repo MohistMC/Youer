@@ -43,11 +43,10 @@
      private static final int CACHE_SIZE = 4;
      private final long[] lastChunkPos = new long[4];
      private final @Nullable ChunkStatus[] lastChunkStatus = new ChunkStatus[4];
-@@ -75,7 +_,120 @@
+@@ -75,6 +_,117 @@
      private final Set<ChunkHolder> chunkHoldersToBroadcast = new ReferenceOpenHashSet<>();
      @VisibleForDebug
      private NaturalSpawner.@Nullable SpawnState lastSpawnState;
--
 +    // Paper start
 +    public final ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2ReferenceHashTable<net.minecraft.world.level.chunk.LevelChunk> fullChunks = ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2ReferenceHashTable.createWithCapacity(ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2ReferenceHashTable.defaultCapacity(), 0.25f);
 +    public int getFullChunksCount() {
@@ -159,12 +158,9 @@
 +        }
 +    }
 +    // Paper end - chunk tick iteration optimisations
-+
-+    public boolean pufferfish$firstRunSpawnCounts = true; // Pufferfish
-+    public final java.util.concurrent.atomic.AtomicBoolean pufferfish$spawnCountsReady = new java.util.concurrent.atomic.AtomicBoolean(false); // Pufferfish - Optimize count mobs
+ 
      public ServerChunkCache(
          ServerLevel level,
-         LevelStorageSource.LevelStorageAccess levelStorage,
 @@ -86,7 +_,9 @@
          int viewDistance,
          int simulationDistance,
@@ -650,7 +646,7 @@
  
          if (!spawningCategories.isEmpty()) {
 -            if (this.level.canSpawnEntitiesInChunk(chunkPos)) {
-+            if (this.level.getWorldBorder().isWithinBounds(chunkPos) && pufferfish$spawnCountsReady.get() && this.chunkMap.anyPlayerCloseEnoughForSpawning(chunkPos, true)) { // Paper - rewrite chunk system // Pufferfish - Async mob spawning
++            if (this.level.getWorldBorder().isWithinBounds(chunkPos)) { // Paper - rewrite chunk system
                  NaturalSpawner.spawnForChunk(this.level, chunk, spawnCookie, spawningCategories);
              }
          }

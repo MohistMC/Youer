@@ -665,7 +665,7 @@
      }
  
      protected final AABB makeBoundingBox() {
-@@ -513,10 +_,25 @@
+@@ -513,10 +_,16 @@
      }
  
      public void tick() {
@@ -677,8 +677,21 @@
 +        // Paper end - entity despawn time limit
          this.baseTick();
      }
- 
+-
 -    public final void commonTick() {
++	
++	public final void commonTick() {
+         if (this.invulnerableTime > 0) {
+             this.invulnerableTime--;
+         }
+@@ -527,11 +_,25 @@
+         }
+ 
+         this.tickCount++;
+-    }
++        this.totalEntityAge++; // Paper - age-like counter for all entities
++    }
++
 +    // CraftBukkit start
 +    public void postTick() {
 +        // No clean way to break out of ticking once the entity has been copied to a new world, so instead we move the portalling later in the tick cycle
@@ -687,13 +700,6 @@
 +        }
 +    }
 +    // CraftBukkit end
-+	
-+	public final void commonTick() {
-         if (this.invulnerableTime > 0) {
-             this.invulnerableTime--;
-         }
-@@ -530,8 +_,12 @@
-     }
  
      public void baseTick() {
 +        if (BanEntity.check(this)) {
