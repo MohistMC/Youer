@@ -106,6 +106,17 @@ public final class MCUtil {
      */
     public static <T> T ensureMain(String reason, Supplier<T> run) {
         if (!isMainThread()) {
+            // Youer start - run inline when stopServer() runs on this thread, like MinecraftServer#wrapRunnable, or we deadlock (#560)
+            MinecraftServer server = MinecraftServer.getServer();
+            if (server.hasStopped() && Thread.currentThread().equals(server.shutdownThread)) {
+                try {
+                    return run.get();
+                } catch (Throwable t) {
+                    MinecraftServer.LOGGER.warn("Encountered exception", t);
+                    return null;
+                }
+            }
+            // Youer end
             Waitable<T> wait = new Waitable<>() {
                 @Override
                 protected T evaluate() {

@@ -129,14 +129,22 @@ public class WatchdogThread extends Thread
                         if (restart) {
                             RestartCommand.addShutdownHook( SpigotConfig.restartScript );
                         }
-                        try {
-                            Thread.sleep(1000);
-                        } catch (InterruptedException e) {
-                            e.printStackTrace();
+                        // Youer start - only take over the shutdown while the server is running, the main thread may already be stopping (#560)
+                        if ( server.isRunning() )
+                        {
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {
+                                e.printStackTrace();
+                            }
+                            if ( server.isRunning() && !server.hasStopped() )
+                            {
+                                server.close();
+                            }
+                        } else {
+                            log.log(Level.WARNING, I18n.as("watchdog.alreadyStopping"));
                         }
-                        if (!server.hasStopped()) {
-                            server.close();
-                        }
+                        // Youer end
                     }
                     break;
                 } // Paper end

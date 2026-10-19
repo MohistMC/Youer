@@ -227,9 +227,14 @@ public class RegistryManager {
         if (isLocal)
             return List.of();
 
-        return takeSnapshot(SnapshotType.SYNC_TO_CLIENT).entrySet().stream()
+        // Youer start - sync the snapshot taken when mod loading finished, not the live registries:
+        // plugins (e.g. CraftEngine) unfreeze and register entries at runtime, and NeoForge clients
+        // reject snapshots containing keys they do not know ("server sent registries with unknown keys").
+        Map<ResourceLocation, RegistrySnapshot> snapshots = frozenSnapshot != null ? frozenSnapshot : takeSnapshot(SnapshotType.SYNC_TO_CLIENT);
+        return snapshots.entrySet().stream()
                 .map(e -> new FrozenRegistryPayload(e.getKey(), e.getValue()))
                 .toList();
+        // Youer end
     }
 
     public static List<ResourceLocation> getRegistryNamesForSyncToClient() {
