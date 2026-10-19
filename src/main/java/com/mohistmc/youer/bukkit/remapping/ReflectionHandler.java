@@ -149,9 +149,8 @@ public class ReflectionHandler extends ClassLoader {
 
     // srg -> bukkit
     public static String redirectClassGetName(Class<?> cl) {
-        String internalName = Type.getInternalName(cl);
-        Type type = Type.getObjectType(remapper.toBukkitRemapper().mapType(internalName));
-        return type.getInternalName().replace('/', '.');
+        String mapped = remapper.toBukkitRemapper().mapType(Type.getInternalName(cl));
+        return Type.getObjectType(mapped).getInternalName().replace('/', '.');
     }
 
     // srg -> bukkit
@@ -223,8 +222,7 @@ public class ReflectionHandler extends ClassLoader {
     // bukkit -> srg
     public static Class<?> redirectClassForName(String cl, boolean initialize, ClassLoader classLoader) throws ClassNotFoundException {
         try {
-            String replace = remapper.mapType(cl.replace('.', '/')).replace('/', '.');
-            return Class.forName(replace, initialize, classLoader);
+            return Class.forName(mapRuntimeClassName(cl), initialize, classLoader);
         } catch (ClassNotFoundException e) { // nested/inner class
             int i = cl.lastIndexOf('.');
             if (i > 0) {
@@ -234,6 +232,25 @@ public class ReflectionHandler extends ClassLoader {
                 return Class.forName(replace, initialize, classLoader);
             } else throw e;
         }
+    }
+
+    /**
+     * The runtime name of a class a plugin asked for by name.
+     *
+     * <p>The server ships a mojang -&gt; spigot table for remapping plugins, and a plugin that
+     * translates its own names at runtime consults it for classes as well as members. A name
+     * from that table can belong to another class at runtime: the spigot namespace calls the
+     * fluid state {@code Fluid}, while the runtime {@code Fluid} is the fluid type.
+     */
+    private static String mapRuntimeClassName(String cl) {
+        String internal = cl.replace('.', '/');
+        if (internal.startsWith("net/minecraft/")) {
+            String runtime = ReobfTiny.INSTANCE.runtimeClassOf(internal);
+            if (runtime != null) {
+                return runtime.replace('/', '.');
+            }
+        }
+        return remapper.mapType(internal).replace('/', '.');
     }
 
     // bukkit -> srg

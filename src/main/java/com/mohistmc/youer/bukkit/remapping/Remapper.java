@@ -74,6 +74,7 @@ public class Remapper {
         this.transformerList.add(InterfaceInvokerGen.INSTANCE);
         this.transformerList.add(RedirectAdapter.INSTANCE);
         this.transformerList.add(ClassLoaderAdapter.INSTANCE);
+        this.transformerList.add(ProxyAnnotationRemapper.INSTANCE);
         toBukkitMapping.setFallbackInheritanceProvider(GlobalClassRepo.inheritanceProvider());
         this.toBukkitRemapper = new LenientJarRemapper(toBukkitMapping);
         this.toNmsRemapper = new LenientJarRemapper(toNmsMapping);

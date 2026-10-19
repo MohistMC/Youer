@@ -1,13 +1,26 @@
 --- a/net/minecraft/network/codec/IdDispatchCodec.java
 +++ b/net/minecraft/network/codec/IdDispatchCodec.java
-@@ -7,6 +_,7 @@
+@@ -1,5 +_,6 @@
+ package net.minecraft.network.codec;
+ 
++import com.mojang.logging.LogUtils;
+ import io.netty.buffer.ByteBuf;
+ import io.netty.handler.codec.DecoderException;
+ import io.netty.handler.codec.EncoderException;
+@@ -7,10 +_,13 @@
  import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
  import java.util.ArrayList;
  import java.util.List;
 +import java.util.Objects;
  import java.util.function.Function;
  import net.minecraft.network.VarInt;
++import org.slf4j.Logger;
  
+ public class IdDispatchCodec<B extends ByteBuf, V, T> implements StreamCodec<B, V> {
++    private static final Logger LOGGER = LogUtils.getLogger();
+     private static final int UNKNOWN_TYPE = -1;
+     private final Function<V, ? extends T> typeGetter;
+     public final List<IdDispatchCodec.Entry<B, V, T>> byId;
 @@ -39,6 +_,10 @@
  
      public void encode(B p_319955_, V p_320138_) {
@@ -19,3 +32,22 @@
          int i = this.toId.getOrDefault(t, -1);
          if (i == -1) {
              throw new EncoderException("Sending unknown packet '" + t + "'");
+@@ -50,8 +_,17 @@
+                 StreamCodec<? super B, V> streamcodec = (StreamCodec<? super B, V>)entry.serializer;
+                 streamcodec.encode(p_319955_, p_320138_);
+             } catch (Exception exception) {
+-                throw new EncoderException("Failed to encode packet '" + t + "'", exception);
++                String detail = LOGGER.isDebugEnabled() ? " -> " + describe(p_320138_) : "";
++                throw new EncoderException("Failed to encode packet '" + t + "'" + detail, exception);
+             }
++        }
++    }
++
++    private static String describe(Object value) {
++        try {
++            return String.valueOf(value);
++        } catch (Throwable ignored) {
++            return value.getClass().getName();
+         }
+     }
+ 

@@ -1,6 +1,6 @@
 --- a/net/minecraft/network/PacketEncoder.java
 +++ b/net/minecraft/network/PacketEncoder.java
-@@ -1,11 +_,16 @@
+@@ -1,11 +_,17 @@
  package net.minecraft.network;
  
 +import com.mohistmc.youer.feature.pulsegrasp.PacketStatistics;
@@ -11,13 +11,14 @@
  import net.minecraft.network.protocol.Packet;
  import net.minecraft.network.protocol.PacketType;
 +import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket;
++import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 +import net.minecraft.network.protocol.game.ClientboundBlockEntityDataPacket;
 +import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
 +import net.minecraft.core.registries.BuiltInRegistries;
  import net.minecraft.util.profiling.jfr.JvmProfiler;
  import org.slf4j.Logger;
  
-@@ -15,30 +_,104 @@
+@@ -15,30 +_,125 @@
  
      public PacketEncoder(ProtocolInfo<T> p_320006_) {
          this.protocolInfo = p_320006_;
@@ -83,7 +84,7 @@
              JvmProfiler.INSTANCE.onPacketSent(this.protocolInfo.id(), packettype, p_130545_.channel().remoteAddress(), i);
          } catch (Throwable throwable) {
 -            LOGGER.error("Error sending packet {}", packettype, throwable);
-+            LOGGER.error("Error sending packet {} (skippable? {})", packettype, p_130546_.isSkippable(), throwable);
++            LOGGER.error("Error sending packet {} (skippable? {}) -> {}", packettype, p_130546_.isSkippable(), packetDetail(p_130546_), throwable);
              if (p_130546_.isSkippable()) {
                  throw new SkipPacketException(throwable);
              }
@@ -102,6 +103,27 @@
 +
 +    public ProtocolInfo<T> getProtocolInfo() {
 +        return protocolInfo;
++    }
++
++    /**
++     * Builds a human-readable detail string for a failed-to-encode packet, so that the error log
++     * contains the actual payload (channel name, data, etc.) instead of just the packet type.
++     */
++    private static String packetDetail(Packet<?> packet) {
++        StringBuilder sb = new StringBuilder();
++        try {
++            if (packet instanceof ClientboundCustomPayloadPacket custom) {
++                CustomPacketPayload payload = custom.payload();
++                sb.append("channel=").append(payload.type().id()).append(", payloadClass=")
++                        .append(payload.getClass().getName()).append(", payload=").append(payload);
++            }
++        } catch (Throwable ignored) {
++        }
++        try {
++            sb.append(" packet=").append(packet);
++        } catch (Throwable ignored) {
++        }
++        return sb.toString();
 +    }
 +
 +    // Paper start

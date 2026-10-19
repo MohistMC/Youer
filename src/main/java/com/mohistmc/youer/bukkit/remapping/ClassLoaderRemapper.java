@@ -14,9 +14,11 @@ import java.net.URL;
 import java.net.URLConnection;
 import java.security.CodeSigner;
 import java.security.CodeSource;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -49,6 +51,7 @@ import org.spongepowered.asm.service.MixinService;
 public class ClassLoaderRemapper extends LenientJarRemapper {
 
     private static final Logger LOGGER = LogManager.getLogger("Youer");
+    private static final boolean DEBUG = Boolean.getBoolean("youer.debug");
     private static final String PREFIX = "net/minecraft/";
     private static final String REPLACED_NAME = Type.getInternalName(ReflectionHandler.class);
     private static final AtomicInteger COUNTER = new AtomicInteger();
@@ -69,6 +72,8 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
     // kept so it can be unregistered from GlobalClassRepo when the plugin is unloaded
     private final ClassLoaderRepo repo;
     private final Set<String> runtimeClasses = ConcurrentHashMap.newKeySet();
+    private final Map<String, Boolean> cacheSearch = new ConcurrentHashMap<>();
+    private final Map<String, Map<String, String>> cacheShared = new ConcurrentHashMap<>();
 
     public ClassLoaderRemapper(JarMapping jarMapping, JarMapping toBukkitMapping, ClassLoader classLoader) {
         super(jarMapping);
@@ -112,19 +117,11 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
         Map<WrappedMethod, Method> types = new HashMap<>();
         try {
             for (Method method : cl.getDeclaredMethods()) {
-                checkMethodTypes(method);
-                String name = mapMethod(method);
-                names.put(method, name);
-                WrappedMethod wrapped = new WrappedMethod(name, method.getParameterTypes());
-                types.put(wrapped, method);
+                collectMethod(names, types, method);
             }
 
             for (Method method : cl.getMethods()) {
-                checkMethodTypes(method);
-                String name = mapMethod(method);
-                names.put(method, name);
-                WrappedMethod wrapped = new WrappedMethod(name, method.getParameterTypes());
-                types.put(wrapped, method);
+                collectMethod(names, types, method);
             }
             return Maps.immutableEntry(names, types);
         } catch (TypeNotPresentException e) {
@@ -137,6 +134,23 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
         }
     }
 
+    private void collectMethod(Map<Method, String> names, Map<WrappedMethod, Method> types, Method method) {
+        try {
+            checkMethodTypes(method);
+            String name = mapMethod(method);
+            names.put(method, name);
+            WrappedMethod wrapped = new WrappedMethod(name, method.getParameterTypes());
+            types.put(wrapped, method);
+        } catch (TypeNotPresentException e) {
+            // The caller answers this by defining the missing class and starting over.
+            throw e;
+        } catch (RuntimeException | Error e) {
+            // A single signature that the mod launcher cannot resolve yet must not hide
+            // every other member of the class; those are answered from the member table.
+            LOGGER.debug("ClassLoaderRemapper: skipped " + method, e);
+        }
+    }
+
     private BiMap<Field, String> getFields(Class<?> cl, String internalName) {
         return cacheFields.computeIfAbsent(internalName, k -> this.tryGetFields(cl));
     }
@@ -145,12 +159,10 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
         try {
             HashBiMap<Field, String> map = HashBiMap.create();
             for (Field field : cl.getFields()) {
-                checkFieldTypes(field);
-                map.forcePut(field, mapField(field));
+                collectField(map, field);
             }
             for (Field field : cl.getDeclaredFields()) {
-                checkFieldTypes(field);
-                map.forcePut(field, mapField(field));
+                collectField(map, field);
             }
             return map;
         } catch (TypeNotPresentException e) {
@@ -161,6 +173,17 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
         } catch (NoClassDefFoundError error) {
             tryDefineClass(error.getMessage());
             return tryGetFields(cl);
+        }
+    }
+
+    private void collectField(HashBiMap<Field, String> map, Field field) {
+        try {
+            checkFieldTypes(field);
+            map.forcePut(field, mapField(field));
+        } catch (TypeNotPresentException e) {
+            throw e;
+        } catch (RuntimeException | Error e) {
+            LOGGER.debug("ClassLoaderRemapper: skipped " + field, e);
         }
     }
 
@@ -185,24 +208,130 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
     }
 
     private String mapMethod(Method method) {
+        String name = tableMethodName(method);
+        if (name.equals(method.getName())) {
+            String shared = sharedMethodNames(Type.getInternalName(method.getDeclaringClass())).get(method.getName() + paramsDesc(method.getParameterTypes()));
+            if (shared != null) {
+                return shared;
+            }
+        }
+        return name;
+    }
+
+    private String tableMethodName(Method method) {
         String owner = Type.getInternalName(method.getDeclaringClass());
-        String srgName = method.getName();
         String desc = Type.getMethodDescriptor(method);
-        return toBukkitRemapper.mapMethodName(owner, srgName, desc, -1);
+        if (!ReobfTiny.INSTANCE.knows(owner)) {
+            return toBukkitRemapper.mapMethodName(owner, method.getName(), desc, -1);
+        }
+        if (!pluginSearchesMembers(owner)) {
+            return method.getName();
+        }
+        String legacy = ReobfTiny.INSTANCE.methodName(owner, method.getName(), desc);
+        return legacy == null ? method.getName() : legacy;
+    }
+
+    /**
+     * The methods a distribution names alike, keyed by that name and its parameters.
+     *
+     * <p>A plugin finds a method by its name and parameters, so two methods answering to one of
+     * those names leave the plugin with whichever one the class happens to report first - and a
+     * proxy bound that way gets a body for the other one. The table renames a method onto the
+     * name a patch gave a second one when it split a signature apart, which is what a hybrid
+     * server has and a plain distribution does not, so the patched one keeps a name of its own.
+     *
+     * <p>A compiler writes the bridge form of a covariant override beside the method it forwards
+     * to, under one name and one parameter list, so those pairs are what every class reports and
+     * not a split signature; only the methods a distribution really differs over are named apart.
+     */
+    private Map<String, String> sharedMethodNames(String owner) {
+        return cacheShared.computeIfAbsent(owner, key -> findSharedMethodNames(key));
+    }
+
+    private Map<String, String> findSharedMethodNames(String owner) {
+        try {
+            Class<?> clazz = Class.forName(Type.getObjectType(owner).getClassName(), false, classLoader);
+            Map<String, List<Method>> byName = new HashMap<>();
+            for (Method method : clazz.getDeclaredMethods()) {
+                if (isBridgeMethod(method)) {
+                    continue;
+                }
+                byName.computeIfAbsent(tableMethodName(method) + paramsDesc(method.getParameterTypes()), k -> new ArrayList<>()).add(method);
+            }
+            Map<String, String> shared = new HashMap<>();
+            for (Map.Entry<String, List<Method>> entry : byName.entrySet()) {
+                if (entry.getValue().size() < 2) {
+                    continue;
+                }
+                for (Method method : entry.getValue()) {
+                    if (method.getName().equals(tableMethodName(method))) {
+                        String name = method.getName() + "$" + Type.getReturnType(Type.getMethodDescriptor(method)).getDescriptor();
+                        shared.put(method.getName() + paramsDesc(method.getParameterTypes()), name);
+                        if (DEBUG) {
+                            LOGGER.warn("ClassLoaderRemapper: " + owner + "#" + method.getName() + paramsDesc(method.getParameterTypes())
+                                    + " is named alike by " + entry.getValue().size() + " methods, showing it as " + name);
+                        }
+                    }
+                }
+            }
+            return shared;
+        } catch (Throwable e) {
+            LOGGER.debug("ClassLoaderRemapper: cannot read the methods of " + owner, e);
+            return Map.of();
+        }
+    }
+
+    private static boolean isBridgeMethod(Method method) {
+        return method.isBridge() || method.isSynthetic();
     }
 
     private String mapField(Field field) {
         String owner = Type.getInternalName(field.getDeclaringClass());
-        String srgName = field.getName();
         String desc = Type.getDescriptor(field.getType());
-        return toBukkitRemapper.mapFieldName(owner, srgName, desc, -1);
+        if (!ReobfTiny.INSTANCE.knows(owner)) {
+            return toBukkitRemapper.mapFieldName(owner, field.getName(), desc, -1);
+        }
+        if (!pluginSearchesMembers(owner)) {
+            return field.getName();
+        }
+        String legacy = ReobfTiny.INSTANCE.fieldName(owner, field.getName());
+        return legacy == null ? field.getName() : legacy;
+    }
+
+    /**
+     * Whether a plugin that translates the member names it searches for resolves members of this
+     * class through the table at all.
+     *
+     * <p>Such a plugin first looks the class up under the name {@link ReflectionHandler} shows it
+     * and only reads a member from the class it finds, so a class the plugin cannot find under
+     * that name leaves all of its members with the names the running server gives them. The two
+     * names only have to agree with each other, not with the running class: whichever one a
+     * plugin holds for it, that is the one it searches with.
+     */
+    private boolean pluginSearchesMembers(String owner) {
+        return cacheSearch.computeIfAbsent(owner, key -> {
+            String destination = ReobfTiny.INSTANCE.mapClassName(key);
+            return destination != null && destination.equals(toBukkitRemapper.mapType(key));
+        });
+    }
+
+    private static String paramsDesc(Class<?>[] types) {
+        StringBuilder builder = new StringBuilder();
+        for (Class<?> type : types) {
+            builder.append(Type.getDescriptor(type));
+        }
+        return builder.toString();
     }
 
     public String tryMapDecFieldToSrg(Class<?> cl, String bukkitName) {
         String internalName = Type.getInternalName(cl);
         if (internalName.startsWith(PREFIX)) {
             Field field = getFields(cl, internalName).inverse().get(bukkitName);
-            return field == null ? bukkitName : field.getName();
+            if (field != null) {
+                return field.getName();
+            }
+            String runtime = ReobfTiny.INSTANCE.runtimeFieldName(internalName, bukkitName);
+            return runtime == null ? bukkitName : runtime;
         } else return bukkitName;
     }
 
@@ -210,31 +339,73 @@ public class ClassLoaderRemapper extends LenientJarRemapper {
         String internalName = Type.getInternalName(cl);
         if (shouldRemap(internalName)) {
             Field field = getFields(cl, internalName).inverse().get(bukkitName);
-            return field == null ? bukkitName : field.getName();
+            if (field != null) {
+                return field.getName();
+            }
+            String runtime = ReobfTiny.INSTANCE.runtimeFieldName(internalName, bukkitName);
+            return runtime == null ? bukkitName : runtime;
         } else return bukkitName;
     }
 
     public String tryMapFieldToBukkit(Class<?> cl, String srgName, Field field) {
         String internalName = Type.getInternalName(cl);
         if (internalName.startsWith(PREFIX)) {
-            BiMap<Field, String> fields = getFields(cl, internalName);
-            return fields.getOrDefault(field, srgName);
+            String name = getFields(cl, internalName).get(field);
+            // The cache is built by resolving the type of every member, which a hybrid
+            // server cannot always do; those members are still nameable from the table.
+            if (name != null) {
+                return name;
+            }
+            try {
+                return mapField(field);
+            } catch (RuntimeException | Error e) {
+                return srgName;
+            }
         } else return srgName;
     }
 
     public Method tryMapMethodToSrg(Class<?> cl, String bukkitName, Class<?>[] pTypes) {
         if (cl == null) return null;
         String internalName = Type.getInternalName(cl);
-        if (shouldRemap(internalName)) {
-            return getMethods(cl, internalName).getValue().get(new WrappedMethod(bukkitName, pTypes));
-        } else return null;
+        if (!shouldRemap(internalName)) return null;
+        Method method = getMethods(cl, internalName).getValue().get(new WrappedMethod(bukkitName, pTypes));
+        if (method != null) {
+            return method;
+        }
+        // A plugin compiled against spigot asks for the short name that distribution really
+        // runs with, while this server holds the Mojang one the table pairs it with.
+        String runtime = ReobfTiny.INSTANCE.runtimeMethodName(internalName, bukkitName, paramsDesc(pTypes));
+        if (runtime == null) {
+            return null;
+        }
+        try {
+            return cl.getMethod(runtime, pTypes);
+        } catch (NoSuchMethodException ignored) {
+            // fall through to the declared form, which also reaches non public members
+        }
+        try {
+            return cl.getDeclaredMethod(runtime, pTypes);
+        } catch (NoSuchMethodException | SecurityException e) {
+            return null;
+        }
     }
 
     public String tryMapMethodToBukkit(Class<?> cl, Method method) {
         String internalName = Type.getInternalName(cl);
         if (shouldRemap(internalName)) {
-            return getMethods(cl, internalName).getKey().getOrDefault(method, method.getName());
-        } else return method.getName();
+            Map<Method, String> names = getMethods(cl, internalName).getKey();
+            String cached = names.get(method);
+            if (cached != null) {
+                return cached;
+            }
+            try {
+                return mapMethod(method);
+            } catch (RuntimeException | Error e) {
+                return method.getName();
+            }
+        } else {
+            return method.getName();
+        }
     }
 
     private boolean shouldRemap(String internalName) {
