@@ -1,5 +1,41 @@
 --- a/net/minecraft/nbt/CompoundTag.java
 +++ b/net/minecraft/nbt/CompoundTag.java
+@@ -35,7 +_,34 @@
+             },
+             t -> new Dynamic<>(NbtOps.INSTANCE, t.copy())
+         );
+-    private static final int SELF_SIZE_IN_BYTES = 48;
++    // Paper start - Optimize NBT reading/writing
++    @Override
++    public final void moonrise$writeWithId(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final boolean stringFallback) throws IOException {
++        out.writeByte(ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_MAP);
++        this.moonrise$writeWithoutId(out, stringFallback);
++    }
++
++    @Override
++    public final void moonrise$writeWithIdAndName(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final String name, final boolean stringFallback) throws IOException {
++        out.writeByte(ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_MAP);
++        ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTSerialiser.writeUTF(name, out, stringFallback);
++        this.moonrise$writeWithoutId(out, stringFallback);
++    }
++
++    // note: on change, check ListTag#writeWrapped
++    @Override
++    public final void moonrise$writeWithoutId(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final boolean stringFallback) throws IOException {
++        if (!this.tags.isEmpty()) {
++            for (final Map.Entry<String, Tag> entry : this.tags.entrySet()) {
++                ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTSerialiser.writeNamedTag(entry.getValue(), entry.getKey(), out, stringFallback);
++            }
++        }
++
++        out.writeByte(ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_END);
++    }
++    // Paper end - Optimize NBT reading/writing
++
++    public static final int SELF_SIZE_IN_BYTES = 48; // Paper - Optimize NBT reading/writing
+     private static final int MAP_ENTRY_SIZE_IN_BYTES = 32;
+     public static final TagType<CompoundTag> TYPE = new TagType.VariableSize<CompoundTag>() {
+         public CompoundTag load(DataInput input, NbtAccounter accounter) throws IOException {
 @@ -48,13 +_,19 @@
              }
          }
@@ -23,7 +59,13 @@
                  Tag tag = CompoundTag.readNamedTagData(TagTypes.getType(tagType), key, input, accounter);
                  if (values.put(key, tag) == null) {
                      accounter.accountBytes(36L);
-@@ -164,7 +_,18 @@
+@@ -159,12 +_,23 @@
+     };
+     private final Map<String, Tag> tags;
+ 
+-    CompoundTag(Map<String, Tag> tags) {
++    public CompoundTag(Map<String, Tag> tags) { // Paper - Optimize NBT reading/writing
+         this.tags = tags;
      }
  
      public CompoundTag() {

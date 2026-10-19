@@ -58,7 +58,7 @@
 +
 +            InputStream input = compression.wrap(new ByteArrayInputStream(chunkData.array(), chunkData.position(), chunkDataLength - chunkData.position()));
 +
-+            return net.minecraft.nbt.NbtIo.read(new DataInputStream(input));
++            return ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTParser.nbtIoRead(new DataInputStream(input)); // Paper - Optimize NBT reading/writing
 +        } catch (Exception ex) {
 +            return null;
 +        }
@@ -218,7 +218,7 @@
 +                    for (RegionFileVersion compressionType : RegionFileVersion.VERSIONS.values()) {
 +                        try {
 +                            DataInputStream in = new DataInputStream(compressionType.wrap(new ByteArrayInputStream(chunkData))); // typical java
-+                            compound = net.minecraft.nbt.NbtIo.read((java.io.DataInput)in);
++                            compound = ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTParser.nbtIoRead((java.io.DataInput)in); // Paper - Optimize NBT reading/writing
 +                            compression = compressionType;
 +                            break; // reaches here iff readNBT does not throw
 +                        } catch (Exception ex) {
@@ -846,8 +846,8 @@
 +
 +    synchronized net.minecraft.nbt.CompoundTag getOversizedData(int x, int z) throws IOException {
 +        Path file = getOversizedFile(x, z);
-+        try (DataInputStream out = new DataInputStream(new java.io.BufferedInputStream(new java.util.zip.InflaterInputStream(Files.newInputStream(file))))) {
-+            return net.minecraft.nbt.NbtIo.read((java.io.DataInput) out);
++        try (DataInputStream out = new DataInputStream(new java.util.zip.InflaterInputStream(Files.newInputStream(file)))) { // Paper - Optimize NBT reading/writing; FastNBTParser buffers internally
++            return ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTParser.nbtIoRead((java.io.DataInput) out); // Paper - Optimize NBT reading/writing
 +        }
 +
 +    }

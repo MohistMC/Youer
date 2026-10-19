@@ -1,0 +1,31 @@
+--- a/net/minecraft/nbt/ByteTag.java
++++ b/net/minecraft/nbt/ByteTag.java
+@@ -5,7 +_,27 @@
+ import java.io.IOException;
+ 
+ public record ByteTag(byte value) implements NumericTag {
+-    private static final int SELF_SIZE_IN_BYTES = 9;
++    // Paper start - Optimize NBT reading/writing
++    @Override
++    public final void moonrise$writeWithId(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final boolean stringFallback) throws IOException {
++        out.writeByte(ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_BYTE);
++        this.moonrise$writeWithoutId(out, stringFallback);
++    }
++
++    @Override
++    public final void moonrise$writeWithIdAndName(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final String name, final boolean stringFallback) throws IOException {
++        out.writeByte(ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_BYTE);
++        ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTSerialiser.writeUTF(name, out, stringFallback);
++        this.moonrise$writeWithoutId(out, stringFallback);
++    }
++
++    @Override
++    public final void moonrise$writeWithoutId(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final boolean stringFallback) throws IOException {
++        out.writeByte((int)this.value);
++    }
++    // Paper end - Optimize NBT reading/writing
++
++    public static final int SELF_SIZE_IN_BYTES = 9; // Paper - Optimize NBT reading/writing
+     public static final TagType<ByteTag> TYPE = new TagType.StaticSize<ByteTag>() {
+         public ByteTag load(DataInput input, NbtAccounter accounter) throws IOException {
+             return ByteTag.valueOf(readAccounted(input, accounter));

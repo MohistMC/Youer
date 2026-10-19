@@ -1,12 +1,26 @@
 --- a/net/minecraft/world/item/crafting/RecipeHolder.java
 +++ b/net/minecraft/world/item/crafting/RecipeHolder.java
-@@ -4,8 +_,16 @@
+@@ -4,8 +_,28 @@
  import net.minecraft.network.RegistryFriendlyByteBuf;
  import net.minecraft.network.codec.StreamCodec;
  import net.minecraft.resources.ResourceKey;
+-
+-public record RecipeHolder<T extends Recipe<?>>(ResourceKey<Recipe<?>> id, T value) {
 +import org.bukkit.craftbukkit.util.CraftNamespacedKey;
- 
- public record RecipeHolder<T extends Recipe<?>>(ResourceKey<Recipe<?>> id, T value) {
++
++// Paper start - track runtime added recipe holders
++// This includes any recipe holder added to the server via the added net.minecraft.world.item.crafting.RecipeMap#addRecipe
++// method.
++// As vanilla recipes cannot be re-registered, no vanilla recipe holder should ever show up in the recipe manager with
++// the runtimeAddedRecipe flag marked.
++public record RecipeHolder<T extends Recipe<?>>(ResourceKey<Recipe<?>> id, T value, boolean runtimeAddedRecipe) {
++    public RecipeHolder<T> asRuntimeAddedRecipe() {
++        return new RecipeHolder<>(id, value, true);
++    }
++    public RecipeHolder(final net.minecraft.resources.ResourceKey<net.minecraft.world.item.crafting.Recipe<?>> id, final T value) {
++        this(id, value, false);
++    }
++// Paper end - track runtime added recipe holders
 +
 +    // CraftBukkit start
 +    public org.bukkit.inventory.Recipe toBukkitRecipe() {

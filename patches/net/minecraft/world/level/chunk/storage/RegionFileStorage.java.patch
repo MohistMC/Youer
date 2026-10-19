@@ -10,7 +10,7 @@
      public static final String ANVIL_EXTENSION = ".mca";
      private static final int MAX_CACHE_SIZE = 256;
      private final Long2ObjectLinkedOpenHashMap<Optional<RegionFile>> regionCache = new Long2ObjectLinkedOpenHashMap<>();
-@@ -26,67 +_,310 @@
+@@ -26,67 +_,335 @@
      private final Path folder;
      private final boolean sync;
  
@@ -175,7 +175,32 @@
 +        final int chunkX, final int chunkZ, final ca.spottedleaf.moonrise.patches.chunk_system.io.MoonriseRegionFileIO.RegionDataController.ReadData readData
 +    ) throws IOException {
 +        try {
-+            return NbtIo.read(readData.input());
++            // Paper start - Attempt to recalculate regionfile header if it is corrupt
++            final CompoundTag ret = ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTParser.nbtIoRead(readData.input()); // Paper - Optimize NBT reading/writing
++            if (!this.isChunkData) {
++                return ret;
++            }
++
++            final ChunkPos pos = new ChunkPos(chunkX, chunkZ);
++            final ChunkPos headerChunkPos = SerializableChunkData.getChunkCoordinate(ret);
++            final RegionFile regionFile = this.getRegionFile(pos, true);
++
++            if (regionFile.getRecalculateCount() != readData.recalculateCount()) {
++                return null;
++            }
++
++            if (!headerChunkPos.equals(pos)) {
++                LOGGER.error("Attempting to read chunk data at " + pos + " but got chunk data for " + headerChunkPos + " instead! Attempting regionfile recalculation " + regionFile.getPath().toAbsolutePath());
++                if (regionFile.recalculateHeader()) {
++                    return null;
++                }
++
++                LOGGER.error(com.mojang.logging.LogUtils.FATAL_MARKER, "Can't recalculate regionfile header?");
++                return ret;
++            }
++
++            return ret;
++            // Paper end - Attempt to recalculate regionfile header if it is corrupt
 +        } finally {
 +            readData.input().close();
 +        }
@@ -286,7 +311,7 @@
 +        synchronized (regionfile) {
 +            try (DataInputStream datainputstream = regionfile.getChunkDataInputStream(chunkCoordinate)) {
 +                CompoundTag oversizedData = regionfile.getOversizedData(chunkCoordinate.x(), chunkCoordinate.z());
-+                CompoundTag chunk = NbtIo.read(datainputstream);
++                CompoundTag chunk = ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTParser.nbtIoRead(datainputstream); // Paper - Optimize NBT reading/writing
 +                if (oversizedData == null) {
 +                    return chunk;
 +                }
@@ -335,7 +360,7 @@
 +                return null;
 +            }
 +
-+            final CompoundTag serialisedChunkData = NbtIo.read(regionChunkInputStream);
++            final CompoundTag serialisedChunkData = ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTParser.nbtIoRead(regionChunkInputStream); // Paper - Optimize NBT reading/writing
 +            if (this.isChunkData) {
 +                ChunkPos headerChunkPos = SerializableChunkData.getChunkCoordinate(serialisedChunkData);
 +                if (!headerChunkPos.equals(pos)) {

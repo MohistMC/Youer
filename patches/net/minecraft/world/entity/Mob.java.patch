@@ -76,17 +76,19 @@
          this.jumpControl = new JumpControl(this);
          this.bodyRotationControl = this.createBodyControl();
          this.navigation = this.createNavigation(level);
-@@ -206,6 +_,21 @@
+@@ -206,6 +_,23 @@
          return this.lookControl;
      }
  
 +    // Paper start
++    private int inactiveTickDisableCounter;
++
 +    @Override
 +    public void inactiveTick() {
 +        super.inactiveTick();
-+        super.inactiveTick();
 +        if (!this.aware) return; // Paper - Do not tick AI for inactive unaware mobs
-+        if (this.goalSelector.inactiveTick()) {
++        final boolean isThrottled = this.level().paperConfig().entities.behavior.inactiveMobGoalSelectorThrottleRate.enabled() && inactiveTickDisableCounter++ % this.level().paperConfig().entities.behavior.inactiveMobGoalSelectorThrottleRate.intValue() != 0; // Paper - Throttle inactive goal selector ticking
++        if (this.goalSelector.inactiveTick() && !isThrottled) {
 +            this.goalSelector.tick();
 +        }
 +        if (this.targetSelector.inactiveTick()) {

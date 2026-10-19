@@ -52,7 +52,7 @@
                  i -> i.group(
                          elementCodec.mapResult(ExtraCodecs.orElsePartial(defaultValue))
                              .listOf()
-@@ -60,27 +_,75 @@
+@@ -60,27 +_,80 @@
                      .apply(i, PalettedContainerRO.PackedData::new)
              )
              .comapFlatMap(
@@ -88,20 +88,25 @@
 +            // We readd this here but in a smarter way than it was before
 +            int maxSize = 1 << dataConfiguration.bitsInMemory();
 +
-+            for (T presetValue : presetValues) {
++            for (int i = 0; i < presetValues.length; i++) {
 +                if (this.data.palette.getSize() >= maxSize) {
 +                    java.util.Set<T> allValues = new java.util.HashSet<>(values);
++                    int duplicates = values.size() - allValues.size();
 +                    allValues.addAll(Arrays.asList(presetValues));
-+                    int newBits = net.minecraft.util.Mth.ceillog2(allValues.size());
++                    int newBits = net.minecraft.util.Mth.ceillog2(allValues.size() + duplicates);
 +
 +                    if (newBits > dataConfiguration.bitsInMemory()) {
 +                        this.onResize(newBits, null);
++                    } else {
++                        for (int j = i; j < presetValues.length; j++) {
++                            this.data.palette.idFor(presetValues[j], this);
++                        }
 +                    }
 +
 +                    break;
 +                }
 +
-+                this.data.palette.idFor(presetValue, this);
++                this.data.palette.idFor(presetValues[i], this);
 +            }
 +        }
 +        // Paper end - Anti-Xray

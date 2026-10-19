@@ -186,7 +186,7 @@
          ItemStack newFuel = fuel;
          fuel.shrink(1);
          if (remainder != null) {
-@@ -254,30 +_,58 @@
+@@ -254,30 +_,63 @@
          return resultCount <= maxResultCount;
      }
  
@@ -238,10 +238,6 @@
 -    }
 -
 -    public float getSpeedMultiplier(ServerLevel level, ItemStack fuelItem) {
--        return ResolvableFloat.getFromItem(fuelItem, DataComponents.COOKING_FUEL, CookingFuel::speedMultiplier, this.getLootContext(level), 1.0F);
--    }
--
--    private static int getTotalCookTime(RecipeHolder<? extends AbstractCookingRecipe> recipe, AbstractFurnaceBlockEntity entity) {
 +        return true; // Paper - make burn return a boolean again
 +    }
 +
@@ -250,10 +246,16 @@
 +    }
 +
 +    protected float getSpeedMultiplier(ServerLevel level, ItemStack fuelItem) {
-+        return ResolvableFloat.getFromItem(fuelItem, DataComponents.COOKING_FUEL, CookingFuel::speedMultiplier, this.getLootContext(level), 1.0F) / (float) this.cookSpeedMultiplier; // Paper - cook speed multiplier API
-+    }
-+
+         return ResolvableFloat.getFromItem(fuelItem, DataComponents.COOKING_FUEL, CookingFuel::speedMultiplier, this.getLootContext(level), 1.0F);
+     }
+ 
+-    private static int getTotalCookTime(RecipeHolder<? extends AbstractCookingRecipe> recipe, AbstractFurnaceBlockEntity entity) {
 +    public static int getTotalCookTime(RecipeHolder<? extends AbstractCookingRecipe> recipe, AbstractFurnaceBlockEntity entity) {
++        // Paper start - cook speed multiplier API
++        return entity.cookSpeedMultiplier != 1.0d ? (int) Math.ceil(getTotalCookTimeVanilla(recipe, entity) / entity.cookSpeedMultiplier) : getTotalCookTimeVanilla(recipe, entity);
++    }
++    private static int getTotalCookTimeVanilla(final RecipeHolder<? extends AbstractCookingRecipe> recipe, final AbstractFurnaceBlockEntity entity) {
++        // Paper end - cook speed multiplier API
          int cookingTotalTime = recipe.value().cookingTime();
          return entity.speedMultiplier > 0.0F ? (int)Math.ceil(cookingTotalTime / entity.speedMultiplier) : cookingTotalTime;
      }

@@ -1,0 +1,23 @@
+--- a/net/minecraft/nbt/EndTag.java
++++ b/net/minecraft/nbt/EndTag.java
+@@ -5,6 +_,20 @@
+ import java.io.IOException;
+ 
+ public final class EndTag implements Tag {
++    // Paper start - Optimize NBT reading/writing
++    @Override
++    public final void moonrise$writeWithId(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final boolean stringFallback) throws IOException {
++        out.writeByte(ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_END);
++    }
++
++    @Override
++    public final void moonrise$writeWithIdAndName(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final String name, final boolean stringFallback) throws IOException {
++        out.writeByte(ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_END);
++    }
++
++    @Override
++    public final void moonrise$writeWithoutId(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final boolean stringFallback) throws IOException {}
++    // Paper end - Optimize NBT reading/writing
+     private static final int SELF_SIZE_IN_BYTES = 8;
+     public static final TagType<EndTag> TYPE = new TagType<EndTag>() {
+         public EndTag load(DataInput input, NbtAccounter accounter) {

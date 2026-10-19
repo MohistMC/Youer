@@ -1,5 +1,16 @@
 --- a/net/minecraft/nbt/NbtIo.java
 +++ b/net/minecraft/nbt/NbtIo.java
+@@ -1,5 +_,10 @@
+ package net.minecraft.nbt;
+ 
++import ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream;
++import ca.spottedleaf.ioutil.stream.wrapped.BufferedBufferOutputStream;
++import ca.spottedleaf.moonrise.patches.nbt_rw.CopyingOutputStream;
++import ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTSerialiser;
++import ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants;
+ import com.google.common.annotations.VisibleForTesting;
+ import java.io.BufferedOutputStream;
+ import java.io.DataInput;
 @@ -108,7 +_,12 @@
          return read(input, NbtAccounter.unlimitedHeap());
      }
@@ -14,6 +25,122 @@
          if (readUnnamedTag(input, accounter) instanceof CompoundTag compoundTag) {
              return compoundTag;
          } else {
+@@ -147,20 +_,101 @@
+         return type == 0 ? EndTag.INSTANCE : readTagSafe(input, accounter, type);
+     }
+ 
+-    public static void writeAnyTag(Tag tag, DataOutput output) throws IOException {
+-        output.writeByte(tag.getId());
+-        if (tag.getId() != 0) {
+-            tag.write(output);
+-        }
+-    }
+-
+-    public static void writeUnnamedTag(Tag tag, DataOutput output) throws IOException {
+-        output.writeByte(tag.getId());
+-        if (tag.getId() != 0) {
+-            output.writeUTF("");
+-            tag.write(output);
+-        }
+-    }
++    // Paper start - Optimize NBT reading/writing
++    private static void writeTagV(final Tag tag, final DataOutput output, final String name) throws IOException {
++        final byte id = tag.getId();
++        output.writeByte(id);
++        if (id != NBTConstants.NBT_TAG_END) {
++            if (name != null) {
++                output.writeUTF(name);
++            }
++            tag.write(output);
++        }
++    }
++
++    private static void writeTag(final Tag tag, final DataOutput output, final String name) throws IOException {
++        final boolean stringFallback;
++        final OutputStream stream;
++        if (output instanceof NbtIo.StringFallbackDataOutput fallback) {
++            stringFallback = true;
++            stream = fallback.parent instanceof OutputStream s ? s : null;
++        } else {
++            stringFallback = false;
++            stream = output instanceof OutputStream s ? s : null;
++        }
++        if (stream == null) {
++            // fallback to vanilla
++            writeTagV(tag, output, name);
++            return;
++        }
++        final AbstractBufferOutputStream toFlush;
++        final boolean writeBuffer;
++        final CopyingOutputStream copy;
++
++        if (stream instanceof AbstractBufferOutputStream out) {
++            if (NBTConstants.DEBUG_READ_WRITE) {
++                // note: no recursion, so we do not need to handle possible buffer re-use
++                toFlush = new BufferedBufferOutputStream(NBTConstants.BUFFER.get(), copy = new CopyingOutputStream(stream));
++            } else {
++                toFlush = out;
++            }
++
++            writeBuffer = false;
++        } else {
++            // note: no recursion, so we do not need to handle possible buffer re-use
++            if (NBTConstants.DEBUG_READ_WRITE) {
++                toFlush = new BufferedBufferOutputStream(NBTConstants.BUFFER.get(), copy = new CopyingOutputStream(stream));
++            } else {
++                toFlush = new BufferedBufferOutputStream(NBTConstants.BUFFER.get(), stream);
++            }
++            writeBuffer = true;
++        }
++        try {
++            if (name != null) {
++                FastNBTSerialiser.writeNamedTag(tag, name, toFlush, stringFallback);
++            } else {
++                FastNBTSerialiser.writeTag(tag, toFlush, stringFallback);
++            }
++
++            if (NBTConstants.DEBUG_READ_WRITE) {
++                toFlush.writeBuffer();
++
++                final java.io.ByteArrayOutputStream vanillaRaw = new java.io.ByteArrayOutputStream();
++                writeTagV(tag, new DataOutputStream(vanillaRaw), name);
++
++                final byte[] expected = vanillaRaw.toByteArray();
++                final byte[] got = new byte[Math.toIntExact(copy.copy.getReadableBytes())];
++                copy.copy.readBytes(0L, got, 0, got.length);
++
++                final int mismatch = java.util.Arrays.mismatch(expected, got);
++                if (mismatch != -1) {
++                    // this will fail to write the byte at the mismatch
++                    final ca.spottedleaf.ioutil.stream.wrapped.SimpleBufferOutputStream fail = new ca.spottedleaf.ioutil.stream.wrapped.SimpleBufferOutputStream(new ca.spottedleaf.ioutil.buffer.Buffer(false, "", new byte[mismatch]));
++                    if (name != null) {
++                        FastNBTSerialiser.writeNamedTag(tag, name, fail, stringFallback);
++                    } else {
++                        FastNBTSerialiser.writeTag(tag, fail, stringFallback);
++                    }
++
++                    throw new RuntimeException("????");
++                }
++            }
++        } finally {
++            // maintain behaviour with DataOutput
++            if (writeBuffer) {
++                toFlush.writeBuffer();
++            }
++        }
++    }
++
++    public static void writeAnyTag(final Tag tag, final DataOutput output) throws IOException {
++        writeTag(tag, output, null);
++    }
++
++    public static void writeUnnamedTag(final Tag tag, final DataOutput output) throws IOException {
++        writeTag(tag, output, "");
++    }
++    // Paper end - Optimize NBT reading/writing
+ 
+     public static void writeUnnamedTagWithFallback(Tag tag, DataOutput output) throws IOException {
+         writeUnnamedTag(tag, new NbtIo.StringFallbackDataOutput(output));
 @@ -169,11 +_,13 @@
      @VisibleForTesting
      public static Tag readUnnamedTag(DataInput input, NbtAccounter accounter) throws IOException {

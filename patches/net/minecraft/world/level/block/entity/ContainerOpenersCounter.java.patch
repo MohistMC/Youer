@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/entity/ContainerOpenersCounter.java
 +++ b/net/minecraft/world/level/block/entity/ContainerOpenersCounter.java
-@@ -16,17 +_,54 @@
+@@ -16,17 +_,48 @@
      private static final int CHECK_TICK_DELAY = 5;
      private int openCount;
      private double maxInteractionRange;
@@ -25,21 +25,15 @@
  
      protected abstract void openerCountChanged(final Level level, final BlockPos pos, final BlockState blockState, int previous, int current);
  
-+    // Paper start - delay open/close callbacks
++    // Paper start - delay close callbacks
 +    public boolean delayCallbacks() {
 +        return false;
 +    }
-+    // Paper end - delay open/close callbacks
++    // Paper end - delay close callbacks
 +
      public abstract boolean isOwnContainer(final Player player);
  
      public void incrementOpeners(LivingEntity entity, Level level, BlockPos pos, BlockState blockState, double maxInteractionRange) {
-+        // Paper start - delay open/close callbacks
-+        if (this.delayCallbacks()) {
-+            scheduleRecheck(level, pos, blockState, 1);
-+            return;
-+        }
-+        // Paper end - delay open/close callbacks
          int previous = this.openCount++;
 +
 +        // Paper start - Call BlockRedstoneEvent
@@ -60,12 +54,12 @@
      }
  
      public void decrementOpeners(LivingEntity entity, Level level, BlockPos pos, BlockState blockState) {
-+        // Paper start - delay open/close callbacks
++        // Paper start - delay close callbacks
 +        if (this.delayCallbacks()) {
 +            scheduleRecheck(level, pos, blockState, 1);
 +            return;
 +        }
-+        // Paper end - delay open/close callbacks
++        // Paper end - delay close callbacks
 +        if (this.openCount == 0) return; // Paper - Prevent ContainerOpenersCounter openCount from going negative
          int previous = this.openCount--;
 +
@@ -109,11 +103,11 @@
  
      private static void scheduleRecheck(Level level, BlockPos blockPos, BlockState blockState) {
 -        level.scheduleTick(blockPos, blockState.getBlock(), 5);
-+        // Paper start - delay open/close callbacks
++        // Paper start - delay close callbacks
 +        scheduleRecheck(level, blockPos, blockState, 5);
 +    }
 +    private static void scheduleRecheck(final Level level, final BlockPos blockPos, final BlockState blockState, final int delay) {
 +        level.scheduleTick(blockPos, blockState.getBlock(), delay);
-+        // Paper end - delay open/close callbacks
++        // Paper end - delay close callbacks
      }
  }

@@ -1,0 +1,31 @@
+--- a/net/minecraft/nbt/LongTag.java
++++ b/net/minecraft/nbt/LongTag.java
+@@ -5,7 +_,27 @@
+ import java.io.IOException;
+ 
+ public record LongTag(long value) implements NumericTag {
+-    private static final int SELF_SIZE_IN_BYTES = 16;
++    // Paper start - Optimize NBT reading/writing
++    @Override
++    public final void moonrise$writeWithId(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final boolean stringFallback) throws IOException {
++        out.writeByte(ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_LONG);
++        this.moonrise$writeWithoutId(out, stringFallback);
++    }
++
++    @Override
++    public final void moonrise$writeWithIdAndName(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final String name, final boolean stringFallback) throws IOException {
++        out.writeByte(ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_LONG);
++        ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTSerialiser.writeUTF(name, out, stringFallback);
++        this.moonrise$writeWithoutId(out, stringFallback);
++    }
++
++    @Override
++    public final void moonrise$writeWithoutId(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final boolean stringFallback) throws IOException {
++        out.writeLong(this.value);
++    }
++    // Paper end - Optimize NBT reading/writing
++
++    public static final int SELF_SIZE_IN_BYTES = 16; // Paper - Optimize NBT reading/writing
+     public static final TagType<LongTag> TYPE = new TagType.StaticSize<LongTag>() {
+         public LongTag load(DataInput input, NbtAccounter accounter) throws IOException {
+             return LongTag.valueOf(readAccounted(input, accounter));

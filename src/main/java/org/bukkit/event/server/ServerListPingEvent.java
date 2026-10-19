@@ -3,6 +3,8 @@ package org.bukkit.event.server;
 import com.google.common.base.Preconditions;
 import com.mohistmc.youer.api.ColorAPI;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.Iterator;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -29,14 +31,14 @@ public class ServerListPingEvent extends ServerEvent implements Iterable<Player>
     private static final HandlerList HANDLER_LIST = new HandlerList();
 
     private final String hostname;
-    private final InetAddress address;
+    private final SocketAddress address;
     private final int numPlayers;
     private Component motd;
     private int maxPlayers;
 
     @ApiStatus.Internal
     @Deprecated(forRemoval = true)
-    public ServerListPingEvent(@NotNull final String hostname, @NotNull final InetAddress address, @NotNull final String motd, final int numPlayers, final int maxPlayers) {
+    public ServerListPingEvent(@NotNull final String hostname, @NotNull final SocketAddress address, @NotNull final String motd, final int numPlayers, final int maxPlayers) {
         super(true);
         Preconditions.checkArgument(numPlayers >= 0, "Cannot have negative number of players online", numPlayers);
         this.hostname = hostname;
@@ -48,7 +50,7 @@ public class ServerListPingEvent extends ServerEvent implements Iterable<Player>
 
     @ApiStatus.Internal
     @Deprecated(forRemoval = true)
-    protected ServerListPingEvent(@NotNull final String hostname, @NotNull final InetAddress address, @NotNull final String motd, final int maxPlayers) {
+    protected ServerListPingEvent(@NotNull final String hostname, @NotNull final SocketAddress address, @NotNull final String motd, final int maxPlayers) {
         super(true);
         this.numPlayers = MAGIC_PLAYER_COUNT;
         this.hostname = hostname;
@@ -60,11 +62,11 @@ public class ServerListPingEvent extends ServerEvent implements Iterable<Player>
     @ApiStatus.Internal
     @Deprecated(forRemoval = true)
     public ServerListPingEvent(@NotNull final InetAddress address, @NotNull final Component motd, final int numPlayers, final int maxPlayers) {
-        this("", address, motd, numPlayers, maxPlayers);
+        this("", new InetSocketAddress(address, 0), motd, numPlayers, maxPlayers);
     }
 
     @ApiStatus.Internal
-    public ServerListPingEvent(@NotNull final String hostname, @NotNull final InetAddress address, @NotNull final Component motd, final int numPlayers, final int maxPlayers) {
+    public ServerListPingEvent(@NotNull final String hostname, @NotNull final SocketAddress address, @NotNull final Component motd, final int numPlayers, final int maxPlayers) {
         super(true);
         this.hostname = hostname;
         this.address = address;
@@ -76,7 +78,7 @@ public class ServerListPingEvent extends ServerEvent implements Iterable<Player>
     @ApiStatus.Internal
     @Deprecated(forRemoval = true)
     protected ServerListPingEvent(@NotNull final InetAddress address, @NotNull final Component motd, final int maxPlayers) {
-        this("", address, motd, maxPlayers);
+        this("", new InetSocketAddress(address, 0), motd, maxPlayers);
     }
 
     /*
@@ -85,7 +87,7 @@ public class ServerListPingEvent extends ServerEvent implements Iterable<Player>
      * count.
      */
     @ApiStatus.Internal
-    protected ServerListPingEvent(final @NotNull String hostname, final @NotNull InetAddress address, final @NotNull Component motd, final int maxPlayers) {
+    protected ServerListPingEvent(final @NotNull String hostname, final @NotNull SocketAddress address, final @NotNull Component motd, final int maxPlayers) {
         this.numPlayers = MAGIC_PLAYER_COUNT;
         this.hostname = hostname;
         this.address = address;
@@ -105,13 +107,25 @@ public class ServerListPingEvent extends ServerEvent implements Iterable<Player>
     }
 
     /**
+     * Gets the socket address the ping is coming from.
+     *
+     * @return the socket address
+     */
+    @NotNull
+    public SocketAddress getSocketAddress() {
+        return this.address;
+    }
+
+    /**
      * Get the address the ping is coming from.
      *
-     * @return the address
+     * @return the socket address, or the loopback address if the ping is
+     * coming from a Unix domain socket
      */
     @NotNull
     public InetAddress getAddress() {
-        return this.address;
+        if (this.address instanceof InetSocketAddress inet) return inet.getAddress();
+        return InetAddress.getLoopbackAddress();
     }
 
     /**

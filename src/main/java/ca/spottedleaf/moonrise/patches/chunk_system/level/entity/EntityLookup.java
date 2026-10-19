@@ -1,7 +1,7 @@
 package ca.spottedleaf.moonrise.patches.chunk_system.level.entity;
 
 import ca.spottedleaf.concurrentutil.map.SWMRLong2ObjectHashTable;
-import ca.spottedleaf.concurrentutil.map.concurrent.longs.ConcurrentChainedLong2ReferenceHashTable;
+import ca.spottedleaf.concurrentutil.map.concurrent.ints.ConcurrentChainedInt2ReferenceHashTable;
 import ca.spottedleaf.moonrise.common.list.EntityList;
 import ca.spottedleaf.moonrise.common.util.CoordinateUtils;
 import ca.spottedleaf.moonrise.common.util.WorldUtil;
@@ -48,7 +48,7 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
 
     protected final LevelCallback<Entity> worldCallback;
 
-    protected final ConcurrentChainedLong2ReferenceHashTable<Entity> entityById = new ConcurrentChainedLong2ReferenceHashTable<>();
+    protected final ConcurrentChainedInt2ReferenceHashTable<Entity> entityById = ConcurrentChainedInt2ReferenceHashTable.createWithCapacity(ConcurrentChainedInt2ReferenceHashTable.defaultCapacity(), 0.5f);
     protected final ConcurrentHashMap<UUID, Entity> entityByUUID = new ConcurrentHashMap<>();
     protected final EntityList accessibleEntities = new EntityList();
 
@@ -99,7 +99,7 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
 
     @Override
     public Entity get(final int id) {
-        return maskNonAccessible(this.entityById.get((long)id));
+        return maskNonAccessible(this.entityById.get(id));
     }
 
     @Override
@@ -108,7 +108,7 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
     }
 
     public boolean hasEntity(final int id) {
-        return this.entityById.containsKey((long)id);
+        return this.entityById.containsKey(id);
     }
 
     public boolean hasEntity(final UUID uuid) {
@@ -426,7 +426,7 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
             return false;
         }
 
-        Entity currentlyMapped = this.entityById.putIfAbsent((long)entity.getId(), entity);
+        Entity currentlyMapped = this.entityById.putIfAbsent(entity.getId(), entity);
         if (currentlyMapped != null) {
             //LOGGER.warn("Entity id already exists: " + entity.getId() + ", mapped to " + currentlyMapped + ", can't add " + entity);
             return false;
@@ -435,7 +435,7 @@ public abstract class EntityLookup implements LevelEntityGetter<Entity> {
         currentlyMapped = this.entityByUUID.putIfAbsent(entity.getUUID(), entity);
         if (currentlyMapped != null) {
             // need to remove mapping for id
-            this.entityById.remove((long)entity.getId(), entity);
+            this.entityById.remove(entity.getId(), entity);
             //LOGGER.warn("Entity uuid already exists: " + entity.getUUID() + ", mapped to " + currentlyMapped + ", can't add " + entity);
             return false;
         }

@@ -1,5 +1,34 @@
 --- a/net/minecraft/nbt/StringTag.java
 +++ b/net/minecraft/nbt/StringTag.java
+@@ -6,7 +_,27 @@
+ import java.util.Optional;
+ 
+ public record StringTag(String value) implements PrimitiveTag {
+-    private static final int SELF_SIZE_IN_BYTES = 36;
++    // Paper start - Optimize NBT reading/writing
++    @Override
++    public final void moonrise$writeWithId(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final boolean stringFallback) throws IOException {
++        out.writeByte(ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_STRING);
++        this.moonrise$writeWithoutId(out, stringFallback);
++    }
++
++    @Override
++    public final void moonrise$writeWithIdAndName(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final String name, final boolean stringFallback) throws IOException {
++        out.writeByte(ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_STRING);
++        ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTSerialiser.writeUTF(name, out, stringFallback);
++        this.moonrise$writeWithoutId(out, stringFallback);
++    }
++
++    @Override
++    public final void moonrise$writeWithoutId(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final boolean stringFallback) throws IOException {
++        ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTSerialiser.writeUTF(this.value, out, stringFallback);
++    }
++    // Paper end - Optimize NBT reading/writing
++
++    public static final int SELF_SIZE_IN_BYTES = 36; // Paper - Optimize NBT reading/writing
+     public static final TagType<StringTag> TYPE = new TagType.VariableSize<StringTag>() {
+         public StringTag load(DataInput input, NbtAccounter accounter) throws IOException {
+             return StringTag.valueOf(readAccounted(input, accounter));
 @@ -20,7 +_,7 @@
          private static String readAccounted(DataInput input, NbtAccounter accounter) throws IOException {
              accounter.accountBytes(36L);

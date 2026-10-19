@@ -99,6 +99,92 @@
              throw new EncoderException(e);
          }
      }
+@@ -455,14 +_,81 @@
+         }
+     }
+ 
++    // Paper start - Optimize NBT reading/writing
++    private static final org.slf4j.Logger LOGGER = com.mojang.logging.LogUtils.getLogger();
++    private static final String BUFFER_REF_KEY = "moonrise:network_read_nbt";
++    private static boolean reinterpretSupported = true;
++
++    private static @Nullable Tag readNbtV(final ByteBuf input, final NbtAccounter accounter) throws IOException {
++        final Tag ret = NbtIo.readAnyTag(new ByteBufInputStream(input), accounter);
++        return ret instanceof net.minecraft.nbt.EndTag ? null : ret;
++    }
++
+     public static @Nullable Tag readNbt(ByteBuf input, NbtAccounter accounter) {
+         try {
+-            Tag tag = NbtIo.readAnyTag(new ByteBufInputStream(input), accounter);
+-            return tag.getId() == 0 ? null : tag;
+-        } catch (IOException e) {
+-            throw new EncoderException(e);
++            if (!input.hasArray() && (!input.hasMemoryAddress() || !reinterpretSupported)) {
++                // just fall back to Vanilla
++                return readNbtV(input, accounter);
++            }
++
++            final java.lang.foreign.MemorySegment segment;
++            if (input.hasArray()) {
++                segment = java.lang.foreign.MemorySegment.ofBuffer(ByteBuffer.wrap(input.array(), input.arrayOffset(), input.capacity())).asReadOnly();
++            } else {
++                try {
++                    segment = java.lang.foreign.MemorySegment.ofAddress(input.memoryAddress()).asReadOnly().reinterpret(input.capacity());
++                } catch (final IllegalCallerException ex) {
++                    reinterpretSupported = false;
++                    LOGGER.error("MemorySegment.reinterpret not supported", ex);
++                    return readNbtV(input, accounter);
++                }
++            }
++            final ca.spottedleaf.ioutil.buffer.Buffer buffer = new ca.spottedleaf.ioutil.buffer.Buffer(
++                ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.DEBUG_READ_WRITE,
++                BUFFER_REF_KEY,
++                segment
++            );
++            int vanillaReadBytes = -1;
++            try {
++                buffer.setIndices(input.readerIndex(), input.writerIndex());
++
++                try (final ca.spottedleaf.ioutil.stream.wrapped.SimpleBufferInputStream in = new ca.spottedleaf.ioutil.stream.wrapped.SimpleBufferInputStream(buffer)) {
++                    final Tag ret = ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTParser.parseTagNoNameVanilla(in, accounter);
++
++                    if (ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.DEBUG_READ_WRITE) {
++                        final Tag vanilla;
++                        final ByteBuf inputCopy = input.copy();
++                        try (final ByteBufInputStream vanillaIn = new ByteBufInputStream(inputCopy, true)) {
++                            vanilla = NbtIo.readAnyTag(vanillaIn, accounter);
++                            vanillaReadBytes = inputCopy.readerIndex();
++                        }
++                        if (!java.util.Objects.equals(vanilla, ret)) {
++                            throw new IllegalStateException();
++                        }
++                    }
++                    return ret instanceof net.minecraft.nbt.EndTag ? null : ret;
++                }
++            } catch (final Throwable thr) {
++                ca.spottedleaf.common.util.ThrowUtil.throwUnchecked(thr);
++                return null;
++            } finally {
++                if (ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.DEBUG_READ_WRITE) {
++                    if (vanillaReadBytes != -1 && buffer.getReaderIndex() != (vanillaReadBytes + input.readerIndex())) {
++                        throw new IllegalStateException();
++                    }
++                }
++                try {
++                    input.readerIndex(Math.toIntExact(buffer.getReaderIndex()));
++                } finally {
++                    buffer.decReferenceCount(BUFFER_REF_KEY);
++                    buffer.ensureRefCountZero();
++                }
++            }
++        } catch (final IOException ex) {
++            throw new EncoderException(ex);
+         }
+     }
++    // Paper end - Optimize NBT reading/writing
+ 
+     public @Nullable Tag readNbt(NbtAccounter accounter) {
+         return readNbt(this, accounter);
 @@ -1483,5 +_,10 @@
      @Override
      public boolean release(int decrement) {

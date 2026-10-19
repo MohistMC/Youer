@@ -1,5 +1,36 @@
 --- a/net/minecraft/nbt/IntArrayTag.java
 +++ b/net/minecraft/nbt/IntArrayTag.java
+@@ -8,7 +_,29 @@
+ import org.apache.commons.lang3.ArrayUtils;
+ 
+ public final class IntArrayTag implements CollectionTag {
+-    private static final int SELF_SIZE_IN_BYTES = 24;
++    // Paper start - Optimize NBT reading/writing
++    @Override
++    public final void moonrise$writeWithId(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final boolean stringFallback) throws IOException {
++        out.writeByte(ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_INT_ARRAY);
++        this.moonrise$writeWithoutId(out, stringFallback);
++    }
++
++    @Override
++    public final void moonrise$writeWithIdAndName(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final String name, final boolean stringFallback) throws IOException {
++        out.writeByte(ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_INT_ARRAY);
++        ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTSerialiser.writeUTF(name, out, stringFallback);
++        this.moonrise$writeWithoutId(out, stringFallback);
++    }
++
++    @Override
++    public final void moonrise$writeWithoutId(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final boolean stringFallback) throws IOException {
++        final int[] data = this.data;
++        out.writeInt(data.length);
++        out.writeInts(data);
++    }
++    // Paper end - Optimize NBT reading/writing
++
++    public static final int SELF_SIZE_IN_BYTES = 24; // Paper - Optimize NBT reading/writing
+     public static final TagType<IntArrayTag> TYPE = new TagType.VariableSize<IntArrayTag>() {
+         public IntArrayTag load(DataInput input, NbtAccounter accounter) throws IOException {
+             return new IntArrayTag(readAccounted(input, accounter));
 @@ -22,6 +_,7 @@
          private static int[] readAccounted(DataInput input, NbtAccounter accounter) throws IOException {
              accounter.accountBytes(24L);

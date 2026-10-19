@@ -1,9 +1,87 @@
 --- a/net/minecraft/nbt/ListTag.java
 +++ b/net/minecraft/nbt/ListTag.java
-@@ -146,6 +_,15 @@
-         this(new ArrayList<>());
-     }
+@@ -15,7 +_,74 @@
  
+ public final class ListTag extends AbstractList<Tag> implements CollectionTag {
+     private static final String WRAPPER_MARKER = "";
+-    private static final int SELF_SIZE_IN_BYTES = 36;
++    // Paper start - Optimize NBT reading/writing
++    @Override
++    public final void moonrise$writeWithId(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final boolean stringFallback) throws IOException {
++        out.writeByte(ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_LIST);
++        this.moonrise$writeWithoutId(out, stringFallback);
++    }
++
++    @Override
++    public final void moonrise$writeWithIdAndName(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final String name, final boolean stringFallback) throws IOException {
++        out.writeByte(ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_LIST);
++        ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTSerialiser.writeUTF(name, out, stringFallback);
++        this.moonrise$writeWithoutId(out, stringFallback);
++    }
++
++    private static byte getIdToWrite(final List<Tag> list, final int size) {
++        if (size == 0) {
++            return ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_END;
++        }
++
++        final Tag first = list.get(0);
++        final Class<? extends Tag> firstClass = first.getClass();
++        for (int i = 1; i < size; ++i) {
++            if (list.get(i).getClass() != firstClass) {
++                // must wrap
++                return ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_MAP;
++            }
++        }
++
++        // no wrapping needed
++        return first.getId();
++    }
++
++    // note: equiv to 'new CompoundTag(Map.of("", tag)).write(...)'
++    private static void writeWrapped(final Tag tag, final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final boolean stringFallback) throws IOException {
++        ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTSerialiser.writeNamedTag(tag, "", out, stringFallback);
++
++        out.writeByte(ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_END);
++    }
++
++    @Override
++    public final void moonrise$writeWithoutId(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final boolean stringFallback) throws IOException {
++        final List<Tag> tags = this.list;
++        final int size = tags.size();
++
++        final byte typeToWrite = getIdToWrite(tags, size);
++
++        out.writeByte(typeToWrite);
++        out.writeInt(size);
++
++        if (typeToWrite == ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_MAP) {
++            // must potentially wrap
++            for (int i = 0; i < size; ++i) {
++                final Tag tag = tags.get(i);
++                if (!(tag instanceof CompoundTag compoundTag) || isWrapper(compoundTag)) {
++                    writeWrapped(tag, out, stringFallback);
++                } else {
++                    compoundTag.moonrise$writeWithoutId(out, stringFallback);
++                }
++            }
++        } else {
++            for (int i = 0; i < size; ++i) {
++                tags.get(i).moonrise$writeWithoutId(out, stringFallback);
++            }
++        }
++    }
++    // Paper end - Optimize NBT reading/writing
++
++    public static final int SELF_SIZE_IN_BYTES = 36; // Paper - Optimize NBT reading/writing
+     public static final TagType<ListTag> TYPE = new TagType.VariableSize<ListTag>() {
+         public ListTag load(DataInput input, NbtAccounter accounter) throws IOException {
+             accounter.pushDepth();
+@@ -144,6 +_,15 @@
+ 
+     public ListTag() {
+         this(new ArrayList<>());
++    }
++
 +    /**
 +     * Neo: create a list tag with the given initial capacity.
 +     *
@@ -11,8 +89,6 @@
 +     */
 +    public ListTag(int initialCapacity) {
 +        this(new ArrayList<>(initialCapacity));
-+    }
-+
-     public ListTag(List<Tag> list) {
-         this.list = list;
      }
+ 
+     public ListTag(List<Tag> list) {

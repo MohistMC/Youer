@@ -1,0 +1,31 @@
+--- a/net/minecraft/nbt/DoubleTag.java
++++ b/net/minecraft/nbt/DoubleTag.java
+@@ -6,7 +_,27 @@
+ import net.minecraft.util.Mth;
+ 
+ public record DoubleTag(double value) implements NumericTag {
+-    private static final int SELF_SIZE_IN_BYTES = 16;
++    // Paper start - Optimize NBT reading/writing
++    @Override
++    public final void moonrise$writeWithId(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final boolean stringFallback) throws IOException {
++        out.writeByte(ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_DOUBLE);
++        this.moonrise$writeWithoutId(out, stringFallback);
++    }
++
++    @Override
++    public final void moonrise$writeWithIdAndName(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final String name, final boolean stringFallback) throws IOException {
++        out.writeByte(ca.spottedleaf.moonrise.patches.nbt_rw.NBTConstants.NBT_TAG_DOUBLE);
++        ca.spottedleaf.moonrise.patches.nbt_rw.FastNBTSerialiser.writeUTF(name, out, stringFallback);
++        this.moonrise$writeWithoutId(out, stringFallback);
++    }
++
++    @Override
++    public final void moonrise$writeWithoutId(final ca.spottedleaf.ioutil.stream.AbstractBufferOutputStream out, final boolean stringFallback) throws IOException {
++        out.writeDouble(this.value);
++    }
++    // Paper end - Optimize NBT reading/writing
++
++    public static final int SELF_SIZE_IN_BYTES = 16; // Paper - Optimize NBT reading/writing
+     public static final DoubleTag ZERO = new DoubleTag(0.0);
+     public static final TagType<DoubleTag> TYPE = new TagType.StaticSize<DoubleTag>() {
+         public DoubleTag load(DataInput input, NbtAccounter accounter) throws IOException {

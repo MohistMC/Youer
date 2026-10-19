@@ -2,6 +2,8 @@ package org.bukkit.event.player;
 
 import com.mohistmc.youer.api.ColorAPI;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
 import java.util.UUID;
 import com.destroystokyo.paper.profile.PlayerProfile;
 import net.kyori.adventure.text.Component;
@@ -32,7 +34,7 @@ public class AsyncPlayerPreLoginEvent extends Event {
     private static final HandlerList HANDLER_LIST = new HandlerList();
 
     private final InetAddress ipAddress;
-    private final InetAddress rawAddress;
+    private final SocketAddress rawAddress;
     private final String hostname;
     private final boolean transferred;
     private Result result;
@@ -66,11 +68,11 @@ public class AsyncPlayerPreLoginEvent extends Event {
     @ApiStatus.Internal
     @Deprecated(forRemoval = true)
     public AsyncPlayerPreLoginEvent(@NotNull final String name, @NotNull final InetAddress ipAddress, @NotNull final InetAddress rawAddress, @NotNull final UUID uniqueId, boolean transferred, @NotNull com.destroystokyo.paper.profile.PlayerProfile profile) {
-        this(name, ipAddress, rawAddress, uniqueId, transferred, profile, "", null);
+        this(name, ipAddress, new InetSocketAddress(rawAddress, 0), uniqueId, transferred, profile, "", null);
     }
 
     @ApiStatus.Internal
-    public AsyncPlayerPreLoginEvent(@NotNull final String name, @NotNull final InetAddress ipAddress, @NotNull final InetAddress rawAddress, @NotNull final UUID uniqueId, boolean transferred, @NotNull com.destroystokyo.paper.profile.PlayerProfile profile, @NotNull String hostname, final PlayerLoginConnection playerLoginConnection) {
+    public AsyncPlayerPreLoginEvent(@NotNull final String name, @NotNull final InetAddress ipAddress, @NotNull final SocketAddress rawAddress, @NotNull final UUID uniqueId, boolean transferred, @NotNull com.destroystokyo.paper.profile.PlayerProfile profile, @NotNull String hostname, final PlayerLoginConnection playerLoginConnection) {
         super(true);
         this.result = Result.ALLOWED;
         this.message = Component.empty();
@@ -280,12 +282,23 @@ public class AsyncPlayerPreLoginEvent extends Event {
     }
 
     /**
+     * Gets the raw socket address of the player logging in
+     * @return The socket address
+     */
+    @NotNull
+    public SocketAddress getRawSocketAddress() {
+        return this.rawAddress;
+    }
+
+    /**
      * Gets the raw address of the player logging in
-     * @return The address
+     * @return The address, or the loopback address if the player is connecting
+     * through a Unix domain socket
      */
     @NotNull
     public InetAddress getRawAddress() {
-        return this.rawAddress;
+        if (this.rawAddress instanceof InetSocketAddress inet) return inet.getAddress();
+        return InetAddress.getLoopbackAddress();
     }
 
     /**
