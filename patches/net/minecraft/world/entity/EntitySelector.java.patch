@@ -25,7 +25,7 @@
  
      private EntitySelector() {
      }
-@@ -33,7 +_,7 @@
+@@ -33,14 +_,14 @@
              ? Predicates.alwaysFalse()
              : NO_SPECTATORS.and(
                  input -> {
@@ -33,4 +33,12 @@
 +                    if (!input.canCollideWithBukkit(entity) || !entity.canCollideWithBukkit(input)) { // CraftBukkit - collidable API
                          return false;
                      }
+ 
+                     if (!entity.level().isClientSide() || input instanceof Player player && player.isLocalPlayer()) {
+                         Team theirTeam = input.getTeam();
+                         Team.CollisionRule theirCollisionRule = theirTeam == null ? Team.CollisionRule.ALWAYS : theirTeam.getCollisionRule();
+-                        if (theirCollisionRule == Team.CollisionRule.NEVER) {
++                        if (theirCollisionRule == Team.CollisionRule.NEVER || (input instanceof Player && !io.papermc.paper.configuration.GlobalConfiguration.get().collisions.enablePlayerCollisions)) { // Paper - Configurable player collision
+                             return false;
+                         }
  

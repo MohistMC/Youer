@@ -792,7 +792,7 @@
          this.handlingTick = false;
          profiler.pop();
 -        boolean isActive = this.chunkSource.hasActiveTickets();
-+        boolean isActive = this.chunkSource.hasActiveTickets() || net.neoforged.neoforge.common.world.chunk.ForcedChunkManager.hasForcedChunks(this);
++        boolean isActive = !this.paperConfig().unsupportedSettings.disableWorldTickingWhenEmpty || this.chunkSource.hasActiveTickets() || net.neoforged.neoforge.common.world.chunk.ForcedChunkManager.hasForcedChunks(this); // CraftBukkit - this prevents entity cleanup, other issues on servers with no players // Paper - restore this
          if (isActive) {
              this.resetEmptyTime();
          }
@@ -973,19 +973,26 @@
          }
  
          profiler.pop();
-@@ -554,7 +_,7 @@
+@@ -554,20 +_,28 @@
          int minZ = chunkPos.getMinBlockZ();
          ProfilerFiller profiler = Profiler.get();
          profiler.push("thunder");
 -        if (raining && this.isThundering() && this.random.nextInt(100000) == 0) {
-+        if (raining && this.isThundering() && this.spigotConfig.thunderChance > 0 && this.random.nextInt(this.spigotConfig.thunderChance) == 0) { // Spigot
++        if (!this.paperConfig().environment.disableThunder && raining && this.isThundering() && this.spigotConfig.thunderChance > 0 && this.random.nextInt(this.spigotConfig.thunderChance) == 0) { // Spigot // Paper - Option to disable thunder
              BlockPos pos = this.findLightningTargetAround(this.getBlockRandomPos(minX, 0, minZ, 15));
              if (this.isRainingAt(pos)) {
                  DifficultyInstance difficulty = this.getCurrentDifficultyAt(pos);
-@@ -562,11 +_,21 @@
-                     && this.random.nextDouble() < difficulty.getEffectiveDifficulty() * 0.01
+                 boolean isTrap = this.getGameRules().get(GameRules.SPAWN_MOBS)
+-                    && this.random.nextDouble() < difficulty.getEffectiveDifficulty() * 0.01
++                    && this.random.nextDouble() < difficulty.getEffectiveDifficulty() * this.paperConfig().entities.spawning.skeletonHorseThunderSpawnChance.or(0.01) // Paper - Configurable spawn chances for skeleton horses
                      && !this.getBlockState(pos.below()).is(BlockTags.LIGHTNING_RODS);
                  if (isTrap) {
+-                    SkeletonHorse horse = EntityTypes.SKELETON_HORSE.create(this, EntitySpawnReason.EVENT);
+-                    if (horse != null) {
+-                        horse.setTrap(true);
+-                        horse.setAge(0);
+-                        horse.setPos(pos.getX(), pos.getY(), pos.getZ());
+-                        this.addFreshEntity(horse);
 +                    // Purpur start - Special mobs naturally spawn
 +                    net.minecraft.world.entity.animal.equine.AbstractHorse skeletonHorse;
 +                    if (purpurConfig.zombieHorseSpawnChance > 0D && random.nextDouble() <= purpurConfig.zombieHorseSpawnChance) {
@@ -995,16 +1002,14 @@
 +                        if (skeletonHorse != null) ((SkeletonHorse) skeletonHorse).setTrap(true);
 +                    }
 +                    // Purpur end - Special mobs naturally spawn
-                     SkeletonHorse horse = EntityTypes.SKELETON_HORSE.create(this, EntitySpawnReason.EVENT);
-                     if (horse != null) {
--                        horse.setTrap(true);
-+                        //horse.setTrap(true); // Purpur - Special mobs naturally spawn - moved up
-                         horse.setAge(0);
-                         horse.setPos(pos.getX(), pos.getY(), pos.getZ());
-+                        horse.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.LIGHTNING); // CraftBukkit
-                         this.addFreshEntity(horse);
++                    if (skeletonHorse != null) {
++                        skeletonHorse.setAge(0);
++                        skeletonHorse.setPos(pos.getX(), pos.getY(), pos.getZ());
++                        skeletonHorse.spawnReason(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.LIGHTNING); // CraftBukkit
++                        this.addFreshEntity(skeletonHorse);
                      }
                  }
+ 
 @@ -575,7 +_,7 @@
                  if (bolt != null) {
                      bolt.snapTo(Vec3.atBottomCenterOf(pos));

@@ -245,21 +245,57 @@
                  if (!blockState.isAir() && progress >= 1.0F) {
                      this.destroyAndAck(pos, sequence, "insta mine");
                  } else {
-@@ -282,8 +_,12 @@
+@@ -270,6 +_,8 @@
+ 
+         this.level.destroyBlockProgress(this.player.getId(), pos, -1);
+         this.debugLogging(pos, true, sequence, "aborted destroying");
++
++        org.bukkit.craftbukkit.event.CraftEventFactory.callBlockDamageAbortEvent(this.player, pos, this.player.getInventory().getSelectedItem()); // CraftBukkit
+     }
+ 
+     public void destroyAndAck(BlockPos pos, int sequence, String exitId) {
+@@ -282,10 +_,37 @@
      }
  
      public boolean destroyBlock(BlockPos pos) {
 +        // Neo: Fire the BlockBreakEvent, and ignore the original ItemStack#canDestroyBlock check since the break event manages the status of it.
          BlockState state = this.level.getBlockState(pos);
 -        if (!this.player.getMainHandItem().canDestroyBlock(state, this.level, pos, this.player)) {
+-            return false;
+-        }
 +        if (BanBlock.check(state)) return false; // Youer
 +        if (BanItem.check(this.player)) return false; // Youer
 +        var event = net.neoforged.neoforge.common.CommonHooks.fireBlockBreak(level, gameModeForPlayer, player, pos, state);
 +        if (event.isCanceled()) {
-             return false;
-         }
++            return false;
++        }
++
++        // CraftBukkit start - fire BlockBreakEvent
++        org.bukkit.block.Block bblock = org.bukkit.craftbukkit.block.CraftBlock.at(this.level, pos);
++        org.bukkit.event.block.BlockBreakEvent breakEvent = new org.bukkit.event.block.BlockBreakEvent(bblock, this.player.getBukkitEntity());
++        BlockState updatedBlockState = this.level.getBlockState(pos);
++        if (!this.isCreative() && this.player.hasCorrectToolForDrops(updatedBlockState)) {
++            breakEvent.setExpToDrop(updatedBlockState.getBlock().getExpDrop(updatedBlockState, this.level, pos, this.player.getItemBySlot(EquipmentSlot.MAINHAND), true));
++        }
++
++        if (!breakEvent.callEvent()) {
++            // Block entity data is not reset by the block acks, send after destroy prediction
++            BlockEntity brokenBlockEntity = this.level.getBlockEntity(pos);
++            if (brokenBlockEntity != null) {
++                this.player.connection.send(brokenBlockEntity.getUpdatePacket());
++            }
++            return false;
++        }
++
++        state = this.level.getBlockState(pos); // CraftBukkit - update state from plugins
++        if (state.isAir()) {
++            return false; // CraftBukkit - A plugin set block to air without cancelling
++        }
++        // CraftBukkit end
  
-@@ -299,28 +_,44 @@
+         BlockEntity blockEntity = this.level.getBlockEntity(pos);
+         Block block = state.getBlock();
+@@ -299,28 +_,48 @@
          }
  
          BlockState adjustedState = block.playerWillDestroy(this.level, pos, state, this.player);
@@ -285,14 +321,19 @@
 +        boolean changed = removeBlock(pos, adjustedState, canDestroy, destroyedWith.copy());
 +
          if (changed && canDestroy) {
-             block.playerDestroy(this.level, this.player, pos, adjustedState, blockEntity, destroyedWith);
-         }
- 
+-            block.playerDestroy(this.level, this.player, pos, adjustedState, blockEntity, destroyedWith);
++            block.playerDestroy(this.level, this.player, pos, adjustedState, blockEntity, destroyedWith, breakEvent.isDropItems(), false); // CraftBukkit - honour BlockBreakEvent#setDropItems, the event's experience is dropped below
++        }
++
++        if (changed) {
++            block.popExperience(this.level, pos, breakEvent.getExpToDrop(), this.player); // CraftBukkit - BlockBreakEvent experience
++        }
++
 +        // Neo: Fire the PlayerDestroyItemEvent if the tool was broken at any point during the break process
 +        if (itemStack.isEmpty() && !destroyedWith.isEmpty()) {
 +            net.neoforged.neoforge.event.EventHooks.onPlayerDestroyItem(this.player, destroyedWith, InteractionHand.MAIN_HAND);
-+        }
-+
+         }
+ 
          return true;
 +    }
 +

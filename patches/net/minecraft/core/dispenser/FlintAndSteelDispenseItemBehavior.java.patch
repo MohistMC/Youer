@@ -20,7 +20,7 @@
  import net.minecraft.world.level.gameevent.GameEvent;
  import net.minecraft.world.phys.AABB;
  
-@@ -24,17 +_,29 @@
+@@ -24,20 +_,37 @@
          this.setSuccess(true);
          Direction facing = source.state().getValue(DispenserBlock.FACING);
          BlockPos targetPos = source.pos().relative(facing);
@@ -51,9 +51,17 @@
 -                if (TntBlock.prime(level, targetPos, null, dispensed)) {
 -                    level.removeBlock(targetPos, false);
 +            } else if (target.isFlammable(level, targetPos, source.state().getValue(DispenserBlock.FACING).getOpposite())) {
-+                if (target.onCaughtFire(level, targetPos, source.state().getValue(DispenserBlock.FACING).getOpposite(), null, dispensed)) {
++                // CraftBukkit start - TNTPrimeEvent
++                if (target.getBlock() instanceof TntBlock
++                    && !org.bukkit.craftbukkit.event.CraftEventFactory.callTNTPrimeEvent(level, targetPos, org.bukkit.event.block.TNTPrimeEvent.PrimeCause.DISPENSER, null, source.pos())) {
++                    this.setSuccess(false);
++                } else if (target.onCaughtFire(level, targetPos, source.state().getValue(DispenserBlock.FACING).getOpposite(), null, dispensed)) {
 +                    if (target.getBlock() instanceof TntBlock)
 +                        level.removeBlock(targetPos, false);
                  } else {
                      this.setSuccess(false);
                  }
++                // CraftBukkit end
+             }
+         }
+ 

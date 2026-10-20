@@ -37,12 +37,18 @@
          this.entity.updateDataBeforeSync();
          List<Entity> passengers = this.entity.getPassengers();
          if (!passengers.equals(this.lastPassengers)) {
-@@ -103,9 +_,9 @@
+@@ -101,11 +_,14 @@
+             this.lastPassengers = passengers;
+         }
  
-         if (this.entity instanceof ItemFrame frame && this.tickCount % 10 == 0) {
+-        if (this.entity instanceof ItemFrame frame && this.tickCount % 10 == 0) {
++        if (!this.trackedPlayers.isEmpty() && this.entity instanceof ItemFrame frame) { // CraftBukkit - moved tickCount below // Paper - Perf: Only tick item frames if players can see it
              ItemStack itemStack = frame.getItem();
 -            if (itemStack.getItem() instanceof MapItem) {
-+            if (true) {
++            // Paper start - Make item frame map cursor update interval configurable
++            int itemFrameCursorUpdateInterval = this.level.paperConfig().maps.itemFrameCursorUpdateInterval;
++            if (itemFrameCursorUpdateInterval > 0 && this.tickCount % itemFrameCursorUpdateInterval == 0 && itemStack.getItem() instanceof MapItem) { // CraftBukkit - Moved this.tickCounter % 10 logic here so item frames do not enter the other blocks
++            // Paper end - Make item frame map cursor update interval configurable
                  MapId id = itemStack.get(DataComponents.MAP_ID);
 -                MapItemSavedData data = MapItem.getSavedData(id, this.level);
 +                MapItemSavedData data = MapItem.getSavedData(itemStack, this.level);

@@ -1,0 +1,14 @@
+--- a/net/minecraft/network/protocol/game/ClientboundChunksBiomesPacket.java
++++ b/net/minecraft/network/protocol/game/ClientboundChunksBiomesPacket.java
+@@ -68,8 +_,10 @@
+         }
+ 
+         public static void extractChunkData(FriendlyByteBuf buffer, LevelChunk chunk) {
++            int chunkSectionIndex = 0; // Paper - Anti-Xray
+             for (LevelChunkSection section : chunk.getSections()) {
+-                section.getBiomes().write(buffer);
++                section.getBiomes().write(buffer, null, chunkSectionIndex); // Paper - Anti-Xray
++                chunkSectionIndex++; // Paper - Anti-Xray
+             }
+ 
+             if (buffer.writerIndex() != buffer.capacity()) {

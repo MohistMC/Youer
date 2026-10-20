@@ -337,8 +337,12 @@
      }
  
      private static boolean containsInvalidValues(double x, double y, double z, float yRot, float xRot) {
-@@ -457,8 +_,20 @@
-             this.disconnect(Component.translatable("multiplayer.disconnect.invalid_vehicle_movement"));
+@@ -454,11 +_,23 @@
+         PositionAndRotation movingTo = packet.movingTo();
+         Vec3 movingToPos = movingTo.position();
+         if (containsInvalidValues(movingToPos.x(), movingToPos.y(), movingToPos.z(), movingTo.yRot(), movingTo.xRot())) {
+-            this.disconnect(Component.translatable("multiplayer.disconnect.invalid_vehicle_movement"));
++            this.disconnect(Component.translatable("multiplayer.disconnect.invalid_vehicle_movement"), org.bukkit.event.player.PlayerKickEvent.Cause.INVALID_VEHICLE_MOVEMENT); // Paper - kick event cause
          } else if (!this.updateAwaitingTeleport() && this.hasClientLoaded()) {
              Entity vehicle = this.player.getRootVehicle();
 +            // Paper start - Don't allow vehicle movement from players while teleporting
@@ -1491,28 +1495,34 @@
                      return;
                  default:
                      throw new IllegalArgumentException("Invalid player action");
-@@ -1400,9 +_,30 @@
+@@ -1400,9 +_,36 @@
              && !player.getCooldowns().isOnCooldown(itemStack);
      }
  
-+    // Spigot start - limit place/interactions
++    // Paper start - limit place/interactions
 +    private int limitedPackets;
 +    private long lastLimitedPacket = -1;
 +
 +    private boolean checkLimit(long timestamp) {
-+        if (lastLimitedPacket != -1 && timestamp - lastLimitedPacket < 30 && limitedPackets++ >= 4) {
++        if (!io.papermc.paper.configuration.GlobalConfiguration.get().spamLimiter.incomingPacketThreshold.enabled()) {
++            return true;
++        }
++
++        final int threshold = io.papermc.paper.configuration.GlobalConfiguration.get().spamLimiter.incomingPacketThreshold.intValue();
++
++        if (this.lastLimitedPacket != -1 && timestamp - this.lastLimitedPacket < threshold && this.limitedPackets++ >= 8) {
 +            return false;
 +        }
 +
-+        if (lastLimitedPacket == -1 || timestamp - lastLimitedPacket >= 30) {
-+            lastLimitedPacket = timestamp;
-+            limitedPackets = 0;
++        if (this.lastLimitedPacket == -1 || timestamp - this.lastLimitedPacket >= threshold) {
++            this.lastLimitedPacket = timestamp;
++            this.limitedPackets = 0;
 +            return true;
 +        }
 +
 +        return true;
 +    }
-+    // Spigot end
++    // Paper end - limit place/interactions
 +
      @Override
      public void handleUseItemOn(ServerboundUseItemOnPacket packet) {
@@ -1851,8 +1861,9 @@
 -    private void tryHandleChat(String message, boolean isCommand, Runnable chatHandler) {
 +    private void tryHandleChat(String message, boolean isCommand, Runnable chatHandler, boolean sync) { // CraftBukkit
          if (isChatMessageIllegal(message)) {
-             this.disconnect(Component.translatable("multiplayer.disconnect.illegal_characters"));
+-            this.disconnect(Component.translatable("multiplayer.disconnect.illegal_characters"));
 -        } else if (!isCommand && this.player.getChatVisibility() == ChatVisiblity.HIDDEN) {
++            this.disconnectAsync(Component.translatable("multiplayer.disconnect.illegal_characters"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_CHARACTERS); // Paper - add proper async disconnect
 +        } else if (this.player.isRemoved() || (!isCommand && this.player.getChatVisibility() == ChatVisiblity.HIDDEN)) { // CraftBukkit - dead men tell no tales
              this.send(new ClientboundSystemChatPacket(Component.translatable("chat.disabled.options").withStyle(ChatFormatting.RED), false));
          } else {
@@ -2113,7 +2124,7 @@
 -            if (trackedCount > 4096) {
 -                this.disconnect(Component.translatable("multiplayer.disconnect.too_many_pending_chats"));
 +                if (trackedCount > 4096) {
-+                    this.disconnect(Component.translatable("multiplayer.disconnect.too_many_pending_chats"));
++                    this.disconnectAsync(Component.translatable("multiplayer.disconnect.too_many_pending_chats"), org.bukkit.event.player.PlayerKickEvent.Cause.TOO_MANY_PENDING_CHATS); // Paper - kick event cause & add proper async disconnect
 +                }
              }
          }

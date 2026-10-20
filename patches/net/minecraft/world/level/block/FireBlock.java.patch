@@ -132,7 +132,7 @@
                                      }
                                  }
                              }
-@@ -214,31 +_,57 @@
+@@ -214,32 +_,62 @@
              || level.isRainingAt(testPos.south());
      }
  
@@ -171,7 +171,11 @@
 +                return;
 +            }
 +            // CraftBukkit end
-+            oldState.onCaughtFire(level, pos, face, null, net.minecraft.world.item.ItemStack.EMPTY);
++            // Youer start - Neo replaces the vanilla TntBlock.prime tail call with this hook; priming TNT here would spawn two PrimedTnt
++            if (!(oldState.getBlock() instanceof TntBlock)) {
++                oldState.onCaughtFire(level, pos, face, null, net.minecraft.world.item.ItemStack.EMPTY);
++            }
++            // Youer end
 +
              if (random.nextInt(age + 10) < 5 && !level.isRainingAt(pos)) {
                  int newAge = Math.min(age + random.nextInt(5) / 4, 15);
@@ -183,6 +187,7 @@
  
              Block block = oldState.getBlock();
              if (block instanceof TntBlock) {
+-                TntBlock.prime(level, pos);
 +                // Paper start - TNTPrimeEvent
 +                org.bukkit.block.Block tntBlock = org.bukkit.craftbukkit.block.CraftBlock.at(level, pos);
 +                if (!new com.destroystokyo.paper.event.block.TNTPrimeEvent(tntBlock, com.destroystokyo.paper.event.block.TNTPrimeEvent.PrimeReason.FIRE, null).callEvent()) {
@@ -190,9 +195,10 @@
 +                }
 +                level.removeBlock(pos, false);
 +                // Paper end - TNTPrimeEvent
-                 TntBlock.prime(level, pos);
++                oldState.onCaughtFire(level, pos, face, null, net.minecraft.world.item.ItemStack.EMPTY); // Youer - prime only once the Paper event can no longer cancel it
              }
          }
+     }
 @@ -251,7 +_,7 @@
  
      private boolean isValidFireLocation(BlockGetter level, BlockPos pos) {
