@@ -2,17 +2,13 @@ package com.mohistmc.launcher.youer.feature;
 
 import com.mohistmc.launcher.youer.config.YouerConfigUtil;
 import com.mohistmc.launcher.youer.util.I18n;
-import com.mohistmc.launcher.youer.util.JarLoader;
 import com.mohistmc.launcher.youer.util.JarModifier;
 import com.mohistmc.tools.FileUtils;
-import com.mohistmc.tools.OSUtil;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -77,25 +73,6 @@ public class AutoDeleteMods {
         put("top.leonx.irisflw.IrisFlwNeoForge", DeletionReason.CLIENT_ONLY);
         put("com.leclowndu93150.particlerain.ParticleRainClient", DeletionReason.CLIENT_ONLY);
     }};
-
-    private static final String END = OSUtil.getOS().isWindows() ? ";" : ":";
-    private static final String ZSTD = "libraries/com/github/luben/zstd-jni/1.5.7-8/zstd-jni-1.5.7-8.jar" + END;
-    private static final String MYSQL = "libraries/com/mysql/mysql-connector-j/8.4.0/mysql-connector-j-8.4.0.jar" + END;
-    private static final String SQLITE = "libraries/org/xerial/sqlite-jdbc/3.46.0.0/sqlite-jdbc-3.46.0.0.jar" + END;
-    private static final String PROTOBUF = "libraries/com/google/protobuf/protobuf-java/3.25.1/protobuf-java-3.25.1.jar" + END;
-    private static final List<Map.Entry<String, String>> LIB_BLACKLIST = Arrays.asList(
-            new AbstractMap.SimpleEntry<>("cn.tohsaka.factory.zstdmc.Zstdmc", ZSTD),
-            new AbstractMap.SimpleEntry<>("cn.tohsaka.factory.zstdnet.Zstdnet", ZSTD),
-            new AbstractMap.SimpleEntry<>("cn.ussshenzhou.notenoughbandwidth.NotEnoughBandwidthLegacy", ZSTD),
-            new AbstractMap.SimpleEntry<>("cn.ussshenzhou.notenoughbandwidth.NotEnoughBandwidth", ZSTD),
-            new AbstractMap.SimpleEntry<>("com.daqem.grieflogger.neoforge.GriefLoggerNeoForge", MYSQL),
-            new AbstractMap.SimpleEntry<>("com.daqem.grieflogger.neoforge.GriefLoggerNeoForge", SQLITE),
-            new AbstractMap.SimpleEntry<>("com.daqem.grieflogger.neoforge.GriefLoggerNeoForge", PROTOBUF),
-            new AbstractMap.SimpleEntry<>("me.cortex.voxy.Voxy", SQLITE),
-            new AbstractMap.SimpleEntry<>("io.github.catt1eyaa.ChronoVault", ZSTD),
-            new AbstractMap.SimpleEntry<>("TheAmirtini.coreprotectneo.Coreprotectneo", SQLITE),
-            new AbstractMap.SimpleEntry<>("net.sundggs.modtools.ModTools", SQLITE)
-    );
 
     /**
      * Mapping tables for classes to directories
@@ -192,8 +169,8 @@ public class AutoDeleteMods {
         try {
             Files.deleteIfExists(modFile.toPath());
             System.out.println(I18n.as("update.deleting",
-                    modFile.getName(),
-                    reason.getDisplayText()
+                modFile.getName(),
+                reason.getDisplayText()
             ));
         } catch (IOException ignored) {
         }
@@ -215,35 +192,6 @@ public class AutoDeleteMods {
 
         public String getDisplayText() {
             return I18n.as("update.deleting.reason." + i18nKey);
-        }
-    }
-
-    public static List<Map.Entry<String, String>> getAllBlacklistEntries() {
-        return new ArrayList<>(LIB_BLACKLIST);
-    }
-
-    public static void syncLibBlacklistToJarLoader() {
-        for (Map.Entry<String, String> entry : getAllBlacklistEntries()) {
-            String className = entry.getKey();
-            String jarName = entry.getValue();
-
-            File modsDir = new File("mods");
-            if (!modsDir.exists()) {
-                continue;
-            }
-
-            File[] jarFiles = modsDir.listFiles((dir, name) -> name.endsWith(".jar"));
-            if (jarFiles == null) return;
-
-            for (File jarFile : jarFiles) {
-                try {
-                    String classPath = className.replaceAll("\\.", "/") + ".class";
-                    if (FileUtils.fileExists(jarFile, classPath)) {
-                        JarLoader.addToBlacklist(jarName);
-                    }
-                } catch (Exception ignored) {
-                }
-            }
         }
     }
 }

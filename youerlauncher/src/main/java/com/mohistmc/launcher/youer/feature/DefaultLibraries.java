@@ -26,7 +26,7 @@ public class DefaultLibraries {
     @SneakyThrows
     public static void run() {
         LibrariesDownloadQueue queue = LibrariesDownloadQueue.create()
-                .build();
+            .build();
         System.out.println(I18n.as("libraries.checking.start"));
         if (queue.needDownload()) {
             System.out.println(I18n.as("libraries.global.percentage"));

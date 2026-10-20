@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/level/block/FarmBlock.java
 +++ b/net/minecraft/world/level/block/FarmBlock.java
-@@ -1,19 +_,17 @@
+@@ -1,19 +_,16 @@
  package net.minecraft.world.level.block;
  
 +import com.mohistmc.youer.feature.ban.bans.BanEvents;
@@ -14,7 +14,7 @@
  import net.minecraft.util.RandomSource;
  import net.minecraft.world.entity.Entity;
 -import net.minecraft.world.entity.LivingEntity;
- import net.minecraft.world.entity.player.Player;
+-import net.minecraft.world.entity.player.Player;
  import net.minecraft.world.item.context.BlockPlaceContext;
  import net.minecraft.world.level.BlockGetter;
 -import net.minecraft.world.level.GameRules;
@@ -29,7 +29,7 @@
  
  public class FarmBlock extends Block {
      public static final MapCodec<FarmBlock> CODEC = simpleCodec(FarmBlock::new);
-@@ -86,31 +_,62 @@
+@@ -86,31 +_,46 @@
      @Override
      protected void randomTick(BlockState p_221139_, ServerLevel p_221140_, BlockPos p_221141_, RandomSource p_221142_) {
          int i = p_221139_.getValue(MOISTURE);
@@ -65,24 +65,8 @@
 -            && (p_153230_ instanceof Player || p_153227_.getGameRules().getBoolean(GameRules.RULE_MOBGRIEFING))
 -            && p_153230_.getBbWidth() * p_153230_.getBbWidth() * p_153230_.getBbHeight() > 0.512F) {
 +            && net.neoforged.neoforge.common.CommonHooks.onFarmlandTrample(p_153227_, p_153229_, Blocks.DIRT.defaultBlockState(), p_153231_, p_153230_)) {
-+            // CraftBukkit start - Interact soil
-+            org.bukkit.event.Cancellable cancellable;
-+            if (p_153230_ instanceof Player) {
-+                cancellable = CraftEventFactory.callPlayerInteractEvent((Player) p_153230_, org.bukkit.event.block.Action.PHYSICAL, p_153229_, null, null, null);
-+            } else {
-+                cancellable = new org.bukkit.event.entity.EntityInteractEvent(p_153230_.getBukkitEntity(), p_153227_.getWorld().getBlockAt(p_153229_.getX(), p_153229_.getY(), p_153229_.getZ()));
-+                p_153227_.getCraftServer().getPluginManager().callEvent((org.bukkit.event.entity.EntityInteractEvent) cancellable);
-+            }
-+
-+            if (cancellable.isCancelled()) {
-+                return;
-+            }
-+
-+            if (!CraftEventFactory.callEntityChangeBlockEvent(p_153230_, p_153229_, Blocks.DIRT.defaultBlockState())) {
-+                return;
-+            }
-+            // CraftBukkit end
-+
++            // Youer - the Bukkit PlayerInteractEvent/EntityInteractEvent and EntityChangeBlockEvent for this trample
++            // are fired once, by BlockEventDispatcher.onFarmlandBreak, from the FarmlandTrampleEvent posted above
              turnToDirt(p_153230_, p_153228_, p_153227_, p_153229_);
          }
 -

@@ -93,7 +93,7 @@
      private boolean reducedDebugInfo;
      private ItemStack lastItemInMainHand = ItemStack.EMPTY;
      private final ItemCooldowns cooldowns = this.createItemCooldowns();
-@@ -193,11 +_,51 @@
+@@ -193,16 +_,57 @@
      public Entity currentExplosionCause;
      private boolean ignoreFallDamageFromCurrentImpulse;
      private int currentImpulseContextResetGraceTime;
@@ -145,6 +145,12 @@
          this.inventoryMenu = new InventoryMenu(this.inventory, !p_250508_.isClientSide, this);
          this.containerMenu = this.inventoryMenu;
          this.moveTo((double)p_250289_.getX() + 0.5, (double)(p_250289_.getY() + 1), (double)p_250289_.getZ() + 0.5, p_251702_, 0.0F);
+         this.rotOffs = 180.0F;
+     }
++    // Youer end
+ 
+     public boolean blockActionRestricted(Level p_36188_, BlockPos p_36189_, GameType p_36190_) {
+         if (!p_36190_.isBlockPlacingRestricted()) {
 @@ -229,7 +_,8 @@
              .add(Attributes.SUBMERGED_MINING_SPEED)
              .add(Attributes.SNEAKING_SPEED)
@@ -509,13 +515,14 @@
                  this.getCombatTracker().recordDamage(p_36312_, f1);
                  this.setHealth(this.getHealth() - f1);
                  if (f1 < 3.4028235E37F) {
-@@ -970,7 +_,9 @@
+@@ -970,7 +_,10 @@
                  }
  
                  this.gameEvent(GameEvent.ENTITY_DAMAGE);
 +                this.onDamageTaken(this.damageContainers.peek());
              }
 +            net.neoforged.neoforge.common.CommonHooks.onLivingDamagePost(this, this.damageContainers.peek());
++        // Youer end
          }
      }
  

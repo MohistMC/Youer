@@ -133,19 +133,19 @@ public class Action {
 
         if (MINECRAFT_JAR.exists()) {
             tasks.add(new ConsoleToolTask(
-                    "net.neoforged.installertools.ConsoleTool",
-                    "--task", "BUNDLER_EXTRACT",
-                    "--input", MINECRAFT_JAR.getAbsolutePath(),
-                    "--output", libPath,
-                    "--libraries"
+                "net.neoforged.installertools.ConsoleTool",
+                "--task", "BUNDLER_EXTRACT",
+                "--input", MINECRAFT_JAR.getAbsolutePath(),
+                "--output", libPath,
+                "--libraries"
             ));
             if (!MC_UNPACKED.exists()) {
                 tasks.add(new ConsoleToolTask(
-                        "net.neoforged.installertools.ConsoleTool",
-                        "--task", "BUNDLER_EXTRACT",
-                        "--input", MINECRAFT_JAR.getAbsolutePath(),
-                        "--output", MC_UNPACKED.getAbsolutePath(),
-                        "--jar-only"
+                    "net.neoforged.installertools.ConsoleTool",
+                    "--task", "BUNDLER_EXTRACT",
+                    "--input", MINECRAFT_JAR.getAbsolutePath(),
+                    "--output", MC_UNPACKED.getAbsolutePath(),
+                    "--jar-only"
                 ));
             }
         } else {
@@ -156,11 +156,11 @@ public class Action {
         if (mcpZip.exists()) {
             if (!MAPPINGS.exists()) {
                 tasks.add(new ConsoleToolTask(
-                        "net.neoforged.installertools.ConsoleTool",
-                        "--task", "MCP_DATA",
-                        "--input", mcpZip.getAbsolutePath(),
-                        "--output", MAPPINGS.getAbsolutePath(),
-                        "--key", "mappings"
+                    "net.neoforged.installertools.ConsoleTool",
+                    "--task", "MCP_DATA",
+                    "--input", mcpZip.getAbsolutePath(),
+                    "--output", MAPPINGS.getAbsolutePath(),
+                    "--key", "mappings"
                 ));
             }
         } else {
@@ -173,33 +173,33 @@ public class Action {
 
         if (!MC_SLIM.exists()) {
             tasks.add(new ConsoleToolTask("net.neoforged.jarsplitter.ConsoleTool",
-                    "--input",
-                    MC_UNPACKED.getAbsolutePath(),
-                    "--slim",
-                    MC_SLIM.getAbsolutePath(),
-                    "--extra",
-                    MC_EXTRA.getAbsolutePath(),
-                    "--srg",
-                    MERGED_MAPPINGS.getAbsolutePath()));
+                "--input",
+                MC_UNPACKED.getAbsolutePath(),
+                "--slim",
+                MC_SLIM.getAbsolutePath(),
+                "--extra",
+                MC_EXTRA.getAbsolutePath(),
+                "--srg",
+                MERGED_MAPPINGS.getAbsolutePath()));
         }
 
         if (!MC_SRG.exists()) {
             tasks.add(new ConsoleToolTask("net.neoforged.art.Main",
-                    "--input", MC_SLIM.getAbsolutePath(),
-                    "--output", MC_SRG.getAbsolutePath(),
-                    "--names", MERGED_MAPPINGS.getAbsolutePath(),
-                    "--ann-fix",
-                    "--ids-fix",
-                    "--src-fix",
-                    "--record-fix"));
+                "--input", MC_SLIM.getAbsolutePath(),
+                "--output", MC_SRG.getAbsolutePath(),
+                "--names", MERGED_MAPPINGS.getAbsolutePath(),
+                "--ann-fix",
+                "--ids-fix",
+                "--src-fix",
+                "--record-fix"));
         }
 
         tasks.add(new PatchValidationTask(
-                installInfo,
-                PATCHED,
-                BINPATCH,
-                universalJar,
-                MC_SRG
+            installInfo,
+            PATCHED,
+            BINPATCH,
+            universalJar,
+            MC_SRG
         ));
 
         tasks.add(new JarMergeTask(PATCHED, universalJar, PAPER_REMAP_0));
@@ -400,13 +400,13 @@ public class Action {
             }
 
             if (!patchedFile.exists() || storedServerMD5 == null ||
-                    storedLzmaMD5 == null || !storedServerMD5.equals(serverMD5) ||
-                    !storedLzmaMD5.equals(lzmaMD5)) {
+                storedLzmaMD5 == null || !storedServerMD5.equals(serverMD5) ||
+                !storedLzmaMD5.equals(lzmaMD5)) {
 
                 run("net.neoforged.binarypatcher.ConsoleTool",
-                        "--clean", mcSrg.getAbsolutePath(),
-                        "--output", patchedFile.getAbsolutePath(),
-                        "--apply", binPatch.getAbsolutePath());
+                    "--clean", mcSrg.getAbsolutePath(),
+                    "--output", patchedFile.getAbsolutePath(),
+                    "--apply", binPatch.getAbsolutePath());
 
                 serverMD5 = SHA256.as(patchedFile);
             }

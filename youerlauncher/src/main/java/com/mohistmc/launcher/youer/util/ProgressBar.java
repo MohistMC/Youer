@@ -12,11 +12,10 @@ public class ProgressBar implements AutoCloseable {
 
     private final AtomicLong current = new AtomicLong(0);
     private final long startTimeNanos;
-    private volatile boolean closed = false;
-    private int lastLineLength = 0;
-
     private final char filledChar;
     private final char emptyChar;
+    private volatile boolean closed = false;
+    private int lastLineLength = 0;
 
     public ProgressBar(String task, long total) {
         this(task, total, 30, System.out);

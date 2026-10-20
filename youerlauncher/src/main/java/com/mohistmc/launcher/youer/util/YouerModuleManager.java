@@ -17,7 +17,7 @@
 
 package com.mohistmc.launcher.youer.util;
 
-import com.mohistmc.launcher.youer.feature.AutoDeleteMods;
+import com.mohistmc.launcher.youer.feature.ModuleConflictResolver;
 import java.io.File;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -38,6 +38,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import lombok.SneakyThrows;
 
@@ -51,6 +52,7 @@ public class YouerModuleManager {
     public static final sun.misc.Unsafe unsafe;
     private static final MethodHandles.Lookup IMPL_LOOKUP;
     public static YouerModuleManager INSTANCE = new YouerModuleManager();
+    private static volatile boolean initialized = false;
 
     static {
         try {
@@ -121,11 +123,11 @@ public class YouerModuleManager {
 
     @SneakyThrows
     public static void applyLaunchArgs(List<String> args) {
-        AutoDeleteMods.syncLibBlacklistToJarLoader();
         List<String> opens = new ArrayList<>();
         opens.add("java.base/java.util=ALL-UNNAMED");
         opens.add("java.base/java.lang=ALL-UNNAMED");
         List<String> exports = new ArrayList<>();
+        List<String> legacyClassPath = new ArrayList<>();
         for (String arg : args) {
             if (arg.startsWith("-")) {
                 if (arg.startsWith("-p ")) {
@@ -136,14 +138,21 @@ public class YouerModuleManager {
                     exports.add(arg.substring("--add-exports ".length()).trim());
                 } else if (arg.startsWith("-D")) {
                     var split = arg.substring(2).split("=", 2);
+                    String key = split[0];
                     String value = split[1];
-                    for (String blib : JarLoader.getBlacklist()) {
-                        value = value.replace(blib, "");
+                    if ("legacyClassPath".equals(key)) {
+                        for (String entry : value.split(Pattern.quote(File.pathSeparator))) {
+                            if (!entry.isEmpty()) {
+                                legacyClassPath.add(entry);
+                            }
+                        }
+                        value = String.join(File.pathSeparator, legacyClassPath);
                     }
-                    System.setProperty(split[0], value);
+                    System.setProperty(key, value);
                 }
             }
         }
+        ModuleConflictResolver.resolve(args, legacyClassPath);
         addOpens(opens);
         addExports(exports);
     }
@@ -163,27 +172,30 @@ public class YouerModuleManager {
             }
         }).map(ModuleReference::descriptor).map(ModuleDescriptor::name).collect(Collectors.toList()));
 
-        // Copy the new config graph to boot module layer config
+        // A resolved module hashes its configuration together with its module reference, so the
+        // modules of the new config are bound to the boot configuration before anything keyed by
+        // them is filled. Filling a map first and binding it afterwards leaves every entry in the
+        // bucket of the old hash code, which since JDK 27 is kept when the map is copied again and
+        // makes the boot layer read a readability edge that can no longer be found.
+        Configuration boot = ModuleLayer.boot().configuration();
         MethodHandle graphGetter = IMPL_LOOKUP.findGetter(Configuration.class, "graph", Map.class);
-        HashMap<ResolvedModule, Set<ResolvedModule>> graphMap = new HashMap<>((Map<ResolvedModule, Set<ResolvedModule>>) graphGetter.invokeWithArguments(config));
         MethodHandle cfSetter = IMPL_LOOKUP.findSetter(ResolvedModule.class, "cf", Configuration.class);
-        // Reset all extra resolved modules config to boot module layer config
-        graphMap.forEach((k, v) -> {
-            try {
-                cfSetter.invokeWithArguments(k, ModuleLayer.boot().configuration());
-                v.forEach(m -> {
-                    try {
-                        cfSetter.invokeWithArguments(m, ModuleLayer.boot().configuration());
-                    } catch (Throwable throwable) {
-                        throw new RuntimeException(throwable);
-                    }
-                });
-            } catch (Throwable throwable) {
-                throw new RuntimeException(throwable);
+        Map<ResolvedModule, Set<ResolvedModule>> newGraph =
+            (Map<ResolvedModule, Set<ResolvedModule>>) graphGetter.invokeWithArguments(config);
+        for (Map.Entry<ResolvedModule, Set<ResolvedModule>> edge : newGraph.entrySet()) {
+            cfSetter.invokeWithArguments(edge.getKey(), boot);
+            for (ResolvedModule read : edge.getValue()) {
+                cfSetter.invokeWithArguments(read, boot);
             }
-        });
-        graphMap.putAll((Map<ResolvedModule, Set<ResolvedModule>>) graphGetter.invokeWithArguments(ModuleLayer.boot().configuration()));
-        IMPL_LOOKUP.findSetter(Configuration.class, "graph", Map.class).invokeWithArguments(ModuleLayer.boot().configuration(), new HashMap<>(graphMap));
+        }
+
+        // Copy the new config graph to boot module layer config
+        HashMap<ResolvedModule, Set<ResolvedModule>> graphMap = new HashMap<>();
+        newGraph.forEach((k, v) -> graphMap.put(k, v));
+        Map<ResolvedModule, Set<ResolvedModule>> bootGraph =
+            (Map<ResolvedModule, Set<ResolvedModule>>) graphGetter.invokeWithArguments(boot);
+        bootGraph.forEach((k, v) -> graphMap.put(k, v));
+        IMPL_LOOKUP.findSetter(Configuration.class, "graph", Map.class).invokeWithArguments(boot, graphMap);
 
         // Reset boot module layer resolved modules as new config-resolved modules to prepare to define modules
         Set<ResolvedModule> oldBootModules = ModuleLayer.boot().configuration().modules();
@@ -218,8 +230,6 @@ public class YouerModuleManager {
             }
         }))));
     }
-
-    private static volatile boolean initialized = false;
 
     public void init(List<String> args) {
         if (initialized) return;

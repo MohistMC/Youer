@@ -11,21 +11,16 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.Projectile;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.LevelAccessor;
-import net.minecraft.world.level.block.AbstractCandleBlock;
 import net.minecraft.world.level.block.BedBlock;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.HorizontalDirectionalBlock;
-import net.minecraft.world.phys.HitResult;
 import net.minecraft.world.phys.Vec3;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.neoforge.common.util.BlockSnapshot;
 import net.neoforged.neoforge.common.util.FakePlayer;
-import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
 import net.neoforged.neoforge.event.entity.player.CanPlayerSleepEvent;
 import net.neoforged.neoforge.event.level.BlockDropsEvent;
 import net.neoforged.neoforge.event.level.BlockEvent;
@@ -44,23 +39,6 @@ import org.bukkit.event.entity.EntityInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 
 public class BlockEventDispatcher {
-
-    @SubscribeEvent(receiveCanceled = true)
-    public void onProjectileHit(ProjectileImpactEvent event) {
-        HitResult hitResult = event.getRayTraceResult();
-        Block block = event.getProjectile().getBlockStateOn().getBlock();
-        Level level = event.getProjectile().level();
-        Projectile projectile = event.getProjectile();
-        if (hitResult.getType() == HitResult.Type.BLOCK) {
-            if (block instanceof AbstractCandleBlock) {
-                // CraftBukkit start
-                if (CraftEventFactory.callBlockIgniteEvent(level, projectile.getOnPos(), projectile).isCancelled()) {
-                    event.setCanceled(true);
-                }
-                // CraftBukkit end
-            }
-        }
-    }
 
     @SubscribeEvent(receiveCanceled = true)
     public void onBlockBreak(BlockEvent.BreakEvent event) {

@@ -1764,15 +1764,26 @@
      }
  
      public void checkDespawn() {
-@@ -3410,8 +_,14 @@
+@@ -3410,8 +_,25 @@
          return this.removalReason;
      }
  
 +    // Youer start
      @Override
      public final void setRemoved(Entity.RemovalReason p_146876_) {
++        // Youer - derive the remove event cause from the RemovalReason when no explicit cause was set
++        // The cause field is only populated by setRemovedCB / the manual setter, so a plain removal
++        // (discard(), remove(KILLED), chunk unload, ...) used to fire EntityRemoveEvent with a null cause
++        // and was silently dropped by CraftEventFactory.
++        org.bukkit.event.entity.EntityRemoveEvent.Cause youerRemoveCause = this.removeReason != null ? this.removeReason : switch (p_146876_) {
++            case KILLED -> org.bukkit.event.entity.EntityRemoveEvent.Cause.DEATH;
++            case DISCARDED -> org.bukkit.event.entity.EntityRemoveEvent.Cause.DESPAWN;
++            case UNLOADED_TO_CHUNK, UNLOADED_WITH_PLAYER -> org.bukkit.event.entity.EntityRemoveEvent.Cause.UNLOAD;
++            case CHANGED_DIMENSION -> null; // dimension change is not a real removal, no event
++            default -> null;
++        };
 +        if (!AsyncCatcher.catchAsync()) {
-+            CraftEventFactory.callEntityRemoveEvent(this, removeReason);
++            CraftEventFactory.callEntityRemoveEvent(this, youerRemoveCause);
 +        }
 +        this.removeReason = null;
 +        final boolean alreadyRemoved = this.removalReason != null; // Paper - Folia schedulers

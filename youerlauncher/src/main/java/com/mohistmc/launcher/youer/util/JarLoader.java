@@ -21,15 +21,11 @@ package com.mohistmc.launcher.youer.util;
 import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarFile;
 
 public class JarLoader {
 
     static Instrumentation inst = null;
-    private static final Set<String> blacklist = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
     public JarLoader() {
     }
@@ -50,23 +46,10 @@ public class JarLoader {
             return;
         }
 
-        String jarName = path.toFile().getName();
-        if (blacklist.contains(jarName)) {
-            return;
-        }
-
         try {
             inst.appendToSystemClassLoaderSearch(new JarFile(path.toFile()));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    public static void addToBlacklist(String jarName) {
-        blacklist.add(jarName);
-    }
-
-    public static Set<String> getBlacklist() {
-        return Collections.unmodifiableSet(blacklist);
     }
 }

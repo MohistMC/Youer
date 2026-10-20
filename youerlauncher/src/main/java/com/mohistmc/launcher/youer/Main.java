@@ -61,12 +61,12 @@ public class Main {
         YouerConfigUtil.i18n();
         if (YouerConfigUtil.aBoolean("youer.show_logo", true)) {
             System.out.printf("%n%s%n%s - %s, Java(%s) %s PID: %s%n",
-                    Logo.asYouer(),
-                    i18n.as("youer.launch.welcomemessage"),
-                    getVersion(),
-                    System.getProperty("java.class.version"),
-                    System.getProperty("java.version"),
-                    ManagementFactory.getRuntimeMXBean().getName().split("@")[0]
+                Logo.asYouer(),
+                i18n.as("youer.launch.welcomemessage"),
+                getVersion(),
+                System.getProperty("java.class.version"),
+                System.getProperty("java.version"),
+                ManagementFactory.getRuntimeMXBean().getName().split("@")[0]
             );
             System.out.println("+------------------------------------------------------+");
             System.out.println("|                                                      |");
@@ -85,19 +85,19 @@ public class Main {
         AutoDeleteMods.deleteIncompatibleMods();
         List<String> forgeArgs = new ArrayList<>();
         for (String arg : DataParser.launchArgs.stream().filter(s ->
-                        s.startsWith("--launchTarget")
-                                || s.startsWith("--fml.neoForgeVersion")
-                                || s.startsWith("--fml.mcVersion")
-                                || s.startsWith("--fml.fmlVersion")
-                                || s.startsWith("--fml.neoFormVersion"))
-                .toList()) {
+                s.startsWith("--launchTarget")
+                    || s.startsWith("--fml.neoForgeVersion")
+                    || s.startsWith("--fml.mcVersion")
+                    || s.startsWith("--fml.fmlVersion")
+                    || s.startsWith("--fml.neoFormVersion"))
+            .toList()) {
             forgeArgs.add(arg.split(" ")[0]);
             forgeArgs.add(arg.split(" ")[1]);
         }
         YouerModuleManager.INSTANCE.init(DataParser.launchArgs);
 
         if (!MojangEulaUtil.hasAcceptedEULA() && OSUtil.getOS().isWindows()) {
-            if (System.console() != null){
+            if (System.console() != null) {
                 System.out.println(i18n.as("eula"));
                 Scanner scanner = new Scanner(System.in);
                 String input;
