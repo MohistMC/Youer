@@ -63,7 +63,6 @@ public class BlockEventDispatcher {
                 CraftBlock placedBlock = MohistBlockSnapshot.fromBlockSnapshot(event.getBlockSnapshot(), true);
                 BlockState replacedBlockState = placedBlock.getState();
                 BlockPlaceEvent placeEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPlaceEvent(serverLevel, serverPlayer, hand, replacedBlockState, event.getPos());
-                Bukkit.getPluginManager().callEvent(placeEvent);
                 if (event.isCanceled()) {
                     placeEvent.setCancelled(true);
                 }
@@ -88,7 +87,6 @@ public class BlockEventDispatcher {
                     placedBlocks.add(MohistBlockSnapshot.fromBlockSnapshot(snapshot, true).getState());
                 }
                 BlockPlaceEvent placeEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockMultiPlaceEvent(serverLevel, serverPlayer, hand, placedBlocks, event.getPos());
-                Bukkit.getPluginManager().callEvent(placeEvent);
                 if (event.isCanceled()) {
                     placeEvent.setCancelled(true);
                 }

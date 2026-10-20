@@ -1086,7 +1086,7 @@
              } else {
                  this.lastHurtByPlayer = null;
                  this.lastHurtByPlayerMemoryTime = 0;
-@@ -1380,6 +_,18 @@
+@@ -1380,13 +_,25 @@
          return EntityReference.getPlayer(this.lastHurtByPlayer, this.level());
      }
  
@@ -1105,6 +1105,14 @@
      protected void blockUsingItem(ServerLevel level, LivingEntity attacker, DamageSource source, float damage, boolean fullyBlocked) {
          attacker.blockedByItem(this, source, damage, fullyBlocked);
      }
+ 
+     protected void blockedByItem(LivingEntity defender, DamageSource source, float damage, boolean fullyBlocked) {
+         if (!fullyBlocked) {
+-            defender.knockback(0.5, defender.getX() - this.getX(), defender.getZ() - this.getZ(), source, damage);
++            defender.knockback(0.5, defender.getX() - this.getX(), defender.getZ() - this.getZ(), source, damage, this, io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.SHIELD_BLOCK); // CraftBukkit // Paper - fix attacker & knockback events
+         }
+     }
+ 
 @@ -1398,18 +_,45 @@
          ItemStack protectionItem = null;
          DeathProtection protection = null;
@@ -2445,56 +2453,104 @@
      public boolean isSuppressingSlidingDownLadder() {
          return this.isShiftKeyDown();
      }
-@@ -3649,7 +_,17 @@
-         return this.randomTeleport(xx, yy, zz, showParticles, state -> state.is(avoidanceTag));
+@@ -3646,10 +_,49 @@
      }
  
-+    // Neo: Add overload with the consumed item causing the random teleport
-+    public boolean randomTeleport(double xx, double yy, double zz, boolean showParticles, TagKey<Block> avoidanceTag, ItemStack consumedStack) {
-+        return this.randomTeleport(xx, yy, zz, showParticles, state -> state.is(avoidanceTag), consumedStack);
+     public boolean randomTeleport(double xx, double yy, double zz, boolean showParticles, TagKey<Block> avoidanceTag) {
+-        return this.randomTeleport(xx, yy, zz, showParticles, state -> state.is(avoidanceTag));
+-    }
++        return this.randomTeleport(xx, yy, zz, showParticles, state -> state.is(avoidanceTag), org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN, ItemStack.EMPTY).isSuccess();
 +    }
 +
-     public boolean randomTeleport(double xx, double yy, double zz, boolean showParticles, Predicate<BlockState> isInvalidPosition) {
-+        return this.randomTeleport(xx, yy, zz, showParticles, isInvalidPosition, ItemStack.EMPTY);
++    // Paper start - teleport cause API
++    public enum RandomTeleportResult {
++        SUCCESS,
++        FAILURE,
++        EVENT_CANCELLED;
++
++        public boolean isSuccess() {
++            return this == SUCCESS;
++        }
 +    }
++
++    public RandomTeleportResult randomTeleport(double xx, double yy, double zz, boolean showParticles, TagKey<Block> avoidanceTag, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
++        return this.randomTeleport(xx, yy, zz, showParticles, state -> state.is(avoidanceTag), cause, ItemStack.EMPTY);
++    }
++    // Paper end - teleport cause API
++
++    // Neo: Add overload with the consumed item causing the random teleport
++    public boolean randomTeleport(double xx, double yy, double zz, boolean showParticles, TagKey<Block> avoidanceTag, ItemStack consumedStack) {
++        return this.randomTeleport(xx, yy, zz, showParticles, state -> state.is(avoidanceTag), org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN, consumedStack).isSuccess();
++    }
++    // Neo end
+ 
+     public boolean randomTeleport(double xx, double yy, double zz, boolean showParticles, Predicate<BlockState> isInvalidPosition) {
++        return this.randomTeleport(xx, yy, zz, showParticles, isInvalidPosition, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN, ItemStack.EMPTY).isSuccess();
++    }
++
++    // Paper start - teleport cause API
++    public RandomTeleportResult randomTeleport(double xx, double yy, double zz, boolean showParticles, Predicate<BlockState> isInvalidPosition, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause) {
++        return this.randomTeleport(xx, yy, zz, showParticles, isInvalidPosition, cause, ItemStack.EMPTY);
++    }
++    // Paper end - teleport cause API
 +
 +    // Neo: Add overload with the consumed item causing the random teleport
 +    public boolean randomTeleport(double xx, double yy, double zz, boolean showParticles, Predicate<BlockState> isInvalidPosition, ItemStack consumedStack) {
++        return this.randomTeleport(xx, yy, zz, showParticles, isInvalidPosition, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN, consumedStack).isSuccess();
++    }
++    // Neo end
++
++    // Neo + Paper: the teleport cause and the consumed item causing the random teleport
++    public RandomTeleportResult randomTeleport(double xx, double yy, double zz, boolean showParticles, Predicate<BlockState> isInvalidPosition, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause, ItemStack consumedStack) {
          double y = yy;
          Level level = this.level();
          WorldBorder worldBorder = level.getWorldBorder();
-@@ -3660,7 +_,8 @@
+@@ -3660,32 +_,73 @@
                  pos.move(Direction.DOWN);
                  BlockState state = level.getBlockState(pos);
                  if (state.is(BlockTags.ENTITIES_CAN_TELEPORT_TO)) {
 -                    return this.checkPositionAndTeleport(clamped.x, y, clamped.z, showParticles, isInvalidPosition, state, level);
 +                    // Neo: Pass in the consumed item causing the random teleport
-+                    return this.checkPositionAndTeleport(clamped.x, y, clamped.z, showParticles, isInvalidPosition, state, level, consumedStack);
++                    return this.checkPositionAndTeleport(clamped.x, y, clamped.z, showParticles, isInvalidPosition, state, level, consumedStack, cause);
                  }
  
                  y--;
-@@ -3670,8 +_,15 @@
-         return false;
-     }
+             }
+         }
  
+-        return false;
+-    }
+-
 -    private boolean checkPositionAndTeleport(
 -        double xx, double y, double zz, boolean showParticles, Predicate<BlockState> isInvalidPosition, BlockState state, Level level
-+    // Neo: Add overload with the consumed item causing the random teleport
-+    private boolean checkPositionAndTeleport(
-+            double xx, double y, double zz, boolean showParticles, Predicate<BlockState> isInvalidPosition, BlockState state, Level level
-+    ) {
-+        return checkPositionAndTeleport(xx, y, zz, showParticles, isInvalidPosition, state, level, ItemStack.EMPTY);
++        return RandomTeleportResult.FAILURE; // Paper - teleport event
 +    }
 +
-+    private boolean checkPositionAndTeleport(
-+        double xx, double y, double zz, boolean showParticles, Predicate<BlockState> isInvalidPosition, BlockState state, Level level, ItemStack consumedStack
++    // Neo: Add overload with the consumed item causing the random teleport
++    private RandomTeleportResult checkPositionAndTeleport(
++            double xx, double y, double zz, boolean showParticles, Predicate<BlockState> isInvalidPosition, BlockState state, Level level
++    ) {
++        return checkPositionAndTeleport(xx, y, zz, showParticles, isInvalidPosition, state, level, ItemStack.EMPTY, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.UNKNOWN);
++    }
++
++    private RandomTeleportResult checkPositionAndTeleport(
++        double xx, double y, double zz, boolean showParticles, Predicate<BlockState> isInvalidPosition, BlockState state, Level level, ItemStack consumedStack, org.bukkit.event.player.PlayerTeleportEvent.TeleportCause cause
      ) {
          if (isInvalidPosition.test(state)) {
-             return false;
-@@ -3685,6 +_,22 @@
+-            return false;
++            return RandomTeleportResult.FAILURE; // Paper - teleport event
+         }
+ 
+         AABB aabb = this.makeBoundingBox(new Vec3(xx, y, zz));
+         if (level.noCollision(aabb) && !level.containsAnyLiquid(aabb)) {
+             boolean hasInvalidPosition = level.findBlocksIn(aabb).filterState(isInvalidPosition).anyMatched();
+             if (hasInvalidPosition) {
+-                return false;
++                return RandomTeleportResult.FAILURE; // Paper - teleport event
              }
  
              if (this.canRandomlyTeleportTo(xx, y, zz)) {
+-                this.teleportTo(xx, y, zz);
 +                // Neo: Fire event for either item consumption or EnderMan teleport, to get the actual final position being teleported to
 +                net.neoforged.neoforge.event.entity.EntityTeleportEvent event = null;
 +                if (!consumedStack.isEmpty()) {
@@ -2504,16 +2560,50 @@
 +                }
 +                if (event != null) {
 +                    if (event.isCanceled()) {
-+                        return false;
++                        return RandomTeleportResult.EVENT_CANCELLED; // Paper - teleport event
 +                    }
 +                    xx = event.getTargetX();
 +                    y = event.getTargetY();
 +                    zz = event.getTargetZ();
 +                }
 +
-                 this.teleportTo(xx, y, zz);
++                // Paper start - teleport event
++                if (this instanceof net.minecraft.server.level.ServerPlayer player) {
++                    // player teleport event is called in the underlining code
++                    if (!player.connection.teleport(xx, y, zz, this.getYRot(), this.getXRot(), cause)) {
++                        return RandomTeleportResult.EVENT_CANCELLED;
++                    }
++                } else {
++                    org.bukkit.event.entity.EntityTeleportEvent teleport = new org.bukkit.event.entity.EntityTeleportEvent(this.getBukkitEntity(), org.bukkit.craftbukkit.util.CraftLocation.toBukkit(this.oldPosition(), this.level()), new org.bukkit.Location(this.level().getWorld(), xx, y, zz));
++                    this.level().getCraftServer().getPluginManager().callEvent(teleport);
++                    if (!teleport.isCancelled() && teleport.getTo() != null) { // Paper
++                        org.bukkit.Location to = teleport.getTo();
++                        this.teleportTo(to.getX(), to.getY(), to.getZ());
++                    } else {
++                        return RandomTeleportResult.EVENT_CANCELLED;
++                    }
++                }
++                // Paper end - teleport event
++
                  if (showParticles) {
                      level.broadcastEntityEvent(this, (byte)46);
+                 }
+@@ -3694,12 +_,12 @@
+                     pathfinderMob.getNavigation().stop();
+                 }
+ 
+-                return true;
++                return RandomTeleportResult.SUCCESS; // Paper - teleport event
+             } else {
+-                return false;
++                return RandomTeleportResult.FAILURE; // Paper - teleport event
+             }
+         } else {
+-            return false;
++            return RandomTeleportResult.FAILURE; // Paper - teleport event
+         }
+     }
+ 
 @@ -3811,10 +_,12 @@
      }
  

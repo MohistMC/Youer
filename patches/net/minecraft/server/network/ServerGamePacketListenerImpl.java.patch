@@ -957,7 +957,242 @@
      @Override
      public void handleEntityTagQuery(ServerboundEntityTagQueryPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
-@@ -1203,7 +_,7 @@
+@@ -1124,7 +_,12 @@
+         if (this.player.isPassenger()) {
+             this.player.absSnapTo(this.player.getX(), this.player.getY(), this.player.getZ(), targetYRot, targetXRot);
+             this.player.level().getChunkSource().move(this.player);
++            this.allowedPlayerTicks = 20; // CraftBukkit
+         } else {
++            // CraftBukkit - Make sure the move is valid but then reset it for plugins to modify
++            float startYRot = this.player.getYRot();
++            float startXRot = this.player.getXRot();
++            // CraftBukkit end
+             double startX = this.player.getX();
+             double startY = this.player.getY();
+             double startZ = this.player.getZ();
+@@ -1133,6 +_,16 @@
+             double zDist = targetZ - this.firstGoodZ;
+             double expectedDist = this.player.getDeltaMovement().lengthSqr();
+             double movedDist = xDist * xDist + yDist * yDist + zDist * zDist;
++            // Paper start - fix large move vectors killing the server
++            double currDeltaX = targetX - startX;
++            double currDeltaY = targetY - startY;
++            double currDeltaZ = targetZ - startZ;
++            movedDist = Math.max(movedDist, (currDeltaX * currDeltaX + currDeltaY * currDeltaY + currDeltaZ * currDeltaZ) - 1);
++            double otherFieldX = targetX - this.lastGoodX;
++            double otherFieldY = targetY - this.lastGoodY;
++            double otherFieldZ = targetZ - this.lastGoodZ;
++            movedDist = Math.max(movedDist, (otherFieldX * otherFieldX + otherFieldY * otherFieldY + otherFieldZ * otherFieldZ) - 1);
++            // Paper end - fix large move vectors killing the server
+             if (this.player.isSleeping()) {
+                 if (movedDist > 1.0) {
+                     this.teleport(this.player.getX(), this.player.getY(), this.player.getZ(), targetYRot, targetXRot);
+@@ -1143,17 +_,56 @@
+                 if (level.tickRateManager().runsNormally()) {
+                     this.receivedMovePacketCount++;
+                     int deltaPackets = this.receivedMovePacketCount - this.knownMovePacketCount;
+-                    if (deltaPackets > 5) {
++                    // CraftBukkit start - handle custom speeds and skipped ticks
++                    this.allowedPlayerTicks += (System.currentTimeMillis() / 50) - this.lastTick;
++                    this.allowedPlayerTicks = Math.max(this.allowedPlayerTicks, 1);
++                    this.lastTick = (int) (System.currentTimeMillis() / 50);
++
++                    if (deltaPackets > Math.max(this.allowedPlayerTicks, 5)) {
++                    // CraftBukkit end - handle custom speeds and skipped ticks
+                         LOGGER.debug("{} is sending move packets too frequently ({} packets since last tick)", this.player.getPlainTextName(), deltaPackets);
+                         deltaPackets = 1;
+                     }
++                    // CraftBukkit start - handle custom speeds and skipped ticks
++                    if (startYRot != targetYRot | startXRot != targetXRot | movedDist > 0) {
++                        this.allowedPlayerTicks -= 1;
++                    } else {
++                        this.allowedPlayerTicks = 20;
++                    }
++                    double speed;
++                    if (this.player.getAbilities().flying) {
++                        speed = this.player.getAbilities().getFlyingSpeed() * 20f;
++                    } else {
++                        speed = this.player.getAbilities().getWalkingSpeed() * 10f;
++                    }
++
++                    // Paper start - Prevent moving into unloaded chunks
++                    if (this.player.level().paperConfig().chunks.preventMovingIntoUnloadedChunks && (this.player.getX() != targetX || this.player.getZ() != targetZ) && !level.areChunksLoadedForMove(this.player.getBoundingBox().expandTowards(new Vec3(targetX, targetY, targetZ).subtract(this.player.position())))) {
++                        // Paper start - Add fail move event
++                        io.papermc.paper.event.player.PlayerFailMoveEvent event = fireFailMove(io.papermc.paper.event.player.PlayerFailMoveEvent.FailReason.MOVED_INTO_UNLOADED_CHUNK,
++                            targetX, targetY, targetZ, targetYRot, targetXRot, false);
++                        if (!event.isAllowed()) {
++                            this.internalTeleport(PositionMoveRotation.of(this.player), Collections.emptySet());
++                            return;
++                        }
++                        // Paper end - Add fail move event
++                    }
++                    // Paper end - Prevent moving into unloaded chunks
+ 
+                     if (this.shouldCheckPlayerMovement(isFallFlying)) {
+                         float metersPerTick = isFallFlying ? 300.0F : 100.0F;
+-                        if (movedDist - expectedDist > metersPerTick * deltaPackets) {
+-                            LOGGER.warn("{} moved too quickly! {},{},{}", this.player.getPlainTextName(), xDist, yDist, zDist);
+-                            this.teleport(this.player.getX(), this.player.getY(), this.player.getZ(), this.player.getYRot(), this.player.getXRot());
+-                            return;
++                        if (movedDist - expectedDist > Math.max(metersPerTick, Mth.square(org.spigotmc.SpigotConfig.movedTooQuicklyMultiplier * (float) deltaPackets * speed))) { // CraftBukkit - moved to quickly multiplier
++                            // Paper start - Add fail move event
++                            io.papermc.paper.event.player.PlayerFailMoveEvent event = fireFailMove(io.papermc.paper.event.player.PlayerFailMoveEvent.FailReason.MOVED_TOO_QUICKLY,
++                                targetX, targetY, targetZ, targetYRot, targetXRot, true);
++                            if (!event.isAllowed()) {
++                                if (event.getLogWarning()) {
++                                    LOGGER.warn("{} moved too quickly! {},{},{}", this.player.getPlainTextName(), xDist, yDist, zDist);
++                                }
++                                this.teleport(this.player.getX(), this.player.getY(), this.player.getZ(), this.player.getYRot(), this.player.getXRot());
++                                return;
++                            }
++                            // Paper end - Add fail move event
+                         }
+                     }
+                 }
+@@ -1164,7 +_,21 @@
+                 zDist = targetZ - this.lastGoodZ;
+                 boolean movedUpwards = yDist > 0.0;
+                 if (this.player.onGround() && !isOnGround && movedUpwards) {
+-                    this.player.jumpFromGround();
++                    // Paper start - Add PlayerJumpEvent
++                    org.bukkit.entity.Player player = this.getCraftPlayer();
++                    Location from = new Location(player.getWorld(), this.lastPosX, this.lastPosY, this.lastPosZ, this.lastYRot, this.lastXRot); // Get the Players previous Event location.
++                    Location to = new Location(player.getWorld(), targetX, targetY, targetZ, targetYRot, targetXRot);
++
++                    com.destroystokyo.paper.event.player.PlayerJumpEvent event = new com.destroystokyo.paper.event.player.PlayerJumpEvent(player, from, to);
++
++                    if (event.callEvent()) {
++                        this.player.jumpFromGround();
++                    } else {
++                        from = event.getFrom();
++                        this.internalTeleport(new PositionMoveRotation(org.bukkit.craftbukkit.util.CraftLocation.toVec3(from), Vec3.ZERO, from.getYaw(), from.getPitch()), Collections.emptySet());
++                        return;
++                    }
++                    // Paper end - Add PlayerJumpEvent
+                 }
+ 
+                 boolean playerStandsOnSomething = this.player.verticalCollisionBelow;
+@@ -1173,6 +_,13 @@
+                 }
+ 
+                 this.player.move(MoverType.PLAYER, new Vec3(xDist, yDist, zDist));
++                this.player.onGround = isOnGround; // CraftBukkit - SPIGOT-5810, SPIGOT-5835, SPIGOT-6828: reset by this.player.move
++                final boolean didCollide = targetX != this.player.getX() || targetY != this.player.getY() || targetZ != this.player.getZ(); // Paper - needed here as the difference in Y can be reset - also note: this is only a guess at whether collisions took place, floating point errors can make this true when it shouldn't be...
++                // Paper start - prevent position desync
++                if (this.awaitingPositionFromClient != null) {
++                    return; // ... thanks Mojang for letting move calls teleport across dimensions.
++                }
++                // Paper end - prevent position desync
+                 double oyDist = yDist;
+                 xDist = targetX - this.player.getX();
+                 yDist = targetY - this.player.getY();
+@@ -1184,26 +_,104 @@
+                 movedDist = xDist * xDist + yDist * yDist + zDist * zDist;
+                 boolean fail = false;
+                 if (!this.player.isChangingDimension()
+-                    && movedDist > 0.0625
++                    && movedDist > org.spigotmc.SpigotConfig.movedWronglyThreshold // Spigot
+                     && !this.player.isSleeping()
+                     && !this.player.isCreative()
+                     && !this.player.isSpectator()
+                     && !this.player.isInPostImpulseGraceTime()) {
+-                    fail = true;
+-                    LOGGER.warn("{} moved wrongly!", this.player.getPlainTextName());
+-                }
+-
+-                if (this.player.noPhysics
+-                    || this.player.isSleeping()
+-                    || (!fail || !level.noCollision(this.player, oldAABB))
+-                        && !this.isEntityCollidingWithAnythingNew(level, this.player, oldAABB, targetX, targetY, targetZ)) {
++                    // Paper start - Add fail move event
++                    io.papermc.paper.event.player.PlayerFailMoveEvent event = fireFailMove(io.papermc.paper.event.player.PlayerFailMoveEvent.FailReason.MOVED_WRONGLY,
++                        targetX, targetY, targetZ, targetYRot, targetXRot, true);
++                    if (!event.isAllowed()) {
++                        fail = true;
++                        if (event.getLogWarning()) {
++                            LOGGER.warn("{} moved wrongly!", this.player.getPlainTextName());
++                        }
++                    }
++                    // Paper end - Add fail move event
++                }
++
++                // Paper start - Add fail move event
++                // Paper start - optimise out extra getCubes
++                boolean allowMovement = this.player.noPhysics || this.player.isSleeping() || !fail;
++                this.player.absSnapTo(targetX, targetY, targetZ, targetYRot, targetXRot); // prevent desync by tping to the set position, dropped for unknown reasons by mojang
++                if (!this.player.noPhysics && !this.player.isSleeping() && allowMovement) {
++                    final AABB newBox = this.player.getBoundingBox();
++                    if (didCollide || !oldAABB.equals(newBox)) {
++                        // note: only call after setLocation, or else getBoundingBox is wrong
++                        allowMovement = !this.hasNewCollision(level, this.player, oldAABB, newBox);
++                    } // else: no collision at all detected, why do we care?
++                }
++                // Paper end - optimise out extra getCubes
++                if (!allowMovement) {
++                    io.papermc.paper.event.player.PlayerFailMoveEvent event = fireFailMove(io.papermc.paper.event.player.PlayerFailMoveEvent.FailReason.CLIPPED_INTO_BLOCK,
++                        targetX, targetY, targetZ, targetYRot, targetXRot, false);
++                    if (event.isAllowed()) {
++                        allowMovement = true;
++                    }
++                }
++                if (allowMovement) {
++                    // Paper end - Add fail move event
++                    // CraftBukkit start - fire PlayerMoveEvent
++                    // Reset to old location first
++                    this.player.absSnapTo(startX, startY, startZ, startYRot, startXRot);
++
++                    org.bukkit.entity.Player player = this.getCraftPlayer();
++                    if (!this.hasMoved) {
++                        this.lastPosX = startX;
++                        this.lastPosY = startY;
++                        this.lastPosZ = startZ;
++                        this.lastYRot = startYRot;
++                        this.lastXRot = startXRot;
++                        this.hasMoved = true;
++                    }
++                    Location from = new Location(player.getWorld(), this.lastPosX, this.lastPosY, this.lastPosZ, this.lastYRot, this.lastXRot); // Get the Players previous Event location.
++                    Location to = new Location(player.getWorld(), targetX, targetY, targetZ, targetYRot, targetXRot);
++
++                    // Prevent 40 event-calls for less than a single pixel of movement >.>
++                    double delta = Mth.square(this.lastPosX - to.getX()) + Mth.square(this.lastPosY - to.getY()) + Mth.square(this.lastPosZ - to.getZ());
++                    float deltaAngle = Math.abs(Mth.wrapDegrees(this.lastYRot - to.getYaw())) + Math.abs(this.lastXRot - to.getPitch());
++
++                    if ((delta > 1.0F / 256 || deltaAngle > 10.0F) && !this.player.isImmobile()) {
++                        this.lastPosX = to.getX();
++                        this.lastPosY = to.getY();
++                        this.lastPosZ = to.getZ();
++                        this.lastYRot = to.getYaw();
++                        this.lastXRot = to.getPitch();
++
++                        Location oldTo = to.clone();
++                        PlayerMoveEvent event = new PlayerMoveEvent(player, from, to);
++                        this.cserver.getPluginManager().callEvent(event);
++
++                        // If the event is cancelled we move the player back to their old location.
++                        if (event.isCancelled()) {
++                            this.internalTeleport(from);
++                            return;
++                        }
++
++                        // If a Plugin has changed the To destination then we teleport the Player
++                        // there to avoid any 'Moved wrongly' or 'Moved too quickly' errors.
++                        // We only do this if the Event was not cancelled.
++                        if (!oldTo.equals(event.getTo()) && !event.isCancelled()) {
++                            this.player.getBukkitEntity().teleport(event.getTo(), PlayerTeleportEvent.TeleportCause.PLUGIN);
++                            return;
++                        }
++
++                        // Check to see if the Players Location has some how changed during the call of the event.
++                        // This can happen due to a plugin teleporting the player instead of using .setTo()
++                        if (!from.equals(this.getCraftPlayer().getLocation()) && this.justTeleported) {
++                            this.justTeleported = false;
++                            return;
++                        }
++                    }
++                    // Paper end
+                     this.player.absSnapTo(targetX, targetY, targetZ, targetYRot, targetXRot);
+                     boolean isAutoSpinAttack = this.player.isAutoSpinAttack();
+                     this.clientIsFloating = oyDist >= -0.03125
                          && !playerStandsOnSomething
                          && !this.player.isSpectator()
                          && !this.server.allowFlight()
@@ -966,6 +1201,15 @@
                          && !this.player.hasEffect(MobEffects.LEVITATION)
                          && !isFallFlying
                          && !isAutoSpinAttack
+@@ -1231,7 +_,7 @@
+                     this.lastGoodY = this.player.getY();
+                     this.lastGoodZ = this.player.getZ();
+                 } else {
+-                    this.teleport(startX, startY, startZ, targetYRot, targetXRot);
++                    this.internalTeleport(startX, startY, startZ, targetYRot, targetXRot); // CraftBukkit - SPIGOT-1807: Don't call teleport event, when the client thinks the player is falling, because the chunks are not loaded on the client yet.
+                     this.player.doCheckFallDamage(this.player.getX() - startX, this.player.getY() - startY, this.player.getZ() - startZ, isOnGround);
+                     this.player.removeLatestMovementRecording();
+                 }
 @@ -1239,6 +_,17 @@
          }
      }

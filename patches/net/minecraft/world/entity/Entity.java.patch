@@ -1309,6 +1309,18 @@
      }
  
      public void snapTo(Vec3 pos) {
+@@ -1905,6 +_,11 @@
+     public void push(Entity entity) {
+         if (!this.isPassengerOfSameVehicle(entity)) {
+             if (!entity.noPhysics && !this.noPhysics) {
++                if (this.level.paperConfig().collisions.onlyPlayersCollide && !(entity instanceof ServerPlayer || this instanceof ServerPlayer)) return; // Paper - Collision option for requiring a player participant
++                // Paper start - Add EntityCollideWithEntity Event
++                if (io.papermc.paper.event.entity.EntityCollideWithEntityEvent.getHandlerList().getRegisteredListeners().length != 0 &&
++                    !new io.papermc.paper.event.entity.EntityCollideWithEntityEvent(this.getBukkitEntity(), entity.getBukkitEntity()).callEvent()) return;
++                // Paper end - Add EntityCollideWithEntity Event
+                 double xa = entity.getX() - this.getX();
+                 double za = entity.getZ() - this.getZ();
+                 double dd = Mth.absMax(xa, za);
 @@ -1944,8 +_,24 @@
      }
  

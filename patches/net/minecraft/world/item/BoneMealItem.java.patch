@@ -7,12 +7,55 @@
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
  import net.minecraft.core.Holder;
-@@ -38,9 +_,9 @@
+@@ -38,9 +_,52 @@
          BlockPos pos = context.getClickedPos();
          BlockPos relative = pos.relative(context.getClickedFace());
          ItemStack boneMealStack = context.getItemInHand();
 -        if (growCrop(boneMealStack, level, pos)) {
-+        if (applyBonemeal(boneMealStack, level, pos, context.getPlayer())) {
++        net.minecraft.world.entity.player.Player player = context.getPlayer();
++        // Paper start - fire StructureGrowEvent/BlockFertilizeEvent for player bone meal usage
++        boolean bonemealApplied;
++        if (player != null && !level.isClientSide() && level instanceof ServerLevel serverLevel) {
++            serverLevel.captureTreeGeneration = true;
++            java.util.List<org.bukkit.craftbukkit.block.CraftBlockState> capturedBlockStates;
++            org.bukkit.TreeType treeType;
++            try {
++                bonemealApplied = applyBonemeal(boneMealStack, serverLevel, pos, player);
++            } finally {
++                serverLevel.captureTreeGeneration = false;
++
++                capturedBlockStates = new java.util.ArrayList<>(serverLevel.capturedBlockStates.values());
++                serverLevel.capturedBlockStates.clear();
++
++                treeType = net.minecraft.world.level.block.SaplingBlock.treeType;
++                net.minecraft.world.level.block.SaplingBlock.treeType = null;
++            }
++
++            if (!capturedBlockStates.isEmpty()) {
++                org.bukkit.Location location = org.bukkit.craftbukkit.util.CraftLocation.toBukkit(pos, serverLevel);
++                org.bukkit.entity.Player bukkitPlayer = player instanceof net.minecraft.server.level.ServerPlayer serverPlayer ? serverPlayer.getBukkitEntity() : null;
++                org.bukkit.event.world.StructureGrowEvent structureEvent = null;
++                if (treeType != null) {
++                    structureEvent = new org.bukkit.event.world.StructureGrowEvent(location, treeType, true, bukkitPlayer, (java.util.List<org.bukkit.block.BlockState>) (java.util.List<? extends org.bukkit.block.BlockState>) capturedBlockStates);
++                    structureEvent.callEvent();
++                }
++
++                org.bukkit.event.block.BlockFertilizeEvent fertilizeEvent = new org.bukkit.event.block.BlockFertilizeEvent(location.getBlock(), bukkitPlayer, (java.util.List<org.bukkit.block.BlockState>) (java.util.List<? extends org.bukkit.block.BlockState>) capturedBlockStates);
++                fertilizeEvent.setCancelled(structureEvent != null && structureEvent.isCancelled());
++                fertilizeEvent.callEvent();
++
++                if (!fertilizeEvent.isCancelled()) {
++                    for (org.bukkit.craftbukkit.block.CraftBlockState snapshot : capturedBlockStates) {
++                        snapshot.place(snapshot.getFlags());
++                        serverLevel.checkCapturedTreeStateForObserverNotify(pos, snapshot); // Paper - notify observers even if grow failed
++                    }
++                }
++            }
++        } else {
++            bonemealApplied = applyBonemeal(boneMealStack, level, pos, player);
++        }
++        // Paper end
++        if (bonemealApplied) {
              if (!level.isClientSide()) {
 -                boneMealStack.causeUseVibration(context.getPlayer(), GameEvent.ITEM_INTERACT_FINISH);
 +                if (context.getPlayer() != null) boneMealStack.causeUseVibration(context.getPlayer(), GameEvent.ITEM_INTERACT_FINISH); // CraftBukkit - SPIGOT-7518

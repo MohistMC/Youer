@@ -28,3 +28,18 @@
              Direction clickedFace = context.getClickedFace();
              if (!transformData.disallowedFaces().contains(clickedFace)) {
                  BlockState newBlockState = transformData.blockStateProvider.value().getOptionalState(level, level.getRandom(), pos);
+@@ -68,6 +_,14 @@
+                     BlockState updatedShape = transformData.updateFromNeighbors ? Block.updateFromNeighbourShapes(newBlockState, level, pos) : newBlockState;
+                     Player player = context.getPlayer();
+                     ItemStack itemInHand = context.getItemInHand();
++                    // Paper start - call EntityChangeBlockEvent
++                    if (player != null && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(player, pos, updatedShape)) {
++                        if (itemInHand.isStackable() && !player.hasInfiniteMaterials() && player instanceof ServerPlayer serverPlayer) {
++                            serverPlayer.containerMenu.forceHeldSlot(context.getHand());
++                        }
++                        return InteractionResult.PASS;
++                    }
++                    // Paper end - call EntityChangeBlockEvent
+                     if (player instanceof ServerPlayer serverPlayer) {
+                         CriteriaTriggers.ITEM_USED_ON_BLOCK.trigger(serverPlayer, pos, itemInHand);
+                     }

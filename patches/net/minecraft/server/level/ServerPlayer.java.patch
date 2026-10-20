@@ -1306,7 +1306,7 @@
 -            return Either.left(Player.BedSleepingProblem.OTHER_PROBLEM);
 -        }
 +                    this.setRespawnPosition(
-+                        new ServerPlayer.RespawnConfig(LevelData.RespawnData.of(this.level().dimension(), pos, this.getYRot(), this.getXRot()), false), true
++                        new ServerPlayer.RespawnConfig(LevelData.RespawnData.of(this.level().dimension(), pos, this.getYRot(), this.getXRot()), false), true, com.destroystokyo.paper.event.player.PlayerSetSpawnEvent.Cause.BED // Paper - Add PlayerSetSpawnEvent
 +                    );
 +                }
 +
@@ -1511,7 +1511,7 @@
 +        }
 +        // CraftBukkit end
 +        if (this.containerMenu != this.inventoryMenu) {
-+            this.closeContainer();
++            this.closeContainer(org.bukkit.event.inventory.InventoryCloseEvent.Reason.OPEN_NEW); // Paper - Inventory close reason
 +        }
 +
          this.connection.send(new ClientboundMountScreenOpenPacket(this.containerCounter, inventoryColumns, horse.getId()));
@@ -1586,6 +1586,46 @@
          this.containerMenu = this.inventoryMenu;
      }
  
+@@ -1483,19 +_,19 @@
+                 int distance = Math.round((float)Math.sqrt(dx * dx + dy * dy + dz * dz) * 100.0F);
+                 if (distance > 0) {
+                     this.awardStat(Stats.SWIM_ONE_CM, distance);
+-                    this.causeFoodExhaustion(0.01F * distance * 0.01F);
++                    this.causeFoodExhaustion(this.level().spigotConfig.swimMultiplier * distance * 0.01F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.SWIM); // CraftBukkit - EntityExhaustionEvent // Spigot
+                 }
+             } else if (this.isEyeInFluid(FluidTags.WATER)) {
+                 int distance = Math.round((float)Math.sqrt(dx * dx + dy * dy + dz * dz) * 100.0F);
+                 if (distance > 0) {
+                     this.awardStat(Stats.WALK_UNDER_WATER_ONE_CM, distance);
+-                    this.causeFoodExhaustion(0.01F * distance * 0.01F);
++                    this.causeFoodExhaustion(this.level().spigotConfig.swimMultiplier * distance * 0.01F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.WALK_UNDERWATER); // CraftBukkit - EntityExhaustionEvent // Spigot
+                 }
+             } else if (this.isInWater()) {
+                 int horizontalDistance = Math.round((float)Math.sqrt(dx * dx + dz * dz) * 100.0F);
+                 if (horizontalDistance > 0) {
+                     this.awardStat(Stats.WALK_ON_WATER_ONE_CM, horizontalDistance);
+-                    this.causeFoodExhaustion(0.01F * horizontalDistance * 0.01F);
++                    this.causeFoodExhaustion(this.level().spigotConfig.swimMultiplier * horizontalDistance * 0.01F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.WALK_ON_WATER); // CraftBukkit - EntityExhaustionEvent // Spigot
+                 }
+             } else if (this.onClimbable()) {
+                 if (dy > 0.0) {
+@@ -1506,13 +_,13 @@
+                 if (horizontalDistance > 0) {
+                     if (this.isSprinting()) {
+                         this.awardStat(Stats.SPRINT_ONE_CM, horizontalDistance);
+-                        this.causeFoodExhaustion(0.1F * horizontalDistance * 0.01F);
++                        this.causeFoodExhaustion(this.level().spigotConfig.sprintMultiplier * horizontalDistance * 0.01F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.SPRINT); // CraftBukkit - EntityExhaustionEvent // Spigot
+                     } else if (this.isCrouching()) {
+                         this.awardStat(Stats.CROUCH_ONE_CM, horizontalDistance);
+-                        this.causeFoodExhaustion(0.0F * horizontalDistance * 0.01F);
++                        this.causeFoodExhaustion(this.level().spigotConfig.otherMultiplier * horizontalDistance * 0.01F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.CROUCH); // CraftBukkit - EntityExhaustionEvent // Spigot
+                     } else {
+                         this.awardStat(Stats.WALK_ONE_CM, horizontalDistance);
+-                        this.causeFoodExhaustion(0.0F * horizontalDistance * 0.01F);
++                        this.causeFoodExhaustion(this.level().spigotConfig.otherMultiplier * horizontalDistance * 0.01F, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.WALK); // CraftBukkit - EntityExhaustionEvent // Spigot
+                     }
+                 }
+             } else if (this.isFallFlying()) {
 @@ -1556,13 +_,13 @@
      @Override
      public void awardStat(Stat<?> stat, int count) {

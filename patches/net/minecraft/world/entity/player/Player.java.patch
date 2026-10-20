@@ -380,7 +380,7 @@
      }
  
      @Override
-@@ -736,16 +_,31 @@
+@@ -736,18 +_,33 @@
      @Override
      protected void actuallyHurt(ServerLevel level, DamageSource source, float dmg) {
          if (!this.isInvulnerableTo(level, source)) {
@@ -416,8 +416,11 @@
  
 +            // Last thing here, inflict damage to the entity's health, based on how much damage is remaining after absorption has been processes.
              if (dmg != 0.0F) {
-                 this.causeFoodExhaustion(source.getFoodExhaustion());
+-                this.causeFoodExhaustion(source.getFoodExhaustion());
++                this.causeFoodExhaustion(source.getFoodExhaustion(), org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.DAMAGED); // CraftBukkit - EntityExhaustionEvent
                  this.getCombatTracker().recordDamage(source, dmg);
+                 this.setHealth(this.getHealth() - dmg);
+                 if (dmg < 3.4028235E37F) {
 @@ -756,6 +_,8 @@
  
                  this.gameEvent(GameEvent.ENTITY_DAMAGE);
@@ -541,7 +544,7 @@
                      float oldLivingEntityHealth = 0.0F;
                      if (entity instanceof LivingEntity livingTarget) {
                          oldLivingEntityHealth = livingTarget.getHealth();
-@@ -970,7 +_,8 @@
+@@ -970,14 +_,15 @@
                              entity, this.getKnockback(entity, damageSource) + (knockbackAttack ? 0.5F : 0.0F), oldMovement, damageSource, totalDamage, true
                          );
                          if (sweepAttack) {
@@ -551,6 +554,14 @@
                          }
  
                          this.attackVisualEffects(entity, criticalAttack, sweepAttack, fullStrengthAttack, false, magicBoost);
+                         this.setLastHurtMob(entity);
+                         this.itemAttackInteraction(entity, attackingItemStack, damageSource, true);
+                         this.damageStatsAndHearts(entity, oldLivingEntityHealth);
+-                        this.causeFoodExhaustion(0.1F);
++                        this.causeFoodExhaustion(this.level().spigotConfig.combatExhaustion, org.bukkit.event.entity.EntityExhaustionEvent.ExhaustionReason.ATTACK); // CraftBukkit - EntityExhaustionEvent // Spigot - Change to use configurable value
+                     } else {
+                         this.playServerSideSound(SoundEvents.PLAYER_ATTACK_NODAMAGE);
+                     }
 @@ -985,6 +_,8 @@
  
                  this.postPiercingAttack();
@@ -608,7 +619,23 @@
                  if (attackingItemStack == this.getMainHandItem()) {
                      this.setItemInHand(InteractionHand.MAIN_HAND, ItemStack.EMPTY);
                  } else {
-@@ -1116,13 +_,34 @@
+@@ -1105,24 +_,48 @@
+                     -Mth.cos(this.getYRot() * (float) (Math.PI / 180.0)),
+                     damageSource,
+                     damage,
+-                    comesFromEffect
++                    comesFromEffect,
++                    this,
++                    io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.ENTITY_ATTACK // Paper - knockback events
+                 );
+             } else {
+                 entity.push(
+                     -Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)) * knockbackAmount,
+                     0.1,
+-                    Mth.cos(this.getYRot() * (float) (Math.PI / 180.0)) * knockbackAmount
++                    Mth.cos(this.getYRot() * (float) (Math.PI / 180.0)) * knockbackAmount,
++                    this // Paper - Add EntityKnockbackByEntityEvent and EntityPushedByEntityAttackEvent
+                 );
              }
  
              this.setDeltaMovement(this.getDeltaMovement().multiply(0.6, 1.0, 0.6));
@@ -647,7 +674,7 @@
          }
      }
  
-@@ -1131,19 +_,29 @@
+@@ -1131,25 +_,37 @@
          return 1.0F;
      }
  
@@ -680,6 +707,15 @@
                          nearby.knockback(
                              0.4F,
                              Mth.sin(this.getYRot() * (float) (Math.PI / 180.0)),
+                             -Mth.cos(this.getYRot() * (float) (Math.PI / 180.0)),
+                             damageSource,
+-                            enchantedDamage
++                            enchantedDamage,
++                            this,
++                            io.papermc.paper.event.entity.EntityKnockbackEvent.Cause.SWEEP_ATTACK // Paper - knockback events
+                         );
+                         EnchantmentHelper.doPostAttackEffects(serverLevel, nearby, damageSource);
+                     }
 @@ -1181,7 +_,16 @@
  
      @Override

@@ -100,32 +100,70 @@
      public MoveControl getMoveControl() {
          return this.getControlledVehicle() instanceof Mob riding ? riding.getMoveControl() : this.moveControl;
      }
-@@ -249,8 +_,27 @@
+@@ -245,12 +_,65 @@
+         }
+     }
+ 
++    // CraftBukkit start - allows the Bukkit bridge to drop a target a plugin has set that this mob cannot attack
++    public @Nullable LivingEntity pruneInvalidTarget(@Nullable LivingEntity target) {
++        return this.asValidTarget(target);
++    }
++    // CraftBukkit end
++
+     protected final @Nullable LivingEntity getTargetFromBrain() {
          return this.asValidTarget(this.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse(null));
      }
  
-+    private EntityTargetEvent.TargetReason reason = EntityTargetEvent.TargetReason.UNKNOWN;
++    private EntityTargetEvent.@Nullable TargetReason reason = EntityTargetEvent.TargetReason.UNKNOWN;
 +    public AtomicBoolean canSetTarget = new AtomicBoolean(true);
-+    public void setTargetReason(EntityTargetEvent.TargetReason reason) {
++    public void setTargetReason(org.bukkit.event.entity.EntityTargetEvent.@Nullable TargetReason reason) {
 +        this.reason = reason;
++    }
++
++    /**
++     * The reason that is reported to Bukkit for the target change that is currently being processed.
++     * {@code null} means that no Bukkit event has to be fired for it.
++     */
++    public EntityTargetEvent.@Nullable TargetReason getTargetReason() {
++        return this.reason;
 +    }
 +
      public void setTarget(@Nullable LivingEntity target) {
 -        this.target = this.asValidTarget(target);
-+        target = this.asValidTarget(target);
-+        net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent changeTargetEvent = net.neoforged.neoforge.common.CommonHooks.onLivingChangeTarget(this, target, net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent.LivingTargetType.MOB_TARGET);
-+        if(!changeTargetEvent.isCanceled()) {
-+             this.target = changeTargetEvent.getNewAboutToBeSetTarget();
-+            if (target instanceof net.minecraft.server.level.ServerPlayer) this.ticksSinceLastInteraction = 0; // Purpur - Entity lifespan
-+        }
++        this.setTarget(target, this.reason);
 +    }
 +
-+    public boolean setTarget(LivingEntity p_21544_, org.bukkit.event.entity.EntityTargetEvent.TargetReason reason) {
-+        if (getTarget() == p_21544_) return false;
-+        setTargetReason(reason);
-+        setTarget(p_21544_);
-+        return canSetTarget.getAndSet(true);
-+        // CraftBukkit end
++    public boolean setTarget(@Nullable LivingEntity target, org.bukkit.event.entity.EntityTargetEvent.@Nullable TargetReason reason) {
++        LivingEntity currentTarget = this.getTargetUnchecked();
++        boolean unchanged = Objects.equals(currentTarget, target);
++        LivingEntity originalTarget = target;
++        target = this.asValidTarget(target);
++        EntityTargetEvent.TargetReason targetReason = reason;
++        if (targetReason != null) {
++            if (unchanged) {
++                targetReason = null; // the target is not changing, no Bukkit event
++            } else if (target != originalTarget) { // target got pruned in asValidTarget
++                targetReason = CraftEventFactory.getForgotTargetReason(this, currentTarget, true);
++            } else if (targetReason == EntityTargetEvent.TargetReason.FORGOT_TARGET
++                    || (targetReason == EntityTargetEvent.TargetReason.UNKNOWN && target == null)) { // try to get a more relevant reason
++                targetReason = CraftEventFactory.getForgotTargetReason(this, currentTarget, false);
++            }
++        }
++        this.reason = targetReason;
++        boolean changed = true;
++        try {
++            net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent changeTargetEvent = net.neoforged.neoforge.common.CommonHooks.onLivingChangeTarget(this, target, net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent.LivingTargetType.MOB_TARGET);
++            if(!changeTargetEvent.isCanceled()) {
++                 this.target = changeTargetEvent.getNewAboutToBeSetTarget();
++                if (target instanceof net.minecraft.server.level.ServerPlayer) this.ticksSinceLastInteraction = 0; // Purpur - Entity lifespan
++            } else {
++                changed = false;
++            }
++        } finally {
++            this.reason = EntityTargetEvent.TargetReason.UNKNOWN;
++        }
++        boolean allowed = canSetTarget.getAndSet(true);
++        return changed && !unchanged && allowed;
      }
  
      @Override

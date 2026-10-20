@@ -1,12 +1,18 @@
 --- a/net/minecraft/world/item/consume_effects/TeleportRandomlyConsumeEffect.java
 +++ b/net/minecraft/world/item/consume_effects/TeleportRandomlyConsumeEffect.java
-@@ -63,7 +_,8 @@
+@@ -63,7 +_,14 @@
              }
  
              Vec3 oldPos = user.position();
 -            if (user.randomTeleport(xx, yy, zz, true, BlockTags.CONSUMABLE_DOES_NOT_TELEPORT_TO)) {
 +            // Neo: Pass on the consumed stack to fire the appropriate sub-event of EntityTeleportEvent
-+            if (user.randomTeleport(xx, yy, zz, true, BlockTags.CONSUMABLE_DOES_NOT_TELEPORT_TO, stack)) {
++            // Paper start - handle canceled status of teleport event
++            LivingEntity.RandomTeleportResult result = user.randomTeleport(xx, yy, zz, true, state -> state.is(BlockTags.CONSUMABLE_DOES_NOT_TELEPORT_TO), org.bukkit.event.player.PlayerTeleportEvent.TeleportCause.CONSUMABLE_EFFECT, stack);
++
++            // teleport event was canceled, no more tries
++            if (result == LivingEntity.RandomTeleportResult.EVENT_CANCELLED) break;
++            if (result == LivingEntity.RandomTeleportResult.SUCCESS) {
++                // CraftBukkit end
                  level.gameEvent(GameEvent.TELEPORT, oldPos, GameEvent.Context.of(user));
                  SoundSource soundSource;
                  SoundEvent soundEvent;

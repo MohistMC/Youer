@@ -30,27 +30,38 @@ public class EntityEventDispatcher {
 
     @SubscribeEvent(receiveCanceled = true)
     public void changeTargetEvent(LivingChangeTargetEvent event) {
-        EntityTargetEvent.TargetReason reason = event.getReason();
+        if (!event.isFireCBEvent()) {
+            return;
+        }
+        // StartAttacking fires the Bukkit event on its own, firing it here again would double it
+        if (event.getTargetType() == LivingChangeTargetEvent.LivingTargetType.BEHAVIOR_TARGET) {
+            return;
+        }
+        if (!(event.getEntity() instanceof Mob mob)) {
+            return;
+        }
+        EntityTargetEvent.TargetReason reason = mob.getTargetReason();
+        if (reason == null) {
+            // no Bukkit event has to be fired for this target change
+            return;
+        }
+        event.setReason(reason);
         LivingEntity entityliving = event.getNewAboutToBeSetTarget();
-
-        if (entityliving instanceof Mob mob) {
-            if (event.isFireCBEvent()) {
-                if (reason == EntityTargetEvent.TargetReason.UNKNOWN && mob.getTarget() != null && entityliving == null) {
-                    reason = mob.getTarget().isAlive() ? EntityTargetEvent.TargetReason.FORGOT_TARGET : EntityTargetEvent.TargetReason.TARGET_DIED;
-                }
-                CraftLivingEntity ctarget = null;
-                if (entityliving != null) {
-                    ctarget = (CraftLivingEntity) entityliving.getBukkitEntity();
-                }
-                EntityTargetLivingEntityEvent CBevent = new EntityTargetLivingEntityEvent(event.getEntity().getBukkitEntity(), ctarget, reason);
-                Bukkit.getPluginManager().callEvent(CBevent);
-                if (CBevent.isCancelled()) {
-                    event.setCanceled(true);
-                } else {
-                    if (CBevent.getTarget() != null) {
-                        event.setNewAboutToBeSetTarget(((CraftLivingEntity) CBevent.getTarget()).getHandle());
-                    }
-                }
+        CraftLivingEntity ctarget = null;
+        if (entityliving != null) {
+            ctarget = (CraftLivingEntity) entityliving.getBukkitEntity();
+        }
+        EntityTargetLivingEntityEvent CBevent = new EntityTargetLivingEntityEvent(event.getEntity().getBukkitEntity(), ctarget, reason);
+        Bukkit.getPluginManager().callEvent(CBevent);
+        if (CBevent.isCancelled()) {
+            event.setCanceled(true);
+        } else {
+            if (CBevent.getTarget() != null) {
+                // CraftBukkit start - a plugin may set a target that is not valid for this mob
+                event.setNewAboutToBeSetTarget(mob.pruneInvalidTarget(((CraftLivingEntity) CBevent.getTarget()).getHandle()));
+                // CraftBukkit end
+            } else {
+                event.setNewAboutToBeSetTarget(null);
             }
         }
     }
