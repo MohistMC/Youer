@@ -706,7 +706,7 @@
      protected void onEffectAdded(MobEffectInstance p_147190_, @Nullable Entity p_147191_) {
          this.effectsDirty = true;
          if (!this.level().isClientSide) {
-@@ -1060,18 +_,75 @@
+@@ -1060,18 +_,77 @@
          }
      }
  
@@ -721,12 +721,14 @@
 +    }
 +
      public void heal(float p_21116_) {
++        RegainReason regainReason = heal$regainReason;
++        heal$regainReason = RegainReason.CUSTOM; // Youer - one-shot: don't leak into the next heal
 +        p_21116_ = net.neoforged.neoforge.event.EventHooks.onLivingHeal(this, p_21116_);
 +        if (p_21116_ <= 0) return;
          float f = this.getHealth();
          if (f > 0.0F) {
 -            this.setHealth(f + p_21116_);
-+            EntityRegainHealthEvent event = new EntityRegainHealthEvent(this.getBukkitEntity(), p_21116_, heal$regainReason, heal$isFastRegen.getAndSet(false));
++            EntityRegainHealthEvent event = new EntityRegainHealthEvent(this.getBukkitEntity(), p_21116_, regainReason, heal$isFastRegen.getAndSet(false));
 +            // Suppress during worldgen
 +            if (this.valid) {
 +                this.level().getCraftServer().getPluginManager().callEvent(event);
@@ -1245,13 +1247,17 @@
          }
      }
  
-@@ -1439,10 +_,17 @@
+@@ -1439,10 +_,21 @@
          loottable.getRandomItems(lootparams, this.getLootTableSeed(), this::spawnAtLocation);
      }
  
 +    public EntityKnockbackEvent.Cause knockback$cause = EntityKnockbackEvent.Cause.UNKNOWN;
 +    public Entity knockback$attacker = null;
      public void knockback(double p_147241_, double p_147242_, double p_147243_) {
++        Entity attacker = knockback$attacker;
++        EntityKnockbackEvent.Cause cause = knockback$cause;
++        knockback$attacker = null; // Youer - one-shot: don't leak into the next knockback
++        knockback$cause = EntityKnockbackEvent.Cause.UNKNOWN;
 +        LivingKnockBackEvent event = CommonHooks.onLivingKnockBack(this, (float) p_147241_, p_147242_, p_147243_);
 +        if(event.isCanceled()) return;
 +        p_147241_ = event.getStrength();
@@ -1272,7 +1278,7 @@
 +            // Paper start - knockback events
 +            Vec3 finalVelocity = new Vec3(vec3.x / 2.0D - vec31.x, this.onGround() ? Math.min(0.4D, vec3.y / 2.0D + p_147241_) : vec3.y, vec3.z / 2.0D - vec31.z);
 +            Vec3 diff = finalVelocity.subtract(vec3);
-+            EntityKnockbackEvent eventCB = CraftEventFactory.callEntityKnockbackEvent((CraftLivingEntity) this.getBukkitEntity(), knockback$attacker, knockback$attacker, knockback$cause, p_147241_, diff);
++            EntityKnockbackEvent eventCB = CraftEventFactory.callEntityKnockbackEvent((CraftLivingEntity) this.getBukkitEntity(), attacker, attacker, cause, p_147241_, diff);
 +            // Paper end - knockback events
 +            if (eventCB.isCancelled()) {
 +                return;

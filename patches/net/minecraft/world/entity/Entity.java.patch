@@ -534,7 +534,7 @@
              this.onBelowWorld();
          }
      }
-@@ -517,14 +_,45 @@
+@@ -517,14 +_,48 @@
  
      public void lavaHurt() {
          if (!this.fireImmune()) {
@@ -568,7 +568,10 @@
 +        this.igniteForSeconds(f);
 +    }
      public final void igniteForSeconds(float p_345382_) {
-+        if (igniteForSeconds$callEvent) {
++        // Youer - one-shot: consume the suppress flag before use
++        boolean callEvent = igniteForSeconds$callEvent;
++        igniteForSeconds$callEvent = true;
++        if (callEvent) {
 +            EntityCombustEvent event = new EntityCombustEvent(this.getBukkitEntity(), p_345382_);
 +            this.level.getCraftServer().getPluginManager().callEvent(event);
 +

@@ -23,15 +23,16 @@
  
  public class LightningBolt extends Entity {
      private static final int START_LIFE = 2;
-@@ -38,6 +_,7 @@
+@@ -38,6 +_,8 @@
      private ServerPlayer cause;
      private final Set<Entity> hitEntities = Sets.newHashSet();
      private int blocksSetOnFire;
 +    private float damage = 5.0F;
++    public boolean isEffect; // Paper - Properly handle lightning effects api
  
      public LightningBolt(EntityType<? extends LightningBolt> p_20865_, Level p_20866_) {
          super(p_20865_, p_20866_);
-@@ -68,11 +_,20 @@
+@@ -68,15 +_,24 @@
      private void powerLightningRod() {
          BlockPos blockpos = this.getStrikePosition();
          BlockState blockstate = this.level().getBlockState(blockpos);
@@ -53,6 +54,11 @@
      @Override
      public void tick() {
          super.tick();
+-        if (this.life == 2) {
++        if (!this.isEffect && this.life == 2) { // Paper - Properly handle lightning effects api
+             if (this.level().isClientSide()) {
+                 this.level()
+                     .playLocalSound(
 @@ -130,6 +_,7 @@
                      }
                  }
@@ -66,7 +72,7 @@
          }
  
 -        if (this.life >= 0) {
-+        if (this.life >= 0 && !this.visualOnly) { // CraftBukkit - add !this.visualOnly
++        if (this.life >= 0 && !this.isEffect) { // CraftBukkit - add !this.visualOnly // Paper - Properly handle lightning effects api
              if (!(this.level() instanceof ServerLevel)) {
                  this.level().setSkyFlashTime(2);
              } else if (!this.visualOnly) {
@@ -82,8 +88,9 @@
      }
  
      private void spawnFire(int p_20871_) {
+-        if (!this.visualOnly && !this.level().isClientSide && this.level().getGameRules().getBoolean(GameRules.RULE_DOFIRETICK)) {
 +        if (BanEvents.banFireTick()) return;
-         if (!this.visualOnly && !this.level().isClientSide && this.level().getGameRules().getBoolean(GameRules.RULE_DOFIRETICK)) {
++        if (!this.visualOnly && !this.isEffect && !this.level().isClientSide && this.level().getGameRules().getBoolean(GameRules.RULE_DOFIRETICK)) {
              BlockPos blockpos = this.blockPosition();
              BlockState blockstate = BaseFireBlock.getState(this.level(), blockpos);
              if (this.level().getBlockState(blockpos).isAir() && blockstate.canSurvive(this.level(), blockpos)) {

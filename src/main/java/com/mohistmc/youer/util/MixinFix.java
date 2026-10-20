@@ -20,7 +20,9 @@ public class MixinFix {
     public static boolean fixPlace(BlockItem blockItem, ServerLevel level, ServerPlayer player, BlockPlaceContext blockplacecontext, BlockPos blockpos, BlockState place$blockstateCB) {
         BlockPlaceEvent placeEvent = CraftEventFactory.callBlockPlaceEvent(level, player, blockplacecontext.getHand(), place$blockstateCB, blockpos.getX(), blockpos.getY(), blockpos.getZ());
         if (placeEvent != null && (placeEvent.isCancelled() || !placeEvent.canBuild())) {
+            level.restoringBlockSnapshots = true; // Youer - undo of a cancelled place must not run onRemove
             place$blockstateCB.update(true, false);
+            level.restoringBlockSnapshots = false;
             player.getBukkitEntity().updateInventory(); // SPIGOT-4541
             return true;
         }

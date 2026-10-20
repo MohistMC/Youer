@@ -970,13 +970,17 @@
          this.experienceLevel += p_36276_;
          if (this.experienceLevel < 0) {
              this.experienceLevel = 0;
-@@ -1664,10 +_,27 @@
+@@ -1662,12 +_,31 @@
+     }
+ 
      public void causeFoodExhaustion(float p_36400_) {
++        ExhaustionReason reason = causeFoodExhaustion$reason;
++        causeFoodExhaustion$reason = ExhaustionReason.UNKNOWN; // Youer - one-shot: don't leak into the next call
          if (!this.abilities.invulnerable) {
              if (!this.level().isClientSide) {
 -                this.foodData.addExhaustion(p_36400_);
 +                // CraftBukkit start
-+                EntityExhaustionEvent event = CraftEventFactory.callPlayerExhaustionEvent(this, causeFoodExhaustion$reason, p_36400_);
++                EntityExhaustionEvent event = CraftEventFactory.callPlayerExhaustionEvent(this, reason, p_36400_);
 +                if (!event.isCancelled()) {
 +                    this.foodData.addExhaustion(event.getExhaustion());
 +                }

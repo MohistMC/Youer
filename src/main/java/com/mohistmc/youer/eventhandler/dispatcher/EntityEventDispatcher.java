@@ -30,23 +30,22 @@ public class EntityEventDispatcher {
 
     @SubscribeEvent(receiveCanceled = true)
     public void changeTargetEvent(LivingChangeTargetEvent event) {
+        if (event.getTargetType() != LivingChangeTargetEvent.LivingTargetType.MOB_TARGET) return; // Youer - BEHAVIOR_TARGET is bridged inline in StartAttacking
         EntityTargetEvent.TargetReason reason = event.getReason();
         LivingEntity entityliving = event.getNewAboutToBeSetTarget();
 
-        if (entityliving instanceof Mob mob) {
+        if (event.getEntity() instanceof Mob mob) {
             if (event.isFireCBEvent()) {
                 if (reason == EntityTargetEvent.TargetReason.UNKNOWN && mob.getTarget() != null) {
                     reason = mob.getTarget().isAlive() ? EntityTargetEvent.TargetReason.FORGOT_TARGET : EntityTargetEvent.TargetReason.TARGET_DIED;
                 }
-                CraftLivingEntity ctarget = (CraftLivingEntity) entityliving.getBukkitEntity();
+                CraftLivingEntity ctarget = entityliving == null ? null : (CraftLivingEntity) entityliving.getBukkitEntity();
                 EntityTargetLivingEntityEvent CBevent = new EntityTargetLivingEntityEvent(event.getEntity().getBukkitEntity(), ctarget, reason);
                 Bukkit.getPluginManager().callEvent(CBevent);
                 if (CBevent.isCancelled()) {
                     event.setCanceled(true);
                 } else {
-                    if (CBevent.getTarget() != null) {
-                        event.setNewAboutToBeSetTarget(((CraftLivingEntity) CBevent.getTarget()).getHandle());
-                    }
+                    event.setNewAboutToBeSetTarget(CBevent.getTarget() == null ? null : ((CraftLivingEntity) CBevent.getTarget()).getHandle());
                 }
             }
         }

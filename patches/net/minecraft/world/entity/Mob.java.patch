@@ -86,7 +86,7 @@
      public MoveControl getMoveControl() {
          return this.getControlledVehicle() instanceof Mob mob ? mob.getMoveControl() : this.moveControl;
      }
-@@ -236,8 +_,31 @@
+@@ -236,8 +_,35 @@
          return this.getBrain().getMemory(MemoryModuleType.ATTACK_TARGET).orElse(null);
      }
  
@@ -100,14 +100,18 @@
 +
      public void setTarget(@Nullable LivingEntity p_21544_) {
 -        this.target = p_21544_;
++        boolean fire = fireCBEvent;
++        fireCBEvent = true; // Youer - one-shot
 +        net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent changeTargetEvent = net.neoforged.neoforge.common.CommonHooks.onLivingChangeTarget(this, p_21544_, net.neoforged.neoforge.event.entity.living.LivingChangeTargetEvent.LivingTargetType.MOB_TARGET);
 +        changeTargetEvent.setReason(reason);
-+        changeTargetEvent.setfireCBEvent(fireCBEvent);
++        changeTargetEvent.setfireCBEvent(fire);
 +        if(!changeTargetEvent.isCanceled()) {
 +            this.target = changeTargetEvent.getNewAboutToBeSetTarget();
 +        } else {
 +            this.canSetTarget.set(false);
 +        }
++        // Youer - consume reason so later setTarget doesn't reuse a stale one
++        this.reason = org.bukkit.event.entity.EntityTargetEvent.TargetReason.UNKNOWN;
 +    }
 +
 +    public boolean setTargetCB(LivingEntity p_21544_, org.bukkit.event.entity.EntityTargetEvent.TargetReason reason, boolean fireEvent) {

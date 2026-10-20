@@ -68,10 +68,7 @@ public class Action {
     public final File MC_SRG;
     public final File MC_EXTRA;
     public final String mcpStart;
-    public final File mcpZip;
-    public final File MAPPINGS;
     public final File MINECRAFT_JAR;
-    public final File mojmap;
     public final File MERGED_MAPPINGS;
     public final File PATCHED;
     public final File PAPER_REMAP_0;
@@ -99,11 +96,7 @@ public class Action {
         this.MC_SRG = new File(otherStart + "-srg.jar");
         this.MC_EXTRA = new File(otherStart + "-extra.jar");
 
-        this.mojmap = new File(otherStart + "-mappings.txt");
-
         this.mcpStart = libPath + "net/neoforged/neoform/" + mcpVer + "/neoform-" + mcpVer;
-        this.mcpZip = new File(mcpStart + ".zip");
-        this.MAPPINGS = new File(mcpStart + "-mappings.txt");
         this.MERGED_MAPPINGS = new File(mcpStart + "-mappings-merged.txt");
         this.MINECRAFT_JAR = new File(libPath + "net/minecraft/server/" + mcVer + "/server-" + mcVer + ".jar");
         this.PATCHED = new File(forgeStart + "-server.jar");
@@ -150,21 +143,6 @@ public class Action {
             }
         } else {
             System.out.println(I18n.as("installation.minecraftserver") + MINECRAFT_JAR.getAbsolutePath());
-            System.exit(0);
-        }
-
-        if (mcpZip.exists()) {
-            if (!MAPPINGS.exists()) {
-                tasks.add(new ConsoleToolTask(
-                    "net.neoforged.installertools.ConsoleTool",
-                    "--task", "MCP_DATA",
-                    "--input", mcpZip.getAbsolutePath(),
-                    "--output", MAPPINGS.getAbsolutePath(),
-                    "--key", "mappings"
-                ));
-            }
-        } else {
-            System.out.println(I18n.as("installation.mcpfilemissing"));
             System.exit(0);
         }
 

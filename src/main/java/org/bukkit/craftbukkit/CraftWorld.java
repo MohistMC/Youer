@@ -705,7 +705,7 @@ public class CraftWorld extends CraftRegionAccessor implements World {
 
         LightningBolt lightning = EntityType.LIGHTNING_BOLT.create(this.world);
         lightning.moveTo(loc.getX(), loc.getY(), loc.getZ());
-        lightning.setVisualOnly(isVisual);
+        lightning.isEffect = isVisual; // Paper - Properly handle lightning effects api
         this.world.strikeLightning(lightning, LightningStrikeEvent.Cause.CUSTOM);
         return (LightningStrike) lightning.getBukkitEntity();
     }

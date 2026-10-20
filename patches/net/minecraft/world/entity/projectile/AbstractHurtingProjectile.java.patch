@@ -15,7 +15,7 @@
  
      protected AbstractHurtingProjectile(EntityType<? extends AbstractHurtingProjectile> p_36833_, Level p_36834_) {
          super(p_36833_, p_36834_);
-@@ -78,8 +_,14 @@
+@@ -78,8 +_,8 @@
              }
  
              HitResult hitresult = ProjectileUtil.getHitResultOnMoveVector(this, this::canHitEntity, this.getClipType());
@@ -23,12 +23,6 @@
 -                this.hitTargetOrDeflectSelf(hitresult);
 +            if (hitresult.getType() != HitResult.Type.MISS && !net.neoforged.neoforge.event.EventHooks.onProjectileImpact(this, hitresult)) {
 +                this.preHitTargetOrDeflectSelf(hitresult); // CraftBukkit - projectile hit event
-+
-+                // CraftBukkit start - Fire ProjectileHitEvent
-+                if (this.isRemoved()) {
-+                    CraftEventFactory.callProjectileHitEvent(this, hitresult);
-+                }
-+                // CraftBukkit end
              }
  
              this.checkInsideBlocks();

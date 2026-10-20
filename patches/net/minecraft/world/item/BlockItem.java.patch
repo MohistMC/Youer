@@ -37,27 +37,24 @@
          if (!this.getBlock().isEnabled(p_40577_.getLevel().enabledFeatures())) {
              return InteractionResult.FAIL;
          } else if (!p_40577_.canPlace()) {
-@@ -62,6 +_,11 @@
+@@ -62,6 +_,10 @@
                  return InteractionResult.FAIL;
              } else {
                  BlockState blockstate = this.getPlacementState(blockplacecontext);
-+                // CraftBukkit start - special case for handling block placement with water lilies and snow buckets
-+                if (this instanceof PlaceOnWaterBlockItem || this instanceof SolidBucketItem) {
++                // Youer - only PlaceOnWaterBlockItem places through use(), which never posts EntityPlaceEvent; SolidBucketItem is covered by the dispatcher
++                if (this instanceof PlaceOnWaterBlockItem) {
 +                    place$blockstateCB = CraftBlockStates.getBlockState(blockplacecontext.getLevel(), blockplacecontext.getClickedPos());
 +                }
-+                // CraftBukkit end
                  if (blockstate == null) {
                      return InteractionResult.FAIL;
                  } else if (!this.placeBlock(blockplacecontext, blockstate)) {
-@@ -77,16 +_,21 @@
+@@ -77,16 +_,19 @@
                          this.updateCustomBlockEntityTag(blockpos, level, player, itemstack, blockstate1);
                          updateBlockEntityComponents(level, blockpos, itemstack);
                          blockstate1.getBlock().setPlacedBy(level, blockpos, blockstate1, player, itemstack);
-+                        // CraftBukkit start
 +                        if (place$blockstateCB != null && MixinFix.fixPlace(this, (ServerLevel) level, (ServerPlayer) player, blockplacecontext, blockpos, place$blockstateCB)) {
 +                            return InteractionResult.FAIL;
 +                        }
-+                        // CraftBukkit end
                          if (player instanceof ServerPlayer) {
                              CriteriaTriggers.PLACED_BLOCK.trigger((ServerPlayer)player, blockpos, itemstack);
                          }
