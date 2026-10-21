@@ -62,9 +62,10 @@ public class CraftBlockProjectileSource implements BlockProjectileSource {
     public <T extends Projectile> T launchProjectile(Class<? extends T> projectile, Vector velocity, java.util.function.Consumer<? super T> function) {
         // Paper end - launchProjectile consumer
         Preconditions.checkArgument(this.getBlock().getType() == Material.DISPENSER, "Block is no longer dispenser");
+        if (!(this.dispenserBlock.getLevel() instanceof ServerLevel serverLevel)) return null; // Youer - mods may attach a dispenser to a custom Level
 
         // Copied from BlockDispenser.dispense()
-        BlockSource sourceblock = new BlockSource((ServerLevel) this.dispenserBlock.getLevel(), this.dispenserBlock.getBlockPos(), this.dispenserBlock.getBlockState(), this.dispenserBlock);
+        BlockSource sourceblock = new BlockSource(serverLevel, this.dispenserBlock.getBlockPos(), this.dispenserBlock.getBlockState(), this.dispenserBlock);
         // Copied from DispenseBehaviorProjectile
         Direction enumdirection = (Direction) sourceblock.state().getValue(DispenserBlock.FACING);
         net.minecraft.world.level.Level world = this.dispenserBlock.getLevel();

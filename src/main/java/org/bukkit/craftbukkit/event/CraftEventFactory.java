@@ -964,7 +964,8 @@ public class CraftEventFactory {
         }
         CraftLivingEntity entity = (CraftLivingEntity) victim.getBukkitEntity();
         CraftDamageSource bukkitDamageSource = new CraftDamageSource(damageSource);
-        EntityDeathEvent event = new EntityDeathEvent(entity, bukkitDamageSource, drops, victim.getExperienceReward((ServerLevel) victim.level(), damageSource.getEntity()));
+        int expReward = victim.level() instanceof ServerLevel serverLevel ? victim.getExperienceReward(serverLevel, damageSource.getEntity()) : 0; // Youer - a mod-supplied Level cannot compute rewards
+        EntityDeathEvent event = new EntityDeathEvent(entity, bukkitDamageSource, drops, expReward);
         populateFields(victim, event); // Paper - make cancellable
         CraftWorld world = (CraftWorld) entity.getWorld();
         Bukkit.getServer().getPluginManager().callEvent(event);
@@ -2043,14 +2044,16 @@ public class CraftEventFactory {
     }
 
     public static void callEntitiesLoadEvent(Level world, ChunkPos coords, List<Entity> entities) {
+        if (!(world instanceof ServerLevel serverLevel)) return; // Youer - mods may hand us a custom Level, and CraftChunk needs a ServerLevel
         List<org.bukkit.entity.Entity> bukkitEntities = Collections.unmodifiableList(entities.stream().map(Entity::getBukkitEntity).collect(Collectors.toList()));
-        EntitiesLoadEvent event = new EntitiesLoadEvent(new CraftChunk((ServerLevel) world, coords.x, coords.z), bukkitEntities);
+        EntitiesLoadEvent event = new EntitiesLoadEvent(new CraftChunk(serverLevel, coords.x, coords.z), bukkitEntities);
         Bukkit.getPluginManager().callEvent(event);
     }
 
     public static void callEntitiesUnloadEvent(Level world, ChunkPos coords, List<Entity> entities) {
+        if (!(world instanceof ServerLevel serverLevel)) return; // Youer - mods may hand us a custom Level, and CraftChunk needs a ServerLevel
         List<org.bukkit.entity.Entity> bukkitEntities = Collections.unmodifiableList(entities.stream().map(Entity::getBukkitEntity).collect(Collectors.toList()));
-        EntitiesUnloadEvent event = new EntitiesUnloadEvent(new CraftChunk((ServerLevel) world, coords.x, coords.z), bukkitEntities);
+        EntitiesUnloadEvent event = new EntitiesUnloadEvent(new CraftChunk(serverLevel, coords.x, coords.z), bukkitEntities);
         Bukkit.getPluginManager().callEvent(event);
     }
 

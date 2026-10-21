@@ -163,7 +163,7 @@ public abstract class CraftMob extends CraftLivingEntity implements Mob, io.pape
     // Paper start
     @Override
     public int getPossibleExperienceReward() {
-        return getHandle().getExperienceReward((ServerLevel) this.getHandle().level(), null);
+        return this.getHandle().level() instanceof ServerLevel serverLevel ? this.getHandle().getExperienceReward(serverLevel, null) : 0; // Youer - a mod-supplied Level cannot compute rewards
     }
     // Paper end
 

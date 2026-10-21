@@ -29,16 +29,18 @@
  
      public BucketItem(Fluid p_40689_, Item.Properties p_40690_) {
          super(p_40690_);
-@@ -55,12 +_,27 @@
+@@ -55,12 +_,29 @@
              } else if (this.content == Fluids.EMPTY) {
                  BlockState blockstate1 = p_40703_.getBlockState(blockpos);
                  if (blockstate1.getBlock() instanceof BucketPickup bucketpickup) {
 +                    // CraftBukkit start
 +                    ItemStack dummyFluid = dummyFluid(bucketpickup, p_40704_, blockpos, blockstate1); // Youer - Fix mixin injection pickupBlock
 +                    if (dummyFluid.isEmpty()) return InteractionResultHolder.fail(itemstack); // Don't fire event if the bucket won't be filled.
-+                    PlayerBucketFillEvent event = CraftEventFactory.callPlayerBucketFillEvent((ServerLevel) p_40703_, p_40704_, blockpos, blockpos, blockhitresult.getDirection(), itemstack, dummyFluid.getItem(), p_40705_);
++                    PlayerBucketFillEvent event = p_40703_ instanceof ServerLevel serverLevel
++                            ? CraftEventFactory.callPlayerBucketFillEvent(serverLevel, p_40704_, blockpos, blockpos, blockhitresult.getDirection(), itemstack, dummyFluid.getItem(), p_40705_)
++                            : null; // Youer - a mod-supplied Level cannot host the event
 +
-+                    if (event.isCancelled()) {
++                    if (event != null && event.isCancelled()) {
 +                        ((ServerPlayer) p_40704_).getBukkitEntity().updateInventory(); // SPIGOT-4541
 +                        return InteractionResultHolder.fail(itemstack);
 +                    }
@@ -52,7 +54,7 @@
 -                        ItemStack itemstack2 = ItemUtils.createFilledResult(itemstack, p_40704_, itemstack3);
 +                        // Youer start
 +                        // Use plugin override if set, otherwise use real pickup result
-+                        ItemStack eventStack = CraftItemStack.asNMSCopy(event.getItemStack());
++                        ItemStack eventStack = event == null ? itemstack3 : CraftItemStack.asNMSCopy(event.getItemStack());
 +                        ItemStack resultStack = ItemStack.matches(eventStack, dummyFluid) ? itemstack3 : eventStack;
 +                        ItemStack itemstack2 = ItemUtils.createFilledResult(itemstack, p_40704_, resultStack);
 +                        // Youer end

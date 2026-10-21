@@ -33,7 +33,8 @@ public class ReceiveFlower extends Goal {
         if (uuid == null) {
             return false;
         }
-        Entity target = ((ServerLevel) this.irongolem.level()).getEntity(uuid);
+        if (!(this.irongolem.level() instanceof ServerLevel serverLevel)) return false; // Youer - mods may run mobs in a custom Level
+        Entity target = serverLevel.getEntity(uuid);
         if (!(target instanceof ServerPlayer player)) {
             return false;
         }
