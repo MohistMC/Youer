@@ -111,12 +111,13 @@ public final class JarModule {
     /**
      * Reads the module a jar nested inside another jar becomes.
      *
-     * @param parent the jar holding the nested jar
-     * @param entry  the entry of the nested jar
+     * @param jarBytes the bytes of the nested jar
+     * @param fileName the name of the nested jar, the runtime sees a nested jar as the root
+     *                 of its own file system, so only the file name matters for the name
      * @return the module, or null when the nested jar cannot be read
      */
-    public static JarModule ofNested(ZipFile parent, ZipEntry entry) {
-        try (InputStream in = parent.getInputStream(entry); ZipInputStream nested = new ZipInputStream(in)) {
+    public static JarModule ofNested(byte[] jarBytes, String fileName) {
+        try (ZipInputStream nested = new ZipInputStream(new ByteArrayInputStream(jarBytes))) {
             Manifest manifest = null;
             byte[] descriptor = null;
             int descriptorVersion = -1;
@@ -140,8 +141,7 @@ public final class JarModule {
                 }
                 nested.closeEntry();
             }
-            // the runtime sees a nested jar as the root of its own file system, so only the file name matters
-            return build(Path.of(entry.getName()).getFileName(), descriptor, manifest, packages);
+            return build(Path.of(fileName), descriptor, manifest, packages);
         } catch (IOException e) {
             return null;
         }

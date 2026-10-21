@@ -21,8 +21,11 @@ package com.mohistmc.launcher.youer.feature;
 import com.mohistmc.launcher.youer.Main;
 import com.mohistmc.launcher.youer.util.JarLoader;
 import com.mohistmc.launcher.youer.util.JarModule;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -35,6 +38,7 @@ import java.util.Set;
 import java.util.stream.Stream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
 
 /**
  * Detects jars that would claim the same JPMS module name or the same package in two
@@ -68,6 +72,8 @@ public final class ModuleConflictResolver {
 
     private static final String JARJAR_PREFIX = "META-INF/jarjar/";
     private static final String LEGACY_CLASS_PATH = "legacyClassPath";
+    private static final int MAX_NESTED_DEPTH = 5;
+    private static final long MAX_NESTED_BYTES = 64L * 1024 * 1024;
 
     private ModuleConflictResolver() {
     }
@@ -268,21 +274,84 @@ public final class ModuleConflictResolver {
 
     private static void collectNestedModules(Path mod, List<JarModule> modules) {
         try (ZipFile zip = new ZipFile(mod.toFile())) {
+            List<ZipEntry> nested = new ArrayList<>();
             Enumeration<? extends ZipEntry> entries = zip.entries();
             while (entries.hasMoreElements()) {
                 ZipEntry entry = entries.nextElement();
-                String name = entry.getName();
-                if (!name.startsWith(JARJAR_PREFIX) || !name.endsWith(".jar")) {
-                    continue;
+                if (isNestedJar(entry.getName())) {
+                    nested.add(entry);
                 }
-                JarModule module = JarModule.ofNested(zip, entry);
-                if (module != null) {
-                    modules.add(module);
+            }
+            for (ZipEntry entry : nested) {
+                byte[] bytes = read(zip, entry);
+                if (bytes != null) {
+                    collectNestedModules(bytes, entry.getName(), modules, 1);
                 }
             }
         } catch (IOException e) {
             // an unreadable mod simply contributes no module
         }
+    }
+
+    /**
+     * Walks the jars nested inside a jar that is itself nested in a mod. The dependency
+     * locator of the mod launcher does that recursively, so a library two levels down is
+     * a module of the game layer as well and has to be seen here.
+     */
+    private static void collectNestedModules(byte[] jar, String entryName, List<JarModule> modules, int depth) {
+        JarModule module = JarModule.ofNested(jar, Path.of(entryName).getFileName().toString());
+        if (module != null) {
+            modules.add(module);
+        }
+        if (depth >= MAX_NESTED_DEPTH) {
+            return;
+        }
+        try (ZipInputStream nested = new ZipInputStream(new ByteArrayInputStream(jar))) {
+            ZipEntry entry;
+            while ((entry = nested.getNextEntry()) != null) {
+                if (isNestedJar(entry.getName())) {
+                    byte[] bytes = read(nested);
+                    if (bytes != null) {
+                        collectNestedModules(bytes, entry.getName(), modules, depth + 1);
+                    }
+                }
+            }
+        } catch (IOException e) {
+            // an unreadable nested jar simply contributes no module
+        }
+    }
+
+    private static boolean isNestedJar(String entryName) {
+        return entryName.startsWith(JARJAR_PREFIX) && entryName.endsWith(".jar");
+    }
+
+    /**
+     * The bytes of an entry, or null when it is too big to be worth reading or cannot be read.
+     */
+    private static byte[] read(ZipFile zip, ZipEntry entry) {
+        if (entry.getSize() > MAX_NESTED_BYTES) {
+            return null;
+        }
+        try (InputStream in = zip.getInputStream(entry)) {
+            return read(in);
+        } catch (IOException e) {
+            return null;
+        }
+    }
+
+    private static byte[] read(InputStream in) throws IOException {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        byte[] buffer = new byte[8192];
+        long read = 0;
+        int chunk;
+        while ((chunk = in.read(buffer)) != -1) {
+            read += chunk;
+            if (read > MAX_NESTED_BYTES) {
+                return null;
+            }
+            out.write(buffer, 0, chunk);
+        }
+        return out.toByteArray();
     }
 
     private static Set<Path> modFiles(List<String> args) {
