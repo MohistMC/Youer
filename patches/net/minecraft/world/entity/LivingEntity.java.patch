@@ -359,7 +359,7 @@
          if (itemStack.isEmpty()) {
              return null;
          }
-@@ -792,17 +_,71 @@
+@@ -792,17 +_,81 @@
              return null;
          }
  
@@ -406,8 +406,18 @@
 +    }
 +
 +    public @Nullable ItemEntity drop(final ItemStack itemStack, final boolean thrownFromHand, final Prediction prediction, final boolean randomly, final boolean callEvent, final java.util.function.@Nullable Consumer<org.bukkit.entity.Item> entityOperation) {
++        // Nested drops can originate from callbacks or events; restore the outer options on exit.
++        final boolean previousRandomly = this.randomly;
++        final boolean previousCallEvent = this.callEvent;
++        final java.util.function.Consumer<org.bukkit.entity.Item> previousEntityOperation = this.entityOperation;
 +        paperDrop(randomly, callEvent, entityOperation);
-+        return drop(itemStack, thrownFromHand, prediction);
++        try {
++            return drop(itemStack, thrownFromHand, prediction);
++        } finally {
++            this.randomly = previousRandomly;
++            this.callEvent = previousCallEvent;
++            this.entityOperation = previousEntityOperation;
++        }
 +    }
 +    // Paper end - Extend dropItem API
 +    // Youe end

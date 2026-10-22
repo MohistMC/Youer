@@ -152,9 +152,13 @@ public class PluginHotReloadCommand extends Command {
                 File[] jars = pluginsFolder.listFiles(f -> f.isFile() && f.getName().toLowerCase().endsWith(".jar"));
                 if (jars != null) {
                     for (File jar : jars) {
-                        if (jar.getName().toLowerCase().startsWith(prefix)) {
-                            list.add(jar.getName());
+                        if (!jar.getName().toLowerCase().startsWith(prefix)) continue;
+                        // Skip jars whose plugin.yml names a plugin already loaded
+                        String name = PluginLoadUtil.detectPluginName(jar);
+                        if (name != null && PluginHotReloadUtil.isPluginEnabled(name)) {
+                            continue;
                         }
+                        list.add(jar.getName());
                     }
                 }
             }
