@@ -42,6 +42,25 @@ public class MaterialTags {
         return new NamespacedKey("paper", key + "_settag");
     }
 
+    private static final class BuiltinMaterialSetTag extends MaterialSetTag {
+        private BuiltinMaterialSetTag(NamespacedKey key) {
+            super(key);
+        }
+
+        @Override
+        public MaterialSetTag ensureSize(String label, int size) {
+            // Fixed counts describe vanilla materials; modded matches remain tag members.
+            long actual = this.tagged.stream()
+                .filter(material -> !material.isLegacy())
+                .filter(material -> NamespacedKey.MINECRAFT.equals(material.getKey().getNamespace()))
+                .count();
+            if (size != actual) {
+                throw new IllegalStateException(this.key + ": " + label + " - Expected " + size + " values, got " + actual);
+            }
+            return this;
+        }
+    }
+
     private static MaterialSetTag replacedBy(Tag<Material> vanillaTag) {
         return replacedBy(vanillaTag, Objects.requireNonNull(vanillaTag).key().value());
     }
@@ -49,7 +68,7 @@ public class MaterialTags {
     @SuppressWarnings("unchecked")
     private static MaterialSetTag replacedBy(Tag<Material> vanillaTag, String legacyKey) {
         Objects.requireNonNull(vanillaTag);
-        return new MaterialSetTag(keyFor(legacyKey)).add(vanillaTag).lock();
+        return new BuiltinMaterialSetTag(keyFor(legacyKey)).add(vanillaTag).lock();
     }
 
     /**
@@ -69,7 +88,7 @@ public class MaterialTags {
     /**
      * Covers all bucket items.
      */
-    public static final MaterialSetTag BUCKETS = new MaterialSetTag(keyFor("buckets"))
+    public static final MaterialSetTag BUCKETS = new BuiltinMaterialSetTag(keyFor("buckets"))
         .endsWith("BUCKET")
         .ensureSize("BUCKETS", 12).lock();
 
@@ -84,14 +103,14 @@ public class MaterialTags {
     /**
      * Covers both cobblestone wall variants.
      */
-    public static final MaterialSetTag COBBLESTONE_WALLS = new MaterialSetTag(keyFor("cobblestone_walls"))
+    public static final MaterialSetTag COBBLESTONE_WALLS = new BuiltinMaterialSetTag(keyFor("cobblestone_walls"))
         .endsWith("COBBLESTONE_WALL")
         .ensureSize("COBBLESTONE_WALLS", 2).lock();
 
     /**
      * Covers both cobblestone and mossy Cobblestone.
      */
-    public static final MaterialSetTag COBBLESTONES = new MaterialSetTag(keyFor("cobblestones"))
+    public static final MaterialSetTag COBBLESTONES = new BuiltinMaterialSetTag(keyFor("cobblestones"))
         .add(Material.COBBLESTONE, Material.MOSSY_COBBLESTONE).lock();
 
     /**
@@ -113,7 +132,7 @@ public class MaterialTags {
     /**
      * Covers the two types of cooked fish.
      */
-    public static final MaterialSetTag COOKED_FISH = new MaterialSetTag(keyFor("cooked_fish"))
+    public static final MaterialSetTag COOKED_FISH = new BuiltinMaterialSetTag(keyFor("cooked_fish"))
         .add(Material.COOKED_COD, Material.COOKED_SALMON).lock();
 
     /**
@@ -151,13 +170,13 @@ public class MaterialTags {
     /**
      * Covers all variants of fish buckets.
      */
-    public static final MaterialSetTag FISH_BUCKETS = new MaterialSetTag(keyFor("fish_buckets"))
+    public static final MaterialSetTag FISH_BUCKETS = new BuiltinMaterialSetTag(keyFor("fish_buckets"))
         .add(Material.COD_BUCKET, Material.PUFFERFISH_BUCKET, Material.SALMON_BUCKET, Material.TROPICAL_FISH_BUCKET).lock();
 
     /**
      * Covers the non-colored glass and 16 stained glasses (not panes).
      */
-    public static final MaterialSetTag GLASS = new MaterialSetTag(keyFor("glass"))
+    public static final MaterialSetTag GLASS = new BuiltinMaterialSetTag(keyFor("glass"))
         .endsWith("_GLASS")
         .add(Material.GLASS)
         .ensureSize("GLASS", 18).lock();
@@ -165,7 +184,7 @@ public class MaterialTags {
     /**
      * Covers the non-colored glass panes and stained glass panes (panes only).
      */
-    public static final MaterialSetTag GLASS_PANES = new MaterialSetTag(keyFor("glass_panes"))
+    public static final MaterialSetTag GLASS_PANES = new BuiltinMaterialSetTag(keyFor("glass_panes"))
         .endsWith("GLASS_PANE")
         .ensureSize("GLASS_PANES", 17).lock();
 
@@ -180,7 +199,7 @@ public class MaterialTags {
     /**
      * Covers the colors of stained terracotta.
      */
-    public static final MaterialSetTag STAINED_TERRACOTTA = new MaterialSetTag(keyFor("stained_terracotta"))
+    public static final MaterialSetTag STAINED_TERRACOTTA = new BuiltinMaterialSetTag(keyFor("stained_terracotta"))
         .endsWith("TERRACOTTA")
         .not(Material.TERRACOTTA)
         .notEndsWith("GLAZED_TERRACOTTA")
@@ -189,35 +208,35 @@ public class MaterialTags {
     /**
      * Covers terracotta along with the stained variants.
      */
-    public static final MaterialSetTag TERRACOTTA = new MaterialSetTag(keyFor("terracotta"))
+    public static final MaterialSetTag TERRACOTTA = new BuiltinMaterialSetTag(keyFor("terracotta"))
         .endsWith("TERRACOTTA")
         .ensureSize("TERRACOTTA", 33).lock();
 
     /**
      * Covers both golden apples.
      */
-    public static final MaterialSetTag GOLDEN_APPLES = new MaterialSetTag(keyFor("golden_apples"))
+    public static final MaterialSetTag GOLDEN_APPLES = new BuiltinMaterialSetTag(keyFor("golden_apples"))
         .endsWith("GOLDEN_APPLE")
         .ensureSize("GOLDEN_APPLES", 2).lock();
 
     /**
      * Covers the variants of horse armor.
      */
-    public static final MaterialSetTag HORSE_ARMORS = new MaterialSetTag(keyFor("horse_armors"))
+    public static final MaterialSetTag HORSE_ARMORS = new BuiltinMaterialSetTag(keyFor("horse_armors"))
         .endsWith("_HORSE_ARMOR")
         .ensureSize("HORSE_ARMORS", 6).lock();
 
     /**
      * Covers the variants of infested blocks.
      */
-    public static final MaterialSetTag INFESTED_BLOCKS = new MaterialSetTag(keyFor("infested_blocks"))
+    public static final MaterialSetTag INFESTED_BLOCKS = new BuiltinMaterialSetTag(keyFor("infested_blocks"))
         .startsWith("INFESTED_")
         .ensureSize("INFESTED_BLOCKS", 7).lock();
 
     /**
      * Covers the variants of mushroom blocks.
      */
-    public static final MaterialSetTag MUSHROOM_BLOCKS = new MaterialSetTag(keyFor("mushroom_blocks"))
+    public static final MaterialSetTag MUSHROOM_BLOCKS = new BuiltinMaterialSetTag(keyFor("mushroom_blocks"))
         .endsWith("MUSHROOM_BLOCK")
         .add(Material.MUSHROOM_STEM)
         .ensureSize("MUSHROOM_BLOCKS", 3).lock();
@@ -233,7 +252,7 @@ public class MaterialTags {
     /**
      * Covers all music disc items.
      */
-    public static final MaterialSetTag MUSIC_DISCS = new MaterialSetTag(keyFor("music_discs"))
+    public static final MaterialSetTag MUSIC_DISCS = new BuiltinMaterialSetTag(keyFor("music_discs"))
         .startsWith("MUSIC_DISC_").lock();
 
     /**
@@ -243,21 +262,21 @@ public class MaterialTags {
      */
     @SuppressWarnings("unchecked")
     @Deprecated(since = "26.3")
-    public static final MaterialSetTag ORES = new MaterialSetTag(keyFor("ores"))
+    public static final MaterialSetTag ORES = new BuiltinMaterialSetTag(keyFor("ores"))
         .add(Tag.ORES)
         .add(Material.ANCIENT_DEBRIS).lock();
 
     /**
      * Covers all piston typed items and blocks including the piston head and moving piston.
      */
-    public static final MaterialSetTag PISTONS = new MaterialSetTag(keyFor("pistons"))
+    public static final MaterialSetTag PISTONS = new BuiltinMaterialSetTag(keyFor("pistons"))
         .contains("PISTON")
         .ensureSize("PISTONS", 4).lock();
 
     /**
      * Covers all potato items.
      */
-    public static final MaterialSetTag POTATOES = new MaterialSetTag(keyFor("potatoes"))
+    public static final MaterialSetTag POTATOES = new BuiltinMaterialSetTag(keyFor("potatoes"))
         .endsWith("POTATO")
         .ensureSize("POTATOES", 3).lock();
 
@@ -272,56 +291,56 @@ public class MaterialTags {
     /**
      * Covers the variants of prismarine blocks.
      */
-    public static final MaterialSetTag PRISMARINE = new MaterialSetTag(keyFor("prismarine"))
+    public static final MaterialSetTag PRISMARINE = new BuiltinMaterialSetTag(keyFor("prismarine"))
         .add(Material.PRISMARINE, Material.PRISMARINE_BRICKS, Material.DARK_PRISMARINE).lock();
 
     /**
      * Covers the variants of prismarine slabs.
      */
-    public static final MaterialSetTag PRISMARINE_SLABS = new MaterialSetTag(keyFor("prismarine_slabs"))
+    public static final MaterialSetTag PRISMARINE_SLABS = new BuiltinMaterialSetTag(keyFor("prismarine_slabs"))
         .add(Material.PRISMARINE_SLAB, Material.PRISMARINE_BRICK_SLAB, Material.DARK_PRISMARINE_SLAB).lock();
 
     /**
      * Covers the variants of prismarine stairs.
      */
-    public static final MaterialSetTag PRISMARINE_STAIRS = new MaterialSetTag(keyFor("prismarine_stairs"))
+    public static final MaterialSetTag PRISMARINE_STAIRS = new BuiltinMaterialSetTag(keyFor("prismarine_stairs"))
         .add(Material.PRISMARINE_STAIRS, Material.PRISMARINE_BRICK_STAIRS, Material.DARK_PRISMARINE_STAIRS).lock();
 
     /**
      * Covers the variants of pumpkins.
      */
-    public static final MaterialSetTag PUMPKINS = new MaterialSetTag(keyFor("pumpkins"))
+    public static final MaterialSetTag PUMPKINS = new BuiltinMaterialSetTag(keyFor("pumpkins"))
         .add(Material.CARVED_PUMPKIN, Material.JACK_O_LANTERN, Material.PUMPKIN).lock();
 
     /**
      * Covers the variants of quartz blocks.
      */
-    public static final MaterialSetTag QUARTZ_BLOCKS = new MaterialSetTag(keyFor("quartz_blocks"))
+    public static final MaterialSetTag QUARTZ_BLOCKS = new BuiltinMaterialSetTag(keyFor("quartz_blocks"))
         .add(Material.QUARTZ_BLOCK, Material.QUARTZ_PILLAR, Material.CHISELED_QUARTZ_BLOCK, Material.SMOOTH_QUARTZ).lock();
 
     /**
      * Covers all uncooked fish items.
      */
-    public static final MaterialSetTag RAW_FISH = new MaterialSetTag(keyFor("raw_fish"))
+    public static final MaterialSetTag RAW_FISH = new BuiltinMaterialSetTag(keyFor("raw_fish"))
         .add(Material.COD, Material.PUFFERFISH, Material.SALMON, Material.TROPICAL_FISH).lock();
 
     /**
      * Covers the variants of red sandstone blocks.
      */
-    public static final MaterialSetTag RED_SANDSTONES = new MaterialSetTag(keyFor("red_sandstones"))
+    public static final MaterialSetTag RED_SANDSTONES = new BuiltinMaterialSetTag(keyFor("red_sandstones"))
         .endsWith("RED_SANDSTONE")
         .ensureSize("RED_SANDSTONES", 4).lock();
 
     /**
      * Covers the variants of sandstone blocks.
      */
-    public static final MaterialSetTag SANDSTONES = new MaterialSetTag(keyFor("sandstones"))
+    public static final MaterialSetTag SANDSTONES = new BuiltinMaterialSetTag(keyFor("sandstones"))
         .add(Material.SANDSTONE, Material.CHISELED_SANDSTONE, Material.CUT_SANDSTONE, Material.SMOOTH_SANDSTONE).lock();
 
     /**
      * Covers sponge and wet sponge.
      */
-    public static final MaterialSetTag SPONGES = new MaterialSetTag(keyFor("sponges"))
+    public static final MaterialSetTag SPONGES = new BuiltinMaterialSetTag(keyFor("sponges"))
         .endsWith("SPONGE")
         .ensureSize("SPONGES", 2).lock();
 
@@ -336,7 +355,7 @@ public class MaterialTags {
     /**
      * Covers zombie, creeper, skeleton, dragon, and player heads.
      */
-    public static final MaterialSetTag SKULLS = new MaterialSetTag(keyFor("skulls"))
+    public static final MaterialSetTag SKULLS = new BuiltinMaterialSetTag(keyFor("skulls"))
         .endsWith("_HEAD")
         .endsWith("_SKULL")
         .not(Material.PISTON_HEAD)
@@ -345,21 +364,21 @@ public class MaterialTags {
     /**
      * Covers all spawn egg items.
      */
-    public static final MaterialSetTag SPAWN_EGGS = new MaterialSetTag(keyFor("spawn_eggs"))
+    public static final MaterialSetTag SPAWN_EGGS = new BuiltinMaterialSetTag(keyFor("spawn_eggs"))
         .endsWith("_SPAWN_EGG")
         .ensureSize("SPAWN_EGGS", 88).lock();
 
     /**
      * Covers all colors of stained glass.
      */
-    public static final MaterialSetTag STAINED_GLASS = new MaterialSetTag(keyFor("stained_glass"))
+    public static final MaterialSetTag STAINED_GLASS = new BuiltinMaterialSetTag(keyFor("stained_glass"))
         .endsWith("_STAINED_GLASS")
         .ensureSize("STAINED_GLASS", 16).lock();
 
     /**
      * Covers all colors of stained glass panes.
      */
-    public static final MaterialSetTag STAINED_GLASS_PANES = new MaterialSetTag(keyFor("stained_glass_panes"))
+    public static final MaterialSetTag STAINED_GLASS_PANES = new BuiltinMaterialSetTag(keyFor("stained_glass_panes"))
         .endsWith("STAINED_GLASS_PANE")
         .ensureSize("STAINED_GLASS_PANES", 16).lock();
 
@@ -406,7 +425,7 @@ public class MaterialTags {
     /**
      * Covers the variants of purpur.
      */
-    public static final MaterialSetTag PURPUR = new MaterialSetTag(keyFor("purpur"))
+    public static final MaterialSetTag PURPUR = new BuiltinMaterialSetTag(keyFor("purpur"))
         .startsWith("PURPUR_")
         .ensureSize("PURPUR", 4).lock();
 
@@ -421,35 +440,35 @@ public class MaterialTags {
     /**
      * Covers the variants of a regular torch.
      */
-    public static final MaterialSetTag TORCH = new MaterialSetTag(keyFor("torch"))
+    public static final MaterialSetTag TORCH = new BuiltinMaterialSetTag(keyFor("torch"))
         .add(Material.TORCH, Material.WALL_TORCH)
         .ensureSize("TORCH", 2).lock();
 
     /**
      * Covers the variants of a redstone torch.
      */
-    public static final MaterialSetTag REDSTONE_TORCH = new MaterialSetTag(keyFor("redstone_torch"))
+    public static final MaterialSetTag REDSTONE_TORCH = new BuiltinMaterialSetTag(keyFor("redstone_torch"))
         .add(Material.REDSTONE_TORCH, Material.REDSTONE_WALL_TORCH)
         .ensureSize("REDSTONE_TORCH", 2).lock();
 
     /**
      * Covers the variants of a soul torch.
      */
-    public static final MaterialSetTag SOUL_TORCH = new MaterialSetTag(keyFor("soul_torch"))
+    public static final MaterialSetTag SOUL_TORCH = new BuiltinMaterialSetTag(keyFor("soul_torch"))
         .add(Material.SOUL_TORCH, Material.SOUL_WALL_TORCH)
         .ensureSize("SOUL_TORCH", 2).lock();
 
     /**
      * Covers the variants of a copper torch.
      */
-    public static final MaterialSetTag COPPER_TORCH = new MaterialSetTag(keyFor("copper_torch"))
+    public static final MaterialSetTag COPPER_TORCH = new BuiltinMaterialSetTag(keyFor("copper_torch"))
         .add(Material.COPPER_TORCH, Material.COPPER_WALL_TORCH)
         .ensureSize("COPPER_TORCH", 2).lock();
 
     /**
      * Covers the variants of torches.
      */
-    public static final MaterialSetTag TORCHES = new MaterialSetTag(keyFor("torches"))
+    public static final MaterialSetTag TORCHES = new BuiltinMaterialSetTag(keyFor("torches"))
         .add(TORCH, REDSTONE_TORCH, SOUL_TORCH, COPPER_TORCH)
         .ensureSize("TORCHES", 8).lock();
 
@@ -524,7 +543,7 @@ public class MaterialTags {
      */
     @Deprecated(since = "1.21.8")
     @SuppressWarnings("unchecked")
-    public static final MaterialSetTag HEAD_EQUIPPABLE = new MaterialSetTag(keyFor("head_equippable"))
+    public static final MaterialSetTag HEAD_EQUIPPABLE = new BuiltinMaterialSetTag(keyFor("head_equippable"))
         .add(Tag.ITEMS_HEAD_ARMOR, Tag.ITEMS_SKULLS)
         .add(Material.CARVED_PUMPKIN).lock();
 
@@ -543,7 +562,7 @@ public class MaterialTags {
      */
     @Deprecated(since = "1.21.8")
     @SuppressWarnings("unchecked")
-    public static final MaterialSetTag CHEST_EQUIPPABLE = new MaterialSetTag(keyFor("chest_equippable"))
+    public static final MaterialSetTag CHEST_EQUIPPABLE = new BuiltinMaterialSetTag(keyFor("chest_equippable"))
         .add(Tag.ITEMS_CHEST_ARMOR)
         .add(Material.ELYTRA).lock();
 
@@ -567,14 +586,14 @@ public class MaterialTags {
      * Covers all variants of armor.
      */
     @SuppressWarnings("unchecked")
-    public static final MaterialSetTag ARMOR = new MaterialSetTag(keyFor("armor"))
+    public static final MaterialSetTag ARMOR = new BuiltinMaterialSetTag(keyFor("armor"))
         .add(Tag.ITEMS_HEAD_ARMOR, Tag.ITEMS_CHEST_ARMOR, Tag.ITEMS_LEG_ARMOR, Tag.ITEMS_FOOT_ARMOR)
         .lock();
 
     /**
      * Covers the variants of bows.
      */
-    public static final MaterialSetTag BOWS = new MaterialSetTag(keyFor("bows"))
+    public static final MaterialSetTag BOWS = new BuiltinMaterialSetTag(keyFor("bows"))
         .add(Material.BOW)
         .add(Material.CROSSBOW)
         .lock();
@@ -583,7 +602,7 @@ public class MaterialTags {
      * Covers the variants of player-throwable projectiles (not requiring a bow or any other "assistance").
      */
     @SuppressWarnings("unchecked")
-    public static final MaterialSetTag THROWABLE_PROJECTILES = new MaterialSetTag(keyFor("throwable_projectiles"))
+    public static final MaterialSetTag THROWABLE_PROJECTILES = new BuiltinMaterialSetTag(keyFor("throwable_projectiles"))
         .add(Tag.ITEMS_EGGS)
         .add(Material.SNOWBALL, Material.SPLASH_POTION, Material.LINGERING_POTION,
             Material.TRIDENT, Material.ENDER_PEARL, Material.EXPERIENCE_BOTTLE, Material.FIREWORK_ROCKET,
@@ -594,7 +613,7 @@ public class MaterialTags {
      * Covers materials that can be colored, such as wool, shulker boxes, stained glasses etc.
      */
     @SuppressWarnings("unchecked")
-    public static final MaterialSetTag COLORABLE = new MaterialSetTag(keyFor("colorable"))
+    public static final MaterialSetTag COLORABLE = new BuiltinMaterialSetTag(keyFor("colorable"))
         .add(Tag.WOOL, Tag.WOOL_CARPETS, Tag.WOOL_SLABS, Tag.WOOL_STAIRS,
             Tag.CONCRETE_SLABS, Tag.CONCRETE_STAIRS,
             Tag.SHULKER_BOXES, Tag.BEDS, Tag.ITEMS_CUSHIONS)
@@ -604,14 +623,14 @@ public class MaterialTags {
     /**
      * Covers the variants of coral.
      */
-    public static final MaterialSetTag CORAL = new MaterialSetTag(keyFor("coral"))
+    public static final MaterialSetTag CORAL = new BuiltinMaterialSetTag(keyFor("coral"))
         .endsWith("_CORAL")
         .ensureSize("CORAL", 10).lock();
 
     /**
      * Covers the variants of coral fans.
      */
-    public static final MaterialSetTag CORAL_FANS = new MaterialSetTag(keyFor("coral_fans"))
+    public static final MaterialSetTag CORAL_FANS = new BuiltinMaterialSetTag(keyFor("coral_fans"))
         .endsWith("_CORAL_FAN")
         .endsWith("_CORAL_WALL_FAN")
         .ensureSize("CORAL_FANS", 20).lock();
@@ -619,7 +638,7 @@ public class MaterialTags {
     /**
      * Covers the variants of coral blocks.
      */
-    public static final MaterialSetTag CORAL_BLOCKS = new MaterialSetTag(keyFor("coral_blocks"))
+    public static final MaterialSetTag CORAL_BLOCKS = new BuiltinMaterialSetTag(keyFor("coral_blocks"))
         .endsWith("_CORAL_BLOCK")
         .ensureSize("CORAL_BLOCKS", 10).lock();
 
@@ -634,51 +653,51 @@ public class MaterialTags {
     /**
      * Covers the variants of raw ores.
      */
-    public static final MaterialSetTag RAW_ORES = new MaterialSetTag(keyFor("raw_ores"))
+    public static final MaterialSetTag RAW_ORES = new BuiltinMaterialSetTag(keyFor("raw_ores"))
         .add(Material.RAW_COPPER, Material.RAW_GOLD, Material.RAW_IRON).lock();
 
     /**
      * Covers all command block types.
      */
-    public static final MaterialSetTag COMMAND_BLOCKS = new MaterialSetTag(keyFor("command_blocks"))
+    public static final MaterialSetTag COMMAND_BLOCKS = new BuiltinMaterialSetTag(keyFor("command_blocks"))
         .endsWith("COMMAND_BLOCK")
         .ensureSize("COMMAND_BLOCKS", 3).lock();
 
     /**
      * Covers the variants of deepslate ores.
      */
-    public static final MaterialSetTag DEEPSLATE_ORES = new MaterialSetTag(keyFor("deepslate_ores"))
+    public static final MaterialSetTag DEEPSLATE_ORES = new BuiltinMaterialSetTag(keyFor("deepslate_ores"))
         .add(material -> material.name().startsWith("DEEPSLATE_") && material.name().endsWith("_ORE"))
         .ensureSize("DEEPSLATE_ORES", 8).lock();
 
     /**
      * Covers the variants of raw ore blocks.
      */
-    public static final MaterialSetTag RAW_ORE_BLOCKS = new MaterialSetTag(keyFor("raw_ore_blocks"))
+    public static final MaterialSetTag RAW_ORE_BLOCKS = new BuiltinMaterialSetTag(keyFor("raw_ore_blocks"))
         .add(Material.RAW_COPPER_BLOCK, Material.RAW_GOLD_BLOCK, Material.RAW_IRON_BLOCK).lock();
 
     /**
      * Covers all oxidized copper blocks.
      */
-    public static final MaterialSetTag OXIDIZED_COPPER_BLOCKS = new MaterialSetTag(keyFor("oxidized_copper_blocks"))
+    public static final MaterialSetTag OXIDIZED_COPPER_BLOCKS = new BuiltinMaterialSetTag(keyFor("oxidized_copper_blocks"))
         .startsWith("OXIDIZED_").startsWith("WAXED_OXIDIZED_").ensureSize("OXIDIZED_COPPER_BLOCKS", 30).lock();
 
     /**
      * Covers all weathered copper blocks.
      */
-    public static final MaterialSetTag WEATHERED_COPPER_BLOCKS = new MaterialSetTag(keyFor("weathered_copper_blocks"))
+    public static final MaterialSetTag WEATHERED_COPPER_BLOCKS = new BuiltinMaterialSetTag(keyFor("weathered_copper_blocks"))
         .startsWith("WEATHERED_").startsWith("WAXED_WEATHERED_").ensureSize("WEATHERED_COPPER_BLOCKS", 30).lock();
 
     /**
      * Covers all exposed copper blocks.
      */
-    public static final MaterialSetTag EXPOSED_COPPER_BLOCKS = new MaterialSetTag(keyFor("exposed_copper_blocks"))
+    public static final MaterialSetTag EXPOSED_COPPER_BLOCKS = new BuiltinMaterialSetTag(keyFor("exposed_copper_blocks"))
         .startsWith("EXPOSED_").startsWith("WAXED_EXPOSED_").ensureSize("EXPOSED_COPPER_BLOCKS", 30).lock();
 
     /**
      * Covers all un-weathered copper blocks.
      */
-    public static final MaterialSetTag UNAFFECTED_COPPER_BLOCKS = new MaterialSetTag(keyFor("unaffected_copper_blocks"))
+    public static final MaterialSetTag UNAFFECTED_COPPER_BLOCKS = new BuiltinMaterialSetTag(keyFor("unaffected_copper_blocks"))
         .startsWith("CUT_COPPER").startsWith("WAXED_CUT_COPPER")
         .startsWith("WAXED_COPPER_").startsWith("COPPER_")
         .add(Material.CHISELED_COPPER, Material.WAXED_CHISELED_COPPER)
@@ -694,7 +713,7 @@ public class MaterialTags {
      * <p>
      * Combine with other copper-related tags to filter is-waxed or not.
      */
-    public static final MaterialSetTag WAXED_COPPER_BLOCKS = new MaterialSetTag(keyFor("waxed_copper_blocks"))
+    public static final MaterialSetTag WAXED_COPPER_BLOCKS = new BuiltinMaterialSetTag(keyFor("waxed_copper_blocks"))
         .add(m -> m.name().startsWith("WAXED_") && m.name().contains("COPPER")).ensureSize("WAXED_COPPER_BLOCKS", 56).lock();
 
     /**
@@ -702,7 +721,7 @@ public class MaterialTags {
      * <p>
      * Combine with other copper-related tags to filter is-un-waxed or not.
      */
-    public static final MaterialSetTag UNWAXED_COPPER_BLOCKS = new MaterialSetTag(keyFor("unwaxed_copper_blocks"))
+    public static final MaterialSetTag UNWAXED_COPPER_BLOCKS = new BuiltinMaterialSetTag(keyFor("unwaxed_copper_blocks"))
         .startsWith("EXPOSED_").startsWith("WEATHERED_").startsWith("OXIDIZED_")
         .startsWith("CUT_COPPER")
         .add(Material.COPPER_BLOCK, Material.CHISELED_COPPER, Material.COPPER_DOOR, Material.COPPER_TRAPDOOR, Material.COPPER_GRATE, Material.COPPER_BULB)
@@ -712,13 +731,13 @@ public class MaterialTags {
     /**
      * Covers all copper block variants.
      */
-    public static final MaterialSetTag COPPER_BLOCKS = new MaterialSetTag(keyFor("copper_blocks"))
+    public static final MaterialSetTag COPPER_BLOCKS = new BuiltinMaterialSetTag(keyFor("copper_blocks"))
         .add(WAXED_COPPER_BLOCKS).add(UNWAXED_COPPER_BLOCKS).ensureSize("COPPER_BLOCKS", 117).lock();
 
     /**
      * Covers all weathering/waxed states of the plain copper block.
      */
-    public static final MaterialSetTag FULL_COPPER_BLOCKS = new MaterialSetTag(keyFor("full_copper_blocks"))
+    public static final MaterialSetTag FULL_COPPER_BLOCKS = new BuiltinMaterialSetTag(keyFor("full_copper_blocks"))
         .endsWith("OXIDIZED_COPPER")
         .endsWith("WEATHERED_COPPER")
         .endsWith("EXPOSED_COPPER")
@@ -729,67 +748,67 @@ public class MaterialTags {
     /**
      * Covers all weathering/waxed states of the cut copper block.
      */
-    public static final MaterialSetTag CUT_COPPER_BLOCKS = new MaterialSetTag(keyFor("cut_copper_blocks"))
+    public static final MaterialSetTag CUT_COPPER_BLOCKS = new BuiltinMaterialSetTag(keyFor("cut_copper_blocks"))
         .endsWith("CUT_COPPER").ensureSize("CUT_COPPER_BLOCKS", 8).lock();
 
     /**
      * Covers all weathering/waxed states of the cut copper stairs.
      */
-    public static final MaterialSetTag CUT_COPPER_STAIRS = new MaterialSetTag(keyFor("cut_copper_stairs"))
+    public static final MaterialSetTag CUT_COPPER_STAIRS = new BuiltinMaterialSetTag(keyFor("cut_copper_stairs"))
         .endsWith("CUT_COPPER_STAIRS").ensureSize("CUT_COPPER_STAIRS", 8).lock();
 
     /**
      * Covers all weathering/waxed states of the cut copper slab.
      */
-    public static final MaterialSetTag CUT_COPPER_SLABS = new MaterialSetTag(keyFor("cut_copper_slabs"))
+    public static final MaterialSetTag CUT_COPPER_SLABS = new BuiltinMaterialSetTag(keyFor("cut_copper_slabs"))
         .endsWith("CUT_COPPER_SLAB").ensureSize("CUT_COPPER_SLABS", 8).lock();
 
     /**
      * Covers all Wooden Tools.
      */
-    public static final MaterialSetTag WOODEN_TOOLS = new MaterialSetTag(keyFor("wooden_tools"))
+    public static final MaterialSetTag WOODEN_TOOLS = new BuiltinMaterialSetTag(keyFor("wooden_tools"))
         .add(Material.WOODEN_AXE, Material.WOODEN_HOE, Material.WOODEN_PICKAXE, Material.WOODEN_SHOVEL, Material.WOODEN_SWORD, Material.WOODEN_SPEAR)
         .lock();
 
     /**
      * Covers all Stone Tools.
      */
-    public static final MaterialSetTag STONE_TOOLS = new MaterialSetTag(keyFor("stone_tools"))
+    public static final MaterialSetTag STONE_TOOLS = new BuiltinMaterialSetTag(keyFor("stone_tools"))
         .add(Material.STONE_AXE, Material.STONE_HOE, Material.STONE_PICKAXE, Material.STONE_SHOVEL, Material.STONE_SWORD, Material.STONE_SPEAR)
         .lock();
 
     /**
      * Covers all copper Tools.
      */
-    public static final MaterialSetTag COPPER_TOOLS = new MaterialSetTag(keyFor("copper_tools"))
+    public static final MaterialSetTag COPPER_TOOLS = new BuiltinMaterialSetTag(keyFor("copper_tools"))
         .add(Material.COPPER_AXE, Material.COPPER_HOE, Material.COPPER_PICKAXE, Material.COPPER_SHOVEL, Material.COPPER_SWORD, Material.COPPER_SPEAR)
         .lock();
 
     /**
      * Covers all Iron Tools.
      */
-    public static final MaterialSetTag IRON_TOOLS = new MaterialSetTag(keyFor("iron_tools"))
+    public static final MaterialSetTag IRON_TOOLS = new BuiltinMaterialSetTag(keyFor("iron_tools"))
         .add(Material.IRON_AXE, Material.IRON_HOE, Material.IRON_PICKAXE, Material.IRON_SHOVEL, Material.IRON_SWORD, Material.IRON_SPEAR)
         .lock();
 
     /**
      * Covers all Gold Tools.
      */
-    public static final MaterialSetTag GOLDEN_TOOLS = new MaterialSetTag(keyFor("golden_tools"))
+    public static final MaterialSetTag GOLDEN_TOOLS = new BuiltinMaterialSetTag(keyFor("golden_tools"))
         .add(Material.GOLDEN_AXE, Material.GOLDEN_HOE, Material.GOLDEN_PICKAXE, Material.GOLDEN_SHOVEL, Material.GOLDEN_SWORD, Material.GOLDEN_SPEAR)
         .lock();
 
     /**
      * Covers all Diamond Tools.
      */
-    public static final MaterialSetTag DIAMOND_TOOLS = new MaterialSetTag(keyFor("diamond_tools"))
+    public static final MaterialSetTag DIAMOND_TOOLS = new BuiltinMaterialSetTag(keyFor("diamond_tools"))
         .add(Material.DIAMOND_AXE, Material.DIAMOND_HOE, Material.DIAMOND_PICKAXE, Material.DIAMOND_SHOVEL, Material.DIAMOND_SWORD, Material.DIAMOND_SPEAR)
         .lock();
 
     /**
      * Covers all Netherite Tools.
      */
-    public static final MaterialSetTag NETHERITE_TOOLS = new MaterialSetTag(keyFor("netherite_tools"))
+    public static final MaterialSetTag NETHERITE_TOOLS = new BuiltinMaterialSetTag(keyFor("netherite_tools"))
         .add(Material.NETHERITE_AXE, Material.NETHERITE_HOE, Material.NETHERITE_PICKAXE, Material.NETHERITE_SHOVEL, Material.NETHERITE_SWORD, Material.NETHERITE_SPEAR)
         .lock();
 
