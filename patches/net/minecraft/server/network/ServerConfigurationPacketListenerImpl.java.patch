@@ -1,5 +1,12 @@
 --- a/net/minecraft/server/network/ServerConfigurationPacketListenerImpl.java
 +++ b/net/minecraft/server/network/ServerConfigurationPacketListenerImpl.java
+@@ -1,5 +_,6 @@
+ package net.minecraft.server.network;
+ 
++import com.mohistmc.youer.util.ThreadUtils;
+ import com.mojang.authlib.GameProfile;
+ import com.mojang.logging.LogUtils;
+ import java.util.List;
 @@ -30,6 +_,7 @@
  import net.minecraft.server.RegistryLayer;
  import net.minecraft.server.ServerLinks;
@@ -48,7 +55,7 @@
          LOGGER.info("{} ({}) lost connection: {}", this.gameProfile.name(), this.gameProfile.id(), details.reason().getString());
          if (this.prepareSpawnTask != null) {
              this.prepareSpawnTask.close();
-@@ -81,10 +_,25 @@
+@@ -81,11 +_,29 @@
      }
  
      public void startConfiguration() {
@@ -64,16 +71,23 @@
 +        new io.papermc.paper.event.connection.configuration.PlayerConnectionInitialConfigureEvent(this.paperConnection).callEvent(); // Paper
          this.send(new ClientboundCustomPayloadPacket(new BrandPayload(this.server.getServerModName())));
          ServerLinks serverLinks = this.server.serverLinks();
-         if (!serverLinks.isEmpty()) {
-             this.send(new ClientboundServerLinksPacket(serverLinks.untrust()));
-+            // Paper start
-+            org.bukkit.craftbukkit.CraftServerLinks links = new org.bukkit.craftbukkit.CraftServerLinks(serverLinks);
-+            new org.bukkit.event.player.PlayerLinksSendEvent(this.paperConnection, links).callEvent();
-+            this.send(new ClientboundServerLinksPacket(links.getServerLinks().untrust()));
-+            // Paper end
-         }
+-        if (!serverLinks.isEmpty()) {
+-            this.send(new ClientboundServerLinksPacket(serverLinks.untrust()));
+-        }
++        // Youer Fix NeoForge's `SERVER_EVENT_GROUP` causing Bukkit events to be perceived as occurring outside the main thread.
++        ThreadUtils.executeOnMainThread(() -> {
++            if (!serverLinks.isEmpty()) {
++                this.send(new ClientboundServerLinksPacket(serverLinks.untrust()));
++                // Paper start
++                org.bukkit.craftbukkit.CraftServerLinks links = new org.bukkit.craftbukkit.CraftServerLinks(serverLinks);
++                new org.bukkit.event.player.PlayerLinksSendEvent(this.paperConnection, links).callEvent();
++                this.send(new ClientboundServerLinksPacket(links.getServerLinks().untrust()));
++                // Paper end
++            }
++        });
  
          LayeredRegistryAccess<RegistryLayer> registries = this.server.registries();
+         List<KnownPack> knownPacks = this.server
 @@ -94,14 +_,17 @@
              .flatMap(packResources -> packResources.location().knownPackInfo().stream())
              .toList();
