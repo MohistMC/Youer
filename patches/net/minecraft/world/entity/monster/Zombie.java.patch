@@ -20,7 +20,7 @@
      private static final AttributeModifier SPEED_MODIFIER_BABY = new AttributeModifier(
          SPEED_MODIFIER_BABY_ID, 0.5, AttributeModifier.Operation.ADD_MULTIPLIED_BASE
      );
-+    private final AttributeModifier babyModifier = new AttributeModifier(Zombie.SPEED_MODIFIER_BABY_ID, this.level().paperConfig().entities.behavior.babyZombieMovementModifier, AttributeModifier.Operation.ADD_MULTIPLIED_BASE); // Paper - Make baby speed configurable
++    private final AttributeModifier babyModifier = new AttributeModifier(Zombie.SPEED_MODIFIER_BABY_ID, this.level().paperConfig() == null ? 0.5 : this.level().paperConfig().entities.behavior.babyZombieMovementModifier, AttributeModifier.Operation.ADD_MULTIPLIED_BASE); // Paper - Make baby speed configurable (default 0.5 when config not yet available)
      private static final ResourceLocation REINFORCEMENT_CALLER_CHARGE_ID = ResourceLocation.withDefaultNamespace("reinforcement_caller_charge");
      private static final AttributeModifier ZOMBIE_REINFORCEMENT_CALLEE_CHARGE = new AttributeModifier(
          ResourceLocation.withDefaultNamespace("reinforcement_callee_charge"), -0.05F, AttributeModifier.Operation.ADD_VALUE
@@ -36,7 +36,7 @@
  
      public Zombie(EntityType<? extends Zombie> p_34271_, Level p_34272_) {
          super(p_34271_, p_34272_);
-+        this.breakDoorGoal = new BreakDoorGoal(this, com.google.common.base.Predicates.in(p_34272_.paperConfig().entities.behavior.doorBreakingDifficulty.getOrDefault(p_34271_, p_34272_.paperConfig().entities.behavior.doorBreakingDifficulty.get(EntityType.ZOMBIE)))); // Paper - Configurable door breaking difficulty
++        this.breakDoorGoal = new BreakDoorGoal(this, com.google.common.base.Predicates.in(p_34272_.paperConfig() == null ? List.of(Difficulty.HARD) : p_34272_.paperConfig().entities.behavior.doorBreakingDifficulty.getOrDefault(p_34271_, p_34272_.paperConfig().entities.behavior.doorBreakingDifficulty.get(EntityType.ZOMBIE)))); // Paper - Configurable door breaking difficulty (default HARD when config not yet available)
 +        this.setShouldBurnInDay(true); // Purpur - API for any mob to burn daylight
      }
  
@@ -46,7 +46,7 @@
      @Override
      protected void registerGoals() {
 -        this.goalSelector.addGoal(4, new Zombie.ZombieAttackTurtleEggGoal(this, 1.0, 3));
-+        if (this.level().paperConfig().entities.behavior.zombiesTargetTurtleEggs) this.goalSelector.addGoal(4, new Zombie.ZombieAttackTurtleEggGoal(this, 1.0, 3));
++        if (this.level().paperConfig() == null || this.level().paperConfig().entities.behavior.zombiesTargetTurtleEggs) this.goalSelector.addGoal(4, new Zombie.ZombieAttackTurtleEggGoal(this, 1.0, 3)); // Paper - default true when config not yet available
          this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));
          this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
          this.addBehaviourGoals();

@@ -264,7 +264,7 @@
              }
  
              return null;
-@@ -359,11 +_,59 @@
+@@ -359,11 +_,64 @@
      }
  
      public void sendCommands(ServerPlayer p_82096_) {
@@ -279,6 +279,11 @@
 +        // CraftBukkit start
 +        // Register Vanilla commands into builtRoot as before
 +        // Paper start - Perf: Async command map building
++        if (COMMAND_SENDING_POOL.isShutdown()) {
++            // Paper - avoid RejectedExecutionException when the pool is already closed during server shutdown (e.g. plugin onDisable -> updateCommands)
++            this.sendAsync(p_82096_);
++            return;
++        }
 +        COMMAND_SENDING_POOL.execute(() -> {
 +            this.sendAsync(p_82096_);
 +        });
