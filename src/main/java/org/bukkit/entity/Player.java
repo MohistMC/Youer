@@ -4123,6 +4123,7 @@ public interface Player extends HumanEntity, Conversable, OfflinePlayer, PluginM
      * Reset the idle timer back to 0
      * @deprecated Use {@link #resetIdleDuration()} instead
      */
+    @Deprecated(since = "1.20.2")
     void resetIdleTimer();
 
     /**

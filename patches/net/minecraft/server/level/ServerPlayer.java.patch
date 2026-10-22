@@ -1226,7 +1226,7 @@
      }
  
      @Override
-@@ -1231,58 +_,81 @@
+@@ -1231,58 +_,91 @@
  
      @Override
      public Either<Player.BedSleepingProblem, Unit> startSleepInBed(AbstractBedBlock bedBlock, BlockState bedBlockState, BedRule rule, BlockPos pos) {
@@ -1324,7 +1324,7 @@
 +                            new AABB(bedCenter.x() - 8.0, bedCenter.y() - 5.0, bedCenter.z() - 8.0, bedCenter.x() + 8.0, bedCenter.y() + 5.0, bedCenter.z() + 8.0),
 +                            monster -> monster.isPreventingPlayerRest(this.level(), this)
 +                        );
-+                    if (!monsters.isEmpty()) {
++                    if (!this.level().purpurConfig.playerSleepNearMonsters && !monsters.isEmpty()) { // Purpur - Config to ignore nearby mobs when sleeping
 +                        return Either.left(Player.BedSleepingProblem.NOT_SAFE);
 +                    }
 +                }
@@ -1350,7 +1350,17 @@
 +            }
 +        });
 +        if (!this.level().canSleepThroughNights()) {
-+            this.sendOverlayMessage(Component.translatable("sleep.not_possible"));
++            // Purpur start - Customizable sleeping actionbar messages
++            Component clientMessage;
++            if (org.purpurmc.purpur.PurpurConfig.sleepNotPossible.isBlank()) {
++                clientMessage = null;
++            } else if (!org.purpurmc.purpur.PurpurConfig.sleepNotPossible.equalsIgnoreCase("default")) {
++                clientMessage = io.papermc.paper.adventure.PaperAdventure.asVanilla(net.kyori.adventure.text.minimessage.MiniMessage.miniMessage().deserialize(org.purpurmc.purpur.PurpurConfig.sleepNotPossible));
++            } else {
++                clientMessage = Component.translatable("sleep.not_possible");
++            } if (clientMessage != null) {
++                this.sendOverlayMessage(clientMessage);
++            }// Purpur end - Customizable sleeping actionbar messages
 +        }
 +
 +        this.level().updateSleepingPlayerList();
@@ -1400,6 +1410,14 @@
      }
  
      @Override
+@@ -1369,6 +_,7 @@
+ 
+     @Override
+     public void openTextEdit(SignBlockEntity sign, SignTextSlot slot) {
++        if (level().purpurConfig.signAllowColors) this.connection.send(sign.getTranslatedUpdatePacket(textFilteringEnabled, slot)); // Purpur - Signs allow color codes
+         this.connection.send(new ClientboundBlockUpdatePacket(this.level(), sign.getBlockPos()));
+         this.connection.send(new ClientboundOpenSignEditorPacket(sign.getBlockPos(), slot));
+     }
 @@ -1382,18 +_,32 @@
          this.containerCounter = this.containerCounter % 100 + 1;
      }

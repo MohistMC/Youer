@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/equine/ZombieHorse.java
 +++ b/net/minecraft/world/entity/animal/equine/ZombieHorse.java
-@@ -46,9 +_,55 @@
+@@ -46,9 +_,60 @@
          .withAttachments(EntityAttachments.builder().attach(EntityAttachment.PASSENGER, 0.0F, EntityTypes.ZOMBIE_HORSE.getHeight() - 0.25F, 0.0F))
          .scale(0.7F);
  
@@ -31,13 +31,6 @@
 +    }
 +    // Purpur end - Mobs always drop experience
 +
-+    // Purpur start - Ridables
-+    @Override
-+    public boolean isTamed() {
-+        return super.isTamed() || this.level().purpurConfig.zombieHorseRidable;
-+    }
-+    // Purpur end - Ridables
-+
 +    // Purpur start - Configurable entity base attributes
 +    @Override
 +    public float generateMaxHealth(RandomSource random) {
@@ -54,6 +47,18 @@
 +        return generateSpeed(this.level().purpurConfig.zombieHorseMovementSpeedMin, this.level().purpurConfig.zombieHorseMovementSpeedMax);
 +    }
 +    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Ridables
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.zombieHorseRidableInWater;
++    }
++
++    @Override
++    public boolean isTamed() {
++        return super.isTamed() || this.level().purpurConfig.zombieHorseRidable;
++    }
++    // Purpur end - Ridables
  
      public static AttributeSupplier.Builder createAttributes() {
          return createBaseHorseAttributes().add(Attributes.MAX_HEALTH, 25.0);

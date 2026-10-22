@@ -1,5 +1,38 @@
 --- a/net/minecraft/world/entity/monster/warden/Warden.java
 +++ b/net/minecraft/world/entity/monster/warden/Warden.java
+@@ -133,7 +_,31 @@
+         this.setPathfindingMalus(PathType.LAVA, 8.0F);
+         this.setPathfindingMalus(PathType.FIRE, 0.0F);
+         this.setPathfindingMalus(PathType.FIRE_IN_NEIGHBOR, 0.0F);
+-    }
++        this.moveControl = new org.purpurmc.purpur.controller.MoveControllerWASD(this, 0.5F); // Purpur - Ridables
++    }
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.wardenRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.wardenRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.wardenControllable;
++    }
++
++    @Override
++    protected void registerGoals() {
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
++    }
++    // Purpur end - Ridables
+ 
+     @Override
+     public Packet<ClientGamePacketListener> getAddEntityPacket(ServerEntity serverEntity) {
 @@ -169,6 +_,7 @@
  
      @Override
@@ -8,6 +41,22 @@
          return false;
      }
  
+@@ -289,6 +_,7 @@
+     protected void customServerAiStep(ServerLevel level) {
+         ProfilerFiller profiler = Profiler.get();
+         profiler.push("wardenBrain");
++        if (getRider() == null || !this.isControllable()) // Purpur - only use brain if no rider
+         this.getBrain().tick(level, this);
+         profiler.pop();
+         super.customServerAiStep(level);
+@@ -396,6 +_,7 @@
+ 
+     @Contract("null->false")
+     public boolean canTargetEntity(@Nullable Entity entity) {
++        if (getRider() != null && isControllable()) return false; // Purpur - Ridables
+         return entity instanceof LivingEntity livingEntity
+             && this.level() == entity.level()
+             && EntitySelector.NO_CREATIVE_OR_SPECTATOR.test(entity)
 @@ -409,7 +_,7 @@
  
      public static void applyDarknessAround(ServerLevel level, Vec3 position, @Nullable Entity source, int darknessRadius) {

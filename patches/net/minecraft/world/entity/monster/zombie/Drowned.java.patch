@@ -109,3 +109,37 @@
      ) {
          if (!level.getFluidState(pos.below()).is(FluidTags.WATER) && !EntitySpawnReason.isSpawner(spawnReason)) {
              return false;
+@@ -451,13 +_,13 @@
+         }
+     }
+ 
+-    private static class DrownedMoveControl<T extends Drowned> extends MoveControl<T> {
++    private static class DrownedMoveControl<T extends Drowned> extends org.purpurmc.purpur.controller.MoveControllerWASD<T> { // Purpur - Ridables
+         public DrownedMoveControl(T drowned) {
+             super(drowned);
+         }
+ 
+         @Override
+-        public void tick() {
++        public void vanillaTick() { // Purpur - Ridables
+             LivingEntity target = this.mob.getTarget();
+             if (this.mob.wantsToSwim() && this.mob.isInWater()) {
+                 if (target != null && target.getY() > this.mob.getY() || this.mob.isSearchingForLand()) {
+@@ -477,7 +_,7 @@
+                 float yRotD = (float)(Mth.atan2(zd, xd) * 180.0F / (float)Math.PI) - 90.0F;
+                 this.mob.setYRot(this.rotlerp(this.mob.getYRot(), yRotD, 90.0F));
+                 this.mob.yBodyRot = this.mob.getYRot();
+-                float targetSpeed = (float)(this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED));
++                float targetSpeed = (float)(this.getSpeedModifier() * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)); // Purpur - Ridables
+                 float newSpeed = Mth.lerp(0.125F, this.mob.getSpeed(), targetSpeed);
+                 this.mob.setSpeed(newSpeed);
+                 this.mob.setDeltaMovement(this.mob.getDeltaMovement().add(newSpeed * xd * 0.005, newSpeed * yd * 0.1, newSpeed * zd * 0.005));
+@@ -486,7 +_,7 @@
+                     this.mob.setDeltaMovement(this.mob.getDeltaMovement().add(0.0, -0.008, 0.0));
+                 }
+ 
+-                super.tick();
++                super.vanillaTick(); // Purpur - Ridables
+             }
+         }
+     }

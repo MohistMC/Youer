@@ -184,6 +184,24 @@ public final class CraftBlockStates {
         }
     }
 
+    // Youer start - use vanilla block state wrappers for modded block entities extending vanilla types
+    private static BlockStateFactory<?> getModdedBlockEntityFactory(BlockEntity blockEntity) {
+        if (blockEntity instanceof HangingSignBlockEntity) {
+            return CraftBlockStates.FACTORIES_BY_BLOCK_ENTITY_TYPE.get(BlockEntityTypes.HANGING_SIGN);
+        }
+        if (blockEntity instanceof SignBlockEntity) {
+            return CraftBlockStates.FACTORIES_BY_BLOCK_ENTITY_TYPE.get(BlockEntityTypes.SIGN);
+        }
+        if (blockEntity instanceof ChestBlockEntity) {
+            return CraftBlockStates.FACTORIES_BY_BLOCK_ENTITY_TYPE.get(BlockEntityTypes.CHEST);
+        }
+        if (blockEntity instanceof DecoratedPotBlockEntity) {
+            return CraftBlockStates.FACTORIES_BY_BLOCK_ENTITY_TYPE.get(BlockEntityTypes.DECORATED_POT);
+        }
+        return null;
+    }
+    // Youer end
+
     public static Class<? extends CraftBlockState> getBlockStateType(Material material) {
         Preconditions.checkNotNull(material, "material is null");
         return CraftBlockStates.getFactory(material).blockStateType;
@@ -265,6 +283,12 @@ public final class CraftBlockStates {
             factory = CraftBlockStates.DEFAULT_FACTORY;
         } else {
             factory = CraftBlockStates.getFactory(material, blockEntity != null ? blockEntity.getType() : null); // Paper
+            if (factory == CraftBlockStates.DEFAULT_FACTORY && blockEntity != null) {
+                BlockStateFactory<?> moddedFactory = CraftBlockStates.getModdedBlockEntityFactory(blockEntity); // Youer - modded block entities extending vanilla types
+                if (moddedFactory != null) {
+                    factory = moddedFactory;
+                }
+            }
         }
         return factory.createBlockState(world, pos, state, blockEntity, useSnapshot);
     }

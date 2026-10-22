@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/Guardian.java
 +++ b/net/minecraft/world/entity/monster/Guardian.java
-@@ -57,6 +_,7 @@
+@@ -57,21 +_,65 @@
      private int clientSideAttackTime;
      private boolean clientSideTouchedGround;
      public @Nullable RandomStrollGoal randomStrollGoal;
@@ -8,10 +8,33 @@
  
      public Guardian(EntityType<? extends Guardian> type, Level level) {
          super(type, level);
-@@ -67,11 +_,33 @@
+         this.xpReward = 10;
+         this.setPathfindingMalus(PathType.WATER, 0.0F);
+         this.moveControl = new Guardian.GuardianMoveControl<>(this);
++        // Purpur start - Ridables
++        this.lookControl = new org.purpurmc.purpur.controller.LookControllerWASD(this) {
++            @Override
++            public void setYawPitch(float yaw, float pitch) {
++                super.setYawPitch(yaw, pitch * 0.35F);
++            }
++        };
++        // Purpur end - Ridables
+         this.clientSideTailAnimation = this.random.nextFloat();
          this.clientSideTailAnimationO = this.clientSideTailAnimation;
      }
  
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.guardianRidable;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.guardianControllable;
++    }
++    // Purpur end - Ridables
++
 +    // Purpur start - Toggle for water sensitive mob damage
 +    @Override
 +    public boolean isSensitiveToWater() {
@@ -39,10 +62,19 @@
          MoveTowardsRestrictionGoal goal = new MoveTowardsRestrictionGoal(this, 1.0);
          this.randomStrollGoal = new RandomStrollGoal(this, 1.0, 80);
 -        this.goalSelector.addGoal(4, new Guardian.GuardianAttackGoal(this));
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
 +        this.goalSelector.addGoal(4, guardianAttackGoal = new Guardian.GuardianAttackGoal(this)); // CraftBukkit - assign field
          this.goalSelector.addGoal(5, goal);
          this.goalSelector.addGoal(7, this.randomStrollGoal);
          this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));
+@@ -79,6 +_,7 @@
+         this.goalSelector.addGoal(9, new RandomLookAroundGoal(this));
+         this.randomStrollGoal.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK));
+         goal.setFlags(EnumSet.of(Goal.Flag.MOVE, Goal.Flag.LOOK));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, LivingEntity.class, 10, true, false, new Guardian.GuardianAttackSelector(this)));
+     }
+ 
 @@ -301,6 +_,11 @@
      public static boolean checkGuardianSpawnRules(
          EntityType<? extends Guardian> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random
@@ -55,3 +87,47 @@
          return (random.nextInt(20) == 0 || !level.canSeeSkyFromBelowWater(pos))
              && level.getDifficulty() != Difficulty.PEACEFUL
              && (EntitySpawnReason.isSpawner(spawnReason) || level.getFluidState(pos).is(FluidTags.WATER))
+@@ -330,7 +_,7 @@
+ 
+     @Override
+     protected void travelInWater(Vec3 input, double baseGravity, boolean isFalling, double oldY) {
+-        this.moveRelative(0.1F, input);
++        this.moveRelative(getRider() != null && this.isControllable() ? getSpeed() : 0.1F, input); // Purpur - Ridables
+         this.move(MoverType.SELF, this.getDeltaMovement());
+         this.setDeltaMovement(this.getDeltaMovement().scale(0.9));
+         if (!this.isMoving() && this.getTarget() == null) {
+@@ -435,13 +_,22 @@
+         }
+     }
+ 
+-    private static class GuardianMoveControl<T extends Guardian> extends MoveControl<T> {
++    private static class GuardianMoveControl<T extends Guardian> extends org.purpurmc.purpur.controller.WaterMoveControllerWASD<T> { // Purpur - Ridables
+         public GuardianMoveControl(T guardian) {
+             super(guardian);
+         }
+ 
+-        @Override
+-        public void tick() {
++        // Purpur start - Ridables
++        @Override
++        public void purpurTick(Player rider) {
++            super.purpurTick(rider);
++            this.mob.setDeltaMovement(this.mob.getDeltaMovement().add(0.0D, 0.005D, 0.0D));
++            this.mob.setMoving(this.mob.getForwardMot() > 0.0F); // control tail speed
++        }
++        // Purpur end - Ridables
++
++        @Override
++        public void vanillaTick() { // Purpur - Ridables
+             if (this.operation == MoveControl.Operation.MOVE_TO && !this.mob.getNavigation().isDone()) {
+                 Vec3 delta = new Vec3(this.wantedX - this.mob.getX(), this.wantedY - this.mob.getY(), this.wantedZ - this.mob.getZ());
+                 double length = delta.length();
+@@ -451,7 +_,7 @@
+                 float yRotD = (float)(Mth.atan2(delta.z, delta.x) * 180.0F / (float)Math.PI) - 90.0F;
+                 this.mob.setYRot(this.rotlerp(this.mob.getYRot(), yRotD, 90.0F));
+                 this.mob.yBodyRot = this.mob.getYRot();
+-                float targetSpeed = (float)(this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED));
++                float targetSpeed = (float)(this.getSpeedModifier() * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)); // Purpur - Ridables
+                 float newSpeed = Mth.lerp(0.125F, this.mob.getSpeed(), targetSpeed);
+                 this.mob.setSpeed(newSpeed);
+                 double push = Math.sin((this.mob.tickCount + this.mob.getId()) * 0.5) * 0.05;

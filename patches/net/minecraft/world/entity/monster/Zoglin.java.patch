@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/Zoglin.java
 +++ b/net/minecraft/world/entity/monster/Zoglin.java
-@@ -84,6 +_,28 @@
+@@ -84,6 +_,45 @@
          this.xpReward = 5;
      }
  
@@ -26,6 +26,31 @@
 +    }
 +    // Purpur end - Configurable entity base attributes
 +
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.zoglinRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.zoglinRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.zoglinControllable;
++    }
++    // Purpur end - Ridables
++
      @Override
      protected Brain<Zoglin> makeBrain(Brain.Packed packedBrain) {
          return BRAIN_PROVIDER.makeBrain(this, packedBrain);
+@@ -240,6 +_,7 @@
+     protected void customServerAiStep(ServerLevel level) {
+         ProfilerFiller profiler = Profiler.get();
+         profiler.push("zoglinBrain");
++        if (getRider() == null || !this.isControllable()) // Purpur - only use brain if no rider
+         this.getBrain().tick(level, this);
+         profiler.pop();
+         this.updateActivity();

@@ -8,7 +8,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class MushroomCow extends AbstractCow implements Shearable {
-@@ -70,13 +_,58 @@
+@@ -70,13 +_,75 @@
          super(type, level);
      }
  
@@ -57,6 +57,23 @@
 +    }
 +    // Purpur end - Mobs always drop experience
 +
++    // Purpur start - Breedable mobs can have multiple babies
++    @Override
++    protected boolean willHaveAnotherBaby() {
++        return (this.level().purpurConfig.mooshroomBreedingChance > 0.0D) && (this.level().purpurConfig.mooshroomBreedingChance >= this.random.nextDouble());
++    }
++
++    @Override
++    protected int getBreedingMinOffspring() {
++        return this.level().purpurConfig.mooshroomBreedingMinOffspring;
++    }
++
++    @Override
++    protected int getBreedingMaxOffspring() {
++        return this.level().purpurConfig.mooshroomBreedingMaxOffspring;
++    }
++    // Purpur end - Breedable mobs can have multiple babies
++
      @Override
      public float getWalkTargetValue(BlockPos pos, LevelReader level) {
          return level.getBlockState(pos.below()).is(Blocks.MYCELIUM) ? 10.0F : level.getPathfindingCostFromLightLevels(pos);
@@ -76,7 +93,7 @@
 +                // Paper start - call PlayerShearEntityEvent
 +                java.util.List<ItemStack> drops = this.generateDefaultDrops(level, itemStack);
 +                org.bukkit.event.player.PlayerShearEntityEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemStack, hand, drops);
-+                if (event.isCancelled()) return InteractionResult.PASS;
++                if (event.isCancelled()) return tryRide(player, hand); // Purpur - Ridables
 +                drops = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getDrops());
 +                this.shear(level, SoundSource.PLAYERS, itemStack, drops);
 +                // Paper end - call PlayerShearEntityEvent

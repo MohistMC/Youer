@@ -116,3 +116,17 @@
                  return checkMobSpawnRules(type, level, spawnReason, pos, random);
              }
          }
+@@ -119,5 +_,13 @@
+         int actualSize = this.entityData.get(ID_SIZE);
+         this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(actualSize);
+         this.xpReward = actualSize;
++    }
++
++    @Override
++    protected void setCubeMobHealth(final int actualSize) {
++        // Purpur start - Configurable entity base attributes
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(getFromCache(this::getMaxHealthEquation, this::getMaxHealthCache, () -> (double) (actualSize * actualSize)));
++        this.getAttribute(Attributes.ATTACK_DAMAGE).setBaseValue(getFromCache(this::getAttackDamageEquation, this::getAttackDamageCache, () -> (double) actualSize));
++        // Purpur end - Configurable entity base attributes
+     }
+ }

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/golem/SnowGolem.java
 +++ b/net/minecraft/world/entity/animal/golem/SnowGolem.java
-@@ -46,14 +_,57 @@
+@@ -46,17 +_,62 @@
      private static final EntityDataAccessor<Byte> DATA_PUMPKIN_ID = SynchedEntityData.defineId(SnowGolem.class, EntityDataSerializers.BYTE);
      private static final byte PUMPKIN_FLAG = 16;
      private static final boolean DEFAULT_PUMPKIN = true;
@@ -55,11 +55,16 @@
      @Override
      protected void registerGoals() {
 -        this.goalSelector.addGoal(1, new RangedAttackGoal(this, 1.25, 20, 10.0F));
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
 +        this.goalSelector.addGoal(1, new RangedAttackGoal(this, level().purpurConfig.snowGolemAttackDistance, level().purpurConfig.snowGolemSnowBallMin, level().purpurConfig.snowGolemSnowBallMax, level().purpurConfig.snowGolemSnowBallModifier)); // Purpur - Snow Golem rate of fire config
          this.goalSelector.addGoal(2, new WaterAvoidingRandomStrollGoal(this, 1.0, 1.0000001E-5F));
          this.goalSelector.addGoal(3, new LookAtPlayerGoal(this, Player.class, 6.0F));
          this.goalSelector.addGoal(4, new RandomLookAroundGoal(this));
-@@ -74,12 +_,14 @@
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new NearestAttackableTargetGoal<>(this, Mob.class, 10, true, false, (target, level) -> target instanceof Enemy));
+     }
+ 
+@@ -74,17 +_,19 @@
      protected void addAdditionalSaveData(ValueOutput output) {
          super.addAdditionalSaveData(output);
          output.putBoolean("Pumpkin", this.hasPumpkin());
@@ -74,7 +79,13 @@
      }
  
      @Override
-@@ -92,10 +_,10 @@
+     public boolean isSensitiveToWater() {
+-        return true;
++        return this.level().purpurConfig.snowGolemTakeDamageFromWater; // Purpur - Toggle for water sensitive mob damage
+     }
+ 
+     @Override
+@@ -92,13 +_,14 @@
          super.aiStep();
          if (this.level() instanceof ServerLevel serverLevel) {
              if (serverLevel.environmentAttributes().getValue(EnvironmentAttributes.SNOW_GOLEM_MELTS, this.position())) {
@@ -83,10 +94,14 @@
              }
  
 -            if (!serverLevel.getGameRules().get(GameRules.MOB_GRIEFING)) {
-+            if (!net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverLevel, this)) {
++            if (!org.purpurmc.purpur.PurpurWorldConfig.canEntityGrief(serverLevel, this, serverLevel.purpurConfig.snowGolemMobGriefingOverride)) { // Purpur - Add mobGriefing override to everything affected
                  return;
              }
  
++            if (getRider() != null && this.isControllable() && !level().purpurConfig.snowGolemLeaveTrailWhenRidden) return; // Purpur - don't leave snow trail when being ridden
+             BlockState snow = Blocks.SNOW.defaultBlockState();
+ 
+             for (int i = 0; i < 4; i++) {
 @@ -107,7 +_,7 @@
                  int zz = Mth.floor(this.getZ() + (i / 2 % 2 * 2 - 1) * 0.25F);
                  BlockPos snowPos = new BlockPos(xx, yy, zz);
@@ -108,7 +123,7 @@
 +                java.util.List<ItemStack> drops = this.generateDefaultDrops(level, itemStack);
 +                org.bukkit.event.player.PlayerShearEntityEvent event = org.bukkit.craftbukkit.event.CraftEventFactory.handlePlayerShearEntityEvent(player, this, itemStack, hand, drops);
 +                if (event.isCancelled()) {
-+                    return InteractionResult.PASS;
++                    return tryRide(player, hand); // Purpur - Ridables
 +                }
 +                drops = org.bukkit.craftbukkit.inventory.CraftItemStack.asNMSCopy(event.getDrops());
 +                this.shear(level, SoundSource.PLAYERS, itemStack, drops);
@@ -127,7 +142,8 @@
 +            return InteractionResult.SUCCESS;
 +            // Purpur end - Snowman drop and put back pumpkin
          } else {
-             return InteractionResult.PASS;
+-            return InteractionResult.PASS;
++            return tryRide(player, hand); // Purpur - Ridables
          }
      }
  

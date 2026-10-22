@@ -703,6 +703,7 @@ public class MaterialRerouting {
     }
     // Paper end
 
+    // Purpur start - Adopt MaterialRerouting
     // Method added post 1.13, no-op (https://github.com/PurpurMC/Purpur/commit/607d909efba516893072b782c0393c53d048210e)
     public static BlockData getBlockData(ItemStack itemStack, Material material) {
         return itemStack.getBlockData(MaterialRerouting.transformToBlockType(material));

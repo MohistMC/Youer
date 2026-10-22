@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/illager/Vindicator.java
 +++ b/net/minecraft/world/entity/monster/illager/Vindicator.java
-@@ -57,6 +_,52 @@
+@@ -57,15 +_,63 @@
          super(type, level);
      }
  
@@ -53,6 +53,17 @@
      @Override
      protected void registerGoals() {
          super.registerGoals();
+         this.goalSelector.addGoal(0, new FloatGoal(this));
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(1, new AvoidEntityGoal<>(this, Creaking.class, 8.0F, 1.0, 1.2));
+         this.goalSelector.addGoal(2, new Vindicator.VindicatorBreakDoorGoal(this));
+         this.goalSelector.addGoal(3, new AbstractIllager.RaiderOpenDoorGoal(this));
+         this.goalSelector.addGoal(4, new Raider.HoldGroundAttackGoal(this, 10.0F));
+         this.goalSelector.addGoal(5, new MeleeAttackGoal(this, 1.0, false));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new HurtByTargetGoal(this, Raider.class).setAlertOthers());
+         this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
+         this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, AbstractVillager.class, true));
 @@ -131,6 +_,11 @@
          RandomSource random = level.getRandom();
          this.populateDefaultEquipmentSlots(random, difficulty);

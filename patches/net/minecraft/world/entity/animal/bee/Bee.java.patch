@@ -13,7 +13,7 @@
  public class Bee extends Animal implements NeutralMob {
      public static final float FLAP_DEGREES_PER_TICK = 120.32113F;
      public static final int TICKS_PER_FLAP = Mth.ceil(1.4959966F);
-@@ -142,23 +_,109 @@
+@@ -142,23 +_,133 @@
      private static final int MAX_FIND_FLOWER_RETRY_COOLDOWN = 60;
      private int remainingCooldownBeforeLocatingNewFlower = Mth.nextInt(this.random, 20, 60);
      private @Nullable BlockPos savedFlowerPos;
@@ -38,6 +38,23 @@
 +        return this.level().purpurConfig.beeAlwaysDropExp;
 +    }
 +    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Breedable mobs can have multiple babies
++    @Override
++    protected boolean willHaveAnotherBaby() {
++        return (this.level().purpurConfig.beeBreedingChance > 0.0D) && (this.level().purpurConfig.beeBreedingChance >= this.random.nextDouble());
++    }
++
++    @Override
++    protected int getBreedingMinOffspring() {
++        return this.level().purpurConfig.beeBreedingMinOffspring;
++    }
++
++    @Override
++    protected int getBreedingMaxOffspring() {
++        return this.level().purpurConfig.beeBreedingMaxOffspring;
++    }
++    // Purpur end - Breedable mobs can have multiple babies
  
      public Bee(EntityType<? extends Bee> type, Level level) {
          super(type, level);
@@ -81,6 +98,13 @@
          this.setPathfindingMalus(PathType.FENCE, -1.0F);
      }
  
++    // Purpur start - Toggle for water sensitive mob damage
++    @Override
++    public boolean isSensitiveToWater() {
++        return this.level().purpurConfig.beeTakeDamageFromWater;
++    }
++    // Purpur end - Toggle for water sensitive mob damage
++
 +    // Purpur start - Ridables
 +    @Override
 +    public boolean isRidable() {
@@ -304,6 +328,25 @@
              }
          }
      }
+@@ -1052,15 +_,15 @@
+         }
+     }
+ 
+-    private class BeeLookControl extends LookControl {
++    private class BeeLookControl extends org.purpurmc.purpur.controller.LookControllerWASD { // Purpur - Ridables
+         public BeeLookControl(Mob mob) {
+             super(mob);
+         }
+ 
+         @Override
+-        public void tick() {
++        public void vanillaTick() { // Purpur - Ridables
+             if (!Bee.this.isAngry()) {
+-                super.tick();
++                super.vanillaTick(); // Purpur - Ridables
+             }
+         }
+ 
 @@ -1104,6 +_,7 @@
                      Bee.this.savedFlowerPos = nearbyPos.get();
                      Bee.this.navigation

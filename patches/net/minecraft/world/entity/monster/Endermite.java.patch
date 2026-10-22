@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/Endermite.java
 +++ b/net/minecraft/world/entity/monster/Endermite.java
-@@ -26,16 +_,70 @@
+@@ -26,24 +_,80 @@
  import net.minecraft.world.level.storage.ValueInput;
  import net.minecraft.world.level.storage.ValueOutput;
  
@@ -71,6 +71,16 @@
      @Override
      protected void registerGoals() {
          this.goalSelector.addGoal(1, new FloatGoal(this));
++        this.goalSelector.addGoal(1, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(1, new ClimbOnTopOfPowderSnowGoal(this, this.level()));
+         this.goalSelector.addGoal(2, new MeleeAttackGoal(this, 1.0, false));
+         this.goalSelector.addGoal(3, new WaterAvoidingRandomStrollGoal(this, 1.0));
+         this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 8.0F));
+         this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers());
+         this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
+     }
 @@ -81,12 +_,14 @@
      protected void readAdditionalSaveData(ValueInput input) {
          super.readAdditionalSaveData(input);

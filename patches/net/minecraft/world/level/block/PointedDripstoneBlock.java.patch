@@ -9,7 +9,7 @@
          } else {
              super.fallOn(level, state, pos, entity, fallDistance);
          }
-@@ -79,7 +_,7 @@
+@@ -79,31 +_,35 @@
  
      @VisibleForTesting
      public static void maybeTransferFluid(BlockState state, ServerLevel level, BlockPos pos, float randomValue) {
@@ -18,20 +18,29 @@
              if (isStalactiteStartPos(state, level, pos)) {
                  Optional<PointedDripstoneBlock.FluidInfo> fluidInfo = getFluidAboveStalactite(level, pos, state);
                  if (!fluidInfo.isEmpty()) {
-@@ -88,22 +_,21 @@
+                     Fluid fluid = fluidInfo.get().fluid;
++                    // Purpur start - Cauldron fill chances
+                     float transferProbability;
++                    net.neoforged.neoforge.fluids.FluidType.DripstoneDripInfo dripInfo = fluid.getFluidType().getDripInfo();
                      if (fluid == Fluids.WATER) {
-                         transferProbability = 0.17578125F;
+-                        transferProbability = 0.17578125F;
++                        transferProbability = level.purpurConfig.cauldronDripstoneWaterFillChance;
++                    } else if (fluid == Fluids.LAVA) {
++                        transferProbability = level.purpurConfig.cauldronDripstoneLavaFillChance;
++                    } else if (dripInfo != null) {
++                        transferProbability = dripInfo.chance();
                      } else {
 -                        if (fluid != Fluids.LAVA) {
 -                            return;
 -                        }
- 
-                         transferProbability = 0.05859375F;
+-
+-                        transferProbability = 0.05859375F;
++                        transferProbability = -1.0F;
                      }
  
 -                    if (!(randomValue >= transferProbability)) {
-+                    net.neoforged.neoforge.fluids.FluidType.DripstoneDripInfo dripInfo = fluid.getFluidType().getDripInfo();
-+                    if (dripInfo != null && !(randomValue >= dripInfo.chance())) {
++                    if (transferProbability >= 0.0F && !(randomValue >= transferProbability)) {
++                    // Purpur end - Cauldron fill chances
                          BlockPos stalactiteTipPos = findTip(state, level, pos, 11, false);
                          if (stalactiteTipPos != null) {
                              if (fluidInfo.get().sourceState.is(Blocks.MUD) && fluid == Fluids.WATER) {

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/skeleton/Parched.java
 +++ b/net/minecraft/world/entity/monster/skeleton/Parched.java
-@@ -17,7 +_,22 @@
+@@ -17,7 +_,46 @@
  public class Parched extends AbstractSkeleton {
      public Parched(EntityType<? extends AbstractSkeleton> type, Level level) {
          super(type, level);
@@ -21,6 +21,45 @@
 +        return this.level().purpurConfig.parchedAlwaysDropExp;
 +    }
 +    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Check mobGriefing Overrides
++    @Override
++    public Boolean checkEntityPickUpLootOverride() {
++        return this.level().purpurConfig.parchedCanPickUpLoot;
++    }
++    // Purpur end - Check mobGriefing Overrides
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.parchedRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.parchedRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.parchedControllable;
++    }
++    // Purpur end - Ridables
  
      @Override
      protected AbstractArrow getArrow(ItemStack projectile, float power, @Nullable ItemStack firingWeapon) {
+@@ -32,6 +_,14 @@
+     public static AttributeSupplier.Builder createAttributes() {
+         return AbstractSkeleton.createAttributes().add(Attributes.MAX_HEALTH, 16.0);
+     }
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.parchedMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.parchedScale);
++    }
++    // Purpur end - Configurable entity base attributes
+ 
+     @Override
+     public SoundEvent getAmbientSound() {

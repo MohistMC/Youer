@@ -127,7 +127,7 @@
      private final GameEventDispatcher gameEventDispatcher;
      public boolean noSave;
      private final SleepStatus sleepStatus;
-@@ -217,45 +_,497 @@
+@@ -217,45 +_,498 @@
      private boolean handlingTick;
      private final List<CustomSpawner> customSpawners;
      private @Nullable EnderDragonFight dragonFight;
@@ -586,26 +586,27 @@
          this.tickTime = tickTime;
          this.server = server;
 -        this.customSpawners = customSpawners;
-+        // Neo: Move the initialization of customSpawners to the end of costructor
-+        // Providing a fully initialized ServerLevel instance for the ServerLevelEvent.CustomSpawners
-+        this.customSpawners = net.neoforged.neoforge.event.EventHooks.getCustomSpawners(this, customSpawners);
          this.serverLevelData = levelData;
 +        // Purpur start - Allow toggling special MobSpawners per world
++        List<CustomSpawner> purpurSpawners = new ArrayList<>();
 +        if (purpurConfig.phantomSpawning) {
-+            this.customSpawners.add(new net.minecraft.world.level.levelgen.PhantomSpawner());
++            purpurSpawners.add(new net.minecraft.world.level.levelgen.PhantomSpawner());
 +        }
 +        if (purpurConfig.patrolSpawning) {
-+            this.customSpawners.add(new net.minecraft.world.level.levelgen.PatrolSpawner());
++            purpurSpawners.add(new net.minecraft.world.level.levelgen.PatrolSpawner());
 +        }
 +        if (purpurConfig.catSpawning) {
-+            this.customSpawners.add(new net.minecraft.world.entity.npc.CatSpawner());
++            purpurSpawners.add(new net.minecraft.world.entity.npc.CatSpawner());
 +        }
 +        if (purpurConfig.villageSiegeSpawning) {
-+            this.customSpawners.add(new net.minecraft.world.entity.ai.village.VillageSiege());
++            purpurSpawners.add(new net.minecraft.world.entity.ai.village.VillageSiege());
 +        }
 +        if (purpurConfig.villagerTraderSpawning) {
-+            this.customSpawners.add(new net.minecraft.world.entity.npc.wanderingtrader.WanderingTraderSpawner(savedDataStorage));
++            purpurSpawners.add(new net.minecraft.world.entity.npc.wanderingtrader.WanderingTraderSpawner(savedDataStorage));
 +        }
++        // Neo: Move the initialization of customSpawners to the end of costructor
++        // Providing a fully initialized ServerLevel instance for the ServerLevelEvent.CustomSpawners
++        this.customSpawners = net.neoforged.neoforge.event.EventHooks.getCustomSpawners(this, purpurSpawners);
 +        // Purpur end - Allow toggling special MobSpawners per world
          ChunkGenerator generator = levelStem.generator();
 +        // CraftBukkit start
@@ -1771,7 +1772,7 @@
              case NONE -> Explosion.BlockInteraction.KEEP;
              case BLOCK -> this.getDestroyType(GameRules.BLOCK_EXPLOSION_DROP_DECAY);
 -            case MOB -> this.getGameRules().get(GameRules.MOB_GRIEFING)
-+            case MOB -> net.neoforged.neoforge.event.EventHooks.canEntityGrief(this, source)
++            case MOB -> (source instanceof net.minecraft.world.entity.projectile.hurtingprojectile.LargeFireball ? this.getGameRules().get(GameRules.MOB_GRIEFING, this.purpurConfig.fireballsMobGriefingOverride) : net.neoforged.neoforge.event.EventHooks.canEntityGrief(this, source)) // Purpur - Add mobGriefing override to everything affected
                  ? this.getDestroyType(GameRules.MOB_EXPLOSION_DROP_DECAY)
                  : Explosion.BlockInteraction.KEEP;
              case TNT -> this.getDestroyType(GameRules.TNT_EXPLOSION_DROP_DECAY);
@@ -2452,7 +2453,7 @@
 +            // Spigot start
 +            if (entity.getBukkitEntity() instanceof org.bukkit.inventory.InventoryHolder && (!(entity instanceof ServerPlayer) || entity.getRemovalReason() != Entity.RemovalReason.KILLED)) { // SPIGOT-6876: closeInventory clears death message
 +                // Paper start - Fix merchant inventory not closing on entity removal
-+                if (entity.getBukkitEntity() instanceof org.bukkit.inventory.Merchant merchant && merchant.getTrader() != null) {
++                if (!entity.level().purpurConfig.playerVoidTrading && entity.getBukkitEntity() instanceof org.bukkit.inventory.Merchant merchant && merchant.getTrader() != null) { // Purpur - Allow void trading
 +                    merchant.getTrader().closeInventory(org.bukkit.event.inventory.InventoryCloseEvent.Reason.UNLOADED);
 +                }
 +                // Paper end - Fix merchant inventory not closing on entity removal

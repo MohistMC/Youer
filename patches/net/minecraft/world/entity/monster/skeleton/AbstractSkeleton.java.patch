@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/skeleton/AbstractSkeleton.java
 +++ b/net/minecraft/world/entity/monster/skeleton/AbstractSkeleton.java
-@@ -70,6 +_,7 @@
+@@ -70,16 +_,19 @@
      protected AbstractSkeleton(EntityType<? extends AbstractSkeleton> type, Level level) {
          super(type, level);
          this.reassessWeaponGoal();
@@ -8,6 +8,18 @@
      }
  
      @Override
+     protected void registerGoals() {
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(2, new RestrictSunGoal(this));
+         this.goalSelector.addGoal(3, new FleeSunGoal(this, 1.0));
+         this.goalSelector.addGoal(3, new AvoidEntityGoal<>(this, Wolf.class, 6.0F, 1.0, 1.2));
+         this.goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, 1.0));
+         this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 8.0F));
+         this.goalSelector.addGoal(6, new RandomLookAroundGoal(this));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new HurtByTargetGoal(this));
+         this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
+         this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, IronGolem.class, true));
 @@ -90,6 +_,21 @@
          return Monster.createMonsterAttributes().add(Attributes.MOVEMENT_SPEED, 0.25);
      }

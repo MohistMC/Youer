@@ -8,7 +8,7 @@
  import net.minecraft.util.RandomSource;
  import net.minecraft.world.DifficultyInstance;
  import net.minecraft.world.InteractionHand;
-@@ -90,15 +_,37 @@
+@@ -90,15 +_,71 @@
      public final ItemBasedSteering steering = new ItemBasedSteering(this.entityData, DATA_BOOST_TIME);
      private @Nullable TemptGoal temptGoal;
  
@@ -36,6 +36,23 @@
 +    }
 +    // Purpur end - Mobs always drop experience
 +
++    // Purpur start - Breedable mobs can have multiple babies
++    @Override
++    protected boolean willHaveAnotherBaby() {
++        return (this.level().purpurConfig.striderBreedingChance > 0.0D) && (this.level().purpurConfig.striderBreedingChance >= this.random.nextDouble());
++    }
++
++    @Override
++    protected int getBreedingMinOffspring() {
++        return this.level().purpurConfig.striderBreedingMinOffspring;
++    }
++
++    @Override
++    protected int getBreedingMaxOffspring() {
++        return this.level().purpurConfig.striderBreedingMaxOffspring;
++    }
++    // Purpur end - Breedable mobs can have multiple babies
++
 +    // Purpur start - Configurable entity base attributes
 +    @Override
 +    public void initAttributes() {
@@ -44,9 +61,34 @@
 +    }
 +    // Purpur end - Configurable entity base attributes
 +
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.striderRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.striderRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.striderControllable;
++    }
++    // Purpur end - Ridables
++
      public static boolean checkStriderSpawnRules(
          EntityType<Strider> ignoredType, LevelAccessor level, EntitySpawnReason ignoredSpawnType, BlockPos pos, RandomSource ignoredRandom
      ) {
+@@ -145,6 +_,7 @@
+     @Override
+     protected void registerGoals() {
+         this.goalSelector.addGoal(1, new PanicGoal(this, 1.65));
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(2, new BreedGoal(this, 1.0));
+         this.temptGoal = new TemptGoal(this, 1.4, i -> i.is(ItemTags.STRIDER_TEMPT_ITEMS), false);
+         this.goalSelector.addGoal(3, this.temptGoal);
 @@ -306,7 +_,14 @@
                  || stateOn.is(BlockTags.STRIDER_WARM_BLOCKS)
                  || this.getFluidHeight(FluidTags.LAVA) > 0.0;
@@ -63,6 +105,15 @@
          }
  
          super.tick();
+@@ -365,7 +_,7 @@
+ 
+     @Override
+     public boolean isSensitiveToWater() {
+-        return true;
++        return this.level().purpurConfig.striderTakeDamageFromWater; // Purpur - Toggle for water sensitive mob damage
+     }
+ 
+     @Override
 @@ -399,6 +_,18 @@
      @Override
      public InteractionResult mobInteract(Player player, InteractionHand hand) {
@@ -82,3 +133,12 @@
          if (!hasFood && this.isSaddled() && !this.isVehicle() && !player.isSecondaryUseActive()) {
              if (!this.level().isClientSide()) {
                  player.startRiding(this);
+@@ -409,7 +_,7 @@
+             InteractionResult interactionResult = super.mobInteract(player, hand);
+             if (!interactionResult.consumesAction()) {
+                 ItemStack itemStack = player.getItemInHand(hand);
+-                return this.isEquippableInSlot(itemStack, EquipmentSlot.SADDLE) ? itemStack.interactLivingEntity(player, this, hand) : InteractionResult.PASS;
++                return this.isEquippableInSlot(itemStack, EquipmentSlot.SADDLE) ? itemStack.interactLivingEntity(player, this, hand) : tryRide(player, hand); // Purpur - Ridables
+             }
+ 
+             if (hasFood && !this.isSilent()) {

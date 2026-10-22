@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/spider/Spider.java
 +++ b/net/minecraft/world/entity/monster/spider/Spider.java
-@@ -53,6 +_,20 @@
+@@ -53,15 +_,48 @@
          super(type, level);
      }
  
@@ -18,9 +18,37 @@
 +    }
 +    // Purpur end - Mobs always drop experience
 +
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.spiderRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.spiderRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.spiderControllable;
++    }
++    // Purpur end - Ridables
++
      @Override
      protected void registerGoals() {
          this.goalSelector.addGoal(1, new FloatGoal(this));
++        this.goalSelector.addGoal(1, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(2, new AvoidEntityGoal<>(this, Armadillo.class, 6.0F, 1.0, 1.2, entity -> !((Armadillo)entity).isScared()));
+         this.goalSelector.addGoal(3, new LeapAtTargetGoal(this, 0.4F));
+         this.goalSelector.addGoal(4, new Spider.SpiderAttackGoal(this));
+         this.goalSelector.addGoal(5, new WaterAvoidingRandomStrollGoal(this, 0.8));
+         this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 8.0F));
+         this.goalSelector.addGoal(6, new RandomLookAroundGoal(this));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new HurtByTargetGoal(this));
+         this.targetSelector.addGoal(2, new Spider.SpiderTargetGoal<>(this, Player.class));
+         this.targetSelector.addGoal(3, new Spider.SpiderTargetGoal<>(this, IronGolem.class));
 @@ -82,7 +_,7 @@
      public void tick() {
          super.tick();
@@ -30,6 +58,21 @@
          }
      }
  
+@@ -90,6 +_,14 @@
+         return Monster.createMonsterAttributes().add(Attributes.MAX_HEALTH, 16.0).add(Attributes.MOVEMENT_SPEED, 0.3F);
+     }
+ 
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.spiderMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.spiderScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
+     @Override
+     public SoundEvent getAmbientSound() {
+         return SoundEvents.SPIDER_AMBIENT;
 @@ -124,7 +_,7 @@
  
      @Override

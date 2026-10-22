@@ -18,7 +18,7 @@
      public SpawnerBlock(BlockBehaviour.Properties properties) {
          super(properties);
      }
-@@ -29,13 +_,73 @@
+@@ -29,13 +_,74 @@
          return createTickerHelper(type, BlockEntityTypes.MOB_SPAWNER, level.isClientSide() ? SpawnerBlockEntity::clientTick : SpawnerBlockEntity::serverTick);
      }
  
@@ -94,6 +94,7 @@
 +    public int getExpDrop(BlockState state, net.minecraft.world.level.LevelAccessor level, BlockPos pos,
 +                          net.minecraft.world.level.block.entity.@Nullable BlockEntity blockEntity,
 +                          net.minecraft.world.entity.@Nullable Entity breaker, ItemStack tool) {
++        if (level instanceof ServerLevel serverLevel && serverLevel.purpurConfig.silkTouchEnabled && isSilkTouch(serverLevel, tool)) return 0; // Purpur - Silk touch spawners
 +        return 15 + level.getRandom().nextInt(15) + level.getRandom().nextInt(15);
      }
  }

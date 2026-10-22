@@ -40,13 +40,13 @@
      private boolean canBreakDoors = false;
      public final ConversionTracker<Zombie> drowningTracker = new ConversionTracker<>(
          this,
-@@ -110,19 +_,82 @@
+@@ -110,21 +_,86 @@
          (converted, serverLevel) -> converted.handleAttributes(
              serverLevel.getCurrentDifficultyAt(converted.blockPosition()).getSpecialMultiplier(), EntitySpawnReason.CONVERSION
          )
 -    );
 +    ).setEventReasons(org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.DROWNED, org.bukkit.event.entity.EntityTransformEvent.TransformReason.DROWNED); // Paper - Spawn reason for drownned
-+    public boolean shouldBurnInDay = true; // Paper - Add more Zombie API
++    //private boolean shouldBurnInDay = true; // Paper - Add more Zombie API // Purpur - implemented in LivingEntity - API for any mob to burn daylight
  
 -    public Zombie(EntityType<? extends Zombie> type, Level level) {
 +    public Zombie(final EntityType<? extends Zombie> type, final Level level) {
@@ -122,10 +122,14 @@
      @Override
      protected void registerGoals() {
 -        this.goalSelector.addGoal(4, new Zombie.ZombieAttackTurtleEggGoal(this, 1.0, 3));
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
 +        if (this.level().paperConfig().entities.behavior.zombiesTargetTurtleEggs) this.goalSelector.addGoal(4, new Zombie.ZombieAttackTurtleEggGoal(this, 1.0, 3)); // Paper - Add zombie targets turtle egg config
          this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, Player.class, 8.0F));
          this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
          this.addBehaviourGoals();
+     }
+ 
 @@ -135,7 +_,19 @@
          this.goalSelector.addGoal(7, new WaterAvoidingRandomStrollGoal(this, 1.0));
          this.targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers(ZombifiedPiglin.class));
@@ -281,7 +285,7 @@
          output.putBoolean("IsBaby", this.isBaby());
          output.putBoolean("CanBreakDoors", this.canBreakDoors());
          this.drowningTracker.addAdditionalSaveData(output);
-+        output.putBoolean("Paper.ShouldBurnInDay", this.shouldBurnInDay); // Paper - Add more Zombie API
++        //output.putBoolean("Paper.ShouldBurnInDay", this.shouldBurnInDay); // Paper - Add more Zombie API // Purpur - implemented in LivingEntity - API for any mob to burn daylight
      }
  
      @Override
@@ -289,7 +293,7 @@
          this.setBaby(input.getBooleanOr("IsBaby", false));
          this.setCanBreakDoors(input.getBooleanOr("CanBreakDoors", false));
          this.drowningTracker.readAdditionalSaveData(input);
-+        this.shouldBurnInDay = input.getBooleanOr("Paper.ShouldBurnInDay", true); // Paper - Add more Zombie API
++        //this.shouldBurnInDay = input.getBooleanOr("Paper.ShouldBurnInDay", true); // Paper - Add more Zombie API // Purpur - implemented in LivingEntity - API for any mob to burn daylight
      }
  
      @Override
@@ -375,3 +379,12 @@
          }
      }
  
+@@ -538,7 +_,7 @@
+     }
+ 
+     protected void randomizeReinforcementsChance() {
+-        this.getAttribute(Attributes.SPAWN_REINFORCEMENTS_CHANCE).setBaseValue(this.random.nextDouble() * 0.1F);
++        this.getAttribute(Attributes.SPAWN_REINFORCEMENTS_CHANCE).setBaseValue(this.random.nextDouble() * this.level().purpurConfig.zombieSpawnReinforcements); // Purpur - Configurable entity base attributes
+     }
+ 
+     private class ZombieAttackTurtleEggGoal extends RemoveBlockGoal {

@@ -1264,7 +1264,7 @@
              boolean var6 = false;
              if (killer instanceof WitherBoss) {
 -                if (serverLevel.getGameRules().get(GameRules.MOB_GRIEFING)) {
-+                if (net.neoforged.neoforge.event.EventHooks.canEntityGrief(serverLevel, killer)) {
++                if (org.purpurmc.purpur.PurpurWorldConfig.canEntityGrief(serverLevel, killer, serverLevel.purpurConfig.witherMobGriefingOverride)) { // Purpur - Add mobGriefing override to everything affected
                      BlockPos pos = this.blockPosition();
                      BlockState state = Blocks.WITHER_ROSE.defaultBlockState();
                      if (this.level().getBlockState(pos).isAir() && state.canSurvive(this.level(), pos)) {
@@ -1963,6 +1963,28 @@
              for (Entry<EquipmentSlot, ItemStack> entry : changedItems.entrySet()) {
                  EquipmentSlot slot = entry.getKey();
                  ItemStack current = entry.getValue();
+@@ -3042,6 +_,21 @@
+             if (Math.abs(movement.z) < 0.003) {
+                 dz = 0.0;
+             }
++            // Purpur start - Ridables
++            if (getRider() != null) {
++                getRider().resetLastActionTime();
++                if (((ServerLevel) level()).hasRidableMoveEvent && this instanceof Mob) {
++                    Location from = new Location(level().getWorld(), xo, yo, zo, this.yRotO, this.xRotO);
++                    Location to = new Location(level().getWorld(), getX(), getY(), getZ(), this.getYRot(), this.getXRot());
++                    org.purpurmc.purpur.event.entity.RidableMoveEvent event = new org.purpurmc.purpur.event.entity.RidableMoveEvent((org.bukkit.entity.Mob) this.getBukkitEntity(), (org.bukkit.entity.Player) getRider().getBukkitEntity(), from, to.clone());
++                    if (!event.callEvent()) {
++                        this.absSnapTo(from.getX(), from.getY(), from.getZ(), from.getYaw(), from.getPitch());
++                    } else if (!to.equals(event.getTo())) {
++                        this.absSnapTo(event.getTo().getX(), event.getTo().getY(), event.getTo().getZ(), event.getTo().getYaw(), event.getTo().getPitch());
++                    }
++                }
++            }
++            // Purpur end - Ridables
+         }
+ 
+         if (Math.abs(movement.y) < 0.003) {
 @@ -3066,6 +_,10 @@
          profiler.push("jump");
          if (this.jumping && this.isAffectedByFluids()) {
@@ -2005,7 +2027,7 @@
                  this.setTicksFrozen(Math.max(0, this.getTicksFrozen() - 2));
              }
  
-@@ -3140,6 +_,37 @@
+@@ -3140,9 +_,61 @@
  
          this.pushEntities();
          profiler.pop();
@@ -2043,6 +2065,30 @@
          if (this.level() instanceof ServerLevel serverLevel && this.isSensitiveToWater() && this.isInWaterOrRain()) {
              this.hurtServer(serverLevel, this.damageSources().drown(), 1.0F);
          }
++
++        // Purpur start - copied from Mob - API for any mob to burn daylight
++        if (this.isAlive()) {
++            if (this.shouldBurnInDay() && this.isSunBurnTick()) { // Paper - shouldBurnInDay API // Purpur - use shouldBurnInDay() method to handle Phantoms properly - API for any mob to burn daylight
++                EquipmentSlot slot = this.sunProtectionSlot();
++                ItemStack sunBlocker = this.getItemBySlot(slot);
++                if (!sunBlocker.isEmpty()) {
++                    if (sunBlocker.isDamageableItem()) {
++                        sunBlocker.hurtAndBreak(this.random.nextInt(2), this, slot);
++                    }
++                } else {
++                    if (getRider() == null || !this.isControllable()) // Purpur - ignore mobs which are uncontrollable or without rider - API for any mob to burn daylight
++                        this.igniteForSeconds(8.0F);
++                }
++            }
++        }
++    }
++
++    protected EquipmentSlot sunProtectionSlot() {
++        return net.minecraft.world.entity.EquipmentSlot.HEAD;
++        // Purpur end - copied from Mob - API for any mob to burn daylight
+     }
+ 
+     protected void applyInput() {
 @@ -3162,6 +_,7 @@
          this.checkFallDistanceAccumulation();
          if (!this.level().isClientSide()) {

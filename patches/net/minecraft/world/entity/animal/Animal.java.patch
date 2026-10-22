@@ -8,7 +8,7 @@
  import net.minecraft.advancements.triggers.CriteriaTriggers;
  import net.minecraft.core.BlockPos;
  import net.minecraft.core.Direction;
-@@ -38,13 +_,25 @@
+@@ -38,13 +_,23 @@
  import net.minecraft.world.level.storage.ValueOutput;
  import net.minecraft.world.phys.AABB;
  import net.minecraft.world.phys.Vec3;
@@ -29,9 +29,7 @@
 +    public int inLove = 0;
      public @Nullable EntityReference<ServerPlayer> loveCause;
 +    public @Nullable ItemStack breedItem; // CraftBukkit - Add breedItem variable
-+    public int getPurpurBreedTime() {
-+        return -1;
-+    } // Purpur - Make entity breeding times configurable
++    public abstract int getPurpurBreedTime(); // Purpur - Make entity breeding times configurable
  
      protected Animal(EntityType<? extends Animal> type, Level level) {
          super(type, level);
@@ -73,9 +71,19 @@
          if (player instanceof ServerPlayer serverPlayer) {
              this.loveCause = EntityReference.of(serverPlayer);
          }
-@@ -209,27 +_,61 @@
+@@ -207,29 +_,81 @@
+         }
+     }
  
-     public void spawnChildFromBreeding(ServerLevel level, Animal partner) {
+-    public void spawnChildFromBreeding(ServerLevel level, Animal partner) {
++    public void spawnChildFromBreeding(final ServerLevel level, final Animal partner) {
++        // Purpur start - Breedable mobs can have multiple babies
++        this.spawnChildFromBreeding(level, partner, 0);
++    }
++
++    public void spawnChildFromBreeding(final ServerLevel level, final Animal partner, int currentBabyCount) {
++        if ((currentBabyCount >= getBreedingMinOffspring()) && (!willHaveAnotherBaby() || currentBabyCount >= getBreedingMaxOffspring())) return;
++        // Purpur end - Breedable mobs can have multiple babies
          AgeableMob offspring = this.getBreedOffspring(level, partner);
 +        final net.neoforged.neoforge.event.entity.living.BabyEntitySpawnEvent event = new net.neoforged.neoforge.event.entity.living.BabyEntitySpawnEvent(this, partner, offspring);
 +        final boolean cancelled = net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event).isCanceled();
@@ -89,12 +97,22 @@
 +            return;
 +        }
          if (offspring != null) {
++            //offspring.setBaby(true); // Purpur - Add adjustable breeding cooldown to config - moved down
++            //offspring.snapTo(this.getX(), this.getY(), this.getZ(), 0.0F, 0.0F); // Purpur - Add adjustable breeding cooldown to config - moved down
++            // CraftBukkit start - Call EntityBreedEvent
++            ServerPlayer breeder = Optional.ofNullable(this.getLoveCause()).or(() -> Optional.ofNullable(partner.getLoveCause())).orElse(null);
++            // Purpur start - Add adjustable breeding cooldown to config
++            if (breeder != null && level.purpurConfig.animalBreedingCooldownSeconds > 0) {
++                if (level.hasBreedingCooldown(breeder.getUUID(), this.getClass())) {
++                    return;
++                }
++                level.addBreedingCooldown(breeder.getUUID(), this.getClass());
++            }
              offspring.setBaby(true);
              offspring.snapTo(this.getX(), this.getY(), this.getZ(), 0.0F, 0.0F);
 -            this.finalizeSpawnChildFromBreeding(level, partner, offspring);
 -            level.addFreshEntityWithPassengers(offspring);
-+            // CraftBukkit start - Call EntityBreedEvent
-+            ServerPlayer breeder = Optional.ofNullable(this.getLoveCause()).or(() -> Optional.ofNullable(partner.getLoveCause())).orElse(null);
++            // Purpur end - Add adjustable breeding cooldown to config
 +            int experience = this.getRandom().nextInt(7) + 1;
 +            org.bukkit.event.entity.EntityBreedEvent entityBreedEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callEntityBreedEvent(offspring, this, partner, breeder, this.breedItem, experience);
 +            if (entityBreedEvent.isCancelled()) {
@@ -107,6 +125,7 @@
 +            this.finalizeSpawnChildFromBreeding(level, partner, offspring, experience);
 +            level.addFreshEntityWithPassengers(offspring, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.BREEDING);
 +            // CraftBukkit end - Call EntityBreedEvent
++            this.spawnChildFromBreeding(level, partner, currentBabyCount + 1); // Purpur - Breedable mobs can have multiple babies
          }
      }
  

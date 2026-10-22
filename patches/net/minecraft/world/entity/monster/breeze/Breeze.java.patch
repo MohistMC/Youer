@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/breeze/Breeze.java
 +++ b/net/minecraft/world/entity/monster/breeze/Breeze.java
-@@ -79,6 +_,28 @@
+@@ -79,6 +_,72 @@
          this.xpReward = 10;
      }
  
@@ -26,9 +26,61 @@
 +    }
 +    // Purpur end - Configurable entity base attributes
 +
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.breezeRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.breezeRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.breezeControllable;
++    }
++
++    @Override
++    public boolean onSpacebar() {
++        if (getRider() != null && getRider().getBukkitEntity().hasPermission("allow.special.breeze")) {
++            shoot();
++        }
++        return false;
++    }
++
++    public boolean shoot() {
++        if (!(level() instanceof ServerLevel serverLevel)) return false;
++
++        org.bukkit.Location loc = ((org.bukkit.entity.LivingEntity) getBukkitEntity()).getEyeLocation();
++        org.bukkit.util.Vector target = loc.getDirection().normalize().multiply(100).add(loc.toVector());
++
++        net.minecraft.world.entity.projectile.hurtingprojectile.windcharge.BreezeWindCharge windCharge = new net.minecraft.world.entity.projectile.hurtingprojectile.windcharge.BreezeWindCharge(this, serverLevel);
++        Projectile.spawnProjectileUsingShoot(windCharge, serverLevel, net.minecraft.world.item.ItemStack.EMPTY, target.getX() - getX(), target.getY() - getFiringYPosition(), target.getZ() - getZ(), 0.7F, 5 - serverLevel.getDifficulty().getId() * 4
++        );
++        this.playSound(SoundEvents.BREEZE_SHOOT, 1.5F, 1.0F);
++        return true;
++    }
++
++    @Override
++    protected void registerGoals() {
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this));
++    }
++    // Purpur end - Ridables
++
      @Override
      public Brain<Breeze> getBrain() {
          return (Brain<Breeze>) super.getBrain();
+@@ -234,6 +_,7 @@
+     protected void customServerAiStep(ServerLevel level) {
+         ProfilerFiller profiler = Profiler.get();
+         profiler.push("breezeBrain");
++        if (getRider() == null || !this.isControllable()) // Purpur - only use brain if no rider
+         this.getBrain().tick(level, this);
+         profiler.popPush("breezeActivityUpdate");
+         BreezeAi.updateActivity(this);
 @@ -243,6 +_,10 @@
  
      @Override

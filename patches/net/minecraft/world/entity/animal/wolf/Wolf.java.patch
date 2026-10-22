@@ -49,7 +49,7 @@
      private static final float START_HEALTH = 8.0F;
      private static final float TAME_HEALTH = 40.0F;
      private static final float ARMOR_REPAIR_UNIT = 0.125F;
-@@ -125,12 +_,98 @@
+@@ -125,12 +_,116 @@
          this.setPathfindingMalus(PathType.ON_TOP_OF_POWDER_SNOW, -1.0F);
      }
  
@@ -138,9 +138,27 @@
 +    }
 +    // Purpur end - Mobs always drop experience
 +
++    // Purpur start - Breedable mobs can have multiple babies
++    @Override
++    protected boolean willHaveAnotherBaby() {
++        return (this.level().purpurConfig.wolfBreedingChance > 0.0D) && (this.level().purpurConfig.wolfBreedingChance >= this.random.nextDouble());
++    }
++
++    @Override
++    protected int getBreedingMinOffspring() {
++        return this.level().purpurConfig.wolfBreedingMinOffspring;
++    }
++
++    @Override
++    protected int getBreedingMaxOffspring() {
++        return this.level().purpurConfig.wolfBreedingMaxOffspring;
++    }
++    // Purpur end - Breedable mobs can have multiple babies
++
      @Override
      protected void registerGoals() {
          this.goalSelector.addGoal(1, new FloatGoal(this));
++        this.goalSelector.addGoal(1, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
          this.goalSelector.addGoal(1, new TamableAnimal.TamableAnimalPanicGoal(1.5, DamageTypeTags.PANIC_ENVIRONMENTAL_CAUSES));
          this.goalSelector.addGoal(2, new SitWhenOrderedToGoal(this));
          this.goalSelector.addGoal(3, new Wolf.WolfAvoidEntityGoal<>(this, Llama.class, 24.0F, 1.5, 1.5));
@@ -148,7 +166,12 @@
          this.goalSelector.addGoal(4, new LeapAtTargetGoal(this, 0.4F));
          this.goalSelector.addGoal(5, new MeleeAttackGoal(this, 1.0, true));
          this.goalSelector.addGoal(6, new FollowOwnerGoal(this, 1.0, 10.0F, 2.0F));
-@@ -143,7 +_,7 @@
+@@ -139,11 +_,12 @@
+         this.goalSelector.addGoal(9, new BegGoal(this, 8.0F));
+         this.goalSelector.addGoal(10, new LookAtPlayerGoal(this, Player.class, 8.0F));
+         this.goalSelector.addGoal(10, new RandomLookAroundGoal(this));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new OwnerHurtByTargetGoal(this));
          this.targetSelector.addGoal(2, new OwnerHurtTargetGoal(this));
          this.targetSelector.addGoal(3, new HurtByTargetGoal(this).setAlertOthers());
          this.targetSelector.addGoal(4, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false, this::isAngryAt));
@@ -254,13 +277,33 @@
                  this.setCollarColor(color);
                  itemStack.consume(1, player);
                  return InteractionResult.SUCCESS;
-@@ -507,7 +_,8 @@
+@@ -501,13 +_,28 @@
+             itemStack.consume(1, player);
+             this.tryToTame(player);
+             return InteractionResult.SUCCESS_SERVER;
++        // Purpur start - Configurable chance for wolves to spawn rabid
++        } else if (this.level().purpurConfig.wolfMilkCuresRabies && itemStack.getItem() == Items.MILK_BUCKET && this.isRabid()) {
++            if (!player.isCreative()) {
++                player.setItemInHand(hand, new ItemStack(Items.BUCKET));
++            }
++            this.setRabid(false);
++            for (int i = 0; i < 10; ++i) {
++                ((ServerLevel) level()).sendParticles(ParticleTypes.HAPPY_VILLAGER,
++                        false, true,
++                        getX() + random.nextFloat(), getY() + (random.nextFloat() * 1.5), getZ() + random.nextFloat(), 1,
++                        random.nextGaussian() * 0.05D, random.nextGaussian() * 0.05D, random.nextGaussian() * 0.05D, 0);
++            }
++            return InteractionResult.SUCCESS_SERVER;
++        // Purpur end - Configurable chance for wolves to spawn rabid
+         }
+ 
+         return super.mobInteract(player, hand);
      }
  
      private void tryToTame(Player player) {
 -        if (this.random.nextInt(3) == 0) {
 +        // CraftBukkit - added event call and isCancelled check.
-+        if (((this.level().purpurConfig.alwaysTameInCreative && player.hasInfiniteMaterials()) || this.random.nextInt(3) == 0) && (!net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, player) || !CraftEventFactory.callEntityTameEvent(this, player).isCancelled())) {
++        if (((this.level().purpurConfig.alwaysTameInCreative && player.hasInfiniteMaterials()) || this.random.nextInt(3) == 0) && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, player) && !CraftEventFactory.callEntityTameEvent(this, player).isCancelled()) { // Purpur - Config to always tame in Creative
              this.tame(player);
              this.navigation.stop();
              this.setTarget(null);

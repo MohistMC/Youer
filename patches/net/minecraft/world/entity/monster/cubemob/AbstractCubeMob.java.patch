@@ -9,6 +9,17 @@
  
      protected AbstractCubeMob(EntityType<? extends AbstractCubeMob> type, Level level) {
          super(type, level);
+@@ -58,6 +_,10 @@
+ 
+     @Override
+     protected void registerGoals() {
++        // Purpur start - Ridables
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this));
++        // Purpur end - Ridables
+         this.goalSelector.addGoal(1, new AbstractCubeMob.CubeMobFloatGoal(this));
+         this.goalSelector.addGoal(4, new AbstractCubeMob.CubeMobRandomDirectionGoal(this));
+         this.goalSelector.addGoal(5, new AbstractCubeMob.CubeMobKeepOnJumpingGoal(this));
 @@ -69,6 +_,31 @@
  
      protected abstract void addTargetingGoals();
@@ -260,6 +271,65 @@
          }
  
          @Override
+@@ -433,7 +_,7 @@
+         }
+     }
+ 
+-    protected static class CubeMobMoveControl<T extends AbstractCubeMob> extends MoveControl<T> {
++    protected static class CubeMobMoveControl<T extends AbstractCubeMob> extends org.purpurmc.purpur.controller.MoveControllerWASD<T> { // Purpur - Ridables
+         private float yRot;
+         private int jumpDelay;
+         private boolean isAggressive;
+@@ -449,21 +_,34 @@
+         }
+ 
+         public void setWantedMovement(double speedModifier) {
+-            this.speedModifier = speedModifier;
++            this.setSpeedModifier(speedModifier); // Purpur - Ridables
+             this.operation = MoveControl.Operation.MOVE_TO;
+         }
+ 
+         @Override
+         public void tick() {
+-            this.mob.setYRot(this.rotlerp(this.mob.getYRot(), this.yRot, 90.0F));
+-            this.mob.yHeadRot = this.mob.getYRot();
+-            this.mob.yBodyRot = this.mob.getYRot();
+-            if (this.operation != MoveControl.Operation.MOVE_TO) {
++            // Purpur start - Ridables
++            if (this.mob.getRider() != null && this.mob.isControllable()) {
++                purpurTick(this.mob.getRider());
++                if (this.mob.getForwardMot() != 0 || this.mob.getStrafeMot() != 0) {
++                    if (jumpDelay > 10) {
++                        jumpDelay = 6;
++                    }
++                } else {
++                    jumpDelay = 20;
++                }
++            } else {
++                this.mob.setYRot(this.rotlerp(this.mob.getYRot(), this.yRot, 90.0F));
++                this.mob.yHeadRot = this.mob.getYRot();
++                this.mob.yBodyRot = this.mob.getYRot();
++            }
++            // Purpur end - Ridables
++            if ((this.mob.getRider() == null || !this.mob.isControllable()) && this.operation != MoveControl.Operation.MOVE_TO) { // Purpur - Ridables
+                 this.mob.setZza(0.0F);
+             } else {
+                 this.operation = MoveControl.Operation.WAIT;
+                 if (this.mob.onGround()) {
+-                    this.mob.setSpeed((float)(this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)));
++                    this.mob.setSpeed((float)(this.getSpeedModifier() * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED) * (this.mob.getRider() != null && this.mob.isControllable() && (this.mob.getRider().getForwardMot() != 0 || this.mob.getRider().getStrafeMot() != 0) ? 2.0D : 1.0D))); // Purpur - Ridables
+                     if (this.jumpDelay-- <= 0) {
+                         this.jumpDelay = this.mob.getJumpDelay();
+                         if (this.isAggressive) {
+@@ -480,7 +_,7 @@
+                         this.mob.setSpeed(0.0F);
+                     }
+                 } else {
+-                    this.mob.setSpeed((float)(this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)));
++                    this.mob.setSpeed((float)(this.getSpeedModifier() * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED) * (this.mob.getRider() != null && this.mob.isControllable() && (this.mob.getRider().getForwardMot() != 0 || this.mob.getRider().getStrafeMot() != 0) ? 2.0D : 1.0D))); // Purpur - Ridables
+                 }
+             }
+         }
 @@ -498,7 +_,7 @@
  
          @Override

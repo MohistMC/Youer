@@ -31,6 +31,18 @@
          this.destroyBlock(level, pos);
          level.playSound(null, pos, SoundEvents.FROGSPAWN_HATCH, SoundSource.BLOCKS, 1.0F, 1.0F);
          this.spawnTadpoles(level, pos, random);
+@@ -107,9 +_,10 @@
+     }
+ 
+     private void spawnTadpoles(ServerLevel level, BlockPos pos, RandomSource random) {
+-        int tadpoleAmount = random.nextInt(2, 6);
++        int tadpoleAmount = random.nextInt(level.purpurConfig.frogBreedingMinOffspring, level.purpurConfig.frogBreedingMaxOffspring + 1); // Purpur - Breedable mobs can have multiple babies
+ 
+         for (int i = 1; i <= tadpoleAmount; i++) {
++            if ((level.purpurConfig.frogBreedingChance <= 0.0D) || (level.purpurConfig.frogBreedingChance < random.nextDouble())) return; // Purpur - Breedable mobs can have multiple babies
+             Tadpole tadpole = EntityTypes.TADPOLE.create(level, EntitySpawnReason.BREEDING);
+             if (tadpole != null) {
+                 double xPos = pos.getX() + this.getRandomTadpolePositionOffset(random);
 @@ -117,7 +_,7 @@
                  int yRot = random.nextInt(1, 361);
                  tadpole.snapTo(xPos, pos.getY() - 0.5, zPos, yRot, 0.0F);

@@ -8,7 +8,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class Sheep extends Animal implements Shearable {
-@@ -67,10 +_,39 @@
+@@ -67,14 +_,78 @@
      private int eatAnimationTick;
      private EatBlockGoal eatBlockGoal;
  
@@ -45,9 +45,48 @@
 +    }
 +    // Purpur end - Mobs always drop experience
 +
++    // Purpur start - Breedable mobs can have multiple babies
++    @Override
++    protected boolean willHaveAnotherBaby() {
++        return (this.level().purpurConfig.sheepBreedingChance > 0.0D) && (this.level().purpurConfig.sheepBreedingChance >= this.random.nextDouble());
++    }
++
++    @Override
++    protected int getBreedingMinOffspring() {
++        return this.level().purpurConfig.sheepBreedingMinOffspring;
++    }
++
++    @Override
++    protected int getBreedingMaxOffspring() {
++        return this.level().purpurConfig.sheepBreedingMaxOffspring;
++    }
++    // Purpur end - Breedable mobs can have multiple babies
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.sheepRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.sheepRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.sheepControllable;
++    }
++    // Purpur end - Ridables
++
      @Override
      protected void registerGoals() {
          this.eatBlockGoal = new EatBlockGoal(this);
+         this.goalSelector.addGoal(0, new FloatGoal(this));
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(1, new PanicGoal(this, 1.25));
+         this.goalSelector.addGoal(2, new BreedGoal(this, 1.0));
+         this.goalSelector.addGoal(3, new TemptGoal(this, 1.1, i -> i.is(ItemTags.SHEEP_FOOD), false));
 @@ -146,9 +_,17 @@
      @Override
      public InteractionResult mobInteract(Player player, InteractionHand hand) {

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/feline/Ocelot.java
 +++ b/net/minecraft/world/entity/animal/feline/Ocelot.java
-@@ -68,11 +_,57 @@
+@@ -68,11 +_,74 @@
      private Ocelot.@Nullable OcelotAvoidEntityGoal<Player> ocelotAvoidPlayersGoal;
      private Ocelot.@Nullable OcelotTemptGoal temptGoal;
  
@@ -18,6 +18,23 @@
 +    }
 +    // Purpur end - Mobs always drop experience
 +
++    // Purpur start - Breedable mobs can have multiple babies
++    @Override
++    protected boolean willHaveAnotherBaby() {
++        return (this.level().purpurConfig.ocelotBreedingChance > 0.0D) && (this.level().purpurConfig.ocelotBreedingChance >= this.random.nextDouble());
++    }
++
++    @Override
++    protected int getBreedingMinOffspring() {
++        return this.level().purpurConfig.ocelotBreedingMinOffspring;
++    }
++
++    @Override
++    protected int getBreedingMaxOffspring() {
++        return this.level().purpurConfig.ocelotBreedingMaxOffspring;
++    }
++    // Purpur end - Breedable mobs can have multiple babies
++
      public Ocelot(EntityType<? extends Ocelot> type, Level level) {
          super(type, level);
          this.reassessTrustingGoals();
@@ -29,6 +46,14 @@
 +        return this.level().purpurConfig.ocelotTakeDamageFromWater;
 +    }
 +    // Purpur end - Toggle for water sensitive mob damage
++
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.ocelotMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.ocelotScale);
++    }
++    // Purpur end - Configurable entity base attributes
 +
 +    // Purpur start - Ridables
 +    @Override
@@ -46,14 +71,6 @@
 +        return level().purpurConfig.ocelotControllable;
 +    }
 +    // Purpur end - Ridables
-+
-+    // Purpur start - Configurable entity base attributes
-+    @Override
-+    public void initAttributes() {
-+        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.ocelotMaxHealth);
-+        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.ocelotScale);
-+    }
-+    // Purpur end - Configurable entity base attributes
 +
      public boolean isTrusting() {
          return this.entityData.get(DATA_TRUSTING);
@@ -99,4 +116,13 @@
 +    public static boolean checkOcelotSpawnRules(EntityType<? extends Ocelot> type, LevelAccessor level, EntitySpawnReason spawnReason, BlockPos pos, RandomSource random) {
          return random.nextInt(3) != 0;
      }
+ 
+@@ -243,7 +_,7 @@
+     public boolean checkSpawnObstruction(LevelReader level) {
+         if (level.isUnobstructed(this) && !level.containsAnyLiquid(this.getBoundingBox())) {
+             BlockPos pos = this.blockPosition();
+-            if (pos.getY() < level.getSeaLevel()) {
++            if (!level().purpurConfig.ocelotSpawnUnderSeaLevel && pos.getY() < level.getSeaLevel()) { // Purpur - Option Ocelot Spawn Under Sea Level
+                 return false;
+             }
  

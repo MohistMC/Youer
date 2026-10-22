@@ -8,7 +8,7 @@
 -                if (getServerLevel(this.level).getGameRules().get(GameRules.MOB_GRIEFING)) {
 +            final BlockState blockState = this.level.getBlockState(pos); // Paper - fix wrong block state
 +            if (IS_EDIBLE.test(blockState)) { // Paper - fix wrong block state
-+                if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.mob, pos, blockState.getFluidState().createLegacyBlock(), !net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(this.level), this.mob))) { // CraftBukkit // Paper - fix wrong block state
++                if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.mob, pos, blockState.getFluidState().createLegacyBlock(), !org.purpurmc.purpur.PurpurWorldConfig.canEntityGrief(getServerLevel(this.level), this.mob, getServerLevel(this.level).purpurConfig.sheepMobGriefingOverride))) { // CraftBukkit // Paper - fix wrong block state // Purpur - Add mobGriefing override to everything affected
                      this.level.destroyBlock(pos, false);
                  }
  
@@ -17,7 +17,7 @@
                  BlockPos below = pos.below();
                  if (this.level.getBlockState(below).is(Blocks.GRASS_BLOCK)) {
 -                    if (getServerLevel(this.level).getGameRules().get(GameRules.MOB_GRIEFING)) {
-+                    if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.mob, below, Blocks.AIR.defaultBlockState(), !net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(this.level), this.mob))) { // CraftBukkit
++                    if (org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.mob, below, Blocks.AIR.defaultBlockState(), !org.purpurmc.purpur.PurpurWorldConfig.canEntityGrief(getServerLevel(this.level), this.mob, getServerLevel(this.level).purpurConfig.sheepMobGriefingOverride))) { // CraftBukkit // Purpur - Add mobGriefing override to everything affected
                          this.level.levelEvent(2001, below, Block.getId(Blocks.GRASS_BLOCK.defaultBlockState()));
                          this.level.setBlock(below, Blocks.DIRT.defaultBlockState(), 2);
                      }

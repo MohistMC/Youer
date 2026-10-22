@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/feline/Cat.java
 +++ b/net/minecraft/world/entity/animal/feline/Cat.java
-@@ -96,15 +_,70 @@
+@@ -96,15 +_,87 @@
      private float relaxStateOneAmount;
      private float relaxStateOneAmountO;
  
@@ -17,6 +17,23 @@
 +        return this.level().purpurConfig.catAlwaysDropExp;
 +    }
 +    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Breedable mobs can have multiple babies
++    @Override
++    protected boolean willHaveAnotherBaby() {
++        return (this.level().purpurConfig.catBreedingChance > 0.0D) && (this.level().purpurConfig.catBreedingChance >= this.random.nextDouble());
++    }
++
++    @Override
++    protected int getBreedingMinOffspring() {
++        return this.level().purpurConfig.catBreedingMinOffspring;
++    }
++
++    @Override
++    protected int getBreedingMaxOffspring() {
++        return this.level().purpurConfig.catBreedingMaxOffspring;
++    }
++    // Purpur end - Breedable mobs can have multiple babies
 +
      public Cat(EntityType<? extends Cat> type, Level level) {
          super(type, level);
@@ -79,6 +96,21 @@
          this.targetSelector.addGoal(1, new NonTameRandomTargetGoal<>(this, Rabbit.class, false, null));
          this.targetSelector.addGoal(1, new NonTameRandomTargetGoal<>(this, Turtle.class, false, Turtle.BABY_ON_LAND_SELECTOR));
      }
+@@ -396,6 +_,14 @@
+         }
+     }
+ 
++    // Purpur start - Configurable default collar color
++    @Override
++    public void tame(Player player) {
++        setCollarColor(level().purpurConfig.catDefaultCollarColor);
++        super.tame(player);
++    }
++    // Purpur end - Configurable default collar color
++
+     @Override
+     public @Nullable SpawnGroupData finalizeSpawn(
+         ServerLevelAccessor level, DifficultyInstance difficulty, EntitySpawnReason spawnReason, @Nullable SpawnGroupData groupData
 @@ -408,12 +_,18 @@
  
      @Override
@@ -103,7 +135,7 @@
  
      private void tryToTame(Player player) {
 -        if (this.random.nextInt(3) == 0) {
-+        if (this.random.nextInt(3) == 0 && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, player) && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTameEvent(this, player).isCancelled()) { // CraftBukkit
++        if (((this.level().purpurConfig.alwaysTameInCreative && player.hasInfiniteMaterials()) || this.random.nextInt(3) == 0) && !net.neoforged.neoforge.event.EventHooks.onAnimalTame(this, player) && !org.bukkit.craftbukkit.event.CraftEventFactory.callEntityTameEvent(this, player).isCancelled()) { // CraftBukkit // Purpur - Config to always tame in Creative
              this.tame(player);
              this.setOrderedToSit(true);
              this.level().broadcastEntityEvent(this, (byte)7);

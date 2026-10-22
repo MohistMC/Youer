@@ -13,12 +13,9 @@
  public class TurtleEggBlock extends Block {
      public static final IntegerProperty HATCH = BlockStateProperties.HATCH;
      public static final IntegerProperty EGGS = BlockStateProperties.EGGS;
-@@ -67,8 +_,21 @@
-     private void destroyEgg(Level level, BlockState state, BlockPos pos, Entity entity, int randomness) {
-         if (state.is(Blocks.TURTLE_EGG)
+@@ -69,6 +_,19 @@
              && level instanceof ServerLevel serverLevel
--            && this.canDestroyEgg(serverLevel, pos, entity)
-+            && this.canDestroyEgg(serverLevel, entity)
+             && this.canDestroyEgg(serverLevel, pos, entity)
              && level.getRandom().nextInt(randomness) == 0) {
 +            // CraftBukkit start - Step on eggs
 +            org.bukkit.event.Cancellable cancellable;
@@ -36,7 +33,7 @@
              this.decreaseEggs(serverLevel, pos, state);
          }
      }
-@@ -90,10 +_,20 @@
+@@ -90,22 +_,42 @@
          if (this.shouldUpdateHatchLevel(level, pos) && onSand(level, pos)) {
              int hatch = state.getValue(HATCH);
              if (hatch < 2) {
@@ -58,12 +55,32 @@
                  level.playSound(null, pos, SoundEvents.TURTLE_EGG_HATCH, SoundSource.BLOCKS, 0.7F, 0.9F + random.nextFloat() * 0.2F);
                  level.removeBlock(pos, false);
                  level.gameEvent(GameEvent.BLOCK_DESTROY, pos, GameEvent.Context.of(state));
-@@ -105,7 +_,7 @@
-                         turtle.setAge(-24000);
-                         turtle.setHomePos(pos);
-                         turtle.snapTo(pos.getX() + 0.3 + i * 0.2, pos.getY(), pos.getZ() + 0.3, 0.0F, 0.0F);
+ 
+                 for (int i = 0; i < state.getValue(EGGS); i++) {
+-                    level.levelEvent(2001, pos, Block.getId(state));
+-                    Turtle turtle = EntityTypes.TURTLE.create(level, EntitySpawnReason.BREEDING);
+-                    if (turtle != null) {
+-                        turtle.setAge(-24000);
+-                        turtle.setHomePos(pos);
+-                        turtle.snapTo(pos.getX() + 0.3 + i * 0.2, pos.getY(), pos.getZ() + 0.3, 0.0F, 0.0F);
 -                        level.addFreshEntity(turtle);
-+                        level.addFreshEntity(turtle, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.EGG); // CraftBukkit
++                    // Purpur start - Breedable mobs can have multiple babies
++                    int currentBabyCount = 0;
++                    while ((currentBabyCount < level.purpurConfig.turtleBreedingMinOffspring) ||
++                        ((level.purpurConfig.turtleBreedingChance > 0.0D && level.purpurConfig.turtleBreedingChance >= random.nextDouble()) &&
++                            currentBabyCount < level.purpurConfig.turtleBreedingMaxOffspring)) {
++                    // Purpur end - Breedable mobs can have multiple babies
++                        level.levelEvent(2001, pos, Block.getId(state));
++                        Turtle turtle = EntityTypes.TURTLE.create(level, EntitySpawnReason.BREEDING);
++                        if (turtle != null) {
++                            turtle.setAge(-24000);
++                            turtle.setHomePos(pos);
++                            turtle.snapTo(pos.getX() + 0.3 + i * 0.2, pos.getY(), pos.getZ() + 0.3, 0.0F, 0.0F);
++                            level.addFreshEntity(turtle, org.bukkit.event.entity.CreatureSpawnEvent.SpawnReason.EGG); // CraftBukkit
++                            // Purpur start - Breedable mobs can have multiple babies
++                            currentBabyCount++;
++                            // Purpur end - Breedable mobs can have multiple babies
++                        }
                      }
                  }
              }
@@ -86,13 +103,8 @@
          this.decreaseEggs(level, pos, state);
      }
  
-@@ -163,13 +_,33 @@
-         builder.add(HATCH, EGGS);
-     }
- 
--    private boolean canDestroyEgg(ServerLevel level, BlockPos pos, Entity entity) {
-+    private boolean canDestroyEgg(ServerLevel level, Entity entity) {
-+        // Purpur start - Add turtle egg block options
+@@ -166,10 +_,31 @@
+     private boolean canDestroyEgg(ServerLevel level, BlockPos pos, Entity entity) {
          if (entity instanceof Turtle || entity instanceof Bat) {
              return false;
 -        } else if (entity instanceof Player player) {
@@ -100,7 +112,9 @@
 -        } else {
 -            return entity instanceof LivingEntity ? level.getGameRules().get(GameRules.MOB_GRIEFING) : false;
 -        }
+-    }
 +        }
++        // Purpur start - Add turtle egg block options
 +        if (level.purpurConfig.turtleEggsBreakFromExpOrbs && entity instanceof net.minecraft.world.entity.ExperienceOrb) {
 +            return true;
 +        }
@@ -110,19 +124,20 @@
 +        if (level.purpurConfig.turtleEggsBreakFromMinecarts && entity instanceof net.minecraft.world.entity.vehicle.minecart.AbstractMinecart) {
 +            return true;
 +        }
-+        if (!(entity instanceof LivingEntity)) {
-+            return false;
-+        }
-+        // Purpur start - Option to disable turtle egg trampling with feather falling
++        // Purpur end - Add turtle egg block options
++        return entity instanceof Player player
++            ? !level.getServer().isUnderSpawnProtection(level, pos, player) || !playerHasFeatherFallingBoots(level, entity) // Purpur - Option to disable turtle egg trampling with feather falling
++            : entity instanceof LivingEntity && org.purpurmc.purpur.PurpurWorldConfig.canEntityGrief(level, entity, level.purpurConfig.turtleEggsMobGriefingOverride); // Purpur - Add mobGriefing override to everything affected
++    }
++
++    // Purpur start - Option to disable turtle egg trampling with feather falling
++    private static boolean playerHasFeatherFallingBoots(net.minecraft.server.level.ServerLevel level, net.minecraft.world.entity.Entity entity) {
 +        if (level.purpurConfig.turtleEggsTramplingFeatherFalling) {
 +            net.minecraft.world.item.ItemStack bootsItem = ((net.minecraft.world.entity.LivingEntity) entity).getItemBySlot(net.minecraft.world.entity.EquipmentSlot.FEET);
 +
 +            return bootsItem != net.minecraft.world.item.ItemStack.EMPTY || net.minecraft.world.item.enchantment.EnchantmentHelper.getItemEnchantmentLevel(net.minecraft.world.item.enchantment.Enchantments.FEATHER_FALLING, bootsItem) < (int) entity.fallDistance;
 +        }
-+        // Purpur end - Option to disable turtle egg trampling with feather falling
-+        if (entity instanceof Player) return true;
-+
-+        return net.neoforged.neoforge.event.EventHooks.canEntityGrief(level, entity); // Purpur - Add mobGriefing override to everything affected
-+        // Purpur end - Add turtle egg block options
-     }
++        return false;
++    }
++    // Purpur end - Option to disable turtle egg trampling with feather falling
  }

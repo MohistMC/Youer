@@ -23,9 +23,7 @@ public final class CommandPermissions {
         DefaultPermissions.registerPermission(CommandPermissions.PREFIX + "kick", "Allows the user to kick players", PermissionDefault.OP, commands);
         DefaultPermissions.registerPermission(CommandPermissions.PREFIX + "stop", "Allows the user to stop the server", PermissionDefault.OP, commands);
         DefaultPermissions.registerPermission(CommandPermissions.PREFIX + "list", "Allows the user to list all online players", PermissionDefault.OP, commands);
-        DefaultPermissions.registerPermission(CommandPermissions.PREFIX + "gamemode", "Allows the user to change the gamemode of another player", PermissionDefault.OP, commands);
-
-		// Purpur start - Gamemode extra permissions
+        // Purpur start - Gamemode extra permissions
         Permission gamemodeVanilla = DefaultPermissions.registerPermission(PREFIX + "gamemode", "Allows the user to change the gamemode", PermissionDefault.OP, commands);
         for (net.minecraft.world.level.GameType gametype : net.minecraft.world.level.GameType.values()) {
             Permission gamemodeSelf = DefaultPermissions.registerPermission(PREFIX + "gamemode." + gametype.getName(), "Allows the user to set " + gametype.getName() + " gamemode for self", PermissionDefault.OP);

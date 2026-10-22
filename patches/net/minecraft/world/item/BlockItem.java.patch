@@ -26,7 +26,7 @@
          if (placementState == null) {
              return InteractionResult.FAIL;
          }
-@@ -84,27 +_,60 @@
+@@ -84,27 +_,63 @@
          Player player = updatedPlaceContext.getPlayer();
          ItemStack itemStack = updatedPlaceContext.getItemInHand();
          BlockState placedState = level.getBlockState(pos);
@@ -43,6 +43,7 @@
 +                updateBlockEntityComponents(level, pos, itemStack);
 +            } catch (Exception ex) {
 +                ((org.bukkit.craftbukkit.block.CraftBlockState) previousState).revertPlace(false);
++                placedState.getBlock().forgetPlacer(); // Purpur - Store placer on Block when placed
 +                if (player instanceof ServerPlayer serverPlayer) {
 +                    net.minecraft.server.MinecraftServer.LOGGER.warn("Player {} tried placing invalid block", player.getScoreboardName(), ex);
 +                    serverPlayer.connection.disconnect(net.minecraft.network.chat.Component.literal("Packet processing error"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_ACTION);
@@ -52,11 +53,13 @@
 +            }
 +            // Paper end - Reset placed block on exception
              placedState.getBlock().setPlacedBy(level, pos, placedState, player, itemStack);
++            placedState.getBlock().forgetPlacer(); // Purpur - Store placer on Block when placed
 +            // CraftBukkit start - special case for handling block placement with water lilies, frog spawn and snow buckets
 +            if (player != null && (this instanceof PlaceOnWaterBlockItem || this instanceof SolidBucketItem)) {
 +                org.bukkit.event.block.BlockPlaceEvent placeEvent = org.bukkit.craftbukkit.event.CraftEventFactory.callBlockPlaceEvent((net.minecraft.server.level.ServerLevel) level, player, updatedPlaceContext.getHand(), previousState, pos);
 +                if (placeEvent.isCancelled() || !placeEvent.canBuild()) {
 +                    ((org.bukkit.craftbukkit.block.CraftBlockState) previousState).revertPlace(false);
++                    placedState.getBlock().forgetPlacer(); // Purpur - Store placer on Block when placed
 +
 +                    player.containerMenu.forceHeldSlot(updatedPlaceContext.getHand());
 +                    return InteractionResult.FAIL;

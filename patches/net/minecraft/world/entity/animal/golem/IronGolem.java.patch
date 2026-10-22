@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/golem/IronGolem.java
 +++ b/net/minecraft/world/entity/animal/golem/IronGolem.java
-@@ -59,13 +_,64 @@
+@@ -59,13 +_,66 @@
      private static final UniformInt PERSISTENT_ANGER_TIME = TimeUtil.rangeOfSeconds(20, 39);
      private long persistentAngerEndTime;
      private @Nullable EntityReference<LivingEntity> persistentAngerTarget;
@@ -62,9 +62,19 @@
      @Override
      protected void registerGoals() {
 +        if (this.level().purpurConfig.ironGolemPoppyCalm) this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.ReceiveFlower(this)); // Purpur - Iron golem calm anger options
++        if (level().purpurConfig.ironGolemCanSwim) this.goalSelector.addGoal(0, new net.minecraft.world.entity.ai.goal.FloatGoal(this)); // Purpur - Ridables
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
          this.goalSelector.addGoal(1, new MeleeAttackGoal(this, 1.0, true));
          this.goalSelector.addGoal(2, new MoveTowardsTargetGoal(this, 0.9, 32.0F));
          this.goalSelector.addGoal(2, new MoveBackToVillageGoal(this, 0.6, false));
+@@ -73,6 +_,7 @@
+         this.goalSelector.addGoal(5, new OfferFlowerGoal(this));
+         this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 6.0F));
+         this.goalSelector.addGoal(8, new RandomLookAroundGoal(this));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new DefendVillageTargetGoal(this));
+         this.targetSelector.addGoal(2, new HurtByTargetGoal(this));
+         this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false, this::isAngryAt));
 @@ -107,7 +_,7 @@
      @Override
      protected void doPush(Entity entity) {
@@ -90,7 +100,21 @@
          this.readPersistentAngerSaveData(this.level(), input);
      }
  
-@@ -274,6 +_,7 @@
+@@ -262,18 +_,19 @@
+     protected InteractionResult mobInteract(Player player, InteractionHand hand) {
+         ItemStack itemStack = player.getItemInHand(hand);
+         if (!itemStack.is(Items.IRON_INGOT)) {
+-            return InteractionResult.PASS;
++            return tryRide(player, hand); // Purpur - Ridables
+         }
+ 
+         float healthBefore = this.getHealth();
+         this.heal(25.0F);
+         if (this.getHealth() == healthBefore) {
+-            return InteractionResult.PASS;
++            return tryRide(player, hand); // Purpur - Ridables
+         }
+ 
          float pitch = 1.0F + (this.random.nextFloat() - this.random.nextFloat()) * 0.2F;
          this.playSound(SoundEvents.IRON_GOLEM_REPAIR, 1.0F, pitch);
          itemStack.consume(1, player);

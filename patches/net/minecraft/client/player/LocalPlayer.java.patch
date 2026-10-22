@@ -42,17 +42,25 @@
      }
  
      public Portal.Transition getActivePortalLocalTransition() {
-@@ -999,6 +_,13 @@
+@@ -1002,6 +_,13 @@
+     }
  
-     public float getSpinningEffectAngle(float partialTick) {
-         return this.spinningEffectTime + partialTick * this.spinningEffectSpeed;
-+    }
-+
-+    @Override
+     @Override
 +    public boolean canGlide() {
 +        // Neo: Override canGlide for the client to check if it is connected to a neo forge server, and if not then fall back to checking the worn items.
 +        // This way when Player#tryToStartFallFlying is called, on the client, it is able to check for the vanilla components on equipped items
 +        return !getAbilities().flying && canGlide(connection.getConnectionType().isNeoForge());
++    }
++
++    @Override
+     public void rideTick() {
+         super.rideTick();
+         this.handsBusy = false;
+@@ -1333,4 +_,7 @@
+     public List<Identifier> getActivePostEffects() {
+         return this.postEffects;
      }
- 
-     @Override
++
++    @Override
++    public void resetLastActionTime() {} // Purpur - Ridables
+ }

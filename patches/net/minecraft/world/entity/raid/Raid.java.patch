@@ -131,7 +131,13 @@
                      this.stop();
                      return;
                  }
-@@ -533,7 +_,7 @@
+@@ -528,12 +_,13 @@
+         boolean isBonusGroup = this.shouldSpawnBonusGroup();
+ 
+         for (Raid.RaiderType raiderType : Raid.RaiderType.VALUES) {
++            if (!level.purpurConfig.illusionerSpawnInRaids && raiderType == Raid.RaiderType.ILLUSIONER) continue; // Purpur - Ability for Illusioners to spawn during raids
+             int numSpawns = this.getDefaultNumSpawns(raiderType, groupNumber, isBonusGroup)
+                 + this.getPotentialBonusSpawns(raiderType, this.random, groupNumber, difficulty, isBonusGroup);
              int ravagersSpawned = 0;
  
              for (int i = 0; i < numSpawns; i++) {
@@ -140,7 +146,7 @@
                  if (raider == null) {
                      break;
                  }
-@@ -545,7 +_,7 @@
+@@ -545,13 +_,13 @@
                  }
  
                  this.joinRaid(level, groupNumber, raider, pos, false);
@@ -149,6 +155,13 @@
                      Raider ridingRaider = null;
                      if (groupNumber == this.getNumGroups(Difficulty.NORMAL)) {
                          ridingRaider = EntityTypes.PILLAGER.create(level, EntitySpawnReason.EVENT);
+                     } else if (groupNumber >= this.getNumGroups(Difficulty.HARD)) {
+                         if (ravagersSpawned == 0) {
+-                            ridingRaider = EntityTypes.EVOKER.create(level, EntitySpawnReason.EVENT);
++                            ridingRaider = (level.purpurConfig.illusionerSpawnInRaids && random.nextBoolean() ? EntityTypes.ILLUSIONER : EntityTypes.EVOKER).create(level, EntitySpawnReason.EVENT); // Purpur - Ability for Illusioners to spawn during raids
+                         } else {
+                             ridingRaider = EntityTypes.VINDICATOR.create(level, EntitySpawnReason.EVENT);
+                         }
 @@ -571,6 +_,7 @@
          this.groupsSpawned++;
          this.updateBossbar();
@@ -166,6 +179,14 @@
              }
          }
      }
+@@ -755,6 +_,7 @@
+         int bonusSpawns;
+         switch (type) {
+             case VINDICATOR:
++            case ILLUSIONER: // Purpur - Ability for Illusioners to spawn during raids
+             case PILLAGER:
+                 if (isEasy) {
+                     bonusSpawns = random.nextInt(2);
 @@ -811,6 +_,12 @@
          this.heroesOfTheVillage.add(killer.getUUID());
      }
@@ -179,7 +200,12 @@
      private enum RaidStatus implements StringRepresentable {
          ONGOING("ongoing"),
          VICTORY("victory"),
-@@ -838,12 +_,59 @@
+@@ -834,16 +_,65 @@
+         VINDICATOR(EntityTypes.VINDICATOR, new int[]{0, 0, 2, 0, 1, 4, 2, 5}),
+         EVOKER(EntityTypes.EVOKER, new int[]{0, 0, 0, 0, 0, 1, 1, 2}),
+         PILLAGER(EntityTypes.PILLAGER, new int[]{0, 4, 3, 3, 4, 4, 4, 2}),
++        ILLUSIONER(EntityTypes.ILLUSIONER, new int[]{0, 0, 1, 0, 1, 1, 0, 1}), // Purpur - Ability for Illusioners to spawn during raids
+         WITCH(EntityTypes.WITCH, new int[]{0, 0, 0, 0, 3, 0, 0, 1}),
          RAVAGER(EntityTypes.RAVAGER, new int[]{0, 0, 0, 1, 0, 1, 0, 2});
  
          private static final Raid.RaiderType[] VALUES = values();
@@ -232,6 +258,7 @@
 +            return switch (this) {
 +                case PILLAGER -> extraWaves / 2;
 +                case VINDICATOR -> extraWaves / 3;
++                case ILLUSIONER -> extraWaves / 3; // Purpur - Ability for Illusioners to spawn during raids
 +                case EVOKER -> extraWaves / 4;
 +                case WITCH -> extraWaves / 5;
 +                case RAVAGER -> extraWaves / 6;

@@ -3817,4 +3817,27 @@ public class PurpurWorldConfig {
     private void leavesSettings() {
         leavesInstantDecay = getBoolean("blocks.leaves.instant-decay", leavesInstantDecay);
     }
+
+    // Purpur start - Add mobGriefing override to everything affected
+    public static boolean canEntityGrief(net.minecraft.server.level.ServerLevel level, net.minecraft.world.entity.@org.jspecify.annotations.Nullable Entity entity, @org.jspecify.annotations.Nullable Boolean override) {
+        if (override == null) {
+            return net.neoforged.neoforge.event.EventHooks.canEntityGrief(level, entity);
+        }
+        if (entity == null) {
+            return override;
+        }
+        net.neoforged.neoforge.event.entity.EntityMobGriefingEvent event = new net.neoforged.neoforge.event.entity.EntityMobGriefingEvent(level, entity);
+        event.setCanGrief(override);
+        net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(event);
+        return event.canGrief();
+    }
+
+    public static boolean canEntityDestroy(net.minecraft.server.level.ServerLevel level, net.minecraft.core.BlockPos pos, net.minecraft.world.entity.LivingEntity entity, @org.jspecify.annotations.Nullable Boolean override) {
+        if (!level.isLoaded(pos)) {
+            return false;
+        }
+        net.minecraft.world.level.block.state.BlockState state = level.getBlockState(pos);
+        return canEntityGrief(level, entity, override) && state.canEntityDestroy(level, pos, entity) && net.neoforged.neoforge.event.EventHooks.onEntityDestroyBlock(entity, pos, state);
+    }
+    // Purpur end - Add mobGriefing override to everything affected
 }

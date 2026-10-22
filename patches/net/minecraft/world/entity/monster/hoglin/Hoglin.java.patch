@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/hoglin/Hoglin.java
 +++ b/net/minecraft/world/entity/monster/hoglin/Hoglin.java
-@@ -76,11 +_,32 @@
+@@ -76,11 +_,66 @@
          var0 -> HoglinAi.getActivities()
      );
  
@@ -30,10 +30,65 @@
 +    }
 +    // Purpur end - Mobs always drop experience
 +
++    // Purpur start - Breedable mobs can have multiple babies
++    @Override
++    protected boolean willHaveAnotherBaby() {
++        return (this.level().purpurConfig.hoglinBreedingChance > 0.0D) && (this.level().purpurConfig.hoglinBreedingChance >= this.random.nextDouble());
++    }
++
++    @Override
++    protected int getBreedingMinOffspring() {
++        return this.level().purpurConfig.hoglinBreedingMinOffspring;
++    }
++
++    @Override
++    protected int getBreedingMaxOffspring() {
++        return this.level().purpurConfig.hoglinBreedingMaxOffspring;
++    }
++    // Purpur end - Breedable mobs can have multiple babies
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.hoglinRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.hoglinRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.hoglinControllable;
++    }
++    // Purpur end - Ridables
++
      @VisibleForTesting
      public void setTimeInOverworld(int timeInOverworld) {
          this.timeInOverworld = timeInOverworld;
-@@ -149,7 +_,7 @@
+@@ -100,6 +_,14 @@
+             .add(Attributes.ATTACK_DAMAGE, 6.0);
+     }
+ 
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.hoglinMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.hoglinScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
+     @Override
+     public boolean doHurtTarget(ServerLevel level, Entity target) {
+         if (target instanceof LivingEntity livingEntity) {
+@@ -144,12 +_,13 @@
+     protected void customServerAiStep(ServerLevel level) {
+         ProfilerFiller profiler = Profiler.get();
+         profiler.push("hoglinBrain");
++        if (getRider() == null || !this.isControllable()) // Purpur - only use brain if no rider
+         this.getBrain().tick(level, this);
+         profiler.pop();
          HoglinAi.updateActivity(this);
          if (this.isConverting()) {
              this.timeInOverworld++;

@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/item/WindChargeItem.java
 +++ b/net/minecraft/world/item/WindChargeItem.java
-@@ -27,7 +_,7 @@
+@@ -27,15 +_,31 @@
      public InteractionResult use(Level level, Player player, InteractionHand hand) {
          ItemStack stack = player.getItemInHand(hand);
          if (level instanceof ServerLevel serverLevel) {
@@ -9,9 +9,11 @@
                  (source, l, itemStack) -> new WindCharge(player, level, player.position().x(), player.getEyePosition().y(), player.position().z()),
                  serverLevel,
                  stack,
-@@ -36,6 +_,22 @@
+                 player,
+                 0.0F,
                  1.5F,
-                 1.0F
+-                1.0F
++                (float) serverLevel.purpurConfig.windChargeProjectileOffset // Purpur - Projectile offset config
              );
 +            // Paper start - PlayerLaunchProjectileEvent
 +            com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent event = new com.destroystokyo.paper.event.player.PlayerLaunchProjectileEvent((org.bukkit.entity.Player) player.getBukkitEntity(), org.bukkit.craftbukkit.inventory.CraftItemStack.asBukkitMirror(stack), (org.bukkit.entity.Projectile) windCharge.projectile().getBukkitEntity());

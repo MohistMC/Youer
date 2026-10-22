@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/monster/spider/CaveSpider.java
 +++ b/net/minecraft/world/entity/monster/spider/CaveSpider.java
-@@ -22,6 +_,20 @@
+@@ -22,10 +_,49 @@
          super(type, level);
      }
  
@@ -21,6 +21,35 @@
      public static AttributeSupplier.Builder createCaveSpider() {
          return Spider.createAttributes().add(Attributes.MAX_HEALTH, 12.0);
      }
+ 
++    // Purpur start - Configurable entity base attributes
++    @Override
++    public void initAttributes() {
++        this.getAttribute(Attributes.MAX_HEALTH).setBaseValue(this.level().purpurConfig.caveSpiderMaxHealth);
++        this.getAttribute(Attributes.SCALE).setBaseValue(this.level().purpurConfig.caveSpiderScale);
++    }
++    // Purpur end - Configurable entity base attributes
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.caveSpiderRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.caveSpiderRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.caveSpiderControllable;
++    }
++    // Purpur end - Ridables
++
+     @Override
+     public boolean doHurtTarget(ServerLevel level, Entity target) {
+         if (super.doHurtTarget(level, target)) {
 @@ -38,7 +_,7 @@
                  }
  

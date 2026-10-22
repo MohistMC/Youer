@@ -215,7 +215,7 @@
      protected boolean firstTick = true;
      protected final SynchedEntityData entityData;
      protected static final EntityDataAccessor<Byte> DATA_SHARED_FLAGS_ID = SynchedEntityData.defineId(Entity.class, EntityDataSerializers.BYTE);
-@@ -280,12 +_,12 @@
+@@ -280,15 +_,15 @@
      public boolean syncPosition;
      public boolean syncVelocity;
      public @Nullable PortalProcessor portalProcess;
@@ -231,7 +231,11 @@
 +    private final Set<String> tags = new io.papermc.paper.util.SizeLimitedSet<>(new it.unimi.dsi.fastutil.objects.ObjectOpenHashSet<>(), MAX_ENTITY_TAG_COUNT); // Paper - fully limit tag size - replace set impl
      private final double[] pistonDeltas = new double[]{0.0, 0.0, 0.0};
      private long pistonDeltasGameTime;
-     private EntityDimensions dimensions;
+-    private EntityDimensions dimensions;
++    protected EntityDimensions dimensions; // Purpur - Ridables
+     private float eyeHeight;
+     public boolean isInPowderSnow;
+     public boolean wasInPowderSnow;
 @@ -296,9 +_,10 @@
      private boolean onGroundNoBlocks = false;
      private float crystalSoundIntensity;
@@ -2924,10 +2928,10 @@
 +    // Neo: Set the default behavior for trampling on Farmland
 +    @Override
 +    public boolean canTrample(ServerLevel level, BlockState state, BlockPos pos, double fallDistance) {
-+        if (level.getRandom().nextFloat() < fallDistance - .5F && this instanceof LivingEntity) {
++        if ((level.purpurConfig.farmlandTrampleHeight >= 0D ? fallDistance >= level.purpurConfig.farmlandTrampleHeight : level.getRandom().nextFloat() < fallDistance - .5F) && this instanceof LivingEntity) { // Purpur - Configurable farmland trample height
 +            boolean canTrample = this instanceof Player player
 +                                 ? !level.getServer().isUnderSpawnProtection(level, pos, player)
-+                                 : net.neoforged.neoforge.event.EventHooks.canEntityGrief(level, this);
++                                 : org.purpurmc.purpur.PurpurWorldConfig.canEntityGrief(level, this, level.purpurConfig.farmlandMobGriefingOverride); // Purpur - Add mobGriefing override to everything affected
 +            return canTrample && this.getBbWidth() * this.getBbWidth() * this.getBbHeight() > 0.512F;
 +        }
 +        return false;

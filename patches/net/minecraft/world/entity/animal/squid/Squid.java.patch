@@ -1,6 +1,6 @@
 --- a/net/minecraft/world/entity/animal/squid/Squid.java
 +++ b/net/minecraft/world/entity/animal/squid/Squid.java
-@@ -55,6 +_,69 @@
+@@ -55,9 +_,73 @@
          this.tentacleSpeed = 1.0F / (this.random.nextFloat() + 1.0F) * 0.2F;
      }
  
@@ -70,6 +70,10 @@
      @Override
      protected void registerGoals() {
          this.goalSelector.addGoal(0, new Squid.SquidRandomMovementGoal(this));
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(1, new Squid.SquidFleeGoal());
+     }
+ 
 @@ -105,7 +_,7 @@
      }
  
@@ -79,3 +83,54 @@
          return 0.08;
      }
  
+@@ -131,6 +_,7 @@
+         }
+ 
+         if (this.isInWater()) {
++            if (canFly()) setNoGravity(!wasTouchingWater); // Purpur - Flying squids! Oh my!
+             if (this.tentacleMovement < (float) Math.PI) {
+                 float tentacleScale = this.tentacleMovement / (float) Math.PI;
+                 this.tentacleAngle = Mth.sin(tentacleScale * tentacleScale * (float) Math.PI) * (float) Math.PI * 0.25F;
+@@ -313,10 +_,41 @@
+ 
+         @Override
+         public void tick() {
++            // Purpur start - Ridables
++            net.minecraft.world.entity.player.Player rider = squid.getRider();
++            if (rider != null && squid.isControllable()) {
++                if (rider.isJumping()) {
++                    squid.onSpacebar();
++                }
++                float forward = rider.getForwardMot();
++                float strafe = rider.getStrafeMot();
++                float speed = (float) squid.getAttributeValue(Attributes.MOVEMENT_SPEED) * 10F;
++                if (forward < 0.0F) {
++                    speed *= -0.5;
++                }
++                org.bukkit.util.Vector dir = rider.getBukkitEntity().getEyeLocation().getDirection().normalize().multiply(speed / 20.0F);
++                if (strafe != 0.0F) {
++                    if (forward == 0.0F) {
++                        dir.setY(0);
++                        rotateVectorAroundY(dir, strafe > 0.0F ? -90 : 90);
++                    } else if (forward < 0.0F) {
++                        rotateVectorAroundY(dir, strafe > 0.0F ? 45 : -45);
++                    } else {
++                        rotateVectorAroundY(dir, strafe > 0.0F ? -45 : 45);
++                    }
++                }
++                if (forward != 0.0F || strafe != 0.0F) {
++                    squid.movementVector = new Vec3((float) dir.getX(), (float) dir.getY(), (float) dir.getZ());
++                } else {
++                    squid.movementVector = Vec3.ZERO;
++                }
++                return;
++            }
++            // Purpur end - Ridables
+             int noActionTime = this.squid.getNoActionTime();
+             if (noActionTime > 100) {
+                 this.squid.movementVector = Vec3.ZERO;
+-            } else if (this.squid.getRandom().nextInt(reducedTickDelay(50)) == 0 || !this.squid.wasTouchingWater || !this.squid.hasMovementVector()) {
++            } else if (this.squid.getRandom().nextInt(reducedTickDelay(50)) == 0 || !this.squid.isInWater() || !this.squid.hasMovementVector()) { // Purpur - Flying squids! Oh my!
+                 float angle = this.squid.getRandom().nextFloat() * (float) (Math.PI * 2);
+                 this.squid.movementVector = new Vec3(Mth.cos(angle) * 0.2F, -0.1F + this.squid.getRandom().nextFloat() * 0.2F, Mth.sin(angle) * 0.2F);
+             }

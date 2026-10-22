@@ -1,16 +1,18 @@
 --- a/net/minecraft/world/entity/animal/rabbit/Rabbit.java
 +++ b/net/minecraft/world/entity/animal/rabbit/Rabbit.java
-@@ -109,15 +_,44 @@
+@@ -108,17 +_,110 @@
+     private boolean wasOnGround;
      private int jumpDelayTicks;
      public int moreCarrotTicks = 0;
- 
++    private boolean actualJump; // Purpur - Ridables
++
 +    // Purpur start - Make entity breeding times configurable
 +    @Override
 +    public int getPurpurBreedTime() {
 +        return this.level().purpurConfig.rabbitBreedingTicks;
 +    }
 +    // Purpur end - Make entity breeding times configurable
-+
+ 
      public Rabbit(EntityType<? extends Rabbit> type, Level level) {
          super(type, level);
          this.jumpControl = new Rabbit.RabbitJumpControl(this);
@@ -22,6 +24,51 @@
 -    protected void registerGoals() {
 +        // this.setSpeedModifier(0.0); // CraftBukkit
 +    }
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.rabbitRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.rabbitRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.rabbitControllable;
++    }
++
++    @Override
++    public boolean onSpacebar() {
++        if (onGround) {
++            actualJump = true;
++            jumpFromGround();
++            actualJump = false;
++        }
++        return true;
++    }
++
++    private void handleJumping() {
++        if (onGround) {
++            RabbitJumpControl jumpController = (RabbitJumpControl) jumpControl;
++            if (!wasOnGround) {
++                setJumping(false);
++                jumpController.setCanJump(false);
++            }
++            if (!jumpController.wantJump()) {
++                if (moveControl.hasWanted()) {
++                    startJumping();
++                }
++            } else if (!jumpController.canJump()) {
++                jumpController.setCanJump(true);
++            }
++        }
++        wasOnGround = onGround;
++    }
++    // Purpur end - Ridables
 +
 +    // Purpur start - Toggle for water sensitive mob damage
 +    @Override
@@ -45,11 +92,58 @@
 +    }
 +    // Purpur end - Mobs always drop experience
 +
++    // Purpur start - Breedable mobs can have multiple babies
++    @Override
++    protected boolean willHaveAnotherBaby() {
++        return (this.level().purpurConfig.rabbitBreedingChance > 0.0D) && (this.level().purpurConfig.rabbitBreedingChance >= this.random.nextDouble());
++    }
++
++    @Override
++    protected int getBreedingMinOffspring() {
++        return this.level().purpurConfig.rabbitBreedingMinOffspring;
++    }
++
++    @Override
++    protected int getBreedingMaxOffspring() {
++        return this.level().purpurConfig.rabbitBreedingMaxOffspring;
++    }
++    // Purpur end - Breedable mobs can have multiple babies
++
 +    @Override
 +    public void registerGoals() {
          this.goalSelector.addGoal(1, new FloatGoal(this));
++        this.goalSelector.addGoal(1, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
          this.goalSelector.addGoal(1, new ClimbOnTopOfPowderSnowGoal(this, this.level()));
          this.goalSelector.addGoal(1, new Rabbit.RabbitPanicGoal(this, 2.2));
+         this.goalSelector.addGoal(2, new BreedGoal(this, 0.8));
+@@ -138,6 +_,14 @@
+ 
+     @Override
+     protected float getJumpPower() {
++        // Purpur start - Ridables
++        if (getRider() != null && this.isControllable()) {
++            if (getForwardMot() < 0) {
++                setSpeed(getForwardMot() * 2F);
++            }
++            return actualJump ? 0.5F : 0.3F;
++        }
++        // Purpur end - Ridables
+         float baseJumpPower = 0.3F;
+         if (this.moveControl.getSpeedModifier() <= 0.6) {
+             baseJumpPower = 0.2F;
+@@ -205,6 +_,12 @@
+ 
+     @Override
+     public void customServerAiStep(ServerLevel level) {
++        // Purpur start - Ridables
++        if (getRider() != null && this.isControllable()) {
++            handleJumping();
++            return;
++        }
++        // Purpur end - Ridables
+         if (this.jumpDelayTicks > 0) {
+             this.jumpDelayTicks--;
+         }
 @@ -418,10 +_,22 @@
          }
  
@@ -82,12 +176,47 @@
          return level.getBlockState(pos.below()).is(BlockTags.RABBITS_SPAWNABLE_ON) && isBrightEnoughToSpawn(level, pos);
      }
  
+@@ -471,7 +_,7 @@
+     }
+ 
+     private boolean shouldPlayIdleAnimation() {
+-        return this.idleAnimationTimeout <= 0 && (this.getLeashData() == null || this.getLeashData().leashHolder == null) && !this.isNoAi();
++        return getRider() == null && this.idleAnimationTimeout <= 0 && (this.getLeashData() == null || this.getLeashData().leashHolder == null) && !this.isNoAi(); // Purpur - Ridables
+     }
+ 
+     @Override
+@@ -541,7 +_,7 @@
+         }
+     }
+ 
+-    private static class RabbitMoveControl<T extends Rabbit> extends MoveControl<T> {
++    private static class RabbitMoveControl<T extends Rabbit> extends org.purpurmc.purpur.controller.MoveControllerWASD<T> { // Purpur - Ridables
+         private double nextJumpSpeed;
+ 
+         public RabbitMoveControl(T rabbit) {
+@@ -549,14 +_,14 @@
+         }
+ 
+         @Override
+-        public void tick() {
++        public void vanillaTick() { // Purpur - Ridables
+             if (this.mob.onGround() && !this.mob.jumping && !((Rabbit.RabbitJumpControl)this.mob.jumpControl).wantJump()) {
+                 this.mob.setSpeedModifier(0.0);
+             } else if (this.hasWanted() || this.operation == MoveControl.Operation.JUMPING) {
+                 this.mob.setSpeedModifier(this.nextJumpSpeed);
+             }
+ 
+-            super.tick();
++            super.vanillaTick(); // Purpur - Ridables
+         }
+ 
+         @Override
 @@ -600,7 +_,7 @@
          @Override
          public boolean canUse() {
              if (this.nextStartTick <= 0) {
 -                if (!getServerLevel(this.rabbit).getGameRules().get(GameRules.MOB_GRIEFING)) {
-+                if (!net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(this.rabbit.level()), this.rabbit)) {
++                if (!org.purpurmc.purpur.PurpurWorldConfig.canEntityGrief(getServerLevel(this.rabbit.level()), this.rabbit, getServerLevel(this.rabbit.level()).purpurConfig.rabbitMobGriefingOverride)) { // Purpur - Add mobGriefing override to everything affected
                      return false;
                  }
  

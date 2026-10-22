@@ -1,5 +1,35 @@
 --- a/net/minecraft/server/gui/MinecraftServerGui.java
 +++ b/net/minecraft/server/gui/MinecraftServerGui.java
+@@ -39,6 +_,11 @@
+     private Thread logAppenderThread;
+     private final Collection<Runnable> finalizers = Lists.newArrayList();
+     private final AtomicBoolean isClosing = new AtomicBoolean();
++    // Purpur start - GUI Improvements
++    private final CommandHistory history = new CommandHistory();
++    private String currentCommand = "";
++    private int historyIndex = 0;
++    // Purpur end - GUI Improvements
+ 
+     public static MinecraftServerGui showFrameFor(DedicatedServer server) {
+         try {
+@@ -46,7 +_,7 @@
+         } catch (Exception var3) {
+         }
+ 
+-        final JFrame frame = new JFrame("Minecraft server");
++        final JFrame frame = new JFrame("Youer Minecraft server"); // Purpur - Improve GUI // Youer
+         final MinecraftServerGui gui = new MinecraftServerGui(server);
+         frame.setDefaultCloseOperation(2);
+         frame.add(gui);
+@@ -57,7 +_,7 @@
+             @Override
+             public void windowClosing(WindowEvent event) {
+                 if (!gui.isClosing.getAndSet(true)) {
+-                    frame.setTitle("Minecraft server - shutting down!");
++                    frame.setTitle("Youer Minecraft server - shutting down!"); // Purpur - Improve GUI // Youer
+                     server.halt(true);
+                     gui.runFinalizers();
+                 }
 @@ -87,7 +_,7 @@
  
      private JComponent buildInfoPanel() {
@@ -9,6 +39,59 @@
          this.finalizers.add(comp::close);
          panel.add(comp, "North");
          panel.add(this.buildPlayerPanel(), "Center");
+@@ -104,7 +_,7 @@
+ 
+     private JComponent buildChatPanel() {
+         JPanel panel = new JPanel(new BorderLayout());
+-        JTextArea chatArea = new JTextArea();
++        org.purpurmc.purpur.gui.JColorTextPane chatArea = new org.purpurmc.purpur.gui.JColorTextPane(); // Purpur - GUI Improvements
+         JScrollPane scrollPane = new JScrollPane(chatArea, 22, 30);
+         chatArea.setEditable(false);
+         chatArea.setFont(MONOSPACED);
+@@ -113,10 +_,43 @@
+             String text = chatField.getText().trim();
+             if (!text.isEmpty()) {
+                 this.server.handleConsoleInput(text, this.server.createCommandSourceStack());
++                // Purpur start - GUI Improvements
++                history.add(text);
++                historyIndex = -1;
++                // Purpur end - GUI Improvements
+             }
+ 
+             chatField.setText("");
+         });
++        // Purpur start - GUI Improvements
++        chatField.getInputMap().put(javax.swing.KeyStroke.getKeyStroke("UP"), "up");
++        chatField.getInputMap().put(javax.swing.KeyStroke.getKeyStroke("DOWN"), "down");
++        chatField.getActionMap().put("up", new javax.swing.AbstractAction() {
++            @Override
++            public void actionPerformed(java.awt.event.ActionEvent actionEvent) {
++                if (historyIndex < 0) {
++                    currentCommand = chatField.getText();
++                }
++                if (historyIndex < history.size() - 1) {
++                    chatField.setText(history.get(++historyIndex));
++                }
++            }
++        });
++        chatField.getActionMap().put("down", new javax.swing.AbstractAction() {
++            @Override
++            public void actionPerformed(java.awt.event.ActionEvent actionEvent) {
++                if (historyIndex >= 0) {
++                    if (historyIndex == 0) {
++                        --historyIndex;
++                        chatField.setText(currentCommand);
++                    } else {
++                        --historyIndex;
++                        chatField.setText(history.get(historyIndex));
++                    }
++                }
++            }
++        });
++        // Purpur end - GUI Improvements
+         chatArea.addFocusListener(new FocusAdapter() {
+             @Override
+             public void focusGained(FocusEvent arg0) {
 @@ -136,8 +_,10 @@
          return panel;
      }
@@ -20,24 +103,50 @@
      }
  
      public void close() {
-@@ -150,7 +_,11 @@
+@@ -150,25 +_,41 @@
          this.finalizers.forEach(Runnable::run);
      }
  
+-    public void print(JTextArea console, JScrollPane scrollPane, String line) {
 +    private static final java.util.regex.Pattern ANSI = java.util.regex.Pattern.compile("\\x1B\\[([0-9]{1,2}(;[0-9]{1,2})*)?[m|K]"); // CraftBukkit
-     public void print(JTextArea console, JScrollPane scrollPane, String line) {
++    public void print(org.purpurmc.purpur.gui.JColorTextPane console, JScrollPane scrollPane, String line) {
 +        try {
 +            latch.await();
 +        } catch (InterruptedException e){} //Prevent logging until after constructor has ended.
          if (!SwingUtilities.isEventDispatchThread()) {
              SwingUtilities.invokeLater(() -> this.print(console, scrollPane, line));
          } else {
-@@ -162,7 +_,7 @@
+-            Document document = console.getDocument();
+             JScrollBar scrollBar = scrollPane.getVerticalScrollBar();
+             boolean shouldScroll = false;
+             if (scrollPane.getViewport().getView() == console) {
+                 shouldScroll = scrollBar.getValue() + scrollBar.getSize().getHeight() + MONOSPACED.getSize() * 4 > scrollBar.getMaximum();
              }
  
-             try {
+-            try {
 -                document.insertString(document.getLength(), line, null);
++            /*try { // Purpur - GUI Improvements
 +                document.insertString(document.getLength(), ANSI.matcher(line).replaceAll(""), null); // CraftBukkit
              } catch (BadLocationException var8) {
-             }
+-            }
++            }*/ // Purpur - GUI Improvements
++            console.append(line); // Purpur - GUI Improvements
  
+             if (shouldScroll) {
+                 scrollBar.setValue(Integer.MAX_VALUE);
+             }
+         }
+     }
++
++    // Purpur start - GUI Improvements
++    public static class CommandHistory extends java.util.LinkedList<String> {
++        @Override
++        public boolean add(String command) {
++            if (size() > 1000) {
++                remove();
++            }
++            return super.offerFirst(command);
++        }
++    }
++    // Purpur end - GUI Improvements
+ }

@@ -15,6 +15,36 @@
      public void setTransient(BlockPos pos) {
          this.setHomePos(pos);
          this.setPathfindingMalus(PathType.DAMAGING, 8.0F);
+@@ -106,6 +_,29 @@
+         return this.getHomePos() != null;
+     }
+ 
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.creakingRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.creakingRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.creakingControllable;
++    }
++
++    @Override
++    protected void registerGoals() {
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
++    }
++    // Purpur end - Ridables
++
+     @Override
+     protected BodyRotationControl createBodyControl() {
+         return new Creaking.CreakingBodyRotationControl(this);
 @@ -193,9 +_,9 @@
      }
  
@@ -58,3 +88,38 @@
                          && this.isLookingAtMe(
                              player, 0.5, false, true, this.getEyeY(), this.getY() + 0.5 * this.getScale(), (this.getEyeY() + this.getY()) / 2.0
                          )) {
+@@ -548,28 +_,28 @@
+         }
+     }
+ 
+-    private class CreakingLookControl extends LookControl {
++    private class CreakingLookControl extends org.purpurmc.purpur.controller.LookControllerWASD { // Purpur - Ridables
+         public CreakingLookControl(Creaking creaking) {
+             super(creaking);
+         }
+ 
+         @Override
+-        public void tick() {
++        public void vanillaTick() { // Purpur - Ridables
+             if (Creaking.this.canMove()) {
+-                super.tick();
++                super.vanillaTick(); // Purpur - Ridables
+             }
+         }
+     }
+ 
+-    private static class CreakingMoveControl<T extends Creaking> extends MoveControl<T> {
++    private static class CreakingMoveControl<T extends Creaking> extends org.purpurmc.purpur.controller.MoveControllerWASD<T> { // Purpur - Ridables
+         public CreakingMoveControl(T creaking) {
+             super(creaking);
+         }
+ 
+         @Override
+-        public void tick() {
++        public void vanillaTick() { // Purpur - Ridables
+             if (this.mob.canMove()) {
+-                super.tick();
++                super.vanillaTick(); // Purpur - Ridables
+             }
+         }
+     }

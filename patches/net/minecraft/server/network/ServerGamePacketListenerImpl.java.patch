@@ -832,7 +832,7 @@
              if (!menu.stillValid(this.player)) {
                  LOGGER.debug("Player {} interacted with invalid menu {}", this.player, menu);
                  return;
-@@ -998,37 +_,105 @@
+@@ -998,37 +_,106 @@
  
      @Override
      public void handleEditBook(ServerboundEditBookPacket packet) {
@@ -873,6 +873,7 @@
 +
 +            if (byteTotal > byteAllowed) {
 +                ServerGamePacketListenerImpl.LOGGER.warn("{} tried to send too large of a book. Book size: {} - Allowed: {} - Pages: {}", this.player.getScoreboardName(), byteTotal, byteAllowed, pageList.size());
++                org.purpurmc.purpur.event.player.PlayerBookTooLargeEvent event = new org.purpurmc.purpur.event.player.PlayerBookTooLargeEvent(player.getBukkitEntity(), CraftItemStack.asBukkitCopy(itemstack)); if (event.shouldKickPlayer()) // Purpur - PlayerBookTooLargeEvent
 +                this.disconnectAsync(Component.literal("Book too large!"), org.bukkit.event.player.PlayerKickEvent.Cause.ILLEGAL_ACTION); // Paper - kick event cause // Paper - add proper async disconnect
 +                return;
 +            }
@@ -961,6 +962,23 @@
      @Override
      public void handleEntityTagQuery(ServerboundEntityTagQueryPacket packet) {
          PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
+@@ -1075,7 +_,15 @@
+     @Override
+     public void handleMovePlayer(ServerboundMovePlayerPacket packet) {
+         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
+-        if (containsInvalidValues(packet.getX(0.0), packet.getY(0.0), packet.getZ(0.0), packet.getYRot(0.0F), packet.getXRot(0.0F))) {
++        // Purpur start - Add more logger output for invalid movement kicks
++        boolean invalidX = Double.isNaN(packet.getX(0.0));
++        boolean invalidY = Double.isNaN(packet.getY(0.0));
++        boolean invalidZ = Double.isNaN(packet.getZ(0.0));
++        boolean invalidYaw = !Floats.isFinite(packet.getYRot(0.0F));
++        boolean invalidPitch = !Floats.isFinite(packet.getXRot(0.0F));
++        if (invalidX || invalidY || invalidZ || invalidYaw || invalidPitch) {
++            ServerGamePacketListenerImpl.LOGGER.warn(String.format("Disconnected on move player packet. Invalid data: x=%b, y=%b, z=%b, yaw=%b, pitch=%b", invalidX, invalidY, invalidZ, invalidYaw, invalidPitch));
++        // Purpur end - Add more logger output for invalid movement kicks
+             this.disconnect(Component.translatable("multiplayer.disconnect.invalid_player_movement"));
+         } else {
+             if (packet.hasPosition()) {
 @@ -1124,7 +_,12 @@
          if (this.player.isPassenger()) {
              this.player.absSnapTo(this.player.getX(), this.player.getY(), this.player.getZ(), targetYRot, targetXRot);
@@ -1114,7 +1132,7 @@
 +                    if (!event.isAllowed()) {
 +                        fail = true;
 +                        if (event.getLogWarning()) {
-+                            LOGGER.warn("{} moved wrongly!", this.player.getPlainTextName());
++                            LOGGER.warn("{} moved wrongly!, ({})", this.player.getPlainTextName(), oyDist); // Purpur - AFK API
 +                        }
 +                    }
 +                    // Paper end - Add fail move event
@@ -1205,7 +1223,18 @@
                          && !this.player.hasEffect(MobEffects.LEVITATION)
                          && !isFallFlying
                          && !isAutoSpinAttack
-@@ -1231,7 +_,7 @@
+@@ -1226,12 +_,18 @@
+                         this.player.tryResetCurrentImpulseContext();
+                     }
+ 
++                    // Purpur start - Dont run with scissors!
++                    if (this.player.level().purpurConfig.dontRunWithScissors && this.player.isSprinting() && !(this.player.level().purpurConfig.ignoreScissorsInWater && this.player.isInWater()) && !(this.player.level().purpurConfig.ignoreScissorsInLava && this.player.isInLava()) && (isScissors(this.player.getItemInHand(InteractionHand.MAIN_HAND)) || isScissors(this.player.getItemInHand(InteractionHand.OFF_HAND))) && (int) (Math.random() * 10) == 0) {
++                        this.player.hurtServer(this.player.level(), this.player.damageSources().scissors(), (float) this.player.level().purpurConfig.scissorsRunningDamage);
++                        if (!org.purpurmc.purpur.PurpurConfig.dontRunWithScissors.isBlank()) this.player.sendActionBarMessage(org.purpurmc.purpur.PurpurConfig.dontRunWithScissors);
++                    }
++                    // Purpur end - Dont run with scissors!
+                     this.player.checkMovementStatistics(this.player.getX() - startX, this.player.getY() - startY, this.player.getZ() - startZ);
+                     this.lastGoodX = this.player.getX();
                      this.lastGoodY = this.player.getY();
                      this.lastGoodZ = this.player.getZ();
                  } else {
@@ -1663,7 +1692,12 @@
                  if (this.player.gameMode.useItem(this.player, level, itemStack, hand) instanceof InteractionResult.Success success && success.shouldSwing()) {
                      this.player.swingAndResetAttackStrength(hand, swingAnimation, success.swingSource() != InteractionResult.SwingSource.PREDICTED);
                  }
-@@ -1505,7 +_,7 @@
+@@ -1501,11 +_,11 @@
+     @Override
+     public void handleTeleportToEntityPacket(ServerboundTeleportToEntityPacket packet) {
+         PacketUtils.ensureRunningOnSameThread(packet, this, this.player.level());
+-        if (this.player.isSpectator()) {
++        if (this.player.isSpectator() && this.player.getBukkitEntity().hasPermission("purpur.spectator-can-teleport-to-players")) { // Purpur - Require permission for Spectator to teleport to players
              for (ServerLevel level : this.server.getAllLevels()) {
                  Entity entity = packet.getEntity(level);
                  if (entity != null) {

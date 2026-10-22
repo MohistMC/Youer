@@ -205,6 +205,20 @@
      @Override
      protected PathNavigation createNavigation(Level level) {
          FlyingPathNavigation flyingPathNavigation = new FlyingPathNavigation(this, level);
+@@ -97,11 +_,13 @@
+ 
+     @Override
+     protected void registerGoals() {
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(0, new WitherBoss.WitherDoNothingGoal());
+         this.goalSelector.addGoal(2, new RangedAttackGoal(this, 1.0, 40, 20.0F));
+         this.goalSelector.addGoal(5, new WaterAvoidingRandomFlyingGoal(this, 1.0));
+         this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 8.0F));
+         this.goalSelector.addGoal(7, new RandomLookAroundGoal(this));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new HurtByTargetGoal(this));
+         this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, LivingEntity.class, 0, false, false, LIVING_ENTITY_SELECTOR));
+     }
 @@ -119,6 +_,7 @@
      protected void addAdditionalSaveData(ValueOutput output) {
          super.addAdditionalSaveData(output);
@@ -221,7 +235,20 @@
      }
  
      @Override
-@@ -263,15 +_,39 @@
+@@ -259,19 +_,52 @@
+ 
+     @Override
+     protected void customServerAiStep(ServerLevel level) {
++        // Purpur start - Ridables
++        if (getRider() != null && this.isControllable()) {
++            Vec3 mot = getDeltaMovement();
++            setDeltaMovement(mot.x(), mot.y() + (getVerticalMot() > 0 ? 0.07D : 0.0D), mot.z());
++        }
++        if (shootCooldown > 0) {
++            shootCooldown--;
++        }
++        // Purpur end - Ridables
+         if (this.getInvulnerableTicks() > 0) {
              int newCount = this.getInvulnerableTicks() - 1;
              this.bossEvent.setProgress(1.0F - newCount / 220.0F);
              if (newCount <= 0) {
@@ -279,7 +306,7 @@
              if (this.destroyBlocksTick > 0) {
                  this.destroyBlocksTick--;
 -                if (this.destroyBlocksTick == 0 && level.getGameRules().get(GameRules.MOB_GRIEFING)) {
-+                if (this.destroyBlocksTick == 0 && net.neoforged.neoforge.event.EventHooks.canEntityGrief(level, this)) {
++                if (this.destroyBlocksTick == 0 && org.purpurmc.purpur.PurpurWorldConfig.canEntityGrief(level, this, level.purpurConfig.witherMobGriefingOverride)) { // Purpur - Add mobGriefing override to everything affected
                      boolean destroyed = false;
                      int width = Mth.floor(this.getBbWidth() / 2.0F + 1.0F);
                      int height = Mth.floor(this.getBbHeight());
@@ -355,6 +382,20 @@
          return false;
      }
  
+@@ -533,11 +_,11 @@
+     }
+ 
+     public int getAlternativeTarget(int headIndex) {
+-        return this.entityData.get(DATA_TARGETS.get(headIndex));
++        return getRider() != null && this.isControllable() ? 0 : this.entityData.get(DATA_TARGETS.get(headIndex)); // Purpur - Ridables
+     }
+ 
+     public void setAlternativeTarget(int headIndex, int entityId) {
+-        this.entityData.set(DATA_TARGETS.get(headIndex), entityId);
++        if (getRider() == null || !this.isControllable()) this.entityData.set(DATA_TARGETS.get(headIndex), entityId); // Purpur - Ridables
+     }
+ 
+     public boolean isPowered() {
 @@ -546,17 +_,24 @@
  
      @Override

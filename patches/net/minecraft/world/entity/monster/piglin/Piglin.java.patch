@@ -136,6 +136,14 @@
          return !level.getBlockState(pos.below()).is(Blocks.NETHER_WART_BLOCK);
      }
  
+@@ -262,6 +_,7 @@
+     protected void customServerAiStep(ServerLevel level) {
+         ProfilerFiller profiler = Profiler.get();
+         profiler.push("piglinBrain");
++        if (getRider() == null || !this.isControllable()) // Purpur - only use brain if no rider
+         this.getBrain().tick(level, this);
+         profiler.pop();
+         PiglinAi.updateActivity(this);
 @@ -316,7 +_,7 @@
          } else if (this.isChargingCrossbow()) {
              return PiglinArmPose.CROSSBOW_CHARGE;
@@ -167,7 +175,7 @@
      @Override
      public boolean wantsToPickUp(ServerLevel level, ItemStack itemStack) {
 -        return level.getGameRules().get(GameRules.MOB_GRIEFING) && this.canPickUpLoot() && PiglinAi.wantsToPickup(this, itemStack);
-+        return net.neoforged.neoforge.event.EventHooks.canEntityGrief(level, this) && this.canPickUpLoot() && PiglinAi.wantsToPickup(this, itemStack);
++        return org.purpurmc.purpur.PurpurWorldConfig.canEntityGrief(level, this, level.purpurConfig.piglinCanPickUpLoot) && this.canPickUpLoot() && PiglinAi.wantsToPickup(this, itemStack); // Purpur - Check mobGriefing Overrides
      }
  
      protected boolean canReplaceCurrentItem(ItemStack newItemStack) {

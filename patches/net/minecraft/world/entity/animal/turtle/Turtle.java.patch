@@ -19,10 +19,27 @@
      public Turtle(EntityType<? extends Turtle> type, Level level) {
          super(type, level);
          this.setPathfindingMalus(PathType.WATER, 0.0F);
-@@ -87,6 +_,28 @@
+@@ -87,6 +_,45 @@
          this.moveControl = new Turtle.TurtleMoveControl<>(this);
      }
  
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.turtleRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.turtleRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.turtleControllable;
++    }
++    // Purpur end - Ridables
++
 +    // Purpur start - Toggle for water sensitive mob damage
 +    @Override
 +    public boolean isSensitiveToWater() {
@@ -48,7 +65,7 @@
      public void setHomePos(BlockPos pos) {
          this.homePos = pos;
      }
-@@ -141,7 +_,7 @@
+@@ -141,12 +_,13 @@
          return super.finalizeSpawn(level, difficulty, spawnReason, groupData);
      }
  
@@ -57,6 +74,12 @@
          return pos.getY() < level.getSeaLevel() + 4 && TurtleEggBlock.onSand(level, pos) && isBrightEnoughToSpawn(level, pos);
      }
  
+     @Override
+     protected void registerGoals() {
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(0, new Turtle.TurtlePanicGoal(this, 1.2));
+         this.goalSelector.addGoal(1, new Turtle.TurtleBreedGoal(this, 1.0));
+         this.goalSelector.addGoal(1, new Turtle.TurtleLayEggGoal(this, 1.0));
 @@ -279,7 +_,7 @@
  
      @Override
@@ -138,3 +161,34 @@
                      this.turtle.setHasEgg(false);
                      this.turtle.setLayingEgg(false);
                      this.turtle.setInLoveTime(600);
+@@ -481,9 +_,11 @@
+         }
+     }
+ 
+-    private static class TurtleMoveControl<T extends Turtle> extends MoveControl<T> {
++    private static class TurtleMoveControl<T extends Turtle> extends org.purpurmc.purpur.controller.MoveControllerWASD<T> { // Purpur - Ridables
++        private final org.purpurmc.purpur.controller.WaterMoveControllerWASD waterController; // Purpur - Ridables
+         public TurtleMoveControl(T turtle) {
+             super(turtle);
++            waterController = new org.purpurmc.purpur.controller.WaterMoveControllerWASD<>(turtle, 0.25D); // Purpur - Ridables
+         }
+ 
+         private void updateSpeed() {
+@@ -502,7 +_,7 @@
+         }
+ 
+         @Override
+-        public void tick() {
++        public void vanillaTick() { // Purpur - Ridables
+             this.updateSpeed();
+             if (this.operation == MoveControl.Operation.MOVE_TO && !this.mob.getNavigation().isDone()) {
+                 double xd = this.wantedX - this.mob.getX();
+@@ -516,7 +_,7 @@
+                     float yRotD = (float)(Mth.atan2(zd, xd) * 180.0F / (float)Math.PI) - 90.0F;
+                     this.mob.setYRot(this.rotlerp(this.mob.getYRot(), yRotD, 90.0F));
+                     this.mob.yBodyRot = this.mob.getYRot();
+-                    float targetSpeed = (float)(this.speedModifier * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED));
++                    float targetSpeed = (float)(this.getSpeedModifier() * this.mob.getAttributeValue(Attributes.MOVEMENT_SPEED)); // Purpur - Ridables
+                     this.mob.setSpeed(Mth.lerp(0.125F, this.mob.getSpeed(), targetSpeed));
+                     this.mob.setDeltaMovement(this.mob.getDeltaMovement().add(0.0, this.mob.getSpeed() * yd * 0.1, 0.0));
+                 }

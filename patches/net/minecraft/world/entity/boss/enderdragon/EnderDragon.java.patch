@@ -39,7 +39,7 @@
      public final EnderDragonPart head;
      private final EnderDragonPart neck;
      private final EnderDragonPart body;
-@@ -87,6 +_,10 @@
+@@ -87,6 +_,11 @@
      private final Node[] nodes = new Node[24];
      private final int[] nodeAdjacency = new int[24];
      private final BinaryHeap openSet = new BinaryHeap();
@@ -47,6 +47,7 @@
 +    private final net.minecraft.world.level.Explosion explosionSource; // Paper - reusable source for CraftTNTPrimed.getSource()
 +    private @Nullable BlockPos podium;
 +    // Paper end
++    private boolean hadRider; // Purpur - Ridables
  
      public EnderDragon(EntityType<? extends EnderDragon> type, Level level) {
          super(EntityTypes.ENDER_DRAGON, level);
@@ -148,7 +149,7 @@
      @Override
      public boolean isFlapping() {
          float flap = Mth.cos(this.flapTime * (float) (Math.PI * 2));
-@@ -150,8 +_,19 @@
+@@ -150,8 +_,50 @@
          entityData.define(DATA_PHASE, EnderDragonPhase.HOVERING.getId());
      }
  
@@ -156,6 +157,37 @@
 +
      @Override
      public void aiStep() {
++        // Purpur start - Ridables
++        boolean hasRider = getRider() != null && this.isControllable();
++        if (hasRider) {
++            if (!hadRider) {
++                hadRider = true;
++                noPhysics = false;
++                this.dimensions = net.minecraft.world.entity.EntityDimensions.scalable(4.0F, 2.0F);
++            }
++
++            // dragon doesn't use controllers, so must tick manually
++            moveControl.tick();
++            lookControl.tick();
++
++            moveRelative((float) getAttributeValue(Attributes.MOVEMENT_SPEED) * 0.1F, new Vec3(-getStrafeMot(), getVerticalMot(), -getForwardMot()));
++            Vec3 mot = getDeltaMovement();
++            setDeltaMovement(mot);
++            move(MoverType.PLAYER, mot);
++
++            mot = mot.multiply(0.9F, 0.9F, 0.9F);
++            setDeltaMovement(mot);
++
++            // control wing flap speed on client
++            phaseManager.setPhase(mot.x() * mot.x() + mot.z() * mot.z() < 0.005F ? EnderDragonPhase.HOVERING : EnderDragonPhase.HOLDING_PATTERN);
++        } else if (hadRider) {
++            hadRider = false;
++            noPhysics = true;
++            this.dimensions = net.minecraft.world.entity.EntityDimensions.scalable(16.0F, 8.0F);
++            phaseManager.setPhase(EnderDragonPhase.HOLDING_PATTERN); // HoldingPattern
++        }
++        // Purpur end - Ridables
++
 +        // lastHurtByPlayer is cleared after 100 ticks, capture it indefinitely in unlimitedLastHurtByPlayer for LivingExperienceDropEvent
 +        if (this.lastHurtByPlayer != null) this.unlimitedLastHurtByPlayer = lastHurtByPlayer;
 +        if (this.unlimitedLastHurtByPlayer != null) {
@@ -168,6 +200,35 @@
          this.processFlappingMovement();
          if (this.level().isClientSide()) {
              this.setHealth(this.getHealth());
+@@ -180,6 +_,7 @@
+ 
+         this.oFlapTime = this.flapTime;
+         if (this.isDeadOrDying()) {
++            if (hasRider) ejectPassengers(); // Purpur - Ridables
+             float xo = (this.random.nextFloat() - 0.5F) * 8.0F;
+             float yo = (this.random.nextFloat() - 0.5F) * 4.0F;
+             float zo = (this.random.nextFloat() - 0.5F) * 8.0F;
+@@ -189,9 +_,9 @@
+             Vec3 movement = this.getDeltaMovement();
+             float flapSpeed = 0.2F / ((float)movement.horizontalDistance() * 10.0F + 1.0F);
+             flapSpeed *= (float)Math.pow(2.0, movement.y);
+-            if (this.phaseManager.getCurrentPhase().isSitting()) {
++            if (!hasRider && this.phaseManager.getCurrentPhase().isSitting()) { // Purpur - Ridables
+                 this.flapTime += 0.1F;
+-            } else if (this.inWall) {
++            } else if (!hasRider && this.inWall) { // Purpur - Ridables
+                 this.flapTime += flapSpeed * 0.5F;
+             } else {
+                 this.flapTime += flapSpeed;
+@@ -202,7 +_,7 @@
+                 this.flapTime = 0.5F;
+             } else {
+                 this.flightHistory.record(this.getY(), this.getYRot());
+-                if (this.level() instanceof ServerLevel level) {
++                if (this.level() instanceof ServerLevel level && !hasRider) { // Purpur - Ridables
+                     DragonPhaseInstance currentPhase = this.phaseManager.getCurrentPhase();
+                     currentPhase.doServerTick(level);
+                     if (this.phaseManager.getCurrentPhase() != currentPhase) {
 @@ -211,7 +_,7 @@
                      }
  
@@ -177,6 +238,27 @@
                          double xdd = targetLocation.x - this.getX();
                          double ydd = targetLocation.y - this.getY();
                          double zdd = targetLocation.z - this.getZ();
+@@ -278,7 +_,7 @@
+                 this.tickPart(this.body, ss1 * 0.5F, 0.0, -cc1 * 0.5F);
+                 this.tickPart(this.wing1, cc1 * 4.5F, 2.0, ss1 * 4.5F);
+                 this.tickPart(this.wing2, cc1 * -4.5F, 2.0, ss1 * -4.5F);
+-                if (this.level() instanceof ServerLevel serverLevel && !this.wasHurtRecently()) {
++                if (this.level() instanceof ServerLevel serverLevel && !this.wasHurtRecently() && !hasRider) { // Purpur - Ridables
+                     this.knockBack(
+                         serverLevel,
+                         serverLevel.getEntities(
+@@ -326,9 +_,9 @@
+                 }
+ 
+                 if (this.level() instanceof ServerLevel level) {
+-                    this.inWall = this.checkWalls(level, this.head.getBoundingBox())
++                    this.inWall = !hasRider && this.checkWalls(level, this.head.getBoundingBox())
+                         | this.checkWalls(level, this.neck.getBoundingBox())
+-                        | this.checkWalls(level, this.body.getBoundingBox());
++                        | this.checkWalls(level, this.body.getBoundingBox()); // Purpur - Ridables
+                     if (this.dragonFight != null) {
+                         this.dragonFight.updateDragon(this);
+                     }
 @@ -365,7 +_,14 @@
              if (this.nearestCrystal.isRemoved()) {
                  this.nearestCrystal = null;
@@ -218,7 +300,7 @@
                      if (!state.isAir() && !state.is(BlockTags.DRAGON_TRANSPARENT)) {
 -                        if (level.getGameRules().get(GameRules.MOB_GRIEFING) && !state.is(BlockTags.DRAGON_IMMUNE)) {
 -                            destroyedBlock = level.removeBlock(blockPos, false) || destroyedBlock;
-+                        if (net.neoforged.neoforge.common.CommonHooks.canEntityDestroy(level, blockPos, this) && !state.is(BlockTags.DRAGON_IMMUNE)) {
++                        if (org.purpurmc.purpur.PurpurWorldConfig.canEntityDestroy(level, blockPos, this, level.purpurConfig.enderDragonMobGriefingOverride) && !state.is(BlockTags.DRAGON_IMMUNE)) { // Purpur - Add mobGriefing override to everything affected
 +                            // CraftBukkit start - Add blocks to list rather than destroying them
 +                            // destroyedBlock = level.removeBlock(blockPos, false) || destroyedBlock;
 +                            destroyedBlock = true;

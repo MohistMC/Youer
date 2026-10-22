@@ -93,7 +93,7 @@
      @Override
      public @Nullable AgeableMob getBreedOffspring(ServerLevel level, AgeableMob partner) {
          return EntityTypes.POLAR_BEAR.create(level, EntitySpawnReason.BREEDING);
-@@ -79,7 +_,7 @@
+@@ -79,19 +_,27 @@
  
      @Override
      public boolean isFood(ItemStack itemStack) {
@@ -102,8 +102,10 @@
      }
  
      @Override
-@@ -88,6 +_,12 @@
+     protected void registerGoals() {
+         super.registerGoals();
          this.goalSelector.addGoal(0, new FloatGoal(this));
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
          this.goalSelector.addGoal(1, new PolarBear.PolarBearMeleeAttackGoal());
          this.goalSelector.addGoal(1, new PanicGoal(this, 2.0, bear -> bear.isBaby() ? DamageTypeTags.PANIC_CAUSES : DamageTypeTags.PANIC_ENVIRONMENTAL_CAUSES));
 +        // Purpur start - Breedable Polar Bears
@@ -115,6 +117,11 @@
          this.goalSelector.addGoal(4, new FollowParentGoal(this, 1.25));
          this.goalSelector.addGoal(5, new RandomStrollGoal(this, 1.0));
          this.goalSelector.addGoal(6, new LookAtPlayerGoal(this, Player.class, 6.0F));
+         this.goalSelector.addGoal(7, new RandomLookAroundGoal(this));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new PolarBear.PolarBearHurtByTargetGoal());
+         this.targetSelector.addGoal(2, new PolarBear.PolarBearAttackPlayersGoal());
+         this.targetSelector.addGoal(3, new NearestAttackableTargetGoal<>(this, Player.class, 10, true, false, this::isAngryAt));
 @@ -108,7 +_,7 @@
      }
  
@@ -124,3 +131,24 @@
      ) {
          Holder<Biome> biome = level.getBiome(pos);
          return !biome.is(BiomeTags.POLAR_BEARS_SPAWN_ON_ALTERNATE_BLOCKS)
+@@ -209,6 +_,12 @@
+         if (!this.level().isClientSide()) {
+             this.updatePersistentAnger((ServerLevel)this.level(), true);
+         }
++
++        // Purpur start - Ridables
++        if (isStanding() && --standTimer <= 0) {
++            setStanding(false);
++        }
++        // Purpur end - Ridables
+     }
+ 
+     @Override
+@@ -229,6 +_,7 @@
+ 
+     public void setStanding(boolean value) {
+         this.entityData.set(DATA_STANDING_ID, value);
++        standTimer = value ? 20 : -1; // Purpur - Ridables
+     }
+ 
+     public float getStandingAnimationScale(float a) {

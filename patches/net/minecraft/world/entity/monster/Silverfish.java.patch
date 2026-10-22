@@ -12,7 +12,7 @@
  import org.jspecify.annotations.Nullable;
  
  public class Silverfish extends Monster {
-@@ -37,6 +_,30 @@
+@@ -37,14 +_,57 @@
          super(type, level);
      }
  
@@ -40,9 +40,36 @@
 +    }
 +    // Purpur end - Configurable entity base attributes
 +
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.silverfishRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.silverfishRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.silverfishControllable;
++    }
++    // Purpur end - Ridables
++
      @Override
      protected void registerGoals() {
          this.friendsGoal = new Silverfish.SilverfishWakeUpFriendsGoal(this);
+         this.goalSelector.addGoal(1, new FloatGoal(this));
++        this.goalSelector.addGoal(1, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(1, new ClimbOnTopOfPowderSnowGoal(this, this.level()));
+         this.goalSelector.addGoal(3, this.friendsGoal);
+         this.goalSelector.addGoal(4, new MeleeAttackGoal(this, 1.0, false));
+         this.goalSelector.addGoal(5, new Silverfish.SilverfishMergeWithStoneGoal(this));
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector.addGoal(1, new HurtByTargetGoal(this).setAlertOthers());
+         this.targetSelector.addGoal(2, new NearestAttackableTargetGoal<>(this, Player.class, true));
+     }
 @@ -109,7 +_,7 @@
      }
  
@@ -66,7 +93,7 @@
  
              RandomSource random = this.mob.getRandom();
 -            if (getServerLevel(this.mob).getGameRules().get(GameRules.MOB_GRIEFING) && random.nextInt(reducedTickDelay(10)) == 0) {
-+            if (net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(this.mob.level()), this.mob) && random.nextInt(reducedTickDelay(10)) == 0) {
++            if (org.purpurmc.purpur.PurpurWorldConfig.canEntityGrief(getServerLevel(this.mob.level()), this.mob, getServerLevel(this.mob.level()).purpurConfig.silverfishMobGriefingOverride) && random.nextInt(reducedTickDelay(10)) == 0) { // Purpur - Add mobGriefing override to everything affected
                  this.selectedDirection = Direction.getRandom(random);
                  BlockPos pos = BlockPos.containing(this.mob.getX(), this.mob.getY() + 0.5, this.mob.getZ()).relative(this.selectedDirection);
                  BlockState blockState = this.mob.level().getBlockState(pos);
@@ -92,12 +119,12 @@
                              if (blockState.getBlock() instanceof InfestedBlock infestedBlock) {
 -                                if (getServerLevel(level).getGameRules().get(GameRules.MOB_GRIEFING)) {
 +                                // CraftBukkit start
-+                                BlockState afterState = getServerLevel(level).getGameRules().get(GameRules.MOB_GRIEFING) ? blockState.getFluidState().createLegacyBlock() : infestedBlock.hostStateByInfested(level.getBlockState(testPos)); // Paper - fix wrong block state
++                                BlockState afterState = getServerLevel(level).getGameRules().get(GameRules.MOB_GRIEFING, getServerLevel(level).purpurConfig.silverfishMobGriefingOverride) ? blockState.getFluidState().createLegacyBlock() : infestedBlock.hostStateByInfested(level.getBlockState(testPos)); // Paper - fix wrong block state // Purpur - Add mobGriefing override to everything affected
 +                                if (!org.bukkit.craftbukkit.event.CraftEventFactory.callEntityChangeBlockEvent(this.silverfish, testPos, afterState)) { // Paper - fix wrong block state
 +                                    continue;
 +                                }
 +                                // CraftBukkit end
-+                                if (net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(level), this.silverfish)) {
++                                if (org.purpurmc.purpur.PurpurWorldConfig.canEntityGrief(getServerLevel(level), this.silverfish, getServerLevel(level).purpurConfig.silverfishMobGriefingOverride)) { // Purpur - Add mobGriefing override to everything affected
                                      level.destroyBlock(testPos, true, this.silverfish);
                                  } else {
                                      level.setBlockAndUpdate(testPos, infestedBlock.hostStateByInfested(level.getBlockState(testPos)));

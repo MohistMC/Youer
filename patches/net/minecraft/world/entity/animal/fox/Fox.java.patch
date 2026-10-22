@@ -19,7 +19,7 @@
  public class Fox extends Animal {
      private static final EntityDataAccessor<Integer> DATA_TYPE_ID = SynchedEntityData.defineId(Fox.class, EntityDataSerializers.INT);
      private static final EntityDataAccessor<Byte> DATA_FLAGS_ID = SynchedEntityData.defineId(Fox.class, EntityDataSerializers.BYTE);
-@@ -149,6 +_,20 @@
+@@ -149,6 +_,75 @@
      private static final float MAX_CROUCH_AMOUNT = 5.0F;
      private int ticksSinceEaten;
  
@@ -36,6 +36,61 @@
 +        return this.level().purpurConfig.foxAlwaysDropExp;
 +    }
 +    // Purpur end - Mobs always drop experience
++
++    // Purpur start - Breedable mobs can have multiple babies
++    @Override
++    protected boolean willHaveAnotherBaby() {
++        return (this.level().purpurConfig.foxBreedingChance > 0.0D) && (this.level().purpurConfig.foxBreedingChance >= this.random.nextDouble());
++    }
++
++    // Purpur start - Ridables
++    @Override
++    public boolean isRidable() {
++        return level().purpurConfig.foxRidable;
++    }
++
++    @Override
++    public boolean dismountsUnderwater() {
++        return level().purpurConfig.useDismountsUnderwaterTag ? super.dismountsUnderwater() : !level().purpurConfig.foxRidableInWater;
++    }
++
++    @Override
++    public boolean isControllable() {
++        return level().purpurConfig.foxControllable;
++    }
++
++    @Override
++    public float getJumpPower() {
++        return getRider() != null && this.isControllable() ? 0.5F : super.getJumpPower();
++    }
++
++    @Override
++    public void onMount(Player rider) {
++        super.onMount(rider);
++        setCanPickUpLoot(false);
++        clearStates();
++        setIsPouncing(false);
++        spitOutItem(getItemBySlot(EquipmentSlot.MAINHAND));
++        setItemSlot(EquipmentSlot.MAINHAND, ItemStack.EMPTY);
++    }
++
++    @Override
++    public void onDismount(Player rider) {
++        super.onDismount(rider);
++        setCanPickUpLoot(true);
++    }
++    // Purpur end - Ridables
++
++    @Override
++    protected int getBreedingMinOffspring() {
++        return this.level().purpurConfig.foxBreedingMinOffspring;
++    }
++
++    @Override
++    protected int getBreedingMaxOffspring() {
++        return this.level().purpurConfig.foxBreedingMaxOffspring;
++    }
++    // Purpur end - Breedable mobs can have multiple babies
 +
      public Fox(EntityType<? extends Fox> type, Level level) {
          super(type, level);
@@ -62,6 +117,22 @@
      @Override
      protected void defineSynchedData(SynchedEntityData.Builder entityData) {
          super.defineSynchedData(entityData);
+@@ -178,6 +_,7 @@
+             this, AbstractFish.class, 20, false, false, (target, level) -> target instanceof AbstractSchoolingFish
+         );
+         this.goalSelector.addGoal(0, new Fox.FoxFloatGoal());
++        this.goalSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.goalSelector.addGoal(0, new ClimbOnTopOfPowderSnowGoal(this, this.level()));
+         this.goalSelector.addGoal(1, new Fox.FaceplantGoal());
+         this.goalSelector.addGoal(2, new Fox.FoxPanicGoal(2.2));
+@@ -202,6 +_,7 @@
+         this.goalSelector.addGoal(11, new Fox.FoxSearchForItemsGoal());
+         this.goalSelector.addGoal(12, new Fox.FoxLookAtPlayerGoal(this, Player.class, 24.0F));
+         this.goalSelector.addGoal(13, new Fox.PerchAndSearchGoal());
++        this.targetSelector.addGoal(0, new org.purpurmc.purpur.entity.ai.HasRider(this)); // Purpur - Ridables
+         this.targetSelector
+             .addGoal(
+                 3,
 @@ -331,7 +_,7 @@
          return baby;
      }
@@ -285,7 +356,7 @@
  
          protected void onReachedTarget() {
 -            if (getServerLevel(Fox.this.level()).getGameRules().get(GameRules.MOB_GRIEFING)) {
-+            if (net.neoforged.neoforge.event.EventHooks.canEntityGrief(getServerLevel(Fox.this.level()), Fox.this)) {
++            if (org.purpurmc.purpur.PurpurWorldConfig.canEntityGrief(getServerLevel(Fox.this.level()), Fox.this, getServerLevel(Fox.this.level()).purpurConfig.foxMobGriefingOverride)) { // Purpur - Add mobGriefing override to everything affected
                  BlockState state = Fox.this.level().getBlockState(this.blockPos);
                  if (state.is(Blocks.SWEET_BERRY_BUSH)) {
                      this.pickSweetBerries(state);
@@ -306,3 +377,41 @@
          }
      }
  
+@@ -1058,15 +_,15 @@
+         }
+     }
+ 
+-    public class FoxLookControl extends LookControl {
++    public class FoxLookControl extends org.purpurmc.purpur.controller.LookControllerWASD { // Purpur - Ridables
+         public FoxLookControl() {
+             super(Fox.this);
+         }
+ 
+         @Override
+-        public void tick() {
++        public void vanillaTick() { // Purpur - Ridables
+             if (!Fox.this.isSleeping()) {
+-                super.tick();
++                super.vanillaTick(); // Purpur - Ridables
+             }
+         }
+ 
+@@ -1102,15 +_,15 @@
+         }
+     }
+ 
+-    private static class FoxMoveControl<T extends Fox> extends MoveControl<T> {
++    private static class FoxMoveControl<T extends Fox> extends org.purpurmc.purpur.controller.MoveControllerWASD<T> { // Purpur - Ridables
+         public FoxMoveControl(T fox) {
+             super(fox);
+         }
+ 
+         @Override
+-        public void tick() {
++        public void vanillaTick() { // Purpur - Ridables
+             if (this.mob.canMove()) {
+-                super.tick();
++                super.vanillaTick(); // Purpur - Ridables
+             }
+         }
+     }
