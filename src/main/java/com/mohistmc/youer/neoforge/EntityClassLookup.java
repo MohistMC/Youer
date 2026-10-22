@@ -105,9 +105,11 @@ import net.minecraft.world.entity.monster.creaking.Creaking;
 import net.minecraft.world.entity.monster.cubemob.MagmaCube;
 import net.minecraft.world.entity.monster.cubemob.Slime;
 import net.minecraft.world.entity.monster.hoglin.Hoglin;
+import net.minecraft.world.entity.monster.illager.AbstractIllager;
 import net.minecraft.world.entity.monster.illager.Evoker;
 import net.minecraft.world.entity.monster.illager.Illusioner;
 import net.minecraft.world.entity.monster.illager.Pillager;
+import net.minecraft.world.entity.monster.illager.SpellcasterIllager;
 import net.minecraft.world.entity.monster.illager.Vindicator;
 import net.minecraft.world.entity.monster.piglin.Piglin;
 import net.minecraft.world.entity.monster.piglin.PiglinBrute;
@@ -220,6 +222,7 @@ import org.bukkit.craftbukkit.entity.CraftHoglin;
 import org.bukkit.craftbukkit.entity.CraftHorse;
 import org.bukkit.craftbukkit.entity.CraftHumanEntity;
 import org.bukkit.craftbukkit.entity.CraftHusk;
+import org.bukkit.craftbukkit.entity.CraftIllager;
 import org.bukkit.craftbukkit.entity.CraftIllusioner;
 import org.bukkit.craftbukkit.entity.CraftInteraction;
 import org.bukkit.craftbukkit.entity.CraftIronGolem;
@@ -275,6 +278,7 @@ import org.bukkit.craftbukkit.entity.CraftSniffer;
 import org.bukkit.craftbukkit.entity.CraftSnowball;
 import org.bukkit.craftbukkit.entity.CraftSnowman;
 import org.bukkit.craftbukkit.entity.CraftSpectralArrow;
+import org.bukkit.craftbukkit.entity.CraftSpellcaster;
 import org.bukkit.craftbukkit.entity.CraftSpider;
 import org.bukkit.craftbukkit.entity.CraftSquid;
 import org.bukkit.craftbukkit.entity.CraftStray;
@@ -459,9 +463,11 @@ public class EntityClassLookup {
         registerEntity(Display.class, (server, entity) -> new CraftDisplay(server, (Display) entity));
         registerEntity(AgeableMob.class, (server, entity) -> new CraftAgeable(server, (AgeableMob) entity));
         registerEntity(PathfinderMob.class, (server, entity) -> new CraftCreature(server, (PathfinderMob) entity));
+        registerEntity(SpellcasterIllager.class, (server, entity) -> new CraftSpellcaster(server, (SpellcasterIllager) entity));
+        registerEntity(AbstractIllager.class, (server, entity) -> new CraftIllager(server, (AbstractIllager) entity));
         registerEntity(Monster.class, (server, entity) -> new CraftMonster(server, (Monster) entity));
         registerEntity(Mob.class, (server, entity) -> new YouerModsMob(server, (Mob) entity));
-        registerEntity(Entity.class, (server, entity) -> new YouerModsEntity(server, entity));
+        registerEntity(Entity.class, YouerModsEntity::new);
     }
 
     private static void registerEntity(Class<? extends Entity> clazz, BiFunction<CraftServer, Entity, CraftEntity> factory) {

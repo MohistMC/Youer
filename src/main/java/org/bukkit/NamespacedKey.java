@@ -244,4 +244,8 @@ public final class NamespacedKey implements Key, com.destroystokyo.paper.Namespa
     public String asString() {
         return this.toString();
     }
+
+    public boolean isMods() {
+        return !namespace().equals(NamespacedKey.MINECRAFT);
+    }
 }
