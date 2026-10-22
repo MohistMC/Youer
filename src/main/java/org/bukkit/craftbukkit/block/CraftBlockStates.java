@@ -1,6 +1,7 @@
 package org.bukkit.craftbukkit.block;
 
 import com.google.common.base.Preconditions;
+import com.mohistmc.youer.bukkit.block.YouerModsBlockEntityState;
 import java.util.HashMap;
 import java.util.IdentityHashMap;
 import java.util.Map;
@@ -89,8 +90,9 @@ public final class CraftBlockStates {
     private static final BlockStateFactory<?> DEFAULT_FACTORY = new BlockStateFactory<>(CraftBlockState.class) {
         @Override
         public CraftBlockState createBlockState(World world, BlockPos pos, net.minecraft.world.level.block.state.BlockState state, BlockEntity blockEntity, boolean useSnapshot) {
-            // Paper - revert upstream's revert of the block state changes. Block entities that have already had the block type set to AIR are still valid, upstream decided to ignore them
-            Preconditions.checkState(blockEntity == null, "Unexpected BlockState for %s", CraftBlockType.minecraftToBukkit(state.getBlock()));
+            if (blockEntity != null) {
+                return new YouerModsBlockEntityState(world, blockEntity, useSnapshot);
+            }
             return new CraftBlockState(world, pos, state);
         }
     };
