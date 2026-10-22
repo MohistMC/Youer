@@ -13,6 +13,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
+import java.util.stream.Collectors;
 import net.minecraft.core.Registry;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -59,7 +61,7 @@ public class NeoForgeInjectBukkit {
             .build());
     public static Map<Villager.Profession, Identifier> profession = new HashMap<>();
     public static Map<MobCategory, SpawnCategory> spawnCategoryMap = new HashMap<>();
-    public static Map<SpawnCategory, MobCategory> CategoryspawnMap = new HashMap<>();
+    public static Map<SpawnCategory, MobCategory> CATEGORYSPAWNMAP = new HashMap<>();
 
 
     public static void init() {
@@ -269,16 +271,14 @@ public class NeoForgeInjectBukkit {
     }
 
     private static void loadSpawnCategory() {
+        Set<String> existing = Arrays.stream(SpawnCategory.values()).map(Enum::name).collect(Collectors.toSet());
         for (MobCategory category : MobCategory.values()) {
-            try {
-                CraftSpawnCategory.toBukkit(category);
-            } catch (Exception e) {
-                String name = category.name();
-                SpawnCategory spawnCategory = MohistDynamEnum.addEnum(SpawnCategory.class, name);
-                spawnCategoryMap.put(category, spawnCategory);
-                CategoryspawnMap.put(spawnCategory, category);
-                debug("Registered forge MobCategory as SpawnCategory(Bukkit) {}", spawnCategory);
-            }
+            String name = category.name();
+            if (existing.contains(name)) continue;
+            SpawnCategory spawnCategory = MohistDynamEnum.addEnum(SpawnCategory.class, name);
+            CATEGORYSPAWNMAP.put(spawnCategory, category);
+            spawnCategory.isMods = true;
+            debug("Registered forge MobCategory as SpawnCategory(Bukkit) {}", spawnCategory);
         }
     }
 
