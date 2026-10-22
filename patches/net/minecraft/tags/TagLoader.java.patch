@@ -18,7 +18,7 @@
                  missingElements.add(entry);
              }
          }
-@@ -86,7 +_,10 @@
+@@ -86,7 +_,14 @@
          return missingElements.isEmpty() ? Either.right(List.copyOf(values)) : Either.left(missingElements);
      }
  
@@ -26,11 +26,15 @@
 +    // Paper start - fire tag registrar events
 +    public Map<Identifier, List<T>> build(Map<Identifier, List<TagLoader.EntryWithSource>> builders, io.papermc.paper.tag.@Nullable TagEventConfig<T, ?> eventConfig) {
 +        builders = io.papermc.paper.tag.PaperTagListenerManager.INSTANCE.firePreFlattenEvent(builders, eventConfig);
-+        // Paper end
++        return io.papermc.paper.tag.PaperTagListenerManager.INSTANCE.firePostFlattenEvent(this.build(builders), eventConfig);
++    }
++    // Paper end
++
++    public Map<Identifier, List<T>> build(Map<Identifier, List<TagLoader.EntryWithSource>> builders) { // Youer - keep vanilla signature for mods
          final Map<Identifier, List<T>> newTags = new HashMap<>();
          TagEntry.Lookup<T> lookup = new TagEntry.Lookup<T>() {
              @Override
-@@ -107,12 +_,12 @@
+@@ -107,7 +_,7 @@
                      missing -> LOGGER.error(
                          "Couldn't load tag {} as it is missing following references: {}",
                          id,
@@ -39,12 +43,6 @@
                      )
                  )
                  .ifRight(tag -> newTags.put(id, (List<T>)tag))
-         );
--        return newTags;
-+        return io.papermc.paper.tag.PaperTagListenerManager.INSTANCE.firePostFlattenEvent(newTags, eventConfig); // Paper - fire tag registrar events
-     }
- 
-     public static <T> Map<TagKey<T>, List<Holder<T>>> loadTagsFromNetwork(TagNetworkSerialization.NetworkPayload tags, Registry<T> registry) {
 @@ -120,30 +_,51 @@
      }
  

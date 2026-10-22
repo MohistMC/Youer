@@ -1148,27 +1148,15 @@
      }
  
      public Map<UUID, ServerPlayer> getPlayersByUUID() {
-@@ -847,19 +_,41 @@
+@@ -847,19 +_,49 @@
      }
  
      public void reloadResources() {
 -        for (PlayerAdvancements advancements : this.advancements.values()) {
 -            advancements.reload(this.server.getAdvancements());
-+        // Paper start - API for updating recipes on clients
-+        this.reloadAdvancementData();
-+        this.reloadTagData();
-+        this.reloadRecipes();
-+    }
-+    public void reloadAdvancementData() {
-+        // Paper end - API for updating recipes on clients
-+        for (ServerPlayer player : this.players) {
-+            player.getAdvancements().reload(this.server.getAdvancements());
-+            player.getAdvancements().flushDirty(player, false); // CraftBukkit - trigger immediate flush of advancements
-         }
-+    }
- 
-+    public void reloadTagData() {
-         this.broadcastAll(new ClientboundUpdateTagsPacket(TagNetworkSerialization.serializeTagsToNetwork(this.registries)));
+-        }
+-
+-        this.broadcastAll(new ClientboundUpdateTagsPacket(TagNetworkSerialization.serializeTagsToNetwork(this.registries)));
 -        RecipeManager recipeManager = this.server.getRecipeManager();
 -        ClientboundUpdateRecipesPacket recipes = new ClientboundUpdateRecipesPacket(
 -            recipeManager.getSynchronizedItemProperties(), recipeManager.getSynchronizedStonecutterRecipes()
@@ -1177,24 +1165,48 @@
 -        for (ServerPlayer player : this.players) {
 -            player.connection.send(recipes);
 -            player.getRecipeBook().sendInitialRecipeBook(player);
-+        // CraftBukkit start
-+        // this.reloadRecipes(); // Paper - do not reload recipes just because tag data was reloaded
-+        // Paper end - API for updating recipes on clients
+-        }
++        for (ServerPlayer player : this.players) {
++            player.getAdvancements().reload(this.server.getAdvancements());
++            player.getAdvancements().flushDirty(player, false); // CraftBukkit - trigger immediate flush of advancements
++        }
++
++        var dataSyncEvent = net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.OnDatapackSyncEvent(this, null));
++        this.broadcastAll(new ClientboundUpdateTagsPacket(TagNetworkSerialization.serializeTagsToNetwork(this.registries)));
++        RecipeManager recipeManager = this.server.getRecipeManager();
++        ClientboundUpdateRecipesPacket recipes = new ClientboundUpdateRecipesPacket(recipeManager.getSynchronizedItemProperties(), recipeManager.getSynchronizedStonecutterRecipes());
++
++        for (ServerPlayer player : this.players) {
++            player.connection.send(recipes);
++            player.getRecipeBook().sendInitialRecipeBook(player);
++            net.neoforged.neoforge.common.CommonHooks.sendRecipes(player, dataSyncEvent.getRecipeTypesToSend(), recipeManager.recipeMap());
++        }
++    }
++
++    // Paper start - API for updating recipes on clients
++    public void reloadAdvancementData() {
++        for (ServerPlayer player : this.players) {
++            player.getAdvancements().reload(this.server.getAdvancements());
++            player.getAdvancements().flushDirty(player, false); // CraftBukkit - trigger immediate flush of advancements
++        }
++    }
++
++    public void reloadTagData() {
++        this.broadcastAll(new ClientboundUpdateTagsPacket(TagNetworkSerialization.serializeTagsToNetwork(this.registries)));
 +    }
 +
 +    public void reloadRecipes() {
-+        // CraftBukkit end
 +        var dataSyncEvent = net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.OnDatapackSyncEvent(this, null));
-+        RecipeManager recipemanager = this.server.getRecipeManager();
-+        ClientboundUpdateRecipesPacket recipes = new ClientboundUpdateRecipesPacket(recipemanager.getSynchronizedItemProperties(), recipemanager.getSynchronizedStonecutterRecipes());
++        RecipeManager recipeManager = this.server.getRecipeManager();
++        ClientboundUpdateRecipesPacket recipes = new ClientboundUpdateRecipesPacket(recipeManager.getSynchronizedItemProperties(), recipeManager.getSynchronizedStonecutterRecipes());
 +
-+        for (ServerPlayer serverplayer : this.players) {
-+            serverplayer.connection.send(recipes);
-+            serverplayer.getRecipeBook().sendInitialRecipeBook(serverplayer);
-+            net.neoforged.neoforge.common.CommonHooks.sendRecipes(serverplayer, dataSyncEvent.getRecipeTypesToSend(), recipemanager.recipeMap());
-         }
-+
++        for (ServerPlayer player : this.players) {
++            player.connection.send(recipes);
++            player.getRecipeBook().sendInitialRecipeBook(player);
++            net.neoforged.neoforge.common.CommonHooks.sendRecipes(player, dataSyncEvent.getRecipeTypesToSend(), recipeManager.recipeMap());
++        }
 +    }
++    // Paper end - API for updating recipes on clients
 +
 +    public PlayerDataStorage getPlayerIo() {
 +        return this.playerIo;
