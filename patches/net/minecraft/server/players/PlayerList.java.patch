@@ -1148,37 +1148,26 @@
      }
  
      public Map<UUID, ServerPlayer> getPlayersByUUID() {
-@@ -847,19 +_,49 @@
+@@ -847,10 +_,12 @@
      }
  
      public void reloadResources() {
 -        for (PlayerAdvancements advancements : this.advancements.values()) {
 -            advancements.reload(this.server.getAdvancements());
--        }
--
--        this.broadcastAll(new ClientboundUpdateTagsPacket(TagNetworkSerialization.serializeTagsToNetwork(this.registries)));
--        RecipeManager recipeManager = this.server.getRecipeManager();
--        ClientboundUpdateRecipesPacket recipes = new ClientboundUpdateRecipesPacket(
--            recipeManager.getSynchronizedItemProperties(), recipeManager.getSynchronizedStonecutterRecipes()
--        );
--
--        for (ServerPlayer player : this.players) {
--            player.connection.send(recipes);
--            player.getRecipeBook().sendInitialRecipeBook(player);
--        }
 +        for (ServerPlayer player : this.players) {
 +            player.getAdvancements().reload(this.server.getAdvancements());
 +            player.getAdvancements().flushDirty(player, false); // CraftBukkit - trigger immediate flush of advancements
-+        }
-+
+         }
+ 
 +        var dataSyncEvent = net.neoforged.neoforge.common.NeoForge.EVENT_BUS.post(new net.neoforged.neoforge.event.OnDatapackSyncEvent(this, null));
-+        this.broadcastAll(new ClientboundUpdateTagsPacket(TagNetworkSerialization.serializeTagsToNetwork(this.registries)));
-+        RecipeManager recipeManager = this.server.getRecipeManager();
-+        ClientboundUpdateRecipesPacket recipes = new ClientboundUpdateRecipesPacket(recipeManager.getSynchronizedItemProperties(), recipeManager.getSynchronizedStonecutterRecipes());
-+
-+        for (ServerPlayer player : this.players) {
-+            player.connection.send(recipes);
-+            player.getRecipeBook().sendInitialRecipeBook(player);
+         this.broadcastAll(new ClientboundUpdateTagsPacket(TagNetworkSerialization.serializeTagsToNetwork(this.registries)));
+         RecipeManager recipeManager = this.server.getRecipeManager();
+         ClientboundUpdateRecipesPacket recipes = new ClientboundUpdateRecipesPacket(
+@@ -860,6 +_,36 @@
+         for (ServerPlayer player : this.players) {
+             player.connection.send(recipes);
+             player.getRecipeBook().sendInitialRecipeBook(player);
+-        }
 +            net.neoforged.neoforge.common.CommonHooks.sendRecipes(player, dataSyncEvent.getRecipeTypesToSend(), recipeManager.recipeMap());
 +        }
 +    }

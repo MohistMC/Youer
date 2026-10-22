@@ -9,10 +9,12 @@
      public final Map<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey;
  
      private RecipeMap(Multimap<RecipeType<?>, RecipeHolder<?>> byType, Map<ResourceKey<Recipe<?>>, RecipeHolder<?>> byKey) {
-@@ -31,6 +_,75 @@
+@@ -30,7 +_,76 @@
+             byType.put(recipe.value().getType(), legacyRecipeHolder);
              byKey.put(recipe.key(), legacyRecipeHolder);
          });
-         return new RecipeMap(byType.build(), byKey.build());
+-        return new RecipeMap(byType.build(), byKey.build());
++        return new RecipeMap(byType.build(), com.google.common.collect.Maps.newLinkedHashMap(byKey.build())); // CraftBukkit - mutable byKey
 +    }
 +
 +    /// Neo: add factory method for RecipeMap holding recipes synced to the client
