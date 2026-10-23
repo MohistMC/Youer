@@ -8,14 +8,6 @@
  import com.mojang.logging.LogUtils;
  import com.mojang.serialization.Codec;
  import it.unimi.dsi.fastutil.floats.FloatArraySet;
-@@ -25,6 +_,7 @@
- import java.util.Optional;
- import java.util.Set;
- import java.util.UUID;
-+import java.util.concurrent.atomic.AtomicBoolean;
- import java.util.concurrent.atomic.AtomicInteger;
- import java.util.function.BiConsumer;
- import java.util.function.Predicate;
 @@ -50,6 +_,7 @@
  import net.minecraft.core.component.DataComponents;
  import net.minecraft.core.particles.BlockParticleOption;
@@ -33,30 +25,7 @@
  import net.minecraft.network.protocol.game.ClientboundTeleportEntityPacket;
  import net.minecraft.network.protocol.game.VecDeltaCodec;
  import net.minecraft.network.syncher.EntityDataAccessor;
-@@ -79,6 +_,7 @@
- import net.minecraft.tags.EntityTypeTags;
- import net.minecraft.tags.FluidTags;
- import net.minecraft.tags.TagKey;
-+import net.minecraft.util.ARGB;
- import net.minecraft.util.BlockUtil;
- import net.minecraft.util.Mth;
- import net.minecraft.util.ProblemReporter;
-@@ -103,6 +_,9 @@
- import net.minecraft.world.item.ItemStack;
- import net.minecraft.world.item.Items;
- import net.minecraft.world.item.component.CustomData;
-+import net.minecraft.world.item.enchantment.EnchantmentEffectComponents;
-+import net.minecraft.world.item.enchantment.EnchantmentHelper;
-+import net.minecraft.world.item.equipment.Equippable;
- import net.minecraft.world.level.BlockGetter;
- import net.minecraft.world.level.ChunkPos;
- import net.minecraft.world.level.ClipContext;
-@@ -120,10 +_,12 @@
- import net.minecraft.world.level.block.SoundType;
- import net.minecraft.world.level.block.state.BlockState;
- import net.minecraft.world.level.border.WorldBorder;
-+import net.minecraft.world.level.dimension.LevelStem;
- import net.minecraft.world.level.entity.EntityAccess;
+@@ -124,6 +_,7 @@
  import net.minecraft.world.level.entity.EntityInLevelCallback;
  import net.minecraft.world.level.gameevent.DynamicGameEventListener;
  import net.minecraft.world.level.gameevent.GameEvent;
@@ -64,16 +33,14 @@
  import net.minecraft.world.level.levelgen.Heightmap;
  import net.minecraft.world.level.material.Fluid;
  import net.minecraft.world.level.material.FluidState;
-@@ -152,6 +_,35 @@
+@@ -152,6 +_,33 @@
  import net.minecraft.world.scores.Scoreboard;
  import net.minecraft.world.scores.Team;
  import net.minecraft.world.waypoints.WaypointTransmitter;
 +import org.bukkit.Bukkit;
 +import org.bukkit.Location;
-+import org.bukkit.Server;
 +import org.bukkit.block.BlockFace;
 +import org.bukkit.command.CommandSender;
-+import org.bukkit.craftbukkit.CraftWorld;
 +import org.bukkit.craftbukkit.entity.CraftEntity;
 +import org.bukkit.craftbukkit.entity.CraftPlayer;
 +import org.bukkit.craftbukkit.event.CraftEventFactory;

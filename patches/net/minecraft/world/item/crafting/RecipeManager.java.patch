@@ -1,41 +1,13 @@
 --- a/net/minecraft/world/item/crafting/RecipeManager.java
 +++ b/net/minecraft/world/item/crafting/RecipeManager.java
-@@ -1,21 +_,35 @@
- package net.minecraft.world.item.crafting;
- 
-+import com.google.common.annotations.VisibleForTesting;
-+import com.google.gson.JsonObject;
-+import com.google.gson.JsonParseException;
- import com.mojang.logging.LogUtils;
-+import com.mojang.serialization.JsonOps;
- import it.unimi.dsi.fastutil.objects.Object2IntMap;
- import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
- import java.util.ArrayList;
- import java.util.Collection;
-+import java.util.Collections;
- import java.util.IdentityHashMap;
- import java.util.List;
- import java.util.Map;
- import java.util.Optional;
- import java.util.OptionalInt;
-+import java.util.SortedMap;
-+import java.util.TreeMap;
- import java.util.function.Consumer;
- import java.util.stream.Collectors;
+@@ -15,6 +_,7 @@
  import net.minecraft.core.HolderLookup;
  import net.minecraft.core.registries.Registries;
-+import net.minecraft.resources.FileToIdConverter;
-+import net.minecraft.resources.Identifier;
  import net.minecraft.resources.ResourceKey;
 +import net.minecraft.server.MinecraftServer;
  import net.minecraft.server.level.ServerLevel;
-+import net.minecraft.server.packs.resources.ResourceManager;
-+import net.minecraft.server.packs.resources.SimpleJsonResourceReloadListener;
-+import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
-+import net.minecraft.util.profiling.ProfilerFiller;
  import net.minecraft.world.flag.FeatureFlagSet;
  import net.minecraft.world.item.crafting.display.RecipeDisplay;
- import net.minecraft.world.item.crafting.display.RecipeDisplayEntry;
 @@ -26,7 +_,7 @@
  
  public class RecipeManager implements RecipeAccess {
