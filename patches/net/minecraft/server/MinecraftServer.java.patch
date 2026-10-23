@@ -1706,7 +1706,7 @@
          }
  
          super.executeIfPossible(command);
-@@ -1497,7 +_,16 @@
+@@ -1497,11 +_,20 @@
          return this.functionManager;
      }
  
@@ -1721,8 +1721,15 @@
 +    ) {
 +        // Paper end - Add ServerResourcesReloadedEvent
          CompletableFuture<Void> result = CompletableFuture.<ImmutableList>supplyAsync(
-                 () -> packsToEnable.stream()
-                     .map(this.packRepository::getPack)
+-                () -> packsToEnable.stream()
+-                    .map(this.packRepository::getPack)
+-                    .filter(Objects::nonNull)
++                () -> this.packRepository
++                    .rebuildSelected(packsToEnable, false)
++                    .stream()
+                     .flatMap(Pack::open)
+                     .collect(ImmutableList.toImmutableList()),
+                 this
 @@ -1509,7 +_,7 @@
              .thenCompose(
                  packsToLoad -> {

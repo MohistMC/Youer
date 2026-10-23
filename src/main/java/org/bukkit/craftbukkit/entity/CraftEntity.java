@@ -5,7 +5,6 @@ import com.google.common.base.Preconditions;
 import com.google.common.base.Predicates;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
-import com.mohistmc.youer.bukkit.entity.YouerModsFireballEntity;
 import com.mohistmc.youer.neoforge.EntityClassLookup;
 import com.mojang.logging.LogUtils;
 import io.papermc.paper.datacomponent.DataComponentType;
@@ -175,7 +174,7 @@ public abstract class CraftEntity implements org.bukkit.entity.Entity {
                 return (CraftEntity) entityTypeData.convertFunction().apply(server, entity);
             } catch (ClassCastException e) {
                 if (entity instanceof Fireball && entity.getType() == net.minecraft.world.entity.EntityTypes.SMALL_FIREBALL) {
-                    return new YouerModsFireballEntity(server, (Fireball) entity);
+                    return new CraftFireball(server, (Fireball) entity);
                 }
             }
         }

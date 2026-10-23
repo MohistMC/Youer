@@ -37,6 +37,7 @@ import org.bukkit.Statistic;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.CraftStatistic;
 import org.bukkit.craftbukkit.util.CraftMagicNumbers;
+import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 import org.bukkit.craftbukkit.util.CraftSpawnCategory;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
@@ -135,17 +136,6 @@ public class NeoForgeInjectBukkit {
         materials.clear();
     }
 
-    public static void addEnumMaterialsInBlockEntityType() {
-        var registry = BuiltInRegistries.BLOCK_ENTITY_TYPE;
-        for (BlockEntityType<?> entityType : registry) {
-            Identifier resourceLocation = registry.getKey(entityType);
-            if (isMods(resourceLocation)) {
-                String materialName = MohistDynamEnum.normalizeName(resourceLocation.toString());
-                Youer.LOGGER.error("Discover entity blocks:{} - {}", entityType, materialName);
-            }
-        }
-    }
-
     public static void addEnumEffectAndPotion() {
         var registry = BuiltInRegistries.POTION;
         for (Potion potion : registry) {
@@ -156,7 +146,7 @@ public class NeoForgeInjectBukkit {
                     try {
                         PotionType.valueOf(name);
                     } catch (Exception e) {
-                        PotionType potionType = MohistDynamEnum.addEnum(PotionType.class, name, List.of(String.class), List.of(resourceLocation.toString()));
+                        PotionType potionType = MohistDynamEnum.addEnum(PotionType.class, name, List.of(NamespacedKey.class), List.of(CraftNamespacedKey.fromMinecraft(resourceLocation)));
                         if (potionType != null) {
                             debug("Save-PotionType:{} - {}", name, potionType.name());
                         }

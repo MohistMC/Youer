@@ -68,7 +68,12 @@ public enum PotionType implements Keyed, io.papermc.paper.world.flag.FeatureDepe
     private final Supplier<InternalPotionData> internalPotionDataSupplier;
 
     PotionType(String key) {
-        this.key = NamespacedKey.minecraft(key);
+        this(NamespacedKey.minecraft(key));
+    }
+
+    // Youer - dynamic modded potion types keep their real namespace:path
+    PotionType(NamespacedKey key) {
+        this.key = key;
         this.internalPotionDataSupplier = Suppliers.memoize(() -> Bukkit.getUnsafe().getInternalPotionData(this.key));
     }
 
