@@ -4,6 +4,7 @@ import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
 import com.google.common.collect.ImmutableMap;
 import com.mohistmc.youer.Youer;
+import com.mohistmc.youer.api.ColorAPI;
 import com.mohistmc.youer.api.ServerAPI;
 import com.mohistmc.youer.util.DynamicEnumUtil;
 import java.lang.reflect.Modifier;
@@ -24,7 +25,6 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.stats.StatType;
 import net.minecraft.stats.Stats;
-import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.entity.MobCategory;
 import net.minecraft.world.entity.Pose;
 import net.minecraft.world.inventory.RecipeBookType;
@@ -40,7 +40,6 @@ import org.bukkit.Statistic;
 import org.bukkit.TreeType;
 import org.bukkit.World;
 import org.bukkit.craftbukkit.CraftStatistic;
-import org.bukkit.craftbukkit.potion.CraftPotionUtil;
 import org.bukkit.craftbukkit.util.CraftMagicNumbers;
 import org.bukkit.craftbukkit.util.CraftNamespacedKey;
 import org.bukkit.entity.Entity;
@@ -52,23 +51,20 @@ import org.bukkit.potion.PotionType;
 
 public class NeoForgeInjectBukkit {
 
-    public static final boolean DEBUG = Boolean.getBoolean("youer.debug");
-    public static BiMap<ResourceKey<LevelStem>, World.Environment> environment =
-            HashBiMap.create(ImmutableMap.<ResourceKey<LevelStem>, World.Environment>builder()
-                    .put(LevelStem.OVERWORLD, World.Environment.NORMAL)
-                    .put(LevelStem.NETHER, World.Environment.NETHER)
-                    .put(LevelStem.END, World.Environment.THE_END)
-                    .build());
-
-    public static BiMap<World.Environment, ResourceKey<LevelStem>> environment0 =
-            HashBiMap.create(ImmutableMap.<World.Environment, ResourceKey<LevelStem>>builder()
-                    .put(World.Environment.NORMAL, LevelStem.OVERWORLD)
-                    .put(World.Environment.NETHER, LevelStem.NETHER)
-                    .put(World.Environment.THE_END, LevelStem.END)
-                    .build());
-
-    public static Map<Villager.Profession, Identifier> profession = new HashMap<>();
     private static final BiMap<Identifier, Statistic> STATISTICS = HashBiMap.create(CraftStatistic.statistics);
+    public static BiMap<ResourceKey<LevelStem>, World.Environment> environment =
+        HashBiMap.create(ImmutableMap.<ResourceKey<LevelStem>, World.Environment>builder()
+            .put(LevelStem.OVERWORLD, World.Environment.NORMAL)
+            .put(LevelStem.NETHER, World.Environment.NETHER)
+            .put(LevelStem.END, World.Environment.THE_END)
+            .build());
+    public static BiMap<World.Environment, ResourceKey<LevelStem>> environment0 =
+        HashBiMap.create(ImmutableMap.<World.Environment, ResourceKey<LevelStem>>builder()
+            .put(World.Environment.NORMAL, LevelStem.OVERWORLD)
+            .put(World.Environment.NETHER, LevelStem.NETHER)
+            .put(World.Environment.THE_END, LevelStem.END)
+            .build());
+    public static Map<Villager.Profession, Identifier> profession = new HashMap<>();
     public static Map<SpawnCategory, MobCategory> CATEGORYSPAWNMAP = new HashMap<>();
     public static Map<String, TreeType> treeTypeByGrowerName = new HashMap<>();
 
@@ -76,11 +72,9 @@ public class NeoForgeInjectBukkit {
     public static void init() {
         addEnumMaterialInItems();
         addEnumEffectAndPotion();
-        addEnumMobEffect();
         addEnumMaterialsInBlocks();
         addEnumEntity();
         addEnumMenuType();
-        // addEnumParticle();
         addStatistic();
         loadSpawnCategory();
         addPose();
@@ -92,60 +86,72 @@ public class NeoForgeInjectBukkit {
 
     private static String getMaterialName(Identifier resourceLocation, boolean isMod) {
         return isMod ?
-                DynamicEnumUtil.normalizeName(resourceLocation.toString()) :
-                DynamicEnumUtil.normalizeName(resourceLocation.getPath());
+            DynamicEnumUtil.normalizeName(resourceLocation.toString()) :
+            DynamicEnumUtil.normalizeName(resourceLocation.getPath());
     }
 
     public static void addEnumMaterialInItems() {
         var registry = BuiltInRegistries.ITEM;
+        List<String> materials = new ArrayList<>(Arrays.stream(Material.values())
+            .map(Enum::name)
+            .toList());
+        int count = 0;
         for (Item item : registry) {
             Identifier resourceLocation = registry.getKey(item);
             boolean isMod = isMods(resourceLocation);
             String materialName = getMaterialName(resourceLocation, isMod);
 
-            if (isMod || CraftMagicNumbers.getMaterial(item) == null) {
+            if (isMod || !materials.contains(materialName)) {
                 int id = Item.getId(item);
-                int maxStackSize = item.getDefaultInstance().getMaxStackSize();
 
                 Material material = Material.addMaterial(materialName, id, false, true, resourceLocation);
 
                 if (material != null) {
                     CraftMagicNumbers.ITEM_MATERIAL.put(item, material);
                     CraftMagicNumbers.MATERIAL_ITEM.put(material, item);
-                    debug("Save-ITEM: {} - {}", material.name(), material.getKey());
+                    count++;
                 }
             }
+        }
+        materials.clear();
+        if (count > 0) {
+            Youer.LOGGER.info(ColorAPI.ansi("§aRegistered {} §6mod Item(s) §7as Bukkit §bMaterial"), count);
         }
     }
 
     public static void addEnumMaterialsInBlocks() {
         var registry = BuiltInRegistries.BLOCK;
         List<String> materials = new ArrayList<>(Arrays.stream(Material.values())
-                .map(Enum::name)
-                .toList());
+            .map(Enum::name)
+            .toList());
+        int count = 0;
         for (Block block : registry) {
             Identifier resourceLocation = registry.getKey(block);
             boolean isMod = isMods(resourceLocation);
             String materialName = getMaterialName(resourceLocation, isMod);
 
+            // 检查是否需要添加材料
             if (isMod || !materials.contains(materialName)) {
                 int id = Item.getId(block.asItem());
                 Item item = Item.byId(id);
-                int maxStackSize = item.getDefaultInstance().getMaxStackSize();
 
                 Material material = Material.addMaterial(materialName, id, true, false, resourceLocation);
                 if (material != null) {
                     CraftMagicNumbers.BLOCK_MATERIAL.put(block, material);
                     CraftMagicNumbers.MATERIAL_BLOCK.put(material, block);
-                    debug("Save-BLOCK:{} - {}", material.name(), material.getKey());
+                    count++;
                 }
             }
         }
         materials.clear();
+        if (count > 0) {
+            Youer.LOGGER.info(ColorAPI.ansi("§aRegistered {} §6mod Block(s) §7as Bukkit §bMaterial"), count);
+        }
     }
 
     public static void addEnumEffectAndPotion() {
         var registry = BuiltInRegistries.POTION;
+        int count = 0;
         for (Potion potion : registry) {
             Identifier resourceLocation = registry.getKey(potion);
             if (resourceLocation != null) {
@@ -156,46 +162,39 @@ public class NeoForgeInjectBukkit {
                     } catch (Exception e) {
                         PotionType potionType = DynamicEnumUtil.addEnum(PotionType.class, name, List.of(NamespacedKey.class), List.of(CraftNamespacedKey.fromMinecraft(resourceLocation)));
                         if (potionType != null) {
-                            CraftPotionUtil.mods.put(resourceLocation, potionType);
-                            debug("Save-PotionType:{} - {}", name, potionType.name());
+                            count++;
                         }
                     }
                 }
             }
         }
-    }
-
-    public static void addEnumMobEffect() {
-        var registry = BuiltInRegistries.MOB_EFFECT;
-        for (MobEffect effect : registry) {
-            Identifier resourceLocation = registry.getKey(effect);
-            if (resourceLocation != null && isMods(resourceLocation)) {
-                NamespacedKey key = NamespacedKey.fromString(resourceLocation.toString());
-                if (key != null) {
-                    org.bukkit.Registry.MOB_EFFECT.get(key);
-                    debug("Save-MobEffect:{}", key);
-                }
-            }
+        if (count > 0) {
+            Youer.LOGGER.info(ColorAPI.ansi("§aRegistered {} §6mod Potion(s) §7as Bukkit §bPotionType"), count);
         }
     }
 
     public static void addEnumParticle() {
         var registry = BuiltInRegistries.PARTICLE_TYPE;
+        int count = 0;
         for (ParticleType<?> particleType : registry) {
             Identifier resourceLocation = registry.getKey(particleType);
             String name = DynamicEnumUtil.normalizeName(resourceLocation.toString());
             if (!resourceLocation.getNamespace().equals(NamespacedKey.MINECRAFT)) {
                 Particle particle = DynamicEnumUtil.addEnum(Particle.class, name);
                 if (particle != null) {
-                    debug("Save-ParticleType:{} - {}", name, particle.name());
+                    count++;
                 }
             }
+        }
+        if (count > 0) {
+            Youer.LOGGER.info(ColorAPI.ansi("§aRegistered {} §6mod ParticleType(s) §7as Bukkit §bParticle"), count);
         }
     }
 
 
     public static void addEnumEnvironment(Registry<LevelStem> registry) {
         int i = World.Environment.values().length;
+        int count = 0;
         for (Entry<ResourceKey<LevelStem>, LevelStem> entry : registry.entrySet()) {
             ResourceKey<LevelStem> key = entry.getKey();
             World.Environment environment1 = environment.get(key);
@@ -205,17 +204,22 @@ public class NeoForgeInjectBukkit {
                 environment1 = DynamicEnumUtil.addEnum(World.Environment.class, name, List.of(Integer.TYPE), List.of(id));
                 environment.put(key, environment1);
                 environment0.put(environment1, key);
-                debug("Registered forge DimensionType as environment {}", environment1);
+                count++;
                 i++;
             }
+        }
+        if (count > 0) {
+            Youer.LOGGER.info(ColorAPI.ansi("§aRegistered {} §6mod DimensionType(s) §7as Bukkit §bEnvironment"), count);
         }
     }
 
     public static void addEnumEntity() {
         var registry = BuiltInRegistries.ENTITY_TYPE;
         List<String> entityTypeNames = Arrays.stream(EntityType.values())
-                .map(Enum::name)
-                .toList();
+            .map(Enum::name)
+            .toList();
+        int modCount = 0;
+        int vanillaKeyCount = 0;
         for (net.minecraft.world.entity.EntityType<?> entity : registry) {
             Identifier resourceLocation = registry.getKey(entity);
             if (resourceLocation == null) continue;
@@ -224,28 +228,34 @@ public class NeoForgeInjectBukkit {
             if (isMod) {
                 int typeId = entityName.hashCode();
                 EntityType bukkitType = DynamicEnumUtil.addEnum(EntityType.class, entityName,
-                        List.of(String.class, Class.class, Integer.TYPE, Boolean.TYPE),
-                        List.of(entityName.toLowerCase(), Entity.class, typeId, false));
+                    List.of(String.class, Class.class, Integer.TYPE, Boolean.TYPE),
+                    List.of(entityName.toLowerCase(), Entity.class, typeId, false));
 
                 if (bukkitType != null) {
                     bukkitType.hookForgeEntity(resourceLocation, entity);
+                    modCount++;
                 }
-                debug("Registered forge EntityType as {}", bukkitType);
             } else {
                 if (!entityTypeNames.contains(entityName)) {
                     int typeId = entityName.hashCode();
                     EntityType bukkitType = DynamicEnumUtil.addEnum(EntityType.class, entityName,
-                            List.of(String.class, Class.class, Integer.TYPE, Boolean.TYPE),
-                            List.of(entityName.toLowerCase(), Entity.class, typeId, false));
+                        List.of(String.class, Class.class, Integer.TYPE, Boolean.TYPE),
+                        List.of(entityName.toLowerCase(), Entity.class, typeId, false));
 
                     if (bukkitType != null) {
                         bukkitType.hookForgeEntity(resourceLocation, entity);
+                        vanillaKeyCount++;
                     }
-                    debug("Registered mods minecraft key EntityType as {}", bukkitType);
                 } else {
                     ServerAPI.entityTypeMap.put(entity, DynamicEnumUtil.normalizeName(resourceLocation.getPath()));
                 }
             }
+        }
+        if (modCount > 0) {
+            Youer.LOGGER.info(ColorAPI.ansi("§aRegistered {} §6mod EntityType(s) §7as Bukkit §bEntityType"), modCount);
+        }
+        if (vanillaKeyCount > 0) {
+            Youer.LOGGER.info(ColorAPI.ansi("§aRegistered {} §6minecraft key EntityType(s) §7as Bukkit §bEntityType"), vanillaKeyCount);
         }
     }
 
@@ -267,12 +277,13 @@ public class NeoForgeInjectBukkit {
             }
         }
         if (count > 0) {
-            Youer.LOGGER.info("Registered {} mod MenuType(s) as Bukkit InventoryType", count);
+            Youer.LOGGER.info(ColorAPI.ansi("§aRegistered {} §6mod MenuType(s) §7as Bukkit §bInventoryType"), count);
         }
     }
 
     public static void addStatistic() {
         var registry = BuiltInRegistries.STAT_TYPE;
+        int statTypeCount = 0;
         for (StatType<?> statType : registry) {
             if (statType == Stats.CUSTOM) continue;
             var resourceLocation = registry.getKey(statType);
@@ -292,9 +303,10 @@ public class NeoForgeInjectBukkit {
                 statistic = DynamicEnumUtil.addEnum(Statistic.class, name, List.of(Statistic.Type.class), List.of(type));
                 statistic.key = NamespacedKey.fromString(resourceLocation.toString());
                 STATISTICS.put(resourceLocation, statistic);
-                debug("Registered forge STAT_TYPE as Statistic(Bukkit) {}", name);
+                statTypeCount++;
             }
         }
+        int customStatCount = 0;
         for (Identifier resourceLocation : BuiltInRegistries.CUSTOM_STAT) {
             Statistic statistic = STATISTICS.get(resourceLocation);
             if (statistic == null && isMods(resourceLocation)) {
@@ -302,43 +314,61 @@ public class NeoForgeInjectBukkit {
                 statistic = DynamicEnumUtil.addEnum(Statistic.class, name);
                 statistic.key = NamespacedKey.fromString(resourceLocation.toString());
                 STATISTICS.put(resourceLocation, statistic);
-                debug("Registered forge CUSTOM_STAT as Statistic(Bukkit) {}", name);
+                customStatCount++;
             }
         }
         CraftStatistic.statistics = STATISTICS;
-    }
-
-    private static void addModRecipeBookType() {
-        Set<String> knownTypes = Arrays.stream(PlayerRecipeBookSettingsChangeEvent.RecipeBookType.values())
-            .map(Enum::name)
-            .collect(Collectors.toSet());
-        for (RecipeBookType type : RecipeBookType.values()) {
-            String name = type.name();
-            if (!knownTypes.contains(name)) {
-                var bukkit = DynamicEnumUtil.addEnum(PlayerRecipeBookSettingsChangeEvent.RecipeBookType.class, name);
-                debug("Registered {} as recipe book type {}", name, bukkit);
-            }
+        if (statTypeCount > 0) {
+            Youer.LOGGER.info(ColorAPI.ansi("§aRegistered {} §6mod StatType(s) §7as Bukkit §bStatistic"), statTypeCount);
+        }
+        if (customStatCount > 0) {
+            Youer.LOGGER.info(ColorAPI.ansi("§aRegistered {} §6mod CustomStat(s) §7as Bukkit §bStatistic"), customStatCount);
         }
     }
 
     private static void loadSpawnCategory() {
         Set<String> existing = Arrays.stream(SpawnCategory.values()).map(Enum::name).collect(Collectors.toSet());
+        int count = 0;
         for (MobCategory category : MobCategory.values()) {
             String name = category.name();
             if (existing.contains(name)) continue;
             SpawnCategory spawnCategory = DynamicEnumUtil.addEnum(SpawnCategory.class, name);
             CATEGORYSPAWNMAP.put(spawnCategory, category);
             spawnCategory.isMods = true;
-            debug("Registered forge MobCategory as SpawnCategory(Bukkit) {}", spawnCategory);
+            count++;
+        }
+        if (count > 0) {
+            Youer.LOGGER.info(ColorAPI.ansi("§aRegistered {} §6mod MobCategory(s) §7as Bukkit §bSpawnCategory"), count);
         }
     }
 
     private static void addPose() {
+        int count = 0;
         for (Pose pose : Pose.values()) {
             if (pose.ordinal() > 14) {
-                org.bukkit.entity.Pose bukkit = DynamicEnumUtil.addEnum(org.bukkit.entity.Pose.class, pose.name());
-                debug("Registered forge Pose as Pose(Bukkit) {}", bukkit);
+                DynamicEnumUtil.addEnum(org.bukkit.entity.Pose.class, pose.name());
+                count++;
             }
+        }
+        if (count > 0) {
+            Youer.LOGGER.info(ColorAPI.ansi("§aRegistered {} §6mod Pose(s) §7as Bukkit §bPose"), count);
+        }
+    }
+
+    private static void addModRecipeBookType() {
+        Set<String> knownTypes = Arrays.stream(PlayerRecipeBookSettingsChangeEvent.RecipeBookType.values())
+            .map(Enum::name)
+            .collect(Collectors.toSet());
+        int count = 0;
+        for (RecipeBookType type : RecipeBookType.values()) {
+            String name = type.name();
+            if (!knownTypes.contains(name)) {
+                DynamicEnumUtil.addEnum(PlayerRecipeBookSettingsChangeEvent.RecipeBookType.class, name);
+                count++;
+            }
+        }
+        if (count > 0) {
+            Youer.LOGGER.info(ColorAPI.ansi("§aRegistered {} §6mod RecipeBookType(s) §7as Bukkit §bRecipeBookType"), count);
         }
     }
 
@@ -351,7 +381,6 @@ public class NeoForgeInjectBukkit {
             TreeType treeType = DynamicEnumUtil.addEnum(TreeType.class, enumName);
             if (treeType != null) {
                 treeTypeByGrowerName.put(name, treeType);
-                debug("Registered forge TreeGrower {} as TreeType(Bukkit) {}", name, treeType);
             }
         }
     }
@@ -369,13 +398,5 @@ public class NeoForgeInjectBukkit {
             }
         } catch (Throwable ignored) {
         }
-    }
-
-    public static void debug(String message, Object p0) {
-        if (DEBUG) Youer.LOGGER.info(message, p0);
-    }
-
-    public static void debug(String message, Object p0, Object p1) {
-        if (DEBUG) Youer.LOGGER.info(message, p0, p1);
     }
 }
